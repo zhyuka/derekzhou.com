@@ -1,0 +1,409 @@
+/* ------------------------------------------------
+   @font-face — self-hosted WOFF2, ASCII subsets
+   (regenerate with ./subset-fonts.sh; bump .subN
+   filenames on change — assets are immutable-cached).
+   Geist and Geist Mono: SIL Open Font License 1.1
+   (assets/fonts/OFL.txt). Geist is one variable file
+   cut to the two weights the site sets, 400 and 500
+   (500: a heading set in type, the 404's).
+   ------------------------------------------------ */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/assets/fonts/Geist-400-500.sub2.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: optional;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/assets/fonts/GeistMono-Regular.sub2.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: optional;
+}
+
+/* Metric-matched fallbacks: if the webfont misses first paint,
+   the system face renders at the webfont's exact metrics.
+   size-adjust is the page's own text set in Geist over the same
+   text in the system face; the overrides are Geist's ascent
+   (1.005) and descent (0.295) over it. See CLAUDE.md. */
+
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial');
+  font-weight: 400;
+  size-adjust: 104.70%;
+  ascent-override: 95.99%;
+  descent-override: 28.18%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial');
+  font-weight: 500;
+  size-adjust: 105.80%;
+  ascent-override: 94.99%;
+  descent-override: 27.88%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback Android';
+  src: local('Roboto');
+  font-weight: 400;
+  size-adjust: 104.77%;
+  ascent-override: 95.92%;
+  descent-override: 28.16%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback Android';
+  src: local('Roboto Medium'), local('Roboto-Medium');
+  font-weight: 500;
+  size-adjust: 106.60%;
+  ascent-override: 94.28%;
+  descent-override: 27.67%;
+  line-gap-override: 0%;
+}
+
+/* Every glyph of a mono is one advance: Geist Mono's 0.6 em over
+   Menlo's and Courier New's (0.602, 0.600) */
+@font-face {
+  font-family: 'Geist Mono Fallback';
+  src: local('Menlo'), local('Courier New');
+  font-weight: 400;
+  size-adjust: 99.82%;
+  ascent-override: 100.68%;
+  descent-override: 29.55%;
+  line-gap-override: 0%;
+}
+
+/* ------------------------------------------------
+   Tokens — the paper: black ink on Samara's cream (#f9f8f1), text
+   19.7:1, dimmed 6.3:1, focus (a dark ochre) 5.0:1, selection a light
+   warm grey under the black text (16.2:1). The page's ground is a sky
+   now (below): each time of day sets its own words' colours (the still
+   skies), and the drawn sky sets them afresh from what it drew.
+   ------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  /* Two families (see CLAUDE.md, Type): Geist for the words, the links
+     and a heading set in type (the 404's); Geist Mono for the facts. The
+     name is no font: it is lettering, drawn (.name) */
+  --font-sans: 'Geist', 'Geist Fallback', 'Geist Fallback Android', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+
+  --color-bg: #f9f8f1;
+  --color-text: #000000;
+  --color-dimmed: #5f5c56;
+  --color-focus: #8a6417;
+  --color-selection: #e6e2d6;
+}
+
+/* ------------------------------------------------
+   Reset & base
+   ------------------------------------------------ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-synthesis: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-selection);
+  color: var(--color-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------
+   The sky — behind everything, the whole window. The sky's script draws it
+   (WebGL2) and fades it in over the stylesheet's still sky of the hour
+   (data-sky, set by the hour's script before the first paint). The words'
+   colours follow the sky: dark on a light one, light on a dark one; the
+   script refines them for the sky it drew (4.7:1 for the dimmed words; the
+   links' own, on the footer, for the sea under them), and never darkens the
+   sky for them. With no script the page is the still day sky.
+   ------------------------------------------------ */
+
+.sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sky.on {
+  opacity: 1;
+  animation: appear 2s;
+}
+
+/* the still skies: the sky from the top edge to the horizon (four
+   fifths of the way down), then the sea of cloud. Each is the drawn
+   skies of its time of day (data-sky) taken row by row, without their
+   towers, and averaged: day (fair weather, the halo), dawn
+   (sunrise, the glory), rain (silver rain, the rainbow), sunset (golden
+   hour), dusk (the afterglow, the blue hour), night (a moonlit sea, the
+   Milky Way, the aurora); so the drawn sky dissolves in over its own.
+   (Taken again once the skies with light words were held under their
+   light ceiling: the night sky (its top kept, the browser bars' colour
+   the hour's script gives), the dusk sea at 92-100%; the dusk
+   sky's stops kept a little darker than the drawn afterglow's glow, so
+   the dimmed grey holds 4.7:1 over all of it, and the drawn sky dissolves
+   in over a sky no lighter than its own) */
+body {
+  background: linear-gradient(to bottom, #a5d5f8 0%, #b9e0fa 26%, #c6e8f9 52%, #d6f0f8 72%, #dbf2f7 78%, #dbf1f5 82%, #dceef1 92%, #d9e9eb 100%) #c6e8f9;
+}
+
+:root[data-sky="dawn"] body {
+  background: linear-gradient(to bottom, #cdc9e6 0%, #e4cfe0 26%, #f3d3d8 52%, #fcd4ca 72%, #fad4c9 78%, #f4d1c8 82%, #e5c8c2 92%, #d6bdb9 100%) #f3d3d8;
+}
+
+:root[data-sky="rain"] body {
+  background: linear-gradient(to bottom, #9fbecd 0%, #aecad5 26%, #b7d1db 52%, #c5dee5 72%, #c9e2e7 78%, #c6d9db 82%, #bfcbca 92%, #bdc8c5 100%) #b7d1db;
+}
+
+:root[data-sky="sunset"] body {
+  background: linear-gradient(to bottom, #f4c1c6 0%, #fdc7b7 26%, #feccb3 52%, #fed3b4 72%, #fed2b5 78%, #fccbae 82%, #f1bca1 92%, #e3b39c 100%) #feccb3;
+}
+
+:root[data-sky="dusk"] body {
+  background: linear-gradient(to bottom, #35304e 0%, #44344e 26%, #563a48 52%, #6c423c 72%, #6b4242 78%, #684347 82%, #56414f 92%, #4d3b4b 100%) #563a48;
+}
+
+:root[data-sky="night"] body {
+  background: linear-gradient(to bottom, #282c3e 0%, #303647 26%, #30434e 52%, #2e404f 72%, #314352 78%, #364953 82%, #3b4e53 92%, #384b4f 100%) #30434e;
+}
+
+/* the words on the still skies: each colour holds against its sky's whole
+   gradient, wherever a window puts the words (4.7:1 for text and the
+   dimmed grey, 3.3:1 for the focus ring; CI checks 4.5 and 3) */
+:root:not([data-sky]),
+:root[data-sky="day"] {
+  --color-dimmed: #575652;
+  --color-focus: #91641a;
+}
+
+:root[data-sky="dawn"] {
+  --color-dimmed: #4f4d4a;
+  --color-focus: #865c17;
+}
+
+:root[data-sky="rain"] {
+  --color-dimmed: #494744;
+  --color-focus: #7d5615;
+}
+
+:root[data-sky="sunset"] {
+  --color-dimmed: #4c4a47;
+  --color-focus: #815916;
+}
+
+:root[data-sky="dusk"],
+:root[data-sky="night"] {
+  --color-text: #fdfcf7;
+  --color-dimmed: #bcc3cb;
+  --color-focus: #d4ae5c;
+  --color-selection: #3b3f55;
+}
+
+/* ------------------------------------------------
+   The birds — samara.com/jobs's dots (body > .dot), as birds: fixed to
+   the window, over the page like Samara's, fading in over a second when
+   each appears. The birds' script moves them; without it they never show.
+   They never take a click: links under a bird still work. Their ink is
+   the words' (dark on a light sky, light on a dark one).
+   ------------------------------------------------ */
+
+.bird {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  fill: none;
+  stroke: var(--color-text);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bird.on {
+  display: block;
+  animation: appear 1s;
+}
+
+@keyframes appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ------------------------------------------------
+   Composition — one viewport, type at optical center
+   ------------------------------------------------ */
+
+main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.stack {
+  transform: translateY(-2vh);
+  max-width: 30rem;
+}
+
+/* A heading set in type (the 404's "404") */
+h1 {
+  font-weight: 500;
+  font-size: clamp(2.75rem, 1.9rem + 4vw, 4.75rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+/* The name, lettered (the home page's h1): one path in the words' colour
+   (currentColor), its box reserved by the drawing's own proportions, so
+   nothing moves when the fonts or anything else arrive. 25.25rem on any
+   window wide enough (the set name's weight of ink at 76 px), and on a
+   phone the measure main's padding leaves: 85% of a 320 px window, 88% of
+   390. The stack shrinks to its content, so the width is given outright. */
+.name svg {
+  display: block;
+  width: min(25.25rem, calc(100vw - 2 * clamp(1.5rem, 4vw, 3rem)));
+  height: auto;
+  aspect-ratio: 1310 / 314;
+}
+
+/* Words kept for every reader (the h1 is still "Derek Zhou" to a screen
+   reader, a search engine and the page's outline) and drawn for no one */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The words (the 404's line; every paragraph to come) */
+.words {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  letter-spacing: -0.006em;
+  max-width: 22.5em;
+  margin-top: 2rem;
+}
+
+/* The facts (role, company, dates) in mono — no uppercase, no tracking. */
+.credit {
+  margin-top: 2rem;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: .8125rem;
+  color: var(--color-dimmed);
+}
+
+/* ------------------------------------------------
+   Footer — plain underlined words. Nothing on the page answers the
+   pointer's position: no hover replies, no transitions, OS cursors only.
+   ------------------------------------------------ */
+
+footer {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+footer a {
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+footer a, .back-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--color-dimmed);
+  text-underline-offset: .18em;
+}
+
+.back-link {
+  color: inherit;
+}
+
+.noscript-email {
+  font-size: 0.875rem;
+  color: var(--color-dimmed);
+}
+
+/* ------------------------------------------------
+   Motion preferences and forced colors
+   ------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .bird.on { animation: none; }
+}
+
+@media (forced-colors: active) {
+  .bird { stroke: CanvasText; }
+  .sky { display: none; }
+}
+
+/* ------------------------------------------------
+   Print
+   ------------------------------------------------ */
+
+@media print {
+  .bird,
+  .bird.on,
+  .sky,
+  footer {
+    display: none;
+  }
+
+  body,
+  :root[data-sky] body {
+    color: #000;
+    background: #fff;
+  }
+
+  h1 { font-size: 2rem; color: #000; }
+  .name svg { width: 16rem; }
+  .credit { color: #555; }
+}

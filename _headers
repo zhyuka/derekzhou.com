@@ -1,0 +1,56 @@
+# CSP note: Cloudflare Pages COMBINES headers from every matching rule —
+# it does not override. Two rules both setting Content-Security-Policy
+# means the browser receives both and enforces the intersection (this
+# once silently broke a page's own fetches when /* carried connect-src 'none').
+# So CSP lives only on the HTML document paths, scoped with no overlap.
+# CSP on non-HTML responses is inert anyway.
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: accelerometer=(), autoplay=(), browsing-topics=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  X-Permitted-Cross-Domain-Policies: none
+
+# Early Hints: Link headers on the root document let Cloudflare send 103s
+# for the render-critical assets. crossorigin on the font links is mandatory
+# or the browser double-fetches them.
+/
+  Cache-Control: max-age=0, must-revalidate
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+  Link: </style.v13.css>; rel=preload; as=style
+  Link: </hour.v2.js>; rel=preload; as=script
+  Link: </assets/fonts/Geist-400-500.sub2.woff2>; rel=preload; as=font; crossorigin
+  Link: </assets/fonts/GeistMono-Regular.sub2.woff2>; rel=preload; as=font; crossorigin
+
+/index.html
+  Cache-Control: max-age=0, must-revalidate
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+
+/404.html
+  Cache-Control: max-age=0, must-revalidate
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+
+# Immutable assets: changed bytes require a renamed file (style.v14.css,
+# birds.v11.js, sky.v4.js, hour.v3.js, .sub3 fonts) or returning visitors
+# keep stale copies.
+/style.v13.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/site.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/hour.v2.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/sky.v3.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/birds.v10.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

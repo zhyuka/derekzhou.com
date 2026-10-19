@@ -1,0 +1,325 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          files=(
+            index.html
+            style.v13.css
+            site.js
+            hour.v2.js
+            sky.v3.js
+            birds.v10.js
+            robots.txt
+            _headers
+            _redirects
+            404.html
+            assets/favicon.png
+            assets/favicon.svg
+            assets/apple-touch-icon.png
+            assets/fonts/Geist-400-500.sub2.woff2
+            assets/fonts/GeistMono-Regular.sub2.woff2
+            assets/fonts/OFL.txt
+            .well-known/security.txt
+          )
+          missing=0
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              missing=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: No secrets in code
+        run: |
+          # Scan for common secret patterns in tracked files
+          patterns=(
+            'AKIA[0-9A-Z]{16}'
+            'sk-[a-zA-Z0-9]{20,}'
+            'ghp_[a-zA-Z0-9]{36}'
+            'password\s*[:=]\s*["\x27][^"\x27]{8,}'
+          )
+          found=0
+          for pattern in "${patterns[@]}"; do
+            if grep -rEn "$pattern" --include='*.html' --include='*.css' --include='*.js' --include='*.json' --include='*.yml' --include='*.yaml' --include='*.md' --include='*.txt' . 2>/dev/null | grep -v node_modules; then
+              echo "POTENTIAL SECRET found matching: $pattern"
+              found=1
+            fi
+          done
+          if [ "$found" -eq 1 ]; then
+            echo "::error::Potential secrets detected in source files"
+            exit 1
+          fi
+          echo "No secrets found"
+
+      - name: security.txt not expired
+        run: |
+          exp=$(grep -oP 'Expires: \K.*' .well-known/security.txt)
+          if [ "$(date -d "$exp" +%s)" -le "$(date +%s)" ]; then
+            echo "::error::security.txt Expires ($exp) is in the past — update it"
+            exit 1
+          fi
+          echo "security.txt valid until $exp"
+
+      - name: Asset references must resolve (immutable-rename integrity)
+        run: |
+          # Changed bytes require renamed files; this catches a rename that
+          # missed a reference. Every local href/src in the HTML and every
+          # path in _headers Link/cache rules must exist in the repo.
+          fail=0
+          refs=$(grep -ohE '(href|src)="/[^"#]+"' index.html 404.html | sed -E 's/^(href|src)="//; s/"$//')
+          refs="$refs $(grep -oE 'Link: <[^>]+>' _headers | sed -E 's/Link: <//; s/>//')"
+          refs="$refs $(grep -oE '^/[A-Za-z0-9._-]+\.(css|js|woff2|svg|png)$' _headers)"
+          for ref in $refs; do
+            if [ ! -f ".${ref}" ]; then
+              echo "::error::Reference $ref does not exist as a file"
+              fail=1
+            else
+              echo "OK: $ref"
+            fi
+          done
+          # And the reverse: the versioned css/js the repo ships must be the
+          # ones index.html loads.
+          for f in style.v*.css birds.v*.js sky.v*.js hour.v*.js; do
+            if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
+              echo "::error::$f exists but index.html does not reference it"
+              fail=1
+            fi
+            if [ -f "$f" ] && ! grep -qx "/$f" _headers; then
+              echo "::error::$f has no immutable cache block in _headers"
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] && echo "All references resolve"
+          exit $fail
+
+      - name: No inline code on CSP'd pages
+        run: |
+          # The site-wide CSP has no unsafe-inline; inline styles, style
+          # blocks, and inline event handlers silently do nothing. Fail
+          # fast instead. (JSON-LD script blocks are exempt from
+          # script-src and allowed.)
+          if grep -niE 'style[[:space:]]*=[[:space:]]*"|<style|[[:space:]]on[a-z]+[[:space:]]*=[[:space:]]*"' index.html 404.html; then
+            echo "::error::Inline style/handler found — blocked by CSP"
+            exit 1
+          fi
+          echo "No inline code"
+
+      - name: The lettered name keeps its words
+        run: |
+          # The h1 is drawn (one SVG path in the words' colour) but must still
+          # read "Derek Zhou" to every reader: its words in a visually hidden
+          # span, the drawing hidden from assistive tech and inert (no text,
+          # script, style, link or paint server inside it), the stylesheet
+          # holding both rules and reserving the drawing's box (no layout shift).
+          CSS=$(ls style.v*.css | head -1)
+          python3 - "$CSS" <<'PY'
+          import re, sys
+          html = open('index.html').read(); css = open(sys.argv[1]).read()
+          fail = 0
+          m = re.search(r'<h1 class="name">(.*?)</h1>', html, re.S)
+          if not m:
+              print('::error::index.html has no <h1 class="name">'); sys.exit(1)
+          h1 = m.group(1)
+          if '<span class="visually-hidden">Derek Zhou</span>' not in h1:
+              print('::error::the h1 lost its words: <span class="visually-hidden">Derek Zhou</span>'); fail = 1
+          svg = re.search(r'<svg\b([^>]*)>(.*?)</svg>', h1, re.S)
+          if not svg:
+              print('::error::the h1 has no lettering (svg)'); sys.exit(1)
+          attrs, body = svg.groups()
+          for need in ['aria-hidden="true"', 'focusable="false"', 'viewBox="']:
+              if need not in attrs:
+                  print('::error::the lettering svg lacks', need); fail = 1
+          if len(re.findall(r'<path\b', body)) != 1 or 'fill="currentColor"' not in body:
+              print('::error::the lettering must be one path filled with currentColor'); fail = 1
+          if re.search(r'<(text|script|style|a|image|use|foreignObject|linearGradient|radialGradient|pattern|filter)\b|\bstyle=|href=|\bon[a-z]+=', body, re.I):
+              print('::error::the lettering holds more than its drawing'); fail = 1
+          vb = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', attrs)
+          ar = re.search(r'\.name svg\s*\{[^}]*aspect-ratio:\s*([\d.]+)\s*/\s*([\d.]+)', css)
+          if not vb or not ar or abs(float(vb.group(1)) / float(vb.group(2)) - float(ar.group(1)) / float(ar.group(2))) > 1e-6:
+              print('::error::the stylesheet must reserve the lettering box (.name svg aspect-ratio = the viewBox\'s)'); fail = 1
+          if not re.search(r'\.visually-hidden\s*\{[^}]*clip-path:\s*inset\(50%\)', css):
+              print('::error::the stylesheet has no .visually-hidden rule'); fail = 1
+          print('the lettered name keeps its words' if not fail else 'FAILED'); sys.exit(fail)
+          PY
+
+      - name: Absences are enforced
+        run: |
+          JS=$(ls birds.v*.js | head -1); SKY=$(ls sky.v*.js | head -1); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
+          echo "checking $JS, $SKY, $HOUR and $CSS"
+          # The page has none of the internet's body language, and CI fails
+          # (rather than remembers) if any of it comes back. Scoped to the
+          # shipped files only — never to CLAUDE.md prose.
+          fail=0
+          # (1) chrome: arrows, cookie/analytics vocabulary, loading states, nav roles
+          if grep -nE '&rarr;|→|cookie|analytics|gtag|Loading|role="navigation"' index.html 404.html; then
+            echo "::error::internet body language found in the HTML"
+            fail=1
+          fi
+          # (2) behaviour: no exit, idle, pointer-position, key or title handlers
+          if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|onblur|\bblur\(|document\.title|rel="icon"|pointermove|mousemove|keydown|IdleDetector|sessionStorage|localStorage' site.js $JS $SKY $HOUR; then
+            echo "::error::a needy behaviour (exit/idle/title/pointer handler or storage) was introduced"
+            fail=1
+          fi
+          # (3) the birds and the sky add no DOM: the SVGs and the canvas are in index.html
+          if grep -nE 'createElement|innerHTML|insertAdjacentHTML|appendChild' $JS $SKY $HOUR; then
+            echo "::error::DOM built in script — the birds and the sky's canvas live in index.html"
+            fail=1
+          fi
+          # (4) the weather (=rand()): ONE entropy read each in the birds and the sky, above
+          # INIT-END; no clock but the hour's one read; never Math.random
+          for f in $JS $SKY; do
+            if [ "$(grep -o 'getRandomValues(' $f | wc -l)" != "1" ]; then
+              echo "::error::$f must draw entropy exactly once (getRandomValues( count != 1)"
+              fail=1
+            fi
+            if grep -nE 'Math\.random|\bDate\b|randomUUID' $f; then
+              echo "::error::Math.random or a clock read in $f — the only randomness is the visit seed"
+              fail=1
+            fi
+            if ! grep -q -- '---- INIT-END:' $f; then
+              echo "::error::INIT-END marker missing from $f"
+              fail=1
+            fi
+            bad=$(awk '/---- INIT-END:/{p=1;next} p && /getRandomValues|Math\.random|Date|randomUUID|performance\.now/{print NR": "$0}' $f)
+            if [ -n "$bad" ]; then
+              echo "$bad"
+              echo "::error::an entropy or clock read below the INIT-END marker in $f"
+              fail=1
+            fi
+          done
+          # the hour reads the clock exactly once, and draws no entropy
+          if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|getRandomValues|randomUUID|performance\.now' $HOUR; then
+            echo "::error::$HOUR must read the clock exactly once (new Date) and nothing else"
+            fail=1
+          fi
+          # (5) no URL hook, no sound, no custom cursor
+          if grep -nE 'location\.(search|hash|href)|URLSearchParams|new Audio\(|AudioContext|<audio|speechSynthesis' site.js $JS $SKY $HOUR index.html 404.html; then
+            echo "::error::a URL hook or sound was introduced"
+            fail=1
+          fi
+          if grep -nE 'cursor *:' $CSS; then
+            echo "::error::a cursor rule in $CSS — OS cursors only"
+            fail=1
+          fi
+          [ "$fail" -eq 0 ] && echo "All absences hold"
+          exit $fail
+
+      - name: Still skies keep the words legible
+        run: |
+          # The stylesheet's still skies (no WebGL2, no script, the moment
+          # before the sky is drawn) must hold their words' colours against
+          # the whole gradient, wherever a window puts the words: the text
+          # colour (the lettered name, the links) and the dimmed grey (the
+          # credit) 4.5:1, the focus ring 3:1 (WCAG 1.4.3, 1.4.11).
+          CSS=$(ls style.v*.css | head -1)
+          python3 - "$CSS" <<'EOF'
+          import re, sys
+          css = re.sub(r'/\*.*?\*/', '', open(sys.argv[1]).read(), flags=re.S)
+          def lin(v): v /= 255; return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+          def rgb(h): h = h.lstrip('#'); return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+          def Y(c): r, g, b = [lin(x) for x in c]; return 0.2126 * r + 0.7152 * g + 0.0722 * b
+          def ratio(a, b): a, b = Y(a), Y(b); return (max(a, b) + .05) / (min(a, b) + .05)
+          rules = re.findall(r'([^{}]+)\{([^{}]*)\}', css)
+          def tokens(name):
+              out = {}
+              for sel, body in rules:
+                  sels = [x.strip() for x in sel.split(',')]
+                  if ':root' in sels or ':root[data-sky="%s"]' % name in sels or (name == 'day' and ':root:not([data-sky])' in sels):
+                      out.update(dict(re.findall(r'(--color-[a-z]+):\s*(#[0-9a-fA-F]{6})', body)))
+              return out
+          def gradient(name):
+              sel = 'body' if name == 'day' else ':root[data-sky="%s"] body' % name
+              for s_, body in rules:
+                  if s_.strip() == sel:
+                      m = re.search(r'linear-gradient\(to bottom, ([^)]*)\)\s*(#[0-9a-fA-F]{6})?', body)
+                      if m:
+                          stops = [(float(p.rstrip('%')) / 100, rgb(c)) for c, p in (x.split() for x in m.group(1).split(','))]
+                          return stops, (rgb(m.group(2)) if m.group(2) else None)
+              return None, None
+          fail = 0
+          for name in ['day', 'dawn', 'rain', 'sunset', 'dusk', 'night']:
+              stops, solid = gradient(name); t = tokens(name)
+              if not stops: print('::error::no still sky for', name); fail = 1; continue
+              ground = [solid] if solid else []
+              for k in range(201):
+                  y = k / 200
+                  for (p0, c0), (p1, c1) in zip(stops, stops[1:]):
+                      if p0 <= y <= p1:
+                          f = (y - p0) / (p1 - p0) if p1 > p0 else 0
+                          ground.append([c0[i] + (c1[i] - c0[i]) * f for i in range(3)])
+                          break
+              for role, need in [('--color-text', 4.5), ('--color-dimmed', 4.5), ('--color-focus', 3.0)]:
+                  worst = min(ratio(rgb(t[role]), g) for g in ground)
+                  print('%-7s %-15s %5.2f' % (name, role, worst))
+                  if worst < need:
+                      print('::error::%s on the %s still sky falls to %.2f:1 (needs %.1f)' % (role, name, worst, need)); fail = 1
+          sys.exit(fail)
+          EOF
+
+      - name: Validate HTML
+        run: |
+          # Basic HTML validity checks
+          file="index.html"
+
+          # Must start with doctype
+          if ! head -1 "$file" | grep -qi '<!doctype html>'; then
+            echo "::error::Missing <!DOCTYPE html>"
+            exit 1
+          fi
+
+          # Check required tags exist
+          for tag in '<html' '<head' '</head>' '<body' '</body>' '</html>'; do
+            if ! grep -qi "$tag" "$file"; then
+              echo "::error::Missing $tag in $file"
+              exit 1
+            fi
+          done
+
+          # Check charset meta
+          if ! grep -qi 'charset.*utf-8' "$file"; then
+            echo "::error::Missing charset utf-8 meta tag"
+            exit 1
+          fi
+
+          # Check viewport meta
+          if ! grep -qi 'viewport' "$file"; then
+            echo "::error::Missing viewport meta tag"
+            exit 1
+          fi
+
+          # Check title
+          if ! grep -qi '<title>' "$file"; then
+            echo "::error::Missing <title> tag"
+            exit 1
+          fi
+
+          # Check for unclosed tags (basic)
+          # The open pattern requires a delimiter after the tag name so that
+          # <head> is not also matched by <header>, <main> by <mainbar>, etc.
+          for tag in html head body main; do
+            opens=$(grep -oiE "<$tag([[:space:]>]|$)" "$file" | wc -l)
+            closes=$(grep -oi "</$tag>" "$file" | wc -l)
+            if [ "$opens" -ne "$closes" ]; then
+              echo "::error::Mismatched <$tag> tags (open=$opens, close=$closes)"
+              exit 1
+            fi
+          done
+
+          echo "HTML validation passed"
