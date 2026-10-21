@@ -48,9 +48,10 @@ technology leader in Agentic and Generative AI, Platform Engineering, and
 Product Development."" It sits between the name and the credit row in
 the words' role (.words), with a non-breaking space in "Product
 Development" so no line ends on one word. The page is the name, that
-line, the credit row and the two links. The meta, Open Graph and Twitter
-descriptions still carry the old paragraph's words (search and share
-text).
+line, the credit row and the two links. The Open Graph and Twitter
+descriptions (share text) are the same line, and the meta description
+(search text) is "Derek Zhou is a hands-on technology leader in ..." with
+the same words (owner, 2026-10-21: "match the share text too").
 
 The sky's script reads back the line with the credit (sky.v4.js
 measure(): the union of .stack .words and .credit), so the contrast
