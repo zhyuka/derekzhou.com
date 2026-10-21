@@ -501,13 +501,13 @@
 
   /* the words: the whole stack (no tower is placed to rise behind it), the name
      (lettered: its ink lies inside the h1's box), the credit (where the
-     dimmed grey is), and the links */
+     dimmed grey is) together with the line of words above it, and the links */
   var W = 0, H = 0, stackR = null, nameR = null, wordsR = null, links = [], dirty = true;
   function measure() {
     W = window.innerWidth; H = window.innerHeight;
     var a = document.querySelectorAll('footer a'), i;
     stackR = rectOf1('.stack'); nameR = rectOf1('.stack h1');
-    wordsR = rectOf1('.credit');
+    wordsR = union(rectOf1('.stack .words'), rectOf1('.credit'));
     links = [];
     for (i = 0; i < a.length && i < 2; i++) if (a[i].getBoundingClientRect().right > a[i].getBoundingClientRect().left) links.push(boxOf(a[i].getBoundingClientRect()));
     dirty = false;

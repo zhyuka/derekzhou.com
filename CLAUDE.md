@@ -8,7 +8,7 @@ Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build step.
 /style.v13.css          All styles (versioned name — see Caching), the still sky of each hour
 /site.js                Email obfuscation only
 /hour.v2.js             The hour: which time of day the sky opens on (the page's one clock read)
-/sky.v3.js              The sky — light and cloud behind the page: thirteen skies in a random order (see Sky)
+/sky.v4.js              The sky — light and cloud behind the page: thirteen skies in a random order (see Sky)
 /birds.v10.js           The birds — a sky in depth: every bird drawn afresh in the tattoo's hand, many kinds flying through it (see Birds)
 /subset-fonts.sh        Regenerates the .sub2 font subsets (manual tooling)
 /download-fonts.sh      Fetches the full source fonts (manual tooling)
@@ -37,16 +37,28 @@ for a sign-in there, and past it they serve 404.
 Name: Derek Zhou, lettered (see Type: the h1 is a drawing, its words kept
 for every reader)
 Role: Technology Leader (title/OG identity; the JSON-LD jobTitle and the
-credit row say "Product Lead", the owner's wording)
+credit row say "Team Lead", the owner's wording: on 2026-10-21 the owner
+asked to "change back to Team Lead title", after "Product Lead" from
+10/19)
 
-No bio. The owner, of the paragraph that followed the name: "remove the
-entire "Derek is a hands-on.." blurb". The page is the name, the credit
-row and the two links. (Its words survive only off the page, in the meta,
-Open Graph and Twitter descriptions: search and share text.)
+One line of words, no bio. On 2026-10-08 the owner had the old paragraph
+removed ("remove the entire "Derek is a hands-on.." blurb"); on
+2026-10-21 asked for "a little description that just says "Hands-on
+technology leader in Agentic and Generative AI, Platform Engineering, and
+Product Development."" It sits between the name and the credit row in
+the words' role (.words), with a non-breaking space in "Product
+Development" so no line ends on one word. The page is the name, that
+line, the credit row and the two links. The meta, Open Graph and Twitter
+descriptions still carry the old paragraph's words (search and share
+text).
+
+The sky's script reads back the line with the credit (sky.v4.js
+measure(): the union of .stack .words and .credit), so the contrast
+guarantee in Sky covers it as it covers the credit.
 
 Experience (one line, the .credit row):
 
-* Product Lead · Accenture Song · 2022 – Now
+* Team Lead · Accenture Song · 2022 – Now
 
 Job title, company, and dates only. No per-role project or client lists.
 The credit row is a mono caption (Geist Mono 400, .8125rem, dimmed) —
@@ -423,7 +435,7 @@ under load a run's longest frame now and then passes the 40 ms bound,
 v9's as v10's: 50.9 and 40.2 ms in v9's run beside it, 43.8 in an
 earlier run of v10's).
 
-## Sky (sky.v3.js, hour.v2.js)
+## Sky (sky.v4.js, hour.v2.js)
 
 THE CAMERA is the birds' (above): the window looks out over a sea of
 cloud, the horizon a fifth of the way up from its bottom edge, and the
@@ -791,7 +803,7 @@ resize re-aims and redraws. The sky animates for as long as the page is
 open, as the birds do: WCAG 2.2.2 asks for a pause control, and the
 owner chose none; prefers-reduced-motion is the stop.
 
-THE WEATHER: one crypto.getRandomValues above sky.v3.js's INIT-END
+THE WEATHER: one crypto.getRandomValues above sky.v4.js's INIT-END
 marker (the cloud field, the towers, the wind, the stars, the order of
 the skies, the galaxy's lie, the aurora's folds, where the sun breaks
 through), and no clock:
@@ -878,7 +890,7 @@ Four files, one job each:
    address. A \<noscript\> fallback shows the email in HTML entities.
 2. hour.v2.js — the hour (in the head, before the first paint: tiny,
    Early-Hinted): which time of day the sky opens on.
-3. sky.v3.js — the sky (see Sky), deferred, before the birds.
+3. sky.v4.js — the sky (see Sky), deferred, before the birds.
 4. birds.v10.js — the birds (see Birds), deferred. Progressive
    enhancement throughout: with JS off, the page is the typography on
    the still day sky.
@@ -993,7 +1005,7 @@ COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial; X-Permitted-Cross-Domain-Policies none.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-birds.v10.js, sky.v3.js, hour.v2.js, plus style.v13.css for cursors —
+birds.v10.js, sky.v4.js, hour.v2.js, plus style.v13.css for cursors —
 never to this prose) fails on: arrows/cookie/analytics/Loading/
 navigation-role vocabulary in the HTML; any exit, idle, hover-position,
 key, blur, title, favicon-swap or storage handler in the JS; any DOM
