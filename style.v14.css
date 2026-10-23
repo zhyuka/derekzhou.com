@@ -339,6 +339,19 @@ h1 {
   color: var(--color-dimmed);
 }
 
+/* A short window (a phone held sideways): the name, the line, the credit
+   and the links must still fit the one viewport without a scroll, so the
+   gaps between them and main's own top and bottom padding come in with
+   the height. Only windows under 500 px tall are touched. */
+@media (max-height: 500px) {
+  main {
+    padding-top: clamp(0.75rem, 4vh, 1.5rem);
+    padding-bottom: clamp(0.75rem, 4vh, 1.5rem);
+  }
+
+  .words, .credit { margin-top: clamp(0.75rem, 4vh, 1.5rem); }
+}
+
 /* ------------------------------------------------
    Footer — plain underlined words. Nothing on the page answers the
    pointer's position: no hover replies, no transitions, OS cursors only.

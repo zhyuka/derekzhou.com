@@ -5,7 +5,7 @@ Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build step.
 ## Structure
 
 /index.html             Home page
-/style.v13.css          All styles (versioned name — see Caching), the still sky of each hour
+/style.v14.css          All styles (versioned name — see Caching), the still sky of each hour
 /site.js                Email obfuscation only
 /hour.v2.js             The hour: which time of day the sky opens on (the page's one clock read)
 /sky.v4.js              The sky — light and cloud behind the page: thirteen skies in a random order (see Sky)
@@ -849,9 +849,14 @@ slowness would rightly get the still sky.)
 
 ## CSS
 
-One file: style.v13.css. Plain CSS. Custom properties for theming.
+One file: style.v14.css. Plain CSS. Custom properties for theming.
 All @font-face declarations (subsets + metric fallbacks) at top of file.
-Clamp-based spacing for fluid layout across viewports.
+Clamp-based spacing for fluid layout across viewports. A short window
+(max-height: 500px: a phone held sideways) brings main's top and bottom
+padding and the margins above the line and the credit in to
+clamp(0.75rem, 4vh, 1.5rem), so the name, the line, the credit and the
+links fit one viewport with no scroll (568x320, the tightest measured,
+with 12 px to spare); every window 500 px or taller is untouched.
 WCAG AA contrast on all text over every sky (the script holds it on the
 drawn sky). The still skies: a gradient per time of day on the body (the
 sky to the horizon at four fifths of the way down, then the sea), each
@@ -1006,7 +1011,7 @@ COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial; X-Permitted-Cross-Domain-Policies none.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-birds.v10.js, sky.v4.js, hour.v2.js, plus style.v13.css for cursors —
+birds.v10.js, sky.v4.js, hour.v2.js, plus style.v14.css for cursors —
 never to this prose) fails on: arrows/cookie/analytics/Loading/
 navigation-role vocabulary in the HTML; any exit, idle, hover-position,
 key, blur, title, favicon-swap or storage handler in the JS; any DOM
