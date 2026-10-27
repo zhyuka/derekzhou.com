@@ -8,7 +8,7 @@ Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build step.
 /style.v13.css          All styles (versioned name — see Caching), the still sky of each hour
 /site.js                Email obfuscation only
 /hour.v2.js             The hour: which time of day the sky opens on (the page's one clock read)
-/sky.v4.js              The sky — light and cloud behind the page: thirteen skies in a random order (see Sky)
+/sky.v5.js              The sky — light and cloud behind the page: thirteen skies in a random order (see Sky)
 /birds.v10.js           The birds — a sky in depth: every bird drawn afresh in the tattoo's hand, many kinds flying through it (see Birds)
 /subset-fonts.sh        Regenerates the .sub2 font subsets (manual tooling)
 /download-fonts.sh      Fetches the full source fonts (manual tooling)
@@ -53,7 +53,7 @@ descriptions (share text) are the same line, and the meta description
 (search text) is "Derek Zhou is a hands-on technology leader in ..." with
 the same words (owner, 2026-10-21: "match the share text too").
 
-The sky's script reads back the line with the credit (sky.v4.js
+The sky's script reads back the line with the credit (sky.v5.js
 measure(): the union of .stack .words and .credit), so the contrast
 guarantee in Sky covers it as it covers the credit.
 
@@ -436,7 +436,7 @@ under load a run's longest frame now and then passes the 40 ms bound,
 v9's as v10's: 50.9 and 40.2 ms in v9's run beside it, 43.8 in an
 earlier run of v10's).
 
-## Sky (sky.v4.js, hour.v2.js)
+## Sky (sky.v5.js, hour.v2.js)
 
 THE CAMERA is the birds' (above): the window looks out over a sea of
 cloud, the horizon a fifth of the way up from its bottom edge, and the
@@ -690,6 +690,31 @@ tenth or more); an earlier cut (the floor eased toward FLIP across the
 whole feather, a twilight just below the crossing) lifted for 7-10 s, by
 a tenth or more for 2.5-5.5 s, at most x1.33.
 
+THE SKIP (v5): most of that lift is now never drawn. While a change
+crosses its twilight, a frame read back as lying in the band (some group's
+darkest under FLIP and its lightest over HI_MAX) has the next frame drawn
+quicker at once (in four drawings), not only once a lift is on; and the
+moment dark ink would need its lift while the newer frame on show already
+holds the ink the change is going to, the crossfade goes at once to where
+the ink can flip (toward light ink: both groups' lightest at HI_MAX; toward
+dark: both groups' darkest at FLIP), so the flip and the step it has to
+make come together, with no brightening before them. The lift is left only
+where the newer frame lies in the band too. Measured (the probe above, the
+page's clock paused and stepped, one seed; each run the change forced and
+the one after it): lift x1.053 for 0.43 s -> none (sunset to afterglow,
+1440x900); x1.167, 1.09 s -> none (afterglow to sunset); x1.198, 0.77 s ->
+none (day to moonlit); x1.151, 0.85 s -> x1.015, 0.16 s (first light to
+dawn); x1.153, 1.01 s -> x1.153, 0.34 s (aurora to halo); x1.259, 1.01 s
+(by a fifth 0.16 s) -> x1.067, 0.67 s (day to moonlit, 390x844); every
+text role 4.56:1 or more and the ring 3.25 or more; one flip a group a
+change; not one pixel darker in 2,784 twin composites. The step at the
+flip (the light about the words in 1/12 s) is 17-22% (12-25% before): the
+same step the flip must make, made at once. At 844x390 the horizon runs
+through the links and their ground spans 0.1-0.2 (sky and sea): light ink
+cannot hold there and dark ink's lift reaches its cap (x1.6) for about 35
+s a change, the ring at 2.1:1, before and after v5 alike: a layout matter,
+not the twilight's.
+
 KEEPING A GLOW OFF THE WORDS is the sky's own doing, never a veil, and
 nothing about the words is ever drawn less: no calm, no starless patch.
 (v2, and the first cut of v3, stepped the sky's events back to a fifth
@@ -804,7 +829,7 @@ resize re-aims and redraws. The sky animates for as long as the page is
 open, as the birds do: WCAG 2.2.2 asks for a pause control, and the
 owner chose none; prefers-reduced-motion is the stop.
 
-THE WEATHER: one crypto.getRandomValues above sky.v4.js's INIT-END
+THE WEATHER: one crypto.getRandomValues above sky.v5.js's INIT-END
 marker (the cloud field, the towers, the wind, the stars, the order of
 the skies, the galaxy's lie, the aurora's folds, where the sun breaks
 through), and no clock:
@@ -891,7 +916,7 @@ Four files, one job each:
    address. A \<noscript\> fallback shows the email in HTML entities.
 2. hour.v2.js — the hour (in the head, before the first paint: tiny,
    Early-Hinted): which time of day the sky opens on.
-3. sky.v4.js — the sky (see Sky), deferred, before the birds.
+3. sky.v5.js — the sky (see Sky), deferred, before the birds.
 4. birds.v10.js — the birds (see Birds), deferred. Progressive
    enhancement throughout: with JS off, the page is the typography on
    the still day sky.
@@ -1006,7 +1031,7 @@ COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial; X-Permitted-Cross-Domain-Policies none.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-birds.v10.js, sky.v4.js, hour.v2.js, plus style.v13.css for cursors —
+birds.v10.js, sky.v5.js, hour.v2.js, plus style.v13.css for cursors —
 never to this prose) fails on: arrows/cookie/analytics/Loading/
 navigation-role vocabulary in the HTML; any exit, idle, hover-position,
 key, blur, title, favicon-swap or storage handler in the JS; any DOM

@@ -1802,6 +1802,25 @@
       else if (turning && want === 0 && S.k >= 0.75) { G.ink = 0; G.at = t; G.gave = false; }
     } else if (want === 1 && hi <= HI_MAX * (G.gave ? BACK : 1) && (!G.gave || t - G.at >= DWELL)) { G.ink = 1; G.at = t; G.gave = false; }
   }
+  /* (a change between dark words and light: where dark ink would need its lift, and the newer frame on show already
+     holds the ink the change is going to, the crossfade goes at once to where the ink can flip, instead of the light
+     being raised for a moment: the same step the flip must make, made with the flip, and no brightening before it) */
+  function at(a, b, v) { return a === b ? 1 : clamp((a - v) / (a - b), 0, 1); }
+  function inBand(B) { return !!B && ((stackLo(B) < FLIP && stackHi(B) > HI_MAX) || (linksLo(B) < FLIP && linksHi(B) > HI_MAX)); }
+  function skip(want, S) {
+    var A = shown[0] && shown[0].st, B = shown[1] && shown[1].st, k = fadeK(), f;
+    if (!A || !B || A === B || k >= 1) return;
+    if (want === 1 && inkS.ink === 0 && inkL.ink === 0) {
+      if (Math.min(mix(stackLo(A), stackLo(B), k), mix(linksLo(A), linksLo(B), k)) >= FLIP) return;   // (no lift needed yet)
+      if (stackHi(B) > HI_MAX || linksHi(B) > HI_MAX) return;                                           // (the newer frame lies in the band)
+      f = Math.max(at(stackHi(A), stackHi(B), HI_MAX), at(linksHi(A), linksHi(B), HI_MAX)) + 1e-4;
+    } else if (want === 0 && inkS.ink === 1 && inkL.ink === 1) {
+      if (Math.max(mix(stackHi(A), stackHi(B), k), mix(linksHi(A), linksHi(B), k)) <= HI_MAX && S.k < 0.75) return;   // (light ink still holds)
+      if (stackLo(B) < FLIP || linksLo(B) < FLIP) return;
+      f = Math.max(at(stackLo(A), stackLo(B), FLIP), at(linksLo(A), linksLo(B), FLIP)) + 1e-4;
+    } else return;
+    fk = Math.min(1, Math.max(fk, f));
+  }
   function steer(dt, S) {
     var f, k, A, B, hS, hL, gS, gL, turning = S.a.words !== S.b.words && S.k > 0, want = turning ? S.b.words : S.a.words;
     if (seenT) {
@@ -1809,6 +1828,8 @@
       k = still ? 1 : 1 - Math.exp(-dt / 0.6);
       for (f in seen) seen[f] += (seenT[f] - seen[f]) * k;
     }
+    if (turning && seenT && !still) skip(want, S);
+    if (turning && job && !still && inBand(shown[1] && shown[1].st)) job.fast = true;   // (the newer frame lies in the band: the next one drawn quicker, before any lift)
     hS = seenT ? bound(stackHi) : 1; hL = seenT ? bound(linksHi) : 1;
     decide(inkS, hS, S, turning, want);
     decide(inkL, hL, S, turning, want);
