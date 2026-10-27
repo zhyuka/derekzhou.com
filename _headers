@@ -35,7 +35,7 @@
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
 
 # Immutable assets: changed bytes require a renamed file (style.v14.css,
-# birds.v11.js, sky.v5.js, hour.v3.js, .sub3 fonts) or returning visitors
+# birds.v11.js, sky.v6.js, hour.v3.js, .sub3 fonts) or returning visitors
 # keep stale copies.
 /style.v13.css
   Cache-Control: public, max-age=31536000, immutable
@@ -46,7 +46,7 @@
 /hour.v2.js
   Cache-Control: public, max-age=31536000, immutable
 
-/sky.v4.js
+/sky.v5.js
   Cache-Control: public, max-age=31536000, immutable
 
 /birds.v10.js
