@@ -302,7 +302,7 @@
 
   /* ---------------- the page: the window and the words ---------------- */
 
-  var W = 0, H = 0, words = [], dirty = true, wordsY = 0, stackB = 0, view = 1;
+  var W = 0, H = 0, words = [], dirty = true, wordsY = 0, stackB = 0, linksT = 0, view = 1;
   function measure() {
     W = window.innerWidth; H = window.innerHeight;
     view = clamp(Math.pow(Math.min(W, 1.6 * H) / 1100, 0.4), 0.72, 1.12);   // a small window shows its birds a little smaller
@@ -310,7 +310,8 @@
     var s = document.querySelector('.stack'), a = document.querySelectorAll('footer a'), i, r;
     if (s) { r = s.getBoundingClientRect(); keep(r, WORDS); wordsY = (r.top + r.bottom) / 2; stackB = r.bottom; }
     else { wordsY = H / 2; stackB = 0; }
-    for (i = 0; i < a.length; i++) keep(a[i].getBoundingClientRect(), LINKS);
+    linksT = H;
+    for (i = 0; i < a.length; i++) { r = a[i].getBoundingClientRect(); keep(r, LINKS); if (r.bottom > r.top) linksT = Math.min(linksT, r.top); }
     dirty = false;
   }
   function keep(r, m) { if (r.right > r.left && r.bottom > r.top) words.push({ l: r.left, t: r.top, r: r.right, b: r.bottom, m: m }); }
@@ -404,13 +405,17 @@
      The camera looks out over a sea of cloud: the horizon lies HORIZON of
      the window's height above its bottom edge, or lower where the words
      come down that far (SEA_CLEAR below them, a strip of SEA_MIN of the
-     sea at least), so the birds keep the open sky above it. Aimed when a
+     sea at least), so the birds keep the open sky above it; and never
+     lower than LINKS above the footer links (on a short window the words
+     come down near them: the horizon through the links left their ground
+     half sky, half sea, and no ink read on all of it). Aimed when a
      sky begins, and held through small changes of the window's height (a
      phone's bar); the sky behind is drawn through the same camera */
   var cam = { f: 1, c: 1, s: 0, x0: 0, y0: 0, hy: 0 };
   function camera() {
     cam.f = Math.max(W, H) / (2 * Math.tan(FOV / 2));
     cam.hy = clamp(Math.max(H * (1 + HORIZON), stackB + WORDS + SEA_CLEAR), H * (1 + HORIZON), H * (1 - SEA_MIN));
+    cam.hy = Math.min(cam.hy, linksT - LINKS);          // (never through the links: their ground all sea, so one ink reads on it)
     var th = Math.atan((cam.hy - H / 2) / cam.f);
     cam.c = Math.cos(th); cam.s = Math.sin(th); cam.x0 = W / 2; cam.y0 = H / 2;
     if (window.skyAir) window.skyAir.aim(cam.f, th, W, H);

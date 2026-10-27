@@ -20,7 +20,7 @@ jobs:
             site.js
             hour.v2.js
             sky.v4.js
-            birds.v10.js
+            birds.v11.js
             robots.txt
             _headers
             _redirects
