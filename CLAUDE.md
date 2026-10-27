@@ -9,7 +9,7 @@ Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build step.
 /site.js                Email obfuscation only
 /hour.v2.js             The hour: which time of day the sky opens on (the page's one clock read)
 /sky.v4.js              The sky — light and cloud behind the page: thirteen skies in a random order (see Sky)
-/birds.v10.js           The birds — a sky in depth: every bird drawn afresh in the tattoo's hand, many kinds flying through it (see Birds)
+/birds.v11.js           The birds — a sky in depth: every bird drawn afresh in the tattoo's hand, many kinds flying through it (see Birds)
 /subset-fonts.sh        Regenerates the .sub2 font subsets (manual tooling)
 /download-fonts.sh      Fetches the full source fonts (manual tooling)
 /404.html               Custom 404 page
@@ -147,7 +147,7 @@ hour's colours (hour.v2.js runs before the first paint). Print hides the
 sky, the birds and the footer, on white; the name prints black, 16rem
 wide.
 
-## Birds (birds.v10.js)
+## Birds (birds.v11.js)
 
 The page is a sky, seen in depth. Birds cross it the way birds cross a
 real sky, built from field data (RESEARCH below) and nothing like v1/v2's
@@ -162,7 +162,11 @@ cloud and up at the sky (FOV 60 degrees across its longer side, pitched so
 the horizon lies 0.2 of its height above its bottom edge (v9: HORIZON
 -0.2, negative being above), or
 lower where the words come down that far: SEA_CLEAR 60 px below their
-margin, with SEA_MIN 5% of the height of sea at least), and lends that
+margin, with SEA_MIN 5% of the height of sea at least; v11: and never
+lower than LINKS 20 px above the footer links, so their ground is all
+sea: on a phone held sideways the words came down near the links and the
+horizon ran through them, their ground half sky and half sea, and no ink
+read on all of it), and lends that
 camera to the sky (skyAir.aim), so cloud and bird share one air; every
 flight flies
 a path in the air in front of it (x right, y up from the eye's level, z out
@@ -353,7 +357,7 @@ visit is still everywhere), the season, and each flight's own stream
 
 Twelve inline SVGs at the end of index.html are lent to flights (so at
 most twelve birds at once), hidden until a flight shows them (no JS: no
-birds); birds.v10.js sets each one's viewBox and size (room for the bird
+birds); birds.v11.js sets each one's viewBox and size (room for the bird
 at its nearest), polyline, stroke width and stroke opacity (attributes,
 the last two only when they change), and moves it with a CSSOM
 transform. It adds no DOM (CI greps createElement/innerHTML/appendChild).
@@ -441,7 +445,8 @@ earlier run of v10's).
 THE CAMERA is the birds' (above): the window looks out over a sea of
 cloud, the horizon a fifth of the way up from its bottom edge, and the
 sky is drawn through the camera the birds lend (skyAir.aim; without the
-birds, the same worked out here). Units: the sea's tops lie 1 below the
+birds, the same worked out here, but for birds.v11.js's cap above the
+links, which the sky's own fallback camera does not keep yet). Units: the sea's tops lie 1 below the
 eye; everything a bird flies is nearer than any cloud.
 
 WHAT IS DRAWN (WebGL2, one fragment shader, per pixel, back to front):
@@ -892,7 +897,7 @@ Four files, one job each:
 2. hour.v2.js — the hour (in the head, before the first paint: tiny,
    Early-Hinted): which time of day the sky opens on.
 3. sky.v4.js — the sky (see Sky), deferred, before the birds.
-4. birds.v10.js — the birds (see Birds), deferred. Progressive
+4. birds.v11.js — the birds (see Birds), deferred. Progressive
    enhancement throughout: with JS off, the page is the typography on
    the still day sky.
 
@@ -1006,7 +1011,7 @@ COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial; X-Permitted-Cross-Domain-Policies none.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-birds.v10.js, sky.v4.js, hour.v2.js, plus style.v13.css for cursors —
+birds.v11.js, sky.v4.js, hour.v2.js, plus style.v13.css for cursors —
 never to this prose) fails on: arrows/cookie/analytics/Loading/
 navigation-role vocabulary in the HTML; any exit, idle, hover-position,
 key, blur, title, favicon-swap or storage handler in the JS; any DOM
