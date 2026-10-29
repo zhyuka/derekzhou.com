@@ -16,11 +16,15 @@ jobs:
         run: |
           files=(
             index.html
-            style.v13.css
+            style.v14.css
             site.js
             hour.v2.js
-            sky.v4.js
-            birds.v10.js
+            birds.v11.js
+            world.v1.js
+            realm-kit.v1.js
+            realm-dunes.v1.js
+            realm-above.v1.js
+            inkbirds.v1.js
             robots.txt
             _headers
             _redirects
@@ -95,8 +99,9 @@ jobs:
             fi
           done
           # And the reverse: the versioned css/js the repo ships must be the
-          # ones index.html loads.
-          for f in style.v*.css birds.v*.js sky.v*.js hour.v*.js; do
+          # ones index.html loads, each with its immutable cache block (a
+          # leftover old version, kept by a copy rather than a git mv, fails).
+          for f in style.v*.css birds.v*.js sky.v*.js hour.v*.js world.v*.js realm-*.v*.js inkbirds.v*.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -105,6 +110,21 @@ jobs:
               echo "::error::$f has no immutable cache block in _headers"
               fail=1
             fi
+          done
+          # Every script and stylesheet at the root is one the pages load
+          # (nothing left over from the world's development build: no
+          # diagnostics, no lab, no test realm), and every one but site.js carries its version in its
+          # name, as immutable caching needs.
+          for f in *.js *.css; do
+            [ -f "$f" ] || continue
+            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html; then
+              echo "::error::$f is shipped but no page loads it"
+              fail=1
+            fi
+            case "$f" in
+              site.js|*.v[0-9]*.js|*.v[0-9]*.css) ;;
+              *) echo "::error::$f is immutable-cached but has no version in its name"; fail=1 ;;
+            esac
           done
           [ "$fail" -eq 0 ] && echo "All references resolve"
           exit $fail
@@ -117,6 +137,11 @@ jobs:
           # script-src and allowed.)
           if grep -niE 'style[[:space:]]*=[[:space:]]*"|<style|[[:space:]]on[a-z]+[[:space:]]*=[[:space:]]*"' index.html 404.html; then
             echo "::error::Inline style/handler found — blocked by CSP"
+            exit 1
+          fi
+          # and no inline script but the JSON-LD block
+          if grep -nE '<script(>|[[:space:]][^>]*>)' index.html 404.html | grep -vE 'src="/|type="application/ld\+json"'; then
+            echo "::error::Inline script found — blocked by CSP"
             exit 1
           fi
           echo "No inline code"
@@ -159,10 +184,74 @@ jobs:
           print('the lettered name keeps its words' if not fail else 'FAILED'); sys.exit(fail)
           PY
 
+      - name: The page says what it says
+        run: |
+          # The words on the page and in its search and share text, exactly:
+          # the line under the name (in its own span, whose line boxes the
+          # world reads to keep its glow and its birds off it), the credit,
+          # the two links and the noscript address; the JSON-LD's role.
+          python3 - <<'PY'
+          import html as H, json, re, sys
+          src = open('index.html', encoding='utf-8').read()
+          LINE = 'Hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.'
+          def text(s): return re.sub(r'\s+', ' ', H.unescape(re.sub(r'<[^>]+>', '', s)).replace(' ', ' ').replace('⁠', '')).strip()
+          fail = 0
+          def need(ok, what):
+              global fail
+              if not ok: print('::error::' + what); fail = 1
+          m = re.search(r'<p class="words"><span>(.*?)</span></p>', src, re.S)
+          need(m and text(m.group(1)) == LINE, 'the line under the name must read "%s" in <p class="words"><span>' % LINE)
+          m = re.search(r'<p class="credit">(.*?)</p>', src, re.S)
+          need(m and text(m.group(1)) == 'Team Lead · Accenture Song · 2022 – Now', 'the credit must read "Team Lead · Accenture Song · 2022 – Now"')
+          need('<a href="#" id="email-link" aria-label="Send email to Derek Zhou">Email</a>' in src, 'the Email link changed')
+          need('<a href="https://www.linkedin.com/in/derek-z" rel="me" aria-label="Derek Zhou on LinkedIn">LinkedIn</a>' in src, 'the LinkedIn link changed')
+          need('<noscript><p class="noscript-email">hello&#64;derekzhou&#46;com</p></noscript>' in src, 'the noscript address changed')
+          need('<title>Derek Zhou &mdash; Technology Leader</title>' in src, 'the title changed')
+          need('<meta name="description" content="Derek Zhou is a hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.">' in src, 'the meta description changed')
+          for p in ['og:description', 'twitter:description']:
+              need(re.search(r'<meta (?:property|name)="%s" content="%s">' % (p, re.escape(LINE)), src), p + ' must be the line')
+          ld = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', src, re.S).group(1))
+          need(ld.get('jobTitle') == 'Team Lead' and ld.get('sameAs') == ['https://www.linkedin.com/in/derek-z'], 'the JSON-LD role or sameAs changed')
+          print('the words are the page\'s own' if not fail else 'FAILED'); sys.exit(fail)
+          PY
+
+      - name: The world's page loads in order
+        run: |
+          # hour.v2.js in the head (before the first paint), site.js, then the
+          # deferred scripts in order: today's birds (they fly over the still
+          # sky while the world boots), the world, the realms' kit and realms,
+          # the ink birds last (the boot starts once every script has run).
+          # Every script data-cfasync="false", so Rocket Loader leaves the
+          # order as served. One canvas, twelve bird SVGs, all in the HTML.
+          python3 - <<'PY'
+          import re, sys
+          src = open('index.html', encoding='utf-8').read()
+          head, body = src.split('<body>', 1)
+          tags = lambda s: re.findall(r'<script\b([^>]*)\bsrc="/([^"]+)"([^>]*)></script>', s)
+          want_head = [('hour', False)]
+          want_body = [('site', False), ('birds', True), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('inkbirds', True)]
+          fail = 0
+          for part, want in [(head, want_head), (body, want_body)]:
+              got = tags(part)
+              names = [(re.sub(r'(\.v\d+)?\.js$', '', g[1]), 'defer' in (g[0] + g[2]).split()) for g in got]
+              if names != want:
+                  print('::error::scripts out of order: got %s, want %s' % (names, want)); fail = 1
+              for g in got:
+                  if 'data-cfasync="false"' not in g[0] + g[2]:
+                      print('::error::%s lacks data-cfasync="false"' % g[1]); fail = 1
+          if body.count('<canvas class="sky" aria-hidden="true"></canvas>') != 1:
+              print('::error::the page needs its one canvas.sky'); fail = 1
+          if body.count('<svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>') != 12:
+              print('::error::the page needs its twelve bird SVGs'); fail = 1
+          print('in order' if not fail else 'FAILED'); sys.exit(fail)
+          PY
+
       - name: Absences are enforced
         run: |
-          JS=$(ls birds.v*.js | head -1); SKY=$(ls sky.v*.js | head -1); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
-          echo "checking $JS, $SKY, $HOUR and $CSS"
+          BIRDS=$(ls birds.v*.js | head -1); WORLD=$(ls world.v*.js | head -1); INK=$(ls inkbirds.v*.js | head -1)
+          REALMS=$(ls realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
+          JS="site.js $HOUR $BIRDS $WORLD $REALMS $INK"
+          echo "checking $JS and $CSS"
           # The page has none of the internet's body language, and CI fails
           # (rather than remembers) if any of it comes back. Scoped to the
           # shipped files only — never to CLAUDE.md prose.
@@ -172,19 +261,41 @@ jobs:
             echo "::error::internet body language found in the HTML"
             fail=1
           fi
-          # (2) behaviour: no exit, idle, pointer-position, key or title handlers
-          if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|onblur|\bblur\(|document\.title|rel="icon"|pointermove|mousemove|keydown|IdleDetector|sessionStorage|localStorage' site.js $JS $SKY $HOUR; then
+          # (2) behaviour: no exit, idle, hover-position, key or title handlers, no storage
+          if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS; then
             echo "::error::a needy behaviour (exit/idle/title/pointer handler or storage) was introduced"
             fail=1
           fi
-          # (3) the birds and the sky add no DOM: the SVGs and the canvas are in index.html
-          if grep -nE 'createElement|innerHTML|insertAdjacentHTML|appendChild' $JS $SKY $HOUR; then
-            echo "::error::DOM built in script — the birds and the sky's canvas live in index.html"
+          # a pointer's moves are read only while it is pressed (the world's
+          # drag): one pointermove listener, added in onDown, removed in endDrag
+          python3 - "$WORLD" $JS <<'PY' || fail=1
+          import re, sys
+          world, files = sys.argv[1], sys.argv[2:]
+          bad = 0
+          for f in files:
+              s = open(f, encoding='utf-8').read()
+              n = s.count('pointermove')
+              if f != world and n:
+                  print('::error::%s reads pointer moves' % f); bad = 1
+              if f == world:
+                  def body(name):
+                      m = re.search(r'\n  function %s\(.*?\n  function ' % name, s, re.S)
+                      return m.group(0) if m else ''
+                  if n != 2 or "window.addEventListener('pointermove', onMove, true)" not in body('onDown') or "window.removeEventListener('pointermove', onMove, true)" not in body('endDrag'):
+                      print('::error::%s: pointer moves must be read only during a drag (added in onDown, removed in endDrag)' % f); bad = 1
+          sys.exit(bad)
+          PY
+          # (3) the scripts add no DOM: the canvas, the stack and the SVGs are in index.html
+          if grep -nE 'createElement|innerHTML|outerHTML|insertAdjacentHTML|appendChild|insertBefore|replaceChildren|document\.write' $JS; then
+            echo "::error::DOM built in script — the canvas and every element live in index.html"
             fail=1
           fi
-          # (4) the weather (=rand()): ONE entropy read each in the birds and the sky, above
-          # INIT-END; no clock but the hour's one read; never Math.random
-          for f in $JS $SKY; do
+          # (4) the weather (=rand()): ONE entropy read each in today's birds and the
+          # world, above INIT-END; no clock but the hour's one read and the world's
+          # one clockNow (performance.now, for budgets: above INIT-END); never
+          # Math.random. The realms and the ink birds draw from the world's streams
+          # and read no clock at all.
+          for f in $BIRDS $WORLD; do
             if [ "$(grep -o 'getRandomValues(' $f | wc -l)" != "1" ]; then
               echo "::error::$f must draw entropy exactly once (getRandomValues( count != 1)"
               fail=1
@@ -204,30 +315,119 @@ jobs:
               fail=1
             fi
           done
+          if [ "$(grep -o 'performance\.now()' $WORLD | wc -l)" != "1" ]; then
+            echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
+            fail=1
+          fi
+          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $INK; then
+            echo "::error::the realms and the ink birds draw no entropy and read no clock"
+            fail=1
+          fi
           # the hour reads the clock exactly once, and draws no entropy
           if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|getRandomValues|randomUUID|performance\.now' $HOUR; then
             echo "::error::$HOUR must read the clock exactly once (new Date) and nothing else"
             fail=1
           fi
-          # (5) no URL hook, no sound, no custom cursor
-          if grep -nE 'location\.(search|hash|href)|URLSearchParams|new Audio\(|AudioContext|<audio|speechSynthesis' site.js $JS $SKY $HOUR index.html 404.html; then
+          # (5) no URL hook, no sound, no network, no custom cursor
+          if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams|new Audio\(|AudioContext|<audio|speechSynthesis' $JS index.html 404.html; then
             echo "::error::a URL hook or sound was introduced"
+            fail=1
+          fi
+          if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|new Worker|importScripts|\beval\(|new Function' $JS; then
+            echo "::error::the scripts fetch nothing and run no code but their own"
             fail=1
           fi
           if grep -nE 'cursor *:' $CSS; then
             echo "::error::a cursor rule in $CSS — OS cursors only"
             fail=1
           fi
+          # (6) no dev or record hooks (the development harness stays out): nothing put
+          # on or read from window.__*, no console, and of the attributes on <html>
+          # the scripts read only the hour's data-sky and data-sky-at
+          if grep -nE 'window\.__|window\.claude|\bconsole\.' $JS; then
+            echo "::error::a dev hook, a record or a console call in the shipped scripts"
+            fail=1
+          fi
+          python3 - $JS <<'PY' || fail=1
+          import re, sys
+          ok = {'data-sky', 'data-sky-at', 'src'}
+          bad = 0
+          for f in sys.argv[1:]:
+              s = open(f, encoding='utf-8').read()
+              for m in re.finditer(r'\b(attr|getAttribute|hasAttribute)\(\s*([^)]*?)\)', s):
+                  arg = m.group(2).strip()
+                  lit = re.fullmatch(r"'([^']*)'|\"([^\"]*)\"", arg)
+                  if lit:
+                      name = lit.group(1) or lit.group(2)
+                      if name not in ok:
+                          print('::error::%s reads the attribute %s' % (f, name)); bad = 1
+                  elif not (m.group(0) in ('attr(n)', 'getAttribute(n)') and 'function attr(n) { return root.getAttribute(n); }' in s):
+                      print('::error::%s reads an attribute by a computed name: %s' % (f, m.group(0))); bad = 1
+              if re.search(r'\.dataset\b', s):
+                  print('::error::%s reads data attributes through dataset' % f); bad = 1
+          sys.exit(bad)
+          PY
           [ "$fail" -eq 0 ] && echo "All absences hold"
           exit $fail
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The world's rules
+        run: |
+          # Every script tagged for Rocket Loader; production blind (connect-src
+          # 'none' on every home-scope CSP, no diagnostics, control or lab page);
+          # the world's files' absences (DOM, URL hooks, storage, sound, network,
+          # one entropy draw above INIT-END, no clock but clockNow, listeners only
+          # in the world and only by name, pointer moves only during a drag); the
+          # scripts' order; and the owner's rule, nothing darkens: the composite
+          # takes no words input (its uniforms a fixed list), the old lift's parts
+          # are named nowhere, nothing is drawn onto the canvas after it but what
+          # is named.
+          python3 .github/workflows/world_rules.py .
+          # the realm lint: reported (the realms predate the namespaced API)
+          node .github/workflows/lint_realms.js report realm-kit.v*.js $(ls realm-*.v*.js | grep -v realm-kit)
+
+      - name: Nothing darkens (W7's unit test)
+        run: |
+          # The owner's rule ("Don't darken the background anywhere ever"): the
+          # composite's tail (FS_COMP between W7-TAIL-BEGIN and W7-TAIL-END in
+          # world.vN.js), cut out of the shipped file and run in headless WebGL2
+          # over random grounds, pixels and clocks, is the encode and the dither
+          # and nothing else: every 8-bit code the reference's, never lower (a
+          # darkening) and never higher (a lift or a panel). Then the test's own
+          # proof: a planted lift, darkening and panel must each make it fail.
+          # The runner's Chrome, driven by playwright-core (pinned, installed for
+          # this step only, never part of the site; PW_CORE and CHROME_PATH name
+          # others where they are set). Exit 2 (no WebGL2 context on the runner)
+          # warns; any lower or higher code fails.
+          W=$(ls world.v*.js | head -1)
+          if [ -z "${PW_CORE:-}" ]; then
+            npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
+            export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
+          fi
+          rc=0; node .github/workflows/w7_unit.js "$W" --engine chromium > "$RUNNER_TEMP/w7.json" || rc=$?
+          tail -1 "$RUNNER_TEMP/w7.json"
+          if [ $rc -eq 2 ]; then echo "::warning::W7's unit test could not run (no WebGL2 context on the runner?)"; exit 0; fi
+          if [ $rc -ne 0 ]; then cat "$RUNNER_TEMP/w7.json"; echo "::error::W7's unit test: the composite's tail is not the encode and the dither"; exit 1; fi
+          for m in lift dark panel; do
+            rc=0; node .github/workflows/w7_unit.js "$W" --engine chromium --mutate $m > /dev/null || rc=$?
+            if [ $rc -ne 1 ]; then echo "::error::W7's unit test no longer catches a planted $m (exit $rc)"; exit 1; fi
+            echo "a planted $m is caught"
+          done
 
       - name: Still skies keep the words legible
         run: |
           # The stylesheet's still skies (no WebGL2, no script, the moment
-          # before the sky is drawn) must hold their words' colours against
-          # the whole gradient, wherever a window puts the words: the text
-          # colour (the lettered name, the links) and the dimmed grey (the
-          # credit) 4.5:1, the focus ring 3:1 (WCAG 1.4.3, 1.4.11).
+          # before the world is drawn, a device too slow for it) must hold
+          # their words' colours against the whole gradient, wherever a window
+          # puts the words: the text colour (the lettered name, the line, the
+          # links) and the dimmed grey (the credit) 4.5:1, the focus ring 3:1
+          # (WCAG 1.4.3, 1.4.11). Two families: the hour's still skies (the
+          # 404 page, which has no canvas) and the world's (the home page:
+          # :has(canvas.sky)).
           CSS=$(ls style.v*.css | head -1)
           python3 - "$CSS" <<'EOF'
           import re, sys
@@ -237,15 +437,16 @@ jobs:
           def Y(c): r, g, b = [lin(x) for x in c]; return 0.2126 * r + 0.7152 * g + 0.0722 * b
           def ratio(a, b): a, b = Y(a), Y(b); return (max(a, b) + .05) / (min(a, b) + .05)
           rules = re.findall(r'([^{}]+)\{([^{}]*)\}', css)
-          def tokens(name):
+          def tokens(name, world):
               out = {}
               for sel, body in rules:
                   sels = [x.strip() for x in sel.split(',')]
-                  if ':root' in sels or ':root[data-sky="%s"]' % name in sels or (name == 'day' and ':root:not([data-sky])' in sels):
+                  mine = [':root', ':root[data-sky="%s"]' % name] + ([':root[data-sky="%s"]:has(canvas.sky)' % name] if world else [])
+                  if any(s in sels for s in mine) or (name == 'day' and not world and ':root:not([data-sky])' in sels):
                       out.update(dict(re.findall(r'(--color-[a-z]+):\s*(#[0-9a-fA-F]{6})', body)))
               return out
-          def gradient(name):
-              sel = 'body' if name == 'day' else ':root[data-sky="%s"] body' % name
+          def gradient(name, world):
+              sel = (':root[data-sky="%s"]:has(canvas.sky) body' % name) if world else ('body' if name == 'day' else ':root[data-sky="%s"] body' % name)
               for s_, body in rules:
                   if s_.strip() == sel:
                       m = re.search(r'linear-gradient\(to bottom, ([^)]*)\)\s*(#[0-9a-fA-F]{6})?', body)
@@ -254,22 +455,42 @@ jobs:
                           return stops, (rgb(m.group(2)) if m.group(2) else None)
               return None, None
           fail = 0
-          for name in ['day', 'dawn', 'rain', 'sunset', 'dusk', 'night']:
-              stops, solid = gradient(name); t = tokens(name)
-              if not stops: print('::error::no still sky for', name); fail = 1; continue
-              ground = [solid] if solid else []
-              for k in range(201):
-                  y = k / 200
-                  for (p0, c0), (p1, c1) in zip(stops, stops[1:]):
-                      if p0 <= y <= p1:
-                          f = (y - p0) / (p1 - p0) if p1 > p0 else 0
-                          ground.append([c0[i] + (c1[i] - c0[i]) * f for i in range(3)])
-                          break
-              for role, need in [('--color-text', 4.5), ('--color-dimmed', 4.5), ('--color-focus', 3.0)]:
-                  worst = min(ratio(rgb(t[role]), g) for g in ground)
-                  print('%-7s %-15s %5.2f' % (name, role, worst))
-                  if worst < need:
-                      print('::error::%s on the %s still sky falls to %.2f:1 (needs %.1f)' % (role, name, worst, need)); fail = 1
+          for world in (False, True):
+              for name in ['day', 'dawn', 'rain', 'sunset', 'dusk', 'night']:
+                  stops, solid = gradient(name, world); t = tokens(name, world)
+                  fam = 'world' if world else 'hour'
+                  if not stops: print('::error::no %s still sky for %s' % (fam, name)); fail = 1; continue
+                  ground = [solid] if solid else []
+                  for k in range(201):
+                      y = k / 200
+                      for (p0, c0), (p1, c1) in zip(stops, stops[1:]):
+                          if p0 <= y <= p1:
+                              f = (y - p0) / (p1 - p0) if p1 > p0 else 0
+                              ground.append([c0[i] + (c1[i] - c0[i]) * f for i in range(3)])
+                              break
+                  for role, need in [('--color-text', 4.5), ('--color-dimmed', 4.5), ('--color-focus', 3.0)]:
+                      worst = min(ratio(rgb(t[role]), g) for g in ground)
+                      print('%-5s %-7s %-15s %5.2f' % (fam, name, role, worst))
+                      if worst < need:
+                          print('::error::%s on the %s %s still sky falls to %.2f:1 (needs %.1f)' % (role, fam, name, worst, need)); fail = 1
+          # Print is on white over every still sky, the world's too ("Background graphics" on or off): the print
+          # block, after the still skies in the file, sets white paper with a rule as specific as each family's
+          # (:root[data-sky] body; :root[data-sky]:has(canvas.sky) body, a rule of its own).
+          at = css.find('@media print')
+          if at < 0: print('::error::no print block'); sys.exit(1)
+          depth, j = 0, css.index('{', at)
+          for k in range(j, len(css)):
+              depth += {'{': 1, '}': -1}.get(css[k], 0)
+              if depth == 0: break
+          block = css[j + 1:k]
+          if re.search(r'\]\s*(:has\(canvas\.sky\)\s*)?body\s*\{', css[k:]):
+              print('::error::a still sky is set after the print block'); fail = 1
+          for need in (':root[data-sky] body', ':root[data-sky]:has(canvas.sky) body'):
+              ok = any(need in [x.strip() for x in sel.split(',')] and re.search(r'background:\s*#fff(fff)?\s*(;|$)', body.strip())
+                       for sel, body in re.findall(r'([^{}]+)\{([^{}]*)\}', block))
+              print('print  %-40s %s' % (need, 'white' if ok else 'MISSING'))
+              if not ok:
+                  print('::error::print: no white paper for %s (a still sky would print)' % need); fail = 1
           sys.exit(fail)
           EOF
 
