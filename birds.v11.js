@@ -1,3 +1,5 @@
+// The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
+// fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
 /* Birds — a sky.
 
    The owner, verbatim: "The page should be a sky so like they're flying
@@ -72,6 +74,28 @@
    clock at all; splitmix32 streams from it: the front and its facets, the
    season, and every flight's own stream (its kind, its birds, their
    drawings). There is no other randomness.
+
+   THE HAND-OVER (the world's page, design-v5 12.5): these birds fly over
+   the still sky while the world behind the page boots beside them; the
+   boot begins once a bird of their first flight is in view (skyAir.flying:
+   1 once the first flight is committed, 2 once a bird of it is in view, 3
+   once it has gone; round E1.1). When the world shows (skyAir.handover 1, told through
+   skyAir.handed) they plan no new flight: a flight none of whose birds has
+   yet been in view is dropped unseen, and a fading flight's birds not yet
+   in view never enter; a crossing that ends within HANDOFF_T, every bird
+   of it seen, finishes over the world; the rest fade with its dissolve
+   (the stylesheet's `fade`: the canvas's 2 s and its timing, run by the
+   browser beside the canvas's own, so a slow frame of the world's boot
+   never leaves a bird behind it; a bird still appearing fades by the
+   page's frame time until its appear is done, then joins the
+   stylesheet's at the same point), as does a still sky under reduced motion,
+   and the birds left when reduced motion begins; the world's own ink
+   birds then take the sky. Handed back (0: a lost context, the world giving up, forced
+   colours) they plan again, the first flight coming as at the start: the
+   flights handed off (finishing or fading) no longer count against the
+   sky's flights or hold a band, and the fading ones keep no room
+   (APART); 2 is nobody's sky (a record's quiet tail). Without the world
+   nothing changes.
 
    prefers-reduced-motion: a still sky, a photograph. A hidden tab pauses
    with requestAnimationFrame; a step is capped at STEP_MAX. No DOM is
@@ -300,6 +324,23 @@
   var still = window.matchMedia('(prefers-reduced-motion: reduce)');
   var forced = window.matchMedia('(forced-colors: active)');
 
+  /* the hand-over: whose sky it is (0 these birds', 1 the world's, 2 nobody's), stored when told and acted on in the
+     next frame (or at once under reduced motion, where no frame runs) */
+  var HAND = 0, HANDQ = 0, HANDOFF_T = 6, DISSOLVE_T = 2, SFADE = 0, SFADE0 = -1, WALL = 0;   // (WALL: the page's frame time, ms, from the animation frame)
+  /* the flights that count against the sky's (maxFlights) and hold a band: not those handed off to the world (Fix 3) */
+  /* the canvas's dissolve, as the stylesheet runs it (`appear` 2s, the default timing: ease, cubic-bezier(.25, .1, .25,
+     1)): its opacity at a share x of the dissolve; the birds that fade with it take one less that (Fix 3) */
+  function dissolveAt(x) {
+    if (!(x > 0)) return 0; if (x >= 1) return 1;
+    var lo = 0, hi = 1, u = x, i, v;
+    for (i = 0; i < 24; i++) { u = (lo + hi) / 2; v = 3 * (1 - u) * (1 - u) * u * 0.25 + 3 * (1 - u) * u * u * 0.25 + u * u * u; if (v < x) lo = u; else hi = u; }
+    return 3 * (1 - u) * (1 - u) * u * 0.1 + 3 * (1 - u) * u * u + u * u * u;
+  }
+  function liveCount() { var n = 0; for (var i = 0; i < flights.length; i++) if (!flights[i].handOff) n++; return n; }
+  var SKYA = window.skyAir || (window.skyAir = {});
+  if (typeof SKYA.aim !== 'function') SKYA.aim = function () {};   // (the camera's lender, today's sky, may be absent: the world has its own)
+  SKYA.handed = function (v) { HANDQ = v | 0; if (still.matches) handStill(); else run(); };
+
   /* ---------------- the page: the window and the words ---------------- */
 
   var W = 0, H = 0, words = [], dirty = true, wordsY = 0, stackB = 0, view = 1;
@@ -360,7 +401,7 @@
      flight's band, as a list of [from, to] intervals */
   function openBands(lo, hi) {
     var out = [[EDGE + lo, H - EDGE - hi]], i, j, o, a, b, next, cut = words.map(function (o) { return [o.t - o.m, o.b + o.m]; });
-    for (i = 0; i < flights.length; i++) cut.push([flights[i].yLo - BAND_GAP, flights[i].yHi + BAND_GAP]);   // one flight to a band
+    for (i = 0; i < flights.length; i++) if (!flights[i].handOff) cut.push([flights[i].yLo - BAND_GAP, flights[i].yHi + BAND_GAP]);   // one flight to a band (one handed off to the world holds none)
     for (i = 0; i < cut.length; i++) {
       o = cut[i]; a = o[0] - hi; b = o[1] + lo;           // a centre in (a, b) puts the flight on the words' line, or in another's band
       next = [];
@@ -1098,6 +1139,7 @@
     row = A.rows[k] = [];
     for (i = 0; i < flights.length; i++) {
       G = flights[i];
+      if (G.fadeT !== undefined) continue;                // (a flight fading with the world's dissolve keeps no room: it is gone within DISSOLVE_T)
       tau = A.t1 + k * STEP - G.t0;
       if (tau > G.dur) continue;
       for (j = 0; j < G.m.length; j++) {
@@ -1412,6 +1454,7 @@
     if (F.soar && sc < 40) return;                        // a thermal only in a roomy field: in a narrow band a ring looks trapped
     for (i = 0; i < flights.length; i++) {                // one flight to a band: two in one band read as one long train ...
       G = flights[i];
+      if (G.handOff) continue;                            // (handed off to the world: finishing or fading, it holds no band)
       if (J.it.yLo < G.yHi + BAND_GAP && J.it.yHi > G.yLo - BAND_GAP && !between(J.it, G)) return;   // ... unless the words stand between them
     }
     sc += 0.25 * J.it.apart + (J.diag && !J.climb ? 0 : 40) + 8 * F.r();
@@ -1460,6 +1503,7 @@
   function commit(F, t1) {
     var i, j;
     F.t0 = t1 - F.from;
+    if (!SKYA.flying) { SKYA.flying = 1; F.first = true; }   // (the first flight committed)
     for (i = 0, j = 0; i < slots.length && j < F.m.length; i++) {
       if (slots[i].busy) continue;
       slots[i].busy = true;
@@ -1471,16 +1515,92 @@
   }
 
   function land(F) {
+    if (F.first && SKYA.flying !== 3) SKYA.flying = 3;   // (round E1 Fix 3: the first flight gone, the world's timed trials may run)
     F.m.forEach(function (m) { if (m.s) { hide(m.s); m.s.busy = false; m.s = null; } });
     var k = flights.indexOf(F);
     if (k >= 0) flights.splice(k, 1);
   }
   function clearSky() { while (flights.length) land(flights[0]); }
 
+  /* the sky handed to the world (1, 2): no new flight; a flight none of whose birds has yet been in view is dropped
+     (it would enter over the world already fading); a crossing ending within HANDOFF_T flies on, the rest fade with
+     the dissolve. Handed back (0): a flight already fading goes on fading out (its ink never jumps back), the others
+     fly on, and the next flight comes as the first did (at once into a sky left empty, or holding only fading flights) */
+  function handTo(v) {
+    var i, F;
+    HAND = v;
+    if (v) {
+      job = null;
+      for (i = flights.length - 1; i >= 0; i--) {
+        F = flights[i];
+        if (!F.seen) { land(F); continue; }
+        F.handOff = true;                                 // (Fix 3: handed off: it no longer counts against the sky's flights or holds a band)
+        /* (Fix 3) it finishes over the world only if it ends within HANDOFF_T and every bird of it has been in view:
+           one with a bird still to enter (a skein's trailing bird, a line's last) fades with the dissolve, that bird
+           kept out, so no bird enters the window after the hand-over (b5's Chromium loads: two trailing birds entered
+           at an edge 1.4 s after the world showed, their flights finishing) */
+        if (F.fadeT === undefined && (F.dur - (t - F.t0) > HANDOFF_T || !F.m.every(function (m) { return m.seen; }))) { F.fadeT = t; F.fadeW = WALL; cssFade(F, false); }
+      }
+    } else {
+      /* (Fix 3) every flight left is one handed off (finishing or fading): none is live, so the first flight is
+         planned at once, as at the start (Fix 2 counted a finishing flight as live: the sky then waited for it and
+         its band, up to 10.6 s: verify-regress-2's hsim, 1024x768 seed 34) */
+      var live = liveCount();
+      if (!live && !job) { stills = 0; if (!startJob(still.matches ? 'still' : 'first')) tNext = t; }
+      else tNext = Math.min(tNext, t);
+    }
+  }
+  /* under reduced motion no frame runs: handed to the world, the still sky fades with the world's dissolve (a
+     dissolve is not motion: each bird's ink lowered in step with the canvas's DISSOLVE_T, a frame at a time, then
+     the sky cleared); handed back, it is planned again at once */
+  /* (Fix 3) a fading flight's birds faded by the stylesheet (`.bird.on.fade`: the canvas's own 2 s and timing, run by
+     the browser beside it, so a long frame of the world's boot never leaves a bird at half ink to vanish when its
+     flight lands: WebKit's boot frames of 0.25-1.1 s did, b5e: 6 birds in 4 loads at ink 0.24-0.47). The class is
+     given in the frame the canvas takes 'on' (the hand-over is told a frame before), so both start together. A bird
+     still in its 1 s appear (its opacity the stylesheet's `appear`) keeps it and fades by the page's frame time;
+     under reduced motion there is no appear */
+  function cssFade(F, all) {
+    for (var j = 0, m; j < F.m.length; j++) {
+      m = F.m[j];
+      if (m.s && m.s.on && !m.s.fade && (all || WALL - (m.s.onW || -1e9) >= APPEAR_MS)) fadeBird(m.s, all ? 0 : WALL - F.fadeW);
+    }
+  }
+  /* a bird given the stylesheet's fade `ago` ms into the dissolve (a negative delay: at the canvas's own point) */
+  function fadeBird(s, ago) { s.fade = true; s.el.style.animationDelay = ago > 0 ? -Math.round(ago) + 'ms' : ''; s.el.classList.add('fade'); }
+  var APPEAR_MS = 1000;   // (the stylesheet's `.bird.on`: appear 1s)
+  /* (Fix 3) skyAir.flying 2, the world's cue to begin its boot (E1.1; Fix 3: its heavy boot steps), once the first bird in view has been showing SEEN_MS: its appear
+     (opacity 0 to 1 over 1 s) about a third done, ink 0.2-0.4. Told in the frame the bird was first drawn (Fix 2), the
+     boot's first long frames came before the browser had begun its appear (an animation starts at the next rendering
+     update), and the bird stayed at ink 0 through them: in WebKit here its ink passed 0.05 0.29-0.99 s after it was
+     shown, against 0.08-0.19 s on the control page (fix3/final/b5, 3 of 8 loads over B5's 2 s) */
+  var SEEN_MS = 300;
+  function handStill() {
+    HAND = HANDQ;
+    if (HAND) { job = null; if (!flights.length) return; for (var i = 0; i < flights.length; i++) cssFade(flights[i], true); SFADE0 = -1; if (!SFADE) SFADE = window.requestAnimationFrame(stillFade); return; }
+    if (SFADE) { window.cancelAnimationFrame(SFADE); SFADE = 0; stillInk(1, true); }   // (handed back while fading: the ink as it was)
+    if (!flights.length && !job) { stills = 0; startJob('still'); }
+    run();
+  }
+  function stillInk(k, back) {   // (back: handed back, the ink as it was, the stylesheet's fade taken off; else the birds it is not fading, at k)
+    for (var i = 0, j, F, s; i < flights.length; i++) {
+      F = flights[i];
+      for (j = 0; j < F.m.length; j++) { s = F.m[j].s; if (s && s.on) { if (s.fade && back) { s.fade = false; s.el.classList.remove('fade'); s.el.style.animationDelay = ''; } if (!s.fade) s.line.setAttribute('stroke-opacity', Math.round(100 * s.op * k) / 100); } }
+    }
+  }
+  function stillFade(now) {   // (the stylesheet fades the still sky's birds, Fix 3; this clears it when the dissolve is done)
+    SFADE = 0;
+    if (!HAND) return;
+    if (SFADE0 < 0) SFADE0 = now;
+    var k = 1 - dissolveAt((now - SFADE0) / (DISSOLVE_T * 1000));   // (Fix 3: in step with the canvas's dissolve, its ease)
+    if (k <= 0) { clearSky(); return; }
+    stillInk(k, false);
+    SFADE = window.requestAnimationFrame(stillFade);
+  }
+
   /* ---------------- drawing ---------------- */
 
-  function show(s) { if (!s.on) { s.on = true; s.el.classList.add('on'); } }
-  function hide(s) { if (s.on) { s.on = false; s.el.classList.remove('on'); } }
+  function show(s) { if (!s.on) { s.on = true; s.onW = WALL; s.el.classList.add('on'); } }   // (onW: when its appear began, Fix 3)
+  function hide(s) { if (s.on) { s.on = false; s.el.classList.remove('on'); } if (s.fade) { s.fade = false; s.el.classList.remove('fade'); s.el.style.animationDelay = ''; } }
 
   /* the drawing, on the hand's frames only: facing, wings, bank, bob,
      tremor, and the size, pen and ink of its distance. Through a beat the
@@ -1528,20 +1648,28 @@
     var i, j, F, m, tau, vis;
     for (i = flights.length - 1; i >= 0; i--) {
       F = flights[i]; tau = t - F.t0;
+      if (F.fadeT !== undefined && WALL - F.fadeW >= DISSOLVE_T * 1000) { land(F); continue; }   // (faded with the world's dissolve: its time, Fix 3)
       if (tau > F.dur + LINGER) { land(F); continue; }
       vis = false;
       for (j = 0; j < F.m.length; j++) {
         m = F.m[j];
         spot(F, m, tau, tmp);
         m.x = tmp.x; m.y = tmp.y; m.n = tmp.n; m.a = tmp.a;
-        if (m.a < 0.02 || !inView(m.x, m.y, m.d.hw * m.n, m.d.hh * m.n)) { hide(m.s); continue; }
+        if (F.fadeT !== undefined && m.s && m.s.on && !m.s.fade && WALL - (m.s.onW || -1e9) >= APPEAR_MS) fadeBird(m.s, WALL - F.fadeW);   // (its appear done: the stylesheet's fade, at the dissolve's own point)
+        if (F.fadeT !== undefined && !(m.s && m.s.fade)) m.a *= 1 - dissolveAt((WALL - F.fadeW) / (DISSOLVE_T * 1000));   // (in step with the canvas's own dissolve, by the page's frame time; a bird the stylesheet fades is faded there)
+        if (m.a < 0.02 || (F.fadeT !== undefined && !m.seen) || !inView(m.x, m.y, m.d.hw * m.n, m.d.hh * m.n)) { hide(m.s); continue; }   // (a fading flight's bird never yet in view stays out of it: none enters over the world)
         if (!m.s.on || fresh) {
           if (!m.s.on) { spot(F, m, tau + 0.25, tmp2); m.s.face = tmp2.x < m.x ? -1 : 1; }
           pose(F, m, tau, boil, rest);
         }
         show(m.s);
         put(m);
-        vis = true;
+        vis = true; F.seen = true; m.seen = true;
+        if (F.fadeT !== undefined) {   // (Fix 3: a fading bird's ink follows the dissolve every frame, not only on the hand's frames: the drawing itself still changes only on them)
+          var opF = forced.matches ? 1 : Math.round(100 * mix(ease((m.n - 0.6) / 0.6), TONE[0], TONE[1]) * m.a) / 100;
+          if (opF !== m.s.op) { m.s.op = opF; m.s.line.setAttribute('stroke-opacity', opF); }
+        }
+        if ((SKYA.flying | 0) < 2 && (still.matches || WALL - m.s.onW >= SEEN_MS)) SKYA.flying = 2;   // (the first bird in view and its appear a third done: the world's first-use draws may begin; round E1 Fix 3: never back from 3)
       }
       if (tau > F.dur && !vis) land(F);
     }
@@ -1570,10 +1698,11 @@
   function frame(now) {
     raf = 0;
     var moving = !still.matches, dt = last ? Math.min(STEP_MAX, (now - last) / 1000) : 0, k, F, mode;
-    last = now;
+    last = now; WALL = now;
     if (moving) t += dt;
     if (dirty) relayout();
-    if (!job && moving && t >= tNext && flights.length < maxFlights() && !startJob('next')) planned(null, 'next');
+    if (HANDQ !== HAND) handTo(HANDQ);
+    if (!HAND && !job && moving && t >= tNext && liveCount() < maxFlights() && !startJob('next')) planned(null, 'next');
     if (job) {
       mode = job.mode;
       F = workJob(mode === 'first' ? 2 * QUOTA : QUOTA);
@@ -1588,7 +1717,7 @@
   }
 
   function run() {
-    if (raf || (still.matches && !job)) return;
+    if (raf || (still.matches && !job) || (HAND && HANDQ && !flights.length)) return;   // (a sky handed back is run again, to plan)
     raf = window.requestAnimationFrame(frame);
   }
   function stop() {
@@ -1638,6 +1767,7 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(onLayout);
 
   function onPref() {
+    if (HAND) { if (still.matches) stop(); handStill(); return; }   // (the world's sky: the birds left there fade with its dissolve and clear, either way)
     if (still.matches) { stop(); if (!job) draw(true, 0, true); }
     else if (!flights.length && !job) begin();
     run();

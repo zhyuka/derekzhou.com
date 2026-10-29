@@ -1,3 +1,8 @@
+/* style.v14.css: the world's page. style.v13.css (the name lettered, the line under it, the hour's still skies, which
+   the 404 page keeps) with the world's rules: the canvas on the large viewport, touch-action, data-touch and
+   data-steer, the world's still sky for each time of day, today's birds fading with the world's dissolve, and the
+   page laid out again to fit a window under 500 px tall (a phone held sideways). No cursor rule. */
+
 /* ------------------------------------------------
    @font-face — self-hosted WOFF2, ASCII subsets
    (regenerate with ./subset-fonts.sh; bump .subN
@@ -153,13 +158,39 @@ body {
 
 .sky {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  height: 100lvh;   /* the large viewport: a phone's toolbar coming and going never resizes the world */
   z-index: -1;
   display: block;
   opacity: 0;
   pointer-events: none;
+}
+
+/* the world is steered by a drag anywhere (one finger; two fingers pinch-zoom the page as ever); a page taller than
+   the window still scrolls with a vertical drag, and while it is zoomed in the browser has every touch. No text is
+   selected while a drag steers. */
+html,
+body {
+  touch-action: pinch-zoom;
+}
+
+:root[data-touch="scroll"],
+:root[data-touch="scroll"] body {
+  touch-action: pan-y pinch-zoom;
+}
+
+:root[data-touch="zoom"],
+:root[data-touch="zoom"] body {
+  touch-action: auto;
+}
+
+:root[data-steer],
+:root[data-steer] body {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .sky.on {
@@ -236,6 +267,81 @@ body {
   --color-selection: #3b3f55;
 }
 
+/* the world's still skies, one for each time of day: on the world's page (the one with its canvas) the visit opens
+   on a sky of the visitor's hour (data-sky, the hour's script), and the world dissolves in over its own still sky; when
+   the canvas hides (a lost context, a device too slow, forced colours) the world marks the time of day it was drawing
+   (markStill), and no WebGL2 at dusk or at night shows a dusk or night still with light words. Each is its time of day's
+   landing skies drawn by the world at 393x852 and 1440x900 (the words hidden), every row averaged in OKLab and averaged
+   across them (dawn the sunrise; day fair weather; rain the mist; sunset the golden hour;
+   dusk the afterglow and the blue hour; night the moonlit sky), the horizon 55-58% down; its words' colours hold against
+   its whole gradient (text and the dimmed grey 4.7:1, the ring 3.3:1). The 404 page (no canvas) keeps the hour's own
+   still sky above. (Dawn, dusk and night were taken again from the skies' renders once those skies were fixed.) */
+:root[data-sky="dawn"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #6f9fdf 0%, #82ade5 20%, #94b6e6 40%, #a2bfe9 50%, #abaccc 55%, #aa8fa7 58%, #b6828c 62%, #b47b83 70%, #af767e 80%, #a7707e 100%) #a2bfe9;
+}
+
+:root[data-sky="dawn"]:has(canvas.sky) {
+  --color-text: #000000;
+  --color-dimmed: #131210;
+  --color-focus: #3f2d0b;
+  --color-selection: #e6e2d6;
+}
+
+:root[data-sky="day"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #afc6e1 0%, #b0c7e3 20%, #aec3e2 40%, #afc5df 50%, #acb0ce 55%, #ae99bd 58%, #a987aa 62%, #a480a4 70%, #9e7aa0 80%, #96759e 100%) #afc5df;
+}
+
+:root[data-sky="day"]:has(canvas.sky) {
+  --color-text: #000000;
+  --color-dimmed: #141312;
+  --color-focus: #402e0b;
+  --color-selection: #e6e2d6;
+}
+
+:root[data-sky="rain"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #9ed4e9 0%, #aadbed 20%, #b5e1ee 40%, #bce3ee 50%, #b6dbe8 55%, #aacede 58%, #a2bed3 62%, #9cb4cb 70%, #97acc5 80%, #8fa5be 100%) #bce3ee;
+}
+
+:root[data-sky="rain"]:has(canvas.sky) {
+  --color-text: #000000;
+  --color-dimmed: #393733;
+  --color-focus: #644917;
+  --color-selection: #e6e2d6;
+}
+
+:root[data-sky="sunset"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #d9c3c8 0%, #e1c3c2 20%, #e1c0b7 40%, #ebc5b0 50%, #e2b2a6 55%, #d19aa0 58%, #d59088 62%, #d38b80 70%, #ce867c 80%, #c4807b 100%) #ebc5b0;
+}
+
+:root[data-sky="sunset"]:has(canvas.sky) {
+  --color-text: #000000;
+  --color-dimmed: #2a2825;
+  --color-focus: #533d11;
+  --color-selection: #e6e2d6;
+}
+
+:root[data-sky="dusk"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #4c3b66 0%, #554069 20%, #604568 40%, #65455f 50%, #583e58 55%, #433555 58%, #422f4d 62%, #402d4b 70%, #3d2a48 80%, #392745 100%) #65455f;
+}
+
+:root[data-sky="dusk"]:has(canvas.sky) {
+  --color-text: #fdfcf7;
+  --color-dimmed: #c9cdd6;
+  --color-focus: #e0bd6a;
+  --color-selection: #3b3f55;
+}
+
+:root[data-sky="night"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #14295f 0%, #19326a 20%, #244076 40%, #254477 50%, #243a62 55%, #1f2945 58%, #1a213c 62%, #181e38 70%, #161c36 80%, #141933 100%) #254477;
+}
+
+:root[data-sky="night"]:has(canvas.sky) {
+  --color-text: #fdfcf7;
+  --color-dimmed: #c9cdd6;
+  --color-focus: #e0bd6a;
+  --color-selection: #3b3f55;
+}
+
 /* ------------------------------------------------
    The birds — samara.com/jobs's dots (body > .dot), as birds: fixed to
    the window, over the page like Samara's, fading in over a second when
@@ -269,6 +375,19 @@ body {
   to { opacity: 1; }
 }
 
+/* today's birds that fade with the world's dissolve (the hand-over):
+   the canvas's own 2 s and timing, run by the browser beside it, so a
+   slow frame of the world's start never leaves a bird behind; a dissolve
+   is not motion, so reduced motion keeps it */
+.bird.on.fade {
+  animation: vanish 2s forwards;
+}
+
+@keyframes vanish {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* ------------------------------------------------
    Composition — one viewport, type at optical center
    ------------------------------------------------ */
@@ -282,6 +401,7 @@ main {
 
 .stack {
   transform: translateY(-2vh);
+  color: var(--color-text);   /* (world6w looks: the stack's own ink reaches the lettered name) */
   max-width: 30rem;
 }
 
@@ -373,6 +493,37 @@ footer a, .back-link {
 }
 
 /* ------------------------------------------------
+   A window under 500 px tall (a phone held sideways, less its browser's
+   bars): the stack laid out again to fit, so the page never scrolls and a
+   vertical swipe steers. The name sized from the
+   height as well as the width, the credit and the links closer together,
+   the margins from the height.
+   ------------------------------------------------ */
+
+@media (max-height: 500px) {
+  main {
+    padding: clamp(0.75rem, 4.5vh, 1.5rem) clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .stack {
+    transform: none;
+  }
+
+  .name svg {
+    width: min(25.25rem, calc(100vw - 2 * clamp(1.5rem, 4vw, 3rem)), calc(38vh * 1310 / 314));
+  }
+
+  .words,
+  .credit {
+    margin-top: clamp(0.75rem, 4vh, 1.5rem);
+  }
+
+  footer {
+    padding: clamp(0.5rem, 4vh, 1.25rem) clamp(1.25rem, 3vw, 2.5rem);
+  }
+}
+
+/* ------------------------------------------------
    Motion preferences and forced colors
    ------------------------------------------------ */
 
@@ -403,7 +554,14 @@ footer a, .back-link {
     background: #fff;
   }
 
+  /* the world's still skies (:has(canvas.sky), above) outweigh the rule before: white for them too, in a rule of its own
+     (a browser without :has() drops only this, and has no world still sky to undo) */
+  :root[data-sky]:has(canvas.sky) body {
+    background: #fff;
+  }
+
   h1 { font-size: 2rem; color: #000; }
   .name svg { width: 16rem; }
+  .words { color: #000; }   /* black like the name: the stack's ink (--color-text, set live on .stack) never reaches print */
   .credit { color: #555; }
 }
