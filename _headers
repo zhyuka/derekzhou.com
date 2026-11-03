@@ -20,7 +20,7 @@
 # or the browser double-fetches them.
 /
   Cache-Control: max-age=0, must-revalidate
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
   Link: </style.v14.css>; rel=preload; as=style
   Link: </hour.v2.js>; rel=preload; as=script
   Link: </assets/fonts/Geist-400-500.sub2.woff2>; rel=preload; as=font; crossorigin
@@ -28,11 +28,11 @@
 
 /index.html
   Cache-Control: max-age=0, must-revalidate
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
 
 /404.html
   Cache-Control: max-age=0, must-revalidate
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
 
 # Immutable assets: changed bytes require a renamed file (style.v15.css,
 # birds.v12.js, world.v2.js, realm-kit.v2.js, realm-dunes.v2.js,
