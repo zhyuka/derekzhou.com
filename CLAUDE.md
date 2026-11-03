@@ -530,8 +530,8 @@ currentColor path, or the stylesheet stops reserving its box.
 External JS and CSS files (enables strict CSP with no unsafe-inline —
 CI greps index.html and 404.html for inline style, handlers and script).
 \_headers file: script-src 'self' https://static.cloudflareinsights.com;
-style-src 'self'; connect-src https://cloudflareinsights.com;
-frame-ancestors 'none'; form-action 'none'; HSTS with preload;
+style-src 'self'; connect-src https://cloudflareinsights.com
+https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; form-action 'none'; HSTS with preload;
 COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial (the accelerometer and the gyroscope included:
 Android's phone-motion steering would need accelerometer=(self),
@@ -542,7 +542,9 @@ is blind (no telemetry, no beacon, no store). The one exception is
 Cloudflare Web Analytics (the owner, 2026-11-03: "yes we need
 analytics"): cookieless, injected by Cloudflare, not in this repo, its
 script from static.cloudflareinsights.com (script-src) reporting to
-cloudflareinsights.com (connect-src), and nothing else. Cloudflare's
+the site's own /cdn-cgi/rum (on a proxied zone the injected beacon
+posts there, not to cloudflareinsights.com, which stays allowed too):
+connect-src names that one path, not 'self', and nothing else. Cloudflare's
 JavaScript Detections (Bot Fight Mode) also injects an inline script;
 the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
@@ -565,7 +567,9 @@ data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors only).
 CI step "The world's rules" (world_rules.py) adds: every script tag
 tagged for Rocket Loader; every home-scope CSP (and 404.html's meta)
 with exactly script-src 'self' https://static.cloudflareinsights.com and
-connect-src https://cloudflareinsights.com, and none on /*; no diagnostics, control or lab page; the world's
+connect-src https://cloudflareinsights.com
+https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
+control or lab page; the world's
 listeners only in world.v1.js and only by name; the script order; and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
