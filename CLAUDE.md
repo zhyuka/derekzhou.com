@@ -529,15 +529,23 @@ words, the drawing loses aria-hidden or grows anything but its one
 currentColor path, or the stylesheet stops reserving its box.
 External JS and CSS files (enables strict CSP with no unsafe-inline —
 CI greps index.html and 404.html for inline style, handlers and script).
-\_headers file: script-src 'self'; style-src 'self'; connect-src 'none';
+\_headers file: script-src 'self' https://static.cloudflareinsights.com;
+style-src 'self'; connect-src https://cloudflareinsights.com;
 frame-ancestors 'none'; form-action 'none'; HSTS with preload;
 COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial (the accelerometer and the gyroscope included:
 Android's phone-motion steering would need accelerometer=(self),
 gyroscope=(self) on /*, a choice for the owner); X-Permitted-Cross-Domain-
 Policies none. The world needs no CSP change: WebGL2 from same-origin
-scripts, no workers, no blobs, no fetches, no eval; production is blind
-(no telemetry, no beacon, no store).
+scripts, no workers, no blobs, no fetches, no eval; the site's own code
+is blind (no telemetry, no beacon, no store). The one exception is
+Cloudflare Web Analytics (the owner, 2026-11-03: "yes we need
+analytics"): cookieless, injected by Cloudflare, not in this repo, its
+script from static.cloudflareinsights.com (script-src) reporting to
+cloudflareinsights.com (connect-src), and nothing else. Cloudflare's
+JavaScript Detections (Bot Fight Mode) also injects an inline script;
+the CSP still blocks it (its hash changes every request), and turning
+it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
 hour.v2.js, birds.v11.js, world.v1.js, the kits, inkbirds.v1.js, plus
@@ -555,8 +563,9 @@ worker or eval; any dev or record hook (window.__*, window.claude,
 console) or an attribute read on `<html>` but the hour's data-sky and
 data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors only).
 CI step "The world's rules" (world_rules.py) adds: every script tag
-tagged for Rocket Loader; every home-scope CSP with connect-src 'none'
-and none on /*; no diagnostics, control or lab page; the world's
+tagged for Rocket Loader; every home-scope CSP (and 404.html's meta)
+with exactly script-src 'self' https://static.cloudflareinsights.com and
+connect-src https://cloudflareinsights.com, and none on /*; no diagnostics, control or lab page; the world's
 listeners only in world.v1.js and only by name; the script order; and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts

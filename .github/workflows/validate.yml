@@ -377,8 +377,9 @@ jobs:
 
       - name: The world's rules
         run: |
-          # Every script tagged for Rocket Loader; production blind (connect-src
-          # 'none' on every home-scope CSP, no diagnostics, control or lab page);
+          # Every script tagged for Rocket Loader; production blind (every home-scope
+          # CSP lets in Cloudflare Web Analytics' two origins and nothing else, no
+          # diagnostics, control or lab page);
           # the world's files' absences (DOM, URL hooks, storage, sound, network,
           # one entropy draw above INIT-END, no clock but clockNow, listeners only
           # in the world and only by name, pointer moves only during a drag); the

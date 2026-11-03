@@ -10,7 +10,7 @@
        combine with the per-page rules). This meta carries the same policy
        to every 404 response; frame-ancestors can't ride a meta tag, but
        X-Frame-Options DENY on /* already covers framing. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
   <title>Not found — Derek Zhou</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/assets/favicon.png" type="image/png">

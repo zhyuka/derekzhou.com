@@ -6,8 +6,10 @@
 #   2  Worker targets: every target of `new Worker(` and `importScripts(` in the world's files exists and has an
 #      immutable cache block in _headers (the world starts none today).
 #   3  Production blind: every home-scope CSP block in _headers (/, /index.html, /404.html) and 404.html's meta CSP
-#      say connect-src 'none', and the site carries none of the world's development pages (its diagnostics, control
-#      and lab pages: diag.js, control.*, lab80.*, never shipped).
+#      say exactly script-src 'self' https://static.cloudflareinsights.com and connect-src
+#      https://cloudflareinsights.com (Cloudflare Web Analytics, injected by Cloudflare; nothing else loads or is
+#      reached), and the site carries none of the world's development pages (its diagnostics, control and lab
+#      pages: diag.js, control.*, lab80.*, never shipped).
 #   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js and inkbirds.v*.js: no DOM
 #      building; no URL hook, storage or sound; no module, worker, fetch, XHR or Blob but a named worker (rule 2);
 #      entropy exactly once in world*.v*.js together, above its INIT-END marker, none in the realm, kit and ink birds'
@@ -73,7 +75,14 @@ for f, s in src.items():
 nw = sum((s or '').count('new Worker(') for f, s in src.items() if f in world)
 if nw > 1: fail('2 worker-targets', f'world*.v*.js: {nw} new Worker( (at most one, by its literal file name)')
 
-# 3 production blind
+# 3 production blind (the one exception: Cloudflare Web Analytics, exactly its two origins)
+CSP_EXACT = {'script-src': "'self' https://static.cloudflareinsights.com", 'connect-src': 'https://cloudflareinsights.com'}
+def csp_bad(policy):
+    d = {}
+    for part in policy.split(';'):
+        w = part.split()
+        if w: d.setdefault(w[0], []).append(' '.join(w[1:]))
+    return [f'{k} {d.get(k)!r} (want exactly {want!r})' for k, want in CSP_EXACT.items() if d.get(k) != [want]]
 blocks = {}
 cur = None
 for line in headers.splitlines():
@@ -83,10 +92,12 @@ for path in ('/', '/index.html', '/404.html'):
     csp = [l for l in blocks.get(path, []) if l.startswith('Content-Security-Policy:')]
     if not csp: fail('3 production-blind', f'_headers {path}: no Content-Security-Policy'); continue
     for l in csp:
-        if "connect-src 'none'" not in l: fail('3 production-blind', f"_headers {path}: CSP without connect-src 'none': {l[:120]}")
+        for b in csp_bad(l.split(':', 1)[1]): fail('3 production-blind', f'_headers {path}: CSP {b}')
 if '/*' in blocks and any(l.startswith('Content-Security-Policy') for l in blocks['/*']): fail('3 production-blind', '_headers: a CSP on /* (it would combine with every page\'s)')
 meta = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html.get('404.html') or '')
-if not meta or "connect-src 'none'" not in meta.group(1): fail('3 production-blind', "404.html: meta CSP without connect-src 'none'")
+if not meta: fail('3 production-blind', '404.html: no meta CSP')
+else:
+    for b in csp_bad(meta.group(1)): fail('3 production-blind', f'404.html: meta CSP {b}')
 for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|control\.html|control\.js|lab80\.html|lab80\.js)', f)):
     if os.path.exists(R(p)): fail('3 production-blind', f'{p} is in the site (a development page: never shipped)')
 
