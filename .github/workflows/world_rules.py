@@ -7,8 +7,8 @@
 #      immutable cache block in _headers (the world starts none today).
 #   3  Production blind: every home-scope CSP block in _headers (/, /index.html, /404.html) and 404.html's meta CSP
 #      say exactly script-src 'self' https://static.cloudflareinsights.com and connect-src
-#      https://cloudflareinsights.com (Cloudflare Web Analytics, injected by Cloudflare; nothing else loads or is
-#      reached), and the site carries none of the world's development pages (its diagnostics, control and lab
+#      https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum (Cloudflare Web Analytics, injected by
+#      Cloudflare, reporting to the zone's own /cdn-cgi/rum, that one path; nothing else loads or is reached), and the site carries none of the world's development pages (its diagnostics, control and lab
 #      pages: diag.js, control.*, lab80.*, never shipped).
 #   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js and inkbirds.v*.js: no DOM
 #      building; no URL hook, storage or sound; no module, worker, fetch, XHR or Blob but a named worker (rule 2);
@@ -76,7 +76,7 @@ nw = sum((s or '').count('new Worker(') for f, s in src.items() if f in world)
 if nw > 1: fail('2 worker-targets', f'world*.v*.js: {nw} new Worker( (at most one, by its literal file name)')
 
 # 3 production blind (the one exception: Cloudflare Web Analytics, exactly its two origins)
-CSP_EXACT = {'script-src': "'self' https://static.cloudflareinsights.com", 'connect-src': 'https://cloudflareinsights.com'}
+CSP_EXACT = {'script-src': "'self' https://static.cloudflareinsights.com", 'connect-src': 'https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum'}
 def csp_bad(policy):
     d = {}
     for part in policy.split(';'):
