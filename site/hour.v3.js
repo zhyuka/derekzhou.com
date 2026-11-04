@@ -12,7 +12,7 @@
    still day sky. */
 (function () {
   var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
-  var DAY = [['dawn', 5, 8, '#cdc9e6'], ['day', 8, 13, '#a5d5f8'], ['rain', 13, 16, '#9fbecd'], ['sunset', 16, 19, '#f4c1c6'], ['dusk', 19, 21, '#35304e'], ['night', 21, 29, '#282c3e']];
+  var DAY = [['dawn', 5, 8, '#173a63'], ['day', 8, 13, '#173a63'], ['rain', 13, 16, '#5f3d62'], ['sunset', 16, 19, '#5f3d62'], ['dusk', 19, 21, '#38396a'], ['night', 21, 29, '#17234f']];
   var i, a, b, at, meta = document.querySelector('meta[name="theme-color"]');
   if (h < 5) h += 24;
   for (i = 0; i < DAY.length; i++) {

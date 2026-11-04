@@ -326,7 +326,7 @@
 
   /* the hand-over: whose sky it is (0 these birds', 1 the world's, 2 nobody's), stored when told and acted on in the
      next frame (or at once under reduced motion, where no frame runs) */
-  var HAND = 0, HANDQ = 0, HANDOFF_T = 6, DISSOLVE_T = 2, SFADE = 0, SFADE0 = -1, WALL = 0;   // (WALL: the page's frame time, ms, from the animation frame)
+  var HAND = 0, HANDQ = 0, HANDOFF_T = 6, DISSOLVE_T = 0.5, SFADE = 0, SFADE0 = -1, WALL = 0;   // (WALL: the page's frame time, ms, from the animation frame)
   /* the flights that count against the sky's (maxFlights) and hold a band: not those handed off to the world (Fix 3) */
   /* the canvas's dissolve, as the stylesheet runs it (`appear` 2s, the default timing: ease, cubic-bezier(.25, .1, .25,
      1)): its opacity at a share x of the dissolve; the birds that fade with it take one less that (Fix 3) */

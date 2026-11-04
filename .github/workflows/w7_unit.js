@@ -10,7 +10,7 @@
 // --mutate lift|dark|panel puts a fault into the tail before it runs (lift: c = max(c, vec3(0.18)); dark: c *= 0.9;
 // panel: the old gain, c *= 1.1 inside a box of the window) and must then fail: the test's own proof that it catches
 // what it is for. Exits 1 on any failure, 2 if it cannot run.
-//   node w7_unit.js world.v1.js [--n 512] [--engine chromium|webkit|firefox] [--mutate lift|dark|panel]
+//   node w7_unit.js site/world.v2.js [--n 512] [--engine chromium|webkit|firefox] [--mutate lift|dark|panel]
 'use strict';
 const PW = require(process.env.PW_CORE || 'playwright-core');
 const fs = require('fs');

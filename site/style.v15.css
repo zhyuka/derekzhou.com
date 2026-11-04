@@ -1,7 +1,7 @@
-/* style.v14.css: the world's page. style.v13.css (the name lettered, the line under it, the hour's still skies, which
-   the 404 page keeps) with the world's rules: the canvas on the large viewport, touch-action, data-touch and
-   data-steer, the world's still sky for each time of day, today's birds fading with the world's dissolve, and the
-   page laid out again to fit a window under 500 px tall (a phone held sideways). No cursor rule. */
+/* style.v15.css: the world's page. style.v14.css (the name lettered, the line under it, the world's rules, the page
+   laid out again to fit a window under 500 px tall) with the words light on every sky (one set of colours, no ink per
+   sky), the still skies taken again from the skies that remain (and a wide window's own, for its camera pitched up 9
+   degrees), and the world's dissolve and today's birds' fade in 0.5 s. No cursor rule. */
 
 /* ------------------------------------------------
    @font-face — self-hosted WOFF2, ASCII subsets
@@ -88,11 +88,12 @@
 }
 
 /* ------------------------------------------------
-   Tokens — the paper: black ink on Samara's cream (#f9f8f1), text
-   19.7:1, dimmed 6.3:1, focus (a dark ochre) 5.0:1, selection a light
-   warm grey under the black text (16.2:1). The page's ground is a sky
-   now (below): each time of day sets its own words' colours (the still
-   skies), and the drawn sky sets them afresh from what it drew.
+   Tokens — the words are light, always (the owner's word of
+   2026-11-03: "lets only use white text for everything"): text #fdfcf7,
+   a cool light grey for the dimmed words, a light gold ring, selection a
+   dark slate under the light text. The page's ground is a sky (below),
+   dark at every time of day; Samara's cream (#f9f8f1) stays the paper
+   under everything, and print is black on white (the one exception).
    ------------------------------------------------ */
 
 :root {
@@ -105,10 +106,10 @@
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
 
   --color-bg: #f9f8f1;
-  --color-text: #000000;
-  --color-dimmed: #5f5c56;
-  --color-focus: #8a6417;
-  --color-selection: #e6e2d6;
+  --color-text: #fdfcf7;
+  --color-dimmed: #ebeffa;
+  --color-focus: #f4e2b0;
+  --color-selection: #3b3f55;
 }
 
 /* ------------------------------------------------
@@ -149,11 +150,11 @@ body {
 /* ------------------------------------------------
    The sky — behind everything, the whole window. The sky's script draws it
    (WebGL2) and fades it in over the stylesheet's still sky of the hour
-   (data-sky, set by the hour's script before the first paint). The words'
-   colours follow the sky: dark on a light one, light on a dark one; the
-   script refines them for the sky it drew (4.7:1 for the dimmed words; the
-   links' own, on the footer, for the sea under them), and never darkens the
-   sky for them. With no script the page is the still day sky.
+   (data-sky, set by the hour's script before the first paint). The words
+   are light on every sky (each sky holds its own light under a ceiling so
+   they read); the script works the credit's grey out for the sky it drew,
+   and never darkens the sky for them. With no script the page is the still
+   day sky.
    ------------------------------------------------ */
 
 .sky {
@@ -195,151 +196,102 @@ body {
 
 .sky.on {
   opacity: 1;
-  animation: appear 2s;
+  animation: appear 0.5s;
 }
 
-/* the still skies: the sky from the top edge to the horizon (four
-   fifths of the way down), then the sea of cloud. Each is the drawn
-   skies of its time of day (data-sky) taken row by row, without their
-   towers, and averaged: day (fair weather, the halo), dawn
-   (sunrise, the glory), rain (silver rain, the rainbow), sunset (golden
-   hour), dusk (the afterglow, the blue hour), night (a moonlit sea, the
-   Milky Way, the aurora); so the drawn sky dissolves in over its own.
-   (Taken again once the skies with light words were held under their
-   light ceiling: the night sky (its top kept, the browser bars' colour
-   the hour's script gives), the dusk sea at 92-100%; the dusk
-   sky's stops kept a little darker than the drawn afterglow's glow, so
-   the dimmed grey holds 4.7:1 over all of it, and the drawn sky dissolves
-   in over a sky no lighter than its own) */
+/* the still skies, one for each time of day, every one under light words: each is the kept sky its time of
+   day lands on (dawn and the morning (day) the light before sunrise; the afternoon (rain) and sunset the afterglow; dusk
+   the blue hour; night the moonlit sea, the Milky Way, the aurora), drawn by the world (the words hidden, seed 7, t 1, the day's middle) at 1440x900
+   and 393x852 with the camera of every window narrower than 6 : 5, every row averaged in OKLab, objects in (as the
+   stills before them were made), the two windows averaged; one set of stops for all six. The hour's
+   own (the 404 page, no script) and the world's (the home page, :has(canvas.sky): the world dissolves in over its own
+   still; when the canvas hides it marks the time of day it was drawing, markStill) are the same skies here. */
 body {
-  background: linear-gradient(to bottom, #a5d5f8 0%, #b9e0fa 26%, #c6e8f9 52%, #d6f0f8 72%, #dbf2f7 78%, #dbf1f5 82%, #dceef1 92%, #d9e9eb 100%) #c6e8f9;
+  background: linear-gradient(to bottom, #173a63 0%, #2b4067 27%, #3d4466 33.5%, #3e4466 36.5%, #544460 44%, #58435c 47.5%, #66404e 53%, #5e3c4d 54%, #4e374b 55%, #3e3447 57%, #373248 57.5%, #272e4a 58%, #2d2f49 58.5%, #232c45 59.5%, #192841 68.5%, #12233c 100%) #5e4256;
 }
 
 :root[data-sky="dawn"] body {
-  background: linear-gradient(to bottom, #cdc9e6 0%, #e4cfe0 26%, #f3d3d8 52%, #fcd4ca 72%, #fad4c9 78%, #f4d1c8 82%, #e5c8c2 92%, #d6bdb9 100%) #f3d3d8;
+  background: linear-gradient(to bottom, #173a63 0%, #2b4067 27%, #3d4466 33.5%, #3e4466 36.5%, #544460 44%, #58435c 47.5%, #66404e 53%, #5e3c4d 54%, #4e374b 55%, #3e3447 57%, #373248 57.5%, #272e4a 58%, #2d2f49 58.5%, #232c45 59.5%, #192841 68.5%, #12233c 100%) #5e4256;
 }
 
 :root[data-sky="rain"] body {
-  background: linear-gradient(to bottom, #9fbecd 0%, #aecad5 26%, #b7d1db 52%, #c5dee5 72%, #c9e2e7 78%, #c6d9db 82%, #bfcbca 92%, #bdc8c5 100%) #b7d1db;
+  background: linear-gradient(to bottom, #5f3d62 0%, #694162 27%, #6d4463 33.5%, #704461 36.5%, #76475a 44%, #764655 47.5%, #714750 53%, #694451 54%, #5e3f50 55%, #503a4f 57%, #4c3851 57.5%, #443655 58%, #483653 58.5%, #42314e 59.5%, #3d2d49 68.5%, #352643 100%) #744653;
 }
 
 :root[data-sky="sunset"] body {
-  background: linear-gradient(to bottom, #f4c1c6 0%, #fdc7b7 26%, #feccb3 52%, #fed3b4 72%, #fed2b5 78%, #fccbae 82%, #f1bca1 92%, #e3b39c 100%) #feccb3;
+  background: linear-gradient(to bottom, #5f3d62 0%, #694162 27%, #6d4463 33.5%, #704461 36.5%, #76475a 44%, #764655 47.5%, #714750 53%, #694451 54%, #5e3f50 55%, #503a4f 57%, #4c3851 57.5%, #443655 58%, #483653 58.5%, #42314e 59.5%, #3d2d49 68.5%, #352643 100%) #744653;
 }
 
 :root[data-sky="dusk"] body {
-  background: linear-gradient(to bottom, #35304e 0%, #44344e 26%, #563a48 52%, #6c423c 72%, #6b4242 78%, #684347 82%, #56414f 92%, #4d3b4b 100%) #563a48;
+  background: linear-gradient(to bottom, #38396a 0%, #444071 27%, #474373 33.5%, #4a4474 36.5%, #534671 44%, #574670 47.5%, #5e4561 53%, #594260 54%, #523d5e 55%, #503953 57%, #4c3753 57.5%, #433456 58%, #453555 58.5%, #463251 59.5%, #452e4d 68.5%, #3e2847 100%) #5a4669;
 }
 
 :root[data-sky="night"] body {
-  background: linear-gradient(to bottom, #282c3e 0%, #303647 26%, #30434e 52%, #2e404f 72%, #314352 78%, #364953 82%, #3b4e53 92%, #384b4f 100%) #30434e;
+  background: linear-gradient(to bottom, #17234f 0%, #23355e 27%, #24385f 33.5%, #223b62 36.5%, #1e3d64 44%, #1d3e65 47.5%, #1a395f 53%, #1a365b 54%, #1b3255 55%, #1f2e4c 57%, #1f2d49 57.5%, #1e2a46 58%, #1f2b47 58.5%, #212843 59.5%, #20253f 68.5%, #1b213b 100%) #1c3c62;
 }
 
-/* the words on the still skies: each colour holds against its sky's whole
-   gradient, wherever a window puts the words (4.7:1 for text and the
-   dimmed grey, 3.3:1 for the focus ring; CI checks 4.5 and 3) */
-:root:not([data-sky]),
-:root[data-sky="day"] {
-  --color-dimmed: #575652;
-  --color-focus: #91641a;
-}
+/* the words on the still skies: the colours of :root (one set, the same on every sky and in the drawn world: the
+   world sets them as constants too, chosen against its light ceiling, OKLab L 0.53) hold against every still sky's
+   whole gradient, the wide windows' too, wherever a window puts the words (CI checks 4.5 and 3): the text day 8.15,
+   dawn 8.15, rain 7.09, sunset 7.09, dusk 7.93, night 10.12; the dimmed grey day 7.28, dawn 7.28, rain 6.33, sunset
+   6.33, dusk 7.08, night 9.04; the ring day 6.52, dawn 6.52, rain 5.67, sunset 5.67, dusk 6.34, night 8.10 */
 
-:root[data-sky="dawn"] {
-  --color-dimmed: #4f4d4a;
-  --color-focus: #865c17;
-}
-
-:root[data-sky="rain"] {
-  --color-dimmed: #494744;
-  --color-focus: #7d5615;
-}
-
-:root[data-sky="sunset"] {
-  --color-dimmed: #4c4a47;
-  --color-focus: #815916;
-}
-
-:root[data-sky="dusk"],
-:root[data-sky="night"] {
-  --color-text: #fdfcf7;
-  --color-dimmed: #bcc3cb;
-  --color-focus: #d4ae5c;
-  --color-selection: #3b3f55;
-}
-
-/* the world's still skies, one for each time of day: on the world's page (the one with its canvas) the visit opens
-   on a sky of the visitor's hour (data-sky, the hour's script), and the world dissolves in over its own still sky; when
-   the canvas hides (a lost context, a device too slow, forced colours) the world marks the time of day it was drawing
-   (markStill), and no WebGL2 at dusk or at night shows a dusk or night still with light words. Each is its time of day's
-   landing skies drawn by the world at 393x852 and 1440x900 (the words hidden), every row averaged in OKLab and averaged
-   across them (dawn the sunrise; day fair weather; rain the mist; sunset the golden hour;
-   dusk the afterglow and the blue hour; night the moonlit sky), the horizon 55-58% down; its words' colours hold against
-   its whole gradient (text and the dimmed grey 4.7:1, the ring 3.3:1). The 404 page (no canvas) keeps the hour's own
-   still sky above. (Dawn, dusk and night were taken again from the skies' renders once those skies were fixed.) */
-:root[data-sky="dawn"]:has(canvas.sky) body {
-  background: linear-gradient(to bottom, #6f9fdf 0%, #82ade5 20%, #94b6e6 40%, #a2bfe9 50%, #abaccc 55%, #aa8fa7 58%, #b6828c 62%, #b47b83 70%, #af767e 80%, #a7707e 100%) #a2bfe9;
-}
-
-:root[data-sky="dawn"]:has(canvas.sky) {
-  --color-text: #000000;
-  --color-dimmed: #131210;
-  --color-focus: #3f2d0b;
-  --color-selection: #e6e2d6;
-}
-
+/* the world's still skies (the home page): the same skies as the hour's above, on the world's page */
 :root[data-sky="day"]:has(canvas.sky) body {
-  background: linear-gradient(to bottom, #afc6e1 0%, #b0c7e3 20%, #aec3e2 40%, #afc5df 50%, #acb0ce 55%, #ae99bd 58%, #a987aa 62%, #a480a4 70%, #9e7aa0 80%, #96759e 100%) #afc5df;
+  background: linear-gradient(to bottom, #173a63 0%, #2b4067 27%, #3d4466 33.5%, #3e4466 36.5%, #544460 44%, #58435c 47.5%, #66404e 53%, #5e3c4d 54%, #4e374b 55%, #3e3447 57%, #373248 57.5%, #272e4a 58%, #2d2f49 58.5%, #232c45 59.5%, #192841 68.5%, #12233c 100%) #5e4256;
 }
 
-:root[data-sky="day"]:has(canvas.sky) {
-  --color-text: #000000;
-  --color-dimmed: #141312;
-  --color-focus: #402e0b;
-  --color-selection: #e6e2d6;
+:root[data-sky="dawn"]:has(canvas.sky) body {
+  background: linear-gradient(to bottom, #173a63 0%, #2b4067 27%, #3d4466 33.5%, #3e4466 36.5%, #544460 44%, #58435c 47.5%, #66404e 53%, #5e3c4d 54%, #4e374b 55%, #3e3447 57%, #373248 57.5%, #272e4a 58%, #2d2f49 58.5%, #232c45 59.5%, #192841 68.5%, #12233c 100%) #5e4256;
 }
 
 :root[data-sky="rain"]:has(canvas.sky) body {
-  background: linear-gradient(to bottom, #9ed4e9 0%, #aadbed 20%, #b5e1ee 40%, #bce3ee 50%, #b6dbe8 55%, #aacede 58%, #a2bed3 62%, #9cb4cb 70%, #97acc5 80%, #8fa5be 100%) #bce3ee;
-}
-
-:root[data-sky="rain"]:has(canvas.sky) {
-  --color-text: #000000;
-  --color-dimmed: #393733;
-  --color-focus: #644917;
-  --color-selection: #e6e2d6;
+  background: linear-gradient(to bottom, #5f3d62 0%, #694162 27%, #6d4463 33.5%, #704461 36.5%, #76475a 44%, #764655 47.5%, #714750 53%, #694451 54%, #5e3f50 55%, #503a4f 57%, #4c3851 57.5%, #443655 58%, #483653 58.5%, #42314e 59.5%, #3d2d49 68.5%, #352643 100%) #744653;
 }
 
 :root[data-sky="sunset"]:has(canvas.sky) body {
-  background: linear-gradient(to bottom, #d9c3c8 0%, #e1c3c2 20%, #e1c0b7 40%, #ebc5b0 50%, #e2b2a6 55%, #d19aa0 58%, #d59088 62%, #d38b80 70%, #ce867c 80%, #c4807b 100%) #ebc5b0;
-}
-
-:root[data-sky="sunset"]:has(canvas.sky) {
-  --color-text: #000000;
-  --color-dimmed: #2a2825;
-  --color-focus: #533d11;
-  --color-selection: #e6e2d6;
+  background: linear-gradient(to bottom, #5f3d62 0%, #694162 27%, #6d4463 33.5%, #704461 36.5%, #76475a 44%, #764655 47.5%, #714750 53%, #694451 54%, #5e3f50 55%, #503a4f 57%, #4c3851 57.5%, #443655 58%, #483653 58.5%, #42314e 59.5%, #3d2d49 68.5%, #352643 100%) #744653;
 }
 
 :root[data-sky="dusk"]:has(canvas.sky) body {
-  background: linear-gradient(to bottom, #4c3b66 0%, #554069 20%, #604568 40%, #65455f 50%, #583e58 55%, #433555 58%, #422f4d 62%, #402d4b 70%, #3d2a48 80%, #392745 100%) #65455f;
-}
-
-:root[data-sky="dusk"]:has(canvas.sky) {
-  --color-text: #fdfcf7;
-  --color-dimmed: #c9cdd6;
-  --color-focus: #e0bd6a;
-  --color-selection: #3b3f55;
+  background: linear-gradient(to bottom, #38396a 0%, #444071 27%, #474373 33.5%, #4a4474 36.5%, #534671 44%, #574670 47.5%, #5e4561 53%, #594260 54%, #523d5e 55%, #503953 57%, #4c3753 57.5%, #433456 58%, #453555 58.5%, #463251 59.5%, #452e4d 68.5%, #3e2847 100%) #5a4669;
 }
 
 :root[data-sky="night"]:has(canvas.sky) body {
-  background: linear-gradient(to bottom, #14295f 0%, #19326a 20%, #244076 40%, #254477 50%, #243a62 55%, #1f2945 58%, #1a213c 62%, #181e38 70%, #161c36 80%, #141933 100%) #254477;
+  background: linear-gradient(to bottom, #17234f 0%, #23355e 27%, #24385f 33.5%, #223b62 36.5%, #1e3d64 44%, #1d3e65 47.5%, #1a395f 53%, #1a365b 54%, #1b3255 55%, #1f2e4c 57%, #1f2d49 57.5%, #1e2a46 58%, #1f2b47 58.5%, #212843 59.5%, #20253f 68.5%, #1b213b 100%) #1c3c62;
 }
 
-:root[data-sky="night"]:has(canvas.sky) {
-  --color-text: #fdfcf7;
-  --color-dimmed: #c9cdd6;
-  --color-focus: #e0bd6a;
-  --color-selection: #3b3f55;
+/* the world's still skies on a wide window (6 : 5 or wider), where the world's camera looks 9 deg higher
+   (the world's basePitch: its wideWin reads this same query, so the camera and the still agree on every window; the
+   horizon about 72 % down at 1440x900): taken again from that camera's renders at 1440x900 the way the ones above were
+   (each time of day's kept landing skies, objects in), so the dissolve never crosses two
+   horizons. Any other window (a window near square, an upright tablet, a phone) has the camera as before and keeps the
+   still above. The words' colours above hold against the whole of these too; the world gives the browser's bar these
+   tops on such a window (SKYTOPW). */
+@media (min-aspect-ratio: 6/5) {
+  :root[data-sky="day"]:has(canvas.sky) body {
+    background: linear-gradient(to bottom, #173b65 0%, #1a3d66 22.5%, #274066 25%, #324266 32.5%, #394468 44%, #4c4865 47%, #3e4367 54%, #664156 62%, #703f4d 65.5%, #634049 70.5%, #5b3d4a 71%, #40354d 72%, #2f304b 72.5%, #292e48 73%, #202a44 74.5%, #16263f 100%) #464666;
+  }
+
+  :root[data-sky="dawn"]:has(canvas.sky) body {
+    background: linear-gradient(to bottom, #173b65 0%, #1a3d66 22.5%, #274066 25%, #324266 32.5%, #394468 44%, #4c4865 47%, #3e4367 54%, #664156 62%, #703f4d 65.5%, #634049 70.5%, #5b3d4a 71%, #40354d 72%, #2f304b 72.5%, #292e48 73%, #202a44 74.5%, #16263f 100%) #464666;
+  }
+
+  :root[data-sky="rain"]:has(canvas.sky) body {
+    background: linear-gradient(to bottom, #603e63 0%, #623f63 22.5%, #664063 25%, #6c4262 32.5%, #714360 44%, #764762 47%, #72445e 54%, #7b4850 62%, #78474c 65.5%, #684650 70.5%, #624452 71%, #523d58 72%, #483855 72.5%, #453451 73%, #40304d 74.5%, #3a2a47 100%) #744660;
+  }
+
+  :root[data-sky="sunset"]:has(canvas.sky) body {
+    background: linear-gradient(to bottom, #603e63 0%, #623f63 22.5%, #664063 25%, #6c4262 32.5%, #714360 44%, #764762 47%, #72445e 54%, #7b4850 62%, #78474c 65.5%, #684650 70.5%, #624452 71%, #523d58 72%, #483855 72.5%, #453451 73%, #40304d 74.5%, #3a2a47 100%) #744660;
+  }
+
+  :root[data-sky="dusk"]:has(canvas.sky) body {
+    background: linear-gradient(to bottom, #3b3a6c 0%, #3e3c6e 22.5%, #413e70 25%, #474273 32.5%, #4c4575 44%, #4e4877 47%, #4d4473 54%, #5b456c 62%, #604669 65.5%, #5f4456 70.5%, #5a4156 71%, #4b3a58 72%, #453657 72.5%, #453353 73%, #453050 74.5%, #422b4a 100%) #4e4675;
+  }
+
+  :root[data-sky="night"]:has(canvas.sky) body {
+    background: linear-gradient(to bottom, #1b2552 0%, #222b58 22.5%, #222f5a 25%, #23365f 32.5%, #223e64 44%, #244165 47%, #1e3d64 54%, #1a3c65 62%, #173b64 65.5%, #1b3659 70.5%, #1b3456 71%, #1c2f4d 72%, #1d2b48 72.5%, #1f2945 73%, #202742 74.5%, #1f243d 100%) #213f65;
+  }
 }
 
 /* ------------------------------------------------
@@ -347,7 +299,7 @@ body {
    the window, over the page like Samara's, fading in over a second when
    each appears. The birds' script moves them; without it they never show.
    They never take a click: links under a bird still work. Their ink is
-   the words' (dark on a light sky, light on a dark one).
+   the words' (light, on every sky).
    ------------------------------------------------ */
 
 .bird {
@@ -376,11 +328,11 @@ body {
 }
 
 /* today's birds that fade with the world's dissolve (the hand-over):
-   the canvas's own 2 s and timing, run by the browser beside it, so a
+   the canvas's own 0.5 s and timing, run by the browser beside it, so a
    slow frame of the world's start never leaves a bird behind; a dissolve
    is not motion, so reduced motion keeps it */
 .bird.on.fade {
-  animation: vanish 2s forwards;
+  animation: vanish 0.5s forwards;
 }
 
 @keyframes vanish {

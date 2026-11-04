@@ -4,8 +4,8 @@
 # Font License 1.1: free to self-host and subset), from Vercel's own
 # package. Then run ./subset-fonts.sh to cut the served subsets.
 set -euo pipefail
-mkdir -p "$(dirname "$0")/assets/fonts"
-cd "$(dirname "$0")/assets/fonts"
+mkdir -p "$(dirname "$0")/site/assets/fonts"
+cd "$(dirname "$0")/site/assets/fonts"
 VERSION=1.7.2
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT

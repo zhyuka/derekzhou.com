@@ -49,8 +49,14 @@
      script's first act (the page's body shows the world's still from its first paint; hour.v2.js's colour is the live
      sky's still top), before the boot's heavy work; the drawn sky's own follows once it shows (skyTheme), the still's
      when it hides (markStill). The tops are the world's still skies' (style.css, tools/stillsky.py). */
-  var SKYTOP = { dawn: '#6f9fdf', day: '#afc6e1', rain: '#9ed4e9', sunset: '#d9c3c8', dusk: '#4c3b66', night: '#14295f' };
-  var THEME0 = document.querySelector('meta[name="theme-color"]'), TOP0 = SKYTOP[root.getAttribute('data-sky')];
+  var SKYTOP = { dawn: '#173a63', day: '#173a63', rain: '#5f3d62', sunset: '#5f3d62', dusk: '#38396a', night: '#17234f' };
+  /* (camera9b) a window 6 : 5 or wider (wideWin: the stylesheet's own query) has the camera pitched up (basePitch) and the
+     tilted camera's still skies (style.css, @media (min-aspect-ratio: 6/5)), and the bar takes their tops: read each time
+     it takes a still's (here, and skyThemeStill when the canvas hides) */
+  var SKYTOPW = { dawn: '#173b65', day: '#173b65', rain: '#603e63', sunset: '#603e63', dusk: '#3b3a6c', night: '#1b2552' };
+  function wideWin() { try { if (window.matchMedia) return window.matchMedia('(min-aspect-ratio: 6/5)').matches; } catch (e) { /* the window's own shape below */ } return window.innerWidth * 5 >= window.innerHeight * 6; }
+  function stillTop(g) { return (wideWin() ? SKYTOPW : SKYTOP)[g]; }
+  var THEME0 = document.querySelector('meta[name="theme-color"]'), TOP0 = stillTop(root.getAttribute('data-sky'));
   if (THEME0 && TOP0 && document.querySelector('canvas.sky')) THEME0.setAttribute('content', TOP0);
   var canvas = document.querySelector('canvas.sky');
   if (!canvas || typeof WebGL2RenderingContext === 'undefined') return;
@@ -400,6 +406,12 @@ vec3 oklab2lin(vec3 c) {
       else c.push(PROGS[i]);
     }
     a.sort(function (x, y) { return VOLP.indexOf(x.name) - VOLP.indexOf(y.name); });
+    if (EXT.par) {   // (speed E2: all at once, the heaviest first: the probe and the land's first surface)
+      var h = [], r = [], all = a.concat(b, c);
+      for (i = 0; i < all.length; i++) (/\.(probe|surface0)$/.test(all[i].name) ? h : r).push(all[i]);
+      h.sort(function (x, y) { return /probe$/.test(y.name) - /probe$/.test(x.name); });
+      return h.concat(r);
+    }
     return a.concat(b, c);
   }
   function progIssue(P) {
@@ -430,6 +442,25 @@ vec3 oklab2lin(vec3 c) {
       return true;
     }
     if (!PORDER || PORDER.length !== PROGS.length) PORDER = progOrder();
+    /* (speed E2) with KHR_parallel_shader_compile every program is issued in one frame, the heaviest first (the probe
+       and the land: the critical path), and each one's completion asked once a frame, without waiting; its status
+       read as it completes. Without the extension (WebKit: every call a synchronous message), one at a time */
+    if (EXT.par) {
+      var issued = false;
+      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); issued = true; }
+      if (issued) { gl.flush(); return false; }
+      var all = true;
+      for (i = 0; i < PORDER.length; i++) {
+        P = PORDER[i]; if (P.st === 3) continue;
+        if (P.st !== 2) { all = false; continue; }
+        var tq2 = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR);
+        P.polls++; P.qms = +(P.qms + clockNow() - tq2).toFixed(2);
+        if (gl.isContextLost()) return LOSTP;
+        if (!dn) { all = false; continue; }
+        if (progDone(P) === LOSTP) return LOSTP;
+      }
+      return all && progsDone();
+    }
     P = PROGX.cur;
     if (P) {   // the one in flight: its completion, once a frame
       if (EXT.par) {
@@ -665,11 +696,11 @@ void main() {
      grid shaded every vertex twice */
   var GN = 96;   // cells across a ring (even, divisible by 4)
   function makeGrid() {
-    var G = { vao: gl.createVertexArray(), ib: [] }, n = GN + 1, v = new Uint8Array(n * n * 2), i, j;
+    var G = { vao: gl.createVertexArray(), ib: [] }, n = GN + 1, v = new Float32Array(n * n * 2), i, j;   // (speed S0: floats, not unnormalised bytes: ANGLE-D3D11 would convert those in the vertex shader, a second compile of the terrain's vertex program at its first draw; the same integers)
     for (j = 0; j < n; j++) for (i = 0; i < n; i++) { v[(j * n + i) * 2] = i; v[(j * n + i) * 2 + 1] = j; }
     gl.bindVertexArray(G.vao);
     G.vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, G.vb); gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.UNSIGNED_BYTE, false, 0, 0);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     // set 0: the full grid (the finest ring); sets 1-4: the grid with the finer ring's hole at offset (ox, oy) in {0,1}^2
     for (var set = 0; set < 5; set++) {
       var idx = [], ox = (set - 1) & 1, oy = ((set - 1) >> 1) & 1, q4 = GN / 4, h0x = q4 + ox, h0y = q4 + oy;
@@ -2016,12 +2047,13 @@ void kitW4(vec2 p, out vec3 wD, out vec3 wC, out vec3 lv, out vec3 sk) {
   vec2 e = p - uCam.xz; float dc = length(e); vec2 u = dc > 1e-3 ? e / dc : vec2(0.0);
   float kn = 1.0 - smoothstep(${KN0}.0, ${KN1}.0, dc), kf = 1.0 - smoothstep(${KF0}.0, ${KF1}.0, dc), dkn = -sstepD(${KN0}.0, ${KN1}.0, dc), dkf = -sstepD(${KF0}.0, ${KF1}.0, dc);
   vec4 v, gx, gz;
-  if (kn >= 1.0) bsGrid(false, p, v, gx, gz);
+  /* (speed S2) the near grid read at one site for both cases (it was two: three bsGrid inlined, 48 fetches each) */
+  vec4 vF = KW_FAR, xF = vec4(0.0), zF = vec4(0.0), vN, xN, zN;
+  if (kn < 1.0 && kf > 0.0) bsGrid(true, p, vF, xF, zF);
+  vN = vF; xN = xF; zN = zF;
+  if (kn > 0.0) bsGrid(false, p, vN, xN, zN);
+  if (kn >= 1.0) { v = vN; gx = xN; gz = zN; }
   else {
-    vec4 vF = KW_FAR, xF = vec4(0.0), zF = vec4(0.0), vN, xN, zN;
-    if (kf > 0.0) bsGrid(true, p, vF, xF, zF);
-    vN = vF; xN = xF; zN = zF;
-    if (kn > 0.0) bsGrid(false, p, vN, xN, zN);
     vec4 vM = mix(vF, vN, kn), xM = mix(xF, xN, kn) + (vN - vF) * dkn * u.x, zM = mix(zF, zN, kn) + (vN - vF) * dkn * u.y;
     v = mix(KW_FAR, vM, kf); gx = xM * kf + (vM - KW_FAR) * dkf * u.x; gz = zM * kf + (vM - KW_FAR) * dkf * u.y;
   }
@@ -2067,6 +2099,18 @@ vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
 }
 /* the camera's ground: the land or the cloud's top, whichever is higher */
 float HdCam(vec2 p) { return max(Hd(p).x, HdSea(p).x); }
+/* (speed S1) the probe's height: Hd(p).x, or (cam) HdCam(p), with the weights and the dunes' land made once: HdCam
+   inlined kitW4 three times and D_Hd twice into the probe (its compile on D3D11 was 2.4x the terrain's). The same
+   operations in the same order: kitW4 reads none of the globals Hd sets, A_Hd none but gLodD */
+float HdProbe(vec2 p, bool cam) {
+  vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
+  gKD = wD; gLV = lv; gWC = wC;
+  vec3 h = D_Hd(p) - sk;
+  gKD = vec3(1.0, 0.0, 0.0);
+  if (!cam) return h.x;
+  vec3 amp = vec3(0.4, 0.0, 0.0) + 0.6 * wC;
+  return max(h.x, (lv + dMul(A_Hd(p), amp)).x);
+}
 vec3 shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   vec3 wD, wC, lv, sk; kitW4(p.xz, wD, wC, lv, sk);
   return A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp);
@@ -2164,7 +2208,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   }
   function worldDef(KD, KA) {
     return {
-      id: 'world', words: 'dark', still: KD.still, hours: KD.hours,
+      id: 'world', words: 'light', still: KD.still, hours: KD.hours,
       /* (world6 step B, the one camera) one framing everywhere (the horizon at 0.55 of a wide window's height and 0.58 of
          an upright phone's: about 6% of the height under the credit, design-v5 11.7), no look at the ground ahead
          (pitchFollow 0: one pitch), one clearance band over the surface flown (cruise: 14 m over the sand to 32 m over
@@ -2174,7 +2218,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
        look: KD.look, climb: KD.climb, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
       surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10 }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10 }],
-      camGround: 'HdCam', landmarkShade: 'shadeStone',
+      camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
       layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0]], volRes: 44 },
       field: function (R, V) {
         var fd = KD.field(R, V), fa = KA.field(RNG(subseed(V.seed, 23)), V), P = fd.params.slice(0, 12);
@@ -2233,7 +2277,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     function C(vs, fs, name) { var p = compile(vs, fs, def.id + '.' + name); P.list.push(p); return p; }
     for (i = 0; i < surfs.length; i++) P.surf.push({ P: C(pre + VS_TERRAIN(surfs[i].height, surfs[i].gap), pre + FS_TERRAIN(surfs[i].height, surfs[i].shade), 'surface' + i), g0: surfs[i].g0 || 0.5, levels: surfs[i].levels || 10 });
     P.lm = C(pre + VS_LANDMARK, pre + FS_LANDMARK(def.landmarkShade || 'shadeStone'), 'landmark');
-    P.pr = C(VS_FULL, pre + FS_PROBE(surfs[0].height, def.camGround || null), 'probe');
+    P.pr = C(VS_FULL, pre + FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null), 'probe');
     P.sc = def.scatter && def.scatter.length ? C(preG + VS_SCATTER, pre + FS_LANDMARK(def.scatterShade || def.landmarkShade || 'shadeStone'), 'scatter') : null;
     P.pt = def.particles ? C(preG + VS_PARTICLE, pre + FS_PARTICLE, 'particle') : null;
     P.rb = def.ribbons ? C(preG + VS_RIBBON, preG + FS_RIBBON, 'ribbon') : null;
@@ -2528,8 +2572,8 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
      depend on the system time. The rest should cycle through smoothly randomly non-time-dependent." The world opens on
      a sky of the visitor's own time of day (hour.v2.js marks data-sky and data-sky-at: its one read of the clock) and then
      passes from sky to sky in an order of its own, the live sky's (sky.v3.js nextSky): mostly into a neighbouring sky,
-     now and then (SKY_FAR) into any through the mist, never into one of the last SKY_RECENT, a sky not yet seen likelier,
-     and after a run of four skies of one kind of words the other kind four times likelier. The cycle runs on the
+     now and then (SKY_FAR) into any through the mist, never into one of the last SKY_RECENT, a sky not yet seen likelier
+     (stage2: every sky's words are light, so no run of one kind of words to break). The cycle runs on the
      flight's own clock (SIM.t: a still at data-t is any moment of it), its draws from the visit's own streams
      (subseed(SEED0, 41): the order; 42: the visit's own placements): no new entropy, no clock.
      Each sky is a set of colours and amounts laid over each kit's own light (the dunes' and the cloud sea's; 'fair' is
@@ -2538,27 +2582,24 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
      body's light depth is baked along it): at night it is the moon's light from the same place; the sky's own light (its
      glow, warmth, disc: uSkyS) may stand lower (the afterglow's -3 deg). Between two skies the light is blended four
      ways (two kits by place, two skies by time): colours on the light clock q, structure (warmth, glow, veil, events,
-     fog, the gradient's shape, the land's offset from the sky and its contrast) on the structure clock qs; a change
-     between skies of different words passes a twilight waypoint (even, well below the inks' crossing, the land lost in
+     fog, the gradient's shape, the land's offset from the sky and its contrast) on the structure clock qs; (stage2:
+     never now, every sky's words being light: the code stays, unreached) a change between skies of different words passes a twilight waypoint (even, well below the inks' crossing, the land lost in
      a mist of the twilight's own light), and the light under the words crosses the band where neither ink reads well
      (OKLab L 0.562-0.654) in CROSS_T s (the quick crossing: the half's clock warped, planned from the two skies alone).
      Nothing here reads the words (rule 7, W7). Design: tod/design/design.md. */
   var WSKY = {
-    sunrise: { g:'dawn', w:'dark', ph:1, land:1, hold:85, near:['fair','azure','mist','firstlight'], sky:[[0.66,0.085,272],[0.85,0.08,240],[0.83,0.083,244],[0.79,0.09,250],[0.72,0.1,255],[0.64,0.115,256]], skyW:[0.88,0.08,20], glowC:[0.97,0.03,40], hazeC:[0.74,0.06,270], hazeW:[0.9,0.04,70], fogB:[0.62,0.09,262], ambU:[0.72,0.09,255], ambD:[0.6,0.06,290], clLit:[0.93,0.03,60], clShade:[0.64,0.08,275], clDeep:[0.6,0.085,272], clRim:[0.98,0.03,70], skyK:[0.6,8,0.1], key:[0.98,0.02,85,3], skyEl:null, sunVis:1, fogK:1, hazeK:1, seaLit:1, paint:{lit:[1,1.15,40,0.7,9,0.6],shade:[1,0.9,285,0.5],deep:[1,0.9,290,0.4],pale:[1,1,0,0]}, post:{bloomK:1.25,shafts:0.4,sat:1.04,stars:0,hi:0,hiC:[0.95,0.02,300]}, fx:{belt:0.9}, ceil:2 },
-    fair: { g:'day', w:'dark', ph:1, land:1, hold:105, near:['azure','mist','golden','sunrise','silver'], kit:1, paint:{lit:[1,1,0,0],shade:[1,1,0,0],deep:[1,1,0,0],pale:[1,1,0,0]}, fx:{}, ceil:2 },
-    azure: { g:'day', w:'dark', ph:2, land:1, hold:100, near:['fair','silver','golden','sunrise'], sky:[[0.8,0.012,225],[0.89,0.06,220],[0.86,0.07,224],[0.8,0.085,230],[0.72,0.09,236],[0.62,0.095,241]], skyW:[0.95,0.02,85], glowC:[0.99,0.02,90], hazeC:[0.8,0.07,233], hazeW:[0.88,0.04,80], fogB:[0.62,0.08,240], ambU:[0.74,0.09,236], ambD:[0.6,0.03,120], clLit:[0.94,0.006,120], clShade:[0.72,0.03,235], clDeep:[0.66,0.04,238], clRim:[0.99,0.01,90], skyK:[0.3,8,0.06], key:[0.99,0.02,90,2.8], skyEl:null, sunVis:1, fogK:1, hazeK:1, seaLit:1, paint:{lit:[1.02,0.8,40,0.3],shade:[1.05,0.8,235,0.5],deep:[1.08,0.8,240,0.5],pale:[1,1,0,0]}, post:{bloomK:1.1,shafts:0.35,sat:1.04,stars:0,hi:0.25,hiC:[0.97,0.01,230]}, fx:{}, ceil:2 },
-    mist: { g:'rain', w:'dark', ph:1, land:1, hold:90, near:['fair','silver','sunrise','azure'], sky:[[0.86,0.04,215],[0.93,0.035,212],[0.92,0.04,214],[0.9,0.05,218],[0.86,0.06,222],[0.8,0.07,226]], skyW:[0.96,0.02,95], glowC:[0.98,0.02,95], hazeC:[0.88,0.05,215], hazeW:[0.92,0.04,200], fogB:[0.8,0.06,218], ambU:[0.86,0.05,215], ambD:[0.78,0.05,215], clLit:[0.92,0.03,205], clShade:[0.8,0.06,215], clDeep:[0.74,0.065,220], clRim:[0.96,0.02,200], skyK:[0.25,10,0.03], key:[0.97,0.02,95,1.4], skyEl:null, sunVis:0.35, fogK:4, hazeK:3, seaLit:1, paint:{lit:[1.15,0.6,215,0.6,0.8,0],shade:[1.15,0.7,218,0.6,0.72,0],deep:[1.2,0.7,220,0.6,0.66,0],pale:[1.05,0.6,215,0.5,0.92,0]}, post:{bloomK:0.9,shafts:0.3,sat:1,stars:0,hi:0,hiC:[0.95,0.02,215]}, fx:{}, ceil:2 },
-    silver: { g:'rain', w:'dark', ph:2, land:1, hold:85, near:['mist','fair','golden','azure'], sky:[[0.74,0.03,248],[0.8,0.03,245],[0.79,0.032,247],[0.78,0.035,250],[0.76,0.036,250],[0.73,0.038,252]], skyW:[0.78,0.02,240], glowC:[0.8,0.02,240], hazeC:[0.78,0.03,248], hazeW:[0.82,0.03,240], fogB:[0.7,0.04,250], ambU:[0.76,0.03,248], ambD:[0.68,0.03,250], clLit:[0.86,0.02,245], clShade:[0.72,0.03,248], clDeep:[0.68,0.035,250], clRim:[0.9,0.02,240], skyK:[0.1,8,0], key:[0.9,0.02,205,0.9], skyEl:null, sunVis:0, fogK:2.5, hazeK:1.5, seaLit:1, paint:{lit:[1.18,0.45,245,0.7,0.78,0],shade:[1.26,0.45,250,0.7,0.72,0],deep:[1.38,0.45,250,0.7,0.69,0],pale:[0.9,0.5,245,0.5]}, post:{bloomK:0.6,shafts:0,sat:0.98,stars:0,hi:0.9,hiC:[0.8,0.02,245],rain:1}, fx:{curtain:0.8}, ceil:2 },
-    golden: { g:'sunset', w:'dark', ph:1, land:1, hold:85, near:['rose','afterglow','fair','silver'], sky:[[0.7,0.06,300],[0.9,0.07,72],[0.88,0.065,66],[0.84,0.05,45],[0.77,0.045,320],[0.7,0.06,262]], skyW:[0.9,0.08,62], glowC:[0.97,0.05,80], hazeC:[0.8,0.05,330], hazeW:[0.9,0.07,65], fogB:[0.6,0.07,300], ambU:[0.74,0.06,280], ambD:[0.62,0.07,40], clLit:[0.9,0.07,60], clShade:[0.62,0.06,300], clDeep:[0.6,0.065,295], clRim:[0.97,0.06,75], skyK:[0.65,9,0.1], key:[0.92,0.09,65,3.2], skyEl:null, sunVis:1, fogK:1, hazeK:1.1, seaLit:1, paint:{lit:[1.12,1.35,45,0.85,0.74,0],shade:[0.98,0.8,300,0.6],deep:[0.98,0.8,330,0.5],pale:[1,1.2,70,0.6]}, post:{bloomK:1.2,shafts:0.7,sat:1.06,stars:0,hi:0.2,hiC:[0.94,0.05,60],motes:1.5}, fx:{belt:0.3}, ceil:2 },
-    rose: { g:'sunset', w:'dark', ph:2, land:1, hold:85, near:['golden','afterglow','azure'], sky:[[0.72,0.05,345],[0.93,0.05,75],[0.9,0.055,55],[0.86,0.06,25],[0.8,0.06,340],[0.66,0.06,300]], skyW:[0.94,0.05,70], glowC:[0.97,0.04,75], hazeC:[0.82,0.05,345], hazeW:[0.92,0.05,60], fogB:[0.62,0.06,320], ambU:[0.76,0.06,330], ambD:[0.6,0.08,25], clLit:[0.72,0.15,36], clShade:[0.62,0.09,10], clDeep:[0.6,0.08,350], clRim:[0.95,0.05,60], skyK:[0.6,9,0.08], key:[0.93,0.06,50,2.6], skyEl:null, sunVis:1, fogK:1, hazeK:1.1, seaLit:1, paint:{lit:[1,1.6,28,0.85],shade:[0.98,1,10,0.6],deep:[0.98,1,22,0.5],pale:[1,1.3,65,0.6]}, post:{bloomK:1.1,shafts:0.4,sat:1.06,stars:0,hi:0.3,hiC:[0.92,0.04,20]}, fx:{belt:0.3}, ceil:2 },
-    afterglow: { g:'dusk', w:'light', ph:1, land:1, hold:70, near:['bluehour','golden','rose','milkyway','moonlit'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0.1,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
-    bluehour: { g:'dusk', w:'light', ph:1, land:1, hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], skyEl:-7, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0.05,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
-    moonlit: { g:'night', w:'light', ph:1, land:1, hold:95, near:['milkyway','aurora','firstlight','bluehour'], sky:[[0.3,0.12,264],[0.48,0.07,254],[0.43,0.1,257],[0.35,0.12,261],[0.28,0.12,264],[0.22,0.09,265]], skyW:[0.36,0.08,255], glowC:[0.42,0.04,250], hazeC:[0.33,0.045,262], hazeW:[0.38,0.035,252], fogB:[0.26,0.11,264], ambU:[0.34,0.09,262], ambD:[0.26,0.06,262], clLit:[0.7,0.06,258], clShade:[0.52,0.07,262], clDeep:[0.44,0.08,264], clRim:[0.74,0.04,250], skyK:[0.2,8,0.05], key:[0.84,0.03,245,0.55], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.9, paint:{lit:[0.37,0.6,258,0.8],shade:[0.28,0.7,262,0.8],deep:[0.24,0.75,262,0.8],pale:[0.48,0.4,250,0.5]}, post:{bloomK:0.3,shafts:0,sat:1,stars:0.6,hi:0.1,hiC:[0.36,0.08,262]}, fx:{moon:{r:1.8,L:[0.62,0.03,250],glow:[0.44,0.05,250],corona:1}}, ceil:0.525 },
-    milkyway: { g:'night', w:'light', ph:2, land:1, hold:95, near:['aurora','moonlit','firstlight'], sky:[[0.25,0.09,264],[0.3,0.1,262],[0.29,0.1,263],[0.26,0.1,264],[0.22,0.09,265],[0.18,0.075,266]], skyW:[0.3,0.06,262], glowC:[0.3,0.03,260], hazeC:[0.28,0.09,264], hazeW:[0.31,0.08,260], fogB:[0.22,0.08,265], ambU:[0.26,0.07,264], ambD:[0.2,0.05,264], clLit:[0.38,0.1,266], clShade:[0.28,0.09,266], clDeep:[0.25,0.085,266], clRim:[0.42,0.06,255], skyK:[0.1,8,0], key:[0.6,0.02,250,0.15], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.44,0.6,262,0.8],shade:[0.42,0.7,264,0.8],deep:[0.4,0.75,264,0.8],pale:[0.44,0.8,262,0.7]}, post:{bloomK:0.3,shafts:0,sat:1,stars:1,hi:0,hiC:[0.28,0.09,264]}, fx:{galaxy:1}, ceil:0.525 },
-    aurora: { g:'night', w:'light', ph:2, land:1, hold:100, near:['milkyway','moonlit','firstlight','bluehour'], sky:[[0.27,0.06,250],[0.33,0.06,225],[0.32,0.065,235],[0.29,0.08,250],[0.25,0.08,262],[0.21,0.07,266]], skyW:[0.34,0.06,175], glowC:[0.36,0.06,165], hazeC:[0.31,0.05,215], hazeW:[0.36,0.065,175], fogB:[0.24,0.065,250], ambU:[0.34,0.055,172], ambD:[0.24,0.05,240], clLit:[0.44,0.08,170], clShade:[0.32,0.07,240], clDeep:[0.28,0.07,250], clRim:[0.48,0.09,160], skyK:[0.15,10,0], key:[0.72,0.09,152,0.38], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.46,0.6,175,0.35],shade:[0.43,0.6,250,0.7],deep:[0.41,0.6,255,0.7],pale:[0.46,0.8,175,0.4]}, post:{bloomK:0.35,shafts:0,sat:1.02,stars:0.75,hi:0,hiC:[0.31,0.05,215]}, fx:{aurora:1}, ceil:0.525 },
-    firstlight: { g:'night', w:'light', ph:1, land:0, hold:70, near:['sunrise','moonlit','bluehour'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0.15,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
+    afterglow: { g:'sunset', w:'light', ph:1, land:['sunset','rain'], hold:70, near:['bluehour','milkyway','moonlit','firstlight'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0.1,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
+    bluehour: { g:'dusk', w:'light', ph:1, land:['dusk'], hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], skyEl:-7, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0.05,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
+    moonlit: { g:'night', w:'light', ph:1, land:['night'], hold:95, near:['milkyway','aurora','firstlight','bluehour'], sky:[[0.3,0.12,264],[0.48,0.07,254],[0.43,0.1,257],[0.35,0.12,261],[0.28,0.12,264],[0.22,0.09,265]], skyW:[0.36,0.08,255], glowC:[0.42,0.04,250], hazeC:[0.33,0.045,262], hazeW:[0.38,0.035,252], fogB:[0.26,0.11,264], ambU:[0.34,0.09,262], ambD:[0.26,0.06,262], clLit:[0.7,0.06,258], clShade:[0.52,0.07,262], clDeep:[0.44,0.08,264], clRim:[0.74,0.04,250], skyK:[0.2,8,0.05], key:[0.84,0.03,245,0.55], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.9, paint:{lit:[0.37,0.6,258,0.8],shade:[0.28,0.7,262,0.8],deep:[0.24,0.75,262,0.8],pale:[0.48,0.4,250,0.5]}, post:{bloomK:0.3,shafts:0,sat:1,stars:0.6,hi:0.1,hiC:[0.36,0.08,262]}, fx:{moon:{r:1.8,L:[0.62,0.03,250],glow:[0.44,0.05,250],corona:1}}, ceil:0.525 },
+    milkyway: { g:'night', w:'light', ph:2, land:['night'], hold:95, near:['aurora','moonlit','firstlight'], sky:[[0.25,0.09,264],[0.3,0.1,262],[0.29,0.1,263],[0.26,0.1,264],[0.22,0.09,265],[0.18,0.075,266]], skyW:[0.3,0.06,262], glowC:[0.3,0.03,260], hazeC:[0.28,0.09,264], hazeW:[0.31,0.08,260], fogB:[0.22,0.08,265], ambU:[0.26,0.07,264], ambD:[0.2,0.05,264], clLit:[0.38,0.1,266], clShade:[0.28,0.09,266], clDeep:[0.25,0.085,266], clRim:[0.42,0.06,255], skyK:[0.1,8,0], key:[0.6,0.02,250,0.15], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.44,0.6,262,0.8],shade:[0.42,0.7,264,0.8],deep:[0.4,0.75,264,0.8],pale:[0.44,0.8,262,0.7]}, post:{bloomK:0.3,shafts:0,sat:1,stars:1,hi:0,hiC:[0.28,0.09,264]}, fx:{galaxy:1}, ceil:0.525 },
+    aurora: { g:'night', w:'light', ph:2, land:['night'], hold:100, near:['milkyway','moonlit','firstlight','bluehour'], sky:[[0.27,0.06,250],[0.33,0.06,225],[0.32,0.065,235],[0.29,0.08,250],[0.25,0.08,262],[0.21,0.07,266]], skyW:[0.34,0.06,175], glowC:[0.36,0.06,165], hazeC:[0.31,0.05,215], hazeW:[0.36,0.065,175], fogB:[0.24,0.065,250], ambU:[0.34,0.055,172], ambD:[0.24,0.05,240], clLit:[0.44,0.08,170], clShade:[0.32,0.07,240], clDeep:[0.28,0.07,250], clRim:[0.48,0.09,160], skyK:[0.15,10,0], key:[0.72,0.09,152,0.38], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.46,0.6,175,0.35],shade:[0.43,0.6,250,0.7],deep:[0.41,0.6,255,0.7],pale:[0.46,0.8,175,0.4]}, post:{bloomK:0.35,shafts:0,sat:1.02,stars:0.75,hi:0,hiC:[0.31,0.05,215]}, fx:{aurora:1}, ceil:0.525 },
+    firstlight: { g:'dawn', w:'light', ph:1, land:['dawn','day'], hold:70, near:['moonlit','bluehour','afterglow'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0.15,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
   };
-  var SKY_PHASE = 1;   // (phase 1: sunrise, fair, mist, golden, afterglow, bluehour, moonlit, firstlight; phase 2 adds azure, silver, rose, milkyway, aurora)
+  /* (stage2) the landings: each hour on the kept sky nearest it in the day's own order: dawn and the morning (day, 08-13)
+     on the light before sunrise (its tops lit first, the sky warming low toward the sun), the afternoon (rain, 13-16) and
+     sunset on the afterglow (the tops still pink over the sea in the Earth's shadow), dusk on the blue hour, the night on
+     the moonlit sea, the Milky Way or the aurora (the visit's draw); after it the order is the visit's own, as before */
+  var SKY_PHASE = 2;   // (stage2, the owner's word of 2026-11-03: "lets only use white text for everything so never use any scenes that dont pass white text": every sky whose words were dark (sunrise, fair, mist, golden; azure, silver, rose) is gone; phase 1: afterglow, bluehour, moonlit, firstlight; phase 2 adds milkyway, aurora)
   var TW_L = [0.44, 0.48, 0.474, 0.468, 0.466, 0.43];   // (the twilight's sky stops, OKLab L below, at 0, 3, 10, 26, 58 deg: the live's TWILIGHT mapped)
   /* (tod fix round) TW_FOG, TW_HAZE: the twilight's mist (were 2.5 and 3); FAR_FOG, FAR_HAZE: through the mist (were 1.7,
      2.5): the judges' defect 12, frames flattened to the COVER bar. SKY_EVEN: on the half that crosses the inks' band only,
@@ -2572,12 +2613,12 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   var ROLE_SLOT = ['lit', 'lit', 'shade', 'deep', 'lit', 'shade', 'lit', 'shade', 'sheen', '', 'deep', 'pale', 'lit', 'shade', 'shade', 'sea', 'lit', 'deep'];
   var SKY_COLK = ['sunC', 'skyW', 'glowC', 'hazeC', 'hazeW', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'hiC', 'shaftC'];
   var SKY_CLOUDK = ['clLit', 'clShade', 'clDeep', 'clRim'];
-  var SKY = { seed: null, hour: null, V: null, ids: [], land: {}, seq: [], visits: {}, streak: 0, rO: null, rV: null, sets: {}, dt: 0,
+  var SKY = { seed: null, hour: null, V: null, ids: [], land: {}, seq: [], visits: {}, rO: null, rV: null, sets: {}, dt: 0,
     i: -1, e: null, pair: '', A: null, B: null, X: null, Y: null, k: 0, q: 0, qs: 0, x: 0, half: 0, gen: 0, pgen: 0, tw: false, far: false,
     baseLab: null, mm: 0, pk: 1, fb: 0, cap: false, recT: -1e9, skyS: new Float32Array(3), fx: new Float32Array(8), sunVis: 1, ceil: 2, moonD: null };
   /* what the words' ink is told of the cycle each frame (w10_engine.js inkOf: the sky flip): turning (a change between
      skies of different words, under way), want (the incoming sky's words), the change's index, how far it is */
-  var SKYI = { turning: false, want: 'dark', from: 'dark', id: -1, k: 0, words: 'dark', sky: '', next: '', group: '' };
+  var SKYI = { turning: false, want: 'light', from: 'light', id: -1, k: 0, words: 'light', sky: '', next: '', group: '' };   // (stage2: every sky's words are light: turning is never true)
   function ss01(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }
   function angd(a, b) { var d = ((a - b + 180) % 360 + 360) % 360 - 180; return d; }
   function labA(c) { var o = lin2lab(c); return [o[0], o[1], o[2]]; }
@@ -2757,12 +2798,12 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   }
   /* ---- the order (the live's pushSky and nextSky, on the world's streams) */
   function skyInit(V) {
-    SKY.V = V; SKY.seed = J.seed; SKY.hour = HOUR; SKY.sets = {}; SKY.seq = []; SKY.visits = {}; SKY.streak = 0; SKY.i = -1; SKY.pair = ''; SKY.e = null; SKY.X = null; SKY.Y = null;
+    SKY.V = V; SKY.seed = J.seed; SKY.hour = HOUR; SKY.sets = {}; SKY.seq = []; SKY.visits = {}; SKY.i = -1; SKY.pair = ''; SKY.e = null; SKY.X = null; SKY.Y = null;
     SKY.rO = RNG(subseed(J.seed, 41)); SKY.rV = RNG(subseed(J.seed, 42));
     SKY.dt = DEVMODE && OPT.skyDt !== null && isFinite(+OPT.skyDt) ? +OPT.skyDt : 0;   // (dev: the cycle's clock this far ahead of the flight's)
     SKY.ids = Object.keys(WSKY).filter(function (id) { return WSKY[id].ph <= SKY_PHASE; });
     SKY.land = {};
-    SKY.ids.forEach(function (id) { var S = WSKY[id]; if (S.land) (SKY.land[S.g] = SKY.land[S.g] || []).push(id); });
+    SKY.ids.forEach(function (id) { (WSKY[id].land || []).forEach(function (h) { (SKY.land[h] = SKY.land[h] || []).push(id); }); });   // (stage2: a sky lands on the hours it lists)
     SKY.baseLab = []; for (var s = 0; s < 24; s++) SKY.baseLab.push(labA([V.paramsBase[s * 4], V.paramsBase[s * 4 + 1], V.paramsBase[s * 4 + 2]]));
     SKY.sheenLab = labA(scl([V.paramsBase[32], V.paramsBase[33], V.paramsBase[34]], 1 / 0.3));
     var g = SKY.land[HOUR] ? HOUR : 'day', at = parseFloat(attr('data-sky-at'));   // (the hour's script writes it at load)
@@ -2792,17 +2833,16 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   }
   function skyNext() {
     var seq = SKY.seq, last = seq[seq.length - 1], r = SKY.rO, recent = [], c = [], w = [], sum = 0, i, x, id;
-    for (i = Math.max(0, seq.length - SKY_RECENT); i < seq.length; i++) recent.push(seq[i].id);
+    for (i = Math.max(0, seq.length - Math.min(SKY_RECENT, SKY.ids.length - 2)); i < seq.length; i++) recent.push(seq[i].id);   // (stage2: of four skies never the last two, so the order is never a fixed round)
     var far = r.f() < SKY_FAR, pool = far ? SKY.ids : WSKY[last.id].near;
     for (i = 0; i < pool.length; i++) if (SKY.ids.indexOf(pool[i]) >= 0 && recent.indexOf(pool[i]) < 0) c.push(pool[i]);
     if (!c.length) for (i = 0; i < SKY.ids.length; i++) if (SKY.ids[i] !== last.id) c.push(SKY.ids[i]);
-    for (i = 0; i < c.length; i++) { var v = 1 / (1 + 2 * (SKY.visits[c[i]] || 0)); if (SKY.streak >= 4 && WSKY[c[i]].w !== WSKY[last.id].w) v *= 4; w.push(v); sum += v; }
+    for (i = 0; i < c.length; i++) { var v = 1 / (1 + 2 * (SKY.visits[c[i]] || 0)); w.push(v); sum += v; }   // (stage2: every sky's words are light: no streak of one kind of words to break)
     x = r.f() * sum;
     for (i = 0; i < c.length - 1 && x >= w[i]; i++) x -= w[i];
     id = c[i];
     if (DEVMODE && seq.length === 1 && OPT.skyNext && SKY.ids.indexOf(OPT.skyNext) >= 0 && OPT.skyNext !== last.id) id = OPT.skyNext;   // (dev: the first change's sky forced)
     last.far = WSKY[last.id].near.indexOf(id) < 0;
-    SKY.streak = WSKY[id].w === WSKY[last.id].w ? SKY.streak + 1 : 1;
     skyPush(id);
   }
   /* ---- the quick crossing: a half of a change whose sky's mean light (stops 0-58 deg, the two kits' mean, a pure
@@ -3082,7 +3122,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     THEME.hex = hx; THEME.n++;
     THEME.meta.setAttribute('content', hx);
   }
-  function skyThemeStill(group) { if (THEME.meta === null) THEME.meta = document.querySelector('meta[name="theme-color"]') || false; if (THEME.meta && SKYTOP[group]) { THEME.meta.setAttribute('content', SKYTOP[group]); THEME.rgb[0] = THEME.rgb[1] = THEME.rgb[2] = -9; THEME.hex = SKYTOP[group]; } }
+  function skyThemeStill(group) { if (THEME.meta === null) THEME.meta = document.querySelector('meta[name="theme-color"]') || false; if (THEME.meta && SKYTOP[group]) { THEME.meta.setAttribute('content', stillTop(group)); THEME.rgb[0] = THEME.rgb[1] = THEME.rgb[2] = -9; THEME.hex = stillTop(group); } }
 
   /* ---------------------------------------------------------------- cells: the endless world */
   /* A realm's things are generated per world cell, at one or two scales (a realm's layout.scales: [{ size, radius }]),
@@ -3769,7 +3809,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     while (PJOBS.length && PJOBS[0].cancel) PJOBS.shift();
     if (!PJOBS.length) return;
     V = PJOBS[0].V; mode = PJOBS[0].mode;
-    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done) return;
+    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat) return;   // (speed E9, as groundCache)
     var want = 0; for (i = 0; i < PJOBS.length && want < cap; i++) { J0 = PJOBS[i]; if (!J0.cancel && J0.V === V && J0.mode === mode) want += J0.n - J0.sent; }
     want = Math.min(want, cap);
     var S = rbSlot(Math.ceil(want / PROBE_W) * PROBE_W * 4);
@@ -3816,7 +3856,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   var GROUND = { V: null, x0: 0, z0: 0, cell: GCCELL, n: GCN, h: new Float32Array(GCN * GCN), e: new Float32Array(GCN * GCN), ok: false, rd: 0, gen: 0, got: 0, P: { V: null, x0: 0, z0: 0, gen: 0 }, nx: 0, nz: 0, nV: null };
   var GPX = new Uint8Array(GCN * GCN * 4), GHALF = GCN / 2;
   function groundCache(V, cx, cz, sync) {
-    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done) return;
+    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat) return;   // (speed E9: and the visit planned: its field's parameters)
     if (!sync && GROUND.rd > 0) return;   // (the last grid's halves not yet read out of the target)
     var x0 = Math.floor(cx / 16) * 16 - GCN / 2 * GCCELL, z0 = Math.floor(cz / 16) * 16 - GCN / 2 * GCCELL;
     if (GCK[0] === V.k && GCK[1] === x0 && GCK[2] === z0 && GCK[3] === J.seed) return;
@@ -4583,9 +4623,22 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   /* the framing: a realm says where the horizon should sit (a fraction of the window's height from the top) on a wide
      window and on a tall one; the pitch that puts it there follows the window's shape */
   var TALLK = 0;
+  /* (the owner's yes to 9 deg, 2026-10-29) a wide window's camera pitched up CAMUP deg over the realm's framing: on a desktop
+     the horizon from 55 % to about three quarters of the way down, the words wholly on sky. WIDEK is 1 on a window 6 : 5
+     or wider and 0 on any other (an upright tablet, a phone, a window near square: their framing as it was, exactly 0
+     added), the stylesheet's own query (wideWin), so the world's tilt and the still sky it dissolves in over agree on
+     every window; set with TALLK in setFrustum, so a resize or a rotation re-aims at once, and eased with the frustum
+     when only the height changes (WIDEKT). Not a fade between: the credit row stands 54-59 % down on these windows, about
+     where the unraised horizon is (55 %), so any share of the 9 between carries the horizon through the credit row at
+     some shape (camera9b: (1 - TALLK) gave an upright tablet 4.8 deg; 1 - smooth(0.75, 1.0, h / w) gave a 1000x900
+     window 3.2 deg, the horizon behind the credit). Not 11-12 deg: there the sunrise sky's stack takes light ink over a
+     light ground. Everything that frames the view reads basePitch (the camera, the planner's forecast of it,
+     the moon's place). */
+  var CAMUP = 9;
+  var WIDEK = 1, WIDEKT = 1;
   function basePitch(V) {
     var fr = V.def.frame || [0.4, 0.6];
-    return Math.atan((2 * lerp(fr[0], fr[1], TALLK) - 1) * FR.tanY);
+    return Math.atan((2 * lerp(fr[0], fr[1], TALLK) - 1) * FR.tanY) + CAMUP * DEG * WIDEK;
   }
   /* (world6 step B) the look at the ground ahead's share of the pitch: the world's own (0: none: one pitch everywhere) */
   function pfK(V) { return V.def.pitchFollow === undefined ? 0.2 : V.def.pitchFollow; }
@@ -5232,11 +5285,11 @@ float groundH(vec2 xz) {
 `;
   /* the realm's ground, at points (packed in bytes, read back) or over a grid about the camera: the land (the first
      surface's height) or the camera's own ground (the realm's camGround, e.g. a bay's cloud top) */
-  function FS_PROBE(H, HC) {
+  function FS_PROBE(H, HC, HP) {   // (speed S1: HP, the realm's probeHgt: one function for both, float HP(vec2 p, bool cam))
     return `
 uniform sampler2D uTex; uniform vec4 uGCw; uniform int uPm; out vec4 oC;
 vec4 pack(float h) { float v = clamp((h + 4096.0) / 8192.0, 0.0, 0.99999); vec4 e = fract(v * vec4(1.0, 255.0, 65025.0, 16581375.0)); return e - e.yzww * vec4(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 0.0); }
-float hgt(vec2 p, bool cam) { ${HC ? 'if (cam) return ' + HC + '(p);' : ''} return ${H}(p).x; }
+float hgt(vec2 p, bool cam) { ${HP ? 'return ' + HP + '(p, cam);' : (HC ? 'if (cam) return ' + HC + '(p); ' : '') + 'return ' + H + '(p).x;'} }
 void main() {
   bool grid = uPm >= 2, cam = uPm == 1 || uPm == 3;
   vec2 p = grid ? uGCw.xy + gl_FragCoord.xy * uGCw.z : texelFetch(uTex, ivec2(gl_FragCoord.xy), 0).xy;
@@ -5849,7 +5902,17 @@ void main() {
   var FS_BLIT = HEAD + `
 uniform sampler2D uTex; uniform vec2 uOut;
 out vec4 oC;
-void main() { oC = vec4(texture(uTex, gl_FragCoord.xy / uOut).rgb, 1.0); }`;
+/* (stage2 quality Q4) the world put up to a larger canvas by a Catmull-Rom clamped to the inner 2x2's range (one
+   sharp resample, no ring: never outside the four texels it lies between), was bilinear */
+void main() {
+  vec2 sz = vec2(textureSize(uTex, 0)), hp = gl_FragCoord.xy / uOut * sz - 0.5, f = fract(hp); ivec2 h0 = ivec2(floor(hp)), qm = ivec2(sz) - 1;
+  vec2 w0c = f * (-0.5 + f * (1.0 - 0.5 * f)), w1c = 1.0 + f * f * (-2.5 + 1.5 * f), w2c = f * (0.5 + f * (2.0 - 1.5 * f)), w3c = f * f * (-0.5 + 0.5 * f);
+  vec3 s = vec3(0.0), mn = vec3(1e9), mx = vec3(-1e9);
+  for (int j = 0; j < 4; j++) { float wy = j == 0 ? w0c.y : (j == 1 ? w1c.y : (j == 2 ? w2c.y : w3c.y));
+    for (int i = 0; i < 4; i++) { float wx = i == 0 ? w0c.x : (i == 1 ? w1c.x : (i == 2 ? w2c.x : w3c.x));
+      vec3 q = texelFetch(uTex, clamp(h0 + ivec2(i - 1, j - 1), ivec2(0), qm), 0).rgb; s += q * (wx * wy);
+      if (i >= 1 && i <= 2 && j >= 1 && j <= 2) { mn = min(mn, q); mx = max(mx, q); } } }
+  oC = vec4(clamp(s, mn, mx), 1.0); }`;
   /* (world6w) the words' lift (LIB_LIFT, liftWords: a gain under dark words) is gone, with its floors and the world's toe */
   var FS_COMP = HEAD + FRAME_U + LIB + LIB_LIND + `
 uniform sampler2D uScene, uCloud, uBloom, uShaft, uLinD, uDepth, uSceneH;
@@ -6020,7 +6083,17 @@ void main() {
     vec2 tsz = vec2(textureSize(uCloud, 0)), b0 = (1.0 - f) * (1.0 - f) * (1.0 - f) / 6.0, b1 = (4.0 - 6.0 * f * f + 3.0 * f * f * f) / 6.0, b3 = f * f * f / 6.0, b2 = 1.0 - b0 - b1 - b3;
     vec2 g0 = b0 + b1, g1 = b2 + b3, o0 = (vec2(h0) + 0.5 - 1.0 + b1 / g0) / tsz, o1 = (vec2(h0) + 0.5 + 1.0 + b3 / g1) / tsz, lm = lim(uCloud, uClS.xy);
     vec4 tA = texture(uCloud, min(o0, lm)), tB = texture(uCloud, min(vec2(o1.x, o0.y), lm)), tC = texture(uCloud, min(vec2(o0.x, o1.y), lm)), tD = texture(uCloud, min(o1, lm));
-    vec4 cS = g0.x * g0.y * tA + g1.x * g0.y * tB + g0.x * g1.y * tC + g1.x * g1.y * tD;
+    /* (stage2 quality Q2) brought up by a Catmull-Rom (interpolating: a detail a quarter of the half resolution's
+       rate keeps its contrast, which the B-spline cut by about 40%), clamped to the range of the inner 2x2 it
+       interpolates (no ring, no overshoot: never above the brightest texel there, never below the darkest; so
+       never above the light ceiling either). The four reads above stay the gate's (the 4x4's reach) */
+    vec4 cS; { vec2 w0c = f * (-0.5 + f * (1.0 - 0.5 * f)), w1c = 1.0 + f * f * (-2.5 + 1.5 * f), w2c = f * (0.5 + f * (2.0 - 1.5 * f)), w3c = f * f * (-0.5 + 0.5 * f);
+      ivec2 qm = ivec2(uClS.zw) - 1; vec4 s4 = vec4(0.0), mn4 = vec4(1e9), mx4 = vec4(-1e9);
+      for (int j = 0; j < 4; j++) { float wy = j == 0 ? w0c.y : (j == 1 ? w1c.y : (j == 2 ? w2c.y : w3c.y));
+        for (int i = 0; i < 4; i++) { float wx = i == 0 ? w0c.x : (i == 1 ? w1c.x : (i == 2 ? w2c.x : w3c.x));
+          vec4 q4 = texelFetch(uCloud, clamp(h0 + ivec2(i - 1, j - 1), ivec2(0), qm), 0); s4 += q4 * (wx * wy);
+          if (i >= 1 && i <= 2 && j >= 1 && j <= 2) { mn4 = min(mn4, q4); mx4 = max(mx4, q4); } } }
+      cS = clamp(s4, mn4, mx4); }
     cl = cS;
     /* (Fix 3, the hotfix verify-2's item 3) coming out of a cloud, the cloud about the eye (FS_INCLOUD, drawn into the
        same half-resolution target, in front of everything) is brought up plainly wherever it still stands: its share
@@ -6462,6 +6535,28 @@ void main() {
      (DIRECT: a window at 1 or 1.25 device px a CSS px) the composite is drawn straight onto it, and TG.win holds only
      what lies under the birds (HOST.under: their boxes copied in) */
   var FULL_DPR = 2, FULL_PX = 2.5e6, DIRECT = false;
+  /* (stage2 quality Q3, the owner's word of 2026-11-03: "the clouds and stuff looks blurry from afar too.. everything
+     should be 10x quality") the world's own density by the device's memory tier (memTier): at most QDPR[tier][0]
+     device px a CSS px and QDPR[tier][1] px in all. It was 1.25 and 1.3 Mpx on every device: the owner's 393x852@3
+     phone's world was 491 x 1065, 17% of its screen's px, stretched twice (the quality plan, 1a). Now 786 x 1704
+     there, the canvas's own size (DIRECT: no resample but the browser's), and a Retina 1440x900 window's
+     2880 x 1800. QK is today's size over the tier's: the governor's ladder keeps today's five rungs (QK x 1, 0.85,
+     0.72, 0.6, 0.5: today's bottom, in absolute px) with rungs above them to the tier's top, and stage G's trials
+     are today's (0.35, 0.5, 0.7 and 1 of today's size, its floor today's floor) and the tier's top. lowA (other
+     Android) keeps today's size, so its ladder is today's */
+  var QDPR = { desktop: [2, 6e6], full: [2, 1.4e6], low: [1.5, 1.6e6], lowA: [1.25, 1.3e6] }, QK = 1, QRUNGS = [1, 0.85, 0.72, 0.6, 0.5], QTOP = [1, 0.85, 0.72, 0.6];
+  function baseDpr(cw, ch) { var a = Math.max(cw * ch, 1); return Math.min(window.devicePixelRatio || 1, SW.dpr1 ? 1 : 1.25, Math.sqrt(1.3e6 / a)); }   // (today's world)
+  function worldDpr(cw, ch) { var a = Math.max(cw * ch, 1), T = QDPR[memTier()] || QDPR.lowA; return SW.dpr1 ? baseDpr(cw, ch) : Math.min(window.devicePixelRatio || 1, T[0], Math.sqrt(T[1] / a)); }
+  function qLadder(k) {   // (the rungs as shares of the tier's top: those above today's size a step of at least 8% apart, then today's five)
+    var R = [], i;
+    for (i = 0; i < QTOP.length; i++) if (QTOP[i] > k * 1.08) R.push(QTOP[i]);
+    for (i = 0; i < QRUNGS.length; i++) R.push(+(k * QRUNGS[i]).toFixed(4));
+    return R;
+  }
+  function gsScales(k) {   // (stage G's trial scales: today's four of today's size, and the tier's top above them)
+    GS.sc = (k < 0.98 ? [0.35 * k, 0.5 * k, 0.7 * k, k, 1] : [0.35, 0.5, 0.7, 1]).map(function (v) { return +v.toFixed(4); });
+    GS.i = GS.sc.length - 1; GS.tr = GS.sc.map(function () { return []; }); GS.med = GS.sc.map(function () { return null; });
+  }
   /* (E1.1, item 5) the scene's samples chosen by memory, against design-v5 5.5's caps. 4x MSAA (Fix 3) was in no budget:
      at 393x852@3 its renderbuffers (RGBA16F and DEPTH24, 4 samples: 48 B a pixel) are 23.9 MB of a world of 491 x 1065,
      over the high iPhone's 115 MB with the tier's planned pools. The plan, made once when the context is (and again
@@ -6498,7 +6593,7 @@ void main() {
     return (nav.deviceMemory || 0) >= 8 ? 'full' : 'lowA';
   }
   function memWorld(cw, ch) {   // (resize()'s sizes for a window of cw x ch CSS px)
-    var dpr0 = window.devicePixelRatio || 1, area = Math.max(cw * ch, 1), d = Math.min(dpr0, SW.dpr1 ? 1 : 1.25, Math.sqrt(1.3e6 / area));
+    var dpr0 = window.devicePixelRatio || 1, area = Math.max(cw * ch, 1), d = worldDpr(cw, ch);   // (stage2 quality Q3: the tier's world)
     var W = Math.max(1, Math.round(cw * d)), H = Math.max(1, Math.round(ch * d)), fd = Math.max(d, Math.min(dpr0, SW.dpr1 ? 1 : FULL_DPR, Math.sqrt(FULL_PX / area)));
     return [W, H, Math.max(W, Math.round(cw * fd)), Math.max(H, Math.round(ch * fd))];
   }
@@ -6599,25 +6694,32 @@ void main() {
   function setFrustum(snap) {
     var aspect = OUT.w / Math.max(OUT.h, 1), tl = Math.tan(FOV_LONG * DEG / 2);
     TALLK = smooth(0.95, 1.75, OUT.h / Math.max(OUT.w, 1));
+    WIDEKT = wideWin() ? 1 : 0;   // (camera9b: the tilt, basePitch: the stylesheet's wide windows)
     if (aspect >= 1) { FRT.tanX = tl; FRT.tanY = tl / aspect; }
     else { FRT.tanX = Math.max(tl * aspect, Math.tan(21 * DEG)); FRT.tanY = Math.min(FRT.tanX / aspect, Math.tan(40 * DEG)); FRT.tanX = FRT.tanY * aspect; }
-    if (snap) { FR.tanX = FRT.tanX; FR.tanY = FRT.tanY; }
+    if (snap) { FR.tanX = FRT.tanX; FR.tanY = FRT.tanY; WIDEK = WIDEKT; }
   }
-  function easeFrustum(dt) { var k = 1 - Math.exp(-dt / 0.35); FR.tanY += (FRT.tanY - FR.tanY) * k; FR.tanX = FR.tanY * OUT.w / Math.max(OUT.h, 1); }
+  function easeFrustum(dt) { var k = 1 - Math.exp(-dt / 0.35); FR.tanY += (FRT.tanY - FR.tanY) * k; FR.tanX = FR.tanY * OUT.w / Math.max(OUT.h, 1); WIDEK += (WIDEKT - WIDEK) * k; }
   function resize() {
     if (LOST) return false;
-    // the world at most 1.25 device px a CSS px, and at most 1.3 Mpx in all (a soft world gains nothing past it; the
-    // words are HTML); the canvas at the device's own px (at most 3 a CSS px, 8.3 Mpx in all), for the birds' ink
+    // the world at the tier's density (stage2 quality Q3: worldDpr; it was at most 1.25 device px a CSS px and 1.3 Mpx
+    // for every device); the canvas at the device's own px (at most FULL_DPR a CSS px, FULL_PX in all), for the birds' ink
     var r = canvas.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return false;   // (hidden: nothing is sized while it is)
     var dmax = SW.dpr1 ? 1 : 1.25, fmax = SW.dpr1 ? 1 : FULL_DPR;   // (E0, the switch: the canvas at 1.0 device px a CSS px)
-    var area = Math.max(r.width * r.height, 1), dpr = Math.min(window.devicePixelRatio || 1, dmax, Math.sqrt(1.3e6 / area));
+    var area = Math.max(r.width * r.height, 1), dpr = worldDpr(r.width, r.height);   // (stage2 quality Q3: the tier's density; dmax is today's, kept by baseDpr)
     var w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
     var fdpr = Math.max(dpr, Math.min(window.devicePixelRatio || 1, fmax, Math.sqrt(FULL_PX / area)));   // (round 3: 2 and 2.5 Mpx; round 2's 3 and 8.3 Mpx cost a phone 1.4 GB/s of copies for 0.6 % of its pixels in ink)
     var fw = Math.max(w, Math.round(r.width * fdpr)), fh = Math.max(h, Math.round(r.height * fdpr));
     if (DEVMODE && OPT.cvs) { var cvm = /^(\d+)x(\d+)$/.exec(OPT.cvs); if (cvm) { w = fw = +cvm[1]; h = fh = +cvm[2]; dpr = w / r.width; } }   // (dev, E0: a fixed small canvas: CPU timing and presented runs)
     if (w === OUT.w && h === OUT.h && fw === FULL.w && fh === FULL.h && TG) return false;
     var heightOnly = TG && w === OUT.w && Math.abs(h - OUT.h) < 0.15 * OUT.h;
+    /* (stage2 quality Q3) the ladder for this window; the scale being drawn kept in absolute px (the rung whose width is
+       the nearest at or under it), so a resize neither sharpens nor softens the world by itself */
+    var qk = Math.min(1, baseDpr(r.width, r.height) / Math.max(dpr, 1e-6)), qab = TG && OUT.w ? RUNGS[RUNG] * OUT.w : 0;
+    RUNGS = qLadder(qk); QK = qk;
+    if (qab > 0) { RUNG = RUNGS.length - 1; for (var qi = 0; qi < RUNGS.length; qi++) if (RUNGS[qi] * w <= qab * 1.001) { RUNG = qi; break; } } else RUNG = Math.min(RUNG, RUNGS.length - 1);
+    if (!GS.done && !GS.tr.some(function (a) { return a.length; })) gsScales(qk);
     OUT.w = w; OUT.h = h; OUT.dpr = dpr; OUT.cssW = r.width; OUT.cssH = r.height;
     FULL.w = fw; FULL.h = fh; FULL.dpr = fw / Math.max(r.width, 1);
     DIRECT = fw === w && fh === h;
@@ -6675,63 +6777,32 @@ void main() {
     gl.bindVertexArray(FULLVAO); gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   /* (world6w, the owner's word of 2026-10-21: "remove that white background behind the text. it's fine failing
-     accesibility") the words' inks. Nothing is done to the world for the words: no lift, no floor, no gain, no toe; the
-     composite takes nothing from them (the same frame with the words' machinery on or off). Two groups take their ink
-     each from their own ground, as the world drew it (the composite at an eighth, TG.gs, read back): the stack (the name
-     and the credit, set on .stack) and the links (set on the footer). (Ink step, the owner's word of 2026-10-22: "hold
-     each colour change long enough that it can never blink, and choose the links' colour by their worst letters, not
-     their average") Each ink is scored by its APCA |Lc| on its own worst ground under the group's boxes (the links: dark
-     on the darkest cell under their own ink boxes, light on the lightest; the stack: its ground's darkest and lightest
-     tenth), the other ink taken only when it scores INK_M better, once that want
-     has held INK_HOLD s (the stack's turn to light ink INK_HOLDS s) and no sooner than INK_DWELL s after the group's last flip; a rescue only where the shown ink
-     cannot be read (under |Lc| INK_RLC on the ground's median), and never within INK_RGAP s of the last flip (no round
-     trip). (ink fix) Each group takes its first ink after the page loads or the words' reading restarts (inkRestart: the
-     first frame shown, a resize, the words' colours cleared, a restored context) from the readings of the frames shown
-     in the generation's first INK_TAKE s (at least INK_TAKEN): the median of each reading's worst grounds, by the
-     rule's own choice, once the canvas has been shown INK_TAKE s (at load, the dissolve at the inks' crossing); a
-     restart's take changes an ink within INK_DWELL of the group's last change only where the shown ink cannot be read
-     at all; never more than INK_CAP changes in a minute; the harness's stills each frame their own. The credit's grey
-     and the focus ring are worked out from their ground (AG_R, AG_RR), with nothing under them, from the first take on
-     (before it the page's own) */
-  var WORDSETS = {
-    dark: { text: '#000000', dimmed: '#42403c', focus: '#43300c', selection: '#e6e2d6' },
-    light: { text: '#fdfcf7', dimmed: '#c9cdd6', focus: '#e0bd6a', selection: '#3b3f55' }
-  };
-  var INK_YC = 0.356, INK_BUF = 0.03, INK_R3 = 3, INK_LC = 45;   // (the record's: APCA's equal point for the two inks (grey 161, Y 0.356) and the shares at |Lc| 45, 3:1; the light grey's default ground)
-  var INK_HOLD = 5, INK_HOLDS = 60, INK_DWELL = 20, INK_M = 8, INK_RLC = 20, INK_RHOLD = 1, INK_RGAP = 20;   // (ink step: the want held INK_HOLD s (every change; the stack's turn to light ink INK_HOLDS s: the stack's ground must ask for light ink 60 s unbroken before the name turns: 1.7 times the longest light-want run measured at 0.5 s (11 s on the census's flight before a crest; on step C's world 26.5 s before a crest and 35.5 s on a split ground); back to dark INK_HOLD); no flip within INK_DWELL s of the group's last; the other ink must read INK_M Lc better on its own worst ground; the rescue: the shown ink under |Lc| INK_RLC on the ground's median, held INK_RHOLD s, never within INK_RGAP s of the last flip)
-  var INK_TAKE = 0.5, INK_TAKEN = 3, INK_SURE = 0.75, INK_SUREN = 8, INK_TAKEMAX = 1.5, INK_CAP = 3;   // (ink fix) the take: the readings of the frames shown in the generation's first INK_TAKE s, at least INK_TAKEN of them (on a slow device more than INK_TAKE s), once the canvas has been shown INK_TAKE s, when three in four of them (INK_SURE), and at least INK_SUREN, choose on their own what their medians choose, else more readings, to INK_TAKEMAX s, where the medians decide (a slow device's few readings never agree by chance): a stone under a letter for under about half the time never decides it (the default landing on a 60 fps clock: a pale shard under the links from 0.25 to 0.72 s shown); never more than INK_CAP changes of a group in any 60 s
-  var INK_YD = hexLum(WORDSETS.dark.text), INK_YL = hexLum(WORDSETS.light.text);
-  var INK_D3 = INK_R3 * (INK_YD + 0.05) - 0.05, INK_L3 = (INK_YL + 0.05) / INK_R3 - 0.05;
-  /* (fix round) APCA 0.0.98G-4g's |Lc| of an ink on a ground: the ground's luminance taken as its grey's code to the 2.4
-     power (APCA's own linearisation), the inks' from their codes */
-  function inkY2A(y) { var c = y <= 0.0031308 ? y * 12.92 : 1.055 * Math.pow(y, 1 / 2.4) - 0.055; return Math.pow(clamp(c, 0, 1), 2.4); }
-  function inkHexA(h) { var n = parseInt(h.slice(1), 16); return 0.2126729 * Math.pow((n >> 16 & 255) / 255, 2.4) + 0.7151522 * Math.pow((n >> 8 & 255) / 255, 2.4) + 0.0721750 * Math.pow((n & 255) / 255, 2.4); }
-  function inkApca(t, b) {
-    t = t > 0.022 ? t : t + Math.pow(0.022 - t, 1.414); b = b > 0.022 ? b : b + Math.pow(0.022 - b, 1.414);
-    if (Math.abs(b - t) < 0.0005) return 0;
-    var o = b > t ? (Math.pow(b, 0.56) - Math.pow(t, 0.57)) * 1.14 : (Math.pow(b, 0.65) - Math.pow(t, 0.62)) * 1.14;
-    o = b > t ? (o < 0.1 ? 0 : o - 0.027) : (o > -0.1 ? 0 : o + 0.027);
-    return Math.abs(o * 100);
-  }
-  var INK_AD = inkHexA(WORDSETS.dark.text), INK_AL = inkHexA(WORDSETS.light.text);
-  function inkLc(kind, y) { return inkApca(kind === 'light' ? INK_AL : INK_AD, inkY2A(y)); }
-  function inkLcY(kind, lc) {   // the ground's luminance where the ink reads at |Lc| lc (dark: at or above it; light: at or below it)
-    var lo = 0, hi = 1;
-    for (var i = 0; i < 40; i++) { var m = (lo + hi) / 2; if ((inkLc(kind, m) >= lc) === (kind === 'dark')) hi = m; else lo = m; }
-    return kind === 'dark' ? hi : lo;
-  }
-  var INK_D45 = inkLcY('dark', INK_LC), INK_L45 = inkLcY('light', INK_LC);   // (about 0.27 and 0.41: between them both inks read at Lc 45, and the median decides)   // (the ground dark ink reads on at 3:1: Y >= INK_D3 (0.10); light ink: Y <= INK_L3 (0.29))
-  var GS_K = 8, AG_R = 4.7, AG_RR = 3.4, AG_UP = 0.004, AG_GREY = hex('#5f5c56'), AG_RING = hex('#43300c'), AG_YG = lum(AG_GREY), AG_YRMAX = 0.1, AG_PAGE = 1, AG_PSTEP = 0.25;   // ((line2) AG_PAGE: a read made without the line's block keeps the line's last reading of the generation, at most AG_PAGE s older)   // ((line2 fix) AG_PSTEP: in flight the line's block is read with the words at most once in AG_PSTEP s of frames, and only where it crowds no other read (agLineDue))
+     accesibility") the words' colours. Nothing is done to the world for the words: no lift, no floor, no gain, no toe;
+     the composite takes nothing from them (the same frame with the words' machinery on or off). (stage2, the owner's
+     word of 2026-11-03: "lets only use white text for everything so never use any scenes that dont pass white text")
+     Every sky's words are light, so the words are always the light set, from the stylesheet's first paint on: no ground
+     rule, no flip, no dark ink (the skies hold their own light under the light ceiling, so near-white reads on them).
+     (stage2 check) Every colour of the words is a constant, the same in the stylesheet and here, for every sky and
+     every moment, chosen against the light ceiling itself (W8: no pixel the world draws stands above OKLab L 0.53
+     outside the moon's footprint, which keeps off the words, and the ink birds, which keep off them too): the text
+     #fdfcf7 reads 5.13:1 on L 0.53, the dimmed grey #ebeffa (the credit; the links' underline) 4.59:1, the ring #f4e2b0
+     4.1:1. A grey worked out from the read-back (the composite at an eighth, for the credit's lightest ground x1.2) fell
+     to 4.27:1 at 1920x1080 (seed 11, the moonlit sky): an eighth averages a thin lit edge under the credit away. So the
+     words' machinery is off (AG.on false): no read-back, no take, nothing set on .stack or the footer; the root takes
+     the set (setWords) as the stylesheet has it. The code below is the record's, unreached */
+  var WORDSETS = { light: { text: '#fdfcf7', dimmed: '#ebeffa', focus: '#f4e2b0', selection: '#3b3f55' } }, INK = 'light';
+  var INK_YC = 0.356;   // (the light grey's default ground, before a reading)
+  var INK_TAKE = 0.5, INK_TAKEN = 3;   // (the take: the readings of the frames shown in the generation's first INK_TAKE s, at least INK_TAKEN of them, once the canvas has been shown INK_TAKE s)
+  var GS_K = 8, AG_R = 4.7, AG_PAGE = 1, AG_PSTEP = 0.25;   // ((line2) AG_PAGE: a read made without the line's block keeps the line's last reading of the generation, at most AG_PAGE s older)   // ((line2 fix) AG_PSTEP: in flight the line's block is read with the words at most once in AG_PSTEP s of frames, and only where it crowds no other read (agLineDue))
   var AG_LRING = '#f4e2b0', AG_LGREY = hex('#c9cdd6'), AG_LSPARE = 1.2;   // ((tod fix3) AG_LSPARE: the light grey worked out on the credit's lightest ground read x1.2, a fifth to spare, as sky.v3.js does)
   /* AG: the grounds (per block: 0 the name, 1 the credit, 2 the links, 3 (line2) the line under the name: yd the 3rd
      percentile, ym the lightest, y0 the darkest; AGL the block's sorted luminances), the groups (GQ: 0 the stack, 1 the
-     links: p10, p50, p90, the shares at 3:1 for dark and light ink, the want's start, the last flip), the inks (sk the
-     stack's, lk the links'; null: none set yet) and the colours worked out (y, yr: the dark grey's and ring's luminance;
-     dim, foc, sdim their hex) */
-  var AG = { on: true, n: 0, yd: [-1, -1, -1, -1], ym: [-1, -1, -1, -1], y0: [-1, -1, -1, -1], u0: [-1, -1, -1, -1], ud: [-1, -1, -1, -1], u97: [-1, -1, -1, -1], um: [-1, -1, -1, -1], un: [0, 0, 0, 0], pg: -1, pt: -1, pl: -1, ph: -1, pq: -1e9, qg: -1, trim: 0, miss: 0, y: 0, yr: 0, set: false, dim: '', foc: '', sdim: '', reads: 0, rd: -1,
+     links: p10, p50, p90, their worst grounds lo and hi, the take), the inks (sk the stack's, lk the links'; null: none
+     set yet; stage2: always light) and the credit's grey worked out (sdl, shown as sdim) */
+  var AG = { on: false, n: 0, yd: [-1, -1, -1, -1], ym: [-1, -1, -1, -1], y0: [-1, -1, -1, -1], u0: [-1, -1, -1, -1], ud: [-1, -1, -1, -1], u97: [-1, -1, -1, -1], um: [-1, -1, -1, -1], un: [0, 0, 0, 0], pg: -1, pt: -1, pl: -1, ph: -1, pq: -1e9, qg: -1, trim: 0, miss: 0, sdim: '', reads: 0, rd: -1,
     lk: null, flips: 0, sk: null, sflips: 0, log: [], rgb: [null, null, null], sh: [0, 0], sdl: '', gen: 0, rg: -1, tk: [-1, -1], t0: -1, w0: -1e9, rt: -1, wn: 0, ink: false, ik: [false, false], fz: -1 };   // (ink fix) t0: the generation's start on the clock (-1: not shown); w0: the first frame shown, on the wall; fz: the wall when the flight's clock last ran (reduced motion's rule clock); rt: the frame the read last landed was drawn at; wn: the readings in the take; ink: the words' colours are the world's (from the first take); ik: each group's (the credit's grey from the stack's take, the links' underline and ring from the links')   // (ink load fix) gen: the words' reading's generation (inkRestart); rg: the generation of the read last landed; tk: when each group last took its ink at once   // (line2) pg, pt: the generation and frame time of the line's block last landed; pl, ph: the line's darkest and lightest tenth as last counted in the stack's worst grounds (-1: not counted); trim: the words' reads made without the line's block for want of room in the slot (the old read); miss: those refused even so (no room for the old read, or no slot free)   // ((line2 fix) pq, qg: the frame time and generation of the last read sent with the line's block)
   var AGL = [null, null, null, null];
-  var GQ = [{ p10: -1, p50: -1, p90: -1, sd: 0, sl: 0, sd3: 0, sl3: 0, n: 0, since: -1, last: -1e9, rs: -1, lastR: -1e9, want: '', lo: -1, hi: -1, ld: 0, ll: 0, hold: INK_HOLDS, took: -1, ch: [], ulo: -1, uhi: -1 }, { p10: -1, p50: -1, p90: -1, sd: 0, sl: 0, sd3: 0, sl3: 0, n: 0, since: -1, last: -1e9, rs: -1, lastR: -1e9, want: '', lo: -1, hi: -1, ld: 0, ll: 0, took: -1, ch: [] }];
+  var GQ = [{ p10: -1, p50: -1, p90: -1, n: 0, lo: -1, hi: -1, took: -1, ulo: -1, uhi: -1 }, { p10: -1, p50: -1, p90: -1, n: 0, lo: -1, hi: -1, took: -1 }];
   var AGW = { lo: [[], []], hi: [[], []], md: [[], []], yd: [2, 2] };   // (ink fix) the take's readings: each group's worst grounds (lo, hi) and median; the credit's and the links' darkest
   var stackEl = document.querySelector('.stack'), footEl = document.querySelector('footer');
   function agL2s(c) { return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055; }
@@ -6740,14 +6811,11 @@ void main() {
     for (var i = 0; i < 3; i++) { var v = Math.round(clamp(agL2s(Math.min(base[i] * k, 1)), 0, 1) * 255); s += (v < 16 ? '0' : '') + v.toString(16); }
     return s;
   }
-  /* a group's ground from its blocks' sorted luminances: p10, p50, p90 and the shares each ink reads on at 3:1 */
+  /* a group's ground from its blocks' sorted luminances: p10, p50, p90 (the record's) */
   function agGroup(G, a) {
     var n = a ? a.length : 0; G.n = n;
-    if (!n) { G.p10 = G.p50 = G.p90 = -1; G.sd = G.sl = G.sd3 = G.sl3 = 0; return; }
+    if (!n) { G.p10 = G.p50 = G.p90 = -1; return; }
     G.p10 = a[Math.min(n - 1, Math.floor(n * 0.1))]; G.p50 = a[Math.min(n - 1, Math.floor(n * 0.5))]; G.p90 = a[Math.min(n - 1, Math.floor(n * 0.9))];
-    var d = 0, l = 0, d3 = 0, l3 = 0;
-    for (var i = 0; i < n; i++) { if (a[i] >= INK_D45) d++; if (a[i] <= INK_L45) l++; if (a[i] >= INK_D3) d3++; if (a[i] <= INK_L3) l3++; }
-    G.sd = d / n; G.sl = l / n; G.sd3 = d3 / n; G.sl3 = l3 / n;   // (the shares at APCA Lc 45 decide; the WCAG 3:1 shares are the record's)
   }
   /* (ink step, fix round) a group's worst grounds, as the read-back gives them under the words' own ink boxes (ungrown:
      the name's path bounds, the credit's box, each link's own box): dark ink's the darkest cell (AG.u0), light ink's the
@@ -6765,35 +6833,6 @@ void main() {
      ground; one dark cell under the credit's box (a cell is 8 CSS px) must not turn the whole name light on a mid-bright
      ground (step C's landing: 20% of 30 minutes, the median letter at |Lc| 31 where black read 64) */
   function inkDeciles(G) { G.lo = G.n > 0 ? G.p10 : -1; G.hi = G.n > 0 ? G.p90 : -1; }
-  /* the ink a group's ground asks for: each ink scored by its |Lc| on its own worst ground (dark on the darkest, light on
-     the lightest); the other ink only when it scores INK_M better than the one shown (the better worst wins, with
-     hysteresis); with none shown yet, the better */
-  function inkWant(G, cur) {
-    var d = inkLc('dark', G.lo), l = inkLc('light', G.hi); G.ld = d; G.ll = l;
-    if (cur === 'dark') return l >= d + INK_M ? 'light' : 'dark';
-    if (cur === 'light') return d >= l + INK_M ? 'dark' : 'light';
-    return l >= d ? 'light' : 'dark';
-  }
-  /* the group's ink this frame: its want, once held its hold (INK_HOLD s; the stack's turn to light ink INK_HOLDS s,
-     G.hold: a dune face must keep asking for it that long, while back to dark ink it takes INK_HOLD, so light ink is
-     never kept on a crest longer than the dwell) and no sooner than INK_DWELL s after its last flip (so an
-     ink once shown stays at least that long: never a blink); the rescue, for a ground on which the shown ink cannot be
-     read (under |Lc| INK_RLC on the median, the other ink INK_M better there), held INK_RHOLD s and never within INK_RGAP
-     s of the last flip (no round trip); at once on the first frame and in the harness's stills */
-  function inkStep(G, cur, now, atOnce) {
-    if (G.n <= 0) return cur;
-    var want = inkWant(G, cur); G.want = want; G.why = 'ground';
-    if (atOnce || cur === null) { G.since = -1; G.rs = -1; G.last = now; return want; }
-    var oth = cur === 'light' ? 'dark' : 'light', lc = inkLc(cur, G.p50);
-    if (lc < INK_RLC && inkLc(oth, G.p50) >= lc + INK_M && !(G.ulo >= 0 && inkWant(G, oth) === cur && inkWant({ lo: G.ulo, hi: G.uhi }, oth) === oth)) {   // ((line2 fix) no rescue the want would undo only for the line's fold (G.ulo, G.uhi: the worst grounds before it): the ink the fold holds stays)
-      if (!(G.rs >= 0)) G.rs = now;
-      if (now - G.rs >= INK_RHOLD && now - G.last >= INK_RGAP) { G.since = -1; G.rs = -1; G.last = now; G.lastR = now; G.why = 'rescue'; return oth; }
-    } else G.rs = -1;
-    if (want === cur) { G.since = -1; return cur; }
-    if (!(G.since >= 0)) G.since = now;
-    if (now - G.since >= (want === 'light' && G.hold ? G.hold : INK_HOLD) && now - G.last >= INK_DWELL) { G.since = -1; G.rs = -1; G.last = now; return want; }   // ((e3) the hold to turn light: G.hold, the stack's INK_HOLDS; every other change INK_HOLD)
-    return cur;
-  }
   /* (ink load fix) the words' reading starts again: the next read taken from now on is each group's first, and sets its
      ink at once (agUpdate); the grounds read before are forgotten (a read queued earlier lands with its own generation
      and is not taken for the groups) */
@@ -6812,127 +6851,49 @@ void main() {
   }
   function inkMedOf(a) { var b = a.slice().sort(function (x, y) { return x - y; }), n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; }
   function inkMed() { for (var k = 0; k < 2; k++) if (AGW.lo[k].length) { GQ[k].lo = inkMedOf(AGW.lo[k]); GQ[k].hi = inkMedOf(AGW.hi[k]); GQ[k].p50 = inkMedOf(AGW.md[k]); } }   // (each group's grounds for its take: the medians over the take's readings)
-  function inkSure(k, cur) {   // (each reading's own choice: INK_SURE of the take's readings, at least INK_SUREN of them, choose what their medians choose)
-    var A = AGW, n = A.lo[k].length, T = { lo: inkMedOf(A.lo[k]), hi: inkMedOf(A.hi[k]) }, c = inkWant(T, cur), m = 0;
-    for (var i = 0; i < n; i++) { T.lo = A.lo[k][i]; T.hi = A.hi[k][i]; if (inkWant(T, cur) === c) m++; }
-    return n >= INK_SUREN && m >= n * INK_SURE;
-  }
-  function inkCap(G, now) { return G.ch.length >= INK_CAP && now - G.ch[G.ch.length - INK_CAP] < 60; }   // (INK_CAP changes in the last minute: no more)
-  function inkCh(G, a, b, now) { if (a !== null && b !== a) { G.ch.push(now); if (G.ch.length > INK_CAP) G.ch.shift(); } }
-  /* (ink fix) a group's take: with no ink chosen yet (the page's load; the words' colours cleared) the better of the
-     two on the take's grounds, at once, and the dwell runs from it; with one shown (a restart: a resize; reduced
-     motion's still) the other only INK_M better, and within INK_DWELL of the group's last change only where the shown
-     ink cannot be read on the new ground at all (the rescue's test on the take's median); never a change past INK_CAP
-     in a minute. The harness's stills: their own, at once. The take's readings are its hold */
-  function inkTake(G, cur, now, hs) {
-    var want = inkWant(G, cur), lc; G.want = want; G.since = -1; G.rs = -1; G.why = 'take';
-    if (cur === null || hs) { if (want !== cur) G.last = now; return want; }
-    if (want === cur) return cur;
-    lc = inkLc(cur, G.p50);
-    if ((now - G.last >= INK_DWELL || lc < INK_RLC && inkLc(want, G.p50) >= lc + INK_M) && !inkCap(G, now)) { G.last = now; return want; }
-    return cur;
-  }
-  /* (ink fix) a group's ink this frame: its take; before it what it shows; under reduced motion each still a take (it is
-     drawn once); in flight the rule (inkStep), never past INK_CAP changes in a minute; the harness's stills at once */
-  function inkOf(G, cur, now, take, hs, still, links) {
-    if (take || still && !hs && G.took === AG.gen && G.n > 0) return inkTake(G, cur, now, hs);
-    if (G.took !== AG.gen || G.n <= 0) return cur;
-    if (hs) return inkStep(G, cur, now, true);
-    var sk = inkSky(G, cur, now, links); if (sk !== null) return sk;   // (tod: the sky flip, ahead of the cap: counted in it, never blocked by it)
-    if (inkCap(G, now)) { G.since = -1; G.rs = -1; return cur; }
-    return inkStep(G, cur, now, false);
-  }
-  /* (tod) the sky flip: through a change between skies of different words (SKYI.turning, the cycle's: w04b_sky.js) the
-     group's ground rule is suspended (no hold's want, no ground flip, no rescue against the change) and the group turns
-     to the incoming sky's words once, on the first reading where they score at least as well as the ink shown, each on
-     its own worst ground (dark on the darkest, light on the lightest), the score both bars at once: min(WCAG / 4.5,
-     |Lc| / 45) (on an even ground the two meet at Y 0.2206, OKLab L 0.604, both inks at 0.84 of both bars); toward dark
-     words the stack at k 0.75 at the latest (the live's), and the links keep their own ground rule (on the dunes' sand by
-     day they read light). Once a group a change (G.skyId), never back; it counts in INK_CAP and sets G.last, so
-     INK_DWELL holds the ground rule off for 20 s after it. A group already showing the incoming words is done */
-  function inkScore(kind, y) { var w = kind === 'light' ? (INK_YL + 0.05) / (y + 0.05) : (y + 0.05) / (INK_YD + 0.05); return Math.min(w / 4.5, inkLc(kind, y) / 45); }
-  function inkSky(G, cur, now, links) {
-    if (!SKYI.turning || cur === null) return null;
-    var want = SKYI.want;
-    if (links && want === 'dark') return null;
-    if (G.skyId === SKYI.id || cur === want) { G.skyId = SKYI.id; G.since = -1; G.rs = -1; return cur; }
-    var yw = want === 'dark' ? G.lo : G.hi, yc = cur === 'dark' ? G.lo : G.hi;
-    if (!(yw >= 0) || !(yc >= 0)) return cur;
-    var sw = inkScore(want, yw), sc = inkScore(cur, yc); G.sw = sw; G.sc = sc;
-    if (sw >= sc || (!links && want === 'dark' && SKYI.k >= 0.75)) { G.skyId = SKYI.id; G.since = -1; G.rs = -1; G.last = now; G.why = 'sky'; return want; }
-    return cur;
-  }
-  function agStack(kind) {
+  function agStack(kind) {   // (stage2: kind is always INK, light; AG.sflips counts any change, for the record: never one)
     if (AG.sk === kind || !stackEl) return;
-    if (AG.sk !== null) { AG.sflips++; if (AG.log.length < 400) AG.log.push([+SIM.t.toFixed(2), 's', kind, GQ[0].why || '', SKYI.id, +SKYI.k.toFixed(3)]); }
+    if (AG.sk !== null) { AG.sflips++; if (AG.log.length < 400) AG.log.push([+SIM.t.toFixed(2), 's', kind, SKYI.id, +SKYI.k.toFixed(3)]); }
     AG.sk = kind; AG.sdim = '';
     stackEl.style.setProperty('--color-text', WORDSETS[kind].text);
   }
   function agLinks(kind) {
     if (AG.lk === kind || !footEl) return;
-    if (AG.lk !== null) { AG.flips++; if (AG.log.length < 400) AG.log.push([+SIM.t.toFixed(2), 'l', kind, GQ[1].why || '', SKYI.id, +SKYI.k.toFixed(3)]); }
+    if (AG.lk !== null) { AG.flips++; if (AG.log.length < 400) AG.log.push([+SIM.t.toFixed(2), 'l', kind, SKYI.id, +SKYI.k.toFixed(3)]); }
     AG.lk = kind;
     var s = footEl.style;
-    s.setProperty('--color-text', WORDSETS[kind].text);
-    if (kind === 'light') { s.setProperty('--color-dimmed', WORDSETS.light.dimmed); s.setProperty('--color-focus', AG_LRING); }
-    else { s.removeProperty('--color-dimmed'); s.removeProperty('--color-focus'); }   // (dark: the root's, worked out below)
+    s.setProperty('--color-text', WORDSETS[kind].text); s.setProperty('--color-dimmed', WORDSETS[kind].dimmed); s.setProperty('--color-focus', AG_LRING);   // (the links' underline and ring: the light set's, the ring a little lighter for the sea under them)
   }
-  /* the measured grounds to the inks and the shown colours */
+  /* the measured grounds to the shown colours. (stage2, the owner's word of 2026-11-03: "lets only use white text for
+     everything") Every sky's words are light, so the words' ink is always the light set (#fdfcf7; the links' underline
+     #c9cdd6, their ring AG_LRING), from the stylesheet's first paint on: no ground rule, no flip, no dark ink. The
+     read-back stays for one thing: the credit's light grey, worked out for AG_R on the credit's lightest ground (with
+     AG_LSPARE to spare), from the stack's take on; the groups' grounds are kept for the record */
   function agUpdate() {
     if (!AG.on) return;
-    var now = SIM.t, still = STILLMODE ? !SW.wlive : reduced(), hs = STILLMODE && !SW.wlive;   // (still: a frame that is all there is, its own colours (the harness's stills, reduced motion's still); hs: the harness's stills, each frame its own inks at once)
-    if (!STILLMODE) { if (!reduced()) AG.fz = clockNow(); else { var z = AG.fz >= 0 ? AG.fz : AG.w0; if (z > -1e8) now += Math.max(0, clockNow() - z) / 1000; } }   // (ink fix: under reduced motion the flight's clock stands still; the rule's runs on with the wall from where it stood, so its dwell and its minute pass)
-    if (AG.reads !== AG.rd && AG.rg === AG.gen) {   // (a new read of this generation: the groups' grounds)
+    var now = SIM.t, still = STILLMODE ? !SW.wlive : reduced(), hs = STILLMODE && !SW.wlive;   // (still: a frame that is all there is, its own colours (the harness's stills, reduced motion's still); hs: the harness's stills, each frame its own at once)
+    if (!STILLMODE) { if (!reduced()) AG.fz = clockNow(); else { var z = AG.fz >= 0 ? AG.fz : AG.w0; if (z > -1e8) now += Math.max(0, clockNow() - z) / 1000; } }
+    if (AG.reads !== AG.rd && AG.rg === AG.gen) {   // (a new read of this generation: the groups' grounds, for the record)
       AG.rd = AG.reads;
       var st = (AGL[0] || []).concat(AGL[1] || []); st.sort(function (x, y) { return x - y; });
       agGroup(GQ[0], st); agGroup(GQ[1], AGL[2]);
-      inkDeciles(GQ[0]); inkWorst(GQ[1], [2], AG.u0, AG.um);   // (ink step, fix round) each ink's worst ground: the stack's darkest and lightest tenth, the links' darkest and lightest cell under their own boxes
-      /* (line2) the line under the name, read as its own block (3: no gap, no union with the name), counted as a worst-of
-         only: the stack's darkest tenth no lighter than the line's own darkest tenth, its lightest no darker than the
-         line's lightest; the name's and the credit's pooled tenths, median and shares exactly as before. A read made
-         without the line's block (wordsGroundRead: for room, or between its AG_PSTEP reads) counts the line's last
-         reading of this generation, at most AG_PAGE s older; with none, the old rule. (line2 fix) The line's tenths are
-         those of the cells under its own line boxes (agLand), never of its block's ground under no letter; and the
-         stack's worst grounds as they were before the fold are kept (ulo, uhi: -1 when the line is not counted), so
-         the rescue never makes a round trip the fold alone would undo (inkStep) */
-      var pa = AGL[3], pn = pa && AG.pg === AG.gen && AG.rt - AG.pt <= AG_PAGE ? pa.length : 0; AG.pl = AG.ph = -1; GQ[0].ulo = GQ[0].uhi = -1;
+      inkDeciles(GQ[0]); inkWorst(GQ[1], [2], AG.u0, AG.um);
+      var pa = AGL[3], pn = pa && AG.pg === AG.gen && AG.rt - AG.pt <= AG_PAGE ? pa.length : 0; AG.pl = AG.ph = -1; GQ[0].ulo = GQ[0].uhi = -1;   // ((line2) the line under the name, its own block, counted as a worst-of)
       if (pn > 0 && GQ[0].n > 0) { AG.pl = pa[Math.min(pn - 1, Math.floor(pn * 0.1))]; AG.ph = pa[Math.min(pn - 1, Math.floor(pn * 0.9))]; GQ[0].ulo = GQ[0].lo; GQ[0].uhi = GQ[0].hi; GQ[0].lo = Math.min(GQ[0].lo, AG.pl); GQ[0].hi = Math.max(GQ[0].hi, AG.ph); }
-      if (AG.t0 >= 0 && AG.rt >= AG.t0) inkWin();   // (ink fix) a reading of a frame shown since the generation began: into its take
+      if (AG.t0 >= 0 && AG.rt >= AG.t0) inkWin();
     }
-    /* (ink fix) the take is due once the generation's readings cover its first INK_TAKE s shown (at least INK_TAKEN of
-       them; under reduced motion the still's own) and the canvas has been shown INK_TAKE s (the dissolve); the
-       harness's stills at once */
+    /* the take: once the generation's readings cover its first INK_TAKE s shown (at least INK_TAKEN of them; under
+       reduced motion the still's own) and the canvas has been shown INK_TAKE s (the dissolve); the harness's stills at
+       once. From it the credit's grey is the world's */
     var due = hs || AG.wn > 0 && (STILLMODE || clockNow() - AG.w0 >= INK_TAKE * 1000) && (still || AG.wn >= INK_TAKEN && AG.rt >= AG.t0 + INK_TAKE);
-    var late = hs || still || AG.rt >= AG.t0 + INK_TAKEMAX;   // (past INK_TAKEMAX the medians decide however the readings split)
-    var fs = due && GQ[0].n > 0 && GQ[0].took !== AG.gen && (late || inkSure(0, AG.sk)), fl = due && GQ[1].n > 0 && GQ[1].took !== AG.gen && (late || inkSure(1, AG.lk));   // (each group's take: once a generation, when its readings agree)
+    var fs = due && GQ[0].n > 0 && GQ[0].took !== AG.gen, fl = due && GQ[1].n > 0 && GQ[1].took !== AG.gen;
     if (fs || fl) { inkMed(); AG.ink = true; } if (fs) AG.ik[0] = true; if (fl) AG.ik[1] = true;
-    var s0 = AG.sk, l0 = AG.lk;
-    agStack(SW.inks >= 0 ? (SW.inks ? 'light' : 'dark') : inkOf(GQ[0], AG.sk, now, fs, hs, still, false));   // (dev inks/inkl: the harness's forced inks; before its take a group keeps what it shows: the root's, the realm's words)
-    agLinks(SW.inkl >= 0 ? (SW.inkl ? 'light' : 'dark') : inkOf(GQ[1], AG.lk, now, fl, hs, still, true));
-    inkCh(GQ[0], s0, AG.sk, now); inkCh(GQ[1], l0, AG.lk, now);
+    agStack(INK); agLinks(INK);
     if (fs) { GQ[0].took = AG.gen; AG.tk[0] = now; } if (fl) { GQ[1].took = AG.gen; AG.tk[1] = now; }
-    if (!AG.ink) return;   // (ink fix) before the first take the page keeps its own colours (the stylesheet's grey, underline and ring): nothing written
-    // the dark grey (the credit under dark ink, the links' underline) and the dark ring, from their blocks' darkest (at the
-    // first take the darkest of the take's readings, so the next reading brings no jump)
-    var first = !AG.set && (fs || fl), ydC = first ? AGW.yd[0] : AG.yd[1], ydL = first ? AGW.yd[1] : AG.yd[2];
-    if (ydC < 0 || ydL < 0 || ydC > 1 || ydL > 1) { if (!AG.set) { AG.y = 0; AG.yr = 0; } }   // (no ground read yet: full ink)
-    else {
-      var tg = clamp((ydC + 0.05) / AG_R - 0.05, 0, AG_YG), tr = clamp((ydL + 0.05) / AG_RR - 0.05, 0, AG_YRMAX);
-      AG.y = tg < AG.y || !AG.set ? tg : Math.min(tg, AG.y + Math.max(AG_UP * 0.125, AG.y * 0.03));   // (lightening: about 3% a frame)
-      AG.yr = tr < AG.yr || !AG.set ? tr : Math.min(tr, AG.yr + Math.max(AG_UP * 0.125, AG.yr * 0.03));
-      if (still) { AG.y = tg; AG.yr = tr; }   // (the harness's stills and films: each frame its own ground's colours)
-      AG.set = true;
-    }
-    var dim = agHex(AG_GREY, Math.max(AG.y, 1e-5)), foc = agHex(AG_RING, Math.max(AG.yr, 1e-5)), s = root.style;
-    if (AG.ik[1] && dim !== AG.dim) { AG.dim = dim; s.setProperty('--color-dimmed', dim); }   // (ink fix: the root's grey and ring are the links' underline and focus ring under dark ink: from the links' take, so each changes once at load)
-    if (AG.ik[1] && foc !== AG.foc) { AG.foc = foc; s.setProperty('--color-focus', foc); }
-    // the stack's grey: under dark ink the dark grey above; under light ink a light grey for AG_R over the credit's lightest
-    if (stackEl && AG.ik[0]) {   // (ink fix: the credit's grey from the stack's take)
-      var sd;
-      var yc = AG.ym[1] >= 0 ? AG.ym[1] : INK_YC, yg = clamp(AG_R * (yc * AG_LSPARE + 0.05) - 0.05, lum(AG_LGREY), 0.96); AG.sdl = agHex(AG_LGREY, yg);   // (fix round: worked out under either ink, for the record; tod fix3, problem 5: on the credit's lightest ground read with a fifth to spare (AG_LSPARE, the live sky's): the read-back's eighth steps over a thin lit top under the credit, which read 4.43-4.47:1 in night holds with no spare)
-      if (AG.sk === 'light') sd = AG.sdl;
-      else sd = dim;
-      if (sd !== AG.sdim) { AG.sdim = sd; stackEl.style.setProperty('--color-dimmed', sd); }
+    if (!AG.ink) return;   // (before the first take the page keeps its own colours: the stylesheet's grey)
+    if (stackEl && AG.ik[0]) {   // the credit's light grey for AG_R over the credit's lightest ground, a fifth to spare (AG_LSPARE): the read-back's eighth steps over a thin lit top under the credit
+      var yc = AG.ym[1] >= 0 ? AG.ym[1] : INK_YC, yg = clamp(AG_R * (yc * AG_LSPARE + 0.05) - 0.05, lum(AG_LGREY), 0.96); AG.sdl = agHex(AG_LGREY, yg);
+      if (AG.sdl !== AG.sdim) { AG.sdim = AG.sdl; stackEl.style.setProperty('--color-dimmed', AG.sdl); }
     }
   }
   /* the ground's read: the blocks' boxes in TG.gs (grown 4 px), RGBA bytes, bottom-up rows */
@@ -7020,9 +6981,9 @@ void main() {
     WORDCOL = kind;
     var W = WORDSETS[kind], s = root.style;
     s.setProperty('--color-text', W.text); s.setProperty('--color-selection', W.selection);
-    if (!(SW.words && AG.on)) { s.setProperty('--color-dimmed', W.dimmed); s.setProperty('--color-focus', W.focus); }   // (ink fix: with the words' machinery on, the grey and the ring are agUpdate's, from the first take; before it the stylesheet's)
+    if (!(SW.words && AG.on)) { s.setProperty('--color-dimmed', W.dimmed); s.setProperty('--color-focus', W.focus); }   // (with the words' machinery on, the credit's grey is agUpdate's (on .stack) and the links' underline and ring agLinks' (on the footer); the root keeps the stylesheet's)
   }
-  function clearWords() { WORDCOL = null; ['--color-text', '--color-dimmed', '--color-focus', '--color-selection'].forEach(function (p) { root.style.removeProperty(p); }); if (stackEl) { stackEl.style.removeProperty('--color-text'); stackEl.style.removeProperty('--color-dimmed'); } if (footEl) ['--color-text', '--color-dimmed', '--color-focus'].forEach(function (p) { footEl.style.removeProperty(p); }); AG.sk = null; AG.lk = null; AG.dim = ''; AG.foc = ''; AG.sdim = ''; AG.set = false; AG.ink = false; AG.ik[0] = AG.ik[1] = false; inkRestart(); }   // (ink load fix: the stylesheet's colours again; the next reading sets the inks at once)
+  function clearWords() { WORDCOL = null; ['--color-text', '--color-dimmed', '--color-focus', '--color-selection'].forEach(function (p) { root.style.removeProperty(p); }); if (stackEl) { stackEl.style.removeProperty('--color-text'); stackEl.style.removeProperty('--color-dimmed'); } if (footEl) ['--color-text', '--color-dimmed', '--color-focus'].forEach(function (p) { footEl.style.removeProperty(p); }); AG.sk = null; AG.lk = null; AG.sdim = ''; AG.ink = false; AG.ik[0] = AG.ik[1] = false; inkRestart(); }   // (ink load fix: the stylesheet's colours again; the next reading sets the inks at once)
 
   /* ---------------------------------------------------------------- stats (draw calls, triangles, instances, pixels) */
   var ST = { draws: 0, tris: 0, inst: 0, px: { scene: 0, half: 0, quarter: 0, out: 0 }, cells: 0, cellsDrawn: 0, vols: 0, flocks: 0, gc: 0, volFrag: 0 }, PROF = null;
@@ -7644,10 +7605,10 @@ void main() {
     var L = [], T = gl.TRIANGLES, TS = gl.TRIANGLE_STRIP, LE = gl.LEQUAL, A = WARM.vao;
     var SC = AAS > 1 && WARM.tg.sceneMS ? 'sceneMS' : 'scene';   // (E1 Fix 3: the scene pass's draws, into its samples)
     BL_ADD = [gl.ONE, gl.ONE, gl.ZERO, gl.ONE]; BL_OVER = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE]; BL_PRE = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA];
-    function E(n, P, vao, mode, cnt, inst, idx, tg, bl, dt, dw, cull, cm) { if (P && P.ok) L.push({ n: n, p: P, vao: vao, mode: mode, cnt: cnt, inst: inst, idx: idx, tg: tg, bl: bl || null, dt: dt || 0, dw: dw !== false, cull: cull || 0, cm: cm === undefined ? 15 : cm }); }
+    function E(n, P, vao, mode, cnt, inst, idx, tg, bl, dt, dw, cull, cm) { if (P && (P.ok || (EXT.par && P.st !== 3))) L.push({ n: n, p: P, vao: vao, mode: mode, cnt: cnt, inst: inst, idx: idx, tg: tg, bl: bl || null, dt: dt || 0, dw: dw !== false, cull: cull || 0, cm: cm === undefined ? 15 : cm }); }
     // the realms' sites, every built realm's (any may come into view)
     for (var k = 0; k < ORDER.length; k++) {
-      var d = REALMS[ORDER[k]]; if (d.bad || !d.P || d.P.st !== 2) continue;
+      var d = REALMS[ORDER[k]]; if (d.bad || !d.P || (d.P.st !== 2 && !EXT.par)) continue;   // (speed E8: with the parallel compile the table is made before the realms' links are through)
       var P = d.P, id = d.id;
       for (var si = 0; si < P.surf.length; si++) E(id + '.surface' + si, P.surf[si].P, GRID.vao, T, 3, 0, true, SC, null, LE, true);
       E(id + '.landmark', P.lm, A.mesh, T, 3, 0, false, SC, null, LE, true);
@@ -7701,12 +7662,38 @@ void main() {
     var L = WARM.list, n = 0, T = WARM.tg;
     WARM.frames++;
     gl.activeTexture(gl.TEXTURE0);
-    while (WARM.i < L.length && (sync || (n < WARM_N && clockNow() < deadline))) {
-      var e = L[WARM.i], alone = !sync && !e.rs && warmHeavy(e.p);
+    /* (speed E8) with the parallel compile: every entry whose program has finished is drawn now, in this frame (the draws
+       are queued, never waited on); the rest wait for theirs; a broken program's entries are passed over */
+    if (EXT.par && !sync) {
+      var left = 0;
+      for (var q = 0; q < L.length; q++) {
+        var x = L[q]; if (x.done) continue;
+        if (!x.p || x.p.st !== 3) { left++; continue; }
+        x.done = true; if (!x.p.ok) continue;
+        warmDraw(x, T);
+      }
+      warmReset();
+      if (!left) { WARM.i = L.length; WARM.done = true; }
+      return WARM.done;
+    }
+    while (WARM.i < L.length && (sync || EXT.par || (n < WARM_N && clockNow() < deadline))) {
+      var e = L[WARM.i], alone = !sync && !EXT.par && !e.rs && warmHeavy(e.p);   // (speed E4: with the parallel compile (Chrome, Firefox: draws are queued, never waited on) the table in one frame)
       if (alone && n > 0) break;   // (alone: the next frame's first)
       WARM.i++;
+      if (warmDraw(e, T)) n++;
+      if (alone) break;   // (nothing after it in this frame)
+    }
+    warmReset();
+    if (WARM.i >= L.length) { WARM.done = true; return true; }
+    return false;
+  }
+  function warmReset() {
+    gl.bindVertexArray(null); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.colorMask(true, true, true, true); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(true); gl.depthFunc(gl.LESS); gl.cullFace(gl.BACK);
+  }
+  function warmDraw(e, T) {
       var t0 = clockNow();
-      if (e.rs) { resolveMS(T.sceneMS, T.scene, 4, 4); WARM.ms.push([e.n, +(clockNow() - t0).toFixed(2), FRAMEN]); n++; continue; }   // (E1 Fix 3: the resolve, once)
+      if (e.rs) { resolveMS(T.sceneMS, T.scene, 4, 4); WARM.ms.push([e.n, +(clockNow() - t0).toFixed(2), FRAMEN]); return true; }   // (E1 Fix 3: the resolve, once)
       if (e.tg === 'canvas') { gl.bindFramebuffer(gl.FRAMEBUFFER, null); }
       else gl.bindFramebuffer(gl.FRAMEBUFFER, T[e.tg].f);
       gl.viewport(0, 0, 4, 4);
@@ -7722,13 +7709,7 @@ void main() {
       WARM.ms.push([e.n, +ms.toFixed(2), FRAMEN]);
       if (!e.p.warmed) { e.p.warmed = true; e.p.firstMs = +ms.toFixed(2); e.p.firstF = FRAMEN; e.p.firstAt = +clockNow().toFixed(1); }
       if (ms > WARM_HEAVY) e.p.heavy = true;
-      n++;
-      if (alone) break;   // (nothing after it in this frame)
-    }
-    gl.bindVertexArray(null); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.colorMask(true, true, true, true); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(true); gl.depthFunc(gl.LESS); gl.cullFace(gl.BACK);
-    if (WARM.i >= L.length) { WARM.done = true; return true; }
-    return false;
+      return true;
   }
   /* ---------------------------------------------------------------- the simulation, driven */
   function simStepOnce() {
@@ -7813,8 +7794,8 @@ void main() {
   }
   function stream() { gpuJobs(); cpuSlice(); }   // (dev hooks: a frame's whole share at once)
   function budgets(boot) {   // the frame's counts: round 3b's in flight; the boot's, four times them, behind the still sky (and its slices timed)
-    BUD.layouts = boot ? 4 * LAYOUT_BUDGET : LAYOUT_BUDGET; BUD.resolves = boot ? 4 * RESOLVE_BUDGET : RESOLVE_BUDGET; BUD.verts = boot ? 4 * VERT_BUDGET : VERT_BUDGET;
-    BUD.uploads = boot ? 4 : 1; BUD.bake = boot ? BOOT.bake : VOL_LAYERS;
+    BUD.layouts = boot ? 16 * LAYOUT_BUDGET : LAYOUT_BUDGET; BUD.resolves = boot ? 16 * RESOLVE_BUDGET : RESOLVE_BUDGET; BUD.verts = boot ? 16 * VERT_BUDGET : VERT_BUDGET;   // (speed E7: x16 behind the still, were x4)
+    BUD.uploads = boot ? 16 : 1; BUD.bake = boot ? BOOT.bake : VOL_LAYERS;
   }
 
   /* ---------------------------------------------------------------- the loop, the governor, the device tier */
@@ -7829,7 +7810,7 @@ void main() {
   var SKYAIR = window.skyAir || (window.skyAir = {});
   if (typeof SKYAIR.aim !== 'function') SKYAIR.aim = function () {};
   SKYAIR.handover = 0;
-  var SHOWNT = -1, DISSOLVE_S = 2, HASSVG = !!document.querySelector('svg.bird');
+  var SHOWNT = -1, DISSOLVE_S = 0.5, HASSVG = !!document.querySelector('svg.bird');
   function handTo(v) { SKYAIR.handover = v; if (typeof SKYAIR.handed === 'function') { try { SKYAIR.handed(v); } catch (e) { /* theirs */ } } }
   var TIER = 1, CLK = new Float64Array([0, -1]), running = false, rafId = 0, shown = false, NEEDSIZE = false, SKYMARK = null, DEAD = false, GAVEUP = false, READY = false, FRAMEN = 0;
   /* the governor: every frame's time in a ring (two seconds); each second, the median. Never asked to beat 60 Hz.
@@ -7841,7 +7822,10 @@ void main() {
      learnt at its 50 ms ceiling (a cost the scale cannot touch: vertex work, the CPU, the driver) at any rung, give
      up: the loop stops and the still sky stays. */
   var GOVD = new Float32Array(120), GOVS = new Float32Array(120), GOVN = new Float64Array(18), FRAME60 = 1000 / 60;
-  function govReset() { GOVN.fill(0); GOVN[10] = 60; GOVN[11] = 20; GOVN[12] = 1e9; GOVN[13] = FRAME60; }
+  /* (stage2 quality Q5) the first ascent: QUP[0] the governor's seconds since the world showed, QUP[1] 1 until its first
+     step down; while both hold (the first QUP_S s), QUP_EASE s at ease step up a rung (else GOVN[11], 20 s) */
+  var QUP = new Float64Array([0, 1]), QUP_S = 20, QUP_EASE = 3;
+  function govReset() { GOVN.fill(0); GOVN[10] = 60; GOVN[11] = 20; GOVN[12] = 1e9; GOVN[13] = FRAME60; QUP[0] = 0; QUP[1] = 1; }
   govReset();
   function governor(dtMs, force) {
     if ((STILLMODE || OPT.nogov) && !force) return;
@@ -7854,7 +7838,7 @@ void main() {
     for (i = 0; i < 120; i++) GOVS[i] = i < n ? GOVD[(GOVN[1] - 1 - i + 240) % 120] : 1e9;   // the last n samples
     GOVS.sort();
     var p50 = GOVS[Math.floor(n * 0.5)], p10 = GOVS[Math.floor(n * 0.1)]; GOVN[2] = p50;
-    GOVN[8] += 1; GOVN[12] += 1; if (GOVN[6] > 0) GOVN[6] -= 1;
+    GOVN[8] += 1; GOVN[12] += 1; if (GOVN[6] > 0) GOVN[6] -= 1; QUP[0] += 1;
     if (GOVN[13] > FRAME60 && p10 < GOVN[13] * 0.8) { GOVN[15] += 1; if (GOVN[15] >= 5) { GOVN[13] = Math.max(FRAME60, p50); GOVN[15] = 0; } } else GOVN[15] = 0;
     var PER = GOVN[13];
     var stuck = (RUNG === RUNGS.length - 1 && p50 > 2 * PER) || (PER >= 49.9 && p50 > 1.3 * PER);   // (under 15 fps that the scale cannot help)
@@ -7872,11 +7856,11 @@ void main() {
       GOVN[3] += 1; GOVN[4] = 0;
       if (GOVN[3] >= 3 && GOVN[6] <= 0 && GOVN[9] === 0 && RUNG < RUNGS.length - 1) {   // (never while a step is on trial)
         if (GOVN[12] < 10) GOVN[11] = Math.min(GOVN[11] * 2, 160);
-        GOVN[7] = p50; RUNG++; GOVN[3] = 0; GOVN[8] = 0; GOVN[9] = 1; GOVN[0] = 0; GOVN[16] = 0;
+        GOVN[7] = p50; RUNG++; GOVN[3] = 0; GOVN[8] = 0; GOVN[9] = 1; GOVN[0] = 0; GOVN[16] = 0; QUP[1] = 0;
       }
     } else {
       GOVN[3] = 0;
-      if (p50 < PER * 1.12) { GOVN[4] += 1; if (GOVN[4] >= GOVN[11] && RUNG > 0) { RUNG--; GOVN[4] = 0; GOVN[0] = 0; GOVN[12] = 0; } } else GOVN[4] = 0;
+      if (p50 < PER * 1.12) { GOVN[4] += 1; if (GOVN[4] >= (QUP[1] && QUP[0] <= QUP_S ? QUP_EASE : GOVN[11]) && RUNG > 0) { RUNG--; GOVN[4] = 0; GOVN[0] = 0; GOVN[12] = 0; } } else GOVN[4] = 0;
     }
   }
   /* too slow even so: the world steps aside for the stylesheet's still sky (the words to its colours) */
@@ -7895,7 +7879,7 @@ void main() {
     var V = SIM.V; if (!V || !visitBuilt(V) || !V.def.P || V.def.P.st !== 2) return false;
     TIER = RUNG >= 3 ? 0.6 : 1;
     var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
-    setWords(AG.sk || SKYI.words || V.def.words || 'dark');   // (tod: the stack's ink once taken, else the sky's words: the root's text and selection, today's SVG birds; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
+    setWords(INK);   // (stage2: the words are always light: the root's text and selection, today's SVG birds; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
     if (!shown) inkRestart(true);   // (ink fix: the words' reading begins with the first frame shown: the boot's hidden check frame (stage H), a restored world's too, is never taken)
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
@@ -7995,11 +7979,15 @@ void main() {
        frame with no other GPU work of the boot's); then F, the warm table (Fix 2: before D's GPU half, so none of D's
        draws is a program's first use), each one's first use alone in its frame */
     var gpuFree = afterC && NOISE.done && (WARM.done || reduced());
-    if (afterC && !NOISE.done && NOISE.prog && NOISE.prog.st === 3) {
-      var NP = NOISE.prog, tn = clockNow(); noiseStep(false); label += ' noise';   // (E1.1: no wait: the boot began with today's first bird in view)
+    if ((afterC || EXT.par) && !NOISE.done && NOISE.prog && NOISE.prog.st === 3) {   // (speed E8: with the parallel compile, once its own program is)
+      var NP = NOISE.prog, tn = clockNow(); noiseStep(true); label += ' noise';   // (speed E3: every layer in this one frame)   // (E1.1: no wait: the boot began with today's first bird in view)
       if (!NP.firstF) { NP.firstF = FRAMEN; NP.firstMs = +(clockNow() - tn).toFixed(2); NP.firstAt = +clockNow().toFixed(1); NP.warmed = true; }
       if (NOISE.done) bootMark('E noise baked');
-    } else if (afterC && NOISE.done && !WARM.done && !reduced()) {
+    }
+    if (EXT.par && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links)
+      var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
+      if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
+    } else if (!EXT.par && afterC && NOISE.done && !WARM.done && !reduced()) {
       var wi = WARM.ms.length; warmStep(false, dl); label += ' F';
       for (var wk = wi; wk < WARM.ms.length; wk++) label += (wk === wi ? ':' : ',') + WARM.ms[wk][0];   // (Fix 2: the keys drawn in the slice)
       if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
@@ -8038,8 +8026,8 @@ void main() {
      read, timed by clockNow from before the draws to after the read; the same read after a clear alone gives the round
      trip, subtracted; five trials a scale, the median). Pinned (no trials: the scale the harness asks, data-rung or
      the full one) in development and with the switch gtrial=0 */
-  var GS = { sc: [0.35, 0.5, 0.7, 1], i: 0, rt: [], tr: [[], [], [], []], med: [null, null, null, null], m: 2, done: false, pick: -1, P: 0, pinned: false, ms: null, rung: 0, px: new Uint8Array(4) };
-  var TRIALSC = 0, TRIAL = false;
+  var GS = { sc: [0.35, 0.5, 0.7, 1], i: 3, rt: [], tr: [[], [], [], []], med: [null, null, null, null], m: 2, done: false, pick: -1, P: 0, pinned: false, ms: null, rung: 0, px: new Uint8Array(4) };
+  var TRIALSC = 0, TRIAL = false, G_TRIALS = 3;   // (speed E5: three timed trials a scale, were five)
   function median(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : 0; }
   function bootPeriod() {   // the display's period from the boot's own frames (their quickest quarter: the boot's long frames aside)
     var d = []; for (var i = 1; i < BOOT.ts.length; i++) { var x = BOOT.ts[i] - BOOT.ts[i - 1]; if (x > 4 && x < 200) d.push(x); }
@@ -8066,13 +8054,16 @@ void main() {
     ms = (clockNow() - t0 - median(GS.rt)) / GS.m;
     TRIALSC = 0; TRIAL = false; gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     GS.tr[GS.i].push(+ms.toFixed(2));
-    if (GS.tr[GS.i].length < 5) return false;
+    if (GS.tr[GS.i].length < G_TRIALS) return false;
     var med = median(GS.tr[GS.i]); GS.med[GS.i] = +med.toFixed(2);
-    if (med <= 0.65 * GS.P) { if (GS.i === GS.sc.length - 1) GS.pick = GS.i; else { GS.i++; return false; } }
-    else GS.pick = GS.i - 1;
+    // (speed E5) from the full scale down: the first scale within the bar is the largest (ascending took the last before the
+    // first over it: the same for a cost that grows with the scale); none within it, the floor's test as before
+    if (med <= 0.65 * GS.P) GS.pick = GS.i;
+    else if (GS.i > 0) { GS.i--; return false; }
+    else GS.pick = -1;
     GS.done = true;
     if (GS.pick < 0 && GS.med[0] > 0.65 * 33.34) { bootMark('G floor not met: ' + GS.med[0] + ' ms at 0.35'); decline('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); return false; }
-    var s = GS.pick < 0 ? 0.35 : GS.sc[GS.pick], ru = RUNGS.length - 1;
+    var s = GS.pick < 0 ? GS.sc[0] : GS.sc[GS.pick], ru = RUNGS.length - 1;   // (stage2 quality Q3: the lowest trial is 0.35 of today's size)
     for (var k = 0; k < RUNGS.length; k++) if (RUNGS[k] <= s + 1e-6) { ru = k; break; }
     RUNG = ru; GS.rung = ru;
     bootMark('G measured: scale ' + s + ' (rung ' + ru + '), medians ' + GS.med.join('/') + ' ms, period ' + GS.P.toFixed(1));
@@ -8302,7 +8293,7 @@ void main() {
        lost()        the context was lost: every GL object of the module is gone (made again on the next draw)
      See notes.md, "The birds' interface", for the contract. */
   var BIRDB = { ms: 1.5, spent: 0, at: 0, prep: 6 };   // (round 3: the birds' planning budget a frame, ms; their steps' time this frame)
-  var BIRDS = null, LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'dark', text: '#000000' }, BIRDPL = [];
+  var BIRDS = null, LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'light', text: '#fdfcf7' }, BIRDPL = [];
   var CAMP = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], roll: 0, pitch: 0, inCloud: 0, arrive: 0, cover: 0, pmode: 0, hold: -1, open: -1, expo: 1, yaw: 0 };
   /* (E1 Fix 3, defect 16) s, how far the birds' planner trusts the flight's forecast (HOST.courseTrust). With the heading
      held the forecast is the flight itself, so a longer look-ahead was tried: four of the seven judged runs, the same
@@ -8361,7 +8352,7 @@ void main() {
     grade: function () { return LASTE; },
     light: function () { var V = SIM.V; return V ? (V.L || V.light) : null; },
     /* the words: their boxes (name, bio, credit, link, link: x0, y0, x1, y1 in canvas px) and their colours in effect */
-    words: function () { HW.kind = AG.sk || SKYI.words || (SIM.V && SIM.V.def.words) || 'dark';   /* (tod: the stack's ink: the ink birds' light path at night) */ HW.text = WORDSETS[HW.kind].text; return HW; },
+    words: function () { HW.kind = INK;   /* (stage2: the words' ink, always light: the ink birds' light path) */ HW.text = WORDSETS[HW.kind].text; return HW; },
     /* the scene's depth, the clouds (premultiplied, half resolution) and the ink birds' keep-off (the words' ink boxes),
        bound on the units the engine's programs use (uDepth 2, uCloud 4, uInkKeep 12) */
     bindTextures: function () {
@@ -8483,7 +8474,7 @@ void main() {
      The switches (3.6): live ones flip at once (order, fence, birds, stream); dpr1, wrap and course apply at boot; ab
      until the world shows; stats, march, ubo and worker are reserved names (their mechanisms arrive in E6, E7, E3a and
      E7) and are recorded but do nothing in E0. words=0 (dev) draws the world with the words' machinery off: W7's pair. */
-  var SW = { rec: 0, order: 0, fence: 1, birds: 1, stats: 1, march: 0, stream: 1, ubo: 1, dpr1: 0, worker: 0, wrap: 0, course: 0, ab: 'e1', words: 1, frz: 0, look: 0, noanim: 0, camhold: 0, gtrial: 1, rbfix: 0, hblack: 0, lab: 0, volres: 0, aa: 4, fxaa: -1, vol16: -1, cacc: 0.5, memtier: '', stb: 1, lay: 1, wlive: 0, wsync: 0, inks: -1, inkl: -1 };   // (world6 step B fix, dev: wlive 1: the words' machinery as in the live loop (ring reads, eased gains and inks) in the harness's films)   // (Fix 3: aa the scene's MSAA samples, at boot; fxaa -1 off where the scene has samples, 0 off, 1 on; cacc this frame's share of the clouds' accumulation, 0 off)
+  var SW = { rec: 0, order: 0, fence: 1, birds: 1, stats: 1, march: 0, stream: 1, ubo: 1, dpr1: 0, worker: 0, wrap: 0, course: 0, ab: 'e1', words: 1, frz: 0, look: 0, noanim: 0, camhold: 0, gtrial: 1, rbfix: 0, hblack: 0, lab: 0, volres: 0, aa: 4, fxaa: -1, vol16: -1, cacc: 0.5, memtier: '', stb: 1, lay: 1, wlive: 0, wsync: 0 };   // (world6 step B fix, dev: wlive 1: the words' machinery as in the live loop (ring reads, eased gains and inks) in the harness's films)   // (Fix 3: aa the scene's MSAA samples, at boot; fxaa -1 off where the scene has samples, 0 off, 1 on; cacc this frame's share of the clouds' accumulation, 0 off)
   /* (E1) the switches' meanings now: order 0 the slice's GPU jobs at the start of the next drawn frame, before its draws
      (the design's), 1 after the frame's flush; fence 1 polled and made at the frame's start every frame (the design's),
      2 every second frame, 3 polled at the start and made after the flush, 0 all but off (every eighth frame); gtrial
@@ -8491,7 +8482,7 @@ void main() {
      arrival fixed two frames after its fence; hblack (dev) stage H's thumbnail read as black (the fallback's test);
      ab the record mode's experiment: 'e1' the five arms of E1's A/B pairs in rotating 20 s blocks (recArm), 'order' and
      'fence' E0's two-minute halves, 'none' */
-  var SWLIVE = { order: 1, fence: 1, birds: 1, stream: 1, words: 1, frz: 1, look: 1, noanim: 1, camhold: 1, cacc: 1, stb: 1, lay: 1, wlive: 1, wsync: 1, inks: 1, inkl: 1 };   // (E1.1: cacc live, the record's arm)   // (Fix 2: the weave switch is gone with the autopilot; camhold, dev: the camera held, the clock running: G0's frozen-scene film)
+  var SWLIVE = { order: 1, fence: 1, birds: 1, stream: 1, words: 1, frz: 1, look: 1, noanim: 1, camhold: 1, cacc: 1, stb: 1, lay: 1, wlive: 1, wsync: 1 };   // (E1.1: cacc live, the record's arm)   // (Fix 2: the weave switch is gone with the autopilot; camhold, dev: the camera held, the clock running: G0's frozen-scene film)
   var REC = null, RECW = null;
   var RING = 1 << 16;
   var PHN = ['boot', 'dissolve', 'steady', 'control', 'resume', 'resize'], PH_BOOT = 0, PH_DIS = 1, PH_STEADY = 2, PH_CTL = 3, PH_RES = 4, PH_SIZE = 5;
@@ -9280,11 +9271,14 @@ void main() {
      again 3-6 s later). Stage G's wait (Fix 3: its timed trials while the first flight was in the window, which takes
      15-20 s to cross, so its 1 s cap always ran out) and the first-use draws' wait (its bird already in view) are gone */
   var BOOT_WAIT_CAP = 2500;
+  /* (speed E1) the boot starts once the scripts have registered: the wait for today's first bird (1-2.4 s) was most of
+     the start a visitor saw; today's birds fly as before and are handed over when the world shows */
+  var BOOT_NOW = true;
   function bootMayStart() {
     var W = BOOT.bw; if (W.why) return true;
     var now = clockNow(); if (W.due < 0) W.due = now;
     var f = SKYAIR.flying | 0;
-    var why = STILLMODE ? 'the harness' : !HASSVG ? 'no SVG birds' : reduced() ? 'reduced motion' : forced() ? 'forced colours' : f >= 2 ? 'the first bird in view' : null;
+    var why = BOOT_NOW ? 'the scripts registered' : STILLMODE ? 'the harness' : !HASSVG ? 'no SVG birds' : reduced() ? 'reduced motion' : forced() ? 'forced colours' : f >= 2 ? 'the first bird in view' : null;
     if (!why && now - W.due >= BOOT_WAIT_CAP) why = f === 1 ? 'the cap: a first flight committed, none of it in view yet' : 'the cap: no first flight committed';
     if (!why) { W.frames++; return false; }
     W.why = why; W.ms = +(now - W.due).toFixed(1); W.fly = f;
