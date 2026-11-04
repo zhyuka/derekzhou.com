@@ -14,13 +14,16 @@ jobs:
 
       - name: Check required files exist
         run: |
+          # The site is the folder site/ (the Pages project's build output directory): every file it serves is
+          # there, and nothing of the repository's own (CLAUDE.md, .github/, the font scripts) is.
+          cd site
           files=(
             index.html
-            style.v14.css
+            style.v15.css
             site.js
-            hour.v2.js
-            birds.v11.js
-            world.v1.js
+            hour.v3.js
+            birds.v12.js
+            world.v2.js
             realm-kit.v1.js
             realm-dunes.v1.js
             realm-above.v1.js
@@ -45,6 +48,14 @@ jobs:
             else
               echo "OK: $f"
             fi
+          done
+          # nothing of the repository's own in the served folder, and no page's file left outside it
+          for f in $(find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.py' -o -name '*.yml' -o -name '*.yaml' \) | sort) $(find . -name .github -o -name .git | sort); do
+            echo "::error::site/${f#./} is the repository's own: it would be served"
+            missing=1
+          done
+          for f in ../*.html ../*.js ../*.css ../_headers ../_redirects ../_routes.json ../robots.txt ../assets ../.well-known; do
+            if [ -e "$f" ]; then echo "::error::${f#../} is at the repository's root: only site/ is served"; missing=1; fi
           done
           if [ "$missing" -eq 1 ]; then
             exit 1
@@ -74,7 +85,7 @@ jobs:
 
       - name: security.txt not expired
         run: |
-          exp=$(grep -oP 'Expires: \K.*' .well-known/security.txt)
+          exp=$(grep -oP 'Expires: \K.*' site/.well-known/security.txt)
           if [ "$(date -d "$exp" +%s)" -le "$(date +%s)" ]; then
             echo "::error::security.txt Expires ($exp) is in the past — update it"
             exit 1
@@ -83,9 +94,10 @@ jobs:
 
       - name: Asset references must resolve (immutable-rename integrity)
         run: |
+          cd site
           # Changed bytes require renamed files; this catches a rename that
           # missed a reference. Every local href/src in the HTML and every
-          # path in _headers Link/cache rules must exist in the repo.
+          # path in _headers Link/cache rules must exist in the site.
           fail=0
           refs=$(grep -ohE '(href|src)="/[^"#]+"' index.html 404.html | sed -E 's/^(href|src)="//; s/"$//')
           refs="$refs $(grep -oE 'Link: <[^>]+>' _headers | sed -E 's/Link: <//; s/>//')"
@@ -111,7 +123,7 @@ jobs:
               fail=1
             fi
           done
-          # Every script and stylesheet at the root is one the pages load
+          # Every script and stylesheet in the site is one the pages load
           # (nothing left over from the world's development build: no
           # diagnostics, no lab, no test realm), and every one but site.js carries its version in its
           # name, as immutable caching needs.
@@ -131,6 +143,7 @@ jobs:
 
       - name: No inline code on CSP'd pages
         run: |
+          cd site
           # The site-wide CSP has no unsafe-inline; inline styles, style
           # blocks, and inline event handlers silently do nothing. Fail
           # fast instead. (JSON-LD script blocks are exempt from
@@ -148,6 +161,7 @@ jobs:
 
       - name: The lettered name keeps its words
         run: |
+          cd site
           # The h1 is drawn (one SVG path in the words' colour) but must still
           # read "Derek Zhou" to every reader: its words in a visually hidden
           # span, the drawing hidden from assistive tech and inert (no text,
@@ -186,6 +200,7 @@ jobs:
 
       - name: The page says what it says
         run: |
+          cd site
           # The words on the page and in its search and share text, exactly:
           # the line under the name (in its own span, whose line boxes the
           # world reads to keep its glow and its birds off it), the credit,
@@ -217,7 +232,8 @@ jobs:
 
       - name: The world's page loads in order
         run: |
-          # hour.v2.js in the head (before the first paint), site.js, then the
+          cd site
+          # hour.v3.js in the head (before the first paint), site.js, then the
           # deferred scripts in order: today's birds (they fly over the still
           # sky while the world boots), the world, the realms' kit and realms,
           # the ink birds last (the boot starts once every script has run).
@@ -248,6 +264,7 @@ jobs:
 
       - name: Absences are enforced
         run: |
+          cd site
           BIRDS=$(ls birds.v*.js | head -1); WORLD=$(ls world.v*.js | head -1); INK=$(ls inkbirds.v*.js | head -1)
           REALMS=$(ls realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
           JS="site.js $HOUR $BIRDS $WORLD $REALMS $INK"
@@ -387,15 +404,15 @@ jobs:
           # takes no words input (its uniforms a fixed list), the old lift's parts
           # are named nowhere, nothing is drawn onto the canvas after it but what
           # is named.
-          python3 .github/workflows/world_rules.py .
+          python3 .github/workflows/world_rules.py site
           # the realm lint: reported (the realms predate the namespaced API)
-          node .github/workflows/lint_realms.js report realm-kit.v*.js $(ls realm-*.v*.js | grep -v realm-kit)
+          node .github/workflows/lint_realms.js report site/realm-kit.v*.js $(ls site/realm-*.v*.js | grep -v realm-kit)
 
       - name: Nothing darkens (W7's unit test)
         run: |
           # The owner's rule ("Don't darken the background anywhere ever"): the
           # composite's tail (FS_COMP between W7-TAIL-BEGIN and W7-TAIL-END in
-          # world.vN.js), cut out of the shipped file and run in headless WebGL2
+          # site/world.vN.js), cut out of the shipped file and run in headless WebGL2
           # over random grounds, pixels and clocks, is the encode and the dither
           # and nothing else: every 8-bit code the reference's, never lower (a
           # darkening) and never higher (a lift or a panel). Then the test's own
@@ -404,7 +421,7 @@ jobs:
           # this step only, never part of the site; PW_CORE and CHROME_PATH name
           # others where they are set). Exit 2 (no WebGL2 context on the runner)
           # warns; any lower or higher code fails.
-          W=$(ls world.v*.js | head -1)
+          W=$(ls site/world.v*.js | head -1)
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
@@ -421,6 +438,7 @@ jobs:
 
       - name: Still skies keep the words legible
         run: |
+          cd site
           # The stylesheet's still skies (no WebGL2, no script, the moment
           # before the world is drawn, a device too slow for it) must hold
           # their words' colours against the whole gradient, wherever a window
@@ -446,34 +464,38 @@ jobs:
                   if any(s in sels for s in mine) or (name == 'day' and not world and ':root:not([data-sky])' in sels):
                       out.update(dict(re.findall(r'(--color-[a-z]+):\s*(#[0-9a-fA-F]{6})', body)))
               return out
-          def gradient(name, world):
+          def gradients(name, world):
+              # every rule with the family's selector: its own, and each a media query sets again (the world's on a
+              # window 6:5 or wider, where its camera looks higher)
               sel = (':root[data-sky="%s"]:has(canvas.sky) body' % name) if world else ('body' if name == 'day' else ':root[data-sky="%s"] body' % name)
+              out = []
               for s_, body in rules:
                   if s_.strip() == sel:
                       m = re.search(r'linear-gradient\(to bottom, ([^)]*)\)\s*(#[0-9a-fA-F]{6})?', body)
                       if m:
                           stops = [(float(p.rstrip('%')) / 100, rgb(c)) for c, p in (x.split() for x in m.group(1).split(','))]
-                          return stops, (rgb(m.group(2)) if m.group(2) else None)
-              return None, None
+                          out.append((stops, (rgb(m.group(2)) if m.group(2) else None)))
+              return out
           fail = 0
           for world in (False, True):
               for name in ['day', 'dawn', 'rain', 'sunset', 'dusk', 'night']:
-                  stops, solid = gradient(name, world); t = tokens(name, world)
-                  fam = 'world' if world else 'hour'
-                  if not stops: print('::error::no %s still sky for %s' % (fam, name)); fail = 1; continue
-                  ground = [solid] if solid else []
-                  for k in range(201):
-                      y = k / 200
-                      for (p0, c0), (p1, c1) in zip(stops, stops[1:]):
-                          if p0 <= y <= p1:
-                              f = (y - p0) / (p1 - p0) if p1 > p0 else 0
-                              ground.append([c0[i] + (c1[i] - c0[i]) * f for i in range(3)])
-                              break
-                  for role, need in [('--color-text', 4.5), ('--color-dimmed', 4.5), ('--color-focus', 3.0)]:
-                      worst = min(ratio(rgb(t[role]), g) for g in ground)
-                      print('%-5s %-7s %-15s %5.2f' % (fam, name, role, worst))
-                      if worst < need:
-                          print('::error::%s on the %s %s still sky falls to %.2f:1 (needs %.1f)' % (role, fam, name, worst, need)); fail = 1
+                  gs = gradients(name, world); t = tokens(name, world)
+                  if not gs: print('::error::no %s still sky for %s' % ('world' if world else 'hour', name)); fail = 1; continue
+                  for gi, (stops, solid) in enumerate(gs):
+                      fam = ('world' if world else 'hour') + ('' if gi == 0 else '+%d' % gi)
+                      ground = [solid] if solid else []
+                      for k in range(201):
+                          y = k / 200
+                          for (p0, c0), (p1, c1) in zip(stops, stops[1:]):
+                              if p0 <= y <= p1:
+                                  f = (y - p0) / (p1 - p0) if p1 > p0 else 0
+                                  ground.append([c0[i] + (c1[i] - c0[i]) * f for i in range(3)])
+                                  break
+                      for role, need in [('--color-text', 4.5), ('--color-dimmed', 4.5), ('--color-focus', 3.0)]:
+                          worst = min(ratio(rgb(t[role]), g) for g in ground)
+                          print('%-7s %-7s %-15s %5.2f' % (fam, name, role, worst))
+                          if worst < need:
+                              print('::error::%s on the %s %s still sky falls to %.2f:1 (needs %.1f)' % (role, fam, name, worst, need)); fail = 1
           # Print is on white over every still sky, the world's too ("Background graphics" on or off): the print
           # block, after the still skies in the file, sets white paper with a rule as specific as each family's
           # (:root[data-sky] body; :root[data-sky]:has(canvas.sky) body, a rule of its own).
@@ -498,7 +520,7 @@ jobs:
       - name: Validate HTML
         run: |
           # Basic HTML validity checks
-          file="index.html"
+          file="site/index.html"
 
           # Must start with doctype
           if ! head -1 "$file" | grep -qi '<!doctype html>'; then

@@ -1,5 +1,5 @@
-# The world's CI rules: run from the repository's root by .github/workflows/validate.yml ("The world's rules"), or
-# locally: python3 .github/workflows/world_rules.py [root]. Exit 1 on any failure.
+# The world's CI rules, on the site's folder: run from the repository's root by .github/workflows/validate.yml ("The
+# world's rules"), or locally: python3 .github/workflows/world_rules.py [the site's folder: site]. Exit 1 on any failure.
 # Each rule prints OK or the files and lines that break it.
 #   1  Rocket Loader: every <script> with a src in index.html and 404.html carries data-cfasync="false" (the JSON-LD
 #      block is data, not script), so Rocket Loader leaves the scripts as served, in their order.
@@ -37,7 +37,7 @@
 #      the render check (the canvas read with the words' machinery on and off at the same instant, channel by channel:
 #      the W7 twin runs) is part of verifying a change to the world before it ships (CLAUDE.md, Verify).
 import json, os, re, sys
-root = sys.argv[1] if len(sys.argv) > 1 else '.'
+root = sys.argv[1] if len(sys.argv) > 1 else 'site'
 R = lambda *p: os.path.join(root, *p)
 fails = []
 def fail(rule, msg): fails.append(f'{rule}: {msg}')

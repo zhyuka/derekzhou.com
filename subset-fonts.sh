@@ -5,7 +5,7 @@
 # immutable-cached, so changed bytes need a new filename).
 # Requires: pip install fonttools brotli
 set -euo pipefail
-cd "$(dirname "$0")/assets/fonts"
+cd "$(dirname "$0")/site/assets/fonts"
 # Latin basic + en/em dash, curly quotes, ellipsis, middle dot. The name
 # table keeps the copyright and the OFL notice (IDs 0, 13 and 14).
 RANGE="U+0020-007E,U+2013,U+2014,U+2018,U+2019,U+201C,U+201D,U+2026,U+00B7"
