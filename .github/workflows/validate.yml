@@ -23,7 +23,7 @@ jobs:
             site.js
             hour.v3.js
             birds.v12.js
-            world.v2.js
+            world.v3.js
             realm-kit.v1.js
             realm-dunes.v1.js
             realm-above.v1.js
@@ -49,13 +49,25 @@ jobs:
               echo "OK: $f"
             fi
           done
-          # nothing of the repository's own in the served folder, and no page's file left outside it
-          for f in $(find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.py' -o -name '*.yml' -o -name '*.yaml' \) | sort) $(find . -name .github -o -name .git | sort); do
-            echo "::error::site/${f#./} is the repository's own: it would be served"
-            missing=1
-          done
-          for f in ../*.html ../*.js ../*.css ../_headers ../_redirects ../_routes.json ../robots.txt ../assets ../.well-known; do
-            if [ -e "$f" ]; then echo "::error::${f#../} is at the repository's root: only site/ is served"; missing=1; fi
+          # site/ holds only the kinds of file the site serves (pages, styles, scripts, fonts, images, robots.txt,
+          # security.txt, the fonts' licence, Pages' _headers, _redirects, _routes.json), at any depth; the
+          # repository's root holds only its own (.github/, .gitignore, CLAUDE.md, the font scripts, site/, and a
+          # functions/ folder, where Pages looks for one). A new kind of file is a deliberate change to these lists.
+          while IFS= read -r f; do
+            case "$f" in
+              */.git/*|*/.github/*|./.git|./.gitignore) echo "::error::site/${f#./} is the repository's own: it would be served"; missing=1; continue ;;
+            esac
+            case "$f" in
+              *.html|*.css|*.js|*.woff2|*.png|*.svg|./robots.txt|./.well-known/security.txt|./assets/fonts/OFL.txt|./_headers|./_redirects|./_routes.json) ;;
+              *) echo "::error::site/${f#./} is not a kind of file the site serves (the repository's own files stay outside site/)"; missing=1 ;;
+            esac
+          done < <(find . -type f | sort)
+          for f in ../* ../.[!.]*; do
+            [ -e "$f" ] || continue
+            case "${f#../}" in
+              .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
+              *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
+            esac
           done
           if [ "$missing" -eq 1 ]; then
             exit 1
@@ -113,7 +125,7 @@ jobs:
           # And the reverse: the versioned css/js the repo ships must be the
           # ones index.html loads, each with its immutable cache block (a
           # leftover old version, kept by a copy rather than a git mv, fails).
-          for f in style.v*.css birds.v*.js sky.v*.js hour.v*.js world.v*.js realm-*.v*.js inkbirds.v*.js; do
+          for f in style.v*.css birds.v*.js hour.v*.js world.v*.js realm-*.v*.js inkbirds.v*.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -123,12 +135,11 @@ jobs:
               fail=1
             fi
           done
-          # Every script and stylesheet in the site is one the pages load
-          # (nothing left over from the world's development build: no
+          # Every script and stylesheet anywhere in the site is one the pages
+          # load (nothing left over from the world's development build: no
           # diagnostics, no lab, no test realm), and every one but site.js carries its version in its
           # name, as immutable caching needs.
-          for f in *.js *.css; do
-            [ -f "$f" ] || continue
+          for f in $(find . -type f \( -name '*.js' -o -name '*.css' \) | sed 's|^\./||' | sort); do
             if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html; then
               echo "::error::$f is shipped but no page loads it"
               fail=1
@@ -202,8 +213,7 @@ jobs:
         run: |
           cd site
           # The words on the page and in its search and share text, exactly:
-          # the line under the name (in its own span, whose line boxes the
-          # world reads to keep its glow and its birds off it), the credit,
+          # the line under the name (in its own span), the credit,
           # the two links and the noscript address; the JSON-LD's role.
           python3 - <<'PY'
           import html as H, json, re, sys
@@ -233,7 +243,7 @@ jobs:
       - name: The world's page loads in order
         run: |
           cd site
-          # hour.v3.js in the head (before the first paint), site.js, then the
+          # hour.vN.js in the head (before the first paint), site.js, then the
           # deferred scripts in order: today's birds (they fly over the still
           # sky while the world boots), the world, the realms' kit and realms,
           # the ink birds last (the boot starts once every script has run).
@@ -422,6 +432,7 @@ jobs:
           # others where they are set). Exit 2 (no WebGL2 context on the runner)
           # warns; any lower or higher code fails.
           W=$(ls site/world.v*.js | head -1)
+          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no site/world.vN.js for W7's unit test"; exit 1; }
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
@@ -446,16 +457,34 @@ jobs:
           # links) and the dimmed grey (the credit) 4.5:1, the focus ring 3:1
           # (WCAG 1.4.3, 1.4.11). Two families: the hour's still skies (the
           # 404 page, which has no canvas) and the world's (the home page:
-          # :has(canvas.sky)).
-          CSS=$(ls style.v*.css | head -1)
-          python3 - "$CSS" <<'EOF'
+          # :has(canvas.sky)), the world's twice, each sky exactly once in
+          # each: as the camera of a window narrower than 6:5 draws it, and
+          # inside @media (min-aspect-ratio: 6/5), the query the world's
+          # camera reads (its wideWin; checked here too).
+          CSS=$(ls style.v*.css | head -1); WORLD=$(ls world.v*.js | head -1)
+          python3 - "$CSS" "$WORLD" <<'EOF'
           import re, sys
           css = re.sub(r'/\*.*?\*/', '', open(sys.argv[1]).read(), flags=re.S)
           def lin(v): v /= 255; return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
           def rgb(h): h = h.lstrip('#'); return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
           def Y(c): r, g, b = [lin(x) for x in c]; return 0.2126 * r + 0.7152 * g + 0.0722 * b
           def ratio(a, b): a, b = Y(a), Y(b); return (max(a, b) + .05) / (min(a, b) + .05)
-          rules = re.findall(r'([^{}]+)\{([^{}]*)\}', css)
+          WIDE = '@media (min-aspect-ratio: 6/5)'
+          def blocks(s):   # the stylesheet's top level: (the at-rule's head or None, the rules in it)
+              out, i = [], 0
+              while True:
+                  j = s.find('{', i)
+                  if j < 0: return out
+                  head = s[i:j].strip()
+                  if head.startswith('@'):
+                      d, k = 1, j + 1
+                      while d: d += {'{': 1, '}': -1}.get(s[k], 0); k += 1
+                      out.append((re.sub(r'\s+', ' ', head), re.findall(r'([^{}]+)\{([^{}]*)\}', s[j + 1:k - 1]))); i = k
+                  else:
+                      k = s.index('}', j); out.append((None, [(head, s[j + 1:k])])); i = k + 1
+          B = blocks(css)
+          rules = [r for q, rs in B if q is None for r in rs]   # outside every at-rule: the tokens and the base skies
+          wide = [r for q, rs in B if q == WIDE for r in rs]    # the world's on a window 6:5 or wider
           def tokens(name, world):
               out = {}
               for sel, body in rules:
@@ -464,25 +493,26 @@ jobs:
                   if any(s in sels for s in mine) or (name == 'day' and not world and ':root:not([data-sky])' in sels):
                       out.update(dict(re.findall(r'(--color-[a-z]+):\s*(#[0-9a-fA-F]{6})', body)))
               return out
-          def gradients(name, world):
-              # every rule with the family's selector: its own, and each a media query sets again (the world's on a
-              # window 6:5 or wider, where its camera looks higher)
+          def gradients(name, world, rs):   # every rule in rs whose selector list names the family's sky
               sel = (':root[data-sky="%s"]:has(canvas.sky) body' % name) if world else ('body' if name == 'day' else ':root[data-sky="%s"] body' % name)
               out = []
-              for s_, body in rules:
-                  if s_.strip() == sel:
+              for s_, body in rs:
+                  if sel in [x.strip() for x in s_.split(',')]:
                       m = re.search(r'linear-gradient\(to bottom, ([^)]*)\)\s*(#[0-9a-fA-F]{6})?', body)
                       if m:
                           stops = [(float(p.rstrip('%')) / 100, rgb(c)) for c, p in (x.split() for x in m.group(1).split(','))]
                           out.append((stops, (rgb(m.group(2)) if m.group(2) else None)))
               return out
           fail = 0
+          if "matchMedia('(min-aspect-ratio: 6/5)')" not in open(sys.argv[2], encoding='utf-8').read():
+              print("::error::%s does not read the wide windows' query, %s" % (sys.argv[2], WIDE)); fail = 1
           for world in (False, True):
               for name in ['day', 'dawn', 'rain', 'sunset', 'dusk', 'night']:
-                  gs = gradients(name, world); t = tokens(name, world)
-                  if not gs: print('::error::no %s still sky for %s' % ('world' if world else 'hour', name)); fail = 1; continue
-                  for gi, (stops, solid) in enumerate(gs):
-                      fam = ('world' if world else 'hour') + ('' if gi == 0 else '+%d' % gi)
+                  t = tokens(name, world)
+                  sets = [('world' if world else 'hour', gradients(name, world, rules))] + ([('world6:5', gradients(name, world, wide))] if world else [])
+                  for fam, gs in sets:
+                      if len(gs) != 1: print('::error::the %s still sky for %s: %d gradients found, exactly one wanted' % (fam, name, len(gs))); fail = 1; continue
+                      stops, solid = gs[0]
                       ground = [solid] if solid else []
                       for k in range(201):
                           y = k / 200
@@ -493,7 +523,7 @@ jobs:
                                   break
                       for role, need in [('--color-text', 4.5), ('--color-dimmed', 4.5), ('--color-focus', 3.0)]:
                           worst = min(ratio(rgb(t[role]), g) for g in ground)
-                          print('%-7s %-7s %-15s %5.2f' % (fam, name, role, worst))
+                          print('%-8s %-7s %-15s %5.2f' % (fam, name, role, worst))
                           if worst < need:
                               print('::error::%s on the %s %s still sky falls to %.2f:1 (needs %.1f)' % (role, fam, name, worst, need)); fail = 1
           # Print is on white over every still sky, the world's too ("Background graphics" on or off): the print

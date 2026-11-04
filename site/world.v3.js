@@ -27,9 +27,9 @@
      the clouds at half resolution: each cloud body baked once into a small 3D texture (its lobes joined into one form,
        billowed, stored as a signed distance beside the optical depth toward the sun and the sky), marched in its box
        far to near, cut by the scene's depth; then, in a transition, the cloud the camera is in (in camera space);
-     bloom, light shafts, and the composite: the clouds brought up edge-aware (a cubic B-spline over an even surface,
-       weighted by depth across the land's edges), a shoulder that keeps hue, the realm's grade, the words' lift (under
-       dark words only, the ground raised where black words need it; nothing is ever drawn darker for the words), one
+     bloom, light shafts, and the composite: the clouds brought up edge-aware (a clamped interpolating cubic over an even surface: stage 2,
+       weighted by depth across the land's edges), a shoulder that keeps hue, the realm's grade (the words' colours are
+       constants since stage 2: no lift, no flip; nothing is ever drawn darker or lighter for the words), one
        fixed 8-bit dither.
 
    Every realm registers itself (realms.js) with WORLD.realm({...}). Time is requestAnimationFrame's own (no clock
@@ -46,8 +46,8 @@
   var EVAL0 = clockNow();   // (the record: when this script's evaluation began)
   var root = document.documentElement;
   /* (tod fix round, the judges' defect 9) the browser's bar takes the world's still top for the hour's group as this
-     script's first act (the page's body shows the world's still from its first paint; hour.v2.js's colour is the live
-     sky's still top), before the boot's heavy work; the drawn sky's own follows once it shows (skyTheme), the still's
+     script's first act (the page's body shows the world's still from its first paint; hour.v3.js's colour is this still
+     top itself), before the boot's heavy work; the drawn sky's own follows once it shows (skyTheme), the still's
      when it hides (markStill). The tops are the world's still skies' (style.css, tools/stillsky.py). */
   var SKYTOP = { dawn: '#173a63', day: '#173a63', rain: '#5f3d62', sunset: '#5f3d62', dusk: '#38396a', night: '#17234f' };
   /* (camera9b) a window 6 : 5 or wider (wideWin: the stylesheet's own query) has the camera pitched up (basePitch) and the
@@ -64,7 +64,7 @@
   function attr(n) { return root.getAttribute(n); }
   var OPT = { realm: null, seed: null, t: null, ss: null, still: false, dev: false, dur: null, nogov: false, dtmax: null, order: null,
     sw: null, cvs: null, skyScene: null, skyNext: null, skyDt: null };   // (the shipped page: no harness, every option the visitor's)
-  /* the visitor's hour: hour.v2.js (in the head, before the first paint) marks the page with its group (data-sky: dawn,
+  /* the visitor's hour: hour.v3.js (in the head, before the first paint) marks the page with its group (data-sky: dawn,
      day, rain, sunset, dusk, night); read here once, before the world marks the page with its own still sky. The world
      itself reads no clock. */
   var HOUR = attr('data-sky') || 'day';
@@ -149,6 +149,10 @@
     HALF = FLOAT_RT ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
     var dbg = gl.getExtension('WEBGL_debug_renderer_info');
     EXT.renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || '');
+    /* (speed E10) WebKit (every browser on iOS and iPadOS; Safari on the Mac) has KHR_parallel_shader_compile, but its
+       links and first draws are synchronous: there the one-at-a-time path (the white build's), not all at once */
+    var wkUA = navigator.userAgent || '', wkIs = /iPhone|iPad|iPod/.test(wkUA) || (/Macintosh/.test(wkUA) && navigator.maxTouchPoints > 1) || (/AppleWebKit/.test(wkUA) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(wkUA));
+    EXT.parAll = EXT.par && !wkIs ? EXT.par : null;
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
     /* (round E1 Fix 3, G0) the scene drawn with 4 samples a pixel (MSAA) where the scene's colour format and its depth
@@ -406,7 +410,7 @@ vec3 oklab2lin(vec3 c) {
       else c.push(PROGS[i]);
     }
     a.sort(function (x, y) { return VOLP.indexOf(x.name) - VOLP.indexOf(y.name); });
-    if (EXT.par) {   // (speed E2: all at once, the heaviest first: the probe and the land's first surface)
+    if (EXT.parAll) {   // (speed E2: all at once, the heaviest first: the probe and the land's first surface)
       var h = [], r = [], all = a.concat(b, c);
       for (i = 0; i < all.length; i++) (/\.(probe|surface0)$/.test(all[i].name) ? h : r).push(all[i]);
       h.sort(function (x, y) { return /probe$/.test(y.name) - /probe$/.test(x.name); });
@@ -444,8 +448,8 @@ vec3 oklab2lin(vec3 c) {
     if (!PORDER || PORDER.length !== PROGS.length) PORDER = progOrder();
     /* (speed E2) with KHR_parallel_shader_compile every program is issued in one frame, the heaviest first (the probe
        and the land: the critical path), and each one's completion asked once a frame, without waiting; its status
-       read as it completes. Without the extension (WebKit: every call a synchronous message), one at a time */
-    if (EXT.par) {
+       read as it completes. Without the extension, and on WebKit (it has it, but links there are synchronous: E10), one at a time */
+    if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); issued = true; }
       if (issued) { gl.flush(); return false; }
@@ -2570,7 +2574,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   /* ---------------------------------------------------------------- the time of day (tod, 2026-10-27) */
   /* The owner (2026-10-23): "Add dusk and night first"; and, of the live sky, "Only the starting landing scene should
      depend on the system time. The rest should cycle through smoothly randomly non-time-dependent." The world opens on
-     a sky of the visitor's own time of day (hour.v2.js marks data-sky and data-sky-at: its one read of the clock) and then
+     a sky of the visitor's own time of day (hour.v3.js marks data-sky and data-sky-at: its one read of the clock) and then
      passes from sky to sky in an order of its own, the live sky's (sky.v3.js nextSky): mostly into a neighbouring sky,
      now and then (SKY_FAR) into any through the mist, never into one of the last SKY_RECENT, a sky not yet seen likelier
      (stage2: every sky's words are light, so no run of one kind of words to break). The cycle runs on the
@@ -3809,7 +3813,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     while (PJOBS.length && PJOBS[0].cancel) PJOBS.shift();
     if (!PJOBS.length) return;
     V = PJOBS[0].V; mode = PJOBS[0].mode;
-    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat) return;   // (speed E9, as groundCache)
+    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat || !KW.tex) return;   // (speed E9, as groundCache)
     var want = 0; for (i = 0; i < PJOBS.length && want < cap; i++) { J0 = PJOBS[i]; if (!J0.cancel && J0.V === V && J0.mode === mode) want += J0.n - J0.sent; }
     want = Math.min(want, cap);
     var S = rbSlot(Math.ceil(want / PROBE_W) * PROBE_W * 4);
@@ -3856,7 +3860,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   var GROUND = { V: null, x0: 0, z0: 0, cell: GCCELL, n: GCN, h: new Float32Array(GCN * GCN), e: new Float32Array(GCN * GCN), ok: false, rd: 0, gen: 0, got: 0, P: { V: null, x0: 0, z0: 0, gen: 0 }, nx: 0, nz: 0, nV: null };
   var GPX = new Uint8Array(GCN * GCN * 4), GHALF = GCN / 2;
   function groundCache(V, cx, cz, sync) {
-    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat) return;   // (speed E9: and the visit planned: its field's parameters)
+    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat || !KW.tex) return;   // (speed E9: and the visit planned (its field's parameters) and its weights' grid on the GPU (vsKW))
     if (!sync && GROUND.rd > 0) return;   // (the last grid's halves not yet read out of the target)
     var x0 = Math.floor(cx / 16) * 16 - GCN / 2 * GCCELL, z0 = Math.floor(cz / 16) * 16 - GCN / 2 * GCCELL;
     if (GCK[0] === V.k && GCK[1] === x0 && GCK[2] === z0 && GCK[3] === J.seed) return;
@@ -6628,7 +6632,7 @@ void main() {
   }
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
-    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteRenderbuffer(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
+    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs', 'inkKeep'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteRenderbuffer(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
     TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
     // (E1 Fix 3, G0) the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
@@ -6714,11 +6718,11 @@ void main() {
     if (DEVMODE && OPT.cvs) { var cvm = /^(\d+)x(\d+)$/.exec(OPT.cvs); if (cvm) { w = fw = +cvm[1]; h = fh = +cvm[2]; dpr = w / r.width; } }   // (dev, E0: a fixed small canvas: CPU timing and presented runs)
     if (w === OUT.w && h === OUT.h && fw === FULL.w && fh === FULL.h && TG) return false;
     var heightOnly = TG && w === OUT.w && Math.abs(h - OUT.h) < 0.15 * OUT.h;
-    /* (stage2 quality Q3) the ladder for this window; the scale being drawn kept in absolute px (the rung whose width is
-       the nearest at or under it), so a resize neither sharpens nor softens the world by itself */
-    var qk = Math.min(1, baseDpr(r.width, r.height) / Math.max(dpr, 1e-6)), qab = TG && OUT.w ? RUNGS[RUNG] * OUT.w : 0;
+    /* (stage2 quality Q3) the ladder for this window; the density being drawn kept (the rung nearest it in device px a
+       CSS px; review 1: kept in absolute px a rotation or a drag ratcheted it down), so a resize neither sharpens nor softens it */
+    var qk = Math.min(1, baseDpr(r.width, r.height) / Math.max(dpr, 1e-6)), qab = TG && OUT.w ? RUNGS[RUNG] * OUT.dpr : 0;
     RUNGS = qLadder(qk); QK = qk;
-    if (qab > 0) { RUNG = RUNGS.length - 1; for (var qi = 0; qi < RUNGS.length; qi++) if (RUNGS[qi] * w <= qab * 1.001) { RUNG = qi; break; } } else RUNG = Math.min(RUNG, RUNGS.length - 1);
+    if (qab > 0) { var qb = Infinity; for (var qi = 0; qi < RUNGS.length; qi++) { var qe = Math.abs(Math.log(RUNGS[qi] * dpr / qab)); if (qe < qb - 1e-6) { qb = qe; RUNG = qi; } } } else RUNG = Math.min(RUNG, RUNGS.length - 1);
     if (!GS.done && !GS.tr.some(function (a) { return a.length; })) gsScales(qk);
     OUT.w = w; OUT.h = h; OUT.dpr = dpr; OUT.cssW = r.width; OUT.cssH = r.height;
     FULL.w = fw; FULL.h = fh; FULL.dpr = fw / Math.max(r.width, 1);
@@ -7605,10 +7609,10 @@ void main() {
     var L = [], T = gl.TRIANGLES, TS = gl.TRIANGLE_STRIP, LE = gl.LEQUAL, A = WARM.vao;
     var SC = AAS > 1 && WARM.tg.sceneMS ? 'sceneMS' : 'scene';   // (E1 Fix 3: the scene pass's draws, into its samples)
     BL_ADD = [gl.ONE, gl.ONE, gl.ZERO, gl.ONE]; BL_OVER = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE]; BL_PRE = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA];
-    function E(n, P, vao, mode, cnt, inst, idx, tg, bl, dt, dw, cull, cm) { if (P && (P.ok || (EXT.par && P.st !== 3))) L.push({ n: n, p: P, vao: vao, mode: mode, cnt: cnt, inst: inst, idx: idx, tg: tg, bl: bl || null, dt: dt || 0, dw: dw !== false, cull: cull || 0, cm: cm === undefined ? 15 : cm }); }
+    function E(n, P, vao, mode, cnt, inst, idx, tg, bl, dt, dw, cull, cm) { if (P && (P.ok || (EXT.parAll && P.st !== 3))) L.push({ n: n, p: P, vao: vao, mode: mode, cnt: cnt, inst: inst, idx: idx, tg: tg, bl: bl || null, dt: dt || 0, dw: dw !== false, cull: cull || 0, cm: cm === undefined ? 15 : cm }); }
     // the realms' sites, every built realm's (any may come into view)
     for (var k = 0; k < ORDER.length; k++) {
-      var d = REALMS[ORDER[k]]; if (d.bad || !d.P || (d.P.st !== 2 && !EXT.par)) continue;   // (speed E8: with the parallel compile the table is made before the realms' links are through)
+      var d = REALMS[ORDER[k]]; if (d.bad || !d.P || (d.P.st !== 2 && !EXT.parAll)) continue;   // (speed E8: with the parallel compile the table is made before the realms' links are through)
       var P = d.P, id = d.id;
       for (var si = 0; si < P.surf.length; si++) E(id + '.surface' + si, P.surf[si].P, GRID.vao, T, 3, 0, true, SC, null, LE, true);
       E(id + '.landmark', P.lm, A.mesh, T, 3, 0, false, SC, null, LE, true);
@@ -7664,7 +7668,7 @@ void main() {
     gl.activeTexture(gl.TEXTURE0);
     /* (speed E8) with the parallel compile: every entry whose program has finished is drawn now, in this frame (the draws
        are queued, never waited on); the rest wait for theirs; a broken program's entries are passed over */
-    if (EXT.par && !sync) {
+    if (EXT.parAll && !sync) {
       var left = 0;
       for (var q = 0; q < L.length; q++) {
         var x = L[q]; if (x.done) continue;
@@ -7676,8 +7680,8 @@ void main() {
       if (!left) { WARM.i = L.length; WARM.done = true; }
       return WARM.done;
     }
-    while (WARM.i < L.length && (sync || EXT.par || (n < WARM_N && clockNow() < deadline))) {
-      var e = L[WARM.i], alone = !sync && !EXT.par && !e.rs && warmHeavy(e.p);   // (speed E4: with the parallel compile (Chrome, Firefox: draws are queued, never waited on) the table in one frame)
+    while (WARM.i < L.length && (sync || EXT.parAll || (n < WARM_N && clockNow() < deadline))) {
+      var e = L[WARM.i], alone = !sync && !EXT.parAll && !e.rs && warmHeavy(e.p);   // (speed E4: with the parallel compile (Chrome, Firefox: draws are queued, never waited on) the table in one frame)
       if (alone && n > 0) break;   // (alone: the next frame's first)
       WARM.i++;
       if (warmDraw(e, T)) n++;
@@ -7801,7 +7805,7 @@ void main() {
   /* ---------------------------------------------------------------- the loop, the governor, the device tier */
   var PREP0 = 0;   // (round 3: the frame the reduced motion's still sky began planning on)
   var STILLTS = -1;   // (Fix 2: the rAF time the reduced motion's still was first drawn; it is drawn again until the dissolve is over)
-  /* (E0, 12.5) today's SVG birds (birds.js; in production birds.v11.js, the first deferred script) fly over the still sky while the world boots.
+  /* (E0, 12.5) today's SVG birds (birds.js; in production birds.v12.js, the first deferred script) fly over the still sky while the world boots.
      skyAir.handover tells them who has the sky: 0 theirs; 1 the world's (from the first frame shown: they plan no new
      flight, finish the crossings that end within 6 s and fade the rest with the dissolve); 2 nobody's (the record's
      control tail). The ink birds step from the dissolve's end (DISSOLVE_S after the first frame), so the first ink
@@ -7860,7 +7864,7 @@ void main() {
       }
     } else {
       GOVN[3] = 0;
-      if (p50 < PER * 1.12) { GOVN[4] += 1; if (GOVN[4] >= (QUP[1] && QUP[0] <= QUP_S ? QUP_EASE : GOVN[11]) && RUNG > 0) { RUNG--; GOVN[4] = 0; GOVN[0] = 0; GOVN[12] = 0; } } else GOVN[4] = 0;
+      if (p50 < PER * 1.12) { GOVN[4] += 1; if (GOVN[4] >= (QUP[1] && QUP[0] <= QUP_S ? QUP_EASE : GOVN[11]) && RUNG > 0 && GOVN[6] <= 0) { RUNG--; GOVN[4] = 0; GOVN[0] = 0; GOVN[12] = 0; } } else GOVN[4] = 0;
     }
   }
   /* too slow even so: the world steps aside for the stylesheet's still sky (the words to its colours) */
@@ -7877,7 +7881,7 @@ void main() {
   function render() {
     if (LOST || DEAD || gl.isContextLost() || !TG) return false;
     var V = SIM.V; if (!V || !visitBuilt(V) || !V.def.P || V.def.P.st !== 2) return false;
-    TIER = RUNG >= 3 ? 0.6 : 1;
+    TIER = RUNGS[RUNG] < 0.65 * QK ? 0.6 : 1;   // (stage2 quality Q3, review 1: keyed on today's size, QK; the rungs are rounded to 4 places)
     var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
     setWords(INK);   // (stage2: the words are always light: the root's text and selection, today's SVG birds; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
     if (!shown) inkRestart(true);   // (ink fix: the words' reading begins with the first frame shown: the boot's hidden check frame (stage H), a restored world's too, is never taken)
@@ -7979,15 +7983,15 @@ void main() {
        frame with no other GPU work of the boot's); then F, the warm table (Fix 2: before D's GPU half, so none of D's
        draws is a program's first use), each one's first use alone in its frame */
     var gpuFree = afterC && NOISE.done && (WARM.done || reduced());
-    if ((afterC || EXT.par) && !NOISE.done && NOISE.prog && NOISE.prog.st === 3) {   // (speed E8: with the parallel compile, once its own program is)
-      var NP = NOISE.prog, tn = clockNow(); noiseStep(true); label += ' noise';   // (speed E3: every layer in this one frame)   // (E1.1: no wait: the boot began with today's first bird in view)
+    if ((afterC || EXT.parAll) && !NOISE.done && NOISE.prog && NOISE.prog.st === 3) {   // (speed E8: with the parallel compile, once its own program is)
+      var NP = NOISE.prog, tn = clockNow(), noised = true; noiseStep(!!EXT.parAll); label += ' noise';   // (speed E10: one layer a frame on WebKit, as before E3)   // (speed E3: every layer in this one frame)   // (E1.1: no wait: the boot began with today's first bird in view)
       if (!NP.firstF) { NP.firstF = FRAMEN; NP.firstMs = +(clockNow() - tn).toFixed(2); NP.firstAt = +clockNow().toFixed(1); NP.warmed = true; }
       if (NOISE.done) bootMark('E noise baked');
     }
-    if (EXT.par && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links)
+    if (EXT.parAll && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links)
       var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
       if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
-    } else if (!EXT.par && afterC && NOISE.done && !WARM.done && !reduced()) {
+    } else if (!EXT.parAll && afterC && NOISE.done && !WARM.done && !reduced() && !noised) {   // (speed E10: never in the noise's frame, as before E8)
       var wi = WARM.ms.length; warmStep(false, dl); label += ' F';
       for (var wk = wi; wk < WARM.ms.length; wk++) label += (wk === wi ? ':' : ',') + WARM.ms[wk][0];   // (Fix 2: the keys drawn in the slice)
       if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
@@ -8054,7 +8058,7 @@ void main() {
     ms = (clockNow() - t0 - median(GS.rt)) / GS.m;
     TRIALSC = 0; TRIAL = false; gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     GS.tr[GS.i].push(+ms.toFixed(2));
-    if (GS.tr[GS.i].length < G_TRIALS) return false;
+    if (GS.tr[GS.i].length < G_TRIALS && !(GS.i > 0 && GS.tr[GS.i].length >= 2 && Math.min(ms, GS.tr[GS.i][GS.tr[GS.i].length - 2]) > 2 * 0.65 * GS.P)) return false;   // (speed E11: two trials running far over the bar need no third; one alone may be the visit's first full-size draw, a one-off cost)
     var med = median(GS.tr[GS.i]); GS.med[GS.i] = +med.toFixed(2);
     // (speed E5) from the full scale down: the first scale within the bar is the largest (ascending took the last before the
     // first over it: the same for a cost that grows with the scale); none within it, the floor's test as before
@@ -8134,6 +8138,7 @@ void main() {
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
     if (gl.isContextLost()) return;
     prof('frame');
+    if (!READY && !TG) resize();   // (speed E12: forced colours on at load hid the canvas, so boot()'s resize made no targets: made once they end)
     if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } var tb0 = clockNow(); bootFrame(ts); if (!READY && (SKYAIR.flying | 0) >= 2 && clockNow() - tb0 > 2 * BOOT_MS) BOOT.rest = 1; prof('boot'); return; }
     if (dt0) { dt0 = false; dt = 0; }
     if (reduced() && !STILLMODE) {   // one still frame (round 3: the birds' still sky planned first, a share a frame, while the still sky shows)
@@ -8864,7 +8869,7 @@ void main() {
       bootStages: { marks: BOOT.marks, frames: BOOT.frames, sliceMaxMs: +BOOT.sliceMax.toFixed(2), slicesOver8: BOOT.sliceOver, longestSlices: BOOT.slices.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12), declined: BOOT.declined,
         G: { pinned: GS.pinned, period: GS.P ? +GS.P.toFixed(2) : null, roundTripMs: GS.rt.map(function (x) { return +x.toFixed(2); }), trialsMs: GS.tr, mediansMs: GS.med, scales: GS.sc, pick: GS.pick, rung: GS.rung },
         H: { ok: BOOT.hOk, fails: BOOT.hFails, thumb: BOOT.thumbStat || null }, warm: { keys: WARM.list ? WARM.list.length : 0, frames: WARM.frames, ms: WARM.ms.slice(0, 80).map(function (w) { return [w[0], w[1], w[2], recFrameMs(w[2])]; }) },   // (Fix 2: [key, draw call ms, frame, that frame's interval ms])
-        programs: { n: PROGS.length, broken: PROGX.broken, par: !!EXT.par, each: PROGS.map(function (P) { return [P.name, P.kb || 0, P.cms || 0, P.lms || 0, P.fms || 0, P.doneAt || null]; }), one: recProgs() },
+        programs: { n: PROGS.length, broken: PROGX.broken, par: !!EXT.par, parAll: !!EXT.parAll, each: PROGS.map(function (P) { return [P.name, P.kb || 0, P.cms || 0, P.lms || 0, P.fms || 0, P.doneAt || null]; }), one: recProgs() },
         waits: { start: BOOT.bw }, birdFrames: recBirdFrames(), noise: { K: NOISE.K, fixed: NOISE.fixed } },   // (Fix 3: the yield is gone; the first-use draws' and G's waits for today's first flight, and the boot frames over 50 ms while it was in view)
       readback: { bakeAIMD: { layers: FBAKE.n, lagged: FBAKE.lagged, halvings: FBAKE.halvings, late: FBAKE.late }, nextDeadline: null, fencesMade: RB.made, polls: RB.polled, reads: RB.reads, readKB: Math.round(RB.readBytes / 1024), slotSkips: RB.skipped, fenceSkips: RB.fenceSkipped, lagged: RB.lagN, forcedReads: RB.forced || 0, probes: PSTAT, junctionWaits: SIM.waits, wordsTrim: typeof AG !== 'undefined' ? AG.trim : null, wordsMiss: typeof AG !== 'undefined' ? AG.miss : null },   // ((line2) wordsTrim: the words' reads made without the line's block for room in the slot; wordsMiss: those refused even so)   // (forcedReads: the dev harness's unconditional reads, Fix 2; 0 in a live visit)
       madeAfterShown: R.madeAfter, freedAfterShown: R.freedAfter, uploadsAfterShown: R.upAfter, stageEvents: R.stageEv || [],
@@ -8983,7 +8988,7 @@ void main() {
      clock inside it: world.js stamps its own start and end; each realm file and the ink birds stamp their top and
      register as their last statement (exact); the kit's end is the next file's top; today's birds (deferred, before
      world.js) start no sooner than both its response's end and the parse's end (domInteractive) and end no later
-     than world.js's start; the parser-blocking hour.v2.js and site.js lie between their response's end and the parse's
+     than world.js's start; the parser-blocking hour.v3.js and site.js lie between their response's end and the parse's
      end. Each: { name, how: 'exact' | 'bounds', start, end (or startMin, endMax), ms (or msMax) } in ms from navigation */
   function recScripts() {
     var out = [], nav = null, res = {}, st = {}, i, k;
@@ -8994,7 +8999,7 @@ void main() {
     var scripts; try { scripts = document.querySelectorAll('script[src]'); } catch (e) { return { error: 'no document' }; }
     var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (E1: a bare relative src too: the preview's)
     function r1(x) { return x === null || x < 0 ? null : +x.toFixed(1); }
-    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v1.js stamps as world.js)
+    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v3.js stamps as world.js)
     function regOf(n) { var b = base(n); if (b === 'inkbirds.js') return st.inkbirds; var m3 = /^realm-(\w+)\.js$/.exec(b); return m3 ? st['realm ' + m3[1]] : undefined; }
     for (i = 0; i < order.length; i++) {
       var o = order[i], b = base(o.name), e = res[o.name], rEnd = e ? e.responseEnd : -1, top = st[b + ' top'], reg = regOf(o.name), x = { name: o.name, responseEnd: r1(rEnd) };
@@ -9237,7 +9242,7 @@ void main() {
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', onMotionPref); else if (MQ.addListener) MQ.addListener(onMotionPref); }
     if (FC) { if (FC.addEventListener) FC.addEventListener('change', onForced); else if (FC.addListener) FC.addListener(onForced); }
     inputInit();
-    if (forced()) { if (!HASSVG) fstart(); return; }   // (round 2: forced colours from the start: the birds alone, on the system's colours; E0: today's SVG birds instead, where the page has them)
+    if (forced()) { bootReset(false); if (!HASSVG) fstart(); return; }   // (round 2: forced colours from the start: the birds alone, on the system's colours; E0: today's SVG birds instead, where the page has them)
     if (DEVMODE && SW.rbfix) RB.fix = true;   // (dev: the read-back's arrival fixed in frames; the stills' harness too: jwfast's ticks)
     bootReset(false);
     start();   // (the staged boot, then the flight; under reduced motion the loop builds, draws one still frame and stops)
