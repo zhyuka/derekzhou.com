@@ -13,7 +13,7 @@ site/style.v15.css           All styles (versioned name — see Caching): the wo
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
 site/birds.v12.js            Today's birds: they fly over the still sky while the world boots, then hand it over (see Birds)
-site/world.v2.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
+site/world.v3.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v1.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v1.js       The dunes' kit: the sand province's land, rock, landmarks and light
 site/realm-above.v1.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
@@ -22,8 +22,9 @@ site/404.html                Custom 404 page (the hour's still sky, no world, no
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
 site/assets/apple-touch-icon.png  180x180 iOS icon
-site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (sources)
-                             + two .sub2 subsets (served), and OFL.txt (their licence)
+site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (the subsets'
+                             sources; served too, loaded by no page) + two .sub2 subsets
+                             (loaded), and OFL.txt (their licence)
 site/robots.txt              Allow search engines, block AI crawlers
 site/.well-known/security.txt  Vulnerability reporting
 site/\_headers               Cloudflare Pages security + caching + Early Hints headers
@@ -39,8 +40,8 @@ first (a Pages Function that checks the Cloudflare Access token again, in
 a functions/ folder at the repository's root, where Pages looks for it,
 with site/\_routes.json sending it every private path), because Access
 alone lets a percent-encoded path through and does not cover the
-pages.dev host. The
-owner keeps a tested guard in a private repo. The Access application on
+pages.dev host. The owner keeps a tested guard in a private repo. The
+Access application on
 derekzhou.com still lists paths for pages that no longer exist: Access asks
 for a sign-in there, and past it they serve 404.
 
@@ -49,7 +50,7 @@ measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and the files here are that build with every hook cut
 out by counted edits (see Verify). Nothing on the page reads such a hook.
 The record's code and the dev helpers those hooks called are left in
-world.v2.js, unreachable (the switches keep their defaults; cutting them
+world.v3.js, unreachable (the switches keep their defaults; cutting them
 is a change to the engine, to be proved frame for frame like any other).
 The comments keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,
@@ -71,9 +72,10 @@ removed ("remove the entire "Derek is a hands-on.." blurb"); on
 2026-10-21 asked for "a little description that just says "Hands-on
 technology leader in Agentic and Generative AI, Platform Engineering, and
 Product Development."" It sits between the name and the credit row in
-the words' role (.words), its text in a span of its own (the world reads
-that span's line boxes, so its ink and its birds keep to the letters and
-not to the ragged right), with a non-breaking space in "Product
+the words' role (.words), its text in a span of its own (held by CI; the
+world's old ground read took the line's ink from those line boxes alone,
+and that code stays, unreached; the birds keep off the line's whole
+box), with a non-breaking space in "Product
 Development" so no line ends on one word. The page is the name, that
 line, the credit row and the two links. The Open Graph and Twitter
 descriptions (share text) are the same line, and the meta description
@@ -190,11 +192,14 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v2.js, realm-kit.v1.js, realm-dunes.v1.js, realm-above.v1.js)
+## World (world.v3.js, realm-kit.v1.js, realm-dunes.v1.js, realm-above.v1.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
-file's header comment is its full design; this is the outline.
+file's header comment is its full design as of the build it came from
+(stage 2's changes are tagged inline: stage2, speed, quality; where a
+header and its code differ, the code and this file are right); this is
+the outline.
 
 THE WORLD: one world over an endless plane, its land and its sea of cloud
 blended by smooth maps (the kits' weights), never a cut between places:
@@ -239,7 +244,8 @@ min-aspect-ratio 6/5, so the camera and the still sky it dissolves in over
 agree) the camera is pitched up 9 degrees more (the owner's yes of
 2026-10-29): at 1440x900 the horizon about 72% down, the words wholly on
 sky. Any other window (an upright tablet, a phone, a window near square)
-keeps that framing exactly. A step, not a fade: the credit row stands
+keeps that framing (to within 0.004 degrees: the drawn world's aspect
+rounds a little differently at its new density). A step, not a fade: the credit row stands
 54-59% down on those windows, about where the unraised horizon is, so any
 share of the 9 between would carry the horizon through it. A resize or a
 rotation re-aims at once (a change of height alone eases). Everything
@@ -292,35 +298,69 @@ out from a read-back at an eighth fell to 4.27:1 at 1920x1080, a thin lit
 edge under the credit averaged away). W8: on every sky no pixel the world
 draws stands above OKLab L 0.53 outside the moon's footprint (the ink
 birds aside), and the moon's footprint (4.5 degrees about it) stands
-clear of every block of words. So 4.5:1 holds on the drawn world too
-(see Verify for the measures).
+clear of every block of words at the view's own heading (a visitor's drag
+can bring the moon behind them; they still read there, the credit at
+4.83:1 the lowest measured so). So 4.5:1 held against every ground pixel
+measured under the words (see Verify; the credit's lowest at the view's
+own heading 4.90:1). The ceiling bounds lightness (OKLab L), not
+luminance, so the margin depends on hue: on a saturated green at the
+ceiling the credit would be about 4.4-4.5:1.
 
 BOOT AND HAND-OVER (the owner: "should load instantly make it 10x
 faster"): the page paints at once with the hour's still sky (the
 stylesheet's, per time of day, :has(canvas.sky)) and today's birds over
 it. The world's scripts only define at their top level; the boot starts
 in the first animation frame after the ink birds (the last deferred
-script) have registered, and is staged a step a frame:
-the context; every program issued at once, the probe and the land first,
-where KHR_parallel_shader_compile is (one at a time where it is not), all
-polled once a frame; the noise baked in one frame; each warm-up draw
-made as soon as its own program is done, beside the links still
-compiling; the first cells and cloud bodies made at sixteen times the
-flight's budget while the canvas is hidden, so they are there from its
-first frame; the ground cache and the probes once the visit's plan is
-made; then the device's timed trials, from the full scale down, three a
-scale. The canvas then dissolves in over 0.5 s; today's birds plan no new
-flight, finish a crossing that ends within 6 s and fade the rest with the
-dissolve; the ink birds take the sky from the dissolve's end. The land's
-grid is read as floats (ANGLE's Direct3D path compiled the land's vertex
-program a second time at its first draw for bytes), and the probe's
-height is one function (the weights and the dunes' land made once). On
-an RTX 4090 (Chrome, ANGLE on Direct3D 11) a cold desktop visit is fully
-in at 4.1 s (it was 19.1 s), a return within seconds at 1.6 s, a phone's
-CPU at 4x throttling at 6.3 s (21.3); the wall left is the Direct3D
-compile of the land's and the probe's programs, side by side (1.85 s and
-1.33 s alone). On a phone-speed CPU the world now often shows before
-today's first bird.
+script) have registered, and is staged a step a frame, the context
+first. Where the browser has KHR_parallel_shader_compile and is not
+WebKit (Chrome, Edge, Firefox): every program issued at once, the probe
+and the land first, all polled once a frame; the noise baked in one
+frame; each warm-up draw made as soon as its own program is done, beside
+the links still compiling. On WebKit (Safari on the Mac, every browser
+on iOS and iPadOS, told by the user agent: it has the extension, but its
+links and first draws are synchronous, and a batch of programs linked at
+once froze the owner's iPhone for 20 s before) and where the extension
+is missing: the old path, one program at a time, the noise a layer a
+frame, the warm-up after the links and never in the noise's frame. Then,
+on every browser: the first cells and cloud bodies made at sixteen times
+the flight's budget while the canvas is hidden, so they are there from
+its first frame in most starts (in 4 of 14 measured starts a large cloud
+body still faded in 0.4-2.5 s after it); the ground cache and the probes
+once the visit's plan is made and its weights' grid is on the GPU; then
+the device's timed trials, from the full scale down, three a scale (two
+where both run far over its bar: one alone may be the visit's first
+full-size draw, a one-off cost). With forced colours on at load the
+canvas is hidden and no render targets are made; they are made once
+the colours end, before the boot's next frame. The canvas then
+dissolves in over 0.5 s;
+today's birds plan no new flight, finish a crossing that ends within 6 s
+and fade the rest with the dissolve; the ink birds take the sky from the
+dissolve's end. The land's grid is read as floats (ANGLE's Direct3D path
+compiled the land's vertex program a second time at its first draw for
+bytes), and the probe's height is one function (the weights and the
+dunes' land made once). Measured on an RTX 4090 (Chrome headless, ANGLE
+on Direct3D 11; live against stage 2's first shipped build, medians of
+three): a cold desktop visit fully in at 4.20 s (live 18.95 s), a return
+3 s later at 1.41 s (16.68), a phone's CPU throttled 4x at 6.05 s
+(21.55) and 6x at 8.38 s (23.15). The wall left is the Direct3D compile
+of the land's and the probe's programs, side by side (1.85 s and 1.33 s
+alone). On a phone-speed CPU the world now often shows before today's
+first bird.
+
+No iPhone showed the world from stage 1 until stage 2's fixes: the
+read-back ring's fences (rbFence) were polled with clientWaitSync(.., 0,
+0) but never flushed, a fence signals only once the commands before it
+are flushed, and WebKit flushes a context only when it presents a frame.
+While the world boots its canvas is hidden and presents nothing, so the
+landing's probe (vsOriginRead) waited for ever and the still sky stayed
+(Chrome and Firefox flush by themselves, so no harness saw it). rbFence
+now flushes each fence. Measured on the owner's iPhone in Safari through
+an instrumented copy of the page (2026-11-04, in a claude.ai frame drawn
+at 30 fps): without the flush the boot stood at "F warmed" for 280 s;
+with it the world was ready 5 s after load, its timed trials choosing
+the full scale (13.5 ms a frame). The flush was made in world.v3.js
+itself, not cut from the dev build: the dev build needs the same line
+before its next cut, or the cut drops it.
 
 THE GOVERNOR AND COST (the owner: "everything should be 10x quality"):
 the world is drawn at its memory tier's density: a desktop at most 2
@@ -332,18 +372,26 @@ Android 1.25 and 1.3 Mpx (every device's before); the canvas at the
 device's own px (at most 2 a CSS px and 2.5 Mpx, or the world's own size
 where that is larger), the world put up to it by one Catmull-Rom clamped
 to the range of the 2x2 texels it lies between (it was bilinear). Every
-frame's time in a two-second ring, each second the
-median; three slow seconds step the render scale down a rung (the
+frame's time in a two-second ring, each second the median; three slow
+seconds step the render scale down a rung (the
 ladder: the tier's top and its 0.85, 0.72 and 0.6 where they stand 8% or
 more above the old size, then the old five, 1, 0.85, 0.72, 0.6 and 0.5
 of it), a second rung tried if the first did not help, both undone and
 the frame time learnt as the pace if neither did (a 30 fps cap is simply
 the pace); twenty seconds at ease step back up (three, in the first
 twenty seconds shown and until the first step down: a device that
-starts low refines in seconds); ten seconds under half the pace at the
-last rung, or under 15 fps that the scale cannot help, and the loop
-stops and the still sky stays. The boot's timed trials choose the first
-rung (the old size's 0.35, 0.5, 0.7 and 1, and the tier's top). A
+starts low refines in seconds; never while an undone step's cool-down
+runs); ten seconds under half the pace at the last rung, or under 15 fps
+that the scale cannot help, and the loop stops and the still sky stays.
+A resize keeps the density being drawn (the rung nearest it in device
+px a CSS px), so a rotation or a window dragged to a new size neither
+sharpens nor softens the world. The scatter and the particles thin to
+0.6 on the rungs under 0.65 of the old size (its 0.6 and 0.5, as on
+live: TIER). The boot's timed trials choose the first rung (the old
+size's 0.35, 0.5, 0.7 and 1, and the tier's top). The density costs
+memory: the world's targets for a 393x852 phone at 3 go from about 134 MB
+to 201 MB, a Retina 1440x900 window's from 239 MB to 589 MB (a real
+iPhone must hold a 10-minute visit at the full phone tier: see Verify). A
 renderer on the CPU (SwiftShader, llvmpipe and the like, by its name)
 keeps the still sky from the start; so does a boot whose timed trials
 miss the floor, a first frame doubted twice, or a broken program. A
@@ -355,9 +403,9 @@ lost context: the still sky of the time of day being drawn, until
 restored; prefers-reduced-motion: one still frame of the world, drawn
 again when the words move, live both ways; forced colours: no world
 (today's birds on the system's colours), and the world back when they
-end; print: none of it.
+end, on at load too; print: none of it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.v2.js's
+THE WEATHER (=rand()): one crypto.getRandomValues above world.v3.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds (today's birds draw their own one, above their own INIT-END).
@@ -389,7 +437,8 @@ first bird is in view (skyAir.flying), and hand it the sky when it shows
 (skyAir.handover / handed): no new flight, a crossing ending within 6 s
 finishes, the rest fade with the dissolve; handed back (a lost context,
 the world giving up, forced colours) they plan again. The file's header
-is its full design, its research and its numbers. pointer-events: none.
+is its full design, its research and its numbers (as of birds.v10.js; the
+hand-over and its 0.5 s fade are tagged inline). pointer-events: none.
 
 THE INK BIRDS (inkbirds.v1.js): the same birds by their own code carried
 over (the kinds, the hand, the flights, the calm, the planner, the
@@ -428,7 +477,8 @@ camera at 1440x900, the horizon about 72% down; so the world dissolves
 in over its own still on every window. The colours hold against every
 gradient wherever a window puts the words (as CI computes them: text
 7.09:1 or more, the dimmed grey 6.33, the focus ring 5.67; CI samples
-every gradient, the wide windows' too, and fails below 4.5 and 3). The canvas
+every gradient, wants each world sky's base still and its 6:5 one
+exactly once each, and fails below 4.5 and 3). The canvas
 (.sky) is fixed behind everything (z-index -1) on the large viewport
 (100lvh: a phone's toolbar coming and going never resizes the world),
 unseen until drawn; touch-action pinch-zoom (pan-y too where the page
@@ -459,7 +509,7 @@ leaves the order as served):
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
 3. birds.v12.js — today's birds (deferred, first: they fly at once).
-4. world.v2.js — the world (deferred).
+4. world.v3.js — the world (deferred).
 5. realm-kit.v1.js, realm-dunes.v1.js, realm-above.v1.js — the kits
    (deferred; each registers itself with WORLD.realm; keep the order).
 6. inkbirds.v1.js — the ink birds (deferred, last: the boot starts once
@@ -500,8 +550,10 @@ for the Dinamo faces is bought:
   code): Geist Mono 400, .8125rem, dimmed; no uppercase, no tracking
 
 As the site grows, new pages reuse these roles and nothing else: two
-weights only (400, 500), emphasis made by black against the dimmed
-grey rather than by weight; a handful of sizes on the same clamp()s;
+weights only (400, 500), emphasis made by the text colour against the
+dimmed grey, never by weight (on screen the two are all but one light
+now, #fdfcf7 and #ebeffa; in print, black and #555); a handful of sizes
+on the same clamp()s;
 long reading at about 65 characters a line. A serif may come back for
 long-form writing only, never for the name or the page's frame.
 
@@ -535,7 +587,7 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 first visit pays for it).
 
 The world's scripts are not on the path to the first paint (deferred,
-not preloaded): world.v2.js 743 KB (248 KB gzipped), inkbirds.v1.js 229 KB
+not preloaded): world.v3.js 744 KB (249 KB gzipped), inkbirds.v1.js 229 KB
 (78 KB), today's birds 104 KB, the kits 78 KB.
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
@@ -598,7 +650,7 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, birds.v12.js, world.v2.js, the kits, inkbirds.v1.js, plus
+hour.v3.js, birds.v12.js, world.v3.js, the kits, inkbirds.v1.js, plus
 style.v15.css for cursors — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
@@ -618,7 +670,7 @@ with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v2.js and only by name; the script order; and the
+listeners only in world.v3.js and only by name; the script order; and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
 are named nowhere, the ink birds alone read their keep-off, and nothing is
@@ -651,8 +703,13 @@ repository is private (2026-11-03). Before the move Pages served the
 repository's root, and /%43LAUDE.md reached this file past the
 exact-path redirects of /CLAUDE.md and /.github/* (Cloudflare matches a
 redirect on the raw path); those two lines left \_redirects with the
-move. CI fails if a file of the repository's own (a .md, .sh, .py or .yml
-file, .github/) is in site/, or a page's file is left at the root.
+move. (Old deployments' own pages.dev links keep their old files.) CI
+fails if site/ holds anything but the kinds of file the site serves
+(HTML, CSS, JS, WOFF2, PNG, SVG, robots.txt, security.txt, the fonts'
+OFL.txt, \_headers, \_redirects, \_routes.json) or a file of the
+repository's own, or if the root holds anything but its own (.github/,
+.gitignore, CLAUDE.md, the two font scripts, site/, a functions/
+folder): a new kind of file is a deliberate change to those lists.
 robots.txt blocks: GPTBot, ClaudeBot, CCBot, Google-Extended, ChatGPT-User,
 Bytespider, anthropic-ai, cohere-ai, FacebookBot.
 
@@ -684,7 +741,13 @@ Before a change to the world, its kits, the ink birds or today's birds:
   that reference's (nothing may glitter more than it does); the governor
   on synthetic frame clocks; reduced motion both ways, a lost and
   restored context, rotation, print, forced colours, no WebGL2, no
-  script, the 404 page.
+  script, the 404 page. And on a real iPhone (no harness reaches its
+  WebKit or its memory; Chrome under an iPhone user agent is not
+  WebKit, and passed while every iPhone kept the still sky): the world
+  boots and shows, without a frozen page, and a
+  10-minute visit with the screen on is never reloaded by Safari (the
+  full phone tier draws at 2 device px a CSS px; if it reloads, that
+  tier goes down to 1.6).
 - Then the dev build is cut to the shipped files by its counted edits
   (each must match exactly once), and the cut proved to change nothing a
   visitor sees: both builds served side by side, the same visit (the
@@ -696,12 +759,14 @@ Before a change to the world, its kits, the ink birds or today's birds:
   would rightly get the still sky, and this shared machine's timing would
   decide what is drawn when).
 - The live check after a deploy: the page's words, the world drawing at a
-  day and a night hour, the still skies with no WebGL2 and no script.
+  day and a night hour, the still skies with no WebGL2 and no script; the
+  home page served from site/, and /CLAUDE.md, /%43LAUDE.md,
+  /.github/workflows/validate.yml and /subset-fonts.sh each answering 404.
 
 ## Deploy
 
 Cloudflare Pages: no build command, the build output directory site
-(the project's Settings > Builds). Auto-deploys on push to main. Every
-change to the live site goes through a pull request the owner approves.
-The repository is private, so CI runs on GitHub Free's 2,000 Actions
-minutes a month.
+(the project's Settings > Build, its build configuration). Auto-deploys
+on push to main. Every change to the live site goes through a pull
+request the owner approves. The repository is private, so CI uses the
+account's included Actions minutes (2,000 a month on GitHub Free).

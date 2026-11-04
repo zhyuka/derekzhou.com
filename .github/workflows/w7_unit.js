@@ -9,8 +9,9 @@
 //     lower (a darkening: a scrim, shadow, outline or dimming) and never higher (a lift: a panel, a floor, a glow).
 // --mutate lift|dark|panel puts a fault into the tail before it runs (lift: c = max(c, vec3(0.18)); dark: c *= 0.9;
 // panel: the old gain, c *= 1.1 inside a box of the window) and must then fail: the test's own proof that it catches
-// what it is for. Exits 1 on any failure, 2 if it cannot run.
-//   node w7_unit.js site/world.v2.js [--n 512] [--engine chromium|webkit|firefox] [--mutate lift|dark|panel]
+// what it is for. Exits 1 on any failure (a missing file or tail, a tail that does not compile, link or run), and 2
+// only when the browser gives no WebGL2 context at all (the one case validate.yml lets pass, with a warning).
+//   node w7_unit.js site/world.vN.js [--n 512] [--engine chromium|webkit|firefox] [--mutate lift|dark|panel]
 'use strict';
 const PW = require(process.env.PW_CORE || 'playwright-core');
 const fs = require('fs');
@@ -27,13 +28,13 @@ const LIFT_PARTS = /\b(liftWords|LIB_LIFT|uLiftOn|uVeil\w*|uLinkCore|worldToe|TO
 const WORDS_INPUTS = /\b(uMask\w*|uInkKeep|uKeep\w*|uWords|uLift\w*On|uVeil\w*|uLinkCore|uWordsK|uFloor\w*|uGainW\w*|mk|mk4|liftWords|worldToe)\b/;
 (async () => {
   const file = A._[0];
-  if (!file) { console.error('usage: node w7_unit.js world.vN.js'); process.exit(2); }
+  if (!file || !fs.existsSync(file)) { console.error(file ? 'no such file: ' + file : 'usage: node w7_unit.js world.vN.js'); process.exit(1); }
   const src = fs.readFileSync(file, 'utf8'), code = stripComments(src);
   const fails = [];
   // 1. the lift's parts named nowhere; the tail names no words input
   code.split('\n').forEach((l, i) => { const m = LIFT_PARTS.exec(l); if (m) fails.push(`the lift's part ${m[0]} is named (line ${i + 1}): ${l.trim().slice(0, 120)}`); });
   const t0 = src.indexOf('// W7-TAIL-BEGIN'), t1 = src.indexOf('// W7-TAIL-END');
-  if (t0 < 0 || t1 < t0 || src.indexOf('// W7-TAIL-BEGIN', t0 + 1) >= 0) { console.error('could not extract the composite\'s tail (one W7-TAIL-BEGIN, then W7-TAIL-END) from ' + file); process.exit(2); }
+  if (t0 < 0 || t1 < t0 || src.indexOf('// W7-TAIL-BEGIN', t0 + 1) >= 0) { console.error('could not extract the composite\'s tail (one W7-TAIL-BEGIN, then W7-TAIL-END) from ' + file); process.exit(1); }
   let tail = src.slice(t0, t1);
   stripComments(tail).split('\n').forEach((l) => { const m = WORDS_INPUTS.exec(l); if (m) fails.push(`the composite's tail names a words input (${m[0]}): ${l.trim().slice(0, 120)}`); });
   const fc = /var FS_COMP = [^`]*`([\s\S]*?)`;/.exec(src);
@@ -91,7 +92,7 @@ ${tail}
     return { renderer: gl.getParameter(gl.RENDERER), samples: n, channels: 3 * n, withinTol: exact, lower, higher, worstDown: +worstDown.toFixed(3), worstUp: +worstUp.toFixed(3), tol: TOL, examples: ex };
   }, { N, tail, TOL }); } catch (e) { r = { err: 'the tail does not run alone: ' + String(e.message || e).split('\n').slice(0, 3).join(' / ') }; }
   await b.close();
-  if (r.err) { console.log(JSON.stringify({ file, mutate: A.mutate || null, err: r.err, fails }, null, 1)); console.error('w7_unit: ' + r.err); process.exit(fails.length ? 1 : 2); }
+  if (r.err) { console.log(JSON.stringify({ file, mutate: A.mutate || null, err: r.err, fails }, null, 1)); console.error('w7_unit: ' + r.err); process.exit(fails.length || r.err !== 'no webgl2' ? 1 : 2); }
   if (r.lower > 0) fails.push(`the tail drew ${r.lower} channels lower than the world's own light (worst ${r.worstDown} codes): a darkening`);
   if (r.higher > 0) fails.push(`the tail drew ${r.higher} channels higher than the world's own light (worst ${r.worstUp} codes): a lift or a panel`);
   console.log(JSON.stringify({ file, mutate: A.mutate || null, run: r, fails }, null, 1));
