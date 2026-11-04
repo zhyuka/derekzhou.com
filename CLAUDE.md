@@ -345,7 +345,22 @@ three): a cold desktop visit fully in at 4.20 s (live 18.95 s), a return
 (21.55) and 6x at 8.38 s (23.15). The wall left is the Direct3D compile
 of the land's and the probe's programs, side by side (1.85 s and 1.33 s
 alone). On a phone-speed CPU the world now often shows before today's
-first bird. WebKit's start has not been measured.
+first bird.
+
+No iPhone showed the world from stage 1 until stage 2's fixes: the
+read-back ring's fences (rbFence) were polled with clientWaitSync(.., 0,
+0) but never flushed, a fence signals only once the commands before it
+are flushed, and WebKit flushes a context only when it presents a frame.
+While the world boots its canvas is hidden and presents nothing, so the
+landing's probe (vsOriginRead) waited for ever and the still sky stayed
+(Chrome and Firefox flush by themselves, so no harness saw it). rbFence
+now flushes each fence. Measured on the owner's iPhone in Safari through
+an instrumented copy of the page (2026-11-04, in a claude.ai frame drawn
+at 30 fps): without the flush the boot stood at "F warmed" for 280 s;
+with it the world was ready 5 s after load, its timed trials choosing
+the full scale (13.5 ms a frame). The flush was made in world.v3.js
+itself, not cut from the dev build: the dev build needs the same line
+before its next cut, or the cut drops it.
 
 THE GOVERNOR AND COST (the owner: "everything should be 10x quality"):
 the world is drawn at its memory tier's density: a desktop at most 2
@@ -727,7 +742,9 @@ Before a change to the world, its kits, the ink birds or today's birds:
   on synthetic frame clocks; reduced motion both ways, a lost and
   restored context, rotation, print, forced colours, no WebGL2, no
   script, the 404 page. And on a real iPhone (no harness reaches its
-  WebKit or its memory): the world boots without a frozen page, and a
+  WebKit or its memory; Chrome under an iPhone user agent is not
+  WebKit, and passed while every iPhone kept the still sky): the world
+  boots and shows, without a frozen page, and a
   10-minute visit with the screen on is never reloaded by Safari (the
   full phone tier draws at 2 device px a CSS px; if it reloads, that
   tier goes down to 1.6).

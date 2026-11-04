@@ -3711,10 +3711,16 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     S.used += ent.bytes; S.ents.push(ent);
     if (REC) REC.fr.rbBytes += ent.bytes;
   }
-  /* the fence: covers everything since the last one (the filling slot is now its) */
+  /* the fence: covers everything since the last one (the filling slot is now its).
+     (iPhone fix) and sent on to the GPU at once: a fence polled with clientWaitSync(.., 0, 0) signals only once the
+     commands before it are flushed, and WebKit flushes a context only when it presents a frame. While the world boots
+     its canvas is hidden and nothing is presented, so on every iPhone the landing's probe (vsOriginRead) waited for
+     ever and the still sky stayed (measured on the owner's iPhone, 2026-11-04: stuck at "F warmed" for 280 s; with
+     this flush the world was ready 5 s after load). Chrome and Firefox flush by themselves */
   function rbFence() {
     if (RB.fences.length >= RB_FENCES) { RB.fenceSkipped++; return; }
     var f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0), S = null;
+    gl.flush();
     for (var i = 0; i < RB.slots.length; i++) if (RB.slots[i].st === 1) { S = RB.slots[i]; S.st = 2; break; }
     RB.fences.push({ s: f, slot: S, frame: FRAMEN }); RB.made++;
   }
