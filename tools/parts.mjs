@@ -6,6 +6,7 @@
 //                                              dev parts of SRC/dev/<dir>/; every plain SRC/*.js copied
 //   node tools/parts.mjs assemble --ship SRC OUT   the same, the shipped build: each dev part's stub in its place
 //   node tools/parts.mjs check [--ship] SRC OUT    exit 1 naming each OUT/ file that is not what assemble makes
+//   node tools/parts.mjs glsl SRC              move every plain GLSL literal into its folder's glsl/NAME.glsl (step 3)
 //
 // A part dir holds parts.json ({"out": "world.v8.js", "divider": "<regex source>"}) and its parts, named NNN-slug.js:
 // the parts are joined in the order of their names (plain byte order), with nothing between them, so the joined text is
@@ -54,6 +55,25 @@ function split(file, dir) {
   if (back !== text) die('the parts do not join back to ' + base);
   console.log(`split ${base} into ${names.length} parts in ${dir}`);
 }
+/* (restructure step 3) the shaders' text as .glsl files: a plain GLSL template literal (one with no ${...}) in a part
+   or a whole script is kept in its folder's glsl/ as NAME.glsl, the literal itself replaced by `@glsl NAME` (the
+   backticks kept). Every read of a part or a script puts the text back: `@glsl NAME` becomes the backtick, the file's
+   text exactly, the backtick. A .glsl file has no backtick, no ${ and no CR; every one is used. node tools/parts.mjs
+   glsl SRC moves every plain GLSL literal out (re-runnable: what is moved is a marker, not GLSL; it fails unless both
+   builds assemble to what they did). */
+const MARK = /`@glsl ([a-z0-9-]+)`/g, USED = new Map();
+function expand(text, gdir, where) {
+  return text.replace(MARK, (m, name) => {
+    const f = path.join(gdir, name + '.glsl');
+    if (!fs.existsSync(f)) die(where + ': ' + m + ' but no ' + f);
+    const t = readText(f);
+    if (t.includes('`') || t.includes('${')) die(f + ': a backtick or ${ in it (a .glsl file is a plain literal\'s text)');
+    if (!USED.has(gdir)) USED.set(gdir, new Set());
+    USED.get(gdir).add(name + '.glsl');
+    return '`' + t + '`';
+  });
+}
+function readPart(f, gdir) { return expand(readText(f), gdir, f); }
 const PART = /^(\d{3})-[a-z0-9-]+\.js$/, STUB = /^(\d{3})-[a-z0-9-]+\.ship\.js$/;
 function listParts(d, re) { return fs.existsSync(d) ? fs.readdirSync(d).filter((n) => re.test(n)) : []; }
 /* (restructure step 2) the dev-only parts: a part folder src/<rel> may have a twin src/dev/<rel> holding parts that are
@@ -64,7 +84,7 @@ function listParts(d, re) { return fs.existsSync(d) ? fs.readdirSync(d).filter((
 function join(dir, devDir, ship) {
   const meta = JSON.parse(readText(path.join(dir, 'parts.json')));
   const plain = listParts(dir, PART), stubs = listParts(dir, STUB), dev = listParts(devDir, PART);
-  const strays = fs.readdirSync(dir).filter((n) => n !== 'parts.json' && !plain.includes(n) && !stubs.includes(n));
+  const strays = fs.readdirSync(dir).filter((n) => n !== 'parts.json' && n !== 'glsl' && !plain.includes(n) && !stubs.includes(n));
   if (strays.length) die(dir + ': files that are not parts: ' + strays.join(', ') + ' (a part is NNN-slug.js, a stub NNN-slug.ship.js)');
   if (devDir && fs.existsSync(devDir)) { const ds = fs.readdirSync(devDir).filter((n) => !dev.includes(n)); if (ds.length) die(devDir + ': files that are not parts: ' + ds.join(', ')); }
   const N = (n) => n.slice(0, 3), seen = new Map();
@@ -77,7 +97,7 @@ function join(dir, devDir, ship) {
   if (!pick.length) die(dir + ': no parts');
   let text = '';
   pick.forEach((f, k) => {
-    const t = readText(f);
+    const t = readPart(f, path.join(dir, 'glsl'));
     if (k + 1 < pick.length && t && !t.endsWith('\n')) die(f + ' does not end with a newline');
     text += t;
   });
@@ -89,9 +109,9 @@ function assemble(src, ship) {   // -> [[name, text]] in name order: SRC's plain
   const walk = (d, top) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
       const p = path.join(d, e.name);
-      if (p === DEV) continue;   // (src/dev/: only the dev twins of part folders, read by join)
+      if (p === DEV || (top && e.name === 'glsl')) continue;   // (src/dev/: the dev twins of part folders, read by join; src/glsl/: the whole scripts' shaders)
       if (e.isDirectory()) { if (fs.existsSync(path.join(p, 'parts.json'))) { const j = join(p, path.join(DEV, path.relative(src, p)), ship); put(j.out, j.text); } else walk(p, false); }
-      else if (top && e.isFile() && e.name.endsWith('.js')) put(e.name, readText(p));
+      else if (top && e.isFile() && e.name.endsWith('.js')) put(e.name, readPart(p, path.join(src, 'glsl')));
     }
   };
   walk(src, true);
@@ -102,11 +122,91 @@ function assemble(src, ship) {   // -> [[name, text]] in name order: SRC's plain
       else if (!fs.existsSync(path.join(src, path.relative(DEV, d), 'parts.json'))) die(p + ': in src/dev/ with no part folder ' + path.join(src, path.relative(DEV, d)));
     }
   })(DEV);
+  for (const g of [path.join(src, 'glsl')].concat(partDirs(src).map((d) => path.join(d, 'glsl')))) {   // (every .glsl file used)
+    if (!fs.existsSync(g)) continue;
+    const unused = fs.readdirSync(g).filter((n) => !(USED.get(g) || new Set()).has(n));
+    if (unused.length) die(g + ': not used by any part (or not a .glsl file): ' + unused.join(', '));
+  }
   return [...out.entries()].sort((x, y) => (x[0] < y[0] ? -1 : 1));
+}
+function partDirs(src) {   // every part folder under SRC (not src/dev/)
+  const out = [], DEV = path.join(src, 'dev');
+  (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (!e.isDirectory() || p === DEV) continue; if (fs.existsSync(path.join(p, 'parts.json'))) out.push(p); else walk(p); } })(src);
+  return out.sort();
+}
+/* the plain GLSL template literals in a script's text: [start, end] of each (the backticks included), skipping comments
+   and quoted strings; GLSL by its words (#version, void main, vecN, uniform) */
+function glslLiterals(s) {
+  const out = []; let i = 0, inS = null, inC = null;
+  while (i < s.length) {
+    const c = s[i], d = s[i + 1];
+    if (inC === '//') { if (c === '\n') inC = null; i++; continue; }
+    if (inC === '/*') { if (c === '*' && d === '/') { inC = null; i += 2; continue; } i++; continue; }
+    if (inS) { if (c === '\\') { i += 2; continue; } if (c === inS || c === '\n') inS = null; i++; continue; }
+    if (c === '/' && d === '/') { inC = '//'; i += 2; continue; }
+    if (c === '/' && d === '*') { inC = '/*'; i += 2; continue; }
+    if (c === '"' || c === "'") { inS = c; i++; continue; }
+    if (c === '`') {
+      let j = i + 1, sub = false;
+      for (; j < s.length; j++) {
+        if (s[j] === '\\') { j++; continue; }
+        if (s[j] === '$' && s[j + 1] === '{') { sub = true; let depth = 1; j += 2; while (j < s.length && depth) { if (s[j] === '{') depth++; else if (s[j] === '}') depth--; j++; } j--; continue; }
+        if (s[j] === '`') break;
+      }
+      const body = s.slice(i + 1, j);
+      if (!sub && /#version|void main|\bvec[234]\b|\buniform\b/.test(body)) out.push([i, j + 1]);
+      i = j + 1; continue;
+    }
+    i++;
+  }
+  return out;
+}
+function glslName(s, at, taken) {   // the name the literal is assigned to (var NAME = ... or function NAME()), as a file name
+  const before = s.slice(Math.max(0, at - 3000), at), re = /(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=|function\s+([A-Za-z_$][\w$]*)\s*\(/g;
+  let m, name = 'glsl';   // (none within 3000 characters: name it by hand)
+  while ((m = re.exec(before))) name = m[1] || m[2];
+  name = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'glsl';
+  let n = name, k = 2;
+  while (taken.has(n)) n = name + '-' + k++;
+  taken.add(n);
+  return n;
+}
+function moveGlsl(src) {
+  const before = [assemble(src, false), assemble(src, true)].map((x) => JSON.stringify(x));
+  USED.clear();
+  const writes = [], taken = new Map(), files = [];
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) if (e.isFile() && e.name.endsWith('.js')) files.push([path.join(src, e.name), path.join(src, 'glsl')]);
+  for (const d of partDirs(src)) {
+    const dev = path.join(src, 'dev', path.relative(src, d));
+    for (const n of fs.readdirSync(d)) if (n.endsWith('.js')) files.push([path.join(d, n), path.join(d, 'glsl')]);
+    if (fs.existsSync(dev)) for (const n of fs.readdirSync(dev)) if (n.endsWith('.js')) files.push([path.join(dev, n), path.join(d, 'glsl')]);
+  }
+  files.sort((x, y) => (x[0] < y[0] ? -1 : 1));
+  for (const [, g] of files) if (!taken.has(g)) taken.set(g, new Set(fs.existsSync(g) ? fs.readdirSync(g).map((n) => n.replace(/\.glsl$/, '')) : []));
+  let moved = 0;
+  for (const [f, g] of files) {
+    let s = readText(f);
+    const lits = glslLiterals(s).filter(([a, b]) => !s.slice(a, b).startsWith('`@glsl '));
+    if (!lits.length) continue;
+    const names = lits.map(([a]) => glslName(s, a, taken.get(g)));   // (named in source order)
+    for (let k = lits.length - 1; k >= 0; k--) {
+      const [a, b] = lits[k];
+      writes.push([path.join(g, names[k] + '.glsl'), s.slice(a + 1, b - 1)]);
+      s = s.slice(0, a) + '`@glsl ' + names[k] + '`' + s.slice(b);
+      moved++;
+    }
+    writes.push([f, s]);
+  }
+  for (const [f, t] of writes) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); }
+  USED.clear();
+  const after = [assemble(src, false), assemble(src, true)].map((x) => JSON.stringify(x));
+  if (after[0] !== before[0] || after[1] !== before[1]) die('the moved shaders do not assemble back to what they were (files written: git checkout -- src and git clean src to undo)');
+  console.log(`moved ${moved} GLSL literals into glsl/ folders; both builds assemble as before`);
 }
 
 const argv = process.argv.slice(2), SHIP = argv.includes('--ship'), [cmd, a, b] = argv.filter((x) => x !== '--ship');
 if (cmd === 'split' && a && b) split(a, b);
+else if (cmd === 'glsl' && a) moveGlsl(a);
 else if ((cmd === 'assemble' || cmd === 'check') && a && b) {
   const files = assemble(a, SHIP), what = SHIP ? 'the shipped build' : 'the dev build';
   if (cmd === 'assemble') {
@@ -122,4 +222,4 @@ else if ((cmd === 'assemble' || cmd === 'check') && a && b) {
     if (bad) process.exit(1);
     console.log(`ok   ${files.length} scripts in ${b} are what ${a} assembles to (${what})`);
   }
-} else { console.error('usage: node tools/parts.mjs split FILE DIR | assemble [--ship] SRC OUT | check [--ship] SRC OUT'); process.exit(2); }
+} else { console.error('usage: node tools/parts.mjs split FILE DIR | glsl SRC | assemble [--ship] SRC OUT | check [--ship] SRC OUT'); process.exit(2); }

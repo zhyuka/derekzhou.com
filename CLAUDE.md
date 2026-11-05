@@ -46,6 +46,8 @@ src/                         The five scripts site/ serves minified, as written 
                              the realms, the ink birds): the realms whole under their served names, the
                              world and the ink birds in sections (src/world/, src/birds/inkbirds/)
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
+src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
+test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
 tools/minify.mjs             Builds site/'s five from build/src/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
@@ -67,6 +69,12 @@ are dev-only parts, in src/dev/world/: each has a stub beside the world's
 parts (src/world/NNN-slug.ship.js: the switches' defaults, and the four
 functions called without a guard as empty ones), and assemble --ship src
 build/ship writes the shipped build, the dev parts left out by file.
+A plain GLSL literal (no ${...}) is kept as a file in its folder's glsl/
+(src/world/glsl/, src/birds/inkbirds/glsl/, src/glsl/ for the realms):
+the script has `@glsl NAME` where it was, and assemble writes the text
+back exactly. Edit a shader in its .glsl file; then node test/shaders.mjs
+site --write updates the golden texts (test/golden/shaders/: every
+program the reference device issues), committed with the manifest.
 tools/minify.mjs makes site/'s from build/ship/: terser (pinned in package.json) compresses and
 mangles, every string's value and every shader's text the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
