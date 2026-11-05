@@ -45,19 +45,34 @@ jobs:
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA"
       - uses: actions/setup-node@v4
-        if: steps.areas.outputs.run_t1 == 'true'
+        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
-        if: steps.areas.outputs.run_t1 == 'true'
+        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
+      - name: The base's census, if a run on main saved it
+        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/census-cache/census.json
+          key: census-${{ steps.base.outputs.base }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
       - name: Shader census (base against head)
         id: census
-        if: steps.areas.outputs.run_t1 == 'true'
+        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
         run: |
-          git worktree add --detach "$RUNNER_TEMP/base" ${{ steps.base.outputs.base }}
-          node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json"
+          C="$RUNNER_TEMP/census-cache/census.json"
+          [ -f "$C" ] || git worktree add --detach "$RUNNER_TEMP/base" ${{ steps.base.outputs.base }}
+          node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json" \
+            --base-json "$C" --save-head "$RUNNER_TEMP/census-head.json"
+          mkdir -p "$(dirname "$C")"; cp "$RUNNER_TEMP/census-head.json" "$C"   # (what main saves for the branches)
+      - name: Keep main's census for the branches that start from it
+        if: github.ref == 'refs/heads/main' && steps.census.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/census-cache/census.json
+          key: census-${{ github.sha }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
       - name: No census needed
-        if: steps.areas.outputs.run_t1 != 'true'
+        if: steps.areas.outputs.run_t1 != 'true' && github.ref != 'refs/heads/main'
         run: echo "site/ is byte for byte the base's, so every shader's text is too (glsl_changed=false)"
       - uses: actions/upload-artifact@v4
         if: always() && steps.census.outcome != 'skipped'

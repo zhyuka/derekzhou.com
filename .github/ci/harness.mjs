@@ -73,16 +73,23 @@ export async function openPage(browser, url, { vp, persona = 'generic', epoch, s
   await page.clock.install({ time: epoch - 1000 });   // (pauseAt only moves forward)
   await page.clock.pauseAt(epoch);
   await page.addInitScript(INIT({ seeds, renderer: PERSONAS[persona].renderer, census, nowebgl }));
-  // Twice: the fonts are font-display: optional, so a first load on a busy machine may miss their block period and
-  // keep the fallback; the second load has them from the cache (immutable), as a returning visitor does.
-  await page.goto(url, { waitUntil: 'load', timeout: 120000 });
-  await page.evaluate(() => document.fonts.ready.then(() => true));
+  // The fonts are font-display: optional, so a first load on a busy machine may miss their block period and keep the
+  // fallback. So the cache is warmed first, from a same-origin page that runs nothing (robots.txt): the fonts the
+  // home page preloads, fetched as its preloads fetch them, as a returning visitor has them.
+  await page.goto(new URL('/robots.txt', url).href, { waitUntil: 'load', timeout: 60000 });
+  await page.evaluate(async () => {
+    const html = await (await fetch('/index.html')).text();
+    const fonts = [...html.matchAll(/<link[^>]+rel="preload"[^>]+>/g)].map((m) => m[0]).filter((l) => /as="font"/.test(l)).map((l) => l.match(/href="([^"]+)"/)[1]);
+    await Promise.all(fonts.map((f) => fetch(f, { mode: 'cors', credentials: 'same-origin' }).then((r) => r.arrayBuffer())));
+  });
   await page.goto(url, { waitUntil: 'load', timeout: 120000 });
   await page.evaluate(() => document.fonts.ready.then(() => true));
   return { ctx, page, logs, frames: 0 };
 }
 
-export const DT = 1000 / 60;
+// Playwright's fake requestAnimationFrame ticks every 16 ms of the paused clock: a step of exactly 16 ms runs exactly
+// one frame (a step of 1000/60 would now and then run two, and two arms that showed on different frames would drift).
+export const DT = 16;
 
 export async function step(arm, n) { for (let i = 0; i < n; i++) { await arm.page.clock.runFor(DT); arm.frames++; } }
 
