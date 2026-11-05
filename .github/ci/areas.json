@@ -18,6 +18,7 @@
     ["package.json", ["frames"]],
     ["package-lock.json", ["frames"]],
     [".github/ci/**", ["frames"]],
+    [".github/actions/**", ["frames"]],
     [".github/workflows/gate.yml", ["frames"]],
     [".github/workflows/*", ["static"]],
     ["CLAUDE.md", ["none"]],
