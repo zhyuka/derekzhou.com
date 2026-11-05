@@ -16,7 +16,7 @@ site/birds.v12.js            Today's birds: they fly over the still sky while th
 site/world.v4.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v1.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v2.js       The dunes' kit: the sand province's land, rock, landmarks and light
-site/realm-above.v1.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
+site/realm-above.v2.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
 site/inkbirds.v1.js          The ink birds: today's birds' own code, living in the world (see Birds)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
@@ -192,7 +192,7 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v4.js, realm-kit.v1.js, realm-dunes.v2.js, realm-above.v1.js)
+## World (world.v4.js, realm-kit.v1.js, realm-dunes.v2.js, realm-above.v2.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
@@ -346,16 +346,20 @@ three): a cold desktop visit fully in at 4.20 s (live 18.95 s), a return
 of the land's and the probe's programs, side by side (1.85 s and 1.33 s
 alone). On a phone-speed CPU the world now often shows before today's
 first bird. Since world.v4.js the land's height code is written for that
-compiler (FXC): the plateaus' two taps made once per point, before the
-site loops, whose bound adds uZ, a uniform never set (0), so FXC cannot
-unroll them; the same instructions, the picture unchanged. Measured with
-Chrome's own D3DCompiler_47 at ANGLE's flags on a slow machine: the
-land's vertex program 5.7 s to 2.6 s, the probe 4.0 s to 1.7 s. Keep uZ
-in those bounds: a constant bound there unrolls, and the compile grows
-again. Taps moved into tables (a diagonal mat2(s) read from an array)
-change the heights on Direct3D, where FXC no longer folds mat2(s) * p
-to p * s: up to 0.155 m, though SwiftShader draws them alike, so a
-change of this kind is proved by a read-back on ANGLE's D3D path. The
+compiler (FXC), the same operations on the same values: the plateaus' two
+taps made once per point; the dunes', the massifs' and the cloud sea's
+taps in loops, each tap's own multiply kept (a diagonal one by
+mat2(scale), a full matrix as itself) and its gradient turn
+(dNg: transpose(M) * n.yz) outside the loop with its constant matrix;
+the weights' grid's taps (bsGrid) by rotating the weights; every such
+loop's bound adds uZ, a uniform never set (0), so FXC cannot unroll it.
+On ANGLE's D3D11 path (RTX 4090) the heights read back bit for bit as
+before (0 of 47,185,920 values), the native compile of the land's vertex
+program 2,172 ms to 797 ms, the probe 1,422 ms to 469 ms. Keep uZ in
+those bounds, and keep each tap's matrix a constant at its multiply: a
+diagonal matrix read from a table stops FXC folding mat2(s) * p to
+p * s, and the heights move (up to 0.155 m) though SwiftShader draws them
+alike; such a change is proved by a read-back on ANGLE's D3D path. The
 noise is drawn a layer a draw (NOISE.K = 1): ANGLE's D3D link builds the
 pixel program for its first output alone.
 
@@ -522,7 +526,7 @@ leaves the order as served):
    address. A \<noscript\> fallback shows the email in HTML entities.
 3. birds.v12.js — today's birds (deferred, first: they fly at once).
 4. world.v4.js — the world (deferred).
-5. realm-kit.v1.js, realm-dunes.v2.js, realm-above.v1.js — the kits
+5. realm-kit.v1.js, realm-dunes.v2.js, realm-above.v2.js — the kits
    (deferred; each registers itself with WORLD.realm; keep the order).
 6. inkbirds.v1.js — the ink birds (deferred, last: the boot starts once
    it has registered).
@@ -600,7 +604,7 @@ first visit pays for it).
 
 The world's scripts are not on the path to the first paint (deferred,
 not preloaded): world.v4.js 744 KB (249 KB gzipped), inkbirds.v1.js 229 KB
-(78 KB), today's birds 104 KB, the kits 79 KB.
+(78 KB), today's birds 104 KB, the kits 80 KB.
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
 script), takes the top of the hour's still sky (hour.v3.js, before the
