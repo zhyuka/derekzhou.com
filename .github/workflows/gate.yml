@@ -19,19 +19,17 @@ jobs:
   static:
     uses: ./.github/workflows/validate.yml
 
-  # T0, the shader census: which files changed and what they touch (areas.json), and whether any shader's text did,
-  # read from the page itself in a real browser (SwiftShader), base against head. It runs when site/ changed or the
-  # harness did (.github/ci, this file: so a change to the harness is tested on its own push).
-  census:
+  # T0, the plan: which files changed and what they touch (areas.json), whether site/ is byte for byte the base's,
+  # and so which gates run. A few seconds, so the census and T1 can start together after it.
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 3
     outputs:
       base: ${{ steps.base.outputs.base }}
       areas: ${{ steps.areas.outputs.areas }}
       site_changed: ${{ steps.areas.outputs.site_changed }}
       run_t1: ${{ steps.areas.outputs.run_t1 }}
       gpu_js: ${{ steps.areas.outputs.gpu_js }}
-      glsl_changed: ${{ steps.census.outputs.glsl_changed || 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,24 +42,35 @@ jobs:
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA"
+
+  # T0, the shader census: whether any shader's text changed, read from the page itself in a real browser
+  # (SwiftShader), base against head. It runs when site/ changed or the harness did (.github/ci, this file: so a
+  # change to the harness is tested on its own push), and on main always (its census is cached for the branches).
+  census:
+    needs: plan
+    if: needs.plan.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      glsl_changed: ${{ steps.census.outputs.glsl_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
-        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
-        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
       - name: The base's census, if a run on main saved it
-        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/census-cache/census.json
-          key: census-${{ steps.base.outputs.base }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
+          key: census-${{ needs.plan.outputs.base }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
       - name: Shader census (base against head)
         id: census
-        if: steps.areas.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
         run: |
           C="$RUNNER_TEMP/census-cache/census.json"
-          [ -f "$C" ] || git worktree add --detach "$RUNNER_TEMP/base" ${{ steps.base.outputs.base }}
+          [ -f "$C" ] || git worktree add --detach "$RUNNER_TEMP/base" ${{ needs.plan.outputs.base }}
           node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json" \
             --base-json "$C" --save-head "$RUNNER_TEMP/census-head.json"
           mkdir -p "$(dirname "$C")"; cp "$RUNNER_TEMP/census-head.json" "$C"   # (what main saves for the branches)
@@ -71,9 +80,6 @@ jobs:
         with:
           path: ${{ runner.temp }}/census-cache/census.json
           key: census-${{ github.sha }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
-      - name: No census needed
-        if: steps.areas.outputs.run_t1 != 'true' && github.ref != 'refs/heads/main'
-        run: echo "site/ is byte for byte the base's, so every shader's text is too (glsl_changed=false)"
       - uses: actions/upload-artifact@v4
         if: always() && steps.census.outcome != 'skipped'
         with:
