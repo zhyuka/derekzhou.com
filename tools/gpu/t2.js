@@ -104,6 +104,9 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
         res = null; try { res = JSON.parse(fs.readFileSync(path.join(dir, tag + '.json'), 'utf8')); } catch (e) { /* none */ }
         log('visit ' + tag + (attempt ? ' (retry, fresh profile)' : '') + ': exit ' + code + (res ? ', shown at frame ' + res.show[j.arm] : ', no result'));
         if (shown(res)) break;
+        // (kept for the diagnosis: harness or site? the visit's whole result, its page's console and its page state,
+        // copied to OUT's top level so the job's report carries them)
+        if (res) { fs.writeFileSync(path.join(OUT, 'noshow_' + tag + (attempt ? '_retry' : '') + '.json'), JSON.stringify({ show: res.show, logs: res.logs, wall: res.wall, pages: res.pages, glsl: (res.glsl[j.arm] || []).length, renderer: res.renderer }, null, 1)); log('NEVER SHOWN ' + tag + ': console ' + JSON.stringify(res.logs[j.arm]).slice(0, 1500)); }
       }
       if (!res) return Object.assign(j, { ok: false });
       if (!shown(res)) { R.errors.push('visit ' + tag + ' failed: the world never showed (twice)'); return Object.assign(j, { ok: false, noshow: true }); }
