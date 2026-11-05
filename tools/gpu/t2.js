@@ -105,6 +105,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     for (const j of done) {
       if (!j.ok) { R.errors.push('visit ' + j.c + ' ' + j.arm + ' r' + j.r + ' failed (see gstep_*.log)'); continue; }
       if (!/RTX 4090/.test(String(j.res.renderer))) R.errors.push('the runner did not get the RTX 4090: ' + j.res.renderer);
+      R.renderer = R.renderer || String(j.res.renderer);   // (the job reports the GPU Chrome got)
       for (const l of j.res.logs || []) if (/Content Security Policy|Refused to/i.test(l)) R.csp.push(j.c + ' ' + j.arm + ': ' + l);
     }
     const get = (c, arm, r) => (done.find((j) => j.c === c && j.arm === arm && j.r === r && j.ok) || {}).res;
@@ -155,7 +156,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     const md = ['## T2: the graphics check on the RTX 4090 (D3D11)', '', '| case | result | equal | noise | changed | page states | null test |', '|---|---|---:|---:|---:|---:|---|']
       .concat(CS.map((c) => { const x = R.cases[c]; return x.error ? '| ' + c + ' | ERROR | | | | | |' : '| ' + c + ' | ' + (x.realN || x.pages.length ? 'CHANGED' : 'identical') + ' | ' + x.equal + ' | ' + x.noise + ' | ' + x.realN + ' | ' + x.pages.length + ' | ' + (x.nullTest ? x.nullTest.realN + ' changed' : '-') + ' |'; }))
       .concat(['', '- frames_identical: **' + R.frames_identical + '**', '- glsl_changed: ' + glslChanged + (glslChanged ? ' (' + R.glsl.changed.join(', ') + ')' : ''), '- bits_identical: ' + bitsIdentical + (R.bits.length ? ' (' + R.bits.map((b) => b.what + ': ' + b.line).join('; ') + ')' : ''),
-        R.glsl.unread && R.glsl.unread.length ? '- not read back (the frames decide): ' + R.glsl.unread.join('; ') : '', '- csp_ok: ' + R.csp_ok + (R.csp.length ? ' (' + R.csp.slice(0, 5).join(' | ') + ')' : ''),
+        R.glsl.unread && R.glsl.unread.length ? '- not read back (the frames decide): ' + R.glsl.unread.join('; ') : '', '- renderer: ' + R.renderer, '- csp_ok: ' + R.csp_ok + (R.csp.length ? ' (' + R.csp.slice(0, 5).join(' | ') + ')' : ''),
         R.errors.length ? '- errors: ' + R.errors.join('; ') : '', '- ' + R.seconds + ' s'].filter(Boolean));
     fs.writeFileSync(path.join(OUT, 'summary.md'), md.join('\n') + '\n');
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
