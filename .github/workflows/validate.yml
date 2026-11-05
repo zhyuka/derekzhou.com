@@ -1,16 +1,25 @@
 name: Validate
 
+# Run by the gate (gate.yml's static job, on every push), or by hand. Not on its own triggers, so its minutes are spent once.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: The readable scripts, assembled
+        run: |
+          # (restructure step 1) src/ keeps the world and the ink birds as small section files (src/world/,
+          # src/birds/inkbirds/: NNN-slug.js, joined in name order, nothing between). build/src/ is src/ assembled,
+          # the whole readable scripts under their served names: what every step below reads. Never committed.
+          # (step 2) build/ship/ is the shipped build: the dev-only parts (src/dev/: the record, the harness) left out
+          # by file, each stub in its place. minify.mjs minifies that; the start file is made from build/src/.
+          node tools/parts.mjs assemble src build/src
+          node tools/parts.mjs assemble --ship src build/ship
 
       - name: Check required files exist
         run: |
@@ -73,7 +82,7 @@ jobs:
             [ -e "$f" ] || continue
             case "${f#../}" in
               .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
-              .gitattributes|package.json|package-lock.json|node_modules|src|tools) ;;   # (the build: src/ the readable scripts, tools/minify.mjs, terser pinned; node_modules only after npm ci)
+              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
               *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
             esac
           done
@@ -299,10 +308,10 @@ jobs:
       - name: Absences are enforced
         run: |
           cd site
-          # (the world's five scripts as written, ../src/: site/ serves them minified, and "The minified scripts are
+          # (the world's five scripts as written, ../build/src/ (src/ assembled): site/ serves them minified, and "The minified scripts are
           # exactly what the script makes" proves site/'s are tools/minify.mjs's build of these; the rules read text)
-          WORLD=$(ls ../src/world.v*.js | head -1); INK=$(ls ../src/inkbirds.v*.js | head -1)
-          REALMS=$(ls ../src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
+          WORLD=$(ls ../build/src/world.v*.js | head -1); INK=$(ls ../build/src/inkbirds.v*.js | head -1)
+          REALMS=$(ls ../build/src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
           START=$(ls start.v*.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
           START="$START $(ls start-table.v*.js 2>/dev/null | head -1)"   # (its table, start-table.vN.js, loaded after the first paint)
           WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
@@ -436,7 +445,7 @@ jobs:
           # pages or the headers (a bird class in either quotes, in any class list), no .bird rule or [class=bird]
           # selector, nothing naming their hand-over (window.skyAir, the world's SKYAIR, handTo, HASSVG, DISSOLVE_S, the
           # record's boot wait and hand-over fields)
-          if compgen -G 'birds.v*.js' > /dev/null || compgen -G '../src/birds.v*.js' > /dev/null \
+          if compgen -G 'birds.v*.js' > /dev/null || compgen -G '../build/src/birds.v*.js' > /dev/null \
             || grep -nE "class=[\"'][^\"']*\\bbird\\b|<polyline|(^|[^a-z-])birds\\.v[0-9]+\\.js" index.html 404.html _headers \
             || grep -nE "\\.bird([^a-zA-Z0-9_-]|\$)|\\[class[~*^|\$]?=[\"']?bird\\b" $CSS \
             || grep -nE '\b(skyAir|SKYAIR|handTo|HASSVG|DISSOLVE_S|bootWaitWhy|handoverToldMs|handover)\b' $JS; then
@@ -454,12 +463,12 @@ jobs:
       - name: The minified scripts are exactly what the script makes
         run: |
           # site/ serves the world's five scripts (the world, the realms' kit and realms, the ink birds)
-          # minified; src/ holds them as written (the rules read those). tools/minify.mjs, with terser as
+          # minified; src/ holds them as written, in parts, and build/src/ whole (the rules read those). tools/minify.mjs, with terser as
           # package.json pins it (5.51.2; the lockfile's hashes), makes the one from the other: the record and the
-          # dev harness cut out of the world (counted cuts), then compressed and mangled, every shader's text the
+          # dev harness left out of the world by file (build/ship/), then compressed and mangled, every shader's text the
           # same. A served script edited by hand, or a source changed without its build, fails here.
           npm ci --no-audit --no-fund --ignore-scripts
-          node tools/minify.mjs --check src site
+          node tools/minify.mjs --check build/ship site --start-src build/src
 
       - name: The build makes site/, the same bytes every time
         run: |
@@ -481,9 +490,9 @@ jobs:
           # takes no words input (its uniforms a fixed list), the old lift's parts
           # are named nowhere, nothing is drawn onto the canvas after it but what
           # is named.
-          python3 .github/workflows/world_rules.py site src
+          python3 .github/workflows/world_rules.py site build/src
           # the realm lint: reported (the realms predate the namespaced API)
-          node .github/workflows/lint_realms.js report src/realm-kit.v*.js $(ls src/realm-*.v*.js | grep -v realm-kit)
+          node .github/workflows/lint_realms.js report build/src/realm-kit.v*.js $(ls build/src/realm-*.v*.js | grep -v realm-kit)
 
       - name: Every visit compiles the same shaders
         run: |
@@ -502,6 +511,22 @@ jobs:
           # to its show (extend the fake for what the page needs; never relax the rules).
           node .github/workflows/glsl_guard.js site --manifest .github/workflows/glsl_manifest.txt --selftest
 
+      - name: The shaders are their golden texts, and compile
+        run: |
+          # (restructure step 3) the shaders' text lives in .glsl files (src/**/glsl/) that tools/parts.mjs writes
+          # back into the scripts. test/shaders.mjs runs the page in glsl_guard's fake browser, takes every program the
+          # reference device issues, and fails unless each is exactly its golden text in test/golden/shaders/ (a
+          # readable diff of every program a change touches; after a deliberate change: node test/shaders.mjs site
+          # --write, committed with the manifest); then compiles and links each in headless Chrome (WebGL2, SwiftShader,
+          # playwright-core pinned as W7's). Exit 2 (no WebGL2 context on the runner) warns.
+          if [ -z "${PW_CORE:-}" ]; then
+            npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
+            export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
+          fi
+          rc=0; node test/shaders.mjs site --compile || rc=$?
+          if [ $rc -eq 2 ]; then echo "::warning::the shaders' compile check could not run (no WebGL2 context on the runner?)"; exit 0; fi
+          exit $rc
+
       - name: Nothing darkens (W7's unit test)
         run: |
           # The owner's rule ("Don't darken the background anywhere ever"): the
@@ -515,8 +540,8 @@ jobs:
           # this step only, never part of the site; PW_CORE and CHROME_PATH name
           # others where they are set). Exit 2 (no WebGL2 context on the runner)
           # warns; any lower or higher code fails.
-          W=$(ls src/world.v*.js | head -1)   # (as written: site/'s is its minified build, the same shader text)
-          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no src/world.vN.js for W7's unit test"; exit 1; }
+          W=$(ls build/src/world.v*.js | head -1)   # (as written: site/'s is its minified build, the same shader text)
+          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no build/src/world.vN.js for W7's unit test"; exit 1; }
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"

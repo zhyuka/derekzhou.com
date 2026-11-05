@@ -1,0 +1,67 @@
+name: Merge bot
+
+# The owner's rule, verbatim: "Only if nothing visible changes (Recommended)". When the Gate finishes on a claude/*
+# branch, or a PR from one is marked ready, merge-bot.mjs squash-merges a non-draft PR into main if every gate job is
+# green and its frames are identical to main's (T1, and T2 when it ran); otherwise it labels it needs-owner and
+# comments the preview link. On a PR opened, reopened or marked ready, the latest finished Gate run of its head
+# commit decides (its branch may have been pushed before the PR existed). Both triggers run main's copy of this
+# file and of the bot, never a PR's. A PR that changes the bot is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
+on:
+  workflow_run:
+    workflows: [Gate]
+    types: [completed]
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]   # (a PR opened ready after its commit's gate already finished is picked up here)
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: merge-bot-${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: startsWith(github.event.workflow_run.head_branch || github.event.pull_request.head.ref, 'claude/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: .github/ci
+      - name: The Gate run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_RUN: ${{ toJSON(github.event.workflow_run) }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "$EVENT_RUN" | jq '{id, event, conclusion, head_sha, head_branch, html_url}' > "$RUNNER_TEMP/run.json"
+          else
+            gh api "repos/${{ github.repository }}/actions/workflows/gate.yml/runs?head_sha=$PR_SHA&status=completed&per_page=1" \
+              --jq '.workflow_runs[0] // {} | {id, event, conclusion, head_sha, head_branch, html_url}' > "$RUNNER_TEMP/run.json"
+          fi
+          cat "$RUNNER_TEMP/run.json"
+          echo "id=$(jq -r '.id // empty' "$RUNNER_TEMP/run.json")" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        if: steps.run.outputs.id != ''
+        continue-on-error: true
+        with:
+          name: gate-verdict
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/verdict
+      - name: Merge, or leave it for the owner
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MERGE_TOKEN: ${{ secrets.MERGE_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          RUN="$(cat "$RUNNER_TEMP/run.json")" VERDICT="$RUNNER_TEMP/verdict/verdict.json" node .github/ci/merge-bot.mjs

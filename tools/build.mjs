@@ -1,7 +1,10 @@
 // build.mjs: the site's build, in one command (restructure step 0). It makes the deployable folder from the sources:
-// site/ copied as it is, then the built scripts written over it (tools/minify.mjs --build: the five minified scripts
-// from src/ and the start file with its table from tools/start.mjs). Today that output is byte for byte the committed
-// site/ (CI proves it); later steps change how the bytes are made, never silently what they are.
+// site/ copied as it is, then the built scripts written over it: src/ assembled (tools/parts.mjs: the dev build, and
+// the shipped build with the dev-only parts left out), then tools/minify.mjs --build: the five minified scripts from
+// the shipped build and the start file with its table (tools/start.mjs, from the dev build). Each build assembles into
+// a folder of its own beside its output (OUT.parts/), so two builds at once never share one.
+// Today that output is byte for byte the committed site/ (CI proves it); later steps change how the bytes are
+// made, never silently what they are.
 //
 //   node tools/build.mjs OUT              build into OUT (made or emptied first), write OUT/build.txt, print the manifest
 //   node tools/build.mjs --check          build twice into two temporary folders at once; exit 1 unless both builds are
@@ -23,7 +26,8 @@ import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), MINIFY = path.join(ROOT, 'tools', 'minify.mjs');
+const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site');
+const PARTS = path.join(ROOT, 'tools', 'parts.mjs'), MINIFY = path.join(ROOT, 'tools', 'minify.mjs');
 const STAMP = 'build.txt';
 
 function die(msg) { console.error('build: FAIL: ' + msg); process.exit(1); }
@@ -67,7 +71,11 @@ async function build(out, stamp) {
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
-  await run(process.execPath, [MINIFY, '--build', SRC, out]);
+  const parts = path.resolve(out) + '.parts', dev = path.join(parts, 'src'), ship = path.join(parts, 'ship');
+  fs.rmSync(parts, { recursive: true, force: true });
+  await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
+  await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
+  fs.rmSync(parts, { recursive: true, force: true });
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
 }
 
@@ -90,7 +98,7 @@ if (a[0] === '--check' && a.length === 1) {
   let bad = 0;
   for (const l of diff(m1, m2, 'build one', 'build two')) { console.error('::error::not deterministic: ' + l); bad = 1; }
   for (const l of diff(m1, ms, 'the build', 'site/')) {
-    console.error('::error::the build is not site/: ' + l + ' (rebuild: node tools/minify.mjs --build src site)'); bad = 1;
+    console.error('::error::the build is not site/: ' + l + ' (rebuild site/: see CLAUDE.md, the minified scripts)'); bad = 1;
   }
   fs.rmSync(tmp, { recursive: true, force: true });
   if (bad) process.exit(1);
