@@ -475,7 +475,9 @@ jobs:
           # tools/build.mjs is the site's build in one command (site/ copied, the built scripts written over it,
           # build.txt with the commit). Built twice at once into two folders: both must be the same bytes, and
           # their sha256 manifest must equal site/'s files. Steps that move code around (the restructure) prove
-          # here, in seconds, that no shipped byte changed.
+          # here, in seconds, that no shipped byte changed. (step 5) Then the deploy build, made from each: every
+          # script and stylesheet named by its content (world.<sha8>.js), every reference rewritten; the same from
+          # both, every name its bytes' hash, no old name left, every reference resolving, each file immutable.
           node tools/build.mjs --check
 
       - name: The world's rules
