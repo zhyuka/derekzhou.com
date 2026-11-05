@@ -1,0 +1,196 @@
+name: Gate
+
+# The gates every push runs (T0, T1, the verdict), whose verdict merge.yml reads. Pushes that touch only
+# .work/** run nothing. A newer push to a branch cancels the run before it (main's runs are never cancelled).
+on:
+  push:
+    paths-ignore: ['.work/**']
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # T0, static: every check of validate.yml (the site's rules, the build, the shaders' guard, W7), as before.
+  static:
+    uses: ./.github/workflows/validate.yml
+
+  # T0, the plan: which files changed and what they touch (areas.json), whether site/ is byte for byte the base's,
+  # and so which gates run. A few seconds, so the census and T1 can start together after it.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      base: ${{ steps.base.outputs.base }}
+      areas: ${{ steps.areas.outputs.areas }}
+      site_changed: ${{ steps.areas.outputs.site_changed }}
+      run_t1: ${{ steps.areas.outputs.run_t1 }}
+      gpu_js: ${{ steps.areas.outputs.gpu_js }}
+      t2_self: ${{ steps.areas.outputs.t2_self }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The base (main's tip where this branch left it; on main, the commit before)
+        id: base
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then base=$(git rev-parse HEAD^1); else base=$(git merge-base origin/main HEAD); fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"; echo "base $base, head $GITHUB_SHA"
+      - name: What the change touches
+        id: areas
+        run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA"
+
+  # T0, the shader census: whether any shader's text changed, read from the page itself in a real browser
+  # (SwiftShader), base against head. It runs when site/ changed or the harness did (.github/ci, this file: so a
+  # change to the harness is tested on its own push), and on main always (its census is cached for the branches).
+  census:
+    needs: plan
+    if: needs.plan.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      glsl_changed: ${{ steps.census.outputs.glsl_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/playwright
+      - name: The base's census, if a run on main saved it
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/census-cache/census.json
+          key: census-${{ needs.plan.outputs.base }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
+      - name: Shader census (base against head)
+        id: census
+        run: |
+          C="$RUNNER_TEMP/census-cache/census.json"
+          [ -f "$C" ] || git worktree add --detach "$RUNNER_TEMP/base" ${{ needs.plan.outputs.base }}
+          node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json" \
+            --base-json "$C" --save-head "$RUNNER_TEMP/census-head.json"
+          mkdir -p "$(dirname "$C")"; cp "$RUNNER_TEMP/census-head.json" "$C"   # (what main saves for the branches)
+      - name: Keep main's census for the branches that start from it
+        if: github.ref == 'refs/heads/main' && steps.census.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/census-cache/census.json
+          key: census-${{ github.sha }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.census.outcome != 'skipped'
+        with:
+          name: census
+          path: ${{ runner.temp }}/census.json
+          retention-days: 7
+
+  # T1, the software A/B: base and head served side by side and rendered in the same job (SwiftShader, the clock
+  # paused and stepped, frames hashed in the page), a null test (base against base) in every shard. Stills and short
+  # stepped sequences at 393x852 at 3 and 1440x900, the split height's device, reduced motion, no WebGL2, the 404
+  # page; DOM stills; a CSP-violation listener. Only when site/ or the harness changed: with site/ byte for byte the
+  # base's, what a visitor is served is identical by construction.
+  t1:
+    needs: plan
+    if: needs.plan.outputs.run_t1 == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/playwright
+      - name: Base against head, shard ${{ matrix.shard }} of 4
+        id: t1
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" ${{ needs.plan.outputs.base }}
+          node .github/ci/t1.mjs --base "$RUNNER_TEMP/base/site" --head site --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: t1-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/t1
+          retention-days: 7
+
+  # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
+  # programs read back bit for bit. Wanted when a shader's text or the world's, the realms' or the birds' served JS
+  # changed, or T2's own files did (so a change to T2 is tested on its own push). A queued job for a self-hosted runner
+  # waits up to a day and cannot be timed out, so t2-probe decides first, in seconds, whether the runner can take it:
+  # with the RUNNER_TOKEN secret (a fine-grained token for this repository with Administration: read) it asks GitHub
+  # whether a runner labelled gpu-4090 is online; without it, the repository variable T2_RUNNER = on says so. Not
+  # online: a notice, and the verdict rests on T0 and T1. T2 never holds a merge for a runner that is not there.
+  t2-probe:
+    needs: [plan, census]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.p.outputs.run }}
+    steps:
+      - id: p
+        env:
+          WANTED: ${{ needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true' }}
+          RUNNER_TOKEN: ${{ secrets.RUNNER_TOKEN }}
+          T2_RUNNER: ${{ vars.T2_RUNNER }}
+        run: |
+          if [ "$WANTED" != "true" ]; then echo "T2 not wanted (no shader, world/realm/bird JS or T2 change)"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          online=false; how=""
+          if [ -n "$RUNNER_TOKEN" ]; then
+            n=$(curl -fsS -H "Authorization: Bearer $RUNNER_TOKEN" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runners?per_page=100" \
+                | jq '[.runners[] | select(.status == "online") | select(any(.labels[]; .name == "gpu-4090"))] | length' || echo 0)
+            [ "${n:-0}" -gt 0 ] && online=true; how="RUNNER_TOKEN: $n online runner(s) labelled gpu-4090"
+          else
+            [ "$T2_RUNNER" = "on" ] && online=true; how="the variable T2_RUNNER is '${T2_RUNNER:-unset}'"
+          fi
+          echo "T2 wanted; runner online: $online ($how)"
+          if [ "$online" != "true" ]; then echo "::notice::T2 would run for this change, but the GPU runner is not online ($how). The verdict rests on T0 and T1."; fi
+          echo "run=$online" >> "$GITHUB_OUTPUT"
+
+  t2:
+    needs: [plan, t2-probe]
+    if: always() && needs.t2-probe.outputs.run == 'true'
+    uses: ./.github/workflows/gpu.yml
+    with:
+      base: ${{ needs.plan.outputs.base }}
+
+  # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
+  verdict:
+    needs: [static, plan, census, t1, t2]
+    if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      gate_ok: ${{ steps.v.outputs.gate_ok }}
+      frames_identical: ${{ steps.v.outputs.frames_identical }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/ci
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: t1-shard-*
+          path: ${{ runner.temp }}/t1
+      - name: Verdict
+        id: v
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          T1_SHARDS: '4'
+        run: node .github/ci/verdict.mjs "$RUNNER_TEMP/t1" "$RUNNER_TEMP/verdict.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-verdict
+          path: ${{ runner.temp }}/verdict.json
+          retention-days: 30
