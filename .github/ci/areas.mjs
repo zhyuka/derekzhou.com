@@ -32,7 +32,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   let siteChanged = true; try { git('diff', '--quiet', base, head, '--', 'site'); siteChanged = false; } catch {}
   // T1 renders only when what is served changed (site/), or when the harness itself did (so it is tested on its own PR);
   // T2 when the world's, the realms' or the birds' served JS changed (the census adds a changed shader).
-  const harness = files.some((f) => f.startsWith('.github/ci/') || f === '.github/workflows/gate.yml');
+  const harness = files.some((f) => f.startsWith('.github/ci/') || f.startsWith('.github/actions/') || f === '.github/workflows/gate.yml');
   const gpuJs = files.some((f) => f.startsWith('site/') && areasOf([f]).areas.includes('gpu'));
   const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, files: files.length };
   console.log(`${files.length} files changed${unknown.length ? '; unmapped (ALL): ' + unknown.join(' ') : ''}`);
