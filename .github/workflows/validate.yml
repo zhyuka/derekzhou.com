@@ -16,7 +16,10 @@ jobs:
           # (restructure step 1) src/ keeps the world and the ink birds as small section files (src/world/,
           # src/birds/inkbirds/: NNN-slug.js, joined in name order, nothing between). build/src/ is src/ assembled,
           # the whole readable scripts under their served names: what every step below reads. Never committed.
+          # (step 2) build/ship/ is the shipped build: the dev-only parts (src/dev/: the record, the harness) left out
+          # by file, each stub in its place. minify.mjs minifies that; the start file is made from build/src/.
           node tools/parts.mjs assemble src build/src
+          node tools/parts.mjs assemble --ship src build/ship
 
       - name: Check required files exist
         run: |
@@ -462,10 +465,10 @@ jobs:
           # site/ serves the world's five scripts (the world, the realms' kit and realms, the ink birds)
           # minified; src/ holds them as written, in parts, and build/src/ whole (the rules read those). tools/minify.mjs, with terser as
           # package.json pins it (5.51.2; the lockfile's hashes), makes the one from the other: the record and the
-          # dev harness cut out of the world (counted cuts), then compressed and mangled, every shader's text the
+          # dev harness left out of the world by file (build/ship/), then compressed and mangled, every shader's text the
           # same. A served script edited by hand, or a source changed without its build, fails here.
           npm ci --no-audit --no-fund --ignore-scripts
-          node tools/minify.mjs --check build/src site
+          node tools/minify.mjs --check build/ship site --start-src build/src
 
       - name: The world's rules
         run: |
