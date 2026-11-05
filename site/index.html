@@ -37,8 +37,8 @@
 <body>
   <!-- The world, drawn behind everything by the world's script (hidden until it is drawn). -->
   <canvas class="sky" aria-hidden="true"></canvas>
-  <!-- The start file (async, at once): the world's context and its first programs, made as early as the page allows. -->
-  <script data-cfasync="false" src="/start.v1.js" async fetchpriority="high"></script>
+  <!-- The start file (async, at once): the world's context and its first programs, issued once the page has painted. -->
+  <script data-cfasync="false" src="/start.v2.js" async fetchpriority="high"></script>
 
   <main>
     <div class="stack">

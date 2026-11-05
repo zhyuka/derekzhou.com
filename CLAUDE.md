@@ -14,7 +14,8 @@ site/index.html              Home page: the words over a 3D world, drawn live be
 site/style.v16.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
-site/start.v1.js             The start file: the world's context and its first frame's programs, issued before the world's script runs (made by tools/start.mjs; see World)
+site/start.v2.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World)
+site/start-table.v2.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint
 site/world.v8.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light
@@ -373,10 +374,19 @@ BOOT (the owner: "should load instantly make it 10x faster"): the page
 paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The start file
-(start.v1.js: async, fetchpriority high, Early-Hinted, the first script
-after the canvas) runs as soon as it comes, before the world's scripts:
-unless WebGL2 is missing, colours are forced or the browser is WebKit,
-it makes the canvas's context with the world's attributes, and unless
+(start.v2.js: async, fetchpriority high, Early-Hinted, the first script
+after the canvas) runs its tests as soon as it comes: unless WebGL2 is
+missing, colours are forced or the browser is WebKit, it waits for the
+page's first contentful paint (PerformanceObserver 'paint'; two frames
+where paint timing is missing; or at once when the world asks for its
+context first: its getContext wrapped once, so the programs are issued
+just before the world takes the context if the table is in; else the
+start file stands aside and the world compiles its own, as without it). Issued at once, they held the
+first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores).
+Then it starts its table as a worker (start-table.v2.js, the programs'
+GLSL, 1 MB, posted back as strings: no DOM, no fetch; parsed on the main
+thread before the first paint it held it back on a slow phone, FCP 148 ->
+284 ms at 4x), and when the sources are in it makes the canvas's context with the world's attributes, and unless
 KHR_parallel_shader_compile is missing or the renderer is a CPU one by
 name, it issues every program of the world's first frame from its table
 for the device (26 programs, or on the split height's devices their own
@@ -603,10 +613,11 @@ crossing the window's edge or coming out of the distance (a fade by
 distance alone), and goes the same ways. Where the view brings the words
 across a flock's way, the words' keep-off hides its ink where they stand.
 The perched birds (guests): now and then a gull flies in (round the letters, never across a
-stroke), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
-line (never an underline), sits in the owner's perch A (the folded M seen side-on, upright at
-about 45 deg, lit to the words' white while it sits: only ever lighter), its feet ON what it
-stands on every frame (no lift, no hop; measured 0 px of sky under them at 1x, 2x and 3x),
+stroke), lands ON a letter's ink: the D's top or the k's or u's exit stroke, or the top of LinkedIn's
+final n (never past the word's end, never an underline). It sits in the owner's perch A (the
+folded M seen side-on, standing at about 70 deg, lit to the words' white while it sits: only ever
+lighter), its foot centred on the letter and settled 1.6 CSS px into it (the letter, drawn over
+the bird, hides that part), so no sky shows between the bird and the letter,
 never still for long, and leaps off and away. No fades: it comes in from beyond the window's
 edge and leaves out of view. The pointer's perch needs the hover listener the world does not
 have, so it never comes. Each click or tap on the page that is not a drag and not on a link
@@ -670,7 +681,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 1. hour.v3.js — in the head, before the first paint (tiny,
    Early-Hinted): which time of day the world opens on (data-sky,
    data-sky-at) and the browser's bar.
-2. start.v1.js — the start file (async, fetchpriority="high",
+2. start.v2.js — the start file (async, fetchpriority="high",
    Early-Hinted, the first script after the canvas and the only async
    one): the world's context and its first frame's programs, issued before
    the world's script runs (see World: BOOT); made by tools/start.mjs from
@@ -766,7 +777,7 @@ The world's scripts are not on the path to the first paint (deferred, the
 start file async), but the start file, the world's and the kits' are
 fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
-served: start.v1.js 1035 KB (its programs' GLSL, as text), world.v8.js
+served: start.v2.js 1035 KB (its programs' GLSL, as text), world.v8.js
 381 KB, the kits 51 KB, inkbirds.v5.js 193 KB, its wing model 186 KB, the
 plan's worker 73 KB (node tools/minify.mjs --report src: the five
 minified, before and after, raw and brotli).
@@ -849,8 +860,11 @@ worker-src 'self' on the two home blocks that start it (/ and /index.html;
 404.html starts none), and the worker's response its own policy, its
 block in \_headers (/plan.v1.js: immutable, default-src 'none'; a
 worker's policy is its script's headers, not the page's, and no other
-rule sets one on that path). Otherwise WebGL2 from same-origin scripts,
-that one worker, no blobs, no fetches, no eval; the site's own code
+rule sets one on that path). The start file's table runs as a second
+worker under the same worker-src (/start-table.v2.js: immutable,
+default-src 'none'; it posts the programs' sources and closes).
+Otherwise WebGL2 from same-origin scripts, those two workers, no blobs,
+no fetches, no eval; the site's own code
 is blind (no telemetry, no beacon, no store). The one exception is
 Cloudflare Web Analytics (the owner, 2026-11-03: "yes we need
 analytics"): cookieless, injected by Cloudflare, not in this repo, its
@@ -863,7 +877,7 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, start.v1.js, the five minified scripts as written (src/'s
+hour.v3.js, start.v2.js and its table start-table.v2.js, the five minified scripts as written (src/'s
 world.v8.js, the kits and inkbirds.v5.js), the wing model, plan.v1.js,
 plus style.v16.css for cursors and a bird rule, and \_headers for a bird
 script's name — never to this prose) fails on:

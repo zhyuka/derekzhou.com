@@ -159,8 +159,8 @@ export function run(V, page, O = {}) {
         get offsetWidth() { return this.getBoundingClientRect().width; }, get offsetHeight() { return this.getBoundingClientRect().height; },
         querySelector() { return null; }, querySelectorAll() { return []; }, closest() { return null; }, contains() { return false; },
         setPointerCapture() {}, releasePointerCapture() {}, hasPointerCapture() { return false; }, focus() {}, blur() {},
-        getContext(type, attrs) { if (tag !== 'canvas' || type !== 'webgl2') return null; R.ctx.push({ by: R.phase, frame: R.frames, attrs: JSON.stringify(attrs) });
-          if (O.lose && O.lose.at === 'inWorldGetContext' && R.phase === 'world' && !lost) { lost = true; R.lostEv++; Promise.resolve().then(() => fire(canvas, 'webglcontextlost')); }   // (lost under the world's own boot: its event a moment later)
+        getContext(type, attrs) { if (tag !== 'canvas' || type !== 'webgl2') return null; R.ctx.push({ by: phase(), frame: R.frames, attrs: JSON.stringify(attrs) });
+          if (O.lose && O.lose.at === 'inWorldGetContext' && phase() === 'world' && !lost) { lost = true; R.lostEv++; Promise.resolve().then(() => fire(canvas, 'webglcontextlost')); }   // (lost under the world's own boot: its event a moment later)
           return gl; }
       };
       return e;
@@ -181,7 +181,7 @@ export function run(V, page, O = {}) {
     let gen = 0;   // (the context's generation: an object of an older one is dead)
     const obj = (kind) => ({ __kind: kind, gen });
     function fillRead(d) { if (/^\[object Uint8(Clamped)?Array\]$/.test(Object.prototype.toString.call(d))) for (let i = 0; i < d.length; i++) d[i] = 40 + (i * 7919 + (i >> 2) * 13) % 160; }
-    const who = () => R.by[R.phase];
+    const phase = () => (R.phase === 'start' || /start\.v\d+\.js/.test(new Error().stack || '') ? 'start' : 'world'), who = () => R.by[phase()];   // (after the first paint: the start file's code runs in later tasks too)
     const T = {
       canvas,
       get drawingBufferWidth() { return canvas.width; }, get drawingBufferHeight() { return canvas.height; },
@@ -199,10 +199,10 @@ export function run(V, page, O = {}) {
       createProgram() { if (lost) return null; return { __kind: 'program', sh: [], gen }; },
       attachShader(p, s) { if (!p || !s) throw new TypeError('attachShader: null'); if (lost || p.gen !== gen) return; p.sh.push(s); },
       linkProgram(p) { if (!p) throw new TypeError('linkProgram: null'); if (lost || p.gen !== gen) return; const w = who(); if (w.linkProgram !== undefined) w.linkProgram++;
-        const v = p.sh.find((s) => s.type === 'VERTEX_SHADER'), f = p.sh.find((s) => s.type === 'FRAGMENT_SHADER'); R.links.push({ vs: v ? v.src : '', fs: f ? f.src : '', frame: R.frames, by: R.phase }); p.linked = true; },
-      deleteProgram(p) { if (p && R.by[R.phase].deleteProgram !== undefined) R.by[R.phase].deleteProgram++; if (p && p.gen === gen) p.deleted = true; },
-      deleteShader(s) { if (s && R.by[R.phase].deleteShader !== undefined) R.by[R.phase].deleteShader++; },
-      flush() { const w = who(); if (w.flush !== undefined) w.flush++; },
+        const v = p.sh.find((s) => s.type === 'VERTEX_SHADER'), f = p.sh.find((s) => s.type === 'FRAGMENT_SHADER'); R.links.push({ vs: v ? v.src : '', fs: f ? f.src : '', frame: R.frames, by: phase() }); p.linked = true; },
+      deleteProgram(p) { const w = who(); if (p && w.deleteProgram !== undefined) w.deleteProgram++; if (p && p.gen === gen) p.deleted = true; },
+      deleteShader(s) { const w = who(); if (s && w.deleteShader !== undefined) w.deleteShader++; },
+      flush() { const p = phase(), w = R.by[p]; if (w.flush !== undefined) w.flush++; if (p === 'start') at('afterGo'); },
       getProgramParameter(p, x) { if (lost) return null; const n = NAME(x); if (/STATUS/.test(n)) return !!(p && p.gen === gen && p.linked && !p.deleted); if (n === 'ATTACHED_SHADERS') return p.sh.length; return 0; },
       getProgramInfoLog() { return lost ? null : ''; }, getUniformLocation() { return lost ? null : {}; }, getAttribLocation() { return lost ? -1 : 0; }, getUniformBlockIndex() { return 0; },
       getActiveUniform() { return null; }, getActiveAttrib() { return null; }, getFragDataLocation() { return 0; },
@@ -230,7 +230,7 @@ export function run(V, page, O = {}) {
     const links = [el('a', { href: '#', id: 'email-link' }, () => [16, V.h - 48, 40, 22]), el('a', { href: '#second', rel: 'me' }, () => [72, V.h - 48, 62, 22])];
     const SEL = { 'canvas.sky': canvas, canvas, 'meta[name="theme-color"]': meta, main, footer, '.stack': stack, h1: name, '.name': name, 'h1.name': name, body, html: root };
     const document = {
-      __id: 'doc', documentElement: root, body, head: el('head'), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
+      __id: 'doc', documentElement: root, body, head: Object.assign(el('head'), { appendChild(x) { if (x && /\/start-table\.v\d+\.js$/.test(String(x.src)) && O.tableCode) { const go = () => guard(() => vm.runInContext(O.tableCode, ctx, { filename: String(x.src).slice(1) }), 'table'); R.tableF = R.frames; if (fcp === 'page') go(); else timers.push([++timerN, clock, go, 0]); } return x; } }), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
       fonts: { ready: Promise.resolve(), status: 'loaded', addEventListener() {}, check() { return true; } },
       querySelector(s) { s = s.trim(); return SEL[s] || null; },
       querySelectorAll(s) { s = s.trim(); if (s === 'footer a' || s === 'a') return links.slice(); return SEL[s] ? [SEL[s]] : []; },
@@ -250,6 +250,24 @@ export function run(V, page, O = {}) {
       return { matches: m, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} };
     };
     class Obs { constructor(f) { this.f = f; } observe() {} unobserve() {} disconnect() {} takeRecords() { return []; } }
+    // (after the first paint) the page's FCP reported: O.fcp 'page' (a task after the start file), a frame number (after
+    // that frame's callbacks; the default 1), 'none' (no paint timing)
+    const POS = [], fcp = O.fcp === undefined ? 1 : O.fcp;
+    // (the start file's table, a worker's script: run in a context of its own; its one message delivered a task later,
+    // or at once with fcp 'page'; any other worker (the world's plan) refused, as where workers fail)
+    class FW {
+      constructor(u) {
+        u = String(u); this.ls = [];
+        if (!/\/start-table\.v\d+\.js$/.test(u) || !O.tableCode) throw new Error('no worker in the fake browser: ' + u);
+        let data = null; const box = vm.createContext({}); box.postMessage = (x) => { data = x; }; box.close = () => {};
+        guard(() => vm.runInContext(O.tableCode, box, { filename: u.slice(1) }), 'table worker'); R.tableF = R.frames;
+        const fire = () => { for (const f of this.ls) guard(() => f({ data }), 'table message'); };
+        if (fcp === 'page') Promise.resolve().then(fire); else timers.push([++timerN, clock, fire, 0]);
+      }
+      addEventListener(t, f) { if (t === 'message') this.ls.push(f); } removeEventListener() {} postMessage() {} terminate() {}
+    }
+    class PO extends Obs { static get supportedEntryTypes() { return fcp === 'none' ? [] : ['paint']; } observe() { if (fcp !== 'none' && POS.indexOf(this) < 0) POS.push(this); } disconnect() { const i = POS.indexOf(this); if (i >= 0) POS.splice(i, 1); } }
+    const paint = () => { for (const o of POS.slice()) guard(() => o.f({ getEntriesByName: (n) => (n === 'first-contentful-paint' ? [{ name: n, entryType: 'paint', startTime: clock }] : []), getEntries: () => [] }, o), 'paint'); };
     const win = {
       __id: 'win', document,
       navigator: { userAgent: V.dev.ua, maxTouchPoints: V.dev.touch, hardwareConcurrency: 8, deviceMemory: 8, language: 'en-US', languages: ['en-US'],
@@ -265,7 +283,7 @@ export function run(V, page, O = {}) {
       performance: { now, mark() {}, measure() {}, getEntriesByName() { return []; }, getEntriesByType() { return []; }, timeOrigin: 1.7e12 + V.t0 },
       crypto: { getRandomValues(a) { let s = V.seed; for (let i = 0; i < a.length; i++) { s = (s + 0x9e3779b9) >>> 0; let t = s ^ (s >>> 16); t = Math.imul(t, 0x21f0aaad); t ^= t >>> 15; t = Math.imul(t, 0x735a2d97); a[i] = (t ^ (t >>> 15)) >>> 0; } return a; } },
       addEventListener(t, f) { on(win, t, f); }, removeEventListener(t, f) { off(win, t, f); }, dispatchEvent() { return true; },
-      ResizeObserver: Obs, IntersectionObserver: Obs, MutationObserver: Obs, PerformanceObserver: class extends Obs { static get supportedEntryTypes() { return []; } },
+      ResizeObserver: Obs, IntersectionObserver: Obs, MutationObserver: Obs, PerformanceObserver: PO, Worker: FW,
       WebGL2RenderingContext: function WebGL2RenderingContext() {}, HTMLCanvasElement: function HTMLCanvasElement() {},
       location: { href: 'https://site.invalid/', origin: 'https://site.invalid', protocol: 'https:', host: 'site.invalid', hostname: 'site.invalid', pathname: '/', search: '', hash: '' },
       console: { log() {}, info() {}, warn() {}, error() {}, debug() {} },
@@ -278,7 +296,7 @@ export function run(V, page, O = {}) {
     const hourMs = new Date(2026, 10, 4, Math.floor(V.hour), Math.round((V.hour % 1) * 60)).getTime();
     vm.runInContext('(function (T) { var D = Date; function F() { if (!(this instanceof F)) return new D(T).toString(); return arguments.length ? new (Function.prototype.bind.apply(D, [null].concat([].slice.call(arguments))))() : new D(T); }' +
       ' F.prototype = D.prototype; F.now = function () { return T; }; F.UTC = D.UTC; F.parse = D.parse; Date = F; })(' + hourMs + ');', ctx);
-    const runStart = () => { if (!O.startCode) return; R.phase = 'start'; guard(() => vm.runInContext(O.startCode, ctx, { filename: 'start.v1.js' }), 'start.v1.js'); R.phase = 'world'; R.ws = ctx.WORLD_START; at('afterStart'); };
+    const runStart = () => { if (!O.startCode) return; R.phase = 'start'; guard(() => vm.runInContext(O.startCode, ctx, { filename: 'start.v1.js' }), 'start.v1.js'); if (fcp === 'page') paint(); R.phase = 'world'; R.ws = ctx.WORLD_START; at('afterStart'); };
     const when = O.startWhen || 'page', tick = () => new Promise((r) => setImmediate(r));   // (each script, timer and frame callback a task of its own: the microtasks it queued run before the next)
     const dt = 1000 / V.hz, CAP = O.cap || 6000;
     (async () => {
@@ -299,6 +317,7 @@ export function run(V, page, O = {}) {
         for (const t of timers.filter((x) => x[1] <= clock).sort((a, b) => a[1] - b[1])) { if (t[3]) t[1] += t[3]; else timers = timers.filter((x) => x !== t); guard(t[2], 'timer'); await tick(); }
         const q = raf, ts = clock; raf = [];
         for (const [, f] of q) { guard(() => f(ts), 'frame ' + R.frames); await Promise.resolve(); }   // (a frame's callbacks: the microtasks after each, as a browser runs them)
+        if (fcp === R.frames) { paint(); await tick(); }
         await tick();
         if (!R.shown && canvas.classList.contains('on')) { R.shown = true; R.shownF = R.frames; }
         if (R.shaders.length !== lastN) { lastN = R.shaders.length; quiet = 0; } else quiet++;
@@ -356,7 +375,21 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
   try { if (window.matchMedia && window.matchMedia('(forced-colors: active)').matches) return; } catch (e) { return; }
   var ua = navigator.userAgent || '';   // (the world's WebKit test: there links are synchronous, so the world issues one at a time)
   if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) || (/AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(ua))) return;
-  var gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: 'default' });   // (the world's boot attributes, as shipped)
+  /* (after the first paint) nothing more until the page's first contentful paint is reported (two frames where paint
+     timing is missing): then the table (the programs' GLSL, its own file: parsed before the first paint, its 1 MB held
+     it back on a slow phone) is read by a worker (its script: no DOM, no fetch), and when its sources are in the
+     programs are issued here; issued at once, their compiles
+     held the first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores). The world asking for its context
+     first (its getContext, wrapped once here): issued just before it takes the context if the table is in, else the
+     start file stands aside and the world compiles its own, as without it */
+  var pc = canvas.getContext, done = 0, asked = 0, TB = null;
+  canvas.getContext = function (t, o) { asked = 1; go(); return pc.call(this, t, o); };
+  function go() {
+  if (done || (!TB && !asked)) return;
+  done = 1; canvas.getContext = pc;
+  if (!TB || window.WORLD_START !== undefined) return;   // (the world first, before the table: its own path)
+  var Q = TB.Q, T = TB.T, TH = TB.TH;
+  var gl = pc.call(canvas, 'webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: 'default' });   // (the world's boot attributes, as shipped)
   if (!gl) return;
   var S = window.WORLD_START = { gl: gl, defs: null, progs: {}, lost: 0 };
   canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); S.lost = 1; });   // (lost before the world listens: it may still be restored)
@@ -373,30 +406,48 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
     gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p);
     var k = vs + '\u0000' + fs; (P[k] || (P[k] = [])).push({ p: p, v: v, f: f });   // (keyed by the text as issued: the world adopts only a program whose text it would issue itself)
   }
-  gl.flush();`;
-export function startText(tables) {
-  const pool = [], at = new Map(), table = tables.base;
+  gl.flush();
+  }
+  function load() {   // (the table read off the main thread and off the DOM: the worker's script posts the sources and closes)
+    if (done || typeof Worker !== 'function') return;
+    try { var w = new Worker('/@TABLE@'); w.addEventListener('message', function (e) { try { w.terminate(); } catch (x) {} if (e.data && e.data.Q && e.data.T) { TB = e.data; go(); } }); } catch (x) { /* no worker: the world's own path */ }
+  }
+  var PO = window.PerformanceObserver, two = function () { requestAnimationFrame(function () { requestAnimationFrame(load); }); };
+  if (PO && PO.supportedEntryTypes && PO.supportedEntryTypes.indexOf('paint') >= 0) {
+    try { new PO(function (l, o) { if (l.getEntriesByName('first-contentful-paint').length) { o.disconnect(); load(); } }).observe({ type: 'paint', buffered: true }); } catch (e) { two(); }
+  } else two();`;
+export const tableName = (start) => start.replace(/^start\.v(\d+)\.js$/, 'start-table.v$1.js');   // (the start file's table: start.vN.js's is start-table.vN.js)
+export function startText(tables, name) {
+  const pool = [], at = new Map(), table = tables.base, tn = tableName(name);
+  if (tn === name) throw new Error('the start file\'s name (' + name + ') is not start.vN.js');
   const ix = (s) => { if (!at.has(s)) { at.set(s, pool.length); pool.push(s); } return at.get(s); };
   const idx = (t) => { const o = []; for (const p of t) o.push(ix(p.vs), ix(p.fs)); return o; };
   const T = idx(table), TH = tables.hp ? idx(tables.hp) : null;
   for (const s of pool) if (/[\u2028\u2029\r]/.test(s)) throw new Error('a shader source holds a CR or a line separator');
   const kb = Math.round(table.reduce((a, t) => a + t.vs.length + t.fs.length, 0) / 1024);
-  return '/* start.v1.js: the world\'s context and its first frame\'s programs, issued as early as the page allows (fast500 step 5).\n' +
-    '   MADE by tools/start.mjs from src/ (the world\'s scripts as written, run in a fake browser): never edit it by hand; CI makes\n' +
-    '   it again and fails on any difference. A new text needs a new name (start.v2.js): it is cached as immutable.\n' +
-    `   ${table.length} programs (${pool.length} distinct sources, ${kb} KB), in the order the world issues them at its stage C, without its\n` +
-    '   DEFS. The world (getGL, progIssue) adopts the context and every program whose source and DEFS match; it frees the rest. */\n' +
+  const start = '/* ' + name + ': the start file: the world\'s context and its first frame\'s programs, issued once the page has painted\n' +
+    '   (fast500 step 5). MADE by tools/start.mjs from src/ (the world\'s scripts as written, run in a fake browser): never edit it\n' +
+    '   by hand; CI makes it again and fails on any difference. A new text needs a new name (start.vN+1.js, its table\n' +
+    '   start-table.vN+1.js): both are cached as immutable. The programs are in ' + tn + ', loaded after the first paint.\n' +
+    '   The world (getGL, progIssue) adopts the context and every program whose text it would issue itself; it frees the rest. */\n' +
     '(function () {\n  \'use strict\';\n' +
-    '  var Q = [\n' + pool.map((s) => '    ' + JSON.stringify(s)).join(',\n') + '\n  ];\n' +
-    '  var T = [' + T.join(', ') + '];\n' +
-    '  var TH = ' + (TH ? '[' + TH.join(', ') + ']' : 'null') + ', HP = ' + (TH ? 'function (r) { return ' + HP.body + '; }' : 'null') + ';   // (' + (TH ? tables.hp.length + ' programs on the split height\'s devices, HPSPLIT in their DEFS: the world\'s HP_DEV' : 'no split height in this world') + ')\n' +
-    RUNTIME + '\n})();\n';
+    '  var HP = ' + (TH ? 'function (r) { return ' + HP.body + '; }' : 'null') + ';   // (' + (TH ? 'the split height\'s devices: their own set, HPSPLIT in their DEFS: the world\'s HP_DEV' : 'no split height in this world') + ')\n' +
+    RUNTIME.replace('@TABLE@', tn) + '\n})();\n';
+  const tab = '/* ' + tn + ': the start file\'s table, a worker\'s script (' + name + ' starts it after the first paint; it posts the sources\n' +
+    '   and closes). MADE by tools/start.mjs from src/: never\n' +
+    '   edit it by hand. ' + `${table.length} programs (${pool.length} distinct sources, ${kb} KB)` + ', in the order the world issues them at its stage C, without\n' +
+    '   its DEFS' + (TH ? '; on the split height\'s devices their own set of ' + tables.hp.length + ' (HPSPLIT in their DEFS: the world\'s HP_DEV)' : '') + '. */\n' +
+    'postMessage({\n' +
+    '  Q: [\n' + pool.map((s) => '    ' + JSON.stringify(s)).join(',\n') + '\n  ],\n' +
+    '  T: [' + T.join(', ') + '],\n' +
+    '  TH: ' + (TH ? '[' + TH.join(', ') + ']' : 'null') + '\n});\nclose();\n';
+  return { start, table: tab, tableName: tn };
 }
-export async function makeStart(src, index, lib, log) { return startText(await makeTable(src, index, lib, 5, log)); }
+export async function makeStart(src, index, lib, log, name) { return startText(await makeTable(src, index, lib, 5, log), name); }
 
 // ------------------------------------------------------------------ the proof (--test)
 async function test(src, index, lib, file, log) {
-  const page = loadPage(src, index, lib), startCode = fs.readFileSync(file, 'utf8'), fails = [];
+  const page = loadPage(src, index, lib), startCode = fs.readFileSync(file, 'utf8'), tableCode = fs.readFileSync(path.join(path.dirname(file), tableName(path.basename(file))), 'utf8'), fails = [];
   if (!page.some((x) => x.start)) fails.push(index + ' does not load the start file');
   let nTable = 0;   // (round 4: N, the programs the world issues without the start file: each visit's in 1, the reference's from 2 on)
   const bag = (r) => r.shaders.slice().sort().join('\u0001');
@@ -404,7 +455,7 @@ async function test(src, index, lib, file, log) {
   const clean = (r) => r.errors.length ? 'page errors: ' + r.errors.slice(0, 2).join(' / ') : '';
   // 1. every device, start file and none: the same sources, the same show frame; adopted where it serves
   for (const v of visits(DEVICES.concat(EXTRA), 2)) {
-    const a = await run(v, page), b = await run(v, page, { startCode }), s = serves(v.dev), kind = v.dev.id === 'cpu' ? 'cpu' : 'world';
+    const a = await run(v, page), b = await run(v, page, { startCode, tableCode, fcp: 'page' }), s = serves(v.dev), kind = v.dev.id === 'cpu' ? 'cpu' : 'world';
     const t = tag(v);
     if (kind === 'cpu') { check(`${t}: a CPU renderer: no program issued by the start file, the still sky as without it`, b.by.start.createShader === 0 && a.shown === b.shown && a.links.length === b.links.length && !b.errors.length, clean(b) || `start shaders ${b.by.start.createShader}`); continue; }
     check(`${t}: shown at the same frame as without the start file (${a.shownF})`, a.shown && b.shown && a.shownF === b.shownF && !a.errors.length && !b.errors.length, clean(b) || clean(a) || `${a.shownF} / ${b.shownF}`);
@@ -423,15 +474,23 @@ async function test(src, index, lib, file, log) {
   const adopted = (r, base) => r.by.start.linkProgram === nTable && r.by.world.linkProgram === base.by.world.linkProgram - nTable && r.by.world.createShader === base.by.world.createShader - 2 * nTable && r.by.world.deleteProgram === base.by.world.deleteProgram;
   const own = (r, base) => r.by.world.linkProgram === base.by.world.linkProgram && r.by.world.createShader === base.by.world.createShader;   // (the world made every program itself, as on BASE)
   // 2. the fallbacks on the reference device
-  const S = async (what, O, expect) => { const r = await run(v0, page, Object.assign({ startCode }, O)); expect(r, what); return r; };
+  const S = async (what, O, expect) => { const r = await run(v0, page, Object.assign({ startCode, tableCode }, O)); expect(r, what); return r; };
   await S('start file arriving after the world made its context (frame 3): it does nothing', { startWhen: 3 }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && r.by.start.createShader === 0 && r.ctx.filter((c) => c.by === 'start').length === 0 && own(r, plain) && bag(r) === bag(plain) && !r.errors.length, clean(r) || JSON.stringify(r.by)));
-  await S('start file arriving after the world\'s scripts, before the boot: adopted', { startWhen: 'afterWorld' }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && adopted(r, plain) && bag(r) === bag(plain) && !r.errors.length, clean(r) || JSON.stringify(r.by)));
+  await S('start file arriving after the world\'s scripts, before the boot: adopted', { startWhen: 'afterWorld', fcp: 'page' }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && adopted(r, plain) && bag(r) === bag(plain) && !r.errors.length, clean(r) || JSON.stringify(r.by)));
+  // (after the first paint) the table comes after the page's first paint: all of it adopted, or none issued (the world
+  // asked for its context first and compiled its own), never a part
+  const allOrNone = (r) => adopted(r, plain) || (r.by.start.createShader === 0 && own(r, plain));
+  const which = (r) => (adopted(r, plain) ? 'adopted' : r.by.start.createShader === 0 && own(r, plain) ? 'stood aside, the world its own' : 'NEITHER') + ' ' + JSON.stringify(r.by);
+  await S('after the first paint: first paint reported at once (the table in before the boot): adopted', { fcp: 'page' }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && adopted(r, plain) && bag(r) === bag(plain) && !r.errors.length, clean(r) || JSON.stringify(r.by)));
+  await S('after the first paint: first paint at frame 1, the table a frame after: all or none', { fcp: 1 }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && allOrNone(r) && bag(r) === bag(plain) && !r.errors.length, clean(r) || which(r)));
+  await S('after the first paint: no paint timing (the double frame): all or none', { fcp: 'none' }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && allOrNone(r) && bag(r) === bag(plain) && !r.errors.length, clean(r) || which(r)));
+  await S('after the first paint: first paint late (frame 40): the world asks for its context first, the start file stands aside', { fcp: 40 }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && r.by.start.createShader === 0 && own(r, plain) && bag(r) === bag(plain) && !r.errors.length, clean(r) || which(r)));
   await S('a harness attribute on <html> (data-dev): the start file does nothing', { attrs: { 'data-dev': '' } }, (r, w) => check(w, r.by.start.createShader === 0 && r.ctx.every((c) => c.by === 'world') && own(r, plain), JSON.stringify(r.by)));
-  await S('the hour\'s attributes only (data-sky, data-sky-at): served', { attrs: { 'data-sky': 'day', 'data-sky-at': '0.5' } }, (r, w) => check(w, adopted(r, plain), JSON.stringify(r.by)));
+  await S('the hour\'s attributes only (data-sky, data-sky-at): served', { fcp: 'page', attrs: { 'data-sky': 'day', 'data-sky-at': '0.5' } }, (r, w) => check(w, adopted(r, plain), JSON.stringify(r.by)));
   const pf = await run(v0, page, { forced: true, stillOk: true });
   await S('forced colours: the start file does nothing; the world as without it', { forced: true, stillOk: true }, (r, w) => check(w, r.by.start.createShader === 0 && r.ctx.every((c) => c.by === 'world') && own(r, pf) && bag(r) === bag(pf) && r.shown === pf.shown && !r.errors.length, clean(r) || JSON.stringify(r.by)));
   const pr = await run(v0, page, { reduced: true, stillOk: true });
-  await S('reduced motion: issued and adopted; the world as without the start file', { reduced: true, stillOk: true }, (r, w) => check(w, adopted(r, pr) && bag(r) === bag(pr) && r.shown === pr.shown && r.shownF === pr.shownF && !r.errors.length, clean(r) || `${JSON.stringify(r.by)} shown ${r.shownF}/${pr.shownF}`));
+  await S('reduced motion: issued and adopted; the world as without the start file', { fcp: 'page', reduced: true, stillOk: true }, (r, w) => check(w, adopted(r, pr) && bag(r) === bag(pr) && r.shown === pr.shown && r.shownF === pr.shownF && !r.errors.length, clean(r) || `${JSON.stringify(r.by)} shown ${r.shownF}/${pr.shownF}`));
   // 3. a context lost before the world adopts it: the world's own lost path (F0's), then its restore, every program its own
   const fl = await run(v0, page, { lose: { at: 4, restore: 14 } });   // (F0's own: lost in the boot, restored)
   check(`F0 (no start file), lost at frame 4 and restored at 14: shown at ${fl.shownF}`, fl.shown && !fl.errors.length, clean(fl));
@@ -442,14 +501,14 @@ async function test(src, index, lib, file, log) {
   for (const rs of [3, 12]) {
     const f0 = await run(v0, page, { lose: { at: 'inWorldGetContext', restore: rs }, cap: 1500, stillOk: true });
     log(`  ..   F0's own: lost under the boot's getContext, restored at frame ${rs}: ${f0.shown ? 'shown at ' + f0.shownF : 'NOT shown (F0 itself)'}`);
-    await S(`lost right after the start file ran (its event prevented), restored at frame ${rs}: as F0's own`, { lose: { at: 'afterStart', restore: rs }, cap: 1500, stillOk: true }, (r, w) => check(w, same(r, f0) && r.prevented >= 1 && r.by.start.linkProgram === nTable, why(r) + ' | F0 ' + why(f0)));
-    await S(`lost after the world's scripts, before the boot, restored at frame ${rs}: as F0's own`, { lose: { at: 'afterScripts', restore: rs }, cap: 1500, stillOk: true }, (r, w) => check(w, same(r, f0), why(r) + ' | F0 ' + why(f0)));
+    await S(`lost right after the start file ran (its event prevented), restored at frame ${rs}: as F0's own`, { fcp: 'page', lose: { at: 'afterGo', restore: rs }, cap: 1500, stillOk: true }, (r, w) => check(w, same(r, f0) && r.prevented >= 1 && r.by.start.linkProgram === nTable, why(r) + ' | F0 ' + why(f0)));
+    await S(`lost after the world's scripts, before the boot, restored at frame ${rs}: as F0's own`, { fcp: 'page', lose: { at: 'afterScripts', restore: rs }, cap: 1500, stillOk: true }, (r, w) => check(w, same(r, f0), why(r) + ' | F0 ' + why(f0)));
   }
-  await S('lost and restored before the boot: nothing adopted, the world compiles its own, shown as without the start file', { lose: { at: 'afterStart', restore: 'afterScripts' } }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && !r.errors.length && own(r, plain) && r.by.world.deleteProgram === plain.by.world.deleteProgram, why(r)));
+  await S('lost and restored before the boot: nothing adopted, the world compiles its own, shown as without the start file', { fcp: 'page', lose: { at: 'afterGo', restore: 'afterScripts' } }, (r, w) => check(w, r.shown && r.shownF === plain.shownF && !r.errors.length && own(r, plain) && r.by.world.deleteProgram === plain.by.world.deleteProgram, why(r)));
   const f2 = await run(v0, page, { lose: { at: 2, restore: 10 } });
-  await S('lost after the world adopted it, before stage C (frame 2), restored at 10: as F0 lost there (nothing of the start file used after the loss)', { lose: { at: 2, restore: 10 } }, (r, w) => check(w, same(r, f2), why(r) + ' | F0 ' + why(f2)));
+  await S('lost after the world adopted it, before stage C (frame 2), restored at 10: as F0 lost there (nothing of the start file used after the loss)', { fcp: 'page', lose: { at: 2, restore: 10 } }, (r, w) => check(w, same(r, f2), why(r) + ' | F0 ' + why(f2)));
   const fn = await run(v0, page, { lose: { at: 'inWorldGetContext' }, stillOk: true, cap: 700 });
-  await S('lost, never restored: as F0 (the still sky, no page error)', { lose: { at: 'afterStart' }, stillOk: true, cap: 700 }, (r, w) => check(w, same(r, fn) && !r.shown, why(r) + ' | F0 ' + why(fn)));
+  await S('lost, never restored: as F0 (the still sky, no page error)', { fcp: 'page', lose: { at: 'afterGo' }, stillOk: true, cap: 700 }, (r, w) => check(w, same(r, fn) && !r.shown, why(r) + ' | F0 ' + why(fn)));
   return fails;
 }
 
@@ -463,9 +522,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(me)) {
   if (!['--build', '--check', '--test'].includes(cmd) || !src || !index || !file) die('usage: start.mjs --build|--check|--test SRC INDEX FILE [--lib DIR]', 2);
   try {
     if (cmd === '--test') { const f = await test(src, index, lib, file, log); console.log(f.length ? `start.mjs: FAIL: ${f.length} check(s)` : 'start.mjs: every check holds'); process.exit(f.length ? 1 : 0); }
-    const text = await makeStart(src, index, lib, log);
-    if (cmd === '--build') { fs.writeFileSync(file, text); console.log(`start.mjs: ${file} made (${Buffer.byteLength(text)} bytes)`); }
-    else if (fs.existsSync(file) && fs.readFileSync(file).equals(Buffer.from(text, 'utf8'))) console.log(`ok   ${file} is what tools/start.mjs makes from ${src}`);
-    else die(`::error::${file} is not what tools/start.mjs makes from ${src}`);
+    const out = await makeStart(src, index, lib, log, path.basename(file)), pairs = [[file, out.start], [path.join(path.dirname(file), out.tableName), out.table]];
+    if (cmd === '--build') for (const [f, t] of pairs) { fs.writeFileSync(f, t); console.log(`start.mjs: ${f} made (${Buffer.byteLength(t)} bytes)`); }
+    else for (const [f, t] of pairs) {
+      if (fs.existsSync(f) && fs.readFileSync(f).equals(Buffer.from(t, 'utf8'))) console.log(`ok   ${f} is what tools/start.mjs makes from ${src}`);
+      else die(`::error::${f} is not what tools/start.mjs makes from ${src}`);
+    }
   } catch (e) { die(e && e.message || String(e)); }
 }

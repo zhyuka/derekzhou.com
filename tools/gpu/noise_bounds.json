@@ -1,0 +1,58 @@
+{
+ "about": "The noise rule's bounds (gates.py; GATES.md 'The run-to-run noise'). A frame two runs disagree on passes as the GPU's run-to-run noise only if every window of the tile pyramid (the 16x16 px tiles' per-channel sums: the largest |difference| of any 1x1, 2x2, 4x4 and 8x8 window of tiles, sliding a tile at a time, and the whole frame's) is within its bound; and, where both runs kept the full frame, every pixel within 1 code and each channel's +1s and -1s within max(small, bal (n+ + n-)) of each other. Each bound is 1.5x the worst seen over F0 run against itself (gnoise.py: work/r1fix/noise1, 2026-11-04: every frame +1..+600 of the settled and plain twins three times at each of the four cases, and three 10-minute flights at d11 and n23; 36,000 frame pairs, 14,186 of them differing), rounded up. Re-derive with tools/gnoise.py OUT --write after any change to the stepping, the GPU or its driver.",
+ "calibration": "work/r1fix/noise1",
+ "worst": {
+  "1440x900@1": {
+   "t1": 11,
+   "t2": 17,
+   "t4": 27,
+   "t8": 49,
+   "frame": 150,
+   "pixmax": 1
+  },
+  "393x852@3 mobile": {
+   "t1": 12,
+   "t2": 14,
+   "t4": 23,
+   "t8": 46,
+   "frame": 158,
+   "pixmax": 1
+  }
+ },
+ "bounds": {
+  "1440x900@1": {
+   "t1": 17,
+   "t2": 26,
+   "t4": 41,
+   "t8": 74,
+   "frame": 225,
+   "small": 16
+  },
+  "393x852@3 mobile": {
+   "t1": 18,
+   "t2": 21,
+   "t4": 35,
+   "t8": 69,
+   "frame": 237,
+   "small": 16
+  },
+  "1024x768@1": {
+   "t1": 17,
+   "t2": 26,
+   "t4": 41,
+   "t8": 74,
+   "frame": 225,
+   "small": 16
+  },
+  "360x780@3 mobile": {
+   "t1": 18,
+   "t2": 21,
+   "t4": 35,
+   "t8": 69,
+   "frame": 237,
+   "small": 16
+  }
+ },
+ "bal": 0.6,
+ "lean": "How far the noise leans one way, over the calibration's 449 full-frame pairs and F0's own FLIGHT re-runs (gates/r1fix/f0_vs_f0): up to 0.415 of a channel's differing pixels (n23 flight, 208 +1s against 87 -1s), and a frame of 11 with 10 one way (d11 flight); F0 against itself failed FLIGHT on two such frames under the first cut (bal 0.25, small 10/73: d11 +27110 62/36, n23 +5970 97/185). So bal 0.6 and small 16: a spread one-signed change of over 16 px a channel fails, as does one 0.6 or more one-signed; a concentrated one is the tile bounds' (a 16x16 tile at most 17/18)."
+}

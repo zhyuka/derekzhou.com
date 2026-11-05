@@ -21,9 +21,12 @@
 #      addEventListener('pointermove' with its one removeEventListener (event names in either quotes, every
 #      listener's name a literal, no on* handler property in any of the world's files).
 #   4b The start file (start.v*.js, fast500 step 5, served as tools/start.mjs makes it): no DOM building, URL hook,
-#      storage, sound, module, worker or network; no entropy and no clock (no getRandomValues, Date, Math.random,
-#      performance.now, setTimeout or requestAnimationFrame); one listener, webglcontextlost (a context lost before the
-#      world adopts it can still be restored); nothing put on window but WORLD_START.
+#      storage, sound, module or network; one worker only, its table (start-table.vN.js, named literally, started
+#      after the first paint: the table's 1 MB read off the main thread and off the DOM); no entropy and no clock (no
+#      getRandomValues, Date, Math.random, performance.now or setTimeout; requestAnimationFrame only twice, the two
+#      frames where paint timing is missing); two listeners, webglcontextlost (a context lost before the world adopts
+#      it can still be restored) and the worker's message; nothing put on window but WORLD_START. Its table is data
+#      only: one postMessage of the sources (strings) and the two lists of numbers, then close.
 #   5  The script order: index.html loads world, the kit and the realms first, fetchpriority="high", then the wing
 #      model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
 #      fetchpriority="low", all deferred (the boot starts once the realms register); the one async script is the start
@@ -223,8 +226,12 @@ for f in world + kit + realms + wing + ink:
 
 # 4b the start file (fast500 5)
 for f in [f for f in files if re.fullmatch(r'start\.v\d+\.js', f)]:
-    c = strip_comments(re.sub(r'(?s)\n  var Q = \[\n.*?\n  \];\n', '\n  var Q = [];\n', read(f) or ''))   # (its code: the table's GLSL is the world's, held by rule 4 there)
-    if 'var Q = [];' not in c: fail('4b start', f'{f}: its table (var Q = [...]) not found as tools/start.mjs writes it')
+    c = strip_comments(read(f) or '')   # (its code; its table, the programs' GLSL, is start-table.vN.js: below)
+    tn = re.sub(r'^start\.v(\d+)\.js$', r'start-table.v\1.js', f)
+    if c.count('new Worker(') != 1 or c.count("new Worker('/" + tn + "')") != 1 or not read(tn):
+        fail('4b start', f'{f}: its one worker, its table /{tn} (named literally, shipped beside it), not as tools/start.mjs writes it')
+    if c.count('requestAnimationFrame(') != 2: fail('4b start', f'{f}: requestAnimationFrame {c.count("requestAnimationFrame(")} times (want 2: the two frames where paint timing is missing)')
+    c = c.replace("new Worker('/" + tn + "')", 'tableWorker').replace('requestAnimationFrame(', 'twoFrames(')   # (the two allowed above)
     for pat, what in [(r'createElement|innerHTML|outerHTML|appendChild|insertAdjacentHTML|insertBefore|document\.write', 'DOM building'),
                       (r'location\.|URLSearchParams|localStorage|sessionStorage|indexedDB|document\.cookie', 'a URL hook or storage'),
                       (r'new Audio\(|AudioContext|speechSynthesis', 'sound'),
@@ -232,10 +239,16 @@ for f in [f for f in files if re.fullmatch(r'start\.v\d+\.js', f)]:
                       (r'getRandomValues|Math\.random|\bDate\b|randomUUID|performance\.|setTimeout|setInterval|requestAnimationFrame|requestIdleCallback', 'entropy or a clock')]:
         for ln, t in lines(c, pat): fail('4b start', f'{f}:{ln} {what}: {t}')
     kinds = re.findall(r"""addEventListener\(\s*['"]([\w]+)['"]""", c)
-    if kinds != ['webglcontextlost'] or c.count('addEventListener(') != 1: fail('4b start', f'{f}: listeners {kinds} (exactly one, webglcontextlost)')
+    if kinds != ['webglcontextlost', 'message'] or c.count('addEventListener(') != 2: fail('4b start', f'{f}: listeners {kinds} (exactly two: webglcontextlost, then its table worker\'s message)')
     for ln, t in lines(c, r'\.on[a-z]+\s*=(?!=)'): fail('4b start', f'{f}:{ln} an on* handler property: {t}')
     for m in re.finditer(r'\bwindow\.(\w+)\s*=(?!=)', c):
         if m.group(1) != 'WORLD_START': fail('4b start', f'{f}: puts window.{m.group(1)} (only WORLD_START)')
+    # its table, the worker's script: data only (one postMessage of the sources as strings and two lists of numbers,
+    # then close)
+    t = strip_comments(re.sub(r'"(?:[^"\\\n]|\\.)*"', 'S', read(tn) or ''))   # (the strings first: the GLSL in them holds // and /*)
+    t = re.sub(r'\[[\d, ]*\]', 'L', re.sub(r'\s+', ' ', t)).replace(' ', '')
+    if not re.fullmatch(r'postMessage\(\{Q:\[S(,S)*\],T:L,TH:(L|null)\}\);close\(\);', t):
+        fail('4b start', f'{tn}: not data only (one postMessage of the sources and the lists, then close): {t[:200]}')
 
 # 7 nothing darkens, and nothing is done to the world for the words (the lift is gone, the owner's word of
 # 2026-10-21): the composite takes no words input at all (no mask, keep-off, words' box, floor, gain or toe), its
