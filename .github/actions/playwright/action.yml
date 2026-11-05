@@ -1,0 +1,22 @@
+name: Playwright (pinned)
+description: playwright-core and its headless Chromium, pinned and cached, for the gates (never part of the site). Sets PW_CORE.
+inputs:
+  version:
+    description: playwright-core's version (Apache-2.0)
+    default: '1.63.0'
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ${{ runner.temp }}/pw
+        key: pw-${{ runner.os }}-${{ inputs.version }}-shell
+    - shell: bash
+      run: |
+        if [ ! -d "$RUNNER_TEMP/pw/node_modules/playwright-core" ]; then
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pw" "playwright-core@${{ inputs.version }}"
+        fi
+        node "$RUNNER_TEMP/pw/node_modules/playwright-core/cli.js" install --only-shell chromium
+        echo "PW_CORE=$RUNNER_TEMP/pw/node_modules/playwright-core" >> "$GITHUB_ENV"
