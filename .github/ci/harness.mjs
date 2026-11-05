@@ -73,14 +73,13 @@ export async function openPage(browser, url, { vp, persona = 'generic', epoch, s
   await page.clock.install({ time: epoch - 1000 });   // (pauseAt only moves forward)
   await page.clock.pauseAt(epoch);
   await page.addInitScript(INIT({ seeds, renderer: PERSONAS[persona].renderer, census, nowebgl }));
-  // The fonts are font-display: optional, so a first load on a busy machine may miss their block period and keep the
-  // fallback. So the cache is warmed first, from a same-origin page that runs nothing (robots.txt): the fonts the
-  // home page preloads, fetched as its preloads fetch them, as a returning visitor has them.
-  await page.goto(new URL('/robots.txt', url).href, { waitUntil: 'load', timeout: 60000 });
-  await page.evaluate(async () => {
-    const html = await (await fetch('/index.html')).text();
-    const fonts = [...html.matchAll(/<link[^>]+rel="preload"[^>]+>/g)].map((m) => m[0]).filter((l) => /as="font"/.test(l)).map((l) => l.match(/href="([^"]+)"/)[1]);
-    await Promise.all(fonts.map((f) => fetch(f, { mode: 'cors', credentials: 'same-origin' }).then((r) => r.arrayBuffer())));
+  // The fonts are font-display: optional, so a load on a busy machine may miss their block period and keep the
+  // fallback for good (seen on a runner: the 404 page in Geist on one arm, in the fallback on the other). Every arm's
+  // stylesheet is answered with font-display: block instead, so every load waits for the fonts, as a returning
+  // visitor's (cached) load gets them. The same rewrite on every arm; nothing else of a response is touched.
+  await ctx.route(/\.css(\?.*)?$/, async (route) => {
+    const r = await route.fetch();
+    route.fulfill({ response: r, body: (await r.text()).replace(/font-display:\s*optional/g, 'font-display: block') });
   });
   await page.goto(url, { waitUntil: 'load', timeout: 120000 });
   await page.evaluate(() => document.fonts.ready.then(() => true));
