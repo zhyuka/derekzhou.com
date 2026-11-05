@@ -33,7 +33,7 @@ jobs:
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v3.js
+            inkbirds.v5.js
             robots.txt
             _headers
             _redirects

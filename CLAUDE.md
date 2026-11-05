@@ -23,7 +23,7 @@ site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M
 site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
 site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
 site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
-site/inkbirds.v3.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
+site/inkbirds.v5.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -436,7 +436,7 @@ world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is
 requestAnimationFrame's own.
 
-## Birds (birds.v12.js, inkbirds.v3.js and its wing model)
+## Birds (birds.v12.js, inkbirds.v5.js and its wing model)
 
 TODAY'S BIRDS (birds.v12.js, which is birds.v10.js with the hand-over):
 twelve inline SVGs at the end of index.html, lent to flights, each bird
@@ -462,7 +462,7 @@ the world giving up, forced colours) they plan again. The file's header
 is its full design, its research and its numbers (as of birds.v10.js; the
 hand-over and its 0.5 s fade are tagged inline). pointer-events: none.
 
-THE INK BIRDS (inkbirds.v3.js, round 3): the living sky. The birds are
+THE INK BIRDS (inkbirds.v5.js, round 3): the living sky. The birds are
 no longer flights planned to cross the window: every flock is an animal
 in the 3D world on its own business, and the window shows what is in
 front of the camera. Geese, ibis and gulls commute on the evening's line
@@ -492,9 +492,10 @@ crossing the window's edge or coming out of the distance (a fade by
 distance alone), and goes the same ways. Where the view brings the words
 across a flock's way, the words' keep-off hides its ink where they stand.
 The perched birds (guests): now and then a gull flies in (round the letters, never across a
-stroke), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
-line (never an underline), sits in the owner's perch A (the folded M seen side-on, upright),
-never still for long, and leaps off and away. No fades: it comes in from beyond the window's
+stroke), lands on the D's top or the k's or u's exit stroke, sits in the owner's perch A (the folded M
+seen side-on, upright at about 45 deg, lit to the words' white while it sits: only ever lighter),
+never still for long, and leaps off and away. Not past LinkedIn's end: at link size on a phone it
+read as a grey smudge (the owner's iPhone, 2026-11-05). No fades: it comes in from beyond the window's
 edge and leaves out of view. The pointer's perch needs the hover listener the world does not
 have, so it never comes. Each click or tap on the page that is not a drag and not on a link
 starts a gull at that point (the drag's own pointerdown/up: no listener added) that springs off
@@ -563,7 +564,7 @@ leaves the order as served):
 6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
    labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred, in
    that order; each puts its one global on self).
-7. inkbirds.v3.js — the ink birds (deferred, last: the boot starts once
+7. inkbirds.v5.js — the ink birds (deferred, last: the boot starts once
    it has registered).
 
 Progressive enhancement throughout: with JS off, the page is the
@@ -638,7 +639,7 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 first visit pays for it).
 
 The world's scripts are not on the path to the first paint (deferred,
-not preloaded): world.v7.js 739 KB (247 KB gzipped), inkbirds.v3.js 472 KB
+not preloaded): world.v7.js 739 KB (247 KB gzipped), inkbirds.v5.js 472 KB
 (160 KB), its wing model 181 KB (46 KB), today's birds 104 KB, the kits 80 KB.
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
@@ -702,7 +703,7 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, birds.v12.js, world.v7.js, the kits, the wing model, inkbirds.v3.js, plus
+hour.v3.js, birds.v12.js, world.v7.js, the kits, the wing model, inkbirds.v5.js, plus
 style.v15.css for cursors — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
