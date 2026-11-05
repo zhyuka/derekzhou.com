@@ -55,30 +55,15 @@
     <noscript><p class="noscript-email">hello&#64;derekzhou&#46;com</p></noscript>
   </footer>
 
-  <!-- Up to twelve birds, drawn and flown by the birds' script (hidden until they fly). -->
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-
   <!-- Every script carries data-cfasync="false" (Rocket Loader leaves it as served). Deferred, in order: the world, the
        realms' kit and realms first, fetched at high priority (the boot starts a frame after the realms register); then
-       today's birds and the ink birds, fetched at low priority after the world's bytes (today's birds fly over the
-       still sky if they come before the world shows; the ink birds take the sky whenever they come). -->
+       the ink birds' wing model and the ink birds, fetched at low priority after the world's bytes (the ink birds take
+       the sky whenever they come). -->
   <script data-cfasync="false" src="/site.js"></script>
   <script data-cfasync="false" src="/world.v8.js" defer fetchpriority="high"></script>
   <script data-cfasync="false" src="/realm-kit.v2.js" defer fetchpriority="high"></script>
   <script data-cfasync="false" src="/realm-dunes.v4.js" defer fetchpriority="high"></script>
   <script data-cfasync="false" src="/realm-above.v3.js" defer fetchpriority="high"></script>
-  <script data-cfasync="false" src="/birds.v13.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/facetform.v1.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/facetpose.v1.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/wingmodel.v1.js" defer fetchpriority="low"></script>

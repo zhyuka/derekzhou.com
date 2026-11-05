@@ -24,8 +24,8 @@
 #      storage, sound, module, worker or network; no entropy and no clock (no getRandomValues, Date, Math.random,
 #      performance.now, setTimeout or requestAnimationFrame); one listener, webglcontextlost (a context lost before the
 #      world adopts it can still be restored); nothing put on window but WORLD_START.
-#   5  The script order: index.html loads world, the kit and the realms first, fetchpriority="high", then birds.v*.js,
-#      the wing model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
+#   5  The script order: index.html loads world, the kit and the realms first, fetchpriority="high", then the wing
+#      model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
 #      fetchpriority="low", all deferred (the boot starts once the realms register); the one async script is the start
 #      file, fetchpriority="high", the first script after the canvas.
 #   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
@@ -304,16 +304,16 @@ order = re.findall(r'<script\b[^>]*src="/?([^"]+)"[^>]*>', s)
 deferred = [x for x in re.findall(r'<script\b[^>]*>', s) if 'defer' in x]
 names = [re.search(r'src="/?([^"]+)"', x).group(1) for x in deferred if 'src=' in x]
 def kind(n):
-    for k, p in (('birds', r'birds\.v\d+\.js'), ('world', r'world[\w-]*\.v\d+\.js'), ('kit', r'realm-kit\.v\d+\.js'), ('realm', r'realm-\w+\.v\d+\.js'), ('wing', r'(%s)\.v\d+\.js' % '|'.join(WING)), ('ink', r'inkbirds\.v\d+\.js'), ('diag', r'diag\.v\d+\.js')):
+    for k, p in (('world', r'world[\w-]*\.v\d+\.js'), ('kit', r'realm-kit\.v\d+\.js'), ('realm', r'realm-\w+\.v\d+\.js'), ('wing', r'(%s)\.v\d+\.js' % '|'.join(WING)), ('ink', r'inkbirds\.v\d+\.js'), ('diag', r'diag\.v\d+\.js')):
         if re.fullmatch(p, n): return k
     return 'other'
 ks = [kind(n) for n in names if kind(n) != 'diag']
 if world:
-    want = ['world', 'kit'] + ['realm'] * max(1, ks.count('realm')) + ['birds'] + ['wing'] * len(WING) + ['ink']
-    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want world, kit, the realms, then birds, the wing model and the ink birds last')
+    want = ['world', 'kit'] + ['realm'] * max(1, ks.count('realm')) + ['wing'] * len(WING) + ['ink']
+    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want world, kit, the realms, then the wing model and the ink birds last')
     wn = [re.sub(r'\.v\d+\.js$', '', n) for n in names if kind(n) == 'wing']
     if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
-    PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'birds': 'low', 'wing': 'low', 'ink': 'low'}
+    PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'wing': 'low', 'ink': 'low'}
     for tag in deferred:
         m5 = re.search(r'src="/?([^"]+)"', tag)
         if not m5 or kind(m5.group(1)) not in PRI: continue

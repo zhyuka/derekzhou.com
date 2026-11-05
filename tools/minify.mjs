@@ -11,7 +11,7 @@
 // from SITE), run in a fake browser; CI fails unless the committed file is exactly that (and unless one table of
 // programs serves every device and visit the start file serves).
 //
-// The scripts are the six the world's page loads, readable as strip.py ships them (world, inkbirds, birds, realm-kit,
+// The scripts are the five the world's page loads, readable as strip.py ships them (world, inkbirds, realm-kit,
 // realm-dunes, realm-above), under their dev names (world.js) or their served names (world.v3.js); any other file in
 // the folder is left alone. Each is:
 //   1. (world only, step 4b) cut: the record and the switches (diag v2's engine side) and the dev harness are taken
@@ -22,8 +22,8 @@
 //      assigned again: checked) lose their declarations and become the constant false (terser's global_defs), so what
 //      they guard (the record's hooks, the harness's branches) is dropped as dead code.
 //   2. minified by terser (pinned 5.51.2: the TERSER environment variable names its package folder, else node's own
-//      resolution from here): compress and mangle, never the top level (the scripts share the page's globals: WORLD,
-//      skyAir), Safari 10's mangler and printer workarounds on, the original quotes kept, ES5 output rules (no syntax
+//      resolution from here): compress and mangle, never the top level (the scripts share the page's global WORLD),
+//      Safari 10's mangler and printer workarounds on, the original quotes kept, ES5 output rules (no syntax
 //      the source does not already use). A string's value never changes: a template literal without substitutions
 //      is printed as a string (its newlines escaped: the same characters), a constant concatenation is evaluated
 //      exactly; the GLSL guard (glsl_guard.js) proves every shader source byte for byte the same at run time. Every
@@ -41,7 +41,7 @@ import { createRequire } from 'module';
 import { pathToFileURL, fileURLToPath } from 'url';
 
 const TERSER_VERSION = '5.51.2';
-const STEMS = ['world', 'inkbirds', 'birds', 'realm-kit', 'realm-dunes', 'realm-above'];
+const STEMS = ['world', 'inkbirds', 'realm-kit', 'realm-dunes', 'realm-above'];
 const NAME = new RegExp('^(' + STEMS.join('|') + ')(\\.v\\d+)?\\.js$');
 
 function die(msg) { console.error('minify: FAIL: ' + msg); process.exit(1); }

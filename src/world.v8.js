@@ -36,9 +36,8 @@
    read); randomness is one draw from the crypto API above INIT-END, split into splitmix32 streams and integer hashes.
 
    The shipped page has no harness: of the attributes on <html> the world reads only data-sky and data-sky-at (the
-   hour's script writes them), it puts nothing on window but WORLD (the realms' and the ink birds' registry) and
-   skyAir (the hand-over with today's birds), and it keeps no record (the switches stay at their defaults; the record's
-   code is unreachable). The page's one clock is clockNow(): read for budgets only, never for what is drawn. */
+   hour's script writes them), it puts nothing on window but WORLD (the realms' and the ink birds' registry), and it keeps no record (the switches stay
+   at their defaults; the record's code is unreachable). The page's one clock is clockNow(): read for budgets only, never for what is drawn. */
 (function () {
   'use strict';
   /* the one clock: time budgets and the record, never content (CI: performance.now exactly once, here) */
@@ -111,10 +110,8 @@
   function lch(L, C, h, k) { var r = h * Math.PI / 180, c = oklab2lin(L, C * Math.cos(r), C * Math.sin(r)); k = k === undefined ? 1 : k; return [Math.max(c[0], 0) * k, Math.max(c[1], 0) * k, Math.max(c[2], 0) * k]; }
   function lum(c) { return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
   function lab(L, C, h) { var r = h * Math.PI / 180; return [L, C * Math.cos(r), C * Math.sin(r)]; }
-  function hexLum(h) { return lum(hex(h)); }
 
   /* ---------------------------------------------------------------- small vector maths (build time) */
-  function v3(x, y, z) { return [x, y, z]; }
   function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
   function sub3(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
   function mul(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
@@ -778,7 +775,6 @@ vec3 oklab2lin(vec3 c) {
     gl.deleteShader(P.v); gl.deleteShader(P.f); P.v = P.f = null;
     return true;
   }
-  function freeProg(P) { if (P && P.p) { gl.deleteProgram(P.p); P.p = null; var i = PROGS.indexOf(P); if (i >= 0) PROGS.splice(i, 1); } }
 
   /* ---------------------------------------------------------------- render targets (made at full size, used in part) */
   function tex2d(w, h, ifmt, fmt, type, filter, data) {
@@ -2090,7 +2086,7 @@ vec3 oklab2lin(vec3 c) {
     if (REC) REC.regs.push(['kit ' + (def && def.id), +clockNow().toFixed(1)]);   // (E0: each kit file's evaluation ends with its registration)
     if (!def || !def.id || KITS[def.id]) return; KITS[def.id] = def;
     if (KITS.dunes && KITS.above && !REALMS.world) { REALMS.world = worldDef(KITS.dunes, KITS.above); ORDER.push('world'); }
-    if (REALMS.world && !STILLMODE) bootSoon();   // (fast500 4a: the boot starts a frame after the realms have registered; today's birds and the ink birds load last, at low priority, and may come before the boot, during it, after the world shows or never: birdsLate, skyAir.handed. The harness's stills wait for every script, as before)
+    if (REALMS.world && !STILLMODE) bootSoon();   // (fast500 4a: the boot starts a frame after the realms have registered; the ink birds load last, at low priority, and may come before the boot, during it, after the world shows or never: birdsLate. The harness's stills wait for every script, as before)
   }
 
   /* ---------------------------------------------------------------- the maps and the director */
@@ -2581,42 +2577,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     if (k) GATE.kept++; else GATE.dropped++;
     return k;
   }
-  /* (world6 fix, the judges' defect 1) the director's corridor: what it settles ahead keeps every cloud body's visible
-     body (its lobes, their billows) CORR_W m clear of the held line ahead, and the floating isles' rock CORR_WS m, where
-     they would stand within the heights the flight keeps there (camBandAt: the camera's ground from the maps, its
-     clearance from the cloud weight, CORR_V m either way). Judged when a cell's pieces are resolved (3.8-5.2 km out,
-     never in view), from the camera's line then; a turn later is met by the slip and the mist's fade, never a pop.
-     It composes, never steers: the heading is untouched */
-  var CORR_W = 100, CORR_WS = 60, CORR_BACK = 150, CORR_V = 60, CORR = { bodies: 0, items: 0, forms: 0 }, CQ = new Float64Array(4), CB = new Float64Array(2);
-  function corridorNow() {
-    if (SIM.V) { CQ[0] = CS.x; CQ[1] = CS.z; CQ[2] = Math.sin(CS.psi); CQ[3] = Math.cos(CS.psi); return CQ; }
-    var dp = DEVMODE && POSE, h = dp ? POSE[2] * DEG : heading0();
-    CQ[0] = dp ? POSE[0] : 0; CQ[1] = dp ? POSE[1] : 0; CQ[2] = Math.sin(h); CQ[3] = Math.cos(h); return CQ;
-  }
-  function camBandAt(x, z, ground) {
-    var wc = kwAt(x, z)[3], g = Math.max(seaBaseAt(x, z) + 40 * (0.4 + 0.6 * wc), ground === undefined ? -1e9 : ground);
-    CB[0] = g + 7 - CORR_V; CB[1] = g + 32 + 40 + CORR_V; return CB;   // (world6 step B: the one clearance band, 14-32 m, and the spring's overshoot)
-  }
-  function inCorridor(Q, x, y, z, R, w, ground) {
-    var dx = x - Q[0], dz = z - Q[1], s = dx * Q[2] + dz * Q[3], l = -dx * Q[3] + dz * Q[2];
-    if (s < -R - CORR_BACK || Math.abs(l) >= R + w) return false;
-    var b = camBandAt(x, z, ground);
-    return y + R > b[0] && y - R < b[1];
-  }
-  function corridorBody(Q, PF, i0, i1, ground) {   // a cloud body's lobes (x, y, z, R; 12 floats each), billows 0.3 R
-    for (var i = i0; i < i1; i++) { var a = PF.a, R = a[i * 12 + 3] * 1.3; if (inCorridor(Q, a[i * 12], a[i * 12 + 1], a[i * 12 + 2], R, CORR_W, ground)) return true; }
-    return false;
-  }
   var KWP = [0, 0];
-  function corridorForm(Q, it) {   // a great formation's solid (and its talus foot), in plan: CORR_WS m clear of the held line
-    var R = Math.max(it.solid ? it.solid[0] : 0, it.foot2 ? it.foot2[0] : 0), dx = it.x - Q[0], dz = it.z - Q[1], s = dx * Q[2] + dz * Q[3], l = -dx * Q[3] + dz * Q[2];
-    return s > -R - CORR_BACK && Math.abs(l) < R + CORR_WS;
-  }
-  function corridorItem(Q, it) {   // a floating piece's spheres (dx, dy, dz, r over its place and seat)
-    var S = it.spheres; if (!S) return false;
-    for (var i = 0; i < S.length; i += 4) if (inCorridor(Q, it.x + S[i], it.y + S[i + 1], it.z + S[i + 2], S[i + 3], CORR_WS, it.landMax)) return true;
-    return false;
-  }
   /* (round 3) the owner, asked to turn the rays off but keep the storks and gulls circling over temples and islands: "yes".
      So the switch drops the rays; the realms' bird flocks stay as the places the ink thermals keep, never drawn.
      (life fix) the world's own flyers (the white flocks and the rays, a tail trailing) off: the ink birds are the sky's
@@ -2676,10 +2637,9 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   function worldLights(V) {
     var raw = V.lightRaw, rawB = V.def.lightB(RNG(subseed(V.seed, 21)), V);
     var LB = prepOne(Object.assign({}, rawB)); LB.sunDir = V.light.sunDir;
-    V.LA = [V.light, LB]; V.areaNames = ['dunes', 'cloud sea'];
+    V.LA = [V.light, LB]; V.areaNames = ['dunes', 'cloud sea'];   // (the two kits' lights; skyStep replaces them, and their OKLab sets with them, with the two skies' before blendSky reads them)
     var live = prepOne(Object.assign({}, raw)); live.sunDir = V.light.sunDir; V.L = live;
-    V.LAlab = V.LA.map(function (A) { var o = {}; LKC.forEach(function (k) { o[k] = lin2lab(A[k]); }); o.skyFlat = new Float32Array(18); for (var i = 0; i < 6; i++) { var c = lin2lab([A.skyFlat[i * 3], A.skyFlat[i * 3 + 1], A.skyFlat[i * 3 + 2]]); o.skyFlat[i * 3] = c[0]; o.skyFlat[i * 3 + 1] = c[1]; o.skyFlat[i * 3 + 2] = c[2]; } o.fogB = lin2lab([A.fogBf[0], A.fogBf[1], A.fogBf[2]]); return o; });
-    V.aw = new Float32Array(2); V.awT = new Float32Array(2); V.awB = new Float32Array([-1, -1]); V.aw[0] = 1;
+    V.aw = new Float32Array(2); V.aw[0] = 1;
     V.lightRawB = rawB; V.paramsBase = new Float32Array(V.paramsFlat);   // (tod: the skies are laid over the kits' raw lights and the kits' own paint)
   }
   function climateLight(V) {
@@ -3978,8 +3938,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     }
     C.job = null; C.alist = null;
     function yOf(o) { return o.y !== undefined ? o.y : o.ref ? o.ref.seat + (o.dy || 0) : o.seat; }
-    // (world6 fix) the cloud sea's pieces only where its sea is up about them (aboveKeep), and the director's corridor
-    // kept clear of the floating isles (corridorItem)
+    // (world6 fix) the cloud sea's pieces only where its sea is up about them (aboveKeep)
     // (world6 step B fix, defects 7 and 14: no held-line corridor: what is kept is the place's, whatever line is flown;
     // the floating pieces raised over the flight band instead)
     if (C.items.length) C.items = C.items.filter(function (it) { if (it.form) return true; if (!it.lq) return true; return aboveKeep(it); });
@@ -4003,7 +3962,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     if (C.clouds.length) {
       var PF = new Puffs(), bodyCl = [];
       for (i = 0; i < C.clouds.length; i++) { var cl = C.clouds[i], nb0 = PF.bodies.length; cl.base = yOf(cl); V.def.cloud(cl, PF, RNG(cl.seed || (C.key + i * 7919) >>> 0), KITAPI); for (j = nb0; j < PF.bodies.length; j++) bodyCl[j] = cl; }
-      // each body kept (not empty; out of the director's corridor), its volume prepared and its cores obstacles; its
+      // each body kept (not empty), its volume prepared and its cores obstacles; its
       // visible body (its lobes) kept for the slip (a cost) and the mist about the eye (mistK), in the volumes' order
       var soft = [], softB = [];
       for (var bi = 0; bi < PF.bodies.length; bi++) {
@@ -4487,18 +4446,6 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
       cellNow(C); BOOT.guarded++;
     }
   }
-  /* how much of a visit is ready about a point: every cell within its scale's `frac` of the radius done */
-  function cellsReady(V, frac) {
-    if (!V.cellList) return false;
-    var scales = V.def.layout.scales;
-    for (var i = 0; i < V.cellList.length; i++) { var C = V.cellList[i]; if (C.st < 4 && C.prio < frac) return false; }
-    return true;
-  }
-  function volBytes() {   // dev and the cap: the cloud volumes' memory over the visits alive
-    var b = 0;
-    J.visits.forEach(function (V) { if (V.cellList) V.cellList.forEach(function (C) { for (var i = 0; i < C.vols.length; i++) b += C.vols[i].out.bytes; }); });
-    return b;
-  }
   /* creatures: a flock's uniforms from its description: { kind: 'bird' | 'ray' | 'moth' | 'jelly' | 'cap', n (<= 32), at,
      u0, drift [x, z] (m/s), orbit (m), wheel (rad/s), size (m), flap (Hz: the beat, the flutter, a jelly's pulse),
      spread (m: heights), lit, shade (colours), glow ([r, g, b], linear HDR: its own light; moths, jellies, caps),
@@ -4594,8 +4541,6 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     S.st = 0; S.used = 0; S.ents.length = 0;
   }
   function rbDeliver(e) { if (e.k === 'probe') probeLand(e); else if (e.k === 'ground') groundHalf(e); else if (e.k === 'words') wordsGroundDeliver(e); else if (e.k === 'birds') birdsGroundDeliver(e); }
-  /* (dev) every pending fence waited for and its slot delivered (a film's frame; the harness's still) */
-  function rbDrain() { var guard = 0, fx = RB.fix; RB.fix = false; gl.finish(); while (RB.fences.length && guard++ < 16) rbPoll(); RB.fix = fx; }
 
   /* ---------------------------------------------------------------- probes: the realm's ground, read back */
   /* The realm's height function evaluated at points on the GPU (the same function the land is drawn with), packed into
@@ -4826,7 +4771,6 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
       e[q] = v;
     }
   }
-  function groundRawAt(V, x, z) { return groundAt(V, x, z, false, true); }
   /* (world6 step B fix, defect 7) the formations in the envelope too: each solid standing on the land (a cell's
      cylinder: a mesa, a shard, a slab, a ruin's wall, a talus foot) raises the surface flown by its own cone, its top
      plus SOL_M less ENV_K per metre beyond its radius, worked analytically from the solids within SOL_R of the camera
@@ -7542,24 +7486,6 @@ void main() {
     l = l * l * l; m = m * m * m; s = s * s * s;
     out[o] = Math.max(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, 0); out[o + 1] = Math.max(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, 0); out[o + 2] = Math.max(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s, 0);
   }
-  function blendLight(V) {
-    var w = V.aw, n = w.length, i, k, j, same = true;
-    for (i = 0; i < n; i++) if (Math.abs(w[i] - V.awB[i]) > 1e-4) same = false;
-    if (same) return;
-    for (i = 0; i < n; i++) V.awB[i] = w[i];
-    var L = V.L, A = V.LA, B = V.LAlab;
-    for (j = 0; j < LKC.length; j++) {
-      var key = LKC[j], a0 = 0, a1 = 0, a2 = 0;
-      for (i = 0; i < n; i++) { var c = B[i][key]; a0 += c[0] * w[i]; a1 += c[1] * w[i]; a2 += c[2] * w[i]; }
-      labTo(L[key], 0, a0, a1, a2);
-    }
-    for (k = 0; k < 6; k++) { var s0 = 0, s1 = 0, s2 = 0; for (i = 0; i < n; i++) { var sf = B[i].skyFlat; s0 += sf[k * 3] * w[i]; s1 += sf[k * 3 + 1] * w[i]; s2 += sf[k * 3 + 2] * w[i]; } labTo(L.skyFlat, k * 3, s0, s1, s2); }
-    var f0 = 0, f1 = 0, f2 = 0, f3 = 0; for (i = 0; i < n; i++) { f0 += B[i].fogB[0] * w[i]; f1 += B[i].fogB[1] * w[i]; f2 += B[i].fogB[2] * w[i]; f3 += A[i].fogBf[3] * w[i]; } labTo(L.fogBf, 0, f0, f1, f2); L.fogBf[3] = f3;
-    for (j = 0; j < LKN.length; j++) { var kn = LKN[j], dst = L[kn]; for (k = 0; k < dst.length; k++) { var v = 0; for (i = 0; i < n; i++) v += A[i][kn][k] * w[i]; dst[k] = v; } }
-    for (j = 0; j < LKS.length; j++) { var ks = LKS[j], vs = 0; for (i = 0; i < n; i++) vs += A[i][ks] * w[i]; L[ks] = vs; }
-    var wl = Math.sqrt(L.windDir[0] * L.windDir[0] + L.windDir[1] * L.windDir[1]) || 1;
-    L.wet[0] = L.rain; L.wet[1] = L.ripple; L.wet[2] = L.windDir[0] / wl; L.wet[3] = L.windDir[1] / wl;
-  }
   /* the composite's inputs (world6: the world's live light; there is no junction to ease across) */
   var EL = { bloom: new Float32Array(3), shaftC: new Float32Array(3), lift: new Float32Array(3), gain: new Float32Array(3), exposure: 1, sat: 1 };
   var SIMNIGHT = false;   // (birds3d, dev: __world.set({ simnight: 1 }); the paper birds' night look over a SIMULATED night)
@@ -7578,7 +7504,7 @@ void main() {
 
   /* ---------------------------------------------------------------- targets for the window */
   /* the world is drawn at OUT (at most 1.25 device px a CSS px); the canvas itself is FULL, the device's own
-     resolution (round 2: the birds' ink is drawn at it, crisp as the live site's SVG strokes; the world's finished
+     resolution (round 2: the birds' ink is drawn at it, crisp at the device's own px; the world's finished
      frame is put up to it with one bilinear pass, as the browser itself upscaled it before) */
   /* (round 3) the canvas at most FULL_DPR device px a CSS px and FULL_PX in all; where that is the world's own size
      (DIRECT: a window at 1 or 1.25 device px a CSS px) the composite is drawn straight onto it, and TG.win holds only
@@ -7790,7 +7716,7 @@ void main() {
 
   /* ---------------------------------------------------------------- the words */
   var WORDS = new Float32Array(20), WORDCOL = null, KEEPDIRTY = true, WLINE = [];   // ((line2 fix) WLINE: the line's own line boxes, canvas px (x0, y0, x1, y1 each), one a line: the client rects of the span its text is set in; [] none known)
-  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.bio') || document.querySelector('.words'),   /* (line2) the old bio's slot: the live page's line under the name (the ink birds' keep-off covers it; the words' read takes it as block 3) */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
+  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* (line2) the old bio's slot: the page's line under the name (the ink birds' keep-off covers it; the words' read takes it as block 3) */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
   /* (E0) the name is lettered (an inline SVG in the h1, no bio): its box is the ink's own, the path's bounds in the
      drawing put where the svg stands (read once, then only scaled); without it, the h1's box */
   var nameSvg = wordEls.name ? wordEls.name.querySelector('svg') : null, namePath = nameSvg ? nameSvg.querySelector('path') : null, NAMEBB = null;
@@ -8588,12 +8514,12 @@ void main() {
       if (!(SHIST.ok && Math.abs(tH2 - SHIST.t) <= 1e-4 && SHIST.w === W && SHIST.h === H)) { SHIST.vp.set(VP); SHIST.cam[0] = CAM.pos[0]; SHIST.cam[1] = CAM.pos[1]; SHIST.cam[2] = CAM.pos[2]; SHIST.t = tH2; SHIST.k = V.k; SHIST.w = W; SHIST.h = H; SHIST.ok = true; }
     }
   }
-  /* (E0 Fix 2) the last frame put up again as it was, for reduced motion's still while the canvas dissolves in (the
-     canvas must be drawn every frame of the dissolve: WebKit, its buffer not preserved, put up a cleared one): nothing
+  /* (E0 Fix 2) the last frame put up again as it was, for reduced motion's still in its first tenth of a second (the
+     canvas must be drawn every frame of it: WebKit, its buffer not preserved, put up a cleared one): nothing
      else has drawn since, so the composite's inputs and its program's uniforms are as the frame left them, and the
      window is composited again (or its copy put up again) with the birds' ink over it: a pass or two a frame, not the
-     whole scene (on a CPU renderer the whole scene again each frame held the page's frames back for seconds, and the
-     resting SVG birds' fade with them). False when the targets or the words' mask changed since: drawn whole instead */
+     whole scene (on a CPU renderer the whole scene again each frame held the page's frames back for seconds). False
+     when the targets or the words' mask changed since: drawn whole instead */
   var REPTG = null;
   function represent() {
     if (LOST || DEAD || gl.isContextLost() || !TG || REPTG !== TG || KEEPDIRTY || !LASTE) return false;
@@ -8824,7 +8750,7 @@ void main() {
     var ok = simStep();
     if (ok) {   // the camera's travel (for the cloud it is in: continuous across the change of realm, wrapped on the noise's period)
       var V = SIM.V, v = V.speed;
-      if (BIRDS && SW.birds && (STILLMODE || (SHOWNT >= 0 && SIM.t >= SHOWNT + DISSOLVE_S && lateBirds()))) { BIRDB.at = clockNow(); BIRDS.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; }   // (the birds' clock and planning: a fixed step, as the flight's; timed for their budget. E0: from the first frame shown, DISSOLVE_S 0 (fast500: no dissolve), when today's SVG birds have handed over the sky)
+      if (BIRDS && SW.birds && (STILLMODE || (SHOWNT >= 0 && SIM.t >= SHOWNT && lateBirds()))) { BIRDB.at = clockNow(); BIRDS.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; }   // (the birds' clock and planning: a fixed step, as the flight's; timed for their budget. E0: from the first frame shown)
     }
     return ok;
   }
@@ -8907,34 +8833,8 @@ void main() {
 
   /* ---------------------------------------------------------------- the loop, the governor, the device tier */
   var PREP0 = 0;   // (round 3: the frame the reduced motion's still sky began planning on)
-  var STILLTS = -1;   // (Fix 2: the rAF time the reduced motion's still was first drawn; it is drawn again for DISSOLVE_S + 0.1 s, a tenth of a second now: WebKit's unpreserved buffer)
-  /* (E0, 12.5) today's SVG birds (birds.js; in production birds.v11.js, the first deferred script) fly over the still sky while the world boots.
-     skyAir.handover tells them who has the sky: 0 theirs; 1 the world's (told in the frame the canvas first shows,
-     their sky cleared in that call: fast500, no fades, so the show is a cut and no 2D bird is drawn over the world);
-     2 nobody's (the record's control tail). The ink birds step from the first frame shown (DISSOLVE_S 0: there is no
-     dissolve), so the first ink flight is planned in the next frame. A lost context, the world giving up and forced colours hand the sky back (0). skyAir.aim is
-     today's sky's hook for the birds' camera: the world has its own, so it is a no-op here. */
-  var SKYAIR = window.skyAir || (window.skyAir = {});
-  if (typeof SKYAIR.aim !== 'function') SKYAIR.aim = function () {};
-  SKYAIR.handover = 0;
-  /* (fast500 4a) today's birds' script now loads after the world's (fetchpriority low), so the sky may already be the
-     world's when it runs: when it gives its hook (skyAir.handed) and the sky is not theirs, they are told at once, in a
-     microtask after their script's top level (their first sky only planned then, nothing drawn), so they hand it over
-     at the start of their first frame and no flight of theirs crosses the shown world. A later hand-over tells them as
-     before (handTo) */
-  (function () {
-    var h = SKYAIR.handed;
-    try {
-      Object.defineProperty(SKYAIR, 'handed', { configurable: true, enumerable: true, get: function () { return h; },
-        set: function (f) { h = f; if (typeof f === 'function' && (SKYAIR.handover | 0)) Promise.resolve().then(function () { var v = SKYAIR.handover | 0; if (v && h === f) { try { f(v); } catch (e) { /* theirs */ } } }); } });
-    } catch (e) { /* (a sealed object: told at the next hand-over) */ }
-  })();
-  var SHOWNT = -1, DISSOLVE_S = 0, HASSVG = !!document.querySelector('svg.bird');
-  var SKYTS = -1;   // (fast500 4a: the world's latest animation frame's time; -1 before its first)
-  /* (fast500, no fades) the sky is handed to the world in the frame the canvas shows, never a frame ahead: today's birds
-     clear their sky in the call, so stage H's word (the frame before the show: its line, gsettle.py's anchor, kept) is
-     not passed on, and render()'s, the canvas just shown, is (with F0's word a frame ahead the sky stood empty a frame) */
-  function handTo(v) { if (v === 1 && !shown) return; if (v !== SKYAIR.handover) SKYAIR.handAt = SKYTS; SKYAIR.handover = v; if (typeof SKYAIR.handed === 'function') { try { SKYAIR.handed(v); } catch (e) { /* theirs */ } } }   // (fast500 4a: handAt, the animation frame a new hand-over was first told in (the show's own tell repeats stage H's and keeps its frame): today's birds, whose frame now runs after the world's, take it at the start of their next, as when theirs ran first)
+  var STILLTS = -1;   // (Fix 2: the rAF time the reduced motion's still was first drawn; it is drawn again for a tenth of a second: WebKit's unpreserved buffer)
+  var SHOWNT = -1;
   var TIER = 1, CLK = new Float64Array([0, -1]), running = false, rafId = 0, shown = false, NEEDSIZE = false, SKYMARK = null, DEAD = false, GAVEUP = false, READY = false, FRAMEN = 0;
   /* the governor: every frame's time in a ring (two seconds); each second, the median. Never asked to beat 60 Hz.
      Three slow seconds in a row (median over 1.35 frames of the period) step the render scale down a rung; three
@@ -8993,22 +8893,22 @@ void main() {
      forced colours, the record's quiet tail) the realm it was drawing is marked, once, so the words the stylesheet then
      gives (the realm's, dark) are the words that were showing */
   function markStill() { if (SKYMARK && root.getAttribute('data-sky') !== SKYMARK) root.setAttribute('data-sky', SKYMARK); skyThemeStill(SKYMARK || root.getAttribute('data-sky')); }   // (tod: the browser's bar takes the still's top; never shown, the hour's group's still)
-  function giveUp() { DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); handTo(0); recMark('gave up'); }   // (the sky handed back to today's SVG birds)
+  function giveUp() { DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('gave up'); }
   /* (E1) the boot declines (stage G's floor not met, a first frame doubted twice, a broken engine program): the canvas
-     never shows; the hour's still sky stays, with today's SVG birds (they kept the sky all along) */
-  function decline(why) { DEAD = true; GAVEUP = true; BOOT.declined = why; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); handTo(0); recMark('declined: ' + why); fail('declined: ' + why); }
+     never shows; the hour's still sky stays */
+  function decline(why) { DEAD = true; GAVEUP = true; BOOT.declined = why; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('declined: ' + why); fail('declined: ' + why); }
   function render() {
     if (LOST || DEAD || gl.isContextLost() || !TG) return false;
     var V = SIM.V; if (!V || !visitBuilt(V) || !V.def.P || V.def.P.st !== 2) return false;
     TIER = RUNGS[RUNG] < 0.65 * QK ? 0.6 : 1;   // (stage2 quality Q3, review 1: keyed on today's size, QK; the rungs are rounded to 4 places)
     var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
-    setWords(INK);   // (stage2: the words are always light: the root's text and selection, today's SVG birds; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
+    setWords(INK);   // (stage2: the words are always light: the root's text and selection; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
     if (!shown) inkRestart(true);   // (ink fix: the words' reading begins with the first frame shown: the boot's hidden check frame (stage H), a restored world's too, is never taken)
     lateStep(); lateWarm();   // (fast500 step 9: before the frame, so its composite covers the canvas's warm corner)
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
     skyTheme(false);   // (tod: the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; handTo(1); recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; }   // (ink fix: AG.w0, the moment the canvas shows: the take waits INK_TAKE s from it, however long the first frame took)   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole; today's SVG birds cleared in handTo(1), in this same frame, 12.5)
+    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; }   // (ink fix: AG.w0, the moment the canvas shows: the take waits INK_TAKE s from it, however long the first frame took)   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
@@ -9016,17 +8916,8 @@ void main() {
   function heading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
 
   /* ---------------------------------------------------------------- the boot, staged (E1, design-v5 14) */
-  /* Everything behind the still sky, with the canvas hidden and today's SVG birds flying, each frame's slice of CPU work
-     at most BOOT_MS (8 ms) at unit granularity, so a tap on a link always works and the birds' frames run.
-     (Fix 3 of round E1) Nothing waits for today's birds but the steps that are heavy on the main thread: Fix 2's yield
-     (the boot doing nothing at all until a bird of their first flight was in view, up to 3 s) brought back E0's wait
-     (the owner's E0 record: 1.9 s) and put D8 out of reach before B began; and it did not shield the birds from the
-     rest. Fix 3 began B and C at once and made only the first-use draws and stage G's trials wait (at most 1 s each);
-     its first frames held today's birds' clock, and their first bird came 0.35-1.5 s late (B5). (E1.1) The boot begins
-     (A) once a bird of today's first flight is in view, or at once without SVG birds, under reduced motion or forced
-     colours (bootMayStart, w13_dev.js; a 2.5 s safety net), and nothing in it waits after that. The record keeps the
-     start's wait (rec.bootStages.waits.start, rec.d8.bootWaitMs) and every boot frame over 50 ms while the first flight
-     was in view (rec.bootStages.birdFrames):
+  /* Everything behind the still sky, with the canvas hidden, each frame's slice of CPU work at most BOOT_MS (8 ms) at
+     unit granularity, so a tap on a link always works. The boot begins at once (bootOnce) and nothing in it waits:
        A  the context and its extensions, the device's hints (boot(), in the boot's first frame);
        B  every object: the targets (resize), the engine's buffers and arrays, the noise's texture, the read-back ring,
           the warm table's targets and layouts, the ink birds' program, VAO and buffers; every program registered; and
@@ -9049,16 +8940,16 @@ void main() {
           largest scale within the bar starts the governor; under the floor (21.7 ms at 0.35) the still sky stays;
        H  the first real frame drawn into the hidden canvas and read back as a 16 x 16 thumbnail: doubted once
           (black, blank, white) it is drawn and read again; doubted twice the world declines (stageH). In the next
-          frame the canvas shows, at once (a cut: no dissolve, fast500), and today's birds are told in it, their sky cleared.
+          frame the canvas shows, at once (a cut: no dissolve, fast500).
      A restored context runs B to F and H again (G's measurement is kept). Under reduced motion the boot is lean: no F
      and no G; they run behind the still when the preference ends, before the flight starts. */
-  var BOOT_MS = 8;   // (E1.1: HEAVY_WAIT_MS and G_WAIT_MS gone with their waits; the boot's start waits instead: bootMayStart, w13_dev.js)
-  /* (fast500 step 10) D's slice while no 2D bird is in view (a long task is 50 ms), the boot's bake units a frame (a slow
+  var BOOT_MS = 8;   // (the boot's slice of CPU work a frame)
+  /* (fast500 step 10) D's slice once the GPU is free (a long task is 50 ms), the boot's bake units a frame (a slow
      start: doubled while the GPU keeps up, halved when the ring's fence lags), the most rounds a frame, the order's
      bound for the cells needed, and the metres by which the show's and the guard's distance weights look nearer */
   var BOOT_D_MS = 40, BOOT_BAKE0 = 1024, BOOT_BAKE_MAX = 8192, BOOT_ROUNDS = 64, BOOT_NEED = 19.999, BOOT_M = 30, GUARD_M = 30, BOOTVF = false;
   var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
-    fts: [], fly: [], bw: { due: -1, ms: 0, frames: 0, why: null, fly: 0 } };   // (E1.1: bw, the boot's start waiting for today's first bird; Fix 3's heavy and G waits gone)   // (Fix 2: fts every boot frame's [frame, rAF time]; Fix 3: fly, today's first flight's state at each; the heavy steps' and G's waits)
+    fts: [] };   // (Fix 2: fts every boot frame's [frame, rAF time])
   var CORE_LATE = ['birds:ink', 'engine.inkkeep'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
   function bootReset(restore) {
@@ -9074,15 +8965,9 @@ void main() {
   /* one frame of the boot (stages B-G); READY once G is through (or skipped) */
   function bootFrame(ts) {
     var t0 = clockNow(), dl = t0 + BOOT_MS, label = BOOT.st;
-    if (BOOT.fts.length < 4000) { BOOT.fts.push(FRAMEN, +ts.toFixed(2)); BOOT.fly.push(SKYAIR.flying | 0); }
+    if (BOOT.fts.length < 4000) BOOT.fts.push(FRAMEN, +ts.toFixed(2));
     BOOT.frames++; if (BOOT.ts.length < 400) BOOT.ts.push(ts);
     WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0;
-    /* (E1.1 Fix 2, B5's second half: verify-regress-1 defect 8) while today's first flight is in view, a boot frame
-       whose work ran over twice BOOT_MS (a link, a program's first draw, the noise's first layers, a timed trial: single
-       calls no slice can cut) is followed by a frame with no boot work, so the birds get a frame between two heavy ones
-       (on the CPU renderers here they drew 9-14 frames a second while the world built). At most one in a row; the boot's
-       start and its order are unchanged (rec.bootStages.birdFrames.rests counts them) */
-    if (BOOT.rest) { BOOT.rest = 0; BOOT.rests = (BOOT.rests || 0) + 1; bootSlice(t0, 'rest'); return; }
     if (BOOT.st === 'B') {   // (Fix 3: and the first program issued in this frame: no frame of the boot is idle)
       bootMark('B objects'); bootObjects(); if (BIRDS && BIRDS.boot) BIRDS.boot();
       BOOT.st = 'C'; bootMark('C programs');
@@ -9125,10 +9010,10 @@ void main() {
     if (V && !BOOT.world) {
       /* (fast500 step 10) D's GPU half at its real work, not one stage a frame: once the GPU is free, rounds of the GPU's
          half and the CPU's in this frame (several stages a call), its probes and the landing's ground grid drawn and read
-         at once, until the world is ready, nothing moved or the slice is spent (BOOT_D_MS while no 2D bird is in view);
+         at once, until the world is ready, nothing moved or the slice is spent (BOOT_D_MS);
          the cells that can be seen first (bootNeed), in the flight's own order, built whole, every one resolved; their
          uploads and bakes once every probe is read (no read waits on a bake); laid out beside C once the visit is planned */
-      var dlD = gpuFree && (SKYAIR.flying | 0) < 2 ? t0 + BOOT_D_MS : dl, rd = 0, ready = false, flew = false, idle = gpuFree && bootIdle();
+      var dlD = gpuFree ? t0 + BOOT_D_MS : dl, rd = 0, ready = false, flew = false, idle = gpuFree && bootIdle();
       budgets(true); BAKE.left = BUD.bake; WDL = dlD;
       var h = SIM.V ? CS.psi : heading0(), cx = SIM.V ? CS.x : 0, cz = SIM.V ? CS.z : 0;
       do {
@@ -9158,7 +9043,7 @@ void main() {
     // G: the measurement (once the world is ready and the table warm); first the flight's first step (its camera)
     if (BOOT.world && (WARM.done || reduced())) {
       if (!SIM.V) { for (var pr = 0; pr < PREROLL; pr++) simAdvance(SIM_DT); CLK[0] = SIM.t; bootMark('flight: pre-roll done (' + SIM.steps + ' steps; the inputs in ' + (BOOT.fwait || 0) + ' frames after D)'); }   // (fast500 F0: the fixed pre-roll, PREROLL steps once flightIn)
-      if (SIM.V && (reduced() || BOOT.restore || stageG())) {   // (E1.1: no wait for today's first flight to leave: Fix 3's G_WAIT_MS always ran out, its flight taking 15-20 s to cross)
+      if (SIM.V && (reduced() || BOOT.restore || stageG())) {
         READY = true; dt0 = true; PREP0 = FRAMEN; bootMark('G done: ready'); budgets(false);
         if (REC) REC.readyAt = clockNow();
       } else label += ' G';
@@ -9269,15 +9154,15 @@ void main() {
     return false;
   }
   /* (E1.1 Fix 2, S10: verify-gates-1 defect 8, verify-regress-1 defect 10) a handler reads no layout and writes no DOM:
-     what it would write (the canvas hidden, the still sky marked, the words' colours cleared, the sky handed to today's
-     birds, data-steer, the selection cleared) and what it would read (the words' boxes, the touch mode) is stored here
+     what it would write (the canvas hidden, the still sky marked, the words' colours cleared,
+     data-steer, the selection cleared) and what it would read (the words' boxes, the touch mode) is stored here
      and done at the start of the next animation frame: the loop's own (frameBody), or, the loop stopped, a frame of its
      own (domNext) */
   var DOMQ = { hide: false, fc: false, words: false, touch: false, steer: -1, unsel: false }, DOMRAF = 0;
   function domNext() { if (!DOMRAF) DOMRAF = requestAnimationFrame(function () { DOMRAF = 0; domFlush(); }); }
   function domFlush() {
-    if (DOMQ.hide) { DOMQ.hide = false; if (!shown) { canvas.classList.remove('on'); markStill(); clearWords(); handTo(0); } }
-    if (DOMQ.fc) { DOMQ.fc = false; if (forced() && !HASSVG && !LOST && !DEAD) fstart(); }
+    if (DOMQ.hide) { DOMQ.hide = false; if (!shown) { canvas.classList.remove('on'); markStill(); clearWords(); } }
+    if (DOMQ.fc) { DOMQ.fc = false; if (forced() && !LOST && !DEAD) fstart(); }
     if (DOMQ.steer >= 0) { if (DOMQ.steer) root.setAttribute('data-steer', ''); else root.removeAttribute('data-steer'); DOMQ.steer = -1; }
     if (DOMQ.unsel) { DOMQ.unsel = false; var sel = window.getSelection ? window.getSelection() : null; if (sel && sel.removeAllRanges) sel.removeAllRanges(); }
     if (DOMQ.touch) { DOMQ.touch = false; touchMode(); }
@@ -9288,7 +9173,6 @@ void main() {
   }
   function frame(ts) {
     if (!running) return;
-    SKYTS = ts;   // (fast500 4a: this animation frame's time, stamped on each hand-over: handTo)
     rafId = requestAnimationFrame(frame);
     domFlush();
     if (REC) recStart(ts);
@@ -9313,8 +9197,8 @@ void main() {
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
     if (gl.isContextLost()) return;
     prof('frame');
-    if (!READY && !TG) resize();   // (speed E12: forced colours on at load hid the canvas, so boot()'s resize made no targets: made once they end)
-    if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } var tb0 = clockNow(); bootFrame(ts); if (!READY && (SKYAIR.flying | 0) >= 2 && clockNow() - tb0 > 2 * BOOT_MS) BOOT.rest = 1; prof('boot'); if (!READY || reduced()) return; }   // (fast500 step 10: once READY, on to stage H in this frame; the show the next)
+    if (!READY && !TG) resize();   // (speed E12: a canvas not laid out at boot() made no targets: made in the first frame it is)
+    if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } bootFrame(ts); prof('boot'); if (!READY || reduced()) return; }   // (fast500 step 10: once READY, on to stage H in this frame; the show the next)
     if (dt0) { dt0 = false; dt = 0; }
     if (reduced() && !STILLMODE) {   // one still frame (round 3: the birds' still sky planned first, a share a frame, while the still sky shows)
       var fresh = false; if (NEEDSIZE) { NEEDSIZE = false; resize(); fresh = true; if (REC) recResized(); } if (!SIM.V) simAdvance(SIM_DT);
@@ -9323,15 +9207,15 @@ void main() {
         if (!prepared && FRAMEN - PREP0 < 120) return;
       }
       if (!shown && !stageH()) return;   // (E1: stage H for the still too)
-      /* (Fix 2) the still is drawn again, the same still (no time passes), every frame for DISSOLVE_S + 0.1 s
-         (a tenth of a second: there is no dissolve now, fast500), then the loop stops: a browser may present the canvas after any frame that
-         drew at all, and WebKit, its drawing buffer not preserved, put up a cleared one under the dissolve (a black
+      /* (Fix 2) the still is drawn again, the same still (no time passes), every frame for a tenth of a
+         second, then the loop stops: a browser may present the canvas after any frame that
+         drew at all, and WebKit, its drawing buffer not preserved, put up a cleared one (a black
          page, the black name gone). sky.v2's own rule (fadeUntil). After the first, the frame is put up again
          (represent: the composite or its copy, and the birds' ink), not drawn whole, unless the window changed */
       if (STILLTS < 0 || fresh || !represent()) { if (!render()) return; }
       else if (SW.words && AG.on && !AG.ink) agUpdate();   // (ink fix: the still's take, once the canvas has been shown INK_TAKE s)
       if (STILLTS < 0) STILLTS = ts;
-      if (ts - STILLTS >= (DISSOLVE_S + 0.1) * 1000 && (AG.ink || !(SW.words && AG.on) || clockNow() - AG.w0 >= 2 * INK_TAKE * 1000)) { STILLTS = -1; stop(); }   // (ink fix: and not before the still has taken its ink, its INK_TAKE s from the canvas shown having passed in a frame: a slow first frame outlasts these frames)
+      if (ts - STILLTS >= 100 && (AG.ink || !(SW.words && AG.on) || clockNow() - AG.w0 >= 2 * INK_TAKE * 1000)) { STILLTS = -1; stop(); }   // (ink fix: and not before the still has taken its ink, its INK_TAKE s from the canvas shown having passed in a frame: a slow first frame outlasts these frames)
       return;
     }
     STILLTS = -1;
@@ -9342,11 +9226,8 @@ void main() {
     if (shown) bakeLearn(fd, dtRaw);
     if (fd && SW.fence !== 3) rbFence();
     prof('poll');
-    /* (E1) stage H: the first frame checked in the hidden canvas; (Fix 3) today's SVG birds told a frame before the canvas
-       shows: their frame runs before this one in an animation frame, so told in the frame that shows the canvas they
-       had already let a bird enter at the edge (verify-regress-2's b5); told now, they hand the sky over at the start
-       of their next frame, before any bird is drawn, and the world shows in its own next frame */
-    if (!shown && !BOOT.hOk) { if (stageH()) { handTo(1); recMark('hand-over told (the world shows next frame)'); } return; }
+    /* (E1) stage H: the first frame checked in the hidden canvas; the canvas shows in the next frame */
+    if (!shown && !BOOT.hOk) { if (stageH()) recMark('H passed (the world shows next frame)'); return; }
     governor(dt);
     if (NEEDSIZE) { NEEDSIZE = false; resize(); if (REC) recResized(); }
     easeFrustum(Math.min(dt, 100) / 1000);
@@ -9385,21 +9266,39 @@ void main() {
   function onMotionPref() {
     hoverSync();
     if (STILLMODE || LOST || DEAD) return;
+    if (forced()) { if (reduced()) { if (DRAG.id !== -1) endDrag(false); } else if (!FRUN) { DOMQ.fc = true; domNext(); } return; }   // (round 3: forced colours hold, the world not drawn: the ink birds' own loop draws one still frame as reduced motion begins (fframe) and, as it ends, moves again, asked for in the next frame (domFlush, fstart))
     if (reduced()) { if (DRAG.id !== -1) endDrag(false); if (READY && shown) { stop(); STILLTS = -1; NEEDSIZE = true; stillNext(); } else start(); } else start();   // (Fix 2: a still not yet shown is drawn by the loop; E1.1, S10: the still drawn in the next animation frame, never in the handler)
   }
-  /* forced colours: the stylesheet hides the world; nothing is drawn while they hold, and when they end the window is
-     measured again and the world drawn */
+  /* forced colours: the world is not drawn while they hold (its loop stopped, the canvas hidden in the next frame);
+     the canvas shows the ink birds alone, on the system's colours (fstart, below). When they end the ink birds' loop
+     stops, the window is measured again and the world drawn and shown again by its own show (stage H first, if it
+     never passed) */
   var FC = window.matchMedia ? window.matchMedia('(forced-colors: active)') : null;
   function forced() { return !!(FC && FC.matches); }
   function onForced() {
     hoverSync();
+    if (!forced()) fstop();   // (ended: the ink birds' loop stopped and FCOL.on false, whatever else holds: the module's forcedCheck, the pointer and the clicks see it)
     if (LOST || DEAD) return;
-    if (forced()) { stop(); shown = false; STILLTS = -1; DOMQ.hide = true; DOMQ.fc = true; domNext(); }   // (E0: with today's SVG birds on the page they fly, in CanvasText, 15.4; Fix 2, S10: the DOM's part in the next frame, domFlush)
-    else { fstop(); if (BIRDS) BIRDS.visit(-1); NEEDSIZE = true; start(); }   // (Fix 2: under reduced motion too: the loop draws the still and shows it again, at once; E1.1, S10: the window measured and the targets made in the loop's first frame, not here)
+    if (forced()) { stop(); shown = false; STILLTS = -1; DOMQ.hide = true; DOMQ.fc = true; domNext(); }   // (Fix 2, S10: the DOM's part in the next frame, domFlush: the canvas hidden, then fstart)
+    else { if (shown) { shown = false; DOMQ.hide = true; } if (BIRDS) BIRDS.visit(-1); NEEDSIZE = true; start(); }   // (round 2: the ink birds' canvas hidden in the loop's first frame, domFlush, and the world shown by its own show, SHOWNT with it; Fix 2: under reduced motion too: the loop draws the still and shows it again, at once; E1.1, S10: the window measured and the targets made in the loop's first frame, not here)
   }
-  /* (round 2) under forced colours the world is not drawn, but the birds fly on, as the live site's do: the canvas
-     cleared to the system's Canvas colour, the birds drawn over it in CanvasText at full ink, the flight held where it
-     was (the birds' own still camera, the live's); their clock stepped here at the flight's fixed rate */
+  /* (round 3) the system's palette changed while forced colours hold (a contrast theme switched, light to dark or
+     back: forced-colors itself stays active, so onForced is not told): the ink birds' running loop reads the colours
+     every frame (fframe); a stopped one (reduced motion's still) is asked for in the next frame (domFlush, fstart),
+     the still drawn again on the new Canvas colour */
+  function onPalette() { if (forced() && !FRUN && !LOST && !DEAD) { DOMQ.fc = true; domNext(); } }
+  /* (round 2) under forced colours the world is not drawn: the canvas is cleared to the system's Canvas colour and the
+     ink birds are drawn over it in CanvasText at full ink, in their own still view (the module's forced camera), their
+     clock stepped here at the flight's fixed rate; the canvas shows once a frame has been drawn (the stylesheet keeps
+     it laid out under forced colours: the window is measured and the targets made). The module is made here, in this
+     loop's animation frames, if it is not yet (forced colours from the load: its file comes after the boot, and
+     registerBirds asks for this loop then): before the boot's stage C it is the boot's own (BIRDS), after it a module
+     made late (BIRDL), whose programs are linked here at once (fprog: no staged boot under forced colours) and which
+     the world takes up as ever once they end (birdsLate). With no module to come (its file not arrived, its factory
+     failed, a program that will not link: LATEB.dead) the loop stops and the canvas stays hidden: the page in the
+     system's colours. Under reduced motion a single still frame. (round 3) The system's colours are read in every frame
+     (a palette changed while forced colours hold is drawn on at once; onPalette for a stopped loop), and a lost context
+     stops the loop (onLost, and here: nothing drawn with the dead context's objects); restoreNow starts it again */
   var FRUN = false, FRAF = 0, FCLK = -1, FACC = 0, FALPHA = 1, FCOL = { on: false, ink: [0, 0, 0], paper: [1, 1, 1] };
   function systemColour(c, out) {
     var m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/.exec(c || ''); if (!m) return out;
@@ -9407,37 +9306,57 @@ void main() {
   }
   function forcedColours() {
     FCOL.on = forced();
-    if (FCOL.on) { var cs = window.getComputedStyle(canvas); systemColour(cs.color, FCOL.ink); systemColour(cs.backgroundColor, FCOL.paper); }
+    if (FCOL.on) { var cs = window.getComputedStyle(canvas); systemColour(cs.color, FCOL.ink); systemColour(cs.backgroundColor, FCOL.paper); }   // (the stylesheet's CanvasText and Canvas, on the canvas)
     return FCOL;
   }
   function fstart() {
-    if (FRUN || LOST || !BIRDS) return;
+    if (FRUN || LOST || !(BIRDS || BIRDL || BIRDF)) return;   // (no module and no file yet: registerBirds asks again when it comes)
     forcedColours(); FRUN = true; FCLK = -1; FACC = 0; FRAF = requestAnimationFrame(fframe);
   }
-  function fstop() { FRUN = false; if (FRAF) cancelAnimationFrame(FRAF); FRAF = 0; }
+  function fstop() { FRUN = false; FCOL.on = false; if (FRAF) cancelAnimationFrame(FRAF); FRAF = 0; }
+  /* (round 2) one of the ink birds' programs made at once under forced colours: issued if it is not, its status read; a
+     module made late keeps its own list, as birdsLate works it, never counted in the boot's */
+  function fprog(P) {
+    if (gl.isContextLost()) return;
+    var own = LATEB.P.indexOf(P) >= 0, c0 = PROGX.compiled, l0 = PROGX.linked, tf, r;
+    if (P.st === 0) { progIssue(P); if (own) { PROGX.compiled = c0; PROGX.linked = l0; } gl.flush(); }
+    if (P.st !== 2) return;
+    tf = clockNow(); r = own ? finish(P) : progDone(P);
+    if (r === LOSTP) return;
+    if (own) { P.fms = +(clockNow() - tf).toFixed(2); P.doneAt = +clockNow().toFixed(1); P.doneF = FRAMEN; LATEB.fin = FRAMEN; }
+    if (!r) { LATEB.dead = true; if (own) { BIRDL = null; INKWAIT = false; } recMark('ink birds: ' + P.name + ' will not link here (forced colours)'); }
+  }
   function fframe(ts) {
+    FRAF = 0;
     if (!FRUN) return;
+    if (LOST) { FRUN = false; return; }   // (round 3: the context lost: no frame drawn with its dead objects; restoreNow asks for fstart again)
+    if (!BIRDS && !BIRDL && !LATEB.dead) makeBirds();   // (in this animation frame: never GL calls in a script's task)
+    var M = LATEB.dead ? null : BIRDS || BIRDL;
+    if (!M) { FRUN = false; return; }   // (no module to draw: the canvas stays hidden)
     var still = reduced() && !STILLMODE;
-    if (!still) FRAF = requestAnimationFrame(fframe); else FRUN = false;
+    FRAF = requestAnimationFrame(fframe);
     var dt = FCLK < 0 ? 0 : Math.min(ts - FCLK, 100) / 1000; FCLK = ts;
     if (NEEDSIZE || !TG) { NEEDSIZE = false; resize(); }
-    if (!TG || gl.isContextLost()) return;
+    if (!TG || gl.isContextLost()) return;   // (no window to draw in yet: the loop goes on, the still too)
     FACC += dt; var n = 0;
     BIRDB.spent = 0;
-    while (FACC >= SIM_DT && n < NMAX) { BIRDB.at = clockNow(); BIRDS.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; FACC -= SIM_DT; n++; }
+    while (FACC >= SIM_DT && n < NMAX) { BIRDB.at = clockNow(); M.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; FACC -= SIM_DT; n++; }
     if (n >= NMAX) FACC = 0;
     FALPHA = clamp(FACC / SIM_DT, 0, 1);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, FULL.w, FULL.h);
+    forcedColours();   // (round 3: CanvasText and Canvas read in every frame: a contrast theme changed while forced colours hold)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, FULL.w, FULL.h); gl.colorMask(true, true, true, true);
     gl.clearColor(FCOL.paper[0], FCOL.paper[1], FCOL.paper[2], 1); gl.clear(gl.COLOR_BUFFER_BIT);
-    BIRDS.draw(); gl.bindVertexArray(null);
+    M.draw(); gl.bindVertexArray(null);
+    if (LATEB.dead) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; return; }   // (its program would not link: nothing drawn, the canvas stays hidden)
     if (!shown) { shown = true; canvas.classList.add('on'); }
+    if (still) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; }   // (reduced motion: this one still frame)
   }
 
   /* ---------------------------------------------------------------- a lost context */
   canvas.addEventListener('webglcontextlost', onLost);
   function onLost(e) {   // (fast500 5: named, for startTake)
     e.preventDefault(); if (!gl) return;   // (fast500 5: the start file's context, lost before the boot took it: startTake tells it then)
-    START = null; LOST = true; MEMN.lost++; stop(); shown = false; STILLTS = -1; DOMQ.hide = true; domNext(); recMark('context lost');   // (Fix 2, S10: the canvas hidden and the still marked in the next frame)
+    START = null; LOST = true; MEMN.lost++; stop(); FRUN = false; if (FRAF) cancelAnimationFrame(FRAF); FRAF = 0; shown = false; STILLTS = -1; DOMQ.hide = true; domNext(); recMark('context lost');   // (Fix 2, S10: the canvas hidden and the still marked in the next frame; round 3: the ink birds' forced loop stopped too, FCOL.on kept: restoreNow starts it again)
     BOOT.hOk = false;
     if (RESTORERAF) { cancelAnimationFrame(RESTORERAF); RESTORERAF = 0; }
   }
@@ -9460,13 +9379,15 @@ void main() {
     NOISE.done = false; NOISE.t = null; WARM.list = null; WARM.done = false; WARMX.length = 0; BOOT.thumb = null;   // (fast500 step 1b: the noise's baked bytes kept; B uploads them again)
     ORDER.forEach(function (id) { REALMS[id].P = null; });
     J.visits.forEach(forgetVisit); kwForget();
+    if (BIRDL && forced()) { BIRDS = BIRDL; BIRDL = null; recMark('ink birds: the boot\'s after a restore (forced colours)'); }   // (round 3: a module made late is the boot's again, as birdsLate makes it after a restore (it does not run while forced colours hold): made again below, drawn by the forced loop)
     BIRDPL.length = 0; if (BIRDS) BIRDS.lost();   // (the birds' programs died with the context: the module makes them again)
     if (!GAVEUP) DEAD = false;
-    if (BIRDS && BIRDS.visit) BIRDS.visit(-1);   // (E0: the ink birds' flights ended with the canvas; they begin again from the dissolve's end)
+    if (BIRDS && BIRDS.visit) BIRDS.visit(-1);   // (E0: the ink birds' flights ended with the canvas; they begin again from the first frame shown)
     MEMN.restored++; recMark('context restored');
     bootReset(true);
     inkRestart();   // (ink load fix: the restored world's first reading sets the inks at once)
     resize();
+    if (forced() && !STILLMODE) { DOMQ.fc = true; domNext(); return; }   // (round 3: forced colours hold: the ink birds' own loop again, in the next frame (domFlush, fstart), moving or its still; the world boots once they end, onForced)
     start();
   }
   /* ---------------------------------------------------------------- the birds' host
@@ -9500,11 +9421,11 @@ void main() {
        shows that is an error (compile() fails it; development throws). linked() never asks the context: true once the
        boot has finished it (false while not yet, or broken: P.ok false), 'lost' with the context. Under forced colours
        and in the harness's stills there is no staged boot: their programs are made at once */
-    program: function (vs, fs, name) { var P = LATEB.on ? lateProg(vs, fs, 'birds:' + name) : compile(vs, fs, 'birds:' + name); BIRDPL.push(P); if (!LATEB.on && (STILLMODE || FRUN)) progStep(true, 0); return P; },   // (fast500 4a: a module made late: its own list, birdsLate)
+    program: function (vs, fs, name) { var P = LATEB.on ? lateProg(vs, fs, 'birds:' + name) : compile(vs, fs, 'birds:' + name); BIRDPL.push(P); if (!LATEB.on && (STILLMODE || FRUN)) { if (STILLMODE) progStep(true, 0); else fprog(P); } return P; },   // (fast500 4a: a module made late: its own list, birdsLate)
     linked: function (P) {
       if (gl.isContextLost()) return 'lost';
-      if (P.st !== 3 && (STILLMODE || FRUN)) progStep(true, 0);
-      return P.st === 3 ? P.ok && lateReady(P) && lateReady(EP.inkkeep) : false;   // (fast500 step 9: a late one's not yet; never 'broken' while P.ok)
+      if (P.st !== 3 && (STILLMODE || FRUN)) { if (STILLMODE) progStep(true, 0); else fprog(P); }   // (round 2: forced colours, the one program at once)
+      return P.st === 3 ? P.ok && (FRUN && !STILLMODE || lateReady(P) && lateReady(EP.inkkeep)) : false;   // (fast500 step 9: a late one's not yet; never 'broken' while P.ok; forced colours draw with it once linked)
     },
     /* (E1) an entry for the warm table (design-v5 8.2): the module's own draw, its real VAO and state */
     warm: function (e) { if (LATEB.on) LATEB.W.push(e); else WARMX.push(e); },   // (fast500 4a: a module made late warms its own, birdsLate)
@@ -9690,7 +9611,8 @@ void main() {
     if (BIRDS || BIRDF || typeof factory !== 'function') return;
     BIRDF = factory;
     if (gl && STILLMODE) makeBirds();   // (fast500 4a: otherwise made in the next frame, birdsLate: never GL calls in a script's task)
-    bootSoon();   // (E0: the last deferred script has run: the boot, a frame on, once today's birds are flying)
+    bootSoon();   // (E0: the last deferred script has run: the boot, a frame on)
+    if (booted && !FRUN && forced()) { DOMQ.fc = true; domNext(); }   // (round 2: forced colours, the boot already past their start: the ink birds' own loop asked for in the next frame, now there is a module to make: domFlush, fstart)
   }
   /* (Fix 2) the module made once the context is (boot stage A): its factory compiles its programs through HOST */
   function makeBirds() {
@@ -9714,7 +9636,7 @@ void main() {
      table's RGBA8 target with the module's own VAO, mode and blend (its first draw, which D3D11 pays for, off the
      canvas: nothing drawn that is seen, no frame changed), and only the frame after that does the module fly (BIRDS:
      its clock, its planning, its draws). Its flights then come as the first ink flight always does, from the
-     dissolve's end of a world already shown: planned whole before a bird enters, from beyond an edge or out of the
+     first frame of a world already shown: planned whole before a bird enters, from beyond an edge or out of the
      distance. Under reduced motion it waits (its still sky would gain birds); a context lost meanwhile makes it the
      boot's again (the restore's stages B and C). INKWAIT: the realms' bird flocks stand aside while the ink birds are
      there or still to come (until 'load' with none); one that stood aside never shows (inkAside), so none vanishes
@@ -10290,7 +10212,7 @@ void main() {
         G: { pinned: GS.pinned, period: GS.P ? +GS.P.toFixed(2) : null, roundTripMs: GS.rt.map(function (x) { return +x.toFixed(2); }), trialsMs: GS.tr, mediansMs: GS.med, scales: GS.sc, pick: GS.pick, rung: GS.rung },
         H: { ok: BOOT.hOk, fails: BOOT.hFails, thumb: BOOT.thumbStat || null }, warm: { keys: WARM.list ? WARM.list.length : 0, frames: WARM.frames, ms: WARM.ms.slice(0, 80).map(function (w) { return [w[0], w[1], w[2], recFrameMs(w[2])]; }) },   // (Fix 2: [key, draw call ms, frame, that frame's interval ms])
         programs: { n: PROGS.length, broken: PROGX.broken, par: !!EXT.par, parAll: !!EXT.parAll, each: PROGS.map(function (P) { return [P.name, P.kb || 0, P.cms || 0, P.lms || 0, P.fms || 0, P.doneAt || null]; }), one: recProgs() },
-        waits: { start: BOOT.bw, flight: BOOT.fwait || 0 }, birdFrames: recBirdFrames(), defs: defsRec(), noise: { K: NOISE.K, fixed: NOISE.fixed }, late: lateRec(), folds: foldRec(), firstDraw: REC.firstDraw ? REC.firstDraw.list : null, firstKeys: REC.firstDraw ? { keys: REC.firstDraw.keys, over: REC.firstDraw.over } : null },   // (fast500 F0: every pipeline key's first use)   // (fast500 F0: the flight's inputs' wait, the first-draw guard)   // (Fix 3: the yield is gone; the first-use draws' and G's waits for today's first flight, and the boot frames over 50 ms while it was in view)
+        waits: { flight: BOOT.fwait || 0 }, defs: defsRec(), noise: { K: NOISE.K, fixed: NOISE.fixed }, late: lateRec(), folds: foldRec(), firstDraw: REC.firstDraw ? REC.firstDraw.list : null, firstKeys: REC.firstDraw ? { keys: REC.firstDraw.keys, over: REC.firstDraw.over } : null },   // (fast500 F0: every pipeline key's first use)   // (fast500 F0: the flight's inputs' wait, the first-draw guard)
       readback: { bakeAIMD: { layers: FBAKE.n, lagged: FBAKE.lagged, halvings: FBAKE.halvings, late: FBAKE.late }, nextDeadline: null, fencesMade: RB.made, polls: RB.polled, reads: RB.reads, readKB: Math.round(RB.readBytes / 1024), slotSkips: RB.skipped, fenceSkips: RB.fenceSkipped, lagged: RB.lagN, forcedReads: RB.forced || 0, probes: PSTAT, junctionWaits: SIM.waits, wordsTrim: typeof AG !== 'undefined' ? AG.trim : null, wordsMiss: typeof AG !== 'undefined' ? AG.miss : null },   // ((line2) wordsTrim: the words' reads made without the line's block for room in the slot; wordsMiss: those refused even so)   // (forcedReads: the dev harness's unconditional reads, Fix 2; 0 in a live visit)
       madeAfterShown: R.madeAfter, freedAfterShown: R.freedAfter, uploadsAfterShown: R.upAfter, stageEvents: R.stageEv || [],
       pools: R.minute, objPools: { pre: POOL_PRE, cap: POOL_CAP, madeShown: POOL.madeShown, made: POOL.made, reused: POOL.reused, peakLive: POOL.peakLive, deleted: POOL.deleted, free: (function () { var o = {}; POOL_KINDS.forEach(function (k) { o[k] = POOL.lists[k].length; }); return o; })() },   // (Fix 3: the cells' and visits' object pools)
@@ -10360,8 +10282,7 @@ void main() {
     }
     return out;
   }
-  /* (Fix 3, D8) the world's first frame from navigation start, raw and net of the boot's wait for today's first bird
-     (boot due to boot start: E0's trade of D8 for B5, which design 14 does not have; 3.2 D8's ceiling is 3.0 s) */
+  /* (Fix 3, D8) the world's first frame from navigation start, raw (3.2 D8's ceiling is 3.0 s) */
   /* (Fix 2 of round E1) each program one at a time, in the order stage C made them: when it was issued (its compile and
      link given: clock ms from navigation, and the frame), when it was found done (the same), the frame interval
      containing each (from that boot frame's rAF to the next one's: a frame that carried its link or its first draw),
@@ -10385,30 +10306,17 @@ void main() {
     return out;
   }
   function recD8() {   // (Fix 3 of round E1: judged raw, as design-v5 3.2 defines it; no yield to net out any more)
-    var R = REC, st = -1, told = -1, i, b;
-    for (i = 0; i < R.boot.length; i++) { b = R.boot[i]; if (b[0].indexOf('boot start') === 0 && st < 0) st = b[1]; else if (b[0].indexOf('hand-over told') === 0 && told < 0) told = b[1]; }
+    var R = REC, st = -1, i, b;
+    for (i = 0; i < R.boot.length; i++) { b = R.boot[i]; if (b[0].indexOf('boot start') === 0 && st < 0) st = b[1]; }
     var shown = R.shownAt >= 0 ? R.shownAt : -1;
     return { firstFrameMs: shown >= 0 ? +shown.toFixed(1) : null, ceilingMs: 3000, within: shown >= 0 ? shown <= 3000 : null, from: 'navigation start',
-      bootStartMs: st >= 0 ? +st.toFixed(1) : null, bootWaitMs: BOOT.bw.ms, bootWaitWhy: BOOT.bw.why, handoverToldMs: told >= 0 ? +told.toFixed(1) : null };
-  }
-  /* (Fix 3, B5) the boot frames over 50 ms while a bird of today's first flight was in view (skyAir.flying 2 at the
-     frame's start): [frame, interval ms, the slice's label (the stage and the program or key it carried)], at most 40,
-     with their count and the longest; and how long the first flight was in view during the boot */
-  function recBirdFrames() {
-    var A = BOOT.fts, Fl = BOOT.fly, out = [], n = 0, mx = 0, inView = 0, lab = {}, i;
-    for (i = 0; i < BOOT.slices.length; i++) lab[BOOT.slices[i][0]] = BOOT.slices[i][2];
-    for (i = 0; i + 2 < A.length; i += 2) {
-      if (Fl[i >> 1] !== 2) continue;
-      var d = A[i + 3] - A[i + 1]; inView += d;
-      if (d > 50) { n++; if (d > mx) mx = d; if (out.length < 40) out.push([A[i], +d.toFixed(1), lab[A[i]] || '']); }
-    }
-    return { over50: n, maxMs: +mx.toFixed(1), inViewMs: +inView.toFixed(1), rests: BOOT.rests || 0, list: out };   // (E1.1 Fix 2: rests, the frames left free after a heavy one)
+      bootStartMs: st >= 0 ? +st.toFixed(1) : null };
   }
   /* (Fix 3, D8's "each script's evaluation") every script's evaluation, bounded by what can be known without reading a
      clock inside it: world.js stamps its own start and end; each realm file and the ink birds stamp their top and
-     register as their last statement (exact); the kit's end is the next file's top; today's birds (deferred, before
-     world.js) start no sooner than both its response's end and the parse's end (domInteractive) and end no later
-     than world.js's start; the parser-blocking hour.v2.js and site.js lie between their response's end and the parse's
+     register as their last statement (exact); the kit's end is the next file's top; a deferred script before world.js
+     with no stamp of its own (diag on staging) starts no sooner than both its response's end and the parse's end
+     (domInteractive) and ends no later than world.js's start; the parser-blocking hour.v2.js and site.js lie between their response's end and the parse's
      end. Each: { name, how: 'exact' | 'bounds', start, end (or startMin, endMax), ms (or msMax) } in ms from navigation */
   function recScripts() {
     var out = [], nav = null, res = {}, st = {}, i, k;
@@ -10429,9 +10337,9 @@ void main() {
       else if (top !== undefined) {   // (the kit: its end is the next file's top)
         var nx = null; for (k = i + 1; k < order.length && nx === null; k++) { var bt = st[base(order[k].name) + ' top']; if (bt !== undefined) nx = bt; }
         x.how = 'bounds'; x.start = r1(top); x.endMax = r1(nx); x.msMax = nx !== null ? r1(nx - top) : null;
-      } else if (o.defer && st['world.js eval start'] !== undefined && order.slice(i + 1).some(function (q) { return base(q.name) === 'world.js'; })) {   // (today's birds, and diag on staging: deferred, before world.js, no stamp of their own)
+      } else if (o.defer && st['world.js eval start'] !== undefined && order.slice(i + 1).some(function (q) { return base(q.name) === 'world.js'; })) {   // (diag on staging: deferred, before world.js, no stamp of its own)
         var s0 = Math.max(rEnd, di, afterDiag ? DIAGEV[1] : -1); x.how = 'bounds'; x.startMin = r1(s0); x.endMax = r1(st['world.js eval start']); x.msMax = s0 >= 0 ? r1(st['world.js eval start'] - s0) : null;
-        if (b !== 'birds.js') x.note = 'with the deferred scripts after it and before world.js';
+        x.note = 'with the deferred scripts after it and before world.js';
       } else if (!o.defer) { x.how = 'bounds'; x.startMin = r1(rEnd); x.endMax = r1(di); x.msMax = rEnd >= 0 && di >= 0 ? r1(di - rEnd) : null; x.note = 'parser-blocking: between its response and the parse\'s end'; }
       else { x.how = 'unknown'; }
       out.push(x);
@@ -10449,12 +10357,12 @@ void main() {
       /* (E1) the course ends where the control tail begins: the arms stop (arm A's switches, the design's, back in
          force; the intervals after it carry no arm), so the tail's fence and whatever flight follows it count in no arm */
       var C = REC.course; if (C && C.e1 && !C.ended) { C.ended = true; REC.armNow = 0; recSet('order', ARMS[0].order, 'course end'); recSet('fence', ARMS[0].fence, 'course end'); REC.armLog.push([+((clockNow() - C.t0) / 1000).toFixed(2), 'end']); recSet('cacc', CACC_ON, 'course end'); }
-      REC.halted = true; REC.lastTs = -1; stop(); canvas.classList.remove('on'); if (shown) markStill(); handTo(2); recMark('control: world halted'); return true;
+      REC.halted = true; REC.lastTs = -1; stop(); canvas.classList.remove('on'); if (shown) markStill(); recMark('control: world halted'); return true;
     }
     if (!on && REC.halted) {
       REC.halted = false; REC.lastTs = -1;
-      if (DEAD || LOST) { handTo(0); recMark('control: the world stays stopped (' + (LOST ? 'lost' : 'gave up') + ')'); return true; }   // (E1, the lead's guard on the published E0: the package's black page: a dead or lost world's canvas is never put back)
-      REC.resumePending = true; handTo(shown ? 1 : 0); if (shown) canvas.classList.add('on'); CLK[1] = -1; start(); recMark('control: world resumed'); return true;
+      if (DEAD || LOST) { recMark('control: the world stays stopped (' + (LOST ? 'lost' : 'gave up') + ')'); return true; }   // (E1, the lead's guard on the published E0: the package's black page: a dead or lost world's canvas is never put back)
+      REC.resumePending = true; if (shown) canvas.classList.add('on'); CLK[1] = -1; start(); recMark('control: world resumed'); return true;
     }
     return false;
   }
@@ -10640,7 +10548,7 @@ void main() {
     bootMark('start: run');   // (fast500 F0)
     if (!ORDER.length) { fail('no realms'); return; }
     /* (Fix 2) stage A: the context and its extensions (then the record's and the harness's wrappers, then the ink
-       birds' module, which compiles through HOST); without a context today's birds keep the still sky */
+       birds' module, which compiles through HOST); without a context the still sky stays */
     if (!gl) {
       recMark('boot: context');
       if (!getGL()) { DEAD = true; markStill(); fail('no WebGL2 context'); return; }   // (tod: the bar takes the hour's still's top)
@@ -10657,58 +10565,28 @@ void main() {
     if (!DEVMODE && /SwiftShader|llvmpipe|Software/i.test(EXT.renderer)) { DEAD = true; return; }
     resize();
     if (typeof ResizeObserver !== 'undefined') { var ro = new ResizeObserver(layoutChanged); ro.observe(document.querySelector('main')); var ft = document.querySelector('footer'); if (ft) ro.observe(ft); ro.observe(canvas); }
-    window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); });   // (E1.1, S10: only stored; the window measured and drawn in the next frame)
+    window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); if (!FRUN && forced()) { DOMQ.fc = true; domNext(); } });   // (E1.1, S10: only stored; the window measured and drawn in the next frame; round 2: forced colours' still drawn again there, fstart)
     window.addEventListener('scroll', layoutChanged, { passive: true });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutChanged);
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', onMotionPref); else if (MQ.addListener) MQ.addListener(onMotionPref); }
     if (FC) { if (FC.addEventListener) FC.addEventListener('change', onForced); else if (FC.addListener) FC.addListener(onForced); }
+    if (window.matchMedia) ['(prefers-color-scheme: dark)', '(prefers-contrast: more)'].forEach(function (q) { var m = window.matchMedia(q); if (m.addEventListener) m.addEventListener('change', onPalette); else if (m.addListener) m.addListener(onPalette); });   // (round 3: a contrast theme changed while forced colours hold: onPalette)
     inputInit();
-    if (forced()) { bootReset(false); if (!HASSVG) fstart(); return; }   // (round 2: forced colours from the start: the birds alone, on the system's colours; E0: today's SVG birds instead, where the page has them)
+    if (forced()) { bootReset(false); fstart(); return; }   // (round 2: forced colours from the load: the world not drawn, the ink birds alone in CanvasText on the system's Canvas colour, their own loop, fstart (their file still to come: registerBirds asks for it); the boot waits for forced colours to end: onForced)
     if (DEVMODE && SW.rbfix) RB.fix = true;   // (dev: the read-back's arrival fixed in frames; the stills' harness too: jwfast's ticks)
     bootReset(false);
     start();   // (the staged boot, then the flight; under reduced motion the loop builds, draws one still frame and stops)
   }
-  /* (E0, design-v5 14) the boot starts in the first animation frame after the ink birds register (inkbirds.js is the
-     last deferred script, so every realm has registered by then), or at load if a file failed to arrive; the scripts'
-     top levels only define, and nothing runs before the boot but them and today's SVG birds.
-     (E1) E0's wait for today's first bird (up to 3 s from their start: WAIT_COMMIT, waitBirds) was gone in E1; Fix 2
-     yielded every frame to them until a bird of their first flight was in view (up to 3 s), which brought E0's wait
-     back; (Fix 3) the boot started and worked at once, and only its first-use draws and stage G's timed trials waited
-     for today's first flight, at most 1 s each; (E1.1) the boot starts once a bird of today's first flight is in view
-     (bootMayStart), and nothing in it waits after that */
+  /* (E0, design-v5 14; fast500 4a) the boot starts in the first animation frame after the realms register (bootSoon:
+     registerRealm; registerBirds and 'load' ask too), or at load if a file failed to arrive; the scripts' top levels
+     only define, and nothing runs before the boot but them. Nothing waits: the boot begins at once */
   var booted = false, bootRaf = 0;
   function bootOnce() {
     bootRaf = 0;
     if (booted) return;
-    if (BOOT.bw.due < 0) recMark('boot due');
-    if (!bootMayStart()) { bootRaf = requestAnimationFrame(bootOnce); return; }
     booted = true; BOOT.startAt = clockNow();
-    recMark('boot start: ' + BOOT.bw.why + ' (' + BOOT.bw.ms + ' ms, ' + BOOT.bw.frames + ' frames)');
+    recMark('boot start');
     boot();
-  }
-  /* (E1.1, item 6: B5) the boot begins once a bird of today's first flight is in view (skyAir.flying 2: the bird shown
-     and its appear a third done), and at once where there is none to wait for (no SVG birds, reduced motion, forced
-     colours, the harness). Fix 3 began at once, and its first frames (the context, about 0.2 s here; the objects; the
-     first links, 0.2-0.7 s each on a renderer that links synchronously) held the birds' clock (a step at most 50 ms a
-     frame), so their first bird came 350-1,541 ms later than on the page without the world in 8 of 8 paired loads,
-     over 2 s in 5 (verify-regress-3). The bird comes 0.8-1.7 s after load on that page; the boot then starts about a
-     second after the scripts. A safety net, never the rule: BOOT_WAIT_CAP ms (2.5 s) after the boot was due with no bird
-     in view (today's sky can find no room for a first flight: a phone held sideways whose words fill it, which looks
-     again 3-6 s later). Stage G's wait (Fix 3: its timed trials while the first flight was in the window, which takes
-     15-20 s to cross, so its 1 s cap always ran out) and the first-use draws' wait (its bird already in view) are gone */
-  var BOOT_WAIT_CAP = 2500;
-  /* (speed E1) the boot starts once the scripts have registered: the wait for today's first bird (1-2.4 s) was most of
-     the start a visitor saw; today's birds fly as before and are handed over when the world shows */
-  var BOOT_NOW = true;
-  function bootMayStart() {
-    var W = BOOT.bw; if (W.why) return true;
-    var now = clockNow(); if (W.due < 0) W.due = now;
-    var f = SKYAIR.flying | 0;
-    var why = BOOT_NOW ? 'the scripts registered' : STILLMODE ? 'the harness' : !HASSVG ? 'no SVG birds' : reduced() ? 'reduced motion' : forced() ? 'forced colours' : f >= 2 ? 'the first bird in view' : null;
-    if (!why && now - W.due >= BOOT_WAIT_CAP) why = f === 1 ? 'the cap: a first flight committed, none of it in view yet' : 'the cap: no first flight committed';
-    if (!why) { W.frames++; return false; }
-    W.why = why; W.ms = +(now - W.due).toFixed(1); W.fly = f;
-    return true;
   }
   function bootSoon() { if (!booted && !bootRaf) bootRaf = requestAnimationFrame(bootOnce); }
   /* (E1, stage A) the device's hints, read once (each getter a round trip on Safari: never in a frame): the renderer,

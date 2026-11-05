@@ -158,9 +158,8 @@ body {
    (data-sky, set by the hour's script before the first paint), in the frame
    its first whole frame is drawn: a cut, never a fade. The words
    are light on every sky (each sky holds its own light under a ceiling so
-   they read); the script works the credit's grey out for the sky it drew,
-   and never darkens the sky for them. With no script the page is the still
-   day sky.
+   they read), and the script never darkens the sky for them. With no
+   script the page is the still day sky.
    ------------------------------------------------ */
 
 .sky {
@@ -302,36 +301,6 @@ body {
 }
 
 /* ------------------------------------------------
-   The birds — samara.com/jobs's dots (body > .dot), as birds: fixed to
-   the window, over the page like Samara's, each at its full ink from its
-   first frame (it enters from beyond an edge or out of the distance). The
-   birds' script moves them; without it they never show.
-   They never take a click: links under a bird still work. Their ink is
-   the words' (light, on every sky).
-   ------------------------------------------------ */
-
-.bird {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  overflow: visible;
-  pointer-events: none;
-  transform-origin: 50% 50%;
-  fill: none;
-  stroke: var(--color-text);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* (fast500, no fades) no keyframes and no transitions: a bird shown is at its ink at once, and at the hand-over to
-   the world every bird is hidden in the frame the canvas shows (birds.js, skyAir.handed) */
-.bird.on {
-  display: block;
-}
-
-/* ------------------------------------------------
    Composition — one viewport, type at optical center
    ------------------------------------------------ */
 
@@ -467,13 +436,17 @@ footer a, .back-link {
 }
 
 /* ------------------------------------------------
-   Forced colors (reduced motion is the scripts' own: a still sky; nothing in
-   this stylesheet animates)
+   Forced colors: the world is not drawn; the canvas stays laid out and
+   shows only the ink birds, in CanvasText on the system's Canvas colour,
+   the two the script reads here (reduced motion is the scripts' own: a
+   still sky; nothing in this stylesheet animates)
    ------------------------------------------------ */
 
 @media (forced-colors: active) {
-  .bird { stroke: CanvasText; }
-  .sky { display: none; }
+  .sky {
+    color: CanvasText;
+    background-color: Canvas;
+  }
 }
 
 /* ------------------------------------------------
@@ -481,8 +454,6 @@ footer a, .back-link {
    ------------------------------------------------ */
 
 @media print {
-  .bird,
-  .bird.on,
   .sky,
   footer {
     display: none;

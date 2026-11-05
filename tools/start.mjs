@@ -232,8 +232,8 @@ export function run(V, page, O = {}) {
     const document = {
       __id: 'doc', documentElement: root, body, head: el('head'), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
       fonts: { ready: Promise.resolve(), status: 'loaded', addEventListener() {}, check() { return true; } },
-      querySelector(s) { s = s.trim(); return /bird/.test(s) ? null : SEL[s] || null; },
-      querySelectorAll(s) { s = s.trim(); if (s === 'footer a' || s === 'a') return links.slice(); return /bird/.test(s) ? [] : SEL[s] ? [SEL[s]] : []; },
+      querySelector(s) { s = s.trim(); return SEL[s] || null; },
+      querySelectorAll(s) { s = s.trim(); if (s === 'footer a' || s === 'a') return links.slice(); return SEL[s] ? [SEL[s]] : []; },
       getElementById(i) { return i === 'email-link' ? links[0] : null; }, getElementsByTagName(t) { return t === 'canvas' ? [canvas] : []; },
       addEventListener(t, f) { on(document, t, f); }, removeEventListener(t, f) { off(document, t, f); }, hasFocus() { return true; }, createElement(t) { return el(t); }
     };

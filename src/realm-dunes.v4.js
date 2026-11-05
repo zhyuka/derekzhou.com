@@ -360,7 +360,7 @@ vec3 D_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yA
      the density there: FORM_D in the open sand, more (FORM_C) in the band along the cloud sea's coast (its weight
      0.05-0.85 there), where they are the bays' tall buttes and mesas, seated on the lowest ground of their footprint, so
      those that stand where the land has sunk under the sea rise out of it as the bays' did. Each is marked a formation
-     (form): the director's corridor keeps the held line ahead clear of their solids */
+     (form): kept wherever the cloud sea lies (the world's aboveKeep passes them by) */
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
   function dForms(C, s, R) {
     for (var k = 0; k < FORM_N; k++) {

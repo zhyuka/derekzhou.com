@@ -173,7 +173,7 @@ function run(V, page) {
       if (/^create[A-Z]/.test(p)) return () => obj(p.slice(6));
       return () => undefined;
     } });
-    // --- the document: today's index.html in outline (no SVG birds: the world then boots at once)
+    // --- the document: today's index.html in outline
     const root = el('html', { lang: 'en' }), meta = el('meta', { name: 'theme-color', content: '#173a63' }), body = el('body');
     const main = el('main', {}, () => [16, 0, V.w - 32, V.h]);
     const stack = el('div', { class: 'stack' }, () => [Math.round(V.w * 0.1), Math.round(V.h * 0.32), Math.round(V.w * 0.6), 160]);
@@ -184,8 +184,8 @@ function run(V, page) {
     const document = {
       __id: 'doc', documentElement: root, body, head: el('head'), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
       fonts: { ready: Promise.resolve(), status: 'loaded', addEventListener() {}, check() { return true; } },
-      querySelector(s) { s = s.trim(); return /bird/.test(s) ? null : SEL[s] || null; },
-      querySelectorAll(s) { s = s.trim(); if (s === 'footer a' || s === 'a') return links.slice(); return /bird/.test(s) ? [] : SEL[s] ? [SEL[s]] : []; },
+      querySelector(s) { s = s.trim(); return SEL[s] || null; },
+      querySelectorAll(s) { s = s.trim(); if (s === 'footer a' || s === 'a') return links.slice(); return SEL[s] ? [SEL[s]] : []; },
       getElementById(i) { return i === 'email-link' ? links[0] : null; }, getElementsByTagName(t) { return t === 'canvas' ? [canvas] : []; },
       addEventListener(t, f) { on(document, t, f); }, removeEventListener(t, f) { off(document, t, f); }, hasFocus() { return true; }, createElement(t) { return el(t); }
     };

@@ -1,6 +1,8 @@
 # derekzhou.com
 
-Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build step.
+Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build
+step at deploy (five scripts are served minified, built from src/ by
+tools/ and committed: see Structure).
 
 ## Structure
 
@@ -12,11 +14,12 @@ site/index.html              Home page: the words over a 3D world, drawn live be
 site/style.v16.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
-site/birds.v13.js            Today's birds: they fly over the still sky while the world boots, then hand it over (see Birds)
+site/start.v1.js             The start file: the world's context and its first frame's programs, issued before the world's script runs (made by tools/start.mjs; see World)
 site/world.v8.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light
 site/realm-above.v3.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
+site/plan.v1.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World)
 site/facetform.v1.js         The wing model: the tattoo's M as a faceted solid (generated; see Birds)
 site/facetpose.v1.js         The wing model: the faceted M posed
 site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M's rig
@@ -38,8 +41,32 @@ site/\_redirects             HTTPS enforcement (http and www to https://derekzho
 CLAUDE.md                    This file
 subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
+src/                         The five scripts site/ serves minified, as written and under the same
+                             names (the world, the kit and the realms, the ink birds)
+tools/minify.mjs             Builds site/'s five from src/ (and the start file, by tools/start.mjs); CI checks the build
+tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
+package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
+.gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks (and, beside it, the world's: world_rules.py,
-                             w7_unit.js, lint_realms.js)
+                             w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
+                             with glsl_manifest.txt)
+
+Five scripts are served minified: world.v8.js, realm-kit.v2.js,
+realm-dunes.v4.js, realm-above.v3.js and inkbirds.v4.js. src/ holds them
+as written, under the same names, and tools/minify.mjs makes site/'s from
+them: the record, the switches and the dev harness cut out of the world
+(exact, counted cuts), then terser (pinned in package.json) compresses and
+mangles, every string's value and every shader's text the same, every
+comment dropped but each file's two-line provenance note and the INIT-END
+marker; where index.html loads the start file, tools/start.mjs makes it
+too. CI step "The minified scripts are exactly what the script makes" (npm
+ci, then node tools/minify.mjs --check src site) fails on a served script
+edited by hand or a source changed without its build, and the rules that
+read the scripts' text (the absences, world_rules.py) read src/. So a
+change is made in src/ and built (node tools/minify.mjs --build src site),
+the two committed together. The hour, site.js, the wing model and the
+plan's worker are served as written, the start file as tools/start.mjs
+writes it.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
 first (a Pages Function that checks the Cloudflare Access token again, in
@@ -53,12 +80,15 @@ for a sign-in there, and past it they serve 404.
 
 The shipped scripts have no development harness: the world is built and
 measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
-switches, a record), and the files here are that build with every hook cut
-out by counted edits (see Verify). Nothing on the page reads such a hook.
-The record's code and the dev helpers those hooks called are left in
-world.v8.js, unreachable (the switches keep their defaults; cutting them
-is a change to the engine, to be proved frame for frame like any other).
-The comments keep the dev build's tags and the names of its files
+switches, a record), and src/'s files are that build with every
+hook cut out by counted edits (see Verify), site/'s built from
+them. Nothing on the page reads such a hook. The record's code and
+the dev helpers those hooks called are left in src/'s world.v8.js,
+unreachable (the switches keep their defaults); the served copy has
+them cut out (tools/minify.mjs: the switches' defaults kept, and
+the four functions called without a guard kept as empty ones). The
+comments, in src/ (a served copy keeps only its first two lines and the
+INIT-END marker), keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,
 w04b_sky.js, diag.js and the like): they cite the world's development
 record, which lives outside this repository, so a file they name is not
@@ -176,10 +206,15 @@ text for everything so never use any scenes that dont pass white text
 (anything that makes the text turn black should be removed entirely)";
 of the start, "why does the stuff take so long to load on site startup?
 should load instantly make it 10x faster"; and "also the clouds and stuff
-looks blurry from afar too.. everything should be 10x quality". So: the
-name is lettering (see Type); nothing on the page darkens the world or
-lifts it for the words; the words are always light, and the world draws
-only skies they read on (see World).
+looks blurry from afar too.. everything should be 10x quality". Then
+(2026-11-05), of the 2D birds still flying over the still sky as the page
+loaded: "Why do I still see the old birds at all … like when the page
+first loads. There shouldn't be any code at all for that, right?! wtf
+is going on pls fix from root and clean everything up". So: the name is
+lettering (see Type); nothing on the page darkens the world or lifts it
+for the words; the words are always light, and the world draws only skies
+they read on (see World); and the birds are the ink birds alone, flying in
+the world (see Birds).
 
 The words' colours are one set, always (see World: the words), and the
 world is never changed for them: text #fdfcf7 (the lettered name, the
@@ -202,10 +237,10 @@ line print black, the credit #555, the name 16rem wide.
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
-file's header comment is its full design as of the build it came from
-(stage 2's changes are tagged inline: stage2, speed, quality; where a
-header and its code differ, the code and this file are right); this is
-the outline.
+file's header comment (src/'s copy: the served one is minified) is its
+full design as of the build it came from (stage 2's changes are tagged
+inline: stage2, speed, quality; fast500's: fast500; where a header and
+its code differ, the code and this file are right); this is the outline.
 
 THE WORLD: one world over an endless plane, its land and its sea of cloud
 blended by smooth maps (the kits' weights), never a cut between places:
@@ -220,9 +255,10 @@ scene in HDR (4 samples a pixel where the device allows), the land as a
 GPU clipmap raised by the kits' height functions, the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
 up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
-between: sharp in the distance, never a ring), bloom, light shafts, and
-the composite (a shoulder that keeps hue, the grade, one fixed 8-bit
-dither: no bands, nothing that fizzes).
+between: sharp in the distance, never a ring), bloom, and the composite
+(a shoulder that keeps hue, the grade, one fixed 8-bit dither: no bands,
+nothing that fizzes). The light shafts' pass is still in the code, but no
+sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
 THE FLIGHT AND THE CAMERA: left alone the view holds its heading and flies
 straight and level but for the ground's rise; what stands ahead and
@@ -246,7 +282,7 @@ so it is never a slit, and never more than 80 degrees up); the realm
 frames the horizon 55% down a wide window and 58% down a tall one (blended by TALLK, the window's shape: smooth from
 0.95 to 1.75 of height over width). On a window 6:5 or wider (a desktop,
 a laptop, a phone held sideways: the stylesheet's own query,
-min-aspect-ratio 6/5, so the camera and the still sky it dissolves in over
+min-aspect-ratio 6/5, so the camera and the still sky it cuts in over
 agree) the camera is pitched up 9 degrees more (the owner's yes of
 2026-10-29): at 1440x900 the horizon about 72% down, the words wholly on
 sky. Any other window (an upright tablet, a phone, a window near square)
@@ -267,13 +303,13 @@ dawn), the moonlit sea, the Milky Way and the aurora (night; SKY_PHASE
 azure, silver and rose, never compiled in) are gone from the table. Each
 is a set of colours and amounts laid over each kit's own light and a
 paint of everything the kits paint (land, stones, isles, creatures), with
-a time of day, a hold (70-100 s, x0.9-1.15 by the draw), a change of
-55-60 s and its near skies. A visit opens on the kept sky nearest the
-visitor's own time of day (hour.v3.js: night 21-05, dawn 05-08, day
-08-13, rain 13-16, sunset 16-19, dusk 19-21): dawn and day on first
-light, rain and sunset on the afterglow, dusk on the blue hour, night on
-the moonlit sea, the Milky Way or the aurora (the visit's draw), as far
-through its hold as data-sky-at says; after that the order is the
+a time of day, a hold (70-100 s, the moonlit sea's 190 s, x0.9-1.15 by
+the draw), a change of 55-60 s and its near skies. A visit opens on the
+kept sky nearest the visitor's own time of day (hour.v3.js: night 21-05,
+dawn 05-08, day 08-13, rain 13-16, sunset 16-19, dusk 19-21): dawn and day
+on first light, rain and sunset on the afterglow, dusk on the blue hour,
+night on the moonlit sea, the Milky Way or the aurora (the visit's draw),
+as far through its hold as data-sky-at says; after that the order is the
 world's own, with no clock: mostly into a near sky, now and then
 (SKY_FAR 38%) into any through the mist, never into one of the last
 SKY_RECENT 3, a sky not yet seen likelier. Colours blend in OKLab along
@@ -283,9 +319,29 @@ different words passed is never taken now (its code stays, unreached).
 The skies keep all their own light under a ceiling (uCeil, OKLab L 0.53
 with a soft knee, the same everywhere on the window: the world's own
 light, never a function of where the words are); the moon is a pale flat
-disc held under it too, standing above the words where the window has
-room, else above its top edge. The cycle runs on the flight's own clock,
-its draws from the visit's own streams.
+disc held under it too. A sun or moon never fades where it stands (the
+owner: "yep this. same w sun."), and on a moonlit night the moon drifts
+all night (the owner's choice, over a moon still between the changes): it
+rises out of view as the night arrives, comes in through a side edge late
+in the change, above the words, drifts across one way at one pace on a
+nearly level path, leaves through the other side early in the change out
+and sets behind the sea, never stopping or turning back (a visitor who
+turns that way sees it rise or set; only its faint broad light on the sky
+follows its depth); where the window has no room under its top edge, only
+its glow passes along the edge. The moonlit night is about twice as long
+as before (the owner chose a slower moon), so the moon drifts 6-10 px a
+second on a laptop and 2-3 on a phone; it shows on the visits that face
+the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
+phone). The sun stays below the sea in every sky: through a change into a
+night it keeps sinking (to 24 degrees below), and its warm glow, the warm
+band low on its side, the haze's warm side and the high veil's brightening
+sink with it and weaken with its depth; the Earth's shadow climbs and
+dissolves, the noctilucent wisps go dark from below, and the night's own
+glow comes in with the night's colours; out of a night into first light
+or the blue hour it runs backwards. No sky draws light rays now (the owner
+chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
+and first light's 0.15 are 0; the three nights' were 0 already). The cycle
+runs on the flight's own clock, its draws from the visit's own streams.
 
 THE WORDS (the owner: "Don't darken the background anywhere ever",
 "remove that white background behind the text. it's fine failing
@@ -305,53 +361,109 @@ edge under the credit averaged away). W8: on every sky no pixel the world
 draws stands above OKLab L 0.53 outside the moon's footprint (the ink
 birds aside), and the moon's footprint (4.5 degrees about it) stands
 clear of every block of words at the view's own heading (a visitor's drag
-can bring the moon behind them; they still read there, the credit at
-4.83:1 the lowest measured so). So 4.5:1 held against every ground pixel
-measured under the words (see Verify; the credit's lowest at the view's
-own heading 4.90:1). The ceiling bounds lightness (OKLab L), not
+can bring the moon behind them; they still read there, the credit
+at 4.80:1 the lowest measured so, at 1440x900, with the moon's
+route). So 4.5:1 held against every ground pixel measured under
+the words (see Verify; the credit's lowest at the view's own
+heading 4.90:1). The ceiling bounds lightness (OKLab L), not
 luminance, so the margin depends on hue: on a saturated green at the
 ceiling the credit would be about 4.4-4.5:1.
 
-BOOT AND HAND-OVER (the owner: "should load instantly make it 10x
-faster"): the page paints at once with the hour's still sky (the
-stylesheet's, per time of day, :has(canvas.sky)) and today's birds over
-it. The world's scripts only define at their top level; the boot starts
-in the first animation frame after the ink birds (the last deferred
-script) have registered, and is staged a step a frame, the context
-first. Where the browser has KHR_parallel_shader_compile and is not
-WebKit (Chrome, Edge, Firefox): every program issued at once, the probe
-and the land first, all polled once a frame; the noise baked in one
-frame; each warm-up draw made as soon as its own program is done, beside
-the links still compiling. On WebKit (Safari on the Mac, every browser
-on iOS and iPadOS, told by the user agent: it has the extension, but its
-links and first draws are synchronous, and a batch of programs linked at
-once froze the owner's iPhone for 20 s before) and where the extension
-is missing: the old path, one program at a time, the noise a layer a
-frame, the warm-up after the links and never in the noise's frame. Then,
-on every browser: the first cells and cloud bodies made at sixteen times
-the flight's budget while the canvas is hidden, so they are there from
-its first frame in most starts (in 4 of 14 measured starts a large cloud
-body still faded in 0.4-2.5 s after it); the ground cache and the probes
-once the visit's plan is made and its weights' grid is on the GPU; then
-the device's timed trials, from the full scale down, three a scale (two
-where both run far over its bar: one alone may be the visit's first
-full-size draw, a one-off cost). With forced colours on at load the
-canvas is hidden and no render targets are made; they are made once
-the colours end, before the boot's next frame. The canvas then
-dissolves in over 0.5 s;
-today's birds plan no new flight, finish a crossing that ends within 6 s
-and fade the rest with the dissolve; the ink birds take the sky from the
-dissolve's end. The land's grid is read as floats (ANGLE's Direct3D path
+BOOT (the owner: "should load instantly make it 10x faster"): the page
+paints at once with the hour's still sky (the stylesheet's, per time of
+day, :has(canvas.sky)) and the words, and nothing else is drawn until
+the world's first frame: the ink birds fly in the world. The start file
+(start.v1.js: async, fetchpriority high, Early-Hinted, the first script
+after the canvas) runs as soon as it comes, before the world's scripts:
+unless WebGL2 is missing, colours are forced or the browser is WebKit,
+it makes the canvas's context with the world's attributes, and unless
+KHR_parallel_shader_compile is missing or the renderer is a CPU one by
+name, it issues every program of the world's first frame from its table
+for the device (26 programs, or on the split height's devices their own
+set of 32, HPSPLIT in their #defines; each text as the world hands it
+to shaderSource, the device's #defines put in) and flushes, reading no
+status, no layout and no clock. The world takes that context (getContext
+gives the same one) and adopts each program whose issued text is exactly
+the one it would issue itself, freeing the rest; a context lost before
+that goes the world's own lost path. tools/start.mjs makes the two tables
+from src/ in a fake browser, and fails unless each serves every device
+and visit of its set the start file serves. The kits, the wing model
+and the ink birds only define at their top level (each hands itself
+to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
+global on self); the world's also sets the browser's bar to the top
+of the hour's still sky, draws the visit's seed and starts the plan's
+worker. The boot starts in the first animation frame after the realms
+have registered (the world, the kit and the realms are fetched first,
+at high priority and Early-Hinted, the ink birds' wing model and the ink
+birds after them, at low: the boot waits for neither those scripts nor
+the page's load), and is staged a step a frame, the context first. The
+ink birds join whenever their scripts come (their programs, from stage
+C on, issued on a list of their own, polled once a frame and warmed
+before they fly). The visit's first plan (the maps, the director and its
+first tick, the weights' grids about the landing: pure CPU, the boot's
+longest task, 0.43-0.72 s on a desktop and 1.5-2.5 s at 4x) is made in
+a worker, plan.v1.js, which the world starts as its script ends, with
+the visit's seed, while the page evaluates the other scripts. The world
+adopts the answer only if it is this world's (the worker's stamp, the
+md5 of the world's code it copies verbatim), this seed's, the camera at
+the landing and no grid made yet: the plan is the same doubles either
+way. Anything else (no Worker, an error, an answer for another seed or
+world, 8 s gone) and the page makes the plan itself, as before. Where
+the browser has KHR_parallel_shader_compile and is not WebKit (Chrome,
+Edge, Firefox): every program issued at once (or adopted from the start
+file), the probe and the land first, all polled once a frame; each warm-up
+draw made as soon as its own program is done, beside the links still
+compiling; the programs for what no first frame can show (the ink birds',
+and the sand's particles and ribbons where the flight cannot reach sand
+in the 30 s after the show) issued with the rest but finished after the
+show. On WebKit (Safari on the Mac, every browser on iOS and iPadOS,
+told by the user agent: it has the extension, but its links and first
+draws are synchronous, and a batch of programs linked at once froze the
+owner's iPhone for 20 s before) and where the extension is missing: the
+old path, one program at a time, the warm-up after the links and never
+in the frame the noise is finished in. On every browser the noise is
+baked on the CPU, byte for byte the volume the GPU drew (every voxel the
+exact double-precision one; its mips made by generateMipmap, as before):
+a layer of 1,024 voxels a boot frame from the frame after B, beside C
+and the plan, the layers left all in the first frame after C (11-25 ms
+of the main thread on a desktop in all). Then, on every browser, stage
+D is not paced by frames: once the GPU is free, rounds of its GPU half
+and its CPU half in one frame until the world is ready, nothing moved,
+64 rounds or the slice is spent (40 ms). The boot's probes and the
+landing's ground grid are drawn and read at once (the canvas is hidden;
+the same bytes the read-back ring brings two frames later), but only
+once the boot's fences show the GPU past C's own frame and every boot
+frame but the last, so a read waits on one frame's work at most. The
+cells that can be seen (a distance weight over 0 about the landing, the
+cell's own or one of its cloud bodies', 30 m nearer) come first, in the
+flight's own order, and only they are meshed, uploaded and baked behind
+the still (the bake's units a frame from 1,024, doubled while the GPU
+keeps up, up to 8,192); the rest build in flight, out in the haze. The
+world is ready once every cell is resolved and every cell that can be
+seen is whole: no cell, mesh or cloud body with a distance weight over
+0 arrives after the show, in any direction, a drag at once included. In
+flight a guard builds at once, before the frame that would show it, any
+cell in view whose weight will be over 0 within 30 m (one still late
+is drawn at once, and counted). There are no timed trials at load: the
+render scale starts at the tier's top (THE GOVERNOR), and one frame at
+0.35 of the old size, in stage H, which runs in the frame G is done in,
+still lets a device too slow even there decline. With forced colours on
+at load the world does not boot while they hold (the ink birds fly alone:
+see FALLBACKS); it boots once they end. The show is a cut (the owner:
+"There shouldn't be any fade-ins/outs at all"): the frame it shows in is
+drawn whole first, with nothing in or near the view still building, and
+the canvas is shown in the same task; the ink birds fly from the first
+frame shown. The land's grid is read as floats (ANGLE's Direct3D path
 compiled the land's vertex program a second time at its first draw for
 bytes), and the probe's height is one function (the weights and the
-dunes' land made once). Measured on an RTX 4090 (Chrome headless, ANGLE
-on Direct3D 11; live against stage 2's first shipped build, medians of
-three): a cold desktop visit fully in at 4.20 s (live 18.95 s), a return
-3 s later at 1.41 s (16.68), a phone's CPU throttled 4x at 6.05 s
-(21.55) and 6x at 8.38 s (23.15). The wall left is the Direct3D compile
+dunes' land made once). Measured at stage 2's end, before fast500,
+on an RTX 4090 (Chrome headless, ANGLE on Direct3D 11; live against
+stage 2's first shipped build, medians of three): a cold desktop
+visit fully in at 4.20 s (live 18.95 s), a return 3 s later at
+1.41 s (16.68), a phone's CPU throttled 4x at 6.05 s (21.55)
+and 6x at 8.38 s (23.15). The wall left is the Direct3D compile
 of the land's and the probe's programs, side by side (1.85 s and 1.33 s
-alone). On a phone-speed CPU the world now often shows before today's
-first bird. Since world.v5.js the land's height code is written for that
+alone). Since world.v5.js the land's height code is written for that
 compiler (FXC), the same operations on the same values: the plateaus' two
 taps made once per point; the dunes', the massifs' and the cloud sea's
 taps in loops, each tap's own multiply kept (a diagonal one by
@@ -365,9 +477,16 @@ program 2,172 ms to 797 ms, the probe 1,422 ms to 469 ms. Keep uZ in
 those bounds, and keep each tap's matrix a constant at its multiply: a
 diagonal matrix read from a table stops FXC folding mat2(s) * p to
 p * s, and the heights move (up to 0.155 m) though SwiftShader draws them
-alike; such a change is proved by a read-back on ANGLE's D3D path. The
-noise is drawn a layer a draw (NOISE.K = 1): ANGLE's D3D link builds the
-pixel program for its first output alone.
+alike; such a change is proved by a read-back on ANGLE's D3D path. There
+is no noise program now: the noise is baked on the CPU (above). On NVIDIA
+under ANGLE's Direct3D 11 (by the renderer's name, with float targets and
+parallel compiles) the land's height is split (HPSPLIT in that device's
+#defines; each program's source the same on every device, the split under
+#ifdef): four small fragment passes into five float textures, read by the
+land's vertex program and by the probe. The heights, the gap and the probe
+read back exact; the slopes differ by one ulp on about 25% of vertices
+(1-level pixel changes), which the owner accepted for the speed ("Yes fast
+asf pls"). Every other device draws the land as before.
 
 No iPhone showed the world from stage 1 until stage 2's fixes: the
 read-back ring's fences (rbFence) were polled with clientWaitSync(.., 0,
@@ -381,8 +500,8 @@ an instrumented copy of the page (2026-11-04, in a claude.ai frame drawn
 at 30 fps): without the flush the boot stood at "F warmed" for 280 s;
 with it the world was ready 5 s after load, its timed trials choosing
 the full scale (13.5 ms a frame). The flush was made in world.v5.js
-itself, not cut from the dev build: the dev build needs the same line
-before its next cut, or the cut drops it.
+itself, not cut from the dev build; fast500's dev build carries the same
+line, so its cut keeps it.
 
 THE GOVERNOR AND COST (the owner: "everything should be 10x quality"):
 the world is drawn at its memory tier's density: a desktop at most 2
@@ -401,69 +520,61 @@ more above the old size, then the old five, 1, 0.85, 0.72, 0.6 and 0.5
 of it), a second rung tried if the first did not help, both undone and
 the frame time learnt as the pace if neither did (a 30 fps cap is simply
 the pace); twenty seconds at ease step back up (three, in the first
-twenty seconds shown and until the first step down: a device that
-starts low refines in seconds; never while an undone step's cool-down
-runs); ten seconds under half the pace at the last rung, or under 15 fps
+twenty seconds shown and until the first step down: every boot
+starts at the tier's top now, so only a resize that lands below
+it climbs that fast; never while an undone step's cool-down runs);
+ten seconds under half the pace at the last rung, or under 15 fps
 that the scale cannot help, and the loop stops and the still sky stays.
 A resize keeps the density being drawn (the rung nearest it in device
 px a CSS px), so a rotation or a window dragged to a new size neither
 sharpens nor softens the world. The scatter and the particles thin to
 0.6 on the rungs under 0.65 of the old size (its 0.6 and 0.5, as on
-live: TIER). The boot's timed trials choose the first rung (the old
-size's 0.35, 0.5, 0.7 and 1, and the tier's top). The density costs
+live: TIER). The first rung is the tier's top (what the boot's timed
+trials chose on every arm timed: none run at load now), and one frame
+at 0.35 of the old size in the boot's last stage still lets a device
+too slow even there decline (over 21.7 ms twice). The density costs
 memory: the world's targets for a 393x852 phone at 3 go from about 134 MB
 to 201 MB, a Retina 1440x900 window's from 239 MB to 589 MB (a real
 iPhone must hold a 10-minute visit at the full phone tier: see Verify). A
 renderer on the CPU (SwiftShader, llvmpipe and the like, by its name)
-keeps the still sky from the start; so does a boot whose timed trials
-miss the floor, a first frame doubted twice, or a broken program. A
+keeps the still sky from the start; so does a boot whose 0.35 trial
+misses the floor, a first frame doubted twice, or a broken program. A
 hidden tab draws nothing.
 
 FALLBACKS: no WebGL2: the still sky of the hour (data-sky) and its words,
-today's birds flying over it; no script: the still day sky, no birds; a
-lost context: the still sky of the time of day being drawn, until
-restored; prefers-reduced-motion: one still frame of the world, drawn
-again when the words move, live both ways; forced colours: no world
-(today's birds on the system's colours), and the world back when they
-end, on at load too; print: none of it.
+no bird; no script: the still day sky and the words, no bird; a lost
+context: the still sky of the time of day being drawn, until restored;
+prefers-reduced-motion: one still frame of the world, drawn again when the
+words move, live both ways; forced colours: the world not drawn, the
+canvas cleared to the system's Canvas colour and the ink birds alone over
+it, in CanvasText at full ink, in a still view of their own (the flight
+held), and the world back when they end, on at load too; print: none of
+it.
 
 THE WEATHER (=rand()): one crypto.getRandomValues above world.v8.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds (today's birds draw their own one, above their own INIT-END).
-The realm and kit files and the ink birds draw nothing of their own. The
+ink birds. The realm and kit files, the wing model, the ink birds, the
+plan's worker and the start file draw nothing of their own (the worker is
+handed the visit's seed): the world's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
-for budgets only, never for what is drawn; time is
-requestAnimationFrame's own.
+for budgets only, never for what is drawn; time is requestAnimationFrame's
+own.
 
-## Birds (birds.v13.js, inkbirds.v4.js and its wing model)
+## Birds (inkbirds.v4.js and its wing model)
 
-TODAY'S BIRDS (birds.v13.js, which is birds.v10.js with the hand-over):
-twelve inline SVGs at the end of index.html, lent to flights, each bird
-drawn afresh in the tattoo's hand (an "M" gull stood on a steep
-diagonal, its rises and drops reading as steps, round-capped, the pose
-redrawn on twos and the line re-jittered six times a second), many kinds
-(geese, ibis, gulls, herons, crows, finches, swallows, storks) with their
-own sizes, paces, wing-beats from field data, flap and glide; flights in
-patterns (skeins, lines, pairs, loose flocks, lone birds, thermals: a
-scripted leader path, every other bird in a place behind it, never boids),
-crossing a sky seen in depth (a camera looking out over the sea of cloud),
-calm (spans a second slowed to the page's calm, mostly gliding, at most
-two flights, three on a wide sky, empty spells, a sky that thins over a
-long visit), every path planned whole before its first bird enters,
-clear of the words, the edges and the other flights; entering beyond an
-edge or out of the distance and leaving the same way, never starting,
-stopping, bouncing or turning back in view. They fly over the still sky
-while the world boots (and wherever it cannot run), tell it when their
-first bird is in view (skyAir.flying), and hand it the sky when it shows
-(skyAir.handover / handed): no new flight, a crossing ending within 6 s
-finishes, the rest fade with the dissolve; handed back (a lost context,
-the world giving up, forced colours) they plan again. The file's header
-is its full design, its research and its numbers (as of birds.v10.js; the
-hand-over and its 0.5 s fade are tagged inline). pointer-events: none.
+The birds are the ink birds, and there are no others: the world draws
+them, in its canvas, so before the world's first frame, and wherever it
+does not run (no WebGL2, no script, a lost context, a CPU renderer, a
+device too slow), the page is the still sky and the words, with no bird on
+it, and in print the name, the line and the credit on the paper, no bird
+(see Design); under forced colours the world draws them alone, in
+CanvasText (see World: FALLBACKS). No script, SVG or rule of the old 2D
+birds is left in the page, its stylesheet, its headers or the world's
+scripts, and CI fails if one comes back (see Security).
 
 THE INK BIRDS (inkbirds.v4.js, round 3): the living sky. The birds are
-no longer flights planned to cross the window: every flock is an animal
+not flights planned to cross the window: every flock is an animal
 in the 3D world on its own business, and the window shows what is in
 front of the camera. Geese, ibis and gulls commute on the evening's line
 (with it, against it, across it); gulls and storks wheel over a patch of
@@ -521,7 +632,7 @@ and 1440x900 with the camera of a window narrower than 6:5, the words
 hidden, objects in, averaged row by row in OKLab, the horizon 55-58%
 down; and on a window 6:5 or wider (@media (min-aspect-ratio: 6/5), the
 query the camera reads) the world's own taken again from the pitched
-camera at 1440x900, the horizon about 72% down; so the world dissolves
+camera at 1440x900, the horizon about 72% down; so the world cuts
 in over its own still on every window. The colours hold against every
 gradient wherever a window puts the words (as CI computes them: text
 7.09:1 or more, the dimmed grey 6.33, the focus ring 5.67; CI samples
@@ -531,10 +642,14 @@ exactly once each, and fails below 4.5 and 3). The canvas
 (100lvh: a phone's toolbar coming and going never resizes the world),
 unseen until drawn; touch-action pinch-zoom (pan-y too where the page
 scrolls, everything the browser's while zoomed: data-touch), no text
-selected while a drag steers (data-steer). Keyframes: `appear` (a bird's
-1 s fade-in, Samara's, off under prefers-reduced-motion; the canvas's 0.5 s
-dissolve, kept: a dissolve is not motion) and `vanish` (today's birds
-fading with the dissolve); no transitions. A window under 500 px tall (a
+selected while a drag steers (data-steer). No keyframes and no
+transitions (the owner: "There shouldn't be any fade-ins/outs at
+all"): the canvas shows at once (`.sky.on`: opacity 1, a cut, its
+frame drawn whole first). Under forced colours the stylesheet keeps
+the canvas laid out and sets color: CanvasText and background-color:
+Canvas on it, the two colours the world reads from it: it clears
+the canvas to Canvas and draws the ink birds alone over it in
+CanvasText (see World: FALLBACKS). A window under 500 px tall (a
 phone held sideways) lays the stack out again to fit, so the page never
 scrolls. :focus-visible is a 2px outline in the focus colour, offset 3px,
 on every focusable. The name's two rules live here (CSP: style-src 'self',
@@ -546,25 +661,33 @@ less main's padding), height auto, aspect-ratio 1310 / 314) and
 
 ## JS
 
-Eight files, one job each, in this order (CI step "The world's page loads
-in order"; every script tag carries data-cfasync="false", so Rocket Loader
-leaves the order as served):
+The scripts, one job each, in this order (CI step "The world's page
+loads in order" and world_rules.py's rule 5; every script tag carries
+data-cfasync="false", so Rocket Loader leaves the order as served):
 
 1. hour.v3.js — in the head, before the first paint (tiny,
    Early-Hinted): which time of day the world opens on (data-sky,
    data-sky-at) and the browser's bar.
-2. site.js — email obfuscation: HTML has href="#" id="email-link", JS
+2. start.v1.js — the start file (async, fetchpriority="high",
+   Early-Hinted, the first script after the canvas and the only async
+   one): the world's context and its first frame's programs, issued before
+   the world's script runs (see World: BOOT); made by tools/start.mjs from
+   src/, never by hand.
+3. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
-3. birds.v13.js — today's birds (deferred, first: they fly at once).
-4. world.v8.js — the world (deferred).
+4. world.v8.js — the world (deferred, fetchpriority="high", Early-Hinted,
+   first of the deferred; minified). As its script ends it starts the
+   plan's worker, plan.v1.js, by name (no tag: see World: BOOT).
 5. realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js — the kits
-   (deferred; each registers itself with WORLD.realm; keep the order).
+   (deferred, fetchpriority="high", Early-Hinted, minified; each registers
+   itself with WORLD.realm; keep the order: the boot starts a frame after
+   they have registered).
 6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
-   labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred, in
-   that order; each puts its one global on self).
-7. inkbirds.v4.js — the ink birds (deferred, last: the boot starts once
-   it has registered).
+   labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred,
+   fetchpriority="low", in that order; each puts its one global on self).
+7. inkbirds.v4.js — the ink birds (deferred, fetchpriority="low", last,
+   minified: they take the sky whenever they come).
 
 Progressive enhancement throughout: with JS off, the page is the
 typography on the still day sky.
@@ -637,9 +760,14 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 \_headers. Never preload a font no rule uses (Chrome warns, and every
 first visit pays for it).
 
-The world's scripts are not on the path to the first paint (deferred,
-not preloaded): world.v8.js 739 KB (247 KB gzipped), inkbirds.v4.js 472 KB
-(160 KB), its wing model 181 KB (46 KB), today's birds 104 KB, the kits 80 KB.
+The world's scripts are not on the path to the first paint (deferred, the
+start file async), but the start file, the world's and the kits' are
+fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
+at high priority; the wing model and the ink birds after them, at low. As
+served: start.v1.js 1035 KB (its programs' GLSL, as text), world.v8.js
+381 KB, the kits 51 KB, inkbirds.v4.js 193 KB, its wing model 186 KB, the
+plan's worker 73 KB (node tools/minify.mjs --report src: the five
+minified, before and after, raw and brotli).
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
 script), takes the top of the hour's still sky (hour.v3.js, before the
@@ -651,19 +779,45 @@ the top of the drawn world. The favicon is SVG-first with PNG fallback.
 
 HTML: max-age=0, must-revalidate. Everything else: max-age=31536000,
 immutable. Immutable means CHANGED BYTES NEED A NEW FILENAME: bump
-style.vN.css → style.vN+1.css, birds.vN.js → birds.vN+1.js, world.vN.js,
-realm-kit.vN.js, realm-dunes.vN.js, realm-above.vN.js, inkbirds.vN.js and
-the wing model's six files (facetform, facetpose, wingmodel, model,
-labbird, birdwing .vN.js) each to its vN+1, hour.vN.js → hour.vN+1.js, .subN → .subN+1, and update every
-reference in the same commit: site/index.html (stylesheet, hour, every
-script), site/404.html (stylesheet, hour), site/\_headers (the style and
-hour Link preloads, each file's cache block, the "next name" comment),
+style.vN.css → style.vN+1.css, world.vN.js, realm-kit.vN.js,
+realm-dunes.vN.js, realm-above.vN.js, inkbirds.vN.js, plan.vN.js,
+start.vN.js and the wing model's six files (facetform, facetpose,
+wingmodel, model, labbird, birdwing .vN.js) each to its vN+1, hour.vN.js →
+hour.vN+1.js, .subN → .subN+1, and update every reference in the same
+commit: site/index.html (stylesheet, hour, every script), site/404.html
+(stylesheet, hour), site/\_headers (the Link preloads of the style, the
+hour, the start file, the world and the kits, each file's cache block, the
+"next name" comment), src/ (a minified script's readable copy carries its
+served name: git mv both, or CI's build check fails), tools/start.mjs for
+start.vN.js (it writes the start file's own name, and the next one, into
+the file's header; CI checks the start file against what the same script
+makes, so it would not catch a stale name), the world's source for
+plan.vN.js (it starts the worker by its literal name),
 .github/workflows/validate.yml (required files only — the other steps
 resolve the shipped versioned names themselves with ls), and this file
 (grep it for the old name). validate.yml's reverse check fails on a
 leftover old version, and on any script or stylesheet in site/ that no
-page loads or that has no version in its name (site.js aside), so git mv
-rather than copy.
+page loads (the plan's worker aside: the world starts it, by name) or that
+has no version in its name (site.js aside), so git mv rather than copy. A
+change made in src/ is a change to the copy built from it, so that name
+goes up; and a change to any program of the first frame changes the start
+file, made again under a new name. The plan's worker is the world's own
+code (the spans it copies verbatim, under their md5's stamp, which the
+world's PW_V must equal: world_rules.py rule 2b): a change to those spans
+in the world needs the worker made again, under a new name.
+
+The browser's shader cache answers only for a GLSL source it has seen byte
+for byte, so a returning visitor's world is quick only while every
+program's text stays the same: CI step "Every visit compiles the same
+shaders" (glsl_guard.js) runs the site's scripts as shipped in node, in a
+fake browser with a fake WebGL2 context, for 15 visits of five devices,
+and fails unless every visit of a device compiles the same sources,
+devices differ only in the #define lines after #version, and the reference
+device's programs are exactly glsl_manifest.txt. So a change to a
+program's text comes with its manifest lines in the same commit (node
+.github/workflows/glsl_guard.js site --write
+.github/workflows/glsl_manifest.txt), and the diff names the programs a
+deploy makes every returning visitor compile again.
 
 ## SEO
 
@@ -672,10 +826,10 @@ Title: "Derek Zhou — Technology Leader".
 
 ## Security
 
-All content directly in HTML. No innerHTML. No JS-generated DOM: the
-canvas, the stack, the footer and the twelve bird SVGs are all in
-index.html. The lettered name is an inline SVG in index.html (one path;
-no text, script, style, link or paint server in it), and CI step "The
+All content directly in HTML. No innerHTML. No JS-generated DOM:
+the canvas, the stack and the footer are all in index.html. The
+lettered name is an inline SVG in index.html (one path; no text,
+script, style, link or paint server in it), and CI step "The
 lettered name keeps its words" fails if the h1 loses its visually hidden
 words, the drawing loses aria-hidden or grows anything but its one
 currentColor path, or the stylesheet stops reserving its box.
@@ -688,8 +842,13 @@ COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial (the accelerometer and the gyroscope included:
 Android's phone-motion steering would need accelerometer=(self),
 gyroscope=(self) on /*, a choice for the owner); X-Permitted-Cross-Domain-
-Policies none. The world needs no CSP change: WebGL2 from same-origin
-scripts, no workers, no blobs, no fetches, no eval; the site's own code
+Policies none. The world needs one CSP addition, for the plan's worker:
+worker-src 'self' on the two home blocks that start it (/ and /index.html;
+404.html starts none), and the worker's response its own policy, its
+block in \_headers (/plan.v1.js: immutable, default-src 'none'; a
+worker's policy is its script's headers, not the page's, and no other
+rule sets one on that path). Otherwise WebGL2 from same-origin scripts,
+that one worker, no blobs, no fetches, no eval; the site's own code
 is blind (no telemetry, no beacon, no store). The one exception is
 Cloudflare Web Analytics (the owner, 2026-11-03: "yes we need
 analytics"): cookieless, injected by Cloudflare, not in this repo, its
@@ -702,27 +861,51 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, birds.v13.js, world.v8.js, the kits, the wing model, inkbirds.v4.js, plus
-style.v16.css for cursors — never to this prose) fails on:
+hour.v3.js, start.v1.js, the five minified scripts as written (src/'s
+world.v8.js, the kits and inkbirds.v4.js), the wing model, plan.v1.js,
+plus style.v16.css for cursors and a bird rule, and \_headers for a bird
+script's name — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
 handler in the JS (a pointer's moves read only by the world's drag: its
 one pointermove listener added in onDown and removed in endDrag); any DOM
-building; more or fewer than one getRandomValues in today's birds or the
-world, or one below its INIT-END marker, and any in the kits or the ink
-birds; any Math.random or clock read (Date) in them; performance.now()
+building; more or fewer than one getRandomValues in the world, or one
+below its INIT-END marker, and none at all, nor any clock read, in the
+kits, the wing model, the ink birds, the start file or the plan's worker;
+any Math.random or clock read (Date) in the world; performance.now()
 but the world's one clockNow; anything in the hour but its one `new
-Date(`; any URL hook (location., URLSearchParams), sound, network call,
-worker or eval; any dev or record hook (window.__*, window.claude,
+Date(`; any URL hook (location., URLSearchParams), sound, network call
+or eval, and any worker but the plan's (one, started by the world by its
+literal name); any dev or record hook (window.__*, window.claude,
 console) or an attribute read on `<html>` but the hour's data-sky and
-data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors only).
+data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors
+only). And the old 2D birds stay retired (absence 7): it fails on a
+birds.vN.js in site/ or src/; on a bird class (bird in any class list,
+in either quotes), a polyline or a birds.vN.js named in index.html,
+404.html or \_headers; on a .bird rule or a [class=bird] selector in the
+stylesheet; or on skyAir, SKYAIR, handover, handTo, HASSVG, DISSOLVE_S,
+bootWaitWhy or handoverToldMs in any script; CI step "The world's page
+loads in order" fails on a bird class or a polyline in the page too.
 CI step "The world's rules" (world_rules.py) adds: every script tag
 tagged for Rocket Loader; every home-scope CSP (and 404.html's meta)
 with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v8.js and only by name; the script order; and the
+listeners only in world.v8.js and only by name (its two on the plan's
+worker, its answer and its failure, one each); the script order (the
+world and the kits first, fetchpriority high, then the wing model and
+the ink birds, low; the start file the one async script, high, right
+after the canvas); the plan's worker (rule 2b: at most one, plan.v1.js,
+by its literal name; its block in \_headers exactly its immutable cache
+and default-src 'none', worker-src exactly 'self' where it is started;
+its code the world's own spans verbatim, stamped with their md5; rule 4:
+pure arithmetic, no DOM, window, storage, network, entropy or clock, one
+listener, message, and two postMessage calls, its answer and its refusal);
+the start file (rule 4b: no DOM building, URL hook, storage, sound,
+module, worker or network; no entropy, clock, timer or animation frame;
+one listener, webglcontextlost; nothing put on window but WORLD_START);
+the scripts' text read from src/ (world_rules.py site src); and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
 are named nowhere, the ink birds alone read their keep-off, and nothing is
@@ -760,14 +943,16 @@ fails if site/ holds anything but the kinds of file the site serves
 (HTML, CSS, JS, WOFF2, PNG, SVG, robots.txt, security.txt, the fonts'
 OFL.txt, \_headers, \_redirects, \_routes.json) or a file of the
 repository's own, or if the root holds anything but its own (.github/,
-.gitignore, CLAUDE.md, the two font scripts, site/, a functions/
-folder): a new kind of file is a deliberate change to those lists.
-robots.txt blocks: GPTBot, ClaudeBot, CCBot, Google-Extended, ChatGPT-User,
-Bytespider, anthropic-ai, cohere-ai, FacebookBot.
+.gitignore, CLAUDE.md, the two font scripts, site/, a functions/ folder,
+and the build's: .gitattributes, package.json, package-lock.json, src/,
+tools/, node_modules/ once npm ci has run): a new kind of file is a
+deliberate change to those lists. robots.txt blocks: GPTBot, ClaudeBot,
+CCBot, Google-Extended, ChatGPT-User, Bytespider, anthropic-ai, cohere-ai,
+FacebookBot.
 
 ## Verify
 
-Before a change to the world, its kits, the ink birds or today's birds:
+Before a change to the world, its kits or the ink birds:
 
 - CI, every step, locally as the runner runs it (each `run:` step in
   `bash -eo pipefail` from the repository's root; W7's step needs
@@ -792,20 +977,24 @@ Before a change to the world, its kits, the ink birds or today's birds:
   reference drawn at the device's own px, and a film under a drag against
   that reference's (nothing may glitter more than it does); the governor
   on synthetic frame clocks; reduced motion both ways, a lost and
-  restored context, rotation, print, forced colours, no WebGL2, no
-  script, the 404 page. And on a real iPhone (no harness reaches its
+  restored context, rotation, print, forced colours (the ink birds
+  alone, in CanvasText), no WebGL2 and no script (the still sky
+  and the words, and no bird SVG, script or rule on the page),
+  the 404 page. And on a real iPhone (no harness reaches its
   WebKit or its memory; Chrome under an iPhone user agent is not
   WebKit, and passed while every iPhone kept the still sky): the world
   boots and shows, without a frozen page, and a
   10-minute visit with the screen on is never reloaded by Safari (the
   full phone tier draws at 2 device px a CSS px; if it reloads, that
   tier goes down to 1.6).
-- Then the dev build is cut to the shipped files by its counted edits
-  (each must match exactly once), and the cut proved to change nothing a
-  visitor sees: both builds served side by side, the same visit (the
-  page's one entropy read answered alike) and the same hour (the clock
-  faked), the frames driven by the harness, a fixed interval each, and
-  at each moment the canvas read back and the DOM serialised: identical,
+- Then the dev build is cut to src/'s files by its counted edits
+  (each must match exactly once), those built into site/'s by
+  tools/minify.mjs (the start file by tools/start.mjs), and the
+  build proved to change nothing a visitor sees: both builds
+  served side by side, the same visit (the page's one entropy
+  read answered alike) and the same hour (the clock faked), the
+  frames driven by the harness, a fixed interval each, and at each
+  moment the canvas read back and the DOM serialised: identical,
   at 1440x900 and 393x852 at least. In that harness the GPU's name is
   faked and its fences and parallel compiles report done (or llvmpipe
   would rightly get the still sky, and this shared machine's timing would
