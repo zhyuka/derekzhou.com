@@ -23,9 +23,9 @@ jobs:
             site.js
             hour.v3.js
             birds.v12.js
-            world.v3.js
+            world.v4.js
             realm-kit.v1.js
-            realm-dunes.v1.js
+            realm-dunes.v2.js
             realm-above.v1.js
             inkbirds.v1.js
             robots.txt

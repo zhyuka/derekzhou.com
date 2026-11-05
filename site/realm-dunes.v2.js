@@ -129,14 +129,14 @@ vec3 basinOf(vec2 p, vec3 h, Site s) {
   return dMul(h, vec3(1.0, 0.0, 0.0) - fl * w) - depth * w;
 }
 /* a plateau: an oval of flat top, its sides in terraces (a riser, then a ledge), a stair's way cut down its -x face */
-vec3 plateauOf(vec2 p, vec3 h, Site s) {
+vec3 plateauOf(vec2 p, vec3 h, Site s, vec3 n17, float g8) {
   vec2 ab = vec2(72.0 + 16.0 * s.r.x, 150.0 + 28.0 * s.r.y); float ang = s.r.z * PI;
   float rise = 46.0 + 14.0 * s.r.w, steps = s.r.w < 0.5 ? 2.0 : 3.0;
   vec3 e = ovalOut(p, s.p, ab, ang);
   float stepH = (rise + 10.0) / (steps + 0.5);
   if (e.x > stepH * 9.0 + 140.0) return h;
   float base = swell(s.p) + 8.0, top = base + rise;
-  e += 5.0 * dN(p + 17.0, mat2(1.0 / 140.0));
+  e += 5.0 * n17;
   float Pp = stepH * 2.3, u = max(e.x, 0.0) / Pp, k = floor(u), fr = u - k, x = clamp(fr / 0.3, 0.0, 1.0);
   float rs = x * x * (3.0 - 2.0 * x), drs = fr < 0.3 ? 6.0 * x * (1.0 - x) / 0.3 : 0.0;
   vec3 pl = vec3(top - stepH * (k + rs), e.x > 0.0 ? -stepH * drs / Pp * e.yz : vec2(0.0));
@@ -146,7 +146,7 @@ vec3 plateauOf(vec2 p, vec3 h, Site s) {
   vec2 dp = p - s.p; float c = cos(ang), sn = sin(ang);
   float lx = c * dp.x + sn * dp.y, ly = -sn * dp.x + c * dp.y;
   if (lx < -ab.x + 4.0 && abs(ly) < 12.0) {
-    float ou = -ab.x - lx, w = sstepDown(12.0, 9.5, abs(ly)), drift = 1.4 * max(gn(p / 8.0) + 0.05, 0.0) * smoothstep(0.0, 12.0, ou);
+    float ou = -ab.x - lx, w = sstepDown(12.0, 9.5, abs(ly)), drift = 1.4 * max(g8 + 0.05, 0.0) * smoothstep(0.0, 12.0, ou);
     vec3 ramp = vec3(top - max(ou, 0.0) * 0.4877 + drift, ou > 0.0 ? 0.4877 * vec2(c, sn) : vec2(0.0));
     vec3 cut = dSmin(pl, ramp, 1.5);
     pl = vec3(mix(pl.x, cut.x, w), mix(pl.yz, cut.yz, w));
@@ -158,8 +158,10 @@ vec3 D_Hd(vec2 p) {
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);
-  for (int k = 0; k < 9; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k]);
+  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);
+  // (compile) the plateaus' two taps hang on p alone: made once here, the loops' bounds unfoldable (uZ)
+  vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);
+  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }
 /* (world6) the bays' sea of cloud and its shading are gone: the cloud sea is the world's (HdSea, shadeSea) */

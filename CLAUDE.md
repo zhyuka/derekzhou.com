@@ -13,9 +13,9 @@ site/style.v15.css           All styles (versioned name — see Caching): the wo
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
 site/birds.v12.js            Today's birds: they fly over the still sky while the world boots, then hand it over (see Birds)
-site/world.v3.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
+site/world.v4.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v1.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
-site/realm-dunes.v1.js       The dunes' kit: the sand province's land, rock, landmarks and light
+site/realm-dunes.v2.js       The dunes' kit: the sand province's land, rock, landmarks and light
 site/realm-above.v1.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
 site/inkbirds.v1.js          The ink birds: today's birds' own code, living in the world (see Birds)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
@@ -50,7 +50,7 @@ measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and the files here are that build with every hook cut
 out by counted edits (see Verify). Nothing on the page reads such a hook.
 The record's code and the dev helpers those hooks called are left in
-world.v3.js, unreachable (the switches keep their defaults; cutting them
+world.v4.js, unreachable (the switches keep their defaults; cutting them
 is a change to the engine, to be proved frame for frame like any other).
 The comments keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,
@@ -192,7 +192,7 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v3.js, realm-kit.v1.js, realm-dunes.v1.js, realm-above.v1.js)
+## World (world.v4.js, realm-kit.v1.js, realm-dunes.v2.js, realm-above.v1.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
@@ -345,7 +345,19 @@ three): a cold desktop visit fully in at 4.20 s (live 18.95 s), a return
 (21.55) and 6x at 8.38 s (23.15). The wall left is the Direct3D compile
 of the land's and the probe's programs, side by side (1.85 s and 1.33 s
 alone). On a phone-speed CPU the world now often shows before today's
-first bird.
+first bird. Since world.v4.js the land's height code is written for that
+compiler (FXC): the plateaus' two taps made once per point, before the
+site loops, whose bound adds uZ, a uniform never set (0), so FXC cannot
+unroll them; the same instructions, the picture unchanged. Measured with
+Chrome's own D3DCompiler_47 at ANGLE's flags on a slow machine: the
+land's vertex program 5.7 s to 2.6 s, the probe 4.0 s to 1.7 s. Keep uZ
+in those bounds: a constant bound there unrolls, and the compile grows
+again. Taps moved into tables (a diagonal mat2(s) read from an array)
+change the heights on Direct3D, where FXC no longer folds mat2(s) * p
+to p * s: up to 0.155 m, though SwiftShader draws them alike, so a
+change of this kind is proved by a read-back on ANGLE's D3D path. The
+noise is drawn a layer a draw (NOISE.K = 1): ANGLE's D3D link builds the
+pixel program for its first output alone.
 
 No iPhone showed the world from stage 1 until stage 2's fixes: the
 read-back ring's fences (rbFence) were polled with clientWaitSync(.., 0,
@@ -358,7 +370,7 @@ now flushes each fence. Measured on the owner's iPhone in Safari through
 an instrumented copy of the page (2026-11-04, in a claude.ai frame drawn
 at 30 fps): without the flush the boot stood at "F warmed" for 280 s;
 with it the world was ready 5 s after load, its timed trials choosing
-the full scale (13.5 ms a frame). The flush was made in world.v3.js
+the full scale (13.5 ms a frame). The flush was made in world.v4.js
 itself, not cut from the dev build: the dev build needs the same line
 before its next cut, or the cut drops it.
 
@@ -405,7 +417,7 @@ again when the words move, live both ways; forced colours: no world
 (today's birds on the system's colours), and the world back when they
 end, on at load too; print: none of it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.v3.js's
+THE WEATHER (=rand()): one crypto.getRandomValues above world.v4.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds (today's birds draw their own one, above their own INIT-END).
@@ -509,8 +521,8 @@ leaves the order as served):
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
 3. birds.v12.js — today's birds (deferred, first: they fly at once).
-4. world.v3.js — the world (deferred).
-5. realm-kit.v1.js, realm-dunes.v1.js, realm-above.v1.js — the kits
+4. world.v4.js — the world (deferred).
+5. realm-kit.v1.js, realm-dunes.v2.js, realm-above.v1.js — the kits
    (deferred; each registers itself with WORLD.realm; keep the order).
 6. inkbirds.v1.js — the ink birds (deferred, last: the boot starts once
    it has registered).
@@ -587,8 +599,8 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 first visit pays for it).
 
 The world's scripts are not on the path to the first paint (deferred,
-not preloaded): world.v3.js 744 KB (249 KB gzipped), inkbirds.v1.js 229 KB
-(78 KB), today's birds 104 KB, the kits 78 KB.
+not preloaded): world.v4.js 744 KB (249 KB gzipped), inkbirds.v1.js 229 KB
+(78 KB), today's birds 104 KB, the kits 79 KB.
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
 script), takes the top of the hour's still sky (hour.v3.js, before the
@@ -650,7 +662,7 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, birds.v12.js, world.v3.js, the kits, inkbirds.v1.js, plus
+hour.v3.js, birds.v12.js, world.v4.js, the kits, inkbirds.v1.js, plus
 style.v15.css for cursors — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
@@ -670,7 +682,7 @@ with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v3.js and only by name; the script order; and the
+listeners only in world.v4.js and only by name; the script order; and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
 are named nowhere, the ink birds alone read their keep-off, and nothing is
