@@ -73,6 +73,10 @@ export async function openPage(browser, url, { vp, persona = 'generic', epoch, s
   await page.clock.install({ time: epoch - 1000 });   // (pauseAt only moves forward)
   await page.clock.pauseAt(epoch);
   await page.addInitScript(INIT({ seeds, renderer: PERSONAS[persona].renderer, census, nowebgl }));
+  // Twice: the fonts are font-display: optional, so a first load on a busy machine may miss their block period and
+  // keep the fallback; the second load has them from the cache (immutable), as a returning visitor does.
+  await page.goto(url, { waitUntil: 'load', timeout: 120000 });
+  await page.evaluate(() => document.fonts.ready.then(() => true));
   await page.goto(url, { waitUntil: 'load', timeout: 120000 });
   await page.evaluate(() => document.fonts.ready.then(() => true));
   return { ctx, page, logs, frames: 0 };
@@ -113,9 +117,10 @@ export async function capture(arm, { pixels = false } = {}) {
     const root = document.documentElement;
     r.root = Array.from(root.attributes).map((a) => a.name + '=' + a.value).join(' | ');
     r.theme = (document.querySelector('meta[name="theme-color"]') || {}).content || null;
-    // What renders: the body without its <script> elements, a served file's version number dropped (a rename that
+    // What renders: the body without its <script> elements and comments, a served file's version number dropped (a rename that
     // changes no byte a visitor sees is not a visible change; the bytes themselves are the frames' business).
     const body = document.body.cloneNode(true); body.querySelectorAll('script').forEach((e) => e.remove());
+    const tw = document.createTreeWalker(body, NodeFilter.SHOW_COMMENT), cm = []; while (tw.nextNode()) cm.push(tw.currentNode); cm.forEach((n) => n.remove());
     const ser = new XMLSerializer().serializeToString(body).replace(/\.(v|sub)\d+\.(js|css|woff2)/g, '.$1.$2');
     r.dom = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(r.root + '\n' + r.theme + '\n' + ser)));
     return r;
