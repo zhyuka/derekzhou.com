@@ -29,7 +29,7 @@ if (!branch || !branch.startsWith('claude/')) { say(`${branch}: not a claude/* b
 
 let pr;
 if (process.env.PR_NUMBER) pr = (await gh('GET', '/pulls/' + process.env.PR_NUMBER)).json;
-else { const l = (await gh('GET', `/pulls?state=open&base=main&head=${REPO.split('/')[0]}:${encodeURIComponent(branch)}`)).json || []; pr = l[0]; }
+else { const l = (await gh('GET', `/pulls?state=open&base=main&head=${REPO.split('/')[0]}:${encodeURIComponent(branch).replace(/%2F/g, '/')}`)).json || []; pr = l[0]; }
 if (!pr || pr.state !== 'open') { say('no open PR from this branch into main'); process.exit(0); }
 const n = pr.number;
 if (pr.draft) { say(`#${n} is a draft: never merged by the bot`); process.exit(0); }
