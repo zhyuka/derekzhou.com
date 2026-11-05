@@ -95,10 +95,21 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const [vp, hour, seed, mob] = CASES[j.c], tag = j.c + '_' + j.arm + '_r' + j.r, dir = path.join(OUT, 'frames');
       fs.mkdirSync(dir, { recursive: true });
       const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf'].concat(mob ? ['--mobile'] : []);
-      const code = await run(args, prof(slot), 'gstep_' + tag);
-      let res = null; try { res = JSON.parse(fs.readFileSync(path.join(dir, tag + '.json'), 'utf8')); } catch (e) { /* none */ }
-      log('visit ' + tag + ': exit ' + code + (res ? ', shown at frame ' + res.show[j.arm] : ', no result'));
+      // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
+      // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
+      const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
+      let code, res = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        code = await run(args, attempt ? {} : prof(slot), 'gstep_' + tag + (attempt ? '_retry' : ''));
+        res = null; try { res = JSON.parse(fs.readFileSync(path.join(dir, tag + '.json'), 'utf8')); } catch (e) { /* none */ }
+        log('visit ' + tag + (attempt ? ' (retry, fresh profile)' : '') + ': exit ' + code + (res ? ', shown at frame ' + res.show[j.arm] : ', no result'));
+        if (shown(res)) break;
+        // (kept for the diagnosis: harness or site? the visit's whole result, its page's console and its page state,
+        // copied to OUT's top level so the job's report carries them)
+        if (res) { fs.writeFileSync(path.join(OUT, 'noshow_' + tag + (attempt ? '_retry' : '') + '.json'), JSON.stringify({ show: res.show, logs: res.logs, wall: res.wall, pages: res.pages, glsl: (res.glsl[j.arm] || []).length, renderer: res.renderer }, null, 1)); log('NEVER SHOWN ' + tag + ': console ' + JSON.stringify(res.logs[j.arm]).slice(0, 1500)); }
+      }
       if (!res) return Object.assign(j, { ok: false });
+      if (!shown(res)) { R.errors.push('visit ' + tag + ' failed: the world never showed (twice)'); return Object.assign(j, { ok: false, noshow: true }); }
       const one = { frames: res.frames[j.arm], pages: res.pages[j.arm], tiles: res.tiles[j.arm], glsl: res.glsl[j.arm], logs: res.logs[j.arm], dir, show: res.show[j.arm], renderer: res.renderer };
       return Object.assign(j, { ok: code === 0, res: one });
     }), PAR);
