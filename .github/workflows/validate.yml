@@ -470,6 +470,14 @@ jobs:
           npm ci --no-audit --no-fund --ignore-scripts
           node tools/minify.mjs --check build/ship site --start-src build/src
 
+      - name: The build makes site/, the same bytes every time
+        run: |
+          # tools/build.mjs is the site's build in one command (site/ copied, the built scripts written over it,
+          # build.txt with the commit). Built twice at once into two folders: both must be the same bytes, and
+          # their sha256 manifest must equal site/'s files. Steps that move code around (the restructure) prove
+          # here, in seconds, that no shipped byte changed.
+          node tools/build.mjs --check
+
       - name: The world's rules
         run: |
           # Every script tagged for Rocket Loader; production blind (every home-scope

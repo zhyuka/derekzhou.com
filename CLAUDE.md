@@ -48,6 +48,8 @@ src/                         The five scripts site/ serves minified, as written 
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
+tools/build.mjs              The build in one command: site/ + the built scripts into a folder, build.txt (the
+                             commit), a sha256 manifest; --check builds twice and proves both equal site/
 tools/minify.mjs             Builds site/'s five from build/src/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
@@ -87,7 +89,12 @@ read the scripts' text (the absences, world_rules.py) read build/src/. So
 a change is made in src/ and built (node tools/parts.mjs assemble src
 build/src, node tools/parts.mjs assemble --ship src build/ship, then node
 tools/minify.mjs --build build/ship site --start-src build/src),
-the two committed together. The hour, site.js, the wing model and the
+the two committed together. tools/build.mjs runs all of that into a
+folder of its own (node tools/build.mjs OUT: site/ copied, the built
+scripts over it, OUT/build.txt holding the commit) and CI step "The build
+makes site/, the same bytes every time" (node tools/build.mjs --check)
+builds twice and fails unless both builds are the same bytes and equal
+site/. The hour, site.js, the wing model and the
 plan's worker are served as written, the start file as tools/start.mjs
 writes it.
 
