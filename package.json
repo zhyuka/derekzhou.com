@@ -1,0 +1,8 @@
+{
+  "name": "derekzhou-com",
+  "private": true,
+  "description": "The build tools of the site (not served): terser, pinned, for tools/minify.mjs (validate.yml checks site/'s scripts are what it makes from src/).",
+  "devDependencies": {
+    "terser": "5.51.2"
+  }
+}

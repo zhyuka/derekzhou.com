@@ -1,7 +1,7 @@
-/* style.v15.css: the world's page. style.v14.css (the name lettered, the line under it, the world's rules, the page
-   laid out again to fit a window under 500 px tall) with the words light on every sky (one set of colours, no ink per
-   sky), the still skies taken again from the skies that remain (and a wide window's own, for its camera pitched up 9
-   degrees), and the world's dissolve and today's birds' fade in 0.5 s. No cursor rule. */
+/* world5 (E0): the world's page. The lettered page's stylesheet (lettering/page/site/style.v13.css: the name lettered,
+   no bio, the still skies) with round 3b's world rules (the lvh canvas, touch-action, data-touch, data-steer, the
+   realms' still skies) and the page laid out again to fit a window under 500 px tall (a phone held sideways, P1).
+   No cursor rule. At the ship this is style.v13.css's successor (design-v5 18.2). */
 
 /* ------------------------------------------------
    @font-face — self-hosted WOFF2, ASCII subsets
@@ -88,7 +88,7 @@
 }
 
 /* ------------------------------------------------
-   Tokens — the words are light, always (the owner's word of
+   Tokens — the words are light, always (stage2, the owner's word of
    2026-11-03: "lets only use white text for everything"): text #fdfcf7,
    a cool light grey for the dimmed words, a light gold ring, selection a
    dark slate under the light text. The page's ground is a sky (below),
@@ -96,8 +96,13 @@
    under everything, and print is black on white (the one exception).
    ------------------------------------------------ */
 
+/* (fast500 no-fades, the sun and moon) the small viewport's height, read by the world for the moon's plan (the words
+   at their highest place on a phone, its bar shown); registered as a length, so it reads back in px */
+@property --svh { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
 :root {
   color-scheme: light;
+  --svh: 100svh;
 
   /* Two families (see CLAUDE.md, Type): Geist for the words, the links
      and a heading set in type (the 404's); Geist Mono for the facts. The
@@ -149,12 +154,12 @@ body {
 
 /* ------------------------------------------------
    The sky — behind everything, the whole window. The sky's script draws it
-   (WebGL2) and fades it in over the stylesheet's still sky of the hour
-   (data-sky, set by the hour's script before the first paint). The words
+   (WebGL2) and shows it at once over the stylesheet's still sky of the hour
+   (data-sky, set by the hour's script before the first paint), in the frame
+   its first whole frame is drawn: a cut, never a fade. The words
    are light on every sky (each sky holds its own light under a ceiling so
-   they read); the script works the credit's grey out for the sky it drew,
-   and never darkens the sky for them. With no script the page is the still
-   day sky.
+   they read), and the script never darkens the sky for them. With no
+   script the page is the still day sky.
    ------------------------------------------------ */
 
 .sky {
@@ -194,17 +199,17 @@ body {
   user-select: none;
 }
 
+/* (fast500, no fades) the world shown: at once, a cut (the frame it shows in is drawn whole first) */
 .sky.on {
   opacity: 1;
-  animation: appear 0.5s;
 }
 
-/* the still skies, one for each time of day, every one under light words: each is the kept sky its time of
+/* (stage2) the still skies, one for each time of day, every one under light words: each is the kept sky its time of
    day lands on (dawn and the morning (day) the light before sunrise; the afternoon (rain) and sunset the afterglow; dusk
    the blue hour; night the moonlit sea, the Milky Way, the aurora), drawn by the world (the words hidden, seed 7, t 1, the day's middle) at 1440x900
-   and 393x852 with the camera of every window narrower than 6 : 5, every row averaged in OKLab, objects in (as the
-   stills before them were made), the two windows averaged; one set of stops for all six. The hour's
-   own (the 404 page, no script) and the world's (the home page, :has(canvas.sky): the world dissolves in over its own
+   and 393x852 with the camera of every window narrower than 6 : 5, every row averaged in OKLab, objects in (as Version
+   14's were made), the two windows averaged (stage2/build/tools/stillsky2.py); one set of stops for all six. The hour's
+   own (the 404 page, no script) and the world's (the home page, :has(canvas.sky): the world cuts in over its own
    still; when the canvas hides it marks the time of day it was drawing, markStill) are the same skies here. */
 body {
   background: linear-gradient(to bottom, #173a63 0%, #2b4067 27%, #3d4466 33.5%, #3e4466 36.5%, #544460 44%, #58435c 47.5%, #66404e 53%, #5e3c4d 54%, #4e374b 55%, #3e3447 57%, #373248 57.5%, #272e4a 58%, #2d2f49 58.5%, #232c45 59.5%, #192841 68.5%, #12233c 100%) #5e4256;
@@ -234,7 +239,8 @@ body {
    world sets them as constants too, chosen against its light ceiling, OKLab L 0.53) hold against every still sky's
    whole gradient, the wide windows' too, wherever a window puts the words (CI checks 4.5 and 3): the text day 8.15,
    dawn 8.15, rain 7.09, sunset 7.09, dusk 7.93, night 10.12; the dimmed grey day 7.28, dawn 7.28, rain 6.33, sunset
-   6.33, dusk 7.08, night 9.04; the ring day 6.52, dawn 6.52, rain 5.67, sunset 5.67, dusk 6.34, night 8.10 */
+   6.33, dusk 7.08, night 9.04; the ring day 6.52, dawn 6.52, rain 5.67, sunset 5.67, dusk 6.34, night 8.10
+   (stillsky2.py) */
 
 /* the world's still skies (the home page): the same skies as the hour's above, on the world's page */
 :root[data-sky="day"]:has(canvas.sky) body {
@@ -261,12 +267,12 @@ body {
   background: linear-gradient(to bottom, #17234f 0%, #23355e 27%, #24385f 33.5%, #223b62 36.5%, #1e3d64 44%, #1d3e65 47.5%, #1a395f 53%, #1a365b 54%, #1b3255 55%, #1f2e4c 57%, #1f2d49 57.5%, #1e2a46 58%, #1f2b47 58.5%, #212843 59.5%, #20253f 68.5%, #1b213b 100%) #1c3c62;
 }
 
-/* the world's still skies on a wide window (6 : 5 or wider), where the world's camera looks 9 deg higher
-   (the world's basePitch: its wideWin reads this same query, so the camera and the still agree on every window; the
+/* (camera9b) the world's still skies on a wide window (6 : 5 or wider), where the world's camera looks 9 deg higher
+   (world.js, basePitch: its wideWin reads this same query, so the camera and the still agree on every window; the
    horizon about 72 % down at 1440x900): taken again from that camera's renders at 1440x900 the way the ones above were
-   (each time of day's kept landing skies, objects in), so the dissolve never crosses two
-   horizons. Any other window (a window near square, an upright tablet, a phone) has the camera as before and keeps the
-   still above. The words' colours above hold against the whole of these too; the world gives the browser's bar these
+   (stage2: each time of day's kept landing skies, objects in, stillsky2.py), so the cut never moves the
+   horizon. Any other window (a window near square, an upright tablet, a phone) has the camera as before and keeps the
+   still above. The words' colours above hold against the whole of these too; world.js gives the browser's bar these
    tops on such a window (SKYTOPW). */
 @media (min-aspect-ratio: 6/5) {
   :root[data-sky="day"]:has(canvas.sky) body {
@@ -292,52 +298,6 @@ body {
   :root[data-sky="night"]:has(canvas.sky) body {
     background: linear-gradient(to bottom, #1b2552 0%, #222b58 22.5%, #222f5a 25%, #23365f 32.5%, #223e64 44%, #244165 47%, #1e3d64 54%, #1a3c65 62%, #173b64 65.5%, #1b3659 70.5%, #1b3456 71%, #1c2f4d 72%, #1d2b48 72.5%, #1f2945 73%, #202742 74.5%, #1f243d 100%) #213f65;
   }
-}
-
-/* ------------------------------------------------
-   The birds — samara.com/jobs's dots (body > .dot), as birds: fixed to
-   the window, over the page like Samara's, fading in over a second when
-   each appears. The birds' script moves them; without it they never show.
-   They never take a click: links under a bird still work. Their ink is
-   the words' (light, on every sky).
-   ------------------------------------------------ */
-
-.bird {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  overflow: visible;
-  pointer-events: none;
-  transform-origin: 50% 50%;
-  fill: none;
-  stroke: var(--color-text);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.bird.on {
-  display: block;
-  animation: appear 1s;
-}
-
-@keyframes appear {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* today's birds that fade with the world's dissolve (the hand-over):
-   the canvas's own 0.5 s and timing, run by the browser beside it, so a
-   slow frame of the world's start never leaves a bird behind; a dissolve
-   is not motion, so reduced motion keeps it */
-.bird.on.fade {
-  animation: vanish 0.5s forwards;
-}
-
-@keyframes vanish {
-  from { opacity: 1; }
-  to { opacity: 0; }
 }
 
 /* ------------------------------------------------
@@ -447,7 +407,7 @@ footer a, .back-link {
 /* ------------------------------------------------
    A window under 500 px tall (a phone held sideways, less its browser's
    bars): the stack laid out again to fit, so the page never scrolls and a
-   vertical swipe steers. The name sized from the
+   vertical swipe steers (design-v5 11.1, gate P1). The name sized from the
    height as well as the width, the credit and the links closer together,
    the margins from the height.
    ------------------------------------------------ */
@@ -476,16 +436,17 @@ footer a, .back-link {
 }
 
 /* ------------------------------------------------
-   Motion preferences and forced colors
+   Forced colors: the world is not drawn; the canvas stays laid out and
+   shows only the ink birds, in CanvasText on the system's Canvas colour,
+   the two the script reads here (reduced motion is the scripts' own: a
+   still sky; nothing in this stylesheet animates)
    ------------------------------------------------ */
 
-@media (prefers-reduced-motion: reduce) {
-  .bird.on { animation: none; }
-}
-
 @media (forced-colors: active) {
-  .bird { stroke: CanvasText; }
-  .sky { display: none; }
+  .sky {
+    color: CanvasText;
+    background-color: Canvas;
+  }
 }
 
 /* ------------------------------------------------
@@ -493,8 +454,6 @@ footer a, .back-link {
    ------------------------------------------------ */
 
 @media print {
-  .bird,
-  .bird.on,
   .sky,
   footer {
     display: none;
@@ -514,6 +473,6 @@ footer a, .back-link {
 
   h1 { font-size: 2rem; color: #000; }
   .name svg { width: 16rem; }
-  .words { color: #000; }   /* black like the name: the stack's ink (--color-text, set live on .stack) never reaches print */
+  .words { color: #000; }   /* (line2) black like the name: the stack's ink (--color-text, set live on .stack) never reaches print */
   .credit { color: #555; }
 }
