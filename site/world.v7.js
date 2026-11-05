@@ -4722,6 +4722,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
      gone (HOVER), and no listener reads a mouse's moves */
   var HOVER = { x: -1, y: -1, n: 0, gone: true, down: false, type: '' };
   var SUPPRESS = false, SUPPRESS_N = 0;
+  var CLICKQ = [];   // (perch lane: clicks and taps for the birds, x, y CSS px pairs; drained by the birds each step)
   function inert() { return reduced() || DEAD || LOST; }
   function onLink(el) { for (var e = el; e && e !== root; e = e.parentNode) if (e.tagName === 'A' || e.tagName === 'BUTTON') return true; return false; }
   function onDown(e) {
@@ -4750,6 +4751,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   function onUp(e) {
     if (e.pointerId !== DRAG.id) return;
     var was = DRAG.on;
+    if (!was && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (perch lane: each click spawns a bird)
     endDrag(true);
     if (was) { SUPPRESS = true; SUPPRESS_F = FRAMEN; SUPPRESS_N++; }   // (a drag's click is not a tap)
   }
@@ -8442,6 +8444,7 @@ void main() {
     sky: function () { return SKYI.k >= 0.5 && SKYI.next ? SKYI.next : (SKYI.sky || ''); },
     /* (life) the pointer for the birds' play: HOVER copied (CSS px), and the drag's state (a press steers) */
     pointer: function (o) { o.x = HOVER.x; o.y = HOVER.y; o.n = HOVER.n; o.gone = HOVER.gone || inert() || FCOL.on; o.down = HOVER.down || DRAG.id !== -1; o.steer = DRAG.on; return o; },
+    clicks: function (o) { o.length = 0; if (!inert()) for (var i = 0; i < CLICKQ.length; i++) o.push(CLICKQ[i]); CLICKQ.length = 0; return o; },   // (perch lane)
     alpha: function () { return FRUN ? FALPHA : SIM.junction ? 1 : SIM.alpha; },
     /* (round 2) forced colours: { on, ink, paper } (sRGB 0-1: CanvasText and Canvas); while on, the world is not drawn
        and the camera is held: the birds fly in their own still view, drawn in the ink at full strength */
@@ -9137,7 +9140,7 @@ void main() {
     var scripts; try { scripts = document.querySelectorAll('script[src]'); } catch (e) { return { error: 'no document' }; }
     var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (E1: a bare relative src too: the preview's)
     function r1(x) { return x === null || x < 0 ? null : +x.toFixed(1); }
-    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v6.js stamps as world.js)
+    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v7.js stamps as world.js)
     function regOf(n) { var b = base(n); if (b === 'inkbirds.js') return st.inkbirds; var m3 = /^realm-(\w+)\.js$/.exec(b); return m3 ? st['realm ' + m3[1]] : undefined; }
     for (i = 0; i < order.length; i++) {
       var o = order[i], b = base(o.name), e = res[o.name], rEnd = e ? e.responseEnd : -1, top = st[b + ' top'], reg = regOf(o.name), x = { name: o.name, responseEnd: r1(rEnd) };
