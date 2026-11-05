@@ -33,21 +33,16 @@
 #define A_GRASS_LIT uP[16].rgb
 #define A_ROCK_DEEP uP[17].rgb
 /* the sea of cloud: broad swells and heaps of billows, round tops and creases between */
-/* (compile) the five abs octaves as one loop over tables (amplitude, offset, softness; matrix), its bound unfoldable
-   (uZ), so FXC neither unrolls it nor inlines five copies: the same terms in the same order */
-const vec4 A_OT[5] = vec4[5](vec4(28.0, 13.0, 5.0, 0.04), vec4(12.0, -41.0, 19.0, 0.05), vec4(4.0, 7.0, -3.0, 0.07),
-  vec4(9.0, -19.0, 31.0, 0.08), vec4(3.5, 5.0, 23.0, 0.1));
-const mat2 A_OM[5] = mat2[5](mat2(1.0 / 210.0), mat2(0.6, 0.8, -0.8, 0.6) * (1.0 / 75.0), mat2(1.0 / 26.0),
-  mat2(0.9, -0.44, 0.44, 0.9) * (1.0 / 48.0), mat2(1.0 / 17.0));
 vec3 A_Hd(vec2 p) {
   vec3 h = 30.0 * dN(p, mat2(1.0 / 900.0)) + 12.0 * dN(p + 77.0, mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 380.0));
-  // (world6 step B) the near domes the low flight sees (48 m and 17 m, round tops: octaves 3 and 4), faded out with the
-  // vertex's distance (gLodD: 0 in the probes, so the camera's ground keeps them) before the clipmap's spacing could alias them
+  h += 28.0 * dAbs(dN(p + vec2(13.0, 5.0), mat2(1.0 / 210.0)), 0.04);
+  h += 12.0 * dAbs(dN(p + vec2(-41.0, 19.0), mat2(0.6, 0.8, -0.8, 0.6) * (1.0 / 75.0)), 0.05);
+  h += 4.0 * dAbs(dN(p + vec2(7.0, -3.0), mat2(1.0 / 26.0)), 0.07);
+  // (world6 step B) the near domes the low flight sees (48 m and 17 m, round tops), faded out with the vertex's distance
+  // (gLodD: 0 in the probes, so the camera's ground keeps them) before the clipmap's spacing could alias them
   float k1 = 1.0 - smoothstep(350.0, 900.0, gLodD), k2 = 1.0 - smoothstep(120.0, 380.0, gLodD);
-  for (int o = 0; o < 5 + uZ; o++) {
-    float k = o == 3 ? k1 : (o == 4 ? k2 : 1.0), a = o < 3 ? A_OT[o].x : A_OT[o].x * k;
-    if (k > 0.0) h += a * dAbs(dN(p + A_OT[o].yz, A_OM[o]), A_OT[o].w);
-  }
+  if (k1 > 0.0) h += (9.0 * k1) * dAbs(dN(p + vec2(-19.0, 31.0), mat2(0.9, -0.44, 0.44, 0.9) * (1.0 / 48.0)), 0.08);
+  if (k2 > 0.0) h += (3.5 * k2) * dAbs(dN(p + vec2(5.0, 23.0), mat2(1.0 / 17.0)), 0.1);
   return h;
 }
 /* (world6 step B) the sea's near billows, seen from 14-32 m now (step A's ABOVE was seen from 150 m, where its 26-75 m

@@ -26,7 +26,7 @@ jobs:
             world.v4.js
             realm-kit.v1.js
             realm-dunes.v2.js
-            realm-above.v2.js
+            realm-above.v1.js
             inkbirds.v1.js
             robots.txt
             _headers

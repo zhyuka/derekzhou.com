@@ -2022,7 +2022,7 @@ void main() {
 
   /* ---------------------------------------------------------------- the world's definition: the two kits, by weight */
   var WORLD_GLSL_HEAD = `
-uniform int uZ;   // (compile) never set, so 0: a loop bound FXC cannot fold, so it never unrolls the land's loops (Windows' compile 3-4x faster)
+uniform int uZ;   // (compile) never set, so 0: a loop bound FXC cannot fold, so it never unrolls the plateaus' loops (Windows' compile about 2x faster)
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
 #define HAS_GTX
