@@ -20,7 +20,8 @@ jobs:
     uses: ./.github/workflows/validate.yml
 
   # T0, the shader census: which files changed and what they touch (areas.json), and whether any shader's text did,
-  # read from the page itself in a real browser (SwiftShader), base against head.
+  # read from the page itself in a real browser (SwiftShader), base against head. It runs when site/ changed or the
+  # harness did (.github/ci, this file: so a change to the harness is tested on its own push).
   census:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -44,19 +45,19 @@ jobs:
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA"
       - uses: actions/setup-node@v4
-        if: steps.areas.outputs.site_changed == 'true'
+        if: steps.areas.outputs.run_t1 == 'true'
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
-        if: steps.areas.outputs.site_changed == 'true'
+        if: steps.areas.outputs.run_t1 == 'true'
       - name: Shader census (base against head)
         id: census
-        if: steps.areas.outputs.site_changed == 'true'
+        if: steps.areas.outputs.run_t1 == 'true'
         run: |
           git worktree add --detach "$RUNNER_TEMP/base" ${{ steps.base.outputs.base }}
           node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json"
       - name: No census needed
-        if: steps.areas.outputs.site_changed != 'true'
+        if: steps.areas.outputs.run_t1 != 'true'
         run: echo "site/ is byte for byte the base's, so every shader's text is too (glsl_changed=false)"
       - uses: actions/upload-artifact@v4
         if: always() && steps.census.outcome != 'skipped'
