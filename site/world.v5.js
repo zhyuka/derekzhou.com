@@ -2022,7 +2022,8 @@ void main() {
 
   /* ---------------------------------------------------------------- the world's definition: the two kits, by weight */
   var WORLD_GLSL_HEAD = `
-uniform int uZ;   // (compile) never set, so 0: a loop bound FXC cannot fold, so it never unrolls the plateaus' loops (Windows' compile about 2x faster)
+uniform int uZ;   // never set: GL makes it 0 at link; added to a loop's bound, FXC cannot count the loop, so it keeps it rolled
+vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
 #define HAS_GTX
@@ -2040,9 +2041,13 @@ void bsGrid(bool isF, vec2 p, out vec4 v, out vec4 gx, out vec4 gz) {
   vec2 q = clamp(p, c.xy - hw, c.xy + hw), t = q / c.z - 0.5, f = fract(t); ivec2 i0 = ivec2(floor(t)) - 1;
   vec4 wx, dx, wz, dz; bsW(f.x, wx, dx); bsW(f.y, wz, dz);
   v = vec4(0.0); gx = vec4(0.0); gz = vec4(0.0);
-  for (int b = 0; b < 4; b++) for (int a = 0; a < 4; a++) {
-    vec4 s = isF ? kfT(i0 + ivec2(a, b)) : kwT(i0 + ivec2(a, b));
-    v += wx[a] * wz[b] * s; gx += dx[a] * wz[b] * s; gz += wx[a] * dz[b] * s;
+  for (int b = 0; b < 4; b++) {
+    for (int a = 0; a < 4; a++) {
+      vec4 s = isF ? kfT(i0 + ivec2(a, b)) : kwT(i0 + ivec2(a, b));
+      v += wx.x * wz.x * s; gx += dx.x * wz.x * s; gz += wx.x * dz.x * s;
+      wx = wx.yzwx; dx = dx.yzwx;
+    }
+    wz = wz.yzwx; dz = dz.yzwx;
   }
   gx /= c.z; gz /= c.z;
 }
@@ -9009,7 +9014,7 @@ void main() {
     var scripts; try { scripts = document.querySelectorAll('script[src]'); } catch (e) { return { error: 'no document' }; }
     var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (E1: a bare relative src too: the preview's)
     function r1(x) { return x === null || x < 0 ? null : +x.toFixed(1); }
-    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v4.js stamps as world.js)
+    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v5.js stamps as world.js)
     function regOf(n) { var b = base(n); if (b === 'inkbirds.js') return st.inkbirds; var m3 = /^realm-(\w+)\.js$/.exec(b); return m3 ? st['realm ' + m3[1]] : undefined; }
     for (i = 0; i < order.length; i++) {
       var o = order[i], b = base(o.name), e = res[o.name], rEnd = e ? e.responseEnd : -1, top = st[b + ' top'], reg = regOf(o.name), x = { name: o.name, responseEnd: r1(rEnd) };
