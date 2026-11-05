@@ -491,8 +491,14 @@ view past the birds. And no bird fades in time: it shows only by
 crossing the window's edge or coming out of the distance (a fade by
 distance alone), and goes the same ways. Where the view brings the words
 across a flock's way, the words' keep-off hides its ink where they stand.
-The perched birds (guests) are in the file but off (GU.on false): they
-come with their own change, as does the birds' play with the cursor.
+The perched birds (guests): now and then a gull flies in (round the letters, never across a
+stroke), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
+line (never an underline), sits in the owner's perch A (the folded M seen side-on, upright),
+never still for long, and leaps off and away. No fades: it comes in from beyond the window's
+edge and leaves out of view. The pointer's perch needs the hover listener the world does not
+have, so it never comes. Each click or tap on the page that is not a drag and not on a link
+starts a gull at that point (the drag's own pointerdown/up: no listener added) that springs off
+and recedes into the distance; at most 4 at once; none under reduced motion.
 
 The birds fly for as long as the page is open, as the world moves. That
 is automatic motion over five seconds beside content, which WCAG 2.2.2
