@@ -10,15 +10,16 @@
 #      https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum (Cloudflare Web Analytics, injected by
 #      Cloudflare, reporting to the zone's own /cdn-cgi/rum, that one path; nothing else loads or is reached), and the site carries none of the world's development pages (its diagnostics, control and lab
 #      pages: diag.js, control.*, lab80.*, never shipped).
-#   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js and inkbirds.v*.js: no DOM
+#   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js, the ink birds' wing model (facetform,
+#      facetpose, wingmodel, model, labbird and birdwing .v*.js) and inkbirds.v*.js: no DOM
 #      building; no URL hook, storage or sound; no module, worker, fetch, XHR or Blob but a named worker (rule 2);
 #      entropy exactly once in world*.v*.js together, above its INIT-END marker, none in the realm, kit and ink birds'
 #      files; no Date, Math.random or randomUUID; performance.now( exactly once in world*.v*.js, inside function
 #      clockNow, none elsewhere; listeners only in world*.v*.js and only of the named kinds, exactly one
 #      addEventListener('pointermove' with its one removeEventListener (event names in either quotes, every
 #      listener's name a literal, no on* handler property in any of the world's files).
-#   5  The script order: index.html loads birds.v*.js first, then world, the kit, the realms, the ink birds last, all
-#      deferred.
+#   5  The script order: index.html loads birds.v*.js first, then world, the kit, the realms, the wing model (facetform,
+#      facetpose, wingmodel, model, labbird, birdwing, in that order), the ink birds last, all deferred.
 #   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
 #   7  Nothing darkens, and nothing is done to the world for the words (the owner's rule; the words' lift is
 #      gone): no realm or kit file names the ink birds' keep-off (uInkKeep); the ink birds' file names it only to take
@@ -51,8 +52,10 @@ world = [f for f in files if re.fullmatch(r'world[\w-]*\.v\d+\.js', f)]
 kit = [f for f in files if re.fullmatch(r'realm-kit\.v\d+\.js', f)]
 realms = [f for f in files if re.fullmatch(r'realm-(?!kit)[\w]+\.v\d+\.js', f)]
 ink = [f for f in files if re.fullmatch(r'inkbirds\.v\d+\.js', f)]
+WING = ('facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing')   # (round 3: the ink birds' wing model)
+wing = [f for f in files if re.fullmatch(r'(%s)\.v\d+\.js' % '|'.join(WING), f)]
 gen = [f for f in files if re.fullmatch(r'gen\.v\d+\.js', f)]
-src = {f: read(f) for f in world + kit + realms + ink + gen}
+src = {f: read(f) for f in world + kit + realms + wing + ink + gen}
 
 # 1 Rocket Loader
 for p, s in html.items():
@@ -107,7 +110,7 @@ def strip_comments(s):
     s = re.sub(r'/\*[\s\S]*?\*/', lambda m: '\n' * m.group(0).count('\n'), s or '')
     return re.sub(r'(?m)(^|[^:\'"\\])//.*$', r'\1', s)
 ALLOWED = {'pointerdown', 'pointerup', 'pointercancel', 'pointermove', 'click', 'touchend', 'dragstart', 'deviceorientation', 'resize', 'scroll', 'change', 'webglcontextlost', 'webglcontextrestored', 'load'}
-for f in world + kit + realms + ink:
+for f in world + kit + realms + wing + ink:
     s = src[f] or ''; c = strip_comments(s)
     for pat, what in [(r'createElement|innerHTML|appendChild|insertAdjacentHTML|document\.write', 'DOM building'),
                       (r'location\.(search|hash|href)|URLSearchParams|localStorage|sessionStorage|indexedDB|document\.cookie', 'a URL hook or storage'),
@@ -135,7 +138,7 @@ for f in world:
     am, rm = len(re.findall(r"""addEventListener\(\s*['"]pointermove['"]""", c)), len(re.findall(r"""removeEventListener\(\s*['"]pointermove['"]""", c))
     if am != 1 or rm != 1: fail('4 absences', f'{f}: pointermove added {am} and removed {rm} times (exactly one each)')
     for ln, t in lines(c, r"""addEventListener\(\s*['"](mousemove|mouseleave|mouseout|mouseover|mouseenter|keydown|keyup|keypress|blur|focusout|beforeunload|unload|pagehide|visibilitychange)['"]|document\.title"""): fail('4 absences', f'{f}:{ln} a hover, key, blur, exit, idle or title handler: {t}')
-for f in world + kit + realms + ink:
+for f in world + kit + realms + wing + ink:
     for ln, t in lines(strip_comments(src[f]), r'\.on[a-z]+\s*=(?!=)'): fail('4 absences', f'{f}:{ln} an on* handler property (listeners are added by name, in world*.v*.js only): {t}')
 
 # 7 nothing darkens, and nothing is done to the world for the words (the lift is gone, the owner's word of
@@ -152,6 +155,8 @@ for f in ink:
     for i, l in enumerate(strip_comments(src[f]).split('\n')):
         if not re.search(r'\b(uMask|uInkKeep)\b', l): continue
         l = l.strip()
+        l2 = re.sub(r'if \(u\.uInkKeep\) gl\.uniform1i\(u\.uInkKeep, \d+\);', '', l)   # (round 3: the ink birds bind their sampler's unit themselves)
+        if not re.search(r'\b(uMask|uInkKeep)\b', l2): continue
         if not (re.match(r'uniform sampler2D\b[^;]*;$', l) or re.search(r'texture\(uInkKeep, [^;]*;\s*vis \*= 1\.0 - smoothstep\(', l)): fail('7 never-darker', f'{f}:{i + 1} names the words\' keep-off beyond taking its own ink off the words: {l[:100]}')
 for f in world:
     c = strip_comments(src[f])
@@ -203,13 +208,15 @@ order = re.findall(r'<script\b[^>]*src="/?([^"]+)"[^>]*>', s)
 deferred = [x for x in re.findall(r'<script\b[^>]*>', s) if 'defer' in x]
 names = [re.search(r'src="/?([^"]+)"', x).group(1) for x in deferred if 'src=' in x]
 def kind(n):
-    for k, p in (('birds', r'birds\.v\d+\.js'), ('world', r'world[\w-]*\.v\d+\.js'), ('kit', r'realm-kit\.v\d+\.js'), ('realm', r'realm-\w+\.v\d+\.js'), ('ink', r'inkbirds\.v\d+\.js'), ('diag', r'diag\.v\d+\.js')):
+    for k, p in (('birds', r'birds\.v\d+\.js'), ('world', r'world[\w-]*\.v\d+\.js'), ('kit', r'realm-kit\.v\d+\.js'), ('realm', r'realm-\w+\.v\d+\.js'), ('wing', r'(%s)\.v\d+\.js' % '|'.join(WING)), ('ink', r'inkbirds\.v\d+\.js'), ('diag', r'diag\.v\d+\.js')):
         if re.fullmatch(p, n): return k
     return 'other'
 ks = [kind(n) for n in names if kind(n) != 'diag']
 if world:
-    want = ['birds', 'world', 'kit'] + ['realm'] * ks.count('realm') + ['ink']
-    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want birds, world, kit, the realms, the ink birds last')
+    want = ['birds', 'world', 'kit'] + ['realm'] * ks.count('realm') + ['wing'] * len(WING) + ['ink']
+    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want birds, world, kit, the realms, the wing model, the ink birds last')
+    wn = [re.sub(r'\.v\d+\.js$', '', n) for n in names if kind(n) == 'wing']
+    if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
 
-print('\n'.join(fails) if fails else 'world rules OK (' + ', '.join(f'{len(x)} {n}' for n, x in (('world', world), ('kit', kit), ('realm', realms), ('ink birds', ink), ('worker', gen))) + ')')
+print('\n'.join(fails) if fails else 'world rules OK (' + ', '.join(f'{len(x)} {n}' for n, x in (('world', world), ('kit', kit), ('realm', realms), ('wing model', wing), ('ink birds', ink), ('worker', gen))) + ')')
 sys.exit(1 if fails else 0)

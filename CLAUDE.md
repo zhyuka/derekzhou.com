@@ -13,11 +13,17 @@ site/style.v15.css           All styles (versioned name — see Caching): the wo
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
 site/birds.v12.js            Today's birds: they fly over the still sky while the world boots, then hand it over (see Birds)
-site/world.v5.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
+site/world.v6.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v1.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v3.js       The dunes' kit: the sand province's land, rock, landmarks and light
 site/realm-above.v2.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
-site/inkbirds.v1.js          The ink birds: today's birds' own code, living in the world (see Birds)
+site/facetform.v1.js         The wing model: the tattoo's M as a faceted solid (generated; see Birds)
+site/facetpose.v1.js         The wing model: the faceted M posed
+site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M's rig
+site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
+site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
+site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
+site/inkbirds.v2.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -50,7 +56,7 @@ measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and the files here are that build with every hook cut
 out by counted edits (see Verify). Nothing on the page reads such a hook.
 The record's code and the dev helpers those hooks called are left in
-world.v5.js, unreachable (the switches keep their defaults; cutting them
+world.v6.js, unreachable (the switches keep their defaults; cutting them
 is a change to the engine, to be proved frame for frame like any other).
 The comments keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,
@@ -192,7 +198,7 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v5.js, realm-kit.v1.js, realm-dunes.v3.js, realm-above.v2.js)
+## World (world.v6.js, realm-kit.v1.js, realm-dunes.v3.js, realm-above.v2.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
@@ -421,7 +427,7 @@ again when the words move, live both ways; forced colours: no world
 (today's birds on the system's colours), and the world back when they
 end, on at load too; print: none of it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.v5.js's
+THE WEATHER (=rand()): one crypto.getRandomValues above world.v6.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds (today's birds draw their own one, above their own INIT-END).
@@ -430,7 +436,7 @@ world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is
 requestAnimationFrame's own.
 
-## Birds (birds.v12.js, inkbirds.v1.js)
+## Birds (birds.v12.js, inkbirds.v2.js and its wing model)
 
 TODAY'S BIRDS (birds.v12.js, which is birds.v10.js with the hand-over):
 twelve inline SVGs at the end of index.html, lent to flights, each bird
@@ -456,17 +462,37 @@ the world giving up, forced colours) they plan again. The file's header
 is its full design, its research and its numbers (as of birds.v10.js; the
 hand-over and its 0.5 s fade are tagged inline). pointer-events: none.
 
-THE INK BIRDS (inkbirds.v1.js): the same birds by their own code carried
-over (the kinds, the hand, the flights, the calm, the planner, the
-rhythm), 3D-ified "just enough": each flight flies in a frame that travels
-with the camera but keeps its own heading in the world, so a turn of the
-view sweeps the birds across the window with the land; each bird built
-in 3D from its own mark (a wing chain seen from behind, banked by the
-mark's lean), placed and projected through the world's camera every frame
-and drawn as ink in one instanced draw (round caps and joins, the live
-pen and boil in screen px), with a breath of the world's air and light on
-it. They take their own ink off the words' ground (the one keep-off the
-world draws, read by them alone), which can only leave a pixel lighter.
+THE INK BIRDS (inkbirds.v2.js, round 3): the living sky. The birds are
+no longer flights planned to cross the window: every flock is an animal
+in the 3D world on its own business, and the window shows what is in
+front of the camera. Geese, ibis and gulls commute on the evening's line
+(with it, against it, across it); gulls and storks wheel over a patch of
+air; crows, a heron and swallows loiter about a home; geese migrate at
+night. A flock's leader steers in the world (a step every 0.1 s, its
+route worked out 4 s ahead) at its kind's real airspeed, never turning
+faster than its kind can, drifting with the wind; the others hold their
+places in its pattern (a V, a line, a pair, a loose cloud) a moment
+behind on its way, so turns ripple down the flock. Each bird is the
+tattoo's M as a faceted solid flown by a measured wingbeat (the wing
+model: facetform, facetpose, wingmodel, model, labbird, birdwing, loaded
+before it), drawn as ink through the world's camera, hidden behind a
+cloud's opaque core, and taking its own ink off the words' ground (the
+one keep-off the world draws, read by the ink birds alone), which can
+only leave a pixel lighter. The calm is kept in the world, never by
+slowing a bird: nothing passes the eye faster than 6 degrees a second
+(such a flock is met farther out), each kind is met at its own
+true-size distance, at most four or five flocks live about the viewer
+(an encounter every 9-20 s), a sky with no clear bird for 9 s sends one
+in that shows within 5 s, and a route onto the words is not flown. No
+bird follows the view (the owner's word): a flock's whole route is worked
+out at its birth and flown exactly, at its own height over the land
+under it; nothing in its flight reads the camera, so a drag swings the
+view past the birds. And no bird fades in time: it shows only by
+crossing the window's edge or coming out of the distance (a fade by
+distance alone), and goes the same ways. Where the view brings the words
+across a flock's way, the words' keep-off hides its ink where they stand.
+The perched birds (guests) are in the file but off (GU.on false): they
+come with their own change, as does the birds' play with the cursor.
 
 The birds fly for as long as the page is open, as the world moves. That
 is automatic motion over five seconds beside content, which WCAG 2.2.2
@@ -525,10 +551,13 @@ leaves the order as served):
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
 3. birds.v12.js — today's birds (deferred, first: they fly at once).
-4. world.v5.js — the world (deferred).
+4. world.v6.js — the world (deferred).
 5. realm-kit.v1.js, realm-dunes.v3.js, realm-above.v2.js — the kits
    (deferred; each registers itself with WORLD.realm; keep the order).
-6. inkbirds.v1.js — the ink birds (deferred, last: the boot starts once
+6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
+   labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred, in
+   that order; each puts its one global on self).
+7. inkbirds.v2.js — the ink birds (deferred, last: the boot starts once
    it has registered).
 
 Progressive enhancement throughout: with JS off, the page is the
@@ -603,8 +632,8 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 first visit pays for it).
 
 The world's scripts are not on the path to the first paint (deferred,
-not preloaded): world.v5.js 744 KB (249 KB gzipped), inkbirds.v1.js 229 KB
-(78 KB), today's birds 104 KB, the kits 80 KB.
+not preloaded): world.v6.js 739 KB (247 KB gzipped), inkbirds.v2.js 472 KB
+(160 KB), its wing model 181 KB (46 KB), today's birds 104 KB, the kits 80 KB.
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
 script), takes the top of the hour's still sky (hour.v3.js, before the
@@ -617,8 +646,9 @@ the top of the drawn world. The favicon is SVG-first with PNG fallback.
 HTML: max-age=0, must-revalidate. Everything else: max-age=31536000,
 immutable. Immutable means CHANGED BYTES NEED A NEW FILENAME: bump
 style.vN.css → style.vN+1.css, birds.vN.js → birds.vN+1.js, world.vN.js,
-realm-kit.vN.js, realm-dunes.vN.js, realm-above.vN.js, inkbirds.vN.js each
-to its vN+1, hour.vN.js → hour.vN+1.js, .subN → .subN+1, and update every
+realm-kit.vN.js, realm-dunes.vN.js, realm-above.vN.js, inkbirds.vN.js and
+the wing model's six files (facetform, facetpose, wingmodel, model,
+labbird, birdwing .vN.js) each to its vN+1, hour.vN.js → hour.vN+1.js, .subN → .subN+1, and update every
 reference in the same commit: site/index.html (stylesheet, hour, every
 script), site/404.html (stylesheet, hour), site/\_headers (the style and
 hour Link preloads, each file's cache block, the "next name" comment),
@@ -666,7 +696,7 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, birds.v12.js, world.v5.js, the kits, inkbirds.v1.js, plus
+hour.v3.js, birds.v12.js, world.v6.js, the kits, the wing model, inkbirds.v2.js, plus
 style.v15.css for cursors — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
@@ -686,7 +716,7 @@ with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v5.js and only by name; the script order; and the
+listeners only in world.v6.js and only by name; the script order; and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
 are named nowhere, the ink birds alone read their keep-off, and nothing is

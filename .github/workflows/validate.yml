@@ -23,11 +23,17 @@ jobs:
             site.js
             hour.v3.js
             birds.v12.js
-            world.v5.js
+            world.v6.js
             realm-kit.v1.js
             realm-dunes.v3.js
             realm-above.v2.js
-            inkbirds.v1.js
+            facetform.v1.js
+            facetpose.v1.js
+            wingmodel.v1.js
+            model.v1.js
+            labbird.v1.js
+            birdwing.v1.js
+            inkbirds.v2.js
             robots.txt
             _headers
             _redirects
@@ -125,7 +131,7 @@ jobs:
           # And the reverse: the versioned css/js the repo ships must be the
           # ones index.html loads, each with its immutable cache block (a
           # leftover old version, kept by a copy rather than a git mv, fails).
-          for f in style.v*.css birds.v*.js hour.v*.js world.v*.js realm-*.v*.js inkbirds.v*.js; do
+          for f in style.v*.css birds.v*.js hour.v*.js world.v*.js realm-*.v*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.v*.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -255,7 +261,7 @@ jobs:
           head, body = src.split('<body>', 1)
           tags = lambda s: re.findall(r'<script\b([^>]*)\bsrc="/([^"]+)"([^>]*)></script>', s)
           want_head = [('hour', False)]
-          want_body = [('site', False), ('birds', True), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('inkbirds', True)]
+          want_body = [('site', False), ('birds', True), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
           fail = 0
           for part, want in [(head, want_head), (body, want_body)]:
               got = tags(part)
@@ -277,7 +283,8 @@ jobs:
           cd site
           BIRDS=$(ls birds.v*.js | head -1); WORLD=$(ls world.v*.js | head -1); INK=$(ls inkbirds.v*.js | head -1)
           REALMS=$(ls realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
-          JS="site.js $HOUR $BIRDS $WORLD $REALMS $INK"
+          WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3)
+          JS="site.js $HOUR $BIRDS $WORLD $REALMS $WING $INK"
           echo "checking $JS and $CSS"
           # The page has none of the internet's body language, and CI fails
           # (rather than remembers) if any of it comes back. Scoped to the
@@ -346,8 +353,8 @@ jobs:
             echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
             fail=1
           fi
-          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $INK; then
-            echo "::error::the realms and the ink birds draw no entropy and read no clock"
+          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK; then
+            echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
             fail=1
           fi
           # the hour reads the clock exactly once, and draws no entropy
