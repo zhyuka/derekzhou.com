@@ -48,8 +48,10 @@ src/                         The five scripts site/ serves minified, as written 
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
-tools/build.mjs              The build in one command: site/ + the built scripts into a folder, build.txt (the
-                             commit), a sha256 manifest; --check builds twice and proves both equal site/
+tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
+                             set to): site/ + the built scripts, each script and stylesheet named by its content
+                             (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
+                             the plain build equals site/ and the named build resolves, both twice, byte for byte
 tools/minify.mjs             Builds site/'s five from build/src/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
@@ -90,11 +92,19 @@ a change is made in src/ and built (node tools/parts.mjs assemble src
 build/src, node tools/parts.mjs assemble --ship src build/ship, then node
 tools/minify.mjs --build build/ship site --start-src build/src),
 the two committed together. tools/build.mjs runs all of that into a
-folder of its own (node tools/build.mjs OUT: site/ copied, the built
-scripts over it, OUT/build.txt holding the commit) and CI step "The build
-makes site/, the same bytes every time" (node tools/build.mjs --check)
-builds twice and fails unless both builds are the same bytes and equal
-site/. The hour, site.js, the wing model and the
+folder of its own (node tools/build.mjs --plain OUT: site/ copied, the
+built scripts over it) and then (restructure step 5) names each script and
+stylesheet by its content: world.v8.js becomes world.<sha8>.js, the first 8
+hex of the sha256 of its final bytes, files that load others by name (the
+world's plan worker, the start file's table) named after them, and every
+reference rewritten (index.html, 404.html, \_headers, the two workers'
+URLs); node tools/build.mjs OUT writes that, with OUT/build.txt holding the
+commit. CI step "The build makes site/, the same bytes every time" (node
+tools/build.mjs --check) builds twice and fails unless both builds are the
+same bytes, the plain build equals site/, and in the named build every
+name is its bytes' hash, no old name is left, every reference resolves and
+every script and stylesheet has its own immutable \_headers block. The
+hour, site.js, the wing model and the
 plan's worker are served as written, the start file as tools/start.mjs
 writes it.
 
@@ -815,6 +825,13 @@ on a window 6:5 or wider) as the world's script's first act, and follows
 the top of the drawn world. The favicon is SVG-first with PNG fallback.
 
 ## Caching
+
+Once Cloudflare Pages deploys tools/build.mjs's output (build command
+`npm ci --no-audit --no-fund --ignore-scripts && node tools/build.mjs dist`,
+output directory `dist`), the served scripts and stylesheet are named by
+their content and a changed file gets a new name by itself. Until site/
+stops carrying the built files, the vN names below still name site/'s
+files and the rule below still holds for them.
 
 HTML: max-age=0, must-revalidate. Everything else: max-age=31536000,
 immutable. Immutable means CHANGED BYTES NEED A NEW FILENAME: bump
