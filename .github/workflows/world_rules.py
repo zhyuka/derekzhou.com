@@ -20,9 +20,14 @@
 #      clockNow, none elsewhere; listeners only in world*.v*.js and only of the named kinds, exactly one
 #      addEventListener('pointermove' with its one removeEventListener (event names in either quotes, every
 #      listener's name a literal, no on* handler property in any of the world's files).
+#   4b The start file (start.v*.js, fast500 step 5, served as tools/start.mjs makes it): no DOM building, URL hook,
+#      storage, sound, module, worker or network; no entropy and no clock (no getRandomValues, Date, Math.random,
+#      performance.now, setTimeout or requestAnimationFrame); one listener, webglcontextlost (a context lost before the
+#      world adopts it can still be restored); nothing put on window but WORLD_START.
 #   5  The script order: index.html loads world, the kit and the realms first, fetchpriority="high", then birds.v*.js,
 #      the wing model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
-#      fetchpriority="low", all deferred (the boot starts once the realms register).
+#      fetchpriority="low", all deferred (the boot starts once the realms register); the one async script is the start
+#      file, fetchpriority="high", the first script after the canvas.
 #   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
 #   7  Nothing darkens, and nothing is done to the world for the words (the owner's rule; the words' lift is
 #      gone): no realm or kit file names the ink birds' keep-off (uInkKeep); the ink birds' file names it only to take
@@ -216,6 +221,22 @@ for p in [g for g in gen if g.startswith('plan.')]:   # (fast500 step 11) the pl
 for f in world + kit + realms + wing + ink:
     for ln, t in lines(strip_comments(src[f]), r'\.on[a-z]+\s*=(?!=)'): fail('4 absences', f'{f}:{ln} an on* handler property (listeners are added by name, in world*.v*.js only): {t}')
 
+# 4b the start file (fast500 5)
+for f in [f for f in files if re.fullmatch(r'start\.v\d+\.js', f)]:
+    c = strip_comments(re.sub(r'(?s)\n  var Q = \[\n.*?\n  \];\n', '\n  var Q = [];\n', read(f) or ''))   # (its code: the table's GLSL is the world's, held by rule 4 there)
+    if 'var Q = [];' not in c: fail('4b start', f'{f}: its table (var Q = [...]) not found as tools/start.mjs writes it')
+    for pat, what in [(r'createElement|innerHTML|outerHTML|appendChild|insertAdjacentHTML|insertBefore|document\.write', 'DOM building'),
+                      (r'location\.|URLSearchParams|localStorage|sessionStorage|indexedDB|document\.cookie', 'a URL hook or storage'),
+                      (r'new Audio\(|AudioContext|speechSynthesis', 'sound'),
+                      (r'\bimport\(|\bBlob\(|\bfetch\(|XMLHttpRequest|new Worker|importScripts|\beval\(|new Function', 'a module, worker or network call'),
+                      (r'getRandomValues|Math\.random|\bDate\b|randomUUID|performance\.|setTimeout|setInterval|requestAnimationFrame|requestIdleCallback', 'entropy or a clock')]:
+        for ln, t in lines(c, pat): fail('4b start', f'{f}:{ln} {what}: {t}')
+    kinds = re.findall(r"""addEventListener\(\s*['"]([\w]+)['"]""", c)
+    if kinds != ['webglcontextlost'] or c.count('addEventListener(') != 1: fail('4b start', f'{f}: listeners {kinds} (exactly one, webglcontextlost)')
+    for ln, t in lines(c, r'\.on[a-z]+\s*=(?!=)'): fail('4b start', f'{f}:{ln} an on* handler property: {t}')
+    for m in re.finditer(r'\bwindow\.(\w+)\s*=(?!=)', c):
+        if m.group(1) != 'WORLD_START': fail('4b start', f'{f}: puts window.{m.group(1)} (only WORLD_START)')
+
 # 7 nothing darkens, and nothing is done to the world for the words (the lift is gone, the owner's word of
 # 2026-10-21): the composite takes no words input at all (no mask, keep-off, words' box, floor, gain or toe), its
 # uniforms are a fixed list (a new one is a deliberate change here), and the lift's parts are named nowhere; the ink
@@ -298,6 +319,15 @@ if world:
         if not m5 or kind(m5.group(1)) not in PRI: continue
         fp = re.findall(r'\bfetchpriority="(\w+)"', tag)
         if fp != [PRI[kind(m5.group(1))]]: fail('5 script-order', f'index.html {m5.group(1)}: fetchpriority {fp}, want "{PRI[kind(m5.group(1))]}"')
+
+tags5 = re.findall(r'<script\b[^>]*>', s)
+asyn = [x for x in tags5 if re.search(r'\sasync[\s>]', x)]
+st5 = [x for x in asyn if re.search(r'src="/?start\.v\d+\.js"', x)]
+if asyn != st5 or len(st5) > 1: fail('5 script-order', f'index.html async scripts {asyn}: the only one is the start file')
+for x in st5:
+    if 'defer' in x.split() or re.findall(r'\bfetchpriority="(\w+)"', x) != ['high']: fail('5 script-order', f'index.html {x}: async, never defer, fetchpriority "high"')
+    i5 = s.find('<canvas class="sky"')
+    if i5 < 0 or re.search(r'<script\b', s[i5:s.find(x)]): fail('5 script-order', f'index.html {x}: the first script after the canvas')
 
 print('\n'.join(fails) if fails else 'world rules OK (' + ', '.join(f'{len(x)} {n}' for n, x in (('world', world), ('kit', kit), ('realm', realms), ('wing model', wing), ('ink birds', ink), ('worker', gen))) + ')')
 sys.exit(1 if fails else 0)

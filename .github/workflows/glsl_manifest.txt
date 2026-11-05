@@ -3,36 +3,35 @@
 # guard runs: "device <id> <programs> <vertex|fragment #defines>:<count> ...". CI fails when this is not what the site compiles.
 # A change to any program's text comes with its lines here, in the same commit. After a deliberate change, regenerate it:
 #   node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
-program program.0859c5c5 vs b3401a540aeb4f11661eb0ff 42112 fs 4e50bc502f17c5ec4804a4d2 42609
-program program.17b6c8a4 vs 1ab5de5b35408271ba0f1130 313 fs de3671fbdf879ba76ca05f2c 2238
-program program.1ed26f52 vs 1365bfdfb75bbef24149e5a1 2744 fs 155bc5a57414e06a498be610 14822
-program program.211817c0 vs 1ab5de5b35408271ba0f1130 313 fs e90cd9a0ea7627cc2f82b5b5 39679
-program program.279e44ea vs 1ab5de5b35408271ba0f1130 313 fs bba252966b52240cd049c91c 2874
+program program.005934b1 vs 1ab5de5b35408271ba0f1130 313 fs 3dc92029810b265ff7d682a7 2892
+program program.026817bc vs a1ba7bc4eaa2982978b49275 3316 fs 4f7082bdce75bce59f6b4545 17576
+program program.1516ef8c vs 1ab5de5b35408271ba0f1130 313 fs 6ae18327a3ce58ce56c6e8fd 16235
 program program.2b8df061 vs bc00a993ad125193f8850964 130 fs a484a2b23c43d405ffe05c9c 174
-program program.383f2ddc vs 5e1538aa78a7c363dae24984 8659 fs 029770f54e3eeacf02b7f414 14718
-program program.3be8be1a vs 5759cda9debf375a96552e97 17339 fs bbb6409d60e57c6457d5d988 13968
-program program.46baa3ba vs 1ab5de5b35408271ba0f1130 313 fs 2fb3c165bc2fc7978d897f99 2630
+program program.3be6fd6b vs b498900ddafe330c5d18906e 17401 fs 968f2737105a8a3a3be91478 333
+program program.5a24d87e vs 78de7727fa274cfee0ef2443 313 fs 2d7bbe9fe53b04ee94e34568 30873
 program program.61ba4e5b vs 1ab5de5b35408271ba0f1130 313 fs 0159cf92dcbb9816a0a4dabc 555
 program program.63c87754 vs 1ab5de5b35408271ba0f1130 313 fs 467ff1b06b88f829a8750c16 566
-program program.68f4aecb vs deace5e162ed03d65bcc2b62 23218 fs 9eb7f1db19746df5e2783902 13536
-program program.7acf0f0a vs 1ab5de5b35408271ba0f1130 313 fs a73c21a5a064be15ac483ffe 2575
-program program.926784ba vs 1ab5de5b35408271ba0f1130 313 fs 9adec8cade9b40d1d76572b0 13481
+program program.6a6bdb54 vs 1ab5de5b35408271ba0f1130 313 fs 187983870fb509fa90877abb 3147
+program program.7bf8b13c vs d7fef6034faf6301aa662383 25972 fs a2210f4a2919a2cddaa035a3 16290
 program program.9560ec66 vs 1ab5de5b35408271ba0f1130 313 fs da3853403fbeaf58a901a1c7 685
-program program.99a811a2 vs 96f13740875dcb0749f7e1ed 42222 fs 10a32352e5accfd6a6e8b28e 42546
-program program.b6941c30 vs 1ab5de5b35408271ba0f1130 313 fs 8d51c07563aec47076a85c6e 2320
+program program.9d7981b3 vs 6750ba1c424c1d84901ba020 2555 fs d13b86b84c58ca7cadf08868 24460
+program program.9ea60544 vs 0f485550c2d4b097a5e959bd 44968 fs 061abd426ff1f806b5e5a462 45299
 program program.b8b6f2b5 vs 1ab5de5b35408271ba0f1130 313 fs d62139e8d874cdbf89593a2d 1261
-program program.b90c66d1 vs 608f0e9a541b2d53735a2e4a 1983 fs 62cb663b644ba7e52e0c2d5c 21706
-program program.bd0847d4 vs 1ab5de5b35408271ba0f1130 313 fs 3548f9b72d5d0948528e8a9d 42292
-program program.c6ff3036 vs 8e4e01ca2cb396ed7b65f2d8 14647 fs 968f2737105a8a3a3be91478 333
+program program.ba5ad0b1 vs 5e67f694579499e4e092c216 44976 fs 7a01a62176851d0a63df0608 45300
+program program.c63bfce6 vs 1ab5de5b35408271ba0f1130 313 fs c7aec256279750640204ec0a 3202
+program program.c7d3adce vs 1ab5de5b35408271ba0f1130 313 fs 4627e2844b2f712fc13f366a 3446
+program program.cad8b700 vs 1ab5de5b35408271ba0f1130 313 fs 004120599d29b19f19fa917c 45046
+program program.d17a3ac2 vs 1ab5de5b35408271ba0f1130 313 fs 600aa8fbed4428f6852799f1 42433
 program program.da19c1e9 vs 1ab5de5b35408271ba0f1130 313 fs 64d0e26dc15fc2c7206a4d3a 3585
-program program.da9ef9ba vs 0a8ab497045f643f65563606 42214 fs 193da7728f4683115e22c035 42545
-program program.e064cd06 vs 4f79cc644a125931a3e86805 1876 fs e975335287ef961599976a50 228
+program program.de770a88 vs 141c3c274c80c6f5994426ed 11413 fs 98518ed81508df8386733039 15290
+program program.e227e67b vs 984fdb64865ca3ca43fbefc8 2448 fs e975335287ef961599976a50 228
+program program.e51d6ecc vs 92c909e6e3fd5c1bd5d838a9 44866 fs 12c5b587f3ddf6abecef89bd 45363
+program program.e686949f vs 159259d571cf8c2c973f7e2f 48706 fs 12c5b587f3ddf6abecef89bd 45363
 program program.e85db1c5 vs 1ab5de5b35408271ba0f1130 313 fs 355bb05e4d3c589faca3d9a6 934
-program program.ef0fa581 vs 87a9d559c3bd8653d78fe705 43782 fs 283e44ebafefac49bbf59462 42688
-program program.f2605668 vs 78de7727fa274cfee0ef2443 313 fs 8298731327797fbc65787946 25780
-program program.f5008844 vs 72fcd1e57e444b005d0b2f03 45952 fs 4e50bc502f17c5ec4804a4d2 42609
-device desktop 28 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
-device phone 28 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
-device webkit 28 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
-device half 28 GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
-device byte 27 LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27
+program program.f0c5b639 vs 1e2394007c2d4f3f1d16f613 46536 fs 8b263dddc300d865de36f0f3 45442
+program program.f356e454 vs af274c45c85b3e4eca93f78d 20093 fs 2ffe66ded6e3d6ea725857a4 16722
+device desktop 27 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:26 -:1
+device phone 27 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:26 -:1
+device webkit 27 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:26 -:1
+device half 27 GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:26 -:1
+device byte 26 LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:26

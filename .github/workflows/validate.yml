@@ -19,11 +19,12 @@ jobs:
           cd site
           files=(
             index.html
-            style.v15.css
+            style.v16.css
             site.js
             hour.v3.js
+            start.v1.js
             birds.v13.js
-            world.v7.js
+            world.v8.js
             realm-kit.v2.js
             realm-dunes.v4.js
             realm-above.v3.js
@@ -33,7 +34,7 @@ jobs:
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v3.js
+            inkbirds.v4.js
             robots.txt
             _headers
             _redirects
@@ -132,7 +133,7 @@ jobs:
           # And the reverse: the versioned css/js the repo ships must be the
           # ones index.html loads, each with its immutable cache block (a
           # leftover old version, kept by a copy rather than a git mv, fails).
-          for f in style.v*.css birds.v*.js hour.v*.js world.v*.js realm-*.v*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.v*.js; do
+          for f in style.v*.css birds.v*.js hour.v*.js start.v*.js world.v*.js realm-*.v*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.v*.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -265,8 +266,20 @@ jobs:
           want_body = [('site', False), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('birds', True), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
           pri = {'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'birds': 'low', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low'}
           fail = 0
+          # (fast500 5) the start file (start.vN.js, made by tools/start.mjs): async, fetchpriority="high", the first
+          # script after the canvas, and the only async script; the order below is the rest's
+          stf = [g for g in tags(body) if re.fullmatch(r'start\.v\d+\.js', g[1])]
+          asyn = [g for g in tags(src) if 'async' in (g[0] + g[2]).split()]
+          if asyn != stf or len(stf) > 1:
+              print('::error::the only async script is the one start file: got %s' % [g[1] for g in asyn]); fail = 1
+          for g in stf:
+              at = (g[0] + g[2]).split()
+              if 'defer' in at or re.findall(r'\bfetchpriority="(\w+)"', g[0] + g[2]) != ['high'] or 'data-cfasync="false"' not in at:
+                  print('::error::%s wants async, fetchpriority="high" and data-cfasync="false", never defer' % g[1]); fail = 1
+              if not re.search(r'<canvas class="sky" aria-hidden="true"></canvas>\s*(<!--[^>]*-->\s*)?<script\b[^>]*\bsrc="/' + re.escape(g[1]) + '"', body):
+                  print('::error::%s must come right after the canvas' % g[1]); fail = 1
           for part, want in [(head, want_head), (body, want_body)]:
-              got = tags(part)
+              got = [g for g in tags(part) if g not in stf]
               names = [(re.sub(r'(\.v\d+)?\.js$', '', g[1]), 'defer' in (g[0] + g[2]).split()) for g in got]
               if names != want:
                   print('::error::scripts out of order: got %s, want %s' % (names, want)); fail = 1
@@ -290,9 +303,10 @@ jobs:
           # exactly what the script makes" proves site/'s are tools/minify.mjs's build of these; the rules read text)
           BIRDS=$(ls ../src/birds.v*.js | head -1); WORLD=$(ls ../src/world.v*.js | head -1); INK=$(ls ../src/inkbirds.v*.js | head -1)
           REALMS=$(ls ../src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
+          START=$(ls start.v*.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
           WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
           PLANW=$(ls plan.v*.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
-          JS="site.js $HOUR $BIRDS $WORLD $REALMS $WING $INK $PLANW"
+          JS="site.js $HOUR $START $BIRDS $WORLD $REALMS $WING $INK $PLANW"
           echo "checking $JS and $CSS"
           # The page has none of the internet's body language, and CI fails
           # (rather than remembers) if any of it comes back. Scoped to the
@@ -361,8 +375,8 @@ jobs:
             echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
             fail=1
           fi
-          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW; then
-            echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
+          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $START $PLANW; then
+            echo "::error::the realms, the wing model, the ink birds and the start file draw no entropy and read no clock"
             fail=1
           fi
           # the hour reads the clock exactly once, and draws no entropy

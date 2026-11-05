@@ -137,8 +137,36 @@
     gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: DEVMODE, powerPreference: 'default' });
     if (!gl) return false;
     initExtensions();
+    startTake();   // (fast500 5: the start file's context, and its programs for progIssue)
     return true;
   }
+  /* (fast500 step 5) the start file (start.v1.js, async right after the canvas; tools/start.mjs makes it from this
+     file) may have made this canvas's context already, with the attributes above as shipped, and issued on it every
+     program stage C issues, from the table its build recorded (each text as progIssue hands it to shaderSource, the
+     device's DEFS put in as progIssue puts them): getContext gave that same context. Its programs are adopted by
+     progIssue (startProg: exactly the text it would issue, its defines and folds and all, or not at all); what stage
+     C's issue leaves is freed (startDone). Never in the harness (DEVMODE, the switches: those pages
+     keep F0's path), and never once that context was lost (its programs died with it): a context still lost here is
+     told to the world's own listener, as if its event came now (onLost: F0's lost path, then its restore). WORLD_START
+     is left false, so a start file arriving after this does nothing */
+  var START = null;
+  function startTake() {
+    var S = window.WORLD_START; window.WORLD_START = false;
+    if (!S || S.gl !== gl) return;
+    if (S.lost || gl.isContextLost()) {
+      if (gl.isContextLost()) Promise.resolve().then(function () { if (!LOST) onLost({ preventDefault: function () {} }); });
+      bootMark('start: lost before adoption'); return;
+    }
+    var n = 0, k; for (k in S.progs) n += S.progs[k].length;
+    if (DEVMODE || OPT.sw !== null || S.defs !== DEFS) { startFree(S.progs); bootMark('start: declined (' + n + ' programs freed)'); return; }
+    START = S.progs; bootMark('start: taken (' + n + ' programs issued by the start file)');
+  }
+  function startProg(P) {   // (keyed by the text progIssue would give shaderSource: DEFS, then any computed defines, after the version line. A change to what progIssue puts in must be made here too: start.mjs --test fails on no adoption)
+    var V = '#version 300 es\n', X = V + DEFS + (typeof defsA === 'function' ? defsA() : ''), a = START[P.vs.replace(V, X) + '\u0000' + P.fs.replace(V, X)];
+    return a && a.length ? a.shift() : null;
+  }
+  function startFree(T) { for (var k in T) for (var i = 0; i < T[k].length; i++) { gl.deleteProgram(T[k][i].p); gl.deleteShader(T[k][i].v); gl.deleteShader(T[k][i].f); } }
+  function startDone() { var T = START; START = null; startFree(T); }
   /* the extensions are the context's: a restored context has them all off again, so they are asked for at start and
      after every restore (float render targets, parallel compiles), and the shaders' defines follow them */
   function initExtensions() {
@@ -190,6 +218,8 @@ uniform vec4 uTwM;    // (tod fix3) the twilight's low mist as the light crosses
 uniform vec3 uSkyS;   // (tod) the sky's own light: its glow, its warmth and its disc (the key light's azimuth at the sky's own elevation; the key itself by day)
 uniform vec3 uSky[6]; uniform vec4 uSkyE; uniform vec3 uSkyW; uniform vec4 uSkyK;
 uniform vec4 uGlow; uniform vec3 uGlowC; uniform vec4 uFog; uniform vec4 uFog2; uniform vec4 uFogB;
+uniform vec4 uSkyN;   // (fast500 no-fades, the sun and moon) w 1 only in a change between a twilight sky and a night sky (0 everywhere else: every branch on it skipped), xyz the key (the night's own light)
+uniform vec3 uGlowN, uSkyWT, uSkyWN, uHzT, uHzN; uniform vec4 uSkyKT, uSkyKN, uSunK;   // (with it) the night's glow about the key; the twilight's and the night's warm colours and amounts; the haze's warm side at each end (toward the light less away); the sun's depth under the twilight's own (deg), its share (band), the night's (QN), the wisps' shadow line (deg)
 uniform vec4 uHaze; uniform vec3 uHazeC, uHazeW;   // the ground haze: density at its base (1/m), scale height (m), its base below the eye (m), -; colour, toward the sun
 uniform vec3 uAmbU, uAmbD;
 uniform vec3 uClLit, uClShade, uClDeep, uClRim; uniform vec4 uClK, uClK2;
@@ -212,7 +242,18 @@ vec3 skyGrad(float e) {
   return mix(c, uSky[5], smoothstep(uSkyE.z, uSkyE.w, e));
 }
 float sunSide(vec3 rd) { vec2 h = normalize(rd.xz + vec2(1e-6, 0.0)), s = normalize(uSkyS.xz + vec2(1e-6, 0.0)); return 0.5 + 0.5 * dot(h, s); }
-vec3 skyCol(vec3 rd) {
+/* (fast500 no-fades, the sun and moon: "same w sun") the warm band in a change between a twilight sky and a night: the
+   twilight's sunk with the sun (read uSunK.x deg higher, so it is whole only under the sun's depth) and weakening
+   with that depth (uSunK.y), the night's own coming in with the night's colours (uSunK.z); skyCol's own band is
+   then off (its amounts 0), its lines unchanged */
+vec3 skyWarmN(vec3 c, float e, float side) {
+  float lt = exp(-max(e + uSunK.x, 0.0) / uSkyKT.y) * uSunK.y, ln = exp(-max(e, 0.0) / uSkyKN.y) * uSunK.z;
+  c = mix(c, uSkyWT, uSkyKT.x * side * side * lt);
+  c *= 1.0 - uSkyKT.z * (1.0 - side) * lt;
+  c = mix(c, uSkyWN, uSkyKN.x * side * side * ln);
+  return c * (1.0 - uSkyKN.z * (1.0 - side) * ln);
+}
+vec3 skyCol0(vec3 rd) {
   float e = degrees(asin(clamp(rd.y, -1.0, 1.0)));
   vec3 c = skyGrad(e);
   float side = sunSide(rd), low = exp(-max(e, 0.0) / uSkyK.y);
@@ -220,6 +261,18 @@ vec3 skyCol(vec3 rd) {
   c *= 1.0 - uSkyK.z * (1.0 - side) * low;
   float cs = max(dot(rd, uSkyS), 0.0);
   c += uGlowC * (uGlow.x * pow(cs, uGlow.y) + uGlow.z * pow(cs, uGlow.w));
+  return c;
+}
+/* (fast500 no-fades, the sun and moon) in a change between a twilight sky and a night: skyCol0 with its own warm band
+   off (its amounts 0: the gradient as it is) and its glow the sinking sun's, then the two ends' warm bands laid on the
+   gradient (skyWarmN's difference added, so the glow stays over the band, as in skyCol0) and the night's own glow
+   about the key; everywhere else skyCol0, F0's, bit for bit */
+vec3 skyCol(vec3 rd) {
+  vec3 c = skyCol0(rd);
+  if (uSkyN.w > 0.0) {
+    float e = degrees(asin(clamp(rd.y, -1.0, 1.0))), cn = max(dot(rd, uSkyN.xyz), 0.0); vec3 g = skyGrad(e);
+    c += skyWarmN(g, e, sunSide(rd)) - g + uGlowN * (uGlow.x * pow(cn, uGlow.y) + uGlow.z * pow(cn, uGlow.w));
+  }
   return c;
 }
 /* aerial perspective: height fog (density a at y0 falling off by b) and a distance haze, in-scattering the sky's
@@ -243,7 +296,16 @@ float hazeAmt(vec3 rd, float t) {
   return 1.0 - exp(-(a0 * tt * f + uHaze.x * 0.22 * max(t - s1, 0.0)));
 }
 float hazeSky(vec3 rd) { if (uHaze.x <= 0.0) return 0.0; return 1.0 - exp(-uHaze.x * exp(-uHaze.z / uHaze.y) * uHaze.y / max(rd.y, 2e-3)); }
-vec3 hazeCol(vec3 rd) { float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0); return mix(uHazeC, uHazeW, cs * cs * cs); }
+vec3 hazeCol0(vec3 rd) { float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0); return mix(uHazeC, uHazeW, cs * cs * cs); }
+/* (fast500 no-fades, the sun and moon) the haze's warm side in a change between a twilight sky and a night: by its two
+   ends, the twilight's sinking with the sun as its warm band does (whole only under the sun's depth) and weakening
+   with that depth, the night's coming in with the night's colours; elsewhere F0's (hazeCol0) */
+vec3 hazeCol(vec3 rd) {
+  if (uSkyN.w <= 0.0) return hazeCol0(rd);
+  float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0), e = degrees(asin(clamp(rd.y, -1.0, 1.0)));
+  float st = exp(-(max(e + uSunK.x, 0.0) - max(e, 0.0)) / uSkyKT.y) * uSunK.y;
+  return uHazeC + cs * cs * cs * (uHzT * st + uHzN * uSunK.z);
+}
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float f = fogAmt(rd, t);
   // the air's colour: blue first (dark forms far off turn blue), the horizon's own colour as it thickens
@@ -427,12 +489,15 @@ vec3 oklab2lin(vec3 c) {
     var tc = clockNow();
     foldIssue(P);   // (fast500 lane E: the folds, before the text is given)
     P.kb = Math.round((P.vs.length + P.fs.length) / 1024);
+    var SP = START ? startProg(P) : null;   // (fast500 5: issued by the start file: adopted, its calls not made again)
+    if (SP) { P.p = SP.p; P.v = SP.v; P.f = SP.f; P.adopt = true; } else {
     P.p = gl.createProgram();
     P.v = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(P.v, P.vs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.v);
     P.f = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(P.f, P.fs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.f);
+    }
     P.vs = P.fs = null; P.st = 1; PROGX.compiled++;
     P.cms = +(clockNow() - tc).toFixed(2);   // (the main thread's share of its compile)
-    var tl = clockNow(); gl.attachShader(P.p, P.v); gl.attachShader(P.p, P.f); gl.linkProgram(P.p); P.st = 2; PROGX.linked++; P.lms = +(clockNow() - tl).toFixed(2);
+    var tl = clockNow(); if (!SP) { gl.attachShader(P.p, P.v); gl.attachShader(P.p, P.f); gl.linkProgram(P.p); } P.st = 2; PROGX.linked++; P.lms = +(clockNow() - tl).toFixed(2);
     P.issAt = +tc.toFixed(1); P.issF = FRAMEN; P.polls = 0; P.qms = 0;
   }
   /* (fast500 lane E, class A: e8.py E8z) the page's constant modes as defines, computed once from its own data at the
@@ -513,7 +578,7 @@ vec3 oklab2lin(vec3 c) {
     if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); issued = true; }
-      if (issued) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      if (issued) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
       var all = true; lateDecide();   // (fast500 step 9)
       for (i = 0; i < PORDER.length; i++) {
         P = PORDER[i]; if (P.st === 3) continue;
@@ -743,18 +808,18 @@ vec3 oklab2lin(vec3 c) {
   function freeTarget(T) { if (!T) return; gl.deleteFramebuffer(T.f); gl.deleteTexture(T.t); if (T.d) gl.deleteTexture(T.d); }
 
   /* ---------------------------------------------------------------- the 3D noise (tiling, 32 cubed, made once) */
-  /* (E1, design-v5 8.5) baked on the GPU: round 3b baked it on the CPU (bakeNoise3, 48 ms of the main thread here at
-     x1, a long task on a phone). The same field, bit for bit: the CPU draws the same random points and lattices from
-     the same stream (18,688 numbers, a fraction of a millisecond), the GPU evaluates round 3b's Worley and value noise
-     at every voxel (one layer a draw, K = 1: an eight-layer draw by MRT made ANGLE's D3D11 compile a second pixel
-     variant inside its first draw, 2.4 s; fast500 step 1), and the few voxels whose exact value lies within a
-     thousandth of a code of a rounding boundary in any
-     channel (NOISE_FIX: 258 of 32,768, listed by src/noise_fix.js from the exact field and checked by make.sh) are
-     worked out on the CPU in double precision as round 3b did and written over the GPU's, so a GPU's float32 rounding
-     can never change a byte. Then the mipmaps, as before. NOISE.done once all of that is in. */
-  var NOISE_FIX = [68,118,235,594,630,1040,1237,1238,1422,1461,1505,1856,1874,2071,2201,2606,2625,2857,3034,3066,3072,3240,3299,3305,3502,3503,3647,3706,3789,4145,4639,4720,4772,4843,5020,5125,5217,5306,5391,5536,5640,5956,6023,6024,6222,6270,6281,6449,6586,6901,6949,7203,7221,7542,8018,8056,8123,8185,8208,8433,8779,8881,9051,9138,9147,9342,9420,9646,9732,9741,9744,9838,10074,10313,10344,10480,10635,10706,10807,11109,11136,11196,11467,11509,11563,11764,11788,11833,11923,12135,12416,12425,12547,12612,12719,12770,12844,13312,13571,13742,13905,13913,14151,14273,14305,14346,14438,14452,14494,14727,14937,14942,14948,15204,15205,15604,15644,15660,15676,15784,15855,15907,16187,16237,16285,16308,16335,16445,16639,16759,16830,17035,17126,17147,17237,17324,17437,17922,18123,18315,18464,18500,18547,18720,18902,18973,19056,19103,19143,19315,19448,19510,19566,19604,19790,20543,20928,20936,21001,21197,21356,21463,21574,21941,22461,22522,22554,22701,22876,23166,23180,23332,23363,23585,23593,23636,23665,23709,23921,23940,23965,24100,24207,24248,24344,24462,24566,25216,25563,25664,25749,25779,25913,25939,26169,26382,26604,26610,26851,26876,26886,26939,26951,27219,27293,27380,27419,27653,27702,27743,27760,27763,27982,28000,28069,28121,28193,28226,28274,28407,28436,28454,28491,28521,28523,28720,28911,28941,29143,29429,29456,29701,29711,29965,30217,30419,30500,30544,30545,30911,30982,31056,31065,31292,31356,31398,31416,31501,31642,32017,32035,32207,32269,32410,32460,32564,32723,32730];
-  var NOISE = { t: null, fb: null, pts: null, prog: null, z: 0, K: 0, done: false, fixed: 0, raw: null };
-  var NOISE_N = 32, NOISE_PTS = [[0, 4, 3], [192, 8, 3], [1728, 16, 3], [14016, 4, 1], [14080, 8, 1], [14592, 16, 1]];   // (offset, n, components): P4, P8, P16, L4, L8, L16
+  /* (fast500 step 1b) baked on the CPU, in round 3b's own double-precision arithmetic (noiseVoxel's, hoisted for the
+     bake: noiseLayer), from round 3b's stream (18,688 numbers). E1 baked it on the GPU: a program of its own, the stream
+     as a points texture, and the 258 voxels whose exact value lies within a thousandth of a code of a rounding boundary
+     worked out here and written over the GPU's float32 rounding (NOISE_FIX). Every voxel is the exact one here, so the
+     volume is the same byte for byte (read back on D3D11: md5 d3dcf1f9, every mip level the same), and the program, its
+     link (115 ms of the compile pool's CPU; one serial link where links run one at a time) and the points texture are
+     gone. A layer a boot frame (about 0.4 ms here; a count, no clock read), the layers left all at once in the first
+     frame after C; then level 0 uploaded whole and the mipmaps made by generateMipmap as before (never on the CPU:
+     D3D11's 3D mipmaps are not a rounded 2x2x2 mean, about one byte in four differs). NOISE.done once all of that is
+     in. */
+  var NOISE = { t: null, z: 0, K: 0, done: false, fixed: 0, data: null, d64: null, vol: null, ax: null };   // (z: the layers baked; vol: the bytes, kept for a restore; K and fixed 0 for the record: no draw, no fix)
+  var NOISE_N = 32;
   /* round 3b's stream, in its order: the points of the Worley noise at 4, 8 and 16 cells across, then the value
      noise's lattices (all of them float32, as round 3b's Float32Arrays held them) */
   function noiseData() {
@@ -787,103 +852,80 @@ vec3 oklab2lin(vec3 c) {
     var pw = clamp(vn * 0.55 + (w4 * 0.625 + w8 * 0.25 + w16 * 0.125) * 0.6, 0, 1);
     out[o] = Math.round(pw * 255); out[o + 1] = Math.round(clamp(w8 * 0.7 + w16 * 0.3, 0, 1) * 255); out[o + 2] = Math.round(clamp(w16, 0, 1) * 255); out[o + 3] = Math.round(clamp(vn, 0, 1) * 255);
   }
-  /* the GPU's half: K layers a draw (K outputs), round 3b's arithmetic in float32 (each byte written as round(v x 255)
-     / 255, so the conversion to the texel's byte is exact) */
-  function FS_NOISE(K) {
-    var outs = '', body = '';
-    for (var i = 0; i < K; i++) { outs += 'layout(location = ' + i + ') out vec4 o' + i + ';\n'; body += '  o' + i + ' = voxel(vec3(gl_FragCoord.xy, float(uZ0 + ' + i + ') + 0.5));\n'; }
-    return HEAD + `
-uniform highp sampler2D uPts; uniform int uZ0;
-` + outs + `
-float pt(int i) { return texelFetch(uPts, ivec2(i & 255, i >> 8), 0).r; }
-int wr(int a, int n) { return a < 0 ? a + n : (a >= n ? a - n : a); }
-float worley(vec3 p, int n, int base) {
-  vec3 ip = floor(p); float best = 9.0;
-  for (int dz = -1; dz <= 1; dz++) for (int dy = -1; dy <= 1; dy++) for (int dx = -1; dx <= 1; dx++) {
-    ivec3 c = ivec3(ip) + ivec3(dx, dy, dz);
-    int k = base + ((wr(c.z, n) * n + wr(c.y, n)) * n + wr(c.x, n)) * 3;
-    vec3 f = (vec3(c) - p) + vec3(pt(k), pt(k + 1), pt(k + 2));
-    float d = f.x * f.x + f.y * f.y + f.z * f.z;
-    if (d < best) best = d;
+  /* (fast500 step 1b) noiseVoxel hoisted for the bake (the routes' bake.js 'fast': the same double-precision ops in the
+     same order, so the same bytes; checked against noiseVoxel at every voxel, the dev hook noiseCheck). Per scale n, each
+     axis's points (((x + 0.5) / 32) * n), cells, smoothsteps and wrapped neighbour cells, made once */
+  function noiseAxis(n) {
+    var N = NOISE_N, p = new Float64Array(N), ix = new Int32Array(N), sm = new Float64Array(N), c = new Float64Array(N * 3), w = new Int32Array(N * 3), x, d;
+    for (x = 0; x < N; x++) { p[x] = ((x + 0.5) / N) * n; ix[x] = Math.floor(p[x]); var f = p[x] - ix[x]; sm[x] = f * f * (3 - 2 * f); }
+    for (x = 0; x < N; x++) for (d = 0; d < 3; d++) { c[x * 3 + d] = ix[x] + d - 1; w[x * 3 + d] = (((ix[x] + d - 1) % n) + n) % n; }
+    return { p: p, ix: ix, sm: sm, c: c, w: w };
   }
-  return sqrt(best);
-}
-float lt(int base, int n, ivec3 c) { return pt(base + (wr(c.z, n) * n + wr(c.y, n)) * n + wr(c.x, n)); }
-float vnoise(vec3 p, int n, int base) {
-  vec3 ip = floor(p), f = p - ip; f = f * f * (3.0 - 2.0 * f); ivec3 i = ivec3(ip);
-  float x00 = lt(base, n, i), x10 = lt(base, n, i + ivec3(1, 0, 0)); x00 = x00 + (x10 - x00) * f.x;
-  float y10a = lt(base, n, i + ivec3(0, 1, 0)), y10b = lt(base, n, i + ivec3(1, 1, 0)); float x1 = y10a + (y10b - y10a) * f.x;
-  float z01a = lt(base, n, i + ivec3(0, 0, 1)), z01b = lt(base, n, i + ivec3(1, 0, 1)); float x01 = z01a + (z01b - z01a) * f.x;
-  float z11a = lt(base, n, i + ivec3(0, 1, 1)), z11b = lt(base, n, i + ivec3(1, 1, 1)); float x11 = z11a + (z11b - z11a) * f.x;
-  float a = x00 + (x1 - x00) * f.y, b = x01 + (x11 - x01) * f.y;
-  return a + (b - a) * f.z;
-}
-float q8(float v) { return floor(clamp(v, 0.0, 1.0) * 255.0 + 0.5) / 255.0; }
-vec4 voxel(vec3 g) {
-  vec3 u = g / 32.0;
-  float vn = vnoise(u * 4.0, 4, 14016) * 0.55 + vnoise(u * 8.0, 8, 14080) * 0.3 + vnoise(u * 16.0, 16, 14592) * 0.15;
-  float w4 = 1.0 - worley(u * 4.0, 4, 0), w8 = 1.0 - worley(u * 8.0, 8, 192), w16 = 1.0 - worley(u * 16.0, 16, 1728);
-  return vec4(q8(vn * 0.55 + (w4 * 0.625 + w8 * 0.25 + w16 * 0.125) * 0.6), q8(w8 * 0.7 + w16 * 0.3), q8(w16), q8(vn));
-}
-void main() {
-` + body + `}`;
+  function noiseWorley(D, n, base, A, x, y, z) {   // (noiseVoxel's worley)
+    var px = A.p[x], py = A.p[y], pz = A.p[z], C = A.c, W = A.w, best = 9, n2 = n * n, dz, dy, dx;
+    for (dz = 0; dz < 3; dz++) {
+      var cz = C[z * 3 + dz], wz = W[z * 3 + dz] * n2;
+      for (dy = 0; dy < 3; dy++) {
+        var cy = C[y * 3 + dy], wzy = wz + W[y * 3 + dy] * n;
+        for (dx = 0; dx < 3; dx++) {
+          var cx = C[x * 3 + dx], k = base + (wzy + W[x * 3 + dx]) * 3;
+          var fx = cx + D[k] - px, fy = cy + D[k + 1] - py, fz = cz + D[k + 2] - pz, d = fx * fx + fy * fy + fz * fz;
+          if (d < best) best = d;
+        }
+      }
+    }
+    return Math.sqrt(best);
   }
-  /* stage B: the texture, its framebuffer and the points (the program is registered with the rest, stage C) */
+  function noiseValue(D, n, base, A, x, y, z) {   // (noiseVoxel's vnoise)
+    var ix = A.ix[x], iy = A.ix[y], iz = A.ix[z], fx = A.sm[x], fy = A.sm[y], fz = A.sm[z], n2 = n * n, a, b;
+    var x0 = ((ix % n) + n) % n, x1 = (((ix + 1) % n) + n) % n, y0 = (((iy % n) + n) % n) * n, y1 = ((((iy + 1) % n) + n) % n) * n;
+    var z0 = base + (((iz % n) + n) % n) * n2, z1 = base + ((((iz + 1) % n) + n) % n) * n2;
+    a = D[z0 + y0 + x0]; b = D[z0 + y0 + x1]; var x00 = a + (b - a) * fx;
+    a = D[z0 + y1 + x0]; b = D[z0 + y1 + x1]; var x10 = a + (b - a) * fx;
+    a = D[z1 + y0 + x0]; b = D[z1 + y0 + x1]; var x01 = a + (b - a) * fx;
+    a = D[z1 + y1 + x0]; b = D[z1 + y1 + x1]; var x11 = a + (b - a) * fx;
+    var l0 = x00 + (x10 - x00) * fy, l1 = x01 + (x11 - x01) * fy;
+    return l0 + (l1 - l0) * fz;
+  }
+  /* one layer z of the volume into NOISE.vol: noiseVoxel's arithmetic at each of its 1,024 voxels */
+  function noiseLayer(z) {
+    var N = NOISE_N, D = NOISE.d64, A = NOISE.ax || (NOISE.ax = [noiseAxis(4), noiseAxis(8), noiseAxis(16)]), A4 = A[0], A8 = A[1], A16 = A[2], out = NOISE.vol, o = z * N * N * 4, x, y;
+    for (y = 0; y < N; y++) for (x = 0; x < N; x++, o += 4) {
+      var vn = noiseValue(D, 4, 14016, A4, x, y, z) * 0.55 + noiseValue(D, 8, 14080, A8, x, y, z) * 0.3 + noiseValue(D, 16, 14592, A16, x, y, z) * 0.15;
+      var w4 = 1 - noiseWorley(D, 4, 0, A4, x, y, z), w8 = 1 - noiseWorley(D, 8, 192, A8, x, y, z), w16 = 1 - noiseWorley(D, 16, 1728, A16, x, y, z);
+      var pw = clamp(vn * 0.55 + (w4 * 0.625 + w8 * 0.25 + w16 * 0.125) * 0.6, 0, 1);
+      out[o] = Math.round(pw * 255); out[o + 1] = Math.round(clamp(w8 * 0.7 + w16 * 0.3, 0, 1) * 255); out[o + 2] = Math.round(clamp(w16, 0, 1) * 255); out[o + 3] = Math.round(clamp(vn, 0, 1) * 255);
+    }
+  }
+  /* stage B: the texture (level 0 made empty, as before; noiseStep fills it), and once a page the stream and the bytes
+     (a restore keeps the layers baked: noiseStep only uploads them again) */
   function noiseInit() {
     var N = NOISE_N;
-    NOISE.K = 1; NOISE.z = 0; NOISE.done = false; NOISE.fixed = 0;   // (fast500 step 1: one target a draw, 32 draws. ANGLE's D3D11 link builds the pixel shader for the first output only, so an eight-target draw compiled a second variant inside its first draw: 2.4 s on the 4090. The same bytes)
+    NOISE.done = false;
     NOISE.t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE.t);
     gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, N, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.REPEAT); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.REPEAT);
     gl.bindTexture(gl.TEXTURE_3D, null);
-    NOISE.data = noiseData();
-    NOISE.pts = gl.createTexture(); gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, NOISE.pts);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 256, 73, 0, gl.RED, gl.FLOAT, NOISE.data);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
-    NOISE.fb = gl.createFramebuffer();
-    NOISE.prog = compile(VS_FULL, FS_NOISE(NOISE.K), 'engine.noise');
+    if (!NOISE.vol) { NOISE.data = noiseData(); NOISE.d64 = new Float64Array(NOISE.data); NOISE.vol = new Uint8Array(N * N * N * 4); NOISE.z = 0; }
     NOISE3 = NOISE.t;
   }
-  /* stage E: one draw of K layers a call (sync: every layer), then the CPU's exact voxels and the mipmaps; true once
-     done. Needs the program finished */
-  var NOISE_DB = [];
+  /* stage E: a layer a call (sync: every layer left), and once every layer is baked, level 0 uploaded whole and the
+     mipmaps made (generateMipmap, as before); true once done. No clock read: the boot calls it once a frame */
   function noiseStep(sync) {
     if (NOISE.done) return true;
-    var N = NOISE_N, K = NOISE.K, P = NOISE.prog, i;
-    if (!P || P.st !== 3 || !P.ok) return false;
-    if (NOISE_DB.length !== K) { NOISE_DB.length = 0; for (i = 0; i < K; i++) NOISE_DB.push(gl.COLOR_ATTACHMENT0 + i); }
-    while (NOISE.z < N) {
-      var z0 = Math.min(NOISE.z, N - K);   // (the last draw overlaps the one before: every draw writes K layers, one key)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, NOISE.fb);
-      for (i = 0; i < K; i++) gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, NOISE.t, 0, z0 + i);
-      gl.drawBuffers(NOISE_DB);
-      gl.viewport(0, 0, N, N); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.colorMask(true, true, true, true);
-      gl.useProgram(P.p); gl.uniform1i(P.u.uZ0, z0);
-      gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, NOISE.pts); gl.activeTexture(gl.TEXTURE0);
-      gl.bindVertexArray(FULLVAO); gl.drawArrays(gl.TRIANGLES, 0, 3);
-      NOISE.z = z0 + K;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      if (!sync) return false;
-    }
-    if (DEVMODE && NOISE.raw === null) NOISE.raw = devNoiseRead();   // (dev: the GPU's own bytes, before the CPU's are written over them)
-    var px = new Uint8Array(4);
+    if (!NOISE.vol || !NOISE.t) return false;
+    var N = NOISE_N;
+    while (NOISE.z < N) { noiseLayer(NOISE.z); NOISE.z++; if (!sync) break; }
+    if (NOISE.z < N) return false;
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE.t);
-    for (i = 0; i < NOISE_FIX.length; i++) {
-      var q = NOISE_FIX[i], x = q % N, y = ((q / N) | 0) % N, z = (q / (N * N)) | 0;
-      noiseVoxel(NOISE.data, x, y, z, px, 0);
-      gl.texSubImage3D(gl.TEXTURE_3D, 0, x, y, z, 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    }
-    NOISE.fixed = NOISE_FIX.length;
+    gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, N, N, N, gl.RGBA, gl.UNSIGNED_BYTE, NOISE.vol);
     gl.generateMipmap(gl.TEXTURE_3D);
     gl.bindTexture(gl.TEXTURE_3D, null);
-    // (the framebuffer's layers let go: the texture is sampled from now on, never attached; the points are kept for a restore's bake)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, NOISE.fb); for (i = 0; i < K; i++) gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, null, 0, 0); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     NOISE.done = true;
     return true;
   }
-  /* (dev) the noise's level 0 read back, layer by layer (the GPU's or, after the fix, the texture as sampled) */
+  /* (dev) the noise's level 0 read back, layer by layer (the texture as sampled) */
   function devNoiseRead() {
     var N = NOISE_N, out = new Uint8Array(N * N * N * 4), fb = gl.createFramebuffer(), lay = new Uint8Array(N * N * 4);
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -891,7 +933,7 @@ void main() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.deleteFramebuffer(fb);
     return out;
   }
-  /* (dev) round 3b's own CPU bake, whole (the check of the GPU's) */
+  /* (dev) round 3b's own CPU bake, whole, voxel by voxel (the check of the hoisted bake's: noiseCheck) */
   function devNoiseCPU() {
     var N = NOISE_N, D = NOISE.data || noiseData(), out = new Uint8Array(N * N * N * 4);
     for (var z = 0; z < N; z++) for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) noiseVoxel(D, x, y, z, out, ((z * N + y) * N + x) * 4);
@@ -3021,17 +3063,21 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
      (OKLab L 0.562-0.654) in CROSS_T s (the quick crossing: the half's clock warped, planned from the two skies alone).
      Nothing here reads the words (rule 7, W7). Design: tod/design/design.md. */
   var WSKY = {
-    afterglow: { g:'sunset', w:'light', ph:1, land:['sunset','rain'], hold:70, near:['bluehour','milkyway','moonlit','firstlight'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0.1,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
-    bluehour: { g:'dusk', w:'light', ph:1, land:['dusk'], hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], skyEl:-7, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0.05,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
-    moonlit: { g:'night', w:'light', ph:1, land:['night'], hold:95, near:['milkyway','aurora','firstlight','bluehour'], sky:[[0.3,0.12,264],[0.48,0.07,254],[0.43,0.1,257],[0.35,0.12,261],[0.28,0.12,264],[0.22,0.09,265]], skyW:[0.36,0.08,255], glowC:[0.42,0.04,250], hazeC:[0.33,0.045,262], hazeW:[0.38,0.035,252], fogB:[0.26,0.11,264], ambU:[0.34,0.09,262], ambD:[0.26,0.06,262], clLit:[0.7,0.06,258], clShade:[0.52,0.07,262], clDeep:[0.44,0.08,264], clRim:[0.74,0.04,250], skyK:[0.2,8,0.05], key:[0.84,0.03,245,0.55], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.9, paint:{lit:[0.37,0.6,258,0.8],shade:[0.28,0.7,262,0.8],deep:[0.24,0.75,262,0.8],pale:[0.48,0.4,250,0.5]}, post:{bloomK:0.3,shafts:0,sat:1,stars:0.6,hi:0.1,hiC:[0.36,0.08,262]}, fx:{moon:{r:1.8,L:[0.62,0.03,250],glow:[0.44,0.05,250],corona:1}}, ceil:0.525 },
+    afterglow: { g:'sunset', w:'light', ph:1, land:['sunset','rain'], hold:70, near:['bluehour','milkyway','moonlit','firstlight'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
+    bluehour: { g:'dusk', w:'light', ph:1, land:['dusk'], hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], skyEl:-7, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
+    moonlit: { g:'night', w:'light', ph:1, land:['night'], hold:190, near:['milkyway','aurora','firstlight','bluehour'], sky:[[0.3,0.12,264],[0.48,0.07,254],[0.43,0.1,257],[0.35,0.12,261],[0.28,0.12,264],[0.22,0.09,265]], skyW:[0.36,0.08,255], glowC:[0.42,0.04,250], hazeC:[0.33,0.045,262], hazeW:[0.38,0.035,252], fogB:[0.26,0.11,264], ambU:[0.34,0.09,262], ambD:[0.26,0.06,262], clLit:[0.7,0.06,258], clShade:[0.52,0.07,262], clDeep:[0.44,0.08,264], clRim:[0.74,0.04,250], skyK:[0.2,8,0.05], key:[0.84,0.03,245,0.55], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.9, paint:{lit:[0.37,0.6,258,0.8],shade:[0.28,0.7,262,0.8],deep:[0.24,0.75,262,0.8],pale:[0.48,0.4,250,0.5]}, post:{bloomK:0.3,shafts:0,sat:1,stars:0.6,hi:0.1,hiC:[0.36,0.08,262]}, fx:{moon:{r:1.8,L:[0.62,0.03,250],glow:[0.44,0.05,250],corona:1}}, ceil:0.525 },
     milkyway: { g:'night', w:'light', ph:2, land:['night'], hold:95, near:['aurora','moonlit','firstlight'], sky:[[0.25,0.09,264],[0.3,0.1,262],[0.29,0.1,263],[0.26,0.1,264],[0.22,0.09,265],[0.18,0.075,266]], skyW:[0.3,0.06,262], glowC:[0.3,0.03,260], hazeC:[0.28,0.09,264], hazeW:[0.31,0.08,260], fogB:[0.22,0.08,265], ambU:[0.26,0.07,264], ambD:[0.2,0.05,264], clLit:[0.38,0.1,266], clShade:[0.28,0.09,266], clDeep:[0.25,0.085,266], clRim:[0.42,0.06,255], skyK:[0.1,8,0], key:[0.6,0.02,250,0.15], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.44,0.6,262,0.8],shade:[0.42,0.7,264,0.8],deep:[0.4,0.75,264,0.8],pale:[0.44,0.8,262,0.7]}, post:{bloomK:0.3,shafts:0,sat:1,stars:1,hi:0,hiC:[0.28,0.09,264]}, fx:{galaxy:1}, ceil:0.525 },
     aurora: { g:'night', w:'light', ph:2, land:['night'], hold:100, near:['milkyway','moonlit','firstlight','bluehour'], sky:[[0.27,0.06,250],[0.33,0.06,225],[0.32,0.065,235],[0.29,0.08,250],[0.25,0.08,262],[0.21,0.07,266]], skyW:[0.34,0.06,175], glowC:[0.36,0.06,165], hazeC:[0.31,0.05,215], hazeW:[0.36,0.065,175], fogB:[0.24,0.065,250], ambU:[0.34,0.055,172], ambD:[0.24,0.05,240], clLit:[0.44,0.08,170], clShade:[0.32,0.07,240], clDeep:[0.28,0.07,250], clRim:[0.48,0.09,160], skyK:[0.15,10,0], key:[0.72,0.09,152,0.38], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.46,0.6,175,0.35],shade:[0.43,0.6,250,0.7],deep:[0.41,0.6,255,0.7],pale:[0.46,0.8,175,0.4]}, post:{bloomK:0.35,shafts:0,sat:1.02,stars:0.75,hi:0,hiC:[0.31,0.05,215]}, fx:{aurora:1}, ceil:0.525 },
-    firstlight: { g:'dawn', w:'light', ph:1, land:['dawn','day'], hold:70, near:['moonlit','bluehour','afterglow'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0.15,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
+    firstlight: { g:'dawn', w:'light', ph:1, land:['dawn','day'], hold:70, near:['moonlit','bluehour','afterglow'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
   };
   /* (stage2) the landings: each hour on the kept sky nearest it in the day's own order: dawn and the morning (day, 08-13)
      on the light before sunrise (its tops lit first, the sky warming low toward the sun), the afternoon (rain, 13-16) and
      sunset on the afterglow (the tops still pink over the sea in the Earth's shadow), dusk on the blue hour, the night on
      the moonlit sea, the Milky Way or the aurora (the visit's draw); after it the order is the visit's own, as before */
+  /* (fast500 no-fades, the owner's answers of 2026-11-05) "No rays at dusk/dawn": the light shafts are 0 in the
+     afterglow, the blue hour and first light (so nothing about them thins or moves as the sun sinks); "Slower moon":
+     the moonlit hold is 190 s (was 95), so the moon drifts across at a few px a second (the moonlit sky takes a bigger
+     share of the cycle) */
   var SKY_PHASE = 2;   // (stage2, the owner's word of 2026-11-03: "lets only use white text for everything so never use any scenes that dont pass white text": every sky whose words were dark (sunrise, fair, mist, golden; azure, silver, rose) is gone; phase 1: afterglow, bluehour, moonlit, firstlight; phase 2 adds milkyway, aurora)
   var TW_L = [0.44, 0.48, 0.474, 0.468, 0.466, 0.43];   // (the twilight's sky stops, OKLab L below, at 0, 3, 10, 26, 58 deg: the live's TWILIGHT mapped)
   /* (tod fix round) TW_FOG, TW_HAZE: the twilight's mist (were 2.5 and 3); FAR_FOG, FAR_HAZE: through the mist (were 1.7,
@@ -3247,6 +3293,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     SKY.seq[0].at = -SKY.seq[0].hold * at * 0.9;
     SKY.landing = { hour: HOUR, group: g, at: at, sky: open };
     SKY.moonSide = SKY.rV.sign();   // (the visit's own: the moon's side of the key light)
+    SKY.moonDir = RNG(subseed(J.seed, 79)).sign();   // (fast500 no-fades: the visit's own way the moon crosses the window, one way, from its own stream: no draw of the others moved)
     /* (phase 2) the visit's own: the galaxy's lie (the live's: of 24 poles drawn, the one whose band crosses most of the
        landing's view low, its core the lowest point of the band there), the aurora's phase and base */
     var h0 = RNG(subseed(J.seed, 77)).r(0, 2 * PI), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
@@ -3352,6 +3399,53 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     var d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2], m0 = a[0] + (b[0] - a[0]) * k, m1 = a[1] + (b[1] - a[1]) * k + Math.max(0, -d) * Math.sin(PI * k) * 0.6, m2 = a[2] + (b[2] - a[2]) * k;
     var n = Math.sqrt(m0 * m0 + m1 * m1 + m2 * m2) || 1; out[0] = m0 / n; out[1] = m1 / n; out[2] = m2 / n; return out;
   }
+  /* ---- (fast500 no-fades, the sun and moon: the owner's "same w sun") in a change between a twilight sky (afterglow,
+     blue hour, first light: the sun under the sea at its skyEl) and a night sky (skyEl null) the sun keeps sinking, to
+     SUN_NIGHT (or rises from it), on ss01(k) over the whole change, so it starts and ends at rest; everything it lights
+     follows its elevation: its glow about it (uSkyS) and the veil's brightening, the warm band low on its side and the
+     haze's warm side (sunk by place: whole only under the sun's depth D), each weakening with its depth (band: 1 at -7
+     and above, exactly 0 at SUN_NIGHT), the Earth's shadow climbing with it (the belt's own height) and dissolving with
+     band, the noctilucent wisps going dark from below as that shadow climbs over them. The night's own light (its glow,
+     its warm band and its haze's warm side about the key, the veil's brightening there) comes in with the night's
+     colours (QN), as the sky's colours do (the lead's call). No words input and no clock; outside such a change nothing
+     is touched (SUNU.on false: the shaders' branches skipped and F0's uniforms uploaded, bit for bit) */
+  var SUN_NIGHT = -24, SUN_BAND = 17, SUN_WISP0 = -1, SUN_MIST = 0.75;
+  var SUNU = { on: false, L: null, n: new Float32Array(4), z: new Float32Array([0, 1, 0, 0]), k0: new Float32Array(4), glowS: new Float32Array(3), glowN: new Float32Array(3), wT: new Float32Array(3), wN: new Float32Array(3),
+    kT: new Float32Array(4), kN: new Float32Array(4), sk: new Float32Array(4), hzT: new Float32Array(3), hzN: new Float32Array(3), sb: new Float32Array(4), hi0: new Float32Array(4), es: 0, band: 1, QN: 0, E: 1, D: 0 };
+  function skyHi0(L) { SUNU.hi0[0] = L.hi[0]; SUNU.hi0[1] = 0; SUNU.hi0[2] = L.hi[2]; SUNU.hi0[3] = L.hi[3]; return SUNU.hi0; }
+  var SUNX = [0, 0, 0], SUNY = [0, 0, 0], MOONF = { sunOff: false, moonOff: false };   // (MOONF: dev only, the same-instant twins: the sun's change or the moon left out)
+  function skyEndCol(O, key, w, out) {   // one end's colour of a key, blended by place only (blendSky's own arithmetic at q 0)
+    var a = O.dl[key], b = O.al[key];
+    labTo(out, 0, a[0] * (1 - w) + b[0] * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w);
+    return out;
+  }
+  function skyEndNum(O, key, w, out) { var a = O.d[key], b = O.a[key]; for (var i = 0; i < out.length && i < a.length; i++) out[i] = a[i] * (1 - w) + b[i] * w; return out; }
+  function skySun(V, w, L) {
+    var A = SKY.A, B = SKY.B, k = SKY.k, i;
+    SUNU.L = L;
+    SUNU.on = !!(A && B && (A.skyEl === null) !== (B.skyEl === null) && k > 0 && k < 1 && !(DEVMODE && MOONF.sunOff));
+    if (!SUNU.on) return;
+    var nB = B.skyEl === null, T = nB ? A : B, N = nB ? B : A, eT = T.skyEl;
+    var eA = nB ? eT : SUN_NIGHT, eB = nB ? SUN_NIGHT : eT, es = eA + (eB - eA) * ss01(k), D = eT - es;
+    var band = ss01((es - SUN_NIGHT) / SUN_BAND), qn = SKY.far ? (SKY.half + SKY.q) / 2 : SKY.q, QN = nB ? qn : 1 - qn;
+    var E = SKY.far ? 1 - SUN_MIST * (SKY.half ? 1 - SKY.qs : SKY.qs) : 1, az = V.light.sunAz * DEG, el = es * DEG;
+    SKY.skyS[0] = Math.sin(az) * Math.cos(el); SKY.skyS[1] = Math.sin(el); SKY.skyS[2] = Math.cos(az) * Math.cos(el); L.skyS = SKY.skyS;
+    skyEndCol(T, 'glowC', w, SUNU.glowS); skyEndCol(N, 'glowC', w, SUNU.glowN);
+    for (i = 0; i < 3; i++) { SUNU.glowS[i] *= band; SUNU.glowN[i] *= QN; }
+    skyEndCol(T, 'skyW', w, SUNU.wT); skyEndCol(N, 'skyW', w, SUNU.wN); skyEndNum(T, 'skyK', w, SUNU.kT); skyEndNum(N, 'skyK', w, SUNU.kN);
+    SUNU.k0[0] = 0; SUNU.k0[1] = SUNU.kT[1]; SUNU.k0[2] = 0; SUNU.k0[3] = 0;   // (skyCol's own band off: its amounts 0, its scale kept)
+    skyEndCol(T, 'hazeW', w, SUNX); skyEndCol(T, 'hazeC', w, SUNY); for (i = 0; i < 3; i++) SUNU.hzT[i] = SUNX[i] - SUNY[i];
+    skyEndCol(N, 'hazeW', w, SUNX); skyEndCol(N, 'hazeC', w, SUNY); for (i = 0; i < 3; i++) SUNU.hzN[i] = SUNX[i] - SUNY[i];
+    var kd = V.light.sunDir; SUNU.n[0] = kd[0]; SUNU.n[1] = kd[1]; SUNU.n[2] = kd[2]; SUNU.n[3] = 1;
+    SUNU.sk[0] = D; SUNU.sk[1] = band; SUNU.sk[2] = QN; SUNU.sk[3] = SUN_WISP0 + 1.1 * D;
+    SKY.fx[0] = T.fx[0] * band * E; SKY.fx[1] = T.fx[1] * E;   // (the belt's height already follows es through uSkyS; in a change through the mist, the waypoint's events at a quarter)
+    SUNU.es = es; SUNU.band = band; SUNU.QN = QN; SUNU.E = E; SUNU.D = D;
+  }
+  function skyThemeWarm(c, e, side) {   // (fast500 no-fades) skyWarmN's, on the CPU (theme-color)
+    var lt = Math.exp(-Math.max(e + SUNU.D, 0) / SUNU.kT[1]) * SUNU.band, ln = Math.exp(-Math.max(e, 0) / SUNU.kN[1]) * SUNU.QN, j;
+    for (j = 0; j < 3; j++) { c[j] += (SUNU.wT[j] - c[j]) * SUNU.kT[0] * side * side * lt; c[j] *= 1 - SUNU.kT[2] * (1 - side) * lt; c[j] += (SUNU.wN[j] - c[j]) * SUNU.kN[0] * side * side * ln; c[j] *= 1 - SUNU.kN[2] * (1 - side) * ln; }
+  }
+  function skySunRec() { return SUNU.on ? { on: true, es: +SUNU.es.toFixed(5), band: +SUNU.band.toFixed(6), QN: +SUNU.QN.toFixed(6), E: +SUNU.E.toFixed(6), wispH: +SUNU.sk[3].toFixed(4), beltH: +(1 + 1.1 * Math.max(-SUNU.es, 0)).toFixed(4), belt: +SKY.fx[0].toFixed(6), shafts: SIM.V && SIM.V.L ? SIM.V.L.shafts : null } : { on: false, shafts: SIM.V && SIM.V.L ? SIM.V.L.shafts : null }; }
   /* ---- each step: the cycle, the four-way blend (two kits by place, two skies by time), the sky's own amounts, the paint */
   var SKW = { c: new Float64Array(4), s: new Float64Array(4), cb: new Float64Array([-1, -1, -1, -1]), sb: new Float64Array([-1, -1, -1, -1]), gen: -1 };
   var LKN_ST = { skyK: 1, glow: 1, haze: 1, fog: 1, hi: 1, bloom: 1, discK: 1 };   // (structure: on the structure clock)
@@ -3364,12 +3458,13 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     if (V.LA[0] !== X.d || V.LA[2] !== Y.d) { V.LA = [X.d, X.a, Y.d, Y.a]; V.LAlab = [X.dl, X.al, Y.dl, Y.al]; }
     blendSky(V);
     var L = V.L, A = SKY.A, B = SKY.B, k = SKY.k, f = SKY.tw ? 2.6 : 2, j;
-    // the sun's disc fades where it stands (gone by the middle of a change; into or out of a twilight by 0.38, from 0.62)
-    SKY.sunVis = A.sunVis * ss01(1 - f * k) + B.sunVis * ss01(f * k - (f - 1)); L.sunVis = SKY.sunVis;
+    SKY.sunVis = 0; L.sunVis = 0;   // (fast500 no-fades: no sky draws the sun's disc (sunVis 0 in all six); the ramp that faded it where it stood is gone, and gave 0 too)
     skyArc(A.dir, B.dir, k, SKY.skyS); L.skyS = SKY.skyS;
     SKY.ceil = X.ceil + (Y.ceil - X.ceil) * q; L.ceil = SKY.ceil;
     for (j = 0; j < 8; j++) SKY.fx[j] = X.fx[j] + (Y.fx[j] - X.fx[j]) * qs;
     SKY.fx[6] = X.motes + (Y.motes - X.motes) * qs; L.fx = SKY.fx;
+    skySun(V, w, L);   // (fast500 no-fades: the sun sets or rises through a change into or out of a night)
+    moonStep(SIM.t + SKY.dt);   // (and the moon's stay: its route planned once, as it begins)
     skyPaint(V);
     if (REC && SIM.t - SKY.recT >= 1) { SKY.recT = SIM.t; if (!REC.cycle) REC.cycle = []; if (REC.cycle.length < 4000) REC.cycle.push([+SIM.t.toFixed(1), A.id, B.id, +k.toFixed(3), +q.toFixed(3), +qs.toFixed(3), SKYI.group, SKYI.words, +SKY.ceil.toFixed(3)]); }
   }
@@ -3486,33 +3581,240 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     return { sky: SKY.A.id, next: SKY.B.id, k: +SKY.k.toFixed(4), q: +SKY.q.toFixed(4), qs: +SKY.qs.toFixed(4), x: +SKY.x.toFixed(4), half: SKY.half, X: SKY.X.id, Y: SKY.Y.id,
       tw: SKY.tw, far: SKY.far, warp: SKY.e.warp.map(function (W) { return W ? { u1: +W.u1.toFixed(4), xa: +W.xa.toFixed(4), xb: +W.xb.toFixed(4), xc: +W.xc.toFixed(4), s: +W.s.toFixed(4) } : W; }),
       ceil: +SKY.ceil.toFixed(4), sunVis: +SKY.sunVis.toFixed(4), fx: Array.prototype.map.call(SKY.fx, function (v) { return +v.toFixed(3); }), skyS: Array.prototype.map.call(SKY.skyS, function (v) { return +v.toFixed(4); }),
-      landing: SKY.landing, moon: { side: SKY.moonSide, az: SIM.V && SIM.V.light ? +(SIM.V.light.sunAz + 25 * (SKY.moonSide || 1)).toFixed(2) : null, el: +SKYN.el.toFixed(2), place: SKYN.place }, theme: THEME.hex, ink: { turning: SKYI.turning, want: SKYI.want, from: SKYI.from, id: SKYI.id, words: SKYI.words, group: SKYI.group }, dt: SKY.dt, phase: SKY_PHASE,
+      landing: SKY.landing, moon: skyMoonRec(), sun: skySunRec(), theme: THEME.hex, ink: { turning: SKYI.turning, want: SKYI.want, from: SKYI.from, id: SKYI.id, words: SKYI.words, group: SKYI.group }, dt: SKY.dt, phase: SKY_PHASE,
       seq: SKY.seq.slice(0, 40).map(function (e) { return [e.id, +e.at.toFixed(2), +e.hold.toFixed(2), +e.move.toFixed(2), e.far ? 1 : 0]; }) };
   }
   /* ---- the night's sky (SKY_BODY): the moon (a pale flat disc held under the ceiling, standing above the words where
      the window has room at the default pitch, else above the top edge, its light the key's), the belt, the wisps, the
      stars' twinkle (held under reduced motion) and their top */
   var CEIL_KNEE = 0.08, STAR_TOP_Y = 0.0911, MOON_R = 1.8, MOON_FOOT = 4.5, MOON_KEEP = 12;
-  var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4), el: 30, at: '', aw: -1, ah: -1, ay: -1e9, place: null };
-  function skyMoonPlace() {   // (composition: the one use of the words' boxes in the sky, as the words' rule allows)
-    var V = SIM.V; if (!V || !OUT.h) return;
-    var h = OUT.h, ty = FRT.tanY, p = basePitch(V);
-    var y0 = WORDS[2] - WORDS[0] > 1 ? WORDS[1] : h * 0.3, yn = 1 - 2 * y0 / h;
-    var el = function (y) { return Math.atan((1 - 2 * y / h) * ty) / DEG + p / DEG; };
-    var top = el(0), st = el(y0), pxdeg = (h / 2) / ty * (1 + yn * ty * yn * ty) * DEG;
-    var lo = st + MOON_FOOT + MOON_KEEP * (OUT.dpr || 1) / pxdeg, hi = top - MOON_R - 1;
-    SKYN.el = lo <= hi ? (lo + Math.min(hi, lo + 8)) / 2 : top + MOON_FOOT;
-    SKYN.place = { lo: +lo.toFixed(2), hi: +hi.toFixed(2), el: +SKYN.el.toFixed(2), top: +top.toFixed(2), stack: +st.toFixed(2), inView: lo <= hi };
+  var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4) };
+  // MOON-ROUTE-BEGIN
+  /* (fast500 no-fades, the sun and moon: the owner's "Drift all night" and "Slower moon") the moon never fades, stops or
+     turns back. A moonlit stay (its change in, its hold, its change out: t0 to t3, sky time) is one route, one way: out
+     of sight it rises behind the sea (a leg, 16 deg under the horizon at t0), comes in through a side edge of the window
+     above the words late in the change in, drifts across at one pace on a nearly level band (a row on the window, bowed
+     a little toward the zenith where the room under the top edge allows), leaves through the other side early in the
+     change out and sets behind the sea (16 deg under at t3). Pure functions of numbers and arrays (Math only: no DOM, no
+     globals, no clock), so tools/moonkeep.js runs this same text in node. Angles in deg; directions world unit vectors
+     (x, y up, z); the window's camera as camPose builds it (heading psi, pitch p, roll 0). Canonical frame: the band
+     culminates at heading 0, its +s side toward the window's right (-x); moonAt turns it to the stay's own */
+  var MRK = { R: 1.8, FOOT: 4.5, SLACK: 0.05, UP: 0.75, SPAN: 8, RES: 6, ROOM: 2, BOWL: 0.35, GLARE: 6, SPILL: 0.15, M: 1.5, SETV: 3, V10: 3.6, VPK: 4, TURN: 4, TURNUP: 3.3, WMAX: 1, DEEP: 16, MONO: 2, RHO: 30, STEP: 8 };
+  var MRD = Math.PI / 180, MRC = [0, 0, 0];
+  function mrDot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function mrNorm(a) { var n = Math.sqrt(mrDot(a, a)) || 1; a[0] /= n; a[1] /= n; a[2] /= n; return a; }
+  function mrAng(a, b) { var x = a[1] * b[2] - a[2] * b[1], y = a[2] * b[0] - a[0] * b[2], z = a[0] * b[1] - a[1] * b[0]; return Math.atan2(Math.sqrt(x * x + y * y + z * z), mrDot(a, b)) / MRD; }
+  function mrSmooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+  function mrCam(psi, p) { var a = psi * MRD, b = p * MRD, cp = Math.cos(b), f = [Math.sin(a) * cp, Math.sin(b), Math.cos(a) * cp], r = mrNorm([-f[2], 0, f[0]]); return { f: f, r: r, u: [-r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1]] }; }
+  function mrRay(C, I, nx, ny) { var x = nx * I.tanX, y = ny * I.tanY; return mrNorm([C.f[0] + C.r[0] * x + C.u[0] * y, C.f[1] + C.r[1] * x + C.u[1] * y, C.f[2] + C.r[2] * x + C.u[2] * y]); }
+  function mrPix(C, I, x, y) { return mrRay(C, I, 2 * x / I.W - 1, 1 - 2 * y / I.H); }
+  function mrProj(C, I, d) { var z = mrDot(d, C.f); return [mrDot(d, C.r) / z / I.tanX, mrDot(d, C.u) / z / I.tanY, z]; }
+  function mrSamples(I) {   // every box's top edge every STEP canvas px, its corners included (boxes 1 px or less skipped): of a box's outline its top edge needs the highest band (a point under another on the window needs less), so the rest is left out; with no stack, today's row at 0.3 H
+    var S = [], B = I.boxes, st = false, b, j, n;
+    for (b = 0; b < B.length; b++) {
+      var x0 = B[b][0], y0 = B[b][1], x1 = B[b][2], y1 = B[b][3];
+      if (!(x1 - x0 > 1 && y1 - y0 > 1)) continue;
+      if (b < 3) st = true;
+      n = Math.max(1, Math.ceil((x1 - x0) / MRK.STEP)); for (j = 0; j <= n; j++) S.push([x0 + (x1 - x0) * j / n, y0]);
+    }
+    if (!st) for (j = 0; j <= 24; j++) S.push([I.W * (0.2 + 0.6 * j / 24), I.H * 0.3]);
+    return S;
+  }
+  function mrLo(I, S, p) {   // the keep line at pitch p: the lowest culmination whose great circle (level on the window) keeps the footprint and KEEP px clear of every sample; a bowl above it keeps it too
+    var C = mrCam(0, p), lo = -90, i;
+    for (i = 0; i < S.length; i++) {
+      var d = mrPix(C, I, S[i][0], S[i][1]), kd = mrAng(d, mrPix(C, I, S[i][0], S[i][1] - I.keepPx)) * MRD, rh = Math.sqrt(d[2] * d[2] + d[1] * d[1]);
+      var e = (Math.atan2(d[1], d[2]) + Math.asin(Math.min(1, Math.sin(MRK.FOOT * MRD + kd) / rh))) / MRD;
+      if (e > lo) lo = e;
+    }
+    return lo + MRK.SLACK;
+  }
+  function mrBandSet(B, ec, beta) {   // the band: a small circle through the culmination dc, tangent to the window's right there, bowed toward the zenith by beta of a level circle's bend (0: the great circle)
+    var e = ec * MRD, rho = beta > 0 && e > 0.01 ? Math.atan(1 / (beta * Math.tan(e))) : Math.PI / 2, cb = Math.cos(rho), sb = Math.sin(rho);
+    B.ec = ec; B.beta = beta; B.rhoB = rho / MRD; B.cB = cb; B.sB = sb;
+    B.Pc = [0, cb * Math.sin(e) + sb * Math.cos(e), cb * Math.cos(e) - sb * Math.sin(e)];
+    B.e1 = [0, (Math.sin(e) - cb * B.Pc[1]) / sb, (Math.cos(e) - cb * B.Pc[2]) / sb];
+    return B;
+  }
+  function mrBand(B, s, out) { var ph = s * MRD / B.sB, c = Math.cos(ph); out[0] = -B.sB * Math.sin(ph); out[1] = B.cB * B.Pc[1] + B.sB * c * B.e1[1]; out[2] = B.cB * B.Pc[2] + B.sB * c * B.e1[2]; return out; }
+  function mrTopOK(B, I, p) {   // the band's centre, wherever it is in the window's x span, stands MRK.R + 1 deg (and SLACK) or more under the top edge's point at that x (pitch p): least where it crosses the side edge (the band rises toward the sides, and a px there spans less angle), so tested there and at four points inside
+    var C = mrCam(0, p), d = [0, 0, 0], sE = mrEdge(B, I, p), j, q;
+    for (j = 0; j <= 4; j++) {
+      mrBand(B, j < 4 ? sE * j / 4 : sE - 1e-6, d); q = mrProj(C, I, d);
+      if (q[2] <= 0 || q[1] >= 1 || mrAng(d, mrRay(C, I, Math.max(-1, Math.min(1, q[0])), 1)) < MRK.R + 1 + MRK.SLACK) return false;
+    }
+    return true;
+  }
+  function mrHi(I, p) {   // the highest culmination whose level band (beta 0: a row on the window, at ndc y tan(ec - p) / tanY) passes mrTopOK: its row solved at the side edge, where the margin is least
+    var C = mrCam(0, p), top = mrRay(C, I, 1, 1), a = -1, b = 1, it;
+    for (it = 0; it < 40; it++) { var m = (a + b) / 2; if (mrAng(mrRay(C, I, 1, m), top) >= MRK.R + 1 + MRK.SLACK) a = m; else b = m; }
+    return p + Math.atan(a * I.tanY) / MRD;
+  }
+  function mrEdge(B, I, p) {   // the arc at which the band's centre crosses the side edge's plane (pitch p)
+    var C = mrCam(0, p), d = [0, 0, 0], a, b, q, it;
+    for (b = 5; b < 180; b += 5) { q = mrProj(C, I, mrBand(B, b, d)); if (q[2] <= 0 || Math.abs(q[0]) >= 1) break; }
+    a = b - 5;
+    for (it = 0; it < 32; it++) { var m = (a + b) / 2; q = mrProj(C, I, mrBand(B, m, d)); if (q[2] > 0 && Math.abs(q[0]) < 1) a = m; else b = m; }
+    return b;
+  }
+  function mrLeg(L, u, out) {   // the setting leg at arc u from J: a small circle of radius rhoL tangent to the band at J, curving down
+    var ph = u * MRD / L.sL, c = Math.cos(ph), a = L.cL * L.cL + L.sL * L.sL * c, b = L.sL * L.cL * (1 - c), g = L.sL * Math.sin(ph), i;
+    for (i = 0; i < 3; i++) out[i] = L.J[i] * a + L.m[i] * b + L.T[i] * g;
+    return out;
+  }
+  function mrLegEl(L, u, d) { return Math.asin(Math.max(-1, Math.min(1, mrLeg(L, u, d)[1]))) / MRD; }
+  function mrLegTo(L, el) {   // the leg's arc where it first reaches el going down (at or under it); -1 if it never does
+    var d = [0, 0, 0], a, b, it;
+    for (b = 2; b < 180 * L.sL; b += 2) if (mrLegEl(L, b, d) <= el) break;
+    if (mrLegEl(L, b, d) > el) return -1;
+    a = b - 2; for (it = 0; it < 40; it++) { var m = (a + b) / 2; if (mrLegEl(L, m, d) > el) a = m; else b = m; }
+    return b;
+  }
+  function mrS(o, u) { u = Math.min(u, o.T); return o.wv * u + (o.A > 0 ? o.A * o.T / (MRK.M + 1) * Math.pow(u / o.T, MRK.M + 1) : 0); }   // the leg's arc u s past its join
+  function mrV(o, u) { return o.wv + (o.A > 0 ? o.A * Math.pow(Math.min(u, o.T) / o.T, MRK.M) : 0); }   // and its speed (deg/s)
+  function mrU(o, s) { var a = 0, b = o.T, it; for (it = 0; it < 32; it++) { var m = (a + b) / 2; if (mrS(o, m) < s) a = m; else b = m; } return b; }
+  function mrPace(P, wv) {   // the legs for a crossing speed wv: v(u) = wv + A (u / T)^M, from wv at the join (zero acceleration there) to sD at t0 and t3
+    var tauV = P.thetaV / wv, T = (P.t3 - P.t0) / 2 - tauV;
+    if (!(T > 0)) return null;
+    return { wv: wv, tauV: tauV, T: T, A: Math.max(0, (MRK.M + 1) * (P.sD - wv * T) / T) };
+  }
+  function mrFeas(P, o) {   // every bound of the legs: the set, the speed at -10, the peak, the turn on the sky (speed x cot rhoL) at the horizon and at the peak
+    if (!o) return false;
+    var ct = 1 / Math.tan(P.rhoL * MRD); o.vH = mrV(o, mrU(o, P.sH)); o.v10 = mrV(o, mrU(o, P.s10)); o.peak = o.wv + o.A; o.turnH = o.vH * ct; o.turn = o.peak * ct;
+    return o.vH <= MRK.SETV && o.v10 <= MRK.V10 && o.peak <= MRK.VPK && o.turnH <= MRK.TURNUP && o.turn <= MRK.TURN;
+  }
+  function moonPlan(I, K) {   // I: moonInputs; K: a re-plan's kept heading, culmination, case and way
+    var P = { psi: I.psi, pN: I.pN, pL: I.pL, coarse: !!I.coarse, noRoom: !!I.noRoom, side: I.side, sigma: I.sigma, keyAz: I.keyAz, lift: I.lift || 0, t0: I.t0, t1: I.t1, t2: I.t2, t3: I.t3, fail: '' }, B = {}, it;
+    // STEP 1 and 2: the keep line and the room under the top edge, at the plan's pitch and with the tilt it had (both views keep them)
+    var S = mrSamples(I);
+    P.loN = mrLo(I, S, I.pN); P.loL = mrLo(I, S, I.pL); P.hiN = mrHi(I, I.pN); P.hiL = mrHi(I, I.pL);
+    P.lo = Math.max(P.loN, P.loL); P.hi = Math.min(P.hiN, P.hiL); P.top = Math.max(I.pN, I.pL) + Math.atan(I.tanY) / MRD;
+    P.room = !I.noRoom && P.hi - P.lo >= MRK.ROOM;
+    P.ec = P.room ? P.lo + (I.coarse ? Math.min(P.hi - P.lo, MRK.RES) : MRK.UP * Math.min(P.hi - P.lo, MRK.SPAN)) : Math.max(P.top + MRK.FOOT, P.lo + 0.5);
+    // STEP 4: the bowl, as much as the room under the top edge allows at both pitches (0 passes by STEP 2's hi)
+    var beta = 0, a = 0, b = MRK.BOWL;
+    if (P.room) {
+      if (mrTopOK(mrBandSet(B, P.ec, b), I, I.pN) && mrTopOK(B, I, I.pL)) a = b;
+      else for (it = 0; it < 8; it++) { var m = (a + b) / 2; if (mrTopOK(mrBandSet(B, P.ec, m), I, I.pN) && mrTopOK(B, I, I.pL)) a = m; else b = m; }
+      beta = a;
+    }
+    P.band = mrBandSet(B, P.ec, beta); P.beta = beta; P.rhoB = B.rhoB;
+    // STEP 3: the case: today's moon place (the key's azimuth and 25 deg to the visit's side, at ec) in the plan window: A, it culminates ahead; else B, behind
+    var Cp = mrCam(I.psi, I.pN), ma = (I.keyAz + 25 * I.side) * MRD, me = P.ec * MRD, mq = mrProj(Cp, I, [Math.sin(ma) * Math.cos(me), Math.sin(me), Math.cos(ma) * Math.cos(me)]);
+    P.caseA = mq[2] > 0 && Math.abs(mq[0]) <= 1; P.Hc = P.caseA ? I.psi : I.psi + 180;
+    if (K) { P.psi = K.psi; P.Hc = K.Hc; P.caseA = K.caseA; P.sigma = K.sigma; }
+    // STEP 5: the reach: the centre past the side edge's plane at either pitch, and the disc's radius; the glare's 6 deg more at one pace
+    P.thetaE = Math.max(mrEdge(B, I, I.pN), mrEdge(B, I, I.pL)) + MRK.R; P.thetaV = P.thetaE + MRK.GLARE;
+    var J = mrBand(B, P.thetaV, [0, 0, 0]);
+    P.rise = J[1];   // (the record: how high the band stands at its join)
+    var ph = P.thetaV * MRD / B.sB, TJ = [-Math.cos(ph), -Math.sin(ph) * B.e1[1], -Math.sin(ph) * B.e1[2]];
+    // STEP 6: the legs: tangent at J, curving down on a circle sized so the azimuth's turning point lies MONO under the path's end
+    var mN = mrNorm([J[1] * TJ[2] - J[2] * TJ[1], J[2] * TJ[0] - J[0] * TJ[2], J[0] * TJ[1] - J[1] * TJ[0]]);
+    if (mN[1] > 0) { mN[0] = -mN[0]; mN[1] = -mN[1]; mN[2] = -mN[2]; }
+    var rhoL = Math.max(MRK.RHO * MRD, Math.atan((J[1] + Math.sin((MRK.DEEP + MRK.MONO) * MRD)) / -mN[1]));
+    P.leg = { J: J, T: TJ, m: mN, cL: Math.cos(rhoL), sL: Math.sin(rhoL) }; P.rhoL = rhoL / MRD;
+    P.sH = mrLegTo(P.leg, 0); P.s10 = mrLegTo(P.leg, -10); P.sD = mrLegTo(P.leg, -MRK.DEEP);
+    if (P.sD < 0 || P.sH < 0 || P.s10 < 0) { P.fail = 'the leg does not reach -' + MRK.DEEP; P.sD = Math.max(P.sD, 60); P.sH = Math.max(P.sH, 1); P.s10 = Math.max(P.s10, 2); }
+    // STEP 7: the pace: the crossing at one speed through the plan window's span over the hold and SPILL of the changes, quickened only as the legs' bounds need
+    P.tm = (I.t0 + I.t3) / 2; P.Dvis = (I.t2 - I.t1) + MRK.SPILL * ((I.t1 - I.t0) + (I.t3 - I.t2)); P.w0 = 2 * P.thetaE / P.Dvis;
+    var w0 = P.w0, o = mrPace(P, w0);
+    if (!o) { w0 = P.thetaV / (0.4 * (I.t3 - I.t0)); o = mrPace(P, w0); }
+    if (!mrFeas(P, o)) {
+      var lo2 = w0, hi2 = MRK.WMAX, oh = mrPace(P, hi2);
+      if (!mrFeas(P, oh)) { P.fail = P.fail || 'no crossing speed up to WMAX meets the legs\' bounds'; o = oh || o; }
+      else { for (it = 0; it < 20; it++) { var mm = (lo2 + hi2) / 2; if (mrFeas(P, mrPace(P, mm))) hi2 = mm; else lo2 = mm; } o = mrPace(P, hi2); mrFeas(P, o); }
+    }
+    P.wv = o.wv; P.tauV = o.tauV; P.T = o.T; P.A = o.A; P.vH = o.vH; P.v10 = o.v10; P.peak = o.peak; P.turnH = o.turnH; P.turn = o.turn;
+    return P;
+  }
+  function moonAt(P, t, out) {   // the moon's direction (out.d, world) and its broad light's share (out.w) at sky time t; out.s its arc from the culmination, out.leg -1 rising, 1 setting, 0 on the band
+    var d = out.d, s, leg = 0, c = MRC;
+    if (!P || !(t > P.t0 && t < P.t3)) { d[0] = 0; d[1] = -1; d[2] = 0; out.w = 0; out.s = 0; out.v = 0; out.leg = 0; out.el = -90; out.az = 0; return out; }
+    var tau = t - P.tm;
+    if (Math.abs(tau) <= P.tauV) { s = P.wv * tau; mrBand(P.band, s, c); out.v = P.wv; }
+    else {
+      var u = Math.abs(tau) - P.tauV, sl = Math.min(mrS(P, u), P.sD);
+      mrLeg(P.leg, sl, c); leg = tau < 0 ? -1 : 1; if (tau < 0) c[0] = -c[0];
+      s = leg * (P.thetaV + sl); out.v = sl < P.sD ? mrV(P, u) : 0;
+    }
+    var H = P.Hc * MRD, rx = -(P.sigma < 0 ? -1 : 1) * c[0];
+    d[0] = -rx * Math.cos(H) + c[2] * Math.sin(H); d[1] = c[1]; d[2] = rx * Math.sin(H) + c[2] * Math.cos(H);
+    out.el = Math.asin(Math.max(-1, Math.min(1, d[1]))) / MRD; out.az = Math.atan2(d[0], d[2]) / MRD;
+    out.w = mrSmooth(-MRK.DEEP, -MRK.R, out.el); out.s = s; out.leg = leg;
+    return out;
+  }
+  // MOON-ROUTE-END
+  /* (fast500 no-fades, the sun and moon) the moonlit stay on the sky's clock, its plan made once as it begins (from the
+     view, the window and the words' boxes then: composition, as skyMoonPlace's was; never in the sky's or the
+     composite's pass), the moon on show at the drawn time; a resize re-plans (a height-only one only if the plan no
+     longer holds, the moon then eased onto the new plan by an offset that decays with the frustum's own 0.35 s) */
+  var MOON_LAND = 57.5, MOON_BAR = 0.15, MOON_EASE = 0.35, WORDSIH = 0;
+  var MOON = { E: null, off: [0, 0], plans: 0, s: { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 }, a: { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 } };
+  function basePitchT(V) { var fr = V.def.frame || [0.4, 0.6]; return Math.atan((2 * lerp(fr[0], fr[1], TALLK) - 1) * FRT.tanY) + CAMUP * DEG * WIDEKT; }   // (basePitch at the frustum's target)
+  function moonStay(t) {   // the moonlit entry whose stay holds sky time t (its times kept on it: t0 its change in's start, or MOON_LAND before a landing's)
+    var seq = SKY.seq, i = SKY.i, e = seq[i], n = seq[i + 1];
+    if (!e) return null;
+    if (e.id !== 'moonlit') { if (!n || n.id !== 'moonlit' || t < e.at + e.hold) return null; e = n; i++; }
+    if (!e.mt) { var t1 = e.at, t2 = t1 + e.hold; e.mt = [i > 0 ? t1 - seq[i - 1].move : t1 - MOON_LAND, t1, t2, t2 + e.move]; }
+    return e;
+  }
+  function moonInputs(E) {   // every DOM read of the plan, here: the view, the window, the words' boxes (the stack at its highest place: the phone's bar shown), the pointer, the page's touch mode
+    var V = SIM.V; if (!V || !V.light || !OUT.w || !OUT.h || !TG) return null;
+    var coarse = false, svh = NaN, sv = null, b;
+    try { coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (e) { coarse = false; }
+    try { sv = /^\s*([0-9.]+)px\s*$/.exec(getComputedStyle(root).getPropertyValue('--svh')); } catch (e) { sv = null; }
+    if (sv) svh = +sv[1];
+    if (!(svh >= 0.5 * OUT.cssH && svh <= OUT.cssH + 1)) svh = coarse ? (1 - MOON_BAR) * OUT.cssH : NaN;
+    var lift = svh === svh && WORDSIH > 0 ? Math.max(0, WORDSIH - svh) / 2 * OUT.dpr : 0, boxes = [], mt = E && E.mt ? E.mt : [0, 0, 0, 0];
+    for (b = 0; b < 5; b++) boxes.push([WORDS[b * 4], WORDS[b * 4 + 1] - (b < 3 ? lift : 0), WORDS[b * 4 + 2], WORDS[b * 4 + 3] - (b < 3 ? lift : 0)]);
+    return { psi: (CS.yawV + CS.phi) / DEG, pN: basePitchT(V) / DEG, pL: (basePitchT(V) + CS.thU + CS.thP) / DEG, tanX: FRT.tanX, tanY: FRT.tanY, W: OUT.w, H: OUT.h, boxes: boxes, keepPx: MOON_KEEP * OUT.dpr,
+      coarse: coarse, noRoom: TOUCHMODE === 'scroll', keyAz: V.light.sunAz, side: SKY.moonSide || 1, sigma: SKY.moonDir || 1, lift: lift, t0: mt[0], t1: mt[1], t2: mt[2], t3: mt[3] };
+  }
+  function moonStep(t) {
+    var E = moonStay(t); MOON.E = E;
+    if (E && !E.moon) { var I = moonInputs(E); if (I) { E.moon = moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
+  }
+  function moonShown(t, out) {   // the plan's moon at t, turned by the re-plan's offset (0 with no resize: a still and a flight agree)
+    var E = MOON.E, P = E && E.moon;
+    moonAt(P || null, t, out);
+    if (P && t > P.t0 && t < P.t3 && (MOON.off[0] || MOON.off[1])) {
+      var az = (out.az + MOON.off[0]) * DEG, el = (out.el + MOON.off[1]) * DEG;
+      out.d[0] = Math.sin(az) * Math.cos(el); out.d[1] = Math.sin(el); out.d[2] = Math.cos(az) * Math.cos(el); out.az = az / DEG; out.el = el / DEG; out.w = mrSmooth(-MRK.DEEP, -MRK.R, out.el);
+    }
+    return out;
+  }
+  function moonFits(P, Pn, I) {   // a height-only resize: the plan as it stands against the new view (its band over the new keep line and under the new top edge, its bowl too)
+    if (P.room !== Pn.room) return false;
+    if (!P.room) return P.ec >= Pn.top + MRK.FOOT - 1e-9 && P.ec >= Pn.lo + 0.5 - 1e-9;
+    return P.ec >= Pn.lo - 1e-9 && P.ec <= Pn.hi + 1e-9 && mrTopOK(P.band, I, I.pN) && mrTopOK(P.band, I, I.pL);
+  }
+  function moonResized(heightOnly) {
+    var E = MOON.E, P = E && E.moon; if (!P) return;
+    var I = moonInputs(E); if (!I) return;
+    var Pn = moonPlan(I, { psi: P.psi, Hc: P.Hc, caseA: P.caseA, sigma: P.sigma });
+    if (!heightOnly) { E.moon = Pn; E.moonPlans++; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; return; }   // (a new window: the view's own cut)
+    if (moonFits(P, Pn, I)) return;
+    var tD = SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, sh = moonShown(tD, MOON.s), az0 = sh.az, el0 = sh.el;   // (what is on show, offset included: offsets chain)
+    E.moon = Pn; E.moonPlans++; MOON.plans++; moonAt(Pn, tD, MOON.a);
+    if (sh.w > 0 || MOON.a.w > 0) { MOON.off[0] = angd(az0, MOON.a.az); MOON.off[1] = el0 - MOON.a.el; } else MOON.off[0] = MOON.off[1] = 0;
+  }
+  function moonEase(dt) { if (!MOON.off[0] && !MOON.off[1]) return; var k = Math.exp(-dt / MOON_EASE); MOON.off[0] *= k; MOON.off[1] *= k; if (Math.abs(MOON.off[0]) < 1e-7 / DEG) MOON.off[0] = 0; if (Math.abs(MOON.off[1]) < 1e-7 / DEG) MOON.off[1] = 0; }
+  function skyMoonRec() {
+    var E = MOON.E, P = E && E.moon, s = MOON.s, f = function (x, n) { return typeof x === 'number' && isFinite(x) ? +x.toFixed(n) : x; };
+    if (!P) return { side: SKY.moonSide, sigma: SKY.moonDir, plan: null, w: 0, plans: MOON.plans };
+    return { 'case': P.caseA ? 'A' : 'B', side: P.side, sigma: P.sigma, psi: f(P.psi, 4), Hc: f(P.Hc, 4), ec: f(P.ec, 4), pN: f(P.pN, 4), pL: f(P.pL, 4), lo: f(P.lo, 4), hi: f(P.hi, 4), top: f(P.top, 4), room: P.room, coarse: P.coarse, lift: f(P.lift, 2),
+      beta: f(P.beta, 5), rise: f(P.rise, 5), thetaE: f(P.thetaE, 4), thetaV: f(P.thetaV, 4), rhoL: f(P.rhoL, 4), sH: f(P.sH, 4), s10: f(P.s10, 4), sD: f(P.sD, 4), wv: f(P.wv, 6), w0: f(P.w0, 6), A: f(P.A, 6), T: f(P.T, 4), tauV: f(P.tauV, 4),
+      t0: f(P.t0, 4), t1: f(P.t1, 4), t2: f(P.t2, 4), t3: f(P.t3, 4), tm: f(P.tm, 4), Dvis: f(P.Dvis, 4), vH: f(P.vH, 5), v10: f(P.v10, 5), peak: f(P.peak, 5), turnH: f(P.turnH, 5), turn: f(P.turn, 5), fail: P.fail,
+      s: f(s.s, 5), v: f(s.v, 5), leg: s.leg, el: f(s.el, 5), az: f(s.az, 5), w: f(s.w, 6), d: [f(s.d[0], 6), f(s.d[1], 6), f(s.d[2], 6)], off: [f(MOON.off[0], 6), f(MOON.off[1], 6)], plans: E.moonPlans };
   }
   function skyNightUniforms(P) {
     var V = SIM.V, fx = SKY.fx, u = P.u;
     if (!u.uMoon) return;
     if (!SKYN.c0 && V) { var MF = WSKY.moonlit.fx.moon; SKYN.moonC.set(lchA(MF.L)); SKYN.moonG.set(lchA(MF.glow)); SKYN.c0 = true; }   // (the moon's disc and glare: the moonlit sky's own table)
-    if (OUT.w !== SKYN.aw || OUT.h !== SKYN.ah || Math.abs(WORDS[1] - SKYN.ay) > 0.05) { SKYN.aw = OUT.w; SKYN.ah = OUT.h; SKYN.ay = WORDS[1]; SKYN.at = OUT.w + 'x' + OUT.h + ':' + WORDS[1].toFixed(1); skyMoonPlace(); }
-    if (V) { var ma = (V.light.sunAz + 25 * (SKY.moonSide || 1)) * DEG, me = SKYN.el * DEG; SKYN.moon[0] = Math.sin(ma) * Math.cos(me); SKYN.moon[1] = Math.sin(me); SKYN.moon[2] = Math.cos(ma) * Math.cos(me); }   // (dirAzEl's, written in place)
-    else { SKYN.moon[0] = 0; SKYN.moon[1] = 1; SKYN.moon[2] = 0; }
-    SKYN.moon[3] = fx[4];
-    SKYN.night[0] = fx[0]; SKYN.night[1] = fx[1]; SKYN.night[2] = reduced() ? 0 : 1; SKYN.night[3] = STAR_TOP_Y;
+    if (V) { moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, MOON.s); SKYN.moon[0] = MOON.s.d[0]; SKYN.moon[1] = MOON.s.d[1]; SKYN.moon[2] = MOON.s.d[2]; SKYN.moon[3] = DEVMODE && MOONF.moonOff ? 0 : MOON.s.w; }   // (fast500 no-fades: the moon on its route at the drawn time, as the camera and the stars are; fx[4] kept for the record only)
+    else { SKYN.moon[0] = 0; SKYN.moon[1] = 1; SKYN.moon[2] = 0; SKYN.moon[3] = 0; }
+    SKYN.night[0] = fx[0]; SKYN.night[1] = SUNU.on ? 0 : fx[1]; SKYN.night[2] = reduced() ? 0 : 1; SKYN.night[3] = STAR_TOP_Y;
+    if (u.uSunB) { SUNU.sb[0] = SUNU.on ? fx[1] : 0; SUNU.sb[1] = SUNU.on && V && V.L ? V.L.hi[1] : 0; gl.uniform4fv(u.uSunB, SUNU.sb); }   // (fast500 no-fades: in a change between a twilight sky and a night the wisps and the veil drawn by their own blocks)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
     if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], 0); gl.uniform4f(u.uAur, 0, SKY.aur.ph, SKY.aur.base, fx[3]); }
   }
@@ -3538,15 +3840,18 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     if (!THEME.meta) return;
     var L = V.L, ty = FR.tanY, d0 = CAM.f[0] + CAM.u[0] * ty, d1 = CAM.f[1] + CAM.u[1] * ty, d2 = CAM.f[2] + CAM.u[2] * ty, n = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2) || 1;
     d0 /= n; d1 /= n; d2 /= n;
-    var e = Math.asin(clamp(d1, -1, 1)) / DEG, c = skyGradCPU(L, e, THEME.c), S = L.skyS || L.sunDir, K = L.skyK;
+    var e = Math.asin(clamp(d1, -1, 1)) / DEG, c = skyGradCPU(L, e, THEME.c), S = L.skyS || L.sunDir, sn = SUNU.on && L === SUNU.L, K = sn ? SUNU.k0 : L.skyK;   // (fast500 no-fades: the shaders' change, the same arithmetic)
     var hl = Math.sqrt(d0 * d0 + d2 * d2) || 1, sl = Math.sqrt(S[0] * S[0] + S[2] * S[2]) || 1, side = 0.5 + 0.5 * (d0 * S[0] + d2 * S[2]) / (hl * sl), low = Math.exp(-Math.max(e, 0) / K[1]), j;
     for (j = 0; j < 3; j++) { c[j] += (L.skyW[j] - c[j]) * K[0] * side * side * low; c[j] *= 1 - K[2] * (1 - side) * low; }
-    var cs = Math.max(d0 * S[0] + d1 * S[1] + d2 * S[2], 0), g = L.glow[0] * Math.pow(cs, L.glow[1]) + L.glow[2] * Math.pow(cs, L.glow[3]);
-    for (j = 0; j < 3; j++) c[j] += L.glowC[j] * g;
+    if (sn) skyThemeWarm(c, e, side);
+    var cs = Math.max(d0 * S[0] + d1 * S[1] + d2 * S[2], 0), g = L.glow[0] * Math.pow(cs, L.glow[1]) + L.glow[2] * Math.pow(cs, L.glow[3]), gC = sn ? SUNU.glowS : L.glowC, cn = 0;
+    for (j = 0; j < 3; j++) c[j] += gC[j] * g;
+    if (sn) { cn = Math.max(d0 * SUNU.n[0] + d1 * SUNU.n[1] + d2 * SUNU.n[2], 0); var gn = L.glow[0] * Math.pow(cn, L.glow[1]) + L.glow[2] * Math.pow(cn, L.glow[3]); for (j = 0; j < 3; j++) c[j] += SUNU.glowN[j] * gn; }
     // the ground haze over the sky (hazeSky, hazeCol) and the high veil's even paleness (veilMean), as SKY_BODY lays them
     var H = L.haze, hs = H[0] > 0 ? 1 - Math.exp(-H[0] * Math.exp(-H[2] / H[1]) * H[1] / Math.max(d1, 2e-3)) : 0, hcs = Math.max((d0 * S[0] + d2 * S[2]) / (hl * sl), 0), hw = hcs * hcs * hcs;
-    for (j = 0; j < 3; j++) c[j] += ((L.hazeC[j] + (L.hazeW[j] - L.hazeC[j]) * hw) - c[j]) * hs;
-    if (L.hi[0] > 0 && d1 > 0.01) { var vm = smooth(0.55 - L.hi[0], 0.95 - L.hi[0], 0.692) * L.hi[1] * smooth(0.01, 0.12, d1) * smooth(0, 0.05, L.hi[0]), fs = 1 + 1.5 * Math.pow(Math.max(cs, 0), 6); for (j = 0; j < 3; j++) c[j] += (L.hiC[j] * fs - c[j]) * vm; }
+    if (sn) { var hst = Math.exp(-(Math.max(e + SUNU.D, 0) - Math.max(e, 0)) / SUNU.kT[1]) * SUNU.band; for (j = 0; j < 3; j++) c[j] += ((L.hazeC[j] + hw * (SUNU.hzT[j] * hst + SUNU.hzN[j] * SUNU.QN)) - c[j]) * hs; }
+    else for (j = 0; j < 3; j++) c[j] += ((L.hazeC[j] + (L.hazeW[j] - L.hazeC[j]) * hw) - c[j]) * hs;
+    if (L.hi[0] > 0 && d1 > 0.01) { var vm = smooth(0.55 - L.hi[0], 0.95 - L.hi[0], 0.692) * L.hi[1] * smooth(0.01, 0.12, d1) * smooth(0, 0.05, L.hi[0]), fs = sn ? 1 + 1.5 * (Math.pow(Math.max(cs, 0), 6) * SUNU.band + Math.pow(cn, 6) * SUNU.QN) : 1 + 1.5 * Math.pow(Math.max(cs, 0), 6); for (j = 0; j < 3; j++) c[j] += (L.hiC[j] * fs - c[j]) * vm; }
     var y0 = 0, rgb = THEME.v, hx = '#';
     for (j = 0; j < 3; j++) { c[j] *= L.exposure; y0 += c[j] * LUMA3[j]; }
     for (j = 0; j < 3; j++) rgb[j] = Math.round(clamp(agL2s(Math.max(y0 + (c[j] - y0) * L.sat, 0)), 0, 1) * 255);
@@ -3969,6 +4274,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     for (i = 0; i < list.length; i++) {
       var Cp = list[i], px = Cp.cx - cx, pz = Cp.cz - cz, pd = Math.sqrt(px * px + pz * pz) || 1, ahead = (px * hx + pz * hz) / (pd * hl);
       Cp.prio = pd * (1 - 0.35 * ahead) / scales[Cp.sc].radius;
+      if (BOOTVF && !bootNeed(V, Cp, cx, cz, BOOT_M)) Cp.prio += 20;   // (fast500 step 10: the boot's order: what can be seen first, in the flight's own order; the cells out in the haze after)
     }
     return list;
   }
@@ -3982,13 +4288,14 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
      1 - smooth(FD_FULL, FD_ZERO, its nearest distance from the eye), FD_ZERO inside the radius it is made in (its
      scale's radius less a reach the streamer is ahead by: 0.1 R + 100 m) and the fade 0.12 R wide (at 12 m/s, 26-52 s
      for the great cells: it comes out of the haze), so nothing appears on a clock. A cell or body ready only once it
-     should already show (late) is eased in over 2.5 s of the clock as a guard, and counted (LATE: a gate failure) */
+     should already show (late) is drawn at once, never eased in on a clock (fast500, no fades), and counted
+     (LATE: a gate failure, as it pops) */
   var LATE = { n: 0, vols: 0, worst: 0 };
   function fadeZ(V, sc) { var R = V.def.layout.scales[sc].radius; return R - (0.1 * R + 100); }
   function distFadeAt(V, sc, d) { var R = V.def.layout.scales[sc].radius, z = fadeZ(V, sc); return 1 - smooth(z - 0.12 * R, z, d); }
   function cellDistFade(C) { return distFadeAt(C.V, C.sc, nearDist(C, CAM.pos[0], CAM.pos[2])); }
   function volDistFade(o) { var C = o.cell; if (!C) return 1; var dx = o.c[0] - CAM.pos[0], dz = o.c[2] - CAM.pos[2]; return distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0)); }
-  function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: the clock's guard, counted)
+  function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once, fast500)
   /* (E1, design-v5 4.3) kind 'cpu' (the slice after the frame's flush): layouts, resolves and builds, no GL call;
      kind 'gpu' (the jobs at the start of the next drawn frame): uploads and bakes; sync or no kind: everything */
   function cellWork(V, sync, nearOnly, upTo, kind) {
@@ -4087,6 +4394,93 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     var R = Math.max(SOL_R, Math.max(V.speed * SLIP_T, SLIP_REACH) + 320) + V.speed * FLIGHT_REACH_T;
     for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st >= 2) continue; var r = R + C.bound[3]; if (C.bound[0] * C.bound[0] + C.bound[2] * C.bound[2] <= r * r) return false; }
     return true;
+  }
+  /* (fast500 step 10) the boot's helpers. visitRun: the visit's stages of one kind, as many as are ready, in one call.
+     probeSync: the boot's waiting probes drawn and read at once (the canvas is hidden; the read waits on the GPU, never
+     on a frame): every job not yet begun, batched by visit and mode, PROBE_CAP points a batch, as probeRun draws them
+     for the stills; the heights are the bytes the ring would bring two frames later. bootSig: what a round moved */
+  function visitRun(V, kind) {
+    var s0 = -1;
+    while (V.st < VSTAGES.length && V.st !== s0 && VKIND[V.st] === kind) { s0 = V.st; visitStep(V, false, kind); }
+  }
+  function probeSync() {
+    for (var g = 0; g < 64; g++) {
+      var V = null, mode = 0, jobs = [], n = 0, i, J;
+      for (i = 0; i < PJOBS.length; i++) { J = PJOBS[i]; if (J.cancel || J.sent > 0 || J.n > PROBE_CAP) continue; if (!V) { V = J.V; mode = J.mode; } if (J.V !== V || J.mode !== mode) continue; if (n + J.n > PROBE_CAP) break; jobs.push(J); n += J.n; }
+      if (!jobs.length || !V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat || !KW.tex) return;
+      probeRun(jobs, true);
+      for (i = PJOBS.length - 1; i >= 0; i--) if (PJOBS[i].done || PJOBS[i].cancel) PJOBS.splice(i, 1);
+      PSTAT.batches++; PSTAT.points += n; if (n > PSTAT.maxPts) PSTAT.maxPts = n;
+    }
+  }
+  /* bootFence, bootIdle: a fence after each of the boot's frames from C's last on (the noise, the warm table and D's own
+     draws before it), kept in order until it is passed (a fence's state reaches the page a frame or two after the GPU
+     passes it: one remade every frame was never seen passed). D reads at once (probeSync, the ground grid) only once
+     the first is passed (C's own frame: a slow device's first draws' compiles) and every one but the last frame's, so a
+     read waits on one frame's work at most, never on a queue of the GPU's (F0's ring until then, the page never held) */
+  function bootFence() { var f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); if (f) BOOT.gq.push(f); }
+  function bootIdle() {
+    var q = BOOT.gq;
+    while (q.length && gl.getSyncParameter(q[0], gl.SYNC_STATUS) === gl.SIGNALED) { gl.deleteSync(q.shift()); BOOT.g0 = true; }
+    return BOOT.g0 && q.length <= 1;
+  }
+  function bootFenceDrop() { while (BOOT.gq.length) gl.deleteSync(BOOT.gq.shift()); }
+  /* groundRest: the landing's grid begun through the ring in a busy frame (groundCache, not at once: the grid drawn and
+     its first half read into the ring), its halves not all read out of the target when the GPU turns idle. Only
+     groundRead reads the next half, and the read-at-once branch never calls it, while groundCache(.., true) returns on
+     the grid's key, so the second half was never read: GROUND.ok never came, flightIn never held and the boot waited
+     for ever (1 of 6 visits with step 1b, whose noise is done by C's end, so D's first frame is C's next, still busy).
+     The rest read at once, the whole target (it is not drawn again until both halves are read: the same bytes the
+     ring brings), and the halves already in the ring dropped (their generation passed: groundHalf) */
+  function groundRest() {
+    if (GROUND.rd <= 0 || !GCCT) return;
+    var px = new Uint8Array(GCN * GCN * 4), P = GROUND.P;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, GCCT.f); gl.readPixels(0, 0, GCN, GCN, gl.RGBA, gl.UNSIGNED_BYTE, px); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    GROUND.rd = 0; GROUND.got = 0; GROUND.gen++; P.gen = GROUND.gen;
+    groundLand(px, P.V, P.x0, P.z0);
+  }
+  function bootProbing(V) {   // a cell not yet laid out, or one whose probes probeSync has still to read
+    var L = V.cellList; if (!L) return true;
+    for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st === 0) return true; if (C.st === 1 && C.job && !C.job.done && !C.job.cancel && !C.job.sent && C.job.n <= PROBE_CAP) return true; }
+    return false;
+  }
+  function bootSig(V) {
+    var L = V.cellList || [], a = 0, b = 0, c = 0;
+    for (var i = 0; i < L.length; i++) { a += L[i].st; b += L[i].bi; c += L[i].vi || 0; }
+    return [V.st, L.length, a, b, c, PJOBS.length, GROUND.gen2 || 0, WORK.layouts + WORK.resolves + WORK.verts + WORK.uploads + WORK.layers].join(',');
+  }
+  /* bootNeed: a distance weight over 0 about (cx, cz), the cell's own or one of its cloud bodies' (known once it is
+     resolved), m metres nearer. bootReady: the show's test (S10b): every cell of the wanted set resolved, every needed
+     one (BOOT_M nearer: the pre-roll's step and rounding) whole, no full rebuild waiting */
+  function bootNeed(V, C, cx, cz, m) {
+    if (distFadeAt(V, C.sc, Math.max(nearDist(C, cx, cz) - m, 0)) > 0) return true;
+    for (var k = 0; k < C.vols.length; k++) { var o = C.vols[k].out, dx = o.c[0] - cx, dz = o.c[2] - cz; if (distFadeAt(V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r - m, 0)) > 0) return true; }
+    return false;
+  }
+  function bootReady(V, cx, cz) {
+    var L = V.cellList; if (!L || !L.length) return false;
+    for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 2) return false; if ((C.st < 4 || C.RB) && bootNeed(V, C, cx, cz, BOOT_M)) return false; }
+    return true;
+  }
+  /* (fast500 step 10, S10c) the guard: a cell in the view, not yet whole, whose distance weight (its own or one of its
+     cloud bodies') will be over 0 within GUARD_M m, built at once before the frame that would show it (cellNow: every
+     stage, its probes read at once). A cell already over its weight when built so is late as before (lateBorn) */
+  function cellNow(C) {
+    if (C.st === 0) cellLayout(C, true);
+    if (C.st === 1 && C.job && !C.job.done) { var J = C.job; J.cancel = true; C.job = probeJob(C.V, J.pts, J.n, J.mode, true); }
+    if (C.st === 1) cellResolve(C);
+    if (C.st === 2) { if (C.B && C.bi < C.items.length) cellMesh(C, 1e9); cellUpload(C); }
+    if (C.st === 3) cellBake(C, 1e9);
+  }
+  function cellGuard(V) {
+    var L = V.cellList; if (!L) return;
+    for (var i = 0; i < L.length; i++) {
+      var C = L[i]; if (C.st >= 4) continue;
+      if (C.st >= 2 && C.bound[3] <= 0) continue;   // (nothing of it to draw)
+      if (!inView(C.bound[0], C.bound[1], C.bound[2], C.bound[3] > 0 ? C.bound[3] : C.size)) continue;
+      if (!bootNeed(V, C, CAM.pos[0], CAM.pos[2], GUARD_M)) continue;
+      cellNow(C); BOOT.guarded++;
+    }
   }
   /* how much of a visit is ready about a point: every cell within its scale's `frac` of the radius done */
   function cellsReady(V, frac) {
@@ -5782,6 +6176,7 @@ uniform vec3 uHiC;
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
+uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
 out vec4 oC;
@@ -5892,6 +6287,16 @@ void main() {
     c = mix(c, hc, vm * uHi.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uHi.y * vk);
   }
+  if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {   // (fast500 no-fades) the veil in a change between a twilight sky and a night (above, its strength 0): the same, its brightening toward the sun sinking with it and weakening with its depth, the night's coming in at the key
+    vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
+    vec2 qs = P * vec2(1.0 / 153600.0, 1.0 / 38400.0);
+    float n = n3v(vec3(qs, 0.37)).a * 0.66 + n3v(vec3(qs * 1.8 + 0.31, 0.71)).a * 0.34 - 0.5;
+    float cov = smoothstep(0.55 - uHi.x, 0.95 - uHi.x, n * 1.6 + 0.5) * smoothstep(0.06, 0.25, rd.y);
+    vec3 hc = uHiC * (1.0 + 1.5 * (pow(max(cs, 0.0), 6.0) * uSunK.y + pow(max(dot(rd, uSkyN.xyz), 0.0), 6.0) * uSunK.z));
+    float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
+    c = mix(c, hc, vm * uSunB.y * vk * smoothstep(0.01, 0.12, rd.y));
+    c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uSunB.y * vk);
+  }
   // (tod) the sky's night: each its amount times its shape, 0 at amount 0
   float eS = degrees(asin(clamp(rd.y, -1.0, 1.0)));
   if (uNight.x > 0.0 && eS > -1.0) {   // the Earth's shadow rising opposite the sky's own light, and the Belt of Venus over it (the live's belt)
@@ -5907,20 +6312,31 @@ void main() {
     float n = textureLod(uN3, vec3(q.x, q.y * 4.0, 0.21) * 0.25, 0.0).a * 0.55 + textureLod(uN3, vec3(q.x * 3.0, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;   // (tod fix3: an explicit level inside a varying branch: a compiler that hoists implicit-derivative reads out of flow control (HLSL) would read these for every sky pixel; the wisps' texels are magnified (14 noise periods round the sky), so level 0 is what texture() picked)
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uNight.y * 0.05;
   }
+  if (uSkyN.w > 0.0 && uSunB.x > 0.0 && eS > 0.5 && eS < 18.0) {   // (fast500 no-fades) the wisps in such a change (above, their amount 0): the same, dark from below as the Earth's shadow climbs over them (by place, never dimmed where they stand)
+    float side = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(uSkyS.xz + 1e-5)), 0.0, 1.0), 1.5);
+    vec2 q = vec2(atan(rd.x, rd.z) / SKYTAU * 14.0, eS * 0.09);
+    float n = textureLod(uN3, vec3(q.x, q.y * 4.0, 0.21) * 0.25, 0.0).a * 0.55 + textureLod(uN3, vec3(q.x * 3.0, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;
+    c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
+  }
 #ifdef SKY_PH2
   if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
+    /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
+       the horizon the sea and the land, drawn before the sky, hide it by place); only its faint broad light on the whole
+       sky (the 0.08 tail) follows its depth (uMoon.w, gone 16 deg down); it takes the haze of the sky where it stands */
+    vec3 c0 = c;
     float ma = degrees(acos(clamp(dot(rd, uMoon.xyz), -1.0, 1.0))), mr = 1.8, mpx = 2.0 * degrees(atan(uProj.y)) / uRes.y;
     float out1 = max(ma - mr, 0.0);
     /* (tod fix round, the judges' defect 4) a cool silver (the moonlit sky's table: L 0.62, C 0.03, h 250, the ceiling's
        shoulder bringing it to about 0.51 as shown), its limb soft over a fifth of its radius (was a pale khaki 0.52, C 0.02,
        h 95, edged at a pixel: a flat olive coin on the ultramarine) and a wider glare carrying its light */
-    c = mix(c, max(c, uMoonG), clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0), 0.0, 1.0) * uMoon.w);
-    if (ma < 7.0) c += uMoonG * uMoon.w * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
+    c = mix(c, max(c, uMoonG), clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0));
+    if (ma < 7.0) c += uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);
-    c = mix(c, uMoonC, (1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma)) * uMoon.w);
+    c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
+    c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
     float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
@@ -6726,7 +7142,7 @@ void main() {
     ENG.st = 2;
     return true;
   }
-  function engineOk() { for (var k in EP) if (!EP[k].ok && !(EP[k].late && EP[k].st !== 3)) return false; return NOISE.prog && NOISE.prog.ok; }
+  function engineOk() { for (var k in EP) if (!EP[k].ok && !(EP[k].late && EP[k].st !== 3)) return false; return true; }   // (fast500 step 1b: the noise has no program)
   /* stage B: every object the engine draws with (the grid, the strips, the cube, the icosahedron, the bake's scratch,
      the creatures, the glows' quad, the noise, the read-back ring, the warm table's targets), and the registration of
      its programs and every realm's (compiled at stage C, all at once) */
@@ -6808,7 +7224,7 @@ void main() {
       ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC]
     ];
     EP = {};
-    noiseInit();   // (the noise's program first among the engine's: the first the boot needs)
+    noiseInit();   // (the noise's texture, and its bake's stream: fast500 step 1b, no program)
     list.forEach(function (l) { EP[l[0]] = compile(l[1], l[2], 'engine.' + l[0]); });
     BAKEFB = gl.createFramebuffer();
     makeCreatures();
@@ -6910,9 +7326,11 @@ void main() {
     if (u.uSky) gl.uniform3fv(u.uSky, L.skyFlat);
     if (u.uSkyE) gl.uniform4fv(u.uSkyE, L.skyE);
     if (u.uSkyW) gl.uniform3fv(u.uSkyW, L.skyW);
-    if (u.uSkyK) gl.uniform4fv(u.uSkyK, L.skyK);
+    var snU = SUNU.on && L === SUNU.L;   // (fast500 no-fades: a change between a twilight sky and a night, on the live light only)
+    if (u.uSkyK) gl.uniform4fv(u.uSkyK, snU ? SUNU.k0 : L.skyK);
     if (u.uGlow) gl.uniform4fv(u.uGlow, L.glow);
-    if (u.uGlowC) gl.uniform3fv(u.uGlowC, L.glowC);
+    if (u.uGlowC) gl.uniform3fv(u.uGlowC, snU ? SUNU.glowS : L.glowC);
+    if (u.uSkyN) { gl.uniform4fv(u.uSkyN, snU ? SUNU.n : SUNU.z); if (snU) { if (u.uGlowN) gl.uniform3fv(u.uGlowN, SUNU.glowN); if (u.uSkyWT) gl.uniform3fv(u.uSkyWT, SUNU.wT); if (u.uSkyWN) gl.uniform3fv(u.uSkyWN, SUNU.wN); if (u.uSkyKT) gl.uniform4fv(u.uSkyKT, SUNU.kT); if (u.uSkyKN) gl.uniform4fv(u.uSkyKN, SUNU.kN); if (u.uSunK) gl.uniform4fv(u.uSunK, SUNU.sk); if (u.uHzT) gl.uniform3fv(u.uHzT, SUNU.hzT); if (u.uHzN) gl.uniform3fv(u.uHzN, SUNU.hzN); } }
     if (u.uFog) gl.uniform4fv(u.uFog, L.fog);
     if (u.uFog2) gl.uniform4fv(u.uFog2, L.fog2);
     if (u.uFogB) gl.uniform4fv(u.uFogB, L.fogBf);
@@ -7219,6 +7637,7 @@ void main() {
     allocTargets();
     setFrustum(!heightOnly);
     measureWords();
+    moonResized(heightOnly);   // (fast500 no-fades: the moon's plan for the new window)
     if (!heightOnly) inkRestart();   // (ink load fix: a new window, the words' reading anew; a phone's bar coming and going keeps it)
     touchMode();
     return true;
@@ -7244,6 +7663,7 @@ void main() {
   }
   function measureWords() {
     var cr = canvas.getBoundingClientRect(), k = OUT.w / Math.max(cr.width, 1);
+    WORDSIH = window.innerHeight;   // (fast500 no-fades: the height the boxes were measured at, for the moon's plan: a read, nothing built)
     function box(el, i) {
       if (!el) { WORDS[i * 4] = 0; WORDS[i * 4 + 1] = 0; WORDS[i * 4 + 2] = 0; WORDS[i * 4 + 3] = 0; return; }
       var b = el.getBoundingClientRect();
@@ -7547,8 +7967,10 @@ void main() {
     if (Math.abs(yc) > zc * FR.tanY + R * Math.sqrt(1 + FR.tanY * FR.tanY)) return false;
     return true;
   }
-  function fadeOf(born) { return born < -1e8 ? 1 : smooth(born, born + 2.5, SIM.t); }   // (fix: only the late guard's clock)
-  function fadeCell(C, born) { return cellDistFade(C) * fadeOf(born); }   // (world6 step B fix, defect 11: by distance)
+  /* (fast500, no fades) the late guard's 2.5 s clock is gone: a late arrival is drawn at once (LATE counts it, a gate
+     failure); what fades an arrival is its distance alone. The born arguments stay for the record (and the merge) */
+  function fadeOf(born) { return 1; }
+  function fadeCell(C, born) { return cellDistFade(C); }   // (world6 step B fix, defect 11: by distance)
   /* (dev, E0) the weight log (gate C2): every drawn weight of a frame (a cell's fade, a set's coarse or full mesh, a
      cloud body's fade and march steps, a flock among the drawn eight, a glow, the governor's scale) and the events
      that swap or drop a drawn thing (a coarse mesh rebuilt in full, a cell freed), each with its distance; and the
@@ -7669,6 +8091,7 @@ void main() {
     if (KW.part && KWR) kwGuard(CAM.pos[0], CAM.pos[2], CAM.yaw);   // (fast500 B3: the draw guard)
     if (SW.look) devLook(CAM, SW.look * DEG);   // (dev: the view turned aside about the vertical, the flight unchanged: looking back, P6)
     viewProj(CAM);
+    if (shown && !TRIAL && V === SIM.V && SW.stream) cellGuard(V);   // (fast500 step 10: the guard, before anything of the frame is drawn)
     /* (E1 Fix 3) the share of the last frame's motion a mote is drawn along: the whole of it at 30 fps and faster, at most
        1/30 s of it after a longer frame; none across a change of visit (its coordinates), a jump of the camera or a
        frame drawn again (stage G's trials, stage H) */
@@ -7774,7 +8197,7 @@ void main() {
     prof('creatures');
     // the sky, where nothing stands (its triangle on the far plane, tested against the land's depth)
     P = DP.sky || EP.sky; gl.useProgram(P.p); setFrameUniforms(P, V);
-    gl.uniform4fv(P.u.uSunD, L.discK); gl.uniform4fv(P.u.uHi, L.hi); gl.uniform3fv(P.u.uHiC, L.hiC);
+    gl.uniform4fv(P.u.uSunD, L.discK); gl.uniform4fv(P.u.uHi, SUNU.on && L === SUNU.L ? skyHi0(L) : L.hi); gl.uniform3fv(P.u.uHiC, L.hiC);   // (fast500 no-fades: in a change between a twilight sky and a night F0's veil at strength 0, drawn by its own block)
     skyNightUniforms(P);   // (tod: the moon, the belt, the wisps, the stars' twinkle and top)
     gl.depthMask(false); gl.bindVertexArray(FULLVAO); dc(gl.TRIANGLES, 3); gl.depthMask(true);
     prof('sky');
@@ -8251,7 +8674,7 @@ void main() {
     var ok = simStep();
     if (ok) {   // the camera's travel (for the cloud it is in: continuous across the change of realm, wrapped on the noise's period)
       var V = SIM.V, v = V.speed;
-      if (BIRDS && SW.birds && (STILLMODE || (SHOWNT >= 0 && SIM.t >= SHOWNT + DISSOLVE_S && lateBirds()))) { BIRDB.at = clockNow(); BIRDS.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; }   // (the birds' clock and planning: a fixed step, as the flight's; timed for their budget. E0: from the dissolve's end, when today's SVG birds have handed over the sky)
+      if (BIRDS && SW.birds && (STILLMODE || (SHOWNT >= 0 && SIM.t >= SHOWNT + DISSOLVE_S && lateBirds()))) { BIRDB.at = clockNow(); BIRDS.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; }   // (the birds' clock and planning: a fixed step, as the flight's; timed for their budget. E0: from the first frame shown, DISSOLVE_S 0 (fast500: no dissolve), when today's SVG birds have handed over the sky)
     }
     return ok;
   }
@@ -8334,12 +8757,12 @@ void main() {
 
   /* ---------------------------------------------------------------- the loop, the governor, the device tier */
   var PREP0 = 0;   // (round 3: the frame the reduced motion's still sky began planning on)
-  var STILLTS = -1;   // (Fix 2: the rAF time the reduced motion's still was first drawn; it is drawn again until the dissolve is over)
+  var STILLTS = -1;   // (Fix 2: the rAF time the reduced motion's still was first drawn; it is drawn again for DISSOLVE_S + 0.1 s, a tenth of a second now: WebKit's unpreserved buffer)
   /* (E0, 12.5) today's SVG birds (birds.js; in production birds.v11.js, the first deferred script) fly over the still sky while the world boots.
-     skyAir.handover tells them who has the sky: 0 theirs; 1 the world's (from the first frame shown: they plan no new
-     flight, finish the crossings that end within 6 s and fade the rest with the dissolve); 2 nobody's (the record's
-     control tail). The ink birds step from the dissolve's end (DISSOLVE_S after the first frame), so the first ink
-     flight is planned then. A lost context, the world giving up and forced colours hand the sky back (0). skyAir.aim is
+     skyAir.handover tells them who has the sky: 0 theirs; 1 the world's (told in the frame the canvas first shows,
+     their sky cleared in that call: fast500, no fades, so the show is a cut and no 2D bird is drawn over the world);
+     2 nobody's (the record's control tail). The ink birds step from the first frame shown (DISSOLVE_S 0: there is no
+     dissolve), so the first ink flight is planned in the next frame. A lost context, the world giving up and forced colours hand the sky back (0). skyAir.aim is
      today's sky's hook for the birds' camera: the world has its own, so it is a no-op here. */
   var SKYAIR = window.skyAir || (window.skyAir = {});
   if (typeof SKYAIR.aim !== 'function') SKYAIR.aim = function () {};
@@ -8356,9 +8779,12 @@ void main() {
         set: function (f) { h = f; if (typeof f === 'function' && (SKYAIR.handover | 0)) Promise.resolve().then(function () { var v = SKYAIR.handover | 0; if (v && h === f) { try { f(v); } catch (e) { /* theirs */ } } }); } });
     } catch (e) { /* (a sealed object: told at the next hand-over) */ }
   })();
-  var SHOWNT = -1, DISSOLVE_S = 0.5, HASSVG = !!document.querySelector('svg.bird');
+  var SHOWNT = -1, DISSOLVE_S = 0, HASSVG = !!document.querySelector('svg.bird');
   var SKYTS = -1;   // (fast500 4a: the world's latest animation frame's time; -1 before its first)
-  function handTo(v) { if (v !== SKYAIR.handover) SKYAIR.handAt = SKYTS; SKYAIR.handover = v; if (typeof SKYAIR.handed === 'function') { try { SKYAIR.handed(v); } catch (e) { /* theirs */ } } }   // (fast500 4a: handAt, the animation frame a new hand-over was first told in (the show's own tell repeats stage H's and keeps its frame): today's birds, whose frame now runs after the world's, take it at the start of their next, as when theirs ran first)
+  /* (fast500, no fades) the sky is handed to the world in the frame the canvas shows, never a frame ahead: today's birds
+     clear their sky in the call, so stage H's word (the frame before the show: its line, gsettle.py's anchor, kept) is
+     not passed on, and render()'s, the canvas just shown, is (with F0's word a frame ahead the sky stood empty a frame) */
+  function handTo(v) { if (v === 1 && !shown) return; if (v !== SKYAIR.handover) SKYAIR.handAt = SKYTS; SKYAIR.handover = v; if (typeof SKYAIR.handed === 'function') { try { SKYAIR.handed(v); } catch (e) { /* theirs */ } } }   // (fast500 4a: handAt, the animation frame a new hand-over was first told in (the show's own tell repeats stage H's and keeps its frame): today's birds, whose frame now runs after the world's, take it at the start of their next, as when theirs ran first)
   var TIER = 1, CLK = new Float64Array([0, -1]), running = false, rafId = 0, shown = false, NEEDSIZE = false, SKYMARK = null, DEAD = false, GAVEUP = false, READY = false, FRAMEN = 0;
   /* the governor: every frame's time in a ring (two seconds); each second, the median. Never asked to beat 60 Hz.
      Three slow seconds in a row (median over 1.35 frames of the period) step the render scale down a rung; three
@@ -8432,7 +8858,7 @@ void main() {
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
     skyTheme(false);   // (tod: the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; handTo(1); recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; }   // (ink fix: AG.w0, the dissolve's start: the take waits INK_TAKE s from it, however long the first frame took)   // (E0: the dissolve begins; today's SVG birds plan no new flight, 12.5)
+    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; handTo(1); recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; }   // (ink fix: AG.w0, the moment the canvas shows: the take waits INK_TAKE s from it, however long the first frame took)   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole; today's SVG birds cleared in handTo(1), in this same frame, 12.5)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
@@ -8461,8 +8887,8 @@ void main() {
           outstanding (no read-back until the frame after C);
        D  beside C: the first visit planned and built, its cells about the landing laid out, resolved and built
           (CPU, after the frame's GPU work, as in flight), under four times the flight's counts and the slice's time;
-       E  the GPU's fills, once every program is: the noise first (a draw of K layers a frame, its first draw, the
-          noise program's first use, in a frame of its own: Fix 3, never C's last frame), then (after F) the probes, the ground's grid, the cells'
+       E  the noise, baked on the CPU a layer a frame from the frame after B, the rest in the first frame after C, then
+          uploaded with its mipmaps (fast500 step 1b: no program); the GPU's fills, once every program is: (after F) the probes, the ground's grid, the cells'
           uploads and their clouds' bakes (a bake budget that halves when the GPU falls behind: the ring's oldest fence
           unsignalled at a frame's start, and grows back by 8 a frame to 96);
        F  the warm table, after the noise and before D's GPU half (so no draw of D's is a first use): an entry that is
@@ -8472,17 +8898,21 @@ void main() {
           stopping at the first over 65% of the period, five timed trials a scale, one a frame (stageG); its
           largest scale within the bar starts the governor; under the floor (21.7 ms at 0.35) the still sky stays;
        H  the first real frame drawn into the hidden canvas and read back as a 16 x 16 thumbnail: doubted once
-          (black, blank, white) it is drawn and read again; doubted twice the world declines (stageH). Then today's
-          birds are told, and in the next frame the canvas shows and dissolves in.
+          (black, blank, white) it is drawn and read again; doubted twice the world declines (stageH). In the next
+          frame the canvas shows, at once (a cut: no dissolve, fast500), and today's birds are told in it, their sky cleared.
      A restored context runs B to F and H again (G's measurement is kept). Under reduced motion the boot is lean: no F
      and no G; they run behind the still when the preference ends, before the flight starts. */
   var BOOT_MS = 8;   // (E1.1: HEAVY_WAIT_MS and G_WAIT_MS gone with their waits; the boot's start waits instead: bootMayStart, w13_dev.js)
-  var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 96, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
+  /* (fast500 step 10) D's slice while no 2D bird is in view (a long task is 50 ms), the boot's bake units a frame (a slow
+     start: doubled while the GPU keeps up, halved when the ring's fence lags), the most rounds a frame, the order's
+     bound for the cells needed, and the metres by which the show's and the guard's distance weights look nearer */
+  var BOOT_D_MS = 40, BOOT_BAKE0 = 1024, BOOT_BAKE_MAX = 8192, BOOT_ROUNDS = 64, BOOT_NEED = 19.999, BOOT_M = 30, GUARD_M = 30, BOOTVF = false;
+  var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
     fts: [], fly: [], bw: { due: -1, ms: 0, frames: 0, why: null, fly: 0 } };   // (E1.1: bw, the boot's start waiting for today's first bird; Fix 3's heavy and G waits gone)   // (Fix 2: fts every boot frame's [frame, rAF time]; Fix 3: fly, today's first flight's state at each; the heavy steps' and G's waits)
   var CORE_LATE = ['birds:ink', 'engine.inkkeep'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
   function bootReset(restore) {
-    BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = 96; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
+    BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
     PROGX.compiled = PROGX.linked = PROGX.finished = PROGX.broken = 0; PROGX.cur = null; PORDER = null;
   }
   function bootSlice(t0, label) {
@@ -8511,7 +8941,7 @@ void main() {
     }
     // (Fix 2) the read-back only from stage E: no synchronous call while a link is outstanding (Fix 3: from the frame after C's last)
     var afterC = BOOT.cDone && BOOT.cDoneF < FRAMEN;
-    if (afterC) { rbPoll(); if (RB.lagged) BOOT.bake = Math.max(6, BOOT.bake >> 1); else BOOT.bake = Math.min(96, BOOT.bake + 8); }
+    if (afterC) { rbPoll(); if (RB.lagged) BOOT.bake = Math.max(6, BOOT.bake >> 1); else if (BOOT.dBaked >= BOOT.bake) BOOT.bake = Math.min(BOOT_BAKE_MAX, BOOT.bake * 2); BOOT.dBaked = 0; }   // (fast500 step 10: a slow start, doubled after a frame that spent it)
     // C: the programs
     if (!BOOT.cDone) {
       var pd = PROGX.cur, r = progStep(false, dl);
@@ -8525,15 +8955,13 @@ void main() {
         if (!ORDER.some(function (x) { return !REALMS[x].bad; })) { decline('no realm will link here'); return; }
       }
     }
-    /* E: the noise, a draw a frame, once every program is (Fix 2: its first draw, the noise program's first use, in a
-       frame with no other GPU work of the boot's); then F, the warm table (Fix 2: before D's GPU half, so none of D's
-       draws is a program's first use), each one's first use alone in its frame */
+    /* E: the noise (fast500 step 1b: baked on the CPU, a layer a boot frame from the frame after B, a count and no clock
+       read; the layers left all at once in the first frame after C, where D's GPU half and the cells first sample it;
+       then level 0 uploaded and its mipmaps made, no draw; before gpuFree, so that frame's D can use it); then F, the
+       warm table (Fix 2: before D's GPU half, so none of D's draws is a program's first use), each one's first use alone
+       in its frame */
+    if (!NOISE.done) { var noised = noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers)
     var gpuFree = afterC && NOISE.done && (WARM.done || reduced());
-    if ((afterC || EXT.parAll) && !NOISE.done && NOISE.prog && NOISE.prog.st === 3) {   // (speed E8: with the parallel compile, once its own program is)
-      var NP = NOISE.prog, tn = clockNow(), noised = true; noiseStep(!!EXT.parAll); label += ' noise';   // (speed E10: one layer a frame on WebKit, as before E3)   // (speed E3: every layer in this one frame)   // (E1.1: no wait: the boot began with today's first bird in view)
-      if (!NP.firstF) { NP.firstF = FRAMEN; NP.firstMs = +(clockNow() - tn).toFixed(2); NP.firstAt = +clockNow().toFixed(1); NP.warmed = true; }
-      if (NOISE.done) bootMark('E noise baked');
-    }
     if (EXT.parAll && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links)
       var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
       if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
@@ -8545,20 +8973,36 @@ void main() {
     // D and E: the world about the landing (or, after a restore, about the camera)
     var V = SIM.V || worldAt(SIM.t).V;
     if (V && !BOOT.world) {
-      budgets(true); BAKE.left = BUD.bake; WDL = dl;
+      /* (fast500 step 10) D's GPU half at its real work, not one stage a frame: once the GPU is free, rounds of the GPU's
+         half and the CPU's in this frame (several stages a call), its probes and the landing's ground grid drawn and read
+         at once, until the world is ready, nothing moved or the slice is spent (BOOT_D_MS while no 2D bird is in view);
+         the cells that can be seen first (bootNeed), in the flight's own order, built whole, every one resolved; their
+         uploads and bakes once every probe is read (no read waits on a bake); laid out beside C once the visit is planned */
+      var dlD = gpuFree && (SKYAIR.flying | 0) < 2 ? t0 + BOOT_D_MS : dl, rd = 0, ready = false, flew = false, idle = gpuFree && bootIdle();
+      budgets(true); BAKE.left = BUD.bake; WDL = dlD;
       var h = SIM.V ? CS.psi : heading0(), cx = SIM.V ? CS.x : 0, cz = SIM.V ? CS.z : 0;
-      if (gpuFree) {   // (the GPU's half first, as in flight)
-        freeDrain();
-        visitStep(V, false, 'gpu');
-        if (V.cellList) cellWork(V, false, 0, 4, 'gpu');
-        groundRead(); groundCache(V, cx, cz, false);
-        probeFlush(PROBE_BOOT);
-      }
-      if (clockNow() < dl) visitStep(V, false, 'cpu');
-      if (V.st >= 8 && clockNow() < dl) { streamCells(V, cx, cz, Math.sin(h), Math.cos(h), false); cellWork(V, false, 0, 4, 'cpu'); }
-      WDL = 0;
-      label += ' D' + V.st;
-      if (BOOT.cDone && NOISE.done && visitBuilt(V) && V.st >= 8 && cellsReady(V, 0.5)) { if (SIM.V || flightIn(V)) { BOOT.world = true; bootMark('D world ready'); } else BOOT.fwait = (BOOT.fwait || 0) + 1; }   // (fast500 F0: and, for the flight's first step, what it reads: flightIn)
+      do {
+        WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0;
+        var p0 = bootSig(V);
+        if (gpuFree) {   // (the GPU's half first, as in flight)
+          freeDrain();
+          visitRun(V, 'gpu');
+          if (idle) { probeSync(); probeFlush(PROBE_BOOT); groundRest(); groundCache(V, cx, cz, true); }   // (probeFlush: a job probeSync leaves, in parts through the ring; groundRest: a grid a busy frame began through the ring, the rest read at once)
+          else { groundRead(); groundCache(V, cx, cz, false); probeFlush(PROBE_BOOT); }   // (the GPU still on the last frame's work, a first draw's compile on a slow device: F0's ring, so that no read here waits on it, the page held)
+          if (V.cellList && !bootProbing(V)) cellWork(V, false, BOOT_NEED, 4, 'gpu');
+        }
+        if (clockNow() < dlD) { if (gpuFree) visitRun(V, 'cpu'); else visitStep(V, false, 'cpu'); }
+        if (V.st >= 1 && clockNow() < dlD) {   // (the layouts and resolves in the flight's own order, beside C too: a resolve waits for its probes, after C; then, the visit built, the needed cells' meshes)
+          streamCells(V, cx, cz, Math.sin(h), Math.cos(h), false); cellWork(V, false, 0, 2, 'cpu');
+          if (V.st >= 8 && clockNow() < dlD) { BOOTVF = true; streamCells(V, cx, cz, Math.sin(h), Math.cos(h), false); BOOTVF = false; cellWork(V, false, BOOT_NEED, 4, 'cpu'); }
+        }
+        ready = BOOT.cDone && NOISE.done && visitBuilt(V) && V.st >= 8 && bootReady(V, cx, cz);
+        flew = ready && (!!SIM.V || flightIn(V));
+        if (flew) break;
+      } while (gpuFree && idle && ++rd < BOOT_ROUNDS && clockNow() < dlD && bootSig(V) !== p0);
+      WDL = 0; BOOT.dBaked = BUD.bake - BAKE.left; BOOT.dr += rd + 1; if (BOOT.cDone) bootFence();
+      label += ' D' + V.st + (rd ? ' x' + (rd + 1) : '') + (gpuFree && !idle ? ' busy' : '');
+      if (ready) { if (flew) { BOOT.world = true; bootFenceDrop(); bootMark('D world ready'); } else BOOT.fwait = (BOOT.fwait || 0) + 1; }   // (fast500 F0: and, for the flight's first step, what it reads: flightIn; step 10: the show's own test, bootReady)
     }
     if (afterC) rbFence();
     // G: the measurement (once the world is ready and the table warm); first the flight's first step (its camera)
@@ -8577,6 +9021,37 @@ void main() {
      trip, subtracted; five trials a scale, the median). Pinned (no trials: the scale the harness asks, data-rung or
      the full one) in development and with the switch gtrial=0 */
   var GS = { sc: [0.35, 0.5, 0.7, 1], i: 3, rt: [], tr: [[], [], [], []], med: [null, null, null, null], m: 2, done: false, pick: -1, P: 0, pinned: false, ms: null, rung: 0, px: new Uint8Array(4) };
+  /* (fast500 step 10) the rung stage G is pinned at, by the device's memory tier (memTier: each tier's ladder is its
+     own, so 0 is the tier's top, which the timed trials picked on every arm timed); the governor steps it after the show */
+  var GPIN = { desktop: 0, full: 0, low: 0, lowA: 0 };
+  function gFloor() {   // (fast500 step 10: stage G's floor, shared by the timed trials and H's one trial)
+    if (GS.pick < 0 && GS.med[0] > 0.65 * 33.34) { bootMark('G floor not met: ' + GS.med[0] + ' ms at 0.35'); decline('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); return false; }
+    return true;
+  }
+  /* (fast500 step 10, S10e) G pinned: the one timed trial left at load, in H's frame: the frame at 0.35 of today's size
+     (GS.sc[0]) drawn GS.m times and read, G's way (two round trips timed, their median subtracted); over the floor,
+     once more (a first draw at a size can carry a one-off cost); over it both times the boot declines, as stage G's
+     floor did (the still sky stays). Not under reduced motion, after a restore, in development or when G ran trials */
+  function hTrial() {
+    if (GS.hT || !GS.pinned || BOOT.restore || reduced() || DEVMODE) return true;
+    GS.hT = true;
+    var V = SIM.V, t0, ms, k, q;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, TG.win.f); gl.viewport(0, 0, 1, 1);
+    for (k = 0; k < 2; k++) { t0 = clockNow(); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, GS.px); GS.rt.push(clockNow() - t0); }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    for (k = 0; k < 2; k++) {
+      TRIALSC = GS.sc[0]; TRIAL = true; t0 = clockNow();
+      for (q = 0; q < GS.m; q++) drawFrame(V, SIM.u);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, TG.win.f); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, GS.px);
+      ms = (clockNow() - t0 - median(GS.rt)) / GS.m;
+      TRIALSC = 0; TRIAL = false; gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      GS.tr[0].push(+ms.toFixed(2));
+      if (ms <= 0.65 * 33.34) break;
+    }
+    GS.med[0] = +Math.min.apply(null, GS.tr[0]).toFixed(2); GS.pick = GS.med[0] <= 0.65 * 33.34 ? 0 : -1;
+    bootMark('G trial in H: ' + GS.med[0] + ' ms at ' + GS.sc[0]);
+    return gFloor();
+  }
   var TRIALSC = 0, TRIAL = false, G_TRIALS = 3;   // (speed E5: three timed trials a scale, were five)
   function median(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : 0; }
   function bootPeriod() {   // the display's period from the boot's own frames (their quickest quarter: the boot's long frames aside)
@@ -8587,7 +9062,7 @@ void main() {
   }
   function stageG() {
     if (GS.done) return true;
-    if (!SW.gtrial || (DEVMODE && SW.gtrial < 2)) { GS.done = true; GS.pinned = true; GS.rung = RUNG; bootMark('G pinned (rung ' + RUNG + ')'); return true; }
+    if (!SW.gtrial || (DEVMODE && SW.gtrial < 2)) { if (!DEVMODE) RUNG = Math.min(GPIN[memTier()] | 0, RUNGS.length - 1); GS.done = true; GS.pinned = true; GS.rung = RUNG; bootMark('G pinned (rung ' + RUNG + ')'); return true; }   // (fast500 step 10: pinned by the device tier, GPIN, no timed trials at load; development keeps the rung it asks)
     if (!GS.P) { GS.P = bootPeriod(); bootMark('G period ' + GS.P.toFixed(2) + ' ms'); }
     var V = SIM.V, t0, ms;
     gl.bindFramebuffer(gl.FRAMEBUFFER, TG.win.f); gl.viewport(0, 0, 1, 1);
@@ -8612,7 +9087,7 @@ void main() {
     else if (GS.i > 0) { GS.i--; return false; }
     else GS.pick = -1;
     GS.done = true;
-    if (GS.pick < 0 && GS.med[0] > 0.65 * 33.34) { bootMark('G floor not met: ' + GS.med[0] + ' ms at 0.35'); decline('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); return false; }
+    if (!gFloor()) return false;
     var s = GS.pick < 0 ? GS.sc[0] : GS.sc[GS.pick], ru = RUNGS.length - 1;   // (stage2 quality Q3: the lowest trial is 0.35 of today's size)
     for (var k = 0; k < RUNGS.length; k++) if (RUNGS[k] <= s + 1e-6) { ru = k; break; }
     RUNG = ru; GS.rung = ru;
@@ -8624,6 +9099,8 @@ void main() {
   function stageH() {
     if (BOOT.hOk) return true;
     var V = SIM.V; if (!V || !TG) return false;
+    if (V.LA && !SKY.e) return false;   // (fast500 no-fades: the first frame checked once the cycle has stepped: a moonlit landing has its plan and its moon in it)
+    if (!hTrial()) return false;   // (fast500 step 10: G's one trial left, in this frame)
     var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
     drawFrame(V, ur);
     if (!BOOT.thumb) BOOT.thumb = target(16, 16, 'rgba8');
@@ -8687,7 +9164,7 @@ void main() {
     if (gl.isContextLost()) return;
     prof('frame');
     if (!READY && !TG) resize();   // (speed E12: forced colours on at load hid the canvas, so boot()'s resize made no targets: made once they end)
-    if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } var tb0 = clockNow(); bootFrame(ts); if (!READY && (SKYAIR.flying | 0) >= 2 && clockNow() - tb0 > 2 * BOOT_MS) BOOT.rest = 1; prof('boot'); return; }
+    if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } var tb0 = clockNow(); bootFrame(ts); if (!READY && (SKYAIR.flying | 0) >= 2 && clockNow() - tb0 > 2 * BOOT_MS) BOOT.rest = 1; prof('boot'); if (!READY || reduced()) return; }   // (fast500 step 10: once READY, on to stage H in this frame; the show the next)
     if (dt0) { dt0 = false; dt = 0; }
     if (reduced() && !STILLMODE) {   // one still frame (round 3: the birds' still sky planned first, a share a frame, while the still sky shows)
       var fresh = false; if (NEEDSIZE) { NEEDSIZE = false; resize(); fresh = true; if (REC) recResized(); } if (!SIM.V) simAdvance(SIM_DT);
@@ -8696,15 +9173,15 @@ void main() {
         if (!prepared && FRAMEN - PREP0 < 120) return;
       }
       if (!shown && !stageH()) return;   // (E1: stage H for the still too)
-      /* (Fix 2) the still is drawn again, the same still (no time passes), every frame until the canvas has dissolved
-         in (its 2 s and a frame or so more), then the loop stops: a browser may present the canvas after any frame that
+      /* (Fix 2) the still is drawn again, the same still (no time passes), every frame for DISSOLVE_S + 0.1 s
+         (a tenth of a second: there is no dissolve now, fast500), then the loop stops: a browser may present the canvas after any frame that
          drew at all, and WebKit, its drawing buffer not preserved, put up a cleared one under the dissolve (a black
          page, the black name gone). sky.v2's own rule (fadeUntil). After the first, the frame is put up again
          (represent: the composite or its copy, and the birds' ink), not drawn whole, unless the window changed */
       if (STILLTS < 0 || fresh || !represent()) { if (!render()) return; }
-      else if (SW.words && AG.on && !AG.ink) agUpdate();   // (ink fix: the still's take, once the canvas has dissolved INK_TAKE s in)
+      else if (SW.words && AG.on && !AG.ink) agUpdate();   // (ink fix: the still's take, once the canvas has been shown INK_TAKE s)
       if (STILLTS < 0) STILLTS = ts;
-      if (ts - STILLTS >= (DISSOLVE_S + 0.1) * 1000 && (AG.ink || !(SW.words && AG.on) || clockNow() - AG.w0 >= 2 * INK_TAKE * 1000)) { STILLTS = -1; stop(); }   // (ink fix: and not before the still has taken its ink, its INK_TAKE s from the canvas shown having passed in a frame: a slow first frame outlasts the dissolve's frames)
+      if (ts - STILLTS >= (DISSOLVE_S + 0.1) * 1000 && (AG.ink || !(SW.words && AG.on) || clockNow() - AG.w0 >= 2 * INK_TAKE * 1000)) { STILLTS = -1; stop(); }   // (ink fix: and not before the still has taken its ink, its INK_TAKE s from the canvas shown having passed in a frame: a slow first frame outlasts these frames)
       return;
     }
     STILLTS = -1;
@@ -8723,6 +9200,7 @@ void main() {
     governor(dt);
     if (NEEDSIZE) { NEEDSIZE = false; resize(); if (REC) recResized(); }
     easeFrustum(Math.min(dt, 100) / 1000);
+    moonEase(Math.min(dt, 100) / 1000);   // (fast500 no-fades: a height-only re-plan's offset, the frustum's own constant)
     WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0;
     BIRDB.spent = 0;
     SIM.fdt = Math.min(dt / 1000, DTMAX);   // (the flight's time a frame, for the next visit's deadline)
@@ -8757,7 +9235,7 @@ void main() {
   function onMotionPref() {
     hoverSync();
     if (STILLMODE || LOST || DEAD) return;
-    if (reduced()) { if (DRAG.id !== -1) endDrag(false); if (READY && shown) { stop(); STILLTS = -1; NEEDSIZE = true; stillNext(); } else start(); } else start();   // (Fix 2: a still not yet shown is drawn by the loop, through its dissolve; E1.1, S10: the still drawn in the next animation frame, never in the handler)
+    if (reduced()) { if (DRAG.id !== -1) endDrag(false); if (READY && shown) { stop(); STILLTS = -1; NEEDSIZE = true; stillNext(); } else start(); } else start();   // (Fix 2: a still not yet shown is drawn by the loop; E1.1, S10: the still drawn in the next animation frame, never in the handler)
   }
   /* forced colours: the stylesheet hides the world; nothing is drawn while they hold, and when they end the window is
      measured again and the world drawn */
@@ -8767,7 +9245,7 @@ void main() {
     hoverSync();
     if (LOST || DEAD) return;
     if (forced()) { stop(); shown = false; STILLTS = -1; DOMQ.hide = true; DOMQ.fc = true; domNext(); }   // (E0: with today's SVG birds on the page they fly, in CanvasText, 15.4; Fix 2, S10: the DOM's part in the next frame, domFlush)
-    else { fstop(); if (BIRDS) BIRDS.visit(-1); NEEDSIZE = true; start(); }   // (Fix 2: under reduced motion too: the loop draws the still until the canvas has dissolved back in; E1.1, S10: the window measured and the targets made in the loop's first frame, not here)
+    else { fstop(); if (BIRDS) BIRDS.visit(-1); NEEDSIZE = true; start(); }   // (Fix 2: under reduced motion too: the loop draws the still and shows it again, at once; E1.1, S10: the window measured and the targets made in the loop's first frame, not here)
   }
   /* (round 2) under forced colours the world is not drawn, but the birds fly on, as the live site's do: the canvas
      cleared to the system's Canvas colour, the birds drawn over it in CanvasText at full ink, the flight held where it
@@ -8806,11 +9284,13 @@ void main() {
   }
 
   /* ---------------------------------------------------------------- a lost context */
-  canvas.addEventListener('webglcontextlost', function (e) {
-    e.preventDefault(); LOST = true; MEMN.lost++; stop(); shown = false; STILLTS = -1; DOMQ.hide = true; domNext(); recMark('context lost');   // (Fix 2, S10: the canvas hidden and the still marked in the next frame)
+  canvas.addEventListener('webglcontextlost', onLost);
+  function onLost(e) {   // (fast500 5: named, for startTake)
+    e.preventDefault(); if (!gl) return;   // (fast500 5: the start file's context, lost before the boot took it: startTake tells it then)
+    START = null; LOST = true; MEMN.lost++; stop(); shown = false; STILLTS = -1; DOMQ.hide = true; domNext(); recMark('context lost');   // (Fix 2, S10: the canvas hidden and the still marked in the next frame)
     BOOT.hOk = false;
     if (RESTORERAF) { cancelAnimationFrame(RESTORERAF); RESTORERAF = 0; }
-  });
+  }
   /* (Fix 2 of round E1, S10) the restore's work runs in the next animation frame's callback, never in the event's
      handler (round E1 called initExtensions and resize there: GL calls outside a frame) */
   var RESTORERAF = 0;
@@ -8818,7 +9298,7 @@ void main() {
     if (!RESTORERAF) RESTORERAF = requestAnimationFrame(function () { RESTORERAF = 0; restoreNow(); });
   });
   function restoreNow() {
-    if (gl.isContextLost()) return;   // (lost again before this frame: the next restore's event comes)
+    if (!gl || !LOST || gl.isContextLost()) return;   // (fast500 5: the start file's context restored before the boot took it, or before the world was told it was lost)   // (lost again before this frame: the next restore's event comes)
     // a restored context starts empty: its extensions off (asked for again first), every program, buffer and texture
     // gone; (E1) the boot's stages B to F and H run again (the measurement of G is kept): every object, every program
     // (compile all, link all, flush, status last), the noise, the warm table, the cells about the camera (the same
@@ -8827,7 +9307,7 @@ void main() {
     GROUND.rd = 0; GROUND.ok = false; GROUND.got = 0; probeDropAll(); rbForget(); FREEQ.length = 0; poolReset();   // (while still marked lost: the jobs' buffers and fences died with the old context, never deleted in the new one)
     LOST = false; FBOK = {}; initExtensions();   // (E1.1: a new context asks each kind of target's completeness again, once)
     PROGS.length = 0; TG = null; PROBE_T = null; PROBE_PTS = []; GCT = null; GCCT = null; BAKEFB = null; QUAD = null; OUT.w = 0; GCK[0] = -1; ENG.st = 0; READY = false;
-    NOISE.done = false; NOISE.t = null; NOISE.prog = null; WARM.list = null; WARM.done = false; WARMX.length = 0; BOOT.thumb = null;
+    NOISE.done = false; NOISE.t = null; WARM.list = null; WARM.done = false; WARMX.length = 0; BOOT.thumb = null;   // (fast500 step 1b: the noise's baked bytes kept; B uploads them again)
     ORDER.forEach(function (id) { REALMS[id].P = null; });
     J.visits.forEach(forgetVisit); kwForget();
     BIRDPL.length = 0; if (BIRDS) BIRDS.lost();   // (the birds' programs died with the context: the module makes them again)
@@ -9149,7 +9629,7 @@ void main() {
      The switches (3.6): live ones flip at once (order, fence, birds, stream); dpr1, wrap and course apply at boot; ab
      until the world shows; stats, march, ubo and worker are reserved names (their mechanisms arrive in E6, E7, E3a and
      E7) and are recorded but do nothing in E0. words=0 (dev) draws the world with the words' machinery off: W7's pair. */
-  var SW = { rec: 0, order: 0, fence: 1, birds: 1, stats: 1, march: 0, stream: 1, ubo: 1, dpr1: 0, worker: 0, wrap: 0, course: 0, ab: 'e1', words: 1, frz: 0, look: 0, noanim: 0, camhold: 0, gtrial: 1, rbfix: 0, hblack: 0, lab: 0, volres: 0, aa: 4, fxaa: -1, vol16: -1, cacc: 0.5, memtier: '', stb: 1, lay: 1, wlive: 0, wsync: 0 };   // (world6 step B fix, dev: wlive 1: the words' machinery as in the live loop (ring reads, eased gains and inks) in the harness's films)   // (Fix 3: aa the scene's MSAA samples, at boot; fxaa -1 off where the scene has samples, 0 off, 1 on; cacc this frame's share of the clouds' accumulation, 0 off)
+  var SW = { rec: 0, order: 0, fence: 1, birds: 1, stats: 1, march: 0, stream: 1, ubo: 1, dpr1: 0, worker: 0, wrap: 0, course: 0, ab: 'e1', words: 1, frz: 0, look: 0, noanim: 0, camhold: 0, gtrial: 0, rbfix: 0, hblack: 0, lab: 0, volres: 0, aa: 4, fxaa: -1, vol16: -1, cacc: 0.5, memtier: '', stb: 1, lay: 1, wlive: 0, wsync: 0 };   // (world6 step B fix, dev: wlive 1: the words' machinery as in the live loop (ring reads, eased gains and inks) in the harness's films)   // (Fix 3: aa the scene's MSAA samples, at boot; fxaa -1 off where the scene has samples, 0 off, 1 on; cacc this frame's share of the clouds' accumulation, 0 off)
   /* (E1) the switches' meanings now: order 0 the slice's GPU jobs at the start of the next drawn frame, before its draws
      (the design's), 1 after the frame's flush; fence 1 polled and made at the frame's start every frame (the design's),
      2 every second frame, 3 polled at the start and made after the flush, 0 all but off (every eighth frame); gtrial
