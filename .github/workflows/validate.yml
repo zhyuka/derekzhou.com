@@ -82,7 +82,7 @@ jobs:
             [ -e "$f" ] || continue
             case "${f#../}" in
               .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
-              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build) ;;   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
+              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
               *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
             esac
           done
@@ -502,6 +502,22 @@ jobs:
           # changed without its manifest line must each be caught). Exit 3: the fake browser could not bring the world
           # to its show (extend the fake for what the page needs; never relax the rules).
           node .github/workflows/glsl_guard.js site --manifest .github/workflows/glsl_manifest.txt --selftest
+
+      - name: The shaders are their golden texts, and compile
+        run: |
+          # (restructure step 3) the shaders' text lives in .glsl files (src/**/glsl/) that tools/parts.mjs writes
+          # back into the scripts. test/shaders.mjs runs the page in glsl_guard's fake browser, takes every program the
+          # reference device issues, and fails unless each is exactly its golden text in test/golden/shaders/ (a
+          # readable diff of every program a change touches; after a deliberate change: node test/shaders.mjs site
+          # --write, committed with the manifest); then compiles and links each in headless Chrome (WebGL2, SwiftShader,
+          # playwright-core pinned as W7's). Exit 2 (no WebGL2 context on the runner) warns.
+          if [ -z "${PW_CORE:-}" ]; then
+            npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
+            export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
+          fi
+          rc=0; node test/shaders.mjs site --compile || rc=$?
+          if [ $rc -eq 2 ]; then echo "::warning::the shaders' compile check could not run (no WebGL2 context on the runner?)"; exit 0; fi
+          exit $rc
 
       - name: Nothing darkens (W7's unit test)
         run: |

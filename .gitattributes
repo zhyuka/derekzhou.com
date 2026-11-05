@@ -2,3 +2,5 @@
 # change every template literal's text, the shaders')
 src/** -text
 site/** -text
+# (restructure step 3) the shaders' golden texts, byte for byte
+test/golden/** -text
