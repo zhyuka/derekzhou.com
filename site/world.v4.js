@@ -626,8 +626,11 @@ void main() {
   }
   /* stage B: the texture, its framebuffer and the points (the program is registered with the rest, stage C) */
   function noiseInit() {
-    var N = NOISE_N, mdb = gl.getParameter(gl.MAX_DRAW_BUFFERS) | 0;   // (read once, at boot)
-    NOISE.K = Math.max(1, Math.min(8, mdb || 4)); NOISE.z = 0; NOISE.done = false; NOISE.fixed = 0;
+    var N = NOISE_N;
+    /* (speed) one layer a draw: ANGLE's D3D link builds the pixel program for the first output alone, so a draw to 8
+       targets compiled a second variant at its first draw (2.6 s against 0.5 ms on an RTX 4090; the link 0.48 s
+       against 0.12 s). The same voxels: noiseStep loops over the layers */
+    NOISE.K = 1; NOISE.z = 0; NOISE.done = false; NOISE.fixed = 0;
     NOISE.t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE.t);
     gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, N, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
