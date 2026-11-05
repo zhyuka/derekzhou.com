@@ -269,10 +269,9 @@ if (a[0] === '--check') {
   }
   const sn = startName(site);
   if (sn) {
-    const p = path.join(site, sn);
-    let text = null;
-    try { text = await (await import('./start.mjs')).makeStart(src, path.join(site, 'index.html'), null); } catch (e) { console.error('::error::the start file cannot be made: ' + (e && e.message || e)); bad = 1; }
-    if (text !== null) {
+    let out = null;
+    try { out = await (await import('./start.mjs')).makeStart(src, path.join(site, 'index.html'), null, undefined, sn); } catch (e) { console.error('::error::the start file cannot be made: ' + (e && e.message || e)); bad = 1; }
+    if (out !== null) for (const [p, text] of [[path.join(site, sn), out.start], [path.join(site, out.tableName), out.table]]) {   // (the start file and its table, start-table.vN.js)
       if (fs.existsSync(p) && fs.readFileSync(p).equals(Buffer.from(text, 'utf8'))) console.log('ok   ' + p + ' is what tools/start.mjs makes from ' + src);
       else { console.error('::error::' + p + ' is not what tools/start.mjs makes from ' + src + ' (rebuild: node tools/minify.mjs --build ' + src + ' ' + site + ')'); bad = 1; }
     }
@@ -297,9 +296,11 @@ if (a[0] === '--check') {
   }
   const sn = startName(site);
   if (sn) {
-    const text = await (await import('./start.mjs')).makeStart(src, path.join(site, 'index.html'), null);
-    fs.writeFileSync(path.join(site, sn), text);
-    console.error('minify: ' + path.join(site, sn) + ' made by tools/start.mjs from ' + src + ' (' + Buffer.byteLength(text) + ' bytes)');
+    const out = await (await import('./start.mjs')).makeStart(src, path.join(site, 'index.html'), null, undefined, sn);
+    for (const [n, text] of [[sn, out.start], [out.tableName, out.table]]) {   // (the start file and its table, start-table.vN.js)
+      fs.writeFileSync(path.join(site, n), text);
+      console.error('minify: ' + path.join(site, n) + ' made by tools/start.mjs from ' + src + ' (' + Buffer.byteLength(text) + ' bytes)');
+    }
   }
 } else if (a.length === 1 && !a[0].startsWith('--')) {
   const dir = a[0];

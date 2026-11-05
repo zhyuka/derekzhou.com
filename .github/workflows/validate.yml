@@ -22,7 +22,8 @@ jobs:
             style.v16.css
             site.js
             hour.v3.js
-            start.v1.js
+            start.v2.js
+            start-table.v2.js
             world.v8.js
             realm-kit.v2.js
             realm-dunes.v4.js
@@ -147,7 +148,7 @@ jobs:
           # diagnostics, no lab, no test realm), and every one but site.js carries its version in its
           # name, as immutable caching needs.
           for f in $(find . -type f \( -name '*.js' -o -name '*.css' \) | sed 's|^\./||' | sort); do
-            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.v*.js) grep -q "new Worker(./$f.)" world.v*.js;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name)
+            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.v*.js) grep -q "new Worker(./$f.)" world.v*.js;; start-table.v*.js) grep -qF "new Worker('/$f')" start.v*.js;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name)
               echo "::error::$f is shipped but no page loads it"
               fail=1
             fi
@@ -303,6 +304,7 @@ jobs:
           WORLD=$(ls ../src/world.v*.js | head -1); INK=$(ls ../src/inkbirds.v*.js | head -1)
           REALMS=$(ls ../src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
           START=$(ls start.v*.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
+          START="$START $(ls start-table.v*.js 2>/dev/null | head -1)"   # (its table, start-table.vN.js, loaded after the first paint)
           WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
           PLANW=$(ls plan.v*.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
           JS="site.js $HOUR $START $WORLD $REALMS $WING $INK $PLANW"
@@ -388,9 +390,11 @@ jobs:
             echo "::error::a URL hook or sound was introduced"
             fail=1
           fi
-          # (fast500 step 11) one worker only: the plan's, started by the world by its literal name (world_rules.py rule 2b)
-          if [ "$(cat $JS | grep -o 'new Worker(' | wc -l)" != "$(grep -oE "new Worker\(./plan\.v[0-9]+\.js.\)" $WORLD | wc -l)" ] || [ "$(cat $JS | grep -o 'new Worker(' | wc -l)" -gt 1 ]; then
-            echo "::error::a worker other than the plan's (the world starts plan.vN.js by name, once)"
+          # (fast500 step 11) the workers: the plan's, started by the world by its literal name (world_rules.py rule 2b),
+          # and the start file's table (start-table.vN.js, started by the start file by its literal name, rule 4b); no other
+          NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.v[0-9]+\.js.\)" $WORLD | wc -l); NS=$(cat $(ls start.v*.js 2>/dev/null) /dev/null | grep -oE "new Worker\('/start-table\.v[0-9]+\.js'\)" | wc -l)
+          if [ "$NW" != "$((NP + NS))" ] || [ "$NP" -gt 1 ] || [ "$NS" -gt 1 ]; then
+            echo "::error::a worker other than the plan's (the world starts plan.vN.js by name, once) and the start file's table (start-table.vN.js, once)"
             fail=1
           fi
           if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
