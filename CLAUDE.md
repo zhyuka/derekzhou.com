@@ -44,6 +44,8 @@ subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/f
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
 src/                         The five scripts site/ serves minified, as written and under the same
                              names (the world, the kit and the realms, the ink birds)
+tools/build.mjs              The build in one command: site/ + the built scripts into a folder, build.txt (the
+                             commit), a sha256 manifest; --check builds twice and proves both equal site/
 tools/minify.mjs             Builds site/'s five from src/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
@@ -65,7 +67,12 @@ ci, then node tools/minify.mjs --check src site) fails on a served script
 edited by hand or a source changed without its build, and the rules that
 read the scripts' text (the absences, world_rules.py) read src/. So a
 change is made in src/ and built (node tools/minify.mjs --build src site),
-the two committed together. The hour, site.js, the wing model and the
+the two committed together. tools/build.mjs runs that build into a
+folder of its own (node tools/build.mjs OUT: site/ copied, the built
+scripts over it, OUT/build.txt holding the commit) and CI step "The build
+makes site/, the same bytes every time" (node tools/build.mjs --check)
+builds twice and fails unless both builds are the same bytes and equal
+site/. The hour, site.js, the wing model and the
 plan's worker are served as written, the start file as tools/start.mjs
 writes it.
 
