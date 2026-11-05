@@ -61,18 +61,24 @@ divider of the old whole file (src/world/NNN-slug.js, src/birds/inkbirds/;
 each folder's parts.json names the served file): edit the section you need;
 a new section is a new NNN between two others (they join in name order,
 nothing between). node tools/parts.mjs assemble src build/src writes the
-whole scripts under their served names into build/src/ (never committed),
-and tools/minify.mjs makes site/'s from those: the record, the switches and the dev harness cut out of the world
-(exact, counted cuts), then terser (pinned in package.json) compresses and
+whole scripts under their served names into build/src/ (never committed:
+the dev build, as written). The record, the switches and the dev harness
+are dev-only parts, in src/dev/world/: each has a stub beside the world's
+parts (src/world/NNN-slug.ship.js: the switches' defaults, and the four
+functions called without a guard as empty ones), and assemble --ship src
+build/ship writes the shipped build, the dev parts left out by file.
+tools/minify.mjs makes site/'s from build/ship/: terser (pinned in package.json) compresses and
 mangles, every string's value and every shader's text the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker; where index.html loads the start file, tools/start.mjs makes it
 too. CI step "The minified scripts are exactly what the script makes" (npm
-ci, then node tools/minify.mjs --check build/src site) fails on a served script
+ci, then node tools/minify.mjs --check build/ship site --start-src
+build/src; the start file is made from the dev build) fails on a served script
 edited by hand or a source changed without its build, and the rules that
 read the scripts' text (the absences, world_rules.py) read build/src/. So
 a change is made in src/ and built (node tools/parts.mjs assemble src
-build/src, then node tools/minify.mjs --build build/src site),
+build/src, node tools/parts.mjs assemble --ship src build/ship, then node
+tools/minify.mjs --build build/ship site --start-src build/src),
 the two committed together. The hour, site.js, the wing model and the
 plan's worker are served as written, the start file as tools/start.mjs
 writes it.
@@ -92,10 +98,10 @@ measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and src/'s files are that build with every
 hook cut out by counted edits (see Verify), site/'s built from
 them. Nothing on the page reads such a hook. The record's code and
-the dev helpers those hooks called are left in src/'s world.v8.js,
-unreachable (the switches keep their defaults); the served copy has
-them cut out (tools/minify.mjs: the switches' defaults kept, and
-the four functions called without a guard kept as empty ones). The
+the dev helpers those hooks called are in src/dev/world/, in the dev
+build only, unreachable (the switches keep their defaults); the served
+copy is built without them (assemble --ship: the switches' defaults kept,
+and the four functions called without a guard kept as empty ones). The
 comments, in src/ (a served copy keeps only its first two lines and the
 INIT-END marker), keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,

@@ -1,12 +1,3 @@
-  /* ---------------------------------------------------------------- the realms' kit, and the dev harness */
-  var KITAPI = {
-    Builder: Builder, box: KIT.box, prism: KIT.prism, lathe: KIT.lathe, rock: KIT.rock, cumulus: cumulus, bank: bank, range: range, wall: wall, mound: mound,
-    lch: lch, lab: lab, hex: hex, lum: lum, dirAzEl: dirAzEl, norm: norm, cross: cross, add: add, sub: sub3, mul: mul, dot: dot, clamp: clamp, smooth: smooth, lerp: lerp, RNG: RNG,
-    cellHash: cellHash, ihash: ihash, hfl: hfl, hk: hk, angDiff: angDiff, glowBake: glowBake
-  };
-  /* (Fix 3) stamp: each realm file and the ink birds' stamp their own top (their registration stamps their end), so
-     the record bounds every script's evaluation (recScripts); without a record it does nothing */
-  window.WORLD = { realm: registerRealm, kit: KITAPI, birds: registerBirds, stamp: function (name) { if (REC) REC.regs.push([String(name), +clockNow().toFixed(1)]); } };
   /* dev: GL objects counted as made and freed (the harness checks they stay bounded); wrapped once the context is made
      (devGL, boot stage A) */
   var GLN = { Buffer: 0, Texture: 0, VertexArray: 0, Framebuffer: 0, Program: 0, Renderbuffer: 0, Sync: 0 };

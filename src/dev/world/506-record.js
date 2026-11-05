@@ -1,23 +1,3 @@
-  /* ---------------------------------------------------------------- the record and the switches (E0: diag v2's engine side)
-     data-dev-switch on <html> is a list of name=value pairs ("rec=1 course=1 ab=order"), written by the preview's and
-     staging's own diag script before the world boots. The site never writes it, and nothing here reads the URL. With
-     rec=1 the engine keeps a record of how it runs (design-v5 3.1, 3.6): every presented interval in units of the
-     period, with the phase it fell in and the tags of the frame before (cpu, stage, sync, stream, gpu), the
-     synchronous calls timed, the frame fence's lag, per-stage CPU a second, the boot's timeline, each script's
-     evaluation, each program's link, each pipeline key's first use, objects made and freed and uploads from client
-     memory after the world shows, the flips, input latency, the phone's raw and filtered orientation, the switches in
-     force. (The shipped page: no switch is read and the record is never made.)
-     (Fix 2) Every interval carries its phase: boot (until the world shows), dissolve (its first 2 s), steady, control
-     (the world halted), resume (the 2 s after a hidden tab, an app switch or the control tail; the interval across the
-     gap itself is never recorded) and resize (the second after a resize or a rotation). The gates' numbers (D1-D3:
-     percentiles, histogram, misses, their tags, intervals over 3 kP) are steady flight's; the other phases are
-     reported apart. The stage tag (3.1) now also takes the first use of a pipeline key (8.2's full key: program,
-     vertex layout, topology, target formats and draw buffers, colour mask, blend, depth and cull state; its Metal part
-     counted apart) and every GL object freed after the world shows (the fence ring's syncs exempt).
-     The switches (3.6): live ones flip at once (order, fence, birds, stream); dpr1, wrap and course apply at boot; ab
-     until the world shows; stats, march, ubo and worker are reserved names (their mechanisms arrive in E6, E7, E3a and
-     E7) and are recorded but do nothing in E0. words=0 (dev) draws the world with the words' machinery off: W7's pair. */
-  var SW = { rec: 0, order: 0, fence: 1, birds: 1, stats: 1, march: 0, stream: 1, ubo: 1, dpr1: 0, worker: 0, wrap: 0, course: 0, ab: 'e1', words: 1, frz: 0, look: 0, noanim: 0, camhold: 0, gtrial: 0, rbfix: 0, hblack: 0, lab: 0, volres: 0, aa: 4, fxaa: -1, vol16: -1, cacc: 0.5, memtier: '', stb: 1, lay: 1, wlive: 0, wsync: 0 };   // (world6 step B fix, dev: wlive 1: the words' machinery as in the live loop (ring reads, eased gains and inks) in the harness's films)   // (Fix 3: aa the scene's MSAA samples, at boot; fxaa -1 off where the scene has samples, 0 off, 1 on; cacc this frame's share of the clouds' accumulation, 0 off)
   /* (E1) the switches' meanings now: order 0 the slice's GPU jobs at the start of the next drawn frame, before its draws
      (the design's), 1 after the frame's flush; fence 1 polled and made at the frame's start every frame (the design's),
      2 every second frame, 3 polled at the start and made after the flush, 0 all but off (every eighth frame); gtrial
