@@ -33,16 +33,26 @@
 #define A_GRASS_LIT uP[16].rgb
 #define A_ROCK_DEEP uP[17].rgb
 /* the sea of cloud: broad swells and heaps of billows, round tops and creases between */
+const vec2 A_TO[7] = vec2[7](vec2(0.0), vec2(77.0), vec2(13.0, 5.0), vec2(-41.0, 19.0), vec2(7.0, -3.0), vec2(-19.0, 31.0), vec2(5.0, 23.0));
+const float A_TS[7] = float[7](1.0 / 900.0, 0.0, 1.0 / 210.0, 0.0, 1.0 / 26.0, 0.0, 1.0 / 17.0);
+const mat2 A_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 380.0), A_M3 = mat2(0.6, 0.8, -0.8, 0.6) * (1.0 / 75.0), A_M5 = mat2(0.9, -0.44, 0.44, 0.9) * (1.0 / 48.0);
 vec3 A_Hd(vec2 p) {
-  vec3 h = 30.0 * dN(p, mat2(1.0 / 900.0)) + 12.0 * dN(p + 77.0, mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 380.0));
-  h += 28.0 * dAbs(dN(p + vec2(13.0, 5.0), mat2(1.0 / 210.0)), 0.04);
-  h += 12.0 * dAbs(dN(p + vec2(-41.0, 19.0), mat2(0.6, 0.8, -0.8, 0.6) * (1.0 / 75.0)), 0.05);
-  h += 4.0 * dAbs(dN(p + vec2(7.0, -3.0), mat2(1.0 / 26.0)), 0.07);
+  float k1 = 1.0 - smoothstep(350.0, 900.0, gLodD), k2 = 1.0 - smoothstep(120.0, 380.0, gLodD);
+  vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
+  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + uZ; o++) {
+    vec3 g;
+    if (o == 1 || o == 3 || o == 5) g = gnd((o == 1 ? A_M1 : (o == 3 ? A_M3 : A_M5)) * (p + A_TO[o]));
+    else g = gnd(mat2(A_TS[o]) * (p + A_TO[o]));
+    if (o == 0) g0 = g; else if (o == 1) g1 = g; else if (o == 2) g2 = g; else if (o == 3) g3 = g; else if (o == 4) g4 = g; else if (o == 5) g5 = g; else g6 = g;
+  }
+  vec3 h = 30.0 * dNg(g0, mat2(1.0 / 900.0)) + 12.0 * dNg(g1, A_M1);
+  h += 28.0 * dAbs(dNg(g2, mat2(1.0 / 210.0)), 0.04);
+  h += 12.0 * dAbs(dNg(g3, A_M3), 0.05);
+  h += 4.0 * dAbs(dNg(g4, mat2(1.0 / 26.0)), 0.07);
   // (world6 step B) the near domes the low flight sees (48 m and 17 m, round tops), faded out with the vertex's distance
   // (gLodD: 0 in the probes, so the camera's ground keeps them) before the clipmap's spacing could alias them
-  float k1 = 1.0 - smoothstep(350.0, 900.0, gLodD), k2 = 1.0 - smoothstep(120.0, 380.0, gLodD);
-  if (k1 > 0.0) h += (9.0 * k1) * dAbs(dN(p + vec2(-19.0, 31.0), mat2(0.9, -0.44, 0.44, 0.9) * (1.0 / 48.0)), 0.08);
-  if (k2 > 0.0) h += (3.5 * k2) * dAbs(dN(p + vec2(5.0, 23.0), mat2(1.0 / 17.0)), 0.1);
+  if (k1 > 0.0) h += (9.0 * k1) * dAbs(dNg(g5, A_M5), 0.08);
+  if (k2 > 0.0) h += (3.5 * k2) * dAbs(dNg(g6, mat2(1.0 / 17.0)), 0.1);
   return h;
 }
 /* (world6 step B) the sea's near billows, seen from 14-32 m now (step A's ABOVE was seen from 150 m, where its 26-75 m

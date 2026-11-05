@@ -62,14 +62,21 @@ vec3 massif(vec2 p, vec4 m, vec4 b, float seed) {
   vec2 l = vec2(ca * d.x + sa * d.y, -sa * d.x + ca * d.y) / m.z;
   if (abs(l.x) > 1.3 || abs(l.y) > b.y * 2.2 + 0.2) return vec3(0.0);
   vec2 dlx = vec2(ca, sa) / m.z, dly = vec2(-sa, ca) / m.z;
-  vec3 bend = 0.12 * dN(p + vec2(seed * 57.0), mat2(1.1 / m.z));
+  vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0;
+  for (int t = 0; t < 4 + uZ; t++) {
+    vec2 o = t == 0 ? vec2(seed * 57.0) : (t == 1 ? vec2(0.0) : (t == 2 ? vec2(13.0) : vec2(29.0)));
+    float kk = t == 0 ? 1.1 : (t == 1 ? 2.4 : 2.2);
+    vec3 g = gnd(mat2(kk / m.z) * (p + o));
+    if (t == 0) g0 = g; else if (t == 1) g1 = g; else if (t == 2) g2 = g; else g3 = g;
+  }
+  vec3 bend = 0.12 * dNg(g0, mat2(1.1 / m.z));
   vec3 y = vec3(l.y, dly) / b.y - bend;
   float side = y.x > 0.0 ? b.w : 1.0;
   vec3 ay = vec3(abs(y.x), sign(y.x) * y.yz) / side;
-  vec3 across = dSstep(1.0, 0.0, ay + 0.12 * dN(p, mat2(2.4 / m.z)));
+  vec3 across = dSstep(1.0, 0.0, ay + 0.12 * dNg(g1, mat2(2.4 / m.z)));
   across = dMul(across, across) * 0.35 + across * 0.65;
-  vec3 along = dSstep(1.15, 0.45, vec3(abs(l.x), sign(l.x) * dlx) + 0.1 * dN(p + 13.0, mat2(2.2 / m.z)));
-  vec3 top = vec3(1.0 + b.z * l.x, b.z * dlx) + 0.05 * dN(p + 29.0, mat2(2.2 / m.z));
+  vec3 along = dSstep(1.15, 0.45, vec3(abs(l.x), sign(l.x) * dlx) + 0.1 * dNg(g2, mat2(2.2 / m.z)));
+  vec3 top = vec3(1.0 + b.z * l.x, b.z * dlx) + 0.05 * dNg(g3, mat2(2.2 / m.z));
   return m.w * dMul(dMul(across, along), top);
 }
 vec3 ridges(vec2 p) {
@@ -97,19 +104,29 @@ vec3 duneWave(vec2 p, vec2 w, float lam, float c, vec3 warp) {
   return vec3(s, ph.yz * ds);
 }
 float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0) * (p + vec2(311.0, -97.0))).x; }
+const vec2 D_TO[7] = vec2[7](vec2(0.0), vec2(311.0, -97.0), vec2(0.0), vec2(71.0), vec2(400.0), vec2(9.0), vec2(900.0));
+const float D_TS[7] = float[7](1.0 / 760.0, 0.0, 1.0 / 340.0, 1.0 / 95.0, 0.0, 1.0 / 80.0, 1.0 / 160.0);
+const mat2 D_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0);
 vec3 dunes(vec2 p) {
-  vec3 h = 40.0 * dN(p, mat2(1.0 / 760.0)) + 15.0 * dN(p + vec2(311.0, -97.0), mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0));
   vec2 w = WINDDIR, pp = vec2(-w.y, w.x);
-  vec3 warp = 0.42 * dN(p, mat2(1.0 / 340.0)) + 0.13 * dN(p + 71.0, mat2(1.0 / 95.0));
-  vec3 s1 = duneWave(p, w, 205.0, 0.68, warp);
   mat2 Ma = mat2(w.x / 420.0, pp.x / 190.0, w.y / 420.0, pp.y / 190.0);
-  vec3 amp = dSstep(-0.42, 0.3, dN(p + 400.0, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
-  h += 32.0 * dMul(dMul(s1, amp), gKD);   // (world6: the main dunes by the maps' sand weight)
   float wSmall = 1.0 - smoothstep(900.0, 1300.0, gLodD);
+  vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
+  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
+    vec3 g;
+    if (o == 1 || o == 4) g = gnd((o == 1 ? D_M1 : Ma) * (p + D_TO[o]));
+    else g = gnd(mat2(D_TS[o]) * (p + D_TO[o]));
+    if (o == 0) g0 = g; else if (o == 1) g1 = g; else if (o == 2) g2 = g; else if (o == 3) g3 = g; else if (o == 4) g4 = g; else if (o == 5) g5 = g; else g6 = g;
+  }
+  vec3 h = 40.0 * dNg(g0, mat2(1.0 / 760.0)) + 15.0 * dNg(g1, D_M1);
+  vec3 warp = 0.42 * dNg(g2, mat2(1.0 / 340.0)) + 0.13 * dNg(g3, mat2(1.0 / 95.0));
+  vec3 s1 = duneWave(p, w, 205.0, 0.68, warp);
+  vec3 amp = dSstep(-0.42, 0.3, dNg(g4, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
+  h += 32.0 * dMul(dMul(s1, amp), gKD);   // (world6: the main dunes by the maps' sand weight)
   if (wSmall > 0.0) {
     vec2 w2 = normalize(w + 1.3 * pp);
-    vec3 s2 = duneWave(p + 37.0, w2, 64.0, 0.7, 0.25 * dN(p + 9.0, mat2(1.0 / 80.0)));
-    h += (4.0 * wSmall) * dMul(dMul(s2, dSstep(-0.5, 0.4, dN(p + 900.0, mat2(1.0 / 160.0)))), gKD);
+    vec3 s2 = duneWave(p + 37.0, w2, 64.0, 0.7, 0.25 * dNg(g5, mat2(1.0 / 80.0)));
+    h += (4.0 * wSmall) * dMul(dMul(s2, dSstep(-0.5, 0.4, dNg(g6, mat2(1.0 / 160.0)))), gKD);
   }
   return h;
 }
@@ -159,7 +176,6 @@ vec3 D_Hd(vec2 p) {
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
   for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);
-  // (compile) the plateaus' two taps hang on p alone: made once here, the loops' bounds unfoldable (uZ)
   vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);
   for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
