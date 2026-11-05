@@ -54,14 +54,14 @@ jobs:
         uses: actions/checkout@v4
         with: { path: base, ref: '${{ inputs.base || github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
       - name: playwright-core
-        shell: powershell   # (Windows PowerShell 5.1: every Windows machine has it; pwsh, 7, is not on the PC)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
       - name: T2
         id: t2
-        shell: powershell   # (Windows PowerShell 5.1: every Windows machine has it; pwsh, 7, is not on the PC)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $tools = if (Test-Path base/tools/gpu/t2.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           $profiles = Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_gpu-profiles'   # kept between runs: Chrome's GPU program cache
@@ -80,13 +80,13 @@ jobs:
       - uses: actions/checkout@v4
         with: { path: base, ref: '${{ inputs.base || github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
       - name: playwright-core
-        shell: powershell   # (Windows PowerShell 5.1: every Windows machine has it; pwsh, 7, is not on the PC)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
       - name: T3
-        shell: powershell   # (Windows PowerShell 5.1: every Windows machine has it; pwsh, 7, is not on the PC)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $tools = if (Test-Path base/tools/gpu/t3.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           node "$tools/t3.js" --base base/site --head head/site --out "$env:RUNNER_TEMP/t3" --runs 5 --cases d11,n23
