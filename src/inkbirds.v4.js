@@ -95,25 +95,13 @@
   /* the hand */
   var SPAN = 22;               // px across: a mid-sized bird at middle distance (nearness 1), on a large window
   var LINE = [1.5, 2.5];       // stroke width, px: finer far off, bolder near (the pen's pressure)
-  var TONE = [0.62, 1];        // the ink: far birds paler (the air between), near ones black
-  var PAD = 4;                 // px round a drawing's box: the caps and the boil
-  var DRAW_FPS = 12;           // the hand draws each mark afresh this often (on twos) ...
-  var BOIL_FPS = 6;            // ... its tremor re-rolled every other drawing
-  var HAND = [1.2, 1.6];       // px: the visit's tremor ...
-  var JSCALE = 0.4;            // ... trimmed for a small mark in flight
   var BOB = 0.04;              // spans: the body lifts this much on the downstroke
-  var DOWN = 0.45;             // the share of a beat that is downstroke (the quicker stroke)
-  var WRIST = [1.15, 0.2];     // the wrists: a little above the drawing at the top of the beat, all but flat at the bottom (never a slash: the steps always show)
   var TAIL = [10, 14.5];       // glyph units: a back wing drawn out as a tail ...
   var TAIL_UP = [12, 22];      // ... rising this many degrees off the bird's line
   var LEAN = [-14, 5];         // degrees: a bird stands at about its drops' angle (steps), give or take
   var FACE_HYST = 0.2;         // |cos heading| past this before a bird turns to face the other way
 
   /* the depth: the window is a camera looking out and up at the sky */
-  var FOV = 60 * DEG;          // across the window's longer side
-  var HORIZON = -0.2;          // the horizon this share of the window's height above its bottom edge (-): the eye is above a sea of cloud
-  var SEA_CLEAR = 60;          // px: the horizon at least this far below the words' margin...
-  var SEA_MIN = 0.05;          // ...but never less than this share of the window's height of sea showing
   var FAR = 0.42;              // nearness (1: SPAN): a bird this far off is gone into the distance ...
   var FADE = 0.54;             // ... fading from here (the air between), never popping out
   var NEAR_MAX = 1.7;          // none nearer than this in view
@@ -128,8 +116,6 @@
   var TURN = [20, 60];         // ... through this many degrees ...
   var TURN_T = [3, 6];         // ... over this many seconds (a bank of 25-35 degrees)
   var HEAD_MAX = 72;           // degrees: no path heads further off the window's plane than this (never turning back across it)
-  var BANK = 0.3;              // a turning bird banks: its inner wrist lower and its outer higher by up to this share ...
-  var BANK_AT = 40;            // ... at this many degrees a second of turn on the window
   var UP_V = 0.06;             // spans: a V lies level in the air, give or take this
   var SPACE_SEEN = 2;          // px: two birds of a flight never closer than this on the window (a near one passing a far one)
   var SLOWEST = 5;             // px/s: nor slower than this anywhere in view (far off, going away)
@@ -147,9 +133,7 @@
   var WIDE = 900;              // px
   var STEP = 0.3;              // s: the planner's look-ahead step (a path is checked whole before a bird enters)
   var TRIES = 16;              // paths tried per flight
-  var QUOTA = 500;             // bird-steps of look-ahead a frame: planning is spread over frames, never a long one ...
-  var LEAD = 4;                // s: ... so a flight is planned to set off this far ahead (still beyond the edge)
-  var STEP_MAX = 0.05;         // s: the longest step a frame may take
+  var LEAD = 4;                // s: a flight is planned to set off this far ahead (still beyond the edge)
 
   /* the pace */
   var PACE = [0.94, 1.06];     // the visit's pace, on every kind's own
@@ -160,7 +144,6 @@
   var REF = 2.04;              // ... (a mid bird: its distance, 0.85, times its 2.4 spans a second) ...
   var CROSS = [15, 36];        // s: ... and no bird across it quicker than this ...
   var KNEE = 0.75;             // ... easing toward that from this share of it, so a quick kind stays quicker than a slow one
-  var HOLD = 2.2;              // a bird slowed from its wild pace glides the longer between bursts: by the root of how far, up to this
   var DETUNE = 0.05;           // each bird beats its own share faster or slower than its flight
   var GAP = [0.3, 0.7];        // the next flight comes after this share of the last one's crossing in view ...
   var THIN = 360;              // s: ... and the sky thins, the gaps a crossing longer for every THIN s on the page ...
@@ -307,7 +290,7 @@
   var NEARMOST = 0.6;          // of the bird's span: the land in front of a bird hides it past this far in front of its body
   var CLOUD_IN = 14;           // m of a cloud's visible lobes between the camera and a bird: its cover over the bird counted fully
   var NEAR_FADE = [1.9, 2.6];  // nearness: a bird the camera comes nearer than the planner ever would (a place's thermal flown into) fades between these
-  var MAXP = 64;               // (birds3d) birds lent to flights: a ring of 64 (the live site's twelve SVGs no longer bind: the calm does) ...
+  var MAXP = 64;               // (birds3d) birds lent to flights: a ring of 64 (the calm binds, not a count) ...
   var DRAW_MAX = 48;           // ... at most this many busy, and drawn, at once
   var QUOTA_STEP = 300;        // path points of planning a fixed step (1/60 s), a bird's place counted at its cost (SPOT_COST; round 2: 200, a place counted as 1)
   var SHADE = 0.008;           // the ink's share of the scene's light (a dark bird's black lifted a breath toward it; round 2's 0.035, with the air on top of the live's TONE, paled a goose at mid distance to half the live black's contrast; round 3's first 0.012 with AIR_INK 0.4 left DUNES's at 73-80 %)
@@ -372,7 +355,7 @@
       return ((t ^ (t >>> 15)) >>> 0) / 4294967296;
     };
   }
-  var visitSeed = 0, wr, front, fHand, fTempo, fBreeze, fPace, fTraffic, season, faithful, hand, pace, tempo;
+  var visitSeed = 0, wr, front, fTempo, fBreeze, fPace, fTraffic, season, faithful, pace, tempo;
   /* VISIT streams: 1 the hand's noise, 2 the paths' low-discrepancy offsets, 11 the weather, 100+ each flight */
   function vstream(n) { return sm32((visitSeed ^ Math.imul(n + 1, 0x9E3779B9)) >>> 0); }
   function facet() { return 0.7 * front + 0.3 * wr(); }
@@ -383,10 +366,9 @@
     visitSeed = Math.floor(HOST.rng(0xB1D5)() * 4294967296) >>> 0;
     wr = vstream(11);
     front = (wr() + wr()) / 2;
-    fHand = facet(); fTempo = facet(); fBreeze = facet(); fPace = facet(); fTraffic = facet();
+    facet(); fTempo = facet(); fBreeze = facet(); fPace = facet(); fTraffic = facet();   // (the first, the old marks' hand, still drawn and not kept: every later draw where it was)
     season = wr() < 0.65 ? 1 : -1;        // the way most flights go (1: left to right, the way the words read)
     faithful = 0.65 + 0.15 * wr();        // ... and how many of them
-    hand = (HAND[0] + (HAND[1] - HAND[0]) * fHand) * JSCALE;   // px
     pace = mix(fPace, PACE[0], PACE[1]);
     tempo = mix(fTempo, TEMPO[0], TEMPO[1]);
     var r = vstream(1), i; for (i = 0; i < NOISE_N; i++) noise[i] = r() * 2 - 1;
@@ -409,7 +391,7 @@
 
   /* ---------------- the page: the window and the words (the engine's measure of them) ---------------- */
 
-  var W = 0, H = 0, words = [], dirty = true, wordsY = 0, stackB = 0, stackT = 0, view = 1, VW = {};
+  var W = 0, H = 0, words = [], dirty = true, stackB = 0, stackT = 0, view = 1, VW = {};
   var MPU = 0.13;              // m an air unit (px at nearness 1): B_SPAN over a mid bird's span in air units
   function measure() {
     HOST.view(VW);
@@ -419,8 +401,8 @@
     words = [];
     var w = HOST.words(), b = w.boxes, k = 1 / (VW.bdpr || VW.dpr || 1), l = Infinity, t = Infinity, r = -Infinity, bo = -Infinity, i;
     for (i = 0; i < 3; i++) if (b[i * 4 + 2] > b[i * 4]) { l = Math.min(l, b[i * 4] * k); t = Math.min(t, b[i * 4 + 1] * k); r = Math.max(r, b[i * 4 + 2] * k); bo = Math.max(bo, b[i * 4 + 3] * k); }
-    if (r > l) { keep({ left: l, top: t, right: r, bottom: bo }, WORDS); wordsY = (t + bo) / 2; stackB = bo; stackT = t; }   // (the name, bio and credit: the live .stack)
-    else { wordsY = H / 2; stackB = stackT = 0; }
+    if (r > l) { keep({ left: l, top: t, right: r, bottom: bo }, WORDS); stackB = bo; stackT = t; }   // (the name, bio and credit: the live .stack)
+    else { stackB = stackT = 0; }
     for (i = 3; i < 5; i++) keep({ left: b[i * 4] * k, top: b[i * 4 + 1] * k, right: b[i * 4 + 2] * k, bottom: b[i * 4 + 3] * k }, LINKS);
     dirty = false;
   }
@@ -578,7 +560,7 @@
     VP.still = !!still || FORCED || !C || !FL.ok || !HOST.ahead;
     VP.yaw0 = C && !FORCED ? FL.view : 0; VP.pitch0 = C && !FORCED ? C.pitch : NaN;
     if (!VP.still) { HOST.ahead(true, VP_CHUNK, STEP, VP); work += VP.n * AHEAD_COST; if (VP.n < 1) VP.still = true; }
-    VP.t0 = t;   // (round 3, step 1: the forecast's own stamp is the world's clock (SIM.t), not the birds': it starts at the dissolve's end, and every trial began that much late)
+    VP.t0 = t;   // (round 3, step 1: the forecast's own stamp is the world's clock (SIM.t), not the birds': it starts at the first frame shown, and every trial began that much late)
     if (VP.still) { VP.yaw[0] = VP.yaw0; VP.pitch[0] = VP.pitch0; VP.roll[0] = 0; if (C) { VP.x[0] = C.pos[0]; VP.y[0] = C.pos[1]; VP.z[0] = C.pos[2]; } VP.n = 1; }
   }
   /* the course out to sample k (more chunks as needed) */
@@ -692,17 +674,13 @@
     B.c = Math.cos(L); B.sn = Math.sin(L);
     return B;
   }
-  /* the bird in a pose, into out[10] (x, y down): k sets the wrists (1 up,
-     as drawn; 0 on the bird's line; below 0 down past it); shut folds the
-     wings (a bounding finch between its bursts); bank drops the back wrist
-     and lifts the front one by that share (a bird banking into a turn) */
-  function shape(B, k, shut, out, bank) {
-    var i, su, hv, pu, pv, kk;
+  /* the bird as drawn, into out[10] (x, y down): its five points, stood
+     on its diagonal (the kind's mean mark, markOf) */
+  function shape(B, out) {
+    var i, su, hv, pu, pv;
     for (i = 0; i < 5; i++) {
-      kk = i === 1 || i === 3 ? k * (1 + (i === 1 ? -bank : bank)) : 1;
-      if (B.tail && i === 1) kk = 0.5 + 0.5 * kk;         // (a tail swings half as far)
-      su = B.s[i] * (shut ? 0.78 : 1);
-      hv = B.h[i] * kk * (shut ? 0.25 : 1);
+      su = B.s[i];
+      hv = B.h[i];
       pu = su * B.ux - hv * B.uy; pv = su * B.uy + hv * B.ux;
       out[2 * i] = pu * B.c - pv * B.sn;                 // stood on its diagonal, rising to the right
       out[2 * i + 1] = -(pu * B.sn + pv * B.c);
@@ -710,27 +688,8 @@
     return out;
   }
   var SH = new Float64Array(10);
-  /* a bird at a size (its span in the air): its box over every pose it
-     takes (centred on gx, gy, glyph units), at nearness 1 */
-  function measureBird(B, span) {
-    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, sc, i, k, b, gw, gh, poses = [WRIST[0], 0.15, 2];
-    shape(B, 1, false, SH, 0);
-    for (i = 0; i < 10; i += 2) { x0 = Math.min(x0, SH[i]); x1 = Math.max(x1, SH[i]); }
-    sc = span / (x1 - x0);
-    x0 = y0 = Infinity; x1 = y1 = -Infinity;
-    for (k = 0; k < poses.length; k++) for (b = -1; b <= 1; b++) {   // (the wrists at their highest and lowest, and shut; banked either way)
-      shape(B, poses[k] === 2 ? 0.15 : poses[k], poses[k] === 2, SH, b * BANK);
-      for (i = 0; i < 10; i += 2) {
-        x0 = Math.min(x0, SH[i]); x1 = Math.max(x1, SH[i]);
-        y0 = Math.min(y0, SH[i + 1]); y1 = Math.max(y1, SH[i + 1]);
-      }
-    }
-    gw = (x1 - x0) * sc; gh = (y1 - y0) * sc;
-    return { B: B, sc: sc, gx: (x0 + x1) / 2, gy: (y0 + y1) / 2, span: span, gw: gw, gh: gh,
-             hw: gw / 2 + LINE[1] / 2 + 0.5, hh: gh / 2 + LINE[1] / 2 + 0.5 };
-  }
 
-  /* ---------------- the birds (twelve, lent to flights) ---------------- */
+  /* ---------------- the birds (a ring of MAXP, lent to flights) ---------------- */
 
   /* a slot holds a bird's drawing between the hand's frames: its 3D chain about its body (m, in the world's axes), its
      bob, the boil's offsets (device px), its pen (device px), its ink and how much cloud stands before it */
@@ -951,7 +910,7 @@
   function member(F, lag, lat, rank) {
     var r = F.r, S = F.S, m = {
       lag: lag, lat: lat, up: 0, rank: rank, gain: Math.min(1.5, 1 + 0.1 * rank),
-      d: measureBird3D(drawBird(r, S), F.sort, F.span * (1 + SIZE_VAR * (r() * 2 - 1)), F.n0),   // its own size (birds3d: its model's box; the 2D mark kept for the dev's comparisons)
+      d: (drawBird(r, S), measureBird3D(F.sort, F.span * (1 + SIZE_VAR * (r() * 2 - 1)), F.n0)),   // its own size (birds3d: its model's box; drawBird for its draws from the flight's stream alone, in their order: its 2D mark is not kept)
       /* its own drift about its place, its own wing-beat and glide */
       aL: pick(r, DRIFT_L) * F.span * F.loose, aP: pick(r, DRIFT_P) * F.span * F.loose * F.air, bKey: Math.floor(r() * NOISE_N), bT: pick(r, DRIFT_T) * F.loose,   // (a loose flock drifts wider, and as gently)
       f: F.f * (1 + DETUNE * (r() * 2 - 1)), delay: 0, half: (S.bound ? 0.3 : 1) * r(), rest: r(), glide: pick(r, S.glide), bob: 0,
@@ -1303,7 +1262,7 @@
     F.v = F.vw = F.vPx / F.n0;                            // (units of the air a second)
     F.f = BW.LB.rate(kindOf(F), RATE_MODE);               // (physics: the lab's rate; each bird's own about it)
     F.flaps = S.flaps && S.flaps[0][0] > 8 && F.vPx < 0.8 * px * F.f ? FLAPS_SLOW : S.flaps;   // held back: it glides between bursts ...
-    g = Math.sqrt(clamp(v / F.vPx, 1, HOLD));             // ... and every kind glides the longer, the more it is slowed
+    g = Math.sqrt(clamp(v / F.vPx, 1, HOLD));             // ... and every kind glides the longer, the more it is slowed (HOLD here is the hold's state, var HOLD below, as it always was at this read: no upper bound applies; the old marks' 2.2, declared above it and overwritten, never did)
     if (F.flaps && !S.bound) F.flaps = [F.flaps[0], [F.flaps[1][0] * g, F.flaps[1][1] * g]];   // (not a finch's bound: its wings shut)
     F.air = Math.sqrt(Math.min(1, F.vPx / v));            // what moves it in seconds (a gust, its drift, a glide's sink) gentled
     F.hAmp *= F.air;                                      // as it is slowed, so its path turns no sharper for the slower pace
@@ -1514,13 +1473,6 @@
     return fadeFor(F, pp.n) >= 0.02 && inView(pp.x, pp.y, F.d.hw * pp.n, F.d.hh * pp.n);
   }
   function farOf(F) { return F.fadeS ? F.fadeS[0] : FAR; }   // (birds3d: a staged flight's own distance fade)
-  function seen(F, tau) {
-    for (var i = 0; i < F.m.length; i++) {
-      spot(F, F.m[i], tau, tmp);
-      if (tmp.a >= 0.02 && inView(tmp.x, tmp.y, F.m[i].d.hw * tmp.n, F.m[i].d.hh * tmp.n)) return true;
-    }
-    return false;
-  }
   function allInView(F, tau) {
     for (var i = 0, d; i < F.m.length; i++) {
       spot(F, F.m[i], tau, tmp); d = F.m[i].d;
@@ -1898,7 +1850,7 @@
             projV(wv[j + 2], wv[j + 3], wv[j + 4], pv2);   // (where it was, through this view: its own motion)
             ox = (pv.x - pv2.x) / STEP; oy = (pv.y - pv2.y) / STEP; own = Math.sqrt(ox * ox + oy * oy);
             wx = (pv.x - wv[j]) / STEP; wy = (pv.y - wv[j + 1]) / STEP;
-            if (WIND_ON && !F.place) {   // (way-other) the way it faces is its body's: its way through the air (its own, the frame's, less the wind) along the window's right
+            if (WIND_ON && !F.place && !FORCED) {   // (round 2: not in forced colours' still view: no camera way, no wind) (way-other) the way it faces is its body's: its way through the air (its own, the frame's, less the wind) along the window's right
               var axr = (tmp.ax - wv[j + 2]) / STEP - WF[0], azr = (tmp.az - wv[j + 4]) / STEP + (FL.speed || 0) / MPU - WF[2], frr = axr * PV.cd + azr * PV.sd;
               var fra = Math.sqrt(axr * axr + azr * azr); fc[i] = Math.abs(frr) > FACE_SIN * fra && Math.abs(frr) > 0.5 ? (frr < 0 ? -1 : 1) : 0;   // (round 3, alive: a body within FACE_SIN of the view's axis, seen from behind or before, has no side)
               if (Math.sqrt(axr * axr + azr * azr) * MPU < (AIR_MIN[F.sort] || 6) && fadeOf(pv.n) > 0.3) return fail(it, 'air');   // (way-other: too slow through the air to fly)
@@ -2425,7 +2377,6 @@
   var FIRST_FILL = 6;   // (round 3, step 1) s after load with no flight yet planned: the first one floored the same way
   var RETRIES = 2, RETRY_LATER = 2, FIRST_LEAD = 1, LONE_REDRAW = 2, LATE_K = 6, AWAY_GRACE = 6, TRIAL_PAST = 10, HIDDEN_FILL = 5, HIDJOB = -1e9, nearJob = false;
   /* (round 3) the birds held by flights the view has turned from (they give way to a new flight that needs them) */
-  function flockInSky() { for (var i = 0; i < flights.length; i++) if (!flights[i].gone && !flights[i].away && flights[i].m.length >= 3) return true; return false; }
   function givesWay(G) { return G.away && !G.gone && t - G.lastSeen > AWAY_GRACE; }   // (a flight looked away from a moment keeps its birds: the view may be coming back)
   function awaySlots() { var n = 0; for (var i = 0; i < flights.length; i++) if (givesWay(flights[i])) n += flights[i].m.length; return n; }
   function makeRoom(n) {
@@ -2891,7 +2842,7 @@
     P.cy = Math.max(P.base, FL.y) + P.up;
     var sense = r() < 0.5 ? 1 : -1, f = pick(r, S.hz) * tempo;
     for (i = 0; i < n; i++) {
-      m = { d: measureBird3D(drawBird(r, S), sort, SPAN * view * S.size * (1 + SIZE_VAR * (r() * 2 - 1))), R: R * mix(r(), 0.85, 1.15), th0: TAU * (i + 0.3 * r()) / n, dy: (i - (n - 1) / 2) * 6,
+      m = { d: (drawBird(r, S), measureBird3D(sort, SPAN * view * S.size * (1 + SIZE_VAR * (r() * 2 - 1)))), R: R * mix(r(), 0.85, 1.15), th0: TAU * (i + 0.3 * r()) / n, dy: (i - (n - 1) / 2) * 6,
             f: f * (1 + DETUNE * (r() * 2 - 1)), delay: 0, half: r(), rest: r(), glide: pick(r, S.glide), n: 1, s: null, lag: 0, lat: 0 };
       m.om = sense * TAU / T;
       m.w = placeWing(sort, r); m.f = m.w.f;   // (physics: the lab's measured stork or gull)
@@ -3036,7 +2987,7 @@
     /* (v17) its event glides (eventGlides' rules, found along its route as it is worked out, lvEvents): a goose's set wings */
     P.eg = []; P.egS = { r0: -1, tot: 0, ti: -1, d0: -1, di: -1 }; P.egSet = sort === 'goose' ? pick(r, [6, 10]) : 0;
     for (i = 0; i < n; i++) {
-      m = { d: measureBird3D(drawBird(r, S), sort, SPAN * view * S.size * (1 + SIZE_VAR * (r() * 2 - 1))), f: 0, delay: 0, half: r(), rest: r(), glide: pick(r, S.glide), n: 1, s: null, lag: 0, lat: 0,
+      m = { d: (drawBird(r, S), measureBird3D(sort, SPAN * view * S.size * (1 + SIZE_VAR * (r() * 2 - 1)))), f: 0, delay: 0, half: r(), rest: r(), glide: pick(r, S.glide), n: 1, s: null, lag: 0, lat: 0,
         b: sl[i][0], a: sl[i][1], u: sl[i][2], lagT: sl[i][0] / v0, wk: Math.floor(r() * NOISE_N), wT: pick(r, DRIFT_T) * 1.4,
         wL: pick(r, DRIFT_L) * spm * (pat === 'loose' ? 2 : 1), wP: pick(r, DRIFT_P) * spm * (pat === 'loose' ? 2 : 1) };
       m.w = placeWing(sort, r); m.f = m.w.f; m.egD = m.lagT;   // (v17: a glide passes back down the flock as its birds reach the turn)
@@ -3467,8 +3418,6 @@
     s.P22 = FP.pose(); s.B3 = new Float64Array(3); s.V46 = new Float64Array(3 * NV); s.X46 = new Float64Array(3 * NV); s.D46 = new Float32Array(2 * NV); s.IZ = new Float32Array(NV);
     s.NZ = new Float64Array(3 * NFAC); s.FE = new Float64Array(3 * NFAC); s.FA = new Float64Array(NFAC); s.VZ = new Float64Array(3 * NV); s.LS = { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }; s.lod = 0;
   }
-  /* the rest phase of a still bird (reduced motion: a photograph): its own point in the beat, from the upper part of it */
-  function restPhase(u) { return u < 0.22 ? u * 0.195 / 0.22 : 0.762 + (u - 0.22) * (1 - 0.762) / 0.78; }
   var MODEL_K = 1.19;          // (way-form: 1.38 for the bodied form; the wing-only form spans more of its model on the window) the drawn model's span on today's ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
   var WING_ONLY = true;        // (way-path) the bird is the tattoo's M and nothing else: two wings joined at the body point (no head, neck, bill, legs, tail or body)
   var BODY_R = 0;              // (way-form) no body: the bird is the tattoo's M made solid, two wings meeting at the body point (the fix round's tapered body, 0.038 of the span, and its neck, bill and legs are gone)
@@ -3617,13 +3566,13 @@
     if (!fresh) MEAS[kind] = res;
     return res;
   }
-  function measureBird3D(B, kind, span, n0) {
+  function measureBird3D(kind, span, n0) {
     var M = measureNorm(kind), sk = span * MODEL_K, pen = 0.5 * LINE[1] + 1.5;   // (way-form: the pen is today's, at most LINE[1])
     /* (fix round) at night the halo's reach (4 e-foldings, CSS px) counted in the planner's box too, at the flight's own
        nearness (round 2 counted it only in the drawn box: a skein planned on the day's margin rode the name's, its
        step back blinking with the beat) */
     var N = !FORCED && HOST.night ? HOST.night() : 0, hp = N > 0 && HALO_IN_BOX ? 4 * (W < 600 ? HALO_E[1] : HALO_E[0]) / Math.max(n0 || 1, 0.3) : 0;
-    return { B: B, kind: kind, sc: 1, gx: 0, gy: 0, span: span, gw: 2 * M.hw * sk, gh: 2 * M.hh * sk,
+    return { kind: kind, span: span, gw: 2 * M.hw * sk, gh: 2 * M.hh * sk,
              hw: M.hw * sk + pen + hp, hh: M.hh * sk + pen + hp, model: sk, halo: hp };
   }
 
@@ -3683,7 +3632,7 @@
   function markOf(kind) {
     if (MARKS[kind]) return MARKS[kind];
     var B = drawBird(function () { return 0.5; }, SORTS[kind] || SORTS.gull), i, x0 = 1e9, x1 = -1e9, o = new Float64Array(10);
-    shape(B, 1, false, SH, 0);
+    shape(B, SH);
     for (i = 0; i < 5; i++) { x0 = Math.min(x0, SH[2 * i]); x1 = Math.max(x1, SH[2 * i]); }
     for (i = 0; i < 5; i++) { o[2 * i] = (SH[2 * i] - SH[4]) / (x1 - x0); o[2 * i + 1] = -(SH[2 * i + 1] - SH[5]) / (x1 - x0); }
     return (MARKS[kind] = o);
@@ -4438,17 +4387,6 @@ void main() {
   }
   function p46of(s, k) { if (!s.D46) return null; var o = []; for (var i = 0; i < NV; i++) o.push(+(s.D46[2 * i] / k).toFixed(2), +(H - s.D46[2 * i + 1] / k).toFixed(2)); return o; }
 
-  /* the forced colours' view-projection: the still camera's (the points are from the camera, so only its turn) */
-  var FVP = new Float32Array(16);
-  function forcedVP() {
-    var C = FCAM, sx = 1 / VW.tanX, sy = 1 / VW.tanY, n = 0.5, f = 1e5;
-    /* rows: x = sx (p . r), y = sy (p . u), w = p . f (z unused by the ink) */
-    FVP[0] = sx * C.r[0]; FVP[4] = sx * C.r[1]; FVP[8] = sx * C.r[2]; FVP[12] = 0;
-    FVP[1] = sy * C.u[0]; FVP[5] = sy * C.u[1]; FVP[9] = sy * C.u[2]; FVP[13] = 0;
-    FVP[2] = C.f[0] * (f + n) / (f - n); FVP[6] = C.f[1] * (f + n) / (f - n); FVP[10] = C.f[2] * (f + n) / (f - n); FVP[14] = -2 * f * n / (f - n);
-    FVP[3] = C.f[0]; FVP[7] = C.f[1]; FVP[11] = C.f[2]; FVP[15] = 0;
-    return FVP;
-  }
   /* a bird near the words steps back: by its ink box's distance to theirs, faded within their margin (WORDS, LINKS),
      gone at SB_GONE of it (round 2: the live's "ink never within 12 px of the words" holds when a drag, which no plan
      foresees, sweeps a bird toward them; round 1 faded it out only at the box: ink at a third, 11 px off, in W8).
@@ -4478,8 +4416,6 @@ void main() {
   }
   var FLIGHT_ID = 0;
   var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, words: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, eased: 0, gone: 0, wheeled: 0, held: 0, paced: 0, hold: 0 }, away: 0, back: 0 };
-  /* (development) the live mark's tips' line: its angle on the window, rising toward the front (deg) */
-  function tipsLean(B) { shape(B, 1, false, SH, 0); return Math.atan2(-(SH[9] - SH[1]), SH[8] - SH[0]) / DEG; }
 
   /* ---------------- the sky's clock (the engine's fixed steps; no clock is read) ---------------- */
 
@@ -5127,7 +5063,7 @@ void main() {
     var P = { place: true, kind: 'wheel', stage: 'S2', sort: sort, S: S, n: n, key: (p.id || 1) * 7 + 13, cx: p.x, cy: cy, cz: p.z, base: cy, up: 0, t0: 0, m: [], dur: 1e9, r: r, fadeS: [0.16, 0.26], R: R, v: v, mark: p.kind };
     var f = pick(r, S.hz) * tempo;
     for (i = 0; i < n; i++) {
-      m = { d: measureBird3D(drawBird(r, S), sort, SPAN * view * S.size * (1 + SIZE_VAR * (r() * 2 - 1))), R: R * mix(r(), 0.94, 1.06), th0: th0 + sense * arc * (i / Math.max(1, n - 1) - 0.5) + (r() - 0.5) * 0.15 * arc / n,
+      m = { d: (drawBird(r, S), measureBird3D(sort, SPAN * view * S.size * (1 + SIZE_VAR * (r() * 2 - 1)))), R: R * mix(r(), 0.94, 1.06), th0: th0 + sense * arc * (i / Math.max(1, n - 1) - 0.5) + (r() - 0.5) * 0.15 * arc / n,
             dy: (r() * 2 - 1) * mix(r(), 3, 6), f: f * (1 + DETUNE * (r() * 2 - 1)), delay: 0, half: r(), rest: r(), glide: pick(r, S.glide), n: 1, s: null, lag: 0, lat: 0, bR: TAU * r(), bY: TAU * r(), tx: 1e9 };
       m.om = sense * v / m.R;
       m.w = placeWing(sort, r); m.f = m.w.f;   // (physics: the lab's measured wing)
@@ -5457,7 +5393,6 @@ var NAME_PERCH = {
     }
     return true;
   }
-  function px0q(g) { return g.px0; }
   /* (perch lane) the click's bird: a click or tap on the page (not a drag, not a link: HOST.clicks) starts a gull there,
      folded as perch A, that springs off at once (no crouch: the pointer's take-off) up and away on its own course (a way up
      drawn from its own stream, leaning to the click's side, clear of the line, the credit, the links and the name's

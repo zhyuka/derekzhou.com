@@ -20,7 +20,7 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Derek Zhou — Technology Leader">
   <meta name="twitter:description" content="Hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.">
-  <link rel="stylesheet" href="/style.v15.css">
+  <link rel="stylesheet" href="/style.v16.css">
   <script data-cfasync="false" src="/hour.v3.js"></script>
   <script type="application/ld+json">
   {
@@ -37,6 +37,8 @@
 <body>
   <!-- The world, drawn behind everything by the world's script (hidden until it is drawn). -->
   <canvas class="sky" aria-hidden="true"></canvas>
+  <!-- The start file (async, at once): the world's context and its first programs, made as early as the page allows. -->
+  <script data-cfasync="false" src="/start.v1.js" async fetchpriority="high"></script>
 
   <main>
     <div class="stack">
@@ -53,35 +55,21 @@
     <noscript><p class="noscript-email">hello&#64;derekzhou&#46;com</p></noscript>
   </footer>
 
-  <!-- Up to twelve birds, drawn and flown by the birds' script (hidden until they fly). -->
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-  <svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>
-
-  <!-- Every script carries data-cfasync="false" (Rocket Loader leaves it as served). Deferred, in order: today's birds
-       first (they fly over the still sky while the world boots), the world, the realms' kit and realms, the ink birds
-       last (the boot starts once every script has run). -->
+  <!-- Every script carries data-cfasync="false" (Rocket Loader leaves it as served). Deferred, in order: the world, the
+       realms' kit and realms first, fetched at high priority (the boot starts a frame after the realms register); then
+       the ink birds' wing model and the ink birds, fetched at low priority after the world's bytes (the ink birds take
+       the sky whenever they come). -->
   <script data-cfasync="false" src="/site.js"></script>
-  <script data-cfasync="false" src="/birds.v12.js" defer></script>
-  <script data-cfasync="false" src="/world.v7.js" defer></script>
-  <script data-cfasync="false" src="/realm-kit.v1.js" defer></script>
-  <script data-cfasync="false" src="/realm-dunes.v3.js" defer></script>
-  <script data-cfasync="false" src="/realm-above.v2.js" defer></script>
-  <script data-cfasync="false" src="/facetform.v1.js" defer></script>
-  <script data-cfasync="false" src="/facetpose.v1.js" defer></script>
-  <script data-cfasync="false" src="/wingmodel.v1.js" defer></script>
-  <script data-cfasync="false" src="/model.v1.js" defer></script>
-  <script data-cfasync="false" src="/labbird.v1.js" defer></script>
-  <script data-cfasync="false" src="/birdwing.v1.js" defer></script>
-  <script data-cfasync="false" src="/inkbirds.v3.js" defer></script>
+  <script data-cfasync="false" src="/world.v8.js" defer fetchpriority="high"></script>
+  <script data-cfasync="false" src="/realm-kit.v2.js" defer fetchpriority="high"></script>
+  <script data-cfasync="false" src="/realm-dunes.v4.js" defer fetchpriority="high"></script>
+  <script data-cfasync="false" src="/realm-above.v3.js" defer fetchpriority="high"></script>
+  <script data-cfasync="false" src="/facetform.v1.js" defer fetchpriority="low"></script>
+  <script data-cfasync="false" src="/facetpose.v1.js" defer fetchpriority="low"></script>
+  <script data-cfasync="false" src="/wingmodel.v1.js" defer fetchpriority="low"></script>
+  <script data-cfasync="false" src="/model.v1.js" defer fetchpriority="low"></script>
+  <script data-cfasync="false" src="/labbird.v1.js" defer fetchpriority="low"></script>
+  <script data-cfasync="false" src="/birdwing.v1.js" defer fetchpriority="low"></script>
+  <script data-cfasync="false" src="/inkbirds.v4.js" defer fetchpriority="low"></script>
 </body>
 </html>

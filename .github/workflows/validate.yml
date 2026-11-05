@@ -19,21 +19,21 @@ jobs:
           cd site
           files=(
             index.html
-            style.v15.css
+            style.v16.css
             site.js
             hour.v3.js
-            birds.v12.js
-            world.v7.js
-            realm-kit.v1.js
-            realm-dunes.v3.js
-            realm-above.v2.js
+            start.v1.js
+            world.v8.js
+            realm-kit.v2.js
+            realm-dunes.v4.js
+            realm-above.v3.js
             facetform.v1.js
             facetpose.v1.js
             wingmodel.v1.js
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v3.js
+            inkbirds.v4.js
             robots.txt
             _headers
             _redirects
@@ -72,6 +72,7 @@ jobs:
             [ -e "$f" ] || continue
             case "${f#../}" in
               .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
+              .gitattributes|package.json|package-lock.json|node_modules|src|tools) ;;   # (the build: src/ the readable scripts, tools/minify.mjs, terser pinned; node_modules only after npm ci)
               *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
             esac
           done
@@ -131,7 +132,7 @@ jobs:
           # And the reverse: the versioned css/js the repo ships must be the
           # ones index.html loads, each with its immutable cache block (a
           # leftover old version, kept by a copy rather than a git mv, fails).
-          for f in style.v*.css birds.v*.js hour.v*.js world.v*.js realm-*.v*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.v*.js; do
+          for f in style.v*.css hour.v*.js start.v*.js world.v*.js realm-*.v*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.v*.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -146,7 +147,7 @@ jobs:
           # diagnostics, no lab, no test realm), and every one but site.js carries its version in its
           # name, as immutable caching needs.
           for f in $(find . -type f \( -name '*.js' -o -name '*.css' \) | sed 's|^\./||' | sort); do
-            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html; then
+            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.v*.js) grep -q "new Worker(./$f.)" world.v*.js;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name)
               echo "::error::$f is shipped but no page loads it"
               fail=1
             fi
@@ -250,41 +251,61 @@ jobs:
         run: |
           cd site
           # hour.vN.js in the head (before the first paint), site.js, then the
-          # deferred scripts in order: today's birds (they fly over the still
-          # sky while the world boots), the world, the realms' kit and realms,
-          # the ink birds last (the boot starts once every script has run).
+          # deferred scripts in order: the world, the realms' kit and realms,
+          # fetchpriority="high" (the boot starts once the realms register),
+          # then the ink birds' wing model and the ink birds last, fetchpriority="low".
           # Every script data-cfasync="false", so Rocket Loader leaves the
-          # order as served. One canvas, twelve bird SVGs, all in the HTML.
+          # order as served. One canvas, in the HTML; no bird SVGs.
           python3 - <<'PY'
           import re, sys
           src = open('index.html', encoding='utf-8').read()
           head, body = src.split('<body>', 1)
           tags = lambda s: re.findall(r'<script\b([^>]*)\bsrc="/([^"]+)"([^>]*)></script>', s)
           want_head = [('hour', False)]
-          want_body = [('site', False), ('birds', True), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
+          want_body = [('site', False), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
+          pri = {'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low'}
           fail = 0
+          # (fast500 5) the start file (start.vN.js, made by tools/start.mjs): async, fetchpriority="high", the first
+          # script after the canvas, and the only async script; the order below is the rest's
+          stf = [g for g in tags(body) if re.fullmatch(r'start\.v\d+\.js', g[1])]
+          asyn = [g for g in tags(src) if 'async' in (g[0] + g[2]).split()]
+          if asyn != stf or len(stf) > 1:
+              print('::error::the only async script is the one start file: got %s' % [g[1] for g in asyn]); fail = 1
+          for g in stf:
+              at = (g[0] + g[2]).split()
+              if 'defer' in at or re.findall(r'\bfetchpriority="(\w+)"', g[0] + g[2]) != ['high'] or 'data-cfasync="false"' not in at:
+                  print('::error::%s wants async, fetchpriority="high" and data-cfasync="false", never defer' % g[1]); fail = 1
+              if not re.search(r'<canvas class="sky" aria-hidden="true"></canvas>\s*(<!--[^>]*-->\s*)?<script\b[^>]*\bsrc="/' + re.escape(g[1]) + '"', body):
+                  print('::error::%s must come right after the canvas' % g[1]); fail = 1
           for part, want in [(head, want_head), (body, want_body)]:
-              got = tags(part)
+              got = [g for g in tags(part) if g not in stf]
               names = [(re.sub(r'(\.v\d+)?\.js$', '', g[1]), 'defer' in (g[0] + g[2]).split()) for g in got]
               if names != want:
                   print('::error::scripts out of order: got %s, want %s' % (names, want)); fail = 1
               for g in got:
                   if 'data-cfasync="false"' not in g[0] + g[2]:
                       print('::error::%s lacks data-cfasync="false"' % g[1]); fail = 1
+                  st = re.sub(r'(\.v\d+)?\.js$', '', g[1])
+                  if part is body and st in pri and re.findall(r'\bfetchpriority="(\w+)"', g[0] + g[2]) != [pri[st]]:
+                      print('::error::%s wants fetchpriority="%s"' % (g[1], pri[st])); fail = 1
           if body.count('<canvas class="sky" aria-hidden="true"></canvas>') != 1:
               print('::error::the page needs its one canvas.sky'); fail = 1
-          if body.count('<svg class="bird" aria-hidden="true" focusable="false"><polyline points="0,0"/></svg>') != 12:
-              print('::error::the page needs its twelve bird SVGs'); fail = 1
+          if re.search(r"""class=["'][^"']*\bbird\b|<polyline""", src):   # (a bird class in any class list, in either quotes, or a stroke)
+              print('::error::the old 2D birds are retired: no bird SVG in the page'); fail = 1
           print('in order' if not fail else 'FAILED'); sys.exit(fail)
           PY
 
       - name: Absences are enforced
         run: |
           cd site
-          BIRDS=$(ls birds.v*.js | head -1); WORLD=$(ls world.v*.js | head -1); INK=$(ls inkbirds.v*.js | head -1)
-          REALMS=$(ls realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
-          WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3)
-          JS="site.js $HOUR $BIRDS $WORLD $REALMS $WING $INK"
+          # (the world's five scripts as written, ../src/: site/ serves them minified, and "The minified scripts are
+          # exactly what the script makes" proves site/'s are tools/minify.mjs's build of these; the rules read text)
+          WORLD=$(ls ../src/world.v*.js | head -1); INK=$(ls ../src/inkbirds.v*.js | head -1)
+          REALMS=$(ls ../src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
+          START=$(ls start.v*.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
+          WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
+          PLANW=$(ls plan.v*.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
+          JS="site.js $HOUR $START $WORLD $REALMS $WING $INK $PLANW"
           echo "checking $JS and $CSS"
           # The page has none of the internet's body language, and CI fails
           # (rather than remembers) if any of it comes back. Scoped to the
@@ -319,17 +340,17 @@ jobs:
                       print('::error::%s: pointer moves must be read only during a drag (added in onDown, removed in endDrag)' % f); bad = 1
           sys.exit(bad)
           PY
-          # (3) the scripts add no DOM: the canvas, the stack and the SVGs are in index.html
+          # (3) the scripts add no DOM: the canvas, the stack and the lettering are in index.html
           if grep -nE 'createElement|innerHTML|outerHTML|insertAdjacentHTML|appendChild|insertBefore|replaceChildren|document\.write' $JS; then
             echo "::error::DOM built in script — the canvas and every element live in index.html"
             fail=1
           fi
-          # (4) the weather (=rand()): ONE entropy read each in today's birds and the
-          # world, above INIT-END; no clock but the hour's one read and the world's
+          # (4) the weather (=rand()): ONE entropy read, in the world, above
+          # INIT-END; no clock but the hour's one read and the world's
           # one clockNow (performance.now, for budgets: above INIT-END); never
           # Math.random. The realms and the ink birds draw from the world's streams
           # and read no clock at all.
-          for f in $BIRDS $WORLD; do
+          for f in $WORLD; do
             if [ "$(grep -o 'getRandomValues(' $f | wc -l)" != "1" ]; then
               echo "::error::$f must draw entropy exactly once (getRandomValues( count != 1)"
               fail=1
@@ -353,8 +374,8 @@ jobs:
             echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
             fail=1
           fi
-          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK; then
-            echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
+          if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $START $PLANW; then
+            echo "::error::the realms, the wing model, the ink birds and the start file draw no entropy and read no clock"
             fail=1
           fi
           # the hour reads the clock exactly once, and draws no entropy
@@ -367,7 +388,12 @@ jobs:
             echo "::error::a URL hook or sound was introduced"
             fail=1
           fi
-          if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|new Worker|importScripts|\beval\(|new Function' $JS; then
+          # (fast500 step 11) one worker only: the plan's, started by the world by its literal name (world_rules.py rule 2b)
+          if [ "$(cat $JS | grep -o 'new Worker(' | wc -l)" != "$(grep -oE "new Worker\(./plan\.v[0-9]+\.js.\)" $WORLD | wc -l)" ] || [ "$(cat $JS | grep -o 'new Worker(' | wc -l)" -gt 1 ]; then
+            echo "::error::a worker other than the plan's (the world starts plan.vN.js by name, once)"
+            fail=1
+          fi
+          if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
             echo "::error::the scripts fetch nothing and run no code but their own"
             fail=1
           fi
@@ -401,6 +427,18 @@ jobs:
                   print('::error::%s reads data attributes through dataset' % f); bad = 1
           sys.exit(bad)
           PY
+          # (7) the old 2D birds are retired (the ink birds, in the world, are the birds): no birds.vN.js served or in
+          # src/ (compgen, no pipeline: the same in either shell, bash -e or -eo pipefail), no bird SVG or script in the
+          # pages or the headers (a bird class in either quotes, in any class list), no .bird rule or [class=bird]
+          # selector, nothing naming their hand-over (window.skyAir, the world's SKYAIR, handTo, HASSVG, DISSOLVE_S, the
+          # record's boot wait and hand-over fields)
+          if compgen -G 'birds.v*.js' > /dev/null || compgen -G '../src/birds.v*.js' > /dev/null \
+            || grep -nE "class=[\"'][^\"']*\\bbird\\b|<polyline|(^|[^a-z-])birds\\.v[0-9]+\\.js" index.html 404.html _headers \
+            || grep -nE "\\.bird([^a-zA-Z0-9_-]|\$)|\\[class[~*^|\$]?=[\"']?bird\\b" $CSS \
+            || grep -nE '\b(skyAir|SKYAIR|handTo|HASSVG|DISSOLVE_S|bootWaitWhy|handoverToldMs|handover)\b' $JS; then
+            echo "::error::the old 2D birds are retired: their script, SVGs, CSS or hand-over came back"
+            fail=1
+          fi
           [ "$fail" -eq 0 ] && echo "All absences hold"
           exit $fail
 
@@ -408,6 +446,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: The minified scripts are exactly what the script makes
+        run: |
+          # site/ serves the world's five scripts (the world, the realms' kit and realms, the ink birds)
+          # minified; src/ holds them as written (the rules read those). tools/minify.mjs, with terser as
+          # package.json pins it (5.51.2; the lockfile's hashes), makes the one from the other: the record and the
+          # dev harness cut out of the world (counted cuts), then compressed and mangled, every shader's text the
+          # same. A served script edited by hand, or a source changed without its build, fails here.
+          npm ci --no-audit --no-fund --ignore-scripts
+          node tools/minify.mjs --check src site
 
       - name: The world's rules
         run: |
@@ -421,9 +469,26 @@ jobs:
           # takes no words input (its uniforms a fixed list), the old lift's parts
           # are named nowhere, nothing is drawn onto the canvas after it but what
           # is named.
-          python3 .github/workflows/world_rules.py site
+          python3 .github/workflows/world_rules.py site src
           # the realm lint: reported (the realms predate the namespaced API)
-          node .github/workflows/lint_realms.js report site/realm-kit.v*.js $(ls site/realm-*.v*.js | grep -v realm-kit)
+          node .github/workflows/lint_realms.js report src/realm-kit.v*.js $(ls src/realm-*.v*.js | grep -v realm-kit)
+
+      - name: Every visit compiles the same shaders
+        run: |
+          # A returning visitor's world is quick only when Chrome's shader cache answers for every program, and it
+          # answers only for a GLSL source it has seen byte for byte. glsl_guard.js runs the site's own scripts (every
+          # script index.html loads, as shipped) in node, in a fake browser with a fake WebGL2 context, for 15 visits
+          # of five devices (other entropy, hours, windows, densities, clocks and frame rates), and keeps every source
+          # the page hands shaderSource, until the world has shown. Within a device every visit must compile the same
+          # sources (no per-visit or per-window literal in any GLSL); across devices only the #define lines after
+          # #version may differ (DEFS, per device); and the reference device's programs must be exactly
+          # glsl_manifest.txt, so a change to any program's text comes with its manifest lines in the same commit and
+          # the diff names the programs a deploy makes every returning visitor compile again. After a deliberate
+          # change: node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
+          # --selftest: the guard's own proof (a planted per-visit literal, a per-window literal and one program
+          # changed without its manifest line must each be caught). Exit 3: the fake browser could not bring the world
+          # to its show (extend the fake for what the page needs; never relax the rules).
+          node .github/workflows/glsl_guard.js site --manifest .github/workflows/glsl_manifest.txt --selftest
 
       - name: Nothing darkens (W7's unit test)
         run: |
@@ -438,8 +503,8 @@ jobs:
           # this step only, never part of the site; PW_CORE and CHROME_PATH name
           # others where they are set). Exit 2 (no WebGL2 context on the runner)
           # warns; any lower or higher code fails.
-          W=$(ls site/world.v*.js | head -1)
-          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no site/world.vN.js for W7's unit test"; exit 1; }
+          W=$(ls src/world.v*.js | head -1)   # (as written: site/'s is its minified build, the same shader text)
+          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no src/world.vN.js for W7's unit test"; exit 1; }
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
