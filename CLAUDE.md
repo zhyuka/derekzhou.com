@@ -42,9 +42,11 @@ site/\_redirects             HTTPS enforcement (http and www to https://derekzho
 CLAUDE.md                    This file
 subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
-src/                         The five scripts site/ serves minified, as written and under the same
-                             names (the world, the kit and the realms, the ink birds)
-tools/minify.mjs             Builds site/'s five from src/ (and the start file, by tools/start.mjs); CI checks the build
+src/                         The five scripts site/ serves minified, as written (the world, the kit and
+                             the realms, the ink birds): the realms whole under their served names, the
+                             world and the ink birds in sections (src/world/, src/birds/inkbirds/)
+tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
+tools/minify.mjs             Builds site/'s five from build/src/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
@@ -54,17 +56,23 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
 
 Five scripts are served minified: world.v8.js, realm-kit.v2.js,
 realm-dunes.v4.js, realm-above.v3.js and inkbirds.v4.js. src/ holds them
-as written, under the same names, and tools/minify.mjs makes site/'s from
-them: the record, the switches and the dev harness cut out of the world
+as written. The world and the ink birds are kept as section files, one per
+divider of the old whole file (src/world/NNN-slug.js, src/birds/inkbirds/;
+each folder's parts.json names the served file): edit the section you need;
+a new section is a new NNN between two others (they join in name order,
+nothing between). node tools/parts.mjs assemble src build/src writes the
+whole scripts under their served names into build/src/ (never committed),
+and tools/minify.mjs makes site/'s from those: the record, the switches and the dev harness cut out of the world
 (exact, counted cuts), then terser (pinned in package.json) compresses and
 mangles, every string's value and every shader's text the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker; where index.html loads the start file, tools/start.mjs makes it
 too. CI step "The minified scripts are exactly what the script makes" (npm
-ci, then node tools/minify.mjs --check src site) fails on a served script
+ci, then node tools/minify.mjs --check build/src site) fails on a served script
 edited by hand or a source changed without its build, and the rules that
-read the scripts' text (the absences, world_rules.py) read src/. So a
-change is made in src/ and built (node tools/minify.mjs --build src site),
+read the scripts' text (the absences, world_rules.py) read build/src/. So
+a change is made in src/ and built (node tools/parts.mjs assemble src
+build/src, then node tools/minify.mjs --build build/src site),
 the two committed together. The hour, site.js, the wing model and the
 plan's worker are served as written, the start file as tools/start.mjs
 writes it.
@@ -776,7 +784,7 @@ fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
 served: start.v2.js 1035 KB (its programs' GLSL, as text), world.v8.js
 381 KB, the kits 51 KB, inkbirds.v4.js 193 KB, its wing model 186 KB, the
-plan's worker 73 KB (node tools/minify.mjs --report src: the five
+plan's worker 73 KB (node tools/minify.mjs --report build/src: the five
 minified, before and after, raw and brotli).
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
@@ -918,7 +926,7 @@ listener, message, and two postMessage calls, its answer and its refusal);
 the start file (rule 4b: no DOM building, URL hook, storage, sound,
 module, worker or network; no entropy, clock, timer or animation frame;
 one listener, webglcontextlost; nothing put on window but WORLD_START);
-the scripts' text read from src/ (world_rules.py site src); and the
+the scripts' text read from src/ (world_rules.py site build/src); and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
 are named nowhere, the ink birds alone read their keep-off, and nothing is
