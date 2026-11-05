@@ -1,0 +1,91 @@
+# gpu.yml: the graphics checks on the PC's RTX 4090 (a self-hosted runner, labels gpu-4090 / gpu-exclusive:
+# .work/hub/speed/RUNNER-SETUP.md in the workspace).
+#   T2 (a gate): base (the PR's base) against head rendered in one job: the page's clock stepped, frames +1..+600 hashed
+#      in the page from readPixels (no screenshots) at 1440x900 day/dawn and 393x852 night/day, with a null test (base
+#      against itself); the kit's noise rule; the served site's CSP; every shader's source compared and, where GLSL
+#      changed, the D3D11 read-back of the changed programs bit for bit (tools/gpu/t2.js). About a minute.
+#   T3 (a report): base against head timed, A B A B, 5 runs each, fresh profiles (tools/gpu/t3.js). Nightly or the
+#      `perf` label.
+# Triggers: a PR touching the world's scripts or the GLSL they carry (site/**, src/**, tools/gpu/**), nightly, by hand,
+# or called by the gate workflow (workflow_call) when its shader census reports glsl_changed. Outputs for the merge
+# bot: frames_identical, glsl_changed, bits_identical, csp_ok.
+# The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
+# that brings tools/gpu for the first time runs its own.
+name: gpu
+on:
+  pull_request:
+    paths: ['site/**', 'src/**', 'tools/gpu/**', '.github/workflows/gpu.yml']
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+  schedule:
+    - cron: '17 9 * * *'   # nightly (09:17 UTC: the PC's night is the owner's)
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      frames_identical: { value: '${{ jobs.t2.outputs.frames_identical }}' }
+      glsl_changed: { value: '${{ jobs.t2.outputs.glsl_changed }}' }
+      bits_identical: { value: '${{ jobs.t2.outputs.bits_identical }}' }
+      csp_ok: { value: '${{ jobs.t2.outputs.csp_ok }}' }
+permissions:
+  contents: read
+concurrency:
+  group: gpu-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+env:
+  PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0): drives the machine's own Chrome (channel 'chrome')
+jobs:
+  t2:
+    if: github.event.action != 'labeled'   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
+    runs-on: [self-hosted, windows, gpu-4090]
+    timeout-minutes: 20
+    outputs:
+      frames_identical: ${{ steps.t2.outputs.frames_identical }}
+      glsl_changed: ${{ steps.t2.outputs.glsl_changed }}
+      bits_identical: ${{ steps.t2.outputs.bits_identical }}
+      csp_ok: ${{ steps.t2.outputs.csp_ok }}
+    steps:
+      - name: head
+        uses: actions/checkout@v4
+        with: { path: head, persist-credentials: false }
+      - name: base
+        uses: actions/checkout@v4
+        with: { path: base, ref: '${{ github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
+      - name: playwright-core
+        shell: pwsh
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'pw'
+          npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
+          "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: T2
+        id: t2
+        shell: pwsh
+        run: |
+          $tools = if (Test-Path base/tools/gpu/t2.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
+          $profiles = Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_gpu-profiles'   # kept between runs: Chrome's GPU program cache
+          node "$tools/t2.js" --base base/site --head head/site --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles
+      - name: report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: t2, path: '${{ runner.temp }}/t2/*.*', retention-days: 14, if-no-files-found: ignore }
+  t3:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'perf'))
+    runs-on: [self-hosted, windows, gpu-exclusive]
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: head, persist-credentials: false }
+      - uses: actions/checkout@v4
+        with: { path: base, ref: '${{ github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
+      - name: playwright-core
+        shell: pwsh
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'pw'
+          npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
+          "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: T3
+        shell: pwsh
+        run: |
+          $tools = if (Test-Path base/tools/gpu/t3.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
+          node "$tools/t3.js" --base base/site --head head/site --out "$env:RUNNER_TEMP/t3" --runs 5 --cases d11,n23
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: t3, path: '${{ runner.temp }}/t3/*.*', retention-days: 30, if-no-files-found: ignore }
