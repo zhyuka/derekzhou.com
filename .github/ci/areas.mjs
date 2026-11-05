@@ -34,7 +34,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   // T2 when the world's, the realms' or the birds' served JS changed (the census adds a changed shader).
   const harness = files.some((f) => f.startsWith('.github/ci/') || f.startsWith('.github/actions/') || f === '.github/workflows/gate.yml');
   const gpuJs = files.some((f) => f.startsWith('site/') && areasOf([f]).areas.includes('gpu'));
-  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, files: files.length };
+  const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || f.startsWith('tools/gpu/'));   // (T2's own files: T2 runs on itself)
+  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, t2_self: t2Self, files: files.length };
   console.log(`${files.length} files changed${unknown.length ? '; unmapped (ALL): ' + unknown.join(' ') : ''}`);
   for (const [k, v] of Object.entries(o)) console.log(`${k}=${v}`);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(o).map(([k, v]) => `${k}=${v}\n`).join(''));

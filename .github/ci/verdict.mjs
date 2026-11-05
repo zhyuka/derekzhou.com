@@ -27,6 +27,7 @@ const v = {
 };
 const t2 = needs.t2 && needs.t2.outputs;
 if (needs.t2) {
+  v.t2.wanted = v.glsl_changed || v.gpu_js || c.t2_self === 'true';
   v.t2.required = result('t2') !== 'skipped';
   v.t2.ran = v.t2.required;
   if (t2) Object.assign(v.t2, { frames_identical: t2.frames_identical === 'true', glsl_changed: t2.glsl_changed === 'true', bits_identical: t2.bits_identical === 'true', csp_ok: t2.csp_ok === 'true' });
