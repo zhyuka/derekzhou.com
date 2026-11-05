@@ -1,7 +1,7 @@
-/* start.v2.js: the start file: the world's context and its first frame's programs, issued once the page has painted
+/* start.v4.js: the start file: the world's context and its first frame's programs, issued once the page has painted
    (fast500 step 5). MADE by tools/start.mjs from src/ (the world's scripts as written, run in a fake browser): never edit it
    by hand; CI makes it again and fails on any difference. A new text needs a new name (start.vN+1.js, its table
-   start-table.vN+1.js): both are cached as immutable. The programs are in start-table.v2.js, loaded after the first paint.
+   start-table.vN+1.js): both are cached as immutable. The programs are in start-table.v4.js, loaded after the first paint.
    The world (getGL, progIssue) adopts the context and every program whose text it would issue itself; it frees the rest. */
 (function () {
   'use strict';
@@ -48,7 +48,7 @@
   }
   function load() {   // (the table read off the main thread and off the DOM: the worker's script posts the sources and closes)
     if (done || typeof Worker !== 'function') return;
-    try { var w = new Worker('/start-table.v2.js'); w.addEventListener('message', function (e) { try { w.terminate(); } catch (x) {} if (e.data && e.data.Q && e.data.T) { TB = e.data; go(); } }); } catch (x) { /* no worker: the world's own path */ }
+    try { var w = new Worker('/start-table.v4.js'); w.addEventListener('message', function (e) { try { w.terminate(); } catch (x) {} if (e.data && e.data.Q && e.data.T) { TB = e.data; go(); } }); } catch (x) { /* no worker: the world's own path */ }
   }
   var PO = window.PerformanceObserver, two = function () { requestAnimationFrame(function () { requestAnimationFrame(load); }); };
   if (PO && PO.supportedEntryTypes && PO.supportedEntryTypes.indexOf('paint') >= 0) {

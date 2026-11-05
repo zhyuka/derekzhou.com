@@ -21,9 +21,9 @@ jobs:
             style.v16.css
             site.js
             hour.v3.js
-            start.v2.js
-            start-table.v2.js
-            world.v8.js
+            start.v4.js
+            start-table.v4.js
+            world.v10.js
             realm-kit.v2.js
             realm-dunes.v4.js
             realm-above.v3.js
@@ -33,7 +33,7 @@ jobs:
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v4.js
+            inkbirds.v7.js
             robots.txt
             _headers
             _redirects

@@ -617,12 +617,11 @@ vec3 oklab2lin(vec3 c) {
   /* (fast500 step 9, the owner's "Finish code after show": only programs for things not in view; e9.py) S1 becomes:
      every program registered and issued before the world shows, the late ones' completion polled after it. Only with
      the parallel compile (EXT.parAll), never in the stills, forced colours or a restored context. The late set: the ink
-     birds' (birds:ink) and their keep-off (engine.inkkeep), always (no ink bird is in view at the show, and their clock
-     now waits for both: lateBirds); the world's particles and ribbons where the realm draws them by the sand under the
+     birds' (birds:ink), always (no ink bird is in view at the show, and their clock now waits for them: lateBirds); the world's particles and ribbons where the realm draws them by the sand under the
      camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
      is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
   var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
-  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'engine.inkkeep'];
+  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink'];
   function lateCan() { return !!EXT.parAll && !STILLMODE && !FRUN && !BOOT.restore; }
   function lateSand(V) {   // the most sand anywhere within LATE_R of the landing (sandAt's weight, on kwAt)
     var R = 1.5 * Math.max(V.speed, 32) * LATE_T + 2 * KSTEP, st = KSTEP / 2, m = 0, x, z, k, s;
@@ -701,7 +700,7 @@ vec3 oklab2lin(vec3 c) {
   }
   function lateBirds() {   // the ink birds' clock starts only once their programs can draw (none of them is in view before it)
     if (LATEP.birdsAt >= 0 || !LATEP.on) return true;
-    var K = EP.inkkeep, ok = !K || !K.late || lateReady(K) || (K.st === 3 && !K.ok);
+    var ok = true;
     for (var i = 0; ok && i < BIRDPL.length; i++) { var P = BIRDPL[i]; if (P.late && !lateReady(P) && !(P.st === 3 && !P.ok)) ok = false; }
     if (!ok) { LATEP.birdWait++; return false; }
     LATEP.birdsAt = SIM.t; return true;
@@ -754,7 +753,7 @@ vec3 oklab2lin(vec3 c) {
     return { on: FOLDX.on, fixed: FOLDX.fixed ? FOLDX.fixed.map(function (x) { return x[0] + ' = ' + x[1]; }) : null, prog: FOLDX.prog, absent: FOLDX.absent, B: FOLDX.B, live: FOLDX.live,
       general: G ? (G.st === 3 ? (G.ok ? (G.warmed ? 'warmed' : 'done') : 'broken') : 'pending') : 'none', used: FOLDX.used, miss: FOLDX.miss, misses: FOLDX.misses.slice() };
   }
-  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uInkKeep: 12, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20 };
+  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20 };
   function finish(P) {   // true: linked; false: broken; LOSTP: the context was lost (asked again after the restore)
     if (P.st === 3) return P.ok;
     if (P.st !== 2) return false;
@@ -6797,22 +6796,6 @@ void main() {
   for (int i = 0; i < 40; i++) { acc += texture(uTex, clamp(uv, vec2(0.0), uLim)).rgb * w; ws += w; w *= 0.965; uv += d; }
   oC = vec4(acc / ws, 1.0);
 }`;
-  /* (world6w) the ink birds' keep-off: the words' ink boxes grown 2 px and eased out over 3 px (r: the name's and the
-     credit's, g: the links'), drawn at a quarter of the window whenever the words move and read by the ink birds alone,
-     which take their own ink off the words' ground (a pixel can only be left lighter). The composite takes nothing from
-     the words: the lift's window-wide fields are gone with the lift */
-  var FS_INKKEEP = HEAD + `
-uniform vec4 uWords[5]; uniform vec2 uOut; uniform float uMS, uDpr;
-out vec4 oC;
-float sdBox(vec2 p, vec4 b) { vec2 c = (b.xy + b.zw) * 0.5, h = (b.zw - b.xy) * 0.5, d = abs(p - c) - h; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
-float msk(vec2 p, vec4 b, float core, float fe) { if (b.z <= b.x) return 0.0; float d = sdBox(p, b) - core; return d <= 0.0 ? 1.0 : (d >= fe ? 0.0 : 0.5 + 0.5 * cos(3.14159265 * d / fe)); }
-void main() {
-  vec2 p = gl_FragCoord.xy * uMS; p.y = uOut.y - p.y;
-  float co = 2.0 * uDpr, fe = 3.0 * uDpr;
-  float ks = max(msk(p, uWords[0], co, fe), max(msk(p, uWords[1], co, fe), msk(p, uWords[2], co, fe)));
-  float kl = max(msk(p, uWords[3], co, fe), msk(p, uWords[4], co, fe));
-  oC = vec4(ks, kl, 0.0, 1.0);
-}`;
   /* the composite */
   /* the finished frame (the world's resolution) put up to the canvas (the device's): bilinear, as the browser's own
      upscale did before round 2 (the birds' ink is then drawn over it at the canvas's resolution) */
@@ -7307,7 +7290,7 @@ void main() {
     gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RG16F : gl.RG8, 64, 64, 64, 0, gl.RG, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);   // the distance with its billows, and without (pass 2: half floats where VOL16, as the volumes)
     tex3params(); gl.activeTexture(gl.TEXTURE0);
     var list = [
-      ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN], ['inkkeep', VS_FULL, FS_INKKEEP],
+      ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN],
       ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['smask', VS_FULL, FS_SHAFTMASK], ['sblur', VS_FULL, FS_SHAFTBLUR], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
       ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
       ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC]
@@ -7603,7 +7586,7 @@ void main() {
   }
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
-    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs', 'inkKeep'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
+    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
     TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
     // (E1 Fix 3, G0) the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
@@ -7628,11 +7611,10 @@ void main() {
     for (i = 0; i < 4; i++) TG.bu[i] = target(TG.bd[i].w, TG.bd[i].h, 'hdr');
     TG.sm = target(Math.max(1, Math.ceil(W / 4)), Math.max(1, Math.ceil(H / 4)), 'hdr');
     TG.sb = target(TG.sm.w, TG.sm.h, 'hdr');
-    TG.inkKeep = target(Math.max(1, Math.ceil(OUT.w / 4)), Math.max(1, Math.ceil(OUT.h / 4)), 'rgba8');   // (world6w: the ink birds' keep-off)
     // (the finished frame at the world's resolution, put up to the canvas's; the birds' ink reads what lies under it)
     TG.win = target(OUT.w, OUT.h, 'rgba8');
     TG.gs = target(Math.max(1, Math.ceil(OUT.w / GS_K)), Math.max(1, Math.ceil(OUT.h / GS_K)), 'rgba8');   // (world6 fix: the words' ground as the world drew it, at an eighth: wordsGround)
-    KEEPDIRTY = true; AG.n = 0;
+    AG.n = 0;
   }
   /* (E1 Fix 3) a multisampled target: n samples a pixel of the scene's colour format and DEPTH_COMPONENT24 (the scene's
      depth texture's own format, so its resolve is a plain blit), as renderbuffers that are never sampled; null if the
@@ -7715,8 +7697,8 @@ void main() {
   }
 
   /* ---------------------------------------------------------------- the words */
-  var WORDS = new Float32Array(20), WORDCOL = null, KEEPDIRTY = true, WLINE = [];   // ((line2 fix) WLINE: the line's own line boxes, canvas px (x0, y0, x1, y1 each), one a line: the client rects of the span its text is set in; [] none known)
-  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* (line2) the old bio's slot: the page's line under the name (the ink birds' keep-off covers it; the words' read takes it as block 3) */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
+  var WORDS = new Float32Array(20), WORDCOL = null, WLINE = [];   // ((line2 fix) WLINE: the line's own line boxes, canvas px (x0, y0, x1, y1 each), one a line: the client rects of the span its text is set in; [] none known)
+  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* (line2) the old bio's slot: the page's line under the name (the words' read takes it as block 3) */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
   /* (E0) the name is lettered (an inline SVG in the h1, no bio): its box is the ink's own, the path's bounds in the
      drawing put where the svg stands (read once, then only scaled); without it, the h1's box */
   var nameSvg = wordEls.name ? wordEls.name.querySelector('svg') : null, namePath = nameSvg ? nameSvg.querySelector('path') : null, NAMEBB = null;
@@ -7748,16 +7730,6 @@ void main() {
     WLINE.length = 0;
     var le = wordEls.bio && wordEls.bio.querySelector ? wordEls.bio.querySelector(':scope > span') : null, lr = le ? le.getClientRects() : [];
     for (var i = 0; i < lr.length; i++) if (lr[i].right - lr[i].left >= 1 && lr[i].bottom - lr[i].top >= 1) WLINE.push((lr[i].left - cr.left) * k, (lr[i].top - cr.top) * k, (lr[i].right - cr.left) * k, (lr[i].bottom - cr.top) * k);
-    KEEPDIRTY = true;
-  }
-  function drawInkKeep() {   // (world6w) the ink birds' keep-off, when the words move
-    if (!KEEPDIRTY || !TG || !lateReady(EP.inkkeep)) return;   // (fast500 step 9: dirty until its program can draw)
-    KEEPDIRTY = false;
-    var P = EP.inkkeep; gl.useProgram(P.p);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, TG.inkKeep.f); gl.viewport(0, 0, TG.inkKeep.w, TG.inkKeep.h);
-    gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
-    gl.uniform4fv(P.u.uWords, WORDS); gl.uniform2f(P.u.uOut, OUT.w, OUT.h); gl.uniform1f(P.u.uMS, OUT.w / TG.inkKeep.w); gl.uniform1f(P.u.uDpr, OUT.dpr || 1);
-    gl.bindVertexArray(FULLVAO); gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   /* (world6w, the owner's word of 2026-10-21: "remove that white background behind the text. it's fine failing
      accesibility") the words' colours. Nothing is done to the world for the words: no lift, no floor, no gain, no toe;
@@ -7767,7 +7739,7 @@ void main() {
      rule, no flip, no dark ink (the skies hold their own light under the light ceiling, so near-white reads on them).
      (stage2 check) Every colour of the words is a constant, the same in the stylesheet and here, for every sky and
      every moment, chosen against the light ceiling itself (W8: no pixel the world draws stands above OKLab L 0.53
-     outside the moon's footprint, which keeps off the words, and the ink birds, which keep off them too): the text
+     outside the moon's footprint, which keeps off the words, and the ink birds, which fly behind them freely: the owner, 2026-11-05): the text
      #fdfcf7 reads 5.13:1 on L 0.53, the dimmed grey #ebeffa (the credit; the links' underline) 4.59:1, the ring #f4e2b0
      4.1:1. A grey worked out from the read-back (the composite at an eighth, for the credit's lightest ground x1.2) fell
      to 4.27:1 at 1920x1080 (seed 11, the moonlit sky): an eighth averages a thin lit edge under the credit away. So the
@@ -8184,7 +8156,6 @@ void main() {
     RES[0] = W; RES[1] = H;
     ST.px.scene = W * H; ST.px.half = w2 * h2; ST.px.quarter = Math.ceil(W / 4) * Math.ceil(H / 4); ST.px.out = FULL.w * FULL.h;
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
-    drawInkKeep();
     gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, GCT ? GCT.t : null); gl.activeTexture(gl.TEXTURE0);
     prof('start');
     // -------- the scene (E1 Fix 3: into its samples where it has them, cleared whole so a tile GPU loads nothing)
@@ -8519,10 +8490,10 @@ void main() {
      else has drawn since, so the composite's inputs and its program's uniforms are as the frame left them, and the
      window is composited again (or its copy put up again) with the birds' ink over it: a pass or two a frame, not the
      whole scene (on a CPU renderer the whole scene again each frame held the page's frames back for seconds). False
-     when the targets or the words' mask changed since: drawn whole instead */
+     when the targets changed since: drawn whole instead */
   var REPTG = null;
   function represent() {
-    if (LOST || DEAD || gl.isContextLost() || !TG || REPTG !== TG || KEEPDIRTY || !LASTE) return false;
+    if (LOST || DEAD || gl.isContextLost() || !TG || REPTG !== TG || !LASTE) return false;
     var P;
     gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
     if (DIRECT) {
@@ -8671,7 +8642,6 @@ void main() {
     E('up', EP.up, FULLVAO, T, 3, 0, false, 'hdr');
     E('smask', EP.smask, FULLVAO, T, 3, 0, false, 'hdr');
     E('sblur', EP.sblur, FULLVAO, T, 3, 0, false, 'hdr');
-    E('inkkeep', EP.inkkeep, FULLVAO, T, 3, 0, false, 'rgba8');
     E('comp.win', EP.comp, FULLVAO, T, 3, 0, false, 'rgba8');
     E('comp', EP.comp, FULLVAO, T, 3, 0, false, 'canvas');
     E('blit', EP.blit, FULLVAO, T, 3, 0, false, 'canvas');
@@ -8950,7 +8920,7 @@ void main() {
   var BOOT_D_MS = 40, BOOT_BAKE0 = 1024, BOOT_BAKE_MAX = 8192, BOOT_ROUNDS = 64, BOOT_NEED = 19.999, BOOT_M = 30, GUARD_M = 30, BOOTVF = false;
   var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
     fts: [] };   // (Fix 2: fts every boot frame's [frame, rAF time])
-  var CORE_LATE = ['birds:ink', 'engine.inkkeep'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
+  var CORE_LATE = ['birds:ink'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
@@ -9425,7 +9395,7 @@ void main() {
     linked: function (P) {
       if (gl.isContextLost()) return 'lost';
       if (P.st !== 3 && (STILLMODE || FRUN)) { if (STILLMODE) progStep(true, 0); else fprog(P); }   // (round 2: forced colours, the one program at once)
-      return P.st === 3 ? P.ok && (FRUN && !STILLMODE || lateReady(P) && lateReady(EP.inkkeep)) : false;   // (fast500 step 9: a late one's not yet; never 'broken' while P.ok; forced colours draw with it once linked)
+      return P.st === 3 ? P.ok && (FRUN && !STILLMODE || lateReady(P)) : false;   // (fast500 step 9: a late one's not yet; never 'broken' while P.ok; forced colours draw with it once linked)
     },
     /* (E1) an entry for the warm table (design-v5 8.2): the module's own draw, its real VAO and state */
     warm: function (e) { if (LATEB.on) LATEB.W.push(e); else WARMX.push(e); },   // (fast500 4a: a module made late warms its own, birdsLate)
@@ -9439,7 +9409,7 @@ void main() {
       o.ddpr = window.devicePixelRatio || 1;   // (round 3: the device's own px a CSS px: the canvas is put up to it when FULL is capped under it)
       o.bUx = LASTBL[1]; o.bUy = LASTBL[2]; o.bloom = LASTBL[0];   // (the bloom's uv scale and gain, as the composite used them)
       o.tanX = FR.tanX; o.tanY = FR.tanY; o.near = NEAR; o.far = FAR;
-      if (TG) { o.sUx = W / TG.W; o.sUy = H / TG.H; o.hUx = Math.max(1, Math.ceil(W / 2)) / TG.cloud.w; o.hUy = Math.max(1, Math.ceil(H / 2)) / TG.cloud.h; o.mUx = OUT.w / (4 * TG.inkKeep.w); o.mUy = OUT.h / (4 * TG.inkKeep.h); }
+      if (TG) { o.sUx = W / TG.W; o.sUy = H / TG.H; o.hUx = Math.max(1, Math.ceil(W / 2)) / TG.cloud.w; o.hUy = Math.max(1, Math.ceil(H / 2)) / TG.cloud.h; }
       return o;
     },
     /* the camera as drawn this frame (CAM), and as it is at the end of the last fixed step (for the birds' planning) */
@@ -9472,15 +9442,14 @@ void main() {
     light: function () { var V = SIM.V; return V ? (V.L || V.light) : null; },
     /* the words: their boxes (name, bio, credit, link, link: x0, y0, x1, y1 in canvas px) and their colours in effect */
     words: function () { HW.kind = INK;   /* (stage2: the words' ink, always light: the ink birds' light path) */ HW.text = WORDSETS[HW.kind].text; return HW; },
-    /* the scene's depth, the clouds (premultiplied, half resolution) and the ink birds' keep-off (the words' ink boxes),
-       bound on the units the engine's programs use (uDepth 2, uCloud 4, uInkKeep 12) */
+    /* the scene's depth and the clouds (premultiplied, half resolution), bound on the units the engine's programs use
+       (uDepth 2, uCloud 4) */
     bindTextures: function () {
       if (!TG) return false;
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, TG.scene.d);
       gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, (CLT || TG.cloud).t);
       gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TG.bu[0].t);   // (the bloom, as the composite added it)
-      gl.activeTexture(gl.TEXTURE12); gl.bindTexture(gl.TEXTURE_2D, TG.inkKeep.t);
       gl.activeTexture(gl.TEXTURE13); gl.bindTexture(gl.TEXTURE_2D, TG.win.t);   // (the finished frame, the world's resolution: what lies under a stroke)
       gl.activeTexture(gl.TEXTURE14); gl.bindTexture(gl.TEXTURE_2D, TG.hz);   // (birds3d: the half-resolution depth, the land's nearest and the clouds' opaque cores; attached only to TG.lind and TG.cloud, never to the canvas the birds draw on)
       gl.activeTexture(gl.TEXTURE0);

@@ -15,7 +15,7 @@ import { parseHeaders, headersFor } from './serve.mjs';
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const URL0 = (A.url || 'https://derekzhou.com').replace(/\/$/, ''), SITE = A.site || 'site', SHA = A.sha || '', TIMEOUT = +(A.timeout || 600);
 const PRIVATE = (A.private || '/studio/,/studio').split(',');
-const NOT_SERVED = ['/CLAUDE.md', '/%43LAUDE.md', '/.github/workflows/validate.yml', '/subset-fonts.sh', '/download-fonts.sh', '/package.json', '/src/world.v8.js', '/tools/minify.mjs'];
+const NOT_SERVED = ['/CLAUDE.md', '/%43LAUDE.md', '/.github/workflows/validate.yml', '/subset-fonts.sh', '/download-fonts.sh', '/package.json', '/src/world.v10.js', '/tools/minify.mjs'];
 const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const get = async (p, opt = {}) => { const r = await fetch(URL0 + p, { redirect: 'manual', headers: { 'cache-control': 'no-cache', 'user-agent': 'derekzhou.com-post-deploy-smoke' }, ...opt }); return { status: r.status, headers: r.headers, body: Buffer.from(await r.arrayBuffer()) }; };
 const refsOf = (html) => [...new Set([...html.matchAll(/(?:href|src)="(\/[^"#?]+)"/g)].map((m) => m[1]))];

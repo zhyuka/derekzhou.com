@@ -14,8 +14,15 @@
    sink), the pose (poseBird: BW.poseS, LB.geom), the boxes (measureNorm: every vertex of the lab's poses), the light
    (lightBird: facetpose's per-facet light and its one tone), the pass (46 points and 30 facet lights a bird in a
    texture; the coverage over 58 triangles, the nearest facet per pixel, mix(one tone, facet, lodK)) and the dev's
-   dumps and dials (rate, sched). The planner, the paths, the wind, the keep-outs, the hold, the occlusion, the words'
-   keep-off, the night's halo, the calm: the shape round's, unchanged.
+   dumps and dials (rate, sched). The planner, the paths, the wind, the keep-outs, the occlusion, the night's halo, the
+   calm: the shape round's, unchanged (but the words: below).
+
+   (the owner, 2026-11-05: "pls remove the masking boxes from behind the text completely. it's completely fine if the
+   birds fly behind/in front of it") THE WORDS ARE NO KEEP-OUT. No mask hides a bird where the words stand, no bird
+   steps back or fades near them, no path is refused, eased, held or let go for them, and the camera never waits for a
+   bird near them: a bird flies behind the words (the canvas lies under the page) as it would behind nothing. Every
+   other rule stands: a bird shows only across the window's edge or out of the distance, nothing follows the view, and
+   the perched gulls still land on the letters.
 
    (birds3d, 2026-10-27) THE PAPER BIRDS. The ink is gone from the drawing: every bird is now a 3D cut-paper body with
    two wings hinged at the shoulder and the wrist (birdform.js, posed by birdpose.js), beating at its kind's real rate,
@@ -35,8 +42,8 @@
    hand (drawBird: an "M" gull stood on a steep diagonal, its rises and drops reading as steps), the flights (skeins,
    lines, pairs, loose flocks, lone birds, thermals; gathering and loosening, stragglers, pairs changing sides), the
    calm (spans a second slowed to the page's calm, mostly gliding, few birds, empty sky), the planner (a path flown
-   whole in thought before a bird enters: clear of the words, of the edges it does not cross, of the other flights, one
-   flight to a band), the rhythm (at most two flights, three on a wide sky; the first within a second or two; the gaps;
+   whole in thought before a bird enters: clear of the edges it does not cross and of the other flights, one flight to
+   a band; the words, since 2026-11-05, no keep-out), the rhythm (at most two flights, three on a wide sky; the first within a second or two; the gaps;
    the sky thinning), the hand (round-capped strokes, the pose redrawn 12 times a second on twos, the boil re-rolled 6
    times a second, the bird gliding smoothly between drawings), the facing with its hysteresis, the appear.
 
@@ -46,7 +53,7 @@
    the autopilot's or the visitor's, sweeps the birds across the window with the land, and the camera can turn to a
    flight or away from it. The planner sees the camera's coming turn (HOST.ahead: the autopilot's course) and flies
    every path through it before a bird enters, so the birds still enter beyond an edge or out of the distance, keep
-   clear of the words and of each other where they will be seen, and leave the same way; their calm (pace, turns,
+   clear of each other where they will be seen, and leave the same way; their calm (pace, turns,
    growth) is the live's, judged against the world (the camera held still). A flight the view has left behind, or one
    the clouds have hidden, is let go unseen and the next comes as the first did. Air units (px at nearness 1) are
    metres by B_SPAN: a mid bird spans 3.2 m.
@@ -73,9 +80,8 @@
    the ink lifted toward the light); the night's light ink takes some of the sky's colour, as the live's grey did. It
    is drawn at the device's own resolution (round 2: the world's frame is drawn smaller and scaled up; the ink is not).
    It is hidden by the land in front of it (the scene's depth, per pixel) and by the clouds in front of it (the
-   clouds' own cover per pixel, weighted by how much of a cloud's visible lobes stand between it and the camera); it
-   steps back where the words stand (a bird nearer them than the live WORDS margin fades, gone at half of it, and the
-   mask's core is never inked). Under forced colours the world is not drawn and the birds fly alone, in CanvasText.
+   clouds' own cover per pixel, weighted by how much of a cloud's visible lobes stand between it and the camera); the
+   words hide nothing of it (it flies behind them). Under forced colours the world is not drawn and the birds fly alone, in CanvasText.
 
    What the module may use is HOST (the engine's w12b_birdhost.js and notes.md, "The birds' interface"): no DOM, no
    clock, no entropy of its own, no storage, no network; randomness is the engine's streams (HOST.rng), time the
@@ -124,9 +130,9 @@
 
   /* the sky */
   var OUT = 70;                // px beyond the window where a path begins and ends
-  var WORDS = 24;              // px of sky kept clear round the words (the name, bio and credit) ...
-  var LINKS = 20;              // ... and round the footer links
-  var ROOMY = 60;              // px: a path this far from the words and the window's edges is as good as any
+  /* (the owner, 2026-11-05: "pls remove the masking boxes from behind the text completely. it's completely fine if the birds fly behind/in front of it")
+     no sky is kept clear round the words: a bird flies behind them as behind any cloud's edge, on its own way */
+  var ROOMY = 60;              // px: a path this far from the window's edges is as good as any
   var EDGE = 10;               // px kept from each edge of the window a flight does not cross
   var APART = 48;              // px kept between two flights, always
   var FLIGHTS = [2, 3];        // flights in the sky at once, at most: more on a WIDE sky
@@ -296,7 +302,6 @@
   var SHADE = 0.008;           // the ink's share of the scene's light (a dark bird's black lifted a breath toward it; round 2's 0.035, with the air on top of the live's TONE, paled a goose at mid distance to half the live black's contrast; round 3's first 0.012 with AIR_INK 0.4 left DUNES's at 73-80 %)
   var AIR_INK = 0.25;          // (round 3) the share of the air's haze the ink takes (the engine's fog and ground haze at its distance): all of it paled DUNES's birds at 40-120 m to 61-72 % of the live black's contrast (ink2.py), ABOVE's to 82-87 %; 0.4 (with SHADE 0.012) 73-80 % and 87-90 %; 0.25 80-85 % and 90-93 %
   var INK_MIN = 2;             // (round 3) dark ink held at least this contrast against the frame under it (a far bird over dark land in the haze)
-  var CLEAR_BAND = 60;         // (round 2) the judge's preference for a band wholly above or below the words, on a window WIDE or wider (a path's room counts up to ROOMY 60; world5 E0 Fix 2: 20, and a drag swept flights at the lettered name's height across it)
   var GLARE = [0.62, 0.95, 0.35, 0.5];   // the light wrap: the glare where the frame's light under a stroke runs from [0] to [1] (with the bloom about it); the pen thinned by [2] of it, the ink lifted toward the light by [3] (round 2: 0.4 and 0.85 lifted a bird on ABOVE's great disc 77-93 levels, to within 18 of the disc: all but gone; now 45-64, a pale, thinner mark)
   var NIGHT = [0.3, 3.2];      // light ink (the night's words): mixed this far toward the sky's own light at the bird, and held at least this contrast against it
   /* (physics) the owner's two open decisions (MODEL.md 0), as the lab left them: the rate (RATE_MODE 'scaled': the
@@ -304,7 +309,7 @@
      (SCHED_MODE 'measured'; 'calm': the last round's glides on this beat; 'continuous': never gliding). Dev only:
      __world.birds({ rate, sched }), for the next flights */
   var RATE_MODE = 'class', SCHED_MODE = 'measured', WING_FROM = -30;   // (round 3, kinds: the owner's word 2026-11-04, the real order: labbird.js RATE_CLASS)
-  var FX = { air: true, lit: true, glare: true, land: true, cloud: true, mask: true };   // (birds3d: mask, dev: the words' keep-off, off only for the lab's pins with the words hidden)   // the effects (development: each can be turned off)
+  var FX = { air: true, lit: true, glare: true, land: true, cloud: true };   // the effects (development: each can be turned off)
 
   /* (round 3) the calm on the window, the words and the course's errors */
   var CALM_K = 0.45;           // the camera's turn asked to sweep the land across the window at most this share of the live's median pace there (HOST.calm: 0.72 deg/s on a 1440 px desktop, 0.9 on a phone; tried at 0.65: the sweep, a steady 18 px/s as the autopilot turns at the cap, raced or stalled the birds on the window) ...
@@ -319,26 +324,13 @@
   var CALM_SKIP = Infinity;    // (the course turning faster than this many times the calm's rate: the world's own hard turn, the calm on the window not judged there. Tried at 2.2: the planner flew paths through a cloud's way round and its birds raced across the window at up to 68 px/s (p98, DUNES s5 1440); off, a path through such a turn is not flown)
   var BAND_T = 3;              // s: two flights sharing a band longer than this of the trusted course: not this path (round 2: a moment of it)
   var ERR90 = [0, 0, 1, 0.1, 2, 0.4, 4, 1.6, 6, 3.5, 8, 5, 10, 6.5, 12, 9, 15, 13, 20, 20, 30, 30];   // (h s, deg) pairs: the course's yaw error at that horizon, its 90th percentile, a prior (predtest3, the calm on: DUNES s5 and ABOVE s7, their mean), learnt as the visit goes (errLearn)
-  var PITCH90 = 0.6;           // deg: the course's pitch and roll error, a vertical slack (measured under 0.2 deg at 30 s; the roll of a turn the course missed)
   var GUARD_T = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6];   // s ahead: each flight checked through the camera's near course ...
   var GUARD_EVERY = 12;        // ... every this many steps (0.2 s), each flight on a step of its own
-  var EASE_AT = 1.8;           // s: a flight that would come into the words' margin this far ahead or further is eased up or down ...
-  var EASE_MAX = 15;           // deg: ... climbing or sinking at most this much more steeply (the live's own climbs: CLIMB 10-20) ...
-  var EASEV_T = 1.5;           // s: ... the change of climb eased over this much of its flight
-  var GONE_AHEAD = 2.2;        // s: one no ease keeps clear goes whole (GONE_T 1.2 s) this far ahead of the margin (world5 E0 Fix 2: 1.4, and the fade then ran on into the margin when the view's pitch swept the flight down faster than foreseen: ABOVE s7's skein at 255.7 s)
-  var SB_HOLD = 0.3;           // s: a bird the words' margin has held (stepped back) this long: its whole flight goes (the drag's guard: the per-bird fade keeps the words clear meanwhile)
   var GBACK = 0.6;             // a flight whose birds would slide backward on the window this share of the next 2 s ...
   var WHEEL = 15;              // deg/s: ... wheels round toward the view's turn at this rate in the air ...
   var WHEEL_GAP = 10;          // s: ... at most once in this long
   var ACC_T = 2;               // s: a flight hanging or racing on the window changes its pace over this long ...
   var ACC_GAP = 3;             // s: ... at most once in this long
-  /* (round 3) the camera waits for the birds: a flight the view's turn is carrying onto the words, which its own way
-     keeps clear with the view held, has the turn held (HOST.calm at HOLD_K of the calm's rate; the engine eases its turn
-     out at its calm slew, HOLD_SLEW deg/s/s) for HOLD_T s a request, renewed while its gap stays under HOLD_GAP px and
-     the view's turn is the calm's own (not a cloud's way round, a solid's, nor the visitor's), HOLD_MAX s a flight in
-     all. Before this the guard let a whole flight go (or eased it) at every turn the course had not foreseen: 10 of
-     DUNES s5's 17 flights in 300 s faded together mid-sky, 30-60 px from the words */
-  var HOLD_K = 0.04, HOLD_T = 3, HOLD_GAP = 50, HOLD_MAX = 16, HOLD_SLEW = 0.3, HOLD_REST = 6;
   var TRIAL_SLICE = 200;       // path points: a trial's work a step at most, a bird's place counted at its cost (50 places; round 2: up to the step's whole quota)
   var SPOT_COST = 3;           // a bird's place (spot: its slot, drift, wander, gusts, wings) costs about this many path points
   var FORCED = false;          // forced colours: the birds alone, in CanvasText at full ink, in their own still view (the world is not drawn)
@@ -389,21 +381,15 @@
   }
   function angDiff(a, b) { var d = a - b; d -= Math.floor((d + Math.PI) / TAU) * TAU; return d; }
 
-  /* ---------------- the page: the window and the words (the engine's measure of them) ---------------- */
+  /* ---------------- the page: the window (the engine's measure of it) ---------------- */
 
-  var W = 0, H = 0, words = [], dirty = true, stackB = 0, stackT = 0, view = 1, VW = {};
+  var W = 0, H = 0, dirty = true, view = 1, VW = {};
   var MPU = 0.13;              // m an air unit (px at nearness 1): B_SPAN over a mid bird's span in air units
   function measure() {
     HOST.view(VW);
     W = VW.cssW; H = VW.cssH;
     view = clamp(Math.pow(Math.min(W, 1.6 * H) / 1100, 0.4), 0.72, 1.12);   // a small window shows its birds a little smaller
     MPU = B_SPAN / (SPAN * view);
-    words = [];
-    var w = HOST.words(), b = w.boxes, k = 1 / (VW.bdpr || VW.dpr || 1), l = Infinity, t = Infinity, r = -Infinity, bo = -Infinity, i;
-    for (i = 0; i < 3; i++) if (b[i * 4 + 2] > b[i * 4]) { l = Math.min(l, b[i * 4] * k); t = Math.min(t, b[i * 4 + 1] * k); r = Math.max(r, b[i * 4 + 2] * k); bo = Math.max(bo, b[i * 4 + 3] * k); }
-    if (r > l) { keep({ left: l, top: t, right: r, bottom: bo }, WORDS); stackB = bo; stackT = t; }   // (the name, bio and credit: the live .stack)
-    else { stackB = stackT = 0; }
-    for (i = 3; i < 5; i++) keep({ left: b[i * 4] * k, top: b[i * 4 + 1] * k, right: b[i * 4 + 2] * k, bottom: b[i * 4 + 3] * k }, LINKS);
     dirty = false;
   }
   /* the window or the words changed since they were measured (no garbage a step: numbers compared in place) */
@@ -415,7 +401,6 @@
     WK[20] = VW.cssW; WK[21] = VW.cssH;
     return ch;
   }
-  function keep(r, m) { if (r.right > r.left && r.bottom > r.top) words.push({ l: r.left, t: r.top, r: r.right, b: r.bottom, m: m }); }
 
   function across(A) { return clamp(A[0] + (W - 390) * (A[1] - A[0]) / 1050, A[0], A[1]); }
   function topSpeed() { return Math.min(SPEED[1], W / across(CROSS)); }
@@ -425,31 +410,15 @@
   function soft(v, top) { var k = KNEE * top; return v <= k ? v : k + (top - k) * (1 - Math.exp(-(v - k) / (top - k))); }
   function maxFlights() { var LCm = LIFE[skyCls()]; return (W >= WIDE ? FLIGHTS[1] : FLIGHTS[0]) - (LCm ? LCm.fewer : 0) - (placeSeen ? 1 : 0) - (STG.inView && !(STG.cur && STG.cur.place) ? 1 : 0); }   // (birds3d: and one fewer while a stage is in view)   // (one fewer while a place's thermal is seen)
 
-  /* the ink box (x ± hw, y ± hh) keeps its margin from every word box
-     (a flight already flying, when the page moves, half of it) */
-  var held = 1;
-  function clearOfWords(x, y, hw, hh) {
-    for (var i = 0, o, m; i < words.length; i++) {
-      o = words[i]; m = o.m * held;
-      if (x + hw > o.l - m && x - hw < o.r + m && y + hh > o.t - m && y - hh < o.b + m) return false;
-    }
-    return true;
-  }
   /* edges: 1 left, 2 right, 4 top, 8 bottom — the ones a flight crosses */
   function inView(x, y, hw, hh) { return x + hw > 0 && x - hw < W && y + hh > 0 && y - hh < H; }
   function withinEdges(x, y, hw, hh, e) {
     return (e & 1 || x - hw >= EDGE) && (e & 2 || x + hw <= W - EDGE) &&
            (e & 4 || y - hh >= EDGE) && (e & 8 || y + hh <= H - EDGE);
   }
-  /* open sky round the ink box: to the nearest word box, and to the edges the flight does not cross */
+  /* open sky round the ink box: to the edges the flight does not cross */
   function room(x, y, hw, hh, e) {
-    var g = ROOMY, i, o, dx, dy;
-    for (i = 0; i < words.length; i++) {
-      o = words[i];
-      dx = Math.max(o.l - x - hw, x - hw - o.r, 0);
-      dy = Math.max(o.t - y - hh, y - hh - o.b, 0);
-      g = Math.min(g, Math.sqrt(dx * dx + dy * dy));
-    }
+    var g = ROOMY;
     if (!(e & 1)) g = Math.min(g, x - hw);
     if (!(e & 2)) g = Math.min(g, W - x - hw);
     if (!(e & 4)) g = Math.min(g, y - hh);
@@ -458,14 +427,13 @@
   }
 
   /* the heights a level crossing can hold its centre at, the flight
-     reaching lo above it and hi below it: the window's height less EDGE,
-     less every word box's height (grown by its margin) and every other
-     flight's band, as a list of [from, to] intervals */
+     reaching lo above it and hi below it: the window's height less EDGE
+     and every other flight's band, as a list of [from, to] intervals */
   function openBands(lo, hi) {
-    var out = [[EDGE + lo, H - EDGE - hi]], i, j, o, a, b, next, cut = words.map(function (o) { return [o.t - o.m - BANDSLACK, o.b + o.m + BANDSLACK]; });   // (round 3: and the course's slack up and down)
+    var out = [[EDGE + lo, H - EDGE - hi]], i, j, o, a, b, next, cut = [];
     for (i = 0; i < flights.length; i++) if (!flights[i].away) cut.push([flights[i].yLo - BAND_GAP, flights[i].yHi + BAND_GAP]);   // one flight to a band (round 3: but one the view has turned from)
     for (i = 0; i < cut.length; i++) {
-      o = cut[i]; a = o[0] - hi; b = o[1] + lo;           // a centre in (a, b) puts the flight on the words' line, or in another's band
+      o = cut[i]; a = o[0] - hi; b = o[1] + lo;           // a centre in (a, b) puts the flight in another's band
       next = [];
       for (j = 0; j < out.length; j++) {
         if (out[j][1] <= a || out[j][0] >= b) next.push(out[j]);
@@ -480,17 +448,6 @@
   }
   /* how much of the window's height is open for a level crossing */
   function openSky() { return openBands(12, 12).reduce(function (a, b) { return a + b[1] - b[0]; }, 0); }
-  /* the words stand between two flights wherever the two share heights (on
-     a phone turned sideways, one flight each side of them): no train */
-  function between(A, B) {
-    var lo = Math.max(A.yLo, B.yLo, 0), hi = Math.min(A.yHi, B.yHi, H), i, o;
-    if (A.xLo > B.xLo) { o = A; A = B; B = o; }
-    for (i = 0; i < words.length; i++) {
-      o = words[i];
-      if (o.l >= A.xHi && o.r <= B.xLo && o.t - o.m - BAND_GAP <= lo && o.b + o.m + BAND_GAP >= hi) return true;
-    }
-    return false;
-  }
   /* a height in those bands, u of the way through their total length */
   function inBands(B, u) {
     var tot = 0, i;
@@ -510,7 +467,7 @@
      flight sets off, held still (the live site's own window: the birds' calm, their pace and turns against the world,
      are judged in it), and the coming view, the camera as it is predicted to turn, pitch and roll over the flight
      (HOST.ahead: the autopilot's own course; a drag is not foreseen): where every bird is seen, so it keeps clear of the
-     words, of the edges and of the other flights there */
+     edges and of the other flights there */
   var cam = { f: 1, c: 1, s: 0, x0: 0, y0: 0, hy: 0 }, floorY = 0;
   var FLOOR_T = 12;            // m: no flight lower than this over the ground under it (round 2: the ground under the path, not the camera's: flights cross low in front of the dunes)
   var OPEN_SKY = 1;            // the share of the window's height open to a level crossing, against the live's (scales the gaps and the retries) ...
@@ -522,7 +479,7 @@
     if (pitch === undefined || pitch !== pitch) {
       if (C && !FORCED) pitch = C.pitch;
       else {   // (no world camera: the live site's, the horizon low under the open sky)
-        var hy = clamp(Math.max(H * 0.8, stackB + WORDS + 60), H * 0.8, H * 0.95);
+        var hy = H * 0.8;
         pitch = Math.atan((hy - H / 2) / cam.f);
       }
     }
@@ -603,13 +560,11 @@
     return o;
   }
 
-  /* ---------------- (round 3) the course's own error, and the words' slack ---------------- */
+  /* ---------------- (round 3) the course's own error ---------------- */
 
   /* a running 90th percentile of the course's yaw error (deg) by horizon (1 s buckets to 30 s): started from ERR90,
      moved as the visit goes (ten times a second, while the planner's course reaches the present: its yaw against the
-     camera's own). A path is held clear of the words by their margin widened by what the course may have wrong there:
-     across, f x tan of that error (the view's turn moves a flight sideways); up and down, PITCH90 (the pitch is all but
-     exact) */
+     camera's own; read by the development record) */
   var EB = new Float64Array(31), ERR_ETA = 0.1;
   function errInit() {
     for (var b = 0, j; b <= 30; b++) {
@@ -625,17 +580,6 @@
     if (k < 1 || k >= VP.n || b < 1 || b > 30 || h > VP.end) return;
     e = Math.abs(angDiff(FL.view, VP.yaw[k])) / DEG;
     EB[b] = Math.max(0.05, EB[b] + (e > EB[b] ? 0.9 : -0.1) * ERR_ETA);
-  }
-  function slackX(h) { return cam.f * Math.tan(Math.min(errAt(h), 40) * DEG); }
-  function slackY() { return cam.f * Math.tan(PITCH90 * DEG); }
-  var BANDSLACK = 0;           // px: the open bands kept that much further from the words (the course's slack up and down: set as a path is proposed)
-  /* the ink box keeps its margin from every word box, widened by sx across and sy up and down */
-  function clearOfWordsS(x, y, hw, hh, sx, sy) {
-    for (var i = 0, o, m; i < words.length; i++) {
-      o = words[i]; m = o.m * held;
-      if (x + hw > o.l - m - sx && x - hw < o.r + m + sx && y + hh > o.t - m - sy && y - hh < o.b + m + sy) return false;
-    }
-    return true;
   }
   /* a point in the air on the window (x, y) and its nearness n (px on the window a unit in the air) */
   function proj(x, y, z, o) {
@@ -698,7 +642,7 @@
     kind: 'gull', P16: new Float64Array(48), X16: new Float64Array(48), D: new Float32Array(32), body: new Float64Array(3), nb: new Float64Array(3), fw: new Float64Array(3), lw3: new Float64Array(3), vw: new Float64Array(3), aw: new Float64Array(3),
     roll: 0, rollT: 0, rollOk: false, pitch: 0, slip: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), hold: 1, holdOk: false, holding: false, cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 }); })();
   function freeSlots() { var n = 0, b = 0, i; for (i = 0; i < slots.length; i++) if (!slots[i].busy) n++; else b++; return Math.max(0, Math.min(n, DRAW_MAX - b)); }
-  function dress(s, d) { s.d = d; s.on = false; s.vis = false; s.still = false; s.shownT = -1; s.ok = false; s.sbS = 1; s.sbT = -1; s.rollOk = false; s.eOk = false; s.holdOk = false; s.holding = false; s.hold = 1; s.cwNext = -1; s.cwAt = -1e9; s.cwHt.fill(-1e9); s.spanPx = 0; s.glideW = undefined; s.setOk = false; s.setFace = 0; s.setSide = 0; s.set = 0; s.setWant = 0; s.setAt = undefined; s.setK = undefined; s.nudX = 0; s.nudY = 0; s.sbH = undefined; s.sbHT = -1e9; s.lastOp = 0; s.tone = 0; }
+  function dress(s, d) { s.d = d; s.on = false; s.vis = false; s.still = false; s.shownT = -1; s.ok = false; s.rollOk = false; s.eOk = false; s.holdOk = false; s.holding = false; s.hold = 1; s.cwNext = -1; s.cwAt = -1e9; s.cwHt.fill(-1e9); s.spanPx = 0; s.glideW = undefined; s.setOk = false; s.setFace = 0; s.setSide = 0; s.set = 0; s.setWant = 0; s.setAt = undefined; s.setK = undefined; s.nudX = 0; s.nudY = 0; s.sbH = undefined; s.sbHT = -1e9; s.lastOp = 0; s.tone = 0; }
   function hide(s) { s.on = false; }
 
   /* ---------------- the paths: in the air, straight or wheeling ---------------- */
@@ -1262,7 +1206,7 @@
     F.v = F.vw = F.vPx / F.n0;                            // (units of the air a second)
     F.f = BW.LB.rate(kindOf(F), RATE_MODE);               // (physics: the lab's rate; each bird's own about it)
     F.flaps = S.flaps && S.flaps[0][0] > 8 && F.vPx < 0.8 * px * F.f ? FLAPS_SLOW : S.flaps;   // held back: it glides between bursts ...
-    g = Math.sqrt(clamp(v / F.vPx, 1, HOLD));             // ... and every kind glides the longer, the more it is slowed (HOLD here is the hold's state, var HOLD below, as it always was at this read: no upper bound applies; the old marks' 2.2, declared above it and overwritten, never did)
+    g = Math.sqrt(Math.max(v / F.vPx, 1));               // ... and every kind glides the longer, the more it is slowed (no upper bound applies; the old marks' 2.2, declared and overwritten, never did)
     if (F.flaps && !S.bound) F.flaps = [F.flaps[0], [F.flaps[1][0] * g, F.flaps[1][1] * g]];   // (not a finch's bound: its wings shut)
     F.air = Math.sqrt(Math.min(1, F.vPx / v));            // what moves it in seconds (a gust, its drift, a glide's sink) gentled
     F.hAmp *= F.air;                                      // as it is slowed, so its path turns no sharper for the slower pace
@@ -1454,7 +1398,7 @@
 
   /* fly a planned flight forward in thought, from flight time it.from to its
      end: every bird (only its bounding birds, on the probe pass) at its
-     nearness clear of the words, inside the edges it does not cross, never
+     nearness inside the edges it does not cross, never
      too near, never on top of another of its flight on the window, and
      APART from the other flights. Worked in slices of `budget` bird-steps:
      0 while unfinished, 1 when clear all the way (it.near its room: the
@@ -1626,8 +1570,8 @@
      pace and its calm, all in the still view (the camera as it will be when the flight sets off, held still: against
      the world). These, in place of the live's of the same names, fly each path through the coming view as well (the
      camera's predicted turn, pitch and roll): where its birds will be seen, so that they come into view only across an
-     edge or out of the distance (never in view as the flight is made), keep clear of the words, the edges and the other
-     flights there, are seen long enough to be worth the sky, and are not lost behind cloud or the land; and work out a
+     edge or out of the distance (never in view as the flight is made), keep clear of the edges and the other flights
+     there, are seen long enough to be worth the sky, and are not lost behind cloud or the land; and work out a
      path's extent in coarse steps then halves (round 1's 4 px steps made one path's working-out 1200 bird-steps in a
      single step) */
   var pv = {}, pv2 = {}, PW = {};
@@ -1711,7 +1655,7 @@
   /* fly a planned flight forward in thought through the coming view, a sample (STEP) at a time from the job's start:
      its calm against the world (the live's checks, in the still view: never too quick, growing or shrinking too fast,
      nor any bird turning too sharply), and where it is seen (the coming view): never in view as it is made, in view by
-     it.enterBy after it sets off, every bird at its nearness clear of the words, inside the edges it does not cross,
+     it.enterBy after it sets off, every bird at its nearness inside the edges it does not cross,
      never too near, never on top of another of its flight, APART from the other flights; done once it has been seen
      at least it.seenMin and none of it has been in view for LEAVE_T (the view turned from it, or it left), or at the
      course's end. Worked in slices of `budget` bird-steps: 0 while unfinished, 1 when clear all the way (it.near its
@@ -1726,7 +1670,7 @@
   }
   function trialRun(F, it, A, budget) {
     var M = F.m, probe = it.probe ? F.probe : null, cnt = probe ? probe.length : M.length, bx = it.bx, wv = it.wv, wt = it.wt, fc = it.fc,
-        w0 = work, i, j, m, row, g, gx, gy, e, tau, hw, hh, sw, sh, tp = it.tp, turns = !F.soar && !F.still, any, trust = true, hk, sx, sy,
+        w0 = work, i, j, m, row, g, gx, gy, e, tau, hw, hh, sw, sh, tp = it.tp, turns = !F.soar && !F.still, any, trust = true, hk,
         calm = !F.soar && !F.still && !it.live && !!HOST.calm, pmax = paceMax(), ox, oy, wx, wy, own;   // (an engine without the calm (HOST.calm) turns as it will: its turn cannot be planned round, and round 2's still-view calm is all there is)
     it.spent = 0;
     if (WIND_ON && !F.place) { windNow(); var wcy = F.cyw === undefined ? 1 : F.cyw, wsy = F.syw === undefined ? 0 : F.syw; WF[0] = (-wcy * WINDV[0] + wsy * WINDV[2]) / MPU; WF[2] = (wsy * WINDV[0] + wcy * WINDV[2]) / MPU; } else WF[0] = WF[2] = 0;   // (way-other: the wind in the flight's frame, air units a second)
@@ -1747,9 +1691,7 @@
       viewNeed(it.k0 + it.k);
       row = A ? aheadRow(A, it.k0 + it.k) : null;
       viewAtK(F, it.k0 + it.k);
-      /* (round 3) how far ahead the course is here, and what it may have wrong there: the words' margin widened by it
-         (across: the view's turn; up and down: its pitch and roll), all the way, never held to half (round 2 held a
-         path past T_TRUST to half the margin, and the drawer then faded birds one by one at the words' edge) */
+      /* (round 3) how far ahead the course is here: the trusted course */
       hk = (it.k0 + it.k) * STEP;
       trust = it.live || hk <= trustT();
       /* (round 3) the course turning harder than the calm lets the autopilot (a solid's or a cloud's way round, which the
@@ -1757,7 +1699,6 @@
          window is judged where the view keeps the calm (refusing every path through such a turn left DUNES s21's sky
          empty for its first 13 s) */
       var vi = Math.min(Math.max(it.k0 + it.k, 1), VP.n - 1), hard = !VP.still && VP.n > 1 && Math.abs(angDiff(VP.yaw[vi], VP.yaw[vi - 1])) / STEP > CALM_SKIP * calmBase();
-      sx = it.live ? 0 : slackX(hk); sy = it.live ? 0 : slackY();
       any = false;
       for (i = 0; i < cnt; i++) {
         m = M[probe ? probe[i] : i];
@@ -1797,15 +1738,6 @@
         if (it.k === 0 && !it.live && !F.still) return fail(it, 'pop');   // (in view as it is made: never)
         any = true;
         if (pv.n > NEAR_MAX) return fail(it, 'near');
-        if (!clearOfWordsS(pv.x, pv.y, hw, hh, sx, sy)) {
-          if (trust) return fail(it, 'words');
-          /* ('late': past the trusted course the course's error is wide: on the words themselves there, not this path;
-             within their widened margin, a path the less roomy (judge) and left to the guard, which eases a flight
-             that does come near them, or lets it go whole) */
-          held = 0.5; var lw = clearOfWords(pv.x, pv.y, hw, hh); held = 1;
-          if (!lw) return fail(it, 'late');
-          it.late += STEP;
-        }
         if (trust && !withinEdges(pv.x, pv.y, hw, hh, e)) return fail(it, 'edge');
         it.near = Math.min(it.near, room(pv.x, pv.y, hw, hh, e));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh);   // the band it flies in (and how far across)
@@ -1956,7 +1888,7 @@
     for (g = 0; g < n; g++) {
       if (BG[3 * g + 2] !== st || !(BG[3 * g] < BG[3 * g + 1])) continue;
       BB.yLo = BG[3 * g]; BB.yHi = BG[3 * g + 1]; BB.xLo = BG[3 * (g + 100)]; BB.xHi = BG[3 * (g + 100) + 1];
-      if (BA.yLo < BB.yHi + BAND_GAP && BA.yHi > BB.yLo - BAND_GAP && !between(BA, BB)) return false;
+      if (BA.yLo < BB.yHi + BAND_GAP && BA.yHi > BB.yLo - BAND_GAP) return false;
       BG[3 * g + 2] = -1;   // (done with this row's flight)
     }
     return true;
@@ -2025,19 +1957,13 @@
     return out.filter(function (v) { return v[1] > v[0]; });
   }
   function lineFits(F, qx, qy, hd, climb) {
-    var h = F.dir > 0 ? hd : Math.PI - hd, L = 40, dx, sl, top = EDGE + F.lo, bot = H - EDGE - F.hi, yl, yr, i, o, m, xa, xb, ya, yb, sy = slackY() + 2;
+    var h = F.dir > 0 ? hd : Math.PI - hd, L = 40, dx, sl, top = EDGE + F.lo, bot = H - EDGE - F.hi, yl, yr;
     unproj(qx, qy, F.n0, FWP);
     proj(FWP.x + L * Math.cos(h), FWP.y + L * Math.tan(climb), FWP.z + L * Math.sin(h), FPP);
     if (!(FPP.n > 0)) return false;
     dx = FPP.x - qx; if (Math.abs(dx) < 1e-6) return false;
     sl = (FPP.y - qy) / dx; yl = qy - qx * sl; yr = qy + (W - qx) * sl;
     if (yl - reachUp(F, yl) < top || yl + reachDn(F, yl) > bot || yr - reachUp(F, yr) < top || yr + reachDn(F, yr) > bot) return false;
-    for (i = 0; i < words.length; i++) {
-      o = words[i]; m = o.m; xa = Math.max(0, o.l - m); xb = Math.min(W, o.r + m);
-      if (xb <= xa) continue;
-      ya = qy + (xa - qx) * sl; yb = qy + (xb - qx) * sl;
-      if (Math.max(ya, yb) + reachDn(F, Math.max(ya, yb)) > o.t - m - sy - F.hi && Math.min(ya, yb) - reachUp(F, Math.min(ya, yb)) < o.b + m + sy + F.lo) return false;
-    }
     return true;
   }
   function bandFit(F, qx, qy, hd, climb) {
@@ -2060,7 +1986,7 @@
     /* (round 3) paths found behind cloud: the next ones nearer (the flight in front of the towers, not behind them) */
     if (F.n00 === undefined) F.n00 = F.n0;
     if (!F.soar) F.n0 = Math.min(F.n00 * (J.near ? 1.6 : 1 + 0.3 * Math.min(J.hid || 0, 2)), 0.9 * NEAR_MAX);
-    if (!J.bands) { BANDSLACK = slackY() + 2; J.bands = trueBands(floorClip(openBands(F.lo, F.hi), F), F); BANDSLACK = 0; }   // (round 3, step 1: narrowed by the flock's reach in depth)   // (round 3: the bands clear of the words' margin and the course's slack up and down, and over the floor)
+    if (!J.bands) J.bands = trueBands(floorClip(openBands(F.lo, F.hi), F), F);   // (round 3, step 1: narrowed by the flock's reach in depth, and over the floor)
     if (F.soar) {
       qy = inBands(J.bands, q.y);
       if (qy === null) { J.a = 1e9; return false; }      // no band holds the thermal (the job's tries are up)
@@ -2068,7 +1994,7 @@
       soarTimes(F, wp.x, wp.y, wp.z);
     } else {
       J.climb = F.climb && !J.fill && J.mode !== 'still' && J.a <= TRIES / 2;    // climbing away or coming down, if it finds room
-      open = J.bands.length > 0;                          // (no open band: the words stand across the whole sky, as on a phone turned sideways)
+      open = J.bands.length > 0;                          // (no open band: the other flights' bands fill the sky)
       for (var bi = 0, btot = 0; bi < J.bands.length; bi++) btot += J.bands[bi][1] - J.bands[bi][0];   // (round 3, step 1: a thin sky)
       J.diag = J.climb || (J.a > 2 * TRIES && J.best < 0 && J.a % 2 === 0) || ((!open || btot < THIN_SKY * H) && J.a % 2 === 0);   // no level crossing fits: try the steeper paths (now and then)
       /* (shape, step 4d: the lean's height) with LEAN_H > 0 a lean crossing is decided before its point, and that share of
@@ -2086,17 +2012,17 @@
         var aMinH = Math.max(0, SPEED[0] / Math.max(LEAN_N0, F.n0) + upH), pMinH = Math.atan2(aMinH, fwdH), pMaxH = Math.atan2(Math.max(aMinH, topH / LEAN_N0 + upH), fwdH);
         for (i = 0; i < 8; i++, r2next(q)) {
           var qxc = q.x * W, qyc = inBands(J.bands, q.y);
-          if (qyc === null || !clearOfWords(qxc, qyc, F.d.hw * F.n0, F.d.hh * F.n0) || !(unproj(qxc, qyc, F.n0, wp).y > floorY + 2 * F.span)) continue;
+          if (qyc === null || !(unproj(qxc, qyc, F.n0, wp).y > floorY + 2 * F.span)) continue;
           var elH = Math.atan2(wp.y, Math.sqrt(wp.x * wp.x + wp.z * wp.z)), pN = Math.atan(Math.tan(tlH) / Math.max(Math.tan(elH), 0.05)), cH = Math.abs(pN - clamp(pN, pMinH, pMaxH));
           if (cH < bestH - 1e-9) { bestH = cH; qxH = qxc; qyH = qyc; }
         }
         if (bestH === Infinity) return pfail(J, 'nopoint');
         qx = qxH; qy = qyH; i = 0;
       } else
-      for (i = 0; i < 8; i++, r2next(q)) {                // its middle somewhere in the open sky, never in the words ...
+      for (i = 0; i < 8; i++, r2next(q)) {                // its middle somewhere in the open sky ...
         qx = q.x * W;
         qy = J.diag || !open ? mix(q.y, 0.04, 0.96) * H : inBands(J.bands, q.y);   // ... a level crossing's in an open band
-        if (qy !== null && clearOfWords(qx, qy, F.d.hw * F.n0, F.d.hh * F.n0) && unproj(qx, qy, F.n0, wp).y > floorY + 2 * F.span) break;   // (round 3: nor under the floor where it crosses; step 1: a steeper path's point too)
+        if (qy !== null && unproj(qx, qy, F.n0, wp).y > floorY + 2 * F.span) break;   // (round 3: nor under the floor where it crosses; step 1: a steeper path's point too)
       }
       if (i === 8) return pfail(J, 'nopoint');
       plain = open && (J.mode === 'still' || J.fill || (J.mode === 'first' && J.a > TRIES / 4));   // (the first flight, if it finds no room soon, simply crosses)
@@ -2261,16 +2187,12 @@
     if (F.soar && sc < 40) return;                        // a thermal only in a roomy field: in a narrow band a ring looks trapped
     if (J.mode === 'still') for (i = 0; i < flights.length; i++) {   // one flight to a band (the still sky's: the live's, over the whole crossing; a moving sky's while both are seen, in the trial)
       G = flights[i];
-      if (J.it.yLo < G.yHi + BAND_GAP && J.it.yHi > G.yLo - BAND_GAP && !between(J.it, G)) { fail(J.it, 'band'); return; }   // ... unless the words stand between them
+      if (J.it.yLo < G.yHi + BAND_GAP && J.it.yHi > G.yLo - BAND_GAP) { fail(J.it, 'band'); return; }
     }
     hs = hiddenShare(J, F);
     if (hs > CLOUD_HID) { if (hs < 1) J.hid = (J.hid || 0) + 1; fail(J.it, hs >= 1 ? 'floor' : 'hidden'); return; }
-    sc += 0.25 * J.it.apart + (J.diag && !J.climb ? 0 : 40) + 8 * F.r() - 80 * hs - (J.far ? 10 : 0) - (J.mode === 'still' ? 60 * J.overLand : 0) - LATE_K * J.it.late;
+    sc += 0.25 * J.it.apart + (J.diag && !J.climb ? 0 : 40) + 8 * F.r() - 80 * hs - (J.far ? 10 : 0) - (J.mode === 'still' ? 60 * J.overLand : 0);
     var tat = J.it.readT > 0 ? J.it.tatT / J.it.readT : 0; if (LEAN_PLAN) { tat = J.it.readT > 0 ? (J.it.leanT || 0) / J.it.readT : 0; sc += LEAN_W * tat * Math.min(1, J.it.readT / 6); } else sc += 24 * tat; F.tattoo = tat;   // (way-path: the physical lean's share of its readable time, weighed by how long it is readable) F.sideShare = J.it.readT > 0 ? J.it.sideT / J.it.readT : 0;   // (birds3d: the tattoo's view preferred, a preference, never a gate)   // (round 3: the less, the longer it would pass near the words where the course is a guess)
-    /* (round 2) on a wide window, a band wholly above or below the words: a turn of the view sweeps a flight across the
-       window, and one at the words' own height is swept onto them (and steps back) */
-    var sy0 = slackY();   // (round 3: wholly clear of the words' margin and its slack)
-    if (W >= WIDE && stackB > stackT && (J.it.yHi < stackT - WORDS - sy0 || J.it.yLo > stackB + WORDS + sy0)) sc += CLEAR_BAND;
     if (sc > J.best) {
       if (J.it.end) F.dur = Math.max(J.it.end, J.it.last + 1);
       J.best = sc; J.keep = snapshot(F, 0); J.keep.yLo = J.it.yLo; J.keep.yHi = J.it.yHi; J.keep.xLo = J.it.xLo; J.keep.xHi = J.it.xHi;
@@ -2375,7 +2297,7 @@
   var NEXT_FORCE = null;   // (dev: { kind, n }: the next flight's, once)
   var FILL_T = 12;   // (round 3, step 1) s with no bird seen: the next flight a lone bird (or else a pair) on a plain crossing (the floor under the rhythm: no 30-s empty sky; at 18 s a pattern retried and a fill's pair refused left 28-s spells)
   var FIRST_FILL = 6;   // (round 3, step 1) s after load with no flight yet planned: the first one floored the same way
-  var RETRIES = 2, RETRY_LATER = 2, FIRST_LEAD = 1, LONE_REDRAW = 2, LATE_K = 6, AWAY_GRACE = 6, TRIAL_PAST = 10, HIDDEN_FILL = 5, HIDJOB = -1e9, nearJob = false;
+  var RETRIES = 2, RETRY_LATER = 2, FIRST_LEAD = 1, LONE_REDRAW = 2, AWAY_GRACE = 6, TRIAL_PAST = 10, HIDDEN_FILL = 5, HIDJOB = -1e9, nearJob = false;
   /* (round 3) the birds held by flights the view has turned from (they give way to a new flight that needs them) */
   function givesWay(G) { return G.away && !G.gone && t - G.lastSeen > AWAY_GRACE; }   // (a flight looked away from a moment keeps its birds: the view may be coming back)
   function awaySlots() { var n = 0; for (var i = 0; i < flights.length; i++) if (givesWay(flights[i])) n += flights[i].m.length; return n; }
@@ -2498,11 +2420,10 @@
   /* ---------------- (round 3) a flight steered in flight: its path spliced, the guard, the wheel ---------------- */
 
   /* A flight's path is planned whole before its first bird enters (the live's); in the turning world the camera can
-     still do what its course did not foresee (a new aim, a drag), and carry a flight toward the words, or turn against
-     it faster than it flies. So each flight is checked again a few seconds ahead, through the camera's near course
-     (guard()), and steered as a whole: eased up or down away from the words (a climb or a descent of at most EASE_MAX,
-     the live's own kind of path), wheeled round to fly with an unforeseen turn of the view, or, if neither keeps it
-     clear of the words, let go whole (GONE_T): never one bird faded out mid-sky while the rest fly on (round 2).
+     still do what its course did not foresee (a new aim, a drag), and turn against a flight faster than it flies. So
+     each flight is checked again a few seconds ahead, through the camera's near course (guard()), and steered as a
+     whole: its pace eased, or wheeled round to fly with an unforeseen turn of the view. The words are never a reason:
+     a bird flies behind them (the owner, 2026-11-05).
 
      A splice changes a flight's path from a point just ahead of its leader on: every bird flies the same path behind
      it, so each turns or climbs where the leader did (a wheel passing back down a line), and none moves where it is
@@ -2545,7 +2466,6 @@
     P.sp.push(S);
     return S;
   }
-  function unsplice(F) { var P = F.path; P.sp.pop(); if (!P.sp.length) P.sp = null; }
   /* the path point just ahead of every bird of the flight now (its leader's, and its drift forward) */
   function spliceAt(F, tau) {
     var lead = F.m[0];
@@ -2578,61 +2498,9 @@
     GV.n = GN; GV.t0 = t;
     return true;
   }
-  /* (round 3) the course with the view held (the hold): the camera's present turn (its last quarter second) eased out at
-     the engine's calm slew, its pitch and roll as they are; and whether its turn now is the calm's own (no faster than
-     the calm's rate and a little: not a cloud's way round, a solid's, nor the visitor's hand), which a hold does stop */
-  var GH = { yaw: new Float64Array(GN + 1), pitch: new Float64Array(GN + 1), roll: new Float64Array(GN + 1), n: 0 }, GC = GV;
-  var GT = { yaw: new Float64Array(GN + 1), pitch: new Float64Array(GN + 1), roll: new Float64Array(GN + 1), n: 0 };
-  var HOLD = { until: -1e9, on: 0, req: 0, rest: -1e9, w0: 0, spared: 0, refused: 0 };
-  /* the camera's turn now (rad/s, its last quarter second; NaN without a history) */
-  function camRate() {
-    if (CH.n < 2) return NaN;
-    var a = (CH.i + 31) % 32, b = (CH.i + 32 - Math.min(CH.n, 16)) % 32, dt = CH.t[a] - CH.t[b];
-    return dt > 0 ? angDiff(CH.yaw[a], CH.yaw[b]) / dt : NaN;
-  }
-  /* a course from the camera as it is now, its turn eased at the engine's calm slew from its rate now to w1 (rad/s).
-     (world5 E0 Fix 2) A hold stops the turn, never the pitch or the roll: they follow the engine's own forecast (GV),
-     from where they are now. Held at their present values, a pitch the autopilot was raising read as clear, the hold
-     was asked for again and again, and the view, pitching up, carried ABOVE s7's skein down onto the lettered name's
-     margin at 30 px/s for 2 s before the guard let it go (its birds stepped back at the words, 255.6 s) */
-  function gvAt(arr, h) {
-    if (GV.n < 2) return NaN;
-    var f = clamp((h + t - GVT) / GSTEP, 0, GV.n - 1), i = Math.min(Math.floor(f), GV.n - 2), a = f - i;
-    return arr[i] + (arr[i + 1] - arr[i]) * a;
-  }
-  function easedCourse(G, w1) {
-    var a = (CH.i + 31) % 32, w = camRate(), sl = HOLD_SLEW * DEG, k, h, y = 0, wk = w, dh = GSTEP / 4, q, p0 = gvAt(GV.pitch, 0), r0 = gvAt(GV.roll, 0), gp, gr;
-    if (w !== w) return false;
-    G.yaw[0] = CH.yaw[a]; G.pitch[0] = CH.pitch[a]; G.roll[0] = CH.roll[a];
-    for (k = 1; k < GN; k++) {
-      for (q = 0; q < 4; q++) { wk += clamp(w1 - wk, -sl * dh, sl * dh); y += wk * dh; }
-      gp = gvAt(GV.pitch, k * GSTEP); gr = gvAt(GV.roll, k * GSTEP);
-      G.yaw[k] = CH.yaw[a] + y; G.pitch[k] = CH.pitch[a] + (gp === gp && p0 === p0 ? gp - p0 : 0); G.roll[k] = CH.roll[a] + (gr === gr && r0 === r0 ? gr - r0 : 0);
-    }
-    G.n = GN;
-    return true;
-  }
-  function heldCourse() {
-    var w = camRate();
-    if (!(Math.abs(w) <= 1.5 * calmBase() + 0.1 * DEG)) return false;   // (turning faster than the calm lets it: not the autopilot's own turn, which is all a hold stops)
-    return easedCourse(GH, 0);
-  }
-  /* (held) the turn resumed: back to the rate it had when the hold began */
-  function turnCourse() { return easedCourse(GT, HOLD.w0); }
-  /* clear of the words (and over the floor) through GUARD_T on a course */
-  function clearOn(F, tau, G) { GC = G; var r = guardRun(F, tau, false), ok = r.gap >= 0 && !r.floor; GC = GV; return ok; }
-  /* would holding the view bring another flight into the words, one its turn keeps clear? */
-  function holdHarms(F0) {
-    for (var i = 0; i < flights.length; i++) {
-      var G = flights[i], tg = t - G.t0;
-      if (G === F0 || G.gone || G.place || G.still || G.soar || G.away || tg < -LEAD - 1) continue;
-      if (!clearOn(G, tg, GH) && clearOn(G, tg, GV)) return true;
-    }
-    return false;
-  }
-  /* the view for a flight h s from now, on the guard's course (GC: the engine's forecast, GV; or the held one, GH) */
+  /* the view for a flight h s from now, on the guard's course (GV: the engine's forecast) */
   function viewAtG(F, h) {
-    var G = GC, f = clamp((h + (G === GV ? t - GVT : 0)) / GSTEP, 0, G.n - 1), i = Math.min(Math.floor(f), G.n - 2), a = f - i, d, p, r;
+    var G = GV, f = clamp((h + t - GVT) / GSTEP, 0, G.n - 1), i = Math.min(Math.floor(f), G.n - 2), a = f - i, d, p, r;
     if (G.n < 2) { i = 0; a = 0; }
     d = angDiff(G.yaw[i] + (G.n > 1 ? angDiff(G.yaw[i + 1], G.yaw[i]) * a : 0), F.yaw);
     p = G.pitch[i] + (G.n > 1 ? (G.pitch[i + 1] - G.pitch[i]) * a : 0);
@@ -2640,30 +2508,14 @@
     if (p !== p) p = Math.atan2(cam.s, cam.c);
     PV.cd = Math.cos(d); PV.sd = Math.sin(d); PV.ct = Math.cos(p); PV.st = Math.sin(p); PV.cr = Math.cos(r); PV.sr = Math.sin(r); PV.k = -1;
   }
-  /* how far an ink box is from the words' margins (px; < 0: inside one), and which way is out: -1 up, 1 down */
-  var WG = { g: 0, side: 0 };
-  function wordsGap(x, y, hw, hh) {
-    var gmin = Infinity, i, o, dx, dy, g;
-    WG.side = 0;
-    for (i = 0; i < words.length; i++) {
-      o = words[i];
-      dx = Math.max(o.l - x - hw, x - hw - o.r, 0); dy = Math.max(o.t - y - hh, y - hh - o.b, 0);
-      g = Math.sqrt(dx * dx + dy * dy) - o.m;
-      if (g < gmin) { gmin = g; WG.side = y < (o.t + o.b) / 2 ? -1 : 1; }
-    }
-    WG.g = gmin;
-    return gmin;
-  }
-
   /* ---------------- the guard: each flight a few seconds ahead ---------------- */
 
-  /* a flight through the guard's course (GUARD_T): its least gap to the words' margins and when, the side to ease it
-     to, whether it would go under the floor; and how long its birds would slide backward on the window against the way
-     they face (GBACK: its share of the course, and the sweep against it) */
-  var GR = { gap: 0, at: 0, side: 0, floor: false, back: 0, sweep: 0, own: 0, slow: 0, fast: 0, w: 0, o: 0, n: 0 }, gq = {}, gq2 = {};
+  /* a flight through the guard's course (GUARD_T): how long its birds would slide backward on the window against the
+     way they face (GBACK: its share of the course, and the sweep against it), and its pace there */
+  var GR = { back: 0, sweep: 0, own: 0, slow: 0, fast: 0, w: 0, o: 0, n: 0 }, gq = {}, gq2 = {};
   function guardRun(F, tau, withBack) {
-    var i, j, m, h, d, hw, hh, g, n, prevX = GPX, prevOk = GPOK, nb = 0, nbk = 0, sw = 0, ow = 0, ns = 0, nf = 0, wsum = 0, osum = 0, nsum = 0, pmax = paceMax();
-    GR.gap = Infinity; GR.at = -1; GR.side = 0; GR.floor = false; GR.back = 0; GR.sweep = 0; GR.own = 0; GR.slow = 0; GR.fast = 0; GR.w = 0; GR.o = 0; GR.n = 0;
+    var i, j, m, h, d, hw, hh, n, prevX = GPX, prevOk = GPOK, nb = 0, nbk = 0, sw = 0, ow = 0, ns = 0, nf = 0, wsum = 0, osum = 0, nsum = 0, pmax = paceMax();
+    GR.back = 0; GR.sweep = 0; GR.own = 0; GR.slow = 0; GR.fast = 0; GR.w = 0; GR.o = 0; GR.n = 0;
     for (j = 0; j < F.m.length; j++) GPOK[j] = 0;
     for (i = 0; i < GUARD_T.length; i++) {
       h = GUARD_T[i];
@@ -2671,15 +2523,11 @@
       for (j = 0; j < F.m.length; j++) {
         m = F.m[j]; d = m.d;
         spot(F, m, tau + h, gq);
-        if (gq.ay < floorY) GR.floor = true;
         projV(gq.ax, gq.ay, gq.az, pv);
         n = pv.n;
         if (!(n > 0) || fadeOf(n) < 0.05) { GPOK[j] = 0; continue; }
         hw = d.hw * n; hh = (d.hh + BOB * d.span) * n;
         if (!inView(pv.x, pv.y, hw, hh)) { GPOK[j] = 0; continue; }
-        g = wordsGap(pv.x, pv.y, hw, hh);
-        if (g < GR.gap) { GR.gap = g; if (g < 0 && GR.at < 0) { GR.at = h; GR.side = WG.side; } }
-        if (g < 0 && GR.at >= 0 && h === GR.at && !GR.side) GR.side = WG.side;
         if (withBack && h <= 2.01) {
           /* its window motion since the last sample, and its own (the view held): backward against its facing? */
           if (GPOK[j]) {
@@ -2701,65 +2549,19 @@
   }
   var GPX = new Float64Array(3 * MAXP), GPOK = new Uint8Array(MAXP), GLOG = null;   // (GLOG, development: the guard's findings, when asked)
 
-  /* once a flight is in the sky (each, every GUARD_EVERY steps, on a step of its own): ahead GUARD_T, would any of its
-     birds come into the words' margin? Then: far enough ahead, ease the whole flight up or down away from them (the
-     least climb that keeps every bird clear through the course; none past EASE_MAX); else, or if no ease keeps it
-     clear, the whole flight goes (GONE_T: it fades together, the live's "a flight the words moved onto goes"). And
-     would its birds slide backward on the window, the view turning against them faster than they fly, for most of the
-     next two seconds? Then the flight wheels round toward the turn (WHEEL deg/s in the air, banked as it turns, by way
+  /* once a flight is in the sky (each, every GUARD_EVERY steps, on a step of its own): ahead GUARD_T, would its birds
+     hang or race on the window (its pace eased), or slide backward on the window, the view turning against them
+     faster than they fly, for most of the next two seconds? Then the flight wheels round toward the turn (WHEEL deg/s in the air, banked as it turns, by way
      of the distance: no bird loomed at), so it flies with it; a flight wheels at most once in WHEEL_GAP s */
   function guard(F) {
-    var tau = t - F.t0, r, at, side, c, i, s, st, g0, ok = false, L;
-    if (F.gone || F.place || F.still || F.soar || F.stage || tau < -LEAD - 1) return;   // (birds3d: a staged flight is planned whole on the held course; the words coming onto it let it go whole: track)   // (past its planned span too: a turn the course did not foresee may keep it in view)
-    /* (round 3) not while the visitor drags the view: their sweep carries birds across the words in a moment (each steps
-       back from them meanwhile, as the tracker has it); a flight it sweeps past the words flies on, there when they look
-       back (round 3's first cut let it go, and a skein the look-away swept across the name was lost) */
+    var tau = t - F.t0, r, s, st, L;
+    if (F.gone || F.place || F.still || F.soar || F.stage || tau < -LEAD - 1) return;   // (birds3d: a staged flight is planned whole on the held course)   // (past its planned span too: a turn the course did not foresee may keep it in view)
+    /* (round 3) not while the visitor drags the view: their sweep is their own, and every flight flies on through it */
     if (sweepNow() > DRAG_PX) return;
     if (!guardCourse()) return;
     r = guardRun(F, tau, true);
     STATS.guard.n++;
-    if (GLOG && (r.gap < 8 || r.back > 0)) GLOG.push({ t: +t.toFixed(2), id: F.id, kind: F.kind, gap: +r.gap.toFixed(1), at: r.at, side: r.side, back: +r.back.toFixed(2), sweep: +r.sweep.toFixed(1), own: +r.own.toFixed(1), eased: F.eased || 0, gv: GV.n, hold: t < HOLD.until ? 1 : 0 });
-    /* (round 3) the view's turn carrying it onto the words, or (held for it already) still near them: if its own way keeps
-       it clear with the view held, and holding it brings no other flight into them, the camera waits for it (the hold);
-       a flight's whole hold at most HOLD_MAX s. Held, a flight the hold itself is carrying onto the words (planned for
-       the turn) that the turn resumed would keep clear has the hold let go instead (and none asked for HOLD_REST s) */
-    var holding = t < HOLD.until, rg = r.gap;
-    if (rg < 0 || (F.holdT > 0 && holding && rg < HOLD_GAP)) {
-      var did = false;
-      if ((F.holdS || 0) < HOLD_MAX && (holding || t >= HOLD.rest) && heldCourse() && clearOn(F, tau, GH)) {
-        if (holding || !holdHarms(F)) {
-          if (!holding) { HOLD.on++; HOLD.w0 = camRate(); }
-          HOLD.until = Math.max(HOLD.until, t + HOLD_T); HOLD.req = t;
-          F.holdS = (F.holdS || 0) + GUARD_EVERY * STEP_DT; if (!(F.holdT > 0)) F.holdT = t;
-          if (rg < 0) STATS.guard.hold++;
-          did = true;
-        } else HOLD.refused++;
-      } else if (holding && rg < 0 && !(F.holdT > 0) && turnCourse() && clearOn(F, tau, GT)) {
-        HOLD.until = t; HOLD.rest = t + HOLD_REST; HOLD.spared++; did = true;   // (the hold let go for it: the turn resumes)
-      }
-      if (did) return;
-      r = guardRun(F, tau, true);   // (no hold keeps it clear: on as before, on the engine's course)
-    }
-    if (r.gap < 0) {
-      at = r.at; side = r.side || -1;
-      if (at >= EASE_AT && (F.eased || 0) < 3) {   // (time to ease it: the least climb or descent that keeps it clear)
-        s = spliceAt(F, tau); st = pathState(F, s, SPS); g0 = st.g;
-        for (i = 1; i <= 3 && !ok; i++) {
-          c = Math.tan(clamp(Math.atan(g0) - side * EASE_MAX * DEG * i / 3, -60 * DEG, 60 * DEG));   // (side -1: the words below it: up)
-          splice(F, s, null, 0, c, F.v * EASEV_T);
-          r = guardRun(F, tau, false);
-          if (r.gap >= 0 && !r.floor) ok = true; else unsplice(F);
-        }
-        if (ok) { F.eased = (F.eased || 0) + 1; F.dur = Math.max(F.dur, tau + 20); STATS.guard.eased++; return; }
-      }
-      if (at <= GONE_AHEAD) {   // (no ease keeps it clear: the whole flight goes, faded out before a bird is in the margin)
-        /* (round 3) in a passage's cloud (the view all but covered) it goes in a moment, unseen: the passage's climb pitches
-           the view up, sweeping every bird down the window faster than a fade of 0.4 s outruns */
-        F.gone = t; F.goneT = HOST.cover() > 0.4 ? clamp(at - 0.1, 0.15, GONE_T) : clamp(at - 0.5, 0.4, GONE_T);   // (world5 E0 Fix 2: faded out half a second before the margin, not 0.2 s)
-        STATS.landed.words++; STATS.guard.gone++; nextAsFirst();
-      }
-      return;
-    }
+    if (GLOG && r.back > 0) GLOG.push({ t: +t.toFixed(2), id: F.id, kind: F.kind, back: +r.back.toFixed(2), sweep: +r.sweep.toFixed(1), own: +r.own.toFixed(1), gv: GV.n });
     /* (round 3) its pace on the window: a turn the course did not foresee can leave a flight all but hanging there (its
        own way cancelled by the land's sweep: its drift then turns it this way and that) or racing; it flies a little
        faster or slower against the land, eased over ACC_T (never past a third over its kind's calm pace nor the calm's
@@ -2868,7 +2670,7 @@
     var i, P, dx, dz, seen = false;
     for (i = PLACES.length - 1; i >= 0; i--) {
       P = PLACES[i]; dx = P.cx - FL.x; dz = P.cz - FL.z;
-      if (P.gone && t - P.gone > GONE_T) { landPlace(P); continue; }   // (round 3: one the words came onto, faded out whole)
+      if (P.gone && t - P.gone > GONE_T) { landPlace(P); continue; }   // (round 3: one let go, faded out whole)
       var s = C && seenReal(P, t - P.t0, C);
       if (s) seen = true;
       if (P.stage) { if ((P.lastSeen !== undefined && t - P.lastSeen > 3 && !s) || (P.lastSeen === undefined && t - P.t0 > (P.enterT || 0) + 12)) landPlace(P); continue; }   // (birds3d: a staged wheel: once its birds are seen no more)
@@ -2894,8 +2696,8 @@
      night. Nothing is planned for the window: it shows what is in front of the camera. A flock's leader steers in the
      world (LV_DT steps, its route worked out LV_AHEAD s ahead of now) at its kind's real airspeed, turning no faster
      than its kind can, drifting with the wind; the others hold their places in its pattern, a moment behind on its
-     way (so turns ripple down it), wandering about them. Guardrails: a flock looks ahead (LV_LOOK) and goes round the
-     words and keeps LV_CLEAR from the camera's way; it is born out of sight (out of the window or beyond the distance
+     way (so turns ripple down it), wandering about them. Guardrails: a flock keeps LV_CLEAR from the camera's way (and
+     flies behind the words as it will: the owner, 2026-11-05); it is born out of sight (out of the window or beyond the distance
      its ink shows at) and let go out of sight; a window empty LV_EMPTY s has a flock sent in across its side. They
      are drawn as the world's places are (fixed in the world, never escorting the camera). */
   var LIVE_ON = true;
@@ -2923,7 +2725,7 @@
   var LV_DEGS = 6, LV_RATE_T = { near: 45, far: 90 };
   /* (v26) a flock follows the land under it this much of its rise and fall; and the birth check sees the camera keep its
      clearance over the land ahead of it (the camera climbs and sinks 0-2.6 m/s with the dunes: v25's check, holding its
-     climb, put a crossing 100 px or more off on the window 15 s on, into the words' margin) */
+     climb, put a crossing 100 px or more off on the window 15 s on) */
   var LV_TERRAIN = 0.8;
   var LIVE = { r: null, cls: '', rb: 0, side: 1, k: 0, nextT: 0, seenT: 0, look: 0 };
   /* (v26) the land's height under a point (the world's own ground; 0 where it gives none) */
@@ -3020,9 +2822,8 @@
     return o;
   }
   var LVQ2 = { x: 0, y: 0, z: 0, h: 0 };
-  /* (v13) a bird's box (the planner's and the words' guard's) with the night halo's reach at its own nearness now (as
-     measureBird3D counts it at a flight's: a living flock's distance changes, and v12 counted it at nearness 1, a third
-     of its reach at 0.3, so the guard foresaw a far bird reaching the words' margin late and it stepped back alone) */
+  /* (v13) a bird's box (the planner's) with the night halo's reach at its own nearness now (as measureBird3D counts it
+     at a flight's: a living flock's distance changes, and v12 counted it at nearness 1, a third of its reach at 0.3) */
   function lvBox(m, n) {
     var d = m.d, N = !FORCED && HOST.night ? HOST.night() : 0, pen = 0.5 * LINE[1] + 1.5;
     var hp = N > 0 && HALO_IN_BOX ? 4 * (W < 600 ? HALO_E[1] : HALO_E[0]) / Math.max(n, 0.15) : 0;
@@ -3113,11 +2914,10 @@
   }
   /* (v12) the fastest a flock's leader moves on the window over its next T s (px/s) and whether it shows at all: its
      route worked out that far (the camera on at its velocity, its look held), then put back as it was */
-  var LVR = { max: 0, seen: false, sb: 1, first: 1e9, dmin: 1e9 };
+  var LVR = { max: 0, seen: false, first: 1e9, dmin: 1e9 };
   function lvCap() { return LV_DEGS * DEG * (W / 2) / VW.tanX; }
   function lvRate(P, C, T) {
-    var R = P.tr, k, best = 0, seen = false, px = NaN, py = NaN, tau, sb = 1, rad = 0, q, m0 = P.m[0], first = 1e9, dmin = 1e9;
-    for (q = 0; q < P.m.length; q++) rad = Math.max(rad, Math.sqrt(P.m[q].a * P.m[q].a + P.m[q].b * P.m[q].b) + P.m[q].wP);
+    var R = P.tr, k, best = 0, seen = false, px = NaN, py = NaN, tau, m0 = P.m[0], first = 1e9, dmin = 1e9;
     lvExtend(P, T);
     for (tau = 0; tau <= T; tau += 0.5) {
       lvAt(P, tau, LVQ); lvProj(LVQ.x, LVQ.y, LVQ.z, C, tau, LVP);
@@ -3126,11 +2926,10 @@
       if (LVP.z > 1 && inView(LVP.x, LVP.y, 0, 0) && fadeFor(P, LVP.n) > 0.02) {
         seen = true; if (first > 1e8 && fadeFor(P, LVP.n) > 0.3) first = tau; if (px === px) best = Math.max(best, Math.sqrt((LVP.x - px) * (LVP.x - px) + (LVP.y - py) * (LVP.y - py)) / 0.5);
         px = LVP.x; py = LVP.y;
-        lvBox(m0, LVP.n);   // (v16: and the words: the whole flock's reach about its leader)
-        sb = Math.min(sb, stepBack(LVP.x, LVP.y, (m0.d.hw + rad / MPU) * LVP.n, (m0.d.hh + BOB * m0.d.span + rad / MPU * 0.6) * LVP.n));
+        lvBox(m0, LVP.n);   // (v13: its box at its nearness there)
       } else px = py = NaN;
     }
-    LVR.dmin = dmin; LVR.max = best; LVR.seen = seen; LVR.sb = sb; LVR.first = first; return LVR;
+    LVR.dmin = dmin; LVR.max = best; LVR.seen = seen; LVR.first = first; return LVR;
   }
   /* is a world point seen now (in the window, its ink showing)? */
   function lvSeen(x, y, z, C, P) {
@@ -3234,9 +3033,8 @@
         if (ci > 1) lvWhy('quick');
         var wx = wl * Rx + dd * Fx, wz = wl * Rz + dd * Fz, vbx = LVC.vx + wx, vbz = LVC.vz + wz;
         h = Math.atan2(vbx - WINDV[0], vbz - WINDV[2]);
-        /* (v5) the meeting aimed at a band of open sky (openBands: clear of the words, which on a phone fill most of the
-           window's middle: v4's phone flocks crossed through them and the words' guard took every one) and set back from
-           outside the window's side by half its width again (v4 began some just inside it) */
+        /* (v5) the meeting aimed at a band of open sky (openBands: clear of the other flights) and set back from outside
+           the window's side by half its width again (v4 began some just inside it) */
         var by = lvBand(r, 22); if (by === null) { lvWhy('noband'); continue; }
         lvAim(C, W / 2 + (r() * 2 - 1) * 0.2 * W / 2, by, A, LVQ);
         x = LVQ.x + LVC.vx * Tm - vbx * Tm; z = LVQ.z + LVC.vz * Tm - vbz * Tm; y = LVQ.y + LVC.vy * Tm;
@@ -3253,7 +3051,6 @@
       var RT = lvRate(P, C, beh === 'commute' || beh === 'migrant' ? LV_RATE_T.near : LV_RATE_T.far), cap = lvCap();
       if (RT.max > cap) { aK = Math.min(4, aK * RT.max / cap * 1.1); lvWhy('fast'); LIVE.k--; continue; }
       if (!RT.seen) { lvWhy('unseen'); LIVE.k--; continue; }
-      if (RT.sb < 0.98) { lvWhy('words'); LIVE.k--; continue; }
       if (rescue && !(RT.first <= 5)) { lvWhy('late'); LIVE.k--; continue; }
       if (RT.dmin < LV_CLEAR) { lvWhy('near'); LIVE.k--; continue; }   // (v25: its way kept clear of the viewer's at birth, as it no longer steers after)   // (v21: a rescue shows within 5 s: v20's, slower than the viewer, came out of the distance 35 s later)   // (v16: a way onto the words is not flown: v15's near skein, steering late, went into the margin while it faded)   // (v15: a way that never comes into the window is not flown)
       return P;
@@ -3269,12 +3066,12 @@
     var cls = skyCls(), i, P;
     if (!LIVE.r) LIVE.r = vstream(8800);
     if (cls !== LIVE.cls) { LIVE.cls = cls; LIVE.rb = TAU * LIVE.r(); LIVE.side = LIVE.r() < 0.5 ? 1 : -1; }   // (the evening's flight line: a world bearing drawn once a sky)
-    /* each flock's route worked out ahead; every LV_EVERY s its look ahead (the words, the camera's way) */
+    /* each flock's route worked out ahead; every LV_EVERY s its look ahead (its birds' boxes) */
     var look = t - LIVE.look >= LV_EVERY; if (look) LIVE.look = t;
     var live = 0, anySeen = false;
     for (i = PLACES.length - 1; i >= 0; i--) {
       P = PLACES[i]; if (!P.live) continue;
-      if (P.gone && t - P.gone > (P.goneT || GONE_T)) { landPlace(P); continue; }   // (the words' guard: gone together)
+      if (P.gone && t - P.gone > (P.goneT || GONE_T)) { landPlace(P); continue; }   // (gone together)
       lvExtend(P, t - P.t0 + LV_AHEAD);
       lvAt(P, t - P.t0, LVQ);
       var dx = LVQ.x - LVC.x, dz = LVQ.z - LVC.z, dist = Math.sqrt(dx * dx + dz * dz), ahead = dx * Math.sin(FL.psi || 0) + dz * Math.cos(FL.psi || 0);
@@ -3424,7 +3221,7 @@
   var FLOOR_K = 0.08;          // (way-form: unused but in the planner's pad) the pen floor is now today's pen itself: LINE's width for the bird's ink span (1.3 + 0.035 span, 1.5-2.5 CSS px, in quarter px), so the wing's stroke is the tattoo's stroke at every size
   var HOLD_POSE = [3, 8];      // device px of span: smaller, the beat's swing eases into the held glide (a speck holds its glide). (physics: the measured beat in full from 8 px; the shape round held it in from 16, and a 1440 px desktop's birds, 10-25 px, beat partly held 68 % of their time, a tenth of it at under 0.65 of the measured stroke: the stiffness the owner saw)
   var LEAN_TRIM = 0;           // deg: 0 the physics; 16 a held bank away from the camera while gliding (the B film; sideslip disclosed)
-  var HALO_IN_BOX = true;      // at night the halo counts in the bird's box (nothing a bird adds comes within the words' margins)
+  var HALO_IN_BOX = true;      // at night the halo counts in the bird's box
   var PAPER = [0.94, 0.911, 0.853];   // the paper's albedo, linear (OKLab L 0.97, chroma 0.010, hue 85: a warm white)
   var WRAP = 0.45, TRANS = 0.3, BOUNCE = 0.45, FOLD = 0.06, PAPER_GAIN = 1.08;   // (PAPER_GAIN: calibrated on the realms' day films, A16: white on blue +0.10 OKLab L in 80 % and more)   // the sun wrapped about the paper; through it from behind; the cloud sea's light under it; the fold's whisper
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
@@ -3605,7 +3402,7 @@
   }
 
   /* (physics) the old burst's blend (beatInfo) is gone: the lab's envelopes blend glide and beat (BW.poseS) */
-  var wa = {}, wb = {}, wc = {}, pa = {}, pb = {}, pc = {};   // (scratch points: where a bird is, and through the camera)
+  var wa = {}, wb = {}, pa = {}, pb = {};   // (scratch points: where a bird is, and through the camera)
   var PGL22 = new Float64Array(22), WO = { swing: 1, shut: null };
   var wq = {}, wa3 = {}, wc3 = {}, VV = [0, 0, 0], AA = [0, 0, 0];
   function smoothK(a, b, x) { return ease((x - a) / (b - a)); }
@@ -3999,7 +3796,7 @@ layout(location = 2) in vec4 aE;    // the bird's one tone (linear, before the a
 layout(location = 3) in vec4 aB;    // its body from the camera (m), the land's slack (m)
 layout(location = 4) in vec4 aC;    // how much of the cloud before it stands in front of it: at the left tip, the body, the right tip; the night (0 .. 1)
 layout(location = 5) in vec4 aM;    // the halo's e-folding (device px); the hold (the light's scale, 1 none); the gift's write-on (s, -1 none); its way along the M
-layout(location = 6) in vec4 aL;    // the facets' share (lodK), a guest (1: the words' keep-off and the land's depth not applied), -, -
+layout(location = 6) in vec4 aL;    // the facets' share (lodK), -, -, -
 uniform vec2 uOut;                  // the canvas (device px)
 uniform vec4 uGr;                   // the composite's exposure, saturation; -; the air (1 on)
 uniform vec3 uLift, uGain;
@@ -4030,12 +3827,12 @@ void main() {
 }`;
   var FS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + `
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
-uniform sampler2D uDepth, uCloud, uHz, uInkKeep, uBloom;
+uniform sampler2D uDepth, uCloud, uHz, uBloom;
 uniform highp sampler2D uPts; // the birds' rows: 46 points (device px, y up; 1/depth), then 30 facets' light (linear)
 uniform vec2 uOut;
 uniform vec4 uSc;     // the scene's uv scale (x, y), the clouds' (x, y)
-uniform vec4 uMk;     // the keep-off mask's uv scale (x, y), the clouds' last texel (x, y)
-uniform vec4 uLand;   // the land hides (1 on), the clouds hide (1 on), the canvas's px over the device's (the edge), the words' mask (1 on)
+uniform vec2 uCl;     // the clouds' last texel (x, y)
+uniform vec3 uLand;   // the land hides (1 on), the clouds hide (1 on), the canvas's px over the device's (the edge)
 uniform vec4 uBl;     // the bloom's uv scale (x, y), its gain, the light wrap (1 on)
 uniform vec4 uGl;     // the light wrap: the bloom's light from, to; the paper thinned by, lifted by
 uniform vec4 uMode;   // forced colours (1); the glow's grey as encoded at night; the halo's strength; -
@@ -4132,7 +3929,7 @@ void main() {
      core here says so by its depth (the half-resolution depth holds the land's nearest and the cores'); without a core
      (a soft edge, a thin veil) the lobes' weight along the bird's span (from its left tip to its right tip) */
   if (uLand.y > 0.5) {
-    float ca = texture(uCloud, min(uv * uSc.zw, uMk.zw)).a;
+    float ca = texture(uCloud, min(uv * uSc.zw, uCl)).a;
     if (ca > 0.002) {
       ivec2 hsz = textureSize(uHz, 0), hp = clamp(ivec2(uv * uSc.zw * vec2(hsz)), ivec2(0), hsz - 1);
       float zh = linZ(texelFetch(uHz, hp, 0).r);
@@ -4144,8 +3941,9 @@ void main() {
       vis *= 1.0 - ca * front;
     }
   }
-  /* the words' own ground is never touched: the keep-off (their ink boxes grown 2 px), bird and halo alike */
-  if (uLand.w > 0.5 && vL.y < 0.5) { vec4 kp = texture(uInkKeep, uv * uMk.xy); vis *= 1.0 - smoothstep(0.55, 0.95, max(kp.r, kp.g)); }   // (life: a guest, vL.y 1, is exempt: its path is planned clear of the line, credit and links)
+  /* (the owner, 2026-11-05: "pls remove the masking boxes from behind the text completely. it's completely fine if the
+     birds fly behind/in front of it") nothing about the words hides a bird: the canvas lies behind them, and a bird
+     crossing them is drawn whole, under the letters */
   vec3 col = vCol.rgb;
   if (uMode.x < 0.5) {
     /* the near bird's planes: its facet's own light, through the same air, hold and grade, mixed in by lodK */
@@ -4158,7 +3956,7 @@ void main() {
   oC = vec4(col * a + hc, a);
 }`;
   var NF = 28, UB = new Float32Array(4 * MAXP), PTW = NV + NFAC + 4, BTX = new Float32Array(MAXP * PTW * 4), BT = null, PTS_UNIT = 6;   // (physics: 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6)
-  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UMK = new Float32Array(4), ULAND = new Float32Array(4), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
+  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
   /* the paper's program: asked for as the module is made (the engine links it while its still sky shows, never in
      flight); drawn once it is linked */
   function makeProgram() { if (!PROG && !BROKEN) PROG = HOST.program(VS_PAPER, FS_PAPER, 'paper'); }
@@ -4191,10 +3989,10 @@ void main() {
     var r = HOST.linked(PROG);
     if (r === 'lost' || r === false) { if (r === false && PROG.u && !PROG.ok) BROKEN = true; return false; }
     if (!RING) bootRing();   // (the harness's stills and forced colours, which have no boot: made at the first draw)
-    if (!SAMPLERS) {   // (the samplers' units, once: uDepth 2, uCloud 4, uBloom 5, uInkKeep 12, uHz 14)
+    if (!SAMPLERS) {   // (the samplers' units, once: uDepth 2, uCloud 4, uBloom 5, uHz 14)
       gl.useProgram(PROG.p); var u = PROG.u;
       if (u.uDepth) gl.uniform1i(u.uDepth, 2); if (u.uCloud) gl.uniform1i(u.uCloud, 4); if (u.uBloom) gl.uniform1i(u.uBloom, 5);
-      if (u.uInkKeep) gl.uniform1i(u.uInkKeep, 12); if (u.uHz) gl.uniform1i(u.uHz, 14); if (u.uPts) gl.uniform1i(u.uPts, PTS_UNIT);
+      if (u.uHz) gl.uniform1i(u.uHz, 14); if (u.uPts) gl.uniform1i(u.uPts, PTS_UNIT);
       SAMPLERS = true;
     }
     return true;
@@ -4293,17 +4091,8 @@ void main() {
         if (gE >= 0 || (F.gift && s.gW > 0)) app = 1;
         if (F.live) app = 1;   // (the living sky: a bird shows by crossing the window's edge or coming out of the distance, never by a fade in time)   // (the gift's write-on is its entry: no fade beside it)
         if (!moving) s.still = true;
-        /* the step back from the words, on the exact box (the halo's reach counted at night) */
-        var sw = moving ? sweepNow() : 0, hwx = (s.bx1 - s.bx0) / 2, hhy = (s.by1 - s.by0) / 2, sb = stepBack((s.bx0 + s.bx1) / 2, (s.by0 + s.by1) / 2, hwx, hhy, sw > DRAG_PX ? sw * SB_LEAD : 0);
-        if (moving && s.sbT >= 0) sb = Math.min(sb, s.sbS + SB_UP * Math.max(0, tr - s.sbT));
-        /* (fix round) held at its lowest for SB_HOLD_T s before it may rise (at SB_UP a second): the beat's wings moving
-           the exact box in and out of the margin no longer blink the bird at the beat's rate (round 2: 0.80, 0.24, 0.75,
-           0.21, 0.70 in a second beside the name at night); a fall is followed at once */
-        if (moving) { if (!(s.sbH <= 1) || sb <= s.sbH) { s.sbH = sb; s.sbHT = tr; } else if (tr - s.sbHT > SB_HOLD_T) s.sbH = Math.min(sb, s.sbH + SB_UP * dt); sb = s.sbH; }
-        if (F.gone) { if (!(s.sbG <= 1)) s.sbG = sb; sb = s.sbG = Math.min(s.sbG, sb); } else s.sbG = undefined;
-        if (F.live) sb = 1;   // (the living sky: no step back, which eases in time; the words' keep-off hides its ink where the words stand)
-        var op = (FORCED ? 1 : fadeFor(F, s.n)) * app * gone * sb * (1 - ease((s.n - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])));
-        s.lastOp = op; s.lastApp = app; s.lastSB = sb; s.op = op;
+        var op = (FORCED ? 1 : fadeFor(F, s.n)) * app * gone * (1 - ease((s.n - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])));
+        s.lastOp = op; s.lastApp = app; s.op = op;
         if (op <= 0.003) continue;
         lightBird(s, L, !moving, dt);
         holdTone(s, F, !moving, dt);
@@ -4330,8 +4119,8 @@ void main() {
     HOST.view(VW);
     UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = FX.air ? 1 : 0;
     USC[0] = VW.sUx; USC[1] = VW.sUy; USC[2] = VW.hUx; USC[3] = VW.hUy;
-    UMK[0] = VW.mUx; UMK[1] = VW.mUy; UMK[2] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UMK[3] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
-    ULAND[0] = FX.land && tex ? 1 : 0; ULAND[1] = FX.cloud && tex ? 1 : 0; ULAND[2] = clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) > 1 ? 1 / clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) : 1; ULAND[3] = tex && FX.mask ? 1 : 0;
+    UCL[0] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UCL[1] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
+    ULAND[0] = FX.land && tex ? 1 : 0; ULAND[1] = FX.cloud && tex ? 1 : 0; ULAND[2] = clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) > 1 ? 1 / clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) : 1;
     UBL[0] = VW.bUx || 1; UBL[1] = VW.bUy || 1; UBL[2] = VW.bloom || 0; UBL[3] = FX.glare && tex ? 1 : 0;
     UGL[0] = GLARE_P[0]; UGL[1] = GLARE_P[1]; UGL[2] = GLARE_P[2]; UGL[3] = GLARE_P[3];
     var fc = FORCED && HOST.forced ? HOST.forced() : null;
@@ -4340,7 +4129,7 @@ void main() {
     var u = P.u;
     gl.uniform2f(u.uOut, VW.outW, VW.outH); gl.uniform4fv(u.uGr, UGR);
     gl.uniform3fv(u.uLift, E ? E.lift : [0, 0, 0]); gl.uniform3fv(u.uGain, E ? E.gain : [1, 1, 1]);
-    gl.uniform4fv(u.uSc, USC); gl.uniform4fv(u.uMk, UMK); gl.uniform4fv(u.uLand, ULAND);
+    gl.uniform4fv(u.uSc, USC); gl.uniform2fv(u.uCl, UCL); gl.uniform3fv(u.uLand, ULAND);
     gl.uniform4fv(u.uBl, UBL); gl.uniform4fv(u.uGl, UGL); gl.uniform4fv(u.uMode, UMODE); gl.uniform3fv(u.uInkF, UINKF);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
@@ -4364,7 +4153,7 @@ void main() {
     INST[o + 12] = s.body[0]; INST[o + 13] = s.body[1]; INST[o + 14] = s.body[2]; INST[o + 15] = slack;
     INST[o + 16] = cloudOn ? s.cw[0] : 0; INST[o + 17] = cloudOn ? s.cw[1] : 0; INST[o + 18] = cloudOn ? s.cw[2] : 0; INST[o + 19] = N;
     INST[o + 20] = haloE; INST[o + 21] = hold; INST[o + 22] = gE; INST[o + 23] = gdir;
-    INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;   // (life: [25] 1 a guest)
+    INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;
   }
   var GIFT_T = 1.0;   // s: the gift's write-on, whole (outline 0.7, paper 0.3; fix round: no spark)
   var GLARE_P = [0.02, 0.09, 0.35, 0.5];   // the light wrap: the bloom's light under the bird from, to; the paper thinned by (px), lifted by
@@ -4387,39 +4176,12 @@ void main() {
   }
   function p46of(s, k) { if (!s.D46) return null; var o = []; for (var i = 0; i < NV; i++) o.push(+(s.D46[2 * i] / k).toFixed(2), +(H - s.D46[2 * i + 1] / k).toFixed(2)); return o; }
 
-  /* a bird near the words steps back: by its ink box's distance to theirs, faded within their margin (WORDS, LINKS),
-     gone at SB_GONE of it (round 2: the live's "ink never within 12 px of the words" holds when a drag, which no plan
-     foresees, sweeps a bird toward them; round 1 faded it out only at the box: ink at a third, 11 px off, in W8).
-     (world5 E0, Fix 2) gone at three quarters of the margin, 18 px from the name's ink, no longer at half (12 px): the
-     lettered page's words are smaller than the bio's were, a drag sweeps birds nearer them, and the faint ink left
-     between 12 and 18 px was the least distance the judged runs measured (14.6 px against round 3's 17.9) */
-  var SB_GONE = 0.75;
-  /* (world5 E0, Fix 3: the drag policy, for E4 to confirm) while the visitor drags the view (the window swept faster
-     than DRAG_PX) the step back begins further out, by SB_LEAD s of the sweep (`ext`, px), so a bird swept toward the
-     words at 800 px/s fades over a fifth of a second instead of vanishing in one frame across the 6 px of the band
-     (verify-regress-2: 2 vanishes in DUNES s21's drag); it is gone at the same 18 px. And a flight a drag sweeps into
-     the words' margin goes whole (track: SWEPT), as the live's flight the words moved onto goes, rather than stepping
-     back bird by bird and coming out from behind the words when the drag ends */
-  var SB_AHEAD = 1.2, SB_AHEAD_CAM = 0.45, SB_GO_T = 0.9, SB_PRED = 0.6, SB_PROBES = 6;   // (E1.1: how far ahead in time a bird's way on the window is foreseen; its flight's quick fade, s; the step back foreseen that lets it go. Fix 2: 0.45 -> 1.2 s along its planned path, the camera's sweep at most 0.45 s of it; the fade 0.3 -> 0.9 s)
-  var SB_LEAD = 0;
-  var SB_HOLD_T = 0.6;   // (fix round) s: a beat and more: the step back's lowest held this long   // (Fix 3: tried at 0.2 s, the suite's step-backs went 7 -> 32 and its re-entries 30 -> 45 for one vanish fewer (2 -> 1): off)
-  function stepBack(x, y, hw, hh, ext) {
-    var f = 1, i, o, dx, dy, g, m;
-    ext = ext > 0 ? ext : 0;
-    for (i = 0; i < words.length; i++) {
-      o = words[i]; m = o.m;
-      dx = Math.max(o.l - x - hw, x - hw - o.r, 0); dy = Math.max(o.t - y - hh, y - hh - o.b, 0);
-      g = Math.sqrt(dx * dx + dy * dy);
-      if (g < m + ext) f = Math.min(f, ease((g - SB_GONE * m) / ((1 - SB_GONE) * m + ext)));
-    }
-    return f;
-  }
   var FLIGHT_ID = 0;
-  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, words: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, eased: 0, gone: 0, wheeled: 0, held: 0, paced: 0, hold: 0 }, away: 0, back: 0 };
+  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, eased: 0, gone: 0, wheeled: 0, held: 0, paced: 0, hold: 0 }, away: 0, back: 0 };
 
   /* ---------------- the sky's clock (the engine's fixed steps; no clock is read) ---------------- */
 
-  var t = 0, phase = -1, tNext = 0, misses = 0, stills = 0, firstNext = true, STEP_DT = 1 / 60, GONE_T = 1.2, APPEAR_T = 1, SB_UP = 2, STILL_Q = 1500, STILL_G = 40;
+  var t = 0, phase = -1, tNext = 0, misses = 0, stills = 0, firstNext = true, STEP_DT = 1 / 60, GONE_T = 1.2, APPEAR_T = 1, STILL_Q = 1500, STILL_G = 40;
 
   /* how long a flight is in view, near enough (as its trial saw it through the coming view) */
   function inViewFor(F) { return Math.max(4, F.seenSpan || (F.dur - F.from - 2 * OUT / (F.v * F.n0 || SPEED[1]))); }
@@ -4434,7 +4196,7 @@ void main() {
     if (F) { misses = 0; tNext = t + (mode === 'first' ? pick(F.r, [0.12, 0.25]) * inViewFor(F) : gapAfter(F)); }   // the second a few seconds after the first
     else { misses++; tNext = t + Math.min(2 * RETRY, RETRY * misses) * OPEN_SKY * (t - lastSeenAny > EMPTY_T ? 0.35 : 1); }   // no room (the bands are taken): look again a little later (soon, in an empty sky)
   }
-  var lastSeenAny = 0, EMPTY_T = 1.5, BACK_T = 2;
+  var lastSeenAny = 0, EMPTY_T = 1.5;
   var GAP_K = 1;               // (round 3) the gaps between flights, on the live's
   /* (round 3) the sky's own measure of how full it has been: the birds on the window, a running mean over CROWD_T s; the
      gaps stretched as far as it is over the live's own (3.3 birds on a phone, 4.2 at 1440: a flight in the turning
@@ -4466,30 +4228,18 @@ void main() {
      on the window have been behind cloud */
   var seenNow = 0;
   function track(C) {
-    var i, j, F, m, s, tau, c, dx, dy, d, vis, li, any, cl, on, sbN, held, quick;
+    var i, j, F, m, s, tau, c, dx, dy, d, vis, li, any, cl, on;
     seenNow = 0;
-    var dragging = sweepNow() > DRAG_PX;
     for (li = 0; li < 2; li++) for (i = 0; i < (li ? PLACES : flights).length; i++) {
-      F = (li ? PLACES : flights)[i]; tau = t - F.t0; any = false; cl = true; on = 0; held = false; quick = false;
+      F = (li ? PLACES : flights)[i]; tau = t - F.t0; any = false; cl = true; on = 0;
       for (j = 0; j < F.m.length; j++) {
         m = F.m[j]; s = m.s; if (!s) continue; d = s.d;
         where(F, m, tau, wb); projReal(wb.x, wb.y, wb.z, C, tmp3);
         vis = tmp3.z > 1 && fadeFor(F, tmp3.n) >= 0.02 && inView(tmp3.x, tmp3.y, d.hw * tmp3.n, d.hh * tmp3.n);
-        if (!vis) { if (s.vis) { s.vis = false; s.outT = t; } s.still = false; s.sbT = -1; s.sbLow = 0; s.wpT = -1; continue; }   // (out of view: when it is back, below)
+        if (!vis) { if (s.vis) { s.vis = false; s.outT = t; } s.still = false; s.wpT = -1; continue; }   // (out of view: when it is back, below)
         on++; if (!(s.wf > 0.5)) cl = false; if (!li) seenNow += F.kind === 'ribbon' ? 0.2 : 1;   // (birds3d: a speck a fifth of a bird)
-        /* (seen: in view, and neither behind the words' veil nor behind cloud: a flight the turn of the view has carried
-           behind the words, or the clouds hide, is not kept for the sky as if it were seen) */
-        sbN = stepBack(tmp3.x, tmp3.y, d.hw * tmp3.n, (d.hh + BOB * d.span) * tmp3.n);
-        if (!(s.wf > 0.5) && sbN > 0.3) any = true;
-        /* (round 2) its step back from the words as drawn: at once toward them, back out at SB_UP a second (a fast sweep
-           crosses the 12 px of the fade in a frame: without this a bird swept clear of the words flashed back in full) */
-        s.sbS = s.sbT >= 0 ? Math.min(sbN, s.sbS + SB_UP * (t - s.sbT)) : sbN; s.sbT = t;
-        /* (round 3) a bird the words' margin holds for a moment (the guard foresees nearly all: a drag does not): its
-           whole flight goes, fading together, as the live's flight the words moved onto goes; the per-bird fade only
-           keeps the words clear meanwhile. Round 2 kept the rest flying while one bird after another dissolved */
-        s.sbLow = sbN < 0.95 && !dragging ? (s.sbLow || 0) + 5 * STEP_DT : 0;   // (a drag, the visitor's own sweep, carries birds across the words in a moment: the per-bird fade alone, then)
-        if (s.sbLow > SB_HOLD) held = true;
-        if (dragging && SWEPT && sbN < 0.95) { held = true; quick = true; }   // (Fix 3: a flight a drag sweeps into the words' margin goes whole; E1.1: quickly)
+        /* (seen: in view, and not behind cloud; the words hide no bird) */
+        if (!(s.wf > 0.5)) any = true;
         /* (E1.1) the bird's own speed on the window, as drawn (its flight's motion and the camera's, a drag's
            included): from where it was last step, eased over about 0.08 s */
         if (s.wpT > 0 && t - s.wpT > 0 && t - s.wpT < 0.2) {
@@ -4499,31 +4249,6 @@ void main() {
         s.wpX = tmp3.x; s.wpY = tmp3.y; s.wpT = t;
         where(F, m, tau + 0.25, wa); projReal(wa.x, wa.y, wa.z, C, pa);
         dx = pa.x - tmp3.x; dy = pa.y - tmp3.y; c = dx / (Math.sqrt(dx * dx + dy * dy) || 1);
-        /* (world5 E1.1, item 4) a flight a bird of which will be well inside the words' margin within SB_AHEAD s (its
-           step back there under SB_PRED, at a third, two thirds and the whole of it, along its own speed on the window
-           as drawn: its flight's motion and the camera's, a drag's included) goes whole now and quickly (SB_GO_T): Fix 3
-           let it go only once a bird was in the margin (or held there SB_HOLD s), with the whole GONE_T fade, so its
-           birds stepped back to nothing first and, where the drag or a thermal's circle carried them out again, came
-           back while it faded (the judged seven: DUNES s21's line of geese in its vertical drag, 5 out and back; DUNES
-           s13's thermal stork, 1). (The first cut foresaw it by the band widened by that speed in every direction and
-           let go at 0.95: no dissolve and no return in the seven, but flights that only skimmed the margin went too,
-           and the empty sky grew in four of them: 7.2 -> 8.1 % in DUNES s5) */
-        /* (E1.1 Fix 2, verify-regress-1 defect 5: the quick fade took a whole flight from full ink to 0.17 in 0.27 s
-           mid-sky) foreseen SB_AHEAD (1.2 s) ahead, so the fade (SB_GO_T 0.9 s) is all but done before a bird reaches
-           the margin: the bird's own way on its planned path (a thermal's circle followed, not its tangent), seen
-           through this frame's camera, plus the camera's own sweep of the window (its speed as drawn less the bird's
-           own: the look at the ground's, carried the whole way; a drag's at most SB_AHEAD_CAM, 0.45 s, as it stops when
-           the finger does), at SB_PROBES points (every 0.2 s: at three, a thermal's circle dipping into the margin
-           between two of them was seen only 0.67 s before it got there) */
-        if (!held && !F.gone && !FORCED && s.wvOk) {
-          var ovx = dx / 0.25, ovy = dy / 0.25, cvx = s.wvx - ovx, cvy = s.wvy - ovy;
-          for (var q3 = 1; q3 <= SB_PROBES && !held; q3++) {
-            var ah = SB_AHEAD * q3 / SB_PROBES, ahc = dragging ? Math.min(ah, SB_AHEAD_CAM) : ah;   // (the camera's own slow sweep, the look at the ground, carried the whole way; a drag's only SB_AHEAD_CAM)
-            where(F, m, tau + ah, wc); projReal(wc.x, wc.y, wc.z, C, pc);
-            if (!(pc.z > 1)) continue;
-            if (stepBack(pc.x + cvx * ahc, pc.y + cvy * ahc, d.hw * pc.n, (d.hh + BOB * d.span) * pc.n) < SB_PRED) { held = true; quick = true; }
-          }
-        }
         if (!s.vis) {
           s.vis = true;
           /* its appear: the live's 1 s, the first time it is seen. (round 3) Back in view within LEAVE_T, it carries on
@@ -4541,8 +4266,6 @@ void main() {
       }
       if (any) { F.lastSeen = t; lastSeenAny = t; if (F.firstSeen === undefined) F.firstSeen = t; F.away = false; }
       F.cloudT = on && cl && !FORCED ? (F.cloudT || 0) + 5 * STEP_DT : 0;
-      F.backT = on && !any && !cl ? (F.backT || 0) + 5 * STEP_DT : 0;   // (in view, but all behind the words' veil)
-      if (held && !F.gone && !F.live) { F.gone = t; F.goneT = quick ? SB_GO_T : GONE_T; STATS.landed.words++; STATS.guard.held++; if (quick) STATS.guard.ahead = (STATS.guard.ahead || 0) + 1; if (!F.place) nextAsFirst(true); }   // (Fix 2: its successor planned at once, while it fades)   // (a place's thermal too: the words came onto it, all its birds go; E1.1: ahead of the margin, quickly)
     }
   }
   /* (round 3) the window's sweep under a bird now: f x the camera's turn (its last quarter second), across and (a drag
@@ -4555,7 +4278,6 @@ void main() {
     return Math.sqrt(sx * sx + sy * sy);
   }
   var DRAG_PX = 150;            // px/s: the window swept faster than this (the visitor's drag; the autopilot's calm turn is 10-20)
-  var SWEPT = true;             // (Fix 3) a flight a drag sweeps into the words' margin goes whole (false: Fix 2's per-bird step back alone)
   function activeFlights() { var n = 0; for (var i = 0; i < flights.length; i++) if (!flights[i].away && !flights[i].gone) n++; return n; }
   /* (round 3) the calm asked of the camera while the birds fly (a sky with birds in it, or one about to have them: a
      flight is planned before it comes, through the camera's coming turn, so the calm is asked for all along): its turn
@@ -4566,7 +4288,7 @@ void main() {
   function calmBase() { return cam.f >= 2 ? CALM_K * (W / across(CALM)) / cam.f : 0; }
   function calmAsk() {
     if (!HOST.calm || cam.f < 2) return;
-    var base = !FORCED && !HOST.reduced() ? calmBase() : 0, rate = t < HOLD.until ? base * HOLD_K : base;   // (round 3: held while a flight needs it: the guard's)
+    var base = !FORCED && !HOST.reduced() ? calmBase() : 0, rate = base;
     if (Math.abs(rate - calmOn) > 1e-7) { calmOn = rate; HOST.calm(rate, base * CALM_EV); }
   }
 
@@ -4634,7 +4356,6 @@ void main() {
       }
       if (F.firstSeen === undefined && tau > (F.enterT || 0) + UNSEEN_T && !(C && seenReal(F, tau, C))) { if (drawnNow(F)) { F.gone = t; F.goneT = LATE_T; continue; } land(F); STATS.landed.never++; nextAsFirst(); continue; }   // it never came into view
       if (F.cloudT > CLOUD_T && !(F.stage === 'S3' && tau < (F.revealEnd || 0) + 1)) { F.gone = t; STATS.landed.cloud++; nextAsFirst(); continue; }   // hidden by cloud: let go while it is hidden (birds3d: not S3 before its reveal)
-      if (F.backT > BACK_T) { F.gone = t; STATS.landed.words++; nextAsFirst(); }   // carried behind the words by the camera (its birds stepped back): the whole flight let go together, as the live site lets a flight go the words moved onto
     }
   }
   /* forced colours came or went: the sky begins again in the other view */
@@ -4654,16 +4375,14 @@ void main() {
     if (!flights.length) { if (job) resetJob(); return; }
     if (W !== w0 || Math.abs(H - h0) > 120) { for (i = 0; i < flights.length; i++) if (!flights[i].gone) { flights[i].gone = t; gone++; } }
     else {
-      held = 0.5;
       viewPredict(HOST.reduced());
       for (i = flights.length - 1; i >= 0; i--) { F = flights[i]; if (!F.gone && trial(F, t - F.t0) < 0) { F.gone = t; gone++; } }
-      held = 1;
     }
     if (gone) { firstNext = true; tNext = Math.min(tNext, t + GONE_T); }
     if (job) resetJob();
   }
   /* the sky begins again (a visit, a reset): every flight gone, the first comes as at the start */
-  function clearAll() { STILL.on = false; HOLD.until = -1e9; GVT = -1e9; lastSeenAny = t; clearSky(); while (PLACES.length) landPlace(PLACES[0]); placeDone = {}; job = null; stills = 0; firstNext = true; tNext = t; misses = 0; phase = -1; }
+  function clearAll() { STILL.on = false; GVT = -1e9; lastSeenAny = t; clearSky(); while (PLACES.length) landPlace(PLACES[0]); placeDone = {}; job = null; stills = 0; firstNext = true; tNext = t; misses = 0; phase = -1; }
 
   /* reduced motion: a still sky, a photograph: the flight planned whole, every bird at rest. (round 3) A share of it
      at a time: the engine asks prepare() each frame while its still sky shows, before its one still frame (round 2
@@ -4710,7 +4429,7 @@ void main() {
      stage is planned nothing else is (the hush); while one is in view the sky takes one flight fewer. */
   var FIRST_STAGE = 40, STAGE_GAP = [110, 180], STAGE_LOOK = 5, STAGE_LOOK_MAX = 60, RETRY_STAGE = 30, HUSH_T = 6;
   var STAGE_W = [['S3', 40], ['S2', 35], ['S1', 25]];
-  var REVEAL_CLEAR = 60, RIBBON_CLEAR = 48, WHEEL_GROW = 0.03, STAGE_QUOTA = 400, STAGE_CANDS = 10;
+  var WHEEL_GROW = 0.03, STAGE_QUOTA = 400, STAGE_CANDS = 10;
   var S3_N = [[3, 35], [5, 40], [7, 25]], S3_SORT = [['gull', 70], ['ibis', 15], ['goose', 15]], S3_MPS = [4, 6], S3_HEAD = [10, 12];
   var S1_SORT = [['goose', 50], ['ibis', 30], ['gull', 20]], S1_RANK = [1.6, 3.0], S1_ABREAST = [[1, 1], [2, 2], [3, 2], [4, 1]], S1_YAW = [22, 28], S1_LAM = [380, 520], S1_RISE = [11, 16], S1_LAM2 = 260, S1_MPS = [7, 10], S1_N0 = [0.24, 0.32], S1_MAXT = 70;
   var S2_N = [[5, 25], [7, 40], [9, 25], [11, 10]], S2_SORT = [['gull', 50], ['stork', 25], ['ibis', 15], ['crow', 10]], S2_MPS = [9, 12], S2_ARC = [20, 60], S2_LEAD = 25, S2_BANK = 8;   // (S2_LEAD s: the latest a wheel may first be seen after its look)
@@ -4795,19 +4514,6 @@ void main() {
     work += 4;
     return FX.cloud ? ease(HOST.cloudBetween(VP.x[i], VP.y[i], VP.z[i], x, y, z) / CLOUD_IN) : 0;
   }
-  /* a box (centre, half-extents) against the words: the stack's margin (m0: WORDS, or more), the links' (LINKS) */
-  function clearStage(x, y, hw, hh, m0, sx, sy) {
-    for (var i = 0, o, m; i < words.length; i++) {
-      o = words[i]; m = i === 0 ? Math.max(o.m, m0 || 0) : o.m;
-      if (x + hw > o.l - m - sx && x - hw < o.r + m + sx && y + hh > o.t - m - sy && y - hh < o.b + m + sy) return false;
-    }
-    return true;
-  }
-  function gapWords(x, y, hw, hh) {
-    var g = 1e9;
-    for (var i = 0; i < words.length; i++) { var o = words[i], dx = Math.max(o.l - x - hw, x - hw - o.r, 0), dy = Math.max(o.t - y - hh, y - hh - o.b, 0); g = Math.min(g, Math.sqrt(dx * dx + dy * dy)); }
-    return g;
-  }
   /* a travelling flight of a forced kind (the stage's own weights), made by the planner's own newFlight */
   function stageFlight(kind, n, dir, r, sortW) {
     var keep = SORT_OF[kind]; SORT_OF[kind] = sortW;
@@ -4873,8 +4579,7 @@ void main() {
     return F;
   }
   /* the S3 trial: from the lead's sample to the end; each bird hidden at its first frame, its cover falling once to
-     nothing (never peeking out and back), revealed REVEAL_CLEAR from the words, never covered again; clear of the
-     words, the edges it does not cross, near, calm */
+     nothing (never peeking out and back), never covered again; inside the edges it does not cross, near, calm */
   function s3Trial(J, budget) {
     var F = J.F, it = J.it, w0 = work, M = F.m, i, m, tau, k, c, hw, hh;
     for (;;) {
@@ -4892,9 +4597,7 @@ void main() {
         if (fadeFor(F, pv.n) < 0.02 || !inView(pv.x, pv.y, hw, hh)) { if (it.st[i] === 2) it.st[i] = 3; continue; }
         any = true;
         if (pv.n > NEAR_MAX) return stageFail(it, 'near');
-        if (!clearStage(pv.x, pv.y, hw, hh, 0, 2, 2)) return stageFail(it, 'words');
         if (!withinEdges(pv.x, pv.y, hw, hh, F.edges | 3)) return stageFail(it, 'edge');
-        it.near = Math.min(it.near, gapWords(pv.x, pv.y, hw, hh));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh); it.xLo = Math.min(it.xLo, pv.x - hw); it.xHi = Math.max(it.xHi, pv.x + hw);
         if (it.st[i] === 3) return stageFail(it, 'back');   // (in view again after it left: no)
         if (it.st[i] < 2 || it.k % 3 === 0) {
@@ -4904,7 +4607,7 @@ void main() {
           else if (it.st[i] === 1) {
             if (c > it.cmin[i] + 0.05) return stageFail(it, 'peek');
             it.cmin[i] = Math.min(it.cmin[i], c);
-            if (c < 0.5 && it.rv[i] < 0) { it.rv[i] = tau; if (gapWords(pv.x, pv.y, hw, hh) < REVEAL_CLEAR) return stageFail(it, 'reveal'); it.rx.push(+pv.x.toFixed(1), +pv.y.toFixed(1)); }
+            if (c < 0.5 && it.rv[i] < 0) { it.rv[i] = tau; it.rx.push(+pv.x.toFixed(1), +pv.y.toFixed(1)); }
             if (c <= 0.05) { it.st[i] = 2; it.re[i] = tau; if (it.rv[i] < 0) it.rv[i] = tau; }
           } else if (c > 0.2) return stageFail(it, 'recover');
         }
@@ -4987,7 +4690,7 @@ void main() {
     F.s0 = 0; F.dur = (F.len + F.lap) / F.v;
     return true;
   }
-  /* the S1 trial: every speck clear of the stack by RIBBON_CLEAR and of the links by LINKS, inside the top and bottom
+  /* the S1 trial: every speck inside the top and bottom
      edges, never on another of its ranks on the window, over the floor; its whole crossing at most S1_MAXT s */
   function s1Trial(J, budget) {
     var F = J.F, it = J.it, w0 = work, M = F.m, i, j, m, tau, k, hw, hh, cnt = it.probe ? F.probe.length : M.length;
@@ -5006,9 +4709,7 @@ void main() {
         if (!inView(pv.x, pv.y, hw, hh)) continue;
         if (tau < 0.5 && it.k === 0) return stageFail(it, 'r.pop');
         any = true;
-        if (!clearStage(pv.x, pv.y, hw, hh, RIBBON_CLEAR, 2, 2)) return stageFail(it, 'r.words');
         if (!withinEdges(pv.x, pv.y, hw, hh, F.edges | 3)) return stageFail(it, 'r.edge');
-        it.near = Math.min(it.near, gapWords(pv.x, pv.y, hw, hh));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh); it.xLo = Math.min(it.xLo, pv.x - hw); it.xHi = Math.max(it.xHi, pv.x + hw);
         it.bx[4 * i] = pv.x; it.bx[4 * i + 1] = pv.y; it.bx[4 * i + 2] = hw; it.bx[4 * i + 3] = hh;
         if (it.k % 4 === 0 && (i === 0 || i === cnt - 1)) {   // (over the floor: the sea of cloud or the land under it)
@@ -5082,8 +4783,7 @@ void main() {
     }
     return o;
   }
-  /* the S2 trial: through the course, every bird where it is seen (its place's fade) clear of the words from its first
-     faint frame, its own looming (the camera held still) under WHEEL_GROW at the 98th percentile, its own pace under
+  /* the S2 trial: through the course, every bird where it is seen (its place's fade) from its first faint frame, its own looming (the camera held still) under WHEEL_GROW at the 98th percentile, its own pace under
      the window's top speed, never nearer than NEAR_MAX (else away on the tangent 1.5 laps before) */
   var S2BX = new Float64Array(4 * MAXP);
   function s2Trial(J, budget) {
@@ -5113,8 +4813,6 @@ void main() {
           it.redo = true; return stageFail(it, 'w.near');
         }
         if (pv.n > NEAR_MAX) return stageFail(it, 'w.near2');
-        if (!clearStage(pv.x, pv.y, hw, hh, 0, 2, 2)) return stageFail(it, 'w.words');
-        it.near = Math.min(it.near, gapWords(pv.x, pv.y, hw, hh));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh); it.xLo = Math.min(it.xLo, pv.x - hw); it.xHi = Math.max(it.xHi, pv.x + hw);
         /* its own motion, the camera held still (this sample's): looming and pace */
         var x1 = pv.x, y1 = pv.y; n1 = pv.n;
@@ -5240,8 +4938,8 @@ void main() {
      landing on the words. Nothing here is read by the ordinary planner, the guard, the hold or the camera: no band, no
      HOST.calm, no flight list written (the twin test, L13); the guest reads the ordinary birds' last boxes (to keep away
      from them) and nothing else of theirs. Drawn by the same instanced pass, behind the words (the words always on
-     top: a bird on a stroke sits on it, the stroke covering its sliver), exempt from the words' keep-off (aL.y), its
-     path planned clear of the line, the credit and the links (12 px) */
+     top: a bird on a stroke sits on it, the stroke covering its sliver); its way in and out may cross any word (the
+     owner, 2026-11-05: no keep-out) */
   var PERCH = (function () {   /* the perched shape: ONE swappable piece (perch.js A 704d1048: its poses, keys, rest rule) */
     function side(a) { var p = FP.pose(); for (var i = 0; i < 11; i++) { p[i] = a[i]; p[11 + i] = a[i]; } return p; }
     var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 10, 12, 0.95, -40, 0, 4, 6, 0, 0, 8]),
@@ -5272,15 +4970,6 @@ var NAME_PERCH = {
      end on the same line (standing at the baseline, 3 px past the box: the underline, 0.21 em under the baseline, never
      touched); measured in perch/places/PLACES.json. G_LINK_K, G_PTR_K: those guests' size against the name's */
   var LINK_PERCH = { eend: { link: 0, end: true }, lend: { link: 1, end: true }, etop: { link: 0, fx: [0.83, 0.99] }, ltop: { link: 1, fx: [0.64, 0.78] } }, G_LINK_K = 0.62, G_PTR_K = 0.75;
-  var NAME_INK_S = '0,314|0,248;258,314|0,245;262,314|0,245;265,314|0,247;264,314|0,248;264,314|0,248;266,314|0,246;306,314|0,228;289,314|0,206;261,314|0,187;237,245;261,314|0,168;223,246;262,314|0,12;22,148;201,246;262,314|0,9;24,131;185,246;262,314|0,8;24,112;170,246;261,314|0,7;25,85;154,245;259,314|0,6;25,76;140,243;258,314|0,6;26,72;127,241;257,314|0,6;28,71;112,240;256,314|0,6;29,74;99,238;255,314|0,7;32,235;253,314|0,8;34,231;250,314|0,9;37,227;247,314|0,10;40,222;243,314|0,12;44,217;239,314|0,14;49,212;234,314|0,17;53,205;229,314|0,21;59,196;223,314|0,25;66,187;217,314|0,31;75,176;211,314|0,38;86,162;203,314|0,45;194,314|0,53;184,230;232,314|0,63;170,228;234,314|0,76;151,226;234,314|0,103;115,221;241,314|0,203;253,314|0,194;259,314|0,187;204,218;229,246;262,314|0,182;195,218;227,250;264,314|0,176;190,216;224,252;265,314|0,173;188,214;222,253;266,314|0,170;188,210;219,253;265,314|0,171;189,205;215,252;263,314|0,173;211,249;261,314|0,176;206,246;257,314|0,184;198,241;253,314|0,236;248,314|0,231;243,314|0,226;238,314|0,221;232,314|0,216;227,314|0,210;222,314|0,202;216,314|0,195;211,314|0,191;206,233;252,314|0,187;202,221;261,314|0,183;201,210;265,314|0,170;267,314|0,159;227,253;268,314|0,167;219,254;267,314|0,186;210,254;266,314|0,187;205,253;264,314|0,187;201,251;262,314|0,191;195,248;258,314|0,244;255,314|0,239;250,314|0,235;247,314|0,214;247,314|0,200;255,314|0,192;259,314|0,186;201,220;232,247;262,314|0,180;193,219;229,250;264,314|0,175;189,216;225,252;265,314|0,172;187,212;221,252;265,314|0,170;188,209;217,252;264,314|0,171;190,203;213,251;262,314|0,173;209,248;259,314|0,178;204,244;256,314|0,188;194,239;252,314|0,234;247,264;269,314|0,228;245,254;270,314|0,223;265,314|0,216;259,314|0,208;253,314|0,201;245,314|0,195;236,314|0,188;235,314|0,180;204,224;232,314|0,171;197,221;228,314|0,160;191,214;225,314|0,147;185,203;225,314|0,133;151,157;178,193;233,314|0,119;139,157;172,185;201,210;242,314|0,108;131,153;167,179;192,210;251,314|0,99;121,145;163,176;190,209;222,228;259,314|0,91;110,138;157,176;219,237;265,314|0,85;100,132;150,179;216,246;268,314|0,81;93,126;143,184;210,253;271,314|0,76;88,118;137,257;272,314|0,73;87,111;131,258;272,314|0,71;87,106;124,257;270,314|0,72;93,99;116,256;268,314|0,76;108,254;266,314|0,86;98,252;263,314|0,249;260,314|0,246;257,314|0,242;254,314|0,238;250,314|0,234;246,314|0,231;243,314|0,227;239,314|0,225;234,314|0,314|0,314|0,314|0,314|0,314|0,314|0,273;289,314|0,269;291,314|0,265;288,314|0,260;285,314|0,95;109,254;283,314|0,77;108,248;281,314|0,70;91,242;280,314|0,66;81,236;279,314|0,63;77,229;278,314|0,61;75,222;252,260;278,314|0,59;74,215;247,260;278,314|0,58;73,207;242,260;278,314|0,58;72,200;235,260;278,314|0,57;71,192;229,260;278,314|0,57;71,184;221,260;278,314|0,57;71,176;213,260;278,314|0,57;71,166;204,259;278,314|0,57;72,157;195,259;277,314|0,57;72,149;188,258;276,314|0,57;72,142;182,257;274,314|0,57;73,134;176,256;272,314|0,57;74,127;168,255;270,314|0,57;75,119;157,254;267,314|0,58;77,111;145,314|0,59;79,101;133,314|0,61;81,91;123,314|0,62;114,314|0,63;108,314|0,64;102,264;278,314|0,65;94,254;273,314|0,66;89,246;268,314|0,72;82,220;262,314|0,209;255,314|0,203;245,314|0,197;240,314|0,189;237,314|0,180;205,216;233,314|0,170;200,214;230,314|0,158;193,211;227,314|0,144;186,208;225,314|0,130;149,164;181,206;225,314|0,118;140,161;176,205;233,314|0,108;130,154;171,206;261,314|0,100;120,146;165,209;269,314|0,94;110,140;158,213;273,314|0,89;102,134;152,224;235,255;274,314|0,84;96,127;146,260;274,314|0,80;93,120;140,260;273,314|0,78;93,114;133,260;271,314|0,78;97,108;125,259;270,314|0,81;117,257;268,314|0,88;109,254;266,314|0,251;263,314|0,230;238,248;258,314|0,214;256,314|0,203;258,314|0,194;228,244;261,314|0,187;217,247;263,314|0,181;209,247;264,314|0,177;202,246;263,314|0,173;196,244;262,314|0,170;191,239;260,314|0,168;188,232;257,314|0,167;187,224;252,314|0,168;186,216;248,314|0,169;187,210;241,314|0,171;234,314|0,174;225,314|0,178;218,314|0,187;217,314|0,200;216,242;265,314|0,200;216,229;273,314|0,197;278,314|0,195;243,255;280,314|0,199;229,261;279,314|0,261;278,314|0,259;275,314|0,256;271,314|0,251;267,314|0,245;262,314|0,238;261,314|0,220;266,314|0,204;272,314|0,191;275,314|0,185;217,255;277,314|0,192;201,258;276,314|0,258;274,314|0,257;271,314|0,255;268,314|0,252;265,314|0,249;262,314|0,246;258,314|0,242;255,314|0,238;251,314|0,234;247,314|0,230;243,314|0,226;239,314|0,223;233,314|0,314|0,314', NAME_INK = null;   // (the name's ink, viewBox units: per 6-unit column its y spans, grown 1 unit; perch/places/name_mask.png)
-  function gInkHit(x0, y0, x1, y1) {   // (does a box, CSS px, touch the name's ink?)
-    var nm = nameMap(); if (!nm) return false;
-    if (!NAME_INK) NAME_INK = NAME_INK_S.split('|').map(function (c) { return c ? c.split(';').map(function (q) { var a = q.split(','); return [+a[0], +a[1]]; }) : []; });
-    var u0 = (x0 - nm[0]) / nm[2], u1 = (x1 - nm[0]) / nm[2], v0 = (y0 - nm[1]) / nm[2], v1 = (y1 - nm[1]) / nm[2];
-    if (u1 < 0 || u0 > 1310 || v1 < 0 || v0 > 314) return false;
-    for (var c = Math.max(0, Math.floor(u0 / 6)), ce = Math.min(NAME_INK.length - 1, Math.floor(u1 / 6)); c <= ce; c++) { var I = NAME_INK[c]; for (var i = 0; i < I.length; i++) if (I[i][1] >= v0 && I[i][0] <= v1) return true; }
-    return false;
-  }
   var LINK_GLYPHS = [   /* [fx0, fx1, top em over the baseline] (tools/link_glyphs.js, the served Geist subset at 14 px) */
     [[0.028, 0.227, 0.72], [0.268, 0.581, 0.57], [0.585, 0.812, 0.57], [0.829, 0.885, 0.72], [0.922, 1.0, 0.72]],
     [[0.018, 0.147, 0.72], [0.155, 0.192, 0.72], [0.219, 0.348, 0.57], [0.368, 0.42, 0.72], [0.42, 0.497, 0.57], [0.488, 0.636, 0.57], [0.631, 0.778, 0.72], [0.797, 0.834, 0.72], [0.868, 0.997, 0.57]] ];
@@ -5289,7 +4978,7 @@ var NAME_PERCH = {
     for (var i = 0; i < G.length; i++) { var y = base - G[i][2] * em; o.push([b[0] + G[i][0] * w, y], [b[0] + Math.min(G[i][1], 1) * w - 0.01, y]); }
     return o;
   }
-  var G_SETOUT = 1.0, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 90, G_PTR_MAX = 4, G_FLUSH_T = 120, G_REST = 2.0, G_KEEP = 12;
+  var G_SETOUT = 1.0, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 90, G_PTR_MAX = 4, G_FLUSH_T = 120, G_REST = 2.0;
   var GU = { list: [], k: 0, nWord: 0, nPtr: 0, lastWord: -1e9, nextWord: G_FIRST, lastPtr: -1e9, flushAt: -1e9, flushN: 0, firstRest: true, log: [], force: null, on: true,   /* (the perched guests on the words; the pointer's perch needs the hover listener, which the world does not have: its HOVER stays gone, so it never comes) */
     p: { x: -1, y: -1, n: 0, gone: true, down: false, steer: false }, px: -1, py: -1, vx: 0, vy: 0, sp: 0, restT: 0, restX: 0, restY: 0, restUsed: false, seenN: -1 };
   function guestRng() { return vstream(8000 + GU.k++); }
@@ -5302,10 +4991,8 @@ var NAME_PERCH = {
   /* the words' boxes, CSS px: 0 name (its ink), 1 line, 2 credit, 3 Email, 4 LinkedIn */
   function gWords() { var b = HOST.words().boxes, k = 1 / (VW.bdpr || VW.dpr || 1), o = []; for (var i = 0; i < 5; i++) o.push([b[4 * i] * k, b[4 * i + 1] * k, b[4 * i + 2] * k, b[4 * i + 3] * k]); return o; }
   function nameMap() { var nv = HOST.words().nvb; if (!nv) return null; var k = 1 / (VW.bdpr || VW.dpr || 1); return [nv[0] * k, nv[1] * k, nv[2] * k]; }
-  function boxGap(x0, y0, x1, y1, b) { var dx = Math.max(b[0] - x1, x0 - b[2], 0), dy = Math.max(b[1] - y1, y0 - b[3], 0); return Math.sqrt(dx * dx + dy * dy); }
-  function openSkyAt(x, y) {   // (P1: outside every word box + 24 px, 60 px from the edges)
+  function openSkyAt(x, y) {   // (P1: 60 px from the edges; the words are no keep-out: the owner, 2026-11-05)
     if (x < 60 || y < 60 || x > W - 60 || y > H - 60) return false;
-    var B = gWords(); for (var i = 0; i < 5; i++) if (B[i][2] > B[i][0] && boxGap(x, y, x, y, B[i]) < 24) return false;
     return true;
   }
   /* a perch resolved on this window: { pts: [[x, y] CSS px, ...] the surface, x (where it sits), dir (the side it comes
@@ -5412,16 +5099,12 @@ var NAME_PERCH = {
     GU.log.push({ t: +t.toFixed(2), ev: 'click', id: g.id, x: +x.toFixed(1), y: +y.toFixed(1), away: [+g.away[0].toFixed(2), +g.away[1].toFixed(2)] });
     return true;
   }
-  function gAvoid(B, P) { var o = []; for (var i = 1; i < 5; i++) if (B[i][2] > B[i][0]) o.push(B[i]); if (P.kind === 'pointer' && B[0][2] > B[0][0]) o.push([B[0][0] - 12, B[0][1] - 12, B[0][2] + 12, B[0][3] + 12]); return o; }
   function gPathClear(g, P, B) {
-    var A = gAvoid(B, P), n = 40, i, j, hw = 0.6 * g.sp, hh = 0.35 * g.sp, TT = g.Ti + g.Tr;
+    var n = 40, i, hw = 0.6 * g.sp, hh = 0.35 * g.sp, TT = g.Ti + g.Tr;
     for (i = 0; i <= n; i++) {
       var ti = TT * i / n; gPos(g, ti, GTMP);
       if (!gOrdClearAt(GTMP.x, GTMP.y, ti, 2 * g.sp)) return false;   // (fix: every ordinary bird where it will be then, not only where it enters)
       if (P.kind === 'link' && Math.abs(GTMP.x - g.px0) < 1.5 * g.sp && Math.abs(GTMP.y - g.py0) < 1.5 * g.sp) { var nT = Math.sqrt((GTMP.x - g.T[0]) * (GTMP.x - g.T[0]) + (GTMP.y - g.T[1]) * (GTMP.y - g.T[1])) < 0.8 * g.sp; if (P.end && GTMP.x - (nT ? 0.2 : 0.5) * hw < P.keepX && GTMP.y + 0.5 * hh > P.wb[1]) return false; if (!P.end && GTMP.y + 0.5 * hh > P.topY && GTMP.x + 0.5 * hw > P.wb[0] && GTMP.x - 0.5 * hw < P.wb[2]) return false; continue; }   // (perch lane)   // (the link guest at its own perch: never over the word's letters)
-      for (j = 0; j < A.length; j++) if (boxGap(GTMP.x - hw, GTMP.y - hh, GTMP.x + hw, GTMP.y + hh, A[j]) < G_KEEP) return false;
-      if (P.kind !== 'name' && B[0][2] > B[0][0] && boxGap(GTMP.x - hw, GTMP.y - hh, GTMP.x + hw, GTMP.y + hh, B[0]) < 4) return false;
-      if (P.kind === 'name' && Math.sqrt((GTMP.x - g.T[0]) * (GTMP.x - g.T[0]) + (GTMP.y - g.T[1]) * (GTMP.y - g.T[1])) > 1.0 * g.sp && gInkHit(GTMP.x - 0.8 * hw, GTMP.y - hh, GTMP.x + 0.8 * hw, GTMP.y + 0.4 * hh)) return false;   // (perch lane)
     }
     return true;
   }
@@ -5462,10 +5145,10 @@ var NAME_PERCH = {
   }
   var GTMP2 = { x: 0, y: 0, u: 0 };
   /* a way out from (x, y): of every 15 deg from level left through up to level right (and, flying, down to 45 deg below
-     level), the nearest the wanted way (cx, cy) whose straight path to the window's edge keeps 12 px from the line, the
-     credit and the links (and from the name for a pointer's guest or one flying by), past its first 1.5 spans; (fix) and
-     2 spans from every ordinary bird where it will be (at speed v px/s, starting k0 s from now) over the next 8 s.
-     Returns null if no way is clear of both (o.best then the way clear of the words that keeps farthest from the birds) */
+     level), the nearest the wanted way (cx, cy) whose straight path to the window's edge keeps (fix) 2 spans from every
+     ordinary bird where it will be (at speed v px/s, starting k0 s from now) over the next 8 s, past its first 1.5
+     spans (the words no keep-out: the owner, 2026-11-05). Returns null if none is (o.best then the way that keeps
+     farthest from the birds) */
   var GWO = { best: null };
   function gOrdWay(x0, y0, ux, uy, v, k0, sp, acc) {
     var worst = 1e9;
@@ -5478,15 +5161,12 @@ var NAME_PERCH = {
   }
   function gWayOut(g, x0, y0, cx, cy, perched) {
     var l = Math.sqrt(cx * cx + cy * cy) || 1; cx /= l; cy /= l;
-    var B = gWords(), A = gAvoid(B, g.P), best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, q, nq = perched ? 12 : 16, far = null, fd = -1e9;
-    if (!perched && B[0][2] > B[0][0] && g.P.kind !== 'pointer') A = A.concat([[B[0][0] - 4, B[0][1] - 4, B[0][2] + 4, B[0][3] + 4]]);
+    var best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, q, nq = perched ? 12 : 16, far = null, fd = -1e9;
     for (q = 0; q <= nq; q++) {
       var an = Math.PI + q * Math.PI / 12, ux = Math.cos(an), uy = Math.sin(an), sc = ux * cx + uy * cy, ok = true;
       if (Math.abs(uy) < 1e-9) uy = 0;
       for (var dd = 1.5 * g.sp; ok && dd < W + H; dd += 0.5 * g.sp) {
         var x = x0 + ux * dd, y = y0 + uy * dd; if (!inView(x, y, hw, hh)) break;
-        if (gInkHit(x - hw, y - hh, x + hw, y + hh)) { ok = false; break; }   // (perch lane)
-        for (var j = 0; j < A.length; j++) if (boxGap(x - hw, y - hh, x + hw, y + hh, A[j]) < G_KEEP) { ok = false; break; }
       }
       if (!ok) continue;
       var od = gOrdWay(x0, y0, ux, uy, 0.9 * g.vc, 0, g.sp, false);
@@ -5504,8 +5184,6 @@ var NAME_PERCH = {
     spec.gkind = kind; var P = perchOf(spec); if (!P) return false;
     var g = { r: r, kind: kind, why: why, spec: spec, t0: t, phase: 'in', id: 'g' + GU.k, ph0: r(), rate: BW.LB.rate(kind, RATE_MODE), ride: [0, 0], leaveAt: -1, away: [0, -1], P: P };
     if (!gPlan(g, P) && (P.end || (P.dir = -P.dir, !gPlan(g, P)))) { GU.log.push({ t: +t.toFixed(2), ev: 'noroom', why: why, id: spec.id || 'pointer' }); return false; }   // (perch lane)
-    /* (the perch disqualified where the perched bird would come within 12 px of the line or the credit) */
-    var B = gWords(); for (var i = 1; i < 3; i++) if (B[i][2] > B[i][0] && boxGap(P.x - 0.4 * g.sp, g.py0 - 0.3 * g.sp, P.x + 0.4 * g.sp, g.py0 + 2, B[i]) < G_KEEP) { GU.log.push({ t: +t.toFixed(2), ev: 'perch-too-near', id: spec.id }); return false; }
     GU.list.push(g);
     GU.log.push({ t: +t.toFixed(2), ev: 'start', why: why, id: spec.id || 'pointer', kind: kind, Ti: +g.Ti.toFixed(2), Tr: +g.Tr.toFixed(2), sit: +g.sit.toFixed(1), x: +P.x.toFixed(1), y: +g.py0.toFixed(1) });
     return true;
@@ -5527,15 +5205,13 @@ var NAME_PERCH = {
     var l = Math.sqrt(cx * cx + cy * cy) || 1; cx /= l; cy /= l;
     if (cy > -0.35) { cy = -0.6; cx = cx >= 0 ? 0.8 : -0.8; }   // (always up first: never a drop toward the line)
     /* the way out: of the ways up and out (every 15 deg from level left to level right), the nearest the wanted one whose
-       straight path to the window's edge keeps 12 px from the line, the credit and the links (and 4 from the name for a
-       pointer's guest), and within 60 deg of it if any is */
-    var A = gAvoid(B, g.P), best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, farL = null, fdL = -1e9;
+       straight path to the window's edge keeps clear of the ordinary birds, within 60 deg of it if any is (the words
+       are no keep-out: the owner, 2026-11-05) */
+    var best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, farL = null, fdL = -1e9;
     for (var q = 0; q <= 12; q++) {
       var an = Math.PI + q * Math.PI / 12, ux = Math.cos(an), uy = Math.sin(an) * (q === 0 || q === 12 ? 0 : 1), sc = ux * cx + uy * cy, ok = true;
       for (var dd = 1.5 * g.sp; ok && dd < W + H; dd += 0.5 * g.sp) {   // (its first 1.5 spans: beside its own perch)
         var x = g.px0 + ux * dd, y = g.py0 + uy * dd - 0.35 * g.sp; if (!inView(x, y, hw, hh)) break;
-        if (gInkHit(x - hw, y - hh, x + hw, y + hh)) { ok = false; break; }   // (perch lane: never across a stroke)
-        for (var j = 0; j < A.length; j++) if (boxGap(x - hw, y - hh, x + hw, y + hh, A[j]) < G_KEEP) { ok = false; break; }
       }
       if (!ok) continue;
       var od = gOrdWay(g.px0, g.py0 - 0.35 * g.sp, ux, uy, 0.95 * g.vc, tO1 - tt + 0.24, g.sp, true);   // (fix: and clear of the ordinary birds where they will be as it climbs away)
@@ -5804,7 +5480,6 @@ var NAME_PERCH = {
       var A = guestBird(g, s, C, dt, L, tr - g.t0);
       if (!A) continue;
       packBird(nB, s, A.op, 1e5, false, N, g.P.kind === 'pointer' ? s.haloE : Math.min(s.haloE, GHALO), 1, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
-      INST[nB * NF + 25] = 1;   // (the guest: exempt from the words' keep-off and from the land's depth: it is on the window's words)
       if (DUMP) { var db = dumpBird({ id: g.id, kind: 'guest', m: [] }, {}, s, tr - g.t0, A.op); db.guest = { why: g.why, perch: g.spec.id || 'pointer', phase: A.phase, x: +g.last.x.toFixed(2), y: +g.last.y.toFixed(2), yaw: +A.yaw.toFixed(2), pitch: +A.pitch.toFixed(2), el: +A.el.toFixed(2), sp: +g.sp.toFixed(2), pts: g.P.pts.map(function (q) { return [+q[0].toFixed(2), +q[1].toFixed(2)]; }), ride: g.ride.slice(), vc: +g.vc.toFixed(2) }; DUMP.push(db); }
       nB++;
     }
@@ -5896,7 +5571,7 @@ var NAME_PERCH = {
       drawPaper();
     },
     visit: function () { clearAll(); guestReset(); CVH.n = 0; CVH.i = 0; },
-    reset: function () { roostPsi = TAU * vstream(7001)(); roostCls = ''; roostK = 0; LPEND = null; guestReset(); t = 0; flightNo = 0; crowdN = 0; HIDJOB = -1e9; weather(); r2 = vstream(2); r2k = 0; r2x = r2(); r2y = r2(); WK[20] = -1; dirty = true; clearAll(); errInit(); CH.n = 0; CH.i = 0; GVT = -1; calmOn = -1; HOLD.until = -1e9; HOLD.rest = -1e9; HOLD.on = 0; HOLD.refused = 0; HOLD.spared = 0; STILL.on = false; CVH.n = 0; CVH.i = 0; stageReset(); },
+    reset: function () { roostPsi = TAU * vstream(7001)(); roostCls = ''; roostK = 0; LPEND = null; guestReset(); t = 0; flightNo = 0; crowdN = 0; HIDJOB = -1e9; weather(); r2 = vstream(2); r2k = 0; r2x = r2(); r2y = r2(); WK[20] = -1; dirty = true; clearAll(); errInit(); CH.n = 0; CH.i = 0; GVT = -1; calmOn = -1; STILL.on = false; CVH.n = 0; CVH.i = 0; stageReset(); },
     lost: function () { PROG = null; VAO = null; VBO = null; RING = null; BT = null; BROKEN = false; SAMPLERS = false; makeProgram(); },
     boot: function () { makeProgram(); bootRing(); },   // (E1: the boot's stage B: the instance ring and its warm entry)
     repose: function () { lastDraw = -1; },   // (development: the next draw poses every bird afresh)
@@ -5941,14 +5616,13 @@ var NAME_PERCH = {
       if (o && o.guardlog !== undefined) { var gl0 = GLOG; GLOG = o.guardlog ? [] : null; if (gl0) return gl0; }
       var C = camDrawn(), CS0 = camStep();
       var out = { t: t, flights: [], drawn: STATS.drawn, planned: STATS.planned, steps: STATS.steps, workMax: STATS.workMax, costs: STATS.costs, landed: Object.assign({}, STATS.landed), fails: Object.assign({}, STATS.fails), jobs: (o && o.jobs) ? STATS.jobs.slice() : undefined,
-        guard: Object.assign({}, STATS.guard), away: STATS.away, holds: HOLD.on, holdRefused: HOLD.refused, holdSpared: HOLD.spared, holding: t < HOLD.until, err90: [1, 2, 4, 6, 8, 10, 12, 15, 20].map(function (h) { return +errAt(h).toFixed(2); }), calm: calmOn,
+        guard: Object.assign({}, STATS.guard), away: STATS.away, err90: [1, 2, 4, 6, 8, 10, 12, 15, 20].map(function (h) { return +errAt(h).toFixed(2); }), calm: calmOn,
         job: job ? job.mode : null, tNext: tNext, fx: Object.assign({}, FX), fills: STATS.fill || 0, lv: { on: liveOn(), made: STATS.lvMade || 0, nospawn: STATS.lvNoSpawn || 0, drop: STATS.lvDrop || 0, gone: STATS.lvGone || 0, rescue: STATS.lvRescue || 0, avoid: STATS.lvAvoid || 0, words: STATS.landed.words || 0, why: STATS.lvWhy || null, last: STATS.lvSeenLast || null }, W: W, H: H, mpu: MPU, forced: FORCED, openSky: OPEN_SKY, fit: FIT_K, trim: LEAN_TRIM, set: SET_ON, sep: SEP_ON, stage: stageState(), rate: RATE_MODE, sched: SCHED_MODE,
         cam: { f: cam.f, pitch: Math.atan2(cam.s, cam.c), floorY: floorY },
         CB: CS0 ? { pos: Array.from(CS0.pos), f: Array.from(CS0.f), r: Array.from(CS0.r), u: Array.from(CS0.u) } : null,
         CD: C ? { pos: Array.from(C.pos), f: Array.from(C.f), r: Array.from(C.r), u: Array.from(C.u) } : null,
         VW: { tanX: VW.tanX, tanY: VW.tanY, dpr: VW.dpr, bdpr: VW.bdpr, cssW: VW.cssW, cssH: VW.cssH, outW: VW.outW, outH: VW.outH },
-        FL: { view: FL.view, psi: FL.psi, speed: FL.speed, y: FL.y, ground: FL.ground },
-        words: words.map(function (q) { return [q.l, q.t, q.r, q.b, q.m]; }) };
+        FL: { view: FL.view, psi: FL.psi, speed: FL.speed, y: FL.y, ground: FL.ground } };
       FW.ox = C.pos[0]; FW.oy = C.pos[1]; FW.oz = C.pos[2];
       flights.concat(PLACES).forEach(function (F) {
         var tau = t - F.t0, b = [];
