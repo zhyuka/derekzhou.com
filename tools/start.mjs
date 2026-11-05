@@ -53,7 +53,11 @@ export const DEVICES = [
 ];
 const EXTRA = [
   { id: 'safari', ua: UA.mac, touch: 0, ext: EXT.filter((e) => e !== 'WEBGL_debug_renderer_info'), samples: 4, renderer: 'Apple GPU', wins: [[1440, 900, 2]] },
-  { id: 'cpu', ua: UA.win, touch: 0, ext: EXT, samples: 4, renderer: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)', wins: [[1280, 800, 1]] }
+  { id: 'cpu', ua: UA.win, touch: 0, ext: EXT, samples: 4, renderer: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)', wins: [[1280, 800, 1]] },
+  // (round 4) beside the split height's rule: a desktop AMD and an NVIDIA on OpenGL (no split), an NVIDIA on D3D11 without float32 targets (no split)
+  { id: 'amd', ua: UA.win, touch: 0, ext: EXT, samples: 4, renderer: 'ANGLE (AMD, AMD Radeon RX 7900 XTX Direct3D11 vs_5_0 ps_5_0, D3D11)', wins: [[1920, 1080, 1]] },
+  { id: 'nvgl', ua: UA.win, touch: 0, ext: EXT, samples: 4, renderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 OpenGL 4.5.0)', wins: [[1440, 900, 1]] },
+  { id: 'nvhalf', ua: UA.win, touch: 0, ext: EXT.filter((e) => e !== 'EXT_color_buffer_float'), samples: 4, renderer: 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Direct3D11 vs_5_0 ps_5_0, D3D11)', wins: [[1366, 768, 1]] }
 ];
 const HOURS = [11.5, 23.5, 6.25, 17.5, 14.5, 20.25, 2.75];
 export function visits(devs, per) {
@@ -72,7 +76,19 @@ export function visits(devs, per) {
 const isWebKit = (ua, touch) => /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touch > 1) || (/AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(ua));
 const isCPU = (r) => /SwiftShader|llvmpipe|Software/i.test(r);
 const serves = (d) => d.ext.includes('KHR_parallel_shader_compile') && !isWebKit(d.ua, d.touch) && !isCPU(d.renderer);
-const defsOf = (d) => { const cbf = d.ext.includes('EXT_color_buffer_float'), cbh = !cbf && d.ext.includes('EXT_color_buffer_half_float'); return (cbf || cbh ? '' : '#define LIND_PACKED\n') + (cbf ? '' : '#define GC_PACKED\n'); };
+// (round 4) the split height's rule (fast500 lane G), when the world has one: HP_DEV's body and the line that puts
+// HPSPLIT into DEFS, read from the world as written, each exactly once, or the build stops; mirrored in the start file
+const HP_FN = /\n  function HP_DEV\(r\) \{ return ([^\n]*); \}\n/, HP_SET = "    EXT.hp = !!(EXT.cbf && EXT.parAll && HP_DEV(EXT.renderer)); if (EXT.hp) DEFS += '#define HPSPLIT\\n';";
+let HP = null;   // ({ body, fn }: set by loadPage from the world's script)
+function hpOf(c, f) {
+  const n = c.split('function HP_DEV(').length - 1;
+  if (!n && c.indexOf('HPSPLIT') < 0) return null;
+  const m = c.match(HP_FN), k = c.split(HP_SET).length - 1;
+  if (n !== 1 || !m || k !== 1) throw new Error(f + ': the split height\'s rule is not as tools/start.mjs reads it (HP_DEV ' + n + ', its one-line form ' + !!m + ', the DEFS line ' + k + '): change start.mjs with it');
+  return { body: m[1], fn: new Function('r', 'return ' + m[1] + ';') };
+}
+const isHP = (d) => !!(HP && d.ext.includes('EXT_color_buffer_float') && serves(d) && HP.fn(d.renderer));   // (the world's EXT.hp: float32 targets, all at once (parallel, not WebKit), HP_DEV)
+const defsOf = (d) => { const cbf = d.ext.includes('EXT_color_buffer_float'), cbh = !cbf && d.ext.includes('EXT_color_buffer_half_float'); return (cbf || cbh ? '' : '#define LIND_PACKED\n') + (cbf ? '' : '#define GC_PACKED\n') + (isHP(d) ? '#define HPSPLIT\n' : ''); };
 const tag = (v) => `${v.dev.id}#${v.n} ${v.w}x${v.h}@${v.dpr} ${v.hz}Hz hour ${v.hour}`;
 
 // ------------------------------------------------------------------ the page's scripts (lane A's guard's order)
@@ -94,6 +110,7 @@ export function loadPage(src, index, lib, hook = true) {   // each script from S
     if (!f) throw new Error('index.html loads /' + s + ', found neither in ' + src + ' nor beside ' + index + (lib ? ' nor in ' + lib : ''));
     let c = fs.readFileSync(f, 'utf8');
     if (c.includes('\r')) throw new Error(f + ' has a CR (a CRLF checkout would change every shader\'s text)');
+    if (/^world/.test(s)) HP = hpOf(c, f);   // (round 4: the split height's rule, as the world has it, or none)
     if (hook && /^world/.test(s)) {   // (the world's progIssue, as written, reports each program it issues: P.vs and P.fs, without DEFS)
       const n = c.split(ISSUE).length - 1;
       if (n !== 1) throw new Error(f + ': "' + ISSUE + '" found ' + n + ' times (want 1: the table is read from the world as written, src/)');
@@ -297,8 +314,8 @@ function firstDiff(a, b) { const x = a.split('\n'), y = b.split('\n'); let i = 0
 function linksBeforeShow(r) { return r.links.filter((l) => r.shownF < 0 || l.frame < r.shownF); }
 export async function makeTable(src, index, lib, per = 5, log = () => {}) {
   const page = loadPage(src, index, lib), VS = visits(DEVICES, per), ref = DEVICES[0];
-  if (!serves(ref) || defsOf(ref) !== '') throw new Error('the reference device must be one the start file serves, with empty DEFS');
-  const errs = []; let table = null;
+  if (!serves(ref)) throw new Error('the reference device must be one the start file serves');
+  const errs = [], tables = {};   // (round 4: one table for each program set the world issues: 'base', and 'hp' on the split height's devices)
   for (const v of VS) {
     const r = await run(v, page);
     log(`  visit ${tag(v)}: ${r.frames} frames, ${r.shown ? 'shown at ' + r.shownF : 'NOT SHOWN'}, ${r.links.length} links${r.errors.length ? ', ' + r.errors.length + ' page errors' : ''}`);
@@ -317,16 +334,18 @@ export async function makeTable(src, index, lib, per = 5, log = () => {}) {
       return { vs: vs || '', fs: fs || '' };
     });
     if (bad.length) { errs.push(`${tag(v)}: ${bad.slice(0, 3).join('; ')}`); continue; }
-    if (!table) {   // the reference's first visit
-      table = L;
+    const cls = isHP(v.dev) ? 'hp' : 'base', table = tables[cls];
+    if (!table) {   // the class's first visit
+      tables[cls] = L;
       continue;
     }
     if (table.length !== L.length) { errs.push(`${tag(v)}: ${L.length} programs issued at stage C, the table has ${table.length}`); continue; }
     for (let i = 0; i < table.length; i++) if (table[i].vs !== L[i].vs || table[i].fs !== L[i].fs) { const k = table[i].vs !== L[i].vs ? 'vs' : 'fs', j = L.findIndex((l) => l.vs === table[i].vs && l.fs === table[i].fs); errs.push(`${tag(v)}: program ${i + 1} issued at stage C is not the table's (${k}: ${firstDiff(table[i][k], L[i][k])}; ${j >= 0 ? 'the table\'s is its program ' + (j + 1) + ': the order differs' : 'not found at all: not visit-invariant'})`); break; }
   }
-  if (!table) errs.push('no table: the reference device never showed');
+  if (!tables.base) errs.push('no table: no device without the split height showed');
+  if (HP && !tables.hp) errs.push('no table for the split height\'s devices: none of them showed');
   if (errs.length) throw new Error('the start file\'s table cannot be made:\n  ' + errs.join('\n  '));
-  return table;
+  return tables;
 }
 
 // ------------------------------------------------------------------ the start file's text
@@ -344,20 +363,22 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
   var cbf = gl.getExtension('EXT_color_buffer_float'), cbh = cbf ? null : gl.getExtension('EXT_color_buffer_half_float'), par = gl.getExtension('KHR_parallel_shader_compile');
   var dbg = gl.getExtension('WEBGL_debug_renderer_info'), ren = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || '');
   if (!par || /SwiftShader|llvmpipe|Software/i.test(ren)) return;   // (one at a time, or the still sky: the world's own path)
-  var V = '#version 300 es\n', W = V + (S.defs = (cbf || cbh ? '' : '#define LIND_PACKED\n') + (cbf ? '' : '#define GC_PACKED\n')), P = S.progs;   // (the world's DEFS)
-  for (i = 0; i < T.length; i += 2) {
+  var hp = !!(HP && cbf && HP(ren)), TT = hp ? TH : T;   // (the world's EXT.hp: its split height's devices issue their own set)
+  var V = '#version 300 es\n', W = V + (S.defs = (cbf || cbh ? '' : '#define LIND_PACKED\n') + (cbf ? '' : '#define GC_PACKED\n') + (hp ? '#define HPSPLIT\n' : '')), P = S.progs;   // (the world's DEFS)
+  for (i = 0; i < TT.length; i += 2) {
     if (S.lost || gl.isContextLost()) return;
-    var vs = Q[T[i]].replace(V, W), fs = Q[T[i + 1]].replace(V, W), p = gl.createProgram(), v = gl.createShader(gl.VERTEX_SHADER), f;
+    var vs = Q[TT[i]].replace(V, W), fs = Q[TT[i + 1]].replace(V, W), p = gl.createProgram(), v = gl.createShader(gl.VERTEX_SHADER), f;
     gl.shaderSource(v, vs); gl.compileShader(v);
     f = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(f, fs); gl.compileShader(f);
     gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p);
     var k = vs + '\u0000' + fs; (P[k] || (P[k] = [])).push({ p: p, v: v, f: f });   // (keyed by the text as issued: the world adopts only a program whose text it would issue itself)
   }
   gl.flush();`;
-export function startText(table) {
-  const pool = [], at = new Map(), T = [];
+export function startText(tables) {
+  const pool = [], at = new Map(), table = tables.base;
   const ix = (s) => { if (!at.has(s)) { at.set(s, pool.length); pool.push(s); } return at.get(s); };
-  for (const t of table) T.push(ix(t.vs), ix(t.fs));
+  const idx = (t) => { const o = []; for (const p of t) o.push(ix(p.vs), ix(p.fs)); return o; };
+  const T = idx(table), TH = tables.hp ? idx(tables.hp) : null;
   for (const s of pool) if (/[\u2028\u2029\r]/.test(s)) throw new Error('a shader source holds a CR or a line separator');
   const kb = Math.round(table.reduce((a, t) => a + t.vs.length + t.fs.length, 0) / 1024);
   return '/* start.v1.js: the world\'s context and its first frame\'s programs, issued as early as the page allows (fast500 step 5).\n' +
@@ -368,6 +389,7 @@ export function startText(table) {
     '(function () {\n  \'use strict\';\n' +
     '  var Q = [\n' + pool.map((s) => '    ' + JSON.stringify(s)).join(',\n') + '\n  ];\n' +
     '  var T = [' + T.join(', ') + '];\n' +
+    '  var TH = ' + (TH ? '[' + TH.join(', ') + ']' : 'null') + ', HP = ' + (TH ? 'function (r) { return ' + HP.body + '; }' : 'null') + ';   // (' + (TH ? tables.hp.length + ' programs on the split height\'s devices, HPSPLIT in their DEFS: the world\'s HP_DEV' : 'no split height in this world') + ')\n' +
     RUNTIME + '\n})();\n';
 }
 export async function makeStart(src, index, lib, log) { return startText(await makeTable(src, index, lib, 5, log)); }
@@ -376,7 +398,7 @@ export async function makeStart(src, index, lib, log) { return startText(await m
 async function test(src, index, lib, file, log) {
   const page = loadPage(src, index, lib), startCode = fs.readFileSync(file, 'utf8'), fails = [];
   if (!page.some((x) => x.start)) fails.push(index + ' does not load the start file');
-  const nTable = (startCode.match(/var T = \[([^\]]*)\]/) || ['', ''])[1].split(',').filter((x) => x.trim()).length / 2;
+  let nTable = 0;   // (round 4: N, the programs the world issues without the start file: each visit's in 1, the reference's from 2 on)
   const bag = (r) => r.shaders.slice().sort().join('\u0001');
   const check = (what, ok, why) => { log(`  ${ok ? 'ok  ' : 'FAIL'} ${what}${why ? ': ' + why : ''}`); if (!ok) fails.push(what + (why ? ': ' + why : '')); };
   const clean = (r) => r.errors.length ? 'page errors: ' + r.errors.slice(0, 2).join(' / ') : '';
@@ -388,6 +410,7 @@ async function test(src, index, lib, file, log) {
     check(`${t}: shown at the same frame as without the start file (${a.shownF})`, a.shown && b.shown && a.shownF === b.shownF && !a.errors.length && !b.errors.length, clean(b) || clean(a) || `${a.shownF} / ${b.shownF}`);
     check(`${t}: the same shader sources handed over as without it`, bag(a) === bag(b), `${a.shaders.length} / ${b.shaders.length}`);
     check(`${t}: one context, the boot's attributes`, new Set(b.ctx.map((c) => c.attrs)).size === 1 && new Set(a.ctx.map((c) => c.attrs)).size === 1 && a.ctx[0].attrs === b.ctx[0].attrs, JSON.stringify(b.ctx.map((c) => c.by + ' ' + c.attrs)));
+    nTable = a.issues.length;
     if (s) check(`${t}: the start file issued all ${nTable} programs, the world adopted every one (it made none of them, freed none: only its own filter probe, as without the start file)`,
       b.by.start.linkProgram === nTable && b.by.start.flush === 1 && b.by.world.createShader === a.by.world.createShader - 2 * nTable && b.by.world.linkProgram === a.by.world.linkProgram - nTable &&
       b.by.world.deleteProgram === a.by.world.deleteProgram && b.by.world.deleteShader === a.by.world.deleteShader && b.issues.length === nTable && b.wsEnd === false,
@@ -395,6 +418,7 @@ async function test(src, index, lib, file, log) {
     else check(`${t}: not served (${isWebKit(v.dev.ua, v.dev.touch) ? 'WebKit' : 'no parallel compile'}): the start file issued nothing`, b.by.start.createShader === 0 && b.by.start.linkProgram === 0, JSON.stringify(b.by.start));
   }
   const v0 = visits(DEVICES, 3)[0], plain = await run(v0, page);
+  nTable = plain.issues.length;
   // adopted: the world made none of the table's programs, only its own filter probe, as on BASE (a run without the start file)
   const adopted = (r, base) => r.by.start.linkProgram === nTable && r.by.world.linkProgram === base.by.world.linkProgram - nTable && r.by.world.createShader === base.by.world.createShader - 2 * nTable && r.by.world.deleteProgram === base.by.world.deleteProgram;
   const own = (r, base) => r.by.world.linkProgram === base.by.world.linkProgram && r.by.world.createShader === base.by.world.createShader;   // (the world made every program itself, as on BASE)

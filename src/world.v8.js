@@ -183,6 +183,7 @@
     EXT.parAll = EXT.par && !wkIs ? EXT.par : null;
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
+    EXT.hp = !!(EXT.cbf && EXT.parAll && HP_DEV(EXT.renderer)); if (EXT.hp) DEFS += '#define HPSPLIT\n';   // (fast500 lane G: the split height's devices)
     /* (round E1 Fix 3, G0) the scene drawn with 4 samples a pixel (MSAA) where the scene's colour format and its depth
        both allow it: the scene's hard edges (a floating rock, a standing stone, a dune's crest, a far mesa's outline)
        stepped a whole pixel from one frame to the next at 1 sample (FXAA only), which the 4x reference does not; four
@@ -479,7 +480,7 @@ vec3 oklab2lin(vec3 c) {
     a.sort(function (x, y) { return VOLP.indexOf(x.name) - VOLP.indexOf(y.name); });
     if (EXT.parAll) {   // (speed E2: all at once, the heaviest first: the probe and the land's first surface)
       var h = [], r = [], all = a.concat(b, c);
-      for (i = 0; i < all.length; i++) (/\.(probe|surface0)$/.test(all[i].name) ? h : r).push(all[i]);
+      for (i = 0; i < all.length; i++) (/\.(probe|surface0|hp\.\w+)$/.test(all[i].name) ? h : r).push(all[i]);
       h.sort(function (x, y) { return /probe$/.test(y.name) - /probe$/.test(x.name); });
       return h.concat(r);
     }
@@ -756,7 +757,7 @@ vec3 oklab2lin(vec3 c) {
     return { on: FOLDX.on, fixed: FOLDX.fixed ? FOLDX.fixed.map(function (x) { return x[0] + ' = ' + x[1]; }) : null, prog: FOLDX.prog, absent: FOLDX.absent, B: FOLDX.B, live: FOLDX.live,
       general: G ? (G.st === 3 ? (G.ok ? (G.warmed ? 'warmed' : 'done') : 'broken') : 'pending') : 'none', used: FOLDX.used, miss: FOLDX.miss, misses: FOLDX.misses.slice() };
   }
-  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uInkKeep: 12, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15 };
+  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uInkKeep: 12, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20 };
   function finish(P) {   // true: linked; false: broken; LOSTP: the context was lost (asked again after the restore)
     if (P.st === 3) return P.ok;
     if (P.st !== 2) return false;
@@ -2648,7 +2649,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
       speed: KD.speed || 12, clear: [7, 14, 45], frame: [0.55, 0.58], cruise: [14, 32], marginB: KA.margin,
        look: KD.look, climb: KD.climb, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
-      surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10 }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10 }],
+      surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10 }],
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
       layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0]], volRes: 44 },
       field: function (R, V) {
@@ -2706,9 +2707,13 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     var pre = HEAD + hk + FRAME_U + LIB + (def.glsl || '') + '\n', preG = HEAD + hk + FRAME_U + LIB + GROUND_LIB + (def.glsl || '') + '\n', i;
     var surfs = def.surfaces, P = { list: [], k: 0, st: 1, surf: [] };
     function C(vs, fs, name) { var p = compile(vs, fs, def.id + '.' + name); P.list.push(p); return p; }
-    for (i = 0; i < surfs.length; i++) P.surf.push({ P: C(pre + VS_TERRAIN(surfs[i].height, surfs[i].gap), pre + FS_TERRAIN(surfs[i].height, surfs[i].shade), 'surface' + i), g0: surfs[i].g0 || 0.5, levels: surfs[i].levels || 10 });
+    var HPS = surfs[0] && surfs[0].split ? HP_SITES_FN(def.glsl || '') : null;   // (fast500 lane G: the sites' part of the realm's own D_Hd)
+    if (surfs[0] && surfs[0].split && !HPS) fail('split height: D_Hd is not of the split shape (the programs as today)');
+    var HSH = !!(HPS && surfs[0].height === 'Hd' && surfs[0].levels === 10 && GN === 96), HSP = HSH && EXT.hp;   // (HSH: the sources carry both bodies, on every device; HSP: this device runs the split, HPSPLIT in its DEFS)
+    for (i = 0; i < surfs.length; i++) P.surf.push({ P: C(pre + (HSH && HP_LAND && i === 0 ? '\n#ifdef HPSPLIT\n' + VS_TERRAIN_SPLIT(surfs[i].gap) + '\n#else\n' + VS_TERRAIN(surfs[i].height, surfs[i].gap) + '\n#endif\n' : VS_TERRAIN(surfs[i].height, surfs[i].gap)), pre + FS_TERRAIN(surfs[i].height, surfs[i].shade), 'surface' + i), g0: surfs[i].g0 || 0.5, levels: surfs[i].levels || 10, split: HSP && HP_LAND && i === 0 });
+    P.hp = HSP ? HP_PROGS.map(function (n) { return C(VS_FULL, pre + (n === 'sites' || n === 'sitesX' ? HPS : '') + HP_GRIDW + HP_MAIN[n], 'hp.' + n); }) : null;
     P.lm = C(pre + VS_LANDMARK, pre + FS_LANDMARK(def.landmarkShade || 'shadeStone'), 'landmark');
-    P.pr = C(VS_FULL, pre + FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null), 'probe');
+    P.pr = C(VS_FULL, pre + (HSH ? '\n#ifdef HPSPLIT\n' + FS_PROBE_SPLIT + '\n#else\n' + FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null) + '\n#endif\n' : FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null)), 'probe');   // (one source on every device: the body chosen by DEFS)
     P.sc = def.scatter && def.scatter.length ? C(preG + VS_SCATTER, pre + FS_LANDMARK(def.scatterShade || def.landmarkShade || 'shadeStone'), 'scatter') : null;
     P.pt = def.particles ? C(HEAD + hk + FRAME_U + LIB + GROUND_LIB + VS_PARTICLE, HEAD + hk + FRAME_U + LIB + FS_PARTICLE, 'particle') : null;   // (fast500 step 8: without the realm's GLSL, which the particles never call)
     P.rb = def.ribbons ? C(preG + VS_RIBBON, preG + FS_RIBBON, 'ribbon') : null;
@@ -4625,6 +4630,48 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     PROBE_PTS = []; for (var i = 0; i < 3; i++) PROBE_PTS.push(tex2d(PROBE_W, PROBE_H, gl.RG32F, gl.RG, gl.FLOAT, gl.NEAREST));
     gl.activeTexture(gl.TEXTURE0);
   }
+  /* (fast500 lane G) the split height's targets and passes: two sets of five RGBA32F textures (the clipmap's: 97 x 970,
+     a texel a vertex of the ten levels; the probe's: 256 x 160, its points' batch or the ground's grid), bound to units
+     16-20 by the run that fills them, so the draw after it reads them. P0 kit (wD, lv), P1 kit (sk, wC), P2 the dunes'
+     h, P3 the sites' h, P4 the ridges (+ A_Hd's value) */
+  var HPT = null, HPLA = new Float32Array(40);
+  function hpSet(w, h) {
+    var S = { w: w, h: h, t: [], f: [] }, k, A = [[0, 1], [2], [3], [4]];
+    for (k = 0; k < 5; k++) { gl.activeTexture(gl.TEXTURE16 + k); S.t.push(tex2d(w, h, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST)); }
+    gl.activeTexture(gl.TEXTURE0);
+    for (k = 0; k < 4; k++) {
+      var f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+      for (var a = 0; a < A[k].length; a++) gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + a, gl.TEXTURE_2D, S.t[A[k][a]], 0);
+      gl.drawBuffers(A[k].length > 1 ? [gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1] : [gl.COLOR_ATTACHMENT0]);
+      S.f.push(f);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return S;
+  }
+  function hpTargets() { if (!HPT) HPT = { clip: HP_LAND ? hpSet(GN + 1, (GN + 1) * 10) : null, pr: hpSet(PROBE_W, GCN) }; }
+  function hpRun(V, src, w, h, LA, gx, gz, gcell) {   // (src 0 the clipmap, 1 the probe's points in uTex, 2 a grid)
+    hpTargets();
+    var S = src === 0 ? HPT.clip : HPT.pr, hp = V.def.P.hp, k, P, ord = src === 0 ? [0, 1, 2, 3] : HP_PORD;   // (the probe: its .x-only sites and ridges)
+    if (w > S.w || h > S.h) { fail('split height: ' + w + ' x ' + h + ' over its targets'); return; }
+    for (k = 0; k < 5; k++) { gl.activeTexture(gl.TEXTURE16 + k); gl.bindTexture(gl.TEXTURE_2D, S.t[k]); }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.colorMask(true, true, true, true); gl.bindVertexArray(FULLVAO);
+    for (k = 0; k < 4; k++) {
+      P = hp[ord[k]]; if (!P.ok) continue;
+      gl.useProgram(P.p); setFrameUniforms(P, V);
+      if (P.u.uHsrc) gl.uniform1i(P.u.uHsrc, src);
+      if (LA && P.u.uLevA) gl.uniform4fv(P.u.uLevA, LA);
+      if (src === 2 && P.u.uGCw) gl.uniform4f(P.u.uGCw, gx, gz, gcell, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, S.f[k]); gl.viewport(0, 0, w, h); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+  }
+  function hpClip(V, S) {   // the frame's clipmap vertices of the land, placed as the draw's rings place them
+    for (var l = 0; l < 10; l++) {
+      var g = S.g0 * Math.pow(2, l), cx = Math.floor(CAM.pos[0] / (2 * g)) * 2 * g, cz = Math.floor(CAM.pos[2] / (2 * g)) * 2 * g;
+      HPLA[l * 4] = cx - GN / 2 * g; HPLA[l * 4 + 1] = cz - GN / 2 * g; HPLA[l * 4 + 2] = g; HPLA[l * 4 + 3] = GN / 2;
+    }
+    hpRun(V, 0, GN + 1, (GN + 1) * 10, HPLA);
+  }
   function probeDraw(V, mode, n) {   // the points in PSCR, n of them, drawn into PROBE_T (rows as needed)
     if (KW.part && KWR && mode < 2) kwProbeGuard(n);   // (fast500 B3: the probes' reads while the first plan's rest is pending)
     probeTargets();
@@ -4635,6 +4682,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
     gl.bindFramebuffer(gl.FRAMEBUFFER, PROBE_T.f); gl.viewport(0, 0, PROBE_W, rows);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.colorMask(true, true, true, true);
+    if (V.def.P.hp) { hpRun(V, 1, PROBE_W, rows); gl.bindFramebuffer(gl.FRAMEBUFFER, PROBE_T.f); gl.viewport(0, 0, PROBE_W, rows); }   // (fast500 lane G)
     probeProg(V, mode);
     gl.bindVertexArray(FULLVAO); gl.drawArrays(gl.TRIANGLES, 0, 3);
     return rows;
@@ -4718,6 +4766,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     GCU[0] = x0; GCU[1] = z0; GCU[2] = GCCELL; GCU[3] = GCN;
     gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.colorMask(true, true, true, true); gl.bindVertexArray(FULLVAO);
+    if (V.def.P.hp) hpRun(V, 2, GCN, GCN, null, x0, z0, GCCELL);   // (fast500 lane G: both of the grid's draws read it)
     gl.bindFramebuffer(gl.FRAMEBUFFER, GCT.f); gl.viewport(0, 0, GCN, GCN); probeProg(V, 2, x0, z0, GCCELL); gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindFramebuffer(gl.FRAMEBUFFER, GCCT.f); gl.viewport(0, 0, GCN, GCN); probeProg(V, 3, x0, z0, GCCELL); gl.drawArrays(gl.TRIANGLES, 0, 3);
     ST.gc++;
@@ -5727,6 +5776,100 @@ void main() {
   gl_Position = uVP * vec4(vW - uCam, 1.0);
 }`;
   }
+  /* (fast500 lane G) the split height: the land's height (Hd, HdGap's A_Hd) evaluated by four small fragment passes,
+     one RGBA32F texel a point, instead of inside the land's vertex program and the probe. The passes call the realm's
+     own functions unchanged (kitW4, dunes, siteOf / basinOf / plateauOf, ridges, A_Hd); only where they are evaluated
+     moves. The point a texel stands for: uHsrc 0, a clipmap vertex (x = i, y = level x 97 + j: placed and morphed as the
+     land's vertex stage places it, gLodD its distance from the camera); 1, the probe's point (uTex); 2, the probe's grid
+     (uGCw), gLodD 0 for both, as in the probe. Then the land's vertex program and the probe read the passes' texels and
+     do the last adds as Hd, HdGap and HdProbe do: the same fp32 operations, in the same order (the gate: today's land
+     VS against this, by transform feedback, bit-identical heights, positions and gaps). The point: the compile. One
+     program holding all of Hd took 2.3 s (land VS) and 1.6 s (probe FS) on ANGLE-D3D11; the parts compile in parallel */
+  var HP_PARTS = ['kit', 'dunes', 'sites', 'ridges'];
+  /* where the split is made: ANGLE on Direct3D11 with an NVIDIA GPU, the one maker whose heights were read back
+     bit-exact against today's land program (the shipped DXBC lets drivers reorder arithmetic, so exactness is claimed
+     only where read back). Elsewhere (AMD, Intel, Qualcomm, Metal, Linux, Android) today's land program. Per device,
+     so the return visit's program cache holds */
+  function HP_DEV(r) { return /^ANGLE \(NVIDIA[,\s]/.test(r || '') && /Direct3D11/.test(r || ''); }
+  var HP_GRIDW = `
+uniform int uHsrc;   // 0 the clipmap's vertices (uLevA), 1 the probe's points (uTex), 2 the probe's grid (uGCw)
+uniform vec4 uLevA[10]; uniform vec4 uGCw; uniform highp sampler2D uTex;
+uniform highp sampler2D uHP0, uHP2;
+layout(location = 0) out vec4 o0; layout(location = 1) out vec4 o1;
+ivec2 gq; vec2 gw;
+void gridW() {
+  gq = ivec2(gl_FragCoord.xy);
+  if (uHsrc == 0) {
+    int l = gq.y / 97; vec2 aG = vec2(float(gq.x), float(gq.y - l * 97)); vec4 L = uLevA[l];
+    vec2 w = L.xy + aG * L.z;
+    float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
+    float m = clamp((d - (L.w - 11.0) * L.z) / (8.5 * L.z), 0.0, 1.0);
+    w -= mod(aG, 2.0) * L.z * m;
+    gLodD = length(w - uCam.xz); gw = w;
+  } else gw = uHsrc == 2 ? uGCw.xy + gl_FragCoord.xy * uGCw.z : texelFetch(uTex, gq, 0).xy;
+}
+`;
+  var HP_MAIN = {
+    kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',
+    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; o0 = vec4(dunes(gw), 0.0); o1 = vec4(0.0); }',
+    sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), 0.0); o1 = vec4(0.0); }',
+    ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
+    /* the probe's own two: today's probe keeps only the height live (h.x; its slopes are dead), so FXC fuses its
+       arithmetic as it does when only .x is written; the land's passes (every channel live, as the land VS) differ
+       from it by an ulp at 0.4% of points. Written .x only, the probe's passes read back bit-identical to today's probe */
+    sitesX: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz).x, 0.0, 0.0, 0.0); o1 = vec4(0.0); }',
+    ridgesX: 'void main() { gridW(); o0 = vec4(ridges(gw).x, 0.0, 0.0, A_Hd(gw).x); o1 = vec4(0.0); }'
+  };
+  /* HP_LAND: the land VS read the passes too. Off: its slopes (the normals) cannot come out bit-identical through any
+     texture boundary (today's one program fuses and reorders across D_Hd - sk; read back: 1 ulp at ~25% of vertices,
+     whatever the cut), so only the probe is split, and the land keeps today's program */
+  var HP_LAND = true;   // (the owner, 2026-11-05: the land split's 1-ulp slopes accepted for the speed, on the split's devices only)
+  var HP_PROGS = HP_LAND ? ['kit', 'dunes', 'sites', 'ridges', 'sitesX', 'ridgesX'] : ['kit', 'dunes', 'sitesX', 'ridgesX'];   // (P.hp's order: the clipmap runs 0-3, the probe the last four's kit, dunes, sitesX, ridgesX)
+  var HP_PORD = HP_LAND ? [0, 1, 4, 5] : [0, 1, 2, 3];
+  /* the sites' part of D_Hd (its basins and plateaux over the 3x3 sites), taken from the realm's own D_Hd as it ships
+     (today's, or a rewrite of its loops): its body between `vec3 h = dunes(p);` and `return h + ridges(p);`, the h
+     handed in. null when D_Hd is not of that shape (the split is then not made: today's programs) */
+  function HP_SITES_FN(g) {
+    var a = g.indexOf('vec3 D_Hd(vec2 p) {'); if (a < 0 || g.indexOf('vec3 D_Hd(vec2 p) {', a + 1) >= 0) return null;
+    var e = g.indexOf('\n}', a); if (e < 0) return null;
+    var body = g.slice(a + 'vec3 D_Hd(vec2 p) {'.length, e), A = '\n  vec3 h = dunes(p);\n', Z = '\n  return h + ridges(p);';
+    if (body.indexOf(A) !== 0 || body.lastIndexOf(Z) !== body.length - Z.length || body.split(A).length !== 2 || body.split(Z).length !== 2) return null;
+    return '\nvec3 D_HdSites(vec2 p, vec3 h) {\n' + body.slice(A.length, body.length - Z.length) + '\n  return h;\n}\n';
+  }
+  function VS_TERRAIN_SPLIT(G) {   // (lane G) VS_TERRAIN with the height read from the passes (Hd - sk, HdGap's terms)
+    return `
+layout(location = 0) in vec2 aG;
+uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
+uniform int uLvl;    // the level: its rows in the passes' texels
+uniform highp sampler2D uHP0, uHP1, uHP3, uHP4;   // kit (wD, lv), kit (sk, wC), the sites' h, the ridges (+ A_Hd)
+centroid out vec3 vW; centroid out vec3 vN; out float vX;
+void main() {
+  vec2 w = uLev.xy + aG * uLev.z;
+  float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
+  float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
+  w -= mod(aG, 2.0) * uLev.z * m;
+  ivec2 q = ivec2(aG) + ivec2(0, uLvl * 97);
+  vec4 k0 = texelFetch(uHP0, q, 0), k1 = texelFetch(uHP1, q, 0), s = texelFetch(uHP3, q, 0), r = texelFetch(uHP4, q, 0);
+  vec3 hd = (s.xyz + r.xyz) - k1.xyz;
+  vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
+  gl_Position = uVP * vec4(vW - uCam, 1.0);
+}`;
+  }
+  var FS_PROBE_SPLIT = `
+uniform int uPm; uniform vec4 uGCw; uniform highp sampler2D uHP0, uHP1, uHP3, uHP4; out vec4 oC;
+vec4 pack(float h) { float v = clamp((h + 4096.0) / 8192.0, 0.0, 0.99999); vec4 e = fract(v * vec4(1.0, 255.0, 65025.0, 16581375.0)); return e - e.yzww * vec4(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 0.0); }
+void main() {
+  ivec2 q = ivec2(gl_FragCoord.xy); bool cam = uPm == 1 || uPm == 3;
+  vec4 k0 = texelFetch(uHP0, q, 0), k1 = texelFetch(uHP1, q, 0), s = texelFetch(uHP3, q, 0), r = texelFetch(uHP4, q, 0);
+  float h = ((s.xyz + r.xyz) - k1.xyz).x;
+  if (cam) h = max(h, k0.w + r.w * (0.4 + 0.6 * k1.w));
+#ifdef GC_PACKED
+  oC = pack(h);
+#else
+  oC = uPm == 2 ? vec4(h, 0.0, 0.0, 1.0) : pack(h);
+#endif
+}`;
   function FS_TERRAIN(H, S) {
     return ZCODE + `
 centroid in vec3 vW; centroid in vec3 vN; in float vX; out vec4 oC;
@@ -8128,6 +8271,7 @@ void main() {
         SHIST.uvp.set(SHIST.vp); SHIST.ucam.set(SHIST.cam);
       }
     }
+    if (DP.hp && DP.surf.length && DP.surf[0].split) hpClip(V, DP.surf[0]);   // (fast500 lane G: the land's height for this frame's vertices)
     useTarget(MS || TG.scene, W, H);
     gl.depthMask(true); gl.clearDepth(1);
     if (MS) { gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); } else gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -8142,7 +8286,7 @@ void main() {
         var g = S.g0 * Math.pow(2, l), cx = Math.floor(CAM.pos[0] / (2 * g)) * 2 * g, cz = Math.floor(CAM.pos[2] / (2 * g)) * 2 * g;
         var set = 0;
         if (l > 0) { var gf = g / 2, fx = Math.floor(CAM.pos[0] / (2 * gf)) * 2 * gf, fz = Math.floor(CAM.pos[2] / (2 * gf)) * 2 * gf; set = 1 + Math.round((fx - cx) / g) + 2 * Math.round((fz - cz) / g); }
-        gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2);
+        gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2); if (S.split) gl.uniform1i(P.u.uLvl, l);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, GRID.ib[set].b);
         dc(gl.TRIANGLES, GRID.ib[set].n, 0, true);
       }
@@ -8532,6 +8676,9 @@ void main() {
     T.hdr = target(4, 4, 'hdr'); T.rgba8 = target(4, 4, 'rgba8');
     T.r32f = { f: gl.createFramebuffer() }; T.r32f.t = tex2d(4, 4, FLOAT32_RT ? gl.R32F : gl.RGBA8, FLOAT32_RT ? gl.RED : gl.RGBA, FLOAT32_RT ? gl.FLOAT : gl.UNSIGNED_BYTE, gl.NEAREST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, T.r32f.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, T.r32f.t, 0);
+    if (FLOAT32_RT) { T.hp1 = { f: gl.createFramebuffer() }; T.hp1.t = tex2d(4, 4, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST); gl.bindFramebuffer(gl.FRAMEBUFFER, T.hp1.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, T.hp1.t, 0);
+      T.hp2 = { f: gl.createFramebuffer() }; T.hp2.t = tex2d(4, 4, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST); T.hp2.t2 = tex2d(4, 4, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST); gl.bindFramebuffer(gl.FRAMEBUFFER, T.hp2.f);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, T.hp2.t, 0); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, T.hp2.t2, 0); gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]); }   // (fast500 lane G: the split height's passes)
     T.rg8 = { f: gl.createFramebuffer() }; T.rg8.t = tex2d(4, 4, gl.RG8, gl.RG, gl.UNSIGNED_BYTE, gl.NEAREST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, T.rg8.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, T.rg8.t, 0);
     // (E1 Fix 3) the clouds' bakes at 16 bits where the hotfix's probe asks for them (VOL16: the scratch volume RG16F, the
@@ -8578,6 +8725,7 @@ void main() {
       E(id + '.sky', P.sky, FULLVAO, T, 3, 0, false, SC, null, LE, false);
       E(id + '.probe', P.pr, FULLVAO, T, 3, 0, false, 'rgba8');
       E(id + '.probe.grid', P.pr, FULLVAO, T, 3, 0, false, 'r32f');
+      if (P.hp) for (var hk = 0; hk < P.hp.length; hk++) E(P.hp[hk].name, P.hp[hk], FULLVAO, T, 3, 0, false, hk ? 'hp1' : 'hp2');   // (fast500 lane G)
     }
     // the engine's sites, in drawFrame's order
     E('creature', EP.creature, CREATURE.vao, T, 3, 1, false, SC, null, LE, true);
@@ -9308,7 +9456,7 @@ void main() {
     // it was
     GROUND.rd = 0; GROUND.ok = false; GROUND.got = 0; probeDropAll(); rbForget(); FREEQ.length = 0; poolReset();   // (while still marked lost: the jobs' buffers and fences died with the old context, never deleted in the new one)
     LOST = false; FBOK = {}; initExtensions();   // (E1.1: a new context asks each kind of target's completeness again, once)
-    PROGS.length = 0; TG = null; PROBE_T = null; PROBE_PTS = []; GCT = null; GCCT = null; BAKEFB = null; QUAD = null; OUT.w = 0; GCK[0] = -1; ENG.st = 0; READY = false;
+    PROGS.length = 0; TG = null; PROBE_T = null; HPT = null; PROBE_PTS = []; GCT = null; GCCT = null; BAKEFB = null; QUAD = null; OUT.w = 0; GCK[0] = -1; ENG.st = 0; READY = false;
     NOISE.done = false; NOISE.t = null; WARM.list = null; WARM.done = false; WARMX.length = 0; BOOT.thumb = null;   // (fast500 step 1b: the noise's baked bytes kept; B uploads them again)
     ORDER.forEach(function (id) { REALMS[id].P = null; });
     J.visits.forEach(forgetVisit); kwForget();
