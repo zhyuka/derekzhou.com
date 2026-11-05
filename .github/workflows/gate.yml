@@ -1,6 +1,6 @@
 name: Gate
 
-# The gates every push runs (T0 here; T1 and the verdict come next), and that merge.yml reads. Pushes that touch only
+# The gates every push runs (T0, T1, the verdict), whose verdict merge.yml reads. Pushes that touch only
 # .work/** run nothing. A newer push to a branch cancels the run before it (main's runs are never cancelled).
 on:
   push:
@@ -86,3 +86,68 @@ jobs:
           name: census
           path: ${{ runner.temp }}/census.json
           retention-days: 7
+
+  # T1, the software A/B: base and head served side by side and rendered in the same job (SwiftShader, the clock
+  # paused and stepped, frames hashed in the page), a null test (base against base) in every shard. Stills and short
+  # stepped sequences at 393x852 at 3 and 1440x900, the split height's device, reduced motion, no WebGL2, the 404
+  # page; DOM stills; a CSP-violation listener. Only when site/ or the harness changed: with site/ byte for byte the
+  # base's, what a visitor is served is identical by construction.
+  t1:
+    needs: plan
+    if: needs.plan.outputs.run_t1 == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/playwright
+      - name: Base against head, shard ${{ matrix.shard }} of 4
+        id: t1
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" ${{ needs.plan.outputs.base }}
+          node .github/ci/t1.mjs --base "$RUNNER_TEMP/base/site" --head site --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: t1-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/t1
+          retention-days: 7
+
+  # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
+  verdict:
+    needs: [static, plan, census, t1]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      gate_ok: ${{ steps.v.outputs.gate_ok }}
+      frames_identical: ${{ steps.v.outputs.frames_identical }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/ci
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: t1-shard-*
+          path: ${{ runner.temp }}/t1
+      - name: Verdict
+        id: v
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          T1_SHARDS: '4'
+        run: node .github/ci/verdict.mjs "$RUNNER_TEMP/t1" "$RUNNER_TEMP/verdict.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-verdict
+          path: ${{ runner.temp }}/verdict.json
+          retention-days: 30
