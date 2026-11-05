@@ -30,6 +30,7 @@ jobs:
       site_changed: ${{ steps.areas.outputs.site_changed }}
       run_t1: ${{ steps.areas.outputs.run_t1 }}
       gpu_js: ${{ steps.areas.outputs.gpu_js }}
+      t2_self: ${{ steps.areas.outputs.t2_self }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -122,23 +123,46 @@ jobs:
           retention-days: 7
 
   # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
-  # programs read back bit for bit. Only when a shader's text or the world's, the realms' or the birds' served JS
-  # changed, and only once the owner has registered the runner and set the repository variable T2_RUNNER to on:
-  # without it a job for [self-hosted, windows, gpu-4090] would wait a day for a runner and hold every merge.
-  t2:
+  # programs read back bit for bit. Wanted when a shader's text or the world's, the realms' or the birds' served JS
+  # changed, or T2's own files did (so a change to T2 is tested on its own push). A queued job for a self-hosted runner
+  # waits up to a day and cannot be timed out, so t2-probe decides first, in seconds, whether the runner can take it:
+  # with the RUNNER_TOKEN secret (a fine-grained token for this repository with Administration: read) it asks GitHub
+  # whether a runner labelled gpu-4090 is online; without it, the repository variable T2_RUNNER = on says so. Not
+  # online: a notice, and the verdict rests on T0 and T1. T2 never holds a merge for a runner that is not there.
+  t2-probe:
     needs: [plan, census]
-    if: always() && needs.plan.result == 'success' && vars.T2_RUNNER == 'on' && (needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true')
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.p.outputs.run }}
+    steps:
+      - id: p
+        env:
+          WANTED: ${{ needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true' }}
+          RUNNER_TOKEN: ${{ secrets.RUNNER_TOKEN }}
+          T2_RUNNER: ${{ vars.T2_RUNNER }}
+        run: |
+          if [ "$WANTED" != "true" ]; then echo "T2 not wanted (no shader, world/realm/bird JS or T2 change)"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          online=false; how=""
+          if [ -n "$RUNNER_TOKEN" ]; then
+            n=$(curl -fsS -H "Authorization: Bearer $RUNNER_TOKEN" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runners?per_page=100" \
+                | jq '[.runners[] | select(.status == "online") | select(any(.labels[]; .name == "gpu-4090"))] | length' || echo 0)
+            [ "${n:-0}" -gt 0 ] && online=true; how="RUNNER_TOKEN: $n online runner(s) labelled gpu-4090"
+          else
+            [ "$T2_RUNNER" = "on" ] && online=true; how="the variable T2_RUNNER is '${T2_RUNNER:-unset}'"
+          fi
+          echo "T2 wanted; runner online: $online ($how)"
+          if [ "$online" != "true" ]; then echo "::notice::T2 would run for this change, but the GPU runner is not online ($how). The verdict rests on T0 and T1."; fi
+          echo "run=$online" >> "$GITHUB_OUTPUT"
+
+  t2:
+    needs: [plan, t2-probe]
+    if: always() && needs.t2-probe.outputs.run == 'true'
     uses: ./.github/workflows/gpu.yml
     with:
       base: ${{ needs.plan.outputs.base }}
-
-  t2-off:
-    needs: [plan, census]
-    if: always() && needs.plan.result == 'success' && vars.T2_RUNNER != 'on' && (needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true')
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - run: echo "::notice::T2 would run for this change (a shader or the world's JS changed), but no GPU runner is on (the repository variable T2_RUNNER is not 'on'). The verdict rests on T0 and T1."
 
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
