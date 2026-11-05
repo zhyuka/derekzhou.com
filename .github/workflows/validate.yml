@@ -23,7 +23,7 @@ jobs:
             site.js
             hour.v3.js
             birds.v12.js
-            world.v6.js
+            world.v7.js
             realm-kit.v1.js
             realm-dunes.v3.js
             realm-above.v2.js
@@ -33,7 +33,7 @@ jobs:
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v2.js
+            inkbirds.v3.js
             robots.txt
             _headers
             _redirects
