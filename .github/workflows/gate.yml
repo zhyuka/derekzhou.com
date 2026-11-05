@@ -124,7 +124,7 @@ jobs:
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
     needs: [static, plan, census, t1]
-    if: always()
+    if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
