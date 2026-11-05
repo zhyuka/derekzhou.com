@@ -1,5 +1,6 @@
 // minify.mjs: the world's shipped scripts, minified (fast500 lane C, steps 4b and 4c; the owner's "Minified scripts":
 // a committed minified copy, made by this script, CI checking it is exactly what this script makes from the sources).
+// A change to this file alone changes no served byte: the gate checks the build (validate.yml) and merges it without rendering.
 //
 //   node tools/minify.mjs DIR                  rewrite DIR's scripts in place, minified
 //   node tools/minify.mjs --build SRC SITE     write SRC's scripts into SITE, minified (the same names)
