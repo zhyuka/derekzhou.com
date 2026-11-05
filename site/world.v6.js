@@ -2205,6 +2205,12 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     for (var i = 0; i < S.length; i += 4) if (inCorridor(Q, it.x + S[i], it.y + S[i + 1], it.z + S[i + 2], S[i + 3], CORR_WS, it.landMax)) return true;
     return false;
   }
+  /* (round 3) the owner, asked to turn the rays off but keep the storks and gulls circling over temples and islands: "yes".
+     So the switch drops the rays; the realms' bird flocks stay as the places the ink thermals keep, never drawn.
+     (life fix) the world's own flyers (the white flocks and the rays, a tail trailing) off: the ink birds are the sky's
+     only birds, one language (judge-eye1: a dark ray with a tail line shared the sky with them). The moths, jellies and
+     caps stay. Their draws are made as before; only what they would add is dropped. true: as the world was */
+  var WORLD_FLYERS = false;
   function pickOf(o, salt) { return hfl(ihash(((Math.round(o.x * 8) * 0x9e3779b1) ^ (Math.round(o.z * 8) * 0x85ebca6b) ^ salt) >>> 0)); }
   function kitApi(C, kit, dens, lift) {
     var A = {}, k;
@@ -2213,7 +2219,8 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     function seat(o) { if (lift && o.y !== undefined) o.y += seaBaseAt(o.x, o.z); }   // (the ABOVE kit's heights are over its sea)
     A.add = function (it) { it.kit = kit; if (!keep(it)) { it._drop = true; return it; } seat(it); if (lift) it.landQ = it.r || 50; return C.add(it); };
     A.cloud = function (cl) { cl.kit = kit; if (!keep(cl)) { cl._drop = true; return cl; } seat(cl); if (lift) cl.landQ = (cl.w || cl.thick || 300) * 0.5; return C.cloud(cl); };   // (world6 fix: the land under its footprint probed: aboveKeep)
-    A.flock = function (f) { if ((f.ref && f.ref._drop) || !keep(f)) return f; seat(f); return C.flock(f); };
+    A.flock = function (f) { if (!WORLD_FLYERS && f.kind === 'ray') return f;   // (round 3: the owner's word, the rays off; the bird flocks kept as the ink thermals' places, never drawn)
+      if ((f.ref && f.ref._drop) || !keep(f)) return f; seat(f); return C.flock(f); };   // (life fix: WORLD_FLYERS)
     A.poi = function (p) { if ((p.ref && p.ref._drop) || !keep(p)) return p; seat(p); return C.poi(p); };
     A.place = function (set, x, z, o) { var q = o || {}; q.x = x; q.z = z; if (!keep(q)) return q; return C.place(set, x, z, q); };
     A.weights = function (x, z) { var k = kwAt(x, z); KWP[0] = k[0]; KWP[1] = k[3]; return KWP; };   // (world6 fix: the kits read the maps' weights: wD, wC)
@@ -2326,7 +2333,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     kwFollow(CS.x, CS.z, true);       // (the weights' grid about the camera, whole)
     V.rng = RNG(subseed(V.seed, 1)); V.rng2 = RNG(subseed(V.seed, 2));
     V.salt = subseed(V.seed, 7) >>> 0;
-    V.speed = def.speed || 12; V.clear = (def.clear || [6, 12, 120]).slice(); V.margin = def.margin || 14;
+    V.speed = (def.speed || 12) * CAMK; V.clear = (def.clear || [6, 12, 120]).slice(); V.margin = def.margin || 14;
     V.field = def.field ? def.field(V.rng, V) : { params: [] };
     V.light = def.light(V.rng2, V);
     V.light.sunDir = dirAzEl(V.light.sunAz, V.light.sunEl);
@@ -3759,7 +3766,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     }
     S.st = 0; S.used = 0; S.ents.length = 0;
   }
-  function rbDeliver(e) { if (e.k === 'probe') probeLand(e); else if (e.k === 'ground') groundHalf(e); else if (e.k === 'words') wordsGroundDeliver(e); }
+  function rbDeliver(e) { if (e.k === 'probe') probeLand(e); else if (e.k === 'ground') groundHalf(e); else if (e.k === 'words') wordsGroundDeliver(e); else if (e.k === 'birds') birdsGroundDeliver(e); }
   /* (dev) every pending fence waited for and its slot delivered (a film's frame; the harness's still) */
   function rbDrain() { var guard = 0, fx = RB.fix; RB.fix = false; gl.finish(); while (RB.fences.length && guard++ < 16) rbPoll(); RB.fix = fx; }
 
@@ -4603,6 +4610,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
     if (u < V.evNext) return;
     var e = V.def.event(V, V.evRng, { x: CS.x, y: CS.y, z: CS.z, psi: CS.psi, u: u, ground: function (x, z) { return groundAt(V, x, z, false); } });
     V.evNext = u + (e && e.next ? e.next : 20);
+    if (e && e.flock && !WORLD_FLYERS && (e.flock.kind === 'bird' || e.flock.kind === 'ray')) e = null;   // (life fix: WORLD_FLYERS)
     if (e && e.flock && V.flocksEv.length < 2) { e.flock.u0 = u; e.flock.at = [e.flock.x, e.flock.y, e.flock.z]; var f = flockOf(e.flock); f.end = u + (e.life || 30); V.flocksEv.push(f); }
   }
 
@@ -4710,6 +4718,9 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
   var INPLOG = [], INPQ = []; INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false };
+  /* (life) the birds' play is not in this page (it comes with the perched birds): the pointer the birds read is always
+     gone (HOVER), and no listener reads a mouse's moves */
+  var HOVER = { x: -1, y: -1, n: 0, gone: true, down: false, type: '' };
   var SUPPRESS = false, SUPPRESS_N = 0;
   function inert() { return reduced() || DEAD || LOST; }
   function onLink(el) { for (var e = el; e && e !== root; e = e.parentNode) if (e.tagName === 'A' || e.tagName === 'BUTTON') return true; return false; }
@@ -4848,6 +4859,7 @@ float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D
   }
   function inputInit() {
     window.addEventListener('pointerdown', onDown, true);
+    hoverSync();   // (life fix: the birds' play's two listeners, mouse only, added only while motion and colours allow it: never under reduced motion or forced colours)
     window.addEventListener('click', onClick, true);
     window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
     document.addEventListener('dragstart', function (e) { if (!inert()) e.preventDefault(); }, true);   // (a link is never dragged away)
@@ -6538,11 +6550,17 @@ void main() {
   }
   /* the composite's inputs (world6: the world's live light; there is no junction to ease across) */
   var EL = { bloom: new Float32Array(3), shaftC: new Float32Array(3), lift: new Float32Array(3), gain: new Float32Array(3), exposure: 1, sat: 1 };
+  var SIMNIGHT = false;   // (birds3d, dev: __world.set({ simnight: 1 }); the paper birds' night look over a SIMULATED night)
+  var CAMK = 1;   // (birds3d, dev: __world.set({ camk: 0.4 }); the camera's pace scaled for a film of a staged wheel (a camera that lingers near a wheel is the world's open decision: SIMULATED); 1 = the world's own pace)
   function easedLight(V, u) {
     var L = V.L || V.light, P = null, w = 1, k;   // (world6: no last realm to ease from)
     var Q = L;
     for (k = 0; k < 3; k++) { EL.bloom[k] = lerp(Q.bloom[k], L.bloom[k], w); EL.shaftC[k] = lerp(Q.shaftC[k], L.shaftC[k], w); EL.lift[k] = lerp(Q.lift[k], L.lift[k], w); EL.gain[k] = lerp(Q.gain[k], L.gain[k], w); }
     EL.exposure = lerp(Q.exposure, L.exposure, w); EL.sat = lerp(Q.sat, L.sat, w);
+    if (SIMNIGHT) {   // (birds3d, dev only: SIMULATED night, the world having no night yet: the day's light graded down and toward blue; never in production)
+      EL.exposure *= 0.15; EL.sat *= 0.7;
+      for (k = 0; k < 3; k++) { EL.gain[k] *= [0.6, 0.74, 1.08][k]; EL.lift[k] += [0.0015, 0.0025, 0.007][k]; EL.bloom[k] *= k === 0 ? 0.6 : 1; }
+    }
     return EL;
   }
 
@@ -6647,7 +6665,7 @@ void main() {
   }
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
-    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs', 'inkKeep'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteRenderbuffer(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
+    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs', 'inkKeep'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
     TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
     // (E1 Fix 3, G0) the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
@@ -6659,8 +6677,13 @@ void main() {
     TG.ch = [target(w2, h2, 'hdr'), target(w2, h2, 'hdr')]; CACC.ok = false;   // (E1 Fix 3: the clouds' accumulation, two in turn)
     // one depth buffer under both half-resolution targets: the land's depth (from the depth pass) and the opaque cores
     // of the clouds, so a cloud box behind either is never marched
-    TG.hz = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, TG.hz); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w2, h2);
-    [TG.lind, TG.cloud].forEach(function (T) { gl.bindFramebuffer(gl.FRAMEBUFFER, T.f); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, TG.hz); });
+    // (birds3d) a depth texture, not a renderbuffer (the same size and content): the paper birds read the cores' depth
+    // through it (HOST.bindTextures, unit 14), so a bird behind a cloud's opaque core is hidden by it
+    TG.hz = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, TG.hz);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, w2, h2, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null); gl.bindTexture(gl.TEXTURE_2D, null);
+    [TG.lind, TG.cloud].forEach(function (T) { gl.bindFramebuffer(gl.FRAMEBUFFER, T.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, TG.hz, 0); });
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     var bw = w2, bh = h2;
     for (var i = 0; i < 5; i++) { TG.bd.push(target(Math.max(1, bw), Math.max(1, bh), 'hdr')); if (i < 4) TG.bu.push(null); bw = Math.ceil(bw / 2); bh = Math.ceil(bh / 2); }
@@ -6766,6 +6789,7 @@ void main() {
       var s = Math.min(r.width / vb.width, r.height / vb.height), ox = r.left + (r.width - vb.width * s) / 2, oy = r.top + (r.height - vb.height * s) / 2;
       WORDS[0] = (ox + (NAMEBB[0] - vb.x) * s - cr.left) * k; WORDS[1] = (oy + (NAMEBB[1] - vb.y) * s - cr.top) * k;
       WORDS[2] = (ox + (NAMEBB[0] + NAMEBB[2] - vb.x) * s - cr.left) * k; WORDS[3] = (oy + (NAMEBB[1] + NAMEBB[3] - vb.y) * s - cr.top) * k;
+      HW.nvb = [(ox - vb.x * s - cr.left) * k, (oy - vb.y * s - cr.top) * k, s * k];   // (life: the drawing's viewBox in canvas px, for the name's perches)
       return true;
     } catch (e) { return false; }
   }
@@ -6994,6 +7018,46 @@ void main() {
     }
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
   }
+  /* (birds3d) the ground under the paper birds, for their hold (a bird never melts into its ground: HOST.groundAt): the
+     same composite at an eighth the words read (TG.gs), the cells under each bird the module asks for (HOST.groundWant:
+     its boxes, CSS px), at most every BGR_DT s and only while a bird is drawn. Its bytes ride the slot the words' read is
+     filling this frame and only that: it never takes a slot of its own, so the words' reads land exactly as without it
+     (A13). The harness's synchronous frames read the whole of TG.gs at once. OKLab L a cell, kept with its time */
+  var BGR = { n: 0, rects: new Float32Array(4 * 16), L: null, T: null, w: 0, h: 0, last: -1e9, reads: 0, skipped: 0 }, BGR_DT = 0.25, BGR_MAX = 16, BGR_CELLS = 64;
+  function bgrSize() { var w = TG.gs.w, h = TG.gs.h; if (BGR.w !== w || BGR.h !== h || !BGR.L) { BGR.w = w; BGR.h = h; BGR.L = new Float32Array(w * h).fill(-1); BGR.T = new Float64Array(w * h).fill(-1e9);   /* (fix round: the read's time kept whole: as a float32 a stepped clock's 24.4999999 rounded up to 24.5, every read after about 24 s looked as if from the future and was refused, and the birds' hold let go) */ } }
+  function bgrL(px, q) { var r = s2l(px[q] / 255), g = s2l(px[q + 1] / 255), b = s2l(px[q + 2] / 255); return Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) * 0.2104542553 + Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) * 0.7936177850 - Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) * 0.0040720468; }
+  function bgrLand(px, off, x0, y0, w, h, t) { for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) { var c = (y0 + j) * BGR.w + x0 + i, q = off + (j * w + i) * 4; BGR.L[c] = bgrL(px, q); BGR.T[c] = t; } }
+  function birdsGroundDeliver(e) { if (BGR.w !== e.gw || BGR.h !== e.gh) return; for (var i = 0; i < e.r.length; i += 5) bgrLand(RB.buf, e.off + e.r[i + 4], e.r[i], e.r[i + 1], e.r[i + 2], e.r[i + 3], e.t); }
+  var BGRBUF = null;
+  function birdsGroundRead() {
+    if (!BGR.n || SIM.t - BGR.last < BGR_DT && SIM.t >= BGR.last) return;
+    bgrSize();
+    var gw = TG.gs.w, gh = TG.gs.h, k = (OUT.w / Math.max(OUT.cssW || OUT.w, 1)) / GS_K, i;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, TG.gs.f);
+    if (STILLMODE ? !SW.wlive || SW.wsync : reduced()) {   // (with the words' read made at once: the whole ground, at once)
+      if (!BGRBUF || BGRBUF.length < gw * gh * 4) BGRBUF = new Uint8Array(gw * gh * 4);
+      gl.readPixels(0, 0, gw, gh, gl.RGBA, gl.UNSIGNED_BYTE, BGRBUF);
+      bgrLand(BGRBUF, 0, 0, 0, gw, gh, SIM.t); BGR.reads++;
+    } else {
+      var S = null; for (i = 0; i < RB.slots.length; i++) if (RB.slots[i].st === 1) { S = RB.slots[i]; break; }   // (only the slot the words are filling now)
+      var rr = [], bytes = 0;
+      for (i = 0; i < BGR.n; i++) {
+        var x0 = clamp(Math.floor(BGR.rects[4 * i] * k) - 1, 0, gw - 1), x1 = clamp(Math.ceil(BGR.rects[4 * i + 2] * k) + 1, x0 + 1, gw);
+        var y0 = clamp(Math.floor(gh - BGR.rects[4 * i + 3] * k) - 1, 0, gh - 1), y1 = clamp(Math.ceil(gh - BGR.rects[4 * i + 1] * k) + 1, y0 + 1, gh);
+        var w = Math.min(x1 - x0, 8), h = Math.min(y1 - y0, 8); if (w * h > BGR_CELLS) h = Math.max(1, Math.floor(BGR_CELLS / w));
+        rr.push(x0, y0, w, h, bytes); bytes += w * h * 4;
+      }
+      if (!S || S.used + bytes > RB_SLOT) { BGR.skipped++; gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); return; }
+      var ent = { k: 'birds', t: SIM.t, gw: gw, gh: gh, r: rr, off: S.used, bytes: bytes };
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, S.pbo);
+      for (i = 0; i < rr.length; i += 5) gl.readPixels(rr[i], rr[i + 1], rr[i + 2], rr[i + 3], gl.RGBA, gl.UNSIGNED_BYTE, S.used + rr[i + 4]);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      S.used += bytes; S.ents.push(ent); BGR.reads++;
+      if (REC) REC.fr.rbBytes += bytes;
+    }
+    BGR.last = SIM.t;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+  }
   function setWords(kind) {
     if (WORDCOL === kind) return;
     if (REC && WORDCOL !== null) { REC.flips.push([+SIM.t.toFixed(2), WORDCOL + '>' + kind, 'root', SKYI.id]); if (REC.firstFlip === null && REC.dissolveEnd > 0) REC.firstFlip = +((clockNow() - REC.dissolveEnd) / 1000).toFixed(2); }
@@ -7110,7 +7174,7 @@ void main() {
   function drawCreatures(V) {
     FLK.length = 0;
     var L = V.cellList, i, k, n = 0;
-    if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 2) continue; for (k = 0; k < C.flocks.length; k++) { var f = C.flocks[k].set; if (BIRDS && f.kind === 1) continue; var dx = f.a[0] - CAM.pos[0], dz = f.a[2] - CAM.pos[2], d2 = dx * dx + dz * dz; if (d2 < FLK_FAR * FLK_FAR && inView(f.a[0], f.a[1], f.a[2], f.b[2] + 60)) { f.fd = 1 - smooth(FLK_IN, FLK_FAR, Math.sqrt(d2)); FLK.push(f); } } }
+    if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 2) continue; for (k = 0; k < C.flocks.length; k++) { var f = C.flocks[k].set; if ((BIRDS || !WORLD_FLYERS) && f.kind === 1) continue; var dx = f.a[0] - CAM.pos[0], dz = f.a[2] - CAM.pos[2], d2 = dx * dx + dz * dz; if (d2 < FLK_FAR * FLK_FAR && inView(f.a[0], f.a[1], f.a[2], f.b[2] + 60)) { f.fd = 1 - smooth(FLK_IN, FLK_FAR, Math.sqrt(d2)); FLK.push(f); } } }
     if (V.flocksEv) for (i = 0; i < V.flocksEv.length; i++) if (!(BIRDS && V.flocksEv[i].kind === 1)) FLK.push(V.flocksEv[i]);   // (the ink birds stand for the realms' birds)
     ST.flocks = FLK.length;
     if (!FLK.length) return;
@@ -7481,7 +7545,7 @@ void main() {
     // inks' choice (agUpdate); the frame itself is then drawn alike with the words' machinery on or off
     if (TG.gs && !TRIAL && SW.words && AG.on) {
       useTarget(TG.gs, TG.gs.w, TG.gs.h); gl.uniform2f(P.u.uOut, TG.gs.w, TG.gs.h);
-      dc(gl.TRIANGLES, 3); wordsGroundRead();
+      dc(gl.TRIANGLES, 3); wordsGroundRead(); birdsGroundRead();
       useTarget(DIRECT && !TRIAL ? null : TG.win, OUT.w, OUT.h); gl.uniform2f(P.u.uOut, OUT.w, OUT.h);
     }
     if (SW.words && !TRIAL) agUpdate();
@@ -8215,11 +8279,14 @@ void main() {
     STILLRAF = requestAnimationFrame(function () { STILLRAF = 0; if (running || LOST || DEAD || !READY || forced()) return; if (NEEDSIZE || !TG) { NEEDSIZE = false; resize(); } render(); });
   }
   var SUPPRESS_F = 0;
+  /* (life) the birds' play's listeners are not in this page: the pointer stays gone */
+  function hoverSync() { HOVER.gone = true; }
 
   /* ---------------------------------------------------------------- reduced motion: one still frame, live both ways */
   var MQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   function reduced() { return !!(MQ && MQ.matches); }
   function onMotionPref() {
+    hoverSync();
     if (STILLMODE || LOST || DEAD) return;
     if (reduced()) { if (DRAG.id !== -1) endDrag(false); if (READY && shown) { stop(); STILLTS = -1; NEEDSIZE = true; stillNext(); } else start(); } else start();   // (Fix 2: a still not yet shown is drawn by the loop, through its dissolve; E1.1, S10: the still drawn in the next animation frame, never in the handler)
   }
@@ -8228,6 +8295,7 @@ void main() {
   var FC = window.matchMedia ? window.matchMedia('(forced-colors: active)') : null;
   function forced() { return !!(FC && FC.matches); }
   function onForced() {
+    hoverSync();
     if (LOST || DEAD) return;
     if (forced()) { stop(); shown = false; STILLTS = -1; DOMQ.hide = true; DOMQ.fc = true; domNext(); }   // (E0: with today's SVG birds on the page they fly, in CanvasText, 15.4; Fix 2, S10: the DOM's part in the next frame, domFlush)
     else { fstop(); if (BIRDS) BIRDS.visit(-1); NEEDSIZE = true; start(); }   // (Fix 2: under reduced motion too: the loop draws the still until the canvas has dissolved back in; E1.1, S10: the window measured and the targets made in the loop's first frame, not here)
@@ -8321,6 +8389,7 @@ void main() {
      20 s, 10.9-24.1% at 30 s (ABOVE s7 1440: the first 22, 27 and 57 s without a bird). Planned further along the course,
      a flight must clear more of it (the clouds and banks the straight flight meets); 12 s, E1's own, is kept */
   var COURSE_TRUST = 12;
+  var WIND_AIR = 6.5;   // (way-other) m/s: the wind at the birds' height, the dunes' grains' own speed (realm-dunes.js), the least the drawn sand says
   var HOST = {
     gl: null,   // (Fix 2: the context, from the boot's first frame; the module is made then, makeBirds)
     glsl: { HEAD: HEAD, FRAME_U: FRAME_U, LIB: LIB, AIR: LIB_AIR },
@@ -8355,15 +8424,24 @@ void main() {
     },
     /* the camera as drawn this frame (CAM), and as it is at the end of the last fixed step (for the birds' planning) */
     camera: function () { return CAM; },
+    /* (way-other) the air the birds fly in: the realm's own wind (m/s, world x, y, z), the one the dunes lie across and the
+       sand blows on (realm-dunes.js: V.wind, its grains 6.5 m/s, its veils 5.5 m/s); a realm with no wind of its own, still
+       air. Read only: nothing drawn changes */
+    wind: function (o) { var V = SIM.V, w = V && V.wind; o[0] = w ? w[0] * WIND_AIR : 0; o[1] = 0; o[2] = w ? w[1] * WIND_AIR : 0; return o; },
     cameraStep: function () { var V = SIM.V; if (!V) return null; camPose(V, SIM.u, 1, CAMP); return CAMP; },
     /* the flight: the view's yaw (the way the camera looks), its heading and speed, its climb rate, its clearance band */
     flight: function (o) {
       var V = SIM.V; o.ok = !!V; if (!V) return o;
-      o.x = CS.x; o.y = CS.y; o.z = CS.z; o.psi = CS.psi; o.view = CS.yawV + CS.phi; o.speed = V.speed; o.vy = CS.vy;
+      o.x = CS.x; o.y = CS.y; o.z = CS.z; o.psi = CS.psi; o.view = CS.yawV + CS.phi; o.speed = V.speed; o.camk = CAMK; o.vy = CS.vy;
       o.ground = groundAt(V, CS.x, CS.z, false); o.clear = V.clear; o.u = SIM.u; o.D = V.D; o.k = V.k; o.realm = V.id; o.alpha = SIM.alpha;
       return o;
     },
     time: function () { return SIM.t; },
+    /* (life) the sky in force (its id: the one the cycle is in, the incoming past a change's middle), read when a flight
+       is planned */
+    sky: function () { return SKYI.k >= 0.5 && SKYI.next ? SKYI.next : (SKYI.sky || ''); },
+    /* (life) the pointer for the birds' play: HOVER copied (CSS px), and the drag's state (a press steers) */
+    pointer: function (o) { o.x = HOVER.x; o.y = HOVER.y; o.n = HOVER.n; o.gone = HOVER.gone || inert() || FCOL.on; o.down = HOVER.down || DRAG.id !== -1; o.steer = DRAG.on; return o; },
     alpha: function () { return FRUN ? FALPHA : SIM.junction ? 1 : SIM.alpha; },
     /* (round 2) forced colours: { on, ink, paper } (sRGB 0-1: CanvasText and Canvas); while on, the world is not drawn
        and the camera is held: the birds fly in their own still view, drawn in the ink at full strength */
@@ -8383,6 +8461,7 @@ void main() {
       gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TG.bu[0].t);   // (the bloom, as the composite added it)
       gl.activeTexture(gl.TEXTURE12); gl.bindTexture(gl.TEXTURE_2D, TG.inkKeep.t);
       gl.activeTexture(gl.TEXTURE13); gl.bindTexture(gl.TEXTURE_2D, TG.win.t);   // (the finished frame, the world's resolution: what lies under a stroke)
+      gl.activeTexture(gl.TEXTURE14); gl.bindTexture(gl.TEXTURE_2D, TG.hz);   // (birds3d: the half-resolution depth, the land's nearest and the clouds' opaque cores; attached only to TG.lind and TG.cloud, never to the canvas the birds draw on)
       gl.activeTexture(gl.TEXTURE0);
       return true;
     },
@@ -8443,6 +8522,50 @@ void main() {
           var dx = f.at[0] - CS.x, dz = f.at[2] - CS.z; if (dx * dx + dz * dz > r * r) continue;
           out.push({ x: f.at[0], y: f.at[1], z: f.at[2], orbit: f.orbit || 40, wheel: f.wheel || 0.2, n: f.n || 8, size: f.size || 1.5, key: (C.ix * 73856093 ^ C.iz * 19349663 ^ k * 83492791 ^ C.sc * 2654435761) >>> 0 });
         }
+      }
+      return out;
+    },
+    /* (birds3d) the ground under the paper birds: the cells they ask for (their boxes, CSS px: x0, y0, x1, y1 each; at
+       most 16, the rest next time) read with the words' next read; groundAt the OKLab L there from the last landed read
+       (the world without the birds, a frame or a few late), -1 when none (or older than 2 s) */
+    groundWant: function (B, n) { n = Math.min(n, BGR_MAX); for (var i = 0; i < 4 * n; i++) BGR.rects[i] = B[i]; BGR.n = n; },
+    groundAt: function (x, y) {
+      if (!TG || !BGR.L || !TG.gs || BGR.w !== TG.gs.w) return -1;
+      var k = (OUT.w / Math.max(OUT.cssW || OUT.w, 1)) / GS_K, cx = Math.floor(x * k), cy = Math.floor(BGR.h - y * k);
+      if (cx < 0 || cy < 0 || cx >= BGR.w || cy >= BGR.h) return -1;
+      var c = cy * BGR.w + cx; return SIM.t - BGR.T[c] <= 2 && SIM.t >= BGR.T[c] ? BGR.L[c] : -1;
+    },
+    /* (birds3d) the night: 0 by day, 1 at night. The world has no night yet (the time of day's work will give it): the
+       zenith sky's luminance after the exposure, 1 - smooth(0.04, 0.12, Y); 1 under the dev's SIMULATED night */
+    night: function () {
+      if (SIMNIGHT) return 1;
+      var V = SIM.V, L = V && (V.L || V.light), E = LASTE; if (!L) return 0;
+      var z = L.skyFlat || (L.sky && L.sky[0]), y = z && z.length >= 3 ? 0.2126 * z[0] + 0.7152 * z[1] + 0.0722 * z[2] : 1;
+      y *= E ? E.exposure : 1;
+      return 1 - smooth(0.04, 0.12, y);
+    },
+    /* (birds3d) the cells' places within r of the camera (towers, isles, islands, canyons and the rest), for the staging:
+       { kind, x, y, z, pass, r (its body's radius, m), base, top (m) } */
+    pois: function (r, out) {
+      out.length = 0; var V = SIM.V; if (!V) return out;
+      var L = apPois(V), i, p, dx, dz;
+      for (i = 0; i < L.length; i++) {
+        p = L[i]; dx = p.x - CS.x; dz = p.z - CS.z; if (dx * dx + dz * dz > r * r) continue;
+        var o = { kind: p.kind, x: p.x, y: p.y, z: p.z, pass: p.pass || 0, r: 0, base: p.y, top: p.y, id: p.id };
+        if (p.kind === 'tower' && p.cell) {
+          var cl = p.cell.clouds, j, best = null; for (j = 0; cl && j < cl.length; j++) if (cl[j].kind === 'cumulus' && Math.abs(cl[j].x - p.x) < 1 && Math.abs(cl[j].z - p.z) < 1) best = cl[j];
+          if (best) { o.r = best.w / 2; o.base = best.base !== undefined ? best.base : best.y; o.top = o.base + best.h; o.w = best.w; o.h = best.h; } else { o.r = Math.max(60, (o.pass - 80) / 1.1); o.base = 0; o.top = 2.8 * o.r; }
+          /* (the body as it stands: its lobes, lifted whole over the flight band where they would cut it) */
+          var C2 = p.cell, sb = C2.softB, sf = C2.soft, lo = 1e9, hi = -1e9, rr = 0, nb = 0, q2, k2;
+          if (sb && sf) for (k2 = 0; k2 < sb.length; k2++) {
+            if (Math.abs(sb[k2][0] - p.x) > 0.75 * (o.w || 2 * o.r) || Math.abs(sb[k2][2] - p.z) > 0.75 * (o.w || 2 * o.r)) continue;
+            for (q2 = sb[k2][4]; q2 < sb[k2][5]; q2 += 4) { lo = Math.min(lo, sf[q2 + 1] - sf[q2 + 3]); hi = Math.max(hi, sf[q2 + 1] + sf[q2 + 3]); rr = Math.max(rr, Math.hypot(sf[q2] - p.x, sf[q2 + 2] - p.z) + sf[q2 + 3]); nb++; }
+          }
+          if (nb) { o.base = lo; o.top = hi; o.r = rr; o.lobes = nb; }
+        } else if (p.kind === 'island') o.r = Math.max(20, o.pass - 70);
+        else if (p.kind === 'isle') o.r = Math.max(60, o.pass - 190);
+        else o.r = Math.max(20, o.pass * 0.5);
+        out.push(o);
       }
       return out;
     },
@@ -9014,7 +9137,7 @@ void main() {
     var scripts; try { scripts = document.querySelectorAll('script[src]'); } catch (e) { return { error: 'no document' }; }
     var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (E1: a bare relative src too: the preview's)
     function r1(x) { return x === null || x < 0 ? null : +x.toFixed(1); }
-    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v5.js stamps as world.js)
+    function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v6.js stamps as world.js)
     function regOf(n) { var b = base(n); if (b === 'inkbirds.js') return st.inkbirds; var m3 = /^realm-(\w+)\.js$/.exec(b); return m3 ? st['realm ' + m3[1]] : undefined; }
     for (i = 0; i < order.length; i++) {
       var o = order[i], b = base(o.name), e = res[o.name], rEnd = e ? e.responseEnd : -1, top = st[b + ' top'], reg = regOf(o.name), x = { name: o.name, responseEnd: r1(rEnd) };
