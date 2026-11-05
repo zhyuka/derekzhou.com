@@ -121,9 +121,28 @@ jobs:
           path: ${{ runner.temp }}/t1
           retention-days: 7
 
+  # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
+  # programs read back bit for bit. Only when a shader's text or the world's, the realms' or the birds' served JS
+  # changed, and only once the owner has registered the runner and set the repository variable T2_RUNNER to on:
+  # without it a job for [self-hosted, windows, gpu-4090] would wait a day for a runner and hold every merge.
+  t2:
+    needs: [plan, census]
+    if: always() && needs.plan.result == 'success' && vars.T2_RUNNER == 'on' && (needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true')
+    uses: ./.github/workflows/gpu.yml
+    with:
+      base: ${{ needs.plan.outputs.base }}
+
+  t2-off:
+    needs: [plan, census]
+    if: always() && needs.plan.result == 'success' && vars.T2_RUNNER != 'on' && (needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "::notice::T2 would run for this change (a shader or the world's JS changed), but no GPU runner is on (the repository variable T2_RUNNER is not 'on'). The verdict rests on T0 and T1."
+
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
-    needs: [static, plan, census, t1]
+    needs: [static, plan, census, t1, t2]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

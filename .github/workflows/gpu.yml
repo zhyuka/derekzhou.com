@@ -6,20 +6,24 @@
 #      changed, the D3D11 read-back of the changed programs bit for bit (tools/gpu/t2.js). About a minute.
 #   T3 (a report): base against head timed, A B A B, 5 runs each, fresh profiles (tools/gpu/t3.js). Nightly or the
 #      `perf` label.
-# Triggers: a PR touching the world's scripts or the GLSL they carry (site/**, src/**, tools/gpu/**), nightly, by hand,
-# or called by the gate workflow (workflow_call) when its shader census reports glsl_changed. Outputs for the merge
-# bot: frames_identical, glsl_changed, bits_identical, csp_ok.
+# Triggers: called by the gate workflow (workflow_call, with the base) when its shader census reports glsl_changed or
+# the world's, the realms' or the birds' served JS changed; a PR labelled `perf` (T3 only); nightly; by hand. Outputs
+# for the merge bot: frames_identical, glsl_changed, bits_identical, csp_ok.
 # The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
 # that brings tools/gpu for the first time runs its own.
 name: gpu
 on:
   pull_request:
-    paths: ['site/**', 'src/**', 'tools/gpu/**', '.github/workflows/gpu.yml']
-    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    types: [labeled]   # (T3 on the `perf` label; T2 comes from the gate, so it does not run twice)
   schedule:
     - cron: '17 9 * * *'   # nightly (09:17 UTC: the PC's night is the owner's)
   workflow_dispatch:
   workflow_call:
+    inputs:
+      base:
+        description: "the commit to compare against (the gate's base, main's tip where the branch left it)"
+        type: string
+        required: true
     outputs:
       frames_identical: { value: '${{ jobs.t2.outputs.frames_identical }}' }
       glsl_changed: { value: '${{ jobs.t2.outputs.glsl_changed }}' }
@@ -48,7 +52,7 @@ jobs:
         with: { path: head, persist-credentials: false }
       - name: base
         uses: actions/checkout@v4
-        with: { path: base, ref: '${{ github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
+        with: { path: base, ref: '${{ inputs.base || github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
       - name: playwright-core
         shell: pwsh
         run: |
@@ -74,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { path: head, persist-credentials: false }
       - uses: actions/checkout@v4
-        with: { path: base, ref: '${{ github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
+        with: { path: base, ref: '${{ inputs.base || github.event.pull_request.base.sha || github.sha }}', persist-credentials: false }
       - name: playwright-core
         shell: pwsh
         run: |
