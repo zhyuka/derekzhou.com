@@ -1,0 +1,66 @@
+name: Gate
+
+# The gates every push runs (T0 here; T1 and the verdict come next), and that merge.yml reads. Pushes that touch only
+# .work/** run nothing. A newer push to a branch cancels the run before it (main's runs are never cancelled).
+on:
+  push:
+    paths-ignore: ['.work/**']
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # T0, static: every check of validate.yml (the site's rules, the build, the shaders' guard, W7), as before.
+  static:
+    uses: ./.github/workflows/validate.yml
+
+  # T0, the shader census: which files changed and what they touch (areas.json), and whether any shader's text did,
+  # read from the page itself in a real browser (SwiftShader), base against head.
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      base: ${{ steps.base.outputs.base }}
+      areas: ${{ steps.areas.outputs.areas }}
+      site_changed: ${{ steps.areas.outputs.site_changed }}
+      run_t1: ${{ steps.areas.outputs.run_t1 }}
+      gpu_js: ${{ steps.areas.outputs.gpu_js }}
+      glsl_changed: ${{ steps.census.outputs.glsl_changed || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The base (main's tip where this branch left it; on main, the commit before)
+        id: base
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then base=$(git rev-parse HEAD^1); else base=$(git merge-base origin/main HEAD); fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"; echo "base $base, head $GITHUB_SHA"
+      - name: What the change touches
+        id: areas
+        run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA"
+      - uses: actions/setup-node@v4
+        if: steps.areas.outputs.site_changed == 'true'
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/playwright
+        if: steps.areas.outputs.site_changed == 'true'
+      - name: Shader census (base against head)
+        id: census
+        if: steps.areas.outputs.site_changed == 'true'
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" ${{ steps.base.outputs.base }}
+          node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json"
+      - name: No census needed
+        if: steps.areas.outputs.site_changed != 'true'
+        run: echo "site/ is byte for byte the base's, so every shader's text is too (glsl_changed=false)"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.census.outcome != 'skipped'
+        with:
+          name: census
+          path: ${{ runner.temp }}/census.json
+          retention-days: 7

@@ -1,10 +1,9 @@
 name: Validate
 
+# Run by the gate (gate.yml's static job, on every push), or by hand. Not on its own triggers, so its minutes are spent once.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   validate:

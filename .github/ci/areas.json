@@ -1,0 +1,31 @@
+{
+  "_": "The file-to-test map (areas.mjs). Each changed path takes the areas of the first pattern it matches (globs: * one segment, ** any). A path no pattern matches means ALL. Areas: static (T0's checks: always), frames (T1, the frames and the DOM), gpu (T2, the RTX 4090), none (nothing shipped or tested).",
+  "map": [
+    ["site/world.v*.js", ["frames", "gpu"]],
+    ["site/realm-*.js", ["frames", "gpu"]],
+    ["site/start*.js", ["frames", "gpu"]],
+    ["site/plan.v*.js", ["frames", "gpu"]],
+    ["site/inkbirds.v*.js", ["frames", "gpu"]],
+    ["site/facetform.v*.js", ["frames", "gpu"]],
+    ["site/facetpose.v*.js", ["frames", "gpu"]],
+    ["site/wingmodel.v*.js", ["frames", "gpu"]],
+    ["site/model.v*.js", ["frames", "gpu"]],
+    ["site/labbird.v*.js", ["frames", "gpu"]],
+    ["site/birdwing.v*.js", ["frames", "gpu"]],
+    ["src/**", ["frames", "gpu"]],
+    ["tools/**", ["frames", "gpu"]],
+    ["site/**", ["frames"]],
+    ["package.json", ["frames"]],
+    ["package-lock.json", ["frames"]],
+    [".github/ci/**", ["frames"]],
+    [".github/workflows/gate.yml", ["frames"]],
+    [".github/workflows/*", ["static"]],
+    ["CLAUDE.md", ["none"]],
+    ["*.md", ["none"]],
+    [".work/**", ["none"]],
+    [".gitignore", ["none"]],
+    [".gitattributes", ["frames"]],
+    ["download-fonts.sh", ["none"]],
+    ["subset-fonts.sh", ["none"]]
+  ]
+}
