@@ -1,0 +1,38 @@
+# glsl_manifest.txt: every program the world compiles on the reference device (a desktop Chrome with float targets), as
+# .github/workflows/glsl_guard.js finds it: "program <label> vs <sha256/24> <bytes> fs <sha256/24> <bytes>"; then each device the
+# guard runs: "device <id> <programs> <vertex|fragment #defines>:<count> ...". CI fails when this is not what the site compiles.
+# A change to any program's text comes with its lines here, in the same commit. After a deliberate change, regenerate it:
+#   node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
+program program.0859c5c5 vs b3401a540aeb4f11661eb0ff 42112 fs 4e50bc502f17c5ec4804a4d2 42609
+program program.17b6c8a4 vs 1ab5de5b35408271ba0f1130 313 fs de3671fbdf879ba76ca05f2c 2238
+program program.1ed26f52 vs 1365bfdfb75bbef24149e5a1 2744 fs 155bc5a57414e06a498be610 14822
+program program.211817c0 vs 1ab5de5b35408271ba0f1130 313 fs e90cd9a0ea7627cc2f82b5b5 39679
+program program.279e44ea vs 1ab5de5b35408271ba0f1130 313 fs bba252966b52240cd049c91c 2874
+program program.2b8df061 vs bc00a993ad125193f8850964 130 fs a484a2b23c43d405ffe05c9c 174
+program program.383f2ddc vs 5e1538aa78a7c363dae24984 8659 fs 029770f54e3eeacf02b7f414 14718
+program program.3be8be1a vs 5759cda9debf375a96552e97 17339 fs bbb6409d60e57c6457d5d988 13968
+program program.46baa3ba vs 1ab5de5b35408271ba0f1130 313 fs 2fb3c165bc2fc7978d897f99 2630
+program program.61ba4e5b vs 1ab5de5b35408271ba0f1130 313 fs 0159cf92dcbb9816a0a4dabc 555
+program program.63c87754 vs 1ab5de5b35408271ba0f1130 313 fs 467ff1b06b88f829a8750c16 566
+program program.68f4aecb vs deace5e162ed03d65bcc2b62 23218 fs 9eb7f1db19746df5e2783902 13536
+program program.7acf0f0a vs 1ab5de5b35408271ba0f1130 313 fs a73c21a5a064be15ac483ffe 2575
+program program.926784ba vs 1ab5de5b35408271ba0f1130 313 fs 9adec8cade9b40d1d76572b0 13481
+program program.9560ec66 vs 1ab5de5b35408271ba0f1130 313 fs da3853403fbeaf58a901a1c7 685
+program program.99a811a2 vs 96f13740875dcb0749f7e1ed 42222 fs 10a32352e5accfd6a6e8b28e 42546
+program program.b6941c30 vs 1ab5de5b35408271ba0f1130 313 fs 8d51c07563aec47076a85c6e 2320
+program program.b8b6f2b5 vs 1ab5de5b35408271ba0f1130 313 fs d62139e8d874cdbf89593a2d 1261
+program program.b90c66d1 vs 608f0e9a541b2d53735a2e4a 1983 fs 62cb663b644ba7e52e0c2d5c 21706
+program program.bd0847d4 vs 1ab5de5b35408271ba0f1130 313 fs 3548f9b72d5d0948528e8a9d 42292
+program program.c6ff3036 vs 8e4e01ca2cb396ed7b65f2d8 14647 fs 968f2737105a8a3a3be91478 333
+program program.da19c1e9 vs 1ab5de5b35408271ba0f1130 313 fs 64d0e26dc15fc2c7206a4d3a 3585
+program program.da9ef9ba vs 0a8ab497045f643f65563606 42214 fs 193da7728f4683115e22c035 42545
+program program.e064cd06 vs 4f79cc644a125931a3e86805 1876 fs e975335287ef961599976a50 228
+program program.e85db1c5 vs 1ab5de5b35408271ba0f1130 313 fs 355bb05e4d3c589faca3d9a6 934
+program program.ef0fa581 vs 87a9d559c3bd8653d78fe705 43782 fs 283e44ebafefac49bbf59462 42688
+program program.f2605668 vs 78de7727fa274cfee0ef2443 313 fs 8298731327797fbc65787946 25780
+program program.f5008844 vs 72fcd1e57e444b005d0b2f03 45952 fs 4e50bc502f17c5ec4804a4d2 42609
+device desktop 28 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
+device phone 28 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
+device webkit 28 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
+device half 28 GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27 -:1
+device byte 27 LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:27

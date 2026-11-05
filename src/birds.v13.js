@@ -1701,7 +1701,7 @@
     last = now; WALL = now;
     if (moving) t += dt;
     if (dirty) relayout();
-    if (HANDQ !== HAND) handTo(HANDQ);
+    if (HANDQ !== HAND && !(now <= +SKYA.handAt)) handTo(HANDQ);   // (fast500 4a: a hand-over the world told in this animation frame, its frame before ours (our script now loads after the world's), is taken at the start of our next, as when our frame ran first: the fade begins in the frame the canvas shows. Told before this frame, or no stamp (NaN): at once)
     if (!HAND && !job && moving && t >= tNext && liveCount() < maxFlights() && !startJob('next')) planned(null, 'next');
     if (job) {
       mode = job.mode;

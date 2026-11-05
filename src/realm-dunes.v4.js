@@ -62,6 +62,7 @@ vec3 massif(vec2 p, vec4 m, vec4 b, float seed) {
   vec2 l = vec2(ca * d.x + sa * d.y, -sa * d.x + ca * d.y) / m.z;
   if (abs(l.x) > 1.3 || abs(l.y) > b.y * 2.2 + 0.2) return vec3(0.0);
   vec2 dlx = vec2(ca, sa) / m.z, dly = vec2(-sa, ca) / m.z;
+  /* (fast500 D) the four taps' noise in one loop (one copy of gnd for FXC), each tap's multiply and gradient turn as before */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0;
   for (int t = 0; t < 4 + uZ; t++) {
     vec2 o = t == 0 ? vec2(seed * 57.0) : (t == 1 ? vec2(0.0) : (t == 2 ? vec2(13.0) : vec2(29.0)));
@@ -104,6 +105,7 @@ vec3 duneWave(vec2 p, vec2 w, float lam, float c, vec3 warp) {
   return vec3(s, ph.yz * ds);
 }
 float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0) * (p + vec2(311.0, -97.0))).x; }
+/* (fast500 D) the dunes' taps: offsets and (diagonal) scales; taps 1 and 4 take a full matrix */
 const vec2 D_TO[7] = vec2[7](vec2(0.0), vec2(311.0, -97.0), vec2(0.0), vec2(71.0), vec2(400.0), vec2(9.0), vec2(900.0));
 const float D_TS[7] = float[7](1.0 / 760.0, 0.0, 1.0 / 340.0, 1.0 / 95.0, 0.0, 1.0 / 80.0, 1.0 / 160.0);
 const mat2 D_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0);
@@ -111,6 +113,8 @@ vec3 dunes(vec2 p) {
   vec2 w = WINDDIR, pp = vec2(-w.y, w.x);
   mat2 Ma = mat2(w.x / 420.0, pp.x / 190.0, w.y / 420.0, pp.y / 190.0);
   float wSmall = 1.0 - smoothstep(900.0, 1300.0, gLodD);
+  /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd, not seven), each tap's own multiply
+     as before and its gradient turn after (dNg, its matrix a constant as before): the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
   for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
     vec3 g;
@@ -146,7 +150,7 @@ vec3 basinOf(vec2 p, vec3 h, Site s) {
   return dMul(h, vec3(1.0, 0.0, 0.0) - fl * w) - depth * w;
 }
 /* a plateau: an oval of flat top, its sides in terraces (a riser, then a ledge), a stair's way cut down its -x face */
-vec3 plateauOf(vec2 p, vec3 h, Site s, vec3 n17, float g8) {
+vec3 plateauOf(vec2 p, vec3 h, Site s, vec3 n17, float g8) {   // (fast500 D) n17 = dN(p + 17.0, mat2(1.0 / 140.0)), g8 = gn(p / 8.0): the same for every site, worked out once (D_Hd)
   vec2 ab = vec2(72.0 + 16.0 * s.r.x, 150.0 + 28.0 * s.r.y); float ang = s.r.z * PI;
   float rise = 46.0 + 14.0 * s.r.w, steps = s.r.w < 0.5 ? 2.0 : 3.0;
   vec3 e = ovalOut(p, s.p, ab, ang);
@@ -175,8 +179,8 @@ vec3 D_Hd(vec2 p) {
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);
-  vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);
+  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
+  vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);   // (fast500 D) the plateaux' vertex-only taps, once
   for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }
@@ -212,6 +216,23 @@ vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
   vec3 lit = ROCK_LIT * mix(vec3(1.0), vec3(1.1, 0.98, 0.94), smoothstep(-0.2, 0.4, b1));
   return mix(shd, lit, dif) * (1.0 + 0.17 * st + 0.08 * streak);
 }
+/* (fast500 D R6) rockCol for the land's sand: four of the five taps in one loop FXC keeps rolled (uZ), each tap's input
+   x * s as before (the same values; the landmarks keep rockCol: lanes/D/RESULT.md) */
+vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
+  float y = 0.0, b1 = 0.0, b2 = 0.0, g40 = 0.0;
+  for (int o = 0; o < 4 + uZ; o++) {
+    vec2 x = o < 2 ? p.xz : vec2(y, o == 2 ? 1.7 : 4.1);
+    vec2 s = o == 0 ? vec2(1.0 / 260.0) : (o == 1 ? vec2(1.0 / 40.0) : vec2(o == 2 ? 1.0 / 38.0 : 1.0 / 11.0, 1.0));
+    float g = gn(x * s);
+    if (o == 0) y = p.y + 9.0 * g; else if (o == 1) g40 = g; else if (o == 2) b1 = g; else b2 = g;
+  }
+  float st = b1 * 0.8 + b2 * 0.35;
+  float streak = gn(vec2(dot(p.xz, vec2(0.6, 0.8)) / 7.0 + 2.0 * g40, p.y / 90.0)) * (1.0 - smoothstep(0.6, 3.0, fp));
+  float dif = smoothstep(-0.2, 0.7, ndl);
+  vec3 shd = mix(ROCK_DEEP, ROCK_SHADE, 0.5 + 0.5 * n.y);
+  vec3 lit = ROCK_LIT * mix(vec3(1.0), vec3(1.1, 0.98, 0.94), smoothstep(-0.2, 0.4, b1));
+  return mix(shd, lit, dif) * (1.0 + 0.17 * st + 0.08 * streak);
+}
 vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   vec3 n = n0;
   float steep = smoothstep(0.42, 0.66, 1.0 - n0.y);
@@ -238,7 +259,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   vec3 c = mix(shd, lit, dif);
   float gk = 1.0 - smoothstep(0.01, 0.04, fp);   // (hotfix G0: the grain gone before its cells are under three pixels)
   if (gk > 0.0) c *= 1.0 + gk * 0.07 * (h12(p.xz * 9.0) + h12(p.xz * 9.0 + 0.5) - 1.0);
-  if (steep > 0.0) c = mix(c, rockCol(p, n0, dot(n0, uSun), fp), steep);
+  if (steep > 0.0) c = mix(c, rockColL(p, n0, dot(n0, uSun), fp), steep);   // (fast500 D R6)
   float vd = clamp(dot(n, -rd), 0.0, 1.0), gr = 1.0 - vd;
   c += SHEEN * gr * gr * gr * gr * smoothstep(-0.05, 0.6, ndl) * (1.0 - steep);
   // (hotfix G0) no glints: one 0.22 m cell in fourteen flashed the sun at pow 140 as the view moved, a few pixels

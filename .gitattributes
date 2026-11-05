@@ -1,0 +1,4 @@
+# (the build) src/ and site/ byte for byte as committed: tools/minify.mjs refuses a CR (a CRLF checkout would
+# change every template literal's text, the shaders')
+src/** -text
+site/** -text

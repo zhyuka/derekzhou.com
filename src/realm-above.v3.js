@@ -33,11 +33,14 @@
 #define A_GRASS_LIT uP[16].rgb
 #define A_ROCK_DEEP uP[17].rgb
 /* the sea of cloud: broad swells and heaps of billows, round tops and creases between */
+/* (fast500 D) the sea's taps: offsets, (diagonal) scales for taps 0, 2, 4, 6 and the full matrices of taps 1, 3, 5 */
 const vec2 A_TO[7] = vec2[7](vec2(0.0), vec2(77.0), vec2(13.0, 5.0), vec2(-41.0, 19.0), vec2(7.0, -3.0), vec2(-19.0, 31.0), vec2(5.0, 23.0));
 const float A_TS[7] = float[7](1.0 / 900.0, 0.0, 1.0 / 210.0, 0.0, 1.0 / 26.0, 0.0, 1.0 / 17.0);
 const mat2 A_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 380.0), A_M3 = mat2(0.6, 0.8, -0.8, 0.6) * (1.0 / 75.0), A_M5 = mat2(0.9, -0.44, 0.44, 0.9) * (1.0 / 48.0);
 vec3 A_Hd(vec2 p) {
   float k1 = 1.0 - smoothstep(350.0, 900.0, gLodD), k2 = 1.0 - smoothstep(120.0, 380.0, gLodD);
+  /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd per kind of multiply), each tap's
+     own multiply as before and its gradient turn after: the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
   for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + uZ; o++) {
     vec3 g;
