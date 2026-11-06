@@ -172,6 +172,20 @@ return c;
 }
 vec3 cloudLight(vec3 n,vec3 rd,float tauL,float ao,float hgt,float thin){return cloudLight2(n,n,rd,tauL,ao,hgt,thin);}
 
+#define GROUND_CACHE
+float gcTex(ivec2 q){
+#ifdef GC_PACKED
+vec4 e=texelFetch(uGround,q,0);return(dot(e,vec4(1.0,1.0/255.0,1.0/65025.0,1.0/16581375.0))*8192.0)-4096.0;
+#else
+return texelFetch(uGround,q,0).r;
+#endif
+}
+float groundH(vec2 xz){
+vec2 g=(xz-uGC.xy)/uGC.z-0.5;vec2 f=fract(g);ivec2 i=ivec2(floor(g)),m=ivec2(int(uGC.w)-1);
+ivec2 a=clamp(i,ivec2(0),m),b=clamp(i+ivec2(1,0),ivec2(0),m),c=clamp(i+ivec2(0,1),ivec2(0),m),d=clamp(i+ivec2(1,1),ivec2(0),m);
+return mix(mix(gcTex(a),gcTex(b),f.x),mix(gcTex(c),gcTex(d),f.x),f.y);
+}
+
 uniform int uZ;   // (fast500 D) never set: GL makes it 0 at link. Added to a loop's bound, FXC (ANGLE's D3D11 compiler) cannot count the loop, so it keeps it rolled: one copy of its body
 vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast500 D) dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
@@ -584,26 +598,43 @@ return D_shadeStone(p,n,rd,t,fp,col,yAbove);
 float scatterDensity(vec2 p,int layer){vec3 wD,wC;kitW(p,wD,wC);return D_scatterDensity(p,layer)*(1.0-smoothstep(0.4,0.8,wC.x));}
 
 
-float zcode() {
-  float d = gl_FragCoord.z; if (d >= 0.999999) return 1.0;
-  float n = uProj.z, f = uProj.w, z = d * 2.0 - 1.0, lz = 2.0 * n * f / (f + n - z * (f - n));
-  return lz >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(lz, 1.0)) / 16.0, 0.0, 1.0);
-}
-float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
-
-uniform float uFade;
-centroid in vec3 vW; centroid in vec3 vN; centroid in vec4 vC; centroid in float vY; centroid in vec2 vE; out vec4 oC;
-void main() {
-  vec3 v = vW - uCam; float t = length(v); vec3 rd = v / t;
-  vec3 n = normalize(vN); if (dot(n, rd) > 0.0) n = -n;
-  float fp = t * 2.0 * uProj.y / uRes.y;
-  gEmit = vE.x; gPhase = vE.y;
-  vec3 c = shadeStone(vW, n, rd, t, fp, vC, vY);
-#ifdef EMIT_HOOK
-  gEmit = emitMod(vW, vC, gEmit, gPhase);
-#endif
-  if (gEmit > 0.0) c += vC.rgb * gEmit;
-  vec3 o = atmos(c, rd, t);
-  if (uFade < 0.999) o = mix(atmos(c, rd, 3.0e4), o, uFade);
-  oC = vec4(o, sceneA());
+uniform float uPxK;
+layout(location=0)in vec3 aP;layout(location=1)in vec3 aN;layout(location=2)in vec4 aC;layout(location=3)in float aY;layout(location=4)in float aE;
+uniform vec4 uSc;
+uniform vec4 uSc2;
+uniform vec4 uSc3;
+centroid out vec3 vW;centroid out vec3 vN;centroid out vec4 vC;centroid out float vY;centroid out vec2 vE;
+mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.0,-s,0.0,1.0,0.0,s,0.0,c);}
+mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.0,0.0,0.0,0.0,c,s,0.0,-s,c);}
+mat3 rotZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0.0,-s,c,0.0,0.0,0.0,1.0);}
+void scMain() {
+int n=int(uSc.y),id=gl_InstanceID;
+ivec2 base=ivec2(floor(uCam.xz/uSc.x));
+ivec2 cell=base+ivec2(id%n,id/n)-ivec2(n/2);
+uint h=ih(ih2(cell+ivec2(int(uSc.w)*7919,int(uSc.w)*104729))^uSalt);
+float r1=hf(h),r2=hf(ih(h+1u)),r3=hf(ih(h+2u)),r4=hf(ih(h+3u)),r5=hf(ih(h+4u)),r6=hf(ih(h+5u)),r7=hf(ih(h+6u));
+vec2 pos=(vec2(cell)+vec2(r1,r2))*uSc.x;
+float dens=uSc.z*scatterDensity(pos,int(uSc.w));
+float keep=step(r3,dens);
+vec2 dd=abs(pos-uCam.xz)/(float(n)*0.5*uSc.x);
+float fade=1.0-smoothstep(0.72,0.97,max(dd.x,dd.y));
+float gy=groundH(pos);
+float near=mix(1.0,smoothstep(5.0,13.0,length(pos-uCam.xz)),step(uCam.y-gy,10.0));
+float s=mix(uSc2.x,uSc2.y,r4*r4)*keep*fade*near;
+float dz=max(dot(vec3(pos.x,gy,pos.y)-uCam,uCamF),1.0),pxs=s*uRes.y/(dz*uProj.y);
+float sinE=clamp((uCam.y-gy)/length(vec3(pos.x,gy,pos.y)-uCam),0.0,1.0);
+float pxv=pxs*(max(0.6*mix(1.0,uSc3.y,r6)-uSc2.z,0.12)+2.0*sinE);
+s*=smoothstep(1.0*uPxK,2.6*uPxK,pxs)*smoothstep(1.2*uPxK,2.4*uPxK,pxv);
+mat3 R=rotY(r5*6.2831853)*rotX((r6-0.5)*uSc2.w)*rotZ((r7-0.5)*uSc2.w);
+vec3 sc=vec3(1.0,mix(1.0,uSc3.y,r6),1.0)*s;
+vec3 lp=R*(aP*sc);
+vW=vec3(pos.x,gy-uSc2.z*s,pos.y)+lp;
+vN=R*(aN/max(sc,vec3(1e-4)));
+vC=vec4(aC.rgb*2.0,floor(aC.a*255.0+0.5));vY=lp.y-uSc2.z*s;vE=vec2(aE*15.9375,r7);
+gl_Position=s>1e-4?uVP*vec4(vW-uCam,1.0):vec4(0.0,0.0,-2.0,1.0);
+}uniform int uScat;
+void main(){
+if(uScat==1){scMain();return;}
+vW=aP;vN=aN;vC=vec4(aC.rgb*2.0,floor(aC.a*255.0+0.5));vY=aY;vE=vec2(aE*15.9375,0.0);
+gl_Position=uVP*vec4(vW-uCam,1.0);
 }

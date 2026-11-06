@@ -4,7 +4,6 @@
 # A change to any program's text comes with its lines here, in the same commit. After a deliberate change, regenerate it:
 #   node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
 program program.00240a89 vs 69d5ae1aad4230c172e9c886 329 fs 2ec5979f138500a5eb242a61 32109
-program program.02a3eaf8 vs b44a7867949869b2eb2054f5 33908 fs 249db1011eaafdc0df2f5d4c 32398
 program program.10c89303 vs 69d5ae1aad4230c172e9c886 329 fs beb0cb66ec1927708df1ee4b 32148
 program program.127633e9 vs 69d5ae1aad4230c172e9c886 329 fs 974ba5624094d6d693e252e3 620
 program program.1da6e67d vs 4af6427b97e060e3253124d2 1192 fs 242c8c190610943f38803a9a 11624
@@ -13,7 +12,6 @@ program program.23661ce8 vs 69d5ae1aad4230c172e9c886 329 fs b199568fbe46a82aee6f
 program program.2b8df061 vs bc00a993ad125193f8850964 130 fs a484a2b23c43d405ffe05c9c 174
 program program.3529b1bd vs 6cb9e9bcd0d2fb3bb869d8e9 9177 fs 12c7e8ad8ac087d2ec0a5753 324
 program program.49bece5e vs c6a05f6ce3b4d212bc533ba0 5216 fs 366bbd0c554b7c7d073743e2 10318
-program program.51424b6c vs c8aafc537f1be77e1d741e3c 31842 fs 249db1011eaafdc0df2f5d4c 32398
 program program.6739c109 vs 69d5ae1aad4230c172e9c886 329 fs 7d4e0009a7974eeca76bfd61 1693
 program program.6fd1052b vs 8e39030b441e4cf72008c553 32003 fs 59d6c4d5e1c7927bca459bb2 32334
 program program.8ace8dbc vs 69d5ae1aad4230c172e9c886 329 fs 577cab6d7a2079a4fa5194c4 32703
@@ -27,14 +25,15 @@ program program.c3a95b22 vs 69d5ae1aad4230c172e9c886 329 fs af9b0b8041e5181a7174
 program program.d855c772 vs e5a4368c76f0894d566b7b22 32990 fs 47e75e4445904fa08acb5520 32335
 program program.deea3320 vs 69d5ae1aad4230c172e9c886 329 fs 7ad200c4c93f05110791c9ba 852
 program program.e303bc9e vs 6200fd516eda093ebe76054a 33057 fs ff16661bdbf46a8decd329bd 32327
+program program.e5aaddb8 vs 53e823f527452f0a896796bb 34096 fs 249db1011eaafdc0df2f5d4c 32398
 program program.e78fbe53 vs 69d5ae1aad4230c172e9c886 329 fs 52d0d7e57251a1087d18c4bd 32686
 program program.ec59cfbd vs 69d5ae1aad4230c172e9c886 329 fs 26cd23b1a30351f563b8d9e7 8524
 program program.f08b6e6f vs 0e5b5fbcd207f3f36ddda276 14337 fs 6ee60e4faebb34d1df04ce1a 8568
 program program.f40b1faa vs 69d5ae1aad4230c172e9c886 329 fs b826df2fe5cf5710d51b27b5 32698
 program program.f424cceb vs c7f01f9385e28da2c21ec0ef 1529 fs fa11983efc61559ae65fc2cb 9535
 program program.f8dfdd8d vs 69d5ae1aad4230c172e9c886 329 fs 6be7edfcba756bfc3da889c2 1905
-device desktop 30 HPSPLIT,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|HPSPLIT,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:29 -:1
-device phone 24 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:23 -:1
-device webkit 24 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:23 -:1
-device half 24 GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:23 -:1
-device byte 23 LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:23
+device desktop 29 HPSPLIT,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|HPSPLIT,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:28 -:1
+device phone 23 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:22 -:1
+device webkit 23 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:22 -:1
+device half 23 GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:22 -:1
+device byte 22 LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|LIND_PACKED,GC_PACKED,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:22

@@ -237,7 +237,7 @@
     // the landmarks: one mesh a cell, the cells in view
     var CL = V.cellList;
     if (CL) {
-      P = DP.lm; gl.useProgram(P.p); setFrameUniforms(P, V);
+      P = DP.lm; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) gl.uniform1i(P.u.uScat, 0);
       for (var ci = 0; ci < CL.length; ci++) {
         var C = CL[ci]; if (!C.mesh || !C.mesh.vao) continue;
         if (C.bound[3] > 0 && !inView(C.bound[0], C.bound[1], C.bound[2], C.bound[3])) { if (WLOG) { C.lastVis = 0; } continue; }
@@ -270,7 +270,7 @@
     // the scatter
     var SCM = V.G.scatter;
     if (SCM && SCM.length && DP.sc) {
-      P = DP.sc; gl.useProgram(P.p); setFrameUniforms(P, V);
+      P = DP.sc; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) { gl.uniform1i(P.u.uScat, 1); if (P.u.uFade) gl.uniform1f(P.u.uFade, 0); }   // (world-perf lane: one program with the landmarks; uFade as the scatter's own program had it, never set: 0)
       for (var k = 0; k < SCM.length; k++) {
         var M = SCM[k]; if (!M.n) continue;
         var gq = TIER < 1 ? Math.max(8, Math.round(M.grid * Math.sqrt(TIER) / 2) * 2) : M.grid;   // (a lower tier: the same cells, nearer only)
