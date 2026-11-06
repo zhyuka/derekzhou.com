@@ -11,6 +11,9 @@
    the top of that still sky (theme-color). Without it the page is the
    still day sky. */
 (function () {
+  // (landing) the edge has marked the page already (functions/index.js: the sky by the visitor's time zone, its picture,
+  // the bars' colour): its choice stands, so the picture and the world agree
+  if (document.documentElement.getAttribute('data-land')) return;
   var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
   var DAY = [['dawn', 5, 8, '#173a63'], ['day', 8, 13, '#173a63'], ['rain', 13, 16, '#5f3d62'], ['sunset', 16, 19, '#5f3d62'], ['dusk', 19, 21, '#38396a'], ['night', 21, 29, '#17234f']];
   var i, a, b, at, meta = document.querySelector('meta[name="theme-color"]');

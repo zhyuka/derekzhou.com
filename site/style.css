@@ -474,3 +474,10 @@ footer a, .back-link {
   .words { color: #000; }   /* (line2) black like the name: the light ink never reaches print */
   .credit { color: #555; }
 }
+
+/* (landing) the edge's picture of the exact view the world lands on (functions/index.js, tools/landing/): under the
+   canvas, over the still sky; the world's first frame is the same picture, so its cut is unseen. Never in print or
+   under forced colours (the world's own fallbacks hold there) */
+.landing img { position: fixed; inset: 0; width: 100%; height: 100lvh; object-fit: cover; z-index: -2; display: block; }
+@media print { .landing { display: none; } }
+@media (forced-colors: active) { .landing { display: none; } }

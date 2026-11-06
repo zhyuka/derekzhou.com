@@ -1,0 +1,10 @@
+{
+  "_": "The landing pictures (tools/landing/render.mjs makes them; functions/index.js serves them): for each time of day, the openings (a visit's seed each) the edge picks from, and the window shapes each is drawn for (CSS px; drawn at 2 device px a CSS px, the world's own top density). Change the world's look or landing and every picture is made again (node tools/landing/render.mjs).",
+  "groups": { "dawn": [11, 23], "day": [11, 23], "rain": [11, 23], "sunset": [11, 23], "dusk": [11, 23], "night": [11, 23] },
+  "hours": { "dawn": 6.5, "day": 10.5, "rain": 14.5, "sunset": 17.5, "dusk": 20, "night": 23 },
+  "shapes": [
+    { "name": "wide", "media": "(min-aspect-ratio: 16/9)", "w": 1536, "h": 864, "mobile": false },
+    { "name": "laptop", "media": "(min-aspect-ratio: 6/5)", "w": 1440, "h": 900, "mobile": false },
+    { "name": "phone", "media": "", "w": 390, "h": 844, "mobile": true }
+  ]
+}

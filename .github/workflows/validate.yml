@@ -89,7 +89,7 @@ jobs:
               */.git/*|*/.github/*|./.git|./.gitignore) echo "::error::site/${f#./} is the repository's own: it would be served"; missing=1; continue ;;
             esac
             case "$f" in
-              *.html|*.css|*.js|*.woff2|*.png|*.svg|./robots.txt|./.well-known/security.txt|./assets/fonts/OFL.txt|./_headers|./_redirects|./_routes.json) ;;
+              *.html|*.css|*.js|*.woff2|*.png|*.svg|./landing/*.avif|./robots.txt|./.well-known/security.txt|./assets/fonts/OFL.txt|./_headers|./_redirects|./_routes.json) ;;
               *) echo "::error::site/${f#./} is not a kind of file the site serves (the repository's own files stay outside site/)"; missing=1 ;;
             esac
           done < <(find . -type f | sort)
@@ -451,7 +451,7 @@ jobs:
           fi
           python3 - $JS <<'PY' || fail=1
           import re, sys
-          ok = {'data-sky', 'data-sky-at', 'src'}
+          ok = {'data-sky', 'data-sky-at', 'data-land', 'src'}   # (data-land: the edge's opening, functions/index.js)
           bad = 0
           for f in sys.argv[1:]:
               s = open(f, encoding='utf-8').read()
