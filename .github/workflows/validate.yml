@@ -573,23 +573,20 @@ jobs:
           # of five devices (other entropy, hours, windows, densities, clocks and frame rates), and keeps every source
           # the page hands shaderSource, until the world has shown. Within a device every visit must compile the same
           # sources (no per-visit or per-window literal in any GLSL); across devices only the #define lines after
-          # #version may differ (DEFS, per device); and the reference device's programs must be exactly
-          # glsl_manifest.txt, so a change to any program's text comes with its manifest lines in the same commit and
-          # the diff names the programs a deploy makes every returning visitor compile again. After a deliberate
-          # change: node .github/workflows/glsl_guard.js build/site --write .github/workflows/glsl_manifest.txt
-          # --selftest: the guard's own proof (a planted per-visit literal, a per-window literal and one program
-          # changed without its manifest line must each be caught). Exit 3: the fake browser could not bring the world
-          # to its show (extend the fake for what the page needs; never relax the rules).
-          node .github/workflows/glsl_guard.js build/site --manifest .github/workflows/glsl_manifest.txt --selftest
+          # #version may differ (DEFS, per device). Which programs a change edits (the ones a deploy makes every returning
+          # visitor compile again) is the gate's to say, from the base's build and the head's (the census: glsl_changed; T2
+          # names each changed program and reads it back), so nothing derived from the shaders is committed (2026-11-06: no
+          # derived file for shader PRs to conflict in). --selftest: the guard's own proof (a planted per-visit literal, a
+          # per-window literal and one program changed must each be caught). Exit 3: the fake browser could not bring the
+          # world to its show (extend the fake for what the page needs; never relax the rules).
+          node .github/workflows/glsl_guard.js build/site --selftest
 
-      - name: The shaders are their golden texts, and compile
+      - name: Every shader compiles
         run: |
           # (restructure step 3) the shaders' text lives in .glsl files (src/**/glsl/) that tools/parts.mjs writes
           # back into the scripts. test/shaders.mjs runs the page in glsl_guard's fake browser, takes every program the
-          # reference device issues, and fails unless each is exactly its golden text in test/golden/shaders/ (a
-          # readable diff of every program a change touches; after a deliberate change: node tools/build.mjs --plain build/site && node test/shaders.mjs build/site
-          # --write, committed with the manifest); then compiles and links each in headless Chrome (WebGL2, SwiftShader,
-          # playwright-core pinned as W7's). Exit 2 (no WebGL2 context on the runner) warns.
+          # reference device issues, and compiles and links each in headless Chrome (WebGL2, SwiftShader, playwright-core
+          # pinned as W7's). Exit 2 (no WebGL2 context on the runner) warns.
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"

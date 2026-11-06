@@ -49,7 +49,7 @@ tools/birds/model/           Generates src/birds/model/model.js: make.py runs bu
                              sources' licences. make.py --check: CI's proof that both files are what it makes
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
-test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
+test/shaders.mjs             Every program the page issues, compiled and linked in Chrome (--compile)
 test/unit.mjs                The world's pure code in Node (streams, hashes, the sky order, the maps, the plan's worker); --write updates test/golden/unit.json
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
@@ -62,7 +62,7 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks (and, beside it, the world's: world_rules.py,
                              w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
-                             with glsl_manifest.txt)
+                             (every visit of a device, the same sources))
 
 Five scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js and inkbirds.js. src/ holds them
@@ -88,10 +88,9 @@ folds work by lines), a #define's spacing kept, the same tokens (checked;
 the build fails otherwise); a file a script reads at run time stays as
 written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
 by its text). So the world issues, the start table holds and the browser
-compiles the short text, and the golden texts and the manifest are of it;
-src/ keeps the readable one. Edit a shader in its .glsl file; then node tools/build.mjs
---plain build/site and node test/shaders.mjs build/site --write update the golden texts (test/golden/shaders/: every
-program the reference device issues), committed with the manifest.
+compiles the short text; src/ keeps the readable one. Edit a shader in its
+.glsl file; nothing derived from it is committed (2026-11-06): the gate's
+census and T2 compare the base's build with the head's.
 tools/minify.mjs makes the served five from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
 as its default) and the ink birds' HOST.dev read as false, then terser
