@@ -33,7 +33,8 @@ const v = {
 // T2_CACHED: t2-probe found T2's answer for these two builds and this T2 code (gate.yml keeps it by them), so the 4090 was
 // not asked again; it counts as T2 having run, with that answer.
 let cached = null; try { cached = process.env.T2_CACHED ? JSON.parse(process.env.T2_CACHED) : null; } catch { cached = null; }
-const t2 = cached || (needs.t2 && needs.t2.outputs);
+// (on main after a fast-forward the frames answer is the PR's (cached) and the 4090 ran only the stall visits: theirs is kept)
+const t2 = cached ? Object.assign({}, cached, needs.t2 && needs.t2.outputs && needs.t2.outputs.stall_ok ? { stall_ok: needs.t2.outputs.stall_ok } : {}) : (needs.t2 && needs.t2.outputs);
 if (needs.t2) {
   v.t2.wanted = v.glsl_changed || v.gpu_js || c.t2_self === 'true';
   v.t2.required = !!cached || result('t2') !== 'skipped';
