@@ -82,6 +82,11 @@ async function visit(url, c) {   // one visit (the kit's gguard run, without its
 async function pool(jobs, n) { const res = new Array(jobs.length); let next = 0; await Promise.all(Array.from({ length: Math.min(n, jobs.length) }, async () => { while (next < jobs.length) { const i = next++; res[i] = await jobs[i](); } })); return res; }
 const bound = (key) => { const k = KNOWN.find((x) => x.re.test(key)); return k ? (k.maxMs || Infinity) : TH; };
 const over = (V) => new Map((V.keys || []).filter((e) => e[1] > bound(e[0])).map((e) => [e[0], e[1]]));
+// A key names its program by link order and its sources' hashes (glwatch: p3:<vs>/<fs>|...). Base and head are paired by
+// the program's place and the rest of the key, not by its sources: a change that only rewrites the text (#65 minified
+// every shader) would otherwise leave every head key with no base and call a stall base has too "new".
+const pair = (k) => k.replace(/^(p\d+):[0-9a-f]+\/[0-9a-f]+/, '$1');
+const paired = (m) => { const o = new Map(); for (const [k, ms] of m) o.set(pair(k), Math.max(ms, o.get(pair(k)) || 0)); return o; };
 
 (async () => {
   const t0 = Date.now(), S = { base: await serve(A.base, +(A.port || 9640)) }; S.head = await serve(A.head, S.base.port + 1);
@@ -96,11 +101,11 @@ const over = (V) => new Map((V.keys || []).filter((e) => e[1] > bound(e[0])).map
     const H = V.filter((v) => v.c === c && v.arm === 'head'), B = V.filter((v) => v.c === c && v.arm === 'base');
     for (const v of H) for (const pr of v.problems) fails.push(c + ' head ' + v.r + ': ' + pr);
     for (const v of B) for (const pr of v.problems) notes.push(c + ' base ' + v.r + ': ' + pr);
-    const ho = H.map(over), bo = B.map(over);
+    const ho = H.map(over), bo = B.map(over).map(paired);
     const keys = [...new Set(ho.flatMap((m) => [...m.keys()]))];
     for (const k of keys) {
-      const inAll = ho.every((m) => m.has(k)), inBase = bo.some((m) => m.has(k)), ms = ho.map((m) => m.get(k) || 0);
-      rows.push([c, k, ms.map((x) => Math.round(x)).join(' / '), bo.map((m) => Math.round(m.get(k) || 0)).join(' / '), inAll && !inBase ? 'STALL' : inAll ? 'also in base' : 'once (not repeated)']);
+      const inAll = ho.every((m) => m.has(k)), inBase = bo.some((m) => m.has(pair(k))), ms = ho.map((m) => m.get(k) || 0);
+      rows.push([c, k, ms.map((x) => Math.round(x)).join(' / '), bo.map((m) => Math.round(m.get(pair(k)) || 0)).join(' / '), inAll && !inBase ? 'STALL' : inAll ? 'also in base' : 'once (not repeated)']);
       if (inAll && !inBase) fails.push(c + ': ' + k + ' took ' + ms.map((x) => Math.round(x)).join(' and ') + ' ms on its first use in both head visits (base: under ' + TH + ' ms)');
     }
   }
