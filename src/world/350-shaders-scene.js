@@ -249,9 +249,6 @@ void main() {
   var FS_PRE = HEAD + FRAME_U + `@glsl fs-pre`;
   var FS_DOWN = HEAD + `@glsl fs-down`;
   var FS_UP = HEAD + `@glsl fs-up`;
-  /* light shafts: what is open sky near the sun (no ground, little cloud), blurred toward the sun */
-  var FS_SHAFTMASK = HEAD + FRAME_U + LIB_LIND + `@glsl fs-shaftmask`;
-  var FS_SHAFTBLUR = HEAD + `@glsl fs-shaftblur`;
   /* the composite */
   /* the finished frame (the world's resolution) put up to the canvas (the device's): bilinear, as the browser's own
      upscale did before round 2 (the birds' ink is then drawn over it at the canvas's resolution) */

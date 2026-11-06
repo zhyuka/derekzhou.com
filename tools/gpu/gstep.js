@@ -215,7 +215,7 @@ const INIT = `(() => {
   function record(k) {
     const st = JSON.stringify(pageState());
     let pi = PST.get(st); if (pi === undefined) { pi = PLIST.length; PLIST.push(st); PST.set(st, pi); }
-    const h = canvasHash(); RECS.push([k, h, pi, SUMS, TB64, INKF, window.__GATE ? window.__GATE().late[0] : -1]); SUMS = null; TB64 = null; INKF = 0;
+    const h = canvasHash(); RECS.push([k, h, pi, SUMS, TB64, INKF, window.__GATE ? window.__GATE().late[0] : -1, window.__SIG ? window.__SIG() : '']); SUMS = null; TB64 = null; INKF = 0;
   }
   window.__H = {
     now: () => NOW, calls: () => CALLS, frames: () => FR, page: () => pageState(),
