@@ -6,6 +6,8 @@
 #     and a GitHub tool that writes straight to main
 #   - a banned name (names.json, salted hashes) in a commit's message or diff, in what a push sends, or in what a
 #     GitHub tool posts
+# CI runs it as `python3 .claude/hooks/guard.py --scan`: every tracked file (names.json aside) checked for a banned
+# name; exit 1 on one, and on a names.json it cannot read (CI fails closed; the hook fails open).
 # It fails open: any error of its own (a parse it cannot make, git missing, a timeout) lets the call through, so a broken
 # hook never stops a session. Exit 2 blocks (its stderr is the reason); anything else allows.
 # Test: python3 .claude/hooks/test_guard.py
@@ -323,5 +325,35 @@ def main():
     sys.exit(0)
 
 
+def scan(root='.'):
+    """CI: every tracked text file checked for a banned name. Exit 1 on a hit or an unreadable names.json."""
+    try:
+        d = json.load(open(os.path.join(HERE, 'names.json'), encoding='utf-8'))
+        assert isinstance(d['salt'], str) and isinstance(d['hashes'], list)
+    except Exception as e:
+        print(f'::error::.claude/hooks/names.json cannot be read ({type(e).__name__}: {e})')
+        return 1
+    if not d['hashes']:
+        print('names: the list is empty (nothing to scan for)')
+        return 0
+    files = subprocess.run(['git', '-C', root, 'ls-files', '-z'], capture_output=True, text=True, check=True).stdout.split('\0')
+    bad = 0
+    for f in filter(None, files):
+        p = os.path.join(root, f)
+        if f.endswith('.claude/hooks/names.json') or not os.path.isfile(p) or os.path.getsize(p) > 4_000_000:
+            continue
+        b = open(p, 'rb').read()
+        if b'\0' in b[:8192]:
+            continue
+        h = banned_in(f + '\n' + b.decode('utf-8', 'replace'))
+        if h:
+            print(f'::error::{f}: a banned name (names.json {h}...). RULES.json "naming"')
+            bad = 1
+    print('names: no tracked file holds a banned name' if not bad else 'names: banned names found')
+    return bad
+
+
 if __name__ == '__main__':
+    if '--scan' in sys.argv:
+        sys.exit(scan())
     main()

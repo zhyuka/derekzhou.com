@@ -538,7 +538,7 @@
     {
       "id": "naming",
       "area": "naming",
-      "rule": "Never name, in the repository, a commit or a PR: the reference game, its studio, a painter or any person (beyond the owner as the site's subject); never the removed side project. Banned names are kept as salted hashes in .claude/hooks/names.json, never written out.",
+      "rule": "Never name, in the repository, a commit or a PR: the reference game, its studio, a painter or any person (beyond the owner as the site's subject); never the removed side project. Banned names are kept as salted hashes in .claude/hooks/names.json, never written out. To add one: python3 .claude/hooks/add_names.py < a file of names outside the repo (it stores only their salted hashes).",
       "source": [
         {
           "doc": "docs/design.md (\"at the owner's word its name stays out of the repo, its commits and its PRs\")"
@@ -552,6 +552,10 @@
         {
           "kind": "hook",
           "file": ".claude/hooks/guard.py"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The rules are data, and the hooks hold"
         },
         {
           "kind": "prose"
@@ -571,7 +575,7 @@
       "enforced_by": [
         {
           "kind": "ci-step",
-          "name": "Merge, or leave it for the owner"
+          "name": "One tick of the merge train"
         },
         {
           "kind": "ci-step",
