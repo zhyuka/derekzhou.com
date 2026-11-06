@@ -172,7 +172,7 @@
   var V_GEOM = { goose: { x: [1.9, 3.0], y: [1.15, 1.45] }, ibis: { x: [0.8, 1.0], y: [0.75, 0.9] } };   // (fix: in the birds' own spans; the goose's aside 1.0-1.25 for a full angle of 35-60 deg about its way (DESIGN L4), no FORM_K; laid along their way through the air, spot())   // (spans back, aside per place: the goose's V 35-60 deg, the ibis's 80-90)
   var JITTER_V = 0.4;         // (life) a skein's places more ragged
   var ROOST = { share: 0.85, band: 30, sink: [1.4, 3.6], climbFirst: [0, 2], moonShare: 0.7, other: [0.6, 2.2] };   // (DESIGN 2.3; fix: the sink is through the AIR, deg; other: the dusk flights not roost-bound sink too)
-  var skyNow = '', roostPsi = 0, FLX = {}, roostCls = '', roostK = 0, LPEND = null, LPEND_T = 45;   // (fix: the roost's bearing set once a sky; a pattern waiting for room)
+  var roostPsi = 0, FLX = {}, roostCls = '', roostK = 0, LPEND = null, LPEND_T = 45;   // (fix: the roost's bearing set once a sky; a pattern waiting for room)
   /* (round 3, alive) THE ROLES (DIRECTIONS 4.1): of a sky's flights, on its flight line (stream), against it (counter), across
      it, and local (one wheel), %, by sky; each kind group's side agreeing with the sky's (DIR_AGREE), at night all one
      front; the night's line downwind DIR_NIGHT_DOWN of the time; a counter flight level or climbing a little (deg) */

@@ -11,8 +11,8 @@
      its ink shows at) and let go out of sight; a window empty LV_EMPTY s has a flock sent in across its side. They
      are drawn as the world's places are (fixed in the world, never escorting the camera). */
   var LIVE_ON = true;
-  var LV_DT = 0.1, LV_AHEAD = 4, LV_LOOK = [1.5, 3], LV_EVERY = 0.5;   // s
-  var LV_SPAWN = [650, 1500], LV_SPAWN_SEEN = [1150, 1600], LV_DROP = 2100, LV_BEHIND = 450, LV_CLEAR = 110, LV_EMPTY = 9;   // m; s
+  var LV_DT = 0.1, LV_AHEAD = 4, LV_EVERY = 0.5;   // s
+  var LV_DROP = 2100, LV_BEHIND = 450, LV_CLEAR = 110, LV_EMPTY = 9;   // m; s
   var LV_SPEED = { goose: 17, ibis: 14, gull: 11, heron: 10, crow: 11, swallow: 10, stork: 12, finch: 9 };   // m/s through the air (Pennycuick 2001; Alerstam 2007)
   var LV_TURN = { goose: 8, ibis: 12, gull: 25, heron: 8, crow: 22, swallow: 70, stork: 12, finch: 30 };   // deg/s at most
   /* (v16) the calm's few birds and empty sky kept: v15, its flocks let go as they left the window, filled the sky (a
@@ -227,7 +227,7 @@
   var LVR = { max: 0, seen: false, first: 1e9, dmin: 1e9 };
   function lvCap() { return LV_DEGS * DEG * (W / 2) / VW.tanX; }
   function lvRate(P, C, T) {
-    var R = P.tr, k, best = 0, seen = false, px = NaN, py = NaN, tau, m0 = P.m[0], first = 1e9, dmin = 1e9;
+    var best = 0, seen = false, px = NaN, py = NaN, tau, m0 = P.m[0], first = 1e9, dmin = 1e9;
     lvExtend(P, T);
     for (tau = 0; tau <= T; tau += 0.5) {
       lvAt(P, tau, LVQ); lvProj(LVQ.x, LVQ.y, LVQ.z, C, tau, LVP);
@@ -264,7 +264,7 @@
        nearness 0.13), coming out of the distance as the viewer comes and passing beside it.
      Each set back along its own way by as far as it flies until the meeting, so it comes into the window from out of
      it; never born in view with its ink showing. */
-  var LV_E1 = [120, 260], LV_E2 = [350, 700], LV_E3_LAT = [110, 220], LV_UP = { loiter: [40, 120], hawk: [30, 90], wheel: [60, 160] };
+  var LV_E3_LAT = [110, 220];
   function lvWhy(k) { var w = STATS.lvWhy = STATS.lvWhy || {}; w[k] = (w[k] || 0) + 1; }
   /* a height on the window in the open sky (openBands, its reach px above and below), weighted by the bands' sizes */
   function lvBand(r, reach) {

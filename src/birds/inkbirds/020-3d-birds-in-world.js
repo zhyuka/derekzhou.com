@@ -8,21 +8,12 @@
   var CLOUD_HID = 0.2;         // a path whose birds would be behind cloud (or the land) at more than this share of its probes is not flown
   var ENTER_BY = [4.5, 8];     // s after it sets off: the first flight's birds in view by this, the next's (else that path is not flown)
   var SEEN_MIN = [4, 8];       // s: and in view at least this long (a turn that would sweep it straight out: not this path)
-  var SWEEP = [0, 0, 0];       // of the mark's width: the wrists this far forward of the body, the tips and a tail this far back (tried at 0.05, -0.12, -0.3: seen obliquely the sweep cancelled the wrists' rise, a third of the marks a flat stroke or an upside-down M; the chain is kept in its plane)
-  var PEN_MIN = 1;             // px: a bird smaller than the live's farthest (a place's thermal, far off) has its pen thinned with it down to this, and fainter below it, never thinner
-  var FACING = 0.8;            // the bird's frontal plane faces the line of sight, turned toward the way it flies by atan(FACING x the sine of the angle between them): never more than 39 deg (seen from beside, a frontal M would close to a stroke) ...
-  var FACING_UP = 0.3;         // ... (round 2) turned further while its wrists are up (above 0.6 of their rise), to atan(1.1) = 48 deg at the top of the beat, where the M's steps hold it legible (the fold, flat marks and lean measured unchanged: foldsim)
   var NEARMOST = 0.6;          // of the bird's span: the land in front of a bird hides it past this far in front of its body
   var CLOUD_IN = 14;           // m of a cloud's visible lobes between the camera and a bird: its cover over the bird counted fully
   var NEAR_FADE = [1.9, 2.6];  // nearness: a bird the camera comes nearer than the planner ever would (a place's thermal flown into) fades between these
   var MAXP = 64;               // (birds3d) birds lent to flights: a ring of 64 (the calm binds, not a count) ...
   var DRAW_MAX = 48;           // ... at most this many busy, and drawn, at once
   var QUOTA_STEP = 300;        // path points of planning a fixed step (1/60 s), a bird's place counted at its cost (SPOT_COST; round 2: 200, a place counted as 1)
-  var SHADE = 0.008;           // the ink's share of the scene's light (a dark bird's black lifted a breath toward it; round 2's 0.035, with the air on top of the live's TONE, paled a goose at mid distance to half the live black's contrast; round 3's first 0.012 with AIR_INK 0.4 left DUNES's at 73-80 %)
-  var AIR_INK = 0.25;          // (round 3) the share of the air's haze the ink takes (the engine's fog and ground haze at its distance): all of it paled DUNES's birds at 40-120 m to 61-72 % of the live black's contrast (ink2.py), ABOVE's to 82-87 %; 0.4 (with SHADE 0.012) 73-80 % and 87-90 %; 0.25 80-85 % and 90-93 %
-  var INK_MIN = 2;             // (round 3) dark ink held at least this contrast against the frame under it (a far bird over dark land in the haze)
-  var GLARE = [0.62, 0.95, 0.35, 0.5];   // the light wrap: the glare where the frame's light under a stroke runs from [0] to [1] (with the bloom about it); the pen thinned by [2] of it, the ink lifted toward the light by [3] (round 2: 0.4 and 0.85 lifted a bird on ABOVE's great disc 77-93 levels, to within 18 of the disc: all but gone; now 45-64, a pale, thinner mark)
-  var NIGHT = [0.3, 3.2];      // light ink (the night's words): mixed this far toward the sky's own light at the bird, and held at least this contrast against it
   /* (physics) the owner's two open decisions (MODEL.md 0), as the lab left them: the rate (RATE_MODE 'scaled': the
      size-scaled physics rate of a bird of the world's span; 'real': the species' own), the flap-glide schedule
      (SCHED_MODE 'measured'; 'calm': the last round's glides on this beat; 'continuous': never gliding). Dev only:
