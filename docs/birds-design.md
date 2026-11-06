@@ -67,7 +67,8 @@ nothing else: no field records how a bird was born.
      +---- its own time / a flock passes ---> TAKE OFF -+--> CRUISE / FLOCK / into cloud / past the eye
 ```
 
-- CRUISE: a goal heading and height, wandering, commuting, gliding or soaring;
+- CRUISE: a goal heading and height, wandering, commuting, gliding, soaring or
+  circling one of the world's places (HOST.places: the temple, the island);
   some routes descend below the eye, into low cloud, or pass near the camera.
 - FLOCK: the leader flies a goal like CRUISE; members hold their places (V, line,
   pair, loose) by steering, not by being placed. Any two lone birds, or a lone bird
@@ -117,7 +118,8 @@ Already in the design, from the audit:
 | a perched bird lifts off to join a passing flock | TAKE OFF -> FLOCK | it flies up into the flight's place |
 | a bird climbs out into the distance, or drops into low cloud | CRUISE | it shrinks into the haze, or is hidden by cloud |
 | a bird swings past the viewer | CRUISE | it grows large and passes out of the view's side |
-| a moving pointer: the perched bird hops to follow, or leaves | PERCHED | no magnet |
+| a moving pointer: the bird on the tip grips, lags and flaps to balance; it hops to follow, or leaves | PERCHED | no magnet |
+| circling the temple and the island (HOST.places) | CRUISE (soar) | a slow ring about the place, climbing |
 | a jab startles | PERCHED -> TAKE OFF | (kept) |
 
 ## What is wrong today (the audit, R1-R11)
@@ -136,6 +138,52 @@ Already in the design, from the audit:
   land; take-off always flies away and climbs; the cursor approach rides the
   pointer on a 0.12 s spring.
 - Dead code and dev switches in shipped code (listed in the audit).
+
+## Every gap, and how it is closed
+
+Two audits, read-only: the session's (R1-R11, at 89e06b3) and the hub's independent
+one (H1-H11, at b9c4196). The PR closes every row; the PR description repeats this
+table with each row's evidence (a film, a probe or a deleted line range).
+
+| gap | audits | closed by |
+|---|---|---|
+| clicked and released gulls get their own fade band (270:327) | R1, H1 | one world haze in metres for every bird; fadeS deleted |
+| NEAR_FADE fades near birds (020:13, 240:167) | R1, R4, H1 | deleted; a bird near the eye is drawn until it leaves the frustum, and steers round the camera instead of being hidden |
+| the haze is in nearness, so it depends on the window | R1 | the haze is in world metres, the land's own aerial perspective |
+| the old planner's timer fades (240:147, 163; 250:163-196) | R1, H1 | the old planner deleted |
+| a startled 16 m/s for life, a fixed climb (270:328) | R3, R9, H1 | birth sets only the first state; the kind's airspeed comes back through the integrator |
+| three systems: flocks, guests, the old planner | R3, H2 | one bird record, one step, one pose, one draw; guests and 050-190 deleted |
+| guests fly in camera space, are never hidden by land or cloud | R2, H2 | perching is a world-space state; every bird goes through the cloud and land weights |
+| only a lone gull already in view can land, one at a time, always a gull | R6, H2 | any bird of a perching kind, flock members included, can take an approach goal; several may perch |
+| flock members sit in fixed slots: none leaves, none joins a skein, no flock splits | R6, R7, H2 | flock places are steered to, not placed; any bird may join or leave, the leader may change |
+| sky to perch: the path aims straight at the perch, a dart, a new wing phase, a size on a timer | R3, H3 | the same bird flies a descending glide to the perch; its wing clock and size carry over |
+| perch to sky: a new flock replaces the bird at 0.3 s, a fixed heading, a drift jump, hiding switched on at once | R3, R7, H3 | the same bird takes off; its goal is chosen from the cruise and flock goals; hiding is always on |
+| the hop onto the pointer starts half a span up, wings and yaw change in one frame | H3 | a hop is a physical jump and flaps from where the bird stands |
+| the ride: the whole path slides with the pointer on a 0.12 s spring (270:514, 369) | R8, H4 | deleted; pursuit in world space toward the tip, at the bird's own speed and turn rate, going round if it moves too far |
+| a slow cursor within ~345 px pulls a perched bird off its letter (gHop 270:235) | H4 | a perched bird notices the pointer and may choose to hop to it, by its own seeded wish and within a hop's reach; no pull |
+| after touchdown a solver slides the body onto the tip (270:683) | H4 | contact is solved only in the flare's last tenths; after that the bird stands, or re-perches by a hop |
+| the perched facing is fixed by the window half, ±18° shuffles | R5, H5 | perched idles: turn round by steps, look about, walk along the stroke, hop to another ledge, flap to resettle |
+| the landing is a 5 s keyframe list; the idles are pre-drawn; the sit ends on a timer | H5 | idles fire at seeded rates from the bird's stream; it leaves by its own wish, a startle or a passing flock |
+| flight is level: climb clamped ±0.12, at least 15 m above the eye | R4, H6 | climbs, dives and descents within the kind's limits, below the eye too |
+| routes planned 45-90 s ahead and flown exactly; avoidance terms dead | R10, H6 | goals, steered each step; no route table |
+| commuters solved to cross the window; LV_CLEAR, LV_DEGS keep-outs | R4, H6 | deleted; goals drawn in the world, with near passes and low-cloud goals among them |
+| nothing steers into low cloud; clouds only hide | R4, H6 | a cloud-base goal: birds climb or descend into low cloud and are hidden there |
+| the wingbeat and drift run on the flock's clock: a joining bird jumps | H7 | every bird has its own age clock |
+| an old flock's route is trimmed with P.t0 += sh: every member jumps | H7 | no routes, nothing to trim |
+| frames travel with the camera (220:3-7, 230:305) | R2, H8 | deleted with the old planner |
+| SET_ON, LEAN_TRIM, F.gift, the stale header, GWO.best, P.end, st.hc and the rest of the dead list | R10, H8 | deleted |
+| the thermal places never run; HOST.places and HOST.pois never read: the temple and island circling is not wired | H8 | wired: a soaring or circling goal around HOST.places, so the circling the owner kept returns |
+| calmAsk slows the camera's turning for the birds | R2, H8 | deleted |
+| the perch tables are baked (the name's raster, LINK_GLYPHS, a copy of the credit) | H9 | perches made at build time from the served index.html and the font, so a word or font change rebuilds them |
+| ledges need flat headroom: no perches on curves or slopes; feet float on round letters | H9 | perches carry the surface's slope and direction; the feet are set on the ink at the slope |
+| allocations per bird per frame, per perched frame, string keys and closures per step | R10, H10 | preallocated state; no allocation in the step or the draw (checked) |
+| the fly-by path and the leaving wingbeat recomputed from zero each frame | H10 | gone with the guests; the integrator steps once |
+| cloud cover in 0.25 s steps held 0.3 s: a bird pops at a cloud's edge | H10 | cloud cover read continuously per drawn bird, so a bird passes into cloud smoothly |
+| clicked birds appear mid-window at full ink, the drift puts them away from the click, always a 16 m/s commuter | R9, H11 | a click births a bird at the click point in the world, on a goal from the same list as any bird |
+| removals off screen, unseen, behind; births just outside the window | R11 | the population ring: added and removed only beyond ~14 km or wholly hidden |
+| the population counted about the view (LV_POP) | R11 | a density per square kilometre in world space |
+| no per-bird cost measured; instrumentation in shipped code | R10 | measured against main; the dev counters move to the dev build |
+| the reduced-motion still and forced colours run the old planner | R3 | the same simulation run forward from the seed, then frozen (reduced motion) or drawn in CanvasText (forced colours) |
 
 ## How it is checked
 
