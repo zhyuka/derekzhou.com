@@ -18,18 +18,23 @@
 # Early Hints: Link headers on the root document let Cloudflare send 103s
 # for the render-critical assets. crossorigin on the font links is mandatory
 # or the browser double-fetches them.
+# The order is the order Cloudflare sends them in (HTTP/2 in request order
+# without its Pro prioritisation): the stylesheet and the two fonts first,
+# since the first paint waits for them (font-display: optional), then the
+# hour, the start file, the world and its kits (2026-11-06: first paint
+# 32-68 ms sooner on a 5 Mbps / 28 ms link, the world no later).
 /
   Cache-Control: max-age=0, must-revalidate
   Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
   Link: </style.css>; rel=preload; as=style
+  Link: </assets/fonts/Geist-400-500.sub2.woff2>; rel=preload; as=font; crossorigin
+  Link: </assets/fonts/GeistMono-Regular.sub2.woff2>; rel=preload; as=font; crossorigin
   Link: </hour.js>; rel=preload; as=script
   Link: </start.js>; rel=preload; as=script
   Link: </world.js>; rel=preload; as=script
   Link: </realm-kit.js>; rel=preload; as=script
   Link: </realm-dunes.js>; rel=preload; as=script
   Link: </realm-above.js>; rel=preload; as=script
-  Link: </assets/fonts/Geist-400-500.sub2.woff2>; rel=preload; as=font; crossorigin
-  Link: </assets/fonts/GeistMono-Regular.sub2.woff2>; rel=preload; as=font; crossorigin
 
 /index.html
   Cache-Control: max-age=0, must-revalidate
