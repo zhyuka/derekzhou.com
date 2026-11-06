@@ -55,6 +55,7 @@
        statuses read one a frame from the next frame on (each read waits only for what is left of its own link).
        ANGLE-Vulkan, phone viewport, CPU 4x, 11 runs: the world shown 1294 -> 1186 ms */
     EXT.issueAll = !EXT.par && !wkIs;
+    if (/[?&]serial(&|$)/.test(location.search)) EXT.issueAll = false;   // (PREVIEW ONLY: ?serial, the one-at-a-time path #72 replaced, for the A15's cold A/B)
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
     EXT.hp = !!(EXT.cbf && EXT.parAll && HP_DEV(EXT.renderer)); if (EXT.hp) DEFS += '#define HPSPLIT\n';   // (fast500 lane G: the split height's devices)
