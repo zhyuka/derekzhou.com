@@ -144,8 +144,38 @@ numbers: a night's light ink under the light words lowers their
 contrast for the moment it crosses, which the owner accepted ("it's
 completely fine if the birds fly behind/in front of it").
 
-BOOT (the owner: "should load instantly make it 10x faster"): the page
-paints at once with the hour's still sky (the stylesheet's, per time of
+THE FIRST-PAINT HOLD (the owner, 2026-11-06: "Yes, build the preview";
+"Hold up to ~1 s"): where it runs, the page does not paint until the
+world's first frame is drawn; the browser keeps the previous page or a
+blank tab, then the words and the world appear in one frame. The world,
+the kit and the realms are parser-blocking after the footer (the world
+measures the words), and the head's link rel=expect href=#world-end
+blocking=render (naming no element) holds Chromium's paint until the
+parser ends. The last realm's registration, the page still parsing, runs
+the boot at once (holdRun): its staged frames one after another in that
+one task, each a hold frame of 68267/4096 ms (no animation frame, the
+boot's own logic unchanged), until the canvas shows; the first animation
+frame after steps one hold frame. Inside one task WebGL 2 changes no
+fence's status, so in the hold the boot makes no fence, counts the GPU
+idle and reads at once (each read waits for its own data: RB.fix's way),
+and the plan is made on the main thread beside the compiles (the
+worker's answer cannot arrive; it is stopped after the first hold frame).
+No hold (hour.js takes the link out before the body): reduced motion,
+forced colours, no WebGL2, 4 or fewer cores, under 8 GB (deviceMemory),
+a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
+sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
+no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
+to show the world later than HOLD_WORLD (1000 ms from the navigation's
+start): from stage A (38 x A - 150 ms) and from the first hold frame
+(26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
+1x-6x. The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+the link is taken out and the path below goes on. T2 shows the world's
+first frame byte for byte the one without the hold (frame 0: gstep
+counts a world shown in the page's own load as shown at frame 0). The
+ink birds stay deferred and join after the show.
+
+BOOT (the owner: "should load instantly make it 10x faster"): without the
+hold, the page paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The start file
 (start.js: async, fetchpriority high, Early-Hinted, the first script

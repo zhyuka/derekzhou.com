@@ -234,6 +234,7 @@ const INIT = `(() => {
     },
     untilShown: async (maxf, dt) => {   // frames one by one, in the page, until the canvas is 'on' (its frame count), or -1
       const c = document.querySelector('canvas.sky');
+      if (c.classList.contains('on')) return 0;   // (first-paint preview: shown before any step, in the page's own load: the hold; frame 0 is the page as loaded)
       for (let f = 1; f <= maxf; f++) { await window.__H.step(1, dt, 0, 1, 0, false); if (c.classList.contains('on')) return f; }
       return -1;
     },
@@ -318,7 +319,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (FADEWATCH) res.fades = {};
   await Promise.all(P.map(async (o) => {
     if (!HOLD.length) {
-      while (o.f < MAXF) { const n = await o.p.evaluate(([m, dt]) => window.__H.untilShown(m, dt), [Math.min(200, MAXF - o.f), DT]); if (n > 0) { o.f += n; break; } o.f += Math.min(200, MAXF - o.f); }
+      while (o.f < MAXF) { const n = await o.p.evaluate(([m, dt]) => window.__H.untilShown(m, dt), [Math.min(200, MAXF - o.f), DT]); if (n >= 0) { o.f += n; break; } o.f += Math.min(200, MAXF - o.f); }
     } else {
       // frame by frame: let go at HOLD_MAX if the world has not shown by then (a page whose world waits on a held script)
       let on = false;

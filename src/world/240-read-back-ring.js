@@ -59,7 +59,7 @@
     RB.lagged = false;
     if (!RB.fences.length) return;
     var F = RB.fences[0], r;
-    if (RB.fix) {   // (dev: delivered exactly two frames after its fence, whatever the GPU's speed)
+    if (RB.fix || HOLD.on) {   // (dev: delivered exactly two frames after its fence, whatever the GPU's speed; first-paint preview: so in the hold, one task)
       if (FRAMEN - F.frame < 2) return;
       RB.polled++; r = gl.clientWaitSync(F.s, 0, 0);
       /* (Fix 2 of round E1) inside one long JavaScript task (the harness's ticks) WebGL 2 never changes a fence's

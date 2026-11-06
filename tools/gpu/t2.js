@@ -13,8 +13,10 @@
 // 3. CSP: any "Content Security Policy" / "Refused to" console line in any visit fails the job (csp_ok).
 // 4. GLSL: every shader source each visit compiled (gstep's census: type, length, hashes). glsl_changed when base and head
 //    differ. Then each build's programs dumped (glsldump.js) and the changed ones read back on the GPU, old against new,
-//    bit for bit: the land VS's height and the probe (hbits.js), every changed fragment shader of a known kind
-//    (fsbits.js: land, mesh, sky). bits_identical = all of those 0 differing words. Kinds it cannot read are listed.
+//    bit for bit: the land VS's height and the probe (hbits.js), every changed fragment shader (fsbits.js: any FS, its
+//    test vertex stage made from its own inputs) and every other changed vertex shader (vsbits.js: transform feedback).
+//    bits_identical = all of those 0 differing words. A read that fails or ran nothing (each tool's coverage gate:
+//    outputs constant) is unread, and leaves bits_identical false.
 // Writes OUT/t2.json and OUT/summary.md; with GITHUB_OUTPUT set, frames_identical, glsl_changed, bits_identical,
 // csp_ok (true/false). Exit 1 on a CSP violation, a failed visit or the wrong renderer; 0 otherwise (a change in what is
 // seen is the merge bot's to route to the owner, not a failure).
@@ -102,7 +104,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(A.gpuname ? ['--gpuname', A.gpuname] : []).concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
-      const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
+      const shown = (r) => r && r.show && r.show[j.arm] >= 0 && r.show[j.arm] < 4000;   // (first-paint preview: 0, shown in the page's own load: the hold)
       let code, res = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         code = await run(args, attempt ? {} : prof(slot), 'gstep_' + tag + (attempt ? '_retry' : ''));
@@ -183,14 +185,13 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
         jobs.push({ what: 'land height and probe (hbits)', args: [path.join(HERE, 'hbits.js'), 'bits', pd.base, pd.head, path.join(OUT, 'bits_land.json')] });
       for (const n of changed) {
         if (!hb[n]) { R.glsl.unread.push(n + ' (new in head)'); continue; }
-        const fsrc = rd('head', n, 'fs'), me = P.head.find((x) => x[0] === n), vsChanged = hb[n][1] !== me[1];
-        // (a kind fsbits feeds: every input the FS declares is the land's (vW, vN, vX), a mesh's (vW, vN, vC, vY, vE), or
-        // none (full screen))
-        const ins = [...fsrc.matchAll(/(?:^|;)\s*(?:centroid |flat |smooth )*in\s+(?:highp |mediump |lowp )?\w+\s+(\w+)\s*;/gm)].map((m) => m[1]);
-        const known = ins.every((v) => ['vW', 'vN', 'vX'].includes(v)) || ins.every((v) => ['vW', 'vN', 'vC', 'vY', 'vE'].includes(v));
-        if (hb[n][2] !== me[2] && known) jobs.push({ what: n + ' FS (fsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'fsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.json')] });
-        else if (hb[n][2] !== me[2]) R.glsl.unread.push(n + ' FS (its varyings are not a kind fsbits feeds)');
-        if (vsChanged && n !== 'world.surface0') R.glsl.unread.push(n + ' VS (no vertex read-back for it; the frames decide)');
+        const me = P.head.find((x) => x[0] === n), vsChanged = hb[n][1] !== me[1], hbitsRan = jobs.length > 0 && /^land height/.test(jobs[0].what);
+        // every changed FS to fsbits (it pairs any FS: a test vertex stage made from the FS's own inputs) and every
+        // changed VS but the land's (hbits reads that) to vsbits (transform feedback); the probe's FS is hbits' too (its
+        // grid modes, as the page runs it) where hbits runs. A read that fails, or whose outputs came out constant (its
+        // coverage gate), is no result: unread, the safe side
+        if (hb[n][2] !== me[2] && !(n === 'world.probe' && hbitsRan)) jobs.push({ what: n + ' FS (fsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'fsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.json')] });
+        if (vsChanged && n !== 'world.surface0') jobs.push({ what: n + ' VS (vsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'vsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.vs.json')] });
       }
       const codes = await pool(jobs.map((jb, i) => async (slot) => { const tag = 'bits_' + i; const code = await run(jb.args, prof(slot), tag); const txt = fs.readFileSync(path.join(OUT, tag + '.log'), 'utf8'); const m = /(IDENTICAL|DIFFER)[^\n]*/.exec(txt); return { what: jb.what, code, line: m ? m[0] : 'no result (exit ' + code + ')' }; }), PAR);
       R.bits = codes; for (const c of codes) { log('bits ' + c.what + ': ' + c.line); if (!/^IDENTICAL/.test(c.line)) bitsIdentical = false; }

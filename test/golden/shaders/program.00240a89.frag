@@ -80,21 +80,17 @@ c*=1.0-uSkyKT.z*(1.0-side)*lt;
 c=mix(c,uSkyWN,uSkyKN.x*side*side*ln);
 return c*(1.0-uSkyKN.z*(1.0-side)*ln);
 }
-vec3 skyCol0(vec3 rd){
+vec3 skyCol(vec3 rd){
 float e=degrees(asin(clamp(rd.y,-1.0,1.0)));
-vec3 c=skyGrad(e);
+vec3 g=skyGrad(e),c=g;
 float side=sunSide(rd),low=exp(-max(e,0.0)/uSkyK.y);
 c=mix(c,uSkyW,uSkyK.x*side*side*low);
 c*=1.0-uSkyK.z*(1.0-side)*low;
 float cs=max(dot(rd,uSkyS),0.0);
 c+=uGlowC*(uGlow.x*pow(cs,uGlow.y)+uGlow.z*pow(cs,uGlow.w));
-return c;
-}
-vec3 skyCol(vec3 rd){
-vec3 c=skyCol0(rd);
 if(uSkyN.w>0.0){
-float e=degrees(asin(clamp(rd.y,-1.0,1.0))),cn=max(dot(rd,uSkyN.xyz),0.0);vec3 g=skyGrad(e);
-c+=skyWarmN(g,e,sunSide(rd))-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
+float cn=max(dot(rd,uSkyN.xyz),0.0);
+c+=skyWarmN(g,e,side)-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
 }
 return c;
 }
@@ -122,11 +118,11 @@ return uHazeC+cs*cs*cs*(uHzT*st+uHzN*uSunK.z);
 }
 vec3 atmos(vec3 c,vec3 rd,float t){
 float f=fogAmt(rd,t);
-vec3 fc=mix(mix(fogCol(rd),uFogB.rgb,uFogB.a),fogCol(rd),smoothstep(0.25,0.95,f));
+vec3 fq=fogCol(rd),fc=mix(mix(fq,uFogB.rgb,uFogB.a),fq,smoothstep(0.25,0.95,f));
 c=mix(c,fc,f);
 c=mix(c,hazeCol(rd),hazeAmt(rd,t));
 #ifndef NO_TWILIGHT
-if(uTwM.x>0.0)c=mix(c,fogCol(rd),uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
+if(uTwM.x>0.0)c=mix(c,fq,uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
 #endif
 return c;
 }
@@ -604,4 +600,4 @@ w-=mod(aG,2.0)*L.z*m;
 gLodD=length(w-uCam.xz);gw=w;
 }else gw=uHsrc==2?uGCw.xy+gl_FragCoord.xy*uGCw.z:texelFetch(uTex,gq,0).xy;
 }
-void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; o0 = vec4(dunes(gw), 0.0); o1 = vec4(0.0); }
+void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }

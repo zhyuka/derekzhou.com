@@ -144,7 +144,8 @@ const PLANCODE = cut(WORLD, A1, E1, true) + cut(WORLD, A2, E2, true) + cut(WORLD
 const PRE = '  var PI = Math.PI, DEG = Math.PI / 180, FRT = { tanX: Math.tan(36 * DEG), tanY: 1 }; function bootMark() {}\n' +
   '  function angDiff(a, b) { var d = a - b; d -= Math.floor((d + Math.PI) / (2 * Math.PI)) * 2 * Math.PI; return d; }\n';
 const EXPOSE = '\n  G.kwFirst = typeof kwFirst === \'function\' ? kwFirst : null; G.HALF = typeof KW_MARGIN === \'number\' ? Math.atan(FRT.tanX) + KW_MARGIN : 0;' +
-  '\n  G.MAPS = MAPS; G.KW = KW; G.KG = KG; G.KF = KF; G.mapsInit = mapsInit; G.kwFollow = kwFollow; G.kitAt = kitAt; G.directorStep = directorStep;\n';
+  '\n  G.MAPS = MAPS; G.KW = KW; G.KG = KG; G.KF = KF; G.mapsInit = mapsInit; G.kwFollow = kwFollow; G.kitAt = kitAt; G.directorStep = directorStep;' +
+  '\n  G.kwAdoptFirst = kwAdoptFirst; G.kwAdoptRest = kwAdoptRest; G.kfFollow = kfFollow;\n';
 const pageFn = vm.runInThisContext('(function (G, CS) {\n  \'use strict\';\n' + PRE + PLANCODE + EXPOSE + '})');
 function page() { const G = {}, CS = { x: 0, z: 0 }; pageFn(G, CS); G.CS = CS; return G; }
 function snap(G) {   // the plan's state, hashed: the anchors, the director, the grids, and 400 kit and field samples about the camera
@@ -189,17 +190,27 @@ test('plan: the worker\'s plan, adopted, is the page\'s', async () => {
   const v = (planSrc.match(/var PLANV = '([0-9a-f]+)'/) || planSrc.match(/'([0-9a-f]{12})'/) || [])[1];   // (minified: PLANV renamed, its value the first 12-hex string)
   assert.equal((WORLD.match(/var PW_V = '([0-9a-f]*)';/) || [])[1], v, 'the world\'s PW_V is the worker\'s stamp');
   for (const seed of [11, 3]) {
-    let listener = null, msg = null;
-    vm.runInThisContext('(function (addEventListener, postMessage, close) {\n' + planSrc + '\n})')((k, f) => { if (k === 'message') listener = f; }, (m, tr) => { msg = structuredClone(m, { transfer: tr || [] }); }, () => {});
-    listener({ data: { v, seed } });
-    assert.ok(msg && msg.seed === seed && msg.v === v, 'the worker answered');
-    const W = page(); W.mapsInit(seed, msg.inj);   // planAdopt's lines
-    Object.assign(W.KW, { data: msg.kw.data, ix: msg.kw.ix, dx: msg.kw.dx, baked: msg.kw.baked, derived: msg.kw.derived, dirty: msg.kw.dirty, ok: true });
-    Object.assign(W.KG, { v: msg.kg.v, ix: msg.kg.ix });
-    Object.assign(W.KF, { data: msg.kf.data, ix: msg.kf.ix, dx: msg.kf.dx, baked: msg.kf.baked, derived: msg.kf.derived, dirty: msg.kf.dirty });
-    W.kwFollow(0, 0, true);
+    // (world-perf lane) two answers: the first frame's (planFirst's: kwFirst about the landing), then the window's rest
+    let listener = null; const msgs = [];
+    vm.runInThisContext('(function (addEventListener, postMessage, close) {\n' + planSrc + '\n})')((k, f) => { if (k === 'message') listener = f; }, (m, tr) => { msgs.push(structuredClone(m, { transfer: tr || [] })); }, () => {});
+    listener({ data: { v, seed, yaw: 0.7, half: Math.atan(Math.tan(36 * Math.PI / 180)) + 5 * Math.PI / 180 } });
+    const msg = msgs[0];
+    assert.ok(msg && msg.seed === seed && msg.v === v && msg.part === 1, 'the worker answered');
+    assert.ok(msgs.length === (msg.first.part ? 2 : 1) && (!msg.first.part || msgs[1].part === 2), 'and then with the rest');
+    const adopt = () => {   // planAdopt's lines (planVisit's kfFollow after it)
+      const W = page(); W.mapsInit(seed, msg.inj);
+      Object.assign(W.KW, { data: msg.kw.data.slice(), ix: msg.kw.ix.slice(), dx: msg.kw.dx.slice(), baked: msg.kw.baked, derived: msg.kw.derived, dirty: msg.kw.dirty.slice() });
+      Object.assign(W.KG, { v: msg.kg.v.slice(), ix: msg.kg.ix.slice() });
+      Object.assign(W.KF, { data: msg.kf.data.slice(), ix: msg.kf.ix.slice(), dx: msg.kf.dx.slice(), baked: msg.kf.baked, derived: msg.kf.derived, dirty: msg.kf.dirty });
+      W.kwAdoptFirst(msg.first, msg.kwr ? msg.kwr.slice() : null); W.kfFollow(0, 0, true);
+      return W;
+    };
+    const W = adopt(); if (msgs[1]) W.kwAdoptRest(msgs[1]);   // both answers
+    const W1 = adopt();   // the first alone (the rest never came: the page bakes it, as before)
+    W.kwFollow(0, 0, true); W1.kwFollow(0, 0, true);
     const P = page(); P.mapsInit(seed); P.kwFollow(0, 0, true);   // the page's own, whole
     assert.deepEqual(snap(W), snap(P), `seed ${seed}: the adopted plan is the page's`);
+    assert.deepEqual(snap(W1), snap(P), `seed ${seed}: the first answer alone, the rest made here, is the page's too`);
     fly(W, 10); fly(P, 10);
     assert.deepEqual(snap(W), snap(P), `seed ${seed}: and so is the flight after it`);
   }

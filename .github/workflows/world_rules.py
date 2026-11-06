@@ -231,7 +231,7 @@ for p in [g for g in gen if g.startswith('plan.')]:   # (fast500 step 11) the pl
         for ln, t in lines(c, pat): fail('4 absences', f'{p}:{ln} {what}: {t}')
     ks = re.findall(r"""addEventListener\(\s*['"]?([\w]*)""", c)
     if ks != ['message']: fail('4 absences', f'{p}: listeners {ks} (exactly one: message)')
-    if c.count('postMessage(') != 2: fail('4 absences', f'{p}: postMessage( {c.count("postMessage(")} times (its answer and its refusal)')
+    if c.count('postMessage(') != 3: fail('4 absences', f'{p}: postMessage( {c.count("postMessage(")} times (its two answers, the first frame and the rest, and its refusal)')
 for f in world + kit + realms + wing + ink:
     for ln, t in lines(strip_comments(src[f]), r'\.on[a-z]+\s*=(?!=)'): fail('4 absences', f'{f}:{ln} an on* handler property (listeners are added by name, in world*.v*.js only): {t}')
 
@@ -336,13 +336,23 @@ def kind(n):
         if re.fullmatch(p, n): return k
     return 'other'
 ks = [kind(n) for n in names if kind(n) != 'diag']
+# (the first-paint hold, 2026-11-06) the world, the kit and the realms parser-blocking after the footer, in that order;
+# only the wing model and the ink birds deferred
+blocking = [x for x in re.findall(r'<script\s[^>]*>', s) if 'src=' in x and 'defer' not in x and not re.search(r'\sasync[\s>]', x)]
+bnames = [re.search(r'src="/?([^"]+)"', x).group(1) for x in blocking]
+bks = [kind(n) for n in bnames if kind(n) in ('world', 'kit', 'realm')]
 if world:
-    want = ['world', 'kit'] + ['realm'] * max(1, ks.count('realm')) + ['wing'] * len(WING) + ['ink']
-    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want world, kit, the realms, then the wing model and the ink birds last')
+    want = ['wing'] * len(WING) + ['ink']
+    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want only the wing model and the ink birds, last')
+    wantb = ['world', 'kit'] + ['realm'] * max(1, bks.count('realm'))
+    if bks != wantb: fail('5 script-order', f'index.html parser-blocking scripts {bnames}: want the world, the kit, then the realms')
+    fw = s.find('</footer>'); ww = s.find('src="/world')
+    if fw < 0 or ww < fw: fail('5 script-order', 'index.html: the world, the kit and the realms come after the footer (the hold measures the words)')
+    if s.count('<link rel="expect" href="#world-end" blocking="render">') != 1 or 'id="world-end"' in s: fail('5 script-order', 'index.html: one link rel=expect #world-end blocking=render, naming no element')
     wn = [re.sub(r'(?:\.v\d+)?\.js$', '', n) for n in names if kind(n) == 'wing']
     if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
     PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'wing': 'low', 'ink': 'low'}
-    for tag in deferred:
+    for tag in deferred + blocking:
         m5 = re.search(r'src="/?([^"]+)"', tag)
         if not m5 or kind(m5.group(1)) not in PRI: continue
         fp = re.findall(r'\bfetchpriority="(\w+)"', tag)
