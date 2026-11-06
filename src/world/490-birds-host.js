@@ -16,7 +16,6 @@
      build but for this (rounds/E1/fix3/out/birds-t12, -t20, birds-c4): the empty sky 7.6-17.9% at 12 s, 9.9-18.3% at
      20 s, 10.9-24.1% at 30 s (ABOVE s7 1440: the first 22, 27 and 57 s without a bird). Planned further along the course,
      a flight must clear more of it (the clouds and banks the straight flight meets); 12 s, E1's own, is kept */
-  var COURSE_TRUST = 12;
   var WIND_AIR = 6.5;   // (way-other) m/s: the wind at the birds' height, the dunes' grains' own speed (realm-dunes.js), the least the drawn sand says
   var HOST = {
     gl: null,   // (Fix 2: the context, from the boot's first frame; the module is made then, makeBirds)
@@ -98,17 +97,6 @@
       return true;
     },
     target: function () { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, FULL.w || OUT.w, FULL.h || OUT.h); },
-    /* (round 2) the camera's coming view, for the planner: n samples `step` s apart into out { yaw, pitch, roll, x, y, z
-       (typed arrays), n, t0, step }, from the flight as it is now (reset) or on from the last chunk (w07: flightAhead) */
-    ahead: function (reset, n, step, out, ch) { return flightAhead(reset, n, step, out, ch); },
-    aheadCh: 2,   // (round 3: forecasts on channels 0 and 1, each carried on by its own caller)
-    /* (E1 Fix 3) how far the forecast can be trusted, s: the heading is held left alone (Revision 3), so the forecast is
-       the flight itself until the visitor drags (a drag starts the planner's course again); its slip is the flight's own
-       plan. COURSE_TRUST s: about a flight's crossing */
-    courseTrust: function () { return COURSE_TRUST; },
-    /* (round 3) the birds' calm: the autopilot's own turning held under `rate` rad/s (its way round a cloud's body under
-       `ev`) while the birds have a flight in the sky; 0: as it was. Eased over CALM_T s; the forecast (ahead) knows it */
-    calm: function (rate, ev) { CALM.want = rate > 0 ? 1 : 0; if (rate > 0) { CALM.rate = rate; CALM.ev = Math.max(ev || 0, rate); } },
     /* (round 3) the time left for the birds' planning this frame, ms (the module reads no clock): BIRDB.ms a frame,
        less what its steps have taken so far; unbounded in the harness (data-still: the same whatever the machine) */
     budget: function () { if (STILLMODE) return Infinity; return BIRDB.ms - BIRDB.spent - (BIRDB.at ? clockNow() - BIRDB.at : 0); },

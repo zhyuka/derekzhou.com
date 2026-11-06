@@ -85,7 +85,6 @@
     // clearance then eases back to the realm's cruise height, level
     var idle = t - CS.lastIn;
     if (idle > CS.idleAfter && !NOAUTO) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
-    CALM.k += clamp(CALM.want - CALM.k, -dt / CALM_T, dt / CALM_T);   // (round 3: the birds' calm eased in or out)
     // what stands ahead and cannot be climbed over: passed beside, the heading held (a slip sideways, never a turn)
     slipStep(V, CS, dt, true);
     // the flight follows the view (within about half a second; at most 52 deg/s)
@@ -103,7 +102,7 @@
     if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;
     CS.c = clamp(CS.c, cl[0], cl[2]);
     // the height: the ground ahead in time and what stands on it, a spring toward it
-    pitchLook(V, CS, dt, CALM.k);   // (round 3: the look at the ground ahead, eased under the birds' calm)
+    pitchLook(V, CS, dt);   // (round 3: the look at the ground ahead)
     var yT = heightTarget(V, t), w = VY_W, acc = clamp(w * w * (yT - CS.y) - 2 * w * CS.vy, -VY_ACC, yT > CS.y ? VY_ACCU : VY_ACC);
     CS.vy = clamp(CS.vy + acc * dt, -VY_DN, VY_UP);
     CS.y += CS.vy * dt;

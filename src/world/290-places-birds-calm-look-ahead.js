@@ -9,11 +9,6 @@
     for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st >= 2) for (var k = 0; k < C.pois.length; k++) out.push(C.pois[k]); }
     return out;
   }
-  /* (round 3) the birds' calm. While the ink birds have a flight in the sky (or one being planned) the module asks for
-     it (HOST.calm(rate, ev), rad/s; 0: none), eased in and out over CALM_T s (k). (Fix 2: with the autopilot gone the
-     view never turns by itself, so the calm holds only the look at the ground ahead, pitchLook; rate and ev are kept
-     as the module gives them.) The visitor's own input is never held */
-  var CALM = { want: 0, k: 0, rate: 0.0175, ev: 0.05 }, CALM_T = 2;
   /* (round 3) the camera's look at the ground ahead (the realm's pitchFollow of its slope over V.def.look m), followed over
      CALM_PITCH s under the calm (none without it): over DUNES's rises it pitched the view up to 2 deg/s, sweeping every
      bird up or down the window at up to 40 px/s, and bending their ways there. S.pfT: the look now; S.pf: as followed */
@@ -23,11 +18,11 @@
      landing stepped the view's pitch by 0.6-0.8 deg in one frame inside the cloud (seed 1: at all four junctions, H1's
      camera bound being 0.5 deg a frame); now followed over PF_EASE s at CALM_PITCH x PF_K (0.48 s), the following
      itself eased out over its last 0.5 s */
-  function pitchLook(V, S, dt, k) {
+  function pitchLook(V, S, dt) {
     var look = V.def.look || 90, yaw = S.yawV + S.phi, ga = groundAt(V, S.x + Math.sin(yaw) * look, S.z + Math.cos(yaw) * look, false), gh = groundAt(V, S.x, S.z, false);
     S.pfT = Math.atan2(ga - gh, look) * pfK(V);
     if (GROUND.V === V && GROUND.ok && S.gV !== V) { S.gV = V; if (S.pf === S.pf) S.pfE = PF_EASE; }   // (the visit's own ground arrived)
-    var kk = S.pfE > 0 ? Math.max(k, PF_K * Math.min(1, S.pfE / 0.5)) : k; if (S.pfE > 0) S.pfE -= dt;   // (its last 0.5 s eased out: ended at once, the lag of a look still moving stepped the pitch 0.5-0.9 deg: seeds 8, 19, 20)
+    var kk = S.pfE > 0 ? PF_K * Math.min(1, S.pfE / 0.5) : 0; if (S.pfE > 0) S.pfE -= dt;   // (its last 0.5 s eased out: ended at once, the lag of a look still moving stepped the pitch 0.5-0.9 deg: seeds 8, 19, 20)
     var pf0 = S.pf;
     if (!(S.pf === S.pf) || kk <= 0) S.pf = S.pfT;
     else S.pf += (S.pfT - S.pf) * (1 - Math.exp(-dt / (CALM_PITCH * kk)));
