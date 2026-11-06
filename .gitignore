@@ -2,7 +2,11 @@
 Thumbs.db
 .vscode/
 .idea/
-.claude/
+# (.claude/: a session's own files stay out; the project's hooks are the repository's: RULES.json)
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/hooks/__pycache__/
 # (the build) build/src/: src/ assembled (tools/parts.mjs assemble src build/src), never committed
 build/
 

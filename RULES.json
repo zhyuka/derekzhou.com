@@ -1,0 +1,635 @@
+{
+  "_": "Every standing rule of derekzhou.com as data. Each rule: id (kebab-case, unique), area, rule (what holds), source (the owner's words and date where known, the record it is kept in), enforced_by (kind ci-step: a step name in .github/workflows/*.yml; world-rule: a rule id world_rules.py fails under; absence: a numbered (N) block of the step 'Absences are enforced'; hook: a .claude/hooks file that cites the rule's id; prose: written down only, checked by people). CI ('The rules are data, and the hooks hold', rules_check.py) proves every reference exists.",
+  "version": 1,
+  "rules": [
+    {
+      "id": "no-darkening",
+      "area": "words",
+      "rule": "Nothing on the page darkens the world or lifts it for the words: no lift, floor, gain, veil, cap or calm about them. The composite takes no words input, so the frame with the words' machinery on and off is the same program on the same inputs (W7).",
+      "source": [
+        {
+          "quote": "Don't darken the background anywhere ever",
+          "doc": "CLAUDE.md: Design; World: THE WORDS"
+        },
+        {
+          "quote": "remove that white background behind the text. it's fine failing accesibility",
+          "date": "2026-10-21",
+          "doc": "CLAUDE.md: Design"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "world-rule",
+          "id": "7 never-darker"
+        },
+        {
+          "kind": "world-rule",
+          "id": "7b canvas-last"
+        },
+        {
+          "kind": "ci-step",
+          "name": "Nothing darkens (W7's unit test)"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The world's rules"
+        }
+      ]
+    },
+    {
+      "id": "light-words-only",
+      "area": "words",
+      "rule": "The words are always light, one set of colours on every sky and at every moment (text #fdfcf7, dimmed #ebeffa, ring #f4e2b0, selection #3b3f55), the same in style.css and the world. The world draws only skies they read on, under the light ceiling (OKLab L 0.53); no sky with dark words is kept, no ink is read from the ground or flips.",
+      "source": [
+        {
+          "quote": "lets only use white text for everything so never use any scenes that dont pass white text (anything that makes the text turn black should be removed entirely)",
+          "date": "2026-11-03",
+          "doc": "CLAUDE.md: Design; World: THE TIME OF DAY, THE WORDS"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "Still skies keep the words legible"
+        },
+        {
+          "kind": "prose",
+          "note": "W8 and the words' contrast through every sky are measured in the dev build (CLAUDE.md: Verify)"
+        }
+      ]
+    },
+    {
+      "id": "no-masking-boxes",
+      "area": "birds",
+      "rule": "Nothing masks a bird for the words: no keep-off texture, no step back near them, no route refused, eased, held or let go for them, and the camera never waits for a bird near them. A bird crossing the words is drawn whole, behind them.",
+      "source": [
+        {
+          "quote": "pls remove the masking boxes from behind the text completely. it's completely fine if the birds fly behind/in front of it... do u even understand",
+          "date": "2026-11-05",
+          "doc": "CLAUDE.md: Design; Birds"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "world-rule",
+          "id": "7 no-mask"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The world's rules"
+        }
+      ]
+    },
+    {
+      "id": "no-2d-birds",
+      "area": "birds",
+      "rule": "The ink birds, drawn in the world, are the only birds. No script, SVG or rule of the old 2D birds is in the page, its stylesheet, its headers or the world's scripts; before the world's first frame the page is the still sky and the words, no bird.",
+      "source": [
+        {
+          "quote": "Why do I still see the old birds at all … like when the page first loads. There shouldn't be any code at all for that, right?! wtf is going on pls fix from root and clean everything up",
+          "date": "2026-11-05",
+          "doc": "CLAUDE.md: Design; Birds; Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 7
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The world's page loads in order"
+        }
+      ]
+    },
+    {
+      "id": "no-fades",
+      "area": "motion",
+      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance).",
+      "source": [
+        {
+          "quote": "There shouldn't be any fade-ins/outs at all",
+          "doc": "CLAUDE.md: World: BOOT; CSS"
+        },
+        {
+          "quote": "yep this. same w sun.",
+          "doc": "CLAUDE.md: World: THE TIME OF DAY"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "prose"
+        }
+      ]
+    },
+    {
+      "id": "no-glitter",
+      "area": "motion",
+      "rule": "Nothing on the window sparkles, crawls or fizzes from frame to frame; a film under a drag glitters no more than a reference drawn at the device's own px.",
+      "source": [
+        {
+          "quote": "And the weird glittering transitions between scenes/stuff is still happening wtf?",
+          "doc": "CLAUDE.md: Design; Verify"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "prose"
+        }
+      ]
+    },
+    {
+      "id": "reduced-motion-still",
+      "area": "motion",
+      "rule": "Under prefers-reduced-motion the world is one still frame (drawn again when the words move, live both ways), the steering is inert and no click starts a gull. It is the page's stop for its motion (the owner chose no pause control).",
+      "source": [
+        {
+          "doc": "CLAUDE.md: World: FALLBACKS; THE FLIGHT AND THE CAMERA; Birds"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "prose"
+        }
+      ]
+    },
+    {
+      "id": "steer-only-by-drag",
+      "area": "motion",
+      "rule": "Left alone the view holds its heading; nothing turns it by itself. Only a drag (or, on iOS once asked, the phone's turn) steers. A pointer's moves are read only while it is pressed; no hover, no key.",
+      "source": [
+        {
+          "quote": "should keep flying same-ish direction unless user drags their mouse/finger to change direction.",
+          "doc": "CLAUDE.md: Design; World: THE FLIGHT AND THE CAMERA"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 2
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        },
+        {
+          "kind": "world-rule",
+          "id": "4 absences"
+        }
+      ]
+    },
+    {
+      "id": "one-entropy-one-clock",
+      "area": "weather",
+      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker and start file draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "source": [
+        {
+          "quote": "should b rand",
+          "doc": "CLAUDE.md: World: THE WEATHER; Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 4
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        },
+        {
+          "kind": "world-rule",
+          "id": "4 absences"
+        },
+        {
+          "kind": "world-rule",
+          "id": "4b start"
+        },
+        {
+          "kind": "world-rule",
+          "id": "2b plan-worker"
+        }
+      ]
+    },
+    {
+      "id": "opening-sky-by-clock-only",
+      "area": "weather",
+      "rule": "Only the sky a visit opens on depends on the visitor's clock (hour.js); after that the order of skies is the world's own, random, with no clock.",
+      "source": [
+        {
+          "quote": "Only the starting landing scene should depend on the system time. The rest should cycle through smoothly randomly non-time-dependent.",
+          "doc": "CLAUDE.md: Design; World: THE TIME OF DAY"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 4
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        }
+      ]
+    },
+    {
+      "id": "absence-chrome",
+      "area": "absences",
+      "rule": "The HTML has none of the internet's body language: no arrows, cookie or analytics vocabulary, Loading states or navigation roles.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security (Absences are enforced)"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 1
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        }
+      ]
+    },
+    {
+      "id": "absence-behaviour",
+      "area": "absences",
+      "rule": "No exit, idle, hover-position, key, blur, title, favicon-swap or storage handler in the JS; a pointer's moves are read only by the world's drag (its one pointermove listener added in onDown, removed in endDrag).",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security (Absences are enforced)"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 2
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        },
+        {
+          "kind": "world-rule",
+          "id": "4 absences"
+        }
+      ]
+    },
+    {
+      "id": "absence-no-dom",
+      "area": "absences",
+      "rule": "No innerHTML and no JS-generated DOM: the canvas, the stack, the footer and the lettered name are all in index.html.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 3
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        },
+        {
+          "kind": "world-rule",
+          "id": "4b start"
+        }
+      ]
+    },
+    {
+      "id": "absence-network-sound-cursor",
+      "area": "absences",
+      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's and the start file's table, each started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
+      "source": [
+        {
+          "quote": "yes we need analytics",
+          "date": "2026-11-03",
+          "doc": "CLAUDE.md: Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 5
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        },
+        {
+          "kind": "world-rule",
+          "id": "2b plan-worker"
+        },
+        {
+          "kind": "world-rule",
+          "id": "3 production-blind"
+        }
+      ]
+    },
+    {
+      "id": "absence-dev-hooks",
+      "area": "absences",
+      "rule": "The shipped scripts carry no development harness: no window.__*, window.claude or console call, and no attribute read on <html> but the hour's data-sky and data-sky-at.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security; Structure"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "absence",
+          "number": 6
+        },
+        {
+          "kind": "ci-step",
+          "name": "Absences are enforced"
+        }
+      ]
+    },
+    {
+      "id": "csp-scoping",
+      "area": "security",
+      "rule": "CSP is set per HTML path with no overlapping rules (Cloudflare Pages combines same-named headers, and browsers enforce the intersection); never a Content-Security-Policy on /*. 404.html carries the same policy in a meta tag, kept in sync. Every home-scope CSP has exactly script-src 'self' https://static.cloudflareinsights.com and connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum. No inline style, script or handler on a CSP'd page.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "world-rule",
+          "id": "3 production-blind"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The world's rules"
+        },
+        {
+          "kind": "ci-step",
+          "name": "No inline code on CSP'd pages"
+        }
+      ]
+    },
+    {
+      "id": "script-order",
+      "area": "security",
+      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: JS"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "world-rule",
+          "id": "1 rocket-loader"
+        },
+        {
+          "kind": "world-rule",
+          "id": "5 script-order"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The world's page loads in order"
+        }
+      ]
+    },
+    {
+      "id": "served-only-site",
+      "area": "security",
+      "rule": "Nothing but the site is served: site/ holds only the kinds of file the site serves, the root only the repository's own; CLAUDE.md, .github/ and the font scripts stay outside the build.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "Check required files exist"
+        }
+      ]
+    },
+    {
+      "id": "built-files-uncommitted",
+      "area": "build",
+      "rule": "Nothing built is committed: a change is made in src/ and committed alone, and the build (tools/build.mjs) makes the rest, the same bytes every time.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Structure"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The build, the same bytes every time; site/ holds no built file"
+        }
+      ]
+    },
+    {
+      "id": "changed-bytes-new-name",
+      "area": "caching",
+      "rule": "Everything but HTML is cached immutable, so changed bytes need a new name: the build names scripts and the stylesheet by content; fonts and images are renamed by hand, with every reference, in the same commit.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Caching"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "Asset references must resolve (immutable-rename integrity)"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The build, the same bytes every time; site/ holds no built file"
+        }
+      ]
+    },
+    {
+      "id": "same-shaders",
+      "area": "caching",
+      "rule": "Every visit of a device compiles the same shader sources, and a change to a program's text comes with its manifest and golden texts in the same commit (a returning visitor's shader cache depends on it).",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Caching; Structure"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "Every visit compiles the same shaders"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The shaders are their golden texts, and compile"
+        }
+      ]
+    },
+    {
+      "id": "page-words",
+      "area": "content",
+      "rule": "The page says exactly its words: the lettered name, the one line, the credit row (Team Lead · Accenture Song · 2022 – Now) and the two links; the share and search text match.",
+      "source": [
+        {
+          "quote": "change back to Team Lead title",
+          "date": "2026-10-21",
+          "doc": "CLAUDE.md: Content"
+        },
+        {
+          "quote": "match the share text too",
+          "date": "2026-10-21",
+          "doc": "CLAUDE.md: Content"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The page says what it says"
+        }
+      ]
+    },
+    {
+      "id": "lettered-name",
+      "area": "content",
+      "rule": "The name is the approved drawing, one currentColor path, aria-hidden, with its words in a visually hidden span; no letter is redrawn here; its box is reserved by the stylesheet.",
+      "source": [
+        {
+          "quote": "Also draw Derek Zhou in this style. Keep iterating until it's 100% exact.",
+          "doc": "CLAUDE.md: Design; Type"
+        },
+        {
+          "quote": "The Z is off - shouldn't be 2 separate strokes - study similar fonts so u know what to do for it. Remove the feather entirely. 1 line layout pls",
+          "doc": "CLAUDE.md: Design"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The lettered name keeps its words"
+        }
+      ]
+    },
+    {
+      "id": "licences",
+      "area": "licences",
+      "rule": "Only code and assets under MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 go into the site, plus CC BY for research data with credit given. Fonts must be licensed for the web (open-licensed like Geist's OFL, or a bought web licence); never unlicensed copies or a desktop font file.",
+      "source": [
+        {
+          "date": "2026-11-06",
+          "via": "the hub, relaying the owner",
+          "doc": "CLAUDE.md: Type (fonts)"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "prose"
+        }
+      ]
+    },
+    {
+      "id": "naming",
+      "area": "naming",
+      "rule": "Never name, in the repository, a commit or a PR: the reference game, its studio, a painter or any person (beyond the owner as the site's subject); never the removed side project. Banned names are kept as salted hashes in .claude/hooks/names.json, never written out.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Design (\"at the owner's word its name stays out of the repo, its commits and its PRs\")"
+        },
+        {
+          "date": "2026-11-06",
+          "via": "the hub, relaying the owner"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "hook",
+          "file": ".claude/hooks/guard.py"
+        },
+        {
+          "kind": "prose"
+        }
+      ]
+    },
+    {
+      "id": "merge-rights",
+      "area": "process",
+      "rule": "Changes reach main only through a pull request, merged by the owner, or by the merge bot when nothing visible changes. An agent never merges and never pushes to main.",
+      "source": [
+        {
+          "quote": "Only if nothing visible changes (Recommended)",
+          "doc": ".github/workflows/merge.yml; CLAUDE.md: Deploy"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "Merge, or leave it for the owner"
+        },
+        {
+          "kind": "ci-step",
+          "name": "Verdict"
+        },
+        {
+          "kind": "hook",
+          "file": ".claude/hooks/guard.py"
+        }
+      ]
+    },
+    {
+      "id": "git-safety",
+      "area": "process",
+      "rule": "Never force-push and never delete a remote branch.",
+      "source": [
+        {
+          "date": "2026-11-06",
+          "via": "the hub's standing rules for agents"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "hook",
+          "file": ".claude/hooks/guard.py"
+        }
+      ]
+    },
+    {
+      "id": "no-frameworks",
+      "area": "build",
+      "rule": "Pure HTML, CSS and JS, no frameworks; no Unreal or streamed engine: the world is drawn in the page itself, in WebGL2, generated in code (no picture, no model file).",
+      "source": [
+        {
+          "quote": "keep iterating through literally every possible method/frameworks/etc until it's seamless",
+          "doc": "CLAUDE.md: (top); Design"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "prose"
+        }
+      ]
+    },
+    {
+      "id": "no-trusted-types-while-rocket-loader",
+      "area": "security",
+      "rule": "Trusted Types stays off while Cloudflare Rocket Loader is on (it re-executes scripts through a TT sink); if Rocket Loader is ever disabled, re-add require-trusted-types-for 'script' to the three home-scope CSP blocks.",
+      "source": [
+        {
+          "doc": "CLAUDE.md: Security"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "prose"
+        }
+      ]
+    }
+  ]
+}
