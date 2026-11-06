@@ -1,0 +1,43 @@
+{
+ "meta": {
+  "licence": "facts only: ranges and phases a study-only source states (Dimitriadis G, Gardiner J, Tickle P, Codd J, Nudds R (2015) Aeronaut J 119: 1-30, via the first author's 2015 talk); no digitised curve is kept here",
+  "what": "the barnacle goose facts the model build uses: per measure the mean of the 1 and 5 degree runs at 18 m/s (peak to peak, mean, phase of max and min); the stroke's marks (phases of its top, bottom, fastest down and up); the wrist marker's fore-aft range and phases (16 m/s)"
+ },
+ "facts": {
+  "flap_gamma": {
+   "pp": 50.68756336897948,
+   "mean": -1.5996485939006038,
+   "pmax": 0.019495126218445392,
+   "pmin": 0.4642589352661835
+  },
+  "lag_eta": {
+   "pp": 15.082400409672053,
+   "mean": -0.9342668591962514,
+   "pmax": 0.2949262684328918,
+   "pmin": 0.8691577105723569
+  },
+  "pitch_shoulder": {
+   "pp": 9.6736437793883,
+   "mean": 5.160635431488015,
+   "pmax": 0.7464383904023995,
+   "pmin": 0.21144713821544614
+  },
+  "pitch_wrist": {
+   "pp": 24.00400039306862,
+   "mean": 6.676249168213728,
+   "pmax": 0.5892276930767308,
+   "pmin": 0.13159210197450638
+  }
+ },
+ "stroke_marks": {
+  "top": 0.0,
+  "bottom": 0.485,
+  "vdown": 0.225,
+  "vup": 0.7725
+ },
+ "wrist_fore_aft": {
+  "peak_to_peak": 0.01603314830200976,
+  "phase_of_max": 0.37990502374406404,
+  "phase_of_min": 0.9332666833291677
+ }
+}

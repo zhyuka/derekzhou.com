@@ -13,7 +13,7 @@
 #      Cloudflare, reporting to the zone's own /cdn-cgi/rum, that one path; nothing else loads or is reached), and the site carries none of the world's development pages (its diagnostics, control and lab
 #      pages: diag.js, control.*, lab80.*, never shipped).
 #   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js, the ink birds' wing model (facetform,
-#      facetpose, wingmodel, model, labbird and birdwing .v*.js) and inkbirds.v*.js: no DOM
+#      facetpose, wingmodel, model, labbird and birdwing .js) and inkbirds.v*.js: no DOM
 #      building; no URL hook, storage or sound; no module, worker, fetch, XHR or Blob but a named worker (rule 2);
 #      entropy exactly once in world*.v*.js together, above its INIT-END marker, none in the realm, kit and ink birds'
 #      files; no Date, Math.random or randomUUID; performance.now( exactly once in world*.v*.js, inside function
@@ -71,7 +71,7 @@ kit = [f for f in jsfiles if re.fullmatch(r'realm-kit(?:\.v\d+)?\.js', f)]
 realms = [f for f in jsfiles if re.fullmatch(r'realm-(?!kit)[\w]+(?:\.v\d+)?\.js', f)]
 ink = [f for f in jsfiles if re.fullmatch(r'inkbirds(?:\.v\d+)?\.js', f)]
 WING = ('facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing')   # (round 3: the ink birds' wing model)
-wing = [f for f in files if re.fullmatch(r'(%s)\.v\d+\.js' % '|'.join(WING), f)]   # (the wing model: served as written, site/'s; not minified, not in src/)
+wing = [f for f in files if re.fullmatch(r'(%s)(?:\.v\d+)?\.js' % '|'.join(WING), f)]   # (the wing model: served as written, src/birds/model/'s; not minified)
 gen = [f for f in files if re.fullmatch(r'(gen|plan)(?:\.v\d+)?\.js', f)]   # (fast500 step 11: plan.vN.js, the plan's worker)   # (a worker file: served as written, site/'s)
 def readjs(p):
     try: return open(os.path.join(JS, p), encoding='utf-8').read()
@@ -129,7 +129,7 @@ for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|contr
 #    plan.vN.js by its literal name; the worker's own block in _headers is exactly its immutable cache and
 #    `default-src 'none'` (a worker's policy is its own response's); the home blocks that start it carry worker-src
 #    exactly 'self' (and no other block names another); the worker's code is the world's own: the four spans
-#    mkplan.py copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
+#    tools/plan.mjs copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
 #    its stamp (PLANV) is their md5's first 12 hex and the world's PW_V.
 import hashlib
 PSP = [('  var PI = Math.PI, DEG = Math.PI / 180;', '\n', True), ('  var CW = (function () {\n', '\n  })();\n', True), ('  var MAPS = {', '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', True), ('  var KN = 256, KSTEP = 64,', '  var KFROWS = FN * FN / KN;', False)]
@@ -165,8 +165,8 @@ for p in gen:
     if len(pv) != 1: fail('2b plan-worker', f'{p}: PLANV found {len(pv)} times'); continue
     for f in world:
         sp = plan_spans(src[f] or '')
-        if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (mkplan.py\'s anchors; a minified world needs its own check)'); continue
-        if any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (run mkplan.py on {f})')
+        if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (tools/plan.mjs\'s anchors; a minified world needs its own check)'); continue
+        if any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
         st = hashlib.md5(''.join(sp).encode('utf-8')).hexdigest()[:12]
         wv = re.findall(r"var PW_V = '([0-9a-f]*)';", src[f] or '')
         if pv[0] != st or wv != [st]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, the spans\' {st}, {f}\'s PW_V {wv} (all three the same)')
@@ -323,14 +323,14 @@ order = re.findall(r'<script\b[^>]*src="/?([^"]+)"[^>]*>', s)
 deferred = [x for x in re.findall(r'<script\b[^>]*>', s) if 'defer' in x]
 names = [re.search(r'src="/?([^"]+)"', x).group(1) for x in deferred if 'src=' in x]
 def kind(n):
-    for k, p in (('world', r'world[\w-]*(?:\.v\d+)?\.js'), ('kit', r'realm-kit(?:\.v\d+)?\.js'), ('realm', r'realm-\w+(?:\.v\d+)?\.js'), ('wing', r'(%s)\.v\d+\.js' % '|'.join(WING)), ('ink', r'inkbirds(?:\.v\d+)?\.js'), ('diag', r'diag\.v\d+\.js')):
+    for k, p in (('world', r'world[\w-]*(?:\.v\d+)?\.js'), ('kit', r'realm-kit(?:\.v\d+)?\.js'), ('realm', r'realm-\w+(?:\.v\d+)?\.js'), ('wing', r'(%s)(?:\.v\d+)?\.js' % '|'.join(WING)), ('ink', r'inkbirds(?:\.v\d+)?\.js'), ('diag', r'diag\.v\d+\.js')):
         if re.fullmatch(p, n): return k
     return 'other'
 ks = [kind(n) for n in names if kind(n) != 'diag']
 if world:
     want = ['world', 'kit'] + ['realm'] * max(1, ks.count('realm')) + ['wing'] * len(WING) + ['ink']
     if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want world, kit, the realms, then the wing model and the ink birds last')
-    wn = [re.sub(r'\.v\d+\.js$', '', n) for n in names if kind(n) == 'wing']
+    wn = [re.sub(r'(?:\.v\d+)?\.js$', '', n) for n in names if kind(n) == 'wing']
     if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
     PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'wing': 'low', 'ink': 'low'}
     for tag in deferred:

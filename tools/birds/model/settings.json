@@ -1,0 +1,5 @@
+{
+ "about": "the settings the shipped wing model was built with: each kind's stroke scale (iterated on the posed form until the tip's stroke met its target) and the heron's fit to the great egret film (stroke s, the hand's extra swing h, its lag in cycles)",
+ "stroke_scale": {"gull": 1.5503136283282486, "goose": 1.3115384615384615, "stork": 1.1301247771836007, "ibis": 1.0679785330948122, "crow": 1.0505136247924283},
+ "heron": {"s": 1.9, "h": 1.5, "lag": 0}
+}

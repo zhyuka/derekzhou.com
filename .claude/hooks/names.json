@@ -1,0 +1,6 @@
+{
+  "_": "Names that never go into this repository, its commits or its PRs (RULES.json: naming). Stored as sha256(salt + the name lowercased, its words joined by one space), so this file names nothing. Add names with: python3 .claude/hooks/add_names.py < a file of names, one a line (keep that file outside the repository). guard.py reads this.",
+  "salt": "b07858cbf096290ac2ec1cd8afc9a355",
+  "max_words": 1,
+  "hashes": []
+}

@@ -52,12 +52,12 @@ jobs:
             realm-kit.js
             realm-dunes.js
             realm-above.js
-            facetform.v1.js
-            facetpose.v1.js
-            wingmodel.v1.js
-            model.v1.js
-            labbird.v1.js
-            birdwing.v1.js
+            facetform.js
+            facetpose.js
+            wingmodel.js
+            model.js
+            labbird.js
+            birdwing.js
             inkbirds.js
             robots.txt
             _headers
@@ -97,7 +97,8 @@ jobs:
             [ -e "$f" ] || continue
             case "${f#../}" in
               .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
-              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
+              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;
+              RULES.json|.claude) ;;   # (the standing rules as data, and the project's hooks: never served)   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
               *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
             esac
           done
@@ -126,6 +127,14 @@ jobs:
             exit 1
           fi
           echo "No secrets found"
+
+      - name: The rules are data, and the hooks hold
+        run: |
+          # RULES.json is every standing rule as data: valid, ids unique, and every CI step, world_rules.py rule,
+          # absence block and hook it names exists. Then the project's hooks (.claude/hooks/guard.py: no push to main,
+          # no force push, no merge, no banned name) pass their own tests.
+          python3 .github/workflows/rules_check.py
+          python3 .claude/hooks/test_guard.py
 
       - name: security.txt not expired
         run: |
@@ -157,7 +166,7 @@ jobs:
           # And the reverse: the css/js the page loads by name must be the
           # ones index.html loads, each with its immutable cache block (a
           # leftover old version, kept by a copy rather than a git mv, fails).
-          for f in style.css hour.js start.js world.js realm-*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.js; do
+          for f in style.css hour.js start.js world.js realm-*.js facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js inkbirds.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -325,7 +334,7 @@ jobs:
           REALMS=$(ls ../src/realm-*.js | tr '\n' ' '); HOUR=hour.js; CSS=style.css
           START=$(ls start.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
           START="$START $(ls start-table.js 2>/dev/null | head -1)"   # (its table, start-table.js, loaded after the first paint)
-          WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
+          WING=$(ls facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
           PLANW=$(ls plan.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
           JS="site.js $HOUR $START $WORLD $REALMS $WING $INK $PLANW"
           echo "checking $JS and $CSS"
@@ -477,6 +486,36 @@ jobs:
           # script and stylesheet named by its content (world.<sha8>.js), every reference rewritten; the same from
           # both, every name its bytes' hash, no old name left, every reference resolving, each file immutable.
           node tools/build.mjs --check
+
+      - name: Set up Python (the wing model's generators)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: The wing model is what its generators make
+        run: |
+          # Two of src/birds/model/'s scripts are generated, never edited by hand: facetform.js (the faceted M, by
+          # tools/birds/form/mkform.py) and model.js (the measured wingbeat, by tools/birds/model/make.py from the
+          # data in tools/birds/model/data/ and settings.json; with model_full.json, every number's notes, kept
+          # beside it and never served). Both are made again here and must be the committed files byte for byte, so
+          # a generated file can never drift from its source. numpy (BSD) pinned: the version they were made with.
+          python -m pip install --quiet --disable-pip-version-check numpy==2.5.3
+          python -I tools/birds/form/mkform.py build/facetform.js > /dev/null
+          if ! cmp -s build/facetform.js src/birds/model/facetform.js; then
+            echo "::error::src/birds/model/facetform.js is not what tools/birds/form/mkform.py makes (run it and commit the result)"
+            exit 1
+          fi
+          python -I tools/birds/model/make.py --check
+
+      - name: The world's pure code, unit-tested
+        run: |
+          # test/unit.mjs (restructure step 6, about 10 s): the world's code that runs without a page, read from the
+          # dev build by its own anchors (src/ exports nothing for it): the streams and integer hashes (values,
+          # ranges, spread), the sky order's rules (the landing sky the hour's, never one of the last few, near unless
+          # far, every sky seen), the maps and the kit weights (in [0, 1]; the same plan and flight from the same seed),
+          # and the plan's worker against the page's own plan, hash for hash. Golden values in test/golden/unit.json:
+          # after a deliberate change, node test/unit.mjs --write, committed with it.
+          node --test test/unit.mjs
 
       - name: The world's rules
         run: |

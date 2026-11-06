@@ -1,5 +1,5 @@
-// The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
-// fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
+// labbird.js, the ink birds' wing model (src/birds/model/, served as written). Written by hand. Its comments keep the
+// tags and file names of the development record it came from (rounds, labs, judges), outside this repository.
 /* labbird.js (physics/lab): the measured wingbeat (../model, MODEL.md) flying the faceted M (majestic/form: facetform
    6896d8a3, facetpose d463285f) through a skeleton rig, with the measured flap-gliding and variation. The same module
    poses the bird the lab draws (lab.js) and the bird the checks measure (tools/measure.js): one geometry.

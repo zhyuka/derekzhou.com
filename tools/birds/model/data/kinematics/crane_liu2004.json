@@ -1,0 +1,834 @@
+{
+ "id": "crane_liu2004",
+ "meta": {
+  "species": "Grus sp. (\"crane\"; species not given)",
+  "group": "storks/herons stand-in (crane)",
+  "source": "Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA Paper 2004-2186 (24th AIAA Aerodynamic Measurement Technology and Ground Testing Conference), NASA NTRS 20040075526, section 6, Eqs (5), (6), (11) and Figs 47-61; journal version: Liu et al. (2006) Avian wing geometry and kinematics. AIAA J 44:954-963",
+  "licence": "public domain (US Government work, NASA NTRS); numbers usable with attribution",
+  "conditions": "level cruising flight in the wild (speed unknown); documentary footage (\"The Life of Birds\", BBC), level flight, viewed from the front",
+  "method": "front-projected quarter-chord line traced by hand on video frames, fitted by a 2nd-order polynomial in span; two-jointed arm model with rod lengths assumed equal (r1 = r2 = 0.5); every quantity given by the authors as a 2-harmonic Fourier series (their fit; their raw points are not tabulated)",
+  "authors_phase_zero": "wt = 0 at the beginning of the downstroke (authors)",
+  "phase_zero": "re-zeroed here at the maximum of psi1 (authors' phase of that maximum: 0.950 cycle)",
+  "downstroke_fraction_from_psi1": 0.5451137215696076,
+  "semispan_ratio_min_over_max": 0.663964568945085,
+  "text_note": "authors: the crane wing is most extended at wt = 2.1 and most folded at wt = 4; downstroke about 62 % of the cycle (from the projected semi-span)"
+ },
+ "measures": {
+  "psi1": {
+   "unit": "deg",
+   "description": "arm (rod 1, wing root to mid-span) flap angle from the horizontal, + up; front projection",
+   "rig_parameter": "arm dih (absolute)",
+   "n": null,
+   "min": -17.673334467889198,
+   "max": 34.41747906611136,
+   "peak_to_peak": 52.09081353400056,
+   "phase_of_max": 0.0,
+   "phase_of_min": 0.5451137215696077,
+   "fourier": {
+    "table": [
+     {
+      "N": 0,
+      "rms": 18.369730812313506,
+      "max": 26.23835901309822,
+      "var_captured": 0.0
+     },
+     {
+      "N": 1,
+      "rms": 1.3399223833856528,
+      "max": 1.9150238217942075,
+      "var_captured": 0.9946794846607883
+     },
+     {
+      "N": 2,
+      "rms": 1.6531168385045764e-14,
+      "max": 5.1514348342607263e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 3,
+      "rms": 2.1757449151738022e-14,
+      "max": 4.263256414560601e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 4,
+      "rms": 1.5046948070096877e-14,
+      "max": 4.440892098500626e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 5,
+      "rms": 1.6625331729455626e-14,
+      "max": 4.618527782440651e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 6,
+      "rms": 1.4808556815333392e-14,
+      "max": 3.907985046680551e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 7,
+      "rms": 2.1221152374324292e-14,
+      "max": 4.618527782440651e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 8,
+      "rms": 1.958037144425062e-14,
+      "max": 5.684341886080802e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 9,
+      "rms": 2.5105374899711365e-14,
+      "max": 5.684341886080802e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 10,
+      "rms": 2.1505704682760522e-14,
+      "max": 5.3290705182007514e-14,
+      "var_captured": 1.0
+     }
+    ],
+    "err_digitisation": 0.0,
+    "sd_between_beats": null,
+    "n_beats": null,
+    "se_of_mean": null,
+    "N_within_error_of_mean": null,
+    "N_within_beat_sd": null,
+    "N_99pct_variance": 1,
+    "N_999pct_variance": 2,
+    "N_shape_rms_le_2pct_p2p": 2,
+    "N_shape_max_le_5pct_p2p": 1,
+    "N_recommended": 1,
+    "coef_recommended": {
+     "a0": 8.312196182023026,
+     "a": [
+      25.535664681785523
+     ],
+     "b": [
+      3.610237839793866
+     ],
+     "amp": [
+      25.78961007848835
+     ],
+     "phase_of_max_cycles": [
+      0.022353211478521477
+     ]
+    },
+    "coef_N4": {
+     "a0": 8.306499999999996,
+     "a": [
+      25.524272317739456,
+      0.5867067483719159,
+      8.018233389536261e-15,
+      3.884701209681981e-15
+     ],
+     "b": [
+      3.6102378397938577,
+      -1.8099124402619162,
+      1.6841660811762469e-15,
+      4.76248821847204e-15
+     ],
+     "amp": [
+      25.778329942220854,
+      1.902631821977124,
+      8.193197304963351e-15,
+      6.145909006777568e-15
+     ],
+     "phase_of_max_cycles": [
+      0.0223630577146426,
+      0.39994552609231765,
+      0.010983412926763438,
+      0.03527521610507764
+     ]
+    },
+    "coef_shape_2pct": {
+     "a0": 8.306499999999996,
+     "a": [
+      25.524272317739463,
+      0.5867067483719131
+     ],
+     "b": [
+      3.6102378397938586,
+      -1.809912440261917
+     ],
+     "amp": [
+      25.77832994222086,
+      1.902631821977124
+     ],
+     "phase_of_max_cycles": [
+      0.022363057714642597,
+      0.3999455260923175
+     ]
+    }
+   },
+   "fourier_by_authors": {
+    "C0": 8.3065,
+    "C1_sin": -4.4519,
+    "B1_cos": 25.391,
+    "C2_sin": -1.8092,
+    "B2_cos": -0.5889
+   }
+  },
+  "psi2": {
+   "unit": "deg",
+   "description": "angle of the hand (rod 2) below the arm's line in the front projection (+ = hand bent down relative to the arm)",
+   "rig_parameter": "-(hand dih) (relative to arm)",
+   "n": null,
+   "min": -1.7294427372331234,
+   "max": 39.06151109509356,
+   "peak_to_peak": 40.79095383232668,
+   "phase_of_max": 0.8147963009247688,
+   "phase_of_min": 0.17720569857535617,
+   "fourier": {
+    "table": [
+     {
+      "N": 0,
+      "rms": 13.178399573412774,
+      "max": 21.994700603064924,
+      "var_captured": 0.0
+     },
+     {
+      "N": 1,
+      "rms": 4.109494698077209,
+      "max": 5.858161649372249,
+      "var_captured": 0.902758532067544
+     },
+     {
+      "N": 2,
+      "rms": 9.634299777840666e-15,
+      "max": 2.1316282072803006e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 3,
+      "rms": 1.5495661261907468e-14,
+      "max": 2.842170943040401e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 4,
+      "rms": 1.022313622926535e-14,
+      "max": 2.842170943040401e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 5,
+      "rms": 1.0317511193051133e-14,
+      "max": 2.842170943040401e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 6,
+      "rms": 1.2559593442389093e-14,
+      "max": 2.842170943040401e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 7,
+      "rms": 1.532622877115256e-14,
+      "max": 3.552713678800501e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 8,
+      "rms": 1.2869305428259001e-14,
+      "max": 4.263256414560601e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 9,
+      "rms": 1.596424217211542e-14,
+      "max": 4.263256414560601e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 10,
+      "rms": 1.7506163404753284e-14,
+      "max": 4.973799150320701e-14,
+      "var_captured": 1.0
+     }
+    ],
+    "err_digitisation": 0.0,
+    "sd_between_beats": null,
+    "n_beats": null,
+    "se_of_mean": null,
+    "N_within_error_of_mean": null,
+    "N_within_beat_sd": null,
+    "N_99pct_variance": 2,
+    "N_999pct_variance": 2,
+    "N_shape_rms_le_2pct_p2p": 2,
+    "N_shape_max_le_5pct_p2p": 2,
+    "N_recommended": 2,
+    "coef_recommended": {
+     "a0": 17.0661,
+     "a": [
+      1.5465830984810152,
+      -1.4748234035893009
+     ],
+     "b": [
+      -17.729929397476255,
+      -5.647682106689902
+     ],
+     "amp": [
+      17.79725584802331,
+      5.83707266101768
+     ],
+     "phase_of_max_cycles": [
+      0.7638480451980344,
+      0.3546732448746285
+     ]
+    },
+    "coef_N4": {
+     "a0": 17.0661,
+     "a": [
+      1.546583098481012,
+      -1.4748234035892982,
+      4.204168577851242e-15,
+      2.903654342495617e-15
+     ],
+     "b": [
+      -17.72992939747625,
+      -5.6476821066899,
+      7.325545762947838e-15,
+      -3.7275869149261225e-16
+     ],
+     "amp": [
+      17.797255848023305,
+      5.837072661017677,
+      8.446221294521874e-15,
+      2.927483148162759e-15
+     ],
+     "phase_of_max_cycles": [
+      0.7638480451980343,
+      0.3546732448746285,
+      0.055692836229040754,
+      0.24491987849455454
+     ]
+    },
+    "coef_shape_2pct": {
+     "a0": 17.0661,
+     "a": [
+      1.5465830984810152,
+      -1.4748234035893009
+     ],
+     "b": [
+      -17.729929397476255,
+      -5.647682106689902
+     ],
+     "amp": [
+      17.79725584802331,
+      5.83707266101768
+     ],
+     "phase_of_max_cycles": [
+      0.7638480451980344,
+      0.3546732448746285
+     ]
+    }
+   },
+   "fourier_by_authors": {
+    "C0": 17.0661,
+    "C1_sin": -17.3404,
+    "B1_cos": -4.0066,
+    "C2_sin": -3.7029,
+    "B2_cos": -4.5122
+   }
+  },
+  "phi2": {
+   "unit": "deg",
+   "description": "fold angle of the hand (rod 2) out of the front plane, recovered from the projected arc length (+ = folded/swept back)",
+   "rig_parameter": "-(hand swp)",
+   "n": null,
+   "min": 10.166923913617126,
+   "max": 53.75735008231305,
+   "peak_to_peak": 43.59042616869593,
+   "phase_of_max": 0.6760809797550613,
+   "phase_of_min": 0.3976505873531617,
+   "fourier": {
+    "table": [
+     {
+      "N": 0,
+      "rms": 12.455934595208506,
+      "max": 22.02024923883181,
+      "var_captured": 0.0
+     },
+     {
+      "N": 1,
+      "rms": 10.895970399159523,
+      "max": 15.592082525299372,
+      "var_captured": 0.23479254723776066
+     },
+     {
+      "N": 2,
+      "rms": 1.6417212688187207e-14,
+      "max": 4.973799150320701e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 3,
+      "rms": 2.7129309133614e-14,
+      "max": 7.105427357601002e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 4,
+      "rms": 1.7829400250486037e-14,
+      "max": 6.394884621840902e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 5,
+      "rms": 1.631508433113359e-14,
+      "max": 4.973799150320701e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 6,
+      "rms": 1.6680569382568048e-14,
+      "max": 4.263256414560601e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 7,
+      "rms": 1.7325509810467718e-14,
+      "max": 4.973799150320701e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 8,
+      "rms": 2.0020865763008827e-14,
+      "max": 5.684341886080802e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 9,
+      "rms": 1.7704551590287873e-14,
+      "max": 4.973799150320701e-14,
+      "var_captured": 1.0
+     },
+     {
+      "N": 10,
+      "rms": 1.8591978527284846e-14,
+      "max": 4.973799150320701e-14,
+      "var_captured": 1.0
+     }
+    ],
+    "err_digitisation": 0.0,
+    "sd_between_beats": null,
+    "n_beats": null,
+    "se_of_mean": null,
+    "N_within_error_of_mean": null,
+    "N_within_beat_sd": null,
+    "N_99pct_variance": 2,
+    "N_999pct_variance": 2,
+    "N_shape_rms_le_2pct_p2p": 2,
+    "N_shape_max_le_5pct_p2p": 2,
+    "N_recommended": 2,
+    "coef_recommended": {
+     "a0": 32.2311,
+     "a": [
+      2.3309970064948895,
+      -6.7676086091529095
+     ],
+     "b": [
+      -8.285580544277629,
+      13.897083449534275
+     ],
+     "amp": [
+      8.607229054695832,
+      15.457343066969823
+     ],
+     "phase_of_max_cycles": [
+      0.7936471643521525,
+      0.1610627485023611
+     ]
+    },
+    "coef_N4": {
+     "a0": 32.23109999999999,
+     "a": [
+      2.3309970064948806,
+      -6.767608609152897,
+      5.098999085228461e-15,
+      5.941842506608463e-17
+     ],
+     "b": [
+      -8.285580544277618,
+      13.897083449534279,
+      2.97576884908175e-15,
+      -2.453397497097924e-15
+     ],
+     "amp": [
+      8.60722905469582,
+      15.45734306696982,
+      5.903811642856334e-15,
+      2.4541169140861428e-15
+     ],
+     "phase_of_max_cycles": [
+      0.7936471643521524,
+      0.16106274850236107,
+      0.028025719265030422,
+      0.18846344841858653
+     ]
+    },
+    "coef_shape_2pct": {
+     "a0": 32.2311,
+     "a": [
+      2.3309970064948895,
+      -6.7676086091529095
+     ],
+     "b": [
+      -8.285580544277629,
+      13.897083449534275
+     ],
+     "amp": [
+      8.607229054695832,
+      15.457343066969823
+     ],
+     "phase_of_max_cycles": [
+      0.7936471643521525,
+      0.1610627485023611
+     ]
+    }
+   },
+   "fourier_by_authors": {
+    "C0": 32.2311,
+    "C1_sin": -8.6004,
+    "B1_cos": -0.3428,
+    "C2_sin": 15.2213,
+    "B2_cos": 2.691
+   }
+  },
+  "semispan": {
+   "unit": "ratio",
+   "description": "orthographically projected semi-span on the horizontal plane / its maximum",
+   "rig_parameter": "span",
+   "n": null,
+   "min": 0.6645418198105425,
+   "max": 1.0006625094646882,
+   "peak_to_peak": 0.33612068965414565,
+   "phase_of_max": 0.36490877280679834,
+   "phase_of_min": 0.6608347913021745,
+   "fourier": {
+    "table": [
+     {
+      "N": 0,
+      "rms": 0.09515111438931896,
+      "max": 0.17466154094349506,
+      "var_captured": -2.220446049250313e-16
+     },
+     {
+      "N": 1,
+      "rms": 0.06875529810499348,
+      "max": 0.09810323905625429,
+      "var_captured": 0.4778628662898483
+     },
+     {
+      "N": 2,
+      "rms": 2.6969486204334875e-16,
+      "max": 6.661338147750939e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 3,
+      "rms": 4.664716070800004e-16,
+      "max": 7.771561172376096e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 4,
+      "rms": 1.8118643623575284e-16,
+      "max": 5.551115123125783e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 5,
+      "rms": 1.689886247479434e-16,
+      "max": 4.440892098500626e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 6,
+      "rms": 2.653612165219174e-16,
+      "max": 5.551115123125783e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 7,
+      "rms": 2.669660074060257e-16,
+      "max": 6.661338147750939e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 8,
+      "rms": 2.003768254742703e-16,
+      "max": 4.440892098500626e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 9,
+      "rms": 1.818587444314689e-16,
+      "max": 5.551115123125783e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 10,
+      "rms": 1.9668859317428515e-16,
+      "max": 6.661338147750939e-16,
+      "var_captured": 1.0
+     }
+    ],
+    "err_digitisation": 0.0,
+    "sd_between_beats": null,
+    "n_beats": null,
+    "se_of_mean": null,
+    "N_within_error_of_mean": null,
+    "N_within_beat_sd": null,
+    "N_99pct_variance": 2,
+    "N_999pct_variance": 2,
+    "N_shape_rms_le_2pct_p2p": 2,
+    "N_shape_max_le_5pct_p2p": 2,
+    "N_recommended": 2,
+    "coef_recommended": {
+     "a0": 0.8389999999999997,
+     "a": [
+      0.00128613640935067,
+      0.019253299748442886
+     ],
+     "b": [
+      0.09346981252327695,
+      -0.09576659359503505
+     ],
+     "amp": [
+      0.09347866066648579,
+      0.09768280299008622
+     ],
+     "phase_of_max_cycles": [
+      0.2478101801605514,
+      0.3907881075878806
+     ]
+    },
+    "coef_N4": {
+     "a0": 0.8389999999999999,
+     "a": [
+      0.0012861364093507514,
+      0.0192532997484428,
+      -2.2701873833748487e-17,
+      3.0306479891999936e-17
+     ],
+     "b": [
+      0.0934698125232769,
+      -0.09576659359503505,
+      -3.567808947815834e-17,
+      2.777697574207646e-17
+     ],
+     "amp": [
+      0.09347866066648573,
+      0.0976828029900862,
+      4.228830978385052e-17,
+      4.11101338458062e-17
+     ],
+     "phase_of_max_cycles": [
+      0.24781018016055123,
+      0.3907881075878805,
+      0.2199365842312635,
+      0.029518315535800754
+     ]
+    },
+    "coef_shape_2pct": {
+     "a0": 0.8389999999999997,
+     "a": [
+      0.00128613640935067,
+      0.019253299748442886
+     ],
+     "b": [
+      0.09346981252327695,
+      -0.09576659359503505
+     ],
+     "amp": [
+      0.09347866066648579,
+      0.09768280299008622
+     ],
+     "phase_of_max_cycles": [
+      0.2478101801605514,
+      0.3907881075878806
+     ]
+    }
+   },
+   "fourier_by_authors": {
+    "C0": 0.839,
+    "C1_sin": 0.0885,
+    "B1_cos": 0.0301,
+    "C2_sin": -0.0888,
+    "B2_cos": -0.0407
+   }
+  },
+  "arclen": {
+   "unit": "ratio",
+   "description": "front-projected quarter-chord arc length / its maximum (wing extension)",
+   "rig_parameter": "ext",
+   "n": null,
+   "min": 0.8303817858330416,
+   "max": 1.0205889904425718,
+   "peak_to_peak": 0.19020720460953022,
+   "phase_of_max": 0.39665083729067735,
+   "phase_of_min": 0.6743314171457137,
+   "fourier": {
+    "table": [
+     {
+      "N": 0,
+      "rms": 0.054837941728103023,
+      "max": 0.10093116643777256,
+      "var_captured": 0.0
+     },
+     {
+      "N": 1,
+      "rms": 0.048044949133223123,
+      "max": 0.06869406734888606,
+      "var_captured": 0.2324031490855083
+     },
+     {
+      "N": 2,
+      "rms": 1.8252857632866177e-16,
+      "max": 4.440892098500626e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 3,
+      "rms": 4.498231536539516e-16,
+      "max": 7.771561172376096e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 4,
+      "rms": 1.6235901896969302e-16,
+      "max": 3.3306690738754696e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 5,
+      "rms": 1.5544692595030962e-16,
+      "max": 3.3306690738754696e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 6,
+      "rms": 2.653612165219174e-16,
+      "max": 5.551115123125783e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 7,
+      "rms": 1.634826242032095e-16,
+      "max": 4.440892098500626e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 8,
+      "rms": 1.608486696869003e-16,
+      "max": 4.440892098500626e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 9,
+      "rms": 1.5347166240533322e-16,
+      "max": 3.3306690738754696e-16,
+      "var_captured": 1.0
+     },
+     {
+      "N": 10,
+      "rms": 1.8452348340442055e-16,
+      "max": 4.440892098500626e-16,
+      "var_captured": 1.0
+     }
+    ],
+    "err_digitisation": 0.0,
+    "sd_between_beats": null,
+    "n_beats": null,
+    "se_of_mean": null,
+    "N_within_error_of_mean": null,
+    "N_within_beat_sd": null,
+    "N_99pct_variance": 2,
+    "N_999pct_variance": 2,
+    "N_shape_rms_le_2pct_p2p": 2,
+    "N_shape_max_le_5pct_p2p": 2,
+    "N_recommended": 2,
+    "coef_recommended": {
+     "a0": 0.9309999999999999,
+     "a": [
+      -0.0005340325251926535,
+      0.03214221187740702
+     ],
+     "b": [
+      0.03757305962071807,
+      -0.060080098332375244
+     ],
+     "amp": [
+      0.037576854578317206,
+      0.06813765478793649
+     ],
+     "phase_of_max_cycles": [
+      0.25226194497803966,
+      0.4140920918748723
+     ]
+    },
+    "coef_N4": {
+     "a0": 0.9309999999999999,
+     "a": [
+      -0.0005340325251926223,
+      0.03214221187740697,
+      5.2171669032695624e-18,
+      3.4451323274612765e-17
+     ],
+     "b": [
+      0.03757305962071806,
+      -0.06008009833237528,
+      -7.363216301433335e-18,
+      6.674805699199051e-18
+     ],
+     "amp": [
+      0.03757685457831719,
+      0.06813765478793649,
+      9.024177790705639e-18,
+      3.5091974958584694e-17
+     ],
+     "phase_of_max_cycles": [
+      0.25226194497803955,
+      0.4140920918748723,
+      0.2827030294688454,
+      0.0076145661005869395
+     ]
+    },
+    "coef_shape_2pct": {
+     "a0": 0.9309999999999999,
+     "a": [
+      -0.0005340325251926535,
+      0.03214221187740702
+     ],
+     "b": [
+      0.03757305962071807,
+      -0.060080098332375244
+     ],
+     "amp": [
+      0.037576854578317206,
+      0.06813765478793649
+     ],
+     "phase_of_max_cycles": [
+      0.25226194497803966,
+      0.4140920918748723
+     ]
+    }
+   },
+   "fourier_by_authors": {
+    "C0": 0.931,
+    "C1_sin": 0.0359,
+    "B1_cos": 0.0111,
+    "C2_sin": -0.0675,
+    "B2_cos": -0.0093
+   }
+  }
+ }
+}
