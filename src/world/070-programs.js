@@ -135,7 +135,8 @@
     if (!PORDER || PORDER.length !== PROGS.length) PORDER = progOrder();
     /* (speed E2) with KHR_parallel_shader_compile every program is issued in one frame, the heaviest first (the probe
        and the land: the critical path), and each one's completion asked once a frame, without waiting; its status
-       read as it completes. Without the extension, and on WebKit (it has it, but links there are synchronous: E10), one at a time */
+       read as it completes. Without the extension (not WebKit) all at once too, their statuses read one a frame (EXT.issueAll);
+       on WebKit (it has it, but links there are synchronous: E10), one at a time */
     if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); issued = true; }
@@ -151,6 +152,13 @@
         if (progDone(P) === LOSTP) return LOSTP;
       }
       return all && (progsDone() || lateCore());
+    }
+    if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
+      var iss = false;
+      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
+      if (iss) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
+      return progsDone();
     }
     P = PROGX.cur;
     if (P) {   // the one in flight: its completion, once a frame
