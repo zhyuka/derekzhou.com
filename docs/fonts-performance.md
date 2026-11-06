@@ -23,9 +23,13 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 first visit pays for it).
 
 The world's scripts are not on the path to the first paint (deferred, the
-start file async), but the start file, the world's and the kits' are
-fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
-at high priority; the wing model and the ink birds after them, at low. As
+start file async), but the start file is Early-Hinted (Link preloads on
+/ in \_headers, after the stylesheet, the two fonts and the hour: Cloudflare
+sends HTTP/2 in request order) and the world's and the kits' are fetched
+from the page at high priority; the wing model and the ink birds after
+them, at low. (2026-11-06: the world's four scripts are no longer
+early-hinted. The build stores them Brotli 11, ready to send whole, and
+hinted they went out ahead of the fonts on a slow link.) As
 served: start.js 1035 KB (its programs' GLSL, as text), world.js
 381 KB, the kits 51 KB, inkbirds.js 193 KB, its wing model 138 KB (model.js 26 KB of it: its
 notes stay in tools/birds/model/model_full.json, 2026-11-06), the
