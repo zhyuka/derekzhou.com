@@ -33,7 +33,7 @@
   var PSTAY = [25, 90];        // s on a perch, by its own wish
   var PFIRST = 6;              // s: the first noticing
   var PJ = { slow: 40, setout: 1.0, first: 3, gap: [12, 22], jerk: 900, jab: 300, rest: 0.6 };
-  var PERCHED = [], PW = { k: 0, nextT: PFIRST, appr: null, ptrNext: PJ.first, ptrStill: 0, px: -1, py: -1, pvx: 0, pvy: 0, pax: 0, pay: 0, ptrT: -1, ptr: null, ledges: null, ledgeKey: '', clk: [], jabT: -1e9 };
+  var PERCHED = [], PW = { k: 0, nextT: PFIRST, appr: null, ptrNext: PJ.first, ptrStill: 0, px: -1, py: -1, pvx: 0, pvy: 0, pax: 0, pay: 0, ptrT: -1, ptr: null, ledges: null, ledgeKey: '', clk: [], jabT: -1e9, seekEnd: 0 };
   var PTR = { x: 0, y: 0, n: 0, gone: true, down: false, steer: false, touch: false };
 
   /* ---------------- the ledges (the words' ink, on this window) ---------------- */
@@ -117,9 +117,17 @@
       if (Math.abs(Lg.slope) > 0.7) continue;   // (too steep to stand on)
       if (!PTR.gone && Math.abs(PTR.x - Lg.x) < 1.5 * w && Math.abs(PTR.y - Lg.y) < 2 * w) continue;   // (not under the pointer)
       if (perchTaken(Lg.x, Lg.y, 1.6 * w * 0.35 + 6)) continue;
-      return { kind: Lg.kind, lk: Lg.kind, li: i, x: Lg.x, fy: Lg.y, k: Lg.k, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false };
+      return perchRec(Lg.kind, i, Lg.x, Lg.y, Lg.k);
     }
     return null;
+  }
+  /* a perch: a ledge's place (kind, its index, x and its foot's y, CSS px) or the tip's, and every field a landing and
+     a perched life set (one shape for every perch, so their steps stay optimised) */
+  function perchRec(kind, li, x, fy, k) {
+    return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false,
+      t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
+      tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, nextAct: 0, act: null, walk: null,
+      swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined };
   }
   function perchCount() { var n = 0; for (var i = 0; i < PERCHED.length; i++) if (PERCHED[i].P && PERCHED[i].P.kind !== 'pointer') n++; return n; }
   var VPN = [0, 0, 0];
@@ -171,7 +179,7 @@
       if (T < bd && T <= PREACH) { bd = T; best = b; }
     }
     if (best) PW.ptrNext = t + pick(POP.r, PJ.gap);
-    if (best) startApproach(best, { kind: 'pointer', lk: 'pointer', li: -1, x: PTR.x, fy: PTR.y, k: P_PTR_K, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false }, 0);
+    if (best) startApproach(best, perchRec('pointer', -1, PTR.x, PTR.y, P_PTR_K), 0);
   }
 
   /* ---------------- the approach ---------------- */
@@ -219,7 +227,7 @@
   /* the gate: on the window wide of the perch on the bird's side, a little over it, as little deeper than the perch as
      makes the last leg PGATE m: so it comes in from the side and beyond, matching the perch's motion as it closes
      (from straight ahead it could close only by flying slower than the camera, barely over its stall) */
-  var GQ = [0, 0, 0], GP = {}, GA = [0, 0, 0];
+  var GQ = [0, 0, 0], GP = { x: 0, y: 0, z: 0, n: 0 }, GA = [0, 0, 0];
   function gateFor(b, P, C) {
     /* tried every 30 deg round the foot on the window, a third of the window's least side out (kept a margin in): the
        one wanting least depth for a last leg of PGATE m (the most from the side: the quickest in), the bird's own side

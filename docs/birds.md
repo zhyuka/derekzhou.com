@@ -88,7 +88,8 @@ What it pins: a landing comes in by a gate in view (wide of the perch, beyond it
 by a closed-loop tau-dot law (the closing a constant tau-dot gives at the range left), takes out its drift across
 the line, and ends on a curve to rest in the perch's frame (its place and motion at both ends: no jump, no
 overshoot); a bird ahead lets the perch come to it (never flying against the camera's way); feet fixed on the
-perch (the pointer read before the birds step); turns only by bank; births and removals unseen.
+perch (the pointer read before the birds step); turns only by bank; births and removals unseen; no object made in a
+frame's step or draw, and no wing history growing without end.
 
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
 with the mouse"; and, 2026-11-06: "why is the bird flying away when i

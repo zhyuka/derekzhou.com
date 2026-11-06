@@ -168,3 +168,36 @@ test('a perched bird turns, hops round and preens at the research\'s rates', () 
   assert.ok(cf <= 0.1, 'comfort ' + (100 * cf).toFixed(1) + ' %');
   assert.equal(sweep, 0, 'a turn swept, not stepped');
 });
+/* the step and the draw make no objects in steady state (no array, object, closure or store a frame): the world flown
+   and drawn on the sim's GL stub for 100 s, then 30 s with V8's sampling heap profiler, the collected objects counted
+   too. What a birth, a goal, a landing or a perched bird's act makes is the event's, not a frame's, and is left out;
+   V8's boxed numbers (16 B or less each) are reported, not barred. And no bird's wing history grows without end */
+const EVENT = /^(newBird|newFlock|newGoal|nextGoal|drawRec|make|startApproach|touchDown|leave|toAir|clickBird|recruit|addFar|splitOff|soloFlock|endPlace|pickLedge|perchRec|gateFor|relead|grow|drawBeats|slotsOf|perchWhat|flockWhat|placeWing|makeRoom|jab|goRound|giveUp|leavingStep|notice|noticePointer|touchGeom|gmean|nameLedges|ledges|bootRing|seed|dropBird|dropFlock|homeStep|joinStep|perchedStep)$/;
+test('the step and the draw make no objects a frame; wing histories stay short', async () => {
+  const { Session } = await import('node:inspector/promises');
+  const s = new Session(); s.connect();
+  let objs = 0, objB = 0, nums = 0, steps = 0, worstWing = 0;
+  const where = new Map();
+  for (const [name, size] of [['life', '960x600'], ['natural', '390x844']]) {
+    const sc = SCENES[name](2, size); sc.opt.draw = {}; const sim = makeSim(sc.opt); sc.setup(sim);
+    sim.run(100);
+    await s.post('HeapProfiler.startSampling', { samplingInterval: 8, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
+    sim.run(30); steps += Math.round(30 / DT);
+    const { profile } = await s.post('HeapProfiler.stopSampling'), info = new Map();
+    (function walk(node, path, ev, mine) {
+      const f = node.callFrame, e = ev || EVENT.test(f.functionName), m = mine || /inkbirds|birdwing|labbird|facet|wingmodel|model\.js/.test(f.url || ''), p = path + ' > ' + f.functionName;
+      info.set(node.id, { e, m, p }); for (const c of node.children) walk(c, p, e, m);
+    })(profile.head, '', false, false);
+    for (const q of profile.samples) {
+      const n = info.get(q.nodeId); if (!n || !n.m || n.e) continue;
+      if (q.size <= 16) { nums++; continue; }
+      objs++; objB += q.size; const k = n.p.split(' > ').slice(-3).join(' > '); where.set(k, (where.get(k) || 0) + 1);
+    }
+    for (const b of sim.B.BIRDS) { const w = b.w.wing; worstWing = Math.max(worstWing, w.nk / 400, w.BO.length / 120, w.nbt / 300); }
+  }
+  s.disconnect();
+  const per = objs / steps, top = [...where].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${v} ${k}`).join('; ');
+  console.log(`# allocation: ${per.toFixed(2)} objects a step (${(objB / steps).toFixed(0)} B; bar 0.5), ${(nums / steps).toFixed(0)} boxed numbers a step; the longest wing history ${(100 * worstWing).toFixed(0)} % of its bar` + (top ? `\n#   most: ${top}` : ''));
+  assert.ok(per < 0.5, `${per.toFixed(2)} objects made a step: ${top}`);
+  assert.ok(worstWing <= 1, 'a wing history grew past its bar');
+});

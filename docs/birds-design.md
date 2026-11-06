@@ -250,7 +250,7 @@ table with each row's evidence (a film, a probe or a deleted line range).
 | calmAsk slows the camera's turning for the birds | R2, H8 | deleted |
 | the perch tables are baked (the name's raster, LINK_GLYPHS, a copy of the credit) | H9 | perches made at build time from the served index.html and the font, so a word or font change rebuilds them |
 | ledges need flat headroom: no perches on curves or slopes; feet float on round letters | H9 | perches carry the surface's slope and direction; the feet are set on the ink at the slope |
-| allocations per bird per frame, per perched frame, string keys and closures per step | R10, H10 | preallocated state; no allocation in the step or the draw (checked) |
+| allocations per bird per frame, per perched frame, string keys and closures per step | R10, H10 | preallocated state, one shape per record; no object, array or closure made in the step or the draw (test/birds.mjs measures it with V8's heap profiler; only V8's own boxed numbers remain) |
 | the fly-by path and the leaving wingbeat recomputed from zero each frame | H10 | gone with the guests; the integrator steps once |
 | cloud cover in 0.25 s steps held 0.3 s: a bird pops at a cloud's edge | H10 | cloud cover read continuously per drawn bird, so a bird passes into cloud smoothly |
 | clicked birds appear mid-window at full ink, the drift puts them away from the click, always a 16 m/s commuter | R9, H11 | a click births a bird at the click point in the world, on a goal from the same list as any bird |

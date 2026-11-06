@@ -72,7 +72,8 @@
     return true;
   }
 
-  var tmp3 = {}, DRAWQ = [], DF = 0, TONE_AT = 0;
+  var LIFT0 = new Float32Array(3), GAIN0 = new Float32Array([1, 1, 1]);
+  var tmp3 = { x: 0, y: 0, z: 0, n: 0 }, DRAWQ = [], DF = 0, TONE_AT = 0;
   function byDepth(x, y) { return x.dq - y.dq; }
   /* every bird of the world the window can show, posed afresh every frame: the nearest MAXP (a speck past them changes
      no pixel: far off, the air leaves nothing of it). No opacity but the world's own air (in the pass): no fade in
@@ -83,7 +84,7 @@
     var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
     lightFrame(L);
     var ft = t - back, fdt = clamp(ft - TONE_AT, 0, 0.25); TONE_AT = ft;   // the time since the last frame drawn, from the steps' clock: the tone eases the same at any frame rate
-    DRAWQ.length = 0; DF++;
+    var nq = 0; DF++;   // (DRAWQ filled in place: emptying it would make it a new store each frame)
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
       var px = b.p[0] - b.v[0] * back, py = b.p[1] - b.v[1] * back, pz = b.p[2] - b.v[2] * back;
@@ -92,10 +93,10 @@
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
       if (tmp3.z > 1 && !inView(tmp3.x, tmp3.y, rpx, rpx)) continue;
       if (b.st === 'fly' && (unseen(b) || hidden(b))) continue;
-      b.dq = tmp3.z; DRAWQ.push(b);
+      b.dq = tmp3.z; DRAWQ[nq++] = b;
     }
-    if (DRAWQ.length > MAXP) { DRAWQ.sort(byDepth); DRAWQ.length = MAXP; }
-    for (i = 0; i < DRAWQ.length; i++) {
+    if (nq > MAXP) { DRAWQ.length = nq; DRAWQ.sort(byDepth); nq = MAXP; }
+    for (i = 0; i < nq; i++) {
       b = DRAWQ[i];
       if (!b.s) b.s = drawRec(b);
       s = b.s;
@@ -130,7 +131,7 @@
     if (fc) { UINKF[0] = fc.ink[0]; UINKF[1] = fc.ink[1]; UINKF[2] = fc.ink[2]; }
     var u = P.u;
     gl.uniform2f(u.uOut, VW.outW, VW.outH); gl.uniform4fv(u.uGr, UGR);
-    gl.uniform3fv(u.uLift, E ? E.lift : [0, 0, 0]); gl.uniform3fv(u.uGain, E ? E.gain : [1, 1, 1]);
+    gl.uniform3fv(u.uLift, E ? E.lift : LIFT0); gl.uniform3fv(u.uGain, E ? E.gain : GAIN0);
     gl.uniform4fv(u.uSc, USC); gl.uniform2fv(u.uCl, UCL); gl.uniform3fv(u.uLand, ULAND);
     gl.uniform4fv(u.uBl, UBL); gl.uniform4fv(u.uGl, UGL); gl.uniform4fv(u.uMode, UMODE); gl.uniform3fv(u.uInkF, UINKF);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);

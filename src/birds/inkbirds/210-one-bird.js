@@ -36,7 +36,7 @@
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
-  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0 };
+  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: undefined, passT: undefined, comeT: 0 };   // (k and passT are set by a visit's clearing)
   var SEAC = new Map();
   /* the cloud sea at a point (cached on a 64 m grid: the maps never change) */
   function seaAt(x, z) {
@@ -77,7 +77,8 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, wtT: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1,
+      WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays optimised)
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
@@ -92,7 +93,7 @@
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
   function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, acc: 0 }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */
@@ -170,7 +171,7 @@
   /* a near pass flown: the next not before PASS_GAP */
   function passTaken(r) { POP.passT = t + pick(r, PASS_GAP); }
   function newGoal(F, kind, r, cls) {
-    var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0 };
+    var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false };
     var eye = LVC.y, gr = lvGround(x, z), top = Math.max(hideTop(x, z), gr);
     if (kind === 'commute') {
       g.psi = r() < 0.6 ? POP.line + (r() < 0.65 ? 0 : Math.PI) + (r() - 0.5) * 0.9 : TAU * r();
@@ -425,8 +426,8 @@
     lvCam(C); windNow();
     popStep(C);
     var i, j, F, b;
-    FQ.length = 0; for (i = 0; i < FLOCKS.length; i++) FQ.push(FLOCKS[i]);   // (a stable list: a bird taking off joins or leaves a flock mid-step)
-    for (i = 0; i < FQ.length; i++) {
+    var nq = FLOCKS.length; for (i = 0; i < nq; i++) FQ[i] = FLOCKS[i];   // (a stable list: a bird taking off joins or leaves a flock mid-step; filled in place, never emptied: no new store a step)
+    for (i = 0; i < nq; i++) {
       F = FQ[i]; if (!F.lead || FLOCKS.indexOf(F) < 0) continue;
       var L = F.lead, dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       F.far = F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R;
