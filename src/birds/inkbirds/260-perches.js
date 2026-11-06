@@ -24,7 +24,7 @@
   var PFLARE = 0.6;            // s of tau: the flare (the feet out from 0.15)
   var PNOTICE = [16, 34];      // s between the letters' turns to have a bird (one at a time) ...
   var PSEEK = 20;              // ... each turn looking this long (every PLOOK s) for a bird that can be there soon (PREACH s): the perch moves
-  var PLOOK = 0.5, PREACH = 12;   // with the camera, so only a bird near it or beside its way can come down in a believable time
+  var PLOOK = 0.5, PREACH = 20;   // with the camera, so only a bird near it or beside its way can come down in a believable time
   var PSTAY = [25, 90];        // s on a perch, by its own wish
   var PFIRST = 6;              // s: the first noticing
   var PJ = { slow: 40, setout: 1.0, first: 3, gap: [12, 22], jerk: 900, jab: 300, rest: 0.6 };
@@ -118,7 +118,8 @@
       for (j = 0; j < F.m.length; j++) {
         var b = F.m[j]; if (b.st !== 'fly') continue;
         var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
-        if (d < 40 || d > 240 || fwd < 0.2) continue;
+        if (d < 40 || d > 300 || fwd < 0.2) continue;
+        if (!canHold(b, VPN)) continue;
         var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be there: the perch moves as the camera does)
         if (T > PREACH) continue;
         var sc = (0.5 + POP.r()) / T;
@@ -146,7 +147,8 @@
     for (var i = 0; i < BIRDS.length; i++) {
       var b = BIRDS[i]; if (b.st !== 'fly' || !b.K.perch || (b.F && b.F.far)) continue;
       var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
-      if (d < 40 || d > 240 || fwd < 0.2) continue;
+      if (d < 40 || d > 300 || fwd < 0.2) continue;
+      if (!canHold(b, VPN)) continue;
       var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be on the tip: the tip moves with the camera)
       if (T < bd && T <= PREACH) { bd = T; best = b; }
     }
@@ -157,7 +159,7 @@
   /* ---------------- the approach ---------------- */
   function startApproach(b, P, delay) {
     splitOff(b);
-    b.st = 'appr'; b.P = P; P.t0 = t + (delay || 0); P.tries = 0; P.d0 = 0; P.tau0 = 0; P.go = 0;
+    b.st = 'appr'; b.P = P; b.vLo = airLo(b); b.vHi = airHi(b); P.t0 = t + (delay || 0); P.tries = 0; P.d0 = 0; P.tau0 = 0; P.go = 0;
     P.D = perchDepth(b, P.k); P.rest = null;
     PW.appr = b; PERCHED.push(b);
     STATS.approaches = (STATS.approaches || 0) + 1;
@@ -174,14 +176,26 @@
     P.at[0] = PQ[0]; P.at[1] = PQ[1]; P.at[2] = PQ[2]; P.ok = true; P.foot[0] = PF2[0]; P.foot[1] = PF2[1];
     return true;
   }
+  /* a landing's airspeeds: a gull's whole range, not its cruise's (slow flight down to 0.55 of its pace, a powered
+     burst or a shallow dive up to 1.75 of it), so it can hold a perch that rides the camera through the wind (into a
+     head wind it must fly the camera's speed and the wind's; with a tail wind, slower); airLo/airHi */
+  function airLo(b) { return 0.55 * b.K.v; }
+  function airHi(b) { return 1.75 * b.K.v; }
+  /* the airspeed it needs to keep pace with the perch (the perch's velocity less the wind's) */
+  function airNeed(Vp) { var x = Vp[0] - WINDV[0], y = Vp[1], z = Vp[2] - WINDV[2]; return Math.sqrt(x * x + y * y + z * z); }
+  function canHold(b, Vp) { var n = airNeed(Vp); return n <= 0.95 * airHi(b) && n >= 0.8 * airLo(b); }
   /* the most it can close on the perch along the line to it (m/s), its velocity over the ground the perch's less the
-     closing: its airspeed never over 0.9 of its fastest, and never under its slowest on the way (a bird ahead of the
-     perch is caught up by it: it flies on the perch's way, slower; one beside it comes in sideways, quicker); never
-     under 2, never so quick it arrives in under 3 s */
+     closing, its airspeed within the landing's range (a bird ahead of the perch is caught up by it: it flies on the
+     perch's way, slower; one beside it comes in sideways, quicker); never under 2, never so quick it arrives in under
+     3 s */
   function closeMax(b, Vp, ex, ey, ez, d) {
     var vx = Vp[0] - WINDV[0], vy = Vp[1], vz = Vp[2] - WINDV[2], pe = vx * ex + vy * ey + vz * ez, vv = vx * vx + vy * vy + vz * vz;
-    var vm = 0.9 * 1.45 * b.K.v, vn = 0.72 * b.K.v, qo = pe * pe - vv + vm * vm, qi = pe * pe - vv + vn * vn;
-    var vc = pe > 0 && qi > 0 ? pe - Math.sqrt(qi) : qo > 0 ? pe + Math.sqrt(qo) : 0;
+    var vm = 0.9 * airHi(b), vn = airLo(b), qo = pe * pe - vv + vm * vm, qi = pe * pe - vv + vn * vn;
+    /* its airspeed at a closing vc: sqrt(vv - 2 pe vc + vc^2), least at vc = pe. Under its slowest only between the roots
+       pe -+ sqrt(qi): the slower side kept where it is there (no turning about), else the quicker side */
+    var outer = qo > 0 ? pe + Math.sqrt(qo) : 0, vc;
+    if (qi <= 0) vc = outer;
+    else { var inner = pe - Math.sqrt(qi), upper = pe + Math.sqrt(qi); vc = inner >= 2 ? inner : outer >= upper ? outer : 0; }
     return clamp(Math.min(vc, d / 3), 2, 0.9 * b.K.v);
   }
   function bump(s) { var a = PDIP[0]; return s <= 0 ? 0 : s < a ? Math.sin(0.5 * Math.PI * s / a) : s < 1 ? Math.cos(0.5 * Math.PI * (s - a) / (1 - a)) : 0; }
@@ -191,8 +205,7 @@
     if (t < P.t0) { wingNow(b); var wv = b.F ? goalVel(b.F, b, dt) : [b.v[0], b.v[1], b.v[2]]; flyTo(b, dt, wv[0], wv[1], wv[2]); return; }
     if (!perchWorld(b, C, dt)) { giveUp(b); return; }
     var rx = b.p[0] - P.at[0], ry = b.p[1] - P.at[1], rz = b.p[2] - P.at[2], d = Math.sqrt(rx * rx + ry * ry + rz * rz);
-    var vp = Math.sqrt(P.v[0] * P.v[0] + P.v[1] * P.v[1] + P.v[2] * P.v[2]);
-    if (vp > 1.3 * b.K.v + Math.sqrt(WINDV[0] * WINDV[0] + WINDV[2] * WINDV[2])) { goRound(b, 'fast'); return; }   // (the perch outruns it)
+    if (!canHold(b, P.v)) { goRound(b, 'fast'); return; }   // (the perch, through the wind, outruns it or is too slow for it)
     if (!P.d0) { P.d0 = Math.max(d, 8); P.tau0 = P.d0 / closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), P.d0); P.ts = t; }
     var tau = P.tau0 - PTAU * (t - P.ts), dLaw = P.d0 * Math.pow(Math.max(tau, 0) / P.tau0, 1 / PTAU);
     /* fallen behind the law (it could not close as fast): planned again from here, three times at most, then round */
@@ -342,7 +355,7 @@
     var P = b.P;
     if (PW.appr === b) PW.appr = null;
     var i = PERCHED.indexOf(b); if (i >= 0) PERCHED.splice(i, 1);
-    b.P = null; b.st = 'fly';
+    b.P = null; b.st = 'fly'; b.vLo = b.vHi = 0;
     var ax = b.v[0] - WINDV[0], az = b.v[2] - WINDV[2], hz = Math.sqrt(ax * ax + az * az);
     b.psi = Math.atan2(ax, az); b.V = Math.max(0.75 * b.K.v, Math.sqrt(ax * ax + b.v[1] * b.v[1] + az * az)); b.gam = clamp(Math.atan2(b.v[1], Math.max(hz, 0.5)), -b.K.dive * DEG, b.K.climb * DEG); b.phi = 0;
     b.burst = leapt ? { t0: t, n: 3 + Math.floor(b.r() * 3) } : null;

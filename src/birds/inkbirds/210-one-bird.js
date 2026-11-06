@@ -25,6 +25,8 @@
   var G = 9.81;
   var LIVE_R = 2600;           // m: the visitor's sky (the flocks within it counted) ...
   var LIVE_N = { glow: 7, blue: 7, first: 6, moon: 5, day: 8 };   // ... this many flocks in it, by the sky
+  var HOME_R = 1.25 * LIVE_R;   // m: past this a bird turns home (homeStep)
+  var LIVE_NEAR = { r: 600, n: 3 };   // ... and at least this many within r m of it: the near sky (birds that can come down to the words)
   var NEAR_R = 3000;           // m: a flock nearer than this flies every bird of it each step; farther, its leader a coarse step and the rest held in their places
   var COARSE = 0.5;            // s: the far flocks' step
   var SEA_DEEP = 18;           // m: a bird this far under the sea's top (and its span) is wholly hidden
@@ -104,7 +106,7 @@
     var K = b.K, wx = WINDV[0], wz = WINDV[2];
     var ax = dx - wx, az = dz - wz, ay = dy, hz = Math.sqrt(ax * ax + az * az);
     var psiD = hz > 0.3 ? Math.atan2(ax, az) : b.psi, gamD = clamp(Math.atan2(ay, Math.max(hz, 0.5)), -K.dive * DEG, K.climb * DEG);
-    var VD = clamp(Math.sqrt(ax * ax + ay * ay + az * az), 0.72 * K.v, 1.45 * K.v) * (vk || 1);
+    var lo = b.vLo || 0.72 * K.v, hi = b.vHi || 1.45 * K.v, VD = clamp(Math.sqrt(ax * ax + ay * ay + az * az) * (vk || 1), lo, hi);   // (a landing's own range: vLo, vHi)
     /* gliding (the measured schedule's glide), the bird cannot climb: it holds its height at most, a little under */
     if (b.flap === 0 && gamD > -0.02) gamD = Math.min(gamD, -0.02 + 0.04 * Math.max(0, gamD));
     var e = angDiff(psiD, b.psi), wCmd = clamp(1.1 * e, -K.w * DEG, K.w * DEG), phiT = clamp(Math.atan(b.V * wCmd / G), -K.bank * DEG, K.bank * DEG);
@@ -303,9 +305,9 @@
 
   /* ---------------- the population ---------------- */
   function popCls() { return skyCls(); }
-  function liveCount() {
-    var n = 0;
-    for (var i = 0; i < FLOCKS.length; i++) { var L = FLOCKS[i].lead; if (!L) continue; var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z; if (dx * dx + dz * dz < LIVE_R * LIVE_R) n++; }
+  function liveCount(R) {
+    var n = 0, r2 = (R || LIVE_R) * (R || LIVE_R);
+    for (var i = 0; i < FLOCKS.length; i++) { var L = FLOCKS[i].lead; if (!L) continue; var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z; if (dx * dx + dz * dz < r2) n++; }
     return n;
   }
   /* the visit's first sky (before its first frame: nothing is seen yet): the visitor's sky filled, a flock or two near */
@@ -333,7 +335,7 @@
       var top = lvGround(x, z), what = flockWhat(r, cls), y = top - SEA_DEEP - 4 * B_SPAN * 1.5 - 15;
       if (!(top > -1e8) || LVC.y - top < 25) continue;
       var F = newFlock(x, y, z, TAU * r(), cls, what);
-      F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.y = Math.max(top + 30, LVC.y + mix(r(), -20, 60)); g.T = pick(r, [30, 80]);
+      F.goal = null; var g = newGoal(F, r() < 0.5 ? 'loiter' : 'commute', F.r, cls); g.y = Math.max(top + 30, LVC.y + mix(r(), -20, 60)); g.T = pick(r, [30, 80]);   // (half of them about here a while)
       STATS.adds = (STATS.adds || 0) + 1;
       return F;
     }
@@ -367,9 +369,21 @@
     }
     if (t >= POP.nextT) {
       POP.nextT = t + 1.5;
-      if (liveCount() < (LIVE_N[cls] || 6)) addHidden(C);
+      if (liveCount() < (LIVE_N[cls] || 6) || liveCount(LIVE_NEAR.r) < LIVE_NEAR.n) addHidden(C);
     }
-    if (STATS.steps % 30 === 0) joinStep();
+    if (STATS.steps % 30 === 0) { joinStep(); homeStep(); }
+  }
+  /* the world's birds live round the eye: one gone past the live circle goes down into the sea of cloud if one lies
+     under it (hidden there, then taken out), else turns back toward the eye's country. (Out past a few km a bird is
+     a speck, but it stays seeable for tens of km in clear air: left on its way, the world would fill with them.) */
+  function homeStep() {
+    for (var i = 0; i < FLOCKS.length; i++) {
+      var F = FLOCKS[i], L = F.lead; if (!L || L.st !== 'fly' || !F.goal || F.goal.k === 'sink' || F.goal.home) continue;
+      var dx = LVC.x - L.p[0], dz = LVC.z - L.p[2]; if (dx * dx + dz * dz < HOME_R * HOME_R) continue;
+      var g = newGoal(F, 'sink', F.r, POP.cls);
+      if (g.k !== 'sink') { g.psi = Math.atan2(dx, dz) + (F.r() - 0.5) * 1.2; g.T = pick(F.r, [80, 160]); g.home = true; }
+      STATS.homes = (STATS.homes || 0) + 1;
+    }
   }
 
   /* ---------------- each step ---------------- */
