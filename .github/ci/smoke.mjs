@@ -1,6 +1,8 @@
 // smoke.mjs: the live site after a deploy. Waits (up to --timeout seconds) for the origin to serve this commit, then
 // checks it as a visitor's browser would find it. Node built-ins only (fetch).
-//   node .github/ci/smoke.mjs --url https://derekzhou.com --site site --sha SHA [--timeout 600] [--out smoke.json]
+//   node .github/ci/smoke.mjs --url https://derekzhou.com --site site --sha SHA[,SHA...] [--timeout 600] [--out smoke.json]
+// --sha: the commits whose build the live site may serve (post-deploy.yml: main's commits since the newest that touched
+// a deploy input, every one of them the same build).
 // Served = /build.txt names the commit (once the build writes one), or else every non-HTML file of site/ is served
 // byte for byte and the home page references every file the commit's index.html does (Cloudflare rewrites HTML, so
 // HTML is not compared byte for byte). Then: every file the pages reference answers 200 (immutable, but the HTML);
@@ -13,7 +15,7 @@ import crypto from 'node:crypto';
 import { parseHeaders, headersFor } from './serve.mjs';
 
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
-const URL0 = (A.url || 'https://derekzhou.com').replace(/\/$/, ''), SITE = A.site || 'site', SHA = A.sha || '', TIMEOUT = +(A.timeout || 600);
+const URL0 = (A.url || 'https://derekzhou.com').replace(/\/$/, ''), SITE = A.site || 'site', SHA = A.sha || '', TIMEOUT = +(A.timeout || 600), SHAS = SHA.split(',').filter(Boolean);
 const PRIVATE = (A.private || '/studio/,/studio').split(',');
 const NOT_SERVED = ['/CLAUDE.md', '/%43LAUDE.md', '/.gitignore', '/.github/workflows/validate.yml', '/subset-fonts.sh', '/download-fonts.sh', '/package.json', '/src/world.v8.js', '/tools/minify.mjs'];
 const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex');
@@ -23,7 +25,7 @@ const files = fs.readdirSync(SITE, { recursive: true }).map(String).filter((f) =
 
 async function served() {
   const bt = await get('/build.txt').catch(() => null);
-  if (bt && bt.status === 200 && /^[0-9a-f]{40}\s*$/.test(bt.body.toString())) return bt.body.toString().trim() === SHA ? 'build.txt' : null;
+  if (bt && bt.status === 200 && /^[0-9a-f]{40}\s*$/.test(bt.body.toString())) return SHAS.includes(bt.body.toString().trim()) ? 'build.txt ' + bt.body.toString().trim().slice(0, 10) : null;
   for (const f of files) {
     if (f.endsWith('.html')) continue;
     const r = await get('/' + f.split(path.sep).join('/')), mine = fs.readFileSync(path.join(SITE, f));

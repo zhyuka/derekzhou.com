@@ -262,7 +262,7 @@ void main() {
   //   half-resolution grid).
   // The same samples and the same texture reads as before; a few more instructions a step.
   float t = tn, pxA = 2.0 * uProj.y / uRes.y;   // (pxA: a half-resolution pixel's angle; its footprint is t x pxA)
-  vec3 acc = vec3(0.0); float T = 1.0, taken = 0.0, nLeap = 0.0, nBand = 0.0, nIn = 0.0;
+  vec3 acc = vec3(0.0); float T = 1.0, taken = 0.0;
   vec3 sunL = vec3(uVY.x * uSun.x - uVY.y * uSun.z, uSun.y, uVY.y * uSun.x + uVY.x * uSun.z), nrm = vec3(0.0, 1.0, 0.0);
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
@@ -282,7 +282,7 @@ void main() {
       vec3 fqL = (uVH - abs(p)) / uVH; float fzL = smoothstep(0.0, 0.07, min(min(fqL.x, fqL.y), fqL.z));
       if (uVS.w > 0.0) fzL *= smoothstep(uVS.w * 0.2, uVS.w, t);
       sP = s; tP = t; gP = v.g; bP = v.b; dP = 0.0; fP = fzL;
-      t += sl > band ? max(sl * 0.9, dE) : max((s - amp) * 0.6, dE); nLeap += 1.0; continue;
+      t += sl > band ? max(sl * 0.9, dE) : max((s - amp) * 0.6, dE); continue;
     }
     if (!hit) {
       hit = true;
@@ -294,7 +294,6 @@ void main() {
     float dn = textureLod(uN3, (p + uVC) / uVR.z + vec3(uT * 0.004, 0.0, uT * 0.003), clamp(log2(max(max(2.0 * t * pxA, 0.5 * dE) * 32.0 / uVR.z, 1e-4)), 0.0, 5.0)).g;
     s -= (dn - 0.5) * amp * 2.0;
     float dt = max(s > 0.0 ? max(dE, s * 0.5) : (s > -band ? dE : max(dIn, dE)), mS);
-    if (s > -band) nBand += 1.0; else nIn += 1.0;
     // (no face of the box can draw an edge: the density thins over its outer few per cent)
     vec3 fq = (uVH - abs(p)) / uVH; float fz = smoothstep(0.0, 0.07, min(min(fq.x, fq.y), fq.z));
     if (uVS.w > 0.0) fz *= smoothstep(uVS.w * 0.2, uVS.w, t);
@@ -321,10 +320,6 @@ void main() {
     sP = s; tP = t; gP = v.g; bP = v.b; dP = clamp(-s / bE, 0.0, 1.0) * fz; fP = fz;
     t = min(t + dt, tf);   // (a step past the ray's end stops at it, so the last segment is never dropped)
   }
-#ifdef DEV
-  if (0 == 6) { oC = vec4(taken * 0.001, 0.001, 0.0, 0.0); return; }
-  if (0 == 7) { oC = vec4(nLeap * 0.001, nBand * 0.001, nIn * 0.001, 0.0); return; }
-#endif
   if (T > 0.996) discard;
   float al = 1.0 - T;
   vec3 col = atmos(acc / al, rd, tn + (tf - tn) * 0.25);
