@@ -41,7 +41,7 @@
 
 # Immutable assets: changed bytes require a renamed file (style.v17.css,
 # world.v11.js, realm-kit.v3.js, realm-dunes.v5.js, realm-above.v4.js,
-# inkbirds.v8.js, hour.v4.js, birdwing.v2.js, facetform.v2.js,
+# inkbirds.v9.js, hour.v4.js, birdwing.v2.js, facetform.v2.js,
 # facetpose.v2.js, labbird.v2.js, model.v2.js, plan.v2.js, start.v5.js (and start-table.v5.js),
 # wingmodel.v2.js, .sub3 fonts) or returning visitors keep stale copies.
 /style.v16.css

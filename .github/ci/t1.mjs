@@ -4,7 +4,7 @@
 // the page and the DOM serialised and hashed. A null test (base against base) runs in every shard: if the harness
 // cannot reproduce a build against itself, the shard fails rather than report a difference it cannot trust. The
 // still cases (no WebGL2, the 404 page) compare the DOM and a screenshot.
-//   node .github/ci/t1.mjs --base BASE/site --head HEAD/site --shard 0 --shards 4 --out DIR
+//   node .github/ci/t1.mjs --base BASE_BUILD --head HEAD_BUILD --shard 0 --shards 4 --out DIR
 // Writes DIR/result.json (frames_identical) and, on a mismatch only, base/head PNGs and a diff image. Exit 1 when the
 // harness cannot be trusted (null test, a build that never shows) or the head breaks a rule (a CSP violation, a page
 // error the base does not have); a frame that differs is a result (frames_identical=false), not a failure.

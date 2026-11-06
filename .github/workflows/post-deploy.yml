@@ -27,9 +27,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Build what Cloudflare deploys (the content-named files, their _headers, build.txt)
+        run: |
+          # The live site is tools/build.mjs's output (each script and stylesheet named by its content, every reference
+          # rewritten, build.txt the commit), not site/ itself: the smoke compares against that build.
+          if [ -f tools/build.mjs ]; then npm ci --no-audit --no-fund --ignore-scripts && node tools/build.mjs "$RUNNER_TEMP/dist"; else cp -r site "$RUNNER_TEMP/dist"; fi
       - name: Wait for the live site to serve this commit, then smoke it
         id: smoke
-        run: node .github/ci/smoke.mjs --url https://derekzhou.com --site site --sha "$GITHUB_SHA" --timeout 600 --out "$RUNNER_TEMP/smoke.json"
+        run: node .github/ci/smoke.mjs --url https://derekzhou.com --site "$RUNNER_TEMP/dist" --sha "$GITHUB_SHA" --timeout 600 --out "$RUNNER_TEMP/smoke.json"
       - name: Open an issue
         if: failure()
         env:

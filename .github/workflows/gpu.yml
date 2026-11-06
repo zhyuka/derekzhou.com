@@ -10,7 +10,9 @@
 # the world's, the realms' or the birds' served JS changed; a PR labelled `perf` (T3 only); nightly; by hand. Outputs
 # for the merge bot: frames_identical, glsl_changed, bits_identical, csp_ok.
 # The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
-# that brings tools/gpu for the first time runs its own.
+# that brings tools/gpu for the first time runs its own. What they render is base's and head's builds (site/ holds only
+# sources): the gate's `served` artifact when the gate calls this, else the `served` job's here (GitHub's Ubuntu
+# runner, .github/ci/served.sh). The PC never runs a PR's build.
 name: gpu
 on:
   pull_request:
@@ -37,8 +39,23 @@ concurrency:
 env:
   PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0): drives the machine's own Chrome (channel 'chrome')
 jobs:
+  served:
+    if: inputs.base == ''   # (called by the gate, with a base: the gate's plan job made the `served` artifact already)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Base and head, built
+        run: bash .github/ci/served.sh '${{ github.event.pull_request.base.sha || github.sha }}' "$RUNNER_TEMP/served"
+      - uses: actions/upload-artifact@v4
+        with: { name: served, path: '${{ runner.temp }}/served', include-hidden-files: true, retention-days: 7 }
   t2:
-    if: github.event.action != 'labeled'   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
+    needs: served
+    if: always() && !cancelled() && needs.served.result != 'failure' && github.event.action != 'labeled'   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
     runs-on: [self-hosted, windows, gpu-4090]
     timeout-minutes: 20
     outputs:
@@ -59,19 +76,23 @@ jobs:
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
+      - name: the two builds
+        uses: actions/download-artifact@v4
+        with: { name: served, path: served }
       - name: T2
         id: t2
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $tools = if (Test-Path base/tools/gpu/t2.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           $profiles = Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_gpu-profiles'   # kept between runs: Chrome's GPU program cache
-          node "$tools/t2.js" --base base/site --head head/site --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles
+          node "$tools/t2.js" --base served/base --head served/head --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles
       - name: report
         if: always()
         uses: actions/upload-artifact@v4
         with: { name: t2, path: '${{ runner.temp }}/t2/*.*', retention-days: 14, if-no-files-found: ignore }
   t3:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'perf'))
+    needs: served
+    if: always() && !cancelled() && needs.served.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'perf')))
     runs-on: [self-hosted, windows, gpu-exclusive]
     timeout-minutes: 40
     steps:
@@ -85,11 +106,14 @@ jobs:
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
+      - name: the two builds
+        uses: actions/download-artifact@v4
+        with: { name: served, path: served }
       - name: T3
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $tools = if (Test-Path base/tools/gpu/t3.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
-          node "$tools/t3.js" --base base/site --head head/site --out "$env:RUNNER_TEMP/t3" --runs 5 --cases d11,n23
+          node "$tools/t3.js" --base served/base --head served/head --out "$env:RUNNER_TEMP/t3" --runs 5 --cases d11,n23
       - if: always()
         uses: actions/upload-artifact@v4
         with: { name: t3, path: '${{ runner.temp }}/t3/*.*', retention-days: 30, if-no-files-found: ignore }

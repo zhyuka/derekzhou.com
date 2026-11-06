@@ -5,3 +5,7 @@ Thumbs.db
 .claude/
 # (the build) build/src/: src/ assembled (tools/parts.mjs assemble src build/src), never committed
 build/
+
+# (the deploy build) node tools/build.mjs dist; and npm ci's node_modules/: never committed
+dist/
+node_modules/

@@ -1,7 +1,8 @@
 // verdict.mjs: the gate's one answer, for merge.yml and the run's summary. Reads the jobs' results (NEEDS, the
 // workflow's toJSON(needs)) and the T1 shards' result.json files, writes verdict.json:
 //   gate_ok           every gate job green (a skipped T1 or T2 counts as green: it was not needed)
-//   frames_identical  nothing a visitor sees changed: site/ byte for byte the base's (identical by construction),
+//   frames_identical  nothing a visitor sees changed (and no input handling did: the gates render with no pointer): the
+//                     head's build byte for byte the base's (identical by construction; areas.mjs compares the builds),
 //                     or every T1 shard's frames, DOM and stills the base's (and T2's, when it ran)
 // Exit 1 when gate_ok is false, so the run itself is red.
 //   NEEDS='{...}' node .github/ci/verdict.mjs T1_RESULTS_DIR verdict.json
@@ -34,7 +35,9 @@ if (needs.t2) {
 }
 v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!c.base;
 const expectShards = +(process.env.T1_SHARDS || 4);
-if (!v.site_changed) { v.frames_identical = true; v.reason = 'site/ is byte for byte the base\'s'; }
+v.input_changed = c.input_changed === 'true';
+if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
+else if (!v.site_changed) { v.frames_identical = true; v.reason = 'the build (what is served) is byte for byte the base\'s'; }
 else if (!v.t1.ran || v.t1.shards !== expectShards) { v.frames_identical = false; v.reason = `T1 did not report (${v.t1.shards} of ${expectShards} shards)`; }
 else if (!v.t1.frames_identical) { v.frames_identical = false; v.reason = 'T1: frames, DOM or a still changed'; }
 else if (v.t2.ran && !(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || v.t2.bits_identical))) { v.frames_identical = false; v.reason = 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
@@ -42,7 +45,7 @@ else { v.frames_identical = true; v.reason = 'T1' + (v.t2.ran ? ' and T2' : '') 
 
 fs.writeFileSync(outFile || 'verdict.json', JSON.stringify(v, null, 1));
 const md = [`## Gate: ${v.gate_ok ? 'green' : '**red**'}, frames ${v.frames_identical ? 'identical' : '**changed**'}`, '',
-  `- ${v.reason}`, `- areas: ${v.areas || '(none)'}; glsl_changed: ${v.glsl_changed}; site/ changed: ${v.site_changed}`,
+  `- ${v.reason}`, `- areas: ${v.areas || '(none)'}; glsl_changed: ${v.glsl_changed}; served changed: ${v.site_changed}`,
   `- jobs: ${Object.entries(v.jobs).map(([k, r]) => `${k} ${r}`).join(', ')}`,
   `- T2: ${v.t2.ran ? JSON.stringify(v.t2) : 'not run'}`];
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');

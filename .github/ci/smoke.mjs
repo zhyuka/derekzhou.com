@@ -40,7 +40,7 @@ while (!(how = await served().catch(() => null))) {
   if ((Date.now() - t0) / 1000 > TIMEOUT) break;
   console.log(`not served yet (${((Date.now() - t0) / 1000).toFixed(0)} s)`); await new Promise((r) => setTimeout(r, 15000));
 }
-const fail = [], ok = [];
+const fail = [], ok = [], warn = [];
 const check = (cond, msg) => (cond ? ok : fail).push(msg);
 check(!!how, how ? `this commit is served (${how}, after ${((Date.now() - t0) / 1000).toFixed(0)} s)` : `this commit was not served within ${TIMEOUT} s`);
 
@@ -52,7 +52,12 @@ const csp = home.headers.get('content-security-policy') || '';
 check(csp && csp === want('/', 'Content-Security-Policy').join(', '), `/'s CSP is _headers' own${csp ? '' : ' (none served)'}`);
 check(/max-age=\d+/.test(home.headers.get('strict-transport-security') || ''), `/ has HSTS`);
 const notFound = await get('/no-such-page-' + Date.now());
-check(notFound.status === 404 && notFound.body.toString().includes('404'), `an unknown path is the 404 page with status ${notFound.status}`);
+// Cloudflare's own bot protection may answer a datacenter's request itself (cf-mitigated): then the site was not asked,
+// and the check is a warning, not a failure. Any other answer is the site's, and is held to the 404 page.
+const why = (x) => [x.headers.get('cf-mitigated') && 'cf-mitigated: ' + x.headers.get('cf-mitigated'), x.headers.get('server') && 'server: ' + x.headers.get('server'), x.headers.get('cf-ray') && 'cf-ray: ' + x.headers.get('cf-ray'), JSON.stringify(x.body.toString().slice(0, 100))].filter(Boolean).join(', ');
+if (notFound.status === 404 && notFound.body.toString().includes('404')) ok.push('an unknown path is the 404 page with status 404');
+else if (notFound.headers.get('cf-mitigated')) warn.push(`an unknown path was answered by Cloudflare's bot protection, not the site (${notFound.status}; ${why(notFound)})`);
+else fail.push(`an unknown path is the 404 page with status ${notFound.status} (${why(notFound)})`);
 const refs = new Set([...refsOf(home.body.toString()), ...refsOf((await get('/404.html')).body.toString())]);
 for (const r of refs) {
   const x = await get(r);
@@ -64,8 +69,8 @@ for (const p of PRIVATE) {
   const x = await get(p), loc = x.headers.get('location') || '';
   check((x.status === 302 && /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com\//.test(loc)) || [401, 403].includes(x.status), `${p} behind Access (${x.status}${loc ? ' -> ' + loc.split('?')[0] : ''})`);
 }
-const report = { url: URL0, sha: SHA, served: how, ok, fail };
+const report = { url: URL0, sha: SHA, served: how, ok, warn, fail };
 if (A.out) fs.writeFileSync(A.out, JSON.stringify(report, null, 1));
-for (const m of ok) console.log('ok   ' + m); for (const m of fail) console.log('FAIL ' + m);
-if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Live smoke: ${fail.length ? '**failed**' : 'passed'}\n\n` + fail.map((m) => `- **${m}**\n`).join('') + ok.map((m) => `- ${m}\n`).join(''));
+for (const m of ok) console.log('ok   ' + m); for (const m of warn) console.log('WARN ' + m); for (const m of fail) console.log('FAIL ' + m);
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Live smoke: ${fail.length ? '**failed**' : 'passed'}\n\n` + fail.map((m) => `- **${m}**\n`).join('') + warn.map((m) => `- warning: ${m}\n`).join('') + ok.map((m) => `- ${m}\n`).join(''));
 process.exit(fail.length ? 1 : 0);

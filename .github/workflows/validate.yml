@@ -21,10 +21,25 @@ jobs:
           node tools/parts.mjs assemble src build/src
           node tools/parts.mjs assemble --ship src build/ship
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The site, built (what every check of a served file reads)
+        run: |
+          # site/ holds only sources: the pages, _headers, the hand-written scripts, the fonts. The files the build
+          # writes (the five minified scripts from build/ship/, the start file and its table from build/src/) are
+          # never committed. build/site/ is the plain build (tools/build.mjs --plain: the vN names), byte for byte
+          # what Cloudflare Pages serves before it names each script by its content. terser as package.json pins it.
+          npm ci --no-audit --no-fund --ignore-scripts
+          node tools/build.mjs --plain build/site > /dev/null
+
       - name: Check required files exist
         run: |
-          # The site is the folder site/ (the Pages project's build output directory): every file it serves is
-          # there, and nothing of the repository's own (CLAUDE.md, .github/, the font scripts) is.
+          # The site is built from the folder site/ (tools/build.mjs; Cloudflare Pages serves the build): every file
+          # it serves is in the build (build/site/), and nothing of the repository's own (CLAUDE.md, .github/, the
+          # font scripts) is in site/.
           cd site
           files=(
             index.html
@@ -58,8 +73,8 @@ jobs:
           )
           missing=0
           for f in "${files[@]}"; do
-            if [ ! -f "$f" ]; then
-              echo "MISSING: $f"
+            if [ ! -f "../build/site/$f" ]; then
+              echo "MISSING: $f (not in the build)"
               missing=1
             else
               echo "OK: $f"
@@ -123,7 +138,7 @@ jobs:
 
       - name: Asset references must resolve (immutable-rename integrity)
         run: |
-          cd site
+          cd build/site
           # Changed bytes require renamed files; this catches a rename that
           # missed a reference. Every local href/src in the HTML and every
           # path in _headers Link/cache rules must exist in the site.
@@ -171,7 +186,7 @@ jobs:
 
       - name: No inline code on CSP'd pages
         run: |
-          cd site
+          cd build/site
           # The site-wide CSP has no unsafe-inline; inline styles, style
           # blocks, and inline event handlers silently do nothing. Fail
           # fast instead. (JSON-LD script blocks are exempt from
@@ -189,7 +204,7 @@ jobs:
 
       - name: The lettered name keeps its words
         run: |
-          cd site
+          cd build/site
           # The h1 is drawn (one SVG path in the words' colour) but must still
           # read "Derek Zhou" to every reader: its words in a visually hidden
           # span, the drawing hidden from assistive tech and inert (no text,
@@ -228,7 +243,7 @@ jobs:
 
       - name: The page says what it says
         run: |
-          cd site
+          cd build/site
           # The words on the page and in its search and share text, exactly:
           # the line under the name (in its own span), the credit,
           # the two links and the noscript address; the JSON-LD's role.
@@ -259,7 +274,7 @@ jobs:
 
       - name: The world's page loads in order
         run: |
-          cd site
+          cd build/site
           # hour.vN.js in the head (before the first paint), site.js, then the
           # deferred scripts in order: the world, the realms' kit and realms,
           # fetchpriority="high" (the boot starts once the realms register),
@@ -307,11 +322,11 @@ jobs:
 
       - name: Absences are enforced
         run: |
-          cd site
-          # (the world's five scripts as written, ../build/src/ (src/ assembled): site/ serves them minified, and "The minified scripts are
+          cd build/site
+          # (the world's five scripts as written, ../src/ (src/ assembled): site/ serves them minified, and "The minified scripts are
           # exactly what the script makes" proves site/'s are tools/minify.mjs's build of these; the rules read text)
-          WORLD=$(ls ../build/src/world.v*.js | head -1); INK=$(ls ../build/src/inkbirds.v*.js | head -1)
-          REALMS=$(ls ../build/src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
+          WORLD=$(ls ../src/world.v*.js | head -1); INK=$(ls ../src/inkbirds.v*.js | head -1)
+          REALMS=$(ls ../src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
           START=$(ls start.v*.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
           START="$START $(ls start-table.v*.js 2>/dev/null | head -1)"   # (its table, start-table.vN.js, loaded after the first paint)
           WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
@@ -445,7 +460,7 @@ jobs:
           # pages or the headers (a bird class in either quotes, in any class list), no .bird rule or [class=bird]
           # selector, nothing naming their hand-over (window.skyAir, the world's SKYAIR, handTo, HASSVG, DISSOLVE_S, the
           # record's boot wait and hand-over fields)
-          if compgen -G 'birds.v*.js' > /dev/null || compgen -G '../build/src/birds.v*.js' > /dev/null \
+          if compgen -G 'birds.v*.js' > /dev/null || compgen -G '../src/birds.v*.js' > /dev/null \
             || grep -nE "class=[\"'][^\"']*\\bbird\\b|<polyline|(^|[^a-z-])birds\\.v[0-9]+\\.js" index.html 404.html _headers \
             || grep -nE "\\.bird([^a-zA-Z0-9_-]|\$)|\\[class[~*^|\$]?=[\"']?bird\\b" $CSS \
             || grep -nE '\b(skyAir|SKYAIR|handTo|HASSVG|DISSOLVE_S|bootWaitWhy|handoverToldMs|handover)\b' $JS; then
@@ -455,27 +470,14 @@ jobs:
           [ "$fail" -eq 0 ] && echo "All absences hold"
           exit $fail
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: The minified scripts are exactly what the script makes
+      - name: The build, the same bytes every time; site/ holds no built file
         run: |
-          # site/ serves the world's five scripts (the world, the realms' kit and realms, the ink birds)
-          # minified; src/ holds them as written, in parts, and build/src/ whole (the rules read those). tools/minify.mjs, with terser as
-          # package.json pins it (5.51.2; the lockfile's hashes), makes the one from the other: the record and the
-          # dev harness left out of the world by file (build/ship/), then compressed and mangled, every shader's text the
-          # same. A served script edited by hand, or a source changed without its build, fails here.
-          npm ci --no-audit --no-fund --ignore-scripts
-          node tools/minify.mjs --check build/ship site --start-src build/src
-
-      - name: The build makes site/, the same bytes every time
-        run: |
-          # tools/build.mjs is the site's build in one command (site/ copied, the built scripts written over it,
-          # build.txt with the commit). Built twice at once into two folders: both must be the same bytes, and
-          # their sha256 manifest must equal site/'s files. Steps that move code around (the restructure) prove
-          # here, in seconds, that no shipped byte changed. (step 5) Then the deploy build, made from each: every
+          # tools/build.mjs is the site's build in one command (site/ copied, the built scripts written over it:
+          # tools/minify.mjs, terser as package.json pins it (the lockfile's hashes), the record and the dev harness
+          # left out of the world by file, every shader's text the same). Built twice at once into two folders: both
+          # must be the same bytes, and site/ must hold none of the files the build writes (they are never
+          # committed: their sources are in src/). Whether a change alters a served byte is the gate's plan job
+          # (the base's build against the head's). (step 5) Then the deploy build, made from each: every
           # script and stylesheet named by its content (world.<sha8>.js), every reference rewritten; the same from
           # both, every name its bytes' hash, no old name left, every reference resolving, each file immutable.
           node tools/build.mjs --check
@@ -492,7 +494,7 @@ jobs:
           # takes no words input (its uniforms a fixed list), the old lift's parts
           # are named nowhere, nothing is drawn onto the canvas after it but what
           # is named.
-          python3 .github/workflows/world_rules.py site build/src
+          python3 .github/workflows/world_rules.py build/site build/src
           # the realm lint: reported (the realms predate the namespaced API)
           node .github/workflows/lint_realms.js report build/src/realm-kit.v*.js $(ls build/src/realm-*.v*.js | grep -v realm-kit)
 
@@ -507,25 +509,25 @@ jobs:
           # #version may differ (DEFS, per device); and the reference device's programs must be exactly
           # glsl_manifest.txt, so a change to any program's text comes with its manifest lines in the same commit and
           # the diff names the programs a deploy makes every returning visitor compile again. After a deliberate
-          # change: node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
+          # change: node .github/workflows/glsl_guard.js build/site --write .github/workflows/glsl_manifest.txt
           # --selftest: the guard's own proof (a planted per-visit literal, a per-window literal and one program
           # changed without its manifest line must each be caught). Exit 3: the fake browser could not bring the world
           # to its show (extend the fake for what the page needs; never relax the rules).
-          node .github/workflows/glsl_guard.js site --manifest .github/workflows/glsl_manifest.txt --selftest
+          node .github/workflows/glsl_guard.js build/site --manifest .github/workflows/glsl_manifest.txt --selftest
 
       - name: The shaders are their golden texts, and compile
         run: |
           # (restructure step 3) the shaders' text lives in .glsl files (src/**/glsl/) that tools/parts.mjs writes
           # back into the scripts. test/shaders.mjs runs the page in glsl_guard's fake browser, takes every program the
           # reference device issues, and fails unless each is exactly its golden text in test/golden/shaders/ (a
-          # readable diff of every program a change touches; after a deliberate change: node test/shaders.mjs site
+          # readable diff of every program a change touches; after a deliberate change: node tools/build.mjs --plain build/site && node test/shaders.mjs build/site
           # --write, committed with the manifest); then compiles and links each in headless Chrome (WebGL2, SwiftShader,
           # playwright-core pinned as W7's). Exit 2 (no WebGL2 context on the runner) warns.
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
           fi
-          rc=0; node test/shaders.mjs site --compile || rc=$?
+          rc=0; node test/shaders.mjs build/site --compile || rc=$?
           if [ $rc -eq 2 ]; then echo "::warning::the shaders' compile check could not run (no WebGL2 context on the runner?)"; exit 0; fi
           exit $rc
 
@@ -560,7 +562,7 @@ jobs:
 
       - name: Still skies keep the words legible
         run: |
-          cd site
+          cd build/site
           # The stylesheet's still skies (no WebGL2, no script, the moment
           # before the world is drawn, a device too slow for it) must hold
           # their words' colours against the whole gradient, wherever a window

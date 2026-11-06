@@ -1,8 +1,11 @@
 // areas.mjs: which gates a change needs, from the files it touches (areas.json; a file no pattern matches means ALL,
-// so a new kind of file is tested everywhere until it is mapped). Also whether site/ is byte for byte the base's:
-// then what a visitor is served is identical by construction and the frames need no rendering.
-//   node .github/ci/areas.mjs BASE_SHA HEAD_SHA     -> areas=..., site_changed=..., run_t1=..., gpu_js=... (+ $GITHUB_OUTPUT)
+// so a new kind of file is tested everywhere until it is mapped). Also whether what a visitor is served changed: the
+// two builds (served.sh: DIR/base, DIR/head, each commit's tools/build.mjs --plain) compared file by file. Byte for
+// byte the base's, it is identical by construction and the frames need no rendering. (site/ holds only sources, so a
+// change to src/, tools/ or the pinned terser changes what is served with site/ untouched: only the builds can say.)
+//   node .github/ci/areas.mjs BASE_SHA HEAD_SHA --served DIR   -> areas=..., site_changed=... (what is served changed), run_t1=..., gpu_js=... (+ $GITHUB_OUTPUT)
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,19 +27,51 @@ export function areasOf(files) {
   return { areas: [...out].sort(), unknown };
 }
 
+// Input handling: T1 and T2 render with no pointer, touch or key, so a change to how the page answers one would read as
+// "frames identical" and merge unseen. Such a change is found here and the verdict leaves it to the owner. Read in the
+// readable sources only (src/, and the scripts site/ serves as written), never the minified builds, whose one long line
+// names every event. A file named for input (the drag, the perched birds and their clicks, ...) counts whole; elsewhere
+// an added or removed line that names an input event, the click queue or the drag's handlers.
+export const INPUT_LINE = /\b(pointer(down|move|up|cancel|over|out|enter|leave|type)|touch(start|move|end|cancel)|mouse\w*|click\w*|dblclick|contextmenu|key(down|up|press)|deviceorientation|devicemotion|drag(start|end|over)|PointerEvent|TouchEvent|CLICKQ|onDown|endDrag|setPointerCapture)\b|['"]wheel['"]/i;
+export const INPUT_FILE = /(input|guest|pointer|touch|click)[^/]*$/i;
+const READABLE = (f) => f.startsWith('src/') || /^site\/(site\.js|hour\.[^/]*\.js|index\.html|404\.html)$/.test(f);
+
+export function inputChanges(base, head, git) {
+  const hits = new Set();
+  const files = git('diff', '--name-only', base, head).split('\n').filter(Boolean).filter(READABLE);
+  for (const f of files) if (INPUT_FILE.test(f)) hits.add(f);
+  if (files.length) {
+    let cur = null;
+    for (const line of git('diff', '-U0', base, head, '--', ...files).split('\n')) {
+      if (line.startsWith('+++ ')) { cur = line.replace(/^\+\+\+ (b\/)?/, ''); continue; }
+      if (/^[+-](?![+-]{2} )/.test(line) && INPUT_LINE.test(line) && cur && cur !== '/dev/null') hits.add(cur);
+    }
+  }
+  return [...hits].sort();
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const [base, head] = process.argv.slice(2);
+  const [base, head, flag, served] = process.argv.slice(2);
+  if (flag !== '--served' || !served) { console.error('usage: areas.mjs BASE_SHA HEAD_SHA --served DIR'); process.exit(2); }
   const git = (...a) => execFileSync('git', a, { encoding: 'utf8' });
   const files = git('diff', '--name-only', base, head).split('\n').filter(Boolean);
   const { areas, unknown } = areasOf(files);
-  let siteChanged = true; try { git('diff', '--quiet', base, head, '--', 'site'); siteChanged = false; } catch {}
-  // T1 renders only when what is served changed (site/), or when the harness itself did (so it is tested on its own PR);
+  // the served files that differ (in one build only, or other bytes), by path relative to the build
+  const tree = (d) => { const m = new Map(); for (const f of fs.readdirSync(d, { recursive: true }).map(String)) { const p = path.join(d, f); if (fs.statSync(p).isFile()) m.set(f.split(path.sep).join('/'), crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')); } return m; };
+  const B = tree(path.join(served, 'base')), H = tree(path.join(served, 'head'));
+  if (!B.size || !H.size) { console.error('areas: a build is empty (' + B.size + ' base, ' + H.size + ' head files)'); process.exit(2); }
+  const changedServed = [...new Set([...B.keys(), ...H.keys()])].filter((f) => B.get(f) !== H.get(f)).sort();
+  const siteChanged = changedServed.length > 0;
+  // T1 renders only when what is served changed (the builds), or when the harness itself did (so it is tested on its own PR);
   // T2 when the world's, the realms' or the birds' served JS changed (the census adds a changed shader).
   const harness = files.some((f) => f.startsWith('.github/ci/') || f.startsWith('.github/actions/') || f === '.github/workflows/gate.yml');
-  const gpuJs = files.some((f) => f.startsWith('site/') && areasOf([f]).areas.includes('gpu'));
+  const gpuJs = changedServed.some((f) => areasOf(['site/' + f]).areas.includes('gpu'));   // (a served file, mapped as site/'s)
   const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || f.startsWith('tools/gpu/'));   // (T2's own files: T2 runs on itself)
-  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, t2_self: t2Self, files: files.length };
+  const input = inputChanges(base, head, git);
+  if (input.length) console.log(`input handling changed in: ${input.join(' ')}`);
+  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, t2_self: t2Self, input_changed: input.length > 0, input_files: input.join(' ').slice(0, 900), files: files.length };
   console.log(`${files.length} files changed${unknown.length ? '; unmapped (ALL): ' + unknown.join(' ') : ''}`);
+  console.log(`served: ${changedServed.length ? changedServed.length + ' files differ: ' + changedServed.join(' ') : 'byte for byte the base\'s (' + H.size + ' files)'}`);
   for (const [k, v] of Object.entries(o)) console.log(`${k}=${v}`);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(o).map(([k, v]) => `${k}=${v}\n`).join(''));
 }
