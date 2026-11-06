@@ -271,7 +271,7 @@
     // the scatter
     var SCM = V.G.scatter;
     if (SCM && SCM.length && DP.sc) {
-      P = DP.sc; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) { gl.uniform1i(P.u.uScat, 1); if (P.u.uFade) gl.uniform1f(P.u.uFade, 0); }   // (world-perf lane: one program with the landmarks; uFade as the scatter's own program had it, never set: 0)
+      P = DP.sc; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) gl.uniform1i(P.u.uScat, 1); if (P.u.uFade) gl.uniform1f(P.u.uFade, 1);   // (the scatter's stones whole: uFade was never set for them, so FS_LANDMARK drew every stone in the air's colour 30 km off: mix(atmos(c, rd, 3e4), o, 0))
       for (var k = 0; k < SCM.length; k++) {
         var M = SCM[k]; if (!M.n) continue;
         var gq = TIER < 1 ? Math.max(8, Math.round(M.grid * Math.sqrt(TIER) / 2) * 2) : M.grid;   // (a lower tier: the same cells, nearer only)
