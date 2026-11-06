@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { serve } from '../../.github/ci/serve.mjs';
 import * as H from '../../.github/ci/harness.mjs';
 
-const SITE = process.argv[2] || 'build/site', JOBS = +(process.argv[process.argv.indexOf('--jobs') + 1] || 3);
+const SITE = process.argv[2] || 'build/site', JOBS = process.argv.includes('--jobs') ? +process.argv[process.argv.indexOf('--jobs') + 1] || 3 : 3;
 const T = JSON.parse(fs.readFileSync(new URL('./table.json', import.meta.url)));
 const OUT = 'site/landing', TMP = 'build/landing';
 fs.mkdirSync(TMP, { recursive: true }); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });   // (the frames drawn are kept in build/landing/: a run picks up where one stopped; --fresh starts over)
@@ -26,7 +26,8 @@ async function one({ g, seed, s }) {
   execFileSync('python3', ['-I', '-c', 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2], "AVIF", quality=int(sys.argv[3]))', p, tmp, String(s.q || 55)]);
   const b = fs.readFileSync(tmp), name = `${g}-${seed}-${s.name}.${crypto.createHash('sha256').update(b).digest('hex').slice(0, 8)}.avif`;
   fs.writeFileSync(path.join(OUT, name), b);
-  man.pictures[`${g}/${seed}/${s.name}`] = { file: '/landing/' + name, b64: b.toString('base64') };
+  const b64 = b.toString('base64');
+  man.pictures[`${g}/${seed}/${s.name}`] = Object.assign({ file: '/landing/' + name }, s.mobile && b64.length <= T.inline_max_b64 ? { b64 } : {});   // (the bytes only where the function may inline them)
   console.log(`${g} ${seed} ${s.name}: ${name} ${b.length} B`);
 }
 async function draw({ g, seed, s }, p) {
