@@ -58,7 +58,7 @@
      from it (no search, landing or calibration again) and kwFollow finds every texel made. The plan is the same
      doubles either way. Anything else (no Worker, an error, an answer for another seed or world, PW_WAIT ms gone, a
      sync build): the page makes the plan itself, as before, and a late answer is dropped */
-  var PW_V = '3f69af923cf9';
+  var PW_V = 'cd84f7ee1d19';
   /* (world-perf lane) IN TWO ANSWERS. The worker answers first with what the first frame reads (planFirst: mapsInit,
      the first tick whole, kwFirst's texels about the landing for the widest view any window has), the page adopting
      it as kwFirst would have left its own grid (KW.part, KWR: the guards derive any texel read before the rest); then

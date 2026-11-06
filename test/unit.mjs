@@ -180,6 +180,19 @@ test('maps: the same seed, the same plan and flight (golden)', () => {
   golden('maps.seed11', a); golden('maps.seed3', c);
 });
 
+// ------------------------------------------------------------------ the plan's stamp reads code, not comments
+test('plan: the stamp is blind to comments and spacing', async () => {
+  const { spans, stamp } = await import(new URL('../tools/plan.mjs', import.meta.url));
+  const acorn = (await import('acorn'));
+  const sp = spans(WORLD), cut = sp.map((s) => {   // each span with every comment and blank run cut (its lines kept)
+    const cs = []; acorn.parse('(function () {\n' + s + '\n})', { ecmaVersion: 'latest', onComment: (b, t, a, e) => cs.push([a - 15, e - 15]) });
+    let out = '', at = 0; for (const [a, e] of cs) { out += s.slice(at, a); at = e; } return (out + s.slice(at)).replace(/[ \t]+\n/g, '\n');
+  });
+  assert.ok(cut.join('').length < sp.join('').length, 'the spans hold comments to cut');
+  assert.equal(stamp(cut), stamp(sp), 'PW_V is the same with every comment out of the spans');
+  assert.notEqual(stamp(sp.map((s, i) => (i === 3 ? s.replace('KSTEP = 64', 'KSTEP = 65') : s))), stamp(sp), 'and moves with the code');
+});
+
 // ------------------------------------------------------------------ the plan's worker against the page's own plan
 test('plan: the worker\'s plan, adopted, is the page\'s', async () => {
   const name = (WORLD.match(/new Worker\((['"])\/(plan[^'"]*\.js)\1\)/) || [])[2];
