@@ -5,7 +5,8 @@
 Cloudflare Pages (the project's Settings > Build, its build configuration):
 build command `npm ci --no-audit --no-fund --ignore-scripts && node
 tools/build.mjs dist`, build output directory `dist`, NODE_VERSION 22.
-Auto-deploys on push to main. Build watch paths (Settings > Build) limit that to
+Auto-deploys on push to `live`, the branch the merge bot fast-forwards to the newest main
+commit whose own gate is green (merge-bot.mjs, the deploy gate). Build watch paths (Settings > Build) limit that to
 pushes that touch a deploy input, .github/ci/deploy-inputs.txt (include site/*, src/*,
 tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/plan.mjs, tools/start.mjs,
 package.json, package-lock.json, .gitattributes; exclude nothing); post-deploy.yml waits

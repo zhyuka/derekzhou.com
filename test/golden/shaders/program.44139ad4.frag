@@ -202,7 +202,7 @@ float P0=mix(hgN(cs,g),hgN(cs,-0.25),0.22),P1=hgN(cs,g*0.6),P2=hgN(cs,g*0.36);
 float vox=max(uVH.x,max(uVH.y,uVH.z))/26.0,band=uVS.y,amp=uVR.w;
 float dIn=max(vox*0.75,band*1.2),dEdge=max(band*0.6,1.0);
 float t=tn,pxA=2.0*uProj.y/uRes.y;
-vec3 acc=vec3(0.0);float T=1.0,taken=0.0,nLeap=0.0,nBand=0.0,nIn=0.0;
+vec3 acc=vec3(0.0);float T=1.0,taken=0.0;
 vec3 sunL=vec3(uVY.x*uSun.x-uVY.y*uSun.z,uSun.y,uVY.y*uSun.x+uVY.x*uSun.z),nrm=vec3(0.0,1.0,0.0);
 float wrapL=1.0,facing=1.0;bool hit=false;
 float sP=0.0,tP=-1.0,gP=0.0,bP=0.0,dP=0.0,fP=1.0;bool last=false;
@@ -221,7 +221,7 @@ if(sl>band||s>band+amp){
 vec3 fqL=(uVH-abs(p))/uVH;float fzL=smoothstep(0.0,0.07,min(min(fqL.x,fqL.y),fqL.z));
 if(uVS.w>0.0)fzL*=smoothstep(uVS.w*0.2,uVS.w,t);
 sP=s;tP=t;gP=v.g;bP=v.b;dP=0.0;fP=fzL;
-t+=sl>band?max(sl*0.9,dE):max((s-amp)*0.6,dE);nLeap+=1.0;continue;
+t+=sl>band?max(sl*0.9,dE):max((s-amp)*0.6,dE);continue;
 }
 if(!hit){
 hit=true;
@@ -233,7 +233,6 @@ wrapL=clamp((dot(nrm,sunL)+0.35)/1.35,0.0,1.0);facing=0.5+0.5*nrm.y;
 float dn=textureLod(uN3,(p+uVC)/uVR.z+vec3(uT*0.004,0.0,uT*0.003),clamp(log2(max(max(2.0*t*pxA,0.5*dE)*32.0/uVR.z,1e-4)),0.0,5.0)).g;
 s-=(dn-0.5)*amp*2.0;
 float dt=max(s>0.0?max(dE,s*0.5):(s>-band?dE:max(dIn,dE)),mS);
-if(s>-band)nBand+=1.0;else nIn+=1.0;
 vec3 fq=(uVH-abs(p))/uVH;float fz=smoothstep(0.0,0.07,min(min(fq.x,fq.y),fq.z));
 if(uVS.w>0.0)fz*=smoothstep(uVS.w*0.2,uVS.w,t);
 float bE=max(band,2.0*t*pxA);
@@ -257,10 +256,6 @@ if(T<0.015){T=0.0;break;}
 sP=s;tP=t;gP=v.g;bP=v.b;dP=clamp(-s/bE,0.0,1.0)*fz;fP=fz;
 t=min(t+dt,tf);
 }
-#ifdef DEV
-if(0==6){oC=vec4(taken*0.001,0.001,0.0,0.0);return;}
-if(0==7){oC=vec4(nLeap*0.001,nBand*0.001,nIn*0.001,0.0);return;}
-#endif
 if(T>0.996)discard;
 float al=1.0-T;
 vec3 col=atmos(acc/al,rd,tn+(tf-tn)*0.25);

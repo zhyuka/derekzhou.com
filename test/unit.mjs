@@ -93,7 +93,7 @@ test('streams: ranges and spread', () => {
 
 // ------------------------------------------------------------------ the sky order
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
-const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the quick crossing');
+const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the cycle at t');
 function skyWorld(seed, hour, at) {   // skyInit, skyPush and skyNext as the page runs them, a fake page under them (the colours unread)
   return vm.runInThisContext('(function (SEED, HOURV, AT) {\n  \'use strict\';\n' +
     '  var DEVMODE = false, OPT = { skyScene: null, skyNext: null, skyDt: null }, HOUR = HOURV, J = { seed: SEED };\n' +
@@ -182,11 +182,11 @@ test('maps: the same seed, the same plan and flight (golden)', () => {
 test('plan: the worker\'s plan, adopted, is the page\'s', async () => {
   const name = (WORLD.match(/new Worker\((['"])\/(plan[^'"]*\.js)\1\)/) || [])[2];
   assert.ok(name, 'the world starts no plan worker');
-  // the worker as the build makes it (tools/plan.mjs, from the same dev build), or site/'s while it is still committed
+  // the worker as the build ships it (tools/plan.mjs buildPlan: minified; from the same dev build), or site/'s while it is still committed
   const planSrc = fs.existsSync(path.join(ROOT, 'tools', 'plan.mjs'))
-    ? (await import(new URL('../tools/plan.mjs', import.meta.url))).makePlan(WORLD, name).text
+    ? await (async (m) => (m.buildPlan ? (await m.buildPlan(WORLD, name)).text : m.makePlan(WORLD, name).text))(await import(new URL('../tools/plan.mjs', import.meta.url)))
     : fs.readFileSync(path.join(ROOT, 'site', name), 'utf8');
-  const v = (planSrc.match(/var PLANV = '([0-9a-f]+)'/) || [])[1];
+  const v = (planSrc.match(/var PLANV = '([0-9a-f]+)'/) || planSrc.match(/'([0-9a-f]{12})'/) || [])[1];   // (minified: PLANV renamed, its value the first 12-hex string)
   assert.equal((WORLD.match(/var PW_V = '([0-9a-f]*)';/) || [])[1], v, 'the world\'s PW_V is the worker\'s stamp');
   for (const seed of [11, 3]) {
     let listener = null, msg = null;

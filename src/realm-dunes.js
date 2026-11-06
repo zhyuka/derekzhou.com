@@ -16,8 +16,8 @@
   /* ------------------------------------------------------------------ DUNES: the dawn desert, endless */
   /* The land is one field over the plane: the dune sea (swells, the main dunes as an asymmetric wave across the wind,
      a smaller family across them), the areas laid out over it as regions (a jittered site per 1.5 km cell: open dunes,
-     a basin with a giant shard, a field of ruins, a temple on a plateau in terraces, a bay where the land falls to a sea
-     of cloud), and far ridges of rock (a site per 4.5 km cell, about half of them). The sites are hashed from the
+     a basin with a giant shard, a field of ruins, a temple on a plateau in terraces; the
+     bays are gone: the cloud sea is the maps'), and far ridges of rock (a site per 4.5 km cell, about half of them). The sites are hashed from the
      visit's salt the same way here and in the GLSL, so the land the shaders raise and the things the cells place agree. */
   var DS = 1500, RS = 4500, SEA_Y = -160;
   var CUT_D = [77, 123, 169, 205, 256];   // the areas' shares (of 256): open, shard, ruins, temple, bay
@@ -30,7 +30,7 @@
   }
   var DUNES_GLSL = `@glsl dunes-glsl`;
   /* (world6 step B fix, defect 7) the great formations at FORM_K of their height (mesas 35-80 m, buttes 45-90, rock
-     needles 18-35, a bay's 65-110): the flight's envelope climbs over every one of them on any line the visitor turns to
+     needles 18-35): the flight's envelope climbs over every one of them on any line the visitor turns to
      (w06 solidEnv, 0.18 m/m from as far off as its height asks), so the eye rises at most about 120 m beside the tallest
      (at 0.45 of their height the f6 flight's clearance had a median of 107 m: the low framing lost); at their old
      heights (to 440 m) it would have climbed for minutes, and a slip cannot pass a 400 m wide
@@ -46,13 +46,13 @@
     if (s.kind === 1) {   // the giant shard in its basin
       R = sRng(s, 11); var gh = R.r(34, 46), gw = R.r(7, 10);
       it = C.add({ kind: 'giantShard', x: s.x, z: s.z, foot: 9, dy: -1.5, yaw: R.r(0, 360), h: gh, w: gw, seed: K.hk(s.h, 12), solid: [gw + 0.42 * gh + 4, gh] });
-      C.poi({ kind: 'shard', x: s.x, z: s.z, ref: it, dy: gh * 0.5, interest: 0.8, pass: 42 + gw });
+      C.poi({ kind: 'shard', x: s.x, z: s.z, ref: it, dy: gh * 0.5, pass: 42 + gw });
       if (R.f() < 0.6) C.flock({ kind: 'bird', n: 10 + R.i(8), x: s.x, z: s.z, ref: it, dy: R.r(36, 62), orbit: R.r(26, 40), wheel: R.sign() * R.r(0.2, 0.32), size: R.r(1.3, 1.7), flap: 3.4, spread: R.r(6, 12), lit: D_BIRD_L, shade: D_BIRD_S });
     } else if (s.kind === 2) {   // the ruins' mesa behind them
       R = sRng(s, 31); a = s.r[2] * 2 * PI; var d = R.r(380, 700), rM = R.r(170, 260), HM = FORM_K * R.r(150, 230), mx = s.x + Math.sin(a) * d, mz = s.z + Math.cos(a) * d;
       it = C.add({ kind: 'mesa', form: true, x: mx, z: mz, foot: rM * 1.2, yaw: R.r(0, 360), rad: rM, H: HM, seed: K.hk(s.h, 32), solid: [rM * 1.3, HM * 1.42], foot2: [rM * 1.62, HM * 0.14] });
-      C.poi({ kind: 'mesa', x: mx, z: mz, ref: it, dy: HM * 0.5, interest: 0.4, pass: rM + 90 });
-      C.poi({ kind: 'ruins', x: s.x, z: s.z, dy: 6, interest: 0.75, pass: 36 });
+      C.poi({ kind: 'mesa', x: mx, z: mz, ref: it, dy: HM * 0.5, pass: rM + 90 });
+      C.poi({ kind: 'ruins', x: s.x, z: s.z, dy: 6, pass: 36 });
     } else if (s.kind === 3) {   // the temple on its plateau, the stair up its face, two stupas at the stair's head
       R = sRng(s, 51);
       var ab = [72 + 16 * s.r[0], 150 + 28 * s.r[1]], ang = s.r[2] * PI, ca = Math.cos(ang), sa = Math.sin(ang), rise = 46 + 14 * s.r[3], yawF = 90 - ang * 180 / PI;
@@ -62,20 +62,8 @@
       var hd = L2W(-ab[0] + 5, 0);
       C.add({ kind: 'stair', x: hd[0], z: hd[1], foot: 0, yaw: yawF, drop: rise + 18, seed: K.hk(s.h, 53) });
       for (k = 0; k < 2; k++) { var q = L2W(-ab[0] + 14, (k ? 1 : -1) * R.r(14, 17)), stH = R.r(15, 19); C.add({ kind: 'stupa', x: q[0], z: q[1], foot: 4, yaw: yawF, h: stH, seed: K.hk(s.h, 54 + k), solid: [stH * 0.45, stH] }); }
-      C.poi({ kind: 'temple', x: tp[0], z: tp[1], ref: it, dy: tsz * 0.4, interest: 1.0, pass: 75 });
+      C.poi({ kind: 'temple', x: tp[0], z: tp[1], ref: it, dy: tsz * 0.4, pass: 75 });
       if (R.f() < 0.8) C.flock({ kind: 'bird', n: 12 + R.i(8), x: tp[0], z: tp[1], ref: it, dy: tsz * 1.15, orbit: R.r(55, 80), wheel: R.sign() * R.r(0.12, 0.2), size: R.r(1.4, 1.8), flap: 3.0, spread: R.r(14, 24), lit: D_BIRD_L, shade: D_BIRD_S });
-    } else if (s.kind === 4) {   // the bay: buttes and mesas standing in its sea, its rim, a range of cloud lying on the sea
-      R = sRng(s, 61);
-      var ab2 = [650 + 350 * s.r[0], 550 + 300 * s.r[1]], ang2 = s.r[2] * PI, c2 = Math.cos(ang2), s2 = Math.sin(ang2);
-      var B2W = function (lx, ly) { return [s.x + c2 * lx - s2 * ly, s.z + s2 * lx + c2 * ly]; };
-      var nb = 2 + R.i(2);
-      for (k = 0; k < nb; k++) {
-        var p = B2W(R.r(-0.5, 0.5) * ab2[0], R.r(-0.5, 0.5) * ab2[1]), rad = R.r(55, 130), HB = FORM_K * R.r(260, 440), isM = R.f() < 0.5;
-        it = C.add({ kind: isM ? 'mesa' : 'butte', x: p[0], z: p[1], foot: rad * (isM ? 1.45 : 1.2), yaw: R.r(0, 360), rad: isM ? rad * 1.2 : rad, H: isM ? HB * 0.8 : HB, sink: 20, seed: K.hk(s.h, 62 + k), solid: [rad * (isM ? 1.55 : 1.3), HB * 1.12], foot2: [rad * (isM ? 1.95 : 1.65), HB * 0.15] });
-        C.poi({ kind: 'butte', x: p[0], z: p[1], ref: it, dy: HB * 0.5, interest: 0.55, pass: rad * 1.2 + 80 });
-      }
-      for (k = 0; k < 3; k++) { var ph = s.r[3] * 2 * PI + k * 2 * PI / 3, rq = B2W(Math.cos(ph) * ab2[0], Math.sin(ph) * ab2[1]); C.poi({ kind: 'bay', x: rq[0], z: rq[1], dy: 0, interest: 0.9, pass: 0 }); }
-      if (R.f() < 0.7) { var q2 = B2W(R.r(-0.3, 0.3) * ab2[0], R.r(-0.3, 0.3) * ab2[1]); C.cloud({ kind: 'range', x: q2[0], z: q2[1], y: SEA_Y - 30, dir: R.r(0, PI), len: R.r(500, 900), w: R.r(160, 260), h: R.r(70, 120), seed: K.hk(s.h, 70) }); }
     }
   }
   function dDetails(s, out) {
@@ -115,30 +103,14 @@
       if (bay) {
         var HB = FORM_K * (260 + 180 * a2), isM = a3 < 0.5;
         it = C.add({ kind: isM ? 'mesa' : 'butte', form: true, x: x, z: z, foot: rad * (isM ? 1.45 : 1.2), yaw: yaw, rad: isM ? rad * 1.2 : rad, H: isM ? HB * 0.8 : HB, sink: 20, seed: seed, solid: [rad * (isM ? 1.55 : 1.3), HB * 1.12], foot2: [rad * (isM ? 1.95 : 1.65), HB * 0.15] });
-        C.poi({ kind: 'butte', x: x, z: z, ref: it, dy: HB * 0.5, interest: 0.55, pass: rad * 1.2 + 80 });
+        C.poi({ kind: 'butte', x: x, z: z, ref: it, dy: HB * 0.5, pass: rad * 1.2 + 80 });
         continue;
       }
       var H = FORM_K * (kind < 0.45 ? 140 + 180 * a2 : kind < 0.8 ? 180 + 180 * a2 : 70 + 70 * a2);
       if (kind < 0.45) it = C.add({ kind: 'mesa', form: true, x: x, z: z, foot: rad * 1.2, yaw: yaw, rad: rad, H: H, seed: seed, solid: [rad * 1.3, H * 1.42], foot2: [rad * 1.62, H * 0.14] });
       else if (kind < 0.8) it = C.add({ kind: 'butte', form: true, x: x, z: z, foot: rad * 1.2, yaw: yaw, rad: rad, H: H, seed: seed, solid: [rad * 1.3, H], foot2: [rad * 1.65, H * 0.15] });
       else it = C.add({ kind: 'gshard', form: true, x: x, z: z, foot: 30, yaw: yaw, h: H, w: rad * 0.7, seed: seed, solid: [rad * 0.7 + 0.42 * H + 6, H] });
-      C.poi({ kind: 'form', x: x, z: z, ref: it, dy: H * 0.5, interest: 0.45, pass: rad * 1.2 + 80 });
-    }
-    if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: R.r(0, PI), len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
-  }
-  function dOpen(C, s, R) {
-    if (C.weights) return dForms(C, s, R);   // (world6: the formations by density over the maps' weights)
-    var n = R.f() < 0.35 ? 0 : (R.f() < 0.7 ? 1 : 2), tries = 0, k = 0;
-    while (k < n && tries++ < 14) {
-      var x = C.x0 + R.r(0.08, 0.92) * C.size, z = C.z0 + R.r(0.08, 0.92) * C.size, kind = R.f(), rad = kind < 0.45 ? R.r(150, 300) : kind < 0.8 ? R.r(80, 170) : R.r(30, 60);
-      var dx = x - s.x, dz = z - s.z, dd = Math.sqrt(dx * dx + dz * dz);
-      if (s.kind === 4 ? dd < 1150 + rad : (s.kind > 0 && dd < 480 + rad)) continue;
-      var H = FORM_K * (kind < 0.45 ? R.r(140, 320) : kind < 0.8 ? R.r(180, 360) : R.r(70, 140)), it;
-      if (kind < 0.45) it = C.add({ kind: 'mesa', x: x, z: z, foot: rad * 1.2, yaw: R.r(0, 360), rad: rad, H: H, seed: R.seed(), solid: [rad * 1.3, H * 1.42], foot2: [rad * 1.62, H * 0.14] });
-      else if (kind < 0.8) it = C.add({ kind: 'butte', x: x, z: z, foot: rad * 1.2, yaw: R.r(0, 360), rad: rad, H: H, seed: R.seed(), solid: [rad * 1.3, H], foot2: [rad * 1.65, H * 0.15] });
-      else it = C.add({ kind: 'gshard', x: x, z: z, foot: 30, yaw: R.r(0, 360), h: H, w: rad * 0.7, seed: R.seed(), solid: [rad * 0.7 + 0.42 * H + 6, H] });
-      C.poi({ kind: 'form', x: x, z: z, ref: it, dy: H * 0.5, interest: 0.45, pass: rad * 1.2 + 80 });
-      k++;
+      C.poi({ kind: 'form', x: x, z: z, ref: it, dy: H * 0.5, pass: rad * 1.2 + 80 });
     }
     if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: R.r(0, PI), len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
   }
@@ -151,12 +123,9 @@
     else if (f < 0.54) { var th = R.r(0, 180); for (k = 0; k < 2; k++) { var sl = R.r(20, 26), ly = 3 + R.i(2); C.add({ kind: 'ruin', x: x + Math.sin(th * PI / 180) * k * sl, z: z + Math.cos(th * PI / 180) * k * sl, foot: sl * 0.5, yaw: th, len: sl, layers: ly, seed: R.seed(), solid: [sl * 0.62, ly * 3 + 4] }); } }
   }
   W.realm({
-    id: 'dunes', words: 'dark', still: 'dunes', hours: ['dawn'], dur: [70, 110], speed: 12, clear: [7, 14, 140], frame: [0.56, 0.74], look: 90, climb: 42, pitchFollow: 0.12,
-    margin: 12, exitH: [80, 120], lookT: 20, lookTan: 0.15,   // (round E1 Fix 2: the tour's heightLine and turn gone with it, design-v5 Revision 3)
+    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12, lookT: 20, lookTan: 0.15,   // (what worldDef reads: world.js)
     glsl: DUNES_GLSL,
-    surfaces: [{ height: 'Hd', shade: 'shadeSand', g0: 0.35, levels: 10 }, { height: 'HdSea', shade: 'shadeSea', g0: 16, levels: 5 }],
-    landmarkShade: 'shadeStone',
-    layout: { scales: [{ size: DS, radius: 5200 }, { size: 375, radius: 1300 }], volRes: 44 },
+    layout: { scales: [{ size: DS, radius: 5200 }, { size: 375, radius: 1300 }] },
     field: function (R, V) {
       // the wind the dunes lie across (their crests across it, their steep lee faces downwind), drawn per visit
       var wa = R.r(0, 2 * PI), wind = [Math.sin(wa), Math.cos(wa)]; V.wind = wind; V.windAz = wa * 180 / PI;
@@ -168,8 +137,7 @@
       ] };
       /* (world6 step B, W3) the sand's shade (0.475 -> 0.56, its deep 0.37 -> 0.50) and the rock's (lit 0.57 -> 0.60, shade
          0.41 -> 0.50, deep 0.30 -> 0.42) lifted in the world's own light: at the one framing the links stand over the
-         near sand and the name beside the formations, and the step's shadows (OKLab L about 0.44 as drawn) asked the
-         words' gain for x2 over the whole window */
+         near sand and the name beside the formations (the step's shadows stood at OKLab L about 0.44 as drawn) */
     },
     light: function (R, V) {
       // the low sun from upwind of the dunes (their windward slopes lit, their lee faces blue), 5-14 deg up
@@ -190,7 +158,7 @@
       };
     },
     cell: function (C, R, K2) {
-      if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dOpen(C, s, R); return; }
+      if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); return; }
       // a small cell: the details of the areas about it that fall in it, and its own stones
       var bx = Math.floor((C.x0 + C.size / 2) / DS), bz = Math.floor((C.z0 + C.size / 2) / DS), out = [], i, j, k;
       for (j = -1; j <= 1; j++) for (i = -1; i <= 1; i++) { var s2 = dSite(bx + i, bz + j, C.salt); if (s2.kind === 1 || s2.kind === 2) { out.length = 0; dDetails(s2, out); for (k = 0; k < out.length; k++) if (C.inside(out[k].x, out[k].z)) C.add(out[k]); } }
@@ -230,12 +198,6 @@
         { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: [w[0] * 1.6, 0.1, w[1] * 1.6], color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
       ];
     },
-    ribbons: function (V) { var w = V.wind, sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: [w[0] * 5.5, 0, w[1] * 5.5], color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; },
-    // now and then a flock of dark birds crosses the way ahead
-    event: function (V, R, cam) {
-      var d = R.r(70, 170), lat = R.sign() * R.r(30, 90), fx = Math.sin(cam.psi), fz = Math.cos(cam.psi), px = fz, pz = -fx, cr = lat > 0 ? -1 : 1;
-      var x = cam.x + fx * d + px * lat, z = cam.z + fz * d + pz * lat;
-      return { next: R.r(14, 22), life: 32, flock: { kind: 'bird', n: 9 + R.i(9), x: x, y: cam.ground(x, z) + R.r(22, 46), z: z, drift: [px * cr * 3.4 + fx * 1.4, pz * cr * 3.4 + fz * 1.4], orbit: R.r(14, 24), wheel: R.sign() * R.r(0.25, 0.4), size: R.r(1.3, 1.7), flap: 3.4, spread: R.r(6, 10), lit: D_BIRD_L, shade: D_BIRD_S } };
-    }
+    ribbons: function (V) { var w = V.wind, sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: [w[0] * 5.5, 0, w[1] * 5.5], color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
   });
 })();

@@ -3,23 +3,23 @@
 # guard runs: "device <id> <programs> <vertex|fragment #defines>:<count> ...". CI fails when this is not what the site compiles.
 # A change to any program's text comes with its lines here, in the same commit. After a deliberate change, regenerate it:
 #   node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
-program program.016bc957 vs 69d5ae1aad4230c172e9c886 329 fs 7b5b81b657fdeb6d770af89e 19091
 program program.056f7ef3 vs 69d5ae1aad4230c172e9c886 329 fs 9516026430c519ebcb8a2b19 32245
 program program.070c9f4d vs 5f692057b82d543b0181f39c 31966 fs 76e0d238b59159eb245c795d 32522
 program program.072138f3 vs 69d5ae1aad4230c172e9c886 329 fs 550c688f1bacdb7cf824dc45 8648
 program program.127633e9 vs 69d5ae1aad4230c172e9c886 329 fs 974ba5624094d6d693e252e3 620
 program program.217c4101 vs 0dc8c49d684005b5fc74b582 1106 fs 5542248008794851ad51d60c 239
+program program.299fc66f vs 69d5ae1aad4230c172e9c886 329 fs 810911bb634290cc96b73799 18142
 program program.2b8df061 vs bc00a993ad125193f8850964 130 fs a484a2b23c43d405ffe05c9c 174
 program program.2d8c854a vs 69d5ae1aad4230c172e9c886 329 fs 3334fa571675a9085794b074 32822
 program program.2dfd75b2 vs 794cb7d2ea8752c8f5bd62a4 33181 fs 7895a532f61da09cc782e230 32451
 program program.303977bb vs 69d5ae1aad4230c172e9c886 329 fs e6341a4f82deaa3a8753453c 32272
 program program.3ee98e49 vs 69d5ae1aad4230c172e9c886 329 fs 114f9c8c21126124856e1662 1675
+program program.44139ad4 vs 4af6427b97e060e3253124d2 1192 fs 8759f19f6c47fc2c275d32c1 11748
 program program.44e35663 vs 69d5ae1aad4230c172e9c886 329 fs 7c44924ef3f81abe11f5754d 32827
 program program.578a6877 vs 69d5ae1aad4230c172e9c886 329 fs a7365bb49e070441f2eba677 32810
 program program.5ebb446a vs f5995c015601406f8ff845fc 33114 fs 58a9d724ddd3f3e30df9ed15 32459
 program program.6739c109 vs 69d5ae1aad4230c172e9c886 329 fs 7d4e0009a7974eeca76bfd61 1693
 program program.6bb34338 vs c7f01f9385e28da2c21ec0ef 1529 fs d052639157530bdb8e180005 9659
-program program.75c0b985 vs 4af6427b97e060e3253124d2 1192 fs 97e2aa926df11b2cb9d8b3da 11960
 program program.7d8ad5cb vs e65f00a870b741fdceac1480 329 fs 55b2d00e93a040a6d66f0830 15399
 program program.8f87ca99 vs 85eb1c416e5a0c31691a4c8b 10952 fs 38d5a0a23dcf50bed199447a 8962
 program program.a1a3d162 vs 69d5ae1aad4230c172e9c886 329 fs 6cf49454a06e61b0c42e95b3 1645
