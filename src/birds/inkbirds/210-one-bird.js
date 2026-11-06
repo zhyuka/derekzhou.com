@@ -88,8 +88,16 @@
     if (b.s) { b.s.busy = false; b.s = null; }
     if (b.P) perchFree(b);
     var i = BIRDS.indexOf(b); if (i >= 0) BIRDS.splice(i, 1);
-    if (b.F) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); if (!F.m.length) dropFlock(F); }
+    if (b.F) { var F = leaveFlock(b); if (!F.m.length) dropFlock(F); }
   }
+  /* a bird out of its flock (its leader gone: another leads); the flock it left */
+  function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
+  /* a flock record, empty */
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false }; }
+  /* a bird on its own: a flock of one */
+  function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
+  /* a place at the end of a flock's pattern (spans: back, aside, up) */
+  function endPlace(F) { var n = F.m.length; return [n * 1.9, (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 1.2, 0]; }
   function dropFlock(F) { while (F.m.length) dropBird(F.m[F.m.length - 1]); var i = FLOCKS.indexOf(F); if (i >= 0) FLOCKS.splice(i, 1); }
   /* a flock's leader gone (landed, left, taken out): the bird foremost in it leads, every place then measured from it */
   function relead(F) {
@@ -160,6 +168,8 @@
     day: [['commute', 40], ['wheel', 20], ['loiter', 22], ['sink', 10], ['out', 8]] };
   var PASS_GAP = [120, 300], PASS_D = [30, 70];   // s between the near passes (at most one, and rare); m beside the eye
   var PLQ = [];
+  /* a near pass flown: the next not before PASS_GAP */
+  function passTaken(r) { POP.passT = t + pick(r, PASS_GAP); }
   function newGoal(F, kind, r, cls) {
     var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0 };
     var eye = LVC.y, gr = lvGround(x, z), top = Math.max(hideTop(x, z), gr);
@@ -185,7 +195,7 @@
   function nextGoal(F) {
     var r = F.r, cls = skyCls(), k = weighted(r, GOALS[cls] || GOALS.day);
     if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || F.kind === 'crow')) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';
-    if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; POP.passT = t + pick(r, PASS_GAP); }
+    if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
     return newGoal(F, k, r, cls);
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, before the wind) */
@@ -270,7 +280,7 @@
   /* a flock made at (x, y, z) heading psi */
   function newFlock(x, y, z, psi, cls, what) {
     var r = sm32((visitSeed ^ Math.imul(9001 + (++POP.k), 0x9E3779B9)) >>> 0), w = what || flockWhat(r, cls), pat = w[0], kind = w[1], n = w[2];
-    var F = { id: POP.k, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false };
+    var F = flockRec(POP.k, kind, pat, r);
     var sl = slotsOf(r, pat, n, kind), i;
     for (i = 0; i < n; i++) { var b = newBird(kind, sm32((visitSeed ^ Math.imul(77003 + POP.k * 31 + i, 0x85EBCA6B)) >>> 0), x, y, z, psi, 0, F); b.slot = sl[i]; F.m.push(b); }
     F.lead = F.m[0];
@@ -289,11 +299,10 @@
         if (A.m.length + B.m.length > 11) continue;
         var dx = B.lead.p[0] - A.lead.p[0], dy = B.lead.p[1] - A.lead.p[1], dz = B.lead.p[2] - A.lead.p[2];
         if (dx * dx + dy * dy + dz * dz > 40 * 40 || Math.cos(angDiff(B.lead.psi, A.lead.psi)) < 0.6) continue;
-        var sp = A.lead.sz, ch = Math.cos(A.lead.psi), sh = Math.sin(A.lead.psi);
         while (B.m.length) {
-          var b = B.m.pop(), back = A.m.length * 1.9, side = (A.m.length % 2 ? 1 : -1) * Math.ceil(A.m.length / 2) * 1.2;
-          if (A.pat === 'line') side = (B.r() - 0.5) * 0.6;
-          b.slot = [back, side, (B.r() - 0.5) * 0.5]; b.F = A; b.goal = null; A.m.push(b);
+          var b = B.m.pop(), q = endPlace(A);
+          if (A.pat === 'line') q[1] = (B.r() - 0.5) * 0.6;
+          q[2] = (B.r() - 0.5) * 0.5; b.slot = q; b.F = A; b.goal = null; A.m.push(b);
         }
         if (A.m.length === 2) A.pat = 'pair';
         var k = FLOCKS.indexOf(B); if (k >= 0) FLOCKS.splice(k, 1);
@@ -304,10 +313,8 @@
   /* a bird leaves its flock (to land, or a straggler on its own way): a flock of its own, on its own goal */
   function splitOff(b) {
     var F0 = b.F; if (!F0 || F0.m.length < 2) return F0;
-    var j = F0.m.indexOf(b); F0.m.splice(j, 1); if (F0.lead === b) relead(F0);
-    var F = { id: ++POP.k, kind: b.kind, pat: 'single', r: b.r, m: [b], lead: b, goal: null, t0: t, far: false };
-    b.F = F; b.slot = [0, 0, 0]; FLOCKS.push(F);
-    return F;
+    leaveFlock(b); b.slot = [0, 0, 0];
+    return soloFlock(b);
   }
 
   /* ---------------- the population ---------------- */
@@ -391,7 +398,7 @@
     if (!POP.seeded) { seed(C); return; }
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
       var F = FLOCKS[i];
-      if (F.lead && F.lead.st === 'fly' && goneUnseen(F) && (F.goal && F.goal.k === 'sink' || unseen(F.lead))) { dropFlock(F); continue; }
+      if (F.lead && F.lead.st === 'fly' && (F.goal && F.goal.k === 'sink' || unseen(F.lead)) && goneUnseen(F)) { dropFlock(F); continue; }
       if (FORCED && F.lead && F.lead.st === 'fly') { var allOut = true; for (var q = 0; q < F.m.length && allOut; q++) allOut = outOfView(F.m[q], C) && dist3(F.m[q].p, C.pos) > 600; if (allOut) dropFlock(F); }
     }
     if (t >= POP.nextT) {

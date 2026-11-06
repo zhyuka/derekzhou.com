@@ -124,10 +124,10 @@
     var A = P.act;
     if (A) {
       var ua = (t - A.t0) / A.T, wa = Math.sin(Math.PI * clamp(ua, 0, 1));
-      if (A.k === 'wings') gmix(s.P22, s.P22, Q.open, 0.7 * gss(1.4 * wa));   // (both wings raised: a lifted M, and let down)
+      if (A.k === 'wings') gmix(s.P22, s.P22, Q.open, 0.7 * ease(1.4 * wa));   // (both wings raised: a lifted M, and let down)
       else { var sk = 7 * wa * Math.sin(TAU * 7.5 * ua * A.T); s.P22[0] += sk; s.P22[NP] += sk; s.P22[4] -= 0.7 * sk; s.P22[NP + 4] -= 0.7 * sk; }   // (a rouse: a quick shake)
     }
-    if (P.leaving) gmix(s.P22, s.P22, Q.open, gss((t - P.leaving.t0) / Math.max(0.05, P.leaving.tc)));
+    if (P.leaving) gmix(s.P22, s.P22, Q.open, ease((t - P.leaving.t0) / Math.max(0.05, P.leaving.tc)));
     s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = 0;
   }
   /* a bird on its perch, posed in the camera's frame at the perch's depth, its lowest points on the ink (on the tip:
@@ -171,7 +171,7 @@
     perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return false;
     perchPose(b, s);
     var yawNow = P.yaw;
-    if (P.yawTo !== undefined && t - P.yawT < P.yawD) yawNow = P.yaw0 + (P.yawTo - P.yaw0) * gss((t - P.yawT) / P.yawD);
+    if (P.yawTo !== undefined && t - P.yawT < P.yawD) yawNow = P.yaw0 + (P.yawTo - P.yaw0) * ease((t - P.yawT) / P.yawD);
     var turning = t - P.yawT < P.yawD, hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((t - P.yawT) / P.yawD, 0, 1)) : (P.hop || 0) * 0.05;
     var yw = yawNow * DEG, pt = (P.pitch + 3 * wave(b.vK + 31, b.age / 3.7) - (P.crouch || 0) * 10 + (P.swing || 0) * 20) * DEG, rl = (P.swing || 0) * 0.8, el = PERCH.el * DEG;
     var cy = Math.cos(yw), sy = Math.sin(yw), i;
@@ -188,7 +188,7 @@
     if (!hopL) P.rest = up;
     return true;
   }
-  function projectBird(s, C) {
+  function projectBird(s, C, N) {
     var i, xc, yc, zc, X = s.X46, k = VW.outW / Math.max(1, W), fx = (VW.outW / 2) / VW.tanX, fy = (VW.outH / 2) / VW.tanY;
     for (i = 0; i < NV; i++) {   // every vertex, and its 1/depth for the pass's nearest facet
       var ax = X[3 * i], ay = X[3 * i + 1], az = X[3 * i + 2];
@@ -204,7 +204,7 @@
     s.floorPx = clamp(Math.round(4 * clamp(1.3 + 0.035 * s.spanPx / k, LINE[0], LINE[1])) / 4 * k, 1, 2.5 * k);   // the pen along its leading edge, at its width for this size
     s.filt = FILTER[0] + (FILTER[1] - FILTER[0]) * clamp((24 - s.spanPx) / 20, 0, 1);
     s.lod = FP.lodK(s.spanPx / k);                       // the facets' share by its ink span, CSS px
-    s.halo = HOST.night ? HOST.night() : 0;
+    s.halo = N;
     s.haloE = (W < 600 ? HALO_E[1] : HALO_E[0]) * k;
     return true;
   }

@@ -106,7 +106,7 @@
       if (b.st === 'land') restProbe(b, C, s);
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
       var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
-      if (!ok || !projectBird(s, C)) { s.on = false; continue; }
+      if (!ok || !projectBird(s, C, N)) { s.on = false; continue; }
       s.on = true; s.op = 1; s.lastOp = 1;
       lightBird(s, !moving, fdt);
       cloudWeights(s, C);
@@ -115,13 +115,12 @@
     }
 
     if (!nB) return;
-    var P = PROG, E = HOST.grade(), tex = !FORCED && HOST.bindTextures();
+    var P = PROG, E = HOST.grade(), tex = !FORCED;   // (the hook bound the textures before the draw)
     HOST.target();
     gl.useProgram(P.p); if (!FORCED) HOST.frameUniforms(P);
     RI = (RI + 1) % RING.length; VAO = RING[RI][0]; VBO = RING[RI][1];
     gl.bindVertexArray(VAO); gl.bindBuffer(gl.ARRAY_BUFFER, VBO); gl.bufferSubData(gl.ARRAY_BUFFER, 0, INST, 0, nB * NF);
     gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PTW, nB, gl.RGBA, gl.FLOAT, BTX, 0); gl.activeTexture(gl.TEXTURE0);   // (physics: the drawn birds' rows)
-    HOST.view(VW);
     UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = FX.air ? 1 : 0;
     USC[0] = VW.sUx; USC[1] = VW.sUy; USC[2] = VW.hUx; USC[3] = VW.hUy;
     UCL[0] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UCL[1] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);

@@ -108,6 +108,13 @@
   }
   function perchCount() { var n = 0; for (var i = 0; i < PERCHED.length; i++) if (PERCHED[i].P && PERCHED[i].P.kind !== 'pointer') n++; return n; }
   var VPN = [0, 0, 0];
+  /* how soon a bird could be on a perch near the eye (s; Infinity: not in front, too near or far, or unable to keep its
+     pace): the perch moves as the camera does (VPN) */
+  function reachT(b, C, dmax) {
+    var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
+    if (d < 40 || d > dmax || fwd < 0.2 || !canHold(b, VPN)) return Infinity;
+    return d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);
+  }
   function notice(C) {
     VPN[0] = LVC.vx; VPN[1] = LVC.vy; VPN[2] = LVC.vz;
     if (PW.appr || t < PW.nextT || perchCount() >= PMAX || HOST.reduced()) return;
@@ -119,10 +126,7 @@
       var F = FLOCKS[i]; if (F.far || !KINDS[F.kind].perch) continue;
       for (j = 0; j < F.m.length; j++) {
         var b = F.m[j]; if (b.st !== 'fly') continue;
-        var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
-        if (d < 40 || d > 200 || fwd < 0.2) continue;
-        if (!canHold(b, VPN)) continue;
-        var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be there: the perch moves as the camera does)
+        var T = reachT(b, C, 200);
         if (T > PREACH) continue;
         var sc = (0.5 + POP.r()) / T;
         if (sc > bs) { bs = sc; best = b; }
@@ -148,10 +152,7 @@
     var best = null, bd = 1e9;
     for (var i = 0; i < BIRDS.length; i++) {
       var b = BIRDS[i]; if (b.st !== 'fly' || !b.K.perch || (b.F && b.F.far)) continue;
-      var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
-      if (d < 40 || d > 300 || fwd < 0.2) continue;
-      if (!canHold(b, VPN)) continue;
-      var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be on the tip: the tip moves with the camera)
+      var T = reachT(b, C, 300);
       if (T < bd && T <= PREACH) { bd = T; best = b; }
     }
     if (best) PW.ptrNext = t + pick(POP.r, PJ.gap);
@@ -378,7 +379,7 @@
     if (P.walk && t >= P.walk.t0) {   /* a side-step (or a walk along the stroke): a hop of a step, pausing between */
       var wk = P.walk, k = Math.floor((t - wk.t0) / 0.45), f = ((t - wk.t0) % 0.45) / 0.22;
       if (k >= wk.n) { P.x = wk.x0 + wk.dir * wk.step * wk.n; P.walk = null; }
-      else { P.x = wk.x0 + wk.dir * wk.step * (k + gss(Math.min(1, f))); P.hop = f < 1 ? Math.sin(Math.PI * f) : 0; }
+      else { P.x = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); P.hop = f < 1 ? Math.sin(Math.PI * f) : 0; }
       var Lg = ledges()[P.li]; if (Lg && (P.x < Lg.pts[0][0] || P.x > Lg.pts[Lg.pts.length - 1][0])) { var L2 = nearLedge(P.x, P.fy, P.li); if (L2 >= 0) P.li = L2; else { P.x = clamp(P.x, Lg.pts[0][0], Lg.pts[Lg.pts.length - 1][0]); P.walk = null; } }
     } else P.hop = 0;
     /* its body over its feet where they are this step (after any step it takes) */
@@ -440,13 +441,13 @@
     b.psi = Math.atan2(ax, az); b.V = Math.max(0.75 * b.K.v, Math.sqrt(ax * ax + b.v[1] * b.v[1] + az * az)); b.gam = clamp(Math.atan2(b.v[1], Math.max(hz, 0.5)), -b.K.dive * DEG, b.K.climb * DEG); b.phi = 0;
     b.burst = leapt ? { t0: t, n: 3 + Math.floor(b.r() * 3) } : null;
     if (J && J.lead) {   /* to the flock: a place at its end, flown into */
-      if (b.F && b.F !== J) { var F0 = b.F, j = F0.m.indexOf(b); if (j >= 0) F0.m.splice(j, 1); if (!F0.m.length) { var k = FLOCKS.indexOf(F0); if (k >= 0) FLOCKS.splice(k, 1); } }
-      b.F = J; b.slot = [J.m.length * 1.9, (J.m.length % 2 ? 1 : -1) * Math.ceil(J.m.length / 2) * 1.2, 0.3]; J.m.push(b);
+      if (b.F && b.F !== J) { var F0 = leaveFlock(b); if (!F0.m.length) dropFlock(F0); }
+      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b);
     } else {
-      if (!b.F) { var F = { id: ++POP.k, kind: b.kind, pat: 'single', r: b.r, m: [b], lead: b, goal: null, t0: t, far: false }; b.F = F; FLOCKS.push(F); }
+      if (!b.F) soloFlock(b);
       var r = b.r, g = weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
       if (g === 'pass' && t < POP.passT) g = 'commute';
-      if (g === 'pass') POP.passT = t + pick(r, PASS_GAP);
+      if (g === 'pass') passTaken(r);
       newGoal(b.F, g, r, skyCls());
     }
   }
@@ -510,4 +511,3 @@
   }
   function perchFree(b) { var i = PERCHED.indexOf(b); if (i >= 0) PERCHED.splice(i, 1); if (PW.appr === b) PW.appr = null; b.P = null; }
   function perchReset() { PERCHED.length = 0; PW.appr = null; PW.nextT = t + PFIRST; PW.ptrNext = t + PJ.first; PW.ledges = null; PW.jabT = -1e9; PW.seekEnd = 0; }
-  function gss(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
