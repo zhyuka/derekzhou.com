@@ -255,11 +255,11 @@ test('glslmin: the same program, token for token', async () => {
 
 test('verdict: T2 read-backs, only a DIFFER stops a merge (the owner: "frames decide")', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verdict-'));
-  const run = (bits) => {
+  const run = (bits, outs, cached) => {
     const needs = { static: { result: 'success' }, plan: { result: 'success', outputs: { base: 'abc', site_changed: 'true', glsl_changed: 'true' } },
-      t1: { result: 'skipped' }, t2: { result: 'success', outputs: Object.assign({ frames_identical: 'true', glsl_changed: 'true', csp_ok: 'true' }, bits) } };
+      t1: { result: 'skipped' }, t2: { result: 'success', outputs: outs || Object.assign({ frames_identical: 'true', glsl_changed: 'true', csp_ok: 'true' }, bits) } };
     const out = path.join(dir, 'v.json');
-    try { execFileSync(process.execPath, [fileURLToPath(new URL('../.github/ci/verdict.mjs', import.meta.url)), dir, out], { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), stdio: 'pipe' }); } catch {}
+    try { execFileSync(process.execPath, [fileURLToPath(new URL('../.github/ci/verdict.mjs', import.meta.url)), dir, out], { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), T2_CACHED: cached ? JSON.stringify(cached) : '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), stdio: 'pipe' }); } catch {}
     return JSON.parse(fs.readFileSync(out, 'utf8'));
   };
   assert.equal(run({ bits_identical: 'true', bits_differ: 'false' }).frames_identical, true, 'identical');
@@ -267,5 +267,11 @@ test('verdict: T2 read-backs, only a DIFFER stops a merge (the owner: "frames de
   assert.equal(run({ bits_identical: 'false', bits_differ: 'true' }).frames_identical, false, 'a read that differs goes to the owner');
   assert.equal(run({ bits_identical: 'false' }).frames_identical, false, 'an answer from before bits_differ: not identical counts as differ');
   assert.equal(run({ bits_identical: 'true', bits_differ: 'false', frames_identical: 'false' }).frames_identical, false, 'a changed frame goes to the owner');
+  // main after a fast-forward: the frames answer is the PR's (cached), the 4090 ran only the stall visits
+  const pr = { frames_identical: 'true', glsl_changed: 'true', bits_identical: 'true', bits_differ: 'false', csp_ok: 'true' };
+  const m = run(null, { frames_identical: '', glsl_changed: '', bits_identical: '', bits_differ: '', csp_ok: '', stall_ok: 'false' }, pr);
+  assert.equal(m.frames_identical, true, "main keeps the PR's frames answer");
+  assert.equal(m.t2.stall_ok, false, "and main's own stall visits");
+  assert.equal(run(null, { stall_ok: 'true' }, pr).t2.stall_ok, true);
   fs.rmSync(dir, { recursive: true, force: true });
 });
