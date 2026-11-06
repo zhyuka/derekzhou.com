@@ -2,7 +2,8 @@
 # guard.py: the project's PreToolUse hook (.claude/settings.json). It stops, before they run, the few mistakes that
 # cannot be taken back here (RULES.json: merge-rights, git-safety, naming):
 #   - a push to main, a force push (-f, --force*, a +refspec, --mirror) or a push that deletes a branch (--delete, :ref)
-#   - a merge: `gh pr merge`, `gh api .../pulls/N/merge`, the GitHub tools' merge_pull_request and enable_pr_auto_merge,
+#   - a merge: `gh pr merge` (--auto too), `gh api .../pulls/N/merge`, a GraphQL mergePullRequest or
+#     enablePullRequestAutoMerge, the GitHub tools' merge_pull_request and enable_pr_auto_merge,
 #     and a GitHub tool that writes straight to main
 #   - a banned name (names.json, salted hashes) in a commit's message or diff, in what a push sends, or in what a
 #     GitHub tool posts
@@ -258,6 +259,9 @@ def check_bash(cmd, cwd, depth=0):
                             '(RULES.json "merge-rights").')
             if rest[:1] == ['api'] and any(re.search(r'pulls/\d+/merge\b', t) for t in toks):
                 raise Block('a merge through `gh api`: only the owner or the merge bot merges (RULES.json "merge-rights").')
+            if rest[:1] == ['api'] and any(re.search(r'\b(enablePullRequestAutoMerge|mergePullRequest)\b', t) for t in toks):
+                raise Block('a merge or auto-merge through `gh api graphql`: auto-merge is the owner\'s own "land it when '
+                            'green", never an agent\'s (RULES.json "merge-rights").')
             continue
         if prog != 'git':
             continue
