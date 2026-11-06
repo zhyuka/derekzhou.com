@@ -124,7 +124,8 @@ jobs:
   # the harness changed: with the builds byte for byte the same, what a visitor is served is identical by construction.
   # The base is rendered once per build: each shard's record of a build (its frames', DOM's and stills' hashes, errors
   # and CSP reports) is cached by the plain build's content hash (no build.txt in it, so only bytes a visitor gets),
-  # the runner image and the harness's files. A shard whose base has a record renders the head alone against it; any
+  # the runner's OS image and the harness's files (Chromium and SwiftShader are the pinned Playwright's; not the image's
+  # patch version, which differs runner to runner during a rollout: a record that no longer matches is re-rendered). A shard whose base has a record renders the head alone against it; any
   # difference renders that case fresh (base, head, null test), and the fresh render decides (t1.mjs). Records are
   # saved on a miss (on a branch, for that branch's next push; on main, for every branch) and, on main, the head's, so
   # a branch cut from main's tip finds its base already rendered. Run the gate by hand with t1_cache = verify to prove
@@ -152,7 +153,7 @@ jobs:
           path: ${{ runner.temp }}/served
       - name: The records' key
         id: rk
-        run: echo "pre=t1rec-v1-$ImageOS-$ImageVersion-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-s${{ matrix.shard }}" >> "$GITHUB_OUTPUT"
+        run: echo "pre=t1rec-v1-$ImageOS-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-s${{ matrix.shard }}" >> "$GITHUB_OUTPUT"
       - name: The base's record, if its build was rendered before
         id: restore
         if: env.T1_CACHE != 'off'
