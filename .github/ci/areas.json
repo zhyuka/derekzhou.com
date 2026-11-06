@@ -21,6 +21,8 @@
     [".github/actions/**", ["frames"]],
     [".github/workflows/gate.yml", ["frames"]],
     [".github/workflows/*", ["static"]],
+    ["RULES.json", ["static"]],
+    [".claude/**", ["static"]],
     ["CLAUDE.md", ["none"]],
     ["*.md", ["none"]],
     [".work/**", ["none"]],

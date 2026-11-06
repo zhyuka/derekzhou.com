@@ -97,7 +97,8 @@ jobs:
             [ -e "$f" ] || continue
             case "${f#../}" in
               .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
-              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
+              .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;
+              RULES.json|.claude) ;;   # (the standing rules as data, and the project's hooks: never served)   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
               *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
             esac
           done
@@ -126,6 +127,14 @@ jobs:
             exit 1
           fi
           echo "No secrets found"
+
+      - name: The rules are data, and the hooks hold
+        run: |
+          # RULES.json is every standing rule as data: valid, ids unique, and every CI step, world_rules.py rule,
+          # absence block and hook it names exists. Then the project's hooks (.claude/hooks/guard.py: no push to main,
+          # no force push, no merge, no banned name) pass their own tests.
+          python3 .github/workflows/rules_check.py
+          python3 .claude/hooks/test_guard.py
 
       - name: security.txt not expired
         run: |
