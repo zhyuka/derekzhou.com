@@ -1,3 +1,15 @@
 http://derekzhou.com/* https://derekzhou.com/:splat 301
 http://www.derekzhou.com/* https://derekzhou.com/:splat 301
 https://www.derekzhou.com/* https://derekzhou.com/:splat 301
+
+# The repository's own files, which Pages served from the root until the site moved into site/ on 2026-11-04.
+# Pages keeps every URL it served in its own asset-preservation cache for a week after the last serve
+# (s-maxage=604800, keyed by the exact URL, written about daily) and answers from it when no file matches;
+# a zone purge does not reach it. A redirect is checked before that fallback, so these exact spellings go
+# home. The entries all expire by 2026-11-12; these lines can go after that.
+/CLAUDE.md / 301
+/%43LAUDE.md / 301
+/.gitignore / 301
+/download-fonts.sh / 301
+/subset-fonts.sh / 301
+/.github/* / 301

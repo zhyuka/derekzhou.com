@@ -1013,7 +1013,15 @@ repository is private (2026-11-03). Before the move Pages served the
 repository's root, and /%43LAUDE.md reached this file past the
 exact-path redirects of /CLAUDE.md and /.github/* (Cloudflare matches a
 redirect on the raw path); those two lines left \_redirects with the
-move. (Old deployments' own pages.dev links keep their old files.) CI
+move. (Old deployments' own pages.dev links keep their old files.) Pages
+also keeps, for a week after it last served one, every URL it served (its
+asset-preservation cache, keyed by the exact URL; a zone purge does not
+reach it) and answers from it when the deployment has no file there: so
+after a file leaves the site, its old URL can still answer 200 for up to a
+week. A \_redirects rule is checked first: site/\_redirects sends the
+repository's old root files (/CLAUDE.md, /%43LAUDE.md, /.gitignore, the
+font scripts, /.github/*) home with a 301 until those entries expire
+(2026-11-12). CI
 fails if site/ holds anything but the kinds of file the site serves
 (HTML, CSS, JS, WOFF2, PNG, SVG, robots.txt, security.txt, the fonts'
 OFL.txt, \_headers, \_redirects, \_routes.json) or a file of the
