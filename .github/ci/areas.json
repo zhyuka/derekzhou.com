@@ -19,6 +19,7 @@
     [".claude/**", ["static"]],
     ["CLAUDE.md", ["none"]],
     ["*.md", ["none"]],
+    ["docs/**", ["none"]],
     [".work/**", ["none"]],
     [".gitignore", ["none"]],
     [".gitattributes", ["frames"]],

@@ -29,6 +29,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/tools/check-quick.mjs\" --hook",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   }
 }
