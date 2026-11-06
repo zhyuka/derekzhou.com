@@ -1,6 +1,6 @@
 'use strict';
 // t2.js (tools/gpu): the T2 graphics check on the RTX 4090 (ANGLE D3D11), base against head in one job.
-//   node tools/gpu/t2.js --base BASE_SITE --head HEAD_SITE --out OUT [--cases d11,n23,w303,d707] [--frames 600]
+//   node tools/gpu/t2.js --base BASE_SITE --head HEAD_SITE --out OUT [--cases d11,n23,w303,d707] [--frames 600] [--settle 4000]
 //        [--par 4] [--profiles DIR] [--port 9600] [--no-null]
 // 1. Serves both site folders as Cloudflare Pages serves them (cfserve.js: _headers, so the CSP is the real one).
 // 2. FRAMES: every case stepped (gstep.js: the page's clock and entropy fixed, rAF driven at an exact interval, each arm
@@ -24,6 +24,10 @@ const A = {}; for (let i = 2; i < process.argv.length; i++) { const k = process.
 const HERE = __dirname, OUT = path.resolve(A.out || 't2out'), N = +(A.frames || 600), PAR = +(A.par || 4);
 const CASES = { d11: ['1440x900@1', '2026-10-29T10:30:00Z', 11, false], n23: ['393x852@3', '2026-10-29T23:30:00Z', 23, true],
   w303: ['1440x900@1', '2026-10-29T06:30:00Z', 303, false], d707: ['393x852@3', '2026-10-29T10:30:00Z', 707, true] };
+// --settle T: base and head are SETTLED TWINS (twin.js): every visit holds its first shown frame until its world's build is
+// idle and the page clock is T ms (the kit's 4000), so base and head show the same settled world at the same page time
+// whatever their compile times; without it, plain arms, each from its own first shown frame
+const SETTLE = A.settle ? ['--settle', String(+A.settle === +A.settle && A.settle !== true ? A.settle : 4000), '--settle-extra', '0', '--settle-quiet', '8', '--settle-boot'] : [];
 const CS = String(A.cases || 'd11,n23,w303,d707').split(',');
 const NB = JSON.parse(fs.readFileSync(path.join(HERE, 'noise_bounds.json'), 'utf8'));
 fs.mkdirSync(OUT, { recursive: true });
@@ -94,7 +98,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     const done = await pool(runs.map((j) => async (slot) => {
       const [vp, hour, seed, mob] = CASES[j.c], tag = j.c + '_' + j.arm + '_r' + j.r, dir = path.join(OUT, 'frames');
       fs.mkdirSync(dir, { recursive: true });
-      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf'].concat(mob ? ['--mobile'] : []);
+      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf'].concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
       const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
