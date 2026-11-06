@@ -93,7 +93,7 @@
       if (b.st === 'fly' && (unseen(b) || hidden(b))) continue;
       DRAWQ.push(b); DQD.push(tmp3.z);
     }
-    if (DRAWQ.length > MAXP) { var ord = DRAWQ.map(function (q, k) { return k; }).sort(function (x, y) { return DQD[x] - DQD[y]; }); DRAWQ = ord.slice(0, MAXP).map(function (k) { return DRAWQ[k]; }); STATS.over = (STATS.over || 0) + 1; }
+    if (DRAWQ.length > MAXP) { var ord = DRAWQ.map(function (q, k) { return k; }).sort(function (x, y) { return DQD[x] - DQD[y]; }); DRAWQ = ord.slice(0, MAXP).map(function (k) { return DRAWQ[k]; }); }
     for (i = 0; i < slots.length; i++) slots[i].used = false;
     for (i = 0; i < DRAWQ.length; i++) { b = DRAWQ[i]; if (b.s) b.s.used = true; }
     for (i = 0; i < slots.length; i++) { s = slots[i]; if (s.busy && !s.used) { if (s.bird) s.bird.s = null; s.busy = false; s.bird = null; } }
@@ -114,7 +114,6 @@
       nB++;
     }
 
-    STATS.drawn = nB;
     if (!nB) return;
     var P = PROG, E = HOST.grade(), tex = !FORCED && HOST.bindTextures();
     HOST.target();
@@ -163,5 +162,4 @@
   }
   var GLARE_P = [0.02, 0.09, 0.35, 0.5];   // the light wrap: the bloom's light under the bird from, to; the paper thinned by (px), lifted by
 
-  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, wheeled: 0, paced: 0 }, away: 0, back: 0 };
 

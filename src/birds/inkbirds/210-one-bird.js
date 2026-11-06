@@ -148,7 +148,6 @@
     if (dm < 1e-3) { cx = -vz; cy = 0; cz = vx; dm = Math.sqrt(cx * cx + cz * cz) || 1; }
     var k = Math.max(0.6, 3 * (R - dm) / R) * b.K.v * (1 - 0.3 * tc / 4);   // (a firm turn once it has noticed: harder the nearer the miss)
     o[0] += cx / dm * k; o[1] += cy / dm * k; o[2] += cz / dm * k;
-    STATS.evades = (STATS.evades || 0) + (b.evN === b.evT ? 0 : 1); b.evN = b.evT;
   }
 
   /* ---------------- goals (what a bird in the air is doing) ---------------- */
@@ -298,7 +297,6 @@
         }
         if (A.m.length === 2) A.pat = 'pair';
         var k = FLOCKS.indexOf(B); if (k >= 0) FLOCKS.splice(k, 1);
-        STATS.joins = (STATS.joins || 0) + 1;
         return;
       }
     }
@@ -350,7 +348,6 @@
       var ax = LVC.x + LVC.vx * T + (r() - 0.5) * LIVE_R - x, az = LVC.z + LVC.vz * T + (r() - 0.5) * LIVE_R - z;
       F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = Math.atan2(ax, az); g.T = T * 1.2; g.home = true;
       for (var m = 0; m < F.m.length; m++) F.m[m].psi = g.psi;
-      STATS.adds = (STATS.adds || 0) + 1;
       return F;
     }
     return null;
@@ -370,7 +367,6 @@
     /* by the eye's way, wide of it (the pass goal: aimed afresh each step beside where the eye will be) */
     var L2 = best.lead, g = newGoal(best, 'pass', best.r, POP.cls);
     g.d = pick(best.r, COME_D) * (best.r() < 0.5 ? 1 : -1); g.T = dist3(L2.p, [LVC.x, LVC.y, LVC.z]) / L2.K.v + 30; g.y = LVC.y + mix(best.r(), 5, 40); g.come = true;
-    STATS.recruits = (STATS.recruits || 0) + 1;
   }
   /* (forced colours: the world not drawn, the camera held still, so the view can never turn to them) a flock added
      beyond the view's side, already flying across it */
@@ -395,7 +391,7 @@
     if (!POP.seeded) { seed(C); return; }
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
       var F = FLOCKS[i];
-      if (F.lead && F.lead.st === 'fly' && goneUnseen(F) && (F.goal && F.goal.k === 'sink' || unseen(F.lead))) { dropFlock(F); STATS.outs = (STATS.outs || 0) + 1; continue; }
+      if (F.lead && F.lead.st === 'fly' && goneUnseen(F) && (F.goal && F.goal.k === 'sink' || unseen(F.lead))) { dropFlock(F); continue; }
       if (FORCED && F.lead && F.lead.st === 'fly') { var allOut = true; for (var q = 0; q < F.m.length && allOut; q++) allOut = outOfView(F.m[q], C) && dist3(F.m[q].p, C.pos) > 600; if (allOut) dropFlock(F); }
     }
     if (t >= POP.nextT) {
@@ -403,7 +399,7 @@
       if (liveCount() < (LIVE_N[cls] || 6)) addFar(C, cls, POP.r);
       if (t >= (POP.comeT || PFIRST)) { recruit(); POP.comeT = t + pick(POP.r, COME_GAP); }
     }
-    if (STATS.steps % 30 === 0) { joinStep(); homeStep(); }
+    if (STEPS % 30 === 0) { joinStep(); homeStep(); }
   }
   /* the world's birds live round the eye: one gone past the live circle goes down into the sea of cloud if one lies
      under it (hidden there, then taken out), else turns back toward the eye's country. (Out past a few km a bird is
@@ -414,7 +410,6 @@
       var dx = LVC.x - L.p[0], dz = LVC.z - L.p[2]; if (dx * dx + dz * dz < HOME_R * HOME_R) continue;
       var g = newGoal(F, 'sink', F.r, POP.cls);
       if (g.k !== 'sink') { g.psi = Math.atan2(dx, dz) + (F.r() - 0.5) * 1.2; g.T = pick(F.r, [80, 160]); g.home = true; }
-      STATS.homes = (STATS.homes || 0) + 1;
     }
   }
 

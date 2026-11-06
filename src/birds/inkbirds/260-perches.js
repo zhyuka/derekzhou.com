@@ -164,7 +164,6 @@
     b.st = 'appr'; b.P = P; b.vLo = airLo(b); b.vHi = airHi(b); P.t0 = t + (delay || 0); P.tries = 0; P.d0 = 0; P.tau0 = 0; P.go = 0;
     P.D = perchDepth(b, P.k); P.rest = null;
     PW.appr = b; PERCHED.push(b);
-    STATS.approaches = (STATS.approaches || 0) + 1;
   }
   /* the perch's place in the world now (its body's rest point: over its foot by its standing height) and its motion */
   var PQ = [0, 0, 0], PF2 = [0, 0];
@@ -258,7 +257,7 @@
       rayAt(C, P.gate[0], P.gate[1], P.gate[2], GQ);
       var gx = GQ[0] - b.p[0], gy = GQ[1] - b.p[1], gz = GQ[2] - b.p[2], gd = Math.sqrt(gx * gx + gy * gy + gz * gz);
       var ux = b.v[0] - P.v[0], uy = b.v[1] - P.v[1], uz = b.v[2] - P.v[2], cn = -(rx * ux + ry * uy + rz * uz) / (d || 1);   // (closing now)
-      if ((gd < 8 || (d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; STATS.gated = (STATS.gated || 0) + 1; }
+      if ((gd < 8 || (d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; }
       else {
         if (!P.gT) P.gT = Math.max(14, 6 + d / 8);   // (its time to the gate, by how far it began)
         if (t - P.t0 > P.gT) { goRound(b, 'away'); return; }
@@ -313,7 +312,6 @@
   }
   function goRound(b, why) {
     var P = b.P; P.tries++;
-    STATS.goRounds = (STATS.goRounds || 0) + 1;
     if (P.tries > 1 || why === 'fast') { giveUp(b); return; }
     /* once round: out at least 3 spans past where it was, then in again */
     b.st = 'round'; P.rT = t; P.d0 = 0;
@@ -330,7 +328,6 @@
     if (t - P.rT > 14) giveUp(b);
   }
   function giveUp(b) {
-    STATS.giveUps = (STATS.giveUps || 0) + 1;
     toAir(b, null);
   }
   /* the touch: its feet are the perch's from now; it settles */
@@ -344,7 +341,6 @@
     P.yaw0 = P.yaw; P.yawT = t; P.yawTo = P.yaw; P.pitch = PERCH.pitch; P.face = P.yaw >= 0 ? 1 : -1;
     P.stay = t + pick(b.r, PSTAY); P.nextAct = t + pick(b.r, [1.2, 2.5]); P.act = null; P.walk = null; P.swing = 0; P.swingV = 0;
     b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2];
-    STATS.landings = (STATS.landings || 0) + 1;
     makeRoom(b);
   }
   /* a newcomer between two: its neighbours step aside (3 steps at most) */
@@ -404,7 +400,7 @@
     if (P.act && t - P.act.t0 > P.act.T) P.act = null;
     /* it leaves: by its own wish, or to a flock of its kind passing */
     if (t >= P.stay) { leave(b, 'wish'); return; }
-    if (P.kind !== 'pointer' && t - P.tt > PDWELL && STATS.steps % 20 === b.id % 20) { var J = passingFlock(b, C); if (J) { leave(b, 'join', J); return; } }
+    if (P.kind !== 'pointer' && t - P.tt > PDWELL && STEPS % 20 === b.id % 20) { var J = passingFlock(b, C); if (J) { leave(b, 'join', J); return; } }
   }
   function nearLedge(x, y, not) { var L = ledges(), best = -1, bd = 12; for (var i = 0; i < L.length; i++) { if (i === not) continue; var Lg = L[i]; if (x < Lg.pts[0][0] || x > Lg.pts[Lg.pts.length - 1][0]) continue; var d = Math.abs(surfY(Lg.pts, x) - y); if (d < bd) { bd = d; best = i; } } return best; }
   function passingFlock(b, C) {
@@ -423,7 +419,6 @@
     var P = b.P; if (!P || P.leaving) return;
     if (b.st !== 'perch') { toAir(b, J); return; }
     P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]) };
-    STATS.leaves = (STATS.leaves || 0) + 1;
   }
   function leavingStep(b, dt, C) {
     var P = b.P, L = P.leaving, u = t - L.t0;
@@ -447,7 +442,6 @@
     if (J && J.lead) {   /* to the flock: a place at its end, flown into */
       if (b.F && b.F !== J) { var F0 = b.F, j = F0.m.indexOf(b); if (j >= 0) F0.m.splice(j, 1); if (!F0.m.length) { var k = FLOCKS.indexOf(F0); if (k >= 0) FLOCKS.splice(k, 1); } }
       b.F = J; b.slot = [J.m.length * 1.9, (J.m.length % 2 ? 1 : -1) * Math.ceil(J.m.length / 2) * 1.2, 0.3]; J.m.push(b);
-      STATS.rejoins = (STATS.rejoins || 0) + 1;
     } else {
       if (!b.F) { var F = { id: ++POP.k, kind: b.kind, pat: 'single', r: b.r, m: [b], lead: b, goal: null, t0: t, far: false }; b.F = F; FLOCKS.push(F); }
       var r = b.r, g = weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
@@ -485,7 +479,6 @@
     var at = 0;
     for (i = 0; i < row.length; i++) { var o = row[i]; if (o !== hit && o.r() < 0.15) continue; o.P.startleT = t + at; at += pick(o.r, [0.12, 0.25]); }
     if (hit.P.kind === 'pointer') hit.P.startleT = t;
-    STATS.startles = (STATS.startles || 0) + 1;
   }
   /* a click: a bird of the sky where it was clicked, in the world (at a gull's distance there), off on its way */
   var CQ = [0, 0, 0];
@@ -499,7 +492,6 @@
     b.v[0] = LVC.vx + C.u[0] * 3; b.v[1] = LVC.vy + C.u[1] * 3; b.v[2] = LVC.vz + C.u[2] * 3;
     var ax = b.v[0] - WINDV[0], az = b.v[2] - WINDV[2]; b.psi = Math.atan2(ax, az); b.V = Math.max(b.K.v, Math.sqrt(ax * ax + az * az)); b.gam = 10 * DEG;
     b.burst = { t0: t, n: 4 + Math.floor(r() * 2) };
-    STATS.clicks = (STATS.clicks || 0) + 1;
   }
 
   /* ---------------- each step, and the state machine ---------------- */

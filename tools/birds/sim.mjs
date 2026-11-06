@@ -38,7 +38,7 @@ function scripts() {
   let src = fs.readFileSync(path.join(tmp, 'inkbirds.js'), 'utf8');
   fs.rmSync(tmp, { recursive: true, force: true });
   if (src.indexOf(at) < 0) throw new Error('sim: birdsStep not found in the assembled inkbirds.js');
-  src = src.replace(at, at + '    if (!self.__SIM) self.__SIM = { BIRDS: BIRDS, FLOCKS: FLOCKS, PERCHED: PERCHED, STATS: STATS, PW: PW, PTR: PTR, LVC: LVC,\n' +
+  src = src.replace(at, at + '    if (!self.__SIM) self.__SIM = { BIRDS: BIRDS, FLOCKS: FLOCKS, PERCHED: PERCHED, PW: PW, PTR: PTR, LVC: LVC,\n' +
     '      t: function () { return t; }, W: function () { return [W, H]; }, MODEL_K: MODEL_K, FDEV_MAX: FDEV_MAX, WINDV: WINDV,\n' +
     '      hidden: hidden, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
     '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach };\n');
@@ -55,7 +55,7 @@ export function makeSim(o = {}) {
   const C = { pos: [0, 40, 0], f: [0, 0, 1], r: [-1, 0, 0], u: [0, 1, 0], pitch: 0, roll: 0, inCloud: 0, cover: 0 };
   const PT = { x: 0, y: 0, n: 0, gone: true, down: false, steer: false, touch: false };
   const clicks = (o.clicks || []).slice().sort((a, b) => a.t - b.t);
-  let t = 0, psi = 0, M = null;
+  let t = 0, psi = 0, M = null, fed = 0;
   const pitch = (o.pitch || 0) * Math.PI / 180;
   /* the GL stub: constants are numbers, calls do nothing (one function each: the stub itself allocates nothing) */
   const NOOP = () => null, GLF = {}, dd = o.draw && o.draw.data;
@@ -67,7 +67,7 @@ export function makeSim(o = {}) {
     camera: () => C, cameraStep: () => C, wind: (v) => { v[0] = o.wind ? o.wind[0] : 0; v[1] = 0; v[2] = o.wind ? o.wind[1] : 0; return v; },
     flight: (v) => { v.ok = true; v.x = C.pos[0]; v.y = C.pos[1]; v.z = C.pos[2]; v.psi = psi; v.view = 0; v.speed = SPEED; v.vy = 0; v.ground = -60; return v; },
     sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => 1, forced: () => FORCED,
-    clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); } return v; },
+    clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
     grade: () => null, light: () => LIGHT, words: () => WORDS,
     bindTextures: () => !!o.draw, target() {}, cloudBetween: () => 0, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
     seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = groundAt(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
@@ -83,7 +83,7 @@ export function makeSim(o = {}) {
   const aim = () => { const cp = Math.cos(pitch), sp = Math.sin(pitch), s = Math.sin(psi), c = Math.cos(psi); C.f[0] = s * cp; C.f[1] = sp; C.f[2] = c * cp; C.r[0] = -c; C.r[1] = 0; C.r[2] = s; C.u[0] = -s * sp; C.u[1] = cp; C.u[2] = -c * sp; };
   aim();
   const sim = {
-    W, H, C, PT, get t() { return t; },
+    W, H, C, PT, get t() { return t; }, get clicks() { return fed; },   // clicks: how many the sim has fed the page
     get B() { return ctx.__SIM; },
     step() {
       let yaw = o.yaw || 0;
@@ -142,13 +142,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const { SCENES } = await import(path.join(ROOT, 'test/birds-scenes.mjs'));
   const sc = SCENES[A.case || 'perch'](+(A.seed || 1), A.size || '960x600');
   const sim = makeSim(sc.opt); const tag = sc.setup(sim); const secs = +(A.secs || sc.secs), track = [];
-  let last = -1;
+  let last = -1, landings = 0; const was = new Map();
   sim.run(secs, () => {
+    for (const b of sim.B.BIRDS) { if (b.st === 'perch' && was.get(b) !== 'perch') landings++; was.set(b, b.st); }
     for (const b of tag) {
       const q = sim.rec(b); track.push(q);
       if (Math.floor(sim.t) !== last) { last = Math.floor(sim.t); console.log(`${q.t.toFixed(1)} ${q.st}${q.kind ? '/' + q.kind : ''}${q.gated ? '+g' : ''}${q.go ? ' re' + q.go : ''}${q.tries ? ' round' + q.tries : ''} eye ${q.eye.toFixed(0)} m  win ${q.x.toFixed(0)},${q.y.toFixed(0)} span ${q.span.toFixed(0)} px` + (q.rng !== undefined ? `  perch ${q.rng.toFixed(1)} m closing ${q.close.toFixed(1)} m/s tau ${q.tau.toFixed(1)} s` : '')); }
     }
   });
-  console.log('stats', JSON.stringify(sim.B.STATS));
+  console.log('birds', sim.B.BIRDS.length, 'flocks', sim.B.FLOCKS.length, 'landings', landings, 'clicks', sim.clicks);
   if (A.svg) fs.writeFileSync(A.svg, svgPaths([track], `${A.case || 'perch'} seed ${A.seed || 1}`));
 }

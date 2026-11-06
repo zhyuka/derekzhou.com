@@ -33,7 +33,7 @@ function play(name, size, seed) {
         const rate = Math.abs(wrap(b.psi - was.psi)) / DT, may = G * Math.tan(Math.max(Math.abs(b.phi), Math.abs(was.phi))) / Math.max(Math.min(b.V, was.V), 3);
         if (rate > may * 1.05 + 0.02) { bad.turn++; bad.turnWorst = Math.max(bad.turnWorst, rate - may); }
       }
-      if (!was && sim.t - t0 > DT && (B.STATS.clicks || 0) === clicks) seen(b, 'popIn');   // (a click's bird is made where it is clicked: the owner's)
+      if (!was && sim.t - t0 > DT && sim.clicks === clicks) seen(b, 'popIn');   // (a click's bird is made where it is clicked: the owner's)
       /* never under the land and 15 m (but into the sea of cloud, going down into it) */
       if (b.st in FLY) { const g = groundAt(b.p[0], b.p[2]), under = g + 12 - b.p[1]; if (under > 0 && !(seaW(b.p[0], b.p[2]) && b.F && b.F.goal && b.F.goal.k === 'sink')) { bad.low++; bad.lowWorst = Math.max(bad.lowWorst, under + 12); } }
       /* never first seen coming out from under the land or the cloud: hidden, then seen while within sight */
@@ -42,7 +42,7 @@ function play(name, size, seed) {
     }
     for (const [b] of last) if (!now.has(b)) seen(b, 'popOut');
     last.clear(); for (const [b, v] of now) last.set(b, v);
-    maxPop = Math.max(maxPop, B.BIRDS.length); maxFlocks = Math.max(maxFlocks, B.FLOCKS.length); clicks = B.STATS.clicks || 0;
+    maxPop = Math.max(maxPop, B.BIRDS.length); maxFlocks = Math.max(maxFlocks, B.FLOCKS.length); clicks = sim.clicks;
     tag.forEach((b, i) => { if (B.BIRDS.includes(b)) tracks[i].push(sim.rec(b)); });
     if (sc.each) sc.each(sim, tag);
   });
