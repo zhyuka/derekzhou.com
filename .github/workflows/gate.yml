@@ -125,10 +125,10 @@ jobs:
   # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
   # programs read back bit for bit. Wanted when a shader's text or the world's, the realms' or the birds' served JS
   # changed, or T2's own files did (so a change to T2 is tested on its own push). A queued job for a self-hosted runner
-  # waits up to a day and cannot be timed out, so t2-probe decides first, in seconds, whether the runner can take it:
-  # with the RUNNER_TOKEN secret (a fine-grained token for this repository with Administration: read) it asks GitHub
-  # whether a runner labelled gpu-4090 is online; without it, the repository variable T2_RUNNER = on says so. Not
-  # online: a notice, and the verdict rests on T0 and T1. T2 never holds a merge for a runner that is not there.
+  # waits up to a day and cannot be timed out, so t2-probe asks GitHub first, in seconds, whether a runner labelled
+  # gpu-4090 is online (GET .../actions/runners with MERGE_TOKEN, which has Administration: read). Online: T2 runs and
+  # the verdict requires it. Offline, or the query fails: a notice, and the verdict rests on T0 and T1, so T2 never
+  # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
   t2-probe:
     needs: [plan, census]
     if: always() && needs.plan.result == 'success'
@@ -140,21 +140,26 @@ jobs:
       - id: p
         env:
           WANTED: ${{ needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true' }}
-          RUNNER_TOKEN: ${{ secrets.RUNNER_TOKEN }}
+          TOKEN: ${{ secrets.MERGE_TOKEN }}
           T2_RUNNER: ${{ vars.T2_RUNNER }}
         run: |
           if [ "$WANTED" != "true" ]; then echo "T2 not wanted (no shader, world/realm/bird JS or T2 change)"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          online=false; how=""
-          if [ -n "$RUNNER_TOKEN" ]; then
-            n=$(curl -fsS -H "Authorization: Bearer $RUNNER_TOKEN" -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runners?per_page=100" \
-                | jq '[.runners[] | select(.status == "online") | select(any(.labels[]; .name == "gpu-4090"))] | length' || echo 0)
-            [ "${n:-0}" -gt 0 ] && online=true; how="RUNNER_TOKEN: $n online runner(s) labelled gpu-4090"
+          online=false
+          if [ "$T2_RUNNER" = "off" ]; then
+            how="the variable T2_RUNNER is off"
+          elif [ -z "$TOKEN" ]; then
+            how="no MERGE_TOKEN to ask GitHub with"
+          elif r=$(curl -fsS --max-time 20 -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+                   "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
+            echo "$r" | jq -r '.runners[] | "runner \(.name): \(.status)\(if .busy then ", busy" else "" end) [\([.labels[].name] | join(","))]"'
+            n=$(echo "$r" | jq '[.runners[] | select(.status == "online") | select(any(.labels[]; .name == "gpu-4090"))] | length')
+            [ "${n:-0}" -gt 0 ] && online=true
+            how="$n online runner(s) labelled gpu-4090"
           else
-            [ "$T2_RUNNER" = "on" ] && online=true; how="the variable T2_RUNNER is '${T2_RUNNER:-unset}'"
+            how="the runners query failed (MERGE_TOKEN needs Administration: read)"
           fi
           echo "T2 wanted; runner online: $online ($how)"
-          if [ "$online" != "true" ]; then echo "::notice::T2 would run for this change, but the GPU runner is not online ($how). The verdict rests on T0 and T1."; fi
+          if [ "$online" != "true" ]; then echo "::notice::T2 would run for this change, but it is skipped: $how. The verdict rests on T0 and T1."; fi
           echo "run=$online" >> "$GITHUB_OUTPUT"
 
   t2:

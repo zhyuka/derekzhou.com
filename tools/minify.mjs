@@ -1,10 +1,14 @@
 // minify.mjs: the world's shipped scripts, minified (fast500 lane C, steps 4b and 4c; the owner's "Minified scripts":
 // a committed minified copy, made by this script, CI checking it is exactly what this script makes from the sources).
+// A change to this file alone changes no served byte: the gate checks the build (validate.yml) and merges it without rendering.
 //
 //   node tools/minify.mjs DIR                  rewrite DIR's scripts in place, minified
 //   node tools/minify.mjs --build SRC SITE     write SRC's scripts into SITE, minified (the same names)
 //   node tools/minify.mjs --check SRC SITE     minify SRC's scripts in memory; exit 1 naming each SITE file that differs
 //   node tools/minify.mjs --report SRC         print each script's bytes (raw, brotli q4, q11) before and after, as JSON
+//   ... --start-src DIR                        (with --build or --check) make the start file from DIR, not SRC
+// (restructure step 2) SRC is the shipped build, the record and the dev harness left out by file: node tools/parts.mjs
+// assemble --ship src build/ship. The start file is made from the dev build (assemble src build/src): --start-src.
 //
 // (fast500 step 5) Where SITE/index.html loads a start file (/start.vN.js), --build also writes SITE/start.vN.js and
 // --check also holds it: tools/start.mjs makes it from SRC's scripts as SITE/index.html loads them (the hour and site.js
@@ -58,45 +62,15 @@ async function loadTerser() {
 }
 
 // ------------------------------------------------------------------ step 4b: the record out of the shipped world
-function lineIndex(L, text, label, from = 0, to = L.length) {
-  const at = [];
-  for (let k = from; k < to; k++) if (L[k] === text) at.push(k);
-  if (at.length !== 1) die('cut ' + label + ': the line ' + JSON.stringify(text.slice(0, 70)) + ' found ' + at.length + ' times (want 1)');
-  return at[0];
-}
-const CUTS = [
-  { label: 'the record and the switches',
-    start: "  /* ---------------------------------------------------------------- the record and the switches (E0: diag v2's engine side)",
-    before: "  /* ---------------------------------------------------------------- the realms' kit, and the dev harness */",
-    keep: '  var SW = {',   // the one line kept verbatim: the switches' defaults (read throughout the file)
-    stub: [
-      "  /* (minify.mjs, step 4b) the record and the switches are not in the shipped bytes: the switches at their defaults,",
-      "     no record (REC: the constant false, below), and the calls the file makes without an if (REC) are no-ops */",
-      '@KEEP',
-      '  function recMark() {}',
-      '  function recShown() {}',
-      '  function recWrap() {}'] },
-  { label: 'the dev harness',
-    start: '  /* dev: GL objects counted as made and freed (the harness checks they stay bounded); wrapped once the context is made',
-    before: '  /* ---------------------------------------------------------------- start */',
-    stub: ['  /* (minify.mjs, step 4b) the dev harness is not in the shipped bytes: devGL wraps nothing on the shipped page */',
-      '  function devGL() {}', ''] }
-];
+/* (restructure step 2) the record, the switches and the dev harness are no longer cut here: they are dev-only parts
+   (src/dev/world/), left out by file in the shipped build (node tools/parts.mjs assemble --ship), each with its stub
+   (the switches' defaults, and recMark, recShown, recWrap and devGL as no-ops). What is left here is a check that the
+   input is that shipped build, and the dev constants below. */
 function cutRecord(s) {
   let L = s.split('\n');
   const log = [];
-  for (const c of CUTS) {
-    const i = lineIndex(L, c.start, c.label), j = lineIndex(L, c.before, c.label);
-    if (j <= i) die('cut ' + c.label + ': its end comes before its start');
-    let stub = c.stub;
-    if (c.keep) {
-      const k = L.slice(i, j).filter((l) => l.startsWith(c.keep));
-      if (k.length !== 1) die('cut ' + c.label + ': ' + JSON.stringify(c.keep) + ' found ' + k.length + ' times in the cut (want 1)');
-      stub = stub.map((l) => (l === '@KEEP' ? k[0] : l));
-    }
-    log.push(c.label + ': ' + (j - i) + ' lines cut (from line ' + (i + 1) + (c === CUTS[0] ? '' : ', after the cut above') + ')');
-    L = L.slice(0, i).concat(stub, L.slice(j));
-  }
+  if (!L.some((l) => l.startsWith('  function recMark() {}'))) die('the world is not the shipped build (no recMark stub): node tools/parts.mjs assemble --ship src DIR, then minify DIR');
+  if (L.some((l) => l.startsWith('  var REC = null'))) die('the world has the record in it (REC declared): minify the shipped build (node tools/parts.mjs assemble --ship)');
   // the dev constants: each declared once and never assigned again; its declaration taken out (REC's went with the
   // cut) and every reference made the constant false by the compressor (global_defs: a reference to the name only,
   // never a local of the same name), so what they guard (the record's hooks, the harness's branches) is dead code
@@ -115,7 +89,7 @@ function cutRecord(s) {
   }
   return { code, log };
 }
-const DECLS = [   // the declaration lines, each the start of exactly one line (REC's, "var REC = null, RECW = null;", is in the cut)
+const DECLS = [   // the declaration lines, each the start of exactly one line (REC's, "var REC = null, RECW = null;", is in the record, a dev part)
   { name: 'REC' },
   { name: 'STILLMODE', line: '  var STILLMODE = false; ' },
   { name: 'DEVMODE', line: '  var DEVMODE = false; ' },
@@ -254,7 +228,11 @@ function startName(site) {   // (fast500 5) the start file SITE/index.html loads
 const br = (s, q) => zlib.brotliCompressSync(Buffer.from(s, 'utf8'), { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: q } }).length;
 const sizes = (s) => ({ raw: Buffer.byteLength(s, 'utf8'), br4: br(s, 4), br11: br(s, 11) });
 
-const a = process.argv.slice(2);
+const a0 = process.argv.slice(2), si = a0.indexOf('--start-src');
+// (restructure step 2) --start-src DIR: the scripts tools/start.mjs runs, as written (the dev build: the record in it,
+// REC declared); SRC, minified, is the shipped build (the record left out by file). Without it, SRC for both.
+const START_SRC = si >= 0 ? a0[si + 1] : null, a = si >= 0 ? a0.slice(0, si).concat(a0.slice(si + 2)) : a0;
+if (si >= 0 && !START_SRC) die('--start-src needs a folder');
 const T = await loadTerser();
 if (a[0] === '--check') {
   const [src, site] = a.slice(1);
@@ -270,9 +248,9 @@ if (a[0] === '--check') {
   const sn = startName(site);
   if (sn) {
     let out = null;
-    try { out = await (await import('./start.mjs')).makeStart(src, path.join(site, 'index.html'), null, undefined, sn); } catch (e) { console.error('::error::the start file cannot be made: ' + (e && e.message || e)); bad = 1; }
+    try { out = await (await import('./start.mjs')).makeStart(START_SRC || src, path.join(site, 'index.html'), null, undefined, sn); } catch (e) { console.error('::error::the start file cannot be made: ' + (e && e.message || e)); bad = 1; }
     if (out !== null) for (const [p, text] of [[path.join(site, sn), out.start], [path.join(site, out.tableName), out.table]]) {   // (the start file and its table, start-table.vN.js)
-      if (fs.existsSync(p) && fs.readFileSync(p).equals(Buffer.from(text, 'utf8'))) console.log('ok   ' + p + ' is what tools/start.mjs makes from ' + src);
+      if (fs.existsSync(p) && fs.readFileSync(p).equals(Buffer.from(text, 'utf8'))) console.log('ok   ' + p + ' is what tools/start.mjs makes from ' + (START_SRC || src));
       else { console.error('::error::' + p + ' is not what tools/start.mjs makes from ' + src + ' (rebuild: node tools/minify.mjs --build ' + src + ' ' + site + ')'); bad = 1; }
     }
   }
@@ -296,10 +274,10 @@ if (a[0] === '--check') {
   }
   const sn = startName(site);
   if (sn) {
-    const out = await (await import('./start.mjs')).makeStart(src, path.join(site, 'index.html'), null, undefined, sn);
+    const out = await (await import('./start.mjs')).makeStart(START_SRC || src, path.join(site, 'index.html'), null, undefined, sn);
     for (const [n, text] of [[sn, out.start], [out.tableName, out.table]]) {   // (the start file and its table, start-table.vN.js)
       fs.writeFileSync(path.join(site, n), text);
-      console.error('minify: ' + path.join(site, n) + ' made by tools/start.mjs from ' + src + ' (' + Buffer.byteLength(text) + ' bytes)');
+      console.error('minify: ' + path.join(site, n) + ' made by tools/start.mjs from ' + (START_SRC || src) + ' (' + Buffer.byteLength(text) + ' bytes)');
     }
   }
 } else if (a.length === 1 && !a[0].startsWith('--')) {
@@ -309,4 +287,4 @@ if (a[0] === '--check') {
     fs.writeFileSync(p, out);
     console.error('minify: ' + n + ' ' + Buffer.byteLength(input) + ' -> ' + Buffer.byteLength(out) + ' bytes' + (log.length ? ' (' + log.join('; ') + ')' : ''));
   }
-} else die('usage: minify.mjs DIR | --build SRC SITE | --check SRC SITE | --report SRC');
+} else die('usage: minify.mjs DIR | --build SRC SITE | --check SRC SITE | --report SRC  [--start-src DIR]');

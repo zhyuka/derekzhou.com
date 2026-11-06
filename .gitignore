@@ -3,3 +3,5 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
+# (the build) build/src/: src/ assembled (tools/parts.mjs assemble src build/src), never committed
+build/

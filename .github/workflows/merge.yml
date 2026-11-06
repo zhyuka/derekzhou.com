@@ -3,14 +3,15 @@ name: Merge bot
 # The owner's rule, verbatim: "Only if nothing visible changes (Recommended)". When the Gate finishes on a claude/*
 # branch, or a PR from one is marked ready, merge-bot.mjs squash-merges a non-draft PR into main if every gate job is
 # green and its frames are identical to main's (T1, and T2 when it ran); otherwise it labels it needs-owner and
-# comments the preview link. Both triggers run main's copy of this file and of the bot, never a PR's. A PR that
-# changes the bot is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
+# comments the preview link. On a PR opened, reopened or marked ready, the latest finished Gate run of its head
+# commit decides (its branch may have been pushed before the PR existed). Both triggers run main's copy of this
+# file and of the bot, never a PR's. A PR that changes the bot is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
 on:
   workflow_run:
     workflows: [Gate]
     types: [completed]
   pull_request_target:
-    types: [ready_for_review]
+    types: [opened, reopened, ready_for_review]   # (a PR opened ready after its commit's gate already finished is picked up here)
 
 permissions:
   contents: read
@@ -61,5 +62,6 @@ jobs:
           MERGE_TOKEN: ${{ secrets.MERGE_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           RUN="$(cat "$RUNNER_TEMP/run.json")" VERDICT="$RUNNER_TEMP/verdict/verdict.json" node .github/ci/merge-bot.mjs

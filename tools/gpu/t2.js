@@ -95,16 +95,28 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const [vp, hour, seed, mob] = CASES[j.c], tag = j.c + '_' + j.arm + '_r' + j.r, dir = path.join(OUT, 'frames');
       fs.mkdirSync(dir, { recursive: true });
       const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf'].concat(mob ? ['--mobile'] : []);
-      const code = await run(args, prof(slot), 'gstep_' + tag);
-      let res = null; try { res = JSON.parse(fs.readFileSync(path.join(dir, tag + '.json'), 'utf8')); } catch (e) { /* none */ }
-      log('visit ' + tag + ': exit ' + code + (res ? ', shown at frame ' + res.show[j.arm] : ', no result'));
+      // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
+      // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
+      const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
+      let code, res = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        code = await run(args, attempt ? {} : prof(slot), 'gstep_' + tag + (attempt ? '_retry' : ''));
+        res = null; try { res = JSON.parse(fs.readFileSync(path.join(dir, tag + '.json'), 'utf8')); } catch (e) { /* none */ }
+        log('visit ' + tag + (attempt ? ' (retry, fresh profile)' : '') + ': exit ' + code + (res ? ', shown at frame ' + res.show[j.arm] : ', no result'));
+        if (shown(res)) break;
+        // (kept for the diagnosis: harness or site? the visit's whole result, its page's console and its page state,
+        // copied to OUT's top level so the job's report carries them)
+        if (res) { fs.writeFileSync(path.join(OUT, 'noshow_' + tag + (attempt ? '_retry' : '') + '.json'), JSON.stringify({ show: res.show, logs: res.logs, wall: res.wall, pages: res.pages, glsl: (res.glsl[j.arm] || []).length, renderer: res.renderer }, null, 1)); log('NEVER SHOWN ' + tag + ': console ' + JSON.stringify(res.logs[j.arm]).slice(0, 1500)); }
+      }
       if (!res) return Object.assign(j, { ok: false });
+      if (!shown(res)) { R.errors.push('visit ' + tag + ' failed: the world never showed (twice)'); return Object.assign(j, { ok: false, noshow: true }); }
       const one = { frames: res.frames[j.arm], pages: res.pages[j.arm], tiles: res.tiles[j.arm], glsl: res.glsl[j.arm], logs: res.logs[j.arm], dir, show: res.show[j.arm], renderer: res.renderer };
       return Object.assign(j, { ok: code === 0, res: one });
     }), PAR);
     for (const j of done) {
       if (!j.ok) { R.errors.push('visit ' + j.c + ' ' + j.arm + ' r' + j.r + ' failed (see gstep_*.log)'); continue; }
       if (!/RTX 4090/.test(String(j.res.renderer))) R.errors.push('the runner did not get the RTX 4090: ' + j.res.renderer);
+      R.renderer = R.renderer || String(j.res.renderer);   // (the job reports the GPU Chrome got)
       for (const l of j.res.logs || []) if (/Content Security Policy|Refused to/i.test(l)) R.csp.push(j.c + ' ' + j.arm + ': ' + l);
     }
     const get = (c, arm, r) => (done.find((j) => j.c === c && j.arm === arm && j.r === r && j.ok) || {}).res;
@@ -155,7 +167,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     const md = ['## T2: the graphics check on the RTX 4090 (D3D11)', '', '| case | result | equal | noise | changed | page states | null test |', '|---|---|---:|---:|---:|---:|---|']
       .concat(CS.map((c) => { const x = R.cases[c]; return x.error ? '| ' + c + ' | ERROR | | | | | |' : '| ' + c + ' | ' + (x.realN || x.pages.length ? 'CHANGED' : 'identical') + ' | ' + x.equal + ' | ' + x.noise + ' | ' + x.realN + ' | ' + x.pages.length + ' | ' + (x.nullTest ? x.nullTest.realN + ' changed' : '-') + ' |'; }))
       .concat(['', '- frames_identical: **' + R.frames_identical + '**', '- glsl_changed: ' + glslChanged + (glslChanged ? ' (' + R.glsl.changed.join(', ') + ')' : ''), '- bits_identical: ' + bitsIdentical + (R.bits.length ? ' (' + R.bits.map((b) => b.what + ': ' + b.line).join('; ') + ')' : ''),
-        R.glsl.unread && R.glsl.unread.length ? '- not read back (the frames decide): ' + R.glsl.unread.join('; ') : '', '- csp_ok: ' + R.csp_ok + (R.csp.length ? ' (' + R.csp.slice(0, 5).join(' | ') + ')' : ''),
+        R.glsl.unread && R.glsl.unread.length ? '- not read back (the frames decide): ' + R.glsl.unread.join('; ') : '', '- renderer: ' + R.renderer, '- csp_ok: ' + R.csp_ok + (R.csp.length ? ' (' + R.csp.slice(0, 5).join(' | ') + ')' : ''),
         R.errors.length ? '- errors: ' + R.errors.join('; ') : '', '- ' + R.seconds + ' s'].filter(Boolean));
     fs.writeFileSync(path.join(OUT, 'summary.md'), md.join('\n') + '\n');
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
