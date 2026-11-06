@@ -15,7 +15,7 @@ import { parseHeaders, headersFor } from './serve.mjs';
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const URL0 = (A.url || 'https://derekzhou.com').replace(/\/$/, ''), SITE = A.site || 'site', SHA = A.sha || '', TIMEOUT = +(A.timeout || 600);
 const PRIVATE = (A.private || '/studio/,/studio').split(',');
-const NOT_SERVED = ['/CLAUDE.md', '/%43LAUDE.md', '/.github/workflows/validate.yml', '/subset-fonts.sh', '/download-fonts.sh', '/package.json', '/src/world.v8.js', '/tools/minify.mjs'];
+const NOT_SERVED = ['/CLAUDE.md', '/%43LAUDE.md', '/.gitignore', '/.github/workflows/validate.yml', '/subset-fonts.sh', '/download-fonts.sh', '/package.json', '/src/world.v8.js', '/tools/minify.mjs'];
 const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const get = async (p, opt = {}) => { const r = await fetch(URL0 + p, { redirect: 'manual', headers: { 'cache-control': 'no-cache', 'user-agent': 'derekzhou.com-post-deploy-smoke' }, ...opt }); return { status: r.status, headers: r.headers, body: Buffer.from(await r.arrayBuffer()) }; };
 const refsOf = (html) => [...new Set([...html.matchAll(/(?:href|src)="(\/[^"#?]+)"/g)].map((m) => m[1]))];
@@ -64,7 +64,9 @@ for (const r of refs) {
   const imm = /immutable/.test(x.headers.get('cache-control') || '');
   check(x.status === 200 && (r.endsWith('.html') || imm), `${r}: ${x.status}${imm ? ', immutable' : ', NOT immutable'}`);
 }
-for (const p of NOT_SERVED) { const x = await get(p); check(x.status === 404, `${p} not served (${x.status})`); }
+// not served: 404, or site/_redirects sending the spelling home (a 301 to /: Pages' asset-preservation cache still holds
+// some of these from before the move into site/, and a redirect is checked before Pages falls back to it)
+for (const p of NOT_SERVED) { const x = await get(p), loc = x.headers.get('location') || ''; check(x.status === 404 || (x.status === 301 && loc === '/'), `${p} not served (${x.status}${loc ? ' -> ' + loc : ''})`); }
 for (const p of PRIVATE) {
   const x = await get(p), loc = x.headers.get('location') || '';
   check((x.status === 302 && /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com\//.test(loc)) || [401, 403].includes(x.status), `${p} behind Access (${x.status}${loc ? ' -> ' + loc.split('?')[0] : ''})`);
