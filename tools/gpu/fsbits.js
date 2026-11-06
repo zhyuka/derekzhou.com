@@ -38,13 +38,35 @@ void main() {
   const fsOld = fs.readFileSync(path.join(oldDir, prog + '.fs.glsl'), 'utf8'), fsNew = fs.readFileSync(path.join(newDir, prog + '.fs.glsl'), 'utf8');
   // the varyings the fragment shader reads: the land's (vX, the coast's gap) or a mesh's (vC its colour and material,
   // every material 1-6 of both kits; vY the height above the ground; vE the emission)
-  const mesh = /in vec4 vC;/.test(fsOld), full = !/in vec3 vW;/.test(fsOld);   // full: a full-screen pass (the sky): no varyings, gl_FragCoord
+  /* the varyings: the fragment shader's own inputs, each declared by the test vertex stage as the shader declares it
+     (its interpolation qualifier, type and name), so any program pairs: the land's (vW, vN, vX: positions near and
+     far, normals level to steep, the coast's gap under and over its 14 m) and a mesh's (vC its colour and material,
+     every material 1-6; vY the height above the ground; vE the emission) keep their meaningful values; any other
+     input (the beams' vA.., the paper birds' flat vK1..) its components from the point's hash, in [-1, 1]. No input
+     at all: a full-screen pass (the sky), gl_FragCoord only, as before */
+  const IN = [];
+  for (const m of fsOld.matchAll(/(?<=^|[;\s}])((?:centroid|flat|smooth)\s+)?in\s+(?:(?:highp|mediump|lowp)\s+)?(float|vec[234]|int|ivec[234]|uint|uvec[234])\s+([^;]+);/g))
+    for (const nm of m[3].split(',').map((x) => x.trim()).filter(Boolean)) IN.push({ q: (m[1] || '').trim(), t: m[2], n: nm });
+  const full = IN.length === 0, mesh = IN.some((v) => v.n === 'vC' && v.t === 'vec4') && IN.some((v) => v.n === 'vY');
+  let K = 6;
+  const KNOWN = {
+    'vW:vec3': 'vW = vec3(uTG.x + ij.x * uTG.z, uCamT.y - 140.0 + 150.0 * hr(u, 1u), uTG.y + ij.y * uTG.z);',
+    'vN:vec3': 'vN = vec3(hr(u, 3u) * 2.0 - 1.0, mix(1.0, 0.05, hr(u, 2u) * hr(u, 2u)), hr(u, 4u) * 2.0 - 1.0) * (0.7 + 0.6 * hr(u, 5u));',
+    'vX:float': "vX = -6.0 + 30.0 * hr(u, 6u);   // the coast's gap: under and over COAST_H (14 m)",
+    'vC:vec4': mesh ? 'vC = vec4(hr(u, 6u), hr(u, 7u), hr(u, 8u), 1.0 + floor(hr(u, 9u) * 6.0) + 0.25 * hr(u, 10u));' : null,
+    'vY:float': mesh ? 'vY = 20.0 * hr(u, 11u);' : null,
+    'vE:vec2': mesh ? 'vE = vec2(hr(u, 12u), hr(u, 13u));' : null };
+  const gen = (v) => {   // any other input: each component from the hash (another key a component), in [-1, 1]
+    const n = { float: 1, int: 1, uint: 1 }[v.t] || +v.t.slice(-1), base = v.t.replace(/[234]$/, '').replace(/^vec$/, 'float').replace(/^ivec$/, 'int').replace(/^uvec$/, 'uint');
+    const c = []; for (let k = 0; k < n; k++) { K++; c.push(base === 'float' ? 'hr(u, ' + (100 + K) + 'u) * 2.0 - 1.0' : base === 'int' ? 'int(hr(u, ' + (100 + K) + 'u) * 8.0)' : 'uint(hr(u, ' + (100 + K) + 'u) * 8.0)'); }
+    return v.n + ' = ' + (n === 1 ? c[0] : v.t + '(' + c.join(', ') + ')') + ';';
+  };
   if (full) VS = `#version 300 es
 precision highp float; uniform vec4 uTG; uniform vec3 uCamT; uniform uint uSeedT;
 void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
-  VS = VS.replace('VX_DECL', mesh ? 'centroid out vec4 vC; centroid out float vY; centroid out vec2 vE;' : 'out float vX;')
-    .replace('VX_LINE', mesh ? 'vC = vec4(hr(u, 6u), hr(u, 7u), hr(u, 8u), 1.0 + floor(hr(u, 9u) * 6.0) + 0.25 * hr(u, 10u)); vY = 20.0 * hr(u, 11u); vE = vec2(hr(u, 12u), hr(u, 13u));'
-      : 'vX = -6.0 + 30.0 * hr(u, 6u);   // the coast\'s gap: under and over COAST_H (14 m)');
+  else VS = VS.replace('centroid out vec3 vW; centroid out vec3 vN; VX_DECL', IN.map((v) => (v.q ? v.q + ' ' : '') + 'out ' + v.t + ' ' + v.n + ';').join(' '))
+    .replace(/  vW = vec3\(uTG\.x[^\n]*\n  float steep[^\n]*\n  vN = [^\n]*\n  VX_LINE/, IN.map((v) => '  ' + (KNOWN[v.n + ':' + v.t] || gen(v))).join('\n'));
+  if (!full && (/VX_LINE|VX_DECL/.test(VS))) throw new Error('fsbits: the test vertex stage was not made');
   const br = await PW.chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--disable-gpu-program-cache', '--disable-gpu-shader-disk-cache', '--enable-privileged-webgl-extensions'] });
   let res;
   try {
@@ -122,13 +144,19 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
           if (FULL) g.drawArrays(g.TRIANGLES, 0, 3); else g.drawArrays(g.POINTS, 0, N * N);
           const b = new Float32Array(N * N * 4); g.readPixels(0, 0, N, N, g.RGBA, g.FLOAT, b); R.push(b);
         }
-        out.push(Object.assign({ sky, spacing: sp, what }, cmp(R[0], R[1])));
+        // coverage: the share of pixels off the most common output (a read where every pixel came out alike, a shader
+        // that discarded or took one path everywhere, proves nothing: unread)
+        const live = (() => { const m = new Map(); let best = 0, n = R[0].length / 4; for (let i = 0; i < n; i++) { const k = R[0][i * 4] + ',' + R[0][i * 4 + 1] + ',' + R[0][i * 4 + 2] + ',' + R[0][i * 4 + 3]; const c = (m.get(k) || 0) + 1; m.set(k, c); if (c > best) best = c; } return 1 - best / n; })();
+        out.push(Object.assign({ sky, spacing: sp, what, live: +live.toFixed(4) }, cmp(R[0], R[1])));
       }
       return out;
     }, [VS, fsOld, fsNew, SKIES, full, ATT]);
   } finally { await br.close(); }
   fs.writeFileSync(outFile, JSON.stringify(res, null, 1));
-  let bad = 0, tot = 0;
-  for (const r of res) { bad += r.differ; tot += r.of; console.log('sky ' + r.sky + ' ' + r.what + ': ' + r.differ + '/' + r.of + (r.differ ? ' max ' + r.maxAbs.toExponential(2) : '') + (r.nan ? ' nan ' + r.nan : '') + ' (mean |oC| ' + r.meanAbs.toFixed(3) + ')'); }
+  let bad = 0, tot = 0, liveN = 0;
+  for (const r of res) { bad += r.differ; tot += r.of; if (r.live >= 0.05) liveN++; console.log('sky ' + r.sky + ' ' + r.what + ': ' + r.differ + '/' + r.of + (r.differ ? ' max ' + r.maxAbs.toExponential(2) : '') + (r.nan ? ' nan ' + r.nan : '') + ' (mean |oC| ' + r.meanAbs.toFixed(3) + ', live ' + (100 * r.live).toFixed(1) + '%)'); }
+  // IDENTICAL only where the read ran the shader's work: a third of the draws or more with 5% or more of the pixels off
+  // the most common output; else nothing is claimed (exit 1: T2 counts the shader unread, the safe side)
+  if (!bad && liveN * 3 < res.length) { console.log('UNREAD: the output was constant (' + liveN + ' of ' + res.length + ' draws live)'); process.exit(1); }
   console.log((bad ? 'DIFFER: ' : 'IDENTICAL: ') + bad + ' of ' + tot + ' words');
 })().catch((e) => { console.error(e.stack || e); process.exit(1); });
