@@ -22,7 +22,9 @@
   var PDIP = [0.61, 0.032];    // the approach's low point: this share of the way in, this share of the way below
   var PTAU = 0.72;             // the closing's tau-dot
   var PFLARE = 0.6;            // s of tau: the flare (the feet out from 0.15)
-  var PNOTICE = [16, 34];      // s between a bird of the sky noticing the letters (one at a time)
+  var PNOTICE = [16, 34];      // s between the letters' turns to have a bird (one at a time) ...
+  var PSEEK = 20;              // ... each turn looking this long (every PLOOK s) for a bird that can be there soon (PREACH s): the perch moves
+  var PLOOK = 0.5, PREACH = 12;   // with the camera, so only a bird near it or beside its way can come down in a believable time
   var PSTAY = [25, 90];        // s on a perch, by its own wish
   var PFIRST = 6;              // s: the first noticing
   var PJ = { slow: 40, setout: 1.0, first: 3, gap: [12, 22], jerk: 900, jab: 300, rest: 0.6 };
@@ -107,21 +109,24 @@
   function notice(C) {
     VPN[0] = LVC.vx; VPN[1] = LVC.vy; VPN[2] = LVC.vz;
     if (PW.appr || t < PW.nextT || perchCount() >= PMAX || HOST.reduced()) return;
-    PW.nextT = t + pick(POP.r, PNOTICE);
+    if (!(PW.seekEnd > t)) PW.seekEnd = t + PSEEK;   // (this turn's look begins)
+    PW.nextT = t + PLOOK;
+    if (t >= PW.seekEnd) { PW.seekEnd = 0; PW.nextT = t + pick(POP.r, PNOTICE); return; }
     var best = null, bs = 0, i, j;
     for (i = 0; i < FLOCKS.length; i++) {
       var F = FLOCKS[i]; if (F.far || !KINDS[F.kind].perch) continue;
       for (j = 0; j < F.m.length; j++) {
         var b = F.m[j]; if (b.st !== 'fly') continue;
         var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
-        if (d < 60 || d > 420 || fwd < 0.35) continue;
+        if (d < 40 || d > 240 || fwd < 0.2) continue;
         var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be there: the perch moves as the camera does)
-        if (T > 14) continue;
+        if (T > PREACH) continue;
         var sc = (0.5 + POP.r()) / T;
         if (sc > bs) { bs = sc; best = b; }
       }
     }
     if (!best) return;
+    PW.seekEnd = 0; PW.nextT = t + pick(POP.r, PNOTICE);
     /* from a flock: one to three of it come down, the rest fly on */
     var F0 = best.F, nd = F0.m.length > 2 ? 1 + Math.floor(POP.r() * Math.min(3, F0.m.length - 1)) : 1, list = [best];
     for (j = 0; j < F0.m.length && list.length < nd; j++) if (F0.m[j] !== best && F0.m[j].st === 'fly') list.push(F0.m[j]);
@@ -135,16 +140,17 @@
     if (PTR.gone || PTR.down || PTR.steer || HOST.reduced() || PW.appr || t < PW.ptrNext || PW.ptrStill < PJ.setout) return;
     if (PTR.x < 40 || PTR.y < 40 || PTR.x > W - 40 || PTR.y > H - 40) return;
     for (var q = 0; q < PERCHED.length; q++) if (PERCHED[q].P.kind === 'pointer') return;
-    PW.ptrNext = t + pick(POP.r, PJ.gap);
+    PW.ptrNext = t + PLOOK;   // (looked for again soon while it rests; the gap only once a bird comes)
     VPN[0] = LVC.vx; VPN[1] = LVC.vy; VPN[2] = LVC.vz;
     var best = null, bd = 1e9;
     for (var i = 0; i < BIRDS.length; i++) {
       var b = BIRDS[i]; if (b.st !== 'fly' || !b.K.perch || (b.F && b.F.far)) continue;
       var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
-      if (d < 50 || d > 380 || fwd < 0.35) continue;
+      if (d < 40 || d > 240 || fwd < 0.2) continue;
       var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be on the tip: the tip moves with the camera)
-      if (T < bd && T <= 12) { bd = T; best = b; }
+      if (T < bd && T <= PREACH) { bd = T; best = b; }
     }
+    if (best) PW.ptrNext = t + pick(POP.r, PJ.gap);
     if (best) startApproach(best, { kind: 'pointer', lk: 'pointer', li: -1, x: PTR.x, fy: PTR.y, k: P_PTR_K, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false }, 0);
   }
 
@@ -389,7 +395,7 @@
     if (HOST.reduced() || FORCED) return;
     if (liveCount() > (LIVE_N[skyCls()] || 6) + 4) return;
     var r = vstream(8000 + (++PW.k)), kind = weighted(r, [['gull', 70], ['crow', 20], ['swallow', 10]]);
-    var b0 = { S: SORTS[kind], sz: B_SPAN * SORTS[kind].size * MODEL_K }, D = perchDepth(b0, 1.6);
+    var b0 = { S: SORTS[kind], sz: B_SPAN * SORTS[kind].size * MODEL_K }, D = perchDepth(b0, 0.55);   // (a little beyond the perches: its span about 2.3 a mid bird's there, so it can come down soon)
     rayAt(C, x, y, D, CQ);
     var F = newFlock(CQ[0], CQ[1], CQ[2], Math.atan2(C.f[0], C.f[2]) + (x < W / 2 ? -0.9 : 0.9), skyCls(), ['single', kind, 1]), b = F.lead;
     b.v[0] = LVC.vx + C.u[0] * 3; b.v[1] = LVC.vy + C.u[1] * 3; b.v[2] = LVC.vz + C.u[2] * 3;
@@ -414,5 +420,5 @@
     else if (b.st === 'perch') { if (b.P.leaving) leavingStep(b, dt, C); else perchedStep(b, dt, C); }
   }
   function perchFree(b) { var i = PERCHED.indexOf(b); if (i >= 0) PERCHED.splice(i, 1); if (PW.appr === b) PW.appr = null; b.P = null; }
-  function perchReset() { PERCHED.length = 0; PW.appr = null; PW.nextT = t + PFIRST; PW.ptrNext = t + PJ.first; PW.ledges = null; PW.jabT = -1e9; }
+  function perchReset() { PERCHED.length = 0; PW.appr = null; PW.nextT = t + PFIRST; PW.ptrNext = t + PJ.first; PW.ledges = null; PW.jabT = -1e9; PW.seekEnd = 0; }
   function gss(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
