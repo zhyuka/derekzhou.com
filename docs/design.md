@@ -88,8 +88,10 @@ world is never changed for them: text #fdfcf7 (the lettered name, the
 line, the links), the dimmed grey #ebeffa (the credit, the links'
 underline), the focus ring #f4e2b0, selection #3b3f55 under the light
 text: the same in the stylesheet (:root) and in the world (constants),
-on every sky and at every moment. bg #f9f8f1 (Samara's cream) stays the
-paper: print, and the colour under everything. color-scheme stays light
+on every sky and at every moment. No colour of its own lies under
+the sky: the body's background is the still sky's gradient (the old
+cream ground, #f9f8f1, which that gradient always covered, went in
+the deep sweep), and print is on white. color-scheme stays light
 (no form controls, no scrollbars). Type is matte: no text-shadow, no
 glow. Links are plain underlined words (1px, dimmed underline, .18em
 offset); nothing reacts to hover; OS cursors only. The name and the type

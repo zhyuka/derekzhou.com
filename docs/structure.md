@@ -83,7 +83,10 @@ the script has `@glsl NAME` where it was, and assemble writes the text
 back exactly. Edit a shader in its .glsl file; then node tools/build.mjs
 --plain build/site and node test/shaders.mjs build/site --write update the golden texts (test/golden/shaders/: every
 program the reference device issues), committed with the manifest.
-tools/minify.mjs makes the served five from build/ship/: terser (pinned in package.json) compresses and
+tools/minify.mjs makes the served five from build/ship/: the switches'
+line cut out of the world (an exact, counted cut; every switch then read
+as its default) and the ink birds' HOST.dev read as false, then terser
+(pinned in package.json) compresses and
 mangles, every string's value and every shader's text the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker; where index.html loads the start file, tools/start.mjs makes it
@@ -134,8 +137,9 @@ hook cut out by counted edits (see Verify), the served copies built
 from them. Nothing on the page reads such a hook. The record's code and
 the dev helpers those hooks called are in src/dev/world/, in the dev
 build only, unreachable (the switches keep their defaults); the served
-copy is built without them (assemble --ship: the switches' defaults kept,
-and the four functions called without a guard kept as empty ones). The
+copy is built without them (assemble --ship: the four functions called
+without a guard kept as empty ones; tools/minify.mjs: every switch read
+as its default, and the ink birds' HOST.dev read as false). The
 comments, in src/ (a served copy keeps only its first two lines and the
 INIT-END marker), keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,

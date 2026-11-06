@@ -1,9 +1,13 @@
 name: Post-deploy
 
 # After a push to main (Cloudflare Pages deploys main by its own git integration): wait, up to 10 minutes, for
-# https://derekzhou.com/ to serve this commit, then smoke it (smoke.mjs: every referenced file 200 and immutable, the
+# https://derekzhou.com/ to serve this commit's build, then smoke it (smoke.mjs: every referenced file 200 and immutable, the
 # CSP and HSTS, the 404 page, the private paths behind Access, the repository's own files not served). On a failure
 # an issue is opened (one per commit), for the owner's one-click rollback in Cloudflare.
+# With build watch paths set in Pages, a push that touches no deploy input (.github/ci/deploy-inputs.txt: what
+# tools/build.mjs and npm ci read) is not built, so main's tip may never be live. This commit's build is the newest
+# main commit's (first parent) that touched one, and every commit since builds the same bytes: the smoke accepts
+# /build.txt naming any of them (so it holds with watch paths set or not).
 on:
   push:
     branches: [main]
@@ -20,10 +24,21 @@ concurrency:
 
 jobs:
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The commit whose build is live (the newest that touched a deploy input)
+        id: live
+        run: |
+          mapfile -t inputs < <(node .github/ci/deploy-inputs.mjs)
+          built=$(git log -1 --first-parent --format=%H "$GITHUB_SHA" -- "${inputs[@]}")
+          [ -n "$built" ] || built="$GITHUB_SHA"
+          ok=$( { echo "$built"; git rev-list --first-parent "$built..$GITHUB_SHA"; } | paste -sd, -)
+          echo "built=$built" >> "$GITHUB_OUTPUT"; echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          echo "built: $built ($(git rev-list --count --first-parent "$built..$GITHUB_SHA") later commit(s) touch no deploy input)"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -31,10 +46,12 @@ jobs:
         run: |
           # The live site is tools/build.mjs's output (each script and stylesheet named by its content, every reference
           # rewritten, build.txt the commit), not site/ itself: the smoke compares against that build.
+          # (Built with GITHUB_SHA the live commit, so build.txt is the one it serves; its inputs are this commit's.)
+          export GITHUB_SHA="${{ steps.live.outputs.built }}"
           if [ -f tools/build.mjs ]; then npm ci --no-audit --no-fund --ignore-scripts && node tools/build.mjs "$RUNNER_TEMP/dist"; else cp -r site "$RUNNER_TEMP/dist"; fi
       - name: Wait for the live site to serve this commit, then smoke it
         id: smoke
-        run: node .github/ci/smoke.mjs --url https://derekzhou.com --site "$RUNNER_TEMP/dist" --sha "$GITHUB_SHA" --timeout 600 --out "$RUNNER_TEMP/smoke.json"
+        run: node .github/ci/smoke.mjs --url https://derekzhou.com --site "$RUNNER_TEMP/dist" --sha "${{ steps.live.outputs.ok }}" --timeout 600 --out "$RUNNER_TEMP/smoke.json"
       - name: Open an issue
         if: failure()
         env:
