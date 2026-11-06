@@ -422,26 +422,9 @@
       src = TG.bu[b]; sw = BDIM[b * 2]; sh = BDIM[b * 2 + 1];
     }
     prof('bloom');
-    // -------- light shafts, when the sun is near the view
-    var sd = L.sunDir, sf = sd[0] * CAM.f[0] + sd[1] * CAM.f[1] + sd[2] * CAM.f[2], shaftK = 0, sx = 0, sy = 0;
-    var qw = Math.ceil(W / 4), qh = Math.ceil(H / 4);
-    if (sf > 0.05 && (L.shafts || 0) > 0) {
-      sx = 0.5 + 0.5 * (sd[0] * CAM.r[0] + sd[1] * CAM.r[1] + sd[2] * CAM.r[2]) / sf / FR.tanX;
-      sy = 0.5 + 0.5 * (sd[0] * CAM.u[0] + sd[1] * CAM.u[1] + sd[2] * CAM.u[2]) / sf / FR.tanY;
-      shaftK = L.shafts * smooth(0.05, 0.4, sf) * (1 - smooth(0.6, 1.4, Math.max(Math.abs(sx - 0.5), Math.abs(sy - 0.5)) * 2 - 1 + 0.6));
-    }
-    if (shaftK > 0.001) {
-      useTarget(TG.sm, qw, qh); RES[0] = qw; RES[1] = qh;
-      P = EP.smask; gl.useProgram(P.p); setFrameUniforms(P, V);
-      gl.uniform4f(P.u.uSh, sx, sy, 0.45, 0); gl.uniform4f(P.u.uShS, sUx, sUy, hUx, hUy); gl.uniform4f(P.u.uShL, sUx - 0.5 / TG.W, sUy - 0.5 / TG.H, hUx - 0.5 / TG.cloud.w, hUy - 0.5 / TG.cloud.h);
-      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, TG.scene.t); gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, CLT.t);
-      gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_2D, TG.lind.t); gl.activeTexture(gl.TEXTURE0);
-      dc(gl.TRIANGLES, 3);
-      useTarget(TG.sb, qw, qh); P = EP.sblur; gl.useProgram(P.p);
-      gl.uniform4f(P.u.uSh, sx * qw / TG.sm.w, sy * qh / TG.sm.h, 0, 0.9); gl.uniform2f(P.u.uRes2, TG.sm.w, TG.sm.h); gl.uniform2f(P.u.uLim, (qw - 0.5) / TG.sm.w, (qh - 0.5) / TG.sm.h);
-      gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, TG.sm.t); gl.activeTexture(gl.TEXTURE0);
-      dc(gl.TRIANGLES, 3);
-    }
+    /* (phone lane) no light shafts: every sky's amount is 0 (the owner, 2026-11-05: "No rays at dusk/dawn"), so their
+       two passes and programs are gone; the composite's shaft term reads TG.sb, a 1 x 1 target nothing draws (0), at 0 */
+    var shaftK = 0, qw = Math.ceil(W / 4), qh = Math.ceil(H / 4);
     prof('shafts');
     // -------- the composite, to the window
     useTarget(DIRECT && !TRIAL ? null : TG.win, OUT.w, OUT.h); RES[0] = W; RES[1] = H;   // (round 3: straight onto the canvas when it is the world's size; E1: stage G's trials offscreen)
