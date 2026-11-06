@@ -2,7 +2,8 @@
 // _headers combined per matching rule, _redirects first match, pretty URLs, nearest 404.html), with the text types
 // compressed as Cloudflare compressed the live files on 2026-11-03 (brotli quality 4 matched every file within 0.2%:
 // world.v1.js 252,995 B here against 252,627 B from derekzhou.com; gzip level 6 for clients without br). Each file
-// compressed once and kept. Logs one JSON line a request.
+// compressed once and kept; a file the deploy build stored compressed (Content-Encoding in its _headers block) passed
+// through, or decoded for a client without that encoding, as Cloudflare does. Logs one JSON line a request.
 'use strict';
 const http = require('http'), fs = require('fs'), path = require('path'), zlib = require('zlib');
 const ROOT = fs.realpathSync(process.argv[2]), PORT = +process.argv[3];
@@ -20,6 +21,12 @@ function hdrs(p) { const h = {}; for (const [rx, lst] of HEAD) if (rx.test(p)) f
 function send(req, res, code, body, ctype, p, extra) {
   const h = Object.assign(hdrs(p), extra || {}); h['content-type'] = ctype;
   const ae = req.headers['accept-encoding'] || '';
+  // a file stored compressed (its _headers block says Content-Encoding: the deploy build's Brotli 11), as Cloudflare
+  // serves it: as it is to a client that accepts that encoding, else decoded first (and then compressed as any other)
+  if (h['content-encoding'] && body.length) {
+    if (new RegExp('\\b' + h['content-encoding'] + '\\b').test(ae)) { h['content-length'] = body.length; res.writeHead(code, h); res.end(req.method === 'HEAD' ? undefined : body); console.log(JSON.stringify({ t: Date.now(), m: req.method, p: req.url, code, len: body.length, enc: h['content-encoding'], stored: true })); return; }
+    body = h['content-encoding'] === 'br' ? zlib.brotliDecompressSync(body) : h['content-encoding'] === 'gzip' ? zlib.gunzipSync(body) : body; delete h['content-encoding'];
+  }
   if (body.length && /^(text\/|application\/(javascript|json)|image\/svg)/.test(ctype)) {
     const enc = /\bbr\b/.test(ae) ? 'br' : /gzip/.test(ae) ? 'gzip' : null;
     if (enc) { const key = enc + ':' + p + ':' + body.length; let c = CACHE.get(key); if (!c) { c = enc === 'br' ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: BRQ, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: body.length } }) : zlib.gzipSync(body, { level: GZL }); CACHE.set(key, c); } body = c; h['content-encoding'] = enc; h.vary = 'Accept-Encoding'; }

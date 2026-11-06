@@ -20,6 +20,14 @@ fails on any script or stylesheet in the build that no page loads (the
 plan's worker aside: the world starts it, by name; the start file's table:
 the start file starts it), so git mv rather than copy.
 
+The build also stores every content-named script and the stylesheet
+Brotli-compressed at quality 11, its \_headers block saying
+Content-Encoding: br (2026-11-06). Cloudflare compresses what it serves
+at about quality 4 (world.js 143 KB on the wire against 121 KB at 11),
+and passes a response that already carries Content-Encoding through to a
+client that accepts it, decoding it for one that does not (checked on a
+preview). tools/gpu/cfserve.js serves such a file the same way.
+
 By hand, still: what the build does not rename. The fonts (.subN →
 .subN+1) and the images: bump the name and update every reference in the
 same commit (site/index.html, site/404.html, site/\_headers' Link preloads

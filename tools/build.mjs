@@ -28,6 +28,12 @@
 // name's hash is its bytes'; no old name is referenced anywhere; every page src/href, Link preload, _headers file path
 // and new Worker('/...') names a file in the build; every script and stylesheet is loaded by a page or another script
 // and has its own _headers block with an immutable Cache-Control.
+// (2026-11-06) Then every content-named script and stylesheet is stored Brotli-compressed at quality 11 (the window
+// 2^24, the size hinted) and its _headers block says Content-Encoding: br. Cloudflare compresses what it serves at
+// about quality 4 (world.js 143,281 B on the wire against 121,022 B at 11); a file whose response already carries
+// Content-Encoding is passed through to a client that accepts br, and decoded for one that does not (checked on a
+// preview: br 121,022 B, the original once decoded; gzip and identity the original). The content names are the hashes
+// of the bytes before compression, so the names do not change. The HTML, the fonts and the images are left to Cloudflare.
 //
 // The manifest: one line per file, "<sha256>  <path>", paths relative to the folder with '/' separators, sorted by
 // path in code-unit order; build.txt is left out (it changes with every commit).
@@ -40,6 +46,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import crypto from 'crypto';
+import zlib from 'zlib';
 import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { makePlan, workerName } from './plan.mjs';
@@ -193,10 +200,27 @@ function verify(out, map) {   // the deploy build's checks; returns a list of er
   return err;
 }
 
+function precompress(out) {   // each content-named script and stylesheet stored as Brotli 11, its block told so
+  const H = path.join(out, '_headers'); let h = fs.readFileSync(H, 'utf8'); const done = [];
+  for (const n of fs.readdirSync(out).filter((f) => HASHED.test(f)).sort()) {
+    const p = path.join(out, n), raw = fs.readFileSync(p);
+    const br = zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11, [zlib.constants.BROTLI_PARAM_LGWIN]: 24,
+      [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: raw.length } });
+    if (!zlib.brotliDecompressSync(br).equals(raw)) die(n + ': its Brotli bytes do not decode to it');
+    const re = new RegExp('^/' + n.replace(/[.]/g, '\\.') + '\n', 'm'), m = re.exec(h);
+    if (!m) die(n + ': no _headers block of its own to say Content-Encoding in');
+    h = h.slice(0, m.index + m[0].length) + '  Content-Encoding: br\n' + h.slice(m.index + m[0].length);
+    fs.writeFileSync(p, br); done.push([n, raw.length, br.length]);
+  }
+  fs.writeFileSync(H, h);
+  return done;
+}
+
 async function deploy(out, stamp) {   // the plain build, named by content, checked
   await build(out, null);
   const map = contentNames(out), err = verify(out, map);
   if (err.length) die('the deploy build fails its checks:\n  ' + err.join('\n  '));
+  precompress(out);
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
   return map;
 }
@@ -228,14 +252,16 @@ if (a[0] === '--check' && a.length === 1) {
   const h1 = path.join(tmp, 'one-named'), h2 = path.join(tmp, 'two-named');
   fs.cpSync(d1, h1, { recursive: true }); fs.cpSync(d2, h2, { recursive: true });
   const map = contentNames(h1); contentNames(h2);
-  const err = verify(h1, map), n1 = manifest(h1);
+  const err = verify(h1, map);
+  if (!err.length) { precompress(h1); precompress(h2); }
+  const n1 = manifest(h1);
   for (const l of diff(n1, manifest(h2), 'deploy build one', 'deploy build two')) err.push('not deterministic: ' + l);
   fs.rmSync(tmp, { recursive: true, force: true });
   if (err.length) { for (const e of err) console.error('::error::the deploy build: ' + e); process.exit(1); }
   const n = m1.trim().split('\n').length, h = (m) => crypto.createHash('sha256').update(m).digest('hex').slice(0, 16);
   console.log('build: ok: two builds, the same bytes, site/ holding none of the ' + written.length + ' built files (' + n + ' files, manifest sha256 ' + h(m1) + ', ' +
     ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
-  console.log('build: ok: the deploy build, the same from both, named by content, every reference resolved (manifest sha256 ' + h(n1) + '):');
+  console.log('build: ok: the deploy build, the same from both, named by content, every reference resolved, the scripts and stylesheet stored as Brotli 11 (manifest sha256 ' + h(n1) + '):');
   for (const [o, nn] of map) console.log('  ' + o + ' -> ' + nn);
 } else if (a[0] === '--manifest' && a.length === 2) {
   process.stdout.write(manifest(a[1]));
