@@ -358,7 +358,7 @@
       if (lvSeen(x, y, z, C, { fadeS: fd })) { lvWhy('seen'); STATS.lvSeenLast = [Math.round(LVP.x), Math.round(LVP.y), +LVP.n.toFixed(3), Math.round(LVP.z), +(Tm || 0).toFixed(1), +(wl || 0).toFixed(1), +(dd || 0).toFixed(1), Math.round(A), +C.f[0].toFixed(2), +C.f[1].toFixed(2), +C.f[2].toFixed(2), +LVC.vx.toFixed(1), +LVC.vz.toFixed(1)]; continue; }   // (never born in view with its ink showing)
       P = lvMake(beh, x, y, z, h, cls, what);
       if (!P) { lvWhy('slots'); return null; }
-      P.role = role; P.st.h0 = P.st.hb;
+      P.st.h0 = P.st.hb;
       var RT = lvRate(P, C, beh === 'commute' || beh === 'migrant' ? LV_RATE_T.near : LV_RATE_T.far), cap = lvCap();
       if (RT.max > cap) { aK = Math.min(4, aK * RT.max / cap * 1.1); lvWhy('fast'); LIVE.k--; continue; }
       if (!RT.seen) { lvWhy('unseen'); LIVE.k--; continue; }
