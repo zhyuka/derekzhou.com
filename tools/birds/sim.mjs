@@ -69,7 +69,7 @@ export function makeSim(o = {}) {
     sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => 1, forced: () => FORCED,
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
     grade: () => null, light: () => LIGHT, words: () => WORDS,
-    bindTextures: () => !!o.draw, target() {}, cloudBetween: () => 0, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
+    bindTextures: () => !!o.draw, target() {}, cloudBetween3: (ax, ay, az, P, v) => { v[0] = v[1] = v[2] = 0; return v; }, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
     seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = groundAt(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
     rng: (salt) => { let a = (seed ^ salt) >>> 0; return () => { a = (a + 0x9e3779b9) | 0; let q = a ^ (a >>> 16); q = Math.imul(q, 0x21f0aaad); q ^= q >>> 15; q = Math.imul(q, 0x735a2d97); return ((q ^ (q >>> 15)) >>> 0) / 4294967296; }; },
     reduced: () => false, budget: () => Infinity, count() {}, courseTrust: () => SPEED, time: () => t };
