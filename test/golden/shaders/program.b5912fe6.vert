@@ -611,7 +611,7 @@ centroid out vec3 vW;centroid out vec3 vN;centroid out vec4 vC;centroid out floa
 mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.0,-s,0.0,1.0,0.0,s,0.0,c);}
 mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.0,0.0,0.0,0.0,c,s,0.0,-s,c);}
 mat3 rotZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0.0,-s,c,0.0,0.0,0.0,1.0);}
-void main(){
+void scMain() {
 int n=int(uSc.y),id=gl_InstanceID;
 ivec2 base=ivec2(floor(uCam.xz/uSc.x));
 ivec2 cell=base+ivec2(id%n,id/n)-ivec2(n/2);
@@ -636,4 +636,9 @@ vW=vec3(pos.x,gy-uSc2.z*s,pos.y)+lp;
 vN=R*(aN/max(sc,vec3(1e-4)));
 vC=vec4(aC.rgb*2.0,floor(aC.a*255.0+0.5));vY=lp.y-uSc2.z*s;vE=vec2(aE*15.9375,r7);
 gl_Position=s>1e-4?uVP*vec4(vW-uCam,1.0):vec4(0.0,0.0,-2.0,1.0);
+}uniform int uScat;
+void main(){
+if(uScat==1){scMain();return;}
+vW=aP;vN=aN;vC=vec4(aC.rgb*2.0,floor(aC.a*255.0+0.5));vY=aY;vE=vec2(aE*15.9375,0.0);
+gl_Position=uVP*vec4(vW-uCam,1.0);
 }

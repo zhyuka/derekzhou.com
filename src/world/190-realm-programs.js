@@ -21,9 +21,10 @@
     var HSH = !!(HPS && surfs[0].height === 'Hd' && surfs[0].levels === 10 && GN === 96), HSP = HSH && EXT.hp;   // (HSH: the sources carry both bodies, on every device; HSP: this device runs the split, HPSPLIT in its DEFS)
     for (i = 0; i < surfs.length; i++) P.surf.push({ P: C(pre + (HSH && HP_LAND && i === 0 ? '\n#ifdef HPSPLIT\n' + VS_TERRAIN_SPLIT(surfs[i].gap) + '\n#else\n' + VS_TERRAIN(surfs[i].height, surfs[i].gap) + '\n#endif\n' : VS_TERRAIN(surfs[i].height, surfs[i].gap)), pre + FS_TERRAIN(surfs[i].height, surfs[i].shade), 'surface' + i), g0: surfs[i].g0 || 0.5, levels: surfs[i].levels || 10, split: HSP && HP_LAND && i === 0, yb: surfs[i].yb || null });
     P.hp = HSP ? HP_PROGS.map(function (n) { return C(VS_FULL, pre + (n === 'sites' || n === 'sitesX' ? HPS : '') + HP_GRIDW + HP_MAIN[n], 'hp.' + n); }) : null;
-    P.lm = C(pre + VS_LANDMARK, pre + FS_LANDMARK(def.landmarkShade || 'shadeStone'), 'landmark');
+    var LMSC = !!(def.scatter && def.scatter.length) && (def.scatterShade || def.landmarkShade || 'shadeStone') === (def.landmarkShade || 'shadeStone');   // (world-perf lane: one program where they shade alike)
+    P.lm = C(LMSC ? preG + VS_LMSC : pre + VS_LANDMARK, pre + FS_LANDMARK(def.landmarkShade || 'shadeStone'), 'landmark');
     P.pr = C(VS_FULL, pre + (HSH ? '\n#ifdef HPSPLIT\n' + FS_PROBE_SPLIT + '\n#else\n' + FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null) + '\n#endif\n' : FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null)), 'probe');   // (one source on every device: the body chosen by DEFS)
-    P.sc = def.scatter && def.scatter.length ? C(preG + VS_SCATTER, pre + FS_LANDMARK(def.scatterShade || def.landmarkShade || 'shadeStone'), 'scatter') : null;
+    P.sc = LMSC ? P.lm : def.scatter && def.scatter.length ? C(preG + VS_SCATTER, pre + FS_LANDMARK(def.scatterShade || def.landmarkShade || 'shadeStone'), 'scatter') : null;
     P.pt = def.particles ? C(HEAD + hk + FRAME_U + LIB + GROUND_LIB + VS_PARTICLE, HEAD + hk + FRAME_U + LIB + FS_PARTICLE, 'particle') : null;   // (fast500 step 8: without the realm's GLSL, which the particles never call)
     P.rb = def.ribbons ? C(preG + VS_RIBBON, preG + FS_RIBBON, 'ribbon') : null;
     P.sky = /SKY_HOOK/.test(hk) ? C(VS_FAR, pre + SKY_BODY, 'sky') : null;
