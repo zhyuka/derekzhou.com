@@ -102,25 +102,96 @@ nothing else: no field records how a bird was born.
 
 ## Interactions and behaviours
 
-(This slot is for the hub's ranked catalogue of real bird behaviours and delight.
-Each entry: the behaviour, its source, the state it belongs to, how it shows, and
-whether it is in this PR.)
+From the hub's research on real behaviour and delight (2026-11-06; sources there). Every
+entry obeys the rules above. "In" means in this PR; "later" and "out" are logged so
+nothing is dropped silently.
 
-Already in the design, from the audit:
+### The landing (the fix for "magnetized")
 
-| behaviour | state | how it shows |
-|---|---|---|
-| turn about on a perch (face flips through the side-on profile) | PERCHED | a bird faces left, then right |
-| look about, scan | PERCHED | small yaws and pauses |
-| resettle, a hop along the ledge | PERCHED | moves a little along the letter |
-| a rouse, a stretch | PERCHED | (kept from today) |
-| flock members land one after another | APPROACH / LAND | a pair or a flight settles on the words |
-| a perched bird lifts off to join a passing flock | TAKE OFF -> FLOCK | it flies up into the flight's place |
-| a bird climbs out into the distance, or drops into low cloud | CRUISE | it shrinks into the haze, or is hidden by cloud |
-| a bird swings past the viewer | CRUISE | it grows large and passes out of the view's side |
-| a moving pointer: the bird on the tip grips, lags and flaps to balance; it hops to follow, or leaves | PERCHED | no magnet |
-| circling the temple and the island (HOST.places) | CRUISE (soar) | a slow ring about the place, climbing |
-| a jab startles | PERCHED -> TAKE OFF | (kept) |
+- Landing is flown in the perch's moving frame. Letters and the pointer's tip ride
+  with the camera, like a ferry's rail: the bird first matches the perch's velocity,
+  then closes on it.
+- The path is a swoop: down with strong beats to a low point about 3% of the
+  approach distance below the perch, about 60% of the way in. Then up into the perch,
+  pitching up and stalling. It rises into the perch, never down and in.
+- Braking holds tau-dot at 0.6-0.8. The feet go out about 150 ms before contact. It
+  touches down at about 0.6 of take-off speed. From contact the feet are fixed to
+  the perch: no easing, no lag.
+- A moving tip is led (proportional navigation, gain under 3), never chased.
+- At most one go-around, looping 3 spans or more out, then the bird flies on.
+- Settling: the wings fold in 2-3 small adjustments over 0.5-1 s.
+
+### Take-off
+
+- A crouch and a lean toward the way out (0.1-0.3 s), a leg-driven leap, then 3-5
+  strong beats, the first the biggest, at about 20% over the level rate; it climbs
+  at 20-40 degrees, or drops then flaps from a high perch.
+- It leaves on a goal from the same list as any bird: join a flock, fly out into the
+  distance, toward and past the viewer, or into low cloud. Never a fade.
+
+### Perched life
+
+- It faces into the wind; a wind shift turns a row one bird after another over
+  0.2-1 s.
+- Small body turns of 10-30 degrees every 5-20 s, and hop-turns of 90 degrees or
+  more (0.2-0.4 s) every 15-90 s; never rotating in place.
+- Comfort moves (both wings raised as a lifted M, a stretch, a rouse) take at most
+  10% of perched time, at irregular gaps with a minimum between them.
+- Spacing 1-2 body widths, pairs closer; a newcomer landing between two makes them
+  side-step, 3 steps at most.
+- The bird at the end of a row looks out.
+- Walking or hopping along a stroke, pausing about half the time; never on an
+  underline.
+- A jab sends a startle down the row, bird to bird 120-250 ms apart; 10-20% stay. At
+  most once per 30 s.
+- On the pointer's tip: the feet locked to the tip, the body swinging like a
+  pendulum (2-3 Hz); it hops off when the tip moves fast.
+
+### Flocks
+
+- A flock sends 1-3 birds down to the letters and picks them up again, or another
+  flock does; the rest fly on without bending their path.
+- Pairs are about one flight in 3-4; a young bird keeps looser station.
+- Each bird reacts with its own latency (80-250 ms): no two in the same frame.
+- In a V the wingbeat runs down each leg in spatial phase; directly behind, in
+  anti-phase; elsewhere unlocked.
+
+### Against the fake look (each is a test)
+
+- Headings turn only through bank in the air (rate = g tan(bank) / V), and only by a
+  step on a perch: no smoothed headings.
+- No symmetry: size ±5-10% and beat rate ±5% per bird; unequal V legs.
+- No constant speed: ±8-12%, gliding at about 0.88 of flapping speed, faster in a
+  dive.
+- No shared timers: idles at random intervals per bird.
+- No pop: across any add or remove, the frames before and after differ by zero
+  pixels. Added or removed only beyond under 0.5 px at the largest window, or wholly
+  hidden.
+
+### Caps
+
+- One noticeable event at a time. At most 6 birds on the letters.
+
+### Taken, later, out
+
+| idea | here |
+|---|---|
+| A1 the swoop landing, one go-around | in |
+| A2 the take-off, intention movements | in |
+| A3 perched life: wind, turns, comfort, spacing, edge bird, contagion | in |
+| A4 flocking: splits, merges, phase, latency | in |
+| A6 flocks visiting the letters (B8) | in |
+| B1-B5, B7, B9, B10 | in |
+| B6 riding the cursor with balance | in |
+| B11 a click bird gets a loose circle from a neighbour | in, only if the circle stays 3 spans out; else later |
+| B12 dusk roost lines and the night tuck on the sky clock | in if the sky exposes its time of day to the birds; else later |
+| B13 a gust front as one world event | in |
+| B14 thermal kettles over landmarks | in (the temple and island circling, HOST.places) |
+| B15 a goose whiffling down to a lake | later |
+| B16 a rare close fly-by | in (a cruise goal, once per 2-5 min at most) |
+| B17 birds banking away from a dragged camera that would pass close | not built: waiting on the owner. Until then the camera never passes through a bird (the existing near-plane rule) |
+| murmurations, mobbing, swerving from the cursor, anything drawn to the visitor, crumbs, frequent rolls | out |
+| water landings, drying wings after cloud | later |
 
 ## What is wrong today (the audit, R1-R11)
 
