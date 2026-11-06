@@ -72,7 +72,7 @@
     return true;
   }
 
-  var tmp3 = {}, DRAWQ = [], DQD = [];
+  var tmp3 = {}, DRAWQ = [], DQD = [], TONE_AT = 0;
   /* every bird of the world the window can show, posed afresh every frame: the nearest MAXP (a speck past them changes
      no pixel: far off, the air leaves nothing of it). No opacity but the world's own air (in the pass): no fade in
      time, at an edge, near or far */
@@ -81,6 +81,7 @@
     measureIf();
     var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
     lightFrame(L);
+    var ft = t - back, fdt = clamp(ft - TONE_AT, 0, 0.25); TONE_AT = ft;   // the time since the last frame drawn, from the steps' clock: the tone eases the same at any frame rate
     DRAWQ.length = 0; DQD.length = 0;
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
@@ -107,7 +108,7 @@
       var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
       if (!ok || !projectBird(s, C)) { s.on = false; continue; }
       s.on = true; s.op = 1; s.lastOp = 1;
-      lightBird(s, !moving, 1 / 60);
+      lightBird(s, !moving, fdt);
       cloudWeights(s, C);
       packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
       nB++;
