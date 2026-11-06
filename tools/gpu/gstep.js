@@ -271,6 +271,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     p.on('console', (m) => { if (m.type() === 'error') logs.push(m.text().slice(0, 300)); });
     p.on('pageerror', (e) => logs.push('pageerror: ' + e.message));
     await p.addInitScript(INIT);
+    if (A.watch) await p.addInitScript(require('./glwatch.js'));   // (tools/gpu: --watch, WebGL watched in the harness: a never-shown visit's trail)
     if (REC) await p.route(/^http:\/\/127\.0\.0\.1:\d+\/(index\.html)?(\?.*)?$/, async (r) => {
       const res = await r.fetch(); let body = await res.text();
       if (!/<html lang="en">/.test(body)) throw new Error('no <html lang="en"> to mark');
@@ -365,6 +366,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     res.frames[o.arm.name] = o.recs; res.pages[o.arm.name] = o.pages;
     res.logs[o.arm.name] = o.logs.slice(0, 20);
     res.settle[o.arm.name] = await o.p.evaluate(() => (window.__SETTLED ? window.__SETTLED() : null));
+    if (A.watch) { (res.watch = res.watch || {})[o.arm.name] = await o.p.evaluate(() => { if (!window.__glw) return null; const w = window.__glw(); const sky = document.querySelector('canvas.sky'); return Object.assign(w, { canvas: sky ? { cls: sky.className, w: sky.width, h: sky.height } : null, ready: document.readyState, scripts: [...document.scripts].map((s) => (s.src || '').replace(/^.*\//, '')).filter(Boolean) }); }); }
     res[o.arm.name + '_gate'] = await o.p.evaluate(() => (window.__GATE ? window.__GATE() : null));
     if (REC) res[o.arm.name + '_rec'] = await o.p.evaluate(() => { const r = window.__worldRec && window.__worldRec.get(false); return r ? { waits: r.bootStages.waits || null, marks: (r.bootStages.marks || []).filter((m) => /flight|D world|shown|H first/.test(m[0])), keys: r.bootStages.firstKeys ? r.bootStages.firstKeys.keys.map((e) => [e[0], e[2], e[3]]) : null, regs: r.scripts || r.regs || null } : null; });
   }
