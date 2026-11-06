@@ -46,7 +46,7 @@ function scripts() {
 /* a scenario: o = { size, seed, speed (m/s), wind [x, z] (m/s), yaw (deg/s, the camera's turn), pitch (deg),
    pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)} } */
 export function makeSim(o = {}) {
-  const Z = SIZES[o.size || '960x600'], W = Z.W, H = Z.H, SPEED = o.speed ?? 12, seed = o.seed ?? 11;
+  const Z0 = SIZES[o.size || '960x600'], Z = { W: Z0.W, H: Z0.H, boxes: Z0.boxes.slice(), nvb: Z0.nvb.slice() }, W = Z.W, H = Z.H, SPEED = o.speed ?? 12, seed = o.seed ?? 11;
   const C = { pos: [0, 40, 0], f: [0, 0, 1], r: [-1, 0, 0], u: [0, 1, 0], pitch: 0, roll: 0, inCloud: 0, cover: 0 };
   const PT = { x: 0, y: 0, n: 0, gone: true, down: false, steer: false, touch: false };
   const clicks = (o.clicks || []).slice().sort((a, b) => a.t - b.t);

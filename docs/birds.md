@@ -74,6 +74,17 @@ Each click or tap on the page that is not a drag and not on a link lets
 a bird go into the world from there, an ordinary bird from its first
 frame; none under reduced motion.
 
+THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
+real module headless in Node on a stub host: a camera flying its heading, the words' boxes as the served page lays
+them out at 960x600 and 390x844, a scripted pointer, clicks and drags, the 50 ms clock. test/birds.mjs measures it
+over random scenes against the research's numbers (CI: about 30 s; BIRDS_N=16 BIRDS_LONG=1 for the full run), and
+`node tools/birds/sim.mjs --case C --size S --seed N --svg F` replays one scene with its paths in the perch's frame.
+What it pins: a landing comes in by a gate in view (wide of the perch, beyond it, a last leg of 30 m in view), closes
+by a closed-loop tau-dot law (the closing a constant tau-dot gives at the range left), takes out its drift across
+the line, and ends on a curve to rest in the perch's frame (its place and motion at both ends: no jump, no
+overshoot); a bird ahead lets the perch come to it (never flying against the camera's way); feet fixed on the
+perch (the pointer read before the birds step); turns only by bank; births and removals unseen.
+
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
 with the mouse"; and, 2026-11-06: "why is the bird flying away when i
 just get near it instead of actually going on top of it?"). Friendly and

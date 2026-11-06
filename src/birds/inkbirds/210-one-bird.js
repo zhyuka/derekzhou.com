@@ -129,20 +129,20 @@
   var WSQ = { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 };
   function wingNow(b) { if (!b.w || !b.w.wing) { b.flap = 1; return; } var S = BW.state(b.w.wing, b.age, WSQ); b.flap = S.e > 0.5 ? 1 : 0; }
   /* (B17, the owner's choice 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
-     (the camera's motion, a drag's included) would bring it within a few of its spans in the next 3 s, it notices
+     (the camera's motion, a drag's included) would bring it within a few of its spans in the next 4 s, it notices
      (after its own latency, 80-250 ms, as a bird reads a car coming: by distance and closing speed) and turns its own
      way away, by its own bank (the integrator's: never pushed, never a lerp). It never follows the view: it only ever
      turns away from where the eye is going, and only while that threat lasts */
   function clearOfEye(b, o) {
     var rx = b.p[0] - LVC.x, ry = b.p[1] - LVC.y, rz = b.p[2] - LVC.z, d2 = rx * rx + ry * ry + rz * rz;
     if (d2 > 160 * 160) { b.evT = -1; return; }
-    var vx = o[0] - LVC.vx, vy = o[1] - LVC.vy, vz = o[2] - LVC.vz, vv = vx * vx + vy * vy + vz * vz, tc = vv > 1e-3 ? clamp(-(rx * vx + ry * vy + rz * vz) / vv, 0, 3) : 0;
+    var vx = o[0] - LVC.vx, vy = o[1] - LVC.vy, vz = o[2] - LVC.vz, vv = vx * vx + vy * vy + vz * vz, tc = vv > 1e-3 ? clamp(-(rx * vx + ry * vy + rz * vz) / vv, 0, 4) : 0;
     var cx = rx + vx * tc, cy = ry + vy * tc, cz = rz + vz * tc, dm = Math.sqrt(cx * cx + cy * cy + cz * cz), R = Math.max(AVOID, 4 * b.sz) + b.sz;
-    if (dm >= R) { b.evT = -1; return; }
+    if (dm >= (b.evT >= 0 ? 1.6 * R : R)) { b.evT = -1; return; }   // (once turning away it keeps clear, past the threat: its goal would turn it back in)
     if (!(b.evT >= 0)) b.evT = t;
     if (t - b.evT < b.lat) return;   // (its own moment to notice)
     if (dm < 1e-3) { cx = -vz; cy = 0; cz = vx; dm = Math.sqrt(cx * cx + cz * cz) || 1; }
-    var k = Math.max(0.6, 3 * (R - dm) / R) * b.K.v * (1 - 0.3 * tc / 3);   // (a firm turn once it has noticed: harder the nearer the miss)
+    var k = Math.max(0.6, 3 * (R - dm) / R) * b.K.v * (1 - 0.3 * tc / 4);   // (a firm turn once it has noticed: harder the nearer the miss)
     o[0] += cx / dm * k; o[1] += cy / dm * k; o[2] += cz / dm * k;
     STATS.evades = (STATS.evades || 0) + (b.evN === b.evT ? 0 : 1); b.evN = b.evT;
   }
@@ -389,12 +389,14 @@
   }
 
   /* ---------------- each step ---------------- */
+  var FQ = [];
   function birdsStep(C, dt) {
     lvCam(C); windNow();
     popStep(C);
     var i, j, F, b;
-    for (i = 0; i < FLOCKS.length; i++) {
-      F = FLOCKS[i]; if (!F.lead) continue;
+    FQ.length = 0; for (i = 0; i < FLOCKS.length; i++) FQ.push(FLOCKS[i]);   // (a stable list: a bird taking off joins or leaves a flock mid-step)
+    for (i = 0; i < FQ.length; i++) {
+      F = FQ[i]; if (!F.lead || FLOCKS.indexOf(F) < 0) continue;
       var L = F.lead, dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       F.far = F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R;
       if (F.far) {

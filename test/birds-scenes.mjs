@@ -1,7 +1,7 @@
 // birds-scenes.mjs: the scenes test/birds.mjs runs on the headless sim (tools/birds/sim.mjs), each made from a seed:
 // where the bird starts (range, side, height, heading), the wind, the camera's speed and turn, the pointer's path.
 // A scene is { opt (makeSim's), setup(sim) -> the birds it watches, secs, at (when its clock starts) }.
-const D2R = Math.PI / 180;
+const D2R = Math.PI / 180, LONG = !!process.env.BIRDS_LONG;   // (BIRDS_LONG: the world's and the perch's long scenes at full length)
 function rand(seed) { let a = (seed * 0x9e3779b9) >>> 0; return () => { a = (a + 0x6d2b79f5) | 0; let q = Math.imul(a ^ (a >>> 15), 1 | a); q = (q + Math.imul(q ^ (q >>> 7), 61 | q)) ^ q; return ((q ^ (q >>> 14)) >>> 0) / 4294967296; }; }
 const mix = (r, a, b) => a + (b - a) * r();
 /* the world round it: a wind up to 7 m/s from anywhere, the camera at 9-14 m/s turning up to 3 deg/s */
@@ -25,13 +25,13 @@ export const SCENES = {
     return { opt, secs: 30, setup: (sim) => {
       sim.run(0.5); const F = sim.flock(sim.ahead(d, xs, up), 'loose', 'gull', 5);
       const g = sim.B.newGoal(F, 'commute', F.r, sim.B.skyCls()); g.psi = sim.heading(); g.T = 999;
-      const out = F.m.slice(1, 1 + n); out.forEach((b, i) => sim.land(b, gaps[i])); return out;
+      return F.m.slice(1, 1 + n).filter((b, i) => sim.land(b, gaps[i]));   // (one given no free ledge is not sent, as in the page)
     } };
   },
-  /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes */
+  /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes (CI: 2) */
   life: (seed, size) => {
     const sc = SCENES.perch(seed, size);
-    return { opt: sc.opt, secs: 240, setup: sc.setup, each: (sim, [b]) => { if (b.st === 'perch' && b.P && !b.P.kept) { b.P.stay = Infinity; b.P.kept = true; } } };
+    return { opt: sc.opt, secs: LONG ? 240 : 120, setup: sc.setup, each: (sim, [b]) => { if (b.st === 'perch' && b.P && !b.P.kept) { b.P.stay = Infinity; b.P.kept = true; } } };
   },
   /* the pointer resting, then moving at 28 px/s: a gull comes to its tip and rides it, by 10 s */
   cursor: (seed, size) => {
@@ -58,6 +58,6 @@ export const SCENES = {
   /* the world left to itself: what it adds and takes out, how its birds turn */
   natural: (seed, size) => {
     const r = rand(seed), opt = air(r, size);
-    return { opt, secs: 180, setup: () => [] };
+    return { opt, secs: LONG ? 180 : 90, setup: () => [] };
   },
 };
