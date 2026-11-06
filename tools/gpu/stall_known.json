@@ -1,0 +1,13 @@
+{
+ "about": "T2 stall visits' known list (tools/gpu/stall.js; the fast500 kit's guard_known.json). A key's first use over threshold_ms fails the guard unless an entry here names it: 'key' is a regular expression matched against the key's line (program | out ... | in ... | primitive class), 'step' the PLAN500 step that removes it, 'maxMs' the most it may take before it fails anyway. An entry whose key is not seen in a run is reported (the step that removes it is in: drop the entry).",
+ "threshold_ms": 30,
+ "known": [
+  {
+   "id": "noise8",
+   "key": "^engine\\.noise \\| out c0:RGBA8 c1:RGBA8 c2:RGBA8 c3:RGBA8 c4:RGBA8 c5:RGBA8 c6:RGBA8 c7:RGBA8 \\| ",
+   "step": 1,
+   "maxMs": 4000,
+   "why": "the noise's eight-target draw: ANGLE's link built the pixel shader for [ATT0] only, so the 8-output variant is compiled inside the first draw (2.4 s on the 4090); NOISE.K = 1 removes it"
+  }
+ ]
+}
