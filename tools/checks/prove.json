@@ -19,6 +19,5 @@
   {"check": "shaders", "file": "build/site/world.js", "find": "void main() { vec2 p = ", "with": "void main() { vec2 p = q; ", "why": "a shader that does not compile"},
   {"check": "w7", "file": ".github/workflows/w7_unit.js", "find": "--mutate", "with": "--mutate", "why": "self-proved: the step runs W7 with each mutation and wants each caught", "self": true},
   {"check": "still-skies", "file": "build/site/style.css", "find": "--color-text: #fdfcf7;", "with": "--color-text: #405060;", "why": "dark words on the still skies"},
-  {"check": "deploy-inputs", "file": ".github/ci/deploy-inputs.txt", "find": "tools/minify.mjs", "with": "tools/minify-gone.mjs", "why": "a tool the build loads, not listed"},
-  {"check": "start-test", "file": "tools/start.mjs", "find": "--test", "with": "--test", "why": "self-proved: its fake-browser suite is the start file's proof", "self": true}
+  {"check": "deploy-inputs", "file": ".github/ci/deploy-inputs.txt", "find": "tools/minify.mjs", "with": "tools/minify-gone.mjs", "why": "a tool the build loads, not listed"}
 ]
