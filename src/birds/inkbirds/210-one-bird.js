@@ -77,7 +77,7 @@
       p: [x, y, z], v: [0, 0, 0], a: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, think: 0, w: null, s: null, d: null, P: null,
-      wf: 0, flap: -1, seen: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
+      wf: 0, flap: -1, seen: 0, wtT: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
@@ -130,6 +130,8 @@
   function paceOf(b) { return b.vJ * (1 + 0.06 * wave(b.vK, b.age / 9)); }
   /* the measured wing's state at the bird's age, worked out once an age (the step's, read again by the draw) */
   function wingState(b) { if (b.wsT !== b.age) { BW.state(b.w.wing, b.age, b.WS); b.wsT = b.age; } return b.WS; }
+  /* its wing's history kept to the last seconds (else it grows all its life) */
+  function wingTrim(b) { if (b.age > b.wtT) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 30; } }
   /* ... flapping 1, gliding 0: the integrator reads it */
   function wingNow(b) { b.flap = wingState(b).e > 0.5 ? 1 : 0; }
   /* (B17, the owner's choice 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
@@ -435,12 +437,12 @@
       if (F.far) {
         F.acc = (F.acc || 0) + dt; if (F.acc < COARSE) continue;
         var cdt = F.acc; F.acc = 0;
-        if (L.st === 'fly') { var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; wingNow(L); }
-        for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; BW.ensure(b.w.wing, b.age); }   // (its wing kept up with its age: never a long history to work out at once)
+        if (L.st === 'fly') { var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; wingNow(L); wingTrim(L); }
+        for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; BW.ensure(b.w.wing, b.age); wingTrim(b); }   // (its wing kept up with its age: never a long history to work out at once)
         continue;
       }
       for (j = 0; j < F.m.length; j++) {
-        b = F.m[j]; b.age += dt;
+        b = F.m[j]; b.age += dt; wingTrim(b);
         if (b.st === 'perch' || b.st === 'land') BW.ensure(b.w.wing, b.age); else wingNow(b);
         if (b.st !== 'fly') { perchStep(b, dt, C); continue; }
         var wv = b === L ? goalVel(F, b, dt) : placeVel(F, b);
