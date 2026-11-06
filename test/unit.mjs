@@ -275,3 +275,19 @@ test('verdict: T2 read-backs, only a DIFFER stops a merge (the owner: "frames de
   assert.equal(run(null, { stall_ok: 'true' }, pr).t2.stall_ok, true);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('deploy gate: a cancelled main gate is no result; only a failure stops live', async () => {
+  const { walk } = await import(new URL('../.github/ci/deploy-walk.mjs', import.meta.url));
+  const S = (c) => c.repeat(40);
+  const run = (c, conclusion, status = 'completed') => ({ head_sha: S(c), status, conclusion, html_url: 'u' + c });
+  const V = { [S('a')]: { gate_ok: true, frames_identical: true, base: S('0') }, [S('b')]: { gate_ok: true, frames_identical: true, base: S('a') },
+    [S('c')]: { gate_ok: true, frames_identical: true, base: S('b') } };
+  const d = (proved) => ({ verdict: async (r) => V[r.head_sha], ownerMerge: async () => false, branchIdentical: async () => proved, laterStallOk: async () => -1, say: () => {} });
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'success'), run('c', 'success')], d(true))).to, S('c'), 'all green: the newest tip');
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled'), run('c', 'success')], d(true))).to, S('c'), 'cancelled in between: past it, to the newest green');
+  const f = await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], d(true));
+  assert.equal(f.to, S('a'), 'failed in between: live stops before it'); assert.match(f.why, /red at b/);
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled'), run('c', 'success')], d(false))).to, S('a'), 'cancelled, frames unproved: live waits before it');
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled')], d(true))).to, S('a'), 'cancelled last: nothing newer to stand on');
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', null, 'in_progress')], d(true))).to, S('a'), 'running: waits');
+});
