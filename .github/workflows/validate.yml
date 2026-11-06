@@ -487,6 +487,16 @@ jobs:
           # both, every name its bytes' hash, no old name left, every reference resolving, each file immutable.
           node tools/build.mjs --check
 
+      - name: The world's pure code, unit-tested
+        run: |
+          # test/unit.mjs (restructure step 6, about 10 s): the world's code that runs without a page, read from the
+          # dev build by its own anchors (src/ exports nothing for it): the streams and integer hashes (values,
+          # ranges, spread), the sky order's rules (the landing sky the hour's, never one of the last few, near unless
+          # far, every sky seen), the maps and the kit weights (in [0, 1]; the same plan and flight from the same seed),
+          # and the plan's worker against the page's own plan, hash for hash. Golden values in test/golden/unit.json:
+          # after a deliberate change, node test/unit.mjs --write, committed with it.
+          node --test test/unit.mjs
+
       - name: The world's rules
         run: |
           # Every script tagged for Rocket Loader; production blind (every home-scope
