@@ -307,7 +307,7 @@
     if ((it.tiltT || 0) > TILT_SHARE * it.readT && t - lastSeenAny < TILT_EMPTY) { STATS.hook = (STATS.hook || 0) + 1; return true; }   // (round 3, step 3: a hook on the window, refused while the sky has birds)
     return false;
   }
-  var BK = [Infinity, -Infinity, Infinity, -Infinity], BG = [], BSTAMP = 0, BA = { yLo: 0, yHi: 0, xLo: 0, xHi: 0 }, BB = { yLo: 0, yHi: 0, xLo: 0, xHi: 0 };
+  var BK = [Infinity, -Infinity, Infinity, -Infinity], BG = [], BSTAMP = 0, BANDA = { yLo: 0, yHi: 0, xLo: 0, xHi: 0 }, BB = { yLo: 0, yHi: 0, xLo: 0, xHi: 0 };
   function bandsClear(row) {
     var j, g, n = 0, st = ++BSTAMP;
     for (j = 0; j < row.length; j += 5) {   // (each other flight's extent on the window at this moment)
@@ -317,11 +317,11 @@
       BG[3 * (g + 100)] = Math.min(BG[3 * (g + 100)], row[j] - row[j + 2]); BG[3 * (g + 100) + 1] = Math.max(BG[3 * (g + 100) + 1], row[j] + row[j + 2]);
       n = Math.max(n, g + 1);
     }
-    BA.yLo = BK[0]; BA.yHi = BK[1]; BA.xLo = BK[2]; BA.xHi = BK[3];
+    BANDA.yLo = BK[0]; BANDA.yHi = BK[1]; BANDA.xLo = BK[2]; BANDA.xHi = BK[3];
     for (g = 0; g < n; g++) {
       if (BG[3 * g + 2] !== st || !(BG[3 * g] < BG[3 * g + 1])) continue;
       BB.yLo = BG[3 * g]; BB.yHi = BG[3 * g + 1]; BB.xLo = BG[3 * (g + 100)]; BB.xHi = BG[3 * (g + 100) + 1];
-      if (BA.yLo < BB.yHi + BAND_GAP && BA.yHi > BB.yLo - BAND_GAP) return false;
+      if (BANDA.yLo < BB.yHi + BAND_GAP && BANDA.yHi > BB.yLo - BAND_GAP) return false;
       BG[3 * g + 2] = -1;   // (done with this row's flight)
     }
     return true;

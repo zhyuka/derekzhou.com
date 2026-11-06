@@ -102,8 +102,6 @@ function check(ast, where, report) {
 
 // script: name -> why it is known (left to its lane; take the line out when it is fixed)
 const KNOWN = new Map([
-  ['world.js:lateWarm', 'lane D renames the world\'s to lateWarmProgs (claude/bird-late)'],
-  ['inkbirds.js:BA', 'the wings\' bout scratch and the planner\'s band box share one object (110-wings, 160-planner): reported, not fixed'],
 ]);
 const ALL = process.argv.includes('--all');
 
