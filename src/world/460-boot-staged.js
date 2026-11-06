@@ -79,7 +79,7 @@
        then level 0 uploaded and its mipmaps made, no draw; before gpuFree, so that frame's D can use it); then F, the
        warm table (Fix 2: before D's GPU half, so none of D's draws is a program's first use), each one's first use alone
        in its frame */
-    if (!NOISE.done) { var noised = noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers)
+    if (!NOISE.done) { var noised = EXT.parWK ? noiseStep(false, afterC ? dl : 0) : noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers; WebKit: after C, as many layers as the slice allows, its links being through about a second sooner)
     var gpuFree = afterC && !hold && NOISE.done && (WARM.done || reduced());
     if ((EXT.parAll || (EXT.parWK && !noised && !hold)) && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links; WebKit: one a frame, never in the noise's last frame)
       var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
