@@ -71,7 +71,7 @@
     var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
     setWords(INK);   // (stage2: the words are always light: the root's text and selection; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
     if (!shown) inkRestart(true);   // (ink fix: the words' reading begins with the first frame shown: the boot's hidden check frame (stage H), a restored world's too, is never taken)
-    lateStep(); lateWarm();   // (fast500 step 9: before the frame, so its composite covers the canvas's warm corner)
+    lateStep(); lateWarmProgs();   // (fast500 step 9: before the frame, so its composite covers the canvas's warm corner)
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
     skyTheme(false);   // (tod: the browser's bars follow the drawn sky)
