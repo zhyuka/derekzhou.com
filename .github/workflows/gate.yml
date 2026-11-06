@@ -243,6 +243,7 @@ jobs:
     uses: ./.github/workflows/gpu.yml
     with:
       base: ${{ needs.plan.outputs.base }}
+      stall: ${{ github.ref == 'refs/heads/main' && 'yes' || 'no' }}   # (the stall visits: main's gate only; the deploy gate reads them)
 
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
