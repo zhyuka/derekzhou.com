@@ -108,7 +108,7 @@
         var pv = Math.sqrt(P.v[0] * P.v[0] + P.v[2] * P.v[2]);
         if (pv > 1) { var al = (AV[0] * P.v[0] + AV[2] * P.v[2]) / pv, lack = 0.4 * pv - al; if (lack > 0) { AV[0] += lack * P.v[0] / pv; AV[2] += lack * P.v[2] / pv; } }
         /* out of view, it keeps off the perch until the gate (else it would come at it unseen, from beside the window) */
-        if (d < PGATE && !onWindow(b, C)) { var kr = 0.6 * (PGATE - d) / (d || 1); AV[0] += rx * kr; AV[1] += ry * kr; AV[2] += rz * kr; }
+        if (d < PGATE && !onWindow(b, C)) { var kr = 1.5 * (PGATE - d) / (d || 1); AV[0] += rx * kr; AV[1] += ry * kr; AV[2] += rz * kr; }
         clearOfEye(b, AV); flyTo(b, dt, AV[0], AV[1], AV[2]);
         return;
       }

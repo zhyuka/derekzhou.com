@@ -36,7 +36,7 @@
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
-  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: undefined, passT: undefined, comeT: 0 };   // (k and passT are set by a visit's clearing)
+  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: 0, passT: 60, comeT: 0 };
   var SEAC = new Map();
   /* the cloud sea at a point (cached on a 64 m grid: the maps never change) */
   function seaAt(x, z) {
@@ -153,6 +153,7 @@
     if (dm >= (b.evT >= 0 ? 1.6 * R : R)) { b.evT = -1; return; }   // (once turning away it keeps clear, past the threat: its goal would turn it back in)
     if (!(b.evT >= 0)) b.evT = t;
     if (t - b.evT < b.lat) return;   // (its own moment to notice)
+    b.flap = 1;   // (it beats its way clear: a glide cannot climb)
     if (dm < 1e-3) { cx = -vz; cy = 0; cz = vx; dm = Math.sqrt(cx * cx + cz * cz) || 1; }
     var k = Math.max(0.6, 3 * (R - dm) / R) * b.K.v * (1 - 0.3 * tc / 4);   // (a firm turn once it has noticed: harder the nearer the miss)
     o[0] += cx / dm * k; o[1] += cy / dm * k; o[2] += cz / dm * k;
