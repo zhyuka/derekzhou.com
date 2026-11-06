@@ -8,7 +8,10 @@
   try { prev = JSON.parse(sessionStorage.getItem('wkprobe') || 'null'); } catch (e) {}
   try { var ne = performance.getEntriesByType('navigation')[0]; if (ne) nav = ne.type; } catch (e) {}
   function alive() { try { sessionStorage.setItem('wkprobe', JSON.stringify({ up: performance.now(), shown: shown >= 0, at: Date.now() })); } catch (e) {} }
+  function mark(n) { try { performance.mark(n); } catch (e) {} }   // (for the bench: the same moments, read exactly)
   self.PROBE = function (name, t, x) {
+    if (name.indexOf('link: ') === 0 || name.indexOf('draw: ') === 0) { mark('world-' + name.replace(': ', ':')); return; }
+    mark(name === 'shown' ? 'world-shown' : 'world-mark:' + name);
     if (name === 'shown') { if (shown < 0) { shown = t; info = x || null; } return; }
     if (name.indexOf('fail: ') === 0) { if (fails.length < 3) fails.push(name.slice(6, 80)); if (name.indexOf('fail: declined') === 0) declined = true; return; }
     M.push([name, t]);

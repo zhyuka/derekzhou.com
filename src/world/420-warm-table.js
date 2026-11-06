@@ -185,6 +185,7 @@
       else if (e.inst) gl.drawArraysInstanced(e.mode, 0, e.cnt, 1); else gl.drawArrays(e.mode, 0, e.cnt);
       var ms = clockNow() - t0;
       WARM.ms.push([e.n, +ms.toFixed(2), FRAMEN]);
+      if (self.PROBE) self.PROBE('draw: ' + e.n, clockNow());   // (PREVIEW ONLY)
       if (!e.p.warmed) { e.p.warmed = true; e.p.firstMs = +ms.toFixed(2); e.p.firstF = FRAMEN; e.p.firstAt = +clockNow().toFixed(1); }
       if (ms > WARM_HEAVY) e.p.heavy = true;
       return true;
