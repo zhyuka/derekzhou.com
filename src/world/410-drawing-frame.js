@@ -220,6 +220,7 @@
     // the surfaces: rings from the camera outward
     ringPlanes(); ST.ringIdx = 0; ST.ringAll = 0;
     for (var si = 0; si < DP.surf.length; si++) {
+      if ((si === 0 && LABQ.noland) || (si === 1 && LABQ.nosea)) continue;   // (PREVIEW ONLY)
       var S = DP.surf[si]; P = S.P; gl.useProgram(P.p); setFrameUniforms(P, V);
       gl.bindVertexArray(GRID.vao);
       for (var l = 0; l < S.levels; l++) {
@@ -379,7 +380,7 @@
     gl.depthMask(false);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_2D, TG.lind.t); gl.activeTexture(gl.TEXTURE0);
-    drawVolumes(V, u);
+    if (!LABQ.noclouds) drawVolumes(V, u);   // (PREVIEW ONLY)
     gl.disable(gl.BLEND);
     prof('clouds');
     /* (E1 Fix 3, G0) the clouds accumulated over frames (FS_CACC): this frame's share SW.cacc (0.5; 0 turns it off),

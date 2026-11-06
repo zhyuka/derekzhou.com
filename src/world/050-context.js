@@ -1,5 +1,6 @@
   /* ---------------------------------------------------------------- the context */
   var gl = null, EXT = {}, FLOAT_RT = false, FLOAT32_RT = false, HALF = 0, LOST = false, DEFS = '', AAS = 0, AASUP = [];   // (AAS, E1 Fix 3: the scene's samples a pixel; AASUP, E1.1: the counts the context offers, up to the switch aa)
+  var LABQ = (function () { var q = {}; String(location.search).replace(/[?&](\w+)/g, function (m, k) { q[k] = 1; }); return q; })();   // (PREVIEW ONLY: the lab's bisect switches: ?noland ?nosea ?noclouds ?noaa)
   var STILLMODE = false;                                    // (the shipped page: no harness drives the time)
   var DEVMODE = false;                                      // (and no dev hooks)
   function getGL() {
@@ -74,7 +75,7 @@
         for (var i = 0; sc && i < sc.length; i++) if (sc[i] <= want && sd && Array.prototype.indexOf.call(sd, sc[i]) >= 0) AASUP.push(sc[i]);
       }
     } catch (e) { AASUP = []; }
-    AAS = memPlanAA();   // (E1.1, item 5: the samples the memory allows, w10_engine.js)
+    AAS = memPlanAA(); if (LABQ.noaa) AAS = 0;   // (PREVIEW ONLY: ?noaa, no MSAA)   // (E1.1, item 5: the samples the memory allows, w10_engine.js)
   }
   /* (Fix 2, T4) the context is made in the boot's first frame (stage A, design-v5 14), not at this script's top level:
      WebGL2's context and its extensions took about 210 of world.js's 276 ms of evaluation here (trace x1), which no
