@@ -13,6 +13,9 @@
 const fs = require('fs'), path = require('path');
 const PW = require('./pw.js');
 const [prog, oldDir, newDir, outFile] = process.argv.slice(2);
+// --old-att K / --new-att K: read that side's colour attachment K (it draws into K + 1 RGBA32F targets, drawBuffers all):
+// a program that moved an output to another location (lane D's kitB: the old kit's o1 is its o0) compared output to output
+const ATT = { old: +(process.argv.includes('--old-att') ? process.argv[process.argv.indexOf('--old-att') + 1] : 0), new: +(process.argv.includes('--new-att') ? process.argv[process.argv.indexOf('--new-att') + 1] : 0) };
 const SKIES = +(process.argv.includes('--skies') ? process.argv[process.argv.indexOf('--skies') + 1] : 6);
 
 let VS = `#version 300 es
@@ -49,7 +52,7 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
     const ren = await page.evaluate(() => { const g = document.createElement('canvas').getContext('webgl2'); const d = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(d.UNMASKED_RENDERER_WEBGL); });
     if (!/RTX 4090/.test(ren) || !/Direct3D11/.test(ren)) throw new Error('not the 4090 on D3D11: ' + ren);
     console.error('[fsbits] renderer ' + ren);
-    res = await page.evaluate(async ([VS, FS0, FS1, SKIES, FULL]) => {
+    res = await page.evaluate(async ([VS, FS0, FS1, SKIES, FULL, ATT]) => {
       const g = document.createElement('canvas').getContext('webgl2');
       if (!g.getExtension('EXT_color_buffer_float')) throw new Error('no EXT_color_buffer_float');
       const mk = (t, s) => { const h = g.createShader(t); g.shaderSource(h, s); g.compileShader(h); if (!g.getShaderParameter(h, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(h)); return h; };
@@ -70,6 +73,11 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
       const TX = t2(64, 64, () => [rnd(), rnd(), rnd(), rnd()]);
       const N = 512, rt = g.createTexture(); g.bindTexture(g.TEXTURE_2D, rt); g.texStorage2D(g.TEXTURE_2D, 1, g.RGBA32F, N, N);
       const fb = g.createFramebuffer(); g.bindFramebuffer(g.FRAMEBUFFER, fb); g.framebufferTexture2D(g.FRAMEBUFFER, g.COLOR_ATTACHMENT0, g.TEXTURE_2D, rt, 0);
+      // (--old-att / --new-att) a framebuffer of K + 1 targets per side that reads attachment K
+      const fbOf = (K) => { if (!K) return fb; const f = g.createFramebuffer(); g.bindFramebuffer(g.FRAMEBUFFER, f); const db = [];
+        for (let a = 0; a <= K; a++) { const x = g.createTexture(); g.bindTexture(g.TEXTURE_2D, x); g.texStorage2D(g.TEXTURE_2D, 1, g.RGBA32F, N, N); g.framebufferTexture2D(g.FRAMEBUFFER, g.COLOR_ATTACHMENT0 + a, g.TEXTURE_2D, x, 0); db.push(g.COLOR_ATTACHMENT0 + a); }
+        g.drawBuffers(db); g.readBuffer(g.COLOR_ATTACHMENT0 + K); return f; };
+      const FBS = [fbOf(ATT.old), fbOf(ATT.new)]; g.bindFramebuffer(g.FRAMEBUFFER, fb);
       g.bindVertexArray(g.createVertexArray()); g.viewport(0, 0, N, N);
       // a uniform's value for a sky: by its name, seeded; the few with a meaning get a range that makes sense
       const val = (name, n, sky) => {
@@ -89,8 +97,8 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
       const grids = FULL ? [[1, 'frame a'], [2, 'frame b'], [3, 'frame c']] : [[0.25, 'near (ripples, grain)'], [3.0, 'mid'], [40.0, 'far']];
       for (let sky = 0; sky < SKIES; sky++) for (const [sp, what] of grids) {
         const R = [];
-        for (const p of P) {
-          g.useProgram(p); g.clearColor(0, 0, 0, 0); g.clear(g.COLOR_BUFFER_BIT);
+        for (const [pi, p] of P.entries()) {
+          g.bindFramebuffer(g.FRAMEBUFFER, FBS[pi]); g.useProgram(p); g.clearColor(0, 0, 0, 0); g.clear(g.COLOR_BUFFER_BIT);
           const cam = [37.5 + sky * 911, 120 + 40 * sky, -18.25 - sky * 613];
           const nu = g.getProgramParameter(p, g.ACTIVE_UNIFORMS); let unit = 1;
           for (let i = 0; i < nu; i++) {
@@ -117,7 +125,7 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
         out.push(Object.assign({ sky, spacing: sp, what }, cmp(R[0], R[1])));
       }
       return out;
-    }, [VS, fsOld, fsNew, SKIES, full]);
+    }, [VS, fsOld, fsNew, SKIES, full, ATT]);
   } finally { await br.close(); }
   fs.writeFileSync(outFile, JSON.stringify(res, null, 1));
   let bad = 0, tot = 0;

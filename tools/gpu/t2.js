@@ -98,7 +98,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     const done = await pool(runs.map((j) => async (slot) => {
       const [vp, hour, seed, mob] = CASES[j.c], tag = j.c + '_' + j.arm + '_r' + j.r, dir = path.join(OUT, 'frames');
       fs.mkdirSync(dir, { recursive: true });
-      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch'].concat(mob ? ['--mobile'] : [], SETTLE);
+      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
       const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
@@ -132,7 +132,8 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const cmp = compare(b1, h1, B), nul = b2 ? compare(b1, b2, B) : null;
       const same = !cmp.real.length && !cmp.pages.length;
       identical = identical && same;
-      const gb = JSON.stringify(b1.glsl), gh = JSON.stringify(h1.glsl); if (gb !== gh) glslChanged = true;
+      // (as sets: programs link in parallel, so the order a visit compiles its sources in varies from run to run)
+      const gb = JSON.stringify([...new Set(b1.glsl)].sort()), gh = JSON.stringify([...new Set(h1.glsl)].sort()); if (gb !== gh) glslChanged = true;
       R.cases[c] = { shown: { base: b1.show, head: h1.show }, equal: cmp.equal, noise: cmp.noise, real: cmp.real.slice(0, 20), realN: cmp.real.length, pages: cmp.pages.slice(0, 20),
         nullTest: nul ? { equal: nul.equal, noise: nul.noise, realN: nul.real.length } : null, glslSame: gb === gh };
       log(c + ': ' + (same ? 'IDENTICAL' : 'CHANGED') + ' (' + cmp.equal + ' equal, ' + cmp.noise + ' noise, ' + cmp.real.length + ' changed, ' + cmp.pages.length + ' page states differ' + (nul ? '; null test ' + nul.real.length + ' changed' : '') + ')');
@@ -144,20 +145,38 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const dd = { base: path.join(OUT, 'glsl_base'), head: path.join(OUT, 'glsl_head') };
       await pool(['base', 'head'].map((arm) => async (slot) => run([path.join(HERE, 'glsldump.js'), S[arm].url, dd[arm]], prof(slot), 'glsldump_' + arm)), 2);
       const P = {}; for (const arm of ['base', 'head']) { try { P[arm] = JSON.parse(fs.readFileSync(path.join(dd[arm], 'programs.json'), 'utf8')); } catch (e) { P[arm] = []; R.errors.push('glsldump ' + arm + ' failed'); } }
-      const hb = Object.fromEntries(P.base.map((x) => [x[0], x])), changed = P.head.filter((x) => !hb[x[0]] || hb[x[0]][1] !== x[1] || hb[x[0]][2] !== x[2]).map((x) => x[0]);
+      // pairs by content, not by link order (a program added or removed shifts every name after it): a head program whose
+      // two sources are a base program's is unchanged; else it is paired with the unpaired base program of the same vertex
+      // source (else any) whose fragment source shares the most text with its own (common head and tail), if that is
+      // at least half of it; else it is new. Each pair is copied under the head's name into pairs/base and pairs/head.
+      const rd = (arm, n, k) => fs.readFileSync(path.join(dd[arm], n + '.' + k + '.glsl'), 'utf8');
+      const same = (a, b) => { let i = 0, j = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++; return i + j; };
+      const used = new Set(), pair = {};
+      for (const x of P.head) { const m = P.base.find((y) => y[1] === x[1] && y[2] === x[2] && !used.has(y[0])); if (m) { used.add(m[0]); pair[x[0]] = null; } }
+      for (const x of P.head) {
+        if (x[0] in pair) continue;
+        const fsH = rd('head', x[0], 'fs'), cand = P.base.filter((y) => !used.has(y[0])), pool2 = cand.some((y) => y[1] === x[1]) ? cand.filter((y) => y[1] === x[1]) : cand;
+        let best = null, bs = -1; for (const y of pool2) { const s = same(fsH, rd('base', y[0], 'fs')); if (s > bs) { bs = s; best = y; } }
+        if (best && bs >= fsH.length / 2) { used.add(best[0]); pair[x[0]] = best; } else pair[x[0]] = undefined;
+      }
+      const pd = { base: path.join(OUT, 'pairs', 'base'), head: path.join(OUT, 'pairs', 'head') }; fs.mkdirSync(pd.base, { recursive: true }); fs.mkdirSync(pd.head, { recursive: true });
+      for (const [n, y] of Object.entries(pair)) if (y) for (const k of ['vs', 'fs']) { fs.writeFileSync(path.join(pd.base, n + '.' + k + '.glsl'), rd('base', y[0], k)); fs.writeFileSync(path.join(pd.head, n + '.' + k + '.glsl'), rd('head', n, k)); }
+      const hb = Object.fromEntries(Object.entries(pair).filter(([, y]) => y)), changed = Object.keys(pair).filter((n) => pair[n] !== null);
+      const gone = P.base.filter((y) => !used.has(y[0])).map((y) => y[0]);
+      if (gone.length) log('in base only (removed in head): ' + gone.join(', '));
       R.glsl = { programs: { base: P.base.length, head: P.head.length }, changed, unread: [] };
       const jobs = [];
       if (changed.some((n) => n === 'world.surface0' || n === 'world.probe') && hb['world.surface0'] && hb['world.probe'])
-        jobs.push({ what: 'land height and probe (hbits)', args: [path.join(HERE, 'hbits.js'), 'bits', dd.base, dd.head, path.join(OUT, 'bits_land.json')] });
+        jobs.push({ what: 'land height and probe (hbits)', args: [path.join(HERE, 'hbits.js'), 'bits', pd.base, pd.head, path.join(OUT, 'bits_land.json')] });
       for (const n of changed) {
         if (!hb[n]) { R.glsl.unread.push(n + ' (new in head)'); continue; }
-        const fsrc = fs.readFileSync(path.join(dd.head, n + '.fs.glsl'), 'utf8'), vsChanged = hb[n][1] !== P.head.find((x) => x[0] === n)[1];
+        const fsrc = rd('head', n, 'fs'), me = P.head.find((x) => x[0] === n), vsChanged = hb[n][1] !== me[1];
         // (a kind fsbits feeds: every input the FS declares is the land's (vW, vN, vX), a mesh's (vW, vN, vC, vY, vE), or
         // none (full screen))
         const ins = [...fsrc.matchAll(/(?:^|;)\s*(?:centroid |flat |smooth )*in\s+(?:highp |mediump |lowp )?\w+\s+(\w+)\s*;/gm)].map((m) => m[1]);
         const known = ins.every((v) => ['vW', 'vN', 'vX'].includes(v)) || ins.every((v) => ['vW', 'vN', 'vC', 'vY', 'vE'].includes(v));
-        if (hb[n][2] !== P.head.find((x) => x[0] === n)[2] && known) jobs.push({ what: n + ' FS (fsbits)', args: [path.join(HERE, 'fsbits.js'), n, dd.base, dd.head, path.join(OUT, 'bits_' + n + '.json')] });
-        else if (hb[n][2] !== P.head.find((x) => x[0] === n)[2]) R.glsl.unread.push(n + ' FS (its varyings are not a kind fsbits feeds)');
+        if (hb[n][2] !== me[2] && known) jobs.push({ what: n + ' FS (fsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'fsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.json')] });
+        else if (hb[n][2] !== me[2]) R.glsl.unread.push(n + ' FS (its varyings are not a kind fsbits feeds)');
         if (vsChanged && n !== 'world.surface0') R.glsl.unread.push(n + ' VS (no vertex read-back for it; the frames decide)');
       }
       const codes = await pool(jobs.map((jb, i) => async (slot) => { const tag = 'bits_' + i; const code = await run(jb.args, prof(slot), tag); const txt = fs.readFileSync(path.join(OUT, tag + '.log'), 'utf8'); const m = /(IDENTICAL|DIFFER)[^\n]*/.exec(txt); return { what: jb.what, code, line: m ? m[0] : 'no result (exit ' + code + ')' }; }), PAR);
