@@ -75,7 +75,7 @@
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
     skyTheme(false);   // (tod: the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; if (self.PROBE) self.PROBE('shown', BOOT.shownAt, probeInfo()); }   // (ink fix: AG.w0, the moment the canvas shows: the take waits INK_TAKE s from it, however long the first frame took)   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole)
+    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; if (self.PROBE) { self.PROBE('shown', BOOT.shownAt, probeInfo()); self.PROBE.gov = function () { return { rung: RUNG, n: RUNGS.length, scale: RUNGS[RUNG], pace: GOVN[13], p50: GOVN[2], dead: DEAD, running: running }; }; } }   // (ink fix: AG.w0, the moment the canvas shows: the take waits INK_TAKE s from it, however long the first frame took)   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
