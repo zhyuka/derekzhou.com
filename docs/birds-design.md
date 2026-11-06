@@ -189,7 +189,7 @@ nothing is dropped silently.
 | B14 thermal kettles over landmarks | in (the temple and island circling, HOST.places) |
 | B15 a goose whiffling down to a lake | later |
 | B16 a rare close fly-by | in (a cruise goal, once per 2-5 min at most) |
-| B17 birds banking away from a dragged camera that would pass close | not built: waiting on the owner. Until then the camera never passes through a bird (the existing near-plane rule) |
+| B17 birds banking away from a dragged camera that would pass close | in (the owner, 2026-11-06: "Bank away"): only when the eye's way would bring it within a few spans in 3 s; after its own 80-250 ms; by its own bank; never following the view |
 | murmurations, mobbing, swerving from the cursor, anything drawn to the visitor, crumbs, frequent rolls | out |
 | water landings, drying wings after cloud | later |
 

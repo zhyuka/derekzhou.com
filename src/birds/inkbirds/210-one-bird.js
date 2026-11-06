@@ -28,16 +28,16 @@
   var NEAR_R = 3000;           // m: a flock nearer than this flies every bird of it each step; farther, its leader a coarse step and the rest held in their places
   var COARSE = 0.5;            // s: the far flocks' step
   var SEA_DEEP = 18;           // m: a bird this far under the sea's top (and its span) is wholly hidden
-  var AVOID = 14;              // m: no bird lets the eye pass nearer than this (it steers out of the way: the near plane never cuts one)
+  var AVOID = 14;              // m: no bird lets the eye pass nearer than this or 4 of its spans (it banks away: B17; the near plane never cuts one, nor does a bird fill the window)
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
   var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0 };
-  var SEAQ = { w: 0, lv: 0 }, SEAC = {}, SEAC_N = 0;
+  var SEAC = new Map();
   /* the cloud sea at a point (cached on a 64 m grid: the maps never change) */
   function seaAt(x, z) {
-    var k = Math.round(x / 64) + ',' + Math.round(z / 64), c = SEAC[k];
-    if (!c) { if (SEAC_N > 4096) { SEAC = {}; SEAC_N = 0; } c = SEAC[k] = HOST.seaAt && !FORCED ? HOST.seaAt(x, z, { w: 0, lv: 0 }) : { w: 0, lv: -1e9 }; SEAC_N++; }
+    var k = (Math.round(x / 64) + 32768) * 65536 + (Math.round(z / 64) + 32768), c = SEAC.get(k);
+    if (!c) { if (SEAC.size > 4096) SEAC.clear(); c = HOST.seaAt && !FORCED ? HOST.seaAt(x, z, { w: 0, lv: 0 }) : { w: 0, lv: -1e9 }; SEAC.set(k, c); }
     return c;
   }
   /* the top of what hides a bird from below at (x, z): near the camera the drawn ground (the cloud sea's own top where
@@ -48,7 +48,7 @@
     if (dx * dx + dz * dz < 280 * 280 && HOST.groundReach && HOST.groundReach() > 0) { var g = lvGround(x, z); return s.w > 0.85 ? g : g - 1e4; }
     return s.w > 0.85 ? s.lv - 60 : -1e9;
   }
-  function hidden(b) { return b.p[1] + b.sz < hideTop(b.p[0], b.p[2]) - SEA_DEEP; }
+  function hidden(b) { return b.p[1] + b.sz < LVC.y - 20 && b.p[1] + b.sz < hideTop(b.p[0], b.p[2]) - SEA_DEEP; }   // (the sea lies under the eye: a bird at or over its height is never under it)
   /* the most a bird can change any pixel of the largest window, with the world's own air between (lib-air's fogAmt):
      its ink span there (at least a pixel's worth: the pen's floor), its contrast, the air's transmittance */
   var FOGQ = [0, 0, 0, 0];
@@ -126,17 +126,23 @@
   /* the measured wing's state now (flapping 1, gliding 0): the integrator reads it */
   var WSQ = { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 };
   function wingNow(b) { if (!b.w || !b.w.wing) { b.flap = 1; return; } var S = BW.state(b.w.wing, b.age, WSQ); b.flap = S.e > 0.5 ? 1 : 0; }
-  /* a wanted velocity that keeps the eye AVOID clear: the eye's way over the next 3 s against the bird's; if they would
-     meet nearer, the bird's want is turned aside (its own way, by its own bank: never pushed) */
+  /* (B17, the owner's choice 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
+     (the camera's motion, a drag's included) would bring it within a few of its spans in the next 3 s, it notices
+     (after its own latency, 80-250 ms, as a bird reads a car coming: by distance and closing speed) and turns its own
+     way away, by its own bank (the integrator's: never pushed, never a lerp). It never follows the view: it only ever
+     turns away from where the eye is going, and only while that threat lasts */
   function clearOfEye(b, o) {
     var rx = b.p[0] - LVC.x, ry = b.p[1] - LVC.y, rz = b.p[2] - LVC.z, d2 = rx * rx + ry * ry + rz * rz;
-    if (d2 > 160 * 160) return;
+    if (d2 > 160 * 160) { b.evT = -1; return; }
     var vx = o[0] - LVC.vx, vy = o[1] - LVC.vy, vz = o[2] - LVC.vz, vv = vx * vx + vy * vy + vz * vz, tc = vv > 1e-3 ? clamp(-(rx * vx + ry * vy + rz * vz) / vv, 0, 3) : 0;
-    var cx = rx + vx * tc, cy = ry + vy * tc, cz = rz + vz * tc, dm = Math.sqrt(cx * cx + cy * cy + cz * cz);
-    if (dm >= AVOID + b.sz) return;
+    var cx = rx + vx * tc, cy = ry + vy * tc, cz = rz + vz * tc, dm = Math.sqrt(cx * cx + cy * cy + cz * cz), R = Math.max(AVOID, 4 * b.sz) + b.sz;
+    if (dm >= R) { b.evT = -1; return; }
+    if (!(b.evT >= 0)) b.evT = t;
+    if (t - b.evT < b.lat) return;   // (its own moment to notice)
     if (dm < 1e-3) { cx = -vz; cy = 0; cz = vx; dm = Math.sqrt(cx * cx + cz * cz) || 1; }
-    var k = (AVOID + b.sz - dm) / (AVOID + b.sz) * 1.5 * b.K.v;
+    var k = (R - dm) / R * 1.5 * b.K.v * (1 - 0.5 * tc / 3);
     o[0] += cx / dm * k; o[1] += cy / dm * k; o[2] += cz / dm * k;
+    STATS.evades = (STATS.evades || 0) + (b.evN === b.evT ? 0 : 1); b.evN = b.evT;
   }
 
   /* ---------------- goals (what a bird in the air is doing) ---------------- */
@@ -357,7 +363,7 @@
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
       var F = FLOCKS[i];
       if (F.lead && F.lead.st === 'fly' && goneUnseen(F) && (F.goal && F.goal.k === 'sink' || unseen(F.lead))) { dropFlock(F); STATS.outs = (STATS.outs || 0) + 1; continue; }
-      if (FORCED && F.lead && F.lead.st === 'fly' && F.m.every(function (b) { return outOfView(b, C) && dist3(b.p, C.pos) > 600; })) dropFlock(F);
+      if (FORCED && F.lead && F.lead.st === 'fly') { var allOut = true; for (var q = 0; q < F.m.length && allOut; q++) allOut = outOfView(F.m[q], C) && dist3(F.m[q].p, C.pos) > 600; if (allOut) dropFlock(F); }
     }
     if (t >= POP.nextT) {
       POP.nextT = t + 1.5;
@@ -393,7 +399,7 @@
       }
     }
   }
-  function birdsClear() { while (FLOCKS.length) dropFlock(FLOCKS[0]); BIRDS.length = 0; POP.seeded = false; POP.k = 0; POP.passT = 60; SEAC = {}; SEAC_N = 0; perchReset(); POP.r = vstream(8800); POP.cls = ''; }
+  function birdsClear() { while (FLOCKS.length) dropFlock(FLOCKS[0]); BIRDS.length = 0; POP.seeded = false; POP.k = 0; POP.passT = 60; SEAC.clear(); perchReset(); POP.r = vstream(8800); POP.cls = ''; }
   function lvG(r) { return (r() + r() + r() + r() - 2) * 1.7320508; }
   /* the land's height under a point (the world's own ground; 0 where it gives none) */
   function lvGround(x, z) { var g = HOST.ground && !FORCED ? HOST.ground(x, z) : -1e4; return g === g ? g : 0; }
