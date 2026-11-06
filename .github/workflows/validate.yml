@@ -136,6 +136,13 @@ jobs:
           python3 .github/workflows/rules_check.py
           python3 .claude/hooks/test_guard.py
 
+      - name: The deploy's inputs are all listed
+        run: |
+          # .github/ci/deploy-inputs.txt is what Cloudflare Pages' build reads: post-deploy.yml finds the live commit by
+          # it, and the Pages build watch paths are the same list. A tool the build loads but the list leaves out would
+          # be a change Pages never builds.
+          node .github/ci/deploy-inputs.mjs --check
+
       - name: security.txt not expired
         run: |
           exp=$(grep -oP 'Expires: \K.*' site/.well-known/security.txt)

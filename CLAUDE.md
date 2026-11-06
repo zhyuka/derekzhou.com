@@ -1100,7 +1100,11 @@ Before a change to the world, its kits or the ink birds:
 Cloudflare Pages (the project's Settings > Build, its build configuration):
 build command `npm ci --no-audit --no-fund --ignore-scripts && node
 tools/build.mjs dist`, build output directory `dist`, NODE_VERSION 22.
-Auto-deploys on push to main. The gate decides whether a change alters what
+Auto-deploys on push to main. Build watch paths (Settings > Build) limit that to
+pushes that touch a deploy input, .github/ci/deploy-inputs.txt (include site/*, src/*,
+tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/plan.mjs, tools/start.mjs,
+package.json, package-lock.json, .gitattributes; exclude nothing); post-deploy.yml waits
+for the newest main commit that touched one, and CI fails if the build loads a tool not listed. The gate decides whether a change alters what
 is served by building base and head (.github/ci/served.sh) and comparing the
 two builds; T1 and T2 render those builds. Every change to the live site goes through a pull
 request the owner approves. The repository is private, so CI uses the
