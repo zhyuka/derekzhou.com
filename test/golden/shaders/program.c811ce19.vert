@@ -215,6 +215,11 @@ vec3 cloudLight2(vec3 n, vec3 na, vec3 rd, float tauL, float ao, float hgt, floa
 vec3 cloudLight(vec3 n, vec3 rd, float tauL, float ao, float hgt, float thin) { return cloudLight2(n, n, rd, tauL, ao, hgt, thin); }
 
 uniform int uZ;   // (fast500 D) never set: GL makes it 0 at link. Added to a loop's bound, FXC (ANGLE's D3D11 compiler) cannot count the loop, so it keeps it rolled: one copy of its body
+#ifdef PLAIN_LOOPS
+#define UZ 0   // (WebKit boot) on WebKit (Metal) a bound it cannot prove puts a volatile in the loop: there the bound is plain
+#else
+#define UZ uZ
+#endif
 vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast500 D) dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
@@ -301,7 +306,7 @@ vec3 massif(vec2 p, vec4 m, vec4 b, float seed) {
   vec2 dlx = vec2(ca, sa) / m.z, dly = vec2(-sa, ca) / m.z;
   /* (fast500 D) the four taps' noise in one loop (one copy of gnd for FXC), each tap's multiply and gradient turn as before */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0;
-  for (int t = 0; t < 4 + uZ; t++) {
+  for (int t = 0; t < 4 + UZ; t++) {
     vec2 o = t == 0 ? vec2(seed * 57.0) : (t == 1 ? vec2(0.0) : (t == 2 ? vec2(13.0) : vec2(29.0)));
     float kk = t == 0 ? 1.1 : (t == 1 ? 2.4 : 2.2);
     vec3 g = gnd(mat2(kk / m.z) * (p + o));
@@ -353,7 +358,7 @@ vec3 dunes(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd, not seven), each tap's own multiply
      as before and its gradient turn after (dNg, its matrix a constant as before): the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
-  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
+  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + UZ; o++) {
     vec3 g;
     if (o == 1 || o == 4) g = gnd((o == 1 ? D_M1 : Ma) * (p + D_TO[o]));
     else g = gnd(mat2(D_TS[o]) * (p + D_TO[o]));
@@ -416,9 +421,9 @@ vec3 D_Hd(vec2 p) {
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
   vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);   // (fast500 D) the plateaux' vertex-only taps, once
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }
 /* (world6) the bays' sea of cloud and its shading are gone: the cloud sea is the world's (HdSea, shadeSea) */
@@ -457,7 +462,7 @@ vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
    x * s as before (the same values; the landmarks keep rockCol: lanes/D/RESULT.md) */
 vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
   float y = 0.0, b1 = 0.0, b2 = 0.0, g40 = 0.0;
-  for (int o = 0; o < 4 + uZ; o++) {
+  for (int o = 0; o < 4 + UZ; o++) {
     vec2 x = o < 2 ? p.xz : vec2(y, o == 2 ? 1.7 : 4.1);
     vec2 s = o == 0 ? vec2(1.0 / 260.0) : (o == 1 ? vec2(1.0 / 40.0) : vec2(o == 2 ? 1.0 / 38.0 : 1.0 / 11.0, 1.0));
     float g = gn(x * s);
@@ -542,7 +547,7 @@ vec3 A_Hd(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd per kind of multiply), each tap's
      own multiply as before and its gradient turn after: the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
-  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + uZ; o++) {
+  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + UZ; o++) {
     vec3 g;
     if (o == 1 || o == 3 || o == 5) g = gnd((o == 1 ? A_M1 : (o == 3 ? A_M3 : A_M5)) * (p + A_TO[o]));
     else g = gnd(mat2(A_TS[o]) * (p + A_TO[o]));
@@ -667,26 +672,17 @@ vec3 shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbo
 float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D_scatterDensity(p, layer) * (1.0 - smoothstep(0.4, 0.8, wC.x)); }
 
 
-float zcode() {
-  float d = gl_FragCoord.z; if (d >= 0.999999) return 1.0;
-  float n = uProj.z, f = uProj.w, z = d * 2.0 - 1.0, lz = 2.0 * n * f / (f + n - z * (f - n));
-  return lz >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(lz, 1.0)) / 16.0, 0.0, 1.0);
-}
-float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
-
-uniform float uFade;
-centroid in vec3 vW; centroid in vec3 vN; centroid in vec4 vC; centroid in float vY; centroid in vec2 vE; out vec4 oC;
+layout(location = 0) in vec2 aG;
+uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
+centroid out vec3 vW; centroid out vec3 vN; out float vX;
 void main() {
-  vec3 v = vW - uCam; float t = length(v); vec3 rd = v / t;
-  vec3 n = normalize(vN); if (dot(n, rd) > 0.0) n = -n;
-  float fp = t * 2.0 * uProj.y / uRes.y;
-  gEmit = vE.x; gPhase = vE.y;
-  vec3 c = shadeStone(vW, n, rd, t, fp, vC, vY);
-#ifdef EMIT_HOOK
-  gEmit = emitMod(vW, vC, gEmit, gPhase);
-#endif
-  if (gEmit > 0.0) c += vC.rgb * gEmit;
-  vec3 o = atmos(c, rd, t);
-  if (uFade < 0.999) o = mix(atmos(c, rd, 3.0e4), o, uFade);
-  oC = vec4(o, sceneA());
+  vec2 w = uLev.xy + aG * uLev.z;
+  float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
+  float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
+  w -= mod(aG, 2.0) * uLev.z * m;
+  gLodD = length(w - uCam.xz);
+  vec3 hd = HdSea(w);
+  vX = 1e4;
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
+  gl_Position = uVP * vec4(vW - uCam, 1.0);
 }

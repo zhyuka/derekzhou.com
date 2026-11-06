@@ -80,7 +80,7 @@
        in its frame */
     if (!NOISE.done) { var noised = noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers)
     var gpuFree = afterC && NOISE.done && (WARM.done || reduced());
-    if (EXT.parAll && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links)
+    if ((EXT.parAll || (EXT.parWK && !noised)) && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links; WebKit: one a frame, never in the noise's last frame)
       var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
       if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
     } else if (!EXT.parAll && afterC && NOISE.done && !WARM.done && !reduced() && !noised) {   // (speed E10: never in the noise's frame, as before E8)

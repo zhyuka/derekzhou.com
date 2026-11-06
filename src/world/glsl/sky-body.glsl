@@ -1,6 +1,11 @@
 
 uniform vec4 uSunD;   // disc: cos of radius, intensity, star amount, disc kind (1: a great flat disc)
 uniform int uZs;   // (fast500 D T1) never set: 0 at link; the star loop's bound FXC cannot fold
+#ifdef PLAIN_LOOPS
+#define UZS 0   // (WebKit boot) plain on Metal, as UZ
+#else
+#define UZS uZs
+#endif
 uniform vec4 uHi;     // high cloud: cover, brightness, scale, drift
 uniform vec3 uHiC;
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
@@ -171,7 +176,7 @@ void main() {
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
     float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float s = 0.0;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
-    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, dj, di); }
+    for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, dj, di); }
     s *= uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
     float head = max(uNight.w - dot(c, LUMA), 0.0);
     c += vec3(0.92, 0.94, 1.0) / 0.94 * head * (1.0 - exp(-s / max(head, 1e-5)));

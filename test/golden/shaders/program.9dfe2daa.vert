@@ -229,6 +229,11 @@ float groundH(vec2 xz) {
 }
 
 uniform int uZ;   // (fast500 D) never set: GL makes it 0 at link. Added to a loop's bound, FXC (ANGLE's D3D11 compiler) cannot count the loop, so it keeps it rolled: one copy of its body
+#ifdef PLAIN_LOOPS
+#define UZ 0   // (WebKit boot) on WebKit (Metal) a bound it cannot prove puts a volatile in the loop: there the bound is plain
+#else
+#define UZ uZ
+#endif
 vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast500 D) dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
@@ -315,7 +320,7 @@ vec3 massif(vec2 p, vec4 m, vec4 b, float seed) {
   vec2 dlx = vec2(ca, sa) / m.z, dly = vec2(-sa, ca) / m.z;
   /* (fast500 D) the four taps' noise in one loop (one copy of gnd for FXC), each tap's multiply and gradient turn as before */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0;
-  for (int t = 0; t < 4 + uZ; t++) {
+  for (int t = 0; t < 4 + UZ; t++) {
     vec2 o = t == 0 ? vec2(seed * 57.0) : (t == 1 ? vec2(0.0) : (t == 2 ? vec2(13.0) : vec2(29.0)));
     float kk = t == 0 ? 1.1 : (t == 1 ? 2.4 : 2.2);
     vec3 g = gnd(mat2(kk / m.z) * (p + o));
@@ -367,7 +372,7 @@ vec3 dunes(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd, not seven), each tap's own multiply
      as before and its gradient turn after (dNg, its matrix a constant as before): the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
-  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
+  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + UZ; o++) {
     vec3 g;
     if (o == 1 || o == 4) g = gnd((o == 1 ? D_M1 : Ma) * (p + D_TO[o]));
     else g = gnd(mat2(D_TS[o]) * (p + D_TO[o]));
@@ -430,9 +435,9 @@ vec3 D_Hd(vec2 p) {
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
   vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);   // (fast500 D) the plateaux' vertex-only taps, once
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }
 /* (world6) the bays' sea of cloud and its shading are gone: the cloud sea is the world's (HdSea, shadeSea) */
@@ -471,7 +476,7 @@ vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
    x * s as before (the same values; the landmarks keep rockCol: lanes/D/RESULT.md) */
 vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
   float y = 0.0, b1 = 0.0, b2 = 0.0, g40 = 0.0;
-  for (int o = 0; o < 4 + uZ; o++) {
+  for (int o = 0; o < 4 + UZ; o++) {
     vec2 x = o < 2 ? p.xz : vec2(y, o == 2 ? 1.7 : 4.1);
     vec2 s = o == 0 ? vec2(1.0 / 260.0) : (o == 1 ? vec2(1.0 / 40.0) : vec2(o == 2 ? 1.0 / 38.0 : 1.0 / 11.0, 1.0));
     float g = gn(x * s);
@@ -556,7 +561,7 @@ vec3 A_Hd(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd per kind of multiply), each tap's
      own multiply as before and its gradient turn after: the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
-  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + uZ; o++) {
+  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + UZ; o++) {
     vec3 g;
     if (o == 1 || o == 3 || o == 5) g = gnd((o == 1 ? A_M1 : (o == 3 ? A_M3 : A_M5)) * (p + A_TO[o]));
     else g = gnd(mat2(A_TS[o]) * (p + A_TO[o]));
@@ -681,11 +686,47 @@ vec3 shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbo
 float scatterDensity(vec2 p, int layer) { vec3 wD, wC; kitW(p, wD, wC); return D_scatterDensity(p, layer) * (1.0 - smoothstep(0.4, 0.8, wC.x)); }
 
 
-uniform vec3 uWind;
-in vec4 vCol; in vec3 vW; in vec2 vQ; out vec4 oC;
+uniform float uPxK;   // (E1.1) this window's pixels a pixel of the display's world (1; 4 in G0's 4x supersampled reference): every pixel-size floor and fade is in the display's pixels, so a supersampled frame is the same scene drawn finer
+layout(location = 0) in vec3 aP; layout(location = 1) in vec3 aN; layout(location = 2) in vec4 aC; layout(location = 3) in float aY; layout(location = 4) in float aE;
+uniform vec4 uSc;    // cell size, cells across, density, salt
+uniform vec4 uSc2;   // scale min, max, sink (fraction of size), tilt (rad)
+uniform vec4 uSc3;   // -, height stretch, -, -
+centroid out vec3 vW; centroid out vec3 vN; centroid out vec4 vC; centroid out float vY; centroid out vec2 vE;
+mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0.0, -s, 0.0, 1.0, 0.0, s, 0.0, c); }
+mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0, 0.0, c, s, 0.0, -s, c); }
+mat3 rotZ(float a) { float c = cos(a), s = sin(a); return mat3(c, s, 0.0, -s, c, 0.0, 0.0, 0.0, 1.0); }
 void main() {
-  vec2 w = normalize(uWind.xz), pp = vec2(-w.y, w.x);
-  float s = n3v(vec3(dot(vW.xz, w) * 0.035 - uT * 0.22, dot(vW.xz, pp) * 0.28, 0.37)).a * 1.4 - 0.2;
-  float a = vCol.a * clamp(s, 0.0, 1.0) * (1.0 - vQ.y * vQ.y) * smoothstep(0.0, 0.12, vQ.x) * (1.0 - smoothstep(0.35, 1.0, vQ.x));
-  oC = vec4(vCol.rgb * a, a);
+  int n = int(uSc.y), id = gl_InstanceID;
+  ivec2 base = ivec2(floor(uCam.xz / uSc.x));
+  ivec2 cell = base + ivec2(id % n, id / n) - ivec2(n / 2);
+  uint h = ih(ih2(cell + ivec2(int(uSc.w) * 7919, int(uSc.w) * 104729)) ^ uSalt);
+  float r1 = hf(h), r2 = hf(ih(h + 1u)), r3 = hf(ih(h + 2u)), r4 = hf(ih(h + 3u)), r5 = hf(ih(h + 4u)), r6 = hf(ih(h + 5u)), r7 = hf(ih(h + 6u));
+  vec2 pos = (vec2(cell) + vec2(r1, r2)) * uSc.x;
+  float dens = uSc.z * scatterDensity(pos, int(uSc.w));
+  float keep = step(r3, dens);
+  vec2 dd = abs(pos - uCam.xz) / (float(n) * 0.5 * uSc.x);
+  float fade = 1.0 - smoothstep(0.72, 0.97, max(dd.x, dd.y));
+  float gy = groundH(pos);
+  // (never a stone under the camera's nose: near it and low under it, they shrink away)
+  float near = mix(1.0, smoothstep(5.0, 13.0, length(pos - uCam.xz)), step(uCam.y - gy, 10.0));
+  float s = mix(uSc2.x, uSc2.y, r4 * r4) * keep * fade * near;
+  // (round E1 Fix 3, G0) a stone smaller on the window than about two pixels shrinks away: a pebble one or two pixels
+  // across, light in a dune's shade, crawled and blinked across the pixels as the view moved (the still-view film's
+  // blinks, 2.8 a frame against the 4x reference's 0.8 in Chromium), which four samples a pixel cannot hold
+  float dz = max(dot(vec3(pos.x, gy, pos.y) - uCam, uCamF), 1.0), pxs = s * uRes.y / (dz * uProj.y);
+  // (and one whose height on the window is under about two pixels: a flat pebble far off, seen low across the sand, is
+  // a sliver a few pixels wide and one or two high that stepped from row to row and blinked (the dunes film at t 120:
+  // 1.56 blinks a frame against the reference's 0.44). Its height there: what stands above the sand (the mesh's half
+  // height, 0.6 of its size, stretched, less what is sunk) and its top's depth seen from above (twice its size by the
+  // sine of the view's angle down to it)
+  float sinE = clamp((uCam.y - gy) / length(vec3(pos.x, gy, pos.y) - uCam), 0.0, 1.0);
+  float pxv = pxs * (max(0.6 * mix(1.0, uSc3.y, r6) - uSc2.z, 0.12) + 2.0 * sinE);
+  s *= smoothstep(1.0 * uPxK, 2.6 * uPxK, pxs) * smoothstep(1.2 * uPxK, 2.4 * uPxK, pxv);   // (E1.1: the sizes in the display's pixels, uPxK)
+  mat3 R = rotY(r5 * 6.2831853) * rotX((r6 - 0.5) * uSc2.w) * rotZ((r7 - 0.5) * uSc2.w);
+  vec3 sc = vec3(1.0, mix(1.0, uSc3.y, r6), 1.0) * s;
+  vec3 lp = R * (aP * sc);
+  vW = vec3(pos.x, gy - uSc2.z * s, pos.y) + lp;
+  vN = R * (aN / max(sc, vec3(1e-4)));
+  vC = vec4(aC.rgb * 2.0, floor(aC.a * 255.0 + 0.5)); vY = lp.y - uSc2.z * s; vE = vec2(aE * 15.9375, r7);
+  gl_Position = s > 1e-4 ? uVP * vec4(vW - uCam, 1.0) : vec4(0.0, 0.0, -2.0, 1.0);
 }

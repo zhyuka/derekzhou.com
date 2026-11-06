@@ -50,8 +50,14 @@
        links and first draws are synchronous: there the one-at-a-time path (the white build's), not all at once */
     var wkUA = navigator.userAgent || '', wkIs = /iPhone|iPad|iPod/.test(wkUA) || (/Macintosh/.test(wkUA) && navigator.maxTouchPoints > 1) || (/AppleWebKit/.test(wkUA) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(wkUA));
     EXT.parAll = EXT.par && !wkIs ? EXT.par : null;
+    /* (WebKit boot) on WebKit the extension puts the compiles and links on a pool of threads, one a core, but a link is
+       touched (useProgram, a uniform's location, its status) only once its completion says done, and every first draw
+       builds its Metal pipeline at once on the GPU process's one thread: so there every program is issued at once and
+       polled (progStepWK), and the warm table's first draws go one a frame, after the frame's polls (warmStepWK) */
+    EXT.parWK = EXT.par && wkIs ? EXT.par : null;
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
+    if (wkIs) DEFS += '#define PLAIN_LOOPS\n';   // (WebKit boot: the loops' bounds without uZ, UZ; the start file never serves WebKit, so its tables are as before)
     EXT.hp = !!(EXT.cbf && EXT.parAll && HP_DEV(EXT.renderer)); if (EXT.hp) DEFS += '#define HPSPLIT\n';   // (fast500 lane G: the split height's devices)
     /* (round E1 Fix 3, G0) the scene drawn with 4 samples a pixel (MSAA) where the scene's colour format and its depth
        both allow it: the scene's hard edges (a floating rock, a standing stone, a dune's crest, a far mesa's outline)
