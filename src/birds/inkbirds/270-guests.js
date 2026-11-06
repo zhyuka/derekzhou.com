@@ -177,7 +177,7 @@
       g.S = [tries[i][0], tries[i][1]];
       var dx = g.Q[0] - g.S[0], dy = g.Q[1] - g.S[1], L = Math.sqrt(dx * dx + dy * dy);
       g.L = L; g.mQ = [tdx / tdl * L, tdy / tdl * L]; g.mS = [dx, dy];
-      g.Ti = Math.min(L * 1.12 / vc, G_IN_MAX); g.vg = L / g.Ti;   // (the owner: it comes in 3-5 s: the way in at most G_IN_MAX, its glide G_GLIDE_MAX) g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve);   // (the Hermite's way a little longer than the chord; its end pace the glide's start)
+      g.Ti = Math.min(L * 1.12 / vc, G_IN_MAX); g.vg = L / g.Ti; g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve);   // (the Hermite's way a little longer than the chord; its end pace the glide's start)   // (the owner: it comes in 3-5 s: the way in at most G_IN_MAX, its glide G_GLIDE_MAX)
       if (gPathClear(g, P, B)) break;
     }
     if (i === tries.length) return false;
