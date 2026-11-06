@@ -64,7 +64,7 @@
     var i, P, dx, dz, seen = false;
     for (i = PLACES.length - 1; i >= 0; i--) {
       P = PLACES[i]; dx = P.cx - FL.x; dz = P.cz - FL.z;
-      if (P.gone && t - P.gone > GONE_T) { landPlace(P); continue; }   // (round 3: one the words came onto, faded out whole)
+      if (P.gone && t - P.gone > GONE_T) { landPlace(P); continue; }   // (round 3: one let go, faded out whole)
       var s = C && seenReal(P, t - P.t0, C);
       if (s) seen = true;
       if (P.stage) { if ((P.lastSeen !== undefined && t - P.lastSeen > 3 && !s) || (P.lastSeen === undefined && t - P.t0 > (P.enterT || 0) + 12)) landPlace(P); continue; }   // (birds3d: a staged wheel: once its birds are seen no more)

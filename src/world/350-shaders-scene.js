@@ -248,11 +248,6 @@ void main() {
   /* light shafts: what is open sky near the sun (no ground, little cloud), blurred toward the sun */
   var FS_SHAFTMASK = HEAD + FRAME_U + LIB_LIND + `@glsl fs-shaftmask`;
   var FS_SHAFTBLUR = HEAD + `@glsl fs-shaftblur`;
-  /* (world6w) the ink birds' keep-off: the words' ink boxes grown 2 px and eased out over 3 px (r: the name's and the
-     credit's, g: the links'), drawn at a quarter of the window whenever the words move and read by the ink birds alone,
-     which take their own ink off the words' ground (a pixel can only be left lighter). The composite takes nothing from
-     the words: the lift's window-wide fields are gone with the lift */
-  var FS_INKKEEP = HEAD + `@glsl fs-inkkeep`;
   /* the composite */
   /* the finished frame (the world's resolution) put up to the canvas (the device's): bilinear, as the browser's own
      upscale did before round 2 (the birds' ink is then drawn over it at the canvas's resolution) */

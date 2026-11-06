@@ -30,7 +30,7 @@
   var VS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + (HOST.glsl.AIR || HOST.glsl.LIB) + `@glsl vs-paper` + GRADE_GLSL + `@glsl vs-paper-2`;
   var FS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + `@glsl fs-paper` + PASS_TOPO.src + GRADE_GLSL + `@glsl fs-paper-2`;
   var NF = 28, UB = new Float32Array(4 * MAXP), PTW = NV + NFAC + 4, BTX = new Float32Array(MAXP * PTW * 4), BT = null, PTS_UNIT = 6;   // (physics: 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6)
-  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UMK = new Float32Array(4), ULAND = new Float32Array(4), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
+  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
   /* the paper's program: asked for as the module is made (the engine links it while its still sky shows, never in
      flight); drawn once it is linked */
   function makeProgram() { if (!PROG && !BROKEN) PROG = HOST.program(VS_PAPER, FS_PAPER, 'paper'); }
@@ -63,10 +63,10 @@
     var r = HOST.linked(PROG);
     if (r === 'lost' || r === false) { if (r === false && PROG.u && !PROG.ok) BROKEN = true; return false; }
     if (!RING) bootRing();   // (the harness's stills and forced colours, which have no boot: made at the first draw)
-    if (!SAMPLERS) {   // (the samplers' units, once: uDepth 2, uCloud 4, uBloom 5, uInkKeep 12, uHz 14)
+    if (!SAMPLERS) {   // (the samplers' units, once: uDepth 2, uCloud 4, uBloom 5, uHz 14)
       gl.useProgram(PROG.p); var u = PROG.u;
       if (u.uDepth) gl.uniform1i(u.uDepth, 2); if (u.uCloud) gl.uniform1i(u.uCloud, 4); if (u.uBloom) gl.uniform1i(u.uBloom, 5);
-      if (u.uInkKeep) gl.uniform1i(u.uInkKeep, 12); if (u.uHz) gl.uniform1i(u.uHz, 14); if (u.uPts) gl.uniform1i(u.uPts, PTS_UNIT);
+      if (u.uHz) gl.uniform1i(u.uHz, 14); if (u.uPts) gl.uniform1i(u.uPts, PTS_UNIT);
       SAMPLERS = true;
     }
     return true;
@@ -165,17 +165,8 @@
         if (gE >= 0 || (F.gift && s.gW > 0)) app = 1;
         if (F.live) app = 1;   // (the living sky: a bird shows by crossing the window's edge or coming out of the distance, never by a fade in time)   // (the gift's write-on is its entry: no fade beside it)
         if (!moving) s.still = true;
-        /* the step back from the words, on the exact box (the halo's reach counted at night) */
-        var sw = moving ? sweepNow() : 0, hwx = (s.bx1 - s.bx0) / 2, hhy = (s.by1 - s.by0) / 2, sb = stepBack((s.bx0 + s.bx1) / 2, (s.by0 + s.by1) / 2, hwx, hhy, sw > DRAG_PX ? sw * SB_LEAD : 0);
-        if (moving && s.sbT >= 0) sb = Math.min(sb, s.sbS + SB_UP * Math.max(0, tr - s.sbT));
-        /* (fix round) held at its lowest for SB_HOLD_T s before it may rise (at SB_UP a second): the beat's wings moving
-           the exact box in and out of the margin no longer blink the bird at the beat's rate (round 2: 0.80, 0.24, 0.75,
-           0.21, 0.70 in a second beside the name at night); a fall is followed at once */
-        if (moving) { if (!(s.sbH <= 1) || sb <= s.sbH) { s.sbH = sb; s.sbHT = tr; } else if (tr - s.sbHT > SB_HOLD_T) s.sbH = Math.min(sb, s.sbH + SB_UP * dt); sb = s.sbH; }
-        if (F.gone) { if (!(s.sbG <= 1)) s.sbG = sb; sb = s.sbG = Math.min(s.sbG, sb); } else s.sbG = undefined;
-        if (F.live) sb = 1;   // (the living sky: no step back, which eases in time; the words' keep-off hides its ink where the words stand)
-        var op = (FORCED ? 1 : fadeFor(F, s.n)) * app * gone * sb * (1 - ease((s.n - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])));
-        s.lastOp = op; s.lastApp = app; s.lastSB = sb; s.op = op;
+        var op = (FORCED ? 1 : fadeFor(F, s.n)) * app * gone * (1 - ease((s.n - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])));
+        s.lastOp = op; s.lastApp = app; s.op = op;
         if (op <= 0.003) continue;
         lightBird(s, L, !moving, dt);
         holdTone(s, F, !moving, dt);
@@ -202,8 +193,8 @@
     HOST.view(VW);
     UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = FX.air ? 1 : 0;
     USC[0] = VW.sUx; USC[1] = VW.sUy; USC[2] = VW.hUx; USC[3] = VW.hUy;
-    UMK[0] = VW.mUx; UMK[1] = VW.mUy; UMK[2] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UMK[3] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
-    ULAND[0] = FX.land && tex ? 1 : 0; ULAND[1] = FX.cloud && tex ? 1 : 0; ULAND[2] = clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) > 1 ? 1 / clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) : 1; ULAND[3] = tex && FX.mask ? 1 : 0;
+    UCL[0] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UCL[1] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
+    ULAND[0] = FX.land && tex ? 1 : 0; ULAND[1] = FX.cloud && tex ? 1 : 0; ULAND[2] = clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) > 1 ? 1 / clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) : 1;
     UBL[0] = VW.bUx || 1; UBL[1] = VW.bUy || 1; UBL[2] = VW.bloom || 0; UBL[3] = FX.glare && tex ? 1 : 0;
     UGL[0] = GLARE_P[0]; UGL[1] = GLARE_P[1]; UGL[2] = GLARE_P[2]; UGL[3] = GLARE_P[3];
     var fc = FORCED && HOST.forced ? HOST.forced() : null;
@@ -212,7 +203,7 @@
     var u = P.u;
     gl.uniform2f(u.uOut, VW.outW, VW.outH); gl.uniform4fv(u.uGr, UGR);
     gl.uniform3fv(u.uLift, E ? E.lift : [0, 0, 0]); gl.uniform3fv(u.uGain, E ? E.gain : [1, 1, 1]);
-    gl.uniform4fv(u.uSc, USC); gl.uniform4fv(u.uMk, UMK); gl.uniform4fv(u.uLand, ULAND);
+    gl.uniform4fv(u.uSc, USC); gl.uniform2fv(u.uCl, UCL); gl.uniform3fv(u.uLand, ULAND);
     gl.uniform4fv(u.uBl, UBL); gl.uniform4fv(u.uGl, UGL); gl.uniform4fv(u.uMode, UMODE); gl.uniform3fv(u.uInkF, UINKF);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
@@ -236,7 +227,7 @@
     INST[o + 12] = s.body[0]; INST[o + 13] = s.body[1]; INST[o + 14] = s.body[2]; INST[o + 15] = slack;
     INST[o + 16] = cloudOn ? s.cw[0] : 0; INST[o + 17] = cloudOn ? s.cw[1] : 0; INST[o + 18] = cloudOn ? s.cw[2] : 0; INST[o + 19] = N;
     INST[o + 20] = haloE; INST[o + 21] = hold; INST[o + 22] = gE; INST[o + 23] = gdir;
-    INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;   // (life: [25] 1 a guest)
+    INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;
   }
   var GIFT_T = 1.0;   // s: the gift's write-on, whole (outline 0.7, paper 0.3; fix round: no spark)
   var GLARE_P = [0.02, 0.09, 0.35, 0.5];   // the light wrap: the bloom's light under the bird from, to; the paper thinned by (px), lifted by
@@ -259,33 +250,6 @@
   }
   function p46of(s, k) { if (!s.D46) return null; var o = []; for (var i = 0; i < NV; i++) o.push(+(s.D46[2 * i] / k).toFixed(2), +(H - s.D46[2 * i + 1] / k).toFixed(2)); return o; }
 
-  /* a bird near the words steps back: by its ink box's distance to theirs, faded within their margin (WORDS, LINKS),
-     gone at SB_GONE of it (round 2: the live's "ink never within 12 px of the words" holds when a drag, which no plan
-     foresees, sweeps a bird toward them; round 1 faded it out only at the box: ink at a third, 11 px off, in W8).
-     (world5 E0, Fix 2) gone at three quarters of the margin, 18 px from the name's ink, no longer at half (12 px): the
-     lettered page's words are smaller than the bio's were, a drag sweeps birds nearer them, and the faint ink left
-     between 12 and 18 px was the least distance the judged runs measured (14.6 px against round 3's 17.9) */
-  var SB_GONE = 0.75;
-  /* (world5 E0, Fix 3: the drag policy, for E4 to confirm) while the visitor drags the view (the window swept faster
-     than DRAG_PX) the step back begins further out, by SB_LEAD s of the sweep (`ext`, px), so a bird swept toward the
-     words at 800 px/s fades over a fifth of a second instead of vanishing in one frame across the 6 px of the band
-     (verify-regress-2: 2 vanishes in DUNES s21's drag); it is gone at the same 18 px. And a flight a drag sweeps into
-     the words' margin goes whole (track: SWEPT), as the live's flight the words moved onto goes, rather than stepping
-     back bird by bird and coming out from behind the words when the drag ends */
-  var SB_AHEAD = 1.2, SB_AHEAD_CAM = 0.45, SB_GO_T = 0.9, SB_PRED = 0.6, SB_PROBES = 6;   // (E1.1: how far ahead in time a bird's way on the window is foreseen; its flight's quick fade, s; the step back foreseen that lets it go. Fix 2: 0.45 -> 1.2 s along its planned path, the camera's sweep at most 0.45 s of it; the fade 0.3 -> 0.9 s)
-  var SB_LEAD = 0;
-  var SB_HOLD_T = 0.6;   // (fix round) s: a beat and more: the step back's lowest held this long   // (Fix 3: tried at 0.2 s, the suite's step-backs went 7 -> 32 and its re-entries 30 -> 45 for one vanish fewer (2 -> 1): off)
-  function stepBack(x, y, hw, hh, ext) {
-    var f = 1, i, o, dx, dy, g, m;
-    ext = ext > 0 ? ext : 0;
-    for (i = 0; i < words.length; i++) {
-      o = words[i]; m = o.m;
-      dx = Math.max(o.l - x - hw, x - hw - o.r, 0); dy = Math.max(o.t - y - hh, y - hh - o.b, 0);
-      g = Math.sqrt(dx * dx + dy * dy);
-      if (g < m + ext) f = Math.min(f, ease((g - SB_GONE * m) / ((1 - SB_GONE) * m + ext)));
-    }
-    return f;
-  }
   var FLIGHT_ID = 0;
-  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, words: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, eased: 0, gone: 0, wheeled: 0, held: 0, paced: 0, hold: 0 }, away: 0, back: 0 };
+  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, eased: 0, gone: 0, wheeled: 0, held: 0, paced: 0, hold: 0 }, away: 0, back: 0 };
 

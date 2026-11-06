@@ -1,6 +1,6 @@
   /* ---------------------------------------------------------------- the words */
-  var WORDS = new Float32Array(20), WORDCOL = null, KEEPDIRTY = true, WLINE = [];   // ((line2 fix) WLINE: the line's own line boxes, canvas px (x0, y0, x1, y1 each), one a line: the client rects of the span its text is set in; [] none known)
-  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* (line2) the old bio's slot: the page's line under the name (the ink birds' keep-off covers it; the words' read takes it as block 3) */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
+  var WORDS = new Float32Array(20), WORDCOL = null, WLINE = [];   // ((line2 fix) WLINE: the line's own line boxes, canvas px (x0, y0, x1, y1 each), one a line: the client rects of the span its text is set in; [] none known)
+  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* (line2) the old bio's slot: the page's line under the name (the words' read takes it as block 3) */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
   /* (E0) the name is lettered (an inline SVG in the h1, no bio): its box is the ink's own, the path's bounds in the
      drawing put where the svg stands (read once, then only scaled); without it, the h1's box */
   var nameSvg = wordEls.name ? wordEls.name.querySelector('svg') : null, namePath = nameSvg ? nameSvg.querySelector('path') : null, NAMEBB = null;
@@ -32,16 +32,6 @@
     WLINE.length = 0;
     var le = wordEls.bio && wordEls.bio.querySelector ? wordEls.bio.querySelector(':scope > span') : null, lr = le ? le.getClientRects() : [];
     for (var i = 0; i < lr.length; i++) if (lr[i].right - lr[i].left >= 1 && lr[i].bottom - lr[i].top >= 1) WLINE.push((lr[i].left - cr.left) * k, (lr[i].top - cr.top) * k, (lr[i].right - cr.left) * k, (lr[i].bottom - cr.top) * k);
-    KEEPDIRTY = true;
-  }
-  function drawInkKeep() {   // (world6w) the ink birds' keep-off, when the words move
-    if (!KEEPDIRTY || !TG || !lateReady(EP.inkkeep)) return;   // (fast500 step 9: dirty until its program can draw)
-    KEEPDIRTY = false;
-    var P = EP.inkkeep; gl.useProgram(P.p);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, TG.inkKeep.f); gl.viewport(0, 0, TG.inkKeep.w, TG.inkKeep.h);
-    gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
-    gl.uniform4fv(P.u.uWords, WORDS); gl.uniform2f(P.u.uOut, OUT.w, OUT.h); gl.uniform1f(P.u.uMS, OUT.w / TG.inkKeep.w); gl.uniform1f(P.u.uDpr, OUT.dpr || 1);
-    gl.bindVertexArray(FULLVAO); gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   /* (world6w, the owner's word of 2026-10-21: "remove that white background behind the text. it's fine failing
      accesibility") the words' colours. Nothing is done to the world for the words: no lift, no floor, no gain, no toe;
@@ -51,7 +41,7 @@
      rule, no flip, no dark ink (the skies hold their own light under the light ceiling, so near-white reads on them).
      (stage2 check) Every colour of the words is a constant, the same in the stylesheet and here, for every sky and
      every moment, chosen against the light ceiling itself (W8: no pixel the world draws stands above OKLab L 0.53
-     outside the moon's footprint, which keeps off the words, and the ink birds, which keep off them too): the text
+     outside the moon's footprint, which keeps off the words, and the ink birds, which fly behind them freely: the owner, 2026-11-05): the text
      #fdfcf7 reads 5.13:1 on L 0.53, the dimmed grey #ebeffa (the credit; the links' underline) 4.59:1, the ring #f4e2b0
      4.1:1. A grey worked out from the read-back (the composite at an eighth, for the credit's lightest ground x1.2) fell
      to 4.27:1 at 1920x1080 (seed 11, the moonlit sky): an eighth averages a thin lit edge under the credit away. So the

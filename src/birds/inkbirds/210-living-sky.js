@@ -6,8 +6,8 @@
      night. Nothing is planned for the window: it shows what is in front of the camera. A flock's leader steers in the
      world (LV_DT steps, its route worked out LV_AHEAD s ahead of now) at its kind's real airspeed, turning no faster
      than its kind can, drifting with the wind; the others hold their places in its pattern, a moment behind on its
-     way (so turns ripple down it), wandering about them. Guardrails: a flock looks ahead (LV_LOOK) and goes round the
-     words and keeps LV_CLEAR from the camera's way; it is born out of sight (out of the window or beyond the distance
+     way (so turns ripple down it), wandering about them. Guardrails: a flock keeps LV_CLEAR from the camera's way (and
+     flies behind the words as it will: the owner, 2026-11-05); it is born out of sight (out of the window or beyond the distance
      its ink shows at) and let go out of sight; a window empty LV_EMPTY s has a flock sent in across its side. They
      are drawn as the world's places are (fixed in the world, never escorting the camera). */
   var LIVE_ON = true;
@@ -35,7 +35,7 @@
   var LV_DEGS = 6, LV_RATE_T = { near: 45, far: 90 };
   /* (v26) a flock follows the land under it this much of its rise and fall; and the birth check sees the camera keep its
      clearance over the land ahead of it (the camera climbs and sinks 0-2.6 m/s with the dunes: v25's check, holding its
-     climb, put a crossing 100 px or more off on the window 15 s on, into the words' margin) */
+     climb, put a crossing 100 px or more off on the window 15 s on) */
   var LV_TERRAIN = 0.8;
   var LIVE = { r: null, cls: '', rb: 0, side: 1, k: 0, nextT: 0, seenT: 0, look: 0 };
   /* (v26) the land's height under a point (the world's own ground; 0 where it gives none) */
@@ -132,9 +132,8 @@
     return o;
   }
   var LVQ2 = { x: 0, y: 0, z: 0, h: 0 };
-  /* (v13) a bird's box (the planner's and the words' guard's) with the night halo's reach at its own nearness now (as
-     measureBird3D counts it at a flight's: a living flock's distance changes, and v12 counted it at nearness 1, a third
-     of its reach at 0.3, so the guard foresaw a far bird reaching the words' margin late and it stepped back alone) */
+  /* (v13) a bird's box (the planner's) with the night halo's reach at its own nearness now (as measureBird3D counts it
+     at a flight's: a living flock's distance changes, and v12 counted it at nearness 1, a third of its reach at 0.3) */
   function lvBox(m, n) {
     var d = m.d, N = !FORCED && HOST.night ? HOST.night() : 0, pen = 0.5 * LINE[1] + 1.5;
     var hp = N > 0 && HALO_IN_BOX ? 4 * (W < 600 ? HALO_E[1] : HALO_E[0]) / Math.max(n, 0.15) : 0;
@@ -225,11 +224,10 @@
   }
   /* (v12) the fastest a flock's leader moves on the window over its next T s (px/s) and whether it shows at all: its
      route worked out that far (the camera on at its velocity, its look held), then put back as it was */
-  var LVR = { max: 0, seen: false, sb: 1, first: 1e9, dmin: 1e9 };
+  var LVR = { max: 0, seen: false, first: 1e9, dmin: 1e9 };
   function lvCap() { return LV_DEGS * DEG * (W / 2) / VW.tanX; }
   function lvRate(P, C, T) {
-    var R = P.tr, k, best = 0, seen = false, px = NaN, py = NaN, tau, sb = 1, rad = 0, q, m0 = P.m[0], first = 1e9, dmin = 1e9;
-    for (q = 0; q < P.m.length; q++) rad = Math.max(rad, Math.sqrt(P.m[q].a * P.m[q].a + P.m[q].b * P.m[q].b) + P.m[q].wP);
+    var R = P.tr, k, best = 0, seen = false, px = NaN, py = NaN, tau, m0 = P.m[0], first = 1e9, dmin = 1e9;
     lvExtend(P, T);
     for (tau = 0; tau <= T; tau += 0.5) {
       lvAt(P, tau, LVQ); lvProj(LVQ.x, LVQ.y, LVQ.z, C, tau, LVP);
@@ -238,11 +236,10 @@
       if (LVP.z > 1 && inView(LVP.x, LVP.y, 0, 0) && fadeFor(P, LVP.n) > 0.02) {
         seen = true; if (first > 1e8 && fadeFor(P, LVP.n) > 0.3) first = tau; if (px === px) best = Math.max(best, Math.sqrt((LVP.x - px) * (LVP.x - px) + (LVP.y - py) * (LVP.y - py)) / 0.5);
         px = LVP.x; py = LVP.y;
-        lvBox(m0, LVP.n);   // (v16: and the words: the whole flock's reach about its leader)
-        sb = Math.min(sb, stepBack(LVP.x, LVP.y, (m0.d.hw + rad / MPU) * LVP.n, (m0.d.hh + BOB * m0.d.span + rad / MPU * 0.6) * LVP.n));
+        lvBox(m0, LVP.n);   // (v13: its box at its nearness there)
       } else px = py = NaN;
     }
-    LVR.dmin = dmin; LVR.max = best; LVR.seen = seen; LVR.sb = sb; LVR.first = first; return LVR;
+    LVR.dmin = dmin; LVR.max = best; LVR.seen = seen; LVR.first = first; return LVR;
   }
   /* is a world point seen now (in the window, its ink showing)? */
   function lvSeen(x, y, z, C, P) {
@@ -346,9 +343,8 @@
         if (ci > 1) lvWhy('quick');
         var wx = wl * Rx + dd * Fx, wz = wl * Rz + dd * Fz, vbx = LVC.vx + wx, vbz = LVC.vz + wz;
         h = Math.atan2(vbx - WINDV[0], vbz - WINDV[2]);
-        /* (v5) the meeting aimed at a band of open sky (openBands: clear of the words, which on a phone fill most of the
-           window's middle: v4's phone flocks crossed through them and the words' guard took every one) and set back from
-           outside the window's side by half its width again (v4 began some just inside it) */
+        /* (v5) the meeting aimed at a band of open sky (openBands: clear of the other flights) and set back from outside
+           the window's side by half its width again (v4 began some just inside it) */
         var by = lvBand(r, 22); if (by === null) { lvWhy('noband'); continue; }
         lvAim(C, W / 2 + (r() * 2 - 1) * 0.2 * W / 2, by, A, LVQ);
         x = LVQ.x + LVC.vx * Tm - vbx * Tm; z = LVQ.z + LVC.vz * Tm - vbz * Tm; y = LVQ.y + LVC.vy * Tm;
@@ -365,7 +361,6 @@
       var RT = lvRate(P, C, beh === 'commute' || beh === 'migrant' ? LV_RATE_T.near : LV_RATE_T.far), cap = lvCap();
       if (RT.max > cap) { aK = Math.min(4, aK * RT.max / cap * 1.1); lvWhy('fast'); LIVE.k--; continue; }
       if (!RT.seen) { lvWhy('unseen'); LIVE.k--; continue; }
-      if (RT.sb < 0.98) { lvWhy('words'); LIVE.k--; continue; }
       if (rescue && !(RT.first <= 5)) { lvWhy('late'); LIVE.k--; continue; }
       if (RT.dmin < LV_CLEAR) { lvWhy('near'); LIVE.k--; continue; }   // (v25: its way kept clear of the viewer's at birth, as it no longer steers after)   // (v21: a rescue shows within 5 s: v20's, slower than the viewer, came out of the distance 35 s later)   // (v16: a way onto the words is not flown: v15's near skein, steering late, went into the margin while it faded)   // (v15: a way that never comes into the window is not flown)
       return P;
@@ -381,12 +376,12 @@
     var cls = skyCls(), i, P;
     if (!LIVE.r) LIVE.r = vstream(8800);
     if (cls !== LIVE.cls) { LIVE.cls = cls; LIVE.rb = TAU * LIVE.r(); LIVE.side = LIVE.r() < 0.5 ? 1 : -1; }   // (the evening's flight line: a world bearing drawn once a sky)
-    /* each flock's route worked out ahead; every LV_EVERY s its look ahead (the words, the camera's way) */
+    /* each flock's route worked out ahead; every LV_EVERY s its look ahead (its birds' boxes) */
     var look = t - LIVE.look >= LV_EVERY; if (look) LIVE.look = t;
     var live = 0, anySeen = false;
     for (i = PLACES.length - 1; i >= 0; i--) {
       P = PLACES[i]; if (!P.live) continue;
-      if (P.gone && t - P.gone > (P.goneT || GONE_T)) { landPlace(P); continue; }   // (the words' guard: gone together)
+      if (P.gone && t - P.gone > (P.goneT || GONE_T)) { landPlace(P); continue; }   // (gone together)
       lvExtend(P, t - P.t0 + LV_AHEAD);
       lvAt(P, t - P.t0, LVQ);
       var dx = LVQ.x - LVC.x, dz = LVQ.z - LVC.z, dist = Math.sqrt(dx * dx + dz * dz), ahead = dx * Math.sin(FL.psi || 0) + dz * Math.cos(FL.psi || 0);

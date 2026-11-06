@@ -15,7 +15,7 @@
       drawPaper();
     },
     visit: function () { clearAll(); guestReset(); CVH.n = 0; CVH.i = 0; },
-    reset: function () { roostPsi = TAU * vstream(7001)(); roostCls = ''; roostK = 0; LPEND = null; guestReset(); t = 0; flightNo = 0; crowdN = 0; HIDJOB = -1e9; weather(); r2 = vstream(2); r2k = 0; r2x = r2(); r2y = r2(); WK[20] = -1; dirty = true; clearAll(); errInit(); CH.n = 0; CH.i = 0; GVT = -1; calmOn = -1; HOLD.until = -1e9; HOLD.rest = -1e9; HOLD.on = 0; HOLD.refused = 0; HOLD.spared = 0; STILL.on = false; CVH.n = 0; CVH.i = 0; stageReset(); },
+    reset: function () { roostPsi = TAU * vstream(7001)(); roostCls = ''; roostK = 0; LPEND = null; guestReset(); t = 0; flightNo = 0; crowdN = 0; HIDJOB = -1e9; weather(); r2 = vstream(2); r2k = 0; r2x = r2(); r2y = r2(); WK[20] = -1; dirty = true; clearAll(); errInit(); CH.n = 0; CH.i = 0; GVT = -1; calmOn = -1; STILL.on = false; CVH.n = 0; CVH.i = 0; stageReset(); },
     lost: function () { PROG = null; VAO = null; VBO = null; RING = null; BT = null; BROKEN = false; SAMPLERS = false; makeProgram(); },
     boot: function () { makeProgram(); bootRing(); },   // (E1: the boot's stage B: the instance ring and its warm entry)
     repose: function () { lastDraw = -1; },   // (development: the next draw poses every bird afresh)
@@ -60,14 +60,13 @@
       if (o && o.guardlog !== undefined) { var gl0 = GLOG; GLOG = o.guardlog ? [] : null; if (gl0) return gl0; }
       var C = camDrawn(), CS0 = camStep();
       var out = { t: t, flights: [], drawn: STATS.drawn, planned: STATS.planned, steps: STATS.steps, workMax: STATS.workMax, costs: STATS.costs, landed: Object.assign({}, STATS.landed), fails: Object.assign({}, STATS.fails), jobs: (o && o.jobs) ? STATS.jobs.slice() : undefined,
-        guard: Object.assign({}, STATS.guard), away: STATS.away, holds: HOLD.on, holdRefused: HOLD.refused, holdSpared: HOLD.spared, holding: t < HOLD.until, err90: [1, 2, 4, 6, 8, 10, 12, 15, 20].map(function (h) { return +errAt(h).toFixed(2); }), calm: calmOn,
+        guard: Object.assign({}, STATS.guard), away: STATS.away, err90: [1, 2, 4, 6, 8, 10, 12, 15, 20].map(function (h) { return +errAt(h).toFixed(2); }), calm: calmOn,
         job: job ? job.mode : null, tNext: tNext, fx: Object.assign({}, FX), fills: STATS.fill || 0, lv: { on: liveOn(), made: STATS.lvMade || 0, nospawn: STATS.lvNoSpawn || 0, drop: STATS.lvDrop || 0, gone: STATS.lvGone || 0, rescue: STATS.lvRescue || 0, avoid: STATS.lvAvoid || 0, words: STATS.landed.words || 0, why: STATS.lvWhy || null, last: STATS.lvSeenLast || null }, W: W, H: H, mpu: MPU, forced: FORCED, openSky: OPEN_SKY, fit: FIT_K, trim: LEAN_TRIM, set: SET_ON, sep: SEP_ON, stage: stageState(), rate: RATE_MODE, sched: SCHED_MODE,
         cam: { f: cam.f, pitch: Math.atan2(cam.s, cam.c), floorY: floorY },
         CB: CS0 ? { pos: Array.from(CS0.pos), f: Array.from(CS0.f), r: Array.from(CS0.r), u: Array.from(CS0.u) } : null,
         CD: C ? { pos: Array.from(C.pos), f: Array.from(C.f), r: Array.from(C.r), u: Array.from(C.u) } : null,
         VW: { tanX: VW.tanX, tanY: VW.tanY, dpr: VW.dpr, bdpr: VW.bdpr, cssW: VW.cssW, cssH: VW.cssH, outW: VW.outW, outH: VW.outH },
-        FL: { view: FL.view, psi: FL.psi, speed: FL.speed, y: FL.y, ground: FL.ground },
-        words: words.map(function (q) { return [q.l, q.t, q.r, q.b, q.m]; }) };
+        FL: { view: FL.view, psi: FL.psi, speed: FL.speed, y: FL.y, ground: FL.ground } };
       FW.ox = C.pos[0]; FW.oy = C.pos[1]; FW.oz = C.pos[2];
       flights.concat(PLACES).forEach(function (F) {
         var tau = t - F.t0, b = [];

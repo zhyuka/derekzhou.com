@@ -99,7 +99,7 @@
   }
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
-    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs', 'inkKeep'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
+    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
     TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
     // (E1 Fix 3, G0) the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
@@ -124,11 +124,10 @@
     for (i = 0; i < 4; i++) TG.bu[i] = target(TG.bd[i].w, TG.bd[i].h, 'hdr');
     TG.sm = target(Math.max(1, Math.ceil(W / 4)), Math.max(1, Math.ceil(H / 4)), 'hdr');
     TG.sb = target(TG.sm.w, TG.sm.h, 'hdr');
-    TG.inkKeep = target(Math.max(1, Math.ceil(OUT.w / 4)), Math.max(1, Math.ceil(OUT.h / 4)), 'rgba8');   // (world6w: the ink birds' keep-off)
     // (the finished frame at the world's resolution, put up to the canvas's; the birds' ink reads what lies under it)
     TG.win = target(OUT.w, OUT.h, 'rgba8');
     TG.gs = target(Math.max(1, Math.ceil(OUT.w / GS_K)), Math.max(1, Math.ceil(OUT.h / GS_K)), 'rgba8');   // (world6 fix: the words' ground as the world drew it, at an eighth: wordsGround)
-    KEEPDIRTY = true; AG.n = 0;
+    AG.n = 0;
   }
   /* (E1 Fix 3) a multisampled target: n samples a pixel of the scene's colour format and DEPTH_COMPONENT24 (the scene's
      depth texture's own format, so its resolve is a plain blit), as renderbuffers that are never sampled; null if the

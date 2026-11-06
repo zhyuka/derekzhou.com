@@ -52,7 +52,7 @@
     F.v = F.vw = F.vPx / F.n0;                            // (units of the air a second)
     F.f = BW.LB.rate(kindOf(F), RATE_MODE);               // (physics: the lab's rate; each bird's own about it)
     F.flaps = S.flaps && S.flaps[0][0] > 8 && F.vPx < 0.8 * px * F.f ? FLAPS_SLOW : S.flaps;   // held back: it glides between bursts ...
-    g = Math.sqrt(clamp(v / F.vPx, 1, HOLD));             // ... and every kind glides the longer, the more it is slowed (HOLD here is the hold's state, var HOLD below, as it always was at this read: no upper bound applies; the old marks' 2.2, declared above it and overwritten, never did)
+    g = Math.sqrt(Math.max(v / F.vPx, 1));               // ... and every kind glides the longer, the more it is slowed (no upper bound applies; the old marks' 2.2, declared and overwritten, never did)
     if (F.flaps && !S.bound) F.flaps = [F.flaps[0], [F.flaps[1][0] * g, F.flaps[1][1] * g]];   // (not a finch's bound: its wings shut)
     F.air = Math.sqrt(Math.min(1, F.vPx / v));            // what moves it in seconds (a gust, its drift, a glide's sink) gentled
     F.hAmp *= F.air;                                      // as it is slowed, so its path turns no sharper for the slower pace
@@ -244,7 +244,7 @@
 
   /* fly a planned flight forward in thought, from flight time it.from to its
      end: every bird (only its bounding birds, on the probe pass) at its
-     nearness clear of the words, inside the edges it does not cross, never
+     nearness inside the edges it does not cross, never
      too near, never on top of another of its flight on the window, and
      APART from the other flights. Worked in slices of `budget` bird-steps:
      0 while unfinished, 1 when clear all the way (it.near its room: the

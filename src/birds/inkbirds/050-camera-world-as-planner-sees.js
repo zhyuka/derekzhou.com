@@ -8,7 +8,7 @@
      flight sets off, held still (the live site's own window: the birds' calm, their pace and turns against the world,
      are judged in it), and the coming view, the camera as it is predicted to turn, pitch and roll over the flight
      (HOST.ahead: the autopilot's own course; a drag is not foreseen): where every bird is seen, so it keeps clear of the
-     words, of the edges and of the other flights there */
+     edges and of the other flights there */
   var cam = { f: 1, c: 1, s: 0, x0: 0, y0: 0, hy: 0 }, floorY = 0;
   var FLOOR_T = 12;            // m: no flight lower than this over the ground under it (round 2: the ground under the path, not the camera's: flights cross low in front of the dunes)
   var OPEN_SKY = 1;            // the share of the window's height open to a level crossing, against the live's (scales the gaps and the retries) ...
@@ -20,7 +20,7 @@
     if (pitch === undefined || pitch !== pitch) {
       if (C && !FORCED) pitch = C.pitch;
       else {   // (no world camera: the live site's, the horizon low under the open sky)
-        var hy = clamp(Math.max(H * 0.8, stackB + WORDS + 60), H * 0.8, H * 0.95);
+        var hy = H * 0.8;
         pitch = Math.atan((hy - H / 2) / cam.f);
       }
     }

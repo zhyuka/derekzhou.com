@@ -1,11 +1,10 @@
   /* ---------------- (round 3) a flight steered in flight: its path spliced, the guard, the wheel ---------------- */
 
   /* A flight's path is planned whole before its first bird enters (the live's); in the turning world the camera can
-     still do what its course did not foresee (a new aim, a drag), and carry a flight toward the words, or turn against
-     it faster than it flies. So each flight is checked again a few seconds ahead, through the camera's near course
-     (guard()), and steered as a whole: eased up or down away from the words (a climb or a descent of at most EASE_MAX,
-     the live's own kind of path), wheeled round to fly with an unforeseen turn of the view, or, if neither keeps it
-     clear of the words, let go whole (GONE_T): never one bird faded out mid-sky while the rest fly on (round 2).
+     still do what its course did not foresee (a new aim, a drag), and turn against a flight faster than it flies. So
+     each flight is checked again a few seconds ahead, through the camera's near course (guard()), and steered as a
+     whole: its pace eased, or wheeled round to fly with an unforeseen turn of the view. The words are never a reason:
+     a bird flies behind them (the owner, 2026-11-05).
 
      A splice changes a flight's path from a point just ahead of its leader on: every bird flies the same path behind
      it, so each turns or climbs where the leader did (a wheel passing back down a line), and none moves where it is
@@ -48,7 +47,6 @@
     P.sp.push(S);
     return S;
   }
-  function unsplice(F) { var P = F.path; P.sp.pop(); if (!P.sp.length) P.sp = null; }
   /* the path point just ahead of every bird of the flight now (its leader's, and its drift forward) */
   function spliceAt(F, tau) {
     var lead = F.m[0];

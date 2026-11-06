@@ -15,7 +15,7 @@
      stage is planned nothing else is (the hush); while one is in view the sky takes one flight fewer. */
   var FIRST_STAGE = 40, STAGE_GAP = [110, 180], STAGE_LOOK = 5, STAGE_LOOK_MAX = 60, RETRY_STAGE = 30, HUSH_T = 6;
   var STAGE_W = [['S3', 40], ['S2', 35], ['S1', 25]];
-  var REVEAL_CLEAR = 60, RIBBON_CLEAR = 48, WHEEL_GROW = 0.03, STAGE_QUOTA = 400, STAGE_CANDS = 10;
+  var WHEEL_GROW = 0.03, STAGE_QUOTA = 400, STAGE_CANDS = 10;
   var S3_N = [[3, 35], [5, 40], [7, 25]], S3_SORT = [['gull', 70], ['ibis', 15], ['goose', 15]], S3_MPS = [4, 6], S3_HEAD = [10, 12];
   var S1_SORT = [['goose', 50], ['ibis', 30], ['gull', 20]], S1_RANK = [1.6, 3.0], S1_ABREAST = [[1, 1], [2, 2], [3, 2], [4, 1]], S1_YAW = [22, 28], S1_LAM = [380, 520], S1_RISE = [11, 16], S1_LAM2 = 260, S1_MPS = [7, 10], S1_N0 = [0.24, 0.32], S1_MAXT = 70;
   var S2_N = [[5, 25], [7, 40], [9, 25], [11, 10]], S2_SORT = [['gull', 50], ['stork', 25], ['ibis', 15], ['crow', 10]], S2_MPS = [9, 12], S2_ARC = [20, 60], S2_LEAD = 25, S2_BANK = 8;   // (S2_LEAD s: the latest a wheel may first be seen after its look)
@@ -100,19 +100,6 @@
     work += 4;
     return FX.cloud ? ease(HOST.cloudBetween(VP.x[i], VP.y[i], VP.z[i], x, y, z) / CLOUD_IN) : 0;
   }
-  /* a box (centre, half-extents) against the words: the stack's margin (m0: WORDS, or more), the links' (LINKS) */
-  function clearStage(x, y, hw, hh, m0, sx, sy) {
-    for (var i = 0, o, m; i < words.length; i++) {
-      o = words[i]; m = i === 0 ? Math.max(o.m, m0 || 0) : o.m;
-      if (x + hw > o.l - m - sx && x - hw < o.r + m + sx && y + hh > o.t - m - sy && y - hh < o.b + m + sy) return false;
-    }
-    return true;
-  }
-  function gapWords(x, y, hw, hh) {
-    var g = 1e9;
-    for (var i = 0; i < words.length; i++) { var o = words[i], dx = Math.max(o.l - x - hw, x - hw - o.r, 0), dy = Math.max(o.t - y - hh, y - hh - o.b, 0); g = Math.min(g, Math.sqrt(dx * dx + dy * dy)); }
-    return g;
-  }
   /* a travelling flight of a forced kind (the stage's own weights), made by the planner's own newFlight */
   function stageFlight(kind, n, dir, r, sortW) {
     var keep = SORT_OF[kind]; SORT_OF[kind] = sortW;
@@ -178,8 +165,7 @@
     return F;
   }
   /* the S3 trial: from the lead's sample to the end; each bird hidden at its first frame, its cover falling once to
-     nothing (never peeking out and back), revealed REVEAL_CLEAR from the words, never covered again; clear of the
-     words, the edges it does not cross, near, calm */
+     nothing (never peeking out and back), never covered again; inside the edges it does not cross, near, calm */
   function s3Trial(J, budget) {
     var F = J.F, it = J.it, w0 = work, M = F.m, i, m, tau, k, c, hw, hh;
     for (;;) {
@@ -197,9 +183,7 @@
         if (fadeFor(F, pv.n) < 0.02 || !inView(pv.x, pv.y, hw, hh)) { if (it.st[i] === 2) it.st[i] = 3; continue; }
         any = true;
         if (pv.n > NEAR_MAX) return stageFail(it, 'near');
-        if (!clearStage(pv.x, pv.y, hw, hh, 0, 2, 2)) return stageFail(it, 'words');
         if (!withinEdges(pv.x, pv.y, hw, hh, F.edges | 3)) return stageFail(it, 'edge');
-        it.near = Math.min(it.near, gapWords(pv.x, pv.y, hw, hh));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh); it.xLo = Math.min(it.xLo, pv.x - hw); it.xHi = Math.max(it.xHi, pv.x + hw);
         if (it.st[i] === 3) return stageFail(it, 'back');   // (in view again after it left: no)
         if (it.st[i] < 2 || it.k % 3 === 0) {
@@ -209,7 +193,7 @@
           else if (it.st[i] === 1) {
             if (c > it.cmin[i] + 0.05) return stageFail(it, 'peek');
             it.cmin[i] = Math.min(it.cmin[i], c);
-            if (c < 0.5 && it.rv[i] < 0) { it.rv[i] = tau; if (gapWords(pv.x, pv.y, hw, hh) < REVEAL_CLEAR) return stageFail(it, 'reveal'); it.rx.push(+pv.x.toFixed(1), +pv.y.toFixed(1)); }
+            if (c < 0.5 && it.rv[i] < 0) { it.rv[i] = tau; it.rx.push(+pv.x.toFixed(1), +pv.y.toFixed(1)); }
             if (c <= 0.05) { it.st[i] = 2; it.re[i] = tau; if (it.rv[i] < 0) it.rv[i] = tau; }
           } else if (c > 0.2) return stageFail(it, 'recover');
         }
@@ -292,7 +276,7 @@
     F.s0 = 0; F.dur = (F.len + F.lap) / F.v;
     return true;
   }
-  /* the S1 trial: every speck clear of the stack by RIBBON_CLEAR and of the links by LINKS, inside the top and bottom
+  /* the S1 trial: every speck inside the top and bottom
      edges, never on another of its ranks on the window, over the floor; its whole crossing at most S1_MAXT s */
   function s1Trial(J, budget) {
     var F = J.F, it = J.it, w0 = work, M = F.m, i, j, m, tau, k, hw, hh, cnt = it.probe ? F.probe.length : M.length;
@@ -311,9 +295,7 @@
         if (!inView(pv.x, pv.y, hw, hh)) continue;
         if (tau < 0.5 && it.k === 0) return stageFail(it, 'r.pop');
         any = true;
-        if (!clearStage(pv.x, pv.y, hw, hh, RIBBON_CLEAR, 2, 2)) return stageFail(it, 'r.words');
         if (!withinEdges(pv.x, pv.y, hw, hh, F.edges | 3)) return stageFail(it, 'r.edge');
-        it.near = Math.min(it.near, gapWords(pv.x, pv.y, hw, hh));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh); it.xLo = Math.min(it.xLo, pv.x - hw); it.xHi = Math.max(it.xHi, pv.x + hw);
         it.bx[4 * i] = pv.x; it.bx[4 * i + 1] = pv.y; it.bx[4 * i + 2] = hw; it.bx[4 * i + 3] = hh;
         if (it.k % 4 === 0 && (i === 0 || i === cnt - 1)) {   // (over the floor: the sea of cloud or the land under it)
@@ -387,8 +369,7 @@
     }
     return o;
   }
-  /* the S2 trial: through the course, every bird where it is seen (its place's fade) clear of the words from its first
-     faint frame, its own looming (the camera held still) under WHEEL_GROW at the 98th percentile, its own pace under
+  /* the S2 trial: through the course, every bird where it is seen (its place's fade) from its first faint frame, its own looming (the camera held still) under WHEEL_GROW at the 98th percentile, its own pace under
      the window's top speed, never nearer than NEAR_MAX (else away on the tangent 1.5 laps before) */
   var S2BX = new Float64Array(4 * MAXP);
   function s2Trial(J, budget) {
@@ -418,8 +399,6 @@
           it.redo = true; return stageFail(it, 'w.near');
         }
         if (pv.n > NEAR_MAX) return stageFail(it, 'w.near2');
-        if (!clearStage(pv.x, pv.y, hw, hh, 0, 2, 2)) return stageFail(it, 'w.words');
-        it.near = Math.min(it.near, gapWords(pv.x, pv.y, hw, hh));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh); it.xLo = Math.min(it.xLo, pv.x - hw); it.xHi = Math.max(it.xHi, pv.x + hw);
         /* its own motion, the camera held still (this sample's): looming and pace */
         var x1 = pv.x, y1 = pv.y; n1 = pv.n;

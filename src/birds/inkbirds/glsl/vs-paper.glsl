@@ -6,7 +6,7 @@ layout(location = 2) in vec4 aE;    // the bird's one tone (linear, before the a
 layout(location = 3) in vec4 aB;    // its body from the camera (m), the land's slack (m)
 layout(location = 4) in vec4 aC;    // how much of the cloud before it stands in front of it: at the left tip, the body, the right tip; the night (0 .. 1)
 layout(location = 5) in vec4 aM;    // the halo's e-folding (device px); the hold (the light's scale, 1 none); the gift's write-on (s, -1 none); its way along the M
-layout(location = 6) in vec4 aL;    // the facets' share (lodK), a guest (1: the words' keep-off and the land's depth not applied), -, -
+layout(location = 6) in vec4 aL;    // the facets' share (lodK), -, -, -
 uniform vec2 uOut;                  // the canvas (device px)
 uniform vec4 uGr;                   // the composite's exposure, saturation; -; the air (1 on)
 uniform vec3 uLift, uGain;

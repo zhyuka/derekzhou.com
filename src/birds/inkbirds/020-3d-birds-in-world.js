@@ -21,7 +21,6 @@
   var SHADE = 0.008;           // the ink's share of the scene's light (a dark bird's black lifted a breath toward it; round 2's 0.035, with the air on top of the live's TONE, paled a goose at mid distance to half the live black's contrast; round 3's first 0.012 with AIR_INK 0.4 left DUNES's at 73-80 %)
   var AIR_INK = 0.25;          // (round 3) the share of the air's haze the ink takes (the engine's fog and ground haze at its distance): all of it paled DUNES's birds at 40-120 m to 61-72 % of the live black's contrast (ink2.py), ABOVE's to 82-87 %; 0.4 (with SHADE 0.012) 73-80 % and 87-90 %; 0.25 80-85 % and 90-93 %
   var INK_MIN = 2;             // (round 3) dark ink held at least this contrast against the frame under it (a far bird over dark land in the haze)
-  var CLEAR_BAND = 60;         // (round 2) the judge's preference for a band wholly above or below the words, on a window WIDE or wider (a path's room counts up to ROOMY 60; world5 E0 Fix 2: 20, and a drag swept flights at the lettered name's height across it)
   var GLARE = [0.62, 0.95, 0.35, 0.5];   // the light wrap: the glare where the frame's light under a stroke runs from [0] to [1] (with the bloom about it); the pen thinned by [2] of it, the ink lifted toward the light by [3] (round 2: 0.4 and 0.85 lifted a bird on ABOVE's great disc 77-93 levels, to within 18 of the disc: all but gone; now 45-64, a pale, thinner mark)
   var NIGHT = [0.3, 3.2];      // light ink (the night's words): mixed this far toward the sky's own light at the bird, and held at least this contrast against it
   /* (physics) the owner's two open decisions (MODEL.md 0), as the lab left them: the rate (RATE_MODE 'scaled': the
@@ -29,7 +28,7 @@
      (SCHED_MODE 'measured'; 'calm': the last round's glides on this beat; 'continuous': never gliding). Dev only:
      __world.birds({ rate, sched }), for the next flights */
   var RATE_MODE = 'class', SCHED_MODE = 'measured', WING_FROM = -30;   // (round 3, kinds: the owner's word 2026-11-04, the real order: labbird.js RATE_CLASS)
-  var FX = { air: true, lit: true, glare: true, land: true, cloud: true, mask: true };   // (birds3d: mask, dev: the words' keep-off, off only for the lab's pins with the words hidden)   // the effects (development: each can be turned off)
+  var FX = { air: true, lit: true, glare: true, land: true, cloud: true };   // the effects (development: each can be turned off)
 
   /* (round 3) the calm on the window, the words and the course's errors */
   var CALM_K = 0.45;           // the camera's turn asked to sweep the land across the window at most this share of the live's median pace there (HOST.calm: 0.72 deg/s on a 1440 px desktop, 0.9 on a phone; tried at 0.65: the sweep, a steady 18 px/s as the autopilot turns at the cap, raced or stalled the birds on the window) ...
@@ -44,26 +43,13 @@
   var CALM_SKIP = Infinity;    // (the course turning faster than this many times the calm's rate: the world's own hard turn, the calm on the window not judged there. Tried at 2.2: the planner flew paths through a cloud's way round and its birds raced across the window at up to 68 px/s (p98, DUNES s5 1440); off, a path through such a turn is not flown)
   var BAND_T = 3;              // s: two flights sharing a band longer than this of the trusted course: not this path (round 2: a moment of it)
   var ERR90 = [0, 0, 1, 0.1, 2, 0.4, 4, 1.6, 6, 3.5, 8, 5, 10, 6.5, 12, 9, 15, 13, 20, 20, 30, 30];   // (h s, deg) pairs: the course's yaw error at that horizon, its 90th percentile, a prior (predtest3, the calm on: DUNES s5 and ABOVE s7, their mean), learnt as the visit goes (errLearn)
-  var PITCH90 = 0.6;           // deg: the course's pitch and roll error, a vertical slack (measured under 0.2 deg at 30 s; the roll of a turn the course missed)
   var GUARD_T = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6];   // s ahead: each flight checked through the camera's near course ...
   var GUARD_EVERY = 12;        // ... every this many steps (0.2 s), each flight on a step of its own
-  var EASE_AT = 1.8;           // s: a flight that would come into the words' margin this far ahead or further is eased up or down ...
-  var EASE_MAX = 15;           // deg: ... climbing or sinking at most this much more steeply (the live's own climbs: CLIMB 10-20) ...
-  var EASEV_T = 1.5;           // s: ... the change of climb eased over this much of its flight
-  var GONE_AHEAD = 2.2;        // s: one no ease keeps clear goes whole (GONE_T 1.2 s) this far ahead of the margin (world5 E0 Fix 2: 1.4, and the fade then ran on into the margin when the view's pitch swept the flight down faster than foreseen: ABOVE s7's skein at 255.7 s)
-  var SB_HOLD = 0.3;           // s: a bird the words' margin has held (stepped back) this long: its whole flight goes (the drag's guard: the per-bird fade keeps the words clear meanwhile)
   var GBACK = 0.6;             // a flight whose birds would slide backward on the window this share of the next 2 s ...
   var WHEEL = 15;              // deg/s: ... wheels round toward the view's turn at this rate in the air ...
   var WHEEL_GAP = 10;          // s: ... at most once in this long
   var ACC_T = 2;               // s: a flight hanging or racing on the window changes its pace over this long ...
   var ACC_GAP = 3;             // s: ... at most once in this long
-  /* (round 3) the camera waits for the birds: a flight the view's turn is carrying onto the words, which its own way
-     keeps clear with the view held, has the turn held (HOST.calm at HOLD_K of the calm's rate; the engine eases its turn
-     out at its calm slew, HOLD_SLEW deg/s/s) for HOLD_T s a request, renewed while its gap stays under HOLD_GAP px and
-     the view's turn is the calm's own (not a cloud's way round, a solid's, nor the visitor's), HOLD_MAX s a flight in
-     all. Before this the guard let a whole flight go (or eased it) at every turn the course had not foreseen: 10 of
-     DUNES s5's 17 flights in 300 s faded together mid-sky, 30-60 px from the words */
-  var HOLD_K = 0.04, HOLD_T = 3, HOLD_GAP = 50, HOLD_MAX = 16, HOLD_SLEW = 0.3, HOLD_REST = 6;
   var TRIAL_SLICE = 200;       // path points: a trial's work a step at most, a bird's place counted at its cost (50 places; round 2: up to the step's whole quota)
   var SPOT_COST = 3;           // a bird's place (spot: its slot, drift, wander, gusts, wings) costs about this many path points
   var FORCED = false;          // forced colours: the birds alone, in CanvasText at full ink, in their own still view (the world is not drawn)

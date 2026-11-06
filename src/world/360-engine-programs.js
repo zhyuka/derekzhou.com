@@ -91,7 +91,7 @@
     gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RG16F : gl.RG8, 64, 64, 64, 0, gl.RG, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);   // the distance with its billows, and without (pass 2: half floats where VOL16, as the volumes)
     tex3params(); gl.activeTexture(gl.TEXTURE0);
     var list = [
-      ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN], ['inkkeep', VS_FULL, FS_INKKEEP],
+      ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN],
       ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['smask', VS_FULL, FS_SHAFTMASK], ['sblur', VS_FULL, FS_SHAFTBLUR], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
       ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
       ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC]

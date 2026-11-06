@@ -165,7 +165,6 @@
     RES[0] = W; RES[1] = H;
     ST.px.scene = W * H; ST.px.half = w2 * h2; ST.px.quarter = Math.ceil(W / 4) * Math.ceil(H / 4); ST.px.out = FULL.w * FULL.h;
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
-    drawInkKeep();
     gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, GCT ? GCT.t : null); gl.activeTexture(gl.TEXTURE0);
     prof('start');
     // -------- the scene (E1 Fix 3: into its samples where it has them, cleared whole so a tile GPU loads nothing)
@@ -500,10 +499,10 @@
      else has drawn since, so the composite's inputs and its program's uniforms are as the frame left them, and the
      window is composited again (or its copy put up again) with the birds' ink over it: a pass or two a frame, not the
      whole scene (on a CPU renderer the whole scene again each frame held the page's frames back for seconds). False
-     when the targets or the words' mask changed since: drawn whole instead */
+     when the targets changed since: drawn whole instead */
   var REPTG = null;
   function represent() {
-    if (LOST || DEAD || gl.isContextLost() || !TG || REPTG !== TG || KEEPDIRTY || !LASTE) return false;
+    if (LOST || DEAD || gl.isContextLost() || !TG || REPTG !== TG || !LASTE) return false;
     var P;
     gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
     if (DIRECT) {

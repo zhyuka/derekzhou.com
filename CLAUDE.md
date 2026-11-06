@@ -14,9 +14,9 @@ site/index.html              Home page: the words over a 3D world, drawn live be
 site/style.v16.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
-site/start.v2.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World)
-site/start-table.v2.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint
-site/world.v8.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
+site/start.v4.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World)
+site/start-table.v4.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint
+site/world.v10.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light
 site/realm-above.v3.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
@@ -27,7 +27,7 @@ site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M
 site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
 site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
 site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
-site/inkbirds.v4.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
+site/inkbirds.v7.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -60,8 +60,8 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
                              w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
                              with glsl_manifest.txt)
 
-Five scripts are served minified: world.v8.js, realm-kit.v2.js,
-realm-dunes.v4.js, realm-above.v3.js and inkbirds.v4.js. src/ holds them
+Five scripts are served minified: world.v10.js, realm-kit.v2.js,
+realm-dunes.v4.js, realm-above.v3.js and inkbirds.v7.js. src/ holds them
 as written. The world and the ink birds are kept as section files, one per
 divider of the old whole file (src/world/NNN-slug.js, src/birds/inkbirds/;
 each folder's parts.json names the served file): edit the section you need;
@@ -94,7 +94,7 @@ tools/minify.mjs --build build/ship site --start-src build/src),
 the two committed together. tools/build.mjs runs all of that into a
 folder of its own (node tools/build.mjs --plain OUT: site/ copied, the
 built scripts over it) and then (restructure step 5) names each script and
-stylesheet by its content: world.v8.js becomes world.<sha8>.js, the first 8
+stylesheet by its content: world.v10.js becomes world.<sha8>.js, the first 8
 hex of the sha256 of its final bytes, files that load others by name (the
 world's plan worker, the start file's table) named after them, and every
 reference rewritten (index.html, 404.html, \_headers, the two workers'
@@ -150,8 +150,8 @@ technology leader in Agentic and Generative AI, Platform Engineering, and
 Product Development."" It sits between the name and the credit row in
 the words' role (.words), its text in a span of its own (held by CI; the
 world's old ground read took the line's ink from those line boxes alone,
-and that code stays, unreached; the birds keep off the line's whole
-box), with a non-breaking space in "Product
+and that code stays, unreached; the birds fly behind it as behind
+every word), with a non-breaking space in "Product
 Development" so no line ends on one word. The page is the name, that
 line, the credit row and the two links. The Open Graph and Twitter
 descriptions (share text) are the same line, and the meta description
@@ -250,7 +250,10 @@ looks blurry from afar too.. everything should be 10x quality". Then
 (2026-11-05), of the 2D birds still flying over the still sky as the page
 loaded: "Why do I still see the old birds at all … like when the page
 first loads. There shouldn't be any code at all for that, right?! wtf
-is going on pls fix from root and clean everything up". So: the name is
+is going on pls fix from root and clean everything up"; and, of the
+boxes that hid the birds about the words: "also pls remove the masking
+boxes from behind the text completely. it's completely fine if the
+birds fly behind/in front of it... do u even understand". So: the name is
 lettering (see Type); nothing on the page darkens the world or lifts it
 for the words; the words are always light, and the world draws only skies
 they read on (see World); and the birds are the ink birds alone, flying in
@@ -273,7 +276,7 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v8.js, realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js)
+## World (world.v10.js, realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
@@ -407,13 +410,17 @@ route). So 4.5:1 held against every ground pixel measured under
 the words (see Verify; the credit's lowest at the view's own
 heading 4.90:1). The ceiling bounds lightness (OKLab L), not
 luminance, so the margin depends on hue: on a saturated green at the
-ceiling the credit would be about 4.4-4.5:1.
+ceiling the credit would be about 4.4-4.5:1. A bird passing behind the
+words (since 2026-11-05 nothing masks it there) is not held to these
+numbers: a night's light ink under the light words lowers their
+contrast for the moment it crosses, which the owner accepted ("it's
+completely fine if the birds fly behind/in front of it").
 
 BOOT (the owner: "should load instantly make it 10x faster"): the page
 paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The start file
-(start.v2.js: async, fetchpriority high, Early-Hinted, the first script
+(start.v4.js: async, fetchpriority high, Early-Hinted, the first script
 after the canvas) runs its tests as soon as it comes: unless WebGL2 is
 missing, colours are forced or the browser is WebKit, it waits for the
 page's first contentful paint (PerformanceObserver 'paint'; two frames
@@ -422,7 +429,7 @@ context first: its getContext wrapped once, so the programs are issued
 just before the world takes the context if the table is in; else the
 start file stands aside and the world compiles its own, as without it). Issued at once, they held the
 first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores).
-Then it starts its table as a worker (start-table.v2.js, the programs'
+Then it starts its table as a worker (start-table.v4.js, the programs'
 GLSL, 1 MB, posted back as strings: no DOM, no fetch; parsed on the main
 thread before the first paint it held it back on a slow phone, FCP 148 ->
 284 ms at 4x), and when the sources are in it makes the canvas's context with the world's attributes, and unless
@@ -600,7 +607,7 @@ it, in CanvasText at full ink, in a still view of their own (the flight
 held), and the world back when they end, on at load too; print: none of
 it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.v8.js's
+THE WEATHER (=rand()): one crypto.getRandomValues above world.v10.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds. The realm and kit files, the wing model, the ink birds, the
@@ -610,7 +617,7 @@ world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.
 
-## Birds (inkbirds.v4.js and its wing model)
+## Birds (inkbirds.v7.js and its wing model)
 
 The birds are the ink birds, and there are no others: the world draws
 them, in its canvas, so before the world's first frame, and wherever it
@@ -622,7 +629,7 @@ CanvasText (see World: FALLBACKS). No script, SVG or rule of the old 2D
 birds is left in the page, its stylesheet, its headers or the world's
 scripts, and CI fails if one comes back (see Security).
 
-THE INK BIRDS (inkbirds.v4.js, round 3): the living sky. The birds are
+THE INK BIRDS (inkbirds.v7.js, round 3): the living sky. The birds are
 not flights planned to cross the window: every flock is an animal
 in the 3D world on its own business, and the window shows what is in
 front of the camera. Geese, ibis and gulls commute on the evening's line
@@ -636,23 +643,27 @@ behind on its way, so turns ripple down the flock. Each bird is the
 tattoo's M as a faceted solid flown by a measured wingbeat (the wing
 model: facetform, facetpose, wingmodel, model, labbird, birdwing, loaded
 before it), drawn as ink through the world's camera, hidden behind a
-cloud's opaque core, and taking its own ink off the words' ground (the
-one keep-off the world draws, read by the ink birds alone), which can
-only leave a pixel lighter. The calm is kept in the world, never by
+cloud's opaque core, and never masked for the words: a bird crossing
+them is drawn whole, behind them (the canvas lies under the page; the
+owner, 2026-11-05: "pls remove the masking boxes from behind the text
+completely. it's completely fine if the birds fly behind/in front of
+it"). No keep-off texture, no step back near the words, no route
+refused, eased, held or let go for them, and the camera never waits
+for a bird near them (CI: world_rules.py rule 7, "no-mask"). The calm is kept in the world, never by
 slowing a bird: nothing passes the eye faster than 6 degrees a second
 (such a flock is met farther out), each kind is met at its own
 true-size distance, at most four or five flocks live about the viewer
 (an encounter every 9-20 s), a sky with no clear bird for 9 s sends one
-in that shows within 5 s, and a route onto the words is not flown. No
+in that shows within 5 s, and a route may cross the words. No
 bird follows the view (the owner's word): a flock's whole route is worked
 out at its birth and flown exactly, at its own height over the land
 under it; nothing in its flight reads the camera, so a drag swings the
 view past the birds. And no bird fades in time: it shows only by
 crossing the window's edge or coming out of the distance (a fade by
-distance alone), and goes the same ways. Where the view brings the words
-across a flock's way, the words' keep-off hides its ink where they stand.
-The perched birds (guests): now and then a gull flies in (round the letters, never across a
-stroke), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
+distance alone), and goes the same ways, the words' place on the window
+no exception.
+The perched birds (guests): now and then a gull flies in (its way in and out free to cross
+the words), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
 line (never an underline), sits in the owner's perch A (the folded M seen side-on, upright),
 never still for long, and leaps off and away. No fades: it comes in from beyond the window's
 edge and leaves out of view. The pointer's perch needs the hover listener the world does not
@@ -717,7 +728,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 1. hour.v3.js — in the head, before the first paint (tiny,
    Early-Hinted): which time of day the world opens on (data-sky,
    data-sky-at) and the browser's bar.
-2. start.v2.js — the start file (async, fetchpriority="high",
+2. start.v4.js — the start file (async, fetchpriority="high",
    Early-Hinted, the first script after the canvas and the only async
    one): the world's context and its first frame's programs, issued before
    the world's script runs (see World: BOOT); made by tools/start.mjs from
@@ -725,7 +736,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 3. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
-4. world.v8.js — the world (deferred, fetchpriority="high", Early-Hinted,
+4. world.v10.js — the world (deferred, fetchpriority="high", Early-Hinted,
    first of the deferred; minified). As its script ends it starts the
    plan's worker, plan.v1.js, by name (no tag: see World: BOOT).
 5. realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js — the kits
@@ -735,7 +746,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
    labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred,
    fetchpriority="low", in that order; each puts its one global on self).
-7. inkbirds.v4.js — the ink birds (deferred, fetchpriority="low", last,
+7. inkbirds.v7.js — the ink birds (deferred, fetchpriority="low", last,
    minified: they take the sky whenever they come).
 
 Progressive enhancement throughout: with JS off, the page is the
@@ -813,8 +824,8 @@ The world's scripts are not on the path to the first paint (deferred, the
 start file async), but the start file, the world's and the kits' are
 fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
-served: start.v2.js 1035 KB (its programs' GLSL, as text), world.v8.js
-381 KB, the kits 51 KB, inkbirds.v4.js 193 KB, its wing model 186 KB, the
+served: start.v4.js 1035 KB (its programs' GLSL, as text), world.v10.js
+381 KB, the kits 51 KB, inkbirds.v7.js 193 KB, its wing model 186 KB, the
 plan's worker 73 KB (node tools/minify.mjs --report build/src: the five
 minified, before and after, raw and brotli).
 
@@ -904,7 +915,7 @@ worker-src 'self' on the two home blocks that start it (/ and /index.html;
 block in \_headers (/plan.v1.js: immutable, default-src 'none'; a
 worker's policy is its script's headers, not the page's, and no other
 rule sets one on that path). The start file's table runs as a second
-worker under the same worker-src (/start-table.v2.js: immutable,
+worker under the same worker-src (/start-table.v4.js: immutable,
 default-src 'none'; it posts the programs' sources and closes).
 Otherwise WebGL2 from same-origin scripts, those two workers, no blobs,
 no fetches, no eval; the site's own code
@@ -920,8 +931,8 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, start.v2.js and its table start-table.v2.js, the five minified scripts as written (src/'s
-world.v8.js, the kits and inkbirds.v4.js), the wing model, plan.v1.js,
+hour.v3.js, start.v4.js and its table start-table.v4.js, the five minified scripts as written (src/'s
+world.v10.js, the kits and inkbirds.v7.js), the wing model, plan.v1.js,
 plus style.v16.css for cursors and a bird rule, and \_headers for a bird
 script's name — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
@@ -951,7 +962,7 @@ with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v8.js and only by name (its two on the plan's
+listeners only in world.v10.js and only by name (its two on the plan's
 worker, its answer and its failure, one each); the script order (the
 world and the kits first, fetchpriority high, then the wing model and
 the ink birds, low; the start file the one async script, high, right
@@ -967,7 +978,9 @@ one listener, webglcontextlost; nothing put on window but WORLD_START);
 the scripts' text read from src/ (world_rules.py site build/src); and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts
-are named nowhere, the ink birds alone read their keep-off, and nothing is
+are named nowhere, no keep-off or words' mask is named anywhere and the
+ink birds sample only their fixed list (the owner, 2026-11-05: no
+masking boxes), and nothing is
 drawn onto the canvas after the composite but what is named. CI step
 "Nothing darkens (W7's unit test)" runs the composite's tail in headless
 WebGL2 over random grounds: every code the encode and the dither's, never

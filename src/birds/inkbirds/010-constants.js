@@ -32,9 +32,9 @@
 
   /* the sky */
   var OUT = 70;                // px beyond the window where a path begins and ends
-  var WORDS = 24;              // px of sky kept clear round the words (the name, bio and credit) ...
-  var LINKS = 20;              // ... and round the footer links
-  var ROOMY = 60;              // px: a path this far from the words and the window's edges is as good as any
+  /* (the owner, 2026-11-05: "pls remove the masking boxes from behind the text completely. it's completely fine if the birds fly behind/in front of it")
+     no sky is kept clear round the words: a bird flies behind them as behind any cloud's edge, on its own way */
+  var ROOMY = 60;              // px: a path this far from the window's edges is as good as any
   var EDGE = 10;               // px kept from each edge of the window a flight does not cross
   var APART = 48;              // px kept between two flights, always
   var FLIGHTS = [2, 3];        // flights in the sky at once, at most: more on a WIDE sky

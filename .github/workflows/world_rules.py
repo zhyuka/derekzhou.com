@@ -33,11 +33,13 @@
 #      file, fetchpriority="high", the first script after the canvas.
 #   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
 #   7  Nothing darkens, and nothing is done to the world for the words (the owner's rule; the words' lift is
-#      gone): no realm or kit file names the ink birds' keep-off (uInkKeep); the ink birds' file names it only to take
-#      their own ink off the words' ground (its sampler's declaration and the one line that multiplies the ink's
-#      visibility down), which can only leave a pixel lighter; in world*.v*.js the lift's parts (liftWords, LIB_LIFT,
-#      uLiftOn, uVeil*, uLinkCore, worldToe, TOE_*, LIFT_FEATHER, VEILK, veilFor) are named nowhere, uInkKeep only in
-#      the samplers' unit table, and the composite (FS_COMP) names no words input and declares only its fixed list
+#      gone), and nothing masks a bird for them (the owner, 2026-11-05: "pls remove the masking boxes from behind the
+#      text completely. it's completely fine if the birds fly behind/in front of it"): no file names a keep-off or a
+#      words' mask (uInkKeep, uMask*, uKeep*, uWords, the inkkeep program, inkKeep), the ink birds' shader samples only
+#      its fixed list (uDepth, uCloud, uHz, uBloom, uPts) and their planner names none of the old keep-out's parts
+#      (clearOfWords, stepBack, clearStage, gapWords, wordsGap, gAvoid, gInkHit, the hold); in world*.v*.js the lift's
+#      parts (liftWords, LIB_LIFT, uLiftOn, uVeil*, uLinkCore, worldToe, TOE_*, LIFT_FEATHER, VEILK, veilFor) are
+#      named nowhere, and the composite (FS_COMP) names no words input and declares only its fixed list
 #      of uniforms. W7's unit test is its own step (w7_unit.js: the composite's tail is the encode and the dither, every
 #      code the reference's, never lower and never higher; --mutate proves it catches a lift, a darkening, a panel).
 #   7b Nothing is drawn onto the canvas after the composite but what is named (a panel planted in a pass of its own
@@ -252,29 +254,33 @@ for f in [f for f in files if re.fullmatch(r'start\.v\d+\.js', f)]:
 
 # 7 nothing darkens, and nothing is done to the world for the words (the lift is gone, the owner's word of
 # 2026-10-21): the composite takes no words input at all (no mask, keep-off, words' box, floor, gain or toe), its
-# uniforms are a fixed list (a new one is a deliberate change here), and the lift's parts are named nowhere; the ink
-# birds alone read the keep-off (uInkKeep), only to take their own ink off the words' ground
+# uniforms are a fixed list (a new one is a deliberate change here), and the lift's parts are named nowhere; and no
+# bird is masked or kept out for the words (the owner, 2026-11-05: "pls remove the masking boxes from behind the text
+# completely. it's completely fine if the birds fly behind/in front of it")
 LIFT_PARTS = r'\b(liftWords|LIB_LIFT|uLiftOn|uVeil\w*|uLinkCore|worldToe|TOE_F|TOE_Y1|TOE_TINT|LIFT_FEATHER|VEILK|veilFor)\b|LIFT-BEGIN'
 WORDS_IN = r'\b(uMask\w*|uInkKeep|uKeep\w*|uWords|uLift\w*On|uVeil\w*|uLinkCore|uFloor\w*|mk|mk4|liftWords|worldToe)\b'
 COMP_UNIFORMS = {'uScene', 'uCloud', 'uBloom', 'uShaft', 'uLinD', 'uDepth', 'uSceneH', 'uHVP', 'uHC', 'uStb', 'uLay', 'uSc', 'uClS', 'uBlK', 'uShK', 'uShC', 'uLift', 'uGain', 'uOut', 'uPVP', 'uPCam', 'uSSR', 'uMi',
                  'uCeil'}   # (the time of day: the light ceiling on the skies with light words, the world's own light, the same everywhere on the window: no words input)
-for f in kit + realms:
-    for ln, t in lines(strip_comments(src[f]), r'\b(uMask|uInkKeep)\b'): fail('7 never-darker', f'{f}:{ln} names the words\' keep-off: {t}')
+KEEP_OFF = r'\b(uInkKeep|uMask\w*|uKeep\w*|uWords|inkKeep|FS_INKKEEP|drawInkKeep|KEEPDIRTY)\b|[\'"]inkkeep[\'"]|engine\.inkkeep'
+KEEP_OUT = r'\b(clearOfWords\w*|stepBack|clearStage|gapWords|wordsGap|gAvoid|gInkHit|holdHarms|heldCourse|HOLD_K|SB_HOLD|SWEPT)\b'
+INK_SAMPLERS = {'uDepth', 'uCloud', 'uHz', 'uBloom', 'uPts'}
+for f in kit + realms + ink + world:
+    for ln, t in lines(strip_comments(src[f]), KEEP_OFF): fail('7 no-mask', f'{f}:{ln} names a words\' keep-off or mask (the owner, 2026-11-05: no masking boxes behind the text): {t}')
 for f in ink:
-    for i, l in enumerate(strip_comments(src[f]).split('\n')):
-        if not re.search(r'\b(uMask|uInkKeep)\b', l): continue
-        l = l.strip()
-        l2 = re.sub(r'if \(u\.uInkKeep\) gl\.uniform1i\(u\.uInkKeep, \d+\);', '', l)   # (round 3: the ink birds bind their sampler's unit themselves)
-        if not re.search(r'\b(uMask|uInkKeep)\b', l2): continue
-        if not (re.match(r'uniform sampler2D\b[^;]*;$', l) or re.search(r'texture\(uInkKeep, [^;]*;\s*vis \*= 1\.0 - smoothstep\(', l)): fail('7 never-darker', f'{f}:{i + 1} names the words\' keep-off beyond taking its own ink off the words: {l[:100]}')
+    c = strip_comments(src[f])
+    for ln, t in lines(c, KEEP_OUT): fail('7 no-mask', f'{f}:{ln} names a part of the old words\' keep-out (birds fly behind the words: the owner, 2026-11-05): {t}')
+    found = set()
+    for d in re.findall(r'uniform\s+(?:highp\s+|mediump\s+|lowp\s+)?sampler\w*\s+([^;]+);', c):
+        for v in d.split(','): found.add(v.strip())
+    if not found: fail('7 no-mask', f'{f}: the ink birds\' samplers were not found (rule 7 cannot read them)')
+    extra = sorted(found - INK_SAMPLERS)
+    if extra: fail('7 no-mask', f'{f}: the ink birds sample beyond their fixed list: {extra} (a words\' mask? if not, add it to INK_SAMPLERS deliberately)')
 for f in world:
     c = strip_comments(src[f])
     for i, l in enumerate(c.split('\n')):
         t = l.strip()
         m = re.search(LIFT_PARTS, t)
         if m: fail('7 never-darker', f'{f}:{i + 1} names the lift\'s part {m.group(0)} (the lift is gone): {t[:100]}')
-        if re.search(r'\b(uMask|uInkKeep)\b', t) and not t.startswith('var UNITS = {'):
-            fail('7 never-darker', f'{f}:{i + 1} names the keep-off uniform beyond the samplers\' unit table (the ink birds\' alone): {t[:100]}')
     cm = re.search(r'var FS_COMP = [^`]*`([\s\S]*?)`;', src[f] or '')
     if cm:
         body = strip_comments(cm.group(1))
@@ -290,7 +296,7 @@ for f in world:
     elif 'FS_COMP' in (src[f] or ''): fail('7 never-darker', f'{f}: FS_COMP not found as one template (rule 7 cannot read it)')
 
 # 7b nothing drawn onto the canvas after the composite but what is named
-PROGRAMS = {'sky', 'depth', 'inkkeep', 'pre', 'down', 'up', 'smask', 'sblur', 'comp', 'blit', 'vdens', 'vlight', 'vbody', 'occ', 'creature', 'glow', 'beam', 'cacc'}
+PROGRAMS = {'sky', 'depth', 'pre', 'down', 'up', 'smask', 'sblur', 'comp', 'blit', 'vdens', 'vlight', 'vbody', 'occ', 'creature', 'glow', 'beam', 'cacc'}
 DRAWS = r'\b(dc|drawArrays|drawElements|drawArraysInstanced|drawElementsInstanced|drawRangeElements|blitFramebuffer)\s*\('
 for f in world:
     c = strip_comments(src[f]); L = c.split('\n')

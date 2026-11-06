@@ -54,7 +54,7 @@
   var FLOOR_K = 0.08;          // (way-form: unused but in the planner's pad) the pen floor is now today's pen itself: LINE's width for the bird's ink span (1.3 + 0.035 span, 1.5-2.5 CSS px, in quarter px), so the wing's stroke is the tattoo's stroke at every size
   var HOLD_POSE = [3, 8];      // device px of span: smaller, the beat's swing eases into the held glide (a speck holds its glide). (physics: the measured beat in full from 8 px; the shape round held it in from 16, and a 1440 px desktop's birds, 10-25 px, beat partly held 68 % of their time, a tenth of it at under 0.65 of the measured stroke: the stiffness the owner saw)
   var LEAN_TRIM = 0;           // deg: 0 the physics; 16 a held bank away from the camera while gliding (the B film; sideslip disclosed)
-  var HALO_IN_BOX = true;      // at night the halo counts in the bird's box (nothing a bird adds comes within the words' margins)
+  var HALO_IN_BOX = true;      // at night the halo counts in the bird's box
   var PAPER = [0.94, 0.911, 0.853];   // the paper's albedo, linear (OKLab L 0.97, chroma 0.010, hue 85: a warm white)
   var WRAP = 0.45, TRANS = 0.3, BOUNCE = 0.45, FOLD = 0.06, PAPER_GAIN = 1.08;   // (PAPER_GAIN: calibrated on the realms' day films, A16: white on blue +0.10 OKLab L in 80 % and more)   // the sun wrapped about the paper; through it from behind; the cloud sea's light under it; the fold's whisper
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
@@ -235,7 +235,7 @@
   }
 
   /* (physics) the old burst's blend (beatInfo) is gone: the lab's envelopes blend glide and beat (BW.poseS) */
-  var wa = {}, wb = {}, wc = {}, pa = {}, pb = {}, pc = {};   // (scratch points: where a bird is, and through the camera)
+  var wa = {}, wb = {}, pa = {}, pb = {};   // (scratch points: where a bird is, and through the camera)
   var PGL22 = new Float64Array(22), WO = { swing: 1, shut: null };
   var wq = {}, wa3 = {}, wc3 = {}, VV = [0, 0, 0], AA = [0, 0, 0];
   function smoothK(a, b, x) { return ease((x - a) / (b - a)); }

@@ -4,8 +4,8 @@
      pace and its calm, all in the still view (the camera as it will be when the flight sets off, held still: against
      the world). These, in place of the live's of the same names, fly each path through the coming view as well (the
      camera's predicted turn, pitch and roll): where its birds will be seen, so that they come into view only across an
-     edge or out of the distance (never in view as the flight is made), keep clear of the words, the edges and the other
-     flights there, are seen long enough to be worth the sky, and are not lost behind cloud or the land; and work out a
+     edge or out of the distance (never in view as the flight is made), keep clear of the edges and the other flights
+     there, are seen long enough to be worth the sky, and are not lost behind cloud or the land; and work out a
      path's extent in coarse steps then halves (round 1's 4 px steps made one path's working-out 1200 bird-steps in a
      single step) */
   var pv = {}, pv2 = {}, PW = {};
@@ -89,7 +89,7 @@
   /* fly a planned flight forward in thought through the coming view, a sample (STEP) at a time from the job's start:
      its calm against the world (the live's checks, in the still view: never too quick, growing or shrinking too fast,
      nor any bird turning too sharply), and where it is seen (the coming view): never in view as it is made, in view by
-     it.enterBy after it sets off, every bird at its nearness clear of the words, inside the edges it does not cross,
+     it.enterBy after it sets off, every bird at its nearness inside the edges it does not cross,
      never too near, never on top of another of its flight, APART from the other flights; done once it has been seen
      at least it.seenMin and none of it has been in view for LEAVE_T (the view turned from it, or it left), or at the
      course's end. Worked in slices of `budget` bird-steps: 0 while unfinished, 1 when clear all the way (it.near its
@@ -104,7 +104,7 @@
   }
   function trialRun(F, it, A, budget) {
     var M = F.m, probe = it.probe ? F.probe : null, cnt = probe ? probe.length : M.length, bx = it.bx, wv = it.wv, wt = it.wt, fc = it.fc,
-        w0 = work, i, j, m, row, g, gx, gy, e, tau, hw, hh, sw, sh, tp = it.tp, turns = !F.soar && !F.still, any, trust = true, hk, sx, sy,
+        w0 = work, i, j, m, row, g, gx, gy, e, tau, hw, hh, sw, sh, tp = it.tp, turns = !F.soar && !F.still, any, trust = true, hk,
         calm = !F.soar && !F.still && !it.live && !!HOST.calm, pmax = paceMax(), ox, oy, wx, wy, own;   // (an engine without the calm (HOST.calm) turns as it will: its turn cannot be planned round, and round 2's still-view calm is all there is)
     it.spent = 0;
     if (WIND_ON && !F.place) { windNow(); var wcy = F.cyw === undefined ? 1 : F.cyw, wsy = F.syw === undefined ? 0 : F.syw; WF[0] = (-wcy * WINDV[0] + wsy * WINDV[2]) / MPU; WF[2] = (wsy * WINDV[0] + wcy * WINDV[2]) / MPU; } else WF[0] = WF[2] = 0;   // (way-other: the wind in the flight's frame, air units a second)
@@ -125,9 +125,7 @@
       viewNeed(it.k0 + it.k);
       row = A ? aheadRow(A, it.k0 + it.k) : null;
       viewAtK(F, it.k0 + it.k);
-      /* (round 3) how far ahead the course is here, and what it may have wrong there: the words' margin widened by it
-         (across: the view's turn; up and down: its pitch and roll), all the way, never held to half (round 2 held a
-         path past T_TRUST to half the margin, and the drawer then faded birds one by one at the words' edge) */
+      /* (round 3) how far ahead the course is here: the trusted course */
       hk = (it.k0 + it.k) * STEP;
       trust = it.live || hk <= trustT();
       /* (round 3) the course turning harder than the calm lets the autopilot (a solid's or a cloud's way round, which the
@@ -135,7 +133,6 @@
          window is judged where the view keeps the calm (refusing every path through such a turn left DUNES s21's sky
          empty for its first 13 s) */
       var vi = Math.min(Math.max(it.k0 + it.k, 1), VP.n - 1), hard = !VP.still && VP.n > 1 && Math.abs(angDiff(VP.yaw[vi], VP.yaw[vi - 1])) / STEP > CALM_SKIP * calmBase();
-      sx = it.live ? 0 : slackX(hk); sy = it.live ? 0 : slackY();
       any = false;
       for (i = 0; i < cnt; i++) {
         m = M[probe ? probe[i] : i];
@@ -175,15 +172,6 @@
         if (it.k === 0 && !it.live && !F.still) return fail(it, 'pop');   // (in view as it is made: never)
         any = true;
         if (pv.n > NEAR_MAX) return fail(it, 'near');
-        if (!clearOfWordsS(pv.x, pv.y, hw, hh, sx, sy)) {
-          if (trust) return fail(it, 'words');
-          /* ('late': past the trusted course the course's error is wide: on the words themselves there, not this path;
-             within their widened margin, a path the less roomy (judge) and left to the guard, which eases a flight
-             that does come near them, or lets it go whole) */
-          held = 0.5; var lw = clearOfWords(pv.x, pv.y, hw, hh); held = 1;
-          if (!lw) return fail(it, 'late');
-          it.late += STEP;
-        }
         if (trust && !withinEdges(pv.x, pv.y, hw, hh, e)) return fail(it, 'edge');
         it.near = Math.min(it.near, room(pv.x, pv.y, hw, hh, e));
         it.yLo = Math.min(it.yLo, pv.y - hh); it.yHi = Math.max(it.yHi, pv.y + hh);   // the band it flies in (and how far across)
@@ -334,7 +322,7 @@
     for (g = 0; g < n; g++) {
       if (BG[3 * g + 2] !== st || !(BG[3 * g] < BG[3 * g + 1])) continue;
       BB.yLo = BG[3 * g]; BB.yHi = BG[3 * g + 1]; BB.xLo = BG[3 * (g + 100)]; BB.xHi = BG[3 * (g + 100) + 1];
-      if (BA.yLo < BB.yHi + BAND_GAP && BA.yHi > BB.yLo - BAND_GAP && !between(BA, BB)) return false;
+      if (BA.yLo < BB.yHi + BAND_GAP && BA.yHi > BB.yLo - BAND_GAP) return false;
       BG[3 * g + 2] = -1;   // (done with this row's flight)
     }
     return true;
@@ -403,19 +391,13 @@
     return out.filter(function (v) { return v[1] > v[0]; });
   }
   function lineFits(F, qx, qy, hd, climb) {
-    var h = F.dir > 0 ? hd : Math.PI - hd, L = 40, dx, sl, top = EDGE + F.lo, bot = H - EDGE - F.hi, yl, yr, i, o, m, xa, xb, ya, yb, sy = slackY() + 2;
+    var h = F.dir > 0 ? hd : Math.PI - hd, L = 40, dx, sl, top = EDGE + F.lo, bot = H - EDGE - F.hi, yl, yr;
     unproj(qx, qy, F.n0, FWP);
     proj(FWP.x + L * Math.cos(h), FWP.y + L * Math.tan(climb), FWP.z + L * Math.sin(h), FPP);
     if (!(FPP.n > 0)) return false;
     dx = FPP.x - qx; if (Math.abs(dx) < 1e-6) return false;
     sl = (FPP.y - qy) / dx; yl = qy - qx * sl; yr = qy + (W - qx) * sl;
     if (yl - reachUp(F, yl) < top || yl + reachDn(F, yl) > bot || yr - reachUp(F, yr) < top || yr + reachDn(F, yr) > bot) return false;
-    for (i = 0; i < words.length; i++) {
-      o = words[i]; m = o.m; xa = Math.max(0, o.l - m); xb = Math.min(W, o.r + m);
-      if (xb <= xa) continue;
-      ya = qy + (xa - qx) * sl; yb = qy + (xb - qx) * sl;
-      if (Math.max(ya, yb) + reachDn(F, Math.max(ya, yb)) > o.t - m - sy - F.hi && Math.min(ya, yb) - reachUp(F, Math.min(ya, yb)) < o.b + m + sy + F.lo) return false;
-    }
     return true;
   }
   function bandFit(F, qx, qy, hd, climb) {
@@ -438,7 +420,7 @@
     /* (round 3) paths found behind cloud: the next ones nearer (the flight in front of the towers, not behind them) */
     if (F.n00 === undefined) F.n00 = F.n0;
     if (!F.soar) F.n0 = Math.min(F.n00 * (J.near ? 1.6 : 1 + 0.3 * Math.min(J.hid || 0, 2)), 0.9 * NEAR_MAX);
-    if (!J.bands) { BANDSLACK = slackY() + 2; J.bands = trueBands(floorClip(openBands(F.lo, F.hi), F), F); BANDSLACK = 0; }   // (round 3, step 1: narrowed by the flock's reach in depth)   // (round 3: the bands clear of the words' margin and the course's slack up and down, and over the floor)
+    if (!J.bands) J.bands = trueBands(floorClip(openBands(F.lo, F.hi), F), F);   // (round 3, step 1: narrowed by the flock's reach in depth, and over the floor)
     if (F.soar) {
       qy = inBands(J.bands, q.y);
       if (qy === null) { J.a = 1e9; return false; }      // no band holds the thermal (the job's tries are up)
@@ -446,7 +428,7 @@
       soarTimes(F, wp.x, wp.y, wp.z);
     } else {
       J.climb = F.climb && !J.fill && J.mode !== 'still' && J.a <= TRIES / 2;    // climbing away or coming down, if it finds room
-      open = J.bands.length > 0;                          // (no open band: the words stand across the whole sky, as on a phone turned sideways)
+      open = J.bands.length > 0;                          // (no open band: the other flights' bands fill the sky)
       for (var bi = 0, btot = 0; bi < J.bands.length; bi++) btot += J.bands[bi][1] - J.bands[bi][0];   // (round 3, step 1: a thin sky)
       J.diag = J.climb || (J.a > 2 * TRIES && J.best < 0 && J.a % 2 === 0) || ((!open || btot < THIN_SKY * H) && J.a % 2 === 0);   // no level crossing fits: try the steeper paths (now and then)
       /* (shape, step 4d: the lean's height) with LEAN_H > 0 a lean crossing is decided before its point, and that share of
@@ -464,17 +446,17 @@
         var aMinH = Math.max(0, SPEED[0] / Math.max(LEAN_N0, F.n0) + upH), pMinH = Math.atan2(aMinH, fwdH), pMaxH = Math.atan2(Math.max(aMinH, topH / LEAN_N0 + upH), fwdH);
         for (i = 0; i < 8; i++, r2next(q)) {
           var qxc = q.x * W, qyc = inBands(J.bands, q.y);
-          if (qyc === null || !clearOfWords(qxc, qyc, F.d.hw * F.n0, F.d.hh * F.n0) || !(unproj(qxc, qyc, F.n0, wp).y > floorY + 2 * F.span)) continue;
+          if (qyc === null || !(unproj(qxc, qyc, F.n0, wp).y > floorY + 2 * F.span)) continue;
           var elH = Math.atan2(wp.y, Math.sqrt(wp.x * wp.x + wp.z * wp.z)), pN = Math.atan(Math.tan(tlH) / Math.max(Math.tan(elH), 0.05)), cH = Math.abs(pN - clamp(pN, pMinH, pMaxH));
           if (cH < bestH - 1e-9) { bestH = cH; qxH = qxc; qyH = qyc; }
         }
         if (bestH === Infinity) return pfail(J, 'nopoint');
         qx = qxH; qy = qyH; i = 0;
       } else
-      for (i = 0; i < 8; i++, r2next(q)) {                // its middle somewhere in the open sky, never in the words ...
+      for (i = 0; i < 8; i++, r2next(q)) {                // its middle somewhere in the open sky ...
         qx = q.x * W;
         qy = J.diag || !open ? mix(q.y, 0.04, 0.96) * H : inBands(J.bands, q.y);   // ... a level crossing's in an open band
-        if (qy !== null && clearOfWords(qx, qy, F.d.hw * F.n0, F.d.hh * F.n0) && unproj(qx, qy, F.n0, wp).y > floorY + 2 * F.span) break;   // (round 3: nor under the floor where it crosses; step 1: a steeper path's point too)
+        if (qy !== null && unproj(qx, qy, F.n0, wp).y > floorY + 2 * F.span) break;   // (round 3: nor under the floor where it crosses; step 1: a steeper path's point too)
       }
       if (i === 8) return pfail(J, 'nopoint');
       plain = open && (J.mode === 'still' || J.fill || (J.mode === 'first' && J.a > TRIES / 4));   // (the first flight, if it finds no room soon, simply crosses)
@@ -639,16 +621,12 @@
     if (F.soar && sc < 40) return;                        // a thermal only in a roomy field: in a narrow band a ring looks trapped
     if (J.mode === 'still') for (i = 0; i < flights.length; i++) {   // one flight to a band (the still sky's: the live's, over the whole crossing; a moving sky's while both are seen, in the trial)
       G = flights[i];
-      if (J.it.yLo < G.yHi + BAND_GAP && J.it.yHi > G.yLo - BAND_GAP && !between(J.it, G)) { fail(J.it, 'band'); return; }   // ... unless the words stand between them
+      if (J.it.yLo < G.yHi + BAND_GAP && J.it.yHi > G.yLo - BAND_GAP) { fail(J.it, 'band'); return; }
     }
     hs = hiddenShare(J, F);
     if (hs > CLOUD_HID) { if (hs < 1) J.hid = (J.hid || 0) + 1; fail(J.it, hs >= 1 ? 'floor' : 'hidden'); return; }
-    sc += 0.25 * J.it.apart + (J.diag && !J.climb ? 0 : 40) + 8 * F.r() - 80 * hs - (J.far ? 10 : 0) - (J.mode === 'still' ? 60 * J.overLand : 0) - LATE_K * J.it.late;
+    sc += 0.25 * J.it.apart + (J.diag && !J.climb ? 0 : 40) + 8 * F.r() - 80 * hs - (J.far ? 10 : 0) - (J.mode === 'still' ? 60 * J.overLand : 0);
     var tat = J.it.readT > 0 ? J.it.tatT / J.it.readT : 0; if (LEAN_PLAN) { tat = J.it.readT > 0 ? (J.it.leanT || 0) / J.it.readT : 0; sc += LEAN_W * tat * Math.min(1, J.it.readT / 6); } else sc += 24 * tat; F.tattoo = tat;   // (way-path: the physical lean's share of its readable time, weighed by how long it is readable) F.sideShare = J.it.readT > 0 ? J.it.sideT / J.it.readT : 0;   // (birds3d: the tattoo's view preferred, a preference, never a gate)   // (round 3: the less, the longer it would pass near the words where the course is a guess)
-    /* (round 2) on a wide window, a band wholly above or below the words: a turn of the view sweeps a flight across the
-       window, and one at the words' own height is swept onto them (and steps back) */
-    var sy0 = slackY();   // (round 3: wholly clear of the words' margin and its slack)
-    if (W >= WIDE && stackB > stackT && (J.it.yHi < stackT - WORDS - sy0 || J.it.yLo > stackB + WORDS + sy0)) sc += CLEAR_BAND;
     if (sc > J.best) {
       if (J.it.end) F.dur = Math.max(J.it.end, J.it.last + 1);
       J.best = sc; J.keep = snapshot(F, 0); J.keep.yLo = J.it.yLo; J.keep.yHi = J.it.yHi; J.keep.xLo = J.it.xLo; J.keep.xHi = J.it.xHi;
@@ -753,7 +731,7 @@
   var NEXT_FORCE = null;   // (dev: { kind, n }: the next flight's, once)
   var FILL_T = 12;   // (round 3, step 1) s with no bird seen: the next flight a lone bird (or else a pair) on a plain crossing (the floor under the rhythm: no 30-s empty sky; at 18 s a pattern retried and a fill's pair refused left 28-s spells)
   var FIRST_FILL = 6;   // (round 3, step 1) s after load with no flight yet planned: the first one floored the same way
-  var RETRIES = 2, RETRY_LATER = 2, FIRST_LEAD = 1, LONE_REDRAW = 2, LATE_K = 6, AWAY_GRACE = 6, TRIAL_PAST = 10, HIDDEN_FILL = 5, HIDJOB = -1e9, nearJob = false;
+  var RETRIES = 2, RETRY_LATER = 2, FIRST_LEAD = 1, LONE_REDRAW = 2, AWAY_GRACE = 6, TRIAL_PAST = 10, HIDDEN_FILL = 5, HIDJOB = -1e9, nearJob = false;
   /* (round 3) the birds held by flights the view has turned from (they give way to a new flight that needs them) */
   function givesWay(G) { return G.away && !G.gone && t - G.lastSeen > AWAY_GRACE; }   // (a flight looked away from a moment keeps its birds: the view may be coming back)
   function awaySlots() { var n = 0; for (var i = 0; i < flights.length; i++) if (givesWay(flights[i])) n += flights[i].m.length; return n; }

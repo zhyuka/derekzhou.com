@@ -88,7 +88,7 @@ void main() {
      core here says so by its depth (the half-resolution depth holds the land's nearest and the cores'); without a core
      (a soft edge, a thin veil) the lobes' weight along the bird's span (from its left tip to its right tip) */
   if (uLand.y > 0.5) {
-    float ca = texture(uCloud, min(uv * uSc.zw, uMk.zw)).a;
+    float ca = texture(uCloud, min(uv * uSc.zw, uCl)).a;
     if (ca > 0.002) {
       ivec2 hsz = textureSize(uHz, 0), hp = clamp(ivec2(uv * uSc.zw * vec2(hsz)), ivec2(0), hsz - 1);
       float zh = linZ(texelFetch(uHz, hp, 0).r);
@@ -100,8 +100,9 @@ void main() {
       vis *= 1.0 - ca * front;
     }
   }
-  /* the words' own ground is never touched: the keep-off (their ink boxes grown 2 px), bird and halo alike */
-  if (uLand.w > 0.5 && vL.y < 0.5) { vec4 kp = texture(uInkKeep, uv * uMk.xy); vis *= 1.0 - smoothstep(0.55, 0.95, max(kp.r, kp.g)); }   // (life: a guest, vL.y 1, is exempt: its path is planned clear of the line, credit and links)
+  /* (the owner, 2026-11-05: "pls remove the masking boxes from behind the text completely. it's completely fine if the
+     birds fly behind/in front of it") nothing about the words hides a bird: the canvas lies behind them, and a bird
+     crossing them is drawn whole, under the letters */
   vec3 col = vCol.rgb;
   if (uMode.x < 0.5) {
     /* the near bird's planes: its facet's own light, through the same air, hold and grade, mixed in by lodK */

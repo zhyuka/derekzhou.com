@@ -1,6 +1,6 @@
   /* ---------------- the sky's clock (the engine's fixed steps; no clock is read) ---------------- */
 
-  var t = 0, phase = -1, tNext = 0, misses = 0, stills = 0, firstNext = true, STEP_DT = 1 / 60, GONE_T = 1.2, APPEAR_T = 1, SB_UP = 2, STILL_Q = 1500, STILL_G = 40;
+  var t = 0, phase = -1, tNext = 0, misses = 0, stills = 0, firstNext = true, STEP_DT = 1 / 60, GONE_T = 1.2, APPEAR_T = 1, STILL_Q = 1500, STILL_G = 40;
 
   /* how long a flight is in view, near enough (as its trial saw it through the coming view) */
   function inViewFor(F) { return Math.max(4, F.seenSpan || (F.dur - F.from - 2 * OUT / (F.v * F.n0 || SPEED[1]))); }
@@ -15,7 +15,7 @@
     if (F) { misses = 0; tNext = t + (mode === 'first' ? pick(F.r, [0.12, 0.25]) * inViewFor(F) : gapAfter(F)); }   // the second a few seconds after the first
     else { misses++; tNext = t + Math.min(2 * RETRY, RETRY * misses) * OPEN_SKY * (t - lastSeenAny > EMPTY_T ? 0.35 : 1); }   // no room (the bands are taken): look again a little later (soon, in an empty sky)
   }
-  var lastSeenAny = 0, EMPTY_T = 1.5, BACK_T = 2;
+  var lastSeenAny = 0, EMPTY_T = 1.5;
   var GAP_K = 1;               // (round 3) the gaps between flights, on the live's
   /* (round 3) the sky's own measure of how full it has been: the birds on the window, a running mean over CROWD_T s; the
      gaps stretched as far as it is over the live's own (3.3 birds on a phone, 4.2 at 1440: a flight in the turning
@@ -47,30 +47,18 @@
      on the window have been behind cloud */
   var seenNow = 0;
   function track(C) {
-    var i, j, F, m, s, tau, c, dx, dy, d, vis, li, any, cl, on, sbN, held, quick;
+    var i, j, F, m, s, tau, c, dx, dy, d, vis, li, any, cl, on;
     seenNow = 0;
-    var dragging = sweepNow() > DRAG_PX;
     for (li = 0; li < 2; li++) for (i = 0; i < (li ? PLACES : flights).length; i++) {
-      F = (li ? PLACES : flights)[i]; tau = t - F.t0; any = false; cl = true; on = 0; held = false; quick = false;
+      F = (li ? PLACES : flights)[i]; tau = t - F.t0; any = false; cl = true; on = 0;
       for (j = 0; j < F.m.length; j++) {
         m = F.m[j]; s = m.s; if (!s) continue; d = s.d;
         where(F, m, tau, wb); projReal(wb.x, wb.y, wb.z, C, tmp3);
         vis = tmp3.z > 1 && fadeFor(F, tmp3.n) >= 0.02 && inView(tmp3.x, tmp3.y, d.hw * tmp3.n, d.hh * tmp3.n);
-        if (!vis) { if (s.vis) { s.vis = false; s.outT = t; } s.still = false; s.sbT = -1; s.sbLow = 0; s.wpT = -1; continue; }   // (out of view: when it is back, below)
+        if (!vis) { if (s.vis) { s.vis = false; s.outT = t; } s.still = false; s.wpT = -1; continue; }   // (out of view: when it is back, below)
         on++; if (!(s.wf > 0.5)) cl = false; if (!li) seenNow += F.kind === 'ribbon' ? 0.2 : 1;   // (birds3d: a speck a fifth of a bird)
-        /* (seen: in view, and neither behind the words' veil nor behind cloud: a flight the turn of the view has carried
-           behind the words, or the clouds hide, is not kept for the sky as if it were seen) */
-        sbN = stepBack(tmp3.x, tmp3.y, d.hw * tmp3.n, (d.hh + BOB * d.span) * tmp3.n);
-        if (!(s.wf > 0.5) && sbN > 0.3) any = true;
-        /* (round 2) its step back from the words as drawn: at once toward them, back out at SB_UP a second (a fast sweep
-           crosses the 12 px of the fade in a frame: without this a bird swept clear of the words flashed back in full) */
-        s.sbS = s.sbT >= 0 ? Math.min(sbN, s.sbS + SB_UP * (t - s.sbT)) : sbN; s.sbT = t;
-        /* (round 3) a bird the words' margin holds for a moment (the guard foresees nearly all: a drag does not): its
-           whole flight goes, fading together, as the live's flight the words moved onto goes; the per-bird fade only
-           keeps the words clear meanwhile. Round 2 kept the rest flying while one bird after another dissolved */
-        s.sbLow = sbN < 0.95 && !dragging ? (s.sbLow || 0) + 5 * STEP_DT : 0;   // (a drag, the visitor's own sweep, carries birds across the words in a moment: the per-bird fade alone, then)
-        if (s.sbLow > SB_HOLD) held = true;
-        if (dragging && SWEPT && sbN < 0.95) { held = true; quick = true; }   // (Fix 3: a flight a drag sweeps into the words' margin goes whole; E1.1: quickly)
+        /* (seen: in view, and not behind cloud; the words hide no bird) */
+        if (!(s.wf > 0.5)) any = true;
         /* (E1.1) the bird's own speed on the window, as drawn (its flight's motion and the camera's, a drag's
            included): from where it was last step, eased over about 0.08 s */
         if (s.wpT > 0 && t - s.wpT > 0 && t - s.wpT < 0.2) {
@@ -80,31 +68,6 @@
         s.wpX = tmp3.x; s.wpY = tmp3.y; s.wpT = t;
         where(F, m, tau + 0.25, wa); projReal(wa.x, wa.y, wa.z, C, pa);
         dx = pa.x - tmp3.x; dy = pa.y - tmp3.y; c = dx / (Math.sqrt(dx * dx + dy * dy) || 1);
-        /* (world5 E1.1, item 4) a flight a bird of which will be well inside the words' margin within SB_AHEAD s (its
-           step back there under SB_PRED, at a third, two thirds and the whole of it, along its own speed on the window
-           as drawn: its flight's motion and the camera's, a drag's included) goes whole now and quickly (SB_GO_T): Fix 3
-           let it go only once a bird was in the margin (or held there SB_HOLD s), with the whole GONE_T fade, so its
-           birds stepped back to nothing first and, where the drag or a thermal's circle carried them out again, came
-           back while it faded (the judged seven: DUNES s21's line of geese in its vertical drag, 5 out and back; DUNES
-           s13's thermal stork, 1). (The first cut foresaw it by the band widened by that speed in every direction and
-           let go at 0.95: no dissolve and no return in the seven, but flights that only skimmed the margin went too,
-           and the empty sky grew in four of them: 7.2 -> 8.1 % in DUNES s5) */
-        /* (E1.1 Fix 2, verify-regress-1 defect 5: the quick fade took a whole flight from full ink to 0.17 in 0.27 s
-           mid-sky) foreseen SB_AHEAD (1.2 s) ahead, so the fade (SB_GO_T 0.9 s) is all but done before a bird reaches
-           the margin: the bird's own way on its planned path (a thermal's circle followed, not its tangent), seen
-           through this frame's camera, plus the camera's own sweep of the window (its speed as drawn less the bird's
-           own: the look at the ground's, carried the whole way; a drag's at most SB_AHEAD_CAM, 0.45 s, as it stops when
-           the finger does), at SB_PROBES points (every 0.2 s: at three, a thermal's circle dipping into the margin
-           between two of them was seen only 0.67 s before it got there) */
-        if (!held && !F.gone && !FORCED && s.wvOk) {
-          var ovx = dx / 0.25, ovy = dy / 0.25, cvx = s.wvx - ovx, cvy = s.wvy - ovy;
-          for (var q3 = 1; q3 <= SB_PROBES && !held; q3++) {
-            var ah = SB_AHEAD * q3 / SB_PROBES, ahc = dragging ? Math.min(ah, SB_AHEAD_CAM) : ah;   // (the camera's own slow sweep, the look at the ground, carried the whole way; a drag's only SB_AHEAD_CAM)
-            where(F, m, tau + ah, wc); projReal(wc.x, wc.y, wc.z, C, pc);
-            if (!(pc.z > 1)) continue;
-            if (stepBack(pc.x + cvx * ahc, pc.y + cvy * ahc, d.hw * pc.n, (d.hh + BOB * d.span) * pc.n) < SB_PRED) { held = true; quick = true; }
-          }
-        }
         if (!s.vis) {
           s.vis = true;
           /* its appear: the live's 1 s, the first time it is seen. (round 3) Back in view within LEAVE_T, it carries on
@@ -122,8 +85,6 @@
       }
       if (any) { F.lastSeen = t; lastSeenAny = t; if (F.firstSeen === undefined) F.firstSeen = t; F.away = false; }
       F.cloudT = on && cl && !FORCED ? (F.cloudT || 0) + 5 * STEP_DT : 0;
-      F.backT = on && !any && !cl ? (F.backT || 0) + 5 * STEP_DT : 0;   // (in view, but all behind the words' veil)
-      if (held && !F.gone && !F.live) { F.gone = t; F.goneT = quick ? SB_GO_T : GONE_T; STATS.landed.words++; STATS.guard.held++; if (quick) STATS.guard.ahead = (STATS.guard.ahead || 0) + 1; if (!F.place) nextAsFirst(true); }   // (Fix 2: its successor planned at once, while it fades)   // (a place's thermal too: the words came onto it, all its birds go; E1.1: ahead of the margin, quickly)
     }
   }
   /* (round 3) the window's sweep under a bird now: f x the camera's turn (its last quarter second), across and (a drag
@@ -136,7 +97,6 @@
     return Math.sqrt(sx * sx + sy * sy);
   }
   var DRAG_PX = 150;            // px/s: the window swept faster than this (the visitor's drag; the autopilot's calm turn is 10-20)
-  var SWEPT = true;             // (Fix 3) a flight a drag sweeps into the words' margin goes whole (false: Fix 2's per-bird step back alone)
   function activeFlights() { var n = 0; for (var i = 0; i < flights.length; i++) if (!flights[i].away && !flights[i].gone) n++; return n; }
   /* (round 3) the calm asked of the camera while the birds fly (a sky with birds in it, or one about to have them: a
      flight is planned before it comes, through the camera's coming turn, so the calm is asked for all along): its turn
@@ -147,7 +107,7 @@
   function calmBase() { return cam.f >= 2 ? CALM_K * (W / across(CALM)) / cam.f : 0; }
   function calmAsk() {
     if (!HOST.calm || cam.f < 2) return;
-    var base = !FORCED && !HOST.reduced() ? calmBase() : 0, rate = t < HOLD.until ? base * HOLD_K : base;   // (round 3: held while a flight needs it: the guard's)
+    var base = !FORCED && !HOST.reduced() ? calmBase() : 0, rate = base;
     if (Math.abs(rate - calmOn) > 1e-7) { calmOn = rate; HOST.calm(rate, base * CALM_EV); }
   }
 
@@ -215,7 +175,6 @@
       }
       if (F.firstSeen === undefined && tau > (F.enterT || 0) + UNSEEN_T && !(C && seenReal(F, tau, C))) { if (drawnNow(F)) { F.gone = t; F.goneT = LATE_T; continue; } land(F); STATS.landed.never++; nextAsFirst(); continue; }   // it never came into view
       if (F.cloudT > CLOUD_T && !(F.stage === 'S3' && tau < (F.revealEnd || 0) + 1)) { F.gone = t; STATS.landed.cloud++; nextAsFirst(); continue; }   // hidden by cloud: let go while it is hidden (birds3d: not S3 before its reveal)
-      if (F.backT > BACK_T) { F.gone = t; STATS.landed.words++; nextAsFirst(); }   // carried behind the words by the camera (its birds stepped back): the whole flight let go together, as the live site lets a flight go the words moved onto
     }
   }
   /* forced colours came or went: the sky begins again in the other view */
@@ -235,16 +194,14 @@
     if (!flights.length) { if (job) resetJob(); return; }
     if (W !== w0 || Math.abs(H - h0) > 120) { for (i = 0; i < flights.length; i++) if (!flights[i].gone) { flights[i].gone = t; gone++; } }
     else {
-      held = 0.5;
       viewPredict(HOST.reduced());
       for (i = flights.length - 1; i >= 0; i--) { F = flights[i]; if (!F.gone && trial(F, t - F.t0) < 0) { F.gone = t; gone++; } }
-      held = 1;
     }
     if (gone) { firstNext = true; tNext = Math.min(tNext, t + GONE_T); }
     if (job) resetJob();
   }
   /* the sky begins again (a visit, a reset): every flight gone, the first comes as at the start */
-  function clearAll() { STILL.on = false; HOLD.until = -1e9; GVT = -1e9; lastSeenAny = t; clearSky(); while (PLACES.length) landPlace(PLACES[0]); placeDone = {}; job = null; stills = 0; firstNext = true; tNext = t; misses = 0; phase = -1; }
+  function clearAll() { STILL.on = false; GVT = -1e9; lastSeenAny = t; clearSky(); while (PLACES.length) landPlace(PLACES[0]); placeDone = {}; job = null; stills = 0; firstNext = true; tNext = t; misses = 0; phase = -1; }
 
   /* reduced motion: a still sky, a photograph: the flight planned whole, every bird at rest. (round 3) A share of it
      at a time: the engine asks prepare() each frame while its still sky shows, before its one still frame (round 2

@@ -33,7 +33,7 @@
     linked: function (P) {
       if (gl.isContextLost()) return 'lost';
       if (P.st !== 3 && (STILLMODE || FRUN)) { if (STILLMODE) progStep(true, 0); else fprog(P); }   // (round 2: forced colours, the one program at once)
-      return P.st === 3 ? P.ok && (FRUN && !STILLMODE || lateReady(P) && lateReady(EP.inkkeep)) : false;   // (fast500 step 9: a late one's not yet; never 'broken' while P.ok; forced colours draw with it once linked)
+      return P.st === 3 ? P.ok && (FRUN && !STILLMODE || lateReady(P)) : false;   // (fast500 step 9: a late one's not yet; never 'broken' while P.ok; forced colours draw with it once linked)
     },
     /* (E1) an entry for the warm table (design-v5 8.2): the module's own draw, its real VAO and state */
     warm: function (e) { if (LATEB.on) LATEB.W.push(e); else WARMX.push(e); },   // (fast500 4a: a module made late warms its own, birdsLate)
@@ -47,7 +47,7 @@
       o.ddpr = window.devicePixelRatio || 1;   // (round 3: the device's own px a CSS px: the canvas is put up to it when FULL is capped under it)
       o.bUx = LASTBL[1]; o.bUy = LASTBL[2]; o.bloom = LASTBL[0];   // (the bloom's uv scale and gain, as the composite used them)
       o.tanX = FR.tanX; o.tanY = FR.tanY; o.near = NEAR; o.far = FAR;
-      if (TG) { o.sUx = W / TG.W; o.sUy = H / TG.H; o.hUx = Math.max(1, Math.ceil(W / 2)) / TG.cloud.w; o.hUy = Math.max(1, Math.ceil(H / 2)) / TG.cloud.h; o.mUx = OUT.w / (4 * TG.inkKeep.w); o.mUy = OUT.h / (4 * TG.inkKeep.h); }
+      if (TG) { o.sUx = W / TG.W; o.sUy = H / TG.H; o.hUx = Math.max(1, Math.ceil(W / 2)) / TG.cloud.w; o.hUy = Math.max(1, Math.ceil(H / 2)) / TG.cloud.h; }
       return o;
     },
     /* the camera as drawn this frame (CAM), and as it is at the end of the last fixed step (for the birds' planning) */
@@ -80,15 +80,14 @@
     light: function () { var V = SIM.V; return V ? (V.L || V.light) : null; },
     /* the words: their boxes (name, bio, credit, link, link: x0, y0, x1, y1 in canvas px) and their colours in effect */
     words: function () { HW.kind = INK;   /* (stage2: the words' ink, always light: the ink birds' light path) */ HW.text = WORDSETS[HW.kind].text; return HW; },
-    /* the scene's depth, the clouds (premultiplied, half resolution) and the ink birds' keep-off (the words' ink boxes),
-       bound on the units the engine's programs use (uDepth 2, uCloud 4, uInkKeep 12) */
+    /* the scene's depth and the clouds (premultiplied, half resolution), bound on the units the engine's programs use
+       (uDepth 2, uCloud 4) */
     bindTextures: function () {
       if (!TG) return false;
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, TG.scene.d);
       gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, (CLT || TG.cloud).t);
       gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TG.bu[0].t);   // (the bloom, as the composite added it)
-      gl.activeTexture(gl.TEXTURE12); gl.bindTexture(gl.TEXTURE_2D, TG.inkKeep.t);
       gl.activeTexture(gl.TEXTURE13); gl.bindTexture(gl.TEXTURE_2D, TG.win.t);   // (the finished frame, the world's resolution: what lies under a stroke)
       gl.activeTexture(gl.TEXTURE14); gl.bindTexture(gl.TEXTURE_2D, TG.hz);   // (birds3d: the half-resolution depth, the land's nearest and the clouds' opaque cores; attached only to TG.lind and TG.cloud, never to the canvas the birds draw on)
       gl.activeTexture(gl.TEXTURE0);

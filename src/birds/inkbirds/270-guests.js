@@ -6,8 +6,8 @@
      landing on the words. Nothing here is read by the ordinary planner, the guard, the hold or the camera: no band, no
      HOST.calm, no flight list written (the twin test, L13); the guest reads the ordinary birds' last boxes (to keep away
      from them) and nothing else of theirs. Drawn by the same instanced pass, behind the words (the words always on
-     top: a bird on a stroke sits on it, the stroke covering its sliver), exempt from the words' keep-off (aL.y), its
-     path planned clear of the line, the credit and the links (12 px) */
+     top: a bird on a stroke sits on it, the stroke covering its sliver); its way in and out may cross any word (the
+     owner, 2026-11-05: no keep-out) */
   var PERCH = (function () {   /* the perched shape: ONE swappable piece (perch.js A 704d1048: its poses, keys, rest rule) */
     function side(a) { var p = FP.pose(); for (var i = 0; i < 11; i++) { p[i] = a[i]; p[11 + i] = a[i]; } return p; }
     var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 10, 12, 0.95, -40, 0, 4, 6, 0, 0, 8]),
@@ -38,15 +38,6 @@ var NAME_PERCH = {
      end on the same line (standing at the baseline, 3 px past the box: the underline, 0.21 em under the baseline, never
      touched); measured in perch/places/PLACES.json. G_LINK_K, G_PTR_K: those guests' size against the name's */
   var LINK_PERCH = { eend: { link: 0, end: true }, lend: { link: 1, end: true }, etop: { link: 0, fx: [0.83, 0.99] }, ltop: { link: 1, fx: [0.64, 0.78] } }, G_LINK_K = 0.62, G_PTR_K = 0.75;
-  var NAME_INK_S = '0,314|0,248;258,314|0,245;262,314|0,245;265,314|0,247;264,314|0,248;264,314|0,248;266,314|0,246;306,314|0,228;289,314|0,206;261,314|0,187;237,245;261,314|0,168;223,246;262,314|0,12;22,148;201,246;262,314|0,9;24,131;185,246;262,314|0,8;24,112;170,246;261,314|0,7;25,85;154,245;259,314|0,6;25,76;140,243;258,314|0,6;26,72;127,241;257,314|0,6;28,71;112,240;256,314|0,6;29,74;99,238;255,314|0,7;32,235;253,314|0,8;34,231;250,314|0,9;37,227;247,314|0,10;40,222;243,314|0,12;44,217;239,314|0,14;49,212;234,314|0,17;53,205;229,314|0,21;59,196;223,314|0,25;66,187;217,314|0,31;75,176;211,314|0,38;86,162;203,314|0,45;194,314|0,53;184,230;232,314|0,63;170,228;234,314|0,76;151,226;234,314|0,103;115,221;241,314|0,203;253,314|0,194;259,314|0,187;204,218;229,246;262,314|0,182;195,218;227,250;264,314|0,176;190,216;224,252;265,314|0,173;188,214;222,253;266,314|0,170;188,210;219,253;265,314|0,171;189,205;215,252;263,314|0,173;211,249;261,314|0,176;206,246;257,314|0,184;198,241;253,314|0,236;248,314|0,231;243,314|0,226;238,314|0,221;232,314|0,216;227,314|0,210;222,314|0,202;216,314|0,195;211,314|0,191;206,233;252,314|0,187;202,221;261,314|0,183;201,210;265,314|0,170;267,314|0,159;227,253;268,314|0,167;219,254;267,314|0,186;210,254;266,314|0,187;205,253;264,314|0,187;201,251;262,314|0,191;195,248;258,314|0,244;255,314|0,239;250,314|0,235;247,314|0,214;247,314|0,200;255,314|0,192;259,314|0,186;201,220;232,247;262,314|0,180;193,219;229,250;264,314|0,175;189,216;225,252;265,314|0,172;187,212;221,252;265,314|0,170;188,209;217,252;264,314|0,171;190,203;213,251;262,314|0,173;209,248;259,314|0,178;204,244;256,314|0,188;194,239;252,314|0,234;247,264;269,314|0,228;245,254;270,314|0,223;265,314|0,216;259,314|0,208;253,314|0,201;245,314|0,195;236,314|0,188;235,314|0,180;204,224;232,314|0,171;197,221;228,314|0,160;191,214;225,314|0,147;185,203;225,314|0,133;151,157;178,193;233,314|0,119;139,157;172,185;201,210;242,314|0,108;131,153;167,179;192,210;251,314|0,99;121,145;163,176;190,209;222,228;259,314|0,91;110,138;157,176;219,237;265,314|0,85;100,132;150,179;216,246;268,314|0,81;93,126;143,184;210,253;271,314|0,76;88,118;137,257;272,314|0,73;87,111;131,258;272,314|0,71;87,106;124,257;270,314|0,72;93,99;116,256;268,314|0,76;108,254;266,314|0,86;98,252;263,314|0,249;260,314|0,246;257,314|0,242;254,314|0,238;250,314|0,234;246,314|0,231;243,314|0,227;239,314|0,225;234,314|0,314|0,314|0,314|0,314|0,314|0,314|0,273;289,314|0,269;291,314|0,265;288,314|0,260;285,314|0,95;109,254;283,314|0,77;108,248;281,314|0,70;91,242;280,314|0,66;81,236;279,314|0,63;77,229;278,314|0,61;75,222;252,260;278,314|0,59;74,215;247,260;278,314|0,58;73,207;242,260;278,314|0,58;72,200;235,260;278,314|0,57;71,192;229,260;278,314|0,57;71,184;221,260;278,314|0,57;71,176;213,260;278,314|0,57;71,166;204,259;278,314|0,57;72,157;195,259;277,314|0,57;72,149;188,258;276,314|0,57;72,142;182,257;274,314|0,57;73,134;176,256;272,314|0,57;74,127;168,255;270,314|0,57;75,119;157,254;267,314|0,58;77,111;145,314|0,59;79,101;133,314|0,61;81,91;123,314|0,62;114,314|0,63;108,314|0,64;102,264;278,314|0,65;94,254;273,314|0,66;89,246;268,314|0,72;82,220;262,314|0,209;255,314|0,203;245,314|0,197;240,314|0,189;237,314|0,180;205,216;233,314|0,170;200,214;230,314|0,158;193,211;227,314|0,144;186,208;225,314|0,130;149,164;181,206;225,314|0,118;140,161;176,205;233,314|0,108;130,154;171,206;261,314|0,100;120,146;165,209;269,314|0,94;110,140;158,213;273,314|0,89;102,134;152,224;235,255;274,314|0,84;96,127;146,260;274,314|0,80;93,120;140,260;273,314|0,78;93,114;133,260;271,314|0,78;97,108;125,259;270,314|0,81;117,257;268,314|0,88;109,254;266,314|0,251;263,314|0,230;238,248;258,314|0,214;256,314|0,203;258,314|0,194;228,244;261,314|0,187;217,247;263,314|0,181;209,247;264,314|0,177;202,246;263,314|0,173;196,244;262,314|0,170;191,239;260,314|0,168;188,232;257,314|0,167;187,224;252,314|0,168;186,216;248,314|0,169;187,210;241,314|0,171;234,314|0,174;225,314|0,178;218,314|0,187;217,314|0,200;216,242;265,314|0,200;216,229;273,314|0,197;278,314|0,195;243,255;280,314|0,199;229,261;279,314|0,261;278,314|0,259;275,314|0,256;271,314|0,251;267,314|0,245;262,314|0,238;261,314|0,220;266,314|0,204;272,314|0,191;275,314|0,185;217,255;277,314|0,192;201,258;276,314|0,258;274,314|0,257;271,314|0,255;268,314|0,252;265,314|0,249;262,314|0,246;258,314|0,242;255,314|0,238;251,314|0,234;247,314|0,230;243,314|0,226;239,314|0,223;233,314|0,314|0,314', NAME_INK = null;   // (the name's ink, viewBox units: per 6-unit column its y spans, grown 1 unit; perch/places/name_mask.png)
-  function gInkHit(x0, y0, x1, y1) {   // (does a box, CSS px, touch the name's ink?)
-    var nm = nameMap(); if (!nm) return false;
-    if (!NAME_INK) NAME_INK = NAME_INK_S.split('|').map(function (c) { return c ? c.split(';').map(function (q) { var a = q.split(','); return [+a[0], +a[1]]; }) : []; });
-    var u0 = (x0 - nm[0]) / nm[2], u1 = (x1 - nm[0]) / nm[2], v0 = (y0 - nm[1]) / nm[2], v1 = (y1 - nm[1]) / nm[2];
-    if (u1 < 0 || u0 > 1310 || v1 < 0 || v0 > 314) return false;
-    for (var c = Math.max(0, Math.floor(u0 / 6)), ce = Math.min(NAME_INK.length - 1, Math.floor(u1 / 6)); c <= ce; c++) { var I = NAME_INK[c]; for (var i = 0; i < I.length; i++) if (I[i][1] >= v0 && I[i][0] <= v1) return true; }
-    return false;
-  }
   var LINK_GLYPHS = [   /* [fx0, fx1, top em over the baseline] (tools/link_glyphs.js, the served Geist subset at 14 px) */
     [[0.028, 0.227, 0.72], [0.268, 0.581, 0.57], [0.585, 0.812, 0.57], [0.829, 0.885, 0.72], [0.922, 1.0, 0.72]],
     [[0.018, 0.147, 0.72], [0.155, 0.192, 0.72], [0.219, 0.348, 0.57], [0.368, 0.42, 0.72], [0.42, 0.497, 0.57], [0.488, 0.636, 0.57], [0.631, 0.778, 0.72], [0.797, 0.834, 0.72], [0.868, 0.997, 0.57]] ];
@@ -55,7 +46,7 @@ var NAME_PERCH = {
     for (var i = 0; i < G.length; i++) { var y = base - G[i][2] * em; o.push([b[0] + G[i][0] * w, y], [b[0] + Math.min(G[i][1], 1) * w - 0.01, y]); }
     return o;
   }
-  var G_SETOUT = 1.0, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 90, G_PTR_MAX = 4, G_FLUSH_T = 120, G_REST = 2.0, G_KEEP = 12;
+  var G_SETOUT = 1.0, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 90, G_PTR_MAX = 4, G_FLUSH_T = 120, G_REST = 2.0;
   var GU = { list: [], k: 0, nWord: 0, nPtr: 0, lastWord: -1e9, nextWord: G_FIRST, lastPtr: -1e9, flushAt: -1e9, flushN: 0, firstRest: true, log: [], force: null, on: true,   /* (the perched guests on the words; the pointer's perch needs the hover listener, which the world does not have: its HOVER stays gone, so it never comes) */
     p: { x: -1, y: -1, n: 0, gone: true, down: false, steer: false }, px: -1, py: -1, vx: 0, vy: 0, sp: 0, restT: 0, restX: 0, restY: 0, restUsed: false, seenN: -1 };
   function guestRng() { return vstream(8000 + GU.k++); }
@@ -68,10 +59,8 @@ var NAME_PERCH = {
   /* the words' boxes, CSS px: 0 name (its ink), 1 line, 2 credit, 3 Email, 4 LinkedIn */
   function gWords() { var b = HOST.words().boxes, k = 1 / (VW.bdpr || VW.dpr || 1), o = []; for (var i = 0; i < 5; i++) o.push([b[4 * i] * k, b[4 * i + 1] * k, b[4 * i + 2] * k, b[4 * i + 3] * k]); return o; }
   function nameMap() { var nv = HOST.words().nvb; if (!nv) return null; var k = 1 / (VW.bdpr || VW.dpr || 1); return [nv[0] * k, nv[1] * k, nv[2] * k]; }
-  function boxGap(x0, y0, x1, y1, b) { var dx = Math.max(b[0] - x1, x0 - b[2], 0), dy = Math.max(b[1] - y1, y0 - b[3], 0); return Math.sqrt(dx * dx + dy * dy); }
-  function openSkyAt(x, y) {   // (P1: outside every word box + 24 px, 60 px from the edges)
+  function openSkyAt(x, y) {   // (P1: 60 px from the edges; the words are no keep-out: the owner, 2026-11-05)
     if (x < 60 || y < 60 || x > W - 60 || y > H - 60) return false;
-    var B = gWords(); for (var i = 0; i < 5; i++) if (B[i][2] > B[i][0] && boxGap(x, y, x, y, B[i]) < 24) return false;
     return true;
   }
   /* a perch resolved on this window: { pts: [[x, y] CSS px, ...] the surface, x (where it sits), dir (the side it comes
@@ -178,16 +167,12 @@ var NAME_PERCH = {
     GU.log.push({ t: +t.toFixed(2), ev: 'click', id: g.id, x: +x.toFixed(1), y: +y.toFixed(1), away: [+g.away[0].toFixed(2), +g.away[1].toFixed(2)] });
     return true;
   }
-  function gAvoid(B, P) { var o = []; for (var i = 1; i < 5; i++) if (B[i][2] > B[i][0]) o.push(B[i]); if (P.kind === 'pointer' && B[0][2] > B[0][0]) o.push([B[0][0] - 12, B[0][1] - 12, B[0][2] + 12, B[0][3] + 12]); return o; }
   function gPathClear(g, P, B) {
-    var A = gAvoid(B, P), n = 40, i, j, hw = 0.6 * g.sp, hh = 0.35 * g.sp, TT = g.Ti + g.Tr;
+    var n = 40, i, hw = 0.6 * g.sp, hh = 0.35 * g.sp, TT = g.Ti + g.Tr;
     for (i = 0; i <= n; i++) {
       var ti = TT * i / n; gPos(g, ti, GTMP);
       if (!gOrdClearAt(GTMP.x, GTMP.y, ti, 2 * g.sp)) return false;   // (fix: every ordinary bird where it will be then, not only where it enters)
       if (P.kind === 'link' && Math.abs(GTMP.x - g.px0) < 1.5 * g.sp && Math.abs(GTMP.y - g.py0) < 1.5 * g.sp) { var nT = Math.sqrt((GTMP.x - g.T[0]) * (GTMP.x - g.T[0]) + (GTMP.y - g.T[1]) * (GTMP.y - g.T[1])) < 0.8 * g.sp; if (P.end && GTMP.x - (nT ? 0.2 : 0.5) * hw < P.keepX && GTMP.y + 0.5 * hh > P.wb[1]) return false; if (!P.end && GTMP.y + 0.5 * hh > P.topY && GTMP.x + 0.5 * hw > P.wb[0] && GTMP.x - 0.5 * hw < P.wb[2]) return false; continue; }   // (perch lane)   // (the link guest at its own perch: never over the word's letters)
-      for (j = 0; j < A.length; j++) if (boxGap(GTMP.x - hw, GTMP.y - hh, GTMP.x + hw, GTMP.y + hh, A[j]) < G_KEEP) return false;
-      if (P.kind !== 'name' && B[0][2] > B[0][0] && boxGap(GTMP.x - hw, GTMP.y - hh, GTMP.x + hw, GTMP.y + hh, B[0]) < 4) return false;
-      if (P.kind === 'name' && Math.sqrt((GTMP.x - g.T[0]) * (GTMP.x - g.T[0]) + (GTMP.y - g.T[1]) * (GTMP.y - g.T[1])) > 1.0 * g.sp && gInkHit(GTMP.x - 0.8 * hw, GTMP.y - hh, GTMP.x + 0.8 * hw, GTMP.y + 0.4 * hh)) return false;   // (perch lane)
     }
     return true;
   }
@@ -228,10 +213,10 @@ var NAME_PERCH = {
   }
   var GTMP2 = { x: 0, y: 0, u: 0 };
   /* a way out from (x, y): of every 15 deg from level left through up to level right (and, flying, down to 45 deg below
-     level), the nearest the wanted way (cx, cy) whose straight path to the window's edge keeps 12 px from the line, the
-     credit and the links (and from the name for a pointer's guest or one flying by), past its first 1.5 spans; (fix) and
-     2 spans from every ordinary bird where it will be (at speed v px/s, starting k0 s from now) over the next 8 s.
-     Returns null if no way is clear of both (o.best then the way clear of the words that keeps farthest from the birds) */
+     level), the nearest the wanted way (cx, cy) whose straight path to the window's edge keeps (fix) 2 spans from every
+     ordinary bird where it will be (at speed v px/s, starting k0 s from now) over the next 8 s, past its first 1.5
+     spans (the words no keep-out: the owner, 2026-11-05). Returns null if none is (o.best then the way that keeps
+     farthest from the birds) */
   var GWO = { best: null };
   function gOrdWay(x0, y0, ux, uy, v, k0, sp, acc) {
     var worst = 1e9;
@@ -244,15 +229,12 @@ var NAME_PERCH = {
   }
   function gWayOut(g, x0, y0, cx, cy, perched) {
     var l = Math.sqrt(cx * cx + cy * cy) || 1; cx /= l; cy /= l;
-    var B = gWords(), A = gAvoid(B, g.P), best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, q, nq = perched ? 12 : 16, far = null, fd = -1e9;
-    if (!perched && B[0][2] > B[0][0] && g.P.kind !== 'pointer') A = A.concat([[B[0][0] - 4, B[0][1] - 4, B[0][2] + 4, B[0][3] + 4]]);
+    var best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, q, nq = perched ? 12 : 16, far = null, fd = -1e9;
     for (q = 0; q <= nq; q++) {
       var an = Math.PI + q * Math.PI / 12, ux = Math.cos(an), uy = Math.sin(an), sc = ux * cx + uy * cy, ok = true;
       if (Math.abs(uy) < 1e-9) uy = 0;
       for (var dd = 1.5 * g.sp; ok && dd < W + H; dd += 0.5 * g.sp) {
         var x = x0 + ux * dd, y = y0 + uy * dd; if (!inView(x, y, hw, hh)) break;
-        if (gInkHit(x - hw, y - hh, x + hw, y + hh)) { ok = false; break; }   // (perch lane)
-        for (var j = 0; j < A.length; j++) if (boxGap(x - hw, y - hh, x + hw, y + hh, A[j]) < G_KEEP) { ok = false; break; }
       }
       if (!ok) continue;
       var od = gOrdWay(x0, y0, ux, uy, 0.9 * g.vc, 0, g.sp, false);
@@ -270,8 +252,6 @@ var NAME_PERCH = {
     spec.gkind = kind; var P = perchOf(spec); if (!P) return false;
     var g = { r: r, kind: kind, why: why, spec: spec, t0: t, phase: 'in', id: 'g' + GU.k, ph0: r(), rate: BW.LB.rate(kind, RATE_MODE), ride: [0, 0], leaveAt: -1, away: [0, -1], P: P };
     if (!gPlan(g, P) && (P.end || (P.dir = -P.dir, !gPlan(g, P)))) { GU.log.push({ t: +t.toFixed(2), ev: 'noroom', why: why, id: spec.id || 'pointer' }); return false; }   // (perch lane)
-    /* (the perch disqualified where the perched bird would come within 12 px of the line or the credit) */
-    var B = gWords(); for (var i = 1; i < 3; i++) if (B[i][2] > B[i][0] && boxGap(P.x - 0.4 * g.sp, g.py0 - 0.3 * g.sp, P.x + 0.4 * g.sp, g.py0 + 2, B[i]) < G_KEEP) { GU.log.push({ t: +t.toFixed(2), ev: 'perch-too-near', id: spec.id }); return false; }
     GU.list.push(g);
     GU.log.push({ t: +t.toFixed(2), ev: 'start', why: why, id: spec.id || 'pointer', kind: kind, Ti: +g.Ti.toFixed(2), Tr: +g.Tr.toFixed(2), sit: +g.sit.toFixed(1), x: +P.x.toFixed(1), y: +g.py0.toFixed(1) });
     return true;
@@ -293,15 +273,13 @@ var NAME_PERCH = {
     var l = Math.sqrt(cx * cx + cy * cy) || 1; cx /= l; cy /= l;
     if (cy > -0.35) { cy = -0.6; cx = cx >= 0 ? 0.8 : -0.8; }   // (always up first: never a drop toward the line)
     /* the way out: of the ways up and out (every 15 deg from level left to level right), the nearest the wanted one whose
-       straight path to the window's edge keeps 12 px from the line, the credit and the links (and 4 from the name for a
-       pointer's guest), and within 60 deg of it if any is */
-    var A = gAvoid(B, g.P), best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, farL = null, fdL = -1e9;
+       straight path to the window's edge keeps clear of the ordinary birds, within 60 deg of it if any is (the words
+       are no keep-out: the owner, 2026-11-05) */
+    var best = null, bs = -2, hw = 0.6 * g.sp, hh = 0.35 * g.sp, farL = null, fdL = -1e9;
     for (var q = 0; q <= 12; q++) {
       var an = Math.PI + q * Math.PI / 12, ux = Math.cos(an), uy = Math.sin(an) * (q === 0 || q === 12 ? 0 : 1), sc = ux * cx + uy * cy, ok = true;
       for (var dd = 1.5 * g.sp; ok && dd < W + H; dd += 0.5 * g.sp) {   // (its first 1.5 spans: beside its own perch)
         var x = g.px0 + ux * dd, y = g.py0 + uy * dd - 0.35 * g.sp; if (!inView(x, y, hw, hh)) break;
-        if (gInkHit(x - hw, y - hh, x + hw, y + hh)) { ok = false; break; }   // (perch lane: never across a stroke)
-        for (var j = 0; j < A.length; j++) if (boxGap(x - hw, y - hh, x + hw, y + hh, A[j]) < G_KEEP) { ok = false; break; }
       }
       if (!ok) continue;
       var od = gOrdWay(g.px0, g.py0 - 0.35 * g.sp, ux, uy, 0.95 * g.vc, tO1 - tt + 0.24, g.sp, true);   // (fix: and clear of the ordinary birds where they will be as it climbs away)
@@ -570,7 +548,6 @@ var NAME_PERCH = {
       var A = guestBird(g, s, C, dt, L, tr - g.t0);
       if (!A) continue;
       packBird(nB, s, A.op, 1e5, false, N, g.P.kind === 'pointer' ? s.haloE : Math.min(s.haloE, GHALO), 1, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
-      INST[nB * NF + 25] = 1;   // (the guest: exempt from the words' keep-off and from the land's depth: it is on the window's words)
       if (DUMP) { var db = dumpBird({ id: g.id, kind: 'guest', m: [] }, {}, s, tr - g.t0, A.op); db.guest = { why: g.why, perch: g.spec.id || 'pointer', phase: A.phase, x: +g.last.x.toFixed(2), y: +g.last.y.toFixed(2), yaw: +A.yaw.toFixed(2), pitch: +A.pitch.toFixed(2), el: +A.el.toFixed(2), sp: +g.sp.toFixed(2), pts: g.P.pts.map(function (q) { return [+q[0].toFixed(2), +q[1].toFixed(2)]; }), ride: g.ride.slice(), vc: +g.vc.toFixed(2) }; DUMP.push(db); }
       nB++;
     }
