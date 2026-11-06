@@ -173,7 +173,7 @@
       if (s.w < 0.85) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it: on)
       g.y = hideTop(x, z) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;
     } else if (kind === 'out') { g.psi = TAU * r(); g.y = eye + mix(r(), 120, 300); g.T = 600; }
-    else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), -8, 12); }
+    else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), 10, 28); }   // (over the eye a little: seen from below its M shows; at the eye's height it is a line)
     F.goal = g; Lb.goal = g;
     return g;
   }

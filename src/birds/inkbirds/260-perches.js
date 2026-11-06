@@ -136,12 +136,14 @@
     if (PTR.x < 40 || PTR.y < 40 || PTR.x > W - 40 || PTR.y > H - 40) return;
     for (var q = 0; q < PERCHED.length; q++) if (PERCHED[q].P.kind === 'pointer') return;
     PW.ptrNext = t + pick(POP.r, PJ.gap);
+    VPN[0] = LVC.vx; VPN[1] = LVC.vy; VPN[2] = LVC.vz;
     var best = null, bd = 1e9;
     for (var i = 0; i < BIRDS.length; i++) {
       var b = BIRDS[i]; if (b.st !== 'fly' || !b.K.perch || (b.F && b.F.far)) continue;
       var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
       if (d < 50 || d > 380 || fwd < 0.35) continue;
-      if (d < bd) { bd = d; best = b; }
+      var T = d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);   // (how soon it could be on the tip: the tip moves with the camera)
+      if (T < bd && T <= 12) { bd = T; best = b; }
     }
     if (best) startApproach(best, { kind: 'pointer', lk: 'pointer', li: -1, x: PTR.x, fy: PTR.y, k: P_PTR_K, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false }, 0);
   }
