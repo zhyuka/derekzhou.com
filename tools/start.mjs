@@ -397,7 +397,7 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
     cbf = gl.getExtension('EXT_color_buffer_float'); cbh = cbf ? null : gl.getExtension('EXT_color_buffer_half_float');
     var par = gl.getExtension('KHR_parallel_shader_compile'), dbg = gl.getExtension('WEBGL_debug_renderer_info');
     ren = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || '');
-    return !!par && !/SwiftShader|llvmpipe|Software/i.test(ren);   // (one at a time, or the still sky: the world's own path)
+    return !!par && !/SwiftShader|llvmpipe|Software/i.test(ren) && !/Adreno \(TM\) 619\b/.test(ren);   // (one at a time, or the still sky: the world's own path; a GPU the world declines by name, its SLOW_GPU, gets no table)
   }
   function go() {
   if (done || (!TB && !asked)) return;

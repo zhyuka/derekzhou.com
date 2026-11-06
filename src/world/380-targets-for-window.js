@@ -99,7 +99,7 @@
   }
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
-    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'win'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
+    if (TG) { ['scene', 'lind', 'cloud', 'sb', 'win'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
     TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
     // (E1 Fix 3, G0) the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
@@ -122,8 +122,7 @@
     var bw = w2, bh = h2;
     for (var i = 0; i < 5; i++) { TG.bd.push(target(Math.max(1, bw), Math.max(1, bh), 'hdr')); if (i < 4) TG.bu.push(null); bw = Math.ceil(bw / 2); bh = Math.ceil(bh / 2); }
     for (i = 0; i < 4; i++) TG.bu[i] = target(TG.bd[i].w, TG.bd[i].h, 'hdr');
-    TG.sm = target(Math.max(1, Math.ceil(W / 4)), Math.max(1, Math.ceil(H / 4)), 'hdr');
-    TG.sb = target(TG.sm.w, TG.sm.h, 'hdr');
+    TG.sb = target(1, 1, 'hdr');   // (phone lane: the shafts' target, never drawn: the composite reads its 0 at amount 0)
     // (the finished frame at the world's resolution, put up to the canvas's; the birds' ink reads what lies under it)
     TG.win = target(OUT.w, OUT.h, 'rgba8');
   }

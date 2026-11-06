@@ -215,7 +215,7 @@ const INIT = `(() => {
   function record(k) {
     const st = JSON.stringify(pageState());
     let pi = PST.get(st); if (pi === undefined) { pi = PLIST.length; PLIST.push(st); PST.set(st, pi); }
-    const h = canvasHash(); RECS.push([k, h, pi, SUMS, TB64, INKF, window.__GATE ? window.__GATE().late[0] : -1]); SUMS = null; TB64 = null; INKF = 0;
+    const h = canvasHash(); RECS.push([k, h, pi, SUMS, TB64, INKF, window.__GATE ? window.__GATE().late[0] : -1, window.__SIG ? window.__SIG() : '']); SUMS = null; TB64 = null; INKF = 0;
   }
   window.__H = {
     now: () => NOW, calls: () => CALLS, frames: () => FR, page: () => pageState(),
@@ -270,6 +270,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await p0.close();
     if (!/RTX 4090/.test(ren) || !/D3D11/.test(ren)) { console.error('FAIL renderer: ' + ren); process.exit(2); }
     const p = await ctx.newPage(); const logs = [];
+    if (+process.env.GSTEP_CPU > 1) await (await ctx.newCDPSession(p)).send('Emulation.setCPUThrottlingRate', { rate: +process.env.GSTEP_CPU });   // (GSTEP_CPU=4: the page's CPU throttled, as DevTools does; the frames are on the harness's clock, so they must not change)
     p.on('console', (m) => { if (m.type() === 'error') logs.push(m.text().slice(0, 300)); });
     p.on('pageerror', (e) => logs.push('pageerror: ' + e.message));
     await p.addInitScript(INIT);
