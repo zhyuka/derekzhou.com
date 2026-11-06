@@ -30,6 +30,8 @@
   Link: </realm-kit.js>; rel=preload; as=script
   Link: </realm-dunes.js>; rel=preload; as=script
   Link: </realm-above.js>; rel=preload; as=script
+  Link: </start-table.js>; rel=preload; as=script
+  Link: </plan.js>; rel=preload; as=script
 
 /index.html
   Cache-Control: max-age=0, must-revalidate
