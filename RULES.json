@@ -381,7 +381,7 @@
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, naming no element.",
+      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
       "source": [
         {
           "doc": "docs/js.md"

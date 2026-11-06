@@ -22,7 +22,7 @@
   <meta name="twitter:description" content="Hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.">
   <link rel="stylesheet" href="/style.css">
   <!-- The hold (first-paint preview): no paint until the parser ends, so the words and the world's first frame appear
-       together (#world-end names no element, so the block lasts until the parser ends). hour.js takes this link out where
+       together (#world-end is the empty marker right after the last realm's script: the block ends as the hold does). hour.js takes this link out where
        the hold is skipped; the world, where its device check skips it or its deadline passes. -->
   <link rel="expect" href="#world-end" blocking="render">
   <script data-cfasync="false" src="/hour.js"></script>
@@ -68,6 +68,7 @@
   <script data-cfasync="false" src="/realm-kit.js" fetchpriority="high"></script>
   <script data-cfasync="false" src="/realm-dunes.js" fetchpriority="high"></script>
   <script data-cfasync="false" src="/realm-above.js" fetchpriority="high"></script>
+  <div id="world-end" hidden></div>
   <script data-cfasync="false" src="/facetform.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/facetpose.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/wingmodel.js" defer fetchpriority="low"></script>
