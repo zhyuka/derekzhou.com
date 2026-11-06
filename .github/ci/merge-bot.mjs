@@ -186,6 +186,17 @@ async function branchIdentical(sha) {
   for (const r of runs) { const v = await verdict(r); if (v && v.gate_ok && v.frames_identical && v.sha === sha) return true; }
   return false;
 }
+// The index of a later tip whose stall visits pass (-1: none). live may then pass the failed tip, but only as far as
+// that later tip: stopping in between would serve bytes no passing stall visit measured.
+async function laterStallOk(runs, r) {
+  for (let i = runs.indexOf(r) + 1; i < runs.length; i++) {
+    const x = runs[i];
+    if (x.status !== 'completed' || x.conclusion !== 'success') continue;
+    const w = await verdict(x);
+    if (w && w.gate_ok && w.t2 && w.t2.ran && w.t2.stall_ok === true) return i;
+  }
+  return -1;
+}
 async function deployGate() {
   main = (await gh('GET', '/branches/main')).json?.commit?.sha || main;
   let live = (await gh('GET', '/branches/live')).json?.commit?.sha;
@@ -205,16 +216,25 @@ async function deployGate() {
   const between = new Set((a.commits || []).map((c) => c.sha));
   const runs = ((await gh('GET', '/actions/workflows/gate.yml/runs?branch=main&event=push&per_page=100')).json?.workflow_runs || [])
     .filter((r) => between.has(r.head_sha)).sort((x, y) => (a.commits.findIndex((c) => c.sha === x.head_sha) - a.commits.findIndex((c) => c.sha === y.head_sha)));
-  let to = live, prev = live;
+  let to = live, prev = live, mustReach = -1, safe = live;
   for (const r of runs) {
     const tip = r.head_sha.slice(0, 10);
     if (r.status !== 'completed') { summary(`deploy gate: main ${tip}'s gate is ${r.status}: live waits there`); break; }
     const v = r.conclusion === 'success' ? await verdict(r) : null;
     if (!v || !v.gate_ok) { const pr = ((await gh('GET', `/commits/${r.head_sha}/pulls`)).json || []).find((p) => p.merged_at); summary(`deploy gate: **main is red at ${tip}** (${r.conclusion}; ${pr ? 'landed by #' + pr.number : 'no PR'}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`); break; }
     if (!v.frames_identical && !(await ownerMerge(r.head_sha)) && !(v.base !== prev && (await branchIdentical(r.head_sha)))) { summary(`deploy gate: main ${tip} changes what a visitor sees (${v.reason}) without the owner's own merge: live stays at ${to.slice(0, 10)}`); break; }
-    if (v.t2 && v.t2.stall_ok === false) { summary(`deploy gate: main ${tip}'s stall visits failed: ${r.html_url}. live stays at ${to.slice(0, 10)}.`); break; }
+    // Stall visits that failed on a tip are cleared by a later tip's that pass (it was measured on the newer bytes, the
+    // ones live would serve); else live stays.
+    if (v.t2 && v.t2.stall_ok === false) {
+      const j = await laterStallOk(runs, r);
+      if (j < 0) { summary(`deploy gate: main ${tip}'s stall visits failed, and no later tip's pass: ${r.html_url}. live stays at ${to.slice(0, 10)}.`); break; }
+      if (mustReach < 0) safe = to;
+      mustReach = Math.max(mustReach, j);
+    }
     to = prev = r.head_sha;
+    if (runs.indexOf(r) >= mustReach) mustReach = -1;
   }
+  if (mustReach >= 0) { summary(`deploy gate: a tip's failed stall visits are cleared only at ${runs[mustReach].head_sha.slice(0, 10)}, not reached: live goes no further than ${safe.slice(0, 10)}`); to = safe; }
   if (to === live) { summary(`deploy gate: live stays at ${live.slice(0, 10)} (main ${main.slice(0, 10)})`); return; }
   const f = await act(`fast-forward live to ${to.slice(0, 10)}`, () => gh('PATCH', '/git/refs/heads/live', { sha: to, force: false }, process.env.MERGE_TOKEN));
   summary(DRY ? `deploy gate (dry): would move live ${live.slice(0, 10)} -> ${to.slice(0, 10)}` : f.status === 200 ? `deploy gate: live ${live.slice(0, 10)} -> ${to.slice(0, 10)}` : `deploy gate: live could not move (${f.status}: ${f.json?.message})`);
