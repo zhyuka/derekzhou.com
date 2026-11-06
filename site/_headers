@@ -100,3 +100,8 @@
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+/assets/brtest.js
+  Content-Encoding: br
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=60
