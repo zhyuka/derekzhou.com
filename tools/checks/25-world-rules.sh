@@ -12,5 +12,3 @@
 # are named nowhere, nothing is drawn onto the canvas after it but what
 # is named.
 python3 .github/workflows/world_rules.py build/site build/src
-# the realm lint: reported (the realms predate the namespaced API)
-node .github/workflows/lint_realms.js report build/src/realm-kit.js $(ls build/src/realm-*.js | grep -v realm-kit)

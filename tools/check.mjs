@@ -3,6 +3,7 @@
 //   node tools/check.mjs --fast       no site build: src/ assembled, check-quick.mjs, then the checks marked "kind: fast"
 //   node tools/check.mjs --only a,b   just these checks (by slug: 21-absences or absences), after the build
 //   node tools/check.mjs --no-build   skip the build (build/site and build/src are already made)
+//   node tools/check.mjs --scheduled  build once, then only the checks marked "kind: schedule" (weekly: scheduled.yml)
 //   node tools/check.mjs --list       the checks and their kinds
 //   node tools/check.mjs --prove      each check with a failure planted (tools/checks/prove.json) must fail
 // Each check is tools/checks/NN-slug.sh, run from the repository's root in bash -eo pipefail, with RUNNER_TEMP its own
@@ -16,7 +17,7 @@ const all = fs.readdirSync(DIR).filter((f) => /^\d\d-[\w-]+\.sh$/.test(f)).sort(
   const src = fs.readFileSync(path.join(DIR, f), 'utf8');
   return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '' };
 });
-const build = all.filter((c) => c.kind === 'build'), rest = all.filter((c) => c.kind !== 'build');
+const build = all.filter((c) => c.kind === 'build'), rest = all.filter((c) => c.kind !== 'build' && c.kind !== 'schedule'), sched = all.filter((c) => c.kind === 'schedule');
 
 // bash and python3 as CI has them: on Windows, Git's bash (System32's is WSL's) and python3 as `python`
 let BASH = 'bash'; const env = Object.assign({}, process.env);
@@ -51,7 +52,7 @@ const pick = (names) => names.split(',').map((n) => { const c = all.find((x) => 
 const N = Math.max(2, Math.min(os.cpus().length, 8));
 const t0 = Date.now();
 let results = [];
-if (has('--list')) { for (const c of all) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(6) + c.name); process.exit(0); }
+if (has('--list')) { for (const c of all) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }
 if (has('--prove')) {
   // each plant: one file changed (or made) for one check's run, then put back; the check must fail (or, expect "pass",
   // must pass). A check marked self has its own planted failures in its own run
@@ -68,7 +69,7 @@ if (has('--prove')) {
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
   }
-  const unproved = rest.filter((c) => !P.some((p) => pick(p.check)[0] === c)).map((c) => c.slug);
+  const unproved = rest.concat(sched).filter((c) => !P.some((p) => pick(p.check)[0] === c)).map((c) => c.slug);
   if (unproved.length) { console.log('no plant: ' + unproved.join(', ')); bad = 1; }
   process.exit(bad);
 }
@@ -79,7 +80,7 @@ if (has('--fast')) {
   results.push(...await pool(rest.filter((c) => c.kind === 'fast'), N));
 } else {
   if (!has('--no-build')) for (const c of build) { const r = await run(c); report(r); results.push(r); if (!r.ok) break; }
-  if (results.every((r) => r.ok)) results.push(...await pool(val('--only') ? pick(val('--only')) : rest, N));
+  if (results.every((r) => r.ok)) results.push(...await pool(val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest, N));
 }
 const failed = results.filter((r) => !r.ok);
 console.log((failed.length ? failed.length + ' of ' + results.length + ' checks failed: ' + failed.map((r) => r.c.slug).join(', ') : 'all ' + results.length + ' checks pass') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');

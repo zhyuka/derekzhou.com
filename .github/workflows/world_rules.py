@@ -32,7 +32,7 @@
 #      model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
 #      fetchpriority="low", all deferred (the boot starts once the realms register); the one async script is the start
 #      file, fetchpriority="high", the first script after the canvas.
-#   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
+#   6  (The realm lint, lint_realms.js, was dropped 2026-11-07: report-only, it never failed.)
 #   7  Nothing darkens, and nothing is done to the world for the words (the owner's rule; the words' lift is
 #      gone), and nothing masks a bird for them (the owner, 2026-11-05: "pls remove the masking boxes from behind the
 #      text completely. it's completely fine if the birds fly behind/in front of it"): no file names a keep-off or a

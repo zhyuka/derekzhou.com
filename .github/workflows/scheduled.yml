@@ -1,0 +1,21 @@
+name: Scheduled checks
+
+# The checks too slow or too date-bound for every PR (tools/checks/*.sh marked "kind: schedule"): security.txt's expiry
+# (from 2027-03-08 it would fail every PR) and the start file's own proof in the fake browser (start.mjs --test).
+# Weekly, or by hand; a red run is a task for the owning lane, never a PR's gate.
+on:
+  schedule:
+    - cron: '41 8 * * 1'   # Mondays 08:41 UTC
+  workflow_dispatch:
+
+jobs:
+  scheduled:
+    runs-on: [self-hosted, linux, pc-wsl]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The scheduled checks (tools/check.mjs --scheduled)
+        run: node tools/check.mjs --scheduled
