@@ -552,8 +552,11 @@
      passes it: one remade every frame was never seen passed). D reads at once (probeSync, the ground grid) only once
      the first is passed (C's own frame: a slow device's first draws' compiles) and every one but the last frame's, so a
      read waits on one frame's work at most, never on a queue of the GPU's (F0's ring until then, the page never held) */
-  function bootFence() { var f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); if (f) BOOT.gq.push(f); }
+  /* (first-paint preview) in the hold, one task, WebGL 2 changes no fence's status: no fence is made, the GPU counts as
+     idle and the boot reads at once (each read waits for its own data) */
+  function bootFence() { if (HOLD.on) return; var f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); if (f) BOOT.gq.push(f); }
   function bootIdle() {
+    if (HOLD.on) return true;
     var q = BOOT.gq;
     while (q.length && gl.getSyncParameter(q[0], gl.SYNC_STATUS) === gl.SIGNALED) { gl.deleteSync(q.shift()); BOOT.g0 = true; }
     return BOOT.g0 && q.length <= 1;

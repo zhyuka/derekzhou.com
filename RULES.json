@@ -83,7 +83,7 @@
     {
       "id": "no-2d-birds",
       "area": "birds",
-      "rule": "The ink birds, drawn in the world, are the only birds. No script, SVG or rule of the old 2D birds is in the page, its stylesheet, its headers or the world's scripts; before the world's first frame the page is the still sky and the words, no bird.",
+      "rule": "The ink birds, drawn in the world, are the only birds. No script, SVG or rule of the old 2D birds is in the page, its stylesheet, its headers or the world's scripts; before the world's first frame the page is the still sky and the words, no bird (where the first-paint hold runs, nothing is painted before the world's first frame: the words and the world appear together).",
       "source": [
         {
           "quote": "Why do I still see the old birds at all … like when the page first loads. There shouldn't be any code at all for that, right?! wtf is going on pls fix from root and clean everything up",
@@ -381,7 +381,7 @@
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script.",
+      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, naming no element.",
       "source": [
         {
           "doc": "docs/js.md"

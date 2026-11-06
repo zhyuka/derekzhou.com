@@ -274,7 +274,7 @@
     return true;
   }
   function frameBody(ts) {
-    var dt = CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; FRAMEN++;
+    var dt = CLK[1] === -2 ? HOLD_P : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; FRAMEN++;   // (first-paint preview: -2, the first animation frame after the hold, one hold frame on)
     var dtRaw = dt;   // (the interval itself, for the bake's learning)
     if (TSCALE !== 1) dt *= TSCALE;
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
