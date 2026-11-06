@@ -106,6 +106,24 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
     A.weights = function (x, z) { var k = kwAt(x, z); KWP[0] = k[0]; KWP[1] = k[3]; return KWP; };   // (world6 fix: the kits read the maps' weights: wD, wC)
     return A;
   }
+  /* (phone lane) the heights the land (Hd) and the cloud sea (HdSea) can take, anywhere, for the rings' view test
+     (drawFrame): a bound, worked from the GLSL's own terms, never a measure. gnd's value is under NB = 1 (each corner's
+     gradient has |x|, |y| <= 1, so |dot| <= the L1 distance to that corner, and the fade's weights give at most 0.5 an
+     axis), every dSstep / smoothstep in [0, 1], dAbs(x, e) in [e, sqrt(x^2 + e^2)], the weights wD, wC in [0, 1], the
+     sea's level lv in [SEA_LO, 0] and the sink sk in [0, SINK] (raw texels SEA_LO and SINK, derived ones between, an
+     unwritten texel 0). The land: dunes 55 NB + 36 over, 55 NB under; one basin at most (sites 600 m apart at least,
+     radii under 260) sinks it 20 m more; a plateau (smooth max, never under the land) tops at swell + 8 + 60 plus 0.16
+     of the land over its base, + k / 4 a site; the 9 ridges at most 60 (1.195 + 0.05 NB) each, never under 0. The sea:
+     lv + A_Hd (0.4 .. 1), A_Hd within -42 NB .. 42 NB + the five domes' sqrt(NB^2 + e^2). Each widened by 10 m and 2%.
+     A change to those terms' amplitudes is a change here */
+  var YB = (function () {
+    var NB = 1, wid = function (lo, hi) { return [lo - 10 - 0.02 * Math.abs(lo), hi + 10 + 0.02 * Math.abs(hi)]; };
+    var du = 55 * NB + 36, dl = -55 * NB - 20, top = 55 * NB + 8 + 60, base = -55 * NB + 8, h = du;
+    for (var k = 0; k < 9; k++) h = Math.max(h, top + 0.16 * Math.max(0, h - base)) + 5 / 4;
+    var ridge = 9 * 60 * (1.195 + 0.05 * NB), dome = function (a, e) { return a * Math.sqrt(NB * NB + e * e); };
+    var aU = 42 * NB + dome(28, 0.04) + dome(12, 0.05) + dome(4, 0.07) + dome(9, 0.08) + dome(3.5, 0.1);
+    return { land: wid(dl - SINK, h + ridge), sea: wid(SEA_LO - 42 * NB, aU) };
+  })();
   function worldDef(KD, KA) {
     return {
       id: 'world', still: KD.still,
@@ -117,7 +135,7 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       speed: KD.speed || 12, clear: [7, 14, 45], frame: [0.55, 0.58], cruise: [14, 32], marginB: KA.margin,
        look: KD.look, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
-      surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10 }],
+      surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true, yb: YB.land }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10, yb: YB.sea }],
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
       layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0]], volRes: 44 },
       field: function (R, V) {
