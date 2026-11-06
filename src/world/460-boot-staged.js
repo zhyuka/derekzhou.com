@@ -124,7 +124,7 @@
     }
     if (afterC) rbFence();
     // G: the measurement (once the world is ready and the table warm); first the flight's first step (its camera)
-    if (BOOT.world && (WARM.done || reduced())) {
+    if (BOOT.world && (WARM.done || reduced()) && lateSeenReady()) {   // (world-perf lane: and no held program of a kind laid out still unready)
       if (!SIM.V) { for (var pr = 0; pr < PREROLL; pr++) simAdvance(SIM_DT); CLK[0] = SIM.t; bootMark('flight: pre-roll done (' + SIM.steps + ' steps; the inputs in ' + (BOOT.fwait || 0) + ' frames after D)'); }   // (fast500 F0: the fixed pre-roll, PREROLL steps once flightIn)
       if (SIM.V && (reduced() || BOOT.restore || stageG())) {
         READY = true; dt0 = true; PREP0 = FRAMEN; bootMark('G done: ready'); budgets(false);

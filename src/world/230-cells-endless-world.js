@@ -41,7 +41,7 @@
       cloud: function (cl) { C.clouds.push(cl); return cl; },
       // creatures: { kind: 'bird' | 'ray', n, x, z, y or dy over the ground (or ref: an item, over its seat), orbit,
       //   wheel, size, flap, spread, drift [x, z], lit, shade }
-      flock: function (f) { C.flocks.push(f); return f; },
+      flock: function (f) { C.flocks.push(f); if ((FKIND[f.kind] || 1) !== 1 || WORLD_FLYERS) LATEK.creature = 1; return f; },   // (world-perf lane: a flock the creatures' draw takes: drawCreatures passes over the birds (kind 1) while WORLD_FLYERS is off)
       // a point of interest (the ink birds' places, HOST.pois): { x, z, y or dy (or ref), kind, pass (m beside it) }; (commit
       //   6) nothing reads a point's interest, via, alt or approach: the autopilot that flew to them is gone
       poi: function (p) { C.pois.push(p); return p; },
@@ -56,13 +56,13 @@
       //   HDR, or an array of 3n), px (the least size, px; 1.5), twinkle, pulse (0-1), rate (Hz), phase (array of n; else
       //   from the hash), drift (m; < 0: a fall down through that many m at rate m/s, again and again: a fall of light, a
       //   drip), bob (m), blink (the share of a cycle lit), far (m) }
-      glows: function (g) { g.n = g.n || (g.pos ? g.pos.length / 3 : 0); if (g.n > 0) C.glowG.push(g); return g; },
-      glow: function (o) { var g = { n: 1, pos: [o.x, o.y !== undefined ? o.y : (o.dy || 0), o.z], ground: o.y === undefined && !o.ref, ref: o.ref }; for (var k in o) if (!(k in g) && k !== 'x' && k !== 'y' && k !== 'z' && k !== 'dy') g[k] = o[k]; C.glowG.push(g); return g; },
+      glows: function (g) { g.n = g.n || (g.pos ? g.pos.length / 3 : 0); if (g.n > 0) { C.glowG.push(g); LATEK.glow = 1; } return g; },
+      glow: function (o) { var g = { n: 1, pos: [o.x, o.y !== undefined ? o.y : (o.dy || 0), o.z], ground: o.y === undefined && !o.ref, ref: o.ref }; for (var k in o) if (!(k in g) && k !== 'x' && k !== 'y' && k !== 'z' && k !== 'dy') g[k] = o[k]; C.glowG.push(g); LATEK.glow = 1; return g; },
       // a beam: { from: [x, y, z], to: [x, y, z] (the world's; or over the seat of ref, offsets from its place; or y over
       //   the ground at from's place when ground is set), r: radius (m) or [at from, at to], color [r, g, b] (linear,
       //   HDR), core (0-1), dust, shimmer (0-1), fade: [the share faded at its far end, at its start], wake: [radius m,
       //   delay s, draw-on s] (lit when the camera first comes within radius of from: drawn on from it) }
-      beam: function (b) { C.beamL.push(b); return b; }
+      beam: function (b) { C.beamL.push(b); LATEK.beam = 1; return b; }
     };
   }
   /* the ground points to probe: each item's (and cloud's, flock's, poi's, placement's with a foot) centre and a ring at
@@ -624,6 +624,10 @@
      spread (m: heights), lit, shade (colours), glow ([r, g, b], linear HDR: its own light; moths, jellies, caps),
      bob: [m, period s], layout: 'orbit' | 'helix' | 'still', helix: [radius m, step deg, rise m a step, turn deg/s] } */
   var FKIND = { bird: 1, ray: 2, moth: 3, jelly: 4, cap: 5 };
+  /* (world-perf lane) what of the creatures, the glow sprites and the beams any cell or event has laid out this visit:
+     until one is, its program is held to after the show (lateHeld); once one is, it is issued at once, and the show
+     waits for it (lateSeenReady, stage G) */
+  var LATEK = { creature: 0, glow: 0, beam: 0 };
   function flockOf(f) {
     var kd = FKIND[f.kind] || 1, hx = f.helix || [4, 40, 5, 0], bob = f.bob || [0, 1];
     return { ray: kd === 2, kind: kd, n: Math.min(f.n || 12, 32), a: new Float32Array([f.at[0], f.at[1], f.at[2], f.u0 || 0]), b: new Float32Array([f.drift ? f.drift[0] : 0, f.drift ? f.drift[1] : 0, f.orbit || 30, kd]),

@@ -212,7 +212,8 @@
       else if (KW.ok) { LATEP.sand = lateSand(V); LATEP.decided = true; }
     }
     for (i = 0; i < PROGS.length; i++) {
-      P = PROGS[i]; if (P.late) continue; n = P.name;
+      P = PROGS[i]; n = P.name;
+      if (P.late) continue;
       if (LATE_ALWAYS.indexOf(n) >= 0 || (LATEP.decided && LATEP.sand <= LATE_SAND && (n === V.def.id + '.particle' || n === V.def.id + '.ribbon'))) { P.late = true; LATEP.names.push(n); }
     }
   }
@@ -244,10 +245,15 @@
      the beams) are not even issued before it, where programs are late at all (lateCan): their compiles leave the boot's
      threads to the show's own; issued in the first frame after it (lateStep), finished and warmed as the late ones are */
   var LATE_HELD = ['engine.creature', 'engine.glow', 'engine.beam'];
-  function lateHeld(P) { return !shown && LATE_HELD.indexOf(P.name) >= 0 && lateCan(); }
+  function lateSeen(n) { return LATE_HELD.indexOf(n) >= 0 && !!LATEK[n.slice(7)]; }   // (one of its kind laid out: it is needed)
+  function lateHeld(P) { return !shown && LATE_HELD.indexOf(P.name) >= 0 && lateCan() && !lateSeen(P.name); }
+  function lateSeenReady() {   // the show's own: every held program one of whose kind is laid out, finished and warmed
+    for (var i = 0; i < PROGS.length; i++) { var P = PROGS[i]; if (lateSeen(P.name) && !lateReady(P)) { lateStep(); lateWarmProgs(); return false; } }   // (the frame loop runs these only once shown: before the show the gate drives them)
+    return true;
+  }
   function lateStep() {   // the late ones' completion, once a frame after C (never waits)
     if (!LATEP.on || !BOOT.cDone || gl.isContextLost()) return;
-    if (shown) { var iss = false; for (var h = 0; h < PROGS.length; h++) { var Q = PROGS[h]; if (Q.st === 0 && Q.late) { var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(Q); PROGX.compiled = c0; PROGX.linked = l0; iss = true; } } if (iss) gl.flush(); }   // (the held ones, issued now)
+    { var iss = false; for (var h = 0; h < PROGS.length; h++) { var Q = PROGS[h]; if (Q.st === 0 && Q.late && (shown || lateSeen(Q.name))) { var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(Q); PROGX.compiled = c0; PROGX.linked = l0; iss = true; } } if (iss) gl.flush(); }   // (the held ones, issued now)
     for (var i = 0; i < PROGS.length; i++) {
       var P = PROGS[i]; if (!P.late || P.st !== 2) continue;
       var tq = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR);
