@@ -26,9 +26,11 @@
   var LIVE_R = 2600;           // m: the visitor's sky (the flocks within it counted) ...
   var LIVE_N = { glow: 7, blue: 7, first: 6, moon: 5, day: 8 };   // ... this many flocks in it, by the sky
   var HOME_R = 1.25 * LIVE_R;   // m: past this a bird turns home (homeStep)
-  var LIVE_NEAR = { r: 600, n: 3 };   // ... and at least this many within r m of it: the near sky (birds that can come down to the words)
   var NEAR_R = 3000;           // m: a flock nearer than this flies every bird of it each step; farther, its leader a coarse step and the rest held in their places
   var COARSE = 0.5;            // s: the far flocks' step
+  var COME_D = [60, 140];      // m beside the eye's way such a flock passes
+  var COME_GAP = [25, 50];     // s between flocks sent to cross the camera's way ahead (recruit)
+  var CLEAR = 15;              // m: the least height over the land under a bird (the owner, 2026-11-06: never below the land)
   var SEA_DEEP = 18;           // m: a bird this far under the sea's top (and its span) is wholly hidden
   var AVOID = 14;              // m: no bird lets the eye pass nearer than this or 4 of its spans (it banks away: B17; the near plane never cuts one, nor does a bird fill the window)
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
@@ -208,6 +210,11 @@
     } else h = g.psi + g.eh;
     var ch = Math.cos(h), sh = Math.sin(h), dy = clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25) + v * g.ec;
     if (g.k === 'sink') dy = Math.min(dy, -v * Math.sin(10 * DEG));
+    /* never under the land below it and 15 m (the land here and 2 s on): only into the sea of cloud, going down into it */
+    if (!(g.k === 'sink' && seaAt(x, z).w > 0.85)) {
+      var fl = Math.max(lvGround(x, z), lvGround(x + b.v[0] * 2, z + b.v[2] * 2)) + CLEAR + b.sz;
+      if (b.p[1] < fl + 10) dy = Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35));
+    }
     WV[0] = v * sh; WV[1] = dy; WV[2] = v * ch;
     if (t - g.t0 > g.T && g.k !== 'out') nextGoal(F);
     return WV;
@@ -253,6 +260,8 @@
     var kind = L && L.kinds[pat] ? weighted(r, L.kinds[pat]) : weighted(r, SORT_OF[pat] || [['gull', 1]]);
     return [pat, kind, lvCount(r, pat, 0)];
   }
+  /* a flock of a kind that perches, where the sky has one (a few draws of its own mix) */
+  function perchWhat(r, cls) { var w; for (var k = 0; k < 6; k++) { w = flockWhat(r, cls); if (KINDS[w[1]] && KINDS[w[1]].perch) return w; } return w; }
   function lvCount(r, pat, n) {
     if (n) return n;
     if (pat === 'single') return 1; if (pat === 'pair') return 2;
@@ -307,7 +316,7 @@
   function popCls() { return skyCls(); }
   function liveCount(R) {
     var n = 0, r2 = (R || LIVE_R) * (R || LIVE_R);
-    for (var i = 0; i < FLOCKS.length; i++) { var L = FLOCKS[i].lead; if (!L) continue; var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z; if (dx * dx + dz * dz < r2) n++; }
+    for (var i = 0; i < FLOCKS.length; i++) { var F = FLOCKS[i], L = F.lead; if (!L) continue; var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z; if (dx * dx + dz * dz < r2 || (!R && F.goal && F.goal.home)) n++; }   // (the whole sky's count takes in the flocks coming in)
     return n;
   }
   /* the visit's first sky (before its first frame: nothing is seen yet): the visitor's sky filled, a flock or two near */
@@ -318,30 +327,51 @@
         var near = i < 2, d = near ? mix(r(), 140, 600) : LIVE_R * Math.sqrt(mix(r(), 0.03, 1)), a = near ? Math.atan2(C.f[0], C.f[2]) + (r() - 0.5) * 1.2 : TAU * r();
         var x = LVC.x + d * Math.sin(a), z = LVC.z + d * Math.cos(a), y = Math.max(hideTop(x, z) + 30, LVC.y + mix(r(), -30, 80));
         if (y < lvGround(x, z) + 15) continue;
-        newFlock(x, y, z, TAU * r(), cls);
+        newFlock(x, y, z, TAU * r(), cls, near ? perchWhat(r, cls) : null);   // (the near ones of kinds that perch: a visit sees one come down soon)
         break;
       }
     }
     POP.seeded = true; POP.nextT = t + 2;
   }
-  /* a flock added where no one can see it come: out of the sea of cloud near by (wholly under its top, then rising out
-     of it), or out of the distance (unseen) */
-  function addHidden(C) {
-    var cls = popCls(), r = POP.r, k;
+  /* a new flock (the owner, 2026-11-06: never born near the viewer, not under the land nor in the sea of cloud): only
+     beyond sight (under half a pixel on the largest window, through the air between), on its way into the visitor's
+     sky, aimed where the eye will be by the time it comes; it counts as the sky's while it comes in (g.home) */
+  function sightD(kind, y) {
+    var lo = 300, hi = 60000, m = B_SPAN * (SORTS[kind] || SORTS.gull).size * FDEV_MAX * 1.4, dy = y - LVC.y;   // (the widest a bird of the kind is, with a margin)
+    for (var k = 0; k < 24; k++) { var d = 0.5 * (lo + hi); if (m / d * airT(d, dy, 0) < 0.5) hi = d; else lo = d; }
+    return hi;
+  }
+  function addFar(C, cls, r) {
     if (FORCED) return addOutOfView(C, cls, r);
-    for (k = 0; k < 10; k++) {
-      var d = mix(r(), 120, 220), a = TAU * r(), x = LVC.x + d * Math.sin(a), z = LVC.z + d * Math.cos(a);
-      var s = seaAt(x, z); if (s.w < 0.85 || !(HOST.groundReach && HOST.groundReach() > 0)) continue;
-      var top = lvGround(x, z), what = flockWhat(r, cls), y = top - SEA_DEEP - 4 * B_SPAN * 1.5 - 15;
-      if (!(top > -1e8) || LVC.y - top < 25) continue;
-      var F = newFlock(x, y, z, TAU * r(), cls, what), m;
-      for (m = 0; m < F.m.length && hidden(F.m[m]); m++);
-      if (m < F.m.length) { dropFlock(F); continue; }   // (every bird of it hidden as it is made, or none made)
-      F.goal = null; var g = newGoal(F, r() < 0.5 ? 'loiter' : 'commute', F.r, cls); g.y = Math.max(top + 30, LVC.y + mix(r(), -20, 60)); g.T = pick(r, [30, 80]);   // (half of them about here a while)
+    for (var k = 0; k < 8; k++) {
+      var what = r() < 0.5 ? perchWhat(r, cls) : flockWhat(r, cls), y = LVC.y + mix(r(), -30, 90), d = sightD(what[1], y) * 1.05, a = TAU * r();
+      var x = LVC.x + d * Math.sin(a), z = LVC.z + d * Math.cos(a);
+      if (y < lvGround(x, z) + 30) continue;
+      var F = newFlock(x, y, z, 0, cls, what), T = d / F.lead.K.v;
+      var ax = LVC.x + LVC.vx * T + (r() - 0.5) * LIVE_R - x, az = LVC.z + LVC.vz * T + (r() - 0.5) * LIVE_R - z;
+      F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = Math.atan2(ax, az); g.T = T * 1.2; g.home = true;
+      for (var m = 0; m < F.m.length; m++) F.m[m].psi = g.psi;
       STATS.adds = (STATS.adds || 0) + 1;
       return F;
     }
     return null;
+  }
+  /* now and then (COME_GAP) one of the sky's flocks, of a kind that perches if it has one, turns to cross the camera's
+     way ahead of it: the flocks that fly by, from which the words' birds come down (none is made for it) */
+  function recruit() {
+    var best = null, bd = 1e18, i;
+    for (i = 0; i < FLOCKS.length; i++) {
+      var F = FLOCKS[i], L = F.lead; if (!L || L.st !== 'fly' || (F.goal && (F.goal.k === 'sink' || F.goal.come))) continue;
+      var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
+      if (dd < 150 * 150 || dd > LIVE_R * LIVE_R) continue;
+      if (!KINDS[F.kind].perch) dd *= 4;   // (one that perches first: it may come down on the words)
+      if (dd < bd) { bd = dd; best = F; }
+    }
+    if (!best) return;
+    /* by the eye's way, wide of it (the pass goal: aimed afresh each step beside where the eye will be) */
+    var L2 = best.lead, g = newGoal(best, 'pass', best.r, POP.cls);
+    g.d = pick(best.r, COME_D) * (best.r() < 0.5 ? 1 : -1); g.T = dist3(L2.p, [LVC.x, LVC.y, LVC.z]) / L2.K.v + 30; g.y = LVC.y + mix(best.r(), 5, 40); g.come = true;
+    STATS.recruits = (STATS.recruits || 0) + 1;
   }
   /* (forced colours: the world not drawn, the camera held still, so the view can never turn to them) a flock added
      beyond the view's side, already flying across it */
@@ -371,7 +401,8 @@
     }
     if (t >= POP.nextT) {
       POP.nextT = t + 1.5;
-      if (liveCount() < (LIVE_N[cls] || 6) || liveCount(LIVE_NEAR.r) < LIVE_NEAR.n) addHidden(C);
+      if (liveCount() < (LIVE_N[cls] || 6)) addFar(C, cls, POP.r);
+      if (t >= (POP.comeT || PFIRST)) { recruit(); POP.comeT = t + pick(POP.r, COME_GAP); }
     }
     if (STATS.steps % 30 === 0) { joinStep(); homeStep(); }
   }

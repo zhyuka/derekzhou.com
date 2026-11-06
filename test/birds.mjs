@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeSim, svgPaths, DT } from '../tools/birds/sim.mjs';
+import { makeSim, svgPaths, DT, groundAt, seaW } from '../tools/birds/sim.mjs';
 import { SCENES } from './birds-scenes.mjs';
 
 const N = +(process.env.BIRDS_N || 3), SIZES = ['960x600', '390x844'];
@@ -22,7 +22,8 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
    its bank; added or taken out only where it cannot be seen) */
 function play(name, size, seed) {
   const sc = SCENES[name](seed, size), sim = makeSim(sc.opt), tag = sc.setup(sim), t0 = sim.t, tracks = tag.map(() => []);
-  const bad = { turn: 0, turnWorst: 0, popIn: 0, popOut: 0, popWorst: 0 }, last = new Map();
+  const bad = { turn: 0, turnWorst: 0, popIn: 0, popOut: 0, popWorst: 0, low: 0, lowWorst: 0, rise: 0 }, last = new Map(), wasHidden = new Map();
+  let clicks = 0;
   let maxPop = 0, maxFlocks = 0;
   sim.run(sc.secs, () => {
     const B = sim.B, now = new Map();
@@ -32,22 +33,23 @@ function play(name, size, seed) {
         const rate = Math.abs(wrap(b.psi - was.psi)) / DT, may = G * Math.tan(Math.max(Math.abs(b.phi), Math.abs(was.phi))) / Math.max(Math.min(b.V, was.V), 3);
         if (rate > may * 1.05 + 0.02) { bad.turn++; bad.turnWorst = Math.max(bad.turnWorst, rate - may); }
       }
-      if (!was && sim.t - t0 > DT) seen(b, 'popIn');
+      if (!was && sim.t - t0 > DT && (B.STATS.clicks || 0) === clicks) seen(b, 'popIn');   // (a click's bird is made where it is clicked: the owner's)
+      /* never under the land and 15 m (but into the sea of cloud, going down into it) */
+      if (b.st in FLY) { const g = groundAt(b.p[0], b.p[2]), under = g + 12 - b.p[1]; if (under > 0 && !(seaW(b.p[0], b.p[2]) && b.F && b.F.goal && b.F.goal.k === 'sink')) { bad.low++; bad.lowWorst = Math.max(bad.lowWorst, under + 12); } }
+      /* never first seen coming out from under the land or the cloud: hidden, then seen while within sight */
+      const hid = B.hidden(b); if (wasHidden.get(b) && !hid && px(b) >= 0.5) bad.rise++; wasHidden.set(b, hid);
       now.set(b, { st: b.st, psi: b.psi, phi: b.phi, V: b.V });
     }
     for (const [b] of last) if (!now.has(b)) seen(b, 'popOut');
     last.clear(); for (const [b, v] of now) last.set(b, v);
-    maxPop = Math.max(maxPop, B.BIRDS.length); maxFlocks = Math.max(maxFlocks, B.FLOCKS.length);
+    maxPop = Math.max(maxPop, B.BIRDS.length); maxFlocks = Math.max(maxFlocks, B.FLOCKS.length); clicks = B.STATS.clicks || 0;
     tag.forEach((b, i) => { if (B.BIRDS.includes(b)) tracks[i].push(sim.rec(b)); });
     if (sc.each) sc.each(sim, tag);
   });
-  /* added or taken out: its span on the largest window, through the air between, must be under half a pixel, or it
-     is wholly under the sea of cloud */
-  function seen(b, k) {
-    const B = sim.B, L = B.LVC, dx = b.p[0] - L.x, dy = b.p[1] - L.y, dz = b.p[2] - L.z, d = Math.hypot(dx, dy, dz) || 1e-3;
-    const px = (b.sz / B.MODEL_K) * B.FDEV_MAX / d * B.airT(dx, dy, dz);
-    if (px >= 0.5 && !B.hidden(b)) { bad[k]++; bad.popWorst = Math.max(bad.popWorst, px); }
-  }
+  /* its span on the largest window, through the air between (px) */
+  function px(b) { const B = sim.B, L = B.LVC, dx = b.p[0] - L.x, dy = b.p[1] - L.y, dz = b.p[2] - L.z, d = Math.hypot(dx, dy, dz) || 1e-3; return (b.sz / B.MODEL_K) * B.FDEV_MAX / d * B.airT(dx, dy, dz); }
+  /* added: only beyond sight (under half a pixel there); taken out: beyond sight, or wholly hidden in the sea of cloud */
+  function seen(b, k) { const v = px(b); if (v >= 0.5 && (k === 'popIn' || !sim.B.hidden(b))) { bad[k]++; bad.popWorst = Math.max(bad.popWorst, v); } }
   return { name, size, seed, sim, tracks, bad, maxPop, maxFlocks, t0 };
 }
 
@@ -88,6 +90,8 @@ function invariants(p) {
   const b = p.bad, w = [];
   if (b.turn) w.push(`${b.turn} steps turned faster than its bank (worst by ${b.turnWorst.toFixed(2)} rad/s)`);
   if (b.popIn || b.popOut) w.push(`${b.popIn} added, ${b.popOut} taken out where seen (worst ${b.popWorst.toFixed(1)} px)`);
+  if (b.low) w.push(`${b.low} bird-steps under the land and 15 m (worst ${b.lowWorst.toFixed(1)} m under)`);
+  if (b.rise) w.push(`${b.rise} times a bird came out from under the land or the cloud in sight`);
   return w;
 }
 const fmt = (x) => (x === Infinity ? 'never' : x.toFixed(1) + ' s');
@@ -121,6 +125,7 @@ function landTest(title, name, by, kind) {
 }
 
 test('a gull sent to a letter is down by 15 s', () => landTest('perch: down by 15 s', 'perch', 15));
+test('a gull lands in the page\'s wind along the camera\'s way (5586a97 landed none)', () => landTest('gale: down by 15 s, 6.5 m/s head or tail', 'gale', 15));
 test('a flock\'s droppers are down by 20 s', () => landTest('drop: droppers down by 20 s', 'drop', 20));
 test('a gull rides the moving pointer by 10 s', () => landTest('cursor: on the moving tip by 10 s', 'cursor', 10, 'pointer'));
 test('a clicked bird lands on a letter', () => landTest('click: down by 23 s from the click (sent at 3 s)', 'click', 23));

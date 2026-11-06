@@ -1,6 +1,7 @@
 // sim.mjs: the ink birds run headless in Node, in seconds: the real module (src/ assembled as the build assembles it)
 // on a stub host with no GL. A camera flies its heading at the page's speed; the words' boxes are the page's at
-// 960x600 or 390x844; a pointer path, clicks and drags are scripted; the clock steps 50 ms. Every bird's state is
+// 960x600 or 390x844; low hills and patches of the sea of cloud below; a pointer path, clicks and drags are
+// scripted; the clock steps 50 ms. Every bird's state is
 // read each step (sim.rec). test/birds.mjs runs its cases on it; run alone it prints one scenario and draws its paths.
 //
 //   node tools/birds/sim.mjs [--case perch|drop|cursor|click|drag|natural] [--seed N] [--size 960x600|390x844]
@@ -24,6 +25,9 @@ export const SIZES = {
   '390x844': { W: 390, H: 844, boxes: [25.05, 253.41, 364.89, 333.25, 24, 366.34, 366, 445.37, 24, 477.37, 366, 496.87, 20, 803, 55.2, 824, 79.2, 803, 133.5, 824], nvb: [24.014, 252.37, 0.261047] },
 };
 const TANX = Math.tan(36 * Math.PI / 180), G = 9.81;
+/* the stub world's land: low hills, and patches of the sea of cloud (where the drawn ground is the cloud's top) */
+export const groundAt = (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);
+export const seaW = (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
 
 let SCRIPTS = null;
 function scripts() {
@@ -60,8 +64,8 @@ export function makeSim(o = {}) {
     sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => 1, forced: () => ({ on: false }),
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); } return v; },
     grade: () => null, light: () => ({ fog: [1e-4, 1 / 260, 0, 1.1e-4] }), words: () => ({ boxes: Z.boxes, nvb: Z.nvb, kind: 'light' }),
-    bindTextures: () => false, target() {}, cloudBetween: () => 0, cover: () => 0, ground: () => -60, groundReach: () => 300,
-    seaAt: (x, z, v) => { v.w = 1; v.lv = -50; return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
+    bindTextures: () => false, target() {}, cloudBetween: () => 0, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
+    seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = groundAt(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
     rng: (salt) => { let a = (seed ^ salt) >>> 0; return () => { a = (a + 0x9e3779b9) | 0; let q = a ^ (a >>> 16); q = Math.imul(q, 0x21f0aaad); q ^= q >>> 15; q = Math.imul(q, 0x735a2d97); return ((q ^ (q >>> 15)) >>> 0) / 4294967296; }; },
     reduced: () => false, budget: () => Infinity, count() {}, courseTrust: () => SPEED, time: () => t };
   const ctx = vm.createContext({ console });

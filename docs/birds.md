@@ -36,10 +36,15 @@ turning the view never adds, removes or fades one, and a bird that
 leaves the view keeps flying. Birds are added and taken out only where
 no one can see it happen: so far off that the world's own air leaves
 nothing of it on any pixel of the largest window (2560 CSS px at 2
-device px a CSS px), or wholly under the sea of cloud's top (they rise
-out of the cloud near by, and go down into it). The population is kept
-about the visitor in the world (so many flocks within 2.6 km, by the
-sky). At a visit's start, before its first frame, the sky is filled.
+device px a CSS px): a new flock is made there and flies in (addFar);
+none is ever made near the viewer, under the land or in the sea of cloud
+(the owner, 2026-11-06). One is taken out there, or once it has gone down
+into the sea of cloud and is wholly hidden. No bird flies below the land
+under it and 15 m (CLEAR). The population is kept about the visitor in
+the world (so many flocks within 2.6 km, by the sky, those flying in
+counted); every 25-50 s one of them, of a kind that perches where the
+sky has one, is sent by the camera's way 60-140 m wide of it (recruit),
+and from such flocks the words' birds come down. At a visit's start, before its first frame, the sky is filled.
 Under forced colours (the world not drawn, the camera held) a bird may
 come and go beyond the view's side. No bird fades: the only change of
 its ink with distance is the world's own air, in metres, the same on

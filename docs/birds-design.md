@@ -15,10 +15,13 @@ this file goes.
    Its wing clock, drawing, size and random stream carry over every change.
 2. Birds live in the 3D world, on screen or off. Turning the view never makes a
    bird appear, fade or vanish. A bird that leaves the view keeps flying.
-3. Birds are added or removed only where no one can see it happen: beyond the
-   distance at which a gull is under one device pixel at the largest window
-   (about 14 km: 2560 CSS px at dpr 2), or while wholly hidden in cloud or behind
-   land. Never at a screen edge, never on a timer, never by fading.
+3. Birds are added only beyond sight: where a bird is under half a device pixel
+   at the largest window (2560 CSS px at dpr 2) through the air between, and fly
+   in from there; never near the viewer, never under the land or in the sea of
+   cloud (the owner, 2026-11-06: no birds rising out of the ground). They are
+   taken out beyond sight, or once they have flown down into the sea of cloud and
+   are wholly hidden in it. No bird is ever below the land under it and 15 m.
+   Never at a screen edge, never on a timer, never by fading.
 4. No fades of any kind. Distance is the world's own aerial perspective, in
    metres: the same bird at the same place has the same ink on every window.
 5. Real flight in 3D: any heading, climbing and descending, below the eye too,
@@ -251,7 +254,7 @@ table with each row's evidence (a film, a probe or a deleted line range).
 | the fly-by path and the leaving wingbeat recomputed from zero each frame | H10 | gone with the guests; the integrator steps once |
 | cloud cover in 0.25 s steps held 0.3 s: a bird pops at a cloud's edge | H10 | cloud cover read continuously per drawn bird, so a bird passes into cloud smoothly |
 | clicked birds appear mid-window at full ink, the drift puts them away from the click, always a 16 m/s commuter | R9, H11 | a click births a bird at the click point in the world, on a goal from the same list as any bird |
-| removals off screen, unseen, behind; births just outside the window | R11 | the population ring: added and removed only beyond ~14 km or wholly hidden |
+| removals off screen, unseen, behind; births just outside the window | R11 | the population ring: added only beyond sight (flying in), removed beyond sight or wholly hidden in the sea of cloud |
 | the population counted about the view (LV_POP) | R11 | a density per square kilometre in world space |
 | no per-bird cost measured; instrumentation in shipped code | R10 | measured against main; the dev counters move to the dev build |
 | the reduced-motion still and forced colours run the old planner | R3 | the same simulation run forward from the seed, then frozen (reduced motion) or drawn in CanvasText (forced colours) |
@@ -267,7 +270,8 @@ table with each row's evidence (a film, a probe or a deleted line range).
 - Probes:
   - turn the view full circle at every window: no bird appears or disappears in
     view;
-  - every add or remove happens beyond 14 km or wholly hidden;
+  - every add happens beyond sight; every remove beyond sight or wholly hidden in
+    the sea of cloud; no bird below the land and 15 m (test/birds.mjs checks all three);
   - a bird's ink at a given place is the same on every window;
   - no field read after birth records the birth.
 - Cost: per-frame CPU per drawn bird and per off-screen bird, against main;

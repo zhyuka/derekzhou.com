@@ -28,6 +28,12 @@ export const SCENES = {
       return F.m.slice(1, 1 + n).filter((b, i) => sim.land(b, gaps[i]));   // (one given no free ledge is not sent, as in the page)
     } };
   },
+  /* the page's wind (6.5 m/s) straight along the camera's way, head or tail, at 12 m/s: what kept 5586a97 from landing */
+  gale: (seed, size) => {
+    const sc = SCENES.perch(seed, size), w = seed % 2 ? 6.5 : -6.5;
+    sc.opt.speed = 12; sc.opt.yaw = 0; sc.opt.wind = [0, w];
+    return sc;
+  },
   /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes (CI: 2) */
   life: (seed, size) => {
     const sc = SCENES.perch(seed, size);
