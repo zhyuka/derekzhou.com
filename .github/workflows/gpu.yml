@@ -85,7 +85,10 @@ jobs:
         run: |
           $tools = if (Test-Path base/tools/gpu/t2.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           $profiles = Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_gpu-profiles'   # kept between runs: Chrome's GPU program cache
-          node "$tools/t2.js" --base served/base --head served/head --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles
+          # settled twins when the build made them (served.sh, tools/gpu/twin.js): every visit shows the same settled world at
+          # page time 4 s; else the plain builds, each visit from its own first shown frame
+          if ((Test-Path served/base-twin) -and (Test-Path served/head-twin)) { $b = 'served/base-twin'; $h = 'served/head-twin'; $st = @('--settle', '4000') } else { $b = 'served/base'; $h = 'served/head'; $st = @() }
+          node "$tools/t2.js" --base $b --head $h --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles @st
       - name: report
         if: always()
         uses: actions/upload-artifact@v4

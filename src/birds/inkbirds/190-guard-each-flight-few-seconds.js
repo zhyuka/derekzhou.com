@@ -4,7 +4,7 @@
      way they face (GBACK: its share of the course, and the sweep against it), and its pace there */
   var GR = { back: 0, sweep: 0, own: 0, slow: 0, fast: 0, w: 0, o: 0, n: 0 }, gq = {}, gq2 = {};
   function guardRun(F, tau, withBack) {
-    var i, j, m, h, d, hw, hh, n, prevX = GPX, prevOk = GPOK, nb = 0, nbk = 0, sw = 0, ow = 0, ns = 0, nf = 0, wsum = 0, osum = 0, nsum = 0, pmax = paceMax();
+    var i, j, m, h, d, hw, hh, n, prevX = GPX, nb = 0, nbk = 0, sw = 0, ow = 0, ns = 0, nf = 0, wsum = 0, osum = 0, nsum = 0, pmax = paceMax();
     GR.back = 0; GR.sweep = 0; GR.own = 0; GR.slow = 0; GR.fast = 0; GR.w = 0; GR.o = 0; GR.n = 0;
     for (j = 0; j < F.m.length; j++) GPOK[j] = 0;
     for (i = 0; i < GUARD_T.length; i++) {
@@ -37,7 +37,7 @@
     GR.slow = nb ? ns / nb : 0; GR.fast = nb ? nf / nb : 0; GR.w = nb ? wsum / nb : 0; GR.o = nb ? osum / nb : 0; GR.n = nb ? nsum / nb : 0;
     return GR;
   }
-  var GPX = new Float64Array(3 * MAXP), GPOK = new Uint8Array(MAXP), GLOG = null;   // (GLOG, development: the guard's findings, when asked)
+  var GPX = new Float64Array(3 * MAXP), GPOK = new Uint8Array(MAXP);
 
   /* once a flight is in the sky (each, every GUARD_EVERY steps, on a step of its own): ahead GUARD_T, would its birds
      hang or race on the window (its pace eased), or slide backward on the window, the view turning against them
@@ -45,13 +45,12 @@
      of the distance: no bird loomed at), so it flies with it; a flight wheels at most once in WHEEL_GAP s */
   function guard(F) {
     var tau = t - F.t0, r, s, st, L;
-    if (F.gone || F.place || F.still || F.soar || F.stage || tau < -LEAD - 1) return;   // (birds3d: a staged flight is planned whole on the held course)   // (past its planned span too: a turn the course did not foresee may keep it in view)
+    if (F.gone || F.place || F.still || F.soar || tau < -LEAD - 1) return;   // (past its planned span too: a turn the course did not foresee may keep it in view)
     /* (round 3) not while the visitor drags the view: their sweep is their own, and every flight flies on through it */
     if (sweepNow() > DRAG_PX) return;
     if (!guardCourse()) return;
     r = guardRun(F, tau, true);
     STATS.guard.n++;
-    if (GLOG && r.back > 0) GLOG.push({ t: +t.toFixed(2), id: F.id, kind: F.kind, back: +r.back.toFixed(2), sweep: +r.sweep.toFixed(1), own: +r.own.toFixed(1), gv: GV.n });
     /* (round 3) its pace on the window: a turn the course did not foresee can leave a flight all but hanging there (its
        own way cancelled by the land's sweep: its drift then turns it this way and that) or racing; it flies a little
        faster or slower against the land, eased over ACC_T (never past a third over its kind's calm pace nor the calm's

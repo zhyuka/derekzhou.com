@@ -49,8 +49,8 @@
 
   /* (fast500 F, PLAN500 step 11; the owner's OK: "Background worker") THE FIRST PLAN IN A WORKER. The plan (mapsInit:
      the maps, the director and its first tick; the weights' grids about the landing, KW/KG/KF, whole) is pure CPU and
-     the boot's longest task (0.43-0.72 s desktop, 1.5-2.5 s at 4x). One same-origin worker (plan.v1.js, made by
-     mkplan.py from this file's own code spans, verbatim) makes it while the page evaluates the other scripts, makes
+     the boot's longest task (0.43-0.72 s desktop, 1.5-2.5 s at 4x). One same-origin worker (plan.js, made by
+     tools/plan.mjs from this file's own code spans, verbatim) makes it while the page evaluates the other scripts, makes
      its context and issues its programs, and hands it back: the director's state, the four gradient maxima and the
      grids' arrays (transferred). planVisit adopts it only if it is this world's (the worker's stamp is PW_V, the
      spans' md5), this seed's, the camera at the landing and no grid made yet; the World and Director are then made
@@ -63,7 +63,7 @@
     if (PW.st || typeof Worker !== 'function') return;
     try {
       PW.seed = J.seed >>> 0; PW.t0 = clockNow(); PW.st = 1;
-      PW.w = new Worker('/plan.v1.js');
+      PW.w = new Worker('/plan.js');
       PW.w.addEventListener('message', function (e) {
         var m = e.data; if (PW.st !== 1) return;
         if (!m || m.v !== PW_V || m.seed !== PW.seed) { planWorkerOff(); return; }

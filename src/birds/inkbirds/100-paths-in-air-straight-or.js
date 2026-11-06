@@ -27,7 +27,6 @@
     var P = F.path;
     work++;
     if (P.sp && s > P.sp[0].s) return path3sp(P, s, o);   // (round 3: steered in flight, from its first splice on)
-    if (P.tab) return path3tab(P, s, o);                  // (birds3d: a ribbon's weave, sampled)
     integ(P, s, IO);
     o.x = P.x + IO.ix - P.i0x; o.z = P.z + IO.iz - P.i0z; o.y = P.y + P.g * s;
     o.h = s <= P.s1 ? P.h : s >= P.s2 ? P.h2 : P.h + P.k * (s - P.s1);

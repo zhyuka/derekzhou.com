@@ -1,6 +1,6 @@
   /* ---------------- where a bird is: a pure function of the flight's time ---------------- */
 
-  var tmp = {}, tmp2 = {}, pb = {}, st = {};
+  var tmp = {}, tmp2 = {}, st = {};
   function spot(F, m, tau, o) {
     if (F.soar) return soarSpot(F, m, tau, o);
     slotAt(F, m, tau, sl);

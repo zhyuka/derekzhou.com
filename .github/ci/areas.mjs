@@ -29,12 +29,25 @@ export function areasOf(files) {
 
 // Input handling: T1 and T2 render with no pointer, touch or key, so a change to how the page answers one would read as
 // "frames identical" and merge unseen. Such a change is found here and the verdict leaves it to the owner. Read in the
-// readable sources only (src/, and the scripts site/ serves as written), never the minified builds, whose one long line
-// names every event. A file named for input (the drag, the perched birds and their clicks, ...) counts whole; elsewhere
-// an added or removed line that names an input event, the click queue or the drag's handlers.
-export const INPUT_LINE = /\b(pointer(down|move|up|cancel|over|out|enter|leave|type)|touch(start|move|end|cancel)|mouse\w*|click\w*|dblclick|contextmenu|key(down|up|press)|deviceorientation|devicemotion|drag(start|end|over)|PointerEvent|TouchEvent|CLICKQ|onDown|endDrag|setPointerCapture)\b|['"]wheel['"]/i;
-export const INPUT_FILE = /(input|guest|pointer|touch|click)[^/]*$/i;
-const READABLE = (f) => f.startsWith('src/') || /^site\/(site\.js|hour\.[^/]*\.js|index\.html|404\.html)$/.test(f);
+// readable sources only (src/, site/'s scripts and pages), and matched as event USE, not bare words (a bird's 'wheel'
+// pattern, a dev option named clicks, a file named for the perched birds are not input):
+//   an input event named to addEventListener / removeEventListener, or an on<event> handler set;
+//   an input event object read (clientX/Y, pointerId, touches, deltaY, e.key ...);
+//   the page's own input machinery by its identifiers (the click queue, clicks(), the drag's handlers, pointer capture,
+//   the motion permission);
+//   any change to a file named for input (the world's drag section).
+// Safe-side: a pattern here may still flag a change that is not input; the owner then looks once.
+const EV = '(pointer\\w*|touch\\w*|mouse\\w*|click|dblclick|auxclick|contextmenu|key\\w*|wheel|deviceorientation\\w*|devicemotion|drag\\w*|drop|gesture\\w*|select(start|ionchange)?)';
+export const INPUT_LINE = new RegExp([
+  `(add|remove)EventListener\\(\\s*['"\`]${EV}['"\`]`,
+  `\\bon${EV}\\s*=`,
+  `\\.(clientX|clientY|pageX|pageY|screenX|screenY|offsetX|offsetY|movementX|movementY|pointerId|pointerType|isPrimary|touches|changedTouches|targetTouches|deltaX|deltaY|deltaZ|deltaMode|keyCode|charCode|altKey|ctrlKey|metaKey|shiftKey)\\b`,
+  `\\b(e|ev|evt|event)\\.(key|code|button|buttons|which|pressure)\\b`,
+  `\\b(CLICKQ|onDown|endDrag|setPointerCapture|releasePointerCapture|hasPointerCapture|PointerEvent|TouchEvent|requestPermission)\\b`,
+  `\\bclicks\\s*\\(`,
+].join('|'));
+export const INPUT_FILE = /input[^/]*$/i;
+const READABLE = (f) => f.startsWith('src/') || /^site\/.*\.(js|html)$/.test(f);
 
 export function inputChanges(base, head, git) {
   const hits = new Set();

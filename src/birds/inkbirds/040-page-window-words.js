@@ -25,7 +25,7 @@
   function calmOf() { return W / across(CALM) / (SPAN * view * REF); }
   /* a speed eased under a ceiling: as it is below KNEE of it, and ever closer to it above */
   function soft(v, top) { var k = KNEE * top; return v <= k ? v : k + (top - k) * (1 - Math.exp(-(v - k) / (top - k))); }
-  function maxFlights() { var LCm = LIFE[skyCls()]; return (W >= WIDE ? FLIGHTS[1] : FLIGHTS[0]) - (LCm ? LCm.fewer : 0) - (placeSeen ? 1 : 0) - (STG.inView && !(STG.cur && STG.cur.place) ? 1 : 0); }   // (birds3d: and one fewer while a stage is in view)   // (one fewer while a place's thermal is seen)
+  function maxFlights() { var LCm = LIFE[skyCls()]; return (W >= WIDE ? FLIGHTS[1] : FLIGHTS[0]) - (LCm ? LCm.fewer : 0) - (placeSeen ? 1 : 0); }   // (one fewer while a place's thermal is seen)
 
   /* edges: 1 left, 2 right, 4 top, 8 bottom — the ones a flight crosses */
   function inView(x, y, hw, hh) { return x + hw > 0 && x - hw < W && y + hh > 0 && y - hh < H; }

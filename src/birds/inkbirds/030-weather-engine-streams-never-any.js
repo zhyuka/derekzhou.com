@@ -10,7 +10,7 @@
       return ((t ^ (t >>> 15)) >>> 0) / 4294967296;
     };
   }
-  var visitSeed = 0, wr, front, fTempo, fBreeze, fPace, fTraffic, season, faithful, pace, tempo;
+  var visitSeed = 0, wr, front, fTempo, fBreeze, fPace, fTraffic, season, faithful, pace;
   /* VISIT streams: 1 the hand's noise, 2 the paths' low-discrepancy offsets, 11 the weather, 100+ each flight */
   function vstream(n) { return sm32((visitSeed ^ Math.imul(n + 1, 0x9E3779B9)) >>> 0); }
   function facet() { return 0.7 * front + 0.3 * wr(); }
@@ -25,7 +25,6 @@
     season = wr() < 0.65 ? 1 : -1;        // the way most flights go (1: left to right, the way the words read)
     faithful = 0.65 + 0.15 * wr();        // ... and how many of them
     pace = mix(fPace, PACE[0], PACE[1]);
-    tempo = mix(fTempo, TEMPO[0], TEMPO[1]);
     var r = vstream(1), i; for (i = 0; i < NOISE_N; i++) noise[i] = r() * 2 - 1;
   }
   function nz(i) { return noise[(i | 0) & (NOISE_N - 1)]; }

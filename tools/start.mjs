@@ -92,7 +92,7 @@ const defsOf = (d) => { const cbf = d.ext.includes('EXT_color_buffer_float'), cb
 const tag = (v) => `${v.dev.id}#${v.n} ${v.w}x${v.h}@${v.dpr} ${v.hz}Hz hour ${v.hour}`;
 
 // ------------------------------------------------------------------ the page's scripts (lane A's guard's order)
-const START_RE = /^start\.v\d+\.js$/, ISSUE = 'function progIssue(P) {';
+const START_RE = /^start(?:\.v\d+)?\.js$/, ISSUE = 'function progIssue(P) {';
 function scriptsOf(index) {   // classic scripts in document order (an async one as if it arrived at once), then the deferred
   const html = fs.readFileSync(index, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
   const now = [], later = [];
@@ -181,7 +181,7 @@ export function run(V, page, O = {}) {
     let gen = 0;   // (the context's generation: an object of an older one is dead)
     const obj = (kind) => ({ __kind: kind, gen });
     function fillRead(d) { if (/^\[object Uint8(Clamped)?Array\]$/.test(Object.prototype.toString.call(d))) for (let i = 0; i < d.length; i++) d[i] = 40 + (i * 7919 + (i >> 2) * 13) % 160; }
-    const phase = () => (R.phase === 'start' || /start\.v\d+\.js/.test(new Error().stack || '') ? 'start' : 'world'), who = () => R.by[phase()];   // (after the first paint: the start file's code runs in later tasks too)
+    const phase = () => (R.phase === 'start' || /start(?:\.v\d+)?\.js/.test(new Error().stack || '') ? 'start' : 'world'), who = () => R.by[phase()];   // (after the first paint: the start file's code runs in later tasks too)
     const T = {
       canvas,
       get drawingBufferWidth() { return canvas.width; }, get drawingBufferHeight() { return canvas.height; },
@@ -230,7 +230,7 @@ export function run(V, page, O = {}) {
     const links = [el('a', { href: '#', id: 'email-link' }, () => [16, V.h - 48, 40, 22]), el('a', { href: '#second', rel: 'me' }, () => [72, V.h - 48, 62, 22])];
     const SEL = { 'canvas.sky': canvas, canvas, 'meta[name="theme-color"]': meta, main, footer, '.stack': stack, h1: name, '.name': name, 'h1.name': name, body, html: root };
     const document = {
-      __id: 'doc', documentElement: root, body, head: Object.assign(el('head'), { appendChild(x) { if (x && /\/start-table\.v\d+\.js$/.test(String(x.src)) && O.tableCode) { const go = () => guard(() => vm.runInContext(O.tableCode, ctx, { filename: String(x.src).slice(1) }), 'table'); R.tableF = R.frames; if (fcp === 'page') go(); else timers.push([++timerN, clock, go, 0]); } return x; } }), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
+      __id: 'doc', documentElement: root, body, head: Object.assign(el('head'), { appendChild(x) { if (x && /\/start-table(?:\.v\d+)?\.js$/.test(String(x.src)) && O.tableCode) { const go = () => guard(() => vm.runInContext(O.tableCode, ctx, { filename: String(x.src).slice(1) }), 'table'); R.tableF = R.frames; if (fcp === 'page') go(); else timers.push([++timerN, clock, go, 0]); } return x; } }), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
       fonts: { ready: Promise.resolve(), status: 'loaded', addEventListener() {}, check() { return true; } },
       querySelector(s) { s = s.trim(); return SEL[s] || null; },
       querySelectorAll(s) { s = s.trim(); if (s === 'footer a' || s === 'a') return links.slice(); return SEL[s] ? [SEL[s]] : []; },
@@ -258,7 +258,7 @@ export function run(V, page, O = {}) {
     class FW {
       constructor(u) {
         u = String(u); this.ls = [];
-        if (!/\/start-table\.v\d+\.js$/.test(u) || !O.tableCode) throw new Error('no worker in the fake browser: ' + u);
+        if (!/\/start-table(?:\.v\d+)?\.js$/.test(u) || !O.tableCode) throw new Error('no worker in the fake browser: ' + u);
         let data = null; const box = vm.createContext({}); box.postMessage = (x) => { data = x; }; box.close = () => {};
         guard(() => vm.runInContext(O.tableCode, box, { filename: u.slice(1) }), 'table worker'); R.tableF = R.frames;
         const fire = () => { for (const f of this.ls) guard(() => f({ data }), 'table message'); };
@@ -416,7 +416,7 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
   if (PO && PO.supportedEntryTypes && PO.supportedEntryTypes.indexOf('paint') >= 0) {
     try { new PO(function (l, o) { if (l.getEntriesByName('first-contentful-paint').length) { o.disconnect(); load(); } }).observe({ type: 'paint', buffered: true }); } catch (e) { two(); }
   } else two();`;
-export const tableName = (start) => start.replace(/^start\.v(\d+)\.js$/, 'start-table.v$1.js');   // (the start file's table: start.vN.js's is start-table.vN.js)
+export const tableName = (start) => start.replace(/^start((?:\.v\d+)?)\.js$/, 'start-table$1.js');   // (the start file's table: start.vN.js's is start-table.vN.js)
 export function startText(tables, name) {
   const pool = [], at = new Map(), table = tables.base, tn = tableName(name);
   if (tn === name) throw new Error('the start file\'s name (' + name + ') is not start.vN.js');
@@ -427,8 +427,8 @@ export function startText(tables, name) {
   const kb = Math.round(table.reduce((a, t) => a + t.vs.length + t.fs.length, 0) / 1024);
   const start = '/* ' + name + ': the start file: the world\'s context and its first frame\'s programs, issued once the page has painted\n' +
     '   (fast500 step 5). MADE by tools/start.mjs from src/ (the world\'s scripts as written, run in a fake browser): never edit it\n' +
-    '   by hand; CI makes it again and fails on any difference. A new text needs a new name (start.vN+1.js, its table\n' +
-    '   start-table.vN+1.js): both are cached as immutable. The programs are in ' + tn + ', loaded after the first paint.\n' +
+    '   by hand; CI makes it again and fails on any difference. The deploy build serves it and its table under their\n' +
+    '   contents\' hashes (immutable caching). The programs are in ' + tn + ', loaded after the first paint.\n' +
     '   The world (getGL, progIssue) adopts the context and every program whose text it would issue itself; it frees the rest. */\n' +
     '(function () {\n  \'use strict\';\n' +
     '  var HP = ' + (TH ? 'function (r) { return ' + HP.body + '; }' : 'null') + ';   // (' + (TH ? 'the split height\'s devices: their own set, HPSPLIT in their DEFS: the world\'s HP_DEV' : 'no split height in this world') + ')\n' +
