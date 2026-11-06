@@ -40,11 +40,14 @@ void main() {
      VS against this, by transform feedback, bit-identical heights, positions and gaps). The point: the compile. One
      program holding all of Hd took 2.3 s (land VS) and 1.6 s (probe FS) on ANGLE-D3D11; the parts compile in parallel */
   var HP_PARTS = ['kit', 'dunes', 'sites', 'ridges'];
-  /* where the split is made: ANGLE on Direct3D11 with an NVIDIA GPU, the one maker whose heights were read back
-     bit-exact against today's land program (the shipped DXBC lets drivers reorder arithmetic, so exactness is claimed
-     only where read back). Elsewhere (AMD, Intel, Qualcomm, Metal, Linux, Android) today's land program. Per device,
-     so the return visit's program cache holds */
-  function HP_DEV(r) { return /^ANGLE \(NVIDIA[,\s]/.test(r || '') && /Direct3D11/.test(r || ''); }
+  /* where the split is made: every ANGLE Direct3D11 device, the Windows GPUs (the owner, 2026-11-06: "Yes, if it saves
+     100 ms+"). FXC is the same compiler on all of them, so the split's saving is the same everywhere there: the land VS
+     (701 ms of FXC) and the probe (486 ms) become passes of at most ~137 ms, the compile wall 701 -> 426 ms
+     (.work/hub/speed/FINDING-fxc-census.md). Its heights and gap read back exact and its slopes within one ulp on
+     NVIDIA, the one Windows GPU read back (the shipped DXBC is the same for every maker; each driver compiles it to its
+     own machine code). Elsewhere (Metal, Linux, Android) today's land program. Per device, so the return visit's
+     program cache holds */
+  function HP_DEV(r) { return /^ANGLE \(/.test(r || '') && /Direct3D11/.test(r || ''); }
   var HP_GRIDW = `@glsl hp-gridw`;
   var HP_MAIN = {
     kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',

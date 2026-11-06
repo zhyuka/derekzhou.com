@@ -192,7 +192,7 @@
      camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
      is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
   var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
-  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink'];
+  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper'];   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
   function lateCan() { return !!EXT.parAll && !STILLMODE && !FRUN && !BOOT.restore; }
   function lateSand(V) {   // the most sand anywhere within LATE_R of the landing (sandAt's weight, on kwAt)
     var R = 1.5 * Math.max(V.speed, 32) * LATE_T + 2 * KSTEP, st = KSTEP / 2, m = 0, x, z, k, s;
@@ -253,7 +253,7 @@
       if (!P.ok) fail('late program ' + P.name + ' will not link (step 9: never drawn)');
     }
   }
-  function lateWarm() {   // the late ones' warm entries, offscreen, before their first real draw (never in stage G's trials)
+  function lateWarmProgs() {   // (lane D: was lateWarm, the same name as the birds host's own, declared later in the same scope, which replaced this one: no late program was ever warmed, so none could draw) the late ones' warm entries, offscreen, before their first real draw (never in stage G's trials)
     if (!LATEP.on || !WARM.done || !WARM.list || TRIAL || gl.isContextLost()) return;
     var L = WARM.list, T = WARM.tg, any = false, q, x, i, P;
     for (q = 0; q < L.length; q++) {

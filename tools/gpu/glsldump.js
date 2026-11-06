@@ -12,7 +12,7 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const PW = require('./pw.js');
 const [url, out] = process.argv.slice(2);
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
-const [W, H, DPR] = arg('vp', '1440x900@1').split(/[x@]/).map(Number), SECS = +arg('secs', 25);
+const [W, H, DPR] = arg('vp', '1440x900@1').split(/[x@]/).map(Number), SECS = +arg('secs', 25), NAME = arg('gpuname', null);   // (--gpuname: the GPU name the page reads, to dump another maker's programs on this GPU)
 const HOOK = () => {
   const P = new Map(), S = new Map(); window.__glsl = [];
   for (const C of [WebGL2RenderingContext.prototype]) {
@@ -37,6 +37,7 @@ const HOOK = () => {
     const ren = await p.evaluate(() => { const g = document.createElement('canvas').getContext('webgl2'); const d = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(d.UNMASKED_RENDERER_WEBGL); });
     if (!/RTX 4090/.test(ren) || !/D3D11/.test(ren)) throw new Error('the runner did not get the RTX 4090: ' + ren);
     await p.addInitScript(HOOK);
+    if (NAME) await p.addInitScript((n) => { for (const C of [WebGL2RenderingContext.prototype, WebGLRenderingContext.prototype]) { const gp = C.getParameter; C.getParameter = function (q) { return q === 0x9246 ? n : gp.call(this, q); }; } }, NAME);
     await p.goto(url, { waitUntil: 'load' });
     let n = -1, still = 0;
     for (let s = 0; s < SECS * 4; s++) {   // until no new program for 3 s (the boot's programs all linked) or the time is up
