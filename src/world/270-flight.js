@@ -43,7 +43,7 @@
     V.evNext = 6 + V.evRng.r(0, 6); V.flocksEv = [];
     if (BIRDS) BIRDS.visit(V.k);
     climateLight(V);
-    CSP.x = CS.x; CSP.y = CS.y; CSP.z = CS.z; CSP.pf = CS.pf; CSP.pfT = CS.pfT; CSP.cw = CS.cw;
+    copyState(CS, CSP);   // (the arrival is the previous step too, its heading and tilt included: the first frame, drawn between the two, was turned 4-5 deg toward the fresh state's heading and snapped on the next)
     SIM.junction = true;
   }
   /* (E1.1 Fix 2, verify-regress-1's defect 2) the dive a kept tilt drives, once the finger is up: the view keeps the
