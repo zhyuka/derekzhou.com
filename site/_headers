@@ -23,11 +23,6 @@
   Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
   Link: </style.css>; rel=preload; as=style
   Link: </hour.js>; rel=preload; as=script
-  Link: </start.js>; rel=preload; as=script
-  Link: </world.js>; rel=preload; as=script
-  Link: </realm-kit.js>; rel=preload; as=script
-  Link: </realm-dunes.js>; rel=preload; as=script
-  Link: </realm-above.js>; rel=preload; as=script
   Link: </assets/fonts/Geist-400-500.sub2.woff2>; rel=preload; as=font; crossorigin
   Link: </assets/fonts/GeistMono-Regular.sub2.woff2>; rel=preload; as=font; crossorigin
 
