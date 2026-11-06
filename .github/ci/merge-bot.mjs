@@ -3,7 +3,8 @@
 //   - the PR: open, not a draft, from a claude/* branch of this repository into main, its head the run's commit;
 //   - the run green and its verdict (the gate-verdict artifact, read by merge.yml into VERDICT) gate_ok, with
 //     frames_identical (and T2's, when it ran);
-//   - the PR does not touch .github/workflows/merge.yml or .github/ci/merge-bot.mjs (the owner taps those);
+//   - the PR does not touch .github/workflows/merge.yml or .github/ci/merge-bot.mjs (the owner taps those), and is not
+//     labelled needs-owner or visible;
 // then squash-merge it with MERGE_TOKEN at exactly that commit. Frames changed: label needs-owner and comment the
 // preview link (once a commit). No MERGE_TOKEN: says so and does nothing else.
 // Env: GITHUB_TOKEN (labels, comments, reads), MERGE_TOKEN, REPO (owner/name), RUN (the Gate run's JSON),
@@ -59,6 +60,10 @@ async function needsOwner(why) {
   await act('comment', () => gh('POST', `/issues/${n}/comments`, { body: `${marker}\n**Left for the owner** (\`${sha.slice(0, 10)}\`): ${why}.\n\nPreview: ${preview}\n\nThe gate's run: ${run.html_url}${FOOT}` }));
 }
 
+// A PR labelled needs-owner (the bot's own, or set by hand) or visible (its author's word that people will see it) is
+// the owner's to merge, whatever the gate says: the gates see frames, not every way a change can be seen.
+const held = (pr.labels || []).map((l) => l.name).filter((n) => ['needs-owner', 'visible'].includes(n));
+if (held.length) { say(`#${n} is labelled ${held.join(', ')}: left to the owner`); process.exit(0); }
 if (files.some((f) => SELF.includes(f))) { await needsOwner('it changes the merge bot itself (' + files.filter((f) => SELF.includes(f)).join(', ') + ')'); process.exit(0); }
 if (run.conclusion !== 'success' || !v || !v.gate_ok) { say(`#${n}: the gate is not green (${run.conclusion}${v ? ', gate_ok ' + v.gate_ok : ', no verdict'}): nothing to do until it is`); process.exit(0); }
 if (v.sha !== sha) { say(`the verdict is for ${v.sha}, not ${sha}`); process.exit(0); }
