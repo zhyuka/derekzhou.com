@@ -347,7 +347,7 @@
     var aoa = (AOA[0] + (AOA[1] - AOA[0]) * flapW) * DEG, ca = Math.cos(aoa), sa = Math.sin(aoa);
     var bxx = fx * ca + ux * sa, bxy = fy * ca + uy * sa, bxz = fz * ca + uz * sa;
     var bzx = ux * ca - fx * sa, bzy = uy * ca - fy * sa, bzz = uz * ca - fz * sa;
-    var rr = s.roll * DEG, cr = Math.cos(rr), sr = Math.sin(rr);
+    var rr = (s.roll + (rest ? 0 : shiverRoll(m, coord))) * DEG, cr = Math.cos(rr), sr = Math.sin(rr);   // (pointer: the shiver rolls the drawn body only)
     var byx = lx * cr + bzx * sr, byy = ly * cr + bzy * sr, byz = lz * cr + bzz * sr;   // (+ roll: the left wing up, the right down)
     var bzx2 = bzx * cr - lx * sr, bzy2 = bzy * cr - ly * sr, bzz2 = bzz * cr - lz * sr;
     s.pitch = Math.asin(clamp(bxy, -1, 1)) / DEG; s.climb = Math.asin(clamp(fy, -1, 1)) / DEG;
