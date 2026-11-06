@@ -1,7 +1,7 @@
 /* world5 (E0): the world's page. The lettered page's stylesheet (lettering/page/site/style.v13.css: the name lettered,
    no bio, the still skies) with round 3b's world rules (the lvh canvas, touch-action, data-touch, data-steer, the
    realms' still skies) and the page laid out again to fit a window under 500 px tall (a phone held sideways, P1).
-   No cursor rule. At the ship this is style.v13.css's successor (design-v5 18.2). */
+   No cursor rule. */
 
 /* ------------------------------------------------
    @font-face — self-hosted WOFF2, ASCII subsets
@@ -92,8 +92,8 @@
    2026-11-03: "lets only use white text for everything"): text #fdfcf7,
    a cool light grey for the dimmed words, a light gold ring, selection a
    dark slate under the light text. The page's ground is a sky (below),
-   dark at every time of day; Samara's cream (#f9f8f1) stays the paper
-   under everything, and print is black on white (the one exception).
+   dark at every time of day, and print is black on white (the one
+   exception).
    ------------------------------------------------ */
 
 /* (fast500 no-fades, the sun and moon) the small viewport's height, read by the world for the moon's plan (the words
@@ -110,7 +110,6 @@
   --font-sans: 'Geist', 'Geist Fallback', 'Geist Fallback Android', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
 
-  --color-bg: #f9f8f1;
   --color-text: #fdfcf7;
   --color-dimmed: #ebeffa;
   --color-focus: #f4e2b0;
@@ -131,7 +130,6 @@ body {
   font-family: var(--font-sans);
   font-size: 1rem;
   font-synthesis: none;
-  background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
   min-height: 100vh;
@@ -153,8 +151,8 @@ body {
 }
 
 /* ------------------------------------------------
-   The sky — behind everything, the whole window. The sky's script draws it
-   (WebGL2) and shows it at once over the stylesheet's still sky of the hour
+   The sky — behind everything, the whole window. The world's script draws
+   it (WebGL2) and shows it at once over the stylesheet's still sky of the hour
    (data-sky, set by the hour's script before the first paint), in the frame
    its first whole frame is drawn: a cut, never a fade. The words
    are light on every sky (each sky holds its own light under a ceiling so
@@ -209,7 +207,7 @@ body {
    the blue hour; night the moonlit sea, the Milky Way, the aurora), drawn by the world (the words hidden, seed 7, t 1, the day's middle) at 1440x900
    and 393x852 with the camera of every window narrower than 6 : 5, every row averaged in OKLab, objects in (as Version
    14's were made), the two windows averaged (stage2/build/tools/stillsky2.py); one set of stops for all six. The hour's
-   own (the 404 page, no script) and the world's (the home page, :has(canvas.sky): the world cuts in over its own
+   own (the 404 page, which has no canvas) and the world's (the home page, :has(canvas.sky): the world cuts in over its own
    still; when the canvas hides it marks the time of day it was drawing, markStill) are the same skies here. */
 body {
   background: linear-gradient(to bottom, #173a63 0%, #2b4067 27%, #3d4466 33.5%, #3e4466 36.5%, #544460 44%, #58435c 47.5%, #66404e 53%, #5e3c4d 54%, #4e374b 55%, #3e3447 57%, #373248 57.5%, #272e4a 58%, #2d2f49 58.5%, #232c45 59.5%, #192841 68.5%, #12233c 100%) #5e4256;
@@ -353,7 +351,7 @@ h1 {
   border: 0;
 }
 
-/* The words (the 404's line; every paragraph to come) */
+/* The words (the line under the name, the 404's line; every paragraph to come) */
 .words {
   font-size: 1.0625rem;
   line-height: 1.55;
@@ -473,6 +471,6 @@ footer a, .back-link {
 
   h1 { font-size: 2rem; color: #000; }
   .name svg { width: 16rem; }
-  .words { color: #000; }   /* (line2) black like the name: the stack's ink (--color-text, set live on .stack) never reaches print */
+  .words { color: #000; }   /* (line2) black like the name: the light ink never reaches print */
   .credit { color: #555; }
 }

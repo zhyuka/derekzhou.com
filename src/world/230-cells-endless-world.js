@@ -42,9 +42,8 @@
       // creatures: { kind: 'bird' | 'ray', n, x, z, y or dy over the ground (or ref: an item, over its seat), orbit,
       //   wheel, size, flap, spread, drift [x, z], lit, shade }
       flock: function (f) { C.flocks.push(f); return f; },
-      // a point of interest the autopilot may fly to: { x, z, y or dy (or ref), kind, interest (0-1), pass (m beside it),
-      //   via: [x, z] (a point to pass first, e.g. a canyon's mouth), alt (the camera's clearance there), approach (deg:
-      //   the bearing to come from, e.g. away from the sun) }
+      // a point of interest (the ink birds' places, HOST.pois): { x, z, y or dy (or ref), kind, pass (m beside it) }; (commit
+      //   6) nothing reads a point's interest, via, alt or approach: the autopilot that flew to them is gone
       poi: function (p) { C.pois.push(p); return p; },
       // an instance of one of the realm's sets (def.sets[set]: one mesh built once a visit), as many as the cell likes:
       //   { yaw (deg), scale (number or [x, y, z]), tilt: [about x, about z] (deg), dy (m), foot (m: seated on the

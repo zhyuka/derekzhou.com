@@ -80,9 +80,12 @@ as far through its hold as data-sky-at says; after that the order is the
 world's own, with no clock: mostly into a near sky, now and then
 (SKY_FAR 38%) into any through the mist, never into one of the last
 SKY_RECENT 3, a sky not yet seen likelier. Colours blend in OKLab along
-the hue's arc (never through grey) on two clocks (the light's and the
-structure's). The twilight waypoint that a change between skies of
-different words passed is never taken now (its code stays, unreached).
+the hue's arc (never through grey) on one clock: the twilight waypoint a
+change between skies of different words passed, the quick crossing of the
+inks' band and the structure's own clock, which ran apart from the light's
+only about them, went in the deep sweep (every sky's words are light;
+the shaders' low mist for it, uTwM, stays compiled out by NO_TWILIGHT,
+so that no vertex shader's text changes: T2 reads none back).
 The skies keep all their own light under a ceiling (uCeil, OKLab L 0.53
 with a soft knee, the same everywhere on the window: the world's own
 light, never a function of where the words are); the moon is a pale flat
@@ -114,13 +117,14 @@ THE WORDS (the owner: "Don't darken the background anywhere ever",
 "remove that white background behind the text. it's fine failing
 accesibility", and "lets only use white text for everything"): nothing
 is done to the world for the words. No lift, no floor, no gain, no veil,
-no cap, no calm about them: the composite takes no words input at all,
-so the frame with the words' machinery on and off is the same program on
-the same inputs (W7). The words' colours are constants, the stylesheet's
-own, for every sky and every moment: no ink is read from the ground, none
-flips, there is no dark ink (the world's code for those stays, unreached:
-the words' machinery is off, so the composite is never read back for
-them and nothing is set on .stack or the footer). They are chosen against
+no cap, no calm about them: the composite takes no words input at all
+(W7). The words' colours are constants, the stylesheet's own, for every
+sky and every moment: no ink is read from the ground, none flips, there
+is no dark ink, and the code that once did went in the deep sweep (the
+read-back of the frame under the words, its target (the words' ground
+at an eighth) and the inks worked out from it, off since stage 2), so
+the composite is never read back for them and nothing is set on .stack
+or the footer. They are chosen against
 the light ceiling itself: on OKLab L 0.53 the text #fdfcf7 reads 5.13:1,
 the dimmed grey #ebeffa 4.59:1 and the ring #f4e2b0 4.1:1 (a grey worked
 out from a read-back at an eighth fell to 4.27:1 at 1920x1080, a thin lit
@@ -228,8 +232,9 @@ is drawn at once, and counted). There are no timed trials at load: the
 render scale starts at the tier's top (THE GOVERNOR), and one frame at
 0.35 of the old size, in stage H, which runs in the frame G is done in,
 still lets a device too slow even there decline. With forced colours on
-at load the world does not boot while they hold (the ink birds fly alone:
-see FALLBACKS); it boots once they end. The show is a cut (the owner:
+at load the world does not boot while they hold and makes none of its
+render targets (the ink birds fly alone and read none: see FALLBACKS);
+it boots, and makes them, once they end. The show is a cut (the owner:
 "There shouldn't be any fade-ins/outs at all"): the frame it shows in is
 drawn whole first, with nothing in or near the view still building, and
 the canvas is shown in the same task; the ink birds fly from the first
@@ -328,8 +333,16 @@ prefers-reduced-motion: one still frame of the world, drawn again when the
 words move, live both ways; forced colours: the world not drawn, the
 canvas cleared to the system's Canvas colour and the ink birds alone over
 it, in CanvasText at full ink, in a still view of their own (the flight
-held), and the world back when they end, on at load too; print: none of
-it.
+held); while they hold from the load, no render target of the world's is
+made (a world whose forced colours began mid-visit keeps its targets, and
+makes them again at a new size on a resize); under reduced motion too one still
+frame, drawn again when the system's colours change (read again about once
+a second while it stands, as no media query reports a theme switched for
+another of the same scheme); forced colours read from a media query list
+of their own, never the one listened on (in Chromium a read of a list
+takes up its change, and that list then fires no event: the world did not
+come back when they ended while the ink birds moved), and the world back
+when they end, on at load too; print: none of it.
 
 THE WEATHER (=rand()): one crypto.getRandomValues above world.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the

@@ -80,5 +80,5 @@
     }
     S.st = 0; S.used = 0; S.ents.length = 0;
   }
-  function rbDeliver(e) { if (e.k === 'probe') probeLand(e); else if (e.k === 'ground') groundHalf(e); else if (e.k === 'words') wordsGroundDeliver(e); else if (e.k === 'birds') birdsGroundDeliver(e); }
+  function rbDeliver(e) { if (e.k === 'probe') probeLand(e); else if (e.k === 'ground') groundHalf(e); }
 

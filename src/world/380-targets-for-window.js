@@ -99,7 +99,7 @@
   }
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
-    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'mask', 'win', 'gs'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
+    if (TG) { ['scene', 'lind', 'cloud', 'sm', 'sb', 'win'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
     TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
     // (E1 Fix 3, G0) the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
@@ -126,8 +126,6 @@
     TG.sb = target(TG.sm.w, TG.sm.h, 'hdr');
     // (the finished frame at the world's resolution, put up to the canvas's; the birds' ink reads what lies under it)
     TG.win = target(OUT.w, OUT.h, 'rgba8');
-    TG.gs = target(Math.max(1, Math.ceil(OUT.w / GS_K)), Math.max(1, Math.ceil(OUT.h / GS_K)), 'rgba8');   // (world6 fix: the words' ground as the world drew it, at an eighth: wordsGround)
-    AG.n = 0;
   }
   /* (E1 Fix 3) a multisampled target: n samples a pixel of the scene's colour format and DEPTH_COMPONENT24 (the scene's
      depth texture's own format, so its resolve is a plain blit), as renderbuffers that are never sampled; null if the
@@ -187,7 +185,7 @@
     var fdpr = Math.max(dpr, Math.min(window.devicePixelRatio || 1, fmax, Math.sqrt(FULL_PX / area)));   // (round 3: 2 and 2.5 Mpx; round 2's 3 and 8.3 Mpx cost a phone 1.4 GB/s of copies for 0.6 % of its pixels in ink)
     var fw = Math.max(w, Math.round(r.width * fdpr)), fh = Math.max(h, Math.round(r.height * fdpr));
     if (DEVMODE && OPT.cvs) { var cvm = /^(\d+)x(\d+)$/.exec(OPT.cvs); if (cvm) { w = fw = +cvm[1]; h = fh = +cvm[2]; dpr = w / r.width; } }   // (dev, E0: a fixed small canvas: CPU timing and presented runs)
-    if (w === OUT.w && h === OUT.h && fw === FULL.w && fh === FULL.h && TG) return false;
+    if (w === OUT.w && h === OUT.h && fw === FULL.w && fh === FULL.h && (TG || forced())) return false;   // (fast500's deep sweep, 2026-11-05: under forced colours no target is made, below: the canvas alone is sized, once a size)
     var heightOnly = TG && w === OUT.w && Math.abs(h - OUT.h) < 0.15 * OUT.h;
     /* (stage2 quality Q3) the ladder for this window; the density being drawn kept (the rung nearest it in device px a
        CSS px; review 1: kept in absolute px a rotation or a drag ratcheted it down), so a resize neither sharpens nor softens it */
@@ -200,11 +198,10 @@
     DIRECT = fw === w && fh === h;
     CAMLIFT = clamp(h / w - 1, 0, 1) * 0.9;
     canvas.width = fw; canvas.height = fh;
-    allocTargets();
+    if (TG || !forced()) allocTargets();   // (fast500's deep sweep, 2026-11-05: forced colours draw the ink birds alone, reading no target of the world's (inkbirds: tex = !FORCED && HOST.bindTextures()), so none is made while they hold; a world holding them already (forced colours begun in a visit) remakes them at the new size as before, so it comes back as it would have; once they end frameBody's resize (!READY && !TG) or NEEDSIZE's makes them: with TG null resize() comes on to here)
     setFrustum(!heightOnly);
     measureWords();
     moonResized(heightOnly);   // (fast500 no-fades: the moon's plan for the new window)
-    if (!heightOnly) inkRestart();   // (ink load fix: a new window, the words' reading anew; a phone's bar coming and going keeps it)
     touchMode();
     return true;
   }

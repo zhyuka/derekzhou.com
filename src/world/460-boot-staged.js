@@ -83,7 +83,7 @@
        then level 0 uploaded and its mipmaps made, no draw; before gpuFree, so that frame's D can use it); then F, the
        warm table (Fix 2: before D's GPU half, so none of D's draws is a program's first use), each one's first use alone
        in its frame */
-    if (!NOISE.done) { var noised = noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers)
+    if (!NOISE.done) { var noised = EXT.parWK ? noiseStep(false, afterC ? dl : 0) : noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers; WebKit: after C, as many layers as the slice allows, its links being through about a second sooner)
     var gpuFree = afterC && !hold && NOISE.done && (WARM.done || reduced());
     if ((EXT.parAll || (EXT.parWK && !noised && !hold)) && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links; WebKit: one a frame, never in the noise's last frame)
       var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
@@ -285,7 +285,7 @@
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
     if (gl.isContextLost()) return;
     prof('frame');
-    if (!READY && !TG) resize();   // (speed E12: a canvas not laid out at boot() made no targets: made in the first frame it is)
+    if (!READY && !TG) resize();   // (speed E12: a canvas not laid out at boot() made no targets: made in the first frame it is; fast500's deep sweep: so are a boot's or a restore's under forced colours, which make none, once they end)
     if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } bootFrame(ts); prof('boot'); if (!READY || reduced()) return; }   // (fast500 step 10: once READY, on to stage H in this frame; the show the next)
     if (dt0) { dt0 = false; dt = 0; }
     if (reduced() && !STILLMODE) {   // one still frame (round 3: the birds' still sky planned first, a share a frame, while the still sky shows)
@@ -301,9 +301,8 @@
          page, the black name gone). sky.v2's own rule (fadeUntil). After the first, the frame is put up again
          (represent: the composite or its copy, and the birds' ink), not drawn whole, unless the window changed */
       if (STILLTS < 0 || fresh || !represent()) { if (!render()) return; }
-      else if (SW.words && AG.on && !AG.ink) agUpdate();   // (ink fix: the still's take, once the canvas has been shown INK_TAKE s)
       if (STILLTS < 0) STILLTS = ts;
-      if (ts - STILLTS >= 100 && (AG.ink || !(SW.words && AG.on) || clockNow() - AG.w0 >= 2 * INK_TAKE * 1000)) { STILLTS = -1; stop(); }   // (ink fix: and not before the still has taken its ink, its INK_TAKE s from the canvas shown having passed in a frame: a slow first frame outlasts these frames)
+      if (ts - STILLTS >= 100) { STILLTS = -1; stop(); }
       return;
     }
     STILLTS = -1;
