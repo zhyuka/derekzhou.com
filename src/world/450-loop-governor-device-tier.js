@@ -69,13 +69,12 @@
     var V = SIM.V; if (!V || !visitBuilt(V) || !V.def.P || V.def.P.st !== 2) return false;
     TIER = RUNGS[RUNG] < 0.65 * QK ? 0.6 : 1;   // (stage2 quality Q3, review 1: keyed on today's size, QK; the rungs are rounded to 4 places)
     var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
-    setWords(INK);   // (stage2: the words are always light: the root's text and selection; world6 fix: before the frame, so its adaptive greys and floors (agUpdate) are the first frame's too)
-    if (!shown) inkRestart(true);   // (ink fix: the words' reading begins with the first frame shown: the boot's hidden check frame (stage H), a restored world's too, is never taken)
+    setWords(INK);   // (stage2: the words are always light: the root's text and selection)
     lateStep(); lateWarm();   // (fast500 step 9: before the frame, so its composite covers the canvas's warm corner)
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
     skyTheme(false);   // (tod: the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); AG.w0 = BOOT.shownAt; }   // (ink fix: AG.w0, the moment the canvas shows: the take waits INK_TAKE s from it, however long the first frame took)   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole)
+    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
