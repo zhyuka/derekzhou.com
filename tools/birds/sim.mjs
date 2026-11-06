@@ -48,7 +48,8 @@ function scripts() {
 }
 
 /* a scenario: o = { size, seed, speed (m/s), wind [x, z] (m/s), yaw (deg/s, the camera's turn), pitch (deg),
-   pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)} } */
+   pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)}, draw (also draw each step, on a GL
+   stub; draw.data(array, n) sees every buffer the draw uploads) } */
 export function makeSim(o = {}) {
   const Z0 = SIZES[o.size || '960x600'], Z = { W: Z0.W, H: Z0.H, boxes: Z0.boxes.slice(), nvb: Z0.nvb.slice() }, W = Z.W, H = Z.H, SPEED = o.speed ?? 12, seed = o.seed ?? 11;
   const C = { pos: [0, 40, 0], f: [0, 0, 1], r: [-1, 0, 0], u: [0, 1, 0], pitch: 0, roll: 0, inCloud: 0, cover: 0 };
@@ -56,15 +57,19 @@ export function makeSim(o = {}) {
   const clicks = (o.clicks || []).slice().sort((a, b) => a.t - b.t);
   let t = 0, psi = 0, M = null;
   const pitch = (o.pitch || 0) * Math.PI / 180;
-  const glStub = new Proxy({}, { get: () => () => null });
-  const HOST = { gl: glStub, glsl: { HEAD: '', FRAME_U: '', LIB: '', AIR: '' }, program: () => ({}), linked: () => false, warm() {}, frameUniforms() {},
+  /* the GL stub: constants are numbers, calls do nothing (one function each: the stub itself allocates nothing) */
+  const NOOP = () => null, GLF = {}, dd = o.draw && o.draw.data;
+  if (dd) { GLF.bufferSubData = (t, off, a, s, n) => dd(a, n); GLF.texSubImage2D = (t, l, x, y, w, h, f, ty, a) => dd(a, w * h * 4); }
+  const glStub = new Proxy({}, { get: (_, k) => { let v = GLF[k]; if (v === undefined) v = GLF[k] = typeof k === 'string' && /^[A-Z0-9_]+$/.test(k) ? 1 : NOOP; return v; } });
+  const PROG = { p: {}, u: {}, ok: true }, LIGHT = { fog: [1e-4, 1 / 260, 0, 1.1e-4] }, WORDS = { boxes: Z.boxes, nvb: Z.nvb, kind: 'light' }, FORCED = { on: false };
+  const HOST = { gl: glStub, glsl: { HEAD: '', FRAME_U: '', LIB: '', AIR: '' }, program: () => PROG, linked: () => !!o.draw, warm() {}, frameUniforms() {},
     view: (v) => { v.cssW = W; v.cssH = H; v.outW = W; v.outH = H; v.dpr = 1; v.bdpr = 1; v.ddpr = 1; v.tanX = TANX; v.tanY = TANX * H / W; v.sUx = v.sUy = v.hUx = v.hUy = 1; return v; },
     camera: () => C, cameraStep: () => C, wind: (v) => { v[0] = o.wind ? o.wind[0] : 0; v[1] = 0; v[2] = o.wind ? o.wind[1] : 0; return v; },
     flight: (v) => { v.ok = true; v.x = C.pos[0]; v.y = C.pos[1]; v.z = C.pos[2]; v.psi = psi; v.view = 0; v.speed = SPEED; v.vy = 0; v.ground = -60; return v; },
-    sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => 1, forced: () => ({ on: false }),
+    sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => 1, forced: () => FORCED,
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); } return v; },
-    grade: () => null, light: () => ({ fog: [1e-4, 1 / 260, 0, 1.1e-4] }), words: () => ({ boxes: Z.boxes, nvb: Z.nvb, kind: 'light' }),
-    bindTextures: () => false, target() {}, cloudBetween: () => 0, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
+    grade: () => null, light: () => LIGHT, words: () => WORDS,
+    bindTextures: () => !!o.draw, target() {}, cloudBetween: () => 0, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
     seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = groundAt(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
     rng: (salt) => { let a = (seed ^ salt) >>> 0; return () => { a = (a + 0x9e3779b9) | 0; let q = a ^ (a >>> 16); q = Math.imul(q, 0x21f0aaad); q ^= q >>> 15; q = Math.imul(q, 0x735a2d97); return ((q ^ (q >>> 15)) >>> 0) / 4294967296; }; },
     reduced: () => false, budget: () => Infinity, count() {}, courseTrust: () => SPEED, time: () => t };
@@ -75,7 +80,7 @@ export function makeSim(o = {}) {
   for (const s of S.model) s.runInContext(ctx);
   S.birds.runInContext(ctx);
   if (!M) throw new Error('sim: the module did not register');
-  const aim = () => { const cp = Math.cos(pitch), sp = Math.sin(pitch); C.f = [Math.sin(psi) * cp, sp, Math.cos(psi) * cp]; C.r = [-Math.cos(psi), 0, Math.sin(psi)]; C.u = [-Math.sin(psi) * sp, cp, -Math.cos(psi) * sp]; };
+  const aim = () => { const cp = Math.cos(pitch), sp = Math.sin(pitch), s = Math.sin(psi), c = Math.cos(psi); C.f[0] = s * cp; C.f[1] = sp; C.f[2] = c * cp; C.r[0] = -c; C.r[1] = 0; C.r[2] = s; C.u[0] = -s * sp; C.u[1] = cp; C.u[2] = -c * sp; };
   aim();
   const sim = {
     W, H, C, PT, get t() { return t; },
@@ -87,7 +92,7 @@ export function makeSim(o = {}) {
       if (o.pointer) { const p = o.pointer(t); if (p) { PT.x = p.x; PT.y = p.y; PT.gone = false; } else PT.gone = true; }
       psi += yaw * Math.PI / 180 * DT; aim();
       C.pos[0] += SPEED * Math.sin(psi) * DT; C.pos[2] += SPEED * Math.cos(psi) * DT;
-      M.step(DT); t += DT;
+      M.step(DT); if (o.draw) M.draw(); t += DT;
     },
     run(secs, each) { const n = Math.round(secs / DT); for (let i = 0; i < n; i++) { sim.step(); if (each && each(sim) === false) return; } },
     /* a point ahead of the eye: d m on, xs*d m to the right, up m over */

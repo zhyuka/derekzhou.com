@@ -42,7 +42,6 @@
   var FLOOR_K = 0.08;          // (way-form: unused but in the planner's pad) the pen floor is now today's pen itself: LINE's width for the bird's ink span (1.3 + 0.035 span, 1.5-2.5 CSS px, in quarter px), so the wing's stroke is the tattoo's stroke at every size
   var HOLD_POSE = [3, 8];      // device px of span: smaller, the beat's swing eases into the held glide (a speck holds its glide). (physics: the measured beat in full from 8 px; the shape round held it in from 16, and a 1440 px desktop's birds, 10-25 px, beat partly held 68 % of their time, a tenth of it at under 0.65 of the measured stroke: the stiffness the owner saw)
   var LEAN_TRIM = 0;           // deg: 0 the physics; 16 a held bank away from the camera while gliding (the B film; sideslip disclosed)
-  var HALO_IN_BOX = true;      // at night the halo counts in the bird's box
   var PAPER = [0.94, 0.911, 0.853];   // the paper's albedo, linear (OKLab L 0.97, chroma 0.010, hue 85: a warm white)
   var WRAP = 0.45, TRANS = 0.3, BOUNCE = 0.45, FOLD = 0.06, PAPER_GAIN = 1.08;   // (PAPER_GAIN: calibrated on the realms' day films, A16: white on blue +0.10 OKLab L in 80 % and more)   // the sun wrapped about the paper; through it from behind; the cloud sea's light under it; the fold's whisper
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
@@ -130,7 +129,6 @@
     var bzx2 = bzx * cr - lx * sr, bzy2 = bzy * cr - ly * sr, bzz2 = bzz * cr - lz * sr;
     basis(s, bxx, bxy, bxz, byx, byy, byz, bzx2, bzy2, bzz2);
     place(b, s, C, px, py, pz);
-    s.roll = rr / DEG; s.pitch = Math.asin(clamp(s.B[1], -1, 1)) / DEG;
     return true;
   }
   /* the 46 vertices from its pose, scaled to its size, turned by its basis, from the camera; the 16 points beside them */
@@ -220,42 +218,26 @@
     basis(s, T1[0], T1[1], T1[2], T2[0], T2[1], T2[2], T3[0], T3[1], T3[2]);
     var up = restSolve(b, C, s, PFD[0], PFD[1], hopL);
     if (!hopL) P.rest = up;
-    s.roll = rl / DEG; s.pitch = pt / DEG;
     return true;
   }
   function projectBird(s, C) {
-    var i, xc, yc, zc, X = s.X46, k = VW.outW / Math.max(1, W), fx = (VW.outW / 2) / VW.tanX, fy = (VW.outH / 2) / VW.tanY, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    for (i = 0; i < NV; i++) {   // (physics: every vertex of the flexing form; its 1/depth for the pass's nearest facet)
+    var i, xc, yc, zc, X = s.X46, k = VW.outW / Math.max(1, W), fx = (VW.outW / 2) / VW.tanX, fy = (VW.outH / 2) / VW.tanY;
+    for (i = 0; i < NV; i++) {   // every vertex, and its 1/depth for the pass's nearest facet
       var ax = X[3 * i], ay = X[3 * i + 1], az = X[3 * i + 2];
       zc = ax * C.f[0] + ay * C.f[1] + az * C.f[2];
       if (!(zc > 0.5)) return false;
       xc = ax * C.r[0] + ay * C.r[1] + az * C.r[2]; yc = ax * C.u[0] + ay * C.u[1] + az * C.u[2];
       var dx = VW.outW / 2 + fx * xc / zc, dy = VW.outH / 2 + fy * yc / zc;
       s.D46[2 * i] = dx; s.D46[2 * i + 1] = dy; s.IZ[i] = 1 / zc;
-      if (dx < x0) x0 = dx; if (dx > x1) x1 = dx; if (dy < y0) y0 = dy; if (dy > y1) y1 = dy;
     }
     var bz = s.body[0] * C.f[0] + s.body[1] * C.f[1] + s.body[2] * C.f[2];
-    var bpx = bz > 0.5 ? VW.outW / 2 + fx * (s.body[0] * C.r[0] + s.body[1] * C.r[1] + s.body[2] * C.r[2]) / bz : 0, bpy = bz > 0.5 ? VW.outH / 2 + fy * (s.body[0] * C.u[0] + s.body[1] * C.u[1] + s.body[2] * C.u[2]) / bz : 0;
-    for (i = 0; i < 16; i++) { var vi = P16MAP[i]; if (vi < 0) { s.D[2 * i] = bpx; s.D[2 * i + 1] = bpy; } else { s.D[2 * i] = s.D46[2 * vi]; s.D[2 * i + 1] = s.D46[2 * vi + 1]; } }
-    s.depth = bz; s.n = bz > 0.5 ? (W / 2) / VW.tanX * MPU / bz : 0;
-    s.spanPx = s.d.span * s.n * k;                       // (today's ink span on the window, device px: the LOD, the pen floor, the filter)
-    s.floorPx = clamp(Math.round(4 * clamp(1.3 + 0.035 * s.spanPx / k, LINE[0], LINE[1])) / 4 * k, 1, 2.5 * k);   // (way-form) today's pen: the wing's leading edge stroked as the tattoo's line, at its width for this size
-    s.bodyPx = BODY_R * s.d.model * s.n * k;             // (fix round) the body's radius at the chest (device px): a body seen from any side ...
-    /* (physics) no body: BODY_R 0 */
+    s.n = bz > 0.5 ? (W / 2) / VW.tanX * MPU / bz : 0;
+    s.spanPx = s.d.span * s.n * k;                       // its ink span on the window, device px: the LOD, the pen floor, the filter
+    s.floorPx = clamp(Math.round(4 * clamp(1.3 + 0.035 * s.spanPx / k, LINE[0], LINE[1])) / 4 * k, 1, 2.5 * k);   // the pen along its leading edge, at its width for this size
     s.filt = FILTER[0] + (FILTER[1] - FILTER[0]) * clamp((24 - s.spanPx) / 20, 0, 1);
-    s.lod = FP.lodK(s.spanPx / k);                       // (physics: the facets' share by its ink span, CSS px: the one tone under 20, the facets in full from 64)
-    var pad = 0.5 * s.floorPx + s.filt + 1;
+    s.lod = FP.lodK(s.spanPx / k);                       // the facets' share by its ink span, CSS px
     s.halo = HOST.night ? HOST.night() : 0;
-    var he = (W < 600 ? HALO_E[1] : HALO_E[0]) * k;
-    s.haloE = he;
-    var hp = s.halo > 0 && HALO_IN_BOX && !FORCED ? 4 * he : 0;
-    /* the exact box, CSS px (y down), the halo's reach counted at night */
-    s.bx0 = (x0 - pad - hp) / k; s.bx1 = (x1 + pad + hp) / k; s.by0 = H - (y1 + pad + hp) / k; s.by1 = H - (y0 - pad - hp) / k;
-    s.px = (x0 + x1) / 2 / k; s.py = H - (y0 + y1) / 2 / k;
-    /* the M's legibility (render 3.3): the leading edge's height across its tips' line, over that line's length */
-    var tx = s.D[12] - s.D[0], ty = s.D[13] - s.D[1], tl = Math.sqrt(tx * tx + ty * ty) || 1, hmax = 0;
-    for (var q = 1; q < 3; q++) { var j = [1, 7][q - 1]; var hh = Math.abs(((s.D[2 * j] - s.D[0]) * ty - (s.D[2 * j + 1] - s.D[1]) * tx) / tl); if (hh > hmax) hmax = hh; }
-    s.legib = hmax / tl; s.tipsPx = tl;
+    s.haloE = (W < 600 ? HALO_E[1] : HALO_E[0]) * k;
     return true;
   }
   /* (physics) the world's light on the paper: facetpose's own (the form designer's option 5, "white paper lit like
@@ -264,14 +246,23 @@
      the same facets, area-weighted on the window: the bright white the true-size outline is tuned on),
      eased (TONE_T). The world is y up, facetpose z up: every vector handed to it has y and z swapped (a reflection:
      dot products kept; the normals' sign it turns toward the eye itself) */
-  var LZ = { sunDir: [0, 0, 1], sunVis: 0, sunC: [1, 1, 1], ambU: [0.3, 0.35, 0.45], ambD: [0.25, 0.25, 0.3], clLit: [0.7, 0.65, 0.7] }, EYEZ = [0, 0, 1];
+  var SUNC0 = [1, 1, 1], AMBU0 = [0.3, 0.35, 0.45], AMBD0 = [0.25, 0.25, 0.3], CLLIT0 = [0.7, 0.65, 0.7];
+  var LZ = { sunDir: [0, 0, 1], sunVis: 0, sunC: SUNC0, ambU: AMBU0, ambD: AMBD0, clLit: CLLIT0, seaLit: 0 }, EYEZ = [0, 0, 1];
+  /* the frame's light, in facetpose's axes, once a frame (the same for every bird) */
+  function lightFrame(L) {
+    var sd = L && L.sunDir;
+    if (sd) { LZ.sunDir[0] = sd[0]; LZ.sunDir[1] = sd[2]; LZ.sunDir[2] = sd[1]; } else { LZ.sunDir[0] = 0; LZ.sunDir[1] = 0; LZ.sunDir[2] = 1; }
+    LZ.sunVis = L ? (L.sunVis === undefined ? 1 : L.sunVis) : 0;
+    LZ.sunC = L && L.sunC ? L.sunC : SUNC0; LZ.ambU = L && L.ambU ? L.ambU : AMBU0; LZ.ambD = L && L.ambD ? L.ambD : AMBD0; LZ.clLit = L && L.clLit ? L.clLit : CLLIT0;
+    var ad = LZ.ambD, cl = LZ.clLit;
+    LZ.seaLit = Math.min(1, Math.max(0, (0.2126 * ad[0] + 0.7152 * ad[1] + 0.0722 * ad[2]) / Math.max(1e-4, 0.2126 * cl[0] + 0.7152 * cl[1] + 0.0722 * cl[2])));
+  }
   /* the bird's one tone alone (facetpose.light's ONE: its lit1 with LT.ONE, area-weighted), for a bird whose planes do
      not show: the same sums, half the work */
   var ONE3 = new Float64Array(3);
   function oneTone(N, eye, L, area) {
     var LT = FP2.LT, C = LT.ONE, sd = L.sunDir, sv = L.sunVis === undefined ? 1 : L.sunVis, sc = L.sunC, au = L.ambU, ad = L.ambD, cl = L.clLit, f, k, ma = 0;
-    var seaLit = Math.min(1, Math.max(0, (0.2126 * ad[0] + 0.7152 * ad[1] + 0.0722 * ad[2]) / Math.max(1e-4, 0.2126 * cl[0] + 0.7152 * cl[1] + 0.0722 * cl[2])));
-    var back = Math.max(0, -(eye[0] * sd[0] + eye[1] * sd[1] + eye[2] * sd[2]));
+    var seaLit = LZ.seaLit, back = C.RIM ? Math.max(0, -(eye[0] * sd[0] + eye[1] * sd[1] + eye[2] * sd[2])) : 0;
     ONE3[0] = ONE3[1] = ONE3[2] = 0;
     for (f = 0; f < NFAC; f++) {
       var nx = N[3 * f], ny = N[3 * f + 1], nz = N[3 * f + 2], ne = nx * eye[0] + ny * eye[1] + nz * eye[2];
@@ -279,37 +270,25 @@
       var dS = nx * sd[0] + ny * sd[1] + nz * sd[2];
       var direct = sv * Math.min(1, Math.max(0, (dS + C.WRAP) / (1 + C.WRAP))), through = sv * C.TRANS * Math.max(-dS, 0);
       var wsky = C.SKYT + (1 - C.SKYT) * (0.5 + 0.5 * nz), bnc = C.BOUNCE * Math.max(-nz, 0) * seaLit;
-      var rim = sv * C.RIM * Math.pow(1 - ne, LT.RIM_P) * (0.4 + 0.6 * back), a = area ? area[f] : 1;
+      var rim = C.RIM ? sv * C.RIM * Math.pow(1 - ne, LT.RIM_P) * (0.4 + 0.6 * back) : 0, a = area ? area[f] : 1;
       for (k = 0; k < 3; k++) ONE3[k] += a * LT.GAIN * LT.PAPER[k] * (C.SUN_K * sc[k] * (direct + through + rim) + ad[k] + (au[k] - ad[k]) * wsky + bnc * cl[k]);
       ma += a;
     }
     if (ma > 0) { ONE3[0] /= ma; ONE3[1] /= ma; ONE3[2] /= ma; }
     return ONE3;
   }
-  var TRIS = {};
-  function lum3(r, g, b) { return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
-  function lightBird(s, L, rest, dt) {
+  function lightBird(s, rest, dt) {
     var kind = s.kind, FK = LB.flexKind(kind), T = FK.tri, tf = FK.tf, X = s.X46, VZ = s.VZ, i, f;
     for (i = 0; i < NV; i++) { VZ[3 * i] = X[3 * i]; VZ[3 * i + 1] = X[3 * i + 2]; VZ[3 * i + 2] = X[3 * i + 1]; }
     FP2.facetNormals(kind, VZ, s.NZ);
     var ex = -s.body[0], ey = -s.body[1], ez = -s.body[2], el = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1;
     EYEZ[0] = ex / el; EYEZ[1] = ez / el; EYEZ[2] = ey / el;
-    var sd = L && L.sunDir;
-    if (sd) { LZ.sunDir[0] = sd[0]; LZ.sunDir[1] = sd[2]; LZ.sunDir[2] = sd[1]; } else { LZ.sunDir[0] = 0; LZ.sunDir[1] = 0; LZ.sunDir[2] = 1; }
-    LZ.sunVis = L ? (L.sunVis === undefined ? 1 : L.sunVis) : 0;
-    LZ.sunC = L && L.sunC ? L.sunC : [1, 1, 1]; LZ.ambU = L && L.ambU ? L.ambU : [0.3, 0.35, 0.45]; LZ.ambD = L && L.ambD ? L.ambD : [0.25, 0.25, 0.3]; LZ.clLit = L && L.clLit ? L.clLit : [0.7, 0.65, 0.7];
     for (f = 0; f < NFAC; f++) s.FA[f] = 1e-3;
     for (i = 0; i < tf.length; i++) s.FA[tf[i]] += Math.abs(triA(s.D46, T[3 * i], T[3 * i + 1], T[3 * i + 2]));   // (each facet's area on the window, device px)
     var one = s.lod > 0 && !FORCED && !(s.halo > 0) ? FP2.light(kind, s.NZ, EYEZ, LZ, s.FE, s.FA) : oneTone(s.NZ, EYEZ, LZ, s.FA);
     var e = rest || !s.eOk ? 1 : 1 - Math.exp(-dt / TONE_T);
     for (var k2 = 0; k2 < 3; k2++) s.E[k2] += (one[k2] - s.E[k2]) * e;
     s.eOk = true;
-    s.fold[0] = s.fold[1] = s.fold[2] = s.fold[3] = s.fold[4] = s.fold[5] = 1;
-    /* (dev) each wing's own light, area-weighted (its facets' ONE light): the left wing's facets 0-14, the right's 15-29 */
-    if (!(s.lod > 0) || FORCED || s.halo > 0) { s.wingL = null; return; }   // (the facets' light only where the planes show)
-    var wl = 0, wa = 0, wr = 0, wb = 0, ym = lum3(one[0], one[1], one[2]);
-    for (f = 0; f < NFAC; f++) { var yl = lum3(s.FE[3 * f], s.FE[3 * f + 1], s.FE[3 * f + 2]); if (f < 15) { wl += yl * s.FA[f]; wa += s.FA[f]; } else { wr += yl * s.FA[f]; wb += s.FA[f]; } }
-    s.wingL = [wl, wa, wr, wb, ym];
   }
   function triA(D, a, b, c) { return 0.5 * ((D[2 * b] - D[2 * a]) * (D[2 * c + 1] - D[2 * a + 1]) - (D[2 * c] - D[2 * a]) * (D[2 * b + 1] - D[2 * a + 1])); }
   /* how much of the cloud before it stands in front of it: at its left tip, its body and its right tip, the clouds'

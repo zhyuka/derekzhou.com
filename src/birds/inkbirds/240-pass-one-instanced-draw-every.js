@@ -80,6 +80,7 @@
     var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0;
     measureIf();
     var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
+    lightFrame(L);
     DRAWQ.length = 0; DQD.length = 0;
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
@@ -106,7 +107,7 @@
       var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
       if (!ok || !projectBird(s, C)) { s.on = false; continue; }
       s.on = true; s.op = 1; s.lastOp = 1;
-      lightBird(s, L, !moving, 1 / 60);
+      lightBird(s, !moving, 1 / 60);
       cloudWeights(s, C);
       packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
       nB++;
