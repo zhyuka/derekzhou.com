@@ -31,10 +31,6 @@
   Link: </assets/fonts/GeistMono-Regular.sub2.woff2>; rel=preload; as=font; crossorigin
   Link: </hour.js>; rel=preload; as=script
   Link: </start.js>; rel=preload; as=script
-  Link: </world.js>; rel=preload; as=script
-  Link: </realm-kit.js>; rel=preload; as=script
-  Link: </realm-dunes.js>; rel=preload; as=script
-  Link: </realm-above.js>; rel=preload; as=script
 
 /index.html
   Cache-Control: max-age=0, must-revalidate
