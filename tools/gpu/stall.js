@@ -81,7 +81,12 @@ async function visit(url, c) {   // one visit (the kit's gguard run, without its
 }
 async function pool(jobs, n) { const res = new Array(jobs.length); let next = 0; await Promise.all(Array.from({ length: Math.min(n, jobs.length) }, async () => { while (next < jobs.length) { const i = next++; res[i] = await jobs[i](); } })); return res; }
 const bound = (key) => { const k = KNOWN.find((x) => x.re.test(key)); return k ? (k.maxMs || Infinity) : TH; };
-const over = (V) => new Map((V.keys || []).filter((e) => e[1] > bound(e[0])).map((e) => [e[0], e[1]]));
+// Over the bound, and after the show (a key's `at` and shownMs are the page's performance.now): a first use before the
+// world shows is boot time (the warm table's draws, hidden behind the still), never a stall a visitor sees.
+const after = (V, e) => !(V.shownMs >= 0) || !(e[2] >= 0) || e[2] >= V.shownMs;
+const over = (V) => new Map((V.keys || []).filter((e) => e[1] > bound(e[0]) && after(V, e)).map((e) => [e[0], e[1]]));
+const boot = (V) => (V.keys || []).filter((e) => e[1] > bound(e[0]) && !after(V, e));
+const atOf = (V, k) => { const e = (V.keys || []).find((x) => x[0] === k); return e && e[2] >= 0 ? 'at ' + Math.round(e[2]) + ' ms, shown ' + V.shownMs + ' ms' : 'shown ' + V.shownMs + ' ms'; };
 // A key names its program by link order and its sources' hashes (glwatch: p3:<vs>/<fs>|...). Base and head are paired by
 // the program's place and the rest of the key, not by its sources: a change that only rewrites the text (#65 minified
 // every shader) would otherwise leave every head key with no base and call a stall base has too "new".
@@ -96,7 +101,7 @@ const paired = (m) => { const o = new Map(); for (const [k, ms] of m) o.set(pair
     for (const c of Object.keys(CASES)) for (const arm of ['head', 'base']) for (const r of [1, 2]) jobs.push({ c, arm, r });
     V = await pool(jobs.map((j) => async () => { const v = await visit(S[j.arm].url, j.c).catch((e) => ({ case: j.c, problems: ['visit failed: ' + String(e.message || e).slice(0, 300)] })); Object.assign(v, j); log('visit ' + j.c + ' ' + j.arm + ' ' + j.r + ': shown ' + v.shownMs + ' ms, ' + (v.keys || []).length + ' keys, over 30 ms: ' + [...over(v).entries()].map((e) => e[0].slice(0, 60) + ' ' + e[1]).join('; ') + (v.problems.length ? '; PROBLEMS ' + v.problems.join('; ') : '')); return v; }), PAR);
   } finally { S.base.p.kill(); S.head.p.kill(); }
-  const fails = [], notes = [], rows = [];
+  const fails = [], notes = [], rows = [], bootRows = [];
   for (const c of Object.keys(CASES)) {
     const H = V.filter((v) => v.c === c && v.arm === 'head'), B = V.filter((v) => v.c === c && v.arm === 'base');
     for (const v of H) for (const pr of v.problems) fails.push(c + ' head ' + v.r + ': ' + pr);
@@ -105,15 +110,17 @@ const paired = (m) => { const o = new Map(); for (const [k, ms] of m) o.set(pair
     const keys = [...new Set(ho.flatMap((m) => [...m.keys()]))];
     for (const k of keys) {
       const inAll = ho.every((m) => m.has(k)), inBase = bo.some((m) => m.has(pair(k))), ms = ho.map((m) => m.get(k) || 0);
-      rows.push([c, k, ms.map((x) => Math.round(x)).join(' / '), bo.map((m) => Math.round(m.get(pair(k)) || 0)).join(' / '), inAll && !inBase ? 'STALL' : inAll ? 'also in base' : 'once (not repeated)']);
-      if (inAll && !inBase) fails.push(c + ': ' + k + ' took ' + ms.map((x) => Math.round(x)).join(' and ') + ' ms on its first use in both head visits (base: under ' + TH + ' ms)');
+      rows.push([c, k, ms.map((x) => Math.round(x)).join(' / '), H.map((v) => atOf(v, k)).join(' / '), bo.map((m) => Math.round(m.get(pair(k)) || 0)).join(' / '), inAll && !inBase ? 'STALL' : inAll ? 'also in base' : 'once (not repeated)']);
+      if (inAll && !inBase) fails.push(c + ': ' + k + ' took ' + ms.map((x) => Math.round(x)).join(' and ') + ' ms on its first use in both head visits, after the show (' + H.map((v) => atOf(v, k)).join('; ') + '; base: under ' + TH + ' ms)');
     }
+    for (const v of H) for (const e of boot(v)) bootRows.push([c, 'head ' + v.r, e[0], Math.round(e[1]), 'at ' + Math.round(e[2]) + ' ms, shown ' + v.shownMs + ' ms']);
   }
   const ok = !fails.length, secs = Math.round((Date.now() - t0) / 1000);
   const md = ['## T2 stall visits (first use of every pipeline key, real clock, fresh profiles)', '', '12 visits: d11, n23, d11late x head 2 + base 2. A stall is a key over ' + TH + ' ms in both head visits and in neither base visit.', '',
-    rows.length ? '| case | key | head ms | base ms | verdict |\n|---|---|---|---|---|\n' + rows.map((r) => '| ' + r.map((x) => String(x).replace(/\|/g, '\\|')).join(' | ') + ' |').join('\n') : 'No key over ' + TH + ' ms in any head visit.', '',
+    rows.length ? '| case | key | head ms | when (head) | base ms | verdict |\n|---|---|---|---|---|---|\n' + rows.map((r) => '| ' + r.map((x) => String(x).replace(/\|/g, '\\|')).join(' | ') + ' |').join('\n') : 'No key over ' + TH + ' ms in any head visit.', '',
+    bootRows.length ? '### Boot time, not stalls (first uses over ' + TH + ' ms before the world shows)\n\n| case | visit | key | ms | when |\n|---|---|---|---|---|\n' + bootRows.map((r) => '| ' + r.map((x) => String(x).replace(/\|/g, '\\|')).join(' | ') + ' |').join('\n') + '\n' : '',
     '- stall_ok: **' + ok + '**', fails.length ? '- failures: ' + fails.join('; ') : '', notes.length ? '- base (not judged): ' + notes.join('; ') : '', '- ' + secs + ' s'].filter(Boolean);
-  fs.writeFileSync(path.join(OUT, 'stall.json'), JSON.stringify({ ok, fails, notes, rows, visits: V.map((v) => ({ c: v.c, arm: v.arm, r: v.r, shownMs: v.shownMs, renderer: v.renderer, problems: v.problems, keys: v.keys })) }, null, 1));
+  fs.writeFileSync(path.join(OUT, 'stall.json'), JSON.stringify({ ok, fails, notes, rows, bootRows, visits: V.map((v) => ({ c: v.c, arm: v.arm, r: v.r, shownMs: v.shownMs, renderer: v.renderer, problems: v.problems, keys: v.keys })) }, null, 1));
   fs.writeFileSync(path.join(OUT, 'stall.md'), md.join('\n') + '\n');
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, 'stall_ok=' + ok + '\n');
