@@ -31,7 +31,7 @@ if (needs.t2) {
   v.t2.wanted = v.glsl_changed || v.gpu_js || c.t2_self === 'true';
   v.t2.required = result('t2') !== 'skipped';
   v.t2.ran = v.t2.required;
-  if (t2) Object.assign(v.t2, { frames_identical: t2.frames_identical === 'true', glsl_changed: t2.glsl_changed === 'true', bits_identical: t2.bits_identical === 'true', csp_ok: t2.csp_ok === 'true' });
+  if (t2) Object.assign(v.t2, { frames_identical: t2.frames_identical === 'true', glsl_changed: t2.glsl_changed === 'true', bits_identical: t2.bits_identical === 'true', csp_ok: t2.csp_ok === 'true', stall_ok: t2.stall_ok === 'true' ? true : t2.stall_ok === 'false' ? false : null });   // (stall_ok: lane D's stall visits, #47; null where gpu.yml does not report it)
 }
 v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!c.base;
 const expectShards = +(process.env.T1_SHARDS || 4);
