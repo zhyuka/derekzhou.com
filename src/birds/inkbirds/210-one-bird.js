@@ -76,7 +76,7 @@
     var b = { id: ++BK, kind: kind, S: S, K: K, r: r, age: pick(r, [0, 40]), sz: B_SPAN * S.size * MODEL_K * (1 + SIZE_VAR * (r() * 2 - 1)),
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
-      st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, d: null, P: null,
+      st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
       flap: -1, wtT: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
@@ -85,7 +85,6 @@
     return b;
   }
   function dropBird(b) {
-    if (b.s) { b.s.busy = false; b.s = null; }
     if (b.P) perchFree(b);
     var i = BIRDS.indexOf(b); if (i >= 0) BIRDS.splice(i, 1);
     if (b.F) { var F = leaveFlock(b); if (!F.m.length) dropFlock(F); }

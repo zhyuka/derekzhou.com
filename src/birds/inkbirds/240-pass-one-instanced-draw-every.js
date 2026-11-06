@@ -72,7 +72,8 @@
     return true;
   }
 
-  var tmp3 = {}, DRAWQ = [], DQD = [], TONE_AT = 0;
+  var tmp3 = {}, DRAWQ = [], DF = 0, TONE_AT = 0;
+  function byDepth(x, y) { return x.dq - y.dq; }
   /* every bird of the world the window can show, posed afresh every frame: the nearest MAXP (a speck past them changes
      no pixel: far off, the air leaves nothing of it). No opacity but the world's own air (in the pass): no fade in
      time, at an edge, near or far */
@@ -82,7 +83,7 @@
     var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
     lightFrame(L);
     var ft = t - back, fdt = clamp(ft - TONE_AT, 0, 0.25); TONE_AT = ft;   // the time since the last frame drawn, from the steps' clock: the tone eases the same at any frame rate
-    DRAWQ.length = 0; DQD.length = 0;
+    DRAWQ.length = 0; DF++;
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
       var px = b.p[0] - b.v[0] * back, py = b.p[1] - b.v[1] * back, pz = b.p[2] - b.v[2] * back;
@@ -91,23 +92,20 @@
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
       if (tmp3.z > 1 && !inView(tmp3.x, tmp3.y, rpx, rpx)) continue;
       if (b.st === 'fly' && (unseen(b) || hidden(b))) continue;
-      DRAWQ.push(b); DQD.push(tmp3.z);
+      b.dq = tmp3.z; DRAWQ.push(b);
     }
-    if (DRAWQ.length > MAXP) { var ord = DRAWQ.map(function (q, k) { return k; }).sort(function (x, y) { return DQD[x] - DQD[y]; }); DRAWQ = ord.slice(0, MAXP).map(function (k) { return DRAWQ[k]; }); }
-    for (i = 0; i < slots.length; i++) slots[i].used = false;
-    for (i = 0; i < DRAWQ.length; i++) { b = DRAWQ[i]; if (b.s) b.s.used = true; }
-    for (i = 0; i < slots.length; i++) { s = slots[i]; if (s.busy && !s.used) { if (s.bird) s.bird.s = null; s.busy = false; s.bird = null; } }
-    for (i = 0; i < DRAWQ.length && nB < MAXP; i++) {
+    if (DRAWQ.length > MAXP) { DRAWQ.sort(byDepth); DRAWQ.length = MAXP; }
+    for (i = 0; i < DRAWQ.length; i++) {
       b = DRAWQ[i];
-      if (!b.s) { for (var q = 0; q < slots.length; q++) if (!slots[q].busy) { s = slots[q]; s.busy = true; s.bird = b; b.s = s; dress(s, null); s.bT0 = -1; s.bFrom = null; break; } if (!b.s) break; }
-      s = b.s; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
-      if (!s.X46) slotArrays(s);
-      if (!s.d) s.d = { span: 0, model: 0 }; s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
+      if (!b.s) b.s = drawRec(b);
+      s = b.s;
+      if (s.seenF !== DF - 1) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; }   // (back in view: its tone and attitude begin afresh)
+      s.seenF = DF; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
+      s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
       if (b.st === 'land') restProbe(b, C, s);
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
       var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
-      if (!ok || !projectBird(s, C, N)) { s.on = false; continue; }
-      s.on = true; s.op = 1; s.lastOp = 1;
+      if (!ok || !projectBird(s, C, N)) continue;
       lightBird(s, !moving, fdt);
       cloudWeights(s, C);
       packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);

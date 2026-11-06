@@ -8,10 +8,6 @@
   /* the glide with its load (the lab's, no trims) */
   var ZTRIM = [0, 0, 0, 0, 0, 0, 1, 1, 1], GS0 = { flap: 0, ph: 0, k: 1, D: 0.5, a: 0, e: 0 }, GLW = { kind: 'gull', trim: ZTRIM }, GB3 = new Float64Array(3);
   function glide22(kind, out) { GLW.kind = kind; GLW.trim = ZTRIM; BW.poseS(GLW, GS0, 0, out, GB3); return out; }
-  function slotArrays(s) {
-    s.P22 = FP.pose(); s.B3 = new Float64Array(3); s.V46 = new Float64Array(3 * NV); s.X46 = new Float64Array(3 * NV); s.D46 = new Float32Array(2 * NV); s.IZ = new Float32Array(NV);
-    s.NZ = new Float64Array(3 * NFAC); s.FE = new Float64Array(3 * NFAC); s.FA = new Float64Array(NFAC); s.VZ = new Float64Array(3 * NV); s.B = new Float64Array(9); s.bT0 = -1; s.bFrom = null; s.lod = 0;
-  }
   var MODEL_K = 1.19;          // (way-form: 1.38 for the bodied form; the wing-only form spans more of its model on the window) the drawn model's span on today's ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
   var HOLD_POSE = [3, 8];      // device px of span: smaller, the beat's swing eases into the held glide (a speck holds its glide). (physics: the measured beat in full from 8 px; the shape round held it in from 16, and a 1440 px desktop's birds, 10-25 px, beat partly held 68 % of their time, a tenth of it at under 0.65 of the measured stroke: the stiffness the owner saw)
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
@@ -110,7 +106,6 @@
     }
     for (i = 0; i < 16; i++) { var vi = P16MAP[i]; if (vi < 0) { s.X16[3 * i] = ox; s.X16[3 * i + 1] = oy; s.X16[3 * i + 2] = oz; } else { s.X16[3 * i] = X[3 * vi]; s.X16[3 * i + 1] = X[3 * vi + 1]; s.X16[3 * i + 2] = X[3 * vi + 2]; } }
     s.body[0] = ox; s.body[1] = oy; s.body[2] = oz;
-    s.nb[0] = B[6]; s.nb[1] = B[7]; s.nb[2] = B[8]; s.fw[0] = B[0]; s.fw[1] = B[1]; s.fw[2] = B[2]; s.lw3[0] = B[3]; s.lw3[1] = B[4]; s.lw3[2] = B[5];
   }
   /* the perched pose: settling (touch, half folded, loose, folded: two or three small adjustments), its own breath (its
      own slow noise, never a clock's sine), its wings raised or a rouse, a crouch to leave, a hop (a turn or a step) */
@@ -157,7 +152,7 @@
      closes on that, so the touch is where its feet are */
   var PRB = { P22: null };
   function restProbe(b, C, s) {
-    var P = b.P; perchFoot(P, PFD); if (!(PFD[0] === PFD[0]) || !s.X46) return;
+    var P = b.P; perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return;
     var keep = s.P22; if (!PRB.P22) PRB.P22 = FP.pose();
     for (var i = 0; i < 22; i++) PRB.P22[i] = PERCH.poses.touch[i];
     s.P22 = PRB.P22; s.B3[0] = s.B3[1] = s.B3[2] = 0;

@@ -1,10 +1,10 @@
-  /* ---------------- the drawn birds' slots (MAXP, lent to the birds the window shows) ---------------- */
+  /* ---------------- a bird's drawing record (its own for life, made at its first draw) ---------------- */
 
-  /* a slot holds a bird's drawing between the hand's frames: its 3D chain about its body (m, in the world's axes), its
-     bob, the boil's offsets (device px), its pen (device px), its ink and how much cloud stands before it */
-  var slots = [];
-  (function () { for (var i = 0; i < MAXP; i++) slots.push({ key: 9100 + i * 97, busy: false, on: false, face: 1, sgn: 1, d: null, shownT: -1, vis: false, still: false, op: 1, wf: 0, land: 1, n: 1, ok: false, lastOp: 0, lastApp: 0,
-    kind: 'gull', P16: new Float64Array(48), X16: new Float64Array(48), D: new Float32Array(32), body: new Float64Array(3), nb: new Float64Array(3), fw: new Float64Array(3), lw3: new Float64Array(3), vw: new Float64Array(3), aw: new Float64Array(3),
-    roll: 0, rollT: 0, rollOk: false, pitch: 0, slip: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 }); })();
-  function dress(s, d) { s.d = d; s.on = false; s.vis = false; s.still = false; s.shownT = -1; s.ok = false; s.rollOk = false; s.eOk = false; s.cwNext = -1; s.cwAt = -1e9; s.cwHt.fill(-1e9); s.spanPx = 0; s.glideW = undefined; s.setOk = false; s.setFace = 0; s.setSide = 0; s.set = 0; s.setWant = 0; s.setAt = undefined; s.setK = undefined; s.nudX = 0; s.nudY = 0; s.lastOp = 0; s.tone = 0; }
-
+  /* what a drawn bird keeps between frames: its pose and basis, its points in the world and on the window, its light,
+     its eased tone and the cloud before it */
+  function drawRec(b) {
+    return { kind: 'gull', st: b.st, seenF: -1, d: { span: 0, model: 0 }, P22: FP.pose(), B3: new Float64Array(3), B: new Float64Array(9), bT0: -1, bFrom: null, bTT: 0,
+      V46: new Float64Array(3 * NV), X46: new Float64Array(3 * NV), D46: new Float32Array(2 * NV), IZ: new Float32Array(NV), X16: new Float64Array(48), body: new Float64Array(3),
+      NZ: new Float64Array(3 * NFAC), FE: new Float64Array(3 * NFAC), FA: new Float64Array(NFAC), VZ: new Float64Array(3 * NV), E: new Float64Array(3), eOk: false,
+      cw: new Float64Array(3), lod: 0, n: 1, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, flapW: 0 };
+  }
