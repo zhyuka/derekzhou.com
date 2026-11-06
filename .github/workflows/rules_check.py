@@ -6,6 +6,7 @@
 #   - world-rule: an id world_rules.py fails under (fail('ID', ...))
 #   - absence: a numbered block `# (N)` in the step "Absences are enforced"
 #   - hook: the file exists, settings.json runs it, and it cites the rule (RULES.json "<id>")
+#   - permission-deny: the entry is in .claude/settings.json's permissions.deny
 #   - prose: nothing to check (an optional note)
 import glob, json, os, re, sys
 
@@ -28,9 +29,9 @@ wr = open('.github/workflows/world_rules.py', encoding='utf-8').read()
 world = set(re.findall(r"fail\('([^']+)'", wr))
 try:
     settings = open('.claude/settings.json', encoding='utf-8').read()
-    json.loads(settings)
+    deny = set(json.loads(settings).get('permissions', {}).get('deny', []))
 except Exception as e:
-    settings = ''; fail(f'.claude/settings.json does not parse: {e}')
+    settings, deny = '', set(); fail(f'.claude/settings.json does not parse: {e}')
 
 rules = data.get('rules')
 if not isinstance(rules, list) or not rules:
@@ -69,6 +70,8 @@ for i, r in enumerate(rules):
             else:
                 if os.path.basename(f) not in settings: fail(f'{at}: .claude/settings.json does not run {f}')
                 if f'RULES.json "{rid}"' not in open(f, encoding='utf-8').read(): fail(f'{at}: {f} does not cite RULES.json "{rid}"')
+        elif k == 'permission-deny':
+            if e.get('rule') not in deny: fail(f'{at}: .claude/settings.json does not deny {e.get("rule")!r}')
         elif k == 'prose':
             pass
         else:

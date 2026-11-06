@@ -301,7 +301,7 @@ def check_tool(name, inp):
 def main():
     try:
         signal.signal(signal.SIGALRM, lambda *a: (_ for _ in ()).throw(TimeoutError()))
-        signal.alarm(10)
+        signal.alarm(8)
     except Exception:
         pass
     try:
