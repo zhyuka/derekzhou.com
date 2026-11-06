@@ -58,7 +58,8 @@ any Math.random or clock read (Date) in the world; performance.now()
 but the world's one clockNow; anything in the hour but its one `new
 Date(`; any URL hook (location., URLSearchParams), sound, network call
 or eval, and any worker but the plan's (one, started by the world by its
-literal name); any dev or record hook (window.__*, window.claude,
+literal name) and the start file's table (one, start-table.js, started
+by the start file by its literal name); any dev or record hook (window.__*, window.claude,
 console) or an attribute read on `<html>` but the hour's data-sky and
 data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors
 only). And the old 2D birds stay retired (absence 7): it fails on a
@@ -85,8 +86,12 @@ its code the world's own spans verbatim, stamped with their md5; rule 4:
 pure arithmetic, no DOM, window, storage, network, entropy or clock, one
 listener, message, and two postMessage calls, its answer and its refusal);
 the start file (rule 4b: no DOM building, URL hook, storage, sound,
-module, worker or network; no entropy, clock, timer or animation frame;
-one listener, webglcontextlost; nothing put on window but WORLD_START);
+module or network; one worker, its table, by its literal name; no
+entropy, clock or timer, and requestAnimationFrame only twice, the two
+frames where paint timing is missing; two listeners, webglcontextlost
+and the table worker's message; nothing put on window but WORLD_START;
+its table data only: one postMessage of the sources and two lists of
+numbers, then close);
 the scripts' text read from src/ (world_rules.py site build/src); and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts

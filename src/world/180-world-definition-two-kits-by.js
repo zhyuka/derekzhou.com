@@ -108,14 +108,14 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
   }
   function worldDef(KD, KA) {
     return {
-      id: 'world', words: 'light', still: KD.still, hours: KD.hours,
+      id: 'world', still: KD.still,
       /* (world6 step B, the one camera) one framing everywhere (the horizon at 0.55 of a wide window's height and 0.58 of
          an upright phone's: about 6% of the height under the credit, design-v5 11.7), no look at the ground ahead
          (pitchFollow 0: one pitch), one clearance band over the surface flown (cruise: 14 m over the sand to 32 m over
          the cloud sea, by the maps ahead; flightParams), a ceiling of 60 m over the ground (a solid taller is passed
          beside, never climbed), one speed (12 m/s: the maps' pacing was worked out for it) */
       speed: KD.speed || 12, clear: [7, 14, 45], frame: [0.55, 0.58], cruise: [14, 32], marginB: KA.margin,
-       look: KD.look, climb: KD.climb, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
+       look: KD.look, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
       surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10 }],
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',

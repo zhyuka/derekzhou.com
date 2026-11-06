@@ -32,7 +32,14 @@ owner, 2026-11-05: "pls remove the masking boxes from behind the text
 completely. it's completely fine if the birds fly behind/in front of
 it"). No keep-off texture, no step back near the words, no route
 refused, eased, held or let go for them, and the camera never waits
-for a bird near them (CI: world_rules.py rule 7, "no-mask"). The calm is kept in the world, never by
+for a bird near them (CI: world_rules.py rule 7, "no-mask"). No bird is
+held against its ground either: the hold that would grey a bird on bright
+cloud and darken it backlit read its ground only through the words'
+read-back, off since stage 2, so it never ran; the owner chose to remove
+it (2026-11-05), and it is gone, the world's side (its ground read for
+the birds) and the ink birds' own (holdTone and all that only it read):
+each bird's light is scaled by 1, as it always was. Nothing shown
+changed. The calm is kept in the world, never by
 slowing a bird: nothing passes the eye faster than 6 degrees a second
 (such a flock is met farther out), each kind is met at its own
 true-size distance, at most four or five flocks live about the viewer

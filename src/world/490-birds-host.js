@@ -42,6 +42,7 @@
        scene is drawn at the governor's rung, the clouds at half of it) */
     view: function (o) {
       var sc = RUNGS[RUNG], W = Math.max(1, Math.round((TG ? TG.W : OUT.w) * sc)), H = Math.max(1, Math.round((TG ? TG.H : OUT.h) * sc));
+      if (!TG && o.sUx === undefined) { o.sUx = o.sUy = o.hUx = o.hUy = 1; }   // (fast500's deep sweep, 2026-11-05: forced colours from the load make no target (TG null): finite scales, never NaN, for the uniforms the forced draw uploads and never reads (uSc and uCl: behind uLand, 0 with no textures); with targets the line below sets them)
       o.outW = FULL.w || OUT.w; o.outH = FULL.h || OUT.h; o.cssW = OUT.cssW || OUT.w; o.cssH = OUT.cssH || OUT.h; o.dpr = o.outW / Math.max(o.cssW, 1);
       o.bdpr = OUT.w / Math.max(o.cssW, 1);   // (the words' boxes are the world's px: OUT)
       o.ddpr = window.devicePixelRatio || 1;   // (round 3: the device's own px a CSS px: the canvas is put up to it when FULL is capped under it)
@@ -155,16 +156,6 @@
         }
       }
       return out;
-    },
-    /* (birds3d) the ground under the paper birds: the cells they ask for (their boxes, CSS px: x0, y0, x1, y1 each; at
-       most 16, the rest next time) read with the words' next read; groundAt the OKLab L there from the last landed read
-       (the world without the birds, a frame or a few late), -1 when none (or older than 2 s) */
-    groundWant: function (B, n) { n = Math.min(n, BGR_MAX); for (var i = 0; i < 4 * n; i++) BGR.rects[i] = B[i]; BGR.n = n; },
-    groundAt: function (x, y) {
-      if (!TG || !BGR.L || !TG.gs || BGR.w !== TG.gs.w) return -1;
-      var k = (OUT.w / Math.max(OUT.cssW || OUT.w, 1)) / GS_K, cx = Math.floor(x * k), cy = Math.floor(BGR.h - y * k);
-      if (cx < 0 || cy < 0 || cx >= BGR.w || cy >= BGR.h) return -1;
-      var c = cy * BGR.w + cx; return SIM.t - BGR.T[c] <= 2 && SIM.t >= BGR.T[c] ? BGR.L[c] : -1;
     },
     /* (birds3d) the night: 0 by day, 1 at night. The world has no night yet (the time of day's work will give it): the
        zenith sky's luminance after the exposure, 1 - smooth(0.04, 0.12, Y); 1 under the dev's SIMULATED night */

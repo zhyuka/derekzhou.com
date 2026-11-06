@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     steps:
       - uses: actions/checkout@v4
 
@@ -136,6 +136,13 @@ jobs:
           python3 .github/workflows/rules_check.py
           python3 .claude/hooks/test_guard.py
           python3 .claude/hooks/guard.py --scan   # (no tracked file holds a banned name: names.json's salted hashes)
+
+      - name: The deploy's inputs are all listed
+        run: |
+          # .github/ci/deploy-inputs.txt is what Cloudflare Pages' build reads: post-deploy.yml finds the live commit by
+          # it, and the Pages build watch paths are the same list. A tool the build loads but the list leaves out would
+          # be a change Pages never builds.
+          node .github/ci/deploy-inputs.mjs --check
 
       - name: security.txt not expired
         run: |

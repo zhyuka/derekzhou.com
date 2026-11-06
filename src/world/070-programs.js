@@ -61,10 +61,12 @@
   }
   /* (fast500 lane E, class A: e8.py E8z) the page's constant modes as defines, computed once from its own data at the
      first issue and given after DEFS to every program the boot issues (never set by hand; negative, so a program
-     compiled without them keeps today's text): NO_TWILIGHT (no two skies' words differ), NO_RAIN (no sky's post.rain,
-     no kit's rain), NO_WATER (no realm's GLSL calls waterShade), NO_PKWX (no realm's particle set is a weather kind),
-     DEV (real dev use only: DBG, SS > 1 or the dev switch dbg at load; never DEVMODE alone, so the audits compile the
-     shipped text). Restores reuse them (the same text) */
+     compiled without them keeps today's text): NO_TWILIGHT (no two skies' words differ; every sky's words are light, so
+     the twilight's low mist in lib-air.glsl, and uTwM, are compiled out: their text stays so that no vertex shader's
+     changes), NO_RAIN (no sky's post.rain, no kit's rain), NO_WATER (no realm's GLSL calls waterShade), NO_PKWX (no
+     realm's particle set is a weather kind). CLA.dev marks real dev use (DBG, SS > 1 or the dev switch dbg at load;
+     never DEVMODE alone, so the audits compile the shipped text): without it uDbg is folded to 0 (foldFixed).
+     Restores reuse them (the same text) */
   var CLA = null;
   function claScan(o, d, st) {   // a number > 0 under a key 'rain' anywhere in a kit (its lights, areas, kits)
     if (!o || typeof o !== 'object' || d > 8 || ArrayBuffer.isView(o) || st.seen.indexOf(o) >= 0) return false;
@@ -100,12 +102,12 @@
   }
   function claWx(c) { return c.pkUnknown || c.pkinds.some(function (k) { return k > 2.5; }); }
   function defsA() {
-    if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n') + (claWx(CLA) ? '' : '#define NO_PKWX\n') + (CLA.dev ? '#define DEV\n' : ''); }
+    if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n') + (claWx(CLA) ? '' : '#define NO_PKWX\n'); }
     return CLA.defs;
   }
   function devDbg(v) {   // (dev hooks) a dev view the issued programs hold, or a loud failure
     v = v | 0;
-    if (v && CLA && !CLA.dev) { fail('dev view dbg ' + v + ' asked, but the programs were issued without DEV: give the dev switch dbg at load (data-dev-switch "dbg")'); throw new Error('dbg ' + v + ' without DEV'); }
+    if (v && CLA && !CLA.dev) { fail('dev view dbg ' + v + ' asked, but the programs were issued with uDbg folded to 0: give the dev switch dbg at load (data-dev-switch "dbg")'); throw new Error('dbg ' + v + ' without dev use'); }
     return v;
   }
   function devDefsHold() {   // (dev hooks) after a sky is changed: the words' and the rain's defines must still hold
