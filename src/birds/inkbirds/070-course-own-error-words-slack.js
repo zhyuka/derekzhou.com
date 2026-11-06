@@ -11,7 +11,6 @@
       EB[b] = h1 > h0 ? e0 + (e1 - e0) * clamp((b - h0) / (h1 - h0), 0, 1) : e1;
     }
   }
-  function errAt(h) { var b = clamp(h, 0, 30), i = Math.floor(b); return i >= 30 ? EB[30] : EB[i] + (EB[i + 1] - EB[i]) * (b - i); }
   function errLearn() {
     if (VP.still || VP.n < 2) return;
     var h = t - VP.t0, k = Math.round(h / STEP), b = Math.round(h), e;

@@ -1,6 +1,6 @@
   /* ---------------- the sky's clock (the engine's fixed steps; no clock is read) ---------------- */
 
-  var t = 0, phase = -1, tNext = 0, misses = 0, stills = 0, firstNext = true, STEP_DT = 1 / 60, GONE_T = 1.2, APPEAR_T = 1, STILL_Q = 1500, STILL_G = 40;
+  var t = 0, tNext = 0, misses = 0, stills = 0, firstNext = true, STEP_DT = 1 / 60, GONE_T = 1.2, APPEAR_T = 1, STILL_Q = 1500, STILL_G = 40;
 
   /* how long a flight is in view, near enough (as its trial saw it through the coming view) */
   function inViewFor(F) { return Math.max(4, F.seenSpan || (F.dur - F.from - 2 * OUT / (F.v * F.n0 || SPEED[1]))); }
@@ -136,9 +136,8 @@
        the sky empty some 2 s longer) */
     coverAvg += (cover - coverAvg) * Math.min(1, dt / 0.5);
     var clearing = cover < COVER_PLAN && cover < coverAvg - 0.01;
-    if (C && moving && !FORCED && !liveOn()) stageStep(C);
-    if (C && moving && !FORCED && liveOn()) liveStep(C, dt);   // (round 3: the living sky)   // (birds3d: the staging's clock and its job)
-    if (!liveOn() && !job && !STG.job && moving && (cover < 0.05 || clearing) && t >= tNext && !(t > STG.hush[0] && t < STG.hush[1]) && activeFlights() < maxFlights() && seenNow < crowdTarget() + CROWD_OVER) {   // (round 3: nor while the window already holds more than the live's sky)
+    if (C && moving && !FORCED && liveOn()) liveStep(C, dt);   // (round 3: the living sky)
+    if (!liveOn() && !job && moving && (cover < 0.05 || clearing) && t >= tNext && activeFlights() < maxFlights() && seenNow < crowdTarget() + CROWD_OVER) {   // (round 3: nor while the window already holds more than the live's sky)
       if (!startJob(firstNext ? 'first' : 'next')) planned(null, 'next');
     }
     if (job) {
@@ -152,7 +151,6 @@
     }
     if (C && STATS.steps % 5 === 0) { track(C); if (moving) crowdN += (seenNow - crowdN) * 5 * dt / CROWD_T; }
     if (C && moving && !FORCED) for (i = 0; i < flights.length; i++) if ((STATS.steps + 3 * i) % GUARD_EVERY === 0) guard(flights[i]);   // (round 3: each flight a few seconds ahead, on a step of its own)
-    if (STATS.steps % 30 === 0 && !FORCED && skyCls() === 'day' && !liveOn()) placeStep(C, cover);   // (life: no landmark thermals after sunset)
     if (moving) guestStep(dt);   // (life: the guests, after every ordinary bird's step: nothing of theirs is read back)
     if (PLACES.length && FL.ok) placeLift(dt);
     for (i = flights.length - 1; i >= 0; i--) {           // done: past its end and seen no more (or faded out); or let go unseen
@@ -174,7 +172,7 @@
         land(F); STATS.landed.unseen++; if (!F.away) nextAsFirst(); continue;
       }
       if (F.firstSeen === undefined && tau > (F.enterT || 0) + UNSEEN_T && !(C && seenReal(F, tau, C))) { if (drawnNow(F)) { F.gone = t; F.goneT = LATE_T; continue; } land(F); STATS.landed.never++; nextAsFirst(); continue; }   // it never came into view
-      if (F.cloudT > CLOUD_T && !(F.stage === 'S3' && tau < (F.revealEnd || 0) + 1)) { F.gone = t; STATS.landed.cloud++; nextAsFirst(); continue; }   // hidden by cloud: let go while it is hidden (birds3d: not S3 before its reveal)
+      if (F.cloudT > CLOUD_T) { F.gone = t; STATS.landed.cloud++; nextAsFirst(); continue; }   // hidden by cloud: let go while it is hidden
     }
   }
   /* forced colours came or went: the sky begins again in the other view */
@@ -201,7 +199,7 @@
     if (job) resetJob();
   }
   /* the sky begins again (a visit, a reset): every flight gone, the first comes as at the start */
-  function clearAll() { STILL.on = false; GVT = -1e9; lastSeenAny = t; clearSky(); while (PLACES.length) landPlace(PLACES[0]); placeDone = {}; job = null; stills = 0; firstNext = true; tNext = t; misses = 0; phase = -1; }
+  function clearAll() { STILL.on = false; GVT = -1e9; lastSeenAny = t; clearSky(); while (PLACES.length) landPlace(PLACES[0]); job = null; stills = 0; firstNext = true; tNext = t; misses = 0; }
 
   /* reduced motion: a still sky, a photograph: the flight planned whole, every bird at rest. (round 3) A share of it
      at a time: the engine asks prepare() each frame while its still sky shows, before its one still frame (round 2

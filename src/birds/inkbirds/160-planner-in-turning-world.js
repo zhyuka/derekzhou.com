@@ -95,8 +95,7 @@
      course's end. Worked in slices of `budget` bird-steps: 0 while unfinished, 1 when clear all the way (it.near its
      room: the more, the calmer), -1 (it.why: what failed) */
   function pfail(J, why) { if (HOST.dev) J.why['p.' + why] = (J.why['p.' + why] || 0) + 1; return false; }
-  var TRIALLOG = null;   // (development: every trial's end, when asked)
-  function fail(it, why) { if (TRIALLOG && job && job.it === it) TRIALLOG.push({ t: +t.toFixed(2), mode: job.mode, why: why, k: it.k, tau: +(it.from + it.k * STEP).toFixed(1), dir: job.F && job.F.dir, far: job.far, sweep: Math.round(job.sweep), x: pv.x === pv.x ? Math.round(pv.x) : null, y: pv.y === pv.y ? Math.round(pv.y) : null, kind: job.F && job.F.kind, probe: it.probe }); it.why = why; STATS.fails[why] = (STATS.fails[why] || 0) + 1; if (job && HOST.dev) job.why[why] = (job.why[why] || 0) + 1; if (job) { job.nf = (job.nf || 0) + 1; if (why === 'hidden') job.nh = (job.nh || 0) + 1; } return -1; }
+  function fail(it, why) { it.why = why; STATS.fails[why] = (STATS.fails[why] || 0) + 1; if (job && HOST.dev) job.why[why] = (job.why[why] || 0) + 1; if (job) { job.nf = (job.nf || 0) + 1; if (why === 'hidden') job.nh = (job.nh || 0) + 1; } return -1; }
   function jobLog(J, F) {   // (development: what each job tried and how it ended)
     if (!HOST.dev) return;
     STATS.jobs.push({ t: +t.toFixed(2), mode: J.mode, ok: !!F, kind: F ? F.kind + ':' + F.sort + ':' + F.n : null, sweep: Math.round(J.sweep || 0), c: J.c, a: J.a, oi: J.oi, why: J.why, far: F ? !!F.farIn : false });
@@ -410,7 +409,7 @@
 
   /* a path in the air (or a thermal) for the job's flight; true if it is worth a trial */
   function propose(J) {
-    var F = J.F, qx, qy, lap = 0, u, hd, turn, climb, plain, open, i;
+    var F = J.F, qx, qy, u, hd, turn, climb, plain, open, i;
     if (J.pend) { J.pend = false; return propose2(J); }
     J.a++;
     r2next(q);
@@ -728,7 +727,6 @@
     return null;
   }
 
-  var NEXT_FORCE = null;   // (dev: { kind, n }: the next flight's, once)
   var FILL_T = 12;   // (round 3, step 1) s with no bird seen: the next flight a lone bird (or else a pair) on a plain crossing (the floor under the rhythm: no 30-s empty sky; at 18 s a pattern retried and a fill's pair refused left 28-s spells)
   var FIRST_FILL = 6;   // (round 3, step 1) s after load with no flight yet planned: the first one floored the same way
   var RETRIES = 2, RETRY_LATER = 2, FIRST_LEAD = 1, LONE_REDRAW = 2, AWAY_GRACE = 6, TRIAL_PAST = 10, HIDDEN_FILL = 5, HIDJOB = -1e9, nearJob = false;
@@ -756,7 +754,7 @@
        tenth of the time, six on average where the live's sky holds four */
     if (mode !== 'still') free = Math.min(free, Math.max(3, Math.floor(crowdTarget() + CROWD_UP - seenNow)));
     if (free < 1) return false;
-    var fill = mode !== 'still' && !NEXT_FORCE && (t - lastSeenAny > FILL_T || (STATS.planned === 0 && t > FIRST_FILL));   // (round 3, step 1: the floor under the rhythm; the visit's first flight sooner)
+    var fill = mode !== 'still' && (t - lastSeenAny > FILL_T || (STATS.planned === 0 && t > FIRST_FILL));   // (round 3, step 1: the floor under the rhythm; the visit's first flight sooner)
     n = drawCount(r, free, counts);
     /* (round 3) a lone bird only if drawn three times (a lone bird of the live's ladder of fallbacks, now and then):
        alone on the window it was the live's now and then (1-7 % of its time), and round 2's turning view, ending flights
@@ -767,7 +765,7 @@
     if (mode === 'first' && n > 3 && openSky() < 0.35 * H) n = 3;   // a small sky: a small first flight, soon in view
     kind = mode === 'still' ? (n >= 3 ? 'skein' : n === 2 ? 'pair' : 'single') : drawKind(r, n);
     var clsJ = skyCls(), LCj = LIFE[clsJ];
-    if (LCj && mode !== 'still' && !NEXT_FORCE && !fill) {   /* (life) the pattern first, by the sky's class; then its birds; clamped to the room, never four */
+    if (LCj && mode !== 'still' && !fill) {   /* (life) the pattern first, by the sky's class; then its birds; clamped to the room, never four */
       /* (the pattern drawn once, so its share is kept: one the room cannot hold now waits for room, never clamped into
          another; a lone bird is never kept back by the four rule) */
       var kd = weighted(r, LCj.pat), nt = kd === 'skein' ? (clsJ === 'first' || clsJ === 'moon' ? LIFE_N.skeinN : LIFE_N.skein) : LIFE_N[kd], nd = weighted(r, nt);
@@ -783,7 +781,6 @@
       kind = kd; n = nd;
     }
     var turnF = 0, sortF = null, giftF = false, nearF = false;
-    if (NEXT_FORCE && mode !== 'still') { kind = NEXT_FORCE.kind || kind; n = Math.min(NEXT_FORCE.n || n, free); turnF = NEXT_FORCE.turn || 0; sortF = SORTS[NEXT_FORCE.sort] ? NEXT_FORCE.sort : null; giftF = !!NEXT_FORCE.gift; nearF = !!NEXT_FORCE.near; NEXT_FORCE = null; }   // (dev: the next flight's kind and count, for a film)
     dir = r() < faithful ? season : -season;              // most flights go the season's way; now and then one the other
     /* (life, DESIGN 2.3) the flight line to a roost: most flights take the way (left or right on the window, and how far
        off its plane) whose heading through the air stands nearest the visit's roost bearing (at first light away from

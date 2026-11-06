@@ -46,7 +46,7 @@ var NAME_PERCH = {
     for (var i = 0; i < G.length; i++) { var y = base - G[i][2] * em; o.push([b[0] + G[i][0] * w, y], [b[0] + Math.min(G[i][1], 1) * w - 0.01, y]); }
     return o;
   }
-  var G_SETOUT = 1.0, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 90, G_PTR_MAX = 4, G_FLUSH_T = 120, G_REST = 2.0;
+  var G_SETOUT = 1.0, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 90, G_PTR_MAX = 4, G_FLUSH_T = 120;
   var GU = { list: [], k: 0, nWord: 0, nPtr: 0, lastWord: -1e9, nextWord: G_FIRST, lastPtr: -1e9, flushAt: -1e9, flushN: 0, firstRest: true, log: [], force: null, on: true,   /* (the perched guests on the words; the pointer's perch needs the hover listener, which the world does not have: its HOVER stays gone, so it never comes) */
     p: { x: -1, y: -1, n: 0, gone: true, down: false, steer: false }, px: -1, py: -1, vx: 0, vy: 0, sp: 0, restT: 0, restX: 0, restY: 0, restUsed: false, seenN: -1 };
   function guestRng() { return vstream(8000 + GU.k++); }
@@ -96,7 +96,6 @@ var NAME_PERCH = {
      (pointer 3 spans, the link's end 4.5, the name 5.5); its start the nearest clear one */
   function gBez(g, u, o) { var a = (1 - u) * (1 - u), b = 2 * u * (1 - u), c = u * u; o.x = a * g.G[0] + b * g.Cp[0] + c * g.T[0]; o.y = a * g.G[1] + b * g.Cp[1] + c * g.T[1]; return o; }
   function gArcU(g, sL) { var A = g.arc, n = A.length - 1; if (sL <= 0) return 0; if (sL >= A[n]) return 1; var i = 1; while (A[i] < sL) i++; return (i - 1 + (sL - A[i - 1]) / Math.max(1e-9, A[i] - A[i - 1])) / n; }
-  var GTMP3 = { x: 0, y: 0, u: 0, vk: 1 };
   function gPlan(g, P) {
     var sp = gSpanPx(g) * (P.sk || 1), dir = P.dir, sy = surfY(P.pts, P.x); if (!(sy === sy)) sy = surfTop(P.pts);
     var vc = P.kind === 'pointer' ? clamp(1.4 * topSpeed(), 18, 50) : clamp(1.25 * topSpeed(), 18, 48), B = gWords(), i;
@@ -463,6 +462,12 @@ var NAME_PERCH = {
   }
   /* one guest posed in front of the camera (as a pin: the body at its place on the window, at the distance its span
      asks), its lowest points put on the perch's surface (the rest rule 'low', solved in the drawn perspective) */
+  var PIN_SLOTS = [];   // (the guests' slots: drawn as any bird, apart from the ring)
+  function pinSlot(i) {
+    while (PIN_SLOTS.length <= i) PIN_SLOTS.push({ key: 777 + PIN_SLOTS.length, busy: true, on: true, d: null, kind: 'gull', P16: new Float64Array(48), X16: new Float64Array(48), D: new Float32Array(32), body: new Float64Array(3), nb: new Float64Array(3), fw: new Float64Array(3), lw3: new Float64Array(3), vw: new Float64Array(3), aw: new Float64Array(3),
+      roll: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), hold: 1, cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 });
+    return PIN_SLOTS[i];
+  }
   var GSLOT = [], GHALO = 1, GLOWX = 0;
   function guestBird(g, s, C, dt, L, tt) {
     var kind = g.kind, i;
@@ -548,7 +553,6 @@ var NAME_PERCH = {
       var A = guestBird(g, s, C, dt, L, tr - g.t0);
       if (!A) continue;
       packBird(nB, s, A.op, 1e5, false, N, g.P.kind === 'pointer' ? s.haloE : Math.min(s.haloE, GHALO), 1, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
-      if (DUMP) { var db = dumpBird({ id: g.id, kind: 'guest', m: [] }, {}, s, tr - g.t0, A.op); db.guest = { why: g.why, perch: g.spec.id || 'pointer', phase: A.phase, x: +g.last.x.toFixed(2), y: +g.last.y.toFixed(2), yaw: +A.yaw.toFixed(2), pitch: +A.pitch.toFixed(2), el: +A.el.toFixed(2), sp: +g.sp.toFixed(2), pts: g.P.pts.map(function (q) { return [+q[0].toFixed(2), +q[1].toFixed(2)]; }), ride: g.ride.slice(), vc: +g.vc.toFixed(2) }; DUMP.push(db); }
       nB++;
     }
     return nB;

@@ -10,15 +10,9 @@
      climbs back through the next bout, a bounding finch rises through its beats and falls through the bound, as
      before; the beat itself is posed from the wing's state (poseBird). BOUT_AHEAD: how far on a bout's end or the
      next one's start is looked for */
-  var BSt = { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, BA = { k: -1, a: 0, b: 0, pe: 0, n: 0 }, BOUT_AHEAD = 240;
+  var BA = { k: -1, a: 0, b: 0, pe: 0, n: 0 };
   /* where a bird is in its wing-beat at time t: its phase in [0, 1) (0 the top of the stroke) while in a bout, -1
      while it glides, -2 while a bounding bird falls with its wings shut */
-  function beat(m, t) {
-    var w = m.w;
-    if (!w || !w.wing) return -1;
-    var S = BW.state(w.wing, t, BSt);
-    return S.flap ? S.ph : w.bound ? -2 : -1;
-  }
   /* how far a bird is carried below its path by its wings (units of the air). A flap-glider sinks through each glide
      and climbs back through the next bout: its sink (in units of its reach, amp) eases toward 1 while it glides and
      toward 0 while it flaps, critically damped (SINK_W: 95 % of the way in 3 s, as the shape round's glide reached its
@@ -26,7 +20,6 @@
      (the shape round's rule read the glide's whole length ahead, which a measured schedule only knows by integrating
      the bird's day up to 200 s on). A bounding finch rises through its beats and falls through the bound, as before
      (its bouts a beat or two: looked for at most 10 s on) */
-  var SINK_W = 1.25;
   /* (life fix, L9) the glide's sink through the air: judge-bio1 found every glide flown level on a powered path. Now a
      bird sinks through each glide at GS_RATE m/s (6.1 deg at 13 m/s through the air) eased in over 1 / GS_K s, the
      rate falling off toward GS_MAX below its path (a long glide riding the evening's air: the sink 4.5-5.5 deg over a
