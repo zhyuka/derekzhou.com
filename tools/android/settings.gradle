@@ -1,0 +1,5 @@
+// tools/android: the Android lab (Firebase Test Lab), not part of the site's build. See README.md.
+pluginManagement { repositories { google(); mavenCentral() } }
+dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+rootProject.name = 'dz-android-lab'
+include ':app', ':lab'
