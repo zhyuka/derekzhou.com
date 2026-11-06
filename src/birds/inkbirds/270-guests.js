@@ -317,6 +317,7 @@
     var hx = C.r[0] * side * 0.85 + C.f[0] * 0.55, hz = C.r[2] * side * 0.85 + C.f[2] * 0.55;
     var P = lvMake('commute', px, py, pz, Math.atan2(hx, hz), skyCls(), ['single', 'gull', 1]);
     if (!P) return null;
+    var n0 = (W / 2) / VW.tanX * MPU / D; P.fadeS = [0.15 * n0, 0.33 * n0];   // (full ink where it was let go, and until it is three times as far: then gone by distance)
     P.flee = WB.climb * (ay < -0.2 ? 1 : 0.5); P.v0 = WB.v; P.st.v = WB.v; P.st.y0 = py; P.click = why === 'click'; P.why = why; P.role = 'flee';
     for (var q = 0, j = 0; q < slots.length && j < P.m.length; q++) if (!slots[q].busy) { slots[q].busy = true; P.m[j].s = slots[q]; dress(slots[q], P.m[j].d); j++; }
     P.id = 'p' + P.key; PLACES.push(P); STATS.lvMade = (STATS.lvMade || 0) + 1; lvExtend(P, LV_AHEAD);
