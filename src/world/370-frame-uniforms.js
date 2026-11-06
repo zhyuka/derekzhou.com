@@ -20,7 +20,6 @@
     if (u.uSalt) gl.uniform1ui(u.uSalt, V.salt);
     if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);
     if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (tod: the sky's own light)
-    if (u.uTwM) gl.uniform4fv(u.uTwM, SKYTWM);   // (tod fix3: the twilight's low mist, w04b_sky.js)
     if (u.uSunC) gl.uniform3fv(u.uSunC, L.sunC);
     if (u.uSky) gl.uniform3fv(u.uSky, L.skyFlat);
     if (u.uSkyE) gl.uniform4fv(u.uSkyE, L.skyE);

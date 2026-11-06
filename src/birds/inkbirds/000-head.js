@@ -27,8 +27,8 @@
    (birds3d, 2026-10-27) THE PAPER BIRDS. The ink is gone from the drawing: every bird is now a 3D cut-paper body with
    two wings hinged at the shoulder and the wrist (birdform.js, posed by birdpose.js), beating at its kind's real rate,
    its attitude physical (the body along its world velocity, rolled by the coordinated bank its own acceleration asks),
-   lit by the world's own light (white on blue, a grey tick on bright cloud, darker backlit; at night a light of its own
-   and a soft halo), drawn by one instanced pass of exact coverage (section "the paper"). The planner, the paths, the
+   lit by the world's own light (white on blue; at night a light of its own and a soft halo), drawn by one instanced
+   pass of exact coverage (section "the paper"). The planner, the paths, the
    beat's schedule, the tracker and the hooks below are the ink's, with the 3D boxes (measureBird3D), a side-on gate and
    the tattoo's view preferred, and three staged moments (section "the staging": S3, S1, S2). What the comments below
    say of the ink's drawing (its pen, the boil, the facing, the lens) describes round 1-3's ink, kept for the record.
