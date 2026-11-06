@@ -9,12 +9,11 @@
 //     Chrome (the reference), a phone Chrome, a WebKit phone, a GPU with half-float targets only and one with no float
 //     targets. Within a device every visit must compile the same programs with the same sources, byte for byte.
 //     Across devices the sources may differ only by #define lines just after "#version 300 es" (DEFS, per device).
-//  2. A deploy changes only the programs it edits. The reference device's programs are listed in a committed
-//     manifest (glsl_manifest.txt beside this file): each program's label and its two sources' hashes and lengths, and
-//     each device's count and defines. The manifest must be exactly what this run finds. So a change to any program's
-//     text must come with its manifest lines in the same commit. A shared GLSL chunk changes every line that includes
-//     it, and the diff says which programs a deploy makes every returning visitor compile again. Programs are matched
-//     by their hashes; the labels (the world's own program names, read where its source shows them) are for people.
+//  2. A deploy changes only the programs it edits. CI no longer holds this here (2026-11-06: no derived file is
+//     committed): the gate's census compares the base's build with the head's, and T2 names and reads back each changed
+//     program. --manifest/--write remain for a local look: the reference device's programs (each one's label and its
+//     two sources' hashes and lengths) and each device's count and defines, compared with or written to FILE.
+//     Programs are matched by their hashes; the labels (the world's own program names) are for people.
 //   node glsl_guard.js SITE_DIR [--manifest FILE] [--write FILE] [--selftest] [--json FILE] [--visits N] [--dump DIR]
 //   --manifest FILE  compare with that manifest (CI); --write FILE  write it (after a deliberate change, then commit it);
 //   --selftest  the guard's own proof: the same visits with a planted per-visit literal, a per-window literal and one

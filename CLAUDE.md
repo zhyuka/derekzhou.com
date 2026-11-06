@@ -46,7 +46,7 @@ tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
                start.mjs (the start file), plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
                one scope), gpu/ (the PC's T2/T3), birds/ (generators)
-test/          unit.mjs (pure code), shaders.mjs (golden shader texts),
+test/          unit.mjs (pure code), shaders.mjs (every shader compiles),
                golden/
 docs/          the full record, one file per area (below)
 .github/       validate.yml (every static check), gate.yml (T0/T1/T2 and the
@@ -72,9 +72,8 @@ one is committed to site/ (built-files-uncommitted).
    - `node tools/build.mjs --plain build/site`: the build CI checks.
    - `node --test test/unit.mjs` (about 10 s); after a deliberate change to
      what it pins, `node test/unit.mjs --write`.
-   - A shader changed: `node test/shaders.mjs build/site --write` and
-     `node .github/workflows/glsl_guard.js build/site --write
-     .github/workflows/glsl_manifest.txt`, committed with it.
+   - A shader changed: nothing derived to commit; the gate's census and
+     T2 compare the base's build with the head's.
    - The plan's spans changed: `node tools/plan.mjs --stamp`.
    - `node tools/build.mjs --check`: two builds the same bytes.
    - Every `run:` step of validate.yml, in `bash -eo pipefail` from the
