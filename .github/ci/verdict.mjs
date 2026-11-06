@@ -27,6 +27,9 @@ const v = {
   t1: { ran: result('t1') !== 'skipped', shards: shards.length, frames_identical: shards.length > 0 && shards.every((s) => s.frames_identical), null_ok: shards.every((s) => s.null_ok) },
   t2: { required: false, ran: false, frames_identical: null },
 };
+// T2's read-backs: only a DIFFER stops a merge (the owner, 2026-11-06: "frames decide"). A shader that was not read back
+// (bits_identical false, bits_differ false) is decided by the frames; T2's summary names it. An answer from before
+// bits_differ existed counts any not-identical read as a difference.
 // T2_CACHED: t2-probe found T2's answer for these two builds and this T2 code (gate.yml keeps it by them), so the 4090 was
 // not asked again; it counts as T2 having run, with that answer.
 let cached = null; try { cached = process.env.T2_CACHED ? JSON.parse(process.env.T2_CACHED) : null; } catch { cached = null; }
@@ -36,17 +39,17 @@ if (needs.t2) {
   v.t2.required = !!cached || result('t2') !== 'skipped';
   v.t2.ran = v.t2.required;
   v.t2.cached = !!cached;
-  if (t2) Object.assign(v.t2, { frames_identical: t2.frames_identical === 'true', glsl_changed: t2.glsl_changed === 'true', bits_identical: t2.bits_identical === 'true', csp_ok: t2.csp_ok === 'true', stall_ok: t2.stall_ok === 'true' ? true : t2.stall_ok === 'false' ? false : null });   // (stall_ok: lane D's stall visits, #47; null where gpu.yml does not report it)
+  if (t2) Object.assign(v.t2, { frames_identical: t2.frames_identical === 'true', glsl_changed: t2.glsl_changed === 'true', bits_identical: t2.bits_identical === 'true', bits_differ: t2.bits_differ === 'true' ? true : t2.bits_differ === 'false' ? false : t2.bits_identical !== 'true', csp_ok: t2.csp_ok === 'true', stall_ok: t2.stall_ok === 'true' ? true : t2.stall_ok === 'false' ? false : null });   // (stall_ok: lane D's stall visits, #47; null where gpu.yml does not report it)
 }
 v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!c.base;
 const expectShards = +(process.env.T1_SHARDS || 4);
 v.input_changed = c.input_changed === 'true';
 if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
 else if (!v.site_changed) { v.frames_identical = true; v.reason = 'the build (what is served) is byte for byte the base\'s'; }
-else if (!v.t1.ran && v.t2.ran) { v.frames_identical = !!(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || v.t2.bits_identical)); v.reason = v.frames_identical ? 'T2 (the RTX 4090; T1 skipped while T2 runs): every frame the base\'s' : 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
+else if (!v.t1.ran && v.t2.ran) { v.frames_identical = !!(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || !v.t2.bits_differ)); v.reason = v.frames_identical ? 'T2 (the RTX 4090; T1 skipped while T2 runs): every frame the base\'s' : 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
 else if (!v.t1.ran || v.t1.shards !== expectShards) { v.frames_identical = false; v.reason = `T1 did not report (${v.t1.shards} of ${expectShards} shards)`; }
 else if (!v.t1.frames_identical) { v.frames_identical = false; v.reason = 'T1: frames, DOM or a still changed'; }
-else if (v.t2.ran && !(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || v.t2.bits_identical))) { v.frames_identical = false; v.reason = 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
+else if (v.t2.ran && !(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || !v.t2.bits_differ))) { v.frames_identical = false; v.reason = 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
 else { v.frames_identical = true; v.reason = 'T1' + (v.t2.ran ? ' and T2' : '') + ': every frame, DOM and still the base\'s'; }
 
 fs.writeFileSync(outFile || 'verdict.json', JSON.stringify(v, null, 1));

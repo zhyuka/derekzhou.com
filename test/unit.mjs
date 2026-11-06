@@ -13,6 +13,7 @@
 //             same plan and the same flight from the same seed, and their hashes (golden)
 //   plan      the plan's worker (built from the world's spans: tools/build.mjs --plain) against the page's own plan:
 //             answered, adopted, then flown, hash for hash
+//   verdict   .github/ci/verdict.mjs on T2's read-backs: identical, unread only (the frames decide) and differ
 // An anchor not found fails with its text: the code moved, and the test's anchor follows it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -250,4 +251,21 @@ test('glslmin: the same program, token for token', async () => {
   // a file whose text a script reads at run time is not minified (the land split finds D_Hd by its text)
   const { KEEP } = await import(new URL('../tools/glslmin.mjs', import.meta.url));
   assert.ok(KEEP.has('dunes-glsl') && WORLD.includes("g.indexOf('vec3 D_Hd(vec2 p) {')"), 'the land split still reads dunes-glsl\'s text: keep it in KEEP');
+});
+
+test('verdict: T2 read-backs, only a DIFFER stops a merge (the owner: "frames decide")', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verdict-'));
+  const run = (bits) => {
+    const needs = { static: { result: 'success' }, plan: { result: 'success', outputs: { base: 'abc', site_changed: 'true', glsl_changed: 'true' } },
+      t1: { result: 'skipped' }, t2: { result: 'success', outputs: Object.assign({ frames_identical: 'true', glsl_changed: 'true', csp_ok: 'true' }, bits) } };
+    const out = path.join(dir, 'v.json');
+    try { execFileSync(process.execPath, [fileURLToPath(new URL('../.github/ci/verdict.mjs', import.meta.url)), dir, out], { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), stdio: 'pipe' }); } catch {}
+    return JSON.parse(fs.readFileSync(out, 'utf8'));
+  };
+  assert.equal(run({ bits_identical: 'true', bits_differ: 'false' }).frames_identical, true, 'identical');
+  assert.equal(run({ bits_identical: 'false', bits_differ: 'false' }).frames_identical, true, 'unread only: the frames decide');
+  assert.equal(run({ bits_identical: 'false', bits_differ: 'true' }).frames_identical, false, 'a read that differs goes to the owner');
+  assert.equal(run({ bits_identical: 'false' }).frames_identical, false, 'an answer from before bits_differ: not identical counts as differ');
+  assert.equal(run({ bits_identical: 'true', bits_differ: 'false', frames_identical: 'false' }).frames_identical, false, 'a changed frame goes to the owner');
+  fs.rmSync(dir, { recursive: true, force: true });
 });

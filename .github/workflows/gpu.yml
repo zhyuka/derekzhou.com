@@ -14,7 +14,7 @@
 #      back). About half a minute.
 # Triggers: called by the gate workflow (workflow_call, with the base) when its shader census reports glsl_changed or
 # the world's, the realms' or the birds' served JS changed; a PR labelled `perf` (T3 only); nightly; by hand. Outputs
-# for the merge bot: frames_identical, glsl_changed, bits_identical, csp_ok.
+# for the merge bot: frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok.
 # The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
 # that brings tools/gpu for the first time runs its own. What they render is base's and head's builds (site/ holds only
 # sources): the gate's `served` artifact when the gate calls this, else the `served` job's here (GitHub's Ubuntu
@@ -40,6 +40,7 @@ on:
       frames_identical: { value: '${{ jobs.t2.outputs.frames_identical }}' }
       glsl_changed: { value: '${{ jobs.t2.outputs.glsl_changed }}' }
       bits_identical: { value: '${{ jobs.t2.outputs.bits_identical }}' }
+      bits_differ: { value: '${{ jobs.t2.outputs.bits_differ }}' }
       stall_ok: { value: '${{ jobs.t2.outputs.stall_ok }}' }
       csp_ok: { value: '${{ jobs.t2.outputs.csp_ok }}' }
 permissions:
@@ -73,6 +74,7 @@ jobs:
       frames_identical: ${{ steps.t2.outputs.frames_identical }}
       glsl_changed: ${{ steps.t2.outputs.glsl_changed }}
       bits_identical: ${{ steps.t2.outputs.bits_identical }}
+      bits_differ: ${{ steps.t2.outputs.bits_differ }}
       stall_ok: ${{ steps.stall.outputs.stall_ok }}
       csp_ok: ${{ steps.t2.outputs.csp_ok }}
     steps:
