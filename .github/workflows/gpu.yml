@@ -56,12 +56,14 @@ env:
   PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0): drives the machine's own Chrome (channel 'chrome')
 jobs:
   served:
-    if: inputs.base == ''   # (called by the gate, with a base: the gate's plan job made the `served` artifact already)
+    # (called by the gate, with a base: the gate's plan job made the `served` artifact already; a label other than
+    # `perf`, such as the bot's needs-owner, runs nothing here)
+    if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf')
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0, persist-credentials: false }
+        with: { fetch-depth: 0 }   # (credentials kept, as the gate's plan job: served.sh fetches the base's objects)
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
