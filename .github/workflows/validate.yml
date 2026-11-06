@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     steps:
       - uses: actions/checkout@v4
 
