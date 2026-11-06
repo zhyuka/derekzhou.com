@@ -108,8 +108,8 @@
   var G_FIRST = 8, G_WORD_MEAN = 40, G_WORD_MIN = 20, G_WORD_MAX = 30, G_FLUSH_T = 120, G_REST = 2.0;
   var GU = { trust: 1, flushHold: 0, list: [], k: 0, nWord: 0, nPtr: 0, lastWord: -1e9, nextWord: G_FIRST, lastPtr: -1e9, flushAt: -1e9, flushN: 0, firstRest: true, log: [], force: null, on: true,   /* (the perched guests on the words; the pointer's perch needs the hover listener, which the world does not have: its HOVER stays gone, so it never comes) */
     p: { x: -1, y: -1, n: 0, gone: true, down: false, steer: false }, px: -1, py: -1, vx: 0, vy: 0, sp: 0, restT: 0, restX: 0, restY: 0, restUsed: false, seenN: -1 };
+  function gLog(e) { GU.log.push(e); if (GU.log.length > 32) GU.log.shift(); }   // (the last few events, bounded)
   function guestRng() { return vstream(8000 + GU.k++); }
-  var GDEV = {};   // (dev, the perch lab: overrides of the perched look, set only through the dev hook; empty in production)
   var GTMP = { x: 0, y: 0, n: 0, z: 0 }, GMEAN = {}, GOPT = { k: 1, D: undefined }, GBODY = new Float64Array(3);
   function gss(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
   function gmix(o, a, b, w) { for (var i = 0; i < 22; i++) o[i] = a[i] + (b[i] - a[i]) * w; return o; }
@@ -134,7 +134,7 @@
   function surfY(pts, x) { if (x < pts[0][0] || x > pts[pts.length - 1][0]) return NaN; for (var i = 1; i < pts.length; i++) if (x <= pts[i][0]) { var w = (x - pts[i - 1][0]) / Math.max(1e-6, pts[i][0] - pts[i - 1][0]); return pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * w; } return NaN; }
   function surfTop(pts) { var y = 1e9; for (var i = 0; i < pts.length; i++) y = Math.min(y, pts[i][1]); return y; }
   /* the guest's size: its kind's span at nearness 1 times the perch's scale (and 1.5 on a phone if asked) */
-  function gSpanPx(g) { return SPAN * view * (SORTS[g.kind] ? SORTS[g.kind].size : 1) * (GDEV.scale || PERCH.scale); }
+  function gSpanPx(g) { return SPAN * view * (SORTS[g.kind] ? SORTS[g.kind].size : 1) * PERCH.scale; }
   /* the plan, whole, when committed: times (s from g.t0) and places (CSS px).
      (fix) THE APPROACH, as birds land (judge-eye1: a level slide at a constant pace, stopped dead by the flare): flapping
      in (a Hermite from beyond the edge to G), then a descending glide G -> the perch that slows the whole way, its pace
@@ -168,6 +168,10 @@
       tries.push([g.Q[0] + ux * dE, g.Q[1] + uy * dE, dE * 1.12 / vc + Math.abs(DA[i]) / 12]);
     }
     tries.sort(function (a, b) { return a[2] - b[2]; });
+    /* (one bird, the owner 2026-11-06: "they shouldnt be a different type") a lone gull of the living sky in view comes
+       down to land: the way in starts where it flies now, at its own size, growing to its perched size as it nears */
+    var fl = gFlyer(sp);
+    if (fl) tries.unshift([fl.x, fl.y, 0]);
     for (i = 0; i < tries.length; i++) {
       g.S = [tries[i][0], tries[i][1]];
       var dx = g.Q[0] - g.S[0], dy = g.Q[1] - g.S[1], L = Math.sqrt(dx * dx + dy * dy);
@@ -176,6 +180,8 @@
       if (gPathClear(g, P, B)) break;
     }
     if (i === tries.length) return false;
+    g.from = fl && i === 0 ? fl : null;
+    if (g.from) { g.sp0 = g.from.sp; g.Ti = Math.max(g.Ti, 1.2); g.vg = g.L / g.Ti; g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve); }
     g.tF = g.Ti + g.Tr - 0.6; g.tT = g.Ti + g.Tr;   // (the flare: the last 0.6 s of the glide)
     /* and nobody coming to its perch while it would sit there (the ordinary birds' pace carried on 8 s past touch-down) */
     for (var k2 = g.tT; k2 <= g.tT + 8; k2 += 0.5) if (!gOrdClearAt(g.px0, g.py0, k2, 3 * sp)) return false;
@@ -198,10 +204,10 @@
      the world there (worldBird: from the world point under the click, up and away to the click's side, the world's own
      from then on). At most G_CLICK_MAX in the air at once; the perches' own guests are not held up by them */
   var G_CLICK_MAX = 4, GCLK = [], G_TO_WORLD = 0.3;   // (s into its leap: handed to the world)
-  function gBusy() { for (var i = 0; i < GU.list.length; i++) if (!GU.list[i].click) return true; return false; }
+  function gBusy() { for (var i = 0; i < GU.list.length; i++) return true; return false; }
   function gClick(x, y) {
     var nC = 0, i; for (i = 0; i < PLACES.length; i++) if (PLACES[i].click) nC++;
-    if (nC >= G_CLICK_MAX || !(x >= 0 && y >= 0 && x <= W && y <= H)) { GU.log.push({ t: +t.toFixed(2), ev: 'click-skip', n: nC }); return false; }
+    if (nC >= G_CLICK_MAX || !(x >= 0 && y >= 0 && x <= W && y <= H)) { gLog({ t: +t.toFixed(2), ev: 'click-skip', n: nC }); return false; }
     if (PTR.click) { gDisturb(x, y); shiverAt(x, y); }   // (pointer: the click's gull flushes a perched bird near it, and shivers the flights by it)
     var r = guestRng(), a = -Math.PI / 2 + (x < W / 2 ? -1 : 1) * (0.25 + 0.7 * r()) * (r() < 0.8 ? 1 : -1);   // (up, leaning out to its side, now and then across)
     return !!worldBird(x, y, gSpanPx({ kind: 'gull' }) * G_PTR_K, Math.cos(a), Math.sin(a), 'click');
@@ -246,12 +252,12 @@
     var k = GU.list.indexOf(g0); if (k >= 0) GU.list.splice(k, 1);
     GU.list.push(g); GU.nPtr++; GU.lastPtr = t; GU.restUsed = true;
     GU.trust = Math.max(PF.trustMin, GU.trust * PF.trustIn);
-    GU.log.push({ t: +t.toFixed(2), ev: 'hop', from: g0.id, x: +p.x.toFixed(1), y: +p.y.toFixed(1), Ti: +g.Ti.toFixed(2), Tr: +g.Tr.toFixed(2) });
+    gLog({ t: +t.toFixed(2), ev: 'hop', from: g0.id, x: +p.x.toFixed(1), y: +p.y.toFixed(1), Ti: +g.Ti.toFixed(2), Tr: +g.Tr.toFixed(2) });
   }
   /* (pointer) the click's gull flushes a perched guest near it (within 60 px or four of its spans) */
   function gDisturb(x, y) {
     for (var i = 0; i < GU.list.length; i++) {
-      var g = GU.list[i]; if (g.click || g.phase !== 'sit' || g.leaving) continue;
+      var g = GU.list[i]; if (g.phase !== 'sit' || g.leaving) continue;
       var dx = x - g.px0, dy = y - g.py0;
       if (Math.sqrt(dx * dx + dy * dy) < Math.max(60, 4 * g.sp)) { g.fastCrouch = true; gLeave(g, 'flush', dx, dy); GU.flushAt = t; GU.flushHold = PF.back[0] + (PF.back[1] - PF.back[0]) * g.r(); }
     }
@@ -283,7 +289,7 @@
         for (var q = 0, at = t; q < SHM.length; q++) { SHM[q][1].shT = at; SHM[q][1].shS = SHM[q][2] >= x ? 1 : -1; at += SHIV.per[0] + (SHIV.per[1] - SHIV.per[0]) * SHR(); }
         F.shN = (F.shN || 0) + 1;
         if (F.shN >= SHIV.n) { F.shN = 0; F.shNext = t + SHIV.rest; } else F.shNext = t + SHIV.gap;
-        GU.log.push({ t: +t.toFixed(2), ev: 'shiver', id: F.id || F.key, n: SHM.length });
+        gLog({ t: +t.toFixed(2), ev: 'shiver', id: F.id || F.key, n: SHM.length });
       }
     }
   }
@@ -320,7 +326,7 @@
     P.flee = WB.climb * (ay < -0.2 ? 1 : 0.5); P.v0 = WB.v; P.st.v = WB.v; P.st.y0 = py; P.click = why === 'click'; P.why = why; P.role = 'flee';
     for (var q = 0, j = 0; q < slots.length && j < P.m.length; q++) if (!slots[q].busy) { slots[q].busy = true; P.m[j].s = slots[q]; dress(slots[q], P.m[j].d); j++; }
     P.id = 'p' + P.key; PLACES.push(P); STATS.lvMade = (STATS.lvMade || 0) + 1; lvExtend(P, LV_AHEAD);
-    GU.log.push({ t: +t.toFixed(2), ev: 'world-bird', why: why, x: +x.toFixed(1), y: +y.toFixed(1), d: +D.toFixed(1) });
+    gLog({ t: +t.toFixed(2), ev: 'world-bird', why: why, x: +x.toFixed(1), y: +y.toFixed(1), d: +D.toFixed(1) });
     return P;
   }
   function gPathClear(g, P, B) {
@@ -401,6 +407,17 @@
     GWO.best = far;
     return best || far || [x0 < W / 2 ? -1 : 1, 0];
   }
+  function gFlyer(sp) {   // (a lone living-sky gull drawn in view, well inside the window, not one let go by the visitor)
+    var best = null;
+    for (var i = 0; i < PLACES.length; i++) {
+      var F = PLACES[i], m = F.m && F.m.length === 1 ? F.m[0] : null, sl = m && m.s;
+      if (!sl || !sl.on || F.gone || F.why || F.sort !== 'gull' || !(sl.spanPx > 0)) continue;
+      var cx = (sl.bx0 + sl.bx1) / 2, cy = (sl.by0 + sl.by1) / 2, k = VW.outW / Math.max(1, W), spx = sl.spanPx / k;
+      if (cx < 40 || cx > W - 40 || cy < 40 || cy > H - 40 || spx < 0.25 * sp || spx > sp) continue;
+      if (!best || spx > best.sp) best = { F: F, x: cx, y: cy, sp: spx };
+    }
+    return best;
+  }
   function gStart(spec, why) {
     if (gBusy()) return false;
     var cls = skyCls(), r = guestRng(), kind;
@@ -408,9 +425,10 @@
     if (spec.kind) kind = spec.kind;
     spec.gkind = kind; var P = perchOf(spec); if (!P) return false;
     var g = { r: r, kind: kind, why: why, spec: spec, t0: t, phase: 'in', id: 'g' + GU.k, ph0: r(), rate: BW.LB.rate(kind, RATE_MODE), ride: [0, 0], leaveAt: -1, away: [0, -1], P: P };
-    if (!gPlan(g, P) && (P.end || (P.dir = -P.dir, !gPlan(g, P)))) { GU.log.push({ t: +t.toFixed(2), ev: 'noroom', why: why, id: spec.id || 'pointer' }); return false; }   // (perch lane)
+    if (!gPlan(g, P) && (P.end || (P.dir = -P.dir, !gPlan(g, P)))) { gLog({ t: +t.toFixed(2), ev: 'noroom', why: why, id: spec.id || 'pointer' }); return false; }   // (perch lane)
     GU.list.push(g);
-    GU.log.push({ t: +t.toFixed(2), ev: 'start', why: why, id: spec.id || 'pointer', kind: kind, Ti: +g.Ti.toFixed(2), Tr: +g.Tr.toFixed(2), sit: +g.sit.toFixed(1), x: +P.x.toFixed(1), y: +g.py0.toFixed(1) });
+    if (g.from) { landPlace(g.from.F); gLog({ t: +t.toFixed(2), ev: 'from-flight', id: g.from.F.id || g.from.F.key, sp0: +g.sp0.toFixed(1) }); }   // (the same gull: its flight ends as it turns down to land)
+    gLog({ t: +t.toFixed(2), ev: 'start', why: why, id: spec.id || 'pointer', kind: kind, Ti: +g.Ti.toFixed(2), Tr: +g.Tr.toFixed(2), sit: +g.sit.toFixed(1), x: +P.x.toFixed(1), y: +g.py0.toFixed(1) });
     return true;
   }
   function gLeave(g, why, ax, ay) {   /* leave now: the crouch, the leap up and away (from the words' centre or the pointer's motion) */
@@ -419,7 +437,7 @@
     if (g.phase === 'in') {   // (before touch-down: a fly-by, on along its way and up out of the window: never turning back)
       gPosR(g, tt, GTMP); gPosR(g, tt + 0.1, GTMP2);
       var w0 = gWayOut(g, GTMP.x, GTMP.y, GTMP2.x - GTMP.x, GTMP2.y - GTMP.y, false);
-      g.phase = 'by'; g.byT = tt; g.byX = GTMP.x; g.byY = GTMP.y; g.byU = w0; g.byA0 = Math.atan2(GTMP2.y - GTMP.y, GTMP2.x - GTMP.x); g.byV0 = Math.sqrt((GTMP2.x - GTMP.x) * (GTMP2.x - GTMP.x) + (GTMP2.y - GTMP.y) * (GTMP2.y - GTMP.y)) / 0.1; GU.log.push({ t: +t.toFixed(2), ev: 'flyby', why: why, way: [+w0[0].toFixed(2), +w0[1].toFixed(2)] });
+      g.phase = 'by'; g.byT = tt; g.byX = GTMP.x; g.byY = GTMP.y; g.byU = w0; g.byA0 = Math.atan2(GTMP2.y - GTMP.y, GTMP2.x - GTMP.x); g.byV0 = Math.sqrt((GTMP2.x - GTMP.x) * (GTMP2.x - GTMP.x) + (GTMP2.y - GTMP.y) * (GTMP2.y - GTMP.y)) / 0.1; gLog({ t: +t.toFixed(2), ev: 'flyby', why: why, way: [+w0[0].toFixed(2), +w0[1].toFixed(2)] });
       return;
     }
     var ptrGo = g.P.kind === 'pointer' && why !== 'done'; if (ptrGo) g.noCrouch = true;   // (perch lane: judge-eye2's 0.45 s hang in the air)
@@ -444,17 +462,16 @@
       if (od >= 2 * g.sp && sc > bs) { bs = sc; best = [ux, uy]; }
     }
     /* (fix) its own time up and no way clear of the birds: it sits on a while (at most 30 s more), and looks again */
-    if (!best && why === 'done' && (g.post || 0) < 20) { g.post = (g.post || 0) + 1; g.tO = tt + 1.5; GU.log.push({ t: +t.toFixed(2), ev: 'sit-on', n: g.post }); return; }
+    if (!best && why === 'done' && (g.post || 0) < 20) { g.post = (g.post || 0) + 1; g.tO = tt + 1.5; gLog({ t: +t.toFixed(2), ev: 'sit-on', n: g.post }); return; }
     if (!best) best = farL;
     g.leaving = true; g.tO = tO1; g.tE = g.tO + 60; g.leaveWhy = why;
     if (best) { cx = best[0]; cy = best[1]; } else { cx = g.px0 < W / 2 ? -1 : 1; cy = 0; }   // (no way up is clear: level, out by the nearer side)
     g.away = [cx, cy];
-    GU.log.push({ t: +t.toFixed(2), ev: 'leave', why: why, away: [+cx.toFixed(2), +cy.toFixed(2)], sat: +(tt - g.tT).toFixed(2) });
+    gLog({ t: +t.toFixed(2), ev: 'leave', why: why, away: [+cx.toFixed(2), +cy.toFixed(2)], sat: +(tt - g.tT).toFixed(2) });
   }
   /* each step: the pointer read, the guests' clocks, the schedule */
   function guestStep(dt) {
-    if ((!GU.on && GU.clickOn === false) || FORCED || HOST.reduced()) { if (GU.list.length) GU.list.length = 0; return; }
-    if (!GU.on) for (i = GU.list.length - 1; i >= 0; i--) if (!GU.list[i].click) GU.list.splice(i, 1);   // (perch lane: the perches off, the click's birds on)
+    if (FORCED || HOST.reduced()) { if (GU.list.length) GU.list.length = 0; return; }
     var p = GU.p, i;
     if (HOST.pointer) HOST.pointer(p); else p.gone = true;
     gOrdUpdate();
@@ -474,14 +491,14 @@
     /* the guests */
     for (i = GU.list.length - 1; i >= 0; i--) {
       var g = GU.list[i], tt = t - g.t0;
-      if (g.phase === 'in' && tt >= g.tT) { g.phase = 'sit'; GU.log.push({ t: +t.toFixed(2), ev: 'touch', id: g.spec.id || 'pointer', after: +(t - (g.restAt || g.t0)).toFixed(2) }); }
+      if (g.phase === 'in' && tt >= g.tT) { g.phase = 'sit'; gLog({ t: +t.toFixed(2), ev: 'touch', id: g.spec.id || 'pointer', after: +(t - (g.restAt || g.t0)).toFixed(2) }); }
       if (g.phase === 'sit' && !g.leaving && tt >= g.tO - 0.3) gLeave(g, 'done');   // (its own time up: the way out chosen as for any leave)
       if (g.phase === 'sit' && tt >= g.tO) g.phase = 'off';
       if (!g.world && g.last && ((g.leaving && tt - g.tO > G_TO_WORLD) || (g.phase === 'by' && tt - g.byT > G_TO_WORLD) || (g.phase === 'in' && p.steer))) {   // (the owner, 2026-11-06: into the world, never glued to the window)
         var aw2 = g.leaving ? g.away : g.phase === 'by' ? [Math.cos(g.byA0 || 0), Math.sin(g.byA0 || 0) - 0.3] : [g.dir || 1, -0.5];
         if (worldBird(g.last.x, g.last.y, g.sp, aw2[0], aw2[1], 'leave:' + (g.leaveWhy || g.why))) { g.world = true; GU.list.splice(i, 1); continue; }
       }
-      if ((g.phase === 'off' && tt >= g.tE) || (g.phase === 'by' && tt - g.byT > 40) || g.done) { GU.list.splice(i, 1); GU.log.push({ t: +t.toFixed(2), ev: 'done', id: g.id }); continue; }
+      if ((g.phase === 'off' && tt >= g.tE) || (g.phase === 'by' && tt - g.byT > 40) || g.done) { GU.list.splice(i, 1); gLog({ t: +t.toFixed(2), ev: 'done', id: g.id }); continue; }
       if (g.why === 'pointer') {
         var mdx = p.x - g.spec.x, mdy = p.y - g.spec.y, jerk = GU.sp > PJ.jerk;
         if ((g.phase === 'in' || g.phase === 'sit') && (p.gone || p.down || p.steer || jerk)) {
@@ -490,7 +507,7 @@
         } else if (g.phase === 'in' || g.phase === 'sit') {   // (the pointer moving slowly: it rides along, gently)
           var kr = 1 - Math.exp(-dt / PJ.rideTau); g.ride[0] += (mdx - g.ride[0]) * kr; g.ride[1] += (mdy - g.ride[1]) * kr;
         }
-      } else if (g.phase === 'in' && !g.click && PTR.avoid && !p.gone && p.x >= 0 && !g.leaving && GU.sp > PJ.slow && Math.abs(p.x - g.T[0]) + Math.abs(p.y - g.T[1]) < 2 * PF.flush * g.sp) {
+      } else if (g.phase === 'in' && PTR.avoid && !p.gone && p.x >= 0 && !g.leaving && GU.sp > PJ.slow && Math.abs(p.x - g.T[0]) + Math.abs(p.y - g.T[1]) < 2 * PF.flush * g.sp) {
         gLeave(g, 'moved');   // (pointer: the pointer at its perch: it goes on by, on its way and up out of the window)
       } else if (g.phase === 'sit' || g.phase === 'in') {
         /* a perched guest on the words: it notices a pointer coming, weighs it, and flushes (gWeigh) */
@@ -499,9 +516,8 @@
       }
       if (g.phase === 'sit' && !g.leaving && tt - g.tT > 1 && !gOrdClearAt(g.px0, g.py0, 0.8, 1.2 * g.sp)) gLeave(g, 'crowd');   // (fix: only a bird about to come onto it: its approach looked ahead for one)
     }
-    if (!GU.on) return;   // (perch lane: below, the perches' own schedule)
     /* P1: a resting pointer in open sky gets a gull (or a crow) */
-    if (PTR.perch && resting && !GU.restUsed && !gBusy() && t >= PJ.first && t - GU.lastPtr >= (GU.ptrGap || PJ.gap[0]) && GU.nPtr < PJ.max && skyCls() !== 'none' && openSkyAt(p.x, p.y)) {
+    if (PTR.perch && resting && !GU.restUsed && !gBusy() && t >= PJ.first && t - GU.lastPtr >= (GU.ptrGap || PJ.gap[0]) && GU.nPtr < PJ.max && openSkyAt(p.x, p.y)) {
       var rr = vstream(7900 + GU.nPtr * 7 + Math.floor(GU.restT));
       if (!(t < GU.ptrRetry)) {
         if (gStart({ type: 'pointer', x: p.x, y: p.y }, 'pointer')) { GU.restUsed = true; GU.nPtr++; GU.lastPtr = t; GU.ptrGap = PJ.gap[0] + (PJ.gap[1] - PJ.gap[0]) * rr(); GU.list[GU.list.length - 1].restAt = GU.restT; }
@@ -510,7 +526,7 @@
     }
     /* W1, W2: the word play's own clock */
     if (GU.force && !gBusy()) { var fs = GU.force; GU.force = null; if (fs.type === 'any') fs = gPickInk(guestRng(), p) || fs; if (fs.type !== 'any' && gStart(fs, fs.type)) { GU.nWord++; GU.lastWord = t; } else if ((fs.tries = (fs.tries || 0) + 1) < 40) GU.force = fs; }
-    if (!gBusy() && t >= GU.nextWord && GU.nWord < G_WORD_MAX && t - GU.flushAt >= (GU.flushHold || G_FLUSH_T) && t - GU.lastWord >= G_WORD_MIN * (W < 700 ? 1.6 : 1) && skyCls() !== 'none') {   // (perch lane: wider on a phone; a click's bird does not hold it up)
+    if (!gBusy() && t >= GU.nextWord && GU.nWord < G_WORD_MAX && t - GU.flushAt >= (GU.flushHold || G_FLUSH_T) && t - GU.lastWord >= G_WORD_MIN * (W < 700 ? 1.6 : 1)) {   // (perch lane: wider on a phone; a click's bird does not hold it up)
       var rw = vstream(7800 + GU.nWord * 13 + GU.k), spec;
       GU.nextWord = t + Math.max(G_WORD_MIN, -G_WORD_MEAN * Math.log(1 - 0.999 * rw()));
       if (!(resting && !p.gone)) {
@@ -518,7 +534,7 @@
         if (!spec) { GU.nextWord = t + 5; spec = null; }
         if (spec && gStart(spec, spec.type)) {
           var gn = GU.list[GU.list.length - 1];
-          if (PTR.avoid && !p.gone && p.x >= 0 && Math.sqrt((p.x - gn.T[0]) * (p.x - gn.T[0]) + (p.y - gn.T[1]) * (p.y - gn.T[1])) < PF.alert * gn.sp) { GU.list.pop(); GU.log.push({ t: +t.toFixed(2), ev: 'perch-by-pointer', id: spec.id }); GU.nextWord = t + 10; }   // (pointer: not under the pointer; tried again soon)
+          if (PTR.avoid && !p.gone && p.x >= 0 && Math.sqrt((p.x - gn.T[0]) * (p.x - gn.T[0]) + (p.y - gn.T[1]) * (p.y - gn.T[1])) < PF.alert * gn.sp) { GU.list.pop(); gLog({ t: +t.toFixed(2), ev: 'perch-by-pointer', id: spec.id }); GU.nextWord = t + 10; }   // (pointer: not under the pointer; tried again soon)
           else { GU.nWord++; GU.lastWord = t; }
         } else if (spec) GU.nextWord = t + 6;   // (no room now: tried again soon)
       }
@@ -601,11 +617,9 @@
         else { var sk = 7 * wa * Math.sin(TAU * 7.5 * ua); GP22[0] += sk; GP22[NP] += sk; GP22[4] -= 0.7 * sk; GP22[NP + 4] -= 0.7 * sk; }   // (a quick shake)
       }
       o.x += g.P.kind === 'link' ? 0 : clamp(shx, -0.04 * g.sp, 0.04 * g.sp); o.yaw += g.face * clamp(shy, -18, 18);
-      if (GDEV.p22) for (j = 0; j < 22; j++) GP22[j] = GDEV.p22[j];
-      if (GDEV.yaw !== undefined) o.yaw = g.face * GDEV.yaw;
-      // (perch lane: its breath, a slow sway; GDEV.lp: the link guest pitched down, a lab knob: level it sat down among the letters)
+      // (perch lane: its breath, a slow sway)
       var aw = g.alertW || 0;   // (pointer: it has noticed the pointer: its breath stilled, its head up)
-      o.pitch = K0.pitch + (GDEV.pitch || 0) + (1 - aw) * (2.6 * Math.sin(TAU * sitT / 3.7 + 1.3) + 1.4 * Math.sin(TAU * sitT / 1.9)) + 6 * aw - (g.P.kind === 'link' ? (GDEV.lp !== undefined ? GDEV.lp : 0) : 0); o.el = GDEV.el !== undefined ? GDEV.el : PERCH.el; o.lift = g.P.kind === 'name' && Math.max(VW.ddpr || 0, VW.bdpr || 0, VW.dpr || 1) >= 2 ? 0.5 : 0; o.fixW = 1;   // (fix: 1.2 px over a stroke or the underline, its ink off the letters' ink: L14)
+      o.pitch = K0.pitch + (1 - aw) * (2.6 * Math.sin(TAU * sitT / 3.7 + 1.3) + 1.4 * Math.sin(TAU * sitT / 1.9)) + 6 * aw; o.el = PERCH.el; o.lift = g.P.kind === 'name' && Math.max(VW.ddpr || 0, VW.bdpr || 0, VW.dpr || 1) >= 2 ? 0.5 : 0; o.fixW = 1;   // (fix: 1.2 px over a stroke or the underline, its ink off the letters' ink: L14)
       o.phase = sitT < 0.25 ? 'touch' : sitT < 1.2 ? 'settle' : 'sit';
       return o;
     }
@@ -632,12 +646,14 @@
       roll: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), hold: 1, cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 });
     return PIN_SLOTS[i];
   }
-  var GSLOT = [], GHALO = 1, GLOWX = 0, GFOOT = [], GFP = [];
+  var GSLOT = [], GLOWX = 0, GFP = [];
   function guestBird(g, s, C, dt, L, tt) {
     var kind = g.kind, i;
     s.kind = kind; if (!s.X46) slotArrays(s);
     var spm = B_SPAN * (SORTS[kind] ? SORTS[kind].size : 1) * MODEL_K;
-    g.dist = (spm / MODEL_K) * (W / 2) / (VW.tanX * gSpanPx(g) * (g.P.sk || 1));
+    var spNow = gSpanPx(g) * (g.P.sk || 1);
+    if (g.sp0 && tt < g.Ti) spNow = g.sp0 + (spNow - g.sp0) * gss(tt / g.Ti);   // (a gull from the sky: its own size where it turned down, nearing)
+    g.dist = (spm / MODEL_K) * (W / 2) / (VW.tanX * spNow);
     var A = guestAt(g, tt, GA);
     if (!(A.op > 0.003)) return null;
     /* the attitude: forward from the camera's forward, yawed about its up, pitched, rolled; then tilted toward the eye */
@@ -681,11 +697,10 @@
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (sy > lowAll) GLOWX = sx; GFP.push(sx, sy); lowAll = Math.max(lowAll, sy); sx0 = Math.min(sx0, sx); sx1 = Math.max(sx1, sx);
         if (ptr) continue;
-        var sfc = surfY(g.P.pts, sx - g.ride[0]); if (sfc === sfc) { anyOn = true; worst = Math.max(worst, sy - (sfc + g.ride[1])); GFOOT.push(sy - (sfc + g.ride[1])); }
+        var sfc = surfY(g.P.pts, sx - g.ride[0]); if (sfc === sfc) { anyOn = true; worst = Math.max(worst, sy - (sfc + g.ride[1])); }
       }
       if (!anyOn) worst = lowAll - (surfTop(g.P.pts) + g.ride[1]);
       if (anyOn && !ptr) worst -= 1.6;   // (perch lane: the foot settled into the letter, the letter drawn over it: a pointed foot on a rounded top otherwise shows sky at its edges)
-      GFOOT.length = 0;
       need += worst / Math.max(fixW, 1e-3);
       var fxS = 0, fxN = 0; for (var qp = 0; qp < GFP.length; qp += 2) if (GFP[qp + 1] >= lowAll - 1.5) { fxS += GFP[qp]; fxN++; } GFP.length = 0;
       needX += (A.x - (fxN ? fxS / fxN : GLOWX)) / Math.max(fixW, 1e-3);   // (its drawn middle over the perch's middle; perch lane: its lowest point, its feet, on the perch's point: on the pointer the tip, on a letter its middle; the owner: ON the letter)
@@ -696,8 +711,6 @@
     s.d = { span: spm / MODEL_K / MPU, model: spm / MPU };
     if (!projectBird(s, C)) return null;
     lightBird(s, L, true, dt);
-    if (GDEV.tone) { var tw = GDEV.tone, tm = Math.max(s.E[0], s.E[1], s.E[2], GDEV.white || 0); for (i = 0; i < 3; i++) s.E[i] += (tm - s.E[i]) * tw; }
-    if (PERCH.white && A.el > 0) { var pw = clamp(A.el / PERCH.el, 0, 1) * PERCH.white, pm = Math.max(s.E[0], s.E[1], s.E[2]); if (pm < pw) for (i = 0; i < 3; i++) s.E[i] = s.E[i] * (pw / Math.max(pm, 1e-4)) * 0.35 + pw * 0.65; }   // (perch lane: only ever lighter)
     s.hold = 1; s.birdL = gradedL(s.E, HOST.grade(), 1); s.groundL = -1;
     cloudWeights(s, C, 0, true);
     g.last = { x: A.xDrawn, y: A.yDrawn, phase: A.phase, yaw: A.yaw, pitch: A.pitch, el: A.el, op: A.op, flap: g.flap };
@@ -714,12 +727,12 @@
           g.T = [Ap.xDrawn, Ap.yDrawn]; g.arc = [0]; var ox = g.G[0], oy = g.G[1];
           for (var q = 1; q <= 32; q++) { gBez(g, q / 32, GTMP); g.arc.push(g.arc[q - 1] + Math.sqrt((GTMP.x - ox) * (GTMP.x - ox) + (GTMP.y - oy) * (GTMP.y - oy))); ox = GTMP.x; oy = GTMP.y; }
           g.Lb = g.arc[32]; g.ve = Math.max(0.1 * g.vg, 2 * g.Lb / g.Tr - g.vg);
-          GU.log.push({ t: +t.toFixed(2), ev: 'rest', dx: +(g.T[0] - g.px0).toFixed(2), dy: +(g.T[1] - g.py0).toFixed(2) });
+          gLog({ t: +t.toFixed(2), ev: 'rest', dx: +(g.T[0] - g.px0).toFixed(2), dy: +(g.T[1] - g.py0).toFixed(2) });
         }
       }
       var A = guestBird(g, s, C, dt, L, tr - g.t0);
       if (!A) continue;
-      packBird(nB, s, A.op, 1e5, false, N, g.P.kind === 'pointer' ? s.haloE : Math.min(s.haloE, GHALO), 1, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
+      packBird(nB, s, A.op, 1e5, false, N, s.haloE, 1, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
       nB++;
     }
     return nB;
