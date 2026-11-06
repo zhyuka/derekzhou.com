@@ -565,11 +565,16 @@
     {
       "id": "merge-rights",
       "area": "process",
-      "rule": "Changes reach main only through a pull request, merged by the owner, or by the merge bot when nothing visible changes. An agent never merges and never pushes to main.",
+      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot when nothing visible changes. An agent never merges, never enables auto-merge and never pushes to main.",
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
           "doc": ".github/workflows/merge.yml; docs/deploy.md"
+        },
+        {
+          "quote": "GitHub auto-merge (Recommended)",
+          "date": "2026-11-06",
+          "doc": "docs/deploy.md"
         }
       ],
       "enforced_by": [
