@@ -263,7 +263,7 @@
       var ux = b.v[0] - P.v[0], uy = b.v[1] - P.v[1], uz = b.v[2] - P.v[2], cn = -(rx * ux + ry * uy + rz * uz) / (d || 1);   // (closing now)
       if ((gd < 8 || (d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; STATS.gated = (STATS.gated || 0) + 1; }
       else {
-        if (!P.gT) P.gT = 6 + d / 8;   // (its time to the gate, by how far it began)
+        if (!P.gT) P.gT = Math.max(14, 6 + d / 8);   // (its time to the gate, by how far it began)
         if (t - P.t0 > P.gT) { goRound(b, 'away'); return; }
         var gk = Math.min(14, 0.5 * gd, 0.35 * d + 2) / gd;   // (never so quick near the perch that the last leg cannot stop it)
         AV[0] = P.v[0] + gx * gk; AV[1] = P.v[1] + gy * gk; AV[2] = P.v[2] + gz * gk;
