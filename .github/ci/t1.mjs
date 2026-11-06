@@ -19,7 +19,7 @@ const SHARD = +(A.shard || 0), SHARDS = +(A.shards || 1), OUT = A.out || 't1-out
 fs.mkdirSync(OUT, { recursive: true });
 const T = (iso) => Date.parse(iso);
 
-// The cases, dealt to the shards in order (case i to shard i % SHARDS). The hours pick the landing sky (hour.v3.js);
+// The cases, dealt to the shards in order (case i to shard i % SHARDS). The hours pick the landing sky (hour.js);
 // the seeds the visit. Windows: a phone (393x852 at 3) and a laptop (1440x900, 6:5 or wider: the pitched camera).
 const DESK = [1440, 900, 1], PHONE = [393, 852, 3];
 const CASES = [
