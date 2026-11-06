@@ -13,26 +13,30 @@ import * as H from '../../.github/ci/harness.mjs';
 const SITE = process.argv[2] || 'build/site', JOBS = +(process.argv[process.argv.indexOf('--jobs') + 1] || 3);
 const T = JSON.parse(fs.readFileSync(new URL('./table.json', import.meta.url)));
 const OUT = 'site/landing', TMP = 'build/landing';
-fs.mkdirSync(TMP, { recursive: true }); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
+fs.mkdirSync(TMP, { recursive: true }); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });   // (the frames drawn are kept in build/landing/: a run picks up where one stopped; --fresh starts over)
+if (process.argv.includes('--fresh')) { fs.rmSync(TMP, { recursive: true, force: true }); fs.mkdirSync(TMP, { recursive: true }); }
 const jobs = [];
-for (const [g, seeds] of Object.entries(T.groups)) for (const seed of seeds) for (const s of T.shapes) jobs.push({ g, seed, s });
+for (const [g, seeds] of Object.entries(T.skies)) for (const seed of seeds) for (const s of T.shapes) jobs.push({ g, seed, s });   // (g: the sky the opening lands on)
 const S = await serve(SITE);
-const man = { groups: T.groups, shapes: T.shapes.map((s) => ({ name: s.name, media: s.media, mobile: s.mobile })), pictures: {} };
+const man = { groups: T.groups, skies: T.skies, inlineMax: T.inline_max_b64, shapes: T.shapes.map((s) => ({ name: s.name, media: s.media, mobile: s.mobile })), pictures: {} };
 async function one({ g, seed, s }) {
+  const p = path.join(TMP, `${g}-${seed}-${s.name}.png`);
+  if (!fs.existsSync(p)) await draw({ g, seed, s }, p);
+  const tmp = p.replace(/\.png$/, '.avif');
+  execFileSync('python3', ['-I', '-c', 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2], "AVIF", quality=int(sys.argv[3]))', p, tmp, String(s.q || 55)]);
+  const b = fs.readFileSync(tmp), name = `${g}-${seed}-${s.name}.${crypto.createHash('sha256').update(b).digest('hex').slice(0, 8)}.avif`;
+  fs.writeFileSync(path.join(OUT, name), b);
+  man.pictures[`${g}/${seed}/${s.name}`] = { file: '/landing/' + name, b64: b.toString('base64') };
+  console.log(`${g} ${seed} ${s.name}: ${name} ${b.length} B`);
+}
+async function draw({ g, seed, s }, p) {
   const browser = await H.launch();
   try {
     const h = T.hours[g], at = `2026-11-05T${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}:00Z`;
     const arm = await H.openPage(browser, S.url, { vp: [s.w, s.h, 2], mobile: s.mobile, epoch: Date.parse(at), seeds: [seed] });
     if (await H.stepToShow(arm, 4000) < 0) throw new Error(`${g} ${seed} ${s.name}: never shown`);
     const png = await arm.page.evaluate(() => document.querySelector('canvas.sky').toDataURL('image/png'));
-    const p = path.join(TMP, `${g}-${seed}-${s.name}.png`);
     fs.writeFileSync(p, Buffer.from(png.split(',')[1], 'base64'));
-    const tmp = p.replace(/\.png$/, '.avif');
-    execFileSync('python3', ['-I', '-c', 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2], "AVIF", quality=55)', p, tmp]);
-    const b = fs.readFileSync(tmp), name = `${g}-${seed}-${s.name}.${crypto.createHash('sha256').update(b).digest('hex').slice(0, 8)}.avif`;
-    fs.writeFileSync(path.join(OUT, name), b);
-    man.pictures[`${g}/${seed}/${s.name}`] = { file: '/landing/' + name, b64: b.toString('base64') };
-    console.log(`${g} ${seed} ${s.name}: ${name} ${b.length} B`);
   } finally { await browser.close(); }
 }
 const q = jobs.slice();

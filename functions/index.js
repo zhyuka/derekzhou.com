@@ -32,13 +32,13 @@ export async function onRequestGet({ request, env }) {
   try {
     const tz = request.cf && request.cf.timezone, h = tz ? hourIn(tz) : NaN;
     if (res.status !== 200 || !(res.headers.get('Content-Type') || '').includes('text/html') || !(h >= 0)) return res;
-    const k = pick(h), seeds = M.groups[k.sky];
+    const k = pick(h), land = M.groups && M.groups[k.sky], seeds = land && M.skies[land];
     if (!seeds || !seeds.length) return res;
     const r = new Uint32Array(1); crypto.getRandomValues(r);
     const seed = seeds[r[0] % seeds.length];
     const ua = request.headers.get('Sec-CH-UA-Mobile'), mobile = ua ? ua.includes('1') : /Mobi|Android|iPhone|iPad/.test(request.headers.get('User-Agent') || '');
     const guess = M.shapes.find((s) => s.mobile === mobile) || M.shapes[M.shapes.length - 1];
-    const src = (s) => { const p = M.pictures[`${k.sky}/${seed}/${s.name}`]; return p ? (s === guess ? 'data:image/avif;base64,' + p.b64 : p.file) : null; };
+    const src = (s) => { const p = M.pictures[`${land}/${seed}/${s.name}`]; return p ? (s === guess && p.b64.length <= (M.inlineMax || 0) ? 'data:image/avif;base64,' + p.b64 : p.file) : null; };
     if (M.shapes.some((s) => !src(s))) return res;
     const last = M.shapes[M.shapes.length - 1];
     const pic = '<picture class="landing">' + M.shapes.slice(0, -1).map((s) => `<source media="${s.media}" srcset="${src(s)}">`).join('') +
