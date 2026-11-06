@@ -11,7 +11,7 @@
      frame and fewer if the frame runs long; the canvas's keys into the hidden canvas itself. A restored context runs
      the same table. The record counts every key first drawn after the world shows (S1's test: expected 0) and how many
      distinct Metal keys the table holds (S2: 48 binds from E4; round 3b's per-realm programs come to about 45 here). */
-  var WARM = { list: null, i: 0, done: false, ms: [], tg: null, vao: null, frames: 0, keysF: 0, lastP: null, q: [] };
+  var WARM = { list: null, i: 0, done: false, ms: [], tg: null, vao: null, frames: 0, keysF: 0, lastP: null, q: [], lastAt: 0, lastKb: 0, k: 2, measured: true, qw: -1, qwF: -1 };
   var WARM_N = 5;
   /* stage B: the 4 x 4 targets of every format a draw site writes, and VAOs of the layouts that are made per cell in
      flight (the landmarks' meshes, the sets' instances, the glows, the beams, the clouds' cores) */
@@ -50,7 +50,7 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, ib); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0); gl.vertexAttribDivisor(1, 1);
     gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
     A.bufs = [mb, ib];
-    WARM.vao = A; WARM.list = null; WARM.i = 0; WARM.done = false; WARM.ms = []; WARM.frames = 0; WARM.lastP = null; WARM.q = [];
+    WARM.vao = A; WARM.list = null; WARM.i = 0; WARM.done = false; WARM.ms = []; WARM.frames = 0; WARM.lastP = null; WARM.q = []; WARM.lastAt = 0; WARM.lastKb = 0; WARM.measured = true;
   }
   /* the table, from the draw sites (built once every program is finished: stage F's start). Each entry: name, program,
      VAO, mode, vertex count, instanced, indexed, target, colour mask, blend (null or [src, dst, srcA, dstA]), depth (0
@@ -146,21 +146,30 @@
   /* (WebKit boot) one entry a frame, at the frame's end (after the links' polls), in its own final state (its target's
      formats, blend, samples, depth, cull, topology): each first draw builds its Metal pipeline on the GPU process's one
      thread, and builds in one frame add up there (a batch of them froze the owner's iPhone). An entry waits for its
-     program's completion; a broken program's entries are passed over. Only once the frame's first sync call came back
-     at once (WK_QFAST: the last frame's draw found its pipeline in Metal's cache, a return visit) may a draw that is not
-     its program's first use or a heavy one's follow in the same frame, up to WARM_N */
+     program's completion; a broken program's entries are passed over. A sync call made while a build runs waits for it
+     (the Mac bench: 106-372 ms boot frames), so after a draw the boot makes none (wkHold: no polls, no read-back, no
+     draw) until the build should be through: WARM.k ms a KB of the program's source, learnt from each build (wkMeasure:
+     the first sync call after the hold, timed). Only when that call came back at once (WK_QFAST: the pipeline was in
+     Metal's cache, a return visit) may a draw that is not its program's first use or a heavy one's follow in the same
+     frame, up to WARM_N */
   var WK_QFAST = 2;
+  function wkHold(now) { return !!EXT.parWK && !WARM.measured && WARM.lastAt > 0 && now - WARM.lastAt < WARM.k * WARM.lastKb; }
+  function wkMeasure() {
+    if (!EXT.parWK || WARM.measured || !WARM.lastP || gl.isContextLost()) return;
+    var t = clockNow(); gl.getProgramParameter(WARM.lastP.p, EXT.parWK.COMPLETION_STATUS_KHR); var e = clockNow(), w = e - t, b = e - WARM.lastAt;
+    WARM.measured = true; WARM.qw = w; WARM.qwF = FRAMEN; if (WARM.q.length < 200) WARM.q.push(+w.toFixed(2));
+    if (w > 1) WARM.k = 0.5 * WARM.k + 0.5 * b / WARM.lastKb; else WARM.k *= 0.8;   // (waited: the build took about b; at once: the hold was long enough, try shorter)
+  }
   function warmStepWK(L, T) {
-    var q0 = PROGX.q0F === FRAMEN ? PROGX.q0 : -1, n = 0, max = 1, left = 0;
-    if (q0 < 0 && WARM.lastP) { var tq = clockNow(); gl.getProgramParameter(WARM.lastP.p, EXT.parWK.COMPLETION_STATUS_KHR); q0 = clockNow() - tq; }
+    var q0 = WARM.qwF === FRAMEN ? WARM.qw : PROGX.q0F === FRAMEN ? PROGX.q0 : -1, n = 0, max = 1, left = 0, kb = 0;
     if (q0 >= 0 && q0 < WK_QFAST && WARM.lastP) max = WARM_N;
-    WARM.q.push(+q0.toFixed(2));
     for (var q = 0; q < L.length; q++) {
       var x = L[q]; if (x.done) continue;
       if (!x.p || x.p.st !== 3 || n >= max || (n > 0 && !x.rs && warmHeavy(x.p))) { left++; continue; }
       x.done = true; if (!x.p.ok) continue;
-      if (warmDraw(x, T)) { n++; WARM.lastP = x.p; }
+      if (warmDraw(x, T)) { n++; WARM.lastP = x.p; kb += x.rs ? 1 : Math.max(1, x.p.kb || 1); }
     }
+    if (n) { WARM.lastAt = clockNow(); WARM.lastKb = kb; WARM.measured = false; }
     warmReset();
     if (!left) { WARM.i = L.length; WARM.done = true; }
     return WARM.done;
