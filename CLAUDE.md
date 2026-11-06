@@ -99,7 +99,8 @@ bumps a version for a change; fonts and images are renamed by hand
   labelled needs-owner or visible. Anything visible waits for the owner.
 - Cloudflare Pages builds main (`npm ci --no-audit --no-fund
   --ignore-scripts && node tools/build.mjs dist`, output `dist`, Node 22);
-  post-deploy.yml then smokes the live site (/build.txt names the commit).
+  post-deploy.yml then smokes the live site (/build.txt names the newest
+  commit that touched a deploy input: .github/ci/deploy-inputs.txt).
 
 ## Where to read more (docs/)
 

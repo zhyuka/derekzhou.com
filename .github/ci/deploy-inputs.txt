@@ -1,0 +1,15 @@
+# deploy-inputs.txt: every path Cloudflare Pages' build reads (npm ci, then node tools/build.mjs dist), as git
+# pathspecs, one a line. post-deploy.yml reads it: the live site serves the newest main commit that touched one
+# of these (with build watch paths set, Pages builds no other commit). Cloudflare's build watch paths are the same
+# list (Settings > Build > Build watch paths): include site/*, src/*, then each file as written here; exclude
+# nothing. deploy-inputs.mjs --check (validate.yml) fails if build.mjs comes to load a tool not listed here.
+site
+src
+tools/build.mjs
+tools/minify.mjs
+tools/parts.mjs
+tools/plan.mjs
+tools/start.mjs
+package.json
+package-lock.json
+.gitattributes
