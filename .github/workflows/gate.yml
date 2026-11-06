@@ -6,6 +6,12 @@ on:
   push:
     paths-ignore: ['.work/**']
   workflow_dispatch:
+    inputs:
+      t1_cache:
+        description: "T1's base records: use (the default), verify (render fresh and prove each record the fresh base's), off"
+        type: choice
+        options: [use, verify, 'off']
+        default: use
 
 concurrency:
   group: gate-${{ github.ref }}
@@ -35,6 +41,8 @@ jobs:
       t2_self: ${{ steps.areas.outputs.t2_self }}
       input_changed: ${{ steps.areas.outputs.input_changed }}
       input_files: ${{ steps.areas.outputs.input_files }}
+      base_build: ${{ steps.builds.outputs.base }}
+      head_build: ${{ steps.builds.outputs.head }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,6 +57,11 @@ jobs:
           node-version: '22'
       - name: Base and head, built (what each serves)
         run: bash .github/ci/served.sh ${{ steps.base.outputs.base }} "$RUNNER_TEMP/served"
+      - name: Each build's content hash (T1's records are kept by it)
+        id: builds
+        run: |
+          h() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c1-24); }
+          echo "base=$(h "$RUNNER_TEMP/served/base")" >> "$GITHUB_OUTPUT"; echo "head=$(h "$RUNNER_TEMP/served/head")" >> "$GITHUB_OUTPUT"
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"
@@ -109,11 +122,20 @@ jobs:
   # stepped sequences at 393x852 at 3 and 1440x900, the split height's device, reduced motion, no WebGL2, the 404
   # page; DOM stills; a CSP-violation listener. Base and head are the plan's two builds. Only when what is served or
   # the harness changed: with the builds byte for byte the same, what a visitor is served is identical by construction.
+  # The base is rendered once per build: each shard's record of a build (its frames', DOM's and stills' hashes, errors
+  # and CSP reports) is cached by the plain build's content hash (no build.txt in it, so only bytes a visitor gets),
+  # the runner image and the harness's files. A shard whose base has a record renders the head alone against it; any
+  # difference renders that case fresh (base, head, null test), and the fresh render decides (t1.mjs). Records are
+  # saved on a miss (on a branch, for that branch's next push; on main, for every branch) and, on main, the head's, so
+  # a branch cut from main's tip finds its base already rendered. Run the gate by hand with t1_cache = verify to prove
+  # the records byte for byte a fresh render's.
   t1:
     needs: plan
     if: needs.plan.outputs.run_t1 == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      T1_CACHE: ${{ inputs.t1_cache || 'use' }}
     strategy:
       fail-fast: false
       matrix:
@@ -128,10 +150,42 @@ jobs:
         with:
           name: served
           path: ${{ runner.temp }}/served
+      - name: The records' key
+        id: rk
+        run: echo "pre=t1rec-v1-$ImageOS-$ImageVersion-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-s${{ matrix.shard }}" >> "$GITHUB_OUTPUT"
+      - name: The base's record, if its build was rendered before
+        id: restore
+        if: env.T1_CACHE != 'off'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/t1rec/rec.json
+          key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.base_build }}
       - name: Base against head, shard ${{ matrix.shard }} of 4
         id: t1
         run: |
-          node .github/ci/t1.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1"
+          node .github/ci/t1.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1" \
+            --base-rec "$RUNNER_TEMP/t1rec/rec.json" --cache "$T1_CACHE" --save-base-rec "$RUNNER_TEMP/t1new/base.json" --save-head-rec "$RUNNER_TEMP/t1new/head.json"
+      # (One cache path for every record: a cache entry is found only under the path it was saved from.)
+      - name: The base's record, staged (a miss)
+        id: stage_base
+        if: steps.restore.outputs.cache-hit != 'true'
+        run: if [ -f "$RUNNER_TEMP/t1new/base.json" ]; then mkdir -p "$RUNNER_TEMP/t1rec"; cp "$RUNNER_TEMP/t1new/base.json" "$RUNNER_TEMP/t1rec/rec.json"; echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Keep the base's record
+        if: steps.stage_base.outputs.ok == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/t1rec/rec.json
+          key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.base_build }}
+      - name: The head's record, staged (main, a build of its own)
+        id: stage_head
+        if: github.ref == 'refs/heads/main' && needs.plan.outputs.head_build != needs.plan.outputs.base_build
+        run: if [ -f "$RUNNER_TEMP/t1new/head.json" ]; then mkdir -p "$RUNNER_TEMP/t1rec"; cp "$RUNNER_TEMP/t1new/head.json" "$RUNNER_TEMP/t1rec/rec.json"; echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Keep main's record for the branches that start from it
+        if: steps.stage_head.outputs.ok == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/t1rec/rec.json
+          key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.head_build }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
