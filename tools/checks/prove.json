@@ -2,7 +2,7 @@
   { "check": "dup-names", "file": "src/world/000-head.js", "find": "  function clockNow() { return performance.now(); }", "with": "  function clockNow() { return performance.now(); } function clockNow() { return 0; }", "why": "a name declared twice in one scope" },
   { "check": "required-files", "create": "site/notes.md", "why": "a repository file in site/" },
   { "check": "secrets", "file": "docs/content.md", "find": "# Content", "with": "# Content \u0067hp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "why": "a GitHub token in a tracked file" },
-  { "check": "rules-data", "file": "RULES.json", "find": "\"id\":  \"script-order\"", "with": "\"id\":  \"script order\"", "why": "a rule id that is not kebab-case" },
+  { "check": "rules-data", "file": "RULES.json", "find": "\"id\": \"script-order\"", "with": "\"id\": \"script order\"", "why": "a rule id that is not kebab-case" },
   { "check": "security-txt", "file": "site/.well-known/security.txt", "find": "Expires: 2027", "with": "Expires: 2020", "why": "an expired security.txt" },
   { "check": "asset-refs", "file": "build/site/index.html", "find": "href=\"/assets/favicon.svg\"", "with": "href=\"/assets/favicon-gone.svg\"", "why": "a reference to a file the build lacks" },
   { "check": "no-inline-code", "file": "build/site/index.html", "find": "<main>", "with": "<script>1</script><main>", "why": "an inline script" },
