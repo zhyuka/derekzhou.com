@@ -75,20 +75,23 @@
      that follows: first stage A (the context and the boot's setup: about HOLD_KA x A + HOLD_CA ms; the 4090, Chrome's
      CPU throttled 1x to 6x: A 19-23 ms at 1x -> 0.6 s, 38-48 at 3x -> 1.3-1.45 s, 46-51 at 4x -> 1.6-1.8 s, 59 and over
      at 5x past 2 s); then the first hold frame (stage B and every program issued: about HOLD_K x it + HOLD_C ms: 13 ms
-     -> 0.56 s, 45 -> 1.39, 58 -> 1.74, 67 and over past 2 s). Either over 90% of the deadline: no hold, the link out
-     at once, the boot going on as today's */
-  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 26, HOLD_C = 220;
+     -> 0.56 s, 45 -> 1.39, 58 -> 1.74, 67 and over past 2 s). The owner's rule (2026-11-06, "Hold up to ~1 s"): a
+     hold only where it foretells the world shown within HOLD_WORLD ms of the navigation's start (the clock's origin);
+     either foretelling later: no hold, the link out at once, the boot going on as today's (the words first on the
+     still sky, then the world). The deadline (holdMs) stays the last net */
+  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 26, HOLD_C = 220, HOLD_WORLD = 1000;
   function holdLink() { return document.querySelector('link[rel="expect"][blocking="render"]'); }
   function holdOff(why) { HOLD.why = why; var l = holdLink(); if (l) l.remove(); bootMark('hold: off (' + why + ')'); }
-  /* the deadline by device (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so never near that;
-     no hold without parallel compiles, on a phone's GPU by name, or on 4 or fewer cores (hour.js has taken out the
-     rest: reduced motion, forced colours, Firefox, Android, iOS) */
+  /* the deadline by device, the last net (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so
+     never near that; no hold without parallel compiles (WebKit's links one at a time included: Safari keeps today's
+     path until a real Mac's film sets its deadline), on a phone's GPU by name, or on 4 or fewer cores (hour.js has
+     taken out the rest: reduced motion, forced colours, low memory, Firefox, Safari, Android, iOS) */
   function holdMs() {
     var cores = navigator.hardwareConcurrency || 0;
     if (!EXT.par) { HOLD.why = 'no parallel compiles'; return 0; }
     if (/Mali|Adreno|PowerVR|Immortalis|Xclipse|Apple GPU/.test(EXT.renderer) && !/Macintosh/.test(navigator.userAgent || '')) { HOLD.why = 'a phone GPU'; return 0; }
     if (cores <= 4) { HOLD.why = cores + ' cores'; return 0; }
-    if (!EXT.parAll) return 1500;   // (WebKit on the Mac: its links one at a time)
+    if (!EXT.parAll) { HOLD.why = 'links one at a time'; return 0; }
     return cores >= 8 ? 2000 : 1500;
   }
   function holdRun() {
@@ -97,7 +100,7 @@
     if (!gl || DEAD || !running || reduced() || forced() || document.visibilityState === 'hidden') { holdOff(!gl || DEAD ? 'no world here' : 'not running'); return; }
     var ms = holdMs(); if (!ms) { holdOff(HOLD.why); return; }
     HOLD.a = +(clockNow() - t0).toFixed(1);
-    if (HOLD_KA * HOLD.a + HOLD_CA > 0.9 * ms) { holdOff('a slow CPU: stage A ' + HOLD.a + ' ms'); return; }
+    if (t0 + HOLD_KA * HOLD.a + HOLD_CA > HOLD_WORLD) { holdOff('a slow CPU: stage A ' + HOLD.a + ' ms'); return; }
     HOLD.ms = ms; bootMark('hold: on (' + ms + ' ms)');
     var ts = 0, n = 0, f0; HOLD.on = true;
     while (running && !shown && !DEAD && !LOST && n < 1e6 && clockNow() - t0 < ms) {
@@ -106,7 +109,7 @@
       frameBody(ts);
       if (n === 1) {   // (the slow CPU's net: the first hold frame, stage B and every program issued, foretells the hold)
         HOLD.f1 = +(clockNow() - f0).toFixed(1);
-        if (HOLD_K * HOLD.f1 + HOLD_C > 0.9 * ms) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
+        if (t0 + HOLD_K * HOLD.f1 + HOLD_C > HOLD_WORLD) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
         if (PW.st === 1) planWorkerOff();   // (the plan made here, beside the compiles: the worker's answer cannot come inside this task; frame 1, stage B, made none of it)
       }
     }
