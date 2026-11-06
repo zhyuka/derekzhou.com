@@ -1,6 +1,5 @@
   /* ---------------- the camera: the world's, or forced colours' own still view ---------------- */
 
-  var FL = {};
   /* the forced colours' camera: the birds' own still view (the world is not drawn, the camera held): looking out level,
      the horizon low under the open sky */
   var FCAM = { pos: [0, 0, 0], f: [0, 0, 1], r: [-1, 0, 0], u: [0, 1, 0], pitch: 0, roll: 0, inCloud: 0, cover: 0 };
@@ -12,10 +11,6 @@
   }
   function camStep() { return FORCED ? FCAM : HOST.cameraStep(); }
   function camDrawn() { return FORCED ? FCAM : HOST.camera(); }
-  function flightNow() {
-    if (FORCED) { FL.ok = true; FL.x = FL.z = FL.y = 0; FL.psi = 0; FL.view = 0; FL.speed = 0; FL.vy = 0; FL.ground = -1e4; return FL; }
-    return HOST.flight(FL);
-  }
   /* a point of the world on the window through the world's camera C: CSS px, depth (m), nearness */
   function projReal(x, y, z, C, o) {
     var dx = x - C.pos[0], dy = y - C.pos[1], dz = z - C.pos[2];

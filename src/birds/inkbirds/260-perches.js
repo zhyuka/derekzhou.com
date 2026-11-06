@@ -107,9 +107,6 @@
     return null;
   }
   function perchCount() { var n = 0; for (var i = 0; i < PERCHED.length; i++) if (PERCHED[i].P && PERCHED[i].P.kind !== 'pointer') n++; return n; }
-  /* a bird of the sky the letters could have: a perching kind, flying, in front of the camera, near enough */
-  function wantsPerch(b) { return false; }   // (the flock's leader asks nothing: the noticing below picks a bird)
-  function perchAsk(b) { }
   var VPN = [0, 0, 0];
   function notice(C) {
     VPN[0] = LVC.vx; VPN[1] = LVC.vy; VPN[2] = LVC.vz;

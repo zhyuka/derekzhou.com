@@ -161,9 +161,7 @@
     INST[o + 20] = haloE; INST[o + 21] = 1; INST[o + 22] = gE; INST[o + 23] = gdir;   // ([21], aM.y: the light's scale, 1 for every bird (fast500's deep sweep, 2026-11-05: the hold that scaled it down on its ground is gone; it never ran))
     INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;
   }
-  var GIFT_T = 1.0;   // s: the gift's write-on, whole (outline 0.7, paper 0.3; fix round: no spark)
   var GLARE_P = [0.02, 0.09, 0.35, 0.5];   // the light wrap: the bloom's light under the bird from, to; the paper thinned by (px), lifted by
 
-  var FLIGHT_ID = 0;
   var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, wheeled: 0, paced: 0 }, away: 0, back: 0 };
 

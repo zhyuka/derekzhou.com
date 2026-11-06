@@ -6,8 +6,7 @@
   function step(dt) {
     STEP_DT = dt;
     forcedCheck();
-    flightNow(); if (!FL.ok) return;
-    var C = camStep(); if (!C) return;
+    var C = camStep(); if (!C) return;   // (no camera: no flight yet)
     measureIf();
     STATS.steps++;
     if (HOST.reduced()) return;
@@ -33,7 +32,6 @@
   function stillStep(quota) {
     if (STILL.done) return true;
     forcedCheck(); measure(); if (FORCED) forcedCam();
-    flightNow(); if (!FL.ok) return false;
     var C = camStep(); if (!C) return false;
     var dt = 1 / 20, n = 0;
     while (STILL.t < STILL_T && n * Math.max(1, BIRDS.length) < quota) { t += dt; STILL.t += dt; birdsStep(C, dt); n++; if (HOST.budget && HOST.budget() <= 0) break; }

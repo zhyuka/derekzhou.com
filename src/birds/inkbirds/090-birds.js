@@ -7,5 +7,4 @@
     kind: 'gull', P16: new Float64Array(48), X16: new Float64Array(48), D: new Float32Array(32), body: new Float64Array(3), nb: new Float64Array(3), fw: new Float64Array(3), lw3: new Float64Array(3), vw: new Float64Array(3), aw: new Float64Array(3),
     roll: 0, rollT: 0, rollOk: false, pitch: 0, slip: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 }); })();
   function dress(s, d) { s.d = d; s.on = false; s.vis = false; s.still = false; s.shownT = -1; s.ok = false; s.rollOk = false; s.eOk = false; s.cwNext = -1; s.cwAt = -1e9; s.cwHt.fill(-1e9); s.spanPx = 0; s.glideW = undefined; s.setOk = false; s.setFace = 0; s.setSide = 0; s.set = 0; s.setWant = 0; s.setAt = undefined; s.setK = undefined; s.nudX = 0; s.nudY = 0; s.lastOp = 0; s.tone = 0; }
-  function hide(s) { s.on = false; }
 

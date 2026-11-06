@@ -10,20 +10,14 @@
       return ((t ^ (t >>> 15)) >>> 0) / 4294967296;
     };
   }
-  var visitSeed = 0, wr, front, fTempo, fBreeze, fPace, fTraffic, season, faithful, pace;
-  /* VISIT streams: 1 the hand's noise, 2 the paths' low-discrepancy offsets, 11 the weather, 100+ each flight */
+  var visitSeed = 0;
+  /* the visit's streams, by number (1 the noise table; 8000+ clicks, 8800 the population): each from the visit's one seed */
   function vstream(n) { return sm32((visitSeed ^ Math.imul(n + 1, 0x9E3779B9)) >>> 0); }
-  function facet() { return 0.7 * front + 0.3 * wr(); }
   var NOISE_N = 4096;
   var noise = new Float32Array(NOISE_N);
-  /* the journey's weather: ONE front, five facets (a still visit is still everywhere), the season */
+  /* the visit's seed, and its noise table */
   function weather() {
     visitSeed = Math.floor(HOST.rng(0xB1D5)() * 4294967296) >>> 0;
-    wr = vstream(11);
-    front = (wr() + wr()) / 2;
-    facet(); fTempo = facet(); fBreeze = facet(); fPace = facet(); fTraffic = facet();   // (the first, the old marks' hand, still drawn and not kept: every later draw where it was)
-    season = wr() < 0.65 ? 1 : -1;        // the way most flights go (1: left to right, the way the words read)
-    faithful = 0.65 + 0.15 * wr();        // ... and how many of them
     var r = vstream(1), i; for (i = 0; i < NOISE_N; i++) noise[i] = r() * 2 - 1;
   }
   function nz(i) { return noise[(i | 0) & (NOISE_N - 1)]; }

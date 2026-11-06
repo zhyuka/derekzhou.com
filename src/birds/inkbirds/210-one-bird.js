@@ -74,10 +74,10 @@
   function newBird(kind, r, x, y, z, psi, gam, F) {
     var S = SORTS[kind] || SORTS.gull, K = KINDS[kind] || KINDS.gull;
     var b = { id: ++BK, kind: kind, S: S, K: K, r: r, age: pick(r, [0, 40]), sz: B_SPAN * S.size * MODEL_K * (1 + SIZE_VAR * (r() * 2 - 1)),
-      p: [x, y, z], v: [0, 0, 0], a: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
+      p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
-      st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, think: 0, w: null, s: null, d: null, P: null,
-      wf: 0, flap: -1, seen: 0, wtT: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
+      st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, d: null, P: null,
+      flap: -1, wtT: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
@@ -121,8 +121,6 @@
   }
   function integrate(b, dt) {
     var ch = Math.cos(b.gam), vx = b.V * ch * Math.sin(b.psi) + WINDV[0], vy = b.V * Math.sin(b.gam), vz = b.V * ch * Math.cos(b.psi) + WINDV[2];
-    var k = Math.min(1, dt / 0.15);
-    b.a[0] += ((vx - b.v[0]) / dt - b.a[0]) * k; b.a[1] += ((vy - b.v[1]) / dt - b.a[1]) * k; b.a[2] += ((vz - b.v[2]) / dt - b.a[2]) * k;
     b.v[0] = vx; b.v[1] = vy; b.v[2] = vz;
     b.p[0] += vx * dt; b.p[1] += vy * dt; b.p[2] += vz * dt;
   }
@@ -239,7 +237,7 @@
   function holdPlace(F, b) {
     var L = F.lead, h = L.psi, ch = Math.cos(h), sh = Math.sin(h), sp = L.sz, q = b.slot;
     b.p[0] = L.p[0] - q[0] * sp * sh + q[1] * sp * ch; b.p[2] = L.p[2] - q[0] * sp * ch - q[1] * sp * sh; b.p[1] = L.p[1] + q[2] * sp;
-    b.v[0] = L.v[0]; b.v[1] = L.v[1]; b.v[2] = L.v[2]; b.psi = L.psi; b.gam = L.gam; b.V = L.V; b.phi = L.phi; b.a[0] = L.a[0]; b.a[1] = L.a[1]; b.a[2] = L.a[2];
+    b.v[0] = L.v[0]; b.v[1] = L.v[1]; b.v[2] = L.v[2]; b.psi = L.psi; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
   }
 
   /* ---------------- flocks ---------------- */
@@ -262,15 +260,13 @@
   function flockWhat(r, cls) {
     var L = LIFE[cls], pat = L ? weighted(r, L.pat) : weighted(r, [['skein', 22], ['line', 18], ['pair', 28], ['single', 22], ['loose', 10]]);
     var kind = L && L.kinds[pat] ? weighted(r, L.kinds[pat]) : weighted(r, SORT_OF[pat] || [['gull', 1]]);
-    return [pat, kind, lvCount(r, pat, 0)];
+    return [pat, kind, lvCount(r, pat)];
   }
   /* a flock of a kind that perches, where the sky has one (a few draws of its own mix) */
   function perchWhat(r, cls) { var w; for (var k = 0; k < 6; k++) { w = flockWhat(r, cls); if (KINDS[w[1]] && KINDS[w[1]].perch) return w; } return w; }
-  function lvCount(r, pat, n) {
-    if (n) return n;
+  function lvCount(r, pat) {
     if (pat === 'single') return 1; if (pat === 'pair') return 2;
-    var tb = LIFE_N[pat] || [[3, 1]], k = weighted(r, tb.map(function (e) { return [e[0], e[1]]; }));
-    return k === 4 ? 5 : k;
+    return weighted(r, LIFE_N[pat] || [[3, 1]]);
   }
   /* a flock made at (x, y, z) heading psi */
   function newFlock(x, y, z, psi, cls, what) {
@@ -317,7 +313,6 @@
   }
 
   /* ---------------- the population ---------------- */
-  function popCls() { return skyCls(); }
   function liveCount(R) {
     var n = 0, r2 = (R || LIVE_R) * (R || LIVE_R);
     for (var i = 0; i < FLOCKS.length; i++) { var F = FLOCKS[i], L = F.lead; if (!L) continue; var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z; if (dx * dx + dz * dz < r2 || (!R && F.goal && F.goal.home)) n++; }   // (the whole sky's count takes in the flocks coming in)
@@ -325,7 +320,7 @@
   }
   /* the visit's first sky (before its first frame: nothing is seen yet): the visitor's sky filled, a flock or two near */
   function seed(C) {
-    var cls = popCls(), r = POP.r, want = LIVE_N[cls] || 6, i, k;
+    var cls = skyCls(), r = POP.r, want = LIVE_N[cls] || 6, i, k;
     for (i = 0; i < want; i++) {
       for (k = 0; k < 12; k++) {
         var near = i < 2, d = near ? mix(r(), 140, 600) : LIVE_R * Math.sqrt(mix(r(), 0.03, 1)), a = near ? Math.atan2(C.f[0], C.f[2]) + (r() - 0.5) * 1.2 : TAU * r();
@@ -395,7 +390,7 @@
   }
   function popStep(C) {
     if (!POP.r) POP.r = vstream(8800);
-    var cls = popCls();
+    var cls = skyCls();
     if (cls !== POP.cls) { POP.cls = cls; POP.line = TAU * POP.r(); }
     if (!POP.seeded) { seed(C); return; }
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
@@ -448,7 +443,6 @@
         var wv = b === L ? goalVel(F, b, dt) : placeVel(F, b);
         clearOfEye(b, wv);
         flyTo(b, dt, wv[0], wv[1], wv[2]);
-        if (b === L && wantsPerch(b)) perchAsk(b);
       }
     }
   }

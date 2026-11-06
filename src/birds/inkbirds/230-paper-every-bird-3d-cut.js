@@ -1,35 +1,11 @@
   /* ---------------- the paper: every bird a 3D cut-paper body, posed by its own flight (birds3d) ---------------- */
 
-  /* The tattoo's mark, made a bird in 3D (the owner: "why are none of these 3d still?"; option 5, "Birds of light", no
-     gold heads). Each bird is the form facet's model (birdform.js, posed by birdpose.js): a body and two wings hinged at
-     the shoulder and the wrist, beating at its kind's real rate (SORTS hz, the visit's tempo, its own detune), gliding
-     at its kind's glide (the tattoo's M seen from below and behind), its wings shut on a finch's bound. Its attitude is
-     physical: the body along its velocity in the world (its own way in its frame and the camera's, no sideslip), rolled
-     by the coordinated bank its own acceleration asks (tan phi = a_lat / (g + a_up): a wheel banks 8-20 deg, which is
-     the tattoo's lean), pitched by its climb and its angle of attack. Nothing is pressed, mirrored or leaned on the
-     window: its facing, its foreshortening, which wing is near, its turn to the camera all come from the projection.
-     Every frame each drawn bird's 16 paper points are posed, placed and projected through the frame's camera to device
-     px; the world's light lights its six panels (the sun wrapped about the paper, a share of it through the paper from
-     behind, the sky's and the lit cloud sea's light from below), one tone a bird with a whisper of the fold, eased. Then one
-     instanced draw after the composite, at the canvas's resolution: each bird a quad whose fragments take the exact
-     coverage of its 11 paper triangles and a pen floor along its leading edge's M (a wing seen edge-on is still the
-     tattoo's line), hidden by the land and the clouds in front of it, kept off the words, and at night a light of its
-     own and a soft halo (added light only). LEAN_TRIM (dev, 0: physics) holds a bank away from the camera while gliding:
-     the owner's A/B. */
-  /* (physics) the form and the wing: the lab's (LB: the faceted M through the skeleton rig, its flexing primaries), made
-     lazy for the world (BW); FP the form's pose, FP2 its facets as the flexing primaries part them */
+  /* Each bird is the faceted M flown by the measured wing: posed every frame along its way through the air, banked as
+     it turns, or standing on its perch; lit by the world's light; drawn by one instanced pass after the composite. */
   var LB = LABBIRD(window.FACETFORM, window.FACETPOSE, window.WINGMODEL, window.WINGMODEL_DATA), BW = BIRDWING(LB, window.WINGMODEL_DATA), FP = LB.P, FP2 = LB.flexPose(), NP = FP.NP, KMD = window.WINGMODEL_DATA.kinds;
-  var BANK_MAX = 35, ROLL_TAU = 0.25, ROLL_RATE = 45;   // (birdform.js's bank, unchanged: the coordinated bank's bound and its easing)
   var NV = 46, NFAC = 30, P16MAP = window.FACETFORM.kinds.gull.p16, CHAIN = window.FACETFORM.kinds.gull.chain;   // (every kind's: the 16 points' vertices, -1 the body point; the leading edge's M)
 
-  var SHUT = {};
-  function shut22(kind) {
-    if (SHUT[kind]) return SHUT[kind];
-    var p = FP.pose(), q = [6, -60, 0, 0.45, -4, -105, 0], tg = FP.kinds[kind].tipg;
-    for (var sd = 0; sd < 2; sd++) { for (var i = 0; i < 7; i++) p[sd * NP + i] = q[i]; for (i = 0; i < 4; i++) p[sd * NP + 7 + i] = tg[i]; }
-    return (SHUT[kind] = p);
-  }
-  /* the glide with its load (the lab's, no trims): for the planner's lean and the boxes */
+  /* the glide with its load (the lab's, no trims) */
   var ZTRIM = [0, 0, 0, 0, 0, 0, 1, 1, 1], GS0 = { flap: 0, ph: 0, k: 1, D: 0.5, a: 0, e: 0 }, GLW = { kind: 'gull', trim: ZTRIM }, GB3 = new Float64Array(3);
   function glide22(kind, out) { GLW.kind = kind; GLW.trim = ZTRIM; BW.poseS(GLW, GS0, 0, out, GB3); return out; }
   function slotArrays(s) {
@@ -37,19 +13,11 @@
     s.NZ = new Float64Array(3 * NFAC); s.FE = new Float64Array(3 * NFAC); s.FA = new Float64Array(NFAC); s.VZ = new Float64Array(3 * NV); s.B = new Float64Array(9); s.bT0 = -1; s.bFrom = null; s.lod = 0;
   }
   var MODEL_K = 1.19;          // (way-form: 1.38 for the bodied form; the wing-only form spans more of its model on the window) the drawn model's span on today's ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
-  var WING_ONLY = true;        // (way-path) the bird is the tattoo's M and nothing else: two wings joined at the body point (no head, neck, bill, legs, tail or body)
-  var BODY_R = 0;              // (way-form) no body: the bird is the tattoo's M made solid, two wings meeting at the body point (the fix round's tapered body, 0.038 of the span, and its neck, bill and legs are gone)
-  var FLOOR_K = 0.08;          // (way-form: unused but in the planner's pad) the pen floor is now today's pen itself: LINE's width for the bird's ink span (1.3 + 0.035 span, 1.5-2.5 CSS px, in quarter px), so the wing's stroke is the tattoo's stroke at every size
   var HOLD_POSE = [3, 8];      // device px of span: smaller, the beat's swing eases into the held glide (a speck holds its glide). (physics: the measured beat in full from 8 px; the shape round held it in from 16, and a 1440 px desktop's birds, 10-25 px, beat partly held 68 % of their time, a tenth of it at under 0.65 of the measured stroke: the stiffness the owner saw)
-  var LEAN_TRIM = 0;           // deg: 0 the physics; 16 a held bank away from the camera while gliding (the B film; sideslip disclosed)
-  var PAPER = [0.94, 0.911, 0.853];   // the paper's albedo, linear (OKLab L 0.97, chroma 0.010, hue 85: a warm white)
-  var WRAP = 0.45, TRANS = 0.3, BOUNCE = 0.45, FOLD = 0.06, PAPER_GAIN = 1.08;   // (PAPER_GAIN: calibrated on the realms' day films, A16: white on blue +0.10 OKLab L in 80 % and more)   // the sun wrapped about the paper; through it from behind; the cloud sea's light under it; the fold's whisper
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
-  var GLOW_L = 0.78, GLOW_ENC = 0.72, HALO_A = 0.14, HALO_E = [3, 2];   // night: the paper's own light (OKLab L; as encoded), the halo's strength and e-folding (CSS px: a desktop, a phone)
+  var GLOW_ENC = 0.72, HALO_A = 0.14, HALO_E = [3, 2];   // night: the paper's own light (as encoded), the halo's strength and e-folding (CSS px: a desktop, a phone)
   var AOA = [1.5, 1];          // deg: the body's angle to its way through the air gliding, flapping (fix: the body all but along its way, the wing's own incidence carrying the rest)
-  var CW_DT = 0.25, CW_HOLD = 0.3;   // s: the cloud's weights before a bird, worked out this often (a share of the birds a frame), each held at its most this long
   var FILTER = [1, 1.5];       // device px: the edge's filter for a bird of 24 px and more, and for a speck of 4 and less
-  var PAPER_ON = true;         // (dev) false: the ink pass as before (not built: kept only as a switch name)
 
   /* ---------------- the pose: every bird, in the air or on a perch ---------------- */
   /* In the air its body lies along its way through the air (no sideslip), rolled by its own bank (the integrator's: the
@@ -59,7 +27,7 @@
      On a perch it stands in the perch's frame (the camera's: the ledge is on the window), yawed and pitched as it
      stands, its feet on the ink (the rest rule, solved every frame from where the perch is drawn). A change from one
      to the other blends from the attitude last drawn (BLEND_T s): nothing snaps */
-  var WO = { swing: 1, shut: null }, VV = [0, 0, 0], BLEND_T = [0.3, 0.35];
+  var WO = { swing: 1 }, VV = [0, 0, 0], BLEND_T = [0.3, 0.35];
   var GP22 = new Float64Array(22), GT1 = new Float64Array(22), GT2 = new Float64Array(22), GOPT = { k: 1, D: undefined }, GBODY = new Float64Array(3), GMEAN = {};
   function smoothK(a, b, x) { return ease((x - a) / (b - a)); }
   function gmix(o, a, b, w) { for (var i = 0; i < 22; i++) o[i] = a[i] + (b[i] - a[i]) * w; return o; }
@@ -86,7 +54,7 @@
      quicker than its level beat) */
   function wingsAir(b, s, rest) {
     var kind = s.kind, w0 = b.w, swing = smoothK(HOLD_POSE[0], HOLD_POSE[1], s.spanPx || 20), WS0 = null;
-    WO.swing = swing; WO.shut = w0 && w0.bound ? shut22(kind) : null; WO.rough = 0;
+    WO.swing = swing; WO.rough = 0;
     var f = (w0 && w0.f) || 3, bu = b.burst;
     if (bu && !rest) {
       var ub = t - bu.t0, nb = ub * f * 1.2;
@@ -303,5 +271,4 @@
       var len = FX.cloud ? HOST.cloudBetween(C.pos[0], C.pos[1], C.pos[2], C.pos[0] + x, C.pos[1] + y, C.pos[2] + z) : 0;
       s.cw[q] = Math.max(ease(len / CLOUD_IN), cov);
     }
-    s.wf = s.cw[1];
   }
