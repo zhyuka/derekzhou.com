@@ -31,6 +31,8 @@ jobs:
       run_t1: ${{ steps.areas.outputs.run_t1 }}
       gpu_js: ${{ steps.areas.outputs.gpu_js }}
       t2_self: ${{ steps.areas.outputs.t2_self }}
+      input_changed: ${{ steps.areas.outputs.input_changed }}
+      input_files: ${{ steps.areas.outputs.input_files }}
     steps:
       - uses: actions/checkout@v4
         with:
