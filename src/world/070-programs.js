@@ -119,6 +119,7 @@
     if (r === LOSTP) return LOSTP;
     P.fms = +(clockNow() - tf).toFixed(2); P.doneAt = +clockNow().toFixed(1); P.doneF = FRAMEN;
     PROGX.finished++; if (!r) PROGX.broken++;
+    if (self.PROBE) self.PROBE('link: ' + P.name, clockNow());   // (PREVIEW ONLY)
     return r;
   }
   function progStep(sync, deadline) {
