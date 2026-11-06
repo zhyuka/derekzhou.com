@@ -126,8 +126,9 @@
      own wander about its place */
   function liveSpot(P, m, tau, o) {
     lvAt(P, tau - m.lagT, LVQ);
-    var h = LVQ.h, ch = Math.cos(h), sh = Math.sin(h), x = tau / m.wT;
-    var wl = m.wL * wave(m.wk, x), wa = m.a + m.wP * wave(m.wk + 53, x / 1.3), wu = m.u + 0.6 * m.wP * wave(m.wk + 97, x / 1.1);
+    var h = LVQ.h, ch = Math.cos(h), sh = Math.sin(h), x = tau / m.wT, ma = m.a, mu = m.u, mf = 0;
+    if (m.join) { var J = m.join, k = J.T > 0 ? smoothK(0, 1, (t - J.t0) / J.T) : 1; ma = J.a0 + (m.a - J.a0) * k; mu = J.u0 + (m.u - J.u0) * k; mf = J.f0 + (J.f1 - J.f0) * k; }   // (a bird that joined: from where it was to its place, eased, then held there)
+    var wl = m.wL * wave(m.wk, x) + mf, wa = ma + m.wP * wave(m.wk + 53, x / 1.3), wu = mu + 0.6 * m.wP * wave(m.wk + 97, x / 1.1);
     o.x = LVQ.x + wa * ch + wl * sh; o.z = LVQ.z - wa * sh + wl * ch; o.y = LVQ.y + wu;
     return o;
   }
@@ -206,7 +207,7 @@
       hd += s.ah * bias;
       s.h += clamp(angDiff(hd, s.h), -wmax * dt, wmax * dt);
       if (j % 10 === 0 || s.gN === undefined) s.gN = lvGround(x, z) - P.g0;   // (v26: the land under it, a second at a time)
-      var yWant = P.flee ? s.y0 + Math.min(P.flee, 2.5 * tau) : (P.beh === 'migrant' ? Math.max(s.y0, eye + 80) : (s.y0 - eye) < 15 ? eye + 15 : s.y0) + LV_TERRAIN * s.gN;   // (v26: over the land's rises and falls, as birds fly, never the camera's)   // (v20: a migrant high, but in the window's sky: 220 m over the eye took it out of the top)
+      var yWant = P.climb ? s.y0 + Math.min(P.climb, 2.5 * tau) : (P.beh === 'migrant' ? Math.max(s.y0, eye + 80) : (s.y0 - eye) < 15 ? eye + 15 : s.y0) + LV_TERRAIN * s.gN;   // (v26: over the land's rises and falls, as birds fly, never the camera's)   // (v20: a migrant high, but in the window's sky: 220 m over the eye took it out of the top)
       cd = clamp(0.02 * (yWant - y), -0.12, 0.12) + s.ec + s.ac * bias;
       s.c += clamp(cd - s.c, -0.35 * dt, 0.35 * dt);
       s.v = P.v0 * (1 + s.ev);
@@ -370,6 +371,28 @@
   }
   /* (v15) how far a projected point lies outside the window (px; 0 inside; behind the eye, the farther behind the more) */
   function lvOut(o) { return !(o.z > 1) ? 1e4 - o.z : Math.max(0, Math.abs(o.x - W / 2) - W / 2, Math.abs(o.y - H / 2) - H / 2); }
+  /* (the owner, 2026-11-06: every bird can do what any bird can: "join a flock or form one") two lone birds of a kind
+     flying near each other the same way become a pair: the second keeps where it is now beside the leader and eases
+     into its place over LV_JOIN.T s; its own route ends (one bird, its wings and slot carried over) */
+  var LV_JOIN = { d: 30, cos: 0.6, T: 5, b: 1.4, a: 1.6 };
+  var LVJ1 = { x: 0, y: 0, z: 0, h: 0 }, LVJ2 = { x: 0, y: 0, z: 0, h: 0 };
+  function lvJoin() {
+    for (var i = 0; i < PLACES.length; i++) {
+      var A = PLACES[i]; if (!A.live || A.gone || A.m.length !== 1 || A.beh === 'wheel') continue;
+      for (var j = i + 1; j < PLACES.length; j++) {
+        var B = PLACES[j]; if (!B.live || B.gone || B.m.length !== 1 || B.sort !== A.sort || B.beh === 'wheel') continue;
+        lvAt(A, t - A.t0, LVJ1); lvAt(B, t - B.t0, LVJ2);
+        var dx = LVJ2.x - LVJ1.x, dy = LVJ2.y - LVJ1.y, dz = LVJ2.z - LVJ1.z;
+        if (dx * dx + dy * dy + dz * dz > LV_JOIN.d * LV_JOIN.d || Math.cos(LVJ2.h - LVJ1.h) < LV_JOIN.cos) continue;
+        var m = B.m[0], ch = Math.cos(LVJ1.h), sh = Math.sin(LVJ1.h), side = dx * ch - dz * sh >= 0 ? 1 : -1;
+        m.join = { t0: t, T: LV_JOIN.T, a0: dx * ch - dz * sh, u0: dy, f0: dx * sh + dz * ch, f1: -LV_JOIN.b * A.spm };
+        m.a = side * LV_JOIN.a * A.spm; m.u = 0; m.b = 0; m.lagT = 0;
+        A.m.push(m); A.n = 2; A.pat = 'pair'; B.m = []; var k = PLACES.indexOf(B); if (k >= 0) PLACES.splice(k, 1);
+        STATS.lvJoin = (STATS.lvJoin || 0) + 1;
+        return;   // (one a look: the list changed)
+      }
+    }
+  }
   function liveStep(C, dt) {
     if (!C || !FL.ok) return;
     lvCam(C);
@@ -402,6 +425,7 @@
     }
     if (anySeen) LIVE.seenT = t;
     if (!look) return;
+    lvJoin();
     /* the sky kept alive: an encounter every LV_GAP s of the sky's (while fewer than LV_POP flocks live about the
        visitor); one sooner when the window has been empty LV_EMPTY s */
     var want = LV_POP[cls] || 5;

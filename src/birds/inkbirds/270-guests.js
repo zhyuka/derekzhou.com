@@ -177,7 +177,7 @@
       g.S = [tries[i][0], tries[i][1]];
       var dx = g.Q[0] - g.S[0], dy = g.Q[1] - g.S[1], L = Math.sqrt(dx * dx + dy * dy);
       g.L = L; g.mQ = [tdx / tdl * L, tdy / tdl * L]; g.mS = [dx, dy];
-      g.Ti = L * 1.12 / vc; g.vg = L / g.Ti; g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve);   // (the Hermite's way a little longer than the chord; its end pace the glide's start)
+      g.Ti = Math.min(L * 1.12 / vc, G_IN_MAX); g.vg = L / g.Ti;   // (the owner: it comes in 3-5 s: the way in at most G_IN_MAX, its glide G_GLIDE_MAX) g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve);   // (the Hermite's way a little longer than the chord; its end pace the glide's start)
       if (gPathClear(g, P, B)) break;
     }
     if (i === tries.length) return false;
@@ -204,12 +204,12 @@
   }
   /* (perch lane) the click's bird: a click or tap on the page (not a drag, not a link: HOST.clicks) lets a gull go into
      the world there (worldBird: from the world point under the click, up and away to the click's side, the world's own
-     from then on). At most G_CLICK_MAX in the air at once; the perches' own guests are not held up by them */
-  var G_GLIDE_MAX = 3.0, G_CLICK_MAX = 4, GCLK = [], G_TO_WORLD = 0.3;   // (s into its leap: handed to the world)
+     from then on, any bird: it may land on a letter or the pointer, join a flock, wander off). It counts with every flock: no click while LV_POP + G_CLICK_OVER flocks live about the visitor */
+  var G_GLIDE_MAX = 3.0, G_IN_MAX = 4.0, G_CLICK_OVER = 3, GCLK = [], G_TO_WORLD = 0.3;   // (s into its leap: handed to the world)
   function gBusy() { for (var i = 0; i < GU.list.length; i++) return true; return false; }
   function gClick(x, y) {
-    var nC = 0, i; for (i = 0; i < PLACES.length; i++) if (PLACES[i].click) nC++;
-    if (nC >= G_CLICK_MAX || !(x >= 0 && y >= 0 && x <= W && y <= H)) { gLog({ t: +t.toFixed(2), ev: 'click-skip', n: nC }); return false; }
+    var nC = PLACES.length, i;   // (the calm: a click's bird counts with every flock, LV_POP and at most G_CLICK_OVER more)
+    if (nC >= (LV_POP[skyCls()] || 5) + G_CLICK_OVER || !(x >= 0 && y >= 0 && x <= W && y <= H)) { gLog({ t: +t.toFixed(2), ev: 'click-skip', n: nC }); return false; }
     if (PTR.click) { gDisturb(x, y); shiverAt(x, y); }   // (pointer: the click's gull flushes a perched bird near it, and shivers the flights by it)
     var r = guestRng(), a = -Math.PI / 2 + (x < W / 2 ? -1 : 1) * (0.25 + 0.7 * r()) * (r() < 0.8 ? 1 : -1);   // (up, leaning out to its side, now and then across)
     return !!worldBird(x, y, gSpanPx({ kind: 'gull' }) * G_PTR_K, Math.cos(a), Math.sin(a), 'click');
@@ -325,7 +325,7 @@
     var P = lvMake('commute', px, py, pz, Math.atan2(hx, hz), skyCls(), ['single', 'gull', 1]);
     if (!P) return null;
     var n0 = (W / 2) / VW.tanX * MPU / D; P.fadeS = [0.15 * n0, 0.33 * n0];   // (full ink where it was let go, and until it is three times as far: then gone by distance)
-    P.flee = WB.climb * (ay < -0.2 ? 1 : 0.5); P.v0 = WB.v; P.st.v = WB.v; P.st.y0 = py; P.click = why === 'click'; P.why = why; P.role = 'flee';
+    P.climb = WB.climb * (ay < -0.2 ? 1 : 0.5); P.v0 = WB.v; P.st.v = WB.v; P.st.y0 = py;   // (its way in: where and how it enters; from here on it is any bird of the living sky)
     for (var q = 0, j = 0; q < slots.length && j < P.m.length; q++) if (!slots[q].busy) { slots[q].busy = true; P.m[j].s = slots[q]; dress(slots[q], P.m[j].d); j++; }
     P.id = 'p' + P.key; PLACES.push(P); STATS.lvMade = (STATS.lvMade || 0) + 1; lvExtend(P, LV_AHEAD);
     gLog({ t: +t.toFixed(2), ev: 'world-bird', why: why, x: +x.toFixed(1), y: +y.toFixed(1), d: +D.toFixed(1) });
@@ -413,7 +413,7 @@
     var best = null;
     for (var i = 0; i < PLACES.length; i++) {
       var F = PLACES[i], m = F.m && F.m.length === 1 ? F.m[0] : null, sl = m && m.s;
-      if (!sl || !sl.on || F.gone || F.why || F.sort !== 'gull' || !(sl.spanPx > 0)) continue;
+      if (!sl || !sl.on || F.gone || F.sort !== 'gull' || !(sl.spanPx > 0)) continue;
       var cx = (sl.bx0 + sl.bx1) / 2, cy = (sl.by0 + sl.by1) / 2, k = VW.outW / Math.max(1, W), spx = sl.spanPx / k;
       if (cx < 40 || cx > W - 40 || cy < 40 || cy > H - 40 || spx < 0.25 * sp || spx > sp) continue;
       if (!best || spx > best.sp) best = { F: F, x: cx, y: cy, sp: spx };
