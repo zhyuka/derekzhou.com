@@ -77,7 +77,7 @@
     if (self.PROBE.gov) { try { var g = self.PROBE.gov(); L.push('governor: rung ' + g.rung + '/' + (g.n - 1) + ' (scale ' + (+g.scale).toFixed(2) + '), pace ' + (+g.pace).toFixed(1) + ' ms, p50 ' + (+g.p50).toFixed(1) + ' ms' + (g.dead ? ', STOPPED (still sky)' : g.running ? '' : ', loop idle')); } catch (e) {} }
     if (info) {
       L.push('path ' + info.path + ', parallel ext ' + (info.par ? 'yes' : 'NO') + ', ' + info.progs + ' programs, ' + info.keys + ' first draws');
-      if (info.q >= 0) L.push('slowest queue wait ' + Math.round(info.q) + ' ms');
+      if (info.q >= 0) L.push('slowest sync wait after a draw ' + Math.round(info.q) + ' ms' + (info.k ? ', builds ~' + (+info.k).toFixed(1) + ' ms/KB' : ''));
       for (var k = 0; k < info.slow.length; k++) L.push('  slice ' + info.slow[k]);
       L.push(String(info.renderer).slice(0, 44));
     }
