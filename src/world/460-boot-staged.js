@@ -37,7 +37,7 @@
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); if (self.PROBE) self.PROBE(name, clockNow()); }
   function probeInfo() {   // (PREVIEW ONLY)
     var sl = BOOT.slices.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3).map(function (x) { return Math.round(x[1]) + ' ms f' + x[0] + ' ' + String(x[2]).slice(0, 30); });
-    return { path: EXT.parWK ? 'webkit-all' : EXT.parAll ? 'all-at-once' : 'one-at-a-time', progs: PROGS.length, keys: WARM.list ? WARM.list.length : 0, q: WARM.q && WARM.q.length ? Math.max.apply(null, WARM.q) : -1, slow: sl, renderer: EXT.renderer };
+    return { par: !!EXT.par, path: EXT.parWK ? 'webkit-all' : EXT.parAll ? 'all-at-once' : 'one-at-a-time', progs: PROGS.length, keys: WARM.list ? WARM.list.length : 0, q: WARM.q && WARM.q.length ? Math.max.apply(null, WARM.q) : -1, slow: sl, renderer: EXT.renderer };
   }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
