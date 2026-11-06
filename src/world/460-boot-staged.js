@@ -33,11 +33,11 @@
   var BOOT_D_MS = 40, BOOT_BAKE0 = 1024, BOOT_BAKE_MAX = 8192, BOOT_ROUNDS = 64, BOOT_NEED = 19.999, BOOT_M = 30, GUARD_M = 30, BOOTVF = false;
   var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
     fts: [] };   // (Fix 2: fts every boot frame's [frame, rAF time])
-  var CORE_LATE = ['birds:ink'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
+  var CORE_LATE = ['birds:ink', 'birds:paper'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); if (self.PROBE) self.PROBE(name, clockNow()); }
   function probeInfo() {   // (PREVIEW ONLY)
     var sl = BOOT.slices.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3).map(function (x) { return Math.round(x[1]) + ' ms f' + x[0] + ' ' + String(x[2]).slice(0, 30); });
-    return { par: !!EXT.par, path: EXT.parWK ? 'webkit-all' : EXT.parAll ? 'all-at-once' : 'one-at-a-time', progs: PROGS.length, keys: WARM.list ? WARM.list.length : 0, q: WARM.q && WARM.q.length ? Math.max.apply(null, WARM.q) : -1, slow: sl, renderer: EXT.renderer };
+    return { par: !!EXT.par, path: EXT.parWK ? 'webkit-all' : EXT.parAll ? 'all-at-once' : EXT.issueAll ? 'issue-all (no ext)' : 'one-at-a-time', progs: PROGS.length, keys: WARM.list ? WARM.list.length : 0, q: WARM.q && WARM.q.length ? Math.max.apply(null, WARM.q) : -1, slow: sl, renderer: EXT.renderer };
   }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
@@ -343,6 +343,12 @@
     STILLRAF = requestAnimationFrame(function () { STILLRAF = 0; if (running || LOST || DEAD || !READY || forced()) return; if (NEEDSIZE || !TG) { NEEDSIZE = false; resize(); } render(); });
   }
   var SUPPRESS_F = 0;
-  /* (life) the birds' play's listeners are not in this page: the pointer stays gone */
-  function hoverSync() { HOVER.gone = true; }
+  /* (pointer) the birds' play's two listeners: on while motion and colours allow it and some pointer hovers, off
+     (and the pointer gone) otherwise; called at start and whenever reduced motion or forced colours change */
+  function hoverSync() {
+    var want = !inert() && !forced() && !!window.matchMedia && window.matchMedia('(any-hover: hover)').matches;
+    if (want && !HOVERON) { HOVERON = true; window.addEventListener('pointermove', onHover, { capture: true, passive: true }); window.addEventListener('pointerout', onHoverOut, { capture: true, passive: true }); }
+    else if (!want && HOVERON) { HOVERON = false; window.removeEventListener('pointermove', onHover, { capture: true, passive: true }); window.removeEventListener('pointerout', onHoverOut, { capture: true, passive: true }); }
+    if (!want) HOVER.gone = true;
+  }
 

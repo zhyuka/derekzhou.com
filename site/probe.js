@@ -65,8 +65,8 @@
     if (!el) {
       el = document.createElement('pre'); var s = el.style;
       s.position = 'fixed'; s.left = '6px'; s.top = '6px'; s.zIndex = '2147483647'; s.margin = '0'; s.padding = '6px 8px';
-      s.font = '11px/1.35 ui-monospace, Menlo, monospace'; s.color = '#fff'; s.background = 'rgba(0,0,0,0.78)'; s.pointerEvents = 'none';
-      s.whiteSpace = 'pre'; s.borderRadius = '4px'; s.maxWidth = 'calc(100vw - 12px)'; s.overflow = 'hidden';
+      s.font = '10px/1.3 ui-monospace, Menlo, monospace'; s.color = '#fff'; s.background = 'rgba(0,0,0,0.78)'; s.pointerEvents = 'none';
+      s.whiteSpace = 'pre-wrap'; s.overflowWrap = 'anywhere'; s.borderRadius = '4px'; s.maxWidth = 'calc(100vw - 12px)'; s.boxSizing = 'border-box';
       document.body.appendChild(el);
     }
     var n = performance.now(), L = [], ua = navigator.userAgent || '', rm = false;
