@@ -150,8 +150,10 @@ world's first frame is drawn; the browser keeps the previous page or a
 blank tab, then the words and the world appear in one frame. The world,
 the kit and the realms are parser-blocking after the footer (the world
 measures the words), and the head's link rel=expect href=#world-end
-blocking=render (naming no element) holds Chromium's paint until the
-parser ends. The last realm's registration, the page still parsing, runs
+blocking=render holds Chromium's paint until the empty, hidden marker
+right after the last realm's script is parsed (before 2026-11-06 it named
+no element and lasted until the parser ended, the same moment, with a
+console warning on every visit). The last realm's registration, the page still parsing, runs
 the boot at once (holdRun): its staged frames one after another in that
 one task, each a hold frame of 68267/4096 ms (no animation frame, the
 boot's own logic unchanged), until the canvas shows; the first animation

@@ -348,7 +348,7 @@ if world:
     if bks != wantb: fail('5 script-order', f'index.html parser-blocking scripts {bnames}: want the world, the kit, then the realms')
     fw = s.find('</footer>'); ww = s.find('src="/world')
     if fw < 0 or ww < fw: fail('5 script-order', 'index.html: the world, the kit and the realms come after the footer (the hold measures the words)')
-    if s.count('<link rel="expect" href="#world-end" blocking="render">') != 1 or 'id="world-end"' in s: fail('5 script-order', 'index.html: one link rel=expect #world-end blocking=render, naming no element')
+    if s.count('<link rel="expect" href="#world-end" blocking="render">') != 1 or s.count('id="world-end"') != 1 or not re.search(r'src="/realm-above(?:\.v\d+)?\.js"[^>]*></script>\s*<div id="world-end" hidden></div>', s): fail('5 script-order', 'index.html: one link rel=expect #world-end blocking=render, and one empty <div id="world-end" hidden></div> right after the last realm')
     wn = [re.sub(r'(?:\.v\d+)?\.js$', '', n) for n in names if kind(n) == 'wing']
     if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
     PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'wing': 'low', 'ink': 'low'}
