@@ -270,6 +270,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await p0.close();
     if (!/RTX 4090/.test(ren) || !/D3D11/.test(ren)) { console.error('FAIL renderer: ' + ren); process.exit(2); }
     const p = await ctx.newPage(); const logs = [];
+    if (+process.env.GSTEP_CPU > 1) await (await ctx.newCDPSession(p)).send('Emulation.setCPUThrottlingRate', { rate: +process.env.GSTEP_CPU });   // (GSTEP_CPU=4: the page's CPU throttled, as DevTools does; the frames are on the harness's clock, so they must not change)
     p.on('console', (m) => { if (m.type() === 'error') logs.push(m.text().slice(0, 300)); });
     p.on('pageerror', (e) => logs.push('pageerror: ' + e.message));
     await p.addInitScript(INIT);
