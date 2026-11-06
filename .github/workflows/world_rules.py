@@ -231,7 +231,7 @@ for p in [g for g in gen if g.startswith('plan.')]:   # (fast500 step 11) the pl
         for ln, t in lines(c, pat): fail('4 absences', f'{p}:{ln} {what}: {t}')
     ks = re.findall(r"""addEventListener\(\s*['"]?([\w]*)""", c)
     if ks != ['message']: fail('4 absences', f'{p}: listeners {ks} (exactly one: message)')
-    if c.count('postMessage(') != 2: fail('4 absences', f'{p}: postMessage( {c.count("postMessage(")} times (its answer and its refusal)')
+    if c.count('postMessage(') != 3: fail('4 absences', f'{p}: postMessage( {c.count("postMessage(")} times (its two answers, the first frame and the rest, and its refusal)')
 for f in world + kit + realms + wing + ink:
     for ln, t in lines(strip_comments(src[f]), r'\.on[a-z]+\s*=(?!=)'): fail('4 absences', f'{f}:{ln} an on* handler property (listeners are added by name, in world*.v*.js only): {t}')
 

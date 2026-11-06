@@ -10,8 +10,11 @@
   function planVisit(V) {
     if (V.light) return;
     var def = V.def;
-    if (!MAPS.w && !planAdopt()) mapsInit(J.seed);   // (world6: the maps and the director, the boot's commit about the landing; fast500 F: the worker's, if it is in)
-    if (!KW.ok && !KW.part) kwFirst(CS.x, CS.z, firstYaw(), Math.atan(FRT.tanX) + KW_MARGIN); else kwFollow(CS.x, CS.z, true);   // (the weights' grid about the camera; fast500 B3: the first frame's texels first)
+    /* (world6) the maps and the director, the boot's commit about the landing, and the weights' grid about the camera
+       (fast500 B3: the first frame's texels first): the worker's first answer if it is in (world-perf lane: KW as its
+       kwFirst left it, the far field whole), else planFirst here, the one entry point */
+    if (!MAPS.w) { if (planAdopt()) { if (KW.part) kfFollow(CS.x, CS.z, true); else kwFollow(CS.x, CS.z, true); } else planFirst(J.seed, CS.x, CS.z, firstYaw(), Math.atan(FRT.tanX) + KW_MARGIN); }
+    else if (!KW.ok && !KW.part) kwFirst(CS.x, CS.z, firstYaw(), Math.atan(FRT.tanX) + KW_MARGIN); else kwFollow(CS.x, CS.z, true);
     V.rng = RNG(subseed(V.seed, 1)); V.rng2 = RNG(subseed(V.seed, 2));
     V.salt = subseed(V.seed, 7) >>> 0;
     V.speed = (def.speed || 12) * CAMK; V.clear = (def.clear || [6, 12, 120]).slice(); V.margin = def.margin || 14;
