@@ -150,6 +150,7 @@ public class LabRunner extends Instrumentation {
   /** One visit: launch, screenshots through the boot, readouts at 20 s, 60 s, 2 min, 5 min and the end. */
   void visit(String tag, long secs, Step launch, Step readout) throws Exception {
     log("==== " + tag + " for " + secs + " s");
+    resolve(arg("url", "https://claude-wk-probe-new.derekzhou.pages.dev/"));
     long s = SystemClock.uptimeMillis();
     launch.run();
     log(tag + " launched");
@@ -183,6 +184,27 @@ public class LabRunner extends Instrumentation {
   }
 
   // ---- helpers
+
+  /**
+   * Waits (up to 90 s) until the device's DNS resolves the URL's host. On Test Lab's phones a new pages.dev name can
+   * fail (NXDOMAIN) for the first seconds, and the browser's error page and reload would count in first paint. A
+   * lookup touches no browser cache, so the visit stays cold.
+   */
+  void resolve(String url) {
+    String host = android.net.Uri.parse(url).getHost();
+    long s = SystemClock.uptimeMillis();
+    for (int i = 0; ; i++) {
+      try {
+        java.net.InetAddress a = java.net.InetAddress.getByName(host);
+        log("dns " + host + " = " + a.getHostAddress() + " after " + (SystemClock.uptimeMillis() - s) + " ms, "
+            + i + " failures");
+        return;
+      } catch (java.net.UnknownHostException e) {
+        if (SystemClock.uptimeMillis() - s > 90000) { log("dns " + host + " still failing after 90 s"); return; }
+        SystemClock.sleep(1000);
+      }
+    }
+  }
 
   UiAutomation ua() { return getUiAutomation(a11y ? 0 : UiAutomation.FLAG_DONT_USE_ACCESSIBILITY); }
 

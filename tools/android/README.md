@@ -19,6 +19,9 @@ Two APKs, no test libraries. Each run is one arm, and each arm makes a cold visi
   - Both: the device's GPU (SurfaceFlinger's GLES line), SoC, cores and memory go first in the log.
   - Test Lab turns the animation scales off, and the browser reports that as reduced motion. The runner turns them
     back on before the visits.
+  - Before each visit the runner waits until the device's DNS resolves the host. On the first runs, a new pages.dev
+    name failed (NXDOMAIN) on Test Lab's phones for the first seconds. The browser's error page and reload then
+    counted in first paint.
 
 The readout comes from the probe previews (a claude/wk-probe-* branch's `probe.js`): first paint, the boot marks,
 WORLD SHOWN, long frames, fps, the governor's rung, the compile path, whether the parallel-compile extension is there,
