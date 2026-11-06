@@ -297,10 +297,14 @@ jobs:
       - name: The world's page loads in order
         run: |
           cd build/site
-          # hour.js in the head (before the first paint), site.js, then the
-          # deferred scripts in order: the world, the realms' kit and realms,
-          # fetchpriority="high" (the boot starts once the realms register),
-          # then the ink birds' wing model and the ink birds last, fetchpriority="low".
+          # hour.js in the head (before the first paint), site.js, then (the
+          # first-paint hold, 2026-11-06) the world, the realms' kit and realms,
+          # parser-blocking after the footer (the world measures the words),
+          # fetchpriority="high" (the hold runs as the last realm registers),
+          # then the ink birds' wing model and the ink birds last, deferred,
+          # fetchpriority="low". The head's link rel=expect blocking=render
+          # (#world-end, which names no element) holds the paint until the
+          # parser ends.
           # Every script data-cfasync="false", so Rocket Loader leaves the
           # order as served. One canvas, in the HTML; no bird SVGs.
           python3 - <<'PY'
@@ -309,7 +313,7 @@ jobs:
           head, body = src.split('<body>', 1)
           tags = lambda s: re.findall(r'<script\b([^>]*)\bsrc="/([^"]+)"([^>]*)></script>', s)
           want_head = [('hour', False)]
-          want_body = [('site', False), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
+          want_body = [('site', False), ('world', False), ('realm-kit', False), ('realm-dunes', False), ('realm-above', False), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
           pri = {'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low'}
           fail = 0
           # (fast500 5) the start file (start.js, made by tools/start.mjs): async, fetchpriority="high", the first
@@ -335,6 +339,11 @@ jobs:
                   st = re.sub(r'(\.v\d+)?\.js$', '', g[1])
                   if part is body and st in pri and re.findall(r'\bfetchpriority="(\w+)"', g[0] + g[2]) != [pri[st]]:
                       print('::error::%s wants fetchpriority="%s"' % (g[1], pri[st])); fail = 1
+          if head.count('<link rel="expect" href="#world-end" blocking="render">') != 1 or 'id="world-end"' in src:
+              print('::error::the hold: the head wants one <link rel="expect" href="#world-end" blocking="render">, naming no element'); fail = 1
+          wi = body.find('src="/world.js"'); fi = body.find('</footer>')
+          if wi < 0 or fi < 0 or wi < fi:
+              print('::error::the world, the kit and the realms come after the footer (the world measures the words)'); fail = 1
           if body.count('<canvas class="sky" aria-hidden="true"></canvas>') != 1:
               print('::error::the page needs its one canvas.sky'); fail = 1
           if re.search(r"""class=["'][^"']*\bbird\b|<polyline""", src):   # (a bird class in any class list, in either quotes, or a stroke)

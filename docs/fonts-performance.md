@@ -22,8 +22,11 @@ are preloaded in index.html and Early-Hinted via Link headers on / in
 \_headers. Never preload a font no rule uses (Chrome warns, and every
 first visit pays for it).
 
-The world's scripts are not on the path to the first paint (deferred, the
-start file async), but the start file is Early-Hinted (Link preloads on
+The world's scripts are on the path to the first paint only where the
+first-paint hold runs (World: BOOT): there the page paints once, with the
+world's first frame; where hour.js skips the hold they are not (parser-
+blocking, but the paint is not held: Chrome paints while they come; the
+start file async). Elsewhere the start file is Early-Hinted (Link preloads on
 / in \_headers, after the stylesheet, the two fonts and the hour: Cloudflare
 sends HTTP/2 in request order) and the world's and the kits' are fetched
 from the page at high priority; the wing model and the ink birds after
