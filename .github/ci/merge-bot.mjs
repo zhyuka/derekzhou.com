@@ -1,21 +1,22 @@
 // merge-bot.mjs: the owner's rule, "Only if nothing visible changes", run as a merge train. Run by merge.yml (main's
 // copy, never a PR's), one run at a time. Every run is one tick of the train, whatever woke it:
-//   1. main first: the Gate run of main's head commit. Still running: wait. Red: label the PR whose merge made it red
-//      broke-main, open one issue, and merge nothing (but a PR labelled fixes-main, green on top of that red main).
-//      Green: close the issue if one is open.
-//   2. then the open PRs from claude/* branches into main, oldest first, one car at a time. Skipped: drafts, a PR
-//      labelled needs-owner or visible, a PR that changes the bot (it gets needs-owner), a red gate. A PR whose gate
-//      is still running is the car being checked: the tick ends there. A green PR whose frames changed: needs-owner.
-//      Where T2 ran, its stall visits must have passed too (stall_ok true), or the PR is skipped.
-//      The first green, frames-identical PR is the car:
-//        its head contains main's head, and its gate ran on that head -> squash-merged at exactly that commit;
-//        main has moved past it -> its branch is brought up to date from main (one merge commit, never a rebase),
-//        which runs its gate again; the next tick decides.
-//      Either way the tick ends: at most one PR moves at a time, so two PRs never land without the second being
-//      checked on top of the first.
-// It never reverts: a revert is a push to main, and every change to main goes through a PR. The issue says how.
-// Env: GITHUB_TOKEN (reads, labels, comments, issues), MERGE_TOKEN (merges and branch updates: a PAT, so the pushes
-//      run the Gate), REPO (owner/name), DRY=1 (log, change nothing).
+//   1. main's own gate is an alarm, not a gate: red, the PR whose landing made it red is labelled broke-main and one
+//      issue is opened (green again: the issue closes). It cannot stop a deploy (Cloudflare puts main live in about
+//      2.5 minutes, before the gate finishes), so the train does not wait on it.
+//   2. the open PRs from claude/* branches into main, oldest first, one car at a time. Skipped: drafts, a PR labelled
+//      needs-owner or visible, a PR that changes the bot (it gets needs-owner), a red gate, and where T2 ran, stall
+//      visits that did not pass (stall_ok). A PR whose gate is still running is the car being checked: the tick ends
+//      there. A green PR whose frames changed: needs-owner. The first green, frames-identical PR is the car:
+//        its head contains main's head, and its gate ran on that exact head -> main is moved to that very commit
+//        (PATCH git/refs/heads/main, force false: GitHub refuses it unless it is a fast-forward, so if main moved in
+//        between, nothing lands and the next tick sees it); what lands is the commit that was tested, byte for byte;
+//        main has moved past it -> its branch is brought up to date from main (one merge commit, never a rebase) with
+//        MERGE_TOKEN, so the push runs its gate again, and a comment "update needed: main moved" wakes its session.
+//      After a landing, the next green PR is brought up to date the same way; then the tick ends. So two PRs never
+//      land without the second being checked on top of the first.
+// It never reverts: a revert is a change to main, and every change to main goes through a PR. The issue says how.
+// Env: GITHUB_TOKEN (reads, labels, comments, issues), MERGE_TOKEN (landings and branch updates: a PAT, so its
+//      pushes run the Gate), REPO (owner/name), DRY=1 (log, change nothing).
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -53,32 +54,28 @@ async function verdict(run) {
 
 if (!process.env.MERGE_TOKEN) { say('::notice::MERGE_TOKEN is not set, so the merge bot is idle: nothing is merged, labelled or commented. The owner adds the repository secret MERGE_TOKEN to turn it on.'); process.exit(0); }
 
-// 1. main.
-const main = (await gh('GET', '/branches/main')).json?.commit?.sha;
+// 1. main's gate: an alarm.
+let main = (await gh('GET', '/branches/main')).json?.commit?.sha;
 if (!main) { say('cannot read main'); process.exit(1); }
 const mrun = await gateRun(main);
 const redIssues = ((await gh('GET', '/issues?state=open&labels=main-red&per_page=20')).json || []).filter((i) => !i.pull_request);
-let mainRed = false;
-if (!mrun || mrun.status !== 'completed') { say(`main ${main.slice(0, 10)}: its gate is ${mrun ? mrun.status : 'not started'}: the train waits`); process.exit(0); }
-if (mrun.conclusion === 'success') {
+if (!mrun || mrun.status !== 'completed') say(`main ${main.slice(0, 10)}: its gate is ${mrun ? mrun.status : 'not started'}`);
+else if (mrun.conclusion === 'success') {
   say(`main ${main.slice(0, 10)}: green`);
   for (const i of redIssues) await act(`close issue #${i.number}`, async () => {
-    await gh('POST', `/issues/${i.number}/comments`, { body: `Main is green again at \`${main.slice(0, 10)}\` (${mrun.html_url}). The train runs again.${FOOT}` });
+    await gh('POST', `/issues/${i.number}/comments`, { body: `Main is green again at \`${main.slice(0, 10)}\` (${mrun.html_url}).${FOOT}` });
     await gh('PATCH', `/issues/${i.number}`, { state: 'closed', state_reason: 'completed' });
   });
-} else if (mrun.conclusion === 'cancelled' || mrun.conclusion === 'skipped') {
-  say(`main ${main.slice(0, 10)}: its gate was ${mrun.conclusion}: the train waits for a finished run`); process.exit(0);
-} else {
-  mainRed = true;
+} else if (mrun.conclusion !== 'cancelled' && mrun.conclusion !== 'skipped') {
   const culprit = ((await gh('GET', `/commits/${main}/pulls`)).json || []).find((p) => p.merged_at);
-  say(`main ${main.slice(0, 10)} is red (${mrun.conclusion}${culprit ? ', after #' + culprit.number : ''}): merging stops, but for a PR labelled fixes-main`);
-  if (culprit && !(culprit.labels || []).some((l) => l.name === 'broke-main')) await label(culprit.number, 'broke-main', 'b60205', 'Main went red after this PR merged');
+  say(`::warning::main ${main.slice(0, 10)} is red (${mrun.conclusion}${culprit ? ', after #' + culprit.number : ''})`);
+  if (culprit && !(culprit.labels || []).some((l) => l.name === 'broke-main')) await label(culprit.number, 'broke-main', 'b60205', 'Main went red after this PR landed');
   const marker = `<!-- merge-train red ${main} -->`;
   if (!redIssues.some((i) => (i.body || '').includes(marker))) {
     const who = culprit ? `#${culprit.number} (${culprit.title})` : 'a commit with no PR';
     await act('open the main-red issue', async () => {
-      await gh('POST', '/labels', { name: 'main-red', color: 'b60205', description: 'Main is red: the merge train has stopped' });
-      await gh('POST', '/issues', { title: `Main is red after ${culprit ? '#' + culprit.number : main.slice(0, 10)}: the merge train has stopped`, labels: ['main-red'], body: `${marker}\nThe gate failed on main at \`${main.slice(0, 10)}\`, which ${who} made: ${mrun.html_url}\n\nThe bot merges nothing until main's gate is green again, except a PR labelled **fixes-main** whose gate passed on top of this main. It does not revert by itself (a revert is a change to main, so it goes through a PR): to revert, open a PR from GitHub's **Revert** button on ${culprit ? '#' + culprit.number : 'the commit'}. This issue closes itself when main is green.${FOOT}` });
+      await gh('POST', '/labels', { name: 'main-red', color: 'b60205', description: 'The gate failed on main' });
+      await gh('POST', '/issues', { title: `Main is red after ${culprit ? '#' + culprit.number : main.slice(0, 10)}`, labels: ['main-red'], body: `${marker}\nThe gate failed on main at \`${main.slice(0, 10)}\`, which ${who} put there: ${mrun.html_url}\n\nThat commit is already live (Cloudflare deploys main in about 2.5 minutes, before the gate finishes). The bot does not revert by itself (a revert is a change to main, so it goes through a PR): to revert, open a PR from GitHub's **Revert** button on ${culprit ? '#' + culprit.number : 'the commit'}. Every PR the train lands is tested on top of main first, so a red main means something the PR's own gate did not see. This issue closes itself when main is green.${FOOT}` });
     });
   }
 }
@@ -101,11 +98,11 @@ async function needsOwner(pr, sha, why, run) {
   await act(`comment #${n}`, () => gh('POST', `/issues/${n}/comments`, { body: `${marker}\n**Left for the owner** (\`${sha.slice(0, 10)}\`): ${why}.\n\nPreview: ${preview}${run ? `\n\nThe gate's run: ${run.html_url}` : ''}${FOOT}` }));
 }
 
+let landed = false;
 for (const pr of prs) {
   const n = pr.number, sha = pr.head.sha, names = (pr.labels || []).map((l) => l.name);
   const held = names.filter((x) => ['needs-owner', 'visible'].includes(x));
   if (held.length) { say(`#${n} is labelled ${held.join(', ')}: left to the owner`); continue; }
-  if (mainRed && !names.includes('fixes-main')) { say(`#${n}: main is red and #${n} is not labelled fixes-main: waits`); continue; }
   const files = [];
   for (let page = 1; page < 30; page++) { const r = (await gh('GET', `/pulls/${n}/files?per_page=100&page=${page}`)).json || []; files.push(...r.map((f) => f.filename)); if (r.length < 100) break; }
   if (files.some((f) => SELF.includes(f))) { await needsOwner(pr, sha, 'it changes the merge bot itself (' + files.filter((f) => SELF.includes(f)).join(', ') + ')'); continue; }
@@ -125,13 +122,26 @@ for (const pr of prs) {
   if (cmp.behind_by > 0) {
     say(`#${n}: green, but main has moved ${cmp.behind_by} commit(s) past it: bringing it up to date, its gate runs again`);
     const u = await act(`update #${n} from main`, () => gh('PUT', `/pulls/${n}/update-branch`, { expected_head_sha: sha }, process.env.MERGE_TOKEN));
-    if (!DRY && u.status !== 202) await needsOwner(pr, sha, `its branch could not be brought up to date with main (${u.status}: ${u.json?.message || u.json}); merge main into it, or MERGE_TOKEN needs Contents read/write${files.some((f) => f.startsWith('.github/workflows/')) ? ' and Workflows write' : ''}`, run);
+    if (DRY || u.status === 202) await act(`comment #${n}`, () => gh('POST', `/issues/${n}/comments`, { body: `update needed: main moved. The merge bot merged main (\`${main.slice(0, 10)}\`) into this branch; the gate runs again on top of it, and the train lands it if it stays green. Pull before pushing again.${FOOT}` }));
+    else await needsOwner(pr, sha, `its branch could not be brought up to date with main (${u.status}: ${u.json?.message || u.json}); merge main into it, or MERGE_TOKEN needs Contents read/write${files.some((f) => f.startsWith('.github/workflows/')) ? ' and Workflows write' : ''}`, run);
     break;
   }
-  say(`#${n}: green on top of main ${main.slice(0, 10)}, frames identical (${v.reason}): merging`);
-  const m = await act(`merge #${n}`, () => gh('PUT', `/pulls/${n}/merge`, { merge_method: 'squash', sha, commit_title: `${pr.title} (#${n})` }, process.env.MERGE_TOKEN));
-  if (DRY || m.status === 200) say(`merged #${n}: ${m.json?.sha || '(dry)'}; main's own gate runs next, and the train moves on when it is green`);
-  else await needsOwner(pr, sha, `the merge was refused (${m.status}: ${m.json?.message || m.json}); MERGE_TOKEN needs Contents and Pull requests read/write${files.some((f) => f.startsWith('.github/workflows/')) ? ', and Workflows write for a PR that changes a workflow' : ''}`, run);
-  break;
+  if (landed) { say(`#${n}: already on top of the new main: the next tick lands it`); break; }
+  // Land the exact tested commit: main fast-forwarded to it (refused unless a fast-forward).
+  say(`#${n}: green on ${sha.slice(0, 10)}, which contains main ${main.slice(0, 10)}, frames identical (${v.reason}): landing that commit`);
+  const f = await act(`fast-forward main to ${sha.slice(0, 10)}`, () => gh('PATCH', '/git/refs/heads/main', { sha, force: false }, process.env.MERGE_TOKEN));
+  if (!DRY && f.status !== 200) {
+    if (f.status === 422 && /fast.?forward/i.test(f.json?.message || '')) { say(`#${n}: main moved before it could land (${f.json?.message}): the next tick decides`); break; }
+    await needsOwner(pr, sha, `main could not be moved to it (${f.status}: ${f.json?.message || f.json}); MERGE_TOKEN needs Contents read/write${files.some((f) => f.startsWith('.github/workflows/')) ? ' and Workflows write' : ''}, and main must allow it`, run);
+    break;
+  }
+  say(`landed #${n}: main is ${sha}`);
+  // GitHub marks a PR merged when its head lands on its base; if it has not, say so and close it.
+  const after = DRY ? { merged: true } : (await gh('GET', `/pulls/${n}`)).json;
+  if (!after?.merged) await act(`close #${n}`, async () => {
+    await gh('POST', `/issues/${n}/comments`, { body: `Landed on main as \`${sha}\` (main fast-forwarded to this PR's tested head).${FOOT}` });
+    await gh('PATCH', `/pulls/${n}`, { state: 'closed' });
+  });
+  main = sha; landed = true;   // (then the next green PR is brought up to date on top of it)
 }
 say('tick done');

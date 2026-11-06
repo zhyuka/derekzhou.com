@@ -1,12 +1,12 @@
 name: Merge bot
 
 # The owner's rule, verbatim: "Only if nothing visible changes (Recommended)", run as a merge train (merge-bot.mjs).
-# Every run is one tick: it checks main's own gate first (red: nothing merges, an issue is opened), then takes the
-# oldest green, frames-identical PR from a claude/* branch and either merges it, if its gate ran on a head that
-# contains main as it is now, or brings its branch up to date from main so its gate runs again on top of it.
-# One run at a time (one group for the whole repository), so two PRs never land in the same minute unchecked.
-# Both triggers run main's copy of this file and of the bot, never a PR's. A PR that changes the bot is always
-# left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
+# Every run is one tick: it takes the oldest green, frames-identical PR from a claude/* branch and either lands it,
+# moving main to the exact commit its gate passed on (a fast-forward, so only if that commit contains main as it is
+# now), or brings its branch up to date from main so its gate runs again on top of it. One run at a time (one group
+# for the whole repository), so two PRs never land unchecked against each other. Main's own gate is an alarm only:
+# red, an issue. Both triggers run main's copy of this file and of the bot, never a PR's. A PR that changes the bot
+# is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
 on:
   workflow_run:
     workflows: [Gate]
