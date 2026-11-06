@@ -79,8 +79,12 @@
      direction and changes neither */
   var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0 };
   var MOTIONASK = { drag: false };
+  /* (the owner, 2026-11-06: "Keep drag-only") the phone's turn is asked for only on iOS and iPadOS (an iPad behind a
+     Mac user agent too): Chrome now has DeviceOrientationEvent.requestPermission as well, grants it on a desktop's or
+     an Android's first tap, and its listener then only logged the Permissions-Policy's refusal */
+  var MOTIONIOS = (function () { var ua = navigator.userAgent || ''; return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1); })();
   function askMotion() {
-    if (MOTION.st !== 'off' || inert()) return;
+    if (MOTION.st !== 'off' || inert() || !MOTIONIOS) return;
     var DOE = window.DeviceOrientationEvent;
     if (!DOE || typeof DOE.requestPermission !== 'function') return;
     MOTION.st = 'asking';
@@ -171,8 +175,7 @@
     document.addEventListener('dragstart', function (e) { if (!inert()) e.preventDefault(); }, true);   // (a link is never dragged away)
     if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { DOMQ.touch = true; if (!running) domNext(); });   // (E1.1 Fix 2, S10: measured in the next frame)
     touchMode();
-    // Android and the rest: the phone's motion needs no asking; iOS asks inside a gesture
-    var DOE = window.DeviceOrientationEvent;
-    if (DOE && typeof DOE.requestPermission !== 'function') enableMotion();
+    // the phone's motion only where it is asked for (iOS, inside a gesture: askMotion); elsewhere no listener at all (the
+    // owner, 2026-11-06: "Keep drag-only": the Permissions-Policy denies the sensors, and a listener only logged its error)
   }
 
