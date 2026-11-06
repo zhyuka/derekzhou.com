@@ -17,7 +17,7 @@
     visit: function () { clearAll(); },
     reset: function () { t = 0; weather(); dirty = true; clearAll(); },
     lost: function () { PROG = null; VAO = null; VBO = null; RING = null; BT = null; BROKEN = false; SAMPLERS = false; makeProgram(); },
-    boot: function () { makeProgram(); bootRing(); }   // (E1: the boot's stage B: the instance ring and its warm entry)
+    boot: function () { makeProgram(); bootRing(); prebuild(); }   // the boot's stage B: the instance ring, its warm entry, the tables a landing needs
   };
   });
 })();

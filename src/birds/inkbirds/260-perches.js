@@ -40,6 +40,22 @@
   var NAME_INK = null;
   function nameInk() { if (!NAME_INK) NAME_INK = PERCH_INK.name.split('|').map(function (c) { return c ? c.split(';').map(function (q) { var a = q.split(','); return [+a[0], +a[1]]; }) : []; }); return NAME_INK; }
   function inkTops(c) { var I = nameInk()[c], o = []; if (!I) return o; for (var i = 0; i < I.length; i++) if (I[i][1] < PERCH_INK.h && I[i][1] - I[i][0] >= PERCH_INK.room) o.push(I[i][1] - 1); return o; }
+  /* the name's ledges in its own units (x, y pairs along each), made once: a relayout only maps them */
+  var NAME_LEDGES = null;
+  function nameLedges() {
+    if (NAME_LEDGES) return NAME_LEDGES;
+    var out = [], sp = PERCH_INK.span, nc = nameInk().length, TOPS = [], c, i, k;
+    for (c = 0; c < nc; c++) TOPS.push(inkTops(c));
+    for (c = sp; c < nc - sp; c += 2) {
+      var T = TOPS[c];
+      for (i = 0; i < T.length; i++) {
+        var U = [], ok = true;
+        for (k = -sp; k <= sp && ok; k++) { var y = k ? nearTop(TOPS[c + k], T[i]) : T[i]; if (!(y === y)) ok = false; else U.push((c + k) * PERCH_INK.col + PERCH_INK.col / 2, y); }
+        if (ok) out.push(U);
+      }
+    }
+    return (NAME_LEDGES = out);
+  }
   function wBoxes() { var b = HOST.words().boxes, k = 1 / (VW.bdpr || VW.dpr || 1), o = []; for (var i = 0; i < 5; i++) o.push([b[4 * i] * k, b[4 * i + 1] * k, b[4 * i + 2] * k, b[4 * i + 3] * k]); return o; }
   function nameMap() { var nv = HOST.words().nvb; if (!nv) return null; var k = 1 / (VW.bdpr || VW.dpr || 1); return [nv[0] * k, nv[1] * k, nv[2] * k]; }
   /* every ledge: its surface (CSS px, along x), where its middle is, its slope; the name's from its ink (every column's
@@ -48,12 +64,11 @@
     if (PW.ledges) return PW.ledges;   // (made again when the words move: relayout)
     var B = wBoxes(), nm = nameMap();
     var out = [], c, i, k, sp = PERCH_INK.span;
-    if (nm) for (c = sp; c < nameInk().length - sp; c += 2) {
-      var T = inkTops(c);
-      for (i = 0; i < T.length; i++) {
-        var pts = [], ok = true;
-        for (k = -sp; k <= sp && ok; k++) { var y = k ? nearTop(c + k, T[i]) : T[i]; if (!(y === y)) ok = false; else pts.push([nm[0] + ((c + k) * PERCH_INK.col + PERCH_INK.col / 2) * nm[2], nm[1] + y * nm[2]]); }
-        if (ok) out.push({ kind: 'name', pts: pts, x: pts[sp][0], y: pts[sp][1], slope: (pts[2 * sp][1] - pts[0][1]) / Math.max(1e-6, pts[2 * sp][0] - pts[0][0]), k: 1 });
+    if (nm) { var NL = nameLedges();
+      for (c = 0; c < NL.length; c++) {
+        var U = NL[c], pts = [];
+        for (k = 0; k < U.length; k += 2) pts.push([nm[0] + U[k] * nm[2], nm[1] + U[k + 1] * nm[2]]);
+        out.push({ kind: 'name', pts: pts, x: pts[sp][0], y: pts[sp][1], slope: (pts[2 * sp][1] - pts[0][1]) / Math.max(1e-6, pts[2 * sp][0] - pts[0][0]), k: 1 });
       }
     }
     for (var L = 0; L < 2; L++) {
@@ -73,7 +88,7 @@
     PW.ledges = out;
     return out;
   }
-  function nearTop(c, y) { var T = inkTops(c), b = NaN; for (var i = 0; i < T.length; i++) if (Math.abs(T[i] - y) <= PERCH_INK.flat && !(Math.abs(b - y) <= Math.abs(T[i] - y))) b = T[i]; return b; }
+  function nearTop(T, y) { var b = NaN; for (var i = 0; i < T.length; i++) if (Math.abs(T[i] - y) <= PERCH_INK.flat && !(Math.abs(b - y) <= Math.abs(T[i] - y))) b = T[i]; return b; }
   function surfY(pts, x) { if (x < pts[0][0] || x > pts[pts.length - 1][0]) return NaN; for (var i = 1; i < pts.length; i++) if (x <= pts[i][0]) { var w = (x - pts[i - 1][0]) / Math.max(1e-6, pts[i][0] - pts[i - 1][0]); return pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * w; } return NaN; }
   /* a perched bird's span on the window (CSS px) and so its depth (m) */
   function perchSpan(b, k) { return SPAN * view * b.S.size * PERCH.scale * (k || 1); }

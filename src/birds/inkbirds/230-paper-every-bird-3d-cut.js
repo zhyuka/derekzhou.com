@@ -28,6 +28,8 @@
   function smoothK(a, b, x) { return ease((x - a) / (b - a)); }
   function gmix(o, a, b, w) { for (var i = 0; i < 22; i++) o[i] = a[i] + (b[i] - a[i]) * w; return o; }
   function gbeat(kind, ph, k, out) { GOPT.k = k; GOPT.D = undefined; LB.cycle(kind, ph - Math.floor(ph), GOPT, out, GBODY); return out; }
+  /* the perching kinds' mean beat, and the name's ledges, made at the boot (never in a landing's flare) */
+  function prebuild() { for (var k in KINDS) if (KINDS[k].perch && FP.kinds[k] && KMD[k]) gmean(k); nameLedges(); }
   function gmean(kind) { if (GMEAN[kind]) return GMEAN[kind]; var M = FP.pose(), T = FP.pose(); for (var i = 0; i < 120; i++) { gbeat(kind, i / 120, 1, T); for (var j = 0; j < 22; j++) M[j] += T[j] / 120; } return (GMEAN[kind] = M); }
   var WIND_ON = true, WINDV = [0, 0, 0];
   function windNow() { if (WIND_ON && HOST.wind && !FORCED) HOST.wind(WINDV); else WINDV[0] = WINDV[1] = WINDV[2] = 0; return WINDV; }
