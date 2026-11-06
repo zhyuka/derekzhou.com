@@ -148,6 +148,7 @@
     var vc = P.kind === 'pointer' ? clamp(2.6 * topSpeed(), PJ.vc[0], PJ.vc[1]) : clamp(1.6 * topSpeed(), 24, 70), B = gWords(), i;   // (the owner, 2026-11-06: noticeable: it comes in 3-5 s)
     g.sp = sp; g.vc = vc; g.dir = dir; g.face = -dir; g.px0 = P.x; g.py0 = sy;
     var Lg = (P.kind === 'pointer' ? 2.6 : P.kind === 'link' ? (P.end ? 3 : 4.5) : 5.5) * sp, qa = (P.qa !== undefined ? P.qa : P.kind === 'name' ? 40 : 24) * DEG, qe = (P.qe !== undefined ? P.qe : P.kind === 'name' ? 18 : 8) * DEG;   // (perch lane: onto a stroke from above)
+    Lg = Math.min(Lg, 1.8 * vc);   // (the glide down to it about G_GLIDE_MAX s at its own pace: noticeable, never a long drift)
     g.T = [P.x, sy - 0.22 * sp]; g.yEnd = g.T[1];
     g.G = [g.T[0] + dir * Lg * Math.cos(qa), g.T[1] - Lg * Math.sin(qa)];
     g.Cp = [g.T[0] + dir * 0.45 * Lg * Math.cos(qe), g.T[1] - 0.45 * Lg * Math.sin(qe)];
@@ -182,6 +183,7 @@
     if (i === tries.length) return false;
     g.from = fl && i === 0 ? fl : null;
     if (g.from) { g.sp0 = g.from.sp; g.Ti = Math.max(g.Ti, 1.2); g.vg = g.L / g.Ti; g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve); }
+    if (g.Tr > G_GLIDE_MAX) { g.Tr = G_GLIDE_MAX; g.ve = Math.min(g.vg, Math.max(0.1 * g.vg, 2 * g.Lb / g.Tr - g.vg)); g.Tr = 2 * g.Lb / (g.vg + g.ve); }   // (the owner: noticeable, in 3-5 s: the glide to the letter at most G_GLIDE_MAX, not a 17 s drift)
     g.tF = g.Ti + g.Tr - 0.6; g.tT = g.Ti + g.Tr;   // (the flare: the last 0.6 s of the glide)
     /* and nobody coming to its perch while it would sit there (the ordinary birds' pace carried on 8 s past touch-down) */
     for (var k2 = g.tT; k2 <= g.tT + 8; k2 += 0.5) if (!gOrdClearAt(g.px0, g.py0, k2, 3 * sp)) return false;
@@ -203,7 +205,7 @@
   /* (perch lane) the click's bird: a click or tap on the page (not a drag, not a link: HOST.clicks) lets a gull go into
      the world there (worldBird: from the world point under the click, up and away to the click's side, the world's own
      from then on). At most G_CLICK_MAX in the air at once; the perches' own guests are not held up by them */
-  var G_CLICK_MAX = 4, GCLK = [], G_TO_WORLD = 0.3;   // (s into its leap: handed to the world)
+  var G_GLIDE_MAX = 3.0, G_CLICK_MAX = 4, GCLK = [], G_TO_WORLD = 0.3;   // (s into its leap: handed to the world)
   function gBusy() { for (var i = 0; i < GU.list.length; i++) return true; return false; }
   function gClick(x, y) {
     var nC = 0, i; for (i = 0; i < PLACES.length; i++) if (PLACES[i].click) nC++;
