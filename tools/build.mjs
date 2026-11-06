@@ -45,7 +45,7 @@ import { fileURLToPath } from 'url';
 import { makePlan, workerName } from './plan.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site');
+const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), WING = path.join(SRC, 'birds', 'model');
 const PARTS = path.join(ROOT, 'tools', 'parts.mjs'), MINIFY = path.join(ROOT, 'tools', 'minify.mjs');
 const STAMP = 'build.txt';
 const NAMED = /^[a-z0-9-]+(\.v\d+)?\.(js|css)$/, HASHED = /^[a-z0-9-]+\.[0-9a-f]{8}\.(js|css)$/;
@@ -92,6 +92,13 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
+  // the ink birds' wing model, served as written (copied first: the start file's maker reads them beside index.html): src/birds/model/'s scripts copied whole (two of them generated, by
+  // tools/birds/: CI makes them again and compares)
+  const wing = fs.readdirSync(WING).filter((n) => n.endsWith('.js')).sort();
+  for (const n of wing) {
+    if (fs.existsSync(path.join(out, n))) die(n + ' is in site/ and in src/birds/model/: one source only');
+    fs.copyFileSync(path.join(WING, n), path.join(out, n));
+  }
   const parts = path.resolve(out) + '.parts', dev = path.join(parts, 'src'), ship = path.join(parts, 'ship');
   fs.rmSync(parts, { recursive: true, force: true });
   await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
@@ -101,7 +108,7 @@ async function build(out, stamp) {   // the plain build
   await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
   // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build), the
   // plan's worker, and the start file the page loads, with its table (start.js, start-table.js)
-  const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile());
+  const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile()).concat(wing);
   if (pn) written.push(pn);
   const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start(?:\.v\d+)?\.js)[\"']/);
   if (sm) written.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));

@@ -13,3 +13,6 @@ build/
 # (the deploy build) node tools/build.mjs dist; and npm ci's node_modules/: never committed
 dist/
 node_modules/
+
+# (the wing model's generators: python writes these beside linkage.py) never committed
+__pycache__/
