@@ -6,6 +6,7 @@
 //   2. then the open PRs from claude/* branches into main, oldest first, one car at a time. Skipped: drafts, a PR
 //      labelled needs-owner or visible, a PR that changes the bot (it gets needs-owner), a red gate. A PR whose gate
 //      is still running is the car being checked: the tick ends there. A green PR whose frames changed: needs-owner.
+//      Where T2 ran, its stall visits must have passed too (stall_ok true), or the PR is skipped.
 //      The first green, frames-identical PR is the car:
 //        its head contains main's head, and its gate ran on that head -> squash-merged at exactly that commit;
 //        main has moved past it -> its branch is brought up to date from main (one merge commit, never a rebase),
@@ -116,6 +117,7 @@ for (const pr of prs) {
   if (!v || !v.gate_ok || v.sha !== sha) { say(`#${n}: the gate is not green on ${sha.slice(0, 10)} (${run.conclusion}${v ? ', gate_ok ' + v.gate_ok + ', verdict for ' + String(v.sha).slice(0, 10) : ', no verdict'}): skipped`); continue; }
   if (!v.frames_identical) { await needsOwner(pr, sha, `what a visitor sees may change (${v.reason})`, run); continue; }
   if (v.t2 && v.t2.required && !v.t2.ran) { say(`#${n}: T2 was required and did not run: skipped`); continue; }
+  if (v.t2 && v.t2.ran && v.t2.stall_ok !== true) { say(`#${n}: T2 ran but its stall visits did not pass (stall_ok ${v.t2.stall_ok}): skipped`); continue; }
 
   // The car. Does its tested head contain main as it is now?
   const cmp = (await gh('GET', `/compare/${main}...${sha}`)).json;
