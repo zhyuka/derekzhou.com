@@ -96,10 +96,11 @@
     return true;
   }
   /* the 46 vertices from its pose, scaled to its size, turned by its basis, from the camera; the 16 points beside them */
-  function place(b, s, C, px, py, pz) {
+  function place(b, s, C, px, py, pz) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); placeAt(b, s, C, px, py, pz, s.V46); }
+  /* ... the same geometry V moved to (px, py, pz): the rest rule's tries rebuild nothing */
+  function placeAt(b, s, C, px, py, pz, V) {
     var i, sp = b.sz, B = s.B;
-    LB.geom(s.kind, s.P22, s.B3, s.V46, 'this');
-    var ox = px - C.pos[0], oy = py - C.pos[1], oz = pz - C.pos[2], V = s.V46, X = s.X46;
+    var ox = px - C.pos[0], oy = py - C.pos[1], oz = pz - C.pos[2], X = s.X46;
     for (i = 0; i < NV; i++) {
       var x = V[3 * i] * sp, y = V[3 * i + 1] * sp, z = V[3 * i + 2] * sp;
       X[3 * i] = ox + x * B[0] + y * B[3] + z * B[6]; X[3 * i + 1] = oy + x * B[1] + y * B[4] + z * B[7]; X[3 * i + 2] = oz + x * B[2] + y * B[5] + z * B[8];
@@ -131,11 +132,12 @@
   function tilt(C, v0, v1, v2, o) { var a = v0 * C.u[0] + v1 * C.u[1] + v2 * C.u[2], bb = v0 * C.f[0] + v1 * C.f[1] + v2 * C.f[2], c = v0 * C.r[0] + v1 * C.r[1] + v2 * C.r[2], a2 = a * TCE + bb * TSE, b2 = bb * TCE - a * TSE; o[0] = C.r[0] * c + C.u[0] * a2 + C.f[0] * b2; o[1] = C.r[1] * c + C.u[1] * a2 + C.f[1] * b2; o[2] = C.r[2] * c + C.u[2] * a2 + C.f[2] * b2; }
   /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its lowest drawn points on the
      surface (a letter's ink under them; on the tip, the tip), with its pose and basis as they are */
-  function restSolve(b, C, s, fxp, fyp, lift) {
+  function restSolve(b, C, s, fxp, fyp, lift, V) {
+    if (!V) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); V = s.V46; }
     var P = b.P, sp = perchSpan(b, P.k), up = P.rest || 0.42 * sp, k2 = (W / 2) / VW.tanX, lg = P.kind === 'pointer' ? null : ledges()[P.li], i;
     for (var it = 0; it < 4; it++) {
       rayAt(C, fxp, fyp - up - lift * sp, P.D, RQ);
-      place(b, s, C, RQ[0], RQ[1], RQ[2]);
+      placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V);
       var worst = -1e9, anyOn = false, low = -1e9;
       for (i = 0; i < NV; i++) {
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
@@ -150,14 +152,13 @@
   }
   /* (the flare's last tenths) where its rest will be at the touch: the touch pose on its basis now, solved; the landing
      closes on that, so the touch is where its feet are */
-  var PRB = { P22: null };
+  var TOUCHG = {}, ZERO3 = new Float64Array(3);
+  /* the touch pose's geometry, a kind's own (the same every landing) */
+  function touchGeom(kind) { var g = TOUCHG[kind]; if (!g) { g = TOUCHG[kind] = new Float64Array(3 * NV); LB.geom(kind, PERCH.poses.touch, ZERO3, g, 'this'); } return g; }
   function restProbe(b, C, s) {
     var P = b.P; perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return;
-    var keep = s.P22; if (!PRB.P22) PRB.P22 = FP.pose();
-    for (var i = 0; i < 22; i++) PRB.P22[i] = PERCH.poses.touch[i];
-    s.P22 = PRB.P22; s.B3[0] = s.B3[1] = s.B3[2] = 0;
-    P.rest = restSolve(b, C, s, PFD[0], PFD[1], 0);
-    s.P22 = keep;
+    s.B3[0] = s.B3[1] = s.B3[2] = 0;
+    P.rest = restSolve(b, C, s, PFD[0], PFD[1], 0, touchGeom(s.kind));
   }
   /* a bird on its perch, posed in the camera's frame at the perch's depth, its lowest points on the ink (on the tip:
      its feet the tip's), solved every frame from where the perch is drawn */
