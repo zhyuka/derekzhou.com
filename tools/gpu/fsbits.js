@@ -66,6 +66,10 @@ void main() {
     'vD:vec4': 'vD = vec4(0.0, 0.0, -2e8, 1.0);',
     'vE:vec4': 'vE = vec4(0.2, 0.2, 0.0, 0.0);',
     'vW:vec3': 'vW = vec3(uTG.x + ij.x * uTG.z, uCamT.y - 30.0 + 60.0 * hr(u, 1u), uTG.y + ij.y * uTG.z);' });
+  /* a paper bird's (the FS reads its row of points from uPts by vK1.x): the row one of eight, the wing's state (vK1.y),
+     its stroke and its width (vK1.z, w); uPts' points spread over the whole target (below), so its facets cover it */
+  const BIRD = /\buPts\b/.test(fsOld) && IN.some((v) => v.n === 'vK1');
+  if (BIRD) KNOWN['vK1:vec4'] = 'vK1 = vec4(floor(hr(u, 71u) * 8.0), step(0.5, hr(u, 72u)), 2.0 + 4.0 * hr(u, 73u), 0.5 + 2.0 * hr(u, 74u));';
   const gen = (v) => {   // any other input: each component from the hash (another key a component), in [-1, 1]
     const n = { float: 1, int: 1, uint: 1 }[v.t] || +v.t.slice(-1), base = v.t.replace(/[234]$/, '').replace(/^vec$/, 'float').replace(/^ivec$/, 'int').replace(/^uvec$/, 'uint');
     const c = []; for (let k = 0; k < n; k++) { K++; c.push(base === 'float' ? 'hr(u, ' + (100 + K) + 'u) * 2.0 - 1.0' : base === 'int' ? 'int(hr(u, ' + (100 + K) + 'u) * 8.0)' : 'uint(hr(u, ' + (100 + K) + 'u) * 8.0)'); }
@@ -108,6 +112,8 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
          5 km of the camera); uLevA the clipmap's ten levels about the camera, as hpClip makes them; uGCw a grid 20 m a
          texel; uHsrc each mode in turn (the sky's index, mod 3) */
       const HPS = /uniform\s+int\s+uHsrc\b/.test(FS0);
+      // (a paper bird's points: eight rows of 46, each point's x, y on the 512 x 512 target and its depth)
+      const BRD = /\buPts\b/.test(FS0), TPTS = BRD ? t2(46, 8, () => [512 * rnd(), 512 * rnd(), rnd(), 1]) : null;
       const THP = HPS ? t2(512, 512, () => [-60 + 180 * rnd(), rnd() - 0.5, rnd() - 0.5, rnd()]) : null;
       const camOf = (sky) => [37.5 + sky * 911, 120 + 40 * sky, -18.25 - sky * 613];
       /* the clouds' bakes and their body: the density bake (an FS with uLobeN: 24 lobes inside its box, the layer by the
@@ -150,7 +156,7 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
             if (base === 'uTG' || base === 'uCamT' || base === 'uSeedT' || base === 'uZ' || base === 'uDbg' || base === 'uPm') continue;
             const t = info.type, sz = info.size;
             if (t === g.SAMPLER_3D) { g.activeTexture(g.TEXTURE0); g.bindTexture(g.TEXTURE_3D, T3); g.uniform1i(L, 0); continue; }
-            if (t === g.SAMPLER_2D) { g.activeTexture(g.TEXTURE0 + unit); g.bindTexture(g.TEXTURE_2D, base === 'uKW' ? TKW : base === 'uGround' ? TG : HPS && /^uHP\d$/.test(base) ? THP : HPS && base === 'uTex' ? TPT : base === 'uLinD' ? TLD : TX); g.uniform1i(L, unit); unit++; continue; }
+            if (t === g.SAMPLER_2D) { g.activeTexture(g.TEXTURE0 + unit); g.bindTexture(g.TEXTURE_2D, base === 'uKW' ? TKW : base === 'uGround' ? TG : HPS && /^uHP\d$/.test(base) ? THP : HPS && base === 'uTex' ? TPT : base === 'uLinD' ? TLD : BRD && base === 'uPts' ? TPTS : TX); g.uniform1i(L, unit); unit++; continue; }
             const comps = { [g.FLOAT]: 1, [g.FLOAT_VEC2]: 2, [g.FLOAT_VEC3]: 3, [g.FLOAT_VEC4]: 4, [g.FLOAT_MAT4]: 16, [g.INT]: 1, [g.UNSIGNED_INT]: 1 }[t];
             if (!comps) throw new Error('uniform type ' + t + ' of ' + info.name);
             const v = []; for (let k = 0; k < sz; k++) v.push(...val(base + (sz > 1 ? '#' + k : ''), comps, sky));
@@ -173,7 +179,11 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
             if (VBD && base === 'uVR') { v[1] = 32; v[3] = 1; }
             if (VBD && base === 'uVS') { v[0] = 10; v[1] = 2; v[2] = 1e4; }
             if (VBD && base === 'uVR2') v[3] = -1e4;
-            if (base === 'uLinS') { v[0] = 255; v[1] = 255; }   // (the depth's half-resolution size: the texel the FS clamps to)
+            if (base === 'uLinS') { v[0] = 255; v[1] = 255; }
+            if (BRD && base === 'uOut') { v[0] = 512; v[1] = 512; }
+            if (BRD && base === 'uLand') v[2] = 1;
+            if (BRD && base === 'uBl') v[3] = 0;
+            if (BRD && base === 'uMode') v[0] = 0;   // (the depth's half-resolution size: the texel the FS clamps to)
             if (t === g.FLOAT) g.uniform1fv(L, v); else if (t === g.FLOAT_VEC2) g.uniform2fv(L, v); else if (t === g.FLOAT_VEC3) g.uniform3fv(L, v);
             else if (t === g.FLOAT_VEC4) g.uniform4fv(L, v); else if (t === g.FLOAT_MAT4) g.uniformMatrix4fv(L, false, v);
             else if (t === g.INT) g.uniform1i(L, 0); else if (t === g.UNSIGNED_INT) g.uniform1ui(L, (v[0] * 4294967295) >>> 0);
