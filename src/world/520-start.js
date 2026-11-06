@@ -71,6 +71,13 @@
      from the one clock, never what is drawn; the first animation frame after the hold steps one hold frame (dt
      HOLD_P), as the frame after a 60 Hz show would */
   var HOLD_P = 68267 / 4096, HOLD = { on: false, ms: 0, why: '', n: 0, took: -1, shown: false };   // (a 60 Hz frame, exact in binary)
+  /* (the slow CPU's net) the hold foretold, twice, from work the boot does anyway, on the main thread like the plan
+     that follows: first stage A (the context and the boot's setup: about HOLD_KA x A + HOLD_CA ms; the 4090, Chrome's
+     CPU throttled 1x to 6x: A 19-23 ms at 1x -> 0.6 s, 38-48 at 3x -> 1.3-1.45 s, 46-51 at 4x -> 1.6-1.8 s, 59 and over
+     at 5x past 2 s); then the first hold frame (stage B and every program issued: about HOLD_K x it + HOLD_C ms: 13 ms
+     -> 0.56 s, 45 -> 1.39, 58 -> 1.74, 67 and over past 2 s). Either over 90% of the deadline: no hold, the link out
+     at once, the boot going on as today's */
+  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 26, HOLD_C = 220;
   function holdLink() { return document.querySelector('link[rel="expect"][blocking="render"]'); }
   function holdOff(why) { HOLD.why = why; var l = holdLink(); if (l) l.remove(); bootMark('hold: off (' + why + ')'); }
   /* the deadline by device (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so never near that;
@@ -89,13 +96,19 @@
     bootOnce();   // (stage A: the context, the device; the loop's first animation frame asked for)
     if (!gl || DEAD || !running || reduced() || forced() || document.visibilityState === 'hidden') { holdOff(!gl || DEAD ? 'no world here' : 'not running'); return; }
     var ms = holdMs(); if (!ms) { holdOff(HOLD.why); return; }
+    HOLD.a = +(clockNow() - t0).toFixed(1);
+    if (HOLD_KA * HOLD.a + HOLD_CA > 0.9 * ms) { holdOff('a slow CPU: stage A ' + HOLD.a + ' ms'); return; }
     HOLD.ms = ms; bootMark('hold: on (' + ms + ' ms)');
-    if (PW.st === 1) planWorkerOff();   // (the plan made here, beside the compiles)
-    var ts = 0, n = 0; HOLD.on = true;
+    var ts = 0, n = 0, f0; HOLD.on = true;
     while (running && !shown && !DEAD && !LOST && n < 1e6 && clockNow() - t0 < ms) {
-      ts += HOLD_P; n++;
+      ts += HOLD_P; n++; f0 = clockNow();
       domFlush(); if (BIRDF && !BIRDS && !LATEB.dead) birdsLate();
       frameBody(ts);
+      if (n === 1) {   // (the slow CPU's net: the first hold frame, stage B and every program issued, foretells the hold)
+        HOLD.f1 = +(clockNow() - f0).toFixed(1);
+        if (HOLD_K * HOLD.f1 + HOLD_C > 0.9 * ms) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
+        if (PW.st === 1) planWorkerOff();   // (the plan made here, beside the compiles: the worker's answer cannot come inside this task; frame 1, stage B, made none of it)
+      }
     }
     HOLD.on = false; CLK[1] = -2; HOLD.n = n; HOLD.took = +(clockNow() - t0).toFixed(1); HOLD.shown = shown;
     bootMark('hold: ' + (shown ? 'shown' : 'deadline') + ' after ' + n + ' frames, ' + HOLD.took + ' ms');
