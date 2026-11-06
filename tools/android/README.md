@@ -52,6 +52,19 @@ gcloud firebase test android run --type instrumentation \
 ```
 
 - Use `Arms#webview` for the WebView arm.
+- `Arms#plan` fits several visits into one run. Pass it as `--environment-variables "^;^plan=VISIT|VISIT|..."`
+  (the `^;^` makes `;` the delimiter, so the URLs' `:` and `,` pass through). Each visit is
+  `BROWSER~URL~KIND~SECS[~FLAGS]`:
+  - `BROWSER` is `chrome` (the device's) or `chromium`.
+  - `KIND` is `cold` (data cleared) or `return`.
+  - `FLAGS` are browser switches joined by `+`, for example `--force-device-scale-factor=1`.
+
+  It takes a screenshot every 250 ms for the first 20 s, so pages without a readout (the live site) can be timed from
+  them.
+- For a current browser, install Chromium's Android snapshot with
+  `--additional-apks ChromePublic.apk` (`org.chromium.chrome`). It comes from
+  `chromium-browser-snapshots/Android_Arm64/<rev>/chrome-android.zip` (BSD) and is never committed. Chromium 159
+  shows only its toolbar to accessibility, so read the probe's readout from the screenshots.
 - Check the harness on a virtual device first (`model=MediumPhone.arm`), which uses the free virtual quota. It has
   SwiftShader, so it never shows the world.
 - On Windows, call gcloud through its bundled Python: `gcloud.cmd` breaks on its install path's space when an
