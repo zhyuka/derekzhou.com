@@ -48,10 +48,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: The base (main's tip where this branch left it; on main, the commit before)
+      - name: The base (main's tip where this branch left it; on main, main's tip before this push)
         id: base
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
-          if [ "$GITHUB_REF" = "refs/heads/main" ]; then base=$(git rev-parse HEAD^1); else base=$(git merge-base origin/main HEAD); fi
+          # On main the base is the main tip before this push (the push's `before`): a PR the merge bot fast-forwarded
+          # lands with its own branch as first parent, so HEAD^1 would credit main's other changes to it.
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            base="$BEFORE"; if ! [[ "$base" =~ ^[0-9a-f]{40}$ ]] || [ "$base" = 0000000000000000000000000000000000000000 ] || ! git merge-base --is-ancestor "$base" HEAD; then base=$(git rev-parse HEAD^1); fi
+          else base=$(git merge-base origin/main HEAD); fi
           echo "base=$base" >> "$GITHUB_OUTPUT"; echo "base $base, head $GITHUB_SHA"
       - uses: actions/setup-node@v4
         with:
