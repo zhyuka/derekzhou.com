@@ -55,7 +55,52 @@
     recMark('boot start');
     boot();
   }
-  function bootSoon() { if (!booted && !bootRaf) bootRaf = requestAnimationFrame(bootOnce); }
+  function bootSoon() {
+    if (booted || bootRaf) return;
+    if (!DEVMODE && document.readyState === 'loading' && holdLink()) { holdRun(); return; }   // (first-paint preview: the last realm registered while the page is still parsing)
+    bootRaf = requestAnimationFrame(bootOnce);
+  }
+  /* (first-paint preview) THE HOLD: the page does not paint until the world's first frame is drawn (the head's link
+     rel=expect blocking=render, for Chromium; elsewhere the parser itself, busy in this task). The world, the kit and
+     the realms are parser-blocking after the words, so the last realm's registration lands here while the page is
+     still parsing: the boot runs at once, its staged frames one after another in this one task (no animation frame:
+     each a hold frame of HOLD_P, the boot's own logic unchanged), until the canvas shows. The parser then ends and the
+     page paints once, the words and the world together. The visit's plan is made here, beside the compiles (the
+     worker's answer cannot arrive inside this task). Past the device's deadline (holdMs) the hold returns: the link
+     is taken out and today's path goes on (the still sky and the words, then the cut). The deadline is a budget read
+     from the one clock, never what is drawn; the first animation frame after the hold steps one hold frame (dt
+     HOLD_P), as the frame after a 60 Hz show would */
+  var HOLD_P = 68267 / 4096, HOLD = { on: false, ms: 0, why: '', n: 0, took: -1, shown: false };   // (a 60 Hz frame, exact in binary)
+  function holdLink() { return document.querySelector('link[rel="expect"][blocking="render"]'); }
+  function holdOff(why) { HOLD.why = why; var l = holdLink(); if (l) l.remove(); bootMark('hold: off (' + why + ')'); }
+  /* the deadline by device (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so never near that;
+     no hold without parallel compiles, on a phone's GPU by name, or on 4 or fewer cores (hour.js has taken out the
+     rest: reduced motion, forced colours, Firefox, Android, iOS) */
+  function holdMs() {
+    var cores = navigator.hardwareConcurrency || 0;
+    if (!EXT.par) { HOLD.why = 'no parallel compiles'; return 0; }
+    if (/Mali|Adreno|PowerVR|Immortalis|Xclipse|Apple GPU/.test(EXT.renderer) && !/Macintosh/.test(navigator.userAgent || '')) { HOLD.why = 'a phone GPU'; return 0; }
+    if (cores <= 4) { HOLD.why = cores + ' cores'; return 0; }
+    if (!EXT.parAll) return 1500;   // (WebKit on the Mac: its links one at a time)
+    return cores >= 8 ? 2000 : 1500;
+  }
+  function holdRun() {
+    var t0 = clockNow();
+    bootOnce();   // (stage A: the context, the device; the loop's first animation frame asked for)
+    if (!gl || DEAD || !running || reduced() || forced() || document.visibilityState === 'hidden') { holdOff(!gl || DEAD ? 'no world here' : 'not running'); return; }
+    var ms = holdMs(); if (!ms) { holdOff(HOLD.why); return; }
+    HOLD.ms = ms; bootMark('hold: on (' + ms + ' ms)');
+    if (PW.st === 1) planWorkerOff();   // (the plan made here, beside the compiles)
+    var ts = 0, n = 0; HOLD.on = true;
+    while (running && !shown && !DEAD && !LOST && n < 1e6 && clockNow() - t0 < ms) {
+      ts += HOLD_P; n++;
+      domFlush(); if (BIRDF && !BIRDS && !LATEB.dead) birdsLate();
+      frameBody(ts);
+    }
+    HOLD.on = false; CLK[1] = -2; HOLD.n = n; HOLD.took = +(clockNow() - t0).toFixed(1); HOLD.shown = shown;
+    bootMark('hold: ' + (shown ? 'shown' : 'deadline') + ' after ' + n + ' frames, ' + HOLD.took + ' ms');
+    if (!shown) holdOff('deadline');
+  }
   /* (E1, stage A) the device's hints, read once (each getter a round trip on Safari: never in a frame): the renderer,
      the screen and its density, an iPad behind a Mac user agent, WebGPU's presence, the cores and the memory, the draw
      buffers. The record keeps them; the class itself is E7's */

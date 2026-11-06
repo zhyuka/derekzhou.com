@@ -24,4 +24,16 @@
   document.documentElement.setAttribute('data-sky', DAY[i][0]);
   document.documentElement.setAttribute('data-sky-at', at.toFixed(3));
   if (meta) meta.setAttribute('content', DAY[i][3]);      // (the browser's own bars, the top of that still sky)
+  /* (first-paint preview) the hold: the page's first paint waits for the world's first frame (the link rel=expect in
+     the head). Where the odds are low it is taken out here, before the body, so the words paint as soon as they can:
+     reduced motion (one still frame, today's path), forced colours, no WebGL2, 4 or fewer cores, a hidden tab, and by
+     the browser: Firefox (no parallel compiles), every Android (its GPUs, Mali and Adreno, take 2-10 s) and iOS/iPadOS
+     (one program at a time on a phone's GPU). The world checks the rest once it has its context. */
+  var hold = document.querySelector('link[rel="expect"][blocking="render"]');
+  if (hold) {
+    var nav = navigator, ua = nav.userAgent || '', mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+    if (mq('(prefers-reduced-motion: reduce)') || mq('(forced-colors: active)') || typeof WebGL2RenderingContext === 'undefined' ||
+      (nav.hardwareConcurrency || 0) <= 4 || document.visibilityState === 'hidden' || /Firefox\/|Android|iPhone|iPad|iPod/.test(ua) ||
+      (/Macintosh/.test(ua) && (nav.maxTouchPoints || 0) > 1)) hold.remove();
+  }
 })();
