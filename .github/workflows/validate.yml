@@ -43,22 +43,22 @@ jobs:
           cd site
           files=(
             index.html
-            style.v16.css
+            style.css
             site.js
-            hour.v3.js
-            start.v4.js
-            start-table.v4.js
-            world.v10.js
-            realm-kit.v2.js
-            realm-dunes.v4.js
-            realm-above.v3.js
+            hour.js
+            start.js
+            start-table.js
+            world.js
+            realm-kit.js
+            realm-dunes.js
+            realm-above.js
             facetform.v1.js
             facetpose.v1.js
             wingmodel.v1.js
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v7.js
+            inkbirds.js
             robots.txt
             _headers
             _redirects
@@ -154,10 +154,10 @@ jobs:
               echo "OK: $ref"
             fi
           done
-          # And the reverse: the versioned css/js the repo ships must be the
+          # And the reverse: the css/js the page loads by name must be the
           # ones index.html loads, each with its immutable cache block (a
           # leftover old version, kept by a copy rather than a git mv, fails).
-          for f in style.v*.css hour.v*.js start.v*.js world.v*.js realm-*.v*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.v*.js; do
+          for f in style.css hour.js start.js world.js realm-*.js facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js inkbirds.js; do
             if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
               echo "::error::$f exists but index.html does not reference it"
               fail=1
@@ -169,17 +169,13 @@ jobs:
           done
           # Every script and stylesheet anywhere in the site is one the pages
           # load (nothing left over from the world's development build: no
-          # diagnostics, no lab, no test realm), and every one but site.js carries its version in its
-          # name, as immutable caching needs.
+          # diagnostics, no lab, no test realm). (Their names need no version:
+          # the deploy build serves each under its content's hash, tools/build.mjs.)
           for f in $(find . -type f \( -name '*.js' -o -name '*.css' \) | sed 's|^\./||' | sort); do
-            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.v*.js) grep -q "new Worker(./$f.)" world.v*.js;; start-table.v*.js) grep -qF "new Worker('/$f')" start.v*.js;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name)
+            if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.js) grep -q "new Worker(./$f.)" world.js;; start-table.js) grep -qF "new Worker('/$f')" start.js;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name)
               echo "::error::$f is shipped but no page loads it"
               fail=1
             fi
-            case "$f" in
-              site.js|*.v[0-9]*.js|*.v[0-9]*.css) ;;
-              *) echo "::error::$f is immutable-cached but has no version in its name"; fail=1 ;;
-            esac
           done
           [ "$fail" -eq 0 ] && echo "All references resolve"
           exit $fail
@@ -210,7 +206,7 @@ jobs:
           # span, the drawing hidden from assistive tech and inert (no text,
           # script, style, link or paint server inside it), the stylesheet
           # holding both rules and reserving the drawing's box (no layout shift).
-          CSS=$(ls style.v*.css | head -1)
+          CSS=style.css
           python3 - "$CSS" <<'PY'
           import re, sys
           html = open('index.html').read(); css = open(sys.argv[1]).read()
@@ -275,7 +271,7 @@ jobs:
       - name: The world's page loads in order
         run: |
           cd build/site
-          # hour.vN.js in the head (before the first paint), site.js, then the
+          # hour.js in the head (before the first paint), site.js, then the
           # deferred scripts in order: the world, the realms' kit and realms,
           # fetchpriority="high" (the boot starts once the realms register),
           # then the ink birds' wing model and the ink birds last, fetchpriority="low".
@@ -290,9 +286,9 @@ jobs:
           want_body = [('site', False), ('world', True), ('realm-kit', True), ('realm-dunes', True), ('realm-above', True), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
           pri = {'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low'}
           fail = 0
-          # (fast500 5) the start file (start.vN.js, made by tools/start.mjs): async, fetchpriority="high", the first
+          # (fast500 5) the start file (start.js, made by tools/start.mjs): async, fetchpriority="high", the first
           # script after the canvas, and the only async script; the order below is the rest's
-          stf = [g for g in tags(body) if re.fullmatch(r'start\.v\d+\.js', g[1])]
+          stf = [g for g in tags(body) if re.fullmatch(r'start(?:\.v\d+)?\.js', g[1])]
           asyn = [g for g in tags(src) if 'async' in (g[0] + g[2]).split()]
           if asyn != stf or len(stf) > 1:
               print('::error::the only async script is the one start file: got %s' % [g[1] for g in asyn]); fail = 1
@@ -325,12 +321,12 @@ jobs:
           cd build/site
           # (the world's five scripts as written, ../src/ (src/ assembled): site/ serves them minified, and "The minified scripts are
           # exactly what the script makes" proves site/'s are tools/minify.mjs's build of these; the rules read text)
-          WORLD=$(ls ../src/world.v*.js | head -1); INK=$(ls ../src/inkbirds.v*.js | head -1)
-          REALMS=$(ls ../src/realm-*.v*.js | tr '\n' ' '); HOUR=$(ls hour.v*.js | head -1); CSS=$(ls style.v*.css | head -1)
-          START=$(ls start.v*.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
-          START="$START $(ls start-table.v*.js 2>/dev/null | head -1)"   # (its table, start-table.vN.js, loaded after the first paint)
+          WORLD=../src/world.js; INK=../src/inkbirds.js
+          REALMS=$(ls ../src/realm-*.js | tr '\n' ' '); HOUR=hour.js; CSS=style.css
+          START=$(ls start.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
+          START="$START $(ls start-table.js 2>/dev/null | head -1)"   # (its table, start-table.js, loaded after the first paint)
           WING=$(ls facetform.v*.js facetpose.v*.js wingmodel.v*.js model.v*.js labbird.v*.js birdwing.v*.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
-          PLANW=$(ls plan.v*.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
+          PLANW=$(ls plan.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
           JS="site.js $HOUR $START $WORLD $REALMS $WING $INK $PLANW"
           echo "checking $JS and $CSS"
           # The page has none of the internet's body language, and CI fails
@@ -415,10 +411,10 @@ jobs:
             fail=1
           fi
           # (fast500 step 11) the workers: the plan's, started by the world by its literal name (world_rules.py rule 2b),
-          # and the start file's table (start-table.vN.js, started by the start file by its literal name, rule 4b); no other
-          NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.v[0-9]+\.js.\)" $WORLD | wc -l); NS=$(cat $(ls start.v*.js 2>/dev/null) /dev/null | grep -oE "new Worker\('/start-table\.v[0-9]+\.js'\)" | wc -l)
+          # and the start file's table (start-table.js, started by the start file by its literal name, rule 4b); no other
+          NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.js.\)" $WORLD | wc -l); NS=$(cat $(ls start.js 2>/dev/null) /dev/null | grep -oE "new Worker\('/start-table\.js'\)" | wc -l)
           if [ "$NW" != "$((NP + NS))" ] || [ "$NP" -gt 1 ] || [ "$NS" -gt 1 ]; then
-            echo "::error::a worker other than the plan's (the world starts plan.vN.js by name, once) and the start file's table (start-table.vN.js, once)"
+            echo "::error::a worker other than the plan's (the world starts plan.js by name, once) and the start file's table (start-table.js, once)"
             fail=1
           fi
           if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
@@ -496,7 +492,7 @@ jobs:
           # is named.
           python3 .github/workflows/world_rules.py build/site build/src
           # the realm lint: reported (the realms predate the namespaced API)
-          node .github/workflows/lint_realms.js report build/src/realm-kit.v*.js $(ls build/src/realm-*.v*.js | grep -v realm-kit)
+          node .github/workflows/lint_realms.js report build/src/realm-kit.js $(ls build/src/realm-*.js | grep -v realm-kit)
 
       - name: Every visit compiles the same shaders
         run: |
@@ -535,7 +531,7 @@ jobs:
         run: |
           # The owner's rule ("Don't darken the background anywhere ever"): the
           # composite's tail (FS_COMP between W7-TAIL-BEGIN and W7-TAIL-END in
-          # site/world.vN.js), cut out of the shipped file and run in headless WebGL2
+          # the world's script), cut out of the shipped file and run in headless WebGL2
           # over random grounds, pixels and clocks, is the encode and the dither
           # and nothing else: every 8-bit code the reference's, never lower (a
           # darkening) and never higher (a lift or a panel). Then the test's own
@@ -544,8 +540,8 @@ jobs:
           # this step only, never part of the site; PW_CORE and CHROME_PATH name
           # others where they are set). Exit 2 (no WebGL2 context on the runner)
           # warns; any lower or higher code fails.
-          W=$(ls build/src/world.v*.js | head -1)   # (as written: site/'s is its minified build, the same shader text)
-          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no build/src/world.vN.js for W7's unit test"; exit 1; }
+          W=build/src/world.js   # (as written: site/'s is its minified build, the same shader text)
+          [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no build/src/world.js for W7's unit test"; exit 1; }
           if [ -z "${PW_CORE:-}" ]; then
             npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
             export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
@@ -574,7 +570,7 @@ jobs:
           # each: as the camera of a window narrower than 6:5 draws it, and
           # inside @media (min-aspect-ratio: 6/5), the query the world's
           # camera reads (its wideWin; checked here too).
-          CSS=$(ls style.v*.css | head -1); WORLD=$(ls world.v*.js | head -1)
+          CSS=style.css; WORLD=world.js
           python3 - "$CSS" "$WORLD" <<'EOF'
           import re, sys
           css = re.sub(r'/\*.*?\*/', '', open(sys.argv[1]).read(), flags=re.S)

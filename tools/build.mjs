@@ -97,7 +97,7 @@ async function build(out, stamp) {   // the plain build
   // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build) and
   // the start file the page loads, with its table (start.vN.js, start-table.vN.js)
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile());
-  const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start\.v\d+\.js)/);
+  const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start(?:\.v\d+)?\.js)[\"']/);
   if (sm) written.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));
   fs.rmSync(parts, { recursive: true, force: true });
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');

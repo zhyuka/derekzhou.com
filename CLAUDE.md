@@ -14,23 +14,23 @@ marked "built" below exist only in a build, never in site/. Everything else
 here is the repository's own, and never served.
 
 site/index.html              Home page: the words over a 3D world, drawn live behind them
-site/style.v16.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
+site/style.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
-site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
-site/start.v4.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World) (built)
-site/start-table.v4.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint (built)
-site/world.v10.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World) (built)
-site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
-site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
-site/realm-above.v3.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
-site/plan.v1.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World)
+site/hour.js              The hour: which time of day the world opens on (the page's one clock read)
+site/start.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World) (built)
+site/start-table.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint (built)
+site/world.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World) (built)
+site/realm-kit.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
+site/realm-dunes.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
+site/realm-above.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
+site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World)
 site/facetform.v1.js         The wing model: the tattoo's M as a faceted solid (generated; see Birds)
 site/facetpose.v1.js         The wing model: the faceted M posed
 site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M's rig
 site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
 site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
 site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
-site/inkbirds.v7.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
+site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -63,8 +63,8 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
                              w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
                              with glsl_manifest.txt)
 
-Five scripts are served minified: world.v10.js, realm-kit.v2.js,
-realm-dunes.v4.js, realm-above.v3.js and inkbirds.v7.js. src/ holds them
+Five scripts are served minified: world.js, realm-kit.js,
+realm-dunes.js, realm-above.js and inkbirds.js. src/ holds them
 as written. The world and the ink birds are kept as section files, one per
 divider of the old whole file (src/world/NNN-slug.js, src/birds/inkbirds/;
 each folder's parts.json names the served file): edit the section you need;
@@ -94,7 +94,7 @@ first step: node tools/build.mjs --plain build/site). tools/build.mjs runs
 all of it into a folder of its own (node tools/build.mjs --plain OUT: site/
 copied, src/ assembled, the built scripts written into the copy) and then
 (restructure step 5) names each script and
-stylesheet by its content: world.v10.js becomes world.<sha8>.js, the first 8
+stylesheet by its content: world.js becomes world.<sha8>.js, the first 8
 hex of the sha256 of its final bytes, files that load others by name (the
 world's plan worker, the start file's table) named after them, and every
 reference rewritten (index.html, 404.html, \_headers, the two workers'
@@ -277,7 +277,7 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v10.js, realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js)
+## World (world.js, realm-kit.js, realm-dunes.js, realm-above.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
@@ -349,7 +349,7 @@ is a set of colours and amounts laid over each kit's own light and a
 paint of everything the kits paint (land, stones, isles, creatures), with
 a time of day, a hold (70-100 s, the moonlit sea's 190 s, x0.9-1.15 by
 the draw), a change of 55-60 s and its near skies. A visit opens on the
-kept sky nearest the visitor's own time of day (hour.v3.js: night 21-05,
+kept sky nearest the visitor's own time of day (hour.js: night 21-05,
 dawn 05-08, day 08-13, rain 13-16, sunset 16-19, dusk 19-21): dawn and day
 on first light, rain and sunset on the afterglow, dusk on the blue hour,
 night on the moonlit sea, the Milky Way or the aurora (the visit's draw),
@@ -421,7 +421,7 @@ BOOT (the owner: "should load instantly make it 10x faster"): the page
 paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The start file
-(start.v4.js: async, fetchpriority high, Early-Hinted, the first script
+(start.js: async, fetchpriority high, Early-Hinted, the first script
 after the canvas) runs its tests as soon as it comes: unless WebGL2 is
 missing, colours are forced or the browser is WebKit, it waits for the
 page's first contentful paint (PerformanceObserver 'paint'; two frames
@@ -430,7 +430,7 @@ context first: its getContext wrapped once, so the programs are issued
 just before the world takes the context if the table is in; else the
 start file stands aside and the world compiles its own, as without it). Issued at once, they held the
 first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores).
-Then it starts its table as a worker (start-table.v4.js, the programs'
+Then it starts its table as a worker (start-table.js, the programs'
 GLSL, 1 MB, posted back as strings: no DOM, no fetch; parsed on the main
 thread before the first paint it held it back on a slow phone, FCP 148 ->
 284 ms at 4x), and when the sources are in it makes the canvas's context with the world's attributes, and unless
@@ -459,7 +459,7 @@ C on, issued on a list of their own, polled once a frame and warmed
 before they fly). The visit's first plan (the maps, the director and its
 first tick, the weights' grids about the landing: pure CPU, the boot's
 longest task, 0.43-0.72 s on a desktop and 1.5-2.5 s at 4x) is made in
-a worker, plan.v1.js, which the world starts as its script ends, with
+a worker, plan.js, which the world starts as its script ends, with
 the visit's seed, while the page evaluates the other scripts. The world
 adopts the answer only if it is this world's (the worker's stamp, the
 md5 of the world's code it copies verbatim), this seed's, the camera at
@@ -608,7 +608,7 @@ it, in CanvasText at full ink, in a still view of their own (the flight
 held), and the world back when they end, on at load too; print: none of
 it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.v10.js's
+THE WEATHER (=rand()): one crypto.getRandomValues above world.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds. The realm and kit files, the wing model, the ink birds, the
@@ -618,7 +618,7 @@ world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.
 
-## Birds (inkbirds.v7.js and its wing model)
+## Birds (inkbirds.js and its wing model)
 
 The birds are the ink birds, and there are no others: the world draws
 them, in its canvas, so before the world's first frame, and wherever it
@@ -630,7 +630,7 @@ CanvasText (see World: FALLBACKS). No script, SVG or rule of the old 2D
 birds is left in the page, its stylesheet, its headers or the world's
 scripts, and CI fails if one comes back (see Security).
 
-THE INK BIRDS (inkbirds.v7.js, round 3): the living sky. The birds are
+THE INK BIRDS (inkbirds.js, round 3): the living sky. The birds are
 not flights planned to cross the window: every flock is an animal
 in the 3D world on its own business, and the window shows what is in
 front of the camera. Geese, ibis and gulls commute on the evening's line
@@ -679,7 +679,7 @@ one. prefers-reduced-motion is the stop.
 
 ## CSS
 
-One file: style.v16.css. Plain CSS. Custom properties for theming.
+One file: style.css. Plain CSS. Custom properties for theming.
 All @font-face declarations (subsets + metric fallbacks) at top of file.
 Clamp-based spacing for fluid layout across viewports. One set of the
 words' colours (:root, the light set: no colours per sky). Two families
@@ -726,10 +726,10 @@ The scripts, one job each, in this order (CI step "The world's page
 loads in order" and world_rules.py's rule 5; every script tag carries
 data-cfasync="false", so Rocket Loader leaves the order as served):
 
-1. hour.v3.js — in the head, before the first paint (tiny,
+1. hour.js — in the head, before the first paint (tiny,
    Early-Hinted): which time of day the world opens on (data-sky,
    data-sky-at) and the browser's bar.
-2. start.v4.js — the start file (async, fetchpriority="high",
+2. start.js — the start file (async, fetchpriority="high",
    Early-Hinted, the first script after the canvas and the only async
    one): the world's context and its first frame's programs, issued before
    the world's script runs (see World: BOOT); made by tools/start.mjs from
@@ -737,17 +737,17 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 3. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
-4. world.v10.js — the world (deferred, fetchpriority="high", Early-Hinted,
+4. world.js — the world (deferred, fetchpriority="high", Early-Hinted,
    first of the deferred; minified). As its script ends it starts the
-   plan's worker, plan.v1.js, by name (no tag: see World: BOOT).
-5. realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js — the kits
+   plan's worker, plan.js, by name (no tag: see World: BOOT).
+5. realm-kit.js, realm-dunes.js, realm-above.js — the kits
    (deferred, fetchpriority="high", Early-Hinted, minified; each registers
    itself with WORLD.realm; keep the order: the boot starts a frame after
    they have registered).
 6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
    labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred,
    fetchpriority="low", in that order; each puts its one global on self).
-7. inkbirds.v7.js — the ink birds (deferred, fetchpriority="low", last,
+7. inkbirds.js — the ink birds (deferred, fetchpriority="low", last,
    minified: they take the sky whenever they come).
 
 Progressive enhancement throughout: with JS off, the page is the
@@ -825,13 +825,13 @@ The world's scripts are not on the path to the first paint (deferred, the
 start file async), but the start file, the world's and the kits' are
 fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
-served: start.v4.js 1035 KB (its programs' GLSL, as text), world.v10.js
-381 KB, the kits 51 KB, inkbirds.v7.js 193 KB, its wing model 186 KB, the
+served: start.js 1035 KB (its programs' GLSL, as text), world.js
+381 KB, the kits 51 KB, inkbirds.js 193 KB, its wing model 186 KB, the
 plan's worker 73 KB (node tools/minify.mjs --report build/src: the five
 minified, before and after, raw and brotli).
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no
-script), takes the top of the hour's still sky (hour.v3.js, before the
+script), takes the top of the hour's still sky (hour.js, before the
 first paint), the world's still top for the hour (the wide windows' own
 on a window 6:5 or wider) as the world's script's first act, and follows
 the top of the drawn world. The favicon is SVG-first with PNG fallback.
@@ -840,41 +840,28 @@ the top of the drawn world. The favicon is SVG-first with PNG fallback.
 
 Cloudflare Pages deploys tools/build.mjs's output (build command
 `npm ci --no-audit --no-fund --ignore-scripts && node tools/build.mjs dist`,
-output directory `dist`, live since 2026-11-06): every script and the
-stylesheet is served under its content's name (world.<sha8>.js), so a changed
-file gets a new name by itself and no one bumps a script's or the
-stylesheet's vN for a change. Their vN names stay as the build's input names
-(site/, src/, the plain build CI checks). The rule below still holds, by
-hand, for what the build does not rename: the fonts (.subN) and the images.
+output directory `dist`, live since 2026-11-06). HTML: max-age=0,
+must-revalidate. Everything else: max-age=31536000, immutable, so CHANGED
+BYTES NEED A NEW NAME. For every script and the stylesheet the build does
+that: it serves each under its content's hash (world.js as world.<sha8>.js),
+names a file that loads another by name after the one it loads (the world
+after the plan's worker, the start file after its table), and rewrites every
+reference (index.html, 404.html, \_headers' Link preloads and cache blocks,
+the two workers' URLs). So their names in site/ and src/ are plain
+(style.css, hour.js, world.js, realm-kit.js, realm-dunes.js, realm-above.js,
+inkbirds.js, plan.js, start.js, start-table.js) and never change for an
+edit; renaming one is a refactor (git mv, then every reference). The wing
+model's six files (facetform, facetpose, wingmodel, model, labbird,
+birdwing) still carry a vN in their source names, which the build drops the
+same way; no bump is needed for them either. validate.yml's reverse check
+fails on any script or stylesheet in the build that no page loads (the
+plan's worker aside: the world starts it, by name; the start file's table:
+the start file starts it), so git mv rather than copy.
 
-HTML: max-age=0, must-revalidate. Everything else: max-age=31536000,
-immutable. Immutable means CHANGED BYTES NEED A NEW FILENAME: bump
-style.vN.css → style.vN+1.css, world.vN.js, realm-kit.vN.js,
-realm-dunes.vN.js, realm-above.vN.js, inkbirds.vN.js, plan.vN.js,
-start.vN.js and the wing model's six files (facetform, facetpose,
-wingmodel, model, labbird, birdwing .vN.js) each to its vN+1, hour.vN.js →
-hour.vN+1.js, .subN → .subN+1, and update every reference in the same
-commit: site/index.html (stylesheet, hour, every script), site/404.html
-(stylesheet, hour), site/\_headers (the Link preloads of the style, the
-hour, the start file, the world and the kits, each file's cache block, the
-"next name" comment), src/ (a minified script's readable copy carries its
-served name, which the build takes from it), tools/start.mjs for
-start.vN.js (it writes the start file's own name, and the next one, into
-the file's header; CI checks the start file against what the same script
-makes, so it would not catch a stale name), the world's source for
-plan.vN.js (it starts the worker by its literal name),
-.github/workflows/validate.yml (required files only — the other steps
-resolve the shipped versioned names themselves with ls), and this file
-(grep it for the old name). validate.yml's reverse check fails on a
-leftover old version, and on any script or stylesheet in site/ that no
-page loads (the plan's worker aside: the world starts it, by name) or that
-has no version in its name (site.js aside), so git mv rather than copy. A
-change made in src/ is a change to the copy built from it, so that name
-goes up; and a change to any program of the first frame changes the start
-file, made again under a new name. The plan's worker is the world's own
-code (the spans it copies verbatim, under their md5's stamp, which the
-world's PW_V must equal: world_rules.py rule 2b): a change to those spans
-in the world needs the worker made again, under a new name.
+By hand, still: what the build does not rename. The fonts (.subN →
+.subN+1) and the images: bump the name and update every reference in the
+same commit (site/index.html, site/404.html, site/\_headers' Link preloads
+and blocks, this file).
 
 The browser's shader cache answers only for a GLSL source it has seen byte
 for byte, so a returning visitor's world is quick only while every
@@ -885,7 +872,7 @@ and fails unless every visit of a device compiles the same sources,
 devices differ only in the #define lines after #version, and the reference
 device's programs are exactly glsl_manifest.txt. So a change to a
 program's text comes with its manifest lines in the same commit (node
-.github/workflows/glsl_guard.js site --write
+.github/workflows/glsl_guard.js build/site --write
 .github/workflows/glsl_manifest.txt), and the diff names the programs a
 deploy makes every returning visitor compile again.
 
@@ -915,10 +902,10 @@ gyroscope=(self) on /*, a choice for the owner); X-Permitted-Cross-Domain-
 Policies none. The world needs one CSP addition, for the plan's worker:
 worker-src 'self' on the two home blocks that start it (/ and /index.html;
 404.html starts none), and the worker's response its own policy, its
-block in \_headers (/plan.v1.js: immutable, default-src 'none'; a
+block in \_headers (/plan.js: immutable, default-src 'none'; a
 worker's policy is its script's headers, not the page's, and no other
 rule sets one on that path). The start file's table runs as a second
-worker under the same worker-src (/start-table.v4.js: immutable,
+worker under the same worker-src (/start-table.js: immutable,
 default-src 'none'; it posts the programs' sources and closes).
 Otherwise WebGL2 from same-origin scripts, those two workers, no blobs,
 no fetches, no eval; the site's own code
@@ -934,9 +921,9 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.v3.js, start.v4.js and its table start-table.v4.js, the five minified scripts as written (src/'s
-world.v10.js, the kits and inkbirds.v7.js), the wing model, plan.v1.js,
-plus style.v16.css for cursors and a bird rule, and \_headers for a bird
+hour.js, start.js and its table start-table.js, the five minified scripts as written (src/'s
+world.js, the kits and inkbirds.js), the wing model, plan.js,
+plus style.css for cursors and a bird rule, and \_headers for a bird
 script's name — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
@@ -965,11 +952,11 @@ with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v10.js and only by name (its two on the plan's
+listeners only in world.js and only by name (its two on the plan's
 worker, its answer and its failure, one each); the script order (the
 world and the kits first, fetchpriority high, then the wing model and
 the ink birds, low; the start file the one async script, high, right
-after the canvas); the plan's worker (rule 2b: at most one, plan.v1.js,
+after the canvas); the plan's worker (rule 2b: at most one, plan.js,
 by its literal name; its block in \_headers exactly its immutable cache
 and default-src 'none', worker-src exactly 'self' where it is started;
 its code the world's own spans verbatim, stamped with their md5; rule 4:

@@ -221,7 +221,7 @@ const read = (p) => fs.readFileSync(p, 'utf8');
 function startName(site) {   // (fast500 5) the start file SITE/index.html loads, or null
   const ix = path.join(site, 'index.html');
   if (!fs.existsSync(ix)) return null;
-  const m = [...read(ix).replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script\b[^>]*\bsrc="\/(start\.v\d+\.js)"/g)];
+  const m = [...read(ix).replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script\b[^>]*\bsrc="\/(start(?:\.v\d+)?\.js)"/g)];
   if (m.length > 1) die(ix + ' loads ' + m.length + ' start files (want at most 1)');
   return m.length ? m[0][1] : null;
 }

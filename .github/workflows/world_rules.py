@@ -63,16 +63,16 @@ html = {p: read(p) for p in ('index.html', '404.html')}
 headers = read('_headers') or ''
 files = sorted(os.listdir(root))
 jsfiles = sorted(os.listdir(JS))
-def scripts(fs): return [f for f in fs if re.fullmatch(r'(world[\w-]*|realm-[\w]+|inkbirds)\.v\d+\.js', f)]
+def scripts(fs): return [f for f in fs if re.fullmatch(r'(world[\w-]*|realm-[\w]+|inkbirds)(?:\.v\d+)?\.js', f)]
 if JS != root and scripts(files) != scripts(jsfiles):
     fail('0 sources', f'the world\'s scripts served ({", ".join(scripts(files))}) are not those written in {JS}/ ({", ".join(scripts(jsfiles))})')
-world = [f for f in jsfiles if re.fullmatch(r'world[\w-]*\.v\d+\.js', f)]
-kit = [f for f in jsfiles if re.fullmatch(r'realm-kit\.v\d+\.js', f)]
-realms = [f for f in jsfiles if re.fullmatch(r'realm-(?!kit)[\w]+\.v\d+\.js', f)]
-ink = [f for f in jsfiles if re.fullmatch(r'inkbirds\.v\d+\.js', f)]
+world = [f for f in jsfiles if re.fullmatch(r'world[\w-]*(?:\.v\d+)?\.js', f)]
+kit = [f for f in jsfiles if re.fullmatch(r'realm-kit(?:\.v\d+)?\.js', f)]
+realms = [f for f in jsfiles if re.fullmatch(r'realm-(?!kit)[\w]+(?:\.v\d+)?\.js', f)]
+ink = [f for f in jsfiles if re.fullmatch(r'inkbirds(?:\.v\d+)?\.js', f)]
 WING = ('facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing')   # (round 3: the ink birds' wing model)
 wing = [f for f in files if re.fullmatch(r'(%s)\.v\d+\.js' % '|'.join(WING), f)]   # (the wing model: served as written, site/'s; not minified, not in src/)
-gen = [f for f in files if re.fullmatch(r'(gen|plan)\.v\d+\.js', f)]   # (fast500 step 11: plan.vN.js, the plan's worker)   # (a worker file: served as written, site/'s)
+gen = [f for f in files if re.fullmatch(r'(gen|plan)(?:\.v\d+)?\.js', f)]   # (fast500 step 11: plan.vN.js, the plan's worker)   # (a worker file: served as written, site/'s)
 def readjs(p):
     try: return open(os.path.join(JS, p), encoding='utf-8').read()
     except FileNotFoundError: return None
@@ -147,7 +147,7 @@ def csp_dirs(policy):
         w = part.split()
         if w: d.setdefault(w[0], []).append(' '.join(w[1:]))
     return d
-started = [m.group(1) for f in world for m in re.finditer(r"""new Worker\(\s*['"]/?(plan\.v\d+\.js)['"]\s*\)""", strip_comments(src[f]) if 'strip_comments' in globals() else (src[f] or ''))]
+started = [m.group(1) for f in world for m in re.finditer(r"""new Worker\(\s*['"]/?(plan(?:\.v\d+)?\.js)['"]\s*\)""", strip_comments(src[f]) if 'strip_comments' in globals() else (src[f] or ''))]
 if nw and len(started) != nw: fail('2b plan-worker', f'world*.v*.js: {nw} new Worker( but {len(started)} of the plan\'s worker by its literal name (plan.vN.js)')
 for t in started:
     want = ['Cache-Control: public, max-age=31536000, immutable', "Content-Security-Policy: default-src 'none'"]
@@ -227,9 +227,9 @@ for f in world + kit + realms + wing + ink:
     for ln, t in lines(strip_comments(src[f]), r'\.on[a-z]+\s*=(?!=)'): fail('4 absences', f'{f}:{ln} an on* handler property (listeners are added by name, in world*.v*.js only): {t}')
 
 # 4b the start file (fast500 5)
-for f in [f for f in files if re.fullmatch(r'start\.v\d+\.js', f)]:
+for f in [f for f in files if re.fullmatch(r'start(?:\.v\d+)?\.js', f)]:
     c = strip_comments(read(f) or '')   # (its code; its table, the programs' GLSL, is start-table.vN.js: below)
-    tn = re.sub(r'^start\.v(\d+)\.js$', r'start-table.v\1.js', f)
+    tn = re.sub(r'^start((?:\.v\d+)?)\.js$', r'start-table\1.js', f)
     if c.count('new Worker(') != 1 or c.count("new Worker('/" + tn + "')") != 1 or not read(tn):
         fail('4b start', f'{f}: its one worker, its table /{tn} (named literally, shipped beside it), not as tools/start.mjs writes it')
     if c.count('requestAnimationFrame(') != 2: fail('4b start', f'{f}: requestAnimationFrame {c.count("requestAnimationFrame(")} times (want 2: the two frames where paint timing is missing)')
@@ -323,7 +323,7 @@ order = re.findall(r'<script\b[^>]*src="/?([^"]+)"[^>]*>', s)
 deferred = [x for x in re.findall(r'<script\b[^>]*>', s) if 'defer' in x]
 names = [re.search(r'src="/?([^"]+)"', x).group(1) for x in deferred if 'src=' in x]
 def kind(n):
-    for k, p in (('world', r'world[\w-]*\.v\d+\.js'), ('kit', r'realm-kit\.v\d+\.js'), ('realm', r'realm-\w+\.v\d+\.js'), ('wing', r'(%s)\.v\d+\.js' % '|'.join(WING)), ('ink', r'inkbirds\.v\d+\.js'), ('diag', r'diag\.v\d+\.js')):
+    for k, p in (('world', r'world[\w-]*(?:\.v\d+)?\.js'), ('kit', r'realm-kit(?:\.v\d+)?\.js'), ('realm', r'realm-\w+(?:\.v\d+)?\.js'), ('wing', r'(%s)\.v\d+\.js' % '|'.join(WING)), ('ink', r'inkbirds(?:\.v\d+)?\.js'), ('diag', r'diag\.v\d+\.js')):
         if re.fullmatch(p, n): return k
     return 'other'
 ks = [kind(n) for n in names if kind(n) != 'diag']
@@ -341,7 +341,7 @@ if world:
 
 tags5 = re.findall(r'<script\b[^>]*>', s)
 asyn = [x for x in tags5 if re.search(r'\sasync[\s>]', x)]
-st5 = [x for x in asyn if re.search(r'src="/?start\.v\d+\.js"', x)]
+st5 = [x for x in asyn if re.search(r'src="/?start(?:\.v\d+)?\.js"', x)]
 if asyn != st5 or len(st5) > 1: fail('5 script-order', f'index.html async scripts {asyn}: the only one is the start file')
 for x in st5:
     if 'defer' in x.split() or re.findall(r'\bfetchpriority="(\w+)"', x) != ['high']: fail('5 script-order', f'index.html {x}: async, never defer, fetchpriority "high"')
