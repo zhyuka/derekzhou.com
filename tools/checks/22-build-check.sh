@@ -9,4 +9,4 @@
 # (the base's build against the head's). (step 5) Then the deploy build, made from each: every
 # script and stylesheet named by its content (world.<sha8>.js), every reference rewritten; the same from
 # both, every name its bytes' hash, no old name left, every reference resolving, each file immutable.
-node tools/build.mjs --check
+node tools/build.mjs --check --against build/site   # (dev-speed: build one is 01-build's build/site)

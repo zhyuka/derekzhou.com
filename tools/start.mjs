@@ -33,6 +33,8 @@ import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
 import url from 'url';
+import os from 'os';
+import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 
 const VER = '#version 300 es\n';
 const UA = {
@@ -332,11 +334,13 @@ export function run(V, page, O = {}) {
 function firstDiff(a, b) { const x = a.split('\n'), y = b.split('\n'); let i = 0; while (i < x.length && i < y.length && x[i] === y[i]) i++; return `line ${i + 1}: "${(x[i] || '').slice(0, 90)}" against "${(y[i] || '').slice(0, 90)}"`; }
 function linksBeforeShow(r) { return r.links.filter((l) => r.shownF < 0 || l.frame < r.shownF); }
 export async function makeTable(src, index, lib, per = 5, log = () => {}) {
-  const page = loadPage(src, index, lib), VS = visits(DEVICES, per), ref = DEVICES[0];
+  const VS = visits(DEVICES, per), ref = DEVICES[0];
   if (!serves(ref)) throw new Error('the reference device must be one the start file serves');
   const errs = [], tables = {};   // (round 4: one table for each program set the world issues: 'base', and 'hp' on the split height's devices)
-  for (const v of VS) {
-    const r = await run(v, page);
+  loadPage(src, index, lib);   // (here too: it sets HP, the world's split-height rule, which isHP reads below)
+  const RS = await runVisits(src, index, lib, per);   // (dev-speed: the visits side by side, each as it ran alone; their results in VS's order)
+  for (let vi = 0; vi < VS.length; vi++) {
+    const v = VS[vi], r = RS[vi];
     log(`  visit ${tag(v)}: ${r.frames} frames, ${r.shown ? 'shown at ' + r.shownF : 'NOT SHOWN'}, ${r.links.length} links${r.errors.length ? ', ' + r.errors.length + ' page errors' : ''}`);
     if (!r.shown || r.errors.length) { errs.push(`${tag(v)}: the fake browser did not bring the world to its show cleanly (${r.errors.slice(0, 2).join(' / ') || 'no error'})`); continue; }
     if (!serves(v.dev)) continue;
@@ -526,7 +530,25 @@ async function test(src, index, lib, file, log) {
 
 // ------------------------------------------------------------------ the command line
 const me = url.fileURLToPath(import.meta.url);
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(me)) {
+/* (dev-speed) the visits of makeTable in worker threads (up to 4): each thread loads the page itself and runs the
+   visits k, k + n, k + 2n...; every visit's inputs are its own (fixed seed, clock, device), so each result is the one a
+   visit alone gives, and the table, made from them in visits()'s order as before, is the same bytes. One thread, or
+   START_THREADS=1: the visits in turn, as before */
+async function runVisits(src, index, lib, per) {
+  const VS = visits(DEVICES, per), n = Math.max(1, Math.min(+(process.env.START_THREADS || 4), os.cpus().length, VS.length));
+  if (n === 1) { const page = loadPage(src, index, lib), out = []; for (const v of VS) out.push(await run(v, page)); return out; }
+  const out = new Array(VS.length);
+  await Promise.all(Array.from({ length: n }, (_, k) => new Promise((res, rej) => {
+    const w = new Worker(me, { workerData: { startVisits: true, src, index, lib, per, k, n } });
+    w.on('message', (m) => { out[m.i] = m.r; }); w.on('error', rej); w.on('exit', (c) => (c ? rej(new Error('a visit thread exited ' + c)) : res()));
+  })));
+  return out;
+}
+if (!isMainThread && workerData && workerData.startVisits) {
+  const { src, index, lib, per, k, n } = workerData, VS = visits(DEVICES, per), page = loadPage(src, index, lib);
+  for (let i = k; i < VS.length; i += n) parentPort.postMessage({ i, r: await run(VS[i], page) });
+}
+if (isMainThread && process.argv[1] && path.resolve(process.argv[1]) === path.resolve(me)) {
   const a = process.argv.slice(2), die = (m, c = 1) => { console.error('start.mjs: ' + m); process.exit(c); };
   if (!vm.constants || vm.constants.DONT_CONTEXTIFY === undefined) die('needs node 22.8 or later (vm.constants.DONT_CONTEXTIFY)', 2);
   const lib = a.indexOf('--lib') >= 0 ? a.splice(a.indexOf('--lib'), 2)[1] : null;
