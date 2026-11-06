@@ -17,8 +17,9 @@
 #      building; no URL hook, storage or sound; no module, worker, fetch, XHR or Blob but a named worker (rule 2);
 #      entropy exactly once in world*.v*.js together, above its INIT-END marker, none in the realm, kit and ink birds'
 #      files; no Date, Math.random or randomUUID; performance.now( exactly once in world*.v*.js, inside function
-#      clockNow, none elsewhere; listeners only in world*.v*.js and only of the named kinds, exactly one
-#      addEventListener('pointermove' with its one removeEventListener (event names in either quotes, every
+#      clockNow, none elsewhere; listeners only in world*.v*.js and only of the named kinds, exactly two
+#      addEventListener('pointermove' with their two removeEventListener (the drag's, and the birds' pointer play's,
+#      passive: the owner, 2026-11-05) and one pointerout, the play's, with its one remove (event names in either quotes, every
 #      listener's name a literal, no on* handler property in any of the world's files).
 #   4b The start file (start.v*.js, fast500 step 5, served as tools/start.mjs makes it): no DOM building, URL hook,
 #      storage, sound, module or network; one worker only, its table (start-table.vN.js, named literally, started
@@ -130,7 +131,10 @@ for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|contr
 #    `default-src 'none'` (a worker's policy is its own response's); the home blocks that start it carry worker-src
 #    exactly 'self' (and no other block names another); the worker's code is the world's own: the four spans
 #    tools/plan.mjs copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
-#    its stamp (PLANV) is their md5's first 12 hex and the world's PW_V.
+#    its stamp (PLANV) is their md5's first 12 hex and the world's PW_V. (2026-11-06) The build ships the worker minified as
+#    the world is (tools/plan.mjs buildPlan): there the spans cannot appear verbatim, so the stamp, the one quoted 12-hex
+#    string in it, must be their md5's and the world's PW_V, and test/unit.mjs runs that worker against the page's own plan,
+#    hash for hash (the same code, minified).
 import hashlib
 PSP = [('  var PI = Math.PI, DEG = Math.PI / 180;', '\n', True), ('  var CW = (function () {\n', '\n  })();\n', True), ('  var MAPS = {', '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', True), ('  var KN = 256, KSTEP = 64,', '  var KFROWS = FN * FN / KN;', False)]
 def plan_spans(s):
@@ -161,12 +165,13 @@ for path, lines_ in blocks.items():
         elif ws is not None and ws != ["'self'"]: fail('2b plan-worker', f"_headers {path}: worker-src {ws!r} (only 'self')")
 for p in gen:
     if not p.startswith('plan.'): continue
-    ps = src[p] or ''; pv = re.findall(r"var PLANV = '([0-9a-f]{12})';", ps)
-    if len(pv) != 1: fail('2b plan-worker', f'{p}: PLANV found {len(pv)} times'); continue
+    ps = src[p] or ''; pv = re.findall(r"var PLANV = '([0-9a-f]{12})';", ps); mini = not pv
+    if mini: pv = re.findall(r'[\'"]([0-9a-f]{12})[\'"]', ps)   # (minified: PLANV renamed; its value the one 12-hex string)
+    if len(pv) != 1: fail('2b plan-worker', f'{p}: PLANV (or, minified, its 12-hex value) found {len(pv)} times'); continue
     for f in world:
         sp = plan_spans(src[f] or '')
         if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (tools/plan.mjs\'s anchors; a minified world needs its own check)'); continue
-        if any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
+        if not mini and any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
         st = hashlib.md5(''.join(sp).encode('utf-8')).hexdigest()[:12]
         wv = re.findall(r"var PW_V = '([0-9a-f]*)';", src[f] or '')
         if pv[0] != st or wv != [st]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, the spans\' {st}, {f}\'s PW_V {wv} (all three the same)')
@@ -177,7 +182,7 @@ def lines(s, pat): return [(i + 1, l.strip()[:100]) for i, l in enumerate((s or 
 def strip_comments(s):
     s = re.sub(r'/\*[\s\S]*?\*/', lambda m: '\n' * m.group(0).count('\n'), s or '')
     return re.sub(r'(?m)(^|[^:\'"\\])//.*$', r'\1', s)
-ALLOWED = {'pointerdown', 'pointerup', 'pointercancel', 'pointermove', 'click', 'touchend', 'dragstart', 'deviceorientation', 'resize', 'scroll', 'change', 'webglcontextlost', 'webglcontextrestored', 'load'}
+ALLOWED = {'pointerdown', 'pointerup', 'pointercancel', 'pointermove', 'pointerout', 'click', 'touchend', 'dragstart', 'deviceorientation', 'resize', 'scroll', 'change', 'webglcontextlost', 'webglcontextrestored', 'load'}
 for f in world + kit + realms + wing + ink:
     s = src[f] or ''; c = strip_comments(s)
     for pat, what in [(r'createElement|innerHTML|appendChild|insertAdjacentHTML|document\.write', 'DOM building'),
@@ -205,7 +210,11 @@ for f in world:
         if m2.group(1) not in ALLOWED: fail('4 absences', f"{f}: a listener of a kind not in the named list (ALLOWED): '{m2.group(1)}'")
     for ln, t in lines(c, r"""addEventListener\(\s*[^'"\s]"""): fail('4 absences', f'{f}:{ln} a listener whose kind is not a literal: {t}')
     am, rm = len(re.findall(r"""addEventListener\(\s*['"]pointermove['"]""", c)), len(re.findall(r"""removeEventListener\(\s*['"]pointermove['"]""", c))
-    if am != 1 or rm != 1: fail('4 absences', f'{f}: pointermove added {am} and removed {rm} times (exactly one each)')
+    if am != 2 or rm != 2: fail('4 absences', f'{f}: pointermove added {am} and removed {rm} times (exactly two each: the drag\'s onMove, the birds\' play\'s onHover)')
+    oa, orm = len(re.findall(r"""addEventListener\(\s*['"]pointerout['"]""", c)), len(re.findall(r"""removeEventListener\(\s*['"]pointerout['"]""", c))
+    if oa != 1 or orm != 1: fail('4 absences', f'{f}: pointerout added {oa} and removed {orm} times (exactly one each: the birds\' play\'s onHoverOut)')
+    for m3 in re.finditer(r"""(add|remove)EventListener\(\s*['"](pointermove|pointerout)['"],\s*(onHover\w*)\s*,([^)]*)\)""", c):
+        if 'passive: true' not in m3.group(4): fail('4 absences', f'{f}: the birds\' pointer listener {m3.group(3)} is not passive: {m3.group(0)[:100]}')
     for ln, t in lines(c, r"""addEventListener\(\s*['"](mousemove|mouseleave|mouseout|mouseover|mouseenter|keydown|keyup|keypress|blur|focusout|beforeunload|unload|pagehide|visibilitychange)['"]|document\.title"""): fail('4 absences', f'{f}:{ln} a hover, key, blur, exit, idle or title handler: {t}')
 for f in world:
     c = strip_comments(src[f])

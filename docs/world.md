@@ -36,8 +36,8 @@ starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
 view and the flight climbs or dives; let go, the turn runs on a little and
-eases out. A pointer's moves are read only while it is pressed (no hover),
-no key is read, nothing is stored. Two fingers are never steering
+eases out. The steering reads a pointer's moves only while it is pressed;
+the birds' play reads a hovering one (see Birds: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
 never at load); on Android the world would take the phone's motion

@@ -52,14 +52,60 @@ view past the birds. And no bird fades in time: it shows only by
 crossing the window's edge or coming out of the distance (a fade by
 distance alone), and goes the same ways, the words' place on the window
 no exception.
-The perched birds (guests): now and then a gull flies in (its way in and out free to cross
-the words), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
-line (never an underline), sits in the owner's perch A (the folded M seen side-on, upright),
-never still for long, and leaps off and away. No fades: it comes in from beyond the window's
-edge and leaves out of view. The pointer's perch needs the hover listener the world does not
-have, so it never comes. Each click or tap on the page that is not a drag and not on a link
-starts a gull at that point (the drag's own pointerdown/up: no listener added) that springs off
-and recedes into the distance; at most 4 at once; none under reduced motion.
+The perched birds (guests): every 20-60 s or so (the first about 8 s in) a gull flies in (its way
+in free to cross the words) and lands on a letter: any letter, a ledge chosen fresh at every
+landing, never a table of spots (the owner: "it shouldnt be any set value"). The ledges are read
+from the letters themselves: the lettered name's ink (NAME_INK: its path rasterised in 6-unit
+columns of the drawing's viewBox, each column's runs of sky; the end of a run is the top of a
+stroke, a ledge where the stroke runs on, flat to within 7 units over 7 columns, with room above
+for a standing bird), every glyph top of Email and LinkedIn (LINK_GLYPHS, measured in the served
+Geist subset) and of the credit (its mono line as cells, each character's top by its class);
+never an underline. It sits in the owner's perch A (the folded M seen side-on, upright, the
+perch session's fix: its feet on the ink, no sky under them), never still for long, and leaps
+off: once its leap is under way it is handed to the world (below). No fades: it comes in from
+beyond the window's edge. Each click or tap on the page that is not a drag and not on a link
+lets a gull go into the world from there (the drag's own pointerdown/up: no listener added); at
+most 4 at once; none under reduced motion.
+
+INTO THE WORLD (the owner, 2026-11-06: "why are the birds that i click
+to spawn are flying stuck with the camera instead of going out into the
+world ?!"): a bird let go, a click's, or a perched gull leaving (or one
+flying in when the visitor drags), becomes a living-sky gull (lvMake, as
+every flock is made) at the world point seen at its place on the window
+through the camera as drawn, at the depth where a gull is its size
+there, flying off at a startled 16 m/s, climbing, across the view and
+away from the eye (so the camera, flying on, never runs it down). From
+then on it is the world's: a drag swings the view past it, nothing
+follows the camera, and it leaves only beyond an edge or into the
+distance.
+
+THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
+with the mouse"; and, 2026-11-06: "why is the bird flying away when i
+just get near it instead of actually going on top of it?"). Friendly and
+curious, not skittish:
+- a pointer slow (under 40 px/s) or still for a second anywhere but the
+  window's edge brings a gull to perch on its tip (from 3 s into the
+  visit, 12-22 s apart): it flies in over 3-5 s, lands with its feet on
+  the tip, rides the pointer while it moves slowly (eased over 0.12 s),
+  and goes into the world on a jerk (over 600 px/s), a press, a click, a
+  drag or the pointer leaving the window. On a phone: a press held 0.8 s
+  without a drag brings it onto the fingertip (50 px above it); lifting
+  or dragging sends it off, and that lift is no tap.
+- a slow hand at a gull on a letter (within 3.2 of its spans, under 60
+  px/s) has it hop up onto the tip; it notices a pointer coming (within 7
+  spans: its breath stills, its head comes up); only a fast jab (over
+  300 px/s, coming at it) startles it off. A tap within 60 px of it
+  startles it too.
+- a pointer sweeping past a flight (within 5 spans of a bird, at 100 px/s
+  or more) sends a shiver through it: the nearest bird rolls hard and the
+  roll passes bird to bird away from the pointer, paths untouched; a
+  flight shivers at most every 6 s.
+Each play has its own switch (inkbirds' PTR). The world reads a hovering
+pointer with one passive listener of its moves and one of its leaving
+the window, both added and removed in hoverSync only, only where the
+device hovers (any-hover: hover) and never under reduced motion or
+forced colours; they only store, and the birds do the rest in their own
+step. The words and the links react to nothing.
 
 The birds fly for as long as the page is open, as the world moves. That
 is automatic motion over five seconds beside content, which WCAG 2.2.2
