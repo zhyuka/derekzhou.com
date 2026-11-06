@@ -30,7 +30,7 @@ jobs:
   # built here (served.sh: each commit's tools/build.mjs --plain) and compared file by file. The two builds go to the
   # `served` artifact: the census, T1 and T2 render exactly these, and nothing builds a PR's code anywhere else.
   plan:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 8
     outputs:
       base: ${{ steps.base.outputs.base }}
@@ -78,7 +78,7 @@ jobs:
   census:
     needs: plan
     if: needs.plan.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 10
     outputs:
       glsl_changed: ${{ steps.census.outputs.glsl_changed }}
@@ -124,16 +124,18 @@ jobs:
   # the harness changed: with the builds byte for byte the same, what a visitor is served is identical by construction.
   # The base is rendered once per build: each shard's record of a build (its frames', DOM's and stills' hashes, errors
   # and CSP reports) is cached by the plain build's content hash (no build.txt in it, so only bytes a visitor gets),
-  # the runner's OS image and the harness's files (Chromium and SwiftShader are the pinned Playwright's; not the image's
-  # patch version, which differs runner to runner during a rollout: a record that no longer matches is re-rendered). A shard whose base has a record renders the head alone against it; any
+  # the runner's OS and CPU architecture and the harness's files (Chromium and SwiftShader are the pinned Playwright's;
+  # not an image's version, which differs runner to runner: a record that no longer matches is re-rendered). A shard whose base has a record renders the head alone against it; any
   # difference renders that case fresh (base, head, null test), and the fresh render decides (t1.mjs). Records are
   # saved on a miss (on a branch, for that branch's next push; on main, for every branch) and, on main, the head's, so
   # a branch cut from main's tip finds its base already rendered. Run the gate by hand with t1_cache = verify to prove
   # the records byte for byte a fresh render's.
+  # Not when T2 runs for the same head: the 4090 compares the same builds on real hardware, and every job shares the
+  # PC's one runner, so SwiftShader's frames would only add an hour of CPU. (T2 offline or not wanted: T1 runs.)
   t1:
-    needs: plan
-    if: needs.plan.outputs.run_t1 == 'true'
-    runs-on: ubuntu-latest
+    needs: [plan, t2-probe]
+    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.t2-probe.outputs.run != 'true'
+    runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 12
     env:
       T1_CACHE: ${{ inputs.t1_cache || 'use' }}
@@ -153,7 +155,7 @@ jobs:
           path: ${{ runner.temp }}/served
       - name: The records' key
         id: rk
-        run: echo "pre=t1rec-v1-$ImageOS-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-s${{ matrix.shard }}" >> "$GITHUB_OUTPUT"
+        run: echo "pre=t1rec-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-s${{ matrix.shard }}" >> "$GITHUB_OUTPUT"
       - name: The base's record, if its build was rendered before
         id: restore
         if: env.T1_CACHE != 'off'
@@ -205,7 +207,7 @@ jobs:
   t2-probe:
     needs: [plan, census]
     if: always() && needs.plan.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 2
     outputs:
       run: ${{ steps.p.outputs.run }}
@@ -246,7 +248,7 @@ jobs:
   verdict:
     needs: [static, plan, census, t1, t2]
     if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 5
     outputs:
       gate_ok: ${{ steps.v.outputs.gate_ok }}
