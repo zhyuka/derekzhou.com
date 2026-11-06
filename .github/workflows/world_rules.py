@@ -17,8 +17,9 @@
 #      building; no URL hook, storage or sound; no module, worker, fetch, XHR or Blob but a named worker (rule 2);
 #      entropy exactly once in world*.v*.js together, above its INIT-END marker, none in the realm, kit and ink birds'
 #      files; no Date, Math.random or randomUUID; performance.now( exactly once in world*.v*.js, inside function
-#      clockNow, none elsewhere; listeners only in world*.v*.js and only of the named kinds, exactly one
-#      addEventListener('pointermove' with its one removeEventListener (event names in either quotes, every
+#      clockNow, none elsewhere; listeners only in world*.v*.js and only of the named kinds, exactly two
+#      addEventListener('pointermove' with their two removeEventListener (the drag's, and the birds' pointer play's,
+#      passive: the owner, 2026-11-05) and one pointerout, the play's, with its one remove (event names in either quotes, every
 #      listener's name a literal, no on* handler property in any of the world's files).
 #   4b The start file (start.v*.js, fast500 step 5, served as tools/start.mjs makes it): no DOM building, URL hook,
 #      storage, sound, module or network; one worker only, its table (start-table.vN.js, named literally, started
@@ -181,7 +182,7 @@ def lines(s, pat): return [(i + 1, l.strip()[:100]) for i, l in enumerate((s or 
 def strip_comments(s):
     s = re.sub(r'/\*[\s\S]*?\*/', lambda m: '\n' * m.group(0).count('\n'), s or '')
     return re.sub(r'(?m)(^|[^:\'"\\])//.*$', r'\1', s)
-ALLOWED = {'pointerdown', 'pointerup', 'pointercancel', 'pointermove', 'click', 'touchend', 'dragstart', 'deviceorientation', 'resize', 'scroll', 'change', 'webglcontextlost', 'webglcontextrestored', 'load'}
+ALLOWED = {'pointerdown', 'pointerup', 'pointercancel', 'pointermove', 'pointerout', 'click', 'touchend', 'dragstart', 'deviceorientation', 'resize', 'scroll', 'change', 'webglcontextlost', 'webglcontextrestored', 'load'}
 for f in world + kit + realms + wing + ink:
     s = src[f] or ''; c = strip_comments(s)
     for pat, what in [(r'createElement|innerHTML|appendChild|insertAdjacentHTML|document\.write', 'DOM building'),
@@ -209,7 +210,11 @@ for f in world:
         if m2.group(1) not in ALLOWED: fail('4 absences', f"{f}: a listener of a kind not in the named list (ALLOWED): '{m2.group(1)}'")
     for ln, t in lines(c, r"""addEventListener\(\s*[^'"\s]"""): fail('4 absences', f'{f}:{ln} a listener whose kind is not a literal: {t}')
     am, rm = len(re.findall(r"""addEventListener\(\s*['"]pointermove['"]""", c)), len(re.findall(r"""removeEventListener\(\s*['"]pointermove['"]""", c))
-    if am != 1 or rm != 1: fail('4 absences', f'{f}: pointermove added {am} and removed {rm} times (exactly one each)')
+    if am != 2 or rm != 2: fail('4 absences', f'{f}: pointermove added {am} and removed {rm} times (exactly two each: the drag\'s onMove, the birds\' play\'s onHover)')
+    oa, orm = len(re.findall(r"""addEventListener\(\s*['"]pointerout['"]""", c)), len(re.findall(r"""removeEventListener\(\s*['"]pointerout['"]""", c))
+    if oa != 1 or orm != 1: fail('4 absences', f'{f}: pointerout added {oa} and removed {orm} times (exactly one each: the birds\' play\'s onHoverOut)')
+    for m3 in re.finditer(r"""(add|remove)EventListener\(\s*['"](pointermove|pointerout)['"],\s*(onHover\w*)\s*,([^)]*)\)""", c):
+        if 'passive: true' not in m3.group(4): fail('4 absences', f'{f}: the birds\' pointer listener {m3.group(3)} is not passive: {m3.group(0)[:100]}')
     for ln, t in lines(c, r"""addEventListener\(\s*['"](mousemove|mouseleave|mouseout|mouseover|mouseenter|keydown|keyup|keypress|blur|focusout|beforeunload|unload|pagehide|visibilitychange)['"]|document\.title"""): fail('4 absences', f'{f}:{ln} a hover, key, blur, exit, idle or title handler: {t}')
 for f in world:
     c = strip_comments(src[f])

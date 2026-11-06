@@ -10,7 +10,7 @@
   var SEEN_MIN = [4, 8];       // s: and in view at least this long (a turn that would sweep it straight out: not this path)
   var NEARMOST = 0.6;          // of the bird's span: the land in front of a bird hides it past this far in front of its body
   var CLOUD_IN = 14;           // m of a cloud's visible lobes between the camera and a bird: its cover over the bird counted fully
-  var NEAR_FADE = [1.9, 2.6];  // nearness: a bird the camera comes nearer than the planner ever would (a place's thermal flown into) fades between these
+  var NEAR_FADE = [4.4, 5.2];  // nearness: a bird nearer than any bird ever sits (a perched gull, 4.2 spans' size, about 3.5) fades between these; every bird alike (it was 1.9-2.6, the planner's: a gull let go from a perch or a click was born there, unseen)
   var MAXP = 64;               // (birds3d) birds lent to flights: a ring of 64 (the calm binds, not a count) ...
   var DRAW_MAX = 48;           // ... at most this many busy, and drawn, at once
   var QUOTA_STEP = 300;        // path points of planning a fixed step (1/60 s), a bird's place counted at its cost (SPOT_COST; round 2: 200, a place counted as 1)

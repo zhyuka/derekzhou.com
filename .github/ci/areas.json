@@ -7,6 +7,8 @@
     ["site/plan*.js", ["frames", "gpu"]],
     ["site/inkbirds*.js", ["frames", "gpu"]],
     ["src/**", ["frames", "gpu"]],
+    ["tools/dup-names.mjs", ["static"]],
+    ["tools/check-quick.mjs", ["static"]],
     ["tools/**", ["frames", "gpu"]],
     ["site/**", ["frames"]],
     ["package.json", ["frames"]],

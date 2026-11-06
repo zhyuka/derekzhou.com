@@ -339,6 +339,12 @@
     STILLRAF = requestAnimationFrame(function () { STILLRAF = 0; if (running || LOST || DEAD || !READY || forced()) return; if (NEEDSIZE || !TG) { NEEDSIZE = false; resize(); } render(); });
   }
   var SUPPRESS_F = 0;
-  /* (life) the birds' play's listeners are not in this page: the pointer stays gone */
-  function hoverSync() { HOVER.gone = true; }
+  /* (pointer) the birds' play's two listeners: on while motion and colours allow it and some pointer hovers, off
+     (and the pointer gone) otherwise; called at start and whenever reduced motion or forced colours change */
+  function hoverSync() {
+    var want = !inert() && !forced() && !!window.matchMedia && window.matchMedia('(any-hover: hover)').matches;
+    if (want && !HOVERON) { HOVERON = true; window.addEventListener('pointermove', onHover, { capture: true, passive: true }); window.addEventListener('pointerout', onHoverOut, { capture: true, passive: true }); }
+    else if (!want && HOVERON) { HOVERON = false; window.removeEventListener('pointermove', onHover, { capture: true, passive: true }); window.removeEventListener('pointerout', onHoverOut, { capture: true, passive: true }); }
+    if (!want) HOVER.gone = true;
+  }
 

@@ -77,7 +77,19 @@ first loads. There shouldn't be any code at all for that, right?! wtf
 is going on pls fix from root and clean everything up"; and, of the
 boxes that hid the birds about the words: "also pls remove the masking
 boxes from behind the text completely. it's completely fine if the
-birds fly behind/in front of it... do u even understand". So: the name is
+birds fly behind/in front of it... do u even understand"; and, of the
+birds and the visitor's hand: "the birds should be more interactive with
+the mouse. do u get what i mean? did u even research all possible 100%
+ways and figure out the most delightful?"; then (2026-11-06), having
+tried the first previews: "they seem the same to me? and why is the bird
+flying away when i just get near it instead of actually going on top of
+it? ... it's still not perched on the letters themselves either
+(linkedin, e.g., and why doesn it perch on other letters too why is it
+only some spots. it shouldnt be any set value lmfao?!) and why are the
+birds that i click to spawn are flying stuck with the camera instead of
+going out into the world ?!" (so the birds, and the birds alone, notice
+the pointer and come to it, perch on any letter, and every bird that
+leaves goes into the world: see Birds). So: the name is
 lettering (see Type); nothing on the page darkens the world or lifts it
 for the words; the words are always light, and the world draws only skies
 they read on (see World); and the birds are the ink birds alone, flying in
@@ -94,7 +106,8 @@ cream ground, #f9f8f1, which that gradient always covered, went in
 the deep sweep), and print is on white. color-scheme stays light
 (no form controls, no scrollbars). Type is matte: no text-shadow, no
 glow. Links are plain underlined words (1px, dimmed underline, .18em
-offset); nothing reacts to hover; OS cursors only. The name and the type
+offset); nothing on the page reacts to hover but the birds (see Birds:
+THE POINTER); OS cursors only. The name and the type
 are present at first paint in their final place (the drawing's box is
 reserved by the stylesheet) and in their final colours. Print hides the
 world, the birds and the footer, on white (every still sky, the world's

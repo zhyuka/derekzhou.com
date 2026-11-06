@@ -1,0 +1,8 @@
+// The runner: an Instrumentation with no test libraries; it drives Chrome and the WebView app by UiAutomation.
+plugins { id 'com.android.application' }
+android {
+  namespace 'com.derekzhou.lab.test'
+  compileSdk 34
+  defaultConfig { applicationId 'com.derekzhou.lab.test'; minSdk 33; targetSdk 34; versionCode 1; versionName '1' }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

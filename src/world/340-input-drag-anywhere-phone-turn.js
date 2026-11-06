@@ -11,10 +11,19 @@
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
   var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
   var INPLOG = [], INPQ = []; INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
-  var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false };
-  /* (life) the birds' play is not in this page (it comes with the perched birds): the pointer the birds read is always
-     gone (HOVER), and no listener reads a mouse's moves */
-  var HOVER = { x: -1, y: -1, n: 0, gone: true, down: false, type: '' };
+  var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
+  /* (pointer, the owner 2026-11-05: "the birds should be more interactive with the mouse") the birds' play reads the
+     pointer where the device hovers: one passive listener of its moves (onHover: a mouse's or a pen's place, CSS px,
+     hover included) and one of its leaving (onHoverOut: the pointer off the window), both added and removed by hoverSync
+     only (never under reduced motion or forced colours, never where no pointer hovers); they only store, and nothing
+     but the birds reads HOVER (the links and the words react to nothing). A touch held still HOLD_S s without a drag is
+     read by the birds as a resting pointer HOLD_UP px above the fingertip (HOST.pointer); its lift is never a tap */
+  var HOVER = { x: -1, y: -1, n: 0, gone: true, down: false, type: '' }, HOVERON = false, HOLD_S = 0.8, HOLD_UP = 50;
+  function onHover(e) {
+    if (e.pointerType === 'touch') return;
+    HOVER.x = e.clientX; HOVER.y = e.clientY; HOVER.n++; HOVER.gone = false; HOVER.down = e.buttons !== 0; HOVER.type = e.pointerType || 'mouse';
+  }
+  function onHoverOut(e) { if (!e.relatedTarget && e.pointerType !== 'touch') HOVER.gone = true; }
   var SUPPRESS = false, SUPPRESS_N = 0;
   var CLICKQ = [];   // (perch lane: clicks and taps for the birds, x, y CSS px pairs; drained by the birds each step)
   function inert() { return reduced() || DEAD || LOST; }
@@ -24,7 +33,7 @@
     if (DRAG.id !== -1) { if (e.pointerId !== DRAG.id) { DRAG.multi = true; endDrag(false); } return; }   // (a second finger: no steering)
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (e.pointerType === 'touch' && TOUCHMODE === 'zoom') return;   // (zoomed in: the finger is the browser's)
-    DRAG.id = e.pointerId; DRAG.x0 = DRAG.x = e.clientX; DRAG.y0 = DRAG.y = e.clientY; DRAG.on = false; DRAG.type = e.pointerType || 'mouse'; DRAG.multi = false;
+    DRAG.id = e.pointerId; DRAG.x0 = DRAG.x = e.clientX; DRAG.y0 = DRAG.y = e.clientY; DRAG.on = false; DRAG.type = e.pointerType || 'mouse'; DRAG.multi = false; DRAG.t0 = SIM.t; DRAG.ts = e.timeStamp;
     SUPPRESS = false;
     window.addEventListener('pointermove', onMove, true); window.addEventListener('pointerup', onUp, true); window.addEventListener('pointercancel', onCancel, true);
   }
@@ -45,7 +54,8 @@
   function onUp(e) {
     if (e.pointerId !== DRAG.id) return;
     var was = DRAG.on;
-    if (!was && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (perch lane: each click spawns a bird)
+    var held = DRAG.type === 'touch' && e.timeStamp - DRAG.ts >= HOLD_S * 1000;   // (pointer: a touch held for the birds is no tap)
+    if (!was && !held && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (perch lane: each click spawns a bird)
     endDrag(true);
     if (was) { SUPPRESS = true; SUPPRESS_F = FRAMEN; SUPPRESS_N++; }   // (a drag's click is not a tap)
   }
@@ -155,7 +165,7 @@
   }
   function inputInit() {
     window.addEventListener('pointerdown', onDown, true);
-    hoverSync();   // (life fix: the birds' play's two listeners, mouse only, added only while motion and colours allow it: never under reduced motion or forced colours)
+    hoverSync();   // (pointer: the birds' play's two listeners, added only while motion and colours allow it and the device hovers)
     window.addEventListener('click', onClick, true);
     window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
     document.addEventListener('dragstart', function (e) { if (!inert()) e.preventDefault(); }, true);   // (a link is never dragged away)

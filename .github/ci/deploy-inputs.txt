@@ -8,6 +8,7 @@ src
 tools/build.mjs
 tools/minify.mjs
 tools/parts.mjs
+tools/glslmin.mjs
 tools/plan.mjs
 tools/start.mjs
 package.json
