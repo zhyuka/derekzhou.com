@@ -96,12 +96,25 @@ def main():
         expect(B, bash('git push -u origin claude/x', repo), 'name in what a push sends')
         expect(B, {'tool_name': 'mcp__github__create_pull_request', 'tool_input': {'title': 'x', 'body': 'like Zorblax'}, 'cwd': repo}, 'name in a PR body')
         expect(A, {'tool_name': 'mcp__github__create_pull_request', 'tool_input': {'title': 'x', 'body': 'plain'}, 'cwd': repo}, 'clean PR body')
+        # CI's scan (fails closed)
+        def scan(cwd):
+            return subprocess.run([sys.executable, guard, '--scan'], cwd=cwd, capture_output=True, text=True, timeout=30).returncode
+        g('reset', '-q', '--hard'); g('clean', '-qfd')
+        open(os.path.join(repo, 'a.txt'), 'w').write('hello\n'); g('commit', '-qam', 'clean again')
+        if scan(repo) != 0: fails.append('scan: a clean tree fails')
+        else: print('ok  pass   scan: clean tree')
+        open(os.path.join(repo, 'c.txt'), 'w').write('a Zorblax mention\n'); g('add', 'c.txt')
+        if scan(repo) != 1: fails.append('scan: a tracked file with a name passes')
+        else: print('ok  fail   scan: tracked file with a name')
+        g('rm', '-q', '--cached', 'c.txt'); os.remove(os.path.join(repo, 'c.txt'))
         # fails open
         expect(A, 'not json', 'garbage input')
         expect(A, bash('git push origin "unclosed', repo), 'unparseable command without a danger')
         expect(B, bash('git push origin main "unclosed', repo), 'unparseable command to main (plain patterns)')
         json.dump({'oops': 1}, open(os.path.join(os.path.dirname(guard), 'names.json'), 'w'))
         expect(A, bash('git commit -m "zorblax"', repo), 'broken names file: no name check')
+        if scan(repo) != 1: fails.append('scan: a broken names file passes (CI must fail closed)')
+        else: print('ok  fail   scan: broken names file')
         expect(B, bash('git push origin main', repo), 'broken names file: the push rules still hold')
         # cost
         t0 = time.time()
