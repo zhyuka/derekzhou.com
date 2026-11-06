@@ -509,7 +509,7 @@
         } else if (g.phase === 'in' || g.phase === 'sit') {   // (the pointer moving slowly: it rides along, gently)
           var kr = 1 - Math.exp(-dt / PJ.rideTau); g.ride[0] += (mdx - g.ride[0]) * kr; g.ride[1] += (mdy - g.ride[1]) * kr;
         }
-      } else if (g.phase === 'in' && PTR.avoid && !p.gone && p.x >= 0 && !g.leaving && GU.sp > PJ.slow && Math.abs(p.x - g.T[0]) + Math.abs(p.y - g.T[1]) < 2 * PF.flush * g.sp) {
+      } else if (g.phase === 'in' && PTR.avoid && !p.gone && p.x >= 0 && !g.leaving && GU.sp > PJ.slow && Math.abs(p.x - g.T[0]) + Math.abs(p.y - g.T[1]) < 2 * g.sp) {   // (a pointer at its perch, not one moving anywhere near: the click that let it go must not turn it away)
         gLeave(g, 'moved');   // (pointer: the pointer at its perch: it goes on by, on its way and up out of the window)
       } else if (g.phase === 'sit' || g.phase === 'in') {
         /* a perched guest on the words: it notices a pointer coming, weighs it, and flushes (gWeigh) */

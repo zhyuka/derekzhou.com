@@ -9,12 +9,12 @@
       "source": [
         {
           "quote": "Don't darken the background anywhere ever",
-          "doc": "CLAUDE.md: Design; World: THE WORDS"
+          "doc": "docs/design.md; docs/world.md: THE WORDS"
         },
         {
           "quote": "remove that white background behind the text. it's fine failing accesibility",
           "date": "2026-10-21",
-          "doc": "CLAUDE.md: Design"
+          "doc": "docs/design.md"
         }
       ],
       "enforced_by": [
@@ -44,7 +44,7 @@
         {
           "quote": "lets only use white text for everything so never use any scenes that dont pass white text (anything that makes the text turn black should be removed entirely)",
           "date": "2026-11-03",
-          "doc": "CLAUDE.md: Design; World: THE TIME OF DAY, THE WORDS"
+          "doc": "docs/design.md; docs/world.md: THE TIME OF DAY, THE WORDS"
         }
       ],
       "enforced_by": [
@@ -66,7 +66,7 @@
         {
           "quote": "pls remove the masking boxes from behind the text completely. it's completely fine if the birds fly behind/in front of it... do u even understand",
           "date": "2026-11-05",
-          "doc": "CLAUDE.md: Design; Birds"
+          "doc": "docs/design.md; docs/birds.md"
         }
       ],
       "enforced_by": [
@@ -88,7 +88,7 @@
         {
           "quote": "Why do I still see the old birds at all … like when the page first loads. There shouldn't be any code at all for that, right?! wtf is going on pls fix from root and clean everything up",
           "date": "2026-11-05",
-          "doc": "CLAUDE.md: Design; Birds; Security"
+          "doc": "docs/design.md; docs/birds.md; docs/security.md"
         }
       ],
       "enforced_by": [
@@ -113,11 +113,11 @@
       "source": [
         {
           "quote": "There shouldn't be any fade-ins/outs at all",
-          "doc": "CLAUDE.md: World: BOOT; CSS"
+          "doc": "docs/world.md: BOOT; docs/css.md"
         },
         {
           "quote": "yep this. same w sun.",
-          "doc": "CLAUDE.md: World: THE TIME OF DAY"
+          "doc": "docs/world.md: THE TIME OF DAY"
         }
       ],
       "enforced_by": [
@@ -133,7 +133,7 @@
       "source": [
         {
           "quote": "And the weird glittering transitions between scenes/stuff is still happening wtf?",
-          "doc": "CLAUDE.md: Design; Verify"
+          "doc": "docs/design.md; docs/verify.md"
         }
       ],
       "enforced_by": [
@@ -148,7 +148,7 @@
       "rule": "Under prefers-reduced-motion the world is one still frame (drawn again when the words move, live both ways), the steering is inert and no click starts a gull. It is the page's stop for its motion (the owner chose no pause control).",
       "source": [
         {
-          "doc": "CLAUDE.md: World: FALLBACKS; THE FLIGHT AND THE CAMERA; Birds"
+          "doc": "docs/world.md: FALLBACKS; THE FLIGHT AND THE CAMERA; docs/birds.md"
         }
       ],
       "enforced_by": [
@@ -164,7 +164,7 @@
       "source": [
         {
           "quote": "should keep flying same-ish direction unless user drags their mouse/finger to change direction.",
-          "doc": "CLAUDE.md: Design; World: THE FLIGHT AND THE CAMERA"
+          "doc": "docs/design.md; docs/world.md: THE FLIGHT AND THE CAMERA"
         }
       ],
       "enforced_by": [
@@ -189,7 +189,7 @@
       "source": [
         {
           "quote": "should b rand",
-          "doc": "CLAUDE.md: World: THE WEATHER; Security"
+          "doc": "docs/world.md: THE WEATHER; docs/security.md"
         }
       ],
       "enforced_by": [
@@ -222,7 +222,7 @@
       "source": [
         {
           "quote": "Only the starting landing scene should depend on the system time. The rest should cycle through smoothly randomly non-time-dependent.",
-          "doc": "CLAUDE.md: Design; World: THE TIME OF DAY"
+          "doc": "docs/design.md; docs/world.md: THE TIME OF DAY"
         }
       ],
       "enforced_by": [
@@ -242,7 +242,7 @@
       "rule": "The HTML has none of the internet's body language: no arrows, cookie or analytics vocabulary, Loading states or navigation roles.",
       "source": [
         {
-          "doc": "CLAUDE.md: Security (Absences are enforced)"
+          "doc": "docs/security.md (Absences are enforced)"
         }
       ],
       "enforced_by": [
@@ -262,7 +262,7 @@
       "rule": "No exit, idle, hover-position, key, blur, title, favicon-swap or storage handler in the JS; a pointer's moves are read only by the world's drag (its one pointermove listener added in onDown, removed in endDrag).",
       "source": [
         {
-          "doc": "CLAUDE.md: Security (Absences are enforced)"
+          "doc": "docs/security.md (Absences are enforced)"
         }
       ],
       "enforced_by": [
@@ -286,7 +286,7 @@
       "rule": "No innerHTML and no JS-generated DOM: the canvas, the stack, the footer and the lettered name are all in index.html.",
       "source": [
         {
-          "doc": "CLAUDE.md: Security"
+          "doc": "docs/security.md"
         }
       ],
       "enforced_by": [
@@ -312,7 +312,7 @@
         {
           "quote": "yes we need analytics",
           "date": "2026-11-03",
-          "doc": "CLAUDE.md: Security"
+          "doc": "docs/security.md"
         }
       ],
       "enforced_by": [
@@ -340,7 +340,7 @@
       "rule": "The shipped scripts carry no development harness: no window.__*, window.claude or console call, and no attribute read on <html> but the hour's data-sky and data-sky-at.",
       "source": [
         {
-          "doc": "CLAUDE.md: Security; Structure"
+          "doc": "docs/security.md; docs/structure.md"
         }
       ],
       "enforced_by": [
@@ -360,7 +360,7 @@
       "rule": "CSP is set per HTML path with no overlapping rules (Cloudflare Pages combines same-named headers, and browsers enforce the intersection); never a Content-Security-Policy on /*. 404.html carries the same policy in a meta tag, kept in sync. Every home-scope CSP has exactly script-src 'self' https://static.cloudflareinsights.com and connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum. No inline style, script or handler on a CSP'd page.",
       "source": [
         {
-          "doc": "CLAUDE.md: Security"
+          "doc": "docs/security.md"
         }
       ],
       "enforced_by": [
@@ -384,7 +384,7 @@
       "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script.",
       "source": [
         {
-          "doc": "CLAUDE.md: JS"
+          "doc": "docs/js.md"
         }
       ],
       "enforced_by": [
@@ -408,7 +408,7 @@
       "rule": "Nothing but the site is served: site/ holds only the kinds of file the site serves, the root only the repository's own; CLAUDE.md, .github/ and the font scripts stay outside the build.",
       "source": [
         {
-          "doc": "CLAUDE.md: Security"
+          "doc": "docs/security.md"
         }
       ],
       "enforced_by": [
@@ -424,7 +424,7 @@
       "rule": "Nothing built is committed: a change is made in src/ and committed alone, and the build (tools/build.mjs) makes the rest, the same bytes every time.",
       "source": [
         {
-          "doc": "CLAUDE.md: Structure"
+          "doc": "docs/structure.md"
         }
       ],
       "enforced_by": [
@@ -440,7 +440,7 @@
       "rule": "Everything but HTML is cached immutable, so changed bytes need a new name: the build names scripts and the stylesheet by content; fonts and images are renamed by hand, with every reference, in the same commit.",
       "source": [
         {
-          "doc": "CLAUDE.md: Caching"
+          "doc": "docs/caching.md"
         }
       ],
       "enforced_by": [
@@ -460,7 +460,7 @@
       "rule": "Every visit of a device compiles the same shader sources, and a change to a program's text comes with its manifest and golden texts in the same commit (a returning visitor's shader cache depends on it).",
       "source": [
         {
-          "doc": "CLAUDE.md: Caching; Structure"
+          "doc": "docs/caching.md; docs/structure.md"
         }
       ],
       "enforced_by": [
@@ -482,12 +482,12 @@
         {
           "quote": "change back to Team Lead title",
           "date": "2026-10-21",
-          "doc": "CLAUDE.md: Content"
+          "doc": "docs/content.md"
         },
         {
           "quote": "match the share text too",
           "date": "2026-10-21",
-          "doc": "CLAUDE.md: Content"
+          "doc": "docs/content.md"
         }
       ],
       "enforced_by": [
@@ -504,11 +504,11 @@
       "source": [
         {
           "quote": "Also draw Derek Zhou in this style. Keep iterating until it's 100% exact.",
-          "doc": "CLAUDE.md: Design; Type"
+          "doc": "docs/design.md; docs/type.md"
         },
         {
           "quote": "The Z is off - shouldn't be 2 separate strokes - study similar fonts so u know what to do for it. Remove the feather entirely. 1 line layout pls",
-          "doc": "CLAUDE.md: Design"
+          "doc": "docs/design.md"
         }
       ],
       "enforced_by": [
@@ -526,7 +526,7 @@
         {
           "date": "2026-11-06",
           "via": "the hub, relaying the owner",
-          "doc": "CLAUDE.md: Type (fonts)"
+          "doc": "docs/type.md (fonts)"
         }
       ],
       "enforced_by": [
@@ -538,10 +538,10 @@
     {
       "id": "naming",
       "area": "naming",
-      "rule": "Never name, in the repository, a commit or a PR: the reference game, its studio, a painter or any person (beyond the owner as the site's subject); never the removed side project. Banned names are kept as salted hashes in .claude/hooks/names.json, never written out.",
+      "rule": "Never name, in the repository, a commit or a PR: the reference game, its studio, a painter or any person (beyond the owner as the site's subject); never the removed side project. Banned names are kept as salted hashes in .claude/hooks/names.json, never written out. To add one: python3 .claude/hooks/add_names.py < a file of names outside the repo (it stores only their salted hashes).",
       "source": [
         {
-          "doc": "CLAUDE.md: Design (\"at the owner's word its name stays out of the repo, its commits and its PRs\")"
+          "doc": "docs/design.md (\"at the owner's word its name stays out of the repo, its commits and its PRs\")"
         },
         {
           "date": "2026-11-06",
@@ -552,6 +552,10 @@
         {
           "kind": "hook",
           "file": ".claude/hooks/guard.py"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The rules are data, and the hooks hold"
         },
         {
           "kind": "prose"
@@ -565,13 +569,13 @@
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
-          "doc": ".github/workflows/merge.yml; CLAUDE.md: Deploy"
+          "doc": ".github/workflows/merge.yml; docs/deploy.md"
         }
       ],
       "enforced_by": [
         {
           "kind": "ci-step",
-          "name": "Merge, or leave it for the owner"
+          "name": "One tick of the merge train"
         },
         {
           "kind": "ci-step",
@@ -619,7 +623,7 @@
       "source": [
         {
           "quote": "keep iterating through literally every possible method/frameworks/etc until it's seamless",
-          "doc": "CLAUDE.md: (top); Design"
+          "doc": "CLAUDE.md (top); docs/design.md"
         }
       ],
       "enforced_by": [
@@ -634,7 +638,7 @@
       "rule": "Trusted Types stays off while Cloudflare Rocket Loader is on (it re-executes scripts through a TT sink); if Rocket Loader is ever disabled, re-add require-trusted-types-for 'script' to the three home-scope CSP blocks.",
       "source": [
         {
-          "doc": "CLAUDE.md: Security"
+          "doc": "docs/security.md"
         }
       ],
       "enforced_by": [
