@@ -10,8 +10,7 @@
      window: its facing, its foreshortening, which wing is near, its turn to the camera all come from the projection.
      Every frame each drawn bird's 16 paper points are posed, placed and projected through the frame's camera to device
      px; the world's light lights its six panels (the sun wrapped about the paper, a share of it through the paper from
-     behind, the sky's and the lit cloud sea's light from below), one tone a bird with a whisper of the fold, eased; a
-     slow hold keeps it off its ground's own lightness (a grey tick on bright cloud, never a flicker). Then one
+     behind, the sky's and the lit cloud sea's light from below), one tone a bird with a whisper of the fold, eased. Then one
      instanced draw after the composite, at the canvas's resolution: each bird a quad whose fragments take the exact
      coverage of its 11 paper triangles and a pen floor along its leading edge's M (a wing seen edge-on is still the
      tattoo's line), hidden by the land and the clouds in front of it, kept off the words, and at night a light of its
@@ -58,12 +57,9 @@
   var PAPER = [0.94, 0.911, 0.853];   // the paper's albedo, linear (OKLab L 0.97, chroma 0.010, hue 85: a warm white)
   var WRAP = 0.45, TRANS = 0.3, BOUNCE = 0.45, FOLD = 0.06, PAPER_GAIN = 1.08;   // (PAPER_GAIN: calibrated on the realms' day films, A16: white on blue +0.10 OKLab L in 80 % and more)   // the sun wrapped about the paper; through it from behind; the cloud sea's light under it; the fold's whisper
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
-  var HOLD_DL = 0.10, HOLD_OUT = 0.11, HOLD_TT = 1.0;
-  var LIGHT_IN = 0.09, LIGHT_OUT = 0.14, BACK_IN = 35, BACK_OUT = 40;   // (fix round) white only clear of its ground by this (OKLab L), grey till past that; backlit within this (deg)   // OKLab L: never this near its ground's lightness (darker then), let go past HOLD_OUT; eased over HOLD_TT s
   var GLOW_L = 0.78, GLOW_ENC = 0.72, HALO_A = 0.14, HALO_E = [3, 2];   // night: the paper's own light (OKLab L; as encoded), the halo's strength and e-folding (CSS px: a desktop, a phone)
   var AOA = [1.5, 1];          // deg: the body's angle to its way through the air gliding, flapping (fix: the body all but along its way, the wing's own incidence carrying the rest)
   var CW_DT = 0.25, CW_HOLD = 0.3;   // s: the cloud's weights before a bird, worked out this often (a share of the birds a frame), each held at its most this long
-  var GRD_DT = 0.25;           // s: the ground under the birds asked for this often
   var FILTER = [1, 1.5];       // device px: the edge's filter for a bird of 24 px and more, and for a speck of 4 and less
   var PAPER_ON = true;         // (dev) false: the ink pass as before (not built: kept only as a switch name)
   /* (way-path) THE PATH AND THE VIEW: physics only (no set, no held bank), so the tattoo's lean must come from how a bird
@@ -402,7 +398,7 @@
     if (egW > 0 && F.egSet) { s.P22[0] += F.egSet * egW; s.P22[NP] += F.egSet * egW; }   // (life: a goose's set-wing descent, the arms a little raised, the same for the whole flight)
     /* (physics) the 46 vertices: the flexing form posed (LB.geom: the feathers bent, the fingers parted, the body's heave,
        surge and trim bank; spans), scaled, turned by the attitude, from the camera; the 16 points kept beside them (the
-       hold, the separation, the dumps read them) */
+       separation and the dumps read them) */
     LB.geom(kind, s.P22, s.B3, s.V46, 'this');
     var ox = px - C.pos[0], oy = py - C.pos[1], oz = pz - C.pos[2], V = s.V46, X = s.X46;
     for (i = 0; i < NV; i++) {
@@ -457,7 +453,7 @@
   /* (physics) the world's light on the paper: facetpose's own (the form designer's option 5, "white paper lit like
      cloud"), facet by facet: each facet's normal (area-weighted over its triangles, on the posed flexing form) turned
      toward the eye; its light (FE) for the near bird's planes and the bird's ONE TONE (the last round's constants over
-     the same facets, area-weighted on the window: the bright white the hold and the true-size outline are tuned on),
+     the same facets, area-weighted on the window: the bright white the true-size outline is tuned on),
      eased (TONE_T). The world is y up, facetpose z up: every vector handed to it has y and z swapped (a reflection:
      dot products kept; the normals' sign it turns toward the eye itself) */
   var LZ = { sunDir: [0, 0, 1], sunVis: 0, sunC: [1, 1, 1], ambU: [0.3, 0.35, 0.45], ambD: [0.25, 0.25, 0.3], clLit: [0.7, 0.65, 0.7] }, EYEZ = [0, 0, 1];
@@ -508,64 +504,6 @@
     s.wingL = [wl, wa, wr, wb, ym];
   }
   function triA(D, a, b, c) { return 0.5 * ((D[2 * b] - D[2 * a]) * (D[2 * c + 1] - D[2 * a + 1]) - (D[2 * c] - D[2 * a]) * (D[2 * b + 1] - D[2 * a + 1])); }
-  /* the bird's lightness as the composite would show it (OKLab L of its light graded: exposure, lift and gain,
-     saturation, the shoulder, without the air): for the hold */
-  function encL(c) { return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055; }
-  function decL(c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
-  var GCOL = [0, 0, 0];
-  function gradedL(E, Gd, scale) {
-    var x = Gd ? Gd.exposure : 1, i, c = GCOL;
-    for (i = 0; i < 3; i++) c[i] = (Gd ? Gd.lift[i] : 0) + E[i] * scale * x * (Gd ? Gd.gain[i] : 1);
-    var y = lum3(c[0], c[1], c[2]), st = Gd ? Gd.sat : 1;
-    for (i = 0; i < 3; i++) c[i] = Math.max(y + (c[i] - y) * st, 0);
-    var mx = Math.max(c[0], c[1], c[2]), K = 0.78;
-    if (mx > K) { var mm = K + (1 - K) * (1 - Math.exp(-(mx - K) / (1 - K))); for (i = 0; i < 3; i++) c[i] *= mm / mx; }
-    for (i = 0; i < 3; i++) c[i] = decL(encL(Math.min(1, c[i])));   // (8-bit as shown)
-    return okL(c[0], c[1], c[2]);
-  }
-  function okL(r, g, b) {
-    return 0.2104542553 * Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) + 0.7936177850 * Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) - 0.0040720468 * Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  }
-  /* the hold: never melting into its ground. The ground under its body and wrists (the world without the birds, a read
-     or a few late); a bird within HOLD_DL of it is darkened to HOLD_DL under it, eased over HOLD_TT s, and let go only
-     past HOLD_OUT: one bird at a time (never two-toned), slow, hysteretic; only ever darker (lit paper is never made
-     lighter than itself); off at night, inside the distance fade */
-  function holdTone(s, F, rest, dt) {
-    var Gd = HOST.grade(), g = -1, gn = 0, gs = 0, q, i;
-    if (HOST.groundAt) for (q = 0; q < 3; q++) {
-      i = [2, 1, 7][q];   // (the body (shoulder), the wrists)
-      var cx = s.D[2 * i] / (VW.outW / W), cy = H - s.D[2 * i + 1] / (VW.outW / W);
-      if (q === 0) { cx = (s.D[4] + s.D[16]) / 2 / (VW.outW / W); cy = H - (s.D[5] + s.D[17]) / 2 / (VW.outW / W); }
-      var gq = HOST.groundAt(cx, cy); if (gq >= 0) { gs += gq; gn++; g = Math.max(g, gq); }
-    }
-    s.groundL = gn ? gs / gn : -1;
-    s.birdL = gradedL(s.E, Gd, 1);
-    var off = FORCED || s.halo > 0.5 || !(s.groundL >= 0);   // (fix round: held inside the distance fade too: a far bird against the sun was left lighter than its ground)
-    var want = 1;
-    /* (fix round) a decisive tone, never near its ground: white paper where its light clears the ground by LIGHT_IN, else
-       grey, HOLD_DL under it (round 2 held a bird only within +-0.08: on a pale sky a white bird sat 0.06-0.10 over its
-       ground, half held and half not; the judge found 31 % of the phone's birds within 0.08 of the sky); and backlit
-       (the line of sight within BACK_IN deg of the sun, the sun out) always grey, as paper against the light is. Let go
-       past LIGHT_OUT and BACK_OUT: hysteretic, eased over HOLD_TT */
-    var sa = sunAng(s), Lt = HOST.light(), sv = Lt ? (Lt.sunVis === undefined ? 1 : Lt.sunVis) : 0;
-    s.backlit = sa !== null && sv > 0.3 && sa < (s.backlit ? BACK_OUT : BACK_IN);
-    if (!off) {
-      var dl = s.birdL - s.groundL;
-      if (!s.holding && (dl < LIGHT_IN || s.backlit)) s.holding = true;
-      else if (s.holding && dl > LIGHT_OUT && !s.backlit) s.holding = false;
-      if (s.holding) {
-        var tL = Math.min(s.birdL, s.groundL - HOLD_DL);
-        /* (fix round) the light's scale that shows it at tL, by bisection on the composite's own grade (round 2's two cube
-           steps landed about 0.01 short in the shoulder: a held bird sat at -0.07 to -0.08, not under HOLD_DL) */
-        var lo = 0.02, hi = 1;
-        if (gradedL(s.E, Gd, lo) >= tL) want = lo;
-        else { for (var it = 0; it < 14; it++) { var mid = 0.5 * (lo + hi); if (gradedL(s.E, Gd, mid) > tL) hi = mid; else lo = mid; } want = lo; }
-      }
-    } else s.holding = false;
-    var e = rest || s.holdOk !== true ? 1 : 1 - Math.exp(-dt / HOLD_TT);
-    s.hold += (want - s.hold) * e; s.holdOk = true;
-    s.hold = clamp(s.hold, 0.02, 1);
-  }
   /* how much of the cloud before it stands in front of it: at its left tip, its body and its right tip, the clouds'
      lobes between the camera and each (eased by CLOUD_IN m), at least the cover over the view; worked out every CW_DT
      s on a share of the birds each frame, each held at its most CW_HOLD s */

@@ -72,7 +72,7 @@
     return true;
   }
 
-  var tmp3 = {}, GW = new Float32Array(4 * 16), lastDraw = -1;
+  var tmp3 = {}, lastDraw = -1;
   /* every bird where it is now (between the last two steps), posed afresh every frame */
   /* (fix round) SEPARATION: two birds of one flight never touching on the window. The planner keeps them apart as it
      plans (its boxes, the whole way); what it cannot foresee there (the guard's later turns and paces, the view's own
@@ -141,7 +141,7 @@
     measureIf();
     FW.ox = C.pos[0]; FW.oy = C.pos[1]; FW.oz = C.pos[2];
     flightNow(); camEscort(moving);
-    var L = FORCED ? null : HOST.light(), nGw = 0, N = FORCED ? 0 : (HOST.night ? HOST.night() : 0);
+    var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0);
     for (var li = 0; li < 2; li++) for (i = 0; i < (li ? PLACES : flights).length; i++) {
       F = (li ? PLACES : flights)[i]; tau = tr - F.t0;
       var gone = F.gone ? clamp(1 - (tr - F.gone) / (F.goneT || GONE_T), 0, 1) : 1;
@@ -168,18 +168,15 @@
         s.lastOp = op; s.lastApp = app; s.op = op;
         if (op <= 0.003) continue;
         lightBird(s, L, !moving, dt);
-        holdTone(s, F, !moving, dt);
         cloudWeights(s, C, tr, !moving);
         var gdir = 1;
         if (gE >= 0) { var fc = s.face || F.dir || 1; gdir = (fc > 0) === (s.D[0] < s.D[12]) ? 1 : -1; }   // (written from the back tip to the front tip, on the window)
-        packBird(nB, s, op, NEARMOST * d.span * MPU * MODEL_K + 2, FX.cloud, N, s.haloE, s.hold, gE, gdir, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
-        if (nGw < 16 && !FORCED) { GW[4 * nGw] = s.bx0; GW[4 * nGw + 1] = s.by0; GW[4 * nGw + 2] = s.bx1; GW[4 * nGw + 3] = s.by1; nGw++; }
+        packBird(nB, s, op, NEARMOST * d.span * MPU * MODEL_K + 2, FX.cloud, N, s.haloE, gE, gdir, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
         nB++;
       }
     }
     if (GU.list.length && !FORCED && moving) nB = drawGuests(C, dt, L, N, nB, tr);
     STATS.drawn = nB;
-    if (HOST.groundWant) HOST.groundWant(GW, nGw);
     if (!nB) return;
     var P = PROG, E = HOST.grade(), tex = !FORCED && HOST.bindTextures();
     HOST.target();
@@ -213,7 +210,7 @@
   }
   /* (physics) one bird's instance (7 vec4) and its row of the points' texture (its 46 points, device px and 1/depth;
      its 30 facets' light, linear, when its planes show) */
-  function packBird(nB, s, op, slack, cloudOn, N, haloE, hold, gE, gdir, floor) {
+  function packBird(nB, s, op, slack, cloudOn, N, haloE, gE, gdir, floor) {
     var o = nB * NF, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, i, r = nB * PTW * 4, D = s.D46;
     for (i = 0; i < NV; i++) { var x = D[2 * i], y = D[2 * i + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; BTX[r + 4 * i] = x; BTX[r + 4 * i + 1] = y; BTX[r + 4 * i + 2] = s.IZ[i]; BTX[r + 4 * i + 3] = 0; }
     var lod = FORCED || N > 0 ? 0 : s.lod;                // (the night's one tone, its glow: no planes; forced colours flat)
@@ -223,15 +220,12 @@
     INST[o + 8] = s.E[0]; INST[o + 9] = s.E[1]; INST[o + 10] = s.E[2]; INST[o + 11] = op;
     INST[o + 12] = s.body[0]; INST[o + 13] = s.body[1]; INST[o + 14] = s.body[2]; INST[o + 15] = slack;
     INST[o + 16] = cloudOn ? s.cw[0] : 0; INST[o + 17] = cloudOn ? s.cw[1] : 0; INST[o + 18] = cloudOn ? s.cw[2] : 0; INST[o + 19] = N;
-    INST[o + 20] = haloE; INST[o + 21] = hold; INST[o + 22] = gE; INST[o + 23] = gdir;
+    INST[o + 20] = haloE; INST[o + 21] = 1; INST[o + 22] = gE; INST[o + 23] = gdir;   // ([21], aM.y: the light's scale, 1 for every bird (fast500's deep sweep, 2026-11-05: the hold that scaled it down on its ground is gone; it never ran))
     INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;
   }
   var GIFT_T = 1.0;   // s: the gift's write-on, whole (outline 0.7, paper 0.3; fix round: no spark)
   var GLARE_P = [0.02, 0.09, 0.35, 0.5];   // the light wrap: the bloom's light under the bird from, to; the paper thinned by (px), lifted by
-  /* (dev) one drawn bird, for the judge: read-only */
-  function r4(v) { return Math.round(v * 1e4) / 1e4; }
-  function sunAng(s) { var L = HOST.light(), sd = L && L.sunDir; if (!sd) return null; var l = Math.sqrt(s.body[0] * s.body[0] + s.body[1] * s.body[1] + s.body[2] * s.body[2]) || 1; return r4(Math.acos(clamp((s.body[0] * sd[0] + s.body[1] * sd[1] + s.body[2] * sd[2]) / l, -1, 1)) / DEG); }   // (deg between the line of sight to the bird and the sun: backlit under 35)
 
   var FLIGHT_ID = 0;
-  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, eased: 0, gone: 0, wheeled: 0, held: 0, paced: 0, hold: 0 }, away: 0, back: 0 };
+  var STATS = { drawn: 0, planned: 0, steps: 0, workMax: 0, landed: { unseen: 0, never: 0, cloud: 0, done: 0 }, fails: {}, jobs: [], costs: {}, guard: { n: 0, wheeled: 0, paced: 0 }, away: 0, back: 0 };
 

@@ -26,10 +26,11 @@ The world's scripts are not on the path to the first paint (deferred, the
 start file async), but the start file, the world's and the kits' are
 fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
-served: start.js 1035 KB (its programs' GLSL, as text), world.js
-381 KB, the kits 51 KB, inkbirds.js 193 KB, its wing model 138 KB (model.js 26 KB of it: its
+served: start.js 6 KB and its table start-table.js 1029 KB (its
+programs' GLSL, as text), world.js 360 KB, the kits 47 KB,
+inkbirds.js 141 KB, its wing model 138 KB (model.js 26 KB of it: its
 notes stay in tools/birds/model/model_full.json, 2026-11-06), the
-plan's worker 73 KB (node tools/minify.mjs --report build/src: the five
+plan's worker 73 KB (node tools/minify.mjs --report build/ship: the five
 minified, before and after, raw and brotli).
 
 theme-color is #173a63 in the HTML (the day still's top: a visit with no

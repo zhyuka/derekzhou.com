@@ -14,9 +14,8 @@
   /* ------------------------------------------------------------------ ABOVE: the sunrise over the sea of cloud, endless */
   /* The sea of cloud is one field over the plane (broad swells and heaps of billows). Over it, the areas, a site per
      1.2 km cell: open sea (a tower now and then), a canyon (two walls of cloud along an axis, a slot of sky between
-     them, a white flock wheeling down it; the autopilot flies it from one mouth to the other), a sea of towering clouds,
-     small floating islands (a stupa on some), and the island with its temple (approached from the side away from the
-     sun, so the low sun stands behind it). */
+     them, a white flock wheeling down it), a sea of towering clouds, small floating islands (a stupa on some), and the
+     island with its temple (the low sun behind it, seen from the side away from the sun). */
   var AS = 1200, CUT_A = [51, 107, 174, 225, 256];   // open, canyon, towers, islands, isle
   function aSite(ix, iz, salt) {
     var h = K.cellHash(ix, iz, salt), k = K.hk(h, 2) >>> 24, kind = 0;
@@ -30,25 +29,22 @@
   function aRng(s, k) { return K.RNG(K.hk(s.h, k)); }
   function aTower(C, R, x, z, Wt, Ht, seed, poi) {
     C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0), w: Wt, h: Ht, seed: seed });
-    if (poi) C.poi({ kind: 'tower', x: x, z: z, y: CRUISE, interest: 0.5, pass: Wt * 0.55 + 80 });
+    if (poi) C.poi({ kind: 'tower', x: x, z: z, y: CRUISE, pass: Wt * 0.55 + 80 });
   }
   function aIsland(C, R, x, z, y, r, stupaP) {
     var depth = r * R.r(1.0, 1.6);
     C.add({ kind: 'island', x: x, z: z, air: true, y: y, yaw: R.r(0, 360), r: r, depth: depth, stupa: R.f() < stupaP, seed: R.seed(), spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
-    C.poi({ kind: 'island', x: x, z: z, y: y, interest: 0.55, pass: r + 70 });
+    C.poi({ kind: 'island', x: x, z: z, y: y, pass: r + 70 });
   }
   W.realm({
-    id: 'above', words: 'dark', still: 'above', hours: ['dawn'], dur: [70, 110], speed: 21, clear: [95, CRUISE, 520], frame: [0.33, 0.29], look: 200, climb: 40, pitchFollow: 0.2, exitH: [160, 300],
-    margin: 26, softMargin: 40,   // (round E1 Fix 2: the tour's heightLine and turn gone with it, design-v5 Revision 3)
+    id: 'above', margin: 26,   // (what worldDef reads: world.js)
     glsl: ABOVE_GLSL,
-    surfaces: [{ height: 'Hd', shade: 'shadeSea', g0: 2, levels: 10 }],
-    landmarkShade: 'shadeStone',
-    layout: { scales: [{ size: AS, radius: 3800 }], volRes: 44 },
+    layout: { scales: [{ size: AS, radius: 3800 }] },
     field: function () {
       return { params: [lch(0.64, 0.06, 268), lch(0.60, 0.065, 272), lch(0.56, 0.05, 165), lch(0.78, 0.07, 262), lch(0.68, 0.07, 150), lch(0.56, 0.06, 285)] };   // (world6 step B fix, defect 2: the isles' stone and rock lit by the sky and the cloud sea's light under them (L 0.16-0.36 before: near-black undersides behind the name))
     },
-    /* (world6 step B) the cloud's shade (clShade 0.58 -> 0.67, clDeep 0.45 -> 0.60) the sky's blue held over black ink's
-       floor (OKLab L 0.567: towers stand behind the name at the one framing); more aerial perspective (fog.w 0.42e-4 ->
+    /* (world6 step B) the cloud's shade (clShade 0.58 -> 0.67, clDeep 0.45 -> 0.60) the sky's blue (towers stand behind the name
+       at the one framing); more aerial perspective (fog.w 0.42e-4 ->
        1.1e-4: far towers and rock fade toward the horizon's light) */
     light: function (R) {
       return {
@@ -78,11 +74,11 @@
             u += len * Rs.r(0.82, 0.97); n++;
           }
         }
-        // flown from mouth to mouth: first a point out along the axis, then the mouth, then through to the far one
-        var e1 = L / 2 + 160, e2 = L / 2 + 620;
-        var m1 = [s.x - dx * e1, s.z - dz * e1], m2 = [s.x + dx * e1, s.z + dz * e1], o1 = [s.x - dx * e2, s.z - dz * e2], o2 = [s.x + dx * e2, s.z + dz * e2];
-        C.poi({ kind: 'canyon', x: m2[0], z: m2[1], y: CRUISE, path: [o1, m1], interest: 1.0, pass: 0 });
-        C.poi({ kind: 'canyon', x: m1[0], z: m1[1], y: CRUISE, path: [o2, m2], interest: 1.0, pass: 0 });
+        // its two mouths, each a point of interest
+        var e1 = L / 2 + 160;
+        var m1 = [s.x - dx * e1, s.z - dz * e1], m2 = [s.x + dx * e1, s.z + dz * e1];
+        C.poi({ kind: 'canyon', x: m2[0], z: m2[1], y: CRUISE, pass: 0 });
+        C.poi({ kind: 'canyon', x: m1[0], z: m1[1], y: CRUISE, pass: 0 });
         if (Rs.f() < 0.85) C.flock({ kind: 'bird', n: 20 + Rs.i(10), x: s.x, z: s.z, y: CRUISE + Rs.r(-10, 25), orbit: Rs.r(36, 60), wheel: Rs.sign() * Rs.r(0.18, 0.3), size: Rs.r(2.4, 3.1), flap: 2.6, spread: Rs.r(12, 20), lit: A_WL, shade: A_WS });
       } else if (s.kind === 2) {   // a sea of towering clouds
         Rs = aRng(s, 21); var nt = 2 + Rs.i(2);
@@ -96,14 +92,14 @@
         Rs = aRng(s, 41);
         var sun = C.V.light, r = Rs.r(110, 140), D = 950, y = CRUISE + D * Math.tan(sun.sunEl * PI / 180) - r * 0.55, size = r * Rs.r(0.9, 1.1);
         C.add({ kind: 'isle', x: s.x, z: s.z, air: true, y: y, yaw: Rs.r(0, 360), r: r, depth: r * Rs.r(1.1, 1.5), size: size, seed: K.hk(s.h, 42), spheres: [0, -r * 0.45, 0, r * 1.18, 0, size * 0.55, 0, size * 0.8] });
-        C.poi({ kind: 'isle', x: s.x, z: s.z, y: y + r * 0.4, interest: 1.0, pass: r + 190, approach: sun.sunAz + 180, viaD: D });
+        C.poi({ kind: 'isle', x: s.x, z: s.z, y: y + r * 0.4, pass: r + 190 });
         C.flock({ kind: 'bird', n: 18 + Rs.i(9), x: s.x + Rs.r(-60, 60), z: s.z + Rs.r(-60, 60), y: y + r * Rs.r(0.1, 0.6), orbit: Rs.r(r * 0.9, r * 1.4), wheel: Rs.sign() * Rs.r(0.12, 0.2), size: Rs.r(2.6, 3.4), flap: 2.4, spread: Rs.r(30, 60), lit: A_WL, shade: A_WS });
         var nsm = 1 + Rs.i(2);
         for (k = 0; k < nsm; k++) { a = Rs.r(0, 2 * PI); d = Rs.r(320, 600); aIsland(C, Rs, s.x + Math.sin(a) * d, s.z + Math.cos(a) * d, Rs.r(170, 380), Rs.r(26, 50), 0.6); }
       } else if (R.f() < 0.5) { var Wo = R.r(260, 460); aTower(C, R, s.x, s.z, Wo, Wo * R.r(1.1, 1.6), R.seed(), true); }
       // (world6 fix) rays gliding over the open sea, world-anchored and scattered by density (the step's were spawned
       // ahead of the camera on a clock): each slowly circling its own place, below the cruise
-      if (C.weights) for (k = 0; k < 2; k++) {
+      for (k = 0; k < 2; k++) {
         var rx = C.x0 + R.r(0.1, 0.9) * C.size, rz = C.z0 + R.r(0.1, 0.9) * C.size, rp = R.f(), rn = 1 + R.i(2), ry = CRUISE - R.r(25, 60), ro = R.r(60, 120), rw = R.sign() * R.r(0.03, 0.05), rs = R.r(10, 14);
         if (rp < 0.45) C.flock({ kind: 'ray', n: rn, x: rx, y: ry, z: rz, orbit: ro, wheel: rw, size: rs, flap: 0.22, spread: 14, lit: lch(0.52, 0.07, 258), shade: lch(0.3, 0.07, 265) });
       }
@@ -118,14 +114,6 @@
       // (smaller, crisper billows than DUNES' far banks: cells about a quarter of a lobe, a harder edge)
       if (cl.kind === 'wall') K.wall(PF, R, cl.x, cl.base, cl.z, cl.dir, cl.len, cl.thick, cl.h, { face: cl.face, noise: 2.4, band: 0.05 });
       else if (cl.kind === 'cumulus') K.cumulus(PF, R, cl.x, cl.base, cl.z, cl.w, cl.h, { puff: 1.25, noise: 2.2, band: 0.045 });
-    },
-    particles: function () { var mote = lch(0.97, 0.04, 90, 1.6); return [{ count: 220, box: 150, height: 70, streak: 0, width: 1.5, wind: [1.2, 0.2, 0.5], color: [mote[0], mote[1], mote[2], 0.55], hop: [0, 0, 0, 2] }]; },
-    // now and then a ray glides across the open sea ahead, or a white flock crosses
-    event: function (V, R, cam) {
-      var ray = R.f() < 0.5, d = R.r(ray ? 90 : 140, ray ? 160 : 260), lat = R.sign() * R.r(40, 110), fx = Math.sin(cam.psi), fz = Math.cos(cam.psi), px = fz, pz = -fx, cr = lat > 0 ? -1 : 1;
-      var x = cam.x + fx * d + px * lat, z = cam.z + fz * d + pz * lat;
-      if (ray) return { next: R.r(16, 26), life: 34, flock: { kind: 'ray', n: 1 + R.i(2), x: x, y: cam.y - R.r(25, 60), z: z, drift: [px * cr * 7.5 + fx * 4, pz * cr * 7.5 + fz * 4], orbit: 18, wheel: 0.02, size: R.r(10, 14), flap: 0.22, spread: 14, lit: lch(0.52, 0.07, 258), shade: lch(0.3, 0.07, 265) } };
-      return { next: R.r(16, 26), life: 34, flock: { kind: 'bird', n: 16 + R.i(10), x: x, y: cam.y + R.r(-20, 30), z: z, drift: [px * cr * 6 + fx * 3, pz * cr * 6 + fz * 3], orbit: R.r(26, 40), wheel: R.sign() * R.r(0.22, 0.36), size: R.r(2.4, 3.0), flap: 2.6, spread: R.r(10, 18), lit: A_WL, shade: A_WS } };
     }
   });
 })();

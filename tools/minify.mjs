@@ -20,11 +20,17 @@
 // the folder is left alone. Each is:
 //   1. (world only, step 4b) cut: the record and the switches (diag v2's engine side) and the dev harness are taken
 //      out by exact, counted cuts (each anchor a whole line found exactly once, else exit 1). What the rest of the
-//      file needs stays: the switches' defaults (SW, its line verbatim) and, as empty functions, the four it calls
-//      without an `if (REC)` (recMark, recShown, recWrap, devGL: each a no-op on the shipped page, where REC is null,
-//      DEVMODE false and SW.wrap 0). REC, STILLMODE, DEVMODE and DEVKEEP (each declared once, null or false, never
-//      assigned again: checked) lose their declarations and become the constant false (terser's global_defs), so what
-//      they guard (the record's hooks, the harness's branches) is dropped as dead code.
+//      file needs stays, as empty functions: the four it calls without an `if (REC)` (recMark, recShown, recWrap,
+//      devGL: each a no-op on the shipped page, where REC is null, DEVMODE false and SW.wrap 0). REC, STILLMODE,
+//      DEVMODE and DEVKEEP (each declared once, null or false, never assigned again: checked) lose their declarations
+//      and become the constant false (terser's global_defs), so what they guard (the record's hooks, the harness's
+//      branches) is dropped as dead code. (fast500's deep sweep, 2026-11-05) So do the switches: SW's line goes with the record (the shipped
+//      page sets no switch), its one object literal is read and every SW.<key> becomes its default (global_defs,
+//      dotted; after the cut SW is only ever read key by key, never written, computed or used whole: checked), so
+//      what only another value of a switch reaches is dropped too.
+//   1b. (inkbirds, fast500's deep sweep, 2026-11-05) HOST.dev (the world's dev flag, false on the shipped page) is
+//      read as the constant false (exactly 6 reads, else exit 1), so what only it reaches (the planner's dev tallies
+//      of its failures and costs) is dropped as dead code.
 //   2. minified by terser (pinned 5.51.2: the TERSER environment variable names its package folder, else node's own
 //      resolution from here): compress and mangle, never the top level (the scripts share the page's global WORLD),
 //      Safari 10's mangler and printer workarounds on, the original quotes kept, ES5 output rules (no syntax
@@ -66,11 +72,15 @@ async function loadTerser() {
    (src/dev/world/), left out by file in the shipped build (node tools/parts.mjs assemble --ship), each with its stub
    (the switches' defaults, and recMark, recShown, recWrap and devGL as no-ops). What is left here is a check that the
    input is that shipped build, and the dev constants below. */
+let SWLINE = null; const SWDEFS = {};   // (fast500's deep sweep, 2026-11-05: the switches' line as cut, and its defaults as global_defs)
 function cutRecord(s) {
   let L = s.split('\n');
   const log = [];
   if (!L.some((l) => l.startsWith('  function recMark() {}'))) die('the world is not the shipped build (no recMark stub): node tools/parts.mjs assemble --ship src DIR, then minify DIR');
   if (L.some((l) => l.startsWith('  var REC = null'))) die('the world has the record in it (REC declared): minify the shipped build (node tools/parts.mjs assemble --ship)');
+  { const k = L.map((l, n) => (l.startsWith('  var SW = {') ? n : -1)).filter((n) => n >= 0);   // (fast500's deep sweep, 2026-11-05) the switches' line (src/world/503-switches.js, in both builds): cut, its defaults the constants of every SW.<key> (SWDEFS)
+    if (k.length !== 1) die('cut SW: the line "  var SW = {" found ' + k.length + ' times (want 1)');
+    SWLINE = L[k[0]]; L.splice(k[0], 1); }
   // the dev constants: each declared once and never assigned again; its declaration taken out (REC's went with the
   // cut) and every reference made the constant false by the compressor (global_defs: a reference to the name only,
   // never a local of the same name), so what they guard (the record's hooks, the harness's branches) is dead code
@@ -82,6 +92,11 @@ function cutRecord(s) {
     log.push(d.name + ': its declaration out, the constant false');
   }
   const code = L.join('\n');
+  { const m = SWLINE.match(/^  var SW = (\{[^}]*\});/); if (!m) die('SW: its line is not one object literal');
+    const o = Function('return ' + m[1])(); for (const k of Object.keys(o)) SWDEFS['SW.' + k] = o[k];
+    const w = code.match(/(^|[^\w$.])SW\s*(\[|\.\w+\s*(=(?!=)|\+\+|--|[-+*\/|&]=))|(\+\+|--)\s*SW\.|(^|[^\w$.])SW(?![\w$.])/gm);
+    if (w) die('SW: written, computed or used whole after the cut (' + w.join(' | ') + ')');
+    log.push('SW: its line out, ' + Object.keys(o).length + ' switches the constant defaults'); }
   for (const d of DECLS) {
     const n = d.name;
     const w = code.match(new RegExp('(^|[^\\w$.])' + n + '\\s*(=(?!=)|\\+\\+|--|[-+*/|&]=)|(\\+\\+|--)\\s*' + n + '\\b|\\b(var|let|const|function)\\s+' + n + '\\b', 'g'));
@@ -95,6 +110,15 @@ const DECLS = [   // the declaration lines, each the start of exactly one line (
   { name: 'DEVMODE', line: '  var DEVMODE = false; ' },
   { name: 'DEVKEEP', line: '  var DEVKEEP = false;' }];
 const GLOBAL_DEFS = Object.fromEntries(DECLS.map((d) => [d.name, false]));
+
+// ------------------------------------------------------------------ (fast500's deep sweep, 2026-11-05) the ink birds' dev flag
+function cutInk(s) {   // (the ink birds' dev members and the staging's dev hooks are no longer in src/: no line is cut)
+  const log = [];
+  let code = s; const n = code.split('HOST.dev').length - 1;
+  if (n !== 6) die('ink: HOST.dev ' + n + ' times (want 6)');
+  code = code.split('HOST.dev').join('false'); log.push('HOST.dev: 6 reads the constant false');
+  return { code, log };
+}
 
 // ------------------------------------------------------------------ step 4c: terser
 const NOTE1 = ' The comments in this file keep the tags and file names';
@@ -175,8 +199,9 @@ async function build(T, name, input, cut = true) {   // (cut false: --report's m
   const stem = name.match(NAME)[1];
   let code = input, log = [];
   if (stem === 'world' && cut) ({ code, log } = cutRecord(input));
+  if (stem === 'inkbirds' && cut) ({ code, log } = cutInk(input));
   const opts = Object.assign({}, OPTIONS, { format: Object.assign({}, OPTIONS.format, { ast: true, code: false }) });
-  if (stem === 'world' && cut) opts.compress = Object.assign({}, OPTIONS.compress, { global_defs: GLOBAL_DEFS });
+  if (stem === 'world' && cut) opts.compress = Object.assign({}, OPTIONS.compress, { global_defs: Object.assign({}, GLOBAL_DEFS, SWDEFS) });
   const r = await T.minify(code, opts);
   const at = code.indexOf(MARK);
   if (at >= 0) {

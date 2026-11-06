@@ -23,4 +23,8 @@ Read docs/world.md first (and docs/verify.md before anything visible ships).
   commands are in CLAUDE.md, Making a change).
 - The plan's spans changed (the maps, the director, MAPS/mapsInit/kitAt, the weights' grids): node tools/plan.mjs
   --stamp, and node --test test/unit.mjs (the worker must still equal the page's plan).
+- Forced colours: read them from the world's own media query list (forced()), never from the one it listens on (in
+  Chromium a read takes up the change and its event never fires: the world did not come back when they ended); while
+  they hold from the load no render target of the world's is made (docs/world.md, FALLBACKS). tools/gpu/forced-off.js
+  (T2's job) checks the world comes back.
 - npm run check:quick after each edit; node --test test/unit.mjs before a PR.
