@@ -77,8 +77,9 @@ https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
 listeners only in world.js and only by name (its two on the plan's
 worker, its answer and its failure, one each); the script order (the
-world and the kits first, fetchpriority high, then the wing model and
-the ink birds, low; the start file the one async script, high, right
+world and the kits first, parser-blocking after the footer (the
+first-paint hold), fetchpriority high, then the wing model and the ink
+birds, deferred, low; the head's one link rel=expect blocking=render; the start file the one async script, high, right
 after the canvas); the plan's worker (rule 2b: at most one, plan.js,
 by its literal name; its block in \_headers exactly its immutable cache
 and default-src 'none', worker-src exactly 'self' where it is started;
