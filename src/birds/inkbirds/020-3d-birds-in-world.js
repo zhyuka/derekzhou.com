@@ -6,6 +6,6 @@
   var MAXP = 96;               // birds drawn at once at most (the nearest; a speck past them changes no pixel)
   /* (physics) the wing's rate and its flap-glide schedule (labbird.js RATE_CLASS: the owner's word 2026-11-04, the real
      order; the measured schedule) */
-  var RATE_MODE = 'class', SCHED_MODE = 'measured', WING_FROM = -30;
+  var RATE_MODE = 'class', SCHED_MODE = 'measured';
   var FX = { air: true, lit: true, glare: true, land: true, cloud: true };   // the effects (each can be turned off in development)
   var FORCED = false;          // forced colours: the birds alone, in CanvasText at full ink, in their own still view (the world is not drawn)

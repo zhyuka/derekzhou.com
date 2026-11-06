@@ -76,8 +76,9 @@
     var b = { id: ++BK, kind: kind, S: S, K: K, r: r, age: pick(r, [0, 40]), sz: B_SPAN * S.size * MODEL_K * (1 + SIZE_VAR * (r() * 2 - 1)),
       p: [x, y, z], v: [0, 0, 0], a: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
-      st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, think: 0, w: placeWing(kind, r), s: null, d: null, P: null,
-      wf: 0, flap: -1, seen: 0 };
+      st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, think: 0, w: null, s: null, d: null, P: null,
+      wf: 0, flap: -1, seen: 0, WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }, wsT: -1 };
+    b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
     BIRDS.push(b);
@@ -127,9 +128,10 @@
   }
   /* its own pace: +-8-12 % about its kind's, slowly */
   function paceOf(b) { return b.vJ * (1 + 0.06 * wave(b.vK, b.age / 9)); }
-  /* the measured wing's state now (flapping 1, gliding 0): the integrator reads it */
-  var WSQ = { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 };
-  function wingNow(b) { if (!b.w || !b.w.wing) { b.flap = 1; return; } var S = BW.state(b.w.wing, b.age, WSQ); b.flap = S.e > 0.5 ? 1 : 0; }
+  /* the measured wing's state at the bird's age, worked out once an age (the step's, read again by the draw) */
+  function wingState(b) { if (b.wsT !== b.age) { BW.state(b.w.wing, b.age, b.WS); b.wsT = b.age; } return b.WS; }
+  /* ... flapping 1, gliding 0: the integrator reads it */
+  function wingNow(b) { b.flap = wingState(b).e > 0.5 ? 1 : 0; }
   /* (B17, the owner's choice 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
      (the camera's motion, a drag's included) would bring it within a few of its spans in the next 4 s, it notices
      (after its own latency, 80-250 ms, as a bird reads a car coming: by distance and closing speed) and turns its own
@@ -433,14 +435,14 @@
       if (F.far) {
         F.acc = (F.acc || 0) + dt; if (F.acc < COARSE) continue;
         var cdt = F.acc; F.acc = 0;
-        if (L.st === 'fly') { var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; }
-        for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; }
+        if (L.st === 'fly') { var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; wingNow(L); }
+        for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; BW.ensure(b.w.wing, b.age); }   // (its wing kept up with its age: never a long history to work out at once)
         continue;
       }
       for (j = 0; j < F.m.length; j++) {
         b = F.m[j]; b.age += dt;
+        if (b.st === 'perch' || b.st === 'land') BW.ensure(b.w.wing, b.age); else wingNow(b);
         if (b.st !== 'fly') { perchStep(b, dt, C); continue; }
-        wingNow(b);
         var wv = b === L ? goalVel(F, b, dt) : placeVel(F, b);
         clearOfEye(b, wv);
         flyTo(b, dt, wv[0], wv[1], wv[2]);

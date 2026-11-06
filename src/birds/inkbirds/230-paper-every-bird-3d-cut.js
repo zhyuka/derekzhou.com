@@ -34,7 +34,7 @@
   function glide22(kind, out) { GLW.kind = kind; GLW.trim = ZTRIM; BW.poseS(GLW, GS0, 0, out, GB3); return out; }
   function slotArrays(s) {
     s.P22 = FP.pose(); s.B3 = new Float64Array(3); s.V46 = new Float64Array(3 * NV); s.X46 = new Float64Array(3 * NV); s.D46 = new Float32Array(2 * NV); s.IZ = new Float32Array(NV);
-    s.NZ = new Float64Array(3 * NFAC); s.FE = new Float64Array(3 * NFAC); s.FA = new Float64Array(NFAC); s.VZ = new Float64Array(3 * NV); s.B = new Float64Array(9); s.bT0 = -1; s.bFrom = null; s.LS = { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0 }; s.lod = 0;
+    s.NZ = new Float64Array(3 * NFAC); s.FE = new Float64Array(3 * NFAC); s.FA = new Float64Array(NFAC); s.VZ = new Float64Array(3 * NV); s.B = new Float64Array(9); s.bT0 = -1; s.bFrom = null; s.lod = 0;
   }
   var MODEL_K = 1.19;          // (way-form: 1.38 for the bodied form; the wing-only form spans more of its model on the window) the drawn model's span on today's ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
   var WING_ONLY = true;        // (way-path) the bird is the tattoo's M and nothing else: two wings joined at the body point (no head, neck, bill, legs, tail or body)
@@ -105,7 +105,7 @@
       for (var j = 0; j < 22; j++) s.P22[j] = GT1[j] + wb * (GP22[j] - M[j]);
       s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = wb; return;
     }
-    if (w0 && w0.wing) { WS0 = BW.state(w0.wing, b.age, s.LS); BW.poseS(w0.wing, WS0, b.age, s.P22, s.B3, WO); }
+    if (w0 && w0.wing) { WS0 = wingState(b); BW.poseS(w0.wing, WS0, b.age, s.P22, s.B3, WO); }
     else { glide22(kind, s.P22); s.B3[0] = s.B3[1] = s.B3[2] = 0; }
     s.flapW = WS0 ? WS0.e * swing : 0;
   }

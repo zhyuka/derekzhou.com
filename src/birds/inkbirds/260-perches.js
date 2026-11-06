@@ -249,7 +249,7 @@
   var AV = [0, 0, 0];
   function approachStep(b, dt, C) {
     var P = b.P;
-    if (t < P.t0) { wingNow(b); var wv = b.F ? goalVel(b.F, b, dt) : [b.v[0], b.v[1], b.v[2]]; flyTo(b, dt, wv[0], wv[1], wv[2]); return; }
+    if (t < P.t0) { var wv = b.F ? goalVel(b.F, b, dt) : [b.v[0], b.v[1], b.v[2]]; flyTo(b, dt, wv[0], wv[1], wv[2]); return; }
     if (!perchWorld(b, C, dt)) { giveUp(b); return; }
     var rx = b.p[0] - P.at[0], ry = b.p[1] - P.at[1], rz = b.p[2] - P.at[2], d = Math.sqrt(rx * rx + ry * ry + rz * rz);
     if (!canHold(b, P.v)) { goRound(b, 'fast'); return; }   // (the perch, through the wind, outruns it or is too slow for it)
@@ -273,7 +273,7 @@
         if (pv > 1) { var al = (AV[0] * P.v[0] + AV[2] * P.v[2]) / pv, lack = 0.4 * pv - al; if (lack > 0) { AV[0] += lack * P.v[0] / pv; AV[2] += lack * P.v[2] / pv; } }
         /* out of view, it keeps off the perch until the gate (else it would come at it unseen, from beside the window) */
         if (d < PGATE && !onWindow(b, C)) { var kr = 0.6 * (PGATE - d) / (d || 1); AV[0] += rx * kr; AV[1] += ry * kr; AV[2] += rz * kr; }
-        clearOfEye(b, AV); wingNow(b); flyTo(b, dt, AV[0], AV[1], AV[2]);
+        clearOfEye(b, AV); flyTo(b, dt, AV[0], AV[1], AV[2]);
         return;
       }
     }
@@ -282,7 +282,7 @@
        v0 (d/d0)^(1 - tau-dot), so a bird slower than it asks only takes longer, never falls behind a clock) */
     var vc = (P.d0 / P.tau0) * Math.pow(Math.min(d / P.d0, 1.2), 1 - PTAU), tau = d / vc;
     /* carried away from it (past it, or blown off): planned again from here, three times at most, then round */
-    if (d > P.d0 * 1.25 + 10) { if (++P.go > 3) { goRound(b, 'away'); return; } P.d0 = 0; return; }
+    if (d > P.d0 * 1.25 + 10) { if (++P.go > 3) { goRound(b, 'away'); return; } P.d0 = 0; if (!onWindow(b, C)) { P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; } return; }   // (out of view, by the gate again: never in at it unseen)
     if (tau <= PLAND[0] || d <= PLAND[1]) {   /* the last of it: down a curve to rest on the perch, from where it is and how it moves */
       var wx = b.v[0] - P.v[0], wy = b.v[1] - P.v[1], wz = b.v[2] - P.v[2], wc = -(rx * wx + ry * wy + rz * wz) / (d || 1);
       b.st = 'land'; P.tl = t; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
@@ -322,7 +322,7 @@
     b.st = 'round'; P.rT = t; P.d0 = 0;
   }
   function roundStep(b, dt, C) {
-    var P = b.P; wingNow(b);
+    var P = b.P;
     perchWorld(b, C, dt);
     var rx = b.p[0] - P.at[0], rz = b.p[2] - P.at[2], rl = Math.sqrt(rx * rx + rz * rz) || 1, out = Math.max(3 * b.sz, 25);
     var h = Math.atan2(rx, rz) + 0.9, v = b.K.v;
