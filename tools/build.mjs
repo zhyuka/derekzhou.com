@@ -49,7 +49,7 @@ import crypto from 'crypto';
 import zlib from 'zlib';
 import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { makePlan, workerName } from './plan.mjs';
+import { buildPlan, workerName } from './plan.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), WING = path.join(SRC, 'birds', 'model');
@@ -111,7 +111,7 @@ async function build(out, stamp) {   // the plain build
   await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
   // the plan's worker, under the name the world starts it by (made first: the start file is made with the site in place)
   const world = fs.readFileSync(path.join(dev, 'world.js'), 'utf8'), pn = workerName(world);
-  if (pn) fs.writeFileSync(path.join(out, pn), makePlan(world, pn).text);
+  if (pn) fs.writeFileSync(path.join(out, pn), (await buildPlan(world, pn)).text);   // (minified as the world is: tools/plan.mjs)
   await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
   // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build), the
   // plan's worker, and the start file the page loads, with its table (start.js, start-table.js)
