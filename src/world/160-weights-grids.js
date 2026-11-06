@@ -79,7 +79,7 @@
       if (budget > 0 || !any) KW.qi++;
       else break;
     }
-    if (KW.part && KWR && !sync && budget > 0) budget = kwRestStep(budget);   // (fast500 B3: the first plan's rest, by angle from its view)
+    if (KW.part && KWR && !sync && budget > 0 && !planRestDue()) budget = kwRestStep(budget);   // (world-perf lane: not while the worker's rest is due: the page bakes only what is read before it: the guards)   // (fast500 B3: the first plan's rest, by angle from its view)
     var db = sync ? 1e9 : KD_FRAME;
     while (KW.di < KDQ.length && db > 0) {
       var jd = KDQ[KW.di], made = false, wait = false;
@@ -108,6 +108,12 @@
      drawn camera's yaw, the half-width plus KW_MARGIN, to KN1 + 3 texels) or within KW_DISC of it, and uploads them:
      the land is never wrong; at worst a hard turn in the first second is a hitch (KW.guard counts the texels) */
   var KW_DISC = 5200, KW_DIL = KAR + 2, KW_MARGIN = 5 * DEG, KWR = null;
+  function kwAng(a, b) { var d = a - b; d -= Math.floor((d + Math.PI) / (2 * Math.PI)) * 2 * Math.PI; return d; }   // (angDiff's body, here so the plan's worker has it: its spans)
+  /* (world-perf lane) THE FIRST PLAN, one entry point: the maps and the director about the landing (mapsInit), then
+     the weights' texels the first frame reads (kwFirst: the view's wedge and the disc). The plan's worker makes it
+     and answers with it at once, then bakes the rest and answers again; the page makes it itself when the worker
+     has not answered (planVisit; the first-paint hold the same way) */
+  function planFirst(seed, x, z, yaw, half) { mapsInit(seed); kwFirst(x, z, yaw, half); }
   function kwFirst(x, z, yaw, half) {
     var ci = Math.floor(x / KSTEP), cj = Math.floor(z / KSTEP), h = KH, W2 = 2 * h, j, i, ii, jj, q, any;
     KW.i0 = ci; KW.j0 = cj; KWQ.length = 0; KDQ.length = 0;
@@ -117,7 +123,7 @@
     KWQ.sort(near); KDQ.sort(near);
     var M = new Uint8Array(W2 * W2), T = new Uint8Array(W2 * W2), AN = new Float32Array(W2 * W2), rr = KN1 + 2 * KSTEP, last;
     for (jj = 0; jj < W2; jj++) for (ii = 0; ii < W2; ii++) {
-      var tx = (ci - h + ii + 0.5) * KSTEP - x, tz = (cj - h + jj + 0.5) * KSTEP - z, d = Math.sqrt(tx * tx + tz * tz), an = Math.abs(angDiff(Math.atan2(tx, tz), yaw));
+      var tx = (ci - h + ii + 0.5) * KSTEP - x, tz = (cj - h + jj + 0.5) * KSTEP - z, d = Math.sqrt(tx * tx + tz * tz), an = Math.abs(kwAng(Math.atan2(tx, tz), yaw));
       q = jj * W2 + ii; AN[q] = an;
       if (d <= KW_DISC || (d <= rr && an <= half)) M[q] = 1;
     }
@@ -148,6 +154,35 @@
     KW.cx = (KW.i0 + 0.5) * KSTEP; KW.cz = (KW.j0 + 0.5) * KSTEP;
     kfFollow(x, z, true);
   }
+  function kwAdoptFirst(f, kwr) {   // KW's state as kwFirst(f.x, f.z, f.yaw, f.half) leaves it (its texels adopted already)
+    var ci = f.i0, cj = f.j0, h = KH, j;
+    KW.i0 = ci; KW.j0 = cj; KWQ.length = 0; KDQ.length = 0;
+    for (j = cj - h; j < cj + h; j++) KWQ.push(j);
+    for (j = cj - KDH; j <= cj + KDH; j++) KDQ.push(j);
+    var near = function (a, b) { return Math.abs(a - cj) - Math.abs(b - cj); };
+    KWQ.sort(near); KDQ.sort(near);
+    KW.qi = KWQ.length; KW.di = 0; KW.ri = 0; KW.ri0 = ci - h; KW.rj0 = cj - h; KW.guard = 0; KW.gf = 0; KW.fy = f.fy; KW.fh = f.fh; KW.gy = KW.gh = KW.gd = KW.ga = NaN; KW.first = f.first;
+    KW.part = f.part; KW.ok = true; KWR = f.part ? kwr : null;
+    KW.cx = (KW.i0 + 0.5) * KSTEP; KW.cz = (KW.j0 + 0.5) * KSTEP;
+  }
+  /* the worker's rest: each KW texel and KG pass the page has not made itself, taken (a slot holding another place's
+     texel, the window moved since, is the page's and stays) */
+  function kwAdoptRest(m) {   // returns the texels taken
+    if (!KW.part || !KWR) return 0;
+    var D = m.kw.data, IX = m.kw.ix, DX = m.kw.dx, n = KN * KN, rows = new Uint8Array(KN), q, k, c, got = 0;
+    for (q = 0; q < n; q++) {
+      k = IX[q]; if (k === BADK) continue;
+      if (KW.ix[q] === BADK) { for (c = 0; c < 4; c++) KW.data[q * 4 + c] = D[q * 4 + c]; KW.ix[q] = k; KW.dx[q] = DX[q]; KW.baked++; if (DX[q] === k) KW.derived++; rows[(q / KN) | 0] = 1; got++; }
+      else if (KW.ix[q] === k && KW.dx[q] !== k && DX[q] === k) { KW.data[q * 4 + 2] = D[q * 4 + 2]; KW.data[q * 4 + 3] = D[q * 4 + 3]; KW.dx[q] = k; KW.derived++; rows[(q / KN) | 0] = 1; got++; }
+    }
+    for (q = 0; q < n; q++) if (KG.ix[q] === BADK && m.kg.ix[q] !== BADK) { KG.v[q * 2] = m.kg.v[q * 2]; KG.v[q * 2 + 1] = m.kg.v[q * 2 + 1]; KG.ix[q] = m.kg.ix[q]; }
+    for (q = 0; q < KN; q++) if (rows[q]) KW.dirty.push(q);
+    KW.ri = KWR.length;   // (the rest made: kwFollow ends KW.part once its queues are through)
+    return got;
+  }
+  /* while the plan's worker is baking the rest (the page's hook: KWDUE; never in the worker), kwFollow bakes none of it */
+  var KWDUE = null;
+  function planRestDue() { return KWDUE ? KWDUE() : false; }
   function kwRestStep(budget) {   // the rest's raw texels, by its order, while in the window (one that left it is never read)
     var W2 = 2 * KH, lr = -1;
     while (KW.ri < KWR.length && budget > 0) {
