@@ -1,6 +1,7 @@
 'use strict';
 // t2.js (tools/gpu): the T2 graphics check on the RTX 4090 (ANGLE D3D11), base against head in one job.
 //   node tools/gpu/t2.js --base BASE_SITE --head HEAD_SITE --out OUT [--cases d11,n23,w303,d707] [--frames 600] [--settle 4000]
+//        [--gpuname NAME]   (the page sees NAME as its GPU: another maker's paths, rendered on this GPU)
 //        [--par 4] [--profiles DIR] [--port 9600] [--no-null]
 // 1. Serves both site folders as Cloudflare Pages serves them (cfserve.js: _headers, so the CSP is the real one).
 // 2. FRAMES: every case stepped (gstep.js: the page's clock and entropy fixed, rAF driven at an exact interval, each arm
@@ -98,7 +99,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     const done = await pool(runs.map((j) => async (slot) => {
       const [vp, hour, seed, mob] = CASES[j.c], tag = j.c + '_' + j.arm + '_r' + j.r, dir = path.join(OUT, 'frames');
       fs.mkdirSync(dir, { recursive: true });
-      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(mob ? ['--mobile'] : [], SETTLE);
+      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(A.gpuname ? ['--gpuname', A.gpuname] : []).concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
       const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
@@ -143,7 +144,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     let bitsIdentical = true;
     if (glslChanged) {
       const dd = { base: path.join(OUT, 'glsl_base'), head: path.join(OUT, 'glsl_head') };
-      await pool(['base', 'head'].map((arm) => async (slot) => run([path.join(HERE, 'glsldump.js'), S[arm].url, dd[arm]], prof(slot), 'glsldump_' + arm)), 2);
+      await pool(['base', 'head'].map((arm) => async (slot) => run([path.join(HERE, 'glsldump.js'), S[arm].url, dd[arm]].concat(A.gpuname ? ['--gpuname', A.gpuname] : []), prof(slot), 'glsldump_' + arm)), 2);
       const P = {}; for (const arm of ['base', 'head']) { try { P[arm] = JSON.parse(fs.readFileSync(path.join(dd[arm], 'programs.json'), 'utf8')); } catch (e) { P[arm] = []; R.errors.push('glsldump ' + arm + ' failed'); } }
       // pairs by content, not by link order (a program added or removed shifts every name after it): a head program whose
       // two sources are a base program's is unchanged; else it is paired with the unpaired base program of its own name,

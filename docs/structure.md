@@ -57,7 +57,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the five served scripts from build/ship/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
-tools/plan.mjs               Makes the plan's worker from the world's plan spans, verbatim, stamped (--stamp sets PW_V)
+tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks (and, beside it, the world's: world_rules.py,
@@ -114,7 +114,10 @@ world's plan spans (the angle constants; the maps and the director; MAPS,
 mapsInit, kitAt; the weights' grids) verbatim from the assembled world into
 it, stamped with their md5, and the build fails when the world's PW_V is
 not that stamp (after a change to the spans, node tools/plan.mjs --stamp
-rewrites PW_V in its part). The hour, site.js and the wing model (src/birds/model/) are
+rewrites PW_V in its part); the build then minifies it as the world is
+(tools/plan.mjs buildPlan: terser with the world's options, its header
+kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit.mjs runs that
+worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are
 served as written, the start file as tools/start.mjs writes it.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
