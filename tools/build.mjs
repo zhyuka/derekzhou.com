@@ -1,10 +1,11 @@
 // build.mjs: the site's build, in one command (restructure steps 0 and 5). It makes the deployable folder from the
 // sources: site/ copied as it is, then the built scripts written over it: src/ assembled (tools/parts.mjs: the dev
 // build, and the shipped build with the dev-only parts left out), then tools/minify.mjs --build: the five minified
-// scripts from the shipped build and the start file with its table (tools/start.mjs, from the dev build). Each build
+// scripts from the shipped build, the plan's worker (tools/plan.mjs: the world's plan spans, verbatim, from the dev
+// build) and the start file with its table (tools/start.mjs, from the dev build). Each build
 // assembles into a folder of its own beside its output (OUT.parts/), so two builds at once never share one.
 // site/ holds only the sources the site serves as written (the pages, _headers, the hand-written scripts, the
-// fonts). The files the build writes (the five minified scripts, the start file and its table) are never committed
+// fonts). The files the build writes (the five minified scripts, the plan's worker, the start file and its table) are never committed
 // there: Cloudflare Pages runs the deploy build (below) and serves its output. CI proves the build deterministic and
 // that site/ holds none of the built files.
 // (step 5) The deploy build then names every shipped script and stylesheet by its content: world.v8.js is served as
@@ -41,6 +42,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { makePlan, workerName } from './plan.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site');
@@ -93,10 +95,14 @@ async function build(out, stamp) {   // the plain build
   const parts = path.resolve(out) + '.parts', dev = path.join(parts, 'src'), ship = path.join(parts, 'ship');
   fs.rmSync(parts, { recursive: true, force: true });
   await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
+  // the plan's worker, under the name the world starts it by (made first: the start file is made with the site in place)
+  const world = fs.readFileSync(path.join(dev, 'world.js'), 'utf8'), pn = workerName(world);
+  if (pn) fs.writeFileSync(path.join(out, pn), makePlan(world, pn).text);
   await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
-  // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build) and
-  // the start file the page loads, with its table (start.vN.js, start-table.vN.js)
+  // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build), the
+  // plan's worker, and the start file the page loads, with its table (start.js, start-table.js)
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile());
+  if (pn) written.push(pn);
   const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start(?:\.v\d+)?\.js)[\"']/);
   if (sm) written.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));
   fs.rmSync(parts, { recursive: true, force: true });
