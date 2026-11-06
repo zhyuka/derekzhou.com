@@ -51,6 +51,7 @@ src/                         The five scripts the site serves minified, as writt
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
+test/unit.mjs                The world's pure code in Node (streams, hashes, the sky order, the maps, the plan's worker); --write updates test/golden/unit.json
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
