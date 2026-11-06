@@ -11,7 +11,8 @@ tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/plan.mjs, tools/start.
 package.json, package-lock.json, .gitattributes; exclude nothing); post-deploy.yml waits
 for the newest main commit that touched one, and CI fails if the build loads a tool not listed. The gate decides whether a change alters what
 is served by building base and head (.github/ci/served.sh) and comparing the
-two builds; T1 and T2 render those builds. Every change to the live site goes through a pull
+two builds; T1 and T2 render those builds (T1 renders each base build once: its frames' hashes
+are cached by the build's content, so a branch cut from a rendered main renders only its head). Every change to the live site goes through a pull
 request the owner approves. The repository is private, so CI uses the
 account's included Actions minutes (2,000 a month on GitHub Free) until they ran out
 on 2026-11-06; since then every job runs on the owner's PC (the owner: "All on my PC,

@@ -5,6 +5,15 @@
 // cannot reproduce a build against itself, the shard fails rather than report a difference it cannot trust. The
 // still cases (no WebGL2, the 404 page) compare the DOM and a screenshot.
 //   node .github/ci/t1.mjs --base BASE_BUILD --head HEAD_BUILD --shard 0 --shards 4 --out DIR
+//        [--base-rec FILE] [--cache use|verify|off] [--save-base-rec FILE] [--save-head-rec FILE]
+// The base's record (each case's frames, DOM, stills, errors and CSP reports, as hashes): a build's record depends only
+// on its bytes and this harness, so gate.yml caches it by the plain build's content hash and the harness's files, and a
+// shard whose base is already rendered renders only its head (--cache use, the default with --base-rec). The head is
+// compared with the record exactly as with a live base arm. Any difference at all (frames, DOM, a never-shown arm, a
+// case missing from the record) is not reported from the record: the case is rendered again fresh, base, head and null
+// test as before, and the fresh render decides (so a cached base can never make a change, or a false one, of its own).
+// --cache verify renders every case fresh and also proves the record byte for byte the fresh base's (a problem if not);
+// --cache off ignores the record. --save-base-rec/--save-head-rec write this shard's records of what it rendered.
 // Writes DIR/result.json (frames_identical) and, on a mismatch only, base/head PNGs and a diff image. Exit 1 when the
 // harness cannot be trusted (null test, a build that never shows) or the head breaks a rule (a CSP violation, a page
 // error the base does not have); a frame that differs is a result (frames_identical=false), not a failure.
@@ -34,9 +43,18 @@ const CASES = [
 ];
 const mine = CASES.filter((c, i) => (c.shard !== undefined ? c.shard % SHARDS : i % SHARDS) === SHARD).filter((c) => !A.only || c.kind === A.only || c.name === A.only);   // (--only still|world|NAME: by hand)
 
+const REC_V = 1;
+const MODE = A.cache || (A['base-rec'] ? 'use' : 'off');
+if (!['use', 'verify', 'off'].includes(MODE)) throw new Error('--cache use|verify|off, not ' + MODE);
+let baseRec = null;
+if (A['base-rec'] && MODE !== 'off' && fs.existsSync(A['base-rec'])) {
+  try { baseRec = JSON.parse(fs.readFileSync(A['base-rec'], 'utf8')); if (baseRec.v !== REC_V) baseRec = null; } catch { baseRec = null; }
+}
+const recs = { base: { v: REC_V, cases: {} }, head: { v: REC_V, cases: {} } };   // (what this run rendered, per arm)
+
 const t0 = Date.now();
 const S = { base: await serve(A.base), head: await serve(A.head) };
-const res = { shard: SHARD, shards: SHARDS, cases: [], frames_identical: true, null_ok: true, problems: [] };
+const res = { shard: SHARD, shards: SHARDS, cases: [], frames_identical: true, null_ok: true, problems: [], cache: { mode: MODE, base_rec: !!baseRec } };
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const save = (name, dataUrl) => fs.writeFileSync(path.join(OUT, name), Buffer.from(dataUrl.split(',')[1], 'base64'));
 
@@ -52,6 +70,7 @@ async function worldCase(c, withNull) {
   const arms = await Promise.all(names.map((n) => open(n === 'null' ? 'base' : n, c).then((a) => (a.name = n, a))));
   await Promise.all(arms.map((a) => H.stepToShow(a)));
   const out = { name: c.name, kind: c.kind, shownAt: Object.fromEntries(arms.map((a) => [a.name, a.shownAt])), samples: [] };
+  const rec = { base: { shownAt: out.shownAt.base, samples: {} }, head: { shownAt: out.shownAt.head, samples: {} } };
   if (arms.some((a) => a.shownAt < 0)) {
     out.error = 'never shown: ' + arms.filter((a) => a.shownAt < 0).map((a) => a.name).join(', ');
     if (arms.find((a) => a.name === 'base').shownAt < 0 || (withNull && arms.find((a) => a.name === 'null').shownAt < 0)) res.null_ok = false;
@@ -63,6 +82,7 @@ async function worldCase(c, withNull) {
       const cap = Object.fromEntries(await Promise.all(live.map(async (a) => [a.name, await H.capture(a)])));
       const s = { k: K, frame: { base: cap.base.frame, head: cap.head.frame }, dom: { base: cap.base.dom, head: cap.head.dom }, mean: { base: cap.base.mean, head: cap.head.mean } };
       s.same = cap.base.frame === cap.head.frame && cap.base.dom === cap.head.dom;
+      for (const n of ['base', 'head']) rec[n].samples[K] = { frame: cap[n].frame, dom: cap[n].dom, mean: cap[n].mean };
       if (cap.null) { s.null_same = cap.null.frame === cap.base.frame && cap.null.dom === cap.base.dom; if (!s.null_same) res.null_ok = false; }
       if (!s.same) {
         res.frames_identical = false;
@@ -81,6 +101,30 @@ async function worldCase(c, withNull) {
   for (const a of arms) out[a.name + '_csp'] = (await a.page.evaluate(() => window.__ci.csp)).concat(a.logs.filter((l) => /Content Security Policy/.test(l)));
   out.errors = Object.fromEntries(arms.map((a) => [a.name, a.logs.filter((l) => !/Content Security Policy/.test(l))]));
   await Promise.all(arms.map((a) => a.browser.close()));
+  if (!out.error) for (const n of ['base', 'head']) recs[n].cases[c.name] = Object.assign(rec[n], { errors: out.errors[n], csp: out[n + '_csp'] });
+  return out;
+}
+
+// The base from its record: the head alone, stepped and captured as in worldCase. null when anything differs (the
+// caller then renders the case fresh), so only a case whose head matches the record in every sample is reported from it.
+async function cachedWorldCase(c, b) {
+  const head = await open('head', c); head.name = 'head';
+  await H.stepToShow(head);
+  const out = { name: c.name, kind: c.kind, shownAt: { base: b.shownAt, head: head.shownAt }, samples: [] };
+  const hrec = { shownAt: head.shownAt, samples: {} };
+  let ok = head.shownAt >= 0 && b.shownAt >= 0;
+  for (const K of ok ? c.ks : []) {
+    await H.step(head, head.shownAt + K - head.frames);
+    const cap = await H.capture(head), bs = b.samples && b.samples[K];
+    hrec.samples[K] = { frame: cap.frame, dom: cap.dom, mean: cap.mean };
+    if (!bs || bs.frame !== cap.frame || bs.dom !== cap.dom) { ok = false; break; }
+    out.samples.push({ k: K, frame: { base: bs.frame, head: cap.frame }, dom: { base: bs.dom, head: cap.dom }, mean: { base: bs.mean, head: cap.mean }, same: true });
+  }
+  out.base_csp = b.csp || []; out.head_csp = (await head.page.evaluate(() => window.__ci.csp)).concat(head.logs.filter((l) => /Content Security Policy/.test(l)));
+  out.errors = { base: b.errors || [], head: head.logs.filter((l) => !/Content Security Policy/.test(l)) };
+  await head.browser.close();
+  if (!ok) return null;
+  recs.head.cases[c.name] = Object.assign(hrec, { errors: out.errors.head, csp: out.head_csp });
   return out;
 }
 
@@ -100,29 +144,65 @@ async function stillCase(c) {
   if (!s.same) { res.frames_identical = false; fs.writeFileSync(path.join(OUT, c.name + '_base.png'), r.base.png); fs.writeFileSync(path.join(OUT, c.name + '_head.png'), r.head.png); s.root = { base: r.base.root, head: r.head.root }; }
   out.base_csp = r.base.csp; out.head_csp = r.head.csp; out.errors = Object.fromEntries(arms.map((a) => [a.name, a.logs.filter((l) => !/Content Security Policy/.test(l))]));
   await Promise.all(arms.map((a) => a.browser.close()));
+  for (const n of ['base', 'head']) recs[n].cases[c.name] = { dom: r[n].dom, shot: r[n].shot, errors: out.errors[n], csp: r[n].csp };
   return out;
 }
+
+async function cachedStillCase(c, b) {
+  const a = await open('head', c); a.name = 'head';
+  await H.step(a, 3);
+  const cap = await H.capture(a);
+  const shot = sha(await a.page.screenshot({ animations: 'disabled', caret: 'hide' }));
+  const csp = cap.csp.concat(a.logs.filter((l) => /Content Security Policy/.test(l)));
+  const errors = { base: b.errors || [], head: a.logs.filter((l) => !/Content Security Policy/.test(l)) };
+  await a.browser.close();
+  if (b.dom !== cap.dom || b.shot !== shot) return null;
+  recs.head.cases[c.name] = { dom: cap.dom, shot, errors: errors.head, csp };
+  return { name: c.name, kind: c.kind, samples: [{ k: 0, dom: { base: b.dom, head: cap.dom }, shot: { base: b.shot, head: shot }, same: true }], base_csp: b.csp || [], head_csp: csp, errors };
+}
+
+// The fields a record must reproduce (--cache verify): everything T1 compares or reports from the base. Not shownAt:
+// the frame an arm first shows on varies run to run (11 or 52 for one build), which is why every arm is sampled at
+// its own show + K; the frames there are the same bytes.
+const recKey = (r) => JSON.stringify(r && (r.samples ? { samples: r.samples, errors: r.errors, csp: r.csp } : { dom: r.dom, shot: r.shot, errors: r.errors, csp: r.csp }));
 
 let nulled = false;
 for (const c of mine) {
   const tc = Date.now();
-  const r = c.kind === 'world' ? await worldCase(c, !nulled) : await stillCase(c);
-  if (c.kind === 'world') nulled = true;
+  const b = baseRec && baseRec.cases[c.name];
+  let r = null;
+  if (MODE === 'use' && b) r = c.kind === 'world' ? await cachedWorldCase(c, b) : await cachedStillCase(c, b);
+  if (r) r.cache = 'cached base';
+  else {
+    r = c.kind === 'world' ? await worldCase(c, !nulled) : await stillCase(c);
+    if (c.kind === 'world') nulled = true;
+    r.cache = MODE === 'off' ? 'off' : !b ? 'no record: fresh' : MODE === 'use' ? 'record differs: rendered fresh' : 'fresh, verifying';
+    if (MODE === 'verify' && b) {
+      r.rec_identical = recKey(b) === recKey(recs.base.cases[c.name]);
+      if (!r.rec_identical) res.problems.push(`${c.name}: the cached base record is not the fresh render's`);
+    }
+  }
+  res.cache[c.name] = r.cache + (r.rec_identical === undefined ? '' : r.rec_identical ? ', record identical' : ', RECORD DIFFERS');
   r.seconds = (Date.now() - tc) / 1000;
   if (r.head_csp && r.head_csp.length) res.problems.push(`${c.name}: CSP violation in the head: ${r.head_csp.join('; ')}`);
   const fresh = (r.errors.head || []).filter((e) => !(r.errors.base || []).includes(e));
   if (fresh.length) res.problems.push(`${c.name}: page errors in the head only: ${fresh.join('; ')}`);
   if (r.error) res.problems.push(`${c.name}: ${r.error}`);
   res.cases.push(r);
-  console.log(`${c.name}: ${r.samples.map((s) => `+${s.k} ${s.same ? 'same' : 'DIFFERENT'}${s.null_same === false ? ' (NULL TEST FAILED)' : ''}`).join(', ') || r.error} (${r.seconds.toFixed(1)} s${r.shownAt ? ', shown at ' + JSON.stringify(r.shownAt) : ''})`);
+  console.log(`${c.name} [${res.cache[c.name]}]: ${r.samples.map((s) => `+${s.k} ${s.same ? 'same' : 'DIFFERENT'}${s.null_same === false ? ' (NULL TEST FAILED)' : ''}`).join(', ') || r.error} (${r.seconds.toFixed(1)} s${r.shownAt ? ', shown at ' + JSON.stringify(r.shownAt) : ''})`);
 }
 await S.base.close(); await S.head.close();
 res.seconds = (Date.now() - t0) / 1000;
 fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify(res, null, 1));
+// A record is saved only whole (every case of the shard) and from a run whose null test held.
+for (const n of ['base', 'head']) {
+  const f = A['save-' + n + '-rec'];
+  if (f && res.null_ok && mine.every((c) => recs[n].cases[c.name])) { fs.mkdirSync(path.dirname(path.resolve(f)), { recursive: true }); fs.writeFileSync(f, JSON.stringify(recs[n])); console.log(`${n} record saved: ${f}`); }
+}
 
-const md = [`### T1 shard ${SHARD + 1}/${SHARDS}: frames ${res.frames_identical ? 'identical' : '**changed**'}${res.null_ok ? '' : ', **null test failed**'} (${res.seconds.toFixed(0)} s)`, '',
-  '| case | sample | base | head | same | null |', '|---|---|---|---|---|---|'];
-for (const c of res.cases) for (const s of c.samples) md.push(`| ${c.name} | +${s.k} | \`${(s.frame || s.shot).base.slice(0, 10)}\` | \`${(s.frame || s.shot).head.slice(0, 10)}\` | ${s.same ? 'yes' : '**no**' + (s.changed_px !== undefined ? ` (${s.changed_px} px)` : '')} | ${s.null_same === undefined ? '' : s.null_same ? 'yes' : '**no**'} |`);
+const md = [`### T1 shard ${SHARD + 1}/${SHARDS}: frames ${res.frames_identical ? 'identical' : '**changed**'}${res.null_ok ? '' : ', **null test failed**'} (${res.seconds.toFixed(0)} s; base record: ${MODE}${baseRec ? ', found' : ', none'})`, '',
+  '| case | base | sample | base | head | same | null |', '|---|---|---|---|---|---|---|'];
+for (const c of res.cases) for (const s of c.samples) md.push(`| ${c.name} | ${c.cache} | +${s.k} | \`${(s.frame || s.shot).base.slice(0, 10)}\` | \`${(s.frame || s.shot).head.slice(0, 10)}\` | ${s.same ? 'yes' : '**no**' + (s.changed_px !== undefined ? ` (${s.changed_px} px)` : '')} | ${s.null_same === undefined ? '' : s.null_same ? 'yes' : '**no**'} |`);
 for (const p of res.problems) md.push('', '- ' + p);
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
 console.log(md.join('\n'));
