@@ -99,7 +99,8 @@ bumps a version for a change; fonts and images are renamed by hand
   input handling changed), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
   overlaps; never one that touches the bot itself or is labelled needs-owner
-  or visible. Anything visible waits for the owner. Main's gate tests every
+  or visible. Anything visible waits for the owner: he lands it by GitHub's
+  auto-merge, once, or its button (docs/deploy.md). Main's gate tests every
   merge after it lands; the bot then fast-forwards `live` to the newest main
   tip whose gate is green (and frames identical, or the owner's own merge).
 - Cloudflare Pages builds `live` (`npm ci --no-audit --no-fund
