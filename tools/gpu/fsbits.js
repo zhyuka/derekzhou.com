@@ -93,6 +93,18 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
       const TKW = t2(128, 160, () => [rnd(), rnd() * rnd(), -65 + 120 * rnd(), 30 * rnd()]);
       const TG = t2(160, 160, () => [-40 + 120 * rnd(), rnd(), rnd(), rnd()]);
       const TX = t2(64, 64, () => [rnd(), rnd(), rnd(), rnd()]);
+      /* the land's height passes (HPSPLIT: an FS with uHsrc): their inputs as the page gives them. uHP0..4 the earlier
+         passes' texels over the whole target (heights -60..120 m, slopes, weights); uTex the probe's points (x, z within
+         5 km of the camera); uLevA the clipmap's ten levels about the camera, as hpClip makes them; uGCw a grid 20 m a
+         texel; uHsrc each mode in turn (the sky's index, mod 3) */
+      const HPS = /uniform\s+int\s+uHsrc\b/.test(FS0);
+      const THP = HPS ? t2(512, 512, () => [-60 + 180 * rnd(), rnd() - 0.5, rnd() - 0.5, rnd()]) : null;
+      const camOf = (sky) => [37.5 + sky * 911, 120 + 40 * sky, -18.25 - sky * 613];
+      /* the clouds' bakes and their body: the density bake (an FS with uLobeN: 24 lobes inside its box, the layer by the
+         sky) and the body's march (an FS with uVH: a box about the camera, its own steps, the land's depth far behind) */
+      const VDN = /uniform\s+int\s+uLobeN\b/.test(FS0), VBD = /uniform\s+vec3\s+uVC\s*,\s*uVH\b/.test(FS0);
+      const TLD = VBD ? t2(512, 512, () => [500 + 4500 * rnd(), 0, 0, 1]) : null;
+      const TPT = HPS ? (() => { const c = camOf(0); return t2(512, 512, () => [c[0] + 10000 * (rnd() - 0.5), c[2] + 10000 * (rnd() - 0.5), 0, 1]); })() : null;
       const N = 512, rt = g.createTexture(); g.bindTexture(g.TEXTURE_2D, rt); g.texStorage2D(g.TEXTURE_2D, 1, g.RGBA32F, N, N);
       const fb = g.createFramebuffer(); g.bindFramebuffer(g.FRAMEBUFFER, fb); g.framebufferTexture2D(g.FRAMEBUFFER, g.COLOR_ATTACHMENT0, g.TEXTURE_2D, rt, 0);
       // (--old-att / --new-att) a framebuffer of K + 1 targets per side that reads attachment K
@@ -119,7 +131,7 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
       const grids = FULL ? [[1, 'frame a'], [2, 'frame b'], [3, 'frame c']] : [[0.25, 'near (ripples, grain)'], [3.0, 'mid'], [40.0, 'far']];
       for (let sky = 0; sky < SKIES; sky++) for (const [sp, what] of grids) {
         const R = [];
-        for (const [pi, p] of P.entries()) {
+        for (const [pi, p] of [[0, P[0]], [1, P[1]], [0, P[0]]]) {   // (old, new, and old again: is the old one steady?)
           g.bindFramebuffer(g.FRAMEBUFFER, FBS[pi]); g.useProgram(p); g.clearColor(0, 0, 0, 0); g.clear(g.COLOR_BUFFER_BIT);
           const cam = [37.5 + sky * 911, 120 + 40 * sky, -18.25 - sky * 613];
           const nu = g.getProgramParameter(p, g.ACTIVE_UNIFORMS); let unit = 1;
@@ -128,13 +140,29 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
             if (base === 'uTG' || base === 'uCamT' || base === 'uSeedT' || base === 'uZ' || base === 'uDbg' || base === 'uPm') continue;
             const t = info.type, sz = info.size;
             if (t === g.SAMPLER_3D) { g.activeTexture(g.TEXTURE0); g.bindTexture(g.TEXTURE_3D, T3); g.uniform1i(L, 0); continue; }
-            if (t === g.SAMPLER_2D) { g.activeTexture(g.TEXTURE0 + unit); g.bindTexture(g.TEXTURE_2D, base === 'uKW' ? TKW : base === 'uGround' ? TG : TX); g.uniform1i(L, unit); unit++; continue; }
+            if (t === g.SAMPLER_2D) { g.activeTexture(g.TEXTURE0 + unit); g.bindTexture(g.TEXTURE_2D, base === 'uKW' ? TKW : base === 'uGround' ? TG : HPS && /^uHP\d$/.test(base) ? THP : HPS && base === 'uTex' ? TPT : VBD && base === 'uLinD' ? TLD : TX); g.uniform1i(L, unit); unit++; continue; }
             const comps = { [g.FLOAT]: 1, [g.FLOAT_VEC2]: 2, [g.FLOAT_VEC3]: 3, [g.FLOAT_VEC4]: 4, [g.FLOAT_MAT4]: 16, [g.INT]: 1, [g.UNSIGNED_INT]: 1 }[t];
             if (!comps) throw new Error('uniform type ' + t + ' of ' + info.name);
             const v = []; for (let k = 0; k < sz; k++) v.push(...val(base + (sz > 1 ? '#' + k : ''), comps, sky));
             if (base === 'uCam') { v[0] = cam[0]; v[1] = cam[1]; v[2] = cam[2]; }
             if (base === 'uT') v[0] = 37.7 * sp + 3.1 * sky;   // (three times a sky: the stars' twinkle, the wisps)
             if (base === 'uP') { v[36] = Math.cos(sky); v[37] = Math.sin(sky); v[39] = -160; v[60] = 1; }   // uP[9]: the wind, SEA_Y; uP[15].x the sea's light
+            if (HPS && base === 'uLevA') for (let l = 0; l < 10; l++) { const gg = 0.35 * Math.pow(2, l); v[l * 4] = cam[0] - 48 * gg; v[l * 4 + 1] = cam[2] - 48 * gg; v[l * 4 + 2] = gg; v[l * 4 + 3] = 48; }
+            if (HPS && base === 'uGCw') { v[0] = cam[0] - 256 * 20; v[1] = cam[2] - 256 * 20; v[2] = 20; v[3] = 0; }
+            if (HPS && base === 'uHsrc') { g.uniform1i(L, sky % 3); continue; }
+            if (VDN && base === 'uLobeN') { g.uniform1i(L, 24); continue; }
+            if (VDN && base === 'uLobe') for (let k = 0; k < sz; k++) { const r = val('uLobe#' + k, 4, sky); v[k * 4] = (r[0] - 0.5) * 120; v[k * 4 + 1] = (r[1] - 0.5) * 40; v[k * 4 + 2] = (r[2] - 0.5) * 120; v[k * 4 + 3] = 8 + 20 * r[3]; }
+            if (VDN && base === 'uHalf') { v[0] = 80; v[1] = 30; v[2] = 80; }
+            if (VDN && base === 'uDims') { v[0] = 512; v[1] = 512; v[2] = 44; }
+            if (VDN && base === 'uLayer') v[0] = (sky * 7) % 44;
+            if (VDN && base === 'uVK') { v[0] = 0.3; v[1] = 4; v[2] = 30; v[3] = 12; }
+            if (VDN && base === 'uVK2') { v[0] = 0; v[1] = 1; v[2] = 6; v[3] = 0.5; }
+            if (VBD && base === 'uVC') { v[0] = cam[0]; v[1] = cam[1] - 40; v[2] = cam[2]; }
+            if (VBD && base === 'uVH') { v[0] = 300; v[1] = 120; v[2] = 300; }
+            if (VBD && base === 'uVY') { v[0] = Math.cos(0.4 * sky); v[1] = Math.sin(0.4 * sky); }
+            if (VBD && base === 'uVR') { v[1] = 32; v[3] = 1; }
+            if (VBD && base === 'uVS') { v[0] = 10; v[1] = 2; v[2] = 1e4; }
+            if (VBD && base === 'uVR2') v[3] = -1e4;
             if (t === g.FLOAT) g.uniform1fv(L, v); else if (t === g.FLOAT_VEC2) g.uniform2fv(L, v); else if (t === g.FLOAT_VEC3) g.uniform3fv(L, v);
             else if (t === g.FLOAT_VEC4) g.uniform4fv(L, v); else if (t === g.FLOAT_MAT4) g.uniformMatrix4fv(L, false, v);
             else if (t === g.INT) g.uniform1i(L, 0); else if (t === g.UNSIGNED_INT) g.uniform1ui(L, (v[0] * 4294967295) >>> 0);
@@ -147,7 +175,9 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
         // coverage: the share of pixels off the most common output (a read where every pixel came out alike, a shader
         // that discarded or took one path everywhere, proves nothing: unread)
         const live = (() => { const m = new Map(); let best = 0, n = R[0].length / 4; for (let i = 0; i < n; i++) { const k = R[0][i * 4] + ',' + R[0][i * 4 + 1] + ',' + R[0][i * 4 + 2] + ',' + R[0][i * 4 + 3]; const c = (m.get(k) || 0) + 1; m.set(k, c); if (c > best) best = c; } return 1 - best / n; })();
-        out.push(Object.assign({ sky, spacing: sp, what, live: +live.toFixed(4) }, cmp(R[0], R[1])));
+        // steadiness: the old shader drawn twice must give the same words (the clouds' density bake, measured, does not
+        // always on this GPU: a draw a run 1e-6 apart); an unsteady read proves nothing either way: unread
+        out.push(Object.assign({ sky, spacing: sp, what, live: +live.toFixed(4), unsteady: cmp(R[0], R[2]).differ }, cmp(R[0], R[1])));
       }
       return out;
     }, [VS, fsOld, fsNew, SKIES, full, ATT]);
@@ -157,6 +187,8 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
   for (const r of res) { bad += r.differ; tot += r.of; if (r.live >= 0.05) liveN++; console.log('sky ' + r.sky + ' ' + r.what + ': ' + r.differ + '/' + r.of + (r.differ ? ' max ' + r.maxAbs.toExponential(2) : '') + (r.nan ? ' nan ' + r.nan : '') + ' (mean |oC| ' + r.meanAbs.toFixed(3) + ', live ' + (100 * r.live).toFixed(1) + '%)'); }
   // IDENTICAL only where the read ran the shader's work: a third of the draws or more with 5% or more of the pixels off
   // the most common output; else nothing is claimed (exit 1: T2 counts the shader unread, the safe side)
+  const unsteady = res.filter((r) => r.unsteady).length;
+  if (unsteady) { console.log('UNREAD: the old shader drawn twice disagreed in ' + unsteady + ' of ' + res.length + ' draws (not steady on this GPU)'); process.exit(1); }
   if (!bad && liveN * 3 < res.length) { console.log('UNREAD: the output was constant (' + liveN + ' of ' + res.length + ' draws live)'); process.exit(1); }
   console.log((bad ? 'DIFFER: ' : 'IDENTICAL: ') + bad + ' of ' + tot + ' words');
 })().catch((e) => { console.error(e.stack || e); process.exit(1); });
