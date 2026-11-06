@@ -26,6 +26,10 @@ on:
         description: "the commit to compare against (the gate's base, main's tip where the branch left it)"
         type: string
         required: true
+      stall:
+        description: "'no' leaves out the stall visits (a PR's gate: they run on main's gate, which the deploy gate reads)"
+        type: string
+        default: 'yes'
     outputs:
       frames_identical: { value: '${{ jobs.t2.outputs.frames_identical }}' }
       glsl_changed: { value: '${{ jobs.t2.outputs.glsl_changed }}' }
@@ -93,7 +97,7 @@ jobs:
           node "$tools/t2.js" --base $b --head $h --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles @st
       - name: stall visits
         id: stall
-        if: always() && steps.t2.outcome != 'skipped'
+        if: always() && steps.t2.outcome != 'skipped' && inputs.stall != 'no'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           # first use of every pipeline key on the real clock, fresh profiles, the bytes visitors get (tools/gpu/stall.js:
