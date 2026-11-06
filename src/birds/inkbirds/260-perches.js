@@ -136,7 +136,8 @@
   function reachT(b, C, dmax) {
     var dx = b.p[0] - C.pos[0], dy = b.p[1] - C.pos[1], dz = b.p[2] - C.pos[2], d = Math.sqrt(dx * dx + dy * dy + dz * dz), fwd = (dx * C.f[0] + dy * C.f[1] + dz * C.f[2]) / (d || 1);
     if (d < 40 || d > dmax || fwd < 0.2 || !canHold(b, VPN)) return Infinity;
-    return d / closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d);
+    var lx = -VPN[2], lz = VPN[0], ll = Math.sqrt(lx * lx + lz * lz) || 1;   // (it comes in from the side, by its gate: in a head wind that is the quick way)
+    return 3 + d / Math.max(closeMax(b, VPN, -dx / d, -dy / d, -dz / d, d), closeMax(b, VPN, lx / ll, 0, lz / ll, d));
   }
   function notice(C) {
     VPN[0] = LVC.vx; VPN[1] = LVC.vy; VPN[2] = LVC.vz;

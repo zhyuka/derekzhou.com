@@ -129,6 +129,7 @@ test('a gull sent to a letter is down by 15 s', () => landTest('perch: down by 1
 test('a gull lands in the page\'s wind along the camera\'s way (5586a97 landed none)', () => landTest('gale: down by 15 s, 6.5 m/s head or tail', 'gale', 15, undefined, 1 / 3));
 test('a flock\'s droppers are down by 20 s', () => landTest('drop: droppers down by 20 s', 'drop', 20));
 test('a gull rides the moving pointer by 10 s', () => landTest('cursor: on the moving tip by 10 s', 'cursor', 10, 'pointer'));
+test('a gull comes to the moving pointer in the page\'s wind along the camera\'s way', () => landTest('gale cursor: on the tip by 10 s, 6.5 m/s head or tail', 'galeCursor', 10, 'pointer', 1 / 3));
 test('a clicked bird lands on a letter', () => landTest('click: down by 23 s from the click (sent at 3 s)', 'click', 23));
 test('B17: a bird banks away from a dragged camera\'s way', () => {
   const rows = cases('drag', (p) => {

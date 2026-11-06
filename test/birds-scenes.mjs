@@ -34,6 +34,12 @@ export const SCENES = {
     sc.opt.speed = 12; sc.opt.yaw = 0; sc.opt.wind = [0, w];
     return sc;
   },
+  /* the moving pointer in the page's wind along the camera's way (a head wind kept every bird from the tip once) */
+  galeCursor: (seed, size) => {
+    const sc = SCENES.cursor(seed, size);
+    sc.opt.speed = 12; sc.opt.yaw = 0; sc.opt.wind = [0, seed % 2 ? -6.5 : 6.5];
+    return sc;
+  },
   /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes (CI: 2) */
   life: (seed, size) => {
     const sc = SCENES.perch(seed, size);
