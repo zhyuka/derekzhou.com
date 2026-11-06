@@ -21,6 +21,8 @@
   var PMAX = 6;                // birds on the letters at once, at most
   var PDIP = [0.61, 0.032];    // the approach's low point: this share of the way in, this share of the way below
   var PTAU = 0.72;             // the closing's tau-dot
+  var PQUICK = 6;              // m/s: the closing a bird already in view needs to come straight in (else by the gate)
+  var PGATE = 30;              // m: the gate's depth past the perch (the last leg's length: the research's last 30 m, in view)
   var PFLARE = 0.6;            // s of tau: the flare (the feet out from 0.15)
   var PNOTICE = [16, 34];      // s between the letters' turns to have a bird (one at a time) ...
   var PSEEK = 20;              // ... each turn looking this long (every PLOOK s) for a bird that can be there soon (PREACH s): the perch moves
@@ -177,17 +179,17 @@
     return true;
   }
   /* a landing's airspeeds: a gull's whole range, not its cruise's (slow flight down to 0.55 of its pace, a powered
-     burst or a shallow dive up to 1.75 of it), so it can hold a perch that rides the camera through the wind (into a
+     burst or a shallow dive up to twice it, as a gull hangs by a ship into a head wind), so it can hold a perch that rides the camera through the wind (into a
      head wind it must fly the camera's speed and the wind's; with a tail wind, slower); airLo/airHi */
   function airLo(b) { return 0.55 * b.K.v; }
-  function airHi(b) { return 1.75 * b.K.v; }
+  function airHi(b) { return 2 * b.K.v; }
   /* the airspeed it needs to keep pace with the perch (the perch's velocity less the wind's) */
   function airNeed(Vp) { var x = Vp[0] - WINDV[0], y = Vp[1], z = Vp[2] - WINDV[2]; return Math.sqrt(x * x + y * y + z * z); }
   function canHold(b, Vp) { var n = airNeed(Vp); return n <= 0.95 * airHi(b) && n >= 0.8 * airLo(b); }
   /* the most it can close on the perch along the line to it (m/s), its velocity over the ground the perch's less the
      closing, its airspeed within the landing's range (a bird ahead of the perch is caught up by it: it flies on the
      perch's way, slower; one beside it comes in sideways, quicker); never under 2, never so quick it arrives in under
-     3 s */
+     2.5 s */
   function closeMax(b, Vp, ex, ey, ez, d) {
     var vx = Vp[0] - WINDV[0], vy = Vp[1], vz = Vp[2] - WINDV[2], pe = vx * ex + vy * ey + vz * ez, vv = vx * vx + vy * vy + vz * vz;
     var vm = 0.9 * airHi(b), vn = airLo(b), qo = pe * pe - vv + vm * vm, qi = pe * pe - vv + vn * vn;
@@ -196,7 +198,47 @@
     var outer = qo > 0 ? pe + Math.sqrt(qo) : 0, vc;
     if (qi <= 0) vc = outer;
     else { var inner = pe - Math.sqrt(qi), upper = pe + Math.sqrt(qi); vc = inner >= 2 ? inner : outer >= upper ? outer : 0; }
-    return clamp(Math.min(vc, d / 3), 2, 0.9 * b.K.v);
+    return clamp(Math.min(vc, d / 2.5), 2, 1.2 * b.K.v);
+  }
+  /* the gate: on the window wide of the perch on the bird's side, a little over it, as little deeper than the perch as
+     makes the last leg PGATE m: so it comes in from the side and beyond, matching the perch's motion as it closes
+     (from straight ahead it could close only by flying slower than the camera, barely over its stall) */
+  var GQ = [0, 0, 0], GP = {}, GA = [0, 0, 0];
+  function gateFor(b, P, C) {
+    /* tried every 30 deg round the foot on the window, a third of the window's least side out (kept a margin in): the
+       one wanting least depth for a last leg of PGATE m (the most from the side: the quickest in), the bird's own side
+       first (each 30 deg from it costs 2 m), over it rather than under */
+    var q = projReal(b.p[0], b.p[1], b.p[2], C, GP), a0;
+    if (q.z > 0.5) a0 = Math.atan2(q.y - P.foot[1], q.x - P.foot[0]);
+    else a0 = (b.p[0] - C.pos[0]) * C.r[0] + (b.p[2] - C.pos[2]) * C.r[2] >= 0 ? -0.5 : Math.PI + 0.5;
+    var L = 0.36 * Math.min(W, H) + 0.12 * Math.max(W, H), best = null, bs = 1e9, k, dz;
+    rayAt(C, P.foot[0], P.foot[1], P.D, GA);
+    for (k = 0; k < 12; k++) {
+      var a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 6;
+      var gx = clamp(P.foot[0] + Math.cos(a) * L, 0.1 * W, 0.9 * W), gy = clamp(P.foot[1] + Math.sin(a) * L, 0.08 * H, 0.9 * H);
+      for (dz = 4; dz < 60; dz += 2) { rayAt(C, gx, gy, P.D + dz, GQ); if (dist3(GQ, GA) >= PGATE) break; }
+      var sc = dz + 2 * Math.ceil(k / 2) + 60 * Math.max(0, gy - P.foot[1]) / H;   // (from under it costs: it would climb at its slowest)
+      if (sc < bs) { bs = sc; best = [gx, gy, P.D + dz]; }
+    }
+    return best;
+  }
+  /* in view (a margin in), beyond the perch, and able to close quickly from there (straight ahead it cannot); or in
+     view and nearer than the last leg already */
+  function inCone(b, P, C, near) {
+    var q = projReal(b.p[0], b.p[1], b.p[2], C, GP); if (!(q.z > (near ? 0.6 * P.D : P.D + 4) && q.x > 0.06 * W && q.x < 0.94 * W && q.y > 0.06 * H && q.y < 0.94 * H)) return false;
+    if (near) return true;   // (in view and already within the last leg: straight in, from where it is)
+    var rx = b.p[0] - P.at[0], ry = b.p[1] - P.at[1], rz = b.p[2] - P.at[2], d = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+    return closeMax(b, P.v, rx / d, ry / d, rz / d, d) >= PQUICK;
+  }
+  /* the last leg in view: where it would be in 0.6 s, out past the window's margin, it is turned back in across the
+     view (its want pushed sideways in the camera's frame, as far as it would be out) */
+  function keepInView(b, o, C) {
+    var k = 0.6, x = b.p[0] + (o[0] - LVC.vx) * k, y = b.p[1] + (o[1] - LVC.vy) * k, z = b.p[2] + (o[2] - LVC.vz) * k, q = projReal(x, y, z, C, GP);
+    if (!(q.z > 0.5)) return;
+    var ex = q.x < 0.05 * W ? (0.05 * W - q.x) / W : q.x > 0.95 * W ? (0.95 * W - q.x) / W : 0, ey = q.y < 0.05 * H ? (q.y - 0.05 * H) / H : q.y > 0.95 * H ? (q.y - 0.95 * H) / H : 0;
+    if (!ex && !ey) return;
+    var m = 2 * VW.tanX * q.z / k;   // (m/s a window's width a 0.6 s, at its depth)
+    for (var i = 0; i < 3; i++) o[i] += (C.r[i] * ex * m + C.u[i] * ey * m * H / W);
   }
   function bump(s) { var a = PDIP[0]; return s <= 0 ? 0 : s < a ? Math.sin(0.5 * Math.PI * s / a) : s < 1 ? Math.cos(0.5 * Math.PI * (s - a) / (1 - a)) : 0; }
   var AV = [0, 0, 0];
@@ -206,6 +248,22 @@
     if (!perchWorld(b, C, dt)) { giveUp(b); return; }
     var rx = b.p[0] - P.at[0], ry = b.p[1] - P.at[1], rz = b.p[2] - P.at[2], d = Math.sqrt(rx * rx + ry * ry + rz * rz);
     if (!canHold(b, P.v)) { goRound(b, 'fast'); return; }   // (the perch, through the wind, outruns it or is too slow for it)
+    /* first into the view: to a gate beyond the perch and to its side (on the window, PGATE m deeper), unless it is in
+       view already, beyond it and near; from there the last leg is a line between two points in view, so in view all
+       its way (the view is convex) */
+    if (!P.gated) {
+      if (!P.gate) P.gate = gateFor(b, P, C);
+      rayAt(C, P.gate[0], P.gate[1], P.gate[2], GQ);
+      var gx = GQ[0] - b.p[0], gy = GQ[1] - b.p[1], gz = GQ[2] - b.p[2], gd = Math.sqrt(gx * gx + gy * gy + gz * gz);
+      if (gd < 8 || (d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) { P.gated = true; P.d0 = 0; STATS.gated = (STATS.gated || 0) + 1; }
+      else {
+        if (t - P.t0 > 14) { goRound(b, 'away'); return; }
+        var gk = Math.min(14, 0.5 * gd) / gd;
+        AV[0] = P.v[0] + gx * gk; AV[1] = P.v[1] + gy * gk; AV[2] = P.v[2] + gz * gk;
+        clearOfEye(b, AV); wingNow(b); flyTo(b, dt, AV[0], AV[1], AV[2]);
+        return;
+      }
+    }
     if (!P.d0) { P.d0 = Math.max(d, 8); P.tau0 = P.d0 / closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), P.d0); P.ts = t; }
     var tau = P.tau0 - PTAU * (t - P.ts), dLaw = P.d0 * Math.pow(Math.max(tau, 0) / P.tau0, 1 / PTAU);
     /* fallen behind the law (it could not close as fast): planned again from here, three times at most, then round */
@@ -215,7 +273,9 @@
     var s = clamp(1 - d / P.d0, 0, 1), yo = -PDIP[1] * P.d0 * bump(s);
     var ex = rx, ey = ry - yo, ez = rz, el = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1, vc = d / Math.max(tau, 0.2);
     AV[0] = P.v[0] - ex / el * vc; AV[1] = P.v[1] - ey / el * vc; AV[2] = P.v[2] - ez / el * vc;
-    clearOfEye(b, AV);
+    keepInView(b, AV, C);
+    /* (no B17 here: the last leg runs between two points at the perch's depth or deeper, so never nearer the eye than
+       the perch; on a phone that is nearer than B17's few spans, and it would push the bird off its own landing) */
     b.flapA = b.flap = s < 0.45 ? 1 : 0;   // (down with strong beats; up into it gliding)
     flyTo(b, dt, AV[0], AV[1], AV[2]);
   }
@@ -245,7 +305,7 @@
     AV[0] = P.v[0] * 0.6 + v * Math.sin(h); AV[1] = 0.2 * (P.at[1] + 8 - b.p[1]); AV[2] = P.v[2] * 0.6 + v * Math.cos(h);
     clearOfEye(b, AV);
     flyTo(b, dt, AV[0], AV[1], AV[2]);
-    if (t - P.rT > 4 && rl > out) { b.st = 'appr'; P.d0 = 0; }
+    if (t - P.rT > 4 && rl > out) { b.st = 'appr'; P.d0 = 0; P.gated = false; P.gate = null; P.t0 = t; }
     if (t - P.rT > 14) giveUp(b);
   }
   function giveUp(b) {
@@ -309,12 +369,15 @@
     /* its turns: by steps, never a rotation in place; now and then a hop round */
     if (P.yawTo !== P.yaw && t - P.yawT >= P.yawD) P.yaw = P.yawTo;
     if (t >= P.nextAct && !P.act && !P.walk) {
-      var want = wantYaw(b), u = r();
-      if (Math.abs(angDiff(want * DEG, P.yaw * DEG)) > 60 * DEG || u < 0.18) { P.yaw0 = P.yaw; P.yawTo = want; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = want >= 0 ? 1 : -1; }
-      else if (u < 0.62) { P.yaw0 = P.yaw; P.yawTo = clamp(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), -120, 120); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
-      else if (u < 0.74 && P.kind === 'name') { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
-      else if (u < 0.86 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
-      P.nextAct = t + pick(r, [5, 20]);
+      var want = wantYaw(b), u = r(), off = angDiff(want * DEG, P.yaw * DEG) / DEG;
+      /* a hop-turn: round to face the other way (to its wanted side when it faces from it, else now and then of its own);
+         off its wanted side by less than a hop, a step toward it */
+      if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30)) { var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
+      else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
+      else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = clamp(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), -120, 120); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
+      else if (u < 0.82 && P.kind === 'name') { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
+      else if (u < 0.94 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
+      P.nextAct = t + pick(r, [4, 12]);
     }
     if (P.act && t - P.act.t0 > P.act.T) P.act = null;
     /* it leaves: by its own wish, or to a flock of its kind passing */
@@ -421,7 +484,6 @@
   var LVC_F = [0, 0, 1], LVC_R = [1, 0, 0];
   function perchesStep(C, dt) {
     LVC_F[0] = C.f[0]; LVC_F[2] = C.f[2]; LVC_R[0] = C.r[0]; LVC_R[2] = C.r[2];
-    pointerStep(dt, C);
     if (FORCED || HOST.reduced()) return;
     notice(C); noticePointer(C);
     for (var i = PERCHED.length - 1; i >= 0; i--) { var b = PERCHED[i]; if (b.P && b.P.startleT !== undefined && t >= b.P.startleT && b.st === 'perch') { b.P.startleT = undefined; leave(b, 'startle'); } }

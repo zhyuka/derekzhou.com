@@ -12,6 +12,7 @@
     STATS.steps++;
     if (HOST.reduced()) return;
     t += dt;
+    pointerStep(dt, C);   // (the pointer read first: a bird on its tip stands where the tip is this frame, no lag)
     birdsStep(C, dt);
     perchesStep(C, dt);
   }

@@ -142,7 +142,7 @@
     if (!(b.evT >= 0)) b.evT = t;
     if (t - b.evT < b.lat) return;   // (its own moment to notice)
     if (dm < 1e-3) { cx = -vz; cy = 0; cz = vx; dm = Math.sqrt(cx * cx + cz * cz) || 1; }
-    var k = (R - dm) / R * 1.5 * b.K.v * (1 - 0.5 * tc / 3);
+    var k = Math.max(0.6, 3 * (R - dm) / R) * b.K.v * (1 - 0.3 * tc / 3);   // (a firm turn once it has noticed: harder the nearer the miss)
     o[0] += cx / dm * k; o[1] += cy / dm * k; o[2] += cz / dm * k;
     STATS.evades = (STATS.evades || 0) + (b.evN === b.evT ? 0 : 1); b.evN = b.evT;
   }
@@ -330,11 +330,13 @@
     var cls = popCls(), r = POP.r, k;
     if (FORCED) return addOutOfView(C, cls, r);
     for (k = 0; k < 10; k++) {
-      var d = mix(r(), 120, 270), a = TAU * r(), x = LVC.x + d * Math.sin(a), z = LVC.z + d * Math.cos(a);
+      var d = mix(r(), 120, 220), a = TAU * r(), x = LVC.x + d * Math.sin(a), z = LVC.z + d * Math.cos(a);
       var s = seaAt(x, z); if (s.w < 0.85 || !(HOST.groundReach && HOST.groundReach() > 0)) continue;
       var top = lvGround(x, z), what = flockWhat(r, cls), y = top - SEA_DEEP - 4 * B_SPAN * 1.5 - 15;
       if (!(top > -1e8) || LVC.y - top < 25) continue;
-      var F = newFlock(x, y, z, TAU * r(), cls, what);
+      var F = newFlock(x, y, z, TAU * r(), cls, what), m;
+      for (m = 0; m < F.m.length && hidden(F.m[m]); m++);
+      if (m < F.m.length) { dropFlock(F); continue; }   // (every bird of it hidden as it is made, or none made)
       F.goal = null; var g = newGoal(F, r() < 0.5 ? 'loiter' : 'commute', F.r, cls); g.y = Math.max(top + 30, LVC.y + mix(r(), -20, 60)); g.T = pick(r, [30, 80]);   // (half of them about here a while)
       STATS.adds = (STATS.adds || 0) + 1;
       return F;
