@@ -1,8 +1,11 @@
 {
   "name": "derekzhou-com",
   "private": true,
-  "description": "The build tools of the site (not served): terser, pinned, for tools/minify.mjs (validate.yml checks site/'s scripts are what it makes from src/).",
+  "description": "The build tools of the site (not served): terser, pinned, for tools/minify.mjs; npm run check:quick, the seconds-long checks (tools/check-quick.mjs).",
   "devDependencies": {
     "terser": "5.51.2"
+  },
+  "scripts": {
+    "check:quick": "node tools/check-quick.mjs"
   }
 }
