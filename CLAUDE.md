@@ -22,8 +22,8 @@ change it. The standing rules are data in RULES.json, checked in CI.
   steer-only-by-drag).
 - One entropy read, one clock; only the opening sky depends on the visitor's
   hour (one-entropy-one-clock, opening-sky-by-clock-only).
-- The absences: no chrome vocabulary, no hover/idle/key/exit handlers, no
-  JS-made DOM, no network, sound, eval, URL hooks or cursor rules, no dev
+- The absences: no chrome vocabulary, no hover/idle/key/exit handlers (but the
+  birds' two passive pointer listeners, in hoverSync: docs/birds.md), no JS-made DOM, no network, sound, eval, URL hooks or cursor rules, no dev
   hooks in shipped code (absence-*).
 - The page says exactly its words (page-words, lettered-name).
 - Licences: MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 only (licences).
@@ -44,7 +44,8 @@ src/           the scripts the build minifies: src/world/ (the world, in
                src/**/glsl/ (each shader as NAME.glsl), src/dev/ (dev build only)
 tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
                start.mjs (the start file), plan.mjs (the plan's worker),
-               check-quick.mjs, gpu/ (the PC's T2/T3), birds/ (generators)
+               check-quick.mjs, dup-names.mjs (no name declared twice in
+               one scope), gpu/ (the PC's T2/T3), birds/ (generators)
 test/          unit.mjs (pure code), shaders.mjs (golden shader texts),
                golden/
 docs/          the full record, one file per area (below)
@@ -65,7 +66,8 @@ one is committed to site/ (built-files-uncommitted).
 2. Check it:
    - `npm ci --no-audit --no-fund --ignore-scripts` once.
    - `npm run check:quick`: a few seconds (assembles src/, the plan's stamp,
-     syntax, RULES.json, no built file in site/). The Stop hook runs it when
+     syntax, no name declared twice in one scope, RULES.json, no built file
+     in site/). The Stop hook runs it when
      sources changed.
    - `node tools/build.mjs --plain build/site`: the build CI checks.
    - `node --test test/unit.mjs` (about 10 s); after a deliberate change to
@@ -93,11 +95,15 @@ bumps a version for a change; fonts and images are renamed by hand
   against head); T2 on the owner's RTX 4090 when the world's code or a
   shader changed. Read the gate's verdict, not one job's.
 - The merge bot (merge.yml, .github/ci/merge-bot.mjs) merges a ready
-  claude/* PR when the gate is green and frames are identical (the served
+  claude/* PR when its own gate is green and frames are identical (the served
   build byte for byte the base's, or every T1/T2 frame the same, and no
-  input handling changed); never one that touches the bot itself or is
-  labelled needs-owner or visible. Anything visible waits for the owner.
-- Cloudflare Pages builds main (`npm ci --no-audit --no-fund
+  input handling changed), with no global lock: it lands every such PR whose
+  areas main has not touched since its gate's base, and re-gates only one that
+  overlaps; never one that touches the bot itself or is labelled needs-owner
+  or visible. Anything visible waits for the owner. Main's gate tests every
+  merge after it lands; the bot then fast-forwards `live` to the newest main
+  tip whose gate is green (and frames identical, or the owner's own merge).
+- Cloudflare Pages builds `live` (`npm ci --no-audit --no-fund
   --ignore-scripts && node tools/build.mjs dist`, output `dist`, Node 22);
   post-deploy.yml then smokes the live site (/build.txt names the newest
   commit that touched a deploy input: .github/ci/deploy-inputs.txt).

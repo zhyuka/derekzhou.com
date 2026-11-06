@@ -1,16 +1,17 @@
 name: Post-deploy
 
-# After a push to main (Cloudflare Pages deploys main by its own git integration): wait, up to 10 minutes, for
+# After a push to `live` (the branch Cloudflare Pages serves: the merge bot fast-forwards it to a main tip whose gate is
+# green, and Pages deploys it by its own git integration): wait, up to 10 minutes, for
 # https://derekzhou.com/ to serve this commit's build, then smoke it (smoke.mjs: every referenced file 200 and immutable, the
 # CSP and HSTS, the 404 page, the private paths behind Access, the repository's own files not served). On a failure
 # an issue is opened (one per commit), for the owner's one-click rollback in Cloudflare.
 # With build watch paths set in Pages, a push that touches no deploy input (.github/ci/deploy-inputs.txt: what
 # tools/build.mjs and npm ci read) is not built, so main's tip may never be live. This commit's build is the newest
-# main commit's (first parent) that touched one, and every commit since builds the same bytes: the smoke accepts
+# commit's on live (first parent) that touched one, and every commit since builds the same bytes: the smoke accepts
 # /build.txt naming any of them (so it holds with watch paths set or not).
 on:
   push:
-    branches: [main]
+    branches: [live]
     paths-ignore: ['.work/**']
   workflow_dispatch:
 

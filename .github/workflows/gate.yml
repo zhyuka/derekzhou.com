@@ -43,6 +43,7 @@ jobs:
       input_files: ${{ steps.areas.outputs.input_files }}
       base_build: ${{ steps.builds.outputs.base }}
       head_build: ${{ steps.builds.outputs.head }}
+      t2_key: ${{ steps.t2key.outputs.key }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +63,12 @@ jobs:
         run: |
           h() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c1-24); }
           echo "base=$(h "$RUNNER_TEMP/served/base")" >> "$GITHUB_OUTPUT"; echo "head=$(h "$RUNNER_TEMP/served/head")" >> "$GITHUB_OUTPUT"
+      - name: T2's cache key (its answer is a function of both builds, the T2 code that runs and the stall mode)
+        id: t2key
+        run: |
+          b=${{ steps.base.outputs.base }}; t() { git rev-parse "$1" 2>/dev/null || echo none; }
+          s=$([ "$GITHUB_REF" = "refs/heads/main" ] && echo yes || echo no)
+          echo "key=t2-v1-${{ steps.builds.outputs.base }}-${{ steps.builds.outputs.head }}-$(t $b:tools/gpu)-$(t HEAD:tools/gpu)-$(t HEAD:.github/workflows/gpu.yml)-stall$s" >> "$GITHUB_OUTPUT"
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"
@@ -134,7 +141,7 @@ jobs:
   # PC's one runner, so SwiftShader's frames would only add an hour of CPU. (T2 offline or not wanted: T1 runs.)
   t1:
     needs: [plan, t2-probe]
-    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.t2-probe.outputs.run != 'true'
+    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.t2-probe.outputs.run != 'true' && needs.t2-probe.outputs.cached == ''
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 12
     env:
@@ -211,14 +218,29 @@ jobs:
     timeout-minutes: 2
     outputs:
       run: ${{ steps.p.outputs.run }}
+      cached: ${{ steps.p.outputs.cached }}
     steps:
+      # T2's answer for these two builds and this T2 code, if a run of this branch (or of main) already has it: then the
+      # 4090 is not asked again (a re-gate after main moved elsewhere, a re-run). Saved by the verdict job.
+      - name: T2's answer, if these builds were compared before
+        id: cache
+        if: needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/t2c/t2.json
+          key: ${{ needs.plan.outputs.t2_key }}
       - id: p
         env:
+          HIT: ${{ steps.cache.outputs.cache-hit }}
+          C: ${{ runner.temp }}/t2c/t2.json
           WANTED: ${{ needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true' }}
           TOKEN: ${{ secrets.MERGE_TOKEN }}
           T2_RUNNER: ${{ vars.T2_RUNNER }}
         run: |
           if [ "$WANTED" != "true" ]; then echo "T2 not wanted (no shader, world/realm/bird JS or T2 change)"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$HIT" = "true" ] && jq -e '.frames_identical != null and .frames_identical != ""' "$C" >/dev/null 2>&1; then
+            echo "T2's answer for these builds is cached: $(jq -c . "$C")"; echo "run=false" >> "$GITHUB_OUTPUT"; echo "cached=$(jq -c . "$C")" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           online=false
           if [ "$T2_RUNNER" = "off" ]; then
             how="the variable T2_RUNNER is off"
@@ -243,10 +265,11 @@ jobs:
     uses: ./.github/workflows/gpu.yml
     with:
       base: ${{ needs.plan.outputs.base }}
+      stall: ${{ github.ref == 'refs/heads/main' && 'yes' || 'no' }}   # (the stall visits: main's gate only; the deploy gate reads them)
 
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
-    needs: [static, plan, census, t1, t2]
+    needs: [static, plan, census, t1, t2-probe, t2]
     if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 5
@@ -266,8 +289,23 @@ jobs:
         id: v
         env:
           NEEDS: ${{ toJSON(needs) }}
+          T2_CACHED: ${{ needs.t2-probe.outputs.cached }}
           T1_SHARDS: '4'
         run: node .github/ci/verdict.mjs "$RUNNER_TEMP/t1" "$RUNNER_TEMP/verdict.json"
+      - name: T2's answer, kept for the next gate of these builds
+        id: t2keep
+        if: needs.t2.result == 'success'
+        env:
+          OUT: ${{ toJSON(needs.t2.outputs) }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/t2c"; echo "$OUT" | jq -c . > "$RUNNER_TEMP/t2c/t2.json"
+          jq -e '.frames_identical == "true" or .frames_identical == "false"' "$RUNNER_TEMP/t2c/t2.json" >/dev/null && echo "ok=true" >> "$GITHUB_OUTPUT" || true
+      - if: steps.t2keep.outputs.ok == 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true   # (already saved by an earlier run: nothing lost)
+        with:
+          path: ${{ runner.temp }}/t2c/t2.json
+          key: ${{ needs.plan.outputs.t2_key }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

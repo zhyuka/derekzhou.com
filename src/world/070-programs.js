@@ -136,7 +136,8 @@
     if (EXT.parWK) return progStepWK(deadline);
     /* (speed E2) with KHR_parallel_shader_compile every program is issued in one frame, the heaviest first (the probe
        and the land: the critical path), and each one's completion asked once a frame, without waiting; its status
-       read as it completes. Without the extension, and on WebKit (it has it, but links there are synchronous: E10), one at a time */
+       read as it completes. Without the extension (not WebKit) all at once too, their statuses read one a frame (EXT.issueAll);
+       on WebKit all at once too, polled, and nothing else asked of a program until it is done (progStepWK) */
     if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); issued = true; }
@@ -152,6 +153,13 @@
         if (progDone(P) === LOSTP) return LOSTP;
       }
       return all && (progsDone() || lateCore());
+    }
+    if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
+      var iss = false;
+      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
+      if (iss) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
+      return progsDone();
     }
     P = PROGX.cur;
     if (P) {   // the one in flight: its completion, once a frame
@@ -215,7 +223,7 @@
      camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
      is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
   var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
-  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink'];
+  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper'];   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
   function lateCan() { return !!EXT.parAll && !STILLMODE && !FRUN && !BOOT.restore; }
   function lateSand(V) {   // the most sand anywhere within LATE_R of the landing (sandAt's weight, on kwAt)
     var R = 1.5 * Math.max(V.speed, 32) * LATE_T + 2 * KSTEP, st = KSTEP / 2, m = 0, x, z, k, s;
@@ -276,7 +284,7 @@
       if (!P.ok) fail('late program ' + P.name + ' will not link (step 9: never drawn)');
     }
   }
-  function lateWarm() {   // the late ones' warm entries, offscreen, before their first real draw (never in stage G's trials)
+  function lateWarmProgs() {   // (lane D: was lateWarm, the same name as the birds host's own, declared later in the same scope, which replaced this one: no late program was ever warmed, so none could draw) the late ones' warm entries, offscreen, before their first real draw (never in stage G's trials)
     if (!LATEP.on || !WARM.done || !WARM.list || TRIAL || gl.isContextLost()) return;
     var L = WARM.list, T = WARM.tg, any = false, q, x, i, P;
     for (q = 0; q < L.length; q++) {

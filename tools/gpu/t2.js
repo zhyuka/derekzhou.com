@@ -1,6 +1,7 @@
 'use strict';
 // t2.js (tools/gpu): the T2 graphics check on the RTX 4090 (ANGLE D3D11), base against head in one job.
 //   node tools/gpu/t2.js --base BASE_SITE --head HEAD_SITE --out OUT [--cases d11,n23,w303,d707] [--frames 600] [--settle 4000]
+//        [--gpuname NAME]   (the page sees NAME as its GPU: another maker's paths, rendered on this GPU)
 //        [--par 4] [--profiles DIR] [--port 9600] [--no-null]
 // 1. Serves both site folders as Cloudflare Pages serves them (cfserve.js: _headers, so the CSP is the real one).
 // 2. FRAMES: every case stepped (gstep.js: the page's clock and entropy fixed, rAF driven at an exact interval, each arm
@@ -98,7 +99,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     const done = await pool(runs.map((j) => async (slot) => {
       const [vp, hour, seed, mob] = CASES[j.c], tag = j.c + '_' + j.arm + '_r' + j.r, dir = path.join(OUT, 'frames');
       fs.mkdirSync(dir, { recursive: true });
-      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(mob ? ['--mobile'] : [], SETTLE);
+      const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(A.gpuname ? ['--gpuname', A.gpuname] : []).concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
       const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
@@ -143,21 +144,33 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
     let bitsIdentical = true;
     if (glslChanged) {
       const dd = { base: path.join(OUT, 'glsl_base'), head: path.join(OUT, 'glsl_head') };
-      await pool(['base', 'head'].map((arm) => async (slot) => run([path.join(HERE, 'glsldump.js'), S[arm].url, dd[arm]], prof(slot), 'glsldump_' + arm)), 2);
+      await pool(['base', 'head'].map((arm) => async (slot) => run([path.join(HERE, 'glsldump.js'), S[arm].url, dd[arm]].concat(A.gpuname ? ['--gpuname', A.gpuname] : []), prof(slot), 'glsldump_' + arm)), 2);
       const P = {}; for (const arm of ['base', 'head']) { try { P[arm] = JSON.parse(fs.readFileSync(path.join(dd[arm], 'programs.json'), 'utf8')); } catch (e) { P[arm] = []; R.errors.push('glsldump ' + arm + ' failed'); } }
       // pairs by content, not by link order (a program added or removed shifts every name after it): a head program whose
-      // two sources are a base program's is unchanged; else it is paired with the unpaired base program of the same vertex
-      // source (else any) whose fragment source shares the most text with its own (common head and tail), if that is
-      // at least half of it; else it is new. Each pair is copied under the head's name into pairs/base and pairs/head.
-      const rd = (arm, n, k) => fs.readFileSync(path.join(dd[arm], n + '.' + k + '.glsl'), 'utf8');
-      const same = (a, b) => { let i = 0, j = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++; return i + j; };
+      // two sources are a base program's is unchanged; else it is paired with the unpaired base program of its own name,
+      // if their fragment sources are at least half alike; else with the unpaired base program of the same vertex source
+      // (else any) whose fragment source is the most alike, if that is at least half; else it is new. Alike: the lines
+      // the two share (each line matched once, counted by length) over the longer text. The name comes first because the
+      // land's variants differ by a few lines (0.996 alike) and content alone could pair a changed one with its
+      // sibling; content decides only when no program of that name is left (one was added or removed). Not the common
+      // head and tail, as before: edits near both ends, as #66 made to the cloud bodies, left that at 0.45 and the
+      // changed shader was never read back. Each pair is copied under the head's name into pairs/base and pairs/head.
+      // The text is compared minified (tools/glslmin.mjs: no comment, no spare space, the same tokens), so a program
+      // whose text only lost its comments and spacing (the build's shader minifier) still pairs with its old self and is
+      // read back; where tools/glslmin.mjs is missing (an older base), as written.
+      let norm = (t) => t; try { const g = await import(require('url').pathToFileURL(path.join(HERE, '..', 'glslmin.mjs')).href); norm = (t) => g.minGlsl(t); } catch (e) { /* as written */ }
+      const NC = new Map(), rd = (arm, n, k) => fs.readFileSync(path.join(dd[arm], n + '.' + k + '.glsl'), 'utf8');
+      const rdn = (arm, n, k) => { const key = arm + '/' + n + '.' + k; if (!NC.has(key)) NC.set(key, norm(rd(arm, n, k))); return NC.get(key); };
+      const alike = (a, b) => { const m = new Map(); for (const l of b.split('\n')) m.set(l, (m.get(l) || 0) + 1); let s = 0; for (const l of a.split('\n')) { const c = m.get(l); if (c) { m.set(l, c - 1); s += l.length + 1; } } return s / Math.max(a.length, b.length, 1); };
       const used = new Set(), pair = {};
       for (const x of P.head) { const m = P.base.find((y) => y[1] === x[1] && y[2] === x[2] && !used.has(y[0])); if (m) { used.add(m[0]); pair[x[0]] = null; } }
       for (const x of P.head) {
         if (x[0] in pair) continue;
-        const fsH = rd('head', x[0], 'fs'), cand = P.base.filter((y) => !used.has(y[0])), pool2 = cand.some((y) => y[1] === x[1]) ? cand.filter((y) => y[1] === x[1]) : cand;
-        let best = null, bs = -1; for (const y of pool2) { const s = same(fsH, rd('base', y[0], 'fs')); if (s > bs) { bs = s; best = y; } }
-        if (best && bs >= fsH.length / 2) { used.add(best[0]); pair[x[0]] = best; } else pair[x[0]] = undefined;
+        const fsH = rdn('head', x[0], 'fs'), vsH = rdn('head', x[0], 'vs'), cand = P.base.filter((y) => !used.has(y[0])), pool2 = cand.some((y) => y[1] === x[1] || rdn('base', y[0], 'vs') === vsH) ? cand.filter((y) => y[1] === x[1] || rdn('base', y[0], 'vs') === vsH) : cand;
+        const own = cand.find((y) => y[0] === x[0]);
+        if (own && alike(fsH, rdn('base', own[0], 'fs')) >= 0.5) { used.add(own[0]); pair[x[0]] = own; continue; }
+        let best = null, bs = -1; for (const y of pool2) { const s = alike(fsH, rdn('base', y[0], 'fs')); if (s > bs) { bs = s; best = y; } }
+        if (best && bs >= 0.5) { used.add(best[0]); pair[x[0]] = best; } else pair[x[0]] = undefined;
       }
       const pd = { base: path.join(OUT, 'pairs', 'base'), head: path.join(OUT, 'pairs', 'head') }; fs.mkdirSync(pd.base, { recursive: true }); fs.mkdirSync(pd.head, { recursive: true });
       for (const [n, y] of Object.entries(pair)) if (y) for (const k of ['vs', 'fs']) { fs.writeFileSync(path.join(pd.base, n + '.' + k + '.glsl'), rd('base', y[0], k)); fs.writeFileSync(path.join(pd.head, n + '.' + k + '.glsl'), rd('head', n, k)); }

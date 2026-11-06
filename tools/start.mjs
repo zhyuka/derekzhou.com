@@ -129,7 +129,7 @@ export function loadPage(src, index, lib, hook = true) {   // each script from S
    'afterScripts' or a frame number: the context lost, then restored) } */
 export function run(V, page, O = {}) {
   return new Promise((resolve) => {
-    const R = { issues: [], links: [], shaders: [], errors: [], shown: false, shownF: -1, frames: 0, by: { start: { createShader: 0, linkProgram: 0, flush: 0 }, world: { createShader: 0, linkProgram: 0, deleteProgram: 0, deleteShader: 0 } },
+    const R = { workers: [], issues: [], links: [], shaders: [], errors: [], shown: false, shownF: -1, frames: 0, by: { start: { createShader: 0, linkProgram: 0, flush: 0 }, world: { createShader: 0, linkProgram: 0, deleteProgram: 0, deleteShader: 0 } },
       ctx: [], issueF: [], ws: null, lostEv: 0, restoredEv: 0, phase: 'world' };
     let clock = V.t0, lost = false;
     const now = () => (clock += 0.02);
@@ -257,7 +257,7 @@ export function run(V, page, O = {}) {
     // or at once with fcp 'page'; any other worker (the world's plan) refused, as where workers fail)
     class FW {
       constructor(u) {
-        u = String(u); this.ls = [];
+        u = String(u); this.ls = []; R.workers.push(u);
         if (!/\/start-table(?:\.v\d+)?\.js$/.test(u) || !O.tableCode) throw new Error('no worker in the fake browser: ' + u);
         let data = null; const box = vm.createContext({}); box.postMessage = (x) => { data = x; }; box.close = () => {};
         guard(() => vm.runInContext(O.tableCode, box, { filename: u.slice(1) }), 'table worker'); R.tableF = R.frames;
@@ -381,21 +381,30 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
      programs are issued here; issued at once, their compiles
      held the first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores). The world asking for its context
      first (its getContext, wrapped once here): issued just before it takes the context if the table is in, else the
-     start file stands aside and the world compiles its own, as without it */
-  var pc = canvas.getContext, done = 0, asked = 0, TB = null;
+     start file stands aside and the world compiles its own, as without it.
+     (2026-11-06) At the first paint the start file makes the context (the world's boot attributes: the world's
+     getContext gives it the same one) and asks it first whether the table can be used at all: all at once
+     (KHR_parallel_shader_compile, on almost no Android browser) on a GPU (not SwiftShader, llvmpipe, Software). Only
+     then is the table's worker started; elsewhere the table (1 MB, 59 KB on the wire) is never fetched, and the world
+     takes the context and compiles its own, as it did when the table came to such a device */
+  var pc = canvas.getContext, done = 0, asked = 0, TB = null, S = null, gl = null, cbf = null, cbh = null, ren = '';
   canvas.getContext = function (t, o) { asked = 1; go(); return pc.call(this, t, o); };
+  function ctx() {   // the context, made once with the world's boot attributes; true where the table can be used on it
+    gl = pc.call(canvas, 'webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: 'default' });   // (the world's boot attributes, as shipped)
+    if (!gl) return false;
+    S = window.WORLD_START = { gl: gl, defs: null, progs: {}, lost: 0 };
+    canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); S.lost = 1; });   // (lost before the world listens: it may still be restored)
+    cbf = gl.getExtension('EXT_color_buffer_float'); cbh = cbf ? null : gl.getExtension('EXT_color_buffer_half_float');
+    var par = gl.getExtension('KHR_parallel_shader_compile'), dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    ren = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || '');
+    return !!par && !/SwiftShader|llvmpipe|Software/i.test(ren);   // (one at a time, or the still sky: the world's own path)
+  }
   function go() {
   if (done || (!TB && !asked)) return;
   done = 1; canvas.getContext = pc;
-  if (!TB || window.WORLD_START !== undefined) return;   // (the world first, before the table: its own path)
+  if (!TB || !S || window.WORLD_START !== S) return;   // (the world first, before the table: its own path)
   var Q = TB.Q, T = TB.T, TH = TB.TH;
-  var gl = pc.call(canvas, 'webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: 'default' });   // (the world's boot attributes, as shipped)
-  if (!gl) return;
-  var S = window.WORLD_START = { gl: gl, defs: null, progs: {}, lost: 0 };
-  canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); S.lost = 1; });   // (lost before the world listens: it may still be restored)
-  var cbf = gl.getExtension('EXT_color_buffer_float'), cbh = cbf ? null : gl.getExtension('EXT_color_buffer_half_float'), par = gl.getExtension('KHR_parallel_shader_compile');
-  var dbg = gl.getExtension('WEBGL_debug_renderer_info'), ren = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || '');
-  if (!par || /SwiftShader|llvmpipe|Software/i.test(ren)) return;   // (one at a time, or the still sky: the world's own path)
+  if (S.lost || gl.isContextLost()) return;
   var hp = !!(HP && cbf && HP(ren)), TT = hp ? TH : T;   // (the world's EXT.hp: its split height's devices issue their own set)
   var V = '#version 300 es\n', W = V + (S.defs = (cbf || cbh ? '' : '#define LIND_PACKED\n') + (cbf ? '' : '#define GC_PACKED\n') + (hp ? '#define HPSPLIT\n' : '')), P = S.progs;   // (the world's DEFS)
   for (i = 0; i < TT.length; i += 2) {
@@ -409,7 +418,8 @@ const RUNTIME = String.raw`  var d = document, canvas = d.querySelector('canvas.
   gl.flush();
   }
   function load() {   // (the table read off the main thread and off the DOM: the worker's script posts the sources and closes)
-    if (done || typeof Worker !== 'function') return;
+    if (done || typeof Worker !== 'function' || window.WORLD_START !== undefined) return;
+    if (!ctx()) { done = 1; canvas.getContext = pc; return; }   // (no table here: the context is the world's, as made)
     try { var w = new Worker('/@TABLE@'); w.addEventListener('message', function (e) { try { w.terminate(); } catch (x) {} if (e.data && e.data.Q && e.data.T) { TB = e.data; go(); } }); } catch (x) { /* no worker: the world's own path */ }
   }
   var PO = window.PerformanceObserver, two = function () { requestAnimationFrame(function () { requestAnimationFrame(load); }); };
@@ -457,6 +467,8 @@ async function test(src, index, lib, file, log) {
   for (const v of visits(DEVICES.concat(EXTRA), 2)) {
     const a = await run(v, page), b = await run(v, page, { startCode, tableCode, fcp: 'page' }), s = serves(v.dev), kind = v.dev.id === 'cpu' ? 'cpu' : 'world';
     const t = tag(v);
+    const tw = b.workers.filter((u) => /\/start-table(?:\.v\d+)?\.js$/.test(u)).length;
+    check(`${t}: the table's worker ${s ? 'started once (the table is used here)' : 'never started (the table is not fetched where it cannot be used)'}`, tw === (s ? 1 : 0), b.workers.join(', ') || 'none');
     if (kind === 'cpu') { check(`${t}: a CPU renderer: no program issued by the start file, the still sky as without it`, b.by.start.createShader === 0 && a.shown === b.shown && a.links.length === b.links.length && !b.errors.length, clean(b) || `start shaders ${b.by.start.createShader}`); continue; }
     check(`${t}: shown at the same frame as without the start file (${a.shownF})`, a.shown && b.shown && a.shownF === b.shownF && !a.errors.length && !b.errors.length, clean(b) || clean(a) || `${a.shownF} / ${b.shownF}`);
     check(`${t}: the same shader sources handed over as without it`, bag(a) === bag(b), `${a.shaders.length} / ${b.shaders.length}`);

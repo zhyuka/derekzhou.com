@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <application android:label="dz lab" android:hardwareAccelerated="true">
+    <!-- its own process, so the runner can end it and the return visit starts a new one -->
+    <activity android:name=".LabActivity" android:process=":web" android:exported="false"
+        android:configChanges="orientation|screenSize|keyboardHidden" />
+  </application>
+</manifest>
