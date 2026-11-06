@@ -80,21 +80,17 @@ c*=1.0-uSkyKT.z*(1.0-side)*lt;
 c=mix(c,uSkyWN,uSkyKN.x*side*side*ln);
 return c*(1.0-uSkyKN.z*(1.0-side)*ln);
 }
-vec3 skyCol0(vec3 rd){
+vec3 skyCol(vec3 rd){
 float e=degrees(asin(clamp(rd.y,-1.0,1.0)));
-vec3 c=skyGrad(e);
+vec3 g=skyGrad(e),c=g;
 float side=sunSide(rd),low=exp(-max(e,0.0)/uSkyK.y);
 c=mix(c,uSkyW,uSkyK.x*side*side*low);
 c*=1.0-uSkyK.z*(1.0-side)*low;
 float cs=max(dot(rd,uSkyS),0.0);
 c+=uGlowC*(uGlow.x*pow(cs,uGlow.y)+uGlow.z*pow(cs,uGlow.w));
-return c;
-}
-vec3 skyCol(vec3 rd){
-vec3 c=skyCol0(rd);
 if(uSkyN.w>0.0){
-float e=degrees(asin(clamp(rd.y,-1.0,1.0))),cn=max(dot(rd,uSkyN.xyz),0.0);vec3 g=skyGrad(e);
-c+=skyWarmN(g,e,sunSide(rd))-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
+float cn=max(dot(rd,uSkyN.xyz),0.0);
+c+=skyWarmN(g,e,side)-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
 }
 return c;
 }
@@ -122,11 +118,11 @@ return uHazeC+cs*cs*cs*(uHzT*st+uHzN*uSunK.z);
 }
 vec3 atmos(vec3 c,vec3 rd,float t){
 float f=fogAmt(rd,t);
-vec3 fc=mix(mix(fogCol(rd),uFogB.rgb,uFogB.a),fogCol(rd),smoothstep(0.25,0.95,f));
+vec3 fq=fogCol(rd),fc=mix(mix(fq,uFogB.rgb,uFogB.a),fq,smoothstep(0.25,0.95,f));
 c=mix(c,fc,f);
 c=mix(c,hazeCol(rd),hazeAmt(rd,t));
 #ifndef NO_TWILIGHT
-if(uTwM.x>0.0)c=mix(c,fogCol(rd),uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
+if(uTwM.x>0.0)c=mix(c,fq,uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
 #endif
 return c;
 }
@@ -176,28 +172,18 @@ return c;
 }
 vec3 cloudLight(vec3 n,vec3 rd,float tauL,float ao,float hgt,float thin){return cloudLight2(n,n,rd,tauL,ao,hgt,thin);}
 
-float zcode() {
-  float d = gl_FragCoord.z; if (d >= 0.999999) return 1.0;
-  float n = uProj.z, f = uProj.w, z = d * 2.0 - 1.0, lz = 2.0 * n * f / (f + n - z * (f - n));
-  return lz >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(lz, 1.0)) / 16.0, 0.0, 1.0);
-}
-float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
-
-uniform vec3 uCrL,uCrS,uCrE;
-uniform float uCrA;
-uniform float uCrF;
-centroid in vec3 vW;centroid in vec3 vN;centroid in float vLit;centroid in float vGlow;out vec4 oC;
+in vec4 vCol;in vec2 vQ;flat in float vKind;out vec4 oC;
 void main(){
-vec3 v=vW-uCam;float t=length(v);vec3 rd=v/t;
-vec3 n=normalize(vN);if(dot(n,rd)>0.0)n=-n;
-float dif=clamp(dot(n,uSun)*0.6+0.4,0.0,1.0);
-vec3 c=mix(uCrS,uCrL,dif)*(0.92+0.16*vLit);
-c+=uCrL*0.35*pow(max(dot(rd,uSun),0.0),12.0);
-if(uCrA>0.5){
-float rim=1.0-abs(dot(n,rd));
-oC=vec4(uCrE*vGlow*(0.35+0.9*rim*rim)*(1.0-fogAmt(rd,t))*(1.0-hazeAmt(rd,t)),0.0);
-return;
+#ifndef NO_PKWX
+if(vKind>2.5){
+float a;
+if(vKind>3.75){vec2 q=vec2(vQ.x*2.0-1.0,vQ.y);a=vCol.a*max(1.0-dot(q,q),0.0);a*=a;oC=vec4(vCol.rgb*a,a*0.3);return;}
+if(vKind>3.25){vec2 q=vec2(vQ.x*2.0-1.0,vQ.y);float r=length(q);a=vCol.a*exp(-(r-0.7)*(r-0.7)*30.0)*step(r,1.0);oC=vec4(vCol.rgb*a,a*0.5);return;}
+a=vCol.a*(1.0-vQ.y*vQ.y)*smoothstep(0.0,0.3,vQ.x)*(1.0-smoothstep(0.85,1.0,vQ.x));
+oC=vec4(vCol.rgb*a,a*0.6);return;
 }
-c+=uCrE*vGlow;
-oC=vec4(mix(atmos(c,rd,1.0e5),atmos(c,rd,t),uCrF),zcode());
+#endif
+float q=2.0*vQ.x-1.0;
+float a=vKind>0.5?vCol.a*(1.0-vQ.y*vQ.y)*(1.0-q*q):vCol.a*(1.0-vQ.y*vQ.y)*smoothstep(0.0,0.35,vQ.x)*(0.4+0.6*vQ.x);
+oC=vec4(vCol.rgb*a,a*(vKind>0.5?0.25:0.6));
 }

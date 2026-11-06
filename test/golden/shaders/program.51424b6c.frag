@@ -80,21 +80,17 @@ c*=1.0-uSkyKT.z*(1.0-side)*lt;
 c=mix(c,uSkyWN,uSkyKN.x*side*side*ln);
 return c*(1.0-uSkyKN.z*(1.0-side)*ln);
 }
-vec3 skyCol0(vec3 rd){
+vec3 skyCol(vec3 rd){
 float e=degrees(asin(clamp(rd.y,-1.0,1.0)));
-vec3 c=skyGrad(e);
+vec3 g=skyGrad(e),c=g;
 float side=sunSide(rd),low=exp(-max(e,0.0)/uSkyK.y);
 c=mix(c,uSkyW,uSkyK.x*side*side*low);
 c*=1.0-uSkyK.z*(1.0-side)*low;
 float cs=max(dot(rd,uSkyS),0.0);
 c+=uGlowC*(uGlow.x*pow(cs,uGlow.y)+uGlow.z*pow(cs,uGlow.w));
-return c;
-}
-vec3 skyCol(vec3 rd){
-vec3 c=skyCol0(rd);
 if(uSkyN.w>0.0){
-float e=degrees(asin(clamp(rd.y,-1.0,1.0))),cn=max(dot(rd,uSkyN.xyz),0.0);vec3 g=skyGrad(e);
-c+=skyWarmN(g,e,sunSide(rd))-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
+float cn=max(dot(rd,uSkyN.xyz),0.0);
+c+=skyWarmN(g,e,side)-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
 }
 return c;
 }
@@ -122,11 +118,11 @@ return uHazeC+cs*cs*cs*(uHzT*st+uHzN*uSunK.z);
 }
 vec3 atmos(vec3 c,vec3 rd,float t){
 float f=fogAmt(rd,t);
-vec3 fc=mix(mix(fogCol(rd),uFogB.rgb,uFogB.a),fogCol(rd),smoothstep(0.25,0.95,f));
+vec3 fq=fogCol(rd),fc=mix(mix(fq,uFogB.rgb,uFogB.a),fq,smoothstep(0.25,0.95,f));
 c=mix(c,fc,f);
 c=mix(c,hazeCol(rd),hazeAmt(rd,t));
 #ifndef NO_TWILIGHT
-if(uTwM.x>0.0)c=mix(c,fogCol(rd),uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
+if(uTwM.x>0.0)c=mix(c,fq,uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
 #endif
 return c;
 }
@@ -175,20 +171,6 @@ c+=uClRim*hgN(cs,0.86)*thin*exp(-tauL*0.6)*uClK.w;
 return c;
 }
 vec3 cloudLight(vec3 n,vec3 rd,float tauL,float ao,float hgt,float thin){return cloudLight2(n,n,rd,tauL,ao,hgt,thin);}
-
-#define GROUND_CACHE
-float gcTex(ivec2 q){
-#ifdef GC_PACKED
-vec4 e=texelFetch(uGround,q,0);return(dot(e,vec4(1.0,1.0/255.0,1.0/65025.0,1.0/16581375.0))*8192.0)-4096.0;
-#else
-return texelFetch(uGround,q,0).r;
-#endif
-}
-float groundH(vec2 xz){
-vec2 g=(xz-uGC.xy)/uGC.z-0.5;vec2 f=fract(g);ivec2 i=ivec2(floor(g)),m=ivec2(int(uGC.w)-1);
-ivec2 a=clamp(i,ivec2(0),m),b=clamp(i+ivec2(1,0),ivec2(0),m),c=clamp(i+ivec2(0,1),ivec2(0),m),d=clamp(i+ivec2(1,1),ivec2(0),m);
-return mix(mix(gcTex(a),gcTex(b),f.x),mix(gcTex(c),gcTex(d),f.x),f.y);
-}
 
 uniform int uZ;   // (fast500 D) never set: GL makes it 0 at link. Added to a loop's bound, FXC (ANGLE's D3D11 compiler) cannot count the loop, so it keeps it rolled: one copy of its body
 vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast500 D) dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
@@ -602,26 +584,26 @@ return D_shadeStone(p,n,rd,t,fp,col,yAbove);
 float scatterDensity(vec2 p,int layer){vec3 wD,wC;kitW(p,wD,wC);return D_scatterDensity(p,layer)*(1.0-smoothstep(0.4,0.8,wC.x));}
 
 
-layout(location=0)in vec2 aQ;
-uniform vec4 uRa;
-uniform vec3 uWind;uniform vec4 uPc;
-uniform vec4 uRb;
-out vec4 vCol;out vec3 vW;out vec2 vQ;
-void main(){
-int id=gl_InstanceID;
-uint h=ih(uint(id)*2246822519u+31u);
-float r1=hf(h),r2=hf(ih(h+1u)),r3=hf(ih(h+2u)),r4=hf(ih(h+3u));
-vec2 p0=uCam.xz+mod(vec2(r2,r3)*uRa.x-uCam.xz+0.5*uRa.x,uRa.x)-0.5*uRa.x;
-vec4 sp=veilSpot(p0);
-vec2 w=normalize(uWind.xz),pp=vec2(-w.y,w.x);
-float L=uRa.y*(0.45+0.55*r4),Wd=uRa.z*(0.6+0.8*r1),x=aQ.x,y=aQ.y;
-float g=uT/(uRb.x*(0.8+0.4*r2))+r1*7.0,gust=smoothstep(0.1,0.35,fract(g))*(1.0-smoothstep(0.55,0.95,fract(g)));
-vec2 xz=sp.xy+w*x*L+pp*y*Wd*(1.0+0.7*x);
-vW=vec3(xz.x,sp.z+0.15+uRa.w*x*(0.6+0.8*r2)-L*0.12*x*x,xz.y);
-gl_Position=uVP*vec4(vW-uCam,1.0);
-float dist=length(vW-uCam);vec3 rd=(vW-uCam)/dist;
-float back=pow(max(dot(rd,uSun),0.0),3.0);
-float edge=1.0-smoothstep(0.38*uRa.x,0.5*uRa.x,max(abs(p0.x-uCam.x),abs(p0.y-uCam.z)));
-float a=uPc.a*gust*sp.w*edge*smoothstep(6.0,18.0,dist)*(1.0-smoothstep(140.0,230.0,dist));
-vCol=vec4(atmos(uPc.rgb*(0.85+1.8*back),rd,dist),a);vQ=aQ;
+float zcode() {
+  float d = gl_FragCoord.z; if (d >= 0.999999) return 1.0;
+  float n = uProj.z, f = uProj.w, z = d * 2.0 - 1.0, lz = 2.0 * n * f / (f + n - z * (f - n));
+  return lz >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(lz, 1.0)) / 16.0, 0.0, 1.0);
+}
+float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
+
+uniform float uFade;
+centroid in vec3 vW; centroid in vec3 vN; centroid in vec4 vC; centroid in float vY; centroid in vec2 vE; out vec4 oC;
+void main() {
+  vec3 v = vW - uCam; float t = length(v); vec3 rd = v / t;
+  vec3 n = normalize(vN); if (dot(n, rd) > 0.0) n = -n;
+  float fp = t * 2.0 * uProj.y / uRes.y;
+  gEmit = vE.x; gPhase = vE.y;
+  vec3 c = shadeStone(vW, n, rd, t, fp, vC, vY);
+#ifdef EMIT_HOOK
+  gEmit = emitMod(vW, vC, gEmit, gPhase);
+#endif
+  if (gEmit > 0.0) c += vC.rgb * gEmit;
+  vec3 o = atmos(c, rd, t);
+  if (uFade < 0.999) o = mix(atmos(c, rd, 3.0e4), o, uFade);
+  oC = vec4(o, sceneA());
 }

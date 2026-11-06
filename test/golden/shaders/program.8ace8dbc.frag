@@ -80,21 +80,17 @@ c*=1.0-uSkyKT.z*(1.0-side)*lt;
 c=mix(c,uSkyWN,uSkyKN.x*side*side*ln);
 return c*(1.0-uSkyKN.z*(1.0-side)*ln);
 }
-vec3 skyCol0(vec3 rd){
+vec3 skyCol(vec3 rd){
 float e=degrees(asin(clamp(rd.y,-1.0,1.0)));
-vec3 c=skyGrad(e);
+vec3 g=skyGrad(e),c=g;
 float side=sunSide(rd),low=exp(-max(e,0.0)/uSkyK.y);
 c=mix(c,uSkyW,uSkyK.x*side*side*low);
 c*=1.0-uSkyK.z*(1.0-side)*low;
 float cs=max(dot(rd,uSkyS),0.0);
 c+=uGlowC*(uGlow.x*pow(cs,uGlow.y)+uGlow.z*pow(cs,uGlow.w));
-return c;
-}
-vec3 skyCol(vec3 rd){
-vec3 c=skyCol0(rd);
 if(uSkyN.w>0.0){
-float e=degrees(asin(clamp(rd.y,-1.0,1.0))),cn=max(dot(rd,uSkyN.xyz),0.0);vec3 g=skyGrad(e);
-c+=skyWarmN(g,e,sunSide(rd))-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
+float cn=max(dot(rd,uSkyN.xyz),0.0);
+c+=skyWarmN(g,e,side)-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
 }
 return c;
 }
@@ -122,11 +118,11 @@ return uHazeC+cs*cs*cs*(uHzT*st+uHzN*uSunK.z);
 }
 vec3 atmos(vec3 c,vec3 rd,float t){
 float f=fogAmt(rd,t);
-vec3 fc=mix(mix(fogCol(rd),uFogB.rgb,uFogB.a),fogCol(rd),smoothstep(0.25,0.95,f));
+vec3 fq=fogCol(rd),fc=mix(mix(fq,uFogB.rgb,uFogB.a),fq,smoothstep(0.25,0.95,f));
 c=mix(c,fc,f);
 c=mix(c,hazeCol(rd),hazeAmt(rd,t));
 #ifndef NO_TWILIGHT
-if(uTwM.x>0.0)c=mix(c,fogCol(rd),uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
+if(uTwM.x>0.0)c=mix(c,fq,uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
 #endif
 return c;
 }
@@ -588,20 +584,34 @@ return D_shadeStone(p,n,rd,t,fp,col,yAbove);
 float scatterDensity(vec2 p,int layer){vec3 wD,wC;kitW(p,wD,wC);return D_scatterDensity(p,layer)*(1.0-smoothstep(0.4,0.8,wC.x));}
 
 
-uniform int uHsrc;
-uniform vec4 uLevA[10];uniform vec4 uGCw;uniform highp sampler2D uTex;
-uniform highp sampler2D uHP0,uHP2;
-layout(location=0)out vec4 o0;layout(location=1)out vec4 o1;
-ivec2 gq;vec2 gw;
-void gridW(){
-gq=ivec2(gl_FragCoord.xy);
-if(uHsrc==0){
-int l=gq.y/97;vec2 aG=vec2(float(gq.x),float(gq.y-l*97));vec4 L=uLevA[l];
-vec2 w=L.xy+aG*L.z;
-float d=max(abs(w.x-uCam.x),abs(w.y-uCam.z));
-float m=clamp((d-(L.w-11.0)*L.z)/(8.5*L.z),0.0,1.0);
-w-=mod(aG,2.0)*L.z*m;
-gLodD=length(w-uCam.xz);gw=w;
-}else gw=uHsrc==2?uGCw.xy+gl_FragCoord.xy*uGCw.z:texelFetch(uTex,gq,0).xy;
+#ifdef HPSPLIT
+
+uniform int uPm;uniform vec4 uGCw;uniform highp sampler2D uHP0,uHP1,uHP3,uHP4;out vec4 oC;
+vec4 pack(float h){float v=clamp((h+4096.0)/8192.0,0.0,0.99999);vec4 e=fract(v*vec4(1.0,255.0,65025.0,16581375.0));return e-e.yzww*vec4(1.0/255.0,1.0/255.0,1.0/255.0,0.0);}
+void main(){
+ivec2 q=ivec2(gl_FragCoord.xy);bool cam=uPm==1||uPm==3;
+vec4 k0=texelFetch(uHP0,q,0),k1=texelFetch(uHP1,q,0),s=texelFetch(uHP3,q,0),r=texelFetch(uHP4,q,0);
+float h=((s.xyz+r.xyz)-k1.xyz).x;
+if(cam)h=max(h,k0.w+r.w*(0.4+0.6*k1.w));
+#ifdef GC_PACKED
+oC=pack(h);
+#else
+oC=uPm==2?vec4(h,0.0,0.0,1.0):pack(h);
+#endif
 }
-void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }
+#else
+
+uniform sampler2D uTex; uniform vec4 uGCw; uniform int uPm; out vec4 oC;
+vec4 pack(float h) { float v = clamp((h + 4096.0) / 8192.0, 0.0, 0.99999); vec4 e = fract(v * vec4(1.0, 255.0, 65025.0, 16581375.0)); return e - e.yzww * vec4(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 0.0); }
+float hgt(vec2 p, bool cam) { return HdProbe(p, cam); }
+void main() {
+  bool grid = uPm >= 2, cam = uPm == 1 || uPm == 3;
+  vec2 p = grid ? uGCw.xy + gl_FragCoord.xy * uGCw.z : texelFetch(uTex, ivec2(gl_FragCoord.xy), 0).xy;
+  float h = hgt(p, cam);
+#ifdef GC_PACKED
+  oC = pack(h);
+#else
+  oC = uPm == 2 ? vec4(h, 0.0, 0.0, 1.0) : pack(h);
+#endif
+}
+#endif

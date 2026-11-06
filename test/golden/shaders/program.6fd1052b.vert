@@ -80,21 +80,17 @@ c*=1.0-uSkyKT.z*(1.0-side)*lt;
 c=mix(c,uSkyWN,uSkyKN.x*side*side*ln);
 return c*(1.0-uSkyKN.z*(1.0-side)*ln);
 }
-vec3 skyCol0(vec3 rd){
+vec3 skyCol(vec3 rd){
 float e=degrees(asin(clamp(rd.y,-1.0,1.0)));
-vec3 c=skyGrad(e);
+vec3 g=skyGrad(e),c=g;
 float side=sunSide(rd),low=exp(-max(e,0.0)/uSkyK.y);
 c=mix(c,uSkyW,uSkyK.x*side*side*low);
 c*=1.0-uSkyK.z*(1.0-side)*low;
 float cs=max(dot(rd,uSkyS),0.0);
 c+=uGlowC*(uGlow.x*pow(cs,uGlow.y)+uGlow.z*pow(cs,uGlow.w));
-return c;
-}
-vec3 skyCol(vec3 rd){
-vec3 c=skyCol0(rd);
 if(uSkyN.w>0.0){
-float e=degrees(asin(clamp(rd.y,-1.0,1.0))),cn=max(dot(rd,uSkyN.xyz),0.0);vec3 g=skyGrad(e);
-c+=skyWarmN(g,e,sunSide(rd))-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
+float cn=max(dot(rd,uSkyN.xyz),0.0);
+c+=skyWarmN(g,e,side)-g+uGlowN*(uGlow.x*pow(cn,uGlow.y)+uGlow.z*pow(cn,uGlow.w));
 }
 return c;
 }
@@ -122,11 +118,11 @@ return uHazeC+cs*cs*cs*(uHzT*st+uHzN*uSunK.z);
 }
 vec3 atmos(vec3 c,vec3 rd,float t){
 float f=fogAmt(rd,t);
-vec3 fc=mix(mix(fogCol(rd),uFogB.rgb,uFogB.a),fogCol(rd),smoothstep(0.25,0.95,f));
+vec3 fq=fogCol(rd),fc=mix(mix(fq,uFogB.rgb,uFogB.a),fq,smoothstep(0.25,0.95,f));
 c=mix(c,fc,f);
 c=mix(c,hazeCol(rd),hazeAmt(rd,t));
 #ifndef NO_TWILIGHT
-if(uTwM.x>0.0)c=mix(c,fogCol(rd),uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
+if(uTwM.x>0.0)c=mix(c,fq,uTwM.x*(1.0-smoothstep(uTwM.y,uTwM.y+uTwM.z,abs(rd.y))));
 #endif
 return c;
 }
@@ -175,20 +171,6 @@ c+=uClRim*hgN(cs,0.86)*thin*exp(-tauL*0.6)*uClK.w;
 return c;
 }
 vec3 cloudLight(vec3 n,vec3 rd,float tauL,float ao,float hgt,float thin){return cloudLight2(n,n,rd,tauL,ao,hgt,thin);}
-
-#define GROUND_CACHE
-float gcTex(ivec2 q){
-#ifdef GC_PACKED
-vec4 e=texelFetch(uGround,q,0);return(dot(e,vec4(1.0,1.0/255.0,1.0/65025.0,1.0/16581375.0))*8192.0)-4096.0;
-#else
-return texelFetch(uGround,q,0).r;
-#endif
-}
-float groundH(vec2 xz){
-vec2 g=(xz-uGC.xy)/uGC.z-0.5;vec2 f=fract(g);ivec2 i=ivec2(floor(g)),m=ivec2(int(uGC.w)-1);
-ivec2 a=clamp(i,ivec2(0),m),b=clamp(i+ivec2(1,0),ivec2(0),m),c=clamp(i+ivec2(0,1),ivec2(0),m),d=clamp(i+ivec2(1,1),ivec2(0),m);
-return mix(mix(gcTex(a),gcTex(b),f.x),mix(gcTex(c),gcTex(d),f.x),f.y);
-}
 
 uniform int uZ;   // (fast500 D) never set: GL makes it 0 at link. Added to a loop's bound, FXC (ANGLE's D3D11 compiler) cannot count the loop, so it keeps it rolled: one copy of its body
 vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast500 D) dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
@@ -602,38 +584,17 @@ return D_shadeStone(p,n,rd,t,fp,col,yAbove);
 float scatterDensity(vec2 p,int layer){vec3 wD,wC;kitW(p,wD,wC);return D_scatterDensity(p,layer)*(1.0-smoothstep(0.4,0.8,wC.x));}
 
 
-uniform float uPxK;
-layout(location=0)in vec3 aP;layout(location=1)in vec3 aN;layout(location=2)in vec4 aC;layout(location=3)in float aY;layout(location=4)in float aE;
-uniform vec4 uSc;
-uniform vec4 uSc2;
-uniform vec4 uSc3;
-centroid out vec3 vW;centroid out vec3 vN;centroid out vec4 vC;centroid out float vY;centroid out vec2 vE;
-mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.0,-s,0.0,1.0,0.0,s,0.0,c);}
-mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.0,0.0,0.0,0.0,c,s,0.0,-s,c);}
-mat3 rotZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0.0,-s,c,0.0,0.0,0.0,1.0);}
-void main(){
-int n=int(uSc.y),id=gl_InstanceID;
-ivec2 base=ivec2(floor(uCam.xz/uSc.x));
-ivec2 cell=base+ivec2(id%n,id/n)-ivec2(n/2);
-uint h=ih(ih2(cell+ivec2(int(uSc.w)*7919,int(uSc.w)*104729))^uSalt);
-float r1=hf(h),r2=hf(ih(h+1u)),r3=hf(ih(h+2u)),r4=hf(ih(h+3u)),r5=hf(ih(h+4u)),r6=hf(ih(h+5u)),r7=hf(ih(h+6u));
-vec2 pos=(vec2(cell)+vec2(r1,r2))*uSc.x;
-float dens=uSc.z*scatterDensity(pos,int(uSc.w));
-float keep=step(r3,dens);
-vec2 dd=abs(pos-uCam.xz)/(float(n)*0.5*uSc.x);
-float fade=1.0-smoothstep(0.72,0.97,max(dd.x,dd.y));
-float gy=groundH(pos);
-float near=mix(1.0,smoothstep(5.0,13.0,length(pos-uCam.xz)),step(uCam.y-gy,10.0));
-float s=mix(uSc2.x,uSc2.y,r4*r4)*keep*fade*near;
-float dz=max(dot(vec3(pos.x,gy,pos.y)-uCam,uCamF),1.0),pxs=s*uRes.y/(dz*uProj.y);
-float sinE=clamp((uCam.y-gy)/length(vec3(pos.x,gy,pos.y)-uCam),0.0,1.0);
-float pxv=pxs*(max(0.6*mix(1.0,uSc3.y,r6)-uSc2.z,0.12)+2.0*sinE);
-s*=smoothstep(1.0*uPxK,2.6*uPxK,pxs)*smoothstep(1.2*uPxK,2.4*uPxK,pxv);
-mat3 R=rotY(r5*6.2831853)*rotX((r6-0.5)*uSc2.w)*rotZ((r7-0.5)*uSc2.w);
-vec3 sc=vec3(1.0,mix(1.0,uSc3.y,r6),1.0)*s;
-vec3 lp=R*(aP*sc);
-vW=vec3(pos.x,gy-uSc2.z*s,pos.y)+lp;
-vN=R*(aN/max(sc,vec3(1e-4)));
-vC=vec4(aC.rgb*2.0,floor(aC.a*255.0+0.5));vY=lp.y-uSc2.z*s;vE=vec2(aE*15.9375,r7);
-gl_Position=s>1e-4?uVP*vec4(vW-uCam,1.0):vec4(0.0,0.0,-2.0,1.0);
+layout(location = 0) in vec2 aG;
+uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
+centroid out vec3 vW; centroid out vec3 vN; out float vX;
+void main() {
+  vec2 w = uLev.xy + aG * uLev.z;
+  float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
+  float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
+  w -= mod(aG, 2.0) * uLev.z * m;
+  gLodD = length(w - uCam.xz);
+  vec3 hd = HdSea(w);
+  vX = 1e4;
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
+  gl_Position = uVP * vec4(vW - uCam, 1.0);
 }
