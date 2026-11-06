@@ -34,16 +34,29 @@
     if (/Instagram/i.test(ua)) return 'Instagram app';
     if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook app';
     if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return 'TikTok app';
+    if (/Android/.test(ua)) {
+      if (/SamsungBrowser/.test(ua)) return 'Samsung Internet';
+      if (/; wv\)/.test(ua)) return 'Android WebView (an app)';
+      if (/Firefox\//.test(ua)) return 'Firefox (Android)';
+      if (/EdgA\//.test(ua)) return 'Edge (Android)';
+      if (/OPR\//.test(ua)) return 'Opera (Android)';
+      if (/Chrome\//.test(ua)) return 'Chrome (Android)';
+      return 'Android browser';
+    }
     if (/CriOS/.test(ua)) return 'Chrome (iOS)';
     if (/FxiOS/.test(ua)) return 'Firefox (iOS)';
     if (/EdgiOS/.test(ua)) return 'Edge (iOS)';
     return /Version\/[\d.]+.*Safari\//.test(ua) ? 'Safari' : 'in-app browser (unknown app)';
   }
-  function cache() {   // cold: the world's script came over the network; warm: from this browser's cache
+  function cache() {   // COLD: any of the page's own fixed-name files (scripts, styles, fonts) came over the network
     try {
-      var r = performance.getEntriesByType('resource').filter(function (e) { return /\/world\.[0-9a-f]+\.js$/.test(e.name); })[0];
-      if (!r) return '?'; if (r.transferSize === 0 && r.decodedBodySize > 0) return 'WARM (scripts from cache)';
-      return r.transferSize > 0 ? 'COLD (scripts from network)' : '?';
+      var o = location.origin, net = 0, mem = 0, n = 0;
+      performance.getEntriesByType('resource').forEach(function (e) {
+        if (e.name.indexOf(o) !== 0 || !/\.(js|css|woff2)(\?|$)/.test(e.name)) return;
+        n++; if (e.transferSize >= 1000) net++; else if (e.transferSize === 0 && e.decodedBodySize > 0) mem++;
+      });
+      if (!n) return '?';
+      return net ? 'COLD (' + net + ' of ' + n + ' files from network)' : mem === n ? 'WARM (all ' + n + ' files from cache)' : '? (' + n + ' files, sizes hidden)';
     } catch (e) { return '?'; }
   }
   function draw() { try { draw1(); } catch (e) {} }
