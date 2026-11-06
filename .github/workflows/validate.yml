@@ -33,7 +33,7 @@ jobs:
             hour.v3.js
             start.v4.js
             start-table.v4.js
-            world.v10.js
+            world.v11.js
             realm-kit.v2.js
             realm-dunes.v4.js
             realm-above.v3.js
@@ -43,7 +43,7 @@ jobs:
             model.v1.js
             labbird.v1.js
             birdwing.v1.js
-            inkbirds.v7.js
+            inkbirds.v8.js
             robots.txt
             _headers
             _redirects
@@ -327,13 +327,16 @@ jobs:
             echo "::error::internet body language found in the HTML"
             fail=1
           fi
-          # (2) behaviour: no exit, idle, hover-position, key or title handlers, no storage
-          if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS; then
+          # (2) behaviour: no exit, idle, hover-position, key or title handlers, no storage; the one exception the
+          # birds' pointer play (the owner, 2026-11-05: "the birds should be more interactive with the mouse"): the
+          # world's onHoverOut, a pointerout added and removed in hoverSync only (checked below)
+          if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS | grep -vE "addEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)|removeEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)"; then
             echo "::error::a needy behaviour (exit/idle/title/pointer handler or storage) was introduced"
             fail=1
           fi
-          # a pointer's moves are read only while it is pressed (the world's
-          # drag): one pointermove listener, added in onDown, removed in endDrag
+          # a pointer's moves are read by the world alone: the drag's (onMove, added in onDown, removed in endDrag)
+          # and the birds' play's (onHover, passive, and onHoverOut, the pointer off the window: both added and
+          # removed in hoverSync only, the owner's 2026-11-05 request); no other file reads them
           python3 - "$WORLD" $JS <<'PY' || fail=1
           import re, sys
           world, files = sys.argv[1], sys.argv[2:]
@@ -347,8 +350,11 @@ jobs:
                   def body(name):
                       m = re.search(r'\n  function %s\(.*?\n  function ' % name, s, re.S)
                       return m.group(0) if m else ''
-                  if n != 2 or "window.addEventListener('pointermove', onMove, true)" not in body('onDown') or "window.removeEventListener('pointermove', onMove, true)" not in body('endDrag'):
-                      print('::error::%s: pointer moves must be read only during a drag (added in onDown, removed in endDrag)' % f); bad = 1
+                  if n != 4 or "window.addEventListener('pointermove', onMove, true)" not in body('onDown') or "window.removeEventListener('pointermove', onMove, true)" not in body('endDrag'):
+                      print('::error::%s: pointer moves must be read only during a drag (added in onDown, removed in endDrag) and by the birds\' play (hoverSync)' % f); bad = 1
+                  hs = body('hoverSync'); o = "%sEventListener('%s', %s, { capture: true, passive: true })"
+                  if s.count('pointerout') != 2 or any((o % (a, e, h)) not in hs for a in ('window.add', 'window.remove') for e, h in (('pointermove', 'onHover'), ('pointerout', 'onHoverOut'))):
+                      print('::error::%s: the birds\' pointer play: onHover (pointermove) and onHoverOut (pointerout), passive, added and removed in hoverSync only' % f); bad = 1
           sys.exit(bad)
           PY
           # (3) the scripts add no DOM: the canvas, the stack and the lettering are in index.html

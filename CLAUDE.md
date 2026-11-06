@@ -16,7 +16,7 @@ site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
 site/start.v4.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World)
 site/start-table.v4.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint
-site/world.v10.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
+site/world.v11.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
 site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
 site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light
 site/realm-above.v3.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
@@ -27,7 +27,7 @@ site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M
 site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
 site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
 site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
-site/inkbirds.v7.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
+site/inkbirds.v8.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -60,8 +60,8 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
                              w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
                              with glsl_manifest.txt)
 
-Five scripts are served minified: world.v10.js, realm-kit.v2.js,
-realm-dunes.v4.js, realm-above.v3.js and inkbirds.v7.js. src/ holds them
+Five scripts are served minified: world.v11.js, realm-kit.v2.js,
+realm-dunes.v4.js, realm-above.v3.js and inkbirds.v8.js. src/ holds them
 as written. The world and the ink birds are kept as section files, one per
 divider of the old whole file (src/world/NNN-slug.js, src/birds/inkbirds/;
 each folder's parts.json names the served file): edit the section you need;
@@ -94,7 +94,7 @@ tools/minify.mjs --build build/ship site --start-src build/src),
 the two committed together. tools/build.mjs runs all of that into a
 folder of its own (node tools/build.mjs --plain OUT: site/ copied, the
 built scripts over it) and then (restructure step 5) names each script and
-stylesheet by its content: world.v10.js becomes world.<sha8>.js, the first 8
+stylesheet by its content: world.v11.js becomes world.<sha8>.js, the first 8
 hex of the sha256 of its final bytes, files that load others by name (the
 world's plan worker, the start file's table) named after them, and every
 reference rewritten (index.html, 404.html, \_headers, the two workers'
@@ -253,7 +253,11 @@ first loads. There shouldn't be any code at all for that, right?! wtf
 is going on pls fix from root and clean everything up"; and, of the
 boxes that hid the birds about the words: "also pls remove the masking
 boxes from behind the text completely. it's completely fine if the
-birds fly behind/in front of it... do u even understand". So: the name is
+birds fly behind/in front of it... do u even understand"; and, of the
+birds and the visitor's hand: "the birds should be more interactive with
+the mouse. do u get what i mean? did u even research all possible 100%
+ways and figure out the most delightful?" (so the birds, and the birds
+alone, notice the pointer: see Birds). So: the name is
 lettering (see Type); nothing on the page darkens the world or lifts it
 for the words; the words are always light, and the world draws only skies
 they read on (see World); and the birds are the ink birds alone, flying in
@@ -268,7 +272,8 @@ on every sky and at every moment. bg #f9f8f1 (Samara's cream) stays the
 paper: print, and the colour under everything. color-scheme stays light
 (no form controls, no scrollbars). Type is matte: no text-shadow, no
 glow. Links are plain underlined words (1px, dimmed underline, .18em
-offset); nothing reacts to hover; OS cursors only. The name and the type
+offset); nothing on the page reacts to hover but the birds (see Birds:
+THE POINTER); OS cursors only. The name and the type
 are present at first paint in their final place (the drawing's box is
 reserved by the stylesheet) and in their final colours. Print hides the
 world, the birds and the footer, on white (every still sky, the world's
@@ -276,7 +281,7 @@ too, gives way to the paper, background graphics on or off: CI checks
 the print block): the one exception to the light words, the name and the
 line print black, the credit #555, the name 16rem wide.
 
-## World (world.v10.js, realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js)
+## World (world.v11.js, realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js)
 
 The window is a camera flying through one endless world drawn in WebGL2,
 generated in code from the visit's seed (no picture, no model file). Each
@@ -312,8 +317,8 @@ starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
 view and the flight climbs or dives; let go, the turn runs on a little and
-eases out. A pointer's moves are read only while it is pressed (no hover),
-no key is read, nothing is stored. Two fingers are never steering
+eases out. The steering reads a pointer's moves only while it is pressed;
+the birds' play reads a hovering one (see Birds: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
 never at load); on Android the world would take the phone's motion
@@ -607,7 +612,7 @@ it, in CanvasText at full ink, in a still view of their own (the flight
 held), and the world back when they end, on at load too; print: none of
 it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.v10.js's
+THE WEATHER (=rand()): one crypto.getRandomValues above world.v11.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds. The realm and kit files, the wing model, the ink birds, the
@@ -617,7 +622,7 @@ world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.
 
-## Birds (inkbirds.v7.js and its wing model)
+## Birds (inkbirds.v8.js and its wing model)
 
 The birds are the ink birds, and there are no others: the world draws
 them, in its canvas, so before the world's first frame, and wherever it
@@ -629,7 +634,7 @@ CanvasText (see World: FALLBACKS). No script, SVG or rule of the old 2D
 birds is left in the page, its stylesheet, its headers or the world's
 scripts, and CI fails if one comes back (see Security).
 
-THE INK BIRDS (inkbirds.v7.js, round 3): the living sky. The birds are
+THE INK BIRDS (inkbirds.v8.js, round 3): the living sky. The birds are
 not flights planned to cross the window: every flock is an animal
 in the 3D world on its own business, and the window shows what is in
 front of the camera. Geese, ibis and gulls commute on the evening's line
@@ -666,10 +671,54 @@ The perched birds (guests): now and then a gull flies in (its way in and out fre
 the words), lands on the D's top or the k's or u's exit stroke, or just past LinkedIn's end on its
 line (never an underline), sits in the owner's perch A (the folded M seen side-on, upright),
 never still for long, and leaps off and away. No fades: it comes in from beyond the window's
-edge and leaves out of view. The pointer's perch needs the hover listener the world does not
-have, so it never comes. Each click or tap on the page that is not a drag and not on a link
+edge and leaves out of view. The pointer's own perch: see THE POINTER, below. Each click or tap on the page that is not a drag and not on a link
 starts a gull at that point (the drag's own pointerdown/up: no listener added) that springs off
 and recedes into the distance; at most 4 at once; none under reduced motion.
+
+THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
+with the mouse. do u get what i mean? did u even research all possible
+100% ways and figure out the most delightful?"). From the research
+(POINTER-RESEARCH.md, outside this repo): real birds notice, weigh an
+approach by its speed and directness, flee up and away, and come back
+later, bolder with a gentle visitor; chasing the cursor, being pushed
+about by it or flocking to it read as gimmicks and are not built. Each
+play has its own switch (inkbirds' PTR):
+- flush: a perched gull notices a pointer coming within 7 of its spans
+  (or about to reach it within 1.2 s): its breath stills and its head
+  comes up within 60 ms. Within 3.5 spans and still closing, or coming
+  straight at it (within 45 degrees) to reach it within 0.5 s, it
+  crouches one or two hand frames and flushes up and away from the
+  pointer; a slow (under 60 px/s) or sideways (over 60 degrees)
+  approach gets within 0.6 of those; a press within 8 spans flushes
+  it; the perches come back 20-60 s later.
+- shiver: a pointer sweeping past a flight (within 5 spans of a bird, at
+  100 px/s or more): the nearest bird rolls hard (twice its bank, 20
+  degrees at least) and eases back over half a second, and the roll
+  passes bird to bird away from the pointer, 80-120 ms a bird; paths,
+  places and wings untouched; a flight shivers at most every 6 s, and
+  after 3 lets the pointer be for 30 s.
+- perch: the pointer still (within 6 px) in open sky, 60 px from the
+  edges and 100 px from the words, for 3 s (1.5 s once trusted): a gull
+  lands on its tip, coming in over 4-6 s; it rides a creep under 6 px
+  and flushes away from the motion on a larger move, a press or the
+  pointer leaving the window; at most once every 60-90 s, 4 a visit.
+  On a phone: a press held 0.8 s without a drag, the gull landing 50 px
+  above the fingertip; lifting or dragging flushes it, and the lift is
+  no tap.
+- avoid: a word perch is not taken where the pointer is, and a gull on
+  its way in goes on by if the pointer comes to its perch.
+- click: the click's gull flushes a perched gull within 60 px (or four
+  of its spans) and shivers the flights it starts by.
+Underneath, one personality, wary but curious: each perched gull's
+boldness from the visit's streams (x0.7-1.4: bolder is closer; a few of
+the boldest stay for anything but a touch or a press), and the visit's
+trust (a gentle approach that ends without a flush shrinks every
+distance 8 %, to half at most; a flush grows them 15 %). The world reads
+a hovering pointer with one passive listener of its moves and one of
+its leaving the window, both added and removed in hoverSync only, only
+where the device hovers (any-hover: hover) and never under reduced
+motion or forced colours; they only store, and the birds do the rest in
+their own step. The words and the links react to nothing.
 
 The birds fly for as long as the page is open, as the world moves. That
 is automatic motion over five seconds beside content, which WCAG 2.2.2
@@ -736,7 +785,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 3. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
-4. world.v10.js — the world (deferred, fetchpriority="high", Early-Hinted,
+4. world.v11.js — the world (deferred, fetchpriority="high", Early-Hinted,
    first of the deferred; minified). As its script ends it starts the
    plan's worker, plan.v1.js, by name (no tag: see World: BOOT).
 5. realm-kit.v2.js, realm-dunes.v4.js, realm-above.v3.js — the kits
@@ -746,7 +795,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
    labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred,
    fetchpriority="low", in that order; each puts its one global on self).
-7. inkbirds.v7.js — the ink birds (deferred, fetchpriority="low", last,
+7. inkbirds.v8.js — the ink birds (deferred, fetchpriority="low", last,
    minified: they take the sky whenever they come).
 
 Progressive enhancement throughout: with JS off, the page is the
@@ -824,8 +873,8 @@ The world's scripts are not on the path to the first paint (deferred, the
 start file async), but the start file, the world's and the kits' are
 fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
-served: start.v4.js 1035 KB (its programs' GLSL, as text), world.v10.js
-381 KB, the kits 51 KB, inkbirds.v7.js 193 KB, its wing model 186 KB, the
+served: start.v4.js 1035 KB (its programs' GLSL, as text), world.v11.js
+381 KB, the kits 51 KB, inkbirds.v8.js 193 KB, its wing model 186 KB, the
 plan's worker 73 KB (node tools/minify.mjs --report build/src: the five
 minified, before and after, raw and brotli).
 
@@ -932,13 +981,16 @@ it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
 hour.v3.js, start.v4.js and its table start-table.v4.js, the five minified scripts as written (src/'s
-world.v10.js, the kits and inkbirds.v7.js), the wing model, plan.v1.js,
+world.v11.js, the kits and inkbirds.v8.js), the wing model, plan.v1.js,
 plus style.v16.css for cursors and a bird rule, and \_headers for a bird
 script's name — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
-handler in the JS (a pointer's moves read only by the world's drag: its
-one pointermove listener added in onDown and removed in endDrag); any DOM
+handler in the JS (a pointer's moves read by the world alone: the drag's
+listener added in onDown and removed in endDrag, and the birds' pointer
+play's two, onHover and onHoverOut, passive, added and removed in
+hoverSync: the owner's request of 2026-11-05, the one exception to the
+hover and exit bans); any DOM
 building; more or fewer than one getRandomValues in the world, or one
 below its INIT-END marker, and none at all, nor any clock read, in the
 kits, the wing model, the ink birds, the start file or the plan's worker;
@@ -962,7 +1014,7 @@ with exactly script-src 'self' https://static.cloudflareinsights.com and
 connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
-listeners only in world.v10.js and only by name (its two on the plan's
+listeners only in world.v11.js and only by name (its two on the plan's
 worker, its answer and its failure, one each); the script order (the
 world and the kits first, fetchpriority high, then the wing model and
 the ink birds, low; the start file the one async script, high, right
