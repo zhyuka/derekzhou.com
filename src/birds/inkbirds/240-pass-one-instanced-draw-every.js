@@ -167,15 +167,22 @@
         var op = (FORCED ? 1 : fadeFor(F, s.n)) * app * gone * (1 - ease((s.n - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])));
         s.lastOp = op; s.lastApp = app; s.op = op;
         if (op <= 0.003) continue;
-        lightBird(s, L, !moving, dt);
-        cloudWeights(s, C, tr, !moving);
         var gdir = 1;
         if (gE >= 0) { var fc = s.face || F.dir || 1; gdir = (fc > 0) === (s.D[0] < s.D[12]) ? 1 : -1; }   // (written from the back tip to the front tip, on the window)
-        packBird(nB, s, op, NEARMOST * d.span * MPU * MODEL_K + 2, FX.cloud, N, s.haloE, gE, gdir, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
+        inkBird(nB, s, C, L, N, !moving, dt, tr, op, NEARMOST * d.span * MPU * MODEL_K + 2, FX.cloud, gE, gdir, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
         nB++;
       }
     }
-    if (GU.list.length && !FORCED && moving) nB = drawGuests(C, dt, L, N, nB, tr);
+    /* the birds perching (270: on a letter or the pointer, a state): their slots the ring's, their place and pose the
+       state's (guestPlace: on the window, where the ink and the pointer are), lit, weighed and packed by the same steps;
+       held (their tone not eased), in front of every cloud (they sit on the words) */
+    for (i = 0; moving && !FORCED && i < GU.list.length; i++) {
+      var g = GU.list[i]; s = g.s; if (!s || nB >= DRAW_MAX) continue;
+      var A = guestPlace(g, s, C, dt, tr);
+      if (!A) continue;
+      inkBird(nB, s, C, L, N, true, dt, 0, A.op, 1e5, false, -1, 1, s.floorPx);
+      nB++;
+    }
     STATS.drawn = nB;
     if (!nB) return;
     var P = PROG, E = HOST.grade(), tex = !FORCED && HOST.bindTextures();
@@ -207,6 +214,12 @@
     if (tex) { gl.activeTexture(gl.TEXTURE14); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0); }   // (TG.hz off unit 14 again: the clouds' accumulation binds its own there)
     gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
     HOST.count(1, nB);
+  }
+  /* every drawn bird's last steps, one way for all: its light on the paper, the cloud before it, its instance */
+  function inkBird(nB, s, C, L, N, rest, dt, tr, op, slack, cloudOn, gE, gdir, floor) {
+    lightBird(s, L, rest, dt);
+    cloudWeights(s, C, tr, rest);
+    packBird(nB, s, op, slack, cloudOn, N, s.haloE, gE, gdir, floor);
   }
   /* (physics) one bird's instance (7 vec4) and its row of the points' texture (its 46 points, device px and 1/depth;
      its 30 facets' light, linear, when its planes show) */

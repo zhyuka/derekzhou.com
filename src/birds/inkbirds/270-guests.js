@@ -5,9 +5,9 @@
      camera's own space (its place on the window and its nearness), so a turn of the view does not sweep a bird that is
      landing on the words. Nothing here is read by the ordinary planner, the guard or the camera: no band, no
      HOST.calm, no flight list written (the twin test, L13); the guest reads the ordinary birds' last boxes (to keep away
-     from them) and nothing else of theirs. Drawn by the same instanced pass, behind the words (the words always on
-     top: a bird on a stroke sits on it, the stroke covering its sliver); its way in and out may cross any word (the
-     owner, 2026-11-05: no keep-out) */
+     from them) and nothing else of theirs. Drawn as any bird (a slot of the one ring, the main pass's own steps: gSlots,
+     guestPlace), behind the words (the words always on top: a bird on a stroke sits on it, the stroke covering its
+     sliver); its way in and out may cross any word (the owner, 2026-11-05: no keep-out) */
   var PERCH = (function () {   /* the perched shape: ONE swappable piece (perch.js A 704d1048: its poses, keys, rest rule) */
     function side(a) { var p = FP.pose(); for (var i = 0; i < 11; i++) { p[i] = a[i]; p[11 + i] = a[i]; } return p; }
     var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 10, 12, 0.95, -40, 0, 4, 6, 0, 0, 8]),
@@ -477,7 +477,7 @@
   }
   /* each step: the pointer read, the guests' clocks, the schedule */
   function guestStep(dt) {
-    if (FORCED || HOST.reduced()) { if (GU.list.length) GU.list.length = 0; return; }
+    if (FORCED || HOST.reduced()) { if (GU.list.length) { GU.list.length = 0; gSlots(); } return; }
     var p = GU.p, i;
     if (HOST.pointer) HOST.pointer(p); else p.gone = true;
     gOrdUpdate();
@@ -545,6 +545,7 @@
         } else if (spec) GU.nextWord = t + 6;   // (no room now: tried again soon)
       }
     }
+    gSlots();   // (each bird in the state on its slot of the ring; one gone from it, its slot given back)
   }
   /* the guest as drawn at time tt: its place (CSS px), its body's attitude (camera frame: yaw 0 straight away, + to its
      right; pitch + nose up; roll + right wing down; el: the perched bird seen a little from above), its 22 floats */
@@ -644,16 +645,22 @@
     o.phase = uo < tC ? 'crouch' : uo < tC + 0.66 ? 'takeoff' : 'away';
     return o;
   }
-  /* one guest posed in front of the camera (as a pin: the body at its place on the window, at the distance its span
-     asks), its lowest points put on the perch's surface (the rest rule 'low', solved in the drawn perspective) */
-  var PIN_SLOTS = [];   // (the guests' slots: drawn as any bird, apart from the ring)
-  function pinSlot(i) {
-    while (PIN_SLOTS.length <= i) PIN_SLOTS.push({ key: 777 + PIN_SLOTS.length, busy: true, on: true, d: null, kind: 'gull', P16: new Float64Array(48), X16: new Float64Array(48), D: new Float32Array(32), body: new Float64Array(3), nb: new Float64Array(3), fw: new Float64Array(3), lw3: new Float64Array(3), vw: new Float64Array(3), aw: new Float64Array(3),
-      roll: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 });
-    return PIN_SLOTS[i];
+  /* (one bird system, the owner 2026-11-06: no bird a different type) perching is a state, and a perched bird is
+     drawn as any bird: a slot of the one ring (slots, 090), held while it is in the state, and the main pass's own steps
+     (projectBird, lightBird, cloudWeights, packBird: drawPaper, 240). What the state keeps is its place and pose: the
+     body at its place on the window (letter ink and the pointer are fixed to the window) at the distance its span asks,
+     in the pose PERCH clips, its lowest points put on the perch's surface (the rest rule 'low', solved in the drawn
+     perspective). Its slot is taken from the ring's far end, so the flocks' slots (the first free) are dealt as before */
+  function gSlots() {
+    var i, q, s;
+    for (i = slots.length - 1; i >= 0; i--) { s = slots[i]; if (s.perch && GU.list.indexOf(s.perch) < 0) { hide(s); s.busy = false; s.perch = null; } }
+    for (i = 0; i < GU.list.length; i++) {
+      var g = GU.list[i]; if (g.s) continue;
+      for (q = slots.length - 1; q >= 0; q--) if (!slots[q].busy) { s = slots[q]; dress(s, null); s.busy = true; s.perch = g; g.s = s; break; }
+    }
   }
-  var GSLOT = [], GLOWX = 0, GFP = [];
-  function guestBird(g, s, C, dt, L, tt) {
+  var GLOWX = 0, GFP = [];
+  function guestPose(g, s, C, dt, tt) {
     var kind = g.kind, i;
     s.kind = kind; if (!s.X46) slotArrays(s);
     var spm = B_SPAN * (SORTS[kind] ? SORTS[kind].size : 1) * MODEL_K;
@@ -715,31 +722,23 @@
     s.body[0] = bx; s.body[1] = by; s.body[2] = bz; s.nb[0] = zx; s.nb[1] = zy; s.nb[2] = zz;
     s.fw[0] = fx; s.fw[1] = fy; s.fw[2] = fz; s.lw3[0] = lx; s.lw3[1] = ly; s.lw3[2] = lz; s.roll = A.roll; s.pitch = A.pitch;
     s.d = { span: spm / MODEL_K / MPU, model: spm / MPU };
-    if (!projectBird(s, C)) return null;
-    lightBird(s, L, true, dt);
-    cloudWeights(s, C, 0, true);
+    return A;
+  }
+  /* the perched bird where it is drawn now (its place, its pose: guestPose), or null; the rest's probe once, as it comes
+     to its glide's end (its touch-down point moved to where its feet are drawn); the projection the pass's own */
+  function guestPlace(g, s, C, dt, tr) {
+    if (!g.Tfix && g.phase === 'in' && tr - g.t0 >= g.Ti && g.Tr > 0.8) {   // (fix: the probe, once)
+      g.Tfix = true; var kl = g.last, kS = g.cS, kX = g.cX, kp = g.pfw; g.probe = true; var Ap = guestPose(g, s, C, dt, g.tT + 1e-3); if (Ap && !projectBird(s, C)) Ap = null; g.probe = false; g.last = kl; g.cS = kS; g.cX = kX; g.pfw = kp;
+      if (Ap && Ap.xDrawn === Ap.xDrawn && Math.abs(Ap.xDrawn - g.T[0]) < 2 * g.sp && Math.abs(Ap.yDrawn - g.T[1]) < 2 * g.sp) {
+        g.T = [Ap.xDrawn, Ap.yDrawn]; g.arc = [0]; var ox = g.G[0], oy = g.G[1];
+        for (var q = 1; q <= 32; q++) { gBez(g, q / 32, GTMP); g.arc.push(g.arc[q - 1] + Math.sqrt((GTMP.x - ox) * (GTMP.x - ox) + (GTMP.y - oy) * (GTMP.y - oy))); ox = GTMP.x; oy = GTMP.y; }
+        g.Lb = g.arc[32]; g.ve = Math.max(0.1 * g.vg, 2 * g.Lb / g.Tr - g.vg);
+        gLog({ t: +t.toFixed(2), ev: 'rest', dx: +(g.T[0] - g.px0).toFixed(2), dy: +(g.T[1] - g.py0).toFixed(2) });
+      }
+    }
+    var A = guestPose(g, s, C, dt, tr - g.t0);
+    if (!A || !projectBird(s, C)) return null;
     g.last = { x: A.xDrawn, y: A.yDrawn, phase: A.phase, yaw: A.yaw, pitch: A.pitch, el: A.el, op: A.op, flap: g.flap };
     return A;
   }
-  function drawGuests(C, dt, L, N, nB, tr) {
-    for (var i = 0; i < GU.list.length && nB < MAXP; i++) {
-      var g = GU.list[i]; while (GSLOT.length <= i) GSLOT.push(null);
-      if (!GSLOT[i]) { pinSlot(PIN_SLOTS.length); GSLOT[i] = PIN_SLOTS.pop(); GSLOT[i].key = 991 + i; }
-      var s = GSLOT[i];
-      if (!g.Tfix && g.phase === 'in' && tr - g.t0 >= g.Ti && g.Tr > 0.8) {   // (fix: the probe, once)
-        g.Tfix = true; var kl = g.last, kS = g.cS, kX = g.cX, kp = g.pfw; g.probe = true; var Ap = guestBird(g, s, C, dt, L, g.tT + 1e-3); g.probe = false; g.last = kl; g.cS = kS; g.cX = kX; g.pfw = kp;
-        if (Ap && Ap.xDrawn === Ap.xDrawn && Math.abs(Ap.xDrawn - g.T[0]) < 2 * g.sp && Math.abs(Ap.yDrawn - g.T[1]) < 2 * g.sp) {
-          g.T = [Ap.xDrawn, Ap.yDrawn]; g.arc = [0]; var ox = g.G[0], oy = g.G[1];
-          for (var q = 1; q <= 32; q++) { gBez(g, q / 32, GTMP); g.arc.push(g.arc[q - 1] + Math.sqrt((GTMP.x - ox) * (GTMP.x - ox) + (GTMP.y - oy) * (GTMP.y - oy))); ox = GTMP.x; oy = GTMP.y; }
-          g.Lb = g.arc[32]; g.ve = Math.max(0.1 * g.vg, 2 * g.Lb / g.Tr - g.vg);
-          gLog({ t: +t.toFixed(2), ev: 'rest', dx: +(g.T[0] - g.px0).toFixed(2), dy: +(g.T[1] - g.py0).toFixed(2) });
-        }
-      }
-      var A = guestBird(g, s, C, dt, L, tr - g.t0);
-      if (!A) continue;
-      packBird(nB, s, A.op, 1e5, false, N, s.haloE, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
-      nB++;
-    }
-    return nB;
-  }
-  function guestReset() { GU.list.length = 0; GU.k = 0; GU.nWord = 0; GU.nPtr = 0; GU.lastWord = -1e9; GU.nextWord = G_FIRST; GU.lastPtr = -1e9; GU.flushAt = -1e9; GU.flushN = 0; GU.firstRest = true; GU.log.length = 0; GU.restT = 0; GU.px = -1; GU.ptrRetry = -1e9; GU.trust = 1; GU.flushHold = 0; GU.ptrGap = PJ.gap[0]; }
+  function guestReset() { GU.list.length = 0; gSlots(); GU.k = 0; GU.nWord = 0; GU.nPtr = 0; GU.lastWord = -1e9; GU.nextWord = G_FIRST; GU.lastPtr = -1e9; GU.flushAt = -1e9; GU.flushN = 0; GU.firstRest = true; GU.log.length = 0; GU.restT = 0; GU.px = -1; GU.ptrRetry = -1e9; GU.trust = 1; GU.flushHold = 0; GU.ptrGap = PJ.gap[0]; }
