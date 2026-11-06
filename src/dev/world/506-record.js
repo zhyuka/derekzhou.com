@@ -508,11 +508,11 @@
         H: { ok: BOOT.hOk, fails: BOOT.hFails, thumb: BOOT.thumbStat || null }, warm: { keys: WARM.list ? WARM.list.length : 0, frames: WARM.frames, ms: WARM.ms.slice(0, 80).map(function (w) { return [w[0], w[1], w[2], recFrameMs(w[2])]; }) },   // (Fix 2: [key, draw call ms, frame, that frame's interval ms])
         programs: { n: PROGS.length, broken: PROGX.broken, par: !!EXT.par, parAll: !!EXT.parAll, each: PROGS.map(function (P) { return [P.name, P.kb || 0, P.cms || 0, P.lms || 0, P.fms || 0, P.doneAt || null]; }), one: recProgs() },
         waits: { flight: BOOT.fwait || 0 }, defs: defsRec(), noise: { K: NOISE.K, fixed: NOISE.fixed }, late: lateRec(), folds: foldRec(), firstDraw: REC.firstDraw ? REC.firstDraw.list : null, firstKeys: REC.firstDraw ? { keys: REC.firstDraw.keys, over: REC.firstDraw.over } : null },   // (fast500 F0: every pipeline key's first use)   // (fast500 F0: the flight's inputs' wait, the first-draw guard)
-      readback: { bakeAIMD: { layers: FBAKE.n, lagged: FBAKE.lagged, halvings: FBAKE.halvings, late: FBAKE.late }, nextDeadline: null, fencesMade: RB.made, polls: RB.polled, reads: RB.reads, readKB: Math.round(RB.readBytes / 1024), slotSkips: RB.skipped, fenceSkips: RB.fenceSkipped, lagged: RB.lagN, forcedReads: RB.forced || 0, probes: PSTAT, junctionWaits: SIM.waits, wordsTrim: typeof AG !== 'undefined' ? AG.trim : null, wordsMiss: typeof AG !== 'undefined' ? AG.miss : null },   // ((line2) wordsTrim: the words' reads made without the line's block for room in the slot; wordsMiss: those refused even so)   // (forcedReads: the dev harness's unconditional reads, Fix 2; 0 in a live visit)
+      readback: { bakeAIMD: { layers: FBAKE.n, lagged: FBAKE.lagged, halvings: FBAKE.halvings, late: FBAKE.late }, nextDeadline: null, fencesMade: RB.made, polls: RB.polled, reads: RB.reads, readKB: Math.round(RB.readBytes / 1024), slotSkips: RB.skipped, fenceSkips: RB.fenceSkipped, lagged: RB.lagN, forcedReads: RB.forced || 0, probes: PSTAT, junctionWaits: SIM.waits },   // (forcedReads: the dev harness's unconditional reads, Fix 2; 0 in a live visit)
       madeAfterShown: R.madeAfter, freedAfterShown: R.freedAfter, uploadsAfterShown: R.upAfter, stageEvents: R.stageEv || [],
       pools: R.minute, objPools: { pre: POOL_PRE, cap: POOL_CAP, madeShown: POOL.madeShown, made: POOL.made, reused: POOL.reused, peakLive: POOL.peakLive, deleted: POOL.deleted, free: (function () { var o = {}; POOL_KINDS.forEach(function (k) { o[k] = POOL.lists[k].length; }); return o; })() },   // (Fix 3: the cells' and visits' object pools)
       flips: R.flips, firstFlipAfterDissolve: R.firstFlip,
-      tod: recTod(R),   // (tod: the cycle each second (t, sky, next, k, q, qs, group, words, ceiling), the landing, every ink flip with its reason (sky, ground, rescue, take), the bars' writes, the ceiling's engaged share, the boot's thumbnail)
+      tod: recTod(R),   // (tod: the cycle each second (t, sky, next, k, q, q again where the structure's own clock stood, group, words, ceiling), the landing, the bars' writes, the ceiling's engaged share, the boot's thumbnail)
       keepout: null, contrast: null,   // (E6: the keep-out and the statistics pass do not exist yet)
       inputLatencyMs: R.lat, orientRaw: R.ori, orientFiltered: R.oriF,
       device: { renderer: EXT.renderer, floatRT: FLOAT_RT, f32: FLOAT32_RT, aa: AAS, memPlan: memRec(), vol16: VOL16, filtErr: +FILTERR.toFixed(5), par: !!EXT.par, out: [OUT.w, OUT.h, +OUT.dpr.toFixed(3)], full: [FULL.w, FULL.h, +FULL.dpr.toFixed(3)], css: [Math.round(OUT.cssW), Math.round(OUT.cssH)], dpr: window.devicePixelRatio || 1, mem: navigator.deviceMemory || null, cores: navigator.hardwareConcurrency || null, classGuess: null, hints: DEVHINT, warmup: { pinned: GS.pinned, mediansMs: GS.med, rung: GS.rung, period: GS.P ? +GS.P.toFixed(2) : null } },
@@ -523,8 +523,8 @@
     };
   }
   function recTod(R) {   // (tod; the record's unit test runs the record alone, without the cycle: null there)
-    if (typeof SKY === 'undefined' || typeof AG === 'undefined') return null;
-    return { cycle: R.cycle || [], landing: SKY.landing || null, inks: AG.log.slice(0, 400), theme: { writes: THEME.n, last: THEME.hex }, ceilEngaged: R.cycle ? +(R.cycle.filter(function (c) { return c[8] < 1.5; }).length / Math.max(1, R.cycle.length)).toFixed(3) : 0, thumb: BOOT.thumbStat || null };
+    if (typeof SKY === 'undefined') return null;
+    return { cycle: R.cycle || [], landing: SKY.landing || null, theme: { writes: THEME.n, last: THEME.hex }, ceilEngaged: R.cycle ? +(R.cycle.filter(function (c) { return c[8] < 1.5; }).length / Math.max(1, R.cycle.length)).toFixed(3) : 0, thumb: BOOT.thumbStat || null };
   }
   /* (E1) each arm's own numbers, from steady flight's intervals tagged with it: what the lead reads back to settle the
      frame's order and the fence's place (design-v5 4.3, 7.5): the interval percentiles and histogram in tenths of kP
