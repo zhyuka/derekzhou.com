@@ -1,0 +1,3885 @@
+{
+ "meta": {
+  "title": "Wing skeleton, joints and feathers by kind",
+  "units": "fractions of the semi-span (midline to wingtip at full extension) unless named; angles in degrees; elbow angle = interior angle humerus-forearm (180 straight), manus (wrist) angle = interior angle forearm-carpometacarpus (180 straight)",
+  "sources": {
+   "baliga2019": "Baliga VB, Szabo I, Altshuler DL (2019) Range of motion in the avian wing is strongly associated with flight behavior and body mass. Sci. Adv. 5: eaaw6670. Data: figshare 10.6084/m9.figshare.8856161 (CC BY 4.0): AvianMorphology.xlsx (bones, wing length and area, primary and secondary counts) and the cadaver elbow/wrist range-of-motion recordings",
+   "harvey2022": "Harvey C, Baliga VB, Wong JCM, Altshuler DL, Inman DJ (2022) Birds can transition between stable and unstable states via wing morphing. Nature 603: 648-653. Data: figshare 10.6084/m9.figshare.c.5503989 (CC BY 4.0): bones, spans, per-feather lengths and vane widths, 3D wing markers through the elbow/wrist range",
+   "harvey2021": "Harvey C, Baliga VB, Goates CD, Hunsaker DF, Inman DJ (2021) Gull-inspired joint-driven wing morphing allows adaptive longitudinal flight control. J. R. Soc. Interface 18: 20210132. Data: figshare 10.6084/m9.figshare.c.5275490 (CC BY 4.0): the gull linkage trajectory (Lar_gla.linkage.ext.loess.csv)",
+   "harvey2019": "Harvey C, Baliga VB, Lavoie P, Altshuler DL (2019) Wing morphing allows gulls to modulate static pitch stability during gliding. J. R. Soc. Interface 16: 20180641 (text, section 3.1): in vivo gliding elbow 90-154 deg, manus 110-173 deg",
+   "matloff2020": "Matloff LY, Chang E, Feo TJ, Jeffries L, Stowers AK, Thomson C, Lentink D (2020) How flight feathers stick together to form a continuous morphing wing. Science 367: 293-297. Data: figshare 10.6084/m9.figshare.11369364 (CC BY 4.0): pigeon feather angles vs wrist angle, per-feather slopes",
+   "stowers2017": "Stowers AK, Matloff LY, Lentink D (2017) How pigeons couple three-dimensional elbow and wrist motion to morph their wings. J. R. Soc. Interface 14: 20170224 (text via PMC5582118)",
+   "baier2013": "Baier DB, Gatesy SM, Dial KP (2013) Three-dimensional, high-resolution skeletal kinematics of the avian wing and shoulder during ascending flapping flight and uphill flap-running. PLoS ONE 8: e63982 (CC BY): chukar XROMM, Table 2",
+   "featheratlas": "The Feather Atlas, U.S. Fish and Wildlife Service Forensics Laboratory (fws.gov/lab/featheratlas; US federal work): per-feather total and vane lengths (data/featheratlas.sqlite) and scans (outlines digitized here, tools/fa_profiles.py)",
+   "alerstam2007": "Alerstam T, Rosen M, Baeckman J, Ericson PGP, Hellgren O (2007) Flight speeds among bird species: allometric and phylogenetic effects. PLoS Biol 5: e197 (CC BY), Protocol S1: mass, span, area",
+   "wang2011": "Wang X, McGowan AJ, Dyke GJ (2011) Avian wing proportions and flight styles. PLoS ONE 6: e28672 (CC BY), Table S1: humerus and ulna (its manus, total-arm and mass columns are inconsistent and are not used)",
+   "liu2004": "Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA 2004-2186 (NASA Langley): a dried gull wing's twist; gull, goose and crane wing extension through the stroke from video"
+  },
+  "digits": {
+   "source": "derived (harvey2022 manus vs baliga2019 carpometacarpus)",
+   "ratio_digits_over_cmc_mean": 0.686,
+   "by_species": {
+    "gull": {
+     "manus_mm": 137.3,
+     "cmc_scaled_mm": 81.841,
+     "digits_mm": 55.459,
+     "digits_over_cmc": 0.678
+    },
+    "duck": {
+     "manus_mm": 106.2,
+     "cmc_scaled_mm": 62.351,
+     "digits_mm": 43.849,
+     "digits_over_cmc": 0.703
+    },
+    "pigeon": {
+     "manus_mm": 65.1,
+     "cmc_scaled_mm": 37.618,
+     "digits_mm": 27.482,
+     "digits_over_cmc": 0.731
+    },
+    "crow": {
+     "manus_mm": 109.1,
+     "cmc_scaled_mm": 66.881,
+     "digits_mm": 42.219,
+     "digits_over_cmc": 0.631
+    }
+   },
+   "note": "no open per-species phalanx data reached: the major digit's phalanges taken as this share of the carpometacarpus"
+  },
+  "recommended_note": "recommended[kind]: bone lengths as fractions of the semi-span (mean of the listed sources, spread = (mean, sd, n)); positions_at_full_extension: the joints' distances out from the midline in the flattened wing at the cadaver's full extension (where markers exist)"
+ },
+ "kinds": {
+  "gull": {
+   "species": "Larus (glaucescens, argentatus, delawarensis)",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Larus argentatus",
+     "mass_kg": 1.142,
+     "span_m": 1.34,
+     "semispan_m": 0.67,
+     "area_m2": 0.1968,
+     "AR": 9.12
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "harvey2022",
+     "species": "Larus glaucescens",
+     "specimen": "20_0341",
+     "mass_kg": 1.063,
+     "semispan_m": 0.662,
+     "shoulder_offset": 0.031,
+     "humerus": 0.1997,
+     "ulna": 0.2156,
+     "radius": 0.2137,
+     "manus_as_given": 0.2074
+    },
+    {
+     "source": "baliga2019",
+     "species": "Larus glaucescens",
+     "mass_g": 1349,
+     "wing_length_mm": 632.8334193492823,
+     "semispan_mm_est": 653.1,
+     "half_body_frac_used": 0.031,
+     "humerus": 0.1702,
+     "radius_ulna": 0.2075,
+     "cmc": 0.1053,
+     "digits_est": 0.0722,
+     "primaries": 10,
+     "secondaries": 23,
+     "wing_area_one_mm2": 83516.655,
+     "AR": 9.59
+    },
+    {
+     "source": "baliga2019",
+     "species": "Larus delawarensis",
+     "mass_g": 465,
+     "wing_length_mm": 429.57000000000005,
+     "semispan_mm_est": 443.3,
+     "half_body_frac_used": 0.031,
+     "humerus": 0.1983,
+     "radius_ulna": 0.2466,
+     "cmc": 0.1244,
+     "digits_est": 0.0853,
+     "primaries": 10,
+     "secondaries": 20,
+     "wing_area_one_mm2": 40187.866,
+     "AR": 9.18
+    },
+    {
+     "source": "wang2011",
+     "species": "Larus argentatus",
+     "humerus_mm": 128.77,
+     "ulna_mm": 144.26,
+     "semispan_m_alerstam": 0.67,
+     "humerus": 0.1922,
+     "ulna": 0.2153
+    }
+   ],
+   "planform_at_full_extension": {
+    "source": "harvey2022",
+    "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
+    "elbow_angle": 146.8,
+    "manus_angle": 166.5,
+    "semispan_m": 0.662,
+    "shoulder": [
+     0.0,
+     0.031
+    ],
+    "elbow": [
+     -0.0283,
+     0.2127
+    ],
+    "wrist": [
+     -0.0,
+     0.4312
+    ],
+    "manus_end": [
+     -0.0162,
+     0.5878
+    ],
+    "le_at_wrist": [
+     0.0186,
+     0.4432
+    ],
+    "tip_P10": [
+     -0.1065,
+     1.1539
+    ],
+    "tip_last_primary_on_cmc": [
+     -0.1465,
+     1.0599
+    ],
+    "tip_S1": [
+     -0.2576,
+     0.6147
+    ],
+    "tip_last_secondary": [
+     -0.3039,
+     0.262
+    ],
+    "root_le": [
+     0.0388,
+     0.0852
+    ],
+    "off_plane_residual": {
+     "pt1": 0.0911,
+     "pt2": -0.0377,
+     "pt3": -0.0584,
+     "pt4": -0.0659,
+     "pt6": -0.0343,
+     "pt8": 0.0546,
+     "pt9": 0.0151,
+     "pt10": 0.0133,
+     "pt11": -0.0265,
+     "pt12": 0.0488
+    }
+   },
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 3,
+     "elbow": [
+      17,
+      166
+     ],
+     "manus": [
+      32,
+      178
+     ],
+     "max_extension_pairs": [
+      [
+       156,
+       180
+      ],
+      [
+       159,
+       177
+      ],
+      [
+       166,
+       168
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      88,
+      156
+     ],
+     "manus": [
+      53,
+      171
+     ],
+     "slope_manus_per_elbow": 1.84,
+     "r": 0.993,
+     "curve_manus_by_elbow": {
+      "90": 59,
+      "100": 67,
+      "110": 88,
+      "120": 110,
+      "130": 125,
+      "140": 144,
+      "150": 166,
+      "160": 167
+     },
+     "all_specimens_slopes": [
+      1.84,
+      1.52,
+      1.74
+     ]
+    },
+    "linkage_harvey2021": {
+     "source": "harvey2021",
+     "curve_manus_by_elbow": {
+      "90": 54.0,
+      "95": 60.7,
+      "100": 67.6,
+      "105": 75.2,
+      "110": 84.4,
+      "115": 94.1,
+      "120": 103.9,
+      "125": 113.6,
+      "130": 122.7,
+      "135": 131.5,
+      "140": 141.7,
+      "145": 151.7,
+      "150": 160.7,
+      "155": 166.7
+     },
+     "elbow_range": [
+      87.2,
+      155.8
+     ]
+    },
+    "in_vivo_gliding": {
+     "source": "harvey2019",
+     "elbow": [
+      90,
+      154
+     ],
+     "manus": [
+      110,
+      173
+     ],
+     "note": "glaucous-winged x western gulls gliding; lower elbow angles in stronger wind (-0.61 deg per m/s; gusts -0.40 deg per m/s)"
+    }
+   },
+   "feathers": {
+    "harvey": {
+     "source": "harvey2022",
+     "species": "Larus glaucescens",
+     "primaries": {
+      "P1": {
+       "length_frac": 0.3214,
+       "length_cm": 21.3,
+       "calamus_cm": 5.2,
+       "rachis_at_chord_frac": 0.238,
+       "inner_over_outer_vane": 3.21
+      },
+      "P2": {
+       "length_frac": 0.3214,
+       "length_cm": 21.3,
+       "calamus_cm": 5.2,
+       "rachis_at_chord_frac": 0.238,
+       "inner_over_outer_vane": 3.21
+      },
+      "P3": {
+       "length_frac": 0.3394,
+       "length_cm": 22.5,
+       "calamus_cm": 5.3,
+       "rachis_at_chord_frac": 0.25,
+       "inner_over_outer_vane": 3.0
+      },
+      "P4": {
+       "length_frac": 0.3715,
+       "length_cm": 24.6,
+       "calamus_cm": 5.8,
+       "rachis_at_chord_frac": 0.224,
+       "inner_over_outer_vane": 3.46
+      },
+      "P5": {
+       "length_frac": 0.4006,
+       "length_cm": 26.5,
+       "calamus_cm": 6.6,
+       "rachis_at_chord_frac": 0.227,
+       "inner_over_outer_vane": 3.4
+      },
+      "P6": {
+       "length_frac": 0.4377,
+       "length_cm": 29.0,
+       "calamus_cm": 7.0,
+       "rachis_at_chord_frac": 0.231,
+       "inner_over_outer_vane": 3.32
+      },
+      "P7": {
+       "length_frac": 0.4765,
+       "length_cm": 31.5,
+       "calamus_cm": 7.7,
+       "rachis_at_chord_frac": 0.21,
+       "inner_over_outer_vane": 3.77
+      },
+      "P8": {
+       "length_frac": 0.5111,
+       "length_cm": 33.8,
+       "calamus_cm": 8.2,
+       "rachis_at_chord_frac": 0.2,
+       "inner_over_outer_vane": 4.01
+      },
+      "P9": {
+       "length_frac": 0.5241,
+       "length_cm": 34.7,
+       "calamus_cm": 7.8,
+       "rachis_at_chord_frac": 0.21,
+       "inner_over_outer_vane": 3.75
+      },
+      "P10": {
+       "length_frac": 0.5052,
+       "length_cm": 33.4,
+       "calamus_cm": 7.1,
+       "rachis_at_chord_frac": 0.148,
+       "inner_over_outer_vane": 5.75
+      }
+     },
+     "secondaries": {
+      "S1": {
+       "length_frac": 0.2831,
+       "length_cm": 18.7,
+       "rachis_at_chord_frac": 0.315
+      },
+      "S2": {
+       "length_frac": 0.2904,
+       "length_cm": 19.2,
+       "rachis_at_chord_frac": 0.337
+      },
+      "S3": {
+       "length_frac": 0.2904,
+       "length_cm": 19.2,
+       "rachis_at_chord_frac": 0.319
+      },
+      "S4": {
+       "length_frac": 0.2849,
+       "length_cm": 18.9,
+       "rachis_at_chord_frac": 0.337
+      },
+      "S5": {
+       "length_frac": 0.2793,
+       "length_cm": 18.5,
+       "rachis_at_chord_frac": 0.329
+      },
+      "S6": {
+       "length_frac": 0.2888,
+       "length_cm": 19.1,
+       "rachis_at_chord_frac": 0.311
+      },
+      "S7": {
+       "length_frac": 0.2834,
+       "length_cm": 18.8,
+       "rachis_at_chord_frac": 0.293
+      },
+      "S8": {
+       "length_frac": 0.2827,
+       "length_cm": 18.7,
+       "rachis_at_chord_frac": 0.325
+      },
+      "S9": {
+       "length_frac": 0.2884,
+       "length_cm": 19.1,
+       "rachis_at_chord_frac": 0.311
+      },
+      "S10": {
+       "length_frac": 0.2822,
+       "length_cm": 18.7,
+       "rachis_at_chord_frac": 0.287
+      },
+      "S11": {
+       "length_frac": 0.2689,
+       "length_cm": 17.8,
+       "rachis_at_chord_frac": 0.295
+      },
+      "S12": {
+       "length_frac": 0.2799,
+       "length_cm": 18.5,
+       "rachis_at_chord_frac": 0.32
+      },
+      "S13": {
+       "length_frac": 0.2816,
+       "length_cm": 18.6,
+       "rachis_at_chord_frac": 0.319
+      },
+      "S14": {
+       "length_frac": 0.285,
+       "length_cm": 18.9,
+       "rachis_at_chord_frac": 0.343
+      },
+      "S15": {
+       "length_frac": 0.2858,
+       "length_cm": 18.9,
+       "rachis_at_chord_frac": 0.347
+      },
+      "S16": {
+       "length_frac": 0.2878,
+       "length_cm": 19.1,
+       "rachis_at_chord_frac": 0.383
+      },
+      "S17": {
+       "length_frac": 0.2905,
+       "length_cm": 19.2,
+       "rachis_at_chord_frac": 0.407
+      },
+      "S18": {
+       "length_frac": 0.2936,
+       "length_cm": 19.4,
+       "rachis_at_chord_frac": 0.461
+      },
+      "S19": {
+       "length_frac": 0.2813,
+       "length_cm": 18.6,
+       "rachis_at_chord_frac": 0.477
+      },
+      "S20": {
+       "length_frac": 0.2672,
+       "length_cm": 17.7,
+       "rachis_at_chord_frac": 0.451
+      }
+     },
+     "note": "length = vane + calamus; rachis_at_chord_frac = outer (leading) vane width / total width: where the shaft sits along the feather's own chord (0 leading edge)"
+    },
+    "featheratlas_primaries": {
+     "file": "HERG_primary_adult",
+     "species": "Larus argentatus",
+     "age": "Adult",
+     "sex": "Unknown",
+     "total_cm_outermost_first": [
+      34.2,
+      35.3,
+      35.0,
+      33.4,
+      31.8,
+      29.5,
+      27.4,
+      25.3,
+      23.1,
+      21.2
+     ],
+     "vane_cm_outermost_first": [
+      28.2,
+      28.5,
+      27.7,
+      26.5,
+      25.1,
+      23.3,
+      21.9,
+      20.2,
+      18.6,
+      17.2
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 34.2,
+      "P9": 35.3,
+      "P8": 35.0,
+      "P7": 33.4,
+      "P6": 31.8,
+      "P5": 29.5,
+      "P4": 27.4,
+      "P3": 25.3,
+      "P2": 23.1,
+      "P1": 21.2
+     },
+     "longest": "P9",
+     "relative_to_longest": {
+      "P10": 0.969,
+      "P9": 1.0,
+      "P8": 0.992,
+      "P7": 0.946,
+      "P6": 0.901,
+      "P5": 0.836,
+      "P4": 0.776,
+      "P3": 0.717,
+      "P2": 0.654,
+      "P1": 0.601
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [
+       "P5"
+      ],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {},
+      "n_emarginated_inner": 0
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "HERG_secondary_adult",
+     "species": "Larus argentatus",
+     "age": "Adult",
+     "sex": "Unknown",
+     "total_cm_outermost_first": [
+      20.0,
+      19.3,
+      18.6,
+      18.2,
+      17.9,
+      17.5,
+      17.5,
+      17.7,
+      18.2,
+      18.2,
+      18.5,
+      18.9
+     ],
+     "vane_cm_outermost_first": [
+      16.0,
+      15.2,
+      15.6,
+      13.7,
+      13.8,
+      13.5,
+      13.5,
+      13.5,
+      13.6,
+      13.8,
+      14.0,
+      14.3
+     ],
+     "n": 12,
+     "by_feather_cm": {
+      "S12": 20.0,
+      "S11": 19.3,
+      "S10": 18.6,
+      "S9": 18.2,
+      "S8": 17.9,
+      "S7": 17.5,
+      "S6": 17.5,
+      "S5": 17.7,
+      "S4": 18.2,
+      "S3": 18.2,
+      "S2": 18.5,
+      "S1": 18.9
+     }
+    },
+    "featheratlas_primaries_gw": {
+     "file": "GWGU_primary_adult",
+     "species": "Larus glaucescens",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      31.9,
+      32.8,
+      32.7,
+      31.1,
+      29.3,
+      27.8,
+      26.2,
+      24.5,
+      22.5,
+      20.9
+     ],
+     "vane_cm_outermost_first": [
+      25.8,
+      26.3,
+      25.7,
+      24.7,
+      22.6,
+      21.8,
+      20.5,
+      19.1,
+      18.0,
+      16.3
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 31.9,
+      "P9": 32.8,
+      "P8": 32.7,
+      "P7": 31.1,
+      "P6": 29.3,
+      "P5": 27.8,
+      "P4": 26.2,
+      "P3": 24.5,
+      "P2": 22.5,
+      "P1": 20.9
+     },
+     "longest": "P9",
+     "relative_to_longest": {
+      "P10": 0.973,
+      "P9": 1.0,
+      "P8": 0.997,
+      "P7": 0.948,
+      "P6": 0.893,
+      "P5": 0.848,
+      "P4": 0.799,
+      "P3": 0.747,
+      "P2": 0.686,
+      "P1": 0.637
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {},
+      "n_emarginated_inner": 0
+     }
+    },
+    "counts_baliga": {
+     "primaries": 10,
+     "secondaries": 23
+    }
+   }
+  },
+  "goose": {
+   "species": "Branta canadensis, Anser anser",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Branta canadensis",
+     "mass_kg": 3.628,
+     "span_m": 1.69,
+     "semispan_m": 0.845,
+     "area_m2": 0.3717,
+     "AR": 7.68
+    },
+    {
+     "source": "alerstam2007",
+     "species": "Anser anser",
+     "mass_kg": 3.326,
+     "span_m": 1.55,
+     "semispan_m": 0.775,
+     "area_m2": 0.3079,
+     "AR": 7.8
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "harvey2022",
+     "species": "Branta canadensis",
+     "specimen": "21_0120",
+     "mass_kg": 4.201,
+     "semispan_m": 0.78,
+     "shoulder_offset": 0.0974,
+     "humerus": 0.2412,
+     "ulna": 0.2183,
+     "radius": 0.215,
+     "manus_as_given": 0.2385
+    },
+    {
+     "source": "wang2011",
+     "species": "Branta canadensis",
+     "humerus_mm": 180.77,
+     "ulna_mm": 161.33,
+     "semispan_m_alerstam": 0.845,
+     "humerus": 0.2139,
+     "ulna": 0.1909
+    },
+    {
+     "source": "wang2011",
+     "species": "Anser anser",
+     "humerus_mm": 179.74,
+     "ulna_mm": 171.11,
+     "semispan_m_alerstam": 0.775,
+     "humerus": 0.2319,
+     "ulna": 0.2208
+    }
+   ],
+   "planform_at_full_extension": {
+    "source": "harvey2022",
+    "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
+    "elbow_angle": 118.0,
+    "manus_angle": 150.6,
+    "semispan_m": 0.78,
+    "shoulder": [
+     0.0,
+     0.0974
+    ],
+    "elbow": [
+     -0.0979,
+     0.2769
+    ],
+    "wrist": [
+     0.0,
+     0.5166
+    ],
+    "manus_end": [
+     -0.0135,
+     0.6509
+    ],
+    "le_at_wrist": [
+     0.0126,
+     0.512
+    ],
+    "tip_P10": [
+     -0.2763,
+     1.1119
+    ],
+    "tip_last_primary_on_cmc": [
+     -0.3288,
+     1.0427
+    ],
+    "tip_S1": [
+     -0.3092,
+     0.6475
+    ],
+    "tip_last_secondary": [
+     -0.3845,
+     0.2382
+    ],
+    "root_le": [
+     -0.0104,
+     0.1394
+    ],
+    "off_plane_residual": {
+     "pt1": 0.0627,
+     "pt2": -0.061,
+     "pt3": -0.0279,
+     "pt4": -0.033,
+     "pt6": -0.007,
+     "pt8": 0.0529,
+     "pt9": 0.0227,
+     "pt10": -0.0624,
+     "pt11": 0.008,
+     "pt12": 0.045
+    }
+   },
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 1,
+     "elbow": [
+      18,
+      136
+     ],
+     "manus": [
+      41,
+      173
+     ],
+     "max_extension_pairs": [
+      [
+       134,
+       166
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      21,
+      137
+     ],
+     "manus": [
+      45,
+      165
+     ],
+     "slope_manus_per_elbow": 0.99,
+     "r": 0.996,
+     "curve_manus_by_elbow": {
+      "40": 77,
+      "50": 85,
+      "60": 93,
+      "70": 103,
+      "80": 111,
+      "90": 120,
+      "100": 131,
+      "110": 143,
+      "120": 153,
+      "130": 160,
+      "140": 161
+     },
+     "all_specimens_slopes": [
+      0.99
+     ]
+    },
+    "proxy": "Anas platyrhynchos (mallard, Anatidae): no goose in the range-of-motion set; the goose cadaver in harvey2022 reached elbow 124 deg at most",
+    "out_of_plane": {
+     "source": "baliga2019",
+     "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
+     "bend_range_by_elbow": {
+      "40": 48,
+      "60": 37,
+      "80": 32,
+      "100": 21,
+      "120": 16,
+      "140": 16
+     },
+     "twist_range_by_elbow": {
+      "40": 64,
+      "60": 73,
+      "80": 68,
+      "100": 61,
+      "120": 44
+     }
+    },
+    "goose_cadaver_harvey2022": {
+     "elbow": [
+      19,
+      124
+     ],
+     "manus": [
+      55,
+      154
+     ]
+    }
+   },
+   "feathers": {
+    "harvey": {
+     "source": "harvey2022",
+     "species": "Branta canadensis",
+     "primaries": {
+      "P1": {
+       "length_frac": 0.3988,
+       "length_cm": 31.1,
+       "calamus_cm": 9.4,
+       "rachis_at_chord_frac": 0.387,
+       "inner_over_outer_vane": 1.58
+      },
+      "P2": {
+       "length_frac": 0.4184,
+       "length_cm": 32.6,
+       "calamus_cm": 10.3,
+       "rachis_at_chord_frac": 0.31,
+       "inner_over_outer_vane": 2.22
+      },
+      "P3": {
+       "length_frac": 0.4329,
+       "length_cm": 33.8,
+       "calamus_cm": 10.6,
+       "rachis_at_chord_frac": 0.312,
+       "inner_over_outer_vane": 2.2
+      },
+      "P4": {
+       "length_frac": 0.4572,
+       "length_cm": 35.7,
+       "calamus_cm": 11.0,
+       "rachis_at_chord_frac": 0.275,
+       "inner_over_outer_vane": 2.63
+      },
+      "P5": {
+       "length_frac": 0.4885,
+       "length_cm": 38.1,
+       "calamus_cm": 11.5,
+       "rachis_at_chord_frac": 0.267,
+       "inner_over_outer_vane": 2.74
+      },
+      "P6": {
+       "length_frac": 0.507,
+       "length_cm": 39.5,
+       "calamus_cm": 11.4,
+       "rachis_at_chord_frac": 0.216,
+       "inner_over_outer_vane": 3.62
+      },
+      "P7": {
+       "length_frac": 0.5517,
+       "length_cm": 43.0,
+       "calamus_cm": 12.2,
+       "rachis_at_chord_frac": 0.244,
+       "inner_over_outer_vane": 3.1
+      },
+      "P8": {
+       "length_frac": 0.5513,
+       "length_cm": 43.0,
+       "calamus_cm": 12.2,
+       "rachis_at_chord_frac": 0.244,
+       "inner_over_outer_vane": 3.1
+      },
+      "P9": {
+       "length_frac": 0.5542,
+       "length_cm": 43.2,
+       "calamus_cm": 11.1,
+       "rachis_at_chord_frac": 0.23,
+       "inner_over_outer_vane": 3.34
+      },
+      "P10": {
+       "length_frac": 0.529,
+       "length_cm": 41.3,
+       "calamus_cm": 9.0,
+       "rachis_at_chord_frac": 0.193,
+       "inner_over_outer_vane": 4.17
+      }
+     },
+     "secondaries": {
+      "S1": {
+       "length_frac": 0.3616,
+       "length_cm": 28.2,
+       "rachis_at_chord_frac": 0.403
+      },
+      "S2": {
+       "length_frac": 0.357,
+       "length_cm": 27.8,
+       "rachis_at_chord_frac": 0.407
+      },
+      "S3": {
+       "length_frac": 0.3574,
+       "length_cm": 27.9,
+       "rachis_at_chord_frac": 0.4
+      },
+      "S4": {
+       "length_frac": 0.3526,
+       "length_cm": 27.5,
+       "rachis_at_chord_frac": 0.428
+      },
+      "S5": {
+       "length_frac": 0.3513,
+       "length_cm": 27.4,
+       "rachis_at_chord_frac": 0.473
+      },
+      "S6": {
+       "length_frac": 0.3483,
+       "length_cm": 27.2,
+       "rachis_at_chord_frac": 0.47
+      },
+      "S7": {
+       "length_frac": 0.3487,
+       "length_cm": 27.2,
+       "rachis_at_chord_frac": 0.45
+      },
+      "S8": {
+       "length_frac": 0.3318,
+       "length_cm": 25.9,
+       "rachis_at_chord_frac": 0.436
+      },
+      "S9": {
+       "length_frac": 0.3485,
+       "length_cm": 27.2,
+       "rachis_at_chord_frac": 0.494
+      },
+      "S10": {
+       "length_frac": 0.3606,
+       "length_cm": 28.1,
+       "rachis_at_chord_frac": 0.527
+      },
+      "S11": {
+       "length_frac": 0.3657,
+       "length_cm": 28.5,
+       "rachis_at_chord_frac": 0.541
+      },
+      "S12": {
+       "length_frac": 0.3748,
+       "length_cm": 29.2,
+       "rachis_at_chord_frac": 0.507
+      },
+      "S13": {
+       "length_frac": 0.3904,
+       "length_cm": 30.5,
+       "rachis_at_chord_frac": 0.564
+      },
+      "S14": {
+       "length_frac": 0.3896,
+       "length_cm": 30.4,
+       "rachis_at_chord_frac": 0.574
+      }
+     },
+     "note": "length = vane + calamus; rachis_at_chord_frac = outer (leading) vane width / total width: where the shaft sits along the feather's own chord (0 leading edge)"
+    },
+    "featheratlas_primaries": {
+     "file": "CAGO_primary_adult",
+     "species": "Branta canadensis",
+     "age": "Adult",
+     "sex": "Unknown",
+     "total_cm_outermost_first": [
+      32.8,
+      35.6,
+      36.1,
+      34.4,
+      32.0,
+      29.0,
+      27.7,
+      25.9,
+      25.1,
+      24.5
+     ],
+     "vane_cm_outermost_first": [
+      26.5,
+      27.9,
+      27.7,
+      25.8,
+      23.7,
+      21.4,
+      20.1,
+      18.8,
+      17.9,
+      17.8
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 32.8,
+      "P9": 35.6,
+      "P8": 36.1,
+      "P7": 34.4,
+      "P6": 32.0,
+      "P5": 29.0,
+      "P4": 27.7,
+      "P3": 25.9,
+      "P2": 25.1,
+      "P1": 24.5
+     },
+     "longest": "P8",
+     "relative_to_longest": {
+      "P10": 0.909,
+      "P9": 0.986,
+      "P8": 1.0,
+      "P7": 0.953,
+      "P6": 0.886,
+      "P5": 0.803,
+      "P4": 0.767,
+      "P3": 0.717,
+      "P2": 0.695,
+      "P1": 0.679
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P10": {
+        "inner_vane_step_at": 0.55,
+        "inner_drop_of_width": 0.26
+       },
+       "P9": {
+        "inner_vane_step_at": 0.66,
+        "inner_drop_of_width": 0.19,
+        "outer_vane_step_at": 0.62,
+        "outer_drop_of_width": 0.21
+       },
+       "P8": {
+        "outer_vane_step_at": 0.64,
+        "outer_drop_of_width": 0.27
+       },
+       "P7": {
+        "outer_vane_step_at": 0.71,
+        "outer_drop_of_width": 0.25
+       }
+      },
+      "n_emarginated_inner": 2
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "CAGO_secondary_adult",
+     "species": "Branta canadensis",
+     "age": "Audlt",
+     "sex": "Unknown",
+     "total_cm_outermost_first": [
+      22.4,
+      22.6,
+      22.2,
+      21.8,
+      21.6,
+      21.7,
+      21.4,
+      21.5,
+      22.5,
+      23.8
+     ],
+     "vane_cm_outermost_first": [
+      17.1,
+      17.5,
+      16.9,
+      16.1,
+      16.2,
+      16.3,
+      16.2,
+      16.4,
+      17.9,
+      19.0
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "S10": 22.4,
+      "S9": 22.6,
+      "S8": 22.2,
+      "S7": 21.8,
+      "S6": 21.6,
+      "S5": 21.7,
+      "S4": 21.4,
+      "S3": 21.5,
+      "S2": 22.5,
+      "S1": 23.8
+     }
+    }
+   }
+  },
+  "swan": {
+   "species": "Cygnus (olor, columbianus)",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Cygnus olor",
+     "mass_kg": 10.597,
+     "span_m": 2.3,
+     "semispan_m": 1.15,
+     "area_m2": 0.6504,
+     "AR": 8.13
+    },
+    {
+     "source": "alerstam2007",
+     "species": "Cygnus columbianus",
+     "mass_kg": 6.637,
+     "span_m": 1.98,
+     "semispan_m": 0.99,
+     "area_m2": 0.4608,
+     "AR": 8.51
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "wang2011",
+     "species": "Cygnus olor",
+     "humerus_mm": 279.68,
+     "ulna_mm": 254.68,
+     "semispan_m_alerstam": 1.15,
+     "humerus": 0.2432,
+     "ulna": 0.2215
+    }
+   ],
+   "joints": {
+    "proxy": "no swan in any joint data: use the goose/duck values (Anatidae)"
+   },
+   "feathers": {
+    "featheratlas_primaries": {
+     "file": "TUSW_primary_adult",
+     "species": "Cygnus columbianus",
+     "age": "Adult",
+     "sex": "Unknown",
+     "total_cm_outermost_first": [
+      34.9,
+      37.4,
+      38.8,
+      39.0,
+      35.4,
+      33.3,
+      31.2,
+      29.9,
+      28.9,
+      27.7
+     ],
+     "vane_cm_outermost_first": [
+      26.2,
+      27.3,
+      27.8,
+      27.8,
+      25.0,
+      23.5,
+      22.0,
+      21.0,
+      20.4,
+      19.8
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 34.9,
+      "P9": 37.4,
+      "P8": 38.8,
+      "P7": 39.0,
+      "P6": 35.4,
+      "P5": 33.3,
+      "P4": 31.2,
+      "P3": 29.9,
+      "P2": 28.9,
+      "P1": 27.7
+     },
+     "longest": "P7",
+     "relative_to_longest": {
+      "P10": 0.895,
+      "P9": 0.959,
+      "P8": 0.995,
+      "P7": 1.0,
+      "P6": 0.908,
+      "P5": 0.854,
+      "P4": 0.8,
+      "P3": 0.767,
+      "P2": 0.741,
+      "P1": 0.71
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P10": {
+        "inner_vane_step_at": 0.57,
+        "inner_drop_of_width": 0.34
+       },
+       "P9": {
+        "inner_vane_step_at": 0.6,
+        "inner_drop_of_width": 0.22,
+        "outer_vane_step_at": 0.58,
+        "outer_drop_of_width": 0.23
+       },
+       "P8": {
+        "inner_vane_step_at": 0.63,
+        "inner_drop_of_width": 0.19,
+        "outer_vane_step_at": 0.62,
+        "outer_drop_of_width": 0.27
+       },
+       "P7": {
+        "outer_vane_step_at": 0.69,
+        "outer_drop_of_width": 0.28
+       }
+      },
+      "n_emarginated_inner": 3
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "TUSW_secondary_adult",
+     "species": "Cygnus columbianus",
+     "age": "Adult",
+     "sex": "Unknown",
+     "total_cm_outermost_first": [
+      26.5,
+      25.5,
+      24.7,
+      24.3,
+      24.9,
+      25.7,
+      27.0,
+      28.2
+     ],
+     "vane_cm_outermost_first": [
+      20.1,
+      18.6,
+      18.0,
+      17.3,
+      18.0,
+      18.4,
+      20.1,
+      23.4
+     ],
+     "n": 8,
+     "by_feather_cm": {
+      "S8": 26.5,
+      "S7": 25.5,
+      "S6": 24.7,
+      "S5": 24.3,
+      "S4": 24.9,
+      "S3": 25.7,
+      "S2": 27.0,
+      "S1": 28.2
+     }
+    }
+   }
+  },
+  "stork": {
+   "species": "Ciconia ciconia (bones, span), Mycteria americana (feathers)",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Ciconia ciconia",
+     "mass_kg": 3.432,
+     "span_m": 1.91,
+     "semispan_m": 0.955,
+     "area_m2": 0.5326,
+     "AR": 6.85
+    },
+    {
+     "source": "alerstam2007",
+     "species": "Ciconia nigra",
+     "mass_kg": 3.0,
+     "span_m": 1.5,
+     "semispan_m": 0.75,
+     "area_m2": 0.2842,
+     "AR": 7.92
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "wang2011",
+     "species": "Ciconia ciconia",
+     "humerus_mm": 199.33,
+     "ulna_mm": 229.92,
+     "semispan_m_alerstam": 0.955,
+     "humerus": 0.2087,
+     "ulna": 0.2408
+    },
+    {
+     "source": "wang2011",
+     "species": "Ciconia nigra",
+     "humerus_mm": 196.0,
+     "ulna_mm": 217.0,
+     "semispan_m_alerstam": 0.75,
+     "humerus": 0.2613,
+     "ulna": 0.2893
+    },
+    {
+     "source": "harvey2022",
+     "species": "Pelecanus erythrorhynchos",
+     "specimen": "20_1124",
+     "mass_kg": 5.828,
+     "semispan_m": 0.975,
+     "shoulder_offset": 0.0646,
+     "humerus": 0.2875,
+     "ulna": 0.309,
+     "radius": 0.2978,
+     "manus_as_given": 0.2238,
+     "proxy": "Pelecanus erythrorhynchos: a large soaring waterbird; no stork specimen in harvey2022"
+    }
+   ],
+   "planform_at_full_extension": {
+    "source": "harvey2022",
+    "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
+    "elbow_angle": 145.8,
+    "manus_angle": 153.8,
+    "semispan_m": 0.975,
+    "shoulder": [
+     0.0,
+     0.0646
+    ],
+    "elbow": [
+     -0.0474,
+     0.3046
+    ],
+    "wrist": [
+     -0.0,
+     0.6099
+    ],
+    "manus_end": [
+     -0.0391,
+     0.7411
+    ],
+    "le_at_wrist": [
+     0.0093,
+     0.6042
+    ],
+    "tip_P10": [
+     -0.195,
+     1.0723
+    ],
+    "tip_last_primary_on_cmc": [
+     -0.2988,
+     1.0446
+    ],
+    "tip_S1": [
+     -0.2543,
+     0.7414
+    ],
+    "tip_last_secondary": [
+     -0.2347,
+     0.1832
+    ],
+    "root_le": [
+     -0.0338,
+     0.1397
+    ],
+    "off_plane_residual": {
+     "pt1": 0.0709,
+     "pt2": -0.0434,
+     "pt3": -0.0265,
+     "pt4": -0.034,
+     "pt6": -0.0114,
+     "pt8": 0.04,
+     "pt9": 0.0243,
+     "pt10": -0.0111,
+     "pt11": -0.043,
+     "pt12": 0.0343
+    },
+    "proxy": "pelican"
+   },
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 3,
+     "elbow": [
+      24,
+      150
+     ],
+     "manus": [
+      52,
+      168
+     ],
+     "max_extension_pairs": [
+      [
+       150,
+       163
+      ],
+      [
+       129,
+       168
+      ],
+      [
+       144,
+       167
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      23,
+      145
+     ],
+     "manus": [
+      56,
+      160
+     ],
+     "slope_manus_per_elbow": 0.84,
+     "r": 0.994,
+     "curve_manus_by_elbow": {
+      "40": 68,
+      "50": 72,
+      "60": 81,
+      "70": 85,
+      "80": 94,
+      "90": 106,
+      "100": 117,
+      "110": 128,
+      "120": 140,
+      "130": 146,
+      "140": 153,
+      "150": 153
+     },
+     "all_specimens_slopes": [
+      0.84
+     ]
+    },
+    "proxy": "Cathartes aura (turkey vulture, a thermal soarer with a slotted hand): no stork in the range-of-motion set",
+    "pelican_cadaver_harvey2022": {
+     "elbow": [
+      13,
+      148
+     ],
+     "manus": [
+      40,
+      154
+     ]
+    }
+   },
+   "feathers": {
+    "featheratlas_primaries": {
+     "file": "WOST_primary_adult_bluebk",
+     "species": "Mycteria americana",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      30.1,
+      36.0,
+      38.0,
+      38.5,
+      37.9,
+      35.2,
+      31.7,
+      29.9,
+      29.2,
+      28.2,
+      27.6
+     ],
+     "vane_cm_outermost_first": [
+      24.4,
+      28.2,
+      29.7,
+      29.6,
+      28.8,
+      27.0,
+      24.4,
+      23.3,
+      22.7,
+      22.4,
+      22.0
+     ],
+     "n": 11,
+     "by_feather_cm": {
+      "P11": 30.1,
+      "P10": 36.0,
+      "P9": 38.0,
+      "P8": 38.5,
+      "P7": 37.9,
+      "P6": 35.2,
+      "P5": 31.7,
+      "P4": 29.9,
+      "P3": 29.2,
+      "P2": 28.2,
+      "P1": 27.6
+     },
+     "longest": "P8",
+     "relative_to_longest": {
+      "P11": 0.782,
+      "P10": 0.935,
+      "P9": 0.987,
+      "P8": 1.0,
+      "P7": 0.984,
+      "P6": 0.914,
+      "P5": 0.823,
+      "P4": 0.777,
+      "P3": 0.758,
+      "P2": 0.732,
+      "P1": 0.717
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P11": {
+        "inner_vane_step_at": 0.37,
+        "inner_drop_of_width": 0.26
+       },
+       "P10": {
+        "inner_vane_step_at": 0.43,
+        "inner_drop_of_width": 0.3
+       },
+       "P9": {
+        "inner_vane_step_at": 0.47,
+        "inner_drop_of_width": 0.27
+       },
+       "P8": {
+        "inner_vane_step_at": 0.54,
+        "inner_drop_of_width": 0.26,
+        "outer_vane_step_at": 0.53,
+        "outer_drop_of_width": 0.2
+       },
+       "P7": {
+        "outer_vane_step_at": 0.57,
+        "outer_drop_of_width": 0.23
+       },
+       "P6": {
+        "outer_vane_step_at": 0.73,
+        "outer_drop_of_width": 0.26
+       }
+      },
+      "n_emarginated_inner": 4
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "WOST_secondary_adult_bluebk",
+     "species": "Mycteria americana",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      27.7,
+      27.5,
+      26.9,
+      27.0,
+      27.0,
+      26.7,
+      25.4,
+      25.3
+     ],
+     "vane_cm_outermost_first": [
+      22.4,
+      22.2,
+      22.0,
+      21.8,
+      21.6,
+      21.2,
+      20.2,
+      20.2
+     ],
+     "n": 8,
+     "by_feather_cm": {
+      "S8": 27.7,
+      "S7": 27.5,
+      "S6": 26.9,
+      "S5": 27.0,
+      "S4": 27.0,
+      "S3": 26.7,
+      "S2": 25.4,
+      "S1": 25.3
+     }
+    },
+    "harvey_pelican": {
+     "source": "harvey2022",
+     "species": "Pelecanus erythrorhynchos",
+     "primaries": {
+      "P1": {
+       "length_frac": 0.2909,
+       "length_cm": 28.4,
+       "calamus_cm": 8.3,
+       "rachis_at_chord_frac": 0.296,
+       "inner_over_outer_vane": 2.38
+      },
+      "P2": {
+       "length_frac": 0.3003,
+       "length_cm": 29.3,
+       "calamus_cm": 9.0,
+       "rachis_at_chord_frac": 0.238,
+       "inner_over_outer_vane": 3.2
+      },
+      "P3": {
+       "length_frac": 0.2994,
+       "length_cm": 29.2,
+       "calamus_cm": 8.9,
+       "rachis_at_chord_frac": 0.256,
+       "inner_over_outer_vane": 2.9
+      },
+      "P4": {
+       "length_frac": 0.3099,
+       "length_cm": 30.2,
+       "calamus_cm": 9.0,
+       "rachis_at_chord_frac": 0.227,
+       "inner_over_outer_vane": 3.41
+      },
+      "P5": {
+       "length_frac": 0.3383,
+       "length_cm": 33.0,
+       "calamus_cm": 9.8,
+       "rachis_at_chord_frac": 0.202,
+       "inner_over_outer_vane": 3.96
+      },
+      "P6": {
+       "length_frac": 0.4003,
+       "length_cm": 39.0,
+       "calamus_cm": 11.0,
+       "rachis_at_chord_frac": 0.203,
+       "inner_over_outer_vane": 3.93
+      },
+      "P7": {
+       "length_frac": 0.4171,
+       "length_cm": 40.7,
+       "calamus_cm": 10.8,
+       "rachis_at_chord_frac": 0.224,
+       "inner_over_outer_vane": 3.46
+      },
+      "P8": {
+       "length_frac": 0.4054,
+       "length_cm": 39.5,
+       "calamus_cm": 10.4,
+       "rachis_at_chord_frac": 0.219,
+       "inner_over_outer_vane": 3.56
+      },
+      "P9": {
+       "length_frac": 0.4004,
+       "length_cm": 39.0,
+       "calamus_cm": 10.0,
+       "rachis_at_chord_frac": 0.252,
+       "inner_over_outer_vane": 2.97
+      },
+      "P10": {
+       "length_frac": 0.3408,
+       "length_cm": 33.2,
+       "calamus_cm": 7.5,
+       "rachis_at_chord_frac": 0.237,
+       "inner_over_outer_vane": 3.22
+      }
+     },
+     "secondaries": {
+      "S1": {
+       "length_frac": 0.2949,
+       "length_cm": 28.8,
+       "rachis_at_chord_frac": 0.347
+      },
+      "S2": {
+       "length_frac": 0.2919,
+       "length_cm": 28.5,
+       "rachis_at_chord_frac": 0.362
+      },
+      "S3": {
+       "length_frac": 0.2931,
+       "length_cm": 28.6,
+       "rachis_at_chord_frac": 0.358
+      },
+      "S4": {
+       "length_frac": 0.3016,
+       "length_cm": 29.4,
+       "rachis_at_chord_frac": 0.394
+      },
+      "S5": {
+       "length_frac": 0.2963,
+       "length_cm": 28.9,
+       "rachis_at_chord_frac": 0.389
+      },
+      "S6": {
+       "length_frac": 0.2948,
+       "length_cm": 28.7,
+       "rachis_at_chord_frac": 0.39
+      },
+      "S7": {
+       "length_frac": 0.2906,
+       "length_cm": 28.3,
+       "rachis_at_chord_frac": 0.381
+      },
+      "S8": {
+       "length_frac": 0.2902,
+       "length_cm": 28.3,
+       "rachis_at_chord_frac": 0.386
+      },
+      "S9": {
+       "length_frac": 0.284,
+       "length_cm": 27.7,
+       "rachis_at_chord_frac": 0.41
+      },
+      "S10": {
+       "length_frac": 0.2808,
+       "length_cm": 27.4,
+       "rachis_at_chord_frac": 0.376
+      },
+      "S11": {
+       "length_frac": 0.2822,
+       "length_cm": 27.5,
+       "rachis_at_chord_frac": 0.389
+      },
+      "S12": {
+       "length_frac": 0.277,
+       "length_cm": 27.0,
+       "rachis_at_chord_frac": 0.358
+      },
+      "S13": {
+       "length_frac": 0.2728,
+       "length_cm": 26.6,
+       "rachis_at_chord_frac": 0.367
+      },
+      "S14": {
+       "length_frac": 0.2602,
+       "length_cm": 25.4,
+       "rachis_at_chord_frac": 0.385
+      },
+      "S15": {
+       "length_frac": 0.2595,
+       "length_cm": 25.3,
+       "rachis_at_chord_frac": 0.388
+      },
+      "S16": {
+       "length_frac": 0.252,
+       "length_cm": 24.6,
+       "rachis_at_chord_frac": 0.384
+      },
+      "S17": {
+       "length_frac": 0.2498,
+       "length_cm": 24.4,
+       "rachis_at_chord_frac": 0.376
+      },
+      "S18": {
+       "length_frac": 0.2468,
+       "length_cm": 24.1,
+       "rachis_at_chord_frac": 0.374
+      },
+      "S19": {
+       "length_frac": 0.2449,
+       "length_cm": 23.9,
+       "rachis_at_chord_frac": 0.377
+      },
+      "S20": {
+       "length_frac": 0.2593,
+       "length_cm": 25.3,
+       "rachis_at_chord_frac": 0.418
+      },
+      "S21": {
+       "length_frac": 0.2583,
+       "length_cm": 25.2,
+       "rachis_at_chord_frac": 0.406
+      },
+      "S22": {
+       "length_frac": 0.2557,
+       "length_cm": 24.9,
+       "rachis_at_chord_frac": 0.41
+      },
+      "S23": {
+       "length_frac": 0.252,
+       "length_cm": 24.6,
+       "rachis_at_chord_frac": 0.445
+      },
+      "S24": {
+       "length_frac": 0.2509,
+       "length_cm": 24.5,
+       "rachis_at_chord_frac": 0.398
+      },
+      "S25": {
+       "length_frac": 0.2496,
+       "length_cm": 24.3,
+       "rachis_at_chord_frac": 0.444
+      },
+      "S26": {
+       "length_frac": 0.2404,
+       "length_cm": 23.4,
+       "rachis_at_chord_frac": 0.446
+      },
+      "S27": {
+       "length_frac": 0.2425,
+       "length_cm": 23.6,
+       "rachis_at_chord_frac": 0.441
+      },
+      "S28": {
+       "length_frac": 0.2286,
+       "length_cm": 22.3,
+       "rachis_at_chord_frac": 0.5
+      }
+     },
+     "note": "length = vane + calamus; rachis_at_chord_frac = outer (leading) vane width / total width: where the shaft sits along the feather's own chord (0 leading edge)"
+    }
+   }
+  },
+  "heron": {
+   "species": "Ardea herodias, A. cinerea",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Ardea cinerea",
+     "mass_kg": 1.439,
+     "span_m": 1.73,
+     "semispan_m": 0.865,
+     "area_m2": 0.3716,
+     "AR": 8.05
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "harvey2022",
+     "species": "Ardea herodias",
+     "specimen": "20_0284",
+     "mass_kg": 1.931,
+     "semispan_m": 0.922,
+     "shoulder_offset": 0.0304,
+     "humerus": 0.2169,
+     "ulna": 0.2505,
+     "radius": 0.244,
+     "manus_as_given": 0.1265,
+     "note": "Harvey's heron \"cmc\" (0.117 m) is the carpometacarpus alone (Baliga's heron CMC 0.1025 m); the other kinds' include the major digit"
+    },
+    {
+     "source": "baliga2019",
+     "species": "Ardea herodias",
+     "mass_g": 1940,
+     "wing_length_mm": 633.7,
+     "semispan_mm_est": 653.3,
+     "half_body_frac_used": 0.03,
+     "humerus": 0.2679,
+     "radius_ulna": 0.3317,
+     "cmc": 0.1569,
+     "digits_est": 0.1076,
+     "primaries": 10,
+     "secondaries": 18,
+     "wing_area_one_mm2": 113914.183,
+     "AR": 7.05
+    },
+    {
+     "source": "wang2011",
+     "species": "Ardea cinerea",
+     "humerus_mm": 170.73,
+     "ulna_mm": 200.77,
+     "semispan_m_alerstam": 0.865,
+     "humerus": 0.1974,
+     "ulna": 0.2321
+    }
+   ],
+   "planform_at_full_extension": {
+    "source": "harvey2022",
+    "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
+    "elbow_angle": 151.3,
+    "manus_angle": 172.1,
+    "semispan_m": 0.922,
+    "shoulder": [
+     0.0,
+     0.0304
+    ],
+    "elbow": [
+     -0.0202,
+     0.2303
+    ],
+    "wrist": [
+     -0.0,
+     0.4696
+    ],
+    "manus_end": [
+     0.0094,
+     0.5825
+    ],
+    "le_at_wrist": [
+     0.0086,
+     0.4678
+    ],
+    "tip_P10": [
+     -0.0535,
+     0.9642
+    ],
+    "tip_last_primary_on_cmc": [
+     -0.1406,
+     0.9548
+    ],
+    "tip_S1": [
+     -0.2559,
+     0.6753
+    ],
+    "tip_last_secondary": [
+     -0.3022,
+     0.2258
+    ],
+    "root_le": [
+     0.0068,
+     0.0772
+    ],
+    "off_plane_residual": {
+     "pt1": 0.0339,
+     "pt2": -0.0487,
+     "pt3": -0.0303,
+     "pt4": -0.0373,
+     "pt6": -0.0094,
+     "pt8": 0.0705,
+     "pt9": 0.0163,
+     "pt10": -0.0652,
+     "pt11": 0.0377,
+     "pt12": 0.0325
+    }
+   },
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 1,
+     "elbow": [
+      7,
+      140
+     ],
+     "manus": [
+      49,
+      174
+     ],
+     "max_extension_pairs": [
+      [
+       141,
+       169
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      11,
+      136
+     ],
+     "manus": [
+      69,
+      175
+     ],
+     "slope_manus_per_elbow": 0.8,
+     "r": 0.996,
+     "curve_manus_by_elbow": {
+      "40": 102,
+      "50": 112,
+      "60": 119,
+      "70": 125,
+      "80": 137,
+      "90": 140,
+      "110": 153,
+      "120": 161,
+      "130": 172,
+      "140": 172
+     },
+     "all_specimens_slopes": [
+      0.8
+     ]
+    },
+    "out_of_plane": {
+     "source": "baliga2019",
+     "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
+     "bend_range_by_elbow": {
+      "40": 19,
+      "60": 41,
+      "80": 46,
+      "100": 41,
+      "120": 27,
+      "140": 14
+     },
+     "twist_range_by_elbow": {
+      "40": 69,
+      "60": 77,
+      "80": 92,
+      "100": 81,
+      "120": 64,
+      "140": 56
+     }
+    }
+   },
+   "feathers": {
+    "harvey": {
+     "source": "harvey2022",
+     "species": "Ardea herodias",
+     "primaries": {
+      "P1": {
+       "length_frac": 0.35,
+       "length_cm": 32.3,
+       "calamus_cm": 5.5,
+       "rachis_at_chord_frac": 0.308,
+       "inner_over_outer_vane": 2.24
+      },
+      "P2": {
+       "length_frac": 0.3604,
+       "length_cm": 33.2,
+       "calamus_cm": 5.7,
+       "rachis_at_chord_frac": 0.271,
+       "inner_over_outer_vane": 2.7
+      },
+      "P3": {
+       "length_frac": 0.3736,
+       "length_cm": 34.4,
+       "calamus_cm": 5.6,
+       "rachis_at_chord_frac": 0.255,
+       "inner_over_outer_vane": 2.92
+      },
+      "P4": {
+       "length_frac": 0.3899,
+       "length_cm": 36.0,
+       "calamus_cm": 6.2,
+       "rachis_at_chord_frac": 0.233,
+       "inner_over_outer_vane": 3.3
+      },
+      "P5": {
+       "length_frac": 0.4193,
+       "length_cm": 38.7,
+       "calamus_cm": 6.7,
+       "rachis_at_chord_frac": 0.233,
+       "inner_over_outer_vane": 3.3
+      },
+      "P6": {
+       "length_frac": 0.449,
+       "length_cm": 41.4,
+       "calamus_cm": 7.0,
+       "rachis_at_chord_frac": 0.242,
+       "inner_over_outer_vane": 3.13
+      },
+      "P7": {
+       "length_frac": 0.456,
+       "length_cm": 42.0,
+       "calamus_cm": 6.9,
+       "rachis_at_chord_frac": 0.215,
+       "inner_over_outer_vane": 3.66
+      },
+      "P8": {
+       "length_frac": 0.4515,
+       "length_cm": 41.6,
+       "calamus_cm": 7.2,
+       "rachis_at_chord_frac": 0.216,
+       "inner_over_outer_vane": 3.63
+      },
+      "P9": {
+       "length_frac": 0.4303,
+       "length_cm": 39.7,
+       "calamus_cm": 6.3,
+       "rachis_at_chord_frac": 0.225,
+       "inner_over_outer_vane": 3.45
+      },
+      "P10": {
+       "length_frac": 0.3997,
+       "length_cm": 36.9,
+       "calamus_cm": 5.6,
+       "rachis_at_chord_frac": 0.18,
+       "inner_over_outer_vane": 4.56
+      }
+     },
+     "secondaries": {
+      "S1": {
+       "length_frac": 0.3507,
+       "length_cm": 32.3,
+       "rachis_at_chord_frac": 0.309
+      },
+      "S2": {
+       "length_frac": 0.3493,
+       "length_cm": 32.2,
+       "rachis_at_chord_frac": 0.333
+      },
+      "S3": {
+       "length_frac": 0.3488,
+       "length_cm": 32.2,
+       "rachis_at_chord_frac": 0.316
+      },
+      "S4": {
+       "length_frac": 0.3504,
+       "length_cm": 32.3,
+       "rachis_at_chord_frac": 0.321
+      },
+      "S5": {
+       "length_frac": 0.3417,
+       "length_cm": 31.5,
+       "rachis_at_chord_frac": 0.337
+      },
+      "S6": {
+       "length_frac": 0.3353,
+       "length_cm": 30.9,
+       "rachis_at_chord_frac": 0.358
+      },
+      "S7": {
+       "length_frac": 0.334,
+       "length_cm": 30.8,
+       "rachis_at_chord_frac": 0.332
+      },
+      "S8": {
+       "length_frac": 0.3299,
+       "length_cm": 30.4,
+       "rachis_at_chord_frac": 0.328
+      },
+      "S9": {
+       "length_frac": 0.3281,
+       "length_cm": 30.2,
+       "rachis_at_chord_frac": 0.332
+      },
+      "S10": {
+       "length_frac": 0.3243,
+       "length_cm": 29.9,
+       "rachis_at_chord_frac": 0.333
+      },
+      "S11": {
+       "length_frac": 0.3198,
+       "length_cm": 29.5,
+       "rachis_at_chord_frac": 0.353
+      },
+      "S12": {
+       "length_frac": 0.3218,
+       "length_cm": 29.7,
+       "rachis_at_chord_frac": 0.408
+      },
+      "S13": {
+       "length_frac": 0.3144,
+       "length_cm": 29.0,
+       "rachis_at_chord_frac": 0.351
+      },
+      "S14": {
+       "length_frac": 0.3125,
+       "length_cm": 28.8,
+       "rachis_at_chord_frac": 0.361
+      },
+      "S15": {
+       "length_frac": 0.3067,
+       "length_cm": 28.3,
+       "rachis_at_chord_frac": 0.358
+      }
+     },
+     "note": "length = vane + calamus; rachis_at_chord_frac = outer (leading) vane width / total width: where the shaft sits along the feather's own chord (0 leading edge)"
+    },
+    "featheratlas_primaries": {
+     "file": "GBHE_primary_imm",
+     "species": "Ardea herodias",
+     "age": "Juvenile",
+     "sex": "Female",
+     "total_cm_outermost_first": [
+      33.4,
+      36.2,
+      37.4,
+      37.6,
+      37.0,
+      34.5,
+      32.4,
+      31.0,
+      29.6,
+      28.9
+     ],
+     "vane_cm_outermost_first": [
+      28.7,
+      30.7,
+      31.6,
+      31.6,
+      31.2,
+      29.2,
+      27.6,
+      26.4,
+      25.4,
+      24.5
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 33.4,
+      "P9": 36.2,
+      "P8": 37.4,
+      "P7": 37.6,
+      "P6": 37.0,
+      "P5": 34.5,
+      "P4": 32.4,
+      "P3": 31.0,
+      "P2": 29.6,
+      "P1": 28.9
+     },
+     "longest": "P7",
+     "relative_to_longest": {
+      "P10": 0.888,
+      "P9": 0.963,
+      "P8": 0.995,
+      "P7": 1.0,
+      "P6": 0.984,
+      "P5": 0.918,
+      "P4": 0.862,
+      "P3": 0.824,
+      "P2": 0.787,
+      "P1": 0.769
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [
+       "P7"
+      ],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P10": {
+        "inner_vane_step_at": 0.66,
+        "inner_drop_of_width": 0.24
+       },
+       "P9": {
+        "inner_vane_step_at": 0.68,
+        "inner_drop_of_width": 0.21
+       }
+      },
+      "n_emarginated_inner": 2
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "GBHE_secondary_imm",
+     "species": "Ardea herodias",
+     "age": "Juvenile",
+     "sex": "Female",
+     "total_cm_outermost_first": [
+      28.4,
+      28.5,
+      28.0,
+      28.0,
+      27.4,
+      26.8,
+      26.3,
+      23.6
+     ],
+     "vane_cm_outermost_first": [
+      24.1,
+      24.0,
+      23.7,
+      23.8,
+      23.5,
+      23.1,
+      22.5,
+      20.2
+     ],
+     "n": 8,
+     "by_feather_cm": {
+      "S8": 28.4,
+      "S7": 28.5,
+      "S6": 28.0,
+      "S5": 28.0,
+      "S4": 27.4,
+      "S3": 26.8,
+      "S2": 26.3,
+      "S1": 23.6
+     }
+    },
+    "counts_baliga": {
+     "primaries": 10,
+     "secondaries": 18
+    }
+   }
+  },
+  "ibis": {
+   "species": "Plegadis falcinellus (bones, span), Plegadis chihi and Eudocimus albus (feathers)",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Plegadis falcinellus",
+     "mass_kg": 0.566,
+     "span_m": 0.89,
+     "semispan_m": 0.445,
+     "area_m2": 0.0986,
+     "AR": 8.03
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "wang2011",
+     "species": "Plegadis falcinellus",
+     "humerus_mm": 93.3,
+     "ulna_mm": 101.3,
+     "semispan_m_alerstam": 0.445,
+     "humerus": 0.2097,
+     "ulna": 0.2276
+    }
+   ],
+   "joints": {
+    "proxy": "no ibis in any joint data: use the heron values (Pelecaniformes)"
+   },
+   "feathers": {
+    "featheratlas_primaries": {
+     "file": "WFIB_primary_adult",
+     "species": "Plegadis chihi",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      19.4,
+      20.3,
+      21.5,
+      21.2,
+      20.4,
+      19.4,
+      18.2,
+      17.2,
+      16.5,
+      16.1
+     ],
+     "vane_cm_outermost_first": [
+      16.3,
+      17.3,
+      17.5,
+      17.0,
+      16.2,
+      15.0,
+      14.4,
+      13.6,
+      13.1,
+      12.9
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 19.4,
+      "P9": 20.3,
+      "P8": 21.5,
+      "P7": 21.2,
+      "P6": 20.4,
+      "P5": 19.4,
+      "P4": 18.2,
+      "P3": 17.2,
+      "P2": 16.5,
+      "P1": 16.1
+     },
+     "longest": "P8",
+     "relative_to_longest": {
+      "P10": 0.902,
+      "P9": 0.944,
+      "P8": 1.0,
+      "P7": 0.986,
+      "P6": 0.949,
+      "P5": 0.902,
+      "P4": 0.847,
+      "P3": 0.8,
+      "P2": 0.767,
+      "P1": 0.749
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P10": {
+        "inner_vane_step_at": 0.71,
+        "inner_drop_of_width": 0.2
+       },
+       "P9": {
+        "inner_vane_step_at": 0.71,
+        "inner_drop_of_width": 0.19,
+        "outer_vane_step_at": 0.68,
+        "outer_drop_of_width": 0.22
+       },
+       "P8": {
+        "outer_vane_step_at": 0.72,
+        "outer_drop_of_width": 0.2
+       }
+      },
+      "n_emarginated_inner": 2
+     }
+    },
+    "featheratlas_primaries_white_ibis": {
+     "file": "WHIB_primary_adult",
+     "species": "Eudocimus albus",
+     "age": "Adult",
+     "sex": "Female",
+     "total_cm_outermost_first": [
+      19.3,
+      21.2,
+      21.7,
+      21.6,
+      19.7,
+      18.7,
+      17.7,
+      17.2,
+      17.5,
+      16.6
+     ],
+     "vane_cm_outermost_first": [
+      16.3,
+      17.5,
+      17.4,
+      17.3,
+      15.6,
+      14.7,
+      14.0,
+      13.3,
+      13.8,
+      13.5
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 19.3,
+      "P9": 21.2,
+      "P8": 21.7,
+      "P7": 21.6,
+      "P6": 19.7,
+      "P5": 18.7,
+      "P4": 17.7,
+      "P3": 17.2,
+      "P2": 17.5,
+      "P1": 16.6
+     },
+     "longest": "P8",
+     "relative_to_longest": {
+      "P10": 0.889,
+      "P9": 0.977,
+      "P8": 1.0,
+      "P7": 0.995,
+      "P6": 0.908,
+      "P5": 0.862,
+      "P4": 0.816,
+      "P3": 0.793,
+      "P2": 0.806,
+      "P1": 0.765
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P10": {
+        "inner_vane_step_at": 0.61,
+        "inner_drop_of_width": 0.36
+       },
+       "P9": {
+        "inner_vane_step_at": 0.61,
+        "inner_drop_of_width": 0.28
+       },
+       "P8": {
+        "outer_vane_step_at": 0.58,
+        "outer_drop_of_width": 0.21
+       },
+       "P7": {
+        "outer_vane_step_at": 0.65,
+        "outer_drop_of_width": 0.21
+       }
+      },
+      "n_emarginated_inner": 2
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "WFIB_secondary_adult",
+     "species": "Plegadis chihi",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      15.7,
+      15.7,
+      15.6,
+      15.4,
+      15.3,
+      15.1,
+      15.3,
+      15.2,
+      15.4,
+      15.4,
+      15.5,
+      16.1
+     ],
+     "vane_cm_outermost_first": [
+      13.0,
+      12.8,
+      12.6,
+      12.5,
+      12.3,
+      12.4,
+      12.6,
+      12.7,
+      12.8,
+      13.1,
+      13.4,
+      13.6
+     ],
+     "n": 12,
+     "by_feather_cm": {
+      "S12": 15.7,
+      "S11": 15.7,
+      "S10": 15.6,
+      "S9": 15.4,
+      "S8": 15.3,
+      "S7": 15.1,
+      "S6": 15.3,
+      "S5": 15.2,
+      "S4": 15.4,
+      "S3": 15.4,
+      "S2": 15.5,
+      "S1": 16.1
+     }
+    }
+   }
+  },
+  "crow": {
+   "species": "Corvus corax, C. caurinus, C. corone, C. brachyrhynchos",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Corvus corax",
+     "mass_kg": 1.149,
+     "span_m": 1.21,
+     "semispan_m": 0.605,
+     "area_m2": 0.2472,
+     "AR": 5.92
+    },
+    {
+     "source": "alerstam2007",
+     "species": "Corvus corone",
+     "mass_kg": 0.566,
+     "span_m": 0.91,
+     "semispan_m": 0.455,
+     "area_m2": 0.1378,
+     "AR": 6.01
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "harvey2022",
+     "species": "Corvus corax",
+     "specimen": "20_0908",
+     "mass_kg": 0.778,
+     "semispan_m": 0.58,
+     "shoulder_offset": 0.094,
+     "humerus": 0.1729,
+     "ulna": 0.1972,
+     "radius": 0.1834,
+     "manus_as_given": 0.1881
+    },
+    {
+     "source": "baliga2019",
+     "species": "Corvus corax",
+     "mass_g": 1251,
+     "wing_length_mm": 486.74,
+     "semispan_mm_est": 537.2,
+     "half_body_frac_used": 0.094,
+     "humerus": 0.1766,
+     "radius_ulna": 0.2204,
+     "cmc": 0.1177,
+     "digits_est": 0.0807,
+     "primaries": 10,
+     "secondaries": 10,
+     "wing_area_one_mm2": 83931.791,
+     "AR": 5.65
+    },
+    {
+     "source": "baliga2019",
+     "species": "Corvus caurinus",
+     "mass_g": 600,
+     "wing_length_mm": 354.71,
+     "semispan_mm_est": 391.5,
+     "half_body_frac_used": 0.094,
+     "humerus": 0.1417,
+     "radius_ulna": 0.1749,
+     "cmc": 0.1073,
+     "digits_est": 0.0736,
+     "primaries": 10,
+     "secondaries": 9,
+     "wing_area_one_mm2": 40882.054,
+     "AR": 6.16
+    },
+    {
+     "source": "wang2011",
+     "species": "Corvus corone",
+     "humerus_mm": 66.26,
+     "ulna_mm": 79.5,
+     "semispan_m_alerstam": 0.455,
+     "humerus": 0.1456,
+     "ulna": 0.1747
+    }
+   ],
+   "planform_at_full_extension": {
+    "source": "harvey2022",
+    "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
+    "elbow_angle": 153.3,
+    "manus_angle": 176.2,
+    "semispan_m": 0.58,
+    "shoulder": [
+     0.0,
+     0.094
+    ],
+    "elbow": [
+     -0.0093,
+     0.2148
+    ],
+    "wrist": [
+     -0.0,
+     0.3945
+    ],
+    "manus_end": [
+     -0.0008,
+     0.5159
+    ],
+    "le_at_wrist": [
+     0.0061,
+     0.408
+    ],
+    "tip_P10": [
+     -0.0532,
+     0.869
+    ],
+    "tip_last_primary_on_cmc": [
+     -0.2578,
+     1.0457
+    ],
+    "tip_S1": [
+     -0.3251,
+     0.582
+    ],
+    "tip_last_secondary": [
+     -0.2777,
+     0.1383
+    ],
+    "root_le": [
+     0.0164,
+     0.1329
+    ],
+    "off_plane_residual": {
+     "pt1": 0.0296,
+     "pt2": -0.029,
+     "pt3": -0.029,
+     "pt4": -0.0252,
+     "pt6": -0.0163,
+     "pt8": 0.0307,
+     "pt9": 0.02,
+     "pt10": -0.0349,
+     "pt11": 0.0191,
+     "pt12": 0.0349
+    }
+   },
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 2,
+     "elbow": [
+      21,
+      148
+     ],
+     "manus": [
+      45,
+      178
+     ],
+     "max_extension_pairs": [
+      [
+       142,
+       176
+      ],
+      [
+       143,
+       178
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      22,
+      120
+     ],
+     "manus": [
+      67,
+      178
+     ],
+     "slope_manus_per_elbow": 1.11,
+     "r": 0.997,
+     "curve_manus_by_elbow": {
+      "40": 94,
+      "50": 105,
+      "60": 115,
+      "70": 126,
+      "80": 135,
+      "90": 145,
+      "100": 158,
+      "110": 174,
+      "120": 177
+     },
+     "all_specimens_slopes": [
+      1.11
+     ]
+    },
+    "raven": {
+     "cadaver_range_deg": {
+      "source": "baliga2019",
+      "n_specimens": 2,
+      "elbow": [
+       31,
+       124
+      ],
+      "manus": [
+       57,
+       153
+      ],
+      "max_extension_pairs": [
+       [
+        122,
+        145
+       ],
+       [
+        124,
+        153
+       ]
+      ]
+     },
+     "linkage": {
+      "source": "baliga2019",
+      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+      "elbow": [
+       40,
+       131
+      ],
+      "manus": [
+       60,
+       138
+      ],
+      "slope_manus_per_elbow": 0.85,
+      "r": 0.994,
+      "curve_manus_by_elbow": {
+       "40": 65,
+       "50": 62,
+       "60": 75,
+       "70": 84,
+       "80": 95,
+       "90": 105,
+       "100": 113,
+       "110": 121,
+       "120": 128,
+       "130": 136
+      },
+      "all_specimens_slopes": [
+       0.85
+      ]
+     }
+    },
+    "out_of_plane": {
+     "source": "baliga2019",
+     "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
+     "bend_range_by_elbow": {
+      "40": 47,
+      "60": 46,
+      "80": 52,
+      "100": 35,
+      "120": 26,
+      "140": 20
+     },
+     "twist_range_by_elbow": {
+      "40": 88,
+      "60": 102,
+      "80": 90,
+      "100": 66,
+      "120": 64
+     }
+    }
+   },
+   "feathers": {
+    "harvey": {
+     "source": "harvey2022",
+     "species": "Corvus corax",
+     "primaries": {
+      "P1": {
+       "length_frac": 0.4811,
+       "length_cm": 27.9,
+       "calamus_cm": 4.8,
+       "rachis_at_chord_frac": 0.317,
+       "inner_over_outer_vane": 2.16
+      },
+      "P2": {
+       "length_frac": 0.5092,
+       "length_cm": 29.5,
+       "calamus_cm": 5.4,
+       "rachis_at_chord_frac": 0.301,
+       "inner_over_outer_vane": 2.32
+      },
+      "P3": {
+       "length_frac": 0.5458,
+       "length_cm": 31.7,
+       "calamus_cm": 6.0,
+       "rachis_at_chord_frac": 0.281,
+       "inner_over_outer_vane": 2.56
+      },
+      "P4": {
+       "length_frac": 0.5906,
+       "length_cm": 34.3,
+       "calamus_cm": 6.5,
+       "rachis_at_chord_frac": 0.268,
+       "inner_over_outer_vane": 2.74
+      },
+      "P5": {
+       "length_frac": 0.6578,
+       "length_cm": 38.2,
+       "calamus_cm": 7.3,
+       "rachis_at_chord_frac": 0.251,
+       "inner_over_outer_vane": 2.99
+      },
+      "P6": {
+       "length_frac": 0.6547,
+       "length_cm": 38.0,
+       "calamus_cm": 7.3,
+       "rachis_at_chord_frac": 0.217,
+       "inner_over_outer_vane": 3.61
+      },
+      "P7": {
+       "length_frac": 0.6627,
+       "length_cm": 38.4,
+       "calamus_cm": 7.3,
+       "rachis_at_chord_frac": 0.195,
+       "inner_over_outer_vane": 4.14
+      },
+      "P8": {
+       "length_frac": 0.6463,
+       "length_cm": 37.5,
+       "calamus_cm": 6.9,
+       "rachis_at_chord_frac": 0.2,
+       "inner_over_outer_vane": 4.0
+      },
+      "P9": {
+       "length_frac": 0.5896,
+       "length_cm": 34.2,
+       "calamus_cm": 6.0,
+       "rachis_at_chord_frac": 0.183,
+       "inner_over_outer_vane": 4.46
+      },
+      "P10": {
+       "length_frac": 0.4219,
+       "length_cm": 24.5,
+       "calamus_cm": 4.1,
+       "rachis_at_chord_frac": 0.228,
+       "inner_over_outer_vane": 3.39
+      }
+     },
+     "secondaries": {
+      "S1": {
+       "length_frac": 0.4252,
+       "length_cm": 24.7,
+       "rachis_at_chord_frac": 0.4
+      },
+      "S2": {
+       "length_frac": 0.4289,
+       "length_cm": 24.9,
+       "rachis_at_chord_frac": 0.397
+      },
+      "S3": {
+       "length_frac": 0.427,
+       "length_cm": 24.8,
+       "rachis_at_chord_frac": 0.413
+      },
+      "S4": {
+       "length_frac": 0.4265,
+       "length_cm": 24.7,
+       "rachis_at_chord_frac": 0.407
+      },
+      "S5": {
+       "length_frac": 0.4518,
+       "length_cm": 26.2,
+       "rachis_at_chord_frac": 0.414
+      },
+      "S6": {
+       "length_frac": 0.4242,
+       "length_cm": 24.6,
+       "rachis_at_chord_frac": 0.384
+      },
+      "S7": {
+       "length_frac": 0.4106,
+       "length_cm": 23.8,
+       "rachis_at_chord_frac": 0.38
+      },
+      "S8": {
+       "length_frac": 0.3894,
+       "length_cm": 22.6,
+       "rachis_at_chord_frac": 0.383
+      }
+     },
+     "note": "length = vane + calamus; rachis_at_chord_frac = outer (leading) vane width / total width: where the shaft sits along the feather's own chord (0 leading edge)"
+    },
+    "featheratlas_primaries": {
+     "file": "CORA_primary_male_new",
+     "species": "Corvus corax",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      21.2,
+      32.2,
+      36.2,
+      37.0,
+      36.8,
+      31.8,
+      28.3,
+      26.3,
+      24.6,
+      23.4
+     ],
+     "vane_cm_outermost_first": [
+      19.4,
+      27.6,
+      30.3,
+      30.8,
+      30.5,
+      26.5,
+      23.5,
+      22.2,
+      20.3,
+      19.6
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 21.2,
+      "P9": 32.2,
+      "P8": 36.2,
+      "P7": 37.0,
+      "P6": 36.8,
+      "P5": 31.8,
+      "P4": 28.3,
+      "P3": 26.3,
+      "P2": 24.6,
+      "P1": 23.4
+     },
+     "longest": "P7",
+     "relative_to_longest": {
+      "P10": 0.573,
+      "P9": 0.87,
+      "P8": 0.978,
+      "P7": 1.0,
+      "P6": 0.995,
+      "P5": 0.859,
+      "P4": 0.765,
+      "P3": 0.711,
+      "P2": 0.665,
+      "P1": 0.632
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [
+       "P4"
+      ],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {
+       "P10": {
+        "inner_vane_step_at": 0.34,
+        "inner_drop_of_width": 0.32
+       },
+       "P9": {
+        "inner_vane_step_at": 0.41,
+        "inner_drop_of_width": 0.3
+       },
+       "P8": {
+        "inner_vane_step_at": 0.47,
+        "inner_drop_of_width": 0.18
+       },
+       "P7": {
+        "inner_vane_step_at": 0.54,
+        "inner_drop_of_width": 0.18,
+        "outer_vane_step_at": 0.46,
+        "outer_drop_of_width": 0.2
+       }
+      },
+      "n_emarginated_inner": 4
+     }
+    },
+    "featheratlas_primaries_american_crow": {
+     "file": "AMCR_primary_adult",
+     "species": "Corvus brachyrhynchos",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      14.5,
+      22.7,
+      26.0,
+      26.8,
+      27.0,
+      25.9,
+      22.6,
+      20.9,
+      20.1,
+      19.3
+     ],
+     "vane_cm_outermost_first": [
+      12.8,
+      19.9,
+      22.3,
+      22.8,
+      22.5,
+      21.7,
+      19.1,
+      18.0,
+      17.4,
+      16.8
+     ],
+     "n": 10,
+     "by_feather_cm": {
+      "P10": 14.5,
+      "P9": 22.7,
+      "P8": 26.0,
+      "P7": 26.8,
+      "P6": 27.0,
+      "P5": 25.9,
+      "P4": 22.6,
+      "P3": 20.9,
+      "P2": 20.1,
+      "P1": 19.3
+     },
+     "longest": "P6",
+     "relative_to_longest": {
+      "P10": 0.537,
+      "P9": 0.841,
+      "P8": 0.963,
+      "P7": 0.993,
+      "P6": 1.0,
+      "P5": 0.959,
+      "P4": 0.837,
+      "P3": 0.774,
+      "P2": 0.744,
+      "P1": 0.715
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "CORA_secondary_male_new",
+     "species": "Corvus corax",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      22.7,
+      22.0,
+      21.0,
+      20.4,
+      20.7,
+      20.1,
+      20.0,
+      20.3,
+      17.5
+     ],
+     "vane_cm_outermost_first": [
+      18.7,
+      18.1,
+      17.4,
+      17.2,
+      17.5,
+      17.1,
+      17.0,
+      17.5,
+      15.2
+     ],
+     "n": 9,
+     "by_feather_cm": {
+      "S9": 22.7,
+      "S8": 22.0,
+      "S7": 21.0,
+      "S6": 20.4,
+      "S5": 20.7,
+      "S4": 20.1,
+      "S3": 20.0,
+      "S2": 20.3,
+      "S1": 17.5
+     }
+    }
+   }
+  },
+  "swallow": {
+   "species": "Hirundo rustica (and Tachycineta)",
+   "span": [
+    {
+     "source": "alerstam2007",
+     "species": "Hirundo rustica",
+     "mass_kg": 0.016,
+     "span_m": 0.32,
+     "semispan_m": 0.16,
+     "area_m2": 0.0136,
+     "AR": 7.53
+    }
+   ],
+   "skeleton": [
+    {
+     "source": "baliga2019",
+     "species": "Hirundo rustica",
+     "mass_g": 18.32,
+     "wing_length_mm": 126.49,
+     "semispan_mm_est": 133.1,
+     "half_body_frac_used": 0.05,
+     "humerus": 0.0989,
+     "radius_ulna": 0.1601,
+     "cmc": 0.0738,
+     "digits_est": 0.0506,
+     "primaries": 9,
+     "secondaries": 9,
+     "wing_area_one_mm2": 4608.419,
+     "AR": 6.94
+    },
+    {
+     "source": "baliga2019",
+     "species": "Tachycineta thalassina",
+     "mass_g": 13.7,
+     "wing_length_mm": 141.82,
+     "semispan_mm_est": 149.3,
+     "half_body_frac_used": 0.05,
+     "humerus": 0.076,
+     "radius_ulna": 0.1363,
+     "cmc": 0.0812,
+     "digits_est": 0.0557,
+     "primaries": 10,
+     "secondaries": 9,
+     "wing_area_one_mm2": 5132.241,
+     "AR": 7.84
+    },
+    {
+     "source": "wang2011",
+     "species": "Hirundo rustica",
+     "humerus_mm": 14.98,
+     "ulna_mm": 23.41,
+     "semispan_m_alerstam": 0.16,
+     "humerus": 0.0936,
+     "ulna": 0.1463
+    }
+   ],
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 2,
+     "elbow": [
+      27,
+      136
+     ],
+     "manus": [
+      52,
+      178
+     ],
+     "max_extension_pairs": [
+      [
+       133,
+       179
+      ],
+      [
+       133,
+       178
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      26,
+      136
+     ],
+     "manus": [
+      54,
+      163
+     ],
+     "slope_manus_per_elbow": 0.99,
+     "r": 0.996,
+     "curve_manus_by_elbow": {
+      "40": 61,
+      "50": 69,
+      "60": 82,
+      "70": 90,
+      "80": 101,
+      "90": 118,
+      "100": 122,
+      "110": 136,
+      "120": 149,
+      "130": 159,
+      "140": 160
+     },
+     "all_specimens_slopes": [
+      0.99
+     ]
+    }
+   },
+   "feathers": {
+    "featheratlas_primaries": {
+     "file": "BARS_primary_male",
+     "species": "Hirundo rustica",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      10.4,
+      10.2,
+      9.6,
+      8.8,
+      8.1,
+      7.5,
+      6.8,
+      6.2,
+      5.5
+     ],
+     "vane_cm_outermost_first": [
+      9.2,
+      8.9,
+      8.3,
+      7.5,
+      6.7,
+      6.3,
+      5.8,
+      5.2,
+      4.8
+     ],
+     "n": 9,
+     "by_feather_cm": {
+      "P9": 10.4,
+      "P8": 10.2,
+      "P7": 9.6,
+      "P6": 8.8,
+      "P5": 8.1,
+      "P4": 7.5,
+      "P3": 6.8,
+      "P2": 6.2,
+      "P1": 5.5
+     },
+     "longest": "P9",
+     "relative_to_longest": {
+      "P9": 1.0,
+      "P8": 0.981,
+      "P7": 0.923,
+      "P6": 0.846,
+      "P5": 0.779,
+      "P4": 0.721,
+      "P3": 0.654,
+      "P2": 0.596,
+      "P1": 0.529
+     },
+     "emargination_digitized": {
+      "dropped_as_isolated": [],
+      "source": "featheratlas",
+      "note": "steps where a vane narrows, at a fraction of the feather's length from its base; drop = the inward move of the edge over the vane's proximal width. Digitized from the scan outlines (tools/fa_profiles.py; 11.6-45 px/cm; edge +-1 px, position +-0.05 of length); steps past 0.75 of the length are the tip's rounding and are excluded",
+      "feathers": {},
+      "n_emarginated_inner": 0
+     }
+    },
+    "featheratlas_secondaries": {
+     "file": "BARS_secondary_male",
+     "species": "Hirundo rustica",
+     "age": "Adult",
+     "sex": "Male",
+     "total_cm_outermost_first": [
+      4.9,
+      4.8,
+      4.7,
+      4.7,
+      4.5,
+      4.5,
+      4.3,
+      3.6,
+      2.9
+     ],
+     "vane_cm_outermost_first": [
+      4.2,
+      4.0,
+      4.0,
+      4.1,
+      3.9,
+      3.9,
+      3.7,
+      3.2,
+      2.6
+     ],
+     "n": 9,
+     "by_feather_cm": {
+      "S9": 4.9,
+      "S8": 4.8,
+      "S7": 4.7,
+      "S6": 4.7,
+      "S5": 4.5,
+      "S4": 4.5,
+      "S3": 4.3,
+      "S2": 3.6,
+      "S1": 2.9
+     }
+    },
+    "counts_baliga": {
+     "primaries": 9,
+     "secondaries": 9
+    }
+   }
+  },
+  "pigeon_reference": {
+   "species": "Columba livia",
+   "skeleton": [
+    {
+     "source": "harvey2022",
+     "species": "Columba livia",
+     "specimen": "20_0281",
+     "mass_kg": 0.337,
+     "semispan_m": 0.317,
+     "shoulder_offset": 0.053,
+     "humerus": 0.1543,
+     "ulna": 0.1915,
+     "radius": 0.1776,
+     "manus_as_given": 0.2054
+    },
+    {
+     "source": "baliga2019",
+     "species": "Columba livia",
+     "mass_g": 332,
+     "wing_length_mm": 295.22,
+     "semispan_mm_est": 311.7,
+     "half_body_frac_used": 0.053,
+     "humerus": 0.1326,
+     "radius_ulna": 0.1635,
+     "cmc": 0.102,
+     "digits_est": 0.07,
+     "primaries": 10,
+     "secondaries": 12,
+     "wing_area_one_mm2": 27428.692,
+     "AR": 6.36
+    }
+   ],
+   "planform_at_full_extension": {
+    "source": "harvey2022",
+    "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
+    "elbow_angle": 129.7,
+    "manus_angle": 159.7,
+    "semispan_m": 0.317,
+    "shoulder": [
+     0.0,
+     0.053
+    ],
+    "elbow": [
+     -0.0445,
+     0.1284
+    ],
+    "wrist": [
+     -0.0,
+     0.3083
+    ],
+    "manus_end": [
+     -0.007,
+     0.4021
+    ],
+    "le_at_wrist": [
+     0.0405,
+     0.3364
+    ],
+    "tip_P10": [
+     -0.2835,
+     0.9618
+    ],
+    "tip_last_primary_on_cmc": [
+     -0.3229,
+     0.8744
+    ],
+    "tip_S1": [
+     -0.3488,
+     0.3947
+    ],
+    "tip_last_secondary": [
+     -0.2991,
+     0.0095
+    ],
+    "root_le": [
+     0.0351,
+     0.0719
+    ],
+    "off_plane_residual": {
+     "pt1": 0.0076,
+     "pt2": -0.0257,
+     "pt3": -0.0118,
+     "pt4": -0.0198,
+     "pt6": -0.0122,
+     "pt8": 0.0278,
+     "pt9": -0.0027,
+     "pt10": -0.0238,
+     "pt11": 0.0125,
+     "pt12": 0.048
+    }
+   },
+   "joints": {
+    "cadaver_range_deg": {
+     "source": "baliga2019",
+     "n_specimens": 2,
+     "elbow": [
+      55,
+      157
+     ],
+     "manus": [
+      58,
+      173
+     ],
+     "max_extension_pairs": [
+      [
+       134,
+       156
+      ],
+      [
+       157,
+       173
+      ]
+     ]
+    },
+    "linkage": {
+     "source": "baliga2019",
+     "note": "the elbow extended by hand, the wrist following through the forearm linkage",
+     "elbow": [
+      56,
+      153
+     ],
+     "manus": [
+      58,
+      173
+     ],
+     "slope_manus_per_elbow": 1.22,
+     "r": 0.989,
+     "curve_manus_by_elbow": {
+      "60": 61,
+      "70": 67,
+      "80": 73,
+      "90": 88,
+      "100": 101,
+      "110": 110,
+      "120": 131,
+      "130": 147,
+      "140": 159,
+      "150": 167
+     },
+     "all_specimens_slopes": [
+      1.22
+     ]
+    },
+    "out_of_plane": {
+     "source": "baliga2019",
+     "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
+     "bend_range_by_elbow": {
+      "60": 42,
+      "80": 47,
+      "100": 39,
+      "120": 39,
+      "140": 22,
+      "160": 15
+     },
+     "twist_range_by_elbow": {
+      "60": 88,
+      "80": 77,
+      "100": 58,
+      "120": 52
+     }
+    },
+    "in_vivo_flight": {
+     "source": "baliga2019",
+     "elbow": [
+      69,
+      110
+     ],
+     "elbow_p5_p95": [
+      73,
+      107
+     ],
+     "manus": [
+      133,
+      162
+     ],
+     "manus_p5_p95": [
+      137,
+      159
+     ],
+     "note": "one 613 g pigeon, 5 clips at 240 fps (tools/baliga_invivo.py): full extension never used in flight"
+    }
+   },
+   "feathers": {
+    "harvey": {
+     "source": "harvey2022",
+     "species": "Columba livia",
+     "primaries": {
+      "P1": {
+       "length_frac": 0.4553,
+       "length_cm": 14.4,
+       "calamus_cm": 3.6,
+       "rachis_at_chord_frac": 0.354,
+       "inner_over_outer_vane": 1.83
+      },
+      "P2": {
+       "length_frac": 0.4587,
+       "length_cm": 14.5,
+       "calamus_cm": 3.8,
+       "rachis_at_chord_frac": 0.329,
+       "inner_over_outer_vane": 2.04
+      },
+      "P3": {
+       "length_frac": 0.4539,
+       "length_cm": 14.4,
+       "calamus_cm": 3.8,
+       "rachis_at_chord_frac": 0.296,
+       "inner_over_outer_vane": 2.38
+      },
+      "P4": {
+       "length_frac": 0.4896,
+       "length_cm": 15.5,
+       "calamus_cm": 4.1,
+       "rachis_at_chord_frac": 0.254,
+       "inner_over_outer_vane": 2.94
+      },
+      "P5": {
+       "length_frac": 0.5343,
+       "length_cm": 16.9,
+       "calamus_cm": 4.4,
+       "rachis_at_chord_frac": 0.253,
+       "inner_over_outer_vane": 2.95
+      },
+      "P6": {
+       "length_frac": 0.5815,
+       "length_cm": 18.4,
+       "calamus_cm": 4.7,
+       "rachis_at_chord_frac": 0.272,
+       "inner_over_outer_vane": 2.68
+      },
+      "P7": {
+       "length_frac": 0.5807,
+       "length_cm": 18.4,
+       "calamus_cm": 4.6,
+       "rachis_at_chord_frac": 0.272,
+       "inner_over_outer_vane": 2.68
+      },
+      "P8": {
+       "length_frac": 0.6336,
+       "length_cm": 20.1,
+       "calamus_cm": 4.6,
+       "rachis_at_chord_frac": 0.25,
+       "inner_over_outer_vane": 3.01
+      },
+      "P9": {
+       "length_frac": 0.6374,
+       "length_cm": 20.2,
+       "calamus_cm": 4.3,
+       "rachis_at_chord_frac": 0.234,
+       "inner_over_outer_vane": 3.28
+      },
+      "P10": {
+       "length_frac": 0.5924,
+       "length_cm": 18.8,
+       "calamus_cm": 3.3,
+       "rachis_at_chord_frac": 0.139,
+       "inner_over_outer_vane": 6.17
+      }
+     },
+     "secondaries": {
+      "S1": {
+       "length_frac": 0.3571,
+       "length_cm": 11.3,
+       "rachis_at_chord_frac": 0.434
+      },
+      "S2": {
+       "length_frac": 0.3911,
+       "length_cm": 12.4,
+       "rachis_at_chord_frac": 0.453
+      },
+      "S3": {
+       "length_frac": 0.3861,
+       "length_cm": 12.2,
+       "rachis_at_chord_frac": 0.436
+      },
+      "S4": {
+       "length_frac": 0.3477,
+       "length_cm": 11.0,
+       "rachis_at_chord_frac": 0.457
+      },
+      "S5": {
+       "length_frac": 0.3564,
+       "length_cm": 11.3,
+       "rachis_at_chord_frac": 0.408
+      },
+      "S6": {
+       "length_frac": 0.3949,
+       "length_cm": 12.5,
+       "rachis_at_chord_frac": 0.449
+      },
+      "S7": {
+       "length_frac": 0.3506,
+       "length_cm": 11.1,
+       "rachis_at_chord_frac": 0.439
+      },
+      "S8": {
+       "length_frac": 0.3564,
+       "length_cm": 11.3,
+       "rachis_at_chord_frac": 0.462
+      },
+      "S9": {
+       "length_frac": 0.3132,
+       "length_cm": 9.9,
+       "rachis_at_chord_frac": 0.457
+      }
+     },
+     "note": "length = vane + calamus; rachis_at_chord_frac = outer (leading) vane width / total width: where the shaft sits along the feather's own chord (0 leading edge)"
+    }
+   }
+  }
+ },
+ "recommended": {
+  "gull": {
+   "shoulder_offset": 0.031,
+   "humerus": 0.19,
+   "ulna": 0.221,
+   "cmc": 0.118,
+   "digits": 0.081,
+   "spread": {
+    "humerus": [
+     0.19,
+     0.012,
+     4
+    ],
+    "ulna": [
+     0.221,
+     0.015,
+     4
+    ],
+    "cmc": [
+     0.118,
+     0.009,
+     3
+    ]
+   },
+   "from_": "harvey2022 (L. glaucescens), baliga2019 (L. glaucescens, L. delawarensis), wang2011+alerstam2007 (L. argentatus)",
+   "positions_at_full_extension": {
+    "elbow_angle": 146.8,
+    "manus_angle": 166.5,
+    "normalised_to": "the larger of the measured semi-span and the P10 tip (1.154)",
+    "shoulder": 0.027,
+    "elbow": 0.184,
+    "wrist": 0.374,
+    "manus_end": 0.509,
+    "S1_tip": 0.533,
+    "chord_at_wrist": 0.239,
+    "chord_at_root": 0.297
+   },
+   "bones_sum_with_shoulder": 0.641,
+   "primaries_beyond_bones": 0.359,
+   "longest_primary": {
+    "name": "P9",
+    "length_cm": 35.3,
+    "length_frac": 0.527,
+    "feather_species": "Larus argentatus",
+    "semispan_basis": {
+     "species": "Larus argentatus",
+     "span_m": 1.34,
+     "source": "alerstam2007"
+    }
+   }
+  },
+  "goose": {
+   "shoulder_offset": 0.0974,
+   "humerus": 0.229,
+   "ulna": 0.21,
+   "cmc": 0.141,
+   "digits": 0.097,
+   "spread": {
+    "humerus": [
+     0.229,
+     0.011,
+     3
+    ],
+    "ulna": [
+     0.21,
+     0.014,
+     3
+    ]
+   },
+   "from_": "harvey2022 (B. canadensis), wang2011+alerstam2007 (B. canadensis, A. anser); cmc/digits split by the derived ratio",
+   "positions_at_full_extension": {
+    "elbow_angle": 118.0,
+    "manus_angle": 150.6,
+    "normalised_to": "the larger of the measured semi-span and the P10 tip (1.112)",
+    "shoulder": 0.088,
+    "elbow": 0.249,
+    "wrist": 0.465,
+    "manus_end": 0.585,
+    "S1_tip": 0.582,
+    "chord_at_wrist": 0.289,
+    "chord_at_root": 0.336,
+    "caution": "the goose cadaver reached elbow 118 deg only: not a spread wing"
+   },
+   "bones_sum_with_shoulder": 0.774,
+   "primaries_beyond_bones": 0.226,
+   "longest_primary": {
+    "name": "P8",
+    "length_cm": 36.1,
+    "length_frac": 0.427,
+    "feather_species": "Branta canadensis",
+    "semispan_basis": {
+     "species": "Branta canadensis",
+     "span_m": 1.69,
+     "source": "alerstam2007"
+    }
+   }
+  },
+  "swan": {
+   "shoulder_offset": 0.09,
+   "humerus": 0.2432,
+   "ulna": 0.2215,
+   "cmc": 0.144,
+   "digits": 0.099,
+   "estimate": "shoulder offset taken from the goose (0.097); manus from the goose's manus/ulna (1.09)",
+   "from_": "wang2011+alerstam2007 (C. olor)",
+   "bones_sum_with_shoulder": 0.798,
+   "primaries_beyond_bones": 0.202,
+   "longest_primary": {
+    "name": "P7",
+    "length_cm": 39.0,
+    "length_frac": 0.394,
+    "feather_species": "Cygnus columbianus",
+    "semispan_basis": {
+     "species": "Cygnus columbianus",
+     "span_m": 1.98,
+     "source": "alerstam2007"
+    }
+   }
+  },
+  "stork": {
+   "shoulder_offset": 0.05,
+   "humerus": 0.2087,
+   "ulna": 0.2408,
+   "cmc": 0.118,
+   "digits": 0.081,
+   "estimate": "CMC from the heron's CMC/ulna (0.489); shoulder offset between heron (0.030) and pelican (0.065)",
+   "from_": "wang2011+alerstam2007 (C. ciconia)",
+   "positions_proxy_pelican": {
+    "elbow_angle": 145.8,
+    "manus_angle": 153.8,
+    "normalised_to": "the larger of the measured semi-span and the P10 tip (1.072)",
+    "shoulder": 0.06,
+    "elbow": 0.284,
+    "wrist": 0.569,
+    "manus_end": 0.691,
+    "S1_tip": 0.691,
+    "chord_at_wrist": 0.246,
+    "chord_at_root": 0.187
+   },
+   "bones_sum_with_shoulder": 0.698,
+   "primaries_beyond_bones": 0.302,
+   "longest_primary": {
+    "name": "P8",
+    "length_cm": 38.5,
+    "length_frac": 0.403,
+    "feather_species": "Mycteria americana",
+    "semispan_basis": {
+     "species": "Ciconia ciconia (feathers: Mycteria americana)",
+     "span_m": 1.91,
+     "source": "alerstam2007; species mismatch"
+    }
+   }
+  },
+  "heron": {
+   "shoulder_offset": 0.0304,
+   "humerus": 0.207,
+   "ulna": 0.241,
+   "cmc": 0.127,
+   "digits": 0.087,
+   "spread": {
+    "humerus": [
+     0.207,
+     0.01,
+     2
+    ],
+    "ulna": [
+     0.241,
+     0.009,
+     2
+    ]
+   },
+   "from_": "harvey2022 (A. herodias; its \"cmc\" is the CMC alone), wang2011+alerstam2007 (A. cinerea); baliga2019's heron left out (its wing length, 0.63 m, is far short of the species' semi-span)",
+   "positions_at_full_extension": {
+    "elbow_angle": 151.3,
+    "manus_angle": 172.1,
+    "normalised_to": "the larger of the measured semi-span and the P10 tip (1.000)",
+    "shoulder": 0.03,
+    "elbow": 0.23,
+    "wrist": 0.47,
+    "manus_end": 0.583,
+    "S1_tip": 0.675,
+    "chord_at_wrist": 0.265,
+    "chord_at_root": 0.309
+   },
+   "bones_sum_with_shoulder": 0.692,
+   "primaries_beyond_bones": 0.308,
+   "longest_primary": {
+    "name": "P7",
+    "length_cm": 37.6,
+    "length_frac": 0.408,
+    "feather_species": "Ardea herodias",
+    "semispan_basis": {
+     "species": "Ardea herodias",
+     "span_m": 1.844,
+     "source": "harvey2022 specimen span"
+    }
+   }
+  },
+  "ibis": {
+   "shoulder_offset": 0.04,
+   "humerus": 0.2097,
+   "ulna": 0.2276,
+   "cmc": 0.111,
+   "digits": 0.076,
+   "estimate": "CMC from the heron's CMC/ulna; shoulder offset estimated",
+   "from_": "wang2011+alerstam2007 (P. falcinellus)",
+   "bones_sum_with_shoulder": 0.664,
+   "primaries_beyond_bones": 0.336,
+   "longest_primary": {
+    "name": "P8",
+    "length_cm": 21.5,
+    "length_frac": 0.483,
+    "feather_species": "Plegadis chihi",
+    "semispan_basis": {
+     "species": "Plegadis falcinellus (feathers: P. chihi)",
+     "span_m": 0.89,
+     "source": "alerstam2007; congener"
+    }
+   }
+  },
+  "crow": {
+   "shoulder_offset": 0.094,
+   "humerus": 0.144,
+   "ulna": 0.175,
+   "cmc": 0.107,
+   "digits": 0.074,
+   "spread": {
+    "humerus": [
+     0.144,
+     0.002,
+     2
+    ],
+    "ulna": [
+     0.175,
+     0.0,
+     2
+    ]
+   },
+   "from_": "baliga2019 (C. caurinus), wang2011+alerstam2007 (C. corone); shoulder offset from the raven (harvey2022)",
+   "raven": {
+    "humerus": 0.175,
+    "ulna": 0.209,
+    "cmc": 0.1177
+   },
+   "positions_at_full_extension_raven": {
+    "elbow_angle": 153.3,
+    "manus_angle": 176.2,
+    "normalised_to": "the larger of the measured semi-span and the P10 tip (1.000)",
+    "shoulder": 0.094,
+    "elbow": 0.215,
+    "wrist": 0.395,
+    "manus_end": 0.516,
+    "S1_tip": 0.582,
+    "chord_at_wrist": 0.331,
+    "chord_at_root": 0.294
+   },
+   "bones_sum_with_shoulder": 0.594,
+   "primaries_beyond_bones": 0.406,
+   "longest_primary": {
+    "name": "P7",
+    "length_cm": 37.0,
+    "length_frac": 0.612,
+    "feather_species": "Corvus corax",
+    "semispan_basis": {
+     "species": "Corvus corax",
+     "span_m": 1.21,
+     "source": "alerstam2007"
+    }
+   }
+  },
+  "swallow": {
+   "shoulder_offset": 0.05,
+   "humerus": 0.096,
+   "ulna": 0.153,
+   "cmc": 0.074,
+   "digits": 0.051,
+   "spread": {
+    "humerus": [
+     0.096,
+     0.003,
+     2
+    ],
+    "ulna": [
+     0.153,
+     0.007,
+     2
+    ]
+   },
+   "estimate": "shoulder offset estimated",
+   "from_": "baliga2019 (H. rustica), wang2011+alerstam2007 (H. rustica)",
+   "bones_sum_with_shoulder": 0.424,
+   "primaries_beyond_bones": 0.576,
+   "longest_primary": {
+    "name": "P9",
+    "length_cm": 10.4,
+    "length_frac": 0.65,
+    "feather_species": "Hirundo rustica",
+    "semispan_basis": {
+     "species": "Hirundo rustica",
+     "span_m": 0.32,
+     "source": "alerstam2007"
+    }
+   }
+  }
+ }
+}

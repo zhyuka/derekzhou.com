@@ -1,5 +1,5 @@
-// The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
-// fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
+// wingmodel.js, the ink birds' wing model (src/birds/model/, served as written). Written by hand. Its comments keep the
+// tags and file names of the development record it came from (rounds, labs, judges), outside this repository.
 /* wingmodel.js (physics/model): the measured wingbeat (MODEL.md) driving the faceted M's rig (facetpose.js).
    No DOM, no clock, no entropy; allocation-free per call.
 
