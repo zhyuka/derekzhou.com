@@ -3,7 +3,7 @@
      lands on something fixed to the window: the pointer resting in open sky (P1), the lettered name's strokes (W1) or a
      link word (W2), sits in the owner's chosen shape (PERCH: perch A, the folded chevron) and leaves. It flies in the
      camera's own space (its place on the window and its nearness), so a turn of the view does not sweep a bird that is
-     landing on the words. Nothing here is read by the ordinary planner, the guard, the hold or the camera: no band, no
+     landing on the words. Nothing here is read by the ordinary planner, the guard or the camera: no band, no
      HOST.calm, no flight list written (the twin test, L13); the guest reads the ordinary birds' last boxes (to keep away
      from them) and nothing else of theirs. Drawn by the same instanced pass, behind the words (the words always on
      top: a bird on a stroke sits on it, the stroke covering its sliver); its way in and out may cross any word (the
@@ -98,7 +98,7 @@ var NAME_PERCH = {
   function gArcU(g, sL) { var A = g.arc, n = A.length - 1; if (sL <= 0) return 0; if (sL >= A[n]) return 1; var i = 1; while (A[i] < sL) i++; return (i - 1 + (sL - A[i - 1]) / Math.max(1e-9, A[i] - A[i - 1])) / n; }
   function gPlan(g, P) {
     var sp = gSpanPx(g) * (P.sk || 1), dir = P.dir, sy = surfY(P.pts, P.x); if (!(sy === sy)) sy = surfTop(P.pts);
-    var vc = P.kind === 'pointer' ? clamp(1.4 * topSpeed(), 18, 50) : clamp(1.25 * topSpeed(), 18, 48), B = gWords(), i;
+    var vc = P.kind === 'pointer' ? clamp(1.4 * topSpeed(), 18, 50) : clamp(1.25 * topSpeed(), 18, 48), i;
     g.sp = sp; g.vc = vc; g.dir = dir; g.face = -dir; g.px0 = P.x; g.py0 = sy;
     var Lg = (P.kind === 'pointer' ? 2.6 : P.kind === 'link' ? 4.5 : 5.5) * sp, qa = (P.qa !== undefined ? P.qa : P.kind === 'name' ? 40 : 24) * DEG, qe = (P.qe !== undefined ? P.qe : P.kind === 'name' ? 18 : 8) * DEG;   // (perch lane: onto a stroke from above)
     g.T = [P.x, sy - 0.22 * sp]; g.yEnd = g.T[1];
@@ -111,8 +111,8 @@ var NAME_PERCH = {
     var tdx = g.Cp[0] - g.G[0], tdy = g.Cp[1] - g.G[1], tdl = Math.sqrt(tdx * tdx + tdy * tdy) || 1;
     /* the start: (fix) out along the glide's own line, back from G to beyond the window's edge, or turned off it by up to
        50 deg (never from below): of these, the first by its time in plus a second for every 12 deg it turns (a straight
-       way in has no turn; judge-bio1: the approach turned 25-29 deg/s on the window), whose path keeps 12 px from the line,
-       credit and links (24 px from the name for a pointer guest) and 2 spans from every ordinary bird where it will be */
+       way in has no turn; judge-bio1: the approach turned 25-29 deg/s on the window), whose path keeps 2 spans from every
+       ordinary bird where it will be (the words are no keep-out: the owner, 2026-11-05) */
     var ga = Math.atan2(-tdy, -tdx), tries = [], DA = [0, 12, -12, 24, -24, 36, -36, 50, -50], m2 = 2 * sp;
     for (i = 0; i < DA.length; i++) {
       var aa = ga + DA[i] * DEG, ux = Math.cos(aa), uy = Math.sin(aa); if (uy > 0.15) continue;
@@ -126,7 +126,7 @@ var NAME_PERCH = {
       var dx = g.Q[0] - g.S[0], dy = g.Q[1] - g.S[1], L = Math.sqrt(dx * dx + dy * dy);
       g.L = L; g.mQ = [tdx / tdl * L, tdy / tdl * L]; g.mS = [dx, dy];
       g.Ti = L * 1.12 / vc; g.vg = L / g.Ti; g.ve = 0.24 * g.vg; g.Tr = 2 * g.Lb / (g.vg + g.ve);   // (the Hermite's way a little longer than the chord; its end pace the glide's start)
-      if (gPathClear(g, P, B)) break;
+      if (gPathClear(g, P)) break;
     }
     if (i === tries.length) return false;
     g.tF = g.Ti + g.Tr - 0.6; g.tT = g.Ti + g.Tr;   // (the flare: the last 0.6 s of the glide)
@@ -166,7 +166,7 @@ var NAME_PERCH = {
     GU.log.push({ t: +t.toFixed(2), ev: 'click', id: g.id, x: +x.toFixed(1), y: +y.toFixed(1), away: [+g.away[0].toFixed(2), +g.away[1].toFixed(2)] });
     return true;
   }
-  function gPathClear(g, P, B) {
+  function gPathClear(g, P) {
     var n = 40, i, hw = 0.6 * g.sp, hh = 0.35 * g.sp, TT = g.Ti + g.Tr;
     for (i = 0; i <= n; i++) {
       var ti = TT * i / n; gPos(g, ti, GTMP);
@@ -465,7 +465,7 @@ var NAME_PERCH = {
   var PIN_SLOTS = [];   // (the guests' slots: drawn as any bird, apart from the ring)
   function pinSlot(i) {
     while (PIN_SLOTS.length <= i) PIN_SLOTS.push({ key: 777 + PIN_SLOTS.length, busy: true, on: true, d: null, kind: 'gull', P16: new Float64Array(48), X16: new Float64Array(48), D: new Float32Array(32), body: new Float64Array(3), nb: new Float64Array(3), fw: new Float64Array(3), lw3: new Float64Array(3), vw: new Float64Array(3), aw: new Float64Array(3),
-      roll: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), hold: 1, cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 });
+      roll: 0, E: new Float64Array(3), eOk: false, fold: new Float64Array(6), cw: new Float64Array(3), cwH: new Float64Array(3), cwHt: new Float64Array(3).fill(-1e9), cwNow: new Float64Array(3), cwNext: -1, cwAt: -1e9, spanPx: 0, floorPx: 1, filt: 1, halo: 0, haloE: 3, legib: 0 });
     return PIN_SLOTS[i];
   }
   var GSLOT = [], GHALO = 1, GLOWX = 0;
@@ -531,7 +531,6 @@ var NAME_PERCH = {
     if (!projectBird(s, C)) return null;
     lightBird(s, L, true, dt);
     if (GDEV.tone) { var tw = GDEV.tone, tm = Math.max(s.E[0], s.E[1], s.E[2], GDEV.white || 0); for (i = 0; i < 3; i++) s.E[i] += (tm - s.E[i]) * tw; }
-    s.hold = 1; s.birdL = gradedL(s.E, HOST.grade(), 1); s.groundL = -1;
     cloudWeights(s, C, 0, true);
     g.last = { x: A.xDrawn, y: A.yDrawn, phase: A.phase, yaw: A.yaw, pitch: A.pitch, el: A.el, op: A.op, flap: g.flap };
     return A;
@@ -552,7 +551,7 @@ var NAME_PERCH = {
       }
       var A = guestBird(g, s, C, dt, L, tr - g.t0);
       if (!A) continue;
-      packBird(nB, s, A.op, 1e5, false, N, g.P.kind === 'pointer' ? s.haloE : Math.min(s.haloE, GHALO), 1, -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
+      packBird(nB, s, A.op, 1e5, false, N, g.P.kind === 'pointer' ? s.haloE : Math.min(s.haloE, GHALO), -1, 1, s.floorPx);   // (at night its own light, as every bird's; its halo held small by the words)
       nB++;
     }
     return nB;
