@@ -55,6 +55,7 @@
     if (BOOT.fts.length < 4000) BOOT.fts.push(FRAMEN, +ts.toFixed(2));
     BOOT.frames++; if (BOOT.ts.length < 400) BOOT.ts.push(ts);
     WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0;
+    var hold = wkHold(t0); if (!hold) wkMeasure();   // (WebKit boot: no sync call while a first draw's pipeline builds; then that build timed)
     if (BOOT.st === 'B') {   // (Fix 3: and the first program issued in this frame: no frame of the boot is idle)
       bootMark('B objects'); bootObjects(); if (BIRDS && BIRDS.boot) BIRDS.boot();
       BOOT.st = 'C'; bootMark('C programs');
@@ -63,9 +64,9 @@
     }
     // (Fix 2) the read-back only from stage E: no synchronous call while a link is outstanding (Fix 3: from the frame after C's last)
     var afterC = BOOT.cDone && BOOT.cDoneF < FRAMEN;
-    if (afterC) { rbPoll(); if (RB.lagged) BOOT.bake = Math.max(6, BOOT.bake >> 1); else if (BOOT.dBaked >= BOOT.bake) BOOT.bake = Math.min(BOOT_BAKE_MAX, BOOT.bake * 2); BOOT.dBaked = 0; }   // (fast500 step 10: a slow start, doubled after a frame that spent it)
+    if (afterC && !hold) { rbPoll(); if (RB.lagged) BOOT.bake = Math.max(6, BOOT.bake >> 1); else if (BOOT.dBaked >= BOOT.bake) BOOT.bake = Math.min(BOOT_BAKE_MAX, BOOT.bake * 2); BOOT.dBaked = 0; }   // (fast500 step 10: a slow start, doubled after a frame that spent it)
     // C: the programs
-    if (!BOOT.cDone) {
+    if (!BOOT.cDone && !hold) {
       var pd = PROGX.cur, r = progStep(false, dl);
       label += r === true ? ' C-done' + (pd ? '<' + pd.name : '') : (PROGX.cur && PROGX.cur !== pd ? ' C:' + PROGX.cur.name : PROGX.cur ? ' C?' + PROGX.cur.name : pd ? ' C<' + pd.name : ' C');   // (Fix 3: C:x issued, C?x asked, C<x read: one of them a frame)
       if (r === LOSTP) return;
@@ -83,8 +84,8 @@
        warm table (Fix 2: before D's GPU half, so none of D's draws is a program's first use), each one's first use alone
        in its frame */
     if (!NOISE.done) { var noised = noiseStep(afterC); label += ' noise' + NOISE.z; if (noised) bootMark('E noise baked'); }   // (noised: where links run one at a time, F's first entry waits a frame after the bake's last layers)
-    var gpuFree = afterC && NOISE.done && (WARM.done || reduced());
-    if ((EXT.parAll || (EXT.parWK && !noised)) && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links; WebKit: one a frame, never in the noise's last frame)
+    var gpuFree = afterC && !hold && NOISE.done && (WARM.done || reduced());
+    if ((EXT.parAll || (EXT.parWK && !noised && !hold)) && WARM.tg && !WARM.done && !reduced()) {   // (speed E8: each entry once its program is, beside the links; WebKit: one a frame, never in the noise's last frame)
       var wj = WARM.ms.length; warmStep(false, dl); label += ' F' + (WARM.ms.length - wj);
       if (WARM.done) bootMark('F warmed (' + WARM.list.length + ' keys)');
     } else if (!EXT.parAll && afterC && NOISE.done && !WARM.done && !reduced() && !noised) {   // (speed E10: never in the noise's frame, as before E8)
