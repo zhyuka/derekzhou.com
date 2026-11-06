@@ -411,16 +411,16 @@
   }
   var GFQ = { x: 0, y: 0, z: 0, h: 0 }, GFP2 = { x: 0, y: 0, n: 0, z: 0 };
   function gFlyer(sp) {   /* a lone living-sky gull, any (one a click let go too), in view or just beyond the window's edge
-                             (half a window out at most: it comes back in over the edge), at most a little bigger than it
-                             will sit; the nearest to its perched size wins */
+                             (half a window out at most: it comes back in over the edge), from a quarter to twice the size it
+                             will sit at; the nearest to its perched size wins */
     var best = null, C = camDrawn(); if (!C || !C.f) return null;
     for (var i = 0; i < PLACES.length; i++) {
       var F = PLACES[i]; if (!F.live || F.gone || F.sort !== 'gull' || !F.m || F.m.length !== 1) continue;
       var sl = F.m[0].s, cx, cy, spx;
       if (sl && sl.on && sl.spanPx > 0) { cx = (sl.bx0 + sl.bx1) / 2; cy = (sl.by0 + sl.by1) / 2; spx = sl.spanPx / (VW.outW / Math.max(1, W)); }
       else { lvAt(F, t - F.t0, GFQ); lvProj(GFQ.x, GFQ.y, GFQ.z, C, 0, GFP2); if (!(GFP2.z > 0.5)) continue; cx = GFP2.x; cy = GFP2.y; spx = F.spm * (W / 2) / VW.tanX / GFP2.z; }
-      if (!(cx > -0.5 * W && cx < 1.5 * W && cy > -0.3 * H && cy < H - 40) || spx < 0.25 * sp || spx > 1.25 * sp) continue;
-      if (!best || Math.abs(spx - sp) < Math.abs(best.sp - sp)) best = { F: F, x: cx, y: cy, sp: Math.min(spx, sp) };
+      if (!(cx > -0.5 * W && cx < 1.5 * W && cy > -0.3 * H && cy < H - 40) || spx < 0.25 * sp || spx > 2 * sp) continue;
+      if (!best || Math.abs(spx - sp) < Math.abs(best.sp - sp)) best = { F: F, x: cx, y: cy, sp: spx };   // (its size now: nearer than it will sit, it shrinks as it comes down to it)
     }
     return best;
   }
