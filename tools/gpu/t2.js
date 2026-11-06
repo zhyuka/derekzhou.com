@@ -102,7 +102,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(A.gpuname ? ['--gpuname', A.gpuname] : []).concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
-      const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
+      const shown = (r) => r && r.show && r.show[j.arm] >= 0 && r.show[j.arm] < 4000;   // (first-paint preview: 0, shown in the page's own load: the hold)
       let code, res = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         code = await run(args, attempt ? {} : prof(slot), 'gstep_' + tag + (attempt ? '_retry' : ''));
