@@ -4,6 +4,7 @@
   function layoutChanged() {   // (E1.1 Fix 2, S10: only stored; measured, and a still drawn again, in the next frame: domFlush)
     DOMQ.words = true; if (!running) domNext();
   }
+  var SLOW_GPU = /Adreno \(TM\) 619\b/;   // (phone lane: the GPUs the lab measured too slow for the world, by WebGL's renderer string)
   function boot() {
     bootMark('start: run');   // (fast500 F0)
     if (!ORDER.length) { fail('no realms'); return; }
@@ -23,6 +24,12 @@
     SKYMARK = SKYTOP[HOUR] ? HOUR : 'day';   // (tod fix3, problem 4: the hour's group, never the realm's own still ('dunes'): this stylesheet has a still sky and words for each time of day and none for a realm, so a boot declined before the first frame (a slow device) left a night visitor on the daylight still with black words; Fix 3: not written: the hour's still sky stays until the canvas hides, markStill)
     // a renderer on the CPU keeps that still sky (the world would run at a frame or two a second)
     if (!DEVMODE && /SwiftShader|llvmpipe|Software/i.test(EXT.renderer)) { DEAD = true; return; }
+    /* (phone lane) and a GPU measured too slow keeps it before any program is compiled: stage G declined it on every
+       real run (the Android lab, Firebase Test Lab, 2026-11-06: a OnePlus Nord CE 3 Lite's Adreno 619, Chrome 117 and
+       159, cold and return, 124-159 ms a frame at scale 0.35 against 21.7, after a 4.37 s compile frame). Only GPUs
+       declined every time are named; one on the line (the Galaxy A15's Mali-G57 MC2, shown or declined run to run)
+       keeps the trial */
+    if (!DEVMODE && SLOW_GPU.test(EXT.renderer)) { DEAD = true; return; }
     resize();
     if (typeof ResizeObserver !== 'undefined') { var ro = new ResizeObserver(layoutChanged); ro.observe(document.querySelector('main')); var ft = document.querySelector('footer'); if (ft) ro.observe(ft); ro.observe(canvas); }
     window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); if (!FRUN && forced()) { DOMQ.fc = true; domNext(); } });   // (E1.1, S10: only stored; the window measured and drawn in the next frame; round 2: forced colours' still drawn again there, fstart)
