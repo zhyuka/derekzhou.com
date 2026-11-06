@@ -22,7 +22,9 @@ async function gh(method, p, body, token = process.env.GITHUB_TOKEN) {
 const act = async (what, f) => { if (DRY) { say('(dry) ' + what); return { status: 0 }; } return f(); };
 
 const run = JSON.parse(process.env.RUN || '{}');
-const sha = run.head_sha, branch = run.head_branch;
+// On a PR event the PR's own branch is judged (the Gate run found for its commit may have run on another branch
+// holding the same commit, e.g. one pushed before the PR's branch existed).
+const sha = run.head_sha, branch = process.env.PR_HEAD_REF || run.head_branch;
 say(`Gate run ${run.id} (${run.event}, ${run.conclusion}) for ${branch} @ ${sha}`);
 if (!process.env.MERGE_TOKEN) { say('::notice::MERGE_TOKEN is not set, so the merge bot is idle: nothing is merged, labelled or commented. The owner adds the repository secret MERGE_TOKEN to turn it on.'); process.exit(0); }
 if (!branch || !branch.startsWith('claude/')) { say(`${branch}: not a claude/* branch: left to the owner`); process.exit(0); }

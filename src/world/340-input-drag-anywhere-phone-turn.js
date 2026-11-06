@@ -1,0 +1,168 @@
+  /* ---------------------------------------------------------------- input: a drag anywhere, the phone's turn */
+  /* No control is shown. A drag anywhere on the page (touch, pen, or a mouse with its main button held; it begins after
+     8 px, so a tap stays a tap) turns the view and the flight: across the window's width, 90 deg (a little more than a
+     desktop's view is wide, so a swipe across looks aside; the same on a phone, whose view is narrower), the scene
+     following the finger; up and down, the view tilts and the flight climbs or dives. Let go, and the turn runs on a
+     little and eases out; the tilt is kept (E1.1: round 3b eased it level by itself). A pointer's moves are read only while it is pressed (no hover), there
+     is no key handler, nothing is stored. A drag begun on a link steers and never follows it; a tap on a link is a tap.
+     Two fingers are never steering (pinch-zoom is the page's: touch-action pinch-zoom, pan-y as well on a page that
+     scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
+     motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
+     link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
+  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
+  var INPLOG = [], INPQ = []; INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
+  var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false };
+  /* (life) the birds' play is not in this page (it comes with the perched birds): the pointer the birds read is always
+     gone (HOVER), and no listener reads a mouse's moves */
+  var HOVER = { x: -1, y: -1, n: 0, gone: true, down: false, type: '' };
+  var SUPPRESS = false, SUPPRESS_N = 0;
+  var CLICKQ = [];   // (perch lane: clicks and taps for the birds, x, y CSS px pairs; drained by the birds each step)
+  function inert() { return reduced() || DEAD || LOST; }
+  function onLink(el) { for (var e = el; e && e !== root; e = e.parentNode) if (e.tagName === 'A' || e.tagName === 'BUTTON') return true; return false; }
+  function onDown(e) {
+    if (inert()) return;
+    if (DRAG.id !== -1) { if (e.pointerId !== DRAG.id) { DRAG.multi = true; endDrag(false); } return; }   // (a second finger: no steering)
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.pointerType === 'touch' && TOUCHMODE === 'zoom') return;   // (zoomed in: the finger is the browser's)
+    DRAG.id = e.pointerId; DRAG.x0 = DRAG.x = e.clientX; DRAG.y0 = DRAG.y = e.clientY; DRAG.on = false; DRAG.type = e.pointerType || 'mouse'; DRAG.multi = false;
+    SUPPRESS = false;
+    window.addEventListener('pointermove', onMove, true); window.addEventListener('pointerup', onUp, true); window.addEventListener('pointercancel', onCancel, true);
+  }
+  function onMove(e) {
+    if (e.pointerId !== DRAG.id) return;
+    var x = e.clientX, y = e.clientY;
+    if (!DRAG.on) {
+      var dx = x - DRAG.x0, dy = y - DRAG.y0;
+      if (dx * dx + dy * dy < 64) return;
+      if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
+      DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (E1.1 Fix 2, S10: data-steer and the selection cleared in the next frame)
+      if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
+      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0;   // (the first 8 px are taken too: the scene catches the finger up)
+    }
+    INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y;
+    if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (E0, the record: the oldest move not yet drawn, for the input's latency)
+  }
+  function onUp(e) {
+    if (e.pointerId !== DRAG.id) return;
+    var was = DRAG.on;
+    if (!was && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (perch lane: each click spawns a bird)
+    endDrag(true);
+    if (was) { SUPPRESS = true; SUPPRESS_F = FRAMEN; SUPPRESS_N++; }   // (a drag's click is not a tap)
+  }
+  function onCancel(e) { if (e.pointerId === DRAG.id) endDrag(false); }
+  function endDrag(release) {
+    if (DRAG.on) { INP.down = false; INP.rel = release; DOMQ.steer = 0; if (!running) domNext(); MOTIONASK.drag = true; }
+    if (DRAG.cap) { try { root.releasePointerCapture(DRAG.id); } catch (er) { /* gone */ } DRAG.cap = false; }
+    DRAG.id = -1; DRAG.on = false;
+    window.removeEventListener('pointermove', onMove, true); window.removeEventListener('pointerup', onUp, true); window.removeEventListener('pointercancel', onCancel, true);
+  }
+  function onClick(e) {
+    if (SUPPRESS && e.detail !== 0) { SUPPRESS = false; e.preventDefault(); e.stopPropagation(); askMotion(); return; }
+    if (!onLink(e.target)) askMotion();   // (a tap on the page, never on a link)
+  }
+  function onTouchEnd(e) {   // (iOS grants motion only inside a touch's own end)
+    if (MOTIONASK.drag || (e.changedTouches && e.changedTouches.length === 1 && !onLink(e.target) && !DRAG.on)) askMotion();
+    MOTIONASK.drag = false;
+  }
+  /* the phone's turn: yaw and pitch of the direction its back looks (the view's), from the device's own Euler angles
+     (alpha about z, beta about x, gamma about y, in that order); the screen's rotation turns the picture about that
+     direction and changes neither */
+  var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0 };
+  var MOTIONASK = { drag: false };
+  function askMotion() {
+    if (MOTION.st !== 'off' || inert()) return;
+    var DOE = window.DeviceOrientationEvent;
+    if (!DOE || typeof DOE.requestPermission !== 'function') return;
+    MOTION.st = 'asking';
+    try {
+      DOE.requestPermission().then(function (r) { if (r === 'granted') enableMotion(); else MOTION.st = 'denied'; },
+        function () { MOTION.tries++; MOTION.st = MOTION.tries >= 3 ? 'denied' : 'off'; });   // (not inside a gesture: asked again at the next)
+    } catch (er) { MOTION.st = 'off'; }
+  }
+  function enableMotion() { if (MOTION.on) return; MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; window.addEventListener('deviceorientation', onOrient); }
+  function onOrient(e) {
+    if (e.alpha === null || e.beta === null || e.gamma === null || inert()) return;
+    if (REC && REC.ori.length < 6000) REC.ori.push([+e.timeStamp.toFixed(1), +e.alpha.toFixed(2), +e.beta.toFixed(2), +e.gamma.toFixed(2)]);   // (E0, the record: raw, for the filter's lag, D6)
+    orientAt(e.alpha, e.beta, e.gamma);
+  }
+  function orientAt(al, be, ga) {
+    var a = al * DEG, b = be * DEG, g = ga * DEG, ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), cg = Math.cos(g), sg = Math.sin(g);
+    var m13 = ca * sg + sa * sb * cg, m23 = cb * cg, m33 = -sa * sg + ca * sb * cg;
+    var pitch = Math.asin(clamp(-m23, -1, 1)), yaw = Math.atan2(m13, m33);
+    if (Math.abs(pitch) > 75 * DEG) yaw = MOTION.ref ? MOTION.yaw : yaw;   // (looking straight down or up the yaw is undefined: held)
+    if (!MOTION.ref) { MOTION.yaw0 = yaw - MOTION.sy; MOTION.pitch0 = pitch - MOTION.sp; MOTION.ref = true; }
+    MOTION.yaw = yaw; MOTION.pitch = pitch; MOTION.has = true; MOTION.n++;
+  }
+  /* each step: the drag's motion and the phone's into the flight's state */
+  var IDLE_K = 0;
+  function applyInput(dt, t, V) {
+    // (dev: a scripted input replayed at its own times)
+    while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
+    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, any = false;
+    INP.dx = 0; INP.dy = 0;
+    if (dx || dy) any = true;
+    if (INP.down) {
+      CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
+      CS.ring[CS.ri] = dx * G; CS.ringP[CS.ri] = dy * G; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
+      CS.om = 0; CS.omP = 0; CS.since = 0;
+    }
+    if (INP.rel) {
+      INP.rel = false; any = true;
+      var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
+      CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg: E1.1)
+    }
+    if (!INP.down) {
+      CS.yawV += CS.om * dt; CS.om *= Math.exp(-dt / 0.3);
+      // (E1.1, item 2; design-v5 Revision 3: nothing turns the view by itself) the tilt the visitor set is kept: round 3b
+      // eased it level over 2.5 s from 0.8 s after the release (verify-regress-3: an 18 deg tilt swung back 24.6 deg by
+      // itself over 8 s, at up to 8.8 deg/s). The climb or dive it drives stops at the realm's clearance limits
+      // (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s after it the tilt's
+      // own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at most 1.5 deg/s)
+      CS.thU = clamp(CS.thU + CS.omP * dt, -TH_MAX, TH_MAX); CS.omP *= Math.exp(-dt / 0.2);
+      CS.since += dt;
+    }
+    // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg
+    if (MOTION.on && MOTION.has) {
+      var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1);
+      MOTION.sy += angDiff(ry, MOTION.sy) * k; MOTION.sp += (rp - MOTION.sp) * k;
+      var dz = 1.2 * DEG, ey = angDiff(MOTION.sy, CS.phi), ep = MOTION.sp - CS.thPraw;
+      if (Math.abs(ey) > dz) { CS.phi += ey - (ey > 0 ? dz : -dz); any = true; }
+      if (Math.abs(ep) > dz) { CS.thPraw += ep - (ep > 0 ? dz : -dz); any = true; }
+      var L = 30 * DEG; CS.thP = L * Math.tanh(CS.thPraw / L);
+    }
+    if (any) {
+      CS.lastIn = t; CS.auto = 0;
+      IDLE_K++; CS.idleAfter = 6 + 4 * hfl(ihash((IDLE_K * 2654435761 + J.seed) >>> 0));   // (6-10 s before the clearance eases back to the cruise height)
+      if (DEVMODE) INPLOG.push([+t.toFixed(4), +dx.toFixed(2), +dy.toFixed(2), INP.down ? 1 : 0, MOTION.has ? +(MOTION.yaw / DEG).toFixed(3) : null, MOTION.has ? +(MOTION.pitch / DEG).toFixed(3) : null]);
+    }
+  }
+  /* dev: an input injected at a step's time ({ t, drag: [dx, dy] } moves a held drag; { t, down } / { t, up } press and
+     release; { t, orient: [alpha, beta, gamma] } the phone; { t, motion: true } motion enabled) */
+  function devInput(ev) {
+    if (ev.down) { INP.down = true; }
+    if (ev.drag) { INP.dx += ev.drag[0]; INP.dy += ev.drag[1]; }
+    if (ev.up) { INP.down = false; INP.rel = true; }
+    if (ev.motion) { MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; }
+    if (ev.orient) orientAt(ev.orient[0], ev.orient[1], ev.orient[2]);
+  }
+  /* the page's touch: one finger steers; a page taller than the window scrolls with a vertical drag; zoomed in, the
+     browser has every finger */
+  var TOUCHMODE = null;
+  function touchMode() {
+    var vv = window.visualViewport, zoomed = !!(vv && vv.scale > 1.01), scrolls = root.scrollHeight > window.innerHeight + 2;
+    var m = zoomed ? 'zoom' : scrolls ? 'scroll' : 'steer';
+    if (m !== TOUCHMODE) { TOUCHMODE = m; root.setAttribute('data-touch', m); }
+  }
+  function inputInit() {
+    window.addEventListener('pointerdown', onDown, true);
+    hoverSync();   // (life fix: the birds' play's two listeners, mouse only, added only while motion and colours allow it: never under reduced motion or forced colours)
+    window.addEventListener('click', onClick, true);
+    window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
+    document.addEventListener('dragstart', function (e) { if (!inert()) e.preventDefault(); }, true);   // (a link is never dragged away)
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { DOMQ.touch = true; if (!running) domNext(); });   // (E1.1 Fix 2, S10: measured in the next frame)
+    touchMode();
+    // Android and the rest: the phone's motion needs no asking; iOS asks inside a gesture
+    var DOE = window.DeviceOrientationEvent;
+    if (DOE && typeof DOE.requestPermission !== 'function') enableMotion();
+  }
+
