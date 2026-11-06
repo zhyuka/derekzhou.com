@@ -1,25 +1,28 @@
 # derekzhou.com
 
-Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks. No build
-step at deploy (five scripts are served minified, built from src/ by
-tools/ and committed: see Structure).
+Personal site for Derek Zhou. Pure HTML, CSS, JS. No frameworks.
+Cloudflare Pages builds it at deploy (tools/build.mjs: five scripts minified
+from src/, the start file made, every script and stylesheet named by its
+content). Nothing built is committed: see Structure.
 
 ## Structure
 
-The site is the folder site/: the Cloudflare Pages project's build output
-directory, served alone (no build command). Everything else here is the
-repository's own, and never served.
+The site is built from the folder site/ and src/: Cloudflare Pages runs
+tools/build.mjs and serves its output (dist/, the project's build output
+directory), alone. site/ holds what is served as written; the seven files
+marked "built" below exist only in a build, never in site/. Everything else
+here is the repository's own, and never served.
 
 site/index.html              Home page: the words over a 3D world, drawn live behind them
 site/style.v16.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.v3.js              The hour: which time of day the world opens on (the page's one clock read)
-site/start.v4.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World)
-site/start-table.v4.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint
-site/world.v10.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World)
-site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles)
-site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light
-site/realm-above.v3.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light
+site/start.v4.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World) (built)
+site/start-table.v4.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint (built)
+site/world.v10.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World) (built)
+site/realm-kit.v2.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
+site/realm-dunes.v4.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
+site/realm-above.v3.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
 site/plan.v1.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World)
 site/facetform.v1.js         The wing model: the tattoo's M as a faceted solid (generated; see Birds)
 site/facetpose.v1.js         The wing model: the faceted M posed
@@ -27,7 +30,7 @@ site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M
 site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
 site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
 site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
-site/inkbirds.v7.js          The ink birds: the living sky, every flock on its own business in the world (see Birds)
+site/inkbirds.v7.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -42,7 +45,7 @@ site/\_redirects             HTTPS enforcement (http and www to https://derekzho
 CLAUDE.md                    This file
 subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
-src/                         The five scripts site/ serves minified, as written (the world, the kit and
+src/                         The five scripts the site serves minified, as written (the world, the kit and
                              the realms, the ink birds): the realms whole under their served names, the
                              world and the ink birds in sections (src/world/, src/birds/inkbirds/)
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
@@ -51,8 +54,8 @@ test/shaders.mjs             Every program the page issues, against its golden t
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
-                             the plain build equals site/ and the named build resolves, both twice, byte for byte
-tools/minify.mjs             Builds site/'s five from build/src/ (and the start file, by tools/start.mjs); CI checks the build
+                             the build the same bytes twice, site/ free of built files, and the named build resolves
+tools/minify.mjs             Builds the five served scripts from build/ship/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
@@ -76,32 +79,30 @@ build/ship writes the shipped build, the dev parts left out by file.
 A plain GLSL literal (no ${...}) is kept as a file in its folder's glsl/
 (src/world/glsl/, src/birds/inkbirds/glsl/, src/glsl/ for the realms):
 the script has `@glsl NAME` where it was, and assemble writes the text
-back exactly. Edit a shader in its .glsl file; then node test/shaders.mjs
-site --write updates the golden texts (test/golden/shaders/: every
+back exactly. Edit a shader in its .glsl file; then node tools/build.mjs
+--plain build/site and node test/shaders.mjs build/site --write update the golden texts (test/golden/shaders/: every
 program the reference device issues), committed with the manifest.
-tools/minify.mjs makes site/'s from build/ship/: terser (pinned in package.json) compresses and
+tools/minify.mjs makes the served five from build/ship/: terser (pinned in package.json) compresses and
 mangles, every string's value and every shader's text the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker; where index.html loads the start file, tools/start.mjs makes it
-too. CI step "The minified scripts are exactly what the script makes" (npm
-ci, then node tools/minify.mjs --check build/ship site --start-src
-build/src; the start file is made from the dev build) fails on a served script
-edited by hand or a source changed without its build, and the rules that
-read the scripts' text (the absences, world_rules.py) read build/src/. So
-a change is made in src/ and built (node tools/parts.mjs assemble src
-build/src, node tools/parts.mjs assemble --ship src build/ship, then node
-tools/minify.mjs --build build/ship site --start-src build/src),
-the two committed together. tools/build.mjs runs all of that into a
-folder of its own (node tools/build.mjs --plain OUT: site/ copied, the
-built scripts over it) and then (restructure step 5) names each script and
+too (from the dev build). None of what they make is committed: a change
+is made in src/ and committed alone, and the build makes the rest. The
+rules that read the scripts' text (the absences, world_rules.py) read
+build/src/; every other check of a served file reads build/site/ (CI's
+first step: node tools/build.mjs --plain build/site). tools/build.mjs runs
+all of it into a folder of its own (node tools/build.mjs --plain OUT: site/
+copied, src/ assembled, the built scripts written into the copy) and then
+(restructure step 5) names each script and
 stylesheet by its content: world.v10.js becomes world.<sha8>.js, the first 8
 hex of the sha256 of its final bytes, files that load others by name (the
 world's plan worker, the start file's table) named after them, and every
 reference rewritten (index.html, 404.html, \_headers, the two workers'
 URLs); node tools/build.mjs OUT writes that, with OUT/build.txt holding the
-commit. CI step "The build makes site/, the same bytes every time" (node
-tools/build.mjs --check) builds twice and fails unless both builds are the
-same bytes, the plain build equals site/, and in the named build every
+commit. CI step "The build, the same bytes every time; site/ holds no
+built file" (node tools/build.mjs --check) builds twice and fails unless both
+builds are the same bytes, site/ holds none of the files the build writes
+(a built file committed back is an error: git rm it), and in the named build every
 name is its bytes' hash, no old name is left, every reference resolves and
 every script and stylesheet has its own immutable \_headers block. The
 hour, site.js, the wing model and the
@@ -121,8 +122,8 @@ for a sign-in there, and past it they serve 404.
 The shipped scripts have no development harness: the world is built and
 measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and src/'s files are that build with every
-hook cut out by counted edits (see Verify), site/'s built from
-them. Nothing on the page reads such a hook. The record's code and
+hook cut out by counted edits (see Verify), the served copies built
+from them. Nothing on the page reads such a hook. The record's code and
 the dev helpers those hooks called are in src/dev/world/, in the dev
 build only, unreachable (the switches keep their defaults); the served
 copy is built without them (assemble --ship: the switches' defaults kept,
@@ -837,12 +838,14 @@ the top of the drawn world. The favicon is SVG-first with PNG fallback.
 
 ## Caching
 
-Once Cloudflare Pages deploys tools/build.mjs's output (build command
+Cloudflare Pages deploys tools/build.mjs's output (build command
 `npm ci --no-audit --no-fund --ignore-scripts && node tools/build.mjs dist`,
-output directory `dist`), the served scripts and stylesheet are named by
-their content and a changed file gets a new name by itself. Until site/
-stops carrying the built files, the vN names below still name site/'s
-files and the rule below still holds for them.
+output directory `dist`, live since 2026-11-06): every script and the
+stylesheet is served under its content's name (world.<sha8>.js), so a changed
+file gets a new name by itself and no one bumps a script's or the
+stylesheet's vN for a change. Their vN names stay as the build's input names
+(site/, src/, the plain build CI checks). The rule below still holds, by
+hand, for what the build does not rename: the fonts (.subN) and the images.
 
 HTML: max-age=0, must-revalidate. Everything else: max-age=31536000,
 immutable. Immutable means CHANGED BYTES NEED A NEW FILENAME: bump
@@ -855,7 +858,7 @@ commit: site/index.html (stylesheet, hour, every script), site/404.html
 (stylesheet, hour), site/\_headers (the Link preloads of the style, the
 hour, the start file, the world and the kits, each file's cache block, the
 "next name" comment), src/ (a minified script's readable copy carries its
-served name: git mv both, or CI's build check fails), tools/start.mjs for
+served name, which the build takes from it), tools/start.mjs for
 start.vN.js (it writes the start file's own name, and the next one, into
 the file's header; CI checks the start file against what the same script
 makes, so it would not catch a stale name), the world's source for
@@ -1002,8 +1005,8 @@ header (the /404.html rule matches only direct requests), so 404.html
 carries the same policy in a meta http-equiv tag — keep the two in sync;
 frame-ancestors cannot ride the meta tag, X-Frame-Options on /* covers
 framing.
-Nothing but the site is served: the site is the folder site/, the Pages
-project's build output directory (still no build command), and
+Nothing but the site is served: the site is the build of site/ and src/
+(tools/build.mjs; dist/ is the Pages project's build output directory), and
 CLAUDE.md, .github/ and the font scripts stay outside it (404 from the
 site, a percent-encoded spelling such as /%43LAUDE.md too). The
 repository is private (2026-11-03). Before the move Pages served the
@@ -1060,7 +1063,7 @@ Before a change to the world, its kits or the ink birds:
   full phone tier draws at 2 device px a CSS px; if it reloads, that
   tier goes down to 1.6).
 - Then the dev build is cut to src/'s files by its counted edits
-  (each must match exactly once), those built into site/'s by
+  (each must match exactly once), those built by
   tools/minify.mjs (the start file by tools/start.mjs), and the
   build proved to change nothing a visitor sees: both builds
   served side by side, the same visit (the page's one entropy
@@ -1073,13 +1076,16 @@ Before a change to the world, its kits or the ink birds:
   decide what is drawn when).
 - The live check after a deploy: the page's words, the world drawing at a
   day and a night hour, the still skies with no WebGL2 and no script; the
-  home page served from site/, and /CLAUDE.md, /%43LAUDE.md,
+  home page served from the build (/build.txt names the commit), and /CLAUDE.md, /%43LAUDE.md,
   /.github/workflows/validate.yml and /subset-fonts.sh each answering 404.
 
 ## Deploy
 
-Cloudflare Pages: no build command, the build output directory site
-(the project's Settings > Build, its build configuration). Auto-deploys
-on push to main. Every change to the live site goes through a pull
+Cloudflare Pages (the project's Settings > Build, its build configuration):
+build command `npm ci --no-audit --no-fund --ignore-scripts && node
+tools/build.mjs dist`, build output directory `dist`, NODE_VERSION 22.
+Auto-deploys on push to main. The gate decides whether a change alters what
+is served by building base and head (.github/ci/served.sh) and comparing the
+two builds; T1 and T2 render those builds. Every change to the live site goes through a pull
 request the owner approves. The repository is private, so CI uses the
 account's included Actions minutes (2,000 a month on GitHub Free).

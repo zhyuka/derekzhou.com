@@ -19,11 +19,13 @@ jobs:
   static:
     uses: ./.github/workflows/validate.yml
 
-  # T0, the plan: which files changed and what they touch (areas.json), whether site/ is byte for byte the base's,
-  # and so which gates run. A few seconds, so the census and T1 can start together after it.
+  # T0, the plan: which files changed and what they touch (areas.json), whether what is served is byte for byte the
+  # base's, and so which gates run. site/ holds only sources: what a visitor gets is the build, so base and head are
+  # built here (served.sh: each commit's tools/build.mjs --plain) and compared file by file. The two builds go to the
+  # `served` artifact: the census, T1 and T2 render exactly these, and nothing builds a PR's code anywhere else.
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     outputs:
       base: ${{ steps.base.outputs.base }}
       areas: ${{ steps.areas.outputs.areas }}
@@ -42,12 +44,23 @@ jobs:
         run: |
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then base=$(git rev-parse HEAD^1); else base=$(git merge-base origin/main HEAD); fi
           echo "base=$base" >> "$GITHUB_OUTPUT"; echo "base $base, head $GITHUB_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Base and head, built (what each serves)
+        run: bash .github/ci/served.sh ${{ steps.base.outputs.base }} "$RUNNER_TEMP/served"
       - name: What the change touches
         id: areas
-        run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA"
+        run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: served
+          path: ${{ runner.temp }}/served
+          include-hidden-files: true   # (site/.well-known/security.txt is served)
+          retention-days: 7
 
   # T0, the shader census: whether any shader's text changed, read from the page itself in a real browser
-  # (SwiftShader), base against head. It runs when site/ changed or the harness did (.github/ci, this file: so a
+  # (SwiftShader), base against head (the plan's two builds). It runs when what is served changed or the harness did (.github/ci, this file: so a
   # change to the harness is tested on its own push), and on main always (its census is cached for the branches).
   census:
     needs: plan
@@ -58,12 +71,14 @@ jobs:
       glsl_changed: ${{ steps.census.outputs.glsl_changed }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
+      - uses: actions/download-artifact@v4
+        with:
+          name: served
+          path: ${{ runner.temp }}/served
       - name: The base's census, if a run on main saved it
         uses: actions/cache/restore@v4
         with:
@@ -73,8 +88,7 @@ jobs:
         id: census
         run: |
           C="$RUNNER_TEMP/census-cache/census.json"
-          [ -f "$C" ] || git worktree add --detach "$RUNNER_TEMP/base" ${{ needs.plan.outputs.base }}
-          node .github/ci/census.mjs --base "$RUNNER_TEMP/base/site" --head site --out "$RUNNER_TEMP/census.json" \
+          node .github/ci/census.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --out "$RUNNER_TEMP/census.json" \
             --base-json "$C" --save-head "$RUNNER_TEMP/census-head.json"
           mkdir -p "$(dirname "$C")"; cp "$RUNNER_TEMP/census-head.json" "$C"   # (what main saves for the branches)
       - name: Keep main's census for the branches that start from it
@@ -93,8 +107,8 @@ jobs:
   # T1, the software A/B: base and head served side by side and rendered in the same job (SwiftShader, the clock
   # paused and stepped, frames hashed in the page), a null test (base against base) in every shard. Stills and short
   # stepped sequences at 393x852 at 3 and 1440x900, the split height's device, reduced motion, no WebGL2, the 404
-  # page; DOM stills; a CSP-violation listener. Only when site/ or the harness changed: with site/ byte for byte the
-  # base's, what a visitor is served is identical by construction.
+  # page; DOM stills; a CSP-violation listener. Base and head are the plan's two builds. Only when what is served or
+  # the harness changed: with the builds byte for byte the same, what a visitor is served is identical by construction.
   t1:
     needs: plan
     if: needs.plan.outputs.run_t1 == 'true'
@@ -106,17 +120,18 @@ jobs:
         shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
+      - uses: actions/download-artifact@v4
+        with:
+          name: served
+          path: ${{ runner.temp }}/served
       - name: Base against head, shard ${{ matrix.shard }} of 4
         id: t1
         run: |
-          git worktree add --detach "$RUNNER_TEMP/base" ${{ needs.plan.outputs.base }}
-          node .github/ci/t1.mjs --base "$RUNNER_TEMP/base/site" --head site --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1"
+          node .github/ci/t1.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -131,6 +146,7 @@ jobs:
   # gpu-4090 is online (GET .../actions/runners with MERGE_TOKEN, which has Administration: read). Online: T2 runs and
   # the verdict requires it. Offline, or the query fails: a notice, and the verdict rests on T0 and T1, so T2 never
   # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
+  # T2 renders the plan's two builds (the `served` artifact): the PC never runs a PR's build.
   t2-probe:
     needs: [plan, census]
     if: always() && needs.plan.result == 'success'
