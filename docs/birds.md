@@ -14,7 +14,7 @@ scripts, and CI fails if one comes back (see Security).
 
 THE ONE BIRD (inkbirds.js, 2026-11-06; the design and every gap it
 closes: docs/birds-design.md). Every bird is one record for its whole
-life in the world (210-one-bird.js): its kind, its own stream from the
+life in the world (210, its flocks 212): its kind, its own stream from the
 visit's one seed, its own age (its wings' clock), where it is and how it
 moves (m, m/s), its heading, climb and bank, its flock and its place in
 it, its goal and its state. One integrator flies every bird in the air:
@@ -50,7 +50,7 @@ come and go beyond the view's side. No bird fades: the only change of
 its ink with distance is the world's own air, in metres, the same on
 every window.
 
-PERCHES (260-perches.js). A perch is a place on the window, a ledge of a
+PERCHES (260-264). A perch is a place on the window, a ledge of a
 letter's ink or the pointer's tip, seen at the depth where a perched
 bird is its size there: a point in the world that moves as the camera
 and the pointer move. The ledges come from what is served
