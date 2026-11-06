@@ -75,6 +75,6 @@
      cut of world.js into parts would have removed; the scripts' top levels now only define */
 
   var FAILMSG = null;
-  function fail(msg) { FAILMSG = msg; }   // (the shipped page: kept here, never put on window or logged)
+  function fail(msg) { FAILMSG = msg; if (self.PROBE) self.PROBE('fail: ' + msg, clockNow()); }   // (the shipped page: kept here, never put on window or logged)
   var LOSTP = 'lost';   // what a stage returns when the context was lost under it (never a failure of the realm's)
 
