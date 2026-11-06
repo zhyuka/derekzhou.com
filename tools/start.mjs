@@ -288,7 +288,7 @@ export function run(V, page, O = {}) {
       location: { href: 'https://site.invalid/', origin: 'https://site.invalid', protocol: 'https:', host: 'site.invalid', hostname: 'site.invalid', pathname: '/', search: '', hash: '' },
       console: { log() {}, info() {}, warn() {}, error() {}, debug() {} },
       queueMicrotask(f) { Promise.resolve().then(f); },
-      __startIssue(P) { R.issues.push({ frame: R.frames, at: R.links.length }); }   // (at: this issue's own link is the next one made: progIssue links before it returns)
+      __startIssue(P) { if (!R.shown) R.issues.push({ frame: R.frames, at: R.links.length }); }   // (at: this issue's own link is the next one made: progIssue links before it returns; world-perf lane: only before the show, the table's: a late program held to after it is the world's own)
     };
     const ctx = vm.createContext(vm.constants.DONT_CONTEXTIFY);
     for (const k of Object.keys(win)) ctx[k] = win[k];
