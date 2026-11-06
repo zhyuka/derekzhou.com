@@ -94,7 +94,7 @@ src/ keeps the readable one. Edit a shader in its .glsl file; then node tools/bu
 program the reference device issues), committed with the manifest.
 tools/minify.mjs makes the served five from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
-as its default) and the ink birds' HOST.dev read as false, then terser
+as its default; the ink birds read no dev flag: checked), then terser
 (pinned in package.json) compresses and
 mangles, every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
@@ -148,7 +148,7 @@ the dev helpers those hooks called are in src/dev/world/, in the dev
 build only, unreachable (the switches keep their defaults); the served
 copy is built without them (assemble --ship: the four functions called
 without a guard kept as empty ones; tools/minify.mjs: every switch read
-as its default, and the ink birds' HOST.dev read as false). The
+as its default; the ink birds read no dev flag). The
 comments, in src/ (a served copy keeps only its first two lines and the
 INIT-END marker), keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,

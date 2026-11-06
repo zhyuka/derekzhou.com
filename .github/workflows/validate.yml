@@ -530,6 +530,18 @@ jobs:
           fi
           python -I tools/birds/model/make.py --check
 
+      - name: The perches' ink is what the served words make
+        run: |
+          # src/birds/inkbirds/255-perch-ink.js (where a bird can stand on the words) is generated, never edited by
+          # hand: tools/birds/perch/make.mjs measures the lettered name's drawing in site/index.html and the link
+          # words and the credit set in the served fonts, in Chrome. Made again here, it must be the committed file
+          # (within a browser's antialiasing), so a change to a word, the drawing or a font moves the perches with it.
+          if [ -z "${PW_CORE:-}" ]; then
+            npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
+            export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
+          fi
+          node tools/birds/perch/make.mjs --check
+
       - name: The world's pure code, unit-tested
         run: |
           # test/unit.mjs (restructure step 6, about 10 s): the world's code that runs without a page, read from the

@@ -24,7 +24,6 @@
     facet(); fTempo = facet(); fBreeze = facet(); fPace = facet(); fTraffic = facet();   // (the first, the old marks' hand, still drawn and not kept: every later draw where it was)
     season = wr() < 0.65 ? 1 : -1;        // the way most flights go (1: left to right, the way the words read)
     faithful = 0.65 + 0.15 * wr();        // ... and how many of them
-    pace = mix(fPace, PACE[0], PACE[1]);
     var r = vstream(1), i; for (i = 0; i < NOISE_N; i++) noise[i] = r() * 2 - 1;
   }
   function nz(i) { return noise[(i | 0) & (NOISE_N - 1)]; }

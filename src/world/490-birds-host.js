@@ -144,6 +144,11 @@
     /* the cover over the view: the cloud about the eye (a passage), a passage's dark or light */
     cover: function () { return Math.max(CAM.inCloud || 0, CAM.cover || 0); },
     ground: function (x, z) { var V = SIM.V; return V ? groundAt(V, x, z, false) : 0; },
+    /* (one bird) the camera's ground grid's reach (m from its centre: groundAt is exact within it), and the cloud sea at
+       any point from the raw maps: o.w its weight (0 sand, 1 the sea of cloud), o.lv its raw level (the drawn sea's top
+       lies at or under it), so a bird can rise out of the sea or go down into it where no one can see it come or go */
+    groundReach: function () { return GROUND.ok ? (GCN / 2 - 3) * GCCELL : 0; },
+    seaAt: function (x, z, o) { if (!MAPS.w) { o.w = 0; o.lv = -1e9; return o; } var k = kitAt(x, z); o.w = k.wC; o.lv = SEA_LO + RISE * k.wC; return o; },
     /* the realm's places with birds (its cells' bird flocks, within r of the camera): centre, height, orbit, wheel */
     places: function (r, out) {
       out.length = 0; var V = SIM.V, L = V && V.cellList; if (!L) return out;

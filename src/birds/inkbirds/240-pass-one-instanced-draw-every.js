@@ -72,110 +72,46 @@
     return true;
   }
 
-  var tmp3 = {}, lastDraw = -1;
-  /* every bird where it is now (between the last two steps), posed afresh every frame */
-  /* (fix round) SEPARATION: two birds of one flight never touching on the window. The planner keeps them apart as it
-     plans (its boxes, the whole way); what it cannot foresee there (the guard's later turns and paces, the view's own
-     error, the beat's widest wings against the box's) is caught as drawn: two birds whose outlines, as last drawn, come
-     within SEP_PX device px (and their pens and filters) have the farther eased aside on the window, square to the line
-     of sight (over SEP_T s), held while within SEP_CLEAR px more, and let back slowly (SEP_BACK s) once clear; at most
-     SEP_MAX of its span. A correction of a few px, never a steering: the planner's places are the flight's */
-  var OUTL = [0, 1, 2, 8, 7, 6, 11, 10, 9, 3, 4, 5];   // (way-path: the wings' outline only)
-  var SEP_PX = 3, SEP_CLEAR = 4, SEP_T = 0.35, SEP_BACK = 3, SEP_MAX = 0.6, SEP_ON = true;
-  function ptSeg(px, py, ax, ay, bx, by) { var ex = bx - ax, ey = by - ay, l = ex * ex + ey * ey, h = l > 1e-12 ? ((px - ax) * ex + (py - ay) * ey) / l : 0; h = h < 0 ? 0 : h > 1 ? 1 : h; var dx = px - ax - ex * h, dy = py - ay - ey * h; return Math.sqrt(dx * dx + dy * dy); }
-  function crosses(ax, ay, bx, by, cx, cy, dx, dy) {
-    var d1 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx), d2 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx), d3 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax), d4 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
-    return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
-  }
-  function inOutline(D, x, y) { var c = false, n = OUTL.length; for (var i = 0, j = n - 1; i < n; j = i++) { var a = OUTL[i], b = OUTL[j], ya = D[2 * a + 1], yb = D[2 * b + 1]; if ((ya > y) !== (yb > y) && x < (D[2 * b] - D[2 * a]) * (y - ya) / (yb - ya) + D[2 * a]) c = !c; } return c; }
-  /* the gap between two birds' outlines (device px; 0 where they cross or one holds the other) */
-  function outlineGap(A, B) {
-    var n = OUTL.length, g = 1e9, i, j;
-    for (i = 0; i < n; i++) {
-      var a = OUTL[i], b = OUTL[(i + 1) % n], ax = A[2 * a], ay = A[2 * a + 1], bx = A[2 * b], by = A[2 * b + 1];
-      for (j = 0; j < n; j++) {
-        var c = OUTL[j], d = OUTL[(j + 1) % n], cx = B[2 * c], cy = B[2 * c + 1], dx = B[2 * d], dy = B[2 * d + 1];
-        if (crosses(ax, ay, bx, by, cx, cy, dx, dy)) return 0;
-        var e = Math.min(ptSeg(ax, ay, cx, cy, dx, dy), ptSeg(bx, by, cx, cy, dx, dy), ptSeg(cx, cy, ax, ay, bx, by), ptSeg(dx, dy, ax, ay, bx, by));
-        if (e < g) g = e;
-      }
-    }
-    if (inOutline(A, B[24], B[25]) || inOutline(B, A[24], A[25])) return 0;   // (one's head inside the other)
-    return g;
-  }
-  function boxD(D, o) { var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (var i = 0; i < 16; i++) { var x = D[2 * i], y = D[2 * i + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } o[0] = x0; o[1] = y0; o[2] = x1; o[3] = y1; return o; }
-  var SBA = [0, 0, 0, 0], SBB = [0, 0, 0, 0];
-  function separate(F, dt) {
-    var M = F.m, i, j, sa, sb, k = VW.outW / Math.max(1, W);
-    for (i = 0; i < M.length; i++) { sa = M[i].s; if (sa) { sa.pushX = 0; sa.pushY = 0; sa.pushN = 0; sa.sepHold = false; } }
-    for (i = 0; i < M.length; i++) {
-      sa = M[i].s; if (!sa || !sa.on || !(sa.lastOp > 0.02)) continue;
-      boxD(sa.D, SBA);
-      for (j = i + 1; j < M.length; j++) {
-        sb = M[j].s; if (!sb || !sb.on || !(sb.lastOp > 0.02)) continue;
-        var want = SEP_PX * k + 0.5 * (sa.floorPx + sb.floorPx) + sa.filt + sb.filt;
-        boxD(sb.D, SBB);
-        if (Math.max(SBA[0] - SBB[2], SBB[0] - SBA[2], SBA[1] - SBB[3], SBB[1] - SBA[3]) > want + SEP_CLEAR * k) continue;
-        var g = outlineGap(sa.D, sb.D);
-        if (g >= want + SEP_CLEAR * k) continue;
-        var far = sa.n < sb.n ? sa : sb, fb = far === sa ? SBA : SBB, nb = far === sa ? SBB : SBA;
-        if (g < want) {
-          var vx = (fb[0] + fb[2] - nb[0] - nb[2]) / 2, vy = (fb[1] + fb[3] - nb[1] - nb[3]) / 2, vl = Math.sqrt(vx * vx + vy * vy);
-          if (!(vl > 1e-3)) { vx = 0; vy = 1; vl = 1; }
-          var need = (want - g) / k;
-          far.pushX += vx / vl * need; far.pushY += vy / vl * need; far.pushN++;
-        } else far.sepHold = true;
-      }
-    }
-    for (i = 0; i < M.length; i++) {
-      sa = M[i].s; if (!sa) continue;
-      if (sa.pushN) { var e = 1 - Math.exp(-dt / SEP_T); sa.nudX = (sa.nudX || 0) + sa.pushX * e; sa.nudY = (sa.nudY || 0) + sa.pushY * e; STATS.sep = (STATS.sep || 0) + 1; }
-      else if (!sa.sepHold && (sa.nudX || sa.nudY)) { var e2 = Math.exp(-dt / SEP_BACK); sa.nudX *= e2; sa.nudY *= e2; if (Math.abs(sa.nudX) + Math.abs(sa.nudY) < 0.02) sa.nudX = sa.nudY = 0; }
-      var lim = SEP_MAX * (sa.spanPx || 10) / k, L = Math.sqrt((sa.nudX || 0) * (sa.nudX || 0) + (sa.nudY || 0) * (sa.nudY || 0));
-      if (L > lim) { sa.nudX *= lim / L; sa.nudY *= lim / L; }
-    }
-  }
+  var tmp3 = {}, DRAWQ = [], DQD = [];
+  /* every bird of the world the window can show, posed afresh every frame: the nearest MAXP (a speck past them changes
+     no pixel: far off, the air leaves nothing of it). No opacity but the world's own air (in the pass): no fade in
+     time, at an edge, near or far */
   function drawPaper() {
-    var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), tr = moving ? t - (1 - al) * STEP_DT : t, i, j, F, m, s, tau, nB = 0;
-    var dt = lastDraw >= 0 && tr >= lastDraw ? Math.min(tr - lastDraw, 0.1) : 1 / 60; lastDraw = tr;
+    var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0;
     measureIf();
-    FW.ox = C.pos[0]; FW.oy = C.pos[1]; FW.oz = C.pos[2];
-    flightNow(); camEscort(moving);
-    var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0);
-    for (var li = 0; li < 2; li++) for (i = 0; i < (li ? PLACES : flights).length; i++) {
-      F = (li ? PLACES : flights)[i]; tau = tr - F.t0;
-      var gone = F.gone ? clamp(1 - (tr - F.gone) / (F.goneT || GONE_T), 0, 1) : 1;
-      if (moving && !FORCED && SEP_ON && F.m.length > 1) separate(F, dt);
-      for (j = 0; j < F.m.length; j++) {
-        m = F.m[j]; s = m.s; if (!s) continue;
-        where(F, m, tau, wb); projReal(wb.x, wb.y, wb.z, C, tmp3);
-        var n = tmp3.n, a = fadeFor(F, n), d = s.d;
-        if (!(a >= 0.02) || !(tmp3.z > 1) || !inView(tmp3.x, tmp3.y, d.hw * n, d.hh * n) || nB >= DRAW_MAX) { s.on = false; s.lastOp = 0; s.rollOk = false; s.eOk = false; continue; }
-        s.kind = kindOf(F);
-        if (!s.spanPx) s.spanPx = d.span * n * VW.outW / Math.max(1, W);
-        var gE = -1;   // (the gift, S5 SIMULATED: each bird written on as it crosses the edge: its outline 0.7 s, the paper 0.3 s; no spark)
-        if (F.gift && moving && !FORCED) { gE = s.shownT >= 0 ? tr - s.shownT : 0; s.gW = gE < GIFT_T ? 1 : clamp(1 - (gE - GIFT_T) / 0.3, 0, 1); if (gE >= GIFT_T) gE = -1; } else s.gW = 0;
-        s.gE = gE;
-        poseBird(F, m, tau, !moving, C, s, dt);
-        if (!projectBird(s, C)) { s.on = false; s.lastOp = 0; continue; }
-        s.on = true;
-        var back = s.shownT >= 0 && !s.vis && s.outT > -1e8 && t - s.outT <= LEAVE_T;
-        var app = moving ? (s.still ? 1 : s.shownT >= 0 && (s.vis || back) ? clamp((tr - s.shownT) / (s.appT || APPEAR_T), 0, 1) : 0) : 1;
-        if (gE >= 0 || (F.gift && s.gW > 0)) app = 1;
-        if (F.live) app = 1;   // (the living sky: a bird shows by crossing the window's edge or coming out of the distance, never by a fade in time)   // (the gift's write-on is its entry: no fade beside it)
-        if (!moving) s.still = true;
-        var op = (FORCED ? 1 : fadeFor(F, s.n)) * app * gone * (1 - ease((s.n - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])));
-        s.lastOp = op; s.lastApp = app; s.op = op;
-        if (op <= 0.003) continue;
-        lightBird(s, L, !moving, dt);
-        cloudWeights(s, C, tr, !moving);
-        var gdir = 1;
-        if (gE >= 0) { var fc = s.face || F.dir || 1; gdir = (fc > 0) === (s.D[0] < s.D[12]) ? 1 : -1; }   // (written from the back tip to the front tip, on the window)
-        packBird(nB, s, op, NEARMOST * d.span * MPU * MODEL_K + 2, FX.cloud, N, s.haloE, gE, gdir, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
-        nB++;
-      }
+    var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
+    DRAWQ.length = 0; DQD.length = 0;
+    for (i = 0; i < BIRDS.length; i++) {
+      b = BIRDS[i];
+      var px = b.p[0] - b.v[0] * back, py = b.p[1] - b.v[1] * back, pz = b.p[2] - b.v[2] * back;
+      projReal(px, py, pz, C, tmp3);
+      if (!(tmp3.z > 1)) continue;
+      var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
+      if (tmp3.z > 1 && !inView(tmp3.x, tmp3.y, rpx, rpx)) continue;
+      if (b.st === 'fly' && (unseen(b) || hidden(b))) continue;
+      DRAWQ.push(b); DQD.push(tmp3.z);
     }
-    if (GU.list.length && !FORCED && moving) nB = drawGuests(C, dt, L, N, nB, tr);
+    if (DRAWQ.length > MAXP) { var ord = DRAWQ.map(function (q, k) { return k; }).sort(function (x, y) { return DQD[x] - DQD[y]; }); DRAWQ = ord.slice(0, MAXP).map(function (k) { return DRAWQ[k]; }); STATS.over = (STATS.over || 0) + 1; }
+    for (i = 0; i < slots.length; i++) slots[i].used = false;
+    for (i = 0; i < DRAWQ.length; i++) { b = DRAWQ[i]; if (b.s) b.s.used = true; }
+    for (i = 0; i < slots.length; i++) { s = slots[i]; if (s.busy && !s.used) { if (s.bird) s.bird.s = null; s.busy = false; s.bird = null; } }
+    for (i = 0; i < DRAWQ.length && nB < MAXP; i++) {
+      b = DRAWQ[i];
+      if (!b.s) { for (var q = 0; q < slots.length; q++) if (!slots[q].busy) { s = slots[q]; s.busy = true; s.bird = b; b.s = s; dress(s, null); s.bT0 = -1; s.bFrom = null; break; } if (!b.s) break; }
+      s = b.s; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
+      if (!s.X46) slotArrays(s);
+      if (!s.d) s.d = { span: 0, model: 0 }; s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
+      if (b.st === 'land') restProbe(b, C, s);
+      if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
+      var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
+      if (!ok || !projectBird(s, C)) { s.on = false; continue; }
+      s.on = true; s.op = 1; s.lastOp = 1;
+      lightBird(s, L, !moving, 1 / 60);
+      cloudWeights(s, C);
+      packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
+      nB++;
+    }
+
     STATS.drawn = nB;
     if (!nB) return;
     var P = PROG, E = HOST.grade(), tex = !FORCED && HOST.bindTextures();
