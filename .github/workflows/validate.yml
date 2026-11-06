@@ -98,7 +98,7 @@ jobs:
             case "${f#../}" in
               .git|.github|.gitignore|CLAUDE.md|download-fonts.sh|subset-fonts.sh|site|functions) ;;
               .gitattributes|package.json|package-lock.json|node_modules|src|tools|build|test) ;;
-              RULES.json|.claude) ;;   # (the standing rules as data, and the project's hooks: never served)   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
+              RULES.json|.claude|docs) ;;   # (docs/: the full record, one file per area, CLAUDE.md the short version)   # (the standing rules as data, and the project's hooks: never served)   # (the build: src/ the readable scripts, in parts; build/ src/ assembled (tools/parts.mjs); tools/minify.mjs, terser pinned; node_modules only after npm ci)
               *) echo "::error::${f#../} is at the repository's root: what the site serves goes in site/ (or add it to the root's list here)"; missing=1 ;;
             esac
           done
