@@ -3,7 +3,10 @@
 // build, and the shipped build with the dev-only parts left out), then tools/minify.mjs --build: the five minified
 // scripts from the shipped build and the start file with its table (tools/start.mjs, from the dev build). Each build
 // assembles into a folder of its own beside its output (OUT.parts/), so two builds at once never share one.
-// That plain build is byte for byte the committed site/ (CI proves it).
+// site/ holds only the sources the site serves as written (the pages, _headers, the hand-written scripts, the
+// fonts). The files the build writes (the five minified scripts, the start file and its table) are never committed
+// there: Cloudflare Pages runs the deploy build (below) and serves its output. CI proves the build deterministic and
+// that site/ holds none of the built files.
 // (step 5) The deploy build then names every shipped script and stylesheet by its content: world.v8.js is served as
 // world.<sha8>.js, <sha8> the first 8 hex of the sha256 of the file's final bytes. Files that load another by name
 // (the world starts the plan's worker, the start file its table) are named after the ones they load, leaves first, so
@@ -14,10 +17,10 @@
 //
 //   node tools/build.mjs OUT              the deploy build: into OUT (made or emptied first), named by content,
 //                                         checked (below), OUT/build.txt written; prints the manifest
-//   node tools/build.mjs --plain OUT      the plain build only (site/'s names, no build.txt)
+//   node tools/build.mjs --plain OUT      the plain build only (the vN names, no build.txt): what CI checks and renders
 //   node tools/build.mjs --check          build twice into two temporary folders at once; exit 1 unless both builds are
-//                                         the same bytes (deterministic), the plain build's manifest equals site/'s
-//                                         files, and the deploy build is the same from both and passes its checks
+//                                         the same bytes (deterministic), site/ holds none of the files the build
+//                                         writes, and the deploy build is the same from both and passes its checks
 //   node tools/build.mjs --manifest DIR   print DIR's manifest
 //
 // The deploy build's checks (else exit 1): every script and stylesheet at the top level has a content name and the
@@ -91,8 +94,14 @@ async function build(out, stamp) {   // the plain build
   fs.rmSync(parts, { recursive: true, force: true });
   await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
   await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
+  // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build) and
+  // the start file the page loads, with its table (start.vN.js, start-table.vN.js)
+  const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile());
+  const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start\.v\d+\.js)/);
+  if (sm) written.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));
   fs.rmSync(parts, { recursive: true, force: true });
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
+  return written.sort();
 }
 
 // ------------------------------------------------------------------ step 5: content names
@@ -193,12 +202,13 @@ if (a[0] === '--check' && a.length === 1) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'build-'));
   const d1 = path.join(tmp, 'one'), d2 = path.join(tmp, 'two');
   const t0 = Date.now();
-  try { await Promise.all([build(d1, null), build(d2, null)]); } catch (e) { die(e.message); }
-  const m1 = manifest(d1), m2 = manifest(d2), ms = manifest(SITE);
+  let written;
+  try { [written] = await Promise.all([build(d1, null), build(d2, null)]); } catch (e) { die(e.message); }
+  const m1 = manifest(d1), m2 = manifest(d2);
   let bad = 0;
   for (const l of diff(m1, m2, 'build one', 'build two')) { console.error('::error::not deterministic: ' + l); bad = 1; }
-  for (const l of diff(m1, ms, 'the build', 'site/')) {
-    console.error('::error::the build is not site/: ' + l + ' (rebuild site/: see CLAUDE.md, the minified scripts)'); bad = 1;
+  for (const n of written) if (fs.existsSync(path.join(SITE, n))) {
+    console.error('::error::site/' + n + ' is a file the build writes: it is never committed (git rm it; its source is in src/)'); bad = 1;
   }
   if (bad) { fs.rmSync(tmp, { recursive: true, force: true }); process.exit(1); }
   // (step 5) the deploy build, from each plain build: the same names and bytes from both, and its checks passed
@@ -210,7 +220,7 @@ if (a[0] === '--check' && a.length === 1) {
   fs.rmSync(tmp, { recursive: true, force: true });
   if (err.length) { for (const e of err) console.error('::error::the deploy build: ' + e); process.exit(1); }
   const n = m1.trim().split('\n').length, h = (m) => crypto.createHash('sha256').update(m).digest('hex').slice(0, 16);
-  console.log('build: ok: two builds, the same bytes, equal to site/ (' + n + ' files, manifest sha256 ' + h(m1) + ', ' +
+  console.log('build: ok: two builds, the same bytes, site/ holding none of the ' + written.length + ' built files (' + n + ' files, manifest sha256 ' + h(m1) + ', ' +
     ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
   console.log('build: ok: the deploy build, the same from both, named by content, every reference resolved (manifest sha256 ' + h(n1) + '):');
   for (const [o, nn] of map) console.log('  ' + o + ' -> ' + nn);

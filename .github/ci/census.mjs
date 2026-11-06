@@ -2,7 +2,7 @@
 // SwiftShader, the clock paused and stepped) as each persona, and every source the page hands shaderSource is kept
 // until the world shows (every program is issued by then: the first frame's, the ink birds' and the sand's, finished
 // after the show, are issued with the rest). Each source is SHA-256'd; the two builds' sets are compared per persona.
-//   node .github/ci/census.mjs --base BASE/site --head HEAD/site --out census.json [--base-json F] [--save-head F]
+//   node .github/ci/census.mjs --base BASE_BUILD --head HEAD_BUILD --out census.json [--base-json F] [--save-head F]
 // --base-json: the base's sets, saved by an earlier run (gate.yml caches each main commit's), so only the head loads.
 // --save-head: write the head's sets there, for later runs to use as their base's.
 // Prints glsl_changed=true|false (and appends it to $GITHUB_OUTPUT when set). Exit 1 only if the head never shows.
