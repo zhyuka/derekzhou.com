@@ -206,7 +206,7 @@
       hd += s.ah * bias;
       s.h += clamp(angDiff(hd, s.h), -wmax * dt, wmax * dt);
       if (j % 10 === 0 || s.gN === undefined) s.gN = lvGround(x, z) - P.g0;   // (v26: the land under it, a second at a time)
-      var yWant = (P.beh === 'migrant' ? Math.max(s.y0, eye + 80) : (s.y0 - eye) < 15 ? eye + 15 : s.y0) + LV_TERRAIN * s.gN;   // (v26: over the land's rises and falls, as birds fly, never the camera's)   // (v20: a migrant high, but in the window's sky: 220 m over the eye took it out of the top)
+      var yWant = P.flee ? s.y0 + Math.min(P.flee, 2.5 * tau) : (P.beh === 'migrant' ? Math.max(s.y0, eye + 80) : (s.y0 - eye) < 15 ? eye + 15 : s.y0) + LV_TERRAIN * s.gN;   // (v26: over the land's rises and falls, as birds fly, never the camera's)   // (v20: a migrant high, but in the window's sky: 220 m over the eye took it out of the top)
       cd = clamp(0.02 * (yWant - y), -0.12, 0.12) + s.ec + s.ac * bias;
       s.c += clamp(cd - s.c, -0.35 * dt, 0.35 * dt);
       s.v = P.v0 * (1 + s.ev);
