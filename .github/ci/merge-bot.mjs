@@ -171,7 +171,21 @@ for (const pr of prs) {
 }
 
 // 3. the deploy gate: live follows main, a tested tip at a time.
-const ownerMerge = async (sha) => ((await gh('GET', `/commits/${sha}/pulls`)).json || []).some((p) => p.merged_at && (p.labels || []).some((l) => ['needs-owner', 'visible'].includes(l.name)));
+// The owner's own merge: a PR labelled needs-owner or visible, or merged with GitHub's button (a merge commit "Merge pull
+// request #N", which the bot never makes: it fast-forwards, or titles its merges "Merge #N: ...").
+async function ownerMerge(sha) {
+  const pulls = ((await gh('GET', `/commits/${sha}/pulls`)).json || []).filter((p) => p.merged_at);
+  if (pulls.some((p) => (p.labels || []).some((l) => ['needs-owner', 'visible'].includes(l.name)))) return true;
+  const c = (await gh('GET', `/commits/${sha}`)).json;
+  return /^Merge pull request #\d+ /.test(c?.commit?.message || '') && (c?.parents || []).length === 2;
+}
+// A tip judged against something other than the main tip before it (main's gate before it compared with the push's
+// `before`) is judged instead by its own branch's gate: the PR the bot fast-forwarded main to was frames-identical there.
+async function branchIdentical(sha) {
+  const runs = ((await gh('GET', `/actions/workflows/gate.yml/runs?head_sha=${sha}&per_page=20`)).json?.workflow_runs || []).filter((r) => r.head_branch !== 'main' && r.status === 'completed' && r.conclusion === 'success');
+  for (const r of runs) { const v = await verdict(r); if (v && v.gate_ok && v.frames_identical && v.sha === sha) return true; }
+  return false;
+}
 async function deployGate() {
   main = (await gh('GET', '/branches/main')).json?.commit?.sha || main;
   let live = (await gh('GET', '/branches/live')).json?.commit?.sha;
@@ -191,15 +205,15 @@ async function deployGate() {
   const between = new Set((a.commits || []).map((c) => c.sha));
   const runs = ((await gh('GET', '/actions/workflows/gate.yml/runs?branch=main&event=push&per_page=100')).json?.workflow_runs || [])
     .filter((r) => between.has(r.head_sha)).sort((x, y) => (a.commits.findIndex((c) => c.sha === x.head_sha) - a.commits.findIndex((c) => c.sha === y.head_sha)));
-  let to = live;
+  let to = live, prev = live;
   for (const r of runs) {
     const tip = r.head_sha.slice(0, 10);
     if (r.status !== 'completed') { summary(`deploy gate: main ${tip}'s gate is ${r.status}: live waits there`); break; }
     const v = r.conclusion === 'success' ? await verdict(r) : null;
     if (!v || !v.gate_ok) { const pr = ((await gh('GET', `/commits/${r.head_sha}/pulls`)).json || []).find((p) => p.merged_at); summary(`deploy gate: **main is red at ${tip}** (${r.conclusion}; ${pr ? 'landed by #' + pr.number : 'no PR'}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`); break; }
-    if (!v.frames_identical && !(await ownerMerge(r.head_sha))) { summary(`deploy gate: main ${tip} changes what a visitor sees (${v.reason}) without the owner's own merge: live stays at ${to.slice(0, 10)}`); break; }
+    if (!v.frames_identical && !(await ownerMerge(r.head_sha)) && !(v.base !== prev && (await branchIdentical(r.head_sha)))) { summary(`deploy gate: main ${tip} changes what a visitor sees (${v.reason}) without the owner's own merge: live stays at ${to.slice(0, 10)}`); break; }
     if (v.t2 && v.t2.stall_ok === false) { summary(`deploy gate: main ${tip}'s stall visits failed: ${r.html_url}. live stays at ${to.slice(0, 10)}.`); break; }
-    to = r.head_sha;
+    to = prev = r.head_sha;
   }
   if (to === live) { summary(`deploy gate: live stays at ${live.slice(0, 10)} (main ${main.slice(0, 10)})`); return; }
   const f = await act(`fast-forward live to ${to.slice(0, 10)}`, () => gh('PATCH', '/git/refs/heads/live', { sha: to, force: false }, process.env.MERGE_TOKEN));

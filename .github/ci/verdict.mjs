@@ -27,11 +27,15 @@ const v = {
   t1: { ran: result('t1') !== 'skipped', shards: shards.length, frames_identical: shards.length > 0 && shards.every((s) => s.frames_identical), null_ok: shards.every((s) => s.null_ok) },
   t2: { required: false, ran: false, frames_identical: null },
 };
-const t2 = needs.t2 && needs.t2.outputs;
+// T2_CACHED: t2-probe found T2's answer for these two builds and this T2 code (gate.yml keeps it by them), so the 4090 was
+// not asked again; it counts as T2 having run, with that answer.
+let cached = null; try { cached = process.env.T2_CACHED ? JSON.parse(process.env.T2_CACHED) : null; } catch { cached = null; }
+const t2 = cached || (needs.t2 && needs.t2.outputs);
 if (needs.t2) {
   v.t2.wanted = v.glsl_changed || v.gpu_js || c.t2_self === 'true';
-  v.t2.required = result('t2') !== 'skipped';
+  v.t2.required = !!cached || result('t2') !== 'skipped';
   v.t2.ran = v.t2.required;
+  v.t2.cached = !!cached;
   if (t2) Object.assign(v.t2, { frames_identical: t2.frames_identical === 'true', glsl_changed: t2.glsl_changed === 'true', bits_identical: t2.bits_identical === 'true', csp_ok: t2.csp_ok === 'true', stall_ok: t2.stall_ok === 'true' ? true : t2.stall_ok === 'false' ? false : null });   // (stall_ok: lane D's stall visits, #47; null where gpu.yml does not report it)
 }
 v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!c.base;

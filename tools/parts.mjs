@@ -5,6 +5,9 @@
 //                                              SRC/<dir>/parts.json's parts joined (into OUT/<its out name>), with the
 //                                              dev parts of SRC/dev/<dir>/; every plain SRC/*.js copied
 //   node tools/parts.mjs assemble --ship SRC OUT   the same, the shipped build: each dev part's stub in its place
+//   ... assemble [--ship] --min-glsl SRC OUT   each .glsl file's text put back minified (tools/glslmin.mjs: no comment,
+//                                              no spare whitespace, the same tokens; checked, else exit 1): what
+//                                              tools/build.mjs ships. Without it the text exactly, as written
 //   node tools/parts.mjs check [--ship] SRC OUT    exit 1 naming each OUT/ file that is not what assemble makes
 //   node tools/parts.mjs glsl SRC              move every plain GLSL literal into its folder's glsl/NAME.glsl (step 3)
 //
@@ -18,6 +21,7 @@
 // no time; the same SRC gives the same OUT on any OS.
 import fs from 'fs';
 import path from 'path';
+import { minGlsl, checkGlsl, KEEP } from './glslmin.mjs';
 
 const DIVIDERS = {   // (the section dividers each long script already uses)
   world: '^  /\\* -{20,}',
@@ -61,7 +65,7 @@ function split(file, dir) {
    text exactly, the backtick. A .glsl file has no backtick, no ${ and no CR; every one is used. node tools/parts.mjs
    glsl SRC moves every plain GLSL literal out (re-runnable: what is moved is a marker, not GLSL; it fails unless both
    builds assemble to what they did). */
-const MARK = /`@glsl ([a-z0-9-]+)`/g, USED = new Map();
+const MARK = /`@glsl ([a-z0-9-]+)`/g, USED = new Map(), MIN = process.argv.includes('--min-glsl');
 function expand(text, gdir, where) {
   return text.replace(MARK, (m, name) => {
     const f = path.join(gdir, name + '.glsl');
@@ -70,7 +74,10 @@ function expand(text, gdir, where) {
     if (t.includes('`') || t.includes('${')) die(f + ': a backtick or ${ in it (a .glsl file is a plain literal\'s text)');
     if (!USED.has(gdir)) USED.set(gdir, new Set());
     USED.get(gdir).add(name + '.glsl');
-    return '`' + t + '`';
+    if (!MIN || KEEP.has(name)) return '`' + t + '`';
+    const mt = minGlsl(t), e = checkGlsl(t, mt);
+    if (e) die(f + ': the minified text is not the same program (' + e + ')');
+    return '`' + mt + '`';
   });
 }
 function readPart(f, gdir) { return expand(readText(f), gdir, f); }
@@ -204,11 +211,11 @@ function moveGlsl(src) {
   console.log(`moved ${moved} GLSL literals into glsl/ folders; both builds assemble as before`);
 }
 
-const argv = process.argv.slice(2), SHIP = argv.includes('--ship'), [cmd, a, b] = argv.filter((x) => x !== '--ship');
+const argv = process.argv.slice(2), SHIP = argv.includes('--ship'), [cmd, a, b] = argv.filter((x) => x !== '--ship' && x !== '--min-glsl');
 if (cmd === 'split' && a && b) split(a, b);
 else if (cmd === 'glsl' && a) moveGlsl(a);
 else if ((cmd === 'assemble' || cmd === 'check') && a && b) {
-  const files = assemble(a, SHIP), what = SHIP ? 'the shipped build' : 'the dev build';
+  const files = assemble(a, SHIP), what = (SHIP ? 'the shipped build' : 'the dev build') + (MIN ? ', the shaders minified' : '');
   if (cmd === 'assemble') {
     fs.mkdirSync(b, { recursive: true });
     for (const [n, t] of files) fs.writeFileSync(path.join(b, n), t);

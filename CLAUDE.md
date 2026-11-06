@@ -22,8 +22,8 @@ change it. The standing rules are data in RULES.json, checked in CI.
   steer-only-by-drag).
 - One entropy read, one clock; only the opening sky depends on the visitor's
   hour (one-entropy-one-clock, opening-sky-by-clock-only).
-- The absences: no chrome vocabulary, no hover/idle/key/exit handlers, no
-  JS-made DOM, no network, sound, eval, URL hooks or cursor rules, no dev
+- The absences: no chrome vocabulary, no hover/idle/key/exit handlers (but the
+  birds' two passive pointer listeners, in hoverSync: docs/birds.md), no JS-made DOM, no network, sound, eval, URL hooks or cursor rules, no dev
   hooks in shipped code (absence-*).
 - The page says exactly its words (page-words, lettered-name).
 - Licences: MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 only (licences).

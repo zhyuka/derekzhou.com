@@ -46,8 +46,11 @@ plus style.css for cursors and a bird rule, and \_headers for a bird
 script's name — never to this prose) fails on:
 arrows/cookie/analytics/Loading/navigation-role vocabulary in the HTML;
 any exit, idle, hover-position, key, blur, title, favicon-swap or storage
-handler in the JS (a pointer's moves read only by the world's drag: its
-one pointermove listener added in onDown and removed in endDrag); any DOM
+handler in the JS (a pointer's moves read by the world alone: the drag's
+listener added in onDown and removed in endDrag, and the birds' pointer
+play's two, onHover and onHoverOut, passive, added and removed in
+hoverSync: the owner's request of 2026-11-05, the one exception to the
+hover and exit bans); any DOM
 building; more or fewer than one getRandomValues in the world, or one
 below its INIT-END marker, and none at all, nor any clock read, in the
 kits, the wing model, the ink birds, the start file or the plan's worker;
