@@ -85,7 +85,9 @@
     var tot = 0; for (var i = 0; i < longs.length; i++) tot += longs[i][1];
     L.push('long frames     ' + longs.length + ' over 100 ms, ' + (tot / 1000).toFixed(2) + ' s in all; longest ' + (maxGap / 1000).toFixed(2) + ' s');
     var top = longs.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3);
-    for (var j = 0; j < top.length; j++) L.push('  at ' + f(top[j][0]) + ': ' + Math.round(top[j][1]) + ' ms');
+    var aft = 0, aftMax = 0; if (shown >= 0) for (var a2 = 0; a2 < longs.length; a2++) if (longs[a2][0] >= shown) { aft++; if (longs[a2][1] > aftMax) aftMax = longs[a2][1]; }
+    if (shown >= 0) L.push('AFTER SHOWN     ' + aft + ' over 100 ms' + (aft ? ' (worst ' + Math.round(aftMax) + ' ms): VISIBLE HITCH' : ': none'));
+    for (var j = 0; j < top.length; j++) L.push('  at ' + f(top[j][0]) + ': ' + Math.round(top[j][1]) + ' ms' + (shown >= 0 ? (top[j][0] >= shown ? '  after shown' : '  before shown') : ''));
     if (ring.length > 30) { var md = med(ring), fps = 1000 / md; L.push('now ' + Math.round(fps) + ' fps (median ' + md.toFixed(1) + ' ms)' + (fps > 27 && fps < 33 ? '  30 FPS CAP (Low Power Mode?)' : '')); }
     if (self.PROBE.gov) { try { var g = self.PROBE.gov(); L.push('governor: rung ' + g.rung + '/' + (g.n - 1) + ' (scale ' + (+g.scale).toFixed(2) + '), pace ' + (+g.pace).toFixed(1) + ' ms, p50 ' + (+g.p50).toFixed(1) + ' ms' + (g.dead ? ', STOPPED (still sky)' : g.running ? '' : ', loop idle')); } catch (e) {} }
     if (info) {
