@@ -393,10 +393,6 @@
           "id": "1 rocket-loader"
         },
         {
-          "kind": "world-rule",
-          "id": "5 script-order"
-        },
-        {
           "kind": "ci-step",
           "name": "The world's page loads in order"
         }
