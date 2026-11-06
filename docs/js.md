@@ -18,13 +18,18 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 3. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
-4. world.js — the world (deferred, fetchpriority="high", Early-Hinted,
-   first of the deferred; minified). As its script ends it starts the
-   plan's worker, plan.js, by name (no tag: see World: BOOT).
+4. world.js — the world (parser-blocking after the footer, for the
+   first-paint hold; fetchpriority="high"; minified). As its script ends it
+   starts the plan's worker, plan.js, by name (no tag: see World: BOOT).
 5. realm-kit.js, realm-dunes.js, realm-above.js — the kits
-   (deferred, fetchpriority="high", Early-Hinted, minified; each registers
-   itself with WORLD.realm; keep the order: the boot starts a frame after
-   they have registered).
+   (parser-blocking, fetchpriority="high", minified; each registers
+   itself with WORLD.realm; keep the order: the last one's registration
+   runs the hold while the page still parses, or, where there is no hold,
+   the boot starts a frame after they have registered).
+   The head's link rel=expect href=#world-end blocking=render (naming no
+   element) holds Chromium's first paint until the parser ends; hour.js
+   takes it out where the hold is skipped, the world where its checks
+   skip it.
 6. facetform.js, facetpose.js, wingmodel.js, model.js, labbird.js,
    birdwing.js — the ink birds' wing model (src/birds/model/; deferred,
    fetchpriority="low", in that order; each puts its one global on self).
