@@ -12,7 +12,13 @@
      stops, the window is measured again and the world drawn and shown again by its own show (stage H first, if it
      never passed) */
   var FC = window.matchMedia ? window.matchMedia('(forced-colors: active)') : null;
-  function forced() { return !!(FC && FC.matches); }
+  /* (fast500's deep sweep, 2026-11-05) forced colours are read from a list of their own (FCQ), never from the one onForced
+     listens on (FC, below: only listened on). In Chromium a read of a list's matches takes up the new state before
+     the change is evaluated, and that list then fires no change event: read from FC, forced colours ending while
+     the ink birds' forced loop read them (every frame, forcedColours; the still's watch, fcCheck) never reached
+     onForced, and the world never came back */
+  var FCQ = window.matchMedia ? window.matchMedia('(forced-colors: active)') : null;
+  function forced() { return !!(FCQ && FCQ.matches); }
   function onForced() {
     hoverSync();
     if (!forced()) fstop();   // (ended: the ink birds' loop stopped and FCOL.on false, whatever else holds: the module's forcedCheck, the pointer and the clicks see it)
@@ -25,10 +31,26 @@
      every frame (fframe); a stopped one (reduced motion's still) is asked for in the next frame (domFlush, fstart),
      the still drawn again on the new Canvas colour */
   function onPalette() { if (forced() && !FRUN && !LOST && !DEAD) { DOMQ.fc = true; domNext(); } }
+  /* (fast500's deep sweep, 2026-11-05) a system colour changed that no media query reports (a contrast theme switched for
+     another of the same scheme: forced-colors, prefers-color-scheme and prefers-contrast all hold, so neither onForced
+     nor onPalette is told). A running loop reads the colours every frame (fframe); while the still stands (the loop
+     stopped: reduced motion's one frame) the canvas's CanvasText and Canvas are read again about once a second, in an
+     animation frame (never in the timer's own task), and on a change the still is drawn again on them (domFlush,
+     fstart). A timer, armed only by the still (fframe): the site's CI allows no focus or visibility handler
+     (world_rules.py rule 4's listener kinds, visibilitychange named there an idle or exit handler; validate.yml's
+     Absences (2): blur), and a theme switched in the system's settings brings no event a page may listen for */
+  var FCW = 0, FCW_MS = 1000;
+  function fcWatch() { if (!FCW && forced()) FCW = setTimeout(function () { FCW = 0; requestAnimationFrame(fcCheck); }, FCW_MS); }
+  function fcCheck() {
+    if (!forced() || FRUN || !shown || LOST || DEAD) return;   // (moving again, hidden, lost or ended: nothing to watch; the next still arms it again)
+    var cs = window.getComputedStyle(canvas), ink = systemColour(cs.color, FCOL.ink.slice()), paper = systemColour(cs.backgroundColor, FCOL.paper.slice());
+    if (ink.join() !== FCOL.ink.join() || paper.join() !== FCOL.paper.join()) { DOMQ.fc = true; domNext(); } else fcWatch();   // (drawn again: fstart reads them, forcedColours, and the still arms the watch again)
+  }
   /* (round 2) under forced colours the world is not drawn: the canvas is cleared to the system's Canvas colour and the
      ink birds are drawn over it in CanvasText at full ink, in their own still view (the module's forced camera), their
      clock stepped here at the flight's fixed rate; the canvas shows once a frame has been drawn (the stylesheet keeps
-     it laid out under forced colours: the window is measured and the targets made). The module is made here, in this
+     it laid out under forced colours: the window is measured and the canvas sized; fast500's deep sweep: no target of the world's
+     is made, the ink birds reading none). The module is made here, in this
      loop's animation frames, if it is not yet (forced colours from the load: its file comes after the boot, and
      registerBirds asks for this loop then): before the boot's stage C it is the boot's own (BIRDS), after it a module
      made late (BIRDL), whose programs are linked here at once (fprog: no staged boot under forced colours) and which
@@ -73,9 +95,10 @@
     if (!M) { FRUN = false; return; }   // (no module to draw: the canvas stays hidden)
     var still = reduced() && !STILLMODE;
     FRAF = requestAnimationFrame(fframe);
+    if (!forced()) return;   // (fast500's deep sweep, 2026-11-05: forced colours ended; FC's change reaches onForced in the next frame's rendering steps, before this loop's next frame, and stops it (fstop): nothing drawn meanwhile, the canvas left as it is)
     var dt = FCLK < 0 ? 0 : Math.min(ts - FCLK, 100) / 1000; FCLK = ts;
-    if (NEEDSIZE || !TG) { NEEDSIZE = false; resize(); }
-    if (!TG || gl.isContextLost()) return;   // (no window to draw in yet: the loop goes on, the still too)
+    if (NEEDSIZE || !(TG || OUT.w)) { NEEDSIZE = false; resize(); }   // (fast500's deep sweep, 2026-11-05: the canvas sized and no target made, under forced colours: resize)
+    if (!(TG || OUT.w) || gl.isContextLost()) return;   // (no window to draw in yet: the loop goes on, the still too)
     FACC += dt; var n = 0;
     BIRDB.spent = 0;
     while (FACC >= SIM_DT && n < NMAX) { BIRDB.at = clockNow(); M.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; FACC -= SIM_DT; n++; }
@@ -87,6 +110,6 @@
     M.draw(); gl.bindVertexArray(null);
     if (LATEB.dead) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; return; }   // (its program would not link: nothing drawn, the canvas stays hidden)
     if (!shown) { shown = true; canvas.classList.add('on'); }
-    if (still) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; }   // (reduced motion: this one still frame)
+    if (still) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; fcWatch(); }   // (reduced motion: this one still frame; fast500's deep sweep: the system's colours watched while it stands, fcWatch)
   }
 

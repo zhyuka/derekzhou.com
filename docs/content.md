@@ -14,10 +14,11 @@ removed ("remove the entire "Derek is a hands-on.." blurb"); on
 2026-10-21 asked for "a little description that just says "Hands-on
 technology leader in Agentic and Generative AI, Platform Engineering, and
 Product Development."" It sits between the name and the credit row in
-the words' role (.words), its text in a span of its own (held by CI; the
-world's old ground read took the line's ink from those line boxes alone,
-and that code stays, unreached; the birds fly behind it as behind
-every word), with a non-breaking space in "Product
+the words' role (.words), its text in a span of its own (held by CI;
+the birds fly behind it as behind every word; the world's old ground
+read, which took the line's ink from those line boxes alone, went in
+fast500's deep sweep of 2026-11-05, and the world no longer measures
+them), with a non-breaking space in "Product
 Development" so no line ends on one word. The page is the name, that
 line, the credit row and the two links. The Open Graph and Twitter
 descriptions (share text) are the same line, and the meta description

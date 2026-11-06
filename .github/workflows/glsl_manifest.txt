@@ -5,7 +5,6 @@
 #   node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt
 program program.0d9f3c1d vs 69d5ae1aad4230c172e9c886 329 fs be197c6f9bab9c4129fdd95c 582
 program program.10fab356 vs 69d5ae1aad4230c172e9c886 329 fs 4af07dfd64f372d38457b97e 571
-program program.1173343a vs 1d767e6f15e92331dcbb1582 2571 fs d8be761bc5d59936bdbfdb23 24476
 program program.146833ae vs 69d5ae1aad4230c172e9c886 329 fs e3013d999013713ac51b35d7 45477
 program program.185106e7 vs c036fba59e0250735fbd5560 45056 fs 7dd2d584f20ac52877e15749 45553
 program program.194f547c vs 69d5ae1aad4230c172e9c886 329 fs 8c3e8049062318316c47f2ca 46066
@@ -33,8 +32,9 @@ program program.c811ce19 vs fea100a0eff2da38e4c404f0 45158 fs 8e1f026c07e2a9b26c
 program program.d2a060d3 vs d28f1cd8e6379c885610a8a2 25988 fs 630de905d5d95e3184244b95 16306
 program program.d67766ad vs bd8eb2522f121a92794d6e9a 2464 fs 63f6f2979a94e0af259830ea 244
 program program.d870867d vs 69d5ae1aad4230c172e9c886 329 fs e388c95c3ea6496480061c09 3218
-program program.dba24d90 vs 69d5ae1aad4230c172e9c886 329 fs f3c65de4bf5ccb2fe435f21b 42449
 program program.e7c4b01e vs 9109d278907235b1a45326bb 46726 fs 21090ecab3056efc7afc9a8f 45632
+program program.ed33caa7 vs 69d5ae1aad4230c172e9c886 329 fs 3386380e4e4a0035c2432807 40665
+program program.fcd0dc66 vs 1d767e6f15e92331dcbb1582 2571 fs df6347ad3dd626ff2b55da3a 24203
 device desktop 32 HPSPLIT,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|HPSPLIT,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:31 -:1
 device phone 26 NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:25 -:1
 device webkit 26 PLAIN_LOOPS,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX|PLAIN_LOOPS,NO_TWILIGHT,NO_RAIN,NO_WATER,NO_PKWX:25 -:1

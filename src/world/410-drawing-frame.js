@@ -453,9 +453,6 @@
     gl.uniform3fv(P.u.uShC, E.shaftC); gl.uniform3fv(P.u.uLift, E.lift); gl.uniform3fv(P.u.uGain, E.gain);
     if (P.u.uCeil) gl.uniform4f(P.u.uCeil, L.ceil === undefined ? 2 : L.ceil, CEIL_KNEE, 0, 0);   // (tod: the light ceiling, the cycle's blended value: 2 off)
     gl.uniform2f(P.u.uOut, OUT.w, OUT.h);
-    if (DBG === 5) devMotionField(V, u, P);
-    if (DBG === 8) { if (!FILMPREV) { FILMPREV = { pos: CAM.pos.slice(), f: CAM.f.slice(), r: CAM.r.slice(), u: CAM.u.slice() }; } }
-    if (DBG === 8) devPrevField(P);
     if (P.u.uSSR) gl.uniform4f(P.u.uSSR, V.def.water ? 1 : 0, V.def.waterReach || 240, 0, 0);
     if (P.u.uHC) { gl.uniformMatrix4fv(P.u.uHVP, false, SHIST.uvp); gl.uniform4f(P.u.uHC, SHIST.ucam[0], SHIST.ucam[1], SHIST.ucam[2], TG.sceneH ? SHIST.use : 0); if (P.u.uStb) gl.uniform1f(P.u.uStb, SW.stb > 0 ? 1 : 0); if (P.u.uLay) gl.uniform1f(P.u.uLay, SW.lay > 0 ? 1 : 0); gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, TG.sceneH ? TG.sceneH.t : TG.scene.t); gl.activeTexture(gl.TEXTURE0); }   // (E1.1, item 7)
     if (P.u.uMi) { gl.uniform4f(P.u.uMi, 0, 0, 0, MS ? AAS : 0); }   // (E1.1: w the samples a pixel)   // (Fix 3: the cloud about the eye coming out, brought up plainly where it stands: FS_COMP)
@@ -467,14 +464,6 @@
     gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_2D, TG.lind.t);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindVertexArray(FULLVAO);
-    // (world6w) the words' ground: the composite (which takes nothing from the words) at an eighth, read back for the
-    // inks' choice (agUpdate); the frame itself is then drawn alike with the words' machinery on or off
-    if (TG.gs && !TRIAL && SW.words && AG.on) {
-      useTarget(TG.gs, TG.gs.w, TG.gs.h); gl.uniform2f(P.u.uOut, TG.gs.w, TG.gs.h);
-      dc(gl.TRIANGLES, 3); wordsGroundRead(); birdsGroundRead();
-      useTarget(DIRECT && !TRIAL ? null : TG.win, OUT.w, OUT.h); gl.uniform2f(P.u.uOut, OUT.w, OUT.h);
-    }
-    if (SW.words && !TRIAL) agUpdate();
     dc(gl.TRIANGLES, 3);
     if (!DIRECT && !TRIAL) {   // (put up to the canvas's own resolution: the birds' ink is drawn at it)
       useTarget(null, FULL.w, FULL.h); P = EP.blit; gl.useProgram(P.p);
@@ -524,34 +513,11 @@
     return true;
   }
   var NOOCC = false;
-  var PCAM = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0] };
   /* (dev, E0) the look aside: the drawn camera turned about the vertical by a (rad), the flight left as it is */
   var FRZT = null;
   function devLook(c, a) {
     var ca = Math.cos(a), sa = Math.sin(a);
     function r(v) { var x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca; v[0] = x; v[2] = z; }
     r(c.f); r(c.r); r(c.u);
-  }
-  /* (dev, E0: the pop detector's motion field, gate C3) each pixel's displacement on the window since the film's last
-     frame, from the scene's depth and the two cameras exactly (dbg 8; the film keeps the last frame's camera) */
-  var FILMPREV = null;
-  function devPrevField(P) {
-    var keep = new Float32Array(VP), kc = new Float32Array(CAMV);
-    if (!FILMPREV) FILMPREV = { pos: CAM.pos.slice(), f: CAM.f.slice(), r: CAM.r.slice(), u: CAM.u.slice() };
-    viewProj(FILMPREV);
-    gl.uniformMatrix4fv(P.u.uPVP, false, VP); gl.uniform3fv(P.u.uPCam, FILMPREV.pos);
-    VP.set(keep); CAMV.set(kc);
-    viewProj(CAM);
-  }
-  function devMotionField(V, u, P) {   // dev: the camera 0.1 s before (from the trace of the last steps' states)
-    var keep = new Float32Array(VP), kc = new Float32Array(CAMV);
-    var a = CSP, b = CS, dtb = 0.1 / SIM_DT;   // (the last step's motion, scaled to 0.1 s)
-    PCAM.pos[0] = CAM.pos[0] - (b.x - a.x) * dtb; PCAM.pos[1] = CAM.pos[1] - (b.y - a.y) * dtb; PCAM.pos[2] = CAM.pos[2] - (b.z - a.z) * dtb;
-    var dyaw = angDiff(b.yawV + b.phi, a.yawV + a.phi) * dtb, cy = Math.cos(-dyaw), sy = Math.sin(-dyaw);
-    function rot(v, o) { o[0] = v[0] * cy + v[2] * sy; o[1] = v[1]; o[2] = -v[0] * sy + v[2] * cy; }
-    rot(CAM.f, PCAM.f); rot(CAM.r, PCAM.r); rot(CAM.u, PCAM.u);
-    viewProj(PCAM);
-    gl.uniformMatrix4fv(P.u.uPVP, false, VP); gl.uniform3fv(P.u.uPCam, PCAM.pos);
-    VP.set(keep); CAMV.set(kc);
   }
 

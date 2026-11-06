@@ -6,6 +6,12 @@
 #      changed, the D3D11 read-back of the changed programs bit for bit (tools/gpu/t2.js). About a minute.
 #   T3 (a report): base against head timed, A B A B, 5 runs each, fresh profiles (tools/gpu/t3.js). Nightly or the
 #      `perf` label.
+#   Forced colours off (a gate, in T2's job): forced colours on at load and off after the show, and on mid-visit then
+#      off, at 1440x900 and 393x852@3 on the real clock, on head's plain build (served/head, the bytes visitors get;
+#      never the twin, whose world holds its first frame); the job fails unless the world is shown again within 8 s
+#      each time, a failed case run once more (tools/gpu/forced-off.js; on this GPU 0.2-0.7 s, 1.1-1.3 s while other
+#      work shares it; a build that read forced colours from the media query list it listens on never brought it
+#      back). About half a minute.
 # Triggers: called by the gate workflow (workflow_call, with the base) when its shader census reports glsl_changed or
 # the world's, the realms' or the birds' served JS changed; a PR labelled `perf` (T3 only); nightly; by hand. Outputs
 # for the merge bot: frames_identical, glsl_changed, bits_identical, csp_ok.
@@ -100,10 +106,33 @@ jobs:
           # WebGL watched in the harness by glwatch.js); a stall is a key over 30 ms in both head visits and in neither base one
           $tools = if (Test-Path base/tools/gpu/stall.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           node "$tools/stall.js" --base served/base --head served/head --out "$env:RUNNER_TEMP/t2" --par 3
+      - name: forced colours off
+        id: fcoff
+        if: always() && steps.t2.outcome != 'skipped'
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
+        run: |
+          # (fast500's deep sweep, 2026-11-05) forced colours from the load and begun mid-visit, each then ended: the world
+          # must be shown again (tools/gpu/forced-off.js: the real clock, fresh headless Chrome, a failed case run once
+          # more) on head's plain build, the bytes visitors get (never the twin, whose world holds its first frame).
+          # Base's copy of the check, else head's where the head brings it; then base is visited too, a report only (never
+          # the gate), to show the bug there. Neither has it: skipped.
+          $tools = if (Test-Path base/tools/gpu/forced-off.js) { 'base/tools/gpu' } elseif (Test-Path head/tools/gpu/forced-off.js) { 'head/tools/gpu' } else { '' }
+          if (-not $tools) { 'forced-off.js: in neither base/ nor head/: skipped'; exit 0 }
+          node "$tools/forced-off.js" --site served/head --out "$env:RUNNER_TEMP/forced-off" --bound 8 --retry 1 --label head
+          $rc = $LASTEXITCODE
+          if ($tools -eq 'head/tools/gpu') {
+            node "$tools/forced-off.js" --site served/base --out "$env:RUNNER_TEMP/forced-off/base" --bound 8 --wait 6 --retry 0 --port 9680 --label 'base, a report'
+            "base (a report, never the gate): exit $LASTEXITCODE"
+          }
+          exit $rc
       - name: report
         if: always()
         uses: actions/upload-artifact@v4
         with: { name: t2, path: '${{ runner.temp }}/t2/*.*', retention-days: 14, if-no-files-found: ignore }
+      - name: forced-off report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: forced-off, path: '${{ runner.temp }}/forced-off', retention-days: 14, if-no-files-found: ignore }
   t3:
     needs: served
     if: always() && !cancelled() && needs.served.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'perf')))
