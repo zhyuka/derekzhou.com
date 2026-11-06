@@ -33,7 +33,7 @@
   var BOOT_D_MS = 40, BOOT_BAKE0 = 1024, BOOT_BAKE_MAX = 8192, BOOT_ROUNDS = 64, BOOT_NEED = 19.999, BOOT_M = 30, GUARD_M = 30, BOOTVF = false;
   var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
     fts: [] };   // (Fix 2: fts every boot frame's [frame, rAF time])
-  var CORE_LATE = ['birds:ink'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
+  var CORE_LATE = ['birds:ink', 'birds:paper'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
@@ -280,7 +280,7 @@
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
     if (gl.isContextLost()) return;
     prof('frame');
-    if (!READY && !TG) resize();   // (speed E12: a canvas not laid out at boot() made no targets: made in the first frame it is)
+    if (!READY && !TG) resize();   // (speed E12: a canvas not laid out at boot() made no targets: made in the first frame it is; fast500's deep sweep: so are a boot's or a restore's under forced colours, which make none, once they end)
     if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } bootFrame(ts); prof('boot'); if (!READY || reduced()) return; }   // (fast500 step 10: once READY, on to stage H in this frame; the show the next)
     if (dt0) { dt0 = false; dt = 0; }
     if (reduced() && !STILLMODE) {   // one still frame (round 3: the birds' still sky planned first, a share a frame, while the still sky shows)
@@ -296,9 +296,8 @@
          page, the black name gone). sky.v2's own rule (fadeUntil). After the first, the frame is put up again
          (represent: the composite or its copy, and the birds' ink), not drawn whole, unless the window changed */
       if (STILLTS < 0 || fresh || !represent()) { if (!render()) return; }
-      else if (SW.words && AG.on && !AG.ink) agUpdate();   // (ink fix: the still's take, once the canvas has been shown INK_TAKE s)
       if (STILLTS < 0) STILLTS = ts;
-      if (ts - STILLTS >= 100 && (AG.ink || !(SW.words && AG.on) || clockNow() - AG.w0 >= 2 * INK_TAKE * 1000)) { STILLTS = -1; stop(); }   // (ink fix: and not before the still has taken its ink, its INK_TAKE s from the canvas shown having passed in a frame: a slow first frame outlasts these frames)
+      if (ts - STILLTS >= 100) { STILLTS = -1; stop(); }
       return;
     }
     STILLTS = -1;
