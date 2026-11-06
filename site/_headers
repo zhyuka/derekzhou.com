@@ -52,6 +52,9 @@
 /hour.js
   Cache-Control: public, max-age=31536000, immutable
 
+/probe.js
+  Cache-Control: public, max-age=31536000, immutable
+
 /start.js
   Cache-Control: public, max-age=31536000, immutable
 
