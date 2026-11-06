@@ -301,7 +301,7 @@
      and away from the eye, so the camera, flying on, never runs it down): from then on it is the world's, fixed in it,
      a drag swinging the view past it, and it goes only beyond an edge or into the distance (never a fade). Returns it,
      or null (no slot, or no camera) */
-  var WB = { v: 16, climb: 40, spanMin: 18, spanMax: 60, dMin: 6, dMax: 90 };
+  var WB = { v: 16, climb: 40, spanMin: 18, spanMax: 160, dMin: 6, dMax: 90 };   // (spanMax over every perched gull's span (70-109 px on a desktop): it leaves at the size it sat, never shrinking at the hand-off)
   function worldBird(x, y, spanPx, ax, ay, why) {
     var C = camDrawn(); if (!C || !C.f || FORCED || !liveOn()) return null;
     lvCam(C);
