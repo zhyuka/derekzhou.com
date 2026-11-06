@@ -95,13 +95,18 @@ bumps a version for a change; fonts and images are renamed by hand
   against head); T2 on the owner's RTX 4090 when the world's code or a
   shader changed. Read the gate's verdict, not one job's.
 - The merge bot (merge.yml, .github/ci/merge-bot.mjs) merges a ready
-  claude/* PR when the gate is green and frames are identical (the served
+  claude/* PR when its own gate is green and frames are identical (the served
   build byte for byte the base's, or every T1/T2 frame the same, and no
-  input handling changed); never one that touches the bot itself or is
-  labelled needs-owner or visible. Anything visible waits for the owner.
-- Cloudflare Pages builds main (`npm ci --no-audit --no-fund
+  input handling changed), with no global lock: it lands every such PR whose
+  areas main has not touched since its gate's base, and re-gates only one that
+  overlaps; never one that touches the bot itself or is labelled needs-owner
+  or visible. Anything visible waits for the owner. Main's gate tests every
+  merge after it lands; the bot then fast-forwards `live` to the newest main
+  tip whose gate is green (and frames identical, or the owner's own merge).
+- Cloudflare Pages builds `live` (`npm ci --no-audit --no-fund
   --ignore-scripts && node tools/build.mjs dist`, output `dist`, Node 22);
-  post-deploy.yml then smokes the live site (/build.txt names the commit).
+  post-deploy.yml then smokes the live site (/build.txt names the newest
+  commit that touched a deploy input: .github/ci/deploy-inputs.txt).
 
 ## Where to read more (docs/)
 

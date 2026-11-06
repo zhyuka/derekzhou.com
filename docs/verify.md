@@ -7,20 +7,21 @@ Before a change to the world, its kits or the ink birds:
 - CI, every step, locally as the runner runs it (each `run:` step in
   `bash -eo pipefail` from the repository's root; W7's step needs
   playwright-core and a Chrome: PW_CORE and CHROME_PATH name them).
-- The world is measured in its dev build (the same source with its
-  harness: a seed, a moment, a still, the switches, words=0 for the twin):
-  stills of every sky at 393x852, 430x932, 768x1024, 1024x768, 1366x768,
+- The world is measured in its dev build (the same source with
+  its harness: a seed, a moment, a still, the switches): stills
+  of every sky at 393x852, 430x932, 768x1024, 1024x768, 1366x768,
   1440x900, 1920x1080 and 2560x1440 (Chrome on a GPU through ANGLE, or
   Chromium on Mesa llvmpipe or SwiftShader); the words' contrast, every
   role against every ground pixel under it (the lettered name's strokes,
   the line, the credit, each link; the ring 2-6 px about each link),
   through holds of every sky and through every change, at least 4.5:1 and
   the ring 3:1 (stage 2: the name 5.41:1 or more, the line 5.49, the
-  credit 4.90, the links 5.34, the ring 4.27); W7 twin runs (the frame
-  with the words' machinery on against off, the same visit and moment,
-  every channel of every pixel: none lower); W8 (every pixel's OKLab L
-  against 0.53 outside the moon's footprint and the ink birds); the
-  moon's footprint clear of the words, the view turned to face it; the
+  credit 4.90, the links 5.34, the ring 4.27); W7 (the composite
+  takes nothing from the words: CI's unit test, "Nothing darkens";
+  the twin runs against the words' machinery off went with that
+  machinery in the deep sweep); W8 (every pixel's OKLab L against
+  0.53 outside the moon's footprint and the ink birds); the moon's
+  footprint clear of the words, the view turned to face it; the
   camera's pitch at every window shape (9 degrees more from 6:5, exactly
   as before below it); the start, timed on a real GPU, cold and on a
   return, on a desktop and on a throttled phone; the sharpness against a
@@ -28,7 +29,11 @@ Before a change to the world, its kits or the ink birds:
   that reference's (nothing may glitter more than it does); the governor
   on synthetic frame clocks; reduced motion both ways, a lost and
   restored context, rotation, print, forced colours (the ink birds
-  alone, in CanvasText), no WebGL2 and no script (the still sky
+  alone, in CanvasText; and ended again, from the load and begun
+  mid-visit, on the real clock: the world shown again within 8 s, a
+  failed case run once more, tools/gpu/forced-off.js, which gpu.yml's
+  T2 job runs on head's plain build),
+  no WebGL2 and no script (the still sky
   and the words, and no bird SVG, script or rule on the page),
   the 404 page. And on a real iPhone (no harness reaches its
   WebKit or its memory; Chrome under an iPhone user agent is not

@@ -3,36 +3,33 @@
 /* realm-kit.js — the builders the realms share (see world.js for the engine, notes.md "Realm API v3" and "Realm API
    v3, features" for the whole contract).
 
-   THE REALM FILES. Every realm is its own classic deferred script (site/realm-<id>.js), loaded after world.js and this
-   file, in this order: world.js, realm-kit.js, realm-dunes.js, realm-above.js, realm-isles.js, realm-forest.js,
-   realm-tower.js (then realm-test.js, which registers only in the dev harness with data-realm="test"). Deferred
-   scripts run in document order before DOMContentLoaded, and the engine boots on DOMContentLoaded, so every realm has
-   registered by then. Registration order is the journey's realm order (ORDER): keep it.
+   THE REALM FILES. Every realm kit is its own classic deferred script (site/realm-<id>.js), loaded after world.js and
+   this file, in this order: world.js, realm-kit.js, realm-dunes.js, realm-above.js (and, on a dev page only,
+   realm-test.js, whose kit registers but is never flown). The world is the two kits composed by the maps' weights
+   (world.js, worldDef: the dunes kit's land, the ABOVE kit's sea of cloud and isles), made once both have registered;
+   the boot starts a frame after (bootSoon).
 
    What a realm file may rely on:
-   - window.WORLD, set by world.js: WORLD.realm(def) registers a realm (once per id; a second registration of the same
-     id is ignored), WORLD.kit the engine's kit (Builder, box, prism, lathe, rock, cumulus, range, wall, mound, bank,
-     lch, lab, hex, lum, dirAzEl, vector helpers, clamp, smooth, lerp, RNG, the integer hashes mirrored from the GLSL:
-     cellHash, ihash, hfl, hk; angDiff, E_IN, X_OUT; and the round 3b helpers: glowBake). WORLD is undefined when the
-     page has no WebGL2 or no canvas.sky: a realm file then does nothing (the first lines of every file check it).
+   - window.WORLD, set by world.js: WORLD.realm(def) registers a realm kit (once per id; a second registration of the
+     same id is ignored), WORLD.kit the engine's kit (Builder, box, prism, lathe, rock, cumulus, range, wall, mound,
+     bank, lch, lab, hex, lum, dirAzEl, vector helpers, clamp, smooth, lerp, RNG, the integer hashes mirrored from the
+     GLSL: cellHash, ihash, hfl, hk; angDiff; and the round 3b helpers: glowBake). WORLD is undefined when the page
+     has no WebGL2 or no canvas.sky: a realm file then does nothing (the first lines of every file check it).
    - window.WORLD.forms, set here: the shared form builders below (rock in strata, great rocks, shards, stones, ruins,
      stupas, spires, temples, stairs, floating islands, an island's temple) and their generator forms (...G: built a
      part at a time under the frame's vertex budget; return the generator from a realm's build()).
    - Nothing else: no globals, no DOM building, no network, no workers, no modules, no storage, no URL hooks, no clock
      and no entropy of its own (the site's CI greps the realm files for all of them, as it does world.js): every random
-     draw comes from the RNG streams the engine hands to field(), light(), cell(), build(), cloud(), event(),
-     particles() and the scatter's mesh() (all made from the visit's one draw of entropy and the cell's coordinates).
+     draw comes from the RNG streams the engine hands to field(), light(), cell(), build(), cloud(), particles() and
+     the scatter's mesh() (all made from the visit's one draw of entropy and the cell's coordinates).
    - A realm file wraps itself in a function (function () { 'use strict'; var W = window.WORLD; if (!W || !W.forms)
-     return; ... W.realm({...}); })(); and keeps its names inside it.
-   - A realm that is not built yet registers nothing (its file is a stub); the hour's landing then falls back to the
-     realms that are (notes.md, feature 11). */
+     return; ... W.realm({...}); })(); and keeps its names inside it. */
 (function () {
   'use strict';
   if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-kit.js top');   // (E0 Fix 3: the record bounds each script's evaluation)
   var W = window.WORLD;
   if (!W) return;
   var K = W.kit, PI = Math.PI;
-  function sh(R, a) { for (var i = a.length - 1; i > 0; i--) { var j = R.i(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   /* ------------------------------------------------------------------ shared: forms */
   // a surface from a grid of points (rows i upward, columns j around, wrapped): smooth normals from the neighbours.
@@ -65,17 +62,6 @@
     }
   }
   function runG(g) { while (!g.next().done) { /* through */ } }
-  function gridSurf(B, P, col, wrap) { runG(gridSurfG(B, P, col, wrap)); }
-  // a flat ring (or disc: inner null) at height y between two outlines, facing up
-  function ledge(B, outer, inner, y, col) {
-    var n = outer.length, up = [0, 1, 0];
-    for (var j = 0; j < n; j++) {
-      var j2 = (j + 1) % n, a = [outer[j][0], y, outer[j][1]], b = [outer[j2][0], y, outer[j2][1]];
-      if (!inner) { B.triN(a, [0, y, 0], b, up, up, up, col); continue; }
-      var c = [inner[j][0], y, inner[j][1]], d = [inner[j2][0], y, inner[j2][1]];
-      B.triN(a, c, d, up, up, up, col); B.triN(a, d, b, up, up, up, col);
-    }
-  }
   // an irregular outline: a squashed circle with lobes
   function outline(R, n, rad, squash) {
     var ph = [R.r(0, 6.28), R.r(0, 6.28), R.r(0, 6.28), R.r(0, 6.28)], am = [R.r(0.06, 0.14), R.r(0.04, 0.1), R.r(0.03, 0.06), R.r(0.015, 0.035)], o = [];
@@ -85,7 +71,6 @@
     }
     return o;
   }
-  function scaleOl(ol, s) { return ol.map(function (q) { return [q[0] * s, q[1] * s]; }); }
   /* the grooves of a great rock, column by column (erosion runs down its walls): a radial factor about 1 */
   function flutes(R, n, amp) {
     var f = [], ph = R.r(0, 6.28), k1 = 5 + R.i(6), k2 = 12 + R.i(10), j;
@@ -99,9 +84,6 @@
     c[1] += rise;
     for (j = 0; j < n; j++) { var a = ring[j], b2 = ring[(j + 1) % n], nn = K.norm(K.cross(K.sub(b2, a), K.sub(c, a))); if (nn[1] < 0) nn = K.mul(nn, -1); B.triN(a, c, b2, [nn[0] * 0.3, 1, nn[2] * 0.3], [0, 1, 0], [nn[0] * 0.3, 1, nn[2] * 0.3], col); }
   }
-  /* a mesa: a great block of rock with a flat top: a talus apron at its foot, cliffs grooved by erosion and banded by
-     strata (each band a little proud or recessed), a cap rock with a ledge under it, its rim broken; now and then a
-     smaller tier on top */
   /* rock in strata: bands 30-60 m deep, each its own setback (a ledge where the band above stands back), rows at each
      band's foot and top so the ledges stay crisp; clefts (deep vertical notches) and flutes (erosion's grooves) cut into
      the outline */
@@ -137,7 +119,6 @@
     cap(B, rows[rows.length - 1], H * 0.012, o.top || col);
     if (o.tier !== false && R.f() < 0.45) { B.push(); B.xf(R.r(-0.2, 0.2) * rad, H * 0.96, R.r(-0.2, 0.2) * rad); yield* mesaG(B, R, rad * R.r(0.32, 0.52), H * R.r(0.22, 0.4), col, { sink: H * 0.06, tier: false }); B.pop(); }
   }
-  function mesa(B, R, rad, H, col, o) { runG(mesaG(B, R, rad, H, col, o)); }
   /* a butte: a great rock standing alone: a talus apron, steep walls in strata with clefts and grooves, a cap domed in
      tiers; its base runs on into the ground */
   function* butteG(B, R, rad, H, col, o) {
@@ -159,7 +140,6 @@
     }
     yield* gridSurfG(B, rows, col, true);
   }
-  function butte(B, R, rad, H, col, o) { runG(butteG(B, R, rad, H, col, o)); }
   /* a rock spire: a tall pinnacle (a narrowing, leaning column with a few shelves) */
   function* rockSpireG(B, R, rad, H, col) {
     var n = 20, ol = outline(R, n, 1, R.r(0.6, 0.9)), fl = flutes(R, n, 0.06), rows = [], NR = 16, lean = [R.r(-0.15, 0.15), R.r(-0.15, 0.15)], i, j;
@@ -169,13 +149,6 @@
       rows.push(row);
     }
     yield* gridSurfG(B, rows, col, true);
-  }
-  function rockSpire(B, R, rad, H, col) { runG(rockSpireG(B, R, rad, H, col)); }
-  // a cluster of spires on a low base (a skyline like a ruined cathedral's)
-  function spireCluster(B, R, rad, H, col) {
-    mesa(B, R, rad, H * 0.18, col, { tier: false });
-    var n = 3 + R.i(5);
-    for (var k = 0; k < n; k++) { var a = R.r(0, 6.28), d = rad * Math.sqrt(R.f()) * 0.7; B.push(); B.xf(Math.cos(a) * d, H * 0.1, Math.sin(a) * d); rockSpire(B, R, rad * R.r(0.12, 0.24), H * R.r(0.45, 1.0), col); B.pop(); }
   }
   // a stone shard: a tall blade of an irregular section, its top broken on a slant, leaning
   function shard(B, R, h, w, col) {
@@ -284,7 +257,7 @@
   }
 
 
-  /* ------------------------------------------------------------------ islands in the air (ABOVE; the isles and the tower may reuse) */
+  /* ------------------------------------------------------------------ islands in the air (ABOVE) */
   /* a floating island: a rock hanging under a green top (an irregular inverted cone, grooved, with ledges), moss over
      its lip */
   function* floatIslandG(B, R, r, depth, rock, grass) {
@@ -308,7 +281,6 @@
     var nh = 2 + R.i(3);
     for (k = 0; k < nh; k++) { var ha = R.r(0, 6.28), hd = r * R.r(0.25, 0.6); B.push(); B.xf(Math.cos(ha) * hd, -depth * R.r(0.25, 0.5), Math.sin(ha) * hd, R.r(0, 360), 180, 0); yield* rockSpireG(B, R, r * R.r(0.1, 0.2), depth * R.r(0.3, 0.6), rock); B.pop(); yield; }
   }
-  function floatIsland(B, R, r, depth, rock, grass) { runG(floatIslandG(B, R, r, depth, rock, grass)); }
   /* the island's temple: a stepped plinth (three tiers), terraces with stupas at their corners and along their edges,
      a great bell in the middle under a tall spire, two spires beside it (a silhouette against the disc) */
   function* isleTemple(B, R, size, col, hi) {   // (a generator: built a part at a time under the frame's budget)
@@ -334,10 +306,10 @@
   }
 
   W.forms = {
-    shuffle: sh, gridSurfG: gridSurfG, gridSurf: gridSurf, runG: runG, ledge: ledge, outline: outline, scaleOl: scaleOl, flutes: flutes, cap: cap,
+    gridSurfG: gridSurfG, runG: runG, outline: outline, flutes: flutes, cap: cap,
     clefts: clefts, cleftK: cleftK, bandsOf: bandsOf, bandAt: bandAt, strataYs: strataYs,
-    mesaG: mesaG, mesa: mesa, butteG: butteG, butte: butte, rockSpireG: rockSpireG, rockSpire: rockSpire, spireCluster: spireCluster,
+    mesaG: mesaG, butteG: butteG, rockSpireG: rockSpireG,
     shard: shard, giantShard: giantShard, menhir: menhir, ruinSegment: ruinSegment, rampartSegment: rampartSegment, pillar: pillar,
-    stupa: stupa, spire: spire, templeStepped: templeStepped, stairDown: stairDown, floatIslandG: floatIslandG, floatIsland: floatIsland, isleTemple: isleTemple
+    stupa: stupa, spire: spire, templeStepped: templeStepped, stairDown: stairDown, floatIslandG: floatIslandG, isleTemple: isleTemple
   };
 })();

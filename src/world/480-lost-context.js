@@ -31,7 +31,6 @@
     if (BIRDS && BIRDS.visit) BIRDS.visit(-1);   // (E0: the ink birds' flights ended with the canvas; they begin again from the first frame shown)
     MEMN.restored++; recMark('context restored');
     bootReset(true);
-    inkRestart();   // (ink load fix: the restored world's first reading sets the inks at once)
     resize();
     if (forced() && !STILLMODE) { DOMQ.fc = true; domNext(); return; }   // (round 3: forced colours hold: the ink birds' own loop again, in the next frame (domFlush, fstart), moving or its still; the world boots once they end, onForced)
     start();

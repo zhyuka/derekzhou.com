@@ -11,9 +11,10 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
    data-sky-at) and the browser's bar.
 2. start.js — the start file (async, fetchpriority="high",
    Early-Hinted, the first script after the canvas and the only async
-   one): the world's context and its first frame's programs, issued before
-   the world's script runs (see World: BOOT); made by tools/start.mjs from
-   src/, never by hand.
+   one): the world's context and its first frame's programs, issued once
+   the page has painted, from its table (start-table.js, a worker's
+   script it starts after the first paint; see World: BOOT); made by
+   tools/start.mjs from src/, never by hand.
 3. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.

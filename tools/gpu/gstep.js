@@ -92,6 +92,7 @@ const INIT = `(() => {
   const EPOCH = ${EPOCH}, SEEDS = ${JSON.stringify(SEEDS)}, YIELD = ${JSON.stringify(YIELD)}, ANIM = ${JSON.stringify(ANIM)}, NOINK = ${NOINK ? 'true' : 'false'};
   const DRAGEV = ${JSON.stringify(DRAGEV)}, PTYPE = ${JSON.stringify(MOBILE ? 'touch' : 'mouse')}, FWON = ${FADEWATCH ? 'true' : 'false'};
   const REALNAME = ${A.realname ? 'true' : 'false'};
+  const GPUNAME = ${A.gpuname && A.gpuname !== true ? JSON.stringify(A.gpuname) : 'null'};   // (tools/gpu --gpuname: another maker's GPU name, so the page takes that maker's paths on this GPU)
   ${SETTLE ? 'window.__SETTLE = ' + JSON.stringify(SETTLE) + ';' : ''}
   let NOW = 0, FR = 0; const Q = []; let QID = 0, CALLS = 0;
   crypto.getRandomValues = function (a) { const s = SEEDS[CALLS % SEEDS.length] >>> 0; CALLS++; for (let i = 0; i < a.length; i++) a[i] = (s + i * 0x9e3779b9) >>> 0; return a; };
@@ -104,7 +105,7 @@ const INIT = `(() => {
   window.requestAnimationFrame = (cb) => { Q.push([++QID, cb]); return QID; };
   window.cancelAnimationFrame = (id) => { for (let i = 0; i < Q.length; i++) if (Q[i][0] === id) { Q.splice(i, 1); return; } };
   const G = WebGL2RenderingContext.prototype, gp = G.getParameter, gpp = G.getProgramParameter, gsp = G.getShaderParameter;
-  G.getParameter = function (p) { if (!REALNAME && (p === 0x9246 || p === 0x1F01)) return 'Harness GPU'; return gp.call(this, p); };   // (tools/gpu --realname: the GPU's own name, so the page takes this device's own paths, e.g. the split height on NVIDIA D3D11)
+  G.getParameter = function (p) { if (GPUNAME && p === 0x9246) return GPUNAME; if (!REALNAME && (p === 0x9246 || p === 0x1F01)) return 'Harness GPU'; return gp.call(this, p); };   // (tools/gpu --realname: the GPU's own name, so the page takes this device's own paths, e.g. the split height on NVIDIA D3D11)
   G.clientWaitSync = function () { return 0x911A; };
   const gsy = G.getSyncParameter; G.getSyncParameter = function (s, p) { return p === 0x9114 ? 0x9119 : gsy.call(this, s, p); };
   G.getProgramParameter = function (pr, p) { return p === 0x91B1 ? true : gpp.call(this, pr, p); };

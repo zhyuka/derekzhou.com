@@ -233,7 +233,6 @@ uniform vec4 uBlK;    // bloom amount, shafts amount, bloom uv scale x, y
 uniform vec4 uShK;    // shaft uv scale (x, y), exposure, saturation
 uniform vec3 uShC; uniform vec3 uLift, uGain;
 uniform vec2 uOut;        // (world6w: the composite takes nothing from the words)
-uniform mat4 uPVP; uniform vec3 uPCam;   // dev: the camera 0.1 s before (the motion field)
 uniform vec4 uSSR;        // water in the realm (1: the nearby forms reflected), the reflection's reach (m), -, -
 uniform vec4 uCeil;       // (tod) the light ceiling (the world's own light on the skies with light words, the same everywhere, no words input): x the ceiling (OKLab L; 2: off), y its knee
 uniform vec4 uMi;         // (Fix 3) the cloud about the eye coming out: x -1 (worked out per pixel; 0: none), y the cloud (uIn.x), z the way out (uIn.w); w (E1.1) the scene's samples a pixel where it has them (0: none; its alpha the depth's code)
@@ -270,31 +269,9 @@ void main() {
   else if (uSc.w > 0.5) c = fxaa(uv * uSc.xy);
   else c = texture(uScene, uv * uSc.xy).rgb;
   vec4 cl = vec4(0.0);   // (the clouds: brought up below, E1 Fix 3)
-  bool lay = false; vec3 cLay = vec3(0.0); vec4 dbgL = vec4(0.0);   // (E1.1: the cloud laid over a pixel's near and far samples apart, below; dbgL: dev 9)
+  bool lay = false; vec3 cLay = vec3(0.0);   // (E1.1: the cloud laid over a pixel's near and far samples apart, below)
   float dz = texelFetch(uDepth, min(ivec2(floor(uv * uSc.xy * vec2(textureSize(uDepth, 0)))), textureSize(uDepth, 0) - 1), 0).r;
   float zl = dz >= 1.0 ? 6.0e4 : 2.0 * uProj.z * uProj.w / (uProj.w + uProj.z - (dz * 2.0 - 1.0) * (uProj.w - uProj.z));
-#ifdef DEV
-  if (0 == 5) {   // dev: the true motion field (% of the width per second), each pixel's point seen 0.1 s before
-    vec2 ndc = px / uOut * 2.0 - 1.0;
-    vec3 rv = uCamF + uCamR * ndc.x * uProj.x + uCamU * ndc.y * uProj.y;
-    bool skyp = zl >= 5.5e4;
-    vec4 q = skyp ? uPVP * vec4(rv, 0.0) : uPVP * vec4(uCam + rv * zl - uPCam, 1.0);
-    float sp = length((ndc - q.xy / q.w) * vec2(0.5, 0.5 * uOut.y / uOut.x)) * 1000.0;
-    oC = vec4(clamp(sp / 25.0, 0.0, 1.0), clamp(sp / 2.5, 0.0, 1.0), skyp ? 1.0 : 0.0, 1.0);
-    return;
-  }
-  if (0 == 8) {   // (dev, E0: the pop detector's motion field) each pixel's displacement on the window since the film's last
-    // frame (px, the current position less the last), 12 bits a component at 1/32 px over +-64 px, in R, G and B
-    vec2 ndc = px / uOut * 2.0 - 1.0;
-    vec3 rv = uCamF + uCamR * ndc.x * uProj.x + uCamU * ndc.y * uProj.y;
-    bool skyp = zl >= 5.5e4;
-    vec4 q = skyp ? uPVP * vec4(rv, 0.0) : uPVP * vec4(uCam + rv * zl - uPCam, 1.0);
-    vec2 d = (ndc - q.xy / q.w) * 0.5 * uOut;
-    vec2 e = clamp(floor(d * 32.0 + 2048.0 + 0.5), 0.0, 4095.0);
-    oC = vec4(floor(e.x / 16.0) / 255.0, (mod(e.x, 16.0) * 16.0 + floor(e.y / 256.0)) / 255.0, mod(e.y, 256.0) / 255.0, 1.0);
-    return;
-  }
-#endif
 #ifndef NO_WATER
   // water (the scene's alpha under 1: its reflected share): the nearby forms seen in its reflection, put over the sky
   // the water shader reflected there (a short march of the reflected ray against the scene's depth, screen-space)
@@ -465,7 +442,7 @@ void main() {
     if (uLay > 0.5 && uMi.w > 0.5 && n <= 1 && km < 0.001 && max(max(tA.a, tB.a), max(tC.a, tD.a)) > 0.002) {
 #endif
       ivec2 ssz = textureSize(uScene, 0), ip = min(ivec2(floor(uv * uSc.xy * vec2(ssz))), ssz - 1);
-      float A = texelFetch(uScene, ip, 0).a; dbgL.y = A; dbgL.z = abs(A - zc(zl));
+      float A = texelFetch(uScene, ip, 0).a;
       if (A >= 0.5 && abs(A - zc(zl)) > 0.003) {
         ivec2 qmax = ivec2(uClS.zw) - 1; float cn = 2.0, cf = -1.0; float cq[16];
         for (int j = -1; j <= 2; j++) for (int i = -1; i <= 2; i++) { float k = zc(linFetch(uLinD, clamp(h0 + ivec2(i, j), ivec2(0), qmax))); cq[(j + 1) * 4 + i + 1] = k; cn = min(cn, k); }
@@ -474,7 +451,6 @@ void main() {
         float zs = zc(zl), dbest = 1e9;
         if (zs > cn + 0.02) cf = zs;
         else for (int j = -1; j <= 2; j++) for (int i = -1; i <= 2; i++) { float k = cq[(j + 1) * 4 + i + 1]; vec2 dq = vec2(float(i), float(j)) - f; float dd = dot(dq, dq); if (k > cn + 0.02 && dd < dbest) { dbest = dd; cf = k; } }
-        dbgL.w = cf - cn;
         if (cf - cn > 0.02 && cn < zc(CLZ) && A > cn + 0.002 && A < cf + 0.002) {   // (the near part within a cloud's reach: beyond it the clouds stand before both parts alike)
           float cov = clamp((cf - A) / (cf - cn), 0.0, 1.0);
           vec4 sN = vec4(0.0), sF = vec4(0.0); float wN = 0.0, wF = 0.0;
@@ -507,7 +483,6 @@ void main() {
               if (hs.a >= 0.5) { cov = 0.5 * cov + 0.5 * clamp((cf - hs.a) / (cf - cn), 0.0, 1.0); cc = 0.5 * cR + 0.5 * clamp(hs.rgb, min(rE, bE), max(rE, bE)); }
             }
           }
-          dbgL.x = 0.2 + 0.8 * cov;
           vec3 dl = cc - (cov * rE + (1.0 - cov) * bE); rE = max(rE + dl, 0.0); bE = max(bE + dl, 0.0);
           cLay = cov * (min(rE, vec3(1.0 + 3.0 * (1.0 - clN.a))) * (1.0 - clN.a) + clN.rgb) + (1.0 - cov) * (min(bE, vec3(1.0 + 3.0 * (1.0 - clF.a))) * (1.0 - clF.a) + clF.rgb);
           cl = mix(clF, clN, cov); lay = true;
@@ -517,9 +492,6 @@ void main() {
   }
   // (under cloud the scene's light is held to 1: a disc behind an opaque cloud never prints through)
   c = lay ? cLay : min(c, vec3(1.0 + 3.0 * (1.0 - cl.a))) * (1.0 - cl.a) + cl.rgb;
-#ifdef DEV
-  if (0 == 9) { oC = vec4(dbgL.x, clamp((dbgL.y - 0.5) * 2.0, 0.0, 1.0), clamp(dbgL.z * 50.0, 0.0, 1.0), 1.0); return; }   // (dev, E1.1: the layering: red its near share where taken, green the depth code, blue how far the samples' codes stand from the one resolved)
-#endif
   c += texture(uBloom, min(uv * uBlK.zw, lim(uBloom, uBlK.zw))).rgb * uBlK.x;
   c += texture(uShaft, min(uv * uShK.xy, lim(uShaft, uShK.xy))).rgb * uShC * uBlK.y * smoothstep(150.0, 2500.0, zl) * (1.0 - 0.7 * cl.a);
   c *= uShK.z;
