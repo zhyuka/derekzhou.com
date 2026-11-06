@@ -16,8 +16,9 @@ style-src 'self'; connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; form-action 'none'; HSTS with preload;
 COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial (the accelerometer and the gyroscope included:
-Android's phone-motion steering would need accelerometer=(self),
-gyroscope=(self) on /*, a choice for the owner); X-Permitted-Cross-Domain-
+the owner kept Android drag-only on 2026-11-06, so the world adds no
+motion listener there; phone-motion steering on Android would need
+accelerometer=(self), gyroscope=(self) on /* and that listener back); X-Permitted-Cross-Domain-
 Policies none. The world needs one CSP addition, for the plan's worker:
 worker-src 'self' on the two home blocks that start it (/ and /index.html;
 404.html starts none), and the worker's response its own policy, its

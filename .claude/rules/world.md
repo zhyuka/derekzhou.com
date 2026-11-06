@@ -19,8 +19,8 @@ Read docs/world.md first (and docs/verify.md before anything visible ships).
   no-masking-boxes; W7 and world_rules.py check them).
 - One entropy read above INIT-END; no clock but clockNow(); no Date or Math.random; listeners only in the world, by
   name (one-entropy-one-clock, absence-*).
-- A shader's text changed: update the golden texts and glsl_manifest.txt in the same commit (same-shaders; the
-  commands are in CLAUDE.md, Making a change).
+- A shader's text changed: nothing derived is committed (same-shaders); the gate's census and T2 compare the base's
+  build with the head's.
   The build ships shaders minified (tools/glslmin.mjs); if the world's code ever reads a .glsl file's text at run
   time (as the land split reads dunes-glsl's D_Hd), add that file to glslmin.mjs's KEEP.
 - The plan's spans changed (the maps, the director, MAPS/mapsInit/kitAt, the weights' grids): node tools/plan.mjs

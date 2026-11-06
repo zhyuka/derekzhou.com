@@ -39,9 +39,10 @@ program's text stays the same: CI step "Every visit compiles the same
 shaders" (glsl_guard.js) runs the site's scripts as shipped in node, in a
 fake browser with a fake WebGL2 context, for 15 visits of five devices,
 and fails unless every visit of a device compiles the same sources,
-devices differ only in the #define lines after #version, and the reference
-device's programs are exactly glsl_manifest.txt. So a change to a
-program's text comes with its manifest lines in the same commit (node
-.github/workflows/glsl_guard.js build/site --write
-.github/workflows/glsl_manifest.txt), and the diff names the programs a
-deploy makes every returning visitor compile again.
+and devices differ only in the #define lines after #version. Which
+programs a change edits (the ones a deploy makes every returning visitor
+compile again) is the gate's to say: its census compares the base's build
+with the head's (glsl_changed), and T2 names each changed program and
+reads it back. Nothing derived from the shaders is committed
+(2026-11-06: a committed manifest and golden texts made every shader PR
+conflict with every other).

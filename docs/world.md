@@ -40,10 +40,12 @@ eases out. The steering reads a pointer's moves only while it is pressed;
 the birds' play reads a hovering one (see Birds: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
-never at load); on Android the world would take the phone's motion
-without asking, but this site's Permissions-Policy denies the
-accelerometer and the gyroscope (see Security), so there only the drag
-steers. Under reduced motion all of it is inert. The camera is a pinhole,
+never at load); everywhere else only the drag steers, and no motion
+listener is added at all (the owner, 2026-11-06: "Keep drag-only"; this
+site's Permissions-Policy denies the accelerometer and the gyroscope, see
+Security, so on Android and desktop Chrome a listener only logged a
+policy error; Chrome now offers DeviceOrientationEvent.requestPermission
+too, so the ask itself is made only on iOS and iPadOS). Under reduced motion all of it is inert. The camera is a pinhole,
 72 degrees across the window's longer side (a tall window's view widened
 so it is never a slit, and never more than 80 degrees up); the realm
 frames the horizon 55% down a wide window and 58% down a tall one (blended by TALLK, the window's shape: smooth from

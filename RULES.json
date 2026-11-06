@@ -457,7 +457,7 @@
     {
       "id": "same-shaders",
       "area": "caching",
-      "rule": "Every visit of a device compiles the same shader sources, and a change to a program's text comes with its manifest and golden texts in the same commit (a returning visitor's shader cache depends on it).",
+      "rule": "Every visit of a device compiles the same shader sources, and every program compiles; which programs a change edits is the gate's census of the base's and the head's builds, never a committed file (a returning visitor's shader cache depends on it).",
       "source": [
         {
           "doc": "docs/caching.md; docs/structure.md"
@@ -470,7 +470,7 @@
         },
         {
           "kind": "ci-step",
-          "name": "The shaders are their golden texts, and compile"
+          "name": "Every shader compiles"
         }
       ]
     },

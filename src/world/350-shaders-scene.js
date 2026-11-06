@@ -142,6 +142,7 @@ void main() {
   }
   /* scatter: one instance per cell of a grid around the camera; the cell's hash decides if, where, how big */
   var VS_SCATTER = `@glsl vs-scatter`;
+  var VS_LMSC = VS_SCATTER.replace(/void\s+main\s*\(\s*\)\s*\{/, 'void scMain() {') + `@glsl vs-lmsc`;   // (world-perf lane: the landmarks and the scatter, one program)
   /* particles in a volume that wraps around the camera (uPb.w, the kind): 0 grains blown across the ground (dim
      streaks; now and then a grain's facet turns to the sun and it glints), 1 motes (soft points of light drifting in
      the air, bright toward the sun; 2: about the camera's own height), 3 rain (streaks falling with the wind, each
