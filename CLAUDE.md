@@ -76,8 +76,9 @@ one is committed to site/ (built-files-uncommitted).
      T2 compare the base's build with the head's.
    - The plan's spans changed: `node tools/plan.mjs --stamp`.
    - `node tools/build.mjs --check`: two builds the same bytes.
-   - Every `run:` step of validate.yml, in `bash -eo pipefail` from the
-     root, is what CI runs.
+   - `npm run check`: every static check CI runs (tools/check.mjs: the
+     build once, then tools/checks/*.sh in parallel; about a minute).
+     `npm run check:fast`: a few seconds, no site build.
 3. Anything a visitor sees: measure it as docs/verify.md says (stills,
    contrast, the W7 twin, reduced motion, no WebGL2, a real iPhone).
 

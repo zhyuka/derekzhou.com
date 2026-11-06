@@ -81,6 +81,6 @@ try {
 
 const took = ((Date.now() - t0) / 1000).toFixed(1) + ' s';
 if (!fails.length) { if (!HOOK) { for (const m of oks) console.log('ok   ' + m); console.log('check:quick: ok (' + took + ')'); } process.exit(0); }
-const report = fails.map((m) => 'FAIL ' + m).join('\n') + '\ncheck:quick: ' + fails.length + ' failed (' + took + '); the full checks: every run: step of .github/workflows/validate.yml';
+const report = fails.map((m) => 'FAIL ' + m).join('\n') + '\ncheck:quick: ' + fails.length + ' failed (' + took + '); the full checks: npm run check (tools/check.mjs)';
 if (HOOK) { process.stderr.write(report + '\n'); process.exit(2); }
 for (const m of oks) console.log('ok   ' + m); console.log(report); process.exit(1);
