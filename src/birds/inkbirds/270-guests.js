@@ -62,7 +62,7 @@ var NAME_PERCH = {
      bolder: closer), and the visit's trust (GU.trust: a gentle approach shrinks every distance 8 %, to half at most; a
      flush grows them 15 %). Only what a visitor already looks at reacts; every escape is up and away into the distance;
      reduced motion: none of it */
-  var PTR = { flush: true, shiver: true, perch: true, avoid: true, click: true };
+  var PTR = { flush: true, shiver: false, perch: false, avoid: true, click: false };   // (preview: flush alone)
   var PF = { alert: 7, flush: 3.5, tauA: 1.2, tauF: 0.5, cosF: 0.707, gentleV: 60, gentleCos: 0.5, gentleK: 0.6, trustIn: 0.92, trustOut: 1.15, trustMin: 0.5, trustMax: 1.5, back: [20, 60], stay: 0.15, crouch: 0.125, react: 0.06 };
   var G_SETOUT = 3.0, G_SETOUT_TRUST = 1.5, G_FIRST_PTR = 6, G_FIRST = 20, G_WORD_MEAN = 180, G_WORD_MIN = 90, G_WORD_MAX = 5, G_PTR_GAP = 60, G_PTR_GAP2 = 90, G_PTR_MAX = 4, G_FLUSH_T = 120, G_REST = 2.0;
   var GU = { trust: 1, flushHold: 0, list: [], k: 0, nWord: 0, nPtr: 0, lastWord: -1e9, nextWord: G_FIRST, lastPtr: -1e9, flushAt: -1e9, flushN: 0, firstRest: true, log: [], force: null, on: true,   /* (the perched guests on the words; the pointer's perch needs the hover listener, which the world does not have: its HOVER stays gone, so it never comes) */
