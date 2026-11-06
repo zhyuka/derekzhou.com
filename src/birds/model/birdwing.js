@@ -1,5 +1,5 @@
-// The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
-// fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
+// birdwing.js, the ink birds' wing model (src/birds/model/, served as written). Written by hand. Its comments keep the
+// tags and file names of the development record it came from (rounds, labs, judges), outside this repository.
 /* birdwing.js (physics, the integration): the lab's measured wing (physics/lab: labbird.js 18c2f23c on wingmodel.js
    3c935e81, model.js 439929d4, facetform.js 6896d8a3, facetpose.js d463285f: every one of them byte for byte) made
    to fly in the world. No DOM, no clock, no entropy: the caller's stream in, pure functions of time out.

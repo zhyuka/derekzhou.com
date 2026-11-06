@@ -77,22 +77,22 @@
 /realm-above.js
   Cache-Control: public, max-age=31536000, immutable
 
-/facetform.v1.js
+/facetform.js
   Cache-Control: public, max-age=31536000, immutable
 
-/facetpose.v1.js
+/facetpose.js
   Cache-Control: public, max-age=31536000, immutable
 
-/wingmodel.v1.js
+/wingmodel.js
   Cache-Control: public, max-age=31536000, immutable
 
-/model.v1.js
+/model.js
   Cache-Control: public, max-age=31536000, immutable
 
-/labbird.v1.js
+/labbird.js
   Cache-Control: public, max-age=31536000, immutable
 
-/birdwing.v1.js
+/birdwing.js
   Cache-Control: public, max-age=31536000, immutable
 
 /inkbirds.js

@@ -2,10 +2,17 @@
 Thumbs.db
 .vscode/
 .idea/
-.claude/
+# (.claude/: a session's own files stay out; the project's hooks are the repository's: RULES.json)
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/hooks/__pycache__/
 # (the build) build/src/: src/ assembled (tools/parts.mjs assemble src build/src), never committed
 build/
 
 # (the deploy build) node tools/build.mjs dist; and npm ci's node_modules/: never committed
 dist/
 node_modules/
+
+# (the wing model's generators: python writes these beside linkage.py) never committed
+__pycache__/

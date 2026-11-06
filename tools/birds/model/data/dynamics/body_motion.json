@@ -1,0 +1,387 @@
+{
+ "meta": {
+  "title": "Body motion through the wingbeat, measured",
+  "sources": {
+   "shamoun2016data": {
+    "cite": "Shamoun-Baranes J, Bouten W, van Loon EE, Meijer C, Camphuysen CJ (2016) Flap or soar? How a flight generalist responds to its aerial environment. Phil Trans R Soc B 371:20150395; data: Zenodo 4963689 (lesser black-backed gull GPS + 20 Hz acceleration, UvA-BiTS)",
+    "doi": "10.5281/zenodo.4963689",
+    "licence": "CC0 1.0 (data)",
+    "use": "usable (cite)",
+    "file": "dl/shamoun2016/ (raw acc deleted after analysis; README, gps, mor, ela kept)"
+   },
+   "taylor2019": {
+    "cite": "Taylor LA, Taylor GK, Lambert B, Walker JA, Biro D, Portugal SJ (2019) Birds invest wingbeats to keep a steady head and reap the ultimate benefits of flying together. PLoS Biol 17:e3000299",
+    "doi": "10.1371/journal.pbio.3000299",
+    "licence": "CC BY 4.0",
+    "use": "usable with attribution",
+    "file": "dl/taylor2019/"
+   },
+   "usherwood2011": {
+    "cite": "Usherwood JR, Stavrou M, Lowe JC, Roskilly K, Wilson AM (2011) Flying in a flock comes at a cost in pigeons. Nature 474:494-497 (author manuscript, Europe PMC PMC3162477)",
+    "doi": "10.1038/nature10164",
+    "licence": "author manuscript under Nature terms (academic research use)",
+    "use": "study only",
+    "file": "dl/usherwood2011/"
+   },
+   "krishnan2022": {
+    "cite": "Krishnan K, Garde B, Bennison A, Cole NC, Cole EL, Darby J, Elliott KH, Fell A, Gomez-Laich A, de Grissac S, Jessopp M, Lempidakis E, Mizutani Y, Prudor A, Quetting M, Quintana F, Robotka H, Roulin A, Ryan PG, Schalcher K, Schoombie S, Tatayah V, Tremblay F, Weimerskirch H, Whelan S, Wikelski M, Yoda K, Hedenstrom A, Shepard ELC (2022) The role of wingbeat frequency and amplitude in flight power. J R Soc Interface 19:20220168",
+    "doi": "10.1098/rsif.2022.0168",
+    "licence": "CC BY 4.0",
+    "use": "usable with attribution",
+    "file": "dl/krishnan2022/krishnan2022.pdf"
+   },
+   "dimitriadis2015": {
+    "cite": "Dimitriadis G, Gardiner J, Tickle P, Codd J, Nudds R (2015) Experimental and numerical study of the flight of geese. Aeronaut J 119:1-30 (curves from the first author's 2015 talk, read by the sibling kinematics task)",
+    "doi": "10.1017/S0001924000010939",
+    "licence": "rights reserved",
+    "use": "study only",
+    "file": "../kinematics/data/goose_barnacle_dimitriadis2015_*.json"
+   },
+   "ros2011": {
+    "cite": "Ros IG, Bassman LC, Badger MA, Pierson AN, Biewener AA (2011) Pigeons steer like helicopters and generate down- and upstroke lift during low speed turns. PNAS 108:19990-19995",
+    "doi": "10.1073/pnas.1107519108",
+    "licence": "PNAS (free in PMC, rights reserved); read via web fetch of PMC3250151",
+    "use": "study only",
+    "file": "(not downloaded)"
+   },
+   "tobalske1996": {
+    "cite": "Tobalske BW, Dial KP (1996) Flight kinematics of black-billed magpies and pigeons over a wide range of speeds. J Exp Biol 199:263-280",
+    "doi": "10.1242/jeb.199.2.263",
+    "licence": "rights reserved (Company of Biologists)",
+    "use": "study only",
+    "file": "../kinematics/dl/tobalske1996/t1996.pdf (sibling download)"
+   },
+   "park2001": {
+    "cite": "Park KJ, Rosen M, Hedenstrom A (2001) Flight kinematics of the barn swallow (Hirundo rustica) over a wide range of speeds in a wind tunnel. J Exp Biol 204:2741-2750",
+    "doi": "10.1242/jeb.204.15.2741",
+    "licence": "rights reserved; repository copy",
+    "use": "study only",
+    "file": "../kinematics/dl/park2001/park2001.pdf"
+   },
+   "meir2019": {
+    "cite": "Meir JU, York JM, Chua BA, Jardine W, Hawkes LA, Milsom WK (2019) Reduced metabolism supports hypoxic flight in the high-flying bar-headed goose (Anser indicus). eLife 8:e44986 (Supplementary file 4)",
+    "doi": "10.7554/eLife.44986",
+    "licence": "CC0 1.0",
+    "use": "usable",
+    "file": "../kinematics/dl/meir2019 (sibling download)"
+   },
+   "kh2017data": {
+    "cite": "KleinHeerenbrink M, Johansson LC, Hedenstrom A (2017) Multi-cored vortices support function of slotted wing tips of birds in gliding and flapping flight / Wake analysis of drag components in gliding flight of a jackdaw (Corvus monedula) during moult. Interface Focus 7:20160081; dataset figshare doi:10.6084/m9.figshare.4236305.v2",
+    "doi": "10.6084/m9.figshare.4236305.v2",
+    "licence": "CC BY 4.0 (dataset)",
+    "use": "usable with attribution",
+    "file": "dl/kh2017fig/rsfs20160081_si_001.csv"
+   },
+   "rosen2001": {
+    "cite": "Rosen M, Hedenstrom A (2001) Gliding flight in a jackdaw: a wind tunnel study. J Exp Biol 204:1153-1166 (Lund University repository copy)",
+    "doi": "10.1242/jeb.204.6.1153",
+    "licence": "rights reserved; repository copy for private study",
+    "use": "study only",
+    "file": "dl/rosen2001/rosen2001.pdf"
+   }
+  }
+ },
+ "heave": [
+  {
+   "species": "Larus fuscus (lesser black-backed gull)",
+   "quantity": "body (back) vertical displacement, peak-to-peak, fundamental only",
+   "value_mm": 39.2,
+   "iqr_mm": [
+    34.2,
+    42.6
+   ],
+   "fraction_of_span": 0.0293,
+   "heave_accel_fundamental_amplitude_g": 0.793,
+   "heave_accel_raw_p2p_per_cycle_g": 1.7,
+   "second_harmonic_to_fundamental_accel": 0.232,
+   "second_harmonic_phase_cycles": 0.291,
+   "source": "shamoun2016data",
+   "method": "back-mounted 20 Hz accelerometer; least-squares fundamental + 2nd harmonic per 3-s flapping burst; displacement = a/(2 pi f)^2 (the 2nd harmonic adds only A2/(4 A1) = 6% in displacement, so the bob is close to sinusoidal)",
+   "n": 7316,
+   "span_used_m": "1.34 (alerstam2007)"
+  },
+  {
+   "species": "Columba livia (homing pigeon)",
+   "quantity": "dorsal body displacement, median peak-to-peak",
+   "value_mm": 20.68,
+   "sd_mm": 1.17,
+   "fraction_of_span": 0.0318,
+   "wbf_Hz": 5.48,
+   "source": "taylor2019",
+   "where": "Results",
+   "note": "solo flight; pairs: -22.5% (-4.65 mm) at +18% frequency with unchanged dorsal acceleration p-p"
+  },
+  {
+   "species": "Columba livia (homing pigeon)",
+   "quantity": "dorsal displacement amplitude (double-integrated dorsal acceleration; definition as the authors give it)",
+   "value_mm": "13.26-13.79 over 11-18 m/s",
+   "wbf_Hz": "7.05-7.23",
+   "source": "usherwood2011",
+   "where": "Fig. 2e blue curve (digitized here)",
+   "note": "consistent with taylor2019 if peak-to-peak: 20.7 mm x (5.48/7.05)^2 = 12.5 mm at the same acceleration"
+  },
+  {
+   "species": "Branta leucopsis (barnacle goose)",
+   "quantity": "shoulder heave, peak-to-peak",
+   "value_mm": "14.8 (phase-averaged curve), 31 (per-beat mean)",
+   "airspeed_m_s": 16,
+   "source": "dimitriadis2015",
+   "where": "slide 18 via sibling kinematics data",
+   "note": "phase (0 = wingtip highest): shoulder highest at 0.53, lowest at 0.93 of the cycle"
+  },
+  {
+   "species": "Rissa tridactyla (kittiwake)",
+   "quantity": "heave acceleration peak-to-peak",
+   "value_g": "2.0 +- 0.4",
+   "wbf_Hz": 4.0,
+   "implied_displacement_p2p_mm_if_sinusoidal": 31.1,
+   "source": "krishnan2022",
+   "where": "Table 2",
+   "note": "p-p of raw heave includes harmonics, so the implied displacement is an upper bound"
+  },
+  {
+   "species": "Columba livia",
+   "quantity": "heave acceleration peak-to-peak",
+   "value_g": "6.0 +- 0.7 (tunnel, 6.7 Hz); 3.7 +- 0.4 (wild, 5.2 Hz)",
+   "source": "krishnan2022",
+   "where": "Table 2"
+  }
+ ],
+ "rule_of_thumb": "Body (back) heave peak-to-peak is about 2-3% of the wingspan in cruising flight: gull 39 mm / 1.34 m = 2.9%; pigeon 20.7 mm / 0.65 m = 3.2%; barnacle goose shoulder 15-31 mm / ~1.4 m = 1-2%. Displacement scales as acceleration / f^2: slower-beating big birds bob more in millimetres for the same g.",
+ "heave_phase": [
+  {
+   "statement": "Heave (dorsal) acceleration peaks in the middle of the downstroke (pigeon, accelerometer synchronised with 120 Hz video); a smaller peak at the start of the downstroke is sometimes visible (wing inertia).",
+   "source": "krishnan2022",
+   "where": "Fig. 2"
+  },
+  {
+   "statement": "Aerodynamic dorsal force is expected to peak mid-downstroke and the inertial (wing-acceleration) force at the start of the downstroke, so the dorsal-acceleration maximum falls between the start and middle of the kinematic downstroke and the minimum between the start and middle of the upstroke.",
+   "source": "taylor2019",
+   "where": "Results (upstroke paragraph) and S1 Text"
+  },
+  {
+   "statement": "Body displacement is the double integral of that acceleration: with a near-sinusoidal signal the body is LOWEST where the acceleration is highest (early-to-mid downstroke) and HIGHEST early-to-mid upstroke. Barnacle goose shoulder (wind tunnel, 16 m/s): highest at 0.53 and lowest at 0.93 of the cycle (0 = wingtip at the top). Combined: the body moves opposite to the wings with a lag - it is lowest from late upstroke to mid-downstroke and highest from the end of the downstroke to mid-upstroke.",
+   "source": "dimitriadis2015, krishnan2022, taylor2019 (inference stated as such)"
+  },
+  {
+   "statement": "Lesser black-backed gull heave acceleration falls from its maximum to its minimum in 0.405 of the cycle (IQR 0.387-0.423; 60 461 cycles) and recovers in 0.595: the acceleration waveform is skewed (2nd harmonic 23% of the fundamental at +0.29 cycle). Taylor et al. 2019 take max->min dorsal acceleration as the downstroke phase; it lags the kinematic stroke by under a quarter cycle, so this is a proxy, not the kinematic downstroke share.",
+   "source": "shamoun2016data",
+   "where": "this task, work/lbbg/stats.json heave_maxmin_share (estimator gives 0.50 on pure sinusoids)"
+  }
+ ],
+ "surge": [
+  {
+   "species": "Larus fuscus",
+   "quantity": "fore-aft (surge) body displacement, peak-to-peak, fundamental",
+   "value_mm": 12.0,
+   "surge_accel_fundamental_amp_g": 0.247,
+   "phase": "surge acceleration maximum precedes the heave acceleration maximum by 0.18 cycle (resultant length 0.90): the body traces a tilted ellipse in the vertical plane, near quadrature",
+   "source": "shamoun2016data",
+   "note": "surge axis also picks up g x sin(pitch) from any body pitch oscillation; treat as an upper bound on the true fore-aft motion"
+  }
+ ],
+ "pitch": [
+  {
+   "species": "Columba livia",
+   "quantity": "within-wingbeat body pitch and roll oscillation during slow (3.3 m/s) 90-degree turns",
+   "value_deg_per_wingbeat": "pitch 16 +- 5, roll 13 +- 6, yaw 4 +- 3",
+   "wbf_Hz": "8.3 +- 0.3",
+   "source": "ros2011",
+   "where": "Table 1 (web fetch)",
+   "note": "slow manoeuvring flight, an upper bound; no measurement of body pitch oscillation in cruising large birds was found"
+  }
+ ],
+ "body_angle_mean": [
+  {
+   "species": "Pica hudsonia (magpie)",
+   "quantity": "body angle to horizontal, mean per speed",
+   "values": {
+    "4": 27.2,
+    "6": 17.3,
+    "8": 13.6,
+    "10": 8.2,
+    "12": 3.9,
+    "14": 4.3
+   },
+   "unit": "deg by airspeed m/s",
+   "source": "tobalske1996",
+   "where": "Fig. 5 (via sibling)"
+  },
+  {
+   "species": "Hirundo rustica (barn swallow)",
+   "quantity": "body tilt from horizontal",
+   "values": "5-21 deg, falling with speed; ~40% drop from 4 to 6 m/s; 5-8 deg above 11-12 m/s",
+   "source": "park2001",
+   "where": "Results, Fig. 7"
+  },
+  {
+   "species": "Anser indicus (bar-headed goose)",
+   "quantity": "body angle",
+   "values": "18.7 +- 0.8 deg at 12.5-15 m/s (wind tunnel)",
+   "source": "meir2019",
+   "where": "Supplementary file 4 (via sibling)"
+  },
+  {
+   "species": "Corvus monedula (jackdaw)",
+   "quantity": "body angle in steady glides",
+   "values": null,
+   "source": "kh2017data",
+   "where": "computed below in glide_posture.json"
+  }
+ ],
+ "body_path_template": {
+  "species": "Larus fuscus (lesser black-backed gull), wild, 7316 flapping bursts",
+  "source": "shamoun2016data",
+  "phase_zero": "maximum of the FUNDAMENTAL of the heave (dorsal) acceleration; the raw acceleration maximum lies between the start and the middle of the kinematic downstroke (taylor2019), at mid-downstroke in a video-synchronised pigeon (krishnan2022)",
+  "reading": "body lowest at phase 0, forward-most at ~0.32, highest at 0.5, rear-most at ~0.82: a near-vertical ellipse, the body surging forward as it rises",
+  "columns": "phase (cycles), heave acceleration (fundamental = 1), heave displacement (peak-to-peak = 1), surge displacement (same scale as heave displacement)",
+  "scale": "heave displacement peak-to-peak = 39.2 mm (median) = 2.9% of span; surge displacement peak-to-peak = 12.0 mm (upper bound)",
+  "rows": [
+   [
+    0.0,
+    0.9403,
+    -0.4925,
+    -0.0639
+   ],
+   [
+    0.0417,
+    1.0262,
+    -0.4905,
+    -0.0249
+   ],
+   [
+    0.0833,
+    1.0302,
+    -0.4535,
+    0.0157
+   ],
+   [
+    0.125,
+    0.9311,
+    -0.3816,
+    0.0552
+   ],
+   [
+    0.1667,
+    0.7239,
+    -0.278,
+    0.091
+   ],
+   [
+    0.2083,
+    0.4225,
+    -0.1499,
+    0.1206
+   ],
+   [
+    0.25,
+    0.0597,
+    -0.0075,
+    0.142
+   ],
+   [
+    0.2917,
+    -0.3191,
+    0.1369,
+    0.1537
+   ],
+   [
+    0.3333,
+    -0.6641,
+    0.2705,
+    0.1549
+   ],
+   [
+    0.375,
+    -0.9311,
+    0.3816,
+    0.1456
+   ],
+   [
+    0.4167,
+    -1.0899,
+    0.461,
+    0.1263
+   ],
+   [
+    0.4583,
+    -1.1297,
+    0.5034,
+    0.0984
+   ],
+   [
+    0.5,
+    -1.0597,
+    0.5075,
+    0.0639
+   ],
+   [
+    0.5417,
+    -0.9056,
+    0.4754,
+    0.0249
+   ],
+   [
+    0.5833,
+    -0.7019,
+    0.4125,
+    -0.0157
+   ],
+   [
+    0.625,
+    -0.4831,
+    0.3256,
+    -0.0552
+   ],
+   [
+    0.6667,
+    -0.2761,
+    0.222,
+    -0.091
+   ],
+   [
+    0.7083,
+    -0.0951,
+    0.1089,
+    -0.1206
+   ],
+   [
+    0.75,
+    0.0597,
+    -0.0075,
+    -0.142
+   ],
+   [
+    0.7917,
+    0.1985,
+    -0.1219,
+    -0.1537
+   ],
+   [
+    0.8333,
+    0.3359,
+    -0.2295,
+    -0.1549
+   ],
+   [
+    0.875,
+    0.4831,
+    -0.3256,
+    -0.1456
+   ],
+   [
+    0.9167,
+    0.6422,
+    -0.405,
+    -0.1263
+   ],
+   [
+    0.9583,
+    0.8022,
+    -0.4625,
+    -0.0984
+   ]
+  ],
+  "note": "built from the median fundamental and 2nd-harmonic amplitudes and phases; individual bursts vary (see variation.json)"
+ }
+}

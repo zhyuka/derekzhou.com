@@ -24,12 +24,6 @@ site/realm-kit.js         The builders the world's kits share (rocks, ruins, stu
 site/realm-dunes.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
 site/realm-above.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
 site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World) (built)
-site/facetform.v1.js         The wing model: the tattoo's M as a faceted solid (generated; see Birds)
-site/facetpose.v1.js         The wing model: the faceted M posed
-site/wingmodel.v1.js         The wing model: the measured wingbeat driving the M's rig
-site/model.v1.js             The wing model: the measured per-kind wingbeat data (generated)
-site/labbird.v1.js           The wing model: the measured wingbeat flying the M, flap and glide
-site/birdwing.v1.js          The wing model: the measured wing made to fly in the world
 site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
@@ -48,6 +42,16 @@ download-fonts.sh            Fetches the full source fonts into site/assets/font
 src/                         The five scripts the site serves minified, as written (the world, the kit and
                              the realms, the ink birds): the realms whole under their served names, the
                              world and the ink birds in sections (src/world/, src/birds/inkbirds/)
+src/birds/model/             The ink birds' wing model, six scripts served as written (copied by the build):
+                             facetform.js (the tattoo's M as a faceted solid; generated), facetpose.js (the
+                             faceted M posed), wingmodel.js (the measured wingbeat driving the M's rig),
+                             model.js (the measured per-kind wingbeat data; generated), labbird.js (the
+                             wingbeat flying the M, flap and glide), birdwing.js (the wing made to fly in the world)
+tools/birds/form/mkform.py   Generates src/birds/model/facetform.js (python3 -I; CI makes it again and compares)
+tools/birds/model/           Generates src/birds/model/model.js: make.py runs build_model.py (with linkage.py)
+                             on data/ and settings.json, then solve.js on the form; model_full.json keeps every
+                             number's source and notes (never served); LICENSES.md and data/*/LICENSES.md the
+                             sources' licences. make.py --check: CI's proof that both files are what it makes
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
@@ -112,7 +116,7 @@ world's plan spans (the angle constants; the maps and the director; MAPS,
 mapsInit, kitAt; the weights' grids) verbatim from the assembled world into
 it, stamped with their md5, and the build fails when the world's PW_V is
 not that stamp (after a change to the spans, node tools/plan.mjs --stamp
-rewrites PW_V in its part). The hour, site.js and the wing model are
+rewrites PW_V in its part). The hour, site.js and the wing model (src/birds/model/) are
 served as written, the start file as tools/start.mjs writes it.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
@@ -809,8 +813,8 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
    (deferred, fetchpriority="high", Early-Hinted, minified; each registers
    itself with WORLD.realm; keep the order: the boot starts a frame after
    they have registered).
-6. facetform.v1.js, facetpose.v1.js, wingmodel.v1.js, model.v1.js,
-   labbird.v1.js, birdwing.v1.js — the ink birds' wing model (deferred,
+6. facetform.js, facetpose.js, wingmodel.js, model.js, labbird.js,
+   birdwing.js — the ink birds' wing model (src/birds/model/; deferred,
    fetchpriority="low", in that order; each puts its one global on self).
 7. inkbirds.js — the ink birds (deferred, fetchpriority="low", last,
    minified: they take the sky whenever they come).
@@ -891,7 +895,8 @@ start file async), but the start file, the world's and the kits' are
 fetched from the start: Early-Hinted (Link preloads on / in \_headers) and
 at high priority; the wing model and the ink birds after them, at low. As
 served: start.js 1035 KB (its programs' GLSL, as text), world.js
-381 KB, the kits 51 KB, inkbirds.js 193 KB, its wing model 186 KB, the
+381 KB, the kits 51 KB, inkbirds.js 193 KB, its wing model 138 KB (model.js 26 KB of it: its
+notes stay in tools/birds/model/model_full.json, 2026-11-06), the
 plan's worker 73 KB (node tools/minify.mjs --report build/src: the five
 minified, before and after, raw and brotli).
 
@@ -914,11 +919,9 @@ after the plan's worker, the start file after its table), and rewrites every
 reference (index.html, 404.html, \_headers' Link preloads and cache blocks,
 the two workers' URLs). So their names in site/ and src/ are plain
 (style.css, hour.js, world.js, realm-kit.js, realm-dunes.js, realm-above.js,
-inkbirds.js, plan.js, start.js, start-table.js) and never change for an
-edit; renaming one is a refactor (git mv, then every reference). The wing
-model's six files (facetform, facetpose, wingmodel, model, labbird,
-birdwing) still carry a vN in their source names, which the build drops the
-same way; no bump is needed for them either. validate.yml's reverse check
+inkbirds.js, plan.js, start.js, start-table.js, and the wing model's six in
+src/birds/model/) and never change for an edit; renaming one is a refactor
+(git mv, then every reference). validate.yml's reverse check
 fails on any script or stylesheet in the build that no page loads (the
 plan's worker aside: the world starts it, by name; the start file's table:
 the start file starts it), so git mv rather than copy.
@@ -940,6 +943,18 @@ program's text comes with its manifest lines in the same commit (node
 .github/workflows/glsl_guard.js build/site --write
 .github/workflows/glsl_manifest.txt), and the diff names the programs a
 deploy makes every returning visitor compile again.
+
+## Licences
+
+Code and data the site uses or keeps: MIT, BSD, Apache, ISC, zlib,
+Unlicense or CC0, and (the owner, 2026-11-06: "Allow CC BY with credit")
+CC BY for research data, credited where it is used: the wing model's
+data (tools/birds/model/data/, its LICENSES.md files) carries each
+source's licence, and the served model.js one credits comment naming the
+CC BY sources (the owner: "Strip notes, keep 1 credit line"). Facts that
+a study-only (rights-reserved) source states are cited, never its files
+or digitised curves: the barnacle goose's are kept as facts alone
+(data/kinematics/goose_barnacle_facts.json). The fonts: OFL (see Type).
 
 ## SEO
 
