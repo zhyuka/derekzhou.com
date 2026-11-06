@@ -101,7 +101,7 @@ async function build(out, stamp) {   // the plain build
   }
   const parts = path.resolve(out) + '.parts', dev = path.join(parts, 'src'), ship = path.join(parts, 'ship');
   fs.rmSync(parts, { recursive: true, force: true });
-  await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
+  await Promise.all([run(process.execPath, [PARTS, 'assemble', '--min-glsl', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', '--min-glsl', SRC, ship])]);
   // the plan's worker, under the name the world starts it by (made first: the start file is made with the site in place)
   const world = fs.readFileSync(path.join(dev, 'world.js'), 'utf8'), pn = workerName(world);
   if (pn) fs.writeFileSync(path.join(out, pn), makePlan(world, pn).text);

@@ -21,6 +21,8 @@ Read docs/world.md first (and docs/verify.md before anything visible ships).
   name (one-entropy-one-clock, absence-*).
 - A shader's text changed: update the golden texts and glsl_manifest.txt in the same commit (same-shaders; the
   commands are in CLAUDE.md, Making a change).
+  The build ships shaders minified (tools/glslmin.mjs); if the world's code ever reads a .glsl file's text at run
+  time (as the land split reads dunes-glsl's D_Hd), add that file to glslmin.mjs's KEEP.
 - The plan's spans changed (the maps, the director, MAPS/mapsInit/kitAt, the weights' grids): node tools/plan.mjs
   --stamp, and node --test test/unit.mjs (the worker must still equal the page's plan).
 - npm run check:quick after each edit; node --test test/unit.mjs before a PR.

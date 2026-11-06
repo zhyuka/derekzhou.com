@@ -80,11 +80,20 @@ build/ship writes the shipped build, the dev parts left out by file.
 A plain GLSL literal (no ${...}) is kept as a file in its folder's glsl/
 (src/world/glsl/, src/birds/inkbirds/glsl/, src/glsl/ for the realms):
 the script has `@glsl NAME` where it was, and assemble writes the text
-back exactly. Edit a shader in its .glsl file; then node tools/build.mjs
+back exactly. The build (tools/build.mjs: assemble --min-glsl, for the
+shipped build and the dev build the start file is made from) writes it
+back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
+blank line, no spare space, every line of code still a line (the world's
+folds work by lines), a #define's spacing kept, the same tokens (checked;
+the build fails otherwise); a file a script reads at run time stays as
+written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
+by its text). So the world issues, the start table holds and the browser
+compiles the short text, and the golden texts and the manifest are of it;
+src/ keeps the readable one. Edit a shader in its .glsl file; then node tools/build.mjs
 --plain build/site and node test/shaders.mjs build/site --write update the golden texts (test/golden/shaders/: every
 program the reference device issues), committed with the manifest.
 tools/minify.mjs makes the served five from build/ship/: terser (pinned in package.json) compresses and
-mangles, every string's value and every shader's text the same, every
+mangles, every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker; where index.html loads the start file, tools/start.mjs makes it
 too (from the dev build). None of what they make is committed: a change
