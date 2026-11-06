@@ -646,6 +646,23 @@
           "kind": "prose"
         }
       ]
+    },
+    {
+      "id": "no-duplicate-names",
+      "area": "build",
+      "rule": "No name is declared twice in one scope of a served script: the world's and the ink birds' sections join into one scope, where a second function declaration (or a var of the same name in another section) silently replaces the first. tools/dup-names.mjs fails on a new one, naming both section files; the duplicates on main when it came are listed in its KNOWN until their lanes fix them.",
+      "source": [
+        {
+          "date": "2026-11-06",
+          "via": "the hub, after lane D found two `function lateWarm()` (070-programs, 490-birds-host): no late program was ever warmed"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "No name declared twice in one scope"
+        }
+      ]
     }
   ]
 }

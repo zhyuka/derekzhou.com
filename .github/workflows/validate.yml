@@ -35,6 +35,15 @@ jobs:
           npm ci --no-audit --no-fund --ignore-scripts
           node tools/build.mjs --plain build/site > /dev/null
 
+      - name: No name declared twice in one scope
+        run: |
+          # The world and the ink birds are section files joined into one script with one scope: two sections that
+          # each declare `function lateWarm()` leave only the later, silently (2026-11-06). tools/dup-names.mjs parses
+          # every assembled script (both builds, and the wing model) and fails on a name declared twice in one scope,
+          # naming both section files; its self-test first proves it catches each planted case.
+          node tools/dup-names.mjs --self-test
+          node tools/dup-names.mjs
+
       - name: Check required files exist
         run: |
           # The site is built from the folder site/ (tools/build.mjs; Cloudflare Pages serves the build): every file
