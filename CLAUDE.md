@@ -9,7 +9,7 @@ content). Nothing built is committed: see Structure.
 
 The site is built from the folder site/ and src/: Cloudflare Pages runs
 tools/build.mjs and serves its output (dist/, the project's build output
-directory), alone. site/ holds what is served as written; the seven files
+directory), alone. site/ holds what is served as written; the eight files
 marked "built" below exist only in a build, never in site/. Everything else
 here is the repository's own, and never served.
 
@@ -23,7 +23,7 @@ site/world.js             The world: the engine, the camera, the time of day, th
 site/realm-kit.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
 site/realm-dunes.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
 site/realm-above.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
-site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World)
+site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World) (built)
 site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
@@ -55,12 +55,14 @@ tools/birds/model/           Generates src/birds/model/model.js: make.py runs bu
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
+test/unit.mjs                The world's pure code in Node (streams, hashes, the sky order, the maps, the plan's worker); --write updates test/golden/unit.json
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the five served scripts from build/ship/ (and the start file, by tools/start.mjs); CI checks the build
 tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
+tools/plan.mjs               Makes the plan's worker from the world's plan spans, verbatim, stamped (--stamp sets PW_V)
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks (and, beside it, the world's: world_rules.py,
@@ -109,9 +111,13 @@ builds are the same bytes, site/ holds none of the files the build writes
 (a built file committed back is an error: git rm it), and in the named build every
 name is its bytes' hash, no old name is left, every reference resolves and
 every script and stylesheet has its own immutable \_headers block. The
-hour, site.js, the wing model (src/birds/model/) and the
-plan's worker are served as written, the start file as tools/start.mjs
-writes it.
+plan's worker is built too, never committed: tools/plan.mjs copies the
+world's plan spans (the angle constants; the maps and the director; MAPS,
+mapsInit, kitAt; the weights' grids) verbatim from the assembled world into
+it, stamped with their md5, and the build fails when the world's PW_V is
+not that stamp (after a change to the spans, node tools/plan.mjs --stamp
+rewrites PW_V in its part). The hour, site.js and the wing model (src/birds/model/) are
+served as written, the start file as tools/start.mjs writes it.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
 first (a Pages Function that checks the Cloudflare Access token again, in

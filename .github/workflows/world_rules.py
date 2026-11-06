@@ -129,7 +129,7 @@ for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|contr
 #    plan.vN.js by its literal name; the worker's own block in _headers is exactly its immutable cache and
 #    `default-src 'none'` (a worker's policy is its own response's); the home blocks that start it carry worker-src
 #    exactly 'self' (and no other block names another); the worker's code is the world's own: the four spans
-#    mkplan.py copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
+#    tools/plan.mjs copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
 #    its stamp (PLANV) is their md5's first 12 hex and the world's PW_V.
 import hashlib
 PSP = [('  var PI = Math.PI, DEG = Math.PI / 180;', '\n', True), ('  var CW = (function () {\n', '\n  })();\n', True), ('  var MAPS = {', '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', True), ('  var KN = 256, KSTEP = 64,', '  var KFROWS = FN * FN / KN;', False)]
@@ -165,8 +165,8 @@ for p in gen:
     if len(pv) != 1: fail('2b plan-worker', f'{p}: PLANV found {len(pv)} times'); continue
     for f in world:
         sp = plan_spans(src[f] or '')
-        if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (mkplan.py\'s anchors; a minified world needs its own check)'); continue
-        if any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (run mkplan.py on {f})')
+        if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (tools/plan.mjs\'s anchors; a minified world needs its own check)'); continue
+        if any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
         st = hashlib.md5(''.join(sp).encode('utf-8')).hexdigest()[:12]
         wv = re.findall(r"var PW_V = '([0-9a-f]*)';", src[f] or '')
         if pv[0] != st or wv != [st]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, the spans\' {st}, {f}\'s PW_V {wv} (all three the same)')
