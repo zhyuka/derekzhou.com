@@ -89,9 +89,13 @@ if (has('--prove')) {
 }
 if (has('--fast')) {
   results.push(...await pool([build.find((c) => /assemble/.test(c.slug))], 1));
-  const q = spawnSync(process.execPath, [path.join(ROOT, 'tools/check-quick.mjs')], { cwd: ROOT, encoding: 'utf8' });
-  results.push({ c: { slug: 'check-quick' }, ok: q.status === 0, out: q.stdout + q.stderr, s: 0 }); report(results[results.length - 1]);
-  results.push(...await pool(rest.filter((c) => c.kind === 'fast'), N));
+  const quick = new Promise((res) => {   // (check-speed: check-quick side by side with the fast checks)
+    const t0 = Date.now(), p = spawn(process.execPath, [path.join(ROOT, 'tools/check-quick.mjs')], { cwd: ROOT }); let out = '';
+    p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
+    p.on('close', (code) => { const r = { c: { slug: 'check-quick' }, ok: code === 0, out, s: (Date.now() - t0) / 1000 }; report(r); res(r); });
+  });
+  const [fq, fr] = await Promise.all([quick, pool(rest.filter((c) => c.kind === 'fast'), N)]);
+  results.push(fq, ...fr);
 } else {
   if (!has('--no-build')) for (const c of build) { const r = await run(c); report(r); results.push(r); if (!r.ok) break; }
   if (results.every((r) => r.ok)) results.push(...await pool(val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest, N));

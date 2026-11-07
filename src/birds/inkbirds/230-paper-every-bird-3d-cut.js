@@ -5,14 +5,14 @@
   var LB = LABBIRD(window.FACETFORM, window.FACETPOSE, window.WINGMODEL, window.WINGMODEL_DATA), BW = BIRDWING(LB, window.WINGMODEL_DATA), FP = LB.P, FP2 = LB.flexPose(), NP = FP.NP, KMD = window.WINGMODEL_DATA.kinds;
   var NV = 46, NFAC = 30, P16MAP = window.FACETFORM.kinds.gull.p16, CHAIN = window.FACETFORM.kinds.gull.chain;   // (every kind's: the 16 points' vertices, -1 the body point; the leading edge's M)
 
-  /* the glide with its load (the lab's, no trims) */
+  /* the glide with its load (the wing model's, no trims) */
   var ZTRIM = [0, 0, 0, 0, 0, 0, 1, 1, 1], GS0 = { flap: 0, ph: 0, k: 1, D: 0.5, a: 0, e: 0 }, GLW = { kind: 'gull', trim: ZTRIM }, GB3 = new Float64Array(3);
   function glide22(kind, out) { GLW.kind = kind; GLW.trim = ZTRIM; BW.poseS(GLW, GS0, 0, out, GB3); return out; }
-  var MODEL_K = 1.19;          // (way-form: 1.38 for the bodied form; the wing-only form spans more of its model on the window) the drawn model's span on today's ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
-  var HOLD_POSE = [3, 8];      // device px of span: smaller, the beat's swing eases into the held glide (a speck holds its glide). (physics: the measured beat in full from 8 px; the shape round held it in from 16, and a 1440 px desktop's birds, 10-25 px, beat partly held 68 % of their time, a tenth of it at under 0.65 of the measured stroke: the stiffness the owner saw)
+  var MODEL_K = 1.19;          // the drawn model's span on its ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
+  var HOLD_POSE = [3, 8];      // device px of span: below 8 the beat's swing eases into the held glide, held in full at 3 (a speck holds its glide); from 8 px the measured beat in full, so a 1440 px desktop's birds (10-25 px) beat their whole stroke
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
   var GLOW_ENC = 0.72, HALO_A = 0.14, HALO_E = [3, 2];   // night: the paper's own light (as encoded), the halo's strength and e-folding (CSS px: a desktop, a phone)
-  var AOA = [1.5, 1];          // deg: the body's angle to its way through the air gliding, flapping (fix: the body all but along its way, the wing's own incidence carrying the rest)
+  var AOA = [1.5, 1];          // deg: the body's angle to its way through the air gliding, flapping (the body all but along its way, the wing's own incidence carrying the rest)
   var FILTER = [1, 1.5];       // device px: the edge's filter for a bird of 24 px and more, and for a speck of 4 and less
 
   /* ---------------- the pose: every bird, in the air or on a perch ---------------- */
@@ -128,8 +128,7 @@
     if (P.leaving) gmix(s.P22, s.P22, Q.open, ease((t - P.leaving.t0) / Math.max(0.05, P.leaving.tc)));
     s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = 0;
   }
-  /* a bird on its perch, posed in the camera's frame at the perch's depth, its lowest points on the ink (on the tip:
-     its feet the tip's), solved every frame from where the perch is drawn */
+  /* the perched pose's scratch; tilt turns a vector by the perch's elevation (PERCH.el, in TCE/TSE) about the camera's right */
   var RQ = [0, 0, 0], PFD = [0, 0], F0V = [0, 0, 0], L0V = [0, 0, 0], U0V = [0, 0, 0], T1 = [0, 0, 0], T2 = [0, 0, 0], T3 = [0, 0, 0], TCE = 1, TSE = 0;
   function tilt(C, v0, v1, v2, o) { var a = v0 * C.u[0] + v1 * C.u[1] + v2 * C.u[2], bb = v0 * C.f[0] + v1 * C.f[1] + v2 * C.f[2], c = v0 * C.r[0] + v1 * C.r[1] + v2 * C.r[2], a2 = a * TCE + bb * TSE, b2 = bb * TCE - a * TSE; o[0] = C.r[0] * c + C.u[0] * a2 + C.f[0] * b2; o[1] = C.r[1] * c + C.u[1] * a2 + C.f[1] * b2; o[2] = C.r[2] * c + C.u[2] * a2 + C.f[2] * b2; }
   /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its lowest drawn points on the
@@ -152,8 +151,8 @@
     }
     return up;
   }
-  /* (the flare's last tenths) where its rest will be at the touch: the touch pose on its basis now, solved; the landing
-     closes on that, so the touch is where its feet are */
+  /* (each frame of the flare it is drawn) where its rest will be at the touch: the touch pose on its basis now, solved;
+     the landing closes on that, so the touch is where its feet are */
   var TOUCHG = {}, ZERO3 = new Float64Array(3);
   /* the touch pose's geometry, a kind's own (the same every landing) */
   function touchGeom(kind) { var g = TOUCHG[kind]; if (!g) { g = TOUCHG[kind] = new Float64Array(3 * NV); LB.geom(kind, PERCH.poses.touch, ZERO3, g, 'this'); } return g; }
@@ -206,11 +205,10 @@
     s.haloE = (W < 600 ? HALO_E[1] : HALO_E[0]) * k;
     return true;
   }
-  /* (physics) the world's light on the paper: facetpose's own (the form designer's option 5, "white paper lit like
-     cloud"), facet by facet: each facet's normal (area-weighted over its triangles, on the posed flexing form) turned
-     toward the eye; its light (FE) for the near bird's planes and the bird's ONE TONE (the last round's constants over
-     the same facets, area-weighted on the window: the bright white the true-size outline is tuned on),
-     eased (TONE_T). The world is y up, facetpose z up: every vector handed to it has y and z swapped (a reflection:
+  /* the world's light on the paper, by facetpose's own model ("white paper lit like cloud"), facet by facet: each
+     facet's normal (area-weighted over its triangles, on the posed flexing form) turned toward the eye; its light (FE)
+     for a near bird's planes, and the bird's ONE TONE (LT.ONE's constants over the same facets, area-weighted on the
+     window: the bright white the true-size outline is tuned on), eased (TONE_T). The world is y up, facetpose z up: every vector handed to it has y and z swapped (a reflection:
      dot products kept; the normals' sign it turns toward the eye itself) */
   var SUNC0 = [1, 1, 1], AMBU0 = [0.3, 0.35, 0.45], AMBD0 = [0.25, 0.25, 0.3], CLLIT0 = [0.7, 0.65, 0.7];
   var LZ = { sunDir: [0, 0, 1], sunVis: 0, sunC: SUNC0, ambU: AMBU0, ambD: AMBD0, clLit: CLLIT0, seaLit: 0 }, EYEZ = [0, 0, 1];
