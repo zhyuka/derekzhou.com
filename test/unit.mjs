@@ -1,5 +1,5 @@
 // unit.mjs: the world's pure code, tested in Node (restructure step 6). Nothing here needs WebGL or a page: the code is
-// read from the dev build (src/ assembled by tools/parts.mjs into a temporary folder, as tools/start.mjs reads it), cut
+// read from the dev build (src/ assembled by tools/parts.mjs into a temporary folder), cut
 // out by its own anchors and run in a function of its own, so src/ exports nothing for the tests.
 //   node --test test/unit.mjs                 run (CI: validate.yml, "The world's pure code, unit-tested")
 //   node test/unit.mjs --write                write test/golden/unit.json from today's code (after a deliberate change)
@@ -17,6 +17,13 @@
 //   governor  the render scale's governor on synthetic frame clocks: a steady 60 Hz keeps the top rung; a cost the scale
 //             fixes steps down and stays; one it cannot (a 30 fps cap) is undone and learnt as the pace; under 15 fps
 //             at every rung gives up; a hidden tab's gap is no frame; a 144 Hz display is never asked to beat 60 Hz
+//   framing   setFrustum and basePitchT per window shape: 72 degrees across a wide window, the horizon at the world's frame
+//             (0.55 wide, 0.58 tall) raised 9 degrees from 6:5 (a step, about 72% down at 1440x900); a tall window at most
+//             80 degrees tall and at least 42 across until that cap
+//   drag      onMove: under 8 px a tap, from 8 px a drag (the first 8 px taken too), a vertical swipe on a touch page that
+//             scrolls the page's; applyInput's gain: 90 degrees across the window's width, at any width
+//   sky timing every hold 0.9-1.15 of its sky's (the moonlit sea's 190 s), changes 55-60 s back to back, and the visit
+//             opening 0.9 x hold x data-sky-at into its first sky (halfway when the hour's mark is unread)
 // An anchor not found fails with its text: the code moved, and the test's anchor follows it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -354,4 +361,101 @@ test('governor: a hidden tab\'s gap (over a second) is not a frame', () => {
 test('governor: a 144 Hz display is never asked to beat 60 Hz', () => {
   const G = governed(); play(G, 60, () => 1000 / 144);
   assert.equal(G.rung(), 0); assert.ok(Math.abs(G.pace() - 1000 / 60) < 1e-9);
+});
+
+// ------------------------------------------------------------------ the camera's framing, per window shape
+// (dev-speed item 5b) setFrustum and basePitchT cut from the world as it ships; the field of view, the frame and the
+// wide windows' tilt read from the world too (FOV_LONG, CAMUP, the world's frame: [wide, tall])
+const FRUSTUM = cut(WORLD, '  function setFrustum(snap) {', '  function easeFrustum(');
+const PITCH = cut(WORLD, '  function basePitchT(V) {', '\n', true);
+const num = (re) => { const m = re.exec(WORLD); assert.ok(m, 'not found in world.js: ' + re); return m.slice(1).map(Number); };
+const [FOV] = num(/var FOV_LONG = (\d+(?:\.\d+)?);/), [UP] = num(/var CAMUP = (\d+(?:\.\d+)?);/), FRAME = num(/frame: \[([\d.]+), ([\d.]+)\]/);
+function framing(w, h) {   // the frustum and the base pitch for a window w x h; the horizon's place, 0 the top, 1 the bottom
+  const F = vm.runInThisContext('(function (W, H, FOV_LONG, CAMUP, FRAME) {\n  \'use strict\';\n  var DEG = Math.PI / 180, OUT = { w: W, h: H }, FRT = {}, FR = {}, TALLK = 0, WIDEK = 1, WIDEKT = 1;\n' +
+    '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
+    '  function lerp(a, b, t) { return a + (b - a) * t; }\n  function wideWin() { return W * 5 >= H * 6; }\n' + FRUSTUM + PITCH +
+    '\n  setFrustum(true); var p = basePitchT({ def: { frame: FRAME } });\n  return { tanX: FRT.tanX, tanY: FRT.tanY, pitch: p, wide: WIDEKT, tall: TALLK };\n})')(w, h, FOV, UP, FRAME);
+  const deg = (t) => (2 * Math.atan(t) * 180) / Math.PI;
+  return { across: deg(F.tanX), tall: deg(F.tanY), pitch: (F.pitch * 180) / Math.PI, wide: F.wide, horizon: 0.5 + Math.tan(F.pitch) / (2 * F.tanY) };
+}
+test('framing: 72 degrees across a wide window, the horizon at the frame raised 9 degrees (1440x900: about 72% down)', () => {
+  assert.equal(FOV, 72); assert.equal(UP, 9); assert.deepEqual(FRAME, [0.55, 0.58]);
+  for (const [w, h] of [[1440, 900], [1920, 1080], [2560, 1080], [1280, 1024]]) {
+    const f = framing(w, h);
+    assert.ok(Math.abs(f.across - 72) < 1e-9, `${w}x${h}: ${f.across} across`); assert.equal(f.wide, 1, `${w}x${h} is wide`);
+    const flat = 0.5 + (2 * FRAME[0] - 1) / 2, raised = 0.5 + Math.tan(Math.atan((2 * FRAME[0] - 1) * Math.tan(f.tall * Math.PI / 360)) + 9 * Math.PI / 180) / (2 * Math.tan(f.tall * Math.PI / 360));
+    assert.ok(Math.abs(f.horizon - raised) < 1e-9 && f.horizon > flat, `${w}x${h}: horizon ${f.horizon}`);
+  }
+  const h = framing(1440, 900).horizon; assert.ok(h > 0.70 && h < 0.74, `1440x900: horizon ${h} (about 72% down)`);
+});
+test('framing: a tall window at most 80 degrees tall and at least 42 across until that cap, the horizon 58% down, no tilt', () => {
+  for (const [w, h] of [[393, 852], [360, 800], [412, 915], [320, 1000], [768, 1024]]) {
+    const f = framing(w, h);
+    assert.ok(f.tall <= 80 + 1e-9, `${w}x${h}: ${f.tall} tall`);
+    assert.ok(f.across >= 42 - 1e-9 || Math.abs(f.tall - 80) < 1e-9, `${w}x${h}: ${f.across} across with ${f.tall} tall (the 80-degree cap is the only thing that narrows it)`);
+    assert.equal(f.wide, 0, `${w}x${h} is not wide`);
+    if (h / w >= 1.75) assert.ok(Math.abs(f.horizon - FRAME[1]) < 1e-9, `${w}x${h}: horizon ${f.horizon} (the tall frame ${FRAME[1]})`);
+  }
+});
+test('framing: the 9-degree tilt is a step at 6:5, never a share of it', () => {
+  const a = framing(1200, 1000), b = framing(1199, 1000);
+  assert.equal(a.wide, 1); assert.equal(b.wide, 0);
+  assert.ok(Math.abs(a.pitch - b.pitch - 9) < 0.01, `the tilt across the step: ${a.pitch - b.pitch}`);
+});
+
+// ------------------------------------------------------------------ the drag: where it starts, how far it turns
+// (dev-speed item 5c) onMove cut from the world as it ships (the start: 8 px, the first 8 px taken too; a vertical swipe
+// on a touch page that scrolls left to the page), and applyInput's gain line (90 degrees across the window's width)
+const MOVE = cut(WORLD, '  function onMove(e) {', '  function onUp(e) {');
+const GAIN = /\n(\s*var G = \(PI \/ 2\) \/ Math\.max\(OUT\.cssW \|\| 800, 240\),)/.exec(WORLD);
+function dragging(type = 'mouse', mode = 'none') {
+  return vm.runInThisContext('(function (TYPE, MODE) {\n  \'use strict\';\n  var DRAG = { id: 1, x0: 100, y0: 100, x: 100, y: 100, on: false, type: TYPE }, TOUCHMODE = MODE, DOMQ = {}, running = true, REC = null,\n' +
+    '    INP = { dx: 0, dy: 0, down: false }, root = { setPointerCapture: function () {} };\n  function domNext() {}\n' + MOVE +
+    '\n  return { move: function (x, y) { onMove({ pointerId: 1, clientX: x, clientY: y, timeStamp: 0 }); }, on: function () { return DRAG.on; }, inp: INP };\n})')(type, mode);
+}
+test('drag: under 8 px is still a tap; from 8 px it steers, the first 8 px taken too', () => {
+  const D = dragging(); D.move(104, 104); D.move(105.6, 105.6);   // (7.9 px from the press)
+  assert.equal(D.on(), false, 'under 8 px: a tap'); assert.equal(D.inp.dx, 0);
+  D.move(108, 100);   // (8 px across)
+  assert.equal(D.on(), true, '8 px: a drag'); assert.equal(D.inp.dx, 8, 'the first 8 px steer too'); assert.equal(D.inp.down, true);
+  D.move(130, 90); assert.equal(D.inp.dx, 30); assert.equal(D.inp.dy, -10);
+});
+test('drag: a vertical swipe on a touch page that scrolls is the page\'s; across it steers', () => {
+  const V = dragging('touch', 'scroll'); V.move(103, 140); assert.equal(V.on(), false, 'vertical: the page scrolls');
+  const H = dragging('touch', 'scroll'); H.move(140, 103); assert.equal(H.on(), true, 'across: it steers');
+});
+test('drag: across the window\'s width the view turns 90 degrees, on any width', () => {
+  assert.ok(GAIN, 'applyInput\'s gain line not found in world.js');
+  const g = (w) => vm.runInThisContext('(function (OUT) { var PI = Math.PI, INP = {};' + GAIN[1].replace(/,$/, ';') + ' return G; })')({ cssW: w });
+  for (const w of [1440, 393, 800, 2560, 240]) assert.ok(Math.abs(g(w) * w - Math.PI / 2) < 1e-12, `${w} px: ${(g(w) * w * 180) / Math.PI} degrees`);
+  assert.ok(Math.abs(g(100) * 240 - Math.PI / 2) < 1e-12, 'a window under 240 px turns as one of 240');
+  assert.ok(Math.abs(g(0) * 800 - Math.PI / 2) < 1e-12, 'a window not yet measured turns as one of 800');
+});
+
+// ------------------------------------------------------------------ the sky's hold and change timing
+// (dev-speed item 5d) skyInit and skyPush as the page runs them (skyWorld above): every hold 0.9-1.15 of its sky's own
+// (the moonlit sea's 190 s among them), each change 55-60 s, each sky starting as the last change ends, and the visit
+// opening as far through its first hold as the hour's data-sky-at says (0.9 of the hold at the most; 0.5 when unread)
+test('sky timing: holds 0.9-1.15 of their sky\'s, changes 55-60 s, each sky as the last change ends', () => {
+  let moon = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const K = skyWorld(seed * 40503 >>> 0, ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'][seed % 6], 0.3); const { SKY, WSKY } = K;
+    for (let n = 0; n < 30; n++) K.skyNext();
+    SKY.seq.forEach((s, i) => {
+      const own = WSKY[s.id].hold;
+      assert.ok(s.hold >= 0.9 * own - 1e-9 && s.hold < 1.15 * own + 1e-9, `seed ${seed}, sky ${i} (${s.id}): hold ${s.hold} against its ${own}`);
+      assert.ok(s.move >= 55 && s.move < 60, `seed ${seed}, sky ${i}: change ${s.move} s`);
+      if (i) { const p = SKY.seq[i - 1]; assert.equal(s.at, p.at + p.hold + p.move, `seed ${seed}, sky ${i} starts as the last change ends`); }
+      if (s.id === 'moonlit') { moon++; assert.ok(s.hold >= 171, `the moonlit sea's hold ${s.hold} (190 x 0.9 at the least)`); }
+    });
+  }
+  assert.ok(moon > 0, 'the moonlit sea came in 60 visits');
+});
+test('sky timing: the visit opens as far through its first hold as data-sky-at says', () => {
+  for (const at of [0, 0.25, 0.5, 0.999, 1]) {
+    const { SKY } = skyWorld(7, 'night', at), s = SKY.seq[0];
+    assert.ok(Math.abs(s.at + s.hold * at * 0.9) < 1e-9, `at ${at}: the first sky starts ${s.at} (hold ${s.hold})`);
+    assert.equal(SKY.landing.at, at);
+  }
+  for (const bad of ['x', -1, 2]) { const { SKY } = skyWorld(7, 'night', bad); assert.equal(SKY.landing.at, 0.5, `data-sky-at ${bad}: opens halfway`); }
 });

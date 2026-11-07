@@ -15,6 +15,9 @@
 //     two sources' hashes and lengths) and each device's count and defines, compared with or written to FILE.
 //     Programs are matched by their hashes; the labels (the world's own program names) are for people.
 //   node glsl_guard.js SITE_DIR [--manifest FILE] [--write FILE] [--selftest] [--json FILE] [--visits N] [--dump DIR]
+//   node glsl_guard.js SITE_DIR --reduced          the reference device's first visit under prefers-reduced-motion: the
+//                                                    world one still frame (RULES.json reduced-motion-still): after its
+//                                                    0.1 s redraw nothing more is drawn or asked for, a drag included
 //   node glsl_guard.js SITE_DIR --first --dump DIR   only the reference device's first visit (its seed, hour and window as in a
 //                                                    full run), dumped, nothing judged: test/shaders.mjs reads just that visit
 //   --manifest FILE  compare with that manifest (CI); --write FILE  write it (after a deliberate change, then commit it);
@@ -26,7 +29,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const A = { _: [] };
-for (let i = 2; i < process.argv.length; i++) { const a = process.argv[i]; if (a === '--selftest') A.selftest = true; else if (a === '--first') A.first = true; else if (a.startsWith('--')) A[a.slice(2)] = process.argv[++i]; else A._.push(a); }
+for (let i = 2; i < process.argv.length; i++) { const a = process.argv[i]; if (a === '--selftest') A.selftest = true; else if (a === '--first') A.first = true; else if (a === '--reduced') A.first = A.reduced = true; else if (a.startsWith('--')) A[a.slice(2)] = process.argv[++i]; else A._.push(a); }
 const SITE = A._[0];
 if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node glsl_guard.js SITE_DIR [--manifest FILE] [--write FILE] [--json FILE] [--visits N] [--dump DIR]'); process.exit(2); }
 if (!vm.constants || vm.constants.DONT_CONTEXTIFY === undefined) { console.error('glsl_guard.js needs node 22.8 or later (vm.constants.DONT_CONTEXTIFY)'); process.exit(2); }
@@ -91,7 +94,7 @@ function loadScripts(site, scripts) {
 // ------------------------------------------------------------------ one visit in a small fake browser
 function run(V, page) {
   return new Promise((resolve) => {
-    const R = { shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0 };
+    const R = { shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
     let clock = V.t0;
     const now = () => (clock += 0.02);   // (each read moves the clock on a little, so a loop that works to a deadline ends)
     function guard(f, where) { try { f(); } catch (e) { R.errors.push(where + ': ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).map((x) => x.trim()).join(' | ') : String(e))); } }
@@ -100,7 +103,7 @@ function run(V, page) {
     const lk = (t, type) => (t.__id || 'win') + ':' + type;
     function on(t, type, f) { if (!listeners.has(lk(t, type))) listeners.set(lk(t, type), []); listeners.get(lk(t, type)).push(f); }
     function off(t, type, f) { const a = listeners.get(lk(t, type)); if (a && a.indexOf(f) >= 0) a.splice(a.indexOf(f), 1); }
-    function fire(t, type) { for (const f of (listeners.get(lk(t, type)) || []).slice()) guard(() => f.call(t, { type, target: t, preventDefault() {}, stopPropagation() {} }), type); }
+    function fire(t, type, ev) { for (const f of (listeners.get(lk(t, type)) || []).slice()) guard(() => f.call(t, Object.assign({ type, target: t, preventDefault() {}, stopPropagation() {} }, ev || {})), type); }
     // --- the elements the page reads
     let ids = 0;
     function el(tag, attrs, box) {
@@ -172,6 +175,7 @@ function run(V, page) {
       if (typeof p !== 'string') return undefined;
       if (/^[A-Z0-9_]+$/.test(p)) return C(p);
       if (/^create[A-Z]/.test(p)) return () => obj(p.slice(6));
+      if (/^(draw|blitFramebuffer$|clear$)/.test(p)) return () => { R.lastDrawF = R.frames; };   // (--reduced: when the page last drew)
       return () => undefined;
     } });
     // --- the document: today's index.html in outline
@@ -197,6 +201,7 @@ function run(V, page) {
       if (/min-aspect-ratio:\s*6\s*\/\s*5/.test(q)) m = V.w * 5 >= V.h * 6;
       else if (/pointer:\s*coarse|hover:\s*none/.test(q)) m = V.dev.touch > 0;
       else if (/pointer:\s*fine|hover:\s*hover/.test(q)) m = V.dev.touch === 0;
+      else if (/prefers-reduced-motion:\s*reduce/.test(q)) m = !!A.reduced;
       else if (/orientation:\s*portrait/.test(q)) m = V.h > V.w;
       else if (/orientation:\s*landscape/.test(q)) m = V.w >= V.h;
       return { matches: m, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} };
@@ -248,10 +253,15 @@ function run(V, page) {
         clock = Math.max(clock, V.t0 + R.frames * dt);
         for (const t of timers.filter((x) => x[1] <= clock).sort((a, b) => a[1] - b[1])) { if (t[3]) t[1] += t[3]; else timers = timers.filter((x) => x !== t); guard(t[2], 'timer'); }
         const q = raf, ts = clock; raf = [];
+        if (q.length) R.lastRafF = R.frames;
         for (const [, f] of q) guard(() => f(ts), 'frame ' + R.frames);
-        if (canvas.classList.contains('on')) R.shown = true;
+        if (canvas.classList.contains('on') && !R.shown) { R.shown = true; R.shownF = R.frames; }
+        if (A.reduced && R.shown && R.frames === R.shownF + 60) {   // (--reduced: a press, a drag across and a release on the page: under reduced motion, inert)
+          const P = { pointerId: 7, pointerType: 'mouse', button: 0, buttons: 1, clientX: V.w / 2, clientY: V.h / 2, timeStamp: clock };
+          fire(win, 'pointerdown', P); fire(win, 'pointermove', Object.assign({}, P, { clientX: V.w / 2 + 200 })); fire(win, 'pointerup', Object.assign({}, P, { clientX: V.w / 2 + 200, buttons: 0 })); fire(win, 'click', P);
+        }
         if (R.shaders.length !== lastN) { lastN = R.shaders.length; quiet = 0; } else quiet++;
-        if ((R.shown && quiet > 120) || R.frames >= CAP || R.errors.length > 20) return resolve(R);
+        if ((R.shown && quiet > 120 && (!A.reduced || R.frames >= R.shownF + 120)) || R.frames >= CAP || R.errors.length > 20) return resolve(R);   // (--reduced: 120 frames past the show, the drag at 60 among them)
       }
       setImmediate(step);   // (the page's promises run between)
     })();
@@ -385,6 +395,16 @@ function selftest(runs, labels, oldLabels, text) {
   const mf = A.manifest || A.write, old = mf && fs.existsSync(mf) ? fs.readFileSync(mf, 'utf8') : null;
   const oldLabels = new Map();
   if (old) for (const L of old.split('\n')) { const m = /^program (\S+) vs (\w+) \d+ fs (\w+) \d+$/.exec(L.trim()); if (m) oldLabels.set(m[2] + ' ' + m[3], m[1]); }
+  if (A.reduced) {   // (RULES.json reduced-motion-still: one still frame; after its 0.1 s of redraws (sky.v2's rule for WebKit) the loop stops, and a drag starts nothing)
+    const r = runs[0].r, lim = r.shownF + Math.ceil(0.1 * runs[0].v.hz) + 2, bad = [];
+    if (!r.shown) bad.push('the still frame never showed');
+    if (r.lastRafF > lim) bad.push(`a frame was still asked for at frame ${r.lastRafF} (shown at ${r.shownF}; the loop must stop by ${lim}, and stay stopped after the drag at ${r.shownF + 60})`);
+    if (r.lastDrawF > lim) bad.push(`the page drew at frame ${r.lastDrawF} (shown at ${r.shownF}; nothing after ${lim})`);
+    if (r.errors.length) bad.push('page errors: ' + r.errors.slice(0, 2).join(' / '));
+    for (const b of bad) console.log('::error::reduced motion: ' + b);
+    if (!bad.length) console.log(`reduced motion: one still frame (shown at frame ${r.shownF}, the last frame asked ${r.lastRafF}, the last draw ${r.lastDrawF}; ${r.frames} frames run, a drag at ${r.shownF + 60} inert)`);
+    process.exit(bad.length ? 1 : 0);
+  }
   if (A.first) {   // (dev-speed: shaders.mjs's one visit, dumped; nothing judged)
   if (A.dump) { fs.mkdirSync(A.dump, { recursive: true }); for (const { v, P } of runs) P.forEach((p, j) => { const b = path.join(A.dump, `${v.dev.id}${v.n}_${String(j).padStart(2, '0')}_${(p.name || 'p').replace(/[^\w.-]/g, '_')}`); fs.writeFileSync(b + '.vert', p.vs); fs.writeFileSync(b + '.frag', p.fs); }); }
     process.exit(runs.length === 1 && runs[0].P.length ? 0 : 1);

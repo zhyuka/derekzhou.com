@@ -8,7 +8,7 @@ tools/build.mjs dist`, build output directory `dist`, NODE_VERSION 22.
 Auto-deploys on push to `live`, the branch the merge bot fast-forwards to the newest main
 commit whose own gate is green (merge-bot.mjs, the deploy gate). Build watch paths (Settings > Build) limit that to
 pushes that touch a deploy input, .github/ci/deploy-inputs.txt (include site/*, src/*,
-tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/plan.mjs, tools/start.mjs,
+tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/plan.mjs,
 package.json, package-lock.json, .gitattributes; exclude nothing); post-deploy.yml waits
 for the newest main commit that touched one, and CI fails if the build loads a tool not listed. The gate decides whether a change alters what
 is served by building base and head (.github/ci/served.sh) and comparing the

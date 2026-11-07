@@ -12,11 +12,9 @@ cd "$RUNNER_TEMP/nc/site"
 # exactly what the script makes" proves site/'s are tools/minify.mjs's build of these; the rules read text)
 WORLD=../src/world.js; INK=../src/inkbirds.js
 REALMS=$(ls ../src/realm-*.js | tr '\n' ' '); HOUR=hour.js; CSS=style.css
-START=$(ls start.js 2>/dev/null | head -1)   # (fast500 5: served as tools/start.mjs makes it, readable)
-START="$START $(ls start-table.js 2>/dev/null | head -1)"   # (its table, start-table.js, loaded after the first paint)
 WING=$(ls facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
 PLANW=$(ls plan.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
-JS="site.js $HOUR $START $WORLD $REALMS $WING $INK $PLANW"
+JS="site.js $HOUR $WORLD $REALMS $WING $INK $PLANW"
 echo "checking $JS and $CSS"
 # The page has none of the internet's body language, and CI fails
 # (rather than remembers) if any of it comes back. Scoped to the
@@ -91,8 +89,8 @@ if [ "$(grep -o 'performance\.now()' $WORLD | wc -l)" != "1" ]; then
   echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
   fail=1
 fi
-if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $START $PLANW; then
-  echo "::error::the realms, the wing model, the ink birds and the start file draw no entropy and read no clock"
+if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW; then
+  echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
   fail=1
 fi
 # the hour reads the clock exactly once, and draws no entropy
@@ -105,11 +103,10 @@ if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams|new A
   echo "::error::a URL hook or sound was introduced"
   fail=1
 fi
-# (fast500 step 11) the workers: the plan's, started by the world by its literal name (world_rules.py rule 2b),
-# and the start file's table (start-table.js, started by the start file by its literal name, rule 4b); no other
-NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.js.\)" $WORLD | wc -l); NS=$(cat $(ls start.js 2>/dev/null) /dev/null | grep -oE "new Worker\('/start-table\.js'\)" | wc -l)
-if [ "$NW" != "$((NP + NS))" ] || [ "$NP" -gt 1 ] || [ "$NS" -gt 1 ]; then
-  echo "::error::a worker other than the plan's (the world starts plan.js by name, once) and the start file's table (start-table.js, once)"
+# (fast500 step 11) the one worker: the plan's, started by the world by its literal name (world_rules.py rule 2b)
+NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.js.\)" $WORLD | wc -l)
+if [ "$NW" != "$NP" ] || [ "$NP" -gt 1 ]; then
+  echo "::error::a worker other than the plan's (the world starts plan.js by name, once)"
   fail=1
 fi
 if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
