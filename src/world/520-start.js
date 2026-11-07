@@ -29,7 +29,7 @@
        124-159 ms a frame at scale 0.35 against 21.7, after a 4.37 s compile frame). Only GPUs declined every time are
        named; one on the line (the Galaxy A15's Mali-G57 MC2, shown or declined run to run) keeps the trial */
     if (!DEVMODE && SLOW_GPU.test(EXT.renderer)) { DEAD = true; return; }
-    resize();
+    var tz = clockNow(); resize(); BOOT.resize0 = clockNow() - tz;   // (the first resize: where a new context's first wait on the GPU process falls, timed apart for the hold's forecast)
     if (typeof ResizeObserver !== 'undefined') { var ro = new ResizeObserver(layoutChanged); ro.observe(document.querySelector('main')); var ft = document.querySelector('footer'); if (ft) ro.observe(ft); ro.observe(canvas); }
     window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); if (!FRUN && forced()) { DOMQ.fc = true; domNext(); } });   // (only stored; the window measured and drawn in the next frame; forced colours' still drawn again there, fstart)
     window.addEventListener('scroll', layoutChanged, { passive: true });
@@ -78,7 +78,7 @@
      hold only where it foretells the world shown within HOLD_WORLD ms of the navigation's start (the clock's origin);
      either foretelling later: no hold, the link out at once, the boot going on as today's (the words first on the
      still sky, then the world). The deadline (holdMs) stays the last net */
-  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 26, HOLD_C = 220, HOLD_WORLD = 1000;
+  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 26, HOLD_C = 220, HOLD_WORLD = 1000, HOLD_A_CUT = 1.3;
   function holdLink() { return document.querySelector('link[rel="expect"][blocking="render"]'); }
   function holdOff(why) { HOLD.why = why; var l = holdLink(); if (l) l.remove(); bootMark('hold: off (' + why + ')'); }
   /* the deadline by device, the last net (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so
@@ -99,7 +99,8 @@
     if (!gl || DEAD || !running || reduced() || forced() || document.visibilityState === 'hidden') { holdOff(!gl || DEAD ? 'no world here' : 'not running'); return; }
     var ms = holdMs(); if (!ms) { holdOff(HOLD.why); return; }
     HOLD.a = +(clockNow() - t0).toFixed(1);
-    if (t0 + HOLD_KA * HOLD.a + HOLD_CA > HOLD_WORLD) { holdOff('a slow CPU: stage A ' + HOLD.a + ' ms'); return; }
+    HOLD.rz = +(BOOT.resize0 || 0).toFixed(1); HOLD.ac = Math.max(0, HOLD.a - HOLD.rz);   // (stage A's CPU work: the first resize, which waits on the GPU process starting (100-130 ms cold on a busy PC), counted once as itself, not as CPU speed)
+    if (t0 + HOLD.rz + HOLD_KA * HOLD.ac + HOLD_CA > HOLD_A_CUT * HOLD_WORLD) { holdOff('a slow CPU: stage A ' + HOLD.a + ' ms'); return; }   // (only a clearly slow stage A skips here: it swings 15-45 ms at 1x on the 4090, cold; a close one is the first hold frame's to judge, against HOLD_WORLD)
     HOLD.ms = ms; bootMark('hold: on (' + ms + ' ms)');
     var ts = 0, n = 0, f0; HOLD.on = true;
     while (running && !shown && !DEAD && !LOST && n < 1e6 && clockNow() - t0 < ms) {
@@ -127,6 +128,10 @@
         gpu: !!nav.gpu, cores: nav.hardwareConcurrency || null, mem: nav.deviceMemory || null, drawBuffers: gl.getParameter(gl.MAX_DRAW_BUFFERS), par: !!EXT.par, f32: FLOAT32_RT };
     } catch (e) { DEVHINT = { error: String(e) }; }
   }
+  /* (the hold, cold visits) the context made here, as world.js ends and the kits come, when a hold may run: a new
+     context starts the GPU process, which the boot's stage A otherwise waits on in resize() (100-130 ms on the 4090,
+     cold, world-perf's measure) and reads as a slow CPU. getGL is handed this same context (the boot's attributes) */
+  if (!DEVMODE && document.readyState === 'loading' && holdLink()) { try { canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: 'default' }); } catch (e) { /* getGL tries again */ } }
   planWorker();   // (the first plan, in the worker, from here: the seed is final)
   if (REC) recMark('world.js eval end');
   function loaded() { if (!BIRDF) INKWAIT = false; bootSoon(); }   // ('load' without the ink birds: their file is not coming; the realms' new bird flocks may show)

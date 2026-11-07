@@ -96,11 +96,13 @@
       aaMB: aaUse ? rows[aaUse].totalMB : (TWIN0 ? +((base + tw0) / MB + T[1]).toFixed(1) : +(base / MB + T[1]).toFixed(1)) };
     return MEMP.aa;
   }
+  /** @typedef {{ W: number, H: number, scene: any, lind: any, cloud: any, bd: any[], bu: any[], ms: any, sceneH: any, ch: any[], hz: WebGLTexture, sb: any, win: any }} Targets
+      (the window's targets, TG: made by allocTargets, its later members set after its first line) */
   var TG = null, OUT = { w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0 }, FULL = { w: 0, h: 0, dpr: 1 }, SS = 1, RUNG = 0, RUNGS = [1, 0.85, 0.72, 0.6, 0.5], CAMLIFT = 0;
   function allocTargets() {
     if (TG) { ['scene', 'lind', 'cloud', 'sb', 'win'].forEach(function (k) { if (TG[k]) freeTarget(TG[k]); }); TG.bd.forEach(freeTarget); TG.bu.forEach(freeTarget); if (TG.hz) gl.deleteTexture(TG.hz); freeMS(TG.ms); if (TG.ch) TG.ch.forEach(freeTarget); if (TG.sceneH) { gl.deleteFramebuffer(TG.sceneH.f); gl.deleteTexture(TG.sceneH.t); } }
     var W = OUT.w * SS, H = OUT.h * SS, w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));
-    TG = { W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null };
+    TG = /** @type {Targets} */ ({ W: W, H: H, scene: target(W, H, 'hdr', true), lind: target(w2, h2, 'r16'), cloud: target(w2, h2, 'hdr'), bd: [], bu: [], ms: null });
     // the scene's samples: AAS a pixel, its colour and depth resolved into TG.scene before the depth pass
     if (AAS > 1) { TG.ms = targetMS(W, H, AAS); if (!TG.ms) AAS = 0; }
     // where the scene has its samples, a second colour texture for it (the depth shared): the frames take them in

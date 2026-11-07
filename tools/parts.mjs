@@ -11,7 +11,7 @@
 //   node tools/parts.mjs check [--ship] SRC OUT    exit 1 naming each OUT/ file that is not what assemble makes
 //   node tools/parts.mjs glsl SRC              move every plain GLSL literal into its folder's glsl/NAME.glsl (step 3)
 //
-// A part dir holds parts.json ({"out": "world.v8.js", "divider": "<regex source>"}) and its parts, named NNN-slug.js:
+// A part dir holds parts.json ({"out": "world.js", "divider": "<regex source>"}) and its parts, named NNN-slug.js:
 // the parts are joined in the order of their names (plain byte order), with nothing between them, so the joined text is
 // the file split, exactly. NNN counts in tens from 000 (000 is what comes before the first divider), so a new section
 // goes in between two without renaming any other. Split cuts at the divider lines (whole lines); a part may also be cut
