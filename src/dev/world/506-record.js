@@ -1,11 +1,11 @@
-  /* (E1) the switches' meanings now: order 0 the slice's GPU jobs at the start of the next drawn frame, before its draws
+  /* the switches' meanings: order 0 the slice's GPU jobs at the start of the next drawn frame, before its draws
      (the design's), 1 after the frame's flush; fence 1 polled and made at the frame's start every frame (the design's),
      2 every second frame, 3 polled at the start and made after the flush, 0 all but off (every eighth frame); gtrial
      stage G's timed trials (0: pinned at the full scale; in development pinned unless 2); rbfix (dev) the read-back's
      arrival fixed two frames after its fence; hblack (dev) stage H's thumbnail read as black (the fallback's test);
-     ab the record mode's experiment: 'e1' the five arms of E1's A/B pairs in rotating 20 s blocks (recArm), 'order' and
-     'fence' E0's two-minute halves, 'none' */
-  var SWLIVE = { order: 1, fence: 1, birds: 1, stream: 1, words: 1, frz: 1, look: 1, noanim: 1, camhold: 1, cacc: 1, stb: 1, lay: 1, wlive: 1, wsync: 1 };   // (E1.1: cacc live, the record's arm)   // (Fix 2: the weave switch is gone with the autopilot; camhold, dev: the camera held, the clock running: G0's frozen-scene film)
+     ab the record mode's experiment: 'e1' the five arms of the A/B pairs in rotating 20 s blocks (recArm), 'order' and
+     'fence' two-minute halves, 'none' */
+  var SWLIVE = { order: 1, fence: 1, birds: 1, stream: 1, words: 1, frz: 1, look: 1, noanim: 1, camhold: 1, cacc: 1, stb: 1, lay: 1, wlive: 1, wsync: 1 };   // (cacc live: the record's arm)   // (camhold, dev: the camera held, the clock running: the frozen-scene film)
   var REC = null, RECW = null;
   var RING = 1 << 16;
   var PHN = ['boot', 'dissolve', 'steady', 'control', 'resume', 'resize'], PH_BOOT = 0, PH_DIS = 1, PH_STEADY = 2, PH_CTL = 3, PH_RES = 4, PH_SIZE = 5;
@@ -26,10 +26,10 @@
       syncMaxFrame: 0, syncSumMaxFrame: 0, syncMaxBoot: 0, syncSumMaxBoot: 0,
       fenceN: 0, fenceLag: 0, fencePolls: 0, fenceNow: null,
       rbPolledLast: 0, armNow: 0,
-      cac: new Uint8Array(RING), cacPrev: 0,   // (E1.1, item 5: the clouds' accumulation on (1) or off (0) in the frame before each interval)
+      cac: new Uint8Array(RING), cacPrev: 0,   // (the clouds' accumulation on (1) or off (0) in the frame before each interval)
       arm: new Uint8Array(RING), syF: new Float32Array(RING), syP: new Float32Array(RING), syR: new Float32Array(RING), up: new Float32Array(RING), lay: new Uint16Array(RING), prb: new Uint16Array(RING), lagF: new Uint8Array(RING),
       armPrev: 0, syFPrev: 0, syPPrev: 0, syRPrev: 0, upPrev: 0, layPrev: 0, prbPrev: 0, lagPrev: 0, armLog: [],
-      tsI: new Float64Array(RING), pass: [], passOpen: null, visitK: -1,   // (E1, D3: each passage's intervals; tsI each interval's end)
+      tsI: new Float64Array(RING), pass: [], passOpen: null, visitK: -1,   // (D3: each passage's intervals; tsI each interval's end)
       madeAfter: { Buffer: 0, Texture: 0, VertexArray: 0, Framebuffer: 0, Renderbuffer: 0, Program: 0, Shader: 0, Sync: 0, linkProgram: 0, compileShader: 0 },
       freedAfter: { Buffer: 0, Texture: 0, VertexArray: 0, Framebuffer: 0, Renderbuffer: 0, Program: 0, Shader: 0, Sync: 0 },
       upAfter: { clientTex: 0, clientTexBytes: 0, pboTex: 0, bufBytes: 0, bufN: 0, overCap: 0 },
@@ -37,7 +37,7 @@
       perSec: { miss: new Uint16Array(1800), frames: new Uint16Array(1800) }, stageCpu: {}, profLast: 0, profName: null,
       rung: [], cadence: [], period: [], flips: [], firstFlip: null, lat: [], ori: [], oriF: [], minute: [], sw: [], ab: null,
       shownAt: -1, dissolveEnd: -1, readyAt: -1, bootStartAt: -1, course: null, halted: false, ctl: null, lowPower: null,
-      hold: { n: 0, frames: 0, ms: 0, longestMs: 0, list: [] }, holdCur: null, holdFirstTs: -1, waitsAtJ: 0, heldAtJ: 0,   // (Fix 2: the flight's holds at junctions)
+      hold: { n: 0, frames: 0, ms: 0, longestMs: 0, list: [] }, holdCur: null, holdFirstTs: -1, waitsAtJ: 0, heldAtJ: 0,   // (the flight's holds at junctions)
       longest: [[], [], [], [], [], []]   // a phase each: [interval ms, kP, tags, sim t, callback ms, sync ms, frame index, phase, why]
     };
     REC.nav0 = 0;   // (performance's own origin is navigation start: clockNow() is ms since it)
@@ -52,7 +52,7 @@
   function recWrap() {
     if (!REC || REC.wrapped || !gl) return;
     REC.wrapped = true;
-    REC.fdRaw = { getError: gl.getError, readPixels: gl.readPixels };   // (fast500 F0: the first-draw guard's round trips, unwrapped: the record's sync counts never see them)
+    REC.fdRaw = { getError: gl.getError, readPixels: gl.readPixels };   // (the first-draw guard's round trips, unwrapped: the record's sync counts never see them)
     var names = Object.keys(REC.sync);
     names.forEach(function (n) {
       var f = gl[n]; if (typeof f !== 'function') return;
@@ -67,7 +67,7 @@
     ['Buffer', 'Texture', 'VertexArray', 'Framebuffer', 'Renderbuffer', 'Program', 'Shader'].forEach(function (k) {
       var c = gl['create' + k], d = gl['delete' + k];
       gl['create' + k] = function () { if (shown) { REC.madeAfter[k]++; REC.fr.made++; REC.fr.stage |= 1; REC.fr.stageWhy = 'create' + k; } return c.apply(gl, arguments); };
-      gl['delete' + k] = function (o) { if (shown && o) { REC.freedAfter[k]++; REC.fr.stage |= 16; REC.fr.stageWhy = 'delete' + k; } return d.call(gl, o); };   // (Fix 2: a free outside the fence ring is stage work too, 3.1)
+      gl['delete' + k] = function (o) { if (shown && o) { REC.freedAfter[k]++; REC.fr.stage |= 16; REC.fr.stageWhy = 'delete' + k; } return d.call(gl, o); };   // (a free outside the fence ring is stage work too, 3.1)
     });
     var lp = gl.linkProgram, cs = gl.compileShader;
     gl.linkProgram = function (p) { if (shown) { REC.madeAfter.linkProgram++; REC.fr.stage |= 2; REC.fr.stageWhy = 'link'; } return lp.call(gl, p); };
@@ -93,10 +93,10 @@
       return up.call(gl, p);
     };
     recWrapKeys();
-    fdGuard();   // (fast500 F0)
+    fdGuard();
   }
-  /* (fast500 F0) the first-draw guard, the record only, keyed on the draw's pipeline key as ANGLE's D3D11 back end sees
-     it (fast500/GUARD.md), not on the program alone. Its link builds one vertex shader for the declared (float) inputs
+  /* the first-draw guard, the record only, keyed on the draw's pipeline key as ANGLE's D3D11 back end sees it, not
+     on the program alone. Its link builds one vertex shader for the declared (float) inputs
      and one pixel shader for the first output only ([ATT0]); a draw in another layout compiles a variant synchronously
      inside the draw (the noise's eight-target draw: 2.4 s): a pixel shader per output layout (the colour attachments
      attached, enabled by drawBuffers and written), a vertex shader per input signature (an integer attribute read as
@@ -112,7 +112,7 @@
      and one texel read back again (the GPU has run it too: a driver's late compile is in). WebGL's finish() is a
      flush in Chrome and waits for nothing. [key, ms, frame, shown, at, drain ms, ms to the getError] in
      REC.firstDraw.keys, and each program's first key as [program, ms, frame, shown, at] in REC.firstDraw.list (each
-     program once, as before). tools/gguard.sh fails a key over 30 ms that its known list does not name */
+     program once). tools/gguard.sh fails a key over 30 ms that its known list does not name */
   function fdGuard() {
     var raw = REC.fdRaw, F = REC.firstDraw = { seen: {}, list: [], keys: [], over: 0 };
     var KEYS = new Map(), OUTS = new Map(), OUTN = [''], RDS = new Map(), RDN = [''], INS = new Map(), INN = [''], CV = [], GX = { cv: 0, v: 0, rd: 0, xfb: 0, pv: 0, pack: null }, PX = new Uint8Array(4);
@@ -212,7 +212,7 @@
       return timed(bl, arguments, 'blit', 'blit | ' + RDN[ro] + ' to ' + OUTN[o] + ' |' + (mask & 0x4000 ? ' colour' : '') + (mask & 0x100 ? ' depth' : '') + (mask & 0x400 ? ' stencil' : '') + ' | ' + (filt === 0x2601 ? 'linear' : 'nearest') + (sc ? ' scaled' : ''), 0);
     };
   }
-  /* (Fix 2) the pipeline key of every draw (8.2), kept as the GL state that makes it: the program; the target's
+  /* the pipeline key of every draw (8.2), kept as the GL state that makes it: the program; the target's
      attachment formats and draw buffers; the vertex array's layout (formats, offsets, strides, divisors, enabled
      arrays); the topology class; the colour mask; the blend state; and, for the full key, depth test, function and
      writes and the cull state. Targets and layouts get small ids when they change (their strings made then, never in
@@ -306,7 +306,7 @@
   }
   /* the start of a frame: the interval that ends here closes with the tags of the frame before; the frame fence (the
      switch: every frame, every second frame, off) is polled once, and made again once it has signalled */
-  var TAGN = ['cpu', 'stage', 'sync', 'stream', 'gpu', 'hold'];   // (Fix 2: hold, a frame in which the flight held at a junction for the next visit's build)
+  var TAGN = ['cpu', 'stage', 'sync', 'stream', 'gpu', 'hold'];   // (hold: a frame in which the flight held at a junction for the next visit's build)
   function recStart(ts) {
     var R = REC, f = R.fr;
     f.c0 = clockNow();
@@ -318,7 +318,7 @@
       R.ints[i] = d; R.ph[i] = ph; R.tags[i] = R.tagsPrev; R.cpu[i] = R.cpuPrev; R.simt[i] = SIM.t; R.syn[i] = R.syncPrev; R.n++;
       R.cac[i] = R.cacPrev; R.arm[i] = R.armPrev; R.syF[i] = R.syFPrev; R.syP[i] = R.syPPrev; R.syR[i] = R.syRPrev; R.up[i] = R.upPrev; R.lay[i] = R.layPrev; R.prb[i] = R.prbPrev; R.lagF[i] = R.lagPrev; R.tsI[i] = ts;
       if (R.passOpen) { if (ts <= R.passOpen.at + 4000 && ph !== PH_CTL) recPassAdd(R.passOpen, d); else { R.passOpen.waitsAfter = SIM.waits - R.passOpen.waits; R.passOpen.at = undefined; R.passOpen = null; } }
-      if (R.tagsPrev & 32) { R.hold.ms += d; if (R.holdCur) { R.holdCur.ms += d; if (R.holdCur.ms > R.hold.longestMs) R.hold.longestMs = +R.holdCur.ms.toFixed(1); } }   // (Fix 2: a held frame's interval)
+      if (R.tagsPrev & 32) { R.hold.ms += d; if (R.holdCur) { R.holdCur.ms += d; if (R.holdCur.ms > R.hold.longestMs) R.hold.longestMs = +R.holdCur.ms.toFixed(1); } }   // (a held frame's interval)
       var P = R.P, sec = Math.floor((f.c0 - R.started) / 1000);
       if (sec >= 0 && sec < 1800) { R.perSec.frames[sec]++; if (d > 1.5 * R.k * P) R.perSec.miss[sec]++; }
       var L = R.longest[ph], top = TOPN[ph];
@@ -331,16 +331,16 @@
     recPassage(ts);
     f.waits0 = SIM.waits || 0;
     f.sync = 0; f.syncN = 0; f.fence = 0; f.poll = 0; f.read = 0; f.stage = 0; f.stageWhy = ''; f.up = 0; f.upN = 0; f.gpu = 0; f.made = 0; f.rbBytes = 0; f.probes = 0; f.layers = 0;
-    /* (E1) no fence of the record's own: the engine's read-back ring makes the frame's one fence (S3: at most one a
+    /* no fence of the record's own: the engine's read-back ring makes the frame's one fence (S3: at most one a
        frame) and its poll says whether the GPU was behind (recEnd: the gpu tag) */
     recCourse(f.c0);
     if (INP.evT0 === undefined) INP.evT0 = 0;
     REC.latPending = INP.evT0 && (INP.dx !== 0 || INP.dy !== 0) ? INP.evT0 : 0;
   }
-  /* (E1, D3 "over ten passages: no interval over 3P") each passage the record sees while the world shows: the visit
+  /* (D3 "over ten passages: no interval over 3P") each passage the record sees while the world shows: the visit
      changing under the flight; the intervals from 2 s before it to 4 s after, their longest in kP, how many over 3 kP,
-     the arm in force, the flight's waits for the next visit's build at the junction (S1's streamed build: the
-     synchronous fallback is gone) */
+     the arm in force, the flight's waits for the next visit's build at the junction (the build streamed: there is no
+     synchronous fallback) */
   function recPassAdd(J, d) { var R = REC, x = d / (R.k * R.P); J.n++; if (x > J.maxKP) J.maxKP = +x.toFixed(2); if (x > 3) J.over3++; if (x > 1.5) J.misses++; }
   function recPassage(ts) {
     var R = REC; if (!shown || R.halted || !SIM.V) return;
@@ -348,11 +348,11 @@
     if (vk === R.visitK) return;
     R.visitK = vk; if (R.pass.length >= 60) return;
     if (R.passOpen) { R.passOpen.waitsAfter = SIM.waits - R.passOpen.waits; R.passOpen.at = undefined; }
-    /* (Fix 2) the flight holds before the visit changes (simStep waits at the junction): the waits are counted since
-       the last passage (round E1 counted only those after the change, so junctionWaits was 0 by construction), with
-       the held frames' wall time, and the window looks back to the hold's start */
+    /* the flight holds before the visit changes (simStep waits at the junction): the waits are counted since the last
+       passage (counted only after the change, junctionWaits would be 0 by construction), with the held frames' wall
+       time, and the window looks back to the hold's start */
     var J = { visit: vk, realm: SIM.V.id, sim: +SIM.t.toFixed(2), wallS: +((clockNow() - R.started) / 1000).toFixed(1), arm: R.armNow ? ARMS[R.armNow - 1].id : null, phase: PHN[recPhase(ts)], n: 0, maxKP: 0, over3: 0, misses: 0, waits: SIM.waits, waitsAfter: 0, at: ts,
-      waitsBefore: SIM.waits - R.waitsAtJ, heldMs: +(R.hold.ms - R.heldAtJ).toFixed(1), raise: 0, raiseFrames: 0 };   // (Fix 3: the next visit's largest bake budget raised before this passage, and its frames)
+      waitsBefore: SIM.waits - R.waitsAtJ, heldMs: +(R.hold.ms - R.heldAtJ).toFixed(1), raise: 0, raiseFrames: 0 };   // (the next visit's largest bake budget raised before this passage, and its frames)
     var back = Math.min(ts - 2000, R.holdFirstTs >= 0 ? R.holdFirstTs : ts);
     for (var q = 1; q <= Math.min(R.n, RING, 20000); q++) { var ii = (R.n - q) & (RING - 1); if (R.tsI[ii] <= back) break; if (R.ph[ii] !== PH_CTL) recPassAdd(J, R.ints[ii]); }
     R.waitsAtJ = SIM.waits; R.heldAtJ = R.hold.ms; R.holdFirstTs = -1;
@@ -360,7 +360,7 @@
   }
   function tagStr(m) { var o = []; for (var i = 0; i < TAGN.length; i++) if (m & (1 << i)) o.push(TAGN[i]); return o.join('+'); }
   /* the end of a frame: its tags */
-  var UPCAP = 256 * 1024;   // (the high tier's upload cap a frame, 5.4: an upload over it is stage work; E2a/E3a enforce it)
+  var UPCAP = 256 * 1024;   // (the high tier's upload cap a frame, 5.4: an upload over it is stage work)
   function recEnd(ts) {
     var R = REC, f = R.fr, cpu = clockNow() - f.c0, P = R.P, t = 0;
     if (f.up > UPCAP) { f.stage |= 32; f.stageWhy = 'upload ' + Math.round(f.up / 1024) + ' KB'; if (shown) R.upAfter.overCap++; }
@@ -372,7 +372,7 @@
     if (shown && RB.polled !== R.rbPolledLast) { R.fencePolls++; R.rbPolledLast = RB.polled; }
     R.fenceN = RB.made;
     if (f.gpu) t |= 16;
-    /* (Fix 2) the flight held in this frame at a junction (SIM.waits grew): tagged hold, counted (frames, wall ms, each
+    /* the flight held in this frame at a junction (SIM.waits grew): tagged hold, counted (frames, wall ms, each
        hold apart) and carried to the passage it ends in (recPassage: junctionWaits, heldMs, its window from the hold's
        start). A hold is the flight stopped in the cloud: it fails the run here and on the phone */
     if ((SIM.waits || 0) > f.waits0 && shown && !R.halted) {
@@ -394,18 +394,17 @@
     var m = Math.floor((clockNow() - R.started) / 60000);
     if (R.minute.length <= m) R.minute.push(recSnap());
   }
-  var RECALLOW = { bytes: 256 * 1024, layers: 24, calls: 6 };   // (the stream tag's allowance: provisional until E1's A/B sets it on the phone)
+  var RECALLOW = { bytes: 256 * 1024, layers: 24, calls: 6 };   // (the stream tag's allowance: provisional, for the A/B on the phone to set)
   function recSnap() {
     var mm = devMem();
     return { t: +((clockNow() - REC.started) / 1000).toFixed(0), sim: +SIM.t.toFixed(1), realm: SIM.V ? SIM.V.id : null, visit: SIM.V ? SIM.V.k : -1, rung: RUNG, period: +REC.P.toFixed(1),
       cells: mm.cells, vols: mm.vols, volMB: mm.volMB, meshMB: mm.meshMB, probes: mm.probesInFlight, gln: null, frames: REC.n, words: WORDCOL };
   }
   /* the record mode: a scripted course while the owner leaves the phone. The A/B halves alternate a live switch in two
-     minutes at a time (ABAB, then the last two minutes A, with the owner's own drags if any). (hotfix H1, design-v5
-     Revision 3) The course flies straight: its synthetic drags (52 deg/s, 1 s every 20 s in minutes 2-8) are gone, so
-     the view turns only when the visitor drags, and the input's latency (D6) is measured from the visitor's own drags
-     alone (course.drags stays 0) */
-  /* (E1) the five arms of E1's A/B pairs (design-v5 4.3, 7.5, 3.6): A the design's frame (the GPU jobs before the
+     minutes at a time (ABAB, then the last two minutes A, with the owner's own drags if any). The course flies
+     straight, with no synthetic drags, so the view turns only when the visitor drags, and the input's latency (D6) is
+     measured from the visitor's own drags alone (course.drags stays 0) */
+  /* the five arms of the A/B pairs (4.3, 7.5, 3.6): A the design's frame (the GPU jobs before the
      draws, the fence at the frame's start every frame), B the jobs after the flush (the order's pair: A against B), C
      the fence every second frame, D the fence after the flush, E the read-back all but off (the fence's pairs: A
      against C, D and E). In blocks of BLOCK_S (20 s), a rotation of the five a cycle (block b: arm (b + cycle) mod 5),
@@ -413,7 +412,7 @@
      interval is tagged with the arm in force when its frame began, and the record sums each arm apart (recArms) */
   var ARMS = [{ id: 'A', order: 0, fence: 1, what: 'jobs before the draws; fence at the start, every frame (the design)' }, { id: 'B', order: 1, fence: 1, what: 'jobs after the flush' },
     { id: 'C', order: 0, fence: 2, what: 'fence every second frame' }, { id: 'D', order: 0, fence: 3, what: 'fence after the flush' }, { id: 'E', order: 0, fence: 0, what: 'read-back all but off (every eighth frame)' }];
-  var BLOCK_S = 20, CACC_ON = 0.5;   // (E1.1: the accumulation's share when on in the course)
+  var BLOCK_S = 20, CACC_ON = 0.5;   // (the accumulation's share when on in the course)
   function recArmAt(s) { var b = Math.floor(s / BLOCK_S), c = Math.floor(b / ARMS.length); return (b + c) % ARMS.length; }
   function recCourse(now) {
     var C = REC.course; if (!C || !shown || REC.halted) return;
@@ -422,7 +421,7 @@
       if (C.ended) return;
       var a = recArmAt(s);
       if (REC.armNow !== a + 1) { REC.armNow = a + 1; recSet('order', ARMS[a].order, 'arm ' + ARMS[a].id); recSet('fence', ARMS[a].fence, 'arm ' + ARMS[a].id); REC.armLog.push([+s.toFixed(2), ARMS[a].id]); }
-      // (E1.1, item 5) the clouds' accumulation off in every second cycle of the five (three of the six a course), so each
+      // the clouds' accumulation off in every second cycle of the five (three of the six a course), so each
       // arm runs three blocks with it and three without: the record sums them apart (rec.arms[k].cacc, rec.cacc)
       var cy = Math.floor(Math.floor(s / BLOCK_S) / ARMS.length), cw = cy % 2 ? 0 : CACC_ON;
       if (SW.cacc !== cw) { recSet('cacc', cw, 'cacc arm'); REC.armLog.push([+s.toFixed(2), 'cacc ' + cw]); }
@@ -447,7 +446,7 @@
     if (!REC.course && SW.course) REC.course = { t0: REC.shownAt, last: -1, down: false, n: 0, e1: SW.ab === 'e1', name: SW.ab === 'fence' ? 'fence' : SW.ab === 'order' ? 'order' : null, ab: SW.ab === 'fence' ? [1, 2] : SW.ab === 'order' ? [0, 1] : null };
     if (REC.course && !REC.course.name) REC.course.ab = null;
   }
-  /* (Fix 2) the window was resized or rotated (its second is not steady flight), or the page came back from a hidden
+  /* the window was resized or rotated (its second is not steady flight), or the page came back from a hidden
      tab or an app switch (diag tells: the world has no visibility listener, 18.5): the interval across the gap is
      dropped and the next 2 s are the resume's */
   function recResized() { if (REC) REC.resizePending = true; }
@@ -459,7 +458,7 @@
     function q(x) { return vals.length ? +vals[Math.min(vals.length - 1, Math.floor(x * vals.length))].toFixed(2) : null; }
     return { frames: n, p50: q(0.5), p90: q(0.9), p99: q(0.99), p999: q(0.999), max: q(1), misses: misses, missesTagged: tagged, over3kP: over3, missesByTag: byTag };
   }
-  /* (E1.1 Fix 2, the lead's ruling) the samples' plan with the memory facts: the samples asked and made, the targets' MB,
+  /* the samples' plan with the memory facts: the samples asked and made, the targets' MB,
      the context's losses and restores, samples the driver would not make, and the governor's give-up, so a record
      that shows memory pressure on the phone can bring the question back */
   function memRec() {
@@ -490,11 +489,11 @@
     var lp = med !== null && med > 30 && med < 36.5 && cpuMed < 8 && R.fencePolls > 0 && R.fenceLag / R.fencePolls < 0.05;
     var syncOut = {}; for (k in R.sync) if (R.sync[k][0] || R.sync[k][2]) syncOut[k] = { boot: [R.sync[k][0], +R.sync[k][1].toFixed(2)], world: [R.sync[k][2], +R.sync[k][3].toFixed(2)] };
     return {
-      d8: recD8(),   // (Fix 3: the world's first frame from navigation start, raw, first in the record)
-      v: 'E1', round: 'E1.1', fix: 3, build: BUILD, period: +P.toFixed(2), k: R.k, frames: R.n, kept: n,   // (Fix 3: build, world.js's md5 prefix as built before the tag was written in: records of two builds can be told apart)
+      d8: recD8(),   // (the world's first frame from navigation start, raw, first in the record)
+      v: 'E1', round: 'E1.1', fix: 3, build: BUILD, period: +P.toFixed(2), k: R.k, frames: R.n, kept: n,   // (build: world.js's md5 prefix as built before the tag was written in: records of two builds can be told apart)
       arms: recArms(), cacc: REC.course && REC.course.e1 ? recCaccSplit(0) : null, armDefs: ARMS, armLog: R.armLog.slice(0, 200),
-      passages: R.pass.map(function (J) { return { visit: J.visit, realm: J.realm, sim: J.sim, wallS: J.wallS, arm: J.arm, phase: J.phase, frames: J.n, maxKP: J.maxKP, over3kP: J.over3, misses: J.misses, junctionWaits: J.waitsBefore + J.waitsAfter, waitsBefore: J.waitsBefore, waitsAfter: J.waitsAfter, heldMs: J.heldMs, bakeRaise: J.raise, bakeRaiseFrames: J.raiseFrames }; }),   // (D3: each passage's window, 2 s before it (or from its hold's start) to 4 s after; Fix 2: its waits counted before the change)
-      holds: { n: R.hold.n, frames: R.hold.frames, ms: +R.hold.ms.toFixed(1), longestMs: R.hold.longestMs, list: R.hold.list },   // (Fix 2: every hold at a junction while the world shows; expected none)
+      passages: R.pass.map(function (J) { return { visit: J.visit, realm: J.realm, sim: J.sim, wallS: J.wallS, arm: J.arm, phase: J.phase, frames: J.n, maxKP: J.maxKP, over3kP: J.over3, misses: J.misses, junctionWaits: J.waitsBefore + J.waitsAfter, waitsBefore: J.waitsBefore, waitsAfter: J.waitsAfter, heldMs: J.heldMs, bakeRaise: J.raise, bakeRaiseFrames: J.raiseFrames }; }),   // (D3: each passage's window, 2 s before it (or from its hold's start) to 4 s after; its waits counted before the change)
+      holds: { n: R.hold.n, frames: R.hold.frames, ms: +R.hold.ms.toFixed(1), longestMs: R.hold.longestMs, list: R.hold.list },   // (every hold at a junction while the world shows; expected none)
       // the gates' numbers: steady flight only (3.1; D1-D3)
       steadyFrames: S.frames, percentiles: { p50: S.p50, p90: S.p90, p99: S.p99, p999: S.p999, max: S.max }, hist10thKP: hist, misses: S.misses, missesTagged: S.missesTagged, over3kP: S.over3kP, missesByTag: S.missesByTag,
       longest: R.longest[PH_STEADY], phases: phases,   // (boot, dissolve (D3), control, resume, resize: each with its own percentiles, misses, tags and longest)
@@ -505,15 +504,15 @@
       boot: R.boot, scripts: R.regs, scriptEval: recScripts(), links: R.links, progFirstUse: R.prog1, pipelineKeys: R.keys,
       bootStages: { marks: BOOT.marks, frames: BOOT.frames, sliceMaxMs: +BOOT.sliceMax.toFixed(2), slicesOver8: BOOT.sliceOver, longestSlices: BOOT.slices.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12), declined: BOOT.declined,
         G: { pinned: GS.pinned, period: GS.P ? +GS.P.toFixed(2) : null, roundTripMs: GS.rt.map(function (x) { return +x.toFixed(2); }), trialsMs: GS.tr, mediansMs: GS.med, scales: GS.sc, pick: GS.pick, rung: GS.rung },
-        H: { ok: BOOT.hOk, fails: BOOT.hFails, thumb: BOOT.thumbStat || null }, warm: { keys: WARM.list ? WARM.list.length : 0, frames: WARM.frames, ms: WARM.ms.slice(0, 80).map(function (w) { return [w[0], w[1], w[2], recFrameMs(w[2])]; }) },   // (Fix 2: [key, draw call ms, frame, that frame's interval ms])
+        H: { ok: BOOT.hOk, fails: BOOT.hFails, thumb: BOOT.thumbStat || null }, warm: { keys: WARM.list ? WARM.list.length : 0, frames: WARM.frames, ms: WARM.ms.slice(0, 80).map(function (w) { return [w[0], w[1], w[2], recFrameMs(w[2])]; }) },   // ([key, draw call ms, frame, that frame's interval ms])
         programs: { n: PROGS.length, broken: PROGX.broken, par: !!EXT.par, parAll: !!EXT.parAll, each: PROGS.map(function (P) { return [P.name, P.kb || 0, P.cms || 0, P.lms || 0, P.fms || 0, P.doneAt || null]; }), one: recProgs() },
-        waits: { flight: BOOT.fwait || 0 }, defs: defsRec(), noise: { K: NOISE.K, fixed: NOISE.fixed }, late: lateRec(), folds: foldRec(), firstDraw: REC.firstDraw ? REC.firstDraw.list : null, firstKeys: REC.firstDraw ? { keys: REC.firstDraw.keys, over: REC.firstDraw.over } : null },   // (fast500 F0: every pipeline key's first use)   // (fast500 F0: the flight's inputs' wait, the first-draw guard)
-      readback: { bakeAIMD: { layers: FBAKE.n, lagged: FBAKE.lagged, halvings: FBAKE.halvings, late: FBAKE.late }, nextDeadline: null, fencesMade: RB.made, polls: RB.polled, reads: RB.reads, readKB: Math.round(RB.readBytes / 1024), slotSkips: RB.skipped, fenceSkips: RB.fenceSkipped, lagged: RB.lagN, forcedReads: RB.forced || 0, probes: PSTAT, junctionWaits: SIM.waits },   // (forcedReads: the dev harness's unconditional reads, Fix 2; 0 in a live visit)
+        waits: { flight: BOOT.fwait || 0 }, defs: defsRec(), noise: { K: NOISE.K, fixed: NOISE.fixed }, late: lateRec(), folds: foldRec(), firstDraw: REC.firstDraw ? REC.firstDraw.list : null, firstKeys: REC.firstDraw ? { keys: REC.firstDraw.keys, over: REC.firstDraw.over } : null },   // (every pipeline key's first use)   // (the flight's inputs' wait, the first-draw guard)
+      readback: { bakeAIMD: { layers: FBAKE.n, lagged: FBAKE.lagged, halvings: FBAKE.halvings, late: FBAKE.late }, nextDeadline: null, fencesMade: RB.made, polls: RB.polled, reads: RB.reads, readKB: Math.round(RB.readBytes / 1024), slotSkips: RB.skipped, fenceSkips: RB.fenceSkipped, lagged: RB.lagN, forcedReads: RB.forced || 0, probes: PSTAT, junctionWaits: SIM.waits },   // (forcedReads: the dev harness's unconditional reads; 0 in a live visit)
       madeAfterShown: R.madeAfter, freedAfterShown: R.freedAfter, uploadsAfterShown: R.upAfter, stageEvents: R.stageEv || [],
-      pools: R.minute, objPools: { pre: POOL_PRE, cap: POOL_CAP, madeShown: POOL.madeShown, made: POOL.made, reused: POOL.reused, peakLive: POOL.peakLive, deleted: POOL.deleted, free: (function () { var o = {}; POOL_KINDS.forEach(function (k) { o[k] = POOL.lists[k].length; }); return o; })() },   // (Fix 3: the cells' and visits' object pools)
+      pools: R.minute, objPools: { pre: POOL_PRE, cap: POOL_CAP, madeShown: POOL.madeShown, made: POOL.made, reused: POOL.reused, peakLive: POOL.peakLive, deleted: POOL.deleted, free: (function () { var o = {}; POOL_KINDS.forEach(function (k) { o[k] = POOL.lists[k].length; }); return o; })() },   // (the cells' and visits' object pools)
       flips: R.flips, firstFlipAfterDissolve: R.firstFlip,
       tod: recTod(R),   // (tod: the cycle each second (t, sky, next, k, q, q again where the structure's own clock stood, group, words, ceiling), the landing, the bars' writes, the ceiling's engaged share, the boot's thumbnail)
-      keepout: null, contrast: null,   // (E6: the keep-out and the statistics pass do not exist yet)
+      keepout: null, contrast: null,   // (the keep-out and the statistics pass do not exist yet)
       inputLatencyMs: R.lat, orientRaw: R.ori, orientFiltered: R.oriF,
       device: { renderer: EXT.renderer, floatRT: FLOAT_RT, f32: FLOAT32_RT, aa: AAS, memPlan: memRec(), vol16: VOL16, filtErr: +FILTERR.toFixed(5), par: !!EXT.par, out: [OUT.w, OUT.h, +OUT.dpr.toFixed(3)], full: [FULL.w, FULL.h, +FULL.dpr.toFixed(3)], css: [Math.round(OUT.cssW), Math.round(OUT.cssH)], dpr: window.devicePixelRatio || 1, mem: navigator.deviceMemory || null, cores: navigator.hardwareConcurrency || null, classGuess: null, hints: DEVHINT, warmup: { pinned: GS.pinned, mediansMs: GS.med, rung: GS.rung, period: GS.P ? +GS.P.toFixed(2) : null } },
       context: { top: recTop(), touch: TOUCHMODE, motion: MOTION.st, viewport: [window.innerWidth, window.innerHeight], reduced: reduced(), forced: forced(), lost: LOST, dead: DEAD, gaveUp: GAVEUP, ready: READY, shown: shown, hiddenTimes: R.hidden, error: FAILMSG ? String(FAILMSG).slice(0, 2000) : null },
@@ -526,8 +525,8 @@
     if (typeof SKY === 'undefined') return null;
     return { cycle: R.cycle || [], landing: SKY.landing || null, theme: { writes: THEME.n, last: THEME.hex }, ceilEngaged: R.cycle ? +(R.cycle.filter(function (c) { return c[8] < 1.5; }).length / Math.max(1, R.cycle.length)).toFixed(3) : 0, thumb: BOOT.thumbStat || null };
   }
-  /* (E1) each arm's own numbers, from steady flight's intervals tagged with it: what the lead reads back to settle the
-     frame's order and the fence's place (design-v5 4.3, 7.5): the interval percentiles and histogram in tenths of kP
+  /* each arm's own numbers, from steady flight's intervals tagged with it: what settles the frame's order and the
+     fence's place (4.3, 7.5): the interval percentiles and histogram in tenths of kP
      (D2), the misses with their tags (D1), the intervals over 3 kP (D3), the synchronous calls' ms a frame, each of
      fenceSync, the poll and the read (D9), the fence's lag, and the frames and misses by the GPU jobs' size in the frame
      before (the stream tag's allowance: bytes uploaded, bake units, probe points) */
@@ -558,7 +557,7 @@
     }
     return out;
   }
-  /* (E1.1, item 5) steady flight's intervals of one arm (0: every arm) with the clouds' accumulation on and off: frames,
+  /* steady flight's intervals of one arm (0: every arm) with the clouds' accumulation on and off: frames,
      percentiles, misses with their tags (gpu: the fence still unsignalled at the next frame), the fence's lag: what the
      accumulation's pass costs on this device */
   function recCaccSplit(arm) {
@@ -577,13 +576,13 @@
     }
     return out;
   }
-  /* (Fix 3, D8) the world's first frame from navigation start, raw (3.2 D8's ceiling is 3.0 s) */
-  /* (Fix 2 of round E1) each program one at a time, in the order stage C made them: when it was issued (its compile and
+  /* (D8) the world's first frame from navigation start, raw (3.2 D8's ceiling is 3.0 s) */
+  /* each program one at a time, in the order stage C made them: when it was issued (its compile and
      link given: clock ms from navigation, and the frame), when it was found done (the same), the frame interval
      containing each (from that boot frame's rAF to the next one's: a frame that carried its link or its first draw),
      its completion queries (how many, their time on the main thread: a query that waits shows here), the main thread's
      compile, link and status calls, and its first use (the warm table's draw, or the noise's first layers) with that
-     frame's interval. The record can then say which program is slow on the phone (the lead's ask) */
+     frame's interval. The record can then say which program is slow on the phone */
   function recFrameMs(f) {   // the interval from boot frame f's rAF to the next one's, or null
     var A = BOOT.fts; if (!A || f === undefined || f === null) return null;
     for (var i = 0; i + 2 < A.length; i += 2) if (A[i] === f) return +(A[i + 3] - A[i + 1]).toFixed(1);
@@ -600,14 +599,14 @@
     }
     return out;
   }
-  function recD8() {   // (Fix 3 of round E1: judged raw, as design-v5 3.2 defines it; no yield to net out any more)
+  function recD8() {   // (judged raw, as 3.2 defines it; no yield to net out)
     var R = REC, st = -1, i, b;
     for (i = 0; i < R.boot.length; i++) { b = R.boot[i]; if (b[0].indexOf('boot start') === 0 && st < 0) st = b[1]; }
     var shown = R.shownAt >= 0 ? R.shownAt : -1;
     return { firstFrameMs: shown >= 0 ? +shown.toFixed(1) : null, ceilingMs: 3000, within: shown >= 0 ? shown <= 3000 : null, from: 'navigation start',
       bootStartMs: st >= 0 ? +st.toFixed(1) : null };
   }
-  /* (Fix 3, D8's "each script's evaluation") every script's evaluation, bounded by what can be known without reading a
+  /* (D8's "each script's evaluation") every script's evaluation, bounded by what can be known without reading a
      clock inside it: world.js stamps its own start and end; each realm file and the ink birds stamp their top and
      register as their last statement (exact); the kit's end is the next file's top; a deferred script before world.js
      with no stamp of its own (diag on staging) starts no sooner than both its response's end and the parse's end
@@ -620,7 +619,7 @@
     for (i = 0; i < R.regs.length; i++) st[R.regs[i][0]] = R.regs[i][1];
     for (i = 0; i < R.boot.length; i++) if (R.boot[i][0] === 'world.js eval start' || R.boot[i][0] === 'world.js eval end') st[R.boot[i][0]] = R.boot[i][1];
     var scripts; try { scripts = document.querySelectorAll('script[src]'); } catch (e) { return { error: 'no document' }; }
-    var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (E1: a bare relative src too: the preview's)
+    var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (a bare relative src too: the preview's)
     function r1(x) { return x === null || x < 0 ? null : +x.toFixed(1); }
     function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v1.js stamps as world.js)
     function regOf(n) { var b = base(n); if (b === 'inkbirds.js') return st.inkbirds; var m3 = /^realm-(\w+)\.js$/.exec(b); return m3 ? st['realm ' + m3[1]] : undefined; }
@@ -644,19 +643,19 @@
   function recTop() { try { return window.top === window ? 'top' : 'framed'; } catch (e) { return 'framed'; } }
   /* the control tail: the world stopped and hidden (the still sky, no birds planned), so diag can record an empty
      clearing canvas in the same viewer and session; then the world again. Neither gap is an interval of the world's
-     (Fix 2: the first frame after the tail measured ts - lastTs across it), and the 2 s after it (the canvas dissolving
+     (the first frame after the tail does not measure ts - lastTs across it), and the 2 s after it (the canvas dissolving
      back in) are the resume's */
   function recHalt(on) {
     if (!REC) return false;
     if (on && !REC.halted) {
-      /* (E1) the course ends where the control tail begins: the arms stop (arm A's switches, the design's, back in
+      /* the course ends where the control tail begins: the arms stop (arm A's switches, the design's, back in
          force; the intervals after it carry no arm), so the tail's fence and whatever flight follows it count in no arm */
       var C = REC.course; if (C && C.e1 && !C.ended) { C.ended = true; REC.armNow = 0; recSet('order', ARMS[0].order, 'course end'); recSet('fence', ARMS[0].fence, 'course end'); REC.armLog.push([+((clockNow() - C.t0) / 1000).toFixed(2), 'end']); recSet('cacc', CACC_ON, 'course end'); }
       REC.halted = true; REC.lastTs = -1; stop(); canvas.classList.remove('on'); if (shown) markStill(); recMark('control: world halted'); return true;
     }
     if (!on && REC.halted) {
       REC.halted = false; REC.lastTs = -1;
-      if (DEAD || LOST) { recMark('control: the world stays stopped (' + (LOST ? 'lost' : 'gave up') + ')'); return true; }   // (E1, the lead's guard on the published E0: the package's black page: a dead or lost world's canvas is never put back)
+      if (DEAD || LOST) { recMark('control: the world stays stopped (' + (LOST ? 'lost' : 'gave up') + ')'); return true; }   // (a dead or lost world's canvas is never put back: the page stays black)
       REC.resumePending = true; if (shown) canvas.classList.add('on'); CLK[1] = -1; start(); recMark('control: world resumed'); return true;
     }
     return false;
