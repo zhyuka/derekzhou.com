@@ -10,7 +10,7 @@
      the end bird looks out; it leaves by its own wish, when a flock of its kind passes (to join it), or startled by a
      jab (the startle running down the row bird to bird). It leaves as a bird does: a crouch and a lean, a leap, a few
      strong beats, and on in the world on a goal any bird may fly. */
-  var PERCH = (function () {   /* the perched shape: the owner's chosen one (perch A): its poses */
+  var PERCH = (function () {   /* the perched shape: the owner's chosen one: its poses */
     function side(a) { var p = FP.pose(); for (var i = 0; i < 11; i++) { p[i] = a[i]; p[11 + i] = a[i]; } return p; }
     var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 10, 12, 0.95, -40, 0, 4, 6, 0, 0, 8]),
       fold: side([0, -78, 88, 0.48, 0, -14, 0, 0, -6, 0, 0]), foldHalf: side([40, -20, 30, 0.8, -40, -25, 0, 0, -5, 0, 6]),
