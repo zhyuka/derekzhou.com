@@ -22,5 +22,6 @@
   {"check":"deploy-inputs","file":".github/ci/deploy-inputs.txt","find":"tools/minify.mjs","with":"tools/minify-gone.mjs","why":"a tool the build loads, not listed"},
   {"check":"unit","file":"src/world/450-loop-governor-device-tier.js","find":"    if (p50 > PER * 1.35) {","with":"    if (p50 > PER * 3) {","why":"the governor slow to step down"},
   {"check":"unit","file":"src/world/320-camera-drawn-between-last-two.js","find":"  var CAMUP = 9;","with":"  var CAMUP = 12;","why":"the wide windows tilted 12 degrees, not 9"},
-  {"check":"unit","file":"src/world/340-input-drag-anywhere-phone-turn.js","find":"if (dx * dx + dy * dy < 64) return;","with":"if (dx * dx + dy * dy < 16) return;","why":"a drag that starts after 4 px, not 8"}
+  {"check":"unit","file":"src/world/340-input-drag-anywhere-phone-turn.js","find":"if (dx * dx + dy * dy < 64) return;","with":"if (dx * dx + dy * dy < 16) return;","why":"a drag that starts after 4 px, not 8"},
+  {"check":"unit","file":"src/world/220-time-day.js","find":"hold: S.hold * (0.9 + 0.25 * r.f())","with":"hold: S.hold * (0.9 + 0.5 * r.f())","why":"a sky held up to 1.4 of its hold"}
 ]
