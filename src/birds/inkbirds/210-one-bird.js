@@ -32,7 +32,7 @@
   var COME_GAP = [25, 50];     // s between flocks sent to cross the camera's way ahead (recruit)
   var CLEAR = 15;              // m: the least height over the land under a bird (the owner, 2026-11-06: never below the land)
   var SEA_DEEP = 18;           // m: a bird this far under the sea's top (and its span) is wholly hidden
-  var AVOID = 14;              // m: no bird lets the eye pass nearer than this or 4 of its spans (it banks away: B17; the near plane never cuts one, nor does a bird fill the window)
+  var AVOID = 14;              // m: no bird lets the eye pass nearer than this or 4 of its spans (it banks away, clearOfEye: the near plane never cuts one, nor does a bird fill the window)
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
@@ -78,7 +78,7 @@
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
       flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1,
-      WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays optimised)
+      WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
@@ -140,7 +140,7 @@
   function wingTrim(b) { if (b.age > b.wtT) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 30; } }
   /* ... flapping 1, gliding 0: the integrator reads it */
   function wingNow(b) { b.flap = wingState(b).e > 0.5 ? 1 : 0; }
-  /* (B17, the owner's choice 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
+  /* (the owner, 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
      (the camera's motion, a drag's included) would bring it within a few of its spans in the next 4 s, it notices
      (after its own latency, 80-250 ms, as a bird reads a car coming: by distance and closing speed) and turns its own
      way away, by its own bank (the integrator's: never pushed, never a lerp). It never follows the view: it only ever

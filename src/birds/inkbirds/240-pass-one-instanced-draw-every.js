@@ -1,13 +1,13 @@
   /* ---------------- the pass: one instanced draw, every bird a quad about its paper ---------------- */
 
-  /* (physics) drawn after the composite, at the canvas's own resolution (the ink's slot; RENDER.md 2): 7 instance
-     attributes (28 floats) a bird, and its row of the points' texture (its 46 points on the window, device px, with their
-     1/depth; its 30 facets' light). The coverage is worked out per fragment, exactly, over the flexing form's 58
-     triangles (the outline antialiased by a box filter, the edges the mesh shares inside the bird hard), the nearest
-     facet by its depth (1/depth is affine on the window for a plane) taking the colour: the one tone mixed with the
-     facet's own light by lodK (0 at true size: the one tone, as before); the pen floor along the leading edge's M (the
-     form's chain); at night the halo about the outline's own edges. The two topologies (one surface: gull, swallow,
-     finch; slotted fingers: goose, heron, ibis, crow, stork) are written into the shader from labbird's flexKind */
+  /* drawn after the composite, at the canvas's own resolution: 7 instance attributes (28 floats) a bird, and its row
+     of the points' texture (its 46 points on the window, device px, with their 1/depth; its 30 facets' light). The
+     coverage is worked out per fragment, exactly, over the flexing form's 58 triangles (the outline antialiased by a box
+     filter, the edges the mesh shares inside the bird hard), the nearest facet by its depth (1/depth is affine on the
+     window for a plane) taking the colour: the one tone mixed with the facet's own light by lodK (0 at true size: the
+     one tone); the pen floor along the leading edge's M (the form's chain, CH); at night the halo about the outline's
+     own edges. The two topologies (one surface: gull, swallow, finch; slotted fingers: goose, heron, ibis, crow, stork)
+     are written into the shader from LB.flexKind */
   var PASS_TOPO = (function () {
     function topo(kind) {
       var F = LB.flexKind(kind), T = F.tri, nT = T.length / 3, E = {}, i, j, out = [], bnd = [];
@@ -29,12 +29,12 @@
   var GRADE_GLSL = `@glsl grade-glsl`;
   var VS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + (HOST.glsl.AIR || HOST.glsl.LIB) + `@glsl vs-paper` + GRADE_GLSL + `@glsl vs-paper-2`;
   var FS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + `@glsl fs-paper` + PASS_TOPO.src + GRADE_GLSL + `@glsl fs-paper-2`;
-  var NF = 28, PTW = NV + NFAC + 4, BTX = new Float32Array(MAXP * PTW * 4), BT = null, PTS_UNIT = 6;   // (physics: 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6)
+  var NF = 28, PTW = NV + NFAC + 4, BTX = new Float32Array(MAXP * PTW * 4), BT = null, PTS_UNIT = 6;   // 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6
   var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
   /* the paper's program: asked for as the module is made (the engine links it while its still sky shows, never in
      flight); drawn once it is linked */
   function makeProgram() { if (!PROG && !BROKEN) PROG = HOST.program(VS_PAPER, FS_PAPER, 'paper'); }
-  /* the instance ring: three buffers, each with its own VAO (14 vec4 attributes, 224 B a bird, MAXP birds), made at
+  /* the instance ring: three buffers, each with its own VAO (7 vec4 attributes, 112 B a bird, MAXP birds), made at
      the boot's stage B and warmed with the engine's table; a frame writes the next buffer, one last drawn three frames
      ago, so no buffer the GPU may still read is written and no VAO is made or pointed again in flight */
   function bootRing() {
@@ -47,7 +47,7 @@
       RING.push([vao, vbo]);
     }
     gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    /* (physics) the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
+    /* the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
        texelFetch only (no filtering) */
     BT = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -63,7 +63,7 @@
     var r = HOST.linked(PROG);
     if (r === 'lost' || r === false) { if (r === false && PROG.u && !PROG.ok) BROKEN = true; return false; }
     if (!RING) bootRing();   // (the harness's stills and forced colours, which have no boot: made at the first draw)
-    if (!SAMPLERS) {   // (the samplers' units, once: uDepth 2, uCloud 4, uBloom 5, uHz 14)
+    if (!SAMPLERS) {   // (the samplers' units, once: uDepth 2, uCloud 4, uBloom 5, uHz 14, uPts PTS_UNIT)
       gl.useProgram(PROG.p); var u = PROG.u;
       if (u.uDepth) gl.uniform1i(u.uDepth, 2); if (u.uCloud) gl.uniform1i(u.uCloud, 4); if (u.uBloom) gl.uniform1i(u.uBloom, 5);
       if (u.uHz) gl.uniform1i(u.uHz, 14); if (u.uPts) gl.uniform1i(u.uPts, PTS_UNIT);
@@ -119,7 +119,7 @@
     gl.useProgram(P.p); if (!FORCED) HOST.frameUniforms(P);
     RI = (RI + 1) % RING.length; VAO = RING[RI][0]; VBO = RING[RI][1];
     gl.bindVertexArray(VAO); gl.bindBuffer(gl.ARRAY_BUFFER, VBO); gl.bufferSubData(gl.ARRAY_BUFFER, 0, INST, 0, nB * NF);
-    gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PTW, nB, gl.RGBA, gl.FLOAT, BTX, 0); gl.activeTexture(gl.TEXTURE0);   // (physics: the drawn birds' rows)
+    gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PTW, nB, gl.RGBA, gl.FLOAT, BTX, 0); gl.activeTexture(gl.TEXTURE0);   // (the drawn birds' rows)
     UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = FX.air ? 1 : 0;
     USC[0] = VW.sUx; USC[1] = VW.sUy; USC[2] = VW.hUx; USC[3] = VW.hUy;
     UCL[0] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UCL[1] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
@@ -143,7 +143,7 @@
     gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
     HOST.count(1, nB);
   }
-  /* (physics) one bird's instance (7 vec4) and its row of the points' texture (its 46 points, device px and 1/depth;
+  /* one bird's instance (7 vec4) and its row of the points' texture (its 46 points, device px and 1/depth;
      its 30 facets' light, linear, when its planes show) */
   function packBird(nB, s, op, slack, cloudOn, N, haloE, gE, gdir, floor) {
     var o = nB * NF, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, i, r = nB * PTW * 4, D = s.D46;
@@ -155,7 +155,7 @@
     INST[o + 8] = s.E[0]; INST[o + 9] = s.E[1]; INST[o + 10] = s.E[2]; INST[o + 11] = op;
     INST[o + 12] = s.body[0]; INST[o + 13] = s.body[1]; INST[o + 14] = s.body[2]; INST[o + 15] = slack;
     INST[o + 16] = cloudOn ? s.cw[0] : 0; INST[o + 17] = cloudOn ? s.cw[1] : 0; INST[o + 18] = cloudOn ? s.cw[2] : 0; INST[o + 19] = N;
-    INST[o + 20] = haloE; INST[o + 21] = 1; INST[o + 22] = gE; INST[o + 23] = gdir;   // ([21], aM.y: the light's scale, 1 for every bird (fast500's deep sweep, 2026-11-05: the hold that scaled it down on its ground is gone; it never ran))
+    INST[o + 20] = haloE; INST[o + 21] = 1; INST[o + 22] = gE; INST[o + 23] = gdir;   // ([21], aM.y: the light's scale, 1 for every bird)
     INST[o + 24] = lod; INST[o + 25] = 0; INST[o + 26] = 0; INST[o + 27] = 0;
   }
   var GLARE_P = [0.02, 0.09, 0.35, 0.5];   // the light wrap: the bloom's light under the bird from, to; the paper thinned by (px), lifted by
