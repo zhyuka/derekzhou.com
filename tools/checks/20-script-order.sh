@@ -21,20 +21,12 @@ want_head = [('hour', False)]
 want_body = [('site', False), ('world', False), ('realm-kit', False), ('realm-dunes', False), ('realm-above', False), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
 pri = {'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low'}
 fail = 0
-# (fast500 5) the start file (start.js, made by tools/start.mjs): async, fetchpriority="high", the first
-# script after the canvas, and the only async script; the order below is the rest's
-stf = [g for g in tags(body) if re.fullmatch(r'start(?:\.v\d+)?\.js', g[1])]
+# no async script: each loads in the order below
 asyn = [g for g in tags(src) if 'async' in (g[0] + g[2]).split()]
-if asyn != stf or len(stf) > 1:
-    print('::error::the only async script is the one start file: got %s' % [g[1] for g in asyn]); fail = 1
-for g in stf:
-    at = (g[0] + g[2]).split()
-    if 'defer' in at or re.findall(r'\bfetchpriority="(\w+)"', g[0] + g[2]) != ['high'] or 'data-cfasync="false"' not in at:
-        print('::error::%s wants async, fetchpriority="high" and data-cfasync="false", never defer' % g[1]); fail = 1
-    if not re.search(r'<canvas class="sky" aria-hidden="true"></canvas>\s*(<!--[^>]*-->\s*)?<script\b[^>]*\bsrc="/' + re.escape(g[1]) + '"', body):
-        print('::error::%s must come right after the canvas' % g[1]); fail = 1
+if asyn:
+    print('::error::no script is async: got %s' % [g[1] for g in asyn]); fail = 1
 for part, want in [(head, want_head), (body, want_body)]:
-    got = [g for g in tags(part) if g not in stf]
+    got = tags(part)
     names = [(re.sub(r'(\.v\d+)?\.js$', '', g[1]), 'defer' in (g[0] + g[2]).split()) for g in got]
     if names != want:
         print('::error::scripts out of order: got %s, want %s' % (names, want)); fail = 1

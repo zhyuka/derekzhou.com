@@ -3,7 +3,6 @@
   "map": [
     ["site/world*.js", ["frames", "gpu"]],
     ["site/realm-*.js", ["frames", "gpu"]],
-    ["site/start*.js", ["frames", "gpu"]],
     ["site/plan*.js", ["frames", "gpu"]],
     ["site/inkbirds*.js", ["frames", "gpu"]],
     ["src/**", ["frames", "gpu"]],

@@ -43,7 +43,7 @@ src/           the scripts the build minifies: src/world/ (the world, in
                src/birds/model/ (the wing model, served as written),
                src/**/glsl/ (each shader as NAME.glsl), src/dev/ (dev build only)
 tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
-               start.mjs (the start file), plan.mjs (the plan's worker),
+               plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
                one scope), gpu/ (the PC's T2/T3), birds/ (generators)
 test/          unit.mjs (pure code), shaders.mjs (every shader compiles),
@@ -55,7 +55,7 @@ RULES.json     the standing rules as data; .claude/ the hooks and path rules
 ```
 
 Built, never committed: world.js, realm-kit.js, realm-dunes.js,
-realm-above.js, inkbirds.js, start.js, start-table.js, plan.js. CI fails if
+realm-above.js, inkbirds.js, plan.js. CI fails if
 one is committed to site/ (built-files-uncommitted).
 
 ## Making a change
@@ -116,7 +116,7 @@ bumps a version for a change; fonts and images are renamed by hand
 | docs/structure.md | the files, the build, src/ parts, the dev build |
 | docs/content.md | the page's words, the credit row, the links |
 | docs/design.md | the look: the owner's briefs, verbatim |
-| docs/world.md | src/world/, the realms, the sky, the plan, the start file |
+| docs/world.md | src/world/, the realms, the sky, the plan |
 | docs/birds.md | src/birds/ (the ink birds and the wing model) |
 | docs/css.md, docs/js.md, docs/type.md | site/style.css, site.js, the lettering |
 | docs/fonts-performance.md | fonts, subsets, load budget |

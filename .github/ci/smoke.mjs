@@ -53,6 +53,7 @@ check(home.status === 200, `/ answers ${home.status}`);
 const csp = home.headers.get('content-security-policy') || '';
 check(csp && csp === want('/', 'Content-Security-Policy').join(', '), `/'s CSP is _headers' own${csp ? '' : ' (none served)'}`);
 check(/max-age=\d+/.test(home.headers.get('strict-transport-security') || ''), `/ has HSTS`);
+check(!/\/start[.-][\w.-]*\.js/.test(home.body.toString() + ' ' + (home.headers.get('link') || '')), `/ loads no start file (deleted 2026-11-07), by tag or preload`);
 const notFound = await get('/no-such-page-' + Date.now());
 // Cloudflare's own bot protection may answer a datacenter's request itself (cf-mitigated): then the site was not asked,
 // and the check is a warning, not a failure. Any other answer is the site's, and is held to the 404 page.
