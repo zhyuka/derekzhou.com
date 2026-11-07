@@ -14,6 +14,9 @@
 //   plan      the plan's worker (built from the world's spans: tools/build.mjs --plain) against the page's own plan:
 //             answered, adopted, then flown, hash for hash
 //   verdict   .github/ci/verdict.mjs on T2's read-backs: identical, unread only (the frames decide) and differ
+//   governor  the render scale's governor on synthetic frame clocks: a steady 60 Hz keeps the top rung; a cost the scale
+//             fixes steps down and stays; one it cannot (a 30 fps cap) is undone and learnt as the pace; under 15 fps
+//             at every rung gives up; a hidden tab's gap is no frame; a 144 Hz display is never asked to beat 60 Hz
 // An anchor not found fails with its text: the code moved, and the test's anchor follows it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -290,4 +293,52 @@ test('deploy gate: a cancelled main gate is no result; only a failure stops live
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled'), run('c', 'success')], d(false))).to, S('a'), 'cancelled, frames unproved: live waits before it');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled')], d(true))).to, S('a'), 'cancelled last: nothing newer to stand on');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', null, 'in_progress')], d(true))).to, S('a'), 'running: waits');
+});
+
+// ------------------------------------------------------------------ the governor, on synthetic frame clocks
+// (dev-speed item 5) governor() cut from the world as it ships, run against frame times made here: the render scale's
+// ladder (RUNG over RUNGS), its steps down and back up, the pace it learns, and the floor that gives up
+const GOV = cut(WORLD, '  var GOVD = new Float32Array(120)', '  /* too slow even so: the world steps aside');
+function governed(rungs = [1, 0.85, 0.72, 0.6, 0.5]) {
+  return vm.runInThisContext('(function (RUNGS) {\n  \'use strict\';\n  var STILLMODE = false, OPT = {}, RUNG = 0, gave = 0;\n' +
+    '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function giveUp() { gave++; }\n' + GOV +
+    '\n  return { step: governor, rung: function () { return RUNG; }, pace: function () { return GOVN[13]; }, gave: function () { return gave; } };\n})')(rungs);
+}
+function play(G, seconds, frameMs, log) {   // frames at frameMs(rung, t) for `seconds` of their own time; log: the rung each second
+  let t = 0, next = 1000;
+  while (t < seconds * 1000) { const d = frameMs(G.rung(), t); G.step(d); t += d; if (log && t >= next) { log.push(G.rung()); next += 1000; } }
+}
+test('governor: a steady 60 Hz frame keeps the top rung and never gives up', () => {
+  const G = governed(); play(G, 120, () => 1000 / 60);
+  assert.equal(G.rung(), 0); assert.equal(G.gave(), 0); assert.ok(Math.abs(G.pace() - 1000 / 60) < 1e-9);
+});
+test('governor: a cost the scale fixes steps down within about four seconds and stays down', () => {
+  const G = governed(), log = [];
+  play(G, 120, (r) => (r === 0 ? 30 : 12), log);   // (30 ms at the full scale, 12 ms a rung down)
+  const first = log.findIndex((r) => r > 0);
+  assert.ok(first >= 0 && first <= 5, `first step down at ${first} s`);
+  const top = log.slice(30).filter((r) => r === 0).length;
+  assert.ok(top <= 10, `back at the slow top rung ${top} of the last 90 s (each try up costs a slow second or few)`);
+  assert.equal(G.gave(), 0);
+});
+test('governor: a cost the scale cannot touch (a 30 fps cap) is undone and learnt as the pace', () => {
+  const G = governed(); play(G, 60, () => 1000 / 30);
+  assert.equal(G.rung(), 0, 'both steps undone');
+  assert.ok(Math.abs(G.pace() - 1000 / 30) < 0.5, `pace ${G.pace()}`);
+  const before = G.rung(); play(G, 60, () => 1000 / 30);
+  assert.equal(G.rung(), before, 'no more steps at the learnt pace'); assert.equal(G.gave(), 0);
+});
+test('governor: under 15 fps that no rung helps gives up; a steady 22 fps is kept as the pace', () => {
+  const G = governed(); play(G, 120, () => 80);   // (12.5 fps at every rung: the pace learnt hits its 50 ms ceiling)
+  assert.ok(G.gave() >= 1, 'the still sky stays');
+  const H = governed(); play(H, 120, () => 45);   // (22 fps at every rung: learnt as the pace, flown)
+  assert.equal(H.gave(), 0); assert.ok(Math.abs(H.pace() - 45) < 0.5, `pace ${H.pace()}`);
+});
+test('governor: a hidden tab\'s gap (over a second) is not a frame', () => {
+  const G = governed(); play(G, 30, () => 1000 / 60); G.step(5000); G.step(30000); play(G, 30, () => 1000 / 60);
+  assert.equal(G.rung(), 0); assert.equal(G.gave(), 0);
+});
+test('governor: a 144 Hz display is never asked to beat 60 Hz', () => {
+  const G = governed(); play(G, 60, () => 1000 / 144);
+  assert.equal(G.rung(), 0); assert.ok(Math.abs(G.pace() - 1000 / 60) < 1e-9);
 });

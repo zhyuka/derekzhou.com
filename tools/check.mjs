@@ -66,6 +66,7 @@ if (has('--prove')) {
     if (keep && !keep.toString('utf8').includes(p.find)) { console.log('FAIL   ' + c.slug.padEnd(20) + ' the plant\'s text is not in ' + p.file); bad = 1; continue; }
     fs.writeFileSync(f, keep ? keep.toString('utf8').replace(p.find, p.with) : 'planted\n');
     let r; try { r = await run(c); } finally { if (keep) fs.writeFileSync(f, keep); else fs.rmSync(f); }
+    if (r.ok && /skipped here/.test(r.out)) { console.log('skip   ' + c.slug.padEnd(20) + ' ' + p.why + ' (the check does not run on this machine)'); continue; }
     const want = p.expect === 'pass', ok = r.ok === want;
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
