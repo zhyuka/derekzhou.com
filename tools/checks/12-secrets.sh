@@ -12,7 +12,8 @@ patterns=(
 )
 found=0
 for pattern in "${patterns[@]}"; do
-  if grep -rEn "$pattern" --include='*.html' --include='*.css' --include='*.js' --include='*.json' --include='*.yml' --include='*.yaml' --include='*.md' --include='*.txt' . 2>/dev/null | grep -v node_modules; then
+  # (check-speed: git grep over the tracked files, as this check's comment says: 1.6 -> 0.1 s; plain grep where there is no git)
+  if { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git grep -nE "$pattern" -- '*.html' '*.css' '*.js' '*.json' '*.yml' '*.yaml' '*.md' '*.txt'; } || { ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 && grep -rEn "$pattern" --include='*.html' --include='*.css' --include='*.js' --include='*.json' --include='*.yml' --include='*.yaml' --include='*.md' --include='*.txt' . 2>/dev/null | grep -v node_modules; }; then
     echo "POTENTIAL SECRET found matching: $pattern"
     found=1
   fi

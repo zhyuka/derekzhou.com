@@ -204,29 +204,34 @@ jobs:
         with:
           path: ${{ runner.temp }}/t2c/t2.json
           key: ${{ needs.plan.outputs.t2_key }}
-      # On main, after the bot fast-forwarded it to a PR's tested head: that PR's gate compared these very builds (the
-      # same head commit, the same base) with the same T2 code, so its frames answer is main's too, read from its
-      # verdict (a branch's cache is not main's to read). The 4090 then runs only main's stall visits.
-      - name: The PR's T2 answer, on main after a fast-forward
+      # On main: a PR's gate that compared the same two served builds with the same T2 code (its t2_key, the stall
+      # mode aside) answered for main too, whatever the commits (a fast-forward, or the owner's merge of a PR whose
+      # neighbour served nothing new). Read from its verdict (a branch's cache is not main's to read): the PRs of this
+      # commit, and this commit's own branch runs. The 4090 then runs only main's stall visits.
+      - name: The PR's T2 answer, on main (the same served builds)
         id: pr
         if: github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true' && steps.cache.conclusion == 'success'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           BASE: ${{ needs.plan.outputs.base }}
+          KEY: ${{ needs.plan.outputs.t2_key }}
           D: ${{ runner.temp }}/t2pr
         run: |
           api() { curl -fsSL --max-time 30 --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
-          for id in $(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/gate.yml/runs?head_sha=$GITHUB_SHA&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'); do
+          R="https://api.github.com/repos/$GITHUB_REPOSITORY"; K="${KEY%-stall*}"
+          shas="$GITHUB_SHA $(api "$R/commits/$GITHUB_SHA/pulls" | jq -r '.[] | select(.merged_at != null) | .head.sha' | tr '\n' ' ')"
+          ids=$(for s in $shas; do api "$R/actions/workflows/gate.yml/runs?head_sha=$s&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'; done | sort -u)
+          for id in $ids; do
             a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '.artifacts[] | select(.name == "gate-verdict") | .archive_download_url' | head -1)
             [ -n "$a" ] || continue
             rm -rf "$D"; mkdir -p "$D"; api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
-            if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" '.sha == $s and .base == $b and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
+            if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" --arg k "$K" '((.t2_key // "" | sub("-stall(yes|no)$"; "")) == $k or (.sha == $s and .base == $b)) and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
               jq -c '.t2 | {frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok} | map_values(if . == null then "" else tostring end)' "$D/verdict.json" > "$D/t2.json"
               echo "the PR's gate (run $id) compared these builds: $(cat "$D/t2.json")"; echo "hit=true" >> "$GITHUB_OUTPUT"; exit 0
             fi
           done
-          echo "no PR gate of this commit on this base: T2 runs in full"
+          echo "no PR gate compared these served builds: T2 runs in full"
       - id: p
         env:
           HIT: ${{ steps.cache.outputs.cache-hit }}
