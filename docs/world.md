@@ -9,7 +9,9 @@ full design as of the build it came from (stage 2's changes are tagged
 inline: stage2, speed, quality; fast500's: fast500; where a header and
 its code differ, the code and this file are right); this is the outline.
 
-THE WORLD: one world over an endless plane, its land and its sea of cloud
+## THE WORLD
+
+One world over an endless plane, its land and its sea of cloud
 blended by smooth maps (the kits' weights), never a cut between places:
 the dunes' kit (a dune sea with its families of dunes, far rock ridges,
 mesas and buttes, giant shards, fields of ruins, temples on plateaus,
@@ -27,7 +29,9 @@ between: sharp in the distance, never a ring), bloom, and the composite
 nothing that fizzes). The light shafts' pass is still in the code, but no
 sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
-THE FLIGHT AND THE CAMERA: left alone the view holds its heading and flies
+## THE FLIGHT AND THE CAMERA
+
+Left alone the view holds its heading and flies
 straight and level but for the ground's rise; what stands ahead and
 cannot be climbed is passed by a slip sideways, planned from first sight
 (the owner: "should keep flying same-ish direction unless user drags").
@@ -63,7 +67,9 @@ rotation re-aims at once (a change of height alone eases). Everything
 that frames the view reads the same pitch (the camera, the planner's
 forecast of it, the moon's place).
 
-THE TIME OF DAY: the world's sky (the moon, the gradient, the haze, the
+## THE TIME OF DAY
+
+The world's sky (the moon, the gradient, the haze, the
 cloud's light) is one of six skies, every one with light words (the
 owner: "never use any scenes that dont pass white text"): the afterglow
 (sunset), the blue hour (dusk), first light (the light before sunrise:
@@ -115,7 +121,9 @@ chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
 and first light's 0.15 are 0; the three nights' were 0 already). The cycle
 runs on the flight's own clock, its draws from the visit's own streams.
 
-THE WORDS (the owner: "Don't darken the background anywhere ever",
+## THE WORDS
+
+(The owner: "Don't darken the background anywhere ever",
 "remove that white background behind the text. it's fine failing
 accesibility", and "lets only use white text for everything"): nothing
 is done to the world for the words. No lift, no floor, no gain, no veil,
@@ -146,7 +154,9 @@ numbers: a night's light ink under the light words lowers their
 contrast for the moment it crosses, which the owner accepted ("it's
 completely fine if the birds fly behind/in front of it").
 
-THE FIRST-PAINT HOLD (the owner, 2026-11-06: "Yes, build the preview";
+## THE FIRST-PAINT HOLD
+
+(The owner, 2026-11-06: "Yes, build the preview";
 "Hold up to ~1 s"): where it runs, the page does not paint until the
 world's first frame is drawn; the browser keeps the previous page or a
 blank tab, then the words and the world appear in one frame. The world,
@@ -178,7 +188,9 @@ first frame byte for byte the one without the hold (frame 0: gstep
 counts a world shown in the page's own load as shown at frame 0). The
 ink birds stay deferred and join after the show.
 
-BOOT (the owner: "should load instantly make it 10x faster"): without the
+## BOOT
+
+(The owner: "should load instantly make it 10x faster"): without the
 hold, the page paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The kits, the wing model
@@ -297,7 +309,9 @@ the full scale (13.5 ms a frame). The flush was made in world.v5.js
 itself, not cut from the dev build; fast500's dev build carries the same
 line, so its cut keeps it.
 
-THE GOVERNOR AND COST (the owner: "everything should be 10x quality"):
+## THE GOVERNOR AND COST
+
+(The owner: "everything should be 10x quality"):
 the world is drawn at its memory tier's density: a desktop at most 2
 device px a CSS px and 6 Mpx (a Retina 1440x900 window's world
 2880x1800), a full phone (an iPhone 390-600 px across at 3x, an Android
@@ -335,7 +349,9 @@ keeps the still sky from the start; so does a boot whose 0.35 trial
 misses the floor, a first frame doubted twice, or a broken program. A
 hidden tab draws nothing.
 
-FALLBACKS: no WebGL2: the still sky of the hour (data-sky) and its words,
+## FALLBACKS
+
+No WebGL2: the still sky of the hour (data-sky) and its words,
 no bird; no script: the still day sky and the words, no bird; a lost
 context: the still sky of the time of day being drawn, until restored;
 prefers-reduced-motion: one still frame of the world, drawn again when the
@@ -353,7 +369,9 @@ takes up its change, and that list then fires no event: the world did not
 come back when they ended while the ink birds moved), and the world back
 when they end, on at load too; print: none of it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.js's
+## THE WEATHER (=rand())
+
+One crypto.getRandomValues above world.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
 ink birds. The realm and kit files, the wing model, the ink birds and the

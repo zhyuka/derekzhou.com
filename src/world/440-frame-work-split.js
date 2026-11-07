@@ -36,7 +36,6 @@
     cellWork(V, false, 0, 4, 'cpu'); prof('cells.cpu');
     kwFollow(CS.x, CS.z, false); prof('weights');   // (the weights' grid kept about the camera, a share a slice)
   }
-  function stream() { gpuJobs(); cpuSlice(); }   // (dev hooks: a frame's whole share at once)
   function budgets(boot) {   // the frame's counts: the *_BUDGET counts in flight; the boot's, sixteen times them, behind the still sky (and its slices timed)
     BUD.layouts = boot ? 16 * LAYOUT_BUDGET : LAYOUT_BUDGET; BUD.resolves = boot ? 16 * RESOLVE_BUDGET : RESOLVE_BUDGET; BUD.verts = boot ? 16 * VERT_BUDGET : VERT_BUDGET;
     BUD.uploads = boot ? 16 : 1; BUD.bake = boot ? BOOT.bake : VOL_LAYERS;

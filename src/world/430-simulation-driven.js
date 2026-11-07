@@ -20,22 +20,5 @@
     if (n >= NMAX) SIM.acc = 0;
     SIM.alpha = clamp(SIM.acc / SIM_DT, 0, 1);
   }
-  /* the harness: stepped until t, each step's ground and the cells about the camera made at once (their solids and
-     places: the flight needs them; their meshes and clouds only for the frame drawn at the end) */
-  function simTo(t) {
-    if (!SIM.V || t < SIM.t - 1e-9) simReset();
-    var guard = 0;
-    while (SIM.t + SIM_DT <= t + 1e-9 && guard++ < 2e6) {
-      if (!SIM.V) { var V0 = worldAt(0).V; visitStep(V0, true); groundCache(V0, 0, 0, true); }
-      if (!simStepOnce()) break;
-      var V = SIM.V;
-      groundCache(V, CS.x, CS.z, true);
-      streamCells(V, CS.x, CS.z, Math.sin(CS.psi), Math.cos(CS.psi), false);
-      kwFollow(CS.x, CS.z, true); kwUpload();   // (the weights' grid kept about the camera)
-      cellWork(V, true, 0.85, 2);   // (every cell that can hold a place the autopilot may choose, 2 km: a still is the same drawn alone or in a film)
-    }
-    SIM.alpha = 1; SIM.acc = 0;
-    freeDrain();
-  }
   /* the world, built (every stage; there is no passage bake) */
   function visitBuilt(V) { return V.st >= VSTAGES.length; }

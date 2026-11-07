@@ -18,12 +18,6 @@
   }
   var CS = freshState(), CSP = freshState();
   function copyState(a, b) { b.x = a.x; b.y = a.y; b.z = a.z; b.yawV = a.yawV; b.phi = a.phi; b.thU = a.thU; b.thP = a.thP; b.roll = a.roll; b.psi = a.psi; b.cy = a.cy; b.pf = a.pf; b.pfT = a.pfT; b.cw = a.cw; }
-  function simReset() {
-    CS = freshState(); CSP = freshState(); SIM.t = 0; SIM.V = null; SIM.u = 0; SIM.acc = 0; SIM.alpha = 1; SIM.steps = 0; SIM.fixG = 0; SIM.fixO = 0; SIM.inited = false;
-    INP.dx = INP.dy = 0; INP.rel = false; INPLOG.length = 0; INPQ.length = 0; INPQ.i = 0;
-    GROUND.ok = false; GROUND.V = null; GCK[0] = -1;
-    if (BIRDS) BIRDS.reset();
-  }
   /* the flight begins at the landing (world6: once, for the page's life; no cloud to come down out of) */
   function arrive(V) {
     planVisit(V);
@@ -70,7 +64,7 @@
     if (V !== SIM.V) {   // (world6: only at the start: the world is built, then flown for the page's life)
       /* (E1) built in the background long before its junction; in flight never built at once (round 3b's fallback was
          a synchronous build, a long task in flight): if it is not ready the flight holds at the junction, in the
-         passage's cover, until it is (counted: SIM.waits). The harness's stills (simTo) build it at once */
+         passage's cover, until it is (counted: SIM.waits). */
       if (V.st < VSTAGES.length && !(STILLMODE && visitStep(V, true))) { SIM.waits++; return false; }
       arrive(V); SIM.V = V;
     }

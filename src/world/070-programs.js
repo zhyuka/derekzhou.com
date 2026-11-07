@@ -102,17 +102,6 @@
     if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n') + (claWx(CLA) ? '' : '#define NO_PKWX\n'); }
     return CLA.defs;
   }
-  function devDbg(v) {   // (dev hooks) a dev view the issued programs hold, or a loud failure
-    v = v | 0;
-    if (v && CLA && !CLA.dev) { fail('dev view dbg ' + v + ' asked, but the programs were issued with uDbg folded to 0: give the dev switch dbg at load (data-dev-switch "dbg")'); throw new Error('dbg ' + v + ' without dev use'); }
-    return v;
-  }
-  function devDefsHold() {   // (dev hooks) after a sky is changed: the words' and the rain's defines must still hold
-    if (!CLA) return;
-    var c = claCompute();
-    if (c.twilight !== CLA.twilight || c.rain !== CLA.rain) { fail('a sky changed so the issued defines no longer hold (NO_TWILIGHT / NO_RAIN): reload'); throw new Error('defines stale'); }
-  }
-  function defsRec() { return CLA ? { twilight: CLA.twilight, rain: CLA.rain, water: CLA.water, pkinds: CLA.pkinds.slice(), pkUnknown: CLA.pkUnknown, dev: CLA.dev, defs: CLA.defs } : null; }
   function progDone(P) {   // its status read (and its uniforms): true linked, false broken, LOSTP
     var tf = clockNow(), r = finish(P);
     if (r === LOSTP) return LOSTP;
@@ -285,9 +274,6 @@
     if (!ok) { LATEP.birdWait++; return false; }
     LATEP.birdsAt = SIM.t; return true;
   }
-  function lateRec() {
-    return { on: LATEP.on, decided: LATEP.decided, sand: LATEP.sand, R: Math.round(LATEP.R), names: LATEP.names.slice(), ready: LATEP.ready, done: LATEP.done.slice(), warmed: LATEP.warmed.slice(), miss: LATEP.miss, misses: LATEP.misses.slice(), birdWait: LATEP.birdWait, birdsAt: LATEP.birdsAt };
-  }
   /* (fast500 lane E, the folds: ef.py) a uniform, or one component of it, whose value is fixed for the page is written
      into the program's text at its issue as the literal it always has, so the compiler folds the branch it selects.
      Declarations are never touched (their lines start "uniform"): a location stays, or goes inactive where nothing reads
@@ -327,11 +313,6 @@
     P.vs = vs; P.fs = fs;
     if (got.length) FOLDX.prog[P.name] = got;
     if (abs.length && DEVMODE) FOLDX.absent[P.name] = abs;
-  }
-  function foldRec() {
-    var G = EP && EP.compg;
-    return { on: FOLDX.on, fixed: FOLDX.fixed ? FOLDX.fixed.map(function (x) { return x[0] + ' = ' + x[1]; }) : null, prog: FOLDX.prog, absent: FOLDX.absent, B: FOLDX.B, live: FOLDX.live,
-      general: G ? (G.st === 3 ? (G.ok ? (G.warmed ? 'warmed' : 'done') : 'broken') : 'pending') : 'none', used: FOLDX.used, miss: FOLDX.miss, misses: FOLDX.misses.slice() };
   }
   var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20 };
   function finish(P) {   // true: linked; false: broken; LOSTP: the context was lost (asked again after the restore)
