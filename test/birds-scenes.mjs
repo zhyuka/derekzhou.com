@@ -47,6 +47,9 @@ export const SCENES = {
     return { opt, secs: LONG ? 180 : 120, setup: (sim) => { sim.run(0.5); const F = sim.flock(sim.ahead(d, xs, -5), 'pair', 'gull', 2);
       for (const b of F.m) b.tag = 'sink'; const g = sim.B.newGoal(F, 'sink', F.r, sim.B.skyCls()); sim.B.PW.nextT = 1e9; sim.B.PW.ptrNext = 1e9; return F.m.slice(); } };
   },
+  /* the sink scene at its full 3 minutes: the world's own birds sent into the cloud near its edge (seeds 7 and 12 once
+     went under the land there) */
+  sinkLong: (seed, size) => { const sc = SCENES.sink(seed, size); sc.secs = 180; return sc; },
   /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes (CI: 2) */
   life: (seed, size) => {
     const sc = SCENES.perch(seed, size);

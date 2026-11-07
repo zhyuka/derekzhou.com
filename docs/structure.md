@@ -9,15 +9,15 @@ marked "built" below exist only in a build, never in site/. Everything else
 here is the repository's own, and never served.
 
 site/index.html              Home page: the words over a 3D world, drawn live behind them
-site/style.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
+site/style.css           All styles (named by its content in the deploy build: docs/caching.md): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.js              The hour: which time of day the world opens on (the page's one clock read)
-site/world.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World) (built)
+site/world.js             The world: the engine, the camera, the time of day, the words' colours, the governor (docs/world.md) (built)
 site/realm-kit.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
 site/realm-dunes.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
 site/realm-above.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
-site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World) (built)
-site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
+site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; docs/world.md) (built)
+site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (docs/birds.md) (built)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
@@ -29,7 +29,7 @@ site/robots.txt              Allow search engines, block AI crawlers
 site/.well-known/security.txt  Vulnerability reporting
 site/\_headers               Cloudflare Pages security + caching + Early Hints headers
 site/\_redirects             HTTPS enforcement (http and www to https://derekzhou.com)
-CLAUDE.md                    This file
+CLAUDE.md                    The short version; docs/ the full record, one file an area
 subset-fonts.sh              Regenerates the .sub3 font subsets (the pages' letters: tools/fontglyphs.mjs) in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
 src/                         The five scripts the site serves minified, as written (the world, the kit and
@@ -144,7 +144,7 @@ for a sign-in there, and past it they serve 404.
 The shipped scripts have no development harness: the world is built and
 measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and src/'s files are that build with every
-hook cut out by counted edits (see Verify), the served copies built
+hook cut out by counted edits (docs/verify.md), the served copies built
 from them. Nothing on the page reads such a hook. The record's code and
 the dev helpers those hooks called are in src/dev/world/, in the dev
 build only, unreachable (the switches keep their defaults); the served
