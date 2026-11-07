@@ -22,6 +22,7 @@ shards.sort((a, b) => a.shard - b.shard);
 
 const v = {
   sha: process.env.GITHUB_SHA, ref: process.env.GITHUB_REF, base: c.base || null, run_id: process.env.GITHUB_RUN_ID,
+  t2_key: c.t2_key || null,   // (both served builds' hashes and the T2 code: main reuses a PR's answer when they match)
   areas: c.areas || '', site_changed: c.site_changed === 'true', glsl_changed: c.glsl_changed === 'true', gpu_js: c.gpu_js === 'true',
   jobs: Object.fromEntries(Object.keys(needs).map((k) => [k, needs[k].result])),
   t1: { ran: result('t1') !== 'skipped', shards: shards.length, frames_identical: shards.length > 0 && shards.every((s) => s.frames_identical), null_ok: shards.every((s) => s.null_ok) },
