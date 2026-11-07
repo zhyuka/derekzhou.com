@@ -15,6 +15,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { loadGround } from '../../test/ground.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const DT = 0.05;
@@ -25,9 +26,16 @@ export const SIZES = {
   '390x844': { W: 390, H: 844, boxes: [25.05, 253.41, 364.89, 333.25, 24, 366.34, 366, 445.37, 24, 477.37, 366, 496.87, 20, 803, 55.2, 824, 79.2, 803, 133.5, 824], nvb: [24.014, 252.37, 0.261047] },
 };
 const TANX = Math.tan(36 * Math.PI / 180), G = 9.81;
-/* the stub world's land: low hills, and patches of the sea of cloud (where the drawn ground is the cloud's top) */
-export const groundAt = (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);
-export const seaW = (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
+/* the land. Today the stub's low hills and patches of the sea of cloud; with BIRDS_GROUND=recorded, the world's real
+   ground, recorded on the 4090 (tools/gpu/record-ground.mjs: world seed 11, the camera's ground and the sea of cloud's
+   weight, +-1500 m about the landing, every 10 m; outside it, its edge). test/ground.mjs refuses a stale recording
+   (the land's sources changed since), so every case then fails, saying to re-record. (2026-11-07: on the real ground
+   the case "a flock sent down into the sea of cloud is hidden in it, then taken out" keeps its flock in all 8 scenes;
+   seed 11's landing is all sea of cloud, and the page's raw sea level lies under the recorded ground at 90% of its
+   points. The birds lane turns the real ground on once that case is settled) */
+export const GROUND = process.env.BIRDS_GROUND === 'recorded' ? loadGround(11) : null;
+export const groundAt = GROUND ? (x, z) => GROUND.groundAt(x, z) : (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);
+export const seaW = GROUND ? (x, z) => (GROUND.seaW(x, z) > 0.5 ? 1 : 0) : (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
 
 let SCRIPTS = null;
 function scripts() {
@@ -49,13 +57,14 @@ function scripts() {
 
 /* a scenario: o = { size, seed, pos (the eye's start, m), speed (m/s), wind [x, z] (m/s), yaw (deg/s, the camera's turn), pitch (deg),
    pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)}, draw (also draw each step, on a GL
-   stub; draw.data(array, n) sees every buffer the draw uploads) } */
+   stub; draw.data(array, n) sees every buffer the draw uploads), dt (the step, s: DT unless set; 1/60 is the page's) } */
 export function makeSim(o = {}) {
   const Z0 = SIZES[o.size || '960x600'], Z = { W: Z0.W, H: Z0.H, boxes: Z0.boxes.slice(), nvb: Z0.nvb.slice() }, W = Z.W, H = Z.H, SPEED = o.speed ?? 12, seed = o.seed ?? 11;
   const C = { pos: o.pos ? o.pos.slice() : [0, 40, 0], f: [0, 0, 1], r: [-1, 0, 0], u: [0, 1, 0], pitch: 0, roll: 0, inCloud: 0, cover: 0 };
   const PT = { x: 0, y: 0, n: 0, gone: true, down: false, steer: false, touch: false };
   const clicks = (o.clicks || []).slice().sort((a, b) => a.t - b.t);
   let t = 0, psi = 0, M = null, fed = 0;
+  const SDT = o.dt || DT;
   const pitch = (o.pitch || 0) * Math.PI / 180;
   /* the GL stub: constants are numbers, calls do nothing (one function each: the stub itself allocates nothing) */
   const NOOP = () => null, GLF = {}, dd = o.draw && o.draw.data;
@@ -90,11 +99,11 @@ export function makeSim(o = {}) {
       const d = o.drag; PT.steer = !!(d && t >= d.t0 && t < d.t1);
       if (PT.steer) yaw += d.rate;
       if (o.pointer) { const p = o.pointer(t); if (p) { PT.x = p.x; PT.y = p.y; PT.gone = false; } else PT.gone = true; }
-      psi += yaw * Math.PI / 180 * DT; aim();
-      C.pos[0] += SPEED * Math.sin(psi) * DT; C.pos[2] += SPEED * Math.cos(psi) * DT;
-      M.step(DT); if (o.draw) M.draw(); t += DT;
+      psi += yaw * Math.PI / 180 * SDT; aim();
+      C.pos[0] += SPEED * Math.sin(psi) * SDT; C.pos[2] += SPEED * Math.cos(psi) * SDT;
+      M.step(SDT); if (o.draw) M.draw(); t += SDT;
     },
-    run(secs, each) { const n = Math.round(secs / DT); for (let i = 0; i < n; i++) { sim.step(); if (each && each(sim) === false) return; } },
+    run(secs, each) { const n = Math.round(secs / SDT); for (let i = 0; i < n; i++) { sim.step(); if (each && each(sim) === false) return; } },
     /* a point ahead of the eye: d m on, xs*d m to the right, up m over */
     ahead(d, xs, up) { return [C.pos[0] + d * C.f[0] + d * xs * C.r[0], C.pos[1] + d * C.f[1] + up, C.pos[2] + d * C.f[2] + d * xs * C.r[2]]; },
     flock(p, pat, kind, n, heading) { const F = sim.B.newFlock(p[0], p[1], p[2], 0, sim.B.skyCls(), [pat, kind, n]); for (const b of F.m) b.psi = heading ?? psi; return F; },

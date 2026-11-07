@@ -2,15 +2,20 @@
 
 <!-- Moved word for word from CLAUDE.md's section "Fonts + performance" (restructure step 7, 2026-11-06). -->
 
-Served fonts are ASCII subsets (.sub2: Latin basic, · – — ‘ ’ “ ” …).
-./download-fonts.sh fetches the sources from Vercel's own geist package
-(pinned) into site/assets/fonts; ./subset-fonts.sh cuts the subsets
-there. Geist is one variable file cut to the two weights the site sets,
-wght 400-500 (10.9 KB, smaller
-than a single static weight); Geist Mono Regular is 9.3 KB: 20 KB of
-fonts in all. The subsets keep the copyright and the OFL notice in their
-name tables (IDs 0, 13, 14), and assets/fonts/OFL.txt ships beside them.
-The home page uses no glyph outside the subsets; do not add glyphs.
+Served fonts are cut to the letters the pages show (.sub3, load-perf,
+2026-11-07; .sub2 were Latin basic and · – — ‘ ’ “ ” …: 10,932 + 9,320 B):
+Geist to every page's text, Geist Mono to the credit row's
+(tools/fontglyphs.mjs says which). ./download-fonts.sh fetches the sources
+from Vercel's own geist package (pinned) into site/assets/fonts;
+./subset-fonts.sh cuts the subsets there. Geist is one variable file cut to
+the two weights the site sets, wght 400-500 (5.5 KB); Geist Mono Regular
+is 4.6 KB: 10 KB of fonts in all, before the first paint. The subsets keep
+the copyright and the OFL notice in their name tables (IDs 0, 13, 14), and
+assets/fonts/OFL.txt ships beside them. A page that shows a letter its
+font lacks would draw it in the fallback face: CI's check "Every letter the
+pages show is in its font" (tools/checks/37-font-glyphs.sh) fails then.
+When the words gain a letter, run ./subset-fonts.sh and rename the fonts
+(.subN+1) and every reference in the same commit.
 font-display: optional + the metric-matched fallbacks give CLS = 0 by
 construction: 'Geist Fallback' (Arial) and 'Geist Fallback Android'
 (Roboto), 400 and 500 apart, their size-adjust the page's own text set in

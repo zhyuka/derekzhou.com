@@ -38,7 +38,8 @@ function copy(from, to) {
     else fs.copyFileSync(a, b);
   }
 }
-if (process.argv[2] === '--self-test') {
+const MAIN = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));   // (run, not imported: test/ground.mjs imports strip)
+if (MAIN && process.argv[2] === '--self-test') {
   // the stripped text must be the same program: terser (no compress, no mangle, no comments) prints both alike
   const { minify } = await import('terser');
   const files = process.argv.slice(3); let bad = 0;
@@ -50,4 +51,4 @@ if (process.argv[2] === '--self-test') {
   }
   console.log(bad ? 'nocomments: FAILED' : 'nocomments: ' + files.length + ' scripts keep their programs, lines and columns');
   process.exit(bad);
-} else if (process.argv[2] && process.argv[3]) copy(path.resolve(process.argv[2]), path.resolve(process.argv[3]));
+} else if (MAIN && process.argv[2] && process.argv[3]) copy(path.resolve(process.argv[2]), path.resolve(process.argv[3]));
