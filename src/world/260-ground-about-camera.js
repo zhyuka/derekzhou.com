@@ -15,7 +15,7 @@
     if (GCK[0] === V.k && GCK[1] === x0 && GCK[2] === z0 && GCK[3] === J.seed) return;
     GCK[0] = V.k; GCK[1] = x0; GCK[2] = z0; GCK[3] = J.seed;
     if (!GCT) {
-      GCT = { f: gl.createFramebuffer() }; gl.activeTexture(gl.TEXTURE11); GCT.t = tex2d(GCN, GCN, FLOAT32_RT ? gl.R32F : gl.RGBA8, FLOAT32_RT ? gl.RED : gl.RGBA, FLOAT32_RT ? gl.FLOAT : gl.UNSIGNED_BYTE, gl.NEAREST); gl.activeTexture(gl.TEXTURE0);
+      GCT = /** @type {{ f: WebGLFramebuffer, t: WebGLTexture }} */ ({ f: gl.createFramebuffer() }); gl.activeTexture(gl.TEXTURE11); GCT.t = tex2d(GCN, GCN, FLOAT32_RT ? gl.R32F : gl.RGBA8, FLOAT32_RT ? gl.RED : gl.RGBA, FLOAT32_RT ? gl.FLOAT : gl.UNSIGNED_BYTE, gl.NEAREST); gl.activeTexture(gl.TEXTURE0);
       gl.bindFramebuffer(gl.FRAMEBUFFER, GCT.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, GCT.t, 0);
       GCCT = target(GCN, GCN, 'rgba8');
     }
