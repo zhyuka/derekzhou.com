@@ -49,6 +49,8 @@ tools/parts.mjs              Splits a long script into its sections and assemble
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, compiled and linked in Chrome (--compile)
 test/unit.mjs                The world's pure code in Node (streams, hashes, the sky order, the maps, the plan's worker); --write updates test/golden/unit.json
+tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
+test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
@@ -90,7 +92,7 @@ compiles the short text; src/ keeps the readable one. Edit a shader in its
 census and T2 compare the base's build with the head's.
 tools/minify.mjs makes the served five from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
-as its default) and the ink birds' HOST.dev read as false, then terser
+as its default; the ink birds read no dev flag: checked), then terser
 (pinned in package.json) compresses and
 mangles, every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
@@ -143,7 +145,7 @@ the dev helpers those hooks called are in src/dev/world/, in the dev
 build only, unreachable (the switches keep their defaults); the served
 copy is built without them (assemble --ship: the four functions called
 without a guard kept as empty ones; tools/minify.mjs: every switch read
-as its default, and the ink birds' HOST.dev read as false). The
+as its default; the ink birds read no dev flag). The
 comments, in src/ (a served copy keeps only its first two lines and the
 INIT-END marker), keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,
