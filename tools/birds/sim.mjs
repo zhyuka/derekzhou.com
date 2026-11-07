@@ -57,13 +57,14 @@ function scripts() {
 
 /* a scenario: o = { size, seed, pos (the eye's start, m), speed (m/s), wind [x, z] (m/s), yaw (deg/s, the camera's turn), pitch (deg),
    pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)}, draw (also draw each step, on a GL
-   stub; draw.data(array, n) sees every buffer the draw uploads) } */
+   stub; draw.data(array, n) sees every buffer the draw uploads), dt (the step, s: DT unless set; 1/60 is the page's) } */
 export function makeSim(o = {}) {
   const Z0 = SIZES[o.size || '960x600'], Z = { W: Z0.W, H: Z0.H, boxes: Z0.boxes.slice(), nvb: Z0.nvb.slice() }, W = Z.W, H = Z.H, SPEED = o.speed ?? 12, seed = o.seed ?? 11;
   const C = { pos: o.pos ? o.pos.slice() : [0, 40, 0], f: [0, 0, 1], r: [-1, 0, 0], u: [0, 1, 0], pitch: 0, roll: 0, inCloud: 0, cover: 0 };
   const PT = { x: 0, y: 0, n: 0, gone: true, down: false, steer: false, touch: false };
   const clicks = (o.clicks || []).slice().sort((a, b) => a.t - b.t);
   let t = 0, psi = 0, M = null, fed = 0;
+  const SDT = o.dt || DT;
   const pitch = (o.pitch || 0) * Math.PI / 180;
   /* the GL stub: constants are numbers, calls do nothing (one function each: the stub itself allocates nothing) */
   const NOOP = () => null, GLF = {}, dd = o.draw && o.draw.data;
@@ -98,11 +99,11 @@ export function makeSim(o = {}) {
       const d = o.drag; PT.steer = !!(d && t >= d.t0 && t < d.t1);
       if (PT.steer) yaw += d.rate;
       if (o.pointer) { const p = o.pointer(t); if (p) { PT.x = p.x; PT.y = p.y; PT.gone = false; } else PT.gone = true; }
-      psi += yaw * Math.PI / 180 * DT; aim();
-      C.pos[0] += SPEED * Math.sin(psi) * DT; C.pos[2] += SPEED * Math.cos(psi) * DT;
-      M.step(DT); if (o.draw) M.draw(); t += DT;
+      psi += yaw * Math.PI / 180 * SDT; aim();
+      C.pos[0] += SPEED * Math.sin(psi) * SDT; C.pos[2] += SPEED * Math.cos(psi) * SDT;
+      M.step(SDT); if (o.draw) M.draw(); t += SDT;
     },
-    run(secs, each) { const n = Math.round(secs / DT); for (let i = 0; i < n; i++) { sim.step(); if (each && each(sim) === false) return; } },
+    run(secs, each) { const n = Math.round(secs / SDT); for (let i = 0; i < n; i++) { sim.step(); if (each && each(sim) === false) return; } },
     /* a point ahead of the eye: d m on, xs*d m to the right, up m over */
     ahead(d, xs, up) { return [C.pos[0] + d * C.f[0] + d * xs * C.r[0], C.pos[1] + d * C.f[1] + up, C.pos[2] + d * C.f[2] + d * xs * C.r[2]]; },
     flock(p, pat, kind, n, heading) { const F = sim.B.newFlock(p[0], p[1], p[2], 0, sim.B.skyCls(), [pat, kind, n]); for (const b of F.m) b.psi = heading ?? psi; return F; },

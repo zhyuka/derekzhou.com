@@ -60,7 +60,7 @@ const R = await page.evaluate(async ({ d, rule, VW, VH, COL, links, credit, sans
     return out;
   }
   return { cols, links: links.map((w) => glyphs(w, 'PG')), credit: glyphs(credit, 'PM') };
-}, { d, rule, VW, VH, COL, links, credit, sans: font('Geist-400-500.sub2.woff2'), mono: font('GeistMono-Regular.sub2.woff2') });
+}, { d, rule, VW, VH, COL, links, credit, sans: font('Geist-400-500.sub3.woff2'), mono: font('GeistMono-Regular.sub3.woff2') });
 await browser.close();
 
 /* the same tables but for what another Chromium's antialiasing moves: every number within its tolerance */

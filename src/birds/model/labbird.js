@@ -306,7 +306,9 @@
       var ch2 = chords(e), cin = ch2[0], cout = ch2[1];   // (the tapered cantilever's two chords, the tip's deflection kept)
       for (i = 0; i < 22; i++) { PIn[i] = pose22[i]; POut[i] = pose22[i]; }
       for (sd = 0; sd < 2; sd++) { var o7 = sd * P.NP + 7, ld = pose22[o7] - TG; PIn[o7] = TG + cin * ld; POut[o7] = TG + cout * ld; }
-      P.verts(kind, PIn, out); P.bones(kind, PIn, BI); P.bones(kind, POut, BO);
+      P.bones(kind, PIn, BI); P.bonesTips(kind, POut, BO);   // (POut is PIn but for the tips' curl)
+      var vb = K.b, nb = vb.length;   // (the vertices on BI: P.verts's own sums, its bones made once)
+      for (i = 0; i < nb; i++) { QB[0] = v[3 * i]; QB[1] = v[3 * i + 1]; QB[2] = v[3 * i + 2]; apply(BI, vb[i], QB, out, 3 * i); }
       var kx = K.dims.kx, yK = K.yK;
       for (sd = 0; sd < 2; sd++) {
         var sg = sd ? -1 : 1, off = sd ? 13 : 0, bo = sd ? 6 : 0, base = FV_BASE, tipv = FV_TIP, bone = FV_BONE, oN = 30 + 8 * sd, j, op = FKk.open;
