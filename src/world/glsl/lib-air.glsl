@@ -8,10 +8,10 @@ vec3 skyGrad(float e) {
   return mix(c, uSky[5], smoothstep(uSkyE.z, uSkyE.w, e));
 }
 float sunSide(vec3 rd) { vec2 h = normalize(rd.xz + vec2(1e-6, 0.0)), s = normalize(uSkyS.xz + vec2(1e-6, 0.0)); return 0.5 + 0.5 * dot(h, s); }
-/* (fast500 no-fades, the sun and moon: "same w sun") the warm band in a change between a twilight sky and a night: the
-   twilight's sunk with the sun (read uSunK.x deg higher, so it is whole only under the sun's depth) and weakening
-   with that depth (uSunK.y), the night's own coming in with the night's colours (uSunK.z); skyCol's own band is
-   then off (its amounts 0), its lines unchanged */
+/* (the sun and moon: "same w sun") the warm band in a change between a twilight sky and a night: the twilight's
+   sunk with the sun (read uSunK.x deg higher, so it is whole only under the sun's depth) and weakening with that
+   depth (uSunK.y), the night's own coming in with the night's colours (uSunK.z); skyCol's own band is then off (its
+   amounts 0) */
 vec3 skyWarmN(vec3 c, float e, float side) {
   float lt = exp(-max(e + uSunK.x, 0.0) / uSkyKT.y) * uSunK.y, ln = exp(-max(e, 0.0) / uSkyKN.y) * uSunK.z;
   c = mix(c, uSkyWT, uSkyKT.x * side * side * lt);
@@ -19,12 +19,12 @@ vec3 skyWarmN(vec3 c, float e, float side) {
   c = mix(c, uSkyWN, uSkyKN.x * side * side * ln);
   return c * (1.0 - uSkyKN.z * (1.0 - side) * ln);
 }
-/* the sky's colour along rd. (fast500 no-fades, the sun and moon) in a change between a twilight sky and a night: its
-   own warm band off (its amounts 0: the gradient as it is) and its glow the sinking sun's, then the two ends' warm
-   bands laid on the gradient (skyWarmN's difference added, so the glow stays over the band) and the night's own glow
-   about the key; everywhere else F0's, bit for bit. (world-perf lane) the elevation, the gradient and the side
-   worked out once for both: FXC does not merge an inlined function's repeats, so they were compiled twice in every
-   program that reads the sky (the same operations on the same values) */
+/* the sky's colour along rd. (the sun and moon) in a change between a twilight sky and a night: its own warm band
+   off (its amounts 0: the gradient as it is) and its glow the sinking sun's, then the two ends' warm bands laid on
+   the gradient (skyWarmN's difference added, so the glow stays over the band) and the night's own glow about the key;
+   everywhere else the plain sky's (uSkyN.w 0), bit for bit. The elevation, the gradient and the side are worked out
+   once for both: FXC does not merge an inlined function's repeats, so it would compile them twice in every program
+   that reads the sky (the same operations on the same values) */
 vec3 skyCol(vec3 rd) {
   float e = degrees(asin(clamp(rd.y, -1.0, 1.0)));
   vec3 g = skyGrad(e), c = g;
@@ -61,9 +61,9 @@ float hazeAmt(vec3 rd, float t) {
 }
 float hazeSky(vec3 rd) { if (uHaze.x <= 0.0) return 0.0; return 1.0 - exp(-uHaze.x * exp(-uHaze.z / uHaze.y) * uHaze.y / max(rd.y, 2e-3)); }
 vec3 hazeCol0(vec3 rd) { float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0); return mix(uHazeC, uHazeW, cs * cs * cs); }
-/* (fast500 no-fades, the sun and moon) the haze's warm side in a change between a twilight sky and a night: by its two
-   ends, the twilight's sinking with the sun as its warm band does (whole only under the sun's depth) and weakening
-   with that depth, the night's coming in with the night's colours; elsewhere F0's (hazeCol0) */
+/* (the sun and moon) the haze's warm side in a change between a twilight sky and a night: by its two ends, the
+   twilight's sinking with the sun as its warm band does (whole only under the sun's depth) and weakening with that
+   depth, the night's coming in with the night's colours; elsewhere the plain haze's (hazeCol0) */
 vec3 hazeCol(vec3 rd) {
   if (uSkyN.w <= 0.0) return hazeCol0(rd);
   float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0), e = degrees(asin(clamp(rd.y, -1.0, 1.0)));
@@ -73,13 +73,12 @@ vec3 hazeCol(vec3 rd) {
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float f = fogAmt(rd, t);
   // the air's colour: blue first (dark forms far off turn blue), the horizon's own colour as it thickens
-  // (world-perf lane: fogCol once; FXC compiled each of its three calls apart)
+  // (fogCol once: FXC compiles each of its three calls apart)
   vec3 fq = fogCol(rd), fc = mix(mix(fq, uFogB.rgb, uFogB.a), fq, smoothstep(0.25, 0.95, f));
   c = mix(c, fc, f);
   c = mix(c, hazeCol(rd), hazeAmt(rd, t));
-  /* (tod fix3, problem 2) the twilight's low mist: while the light crosses the inks' band on a change of the words'
-     kind, everything seen within a few degrees of the horizon (the far land, a mesa, a dune's crest, the feet of the
-     towers) lies in a mist of the horizon's own colour, so the ground about the words is even, while the land nearer
+  /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen
+     within a few degrees of the horizon (the far land, a mesa, a dune's crest, the feet of the towers) lies in a mist of the horizon's own colour, so the ground about the words is even, while the land nearer
      and lower keeps its darkness and the sky its own: the frame keeps its body. Its amount times its shape (0 at amount
      0: the identity); a function of the ray alone, the same everywhere, no words input */
 #ifndef NO_TWILIGHT

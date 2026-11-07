@@ -1,5 +1,5 @@
 // unit.mjs: the world's pure code, tested in Node (restructure step 6). Nothing here needs WebGL or a page: the code is
-// read from the dev build (src/ assembled by tools/parts.mjs into a temporary folder, as tools/start.mjs reads it), cut
+// read from the dev build (src/ assembled by tools/parts.mjs into a temporary folder), cut
 // out by its own anchors and run in a function of its own, so src/ exports nothing for the tests.
 //   node --test test/unit.mjs                 run (CI: validate.yml, "The world's pure code, unit-tested")
 //   node test/unit.mjs --write                write test/golden/unit.json from today's code (after a deliberate change)

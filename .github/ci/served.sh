@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # served.sh: what base and head serve, built (tools/build.mjs --plain, each commit with its own tools and its own
-# pinned terser). site/ holds only sources; the files a visitor gets (the minified scripts, the start file and its
-# table) exist only in a build. The gates compare these two folders and render them.
+# pinned terser). site/ holds only sources; the files a visitor gets (the minified scripts and the plan's
+# worker) exist only in a build. The gates compare these two folders and render them.
 #   bash .github/ci/served.sh BASE_SHA OUT     -> OUT/base, OUT/head (run from the head's checkout), and their settled twins
 #                                                 OUT/base-twin, OUT/head-twin for T2 (tools/gpu/twin.js; never deployed)
 set -euo pipefail
