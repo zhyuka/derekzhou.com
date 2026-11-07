@@ -1,7 +1,7 @@
   /* ---------------------------------------------------------------- the words */
   var WORDS = new Float32Array(20), WORDCOL = null;
-  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* (line2) the old bio's slot: the page's line under the name */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
-  /* (E0) the name is lettered (an inline SVG in the h1, no bio): its box is the ink's own, the path's bounds in the
+  var wordEls = { name: document.querySelector('h1'), bio: document.querySelector('.words'),   /* the page's line under the name */ credit: document.querySelector('.credit'), links: document.querySelectorAll('footer a') };
+  /* the name is lettered (an inline SVG in the h1, no bio): its box is the ink's own, the path's bounds in the
      drawing put where the svg stands (read once, then only scaled); without it, the h1's box */
   var nameSvg = wordEls.name ? wordEls.name.querySelector('svg') : null, namePath = nameSvg ? nameSvg.querySelector('path') : null, NAMEBB = null;
   function nameInk(cr, k) {
@@ -18,7 +18,7 @@
   }
   function measureWords() {
     var cr = canvas.getBoundingClientRect(), k = OUT.w / Math.max(cr.width, 1);
-    WORDSIH = window.innerHeight;   // (fast500 no-fades: the height the boxes were measured at, for the moon's plan: a read, nothing built)
+    WORDSIH = window.innerHeight;   // (the height the boxes were measured at, for the moon's plan: a read, nothing built)
     function box(el, i) {
       if (!el) { WORDS[i * 4] = 0; WORDS[i * 4 + 1] = 0; WORDS[i * 4 + 2] = 0; WORDS[i * 4 + 3] = 0; return; }
       var b = el.getBoundingClientRect();
@@ -27,15 +27,14 @@
     if (!(namePath && nameInk(cr, k))) box(wordEls.name, 0);
     box(wordEls.bio, 1); box(wordEls.credit, 2); box(wordEls.links[0], 3); box(wordEls.links[1], 4);
   }
-  /* (world6w, the owner's word of 2026-10-21: "remove that white background behind the text. it's fine failing
-     accesibility"; stage2, the owner's word of 2026-11-03: "lets only use white text for everything so never use any
-     scenes that dont pass white text") the words' colours: constants, the same in the stylesheet and here, for every
-     sky and every moment, chosen against the light ceiling itself (W8: no pixel the world draws stands above OKLab L
-     0.53 outside the moon's footprint, which keeps off the words, and the ink birds, which fly behind them freely: the
-     owner, 2026-11-05): the text #fdfcf7 reads 5.13:1 on L 0.53, the dimmed grey #ebeffa (the credit; the links'
-     underline) 4.59:1, the ring #f4e2b0 4.1:1. Nothing is read from the world for the words and nothing is done to
-     the world for them: the root takes the set (setWords) as the stylesheet has it. (fast500's deep sweep, 2026-11-05: the read-back that
-     once worked a grey out from the composite is gone; it had been off since stage2) */
+  /* (the owner's word of 2026-10-21: "remove that white background behind the text. it's fine failing
+     accesibility"; the owner's word of 2026-11-03: "lets only use white text for everything so never use any scenes
+     that dont pass white text") the words' colours: constants, the same in the stylesheet and here, for every sky and
+     every moment, chosen against the light ceiling itself (no pixel the world draws stands above OKLab L 0.53 outside
+     the moon's footprint, which keeps off the words, and the ink birds, which fly behind them freely: the owner,
+     2026-11-05): the text #fdfcf7 reads 5.13:1 on L 0.53, the dimmed grey #ebeffa (the credit; the links' underline)
+     4.59:1, the ring #f4e2b0 4.1:1. Nothing is read from the world for the words and nothing is done to the world for
+     them: the root takes the set (setWords) as the stylesheet has it */
   var WORDSETS = { light: { text: '#fdfcf7', dimmed: '#ebeffa', focus: '#f4e2b0', selection: '#3b3f55' } }, INK = 'light';
   function agL2s(c) { return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055; }
   function setWords(kind) {

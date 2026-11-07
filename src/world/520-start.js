@@ -1,19 +1,19 @@
   /* ---------------------------------------------------------------- start */
   /* the words moved (a scroll, a reflow the ResizeObserver catches, the fonts arriving): the veil is measured again;
      a still frame (reduced motion) is drawn again on the next animation frame, so the veil is where the words are */
-  function layoutChanged() {   // (E1.1 Fix 2, S10: only stored; measured, and a still drawn again, in the next frame: domFlush)
+  function layoutChanged() {   // (only stored; measured, and a still drawn again, in the next frame: domFlush)
     DOMQ.words = true; if (!running) domNext();
   }
-  var SLOW_GPU = /Adreno \(TM\) 619\b/;   // (phone lane: the GPUs the lab measured too slow for the world, by WebGL's renderer string)
+  var SLOW_GPU = /Adreno \(TM\) 619\b/;   // (the GPUs the lab measured too slow for the world, by WebGL's renderer string)
   function boot() {
-    bootMark('start: run');   // (fast500 F0)
+    bootMark('start: run');
     if (!ORDER.length) { fail('no realms'); return; }
-    /* (Fix 2) stage A: the context and its extensions (then the record's and the harness's wrappers, then the ink
-       birds' module, which compiles through HOST); without a context the still sky stays */
+    /* stage A: the context and its extensions (then the record's and the harness's wrappers, then the ink birds'
+       module, which compiles through HOST); without a context the still sky stays */
     if (!gl) {
       recMark('boot: context');
-      if (!getGL()) { DEAD = true; markStill(); fail('no WebGL2 context'); return; }   // (tod: the bar takes the hour's still's top)
-      recWrap(); devGL(); recMark('boot: context made'); bootMark('start: context');   // (fast500 F0)
+      if (!getGL()) { DEAD = true; markStill(); fail('no WebGL2 context'); return; }   // (the bar takes the hour's still's top)
+      recWrap(); devGL(); recMark('boot: context made'); bootMark('start: context');
       deviceHints();
     }
     makeBirds();
@@ -21,32 +21,31 @@
     if (OPT.ss) SS = Math.max(1, Math.min(4, +OPT.ss | 0));
     // the realm the journey opens on (its still sky is marked only if the canvas, once shown, hides again: markStill)
     var V0 = worldAt(0).V;
-    SKYMARK = SKYTOP[HOUR] ? HOUR : 'day';   // (tod fix3, problem 4: the hour's group, never the realm's own still ('dunes'): this stylesheet has a still sky and words for each time of day and none for a realm, so a boot declined before the first frame (a slow device) left a night visitor on the daylight still with black words; Fix 3: not written: the hour's still sky stays until the canvas hides, markStill)
+    SKYMARK = SKYTOP[HOUR] ? HOUR : 'day';   // (the hour's group, never the realm's own still ('dunes'): this stylesheet has a still sky and words for each time of day and none for a realm, so a boot declined before the first frame (a slow device) would leave a night visitor on the daylight still with black words; not written: the hour's still sky stays until the canvas hides, markStill)
     // a renderer on the CPU keeps that still sky (the world would run at a frame or two a second)
     if (!DEVMODE && /SwiftShader|llvmpipe|Software/i.test(EXT.renderer)) { DEAD = true; return; }
-    /* (phone lane) and a GPU measured too slow keeps it before any program is compiled: stage G declined it on every
-       real run (the Android lab, Firebase Test Lab, 2026-11-06: a OnePlus Nord CE 3 Lite's Adreno 619, Chrome 117 and
-       159, cold and return, 124-159 ms a frame at scale 0.35 against 21.7, after a 4.37 s compile frame). Only GPUs
-       declined every time are named; one on the line (the Galaxy A15's Mali-G57 MC2, shown or declined run to run)
-       keeps the trial */
+    /* and a GPU measured too slow keeps it before any program is compiled: stage G declines it on every real run (the
+       Android lab, Firebase Test Lab: a OnePlus Nord CE 3 Lite's Adreno 619, Chrome 117 and 159, cold and return,
+       124-159 ms a frame at scale 0.35 against 21.7, after a 4.37 s compile frame). Only GPUs declined every time are
+       named; one on the line (the Galaxy A15's Mali-G57 MC2, shown or declined run to run) keeps the trial */
     if (!DEVMODE && SLOW_GPU.test(EXT.renderer)) { DEAD = true; return; }
     resize();
     if (typeof ResizeObserver !== 'undefined') { var ro = new ResizeObserver(layoutChanged); ro.observe(document.querySelector('main')); var ft = document.querySelector('footer'); if (ft) ro.observe(ft); ro.observe(canvas); }
-    window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); if (!FRUN && forced()) { DOMQ.fc = true; domNext(); } });   // (E1.1, S10: only stored; the window measured and drawn in the next frame; round 2: forced colours' still drawn again there, fstart)
+    window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); if (!FRUN && forced()) { DOMQ.fc = true; domNext(); } });   // (only stored; the window measured and drawn in the next frame; forced colours' still drawn again there, fstart)
     window.addEventListener('scroll', layoutChanged, { passive: true });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutChanged);
     if (MQ) { if (MQ.addEventListener) MQ.addEventListener('change', onMotionPref); else if (MQ.addListener) MQ.addListener(onMotionPref); }
     if (FC) { if (FC.addEventListener) FC.addEventListener('change', onForced); else if (FC.addListener) FC.addListener(onForced); }
-    if (window.matchMedia) ['(prefers-color-scheme: dark)', '(prefers-contrast: more)'].forEach(function (q) { var m = window.matchMedia(q); if (m.addEventListener) m.addEventListener('change', onPalette); else if (m.addListener) m.addListener(onPalette); });   // (round 3: a contrast theme changed while forced colours hold: onPalette)
+    if (window.matchMedia) ['(prefers-color-scheme: dark)', '(prefers-contrast: more)'].forEach(function (q) { var m = window.matchMedia(q); if (m.addEventListener) m.addEventListener('change', onPalette); else if (m.addListener) m.addListener(onPalette); });   // (a contrast theme changed while forced colours hold: onPalette)
     inputInit();
-    if (forced()) { bootReset(false); fstart(); return; }   // (round 2: forced colours from the load: the world not drawn, the ink birds alone in CanvasText on the system's Canvas colour, their own loop, fstart (their file still to come: registerBirds asks for it); the boot waits for forced colours to end: onForced)
+    if (forced()) { bootReset(false); fstart(); return; }   // (forced colours from the load: the world not drawn, the ink birds alone in CanvasText on the system's Canvas colour, their own loop, fstart (their file still to come: registerBirds asks for it); the boot waits for forced colours to end: onForced)
     if (DEVMODE && SW.rbfix) RB.fix = true;   // (dev: the read-back's arrival fixed in frames; the stills' harness too: jwfast's ticks)
     bootReset(false);
     start();   // (the staged boot, then the flight; under reduced motion the loop builds, draws one still frame and stops)
   }
-  /* (E0, design-v5 14; fast500 4a) the boot starts in the first animation frame after the realms register (bootSoon:
-     registerRealm; registerBirds and 'load' ask too), or at load if a file failed to arrive; the scripts' top levels
-     only define, and nothing runs before the boot but them. Nothing waits: the boot begins at once */
+  /* the boot starts in the first animation frame after the realms register (bootSoon: registerRealm; registerBirds
+     and 'load' ask too), or at load if a file failed to arrive; the scripts' top levels only define, and nothing runs
+     before the boot but them. Nothing waits: the boot begins at once */
   var booted = false, bootRaf = 0;
   function bootOnce() {
     bootRaf = 0;
@@ -57,10 +56,10 @@
   }
   function bootSoon() {
     if (booted || bootRaf) return;
-    if (!DEVMODE && document.readyState === 'loading' && holdLink()) { holdRun(); return; }   // (first-paint preview: the last realm registered while the page is still parsing)
+    if (!DEVMODE && document.readyState === 'loading' && holdLink()) { holdRun(); return; }   // (the hold: the last realm registered while the page is still parsing)
     bootRaf = requestAnimationFrame(bootOnce);
   }
-  /* (first-paint preview) THE HOLD: the page does not paint until the world's first frame is drawn (the head's link
+  /* THE HOLD: the page does not paint until the world's first frame is drawn (the head's link
      rel=expect blocking=render, for Chromium; elsewhere the parser itself, busy in this task). The world, the kit and
      the realms are parser-blocking after the words, so the last realm's registration lands here while the page is
      still parsing: the boot runs at once, its staged frames one after another in this one task (no animation frame:
@@ -75,7 +74,7 @@
      that follows: first stage A (the context and the boot's setup: about HOLD_KA x A + HOLD_CA ms; the 4090, Chrome's
      CPU throttled 1x to 6x: A 19-23 ms at 1x -> 0.6 s, 38-48 at 3x -> 1.3-1.45 s, 46-51 at 4x -> 1.6-1.8 s, 59 and over
      at 5x past 2 s); then the first hold frame (stage B and every program issued: about HOLD_K x it + HOLD_C ms: 13 ms
-     -> 0.56 s, 45 -> 1.39, 58 -> 1.74, 67 and over past 2 s). The owner's rule (2026-11-06, "Hold up to ~1 s"): a
+     -> 0.56 s, 45 -> 1.39, 58 -> 1.74, 67 and over past 2 s). The owner's rule ("Hold up to ~1 s"): a
      hold only where it foretells the world shown within HOLD_WORLD ms of the navigation's start (the clock's origin);
      either foretelling later: no hold, the link out at once, the boot going on as today's (the words first on the
      still sky, then the world). The deadline (holdMs) stays the last net */
@@ -110,16 +109,16 @@
       if (n === 1) {   // (the slow CPU's net: the first hold frame, stage B and every program issued, foretells the hold)
         HOLD.f1 = +(clockNow() - f0).toFixed(1);
         if (t0 + HOLD_K * HOLD.f1 + HOLD_C > HOLD_WORLD) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
-        if (PW.st === 1) planWaitOff();   // (the plan made here, beside the compiles: the worker's first answer cannot come inside this task; frame 1, stage B, made none of it. World-perf lane: the worker kept, its rest still taken when it comes)
+        if (PW.st === 1) planWaitOff();   // (the plan made here, beside the compiles: the worker's first answer cannot come inside this task; frame 1, stage B, makes none of it; the worker kept, its rest still taken when it comes)
       }
     }
     HOLD.on = false; CLK[1] = -2; HOLD.n = n; HOLD.took = +(clockNow() - t0).toFixed(1); HOLD.shown = shown;
     bootMark('hold: ' + (shown ? 'shown' : 'deadline') + ' after ' + n + ' frames, ' + HOLD.took + ' ms');
     if (!shown) holdOff('deadline');
   }
-  /* (E1, stage A) the device's hints, read once (each getter a round trip on Safari: never in a frame): the renderer,
+  /* (stage A) the device's hints, read once (each getter a round trip on Safari: never in a frame): the renderer,
      the screen and its density, an iPad behind a Mac user agent, WebGPU's presence, the cores and the memory, the draw
-     buffers. The record keeps them; the class itself is E7's */
+     buffers. The record keeps them */
   var DEVHINT = null;
   function deviceHints() {
     try {
@@ -128,9 +127,9 @@
         gpu: !!nav.gpu, cores: nav.hardwareConcurrency || null, mem: nav.deviceMemory || null, drawBuffers: gl.getParameter(gl.MAX_DRAW_BUFFERS), par: !!EXT.par, f32: FLOAT32_RT };
     } catch (e) { DEVHINT = { error: String(e) }; }
   }
-  planWorker();   // (fast500 F: the first plan, in the worker, from here: the seed is final)
+  planWorker();   // (the first plan, in the worker, from here: the seed is final)
   if (REC) recMark('world.js eval end');
-  function loaded() { if (!BIRDF) INKWAIT = false; bootSoon(); }   // (fast500 4a: 'load' without the ink birds: their file is not coming; the realms' new bird flocks may show)
+  function loaded() { if (!BIRDF) INKWAIT = false; bootSoon(); }   // ('load' without the ink birds: their file is not coming; the realms' new bird flocks may show)
   if (document.readyState === 'complete') loaded();
   else window.addEventListener('load', loaded);
 })();

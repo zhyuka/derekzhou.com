@@ -2,7 +2,7 @@
   var CAM = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], roll: 0, pitch: 0, inCloud: 0, arrive: 0, cover: 0, pmode: 0, hold: -1, open: -1, expo: 1 };
   var CAMV = new Float32Array(12);   // pos, r, u, f (for the uniforms)
   function camPose(V, u, a, out) {
-    var A = CSP, Bs = CS;   // (E1 Fix 3: at the junction too, CSP being the arrival's own place: arrive)
+    var A = CSP, Bs = CS;   // (at the junction too, CSP being the arrival's own place: arrive)
     var x = lerp(A.x, Bs.x, a), y = lerp(A.y, Bs.y, a), z = lerp(A.z, Bs.z, a);
     var yaw = A.yawV + A.phi + angDiff(Bs.yawV + Bs.phi, A.yawV + A.phi) * a, uth = lerp(A.thU + A.thP, Bs.thU + Bs.thP, a), roll = lerp(A.roll, Bs.roll, a);
     y += CAMLIFT * Math.min(V.clear[1], 12);
@@ -10,13 +10,13 @@
     var look = V.def.look || 90, fx = Math.sin(yaw), fz = Math.cos(yaw);
     var ga = groundAt(V, x + fx * look, z + fz * look, false), gh = groundAt(V, x, z, false);
     var pfNow = Math.atan2(ga - gh, look) * pfK(V), pfA = A.pf === A.pf ? A.pf : pfNow, pfB = Bs.pf === Bs.pf ? Bs.pf : pfNow;
-    // (round 3: the look followed, CS.pf. E1.1: the followed look alone wherever both states have one; round 3 added the
-    // ground read again here less the targets read in the step, which is nothing until the ground under the look point
-    // is refined between the step and the drawing (a cell's ground arriving), when it stepped the pitch by itself:
-    // 0.055 deg in one frame, 3.3 deg/s, in DUNES at 197.13 s of seed 7's test-order flight, c6b as well)
+    // (the followed look, CS.pf, alone wherever both states have one: the ground read again here less the targets read
+    // in the step is nothing until the ground under the look point is refined between the step and the drawing (a cell's
+    // ground arriving), when it steps the pitch by itself: 0.055 deg in one frame, 3.3 deg/s, in DUNES at 197.13 s of
+    // seed 7's test-order flight, c6b as well)
     if (A.pf === A.pf && Bs.pf === Bs.pf) pfNow = lerp(pfA, pfB, a);
     else pfNow += lerp(pfA, pfB, a) - lerp(A.pf === A.pf ? A.pfT : pfNow, Bs.pf === Bs.pf ? Bs.pfT : pfNow, a);
-    // (world6 step B) the one framing; the ground's look is off (pfK 0), so the pitch is the framing and the visitor's tilt
+    // the one framing; the ground's look is off (pfK 0), so the pitch is the framing and the visitor's tilt
     var fr = basePitch(V) + pfNow, pitch = fr + uth;
     pitch = clamp(pitch, -60 * DEG, 50 * DEG);
     var cp = Math.cos(pitch), f0 = fx * cp, f1 = Math.sin(pitch), f2 = fz * cp;
@@ -34,15 +34,15 @@
   /* the framing: a realm says where the horizon should sit (a fraction of the window's height from the top) on a wide
      window and on a tall one; the pitch that puts it there follows the window's shape */
   var TALLK = 0;
-  /* (the owner's yes to 9 deg, 2026-10-29) a wide window's camera pitched up CAMUP deg over the realm's framing: on a desktop
+  /* (the owner's yes to 9 deg) a wide window's camera pitched up CAMUP deg over the realm's framing: on a desktop
      the horizon from 55 % to about three quarters of the way down, the words wholly on sky. WIDEK is 1 on a window 6 : 5
-     or wider and 0 on any other (an upright tablet, a phone, a window near square: their framing as it was, exactly 0
+     or wider and 0 on any other (an upright tablet, a phone, a window near square: their own framing, exactly 0
      added), the stylesheet's own query (wideWin), so the world's tilt and the still sky it dissolves in over agree on
      every window; set with TALLK in setFrustum, so a resize or a rotation re-aims at once, and eased with the frustum
      when only the height changes (WIDEKT). Not a fade between: the credit row stands 54-59 % down on these windows, about
      where the unraised horizon is (55 %), so any share of the 9 between carries the horizon through the credit row at
-     some shape (camera9b: (1 - TALLK) gave an upright tablet 4.8 deg; 1 - smooth(0.75, 1.0, h / w) gave a 1000x900
-     window 3.2 deg, the horizon behind the credit). Not 11-12 deg: there the sunrise sky's stack takes light ink over a
+     some shape ((1 - TALLK) gives an upright tablet 4.8 deg; 1 - smooth(0.75, 1.0, h / w) gives a 1000x900 window
+     3.2 deg, the horizon behind the credit). Not 11-12 deg: there the sunrise sky's stack takes light ink over a
      light ground. Everything that frames the view reads basePitch (the camera, the planner's forecast of it,
      the moon's place). */
   var CAMUP = 9;
@@ -51,14 +51,14 @@
     var fr = V.def.frame || [0.4, 0.6];
     return Math.atan((2 * lerp(fr[0], fr[1], TALLK) - 1) * FR.tanY) + CAMUP * DEG * WIDEK;
   }
-  /* (world6 step B) the look at the ground ahead's share of the pitch: the world's own (0: none: one pitch everywhere) */
+  /* the look at the ground ahead's share of the pitch: the world's own (0: none: one pitch everywhere) */
   function pfK(V) { return V.def.pitchFollow === undefined ? 0.2 : V.def.pitchFollow; }
-  /* (world6 step B, the one camera) the cruise clearance: one band over the surface flown (the higher of the land and the
+  /* (the one camera) the cruise clearance: one band over the surface flown (the higher of the land and the
      cloud sea's top: the camera's ground), CRUISE[0] m over the sand to CRUISE[1] over the cloud sea, by a smooth function
      of the maps ahead (the cloud weight averaged over CW_S m along the held heading, through smooth(CW_A, CW_B)),
-     followed at most CW_V a second (of the weight: 18 m of clearance over about 90 s at the most). It replaces step A's
-     framing weight (fw), which turned the view by 41 deg and lifted the camera 150 m at every coast: there is no framing
-     to blend and no mode. The margin about solids follows the same weight */
+     followed at most CW_V a second (of the weight: 18 m of clearance over about 90 s at the most). There is no framing
+     to blend and no mode: a framing weight turns the view by 41 deg and lifts the camera 150 m at every coast. The margin
+     about solids follows the same weight */
   var CW_S = [150, 300, 450], CW_A = 0.25, CW_B = 0.85, CW_V = 0.011, CRUISE = [14, 32];
   function cruiseTarget(S) {
     var hx = Math.sin(S.psi), hz = Math.cos(S.psi), s = 0;
