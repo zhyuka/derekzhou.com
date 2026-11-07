@@ -177,7 +177,7 @@
     /* its attitude on the perch from its attitude now (the flare's): its heading about the camera's up, as it came */
     var fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2];   // (its way through the air: as its body lay)
     var fr = fx * C.r[0] + fz * C.r[2], ff = fx * C.f[0] + fz * C.f[2];
-    P.yaw = Math.abs(fr) + Math.abs(ff) > 0.05 ? Math.atan2(fr, ff) / DEG : (P.foot[0] < W / 2 ? -1 : 1) * 60;
+    P.yaw = (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw;   // (it stands in profile, toward the side it came moving: seen from behind, the perched form is a thin tent)
     P.yaw0 = P.yaw; P.yawT = t; P.yawTo = P.yaw; P.pitch = PERCH.pitch; P.face = P.yaw >= 0 ? 1 : -1;
     P.stay = t + pick(b.r, PSTAY); P.nextAct = t + pick(b.r, [1.2, 2.5]); P.act = null; P.walk = null; P.swing = 0; P.swingV = 0;
     b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2];

@@ -13,6 +13,8 @@
     if (lft + rgt === 0) return 0;
     return !lft ? -1 : !rgt ? 1 : 0;
   }
+  /* a step turn kept a profile, on the side it faces (from in front or behind the perched form is a thin tent) */
+  function profile(y, was) { return (was >= 0 ? 1 : -1) * clamp(Math.abs(y), 65, 120); }
   function perchedStep(b, dt, C) {
     var P = b.P, r = b.r;
     if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast */
@@ -37,8 +39,8 @@
       /* a hop-turn: round to face the other way (to its wanted side when it faces from it, else now and then of its own);
          off its wanted side by less than a hop, a step toward it */
       if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30)) { var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
-      else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
-      else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = clamp(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), -120, 120); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
+      else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
+      else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.82 && P.kind === 'name') { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
       else if (u < 0.94 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
       P.nextAct = t + pick(r, [4, 12]);

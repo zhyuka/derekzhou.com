@@ -149,7 +149,7 @@ test('the world left to itself: turns by bank, adds and takes out unseen, stays 
 /* perched life (the research: a 10-30 deg step turn every 5-20 s, a hop-turn of 90 deg or more every 15-90 s, comfort
    acts no more than a tenth of the time), over every scene's perched minutes together; each turn a step, never a sweep */
 test('a perched bird turns, hops round and preens at the research\'s rates', () => {
-  let T = 0, steps = 0, hops = 0, comfort = 0, small = 0, sweep = 0;
+  let T = 0, steps = 0, hops = 0, comfort = 0, small = 0, sweep = 0, edgeOn = 0;
   const rows = cases('life', (p) => {
     let prev = null;
     for (const q of p.tracks[0]) {
@@ -157,18 +157,20 @@ test('a perched bird turns, hops round and preens at the research\'s rates', () 
         T += q.t - prev.t; if (q.act) comfort += q.t - prev.t;
         if (q.yawTo !== prev.yawTo) { if (q.hopTurn) { hops++; if (Math.abs(q.yawTo - prev.yaw) < 90) small++; } else steps++; }
         if (q.yaw !== prev.yaw && q.yaw !== q.yawTo) sweep++;
+        if (Math.abs(q.yaw) < 60 || Math.abs(q.yaw) > 125) edgeOn++;   // (a profile always: from in front or behind its form is a thin tent)
       }
       prev = q;
     }
     return { ok: true, why: '' };
   });
   const st = T / Math.max(steps, 1), hp = T / Math.max(hops, 1), cf = comfort / Math.max(T, 1e-9);
-  console.log(`# life: ${(T / 60).toFixed(0)} perched minutes over ${rows.length} scenes: a step turn every ${st.toFixed(1)} s (5-20), a hop-turn every ${hp.toFixed(1)} s (15-90; ${small} under 90 deg), comfort ${(100 * cf).toFixed(1)} % (<= 10), ${sweep} sweeps`);
+  console.log(`# life: ${(T / 60).toFixed(0)} perched minutes over ${rows.length} scenes: a step turn every ${st.toFixed(1)} s (5-20), a hop-turn every ${hp.toFixed(1)} s (15-90; ${small} under 90 deg), comfort ${(100 * cf).toFixed(1)} % (<= 10), ${sweep} sweeps, ${edgeOn} steps seen end-on`);
   assert.ok(st >= 5 && st <= 20, 'step turns every ' + st.toFixed(1) + ' s');
   assert.ok(hp >= 15 && hp <= 90, 'hop-turns every ' + hp.toFixed(1) + ' s');
   assert.equal(small, 0, 'hop-turns under 90 deg');
   assert.ok(cf <= 0.1, 'comfort ' + (100 * cf).toFixed(1) + ' %');
   assert.equal(sweep, 0, 'a turn swept, not stepped');
+  assert.equal(edgeOn, 0, 'a perched bird seen from in front or behind');
 });
 /* the step and the draw make no objects in steady state (no array, object, closure or store a frame): the world flown
    and drawn on the sim's GL stub for 100 s, then 30 s with V8's sampling heap profiler, the collected objects counted
