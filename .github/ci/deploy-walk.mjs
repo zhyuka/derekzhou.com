@@ -6,9 +6,12 @@
 // branch's gate or the owner's merge (as a tip judged against another base is), and the next green gate, which runs
 // every static check on the whole tree, covers the rest. Only a failure, an unproved visible change or failed stall
 // visits stop live; a gate still running makes it wait.
+// A red tip the bot reverted (a later tip that is its revert, d.revertOf: the tree before the red tip, so the bytes
+// live already serves) is stepped over, with the revert, once the revert's own gate is green.
 export async function walk(live, runs, d) {
   let to = live, prev = live, mustReach = -1, safe = live, why = '';
-  for (const r of runs) {
+  for (let i = 0; i < runs.length; i++) {
+    const r = runs[i];
     const tip = r.head_sha.slice(0, 10);
     if (r.status !== 'completed') { why = `main ${tip}'s gate is ${r.status}: live waits there`; break; }
     if (r.conclusion === 'cancelled') {
@@ -18,7 +21,12 @@ export async function walk(live, runs, d) {
       continue;
     }
     const v = r.conclusion === 'success' ? await d.verdict(r) : null;
-    if (!v || !v.gate_ok) { why = `**main is red at ${tip}** (${r.conclusion}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`; break; }
+    if (!v || !v.gate_ok) {
+      let j = -1;
+      if (d.revertOf && mustReach < 0 && i + 1 < runs.length && (await d.revertOf(runs[i + 1].head_sha)) === r.head_sha) j = i + 1;   // (the bot's revert is always the red tip's own child: it moves main from that tip only)
+      const rv = j >= 0 && runs[j].status === 'completed' && runs[j].conclusion === 'success' ? await d.verdict(runs[j]) : null;
+      if (rv && rv.gate_ok) { d.say(`deploy gate: main ${tip} was red and the bot reverted it at ${runs[j].head_sha.slice(0, 10)} (green): stepped over`); to = prev = runs[j].head_sha; i = j; continue; }
+      why = `**main is red at ${tip}** (${r.conclusion}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`; break; }
     if (!v.frames_identical && !(await d.ownerMerge(r.head_sha)) && !(v.base !== prev && (await d.branchIdentical(r.head_sha)))) { why = `main ${tip} changes what a visitor sees (${v.reason}) without the owner's own merge: live stays at ${to.slice(0, 10)}`; break; }
     if (v.t2 && v.t2.stall_ok === false) {
       const j = await d.laterStallOk(runs, r);
@@ -27,7 +35,7 @@ export async function walk(live, runs, d) {
       mustReach = Math.max(mustReach, j);
     }
     to = prev = r.head_sha;
-    if (runs.indexOf(r) >= mustReach) mustReach = -1;
+    if (i >= mustReach) mustReach = -1;
   }
   if (mustReach >= 0) { why = `a tip's failed stall visits are cleared only at ${runs[mustReach].head_sha.slice(0, 10)}, not reached: live goes no further than ${safe.slice(0, 10)}`; to = safe; }
   return { to, why };
