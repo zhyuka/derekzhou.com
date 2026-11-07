@@ -163,9 +163,9 @@ function selftest(runs, labels, oldLabels, text) {
 (async () => {
   const scripts = scriptsOf(SITE), page = loadScripts(SITE, scripts), VS = visits(), t0 = Date.now();
   console.log(`glsl_guard: ${SITE}: the page runs ${scripts.join(', ')}; labels ${page.labels ? "from the world's compile()" : 'not shown by the source (minified?): programs matched by hash only'}`);
-  const runs = [];
-  for (const v of VS) {
-    const r = await run(v, page), P = label(r, page.labels);
+  const runs = [], RS = await FP.runMany(VS, SITE, scripts, { reduced: !!A.reduced });   // (check-speed: the visits in threads, each as it ran alone)
+  for (let vi = 0; vi < VS.length; vi++) {
+    const v = VS[vi], r = RS[vi], P = label(r, page.labels);
     runs.push({ v, r, P });
     console.log(`  visit ${tagOf(v)}: ${r.frames} frames, ${r.shown ? 'shown' : 'NOT SHOWN'}, ${r.programs.length} programs, ${r.shaders.length} sources${r.errors.length ? ', ' + r.errors.length + ' page errors' : ''}`);
     for (const e of r.errors.slice(0, 3)) console.log('    page error: ' + e);
