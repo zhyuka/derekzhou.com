@@ -5,7 +5,6 @@ paths:
   - "src/glsl/**"
   - "src/dev/**"
   - "tools/plan.mjs"
-  - "tools/start.mjs"
 ---
 
 # The world (src/world/, the realms, their shaders)

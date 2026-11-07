@@ -185,7 +185,7 @@
     {
       "id": "one-entropy-one-clock",
       "area": "weather",
-      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker and start file draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds and plan's worker draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
       "source": [
         {
           "quote": "should b rand",
@@ -204,10 +204,6 @@
         {
           "kind": "world-rule",
           "id": "4 absences"
-        },
-        {
-          "kind": "world-rule",
-          "id": "4b start"
         },
         {
           "kind": "world-rule",
@@ -297,17 +293,13 @@
         {
           "kind": "ci-step",
           "name": "Absences are enforced"
-        },
-        {
-          "kind": "world-rule",
-          "id": "4b start"
         }
       ]
     },
     {
       "id": "absence-network-sound-cursor",
       "area": "absences",
-      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's and the start file's table, each started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
+      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's, started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
       "source": [
         {
           "quote": "yes we need analytics",
@@ -381,7 +373,7 @@
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
+      "rule": "The scripts load in their order (hour, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; no script is async; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
       "source": [
         {
           "doc": "docs/js.md"

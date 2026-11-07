@@ -10,8 +10,6 @@ files=(
   style.css
   site.js
   hour.js
-  start.js
-  start-table.js
   world.js
   realm-kit.js
   realm-dunes.js
