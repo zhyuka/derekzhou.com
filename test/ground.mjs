@@ -24,7 +24,7 @@ export function landHash() {
   for (const p of INPUTS) {
     const f = path.join(ROOT, p);
     if (!fs.existsSync(f)) { h.update('missing ' + p); continue; }
-    if (fs.statSync(f).isDirectory()) for (const n of fs.readdirSync(f).sort()) files.push(path.join(p, n)); else files.push(p);
+    if (fs.statSync(f).isDirectory()) for (const n of fs.readdirSync(f).sort()) files.push(p + "/" + n); else files.push(p);   // (forward slashes: the same hash on Windows and Linux)
   }
   for (const p of files) {
     const s = fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
