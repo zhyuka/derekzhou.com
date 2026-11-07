@@ -309,7 +309,6 @@
       return kept;
     }
     one(foldFixed());
-    if (P.name === 'engine.comp' && typeof foldLive === 'function' && FOLDX.B && TG) { P.live = null; var kept = one(foldLive()); if (kept.length) { P.live = kept; FOLDX.live = kept.map(function (x) { return x[0].replace(/^=/, '') + ' = ' + x[1]; }); } }
     P.vs = vs; P.fs = fs;
     if (got.length) FOLDX.prog[P.name] = got;
     if (abs.length && DEVMODE) FOLDX.absent[P.name] = abs;
