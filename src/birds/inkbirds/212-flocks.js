@@ -1,5 +1,5 @@
   /* ---------------- flocks ---------------- */
-  /* the places in a pattern (spans: back, aside, up), the old flights' own shapes */
+  /* the places in a pattern, in spans (back, aside, up) from the lead */
   function slotsOf(r, pat, n, kind) {
     var S = [[0, 0, 0]], i, k, side;
     for (i = 1; i < n; i++) {

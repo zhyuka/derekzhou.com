@@ -4,7 +4,7 @@
   makeProgram();   // (asked for now: the engine links it while its still sky shows)
   return {
     step: step,
-    /* (round 3) reduced motion: the still sky planned a share a call while the engine's still sky shows; true once done */
+    /* reduced motion: the still sky planned a share a call while the engine's still sky shows; true once done */
     prepare: function () { forcedCheck(); if (!HOST.reduced()) return true; return stillStep(STILL_Q); },
     draw: function () {
       forcedCheck();
