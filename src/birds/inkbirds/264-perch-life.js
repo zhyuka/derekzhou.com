@@ -17,7 +17,7 @@
   function profile(y, was) { return (was >= 0 ? 1 : -1) * clamp(Math.abs(y), 65, 120); }
   function perchedStep(b, dt, C) {
     var P = b.P, r = b.r;
-    if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast */
+    if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast, steers, goes or nears the edge */
       var ax = PW.pax, ay = PW.pay, w0 = TAU * 2.5;
       P.swingV += (-w0 * w0 * P.swing - 2 * 0.35 * w0 * P.swingV - 0.002 * ax) * dt; P.swing += P.swingV * dt; P.swing = clamp(P.swing, -0.6, 0.6);
       var sp = Math.sqrt(PW.pvx * PW.pvx + PW.pvy * PW.pvy);
@@ -61,7 +61,7 @@
   }
 
   /* ---------------- leaving ---------------- */
-  /* the crouch and the lean (0.1-0.3 s), the leap, the strong beats; then a bird of the air on a goal (to the flock
+  /* the crouch and the lean (0.12-0.3 s; 0.05-0.12 s startled), the leap, the strong beats; then a bird of the air on a goal (to the flock
      that passes, or one any bird may draw: out into the distance, by the eye, down into the cloud, on) */
   function leave(b, why, J) {
     var P = b.P; if (!P || P.leaving) return;
@@ -72,7 +72,7 @@
     var P = b.P, L = P.leaving, u = t - L.t0;
     if (!perchWorld(b, C, dt)) { toAir(b, L.J); return; }
     if (u < L.tc) { b.p[0] = P.at[0]; b.p[1] = P.at[1]; b.p[2] = P.at[2]; b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2]; P.crouch = Math.sin(0.5 * Math.PI * u / L.tc); return; }
-    /* the leap: off the perch at its own push, away from the words and up */
+    /* the leap: off the perch at its own push, toward the side it faces and up */
     var side = P.face || 1, up = 0.75, ax = C.r[0] * side * 0.65 + C.u[0] * up, ay = C.r[1] * side * 0.65 + C.u[1] * up, az = C.r[2] * side * 0.65 + C.u[2] * up, al = Math.sqrt(ax * ax + ay * ay + az * az) || 1, push = pick(b.r, [3, 4.2]);
     b.v[0] = P.v[0] + ax / al * push; b.v[1] = P.v[1] + ay / al * push; b.v[2] = P.v[2] + az / al * push;
     b.p[0] = P.at[0]; b.p[1] = P.at[1]; b.p[2] = P.at[2];
