@@ -25,3 +25,13 @@ test('auto-revert: only the bot\'s own landing, and the deploy gate steps over t
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'failure')], d(true))).to, S('a'), 'the revert not green: live stays');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('d', 'success')], d(true))).to, S('a'), 'red, no revert: live stays');
 });
+
+test('deploy gate: a tip whose PR\'s gate passed the same tree on the same base, with no T2, need not wait for main\'s gate', async () => {
+  const { walk } = await import(new URL('../../.github/ci/deploy-walk.mjs', import.meta.url));
+  const S = (c) => c.repeat(40);
+  const d = (proved) => ({ verdict: async () => ({ gate_ok: true, frames_identical: true, base: S('0') }), ownerMerge: async () => false, branchIdentical: async () => false, laterStallOk: async () => -1, say: () => {},
+    prProved: async (sha, base) => proved && sha === S('b') && base === S('a') });
+  const runs = [{ head_sha: S('a'), status: 'completed', conclusion: 'success' }, { head_sha: S('b'), status: 'queued', conclusion: null }];
+  assert.equal((await walk(S('0'), runs, d(true))).to, S('b'), "proved by its PR's gate: live goes on");
+  assert.equal((await walk(S('0'), runs, d(false))).to, S('a'), 'not proved: live waits for main\'s gate');
+});

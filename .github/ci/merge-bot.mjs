@@ -258,8 +258,14 @@ async function deployGate() {
   const between = new Set((a.commits || []).map((c) => c.sha));
   const runs = ((await gh('GET', '/actions/workflows/gate.yml/runs?branch=main&event=push&per_page=100')).json?.workflow_runs || [])
     .filter((r) => between.has(r.head_sha)).sort((x, y) => (a.commits.findIndex((c) => c.sha === x.head_sha) - a.commits.findIndex((c) => c.sha === y.head_sha)));
+  if (!runs.some((r) => r.head_sha === main)) runs.push({ head_sha: main, status: 'queued', conclusion: null, html_url: '' });   // (main's tip, its gate not started yet: landed this tick)
   const revertOf = async (sha) => revertedTip((await gh('GET', `/commits/${sha}`)).json?.commit?.message);
-  const { to, why } = await walk(live, runs, { verdict, ownerMerge, branchIdentical, laterStallOk, revertOf, say });
+  const prProved = async (sha, base) => {
+    const rs = ((await gh('GET', `/actions/workflows/gate.yml/runs?head_sha=${sha}&per_page=20`)).json?.workflow_runs || []).filter((x) => x.head_branch !== 'main' && x.status === 'completed' && x.conclusion === 'success');
+    for (const x of rs) { const w = await verdict(x); if (w && w.sha === sha && w.base === base && w.gate_ok && w.frames_identical && !(w.t2 && w.t2.required)) return true; }
+    return false;
+  };
+  const { to, why } = await walk(live, runs, { verdict, ownerMerge, branchIdentical, laterStallOk, revertOf, prProved, say });
   if (why) summary('deploy gate: ' + why);
   if (to === live) { summary(`deploy gate: live stays at ${live.slice(0, 10)} (main ${main.slice(0, 10)})`); return; }
   const f = await act(`fast-forward live to ${to.slice(0, 10)}`, () => gh('PATCH', '/git/refs/heads/live', { sha: to, force: false }, process.env.MERGE_TOKEN));

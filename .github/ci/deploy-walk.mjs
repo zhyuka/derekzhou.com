@@ -13,7 +13,13 @@ export async function walk(live, runs, d) {
   for (let i = 0; i < runs.length; i++) {
     const r = runs[i];
     const tip = r.head_sha.slice(0, 10);
-    if (r.status !== 'completed') { why = `main ${tip}'s gate is ${r.status}: live waits there`; break; }
+    if (r.status !== 'completed') {
+      // (a tip the bot fast-forwarded main to is the very tree its PR's gate passed on this base: when that gate
+      // needed no T2, main's own gate (and its stall visits, which run only with T2) can add nothing, so live need
+      // not wait for it: 2-4 minutes off every such landing)
+      if (d.prProved && (await d.prProved(r.head_sha, prev))) { d.say(`deploy gate: main ${tip}'s gate is ${r.status}, but its PR's gate passed this very tree on ${prev.slice(0, 10)} with no T2: live goes on`); to = prev = r.head_sha; continue; }
+      why = `main ${tip}'s gate is ${r.status}: live waits there`; break;
+    }
     if (r.conclusion === 'cancelled') {
       if (!(await d.ownerMerge(r.head_sha)) && !(await d.branchIdentical(r.head_sha))) { why = `main ${tip}'s gate was cancelled and its own branch's gate does not prove its frames: live waits for a later gate at ${to.slice(0, 10)}`; break; }
       d.say(`deploy gate: main ${tip}'s gate was cancelled (superseded): no result; judged by its branch's gate`);
