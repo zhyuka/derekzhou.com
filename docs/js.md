@@ -12,6 +12,10 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 2. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
+2b. sound.js — the sound icon's switch (src/sound.js, minified; parser-blocking
+   right after site.js, so the icon shows before the first paint): shows the icon,
+   adds its one click handler, and at the first press makes the audio context and
+   gives the score's slot its src (docs/sound.md).
 3. world.js — the world (parser-blocking after the footer, for the
    first-paint hold; fetchpriority="high"; minified). As its script ends it
    starts the plan's worker, plan.js, by name (no tag: see World: BOOT).
@@ -30,6 +34,9 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
    fetchpriority="low", in that order; each puts its one global on self).
 6. inkbirds.js — the ink birds (deferred, fetchpriority="low", last,
    minified: they take the sky whenever they come).
+7. the score's slot — an empty `<script data-cfasync="false" id="score-slot">`, the
+   page's last: nothing is fetched until sound.js gives it score.js's src inside the
+   visitor's press (score.js minified, docs/sound.md).
 
 Progressive enhancement throughout: with JS off, the page is the
 typography on the still day sky.

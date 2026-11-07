@@ -51,6 +51,13 @@
 /site.js
   Cache-Control: public, max-age=31536000, immutable
 
+/sound.js
+  Cache-Control: public, max-age=31536000, immutable
+
+# The score (2026-11-07): fetched only inside the visitor's first press of the sound icon.
+/score.js
+  Cache-Control: public, max-age=31536000, immutable
+
 /hour.js
   Cache-Control: public, max-age=31536000, immutable
 

@@ -11,6 +11,8 @@ files=(
   index.html
   style.css
   site.js
+  sound.js
+  score.js
   hour.js
   world.js
   realm-kit.js

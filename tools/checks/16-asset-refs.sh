@@ -22,7 +22,7 @@ done
 # And the reverse: the css/js the page loads by name must be the
 # ones index.html loads, each with its immutable cache block (a
 # leftover old version, kept by a copy rather than a git mv, fails).
-for f in style.css hour.js world.js realm-*.js facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js inkbirds.js; do
+for f in style.css hour.js sound.js world.js realm-*.js facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js inkbirds.js; do
   if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
     echo "::error::$f exists but index.html does not reference it"
     fail=1
@@ -37,7 +37,7 @@ done
 # diagnostics, no lab, no test realm). (Their names need no version:
 # the deploy build serves each under its content's hash, tools/build.mjs.)
 for f in $(find . -type f \( -name '*.js' -o -name '*.css' \) | sed 's|^\./||' | sort); do
-  if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.js) grep -q "new Worker(./$f.)" world.js;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name)
+  if ! grep -qE "(src|href)=\"/$f\"" index.html 404.html && ! { case "$f" in plan.js) grep -q "new Worker(./$f.)" world.js;; score.js) grep -qE "\.src='/$f'" sound.js && grep -q '<script data-cfasync="false" id="score-slot"></script>' index.html;; *) false;; esac; }; then   # (fast500 step 11: the plan's worker is loaded by the world, by name; 2026-11-07: the score by the sound icon's switch, into its slot)
     echo "::error::$f is shipped but no page loads it"
     fail=1
   fi

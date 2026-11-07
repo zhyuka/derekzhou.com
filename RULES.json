@@ -85,7 +85,7 @@
     {
       "id": "no-fades",
       "area": "motion",
-      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance).",
+      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance); the sound icon's two states swap at once. The score's slow swells, its 3 s in and 1.2 s out, are sound, not a fade: nothing seen fades.",
       "source": [
         {
           "quote": "There shouldn't be any fade-ins/outs at all",
@@ -94,6 +94,11 @@
         {
           "quote": "yep this. same w sun.",
           "doc": "docs/world.md: THE TIME OF DAY"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": []
@@ -117,7 +122,7 @@
     {
       "id": "reduced-motion-still",
       "area": "motion",
-      "rule": "Under prefers-reduced-motion the world is one still frame (drawn again when the words move, live both ways), the steering is inert and no click starts a gull. It is the page's stop for its motion (the owner chose no pause control).",
+      "rule": "Under prefers-reduced-motion the world is one still frame (drawn again when the words move, live both ways), the steering is inert and no click starts a gull. It is the page's stop for its motion (the owner chose no pause control). The score is sound, not motion: pressed, it still plays, reading the still sky.",
       "source": [
         {
           "doc": "docs/world.md: FALLBACKS; THE FLIGHT AND THE CAMERA; docs/birds.md"
@@ -149,11 +154,16 @@
     {
       "id": "one-entropy-one-clock",
       "area": "weather",
-      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds and plan's worker draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker, the sound icon's switch and the score draw no entropy and read no clock of the page's: the score's seed is one of the world's streams (WORLD.sky().seed), and it schedules on the audio context's own time (ctx.currentTime), the one new clock, which times the sound alone. hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
       "source": [
         {
           "quote": "should b rand",
           "doc": "docs/world.md: THE WEATHER; docs/security.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": [
@@ -207,10 +217,15 @@
     {
       "id": "absence-behaviour",
       "area": "absences",
-      "rule": "No exit, idle, hover-position, key, blur, title, favicon-swap or storage handler in the JS; a pointer's moves are read only by the world's drag (its one pointermove listener added in onDown, removed in endDrag).",
+      "rule": "No exit, idle, hover-position, key, blur, visibility, title, favicon-swap or storage handler in the JS; a pointer's moves are read only by the world's drag (its one pointermove listener added in onDown, removed in endDrag) and the birds' two passive listeners in hoverSync; the sound icon has one handler, its click (sound.js), and the score none.",
       "source": [
         {
           "doc": "docs/security.md (Absences are enforced)"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": [
@@ -227,7 +242,7 @@
     {
       "id": "absence-no-dom",
       "area": "absences",
-      "rule": "No innerHTML and no JS-generated DOM: the canvas, the stack, the footer and the lettered name are all in index.html.",
+      "rule": "No innerHTML and no JS-generated DOM: the canvas, the stack, the footer (the sound icon in it) and the lettered name are all in index.html; the score's slot is an empty script there, given its src at the press (no element is made).",
       "source": [
         {
           "doc": "docs/security.md"
@@ -243,12 +258,17 @@
     {
       "id": "absence-network-sound-cursor",
       "area": "absences",
-      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's, started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
+      "rule": "No URL hook (location., URLSearchParams), network call or eval; no sound until the visitor presses the sound icon (then the score alone: sound.js makes the one audio context inside that press and fetches score.js into its empty slot; nothing of it is fetched or run before); no worker but the plan's, started by its literal name; no module or audio worklet; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
       "source": [
         {
           "quote": "yes we need analytics",
           "date": "2026-11-03",
           "doc": "docs/security.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": [
@@ -263,6 +283,10 @@
         {
           "kind": "world-rule",
           "id": "3 production-blind"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The score is opt-in, and measured"
         }
       ]
     },
@@ -285,7 +309,7 @@
     {
       "id": "csp-scoping",
       "area": "security",
-      "rule": "CSP is set per HTML path with no overlapping rules (Cloudflare Pages combines same-named headers, and browsers enforce the intersection); never a Content-Security-Policy on /*. 404.html carries the same policy in a meta tag, kept in sync. Every home-scope CSP has exactly script-src 'self' https://static.cloudflareinsights.com and connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum. No inline style, script or handler on a CSP'd page.",
+      "rule": "CSP is set per HTML path with no overlapping rules (Cloudflare Pages combines same-named headers, and browsers enforce the intersection); never a Content-Security-Policy on /*. 404.html carries the same policy in a meta tag, kept in sync. Every home-scope CSP has exactly script-src 'self' https://static.cloudflareinsights.com and connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum. No inline style, script or handler on a CSP'd page (the score's slot is an empty script, no text, given a src from 'self').",
       "source": [
         {
           "doc": "docs/security.md"
@@ -301,7 +325,7 @@
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; no script is async; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
+      "rule": "The scripts load in their order (hour, site.js, the sound icon's switch, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; no script is async; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there); the page's last script is the score's slot, empty, given its src only at the visitor's press.",
       "source": [
         {
           "doc": "docs/js.md"
@@ -361,7 +385,7 @@
     {
       "id": "page-words",
       "area": "content",
-      "rule": "The page says exactly its words: the lettered name, the one line, the credit row (Team Lead · Accenture Song · 2022 – Now) and the two links; the share and search text match.",
+      "rule": "The page says exactly its words: the lettered name, the one line, the credit row (Team Lead · Accenture Song · 2022 – Now), the two links and the sound icon, whose accessible name is Sound (a button, its state in aria-pressed; no visible word); the share and search text match.",
       "source": [
         {
           "quote": "change back to Team Lead title",
@@ -372,9 +396,37 @@
           "quote": "match the share text too",
           "date": "2026-10-21",
           "doc": "docs/content.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": []
+    },
+    {
+      "id": "sound-opt-in",
+      "area": "sound",
+      "rule": "The score is opt-in: every visit is silent until the visitor presses the sound icon (a button in the footer, in the words' light ink, its state in aria-pressed); a second press stops it and lets the audio device go. A visit that never presses fetches 1 KB (the switch) and runs nothing of the score. Every sound is made live (oscillators, buffers worked out in code, filtered noise), in just intonation, a key and an instrument for each of the world's skies, at about -26 LUFS with a soft ceiling, long time constants (nothing starts with a jolt), the audio session ambient (the iOS silent switch respected). It reads the world's sky (WORLD.sky()) and never steers it.",
+      "source": [
+        {
+          "quote": "Opt-in generative score",
+          "date": "2026-10-02",
+          "doc": "docs/design.md; docs/sound.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The score is opt-in, and measured"
+        }
+      ]
     },
     {
       "id": "lettered-name",

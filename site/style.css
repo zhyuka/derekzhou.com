@@ -397,6 +397,46 @@ footer a, .back-link {
   color: inherit;
 }
 
+/* The sound icon (the owner, 2026-11-07: "bring it back, opt-in. using an icon that fits with the rest of the
+   design"): a speaker drawn in the words' own light ink (currentColor), its strokes the footer words' weight (1.2 px
+   at the links' size, round ends as the lettering's), as tall as their capitals. Off: the speaker and a small cross;
+   on: its two waves. The two swap at once with aria-pressed: no transition, nothing animates. A finger's target of
+   44 px about it, the padding given back by the margin, so the footer's line is laid out as before. */
+.sound {
+  -webkit-appearance: none;
+  appearance: none;
+  align-self: center;
+  margin: -14px -12px;
+  padding: 14px 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  line-height: 0;
+  touch-action: manipulation;
+}
+
+.sound:not([hidden]) {
+  display: inline-block;
+}
+
+.sound svg {
+  display: block;
+  width: 1.25rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sound[aria-pressed="true"] .sound-off,
+.sound[aria-pressed="false"] .sound-on {
+  display: none;
+}
+
 .noscript-email {
   font-size: 0.875rem;
   color: var(--color-dimmed);

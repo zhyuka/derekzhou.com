@@ -28,7 +28,7 @@
 //
 // The deploy build's checks (else exit 1): every script and stylesheet at the top level has a content name and the
 // name's hash is its bytes'; no old name is referenced anywhere; every page src/href, Link preload, _headers file path
-// and new Worker('/...') names a file in the build; every script and stylesheet is loaded by a page or another script
+// new Worker('/...') and script slot's .src = '/...' names a file in the build; every script and stylesheet is loaded by a page or another script
 // and has its own _headers block with an immutable Cache-Control.
 // (2026-11-06) Then every content-named script and stylesheet is stored Brotli-compressed at quality 11 (the window
 // 2^24, the size hinted) and its _headers block says Content-Encoding: br. Cloudflare compresses what it serves at
@@ -189,6 +189,7 @@ function verify(out, map) {   // the deploy build's checks; returns a list of er
   const blocks = headerBlocks(H);
   for (const [p] of blocks) if (p.startsWith('/') && !/[*:]/.test(p) && /\.[a-z0-9]+$/.test(p)) refs.push(['_headers', p]);
   for (const [r, t] of texts) if (/\.js$/.test(r)) for (const m of t.matchAll(/new Worker\((['"])(\/[^'"]+)\1\)/g)) refs.push([r, m[2]]);
+  for (const [r, t] of texts) if (/\.js$/.test(r)) for (const m of t.matchAll(/\.src\s*=\s*(['"])(\/[^'"]+\.js)\1/g)) refs.push([r, m[2]]);   // (the score, loaded by the sound icon's switch into its slot)
   for (const [f, ref] of refs) if (ref !== '/' && !has(ref)) err.push(f + ' names ' + ref + ', which is not in the build');
   const loaded = new Set(refs.filter(([f]) => f !== '_headers').map(([, r]) => r.slice(1)));
   for (const n of top) {

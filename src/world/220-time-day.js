@@ -317,6 +317,7 @@
     if (SKY.seed !== J.seed || SKY.hour !== HOUR || SKY.V !== V) skyInit(V);
     skyAt(SIM.t + SKY.dt);
     var q = SKY.q, c = SKW.c, s = SKW.s, X = SKY.X, Y = SKY.Y;
+    SKY.w = w;   // (the cloud sea's share of the land below, for the score's ear: skyHear)
     c[0] = (1 - w) * (1 - q); c[1] = w * (1 - q); c[2] = (1 - w) * q; c[3] = w * q;
     s[0] = (1 - w) * (1 - q); s[1] = w * (1 - q); s[2] = (1 - w) * q; s[3] = w * q;   // (the structure's weights: on the light's clock; the two clocks are one)
     if (V.LA[0] !== X.d || V.LA[2] !== Y.d) { V.LA = [X.d, X.a, Y.d, Y.a]; V.LAlab = [X.dl, X.al, Y.dl, Y.al]; }
@@ -438,6 +439,12 @@
     return out;
   }
   /* dev and the record: the cycle as it stands */
+  /* the sky as the score hears it (WORLD.sky, read by score.js once the visitor has pressed the sound icon): the sky
+     on show and the next, the change's k, whether it goes through the mist, the cloud sea's share of the land below,
+     and the score's seed, one of the visit's own streams (no second entropy read). It reads; it changes nothing. */
+  function skyHear() {
+    return { sky: SKY.e ? SKYI.sky : '', next: SKY.e ? SKYI.next : '', k: SKYI.k, far: !!SKY.far, w: SKY.w === undefined ? 0.5 : SKY.w, seed: subseed(J.seed, 97) >>> 0 };
+  }
   function skyState() {
     if (!SKY.e) return null;
     return { sky: SKY.A.id, next: SKY.B.id, k: +SKY.k.toFixed(4), q: +SKY.q.toFixed(4), x: +SKY.x.toFixed(4), half: SKY.half, X: SKY.X.id, Y: SKY.Y.id,
