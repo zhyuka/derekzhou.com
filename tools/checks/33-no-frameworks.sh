@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # check: No frameworks: pure HTML, CSS and JS
 # kind: fast
+# enforces: no-frameworks
 # (RULES.json no-frameworks, automated 2026-11-07) package.json has no runtime dependency and no build tool but
 # terser; no served file is a module, a model, a binary engine or a frame of another page (no import/export, no
 # require, no .wasm/.glb/.gltf/.obj/.fbx, no iframe); the world is drawn in the page, in WebGL2, from code
+# plant: {"file": "package.json", "find": "\"devDependencies\": {", "with": "\"dependencies\": { \"react\": \"18.3.1\" },\n  \"devDependencies\": {", "why": "a runtime framework"}
 node - <<'JS'
 const fs = require('fs'), path = require('path'); let bad = 0; const err = (m) => { console.log('::error::' + m); bad = 1; };
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));

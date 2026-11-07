@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # check: Check required files exist
+# enforces: served-only-site
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
 # The site is built from the folder site/ (tools/build.mjs; Cloudflare Pages serves the build): every file
 # it serves is in the build (build/site/), and nothing of the repository's own (CLAUDE.md, .github/, the
 # font scripts) is in site/.
+# plant: {"create": "site/notes.md", "why": "a repository file in site/"}
 cd site
 files=(
   index.html

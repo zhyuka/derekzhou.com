@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # check: The lettered name keeps its words
+# enforces: lettered-name
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
+# plant: {"file": "build/site/index.html", "find": "<span class=\"visually-hidden\">Derek Zhou</span>", "with": "<span class=\"visually-hidden\">Derek</span>", "why": "the h1 lost its words"}
 cd build/site
 # The h1 is drawn (one SVG path in the words' colour) but must still
 # read "Derek Zhou" to every reader: its words in a visually hidden

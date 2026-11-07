@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # check: Asset references must resolve (immutable-rename integrity)
+# enforces: changed-bytes-new-name
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
+# plant: {"file": "build/site/index.html", "find": "href=\"/assets/favicon.svg\"", "with": "href=\"/assets/favicon-gone.svg\"", "why": "a reference to a file the build lacks"}
 cd build/site
 # Changed bytes require renamed files; this catches a rename that
 # missed a reference. Every local href/src in the HTML and every

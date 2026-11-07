@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check: Nothing darkens (W7's unit test)
+# enforces: no-darkening
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
 # The owner's rule ("Don't darken the background anywhere ever"): the
 # composite's tail (FS_COMP between W7-TAIL-BEGIN and W7-TAIL-END in
@@ -12,6 +13,7 @@
 # this step only, never part of the site; PW_CORE and CHROME_PATH name
 # others where they are set). Exit 2 (no WebGL2 context on the runner)
 # warns; any lower or higher code fails.
+# plant: {"file": ".github/workflows/w7_unit.js", "find": "--mutate", "with": "--mutate", "why": "self-proved: the step runs W7 with each mutation and wants each caught", "self": true}
 W=build/src/world.js   # (as written: site/'s is its minified build, the same shader text)
 [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no build/src/world.js for W7's unit test"; exit 1; }
 if [ -z "${PW_CORE:-}" ]; then

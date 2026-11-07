@@ -118,7 +118,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
 // The worker as the build ships it: makePlan's text minified by terser (pinned in package.json; the world's own
 // options: compress and mangle inside the worker's one function, ES5 output, Safari 10's workarounds, quotes kept),
 // its header comment kept. The code is the world's spans, so terser does to them what it does to the world itself;
-// test/unit.mjs runs this output against the page's own plan, hash for hash.
+// test/unit/maps.mjs runs this output against the page's own plan, hash for hash.
 const TERSER_VERSION = '5.51.2';
 export async function buildPlan(world, name) {
   const r = makePlan(world, name), { createRequire } = await import('node:module');

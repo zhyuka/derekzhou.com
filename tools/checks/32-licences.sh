@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # check: Licences on the allowlist
 # kind: fast
+# enforces: licences
 # (RULES.json licences, automated 2026-11-07) every package in package-lock.json under MIT, BSD, Apache, ISC, zlib,
 # Unlicense or CC0; every font beside its licence (site/assets/fonts/OFL.txt: Geist's SIL Open Font License)
+# plant: {"file": "package-lock.json", "find": "\"license\": \"BSD-2-Clause\"", "with": "\"license\": \"GPL-3.0\"", "why": "a GPL package"}
 node - <<'JS'
 const fs = require('fs');
 const OK = /^(MIT|BSD-[23]-Clause|0BSD|Apache-2\.0|ISC|Zlib|Unlicense|CC0-1\.0)$/;

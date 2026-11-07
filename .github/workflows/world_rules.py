@@ -124,7 +124,7 @@ for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|contr
 #    tools/plan.mjs copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
 #    its stamp (PLANV) is the world's PW_V. (2026-11-06) The build ships the worker minified as
 #    the world is (tools/plan.mjs buildPlan): there the spans cannot appear verbatim, so the stamp, the one quoted 12-hex
-#    string in it, must be their md5's and the world's PW_V, and test/unit.mjs runs that worker against the page's own plan,
+#    string in it, must be their md5's and the world's PW_V, and test/unit/maps.mjs runs that worker against the page's own plan,
 #    hash for hash (the same code, minified).
 import hashlib
 PSP = [('  var PI = Math.PI, DEG = Math.PI / 180;', '\n', True), ('  var CW = (function () {\n', '\n  })();\n', True), ('  var MAPS = {', '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', True), ('  var KN = 256, KSTEP = 64,', '  var KFROWS = FN * FN / KN;', False)]
@@ -164,7 +164,7 @@ for p in gen:
         if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (tools/plan.mjs\'s anchors; a minified world needs its own check)'); continue
         if not mini and any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
         wv = re.findall(r"var PW_V = '([0-9a-f]*)';", src[f] or '')
-        if wv != [pv[0]]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, {f}\'s PW_V {wv} (the same; the stamp itself, the spans\' code token by token, is tools/plan.mjs\'s: the build and test/unit.mjs check it)')
+        if wv != [pv[0]]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, {f}\'s PW_V {wv} (the same; the stamp itself, the spans\' code token by token, is tools/plan.mjs\'s: the build and test/unit/maps.mjs check it)')
     if p not in started: fail('2b plan-worker', f'{p}: in the site but started by no world file')
 
 # 4 the world's absences

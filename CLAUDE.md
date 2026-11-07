@@ -46,7 +46,7 @@ tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
                plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
                one scope), gpu/ (the PC's T2/T3), birds/ (generators)
-test/          unit.mjs (pure code), shaders.mjs (every shader compiles),
+test/          unit/<area>.mjs (pure code, one file an area), shaders.mjs (every shader compiles),
                golden/
 docs/          the full record, one file per area (below)
 .github/       validate.yml (every static check), gate.yml (T0/T1/T2 and the
@@ -70,8 +70,8 @@ one is committed to site/ (built-files-uncommitted).
      in site/). The Stop hook runs it when
      sources changed.
    - `node tools/build.mjs --plain build/site`: the build CI checks.
-   - `node --test test/unit.mjs` (about 10 s); after a deliberate change to
-     what it pins, `node test/unit.mjs --write`.
+   - `node --test 'test/unit/*.mjs'` (a few seconds, a process an area); after
+     a deliberate change to what one pins, `node test/unit/<area>.mjs --write`.
    - A shader changed: nothing derived to commit; the gate's census and
      T2 compare the base's build with the head's.
    - The plan's spans changed: `node tools/plan.mjs --stamp`.

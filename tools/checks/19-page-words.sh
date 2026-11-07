@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # check: The page says what it says
+# enforces: page-words
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
+# plant: {"file": "build/site/index.html", "find": "Product&nbsp;Development.", "with": "Product&nbsp;Development!", "why": "the line under the name changed"}
 cd build/site
 # The words on the page and in its search and share text, exactly:
 # the line under the name (in its own span), the credit,

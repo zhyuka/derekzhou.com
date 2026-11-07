@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # check: Still skies keep the words legible
+# enforces: light-words-only
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
+# plant: {"file": "build/site/style.css", "find": "--color-text: #fdfcf7;", "with": "--color-text: #405060;", "why": "dark words on the still skies"}
 cd build/site
 # The stylesheet's still skies (no WebGL2, no script, the moment
 # before the world is drawn, a device too slow for it) must hold

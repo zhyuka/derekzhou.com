@@ -8,6 +8,7 @@
 # a generated file can never drift from its source. numpy (BSD) pinned: the version they were made with.
 # (windows-check) outside CI only: a machine whose Python cannot take the pinned numpy (or has no `python`) skips this
 # check with a warning; in CI (GITHUB_ACTIONS set) it always runs, and a failed install fails it
+# plant: {"file": "src/birds/model/facetform.js", "find": "(", "with": "( ", "why": "the wing model not what its generators make"}
 if [ -z "${GITHUB_ACTIONS:-}" ] && ! { command -v python >/dev/null && python -m pip install --quiet --disable-pip-version-check numpy==2.5.3 >/dev/null 2>&1; }; then
   echo "::warning::the wing model's check skipped here: this machine's python cannot install numpy==2.5.3 (CI runs it)"
   exit 0

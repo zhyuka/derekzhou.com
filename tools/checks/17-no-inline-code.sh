@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # check: No inline code on CSP'd pages
+# enforces: csp-scoping
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
+# plant: {"file": "build/site/index.html", "find": "<main>", "with": "<script>1</script><main>", "why": "an inline script"}
 cd build/site
 # The site-wide CSP has no unsafe-inline; inline styles, style
 # blocks, and inline event handlers silently do nothing. Fail

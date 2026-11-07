@@ -48,7 +48,7 @@ tools/birds/model/           Generates src/birds/model/model.js: make.py runs bu
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
 test/shaders.mjs             Every program the page issues, compiled and linked in Chrome (--compile)
-test/unit.mjs                The world's pure code in Node (streams, hashes, the sky order, the maps, the plan's worker); --write updates test/golden/unit.json
+test/unit/<area>.mjs         The world's pure code in Node, one file an area (streams, sky, maps and the plan's worker, governor, framing, drag, glslmin, verdict), sharing test/unit-lib.mjs; --write updates test/golden/unit/<area>.json
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
@@ -120,7 +120,7 @@ it, stamped with their md5, and the build fails when the world's PW_V is
 not that stamp (after a change to the spans, node tools/plan.mjs --stamp
 rewrites PW_V in its part); the build then minifies it as the world is
 (tools/plan.mjs buildPlan: terser with the world's options, its header
-kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit.mjs runs that
+kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit/maps.mjs runs that
 worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are
 served as written.
 

@@ -1,9 +1,20 @@
 #!/usr/bin/env bash
 # check: Absences are enforced
+# enforces: no-2d-birds
+# enforces: steer-only-by-drag
+# enforces: one-entropy-one-clock
+# enforces: opening-sky-by-clock-only
+# enforces: absence-chrome
+# enforces: absence-behaviour
+# enforces: absence-no-dom
+# enforces: absence-network-sound-cursor
+# enforces: absence-dev-hooks
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
 # (one-check) the rules read code, not prose: the greps below run on a copy of build/ whose .js and .css comments are
 # blanked (tools/checks/nocomments.mjs: every line and column kept, the INIT-END marker kept), proved first to be the
 # same programs; a comment naming localStorage no longer fails, a call to it still does
+# plant: {"file": "build/site/hour.js", "find": "(function () {", "with": "(function () { localStorage.getItem('x');", "why": "a call to localStorage"}
+# plant: {"expect": "pass", "file": "build/site/hour.js", "find": "(function () {", "with": "(function () { // localStorage is never read here", "why": "a comment naming localStorage is prose, not code"}
 node tools/checks/nocomments.mjs --self-test build/src/*.js build/site/*.js
 node tools/checks/nocomments.mjs build/site "$RUNNER_TEMP/nc/site"
 node tools/checks/nocomments.mjs build/src "$RUNNER_TEMP/nc/src"

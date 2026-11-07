@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # check: The world's page loads in order
+# enforces: no-2d-birds
+# enforces: script-order
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
+# plant: {"file": "build/site/index.html", "find": "<div id=\"world-end\" hidden></div>", "with": "", "why": "the hold's marker gone"}
 cd build/site
 # hour.js in the head (before the first paint), site.js, then (the
 # first-paint hold, 2026-11-06) the world, the realms' kit and realms,

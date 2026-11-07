@@ -5,4 +5,5 @@
 # .github/ci/deploy-inputs.txt is what Cloudflare Pages' build reads: post-deploy.yml finds the live commit by
 # it, and the Pages build watch paths are the same list. A tool the build loads but the list leaves out would
 # be a change Pages never builds.
+# plant: {"file": ".github/ci/deploy-inputs.txt", "find": "tools/minify.mjs", "with": "tools/minify-gone.mjs", "why": "a tool the build loads, not listed"}
 node .github/ci/deploy-inputs.mjs --check

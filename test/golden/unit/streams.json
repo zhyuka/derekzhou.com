@@ -1,40 +1,4 @@
 {
- "maps.seed11": {
-  "plan": {
-   "anchors": "e754a6f29ddf",
-   "dir": "2d14c7b6f792",
-   "kw": "9d985b472390",
-   "kf": "0f852585e218",
-   "samples": "77caf8053143"
-  },
-  "flight": {
-   "anchors": "a2d9e0b49aba",
-   "dir": "57e521590d05",
-   "kw": "44af1a5e8567",
-   "kf": "e76f4e3d7885",
-   "samples": "4056a2d81091"
-  }
- },
- "maps.seed3": {
-  "plan": {
-   "anchors": "273e4cf22e2b",
-   "dir": "a829a4015440",
-   "kw": "151e0d96bb42",
-   "kf": "3f6ddfb1fa05",
-   "samples": "9d5cc360f724"
-  },
-  "flight": {
-   "anchors": "83973edde73e",
-   "dir": "eea376ec5b69",
-   "kw": "805ad1be3264",
-   "kf": "da861f7d5281",
-   "samples": "c88fb75a17fb"
-  }
- },
- "sky.order": {
-  "7": "1cce9a88a3bb",
-  "424242": "120eb8c81822"
- },
  "streams.ihash": {
   "ihash": [
    0,

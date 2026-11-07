@@ -1,5 +1,5 @@
 // deploy-walk.mjs: the deploy gate's walk over main's tips since live (merge-bot.mjs, step 3), apart so it can be
-// unit-tested (test/unit.mjs). runs: main's push runs of the Gate between live and main, oldest first. d: the bot's
+// unit-tested (test/unit/verdict.mjs). runs: main's push runs of the Gate between live and main, oldest first. d: the bot's
 // lookups (verdict, ownerMerge, branchIdentical, laterStallOk) and say, injected. Returns { to, why }: the newest tip
 // live may move to, and why it stops there.
 // A cancelled run (a newer push to main superseded it) is no result, never red: that tip is judged by its own

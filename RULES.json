@@ -25,14 +25,6 @@
         {
           "kind": "world-rule",
           "id": "7b canvas-last"
-        },
-        {
-          "kind": "ci-step",
-          "name": "Nothing darkens (W7's unit test)"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's rules"
         }
       ]
     },
@@ -48,10 +40,6 @@
         }
       ],
       "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Still skies keep the words legible"
-        },
         {
           "kind": "prose",
           "note": "W8 and the words' contrast through every sky are measured in the dev build (CLAUDE.md: Verify)"
@@ -73,10 +61,6 @@
         {
           "kind": "world-rule",
           "id": "7 no-mask"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's rules"
         }
       ]
     },
@@ -95,14 +79,6 @@
         {
           "kind": "absence",
           "number": 7
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's page loads in order"
         }
       ]
     },
@@ -120,12 +96,7 @@
           "doc": "docs/world.md: THE TIME OF DAY"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "No fades: no keyframes, transitions or animations"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "no-glitter",
@@ -152,12 +123,7 @@
           "doc": "docs/world.md: FALLBACKS; THE FLIGHT AND THE CAMERA; docs/birds.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Reduced motion is one still frame"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "steer-only-by-drag",
@@ -173,10 +139,6 @@
         {
           "kind": "absence",
           "number": 2
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         },
         {
           "kind": "world-rule",
@@ -198,10 +160,6 @@
         {
           "kind": "absence",
           "number": 4
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         },
         {
           "kind": "world-rule",
@@ -227,10 +185,6 @@
         {
           "kind": "absence",
           "number": 4
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -247,10 +201,6 @@
         {
           "kind": "absence",
           "number": 1
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -267,10 +217,6 @@
         {
           "kind": "absence",
           "number": 2
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         },
         {
           "kind": "world-rule",
@@ -291,10 +237,6 @@
         {
           "kind": "absence",
           "number": 3
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -313,10 +255,6 @@
         {
           "kind": "absence",
           "number": 5
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         },
         {
           "kind": "world-rule",
@@ -341,10 +279,6 @@
         {
           "kind": "absence",
           "number": 6
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -361,14 +295,6 @@
         {
           "kind": "world-rule",
           "id": "3 production-blind"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's rules"
-        },
-        {
-          "kind": "ci-step",
-          "name": "No inline code on CSP'd pages"
         }
       ]
     },
@@ -385,10 +311,6 @@
         {
           "kind": "world-rule",
           "id": "1 rocket-loader"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's page loads in order"
         }
       ]
     },
@@ -401,12 +323,7 @@
           "doc": "docs/security.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Check required files exist"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "built-files-uncommitted",
@@ -417,12 +334,7 @@
           "doc": "docs/structure.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "The build, the same bytes every time; site/ holds no built file"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "changed-bytes-new-name",
@@ -433,16 +345,7 @@
           "doc": "docs/caching.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Asset references must resolve (immutable-rename integrity)"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The build, the same bytes every time; site/ holds no built file"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "same-shaders",
@@ -453,16 +356,7 @@
           "doc": "docs/caching.md; docs/structure.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Every visit compiles the same shaders"
-        },
-        {
-          "kind": "ci-step",
-          "name": "Every shader compiles"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "page-words",
@@ -480,12 +374,7 @@
           "doc": "docs/content.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "The page says what it says"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "lettered-name",
@@ -501,12 +390,7 @@
           "doc": "docs/design.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "The lettered name keeps its words"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "licences",
@@ -519,12 +403,7 @@
           "doc": "docs/type.md (fonts)"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Licences on the allowlist"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "naming",
@@ -543,10 +422,6 @@
         {
           "kind": "hook",
           "file": ".claude/hooks/guard.py"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The rules are data, and the hooks hold"
         },
         {
           "kind": "prose"
@@ -622,12 +497,7 @@
           "doc": "CLAUDE.md (top); docs/design.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "No frameworks: pure HTML, CSS and JS"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "no-trusted-types-while-rocket-loader",
@@ -654,12 +524,7 @@
           "via": "the hub, after lane D found two `function lateWarm()` (070-programs, 490-birds-host): no late program was ever warmed"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "No name declared twice in one scope"
-        }
-      ]
+      "enforced_by": []
     }
   ]
 }

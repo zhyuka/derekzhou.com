@@ -3,6 +3,7 @@
 # kind: fast
 # (moved verbatim from validate.yml; run from the repository root by tools/check.mjs, in bash -eo pipefail)
 # Scan for common secret patterns in tracked files
+# plant: {"file": "docs/content.md", "find": "# Content", "with": "# Content \u0067hp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "why": "a GitHub token in a tracked file"}
 patterns=(
   'AKIA[0-9A-Z]{16}'
   'sk-[a-zA-Z0-9]{20,}'
