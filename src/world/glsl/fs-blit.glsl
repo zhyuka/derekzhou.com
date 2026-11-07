@@ -1,8 +1,8 @@
 
 uniform sampler2D uTex; uniform vec2 uOut;
 out vec4 oC;
-/* (stage2 quality Q4) the world put up to a larger canvas by a Catmull-Rom clamped to the inner 2x2's range (one
-   sharp resample, no ring: never outside the four texels it lies between), was bilinear */
+/* the world put up to a larger canvas by a Catmull-Rom clamped to the inner 2x2's range (one sharp resample, no
+   ring: never outside the four texels it lies between) */
 void main() {
   vec2 sz = vec2(textureSize(uTex, 0)), hp = gl_FragCoord.xy / uOut * sz - 0.5, f = fract(hp); ivec2 h0 = ivec2(floor(hp)), qm = ivec2(sz) - 1;
   vec2 w0c = f * (-0.5 + f * (1.0 - 0.5 * f)), w1c = 1.0 + f * f * (-2.5 + 1.5 * f), w2c = f * (0.5 + f * (2.0 - 1.5 * f)), w3c = f * f * (-0.5 + 0.5 * f);

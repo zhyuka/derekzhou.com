@@ -1,5 +1,5 @@
 
-uniform float uPxK;   // (E1.1, as VS_SCATTER's)
+uniform float uPxK;   // (as VS_SCATTER's)
 layout(location = 0) in vec2 aQ;   // x: 0 tail .. 1 head, y: -1 .. 1 across
 uniform vec4 uPa;    // box (m), height range (m), streak (s), size (px)
 uniform vec3 uWind;  // m/s
@@ -9,7 +9,7 @@ uniform vec4 uPd;    // rain: fall (m/s), the splash's life (s), gusts (0 .. 1),
 uniform vec4 uPe;    // a second colour (rgb), its share
 uniform vec4 uPf;    // a third colour (rgb), its share
 uniform vec4 uPg;    // blink (the share of a cycle lit; 0: none), flicker (0 .. 1), the share drawn (0 .. 1: the rain's amount, an area's), -
-uniform mat4 uPVP2; uniform vec3 uPCam2; uniform float uMB;   // (E1 Fix 3) the last frame's view and camera; the share of its motion a mote is drawn along (0: none)
+uniform mat4 uPVP2; uniform vec3 uPCam2; uniform float uMB;   // the last frame's view and camera; the share of its motion a mote is drawn along (0: none)
 out vec4 vCol; out vec2 vQ; flat out float vKind;
 vec3 grain(int id, float t, out float edge) {
   uint h = ih(uint(id) * 2654435761u + 977u);
@@ -104,25 +104,25 @@ void main() {
   vec4 ch = uVP * vec4(head - uCam, 1.0), ct = uVP * vec4(tail - uCam, 1.0);
   vKind = uPb.w;
   if (ch.w < 0.5 || ct.w < 0.5 || length(head - tail) > uPa.x * 0.25) { gl_Position = vec4(0.0, 0.0, -2.0, 1.0); vCol = vec4(0.0); vQ = aQ; return; }
-  /* (round E1 Fix 3, G0) a mote drawn along its own motion on the window since the last frame (where it was then, seen
-     from where the camera was), its light spread over that stretch: a near mote crossed the window by several pixels a
-     frame as a 1.6 px dot, so each pixel it passed was lit for one frame and dark the next (the cloud-edge film's
-     blinks, 1.2-2.0 a frame against the 4x reference's 0); a moving point of light is a short streak to the eye, with
-     the same light in all */
+  /* a mote drawn along its own motion on the window since the last frame (where it was then, seen from where the
+     camera was), its light spread over that stretch: a near mote crosses the window by several pixels a frame, and
+     as a 1.6 px dot each pixel it passes is lit for one frame and dark the next (the cloud-edge film's blinks,
+     1.2-2.0 a frame against the 4x reference's 0); a moving point of light is a short streak to the eye, with the
+     same light in all */
   if (uPb.w > 0.5 && uMB > 0.0) {
     vec4 cp = uPVP2 * vec4(head - uPCam2, 1.0);
     if (cp.w > 0.5) ct = vec4(mix(ch.xy / ch.w, cp.xy / cp.w, uMB) * ch.w, ch.z, ch.w);
   }
   vec2 sh = ch.xy / ch.w * uRes * 0.5, st = ct.xy / ct.w * uRes * 0.5, d = sh - st;
   float L = length(d); vec2 dir = L > 1e-3 ? d / L : vec2(1.0, 0.0), nrm = vec2(-dir.y, dir.x);
-  float dist = length(head - uCam), wt = uPa.w * 18.0 / dist, wo = max(wt, (uPb.w > 0.5 ? 1.6 : 0.8) * uPxK), w = max(wt, 1.6 * uPxK);   // (E1.1: the floors in the display's pixels, uPxK)   // (hotfix G0: never under 1.6 px wide (round 3b: 0.8); wo, the old width, keeps the light below)
+  float dist = length(head - uCam), wt = uPa.w * 18.0 / dist, wo = max(wt, (uPb.w > 0.5 ? 1.6 : 0.8) * uPxK), w = max(wt, 1.6 * uPxK);   // (the floors in the display's pixels, uPxK)   // (never under 1.6 px wide; wo, the light's own width (1.6 px for the motes drawn along their motion, else 0.8), keeps the light below)
   vec4 c = mix(ct, ch, aQ.x);
   vec2 px = c.xy / c.w * uRes * 0.5 + nrm * aQ.y * w * 0.5 + dir * (aQ.x - 0.5) * w;
   gl_Position = vec4(px / (uRes * 0.5) * c.w, c.z, c.w);
   vec3 rd = normalize(head - uCam), col;
   uint h = ih(uint(id) * 2654435761u + 31337u); float r1 = hf(h), r2 = hf(ih(h + 5u)), a;
   if (uPb.w < 0.5) {
-    // (hotfix G0) no glint: a grain's facet spun through the sun at pow 60, a flash a turn (sparkle by design). Each
+    // no glint: a grain's facet spun through the sun at pow 60, a flash a turn (sparkle by design). Each
     // grain that glinted is lit steadily at its flash's mean over the turn: the facet's normal on a cone about the
     // vertical (cos 0.768, sin 0.640), so dot(n, h) = A + B cos(turn), and the mean of its 60th power over a turn is
     // (A + B)^60 sqrt((A + B) / (2 pi 60 B)) (Laplace; never more than the peak): the same light on average, no flash
@@ -135,7 +135,7 @@ void main() {
     col = uPc.rgb * (0.3 + 2.6 * fwd);
     a = uPc.a * (0.35 + 0.65 * fwd);
   }
-  a *= edge * smoothstep(1.0, 4.0, dist) * (1.0 - smoothstep(60.0, 140.0, dist)) * clamp(wo / (1.2 * uPxK), 0.3, 1.0) * (wo * (L + wo)) / (w * (L + w));   // (hotfix G0: the light the old quad carried, spread over the wider one: the same in all)
-  if (uPb.w > 0.5) a *= w / (L + w);   // (E1 Fix 3: a mote's light spread over its motion's stretch, L: the same in all)
+  a *= edge * smoothstep(1.0, 4.0, dist) * (1.0 - smoothstep(60.0, 140.0, dist)) * clamp(wo / (1.2 * uPxK), 0.3, 1.0) * (wo * (L + wo)) / (w * (L + w));   // (the light a quad wo wide carries, spread over the wider one: the same in all)
+  if (uPb.w > 0.5) a *= w / (L + w);   // (a mote's light spread over its motion's stretch, L: the same in all)
   vCol = vec4(atmos(col, rd, dist), a); vQ = aQ;
 }
