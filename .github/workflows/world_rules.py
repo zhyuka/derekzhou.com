@@ -28,11 +28,9 @@
 #      frames where paint timing is missing); two listeners, webglcontextlost (a context lost before the world adopts
 #      it can still be restored) and the worker's message; nothing put on window but WORLD_START. Its table is data
 #      only: one postMessage of the sources (strings) and the two lists of numbers, then close.
-#   5  The script order: index.html loads world, the kit and the realms first, fetchpriority="high", then the wing
-#      model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
-#      fetchpriority="low", all deferred (the boot starts once the realms register); the one async script is the start
-#      file, fetchpriority="high", the first script after the canvas.
-#   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
+#   5  (The script order moved 2026-11-07 to tools/checks/20-script-order.sh, "The world's page loads in order",
+#      which checked all of it already; the Rocket Loader tag on every page's scripts stays here, rule 1.)
+#   6  (The realm lint, lint_realms.js, was dropped 2026-11-07: report-only, it never failed.)
 #   7  Nothing darkens, and nothing is done to the world for the words (the owner's rule; the words' lift is
 #      gone), and nothing masks a bird for them (the owner, 2026-11-05: "pls remove the masking boxes from behind the
 #      text completely. it's completely fine if the birds fly behind/in front of it"): no file names a keep-off or a
@@ -324,47 +322,6 @@ for f in world:
             if re.search(r'P\s*=\s*EP\.(comp|blit)\b', l[m.end():m.end() + 60]): continue
             if re.search(r'target\s*:\s*function\s*\(\s*\)\s*\{\s*$', l[:m.start()].rstrip() + ' {') or re.search(r'\btarget\s*:\s*function\s*\(\s*\)\s*\{\s*gl\.bindFramebuffer', l): continue
             fail('7b canvas-last', f'{f}:{i + 1} draws onto the canvas with a program not named (the composite, the blit, the ink birds\' target): {l.strip()[:100]}')
-
-# 5 the script order
-s = html.get('index.html') or ''
-order = re.findall(r'<script\b[^>]*src="/?([^"]+)"[^>]*>', s)
-deferred = [x for x in re.findall(r'<script\b[^>]*>', s) if 'defer' in x]
-names = [re.search(r'src="/?([^"]+)"', x).group(1) for x in deferred if 'src=' in x]
-def kind(n):
-    for k, p in (('world', r'world[\w-]*(?:\.v\d+)?\.js'), ('kit', r'realm-kit(?:\.v\d+)?\.js'), ('realm', r'realm-\w+(?:\.v\d+)?\.js'), ('wing', r'(%s)(?:\.v\d+)?\.js' % '|'.join(WING)), ('ink', r'inkbirds(?:\.v\d+)?\.js'), ('diag', r'diag\.v\d+\.js')):
-        if re.fullmatch(p, n): return k
-    return 'other'
-ks = [kind(n) for n in names if kind(n) != 'diag']
-# (the first-paint hold, 2026-11-06) the world, the kit and the realms parser-blocking after the footer, in that order;
-# only the wing model and the ink birds deferred
-blocking = [x for x in re.findall(r'<script\s[^>]*>', s) if 'src=' in x and 'defer' not in x and not re.search(r'\sasync[\s>]', x)]
-bnames = [re.search(r'src="/?([^"]+)"', x).group(1) for x in blocking]
-bks = [kind(n) for n in bnames if kind(n) in ('world', 'kit', 'realm')]
-if world:
-    want = ['wing'] * len(WING) + ['ink']
-    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want only the wing model and the ink birds, last')
-    wantb = ['world', 'kit'] + ['realm'] * max(1, bks.count('realm'))
-    if bks != wantb: fail('5 script-order', f'index.html parser-blocking scripts {bnames}: want the world, the kit, then the realms')
-    fw = s.find('</footer>'); ww = s.find('src="/world')
-    if fw < 0 or ww < fw: fail('5 script-order', 'index.html: the world, the kit and the realms come after the footer (the hold measures the words)')
-    if s.count('<link rel="expect" href="#world-end" blocking="render">') != 1 or s.count('id="world-end"') != 1 or not re.search(r'src="/realm-above(?:\.v\d+)?\.js"[^>]*></script>\s*<div id="world-end" hidden></div>', s): fail('5 script-order', 'index.html: one link rel=expect #world-end blocking=render, and one empty <div id="world-end" hidden></div> right after the last realm')
-    wn = [re.sub(r'(?:\.v\d+)?\.js$', '', n) for n in names if kind(n) == 'wing']
-    if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
-    PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'wing': 'low', 'ink': 'low'}
-    for tag in deferred + blocking:
-        m5 = re.search(r'src="/?([^"]+)"', tag)
-        if not m5 or kind(m5.group(1)) not in PRI: continue
-        fp = re.findall(r'\bfetchpriority="(\w+)"', tag)
-        if fp != [PRI[kind(m5.group(1))]]: fail('5 script-order', f'index.html {m5.group(1)}: fetchpriority {fp}, want "{PRI[kind(m5.group(1))]}"')
-
-tags5 = re.findall(r'<script\b[^>]*>', s)
-asyn = [x for x in tags5 if re.search(r'\sasync[\s>]', x)]
-st5 = [x for x in asyn if re.search(r'src="/?start(?:\.v\d+)?\.js"', x)]
-if asyn != st5 or len(st5) > 1: fail('5 script-order', f'index.html async scripts {asyn}: the only one is the start file')
-for x in st5:
-    if 'defer' in x.split() or re.findall(r'\bfetchpriority="(\w+)"', x) != ['high']: fail('5 script-order', f'index.html {x}: async, never defer, fetchpriority "high"')
-    i5 = s.find('<canvas class="sky"')
-    if i5 < 0 or re.search(r'<script\b', s[i5:s.find(x)]): fail('5 script-order', f'index.html {x}: the first script after the canvas')
 
 print('\n'.join(fails) if fails else 'world rules OK (' + ', '.join(f'{len(x)} {n}' for n, x in (('world', world), ('kit', kit), ('realm', realms), ('wing model', wing), ('ink birds', ink), ('worker', gen))) + ')')
 sys.exit(1 if fails else 0)

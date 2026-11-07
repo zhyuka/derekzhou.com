@@ -24,7 +24,7 @@ if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usa
 
 // ------------------------------------------------------------------ the programs as issued (glsl_guard's fake browser)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'shaders-'));
-try { execFileSync(process.execPath, [GUARD, SITE, '--dump', tmp, '--visits', '3'], { stdio: ['ignore', 'ignore', 'inherit'] }); }
+try { execFileSync(process.execPath, [GUARD, SITE, '--first', '--dump', tmp], { stdio: ['ignore', 'ignore', 'inherit'] }); }
 catch (e) { console.error('shaders: glsl_guard could not run the page (exit ' + e.status + ')'); process.exit(1); }
 const now = new Map();
 for (let j = 0; ; j++) {

@@ -60,8 +60,8 @@ tools/start.mjs              Makes the start file from src/'s scripts, run in a 
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
-.github/workflows/validate.yml  CI checks (and, beside it, the world's: world_rules.py,
-                             w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
+.github/workflows/validate.yml  CI checks: runs tools/check.mjs, every check a file of tools/checks/ (and, beside it, the world's: world_rules.py,
+                             w7_unit.js, and the shaders' guard, glsl_guard.js
                              (every visit of a device, the same sources))
 
 Five scripts are served minified: world.js, realm-kit.js,

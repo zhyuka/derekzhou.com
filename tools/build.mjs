@@ -22,6 +22,8 @@
 //   node tools/build.mjs --check          build twice into two temporary folders at once; exit 1 unless both builds are
 //                                         the same bytes (deterministic), site/ holds none of the files the build
 //                                         writes, and the deploy build is the same from both and passes its checks
+//   node tools/build.mjs --check --against DIR   the same, with DIR (a plain build made already: npm run check's
+//                                         build/site) as build one, so only one build is made here
 //   node tools/build.mjs --manifest DIR   print DIR's manifest
 //
 // The deploy build's checks (else exit 1): every script and stylesheet at the top level has a content name and the
@@ -235,12 +237,13 @@ function diff(a, b, la, lb) {   // the lines of two manifests that differ, as a 
 }
 
 const a = process.argv.slice(2);
-if (a[0] === '--check' && a.length === 1) {
+if (a[0] === '--check' && (a.length === 1 || (a.length === 3 && a[1] === '--against'))) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'build-'));
-  const d1 = path.join(tmp, 'one'), d2 = path.join(tmp, 'two');
+  const d1 = a[2] ? path.resolve(a[2]) : path.join(tmp, 'one'), d2 = path.join(tmp, 'two');   // (dev-speed: --against, build one is the plain build made already)
+  if (a[2] && !fs.existsSync(path.join(d1, 'index.html'))) die('--against ' + a[2] + ': no plain build there');
   const t0 = Date.now();
   let written;
-  try { [written] = await Promise.all([build(d1, null), build(d2, null)]); } catch (e) { die(e.message); }
+  try { [written] = await Promise.all(a[2] ? [build(d2, null)] : [build(d1, null), build(d2, null)]); } catch (e) { die(e.message); }
   const m1 = manifest(d1), m2 = manifest(d2);
   let bad = 0;
   for (const l of diff(m1, m2, 'build one', 'build two')) { console.error('::error::not deterministic: ' + l); bad = 1; }
