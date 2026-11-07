@@ -2,19 +2,7 @@
   var EP = {}, ENG = { st: 0, k: 0, names: null };
   var NOISE3 = null, GRID = null, FULLVAO = null, QUAD_VB = null, STRIP = null, VCUBE = null, VTMP = null, ICO = null, BAKEFB = null, CREATURE = null;
   /* the engine's own resources and programs, made once (again after a lost context) by the boot's stages: B the
-     objects (bootObjects), C the programs with every realm's and the birds' (progStep), E the noise (noiseStep). The
-     harness's stills (and a restore under them) make all of it at once: engineStep(true) */
-  function engineStep(sync) {
-    if (ENG.st < 0) return false;
-    if (gl.isContextLost()) return false;
-    if (ENG.st === 0) { bootObjects(); ENG.st = 1; }
-    var r = progStep(true, 0);
-    if (r === LOSTP) return false;
-    if (!progsDone() || PROGX.broken && !engineOk()) { ENG.st = -1; return false; }
-    noiseStep(true);
-    ENG.st = 2;
-    return true;
-  }
+     objects (bootObjects), C the programs with every realm's and the birds' (progStep), E the noise (noiseStep) */
   function engineOk() { for (var k in EP) if (!EP[k].ok && !(EP[k].late && EP[k].st !== 3)) return false; return true; }   // (the noise has no program)
   /* stage B: every object the engine draws with (the grid, the strips, the cube, the icosahedron, the bake's scratch,
      the creatures, the glows' quad, the noise, the read-back ring, the warm table's targets), and the registration of
