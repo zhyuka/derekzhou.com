@@ -37,7 +37,7 @@ const K = 1024;
 // each file the page loads: its budget in bytes, as sent (by its plain name: the deploy build adds the content hash)
 const BUDGET = {
   '/': 6 * K,                      // 4,650 (the document; Cloudflare sends it at about Brotli 4: ~5.6 KB)
-  '/style.css': 5.5 * K,           // 4,995 (2,151 once #135's comment-free stylesheet lands: lower this then)
+  '/style.css': 3 * K,             // 2,151 (served comment-free since #135; 4,995 with its notes)
   '/hour.js': 2 * K,               // 1,262
   '/site.js': 1 * K,               // 134
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
@@ -57,8 +57,8 @@ const BUDGET = {
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
 };
-const FIRST = 24 * K;   // 21,117 (31,269 before the fonts were cut to the pages' letters): the document, the stylesheet, the hour and both fonts (the first paint waits for them)
-const TOTAL = 240 * K;  // 215,988: everything, cold
+const FIRST = 20 * K;   // 18,117 (31,269 before #135's stylesheet and #150's fonts): the document, the stylesheet, the hour and both fonts (the first paint waits for them)
+const TOTAL = 235 * K;  // 211,968: everything, cold
 const PAINT = 1200;     // ms, the first paint's median
 const key = (p) => p.startsWith('/assets/fonts/') ? Object.keys(BUDGET).find((k) => k.startsWith('/assets/fonts/') && p.startsWith(k)) : p;
 let fail = 0, first = m.doc.encoded, total = m.doc.encoded;
