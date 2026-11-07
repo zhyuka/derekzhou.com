@@ -18,7 +18,7 @@
 # growth raises its line here, in the PR that grows it, with the reason. Measure a change in under a minute:
 #   node tools/build.mjs --plain build/site && node tools/loadperf.mjs build/site --profiles mobile --runs 3 --cold-only --br 11
 # The runner's Chrome, driven by playwright-core (pinned as W7's; PW_CORE and CHROME_PATH name others where set).
-# plant: {"file": "build/site/style.css", "find": "Geist-400-500.sub2.woff2", "with": "Geist-Variable.woff2", "why": "the full 69 KB font loaded for the words"}
+# plant: {"file": "build/site/style.css", "find": "Geist-400-500.sub3.woff2", "with": "Geist-Variable.woff2", "why": "the full 69 KB font loaded for the words"}
 if [ -z "${PW_CORE:-}" ]; then
   npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1 >/dev/null
   export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
@@ -40,8 +40,8 @@ const BUDGET = {
   '/style.css': 5.5 * K,           // 4,995 (2,151 once #135's comment-free stylesheet lands: lower this then)
   '/hour.js': 2 * K,               // 1,262
   '/site.js': 1 * K,               // 134
-  '/assets/fonts/Geist-': 12 * K,  // 10,932 (Geist 400-500; any .subN)
-  '/assets/fonts/GeistMono-': 10.5 * K,   // 9,320
+  '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
+  '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
   '/world.js': 113 * K,            // 102,463
   '/realm-kit.js': 5 * K,          // 4,114
   '/realm-dunes.js': 10.5 * K,     // 9,190
@@ -57,8 +57,8 @@ const BUDGET = {
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
 };
-const FIRST = 34 * K;   // 31,269: the document, the stylesheet, the hour and both fonts (the first paint waits for them)
-const TOTAL = 250 * K;  // 226,140: everything, cold
+const FIRST = 24 * K;   // 21,117 (31,269 before the fonts were cut to the pages' letters): the document, the stylesheet, the hour and both fonts (the first paint waits for them)
+const TOTAL = 240 * K;  // 215,988: everything, cold
 const PAINT = 1200;     // ms, the first paint's median
 const key = (p) => p.startsWith('/assets/fonts/') ? Object.keys(BUDGET).find((k) => k.startsWith('/assets/fonts/') && p.startsWith(k)) : p;
 let fail = 0, first = m.doc.encoded, total = m.doc.encoded;

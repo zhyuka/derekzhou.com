@@ -23,14 +23,14 @@ site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, invers
 site/assets/favicon.png      PNG fallback favicon (32x32)
 site/assets/apple-touch-icon.png  180x180 iOS icon
 site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (the subsets'
-                             sources; served too, loaded by no page) + two .sub2 subsets
+                             sources; served too, loaded by no page) + two .sub3 subsets (the pages' letters)
                              (loaded), and OFL.txt (their licence)
 site/robots.txt              Allow search engines, block AI crawlers
 site/.well-known/security.txt  Vulnerability reporting
 site/\_headers               Cloudflare Pages security + caching + Early Hints headers
 site/\_redirects             HTTPS enforcement (http and www to https://derekzhou.com)
 CLAUDE.md                    This file
-subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/fonts (manual tooling)
+subset-fonts.sh              Regenerates the .sub3 font subsets (the pages' letters: tools/fontglyphs.mjs) in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
 src/                         The five scripts the site serves minified, as written (the world, the kit and
                              the realms, the ink birds): the realms whole under their served names, the

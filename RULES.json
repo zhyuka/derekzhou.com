@@ -537,6 +537,18 @@
         }
       ],
       "enforced_by": []
+    },
+    {
+      "id": "fonts-hold-the-words",
+      "area": "performance",
+      "rule": "The served fonts are cut to the letters the pages show (Geist to every page's text, Geist Mono to the credit row's), so the first paint waits for half the font bytes; every letter a page shows is in its font, or the words would draw it in the fallback face. When the words gain a letter: ./subset-fonts.sh, and the fonts renamed (.subN+1) with every reference, in the same commit.",
+      "source": [
+        {
+          "date": "2026-11-07",
+          "via": "the owner, asked by the load-perf lane whether to cut both fonts to the letters the pages use (20.3 KB to 10.1 KB): \"Cut them\""
+        }
+      ],
+      "enforced_by": []
     }
   ]
 }

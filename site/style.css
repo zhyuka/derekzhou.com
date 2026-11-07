@@ -15,7 +15,7 @@
 
 @font-face {
   font-family: 'Geist';
-  src: url('/assets/fonts/Geist-400-500.sub2.woff2') format('woff2');
+  src: url('/assets/fonts/Geist-400-500.sub3.woff2') format('woff2');
   font-weight: 400 500;
   font-style: normal;
   font-display: optional;
@@ -23,7 +23,7 @@
 
 @font-face {
   font-family: 'Geist Mono';
-  src: url('/assets/fonts/GeistMono-Regular.sub2.woff2') format('woff2');
+  src: url('/assets/fonts/GeistMono-Regular.sub3.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: optional;
