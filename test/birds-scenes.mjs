@@ -40,6 +40,13 @@ export const SCENES = {
     sc.opt.speed = 12; sc.opt.yaw = 0; sc.opt.wind = [0, seed % 2 ? -6.5 : 6.5];
     return sc;
   },
+  /* a pair sent down into the sea of cloud below (the eye over a patch of it): hidden in it, then taken out */
+  sink: (seed, size) => {
+    const r = rand(seed), opt = air(r, size); opt.pos = [1800, 40, 0]; opt.yaw = 0;
+    const d = mix(r, 100, 180), xs = side(r) * mix(r, 0.1, 0.5);
+    return { opt, secs: LONG ? 180 : 120, setup: (sim) => { sim.run(0.5); const F = sim.flock(sim.ahead(d, xs, -5), 'pair', 'gull', 2);
+      for (const b of F.m) b.tag = 'sink'; const g = sim.B.newGoal(F, 'sink', F.r, sim.B.skyCls()); sim.B.PW.nextT = 1e9; sim.B.PW.ptrNext = 1e9; return F.m.slice(); } };
+  },
   /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes (CI: 2) */
   life: (seed, size) => {
     const sc = SCENES.perch(seed, size);

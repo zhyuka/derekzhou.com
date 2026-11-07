@@ -187,7 +187,7 @@
     else if (kind === 'sink') {
       var s = seaAt(x, z);
       if (s.w < 0.85) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it: on)
-      g.y = hideTop(x, z) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;
+      g.y = Math.min(hideTop(x, z), s.lv - 60) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;   // (under both the near top and the far margin: hidden as it drifts either side of the ground grid)
     } else if (kind === 'out') { g.psi = TAU * r(); g.y = eye + mix(r(), 120, 300); g.T = 600; }
     else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), 10, 28); }   // (over the eye a little: seen from below its M shows; at the eye's height it is a line)
     F.goal = g; Lb.goal = g;
@@ -221,7 +221,10 @@
       if (qx * qx + qz * qz < 30 * 30 || t - g.t0 > g.T) { g.k = 'commute'; g.psi = b.psi; g.T = 60; g.t0 = t; }
     } else h = g.psi + g.eh;
     var ch = Math.cos(h), sh = Math.sin(h), dy = clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25) + v * g.ec;
-    if (g.k === 'sink') dy = Math.min(dy, -v * Math.sin(10 * DEG));
+    if (g.k === 'sink') {   // (its depth under the cloud's top where it is now: the top rises and falls under it)
+      var sk = seaAt(x, z); if (sk.w > 0.85) g.y = Math.min(hideTop(x, z), sk.lv - 60) - SEA_DEEP - 2 * b.sz - 10;
+      dy = Math.min(clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25), -v * Math.sin(10 * DEG));
+    }
     /* never under the land below it and 15 m (the land here and 2 s on): only into the sea of cloud, going down into it */
     if (!(g.k === 'sink' && seaAt(x, z).w > 0.85)) {
       var fl = Math.max(lvGround(x, z), lvGround(x + b.v[0] * 2, z + b.v[2] * 2)) + CLEAR + b.sz;
