@@ -181,31 +181,7 @@ ink birds stay deferred and join after the show.
 BOOT (the owner: "should load instantly make it 10x faster"): without the
 hold, the page paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
-the world's first frame: the ink birds fly in the world. The start file
-(start.js: async, fetchpriority high, Early-Hinted, the first script
-after the canvas) runs its tests as soon as it comes: unless WebGL2 is
-missing, colours are forced or the browser is WebKit, it waits for the
-page's first contentful paint (PerformanceObserver 'paint'; two frames
-where paint timing is missing; or at once when the world asks for its
-context first: its getContext wrapped once, so the programs are issued
-just before the world takes the context if the table is in; else the
-start file stands aside and the world compiles its own, as without it). Issued at once, they held the
-first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores).
-Then it starts its table as a worker (start-table.js, the programs'
-GLSL, 1 MB, posted back as strings: no DOM, no fetch; parsed on the main
-thread before the first paint it held it back on a slow phone, FCP 148 ->
-284 ms at 4x), and when the sources are in it makes the canvas's context with the world's attributes, and unless
-KHR_parallel_shader_compile is missing or the renderer is a CPU one by
-name, it issues every program of the world's first frame from its table
-for the device (26 programs, or on the split height's devices their own
-set of 32, HPSPLIT in their #defines; each text as the world hands it
-to shaderSource, the device's #defines put in) and flushes, reading no
-status, no layout and no clock. The world takes that context (getContext
-gives the same one) and adopts each program whose issued text is exactly
-the one it would issue itself, freeing the rest; a context lost before
-that goes the world's own lost path. tools/start.mjs makes the two tables
-from src/ in a fake browser, and fails unless each serves every device
-and visit of its set the start file serves. The kits, the wing model
+the world's first frame: the ink birds fly in the world. The kits, the wing model
 and the ink birds only define at their top level (each hands itself
 to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
 global on self); the world's also sets the browser's bar to the top
@@ -228,8 +204,7 @@ the landing and no grid made yet: the plan is the same doubles either
 way. Anything else (no Worker, an error, an answer for another seed or
 world, 8 s gone) and the page makes the plan itself, as before. Where
 the browser has KHR_parallel_shader_compile and is not WebKit (Chrome,
-Edge, Firefox): every program issued at once (or adopted from the start
-file), the probe and the land first, all polled once a frame; each warm-up
+Edge, Firefox): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
 draw made as soon as its own program is done, beside the links still
 compiling; the programs for what no first frame can show (the ink birds',
 and the sand's particles and ribbons where the flight cannot reach sand
@@ -381,8 +356,8 @@ when they end, on at load too; print: none of it.
 THE WEATHER (=rand()): one crypto.getRandomValues above world.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The realm and kit files, the wing model, the ink birds, the
-plan's worker and the start file draw nothing of their own (the worker is
+ink birds. The realm and kit files, the wing model, the ink birds and the
+plan's worker draw nothing of their own (the worker is
 handed the visit's seed): the world's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's

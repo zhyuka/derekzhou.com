@@ -25,16 +25,12 @@ first visit pays for it).
 The world's scripts are on the path to the first paint only where the
 first-paint hold runs (World: BOOT): there the page paints once, with the
 world's first frame; where hour.js skips the hold they are not (parser-
-blocking, but the paint is not held: Chrome paints while they come; the
-start file async). Elsewhere the start file is Early-Hinted (Link preloads on
-/ in \_headers, after the stylesheet, the two fonts and the hour: Cloudflare
-sends HTTP/2 in request order) and the world's and the kits' are fetched
+blocking, but the paint is not held: Chrome paints while they come). The world's and the kits' are fetched
 from the page at high priority; the wing model and the ink birds after
 them, at low. (2026-11-06: the world's four scripts are no longer
 early-hinted. The build stores them Brotli 11, ready to send whole, and
 hinted they went out ahead of the fonts on a slow link.) As
-served: start.js 6 KB and its table start-table.js 1029 KB (its
-programs' GLSL, as text), world.js 360 KB, the kits 47 KB,
+served: world.js 360 KB, the kits 47 KB,
 inkbirds.js 141 KB, its wing model 138 KB (model.js 26 KB of it: its
 notes stay in tools/birds/model/model_full.json, 2026-11-06), the
 plan's worker 73 KB (node tools/minify.mjs --report build/ship: the five

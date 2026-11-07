@@ -55,8 +55,6 @@ try {
   }
   // no built file in site/
   const built = fs.existsSync(ship) ? fs.readdirSync(ship).filter((f) => f.endsWith('.js')) : [];
-  const ix = fs.readFileSync(path.join(ROOT, 'site', 'index.html'), 'utf8'), sm = ix.match(/\/(start(?:\.v\d+)?\.js)["']/);
-  if (sm) built.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));
   if (fs.existsSync(wp)) { const m = fs.readFileSync(wp, 'utf8').match(/new Worker\((['"])\/(plan[^'"]*\.js)\1\)/); if (m) built.push(m[2]); }
   const committed = built.filter((f) => fs.existsSync(path.join(ROOT, 'site', f)));
   if (committed.length) fail('site/ holds built files (git rm them; their sources are in src/): ' + committed.join(', '));
