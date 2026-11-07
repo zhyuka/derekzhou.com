@@ -100,8 +100,8 @@ function cutRecord(s) {
 }
 const DECLS = [   // the declaration lines, each the start of exactly one line (REC's, "var REC = null, RECW = null;", is in the record, a dev part)
   { name: 'REC' },
-  { name: 'STILLMODE', line: '  var STILLMODE = false; ' },
-  { name: 'DEVMODE', line: '  var DEVMODE = false; ' },
+  { name: 'STILLMODE', line: '  var STILLMODE = false;' },
+  { name: 'DEVMODE', line: '  var DEVMODE = false;' },
   { name: 'DEVKEEP', line: '  var DEVKEEP = false;' }];
 const GLOBAL_DEFS = Object.fromEntries(DECLS.map((d) => [d.name, false]));
 

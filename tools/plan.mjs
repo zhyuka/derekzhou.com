@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
+import * as acorn from 'acorn';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -34,7 +35,13 @@ export function spans(s) {
   i = s.indexOf(A3); const s3 = s.slice(i, s.indexOf(E3, i));
   return [A0, s1, s2, s3];
 }
-export const stamp = (sp) => crypto.createHash('md5').update(sp.join(''), 'utf8').digest('hex').slice(0, 12);
+/* the spans' stamp: the md5 (first 12 hex) of their CODE alone, token by token (acorn's tokenizer: no comment, no spacing),
+   so a comment or a line's layout changed in the spans leaves PW_V as it was, and only a change to what runs moves it */
+export const stamp = (sp) => {
+  const code = sp.join(''), toks = [];
+  for (const t of acorn.tokenizer(code, { ecmaVersion: 'latest' })) toks.push(code.slice(t.start, t.end));
+  return crypto.createHash('md5').update(toks.join(' '), 'utf8').digest('hex').slice(0, 12);
+};
 
 const HEAD = (name, st) => `// ${name}: the world's first plan, made in a worker (fast500 step 11). Made by tools/plan.mjs from world.js:
 // its four code spans (the maps and the director; MAPS, mapsInit, kitAt; the weights' grids), minified as the world
