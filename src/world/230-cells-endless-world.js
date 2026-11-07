@@ -41,9 +41,9 @@
       cloud: function (cl) { C.clouds.push(cl); return cl; },
       // creatures: { kind: 'bird' | 'ray', n, x, z, y or dy over the ground (or ref: an item, over its seat), orbit,
       //   wheel, size, flap, spread, drift [x, z], lit, shade }
-      flock: function (f) { C.flocks.push(f); if ((FKIND[f.kind] || 1) !== 1 || WORLD_FLYERS) LATEK.creature = 1; return f; },   // (world-perf lane: a flock the creatures' draw takes: drawCreatures passes over the birds (kind 1) while WORLD_FLYERS is off)
-      // a point of interest (the ink birds' places, HOST.pois): { x, z, y or dy (or ref), kind, pass (m beside it) }; (commit
-      //   6) nothing reads a point's interest, via, alt or approach: the autopilot that flew to them is gone
+      flock: function (f) { C.flocks.push(f); if ((FKIND[f.kind] || 1) !== 1 || WORLD_FLYERS) LATEK.creature = 1; return f; },   // (a flock the creatures' draw takes: drawCreatures passes over the birds (kind 1) while WORLD_FLYERS is off)
+      // a point of interest (the ink birds' places, HOST.pois): { x, z, y or dy (or ref), kind, pass (m beside it) }; nothing
+      //   reads a point's interest, via, alt or approach
       poi: function (p) { C.pois.push(p); return p; },
       // an instance of one of the realm's sets (def.sets[set]: one mesh built once a visit), as many as the cell likes:
       //   { yaw (deg), scale (number or [x, y, z]), tilt: [about x, about z] (deg), dy (m), foot (m: seated on the
@@ -70,7 +70,7 @@
   function anchorsOf(C) {
     var list = [], n = 0, i;
     function want(o, k) {
-      if (o.landQ) { o.ai = n; o.an = 9; o.lq = true; list.push(o); n += 9; return; }   // (world6 fix: the land under a cloud-sea piece's footprint, for aboveKeep)
+      if (o.landQ) { o.ai = n; o.an = 9; o.lq = true; list.push(o); n += 9; return; }   // (the land under a cloud-sea piece's footprint, for aboveKeep)
       if (o.air || o.y !== undefined || o.ref) return; o.ai = n; o.an = k; list.push(o); n += k;
     }
     for (i = 0; i < C.items.length; i++) want(C.items[i], 9);
@@ -108,9 +108,9 @@
     }
     C.job = null; C.alist = null;
     function yOf(o) { return o.y !== undefined ? o.y : o.ref ? o.ref.seat + (o.dy || 0) : o.seat; }
-    // (world6 fix) the cloud sea's pieces only where its sea is up about them (aboveKeep)
-    // (world6 step B fix, defects 7 and 14: no held-line corridor: what is kept is the place's, whatever line is flown;
-    // the floating pieces raised over the flight band instead)
+    // the cloud sea's pieces only where its sea is up about them (aboveKeep)
+    // (what is kept is the place's, whatever line is flown: no corridor held about a line; the floating pieces raised
+    // over the flight band)
     if (C.items.length) C.items = C.items.filter(function (it) { if (it.form) return true; if (!it.lq) return true; return aboveKeep(it); });
     for (i = 0; i < C.items.length; i++) {
       var ia = C.items[i]; if (!ia.air || !ia.spheres) continue;
@@ -138,15 +138,15 @@
       for (var bi = 0; bi < PF.bodies.length; bi++) {
         var bj0 = PF.bodies[bi].i0, bj1 = bi + 1 < PF.bodies.length ? PF.bodies[bi + 1].i0 : PF.count();
         if (bj0 >= bj1) continue;
-        // (world6 step B fix, defect 7) the body lifted whole over the flight band (its lowest lobe's billows at the band's
+        // the body lifted whole over the flight band (its lowest lobe's billows at the band's
         // top): its shape kept, its base floating over the sea as a cumulus's over a deck; never cut by the line flown
         var clb = bodyCl[bi], lowB = 1e9, cxB = 0, czB = 0;
         for (j = bj0; j < bj1; j++) { lowB = Math.min(lowB, PF.a[j * 12 + 1] - 1.3 * PF.a[j * 12 + 3]); cxB += PF.a[j * 12]; czB += PF.a[j * 12 + 2]; }
         cxB /= (bj1 - bj0); czB /= (bj1 - bj0);
         var btB = bandTopAt(cxB, czB, clb ? (clb.landMax !== undefined ? clb.landMax : clb.ground) : undefined), dB = btB - lowB;
         if (dB > 0) { for (j = bj0; j < bj1; j++) PF.a[j * 12 + 1] += dB; var Bb = PF.bodies[bi]; Bb.y0 += dB; Bb.y1 += dB; Bb.cy += dB; BAND.lifted++; BAND.liftM = Math.max(BAND.liftM, dB); }
-        // (fix) its base flat at its lowest lobe's centre: seen from under it a cloud floats on its condensation level,
-        // never on a hanging fringe of lobes (the film's first minute: a range's lobes hung over the dunes like a bunch)
+        // its base flat at its lowest lobe's centre: seen from under it a cloud floats on its condensation level,
+        // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
         var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = ycB;
         var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
         var cores = vb.out.cores;
@@ -236,7 +236,7 @@
   function freeCell(C) {
     if (!C || C.gone) return;
     C.gone = true;
-    if (!LOST) {   // (E1: queued, deleted among the next frame's GPU jobs: freeDrain)
+    if (!LOST) {   // (queued, deleted among the next frame's GPU jobs: freeDrain)
       if (C.mesh && C.mesh.vao) { glFree('VertexArray', C.mesh.vao); glFree('Buffer', C.mesh.vb); }
       if (C.occ) { glFree('VertexArray', C.occ.vao); glFree('Buffer', C.occ.b); }
       for (var i = 0; i < C.vols.length; i++) glFree('Texture', C.vols[i].out.t);
@@ -398,7 +398,7 @@
       for (i = V.cellList.length - 1; i >= 0; i--) {
         var Cf = V.cellList[i], Lf = scales[Cf.sc], fx = Cf.cx - cx, fz = Cf.cz - cz;
         if (Math.sqrt(fx * fx + fz * fz) > Lf.radius * 1.3 + Lf.size * 0.5) {
-          if (WLOG && Cf.mesh && V === SIM.V) wl('free', V.k + ':' + Cf.key, Cf.lastW || 0, nearDist(Cf, CAM.pos[0], CAM.pos[2]), Cf.lastVis);   // (dev: a drawn cell dropped, P6)
+          if (WLOG && Cf.mesh && V === SIM.V) wl('free', V.k + ':' + Cf.key, Cf.lastW || 0, nearDist(Cf, CAM.pos[0], CAM.pos[2]), Cf.lastVis);   // (dev: a drawn cell dropped)
           freeCell(Cf); V.cells.delete(Cf.key); V.cellList.splice(i, 1);
         }
       }
@@ -408,7 +408,7 @@
     for (i = 0; i < list.length; i++) {
       var Cp = list[i], px = Cp.cx - cx, pz = Cp.cz - cz, pd = Math.sqrt(px * px + pz * pz) || 1, ahead = (px * hx + pz * hz) / (pd * hl);
       Cp.prio = pd * (1 - 0.35 * ahead) / scales[Cp.sc].radius;
-      if (BOOTVF && !bootNeed(V, Cp, cx, cz, BOOT_M)) Cp.prio += 20;   // (fast500 step 10: the boot's order: what can be seen first, in the flight's own order; the cells out in the haze after)
+      if (BOOTVF && !bootNeed(V, Cp, cx, cz, BOOT_M)) Cp.prio += 20;   // (the boot's order: what can be seen first, in the flight's own order; the cells out in the haze after)
     }
     return list;
   }
@@ -418,19 +418,18 @@
   var PEND = [];
   function byPrio(a, b) { return a.prio - b.prio; }
   function bornNow(V) { return (V === SIM.V && shown) ? SIM.t : -1e9; }   // (a cell ready before its visit is seen is simply there)
-  /* (world6 step B fix, defect 11) every arrival a function of distance alone: a cell's (or a cloud body's) opacity is
-     1 - smooth(FD_FULL, FD_ZERO, its nearest distance from the eye), FD_ZERO inside the radius it is made in (its
-     scale's radius less a reach the streamer is ahead by: 0.1 R + 100 m) and the fade 0.12 R wide (at 12 m/s, 26-52 s
-     for the great cells: it comes out of the haze), so nothing appears on a clock. A cell or body ready only once it
-     should already show (late) is drawn at once, never eased in on a clock (fast500, no fades), and counted
-     (LATE: a gate failure, as it pops) */
+  /* every arrival a function of distance alone: a cell's (or a cloud body's) opacity is 1 - smooth(FD_FULL, FD_ZERO,
+     its nearest distance from the eye), FD_ZERO inside the radius it is made in (its scale's radius less a reach the
+     streamer is ahead by: 0.1 R + 100 m) and the fade 0.12 R wide (at 12 m/s, 26-52 s for the great cells: it comes
+     out of the haze), so nothing appears on a clock. A cell or body ready only once it should already show (late) is
+     drawn at once, never eased in on a clock, and counted (LATE: a gate failure, as it pops) */
   var LATE = { n: 0, vols: 0, worst: 0 };
   function fadeZ(V, sc) { var R = V.def.layout.scales[sc].radius; return R - (0.1 * R + 100); }
   function distFadeAt(V, sc, d) { var R = V.def.layout.scales[sc].radius, z = fadeZ(V, sc); return 1 - smooth(z - 0.12 * R, z, d); }
   function cellDistFade(C) { return distFadeAt(C.V, C.sc, nearDist(C, CAM.pos[0], CAM.pos[2])); }
   function volDistFade(o) { var C = o.cell; if (!C) return 1; var dx = o.c[0] - CAM.pos[0], dz = o.c[2] - CAM.pos[2]; return distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0)); }
-  function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once, fast500)
-  /* (E1, design-v5 4.3) kind 'cpu' (the slice after the frame's flush): layouts, resolves and builds, no GL call;
+  function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once)
+  /* kind 'cpu' (the slice after the frame's flush): layouts, resolves and builds, no GL call;
      kind 'gpu' (the jobs at the start of the next drawn frame): uploads and bakes; sync or no kind: everything */
   function cellWork(V, sync, nearOnly, upTo, kind) {
     var list = V.cellList; if (!list) return true;
@@ -459,29 +458,29 @@
       if (Cr.rbi < Cr.items.length) { if (cpu) WORK.verts += buildItems(Cr, true, sync ? 1e9 : Math.max(BUD.verts - WORK.verts, 0)); }
       if (Cr.rbi < Cr.items.length || !gpuW || (!sync && WORK.uploads >= BUD.uploads)) { done = false; continue; }
       var old = Cr.mesh; Cr.mesh = uploadMesh(Cr.RB, null); WORK.uploads++;
-      if (WLOG) wl('swap', V.k + ':' + Cr.key, 1, nearDist(Cr, CAM.pos[0], CAM.pos[2]), Cr.lastVis);   // (dev: the coarse mesh replaced in one frame, P3)
+      if (WLOG) wl('swap', V.k + ':' + Cr.key, 1, nearDist(Cr, CAM.pos[0], CAM.pos[2]), Cr.lastVis);   // (dev: the coarse mesh replaced in one frame)
       if (old && old.vao) { glFree('VertexArray', old.vao); glFree('Buffer', old.vb); }
       if (DEVMODE && DEVKEEP) Cr.pts = Cr.RB.F.slice(0, Cr.RB.n * 6);
       Cr.RB = null; Cr.lod = 0;
     }
     return done;
   }
-  /* (E1) the frame's budgets for the cells (round 3b's counts; the boot's larger while the still sky shows) and the one
-     bake budget every bake shares (cells' clouds and the next visit's passage, design-v5 7.3) */
+  /* the frame's budgets for the cells (the *_BUDGET counts; the boot's larger while the still sky shows) and the one
+     bake budget every bake shares (cells' clouds and the next visit's passage) */
   var BUD = { layouts: LAYOUT_BUDGET, resolves: RESOLVE_BUDGET, verts: VERT_BUDGET, uploads: 1, bake: 24 };
   var BAKE = { left: 0 };
-  /* (E1) GL objects let go by the CPU's slice (a cell freed far behind) are deleted among the next frame's GPU jobs */
+  /* GL objects let go by the CPU's slice (a cell freed far behind) are deleted among the next frame's GPU jobs */
   var FREEQ = [];
   function glFree(kind, o) { if (o && !LOST) FREEQ.push(kind, o); }
-  /* (round E1 Fix 3, S1: "nothing new in flight") the GL objects of cells and visits are kept for the next instead of
-     deleted, and made ahead at stage B: a free list per kind (buffers; vertex arrays by their layout, so a draw's
-     vertex layout and pipeline key never change with reuse; the clouds' 3D textures), each object given back by
-     freeDrain with its storage shrunk to nothing and taken again by the next upload or bake, which re-specifies it
-     (bufferData, texImage3D). An object is made in flight only when its list has run dry (the record counts them by
-     kind: rec.pools.madeShown; E1 Fix 2's 600 s runs made 709-816 buffers and VAOs and 84-201 3D textures after the
-     world showed). E3b's size classes and sub-allocation remain to be done: a reused object's storage is still
-     re-specified at its new size. POOL_PRE: made at stage B, from the peaks of 600 s presented runs with streaming,
-     both engines, with room to spare (rec.pools.peakLive); POOL_CAP: never more kept than this a kind */
+  /* nothing new in flight: the GL objects of cells and visits are kept for the next instead of deleted, and made
+     ahead at stage B: a free list per kind (buffers; vertex arrays by their layout, so a draw's vertex layout and
+     pipeline key never change with reuse; the clouds' 3D textures), each object given back by freeDrain with its
+     storage shrunk to nothing and taken again by the next upload or bake, which re-specifies it (bufferData,
+     texImage3D). An object is made in flight only when its list has run dry (the record counts them by kind:
+     rec.pools.madeShown; without the lists, 600 s runs make 709-816 buffers and VAOs and 84-201 3D textures after the
+     world shows). There are no size classes or sub-allocation: a reused object's storage is re-specified at its new
+     size. POOL_PRE: made at stage B, from the peaks of 600 s presented runs with streaming, both engines, with room
+     to spare (rec.pools.peakLive); POOL_CAP: never more kept than this a kind */
   var POOL_KINDS = ['buf', 'tex3', 'mesh', 'inst', 'occ', 'glow', 'beam'];
   var POOL_PRE = { buf: 192, tex3: 192, mesh: 128, inst: 64, occ: 96, glow: 16, beam: 16 }, POOL_CAP = 512;
   var POOL = { lists: {}, made: {}, madeShown: {}, reused: {}, live: {}, peakLive: {}, deleted: {} };
@@ -514,12 +513,12 @@
     if (any) gl.bindBuffer(gl.ARRAY_BUFFER, null);
     FREEQ.length = 0;
   }
-  /* (fast500 F0) the flight's fixed pre-roll: the flight's first step (the boot's PREROLL steps behind the still) is
+  /* the flight's fixed pre-roll: the flight's first step (the boot's PREROLL steps behind the still) is
      taken only once what it reads is in: the landing's ground grid (groundCache(V, 0, 0), both halves landed) and
      the obstacles (C.st 2) of every cell within the flight's reach of the landing (the envelope's solids, SOL_R;
      the slip's look ahead and its climbs, nearObstaclesAt(.., max(SLIP_T x speed, SLIP_REACH) + 320); each cell's
      own size; and FLIGHT_REACH_T s of flight more). Then its every step is the same whatever the boot's length or
-     shape: a boot that ended before them changed the spring's history for good (fast500/tools/f500.py, F0) */
+     shape: a boot that ended before them would change the spring's history for good */
   var PREROLL = 1, FLIGHT_REACH_T = 30;
   function flightIn(V) {
     var g0 = -GCN / 2 * GCCELL;   // (the boot's own grid about the landing: x0 = z0 = floor(0 / 16) x 16 - 320)
@@ -529,7 +528,7 @@
     for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st >= 2) continue; var r = R + C.bound[3]; if (C.bound[0] * C.bound[0] + C.bound[2] * C.bound[2] <= r * r) return false; }
     return true;
   }
-  /* (fast500 step 10) the boot's helpers. visitRun: the visit's stages of one kind, as many as are ready, in one call.
+  /* the boot's helpers. visitRun: the visit's stages of one kind, as many as are ready, in one call.
      probeSync: the boot's waiting probes drawn and read at once (the canvas is hidden; the read waits on the GPU, never
      on a frame): every job not yet begun, batched by visit and mode, PROBE_CAP points a batch, as probeRun draws them
      for the stills; the heights are the bytes the ring would bring two frames later. bootSig: what a round moved */
@@ -549,9 +548,9 @@
   }
   /* bootFence, bootIdle: a fence after each of the boot's frames from C's last on (the noise, the warm table and D's own
      draws before it), kept in order until it is passed (a fence's state reaches the page a frame or two after the GPU
-     passes it: one remade every frame was never seen passed). D reads at once (probeSync, the ground grid) only once
+     passes it: one remade every frame is never seen passed). D reads at once (probeSync, the ground grid) only once
      the first is passed (C's own frame: a slow device's first draws' compiles) and every one but the last frame's, so a
-     read waits on one frame's work at most, never on a queue of the GPU's (F0's ring until then, the page never held) */
+     read waits on one frame's work at most, never on a queue of the GPU's (the ring until then, the page never held) */
   /* (first-paint preview) in the hold, one task, WebGL 2 changes no fence's status: no fence is made, the GPU counts as
      idle and the boot reads at once (each read waits for its own data) */
   function bootFence() { if (HOLD.on) return; var f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); if (f) BOOT.gq.push(f); }
@@ -565,8 +564,8 @@
   /* groundRest: the landing's grid begun through the ring in a busy frame (groundCache, not at once: the grid drawn and
      its first half read into the ring), its halves not all read out of the target when the GPU turns idle. Only
      groundRead reads the next half, and the read-at-once branch never calls it, while groundCache(.., true) returns on
-     the grid's key, so the second half was never read: GROUND.ok never came, flightIn never held and the boot waited
-     for ever (1 of 6 visits with step 1b, whose noise is done by C's end, so D's first frame is C's next, still busy).
+     the grid's key, so without it the second half is never read: GROUND.ok never comes, flightIn never holds and the
+     boot waits for ever (1 of 6 visits: where the noise is done by C's end, so D's first frame is C's next, still busy).
      The rest read at once, the whole target (it is not drawn again until both halves are read: the same bytes the
      ring brings), and the halves already in the ring dropped (their generation passed: groundHalf) */
   function groundRest() {
@@ -587,7 +586,7 @@
     return [V.st, L.length, a, b, c, PJOBS.length, GROUND.gen2 || 0, WORK.layouts + WORK.resolves + WORK.verts + WORK.uploads + WORK.layers].join(',');
   }
   /* bootNeed: a distance weight over 0 about (cx, cz), the cell's own or one of its cloud bodies' (known once it is
-     resolved), m metres nearer. bootReady: the show's test (S10b): every cell of the wanted set resolved, every needed
+     resolved), m metres nearer. bootReady: the show's test: every cell of the wanted set resolved, every needed
      one (BOOT_M nearer: the pre-roll's step and rounding) whole, no full rebuild waiting */
   function bootNeed(V, C, cx, cz, m) {
     if (distFadeAt(V, C.sc, Math.max(nearDist(C, cx, cz) - m, 0)) > 0) return true;
@@ -599,9 +598,9 @@
     for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 2) return false; if ((C.st < 4 || C.RB) && bootNeed(V, C, cx, cz, BOOT_M)) return false; }
     return true;
   }
-  /* (fast500 step 10, S10c) the guard: a cell in the view, not yet whole, whose distance weight (its own or one of its
+  /* the guard: a cell in the view, not yet whole, whose distance weight (its own or one of its
      cloud bodies') will be over 0 within GUARD_M m, built at once before the frame that would show it (cellNow: every
-     stage, its probes read at once). A cell already over its weight when built so is late as before (lateBorn) */
+     stage, its probes read at once). A cell already over its weight when built so is late (lateBorn) */
   function cellNow(C) {
     if (C.st === 0) cellLayout(C, true);
     if (C.st === 1 && C.job && !C.job.done) { var J = C.job; J.cancel = true; C.job = probeJob(C.V, J.pts, J.n, J.mode, true); }
@@ -624,7 +623,7 @@
      spread (m: heights), lit, shade (colours), glow ([r, g, b], linear HDR: its own light; moths, jellies, caps),
      bob: [m, period s], layout: 'orbit' | 'helix' | 'still', helix: [radius m, step deg, rise m a step, turn deg/s] } */
   var FKIND = { bird: 1, ray: 2, moth: 3, jelly: 4, cap: 5 };
-  /* (world-perf lane) what of the creatures, the glow sprites and the beams any cell or event has laid out this visit:
+  /* what of the creatures, the glow sprites and the beams any cell or event has laid out this visit:
      until one is, its program is held to after the show (lateHeld); once one is, it is issued at once, and the show
      waits for it (lateSeenReady, stage G) */
   var LATEK = { creature: 0, glow: 0, beam: 0 };

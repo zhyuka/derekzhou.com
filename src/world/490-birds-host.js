@@ -125,25 +125,46 @@
       }
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     },
-    /* how much cloud stands between two points: the length (m) of the segment inside the visible lobes of the clouds
-       about the camera (each lobe a sphere; the bodies' bounds tested first) */
-    cloudBetween: function (ax, ay, az, bx, by, bz) {
-      var V = SIM.V, L = V && V.cellList, tot = 0, i, k, q;
-      if (!L) return 0;
-      var dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
-      CBS[0] = ax; CBS[1] = ay; CBS[2] = az; CBS[3] = dx / len; CBS[4] = dy / len; CBS[5] = dz / len; CBS[6] = len;
+    /* how much cloud stands between a point a and each of three points a + P[0..2], a + P[3..5] (the middle one),
+       a + P[6..8]: the length (m) of each segment inside the visible lobes of the clouds about the camera (each lobe a
+       sphere). The bodies' bounds are tested once, against the middle segment padded by the others' reach from it (so
+       every body either of them meets is kept), then each segment against those bodies' bounds and lobes only */
+    cloudBetween3: function (ax, ay, az, P, out) {
+      var V = SIM.V, L = V && V.cellList, i, k, q, h, n = 0;
+      out[0] = out[1] = out[2] = 0;
+      if (!L) return out;
+      var pad = 0;
+      for (q = 0; q < 9; q += 3) { var ex = P[q] - P[3], ey = P[q + 1] - P[4], ez = P[q + 2] - P[5]; pad = Math.max(pad, Math.sqrt(ex * ex + ey * ey + ez * ez)); }
+      pad = pad * 1.001 + 0.01;   // (a margin for rounding: a body kept too many is harmless)
+      cbSet(ax, ay, az, ax + P[3], ay + P[4], az + P[5]);
       for (i = 0; i < L.length; i++) {
         var C = L[i]; if (C.st < 3 || !C.soft || !C.softB) continue;
         for (k = 0; k < C.softB.length; k++) {
-          var B = C.softB[k]; if (!cbChord(B[0], B[1], B[2], B[3])) continue;
-          for (q = B[4]; q < B[5]; q += 4) tot += cbChord(C.soft[q], C.soft[q + 1], C.soft[q + 2], C.soft[q + 3]);
+          var B = C.softB[k]; if (!cbChord(B[0], B[1], B[2], B[3] + pad)) continue;
+          if (n + 2 > CBH.length) { var G = new Int32Array(2 * CBH.length); G.set(CBH); CBH = G; }
+          CBH[n++] = i; CBH[n++] = k;
         }
       }
-      return tot;
+      for (q = 0; q < 3; q++) {
+        if (!n) break;
+        cbSet(ax, ay, az, ax + P[3 * q], ay + P[3 * q + 1], az + P[3 * q + 2]);
+        var tot = 0;
+        for (h = 0; h < n; h += 2) {
+          var C2 = L[CBH[h]], B2 = C2.softB[CBH[h + 1]]; if (!cbChord(B2[0], B2[1], B2[2], B2[3])) continue;
+          for (var l = B2[4]; l < B2[5]; l += 4) tot += cbChord(C2.soft[l], C2.soft[l + 1], C2.soft[l + 2], C2.soft[l + 3]);
+        }
+        out[q] = tot;
+      }
+      return out;
     },
     /* the cover over the view: the cloud about the eye (a passage), a passage's dark or light */
     cover: function () { return Math.max(CAM.inCloud || 0, CAM.cover || 0); },
     ground: function (x, z) { var V = SIM.V; return V ? groundAt(V, x, z, false) : 0; },
+    /* (one bird) the camera's ground grid's reach (m from its centre: groundAt is exact within it), and the cloud sea at
+       any point from the raw maps: o.w its weight (0 sand, 1 the sea of cloud), o.lv its raw level (the drawn sea's top
+       lies at or under it), so a bird can rise out of the sea or go down into it where no one can see it come or go */
+    groundReach: function () { return GROUND.ok ? (GCN / 2 - 3) * GCCELL : 0; },
+    seaAt: function (x, z, o) { if (!MAPS.w) { o.w = 0; o.lv = -1e9; return o; } var k = kitAt(x, z); o.w = k.wC; o.lv = SEA_LO + RISE * k.wC; return o; },
     /* the realm's places with birds (its cells' bird flocks, within r of the camera): centre, height, orbit, wheel */
     places: function (r, out) {
       out.length = 0; var V = SIM.V, L = V && V.cellList; if (!L) return out;
@@ -197,8 +218,13 @@
     dev: DEVMODE,
     count: function (draws, inst) { ST.draws += draws; ST.inst += inst; ST.tris += 2 * inst; }
   };
-  /* the length of the segment (CBS: its start, its direction, its length) within a sphere (no closure a call) */
-  var CBS = new Float64Array(7);
+  /* the length of the segment (CBS: its start, its direction, its length) within a sphere (no closure a call); CBH the
+     bodies a bird's segments may meet (cell, body) */
+  var CBS = new Float64Array(7), CBH = new Int32Array(256);
+  function cbSet(ax, ay, az, bx, by, bz) {
+    var dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
+    CBS[0] = ax; CBS[1] = ay; CBS[2] = az; CBS[3] = dx / len; CBS[4] = dy / len; CBS[5] = dz / len; CBS[6] = len;
+  }
   function cbChord(cx, cy, cz, r) {
     var ox = cx - CBS[0], oy = cy - CBS[1], oz = cz - CBS[2], tc = ox * CBS[3] + oy * CBS[4] + oz * CBS[5], d2 = ox * ox + oy * oy + oz * oz - tc * tc;
     if (d2 >= r * r) return 0;

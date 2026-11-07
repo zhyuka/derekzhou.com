@@ -248,7 +248,7 @@ function run(V, page) {
     const dt = 1000 / V.hz, CAP = 6000;
     let quiet = 0, lastN = -1;
     (function step() {
-      for (let k = 0; k < 25; k++) {
+      for (let k = 0; k < 1; k++) {   // (one frame a turn: the page's promises settle after every frame, as in a browser)
         R.frames++;
         clock = Math.max(clock, V.t0 + R.frames * dt);
         for (const t of timers.filter((x) => x[1] <= clock).sort((a, b) => a[1] - b[1])) { if (t[3]) t[1] += t[3]; else timers = timers.filter((x) => x !== t); guard(t[2], 'timer'); }

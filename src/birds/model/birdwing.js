@@ -15,6 +15,7 @@
                                          glide for a speck; o.shut: a pose the glide is replaced by, a bounding finch)
      BW.bouts(b, t0, t1, out)            the flapping bouts [start, end ...] (s) that meet [t0, t1]: the path's sink
      BW.ensure(b, t)                     the bird's day integrated to t (lazily; never needed by a caller)
+     BW.trim(b, t)                       forgets what is before t (the knots, bouts, pauses and beats): later reads only
 
    WHY THIS FILE. The lab integrates a bird's whole day at once (LB.bird: 1/240 s from -5 to 120 s, seven arrays of
    that length), which is right for a lab and wrong for a page: a world flight lives 30-300 s and the planner makes its
@@ -83,7 +84,7 @@
       var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null,
         EPS: new Float32Array(64), KK: new Float32Array(64), PAU: new Float32Array(64), nbt: 0, pz: 0, pzrun: 0,
         KI: new Float64Array(64), KP: new Float64Array(64), nk: 0, cone: [0, 0, 0, 0, 0, 0],   // the phase's knots: step, psi; the open segment's cone
-        BO: [], PA: [], i: -1, pre: !!o.pre };
+        BO: [], PA: [], i: -1, pre: !!o.pre, boff: 0 };   // boff: the first beat the per-beat draws still hold
       /* the per-beat draws: the lab's own order when asked (every beat first, from r), else beat by beat from a stream of
          their own (seeded here, first); the wake bouts likewise */
       var NB0 = 0;
@@ -122,7 +123,7 @@
       if (n > b.nbt) b.nbt = n;
     }
     /* a beat's index into the per-beat draws: the lab's (wrapped by its count) under o.pre, else the beat itself */
-    function bix(b, bj) { if (b.NBW) { var NB = b.NBW; return ((bj % NB) + NB) % NB; } if (bj < 0) bj = 0; if (bj + 2 > b.nbt) drawBeats(b, bj + 66); return bj; }
+    function bix(b, bj) { if (b.NBW) { var NB = b.NBW; return ((bj % NB) + NB) % NB; } if (bj < 0) bj = 0; var j = bj - b.boff; if (j < 0) j = 0; if (j + 2 > b.nbt) drawBeats(b, j + 66); return j; }
     function newBout(b) {
       var L = b.L, sc = b.sc, r = b.r;
       L.nb = sc.cont ? 1e9 : sc.calm ? sc.calm[0][0] + Math.floor((sc.calm[0][1] - sc.calm[0][0] + 1) * r()) : Math.max(2, Math.round(logn(r, sc.flap)));
@@ -199,6 +200,19 @@
       }
     }
     function ensure(b, t) { var n = Math.ceil((t - b.from) / b.dt) + 1; if (n > b.i) run(b, n); }
+    /* the history before t dropped, so a bird's wing holds a few seconds, not its whole life (reads at t or later unchanged) */
+    function shift(A, k, n) { for (var q = 0; q + k < n; q++) A[q] = A[q + k]; }
+    function trim(b, t) {
+      var cut = Math.floor((t - b.from) / b.dt) - 2, k, m;
+      if (cut <= 0 || cut > b.i || b.nk < 2) return;
+      for (k = 0; k + 1 < b.nk && b.KI[k + 1] <= cut; k++);
+      if (!b.NBW) { var s = Math.floor(psiAtI(b, cut)) - 1 - b.boff; if (s > 0 && s < b.nbt) { shift(b.EPS, s, b.nbt); shift(b.KK, s, b.nbt); shift(b.PAU, s, b.nbt); b.nbt -= s; b.boff += s; } }
+      if (k > 0) { shift(b.KI, k, b.nk); shift(b.KP, k, b.nk); b.nk -= k; }
+      for (m = 0; 5 * m < b.BO.length && b.BO[5 * m + 1] >= 0 && b.BO[5 * m + 1] < cut; m++);
+      if (m) { shift(b.BO, 5 * m, b.BO.length); b.BO.length -= 5 * m; }
+      for (m = 0; 2 * m < b.PA.length && b.PA[2 * m + 1] < cut; m++);
+      if (m) { shift(b.PA, 2 * m, b.PA.length); b.PA.length -= 2 * m; }
+    }
     /* the bout holding step i for the flag (FL[i] = 1 for start <= i < end), and for the envelopes (start < i <= end) */
     function boutAt(b, i, env) {
       var B = b.BO;
@@ -320,7 +334,7 @@
     /* the bouts as stored (5 a bout: its first step (-1: begun before the first step), its end step (-1 while it runs), its
        phase origin, its length in beats, 0), integrated to t: for a path's sink worked out from the past alone */
     function boutsTo(b, t) { ensure(b, t); return b.BO; }
-    return { make: make, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
+    return { make: make, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
              knots: function (b) { return b.nk; }, CURL_R: CURL_R, PSI_TOL: PSI_TOL, LB: LB };
   }
   root.BIRDWING = BIRDWING;

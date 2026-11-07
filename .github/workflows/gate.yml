@@ -45,6 +45,7 @@ jobs:
       base_build: ${{ steps.builds.outputs.base }}
       head_build: ${{ steps.builds.outputs.head }}
       t2_key: ${{ steps.t2key.outputs.key }}
+      glsl_changed: ${{ steps.glsl.outputs.glsl_changed }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,6 +71,14 @@ jobs:
         run: |
           h() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c1-24); }
           echo "base=$(h "$RUNNER_TEMP/served/base")" >> "$GITHUB_OUTPUT"; echo "head=$(h "$RUNNER_TEMP/served/head")" >> "$GITHUB_OUTPUT"
+      # T0, the shader census: whether any shader's text changed, base against head, read from each build in
+      # glsl_guard's fake browser (node, five GPUs: .github/ci/glsl-changed.mjs; about 15 s, no Chrome). glsl_changed
+      # asks for T2, which reads the changed programs back on the 4090.
+      - name: The shader census (base against head)
+        id: glsl
+        run: |
+          if [ "${{ steps.builds.outputs.base }}" = "${{ steps.builds.outputs.head }}" ]; then echo "glsl_changed=false (the two builds are byte for byte the same)"; echo "glsl_changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node .github/ci/glsl-changed.mjs "$RUNNER_TEMP/served/base" "$RUNNER_TEMP/served/head"
       - name: T2's cache key (its answer is a function of both builds, the T2 code that runs and the stall mode)
         id: t2key
         run: |
@@ -84,51 +93,6 @@ jobs:
           name: served
           path: ${{ runner.temp }}/served
           include-hidden-files: true   # (site/.well-known/security.txt is served)
-          retention-days: 7
-
-  # T0, the shader census: whether any shader's text changed, read from the page itself in a real browser
-  # (SwiftShader), base against head (the plan's two builds). It runs when what is served changed or the harness did (.github/ci, this file: so a
-  # change to the harness is tested on its own push), and on main always (its census is cached for the branches).
-  census:
-    needs: plan
-    if: needs.plan.outputs.run_t1 == 'true' || github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, linux, pc-wsl]
-    timeout-minutes: 10
-    outputs:
-      glsl_changed: ${{ steps.census.outputs.glsl_changed }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: ./.github/actions/playwright
-      - uses: actions/download-artifact@v4
-        with:
-          name: served
-          path: ${{ runner.temp }}/served
-      - name: The base's census, if a run on main saved it
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ runner.temp }}/census-cache/census.json
-          key: census-${{ needs.plan.outputs.base }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
-      - name: Shader census (base against head)
-        id: census
-        run: |
-          C="$RUNNER_TEMP/census-cache/census.json"
-          node .github/ci/census.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --out "$RUNNER_TEMP/census.json" \
-            --base-json "$C" --save-head "$RUNNER_TEMP/census-head.json"
-          mkdir -p "$(dirname "$C")"; cp "$RUNNER_TEMP/census-head.json" "$C"   # (what main saves for the branches)
-      - name: Keep main's census for the branches that start from it
-        if: github.ref == 'refs/heads/main' && steps.census.outcome == 'success'
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ runner.temp }}/census-cache/census.json
-          key: census-${{ github.sha }}-${{ hashFiles('.github/ci/harness.mjs', '.github/ci/census.mjs') }}
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.census.outcome != 'skipped'
-        with:
-          name: census
-          path: ${{ runner.temp }}/census.json
           retention-days: 7
 
   # T1, the software A/B: base and head served side by side and rendered in the same job (SwiftShader, the clock
@@ -219,7 +183,7 @@ jobs:
   # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
   # T2 renders the plan's two builds (the `served` artifact): the PC never runs a PR's build.
   t2-probe:
-    needs: [plan, census]
+    needs: plan
     if: always() && needs.plan.result == 'success'
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 2
@@ -235,7 +199,7 @@ jobs:
       # 4090 is not asked again (a re-gate after main moved elsewhere, a re-run). Saved by the verdict job.
       - name: T2's answer, if these builds were compared before
         id: cache
-        if: needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true'
+        if: needs.plan.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true'
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/t2c/t2.json
@@ -269,7 +233,7 @@ jobs:
           PRHIT: ${{ steps.pr.outputs.hit }}
           PRC: ${{ runner.temp }}/t2pr/t2.json
           C: ${{ runner.temp }}/t2c/t2.json
-          WANTED: ${{ needs.census.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true' }}
+          WANTED: ${{ needs.plan.outputs.glsl_changed == 'true' || needs.plan.outputs.gpu_js == 'true' || needs.plan.outputs.t2_self == 'true' }}
           TOKEN: ${{ secrets.MERGE_TOKEN }}
           T2_RUNNER: ${{ vars.T2_RUNNER }}
         run: |
@@ -307,7 +271,7 @@ jobs:
 
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
-    needs: [static, plan, census, t1, t2-probe, t2]
+    needs: [static, plan, t1, t2-probe, t2]
     if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 5

@@ -1,10 +1,10 @@
-  /* ---------------------------------------------------------------- the time of day (tod, 2026-10-27) */
+  /* ---------------------------------------------------------------- the time of day */
   /* The owner (2026-10-23): "Add dusk and night first"; and, of the live sky, "Only the starting landing scene should
      depend on the system time. The rest should cycle through smoothly randomly non-time-dependent." The world opens on
      a sky of the visitor's own time of day (hour.v2.js marks data-sky and data-sky-at: its one read of the clock) and then
      passes from sky to sky in an order of its own, the live sky's (sky.v3.js nextSky): mostly into a neighbouring sky,
      now and then (SKY_FAR) into any through the mist, never into one of the last SKY_RECENT, a sky not yet seen likelier
-     (stage2: every sky's words are light, so no run of one kind of words to break). The cycle runs on the
+     (every sky's words are light, so there is no run of one kind of words to break). The cycle runs on the
      flight's own clock (SIM.t: a still at data-t is any moment of it), its draws from the visit's own streams
      (subseed(SEED0, 41): the order; 42: the visit's own placements): no new entropy, no clock.
      Each sky is a set of colours and amounts laid over each kit's own light (the dunes' and the cloud sea's; 'fair' is
@@ -14,9 +14,8 @@
      glow, warmth, disc: uSkyS) may stand lower (the afterglow's -3 deg). Between two skies the light is blended four
      ways (two kits by place, two skies by time): colours on the light clock q, structure (warmth, glow, veil, events,
      fog, the gradient's shape, the land's offset from the sky and its contrast) on the structure clock, which is the
-     light's own (stage2: every sky's words are light, so no change passes a twilight waypoint and none hurries its
-     light across the inks' band: fast500's deep sweep (2026-11-05) took that code out, and the structure's clock of its own with it). Nothing
-     here reads the words (rule 7, W7). Design: tod/design/design.md. */
+     light's own (every sky's words are light, so no change passes a twilight waypoint and none hurries its light across
+     the inks' band). Nothing here reads the words (rule 7, W7). Design: tod/design/design.md. */
   var WSKY = {
     afterglow: { g:'sunset', w:'light', ph:1, land:['sunset','rain'], hold:70, near:['bluehour','milkyway','moonlit','firstlight'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
     bluehour: { g:'dusk', w:'light', ph:1, land:['dusk'], hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], skyEl:-7, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
@@ -25,17 +24,15 @@
     aurora: { g:'night', w:'light', ph:2, land:['night'], hold:100, near:['milkyway','moonlit','firstlight','bluehour'], sky:[[0.27,0.06,250],[0.33,0.06,225],[0.32,0.065,235],[0.29,0.08,250],[0.25,0.08,262],[0.21,0.07,266]], skyW:[0.34,0.06,175], glowC:[0.36,0.06,165], hazeC:[0.31,0.05,215], hazeW:[0.36,0.065,175], fogB:[0.24,0.065,250], ambU:[0.34,0.055,172], ambD:[0.24,0.05,240], clLit:[0.44,0.08,170], clShade:[0.32,0.07,240], clDeep:[0.28,0.07,250], clRim:[0.48,0.09,160], skyK:[0.15,10,0], key:[0.72,0.09,152,0.38], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.46,0.6,175,0.35],shade:[0.43,0.6,250,0.7],deep:[0.41,0.6,255,0.7],pale:[0.46,0.8,175,0.4]}, post:{bloomK:0.35,shafts:0,sat:1.02,stars:0.75,hi:0,hiC:[0.31,0.05,215]}, fx:{aurora:1}, ceil:0.525 },
     firstlight: { g:'dawn', w:'light', ph:1, land:['dawn','day'], hold:70, near:['moonlit','bluehour','afterglow'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
   };
-  /* (stage2) the landings: each hour on the kept sky nearest it in the day's own order: dawn and the morning (day, 08-13)
+  /* the landings: each hour on the kept sky nearest it in the day's own order: dawn and the morning (day, 08-13)
      on the light before sunrise (its tops lit first, the sky warming low toward the sun), the afternoon (rain, 13-16) and
      sunset on the afterglow (the tops still pink over the sea in the Earth's shadow), dusk on the blue hour, the night on
-     the moonlit sea, the Milky Way or the aurora (the visit's draw); after it the order is the visit's own, as before */
-  /* (fast500 no-fades, the owner's answers of 2026-11-05) "No rays at dusk/dawn": the light shafts are 0 in the
-     afterglow, the blue hour and first light (so nothing about them thins or moves as the sun sinks); "Slower moon":
-     the moonlit hold is 190 s (was 95), so the moon drifts across at a few px a second (the moonlit sky takes a bigger
-     share of the cycle) */
-  var SKY_PHASE = 2;   // (stage2, the owner's word of 2026-11-03: "lets only use white text for everything so never use any scenes that dont pass white text": every sky whose words were dark (sunrise, fair, mist, golden; azure, silver, rose) is gone; phase 1: afterglow, bluehour, moonlit, firstlight; phase 2 adds milkyway, aurora)
-  /* (tod fix round) FAR_FOG, FAR_HAZE: the air through the mist (were 1.7, 2.5): the judges' defect 12, frames
-     flattened to the COVER bar */
+     the moonlit sea, the Milky Way or the aurora (the visit's draw); after it the order is the visit's own */
+  /* the owner's answers: "No rays at dusk/dawn": the light shafts are 0 in the afterglow, the blue hour and first
+     light (so nothing about them thins or moves as the sun sinks); "Slower moon": the moonlit hold is 190 s, so the
+     moon drifts across at a few px a second (the moonlit sky takes a bigger share of the cycle) */
+  var SKY_PHASE = 2;   // (the owner: "lets only use white text for everything so never use any scenes that dont pass white text": only skies whose words are light are kept; phase 1: afterglow, bluehour, moonlit, firstlight; phase 2 adds milkyway, aurora)
+  /* FAR_FOG, FAR_HAZE: the air through the mist (any thicker and the frames flatten to the COVER bar) */
   var FAR_FOG = 1.25, FAR_HAZE = 1.5;
   var SKY_FAR = 0.38, SKY_RECENT = 3, SKYE_W = [3, 10, 26, 58];
   var ROLE_SLOT = ['lit', 'lit', 'shade', 'deep', 'lit', 'shade', 'lit', 'shade', 'sheen', '', 'deep', 'pale', 'lit', 'shade', 'shade', 'sea', 'lit', 'deep'];
@@ -97,7 +94,7 @@
     }
     return L;
   }
-  /* a prepared set's OKLab (as worldLights' were), and its sky's mean light (stops 0-58 deg) */
+  /* a prepared set's OKLab (as worldLights' are), and its sky's mean light (stops 0-58 deg) */
   function skyLabSet(A) {
     var o = {}, i; LKC.forEach(function (k) { o[k] = lin2lab(A[k]); });
     o.skyFlat = new Float32Array(18); o.mL = 0;
@@ -106,11 +103,10 @@
     o.fam = {}; for (var f in SKY_FAM) { var m = 0; for (i = 0; i < SKY_FAM[f].length; i++) m += o[SKY_FAM[f][i]][0] / SKY_FAM[f].length; o.fam[f] = m; }
     return o;
   }
-  /* (tod) the colour families whose contrast is structure: the cloud's lit, shade, deep and rim (a tower behind the
-     name), the haze toward the light and away, the ambient from above and below: each family's mean light rides the light
-     clock with the sky's, each colour's offset from it the structure clock (which kept the ground under the words as
-     even as the sky about them while the light crossed the inks' band: since stage2 no change crosses it, and the two
-     clocks are one) */
+  /* the colour families whose contrast is structure: the cloud's lit, shade, deep and rim (a tower behind the name),
+     the haze toward the light and away, the ambient from above and below: each family's mean light rides the light
+     clock with the sky's, each colour's offset from it the structure clock (no change crosses the inks' band, and the
+     two clocks are one) */
   var SKY_FAM = { cl: ['clLit', 'clShade', 'clDeep', 'clRim'], hz: ['hazeC', 'hazeW'], amb: ['ambU', 'ambD'] }, SKY_FAMOF = { clLit: 'cl', clShade: 'cl', clDeep: 'cl', clRim: 'cl', hazeC: 'hz', hazeW: 'hz', ambU: 'amb', ambD: 'amb' };
   /* the paint: a role's transform of an OKLab colour (L x kL, capped or floored; C x kC; the hue pulled toward h) */
   function trRole(p, l, out) {
@@ -158,7 +154,7 @@
       if (S.kit) continue;   // ('fair': the kits' own paint, bit for bit)
       labTo(O.pLin, s * 4, O.pLab[s * 3], O.pLab[s * 3 + 1], O.pLab[s * 3 + 2]);
     }
-    O.crK = 0.5; O.crCap = 0.5;   // (a creature's light under the night's: x0.5, at most 0.5; stage2: every sky's words are light)
+    O.crK = 0.5; O.crCap = 0.5;   // (a creature's light under the night's: x0.5, at most 0.5; every sky's words are light)
     O.ceil = S.ceil; O.seaLit = S.seaLit === undefined ? 1 : S.seaLit; O.sunVis = S.kit ? 1 : S.sunVis;
     O.skyEl = S.kit ? null : S.skyEl;
     O.motes = S.post && S.post.motes !== undefined ? S.post.motes : 0;
@@ -198,7 +194,7 @@
     SKY.dt = DEVMODE && OPT.skyDt !== null && isFinite(+OPT.skyDt) ? +OPT.skyDt : 0;   // (dev: the cycle's clock this far ahead of the flight's)
     SKY.ids = Object.keys(WSKY).filter(function (id) { return WSKY[id].ph <= SKY_PHASE; });
     SKY.land = {};
-    SKY.ids.forEach(function (id) { (WSKY[id].land || []).forEach(function (h) { (SKY.land[h] = SKY.land[h] || []).push(id); }); });   // (stage2: a sky lands on the hours it lists)
+    SKY.ids.forEach(function (id) { (WSKY[id].land || []).forEach(function (h) { (SKY.land[h] = SKY.land[h] || []).push(id); }); });   // (a sky lands on the hours it lists)
     SKY.baseLab = []; for (var s = 0; s < 24; s++) SKY.baseLab.push(labA([V.paramsBase[s * 4], V.paramsBase[s * 4 + 1], V.paramsBase[s * 4 + 2]]));
     SKY.sheenLab = labA(scl([V.paramsBase[32], V.paramsBase[33], V.paramsBase[34]], 1 / 0.3));
     var g = SKY.land[HOUR] ? HOUR : 'day', at = parseFloat(attr('data-sky-at'));   // (the hour's script writes it at load)
@@ -209,7 +205,7 @@
     SKY.seq[0].at = -SKY.seq[0].hold * at * 0.9;
     SKY.landing = { hour: HOUR, group: g, at: at, sky: open };
     SKY.moonSide = SKY.rV.sign();   // (the visit's own: the moon's side of the key light)
-    SKY.moonDir = RNG(subseed(J.seed, 79)).sign();   // (fast500 no-fades: the visit's own way the moon crosses the window, one way, from its own stream: no draw of the others moved)
+    SKY.moonDir = RNG(subseed(J.seed, 79)).sign();   // (the visit's own way the moon crosses the window, one way, from its own stream: the other draws stay as they are)
     /* (phase 2) the visit's own: the galaxy's lie (the live's: of 24 poles drawn, the one whose band crosses most of the
        landing's view low, its core the lowest point of the band there), the aurora's phase and base */
     var h0 = RNG(subseed(J.seed, 77)).r(0, 2 * PI), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
@@ -229,11 +225,11 @@
   }
   function skyNext() {
     var seq = SKY.seq, last = seq[seq.length - 1], r = SKY.rO, recent = [], c = [], w = [], sum = 0, i, x, id;
-    for (i = Math.max(0, seq.length - Math.min(SKY_RECENT, SKY.ids.length - 2)); i < seq.length; i++) recent.push(seq[i].id);   // (stage2: of four skies never the last two, so the order is never a fixed round)
+    for (i = Math.max(0, seq.length - Math.min(SKY_RECENT, SKY.ids.length - 2)); i < seq.length; i++) recent.push(seq[i].id);   // (of four skies never the last two, so the order is never a fixed round)
     var far = r.f() < SKY_FAR, pool = far ? SKY.ids : WSKY[last.id].near;
     for (i = 0; i < pool.length; i++) if (SKY.ids.indexOf(pool[i]) >= 0 && recent.indexOf(pool[i]) < 0) c.push(pool[i]);
     if (!c.length) for (i = 0; i < SKY.ids.length; i++) if (SKY.ids[i] !== last.id) c.push(SKY.ids[i]);
-    for (i = 0; i < c.length; i++) { var v = 1 / (1 + 2 * (SKY.visits[c[i]] || 0)); w.push(v); sum += v; }   // (stage2: every sky's words are light: no streak of one kind of words to break)
+    for (i = 0; i < c.length; i++) { var v = 1 / (1 + 2 * (SKY.visits[c[i]] || 0)); w.push(v); sum += v; }   // (every sky's words are light: no streak of one kind of words to break)
     x = r.f() * sum;
     for (i = 0; i < c.length - 1 && x >= w[i]; i++) x -= w[i];
     id = c[i];
@@ -267,16 +263,16 @@
     var d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2], m0 = a[0] + (b[0] - a[0]) * k, m1 = a[1] + (b[1] - a[1]) * k + Math.max(0, -d) * Math.sin(PI * k) * 0.6, m2 = a[2] + (b[2] - a[2]) * k;
     var n = Math.sqrt(m0 * m0 + m1 * m1 + m2 * m2) || 1; out[0] = m0 / n; out[1] = m1 / n; out[2] = m2 / n; return out;
   }
-  /* ---- (fast500 no-fades, the sun and moon: the owner's "same w sun") in a change between a twilight sky (afterglow,
-     blue hour, first light: the sun under the sea at its skyEl) and a night sky (skyEl null) the sun keeps sinking, to
-     SUN_NIGHT (or rises from it), on ss01(k) over the whole change, so it starts and ends at rest; everything it lights
+  /* ---- the sun and moon (the owner's "same w sun"): in a change between a twilight sky (afterglow, blue hour, first
+     light: the sun under the sea at its skyEl) and a night sky (skyEl null) the sun keeps sinking, to SUN_NIGHT
+     (or rises from it), on ss01(k) over the whole change, so it starts and ends at rest; everything it lights
      follows its elevation: its glow about it (uSkyS) and the veil's brightening, the warm band low on its side and the
      haze's warm side (sunk by place: whole only under the sun's depth D), each weakening with its depth (band: 1 at -7
      and above, exactly 0 at SUN_NIGHT), the Earth's shadow climbing with it (the belt's own height) and dissolving with
      band, the noctilucent wisps going dark from below as that shadow climbs over them. The night's own light (its glow,
      its warm band and its haze's warm side about the key, the veil's brightening there) comes in with the night's
-     colours (QN), as the sky's colours do (the lead's call). No words input and no clock; outside such a change nothing
-     is touched (SUNU.on false: the shaders' branches skipped and F0's uniforms uploaded, bit for bit) */
+     colours (QN), as the sky's colours do. No words input and no clock; outside such a change nothing is touched
+     (SUNU.on false: the shaders' branches skipped and the uniforms uploaded as without it, bit for bit) */
   var SUN_NIGHT = -24, SUN_BAND = 17, SUN_WISP0 = -1, SUN_MIST = 0.75;
   var SUNU = { on: false, L: null, n: new Float32Array(4), z: new Float32Array([0, 1, 0, 0]), k0: new Float32Array(4), glowS: new Float32Array(3), glowN: new Float32Array(3), wT: new Float32Array(3), wN: new Float32Array(3),
     kT: new Float32Array(4), kN: new Float32Array(4), sk: new Float32Array(4), hzT: new Float32Array(3), hzN: new Float32Array(3), sb: new Float32Array(4), hi0: new Float32Array(4), es: 0, band: 1, QN: 0, E: 1, D: 0 };
@@ -309,7 +305,7 @@
     SKY.fx[0] = T.fx[0] * band * E; SKY.fx[1] = T.fx[1] * E;   // (the belt's height already follows es through uSkyS; in a change through the mist, the waypoint's events at a quarter)
     SUNU.es = es; SUNU.band = band; SUNU.QN = QN; SUNU.E = E; SUNU.D = D;
   }
-  function skyThemeWarm(c, e, side) {   // (fast500 no-fades) skyWarmN's, on the CPU (theme-color)
+  function skyThemeWarm(c, e, side) {   // skyWarmN's, on the CPU (theme-color)
     var lt = Math.exp(-Math.max(e + SUNU.D, 0) / SUNU.kT[1]) * SUNU.band, ln = Math.exp(-Math.max(e, 0) / SUNU.kN[1]) * SUNU.QN, j;
     for (j = 0; j < 3; j++) { c[j] += (SUNU.wT[j] - c[j]) * SUNU.kT[0] * side * side * lt; c[j] *= 1 - SUNU.kT[2] * (1 - side) * lt; c[j] += (SUNU.wN[j] - c[j]) * SUNU.kN[0] * side * side * ln; c[j] *= 1 - SUNU.kN[2] * (1 - side) * ln; }
   }
@@ -322,26 +318,26 @@
     skyAt(SIM.t + SKY.dt);
     var q = SKY.q, c = SKW.c, s = SKW.s, X = SKY.X, Y = SKY.Y;
     c[0] = (1 - w) * (1 - q); c[1] = w * (1 - q); c[2] = (1 - w) * q; c[3] = w * q;
-    s[0] = (1 - w) * (1 - q); s[1] = w * (1 - q); s[2] = (1 - w) * q; s[3] = w * q;   // (the structure's weights: on the light's clock, one since stage2)
+    s[0] = (1 - w) * (1 - q); s[1] = w * (1 - q); s[2] = (1 - w) * q; s[3] = w * q;   // (the structure's weights: on the light's clock; the two clocks are one)
     if (V.LA[0] !== X.d || V.LA[2] !== Y.d) { V.LA = [X.d, X.a, Y.d, Y.a]; V.LAlab = [X.dl, X.al, Y.dl, Y.al]; }
     blendSky(V);
     var L = V.L, A = SKY.A, B = SKY.B, k = SKY.k, j;
-    SKY.sunVis = 0; L.sunVis = 0;   // (fast500 no-fades: no sky draws the sun's disc (sunVis 0 in all six); the ramp that faded it where it stood is gone, and gave 0 too)
+    SKY.sunVis = 0; L.sunVis = 0;   // (no sky draws the sun's disc: sunVis 0 in all six)
     skyArc(A.dir, B.dir, k, SKY.skyS); L.skyS = SKY.skyS;
     SKY.ceil = X.ceil + (Y.ceil - X.ceil) * q; L.ceil = SKY.ceil;
     for (j = 0; j < 8; j++) SKY.fx[j] = X.fx[j] + (Y.fx[j] - X.fx[j]) * q;
     SKY.fx[6] = X.motes + (Y.motes - X.motes) * q; L.fx = SKY.fx;
-    skySun(V, w, L);   // (fast500 no-fades: the sun sets or rises through a change into or out of a night)
+    skySun(V, w, L);   // (the sun sets or rises through a change into or out of a night)
     moonStep(SIM.t + SKY.dt);   // (and the moon's stay: its route planned once, as it begins)
     skyPaint(V);
     if (REC && SIM.t - SKY.recT >= 1) { SKY.recT = SIM.t; if (!REC.cycle) REC.cycle = []; if (REC.cycle.length < 4000) REC.cycle.push([+SIM.t.toFixed(1), A.id, B.id, +k.toFixed(3), +q.toFixed(3), +q.toFixed(3), SKYI.group, SKYI.words, +SKY.ceil.toFixed(3)]); }
   }
-  /* (tod fix3, problem 1 and the look's minor: a change into first light turned its tower grey (C 0.015), fair>golden half
-     the frame silver-grey) two skies' colours blended by their chroma vectors (a, b) at q along the hue's arc, the chroma
-     the two's own blended, never through the neutral axis: the hue moves by the chroma-weighted share of the way (a
-     near-grey end lends no hue), along the shorter arc, unless the two are more than 100 deg apart and that arc crosses
-     the greens (h 135): then the other way round, through the violets and roses (a blue sky into a gold one passes rose,
-     as a dusk does, never teal). The light (L) is the caller's; q 0 and 1 are the ends exactly (a hold is drawn as before) */
+  /* two skies' colours blended by their chroma vectors (a, b) at q along the hue's arc, the chroma the two's own
+     blended, never through the neutral axis (a straight blend greys the middle of a change: a tower to C 0.015): the
+     hue moves by the chroma-weighted share of the way (a near-grey end lends no hue), along the shorter arc, unless the
+     two are more than 100 deg apart and that arc crosses the greens (h 135): then the other way round, through the
+     violets and roses (a blue sky into a gold one passes rose, as a dusk does, never teal). The light (L) is the
+     caller's; q 0 and 1 are the ends exactly (a hold is drawn unchanged) */
   function abLong(a1, b1, a2, b2) {   // (the way round, from the two ends alone: the long way only for hues over 100 deg apart whose shorter arc crosses the greens)
     if (a1 * a1 + b1 * b1 < 1e-10 || a2 * a2 + b2 * b2 < 1e-10) return false;
     var h1 = Math.atan2(b1, a1) / DEG, d = angd(Math.atan2(b2, a2) / DEG, h1), e = ((135 - h1) % 360 + 360) % 360;
@@ -367,16 +363,16 @@
     for (i = 0; i < 4; i++) if (Math.abs(wc[i] - SKW.cb[i]) > 1e-4 || Math.abs(ws[i] - SKW.sb[i]) > 1e-4) same = false;
     if (same) return;
     for (i = 0; i < 4; i++) { SKW.cb[i] = wc[i]; SKW.sb[i] = ws[i]; }
-    if (SKW.gen !== SKY.gen) { var Bp = V.LAlab, jj; for (jj = 0; jj < LKC.length; jj++) ABL[jj] = abLong(Bp[0][LKC[jj]][1], Bp[0][LKC[jj]][2], Bp[2][LKC[jj]][1], Bp[2][LKC[jj]][2]) ? 1 : 0; for (jj = 0; jj < 6; jj++) ABL[20 + jj] = abLong(Bp[0].skyFlat[jj * 3 + 1], Bp[0].skyFlat[jj * 3 + 2], Bp[2].skyFlat[jj * 3 + 1], Bp[2].skyFlat[jj * 3 + 2]) ? 1 : 0; ABL[26] = abLong(Bp[0].fogB[1], Bp[0].fogB[2], Bp[2].fogB[1], Bp[2].fogB[2]) ? 1 : 0; }   // (fix3: each colour's way round decided once a pair, from the two skies' own sets: never switched mid-change by the place)
+    if (SKW.gen !== SKY.gen) { var Bp = V.LAlab, jj; for (jj = 0; jj < LKC.length; jj++) ABL[jj] = abLong(Bp[0][LKC[jj]][1], Bp[0][LKC[jj]][2], Bp[2][LKC[jj]][1], Bp[2][LKC[jj]][2]) ? 1 : 0; for (jj = 0; jj < 6; jj++) ABL[20 + jj] = abLong(Bp[0].skyFlat[jj * 3 + 1], Bp[0].skyFlat[jj * 3 + 2], Bp[2].skyFlat[jj * 3 + 1], Bp[2].skyFlat[jj * 3 + 2]) ? 1 : 0; ABL[26] = abLong(Bp[0].fogB[1], Bp[0].fogB[2], Bp[2].fogB[1], Bp[2].fogB[2]) ? 1 : 0; }   // (each colour's way round decided once a pair, from the two skies' own sets: never switched mid-change by the place)
     SKW.gen = SKY.gen;
     var L = V.L, A = V.LA, B = V.LAlab, n = 4, eq = true;
     for (i = 0; i < 4; i++) if (wc[i] !== ws[i]) eq = false;
     for (j = 0; j < LKC.length; j++) {
       var key = LKC[j], a0 = 0, a1 = 0, a2 = 0;
       var fam = eq ? null : SKY_FAMOF[key];
-      if (fam) for (i = 0; i < n; i++) { var cf = B[i][key], mf = B[i].mL; a0 += mf * wc[i] + (cf[0] - mf) * ws[i]; }   // (fix round, defect 11: each family colour's offset from its set's SKY mean rides the structure clock, so a tower is the sky's own light as the ground crosses the band; was the family's own mean: golden's tower stayed 0.05-0.06 under its sky at the crossing)
+      if (fam) for (i = 0; i < n; i++) { var cf = B[i][key], mf = B[i].mL; a0 += mf * wc[i] + (cf[0] - mf) * ws[i]; }   // (each family colour's offset from its set's SKY mean rides the structure clock, so a tower is the sky's own light as the ground crosses the band; the family's own mean leaves a tower 0.05-0.06 under its sky at the crossing)
       else for (i = 0; i < n; i++) a0 += B[i][key][0] * wc[i];
-      skyAB(B[0][key], B[1][key], B[2][key], B[3][key], 1, ABO, ABL[j]);   // (fix3: the chroma along the hue's arc)
+      skyAB(B[0][key], B[1][key], B[2][key], B[3][key], 1, ABO, ABL[j]);   // (the chroma along the hue's arc)
       labTo(L[key], 0, a0, ABO[0], ABO[1]);
     }
     // the gradient: its mean light on the light clock, its shape (each stop's offset from the mean) on the structure clock
@@ -408,7 +404,7 @@
       if (r === 'sea') { pf[s * 4] = pf[s * 4 + 1] = pf[s * 4 + 2] = a[o] + (b[o] - a[o]) * q; continue; }
       var mx = s < 12 ? X.mD : X.mA, my = s < 12 ? Y.mD : Y.mA, mq = mx + (my - mx) * q;
       var lv = mq + (a[o] - mx) * (1 - q) + (b[o] - my) * q;
-      abMix(a[o + 1], a[o + 2], b[o + 1], b[o + 2], q, ABX, 0, abLong(a[o + 1], a[o + 2], b[o + 1], b[o + 2]));   // (fix3: the paint's chroma along the hue's arc too; its ends the two skies' own, constant through a change)
+      abMix(a[o + 1], a[o + 2], b[o + 1], b[o + 2], q, ABX, 0, abLong(a[o + 1], a[o + 2], b[o + 1], b[o + 2]));   // (the paint's chroma along the hue's arc too; its ends the two skies' own, constant through a change)
       labTo(pf, s * 4, lv, ABX[0], ABX[1]);
     }
   }
@@ -456,7 +452,7 @@
   var CEIL_KNEE = 0.08, STAR_TOP_Y = 0.0911, MOON_R = 1.8, MOON_FOOT = 4.5, MOON_KEEP = 12;
   var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4) };
   // MOON-ROUTE-BEGIN
-  /* (fast500 no-fades, the sun and moon: the owner's "Drift all night" and "Slower moon") the moon never fades, stops or
+  /* (the sun and moon: the owner's "Drift all night" and "Slower moon") the moon never fades, stops or
      turns back. A moonlit stay (its change in, its hold, its change out: t0 to t3, sky time) is one route, one way: out
      of sight it rises behind the sea (a leg, 16 deg under the horizon at t0), comes in through a side edge of the window
      above the words late in the change in, drifts across at one pace on a nearly level band (a row on the window, bowed
@@ -610,10 +606,10 @@
     return out;
   }
   // MOON-ROUTE-END
-  /* (fast500 no-fades, the sun and moon) the moonlit stay on the sky's clock, its plan made once as it begins (from the
-     view, the window and the words' boxes then: composition, as skyMoonPlace's was; never in the sky's or the
-     composite's pass), the moon on show at the drawn time; a resize re-plans (a height-only one only if the plan no
-     longer holds, the moon then eased onto the new plan by an offset that decays with the frustum's own 0.35 s) */
+  /* the moonlit stay on the sky's clock, its plan made once as it begins (from the view, the window and the words'
+     boxes then: composition; never in the sky's or the composite's pass), the moon on show at the drawn time; a resize
+     re-plans (a height-only one only if the plan no longer holds, the moon then eased onto the new plan by an offset
+     that decays with the frustum's own 0.35 s) */
   var MOON_LAND = 57.5, MOON_BAR = 0.15, MOON_EASE = 0.35, WORDSIH = 0;
   var MOON = { E: null, off: [0, 0], plans: 0, s: { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 }, a: { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 } };
   function basePitchT(V) { var fr = V.def.frame || [0.4, 0.6]; return Math.atan((2 * lerp(fr[0], fr[1], TALLK) - 1) * FRT.tanY) + CAMUP * DEG * WIDEKT; }   // (basePitch at the frustum's target)
@@ -677,10 +673,10 @@
     var V = SIM.V, fx = SKY.fx, u = P.u;
     if (!u.uMoon) return;
     if (!SKYN.c0 && V) { var MF = WSKY.moonlit.fx.moon; SKYN.moonC.set(lchA(MF.L)); SKYN.moonG.set(lchA(MF.glow)); SKYN.c0 = true; }   // (the moon's disc and glare: the moonlit sky's own table)
-    if (V) { moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, MOON.s); SKYN.moon[0] = MOON.s.d[0]; SKYN.moon[1] = MOON.s.d[1]; SKYN.moon[2] = MOON.s.d[2]; SKYN.moon[3] = DEVMODE && MOONF.moonOff ? 0 : MOON.s.w; }   // (fast500 no-fades: the moon on its route at the drawn time, as the camera and the stars are; fx[4] kept for the record only)
+    if (V) { moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, MOON.s); SKYN.moon[0] = MOON.s.d[0]; SKYN.moon[1] = MOON.s.d[1]; SKYN.moon[2] = MOON.s.d[2]; SKYN.moon[3] = DEVMODE && MOONF.moonOff ? 0 : MOON.s.w; }   // (the moon on its route at the drawn time, as the camera and the stars are; fx[4] kept for the record only)
     else { SKYN.moon[0] = 0; SKYN.moon[1] = 1; SKYN.moon[2] = 0; SKYN.moon[3] = 0; }
     SKYN.night[0] = fx[0]; SKYN.night[1] = SUNU.on ? 0 : fx[1]; SKYN.night[2] = reduced() ? 0 : 1; SKYN.night[3] = STAR_TOP_Y;
-    if (u.uSunB) { SUNU.sb[0] = SUNU.on ? fx[1] : 0; SUNU.sb[1] = SUNU.on && V && V.L ? V.L.hi[1] : 0; gl.uniform4fv(u.uSunB, SUNU.sb); }   // (fast500 no-fades: in a change between a twilight sky and a night the wisps and the veil drawn by their own blocks)
+    if (u.uSunB) { SUNU.sb[0] = SUNU.on ? fx[1] : 0; SUNU.sb[1] = SUNU.on && V && V.L ? V.L.hi[1] : 0; gl.uniform4fv(u.uSunB, SUNU.sb); }   // (in a change between a twilight sky and a night the wisps and the veil drawn by their own blocks)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
     if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], 0); gl.uniform4f(u.uAur, 0, SKY.aur.ph, SKY.aur.base, fx[3]); }
   }
@@ -706,7 +702,7 @@
     if (!THEME.meta) return;
     var L = V.L, ty = FR.tanY, d0 = CAM.f[0] + CAM.u[0] * ty, d1 = CAM.f[1] + CAM.u[1] * ty, d2 = CAM.f[2] + CAM.u[2] * ty, n = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2) || 1;
     d0 /= n; d1 /= n; d2 /= n;
-    var e = Math.asin(clamp(d1, -1, 1)) / DEG, c = skyGradCPU(L, e, THEME.c), S = L.skyS || L.sunDir, sn = SUNU.on && L === SUNU.L, K = sn ? SUNU.k0 : L.skyK;   // (fast500 no-fades: the shaders' change, the same arithmetic)
+    var e = Math.asin(clamp(d1, -1, 1)) / DEG, c = skyGradCPU(L, e, THEME.c), S = L.skyS || L.sunDir, sn = SUNU.on && L === SUNU.L, K = sn ? SUNU.k0 : L.skyK;   // (the sun's change as the shaders draw it, the same arithmetic)
     var hl = Math.sqrt(d0 * d0 + d2 * d2) || 1, sl = Math.sqrt(S[0] * S[0] + S[2] * S[2]) || 1, side = 0.5 + 0.5 * (d0 * S[0] + d2 * S[2]) / (hl * sl), low = Math.exp(-Math.max(e, 0) / K[1]), j;
     for (j = 0; j < 3; j++) { c[j] += (L.skyW[j] - c[j]) * K[0] * side * side * low; c[j] *= 1 - K[2] * (1 - side) * low; }
     if (sn) skyThemeWarm(c, e, side);

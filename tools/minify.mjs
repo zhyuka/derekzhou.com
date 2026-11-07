@@ -22,9 +22,8 @@
 //      page sets no switch), its one object literal is read and every SW.<key> becomes its default (global_defs,
 //      dotted; after the cut SW is only ever read key by key, never written, computed or used whole: checked), so
 //      what only another value of a switch reaches is dropped too.
-//   1b. (inkbirds, fast500's deep sweep, 2026-11-05) HOST.dev (the world's dev flag, false on the shipped page) is
-//      read as the constant false (exactly 6 reads, else exit 1), so what only it reaches (the planner's dev tallies
-//      of its failures and costs) is dropped as dead code.
+//   1b. (inkbirds, the one bird, 2026-11-06) the ink birds read no dev flag: HOST.dev must not appear in them (else
+//      exit 1); the planner's dev tallies it once guarded are gone with the planner.
 //   2. minified by terser (pinned 5.51.2: the TERSER environment variable names its package folder, else node's own
 //      resolution from here): compress and mangle, never the top level (the scripts share the page's global WORLD),
 //      Safari 10's mangler and printer workarounds on, the original quotes kept, ES5 output rules (no syntax
@@ -108,10 +107,10 @@ const GLOBAL_DEFS = Object.fromEntries(DECLS.map((d) => [d.name, false]));
 // ------------------------------------------------------------------ (fast500's deep sweep, 2026-11-05) the ink birds' dev flag
 function cutInk(s) {   // (the ink birds' dev members and the staging's dev hooks are no longer in src/: no line is cut)
   const log = [];
-  let code = s; const n = code.split('HOST.dev').length - 1;
-  if (n !== 6) die('ink: HOST.dev ' + n + ' times (want 6)');
-  code = code.split('HOST.dev').join('false'); log.push('HOST.dev: 6 reads the constant false');
-  return { code, log };
+  const n = s.split('HOST.dev').length - 1;
+  if (n !== 0) die('ink: HOST.dev ' + n + ' times (want none)');
+  log.push('HOST.dev: none');
+  return { code: s, log };
 }
 
 // ------------------------------------------------------------------ step 4c: terser

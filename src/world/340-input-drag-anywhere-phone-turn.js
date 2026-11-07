@@ -3,7 +3,7 @@
      8 px, so a tap stays a tap) turns the view and the flight: across the window's width, 90 deg (a little more than a
      desktop's view is wide, so a swipe across looks aside; the same on a phone, whose view is narrower), the scene
      following the finger; up and down, the view tilts and the flight climbs or dives. Let go, and the turn runs on a
-     little and eases out; the tilt is kept (E1.1: round 3b eased it level by itself). A pointer's moves are read only while it is pressed (no hover), there
+     little and eases out; the tilt is kept. A pointer's moves are read only while it is pressed (no hover), there
      is no key handler, nothing is stored. A drag begun on a link steers and never follows it; a tap on a link is a tap.
      Two fingers are never steering (pinch-zoom is the page's: touch-action pinch-zoom, pan-y as well on a page that
      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
@@ -12,7 +12,7 @@
   var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
   var INPLOG = [], INPQ = []; INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
-  /* (pointer, the owner 2026-11-05: "the birds should be more interactive with the mouse") the birds' play reads the
+  /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
      pointer where the device hovers: one passive listener of its moves (onHover: a mouse's or a pen's place, CSS px,
      hover included) and one of its leaving (onHoverOut: the pointer off the window), both added and removed by hoverSync
      only (never under reduced motion or forced colours, never where no pointer hovers); they only store, and nothing
@@ -25,7 +25,7 @@
   }
   function onHoverOut(e) { if (!e.relatedTarget && e.pointerType !== 'touch') HOVER.gone = true; }
   var SUPPRESS = false, SUPPRESS_N = 0;
-  var CLICKQ = [];   // (perch lane: clicks and taps for the birds, x, y CSS px pairs; drained by the birds each step)
+  var CLICKQ = [];   // (clicks and taps for the birds, x, y CSS px pairs; drained by the birds each step)
   function inert() { return reduced() || DEAD || LOST; }
   function onLink(el) { for (var e = el; e && e !== root; e = e.parentNode) if (e.tagName === 'A' || e.tagName === 'BUTTON') return true; return false; }
   function onDown(e) {
@@ -44,18 +44,18 @@
       var dx = x - DRAG.x0, dy = y - DRAG.y0;
       if (dx * dx + dy * dy < 64) return;
       if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
-      DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (E1.1 Fix 2, S10: data-steer and the selection cleared in the next frame)
+      DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (data-steer and the selection cleared in the next frame)
       if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
       INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0;   // (the first 8 px are taken too: the scene catches the finger up)
     }
     INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y;
-    if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (E0, the record: the oldest move not yet drawn, for the input's latency)
+    if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (the record: the oldest move not yet drawn, for the input's latency)
   }
   function onUp(e) {
     if (e.pointerId !== DRAG.id) return;
     var was = DRAG.on;
-    var held = DRAG.type === 'touch' && e.timeStamp - DRAG.ts >= HOLD_S * 1000;   // (pointer: a touch held for the birds is no tap)
-    if (!was && !held && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (perch lane: each click spawns a bird)
+    var held = DRAG.type === 'touch' && e.timeStamp - DRAG.ts >= HOLD_S * 1000;   // (a touch held for the birds is no tap)
+    if (!was && !held && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (each click spawns a bird)
     endDrag(true);
     if (was) { SUPPRESS = true; SUPPRESS_F = FRAMEN; SUPPRESS_N++; }   // (a drag's click is not a tap)
   }
@@ -80,8 +80,8 @@
   var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0 };
   var MOTIONASK = { drag: false };
   /* (the owner, 2026-11-06: "Keep drag-only") the phone's turn is asked for only on iOS and iPadOS (an iPad behind a
-     Mac user agent too): Chrome now has DeviceOrientationEvent.requestPermission as well, grants it on a desktop's or
-     an Android's first tap, and its listener then only logged the Permissions-Policy's refusal */
+     Mac user agent too): Chrome has DeviceOrientationEvent.requestPermission as well, grants it on a desktop's or an
+     Android's first tap, and its listener then only logs the Permissions-Policy's refusal */
   var MOTIONIOS = (function () { var ua = navigator.userAgent || ''; return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1); })();
   function askMotion() {
     if (MOTION.st !== 'off' || inert() || !MOTIONIOS) return;
@@ -96,7 +96,7 @@
   function enableMotion() { if (MOTION.on) return; MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; window.addEventListener('deviceorientation', onOrient); }
   function onOrient(e) {
     if (e.alpha === null || e.beta === null || e.gamma === null || inert()) return;
-    if (REC && REC.ori.length < 6000) REC.ori.push([+e.timeStamp.toFixed(1), +e.alpha.toFixed(2), +e.beta.toFixed(2), +e.gamma.toFixed(2)]);   // (E0, the record: raw, for the filter's lag, D6)
+    if (REC && REC.ori.length < 6000) REC.ori.push([+e.timeStamp.toFixed(1), +e.alpha.toFixed(2), +e.beta.toFixed(2), +e.gamma.toFixed(2)]);   // (the record: raw, for the filter's lag)
     orientAt(e.alpha, e.beta, e.gamma);
   }
   function orientAt(al, be, ga) {
@@ -123,14 +123,13 @@
     if (INP.rel) {
       INP.rel = false; any = true;
       var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
-      CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg: E1.1)
+      CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg)
     }
     if (!INP.down) {
       CS.yawV += CS.om * dt; CS.om *= Math.exp(-dt / 0.3);
-      // (E1.1, item 2; design-v5 Revision 3: nothing turns the view by itself) the tilt the visitor set is kept: round 3b
-      // eased it level over 2.5 s from 0.8 s after the release (verify-regress-3: an 18 deg tilt swung back 24.6 deg by
-      // itself over 8 s, at up to 8.8 deg/s). The climb or dive it drives stops at the realm's clearance limits
-      // (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s after it the tilt's
+      // (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
+      // 18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
+      // realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s after it the tilt's
       // own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at most 1.5 deg/s)
       CS.thU = clamp(CS.thU + CS.omP * dt, -TH_MAX, TH_MAX); CS.omP *= Math.exp(-dt / 0.2);
       CS.since += dt;
@@ -169,13 +168,13 @@
   }
   function inputInit() {
     window.addEventListener('pointerdown', onDown, true);
-    hoverSync();   // (pointer: the birds' play's two listeners, added only while motion and colours allow it and the device hovers)
+    hoverSync();   // (the birds' play's two listeners, added only while motion and colours allow it and the device hovers)
     window.addEventListener('click', onClick, true);
     window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
     document.addEventListener('dragstart', function (e) { if (!inert()) e.preventDefault(); }, true);   // (a link is never dragged away)
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { DOMQ.touch = true; if (!running) domNext(); });   // (E1.1 Fix 2, S10: measured in the next frame)
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { DOMQ.touch = true; if (!running) domNext(); });   // (measured in the next frame)
     touchMode();
     // the phone's motion only where it is asked for (iOS, inside a gesture: askMotion); elsewhere no listener at all (the
-    // owner, 2026-11-06: "Keep drag-only": the Permissions-Policy denies the sensors, and a listener only logged its error)
+    // owner, 2026-11-06: "Keep drag-only": the Permissions-Policy denies the sensors, and a listener only logs its error)
   }
 

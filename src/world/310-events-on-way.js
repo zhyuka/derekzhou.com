@@ -6,7 +6,7 @@
     if (u < V.evNext) return;
     var e = V.def.event(V, V.evRng, { x: CS.x, y: CS.y, z: CS.z, psi: CS.psi, u: u, ground: function (x, z) { return groundAt(V, x, z, false); } });
     V.evNext = u + (e && e.next ? e.next : 20);
-    if (e && e.flock && !WORLD_FLYERS && (e.flock.kind === 'bird' || e.flock.kind === 'ray')) e = null;   // (life fix: WORLD_FLYERS)
+    if (e && e.flock && !WORLD_FLYERS && (e.flock.kind === 'bird' || e.flock.kind === 'ray')) e = null;   // (no birds or rays while WORLD_FLYERS is off)
     if (e && e.flock && V.flocksEv.length < 2) { e.flock.u0 = u; e.flock.at = [e.flock.x, e.flock.y, e.flock.z]; var f = flockOf(e.flock); f.end = u + (e.life || 30); V.flocksEv.push(f); LATEK.creature = 1; }
   }
 
