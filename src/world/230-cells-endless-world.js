@@ -466,7 +466,7 @@
     return done;
   }
   /* the frame's budgets for the cells (the *_BUDGET counts; the boot's larger while the still sky shows) and the one
-     bake budget every bake shares (cells' clouds and the next visit's passage) */
+     bake budget every bake shares (the cells' clouds) */
   var BUD = { layouts: LAYOUT_BUDGET, resolves: RESOLVE_BUDGET, verts: VERT_BUDGET, uploads: 1, bake: 24 };
   var BAKE = { left: 0 };
   /* GL objects let go by the CPU's slice (a cell freed far behind) are deleted among the next frame's GPU jobs */
