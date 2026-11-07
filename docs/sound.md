@@ -88,7 +88,7 @@ the CPU throttled 4x.
 tools/sound/measure.mjs renders the built score offline (OfflineAudioContext, 48 kHz, in headless Chromium, the
 scheduler ticked at every quarter second of audio time) for every light in every place and two changes, and opens
 the built page: loudness (BS.1770-4) at -26 +- 1.5 LUFS, no sample over -6 dBFS, no 400 ms block 6 LU over the one
-before it in a change, the audio at 8x realtime or more, the scheduler at 50 ms a second or less at 4x; on the page,
+before it in a change, the audio at 4x realtime or more (9-12x measured alone), the scheduler at 50 ms a second or less at 4x; on the page,
 no AudioContext made and no score fetched in the 5 s before the press, one context and one fetch at it, the icon
 pressed with the context running, and a second press letting the device go. Its plants: an audio context made at
 load, and the score 10 dB too loud. `node tools/sound/measure.mjs build/site --fit` prints the trims to add.

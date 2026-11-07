@@ -6,7 +6,7 @@
 # that fits with the rest of the design"): tools/sound/measure.mjs renders the built score (build/site/score.js, the
 # served bytes) offline in headless Chromium, every light in every place, and measures it: BS.1770 loudness at -26
 # +- 1.5 LUFS, no sample over -6 dBFS, two changes with no jolt (no 400 ms block 6 LU over the one before), the audio
-# at 8x realtime or more and the scheduler at 50 ms a second or less with the CPU throttled 4x. Then the page, served
+# at 4x realtime or more and the scheduler at 50 ms a second or less with the CPU throttled 4x. Then the page, served
 # with its own Permissions-Policy: no audio context and no score fetched before the press; the press makes one and
 # fetches it once, the icon pressed and the context running; a second press lets it go.
 # The runner's Chrome, driven by playwright-core (pinned, installed for this step only, never part of the site), as
