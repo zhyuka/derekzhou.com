@@ -79,9 +79,12 @@ ahead, by a timer every 250 ms; it reads no other clock (one-entropy-one-clock).
 
 A visit that never presses: the switch, 2.4 KB raw and 1.0 KB Brotli, parsed and run once (a getElementById, a
 hidden flag, one listener). No audio context, no score fetched, no CPU after that. A visit that presses: the score,
-30 KB raw and about 12 KB Brotli, then about 9% of one desktop core on the audio thread (11x realtime offline;
-about a third of a phone core at a 4x slower CPU), and the scheduler about 15 ms a second of the main thread with
-the CPU throttled 4x.
+about 31 KB raw and 12 KB Brotli, then about 10% of one desktop core on the audio thread (9-11x realtime offline;
+about two thirds of a core at the slowest phone profile, 6x slower), and the scheduler 14-19 ms a second of the main
+thread at 6x. Two things keep the main thread's tasks short (2026-11-07, measured at 6x): each room's impulse is cut
+at ROOM_MAX, 3.6 s (a convolver prepares its whole impulse at once when it is given it: the one stall left, about
+200 ms at 6x, half a second after the press), and each plucked string is worked out at 24 kHz (PLUCK_SR), about 85 ms
+at 6x where 48 kHz took 130-145.
 
 ## THE CHECK (tools/checks/36-sound.sh, "The score is opt-in, and measured")
 

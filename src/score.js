@@ -69,6 +69,7 @@
   var AHEAD = 1.5;            // s: and schedules this far ahead (a throttled timer still keeps time)
   var REF = 293.665;          // Hz: D4, the score's D (the switch strikes the same D and A)
   var FADE = 3;               // s: the held chord comes in over this at the press
+  var ROOM_MAX = 3.6;        // s: a room's impulse at most this long (the above-cloud air's 5.4 s decay is 40 dB down by 3.6 s)
   var TAU = 0.9;              // s: every level, colour and space follows this time constant: a step takes over 2 s
   var STAR_HI = 2100;         // Hz: the stars' and glints' highest (a fundamental over ~2 kHz sits in the band a phone makes harsh)
   var GAP_MIN = 0.15;         // s: unrelated struck notes never closer than this (no accidental flam)
@@ -138,8 +139,8 @@
   /* loudness: dB for each light and place, measured offline (BS.1770, the steady state after the press: tools/sound/
      measure.mjs --fit solves them by least squares on every light in every place, the place trims summing to zero);
      the slow level (earMix) holds the rest */
-  var TRIM = { firstlight: 4.74, afterglow: 4.95, bluehour: 5.88, moonlit: 4.41, milkyway: 6.20, aurora: 5.22 };
-  var TRIM_P = { above: -0.38, dunes: 0.38 };
+  var TRIM = { firstlight: 4.98, afterglow: 5.28, bluehour: 6.08, moonlit: 4.79, milkyway: 6.53, aurora: 5.54 };
+  var TRIM_P = { above: -0.21, dunes: 0.21 };
   var GAIN = -14;             // dB: the whole, before the trims
   var TARGET = -26;           // LUFS: the score's loudness, every light, every place
   var LEVEL_DB = 0.5, LEVEL_MAX = 4;   // LU: the slow level's dead band about TARGET, and its reach either way
@@ -335,10 +336,11 @@
       });
     }
     /* a place's air: a synthesised impulse, each channel its own noise; the lows ring longer than the highs, a soft
-       onset after the first reflection, a few near reflections (the rock's); as long as the lows' decay (at most
-       5.6 s), its last 0.3 s faded, so no tail is cut off */
+       onset after the first reflection, a few near reflections (the rock's); as long as the lows' decay, but at most
+       ROOM_MAX (where the longest air's tail is already 40 dB down: a convolver prepares its whole impulse at once when
+       it is given it, a stall that grows with the impulse's length), its last 0.3 s faded, so no tail is cut off */
     function room(P, done) {
-      var len = Math.min(5.6, P.room[0]), n = Math.floor(len * SR), pre = Math.floor(P.room[2] * SR), c = 1 - Math.exp(-2 * Math.PI * 1100 / SR);
+      var len = Math.min(ROOM_MAX, P.room[0]), n = Math.floor(len * SR), pre = Math.floor(P.room[2] * SR), c = 1 - Math.exp(-2 * Math.PI * 1100 / SR);
       var m1 = Math.exp(-6.9078 / (P.room[0] * SR)), m2 = Math.exp(-6.9078 / (P.room[1] * SR)), D = [new Float32Array(n), new Float32Array(n)], st = [[0, 1, 1], [0, 1, 1]];
       slices(n, function (a, z) {
         for (var ch = 0; ch < 2; ch++) {
@@ -574,9 +576,12 @@
        poles: a finger, not a pick), a pick's position (a comb at 0.1-0.25 of the string), its mean taken out. In the
        loop: a tuning allpass, a stretched one-zero loss (less up high, so a high string rings and is no plink) and a
        gain a period worked out from the ring wanted, never above unity at DC. Then a small body (three resonances near
-       200, 450 and 1100 Hz, soft above 2 kHz) and a DC blocker; rung out to -60 dB (at most 6.5 s), never cut */
+       200, 450 and 1100 Hz, soft above 2 kHz) and a DC blocker; rung out to -60 dB (at most 6.5 s), never cut. Worked out
+       at 24 kHz (PLUCK_SR; the context resamples it): a string's content is all under 4 kHz, and half the samples halve
+       the main thread's work for each pluck (at a phone's 6x slower CPU a pluck at 48 kHz held it 130-145 ms) */
+    var PLUCK_SR = Math.min(SR, 24000);
     function string(f, vel) {
-      var dk = darkNow(), P = PLACES[H.place], per = SR / f, S = clamp(0.32 * Math.pow(587 / f, 1.5), 0.04, 0.32), w = 2 * Math.PI * f / SR, i;
+      var SR = PLUCK_SR, dk = darkNow(), P = PLACES[H.place], per = SR / f, S = clamp(0.32 * Math.pow(587 / f, 1.5), 0.04, 0.32), w = 2 * Math.PI * f / SR, i;
       var ld = Math.atan2(S * Math.sin(w), (1 - S) + S * Math.cos(w)) / w;   // (the loss's own delay at f)
       var N = Math.floor(per - ld - 0.1), fr = per - ld - N, eta = (1 - fr) / (1 + fr);
       var T60 = P.ks[1] * Math.pow(f / 587, -0.35), H0 = Math.sqrt((1 - S) * (1 - S) + S * S + 2 * S * (1 - S) * Math.cos(w));
@@ -589,8 +594,8 @@
       for (i = 0; i < 3 * M; i++) { lp += (rw[i % M] - lp) * cutf; lp2 += (lp - lp2) * cutf; if (i >= 2 * M) ex[i - 2 * M] = lp2; }   // (filtered round the loop: no seam)
       for (i = 0; i < M; i++) { line[i] = ex[i] - ex[(i - pickAt + M) % M]; mean += line[i]; }
       mean /= N + 1; for (i = 0; i <= N; i++) line[i] -= mean;
-      var max = Math.floor(6.5 * SR), d = new Float32Array(max), idx = 0, x1 = 0, y1 = 0, a, avg, y, peak = 0, env = 0, n = max;
-      var body = [peaking(200, 3, 1.2), peaking(450, 2.5, 1.6), peaking(1100, 2, 2)], dc = 0, dcx = 0, warm = 0, wc = 1 - Math.exp(-2 * Math.PI * Math.max(2000, 1.7 * f) * (1 - 0.3 * dk) / SR);
+      var ON = Math.round(0.006 * SR), max = Math.floor(6.5 * SR), d = new Float32Array(max), idx = 0, x1 = 0, y1 = 0, a, avg, y, peak = 0, env = 0, n = max;
+      var body = [peaking(200, 3, 1.2, SR), peaking(450, 2.5, 1.6, SR), peaking(1100, 2, 2, SR)], dc = 0, dcx = 0, warm = 0, wc = 1 - Math.exp(-2 * Math.PI * Math.max(2000, 1.7 * f) * (1 - 0.3 * dk) / SR);
       for (i = 0; i < max; i++) {
         a = line[idx]; avg = s1 * a + s0 * line[(idx + 1) % (N + 1)];   // (the older sample weighs S, the newer 1 - S)
         y = eta * avg + x1 - eta * y1; x1 = avg; y1 = y;
@@ -598,7 +603,7 @@
         a = run(body[2], run(body[1], run(body[0], a)));
         dc = a - dcx + 0.995 * dc; dcx = a; a = dc;   // (the DC blocker)
         warm += (a - warm) * wc; a = warm;            // (and the body's own softness above 2 kHz: no glint on a phone)
-        d[i] = a * (i < 288 ? i / 288 : 1);           // (a 6 ms onset: a finger, not a click)
+        d[i] = a * (i < ON ? i / ON : 1);             // (a 6 ms onset: a finger, not a click)
         env = Math.max(Math.abs(a), env * 0.9995); if (env > peak) peak = env;
         if (i > SR * 0.5 && env < peak * 0.001) { n = i + 1; break; }   // (rung out: -60 dB)
       }
@@ -609,7 +614,7 @@
       o.set(d.subarray(0, n));
       return b;
     }
-    function peaking(fc, gdb, q) {   // (the standard peaking biquad, run by hand on a buffer)
+    function peaking(fc, gdb, q, SR) {   // (the standard peaking biquad, run by hand on a buffer at rate SR)
       var A = Math.pow(10, gdb / 40), w = 2 * Math.PI * fc / SR, al = Math.sin(w) / (2 * q), cs = Math.cos(w), a0 = 1 + al / A;
       return { b0: (1 + al * A) / a0, b1: -2 * cs / a0, b2: (1 - al * A) / a0, a1: -2 * cs / a0, a2: (1 - al / A) / a0, x1: 0, x2: 0, y1: 0, y2: 0 };
     }
