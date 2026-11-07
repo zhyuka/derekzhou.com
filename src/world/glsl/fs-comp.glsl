@@ -158,14 +158,8 @@ void main() {
           if (i >= 1 && i <= 2 && j >= 1 && j <= 2) { mn4 = min(mn4, q4); mx4 = max(mx4, q4); } } }
       cS = clamp(s4, mn4, mx4); }
     cl = cS;
-    /* coming out of a cloud, the cloud about the eye (FS_INCLOUD, drawn into the same half-resolution target, in
-       front of everything) is brought up plainly wherever it still stands: its share here worked out as FS_INCLOUD
-       works it (the same when from the same two reads of the noise, the same way out), km 1 where it stands (amt from
-       0.06 up: below that its planes draw next to nothing), 0 in the holes. The depth-weighted 2x2 would judge it by
-       the land's depth, which it does not lie at: over ABOVE's sea of cloud, whose domes are no plane at half
-       resolution, each hole's edge would come from the nearest texel, stairs that crawl as the holes open (seed 13 into
-       ABOVE at 85.35-85.85 s, 393x852: the block excess p99 1.408 codes). In the holes the clouds and the land behind
-       are brought up as anywhere else; nothing changes out of a passage */
+    /* km: the share of a cloud about the eye, brought up plainly where it stands. There is none (no passages), so km
+       is 0 and every pixel takes the depth-weighted 2x2 below */
     float km = 0.0;   // (no cloud about the eye: there are no passages)
     if (km < 0.999 && max(max(tA.a, tB.a), max(tC.a, tD.a)) > 0.002) {
       vec4 c2 = vec4(0.0); float ws = 0.0, zb = 0.0, zlc = min(zl, CLZ); float zq4[4];
