@@ -19,5 +19,5 @@
     return ch;
   }
 
-  /* edges: 1 left, 2 right, 4 top, 8 bottom — the ones a flight crosses */
+  /* a box (centre x, y; half sizes hw, hh; CSS px) overlaps the window */
   function inView(x, y, hw, hh) { return x + hw > 0 && x - hw < W && y + hh > 0 && y - hh < H; }
