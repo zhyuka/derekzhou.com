@@ -20,10 +20,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2), val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; }, has = (f) => argv.includes(f);
 const target = argv[0] && !argv[0].startsWith('--') ? argv[0] : 'dist';
 const RUNS = +val('--runs', 5);
+// The two phone profiles load as a phone (an Android Chrome's user agent): hour.js takes the first-paint hold out for
+// every Android, as on a real phone, whatever the measuring machine's cores and memory (a runner with more than 4 cores
+// and 8 GB kept the hold, and its first paint waited for the world's scripts: 1,580 ms, 2026-11-07).
+const PHONE_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
 export const PROFILES = {
   desktop: { net: null, cpu: 1, view: { width: 1440, height: 900 }, mobile: false },
-  mobile: { net: { latency: 150, downloadThroughput: 1.6e6 / 8, uploadThroughput: 750e3 / 8 }, cpu: 4, view: { width: 412, height: 823 }, mobile: true },
-  slow4g: { net: { latency: 562.5, downloadThroughput: 1.6e6 / 8 * 0.9, uploadThroughput: 750e3 / 8 * 0.9 }, cpu: 1, view: { width: 412, height: 823 }, mobile: true },
+  mobile: { net: { latency: 150, downloadThroughput: 1.6e6 / 8, uploadThroughput: 750e3 / 8 }, cpu: 4, view: { width: 412, height: 823 }, mobile: true, ua: PHONE_UA },
+  slow4g: { net: { latency: 562.5, downloadThroughput: 1.6e6 / 8 * 0.9, uploadThroughput: 750e3 / 8 * 0.9 }, cpu: 1, view: { width: 412, height: 823 }, mobile: true, ua: PHONE_UA },
 };
 const profiles = val('--profiles', 'desktop,mobile,slow4g').split(',');
 const med = (a) => { const s = a.filter((x) => x != null && isFinite(x)).sort((x, y) => x - y); if (!s.length) return null; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -68,8 +72,9 @@ const OBSERVE = `(() => { const W = window.__lp = { shown: null };
     .observe(document, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true }); })();`;
 
 async function one(browser, url, prof, warm) {
-  const ctx = await browser.newContext({ viewport: prof.view, isMobile: prof.mobile, hasTouch: prof.mobile, deviceScaleFactor: 1, reducedMotion: 'no-preference' });
+  const ctx = await browser.newContext(Object.assign({ viewport: prof.view, isMobile: prof.mobile, hasTouch: prof.mobile, deviceScaleFactor: 1, reducedMotion: 'no-preference' }, prof.ua ? { userAgent: prof.ua } : {}));
   await ctx.addInitScript(OBSERVE);
+  if (process.env.LP_BIG) await ctx.addInitScript(() => { Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => 16 }); Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => 8 }); });   // (a test of the measure: a big machine, as the CI runners are)
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('Network.enable');
