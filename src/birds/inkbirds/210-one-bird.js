@@ -186,7 +186,7 @@
     } else if (kind === 'loiter') { g.R = mix(r(), 120, 320); g.y = Math.max(top + 15, eye + mix(r(), -30, 40)); g.T = pick(r, [40, 90]); }
     else if (kind === 'sink') {
       var s = seaAt(x, z);
-      if (s.w < 0.85) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it: on)
+      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.K.v)) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it, or too little: on)
       g.y = Math.min(hideTop(x, z), s.lv - 60) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;   // (under both the near top and the far margin: hidden as it drifts either side of the ground grid)
     } else if (kind === 'out') { g.psi = TAU * r(); g.y = eye + mix(r(), 120, 300); g.T = 600; }
     else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), 10, 28); }   // (over the eye a little: seen from below its M shows; at the eye's height it is a line)
@@ -198,6 +198,18 @@
     if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || F.kind === 'crow')) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';
     if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
     return newGoal(F, k, r, cls);
+  }
+  /* a sink's way: the heading of the longest run of the sea of cloud (16 tried, out to 60 s of flight; 60 m to each
+     side too): its descent takes up to a minute; none of 25 s or more, no sink */
+  function sinkWay(g, x, z, v) {
+    var best = 0, bh = 0, i, k, n = Math.floor(v * 60 / 48);
+    for (i = 0; i < 16; i++) {
+      var a = i * TAU / 16, ax = Math.sin(a), az = Math.cos(a);
+      for (k = 1; k <= n; k++) { var px = x + ax * 48 * k, pz = z + az * 48 * k; if (!(seaAt(px, pz).w > 0.85 && seaAt(px + az * 60, pz - ax * 60).w > 0.85 && seaAt(px - az * 60, pz + ax * 60).w > 0.85)) break; }
+      if (k > best) { best = k; bh = a; }
+    }
+    if ((best - 1) * 48 < v * 25) return false;
+    g.psi = bh; return true;
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, before the wind) */
   var WV = [0, 0, 0];
@@ -231,7 +243,7 @@
       if (b.p[1] < fl + 10) dy = Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35));
     }
     WV[0] = v * sh; WV[1] = dy; WV[2] = v * ch;
-    if (t - g.t0 > g.T && g.k !== 'out') nextGoal(F);
+    if (t - g.t0 > g.T && g.k !== 'out' && g.k !== 'sink') nextGoal(F);   // (a sink is never given up: under the cloud it is only ever taken out)
     return WV;
   }
   /* a member's wanted velocity: its leader's, and on toward its place (behind, aside, up: in spans), drifting about it */
