@@ -12,8 +12,6 @@ site/index.html              Home page: the words over a 3D world, drawn live be
 site/style.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.js              The hour: which time of day the world opens on (the page's one clock read)
-site/start.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World) (built)
-site/start-table.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint (built)
 site/world.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World) (built)
 site/realm-kit.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
 site/realm-dunes.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
@@ -57,8 +55,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
-tools/minify.mjs             Builds the five served scripts from build/ship/ (and the start file, by tools/start.mjs); CI checks the build
-tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
+tools/minify.mjs             Builds the five served scripts from build/ship/; CI checks the build
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
@@ -83,13 +80,13 @@ A plain GLSL literal (no ${...}) is kept as a file in its folder's glsl/
 (src/world/glsl/, src/birds/inkbirds/glsl/, src/glsl/ for the realms):
 the script has `@glsl NAME` where it was, and assemble writes the text
 back exactly. The build (tools/build.mjs: assemble --min-glsl, for the
-shipped build and the dev build the start file is made from) writes it
+shipped build and the dev build) writes it
 back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
 blank line, no spare space, every line of code still a line (the world's
 folds work by lines), a #define's spacing kept, the same tokens (checked;
 the build fails otherwise); a file a script reads at run time stays as
 written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
-by its text). So the world issues, the start table holds and the browser
+by its text). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
 census and T2 compare the base's build with the head's.
@@ -99,8 +96,7 @@ as its default; the ink birds read no dev flag: checked), then terser
 (pinned in package.json) compresses and
 mangles, every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
-marker; where index.html loads the start file, tools/start.mjs makes it
-too (from the dev build). None of what they make is committed: a change
+marker. None of what they make is committed: a change
 is made in src/ and committed alone, and the build makes the rest. The
 rules that read the scripts' text (the absences, world_rules.py) read
 build/src/; every other check of a served file reads build/site/ (CI's
@@ -110,9 +106,9 @@ copied, src/ assembled, the built scripts written into the copy) and then
 (restructure step 5) names each script and
 stylesheet by its content: world.js becomes world.<sha8>.js, the first 8
 hex of the sha256 of its final bytes, files that load others by name (the
-world's plan worker, the start file's table) named after them, and every
-reference rewritten (index.html, 404.html, \_headers, the two workers'
-URLs); node tools/build.mjs OUT writes that, with OUT/build.txt holding the
+world, after its plan worker) named after them, and every
+reference rewritten (index.html, 404.html, \_headers, the plan
+worker's URL); node tools/build.mjs OUT writes that, with OUT/build.txt holding the
 commit. CI step "The build, the same bytes every time; site/ holds no
 built file" (node tools/build.mjs --check) builds twice and fails unless both
 builds are the same bytes, site/ holds none of the files the build writes
@@ -128,7 +124,7 @@ rewrites PW_V in its part); the build then minifies it as the world is
 (tools/plan.mjs buildPlan: terser with the world's options, its header
 kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit.mjs runs that
 worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are
-served as written, the start file as tools/start.mjs writes it.
+served as written.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
 first (a Pages Function that checks the Cloudflare Access token again, in

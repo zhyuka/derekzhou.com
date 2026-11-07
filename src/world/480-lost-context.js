@@ -1,8 +1,8 @@
   /* ---------------------------------------------------------------- a lost context */
   canvas.addEventListener('webglcontextlost', onLost);
-  function onLost(e) {   // (fast500 5: named, for startTake)
-    e.preventDefault(); if (!gl) return;   // (fast500 5: the start file's context, lost before the boot took it: startTake tells it then)
-    START = null; LOST = true; MEMN.lost++; stop(); FRUN = false; if (FRAF) cancelAnimationFrame(FRAF); FRAF = 0; shown = false; STILLTS = -1; DOMQ.hide = true; domNext(); recMark('context lost');   // (Fix 2, S10: the canvas hidden and the still marked in the next frame; round 3: the ink birds' forced loop stopped too, FCOL.on kept: restoreNow starts it again)
+  function onLost(e) {
+    e.preventDefault(); if (!gl) return;
+    LOST = true; MEMN.lost++; stop(); FRUN = false; if (FRAF) cancelAnimationFrame(FRAF); FRAF = 0; shown = false; STILLTS = -1; DOMQ.hide = true; domNext(); recMark('context lost');   // (Fix 2, S10: the canvas hidden and the still marked in the next frame; round 3: the ink birds' forced loop stopped too, FCOL.on kept: restoreNow starts it again)
     BOOT.hOk = false;
     if (RESTORERAF) { cancelAnimationFrame(RESTORERAF); RESTORERAF = 0; }
   }
@@ -13,7 +13,7 @@
     if (!RESTORERAF) RESTORERAF = requestAnimationFrame(function () { RESTORERAF = 0; restoreNow(); });
   });
   function restoreNow() {
-    if (!gl || !LOST || gl.isContextLost()) return;   // (fast500 5: the start file's context restored before the boot took it, or before the world was told it was lost)   // (lost again before this frame: the next restore's event comes)
+    if (!gl || !LOST || gl.isContextLost()) return;   // (lost again before this frame: the next restore's event comes)
     // a restored context starts empty: its extensions off (asked for again first), every program, buffer and texture
     // gone; (E1) the boot's stages B to F and H run again (the measurement of G is kept): every object, every program
     // (compile all, link all, flush, status last), the noise, the warm table, the cells about the camera (the same

@@ -48,15 +48,12 @@
     var tc = clockNow();
     foldIssue(P);   // (fast500 lane E: the folds, before the text is given)
     P.kb = Math.round((P.vs.length + P.fs.length) / 1024);
-    var SP = START ? startProg(P) : null;   // (fast500 5: issued by the start file: adopted, its calls not made again)
-    if (SP) { P.p = SP.p; P.v = SP.v; P.f = SP.f; P.adopt = true; } else {
     P.p = gl.createProgram();
     P.v = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(P.v, P.vs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.v);
     P.f = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(P.f, P.fs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.f);
-    }
     P.vs = P.fs = null; P.st = 1; PROGX.compiled++;
     P.cms = +(clockNow() - tc).toFixed(2);   // (the main thread's share of its compile)
-    var tl = clockNow(); if (!SP) { gl.attachShader(P.p, P.v); gl.attachShader(P.p, P.f); gl.linkProgram(P.p); } P.st = 2; PROGX.linked++; P.lms = +(clockNow() - tl).toFixed(2);
+    var tl = clockNow(); gl.attachShader(P.p, P.v); gl.attachShader(P.p, P.f); gl.linkProgram(P.p); P.st = 2; PROGX.linked++; P.lms = +(clockNow() - tl).toFixed(2);
     P.issAt = +tc.toFixed(1); P.issF = FRAMEN; P.polls = 0; P.qms = 0;
   }
   /* (fast500 lane E, class A: e8.py E8z) the page's constant modes as defines, computed once from its own data at the
@@ -140,7 +137,7 @@
     if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0 && !lateHeld(PORDER[i])) { progIssue(PORDER[i]); issued = true; }
-      if (issued) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      if (issued) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
       var all = true; lateDecide();   // (fast500 step 9)
       for (i = 0; i < PORDER.length; i++) {
         P = PORDER[i]; if (P.st === 3) continue;
@@ -156,7 +153,7 @@
     if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
       var iss = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
-      if (iss) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (iss) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
       return progsDone();
     }

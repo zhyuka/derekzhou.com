@@ -1,6 +1,6 @@
   /* ---------------- the sky's clock (the engine's fixed steps; no clock is read) ---------------- */
 
-  var t = 0, STEPS = 0, STEP_DT = 1 / 60, STILL_T = 24, STILL_Q = 600;
+  var t = 0, STEPS = 0, STEP_DT = 1 / 60, STILL_T = 24, STILL_Q = 2400, STILL_DT = 0.1;   // (the still: flown forward in 0.1 s steps, done within the page's few frames of redraws)
   function measureIf() { if (dirty || changed()) relayout(); }
   /* one fixed step: every bird of the world, and the perches */
   function step(dt) {
@@ -33,7 +33,7 @@
     if (STILL.done) return true;
     forcedCheck(); measure(); if (FORCED) forcedCam();
     var C = camStep(); if (!C) return false;
-    var dt = 1 / 20, n = 0;
+    var dt = STILL_DT, n = 0;
     while (STILL.t < STILL_T && n * Math.max(1, BIRDS.length) < quota) { t += dt; STILL.t += dt; STEPS++; birdsStep(C, dt); n++; if (HOST.budget && HOST.budget() <= 0) break; }
     if (STILL.t >= STILL_T) STILL.done = true;
     return STILL.done;
