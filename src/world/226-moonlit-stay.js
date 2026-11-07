@@ -53,14 +53,6 @@
     if (sh.w > 0 || MOON.a.w > 0) { MOON.off[0] = angd(az0, MOON.a.az); MOON.off[1] = el0 - MOON.a.el; } else MOON.off[0] = MOON.off[1] = 0;
   }
   function moonEase(dt) { if (!MOON.off[0] && !MOON.off[1]) return; var k = Math.exp(-dt / MOON_EASE); MOON.off[0] *= k; MOON.off[1] *= k; if (Math.abs(MOON.off[0]) < 1e-7 / DEG) MOON.off[0] = 0; if (Math.abs(MOON.off[1]) < 1e-7 / DEG) MOON.off[1] = 0; }
-  function skyMoonRec() {
-    var E = MOON.E, P = E && E.moon, s = MOON.s, f = function (x, n) { return typeof x === 'number' && isFinite(x) ? +x.toFixed(n) : x; };
-    if (!P) return { side: SKY.moonSide, sigma: SKY.moonDir, plan: null, w: 0, plans: MOON.plans };
-    return { 'case': P.caseA ? 'A' : 'B', side: P.side, sigma: P.sigma, psi: f(P.psi, 4), Hc: f(P.Hc, 4), ec: f(P.ec, 4), pN: f(P.pN, 4), pL: f(P.pL, 4), lo: f(P.lo, 4), hi: f(P.hi, 4), top: f(P.top, 4), room: P.room, coarse: P.coarse, lift: f(P.lift, 2),
-      beta: f(P.beta, 5), rise: f(P.rise, 5), thetaE: f(P.thetaE, 4), thetaV: f(P.thetaV, 4), rhoL: f(P.rhoL, 4), sH: f(P.sH, 4), s10: f(P.s10, 4), sD: f(P.sD, 4), wv: f(P.wv, 6), w0: f(P.w0, 6), A: f(P.A, 6), T: f(P.T, 4), tauV: f(P.tauV, 4),
-      t0: f(P.t0, 4), t1: f(P.t1, 4), t2: f(P.t2, 4), t3: f(P.t3, 4), tm: f(P.tm, 4), Dvis: f(P.Dvis, 4), vH: f(P.vH, 5), v10: f(P.v10, 5), peak: f(P.peak, 5), turnH: f(P.turnH, 5), turn: f(P.turn, 5), fail: P.fail,
-      s: f(s.s, 5), v: f(s.v, 5), leg: s.leg, el: f(s.el, 5), az: f(s.az, 5), w: f(s.w, 6), d: [f(s.d[0], 6), f(s.d[1], 6), f(s.d[2], 6)], off: [f(MOON.off[0], 6), f(MOON.off[1], 6)], plans: E.moonPlans };
-  }
   function skyNightUniforms(P) {
     var V = SIM.V, fx = SKY.fx, u = P.u;
     if (!u.uMoon) return;
