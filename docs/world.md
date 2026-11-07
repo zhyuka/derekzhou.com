@@ -180,9 +180,12 @@ a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
 sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
 no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
 to show the world later than HOLD_WORLD (1000 ms from the navigation's
-start): from stage A (38 x A - 150 ms) and from the first hold frame
-(26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
-1x-6x. The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+start): from stage A (38 x A - 150 ms; only a clearly slow A, over
+1.3 x HOLD_WORLD, skips there: stage A swings 15-45 ms at 1x on the 4090)
+and from the first hold frame (26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
+1x-6x. Where a hold may run, world.js makes the canvas's context as its script
+ends, so the GPU process starts while the kits come, not inside stage A.
+The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
 the link is taken out and the path below goes on. T2 shows the world's
 first frame byte for byte the one without the hold (frame 0: gstep
 counts a world shown in the page's own load as shown at frame 0). The
