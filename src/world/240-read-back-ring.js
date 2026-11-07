@@ -1,4 +1,4 @@
-  /* ---------------------------------------------------------------- the read-back ring (E1, design-v5 7.5) */
+  /* ---------------------------------------------------------------- the read-back ring */
   /* Everything the CPU must learn from the GPU (the ground under the cells' items, the camera's ground about it) comes
      back through one ring of three pixel-pack buffers of 64 KB, with one fence a frame:
        1. at a frame's start, only the oldest pending fence is polled, once (clientWaitSync, timeout 0);
@@ -7,12 +7,10 @@
           second frame, or all but off);
        4. a frame's readPixels go into the slot being filled; if no slot is free (the GPU two frames and more behind)
           the frame's reads are skipped, never waited for: the batch stays queued.
-     Data arrive two or three frames old. Round 3b made up to 7 polls and 3 reads a frame, about 100 fences a minute, and
-     a new pixel buffer and Uint8Array a batch (audit 3.2). The fence also gives the frame's GPU signal: was the oldest
-     fence still unsignalled at this frame's start (the record's gpu tag; the boot's budgets).
+     Data arrive two or three frames old. The fence also gives the frame's GPU signal: whether the oldest fence is
+     still unsignalled at this frame's start (the record's gpu tag; the boot's budgets).
      (dev) RBFIX: the oldest slot is read exactly two of the loop's frames after its fence, waited for if the GPU is
-     slower: a film or a fast flight then sees the same ground whatever the GPU's speed (E0's jwfast was not
-     deterministic for want of it). Never in production. */
+     slower: a film or a fast flight then sees the same ground whatever the GPU's speed. Never in production. */
   var RB_N = 3, RB_SLOT = 65536, RB_FENCES = 4;
   var RB = { slots: [], fences: [], buf: new Uint8Array(RB_SLOT), lagged: false, lastPoll: -1, made: 0, polled: 0, reads: 0, readBytes: 0, skipped: 0, fenceSkipped: 0, lagN: 0, fix: false };
   function rbInit() {
@@ -42,11 +40,11 @@
     if (REC) REC.fr.rbBytes += ent.bytes;
   }
   /* the fence: covers everything since the last one (the filling slot is now its).
-     (iPhone fix) and sent on to the GPU at once: a fence polled with clientWaitSync(.., 0, 0) signals only once the
-     commands before it are flushed, and WebKit flushes a context only when it presents a frame. While the world boots
-     its canvas is hidden and nothing is presented, so on every iPhone the landing's probe (vsOriginRead) waited for
-     ever and the still sky stayed (measured on the owner's iPhone, 2026-11-04: stuck at "F warmed" for 280 s; with
-     this flush the world was ready 5 s after load). Chrome and Firefox flush by themselves */
+     and sent on to the GPU at once: a fence polled with clientWaitSync(.., 0, 0) signals only once the commands
+     before it are flushed, and WebKit flushes a context only when it presents a frame. While the world boots its
+     canvas is hidden and nothing is presented, so without this flush the landing's probe (vsOriginRead) waits for ever
+     on an iPhone and the still sky stays (measured on the owner's iPhone: stuck at "F warmed" for 280 s without it,
+     the world ready 5 s after load with it). Chrome and Firefox flush by themselves */
   function rbFence() {
     if (RB.fences.length >= RB_FENCES) { RB.fenceSkipped++; return; }
     var f = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0), S = null;
@@ -62,7 +60,7 @@
     if (RB.fix || HOLD.on) {   // (dev: delivered exactly two frames after its fence, whatever the GPU's speed; first-paint preview: so in the hold, one task)
       if (FRAMEN - F.frame < 2) return;
       RB.polled++; r = gl.clientWaitSync(F.s, 0, 0);
-      /* (Fix 2 of round E1) inside one long JavaScript task (the harness's ticks) WebGL 2 never changes a fence's
+      /* inside one long JavaScript task (the harness's ticks) WebGL 2 never changes a fence's
          status, so the slot is read unconditionally two frames on: the read itself waits for the data (dev only; the
          harness's counts of the ring are then its own, not the loop's: RB.forced) */
       if (r === gl.TIMEOUT_EXPIRED) { RB.forced = (RB.forced || 0) + 1; r = gl.CONDITION_SATISFIED; }

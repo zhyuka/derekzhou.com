@@ -1,10 +1,10 @@
   /* ---------------------------------------------------------------- probes: the realm's ground, read back */
   /* The realm's height function evaluated at points on the GPU (the same function the land is drawn with), packed into
      the bytes of an RGBA8 target and read back through the ring. Jobs from the cells are batched, one batch a frame of
-     at most PROBE_FRAME points (the high tier's 2,048, design-v5 5.4; 8,192 while the boot runs behind the still sky);
-     a job larger than that goes in parts and is done when its last part lands. (A still drawn for the harness reads
-     its points at once, as round 3b did.) The points go up through a ring of three textures, so no texture a frame in
-     flight samples is written (S5) */
+     at most PROBE_FRAME points (the high tier's 2,048; 8,192 while the boot runs behind the still sky); a job
+     larger than that goes in parts and is done when its last part lands. (A still drawn for the harness reads its
+     points at once.) The points go up through a ring of three textures, so no texture a frame in flight samples is
+     written */
   var PROBE_W = 256, PROBE_H = 64, PROBE_CAP = PROBE_W * PROBE_H, PROBE_FRAME = 2048, PROBE_BOOT = 8192;
   var PROBE_T = null, PROBE_PTS = [], PROBE_PI = 0, PSCR = new Float32Array(PROBE_CAP * 2);
   var PJOBS = [], PPARTS = [], PSTAT = { batches: 0, points: 0, maxPts: 0, waits: 0 };
@@ -31,10 +31,10 @@
     PROBE_PTS = []; for (var i = 0; i < 3; i++) PROBE_PTS.push(tex2d(PROBE_W, PROBE_H, gl.RG32F, gl.RG, gl.FLOAT, gl.NEAREST));
     gl.activeTexture(gl.TEXTURE0);
   }
-  /* (fast500 lane G) the split height's targets and passes: two sets of five RGBA32F textures (the clipmap's: 97 x 970,
-     a texel a vertex of the ten levels; the probe's: 256 x 160, its points' batch or the ground's grid), bound to units
-     16-20 by the run that fills them, so the draw after it reads them. P0 kit (wD, lv), P1 kit (sk, wC), P2 the dunes'
-     h, P3 the sites' h, P4 the ridges (+ A_Hd's value) */
+  /* the split height's targets and passes: two sets of five RGBA32F textures (the clipmap's: 97 x 970, a texel a vertex
+     of the ten levels; the probe's: 256 x 160, its points' batch or the ground's grid), bound to units 16-20 by the run
+     that fills them, so the draw after it reads them. P0 kit (wD, lv), P1 kit (sk, wC), P2 the dunes' h, P3 the sites'
+     h, P4 the ridges (+ A_Hd's value) */
   var HPT = null, HPLA = new Float32Array(40);
   function hpSet(w, h) {
     var S = { w: w, h: h, t: [], f: [] }, k, A = [[0, 1], [2], [3], [4]];
@@ -74,7 +74,7 @@
     hpRun(V, 0, GN + 1, (GN + 1) * 10, HPLA);
   }
   function probeDraw(V, mode, n) {   // the points in PSCR, n of them, drawn into PROBE_T (rows as needed)
-    if (KW.part && KWR && mode < 2) kwProbeGuard(n);   // (fast500 B3: the probes' reads while the first plan's rest is pending)
+    if (KW.part && KWR && mode < 2) kwProbeGuard(n);   // (the probes' reads while the first plan's rest is pending)
     probeTargets();
     var rows = Math.max(1, Math.ceil(n / PROBE_W));
     PROBE_PI = (PROBE_PI + 1) % PROBE_PTS.length;   // (the ring: this texture was last sampled three batches ago)
@@ -83,7 +83,7 @@
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
     gl.bindFramebuffer(gl.FRAMEBUFFER, PROBE_T.f); gl.viewport(0, 0, PROBE_W, rows);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.colorMask(true, true, true, true);
-    if (V.def.P.hp) { hpRun(V, 1, PROBE_W, rows); gl.bindFramebuffer(gl.FRAMEBUFFER, PROBE_T.f); gl.viewport(0, 0, PROBE_W, rows); }   // (fast500 lane G)
+    if (V.def.P.hp) { hpRun(V, 1, PROBE_W, rows); gl.bindFramebuffer(gl.FRAMEBUFFER, PROBE_T.f); gl.viewport(0, 0, PROBE_W, rows); }
     probeProg(V, mode);
     gl.bindVertexArray(FULLVAO); gl.drawArrays(gl.TRIANGLES, 0, 3);
     return rows;
@@ -107,7 +107,7 @@
     while (PJOBS.length && PJOBS[0].cancel) PJOBS.shift();
     if (!PJOBS.length) return;
     V = PJOBS[0].V; mode = PJOBS[0].mode;
-    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat || !KW.tex) return;   // (speed E9, as groundCache)
+    if (!V.def.P || V.def.P.st !== 2 || !NOISE.done || !V.paramsFlat || !KW.tex) return;   // (as groundCache)
     var want = 0; for (i = 0; i < PJOBS.length && want < cap; i++) { J0 = PJOBS[i]; if (!J0.cancel && J0.V === V && J0.mode === mode) want += J0.n - J0.sent; }
     want = Math.min(want, cap);
     var S = rbSlot(Math.ceil(want / PROBE_W) * PROBE_W * 4);

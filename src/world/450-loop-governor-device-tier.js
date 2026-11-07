@@ -1,6 +1,6 @@
   /* ---------------------------------------------------------------- the loop, the governor, the device tier */
-  var PREP0 = 0;   // (round 3: the frame the reduced motion's still sky began planning on)
-  var STILLTS = -1;   // (Fix 2: the rAF time the reduced motion's still was first drawn; it is drawn again for a tenth of a second: WebKit's unpreserved buffer)
+  var PREP0 = 0;   // (the frame the reduced motion's still sky began planning on)
+  var STILLTS = -1;   // (the rAF time the reduced motion's still was first drawn; it is drawn again for a tenth of a second: WebKit's unpreserved buffer)
   var SHOWNT = -1;
   var TIER = 1, CLK = new Float64Array([0, -1]), running = false, rafId = 0, shown = false, NEEDSIZE = false, SKYMARK = null, DEAD = false, GAVEUP = false, READY = false, FRAMEN = 0;
   /* the governor: every frame's time in a ring (two seconds); each second, the median. Never asked to beat 60 Hz.
@@ -12,7 +12,7 @@
      learnt at its 50 ms ceiling (a cost the scale cannot touch: vertex work, the CPU, the driver) at any rung, give
      up: the loop stops and the still sky stays. */
   var GOVD = new Float32Array(120), GOVS = new Float32Array(120), GOVN = new Float64Array(18), FRAME60 = 1000 / 60;
-  /* (stage2 quality Q5) the first ascent: QUP[0] the governor's seconds since the world showed, QUP[1] 1 until its first
+  /* the first ascent: QUP[0] the governor's seconds since the world showed, QUP[1] 1 until its first
      step down; while both hold (the first QUP_S s), QUP_EASE s at ease step up a rung (else GOVN[11], 20 s) */
   var QUP = new Float64Array([0, 1]), QUP_S = 20, QUP_EASE = 3;
   function govReset() { GOVN.fill(0); GOVN[10] = 60; GOVN[11] = 20; GOVN[12] = 1e9; GOVN[13] = FRAME60; QUP[0] = 0; QUP[1] = 1; }
@@ -54,27 +54,27 @@
     }
   }
   /* too slow even so: the world steps aside for the stylesheet's still sky (the words to its colours) */
-  /* (Fix 3, W4) the still sky under the canvas is the hour's until the canvas hides: data-sky is never written while
-     the canvas shows (nor at boot: the hour's still sky snapped to the realm's in one frame, rain's grey-green to
-     ABOVE's blue at 0.6-2.0 s, verify-regress-2's lose and rm runs); when it hides (a lost context, the world giving up,
+  /* the still sky under the canvas is the hour's until the canvas hides: data-sky is never written while the canvas
+     shows (nor at boot: the hour's still sky would snap to the realm's in one frame, rain's grey-green to ABOVE's
+     blue); when it hides (a lost context, the world giving up,
      forced colours, the record's quiet tail) the realm it was drawing is marked, once, so the words the stylesheet then
      gives (the realm's, dark) are the words that were showing */
-  function markStill() { if (SKYMARK && root.getAttribute('data-sky') !== SKYMARK) root.setAttribute('data-sky', SKYMARK); skyThemeStill(SKYMARK || root.getAttribute('data-sky')); }   // (tod: the browser's bar takes the still's top; never shown, the hour's group's still)
+  function markStill() { if (SKYMARK && root.getAttribute('data-sky') !== SKYMARK) root.setAttribute('data-sky', SKYMARK); skyThemeStill(SKYMARK || root.getAttribute('data-sky')); }   // (the browser's bar takes the still's top; never shown, the hour's group's still)
   function giveUp() { DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('gave up'); }
-  /* (E1) the boot declines (stage G's floor not met, a first frame doubted twice, a broken engine program): the canvas
-     never shows; the hour's still sky stays */
+  /* the boot declines (stage G's floor not met, a first frame doubted twice, a broken engine program): the canvas never
+     shows; the hour's still sky stays */
   function decline(why) { DEAD = true; GAVEUP = true; BOOT.declined = why; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('declined: ' + why); fail('declined: ' + why); }
   function render() {
     if (LOST || DEAD || gl.isContextLost() || !TG) return false;
     var V = SIM.V; if (!V || !visitBuilt(V) || !V.def.P || V.def.P.st !== 2) return false;
-    TIER = RUNGS[RUNG] < 0.65 * QK ? 0.6 : 1;   // (stage2 quality Q3, review 1: keyed on today's size, QK; the rungs are rounded to 4 places)
-    var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (Fix 3: between the last two steps at the junction too)
-    setWords(INK);   // (stage2: the words are always light: the root's text and selection)
-    lateStep(); lateWarmProgs();   // (fast500 step 9: before the frame, so its composite covers the canvas's warm corner)
+    TIER = RUNGS[RUNG] < 0.65 * QK ? 0.6 : 1;   // (keyed on today's size, QK; the rungs are rounded to 4 places)
+    var ur = SIM.u - (1 - SIM.alpha) * SIM_DT;   // (between the last two steps at the junction too)
+    setWords(INK);   // (the words are always light: the root's text and selection)
+    lateStep(); lateWarmProgs();   // (before the frame, so its composite covers the canvas's warm corner)
     drawFrame(V, ur);
-    SKYMARK = SKYI.group || V.def.still;   // (tod: the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill; Fix 3)
-    skyTheme(false);   // (tod: the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (fast500, no fades: the canvas shows at once, a cut, this frame drawn whole)
+    SKYMARK = SKYI.group || V.def.still;   // (the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill)
+    skyTheme(false);   // (the browser's bars follow the drawn sky)
+    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the

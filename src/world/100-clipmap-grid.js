@@ -1,14 +1,14 @@
   /* ---------------------------------------------------------------- the clipmap grid (one grid, five index sets) */
   /* the triangles in column strips of 16 cells, row after row inside a strip: a vertex is shaded about once (its row's
      neighbours still in the post-transform cache when the next row reuses them) where a row-major order over the whole
-     grid shaded every vertex twice */
+     grid would shade every vertex twice */
   var GN = 96;   // cells across a ring (even, divisible by 4)
-  /* (phone lane) the strip order makes a block of 16 x GBR cells one run of indices (strip s, rows GBR b .. GBR b +
-     GBR - 1): a set's blk holds each block's first index and count (block s * GBN + b, in the order drawn), so a ring is
-     drawn as the runs of its blocks in view, its triangles in the same order as when it was drawn whole */
+  /* the strip order makes a block of 16 x GBR cells one run of indices (strip s, rows GBR b .. GBR b + GBR - 1): a
+     set's blk holds each block's first index and count (block s * GBN + b, in the order drawn), so a ring is drawn as
+     the runs of its blocks in view, its triangles in the same order as when it is drawn whole */
   var GBR = 8, GBN = GN / GBR, GBS = GN / 16 * GBN;
   function makeGrid() {
-    var G = { vao: gl.createVertexArray(), ib: [] }, n = GN + 1, v = new Float32Array(n * n * 2), i, j;   // (speed S0: floats, not unnormalised bytes: ANGLE-D3D11 would convert those in the vertex shader, a second compile of the terrain's vertex program at its first draw; the same integers)
+    var G = { vao: gl.createVertexArray(), ib: [] }, n = GN + 1, v = new Float32Array(n * n * 2), i, j;   // (floats, not unnormalised bytes: ANGLE-D3D11 would convert those in the vertex shader, a second compile of the terrain's vertex program at its first draw; the same integers)
     for (j = 0; j < n; j++) for (i = 0; i < n; i++) { v[(j * n + i) * 2] = i; v[(j * n + i) * 2 + 1] = j; }
     gl.bindVertexArray(G.vao);
     G.vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, G.vb); gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW);
