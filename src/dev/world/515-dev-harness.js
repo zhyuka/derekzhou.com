@@ -16,19 +16,18 @@
     streamCells(V, CS.x, CS.z, Math.sin(CS.psi), Math.cos(CS.psi), true);
     cellWork(V, true, 9);
     groundCache(V, CS.x, CS.z, true);
-    // (world6 fix, the judges' defect 7) the cells' births as the live loop's: the harness's first frame is the boot's
-    // (bornNow: nothing yet shown, everything simply there); a cloud or a cell made for a later frame comes in out of the
-    // haze from that frame on, as in flight (the step set every birth to long ago, so a cloud baked between two frames
-    // of a film showed at once: frame 154's pop)
+    // the cells' births as the live loop's: the harness's first frame is the boot's (bornNow: nothing yet shown,
+    // everything simply there); a cloud or a cell made for a later frame comes in out of the haze from that frame on, as
+    // in flight (a birth set to long ago would show a cloud baked between two frames of a film at once, a pop)
   }
   var DEVLIN = null;   // (dev: sRGB codes to linear, for the pair's block means)
-  var DEVSNAP = null;   // (Fix 3, dev: targets read back under a tag)
+  var DEVSNAP = null;   // (dev: targets read back under a tag)
   function devB64(px) {   // (dev: bytes to base64, in chunks: no giant argument lists)
     var s = '', i, CH = 0x8000;
     for (i = 0; i < px.length; i += CH) s += String.fromCharCode.apply(null, px.subarray(i, Math.min(px.length, i + CH)));
     return btoa(s);
   }
-  /* (E0) the full wrapped context: every call counted by kind and frame; the synchronous ones timed; GL objects made and
+  /* the full wrapped context: every call counted by kind and frame; the synchronous ones timed; GL objects made and
      freed (the fence ring exempt); links; every draw's pipeline key (ANGLE-Metal's: program, vertex layout, topology,
      attachment formats, write mask, blend, depth attachment, samples; and the full key: with depth func, test, write
      and cull, 8.2), each first use's time and whether the world showed; each buffer's and texture's last draw and the
@@ -101,8 +100,8 @@
     P.vertexAttribDivisor = function (i, d) { var m = S.vaoAtt.get(S.vao) || {}; m[i] = (m[i] || '') + '/d' + d; S.vaoAtt.set(S.vao, m); };
     P.enable = function (c) { if (c === 0x0BE2) S.blend = true; if (c === 0x0B71) S.dt = true; if (c === 0x0B44) S.cull = true; };
     P.disable = function (c) { if (c === 0x0BE2) S.blend = false; if (c === 0x0B71) S.dt = false; if (c === 0x0B44) S.cull = false; };
-    P.blendFunc = function (a, b) { S.bf = [a, b, a, b].join(','); };   // (E1: one notation for one blend state, as the record's and the independent counter's keys)
-    P.blendFuncSeparate = function (a, b, c, d) { S.bf = [a, b, c, d].join(','); };   // (E1.1: back in force; E1 had left it inside the comment above, so a separate blend state was keyed as the last blendFunc's)
+    P.blendFunc = function (a, b) { S.bf = [a, b, a, b].join(','); };   // (one notation for one blend state, as the record's and the independent counter's keys)
+    P.blendFuncSeparate = function (a, b, c, d) { S.bf = [a, b, c, d].join(','); };   // (its own wrapper: a separate blend state is keyed as itself, not as the last blendFunc's)
     P.colorMask = function (r, g, b, a) { S.cmask = '' + (+r) + (+g) + (+b) + (+a); };
     P.depthFunc = function (f) { S.df = f; }; P.depthMask = function (m) { S.dm = !!m; }; P.cullFace = function (m) { S.cm = m; };
     function bufWrite(n) { var b = S.arr; if (!b) return; var ld = S.lastDrawBuf.get(b); if (ld !== undefined && FRAMEN - ld < 3) { W.s5buf++; if (W.s5ev.length < 200) W.s5ev.push(['buf', n, FRAMEN - ld, shown ? 1 : 0]); } }

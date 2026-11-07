@@ -14,7 +14,7 @@ void main() {
   if (tf <= tn) discard;
   float drawn = vD.z < -1e8 ? 2.0 * L : (uT - vD.z) / max(vD.w, 0.05) * L;   // (m of it lit, from A)
   if (drawn <= 0.0) discard;
-  float ds = (tf - tn) / 8.0, jit = 0.5;   // (hotfix G0: no per-pixel offset, a pattern the view crawled through)
+  float ds = (tf - tn) / 8.0, jit = 0.5;   // (no per-pixel offset: it shows as a pattern the view crawls through)
   vec3 acc = vec3(0.0);
   for (int i = 0; i < 8; i++) {
     float t = tn + (float(i) + jit) * ds;

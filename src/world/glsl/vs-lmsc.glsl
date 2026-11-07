@@ -1,7 +1,7 @@
-/* (world-perf lane) the landmarks' and the scatter's program in one, where both shade alike: their fragment shader
-   is the same text, and ANGLE-D3D11 compiles a program's fragment shader with FXC once a program (the same DXBC
-   twice, ~0.35 s of FXC on a desktop). The scatter's main, as it was, is scMain; a cell's own mesh, as VS_LANDMARK
-   was, the rest. uScat 0 (as linked): the landmarks */
+/* the landmarks' and the scatter's program in one, where both shade alike: their fragment shader is the same text,
+   and ANGLE-D3D11 compiles a program's fragment shader with FXC once a program (two programs: the same DXBC twice,
+   ~0.35 s of FXC on a desktop). The scatter's main is scMain; a cell's own mesh, as in VS_LANDMARK, the rest. uScat 0
+   (as linked): the landmarks */
 uniform int uScat;
 void main() {
   if (uScat == 1) { scMain(); return; }

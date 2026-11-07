@@ -13,7 +13,7 @@
    - window.WORLD, set by world.js: WORLD.realm(def) registers a realm kit (once per id; a second registration of the
      same id is ignored), WORLD.kit the engine's kit (Builder, box, prism, lathe, rock, cumulus, range, wall, mound,
      bank, lch, lab, hex, lum, dirAzEl, vector helpers, clamp, smooth, lerp, RNG, the integer hashes mirrored from the
-     GLSL: cellHash, ihash, hfl, hk; angDiff; and the round 3b helpers: glowBake). WORLD is undefined when the page
+     GLSL: cellHash, ihash, hfl, hk; angDiff; glowBake). WORLD is undefined when the page
      has no WebGL2 or no canvas.sky: a realm file then does nothing (the first lines of every file check it).
    - window.WORLD.forms, set here: the shared form builders below (rock in strata, great rocks, shards, stones, ruins,
      stupas, spires, temples, stairs, floating islands, an island's temple) and their generator forms (...G: built a
@@ -26,7 +26,7 @@
      return; ... W.realm({...}); })(); and keeps its names inside it. */
 (function () {
   'use strict';
-  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-kit.js top');   // (E0 Fix 3: the record bounds each script's evaluation)
+  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-kit.js top');   // (the record bounds each script's evaluation)
   var W = window.WORLD;
   if (!W) return;
   var K = W.kit, PI = Math.PI;
