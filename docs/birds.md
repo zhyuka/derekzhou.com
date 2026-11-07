@@ -7,10 +7,10 @@ them, in its canvas, so before the world's first frame, and wherever it
 does not run (no WebGL2, no script, a lost context, a CPU renderer, a
 device too slow), the page is the still sky and the words, with no bird on
 it, and in print the name, the line and the credit on the paper, no bird
-(see Design); under forced colours the world draws them alone, in
-CanvasText (see World: FALLBACKS). No script, SVG or rule of the old 2D
+(docs/design.md); under forced colours the world draws them alone, in
+CanvasText (docs/world.md, ## FALLBACKS). No script, SVG or rule of the old 2D
 birds is left in the page, its stylesheet, its headers or the world's
-scripts, and CI fails if one comes back (see Security).
+scripts, and CI fails if one comes back (docs/security.md).
 
 THE ONE BIRD (inkbirds.js, 2026-11-06; the design and every gap it
 closes: docs/birds-design.md). Every bird is one record for its whole
