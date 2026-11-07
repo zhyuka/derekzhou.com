@@ -43,18 +43,28 @@ const HEAD = (name, st) => `// ${name}: the world's first plan, made in a worker
   'use strict';
   var PLANV = '${st}';
 `;
-const TAIL = `  /* the one request: the seed. The plan as the page's planVisit makes it (mapsInit, then the weights' grids about
-     the landing, whole), handed back: the director's state (its anchors in their order), the four gradient maxima,
-     and the grids' arrays (transferred) */
+const TAIL = `  /* the one request: the seed, the first view's yaw and its half-width (the widest any window has). (world-perf lane)
+     Two answers. The first: what the page's first frame reads, made as the page's planFirst makes it (mapsInit and
+     kwFirst about the landing), the first tick whole (its rest committed: the director's state is whole), copied out:
+     the director's state, the four gradient maxima, the grids' arrays, kwFirst's own state and the rest's order. The
+     second (when kwFirst left a rest): the window's every texel, baked here (kwFollow, whole), its arrays transferred */
   addEventListener('message', function (e) {
     var q = e.data;
-    if (!q || q.v !== PLANV || typeof q.seed !== 'number') { postMessage({ v: PLANV, seed: -1 }); return; }
-    mapsInit(q.seed); kwFollow(0, 0, true);   // (whole: kwFollow first commits any rest of the first tick, lane B's step 3, so none is left)
-    var m = { v: PLANV, seed: q.seed, inj: { W: { mg: MAPS.w.mg }, D: MAPS.D.exportState() },
-      kw: { data: KW.data, ix: KW.ix, dx: KW.dx, baked: KW.baked, derived: KW.derived, dirty: KW.dirty },
-      kg: { v: KG.v, ix: KG.ix },
-      kf: { data: KF.data, ix: KF.ix, dx: KF.dx, baked: KF.baked, derived: KF.derived, dirty: KF.dirty } };
-    postMessage(m, [KW.data.buffer, KW.ix.buffer, KW.dx.buffer, KG.v.buffer, KG.ix.buffer, KF.data.buffer, KF.ix.buffer, KF.dx.buffer]);
+    if (!q || q.v !== PLANV || typeof q.seed !== 'number' || typeof q.yaw !== 'number' || typeof q.half !== 'number') { postMessage({ v: PLANV, seed: -1 }); return; }
+    planFirst(q.seed, 0, 0, q.yaw, q.half);
+    if (MAPS.D.rest) MAPS.D.tickRest(Infinity);
+    var part = KW.part, kwr = KWR;
+    var a = { kw: [KW.data.slice(), KW.ix.slice(), KW.dx.slice()], kg: [KG.v.slice(), KG.ix.slice()], kf: [KF.data.slice(), KF.ix.slice(), KF.dx.slice()] };
+    var m = { v: PLANV, seed: q.seed, part: 1, inj: { W: { mg: MAPS.w.mg }, D: MAPS.D.exportState() },
+      kw: { data: a.kw[0], ix: a.kw[1], dx: a.kw[2], baked: KW.baked, derived: KW.derived, dirty: KW.dirty.slice() },
+      kg: { v: a.kg[0], ix: a.kg[1] },
+      kf: { data: a.kf[0], ix: a.kf[1], dx: a.kf[2], baked: KF.baked, derived: KF.derived, dirty: KF.dirty },
+      first: { i0: KW.i0, j0: KW.j0, fy: KW.fy, fh: KW.fh, first: KW.first, part: part }, kwr: kwr };
+    postMessage(m, [a.kw[0].buffer, a.kw[1].buffer, a.kw[2].buffer, a.kg[0].buffer, a.kg[1].buffer, a.kf[0].buffer, a.kf[1].buffer, a.kf[2].buffer].concat(kwr ? [kwr.buffer] : []));
+    if (part) {
+      KW.part = false; KWR = null; kwFollow(0, 0, true);   // (the rest of the window: kwFollow, whole, as the first answer's grid left it)
+      postMessage({ v: PLANV, seed: q.seed, part: 2, kw: { data: KW.data, ix: KW.ix, dx: KW.dx }, kg: { v: KG.v, ix: KG.ix } }, [KW.data.buffer, KW.ix.buffer, KW.dx.buffer, KG.v.buffer, KG.ix.buffer]);
+    }
     close();
   });
 })();

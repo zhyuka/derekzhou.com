@@ -33,7 +33,7 @@
   var BOOT_D_MS = 40, BOOT_BAKE0 = 1024, BOOT_BAKE_MAX = 8192, BOOT_ROUNDS = 64, BOOT_NEED = 19.999, BOOT_M = 30, GUARD_M = 30, BOOTVF = false;
   var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
     fts: [] };   // (Fix 2: fts every boot frame's [frame, rAF time])
-  var CORE_LATE = ['birds:ink', 'birds:paper'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
+  var CORE_LATE = ['birds:ink', 'birds:paper', 'engine.creature', 'engine.glow', 'engine.beam'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
@@ -124,7 +124,7 @@
     }
     if (afterC) rbFence();
     // G: the measurement (once the world is ready and the table warm); first the flight's first step (its camera)
-    if (BOOT.world && (WARM.done || reduced())) {
+    if (BOOT.world && (WARM.done || reduced()) && lateSeenReady()) {   // (world-perf lane: and no held program of a kind laid out still unready)
       if (!SIM.V) { for (var pr = 0; pr < PREROLL; pr++) simAdvance(SIM_DT); CLK[0] = SIM.t; bootMark('flight: pre-roll done (' + SIM.steps + ' steps; the inputs in ' + (BOOT.fwait || 0) + ' frames after D)'); }   // (fast500 F0: the fixed pre-roll, PREROLL steps once flightIn)
       if (SIM.V && (reduced() || BOOT.restore || stageG())) {
         READY = true; dt0 = true; PREP0 = FRAMEN; bootMark('G done: ready'); budgets(false);

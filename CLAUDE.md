@@ -46,7 +46,7 @@ tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
                start.mjs (the start file), plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
                one scope), gpu/ (the PC's T2/T3), birds/ (generators)
-test/          unit.mjs (pure code), shaders.mjs (golden shader texts),
+test/          unit.mjs (pure code), shaders.mjs (every shader compiles),
                golden/
 docs/          the full record, one file per area (below)
 .github/       validate.yml (every static check), gate.yml (T0/T1/T2 and the
@@ -72,13 +72,13 @@ one is committed to site/ (built-files-uncommitted).
    - `node tools/build.mjs --plain build/site`: the build CI checks.
    - `node --test test/unit.mjs` (about 10 s); after a deliberate change to
      what it pins, `node test/unit.mjs --write`.
-   - A shader changed: `node test/shaders.mjs build/site --write` and
-     `node .github/workflows/glsl_guard.js build/site --write
-     .github/workflows/glsl_manifest.txt`, committed with it.
+   - A shader changed: nothing derived to commit; the gate's census and
+     T2 compare the base's build with the head's.
    - The plan's spans changed: `node tools/plan.mjs --stamp`.
    - `node tools/build.mjs --check`: two builds the same bytes.
-   - Every `run:` step of validate.yml, in `bash -eo pipefail` from the
-     root, is what CI runs.
+   - `npm run check`: every static check CI runs (tools/check.mjs: the
+     build once, then tools/checks/*.sh in parallel; about a minute).
+     `npm run check:fast`: a few seconds, no site build.
 3. Anything a visitor sees: measure it as docs/verify.md says (stills,
    contrast, the W7 twin, reduced motion, no WebGL2, a real iPhone).
 
@@ -100,7 +100,8 @@ bumps a version for a change; fonts and images are renamed by hand
   input handling changed), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
   overlaps; never one that touches the bot itself or is labelled needs-owner
-  or visible. Anything visible waits for the owner. Main's gate tests every
+  or visible. Anything visible waits for the owner: he lands it by GitHub's
+  auto-merge, once, or its button (docs/deploy.md). Main's gate tests every
   merge after it lands; the bot then fast-forwards `live` to the newest main
   tip whose gate is green (and frames identical, or the owner's own merge).
 - Cloudflare Pages builds `live` (`npm ci --no-audit --no-fund

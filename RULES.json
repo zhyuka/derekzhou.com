@@ -381,7 +381,7 @@
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, naming no element.",
+      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
       "source": [
         {
           "doc": "docs/js.md"
@@ -391,10 +391,6 @@
         {
           "kind": "world-rule",
           "id": "1 rocket-loader"
-        },
-        {
-          "kind": "world-rule",
-          "id": "5 script-order"
         },
         {
           "kind": "ci-step",
@@ -457,7 +453,7 @@
     {
       "id": "same-shaders",
       "area": "caching",
-      "rule": "Every visit of a device compiles the same shader sources, and a change to a program's text comes with its manifest and golden texts in the same commit (a returning visitor's shader cache depends on it).",
+      "rule": "Every visit of a device compiles the same shader sources, and every program compiles; which programs a change edits is the gate's census of the base's and the head's builds, never a committed file (a returning visitor's shader cache depends on it).",
       "source": [
         {
           "doc": "docs/caching.md; docs/structure.md"
@@ -470,7 +466,7 @@
         },
         {
           "kind": "ci-step",
-          "name": "The shaders are their golden texts, and compile"
+          "name": "Every shader compiles"
         }
       ]
     },
@@ -565,11 +561,16 @@
     {
       "id": "merge-rights",
       "area": "process",
-      "rule": "Changes reach main only through a pull request, merged by the owner, or by the merge bot when nothing visible changes. An agent never merges and never pushes to main.",
+      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot when nothing visible changes. An agent never merges, never enables auto-merge and never pushes to main.",
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
           "doc": ".github/workflows/merge.yml; docs/deploy.md"
+        },
+        {
+          "quote": "GitHub auto-merge (Recommended)",
+          "date": "2026-11-06",
+          "doc": "docs/deploy.md"
         }
       ],
       "enforced_by": [

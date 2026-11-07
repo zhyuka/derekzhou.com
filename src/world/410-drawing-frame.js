@@ -137,6 +137,7 @@
     n = Math.min(FLK.length, 64);
     for (i = 0; i < n; i++) { var F0 = FLK[i], ex = F0.a[0] - CAM.pos[0], ey = F0.a[1] - CAM.pos[1], ez = F0.a[2] - CAM.pos[2]; FLKD[i] = ex * ex + ey * ey + ez * ez; FLKO[i] = i; }
     if (n > 8) for (i = 1; i < n; i++) { var oi = FLKO[i], dv = FLKD[oi]; k = i - 1; while (k >= 0 && FLKD[FLKO[k]] > dv) { FLKO[k + 1] = FLKO[k]; k--; } FLKO[k + 1] = oi; }
+    if (!lateReady(EP.creature)) { lateMissIf(EP.creature, true); return; }   // (world-perf lane: a late program; drawn once finished)
     var P = EP.creature; gl.useProgram(P.p); setFrameUniforms(P, V);
     gl.bindVertexArray(CREATURE.vao);
     var m8 = Math.min(n, 8), adds = 0;
@@ -237,7 +238,7 @@
     // the landmarks: one mesh a cell, the cells in view
     var CL = V.cellList;
     if (CL) {
-      P = DP.lm; gl.useProgram(P.p); setFrameUniforms(P, V);
+      P = DP.lm; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) gl.uniform1i(P.u.uScat, 0);
       for (var ci = 0; ci < CL.length; ci++) {
         var C = CL[ci]; if (!C.mesh || !C.mesh.vao) continue;
         if (C.bound[3] > 0 && !inView(C.bound[0], C.bound[1], C.bound[2], C.bound[3])) { if (WLOG) { C.lastVis = 0; } continue; }
@@ -270,7 +271,7 @@
     // the scatter
     var SCM = V.G.scatter;
     if (SCM && SCM.length && DP.sc) {
-      P = DP.sc; gl.useProgram(P.p); setFrameUniforms(P, V);
+      P = DP.sc; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) gl.uniform1i(P.u.uScat, 1); if (P.u.uFade) gl.uniform1f(P.u.uFade, 1);   // (the scatter's stones whole: uFade was never set for them, so FS_LANDMARK drew every stone in the air's colour 30 km off: mix(atmos(c, rd, 3e4), o, 0))
       for (var k = 0; k < SCM.length; k++) {
         var M = SCM[k]; if (!M.n) continue;
         var gq = TIER < 1 ? Math.max(8, Math.round(M.grid * Math.sqrt(TIER) / 2) * 2) : M.grid;   // (a lower tier: the same cells, nearer only)
@@ -295,6 +296,7 @@
       for (var gi = 0; gi < CL.length; gi++) {
         var Cg = CL[gi], Gb = Cg.glowB; if (!Gb || !Gb.vao || Cg.st < 3) continue;
         if (!inView(Gb.bound[0], Gb.bound[1], Gb.bound[2], Gb.bound[3])) continue;
+        if (!lateReady(GP)) { lateMissIf(GP, true); continue; }   // (world-perf lane: a late program; drawn once finished)
         if (!gOn) { gl.useProgram(GP.p); setFrameUniforms(GP, V); gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE); gl.depthMask(false); gOn = true; }
         UF[0] = fadeCell(Cg, Cg.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(GP.u.uGlowK, UF);
         if (WLOG) wl('glow', V.k + ':' + Cg.key, UF[0], nearDist(Cg, CAM.pos[0], CAM.pos[2]), 1);
@@ -351,6 +353,7 @@
         var Cb = CL[bi], Bb = Cb.beamB; if (!Bb || !Bb.vao || Cb.st < 3) continue;
         if (Bb.dirty) { gl.bindBuffer(gl.ARRAY_BUFFER, Bb.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, Bb.data); Bb.dirty = false; }
         if (!inView(Bb.bound[0], Bb.bound[1], Bb.bound[2], Bb.bound[3])) continue;
+        if (!lateReady(BP)) { lateMissIf(BP, true); continue; }   // (world-perf lane: a late program; drawn once finished)
         if (!bOn) {
           useTarget(TG.scene, W, H); RES[0] = W; RES[1] = H;
           gl.useProgram(BP.p); setFrameUniforms(BP, V); gl.uniform2f(BP.u.uLinS, w2 - 1, h2 - 1);

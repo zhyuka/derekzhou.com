@@ -9,13 +9,14 @@
 //     Chrome (the reference), a phone Chrome, a WebKit phone, a GPU with half-float targets only and one with no float
 //     targets. Within a device every visit must compile the same programs with the same sources, byte for byte.
 //     Across devices the sources may differ only by #define lines just after "#version 300 es" (DEFS, per device).
-//  2. A deploy changes only the programs it edits. The reference device's programs are listed in a committed
-//     manifest (glsl_manifest.txt beside this file): each program's label and its two sources' hashes and lengths, and
-//     each device's count and defines. The manifest must be exactly what this run finds. So a change to any program's
-//     text must come with its manifest lines in the same commit. A shared GLSL chunk changes every line that includes
-//     it, and the diff says which programs a deploy makes every returning visitor compile again. Programs are matched
-//     by their hashes; the labels (the world's own program names, read where its source shows them) are for people.
+//  2. A deploy changes only the programs it edits. CI no longer holds this here (2026-11-06: no derived file is
+//     committed): the gate's census compares the base's build with the head's, and T2 names and reads back each changed
+//     program. --manifest/--write remain for a local look: the reference device's programs (each one's label and its
+//     two sources' hashes and lengths) and each device's count and defines, compared with or written to FILE.
+//     Programs are matched by their hashes; the labels (the world's own program names) are for people.
 //   node glsl_guard.js SITE_DIR [--manifest FILE] [--write FILE] [--selftest] [--json FILE] [--visits N] [--dump DIR]
+//   node glsl_guard.js SITE_DIR --first --dump DIR   only the reference device's first visit (its seed, hour and window as in a
+//                                                    full run), dumped, nothing judged: test/shaders.mjs reads just that visit
 //   --manifest FILE  compare with that manifest (CI); --write FILE  write it (after a deliberate change, then commit it);
 //   --selftest  the guard's own proof: the same visits with a planted per-visit literal, a per-window literal and one
 //   program changed without its manifest line, each of which must be caught (CI runs it)
@@ -25,7 +26,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const A = { _: [] };
-for (let i = 2; i < process.argv.length; i++) { const a = process.argv[i]; if (a === '--selftest') A.selftest = true; else if (a.startsWith('--')) A[a.slice(2)] = process.argv[++i]; else A._.push(a); }
+for (let i = 2; i < process.argv.length; i++) { const a = process.argv[i]; if (a === '--selftest') A.selftest = true; else if (a === '--first') A.first = true; else if (a.startsWith('--')) A[a.slice(2)] = process.argv[++i]; else A._.push(a); }
 const SITE = A._[0];
 if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node glsl_guard.js SITE_DIR [--manifest FILE] [--write FILE] [--json FILE] [--visits N] [--dump DIR]'); process.exit(2); }
 if (!vm.constants || vm.constants.DONT_CONTEXTIFY === undefined) { console.error('glsl_guard.js needs node 22.8 or later (vm.constants.DONT_CONTEXTIFY)'); process.exit(2); }
@@ -49,15 +50,15 @@ const DEVICES = [   // the first is the reference: the manifest's programs are i
 const HOURS = [11.5, 23.5, 6.25, 17.5, 14.5, 20.25, 2.75];   // day, night, dawn, sunset, rain, dusk, night again
 function visits() {
   const out = []; let k = 0;
-  for (const d of DEVICES) {
-    const n = d === DEVICES[0] ? Math.max(3, +(A.visits || 5)) : Math.max(2, Math.min(+(A.visits || 5), d.wins.length));
+  for (const d of (A.first ? [DEVICES[0]] : DEVICES)) {
+    const n = A.first ? 1 : d === DEVICES[0] ? Math.max(3, +(A.visits || 5)) : Math.max(2, Math.min(+(A.visits || 5), d.wins.length));
     for (let i = 0; i < n; i++, k++) {
       const w = d.wins[i % d.wins.length];
       out.push({ dev: d, n: i, seed: (Math.imul(0x9e3779b9, k + 1) + Math.imul(0x7f4a7c15, i + 3)) >>> 0, hour: HOURS[k % HOURS.length], w: w[0], h: w[1], dpr: w[2],
         hz: [60, 144, 120, 90, 75][k % 5], t0: 200 + 977 * k });
     }
   }
-  out.push(Object.assign({}, out[0], { n: 'again' }));   // (the first visit once more: the fake itself must be deterministic)
+  if (!A.first) out.push(Object.assign({}, out[0], { n: 'again' }));   // (the first visit once more: the fake itself must be deterministic)
   return out;
 }
 
@@ -384,6 +385,10 @@ function selftest(runs, labels, oldLabels, text) {
   const mf = A.manifest || A.write, old = mf && fs.existsSync(mf) ? fs.readFileSync(mf, 'utf8') : null;
   const oldLabels = new Map();
   if (old) for (const L of old.split('\n')) { const m = /^program (\S+) vs (\w+) \d+ fs (\w+) \d+$/.exec(L.trim()); if (m) oldLabels.set(m[2] + ' ' + m[3], m[1]); }
+  if (A.first) {   // (dev-speed: shaders.mjs's one visit, dumped; nothing judged)
+  if (A.dump) { fs.mkdirSync(A.dump, { recursive: true }); for (const { v, P } of runs) P.forEach((p, j) => { const b = path.join(A.dump, `${v.dev.id}${v.n}_${String(j).padStart(2, '0')}_${(p.name || 'p').replace(/[^\w.-]/g, '_')}`); fs.writeFileSync(b + '.vert', p.vs); fs.writeFileSync(b + '.frag', p.fs); }); }
+    process.exit(runs.length === 1 && runs[0].P.length ? 0 : 1);
+  }
   const J = judge(runs, page.labels, oldLabels);
   const fails = J.errs.slice();
   if (A.manifest) { if (old === null) fails.push(`no manifest at ${A.manifest}: write it with --write and commit it`); else fails.push(...compare(old, J.text)); }

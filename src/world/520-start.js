@@ -110,7 +110,7 @@
       if (n === 1) {   // (the slow CPU's net: the first hold frame, stage B and every program issued, foretells the hold)
         HOLD.f1 = +(clockNow() - f0).toFixed(1);
         if (t0 + HOLD_K * HOLD.f1 + HOLD_C > HOLD_WORLD) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
-        if (PW.st === 1) planWorkerOff();   // (the plan made here, beside the compiles: the worker's answer cannot come inside this task; frame 1, stage B, made none of it)
+        if (PW.st === 1) planWaitOff();   // (the plan made here, beside the compiles: the worker's first answer cannot come inside this task; frame 1, stage B, made none of it. World-perf lane: the worker kept, its rest still taken when it comes)
       }
     }
     HOLD.on = false; CLK[1] = -2; HOLD.n = n; HOLD.took = +(clockNow() - t0).toFixed(1); HOLD.shown = shown;

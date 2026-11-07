@@ -2,9 +2,10 @@
 # and the hooks hold") from the repository's root: python3 .github/workflows/rules_check.py
 #   - each rule has a unique kebab-case id, an area, a rule, a source (a list of quote/date/via/doc, at least one of
 #     them) and enforced_by (a list, at least one entry)
-#   - ci-step: a `- name:` of exactly that text in some .github/workflows/*.yml
+#   - ci-step: a `- name:` of exactly that text in some .github/workflows/*.yml, or a check of tools/checks/ (its
+#     `# check: NAME` line: tools/check.mjs runs every one of them in validate.yml)
 #   - world-rule: an id world_rules.py fails under (fail('ID', ...))
-#   - absence: a numbered block `# (N)` in the step "Absences are enforced"
+#   - absence: a numbered block `# (N)` in the check "Absences are enforced"
 #   - hook: the file exists, settings.json runs it, and it cites the rule (RULES.json "<id>")
 #   - permission-deny: the entry is in .claude/settings.json's permissions.deny
 #   - prose: nothing to check (an optional note)
@@ -25,6 +26,13 @@ for y in glob.glob('.github/workflows/*.yml'):
     m = re.search(r'-\s+name:\s*Absences are enforced\s*\n(.*?)(?=^\s*-\s+name:|\Z)', t, re.S | re.M)
     if m:
         absences |= {int(n) for n in re.findall(r'^\s*#\s*\((\d+)\)', m.group(1), re.M)}
+for c in glob.glob('tools/checks/*.sh'):   # (one-check: validate.yml runs these through tools/check.mjs)
+    t = open(c, encoding='utf-8').read()
+    m = re.search(r'^# check: (.+?)\s*$', t, re.M)
+    if not m: continue
+    steps.add(m.group(1))
+    if m.group(1) == 'Absences are enforced':
+        absences |= {int(n) for n in re.findall(r'^\s*#\s*\((\d+)\)', t, re.M)}
 wr = open('.github/workflows/world_rules.py', encoding='utf-8').read()
 world = set(re.findall(r"fail\('([^']+)'", wr))
 try:
