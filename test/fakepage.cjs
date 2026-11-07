@@ -223,4 +223,24 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
   });
 }
 
-module.exports = { UA, EXT, DEVICES, HOURS, scriptsOf, loadScripts, run };
+/* runMany(VS, site, scripts, O, n): the visits VS in up to n worker threads (check-speed, 2026-11-07), each thread loading
+   the page itself and running the visits k, k + n, ...; every visit's inputs are its own (seed, hour, window, clock), so
+   each result is the one it gives alone, returned in VS's order. n 1 (or FAKEPAGE_THREADS=1): one after another */
+async function runMany(VS, site, scripts, O = {}, n = 4) {
+  const os = require('os'), { Worker } = require('worker_threads');
+  n = Math.max(1, Math.min(+(process.env.FAKEPAGE_THREADS || n), os.cpus().length, VS.length));
+  if (n === 1) { const page = loadScripts(site, scripts), out = []; for (const v of VS) out.push(await run(v, page, O)); return out; }
+  const out = new Array(VS.length);
+  await Promise.all(Array.from({ length: n }, (_, k) => new Promise((res, rej) => {
+    const w = new Worker(__filename, { workerData: { fakepageVisits: true, VS, site, scripts, O, k, n } });
+    w.on('message', (m) => { out[m.i] = m.r; }); w.on('error', rej); w.on('exit', (c) => (c ? rej(new Error('a fake page thread exited ' + c)) : res()));
+  })));
+  return out;
+}
+const WT = require('worker_threads');
+if (!WT.isMainThread && WT.workerData && WT.workerData.fakepageVisits) {
+  const { VS, site, scripts, O, k, n } = WT.workerData, page = loadScripts(site, scripts);
+  (async () => { for (let i = k; i < VS.length; i += n) WT.parentPort.postMessage({ i, r: await run(VS[i], page, O) }); })();
+}
+
+module.exports = { UA, EXT, DEVICES, HOURS, scriptsOf, loadScripts, run, runMany };
