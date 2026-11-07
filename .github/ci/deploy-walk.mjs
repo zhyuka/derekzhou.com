@@ -32,6 +32,15 @@ export async function walk(live, runs, d) {
       if (d.revertOf && mustReach < 0 && i + 1 < runs.length && (await d.revertOf(runs[i + 1].head_sha)) === r.head_sha) j = i + 1;   // (the bot's revert is always the red tip's own child: it moves main from that tip only)
       const rv = j >= 0 && runs[j].status === 'completed' && runs[j].conclusion === 'success' ? await d.verdict(runs[j]) : null;
       if (rv && rv.gate_ok) { d.say(`deploy gate: main ${tip} was red and the bot reverted it at ${runs[j].head_sha.slice(0, 10)} (green): stepped over`); to = prev = runs[j].head_sha; i = j; continue; }
+      // A red tip a later tip's green gate covers (every static check on the whole tree), and whose frames are proved
+      // (the owner's merge, or its branch's gate): like a cancelled one, no result; live goes on. Unproved frames stop
+      // live (a later gate compares against this tip, so it cannot see that change); no later green yet: live waits.
+      if (await d.ownerMerge(r.head_sha) || (await d.branchIdentical(r.head_sha))) {
+        let later = false;
+        for (let k = i + 1; k < runs.length && !later; k++) if (runs[k].status === 'completed' && runs[k].conclusion === 'success') { const w = await d.verdict(runs[k]); later = !!(w && w.gate_ok); }
+        if (later) { d.say(`deploy gate: main ${tip} was red (${r.conclusion}), its frames are proved and a later tip's gate is green: no result; stepped over`); prev = r.head_sha; continue; }
+        why = `main ${tip} is red (${r.conclusion}), its frames proved: live waits at ${to.slice(0, 10)} for a later green gate`; break;
+      }
       why = `**main is red at ${tip}** (${r.conclusion}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`; break; }
     if (!v.frames_identical && !(await d.ownerMerge(r.head_sha)) && !(v.base !== prev && (await d.branchIdentical(r.head_sha)))) { why = `main ${tip} changes what a visitor sees (${v.reason}) without the owner's own merge: live stays at ${to.slice(0, 10)}`; break; }
     if (v.t2 && v.t2.stall_ok === false) {

@@ -99,7 +99,8 @@ if (mrun && mrun.status === 'completed' && mrun.conclusion === 'failure') {
   if (!n) say(`main ${main.slice(0, 10)}: red, but the bot did not land it (the owner's merge, or no PR): not reverted`);
   else if ((mrun.run_attempt || 1) < 2) {
     const r = await act(`re-run main's failed gate jobs (${mrun.id})`, () => gh('POST', `/actions/runs/${mrun.id}/rerun-failed-jobs`, {}, process.env.MERGE_TOKEN));
-    say(`main ${main.slice(0, 10)}: red after #${n}: its failed jobs run once more (${r.status}); red again, the bot reverts it`);
+    if (DRY || r.status === 201) say(`main ${main.slice(0, 10)}: red after #${n}: its failed jobs run once more; red again, the bot reverts it`);
+    else say(`::warning::main ${main.slice(0, 10)}: red after #${n}, and its gate could not be re-run (${r.status}: ${r.json?.message || ''}; MERGE_TOKEN needs Actions: write): not reverted, the owner looks`);
   } else {
     const v = await verdict(mrun), base = v?.base, brun = base && (await gateRun(base));
     if (!base || !brun || brun.conclusion !== 'success') say(`::warning::main ${main.slice(0, 10)}: red twice after #${n}, but the tip before it (${String(base).slice(0, 10)}) is not green either: not reverted, the owner looks`);
