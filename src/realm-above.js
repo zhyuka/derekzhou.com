@@ -1,11 +1,11 @@
 // The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
 // fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
-/* realm-above.js — the ABOVE kit (world6): the sea of cloud's surface, its towers, canyons, floating islands and light.
-   It no longer is a place of its own: the one world (world.js, w04_world.js) raises its sea where the maps' cloud
-   weight says, its pieces scattered by density and seated on the local sea, its light blended with the other kits'. */
+/* realm-above.js — the ABOVE kit: the sea of cloud's surface, its towers, canyons, floating islands and light. It is
+   not a place of its own: the one world (world.js) raises its sea where the maps' cloud weight says, its pieces
+   scattered by density and seated on the local sea, its light blended with the other kits'. */
 (function () {
   'use strict';
-  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-above.js top');   // (E0 Fix 3: the record bounds each script's evaluation)
+  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-above.js top');   // (the record bounds each script's evaluation)
   var W = window.WORLD;
   if (!W || !W.forms) return;
   var K = W.kit, F = W.forms, lch = K.lch, PI = Math.PI;
@@ -24,7 +24,7 @@
       r: [K.hfl(K.hk(h, 3)), K.hfl(K.hk(h, 4)), K.hfl(K.hk(h, 5)), K.hfl(K.hk(h, 6))] };
   }
   var ABOVE_GLSL = `@glsl above-glsl`;
-  var A_STONE = [1, 1, 1, 5], A_HI = [1.25, 1.2, 1.3, 5], A_ROCK = [1, 1, 1, 6], A_GRASS = [1, 1, 1, 4];   // (world6: material codes of its own)
+  var A_STONE = [1, 1, 1, 5], A_HI = [1.25, 1.2, 1.3, 5], A_ROCK = [1, 1, 1, 6], A_GRASS = [1, 1, 1, 4];   // (material codes of its own)
   var A_WL = lch(0.99, 0.02, 60, 1.35), A_WS = lch(0.9, 0.035, 290), CRUISE = 150;
   function aRng(s, k) { return K.RNG(K.hk(s.h, k)); }
   function aTower(C, R, x, z, Wt, Ht, seed, poi) {
@@ -41,11 +41,10 @@
     glsl: ABOVE_GLSL,
     layout: { scales: [{ size: AS, radius: 3800 }] },
     field: function () {
-      return { params: [lch(0.64, 0.06, 268), lch(0.60, 0.065, 272), lch(0.56, 0.05, 165), lch(0.78, 0.07, 262), lch(0.68, 0.07, 150), lch(0.56, 0.06, 285)] };   // (world6 step B fix, defect 2: the isles' stone and rock lit by the sky and the cloud sea's light under them (L 0.16-0.36 before: near-black undersides behind the name))
+      return { params: [lch(0.64, 0.06, 268), lch(0.60, 0.065, 272), lch(0.56, 0.05, 165), lch(0.78, 0.07, 262), lch(0.68, 0.07, 150), lch(0.56, 0.06, 285)] };   // (the isles' stone and rock lit by the sky and the cloud sea's light under them: at L 0.16-0.36 their undersides show near-black behind the name)
     },
-    /* (world6 step B) the cloud's shade (clShade 0.58 -> 0.67, clDeep 0.45 -> 0.60) the sky's blue (towers stand behind the name
-       at the one framing); more aerial perspective (fog.w 0.42e-4 ->
-       1.1e-4: far towers and rock fade toward the horizon's light) */
+    /* the cloud's shade (clShade 0.67, clDeep 0.60) the sky's blue (towers stand behind the name at the one framing);
+       strong aerial perspective (fog.w 1.1e-4: far towers and rock fade toward the horizon's light) */
     light: function (R) {
       return {
         sunAz: R.r(0, 360), sunEl: R.r(7, 10), sunC: lch(0.97, 0.035, 85, 2.2),
@@ -97,8 +96,8 @@
         var nsm = 1 + Rs.i(2);
         for (k = 0; k < nsm; k++) { a = Rs.r(0, 2 * PI); d = Rs.r(320, 600); aIsland(C, Rs, s.x + Math.sin(a) * d, s.z + Math.cos(a) * d, Rs.r(170, 380), Rs.r(26, 50), 0.6); }
       } else if (R.f() < 0.5) { var Wo = R.r(260, 460); aTower(C, R, s.x, s.z, Wo, Wo * R.r(1.1, 1.6), R.seed(), true); }
-      // (world6 fix) rays gliding over the open sea, world-anchored and scattered by density (the step's were spawned
-      // ahead of the camera on a clock): each slowly circling its own place, below the cruise
+      // rays gliding over the open sea, world-anchored and scattered by density: each slowly circling its own place,
+      // below the cruise
       for (k = 0; k < 2; k++) {
         var rx = C.x0 + R.r(0.1, 0.9) * C.size, rz = C.z0 + R.r(0.1, 0.9) * C.size, rp = R.f(), rn = 1 + R.i(2), ry = CRUISE - R.r(25, 60), ro = R.r(60, 120), rw = R.sign() * R.r(0.03, 0.05), rs = R.r(10, 14);
         if (rp < 0.45) C.flock({ kind: 'ray', n: rn, x: rx, y: ry, z: rz, orbit: ro, wheel: rw, size: rs, flap: 0.22, spread: 14, lit: lch(0.52, 0.07, 258), shade: lch(0.3, 0.07, 265) });

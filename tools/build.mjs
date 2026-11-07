@@ -2,15 +2,15 @@
 // sources: site/ copied as it is, then the built scripts written over it: src/ assembled (tools/parts.mjs: the dev
 // build, and the shipped build with the dev-only parts left out), then tools/minify.mjs --build: the five minified
 // scripts from the shipped build, the plan's worker (tools/plan.mjs: the world's plan spans, verbatim, from the dev
-// build) and the start file with its table (tools/start.mjs, from the dev build). Each build
+// build). Each build
 // assembles into a folder of its own beside its output (OUT.parts/), so two builds at once never share one.
 // site/ holds only the sources the site serves as written (the pages, _headers, the hand-written scripts, the
-// fonts). The files the build writes (the five minified scripts, the plan's worker, the start file and its table) are never committed
+// fonts). The files the build writes (the five minified scripts, the plan's worker) are never committed
 // there: Cloudflare Pages runs the deploy build (below) and serves its output. CI proves the build deterministic and
 // that site/ holds none of the built files.
 // (step 5) The deploy build then names every shipped script and stylesheet by its content: world.v8.js is served as
 // world.<sha8>.js, <sha8> the first 8 hex of the sha256 of the file's final bytes. Files that load another by name
-// (the world starts the plan's worker, the start file its table) are named after the ones they load, leaves first, so
+// (the world starts the plan's worker) are named after the ones they load, leaves first, so
 // a file's hash covers the names it loads; a cycle is an error. Every reference is rewritten: in the scripts,
 // index.html, 404.html, _headers (the Link preloads and each file's exact block) and _routes.json where there is one
 // (exact names, never wildcards). A changed file gets a new name by itself: no one renames by hand, no two branches
@@ -101,7 +101,7 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
-  // the ink birds' wing model, served as written (copied first: the start file's maker reads them beside index.html): src/birds/model/'s scripts copied whole (two of them generated, by
+  // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
   // tools/birds/: CI makes them again and compares)
   const wing = fs.readdirSync(WING).filter((n) => n.endsWith('.js')).sort();
   for (const n of wing) {
@@ -111,16 +111,14 @@ async function build(out, stamp) {   // the plain build
   const parts = path.resolve(out) + '.parts', dev = path.join(parts, 'src'), ship = path.join(parts, 'ship');
   fs.rmSync(parts, { recursive: true, force: true });
   await Promise.all([run(process.execPath, [PARTS, 'assemble', '--min-glsl', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', '--min-glsl', SRC, ship])]);
-  // the plan's worker, under the name the world starts it by (made first: the start file is made with the site in place)
+  // the plan's worker, under the name the world starts it by
   const world = fs.readFileSync(path.join(dev, 'world.js'), 'utf8'), pn = workerName(world);
   if (pn) fs.writeFileSync(path.join(out, pn), (await buildPlan(world, pn)).text);   // (minified as the world is: tools/plan.mjs)
-  await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
+  await run(process.execPath, [MINIFY, '--build', ship, out]);
   // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build), the
-  // plan's worker, and the start file the page loads, with its table (start.js, start-table.js)
+  // plan's worker
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile()).concat(wing);
   if (pn) written.push(pn);
-  const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start(?:\.v\d+)?\.js)[\"']/);
-  if (sm) written.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));
   fs.rmSync(parts, { recursive: true, force: true });
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
   return written.sort();

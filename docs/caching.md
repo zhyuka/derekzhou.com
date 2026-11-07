@@ -9,16 +9,15 @@ must-revalidate. Everything else: max-age=31536000, immutable, so CHANGED
 BYTES NEED A NEW NAME. For every script and the stylesheet the build does
 that: it serves each under its content's hash (world.js as world.<sha8>.js),
 names a file that loads another by name after the one it loads (the world
-after the plan's worker, the start file after its table), and rewrites every
+after the plan's worker), and rewrites every
 reference (index.html, 404.html, \_headers' Link preloads and cache blocks,
-the two workers' URLs). So their names in site/ and src/ are plain
+the plan worker's URL). So their names in site/ and src/ are plain
 (style.css, hour.js, world.js, realm-kit.js, realm-dunes.js, realm-above.js,
-inkbirds.js, plan.js, start.js, start-table.js, and the wing model's six in
+inkbirds.js, plan.js, and the wing model's six in
 src/birds/model/) and never change for an edit; renaming one is a refactor
 (git mv, then every reference). validate.yml's reverse check
 fails on any script or stylesheet in the build that no page loads (the
-plan's worker aside: the world starts it, by name; the start file's table:
-the start file starts it), so git mv rather than copy.
+plan's worker aside: the world starts it, by name), so git mv rather than copy.
 
 The build also stores every content-named script and the stylesheet
 Brotli-compressed at quality 11, its \_headers block saying

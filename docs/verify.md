@@ -44,7 +44,7 @@ Before a change to the world, its kits or the ink birds:
   tier goes down to 1.6).
 - Then the dev build is cut to src/'s files by its counted edits
   (each must match exactly once), those built by
-  tools/minify.mjs (the start file by tools/start.mjs), and the
+  tools/minify.mjs, and the
   build proved to change nothing a visitor sees: both builds
   served side by side, the same visit (the page's one entropy
   read answered alike) and the same hour (the clock faked), the
