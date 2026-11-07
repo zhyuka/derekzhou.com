@@ -23,6 +23,7 @@ const build = all.filter((c) => c.kind === 'build'), rest = all.filter((c) => c.
 let BASH = 'bash'; const env = Object.assign({}, process.env);
 if (process.platform === 'win32') {
   for (const b of ['C:/Program Files/Git/bin/bash.exe', 'C:/Program Files (x86)/Git/bin/bash.exe']) if (fs.existsSync(b)) { BASH = b; break; }
+  if (!env.LC_ALL) env.LC_ALL = 'C.UTF-8';   // (Git Bash's grep -P wants a UTF-8 locale: security.txt's check)
   if (spawnSync('python3 -c 1', { shell: true }).status !== 0) {
     const shim = path.join(TMP, '_bin'); fs.mkdirSync(shim, { recursive: true });
     fs.writeFileSync(path.join(shim, 'python3'), '#!/bin/sh\nexec python "$@"\n', { mode: 0o755 });
@@ -65,6 +66,7 @@ if (has('--prove')) {
     if (keep && !keep.toString('utf8').includes(p.find)) { console.log('FAIL   ' + c.slug.padEnd(20) + ' the plant\'s text is not in ' + p.file); bad = 1; continue; }
     fs.writeFileSync(f, keep ? keep.toString('utf8').replace(p.find, p.with) : 'planted\n');
     let r; try { r = await run(c); } finally { if (keep) fs.writeFileSync(f, keep); else fs.rmSync(f); }
+    if (r.ok && /skipped here/.test(r.out)) { console.log('skip   ' + c.slug.padEnd(20) + ' ' + p.why + ' (the check does not run on this machine)'); continue; }
     const want = p.expect === 'pass', ok = r.ok === want;
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
