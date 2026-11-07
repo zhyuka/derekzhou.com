@@ -26,5 +26,6 @@
   {"check":"unit","file":"src/world/220-time-day.js","find":"hold: S.hold * (0.9 + 0.25 * r.f())","with":"hold: S.hold * (0.9 + 0.5 * r.f())","why":"a sky held up to 1.4 of its hold"},
   {"check":"no-fades","file":"build/site/style.css","find":"--color-text: #fdfcf7;","with":"--color-text: #fdfcf7; transition: opacity 1s;","why":"a transition in the stylesheet"},
   {"check":"licences","file":"package-lock.json","find":"\"license\": \"BSD-2-Clause\"","with":"\"license\": \"GPL-3.0\"","why":"a GPL package"},
-  {"check":"no-frameworks","file":"package.json","find":"\"devDependencies\": {","with":"\"dependencies\": { \"react\": \"18.3.1\" },\n  \"devDependencies\": {","why":"a runtime framework"}
+  {"check":"no-frameworks","file":"package.json","find":"\"devDependencies\": {","with":"\"dependencies\": { \"react\": \"18.3.1\" },\n  \"devDependencies\": {","why":"a runtime framework"},
+  {"check":"reduced-motion","file":"src/world/460-boot-staged.js","find":"if (ts - STILLTS >= 100) { STILLTS = -1; stop(); }","with":"if (ts - STILLTS >= 1e9) { STILLTS = -1; stop(); }","why":"a reduced-motion still whose loop never stops","rebuild":true}
 ]

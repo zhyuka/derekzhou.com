@@ -154,7 +154,8 @@
       ],
       "enforced_by": [
         {
-          "kind": "prose"
+          "kind": "ci-step",
+          "name": "Reduced motion is one still frame"
         }
       ]
     },
