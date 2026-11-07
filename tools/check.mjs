@@ -23,6 +23,7 @@ const build = all.filter((c) => c.kind === 'build'), rest = all.filter((c) => c.
 let BASH = 'bash'; const env = Object.assign({}, process.env);
 if (process.platform === 'win32') {
   for (const b of ['C:/Program Files/Git/bin/bash.exe', 'C:/Program Files (x86)/Git/bin/bash.exe']) if (fs.existsSync(b)) { BASH = b; break; }
+  if (!env.LC_ALL) env.LC_ALL = 'C.UTF-8';   // (Git Bash's grep -P wants a UTF-8 locale: security.txt's check)
   if (spawnSync('python3 -c 1', { shell: true }).status !== 0) {
     const shim = path.join(TMP, '_bin'); fs.mkdirSync(shim, { recursive: true });
     fs.writeFileSync(path.join(shim, 'python3'), '#!/bin/sh\nexec python "$@"\n', { mode: 0o755 });
