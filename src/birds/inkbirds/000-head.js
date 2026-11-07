@@ -21,9 +21,9 @@
    network; randomness is the engine's streams (HOST.rng), time the engine's fixed steps. */
 (function () {
   'use strict';
-  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('inkbirds.js top');   // (E0 Fix 3: the record bounds each script's evaluation)
+  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('inkbirds.js top');   // (the boot's record marks where each script starts)
   if (!window.WORLD || !window.WORLD.birds) return;
-  if (!window.FACETFORM || !window.FACETPOSE || !window.WINGMODEL || !window.WINGMODEL_DATA || !window.LABBIRD || !window.BIRDWING) return;   // (physics: the faceted M and the lab's measured wing: facetform.js, facetpose.js, wingmodel.js, model.js, labbird.js, birdwing.js, loaded before this file)
+  if (!window.FACETFORM || !window.FACETPOSE || !window.WINGMODEL || !window.WINGMODEL_DATA || !window.LABBIRD || !window.BIRDWING) return;   // (the faceted M and the measured wing: src/birds/model/, loaded before this file)
   window.WORLD.birds(function (HOST) {
   var gl = HOST.gl;
 

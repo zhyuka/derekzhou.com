@@ -212,29 +212,6 @@ void main() {
      HDR scene; a beam drawn on from A (woken when the camera first comes near: a light event) */
   var VS_BEAM = HEAD + FRAME_U + `@glsl vs-beam`;
   var FS_BEAM = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-beam`;
-  /* the cloud the camera flies through in a transition: billows about the eye, fixed in the cloud's own frame (the
-     camera's travel, continuous across the change of realm), lit by a sun eased from one realm's to the next's, blue in
-     their own shade; coming out, each pixel clears at its own time (below the eye first, then in ragged gaps), so the
-     next realm opens over seconds, never all at once.
-     Sampled on planes fixed in the cloud, so the view slides through them. Shells at fixed distances from the eye
-     (7, 2.6-82 m, x1.78), moving 0.35 m a frame, cut the noise (0.3-0.8 m texels) somewhere new every frame, and the
-     mist changes in blotches that reverse from frame to frame with no flow (seed 7's first bank: 2.6% of pixels a
-     frame on average, up to 21%, by more than 2 codes of blurred luma). The samples lie on planes across the heading
-     (level: the view's pitch, the passage's climb and the framing's ease never turn them; turned, they sweep the noise
-     at the screen's edges) whose places along it are fixed in the cloud
-     (uInP.x: the travel along the heading), in six levels D = 2.6 x 2^L m apart; each level weighs its planes by a
-     window over [D, 2D] with ramps exactly D long, so its planes weigh the same in all wherever they stand (a window in
-     the log of the distance pulses the nearest levels' light at 4-8 Hz), and every plane comes in at
-     nothing far off and goes out at nothing near: as the camera moves each plane, and the billows on it, comes nearer
-     and grows on the screen as a cloud's would; the motion is flow, never a new cut. A turn of the heading turns the
-     planes about the eye (each pixel's ray sweeps the noise as it would sweep a cloud there). The noise's LOD follows
-     each sample's footprint (the far planes never alias) and the billows' own motion a frame (off the heading's
-     line a ray's point on a plane slides fast: blurred to that, as a motion blur, they never move half a period a
-     frame), and its fine billows (a 19 m tile) come in only from 6-24 m: nearer, a cloud is an even mist (2.6 m off
-     they show magnified, 0.3 m blobs 8 deg across, and near the eye they stream past faster than the frames can
-     follow). Where the cloud is whole (amt from 0.8 to 1) what is left of the view behind the
-     planes is filled with the cloud's own light, so at the change of realm (amt 1) nothing behind it shows; coming out,
-     the view is held whole for the first 0.1 of the way out (0.5 s), then clears pixel by pixel as above */
   /* cloud volumes: each body's lobes baked once into a small 3D texture (density; the optical depth toward the sun
      and toward the sky), then ray-marched inside the body's box at half resolution */
   var FS_VDENS = HEAD + FRAME_U + LIB + `@glsl fs-vdens`;
