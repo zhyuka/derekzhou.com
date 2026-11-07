@@ -23,14 +23,14 @@ site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, invers
 site/assets/favicon.png      PNG fallback favicon (32x32)
 site/assets/apple-touch-icon.png  180x180 iOS icon
 site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (the subsets'
-                             sources; served too, loaded by no page) + two .sub2 subsets
+                             sources; served too, loaded by no page) + two .sub3 subsets (the pages' letters)
                              (loaded), and OFL.txt (their licence)
 site/robots.txt              Allow search engines, block AI crawlers
 site/.well-known/security.txt  Vulnerability reporting
 site/\_headers               Cloudflare Pages security + caching + Early Hints headers
 site/\_redirects             HTTPS enforcement (http and www to https://derekzhou.com)
 CLAUDE.md                    This file
-subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/fonts (manual tooling)
+subset-fonts.sh              Regenerates the .sub3 font subsets (the pages' letters: tools/fontglyphs.mjs) in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
 src/                         The five scripts the site serves minified, as written (the world, the kit and
                              the realms, the ink birds): the realms whole under their served names, the
@@ -124,7 +124,12 @@ rewrites PW_V in its part); the build then minifies it as the world is
 (tools/plan.mjs buildPlan: terser with the world's options, its header
 kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit/maps.mjs runs that
 worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are
-served as written.
+served as written. The stylesheet is served without its comments
+(load-perf, 2026-11-07: tools/build.mjs cssMin, every comment but a /*!
+one dropped, every line trimmed, blank lines dropped, a rule still on its
+own line; the build fails unless only comments and white space went): it
+is render-blocking, and its notes were 8 KB of its 19 (4,995 B at Brotli
+11 before, 2,151 B after). Its notes stay in site/style.css.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
 first (a Pages Function that checks the Cloudflare Access token again, in

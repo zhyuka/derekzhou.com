@@ -224,9 +224,10 @@
       return -1;
     }
     function flAtStep(b, i) { return boutAt(b, i, false) >= 0 ? 1 : 0; }
-    function envAt(b, i, which) {   // a (0) or e (1) at step i as the loop stores them
-      var k = boutAt(b, i, true); if (k < 0) return 0;
-      var x = psiAtI(b, i) - b.BO[k + 2], nb = b.BO[k + 3];
+    function envAt(b, i, which) { return envOf(b, boutAt(b, i, true), psiAtI(b, i), which); }   // a (0) or e (1) at step i as the loop stores them
+    function envOf(b, k, psi, which) {   // ... with the bout k holding it and psi there
+      if (k < 0) return 0;
+      var x = psi - b.BO[k + 2], nb = b.BO[k + 3];
       return which ? ss(x / RAMP.E_IN) * (1 - ss((x - nb - 0.1) / RAMP.E_OUT)) : ss(x / RAMP.A_IN) * (1 - ss((x - nb) / RAMP.A_OUT));
     }
     function pausedAt(b, i) { var A = b.PA; for (var k = A.length - 2; k >= 0; k -= 2) { if (i >= A[k] && i <= A[k + 1]) return 1; if (A[k + 1] < i) return 0; } return 0; }
@@ -237,13 +238,15 @@
       var x = (t - b.from) / b.dt, i = Math.floor(x), w = x - i;
       if (i < 0) { i = 0; w = 0; }
       ensure(b, b.from + (i + 2) * b.dt);
-      var psi = psiAtI(b, i) + (psiAtI(b, i + 1) - psiAtI(b, i)) * w, bj = Math.floor(psi), j0 = bix(b, bj), j1 = b.NBW ? (j0 + 1) % b.NBW : bix(b, bj + 1);
+      var p0 = psiAtI(b, i), p1 = psiAtI(b, i + 1);   // (each read once: the same sums as reading them where they are used)
+      var psi = p0 + (p1 - p0) * w, bj = Math.floor(psi), j0 = bix(b, bj), j1 = b.NBW ? (j0 + 1) % b.NBW : bix(b, bj + 1);
       S.psi = psi; S.ph = psi - bj; S.flap = flAtStep(b, w < 0.5 ? i : i + 1);
-      var a0 = envAt(b, i, 0), a1 = envAt(b, i + 1, 0), e0 = envAt(b, i, 1), e1 = envAt(b, i + 1, 1);
+      var k0 = boutAt(b, i, true), k1 = boutAt(b, i + 1, true);
+      var a0 = envOf(b, k0, p0, 0), a1 = envOf(b, k1, p1, 0), e0 = envOf(b, k0, p0, 1), e1 = envOf(b, k1, p1, 1);
       S.a = a0 + (a1 - a0) * w; S.e = e0 + (e1 - e0) * w;
       S.k = b.KK[j0] + (b.KK[j1] - b.KK[j0]) * ss(S.ph);
       S.D = b.D / (1 + b.EPS[j0]);
-      var kb = boutAt(b, i, false); S.beat = kb >= 0 ? Math.floor(psiAtI(b, i) - b.BO[kb + 2]) : -1;
+      var kb = boutAt(b, i, false); S.beat = kb >= 0 ? Math.floor(p0 - b.BO[kb + 2]) : -1;
       S.pause = pausedAt(b, i); S.lock = b.lead && b.lock ? lockW(b, b.from + i * b.dt) : 0;
       S.tuck = 0;
       return S;
