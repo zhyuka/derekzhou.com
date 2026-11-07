@@ -120,7 +120,7 @@
      clear line beside it (up to 420 m; never inside a solid), unseen. The slip (S.sv, m/s, + to the right) flies the chosen line
      by a controller eased at SLIP_ACC x the speed a second and braking in time (slipCtl), so its lateral acceleration
      is never over 1.05 m/s2 (the hard rule's onsets: 35-72 m/s2). The view never turns; the hard rule (pushOut) is
-     untouched, the last resort. The forecast (aheadSub) flies the flight's plan by the same controller.
+     untouched, the last resort.
      Two rates of easing: SLIP_ACC = 0.034 x the speed a second, so the course never swings more than 9.7 deg in 5 s
      (tan 9.7 deg = 0.034 x 5; 0.05 swings 10.2-14.0 deg on 6 of 50 seeds), and SLIP_ACC2 = 0.05 only where no plan
      eased at the first keeps out of a solid's own zone (the plan's cost there, SLIP_WIN x 0.02 and over) and one eased
