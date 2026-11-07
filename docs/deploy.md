@@ -16,6 +16,12 @@ two builds; T1 and T2 render those builds (T1 renders each base build once: its 
 are cached by the build's content, so a branch cut from a rendered main renders only its head). Every change to the live site goes through a pull
 request the owner approves.
 
+Auto-revert (2026-11-07): when main's gate fails on a commit the merge bot landed, the bot re-runs the failed jobs
+once; red again, it commits the tree of the green main tip before it as that commit's child, moves main there, and
+says so on the PR (merge-bot.mjs, step 1b; its message ends "Reverts-main-tip: <sha>", which lets the deploy gate
+step over the pair). The owner's own merges are never reverted by the bot. MERGE_TOKEN needs Actions write for the
+re-run.
+
 The owner's "land it when green" is GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
 it once its gate's `verdict` check is green. A new push does not undo it: GitHub merges the head whose checks pass.
