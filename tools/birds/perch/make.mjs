@@ -15,7 +15,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
+import { fileURLToPath } from 'node:url';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');   // (fileURLToPath: on Windows a URL's pathname keeps a leading /C:/)
 const OUT = path.join(ROOT, 'src/birds/inkbirds/255-perch-ink.js');
 const check = process.argv.includes('--check');
 const req = createRequire(import.meta.url);
