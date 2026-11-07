@@ -53,7 +53,7 @@
       var ye2 = top + 4 - Math.max(s2 - o.r - lead, 0) * TAN_CLIMB;
       if (ye2 > yT) yT = ye2;
     }
-    // the solids under the ceiling on the planned way further off (slipPlan's climbs), beyond the 8 s looked at
+    // the solids under the ceiling on the planned way further off (slipPlan's climbs), beyond the HT_T s looked at
     // above: climbed at TAN_CLIMB from as far off as the plan sees them, so a tall one is never met late
     var CB = CS.climbs;
     if (CB) for (i = 0; i < CB.length; i++) {
@@ -67,7 +67,7 @@
     return Math.max(yT, g0 + cl[0]);
   }
   /* can the camera climb over a solid (its top with the margin, `top`, s m ahead on the heading)? Only under the
-     ceiling the camera will have: simStep's is the ground under the camera + clear[2] + 40. The top against the ground
+     ceiling the camera will have: simStep's is the ground under the camera + clear[2] + CEIL_OVER. The top against the ground
      at the solid's centre + clear[2] alone is not enough: that reads the camera's grid there (160 x 4 m about the
      camera: a solid farther off reads the grid's edge), so on seed 27 (day, from 34 s) a mesa whose centre reads 2 m
      while the valley the camera crosses lies at -159 m (its ceiling 21 m, the height wanted 52 m) is taken for
@@ -76,7 +76,7 @@
      ground under it + clear[2], that ground never above the item's own seat (exact, from the GPU: a column's y0 + 30)
      and (2) on the way in, at CR_D lengths of the height spring's lead short of it on the planned line, the solid's
      own top + CR_CLEAR (6 m: over the hard rule's 3.5) less TAN_CLIMB beyond the lead, under the ground there +
-     clear[2] + 40 (where the ceiling holds the camera under heightTarget's top + margin + 4, it still passes over
+     clear[2] + CEIL_OVER (where the ceiling holds the camera under heightTarget's top + margin + 4, it still passes over
      without a push; asking the margin here too slips seed 29, climbable without a push, past at 0.35 x the speed);
      else it is a slip constraint, passed beside from first sight. Allocates nothing */
   var CR_D = [0.15, 0.5, 1, 1.6, 2.4], CR_CLEAR = 6;
@@ -97,7 +97,7 @@
      only, seen 24 s ahead, wanting the offset still needed over the time left, is not enough: a wide mesa (DUNES:
      105-250 m across, its top 170-335 m over the camera) or a great tower's core (ABOVE: up to 186 m) needs more than
      14 deg of crab can give, and the hard rule pushes the camera along their faces for seconds (6 of 11 seeds, 81-1091
-     pushes); a solid climbed only once heightTarget sees it, 8 s off, is met too late if tall; and clouds' visible
+     pushes); a solid climbed only once heightTarget sees it, HT_T s off, is met too late if tall; and clouds' visible
      bodies have to be seen too.
      So every SLIP_PLAN = 0.25 s (and at once when the heading has turned) slipPlan looks SLIP_T = 90 s of flight
      ahead (at least SLIP_REACH = 1,200 m; the cells hold their solids 3.8-5.2 km out) and chooses the line to fly: an
@@ -116,10 +116,8 @@
      instead (heightTarget sees it as far off as the plan does, on the planned way: CS.climbs, with CLIMB_LEAD s in
      hand for the height's spring), but never a cloud's core (that would fly through its visible top) nor a floating
      stone above the eye (passed under or beside). At a visit's start, while the view is still wholly covered (the
-     landing before its first frame, or the first 0.45 s of the cloud a visit begins in: FS_INCLOUD holds the view whole
-     that long), a line that would meet a solid's own zone is not flown at all: the camera is placed on the nearest
-     clear line beside it (up to 420 m; never inside a solid), unseen; the cloud about the eye is fixed in its own
-     frame (TRAVEL), so nothing on the screen moves with it. The slip (S.sv, m/s, + to the right) flies the chosen line
+     landing before its first frame), a line that would meet a solid's own zone is not flown at all: the camera is placed on the nearest
+     clear line beside it (up to 420 m; never inside a solid), unseen. The slip (S.sv, m/s, + to the right) flies the chosen line
      by a controller eased at SLIP_ACC x the speed a second and braking in time (slipCtl), so its lateral acceleration
      is never over 1.05 m/s2 (the hard rule's onsets: 35-72 m/s2). The view never turns; the hard rule (pushOut) is
      untouched, the last resort. The forecast (aheadSub) flies the flight's plan by the same controller.

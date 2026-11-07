@@ -112,7 +112,8 @@
      and one texel read back again (the GPU has run it too: a driver's late compile is in). WebGL's finish() is a
      flush in Chrome and waits for nothing. [key, ms, frame, shown, at, drain ms, ms to the getError] in
      REC.firstDraw.keys, and each program's first key as [program, ms, frame, shown, at] in REC.firstDraw.list (each
-     program once). tools/gguard.sh fails a key over 30 ms that its known list does not name */
+     program once). The record's guard (gguard.sh, kept with the development record, not in this repository) fails
+     a key over 30 ms that its known list does not name */
   function fdGuard() {
     var raw = REC.fdRaw, F = REC.firstDraw = { seen: {}, list: [], keys: [], over: 0 };
     var KEYS = new Map(), OUTS = new Map(), OUTN = [''], RDS = new Map(), RDN = [''], INS = new Map(), INN = [''], CV = [], GX = { cv: 0, v: 0, rd: 0, xfb: 0, pv: 0, pack: null }, PX = new Uint8Array(4);
