@@ -1,5 +1,5 @@
   /* ---------------------------------------------------------------- the 3D noise (tiling, 32 cubed, made once) */
-  /* (fast500 step 1b) baked on the CPU, in round 3b's own double-precision arithmetic (noiseVoxel's, hoisted for the
+  /* (fast500 step 1b) baked on the CPU, in round 3b's own double-precision arithmetic (one voxel's, hoisted for the
      bake: noiseLayer), from round 3b's stream (18,688 numbers). E1 baked it on the GPU: a program of its own, the stream
      as a points texture, and the 258 voxels whose exact value lies within a thousandth of a code of a rounding boundary
      worked out here and written over the GPU's float32 rounding (NOISE_FIX). Every voxel is the exact one here, so the
@@ -18,33 +18,8 @@
     for (var i = 0; i < 18688; i++) a[i] = r.f();
     return a;
   }
-  /* round 3b's own arithmetic (double precision) for one voxel, into out[o..o+3] */
-  function noiseVoxel(D, x, y, z, out, o) {
-    var N = NOISE_N, u = (x + 0.5) / N, v = (y + 0.5) / N, w = (z + 0.5) / N;
-    function worley(n, base) {
-      var px = u * n, py = v * n, pz = w * n, ix = Math.floor(px), iy = Math.floor(py), iz = Math.floor(pz), best = 9;
-      for (var dz = -1; dz <= 1; dz++) for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
-        var cx = ix + dx, cy = iy + dy, cz = iz + dz, k = base + ((((cz % n) + n) % n * n + (((cy % n) + n) % n)) * n + (((cx % n) + n) % n)) * 3;
-        var fx = cx + D[k] - px, fy = cy + D[k + 1] - py, fz = cz + D[k + 2] - pz, d = fx * fx + fy * fy + fz * fz;
-        if (d < best) best = d;
-      }
-      return Math.sqrt(best);
-    }
-    function vnoise(n, base) {
-      var px = u * n, py = v * n, pz = w * n, ix = Math.floor(px), iy = Math.floor(py), iz = Math.floor(pz);
-      var fx = px - ix, fy = py - iy, fz = pz - iz; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy); fz = fz * fz * (3 - 2 * fz);
-      function g(a, b, c) { return D[base + ((((c % n) + n) % n) * n + (((b % n) + n) % n)) * n + (((a % n) + n) % n)]; }
-      var x00 = lerp(g(ix, iy, iz), g(ix + 1, iy, iz), fx), x10 = lerp(g(ix, iy + 1, iz), g(ix + 1, iy + 1, iz), fx);
-      var x01 = lerp(g(ix, iy, iz + 1), g(ix + 1, iy, iz + 1), fx), x11 = lerp(g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1), fx);
-      return lerp(lerp(x00, x10, fy), lerp(x01, x11, fy), fz);
-    }
-    var vn = vnoise(4, 14016) * 0.55 + vnoise(8, 14080) * 0.3 + vnoise(16, 14592) * 0.15;
-    var w4 = 1 - worley(4, 0), w8 = 1 - worley(8, 192), w16 = 1 - worley(16, 1728);
-    var pw = clamp(vn * 0.55 + (w4 * 0.625 + w8 * 0.25 + w16 * 0.125) * 0.6, 0, 1);
-    out[o] = Math.round(pw * 255); out[o + 1] = Math.round(clamp(w8 * 0.7 + w16 * 0.3, 0, 1) * 255); out[o + 2] = Math.round(clamp(w16, 0, 1) * 255); out[o + 3] = Math.round(clamp(vn, 0, 1) * 255);
-  }
-  /* (fast500 step 1b) noiseVoxel hoisted for the bake (the routes' bake.js 'fast': the same double-precision ops in the
-     same order, so the same bytes; checked against noiseVoxel at every voxel, the dev hook noiseCheck). Per scale n, each
+  /* (fast500 step 1b) round 3b's per-voxel arithmetic hoisted for the bake (the routes' bake.js 'fast': the same double-precision ops in the
+     same order, so the same bytes; checked against the per-voxel form at every voxel). Per scale n, each
      axis's points (((x + 0.5) / 32) * n), cells, smoothsteps and wrapped neighbour cells, made once */
   function noiseAxis(n) {
     var N = NOISE_N, p = new Float64Array(N), ix = new Int32Array(N), sm = new Float64Array(N), c = new Float64Array(N * 3), w = new Int32Array(N * 3), x, d;
@@ -52,7 +27,7 @@
     for (x = 0; x < N; x++) for (d = 0; d < 3; d++) { c[x * 3 + d] = ix[x] + d - 1; w[x * 3 + d] = (((ix[x] + d - 1) % n) + n) % n; }
     return { p: p, ix: ix, sm: sm, c: c, w: w };
   }
-  function noiseWorley(D, n, base, A, x, y, z) {   // (noiseVoxel's worley)
+  function noiseWorley(D, n, base, A, x, y, z) {   // (round 3b's worley)
     var px = A.p[x], py = A.p[y], pz = A.p[z], C = A.c, W = A.w, best = 9, n2 = n * n, dz, dy, dx;
     for (dz = 0; dz < 3; dz++) {
       var cz = C[z * 3 + dz], wz = W[z * 3 + dz] * n2;
@@ -67,7 +42,7 @@
     }
     return Math.sqrt(best);
   }
-  function noiseValue(D, n, base, A, x, y, z) {   // (noiseVoxel's vnoise)
+  function noiseValue(D, n, base, A, x, y, z) {   // (round 3b's value noise)
     var ix = A.ix[x], iy = A.ix[y], iz = A.ix[z], fx = A.sm[x], fy = A.sm[y], fz = A.sm[z], n2 = n * n, a, b;
     var x0 = ((ix % n) + n) % n, x1 = (((ix + 1) % n) + n) % n, y0 = (((iy % n) + n) % n) * n, y1 = ((((iy + 1) % n) + n) % n) * n;
     var z0 = base + (((iz % n) + n) % n) * n2, z1 = base + ((((iz + 1) % n) + n) % n) * n2;
@@ -78,7 +53,7 @@
     var l0 = x00 + (x10 - x00) * fy, l1 = x01 + (x11 - x01) * fy;
     return l0 + (l1 - l0) * fz;
   }
-  /* one layer z of the volume into NOISE.vol: noiseVoxel's arithmetic at each of its 1,024 voxels */
+  /* one layer z of the volume into NOISE.vol: round 3b's arithmetic at each of its 1,024 voxels */
   function noiseLayer(z) {
     var N = NOISE_N, D = NOISE.d64, A = NOISE.ax || (NOISE.ax = [noiseAxis(4), noiseAxis(8), noiseAxis(16)]), A4 = A[0], A8 = A[1], A16 = A[2], out = NOISE.vol, o = z * N * N * 4, x, y;
     for (y = 0; y < N; y++) for (x = 0; x < N; x++, o += 4) {
@@ -115,19 +90,5 @@
     gl.bindTexture(gl.TEXTURE_3D, null);
     NOISE.done = true;
     return true;
-  }
-  /* (dev) the noise's level 0 read back, layer by layer (the texture as sampled) */
-  function devNoiseRead() {
-    var N = NOISE_N, out = new Uint8Array(N * N * N * 4), fb = gl.createFramebuffer(), lay = new Uint8Array(N * N * 4);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    for (var z = 0; z < N; z++) { gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, NOISE.t, 0, z); gl.readPixels(0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, lay); out.set(lay, z * N * N * 4); }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.deleteFramebuffer(fb);
-    return out;
-  }
-  /* (dev) round 3b's own CPU bake, whole, voxel by voxel (the check of the hoisted bake's: noiseCheck) */
-  function devNoiseCPU() {
-    var N = NOISE_N, D = NOISE.data || noiseData(), out = new Uint8Array(N * N * N * 4);
-    for (var z = 0; z < N; z++) for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) noiseVoxel(D, x, y, z, out, ((z * N + y) * N + x) * 4);
-    return out;
   }
 
