@@ -122,7 +122,8 @@
       ],
       "enforced_by": [
         {
-          "kind": "prose"
+          "kind": "ci-step",
+          "name": "No fades: no keyframes, transitions or animations"
         }
       ]
     },
@@ -527,7 +528,8 @@
       ],
       "enforced_by": [
         {
-          "kind": "prose"
+          "kind": "ci-step",
+          "name": "Licences on the allowlist"
         }
       ]
     },
@@ -629,7 +631,8 @@
       ],
       "enforced_by": [
         {
-          "kind": "prose"
+          "kind": "ci-step",
+          "name": "No frameworks: pure HTML, CSS and JS"
         }
       ]
     },
