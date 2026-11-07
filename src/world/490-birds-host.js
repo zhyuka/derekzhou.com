@@ -1,11 +1,10 @@
   /* ---------------------------------------------------------------- the birds' host
      The ink birds are their own module (inkbirds.js, a classic deferred script loaded after world.js): it registers a
      factory with WORLD.birds(factory) before the engine boots, and the factory is handed HOST, which is all the birds
-     ever see of the engine. The engine, for its part, calls the module's five hooks and nothing else:
+     ever see of the engine. The engine, for its part, calls the module's four hooks and nothing else:
        step(dt)      after every fixed step of the flight (1/60 s): the birds' clock and their planning, deterministic
        draw()        after the composite, onto the window: the birds as ink, over the finished frame
        visit(k)      a visit (a realm) begins about the camera: its coordinates are new, the sky is cleared
-       reset()       the journey starts again (the harness's draw(t) going back in time)
        lost()        the context was lost: every GL object of the module is gone (made again on the next draw)
      See notes.md, "The birds' interface", for the contract. */
   var BIRDB = { ms: 1.5, spent: 0, at: 0, prep: 6 };   // (round 3: the birds' planning budget a frame, ms; their steps' time this frame)
