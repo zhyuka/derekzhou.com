@@ -40,7 +40,7 @@ function scripts() {
   if (src.indexOf(at) < 0) throw new Error('sim: birdsStep not found in the assembled inkbirds.js');
   src = src.replace(at, at + '    if (!self.__SIM) self.__SIM = { BIRDS: BIRDS, FLOCKS: FLOCKS, PERCHED: PERCHED, PW: PW, PTR: PTR, LVC: LVC,\n' +
     '      t: function () { return t; }, W: function () { return [W, H]; }, MODEL_K: MODEL_K, FDEV_MAX: FDEV_MAX, WINDV: WINDV,\n' +
-    '      hidden: hidden, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
+    '      hidden: hidden, hideTop: hideTop, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
     '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach };\n');
   const model = ['facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing'].map((f) => new vm.Script(fs.readFileSync(path.join(ROOT, 'src/birds/model', f + '.js'), 'utf8'), { filename: f + '.js' }));
   SCRIPTS = { model, birds: new vm.Script(src, { filename: 'inkbirds.js' }) };
