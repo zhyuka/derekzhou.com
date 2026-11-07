@@ -124,7 +124,12 @@ rewrites PW_V in its part); the build then minifies it as the world is
 (tools/plan.mjs buildPlan: terser with the world's options, its header
 kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit/maps.mjs runs that
 worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are
-served as written.
+served as written. The stylesheet is served without its comments
+(load-perf, 2026-11-07: tools/build.mjs cssMin, every comment but a /*!
+one dropped, every line trimmed, blank lines dropped, a rule still on its
+own line; the build fails unless only comments and white space went): it
+is render-blocking, and its notes were 8 KB of its 19 (4,995 B at Brotli
+11 before, 2,151 B after). Its notes stay in site/style.css.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
 first (a Pages Function that checks the Cloudflare Access token again, in
