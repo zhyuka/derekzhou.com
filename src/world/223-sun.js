@@ -44,4 +44,3 @@
     var lt = Math.exp(-Math.max(e + SUNU.D, 0) / SUNU.kT[1]) * SUNU.band, ln = Math.exp(-Math.max(e, 0) / SUNU.kN[1]) * SUNU.QN, j;
     for (j = 0; j < 3; j++) { c[j] += (SUNU.wT[j] - c[j]) * SUNU.kT[0] * side * side * lt; c[j] *= 1 - SUNU.kT[2] * (1 - side) * lt; c[j] += (SUNU.wN[j] - c[j]) * SUNU.kN[0] * side * side * ln; c[j] *= 1 - SUNU.kN[2] * (1 - side) * ln; }
   }
-  function skySunRec() { return SUNU.on ? { on: true, es: +SUNU.es.toFixed(5), band: +SUNU.band.toFixed(6), QN: +SUNU.QN.toFixed(6), E: +SUNU.E.toFixed(6), wispH: +SUNU.sk[3].toFixed(4), beltH: +(1 + 1.1 * Math.max(-SUNU.es, 0)).toFixed(4), belt: +SKY.fx[0].toFixed(6), shafts: SIM.V && SIM.V.L ? SIM.V.L.shafts : null } : { on: false, shafts: SIM.V && SIM.V.L ? SIM.V.L.shafts : null }; }

@@ -125,12 +125,3 @@
     out[3] = pa.color[3] * (kd > 0.5 && kd < 2.5 ? SKY.fx[6] : 1);
     return out;
   }
-  /* dev and the record: the cycle as it stands */
-  function skyState() {
-    if (!SKY.e) return null;
-    return { sky: SKY.A.id, next: SKY.B.id, k: +SKY.k.toFixed(4), q: +SKY.q.toFixed(4), x: +SKY.x.toFixed(4), half: SKY.half, X: SKY.X.id, Y: SKY.Y.id,
-      far: SKY.far,
-      ceil: +SKY.ceil.toFixed(4), sunVis: +SKY.sunVis.toFixed(4), fx: Array.prototype.map.call(SKY.fx, function (v) { return +v.toFixed(3); }), skyS: Array.prototype.map.call(SKY.skyS, function (v) { return +v.toFixed(4); }),
-      landing: SKY.landing, moon: skyMoonRec(), sun: skySunRec(), theme: THEME.hex, ink: { id: SKYI.id, words: SKYI.words, group: SKYI.group }, dt: SKY.dt, phase: SKY_PHASE,
-      seq: SKY.seq.slice(0, 40).map(function (e) { return [e.id, +e.at.toFixed(2), +e.hold.toFixed(2), +e.move.toFixed(2), e.far ? 1 : 0]; }) };
-  }
