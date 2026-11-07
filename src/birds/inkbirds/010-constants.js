@@ -17,8 +17,8 @@
     loose: [['crow', 35], ['gull', 30], ['finch', 20], ['swallow', 15]],                 // the small quick ones now and then
     soar: [['stork', 1]]
   };
-  /* (life) the world's skies read as times of the evening (cls: glow the afterglow; blue the blue hour; first the first
-     light; moon the night skies); a day sky the tables above. Per class: the patterns, the kinds a pattern flies */
+  /* the world's skies read as times of day (cls: glow the afterglow; blue the blue hour; first the first light; moon the
+     night skies); any other sky is a day sky and flies the tables above. Per class: the patterns, the kinds a pattern flies */
   var SKY_CLS = { afterglow: 'glow', bluehour: 'blue', firstlight: 'first', moonlit: 'moon', milkyway: 'moon', aurora: 'moon' };
   var LIFE = {
     glow:  { pat: [['skein', 27], ['line', 15], ['pair', 18], ['single', 25], ['loose', 15]],
@@ -32,7 +32,7 @@
     moon:  { pat: [['skein', 20], ['pair', 15], ['single', 60]],
              kinds: { skein: [['goose', 1]], pair: [['gull', 60], ['goose', 40]], single: [['gull', 50], ['heron', 50]] } }
   };
-  var LIFE_N = { skein: [[5, 8], [6, 5], [7, 32], [9, 35], [11, 20]],   // (round 3, step 3: drawn larger, as the room makes many of them fly as fives)
-                 line: [[3, 40], [5, 35], [6, 25]], pair: [[2, 1]], single: [[1, 1]], loose: [[5, 40], [6, 35], [7, 25]] };   // (fix: 5-7, so a loose flock finds room under the calm's cap)
-  var V_GEOM = { goose: { x: [1.9, 3.0], y: [1.15, 1.45] }, ibis: { x: [0.8, 1.0], y: [0.75, 0.9] } };   // (fix: in the birds' own spans; the goose's aside 1.0-1.25 for a full angle of 35-60 deg about its way (DESIGN L4), no FORM_K; laid along their way through the air, spot())   // (spans back, aside per place: the goose's V 35-60 deg, the ibis's 80-90)
+  var LIFE_N = { skein: [[5, 8], [6, 5], [7, 32], [9, 35], [11, 20]],   // how many birds a flock of each pattern has: [n, weight]
+                 line: [[3, 40], [5, 35], [6, 25]], pair: [[2, 1]], single: [[1, 1]], loose: [[5, 40], [6, 35], [7, 25]] };
+  var V_GEOM = { goose: { x: [1.9, 3.0], y: [1.15, 1.45] }, ibis: { x: [0.8, 1.0], y: [0.75, 0.9] } };   // a skein's places, per step out from the leader: spans back (x) and aside (y), laid along its way through the air (the goose's V wide, the ibis's wider)
   function skyCls() { var id = HOST.sky ? HOST.sky() : ''; return SKY_CLS[id] || 'day'; }

@@ -18,9 +18,10 @@
     P.at[0] = PQ[0]; P.at[1] = PQ[1]; P.at[2] = PQ[2]; P.ok = true; P.foot[0] = PF2[0]; P.foot[1] = PF2[1];
     return true;
   }
-  /* a landing's airspeeds: a gull's whole range, not its cruise's (slow flight down to 0.45 of its pace, feet and flaps down, a powered
-     burst or a shallow dive up to twice it, as a gull hangs by a ship into a head wind), so it can hold a perch that rides the camera through the wind (into a
-     head wind it must fly the camera's speed and the wind's; with a tail wind, slower); airLo/airHi */
+  /* a landing's airspeeds: a gull's whole range, not its cruise's (slow flight down to 0.45 of its pace, feet and flaps
+     down; a powered burst or a shallow dive up to twice it, as a gull hangs by a ship into a head wind), so it can hold
+     a perch that rides the camera through the wind (into a head wind it flies the camera's speed and the wind's; with a
+     tail wind, slower) */
   function airLo(b) { return 0.45 * b.K.v; }
   function airHi(b) { return 2 * b.K.v; }
   /* the airspeed it needs to keep pace with the perch (the perch's velocity less the wind's) */
@@ -45,7 +46,7 @@
      (from straight ahead it could close only by flying slower than the camera, barely over its stall) */
   var GQ = [0, 0, 0], GP = { x: 0, y: 0, z: 0, n: 0 }, GA = [0, 0, 0];
   function gateFor(b, P, C) {
-    /* tried every 30 deg round the foot on the window, a third of the window's least side out (kept a margin in): the
+    /* tried every 30 deg round the foot on the window, 0.36 of its least side and 0.12 of its longest out (kept a margin in): the
        one wanting least depth for a last leg of PGATE m (the most from the side: the quickest in), the bird's own side
        first (each 30 deg from it costs 2 m), over it rather than under */
     var q = projReal(b.p[0], b.p[1], b.p[2], C, GP), a0;
@@ -77,7 +78,7 @@
     if (!(q.z > 0.5)) return;
     var ex = q.x < 0.05 * W ? (0.05 * W - q.x) / W : q.x > 0.95 * W ? (0.95 * W - q.x) / W : 0, ey = q.y < 0.05 * H ? (q.y - 0.05 * H) / H : q.y > 0.95 * H ? (q.y - 0.95 * H) / H : 0;
     if (!ex && !ey) return;
-    var m = 2 * VW.tanX * q.z / k;   // (m/s a window's width a 0.6 s, at its depth)
+    var m = 2 * VW.tanX * q.z / k;   // (m/s: a window's width in 0.6 s, at its depth)
     for (var i = 0; i < 3; i++) o[i] += (C.r[i] * ex * m + C.u[i] * ey * m * H / W);
   }
   function onWindow(b, C) { var q = projReal(b.p[0], b.p[1], b.p[2], C, GP); return q.z > 0.5 && q.x > 0 && q.x < W && q.y > 0 && q.y < H; }
@@ -132,8 +133,8 @@
     var ux = b.v[0] - P.v[0], uy = b.v[1] - P.v[1], uz = b.v[2] - P.v[2], ue = (ux * ex + uy * ey + uz * ez) / el;
     AV[0] -= PDAMP * (ux - ue * ex / el); AV[1] -= PDAMP * (uy - ue * ey / el); AV[2] -= PDAMP * (uz - ue * ez / el);
     keepInView(b, AV, C);
-    /* (no B17 here: the last leg runs between two points at the perch's depth or deeper, so never nearer the eye than
-       the perch; on a phone that is nearer than B17's few spans, and it would push the bird off its own landing) */
+    /* (no clearOfEye here: the last leg runs between two points at the perch's depth or deeper, so never nearer the eye
+       than the perch; on a phone that is nearer than clearOfEye's few spans, and it would push the bird off its landing) */
     b.flapA = b.flap = s < 0.45 || ry < -1 ? 1 : 0;   // (down with strong beats; up into it gliding; under it, beating: a glide cannot climb)
     flyTo(b, dt, AV[0], AV[1], AV[2]);
   }
@@ -153,7 +154,7 @@
   function goRound(b, why) {
     var P = b.P; P.tries++;
     if (P.tries > 1 || why === 'fast') { giveUp(b); return; }
-    /* once round: out at least 3 spans past where it was, then in again */
+    /* once round: after 4 s, once at least 3 spans (and 25 m) from the perch, in again; given up after 14 s */
     b.st = 'round'; P.rT = t; P.d0 = 0;
   }
   function roundStep(b, dt, C) {
