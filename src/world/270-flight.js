@@ -18,12 +18,6 @@
   }
   var CS = freshState(), CSP = freshState();
   function copyState(a, b) { b.x = a.x; b.y = a.y; b.z = a.z; b.yawV = a.yawV; b.phi = a.phi; b.thU = a.thU; b.thP = a.thP; b.roll = a.roll; b.psi = a.psi; b.cy = a.cy; b.pf = a.pf; b.pfT = a.pfT; b.cw = a.cw; }
-  function simReset() {
-    CS = freshState(); CSP = freshState(); SIM.t = 0; SIM.V = null; SIM.u = 0; SIM.acc = 0; SIM.alpha = 1; SIM.steps = 0; SIM.fixG = 0; SIM.fixO = 0; SIM.inited = false;
-    INP.dx = INP.dy = 0; INP.rel = false; INPLOG.length = 0; INPQ.length = 0; INPQ.i = 0;
-    GROUND.ok = false; GROUND.V = null; GCK[0] = -1;
-    if (BIRDS) BIRDS.reset();
-  }
   /* the flight begins at the landing (world6: once, for the page's life; no cloud to come down out of) */
   function arrive(V) {
     planVisit(V);
@@ -70,7 +64,7 @@
     if (V !== SIM.V) {   // (world6: only at the start: the world is built, then flown for the page's life)
       /* (E1) built in the background long before its junction; in flight never built at once (round 3b's fallback was
          a synchronous build, a long task in flight): if it is not ready the flight holds at the junction, in the
-         passage's cover, until it is (counted: SIM.waits). The harness's stills (simTo) build it at once */
+         passage's cover, until it is (counted: SIM.waits). */
       if (V.st < VSTAGES.length && !(STILLMODE && visitStep(V, true))) { SIM.waits++; return false; }
       arrive(V); SIM.V = V;
     }
@@ -85,7 +79,6 @@
     // clearance then eases back to the realm's cruise height, level
     var idle = t - CS.lastIn;
     if (idle > CS.idleAfter && !NOAUTO) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
-    CALM.k += clamp(CALM.want - CALM.k, -dt / CALM_T, dt / CALM_T);   // (round 3: the birds' calm eased in or out)
     // what stands ahead and cannot be climbed over: passed beside, the heading held (a slip sideways, never a turn)
     slipStep(V, CS, dt, true);
     // the flight follows the view (within about half a second; at most 52 deg/s)
@@ -103,7 +96,7 @@
     if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;
     CS.c = clamp(CS.c, cl[0], cl[2]);
     // the height: the ground ahead in time and what stands on it, a spring toward it
-    pitchLook(V, CS, dt, CALM.k);   // (round 3: the look at the ground ahead, eased under the birds' calm)
+    pitchLook(V, CS, dt);   // (the look at the ground ahead)
     var yT = heightTarget(V, t), w = VY_W, acc = clamp(w * w * (yT - CS.y) - 2 * w * CS.vy, -VY_ACC, yT > CS.y ? VY_ACCU : VY_ACC);
     CS.vy = clamp(CS.vy + acc * dt, -VY_DN, VY_UP);
     CS.y += CS.vy * dt;
