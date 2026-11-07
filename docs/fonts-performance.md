@@ -41,3 +41,19 @@ script), takes the top of the hour's still sky (hour.js, before the
 first paint), the world's still top for the hour (the wide windows' own
 on a window 6:5 or wider) as the world's script's first act, and follows
 the top of the drawn world. The favicon is SVG-first with PNG fallback.
+
+The load budget (load-perf, 2026-11-07; RULES.json load-budget, CI's
+check "The page loads within its budget", tools/checks/36-load-budget.sh):
+the plain build served as Cloudflare Pages serves it (Brotli 11, the 103
+Early Hints) and loaded cold three times under Lighthouse's mobile profile
+(150 ms RTT, 1.6 Mbps, CPU 4x). Each file the page loads has a byte budget
+as sent, about a tenth over its size that day; so do the bytes the first
+paint waits for (the document, the stylesheet, the hour, both fonts) and
+the whole; the first paint's median must be within 1,200 ms (about 630 ms
+that day). A new file needs a budget line; a deliberate growth raises its
+line in the PR that grows it. tools/loadperf.mjs is the measure: a build
+or a URL, three profiles (desktop; Lighthouse's mobile; Chrome's Slow 4G),
+cold and warm, each request's bytes and timing, medians (one profile and
+three runs in under 20 s). Headless Chrome has a software GL, so the world
+stands down there (520-start.js) and "the world's scripts in" stands for
+the world shown; the world's own first frame is measured on a GPU.
