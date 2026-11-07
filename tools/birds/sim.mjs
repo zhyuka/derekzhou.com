@@ -15,6 +15,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { loadGround } from '../../test/ground.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const DT = 0.05;
@@ -25,9 +26,16 @@ export const SIZES = {
   '390x844': { W: 390, H: 844, boxes: [25.05, 253.41, 364.89, 333.25, 24, 366.34, 366, 445.37, 24, 477.37, 366, 496.87, 20, 803, 55.2, 824, 79.2, 803, 133.5, 824], nvb: [24.014, 252.37, 0.261047] },
 };
 const TANX = Math.tan(36 * Math.PI / 180), G = 9.81;
-/* the stub world's land: low hills, and patches of the sea of cloud (where the drawn ground is the cloud's top) */
-export const groundAt = (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);
-export const seaW = (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
+/* the land. Today the stub's low hills and patches of the sea of cloud; with BIRDS_GROUND=recorded, the world's real
+   ground, recorded on the 4090 (tools/gpu/record-ground.mjs: world seed 11, the camera's ground and the sea of cloud's
+   weight, +-1500 m about the landing, every 10 m; outside it, its edge). test/ground.mjs refuses a stale recording
+   (the land's sources changed since), so every case then fails, saying to re-record. (2026-11-07: on the real ground
+   the case "a flock sent down into the sea of cloud is hidden in it, then taken out" keeps its flock in all 8 scenes;
+   seed 11's landing is all sea of cloud, and the page's raw sea level lies under the recorded ground at 90% of its
+   points. The birds lane turns the real ground on once that case is settled) */
+export const GROUND = process.env.BIRDS_GROUND === 'recorded' ? loadGround(11) : null;
+export const groundAt = GROUND ? (x, z) => GROUND.groundAt(x, z) : (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);
+export const seaW = GROUND ? (x, z) => (GROUND.seaW(x, z) > 0.5 ? 1 : 0) : (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
 
 let SCRIPTS = null;
 function scripts() {

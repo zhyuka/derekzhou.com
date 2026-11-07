@@ -1,0 +1,16 @@
+{
+ "seed": 11,
+ "x0": -1500,
+ "z0": -1500,
+ "cell": 10,
+ "n": 301,
+ "hash": "c58575589c0f4fd2",
+ "seaLo": -110,
+ "rise": 90,
+ "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090 (0x00002684) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+ "heights": [
+  -56.8,
+  12.76
+ ],
+ "what": "the camera's ground (the world's probe, mode 1) and the sea of cloud's weight (kitAt) on a grid about the landing; float32, heights then weights, row by row from x0, z0"
+}
