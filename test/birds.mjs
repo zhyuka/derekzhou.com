@@ -36,8 +36,10 @@ function play(name, size, seed) {
       if (!was && sim.t - t0 > DT && sim.clicks === clicks) seen(b, 'popIn');   // (a click's bird is made where it is clicked: the owner's)
       /* never under the land and 15 m (but into the sea of cloud, going down into it) */
       if (b.st in FLY) { const g = groundAt(b.p[0], b.p[2]), under = g + 12 - b.p[1]; if (under > 0 && !(seaW(b.p[0], b.p[2]) && b.F && b.F.goal && b.F.goal.k === 'sink')) { bad.low++; bad.lowWorst = Math.max(bad.lowWorst, under + 12); } }
-      /* never first seen coming out from under the land or the cloud: hidden, then seen while within sight */
-      const hid = B.hidden(b); if (wasHidden.get(b) && !hid && px(b) >= 0.5) bad.rise++; wasHidden.set(b, hid);
+      /* never first seen coming out from under the land or the cloud: hidden, then out over the top that hid it while
+         within sight (the 18 m under it that counts as hidden is a margin, not the cloud's edge) */
+      const hid = B.hidden(b);
+      if (hid) wasHidden.set(b, true); else if (wasHidden.get(b) && b.p[1] - b.sz > B.hideTop(b.p[0], b.p[2])) { if (px(b) >= 0.5) bad.rise++; wasHidden.set(b, false); }
       now.set(b, { st: b.st, psi: b.psi, phi: b.phi, V: b.V });
     }
     for (const [b] of last) if (!now.has(b)) seen(b, 'popOut');
@@ -142,6 +144,9 @@ test('a flock sent down into the sea of cloud is hidden in it, then taken out', 
   report('sink: into the cloud and out of the world', rows, 1);
   console.log(`#   taken out after a median ${fmt(gone[gone.length >> 1] ?? Infinity)}`);
   assert.ok(rows.every((r) => r.ok), 'a scene broke a rule or kept its flock');
+});
+test('a bird sent into the cloud keeps over it: never under the land, never out again in sight', () => {
+  for (const seed of [7, 12]) { const p = play('sinkLong', '960x600', seed), w = invariants(p); assert.equal(w.join('; '), '', `sink seed ${seed}`); }
 });
 test('a clicked bird lands on a letter', () => landTest('click: down by 23 s from the click (sent at 3 s)', 'click', 23));
 test('B17: a bird banks away from a dragged camera\'s way', () => {

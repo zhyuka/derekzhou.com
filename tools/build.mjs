@@ -62,6 +62,32 @@ const REWRITTEN = ['index.html', '404.html', '_headers', '_routes.json'];
 
 function die(msg) { console.error('build: FAIL: ' + msg); process.exit(1); }
 
+// (load-perf, 2026-11-07) the stylesheet served without its comments and indentation: it is render-blocking, and its
+// notes were 8 KB of its 19 (4,995 B at Brotli 11 before, 2,151 B after). Every comment is dropped but a /*! one, every
+// line trimmed, every blank line dropped; nothing inside a string is touched, and a rule stays on its own line (the
+// checks that read the stylesheet read it line by line). Proved here: the text with every comment and all white space
+// taken out is the same before and after, so only comments and white space between tokens went.
+function cssMin(css, name) {
+  let o = '', i = 0, q = null;
+  while (i < css.length) {
+    const c = css[i];
+    if (q) { o += c; if (c === '\\') { o += css[i + 1] || ''; i += 2; continue; } if (c === q) q = null; i++; continue; }
+    if (c === '"' || c === "'") { q = c; o += c; i++; continue; }
+    if (c === '/' && css[i + 1] === '*') {
+      const j = css.indexOf('*/', i + 2); if (j < 0) die(name + ': a comment that does not end');
+      if (css[i + 2] === '!') o += css.slice(i, j + 2);
+      else if (o && /\S/.test(o[o.length - 1]) && /\S/.test(css[j + 2] || ' ')) o += ' ';   // (a comment between two tokens parts them)
+      i = j + 2; continue;
+    }
+    o += c; i++;
+  }
+  if (q) die(name + ': a string that does not end');
+  const min = o.split('\n').map((l) => l.trim()).filter(Boolean).join('\n') + '\n';
+  const bare = (t) => t.replace(/\s+/g, '');
+  if (bare(min) !== bare(o)) die(name + ': minifying changed more than white space');
+  return min;
+}
+
 function files(dir, rel = '') {   // every file under dir, relative, '/'-separated, sorted
   const out = [];
   for (const e of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
@@ -101,6 +127,7 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
+  for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.css')).sort()) fs.writeFileSync(path.join(out, n), cssMin(fs.readFileSync(path.join(out, n), 'utf8'), n));
   // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
   // tools/birds/: CI makes them again and compares)
   const wing = fs.readdirSync(WING).filter((n) => n.endsWith('.js')).sort();

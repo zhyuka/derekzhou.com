@@ -30,8 +30,8 @@ files=(
   assets/favicon.png
   assets/favicon.svg
   assets/apple-touch-icon.png
-  assets/fonts/Geist-400-500.sub2.woff2
-  assets/fonts/GeistMono-Regular.sub2.woff2
+  assets/fonts/Geist-400-500.sub3.woff2
+  assets/fonts/GeistMono-Regular.sub3.woff2
   assets/fonts/OFL.txt
   .well-known/security.txt
 )

@@ -225,20 +225,27 @@
      not show: the same sums, half the work */
   var ONE3 = new Float64Array(3);
   function oneTone(N, eye, L, area) {
-    var LT = FP2.LT, C = LT.ONE, sd = L.sunDir, sv = L.sunVis === undefined ? 1 : L.sunVis, sc = L.sunC, au = L.ambU, ad = L.ambD, cl = L.clLit, f, k, ma = 0;
+    var LT = FP2.LT, C = LT.ONE, sd = L.sunDir, sv = L.sunVis === undefined ? 1 : L.sunVis, sc = L.sunC, au = L.ambU, ad = L.ambD, cl = L.clLit, f, ma = 0;
     var seaLit = LZ.seaLit, back = C.RIM ? Math.max(0, -(eye[0] * sd[0] + eye[1] * sd[1] + eye[2] * sd[2])) : 0;
-    ONE3[0] = ONE3[1] = ONE3[2] = 0;
+    /* (the same products in the same order as per facet and channel; only the loads lifted out of the loop) */
+    var ex = eye[0], ey = eye[1], ez = eye[2], s0 = sd[0], s1 = sd[1], s2 = sd[2], WRAP = C.WRAP, WRAP1 = 1 + WRAP, TRANS = C.TRANS, SKYT = C.SKYT, SKYT1 = 1 - SKYT;
+    var BOUNCE = C.BOUNCE, RIM = C.RIM, RIM_P = LT.RIM_P, GAIN = LT.GAIN, P0 = LT.PAPER[0], P1 = LT.PAPER[1], P2 = LT.PAPER[2], SUN_K = C.SUN_K;
+    var k0 = SUN_K * sc[0], k1 = SUN_K * sc[1], k2 = SUN_K * sc[2], ad0 = ad[0], ad1 = ad[1], ad2 = ad[2], au0 = au[0] - ad0, au1 = au[1] - ad1, au2 = au[2] - ad2, c0 = cl[0], c1 = cl[1], c2 = cl[2];
+    var o0 = 0, o1 = 0, o2 = 0;
     for (f = 0; f < NFAC; f++) {
-      var nx = N[3 * f], ny = N[3 * f + 1], nz = N[3 * f + 2], ne = nx * eye[0] + ny * eye[1] + nz * eye[2];
+      var nx = N[3 * f], ny = N[3 * f + 1], nz = N[3 * f + 2], ne = nx * ex + ny * ey + nz * ez;
       if (ne < 0) { nx = -nx; ny = -ny; nz = -nz; ne = -ne; }
-      var dS = nx * sd[0] + ny * sd[1] + nz * sd[2];
-      var direct = sv * Math.min(1, Math.max(0, (dS + C.WRAP) / (1 + C.WRAP))), through = sv * C.TRANS * Math.max(-dS, 0);
-      var wsky = C.SKYT + (1 - C.SKYT) * (0.5 + 0.5 * nz), bnc = C.BOUNCE * Math.max(-nz, 0) * seaLit;
-      var rim = C.RIM ? sv * C.RIM * Math.pow(1 - ne, LT.RIM_P) * (0.4 + 0.6 * back) : 0, a = area ? area[f] : 1;
-      for (k = 0; k < 3; k++) ONE3[k] += a * LT.GAIN * LT.PAPER[k] * (C.SUN_K * sc[k] * (direct + through + rim) + ad[k] + (au[k] - ad[k]) * wsky + bnc * cl[k]);
+      var dS = nx * s0 + ny * s1 + nz * s2;
+      var direct = sv * Math.min(1, Math.max(0, (dS + WRAP) / WRAP1)), through = sv * TRANS * Math.max(-dS, 0);
+      var wsky = SKYT + SKYT1 * (0.5 + 0.5 * nz), bnc = BOUNCE * Math.max(-nz, 0) * seaLit;
+      var rim = RIM ? sv * RIM * Math.pow(1 - ne, RIM_P) * (0.4 + 0.6 * back) : 0, a = area ? area[f] : 1, dtr = direct + through + rim;
+      o0 += a * GAIN * P0 * (k0 * dtr + ad0 + au0 * wsky + bnc * c0);
+      o1 += a * GAIN * P1 * (k1 * dtr + ad1 + au1 * wsky + bnc * c1);
+      o2 += a * GAIN * P2 * (k2 * dtr + ad2 + au2 * wsky + bnc * c2);
       ma += a;
     }
-    if (ma > 0) { ONE3[0] /= ma; ONE3[1] /= ma; ONE3[2] /= ma; }
+    if (ma > 0) { o0 /= ma; o1 /= ma; o2 /= ma; }
+    ONE3[0] = o0; ONE3[1] = o1; ONE3[2] = o2;
     return ONE3;
   }
   function lightBird(s, rest, dt) {
