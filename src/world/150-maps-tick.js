@@ -1,4 +1,4 @@
-  /* ---------------------------------------------------------------- the maps and the director */
+  /* ---------------------------------------------------------------- the maps in the world: mapsInit, kitAt and the director's tick */
   var MAPS = { w: null, D: null, ox: 0, oz: 0, t: 0, lastTick: -1e9, lastSee: -1e9, mc: {}, pc: {}, kw: {}, look: null };
   /* (fast500 B3) the first tick's prefix: S anchors to 15.65 km; the rest (S's 15.65-16.27 km, about 7% of its slots)
      in the next slice. What the first plan bakes reads S within: KF's raw texels to KF_RAW (15 km, whole, as today)
