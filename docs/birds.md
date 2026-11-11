@@ -7,10 +7,10 @@ them, in its canvas, so before the world's first frame, and wherever it
 does not run (no WebGL2, no script, a lost context, a CPU renderer, a
 device too slow), the page is the still sky and the words, with no bird on
 it, and in print the name, the line and the credit on the paper, no bird
-(see Design); under forced colours the world draws them alone, in
-CanvasText (see World: FALLBACKS). No script, SVG or rule of the old 2D
+(docs/design.md); under forced colours the world draws them alone, in
+CanvasText (docs/world.md, ## FALLBACKS). No script, SVG or rule of the old 2D
 birds is left in the page, its stylesheet, its headers or the world's
-scripts, and CI fails if one comes back (see Security).
+scripts, and CI fails if one comes back (docs/security.md).
 
 THE ONE BIRD (inkbirds.js, 2026-11-06; the design and every gap it
 closes: docs/birds-design.md). Every bird is one record for its whole
@@ -80,7 +80,8 @@ a bird go into the world from there, an ordinary bird from its first
 frame; none under reduced motion.
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
-real module headless in Node on a stub host: a camera flying its heading, the words' boxes as the served page lays
+real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
++-1500 m about the landing; BIRDS_GROUND=stub for the old low hills): a camera flying its heading, the words' boxes as the served page lays
 them out at 960x600 and 390x844, a scripted pointer, clicks and drags, the 50 ms clock. test/birds.mjs measures it
 over random scenes against the research's numbers (CI: about 30 s; BIRDS_N=16 BIRDS_LONG=1 for the full run), and
 `node tools/birds/sim.mjs --case C --size S --seed N --svg F` replays one scene with its paths in the perch's frame.

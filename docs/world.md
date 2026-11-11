@@ -41,7 +41,7 @@ never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
 view and the flight climbs or dives; let go, the turn runs on a little and
 eases out. The steering reads a pointer's moves only while it is pressed;
-the birds' play reads a hovering one (see Birds: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
+the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
 never at load); everywhere else only the drag steers, and no motion
@@ -145,7 +145,7 @@ clear of every block of words at the view's own heading (a visitor's drag
 can bring the moon behind them; they still read there, the credit
 at 4.80:1 the lowest measured so, at 1440x900, with the moon's
 route). So 4.5:1 held against every ground pixel measured under
-the words (see Verify; the credit's lowest at the view's own
+the words (docs/verify.md; the credit's lowest at the view's own
 heading 4.90:1). The ceiling bounds lightness (OKLab L), not
 luminance, so the margin depends on hue: on a saturated green at the
 ceiling the credit would be about 4.4-4.5:1. A bird passing behind the
@@ -180,9 +180,12 @@ a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
 sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
 no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
 to show the world later than HOLD_WORLD (1000 ms from the navigation's
-start): from stage A (38 x A - 150 ms) and from the first hold frame
-(26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
-1x-6x. The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+start): from stage A (38 x A - 150 ms; only a clearly slow A, over
+1.3 x HOLD_WORLD, skips there: stage A swings 15-45 ms at 1x on the 4090)
+and from the first hold frame (26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
+1x-6x. Where a hold may run, world.js makes the canvas's context as its script
+ends, so the GPU process starts while the kits come, not inside stage A.
+The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
 the link is taken out and the path below goes on. T2 shows the world's
 first frame byte for byte the one without the hold (frame 0: gstep
 counts a world shown in the page's own load as shown at frame 0). The
@@ -343,7 +346,7 @@ at 0.35 of the old size in the boot's last stage still lets a device
 too slow even there decline (over 21.7 ms twice). The density costs
 memory: the world's targets for a 393x852 phone at 3 go from about 134 MB
 to 201 MB, a Retina 1440x900 window's from 239 MB to 589 MB (a real
-iPhone must hold a 10-minute visit at the full phone tier: see Verify). A
+iPhone must hold a 10-minute visit at the full phone tier: docs/verify.md). A
 renderer on the CPU (SwiftShader, llvmpipe and the like, by its name)
 keeps the still sky from the start; so does a boot whose 0.35 trial
 misses the floor, a first frame doubted twice, or a broken program. A

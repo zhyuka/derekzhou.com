@@ -34,9 +34,20 @@ test('deploy gate: a cancelled main gate is no result; only a failure stops live
   const d = (proved) => ({ verdict: async (r) => V[r.head_sha], ownerMerge: async () => false, branchIdentical: async () => proved, laterStallOk: async () => -1, say: () => {} });
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'success'), run('c', 'success')], d(true))).to, S('c'), 'all green: the newest tip');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled'), run('c', 'success')], d(true))).to, S('c'), 'cancelled in between: past it, to the newest green');
-  const f = await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], d(true));
+  const f = await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], d(false));
   assert.equal(f.to, S('a'), 'failed in between: live stops before it'); assert.match(f.why, /red at b/);
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled'), run('c', 'success')], d(false))).to, S('a'), 'cancelled, frames unproved: live waits before it');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'cancelled')], d(true))).to, S('a'), 'cancelled last: nothing newer to stand on');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', null, 'in_progress')], d(true))).to, S('a'), 'running: waits');
+});
+
+test('deploy gate: a red tip whose frames are proved, covered by a later green gate, is stepped over', async () => {
+  const { walk } = await import(new URL('../../.github/ci/deploy-walk.mjs', import.meta.url));
+  const S = (c) => c.repeat(40);
+  const run = (c, conclusion, status = 'completed') => ({ head_sha: S(c), status, conclusion, html_url: 'u' + c });
+  const V = { [S('a')]: { gate_ok: true, frames_identical: true, base: S('0') }, [S('c')]: { gate_ok: true, frames_identical: true, base: S('b') } };
+  const d = (owner) => ({ verdict: async (r) => V[r.head_sha], ownerMerge: async (sha) => owner && sha === S('b'), branchIdentical: async () => false, laterStallOk: async () => -1, say: () => {} });
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], d(true))).to, S('c'), "a red owner's merge, then a green tip: live steps over");
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], d(false))).to, S('a'), 'a red tip with unproved frames: live stops');
+  assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', null, 'in_progress')], d(true))).to, S('a'), 'a red proved tip, no later green yet: live waits');
 });

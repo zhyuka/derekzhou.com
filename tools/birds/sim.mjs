@@ -26,16 +26,15 @@ export const SIZES = {
   '390x844': { W: 390, H: 844, boxes: [25.05, 253.41, 364.89, 333.25, 24, 366.34, 366, 445.37, 24, 477.37, 366, 496.87, 20, 803, 55.2, 824, 79.2, 803, 133.5, 824], nvb: [24.014, 252.37, 0.261047] },
 };
 const TANX = Math.tan(36 * Math.PI / 180), G = 9.81;
-/* the land. Today the stub's low hills and patches of the sea of cloud; with BIRDS_GROUND=recorded, the world's real
-   ground, recorded on the 4090 (tools/gpu/record-ground.mjs: world seed 11, the camera's ground and the sea of cloud's
-   weight, +-1500 m about the landing, every 10 m; outside it, its edge). test/ground.mjs refuses a stale recording
-   (the land's sources changed since), so every case then fails, saying to re-record. (2026-11-07: on the real ground
-   the case "a flock sent down into the sea of cloud is hidden in it, then taken out" keeps its flock in all 8 scenes;
-   seed 11's landing is all sea of cloud, and the page's raw sea level lies under the recorded ground at 90% of its
-   points. The birds lane turns the real ground on once that case is settled) */
-export const GROUND = process.env.BIRDS_GROUND === 'recorded' ? loadGround(11) : null;
+/* the land: the world's real ground, recorded on the 4090 (tools/gpu/record-ground.mjs: world seed 11, the camera's
+   ground and the sea of cloud's weight and level, +-1500 m about the landing, every 10 m; outside it, its edge).
+   test/ground.mjs refuses a stale recording (the land's sources changed since): every case then fails, saying to
+   re-record. BIRDS_GROUND=stub: the old low hills and patches of sea instead. The sea is where the module's own test
+   holds (its weight over 0.85: a sink starts only there), and its level is the page's (SEA_LO + RISE x weight) */
+export const GROUND = process.env.BIRDS_GROUND === 'stub' ? null : loadGround(11);
 export const groundAt = GROUND ? (x, z) => GROUND.groundAt(x, z) : (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);
-export const seaW = GROUND ? (x, z) => (GROUND.seaW(x, z) > 0.5 ? 1 : 0) : (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
+export const seaW = GROUND ? (x, z) => (GROUND.seaW(x, z) > 0.85 ? 1 : 0) : (x, z) => (Math.sin(x / 1500 + z / 1100) > 0.3 ? 1 : 0);
+const seaLv = GROUND ? (x, z) => GROUND.seaLv(x, z) : (x, z) => groundAt(x, z);
 
 let SCRIPTS = null;
 function scripts() {
@@ -48,7 +47,7 @@ function scripts() {
   if (src.indexOf(at) < 0) throw new Error('sim: birdsStep not found in the assembled inkbirds.js');
   src = src.replace(at, at + '    if (!self.__SIM) self.__SIM = { BIRDS: BIRDS, FLOCKS: FLOCKS, PERCHED: PERCHED, PW: PW, PTR: PTR, LVC: LVC,\n' +
     '      t: function () { return t; }, W: function () { return [W, H]; }, MODEL_K: MODEL_K, FDEV_MAX: FDEV_MAX, WINDV: WINDV,\n' +
-    '      hidden: hidden, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
+    '      hidden: hidden, hideTop: hideTop, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
     '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach };\n');
   const model = ['facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing'].map((f) => new vm.Script(fs.readFileSync(path.join(ROOT, 'src/birds/model', f + '.js'), 'utf8'), { filename: f + '.js' }));
   SCRIPTS = { model, birds: new vm.Script(src, { filename: 'inkbirds.js' }) };
@@ -79,7 +78,7 @@ export function makeSim(o = {}) {
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
     grade: () => null, light: () => LIGHT, words: () => WORDS,
     bindTextures: () => !!o.draw, target() {}, cloudBetween3: (ax, ay, az, P, v) => { v[0] = v[1] = v[2] = 0; return v; }, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
-    seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = groundAt(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
+    seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = seaLv(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
     rng: (salt) => { let a = (seed ^ salt) >>> 0; return () => { a = (a + 0x9e3779b9) | 0; let q = a ^ (a >>> 16); q = Math.imul(q, 0x21f0aaad); q ^= q >>> 15; q = Math.imul(q, 0x735a2d97); return ((q ^ (q >>> 15)) >>> 0) / 4294967296; }; },
     reduced: () => false, budget: () => Infinity, count() {}, time: () => t };
   const ctx = vm.createContext({ console });

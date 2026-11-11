@@ -6,11 +6,20 @@
 // branch's gate or the owner's merge (as a tip judged against another base is), and the next green gate, which runs
 // every static check on the whole tree, covers the rest. Only a failure, an unproved visible change or failed stall
 // visits stop live; a gate still running makes it wait.
+// A red tip the bot reverted (a later tip that is its revert, d.revertOf: the tree before the red tip, so the bytes
+// live already serves) is stepped over, with the revert, once the revert's own gate is green.
 export async function walk(live, runs, d) {
   let to = live, prev = live, mustReach = -1, safe = live, why = '';
-  for (const r of runs) {
+  for (let i = 0; i < runs.length; i++) {
+    const r = runs[i];
     const tip = r.head_sha.slice(0, 10);
-    if (r.status !== 'completed') { why = `main ${tip}'s gate is ${r.status}: live waits there`; break; }
+    if (r.status !== 'completed') {
+      // (a tip the bot fast-forwarded main to is the very tree its PR's gate passed on this base: when that gate
+      // needed no T2, main's own gate (and its stall visits, which run only with T2) can add nothing, so live need
+      // not wait for it: 2-4 minutes off every such landing)
+      if (d.prProved && (await d.prProved(r.head_sha, prev))) { d.say(`deploy gate: main ${tip}'s gate is ${r.status}, but its PR's gate passed this very tree on ${prev.slice(0, 10)} with no T2: live goes on`); to = prev = r.head_sha; continue; }
+      why = `main ${tip}'s gate is ${r.status}: live waits there`; break;
+    }
     if (r.conclusion === 'cancelled') {
       if (!(await d.ownerMerge(r.head_sha)) && !(await d.branchIdentical(r.head_sha))) { why = `main ${tip}'s gate was cancelled and its own branch's gate does not prove its frames: live waits for a later gate at ${to.slice(0, 10)}`; break; }
       d.say(`deploy gate: main ${tip}'s gate was cancelled (superseded): no result; judged by its branch's gate`);
@@ -18,7 +27,21 @@ export async function walk(live, runs, d) {
       continue;
     }
     const v = r.conclusion === 'success' ? await d.verdict(r) : null;
-    if (!v || !v.gate_ok) { why = `**main is red at ${tip}** (${r.conclusion}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`; break; }
+    if (!v || !v.gate_ok) {
+      let j = -1;
+      if (d.revertOf && mustReach < 0 && i + 1 < runs.length && (await d.revertOf(runs[i + 1].head_sha)) === r.head_sha) j = i + 1;   // (the bot's revert is always the red tip's own child: it moves main from that tip only)
+      const rv = j >= 0 && runs[j].status === 'completed' && runs[j].conclusion === 'success' ? await d.verdict(runs[j]) : null;
+      if (rv && rv.gate_ok) { d.say(`deploy gate: main ${tip} was red and the bot reverted it at ${runs[j].head_sha.slice(0, 10)} (green): stepped over`); to = prev = runs[j].head_sha; i = j; continue; }
+      // A red tip a later tip's green gate covers (every static check on the whole tree), and whose frames are proved
+      // (the owner's merge, or its branch's gate): like a cancelled one, no result; live goes on. Unproved frames stop
+      // live (a later gate compares against this tip, so it cannot see that change); no later green yet: live waits.
+      if (await d.ownerMerge(r.head_sha) || (await d.branchIdentical(r.head_sha))) {
+        let later = false;
+        for (let k = i + 1; k < runs.length && !later; k++) if (runs[k].status === 'completed' && runs[k].conclusion === 'success') { const w = await d.verdict(runs[k]); later = !!(w && w.gate_ok); }
+        if (later) { d.say(`deploy gate: main ${tip} was red (${r.conclusion}), its frames are proved and a later tip's gate is green: no result; stepped over`); prev = r.head_sha; continue; }
+        why = `main ${tip} is red (${r.conclusion}), its frames proved: live waits at ${to.slice(0, 10)} for a later green gate`; break;
+      }
+      why = `**main is red at ${tip}** (${r.conclusion}): ${r.html_url}. live stays at ${to.slice(0, 10)}.`; break; }
     if (!v.frames_identical && !(await d.ownerMerge(r.head_sha)) && !(v.base !== prev && (await d.branchIdentical(r.head_sha)))) { why = `main ${tip} changes what a visitor sees (${v.reason}) without the owner's own merge: live stays at ${to.slice(0, 10)}`; break; }
     if (v.t2 && v.t2.stall_ok === false) {
       const j = await d.laterStallOk(runs, r);
@@ -27,7 +50,7 @@ export async function walk(live, runs, d) {
       mustReach = Math.max(mustReach, j);
     }
     to = prev = r.head_sha;
-    if (runs.indexOf(r) >= mustReach) mustReach = -1;
+    if (i >= mustReach) mustReach = -1;
   }
   if (mustReach >= 0) { why = `a tip's failed stall visits are cleared only at ${runs[mustReach].head_sha.slice(0, 10)}, not reached: live goes no further than ${safe.slice(0, 10)}`; to = safe; }
   return { to, why };

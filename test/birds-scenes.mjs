@@ -1,6 +1,7 @@
 // birds-scenes.mjs: the scenes test/birds.mjs runs on the headless sim (tools/birds/sim.mjs), each made from a seed:
 // where the bird starts (range, side, height, heading), the wind, the camera's speed and turn, the pointer's path.
 // A scene is { opt (makeSim's), setup(sim) -> the birds it watches, secs, at (when its clock starts) }.
+import { GROUND } from '../tools/birds/sim.mjs';   // (the recorded ground; null under BIRDS_GROUND=stub)
 const D2R = Math.PI / 180, LONG = !!process.env.BIRDS_LONG;   // (BIRDS_LONG: the world's and the perch's long scenes at full length)
 function rand(seed) { let a = (seed * 0x9e3779b9) >>> 0; return () => { a = (a + 0x6d2b79f5) | 0; let q = Math.imul(a ^ (a >>> 15), 1 | a); q = (q + Math.imul(q ^ (q >>> 7), 61 | q)) ^ q; return ((q ^ (q >>> 14)) >>> 0) / 4294967296; }; }
 const mix = (r, a, b) => a + (b - a) * r();
@@ -42,11 +43,14 @@ export const SCENES = {
   },
   /* a pair sent down into the sea of cloud below (the eye over a patch of it): hidden in it, then taken out */
   sink: (seed, size) => {
-    const r = rand(seed), opt = air(r, size); opt.pos = [1800, 40, 0]; opt.yaw = 0;
+    const r = rand(seed), opt = air(r, size); opt.pos = GROUND ? [0, 40, -1300] : [1800, 40, 0]; opt.yaw = 0;   // (over the sea, inside the recording: +-1500 m about the landing)
     const d = mix(r, 100, 180), xs = side(r) * mix(r, 0.1, 0.5);
     return { opt, secs: LONG ? 180 : 120, setup: (sim) => { sim.run(0.5); const F = sim.flock(sim.ahead(d, xs, -5), 'pair', 'gull', 2);
       for (const b of F.m) b.tag = 'sink'; const g = sim.B.newGoal(F, 'sink', F.r, sim.B.skyCls()); sim.B.PW.nextT = 1e9; sim.B.PW.ptrNext = 1e9; return F.m.slice(); } };
   },
+  /* the sink scene at its full 3 minutes: the world's own birds sent into the cloud near its edge (seeds 7 and 12 once
+     went under the land there) */
+  sinkLong: (seed, size) => { const sc = SCENES.sink(seed, size); sc.secs = 180; return sc; },
   /* a gull down on a letter, kept there (its own wish to leave put off), its life watched for 4 minutes (CI: 2) */
   life: (seed, size) => {
     const sc = SCENES.perch(seed, size);
