@@ -13,9 +13,12 @@
 // 3. CSP: any "Content Security Policy" / "Refused to" console line in any visit fails the job (csp_ok).
 // 4. GLSL: every shader source each visit compiled (gstep's census: type, length, hashes). glsl_changed when base and head
 //    differ. Then each build's programs dumped (glsldump.js) and the changed ones read back on the GPU, old against new,
-//    bit for bit: the land VS's height and the probe (hbits.js), every changed fragment shader of a known kind
-//    (fsbits.js: land, mesh, sky). bits_identical = all of those 0 differing words. Kinds it cannot read are listed.
-// Writes OUT/t2.json and OUT/summary.md; with GITHUB_OUTPUT set, frames_identical, glsl_changed, bits_identical,
+//    bit for bit: the land VS's height and the probe (hbits.js), every changed fragment shader (fsbits.js: any FS, its
+//    test vertex stage made from its own inputs) and every other changed vertex shader (vsbits.js: transform feedback).
+//    bits_identical = all of those 0 differing words. A read that fails or ran nothing (each tool's coverage gate:
+//    outputs constant) is unread, and leaves bits_identical false. bits_differ = some read reported differing words
+//    (an unread read is not a difference: then the frames decide, and the summary names what was not read back).
+// Writes OUT/t2.json and OUT/summary.md; with GITHUB_OUTPUT set, frames_identical, glsl_changed, bits_identical, bits_differ,
 // csp_ok (true/false). Exit 1 on a CSP violation, a failed visit or the wrong renderer; 0 otherwise (a change in what is
 // seen is the merge bot's to route to the owner, not a failure).
 // --profiles DIR: each parallel slot keeps a Chrome profile under DIR (GPU_PROFILE_DIR: the GPU program cache skips FXC
@@ -102,7 +105,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       const args = [path.join(HERE, 'gstep.js'), '--out', dir, '--tag', tag, '--vp', vp, '--hour', hour, '--seeds', String(seed), '--ks', '1,' + N, '--hash', String(N), '--arm', j.arm + '=' + S[j.arm].url, '--yield', 'raf', '--watch', '--realname'].concat(A.gpuname ? ['--gpuname', A.gpuname] : []).concat(mob ? ['--mobile'] : [], SETTLE);
       // a visit whose world never showed (gstep's frame limit reached: show -1 or the limit) is retried once with a fresh
       // profile (no kept GPU cache); if it never shows again, the visit fails (it is never compared as a pass)
-      const shown = (r) => r && r.show && r.show[j.arm] > 0 && r.show[j.arm] < 4000;
+      const shown = (r) => r && r.show && r.show[j.arm] >= 0 && r.show[j.arm] < 4000;   // (first-paint preview: 0, shown in the page's own load: the hold)
       let code, res = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         code = await run(args, attempt ? {} : prof(slot), 'gstep_' + tag + (attempt ? '_retry' : ''));
@@ -141,7 +144,7 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
       if (nul && nul.real.length) R.errors.push(c + ': the null test (base against itself) changed ' + nul.real.length + ' frames: the noise bounds or the GPU are off; frames_identical is not trusted');
     }
     // GLSL: dump both builds' programs, read the changed ones back bit for bit
-    let bitsIdentical = true;
+    let bitsIdentical = true, bitsDiffer = false;
     if (glslChanged) {
       const dd = { base: path.join(OUT, 'glsl_base'), head: path.join(OUT, 'glsl_head') };
       await pool(['base', 'head'].map((arm) => async (slot) => run([path.join(HERE, 'glsldump.js'), S[arm].url, dd[arm]].concat(A.gpuname ? ['--gpuname', A.gpuname] : []), prof(slot), 'glsldump_' + arm)), 2);
@@ -183,31 +186,30 @@ function compare(Ra, Rb, B) {   // Ra base, Rb head (gstep's json + its dir): pe
         jobs.push({ what: 'land height and probe (hbits)', args: [path.join(HERE, 'hbits.js'), 'bits', pd.base, pd.head, path.join(OUT, 'bits_land.json')] });
       for (const n of changed) {
         if (!hb[n]) { R.glsl.unread.push(n + ' (new in head)'); continue; }
-        const fsrc = rd('head', n, 'fs'), me = P.head.find((x) => x[0] === n), vsChanged = hb[n][1] !== me[1];
-        // (a kind fsbits feeds: every input the FS declares is the land's (vW, vN, vX), a mesh's (vW, vN, vC, vY, vE), or
-        // none (full screen))
-        const ins = [...fsrc.matchAll(/(?:^|;)\s*(?:centroid |flat |smooth )*in\s+(?:highp |mediump |lowp )?\w+\s+(\w+)\s*;/gm)].map((m) => m[1]);
-        const known = ins.every((v) => ['vW', 'vN', 'vX'].includes(v)) || ins.every((v) => ['vW', 'vN', 'vC', 'vY', 'vE'].includes(v));
-        if (hb[n][2] !== me[2] && known) jobs.push({ what: n + ' FS (fsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'fsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.json')] });
-        else if (hb[n][2] !== me[2]) R.glsl.unread.push(n + ' FS (its varyings are not a kind fsbits feeds)');
-        if (vsChanged && n !== 'world.surface0') R.glsl.unread.push(n + ' VS (no vertex read-back for it; the frames decide)');
+        const me = P.head.find((x) => x[0] === n), vsChanged = hb[n][1] !== me[1], hbitsRan = jobs.length > 0 && /^land height/.test(jobs[0].what);
+        // every changed FS to fsbits (it pairs any FS: a test vertex stage made from the FS's own inputs) and every
+        // changed VS but the land's (hbits reads that) to vsbits (transform feedback); the probe's FS is hbits' too (its
+        // grid modes, as the page runs it) where hbits runs. A read that fails, or whose outputs came out constant (its
+        // coverage gate), is no result: unread, the safe side
+        if (hb[n][2] !== me[2] && !(n === 'world.probe' && hbitsRan)) jobs.push({ what: n + ' FS (fsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'fsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.json')] });
+        if (vsChanged && n !== 'world.surface0') jobs.push({ what: n + ' VS (vsbits; base ' + hb[n][0] + ')', args: [path.join(HERE, 'vsbits.js'), n, pd.base, pd.head, path.join(OUT, 'bits_' + n + '.vs.json')] });
       }
       const codes = await pool(jobs.map((jb, i) => async (slot) => { const tag = 'bits_' + i; const code = await run(jb.args, prof(slot), tag); const txt = fs.readFileSync(path.join(OUT, tag + '.log'), 'utf8'); const m = /(IDENTICAL|DIFFER)[^\n]*/.exec(txt); return { what: jb.what, code, line: m ? m[0] : 'no result (exit ' + code + ')' }; }), PAR);
-      R.bits = codes; for (const c of codes) { log('bits ' + c.what + ': ' + c.line); if (!/^IDENTICAL/.test(c.line)) bitsIdentical = false; }
-      // (a changed shader this job cannot read back leaves bits_identical false: the merge bot then asks the owner)
+      R.bits = codes; for (const c of codes) { log('bits ' + c.what + ': ' + c.line); if (!/^IDENTICAL/.test(c.line)) bitsIdentical = false; if (/^DIFFER/.test(c.line)) bitsDiffer = true; else if (!/^IDENTICAL/.test(c.line)) R.glsl.unread.push(c.what + ': ' + c.line); }
+      // (a changed shader this job cannot read back leaves bits_identical false but is no difference: the frames decide)
       if (R.glsl.unread.length) { bitsIdentical = false; log('GLSL changed but not read back: ' + R.glsl.unread.join('; ')); }
     }
-    R.frames_identical = identical && !R.errors.length; R.glsl_changed = glslChanged; R.bits_identical = bitsIdentical; R.csp_ok = !R.csp.length;
+    R.frames_identical = identical && !R.errors.length; R.glsl_changed = glslChanged; R.bits_identical = bitsIdentical; R.bits_differ = bitsDiffer; R.csp_ok = !R.csp.length;
     R.seconds = Math.round((Date.now() - t0) / 1000);
     fs.writeFileSync(path.join(OUT, 't2.json'), JSON.stringify(R, null, 1));
     const md = ['## T2: the graphics check on the RTX 4090 (D3D11)', '', '| case | result | equal | noise | changed | page states | null test |', '|---|---|---:|---:|---:|---:|---|']
       .concat(CS.map((c) => { const x = R.cases[c]; return x.error ? '| ' + c + ' | ERROR | | | | | |' : '| ' + c + ' | ' + (x.realN || x.pages.length ? 'CHANGED' : 'identical') + ' | ' + x.equal + ' | ' + x.noise + ' | ' + x.realN + ' | ' + x.pages.length + ' | ' + (x.nullTest ? x.nullTest.realN + ' changed' : '-') + ' |'; }))
-      .concat(['', '- frames_identical: **' + R.frames_identical + '**', '- glsl_changed: ' + glslChanged + (glslChanged ? ' (' + R.glsl.changed.join(', ') + ')' : ''), '- bits_identical: ' + bitsIdentical + (R.bits.length ? ' (' + R.bits.map((b) => b.what + ': ' + b.line).join('; ') + ')' : ''),
+      .concat(['', '- frames_identical: **' + R.frames_identical + '**', '- glsl_changed: ' + glslChanged + (glslChanged ? ' (' + R.glsl.changed.join(', ') + ')' : ''), '- bits_identical: ' + bitsIdentical + ', bits_differ: ' + bitsDiffer + (R.bits.length ? ' (' + R.bits.map((b) => b.what + ': ' + b.line).join('; ') + ')' : ''),
         R.glsl.unread && R.glsl.unread.length ? '- not read back (the frames decide): ' + R.glsl.unread.join('; ') : '', '- renderer: ' + R.renderer, '- csp_ok: ' + R.csp_ok + (R.csp.length ? ' (' + R.csp.slice(0, 5).join(' | ') + ')' : ''),
         R.errors.length ? '- errors: ' + R.errors.join('; ') : '', '- ' + R.seconds + ' s'].filter(Boolean));
     fs.writeFileSync(path.join(OUT, 'summary.md'), md.join('\n') + '\n');
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
-    if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, ['frames_identical', 'glsl_changed', 'bits_identical', 'csp_ok'].map((k) => k + '=' + R[k]).join('\n') + '\n');
+    if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, ['frames_identical', 'glsl_changed', 'bits_identical', 'bits_differ', 'csp_ok'].map((k) => k + '=' + R[k]).join('\n') + '\n');
     log(md.join('\n'));
     process.exitCode = R.csp.length || R.errors.some((e) => /failed|RTX 4090/.test(e)) ? 1 : 0;
   } finally { S.base.p.kill(); S.head.p.kill(); }

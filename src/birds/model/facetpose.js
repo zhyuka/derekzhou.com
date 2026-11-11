@@ -60,12 +60,29 @@
         /* the pivot of the tip: the knuckle's leading edge, on the hand */
         var px = -K.dims.kx, py = K.yK;
         var tx = wx + RH[0] * px + RH[1] * py, ty = wy + RH[3] * px + RH[4] * py, tz = wz + RH[6] * px + RH[7] * py;
-        for (j = 0; j < 3; j++) {
-          joint(p[o + 7] * PW.curl[j], p[o + 8] * PW.swp[j] + p[o + 10] * PW.spread[j], p[o + 9] * PW.twist[j], RJ);
-          mul(RH, RJ, TMP);
-          setBone(base + 3 + j, TMP, tx, ty, tz, sg);
-        }
+        for (i = 0; i < 9; i++) RHS[9 * side + i] = RH[i];
+        TS[3 * side] = tx; TS[3 * side + 1] = ty; TS[3 * side + 2] = tz;
+        tips(p, o, base, sg, RH, tx, ty, tz);
       }
+    }
+    /* the three tip bones of a side, on its hand RH and pivot t */
+    var RHS = new Float64Array(18), TS = new Float64Array(6), RHQ = new Float64Array(9);
+    function tips(p, o, base, sg, R, tx, ty, tz) {
+      for (var j = 0; j < 3; j++) {
+        joint(p[o + 7] * PW.curl[j], p[o + 8] * PW.swp[j] + p[o + 10] * PW.spread[j], p[o + 9] * PW.twist[j], RJ);
+        mul(R, RJ, TMP);
+        setBone(base + 3 + j, TMP, tx, ty, tz, sg);
+      }
+    }
+    /* the bones of a pose that differs from the last one made only in its tips' curl (p[7], p[18]): the arm, the hand
+       and the fold kept, the tips made again (the same sums as making them all) */
+    function bonesTips(kind, p, out) {
+      for (var side = 0; side < 2; side++) {
+        for (var i = 0; i < 9; i++) RHQ[i] = RHS[9 * side + i];
+        tips(p, side * NP, 1 + 6 * side, side ? -1 : 1, RHQ, TS[3 * side], TS[3 * side + 1], TS[3 * side + 2]);
+      }
+      for (var k = 0; k < 156; k++) out[k] = BN[k];
+      return out;
     }
     function verts(kind, p, out) {
       var K = KIND[kind], v = K.v, b = K.b, n = b.length, i, o, x, y, z;
@@ -196,7 +213,7 @@
     }
     function bob(ph) { return 0.03 * 0.5 * (1 - strokeS(ph - 0.1)); }
     return { pose: pose, glide: glide, from14: from14, from20: from20, mix: mix, verts: verts, facetNormals: facetNormals, paper16: paper16, chain: chain,
-             bones: bonesOf, light: light, lodK: lodK, LT: LT, flexBeat: flexBeat, FB: FB, bob: bob, kinds: KIND, NP: NP };
+             bones: bonesOf, bonesTips: bonesTips, light: light, lodK: lodK, LT: LT, flexBeat: flexBeat, FB: FB, bob: bob, kinds: KIND, NP: NP };
   }
   root.FACETPOSE = FACETPOSE;
   if (typeof module !== 'undefined' && module.exports) module.exports = FACETPOSE;

@@ -11,8 +11,8 @@
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/assets/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-  <link rel="preload" href="/assets/fonts/Geist-400-500.sub2.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/assets/fonts/GeistMono-Regular.sub2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/Geist-400-500.sub3.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/GeistMono-Regular.sub3.woff2" as="font" type="font/woff2" crossorigin>
   <meta property="og:type" content="website">
   <meta property="og:title" content="Derek Zhou — Technology Leader">
   <meta property="og:description" content="Hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.">
@@ -21,6 +21,10 @@
   <meta name="twitter:title" content="Derek Zhou — Technology Leader">
   <meta name="twitter:description" content="Hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.">
   <link rel="stylesheet" href="/style.css">
+  <!-- The hold (first-paint preview): no paint until the parser ends, so the words and the world's first frame appear
+       together (#world-end is the empty marker right after the last realm's script: the block ends as the hold does). hour.js takes this link out where
+       the hold is skipped; the world, where its device check skips it or its deadline passes. -->
+  <link rel="expect" href="#world-end" blocking="render">
   <script data-cfasync="false" src="/hour.js"></script>
   <script data-cfasync="false" src="/probe.js"></script>
   <script type="application/ld+json">
@@ -38,8 +42,6 @@
 <body>
   <!-- The world, drawn behind everything by the world's script (hidden until it is drawn). -->
   <canvas class="sky" aria-hidden="true"></canvas>
-  <!-- The start file (async, at once): the world's context and its first programs, issued once the page has painted. -->
-  <script data-cfasync="false" src="/start.js" async fetchpriority="high"></script>
 
   <main>
     <div class="stack">
@@ -56,15 +58,16 @@
     <noscript><p class="noscript-email">hello&#64;derekzhou&#46;com</p></noscript>
   </footer>
 
-  <!-- Every script carries data-cfasync="false" (Rocket Loader leaves it as served). Deferred, in order: the world, the
-       realms' kit and realms first, fetched at high priority (the boot starts a frame after the realms register); then
-       the ink birds' wing model and the ink birds, fetched at low priority after the world's bytes (the ink birds take
-       the sky whenever they come). -->
+  <!-- Every script carries data-cfasync="false" (Rocket Loader leaves it as served). The world, the realms' kit and
+       realms are parser-blocking here, after the words (the world measures them), fetched at high priority: the last
+       realm's registration runs the hold (the world's first frame drawn in that one task, then the parser ends and the
+       page paints once). The ink birds' wing model and the ink birds stay deferred, at low priority. -->
   <script data-cfasync="false" src="/site.js"></script>
-  <script data-cfasync="false" src="/world.js" defer fetchpriority="high"></script>
-  <script data-cfasync="false" src="/realm-kit.js" defer fetchpriority="high"></script>
-  <script data-cfasync="false" src="/realm-dunes.js" defer fetchpriority="high"></script>
-  <script data-cfasync="false" src="/realm-above.js" defer fetchpriority="high"></script>
+  <script data-cfasync="false" src="/world.js" fetchpriority="high"></script>
+  <script data-cfasync="false" src="/realm-kit.js" fetchpriority="high"></script>
+  <script data-cfasync="false" src="/realm-dunes.js" fetchpriority="high"></script>
+  <script data-cfasync="false" src="/realm-above.js" fetchpriority="high"></script>
+  <div id="world-end" hidden></div>
   <script data-cfasync="false" src="/facetform.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/facetpose.js" defer fetchpriority="low"></script>
   <script data-cfasync="false" src="/wingmodel.js" defer fetchpriority="low"></script>

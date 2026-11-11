@@ -16,17 +16,16 @@ style-src 'self'; connect-src https://cloudflareinsights.com
 https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; form-action 'none'; HSTS with preload;
 COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial (the accelerometer and the gyroscope included:
-Android's phone-motion steering would need accelerometer=(self),
-gyroscope=(self) on /*, a choice for the owner); X-Permitted-Cross-Domain-
+the owner kept Android drag-only on 2026-11-06, so the world adds no
+motion listener there; phone-motion steering on Android would need
+accelerometer=(self), gyroscope=(self) on /* and that listener back); X-Permitted-Cross-Domain-
 Policies none. The world needs one CSP addition, for the plan's worker:
 worker-src 'self' on the two home blocks that start it (/ and /index.html;
 404.html starts none), and the worker's response its own policy, its
 block in \_headers (/plan.js: immutable, default-src 'none'; a
 worker's policy is its script's headers, not the page's, and no other
-rule sets one on that path). The start file's table runs as a second
-worker under the same worker-src (/start-table.js: immutable,
-default-src 'none'; it posts the programs' sources and closes).
-Otherwise WebGL2 from same-origin scripts, those two workers, no blobs,
+rule sets one on that path).
+Otherwise WebGL2 from same-origin scripts, that one worker, no blobs,
 no fetches, no eval; the site's own code
 is blind (no telemetry, no beacon, no store). The one exception is
 Cloudflare Web Analytics (the owner, 2026-11-03: "yes we need
@@ -40,7 +39,7 @@ the CSP still blocks it (its hash changes every request), and turning
 it off is a dashboard choice for the owner.
 CI checks that security.txt has not expired.
 CI step "Absences are enforced" (scoped to index.html, 404.html, site.js,
-hour.js, start.js and its table start-table.js, the five minified scripts as written (src/'s
+hour.js, the five minified scripts as written (src/'s
 world.js, the kits and inkbirds.js), the wing model, plan.js,
 plus style.css for cursors and a bird rule, and \_headers for a bird
 script's name — never to this prose) fails on:
@@ -53,13 +52,12 @@ hoverSync: the owner's request of 2026-11-05, the one exception to the
 hover and exit bans); any DOM
 building; more or fewer than one getRandomValues in the world, or one
 below its INIT-END marker, and none at all, nor any clock read, in the
-kits, the wing model, the ink birds, the start file or the plan's worker;
+kits, the wing model, the ink birds or the plan's worker;
 any Math.random or clock read (Date) in the world; performance.now()
 but the world's one clockNow; anything in the hour but its one `new
 Date(`; any URL hook (location., URLSearchParams), sound, network call
 or eval, and any worker but the plan's (one, started by the world by its
-literal name) and the start file's table (one, start-table.js, started
-by the start file by its literal name); any dev or record hook (window.__*, window.claude,
+literal name); any dev or record hook (window.__*, window.claude,
 console) or an attribute read on `<html>` but the hour's data-sky and
 data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors
 only). And the old 2D birds stay retired (absence 7): it fails on a
@@ -77,21 +75,14 @@ https://derekzhou.com/cdn-cgi/rum, and none on /*; no diagnostics,
 control or lab page; the world's
 listeners only in world.js and only by name (its two on the plan's
 worker, its answer and its failure, one each); the script order (the
-world and the kits first, fetchpriority high, then the wing model and
-the ink birds, low; the start file the one async script, high, right
-after the canvas); the plan's worker (rule 2b: at most one, plan.js,
+world and the kits first, parser-blocking after the footer (the
+first-paint hold), fetchpriority high, then the wing model and the ink
+birds, deferred, low; the head's one link rel=expect blocking=render; no script async); the plan's worker (rule 2b: at most one, plan.js,
 by its literal name; its block in \_headers exactly its immutable cache
 and default-src 'none', worker-src exactly 'self' where it is started;
 its code the world's own spans verbatim, stamped with their md5; rule 4:
 pure arithmetic, no DOM, window, storage, network, entropy or clock, one
 listener, message, and two postMessage calls, its answer and its refusal);
-the start file (rule 4b: no DOM building, URL hook, storage, sound,
-module or network; one worker, its table, by its literal name; no
-entropy, clock or timer, and requestAnimationFrame only twice, the two
-frames where paint timing is missing; two listeners, webglcontextlost
-and the table worker's message; nothing put on window but WORLD_START;
-its table data only: one postMessage of the sources and two lists of
-numbers, then close);
 the scripts' text read from src/ (world_rules.py site build/src); and the
 owner's rule as code: the composite takes no words input (its uniforms a
 fixed list: a new one is a deliberate change there), the old lift's parts

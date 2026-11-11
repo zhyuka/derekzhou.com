@@ -1,8 +1,8 @@
   /* ---------------------------------------------------------------- the world's build, in stages */
   /* The plan (the maps and the director, the weights' grid about the landing, the light, the field), the programs, the
      ground at the origin (probed), the scatter's shapes and the sets; then the cells about the camera, through the
-     streamer (cells.js). There is nothing after it: the world goes on as the camera flies (world6: no visit follows). */
-  function firstYaw() {   // (fast500 B3) the first frame's view yaw as arrive sets it (CS.yawV + CS.phi = CS.psi), read without drawing from any stream
+     streamer (cells.js). There is nothing after it: the world goes on as the camera flies (no visit follows). */
+  function firstYaw() {   // the first frame's view yaw as arrive sets it (CS.yawV + CS.phi = CS.psi), read without drawing from any stream
     if (SIM.inited) return CS.yawV + CS.phi;
     if (DEVMODE && POSE) return POSE[2] * DEG;
     return RNG(subseed(J.seed, 77)).r(0, 2 * PI);
@@ -10,8 +10,11 @@
   function planVisit(V) {
     if (V.light) return;
     var def = V.def;
-    if (!MAPS.w && !planAdopt()) mapsInit(J.seed);   // (world6: the maps and the director, the boot's commit about the landing; fast500 F: the worker's, if it is in)
-    if (!KW.ok && !KW.part) kwFirst(CS.x, CS.z, firstYaw(), Math.atan(FRT.tanX) + KW_MARGIN); else kwFollow(CS.x, CS.z, true);   // (the weights' grid about the camera; fast500 B3: the first frame's texels first)
+    /* the maps and the director, the boot's commit about the landing, and the weights' grid about the camera (the first
+       frame's texels first): the worker's first answer if it is in (KW as its kwFirst left it, the far field whole),
+       else planFirst here, the one entry point */
+    if (!MAPS.w) { if (planAdopt()) { if (KW.part) kfFollow(CS.x, CS.z, true); else kwFollow(CS.x, CS.z, true); } else planFirst(J.seed, CS.x, CS.z, firstYaw(), Math.atan(FRT.tanX) + KW_MARGIN); }
+    else if (!KW.ok && !KW.part) kwFirst(CS.x, CS.z, firstYaw(), Math.atan(FRT.tanX) + KW_MARGIN); else kwFollow(CS.x, CS.z, true);
     V.rng = RNG(subseed(V.seed, 1)); V.rng2 = RNG(subseed(V.seed, 2));
     V.salt = subseed(V.seed, 7) >>> 0;
     V.speed = (def.speed || 12) * CAMK; V.clear = (def.clear || [6, 12, 120]).slice(); V.margin = def.margin || 14;
@@ -22,10 +25,10 @@
     var r3 = RNG(subseed(V.seed, 3)); V.ph = [r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28)];
     V.evRng = RNG(subseed(V.seed, 5));
     prepLight(V);
-    worldLights(V);   // (world6: the kits' lights, blended by the climate about the camera)
+    worldLights(V);   // (the kits' lights, blended by the climate about the camera)
   }
-  /* (E1, design-v5 4.3) each stage is CPU work (the slice after the frame's flush: no GL call) or GPU work (the jobs at
-     the start of the next drawn frame); `kind` says which a call may run ('cpu', 'gpu'; sync or no kind: any) */
+  /* each stage is CPU work (the slice after the frame's flush: no GL call) or GPU work (the jobs at the start of the
+     next drawn frame); `kind` says which a call may run ('cpu', 'gpu'; sync or no kind: any) */
   var VSTAGES = [vsPlanW, vsLink, vsKW, vsOrigin, vsOriginRead, vsScatter, vsScatterUp, vsSets, vsSetsUp];
   var VKIND = ['cpu', 'cpu', 'gpu', 'cpu', 'cpu', 'cpu', 'gpu', 'cpu', 'gpu'];
   function visitStep(V, sync, kind) {   // one stage's step (sync: all of them); true once the visit's own parts are built
@@ -43,10 +46,10 @@
     }
     return V.st >= VSTAGES.length;
   }
-  function vsPlanW(V, sync) { return !sync && PW.st === 1 && clockNow() - PW.t0 < PW_WAIT ? false : vsPlan(V); }   // (fast500 F: while the worker works, the boot goes on)
-  function vsPlan(V) { planVisit(V); if (!BOOT.planM) { BOOT.planM = true; bootMark('plan: done'); } return true; }   // (fast500 F0: the mark)
-  function vsKW() { kwUpload(); return true; }   // (world6: the weights' grid onto the GPU before anything is probed)
-  function vsLink(V) {   // (E1: never a link in flight: the boot made every realm's programs; this only reads their status)
+  function vsPlanW(V, sync) { return !sync && PW.st === 1 && clockNow() - PW.t0 < PW_WAIT ? false : vsPlan(V); }   // (while the worker works, the boot goes on)
+  function vsPlan(V) { planVisit(V); if (!BOOT.planM) { BOOT.planM = true; bootMark('plan: done'); } return true; }   // (the mark)
+  function vsKW() { kwUpload(); return true; }   // (the weights' grid onto the GPU before anything is probed)
+  function vsLink(V) {   // (never a link in flight: the boot has made every realm's programs; this only reads their status)
     if (linkStep(V.def)) return true;
     return realmProgs(V.def).st === -1 ? 'fail' : false;
   }
@@ -64,7 +67,7 @@
     V.g0 = m; V.g0max = mx; V.oq = null;
     return true;
   }
-  function vsScatter(V) {   // (E1: the shapes built here, CPU; uploaded by vsScatterUp, GPU)
+  function vsScatter(V) {   // (the shapes built here, CPU; uploaded by vsScatterUp, GPU)
     var sc = V.def.scatter || [];
     V.scB = [];
     for (var i = 0; i < sc.length; i++) {
@@ -89,7 +92,7 @@
   }
   /* the realm's instanced sets: each a mesh built once a visit (and a coarse one, the same draws at the far cells'
      detail), placed by the cells as many times as they like (C.place): one draw a set a cell */
-  function vsSets(V) {   // (E1: the sets' meshes built here, CPU; uploaded by vsSetsUp, GPU)
+  function vsSets(V) {   // (the sets' meshes built here, CPU; uploaded by vsSetsUp, GPU)
     var S = V.def.sets; V.setB = [];
     if (!S) return true;
     var names = Object.keys(S);
@@ -121,7 +124,7 @@
     if (V.cells) { V.cells.forEach(function (C) { freeCell(C); }); V.cells = null; V.cellList = null; }
     var G = V.G;
     if (G && !LOST) {
-      G.bufs.forEach(function (b) { glFree('Buffer', b); });   // (E1: deleted among the next frame's GPU jobs)
+      G.bufs.forEach(function (b) { glFree('Buffer', b); });   // (deleted among the next frame's GPU jobs)
       G.vaos.forEach(function (v) { glFree('VertexArray', v); });
       G.texs.forEach(function (t) { glFree('Texture', t); });
     }
@@ -167,7 +170,7 @@
   function uploadMesh(B, G) {
     var M = { n: B.count(), vao: null, vb: null };
     if (!M.n) return M;
-    M.vao = pTake('mesh'); if (G) G.vaos.push(M.vao);   // (E1 Fix 3: from the pools)
+    M.vao = pTake('mesh'); if (G) G.vaos.push(M.vao);   // (from the pools)
     M.vb = pTake('buf'); if (G) G.bufs.push(M.vb);
     gl.bindVertexArray(M.vao); gl.bindBuffer(gl.ARRAY_BUFFER, M.vb); gl.bufferData(gl.ARRAY_BUFFER, B.bytes(), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, VSTRIDE, 0);

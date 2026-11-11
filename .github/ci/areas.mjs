@@ -22,7 +22,7 @@ export function areasOf(files) {
     if (!r) { unknown.push(f); continue; }
     for (const a of r[1]) out.add(a);
   }
-  if (unknown.length) ['frames', 'gpu'].forEach((a) => out.add(a));
+  if (unknown.length) ['frames', 'gpu', 'harness'].forEach((a) => out.add(a));
   out.delete('none');
   return { areas: [...out].sort(), unknown };
 }

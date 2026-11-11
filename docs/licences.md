@@ -10,4 +10,4 @@ source's licence, and the served model.js one credits comment naming the
 CC BY sources (the owner: "Strip notes, keep 1 credit line"). Facts that
 a study-only (rights-reserved) source states are cited, never its files
 or digitised curves: the barnacle goose's are kept as facts alone
-(data/kinematics/goose_barnacle_facts.json). The fonts: OFL (see Type).
+(data/kinematics/goose_barnacle_facts.json). The fonts: OFL (docs/type.md).

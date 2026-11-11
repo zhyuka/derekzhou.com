@@ -1,36 +1,24 @@
   /* ---------------------------------------------------------------- engine programs (shared by every realm) */
   var EP = {}, ENG = { st: 0, k: 0, names: null };
   var NOISE3 = null, GRID = null, FULLVAO = null, QUAD_VB = null, STRIP = null, VCUBE = null, VTMP = null, ICO = null, BAKEFB = null, CREATURE = null;
-  /* (E1) the engine's own resources and programs, made once (again after a lost context) by the boot's stages: B the
-     objects (bootObjects), C the programs with every realm's and the birds' (progStep), E the noise (noiseStep). The
-     harness's stills (and a restore under them) make all of it at once: engineStep(true) */
-  function engineStep(sync) {
-    if (ENG.st < 0) return false;
-    if (gl.isContextLost()) return false;
-    if (ENG.st === 0) { bootObjects(); ENG.st = 1; }
-    var r = progStep(true, 0);
-    if (r === LOSTP) return false;
-    if (!progsDone() || PROGX.broken && !engineOk()) { ENG.st = -1; return false; }
-    noiseStep(true);
-    ENG.st = 2;
-    return true;
-  }
-  function engineOk() { for (var k in EP) if (!EP[k].ok && !(EP[k].late && EP[k].st !== 3)) return false; return true; }   // (fast500 step 1b: the noise has no program)
+  /* the engine's own resources and programs, made once (again after a lost context) by the boot's stages: B the
+     objects (bootObjects), C the programs with every realm's and the birds' (progStep), E the noise (noiseStep) */
+  function engineOk() { for (var k in EP) if (!EP[k].ok && !(EP[k].late && EP[k].st !== 3)) return false; return true; }   // (the noise has no program)
   /* stage B: every object the engine draws with (the grid, the strips, the cube, the icosahedron, the bake's scratch,
      the creatures, the glows' quad, the noise, the read-back ring, the warm table's targets), and the registration of
      its programs and every realm's (compiled at stage C, all at once) */
   function bootObjects() {
     buildEngine();
-    poolPre();   // (E1 Fix 3: the cells' and visits' objects made ahead)
+    poolPre();   // (the cells' and visits' objects made ahead)
     for (var k = 0; k < ORDER.length; k++) { var d = REALMS[ORDER[k]]; if (!d.bad) realmProgs(d); }
   }
-  /* (hotfix G0, pass 2) does this GPU filter an 8-bit texture at 8 bits? Two texels 4 codes apart (the clouds' soft
+  /* does this GPU filter an 8-bit texture at 8 bits? Two texels 4 codes apart (the clouds' soft
      band is about four and a half codes wide), sampled at 64 points between them into a half-float target and read
      back: filtered at 8 bits the answer comes in steps of a whole code (an error up to half a code, 0.002); filtered
      in float, or with 8-bit weights on a float result, under a hundredth of a code. Where it is 8-bit (WebKit's
      renderer here) the clouds' volumes are made at 16 bits (VOL16); elsewhere (SwiftShader, and the GPUs that filter
-     in float) they stay RGBA8, half the bytes and the bandwidth. Unknown (no float targets: RGBA8 as ever; a read that
-     fails: 16 bits, the safe side). The record files the answer (device.vol16, device.filtErr), so the owner's next
+     in float) they stay RGBA8, half the bytes and the bandwidth. Unknown (no float targets: RGBA8; a read that
+     fails: 16 bits, the safe side). The record files the answer (device.vol16, device.filtErr), so the owner's
      record says what the iPhone does. Switch vol16=0/1 forces it (dev, the record's A/B) */
   var VOL16 = false, FILTERR = -1;
   function probeFilter() {
@@ -64,7 +52,7 @@
   function buildEngine() {
     GRID = makeGrid();
     FULLVAO = gl.createVertexArray();
-    probeFilter();   // (pass 2: before any volume is made)
+    probeFilter();   // (before any volume is made)
     var sv = [], i; for (i = 0; i <= 32; i++) sv.push(i / 32, -1, i / 32, 1);
     STRIP = { vb: gl.createBuffer(), vaoP: gl.createVertexArray(), vaoR: gl.createVertexArray(), n: 66 };
     gl.bindBuffer(gl.ARRAY_BUFFER, STRIP.vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sv), gl.STATIC_DRAW);
@@ -84,20 +72,20 @@
       F.forEach(function (f) { f.forEach(function (i) { out.push(V3[i][0] / l, V3[i][1] / l, V3[i][2] / l); }); });
       ICO = { vb: gl.createBuffer() }; gl.bindBuffer(gl.ARRAY_BUFFER, ICO.vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(out), gl.STATIC_DRAW);
     })();
-    // (E1) the glows' quad, made here (round 3b made it with the first glows, in flight)
+    // the glows' quad, made here (not with the first glows, in flight)
     QUAD = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, QUAD); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     VTMP = { t: gl.createTexture(), f: gl.createFramebuffer() };
     gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_3D, VTMP.t);
-    gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RG16F : gl.RG8, 64, 64, 64, 0, gl.RG, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);   // the distance with its billows, and without (pass 2: half floats where VOL16, as the volumes)
+    gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RG16F : gl.RG8, 64, 64, 64, 0, gl.RG, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);   // the distance with its billows, and without (half floats where VOL16, as the volumes)
     tex3params(); gl.activeTexture(gl.TEXTURE0);
     var list = [
       ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN],
-      ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['smask', VS_FULL, FS_SHAFTMASK], ['sblur', VS_FULL, FS_SHAFTBLUR], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
+      ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
       ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
       ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC]
     ];
     EP = {};
-    noiseInit();   // (the noise's texture, and its bake's stream: fast500 step 1b, no program)
+    noiseInit();   // (the noise's texture, and its bake's stream: no program)
     list.forEach(function (l) { EP[l[0]] = compile(l[1], l[2], 'engine.' + l[0]); });
     BAKEFB = gl.createFramebuffer();
     makeCreatures();

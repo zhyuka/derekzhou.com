@@ -9,16 +9,15 @@ must-revalidate. Everything else: max-age=31536000, immutable, so CHANGED
 BYTES NEED A NEW NAME. For every script and the stylesheet the build does
 that: it serves each under its content's hash (world.js as world.<sha8>.js),
 names a file that loads another by name after the one it loads (the world
-after the plan's worker, the start file after its table), and rewrites every
+after the plan's worker), and rewrites every
 reference (index.html, 404.html, \_headers' Link preloads and cache blocks,
-the two workers' URLs). So their names in site/ and src/ are plain
+the plan worker's URL). So their names in site/ and src/ are plain
 (style.css, hour.js, world.js, realm-kit.js, realm-dunes.js, realm-above.js,
-inkbirds.js, plan.js, start.js, start-table.js, and the wing model's six in
+inkbirds.js, plan.js, and the wing model's six in
 src/birds/model/) and never change for an edit; renaming one is a refactor
 (git mv, then every reference). validate.yml's reverse check
 fails on any script or stylesheet in the build that no page loads (the
-plan's worker aside: the world starts it, by name; the start file's table:
-the start file starts it), so git mv rather than copy.
+plan's worker aside: the world starts it, by name), so git mv rather than copy.
 
 The build also stores every content-named script and the stylesheet
 Brotli-compressed at quality 11, its \_headers block saying
@@ -39,9 +38,10 @@ program's text stays the same: CI step "Every visit compiles the same
 shaders" (glsl_guard.js) runs the site's scripts as shipped in node, in a
 fake browser with a fake WebGL2 context, for 15 visits of five devices,
 and fails unless every visit of a device compiles the same sources,
-devices differ only in the #define lines after #version, and the reference
-device's programs are exactly glsl_manifest.txt. So a change to a
-program's text comes with its manifest lines in the same commit (node
-.github/workflows/glsl_guard.js build/site --write
-.github/workflows/glsl_manifest.txt), and the diff names the programs a
-deploy makes every returning visitor compile again.
+and devices differ only in the #define lines after #version. Which
+programs a change edits (the ones a deploy makes every returning visitor
+compile again) is the gate's to say: its census compares the base's build
+with the head's (glsl_changed), and T2 names each changed program and
+reads it back. Nothing derived from the shaders is committed
+(2026-11-06: a committed manifest and golden texts made every shader PR
+conflict with every other).
