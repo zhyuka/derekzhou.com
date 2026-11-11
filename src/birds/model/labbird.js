@@ -99,7 +99,8 @@
   var TAPER = 0.3, CURL_TIP = 17;
   var FW = (function () { var n = 2000, th = 0, w = [0], k, u, du = 1 / n; for (var i = 0; i < n; i++) { u = (i + 0.5) * du; k = (1 - u) * (1 - u) / Math.pow(1 - (1 - TAPER) * u, 3); var t1 = th + k * du; w.push(w[i] + 0.5 * (th + t1) * du); th = t1; } return { w: w, th: th, n: n }; })();
   var CURL_R = CURL_TIP * FW.w[FW.n] / FW.th;   // deg: the rigid pleat with the same tip deflection (the rig's tip dih at the peak load)
-  function chords(e) { var i = Math.round(e * FW.n), we = FW.w[i], w1 = FW.w[FW.n]; return [we / e / w1, (w1 - we) / (1 - e) / w1]; }   // (the inner and outer chords' slopes over the rigid pleat's)
+  var CH2 = [0, 0];
+  function chords(e) { var i = Math.round(e * FW.n), we = FW.w[i], w1 = FW.w[FW.n]; CH2[0] = we / e / w1; CH2[1] = (w1 - we) / (1 - e) / w1; return CH2; }   // (one array, filled each call: read at once by the caller)   // (the inner and outer chords' slopes over the rigid pleat's)
   /* (round 3, kinds: the owner's word 2026-11-04) the beat-rate classes, Hz: one common slowing of the real rates, the
      real order kept (audit/KINDS.md 5.1); rate(kind, 'class') */
   var RATE_CLASS = { heron: 1.65, stork: 1.85, gull: 1.95, goose: 2.4, crow: 2.45, ibis: 2.5, swallow: 4.8 };
@@ -278,8 +279,8 @@
        feathers' ends), then per side the four spokes' mid points (the notch) and two finger edges: 42 vertices; per side
        the arm, hand and cap as the form has them and each pleat as two facets (knuckle to notch, notch to tip) ---- */
     var FK = {};
-    function flexKind(kind) {
-      if (FK[kind]) return FK[kind];
+    function flexKind(kind) { return FK[kind] || makeFlexKind(kind); }   // (cached apart from its builder: a call makes no closure)
+    function makeFlexKind(kind) {
       var K = P.kinds[kind], sl = (FLEXK[kind] || [0.5, 0])[1], tri = [], tf = [], facets = [], i;
       for (i = 0; i < 18; i++) { tri.push(K.tri[3 * i], K.tri[3 * i + 1], K.tri[3 * i + 2]); tf.push(K.tf[i]); }
       for (i = 0; i < 9; i++) facets.push(K.facets[i]);
@@ -296,6 +297,7 @@
       var b = []; for (i = 0; i < 46; i++) b.push(i < 30 ? K.b[i] : 0);
       return (FK[kind] = { tri: tri, tf: tf, facets: facets, b: b, chain: K.chain, slotted: !!sl, e: (FLEXK[kind] || [0.5])[0], open: (FLEXK[kind] || [0, 0, 0])[2], glide: K.glide, tipg: K.tipg, size: K.size });
     }
+    var FV_BASE = [8, 12, 13, 10], FV_TIP = [16, 14, 15, 15], FV_BONE = [4, 5, 6, 6];   // (the pleats' base, tip and bone, per side)
     var PIn = new Float64Array(22), POut = new Float64Array(22), BI = new Float64Array(156), BO = new Float64Array(156), QB = [0, 0, 0], QT = [0, 0, 0], QM = [0, 0, 0], MP = new Float64Array(24);
     function apply(Bn, k, q, o, oi) { var j = 12 * k; o[oi] = Bn[j] * q[0] + Bn[j + 1] * q[1] + Bn[j + 2] * q[2] + Bn[j + 9]; o[oi + 1] = Bn[j + 3] * q[0] + Bn[j + 4] * q[1] + Bn[j + 5] * q[2] + Bn[j + 10]; o[oi + 2] = Bn[j + 6] * q[0] + Bn[j + 7] * q[1] + Bn[j + 8] * q[2] + Bn[j + 11]; }
     function rotv(Bn, k, q, o, oi) { var j = 12 * k; o[oi] += Bn[j] * q[0] + Bn[j + 1] * q[1] + Bn[j + 2] * q[2]; o[oi + 1] += Bn[j + 3] * q[0] + Bn[j + 4] * q[1] + Bn[j + 5] * q[2]; o[oi + 2] += Bn[j + 6] * q[0] + Bn[j + 7] * q[1] + Bn[j + 8] * q[2]; }
@@ -304,10 +306,12 @@
       var ch2 = chords(e), cin = ch2[0], cout = ch2[1];   // (the tapered cantilever's two chords, the tip's deflection kept)
       for (i = 0; i < 22; i++) { PIn[i] = pose22[i]; POut[i] = pose22[i]; }
       for (sd = 0; sd < 2; sd++) { var o7 = sd * P.NP + 7, ld = pose22[o7] - TG; PIn[o7] = TG + cin * ld; POut[o7] = TG + cout * ld; }
-      P.verts(kind, PIn, out); P.bones(kind, PIn, BI); P.bones(kind, POut, BO);
+      P.bones(kind, PIn, BI); P.bonesTips(kind, POut, BO);   // (POut is PIn but for the tips' curl)
+      var vb = K.b, nb = vb.length;   // (the vertices on BI: P.verts's own sums, its bones made once)
+      for (i = 0; i < nb; i++) { QB[0] = v[3 * i]; QB[1] = v[3 * i + 1]; QB[2] = v[3 * i + 2]; apply(BI, vb[i], QB, out, 3 * i); }
       var kx = K.dims.kx, yK = K.yK;
       for (sd = 0; sd < 2; sd++) {
-        var sg = sd ? -1 : 1, off = sd ? 13 : 0, bo = sd ? 6 : 0, base = [8, 12, 13, 10], tipv = [16, 14, 15, 15], bone = [4, 5, 6, 6], oN = 30 + 8 * sd, j, op = FKk.open;
+        var sg = sd ? -1 : 1, off = sd ? 13 : 0, bo = sd ? 6 : 0, base = FV_BASE, tipv = FV_TIP, bone = FV_BONE, oN = 30 + 8 * sd, j, op = FKk.open;
         for (j = 0; j < 4; j++) {
           var bv = base[j] + off, tv = tipv[j] + off, bk = bone[j] + bo;
           QB[0] = v[3 * bv] + kx; QB[1] = v[3 * bv + 1] - sg * yK; QB[2] = v[3 * bv + 2];   // (the base in the pleat's frame: the hand's less the pivot)

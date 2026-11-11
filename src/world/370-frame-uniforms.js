@@ -16,15 +16,15 @@
     if (u.uRes) gl.uniform2fv(u.uRes, RES);
     if (u.uT) gl.uniform1fv(u.uT, UT);
     if (u.uDbg) gl.uniform1i(u.uDbg, DBG);
-    if (u.uPxK) gl.uniform1f(u.uPxK, Math.max(1, OUT.dpr * SS / 1.25));   // (E1.1: the world's pixels a pixel of the display's: 1 but in a supersampled reference)
+    if (u.uPxK) gl.uniform1f(u.uPxK, Math.max(1, OUT.dpr * SS / 1.25));   // (the world's pixels a pixel of the display's: 1 but in a supersampled reference)
     if (u.uSalt) gl.uniform1ui(u.uSalt, V.salt);
     if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);
-    if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (tod: the sky's own light)
+    if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (the sky's own light)
     if (u.uSunC) gl.uniform3fv(u.uSunC, L.sunC);
     if (u.uSky) gl.uniform3fv(u.uSky, L.skyFlat);
     if (u.uSkyE) gl.uniform4fv(u.uSkyE, L.skyE);
     if (u.uSkyW) gl.uniform3fv(u.uSkyW, L.skyW);
-    var snU = SUNU.on && L === SUNU.L;   // (fast500 no-fades: a change between a twilight sky and a night, on the live light only)
+    var snU = SUNU.on && L === SUNU.L;   // (a change between a twilight sky and a night, on the live light only)
     if (u.uSkyK) gl.uniform4fv(u.uSkyK, snU ? SUNU.k0 : L.skyK);
     if (u.uGlow) gl.uniform4fv(u.uGlow, L.glow);
     if (u.uGlowC) gl.uniform3fv(u.uGlowC, snU ? SUNU.glowS : L.glowC);
@@ -32,10 +32,10 @@
     if (u.uFog) gl.uniform4fv(u.uFog, L.fog);
     if (u.uFog2) gl.uniform4fv(u.uFog2, L.fog2);
     if (u.uFogB) gl.uniform4fv(u.uFogB, L.fogBf);
-    // (world6 step B) the ground haze's base under the eye follows the cruise clearance (a slow function of the maps),
-    // so the surface flown lies over the base and the far ground's haze meets the sky's at the horizon (the step's base,
-    // a fixed 24 m under the eye, lay above a cloud sea flown 30-40 m over: the far sea took a fifth of the haze the sky
-    // took just above it, and the horizon was a bright line)
+    // the ground haze's base under the eye follows the cruise clearance (a slow function of the maps), so the surface
+    // flown lies over the base and the far ground's haze meets the sky's at the horizon (a base fixed 24 m under the eye
+    // lies above a cloud sea flown 30-40 m over: the far sea takes a fifth of the haze the sky takes just above it, and
+    // the horizon shows as a bright line)
     if (u.uHaze) { HZU[0] = L.haze[0]; HZU[1] = L.haze[1]; HZU[2] = L.haze[2] + Math.max(0, (V.clear ? V.clear[1] : 14) - 14) * 1.6; HZU[3] = L.haze[3]; gl.uniform4fv(u.uHaze, HZU); }
     if (u.uHazeC) gl.uniform3fv(u.uHazeC, L.hazeC);
     if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
@@ -48,13 +48,13 @@
     if (u.uClK) gl.uniform4fv(u.uClK, L.clK);
     if (u.uClK2) gl.uniform4fv(u.uClK2, L.clK2);
     if (u.uP) gl.uniform4fv(u.uP, V.paramsFlat);
-    if (u.uKWc) gl.uniform4f(u.uKWc, KW.cx, KW.cz, KSTEP, KN);   // (world6: the kits' weights' grid, on unit 1)
-    if (u.uKFc) gl.uniform4f(u.uKFc, KF.cx, KF.cz, FSTEP, FN);   // (world6 fix: the far field's grid, in the same texture)
+    if (u.uKWc) gl.uniform4f(u.uKWc, KW.cx, KW.cz, KSTEP, KN);   // (the kits' weights' grid, on unit 1)
+    if (u.uKFc) gl.uniform4f(u.uKFc, KF.cx, KF.cz, FSTEP, FN);   // (the far field's grid, in the same texture)
     if (u.uGC) gl.uniform4fv(u.uGC, GCU);
     if (u.uSunVis) gl.uniform1f(u.uSunVis, L.sunVis);
     if (u.uWet) gl.uniform4fv(u.uWet, L.wet);
   }
-  /* a light, flattened for uniforms: typed arrays, defaults filled (round 3b: sunVis, the sun's share of the sky;
+  /* a light, flattened for uniforms: typed arrays, defaults filled (sunVis, the sun's share of the sky;
      rain, the rain's amount; ripple, the water's; windDir; deep, the realm's deep shade (a passage through the dark);
      glare, the white of a passage through light) */
   var LDEF = { bloom: [1.1, 0.5, 0.18], cl: [7, 0.13, 0.003, 1], clDetail: [120, 4], shaftC: [1, 0.9, 0.8], lift: [0, 0, 0], gain: [1, 1, 1], fog2: [0.5, 0.012, 0, 0], hi: [0, 0, 0, 0], hiC: [1, 1, 1], exposure: 1, sat: 1,
@@ -81,7 +81,7 @@
     var P = V.field.params || [], pf = new Float32Array(96);
     for (var j = 0; j < Math.min(P.length, 24); j++) for (var k = 0; k < 4; k++) pf[j * 4 + k] = P[j][k] === undefined ? 0 : P[j][k];
     V.paramsFlat = pf;
-    V.L = L; V.LA = null;   // (world6: the kits' lights are set by worldLights; no light by area)
+    V.L = L; V.LA = null;   // (the kits' lights are set by worldLights; no light by area)
   }
   /* OKLab of a linear colour, and back */
   function lin2lab(c) {
@@ -95,16 +95,16 @@
     l = l * l * l; m = m * m * m; s = s * s * s;
     out[o] = Math.max(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, 0); out[o + 1] = Math.max(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, 0); out[o + 2] = Math.max(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s, 0);
   }
-  /* the composite's inputs (world6: the world's live light; there is no junction to ease across) */
+  /* the composite's inputs (the world's live light; there is no junction to ease across) */
   var EL = { bloom: new Float32Array(3), shaftC: new Float32Array(3), lift: new Float32Array(3), gain: new Float32Array(3), exposure: 1, sat: 1 };
-  var SIMNIGHT = false;   // (birds3d, dev: __world.set({ simnight: 1 }); the paper birds' night look over a SIMULATED night)
-  var CAMK = 1;   // (birds3d, dev: __world.set({ camk: 0.4 }); the camera's pace scaled for a film of a staged wheel (a camera that lingers near a wheel is the world's open decision: SIMULATED); 1 = the world's own pace)
+  var SIMNIGHT = false;   // (dev: __world.set({ simnight: 1 }); the paper birds' night look over a SIMULATED night)
+  var CAMK = 1;   // (dev: __world.set({ camk: 0.4 }); the camera's pace scaled for a film of a staged wheel (a camera that lingers near a wheel is the world's open decision: SIMULATED); 1 = the world's own pace)
   function easedLight(V, u) {
-    var L = V.L || V.light, P = null, w = 1, k;   // (world6: no last realm to ease from)
+    var L = V.L || V.light, P = null, w = 1, k;   // (no last realm to ease from)
     var Q = L;
     for (k = 0; k < 3; k++) { EL.bloom[k] = lerp(Q.bloom[k], L.bloom[k], w); EL.shaftC[k] = lerp(Q.shaftC[k], L.shaftC[k], w); EL.lift[k] = lerp(Q.lift[k], L.lift[k], w); EL.gain[k] = lerp(Q.gain[k], L.gain[k], w); }
     EL.exposure = lerp(Q.exposure, L.exposure, w); EL.sat = lerp(Q.sat, L.sat, w);
-    if (SIMNIGHT) {   // (birds3d, dev only: SIMULATED night, the world having no night yet: the day's light graded down and toward blue; never in production)
+    if (SIMNIGHT) {   // (dev only: SIMULATED night, the world having no night yet: the day's light graded down and toward blue; never in production)
       EL.exposure *= 0.15; EL.sat *= 0.7;
       for (k = 0; k < 3; k++) { EL.gain[k] *= [0.6, 0.74, 1.08][k]; EL.lift[k] += [0.0015, 0.0025, 0.007][k]; EL.bloom[k] *= k === 0 ? 0.6 : 1; }
     }

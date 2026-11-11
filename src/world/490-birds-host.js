@@ -1,22 +1,15 @@
   /* ---------------------------------------------------------------- the birds' host
      The ink birds are their own module (inkbirds.js, a classic deferred script loaded after world.js): it registers a
      factory with WORLD.birds(factory) before the engine boots, and the factory is handed HOST, which is all the birds
-     ever see of the engine. The engine, for its part, calls the module's five hooks and nothing else:
+     ever see of the engine. The engine, for its part, calls the module's four hooks and nothing else:
        step(dt)      after every fixed step of the flight (1/60 s): the birds' clock and their planning, deterministic
        draw()        after the composite, onto the window: the birds as ink, over the finished frame
        visit(k)      a visit (a realm) begins about the camera: its coordinates are new, the sky is cleared
-       reset()       the journey starts again (the harness's draw(t) going back in time)
        lost()        the context was lost: every GL object of the module is gone (made again on the next draw)
      See notes.md, "The birds' interface", for the contract. */
   var BIRDB = { ms: 1.5, spent: 0, at: 0, prep: 6 };   // (round 3: the birds' planning budget a frame, ms; their steps' time this frame)
   var BIRDS = null, LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'light', text: '#fdfcf7' }, BIRDPL = [];
   var CAMP = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], roll: 0, pitch: 0, inCloud: 0, arrive: 0, cover: 0, pmode: 0, hold: -1, open: -1, expo: 1, yaw: 0 };
-  /* (E1 Fix 3, defect 16) s, how far the birds' planner trusts the flight's forecast (HOST.courseTrust). With the heading
-     held the forecast is the flight itself, so a longer look-ahead was tried: four of the seven judged runs, the same
-     build but for this (rounds/E1/fix3/out/birds-t12, -t20, birds-c4): the empty sky 7.6-17.9% at 12 s, 9.9-18.3% at
-     20 s, 10.9-24.1% at 30 s (ABOVE s7 1440: the first 22, 27 and 57 s without a bird). Planned further along the course,
-     a flight must clear more of it (the clouds and banks the straight flight meets); 12 s, E1's own, is kept */
-  var COURSE_TRUST = 12;
   var WIND_AIR = 6.5;   // (way-other) m/s: the wind at the birds' height, the dunes' grains' own speed (realm-dunes.js), the least the drawn sand says
   var HOST = {
     gl: null,   // (Fix 2: the context, from the boot's first frame; the module is made then, makeBirds)
@@ -98,17 +91,6 @@
       return true;
     },
     target: function () { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, FULL.w || OUT.w, FULL.h || OUT.h); },
-    /* (round 2) the camera's coming view, for the planner: n samples `step` s apart into out { yaw, pitch, roll, x, y, z
-       (typed arrays), n, t0, step }, from the flight as it is now (reset) or on from the last chunk (w07: flightAhead) */
-    ahead: function (reset, n, step, out, ch) { return flightAhead(reset, n, step, out, ch); },
-    aheadCh: 2,   // (round 3: forecasts on channels 0 and 1, each carried on by its own caller)
-    /* (E1 Fix 3) how far the forecast can be trusted, s: the heading is held left alone (Revision 3), so the forecast is
-       the flight itself until the visitor drags (a drag starts the planner's course again); its slip is the flight's own
-       plan. COURSE_TRUST s: about a flight's crossing */
-    courseTrust: function () { return COURSE_TRUST; },
-    /* (round 3) the birds' calm: the autopilot's own turning held under `rate` rad/s (its way round a cloud's body under
-       `ev`) while the birds have a flight in the sky; 0: as it was. Eased over CALM_T s; the forecast (ahead) knows it */
-    calm: function (rate, ev) { CALM.want = rate > 0 ? 1 : 0; if (rate > 0) { CALM.rate = rate; CALM.ev = Math.max(ev || 0, rate); } },
     /* (round 3) the time left for the birds' planning this frame, ms (the module reads no clock): BIRDB.ms a frame,
        less what its steps have taken so far; unbounded in the harness (data-still: the same whatever the machine) */
     budget: function () { if (STILLMODE) return Infinity; return BIRDB.ms - BIRDB.spent - (BIRDB.at ? clockNow() - BIRDB.at : 0); },
@@ -125,25 +107,46 @@
       }
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     },
-    /* how much cloud stands between two points: the length (m) of the segment inside the visible lobes of the clouds
-       about the camera (each lobe a sphere; the bodies' bounds tested first) */
-    cloudBetween: function (ax, ay, az, bx, by, bz) {
-      var V = SIM.V, L = V && V.cellList, tot = 0, i, k, q;
-      if (!L) return 0;
-      var dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
-      CBS[0] = ax; CBS[1] = ay; CBS[2] = az; CBS[3] = dx / len; CBS[4] = dy / len; CBS[5] = dz / len; CBS[6] = len;
+    /* how much cloud stands between a point a and each of three points a + P[0..2], a + P[3..5] (the middle one),
+       a + P[6..8]: the length (m) of each segment inside the visible lobes of the clouds about the camera (each lobe a
+       sphere). The bodies' bounds are tested once, against the middle segment padded by the others' reach from it (so
+       every body either of them meets is kept), then each segment against those bodies' bounds and lobes only */
+    cloudBetween3: function (ax, ay, az, P, out) {
+      var V = SIM.V, L = V && V.cellList, i, k, q, h, n = 0;
+      out[0] = out[1] = out[2] = 0;
+      if (!L) return out;
+      var pad = 0;
+      for (q = 0; q < 9; q += 3) { var ex = P[q] - P[3], ey = P[q + 1] - P[4], ez = P[q + 2] - P[5]; pad = Math.max(pad, Math.sqrt(ex * ex + ey * ey + ez * ez)); }
+      pad = pad * 1.001 + 0.01;   // (a margin for rounding: a body kept too many is harmless)
+      cbSet(ax, ay, az, ax + P[3], ay + P[4], az + P[5]);
       for (i = 0; i < L.length; i++) {
         var C = L[i]; if (C.st < 3 || !C.soft || !C.softB) continue;
         for (k = 0; k < C.softB.length; k++) {
-          var B = C.softB[k]; if (!cbChord(B[0], B[1], B[2], B[3])) continue;
-          for (q = B[4]; q < B[5]; q += 4) tot += cbChord(C.soft[q], C.soft[q + 1], C.soft[q + 2], C.soft[q + 3]);
+          var B = C.softB[k]; if (!cbChord(B[0], B[1], B[2], B[3] + pad)) continue;
+          if (n + 2 > CBH.length) { var G = new Int32Array(2 * CBH.length); G.set(CBH); CBH = G; }
+          CBH[n++] = i; CBH[n++] = k;
         }
       }
-      return tot;
+      for (q = 0; q < 3; q++) {
+        if (!n) break;
+        cbSet(ax, ay, az, ax + P[3 * q], ay + P[3 * q + 1], az + P[3 * q + 2]);
+        var tot = 0;
+        for (h = 0; h < n; h += 2) {
+          var C2 = L[CBH[h]], B2 = C2.softB[CBH[h + 1]]; if (!cbChord(B2[0], B2[1], B2[2], B2[3])) continue;
+          for (var l = B2[4]; l < B2[5]; l += 4) tot += cbChord(C2.soft[l], C2.soft[l + 1], C2.soft[l + 2], C2.soft[l + 3]);
+        }
+        out[q] = tot;
+      }
+      return out;
     },
     /* the cover over the view: the cloud about the eye (a passage), a passage's dark or light */
     cover: function () { return Math.max(CAM.inCloud || 0, CAM.cover || 0); },
     ground: function (x, z) { var V = SIM.V; return V ? groundAt(V, x, z, false) : 0; },
+    /* (one bird) the camera's ground grid's reach (m from its centre: groundAt is exact within it), and the cloud sea at
+       any point from the raw maps: o.w its weight (0 sand, 1 the sea of cloud), o.lv its raw level (the drawn sea's top
+       lies at or under it), so a bird can rise out of the sea or go down into it where no one can see it come or go */
+    groundReach: function () { return GROUND.ok ? (GCN / 2 - 3) * GCCELL : 0; },
+    seaAt: function (x, z, o) { if (!MAPS.w) { o.w = 0; o.lv = -1e9; return o; } var k = kitAt(x, z); o.w = k.wC; o.lv = SEA_LO + RISE * k.wC; return o; },
     /* the realm's places with birds (its cells' bird flocks, within r of the camera): centre, height, orbit, wheel */
     places: function (r, out) {
       out.length = 0; var V = SIM.V, L = V && V.cellList; if (!L) return out;
@@ -197,8 +200,13 @@
     dev: DEVMODE,
     count: function (draws, inst) { ST.draws += draws; ST.inst += inst; ST.tris += 2 * inst; }
   };
-  /* the length of the segment (CBS: its start, its direction, its length) within a sphere (no closure a call) */
-  var CBS = new Float64Array(7);
+  /* the length of the segment (CBS: its start, its direction, its length) within a sphere (no closure a call); CBH the
+     bodies a bird's segments may meet (cell, body) */
+  var CBS = new Float64Array(7), CBH = new Int32Array(256);
+  function cbSet(ax, ay, az, bx, by, bz) {
+    var dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
+    CBS[0] = ax; CBS[1] = ay; CBS[2] = az; CBS[3] = dx / len; CBS[4] = dy / len; CBS[5] = dz / len; CBS[6] = len;
+  }
   function cbChord(cx, cy, cz, r) {
     var ox = cx - CBS[0], oy = cy - CBS[1], oz = cz - CBS[2], tc = ox * CBS[3] + oy * CBS[4] + oz * CBS[5], d2 = ox * ox + oy * oy + oz * oz - tc * tc;
     if (d2 >= r * r) return 0;

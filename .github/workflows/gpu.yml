@@ -14,7 +14,7 @@
 #      back). About half a minute.
 # Triggers: called by the gate workflow (workflow_call, with the base) when its shader census reports glsl_changed or
 # the world's, the realms' or the birds' served JS changed; a PR labelled `perf` (T3 only); nightly; by hand. Outputs
-# for the merge bot: frames_identical, glsl_changed, bits_identical, csp_ok.
+# for the merge bot: frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok.
 # The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
 # that brings tools/gpu for the first time runs its own. What they render is base's and head's builds (site/ holds only
 # sources): the gate's `served` artifact when the gate calls this, else the `served` job's here (GitHub's Ubuntu
@@ -32,6 +32,10 @@ on:
         description: "the commit to compare against (the gate's base, main's tip where the branch left it)"
         type: string
         required: true
+      frames:
+        description: "'no' leaves out T2's frames and forced colours (main after a fast-forward: the PR's gate compared these builds); the stall visits still run"
+        type: string
+        default: 'yes'
       stall:
         description: "'no' leaves out the stall visits (a PR's gate: they run on main's gate, which the deploy gate reads)"
         type: string
@@ -40,6 +44,7 @@ on:
       frames_identical: { value: '${{ jobs.t2.outputs.frames_identical }}' }
       glsl_changed: { value: '${{ jobs.t2.outputs.glsl_changed }}' }
       bits_identical: { value: '${{ jobs.t2.outputs.bits_identical }}' }
+      bits_differ: { value: '${{ jobs.t2.outputs.bits_differ }}' }
       stall_ok: { value: '${{ jobs.t2.outputs.stall_ok }}' }
       csp_ok: { value: '${{ jobs.t2.outputs.csp_ok }}' }
 permissions:
@@ -51,12 +56,14 @@ env:
   PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0): drives the machine's own Chrome (channel 'chrome')
 jobs:
   served:
-    if: inputs.base == ''   # (called by the gate, with a base: the gate's plan job made the `served` artifact already)
+    # (called by the gate, with a base: the gate's plan job made the `served` artifact already; a label other than
+    # `perf`, such as the bot's needs-owner, runs nothing here)
+    if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf')
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0, persist-credentials: false }
+        with: { fetch-depth: 0 }   # (credentials kept, as the gate's plan job: served.sh fetches the base's objects)
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -73,6 +80,7 @@ jobs:
       frames_identical: ${{ steps.t2.outputs.frames_identical }}
       glsl_changed: ${{ steps.t2.outputs.glsl_changed }}
       bits_identical: ${{ steps.t2.outputs.bits_identical }}
+      bits_differ: ${{ steps.t2.outputs.bits_differ }}
       stall_ok: ${{ steps.stall.outputs.stall_ok }}
       csp_ok: ${{ steps.t2.outputs.csp_ok }}
     steps:
@@ -93,6 +101,7 @@ jobs:
         with: { name: served, path: served }
       - name: T2
         id: t2
+        if: inputs.frames != 'no'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $tools = if (Test-Path base/tools/gpu/t2.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
@@ -103,7 +112,7 @@ jobs:
           node "$tools/t2.js" --base $b --head $h --out "$env:RUNNER_TEMP/t2" --par 4 --profiles $profiles @st
       - name: stall visits
         id: stall
-        if: always() && steps.t2.outcome != 'skipped' && inputs.stall != 'no'
+        if: always() && (steps.t2.outcome != 'skipped' || inputs.frames == 'no') && inputs.stall != 'no'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           # first use of every pipeline key on the real clock, fresh profiles, the bytes visitors get (tools/gpu/stall.js:

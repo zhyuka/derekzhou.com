@@ -65,7 +65,7 @@ public class LabRunner extends Instrumentation {
     String cls = args.getString("class", "");
     boolean list = "true".equals(args.getString("log"));
     List<String> run = new ArrayList<>();
-    for (String n : new String[] { "chrome", "webview" })
+    for (String n : new String[] { "chrome", "webview", "plan" })
       if (cls.isEmpty() || (cls.contains(CLS) && (!cls.contains("#") || cls.contains(CLS + "#" + n)))) run.add(n);
     boolean ok = true;
     for (int i = 0; i < run.size(); i++) {
@@ -82,7 +82,7 @@ public class LabRunner extends Instrumentation {
       int code = 0;
       if (!list) {
         try {
-          if (n.equals("chrome")) chrome(); else webview();
+          if (n.equals("chrome")) chrome(); else if (n.equals("webview")) webview(); else plan();
         } catch (Throwable t) {
           code = -2;
           ok = false;
@@ -143,6 +143,88 @@ public class LabRunner extends Instrumentation {
       File f = new File(dir, "wv-" + tag + ".txt");
       log("---- " + f.getName() + "\n" + (f.exists() ? read(f) : "(missing)"));
     }
+  }
+
+  /**
+   * Several visits in one run (Arms#plan). The argument plan is visits split by '|', each BROWSER~URL~KIND~SECS[~FLAGS]:
+   * BROWSER chrome (com.android.chrome) or chromium (org.chromium.chrome, installed with --additional-apks); KIND
+   * cold (the browser's data cleared, first-run screens passed, then the visit) or return (the browser's process
+   * ended, its disk caches kept); FLAGS extra browser command-line switches, '+' between them (for example
+   * --force-device-scale-factor=1). Screenshots every 250 ms for the first 20 s (the live site has no readout: its
+   * first paint and world show are read from them), then at 30, 45, 60 s and the end; the readout, where the page
+   * has one, at 20 s and the end.
+   */
+  void plan() throws Exception {
+    open("plan.txt");
+    device();
+    String[] visits = arg("plan", "").split("\\|");
+    int i = 0;
+    for (String v : visits) {
+      String[] f = v.split("~");
+      if (f.length < 4) { log("bad visit '" + v + "'"); continue; }
+      String pkg = f[0].equals("chromium") ? "org.chromium.chrome" : CHROME, url = f[1], kind = f[2];
+      long secs = Long.parseLong(f[3]);
+      String flags = f.length > 4 ? f[4].replace('+', ' ') : "";
+      String tag = String.format("v%d-%s-%s-%s", ++i, f[0], kind, android.net.Uri.parse(url).getHost().split("\\.")[0]);
+      log("==== " + tag + ": " + url + (flags.isEmpty() ? "" : " flags " + flags));
+      log(f[0] + " " + grep(sh("dumpsys package " + pkg), "versionName"));
+      mode(false);
+      if (kind.equals("cold")) {
+        sh("pm clear " + pkg);
+        cmdline(pkg, flags);
+        sh("am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -p " + pkg);
+        for (int k = 0; k < 15; k++) { SystemClock.sleep(1000); dismiss(); }
+        mode(false);
+      } else cmdline(pkg, flags);
+      sh("am force-stop " + pkg);
+      SystemClock.sleep(2000);
+      resolve(url);
+      long s = SystemClock.uptimeMillis();
+      String[] am = new String[1];
+      Thread t = new Thread(() -> am[0] = sh("am start -W -a android.intent.action.VIEW -d " + url + " -p " + pkg));
+      t.start();
+      // (named by the time the screenshot was taken, from just before am start)
+      for (long at = 0; at <= 20000; at += 250) {
+        until(s + at);
+        shot(tag + "-" + String.format("%05d", SystemClock.uptimeMillis() - s));
+      }
+      t.join(30000);
+      log(tag + " am start: " + grep(am[0] == null ? "" : am[0], "Time"));
+      readout(tag);
+      for (long at : new long[] { 30, 45, 60, 120, 300 }) {
+        if (at >= secs) break;
+        until(s + at * 1000);
+        shot(tag + "-" + at + "s");
+      }
+      until(s + secs * 1000);
+      shot(tag + "-end");
+      readout(tag);
+      sh("am force-stop " + pkg);
+    }
+    sh("am clear-debug-app");
+  }
+
+  void cmdline(String pkg, String flags) throws IOException {
+    shIn("tee /data/local/tmp/chrome-command-line",
+        "_ --disable-fre --no-default-browser-check --no-first-run " + flags + "\n");
+    sh("am set-debug-app --persistent " + pkg);
+  }
+
+  /** The probe's readout from the screen (accessibility on for a moment); the page's text where it has none. */
+  void readout(String tag) {
+    mode(true);
+    String text = "";
+    for (int i = 0; i < 10; i++) {
+      AccessibilityNodeInfo r = ua().getRootInActiveWindow();
+      StringBuilder b = new StringBuilder();
+      if (r != null) texts(r, b, 0);
+      text = b.toString();
+      if (text.contains("WORLD SHOWN")) break;
+      SystemClock.sleep(500);
+    }
+    int p = text.indexOf("PREVIEW");
+    log(tag + " readout\n" + (p >= 0 ? text.substring(p) : "(no probe readout; page text)\n" + text));
+    mode(false);
   }
 
   interface Step { void run() throws Exception; }

@@ -21,11 +21,11 @@
   /* the height to keep: the most the ground ahead asks over the next seconds (each sample's ground plus the clearance,
      less what a climb of about 22 deg makes up on the way), and the tops of solids the way crosses that can be climbed
      over (under the ceiling) */
-  /* (world6 step B, the one camera) the height's spring and its limits: the vertical speed within VY_UP / VY_DN and its
-     change within VY_ACC (well under what reads as a nod: the step's climbs ran 5.5 m/s with a 41 deg turn of the view),
+  /* (the one camera) the height's spring and its limits: the vertical speed within VY_UP / VY_DN and its change within
+     VY_ACC (well under what reads as a nod: a climb at 5.5 m/s with a 41 deg turn of the view reads as one),
      the ground ahead looked at over HT_T s at TAN_CLIMB (the slope those limits can climb, with room), so a rise is
      climbed early and gently */
-  var TAN_CLIMB = Math.tan(11 * DEG), VY_UP = 2.6, VY_DN = 2.2, VY_ACC = 0.5, VY_ACCU = 1.0, VY_W = 0.55, HT_T = 12, CEIL_OVER = 10, PUSH_V = 3.9;   // (fix: a climb may gather at up to VY_ACCU m/s2, a descent's change at VY_ACC)
+  var TAN_CLIMB = Math.tan(11 * DEG), VY_UP = 2.6, VY_DN = 2.2, VY_ACC = 0.5, VY_ACCU = 1.0, VY_W = 0.55, HT_T = 12, CEIL_OVER = 10, PUSH_V = 3.9;   // (a climb may gather at up to VY_ACCU m/s2, a descent's change at VY_ACC)
   function heightTarget(V, t) {
     var v = V.speed, cl = V.clear, hx = Math.sin(CS.psi), hz = Math.cos(CS.psi), yT = -1e9, T = HT_T, i;
     var g0 = groundAt(V, CS.x, CS.z, true);
@@ -40,20 +40,20 @@
       var s3 = v * T + (v * LT - v * T) * i / 12, ye3 = groundAt(V, CS.x + hx * s3, CS.z + hz * s3, true) + CS.c - s3 * LK;
       if (ye3 > yT) yT = ye3;
     }
-    // (hotfix H1, pass 2) on the slip's planned way (between the line now and the line it is going to: e), and with a
-    // lead of CLIMB_LEAD s: the height's spring lags a ramp at TAN_CLIMB by about 2 s of it (2 x its rate / 0.95), so a
-    // ramp aimed at the top's edge met it a few metres low and the hard rule lifted the camera in one step (seed 13:
-    // 5.5 m); a floating stone above the eye is passed under or beside (slipPlan), never climbed from below
+    // on the slip's planned way (between the line now and the line it is going to: e), and with a lead of CLIMB_LEAD s:
+    // the height's spring lags a ramp at TAN_CLIMB by about 2 s of it (2 x its rate / 0.95), so a ramp aimed at the top's
+    // edge meets it a few metres low and the hard rule lifts the camera in one step (seed 13: 5.5 m); a floating stone
+    // above the eye is passed under or beside (slipPlan), never climbed from below
     var O = nearObstacles(V, v * T + 60), m = V.margin || V.def.margin || 14, e = CS.latT - CS.lat, lo = Math.min(0, e), hi = Math.max(0, e), lead = v * CLIMB_LEAD;
     for (i = 0; i < O.length; i++) {
       var o = O[i], ox = o.x - CS.x, oz = o.z - CS.z, s2 = ox * hx + oz * hz;
       if (s2 < -o.r - m || s2 > v * T + o.r) continue;
       var l2 = -ox * hz + oz * hx, lat = l2 < lo ? lo - l2 : (l2 > hi ? l2 - hi : 0), top = obstTop(o) + m;
-      if (lat > o.r + m || (!o.c && !o.cloud && o.y > CS.y + 5) || !climbOK(V, CS, o, s2, top)) continue;   // (passed beside it, or too tall to climb: flown round; Fix 3: judged as slipGather judges it, climbOK)
+      if (lat > o.r + m || (!o.c && !o.cloud && o.y > CS.y + 5) || !climbOK(V, CS, o, s2, top)) continue;   // (passed beside it, or too tall to climb: flown round; judged as slipGather judges it, climbOK)
       var ye2 = top + 4 - Math.max(s2 - o.r - lead, 0) * TAN_CLIMB;
       if (ye2 > yT) yT = ye2;
     }
-    // (pass 2) the solids under the ceiling on the planned way further off (slipPlan's climbs), beyond the 8 s looked at
+    // the solids under the ceiling on the planned way further off (slipPlan's climbs), beyond the HT_T s looked at
     // above: climbed at TAN_CLIMB from as far off as the plan sees them, so a tall one is never met late
     var CB = CS.climbs;
     if (CB) for (i = 0; i < CB.length; i++) {
@@ -66,20 +66,19 @@
     }
     return Math.max(yT, g0 + cl[0]);
   }
-  /* (E1 Fix 3, the hotfix verify-2's item 2) can the camera climb over a solid (its top with the margin, `top`, s m
-     ahead on the heading)? Only under the ceiling the camera will have: simStep's is the ground under the camera +
-     clear[2] + 40. Pass 2 judged the top against the ground at the solid's centre + clear[2] alone, the camera's grid
-     there (160 x 4 m about the camera: a solid farther off read the grid's edge), so on seed 27 (day, from 34 s) a
-     mesa whose centre read 2 m while the valley the camera crossed lay at -159 m (its ceiling 21 m, the height wanted
-     52 m) was taken for climbable: the slip planned no way past it and the hard rule pushed the camera along its face
-     for 27 s (1,619 pushes, the course 41-53 deg off the heading). Now a solid is climbable only if its top is under
-     both (1) the ground under it + clear[2] as before, that ground never above the item's own seat (exact, from the
-     GPU: a column's y0 + 30) and (2) on the way in, at CR_D lengths of the height spring's lead short of it on the
-     planned line, the solid's own top + CR_CLEAR (6 m: over the hard rule's 3.5) less TAN_CLIMB beyond the lead,
-     under the ground there + clear[2] + 40 (where the ceiling holds the camera under heightTarget's top + margin + 4,
-     it still passes over without a push: the first cut asked the margin too, and seed 29, climbed in c5 without a push,
-     was slipped past at 0.35 x the speed); else it is a slip constraint, passed beside from first sight. Allocates
-     nothing */
+  /* can the camera climb over a solid (its top with the margin, `top`, s m ahead on the heading)? Only under the
+     ceiling the camera will have: simStep's is the ground under the camera + clear[2] + CEIL_OVER. The top against the ground
+     at the solid's centre + clear[2] alone is not enough: that reads the camera's grid there (160 x 4 m about the
+     camera: a solid farther off reads the grid's edge), so on seed 27 (day, from 34 s) a mesa whose centre reads 2 m
+     while the valley the camera crosses lies at -159 m (its ceiling 21 m, the height wanted 52 m) is taken for
+     climbable: the slip plans no way past it and the hard rule pushes the camera along its face for 27 s (1,619
+     pushes, the course 41-53 deg off the heading). So a solid is climbable only if its top is under both (1) the
+     ground under it + clear[2], that ground never above the item's own seat (exact, from the GPU: a column's y0 + 30)
+     and (2) on the way in, at CR_D lengths of the height spring's lead short of it on the planned line, the solid's
+     own top + CR_CLEAR (6 m: over the hard rule's 3.5) less TAN_CLIMB beyond the lead, under the ground there +
+     clear[2] + CEIL_OVER (where the ceiling holds the camera under heightTarget's top + margin + 4, it still passes over
+     without a push; asking the margin here too slips seed 29, climbable without a push, past at 0.35 x the speed);
+     else it is a slip constraint, passed beside from first sight. Allocates nothing */
   var CR_D = [0.15, 0.5, 1, 1.6, 2.4], CR_CLEAR = 6;
   function climbOK(V, S, o, s, top) {
     var cl = V.clear, gi = groundAt(V, o.x, o.z, false);
@@ -94,13 +93,13 @@
     }
     return true;
   }
-  /* (hotfix H1, pass 2) the way past what stands ahead with the heading held, planned from first sight. Pass 1 slipped
-     round the nearest solid only, seen 24 s ahead, wanting the offset still needed over the time left: a wide mesa
-     (DUNES: 105-250 m across, its top 170-335 m over the camera) or a great tower's core (ABOVE: up to 186 m) needed
-     more than its 14 deg of crab could give, and the hard rule pushed the camera along their faces for seconds (6 of 11
-     seeds, 81-1091 pushes); a solid it took for climbed was climbed only once heightTarget saw it, 8 s off, too late
-     for a tall one; and it flew into clouds' visible bodies, which it did not see.
-     Now every SLIP_PLAN = 0.25 s (and at once when the heading has turned) slipPlan looks SLIP_T = 90 s of flight
+  /* the way past what stands ahead with the heading held, planned from first sight. A slip round the nearest solid
+     only, seen 24 s ahead, wanting the offset still needed over the time left, is not enough: a wide mesa (DUNES:
+     105-250 m across, its top 170-335 m over the camera) or a great tower's core (ABOVE: up to 186 m) needs more than
+     14 deg of crab can give, and the hard rule pushes the camera along their faces for seconds (6 of 11 seeds, 81-1091
+     pushes); a solid climbed only once heightTarget sees it, HT_T s off, is met too late if tall; and clouds' visible
+     bodies have to be seen too.
+     So every SLIP_PLAN = 0.25 s (and at once when the heading has turned) slipPlan looks SLIP_T = 90 s of flight
      ahead (at least SLIP_REACH = 1,200 m; the cells hold their solids 3.8-5.2 km out) and chooses the line to fly: an
      offset from the present line and a speed of slip, among a few dozen offsets (the line in hand, the slip stopped
      where it is, each edge of the 30 solids met soonest, a ladder) and seven speeds (SLIP_SPD x the realm's speed:
@@ -117,27 +116,24 @@
      instead (heightTarget sees it as far off as the plan does, on the planned way: CS.climbs, with CLIMB_LEAD s in
      hand for the height's spring), but never a cloud's core (that would fly through its visible top) nor a floating
      stone above the eye (passed under or beside). At a visit's start, while the view is still wholly covered (the
-     landing before its first frame, or the first 0.45 s of the cloud a visit begins in: FS_INCLOUD holds the view whole
-     that long), a line that would meet a solid's own zone is not flown at all: the camera is placed on the nearest
-     clear line beside it (up to 420 m; never inside a solid), unseen; the cloud about the eye is fixed in its own
-     frame (TRAVEL), so nothing on the screen moves with it. The slip (S.sv, m/s, + to the right) flies the chosen line
+     landing before its first frame), a line that would meet a solid's own zone is not flown at all: the camera is placed on the nearest
+     clear line beside it (up to 420 m; never inside a solid), unseen. The slip (S.sv, m/s, + to the right) flies the chosen line
      by a controller eased at SLIP_ACC x the speed a second and braking in time (slipCtl), so its lateral acceleration
-     is never over 1.05 m/s2 (pass 1's hard-rule onsets: 35-72 m/s2). The view never turns; the hard rule (pushOut) is
-     untouched, the last resort. The forecast (aheadSub) flies the flight's plan by the same controller.
-     (E1.1, item 8) Two rates of easing: SLIP_ACC = 0.034 x the speed a second, so the course never swings more than
-     9.7 deg in 5 s (tan 9.7 deg = 0.034 x 5; c6b's 0.05 swung 10.2-14.0 deg on 6 of 50 seeds), and SLIP_ACC2 = 0.05,
-     the hotfix's, only where no plan eased at the first keeps out of a solid's own zone (the plan's cost there,
-     SLIP_WIN x 0.02 and over) and one eased at the second does better: the plan is made at the first and, only then,
-     again at the second (S.acc: the factor the plan in hand was made at). c6c's 0.035 for every plan (taken back) was
-     a later slip where it was urgent and the hard rule pushed (seeds 4 and 8) */
+     is never over 1.05 m/s2 (the hard rule's onsets: 35-72 m/s2). The view never turns; the hard rule (pushOut) is
+     untouched, the last resort.
+     Two rates of easing: SLIP_ACC = 0.034 x the speed a second, so the course never swings more than 9.7 deg in 5 s
+     (tan 9.7 deg = 0.034 x 5; 0.05 swings 10.2-14.0 deg on 6 of 50 seeds), and SLIP_ACC2 = 0.05 only where no plan
+     eased at the first keeps out of a solid's own zone (the plan's cost there, SLIP_WIN x 0.02 and over) and one eased
+     at the second does better: the plan is made at the first and, only then, again at the second (S.acc: the factor
+     the plan in hand was made at). Not one rate for every plan: 0.035 slips later where it is urgent, and the hard rule
+     pushes (seeds 4 and 8) */
   var SLIP_T = 90, SLIP_REACH = 1200, SLIP_SPD = [0.04, 0.08, 0.13, 0.2, 0.25, 0.35, 0.45], SLIP_SPDK = [0, 0, 0, 3000, 5000, 8000, 12000], SLIP_ACC = 0.034, SLIP_ACC2 = 0.05, SLIP_PLAN = 0.25, SLIP_DT = 0.5;
   var SLIP_IN = 6, SLIP_WIN = 1e5, SLIP_WOUT = 15, SLIP_SOFT = 8, SLIP_WSOFT = 3, SLIP_KC = 100, SLIP_URG = 15, SLIP_URGI = 20, SLIP_NC = 30, CLIMB_LEAD = 2.2;
   var SLIP_O = [], SPN = 0, SPMAX = 400, SPS = new Float64Array(SPMAX), SPSH = new Float64Array(SPMAX), SPL = new Float64Array(SPMAX), SPLH = new Float64Array(SPMAX), SPRI = new Float64Array(SPMAX), SPU = new Float64Array(SPMAX), SPUI = new Float64Array(SPMAX);
   var SPK0 = new Int32Array(SPMAX), SPK1 = new Int32Array(SPMAX), SPORD = new Int32Array(SPMAX), SPX = new Float64Array(420), SPC = new Float64Array(900);
-  /* (round E1 Fix 3, S6) the plan's constants made once: pass 2 made its ladders and the order's view and comparator at
-     every plan (four times a second), and Fix 2's slip was the frame path's largest allocator (9.9 MB in 26 s of flight,
-     verify-gates-2); the plan now allocates nothing once warm (the order kept by an insertion sort, stable as the sort
-     it replaces) */
+  /* the plan's constants made once: ladders, the order's view and comparator made at every plan (four times a second)
+     make the slip the frame path's largest allocator (9.9 MB in 26 s of flight); the plan allocates nothing once warm
+     (the order kept by an insertion sort, stable) */
   var SLIP_LAD = [15, 30, 50, 80, 120, 170, 230, 300], SLIP_LAD2 = [20, 40, 60, 90, 120, 160, 200, 250, 300, 360, 420], SLIP_SP2 = [1, 2, 4, 6], SPKEY = new Float64Array(SPMAX);
   function slipOrder(n) {   // SPORD[0..n) by when each constraint is first met (SPS - SPSH), ascending, stable
     for (var i = 0; i < n; i++) { SPORD[i] = i; SPKEY[i] = SPS[i] - SPSH[i]; }
@@ -166,7 +162,7 @@
       var o = O[i], ox = o.x - x0, oz = o.z - z0, s = ox * hx + oz * hz, l = ox * rx + oz * rz, mm = m * (o.cloud ? 1.6 : 1);
       var rr = Math.max(obstR(o, S.y, mm), obstR(o, S.y + 20, mm), obstR(o, S.y - 20, mm));
       if (rr < 0 || s < -rr || s > Smax + rr || Math.abs(l) > Lmax + rr) continue;
-      if (!o.cloud && (o.c || o.y <= S.y + 5) && climbOK(V, S, o, s, obstTop(o) + m)) { climbs.push(o); continue; }   // (a floating stone above the eye: passed under or beside, never climbed; Fix 3: climbable only under the ceiling the camera will have, climbOK)
+      if (!o.cloud && (o.c || o.y <= S.y + 5) && climbOK(V, S, o, s, obstTop(o) + m)) { climbs.push(o); continue; }   // (a floating stone above the eye: passed under or beside, never climbed; climbable only under the ceiling the camera will have, climbOK)
       var ri = Math.max(obstR(o, S.y, SLIP_IN), obstR(o, S.y + 20, SLIP_IN), obstR(o, S.y - 20, SLIP_IN), 0);
       slipAdd(s, rr, l, rr, ri, v);
     }
@@ -209,7 +205,7 @@
     }
     return cost;
   }
-  /* (E1.1, item 8) the plan made at the gentle easing; again at the hotfix's only where that meets a solid's own zone and
+  /* the plan made at the gentle easing; again at the quicker (SLIP_ACC2) only where that meets a solid's own zone and
      the quicker does better (the plan in hand then kept at the rate that costs it least) */
   function slipPlan(V, S) {
     var c0 = slipPlanA(V, S, SLIP_ACC, true);
@@ -325,7 +321,7 @@
     }
     return false;
   }
-  /* the view not yet shown: the landing before its first frame (world6: there is no other cover) */
+  /* the view not yet shown: the landing before its first frame (there is no other cover) */
   function arrivalCovered(V) { return !shown && SIM.t < 1; }
   /* a step of the slip (the flight's, plan true; the forecast's, flying the plan it was given) */
   function slipStep(V, S, dt, plan) {
@@ -334,7 +330,7 @@
     if (plan && SIM.t - S.pt >= SLIP_PLAN) { S.pt = SIM.t; slipPlan(V, S); }
     var now = plan ? SIM.t : S.t;
     if (S.tsw > 0 && now >= S.tsw) { S.latT = S.latT2; S.tsw = -1; }   // (the plan's second line, from its time on)
-    S.sv = slipCtl(S.sv, S.latT - S.lat, S.vs || SLIP_SPD[0] * v, (S.acc || SLIP_ACC) * v, dt);   // (E1.1: at the rate its plan was made at)
+    S.sv = slipCtl(S.sv, S.latT - S.lat, S.vs || SLIP_SPD[0] * v, (S.acc || SLIP_ACC) * v, dt);   // (at the rate its plan was made at)
     S.lat += S.sv * dt;
   }
   /* the hard rule: out of any solid (a landmark's cylinder, a cloud's core), pushed out by the shortest way */

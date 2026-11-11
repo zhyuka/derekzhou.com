@@ -1,18 +1,18 @@
 
 uniform sampler2D uScene, uCloud, uBloom, uShaft, uLinD, uDepth, uSceneH;
-uniform mat4 uHVP; uniform vec4 uHC;   // (E1.1) the last frame's scene (uSceneH), its view and camera; w 1 where it may be read
-uniform float uStb;   // (E1.1, item 7) 1: the scene's last frame mixed in where it shows the same surface (dev: stb=0 off)
-uniform float uLay;   // (E1.1, dev) 1: an outline in front of a cloud laid over its near and far samples apart (lay=0 off)
-const float CLZ = 8000.0;   // (Fix 3: as far as a cloud can stand; the clouds' upsampling compares depths no farther)
-uniform vec4 uSc;     // scene uv scale (x, y), supersampling, FXAA (1 on; 0 off: the scene's own samples, E1 Fix 3)
+uniform mat4 uHVP; uniform vec4 uHC;   // the last frame's scene (uSceneH), its view and camera; w 1 where it may be read
+uniform float uStb;   // 1: the scene's last frame mixed in where it shows the same surface (dev: stb=0 off)
+uniform float uLay;   // (dev) 1: an outline in front of a cloud laid over its near and far samples apart (lay=0 off)
+const float CLZ = 8000.0;   // (as far as a cloud can stand; the clouds' upsampling compares depths no farther)
+uniform vec4 uSc;     // scene uv scale (x, y), supersampling, FXAA (1 on; 0 off: the scene's own samples)
 uniform vec4 uClS;    // cloud uv scale (x, y), half-res size (x, y)
 uniform vec4 uBlK;    // bloom amount, shafts amount, bloom uv scale x, y
 uniform vec4 uShK;    // shaft uv scale (x, y), exposure, saturation
 uniform vec3 uShC; uniform vec3 uLift, uGain;
-uniform vec2 uOut;        // (world6w: the composite takes nothing from the words)
+uniform vec2 uOut;        // (the composite takes nothing from the words)
 uniform vec4 uSSR;        // water in the realm (1: the nearby forms reflected), the reflection's reach (m), -, -
-uniform vec4 uCeil;       // (tod) the light ceiling (the world's own light on the skies with light words, the same everywhere, no words input): x the ceiling (OKLab L; 2: off), y its knee
-uniform vec4 uMi;         // (Fix 3) the cloud about the eye coming out: x -1 (worked out per pixel; 0: none), y the cloud (uIn.x), z the way out (uIn.w); w (E1.1) the scene's samples a pixel where it has them (0: none; its alpha the depth's code)
+uniform vec4 uCeil;       // the light ceiling (the world's own light on the skies with light words, the same everywhere, no words input): x the ceiling (OKLab L; 2: off), y its knee
+uniform vec4 uMi;         // the cloud about the eye coming out: x -1 (worked out per pixel; 0: none), y the cloud (uIn.x), z the way out (uIn.w); w the scene's samples a pixel where it has them (0: none; its alpha the depth's code)
 out vec4 oC;
 vec3 shoulder(vec3 c) { float m = max(c.r, max(c.g, c.b)); const float K = 0.78; if (m <= K) return c;
   float mm = K + (1.0 - K) * (1.0 - exp(-(m - K) / (1.0 - K))); vec3 h = c * (mm / m); float over = clamp((m - 1.0) / 3.0, 0.0, 1.0); return mix(h, vec3(mm), over * 0.75); }
@@ -38,15 +38,15 @@ vec3 fxaa(vec2 q) {
   return (lb < lo || lb > hi) ? a : b;
 }
 vec2 lim(sampler2D s, vec2 drawn) { return drawn - 0.5 / vec2(textureSize(s, 0)); }
-float zc(float z) { return z >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(z, 1.0)) / 16.0, 0.0, 1.0); }   // (E1.1: a half-resolution depth's code, as zcode() codes the scene's)
+float zc(float z) { return z >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(z, 1.0)) / 16.0, 0.0, 1.0); }   // (a half-resolution depth's code, as zcode() codes the scene's)
 void main() {
   vec2 px = gl_FragCoord.xy, uv = px / uOut;
   vec3 c = vec3(0.0); int n = int(uSc.z);
   if (n > 1) { for (int j = 0; j < 4; j++) for (int i = 0; i < 4; i++) { if (i >= n || j >= n) continue; c += texelFetch(uScene, ivec2(floor(px) * uSc.z) + ivec2(i, j), 0).rgb; } c /= uSc.z * uSc.z; }
   else if (uSc.w > 0.5) c = fxaa(uv * uSc.xy);
   else c = texture(uScene, uv * uSc.xy).rgb;
-  vec4 cl = vec4(0.0);   // (the clouds: brought up below, E1 Fix 3)
-  bool lay = false; vec3 cLay = vec3(0.0);   // (E1.1: the cloud laid over a pixel's near and far samples apart, below)
+  vec4 cl = vec4(0.0);   // (the clouds: brought up below)
+  bool lay = false; vec3 cLay = vec3(0.0);   // (the cloud laid over a pixel's near and far samples apart, below)
   float dz = texelFetch(uDepth, min(ivec2(floor(uv * uSc.xy * vec2(textureSize(uDepth, 0)))), textureSize(uDepth, 0) - 1), 0).r;
   float zl = dz >= 1.0 ? 6.0e4 : 2.0 * uProj.z * uProj.w / (uProj.w + uProj.z - (dz * 2.0 - 1.0) * (uProj.w - uProj.z));
 #ifndef NO_WATER
@@ -55,7 +55,7 @@ void main() {
   if (uSSR.x > 0.5 && zl < 5.0e4) {
     vec2 dsz = vec2(textureSize(uDepth, 0));
     float wa = texelFetch(uScene, min(ivec2(floor(uv * uSc.xy * dsz)), ivec2(dsz) - 1), 0).a;
-    if (wa < 0.495) {   // (E1.1: water's alpha 0.49 (1 - F); every other fragment's the depth's code, 0.5 and over)
+    if (wa < 0.495) {   // (water's alpha 0.49 (1 - F); every other fragment's the depth's code, 0.5 and over)
       float F = clamp(1.0 - wa / 0.49, 0.0, 1.0);
       vec2 ndc = px / uOut * 2.0 - 1.0;
       vec3 rv = uCamF + uCamR * ndc.x * uProj.x + uCamU * ndc.y * uProj.y, P = uCam + rv * zl, rd = normalize(rv);
@@ -85,27 +85,27 @@ void main() {
     }
   }
 #endif
-  /* (E1.1, item 7, G0) where the scene has its samples, the last frame's scene mixed in at half wherever it shows the
-     same surface: each pixel's point (its resolved depth) seen from where the camera was, read there from the last
-     frame's scene (the twin, uSceneH), taken only where that frame's depth code there is the point's own (within 0.008:
-     a depth within 19%, so nothing that moved on its own nor what stood behind an edge is taken) and held within this
-     frame's 3 x 3 (nothing else of the last frame can come back). The four samples a pixel see a small form at another
-     place among them in each frame, so its edge is the mean of eight: a pale pebble's tip on the sand in a dune's shade
-     lit a pixel wholly for one frame and was gone the next (Chromium's still view: 2.89 blinks a frame against the 4x
-     reference's 0.89, every round since c4). The sky (code 1) and water (under 0.5) are left alone (Fix 2: but the sky at a rim); the clouds are laid
-     over it after (the layering below takes the pixel's own frame, cR, and its own history) */
+  /* where the scene has its samples, the last frame's scene mixed in at half wherever it shows the same surface: each
+     pixel's point (its resolved depth) seen from where the camera was, read there from the last frame's scene (the
+     twin, uSceneH), taken only where that frame's depth code there is the point's own (within 0.008: a depth within
+     19%, so nothing that moved on its own nor what stood behind an edge is taken) and held within this frame's 3 x 3
+     (nothing else of the last frame can come back). The four samples a pixel see a small form at another place among
+     them in each frame, so its edge is the mean of eight: a pale pebble's tip on the sand in a dune's shade lights a
+     pixel wholly for one frame and is gone the next (Chromium's still view: 2.89 blinks a frame against the 4x
+     reference's 0.89). The sky (code 1) and water (under 0.5) are left alone (but the sky at a rim, below); the clouds
+     are laid over it after (the layering below takes the pixel's own frame, cR, and its own history) */
   vec3 cR = c;
   if (uStb > 0.5 && uHC.w > 0.5 && n <= 1) {
     ivec2 ssz0 = textureSize(uScene, 0), ip0 = min(ivec2(floor(uv * uSc.xy * vec2(ssz0))), ssz0 - 1);
     float A0 = texelFetch(uScene, ip0, 0).a;
     if (A0 >= 0.5) {
-      /* (E1.1 Fix 2, G0 at 1:1 pixels: 1440 x 900, 2.83 blinks a frame against the 4x reference's 0) and at a rim too:
-         where this frame's 3 x 3 holds two depths (an outline: a floating rock before the sky or a farther rock, a sliver
-         of sky between two; the sky's pixels at the rim included) the last frame's pixel is taken though its code is not
-         the point's own (the rim's samples went in or out), held within this frame's 3 x 3 as ever: four samples a pixel
-         step a rim pixel by a quarter of the edge's contrast (25 codes between a navy rock and the sky) as one sample goes
-         in or out, and a pixel the edge brushed stepped up and back; mixed at half with the frame before, the step is
-         halved (1440 x 900: 2.83 -> 0.83 blinks a frame with the rock's pixels alone, the sky's added below) */
+      /* and at a rim too: where this frame's 3 x 3 holds two depths (an outline: a floating rock before the sky or a
+         farther rock, a sliver of sky between two; the sky's pixels at the rim included) the last frame's pixel is
+         taken though its code is not the point's own (the rim's samples go in or out), held within this frame's 3 x 3
+         all the same: four samples a pixel step a rim pixel by a quarter of the edge's contrast (25 codes between a navy
+         rock and the sky) as one sample goes in or out, and a pixel the edge brushes steps up and back; mixed at half
+         with the frame before, the step is halved (1:1 pixels, 1440 x 900: 2.83 -> 0.83 blinks a frame with the rock's
+         pixels alone, the sky's added below; the 4x reference's 0) */
       vec3 mn = c, mx = c; float aLo3 = A0, aHi3 = A0;
       for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) { if (i == 0 && j == 0) continue; vec4 q = texelFetch(uScene, clamp(ip0 + ivec2(i, j), ivec2(0), ssz0 - 1), 0); mn = min(mn, q.rgb); mx = max(mx, q.rgb); aLo3 = min(aLo3, q.a); aHi3 = max(aHi3, q.a); }
       bool rim = aLo3 >= 0.5 && aHi3 - aLo3 > 0.02;
@@ -120,38 +120,36 @@ void main() {
     }
   }
   {
-    // the half-resolution clouds brought up edge-aware (hotfix G0): across an edge of the land (a landmark against what
-    // stands behind it, the land against the sky) each of the 2x2 weighted by how near its depth is to this pixel's, so
-    // no cloud bleeds across it; over an even surface (the 2x2's depths, interpolated, within 5% of this pixel's) plain
-    // bilinear. (Round 3b weighted by depth everywhere, and so steeply that over the sea, whose depth changes from one
-    // pixel to the next, it took the nearest texel: the clouds' edges were drawn in half-resolution stairs that crawled
-    // and blinked as the view moved.) The same 2x2 reads as before
+    // the half-resolution clouds brought up edge-aware: across an edge of the land (a landmark against what stands
+    // behind it, the land against the sky) each of the 2x2 weighted by how near its depth is to this pixel's, so no
+    // cloud bleeds across it; over an even surface (the 2x2's depths, interpolated, within 5% of this pixel's) not by
+    // depth (weighted by depth everywhere, and as steeply, the sea, whose depth changes from one pixel to the next,
+    // takes the nearest texel: the clouds' edges drawn in half-resolution stairs that crawl and blink as the view moves)
     vec2 hp = uv * uClS.zw - 0.5, f = fract(hp); ivec2 h0 = ivec2(floor(hp));
-    /* (round E1 Fix 2, G0) over an even surface the half-resolution clouds are brought up by a cubic B-spline (four
-       bilinear reads, GPU Gems 2 ch. 20), not bilinear: a bilinear ramp between half-resolution texels moves in
-       periodic kinks as an edge slides across them, which the 4x reference does not show (WebKit, the cloud-edge film
-       at 42 m/s, 491x668: the moving silhouettes' excess p99 1.156 codes with bilinear, 0.799 with the B-spline; its
-       blinks at 6 codes 199 a million pixels against 78). Four more reads, only where a cloud covers the pixel.
-       (Fix 3) Gated on the B-spline's own reach: Fix 2 asked first whether a plain bilinear read (the 2x2) saw any
-       cloud, so where the B-spline's 4x4 reached a cloud the 2x2 did not, its tail was cut, and the cut moved with the
-       half-resolution grid (verify-gates-2: removing it took the edge film's blocks over 1 code from 41 to 34). And
-       the B-spline is taken only where its whole 4x4 lies on one surface: each of its outer twelve texels' depth within
-       5% of the plane the inner 2x2's depths make (a smooth slope, the sea toward the horizon, passes; an edge does
-       not), else the depth-weighted 2x2 (verify-regress-2: the B-spline's outer texels on a dune below a far cloud drew
-       a stepped light line inside the cloud just above the crest, the 2x2 alone being all sky).
-       (Fix 3, defect 19) The depths are compared as far as a cloud can stand (CLZ, 8 km: no realm streams a cloud
-       beyond its cells' reach, ABOVE's 3.8 km and DUNES' 5.2 km radius and a cell beyond), so what lies behind every
-       cloud is one surface: the far sea and the sky behind a tower's edge at the horizon were two to the test (sea
-       at 10-40 km, sky at 60), and the edge went from the B-spline to the 2x2 and back as the horizon slid across the
-       pixels (WebKit, 491 x 1065: three points on the towers' edges at the horizon blinked 5-9 times in 24 frames,
-       the reference never) */
+    /* over an even surface the half-resolution clouds are brought up by a cubic, not bilinear: a bilinear ramp between
+       half-resolution texels moves in periodic kinks as an edge slides across them, which the 4x reference does not
+       show (WebKit, the cloud-edge film at 42 m/s, 491x668: the moving silhouettes' excess p99 1.156 codes with
+       bilinear, 0.799 with a B-spline; its blinks at 6 codes 199 a million pixels against 78). The four bilinear reads
+       here (a cubic B-spline's, GPU Gems 2 ch. 20) gate the work below on the 4x4's own reach: gated on a plain
+       bilinear read (the 2x2), where the 4x4 reaches a cloud the 2x2 does not, its tail is cut, and the cut moves with
+       the half-resolution grid (gating on the 4x4 takes the edge film's blocks over 1 code from 41 to 34). And the
+       cubic is taken only where its whole 4x4 lies on one surface: each of its outer twelve texels' depth within 5% of
+       the plane the inner 2x2's depths make (a smooth slope, the sea toward the horizon, passes; an edge does not),
+       else the depth-weighted 2x2 (outer texels on a dune below a far cloud draw a stepped light line inside the cloud
+       just above the crest, the 2x2 alone being all sky).
+       The depths are compared as far as a cloud can stand (CLZ, 8 km: no realm streams a cloud beyond its cells'
+       reach, ABOVE's 3.8 km and DUNES' 5.2 km radius and a cell beyond), so what lies behind every cloud is one
+       surface: else the far sea and the sky behind a tower's edge at the horizon are two to the test (sea at 10-40 km,
+       sky at 60), and the edge goes from the cubic to the 2x2 and back as the horizon slides across the pixels
+       (WebKit, 491 x 1065: three points on the towers' edges at the horizon blinked 5-9 times in 24 frames, the
+       reference never) */
     vec2 tsz = vec2(textureSize(uCloud, 0)), b0 = (1.0 - f) * (1.0 - f) * (1.0 - f) / 6.0, b1 = (4.0 - 6.0 * f * f + 3.0 * f * f * f) / 6.0, b3 = f * f * f / 6.0, b2 = 1.0 - b0 - b1 - b3;
     vec2 g0 = b0 + b1, g1 = b2 + b3, o0 = (vec2(h0) + 0.5 - 1.0 + b1 / g0) / tsz, o1 = (vec2(h0) + 0.5 + 1.0 + b3 / g1) / tsz, lm = lim(uCloud, uClS.xy);
     vec4 tA = texture(uCloud, min(o0, lm)), tB = texture(uCloud, min(vec2(o1.x, o0.y), lm)), tC = texture(uCloud, min(vec2(o0.x, o1.y), lm)), tD = texture(uCloud, min(o1, lm));
-    /* (stage2 quality Q2) brought up by a Catmull-Rom (interpolating: a detail a quarter of the half resolution's
-       rate keeps its contrast, which the B-spline cut by about 40%), clamped to the range of the inner 2x2 it
-       interpolates (no ring, no overshoot: never above the brightest texel there, never below the darkest; so
-       never above the light ceiling either). The four reads above stay the gate's (the 4x4's reach) */
+    /* brought up by a Catmull-Rom (interpolating: a detail a quarter of the half resolution's rate keeps its
+       contrast, which a B-spline cuts by about 40%), clamped to the range of the inner 2x2 it interpolates (no ring,
+       no overshoot: never above the brightest texel there, never below the darkest; so never above the light ceiling
+       either). The four reads above are only the gate's (the 4x4's reach) */
     vec4 cS; { vec2 w0c = f * (-0.5 + f * (1.0 - 0.5 * f)), w1c = 1.0 + f * f * (-2.5 + 1.5 * f), w2c = f * (0.5 + f * (2.0 - 1.5 * f)), w3c = f * f * (-0.5 + 0.5 * f);
       ivec2 qm = ivec2(uClS.zw) - 1; vec4 s4 = vec4(0.0), mn4 = vec4(1e9), mx4 = vec4(-1e9);
       for (int j = 0; j < 4; j++) { float wy = j == 0 ? w0c.y : (j == 1 ? w1c.y : (j == 2 ? w2c.y : w3c.y));
@@ -160,15 +158,9 @@ void main() {
           if (i >= 1 && i <= 2 && j >= 1 && j <= 2) { mn4 = min(mn4, q4); mx4 = max(mx4, q4); } } }
       cS = clamp(s4, mn4, mx4); }
     cl = cS;
-    /* (Fix 3, the hotfix verify-2's item 3) coming out of a cloud, the cloud about the eye (FS_INCLOUD, drawn into the
-       same half-resolution target, in front of everything) is brought up plainly wherever it still stands: its share
-       here worked out as FS_INCLOUD works it (the same when from the same two reads of the noise, the same way out),
-       km 1 where it stands (amt from 0.06 up: below that its planes draw next to nothing), 0 in the holes. The
-       depth-weighted 2x2 judged it by the land's depth, which it does not lie at: over ABOVE's sea of cloud, whose
-       domes are no plane at half resolution, each hole's edge was taken from the nearest texel, stairs that crawled as
-       the holes opened (seed 13 into ABOVE at 85.35-85.85 s, 393x852: the block excess p99 1.408 codes). In the holes
-       the clouds and the land behind are brought up as before; nothing changes out of a passage */
-    float km = 0.0;   // (world6: no cloud about the eye: there are no passages)
+    /* km: the share of a cloud about the eye, brought up plainly where it stands. There is none (no passages), so km
+       is 0 and every pixel takes the depth-weighted 2x2 below */
+    float km = 0.0;   // (no cloud about the eye: there are no passages)
     if (km < 0.999 && max(max(tA.a, tB.a), max(tC.a, tD.a)) > 0.002) {
       vec4 c2 = vec4(0.0); float ws = 0.0, zb = 0.0, zlc = min(zl, CLZ); float zq4[4];
       ivec2 qmax = ivec2(uClS.zw) - 1;
@@ -188,12 +180,11 @@ void main() {
           ev = max(ev, abs(zo - zp) / max(min(zo, max(zp, 1.0)), 1.0));
         }
       }
-      /* (E1.1 Fix 2, G0: Chromium's rim blinks) a pixel standing farther than every texel of its 2x2 (all its samples on
-         the sky behind a floating rock's rim, its texels the rock's: the half-resolution depth keeps the nearer) took
-         those texels' cloud, which is what stands before the rock, so the cloud behind it (a tower) was missing there
-         and the pixel showed the bare sky (pale, 177-179 codes, against the tower's lavender 123-142, every other frame
-         as the rim's samples went in and out): now the cloud of the texels about it at its own depth, as the layering
-         takes its far part's */
+      /* a pixel standing farther than every texel of its 2x2 (all its samples on the sky behind a floating rock's rim,
+         its texels the rock's: the half-resolution depth keeps the nearer) takes the cloud of the texels about it at its
+         own depth, as the layering takes its far part's: those texels' cloud is what stands before the rock, so with it
+         the cloud behind (a tower) goes missing and the pixel shows the bare sky (pale, 177-179 codes, against the
+         tower's lavender 123-142, every other frame as the rim's samples go in and out: Chromium's rim blinks) */
       vec4 cW = c2 / ws;
       float zcp = zc(zl);
       if (zcp > zc(max(max(zq4[0], zq4[1]), max(zq4[2], zq4[3]))) + 0.02 && km < 0.001) {
@@ -204,15 +195,15 @@ void main() {
         }
         if (wO > 1e-6) cW = sO / wO;
       }
-      cl = mix(cS, cW, smoothstep(0.05, 0.2, ev) * (1.0 - km));   // (the B-spline over an even surface, the depth-weighted 2x2 across the land's edges; Fix 3: and plainly where the cloud about the eye stands)
+      cl = mix(cS, cW, smoothstep(0.05, 0.2, ev) * (1.0 - km));   // (the Catmull-Rom over an even surface, the depth-weighted 2x2 across the land's edges; and plainly where the cloud about the eye stands)
     }
-    /* (E1.1, item 7, G0) where the scene has its samples and a pixel's samples stand at two depths (its alpha, their
-       depth codes averaged, unlike the code of its one resolved depth), the cloud is laid over each part apart: the
-       share of near samples cov from the codes of the nearest and farthest half-resolution depths about it (the 4 x 4),
-       the cloud before the near ones (the texels at the near depth) and before the far ones (at the far depth), and each
-       part's own colour from the 3 x 3 pixels most near and most far (their residual shared, so the pixel's own colour is
-       kept). Fix 3 took each such pixel as wholly near or wholly far by its one depth sample: the floating rocks'
-       outlines against a bright tower stepped and crawled (491 x 1065: the moving reading 1.179) */
+    /* where the scene has its samples and a pixel's samples stand at two depths (its alpha, their depth codes
+       averaged, unlike the code of its one resolved depth), the cloud is laid over each part apart: the share of near
+       samples cov from the codes of the nearest and farthest half-resolution depths about it (the 4 x 4), the cloud
+       before the near ones (the texels at the near depth) and before the far ones (at the far depth), and each part's
+       own colour from the 3 x 3 pixels most near and most far (their residual shared, so the pixel's own colour is
+       kept). Taken as wholly near or wholly far by its one depth sample, such a pixel makes the floating rocks'
+       outlines against a bright tower step and crawl (491 x 1065: the moving reading 1.179) */
 #ifndef NO_WATER
     if (uLay > 0.5 && uMi.w > 0.5 && n <= 1 && uSSR.x < 0.5 && km < 0.001 && max(max(tA.a, tB.a), max(tC.a, tD.a)) > 0.002) {
 #else
@@ -237,7 +228,7 @@ void main() {
             if (k < cn + 0.01) { sN += cv * wb; wN += wb; }
             if (abs(k - cf) < 0.01) { sF += cv * wb; wF += wb; }
           }
-          vec4 clN = sN / wN, clF = wF > 1e-6 ? sF / wF : cS;   // (E1.1: no texel at the far part's own depth (cf, the resolved sample's code): the cloud as brought up for the pixel, never 0 / 0)
+          vec4 clN = sN / wN, clF = wF > 1e-6 ? sF / wF : cS;   // (no texel at the far part's own depth (cf, the resolved sample's code): the cloud as brought up for the pixel, never 0 / 0)
           vec3 rE = cR, bE = cR; float aLo = 2.0, aHi = -1.0;
           for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
             vec4 sp = texelFetch(uScene, clamp(ip + ivec2(i, j), ivec2(0), ssz - 1), 0);
@@ -253,9 +244,9 @@ void main() {
             vec2 nd = px / uOut * 2.0 - 1.0; vec3 rv = uCamF + uCamR * nd.x * uProj.x + uCamU * nd.y * uProj.y;
             vec4 hq = uHVP * vec4(uCam - uHC.xyz + rv * exp2((cn - 0.5) * 32.0), 1.0);
             if (hq.w > 1e-3 && abs(hq.x) < hq.w && abs(hq.y) < hq.w) {
-              // (E1.1 Fix 2) the last frame's pixel there read as it was (its texel, not a bilinear blend of the rim's codes:
-              // across the rim the blend took the sky's code in, under-read the near share, and the mix pulled the
-              // pixel toward the far part: a rim pixel swung 56 -> 78 -> 56 codes, its samples one in and out)
+              // the last frame's pixel there read as it is (its texel, not a bilinear blend of the rim's codes: across
+              // the rim a blend takes the sky's code in, under-reads the near share, and the mix pulls the pixel toward
+              // the far part: a rim pixel swings 56 -> 78 -> 56 codes, its samples one in and out)
               vec4 hs = texelFetch(uSceneH, clamp(ivec2(floor((hq.xy / hq.w * 0.5 + 0.5) * uSc.xy * vec2(ssz))), ivec2(0), ssz - 1), 0);
               if (hs.a >= 0.5) { cov = 0.5 * cov + 0.5 * clamp((cf - hs.a) / (cf - cn), 0.0, 1.0); cc = 0.5 * cR + 0.5 * clamp(hs.rgb, min(rE, bE), max(rE, bE)); }
             }
@@ -275,7 +266,7 @@ void main() {
   c = uLift + c * uGain;
   float y0 = lumi(c); c = max(mix(vec3(y0), c, uShK.w), 0.0);
   c = shoulder(c);
-  // (tod) the light ceiling: what passes K = ceiling - knee eased under the ceiling by a soft shoulder in OKLab L, the
+  // the light ceiling: what passes K = ceiling - knee eased under the ceiling by a soft shoulder in OKLab L, the
   // colour scaled by the cube of the L ratio (hue and chroma's direction kept: L(s c) = s^(1/3) L(c)); never above it
   if (uCeil.x < 1.5) {
     vec3 lms = pow(max(vec3(dot(c, vec3(0.4122214708, 0.5363325363, 0.0514459929)), dot(c, vec3(0.2119034982, 0.6806995451, 0.1073969566)), dot(c, vec3(0.0883024619, 0.2817188376, 0.6299787005))), vec3(0.0)), vec3(1.0 / 3.0));
@@ -283,13 +274,13 @@ void main() {
     if (Lk > Kc) c *= pow((Kc + uCeil.y * (1.0 - exp(-(Lk - Kc) / uCeil.y))) / Lk, 3.0);
   }
   c = clamp(c, 0.0, 1.0);
-  // W7-TAIL-BEGIN (world6w: the words' lift is gone: the composite takes nothing from the words (no mask, floor, gain
-  // or toe), so the frame with the words' machinery on and off is the same program on the same inputs; CI's rule 7
-  // fails if any words input comes back into the composite, and its unit test runs this tail over random grounds)
+  // W7-TAIL-BEGIN (the composite takes nothing from the words (no mask, floor, gain or toe), so the frame with the
+  // words' machinery on and off is the same program on the same inputs; CI's rule 7 fails if any words input comes
+  // into the composite, and its unit test runs this tail over random grounds)
   vec3 s = enc(clamp(c, 0.0, 1.0));
-  // (hotfix G0) the dither: one 8-bit step (uniform, -0.5 .. +0.5 of a code), in one fixed R2 pattern on the window: no
-  // bands in the 8 bits, and nothing that changes from one frame to the next (round 3b's triangular dither, two codes
-  // wide and shifted every frame, fizzed over every even colour: a passage's cloud, its cover, the sky)
+  // the dither: one 8-bit step (uniform, -0.5 .. +0.5 of a code), in one fixed R2 pattern on the window: no bands in
+  // the 8 bits, and nothing that changes from one frame to the next (a triangular dither two codes wide, shifted every
+  // frame, fizzes over every even colour: a passage's cloud, its cover, the sky)
   s += (fract(dot(px, vec2(0.7548776662, 0.5698402910))) - 0.5) / 255.0;
   oC = vec4(s, 1.0);
   // W7-TAIL-END

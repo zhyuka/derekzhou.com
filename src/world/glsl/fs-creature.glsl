@@ -1,7 +1,7 @@
 
 uniform vec3 uCrL, uCrS, uCrE;   // lit and shaded colour; its own light (linear, HDR: moths, jellies, caps)
 uniform float uCrA;              // drawn added (jellies: translucent light), else 0
-uniform float uCrF;              // (world6 fix) how far in out of the haze (0: the air's far colour, 1: as seen)
+uniform float uCrF;              // how far in out of the haze (0: the air's far colour, 1: as seen)
 centroid in vec3 vW; centroid in vec3 vN; centroid in float vLit; centroid in float vGlow; out vec4 oC;
 void main() {
   vec3 v = vW - uCam; float t = length(v); vec3 rd = v / t;
