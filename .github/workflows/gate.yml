@@ -193,10 +193,9 @@ jobs:
     timeout-minutes: 12
     env:
       T1_CACHE: ${{ inputs.t1_cache || 'use' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3]
+    # One job, its four shards as four processes side by side: the PC's runners share one CPU, so four jobs rendered
+    # no faster than four processes do, and each job waited for a runner of its own (80 s on #157's gate) and set up
+    # again (about 13 s). The records stay one per shard, kept together in one cache entry.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -209,44 +208,56 @@ jobs:
           path: ${{ runner.temp }}/served
       - name: The records' key
         id: rk
-        run: echo "pre=t1rec-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-s${{ matrix.shard }}" >> "$GITHUB_OUTPUT"
-      - name: The base's record, if its build was rendered before
+        run: echo "pre=t1rec-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-x4" >> "$GITHUB_OUTPUT"
+      - name: The base's records, if its build was rendered before
         id: restore
         if: env.T1_CACHE != 'off'
         uses: actions/cache/restore@v4
         with:
-          path: ${{ runner.temp }}/t1rec/rec.json
+          path: ${{ runner.temp }}/t1rec
           key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.base_build }}
-      - name: Base against head, shard ${{ matrix.shard }} of 4
+      - name: Base against head, four shards side by side
         id: t1
         run: |
-          node .github/ci/t1.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --shard ${{ matrix.shard }} --shards 4 --out "$RUNNER_TEMP/t1" \
-            --base-rec "$RUNNER_TEMP/t1rec/rec.json" --cache "$T1_CACHE" --save-base-rec "$RUNNER_TEMP/t1new/base.json" --save-head-rec "$RUNNER_TEMP/t1new/head.json"
-      # (One cache path for every record: a cache entry is found only under the path it was saved from.)
-      - name: The base's record, staged (a miss)
+          fail=0; pids=()
+          for s in 0 1 2 3; do
+            node .github/ci/t1.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --shard $s --shards 4 --out "$RUNNER_TEMP/t1/s$s" \
+              --base-rec "$RUNNER_TEMP/t1rec/rec-$s.json" --cache "$T1_CACHE" --save-base-rec "$RUNNER_TEMP/t1new/base-$s.json" --save-head-rec "$RUNNER_TEMP/t1new/head-$s.json" \
+              > "$RUNNER_TEMP/t1-s$s.log" 2>&1 &
+            pids+=($!)
+          done
+          for s in 0 1 2 3; do wait ${pids[$s]} || { echo "::error::T1 shard $s failed"; fail=1; }; echo "::group::shard $s"; cat "$RUNNER_TEMP/t1-s$s.log"; echo "::endgroup::"; done
+          exit $fail
+      # (One cache path for every record: a cache entry is found only under the path it was saved from. Kept only
+      # whole: all four shards' records, each saved by t1.mjs only from a run whose null test held.)
+      - name: The base's records, staged (a miss)
         id: stage_base
         if: steps.restore.outputs.cache-hit != 'true'
-        run: if [ -f "$RUNNER_TEMP/t1new/base.json" ]; then mkdir -p "$RUNNER_TEMP/t1rec"; cp "$RUNNER_TEMP/t1new/base.json" "$RUNNER_TEMP/t1rec/rec.json"; echo "ok=true" >> "$GITHUB_OUTPUT"; fi
-      - name: Keep the base's record
+        run: |
+          for s in 0 1 2 3; do [ -f "$RUNNER_TEMP/t1new/base-$s.json" ] || exit 0; done
+          mkdir -p "$RUNNER_TEMP/t1rec"; for s in 0 1 2 3; do cp "$RUNNER_TEMP/t1new/base-$s.json" "$RUNNER_TEMP/t1rec/rec-$s.json"; done; echo "ok=true" >> "$GITHUB_OUTPUT"
+      - name: Keep the base's records
         if: steps.stage_base.outputs.ok == 'true'
         uses: actions/cache/save@v4
         with:
-          path: ${{ runner.temp }}/t1rec/rec.json
+          path: ${{ runner.temp }}/t1rec
           key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.base_build }}
-      - name: The head's record, staged (main, a build of its own)
+      - name: The head's records, staged (main, a build of its own)
         id: stage_head
         if: github.ref == 'refs/heads/main' && needs.plan.outputs.head_build != needs.plan.outputs.base_build
-        run: if [ -f "$RUNNER_TEMP/t1new/head.json" ]; then mkdir -p "$RUNNER_TEMP/t1rec"; cp "$RUNNER_TEMP/t1new/head.json" "$RUNNER_TEMP/t1rec/rec.json"; echo "ok=true" >> "$GITHUB_OUTPUT"; fi
-      - name: Keep main's record for the branches that start from it
+        run: |
+          for s in 0 1 2 3; do [ -f "$RUNNER_TEMP/t1new/head-$s.json" ] || exit 0; done
+          rm -rf "$RUNNER_TEMP/t1rec"; mkdir -p "$RUNNER_TEMP/t1rec"; for s in 0 1 2 3; do cp "$RUNNER_TEMP/t1new/head-$s.json" "$RUNNER_TEMP/t1rec/rec-$s.json"; done; echo "ok=true" >> "$GITHUB_OUTPUT"
+      - name: Keep main's records for the branches that start from it
         if: steps.stage_head.outputs.ok == 'true'
         uses: actions/cache/save@v4
         with:
-          path: ${{ runner.temp }}/t1rec/rec.json
+          path: ${{ runner.temp }}/t1rec
           key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.head_build }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: t1-shard-${{ matrix.shard }}
+          name: t1-shard-all
           path: ${{ runner.temp }}/t1
           retention-days: 7
 
