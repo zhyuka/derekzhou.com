@@ -73,12 +73,12 @@
   /* (the slow CPU's net) the hold foretold, twice, from work the boot does anyway, on the main thread like the plan
      that follows: first stage A (the context and the boot's setup: about HOLD_KA x A + HOLD_CA ms; the 4090, Chrome's
      CPU throttled 1x to 6x: A 19-23 ms at 1x -> 0.6 s, 38-48 at 3x -> 1.3-1.45 s, 46-51 at 4x -> 1.6-1.8 s, 59 and over
-     at 5x past 2 s); then the first hold frame (stage B and every program issued: about HOLD_K x it + HOLD_C ms: 13 ms
-     -> 0.56 s, 45 -> 1.39, 58 -> 1.74, 67 and over past 2 s). The owner's rule ("Hold up to ~1 s"): a
+     at 5x past 2 s); then the first hold frame (stage B and every program issued, its CPU work: about the filter probe's ms + HOLD_K x
+     the rest + HOLD_C ms: 11-12 ms at 1x -> 0.68 s, 28-32 at 2x -> 1.07-1.29, 46-56 at 3x -> 1.59-1.77). The owner's rule ("Hold up to ~1 s"): a
      hold only where it foretells the world shown within HOLD_WORLD ms of the navigation's start (the clock's origin);
      either foretelling later: no hold, the link out at once, the boot going on as today's (the words first on the
      still sky, then the world). The deadline (holdMs) stays the last net */
-  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 26, HOLD_C = 220, HOLD_WORLD = 1000, HOLD_A_CUT = 1.3;
+  var HOLD_KA = 38, HOLD_CA = -150, HOLD_K = 24, HOLD_C = 425, HOLD_WORLD = 1000, HOLD_A_CUT = 1.3;
   function holdLink() { return document.querySelector('link[rel="expect"][blocking="render"]'); }
   function holdOff(why) { HOLD.why = why; var l = holdLink(); if (l) l.remove(); bootMark('hold: off (' + why + ')'); }
   /* the deadline by device, the last net (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so
@@ -108,8 +108,8 @@
       domFlush(); if (BIRDF && !BIRDS && !LATEB.dead) birdsLate();
       frameBody(ts);
       if (n === 1) {   // (the slow CPU's net: the first hold frame, stage B and every program issued, foretells the hold)
-        HOLD.f1 = +(clockNow() - f0).toFixed(1);
-        if (t0 + HOLD_K * HOLD.f1 + HOLD_C > HOLD_WORLD) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
+        HOLD.f1 = +(clockNow() - f0).toFixed(1); HOLD.pf = +(BOOT.probe0 || 0).toFixed(1); HOLD.f1c = Math.max(0, HOLD.f1 - HOLD.pf);   // (its CPU work: the filter probe's link and read-back, which wait on the GPU (5-8 ms on the 4090, cold), counted once as themselves, as stage A's first resize is)
+        if (t0 + HOLD.pf + HOLD_K * HOLD.f1c + HOLD_C > HOLD_WORLD) { HOLD.on = false; CLK[1] = -2; holdOff('a slow CPU: the first hold frame ' + HOLD.f1 + ' ms'); return; }
         if (PW.st === 1) planWaitOff();   // (the plan made here, beside the compiles: the worker's first answer cannot come inside this task; frame 1, stage B, makes none of it; the worker kept, its rest still taken when it comes)
       }
     }
