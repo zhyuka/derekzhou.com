@@ -22,6 +22,7 @@ site/404.html                Custom 404 page (the hour's still sky, no world, no
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
 site/assets/apple-touch-icon.png  180x180 iOS icon
+site/assets/sound/           The sound icon's one recording (score-N.mp3: fetched only at the press; docs/sound.md)
 site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (the subsets'
                              sources; served too, loaded by no page) + two .sub3 subsets (the pages' letters)
                              (loaded), and OFL.txt (their licence)
@@ -58,6 +59,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
 tools/minify.mjs             Builds the five served scripts from build/ship/; CI checks the build
 tools/tsc.mjs                tsc --checkJs over the assembled world, by hand (npx typescript, pinned; not a dependency),
                              with tools/types/world.d.ts for what TypeScript's DOM types lack: each error as section:line
+tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)

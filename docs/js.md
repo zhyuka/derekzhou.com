@@ -12,6 +12,10 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 2. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
+2b. sound.js — the sound icon's switch (src/sound.js, minified; parser-blocking
+   right after site.js, so the icon shows before the first paint): shows the icon,
+   adds its one click handler, and at the first press makes the audio context and
+   fetches its one recording, from /assets/sound/, to loop (docs/sound.md).
 3. world.js — the world (parser-blocking after the footer, for the
    first-paint hold; fetchpriority="high"; minified). As its script ends it
    starts the plan's worker, plan.js, by name (no tag: docs/world.md, ## BOOT).
