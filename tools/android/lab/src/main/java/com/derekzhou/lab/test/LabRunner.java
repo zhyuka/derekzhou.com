@@ -162,6 +162,7 @@ public class LabRunner extends Instrumentation {
     for (String v : visits) {
       String[] f = v.split("~");
       if (f.length < 4) { log("bad visit '" + v + "'"); continue; }
+      if (f[0].equals("webview")) { webviewVisit(++i, f[1], f[2], Long.parseLong(f[3])); continue; }
       String pkg = f[0].equals("chromium") ? "org.chromium.chrome" : CHROME, url = f[1], kind = f[2];
       long secs = Long.parseLong(f[3]);
       String flags = f.length > 4 ? f[4].replace('+', ' ') : "";
@@ -202,6 +203,45 @@ public class LabRunner extends Instrumentation {
       sh("am force-stop " + pkg);
     }
     sh("am clear-debug-app");
+  }
+
+  /**
+   * A plan's webview visit: the WebView app with the lab's timing script injected (first paint, world shown, the
+   * longest frame, long frames, fps), for pages with no readout. Cold clears the WebView's caches; both start a new
+   * :web process.
+   */
+  void webviewVisit(int i, String url, String kind, long secs) throws Exception {
+    String tag = String.format("v%d-webview-%s-%s", i, kind, android.net.Uri.parse(url).getHost().split("\\.")[0]);
+    log("==== " + tag + ": " + url);
+    mode(false);
+    endWeb();
+    resolve(url);
+    Context c = getTargetContext();
+    long s = SystemClock.uptimeMillis();
+    c.startActivity(new Intent().setClassName(APP, APP + ".LabActivity").putExtra("url", url).putExtra("tag", tag)
+        .putExtra("secs", secs).putExtra("inject", true).putExtra("clear", kind.equals("cold"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+    for (long at = 0; at <= 20000; at += 250) {
+      until(s + at);
+      shot(tag + "-" + String.format("%05d", SystemClock.uptimeMillis() - s));
+    }
+    for (long at : new long[] { 30, 45, 60, 120, 300 }) {
+      if (at >= secs) break;
+      until(s + at * 1000);
+      shot(tag + "-" + at + "s");
+    }
+    until(s + secs * 1000 + 1500);
+    shot(tag + "-end");
+    endWeb();
+    File wv = new File(dir, "wv-" + tag + ".txt");
+    log("---- " + wv.getName() + "\n" + (wv.exists() ? read(wv) : "(missing)"));
+  }
+
+  void endWeb() {
+    ActivityManager am = (ActivityManager) getTargetContext().getSystemService(Context.ACTIVITY_SERVICE);
+    for (ActivityManager.RunningAppProcessInfo p : am.getRunningAppProcesses())
+      if (p.processName.equals(APP + ":web")) { log("ending the WebView process " + p.pid); Process.killProcess(p.pid); }
+    SystemClock.sleep(1500);
   }
 
   void cmdline(String pkg, String flags) throws IOException {
