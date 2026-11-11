@@ -25,7 +25,8 @@ WORLD=../src/world.js; INK=../src/inkbirds.js
 REALMS=$(ls ../src/realm-*.js | tr '\n' ' '); HOUR=hour.js; CSS=style.css
 WING=$(ls facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
 PLANW=$(ls plan.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
-JS="site.js $HOUR $WORLD $REALMS $WING $INK $PLANW"
+SND="../src/sound.js"   # (2026-11-07: the sound icon's switch, as written)
+JS="site.js $HOUR $WORLD $REALMS $WING $INK $PLANW $SND"
 echo "checking $JS and $CSS"
 # The page has none of the internet's body language, and CI fails
 # (rather than remembers) if any of it comes back. Scoped to the
@@ -39,7 +40,7 @@ fi
 # (2) behaviour: no exit, idle, hover-position, key or title handlers, no storage; the one exception the
 # birds' pointer play (the owner, 2026-11-05: "the birds should be more interactive with the mouse"): the
 # world's onHoverOut, a pointerout added and removed in hoverSync only (checked below)
-if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS | grep -vE "addEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)|removeEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)"; then
+if grep -nE 'beforeunload|[^a-z]unload|visibilitychange|pagehide|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS | grep -vE "addEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)|removeEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)"; then
   echo "::error::a needy behaviour (exit/idle/title/pointer handler or storage) was introduced"
   fail=1
 fi
@@ -100,8 +101,8 @@ if [ "$(grep -o 'performance\.now()' $WORLD | wc -l)" != "1" ]; then
   echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
   fail=1
 fi
-if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW; then
-  echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
+if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW $SND; then
+  echo "::error::the realms, the wing model, the ink birds, and the sound icon's switch draw no entropy and read no clock (the switch's clock is the audio context's own time)"
   fail=1
 fi
 # the hour reads the clock exactly once, and draws no entropy
@@ -109,9 +110,18 @@ if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b'
   echo "::error::$HOUR must read the clock exactly once (new Date) and nothing else"
   fail=1
 fi
-# (5) no URL hook, no sound, no network, no custom cursor
-if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams|new Audio\(|AudioContext|<audio|speechSynthesis' $JS index.html 404.html; then
-  echo "::error::a URL hook or sound was introduced"
+# (5) no URL hook, no sound until the visitor presses the sound icon, no network, no custom cursor: sound only in the
+# switch (the owner, 2026-11-07: "bring it back, opt-in"), the one audio context made by it alone, inside its click
+# handler (38-sound proves it is made at the press and never before)
+NOSND=$(echo "$JS" | tr ' ' '\n' | grep -vxF -e ../src/sound.js | tr '\n' ' ')
+if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams' $JS index.html 404.html \
+  || grep -nE 'new Audio\(|AudioContext|<audio|speechSynthesis' $NOSND index.html 404.html \
+  || grep -nE 'new Audio\(|<audio|speechSynthesis|webkitAudioContext|OfflineAudioContext|AudioWorklet|audioWorklet|MediaElementAudioSource|getUserMedia' $SND; then
+  echo "::error::a URL hook or sound was introduced (sound lives in sound.js only)"
+  fail=1
+fi
+if [ "$(grep -o 'new AudioContext(' ../src/sound.js | wc -l)" != "1" ]; then
+  echo "::error::the one audio context is the switch's (sound.js, once)"
   fail=1
 fi
 # (fast500 step 11) the one worker: the plan's, started by the world by its literal name (world_rules.py rule 2b)
@@ -120,8 +130,13 @@ if [ "$NW" != "$NP" ] || [ "$NP" -gt 1 ]; then
   echo "::error::a worker other than the plan's (the world starts plan.js by name, once)"
   fail=1
 fi
-if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
-  echo "::error::the scripts fetch nothing and run no code but their own"
+# the one fetch: the switch's, of its one recording, a literal path under /assets/sound/ on this site, made inside
+# the press (2026-11-07; 38-sound proves nothing is requested before it)
+if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $NOSND \
+  || grep -nE 'XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $SND \
+  || [ "$(grep -o 'fetch(' ../src/sound.js | wc -l)" != "1" ] || [ "$(grep -o 'fetch(SCORE)' ../src/sound.js | wc -l)" != "1" ] \
+  || [ "$(grep -cE "^  var SCORE = '/assets/sound/[a-z0-9-]+\.mp3';" ../src/sound.js)" != "1" ]; then
+  echo "::error::the scripts fetch nothing and run no code but their own (but the switch's one fetch, of its literal /assets/sound/ file)"
   fail=1
 fi
 if grep -nE 'cursor *:' $CSS; then

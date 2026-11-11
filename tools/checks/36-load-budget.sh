@@ -40,6 +40,8 @@ const BUDGET = {
   '/style.css': 3 * K,             // 2,151 (served comment-free since #135; 4,995 with its notes)
   '/hour.js': 2 * K,               // 1,262
   '/site.js': 1 * K,               // 134
+  '/sound.js': 1.5 * K,            // 560 (1,255 before Brotli) (the sound icon's switch, 2026-11-07). Its recording, /assets/sound/score-N.mp3,
+                                   // has no line on purpose: it is fetched only at the press, so a cold visit that loads it fails here
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
   '/world.js': 113 * K,            // 102,463

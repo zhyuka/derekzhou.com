@@ -11,6 +11,7 @@ files=(
   index.html
   style.css
   site.js
+  sound.js
   hour.js
   world.js
   realm-kit.js
@@ -32,6 +33,7 @@ files=(
   assets/apple-touch-icon.png
   assets/fonts/Geist-400-500.sub3.woff2
   assets/fonts/GeistMono-Regular.sub3.woff2
+  assets/sound/score-1.mp3
   assets/fonts/OFL.txt
   .well-known/security.txt
 )
@@ -53,7 +55,7 @@ while IFS= read -r f; do
     */.git/*|*/.github/*|./.git|./.gitignore) echo "::error::site/${f#./} is the repository's own: it would be served"; missing=1; continue ;;
   esac
   case "$f" in
-    *.html|*.css|*.js|*.woff2|*.png|*.svg|./robots.txt|./.well-known/security.txt|./assets/fonts/OFL.txt|./_headers|./_redirects|./_routes.json) ;;
+    *.html|*.css|*.js|*.woff2|*.png|*.svg|./assets/sound/*.mp3|./robots.txt|./.well-known/security.txt|./assets/fonts/OFL.txt|./_headers|./_redirects|./_routes.json) ;;
     *) echo "::error::site/${f#./} is not a kind of file the site serves (the repository's own files stay outside site/)"; missing=1 ;;
   esac
 done < <(find . -type f | sort)
