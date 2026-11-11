@@ -186,8 +186,8 @@
     } else if (kind === 'loiter') { g.R = mix(r(), 120, 320); g.y = Math.max(top + 15, eye + mix(r(), -30, 40)); g.T = pick(r, [40, 90]); }
     else if (kind === 'sink') {
       var s = seaAt(x, z);
-      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.K.v)) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it, or too little: on)
       g.y = Math.min(hideTop(x, z), s.lv - 60) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;   // (under both the near top and the far margin: hidden as it drifts either side of the ground grid)
+      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.p[1] - g.y, Lb.psi)) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it, or too little for the way down: on)
     } else if (kind === 'out') { g.psi = TAU * r(); g.y = eye + mix(r(), 120, 300); g.T = 600; }
     else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), 10, 28); }   // (over the eye a little: seen from below its M shows; at the eye's height it is a line)
     F.goal = g; Lb.goal = g;
@@ -199,17 +199,26 @@
     if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
     return newGoal(F, k, r, cls);
   }
-  /* a sink's way: the heading of the longest run of the sea of cloud (16 tried, out to 60 s of flight; 60 m to each
-     side too): its descent takes up to a minute; none of 25 s or more, no sink */
-  function sinkWay(g, x, z, v) {
-    var best = 0, bh = 0, i, k, n = Math.floor(v * 60 / 48);
+  /* a sink's way: the heading of the longest run of the sea of cloud (16 tried; 60 m to each side too, past the sea's
+     64 m samples). It must last the whole way down, `drop` m at a glide of 12 deg or steeper, and 100 m more: else no
+     sink (past the sea's edge, still under its top, a bird would be inside the land). Of the ways long enough, the one
+     nearest its own heading: it goes down only gently while it turns */
+  function sinkWay(g, x, z, drop, psi) {
+    var need = Math.max(drop, 0) / 0.21 + 100, n = Math.ceil(need / 48), bh = 0, bt = Infinity, i, k;
     for (i = 0; i < 16; i++) {
-      var a = i * TAU / 16, ax = Math.sin(a), az = Math.cos(a);
+      var a = i * TAU / 16, ax = Math.sin(a), az = Math.cos(a), turn = Math.abs(angDiff(a, psi));
+      if (turn >= bt) continue;
       for (k = 1; k <= n; k++) { var px = x + ax * 48 * k, pz = z + az * 48 * k; if (!(seaAt(px, pz).w > 0.85 && seaAt(px + az * 60, pz - ax * 60).w > 0.85 && seaAt(px - az * 60, pz + ax * 60).w > 0.85)) break; }
-      if (k > best) { best = k; bh = a; }
+      if (k > n) { bt = turn; bh = a; }
     }
-    if ((best - 1) * 48 < v * 25) return false;
+    if (bt === Infinity) return false;
     g.psi = bh; return true;
+  }
+  /* never under the land below it and 15 m (the land here and 2 s on), nor, landing, under its perch's own height:
+     the climb that wanted vertical speed dy needs (m/s) */
+  function floorUp(b, dy, v, top) {
+    var x = b.p[0], z = b.p[2], fl = Math.min(Math.max(lvGround(x, z), lvGround(x + b.v[0] * 2, z + b.v[2] * 2)) + CLEAR + b.sz, top);
+    return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, before the wind) */
   var WV = [0, 0, 0];
@@ -236,12 +245,10 @@
     if (g.k === 'sink') {   // (its depth under the cloud's top where it is now: the top rises and falls under it)
       var sk = seaAt(x, z); if (sk.w > 0.85) g.y = Math.min(hideTop(x, z), sk.lv - 60) - SEA_DEEP - 2 * b.sz - 10;
       dy = Math.min(clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25), -v * Math.sin(10 * DEG));
+      if (Math.abs(angDiff(h, b.psi)) > 30 * DEG) dy = Math.max(dy, -v * Math.sin(4 * DEG));   // (gently, until it is on its way over the sea)
     }
     /* never under the land below it and 15 m (the land here and 2 s on): only into the sea of cloud, going down into it */
-    if (!(g.k === 'sink' && seaAt(x, z).w > 0.85)) {
-      var fl = Math.max(lvGround(x, z), lvGround(x + b.v[0] * 2, z + b.v[2] * 2)) + CLEAR + b.sz;
-      if (b.p[1] < fl + 10) dy = Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35));
-    }
+    if (!(g.k === 'sink' && seaAt(x, z).w > 0.85)) dy = floorUp(b, dy, v, Infinity);
     WV[0] = v * sh; WV[1] = dy; WV[2] = v * ch;
     if (t - g.t0 > g.T && g.k !== 'out' && g.k !== 'sink') nextGoal(F);   // (a sink is never given up: under the cloud it is only ever taken out)
     return WV;
@@ -256,6 +263,7 @@
     var ex = tx - b.p[0], ey = ty - b.p[1], ez = tz - b.p[2], k = 0.45, cap = 0.35 * b.K.v;
     var cx = clamp(k * ex, -cap, cap), cy = clamp(k * ey, -cap, cap), cz = clamp(k * ez, -cap, cap);
     MV[0] = L.v[0] + cx; MV[1] = L.v[1] + cy; MV[2] = L.v[2] + cz;
+    if (!(F.goal && F.goal.k === 'sink' && seaAt(b.p[0], b.p[2]).w > 0.85)) MV[1] = floorUp(b, MV[1], b.K.v, Infinity);   // (its place never under the land: as its leader's)
     return MV;
   }
   /* held in its place (a far flock's coarse step): exactly where its place is, at its leader's motion */
