@@ -31,7 +31,7 @@ const v = {
 // T2's read-backs: only a DIFFER stops a merge (the owner, 2026-11-06: "frames decide"). A shader that was not read back
 // (bits_identical false, bits_differ false) is decided by the frames; T2's summary names it. An answer from before
 // bits_differ existed counts any not-identical read as a difference.
-// T2_CACHED: t2-probe found T2's answer for these two builds and this T2 code (gate.yml keeps it by them), so the 4090 was
+// T2_CACHED: the plan job's T2 probe found T2's answer for these two builds and this T2 code (gate.yml keeps it by them), so the 4090 was
 // not asked again; it counts as T2 having run, with that answer.
 let cached = null; try { cached = process.env.T2_CACHED ? JSON.parse(process.env.T2_CACHED) : null; } catch { cached = null; }
 // (on main after a fast-forward the frames answer is the PR's (cached) and the 4090 ran only the stall visits: theirs is kept)
