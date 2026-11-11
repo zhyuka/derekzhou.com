@@ -33,7 +33,7 @@ frame drawn whole first). Under forced colours the stylesheet keeps
 the canvas laid out and sets color: CanvasText and background-color:
 Canvas on it, the two colours the world reads from it: it clears
 the canvas to Canvas and draws the ink birds alone over it in
-CanvasText (see World: FALLBACKS). A window under 500 px tall (a
+CanvasText (docs/world.md, ## FALLBACKS). A window under 500 px tall (a
 phone held sideways) lays the stack out again to fit, so the page never
 scrolls. :focus-visible is a 2px outline in the focus colour, offset 3px,
 on every focusable. The name's two rules live here (CSP: style-src 'self',

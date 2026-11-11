@@ -104,7 +104,7 @@
   color-scheme: light;
   --svh: 100svh;
 
-  /* Two families (see CLAUDE.md, Type): Geist for the words, the links
+  /* Two families (docs/type.md): Geist for the words, the links
      and a heading set in type (the 404's); Geist Mono for the facts. The
      name is no font: it is lettering, drawn (.name) */
   --font-sans: 'Geist', 'Geist Fallback', 'Geist Fallback Android', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
