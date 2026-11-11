@@ -6,36 +6,8 @@
     gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true, preserveDrawingBuffer: DEVMODE, powerPreference: 'default' });
     if (!gl) return false;
     initExtensions();
-    startTake();   // (fast500 5: the start file's context, and its programs for progIssue)
     return true;
   }
-  /* (fast500 step 5) the start file (start.v1.js, async right after the canvas; tools/start.mjs makes it from this
-     file) may have made this canvas's context already, with the attributes above as shipped, and issued on it every
-     program stage C issues, from the table its build recorded (each text as progIssue hands it to shaderSource, the
-     device's DEFS put in as progIssue puts them): getContext gave that same context. Its programs are adopted by
-     progIssue (startProg: exactly the text it would issue, its defines and folds and all, or not at all); what stage
-     C's issue leaves is freed (startDone). Never in the harness (DEVMODE, the switches: those pages
-     keep F0's path), and never once that context was lost (its programs died with it): a context still lost here is
-     told to the world's own listener, as if its event came now (onLost: F0's lost path, then its restore). WORLD_START
-     is left false, so a start file arriving after this does nothing */
-  var START = null;
-  function startTake() {
-    var S = window.WORLD_START; window.WORLD_START = false;
-    if (!S || S.gl !== gl) return;
-    if (S.lost || gl.isContextLost()) {
-      if (gl.isContextLost()) Promise.resolve().then(function () { if (!LOST) onLost({ preventDefault: function () {} }); });
-      bootMark('start: lost before adoption'); return;
-    }
-    var n = 0, k; for (k in S.progs) n += S.progs[k].length;
-    if (DEVMODE || OPT.sw !== null || S.defs !== DEFS) { startFree(S.progs); bootMark('start: declined (' + n + ' programs freed)'); return; }
-    START = S.progs; bootMark('start: taken (' + n + ' programs issued by the start file)');
-  }
-  function startProg(P) {   // (keyed by the text progIssue would give shaderSource: DEFS, then any computed defines, after the version line. A change to what progIssue puts in must be made here too: start.mjs --test fails on no adoption)
-    var V = '#version 300 es\n', X = V + DEFS + (typeof defsA === 'function' ? defsA() : ''), a = START[P.vs.replace(V, X) + '\u0000' + P.fs.replace(V, X)];
-    return a && a.length ? a.shift() : null;
-  }
-  function startFree(T) { for (var k in T) for (var i = 0; i < T[k].length; i++) { gl.deleteProgram(T[k][i].p); gl.deleteShader(T[k][i].v); gl.deleteShader(T[k][i].f); } }
-  function startDone() { var T = START; START = null; startFree(T); }
   /* the extensions are the context's: a restored context has them all off again, so they are asked for at start and
      after every restore (float render targets, parallel compiles), and the shaders' defines follow them */
   function initExtensions() {

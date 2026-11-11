@@ -6,14 +6,8 @@
 //   node tools/minify.mjs --build SRC SITE     write SRC's scripts into SITE, minified (the same names)
 //   node tools/minify.mjs --check SRC SITE     minify SRC's scripts in memory; exit 1 naming each SITE file that differs
 //   node tools/minify.mjs --report SRC         print each script's bytes (raw, brotli q4, q11) before and after, as JSON
-//   ... --start-src DIR                        (with --build or --check) make the start file from DIR, not SRC
 // (restructure step 2) SRC is the shipped build, the record and the dev harness left out by file: node tools/parts.mjs
-// assemble --ship src build/ship. The start file is made from the dev build (assemble src build/src): --start-src.
-//
-// (fast500 step 5) Where SITE/index.html loads a start file (/start.vN.js), --build also writes SITE/start.vN.js and
-// --check also holds it: tools/start.mjs makes it from SRC's scripts as SITE/index.html loads them (the hour and site.js
-// from SITE), run in a fake browser; CI fails unless the committed file is exactly that (and unless one table of
-// programs serves every device and visit the start file serves).
+// assemble --ship src build/ship.
 //
 // The scripts are the five the world's page loads, readable as strip.py ships them (world, inkbirds, realm-kit,
 // realm-dunes, realm-above), under their dev names (world.js) or their served names (world.v3.js); any other file in
@@ -28,9 +22,8 @@
 //      page sets no switch), its one object literal is read and every SW.<key> becomes its default (global_defs,
 //      dotted; after the cut SW is only ever read key by key, never written, computed or used whole: checked), so
 //      what only another value of a switch reaches is dropped too.
-//   1b. (inkbirds, fast500's deep sweep, 2026-11-05) HOST.dev (the world's dev flag, false on the shipped page) is
-//      read as the constant false (exactly 6 reads, else exit 1), so what only it reaches (the planner's dev tallies
-//      of its failures and costs) is dropped as dead code.
+//   1b. (inkbirds, the one bird, 2026-11-06) the ink birds read no dev flag: HOST.dev must not appear in them (else
+//      exit 1); the planner's dev tallies it once guarded are gone with the planner.
 //   2. minified by terser (pinned 5.51.2: the TERSER environment variable names its package folder, else node's own
 //      resolution from here): compress and mangle, never the top level (the scripts share the page's global WORLD),
 //      Safari 10's mangler and printer workarounds on, the original quotes kept, ES5 output rules (no syntax
@@ -106,18 +99,18 @@ function cutRecord(s) {
 }
 const DECLS = [   // the declaration lines, each the start of exactly one line (REC's, "var REC = null, RECW = null;", is in the record, a dev part)
   { name: 'REC' },
-  { name: 'STILLMODE', line: '  var STILLMODE = false; ' },
-  { name: 'DEVMODE', line: '  var DEVMODE = false; ' },
+  { name: 'STILLMODE', line: '  var STILLMODE = false;' },
+  { name: 'DEVMODE', line: '  var DEVMODE = false;' },
   { name: 'DEVKEEP', line: '  var DEVKEEP = false;' }];
 const GLOBAL_DEFS = Object.fromEntries(DECLS.map((d) => [d.name, false]));
 
 // ------------------------------------------------------------------ (fast500's deep sweep, 2026-11-05) the ink birds' dev flag
 function cutInk(s) {   // (the ink birds' dev members and the staging's dev hooks are no longer in src/: no line is cut)
   const log = [];
-  let code = s; const n = code.split('HOST.dev').length - 1;
-  if (n !== 6) die('ink: HOST.dev ' + n + ' times (want 6)');
-  code = code.split('HOST.dev').join('false'); log.push('HOST.dev: 6 reads the constant false');
-  return { code, log };
+  const n = s.split('HOST.dev').length - 1;
+  if (n !== 0) die('ink: HOST.dev ' + n + ' times (want none)');
+  log.push('HOST.dev: none');
+  return { code: s, log };
 }
 
 // ------------------------------------------------------------------ step 4c: terser
@@ -243,21 +236,10 @@ function scripts(dir) {
   return f;
 }
 const read = (p) => fs.readFileSync(p, 'utf8');
-function startName(site) {   // (fast500 5) the start file SITE/index.html loads, or null
-  const ix = path.join(site, 'index.html');
-  if (!fs.existsSync(ix)) return null;
-  const m = [...read(ix).replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script\b[^>]*\bsrc="\/(start(?:\.v\d+)?\.js)"/g)];
-  if (m.length > 1) die(ix + ' loads ' + m.length + ' start files (want at most 1)');
-  return m.length ? m[0][1] : null;
-}
 const br = (s, q) => zlib.brotliCompressSync(Buffer.from(s, 'utf8'), { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: q } }).length;
 const sizes = (s) => ({ raw: Buffer.byteLength(s, 'utf8'), br4: br(s, 4), br11: br(s, 11) });
 
-const a0 = process.argv.slice(2), si = a0.indexOf('--start-src');
-// (restructure step 2) --start-src DIR: the scripts tools/start.mjs runs, as written (the dev build: the record in it,
-// REC declared); SRC, minified, is the shipped build (the record left out by file). Without it, SRC for both.
-const START_SRC = si >= 0 ? a0[si + 1] : null, a = si >= 0 ? a0.slice(0, si).concat(a0.slice(si + 2)) : a0;
-if (si >= 0 && !START_SRC) die('--start-src needs a folder');
+const a = process.argv.slice(2);
 const T = await loadTerser();
 if (a[0] === '--check') {
   const [src, site] = a.slice(1);
@@ -269,15 +251,6 @@ if (a[0] === '--check') {
     if (!fs.existsSync(p)) { console.error('minify: ' + p + ' is missing (the script makes it from ' + path.join(src, n) + ')'); bad = 1; continue; }
     if (fs.readFileSync(p).equals(Buffer.from(out, 'utf8'))) console.log('ok   ' + p + ' is what the script makes from ' + path.join(src, n));
     else { console.error('::error::' + p + ' is not what tools/minify.mjs makes from ' + path.join(src, n) + ' (rebuild: node tools/minify.mjs --build ' + src + ' ' + site + ')'); bad = 1; }
-  }
-  const sn = startName(site);
-  if (sn) {
-    let out = null;
-    try { out = await (await import('./start.mjs')).makeStart(START_SRC || src, path.join(site, 'index.html'), null, undefined, sn); } catch (e) { console.error('::error::the start file cannot be made: ' + (e && e.message || e)); bad = 1; }
-    if (out !== null) for (const [p, text] of [[path.join(site, sn), out.start], [path.join(site, out.tableName), out.table]]) {   // (the start file and its table, start-table.vN.js)
-      if (fs.existsSync(p) && fs.readFileSync(p).equals(Buffer.from(text, 'utf8'))) console.log('ok   ' + p + ' is what tools/start.mjs makes from ' + (START_SRC || src));
-      else { console.error('::error::' + p + ' is not what tools/start.mjs makes from ' + src + ' (rebuild: node tools/minify.mjs --build ' + src + ' ' + site + ')'); bad = 1; }
-    }
   }
   process.exit(bad);
 } else if (a[0] === '--report') {
@@ -297,14 +270,6 @@ if (a[0] === '--check') {
     fs.writeFileSync(path.join(site, n), out);
     console.error('minify: ' + path.join(site, n) + ' made from ' + path.join(src, n) + ' (' + Buffer.byteLength(input) + ' -> ' + Buffer.byteLength(out) + ' bytes)');
   }
-  const sn = startName(site);
-  if (sn) {
-    const out = await (await import('./start.mjs')).makeStart(START_SRC || src, path.join(site, 'index.html'), null, undefined, sn);
-    for (const [n, text] of [[sn, out.start], [out.tableName, out.table]]) {   // (the start file and its table, start-table.vN.js)
-      fs.writeFileSync(path.join(site, n), text);
-      console.error('minify: ' + path.join(site, n) + ' made by tools/start.mjs from ' + (START_SRC || src) + ' (' + Buffer.byteLength(text) + ' bytes)');
-    }
-  }
 } else if (a.length === 1 && !a[0].startsWith('--')) {
   const dir = a[0];
   for (const n of scripts(dir)) {
@@ -312,4 +277,4 @@ if (a[0] === '--check') {
     fs.writeFileSync(p, out);
     console.error('minify: ' + n + ' ' + Buffer.byteLength(input) + ' -> ' + Buffer.byteLength(out) + ' bytes' + (log.length ? ' (' + log.join('; ') + ')' : ''));
   }
-} else die('usage: minify.mjs DIR | --build SRC SITE | --check SRC SITE | --report SRC  [--start-src DIR]');
+} else die('usage: minify.mjs DIR | --build SRC SITE | --check SRC SITE | --report SRC');

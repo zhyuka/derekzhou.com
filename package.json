@@ -6,6 +6,8 @@
     "terser": "5.51.2"
   },
   "scripts": {
-    "check:quick": "node tools/check-quick.mjs"
+    "check:quick": "node tools/check-quick.mjs",
+    "check": "node tools/check.mjs",
+    "check:fast": "node tools/check.mjs --fast"
   }
 }

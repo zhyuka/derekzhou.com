@@ -10,5 +10,4 @@
   }
   var JA = { V: null, u: 0 };
   function worldAt(t) { JA.V = theWorld(); JA.u = t; return JA; }
-  function worldReset(seed) { if (J.V) freeVisit(J.V); J.V = null; J.visits = []; J.seed = seed; MAPS.w = null; KW.ok = false; KW.part = false; KWR = null; KW.ix.fill(BADK); KW.dx.fill(BADK); KG.ix.fill(BADK); KF.ok = false; KF.ix.fill(BADK); KF.dx.fill(BADK); }
 

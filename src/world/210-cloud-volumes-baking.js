@@ -17,12 +17,12 @@
     for (i = 0; i < n; i++) for (k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], LP[i * 3 + k] - a[(i0 + i) * 12 + 3] - mg); hi[k] = Math.max(hi[k], LP[i * 3 + k] + a[(i0 + i) * 12 + 3] + mg); }
     var cl = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2], h = [(hi[0] - lo[0]) / 2 * 1.06, (hi[1] - lo[1]) / 2 * 1.06, (hi[2] - lo[2]) / 2 * 1.06];
     var c = [cy * cl[0] + sy * cl[2], cl[1], -sy * cl[0] + cy * cl[2]];   // the centre in the world
-    if (DEVMODE && SW.volres > 0) res = SW.volres;   // (E1, dev: the structural harness's long flights with small bodies: the same calls, a fraction of SwiftShader's bake time)
+    if (DEVMODE && SW.volres > 0) res = SW.volres;   // (dev: the structural harness's long flights with small bodies: the same calls, a fraction of SwiftShader's bake time)
     var vox = Math.max(h[0], h[1], h[2]) * 2 / (res || 52), dims = [0, 0, 0];
     for (k = 0; k < 3; k++) dims[k] = clamp(Math.ceil(h[k] * 2 / vox), 6, 64);
     var L = new Float32Array(96 * 4);
     for (i = 0; i < n; i++) { L[i * 4] = LP[i * 3] - cl[0]; L[i * 4 + 1] = LP[i * 3 + 1] - cl[1]; L[i * 4 + 2] = LP[i * 3 + 2] - cl[2]; L[i * 4 + 3] = a[(i0 + i) * 12 + 3]; }
-    var T3 = null;   // (E1: the texture is made by the body's first bake, GPU work: volTex)
+    var T3 = null;   // (the texture is made by the body's first bake, GPU work: volTex)
     var erode = B.erode === undefined ? 0.75 : B.erode, bil = B.billow || 0.8;
     // the opaque cores: an icosahedron inside each lobe, past its billows and 25 m of cloud
     var inward = erode * bil * Rm * 0.42 + 4 + 25, cores = [];
@@ -35,14 +35,14 @@
   /* up to budget units of this body's baking; returns the units spent. A unit is a 44 x 44 layer of 48 lobes (the
      density pass: its pixels times its lobes; the light pass: its pixels, half again), so a great wall of 64 x 64 and
      96 lobes takes about 4 units a layer, and a frame's baking stays about the same work whatever the body */
-  function volTex(vb) {   // (E1) the body's texture, at its first bake
-    var d = vb.dims, T3 = pTake('tex3'); if (vb.G) vb.G.texs.push(T3);   // (E1 Fix 3: from the pool, re-specified below)
+  function volTex(vb) {   // the body's texture, at its first bake
+    var d = vb.dims, T3 = pTake('tex3'); if (vb.G) vb.G.texs.push(T3);   // (from the pool, re-specified below)
     gl.activeTexture(gl.TEXTURE10); gl.bindTexture(gl.TEXTURE_3D, T3);
-    // (hotfix G0, pass 2) half floats where this GPU filters an 8-bit texture at 8 bits (VOL16, probeFilter): there the
-    // RGBA8 volume came back in terraces of the soft band (about four and a half codes wide) that the march's samples
-    // crossed as the view moved, and the clouds' edges blinked in half-resolution blobs at 3-4x the 4x reference (WebKit
-    // here). The values are the same (each channel clamped to 0 .. 1 as the bytes were); filtered in float the field is
-    // smooth. Twice the bytes and the bandwidth, so only where it is needed
+    // half floats where this GPU filters an 8-bit texture at 8 bits (VOL16, probeFilter): there an RGBA8 volume comes
+    // back in terraces of the soft band (about four and a half codes wide) that the march's samples cross as the view
+    // moves, and the clouds' edges blink in half-resolution blobs at 3-4x the 4x reference (WebKit). The values are the
+    // same (each channel clamped to 0 .. 1 as the bytes would be); filtered in float the field is smooth. Twice the
+    // bytes and the bandwidth, so only where it is needed
     gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RGBA16F : gl.RGBA8, d[0], d[1], d[2], 0, gl.RGBA, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null); tex3params();
     gl.activeTexture(gl.TEXTURE0);
     vb.out.t = T3;

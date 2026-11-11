@@ -43,10 +43,10 @@ src/           the scripts the build minifies: src/world/ (the world, in
                src/birds/model/ (the wing model, served as written),
                src/**/glsl/ (each shader as NAME.glsl), src/dev/ (dev build only)
 tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
-               start.mjs (the start file), plan.mjs (the plan's worker),
+               plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
                one scope), gpu/ (the PC's T2/T3), birds/ (generators)
-test/          unit.mjs (pure code), shaders.mjs (golden shader texts),
+test/          unit/<area>.mjs (pure code, one file an area), shaders.mjs (every shader compiles),
                golden/
 docs/          the full record, one file per area (below)
 .github/       validate.yml (every static check), gate.yml (T0/T1/T2 and the
@@ -55,7 +55,7 @@ RULES.json     the standing rules as data; .claude/ the hooks and path rules
 ```
 
 Built, never committed: world.js, realm-kit.js, realm-dunes.js,
-realm-above.js, inkbirds.js, start.js, start-table.js, plan.js. CI fails if
+realm-above.js, inkbirds.js, plan.js. CI fails if
 one is committed to site/ (built-files-uncommitted).
 
 ## Making a change
@@ -70,15 +70,15 @@ one is committed to site/ (built-files-uncommitted).
      in site/). The Stop hook runs it when
      sources changed.
    - `node tools/build.mjs --plain build/site`: the build CI checks.
-   - `node --test test/unit.mjs` (about 10 s); after a deliberate change to
-     what it pins, `node test/unit.mjs --write`.
-   - A shader changed: `node test/shaders.mjs build/site --write` and
-     `node .github/workflows/glsl_guard.js build/site --write
-     .github/workflows/glsl_manifest.txt`, committed with it.
+   - `node --test 'test/unit/*.mjs'` (a few seconds, a process an area); after
+     a deliberate change to what one pins, `node test/unit/<area>.mjs --write`.
+   - A shader changed: nothing derived to commit; the gate's census and
+     T2 compare the base's build with the head's.
    - The plan's spans changed: `node tools/plan.mjs --stamp`.
    - `node tools/build.mjs --check`: two builds the same bytes.
-   - Every `run:` step of validate.yml, in `bash -eo pipefail` from the
-     root, is what CI runs.
+   - `npm run check`: every static check CI runs (tools/check.mjs: the
+     build once, then tools/checks/*.sh in parallel; about a minute).
+     `npm run check:fast`: a few seconds, no site build.
 3. Anything a visitor sees: measure it as docs/verify.md says (stills,
    contrast, the W7 twin, reduced motion, no WebGL2, a real iPhone).
 
@@ -100,7 +100,8 @@ bumps a version for a change; fonts and images are renamed by hand
   input handling changed), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
   overlaps; never one that touches the bot itself or is labelled needs-owner
-  or visible. Anything visible waits for the owner. Main's gate tests every
+  or visible. Anything visible waits for the owner: he lands it by GitHub's
+  auto-merge, once, or its button (docs/deploy.md). Main's gate tests every
   merge after it lands; the bot then fast-forwards `live` to the newest main
   tip whose gate is green (and frames identical, or the owner's own merge).
 - Cloudflare Pages builds `live` (`npm ci --no-audit --no-fund
@@ -115,7 +116,7 @@ bumps a version for a change; fonts and images are renamed by hand
 | docs/structure.md | the files, the build, src/ parts, the dev build |
 | docs/content.md | the page's words, the credit row, the links |
 | docs/design.md | the look: the owner's briefs, verbatim |
-| docs/world.md | src/world/, the realms, the sky, the plan, the start file |
+| docs/world.md | src/world/, the realms, the sky, the plan |
 | docs/birds.md | src/birds/ (the ink birds and the wing model) |
 | docs/css.md, docs/js.md, docs/type.md | site/style.css, site.js, the lettering |
 | docs/fonts-performance.md | fonts, subsets, load budget |

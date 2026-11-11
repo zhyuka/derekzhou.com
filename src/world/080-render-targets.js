@@ -6,7 +6,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return t;
   }
-  var FBOK = {};   // (E1.1: the kinds of target whose completeness was asked)
+  var FBOK = {};   // (the kinds of target whose completeness has been asked)
   function target(w, h, kind, depthTex) {
     var T = { w: w, h: h, f: gl.createFramebuffer() };
     if (kind === 'hdr') T.t = tex2d(w, h, FLOAT_RT ? gl.RGBA16F : gl.RGBA8, gl.RGBA, HALF, gl.LINEAR);
@@ -18,8 +18,8 @@
       T.d = tex2d(w, h, gl.DEPTH_COMPONENT24, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, gl.NEAREST);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, T.d, 0);
     }
-    // (E1.1, item 5; S3) asked once a kind of target, the first time it is made (at the boot, or a restore's): never again
-    // on a resize, a rotation or a change of scale, where it was a synchronous call in a frame's work
+    // asked once a kind of target, the first time it is made (at the boot, or a restore's): never again on a resize,
+    // a rotation or a change of scale, where it would be a synchronous call in a frame's work
     var ck = kind + (depthTex ? '+d' : '');
     if (!FBOK[ck]) { if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) fail('framebuffer ' + kind + ' incomplete'); else FBOK[ck] = 1; }
     return T;

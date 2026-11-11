@@ -1,10 +1,10 @@
   /* ---------------------------------------------------------------- shaders: the scene */
-  /* (E1.1, item 7) each opaque fragment's depth, coded into the scene's alpha for the composite: 0.5 + 0.5 log2(linear
+  /* each opaque fragment's depth, coded into the scene's alpha for the composite: 0.5 + 0.5 log2(linear
      depth, m) / 16 (1 m .. 65 km), 1 on the far plane (the sky); water keeps its reflected share below 0.5 (0.49 (1 -
      F)). The scene's samples are averaged by the resolve, so where a pixel's samples stand at two depths (a floating
      rock's outline against a cloud) its alpha says how many stand near: the composite lays the cloud behind over the far
-     ones only (FS_COMP). The depth resolve keeps one sample, so Fix 3's composite took each such pixel as wholly rock or
-     wholly cloud, and the outline crawled (verify-gates-3: 29% of the edge pixels in between, the reference 51%) */
+     ones only (FS_COMP). The depth resolve keeps one sample, so a composite reading it takes each such pixel as wholly
+     rock or wholly cloud, and the outline crawls (29% of the edge pixels in between, the reference 51%) */
   var ZCODE = `
 float zcode() {
   float d = gl_FragCoord.z; if (d >= 0.999999) return 1.0;
@@ -13,7 +13,7 @@ float zcode() {
 }
 float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
 `;
-  function VS_TERRAIN(H, G) {   // (world6 fix: G, a surface's gap function: its height over another surface, passed to its shading as gTX)
+  function VS_TERRAIN(H, G) {   // (G, a surface's gap function: its height over another surface, passed to its shading as gTX)
     return `
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
@@ -30,22 +30,23 @@ void main() {
   gl_Position = uVP * vec4(vW - uCam, 1.0);
 }`;
   }
-  /* (fast500 lane G) the split height: the land's height (Hd, HdGap's A_Hd) evaluated by four small fragment passes,
+  /* the split height: the land's height (Hd, HdGap's A_Hd) evaluated by four small fragment passes,
      one RGBA32F texel a point, instead of inside the land's vertex program and the probe. The passes call the realm's
      own functions unchanged (kitW4, dunes, siteOf / basinOf / plateauOf, ridges, A_Hd); only where they are evaluated
      moves. The point a texel stands for: uHsrc 0, a clipmap vertex (x = i, y = level x 97 + j: placed and morphed as the
      land's vertex stage places it, gLodD its distance from the camera); 1, the probe's point (uTex); 2, the probe's grid
      (uGCw), gLodD 0 for both, as in the probe. Then the land's vertex program and the probe read the passes' texels and
-     do the last adds as Hd, HdGap and HdProbe do: the same fp32 operations, in the same order (the gate: today's land
-     VS against this, by transform feedback, bit-identical heights, positions and gaps). The point: the compile. One
-     program holding all of Hd took 2.3 s (land VS) and 1.6 s (probe FS) on ANGLE-D3D11; the parts compile in parallel */
+     do the last adds as Hd, HdGap and HdProbe do: the same fp32 operations, in the same order (the gate: the one-program
+     land VS against this, by transform feedback, bit-identical heights, positions and gaps). The point: the compile.
+     One program holding all of Hd takes 2.3 s (land VS) and 1.6 s (probe FS) on ANGLE-D3D11; the parts compile in
+     parallel */
   var HP_PARTS = ['kit', 'dunes', 'sites', 'ridges'];
   /* where the split is made: every ANGLE Direct3D11 device, the Windows GPUs (the owner, 2026-11-06: "Yes, if it saves
      100 ms+"). FXC is the same compiler on all of them, so the split's saving is the same everywhere there: the land VS
      (701 ms of FXC) and the probe (486 ms) become passes of at most ~137 ms, the compile wall 701 -> 426 ms
      (.work/hub/speed/FINDING-fxc-census.md). Its heights and gap read back exact and its slopes within one ulp on
      NVIDIA, the one Windows GPU read back (the shipped DXBC is the same for every maker; each driver compiles it to its
-     own machine code). Elsewhere (Metal, Linux, Android) today's land program. Per device, so the return visit's
+     own machine code). Elsewhere (Metal, Linux, Android) the one land program. Per device, so the return visit's
      program cache holds */
   function HP_DEV(r) { return /^ANGLE \(/.test(r || '') && /Direct3D11/.test(r || ''); }
   var HP_GRIDW = `@glsl hp-gridw`;
@@ -54,21 +55,21 @@ void main() {
     dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; o0 = vec4(dunes(gw), 0.0); o1 = vec4(0.0); }',
     sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), 0.0); o1 = vec4(0.0); }',
     ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
-    /* the probe's own two: today's probe keeps only the height live (h.x; its slopes are dead), so FXC fuses its
-       arithmetic as it does when only .x is written; the land's passes (every channel live, as the land VS) differ
-       from it by an ulp at 0.4% of points. Written .x only, the probe's passes read back bit-identical to today's probe */
+    /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses
+       its arithmetic as it does when only .x is written; the land's passes (every channel live, as the land VS) differ
+       from it by an ulp at 0.4% of points. Written .x only, the probe's passes read back bit-identical to it */
     sitesX: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz).x, 0.0, 0.0, 0.0); o1 = vec4(0.0); }',
     ridgesX: 'void main() { gridW(); o0 = vec4(ridges(gw).x, 0.0, 0.0, A_Hd(gw).x); o1 = vec4(0.0); }'
   };
   /* HP_LAND: the land VS read the passes too. Off: its slopes (the normals) cannot come out bit-identical through any
-     texture boundary (today's one program fuses and reorders across D_Hd - sk; read back: 1 ulp at ~25% of vertices,
-     whatever the cut), so only the probe is split, and the land keeps today's program */
+     texture boundary (the one program fuses and reorders across D_Hd - sk; read back: 1 ulp at ~25% of vertices,
+     whatever the cut), so only the probe is split, and the land keeps its one program */
   var HP_LAND = true;   // (the owner, 2026-11-05: the land split's 1-ulp slopes accepted for the speed, on the split's devices only)
   var HP_PROGS = HP_LAND ? ['kit', 'dunes', 'sites', 'ridges', 'sitesX', 'ridgesX'] : ['kit', 'dunes', 'sitesX', 'ridgesX'];   // (P.hp's order: the clipmap runs 0-3, the probe the last four's kit, dunes, sitesX, ridgesX)
   var HP_PORD = HP_LAND ? [0, 1, 4, 5] : [0, 1, 2, 3];
   /* the sites' part of D_Hd (its basins and plateaux over the 3x3 sites), taken from the realm's own D_Hd as it ships
-     (today's, or a rewrite of its loops): its body between `vec3 h = dunes(p);` and `return h + ridges(p);`, the h
-     handed in. null when D_Hd is not of that shape (the split is then not made: today's programs) */
+     (as written, or a rewrite of its loops): its body between `vec3 h = dunes(p);` and `return h + ridges(p);`, the h
+     handed in. null when D_Hd is not of that shape (the split is then not made: the one-program land and probe) */
   function HP_SITES_FN(g) {
     var a = g.indexOf('vec3 D_Hd(vec2 p) {'); if (a < 0 || g.indexOf('vec3 D_Hd(vec2 p) {', a + 1) >= 0) return null;
     var e = g.indexOf('\n}', a); if (e < 0) return null;
@@ -76,7 +77,7 @@ void main() {
     if (body.indexOf(A) !== 0 || body.lastIndexOf(Z) !== body.length - Z.length || body.split(A).length !== 2 || body.split(Z).length !== 2) return null;
     return '\nvec3 D_HdSites(vec2 p, vec3 h) {\n' + body.slice(A.length, body.length - Z.length) + '\n  return h;\n}\n';
   }
-  function VS_TERRAIN_SPLIT(G) {   // (lane G) VS_TERRAIN with the height read from the passes (Hd - sk, HdGap's terms)
+  function VS_TERRAIN_SPLIT(G) {   // VS_TERRAIN with the height read from the passes (Hd - sk, HdGap's terms)
     return `
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
@@ -142,6 +143,7 @@ void main() {
   }
   /* scatter: one instance per cell of a grid around the camera; the cell's hash decides if, where, how big */
   var VS_SCATTER = `@glsl vs-scatter`;
+  var VS_LMSC = VS_SCATTER.replace(/void\s+main\s*\(\s*\)\s*\{/, 'void scMain() {') + `@glsl vs-lmsc`;   // (the landmarks and the scatter, one program)
   /* particles in a volume that wraps around the camera (uPb.w, the kind): 0 grains blown across the ground (dim
      streaks; now and then a grain's facet turns to the sun and it glints), 1 motes (soft points of light drifting in
      the air, bright toward the sun; 2: about the camera's own height), 3 rain (streaks falling with the wind, each
@@ -168,7 +170,7 @@ void main() {
   var GROUND_LIB = `@glsl ground-lib`;
   /* the realm's ground, at points (packed in bytes, read back) or over a grid about the camera: the land (the first
      surface's height) or the camera's own ground (the realm's camGround, e.g. a bay's cloud top) */
-  function FS_PROBE(H, HC, HP) {   // (speed S1: HP, the realm's probeHgt: one function for both, float HP(vec2 p, bool cam))
+  function FS_PROBE(H, HC, HP) {   // (HP, the realm's probeHgt: one function for both, float HP(vec2 p, bool cam))
     return `
 uniform sampler2D uTex; uniform vec4 uGCw; uniform int uPm; out vec4 oC;
 vec4 pack(float h) { float v = clamp((h + 4096.0) / 8192.0, 0.0, 0.99999); vec4 e = fract(v * vec4(1.0, 255.0, 65025.0, 16581375.0)); return e - e.yzww * vec4(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 0.0); }
@@ -188,9 +190,9 @@ void main() {
      streaks, stars; then the realm's own sky, when its GLSL has one (vec3 skyHook(vec3 rd, vec3 c): an interior's
      void and its lights, an overcast's ceiling, a night's moon and bands: it is handed the sky as drawn and returns
      it; the air's far colour, the fog, stays the gradient's, so a realm keeps the two in step through its light) */
-  /* (tod fix3, problem 3) the phase-2 sky (the galaxy, the aurora: noise reads in a loop under varying branches) compiled
-     only in phase 2: a compiler that flattens such branches made every sky pixel of every sky pay for them (every sky
-     23-34% dearer than the base on a phone's canvas, fair included) */
+  /* the phase-2 sky (the galaxy, the aurora: noise reads in a loop under varying branches) compiled only in phase 2:
+     a compiler that flattens such branches makes every sky pixel of every sky pay for them (every sky 23-34% dearer
+     than the base on a phone's canvas, fair included) */
   var SKY_BODY = (SKY_PHASE >= 2 ? '\n#define SKY_PH2\n' : '') + `@glsl sky-body`;
   var FS_SKY = HEAD + FRAME_U + LIB + SKY_BODY;
   /* the depth, linearised to metres, at half resolution: the nearest of each 2x2 (so cloud never shows in front) */
@@ -210,30 +212,6 @@ void main() {
      HDR scene; a beam drawn on from A (woken when the camera first comes near: a light event) */
   var VS_BEAM = HEAD + FRAME_U + `@glsl vs-beam`;
   var FS_BEAM = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-beam`;
-  /* the cloud the camera flies through in a transition: billows about the eye, fixed in the cloud's own frame (the
-     camera's travel, continuous across the change of realm), lit by a sun eased from one realm's to the next's, blue in
-     their own shade; coming out, each pixel clears at its own time (below the eye first, then in ragged gaps), so the
-     next realm opens over seconds, never all at once.
-     (hotfix G0, pass 2) Sampled on planes fixed in the cloud, so the view slides through them. Round 3b marched 7
-     shells at fixed distances from the eye (2.6-82 m, x1.78): moving 0.35 m a frame they cut the noise (0.3-0.8 m
-     texels) somewhere new every frame, and the mist changed in blotches that reversed from frame to frame with no flow
-     (seed 7's first bank: 2.6% of pixels a frame on average, up to 21%, by more than 2 codes of blurred luma). Now the
-     samples lie on planes across the heading (level: the view's pitch, the passage's climb and the framing's ease never
-     turn them; turned, they swept the noise at the screen's edges) whose places along it are fixed in the cloud
-     (uInP.x: the travel along the heading), in six levels D = 2.6 x 2^L m apart; each level weighs its planes by a
-     window over [D, 2D] with ramps exactly D long, so its planes weigh the same in all wherever they stand (a window in
-     the log of the distance, tried first, pulsed the nearest levels' light at 4-8 Hz), and every plane comes in at
-     nothing far off and goes out at nothing near: as the camera moves each plane, and the billows on it, comes nearer
-     and grows on the screen as a cloud's would; the motion is flow, never a new cut. A turn of the heading turns the
-     planes about the eye (each pixel's ray sweeps the noise as it would sweep a cloud there). The noise's LOD follows
-     each sample's footprint (the far planes no longer alias) and the billows' own motion a frame (off the heading's
-     line a ray's point on a plane slides fast: blurred to that, as a motion blur, they never move half a period a
-     frame), and its fine billows (a 19 m tile) come in only from 6-24 m: nearer, a cloud is an even mist (round 3b's
-     first shell, 2.6 m off, drew them magnified, 0.3 m blobs 8 deg across, and near the eye they stream past faster
-     than the frames can follow). Where the cloud is whole (amt from 0.8 to 1) what is left of the view behind the
-     planes is filled with the cloud's own light, so at the change of realm (amt 1) nothing behind it shows; coming out,
-     the view is held whole for the first 0.1 of the way out (0.5 s), then clears pixel by pixel as before */
-  /* (world6) FS_INCLOUD (the cloud about the eye in a passage) and FS_PASS (a passage's cover) are gone with the passages */
   /* cloud volumes: each body's lobes baked once into a small 3D texture (density; the optical depth toward the sun
      and toward the sky), then ray-marched inside the body's box at half resolution */
   var FS_VDENS = HEAD + FRAME_U + LIB + `@glsl fs-vdens`;
@@ -248,27 +226,22 @@ void main() {
   var FS_PRE = HEAD + FRAME_U + `@glsl fs-pre`;
   var FS_DOWN = HEAD + `@glsl fs-down`;
   var FS_UP = HEAD + `@glsl fs-up`;
-  /* light shafts: what is open sky near the sun (no ground, little cloud), blurred toward the sun */
-  var FS_SHAFTMASK = HEAD + FRAME_U + LIB_LIND + `@glsl fs-shaftmask`;
-  var FS_SHAFTBLUR = HEAD + `@glsl fs-shaftblur`;
   /* the composite */
   /* the finished frame (the world's resolution) put up to the canvas (the device's): bilinear, as the browser's own
-     upscale did before round 2 (the birds' ink is then drawn over it at the canvas's resolution) */
-  /* (round E1 Fix 3, G0) the half-resolution clouds accumulated over frames: this frame's cloud (uCloud) and the last
+     upscale is (the birds' ink is then drawn over it at the canvas's resolution) */
+  /* the half-resolution clouds accumulated over frames: this frame's cloud (uCloud) and the last
      accumulation (uHist, the same pixel), the latter held to this frame's 3 x 3 neighbourhood (each channel's least and
      most: a cloud that moved or changed is never ghosted beyond what this frame has about it), mixed at uCA.x (this
      frame's share). The march samples a far tower's relief and a cloud's rim at half resolution, and as the view moves
-     its detail crawled from one frame to the next in single texels (491 x 1065: the cloud-edge film's moving excess
+     its detail crawls from one frame to the next in single texels (491 x 1065: the cloud-edge film's moving excess
      1.14 codes, the far tower's face and the rims); a few frames' average is what a finer march would show.
-     (E1.1, item 3) Reprojected by the view's turn: Fix 3 read the history at the same pixel, so in a drag (69 deg/s, 4-5
-     half-resolution texels a frame) the clamp held a smear of the last frames (verify-regress-3: the drag film's moving,
-     blur-matched and flicker readings 1.5-2.6x those without the accumulation). Now each pixel's ray is put into the last
-     frame's view (uRM, the two views' rotations; the clouds stand 100 m and more off, so the camera's own travel in a
+     Reprojected by the view's turn: read at the same pixel, the history in a drag (69 deg/s, 4-5 half-resolution
+     texels a frame) leaves the clamp holding a smear of the last frames (the drag film's moving, blur-matched and
+     flicker readings 1.5-2.6x those without the accumulation). Each pixel's ray is put into the last frame's view (uRM, the two views' rotations; the clouds stand 100 m and more off, so the camera's own travel in a
      frame, under a metre, is a fraction of a texel there and inside the clamp) and the history read there by a
      Catmull-Rom spline; where it falls outside the last view this frame stands alone. Held still, the ray lands on its own texel's centre
-     and the read is the texel itself: steady flight is as before */
+     and the read is the texel itself: steady flight reads the same pixel */
   var FS_CACC = HEAD + LIB_LIND + `@glsl fs-cacc`;
   var FS_BLIT = HEAD + `@glsl fs-blit`;
-  /* (world6w) the words' lift (LIB_LIFT, liftWords: a gain under dark words) is gone, with its floors and the world's toe */
   var FS_COMP = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-comp`;
 

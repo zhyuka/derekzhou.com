@@ -1,5 +1,5 @@
 
-uniform float uPxK;   // (E1.1) this window's pixels a pixel of the display's world (1; 4 in G0's 4x supersampled reference): every pixel-size floor and fade is in the display's pixels, so a supersampled frame is the same scene drawn finer
+uniform float uPxK;   // this window's pixels a pixel of the display's world (1; 4 in the 4x supersampled reference): every pixel-size floor and fade is in the display's pixels, so a supersampled frame is the same scene drawn finer
 layout(location = 0) in vec3 aP; layout(location = 1) in vec3 aN; layout(location = 2) in vec4 aC; layout(location = 3) in float aY; layout(location = 4) in float aE;
 uniform vec4 uSc;    // cell size, cells across, density, salt
 uniform vec4 uSc2;   // scale min, max, sink (fraction of size), tilt (rad)
@@ -23,18 +23,18 @@ void main() {
   // (never a stone under the camera's nose: near it and low under it, they shrink away)
   float near = mix(1.0, smoothstep(5.0, 13.0, length(pos - uCam.xz)), step(uCam.y - gy, 10.0));
   float s = mix(uSc2.x, uSc2.y, r4 * r4) * keep * fade * near;
-  // (round E1 Fix 3, G0) a stone smaller on the window than about two pixels shrinks away: a pebble one or two pixels
-  // across, light in a dune's shade, crawled and blinked across the pixels as the view moved (the still-view film's
-  // blinks, 2.8 a frame against the 4x reference's 0.8 in Chromium), which four samples a pixel cannot hold
+  // a stone smaller on the window than about two pixels shrinks away: a pebble one or two pixels across, light in a
+  // dune's shade, crawls and blinks across the pixels as the view moves (the still-view film's blinks, 2.8 a frame
+  // against the 4x reference's 0.8 in Chromium), which four samples a pixel cannot hold
   float dz = max(dot(vec3(pos.x, gy, pos.y) - uCam, uCamF), 1.0), pxs = s * uRes.y / (dz * uProj.y);
   // (and one whose height on the window is under about two pixels: a flat pebble far off, seen low across the sand, is
-  // a sliver a few pixels wide and one or two high that stepped from row to row and blinked (the dunes film at t 120:
+  // a sliver a few pixels wide and one or two high that steps from row to row and blinks (the dunes film at t 120:
   // 1.56 blinks a frame against the reference's 0.44). Its height there: what stands above the sand (the mesh's half
   // height, 0.6 of its size, stretched, less what is sunk) and its top's depth seen from above (twice its size by the
   // sine of the view's angle down to it)
   float sinE = clamp((uCam.y - gy) / length(vec3(pos.x, gy, pos.y) - uCam), 0.0, 1.0);
   float pxv = pxs * (max(0.6 * mix(1.0, uSc3.y, r6) - uSc2.z, 0.12) + 2.0 * sinE);
-  s *= smoothstep(1.0 * uPxK, 2.6 * uPxK, pxs) * smoothstep(1.2 * uPxK, 2.4 * uPxK, pxv);   // (E1.1: the sizes in the display's pixels, uPxK)
+  s *= smoothstep(1.0 * uPxK, 2.6 * uPxK, pxs) * smoothstep(1.2 * uPxK, 2.4 * uPxK, pxv);   // (the sizes in the display's pixels, uPxK)
   mat3 R = rotY(r5 * 6.2831853) * rotX((r6 - 0.5) * uSc2.w) * rotZ((r7 - 0.5) * uSc2.w);
   vec3 sc = vec3(1.0, mix(1.0, uSc3.y, r6), 1.0) * s;
   vec3 lp = R * (aP * sc);

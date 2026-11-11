@@ -1,6 +1,6 @@
 // glslmin.mjs: a shader's text without its comments and spare whitespace, the same program token for token. The build
 // minifies every src/**/glsl/NAME.glsl this way where it puts the text back into its script (tools/parts.mjs assemble
-// --min-glsl), so the world issues, the start table holds and the browser compiles the short text; src/ keeps the
+// --min-glsl), so the world issues and the browser compiles the short text; src/ keeps the
 // readable one. Nothing is renamed and no token changes:
 //   - comments (// and /* */) go, and blank lines; every line with code stays a line of its own, in order (the world's
 //     folds work by lines);

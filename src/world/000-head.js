@@ -1,14 +1,14 @@
 // The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
 // fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
-/* world.js — the world behind the page (v4 engine, round 3a): free flight through an endless world of realms.
+/* world.js — the world behind the page free flight through an endless world of realms.
 
    The window is a camera flying through a 3D world drawn in WebGL2, generated in code from the visit's seed (no
    picture, no model file). The visitor steers it: a drag anywhere on the page (touch, pen, or a mouse with its button
    held) turns the view and the flight, the scene following the finger as in a 360-degree viewer, and tilts it to climb
    or dive; or the phone itself, turned about (its rotation from where it was when motion was enabled). Nothing is
    shown for it. Left alone, the view holds the heading the visitor last set (at the landing, the landing's own) and
-   flies straight and level but for the ground's rise: nothing turns it by itself (design-v5 Revision 3: no tour, no
-   aiming at places, no weave, no nod). What stands ahead and cannot be climbed is passed by a slip sideways, planned
+   flies straight and level but for the ground's rise: nothing turns it by itself (no tour, no aiming at places, no
+   weave, no nod). What stands ahead and cannot be climbed is passed by a slip sideways, planned
    from first sight with the heading held (slipPlan). The world has no edge: a realm is a field (its land as global functions in GLSL, its
    areas laid out over the plane as regions, its light) and cells (landmarks, clouds, creatures and points of interest
    generated per world cell from the visit's seed and the cell's coordinates), streamed in about the camera within a
@@ -44,12 +44,12 @@
   function clockNow() { return performance.now(); }
   var EVAL0 = clockNow();   // (the record: when this script's evaluation began)
   var root = document.documentElement;
-  /* (tod fix round, the judges' defect 9) the browser's bar takes the world's still top for the hour's group as this
+  /* the browser's bar takes the world's still top for the hour's group as this
      script's first act (the page's body shows the world's still from its first paint; hour.v2.js's colour is the live
      sky's still top), before the boot's heavy work; the drawn sky's own follows once it shows (skyTheme), the still's
      when it hides (markStill). The tops are the world's still skies' (style.css, tools/stillsky.py). */
   var SKYTOP = { dawn: '#173a63', day: '#173a63', rain: '#5f3d62', sunset: '#5f3d62', dusk: '#38396a', night: '#17234f' };
-  /* (camera9b) a window 6 : 5 or wider (wideWin: the stylesheet's own query) has the camera pitched up (basePitch) and the
+  /* a window 6 : 5 or wider (wideWin: the stylesheet's own query) has the camera pitched up (basePitch) and the
      tilted camera's still skies (style.css, @media (min-aspect-ratio: 6/5)), and the bar takes their tops: read each time
      it takes a still's (here, and skyThemeStill when the canvas hides) */
   var SKYTOPW = { dawn: '#173b65', day: '#173b65', rain: '#603e63', sunset: '#603e63', dusk: '#3b3a6c', night: '#1b2552' };

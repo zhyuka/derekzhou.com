@@ -1,13 +1,9 @@
 
-/* ---- the world (world6): the two kits composed by weight; smooth functions only, nothing switches on a place */
+/* ---- the world: the two kits composed by weight; smooth functions only, nothing switches on a place */
 /* the land: the dunes kit's, its dunes as high as the sand weight says, sunk as the cloud weight rises (the sink
    bounded in slope by construction: the grids' derived channel) */
-/* (world6 fix, the judges' defect 5) where the land comes down within RIM_HI m of the cloud sea's level it falls away
-   under a rim, RIM_DROP m by RIM_LO (so under the sea's lowest troughs), as the old bays' land fell 70 m under theirs:
-   the sea is seen below the rim, its edge a cliff's, never a waterline on the sand (a smooth function of the land and
-   the level: C1) */
-/* (world6 step B) the rim is gone: the sea no longer lies in a basin under the land but rises around the dunes, filling
-   their troughs first, so the coast is cloud lapping the sand (softened by the fringe below), never a cliff */
+/* no rim: the sea does not lie in a basin under the land but rises around the dunes, filling their troughs first, so
+   the coast is cloud lapping the sand (softened by the fringe below), never a cliff */
 vec3 Hd(vec2 p) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
   gKD = wD; gLV = lv; gWC = wC;
@@ -22,11 +18,10 @@ vec3 HdSea(vec2 p) {
   vec3 amp = vec3(0.4, 0.0, 0.0) + 0.6 * wC;
   return lv + dMul(A_Hd(p), amp);
 }
-/* (world6 fix, the judges' defect 5) the coast: the land's height over the cloud sea's top at its vertices (after Hd),
-   and the land within COAST_H of it taking the sea's own colour, the more the nearer, so where sand meets cloud the
-   shore is a soft fringe of the cloud's mist on the land, never a waterline (the step met them at a hard edge 0-1 px
-   wide: a desert lake) */
-const float COAST_H = 14.0;   // (world6 step B: 40 -> 14 m: the sea now lies near the land, and a 40 m fringe painted whole sandy flats the cloud's colour)
+/* the coast: the land's height over the cloud sea's top at its vertices (after Hd), and the land within COAST_H of it
+   taking the sea's own colour, the more the nearer, so where sand meets cloud the shore is a soft fringe of the
+   cloud's mist on the land, never a waterline (a step meets them at a hard edge 0-1 px wide: a desert lake) */
+const float COAST_H = 14.0;   // (14 m: the sea lies near the land, and a 40 m fringe paints whole sandy flats the cloud's colour)
 float HdGap(vec2 p, float h) { if (h - gLV.x > 140.0) return 1e4; return h - (gLV.x + A_Hd(p).x * (0.4 + 0.6 * gWC.x)); }
 vec3 shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp);
 vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
@@ -36,8 +31,8 @@ vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
 }
 /* the camera's ground: the land or the cloud's top, whichever is higher */
 float HdCam(vec2 p) { return max(Hd(p).x, HdSea(p).x); }
-/* (speed S1) the probe's height: Hd(p).x, or (cam) HdCam(p), with the weights and the dunes' land made once: HdCam
-   inlined kitW4 three times and D_Hd twice into the probe (its compile on D3D11 was 2.4x the terrain's). The same
+/* the probe's height: Hd(p).x, or (cam) HdCam(p), with the weights and the dunes' land made once: HdCam inlines
+   kitW4 three times and D_Hd twice into the probe (its compile on D3D11 2.4x the terrain's). The same
    operations in the same order: kitW4 reads none of the globals Hd sets, A_Hd none but gLodD */
 float HdProbe(vec2 p, bool cam) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);

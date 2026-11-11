@@ -2,15 +2,15 @@
 // sources: site/ copied as it is, then the built scripts written over it: src/ assembled (tools/parts.mjs: the dev
 // build, and the shipped build with the dev-only parts left out), then tools/minify.mjs --build: the five minified
 // scripts from the shipped build, the plan's worker (tools/plan.mjs: the world's plan spans, verbatim, from the dev
-// build) and the start file with its table (tools/start.mjs, from the dev build). Each build
+// build). Each build
 // assembles into a folder of its own beside its output (OUT.parts/), so two builds at once never share one.
 // site/ holds only the sources the site serves as written (the pages, _headers, the hand-written scripts, the
-// fonts). The files the build writes (the five minified scripts, the plan's worker, the start file and its table) are never committed
+// fonts). The files the build writes (the five minified scripts, the plan's worker) are never committed
 // there: Cloudflare Pages runs the deploy build (below) and serves its output. CI proves the build deterministic and
 // that site/ holds none of the built files.
 // (step 5) The deploy build then names every shipped script and stylesheet by its content: world.v8.js is served as
 // world.<sha8>.js, <sha8> the first 8 hex of the sha256 of the file's final bytes. Files that load another by name
-// (the world starts the plan's worker, the start file its table) are named after the ones they load, leaves first, so
+// (the world starts the plan's worker) are named after the ones they load, leaves first, so
 // a file's hash covers the names it loads; a cycle is an error. Every reference is rewritten: in the scripts,
 // index.html, 404.html, _headers (the Link preloads and each file's exact block) and _routes.json where there is one
 // (exact names, never wildcards). A changed file gets a new name by itself: no one renames by hand, no two branches
@@ -22,6 +22,8 @@
 //   node tools/build.mjs --check          build twice into two temporary folders at once; exit 1 unless both builds are
 //                                         the same bytes (deterministic), site/ holds none of the files the build
 //                                         writes, and the deploy build is the same from both and passes its checks
+//   node tools/build.mjs --check --against DIR   the same, with DIR (a plain build made already: npm run check's
+//                                         build/site) as build one, so only one build is made here
 //   node tools/build.mjs --manifest DIR   print DIR's manifest
 //
 // The deploy build's checks (else exit 1): every script and stylesheet at the top level has a content name and the
@@ -59,6 +61,32 @@ const NAMED = /^[a-z0-9-]+(\.v\d+)?\.(js|css)$/, HASHED = /^[a-z0-9-]+\.[0-9a-f]
 const REWRITTEN = ['index.html', '404.html', '_headers', '_routes.json'];
 
 function die(msg) { console.error('build: FAIL: ' + msg); process.exit(1); }
+
+// (load-perf, 2026-11-07) the stylesheet served without its comments and indentation: it is render-blocking, and its
+// notes were 8 KB of its 19 (4,995 B at Brotli 11 before, 2,151 B after). Every comment is dropped but a /*! one, every
+// line trimmed, every blank line dropped; nothing inside a string is touched, and a rule stays on its own line (the
+// checks that read the stylesheet read it line by line). Proved here: the text with every comment and all white space
+// taken out is the same before and after, so only comments and white space between tokens went.
+function cssMin(css, name) {
+  let o = '', i = 0, q = null;
+  while (i < css.length) {
+    const c = css[i];
+    if (q) { o += c; if (c === '\\') { o += css[i + 1] || ''; i += 2; continue; } if (c === q) q = null; i++; continue; }
+    if (c === '"' || c === "'") { q = c; o += c; i++; continue; }
+    if (c === '/' && css[i + 1] === '*') {
+      const j = css.indexOf('*/', i + 2); if (j < 0) die(name + ': a comment that does not end');
+      if (css[i + 2] === '!') o += css.slice(i, j + 2);
+      else if (o && /\S/.test(o[o.length - 1]) && /\S/.test(css[j + 2] || ' ')) o += ' ';   // (a comment between two tokens parts them)
+      i = j + 2; continue;
+    }
+    o += c; i++;
+  }
+  if (q) die(name + ': a string that does not end');
+  const min = o.split('\n').map((l) => l.trim()).filter(Boolean).join('\n') + '\n';
+  const bare = (t) => t.replace(/\s+/g, '');
+  if (bare(min) !== bare(o)) die(name + ': minifying changed more than white space');
+  return min;
+}
 
 function files(dir, rel = '') {   // every file under dir, relative, '/'-separated, sorted
   const out = [];
@@ -99,7 +127,8 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
-  // the ink birds' wing model, served as written (copied first: the start file's maker reads them beside index.html): src/birds/model/'s scripts copied whole (two of them generated, by
+  for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.css')).sort()) fs.writeFileSync(path.join(out, n), cssMin(fs.readFileSync(path.join(out, n), 'utf8'), n));
+  // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
   // tools/birds/: CI makes them again and compares)
   const wing = fs.readdirSync(WING).filter((n) => n.endsWith('.js')).sort();
   for (const n of wing) {
@@ -108,17 +137,15 @@ async function build(out, stamp) {   // the plain build
   }
   const parts = path.resolve(out) + '.parts', dev = path.join(parts, 'src'), ship = path.join(parts, 'ship');
   fs.rmSync(parts, { recursive: true, force: true });
-  await Promise.all([run(process.execPath, [PARTS, 'assemble', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', SRC, ship])]);
-  // the plan's worker, under the name the world starts it by (made first: the start file is made with the site in place)
+  await Promise.all([run(process.execPath, [PARTS, 'assemble', '--min-glsl', SRC, dev]), run(process.execPath, [PARTS, 'assemble', '--ship', '--min-glsl', SRC, ship])]);
+  // the plan's worker, under the name the world starts it by
   const world = fs.readFileSync(path.join(dev, 'world.js'), 'utf8'), pn = workerName(world);
   if (pn) fs.writeFileSync(path.join(out, pn), (await buildPlan(world, pn)).text);   // (minified as the world is: tools/plan.mjs)
-  await run(process.execPath, [MINIFY, '--build', ship, out, '--start-src', dev]);
+  await run(process.execPath, [MINIFY, '--build', ship, out]);
   // the files the build wrote: the shipped scripts (minify.mjs writes each top-level script of the shipped build), the
-  // plan's worker, and the start file the page loads, with its table (start.js, start-table.js)
+  // plan's worker
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile()).concat(wing);
   if (pn) written.push(pn);
-  const sm = fs.readFileSync(path.join(SITE, 'index.html'), 'latin1').match(/\/(start(?:\.v\d+)?\.js)[\"']/);
-  if (sm) written.push(sm[1], sm[1].replace(/^start\./, 'start-table.'));
   fs.rmSync(parts, { recursive: true, force: true });
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
   return written.sort();
@@ -235,12 +262,13 @@ function diff(a, b, la, lb) {   // the lines of two manifests that differ, as a 
 }
 
 const a = process.argv.slice(2);
-if (a[0] === '--check' && a.length === 1) {
+if (a[0] === '--check' && (a.length === 1 || (a.length === 3 && a[1] === '--against'))) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'build-'));
-  const d1 = path.join(tmp, 'one'), d2 = path.join(tmp, 'two');
+  const d1 = a[2] ? path.resolve(a[2]) : path.join(tmp, 'one'), d2 = path.join(tmp, 'two');   // (dev-speed: --against, build one is the plain build made already)
+  if (a[2] && !fs.existsSync(path.join(d1, 'index.html'))) die('--against ' + a[2] + ': no plain build there');
   const t0 = Date.now();
   let written;
-  try { [written] = await Promise.all([build(d1, null), build(d2, null)]); } catch (e) { die(e.message); }
+  try { [written] = await Promise.all(a[2] ? [build(d2, null)] : [build(d1, null), build(d2, null)]); } catch (e) { die(e.message); }
   const m1 = manifest(d1), m2 = manifest(d2);
   let bad = 0;
   for (const l of diff(m1, m2, 'build one', 'build two')) { console.error('::error::not deterministic: ' + l); bad = 1; }
