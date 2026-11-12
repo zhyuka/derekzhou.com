@@ -46,8 +46,9 @@ first paint. It has one handler, the button's click:
    - the one AudioContext (`latencyHint: 'playback'`, at 24 kHz where the browser takes it: nothing in the score is
      above about 4 kHz, so half the work and memory) and a level gain at 0;
    - the one fetch, `SHEET` (a literal `/assets/sound/notes-N.mp3` from this site), decoded once;
-   - `SCORE.play(ctx, level, buffer)` (score.js), then a tick about twice a second on the context's own clock
-     (the score plans ten seconds ahead); the level rises to 1 over 4 s.
+   - `SCORE.play(ctx, level, buffer, true)` (score.js): sliced, the score fills its room and its air a step at a
+     time and resolves `ready`; then a tick about twice a second on the context's own clock (the score plans ten
+     seconds ahead), and the level rises to 1 over 4 s.
 2. **A second press** ramps the level to 0 over 1.5 s, then suspends the context, which lets the audio device go.
    A suspended context's clock stops, so the score plans nothing while off.
 3. **A third press** resumes the context and ramps back up over 4 s. Nothing is fetched or decoded again.
@@ -59,7 +60,11 @@ asks again. Nothing is remembered between visits.
 ## The score (src/score.js)
 
 Loaded deferred, at low priority, last of the scripts; it only defines `window.SCORE` until a press. It makes no
-context and fetches nothing: it builds on what the switch hands it. Its time is the context's (`now`, passed in);
+context and fetches nothing: it builds on what the switch hands it. Its room (a 4.8 s impulse, two exponentials a
+sample) and its air (two 16 s stereo noises) come from its own stream, about 1.8 million draws: sliced (the switch),
+they are filled in 55 steps, each its own task, in the order they always were, so every draw and every sample is
+what it would be at once (the unit test holds the two to the same bytes), and the air and the music start together
+when the last is done; unsliced (the unit test, the render tool), at once. `tick` does nothing before. Its time is the context's (`now`, passed in);
 its one entropy is the world's (a seed in `WORLD.sky()`); it reads the sky and never writes to the world.
 
 What it plays (sketch round seventeen, the owner's pick):
@@ -165,6 +170,21 @@ Change OUT only with a measurement.
 | score.js | 18,189 minified, 6,828 as sent | every visit, deferred, low priority (36-load-budget: 7.5 KB) |
 | the sheet | about 3.5 MB | only at the first press |
 
+The CPU (2026-11-12, headless Chromium on a 2.1 GHz Xeon core, the 7:36 flight; the slowest phone modelled as six
+times slower, the main thread by CDP's throttle, the audio thread scaled by hand since the throttle does not reach
+it):
+
+| | a desktop core | the slowest phone (x6) |
+|---|---|---|
+| the audio thread | 4.8% of real time (0.26 ms of each 5.3 ms quantum), 8.8% at the busiest half second | about 29%, 53% |
+| the main thread, playing | | 0.8 ms a second of music; 95% of ticks under 1.5 ms, the longest 18-26 ms (a chord change, about twice in 7.6 min) |
+| the press, filled at once (before) | about 55 ms in one task | about 0.4 s in one task |
+| the press, sliced | the longest task about 20 ms; music about 0.25 s after the decode | the longest 130-220 ms; music about 0.6 s after |
+
+The longest task left is Chrome preparing the 4.8 s room for convolution when its buffer is set (about 20 ms on a
+desktop core, 120-220 ms at x6, measured alone): the score cannot slice it, and only a shorter room would shorten it,
+which would be heard.
+
 The sheet has no line in 36-load-budget on purpose: a cold visit never loads it, so if one ever did, it would fail
 that check as an unbudgeted file. Decoded at 24 kHz it holds about 57 MB of memory; a browser that will not open
 the context at 24 kHz decodes it at its own rate (48 kHz: about 114 MB). While playing: about 25 buffer sources at
@@ -207,7 +227,9 @@ same seed does not play the same notes (another seed must play others). Then eve
 major chord, and thin to a mist of three notes or more; and two hours of a flight ordered as the world orders it must
 keep them, with as many notes in the second hour as in the first; and over those two hours the strings must not all
 sound for long (five or more voices under 40% of the time, never more than 75 s at a stretch, two or fewer more than
-25% of it: the first live score had all of them 89% of the time). About 16 s. Its plant lets a note that moves by a
+25% of it: the first live score had all of them 89% of the time); and the room and the air filled sliced, each step
+run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
+filled at once, in 20 steps or more. About 16 s. Its plant lets a note that moves by a
 step come in before its neighbour lets go.
 
 Every automation curve goes through one guard (curveAt): Safari throws on a curve that overlaps another on the same

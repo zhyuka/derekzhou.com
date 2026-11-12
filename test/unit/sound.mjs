@@ -10,7 +10,8 @@
 //     say) keeps the spacing rules, swells on a major chord and thins to a mist of three notes or more;
 //   - two hours of a flight ordered as the world orders it: the rules hold, and nothing piles up;
 //   - over those two hours the strings are never all there for long (the passages: five or more voices under 40% of
-//     the time, never past 75 s at a stretch; two or fewer over 25% of it).
+//     the time, never past 75 s at a stretch; two or fewer over 25% of it);
+//   - the room and the air filled a slice at a time (as the switch has it) play exactly what they play filled at once.
 // plant: {"file": "src/score.js", "find": "return m !== n && (Math.abs(m - n) <= 2 ||", "with": "return m !== n && (Math.abs(m - n) <= 0 ||", "why": "a note that moves by a step comes in before its neighbour lets go"}
 import { test, assert, fs, path, vm, ROOT } from '../unit-lib.mjs';
 
@@ -25,20 +26,21 @@ const NEAR = {}, HOLD = {};
 for (const m of WSRC.matchAll(/^\s+(\w+): \{ g:'\w+', w:'\w+', ph:\d, land:\[[^\]]*\], hold:(\d+), near:\[([^\]]*)\]/gm)) { HOLD[m[1]] = +m[2]; NEAR[m[1]] = m[3].replace(/'/g, '').split(',').filter(Boolean); }
 const STRINGS = ['cello', 'viola', 'violin', 'clar'];
 
-function play(seed, flight = FLIGHT, len = T) {
+function play(seed, flight = FLIGHT, len = T, sliced = false) {
   const param = (v) => ({ value: v, calls: [], setValueAtTime(x, t) { this.calls.push(['set', t, x]); }, setValueCurveAtTime(c, t, d) { this.calls.push(['curve', t, d, c[0], c[c.length - 1]]); }, setTargetAtTime() {}, linearRampToValueAtTime() {} });
   const node = (x) => Object.assign({ out: [], connect(n) { this.out.push(n); return n; } }, x);
-  const srcs = [], gains = [];
+  const srcs = [], gains = [], convs = [], queue = [];
   const ctx = { currentTime: 0, sampleRate: 24000,
     createGain: () => { const g = node({ gain: param(1) }); gains.push(g); return g; }, createBiquadFilter: () => node({ type: '', frequency: param(0), Q: param(1), gain: param(0) }),
-    createConvolver: () => node({ normalize: true, buffer: null }), createStereoPanner: () => node({ pan: param(0) }), createOscillator: () => node({ frequency: param(0), start() {} }),
+    createConvolver: () => { const c = node({ normalize: true, buffer: null }); convs.push(c); return c; }, createStereoPanner: () => node({ pan: param(0) }), createOscillator: () => node({ frequency: param(0), start() {} }),
     createBuffer(ch, n, sr) { const d = Array.from({ length: ch }, () => new Float32Array(n)); return { getChannelData: (c) => d[c], sampleRate: sr, length: n }; },
     createBufferSource() { const s = node({ buffer: null, loop: false, playbackRate: param(1), start(w, o) { this.when = w; this.off = o; }, stop(t) { this.stopAt = t; } }); srcs.push(s); return s; } };
   const mark = new Float32Array(24000); mark[4800] = 0.9;   // (the sheet's click at 0.2 s)
   const sheet = { getChannelData: () => mark, sampleRate: 24000 };
   let now = 0; const win = { WORLD: { sky() { let i = 0; while (i < flight.length - 1 && flight[i + 1].at <= now) i++; const x = Math.min(1, Math.max(0, (now - 150) / 40)); return { t: now, seq: flight.slice(i), wc: x * x * (3 - 2 * x), still: false, seed }; } } };
-  vm.runInNewContext(SRC, { window: win });
-  const score = win.SCORE.play(ctx, node({}), sheet);
+  vm.runInNewContext(SRC, { window: win, setTimeout: (f) => queue.push(f), Promise });
+  const score = win.SCORE.play(ctx, node({}), sheet, sliced);
+  let tasks = 0; while (queue.length) { queue.shift()(); tasks++; }   // (sliced: each step its own task, run here in order)
   for (now = 0; now < len; now += 0.5) score.tick(now);
   const notes = srcs.filter((s) => s.buffer === sheet).map((s) => {
     const e = NOTES.find((n) => s.off >= n[2] - 1e-6 && s.off <= n[2] + n[3] + 1e-6), rate = s.playbackRate.value, m = Math.round(e[1] + 12 * Math.log2(rate));
@@ -46,6 +48,8 @@ function play(seed, flight = FLIGHT, len = T) {
     const a = e[4] ? s.when + (up ? up[2] : 0) * 0.5 : s.when, b = e[4] ? (down ? down[1] + down[2] * 0.45 : Infinity) : s.when + Math.min(3, e[3] / rate);
     return { inst: INST[e[0]], m, when: s.when, a, b };
   });
+  notes.tasks = tasks; notes.fills = [...convs.map((c) => c.buffer), ...srcs.filter((s) => s.buffer && s.buffer !== sheet).map((s) => s.buffer)].map((b) => [0, 1].map((c) => b.getChannelData(c)));
+  notes.airStarts = srcs.filter((s) => s.buffer && s.buffer !== sheet).map((s) => [s.when, s.off]);
   notes.swells = [...new Set(gains.flatMap((g) => g.gain.calls.filter((c) => c[0] === 'curve' && c[2] === 21).map((c) => +(c[1] + 11).toFixed(3))))];
   return notes;
 }
@@ -136,4 +140,13 @@ test('sound: the strings are never all there for long: the texture keeps changin
   assert.ok(full / total < 0.4, `all the strings (five or more) ${Math.round(100 * full / total)}% of the time (want under 40%)`);
   assert.ok(longest <= 75, `all the strings for ${longest} s at a stretch (want 75 s at most)`);
   assert.ok(few / total > 0.25, `two strings or fewer only ${Math.round(100 * few / total)}% of the time (want over 25%)`);
+});
+test('sound: the room and the air filled a slice at a time, as the switch has it, play exactly what they play filled at once', () => {
+  const a = play(1501), b = play(1501, FLIGHT, T, true), key = (L) => L.map((n) => n.inst + n.m + '@' + n.when + ':' + n.a + '-' + n.b).join(' ');
+  assert.ok(b.tasks >= 20, `the fill took ${b.tasks + 1} tasks (want it sliced)`);
+  assert.equal(a.tasks, 0, 'filled at once, yet it queued tasks');
+  assert.equal(key(b), key(a), 'sliced, it plays other notes');
+  assert.equal(b.fills.length, 3, `${b.fills.length} filled buffers (want the room and two airs)`);
+  b.fills.forEach((ch, i) => ch.forEach((x, c) => assert.ok(Buffer.from(x.buffer).equals(Buffer.from(a.fills[i][c].buffer)), `buffer ${i}, channel ${c}: other samples`)));
+  assert.deepEqual(b.airStarts, a.airStarts, 'the air starts elsewhere');
 });
