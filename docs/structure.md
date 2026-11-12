@@ -59,8 +59,10 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the five served scripts from build/ship/; CI checks the build
-tools/tsc.mjs                tsc --checkJs over the assembled world, by hand (npx typescript, pinned; not a dependency),
-                             with tools/types/world.d.ts for what TypeScript's DOM types lack: each error as section:line
+tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
+                             not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
+                             shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD): each error as
+                             section:line or file:line
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
 tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
 tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand

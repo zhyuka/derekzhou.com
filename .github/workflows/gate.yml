@@ -149,7 +149,7 @@ jobs:
           shas="$GITHUB_SHA $(api "$R/commits/$GITHUB_SHA/pulls" | jq -r '.[] | select(.merged_at != null) | .head.sha' | tr '\n' ' ')"
           ids=$(for s in $shas; do api "$R/actions/workflows/gate.yml/runs?head_sha=$s&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'; done | sort -u)
           for id in $ids; do
-            a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '.artifacts[] | select(.name == "gate-verdict") | .archive_download_url' | head -1)
+            a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '[.artifacts[] | select(.name == "gate-verdict" and (.expired | not))] | sort_by(.created_at) | last | .archive_download_url // empty')   # (a re-run's newest, as the bot reads it)
             [ -n "$a" ] || continue
             rm -rf "$D"; mkdir -p "$D"; api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
             if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" --arg k "$K" '((.t2_key // "" | sub("-stall(yes|no)$"; "")) == $k or (.sha == $s and .base == $b)) and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
