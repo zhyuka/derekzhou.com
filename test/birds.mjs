@@ -223,3 +223,20 @@ test('the step and the draw make no objects a frame; wing histories stay short',
   assert.ok(per < 0.5, `${per.toFixed(2)} objects made a step: ${top}`);
   assert.ok(worstWing <= 1, 'a wing history grew past its bar');
 });
+
+/* the birds' share of a frame: the step and the draw (on the GL stub) at the page's 1/60 s, in the world left to
+   itself, printed against the phone's 1 ms (a desktop core's time x 4 models the slowest phone the tools have: 0.25 ms
+   here; alone 0.06-0.1 ms, 0.2 ms with the other checks on the same cores). The bar, 0.5 ms, fails a regression the
+   size of the contextified sandbox's (every global read some 60 times slower: the sim now runs on a plain global, as
+   the page does), never a busy runner */
+test('the birds take well under a millisecond of a slow phone\'s frame', () => {
+  const F = [];
+  for (const [size, seed] of [['390x844', 1], ['390x844', 2], ['390x844', 3], ['960x600', 1]]) {
+    const sc = SCENES.natural(seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = {}; const sim = makeSim(sc.opt); sc.setup(sim);
+    sim.run(20);
+    for (let i = 0; i < 3000; i++) { const a = performance.now(); sim.step(); F.push(performance.now() - a); }
+  }
+  const mean = F.reduce((x, y) => x + y, 0) / F.length, p99 = [...F].sort((x, y) => x - y)[Math.floor(0.99 * (F.length - 1))];
+  console.log(`# cost: ${mean.toFixed(3)} ms a frame (bar 0.5; the phone's 1 ms is 0.25; x 4 on a slow phone: ${(4 * mean).toFixed(2)} ms), p99 ${p99.toFixed(3)} ms`);
+  assert.ok(mean < 0.5, `the birds took ${mean.toFixed(3)} ms a frame`);
+});

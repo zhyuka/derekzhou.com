@@ -81,8 +81,10 @@ export function makeSim(o = {}) {
     seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = seaLv(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
     rng: (salt) => { let a = (seed ^ salt) >>> 0; return () => { a = (a + 0x9e3779b9) | 0; let q = a ^ (a >>> 16); q = Math.imul(q, 0x21f0aaad); q ^= q >>> 15; q = Math.imul(q, 0x735a2d97); return ((q ^ (q >>> 15)) >>> 0) / 4294967296; }; },
     reduced: () => false, budget: () => Infinity, count() {}, time: () => t };
-  const ctx = vm.createContext({ console });
-  ctx.self = ctx; ctx.window = ctx;
+  /* (a plain global, not a contextified sandbox: a sandbox's interceptors make every global read, Math's included,
+     some 60 times slower than a page's, and the sim's timings measured that, not the birds) */
+  const ctx = vm.createContext(vm.constants.DONT_CONTEXTIFY);
+  ctx.console = console; ctx.self = ctx; ctx.window = ctx;
   ctx.WORLD = { birds: (f) => { M = f(HOST); }, stamp() {} };
   const S = scripts();
   for (const s of S.model) s.runInContext(ctx);

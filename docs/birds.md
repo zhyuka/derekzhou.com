@@ -88,6 +88,9 @@ real module headless in Node on a stub host, over the world's recorded ground (t
 them out at 960x600 and 390x844, a scripted pointer, clicks and drags, the 50 ms clock. test/birds.mjs measures it
 over random scenes against the research's numbers (CI: about 30 s; BIRDS_N=16 BIRDS_LONG=1 for the full run), and
 `node tools/birds/sim.mjs --case C --size S --seed N --svg F` replays one scene with its paths in the perch's frame.
+Its timings are the page's: the module runs on a plain global (vm DONT_CONTEXTIFY), never a contextified sandbox,
+whose interceptors made every global read (Math's) some 60 times slower and the birds look 6 times dearer than they
+are (2026-11-12: 0.058 ms a frame, step and draw, not 0.35; test/birds.mjs prints it against the slow phone's 1 ms).
 What it pins: a landing comes in by a gate in view (wide of the perch, beyond it, a last leg of 30 m in view), closes
 by a closed-loop tau-dot law (the closing a constant tau-dot gives at the range left), takes out its drift across
 the line, and ends on a curve to rest in the perch's frame (its place and motion at both ends: no jump, no
