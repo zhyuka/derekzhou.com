@@ -59,61 +59,6 @@
     if (!GS.done) { var ok = stageG(); if (!represent()) render(); return ok; }
     return true;
   }
-  /* (tools/gpu/settle.js: the SETTLED TWIN, a gate-only transform, never deployed) inert unless the harness
-     sets window.__SETTLE before the page's scripts; then the first frame shown waits, after stage G and before stage H,
-     until the build is idle about the camera, the page's clock has reached SETTLE.t and SETTLE.extra frames more have
-     passed; each held frame runs gpuJobs() and cpuSlice() and nothing else */
-  var SETTLE = (function () { var o = { t: 0, extra: 0, quiet: 8, boot: true };   // (resume sketch A: the live world held under the still until it is built as the bake was, then cut to) if (!o || typeof o !== 'object') return null;
-    return { t: +o.t || 0, extra: +o.extra || 0, quiet: +o.quiet > 0 ? +o.quiet : 8, boot: !!o.boot, held: 0, fr0: -1, t0: -1, idle: 0, idleAt: -1, idleT: -1, left: -1, rel: -1, relT: -1, sig: '', why: '', busyN: {}, cells: 0, lateAtRel: null }; })();
-  if (SETTLE) window.__SETTLED = function () { return JSON.parse(JSON.stringify(SETTLE)); };
-  /* (fast500 gates, round 1 fix) a reader on every twin, settled or not (it only reads): the late builds counted (LATE:
-     a cell, mesh or body ready after the show inside its distance band) and whether the ink birds' module is made */
-  window.__GATE = function () { return { late: [LATE.n, LATE.vols, +LATE.worst.toFixed(3)], ink: BIRDS ? 1 : 0, shown: !!shown, frame: FRAMEN }; };
-  /* (the twin's per-frame state, for finding what in a frame is not the stepped clock's: the build's signature, the
-     bake's rate and the governor's rung; gstep.js records it with each hashed frame) */
-  window.__SIG = function () { var V = SIM.V; return V ? settleSig(V) + ';' + FBAKE.n + ',' + RUNG + ',' + FBAKE.halvings : ''; };
-  function settleSig(V) {
-    var L = V.cellList || [], a = 0, b = 0, c = 0, d = 0, e = 0, i, k, pm = 0, pr = 0;
-    for (i = 0; i < L.length; i++) { var C = L[i]; a += C.st; b += C.bi; c += C.vi; d += C.rbi + (C.RB ? 1 : 0) + (C.mesh ? 1 : 0); e += C.lod; }
-    for (k in POOL.made) { pm += POOL.made[k]; pr += POOL.reused[k]; }
-    return [L.length, a, b, c, d, e, V.st, KW.baked, KW.derived, KW.i0, KW.j0, KF.baked, KF.derived, KF.i0, KF.j0, KW.dirty.length, KF.dirty ? 1 : 0,
-      GROUND.gen, GROUND.gen2 || 0, GROUND.rd, GROUND.got, RB.reads, RB.slots.length, PJOBS.length, FREEQ.length, pm, pr, LATE.n, LATE.vols, ST.gc, J.visits.length].join(',');
-  }
-  function settleBusy(V) {
-    if (!visitBuilt(V)) return 'visit';
-    var L = V.cellList, i;
-    if (!L) return 'no cells';
-    for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 4) return 'cell st ' + C.st; if (C.RB) return 'cell full build'; }
-    for (i = 0; i < PJOBS.length; i++) if (!PJOBS[i].cancel) return 'probes';
-    for (i = 0; i < RB.slots.length; i++) if (RB.slots[i].st !== 0) return 'read-back';
-    if (GROUND.rd > 0 || GROUND.got) return 'ground grid';
-    var x0 = Math.floor(CS.x / 16) * 16 - GCN / 2 * GCCELL, z0 = Math.floor(CS.z / 16) * 16 - GCN / 2 * GCCELL;
-    if (GCK[0] !== V.k || GCK[1] !== x0 || GCK[2] !== z0) return 'ground key';
-    if (!GROUND.ok || GROUND.V !== V || GROUND.x0 !== x0 || GROUND.z0 !== z0) return 'ground landed';
-    if (!KW.ok || KW.qi < KWQ.length || KW.di < KDQ.length) return 'weights';
-    if (KW.dirty.length || KF.dirty) return 'weights upload';
-    if (FREEQ.length) return 'freed';
-    return '';
-  }
-  function settleHold() {
-    var S = SETTLE, V = SIM.V;
-    if (S.rel >= 0 || !V) return false;
-    if (S.fr0 < 0) { S.fr0 = FRAMEN; S.t0 = +clockNow().toFixed(3); }
-    S.held++;
-    WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0; BIRDB.spent = 0;
-    if (S.boot) budgets(true);
-    gpuJobs(); gl.flush(); cpuSlice();
-    if (S.boot) budgets(false);
-    var why = settleBusy(V), sig = settleSig(V);
-    if (why || sig !== S.sig) { S.sig = sig; S.idle = 0; S.idleAt = -1; S.left = -1; if (why) { S.why = why; S.busyN[why] = (S.busyN[why] || 0) + 1; } return true; }
-    if (++S.idle < S.quiet) return true;
-    if (S.idleAt < 0) { S.idleAt = FRAMEN; S.idleT = +clockNow().toFixed(3); }
-    if (clockNow() < S.t) return true;
-    if (S.left < 0) S.left = S.extra;
-    if (S.left > 0) { S.left--; return true; }
-    S.rel = FRAMEN; S.relT = +clockNow().toFixed(3); S.cells = V.cellList.length; S.lateAtRel = [LATE.n, LATE.vols];
-    return false;
-  }
   function frameBody(ts) {
     var dt = CLK[1] === -2 ? HOLD_P : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; FRAMEN++;   // (first-paint preview: -2, the first animation frame after the hold, one hold frame on)
     var dtRaw = dt;   // (the interval itself, for the bake's learning)
@@ -164,7 +109,6 @@
     if (fd && SW.fence !== 3) rbFence();
     prof('poll');
     /* (E1) stage H: the first frame checked in the hidden canvas; the canvas shows in the next frame */
-    if (SETTLE && !shown && !BOOT.hOk && settleHold()) return;   // (tools/gpu/settle.js: the settled twin's hold; SETTLE is null on every page but the gate's own)
     if (!shown && !BOOT.hOk) { if (stageH()) recMark('H passed (the world shows next frame)'); return; }
     governor(dt);
     if (NEEDSIZE) { NEEDSIZE = false; resize(); if (REC) recResized(); }

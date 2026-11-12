@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#173a63">
+  <meta name="theme-color" content="#5f3d62">
   <title>Derek Zhou &mdash; Technology Leader</title>
   <meta name="description" content="Derek Zhou is a hands-on technology leader in Agentic and Generative AI, Platform Engineering, and Product Development.">
   <link rel="canonical" href="https://derekzhou.com/">
@@ -24,7 +24,8 @@
   <!-- The hold (first-paint preview): no paint until the parser ends, so the words and the world's first frame appear
        together (#world-end is the empty marker right after the last realm's script: the block ends as the hold does). hour.js takes this link out where
        the hold is skipped; the world, where its device check skips it or its deadline passes. -->
-  <link rel="preload" href="/assets/still/afterglow-393x852.avif" as="image" type="image/avif" fetchpriority="high">
+  <link rel="preload" href="/assets/still/afterglow-384x759.avif" as="image" type="image/avif" fetchpriority="high" media="(min-width: 380px) and (max-width: 388px)">
+  <link rel="preload" href="/assets/still/afterglow-393x852.avif" as="image" type="image/avif" fetchpriority="high" media="not all and (min-width: 380px) and (max-width: 388px)">
   <script data-cfasync="false" src="/hour.js"></script>
   <script type="application/ld+json">
   {
@@ -41,7 +42,7 @@
 <body>
   <!-- The world, drawn behind everything by the world's script (hidden until it is drawn). -->
   <!-- (resume sketch A) the world's first frame, baked on the build machine: the first paint shows it; the live world cuts in over it. -->
-  <img class="still" src="/assets/still/afterglow-393x852.avif" alt="" aria-hidden="true" decoding="sync" fetchpriority="high">
+  <picture><source media="(min-width: 380px) and (max-width: 388px)" srcset="/assets/still/afterglow-384x759.avif" type="image/avif"><img class="still" src="/assets/still/afterglow-393x852.avif" alt="" aria-hidden="true" fetchpriority="high"></picture>
   <canvas class="sky" aria-hidden="true"></canvas>
 
   <main>
