@@ -27,6 +27,11 @@
        statuses read one a frame from the next frame on (each read waits only for what is left of its own link).
        ANGLE-Vulkan, phone viewport, CPU 4x, 11 runs: the world shown 1294 -> 1186 ms */
     EXT.issueAll = !EXT.par && !wkIs;
+    /* (Firefox lane, 2026-11-12) Firefox has no KHR_parallel_shader_compile and runs WebGL in its GPU process in order:
+       the first status read after the batch waited for the whole serial compile (Firefox 160, RTX 4090: one frame of
+       3.2-4.9 s, the page frozen). There a fence follows the batch and no status is read before it signals (polled a
+       frame, under 1 ms each; it signals 0.75-1.0 s after the read would have returned). Android's issueAll unchanged */
+    EXT.issueFence = EXT.issueAll && /Firefox\//.test(wkUA);
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
     EXT.hp = !!(EXT.cbf && EXT.parAll && HP_DEV(EXT.renderer)); if (EXT.hp) DEFS += '#define HPSPLIT\n';   // (fast500 lane G: the split height's devices)

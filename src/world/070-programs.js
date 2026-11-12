@@ -26,7 +26,7 @@
      program is slow (rec.bootStages.programs.one). sync (the harness's stills, a context restored under them): every
      program at once, as before. Returns true once every program is finished, false while not yet, LOSTP if the
      context went; a broken program (its link failed) is finished with ok false and named in fail() */
-  var PORDER = null, VOLP = ['engine.vdens', 'engine.vlight', 'engine.vbody'];
+  var PORDER = null, IFENCE = null, VOLP = ['engine.vdens', 'engine.vlight', 'engine.vbody'];
   function progOrder() {
     var a = [], b = [], c = [], i, n;
     for (i = 0; i < PROGS.length; i++) {
@@ -142,7 +142,15 @@
     if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
       var iss = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
-      if (iss) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (iss) {
+        gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); }
+        if (EXT.issueFence) { if (IFENCE) gl.deleteSync(IFENCE); IFENCE = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush(); }   // (EXT.issueFence: no status read before the batch is through)
+        return false;
+      }
+      if (IFENCE) {
+        if (gl.getSyncParameter(IFENCE, gl.SYNC_STATUS) !== gl.SIGNALED) return gl.isContextLost() ? LOSTP : false;
+        gl.deleteSync(IFENCE); IFENCE = null;
+      }
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
       return progsDone();
     }

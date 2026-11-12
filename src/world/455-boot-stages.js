@@ -37,7 +37,7 @@
   function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
-    PROGX.compiled = PROGX.linked = PROGX.finished = PROGX.broken = 0; PROGX.cur = null; PORDER = null;
+    PROGX.compiled = PROGX.linked = PROGX.finished = PROGX.broken = 0; PROGX.cur = null; PORDER = null; IFENCE = null;
   }
   function bootSlice(t0, label) {
     var ms = clockNow() - t0;
