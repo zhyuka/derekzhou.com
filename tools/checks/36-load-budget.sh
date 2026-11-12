@@ -61,22 +61,22 @@ const BUDGET = {
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
-  // largest of each shape, sketch A2's afterglow in brackets). It does not hold the first paint (an image)
-  '/assets/still/393x861': 40 * K,     // (34,900)
-  '/assets/still/393x817': 40 * K,     // (34,357)
-  '/assets/still/393x770': 40 * K,     // (33,037)
-  '/assets/still/393x724': 40 * K,     // (30,990)
-  '/assets/still/393x676': 40 * K,     // (30,322)
-  '/assets/still/393x629': 40 * K,     // (29,123)
-  '/assets/still/393x524': 36 * K,     // (25,500)
-  '/assets/still/1080x1080': 44 * K,   // (33,434)
-  '/assets/still/1350x1080': 48 * K,   // (38,273)
-  '/assets/still/1728x1080': 54 * K,   // (43,760)
-  '/assets/still/1920x1080': 58 * K,   // (47,170)
-  '/assets/still/2268x1080': 64 * K,   // (53,607)
+  // largest of each shape in the bake of 2026-11-12: 2,304 stills, 57.1 MB). It does not hold the first paint (an image)
+  '/assets/still/393x861': 56 * K,     // 53,718
+  '/assets/still/393x817': 55 * K,     // 52,317
+  '/assets/still/393x770': 53 * K,     // 50,527
+  '/assets/still/393x724': 50 * K,     // 47,265
+  '/assets/still/393x676': 48 * K,     // 46,058
+  '/assets/still/393x629': 47 * K,     // 44,647
+  '/assets/still/393x524': 40 * K,     // 38,501
+  '/assets/still/1080x1080': 54 * K,   // 51,567
+  '/assets/still/1350x1080': 59 * K,   // 56,762
+  '/assets/still/1728x1080': 67 * K,   // 64,770
+  '/assets/still/1920x1080': 72 * K,   // 69,489
+  '/assets/still/2268x1080': 80 * K,   // 77,334
 };
 const FIRST = 20 * K;   // 18,117 (31,269 before #135's stylesheet and #150's fonts): the document, the stylesheet, the hour and both fonts (the first paint waits for them)
-const TOTAL = 299 * K;  // 211,968: everything, cold; + the opening's still, its largest budget (64 K, 2026-11-12)
+const TOTAL = 315 * K;  // 211,968: everything, cold; + the opening's still, its largest budget (80 K, 2026-11-12)
 const PAINT = 1200;     // ms, the first paint's median
 const key = (p) => p.startsWith('/assets/fonts/') ? Object.keys(BUDGET).find((k) => k.startsWith('/assets/fonts/') && p.startsWith(k))
   : p.startsWith('/assets/still/') ? p.replace(/^\/assets\/still\/[a-z]+-\d+-(hi|lo)-(\d+x\d+)\.avif$/, '/assets/still/$2') : p;
