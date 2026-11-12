@@ -105,8 +105,8 @@ export async function stepToShow(arm, maxFrames = 3000) {
 }
 
 // The frame and the DOM, hashed in the page: the canvas read back with readPixels (the world's GL state saved and
-// restored around it), SHA-256; the root's attributes, the theme colour and the body serialised (resource hints
-// dropped: dropHints), SHA-256.
+// restored around it), SHA-256; the title and share-card meta (headShown), the root's attributes, the theme colour
+// and the body serialised (resource hints dropped: dropHints), SHA-256.
 export async function capture(arm, { pixels = false } = {}) {
   const r = await arm.page.evaluate(async (pixels) => {
     const hex = (b) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -125,6 +125,9 @@ export async function capture(arm, { pixels = false } = {}) {
     const root = document.documentElement;
     r.root = Array.from(root.attributes).map((a) => a.name + '=' + a.value).join(' | ');
     r.theme = (document.querySelector('meta[name="theme-color"]') || {}).content || null;
+    // What the tab and a share card show: the title and every description, og: and twitter: meta (headShown).
+    r.title = document.title;
+    r.meta = Array.from(document.head.querySelectorAll('meta')).map((m) => [m.getAttribute('property') || m.getAttribute('name') || '', m.getAttribute('content') || '']);
     // What renders: the body without its <script> elements and comments, a served file's version number dropped (a rename that
     // changes no byte a visitor sees is not a visible change; the bytes themselves are the frames' business).
     const body = document.body.cloneNode(true); body.querySelectorAll('script').forEach((e) => e.remove());
@@ -133,8 +136,16 @@ export async function capture(arm, { pixels = false } = {}) {
     r.domText = r.root + '\n' + r.theme + '\n' + ser;
     return r;
   }, pixels);
-  r.dom = createHash('sha256').update(dropHints(r.domText)).digest('hex'); delete r.domText;
+  r.dom = createHash('sha256').update(headShown(r.title, r.meta) + '\n' + dropHints(r.domText)).digest('hex'); delete r.domText; delete r.meta;
   return r;
+}
+
+// The head's part of what a visitor sees: the title (the tab) and the meta a search result or a share card reads
+// (description, og:*, twitter:*), in the page's order. Other meta (viewport, theme-color, which root and theme cover,
+// robots and the like) is left to the frames and the static checks.
+export function headShown(title, meta) {
+  const card = meta.filter(([k]) => /^(description$|og:|twitter:)/i.test(k)).map(([k, v]) => k.toLowerCase() + '=' + v);
+  return 'title=' + title + '\n' + card.join('\n');
 }
 
 // Resource hints render nothing: a <link> whose every rel is preload, modulepreload, prefetch, preconnect or

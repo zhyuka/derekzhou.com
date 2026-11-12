@@ -24,11 +24,12 @@
     SKYMARK = SKYTOP[HOUR] ? HOUR : 'day';   // (the hour's group, never the realm's own still ('dunes'): this stylesheet has a still sky and words for each time of day and none for a realm, so a boot declined before the first frame (a slow device) would leave a night visitor on the daylight still with black words; not written: the hour's still sky stays until the canvas hides, markStill)
     // a renderer on the CPU keeps that still sky (the world would run at a frame or two a second)
     if (!DEVMODE && /SwiftShader|llvmpipe|Software/i.test(EXT.renderer)) { DEAD = true; return; }
-    /* and a GPU measured too slow keeps it before any program is compiled: stage G declines it on every real run (the
+    /* a GPU measured too slow is held from the start (hold: the world drawn once and held, the ink birds flying over it;
+       the owner, 2026-11-12), with no trial: stage G's floor is missed on every real run (the
        Android lab, Firebase Test Lab: a OnePlus Nord CE 3 Lite's Adreno 619, Chrome 117 and 159, cold and return,
-       124-159 ms a frame at scale 0.35 against 21.7, after a 4.37 s compile frame). Only GPUs declined every time are
-       named; one on the line (the Galaxy A15's Mali-G57 MC2, shown or declined run to run) keeps the trial */
-    if (!DEVMODE && SLOW_GPU.test(EXT.renderer)) { DEAD = true; return; }
+       124-159 ms a frame at scale 0.35 against 21.7, after a 4.37 s compile frame). Only GPUs over the floor every time are
+       named; one on the line (the Galaxy A15's Mali-G57 MC2, moving or held run to run) keeps the trial */
+    if (!DEVMODE && SLOW_GPU.test(EXT.renderer)) hold('a GPU measured too slow (' + EXT.renderer + ')');   // (held from the start: no trial; drawn once, however slow)
     var tz = clockNow(); resize(); BOOT.resize0 = clockNow() - tz;   // (the first resize: where a new context's first wait on the GPU process falls, timed apart for the hold's forecast)
     if (typeof ResizeObserver !== 'undefined') { var ro = new ResizeObserver(layoutChanged); ro.observe(document.querySelector('main')); var ft = document.querySelector('footer'); if (ft) ro.observe(ft); ro.observe(canvas); }
     window.addEventListener('resize', function () { NEEDSIZE = true; if (!(running || FRUN || !READY || LOST)) stillNext(); if (!FRUN && forced()) { DOMQ.fc = true; domNext(); } });   // (only stored; the window measured and drawn in the next frame; forced colours' still drawn again there, fstart)
@@ -57,7 +58,22 @@
   function bootSoon() {
     if (booted || bootRaf) return;
     if (!DEVMODE && document.readyState === 'loading' && holdLink()) { holdRun(); return; }   // (the hold: the last realm registered while the page is still parsing)
-    bootRaf = requestAnimationFrame(bootOnce);
+    /* (load-perf, the owner 2026-11-12: "make the world boot after the first paint") without the hold (every phone),
+       the boot waits until the page has painted: the browser's own paint record (a paint entry, observed), so the
+       words and the still sky are on screen before stage A (the context, a GPU process start that takes seconds on
+       some phones) and the rest. On a return visit the scripts come from cache and the boot used to run in the first
+       frame, before any paint: the words waited for it. A page that painted already (a cold visit, the paint while the
+       scripts came) boots at once; no paint record within PAINT_WAIT, or no observer, boots anyway */
+    bootRaf = requestAnimationFrame(function () { afterPaint(bootOnce); });
+  }
+  var PAINT_WAIT = 1000;   // (ms: the boot never waits longer than this for the paint record)
+  function afterPaint(f) {
+    var done = false, po = null, go = function () { if (done) return; done = true; if (po) po.disconnect(); f(); };
+    try {
+      if (performance.getEntriesByType('paint').length) { go(); return; }
+      po = new PerformanceObserver(go); po.observe({ type: 'paint' });
+    } catch (e) { go(); return; }
+    setTimeout(go, PAINT_WAIT);
   }
   /* THE HOLD: the page does not paint until the world's first frame is drawn (the head's link
      rel=expect blocking=render, for Chromium; elsewhere the parser itself, busy in this task). The world, the kit and

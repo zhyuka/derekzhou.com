@@ -12,6 +12,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TS = 'typescript@5.6.3';
 const out = fs.mkdtempSync(path.join(os.tmpdir(), 'tsc-world-'));
 execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', path.join(ROOT, 'src'), out], { stdio: 'ignore' });
+// the plan's spans keep a CommonJS wrapper (`typeof module`, `module.exports`, `require`) so the worker and the unit
+// tests can load them; tsc reads that in a checked script as a module and narrows `module`. The copy checked here has
+// the two renamed (world.d.ts declares the new names); the source is untouched
+const wf = path.join(out, 'world.js');
+fs.writeFileSync(wf, fs.readFileSync(wf, 'utf8').replace(/\bmodule\b/g, 'CJS_MODULE').replace(/\brequire\(/g, 'CJS_REQUIRE(')
+  .replace('var CJS_MODULE = undefined', 'var CJS_MODULE = /** @type {any} */ (undefined)'));   // (130 sets module undefined in the page: any to tsc)
 const r = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
   path.join(out, 'world.js'), path.join(ROOT, 'tools/types/world.d.ts')], { encoding: 'utf8' });
 // each assembled line back to its section: the parts in the order assemble joins them (dev parts with the world's)
