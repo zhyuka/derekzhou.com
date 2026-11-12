@@ -10,6 +10,8 @@ site/index.html or `.sound` in site/style.css.
 - "music and faint ambiance" (2026-11-07): what it plays.
 - "Yup ship it" (2026-11-12), answering: what we're building follows the sky as it changes and never
   repeats, so the rule of one looping recording has to change. That is this score.
+- "yes switch it to playback" (2026-11-12), asked why it was silent with the ringer off: the press now plays
+  through the ringer switch, as a video does.
 - "It sounds like the strings or something is constantly going which gets a little annoying, like where's the
   expression, fading, complexity, etc. ?" (2026-11-12): so the passages (sketch round eighteen). Measured, the
   strings had sounded 97% of the time, all five voices at once for most of it.
@@ -41,8 +43,10 @@ Minified by the build (tools/minify.mjs STEMS), parser-blocking right after site
 first paint. It has one handler, the button's click:
 
 1. **The first press**, inside its own handler, because iOS and Safari start audio only there:
-   - `navigator.audioSession.type = 'ambient'`, where there is one: the sound mixes with the visitor's own music
-     and respects the silent switch;
+   - `navigator.audioSession.type = 'playback'`, where there is one (Safari): the sound is heard with the iOS ringer
+     off, as a video is, and the visitor's own music pauses, as it does for a video. (It was `'ambient'` at first:
+     mixed with their music, but muted by the ringer switch while the icon showed it on, and the page cannot see the
+     switch to say why);
    - the one AudioContext (`latencyHint: 'playback'`, at 24 kHz where the browser takes it: nothing in the score is
      above about 4 kHz, so half the work and memory) and a level gain at 0;
    - the one fetch, `SHEET` (a literal `/assets/sound/notes-N.mp3` from this site), decoded once;
@@ -216,8 +220,8 @@ parameter, so a curve that would is played as a plain ramp to its end instead.
 ## Verify before it ships
 
 docs/verify.md, plus a real iPhone:
-- the silent switch on: silence;
-- the visitor's own music playing: both are heard (ambient);
+- the silent switch on: it still plays (playback);
+- the visitor's own music playing: it pauses at the press;
 - a press, a lock and an unlock: the icon still tells the truth;
 - a few minutes through a sky change: the change is heard as the colour turning, with no click or gap;
 - the memory and battery cost of a long listen.
