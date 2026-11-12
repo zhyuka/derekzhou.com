@@ -1,10 +1,12 @@
 'use strict';
 // stall.js (tools/gpu): T2's stall visits, the fast500 kit's first-draw guard (GUARD.md) on base and head.
-//   node tools/gpu/stall.js --base BASE --head HEAD --out OUT [--secs 30] [--par 3] [--known FILE] [--port 9640]
+//   node tools/gpu/stall.js --base BASE --head HEAD --out OUT [--secs 11] [--par 3] [--known FILE] [--port 9640]
 // BASE / HEAD: the plain builds, the bytes visitors get (served.sh's OUT/base, OUT/head). Each visit:
 // a fresh Chrome profile (Chrome's shader cache cold), headless on the RTX 4090 through ANGLE D3D11, the REAL clock (only
 // the hour and the visit's entropy fixed), glwatch.js put on the page before its scripts (WebGL wrapped in the harness: no
-// dev build, no change to the site), the whole boot and SECS s after the show with three drags that turn the view (a
+// dev build, no change to the site), the whole boot and SECS s after the show with three drags that turn the view, at
+// 2, 5 and 8 s, 3 s after each for what a turn brings (2026-11-12: on main every one of the 42 keys is first used within
+// 0.4 s of the show; the old 30 s with drags at 6, 14 and 22 s found nothing later, and cost ~19 s a visit) (a
 // mouse on the desktop, touch on the phone). glwatch times the first use of every pipeline key (program, output layout
 // with formats, input layout, primitive class) to a getError after the draw: a variant ANGLE compiles inside a draw
 // shows as that key's time.
@@ -19,7 +21,7 @@
 const fs = require('fs'), path = require('path'), net = require('net'), { spawn } = require('child_process');
 const PW = require('./pw.js'), GLW = require('./glwatch.js');
 const A = {}; for (let i = 2; i < process.argv.length; i++) { const k = process.argv[i].replace(/^--/, ''), v = process.argv[i + 1]; if (v === undefined || v.startsWith('--')) A[k] = true; else { A[k] = v; i++; } }
-const HERE = __dirname, OUT = path.resolve(A.out || 'stallout'), SECS = +(A.secs || 30), PAR = +(A.par || 3), TH = 30;
+const HERE = __dirname, OUT = path.resolve(A.out || 'stallout'), SECS = +(A.secs || 11), PAR = +(A.par || 3), TH = 30;
 const KNOWN = JSON.parse(fs.readFileSync(A.known || path.join(HERE, 'stall_known.json'), 'utf8')).known.map((k) => Object.assign({}, k, { re: new RegExp(k.key) }));
 const CASES = { d11: ['1440x900@1', '2026-10-29T10:30:00Z', 11, false, null], n23: ['393x852@3', '2026-10-29T23:30:00Z', 23, true, null], d11late: ['1440x900@1', '2026-10-29T10:30:00Z', 11, false, 'inkbirds:4500'] };
 delete process.env.GPU_PROFILE_DIR;   // (fresh profiles: a kept GPU cache would hide a first-use compile)
@@ -58,7 +60,7 @@ async function visit(url, c) {   // one visit (the kit's gguard run, without its
     if (shown < 0) out.problems.push('the world never showed in 120 s');
     else {
       const cdp = MOB ? await ctx.newCDPSession(p) : null, ts = Date.now();
-      for (const [at, x0, y0, x1, y1] of [[6, 0.25, 0.5, 0.85, 0.55], [14, 0.8, 0.45, 0.15, 0.62], [22, 0.5, 0.7, 0.62, 0.3]]) {
+      for (const [at, x0, y0, x1, y1] of [[2, 0.25, 0.5, 0.85, 0.55], [5, 0.8, 0.45, 0.15, 0.62], [8, 0.5, 0.7, 0.62, 0.3]]) {
         if (at + 2 > SECS) break;
         await sleep(ts + at * 1000 - Date.now());
         const pt = (k) => ({ x: Math.round((x0 + (x1 - x0) * k / 40) * W), y: Math.round((y0 + (y1 - y0) * k / 40) * H) });
