@@ -55,7 +55,6 @@
   function hidden(b) { return b.p[1] + b.sz < LVC.y - 20 && b.p[1] + b.sz < hideTop(b.p[0], b.p[2]) - SEA_DEEP; }   // (the sea lies under the eye: a bird at or over its height is never under it)
   /* the most a bird can change any pixel of the largest window, with the world's own air between (lib-air's fogAmt):
      its ink span there (at least a pixel's worth: the pen's floor), its contrast, the air's transmittance */
-  var FOGQ = [0, 0, 0, 0];
   function airT(dx, dy, dz) {
     var L = FORCED ? null : HOST.light(), f = L && L.fog; if (!f) return 1;
     var t = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-3, rdy = dy / t, b = f[1], k = b * rdy * t, ff = Math.abs(k) < 1e-4 ? 1 - 0.5 * k : (1 - Math.exp(-k)) / k;
