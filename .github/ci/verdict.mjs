@@ -46,7 +46,9 @@ if (needs.t2) {
 v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!c.base;
 const expectShards = +(process.env.T1_SHARDS || 4);
 v.input_changed = c.input_changed === 'true';
-if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
+v.has_pr = c.has_pr !== 'false';
+if (!v.has_pr) { v.frames_identical = false; v.reason = 'the branch had no open PR when it was pushed (a preview): T1 and T2 did not compare it; push again once its PR is open'; }
+else if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
 else if (!v.site_changed) { v.frames_identical = true; v.reason = 'the build (what is served) is byte for byte the base\'s'; }
 else if (!v.t1.ran && v.t2.ran) { v.frames_identical = !!(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || !v.t2.bits_differ)); v.reason = v.frames_identical ? 'T2 (the RTX 4090; T1 skipped while T2 runs): every frame the base\'s' : 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
 else if (!v.t1.ran || v.t1.shards !== expectShards) { v.frames_identical = false; v.reason = `T1 did not report (${v.t1.shards} of ${expectShards} shards)`; }

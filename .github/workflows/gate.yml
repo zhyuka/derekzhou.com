@@ -36,7 +36,9 @@ jobs:
     permissions:
       contents: read
       actions: read   # (the PR's gate-verdict artifact, in T2's probe)
+      pull-requests: read   # (whether the branch has an open PR)
     outputs:
+      has_pr: ${{ steps.haspr.outputs.has_pr }}
       t2_run: ${{ steps.p.outputs.run }}
       t2_cached: ${{ steps.p.outputs.cached }}
       t2_frames: ${{ steps.p.outputs.frames }}
@@ -53,6 +55,24 @@ jobs:
       t2_key: ${{ steps.t2key.outputs.key }}
       glsl_changed: ${{ steps.glsl.outputs.glsl_changed }}
     steps:
+      # A branch with no open PR (a Cloudflare preview, a probe) is not compared: T1 and T2 skip and the verdict says it
+      # was not compared, so nothing lands on it. On the night of Nov 11 such pushes held the 4090 while six PRs' T2s
+      # waited. A session opens its PR seconds after its push, so this asks for up to 45 s. Main and a run by hand are
+      # always compared; a PR opened later is compared on its next push (the merge bot's update of the branch is one).
+      - name: Is this branch a PR's?
+        id: haspr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ] || [ "$GITHUB_EVENT_NAME" != "push" ]; then echo "has_pr=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          for i in 1 2 3 4; do
+            n=$(curl -fsSL --max-time 20 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:${BRANCH}" | jq length) || n=error
+            if [ "$n" = "error" ]; then echo "the PR query failed: compared as a PR's"; echo "has_pr=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            if [ "$n" -gt 0 ]; then echo "an open PR: compared"; echo "has_pr=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            [ $i -lt 4 ] && sleep 15
+          done
+          echo "::notice::$BRANCH has no open PR: T1 and T2 skip (a preview); push again once its PR is open to compare it"; echo "has_pr=false" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -145,9 +165,11 @@ jobs:
           PRC: ${{ runner.temp }}/t2pr/t2.json
           C: ${{ runner.temp }}/t2c/t2.json
           WANTED: ${{ steps.glsl.outputs.glsl_changed == 'true' || steps.areas.outputs.gpu_js == 'true' || steps.areas.outputs.t2_self == 'true' }}
+          HAS_PR: ${{ steps.haspr.outputs.has_pr }}
           TOKEN: ${{ secrets.MERGE_TOKEN }}
           T2_RUNNER: ${{ vars.T2_RUNNER }}
         run: |
+          if [ "$HAS_PR" = "false" ]; then echo "no open PR: T2 skips"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ "$WANTED" != "true" ]; then echo "T2 not wanted (no shader, world/realm/bird JS or T2 change)"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ "$HIT" = "true" ] && jq -e '.frames_identical != null and .frames_identical != ""' "$C" >/dev/null 2>&1; then
             echo "T2's answer for these builds is cached: $(jq -c . "$C")"; echo "run=false" >> "$GITHUB_OUTPUT"; echo "cached=$(jq -c . "$C")" >> "$GITHUB_OUTPUT"; exit 0
@@ -188,7 +210,7 @@ jobs:
   # PC's one runner, so SwiftShader's frames would only add an hour of CPU. (T2 offline or not wanted: T1 runs.)
   t1:
     needs: plan
-    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.t2_run != 'true' && needs.plan.outputs.t2_cached == ''
+    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.has_pr != 'false' && needs.plan.outputs.t2_run != 'true' && needs.plan.outputs.t2_cached == ''
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 12
     env:
@@ -269,9 +291,12 @@ jobs:
   # the verdict requires it. Offline, or the query fails: a notice, and the verdict rests on T0 and T1, so T2 never
   # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
   # T2 renders the plan's two builds (the `served` artifact): the PC never runs a PR's build.
+  # Only after the static checks passed: the 4090 is one runner that every gate's T2 queues for, and a gate whose
+  # static checks failed is red whatever T2 says (565 s of its time went to such gates on the night of Nov 11, with 830 s
+  # more queued). Static and plan run side by side and take about as long, so T2 starts a few seconds later at most.
   t2:
-    needs: plan
-    if: always() && needs.plan.outputs.t2_run == 'true'
+    needs: [static, plan]
+    if: always() && needs.plan.outputs.t2_run == 'true' && needs.static.result == 'success'
     uses: ./.github/workflows/gpu.yml
     with:
       base: ${{ needs.plan.outputs.base }}

@@ -51,3 +51,20 @@ test('deploy gate: a red tip whose frames are proved, covered by a later green g
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], d(false))).to, S('a'), 'a red tip with unproved frames: live stops');
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', null, 'in_progress')], d(true))).to, S('a'), 'a red proved tip, no later green yet: live waits');
 });
+
+test('verdict: a push with no open PR (a preview) is not compared, so it never lands on that run', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verdict-nopr-'));
+  const run = (outputs) => {
+    const needs = { static: { result: 'success' }, plan: { result: 'success', outputs: Object.assign({ base: 'abc', site_changed: 'false' }, outputs) }, t1: { result: 'skipped' }, t2: { result: 'skipped' } };
+    const out = path.join(dir, 'v.json');
+    try { execFileSync(process.execPath, [fileURLToPath(new URL('../../.github/ci/verdict.mjs', import.meta.url)), dir, out], { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), T2_CACHED: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), stdio: 'pipe' }); } catch {}
+    return JSON.parse(fs.readFileSync(out, 'utf8'));
+  };
+  const no = run({ has_pr: 'false' });
+  assert.equal(no.frames_identical, false, 'no PR: not identical, even with the build byte for byte the base\'s');
+  assert.equal(no.has_pr, false);
+  assert.match(no.reason, /no open PR/);
+  assert.equal(run({ has_pr: 'true' }).frames_identical, true, 'a PR\'s push with the same build: identical');
+  assert.equal(run({}).frames_identical, true, 'an older plan with no has_pr output: as before');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
