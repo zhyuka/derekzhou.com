@@ -68,7 +68,7 @@
       if (DRAG.id !== -1 && DRAG.type === 'touch' && !DRAG.on && !DRAG.multi) { o.x = DRAG.x0; o.y = DRAG.y0 - HOLD_UP; o.n = HOVER.n; o.gone = inert() || FCOL.on || SIM.t - DRAG.t0 < HOLD_S; o.down = false; o.steer = false; o.touch = true; return o; }
       o.touch = false; o.x = HOVER.x; o.y = HOVER.y; o.n = HOVER.n; o.gone = HOVER.gone || inert() || FCOL.on; o.down = HOVER.down || DRAG.id !== -1; o.steer = DRAG.on; return o; },
     clicks: function (o) { o.length = 0; if (!inert()) for (var i = 0; i < CLICKQ.length; i++) o.push(CLICKQ[i]); CLICKQ.length = 0; return o; },   // (perch lane)
-    alpha: function () { return FRUN ? FALPHA : SIM.junction ? 1 : SIM.alpha; },
+    alpha: function () { return FRUN ? FALPHA : HELD && shown ? HALPHA : SIM.junction ? 1 : SIM.alpha; },
     /* (round 2) forced colours: { on, ink, paper } (sRGB 0-1: CanvasText and Canvas); while on, the world is not drawn
        and the camera is held: the birds fly in their own still view, drawn in the ink at full strength */
     forced: function () { return FCOL; },
