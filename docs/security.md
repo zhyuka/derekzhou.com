@@ -56,17 +56,17 @@ listener added in onDown and removed in endDrag, and the birds' pointer
 play's two, onHover and onHoverOut, passive, added and removed in
 hoverSync: the owner's request of 2026-11-05, the one exception to the
 hover and exit bans); any DOM
-building; more or fewer than one getRandomValues in the world, or one
-below its INIT-END marker, and none at all, nor any clock read, in the
+building; any getRandomValues in the world (the one is hour.js's: it
+picks the opening), and none at all, nor any clock read, in the
 kits, the wing model, the ink birds or the plan's worker;
 any Math.random or clock read (Date) in the world; performance.now()
 but the world's one clockNow; anything in the hour but its one `new
-Date(`; any URL hook (location., URLSearchParams), network call
+Date(` and its one getRandomValues; any URL hook (location., URLSearchParams), network call
 or eval (but sound.js's one fetch of its literal /assets/sound/ sheet), any sound
 outside sound.js and score.js (the one AudioContext the switch's, made once; the score builds only on it), and any worker but the plan's (one, started by the world by its
 literal name); any dev or record hook (window.__*, window.claude,
-console) or an attribute read on `<html>` but the hour's data-sky and
-data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors
+console) or an attribute read on `<html>` but the hour's data-sky,
+data-sky-at and data-seed; and any `cursor:` rule in the stylesheet (OS cursors
 only). And the old 2D birds stay retired (absence 7): it fails on a
 birds.vN.js in site/ or src/; on a bird class (bird in any class list,
 in either quotes), a polyline or a birds.vN.js named in index.html,

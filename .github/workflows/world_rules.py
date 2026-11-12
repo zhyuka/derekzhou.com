@@ -184,17 +184,14 @@ for f in world + kit + realms + wing + ink:
                       (r'\bimport\(|\bBlob\(|\bfetch\(|XMLHttpRequest', 'a module, blob or network call'),
                       (r'Math\.random|\bDate\b|randomUUID', 'Math.random or a clock (Date)')]:
         for ln, t in lines(c, pat): fail('4 absences', f'{f}:{ln} {what}: {t}')
-    if f not in world and 'getRandomValues' in c: fail('4 absences', f'{f}: entropy outside world*.v*.js')
+    if 'getRandomValues' in c: fail('4 absences', f'{f}: entropy (the one draw of the visit is in hour.js, the opening; the world reads data-seed)')
     if f not in world:
         for ln, t in lines(c, r'performance\.now\('): fail('4 absences', f'{f}:{ln} performance.now( outside world*.v*.js')
         for ln, t in lines(c, r'addEventListener\('): fail('4 absences', f'{f}:{ln} a listener outside world*.v*.js')
-gr = sum(strip_comments(src[f]).count('getRandomValues(') for f in world)
-if world and gr != 1: fail('4 absences', f'world*.v*.js: getRandomValues( {gr} times (exactly once)')
 for f in world:
     s = src[f] or ''; c = strip_comments(s)
     m = re.search(r'---- INIT-END:', s)
     if not m: fail('4 absences', f'{f}: INIT-END marker missing')
-    elif 'getRandomValues(' in strip_comments(s[m.end():]): fail('4 absences', f'{f}: entropy below INIT-END')
     pn = c.count('performance.now(')
     if pn != 1: fail('4 absences', f'{f}: performance.now( {pn} times (exactly once, in clockNow)')
     elif not re.search(r'function clockNow\(\)\s*\{\s*return performance\.now\(\);\s*\}', c): fail('4 absences', f'{f}: performance.now( is not inside function clockNow')

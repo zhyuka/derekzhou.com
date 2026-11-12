@@ -127,6 +127,14 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
+  // the openings' stills (the world's first frames, baked on the 4090 by tools/gpu/bake-stills.js): an input folder,
+  // STILLS_DIR or stills/ (never committed: whatever puts them there), its .avif files copied to assets/still/. Without
+  // it the page asks for stills that are not there and shows the hour's still sky until the world
+  const stills = process.env.STILLS_DIR ? path.resolve(process.env.STILLS_DIR) : path.join(ROOT, 'stills');
+  if (fs.existsSync(stills)) {
+    const sd = path.join(out, 'assets', 'still'); fs.mkdirSync(sd, { recursive: true });
+    for (const n of fs.readdirSync(stills).filter((x) => /^[a-z]+-\d+-(hi|lo)-\d+x\d+\.avif$/.test(x)).sort()) fs.copyFileSync(path.join(stills, n), path.join(sd, n));
+  }
   for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.css')).sort()) fs.writeFileSync(path.join(out, n), cssMin(fs.readFileSync(path.join(out, n), 'utf8'), n));
   // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
   // tools/birds/: CI makes them again and compares)

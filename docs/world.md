@@ -3,7 +3,9 @@
 <!-- Moved word for word from CLAUDE.md's section "World (world.js, realm-kit.js, realm-dunes.js, realm-above.js)" (restructure step 7, 2026-11-06). -->
 
 The window is a camera flying through one endless world drawn in WebGL2,
-generated in code from the visit's seed (no picture, no model file). Each
+generated in code from the visit's seed (no model file; its only pictures
+are its own first frames, the openings' stills, made by the same code at
+build time and shown until the live world cuts in: ## THE OPENINGS). Each
 file's header comment (src/'s copy: the served one is minified) is its
 full design as of the build it came from (stage 2's changes are tagged
 inline: stage2, speed, quality; fast500's: fast500; where a header and
@@ -396,14 +398,38 @@ takes up its change, and that list then fires no event: the world did not
 come back when they ended while the ink birds moved), and the world back
 when they end, on at load too; print: none of it.
 
+## THE OPENINGS
+
+A visit opens on one of a set: the hour's sky (hour.js's six times of day)
+by N seeds (N 16 in hour.js: 96 openings; the owner, 2026-11-12: "Yes to
+both, go with 96"). hour.js's one entropy read picks the seed, k of N
+(opening k's seed (11 + k * 0x9e3779b9) mod 2^32, written as data-seed),
+before the first paint, and asks for that opening's still: the world's
+first frame for it, baked on the 4090 for the window's shape (twelve
+shapes: the frustum's bands; portrait below h/w 1.893 the shorter still,
+above it the taller, landscape the narrower) and the memory tier (lo: the
+phones the world gives its least memory, Android under 8 GB; hi: the
+rest) by tools/gpu/bake-stills.js, named <sky>-<k>-<tier>-<W>x<H>.avif.
+The build copies the stills from an input folder (STILLS_DIR, or stills/,
+never committed) into assets/still/. The stylesheet shows the still as
+the body's ::before, the canvas's box, cropped as the canvas is; the world
+opens at the still's own view (its frustum and pose, cropped as cover
+crops it) and settles to the window's own in about a second (SVTAU 0.35
+s); reduced motion has no settle. The world cuts in over the still in the
+frame it shows and clears it (--still none) for good; without WebGL2 the
+still stays. How far through its time of day the visit is (data-sky-at)
+moves the first frame by at most one level (the moon's path), so it is
+not baked.
+
 ## THE WEATHER (=rand())
 
-One crypto.getRandomValues above world.js's
-INIT-END marker, split into splitmix32 streams and integer hashes (the
+One crypto.getRandomValues, in hour.js, picks the visit's opening (## THE
+OPENINGS); the world takes that opening's seed (data-seed) as the visit's
+seed, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The realm and kit files, the wing model, the ink birds and the
+ink birds. The world, the realm and kit files, the wing model, the ink birds and the
 plan's worker draw nothing of their own (the worker is
-handed the visit's seed): the world's is the page's one entropy read. The
+handed the visit's seed): the hour's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.

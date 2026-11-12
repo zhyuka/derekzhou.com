@@ -11,6 +11,9 @@ Thumbs.db
 # (the build) build/src/: src/ assembled (tools/parts.mjs assemble src build/src), never committed
 build/
 
+# (the openings' stills: tools/gpu/bake-stills.js's output, the build's input folder) never committed
+stills/
+
 # (the deploy build) node tools/build.mjs dist; and npm ci's node_modules/: never committed
 dist/
 node_modules/

@@ -202,6 +202,27 @@ body {
   opacity: 1;
 }
 
+/* the opening's still (the world's first frame, baked on the 4090; hour.js chooses it by the opening, the window's
+   shape and the memory tier, as --still): the canvas's box, under it, cropped as the canvas is (cover, centred). Gone
+   in the frame the world shows (a cut; the world sets --still to none then, so it never comes back); without WebGL2 it
+   stays. A missing still is no picture: the still sky of the hour shows through. */
+:root:has(canvas.sky) body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  z-index: -2;
+  background: var(--still, none) center / cover no-repeat;
+  pointer-events: none;
+}
+
+:root:has(.sky.on) body::before {
+  display: none;
+}
+
 /* (stage2) the still skies, one for each time of day, every one under light words: each is the kept sky its time of
    day lands on (dawn and the morning (day) the light before sunrise; the afternoon (rain) and sunset the afterglow; dusk
    the blue hour; night the moonlit sea, the Milky Way, the aurora), drawn by the world (the words hidden, seed 7, t 1, the day's middle) at 1440x900
@@ -485,6 +506,10 @@ footer a, .back-link {
     color: CanvasText;
     background-color: Canvas;
   }
+
+  :root:has(canvas.sky) body::before {
+    display: none;
+  }
 }
 
 /* ------------------------------------------------
@@ -493,7 +518,8 @@ footer a, .back-link {
 
 @media print {
   .sky,
-  footer {
+  footer,
+  :root:has(canvas.sky) body::before {
     display: none;
   }
 

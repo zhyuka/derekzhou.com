@@ -8,7 +8,9 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
 
 1. hour.js — in the head, before the first paint (tiny,
    Early-Hinted): which time of day the world opens on (data-sky,
-   data-sky-at) and the browser's bar.
+   data-sky-at), the visit's one entropy read (the opening: data-seed),
+   the opening's still (--still and the head's preload) and the browser's
+   bar.
 2. site.js — email obfuscation: HTML has href="#" id="email-link", JS
    assembles mailto from split parts at runtime so bots cannot scrape the
    address. A \<noscript\> fallback shows the email in HTML entities.
