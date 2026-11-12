@@ -26,3 +26,12 @@ export function revertMessage(n, tip, base, url) {
   return `Revert #${n}: main went red after it landed\n\nMain's gate failed twice at ${tip.slice(0, 10)} (${url}). The merge bot restores the tree of ${base.slice(0, 10)}, ` +
     `the green main tip before it, so live and every PR's base are again what passed. #${n}'s session fixes it in a new PR.\n\n${revertTrailer(tip)}`;
 }
+
+// A gate run's verdict artifact: a re-run attempt uploads its own gate-verdict next to the earlier attempt's, and the
+// artifacts list gives the older first. The newest unexpired one is the run's answer (#189 was read as its failed first
+// attempt, Nov 12). By created_at, then id.
+export function newestArtifact(list) {
+  const live = (list || []).filter((a) => a && !a.expired);
+  live.sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0) || (b.id || 0) - (a.id || 0));
+  return live[0] || null;
+}
