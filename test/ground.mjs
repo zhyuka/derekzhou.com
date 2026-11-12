@@ -15,8 +15,8 @@ export const RERECORD = 'node tools/gpu/record-ground.mjs on the 4090';
 /* what the land's height and the sea's weight are made from: the kits and their GLSL, the world's composition of them,
    the maps and the weights' grids (the sites, the regimes, kitAt), the programs and the probe that reads the ground */
 export const INPUTS = ['src/glsl', 'src/world/glsl', 'src/realm-kit.js', 'src/realm-dunes.js', 'src/realm-above.js',
-  'src/world/060-glsl-shared-library.js', 'src/world/070-programs.js', 'src/world/130-maps-director.js', 'src/world/131-noise.js', 'src/world/132-maps.js',
-  'src/world/136-director.js', 'src/world/138-numbers.js', 'src/world/140-kits-one-world.js', 'src/world/150-maps-tick.js', 'src/world/160-weights-grids.js',
+  'src/world/060-glsl-shared-library.js', 'src/world/070-programs.js', 'src/world/073-late-programs.js', 'src/world/076-folds-finish.js', 'src/world/130-maps-director.js', 'src/world/131-noise.js', 'src/world/132-maps.js',
+  'src/world/136-director.js', 'src/world/137-director-itself.js', 'src/world/138-numbers.js', 'src/world/140-kits-one-world.js', 'src/world/150-maps-tick.js', 'src/world/160-weights-grids.js', 'src/world/163-first-plan-rest.js', 'src/world/166-far-field-sampling.js',
   'src/world/180-world-definition-two-kits-by.js', 'src/world/190-realm-programs.js', 'src/world/250-probes-realm-ground-read-back.js'];
 
 export function landHash() {
