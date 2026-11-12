@@ -90,12 +90,12 @@ birds that i click to spawn are flying stuck with the camera instead of
 going out into the world ?!" (so the birds, and the birds alone, notice
 the pointer and come to it, perch on any letter, and every bird that
 leaves goes into the world: see Birds). So: the name is
-lettering (see Type); nothing on the page darkens the world or lifts it
+lettering (docs/type.md); nothing on the page darkens the world or lifts it
 for the words; the words are always light, and the world draws only skies
-they read on (see World); and the birds are the ink birds alone, flying in
-the world (see Birds).
+they read on (docs/world.md); and the birds are the ink birds alone, flying in
+the world (docs/birds.md).
 
-The words' colours are one set, always (see World: the words), and the
+The words' colours are one set, always (docs/world.md, ## THE WORDS), and the
 world is never changed for them: text #fdfcf7 (the lettered name, the
 line, the links), the dimmed grey #ebeffa (the credit, the links'
 underline), the focus ring #f4e2b0, selection #3b3f55 under the light
@@ -106,7 +106,7 @@ cream ground, #f9f8f1, which that gradient always covered, went in
 the deep sweep), and print is on white. color-scheme stays light
 (no form controls, no scrollbars). Type is matte: no text-shadow, no
 glow. Links are plain underlined words (1px, dimmed underline, .18em
-offset); nothing on the page reacts to hover but the birds (see Birds:
+offset); nothing on the page reacts to hover but the birds (docs/birds.md:
 THE POINTER); OS cursors only. The name and the type
 are present at first paint in their final place (the drawing's box is
 reserved by the stylesheet) and in their final colours. Print hides the

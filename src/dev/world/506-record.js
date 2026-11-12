@@ -626,10 +626,10 @@
   function recScripts() {
     var out = [], nav = null, res = {}, st = {}, i, k;
     try { nav = performance.getEntriesByType('navigation')[0] || null; (performance.getEntriesByType('resource') || []).forEach(function (e) { var m = /\/([^\/?#]+)(?:[?#].*)?$/.exec(e.name); if (m) res[m[1]] = e; }); } catch (e) { /* no timing */ }
-    var di = nav ? nav.domInteractive : -1, R = REC, DIAGEV = null, afterDiag = false;
+    var di = nav ? nav.domInteractive : -1, R = REC, DIAGEV = /** @type {any} */ (null), afterDiag = false;
     for (i = 0; i < R.regs.length; i++) st[R.regs[i][0]] = R.regs[i][1];
     for (i = 0; i < R.boot.length; i++) if (R.boot[i][0] === 'world.js eval start' || R.boot[i][0] === 'world.js eval end') st[R.boot[i][0]] = R.boot[i][1];
-    var scripts; try { scripts = document.querySelectorAll('script[src]'); } catch (e) { return { error: 'no document' }; }
+    var scripts; try { scripts = /** @type {NodeListOf<HTMLScriptElement>} */ (document.querySelectorAll('script[src]')); } catch (e) { return { error: 'no document' }; }
     var order = []; for (i = 0; i < scripts.length; i++) { var m2 = /(?:^|\/)([^\/?#]+)(?:[?#].*)?$/.exec(scripts[i].getAttribute('src') || ''); if (m2) order.push({ name: m2[1], defer: scripts[i].defer }); }   // (a bare relative src too: the preview's)
     function r1(x) { return x === null || x < 0 ? null : +x.toFixed(1); }
     function base(n) { return n.replace(/\.v\d+(?=\.js$)/, ''); }   // (production's versioned names: world.v1.js stamps as world.js)

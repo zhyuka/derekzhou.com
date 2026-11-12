@@ -52,7 +52,7 @@
   function buildEngine() {
     GRID = makeGrid();
     FULLVAO = gl.createVertexArray();
-    probeFilter();   // (before any volume is made)
+    var tq = clockNow(); probeFilter(); BOOT.probe0 = clockNow() - tq;   // (before any volume is made; its link and read-back wait on the GPU process, timed apart for the hold's forecast)
     var sv = [], i; for (i = 0; i <= 32; i++) sv.push(i / 32, -1, i / 32, 1);
     STRIP = { vb: gl.createBuffer(), vaoP: gl.createVertexArray(), vaoR: gl.createVertexArray(), n: 66 };
     gl.bindBuffer(gl.ARRAY_BUFFER, STRIP.vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sv), gl.STATIC_DRAW);

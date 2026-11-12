@@ -39,8 +39,11 @@ nothing of it on any pixel of the largest window (2560 CSS px at 2
 device px a CSS px): a new flock is made there and flies in (addFar);
 none is ever made near the viewer, under the land or in the sea of cloud
 (the owner, 2026-11-06). One is taken out there, or once it has gone down
-into the sea of cloud and is wholly hidden. No bird flies below the land
-under it and 15 m (CLEAR). The population is kept about the visitor in
+into the sea of cloud and is wholly hidden; it goes down there only on a
+way of sea long enough for its whole descent, the one nearest its heading,
+and only gently until it is on it. No bird flies below the land under it
+and 15 m (CLEAR, floorUp): flying, in a flock's place, and on the way to a
+perch (there never above the perch itself). The population is kept about the visitor in
 the world (so many flocks within 2.6 km, by the sky, those flying in
 counted); every 25-50 s one of them, of a kind that perches where the
 sky has one, is sent by the camera's way 60-140 m wide of it (recruit),
@@ -80,7 +83,8 @@ a bird go into the world from there, an ordinary bird from its first
 frame; none under reduced motion.
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
-real module headless in Node on a stub host: a camera flying its heading, the words' boxes as the served page lays
+real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
++-1500 m about the landing; BIRDS_GROUND=stub for the old low hills): a camera flying its heading, the words' boxes as the served page lays
 them out at 960x600 and 390x844, a scripted pointer, clicks and drags, the 50 ms clock. test/birds.mjs measures it
 over random scenes against the research's numbers (CI: about 30 s; BIRDS_N=16 BIRDS_LONG=1 for the full run), and
 `node tools/birds/sim.mjs --case C --size S --seed N --svg F` replays one scene with its paths in the perch's frame.

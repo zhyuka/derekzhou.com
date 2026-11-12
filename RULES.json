@@ -42,7 +42,7 @@
       "enforced_by": [
         {
           "kind": "prose",
-          "note": "W8 and the words' contrast through every sky are measured in the dev build (CLAUDE.md: Verify)"
+          "note": "W8 and the words' contrast through every sky are measured in the dev build (docs/verify.md)"
         }
       ]
     },

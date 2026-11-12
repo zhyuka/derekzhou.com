@@ -8,7 +8,7 @@
     SKY.ids.forEach(function (id) { (WSKY[id].land || []).forEach(function (h) { (SKY.land[h] = SKY.land[h] || []).push(id); }); });   // (a sky lands on the hours it lists)
     SKY.baseLab = []; for (var s = 0; s < 24; s++) SKY.baseLab.push(labA([V.paramsBase[s * 4], V.paramsBase[s * 4 + 1], V.paramsBase[s * 4 + 2]]));
     SKY.sheenLab = labA(scl([V.paramsBase[32], V.paramsBase[33], V.paramsBase[34]], 1 / 0.3));
-    var g = SKY.land[HOUR] ? HOUR : 'day', at = parseFloat(attr('data-sky-at'));   // (the hour's script writes it at load)
+    var g = /** @type {any} */ (SKY.land[HOUR] ? HOUR : 'day'), at = parseFloat(attr('data-sky-at'));   // (the hour's script writes it at load)
     if (!(at >= 0 && at <= 1)) at = 0.5;
     var open = DEVMODE && OPT.skyScene && WSKY[OPT.skyScene] && SKY.ids.indexOf(OPT.skyScene) >= 0 ? OPT.skyScene : null;
     if (!open) open = SKY.land[g][Math.floor(SKY.rO.f() * SKY.land[g].length)];
@@ -22,7 +22,7 @@
     var h0 = RNG(subseed(J.seed, 77)).r(0, 2 * PI), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
     for (i = 0; i < 24; i++) {
       var P = dirAzEl(SKY.rV.r(-180, 180), SKY.rV.r(15, 60)), U = norm(cross(P, [0, 1, 0])), W = cross(P, U), nn = 0, lo = 99, core = null;
-      for (j = 0; j < 90; j++) { var a = j / 90 * 2 * PI, g = [U[0] * Math.cos(a) + W[0] * Math.sin(a), U[1] * Math.cos(a) + W[1] * Math.sin(a), U[2] * Math.cos(a) + W[2] * Math.sin(a)], e = Math.asin(clamp(g[1], -1, 1)) / DEG;
+      for (j = 0; j < 90; j++) { var a = j / 90 * 2 * PI, g = /** @type {any} */ ([U[0] * Math.cos(a) + W[0] * Math.sin(a), U[1] * Math.cos(a) + W[1] * Math.sin(a), U[2] * Math.cos(a) + W[2] * Math.sin(a)]), e = Math.asin(clamp(g[1], -1, 1)) / DEG;
         if (dot(g, fw) > 0.85 && e > 4 && e < 34) { nn++; if (e < lo) { lo = e; core = g; } } }
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
