@@ -5,7 +5,7 @@
     var A = CSP, Bs = CS;   // (at the junction too, CSP being the arrival's own place: arrive)
     var x = lerp(A.x, Bs.x, a), y = lerp(A.y, Bs.y, a), z = lerp(A.z, Bs.z, a);
     var yaw = A.yawV + A.phi + angDiff(Bs.yawV + Bs.phi, A.yawV + A.phi) * a, uth = lerp(A.thU + A.thP, Bs.thU + Bs.thP, a), roll = lerp(A.roll, Bs.roll, a);
-    y += CAMLIFT * Math.min(V.clear[1], 12);
+    y += (SV.u > 0 ? lerp(CAMLIFT, SV.cl, SV.u) : CAMLIFT) * Math.min(V.clear[1], 12);   // (A2: the still's lift, eased)
     // the pitch: the realm's framing for this window's shape, a look at the ground ahead, the visitor's tilt
     var look = V.def.look || 90, fx = Math.sin(yaw), fz = Math.cos(yaw);
     var ga = groundAt(V, x + fx * look, z + fz * look, false), gh = groundAt(V, x, z, false);
@@ -49,6 +49,7 @@
   var WIDEK = 1, WIDEKT = 1;
   function basePitch(V) {
     var fr = V.def.frame || [0.4, 0.6];
+    if (SV.u > 0) return Math.atan((2 * lerp(fr[0], fr[1], lerp(TALLK, SV.tk, SV.u)) - 1) * lerp(FRT.tanY, SV.tanY, SV.u)) + CAMUP * DEG * WIDEK;   // (A2: the still's framing, eased)
     return Math.atan((2 * lerp(fr[0], fr[1], TALLK) - 1) * FR.tanY) + CAMUP * DEG * WIDEK;
   }
   /* the look at the ground ahead's share of the pitch: the world's own (0: none: one pitch everywhere) */

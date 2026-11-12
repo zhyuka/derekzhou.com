@@ -24,8 +24,18 @@
   <!-- The hold (first-paint preview): no paint until the parser ends, so the words and the world's first frame appear
        together (#world-end is the empty marker right after the last realm's script: the block ends as the hold does). hour.js takes this link out where
        the hold is skipped; the world, where its device check skips it or its deadline passes. -->
-  <link rel="preload" href="/assets/still/afterglow-384x759.avif" as="image" type="image/avif" fetchpriority="high" media="(min-width: 380px) and (max-width: 388px)">
-  <link rel="preload" href="/assets/still/afterglow-393x852.avif" as="image" type="image/avif" fetchpriority="high" media="not all and (min-width: 380px) and (max-width: 388px)">
+  <link rel="preload" href="/assets/still/afterglow-393x861.avif" as="image" type="image/avif" fetchpriority="high" media="(max-aspect-ratio: 1000/2080)">
+  <link rel="preload" href="/assets/still/afterglow-393x817.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/2080000) and (max-aspect-ratio: 1000/1960)">
+  <link rel="preload" href="/assets/still/afterglow-393x770.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/1960000) and (max-aspect-ratio: 1000/1893)">
+  <link rel="preload" href="/assets/still/afterglow-393x724.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/1893000) and (max-aspect-ratio: 1000/1840)">
+  <link rel="preload" href="/assets/still/afterglow-393x676.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/1840000) and (max-aspect-ratio: 1000/1720)">
+  <link rel="preload" href="/assets/still/afterglow-393x629.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/1720000) and (max-aspect-ratio: 1000/1600)">
+  <link rel="preload" href="/assets/still/afterglow-393x524.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/1600000) and (max-aspect-ratio: 1000/1333)">
+  <link rel="preload" href="/assets/still/afterglow-1080x1080.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1000001/1333000) and (max-aspect-ratio: 1249/1000)">
+  <link rel="preload" href="/assets/still/afterglow-1350x1080.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1249001/1000000) and (max-aspect-ratio: 1599/1000)">
+  <link rel="preload" href="/assets/still/afterglow-1728x1080.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1599001/1000000) and (max-aspect-ratio: 1777/1000)">
+  <link rel="preload" href="/assets/still/afterglow-1920x1080.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 1777001/1000000) and (max-aspect-ratio: 2099/1000)">
+  <link rel="preload" href="/assets/still/afterglow-2268x1080.avif" as="image" type="image/avif" fetchpriority="high" media="(min-aspect-ratio: 2099001/1000000)">
   <script data-cfasync="false" src="/hour.js"></script>
   <script type="application/ld+json">
   {
@@ -42,7 +52,7 @@
 <body>
   <!-- The world, drawn behind everything by the world's script (hidden until it is drawn). -->
   <!-- (resume sketch A) the world's first frame, baked on the build machine: the first paint shows it; the live world cuts in over it. -->
-  <picture><source media="(min-width: 380px) and (max-width: 388px)" srcset="/assets/still/afterglow-384x759.avif" type="image/avif"><img class="still" src="/assets/still/afterglow-393x852.avif" alt="" aria-hidden="true" fetchpriority="high"></picture>
+  <picture><source media="(max-aspect-ratio: 1000/2080)" srcset="/assets/still/afterglow-393x861.avif" type="image/avif"><source media="(max-aspect-ratio: 1000/1960)" srcset="/assets/still/afterglow-393x817.avif" type="image/avif"><source media="(max-aspect-ratio: 1000/1893)" srcset="/assets/still/afterglow-393x770.avif" type="image/avif"><source media="(max-aspect-ratio: 1000/1840)" srcset="/assets/still/afterglow-393x724.avif" type="image/avif"><source media="(max-aspect-ratio: 1000/1720)" srcset="/assets/still/afterglow-393x676.avif" type="image/avif"><source media="(max-aspect-ratio: 1000/1600)" srcset="/assets/still/afterglow-393x629.avif" type="image/avif"><source media="(max-aspect-ratio: 1000/1333)" srcset="/assets/still/afterglow-393x524.avif" type="image/avif"><source media="(max-aspect-ratio: 1249/1000)" srcset="/assets/still/afterglow-1080x1080.avif" type="image/avif"><source media="(max-aspect-ratio: 1599/1000)" srcset="/assets/still/afterglow-1350x1080.avif" type="image/avif"><source media="(max-aspect-ratio: 1777/1000)" srcset="/assets/still/afterglow-1728x1080.avif" type="image/avif"><source media="(max-aspect-ratio: 2099/1000)" srcset="/assets/still/afterglow-1920x1080.avif" type="image/avif"><img class="still" src="/assets/still/afterglow-2268x1080.avif" alt="" aria-hidden="true" fetchpriority="high"></picture>
   <canvas class="sky" aria-hidden="true"></canvas>
 
   <main>
