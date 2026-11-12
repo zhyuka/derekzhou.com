@@ -57,7 +57,22 @@
   function bootSoon() {
     if (booted || bootRaf) return;
     if (!DEVMODE && document.readyState === 'loading' && holdLink()) { holdRun(); return; }   // (the hold: the last realm registered while the page is still parsing)
-    bootRaf = requestAnimationFrame(bootOnce);
+    /* (load-perf, the owner 2026-11-12: "make the world boot after the first paint") without the hold (every phone),
+       the boot waits until the page has painted: the browser's own paint record (a paint entry, observed), so the
+       words and the still sky are on screen before stage A (the context, a GPU process start that takes seconds on
+       some phones) and the rest. On a return visit the scripts come from cache and the boot used to run in the first
+       frame, before any paint: the words waited for it. A page that painted already (a cold visit, the paint while the
+       scripts came) boots at once; no paint record within PAINT_WAIT, or no observer, boots anyway */
+    bootRaf = requestAnimationFrame(function () { afterPaint(bootOnce); });
+  }
+  var PAINT_WAIT = 1000;   // (ms: the boot never waits longer than this for the paint record)
+  function afterPaint(f) {
+    var done = false, po = null, go = function () { if (done) return; done = true; if (po) po.disconnect(); f(); };
+    try {
+      if (performance.getEntriesByType('paint').length) { go(); return; }
+      po = new PerformanceObserver(go); po.observe({ type: 'paint' });
+    } catch (e) { go(); return; }
+    setTimeout(go, PAINT_WAIT);
   }
   /* THE HOLD: the page does not paint until the world's first frame is drawn (the head's link
      rel=expect blocking=render, for Chromium; elsewhere the parser itself, busy in this task). The world, the kit and
