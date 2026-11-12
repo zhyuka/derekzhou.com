@@ -6,7 +6,7 @@ interface Navigator { deviceMemory?: number; gpu?: unknown }
 interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number }
 interface EventListenerOptions { passive?: boolean }
 // window.WORLD (510): what the realm scripts and the ink birds register with and read; forms is set by realm-kit.js
-interface WorldApi { realm(def: object): void; kit: any; birds(factory: Function): void; stamp(name: string): void; forms?: any }
+interface WorldApi { realm(def: object): void; kit: KitApi; birds(factory: Function): void; stamp(name: string): void; forms?: any }
 interface Window { WORLD: WorldApi }
 // The world's shared objects (their members are set across sections, so tsc cannot infer them from one literal):
 // a render target (080's target(), 383's sceneTwin) and a multisampled one (383's targetMS); the window's targets,
@@ -20,3 +20,25 @@ interface Ext { cbf: EXT_color_buffer_float | null; cbh: EXT_color_buffer_half_f
 // the ink birds' module as the engine sees it (inkbirds.js's factory returns it; 490's header names the four hooks):
 // BIRDS, the boot's, and BIRDL, one made late (495)
 interface BirdsModule { step(dt: number): void; draw(): void; visit(k: number): void; lost(): void; boot?(): void; prepare?(): boolean }
+// WORLD.kit (510's KITAPI): the engine's mesh builders and helpers, as the realm scripts call them. A mesh is built
+// into a Builder (110), a colour is linear RGB (030), a vector is [x, y, z], a stream is 020's RNG
+type V3 = number[];
+interface Stream { f(): number; r(a: number, b: number): number; i(n: number): number; pick<T>(a: T[]): T; n(): number; sign(): number; seed(): number }
+interface KitApi {
+  Builder: new (cap?: number) => any;
+  box(B: any, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, bev?: number, col?: any): any;
+  prism(B: any, poly: number[][], y0: number, tops: any, topScale?: any, dx?: number, dz?: number, col?: any, noBottom?: boolean): any;
+  lathe(B: any, prof: number[][], seg: number, flat?: any, col?: any, phase?: number): any;
+  rock(B: any, rng: Stream, r: number, flatten?: number, col?: any): any;
+  cumulus(PF: any, rng: Stream, x: number, y0: number, z: number, W: number, H: number, o?: object): any;
+  bank(PF: any, rng: Stream, x: number, y: number, z: number, W: number, H: number, D: number, R0?: number, n?: number): any;
+  range(PF: any, rng: Stream, x0: number, y0: number, z0: number, dir: number, len: number, W: number, H: number, o?: object): any;
+  wall(PF: any, rng: Stream, x0: number, y0: number, z0: number, dir: number, len: number, thick: number, H: number, o?: object): any;
+  mound(PF: any, rng: Stream, x: number, y0: number, z: number, W: number, H: number, o?: object): any;
+  lch(L: number, C: number, h: number, k?: number): V3; lab(L: number, C: number, h: number): V3; hex(h: string): V3; lum(c: V3): number;
+  dirAzEl(az: number, el: number): V3; norm(a: V3): V3; cross(a: V3, b: V3): V3; add(a: V3, b: V3): V3; sub(a: V3, b: V3): V3;
+  mul(a: V3, s: number): V3; dot(a: V3, b: V3): number;
+  clamp(x: number, a: number, b: number): number; smooth(a: number, b: number, x: number): number; lerp(a: number, b: number, t: number): number;
+  RNG(seed: number): Stream; cellHash(ix: number, iz: number, salt: number): number; ihash(x: number): number; hfl(h: number): number;
+  hk(h: number, k: number): number; angDiff(a: number, b: number): number; glowBake(B: any, v0: number, v1: number, lamps: any): any;
+}
