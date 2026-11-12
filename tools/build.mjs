@@ -8,7 +8,7 @@
 // fonts). The files the build writes (the five minified scripts, the plan's worker) are never committed
 // there: Cloudflare Pages runs the deploy build (below) and serves its output. CI proves the build deterministic and
 // that site/ holds none of the built files.
-// (step 5) The deploy build then names every shipped script and stylesheet by its content: world.v8.js is served as
+// (step 5) The deploy build then names every shipped script and stylesheet by its content: world.js is served as
 // world.<sha8>.js, <sha8> the first 8 hex of the sha256 of the file's final bytes. Files that load another by name
 // (the world starts the plan's worker) are named after the ones they load, leaves first, so
 // a file's hash covers the names it loads; a cycle is an error. Every reference is rewritten: in the scripts,
@@ -18,7 +18,7 @@
 //
 //   node tools/build.mjs OUT              the deploy build: into OUT (made or emptied first), named by content,
 //                                         checked (below), OUT/build.txt written; prints the manifest
-//   node tools/build.mjs --plain OUT      the plain build only (the vN names, no build.txt): what CI checks and renders
+//   node tools/build.mjs --plain OUT      the plain build only (the plain names, no build.txt): what CI checks and renders
 //   node tools/build.mjs --check          build twice into two temporary folders at once; exit 1 unless both builds are
 //                                         the same bytes (deterministic), site/ holds none of the files the build
 //                                         writes, and the deploy build is the same from both and passes its checks

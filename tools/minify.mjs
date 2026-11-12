@@ -1,5 +1,5 @@
-// minify.mjs: the world's shipped scripts, minified (fast500 lane C, steps 4b and 4c; the owner's "Minified scripts":
-// a committed minified copy, made by this script, CI checking it is exactly what this script makes from the sources).
+// minify.mjs: the world's shipped scripts, minified (fast500 lane C, steps 4b and 4c), called by
+// tools/build.mjs: nothing it makes is committed; CI checks the build.
 // A change to this file alone changes no served byte: the gate checks the build (validate.yml) and merges it without rendering.
 //
 //   node tools/minify.mjs DIR                  rewrite DIR's scripts in place, minified
@@ -10,7 +10,7 @@
 // assemble --ship src build/ship.
 //
 // The scripts are the five the world's page loads, readable as strip.py ships them (world, inkbirds, realm-kit,
-// realm-dunes, realm-above), under their dev names (world.js) or their served names (world.v3.js); any other file in
+// realm-dunes, realm-above), under their plain names (world.js); any other file in
 // the folder is left alone. Each is:
 //   1. (world only, step 4b) cut: the record and the switches (diag v2's engine side) and the dev harness are taken
 //      out by exact, counted cuts (each anchor a whole line found exactly once, else exit 1). What the rest of the

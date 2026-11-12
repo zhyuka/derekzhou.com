@@ -56,6 +56,8 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the five served scripts from build/ship/; CI checks the build
+tools/tsc.mjs                tsc --checkJs over the assembled world, by hand (npx typescript, pinned; not a dependency),
+                             with tools/types/world.d.ts for what TypeScript's DOM types lack: each error as section:line
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)

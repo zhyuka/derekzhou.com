@@ -41,7 +41,7 @@ never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
 view and the flight climbs or dives; let go, the turn runs on a little and
 eases out. The steering reads a pointer's moves only while it is pressed;
-the birds' play reads a hovering one (see Birds: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
+the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
 never at load); everywhere else only the drag steers, and no motion
@@ -145,7 +145,7 @@ clear of every block of words at the view's own heading (a visitor's drag
 can bring the moon behind them; they still read there, the credit
 at 4.80:1 the lowest measured so, at 1440x900, with the moon's
 route). So 4.5:1 held against every ground pixel measured under
-the words (see Verify; the credit's lowest at the view's own
+the words (docs/verify.md; the credit's lowest at the view's own
 heading 4.90:1). The ceiling bounds lightness (OKLab L), not
 luminance, so the margin depends on hue: on a saturated green at the
 ceiling the credit would be about 4.4-4.5:1. A bird passing behind the
@@ -202,7 +202,10 @@ to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
 global on self); the world's also sets the browser's bar to the top
 of the hour's still sky, draws the visit's seed and starts the plan's
 worker. The boot starts in the first animation frame after the realms
-have registered (the world, the kit and the realms are fetched first,
+have registered, once the page has painted (without the hold: the browser's paint
+record, observed, at most PAINT_WAIT = 1 s; a page that painted already boots at once.
+The owner, 2026-11-12: "make the world boot after the first paint"; on a return visit
+the scripts come from cache and the boot used to run before any paint) (the world, the kit and the realms are fetched first,
 at high priority and Early-Hinted, the ink birds' wing model and the ink
 birds after them, at low: the boot waits for neither those scripts nor
 the page's load), and is staged a step a frame, the context first. The
@@ -255,7 +258,7 @@ cell in view whose weight will be over 0 within 30 m (one still late
 is drawn at once, and counted). There are no timed trials at load: the
 render scale starts at the tier's top (THE GOVERNOR), and one frame at
 0.35 of the old size, in stage H, which runs in the frame G is done in,
-still lets a device too slow even there decline. With forced colours on
+finds a device too slow even there: its world is held (THE GOVERNOR). With forced colours on
 at load the world does not boot while they hold and makes none of its
 render targets (the ink birds fly alone and read none: see FALLBACKS);
 it boots, and makes them, once they end. The show is a cut (the owner:
@@ -335,22 +338,33 @@ twenty seconds shown and until the first step down: every boot
 starts at the tier's top now, so only a resize that lands below
 it climbs that fast; never while an undone step's cool-down runs);
 ten seconds under half the pace at the last rung, or under 15 fps
-that the scale cannot help, and the loop stops and the still sky stays.
+that the scale cannot help, and the world is held (below).
 A resize keeps the density being drawn (the rung nearest it in device
 px a CSS px), so a rotation or a window dragged to a new size neither
 sharpens nor softens the world. The scatter and the particles thin to
 0.6 on the rungs under 0.65 of the old size (its 0.6 and 0.5, as on
 live: TIER). The first rung is the tier's top (what the boot's timed
 trials chose on every arm timed: none run at load now), and one frame
-at 0.35 of the old size in the boot's last stage still lets a device
-too slow even there decline (over 21.7 ms twice). The density costs
+at 0.35 of the old size in the boot's last stage finds a device too
+slow even there (over 21.7 ms twice). The density costs
 memory: the world's targets for a 393x852 phone at 3 go from about 134 MB
 to 201 MB, a Retina 1440x900 window's from 239 MB to 589 MB (a real
-iPhone must hold a 10-minute visit at the full phone tier: see Verify). A
+iPhone must hold a 10-minute visit at the full phone tier: docs/verify.md). A
 renderer on the CPU (SwiftShader, llvmpipe and the like, by its name)
-keeps the still sky from the start; so does a boot whose 0.35 trial
-misses the floor, a first frame doubted twice, or a broken program. A
-hidden tab draws nothing.
+keeps the still sky from the start; so does a first frame doubted twice
+or a broken program. A hidden tab draws nothing.
+
+The held world (the owner, 2026-11-12, shown three sketches for the phones
+that never showed the world: "a, the still world."): a boot whose 0.35
+trial misses the floor, a GPU the Android lab measured too slow every time
+(SLOW_GPU, by WebGL's renderer string: the Adreno 619, held from the start
+with no trial) and the governor's floor all hold the world instead of
+leaving the still sky. It is drawn whole once at the tier's top, however
+slow, shown as a cut, then put up again every frame (represent: the
+composite or its copy) with the ink birds flying over it on their own fixed
+steps. Nothing else moves: no flight, no sky cycle, a drag steers nothing;
+the governor does not run. A resize draws it whole again. Reduced motion
+keeps its own still (the birds still too).
 
 ## FALLBACKS
 
