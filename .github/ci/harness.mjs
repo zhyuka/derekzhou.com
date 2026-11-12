@@ -8,6 +8,7 @@
 //   - every shaderSource call's text kept (the census), every CSP violation kept.
 // Never part of the site.
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 const require = createRequire(import.meta.url);
 
 export function loadPlaywright() {
@@ -104,9 +105,10 @@ export async function stepToShow(arm, maxFrames = 3000) {
 }
 
 // The frame and the DOM, hashed in the page: the canvas read back with readPixels (the world's GL state saved and
-// restored around it), SHA-256; the root's attributes, the theme colour and the body serialised, SHA-256.
+// restored around it), SHA-256; the root's attributes, the theme colour and the body serialised (resource hints
+// dropped: dropHints), SHA-256.
 export async function capture(arm, { pixels = false } = {}) {
-  return arm.page.evaluate(async (pixels) => {
+  const r = await arm.page.evaluate(async (pixels) => {
     const hex = (b) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
     const c = document.querySelector('canvas.sky'), gl = window.__ci.gl;
     const r = { shown: !!c && c.classList.contains('on'), w: 0, h: 0, frame: null, csp: window.__ci.csp.slice(), errors: window.__ci.errors.slice() };
@@ -128,9 +130,25 @@ export async function capture(arm, { pixels = false } = {}) {
     const body = document.body.cloneNode(true); body.querySelectorAll('script').forEach((e) => e.remove());
     const tw = document.createTreeWalker(body, NodeFilter.SHOW_COMMENT), cm = []; while (tw.nextNode()) cm.push(tw.currentNode); cm.forEach((n) => n.remove());
     const ser = new XMLSerializer().serializeToString(body).replace(/\.(v|sub)\d+\.(js|css|woff2)/g, '.$1.$2');
-    r.dom = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(r.root + '\n' + r.theme + '\n' + ser)));
+    r.domText = r.root + '\n' + r.theme + '\n' + ser;
     return r;
   }, pixels);
+  r.dom = createHash('sha256').update(dropHints(r.domText)).digest('hex'); delete r.domText;
+  return r;
+}
+
+// Resource hints render nothing: a <link> whose every rel is preload, modulepreload, prefetch, preconnect or
+// dns-prefetch only changes when bytes arrive, and the frames show whether that changed anything. Dropped from the
+// serialised body before it is hashed, so a hint alone is not a visible change; any other <link> (a stylesheet, an
+// icon) and everything else stays. Then each run of white space between two tags is one space: a run renders as one
+// space, and a dropped hint, script or comment leaves its line's indent behind.
+const HINTS = new Set(['preload', 'modulepreload', 'prefetch', 'preconnect', 'dns-prefetch']);
+export function dropHints(text) {
+  return text.replace(/<link\b[^>]*>(?:\s*<\/link>)?/gi, (tag) => {
+    const m = tag.match(/\srel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    const rels = m ? (m[1] ?? m[2] ?? m[3]).toLowerCase().split(/\s+/).filter(Boolean) : [];
+    return rels.length && rels.every((x) => HINTS.has(x)) ? '' : tag;
+  }).replace(/>\s+</g, '> <');
 }
 
 // A diff image (red where any channel differs, the base dimmed elsewhere), encoded by the page as a PNG.
