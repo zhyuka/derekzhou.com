@@ -5,7 +5,9 @@ declare function CJS_REQUIRE(name: string): any;   // (tools/tsc.mjs's copy: the
 interface Navigator { deviceMemory?: number; gpu?: unknown }
 interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number }
 interface EventListenerOptions { passive?: boolean }
-interface Window { WORLD: unknown }
+// window.WORLD (510): what the realm scripts and the ink birds register with and read; forms is set by realm-kit.js
+interface WorldApi { realm(def: object): void; kit: any; birds(factory: Function): void; stamp(name: string): void; forms?: any }
+interface Window { WORLD: WorldApi }
 // The world's shared objects (their members are set across sections, so tsc cannot infer them from one literal):
 // a render target (080's target(), 383's sceneTwin) and a multisampled one (383's targetMS); the window's targets,
 // TG (383's allocTargets; held: 450's free of them while the world is held); the context's extensions, EXT (050).
