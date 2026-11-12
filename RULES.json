@@ -149,11 +149,15 @@
     {
       "id": "one-entropy-one-clock",
       "area": "weather",
-      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds and plan's worker draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "rule": "One entropy read a visit, made once, before the world: on the world's page hour.js's one crypto.getRandomValues, handed to the world by window.HOURSEED (the plan's worker started with it), else the world's own, above its INIT-END marker; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds and plan's worker draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
       "source": [
         {
           "quote": "should b rand",
           "doc": "docs/world.md: THE WEATHER; docs/security.md"
+        },
+        {
+          "quote": "yes",
+          "doc": "the owner, 2026-11-12, to the read moved to hour.js so the plan's worker starts sooner (docs/world.md: THE WEATHER)"
         }
       ],
       "enforced_by": [

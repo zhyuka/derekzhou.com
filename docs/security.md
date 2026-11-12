@@ -50,9 +50,11 @@ listener added in onDown and removed in endDrag, and the birds' pointer
 play's two, onHover and onHoverOut, passive, added and removed in
 hoverSync: the owner's request of 2026-11-05, the one exception to the
 hover and exit bans); any DOM
-building; more or fewer than one getRandomValues in the world, or one
-below its INIT-END marker, and none at all, nor any clock read, in the
-kits, the wing model, the ink birds or the plan's worker;
+building; more or fewer than one getRandomValues in the world (its
+read where hour.js made none), or one below its INIT-END marker, or more
+or fewer than one in hour.js (the visit's read on the world's page), and
+none at all, nor any clock read, in the kits, the wing model, the ink
+birds or the plan's worker;
 any Math.random or clock read (Date) in the world; performance.now()
 but the world's one clockNow; anything in the hour but its one `new
 Date(`; any URL hook (location., URLSearchParams), sound, network call

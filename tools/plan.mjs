@@ -55,10 +55,12 @@ const TAIL = `  /* the one request: the seed, the first view's yaw and its half-
      kwFirst about the landing), the first tick whole (its rest committed: the director's state is whole), copied out:
      the director's state, the four gradient maxima, the grids' arrays, kwFirst's own state and the rest's order. The
      second (when kwFirst left a rest): the window's every texel, baked here (kwFollow, whole), its arrays transferred */
+  var EARLY = -1;   // (the seed hour.js sent, the maps made for it)
   addEventListener('message', function (e) {
     var q = e.data;
+    if (q && q.v === undefined && typeof q.seed === 'number' && EARLY < 0) { mapsInit(q.seed); EARLY = q.seed; return; }   // (hour.js: the seed alone, before the world; the maps made at once, the rest asked by the world)
     if (!q || q.v !== PLANV || typeof q.seed !== 'number' || typeof q.yaw !== 'number' || typeof q.half !== 'number') { postMessage({ v: PLANV, seed: -1 }); return; }
-    planFirst(q.seed, 0, 0, q.yaw, q.half);
+    if (EARLY === q.seed) kwFirst(0, 0, q.yaw, q.half); else planFirst(q.seed, 0, 0, q.yaw, q.half);   // (planFirst is mapsInit, then kwFirst: the same calls in order)
     if (MAPS.D.rest) MAPS.D.tickRest(Infinity);
     var part = KW.part, kwr = KWR;
     var a = { kw: [KW.data.slice(), KW.ix.slice(), KW.dx.slice()], kg: [KG.v.slice(), KG.ix.slice()], kf: [KF.data.slice(), KF.ix.slice(), KF.dx.slice()] };

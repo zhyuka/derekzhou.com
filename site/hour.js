@@ -3,7 +3,8 @@
    The sky passes from sky to sky in an order of its own (the sky's
    script), but a visit opens on the visitor's own time of day: night
    21-05, dawn 05-08, day 08-13, rain 13-16, sunset 16-19, dusk 19-21.
-   This reads the clock, once, here and nowhere else, and marks the page
+   This reads the clock, once, here and nowhere else (and, on the world's
+   page, the visit's one entropy read: below), and marks the page
    before its first paint: data-sky (which time of day: the stylesheet's
    still sky and its words' colours; the sky's script opens on one of its
    skies) and data-sky-at (how far through that time of day, 0-1: the
@@ -32,6 +33,15 @@
      take 2-10 s) and iOS/iPadOS. The world checks the rest once it has its context, and holds only where it foretells
      the world within about a second (the owner's rule). */
   var hold = document.querySelector('link[rel="expect"][blocking="render"]');
+  /* (the plan, sooner) the visit's one entropy read, made here on the world's page (the hold's link marks it) where
+     the world can run, and the plan's worker started with the seed: it makes the maps while world.js downloads. The
+     world takes both (HOURSEED) and asks the worker for the rest of its first answer; it reads entropy itself only
+     where this read none */
+  if (hold && typeof WebGL2RenderingContext !== 'undefined' && window.crypto && crypto.getRandomValues) {
+    var ent = new Uint32Array(1); crypto.getRandomValues(ent);
+    var HS = window.HOURSEED = { seed: ent[0], w: null };
+    try { if (typeof Worker === 'function') { HS.w = new Worker('/plan.js'); HS.w.onerror = function () { HS.w = null; }; HS.w.postMessage({ seed: HS.seed }); } } catch (e) { HS.w = null; }
+  }
   if (hold) {
     var nav = navigator, ua = nav.userAgent || '', mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
     if (mq('(prefers-reduced-motion: reduce)') || mq('(forced-colors: active)') || typeof WebGL2RenderingContext === 'undefined' ||

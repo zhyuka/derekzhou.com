@@ -71,7 +71,9 @@
     if (PW.st || typeof Worker !== 'function') return;
     try {
       PW.seed = J.seed >>> 0; PW.t0 = clockNow(); PW.st = 1;
-      PW.w = new Worker('/plan.js');
+      var hw = HS ? HS.w : null; if (HS) HS.w = null;   // (hour.js's worker, its maps begun on this seed: taken; one begun on another (a dev seed) stopped)
+      if (hw && HS.seed !== PW.seed) { hw.terminate(); hw = null; }
+      PW.w = hw || new Worker('/plan.js');
       PW.w.addEventListener('message', function (e) {
         var m = e.data;
         if (!m || m.v !== PW_V || m.seed !== PW.seed) { planWorkerOff(); return; }

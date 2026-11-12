@@ -374,12 +374,16 @@ when they end, on at load too; print: none of it.
 
 ## THE WEATHER (=rand())
 
-One crypto.getRandomValues above world.js's
-INIT-END marker, split into splitmix32 streams and integer hashes (the
-same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The realm and kit files, the wing model, the ink birds and the
-plan's worker draw nothing of their own (the worker is
-handed the visit's seed): the world's is the page's one entropy read. The
+One entropy read a visit, made once, before the world (the owner,
+2026-11-12: "yes" to the read moved out of world.js): on the world's page
+where the world can run, hour.js's one crypto.getRandomValues, handed to
+the world by window.HOURSEED, the plan's worker started with it so its
+maps are made while world.js downloads; elsewhere (no hour's read) the
+world's own, above its INIT-END marker. Either is split into splitmix32
+streams and integer hashes (the same in JS and GLSL, bit for bit): the
+land, the cells, the sky order, the ink birds. The realm and kit files,
+the wing model, the ink birds and the plan's worker draw nothing of their
+own (the worker is handed the visit's seed). The
 world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.

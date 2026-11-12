@@ -95,3 +95,25 @@ test('plan: the worker\'s plan, adopted, is the page\'s', async () => {
     assert.deepEqual(snap(W), snap(P), `seed ${seed}: and so is the flight after it`);
   }
 });
+
+// (the plan, sooner) hour.js sends the worker the seed alone before the world asks: the maps made then, the rest on the
+// world's ask; the answers must be the one ask's, byte for byte. A seed the world does not take (a dev seed) is ignored
+test('plan: the worker begun on the hour seed answers as on one ask', async () => {
+  const name = (WORLD.match(/new Worker\((['"])\/(plan[^'"]*\.js)\)/) || [])[2];
+  const m = await import(new URL('../../tools/plan.mjs', import.meta.url)), planSrc = (await m.buildPlan(WORLD, name)).text;
+  const v = (planSrc.match(/var PLANV = '([0-9a-f]+)'/) || planSrc.match(/'([0-9a-f]{12})'/) || [])[1];
+  const ask = (seed) => ({ v, seed, yaw: 0.7 + seed / 97, half: Math.atan(Math.tan(36 * Math.PI / 180)) + 5 * Math.PI / 180 });
+  const run = (msgs) => {
+    let listener = null; const out = [];
+    vm.runInThisContext('(function (addEventListener, postMessage, close) {\n' + planSrc + '\n})')((k, f) => { if (k === 'message') listener = f; }, (x, tr) => { out.push(structuredClone(x, { transfer: tr || [] })); }, () => {});
+    for (const d of msgs) listener({ data: d });
+    return out;
+  };
+  for (const seed of [11, 3, 2654435769]) {
+    const one = run([ask(seed)]);
+    assert.ok(one.length >= 1 && one[0].part === 1, 'the worker answered');
+    assert.deepEqual(run([{ seed }, ask(seed)]), one, `seed ${seed}: begun on the hour's seed, the same answers`);
+    assert.deepEqual(run([{ seed: seed + 1 }, ask(seed)]), one, `seed ${seed}: begun on another seed, the world's ask still answered as its own`);
+    assert.equal(run([{ seed }]).length, 0, 'the seed alone is never answered');
+  }
+});

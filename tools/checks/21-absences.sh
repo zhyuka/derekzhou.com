@@ -104,9 +104,14 @@ if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REA
   echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
   fail=1
 fi
-# the hour reads the clock exactly once, and draws no entropy
-if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|getRandomValues|randomUUID|performance\.now' $HOUR; then
-  echo "::error::$HOUR must read the clock exactly once (new Date) and nothing else"
+# the hour reads the clock exactly once and, on the world's page, makes the visit's one entropy read (handed to the
+# world by window.HOURSEED; the world reads its own only where the hour made none: one read a visit, before the world)
+if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || [ "$(grep -o 'getRandomValues(' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|randomUUID|performance\.now' $HOUR; then
+  echo "::error::$HOUR must read the clock exactly once (new Date) and entropy exactly once (getRandomValues), nothing else"
+  fail=1
+fi
+if ! grep -q 'window.HOURSEED' $HOUR || ! grep -q 'window.HOURSEED' $WORLD; then
+  echo "::error::the hour's entropy read is handed to the world by window.HOURSEED (both files name it)"
   fail=1
 fi
 # (5) no URL hook, no sound, no network, no custom cursor
@@ -115,9 +120,10 @@ if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams|new A
   fail=1
 fi
 # (fast500 step 11) the one worker: the plan's, started by the world by its literal name (world_rules.py rule 2b)
-NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.js.\)" $WORLD | wc -l)
-if [ "$NW" != "$NP" ] || [ "$NP" -gt 1 ]; then
-  echo "::error::a worker other than the plan's (the world starts plan.js by name, once)"
+# (and the hour may start it first, by the same name, once: its maps made while world.js downloads; the world takes it)
+NW=$(cat $JS | grep -o 'new Worker(' | wc -l); NP=$(grep -oE "new Worker\(./plan\.js.\)" $WORLD | wc -l); NH=$(grep -oE "new Worker\(./plan\.js.\)" $HOUR | wc -l)
+if [ "$NW" != "$((NP + NH))" ] || [ "$NP" -gt 1 ] || [ "$NH" -gt 1 ]; then
+  echo "::error::a worker other than the plan's (the world starts plan.js by name, once; the hour may start it first, once)"
   fail=1
 fi
 if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
