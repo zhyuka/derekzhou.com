@@ -202,7 +202,10 @@ to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
 global on self); the world's also sets the browser's bar to the top
 of the hour's still sky, draws the visit's seed and starts the plan's
 worker. The boot starts in the first animation frame after the realms
-have registered (the world, the kit and the realms are fetched first,
+have registered, once the page has painted (without the hold: the browser's paint
+record, observed, at most PAINT_WAIT = 1 s; a page that painted already boots at once.
+The owner, 2026-11-12: "make the world boot after the first paint"; on a return visit
+the scripts come from cache and the boot used to run before any paint) (the world, the kit and the realms are fetched first,
 at high priority and Early-Hinted, the ink birds' wing model and the ink
 birds after them, at low: the boot waits for neither those scripts nor
 the page's load), and is staged a step a frame, the context first. The
