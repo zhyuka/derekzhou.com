@@ -20,7 +20,7 @@
           frame, else at most five a frame (warmStep);
        G  the warm-up measurement: the real frame drawn offscreen at scene scales 0.35, 0.5, 0.7 and 1.0, ascending,
           stopping at the first over 65% of the period, five timed trials a scale, one a frame (stageG); its
-          largest scale within the bar starts the governor; under the floor (21.7 ms at 0.35) the still sky stays;
+          largest scale within the bar starts the governor; under the floor (21.7 ms at 0.35) the world is held (hold);
        H  the first real frame drawn into the hidden canvas and read back as a 16 x 16 thumbnail: doubted once
           (black, blank, white) it is drawn and read again; doubted twice the world declines (stageH). In the next
           frame the canvas shows, at once (a cut: no dissolve, fast500).
@@ -143,15 +143,15 @@
      own, so 0 is the tier's top, which the timed trials picked on every arm timed); the governor steps it after the show */
   var GPIN = { desktop: 0, full: 0, low: 0, lowA: 0 };
   function gFloor() {   // (fast500 step 10: stage G's floor, shared by the timed trials and H's one trial)
-    if (GS.pick < 0 && GS.med[0] > 0.65 * 33.34) { bootMark('G floor not met: ' + GS.med[0] + ' ms at 0.35'); decline('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); return false; }
+    if (GS.pick < 0 && GS.med[0] > 0.65 * 33.34) { bootMark('G floor not met: ' + GS.med[0] + ' ms at 0.35'); hold('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); }
     return true;
   }
   /* (fast500 step 10, S10e) G pinned: the one timed trial left at load, in H's frame: the frame at 0.35 of today's size
      (GS.sc[0]) drawn GS.m times and read, G's way (two round trips timed, their median subtracted); over the floor,
-     once more (a first draw at a size can carry a one-off cost); over it both times the boot declines, as stage G's
-     floor did (the still sky stays). Not under reduced motion, after a restore, in development or when G ran trials */
+     once more (a first draw at a size can carry a one-off cost); over it both times the world is held (hold), as at
+     stage G's floor. Not under reduced motion, after a restore, in development or when G ran trials */
   function hTrial() {
-    if (GS.hT || !GS.pinned || BOOT.restore || reduced() || DEVMODE) return true;
+    if (GS.hT || !GS.pinned || BOOT.restore || reduced() || DEVMODE || HELD) return true;
     GS.hT = true;
     var V = SIM.V, t0, ms, k, q;
     gl.bindFramebuffer(gl.FRAMEBUFFER, TG.win.f); gl.viewport(0, 0, 1, 1);
@@ -206,6 +206,7 @@
     else GS.pick = -1;
     GS.done = true;
     if (!gFloor()) return false;
+    if (HELD) { RUNG = 0; GS.rung = 0; return true; }   // (held: drawn once at the tier's top)
     var s = GS.pick < 0 ? GS.sc[0] : GS.sc[GS.pick], ru = RUNGS.length - 1;   // (stage2 quality Q3: the lowest trial is 0.35 of today's size)
     for (var k = 0; k < RUNGS.length; k++) if (RUNGS[k] <= s + 1e-6) { ru = k; break; }
     RUNG = ru; GS.rung = ru;
