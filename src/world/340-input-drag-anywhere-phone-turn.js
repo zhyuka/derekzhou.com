@@ -10,7 +10,7 @@
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
   var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
-  var INPLOG = [], INPQ = []; INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
+  var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
      pointer where the device hovers: one passive listener of its moves (onHover: a mouse's or a pen's place, CSS px,
@@ -85,7 +85,7 @@
   var MOTIONIOS = (function () { var ua = navigator.userAgent || ''; return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1); })();
   function askMotion() {
     if (MOTION.st !== 'off' || inert() || !MOTIONIOS) return;
-    var DOE = window.DeviceOrientationEvent;
+    var DOE = /** @type {any} */ (window.DeviceOrientationEvent);   // (iOS's requestPermission: not in the DOM's types)
     if (!DOE || typeof DOE.requestPermission !== 'function') return;
     MOTION.st = 'asking';
     try {
