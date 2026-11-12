@@ -48,7 +48,7 @@
      boot's again (the restore's stages B and C). INKWAIT: the realms' bird flocks stand aside while the ink birds are
      there or still to come (until 'load' with none); one that stood aside never shows (inkAside), so none vanishes
      when the ink birds come and none pops in if they never do */
-  var BIRDL = null, LATEB = { on: false, P: [], W: [], dead: false, gen: 0, fin: -1, wf: -1 }, INKWAIT = true, LATE_WAIT = 30;
+  var BIRDL = /** @type {BirdsModule} */ (null), LATEB = { on: false, P: [], W: [], dead: false, gen: 0, fin: -1, wf: -1 }, INKWAIT = true, LATE_WAIT = 30;
   function inkAside(f) { if (BIRDS) return true; if (BIRDL || INKWAIT) { f.ia = 1; return true; } return f.ia === 1; }
   function lateProg(vs, fs, name) { var P = { p: null, name: name, u: null, ok: false, vs: vs, fs: fs, v: null, f: null, st: 0, late: true }; LATEB.P.push(P); return P; }
   function birdsLate() {

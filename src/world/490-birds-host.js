@@ -8,7 +8,7 @@
        lost()        the context was lost: every GL object of the module is gone (made again on the next draw)
      See notes.md, "The birds' interface", for the contract. */
   var BIRDB = { ms: 1.5, spent: 0, at: 0, prep: 6 };   // (round 3: the birds' planning budget a frame, ms; their steps' time this frame)
-  var BIRDS = null, LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'light', text: '#fdfcf7' }, BIRDPL = [];
+  var BIRDS = /** @type {BirdsModule} */ (null), LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'light', text: '#fdfcf7' }, BIRDPL = [];
   var CAMP = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], roll: 0, pitch: 0, inCloud: 0, arrive: 0, cover: 0, pmode: 0, hold: -1, open: -1, expo: 1, yaw: 0 };
   var WIND_AIR = 6.5;   // (way-other) m/s: the wind at the birds' height, the dunes' grains' own speed (realm-dunes.js), the least the drawn sand says
   var HOST = {
