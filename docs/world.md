@@ -222,7 +222,7 @@ the landing and no grid made yet: the plan is the same doubles either
 way. Anything else (no Worker, an error, an answer for another seed or
 world, 8 s gone) and the page makes the plan itself, as before. Where
 the browser has KHR_parallel_shader_compile and is not WebKit (Chrome,
-Edge, Firefox): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
+Edge): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
 draw made as soon as its own program is done, beside the links still
 compiling; the programs for what no first frame can show (the ink birds',
 and the sand's particles and ribbons where the flight cannot reach sand
@@ -230,9 +230,15 @@ in the 30 s after the show) issued with the rest but finished after the
 show. On WebKit (Safari on the Mac, every browser on iOS and iPadOS,
 told by the user agent: it has the extension, but its links and first
 draws are synchronous, and a batch of programs linked at once froze the
-owner's iPhone for 20 s before) and where the extension is missing: the
-old path, one program at a time, the warm-up after the links and never
-in the frame the noise is finished in. On every browser the noise is
+owner's iPhone for 20 s before): the old path, one program at a time, the
+warm-up after the links and never in the frame the noise is finished in.
+Where the extension is missing and the browser is not WebKit (Firefox,
+Android's ANGLE-Vulkan, older drivers: EXT.issueAll): every program issued
+in one frame and flushed, then one status read a frame, the warm-up after
+the links as on the old path. Firefox has no KHR_parallel_shader_compile
+(Firefox 160, measured on the RTX 4090, 2026-11-12): its first status read
+waits for the whole batch, so a boot frame there holds the page for the
+whole serial compile (3-5 s on that PC, cold or return). On every browser the noise is
 baked on the CPU, byte for byte the volume the GPU drew (every voxel the
 exact double-precision one; its mips made by generateMipmap, as before):
 a layer of 1,024 voxels a boot frame from the frame after B, beside C
