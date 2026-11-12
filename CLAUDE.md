@@ -1,6 +1,6 @@
 # derekzhou.com
 
-Derek Zhou's one-page site: his name, one line, a credit row and two links,
+Derek Zhou's one-page site: his name, one line, a credit row, two links and a sound icon,
 over a world drawn live behind them in WebGL2 (land, cloud, light, a sky
 that changes, ink birds crossing it). Pure HTML, CSS and JS, no frameworks.
 The owner is Derek; every change reaches the live site through a pull request.
@@ -23,8 +23,14 @@ change it. The standing rules are data in RULES.json, checked in CI.
 - One entropy read, one clock; only the opening sky depends on the visitor's
   hour (one-entropy-one-clock, opening-sky-by-clock-only).
 - The absences: no chrome vocabulary, no hover/idle/key/exit handlers (but the
-  birds' two passive pointer listeners, in hoverSync: docs/birds.md), no JS-made DOM, no network, sound, eval, URL hooks or cursor rules, no dev
-  hooks in shipped code (absence-*).
+  birds' two passive pointer listeners, in hoverSync: docs/birds.md, and the sound
+  icon's one click), no JS-made DOM, no network, eval, URL hooks or cursor rules, no
+  sound until the visitor presses the sound icon, no dev hooks in shipped code
+  (absence-*).
+- The sound is opt-in: silent until the icon is pressed; then one sheet of notes
+  from /assets/sound/ is fetched, once, and the score plays it live, following the
+  sky (read only), about -26 LUFS, never steering the world (sound-opt-in:
+  docs/sound.md).
 - The page says exactly its words (page-words, lettered-name).
 - Licences: MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 only (licences).
 - Never name, in the repository, a commit or a PR, the reference game, its
@@ -39,10 +45,14 @@ change it. The standing rules are data in RULES.json, checked in CI.
 site/          what is served as written: index.html, 404.html, style.css,
                site.js, hour.js, _headers, _redirects, fonts, icons
 src/           the scripts the build minifies: src/world/ (the world, in
-               NNN-slug.js sections), src/realm-*.js, src/birds/inkbirds/,
+               NNN-slug.js sections), src/realm-*.js, src/sound.js (the
+               sound icon's switch), src/score.js (the score it plays),
+               src/birds/inkbirds/,
                src/birds/model/ (the wing model, served as written),
                src/**/glsl/ (each shader as NAME.glsl), src/dev/ (dev build only)
 tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
+               sound/page.mjs (the sound icon pressed in headless Chromium),
+               sound/sheet.py and sound/render.mjs (the score's notes, measured),
                plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
                one scope), gpu/ (the PC's T2/T3), birds/ (generators)
@@ -55,7 +65,7 @@ RULES.json     the standing rules as data; .claude/ the hooks and path rules
 ```
 
 Built, never committed: world.js, realm-kit.js, realm-dunes.js,
-realm-above.js, inkbirds.js, plan.js. CI fails if
+realm-above.js, inkbirds.js, sound.js, score.js, plan.js. CI fails if
 one is committed to site/ (built-files-uncommitted).
 
 ## Making a change
@@ -118,6 +128,7 @@ bumps a version for a change; fonts and images are renamed by hand
 | docs/design.md | the look: the owner's briefs, verbatim |
 | docs/world.md | src/world/, the realms, the sky, the plan |
 | docs/birds.md | src/birds/ (the ink birds and the wing model) |
+| docs/sound.md | src/sound.js, src/score.js, site/assets/sound/ (the icon, the score, its notes) |
 | docs/css.md, docs/js.md, docs/type.md | site/style.css, site.js, the lettering |
 | docs/fonts-performance.md | fonts, subsets, load budget |
 | docs/caching.md | _headers' caching, names, the shader cache |

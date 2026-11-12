@@ -6,7 +6,9 @@ interface Navigator { deviceMemory?: number; gpu?: unknown }
 interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number }
 interface EventListenerOptions { passive?: boolean }
 // window.WORLD (510): what the realm scripts and the ink birds register with and read; forms is set by realm-kit.js
-interface WorldApi { realm(def: object): void; kit: KitApi; birds(factory: Function): void; stamp(name: string): void; forms?: any }
+interface WorldApi { realm(def: object): void; kit: KitApi; birds(factory: Function): void; sky(): SkyFeed | null; stamp(name: string): void; forms?: any }
+// WORLD.sky() (512): the score's read-only copy of the sky (docs/sound.md)
+interface SkyFeed { t: number; seq: { id: string; at: number; hold: number; move: number; far: boolean }[]; wc: number; still: boolean; seed: number }
 interface Window { WORLD: WorldApi }
 // The world's shared objects (their members are set across sections, so tsc cannot infer them from one literal):
 // a render target (080's target(), 383's sceneTwin) and a multisampled one (383's targetMS); the window's targets,

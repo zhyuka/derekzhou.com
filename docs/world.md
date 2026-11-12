@@ -198,7 +198,7 @@ hold, the page paints at once with the hour's still sky (the stylesheet's, per t
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The kits, the wing model
 and the ink birds only define at their top level (each hands itself
-to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
+to the world, WORLD.forms, WORLD.realm or WORLD.birds (WORLD.sky is the score's read-only feed: docs/sound.md), or puts its one
 global on self); the world's also sets the browser's bar to the top
 of the hour's still sky, draws the visit's seed and starts the plan's
 worker. The boot starts in the first animation frame after the realms

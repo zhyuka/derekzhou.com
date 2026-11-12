@@ -13,7 +13,9 @@ External JS and CSS files (enables strict CSP with no unsafe-inline —
 CI greps index.html and 404.html for inline style, handlers and script).
 site/\_headers: script-src 'self' https://static.cloudflareinsights.com;
 style-src 'self'; connect-src https://cloudflareinsights.com
-https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; form-action 'none'; HSTS with preload;
+https://derekzhou.com/cdn-cgi/rum (the home page's, / and /index.html, with 'self' first:
+the sound icon's one sheet of notes, fetched only at the press, 2026-11-07; 404.html's
+without); frame-ancestors 'none'; form-action 'none'; HSTS with preload;
 COOP + CORP same-origin; Referrer-Policy no-referrer; broad
 Permissions-Policy denial (the accelerometer and the gyroscope included:
 the owner kept Android drag-only on 2026-11-06, so the world adds no
@@ -26,7 +28,11 @@ block in \_headers (/plan.js: immutable, default-src 'none'; a
 worker's policy is its script's headers, not the page's, and no other
 rule sets one on that path).
 Otherwise WebGL2 from same-origin scripts, that one worker, no blobs,
-no fetches, no eval; the site's own code
+no fetches but one, no eval; Web Audio only after the visitor presses the sound icon
+(the switch, sound.js, makes the one AudioContext inside that press and fetches its one
+sheet of notes, a literal /assets/sound/ path from 'self', hence the home page's connect-src
+'self'; no module, worklet or media element; Permissions-Policy's autoplay=() stays, as
+a press is a user gesture, and CI's sound check plays it under that header); the site's own code
 is blind (no telemetry, no beacon, no store). The one exception is
 Cloudflare Web Analytics (the owner, 2026-11-03: "yes we need
 analytics"): cookieless, injected by Cloudflare, not in this repo, its
@@ -55,8 +61,9 @@ below its INIT-END marker, and none at all, nor any clock read, in the
 kits, the wing model, the ink birds or the plan's worker;
 any Math.random or clock read (Date) in the world; performance.now()
 but the world's one clockNow; anything in the hour but its one `new
-Date(`; any URL hook (location., URLSearchParams), sound, network call
-or eval, and any worker but the plan's (one, started by the world by its
+Date(`; any URL hook (location., URLSearchParams), network call
+or eval (but sound.js's one fetch of its literal /assets/sound/ sheet), any sound
+outside sound.js and score.js (the one AudioContext the switch's, made once; the score builds only on it), and any worker but the plan's (one, started by the world by its
 literal name); any dev or record hook (window.__*, window.claude,
 console) or an attribute read on `<html>` but the hour's data-sky and
 data-sky-at; and any `cursor:` rule in the stylesheet (OS cursors

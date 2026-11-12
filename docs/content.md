@@ -41,4 +41,6 @@ Links:
   also listed in the JSON-LD Person sameAs)
 
 Both live in the footer as the plain underlined words "Email" and
-"LinkedIn" (no arrows).
+"LinkedIn" (no arrows). After them, the sound icon (2026-11-07, the owner: "bring it
+back, opt-in"): a button with no visible word, its accessible name "Sound", its state
+aria-pressed (see docs/sound.md).

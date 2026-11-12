@@ -9,7 +9,8 @@
 #      immutable cache block in _headers (the world starts none today).
 #   3  Production blind: every home-scope CSP block in _headers (/, /index.html, /404.html) and 404.html's meta CSP
 #      say exactly script-src 'self' https://static.cloudflareinsights.com and connect-src
-#      https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum (Cloudflare Web Analytics, injected by
+#      https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum (the home blocks / and /index.html: connect-src
+#      'self' first, for the sound icon's one recording, fetched only at the press, 2026-11-07) (Cloudflare Web Analytics, injected by
 #      Cloudflare, reporting to the zone's own /cdn-cgi/rum, that one path; nothing else loads or is reached), and the site carries none of the world's development pages (its diagnostics, control and lab
 #      pages: diag.js, control.*, lab80.*, never shipped).
 #   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js, the ink birds' wing model (facetform,
@@ -93,12 +94,14 @@ if nw > 1: fail('2 worker-targets', f'world*.v*.js: {nw} new Worker( (at most on
 
 # 3 production blind (the one exception: Cloudflare Web Analytics, exactly its two origins)
 CSP_EXACT = {'script-src': "'self' https://static.cloudflareinsights.com", 'connect-src': 'https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum'}
-def csp_bad(policy):
+# (2026-11-07) the home page alone also reaches 'self': the sound icon's one recording, fetched only at the press
+CSP_HOME = dict(CSP_EXACT, **{'connect-src': "'self' https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum"})
+def csp_bad(policy, want_of=CSP_EXACT):
     d = {}
     for part in policy.split(';'):
         w = part.split()
         if w: d.setdefault(w[0], []).append(' '.join(w[1:]))
-    return [f'{k} {d.get(k)!r} (want exactly {want!r})' for k, want in CSP_EXACT.items() if d.get(k) != [want]]
+    return [f'{k} {d.get(k)!r} (want exactly {want!r})' for k, want in want_of.items() if d.get(k) != [want]]
 blocks = {}
 cur = None
 for line in headers.splitlines():
@@ -108,7 +111,7 @@ for path in ('/', '/index.html', '/404.html'):
     csp = [l for l in blocks.get(path, []) if l.startswith('Content-Security-Policy:')]
     if not csp: fail('3 production-blind', f'_headers {path}: no Content-Security-Policy'); continue
     for l in csp:
-        for b in csp_bad(l.split(':', 1)[1]): fail('3 production-blind', f'_headers {path}: CSP {b}')
+        for b in csp_bad(l.split(':', 1)[1], CSP_EXACT if path == '/404.html' else CSP_HOME): fail('3 production-blind', f'_headers {path}: CSP {b}')
 if '/*' in blocks and any(l.startswith('Content-Security-Policy') for l in blocks['/*']): fail('3 production-blind', '_headers: a CSP on /* (it would combine with every page\'s)')
 meta = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html.get('404.html') or '')
 if not meta: fail('3 production-blind', '404.html: no meta CSP')

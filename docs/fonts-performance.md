@@ -55,7 +55,10 @@ Early Hints) and loaded cold three times under Lighthouse's mobile profile
 as sent, about a tenth over its size that day; so do the bytes the first
 paint waits for (the document, the stylesheet, the hour, both fonts) and
 the whole; the first paint's median must be within 1,200 ms (about 630 ms
-that day). A new file needs a budget line; a deliberate growth raises its
+that day). The sound icon's switch (sound.js, 614 B as sent) and its score (score.js, 5,983 B,
+deferred) have lines; its sheet of notes (site/assets/sound/) has none on purpose, as it loads only
+at the visitor's press
+(docs/sound.md). A new file needs a budget line; a deliberate growth raises its
 line in the PR that grows it. tools/loadperf.mjs is the measure: a build
 or a URL, three profiles (desktop; Lighthouse's mobile; Chrome's Slow 4G),
 cold and warm, each request's bytes and timing, medians (one profile and
