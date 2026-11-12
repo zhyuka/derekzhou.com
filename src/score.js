@@ -23,7 +23,7 @@
 
   var NOTES = [[0,36,0.5,5.0,1,0.46542],[0,40,5.65,5.0,1,0.21259],[0,43,10.8,5.0,1,0.18428],[0,47,15.95,5.0,1,0.15703],[0,50,21.1,5.0,1,0.31815],[0,53,26.25,5.0,1,0.25647],[1,55,31.4,5.0,1,0.56921],[1,59,36.55,5.0,1,0.31169],[1,62,41.7,5.0,1,0.38332],[2,62,46.85,5.0,1,0.4439],[2,66,52.0,5.0,1,0.31866],[2,69,57.15,5.0,1,0.41829],[2,72,62.3,5.0,1,0.2508],[2,76,67.45,5.0,1,0.30487],[3,58,72.6,4.0,1,0.12701],[3,62,76.75,4.0,1,0.14562],[3,65,80.9,4.0,1,0.10728],[3,70,85.05,4.0,1,0.1062],[3,74,89.2,4.0,1,0.12793],[3,77,93.35,4.0,1,0.1262],[4,43,97.5,4.0,1,0.19314],[4,46,101.65,4.0,1,0.25987],[4,50,105.8,4.0,1,0.13615],[4,53,109.95,4.0,1,0.12133],[4,57,114.1,4.0,1,0.13613],[4,60,118.25,4.0,1,0.14096],[4,74,122.4,4.0,1,0.15428],[5,28,126.55,4.0,1,0.26297],[5,30,130.7,4.0,1,0.20173],[5,31,134.85,4.0,1,0.15188],[5,34,139.0,4.0,1,0.17654],[6,41,143.15,4.0,1,0.18657],[6,50,147.3,4.0,1,0.17992],[7,41,151.45,4.5,0,0.30174],[7,45,156.1,4.5,0,0.41835],[7,48,160.75,4.5,0,0.34362],[7,52,165.4,4.5,0,0.6044],[7,55,170.05,4.5,0,0.30406],[7,59,174.7,4.5,0,0.41814],[7,62,179.35,4.5,0,0.81824],[7,65,184.0,4.5,0,0.48499],[7,69,188.65,4.5,0,2.02098],[7,72,193.3,4.5,0,0.95475],[7,76,197.95,4.5,0,0.7057],[7,79,202.6,4.5,0,1.5404],[7,83,207.25,4.416,0,1.59554],[7,86,211.816,3.8974,0,3.00466],[8,36,215.8633,6.0,0,0.45523],[8,40,222.0133,6.0,0,0.35217],[8,44,228.1633,6.0,0,0.47107],[8,48,234.3133,6.0,0,0.50064],[8,52,240.4633,6.0,0,0.35333],[8,56,246.6133,6.0,0,0.37035],[8,60,252.7633,6.0,0,0.64495],[8,64,258.9133,6.0,0,0.90187],[8,68,265.0633,6.0,0,0.586],[8,72,271.2133,6.0,0,0.87843],[8,76,277.3633,6.0,0,0.58347],[8,80,283.5133,6.0,0,1.29236],[8,84,289.6633,6.0,0,1.39523]], MARK = 0.2;   // (tools/sound/sheet.py writes this line: [instrument, midi, start s, length s, loops, gain])
   var INST = ['cello', 'viola', 'violin', 'clar', 'horn', 'cbass', 'tuba', 'harp', 'piano'];
-  var H = 10, GAP = 2.5, OUT = 0.66;   // (s: how far ahead it plans; a breath's gap; the output level: about -26 LUFS, measured with tools/sound/render.mjs)
+  var H = 10, GAP = 2.5, OUT = 0.69;   // (s: how far ahead it plans; a breath's gap; the output level: about -26 LUFS, measured with tools/sound/render.mjs)
   var V9 = [0, 7, 16, 23, 26], V69 = [0, 7, 16, 21, 26], VM9 = [0, 7, 15, 22, 26], LIFT = [0, 7, 18, 21, 26];
   var MAJ = [0, 2, 4, 5, 7, 9, 11], LYD = [0, 2, 4, 6, 7, 9, 11], DOR = [0, 2, 3, 5, 7, 9, 10];
   var FMAJ = [[0, V9], [5, V69], [9, VM9], [0, LIFT], [2, VM9], [0, V69]], FLYD = [[0, V9], [0, LIFT], [2, V69], [9, VM9], [4, VM9]];
@@ -40,6 +40,9 @@
   function db(x) { return Math.pow(10, x / 20); }
   function curve(f) { var a = new Float32Array(33); for (var i = 0; i < 33; i++) a[i] = f(i / 32); return a; }
   var UP = curve(function (x) { var s = Math.sin(Math.PI / 2 * x); return s * s; }), DOWN = curve(function (x) { var c = Math.cos(Math.PI / 2 * x); return c * c; });
+  function curveAt(p, c, t, d) {   // (a curve that would overlap another on its parameter throws in Safari: then a plain ramp to its end)
+    try { p.setValueCurveAtTime(c, t, d); } catch (e) { try { p.linearRampToValueAtTime(c[c.length - 1], t + d); } catch (f) { /* the note keeps its level */ } }
+  }
   function scaled(c, k) { var a = new Float32Array(c.length); for (var i = 0; i < c.length; i++) a[i] = c[i] * k; return a; }
   function rng(seed) {   // (the world's own stream, splitmix32, on the seed it hands over)
     var s = seed | 0;
@@ -110,7 +113,7 @@
     }
     function chain(nodes) { for (var j = 0; j < nodes.length - 1; j++) nodes[j].connect(nodes[j + 1]); return nodes[0]; }
     var level = ctx.createGain(); level.gain.value = OUT;
-    var tail = chain([biquad('peaking', 160, 1.2, -3.5), biquad('peaking', 2000, 5.1, -1.1), biquad('peaking', 2519, 5.1, -4), biquad('peaking', 3174, 5.1, -3.1), biquad('peaking', 4000, 5.1, -3.2), biquad('peaking', 3200, 0.8, -3), biquad('highpass', 27, 0.7071), level]);
+    var tail = chain([biquad('peaking', 160, 1.2, -3.5), biquad('peaking', 2200, 0.7, -2.5), biquad('peaking', 2000, 5.1, -1.1), biquad('peaking', 2519, 5.1, -4), biquad('peaking', 3174, 5.1, -3.1), biquad('peaking', 4000, 5.1, -3.2), biquad('peaking', 3200, 0.8, -3), biquad('highpass', 27, 0.7071), level]);
     level.connect(out);
     var mswell = ctx.createGain(), dswell = ctx.createGain(); mswell.connect(tail); dswell.connect(mswell);
     var room = ctx.createConvolver(); room.normalize = false; room.buffer = hall();
@@ -164,28 +167,28 @@
       g1.gain.setValueAtTime(0, at);
       if (e.loop) { s.loop = true; s.loopStart = e.s0; s.loopEnd = e.s0 + e.len; s.start(at, e.s0 + R.f() * e.len * 0.8); }
       else { s.start(at, e.s0); s.stop(at + e.len / rate - 0.02); }
-      if (att > 0.02) g1.gain.setValueCurveAtTime(scaled(UP, A), at, att); else g1.gain.setValueAtTime(A, at);
+      if (att > 0.02) curveAt(g1.gain, scaled(UP, A), at, att); else g1.gain.setValueAtTime(A, at);
       return { s: s, g1: g1, g2: g2, A: A, at: at, att: att, t2: at, m: m, loop: e.loop };
     }
     function release(v, t, rel) {
       if (v.done) return; v.done = true;
       t = Math.max(t, v.at + v.att + 0.05, ctx.currentTime + 0.05);
-      v.g1.gain.setValueCurveAtTime(scaled(DOWN, v.A), t, rel);
+      curveAt(v.g1.gain, scaled(DOWN, v.A), t, rel);
       if (v.loop) v.s.stop(t + rel + 0.05);
     }
     function breathe(v, a, b, rest) {   // (within a chord: a swell of its own, or a rest of a few seconds and back)
       var t0 = Math.max(a, v.t2, ctx.currentTime + 0.05);
       if (rest && b - t0 > 17) {
         var mid = R.r(t0 + 6, b - 11), r = R.r(6, 10);
-        v.g2.gain.setValueCurveAtTime(DOWN, mid + 0.8, 3.5); v.g2.gain.setValueCurveAtTime(UP, mid + r, 4); v.t2 = mid + r + 4.05;
+        curveAt(v.g2.gain, DOWN, mid + 0.8, 3.5); curveAt(v.g2.gain, UP, mid + r, 4); v.t2 = mid + r + 4.05;
         return mid + r;
       }
-      if (b - t0 > 4) { var s = R.r(0.02, 0.24); v.g2.gain.setValueCurveAtTime(curve(function (x) { return 1 + s * Math.sin(Math.PI * x); }), t0, b - t0); v.t2 = b + 0.01; }
+      if (b - t0 > 4) { var s = R.r(0.02, 0.24); curveAt(v.g2.gain, curve(function (x) { return 1 + s * Math.sin(Math.PI * x); }), t0, b - t0); v.t2 = b + 0.01; }
       return 0;
     }
 
     /* the plan */
-    var S = { sky: null, hold: null, chg: null, next: null, swaps: [], C: [], active: {}, deep: null, wc: 0, log: [], figAt: 0, lastFeed: null };
+    var S = { sky: null, hold: null, chg: null, next: null, swaps: [], C: [], active: {}, deep: null, wc: 0, log: [], figAt: 0, swellEnd: 0 };
     function colourAt(t) { var c = SKIES[S.swaps.length ? S.swaps[0][1] : 'bluehour'].col, j; for (j = 0; j < S.swaps.length; j++) if (S.swaps[j][0] <= t) c = S.swaps[j][2]; return c; }
     function lastEnd() { return S.C.length ? S.C[S.C.length - 1].b : null; }
     function newHold(sky, a, first) { S.sky = sky; S.hold = { a: a, k: 0, i: 0, used: false, br: a + R.r(20, 45), brDone: false, first: first || null }; }
@@ -223,12 +226,12 @@
         X = SKIES[S.sky]; Y = SKIES[S.next.to]; M = S.next.M; var c0 = a, steps;
         if (!S.next.far) {
           P = nearPath(X, Y);
-          steps = [[0, 0.15, voiced(tonic(X)[0], tonic(X)[1]), 'change'], [0.15, 0.45, P[0], 'change'], [0.45, 0.75, P[1], 'change']];
+          steps = [[0, 0.12, voiced(tonic(X)[0], tonic(X)[1]), 'change'], [0.12, 0.4, P[0], 'change'], [0.4, 0.75, P[1], 'change']];   // (the major chord in well before the swell peaks on it)
           S.swaps.push([c0 + 0.5 * M, S.next.to, Y.col]); swell(c0 + 0.5 * M);
           S.chg = { a: c0, M: M, to: S.next.to, steps: steps, arrive: voiced(tonic(Y)[0], tonic(Y)[1]) };
         } else {
           steps = [[0, 0.3, voiced(tonic(X)[0], X.minor ? VM9 : V69), 'change'], [0.3, 0.7, mistChord(X, Y), 'mist']];
-          S.swaps.push([c0 + 0.3 * M, null, 'mist']); S.swaps.push([c0 + 0.7 * M, S.next.to, Y.col]); swell(c0 + 0.7 * M + 1.5);
+          S.swaps.push([c0 + 0.3 * M, null, 'mist']); S.swaps.push([c0 + 0.7 * M, S.next.to, Y.col]); swell(c0 + 0.7 * M + 4.5);
           S.chg = { a: c0, M: M, to: S.next.to, steps: steps, arrive: Y.minor ? voiced(Y.key + 3, V9) : voiced(tonic(Y)[0], tonic(Y)[1]) };   // (out of the mist on a major chord: a minor sky's arrives by its relative major)
         }
         S.next = null; commit(now); return;
@@ -293,8 +296,9 @@
     }
     function swell(p) {   // (10 s up to the moment the colour changes, 2 s held, 9 s settling: all +2.5 dB, the deep end +6.5)
       var t0 = Math.max(p - 11, ctx.currentTime + 0.05);
-      mswell.gain.setValueCurveAtTime(curve(function (x) { var u = x * 21, e = u < 10 ? Math.pow(Math.sin(Math.PI / 2 * u / 10), 2) : u < 12 ? 1 : Math.pow(Math.cos(Math.PI / 2 * (u - 12) / 9), 2); return db(2.5 * e); }), t0, 21);
-      dswell.gain.setValueCurveAtTime(curve(function (x) { var u = x * 21, e = u < 10 ? Math.pow(Math.sin(Math.PI / 2 * u / 10), 2) : u < 12 ? 1 : Math.pow(Math.cos(Math.PI / 2 * (u - 12) / 9), 2); return db(4 * e); }), t0, 21);
+      if (t0 < S.swellEnd) return; S.swellEnd = t0 + 21.05;   // (never two at once: a change hard on another's heels swells once)
+      curveAt(mswell.gain, curve(function (x) { var u = x * 21, e = u < 10 ? Math.pow(Math.sin(Math.PI / 2 * u / 10), 2) : u < 12 ? 1 : Math.pow(Math.cos(Math.PI / 2 * (u - 12) / 9), 2); return db(2.5 * e); }), t0, 21);
+      curveAt(dswell.gain, curve(function (x) { var u = x * 21, e = u < 10 ? Math.pow(Math.sin(Math.PI / 2 * u / 10), 2) : u < 12 ? 1 : Math.pow(Math.cos(Math.PI / 2 * (u - 12) / 9), 2); return db(4 * e); }), t0, 21);
     }
 
     /* the gestures: now and then the colour on top says two or three notes, then nothing for a while; each a tone of
@@ -310,9 +314,9 @@
     function run(p, j0, k) { var o = [p[j0]]; for (var j = j0 + 1; j < p.length && o.length < k; j++) if (p[j] - o[o.length - 1] >= 3) o.push(p[j]); return o; }
     function gestures(now) {
       if (!S.figAt) S.figAt = now + R.r(9, 16);
-      while (S.figAt < now + H - 6 && S.figAt < lastEnd() - 1) {
+      while (S.figAt < now + H - 6 && S.figAt < lastEnd() - 8) {   // (only where the chord after is known: a gesture lasts up to six seconds)
         var t = S.figAt, c = chordAt(t), col = colourAt(t), p, seq, j;
-        var bad = !c || col === 'mist' || c.tag === 'mist' || S.C.some(function (x) { return t - x.a > -2 && t - x.a < 4.5; }) || S.C.some(function (x) { return x.br && t > x.a - 1 && t < x.a + GAP + 5; });
+        var bad = !c || col === 'mist' || c.tag === 'mist' || S.C.some(function (x) { return t - x.a > -8 && t - x.a < 4.5; }) || S.C.some(function (x) { return x.br && t > x.a - 1 && t < x.a + GAP + 5; });
         if (bad) { S.figAt += 2.5; continue; }
         if (col === 'horn' && (p = pool(t, 53, 70, 5)).length >= 2) {
           var lo = p.filter(function (m) { return m <= 62; }), m1 = (lo.length ? lo : p)[R.i((lo.length ? lo : p).length)], up = p.filter(function (m) { return m - m1 >= 5 && m - m1 <= 7; });
@@ -332,7 +336,7 @@
           var total = R.r(3.8, 5.2), w = seq.map(function () { return R.r(0.7, 1); }); w[w.length - 1] *= 2; var ws = w.reduce(function (x, y) { return x + y; }, 0), tc = t;
           seq.forEach(function (m, k) {   // (legato: each note into the next, the last held longer; a sigh)
             var last = k === seq.length - 1, dd = w[k] / ws * total, v = voice(col === 'clar' ? 'clar' : 'violin', m, tc, -13 + 1.6 * Math.sin(Math.PI * Math.min(1, (tc - t + dd / 2) / total / 0.8)) - 0.8, k ? 0.07 : 0.35, 0.3);
-            release(v, tc + dd + (last ? 0 : 0.12) - (last ? 0 : 0.16), last ? 1.1 : 0.16); S.log.push([m, tc + 0.3, tc + dd + (last ? 0.6 : 0)]); tc += dd;
+            release(v, last ? tc + dd : tc + dd - 0.16, last ? 1.1 : 0.16); S.log.push([m, tc + 0.3, tc + dd + (last ? 0.6 : 0)]); tc += dd;   // (each note gone as the next begins: no two at once)
           });
         }
         S.figAt = t + R.r(11, 22);

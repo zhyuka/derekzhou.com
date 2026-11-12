@@ -76,8 +76,10 @@ What it plays (sketch round seventeen, the owner's pick):
   hold ahead): a near change goes through two chords both keys share, the second a major chord of the new key; a
   far change thins to the strings alone on a mist chord (notes both keys share, in the middle) and grows the new sky
   out of it (a minor sky arrives by its relative major). The colour changes halfway; the music swells to that
-  moment (all +2.5 dB, the deep end +6.5 dB: 10 s up, 2 s held, 9 s down), always on a major chord. If the world is
-  already changing when the score looks (a late press), it catches up, sooner and shorter.
+  moment (all +2.5 dB, the deep end +6.5 dB: 10 s up, 2 s held, 9 s down), always on a major chord that is already
+  sounding in full (a near change's major chord comes in at 40% of the change, the swell peaks at 50%; out of the mist
+  it peaks 4.5 s into the arriving chord). Never two swells at once. If the world is already changing when the score
+  looks (a late press), it catches up, sooner and shorter.
 - **Never a clash**: no two notes closer than a minor third at once; low down (below C3) nothing closer than a fifth.
 - **The room and the air**: a long dark room (4.2 s low, 1.8 s high); a faint air (two slow noises, a billow and a
   stream, drifting on 7 to 29 s cycles; over the cloud the billow eases and the stream rises) about 22 dB under it.
@@ -116,17 +118,29 @@ line in src/sound.js and the NOTES line (the index: instrument, pitch, start, le
 `node tools/sound/render.mjs OUT.wav [SECONDS]` plays the score in headless Chromium, offline (an
 OfflineAudioContext, in the tool only), against a scripted flight (afterglow; a near change to the Milky Way; the
 dunes giving way to cloud; a far change through the mist to blue hour; a near change to the moonlit sea) and prints
-its loudness. Measured 2026-11-12 over 456 s, against round seventeen's render: -26 LUFS integrated (OUT in
-score.js sets it), LRA 5.5 LU, true peak -11 dBFS; sharpness, slow pulsing and roughness at or below round
-seventeen's; 41% of the energy under 200 Hz (round seventeen 40.5%); third-octave balance within about 1.5 dB from
-250 Hz to 6 kHz. Change OUT only with a measurement.
+its loudness. Measured 2026-11-12 over 456 s, against round seventeen's render (the take the owner approved):
+
+- loudness: -26.0 LUFS integrated (OUT in score.js sets it), every sky within 0.8 LU, LRA 6 LU, true peak -10 dBFS;
+- balance: within 0.7 dB of round seventeen in every band from 30 Hz to 8 kHz (a 2.5 dB dip at 2.2 kHz and one at
+  160 Hz match it: the browser's mix came out a little brighter and fuller there);
+- the standard sound-quality metrics (MoSQITo: ISO 532-1 loudness, DIN 45692 sharpness, Daniel and Weber roughness),
+  one 20 s stretch a sky, both takes at the same loudness: sharpness 0.60-0.73 acum (round seventeen 0.61-0.72),
+  roughness 0.012-0.019 asper (0.013-0.014): both far under where either is noticed;
+- an independent ear (YAMNet, trained on AudioSet's 521 kinds of sound, through Essentia), checked first against the
+  owner's own verdicts: it hears round twelve, the "alarm", as "Sine wave", "Effects unit" and "Distortion"; round
+  thirteen's third sound, which hurt, as an "Electronic tuner"; round sixteen's underwater 2:45 as "Electronic music"
+  where the rest of it is "Orchestra". The live score: "Orchestra", "French horn", "Ambient music"; its synthetic
+  score (sine wave, tuner, effects, synthesizer, alarm, siren, rumble) a median 0.010 over 10 s windows, round
+  seventeen's 0.016. (Its mood models call everything relaxed, round twelve too, so they decide nothing.)
+
+Change OUT only with a measurement.
 
 ## What it costs
 
 | what | bytes | when |
 |---|---|---|
-| sound.js | 1,406 minified, 591 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 15,742 minified, 5,874 as sent | every visit, deferred, low priority (36-load-budget: 6.5 KB) |
+| sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
+| score.js | 15,937 minified, 5,983 as sent | every visit, deferred, low priority (36-load-budget: 6.5 KB) |
 | the sheet | about 3.5 MB | only at the first press |
 
 The sheet has no line in 36-load-budget on purpose: a cold visit never loads it, so if one ever did, it would fail
@@ -163,11 +177,17 @@ Its plant renames `window.SCORE` in the built score.js, and the check fails on i
 
 ## The unit test (test/unit/sound.mjs)
 
-Plays score.js against a stand-in audio context and the same scripted flight, with no browser, and reads every note
-back from its start, swell and release. It fails when two notes sound closer than a minor third, low notes closer than
-a fifth, or two deep notes at once; when a colour plays outside its sky or a deep note sounds in the mist; or when the
-same seed does not play the same notes (another seed must play others). Its plant lets a note that moves by a step
-come in before its neighbour lets go.
+Plays score.js against a stand-in audio context, with no browser, and reads every note back from its start, swell
+and release. On the scripted flight it fails when two notes sound closer than a minor third, low notes closer than a
+fifth, or two deep notes at once; when a colour plays outside its sky or a deep note sounds in the mist; or when the
+same seed does not play the same notes (another seed must play others). Then every sky change the world can make
+(all thirty, near or far by the world's own near lists in 220-time-day.js) must keep those rules, swell once, on a
+major chord, and thin to a mist of three notes or more; and two hours of a flight ordered as the world orders it must
+keep them, with as many notes in the second hour as in the first. About 20 s. Its plant lets a note that moves by a
+step come in before its neighbour lets go.
+
+Every automation curve goes through one guard (curveAt): Safari throws on a curve that overlaps another on the same
+parameter, so a curve that would is played as a plain ramp to its end instead.
 
 ## Verify before it ships
 
