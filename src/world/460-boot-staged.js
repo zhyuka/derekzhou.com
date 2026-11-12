@@ -87,6 +87,20 @@
       return;
     }
     STILLTS = -1;
+    if (HELD) {   // the world held (hold): stage H's check, the frame drawn whole once, then put up again with the ink birds moving over it
+      if (!shown && !BOOT.hOk) { stageH(); return; }
+      var hf = HDRAW; HDRAW = false;
+      if (NEEDSIZE) { NEEDSIZE = false; resize(); hf = true; if (REC) recResized(); }
+      if (shown && BIRDS && SW.birds && !SW.noanim && lateBirds()) {
+        HACC += Math.min(dt, 100) / 1000; var hn = 0; BIRDB.spent = 0;
+        while (HACC >= SIM_DT && hn < NMAX) { BIRDB.at = clockNow(); BIRDS.step(SIM_DT); BIRDB.spent += clockNow() - BIRDB.at; BIRDB.at = 0; HACC -= SIM_DT; hn++; }
+        if (hn >= NMAX) HACC = 0;
+        HALPHA = clamp(HACC / SIM_DT, 0, 1);
+      }
+      if (!shown || hf) render(); else { lateStep(); lateWarmProgs(); if (!represent()) render(); }
+      gl.flush();
+      return;
+    }
     if (shown && (!WARM.done || !GS.done)) { bootTail(); return; }   // (reduced motion ended: F and G behind the still, then the flight)
     // the read-back and the frame's fence (design-v5 4.3 steps 2-3, 7.5)
     var fd = fenceDue();

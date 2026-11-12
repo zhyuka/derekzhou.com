@@ -10,7 +10,7 @@
      the period (a 30 fps cap is then simply the pace). No step is taken while one is on trial. Twenty seconds at ease
      step back up. The floor: ten seconds at under half the pace at the last rung, or under 15 fps with the period
      learnt at its 50 ms ceiling (a cost the scale cannot touch: vertex work, the CPU, the driver) at any rung, give
-     up: the loop stops and the still sky stays. */
+     up: the world is held (hold, giveUp). */
   var GOVD = new Float32Array(120), GOVS = new Float32Array(120), GOVN = new Float64Array(18), FRAME60 = 1000 / 60;
   /* the first ascent: QUP[0] the governor's seconds since the world showed, QUP[1] 1 until its first
      step down; while both hold (the first QUP_S s), QUP_EASE s at ease step up a rung (else GOVN[11], 20 s) */
@@ -60,8 +60,15 @@
      forced colours, the record's quiet tail) the realm it was drawing is marked, once, so the words the stylesheet then
      gives (the realm's, dark) are the words that were showing */
   function markStill() { if (SKYMARK && root.getAttribute('data-sky') !== SKYMARK) root.setAttribute('data-sky', SKYMARK); skyThemeStill(SKYMARK || root.getAttribute('data-sky')); }   // (the browser's bar takes the still's top; never shown, the hour's group's still)
-  function giveUp() { DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('gave up'); }
-  /* the boot declines (stage G's floor not met, a first frame doubted twice, a broken engine program): the canvas never
+  /* (the owner, 2026-11-12: "a, the still world") too slow to move the world: it is HELD. Drawn whole once at the tier's
+     top, however slow, then put up again each frame (represent) with the ink birds flying over it: no flight, no sky
+     cycle, no drag. A boot whose 0.35 trial misses the floor, a GPU named too slow (SLOW_GPU) and the governor's give-up
+     all hold; reduced motion keeps its own still (the birds still too). HDRAW: the next held frame drawn whole; HACC,
+     HALPHA: the ink birds' own clock while held (fixed steps, as the flight's) */
+  var HELD = false, HDRAW = false, HACC = 0, HALPHA = 1;
+  function hold(why) { if (!HELD) { HELD = true; HDRAW = true; HACC = 0; BOOT.held = why; bootMark('held: ' + why); recMark('held: ' + why); } }
+  function giveUp() { if (shown && !LOST) { RUNG = 0; hold('the governor gave up'); return; } DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('gave up'); }
+  /* the boot declines (a first frame doubted twice, a broken engine program; stage G's floor now holds): the canvas never
      shows; the hour's still sky stays */
   function decline(why) { DEAD = true; GAVEUP = true; BOOT.declined = why; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('declined: ' + why); fail('declined: ' + why); }
   function render() {
