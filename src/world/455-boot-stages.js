@@ -34,7 +34,11 @@
   var BOOT = { st: 'A', marks: [], frames: 0, slices: [], sliceMax: 0, sliceOver: 0, ts: [], cDone: false, cDoneF: -1, world: false, bake: 1024, dBaked: 0, dr: 0, guarded: 0, gq: [], g0: false, hOk: false, hFails: 0, thumb: null, declined: null, restore: false, shownAt: -1, startAt: -1,
     fts: [] };   // (Fix 2: fts every boot frame's [frame, rAF time])
   var CORE_LATE = ['birds:ink', 'birds:paper', 'engine.creature', 'engine.glow', 'engine.beam'];   // (fast500 F0: the programs the first frame never draws with: research_staged-core)
-  function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); }
+  function bootMark(name) { BOOT.marks.push([name, +clockNow().toFixed(1), FRAMEN]); recMark('boot ' + name); if (self.PROBE) self.PROBE(name, clockNow()); }
+  function probeInfo() {   // (PREVIEW ONLY)
+    var sl = BOOT.slices.slice().sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3).map(function (x) { return Math.round(x[1]) + ' ms f' + x[0] + ' ' + String(x[2]).slice(0, 30); });
+    return { par: !!EXT.par, path: EXT.parWK ? 'webkit-all' : EXT.parAll ? 'all-at-once' : EXT.issueAll ? 'issue-all (no ext)' : 'one-at-a-time', progs: PROGS.length, keys: WARM.list ? WARM.list.length : 0, q: WARM.q && WARM.q.length ? Math.max.apply(null, WARM.q) : -1, slow: sl, renderer: EXT.renderer };
+  }
   function bootReset(restore) {
     BOOT.st = 'B'; BOOT.cDone = false; BOOT.cDoneF = -1; BOOT.world = false; BOOT.bake = BOOT_BAKE0; BOOT.dBaked = 0; BOOT.gq = []; BOOT.g0 = false; BOOT.hOk = false; BOOT.hFails = 0; BOOT.restore = !!restore;
     PROGX.compiled = PROGX.linked = PROGX.finished = PROGX.broken = 0; PROGX.cur = null; PORDER = null;
