@@ -8,7 +8,9 @@
 //   - the same seed plays the same notes, another seed others;
 //   - every sky change the world can make (all thirty: near, or far through the mist, as the world's own near lists
 //     say) keeps the spacing rules, swells on a major chord and thins to a mist of three notes or more;
-//   - two hours of a flight ordered as the world orders it: the rules hold, and nothing piles up.
+//   - two hours of a flight ordered as the world orders it: the rules hold, and nothing piles up;
+//   - over those two hours the strings are never all there for long (the passages: five or more voices under 40% of
+//     the time, never past 75 s at a stretch; two or fewer over 25% of it).
 // plant: {"file": "src/score.js", "find": "return m !== n && (Math.abs(m - n) <= 2 ||", "with": "return m !== n && (Math.abs(m - n) <= 0 ||", "why": "a note that moves by a step comes in before its neighbour lets go"}
 import { test, assert, fs, path, vm, ROOT } from '../unit-lib.mjs';
 
@@ -103,18 +105,35 @@ test('sound: every sky change the world can make keeps the rules, swells on a ma
     if (far) { const mist = new Set(n.filter((v) => STRINGS.includes(v.inst) && v.a <= 88.5 && 88.5 <= v.b).map((v) => v.m)); assert.ok(mist.size >= 3, `${tag}: the mist has ${mist.size} notes`); }
   }
 });
-test('sound: two hours of a flight ordered as the world orders it: the rules hold and nothing piles up', () => {
+function long() {   // (two hours of a flight ordered as the world orders it: never one of the last two; near, or now and then far)
+  if (long.v) return long.v;
   let r = 7 >>> 0; const f = () => ((r = (Math.imul(r ^ (r >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0) / 4294967296);
   const F = [], ids = Object.keys(NEAR); let id = 'bluehour', at = 0;
-  while (at < 7300) {   // (as the world's: never one of the last two; near, or now and then far)
+  while (at < 7300) {
     const hold = HOLD[id] * (0.9 + 0.25 * f()), move = 55 + 5 * f(), recent = F.slice(-2).map((e) => e.id).concat(id);
     const farNow = f() < 0.3, pool = (farNow ? ids : NEAR[id]).filter((k) => !recent.includes(k)), next = pool.length ? pool[Math.floor(f() * pool.length)] : ids.find((k) => k !== id);
     F.push({ id, at, hold, move, far: !NEAR[id].includes(next) }); at += hold + move; id = next;
   }
-  const n = play(11, F, 7200), sp = spacing(n, 7200);
+  return (long.v = { F, n: play(11, F, 7200) });
+}
+test('sound: two hours of a flight ordered as the world orders it: the rules hold and nothing piles up', () => {
+  const { F, n } = long(), sp = spacing(n, 7200);
   assert.ok(sp.worst >= 3 && sp.low === 0 && sp.deep === 0, `the rules: closest ${sp.worst}, low ${sp.low}, deep ${sp.deep}`);
   const h1 = n.filter((v) => v.when < 3600).length, h2 = n.length - h1;
   assert.ok(h2 > 0.75 * h1 && h2 < 1.33 * h1, `notes an hour: ${h1}, then ${h2}`);
   assert.ok(sp.most <= 16, `at most ${sp.most} pitches sounding at once`);
   assert.ok(n.swells.length >= F.filter((e) => e.at + e.hold < 7100).length - 1, `${n.swells.length} swells for ${F.length - 1} changes`);
+});
+test('sound: the strings are never all there for long: the texture keeps changing, passage by passage, over two hours', () => {
+  const s = long().n.filter((v) => STRINGS.includes(v.inst)).sort((x, y) => x.a - y.a), on = new Map(); let i = 0, full = 0, few = 0, total = 0, run = 0, longest = 0;
+  for (let t = 10; t < 7180; t += 0.5) {   // (the string pitches sounding, every half second)
+    while (i < s.length && s[i].a <= t) { const v = s[i++]; on.set(v, v.b); }
+    for (const [v, b] of on) if (b < t) on.delete(v);
+    const k = new Set([...on.keys()].map((v) => v.m)).size; total++;
+    if (k >= 5) { full++; run += 0.5; longest = Math.max(longest, run); } else run = 0;
+    if (k <= 2) few++;
+  }
+  assert.ok(full / total < 0.4, `all the strings (five or more) ${Math.round(100 * full / total)}% of the time (want under 40%)`);
+  assert.ok(longest <= 75, `all the strings for ${longest} s at a stretch (want 75 s at most)`);
+  assert.ok(few / total > 0.25, `two strings or fewer only ${Math.round(100 * few / total)}% of the time (want over 25%)`);
 });
