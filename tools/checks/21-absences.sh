@@ -110,6 +110,12 @@ if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b'
   echo "::error::$HOUR must read the clock exactly once (new Date), draw entropy exactly once (getRandomValues) and nothing else"
   fail=1
 fi
+# the openings' count is one number: the hour picks k = read % N for the still, the world k = read % OPENN for its seed
+HN=$(grep -oE 'var N = [0-9]+,' $HOUR | grep -oE '[0-9]+' || true); WN=$(grep -oE 'OPENN = [0-9]+,' $WORLD | grep -oE '[0-9]+' || true)
+if [ -z "$HN" ] || [ "$HN" != "$WN" ]; then
+  echo "::error::the openings' count: $HOUR's N ($HN) and the world's OPENN ($WN) must be one number"
+  fail=1
+fi
 # (5) no URL hook, no sound until the visitor presses the sound icon, no network, no custom cursor: sound only in the
 # switch (the owner, 2026-11-07: "bring it back, opt-in"), the one audio context made by it alone, inside its click
 # handler (38-sound proves it is made at the press and never before); the score (score.js, 2026-11-12) only builds on

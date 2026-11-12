@@ -402,9 +402,10 @@ when they end, on at load too; print: none of it.
 
 A visit opens on one of a set: the hour's sky (hour.js's six times of day)
 by N seeds (N 16 in hour.js: 96 openings; the owner, 2026-11-12: "Yes to
-both, go with 96"). hour.js's one entropy read picks the seed, k of N
-(opening k's seed (11 + k * 0x9e3779b9) mod 2^32, written as data-seed),
-before the first paint, and asks for that opening's still: the world's
+both, go with 96"). hour.js's one entropy read, written whole as
+data-seed, picks the seed, k = read mod N (opening k's seed: (11 + k *
+0x9e3779b9) mod 2^32, the world's OPENN and SEED0), before the first
+paint, and asks for that opening's still: the world's
 first frame for it, baked on the 4090 for the window's shape (twelve
 shapes: the frustum's bands; portrait below h/w 1.893 the shorter still,
 above it the taller, landscape the narrower) and the memory tier (lo: the
@@ -425,11 +426,19 @@ not baked.
 
 ## THE WEATHER (=rand())
 
-One crypto.getRandomValues, in hour.js, picks the visit's opening (## THE
-OPENINGS); the world takes that opening's seed (data-seed) as the visit's
-seed, split into splitmix32 streams and integer hashes (the
-same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The world, the realm and kit files, the wing model, the ink birds and the
+One crypto.getRandomValues, in hour.js, written whole as data-seed: it
+picks the visit's opening (## THE OPENINGS) and seeds all that follows.
+The opening's seed (SEED0) is the world's for all that is on screen at the
+cut: the land and its cells (the land's field and the cells' hashes hang
+on it for the whole visit), the opening sky, its light, the moon's side,
+the galaxy's lie, the first heading, the ink birds' noise and the flocks
+on show. The frame after the show (afterCut) the read itself (SEEDR)
+takes over the rest: the sky order after the skies on show, the events on
+the way, the ink birds' later flocks and the population's stream, the
+score's seed and the idle's ease. Both are split into splitmix32 streams
+and integer hashes (the same in JS and GLSL, bit for bit). So the land
+along a visit's flight is one of 16 (the opening's seed; the sky is the
+hour's), and what happens over it is the visit's own. The world, the realm and kit files, the wing model, the ink birds and the
 plan's worker draw nothing of their own (the worker is
 handed the visit's seed): the hour's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read

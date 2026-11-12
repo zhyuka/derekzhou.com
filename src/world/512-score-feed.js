@@ -10,5 +10,5 @@
     var seq = SKY.seq, i = SKY.i, out = [], k;
     if (!seq.length || i < 0) return null;
     for (k = i; k < seq.length; k++) out.push({ id: seq[k].id, at: seq[k].at, hold: seq[k].hold, move: seq[k].move, far: !!seq[k].far });
-    return { t: SIM.t + SKY.dt, seq: out, wc: MAPS.w ? kitAt(CS.x, CS.z).wC : 0, still: reduced() || STILLMODE, seed: subseed(J.seed, 97) >>> 0 };
+    return { t: SIM.t + SKY.dt, seq: out, wc: MAPS.w ? kitAt(CS.x, CS.z).wC : 0, still: reduced() || STILLMODE, seed: subseed(shown ? SEEDR : J.seed, 97) >>> 0 };   // (the score plays after the cut: the visit's own read)
   }

@@ -195,7 +195,7 @@
       return out;
     },
     /* randomness: a stream from the visit's weather (the journey's seed and a salt): never any other */
-    rng: function (salt) { return splitmix32(subseed(J.seed, salt)); },
+    rng: function (salt) { return splitmix32(subseed(AFTER ? SEEDR : J.seed, salt)); },   // (after the cut: the visit's own read)
     reduced: function () { return reduced() && !STILLMODE; },
     dev: DEVMODE,
     count: function (draws, inst) { ST.draws += draws; ST.inst += inst; ST.tris += 2 * inst; }

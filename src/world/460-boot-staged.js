@@ -59,12 +59,22 @@
     if (!GS.done) { var ok = stageG(); if (!represent()) render(); return ok; }
     return true;
   }
+  /* (the cut, once: the frame after the show) the visit's own read (SEEDR) seeds all that is not on screen at the cut:
+     the sky order after the skies on show, the events on the way, the ink birds' later flocks (their visit seed mixed;
+     the flocks on show keep theirs) and, by shown, the score and the idle's ease (their own lines) */
+  function afterCut() {
+    AFTER = true;
+    if (SKY.seq && SKY.seq.length && SKY.i >= 0) skyReseed(SEEDR);
+    if (J.V && J.V.evRng) J.V.evRng = RNG(subseed(SEEDR, 5));
+    if (BIRDS && BIRDS.after) BIRDS.after(subseed(SEEDR, 0xB1D5));
+  }
   function frameBody(ts) {
     var dt = CLK[1] === -2 ? HOLD_P : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; FRAMEN++;   // (first-paint preview: -2, the first animation frame after the hold, one hold frame on)
     var dtRaw = dt;   // (the interval itself, for the bake's learning)
     if (TSCALE !== 1) dt *= TSCALE;
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
     if (gl.isContextLost()) return;
+    if (shown && !AFTER) afterCut();   // (the frame after the show: the visit's own read seeds all after the cut)
     prof('frame');
     if (!READY && !TG) resize();   // (speed E12: a canvas not laid out at boot() made no targets: made in the first frame it is; fast500's deep sweep: so are a boot's or a restore's under forced colours, which make none, once they end)
     if (!READY) { if (REC && REC.bootStartAt < 0) { REC.bootStartAt = clockNow(); recMark('boot: first frame'); } bootFrame(ts); prof('boot'); if (!READY || reduced()) return; }   // (fast500 step 10: once READY, on to stage H in this frame; the show the next)

@@ -20,7 +20,7 @@ and streams (## THE WEATHER). docs/verify.md before anything visible ships.
   (NNN-slug.ship.js) beside the world's parts.
 - Never darken the background, never fade, never mask a bird, never read the words (no-darkening, no-fades,
   no-masking-boxes; W7 and world_rules.py check them).
-- No entropy in the world (hour.js's one read picks the opening; the world reads its seed, data-seed); no clock but
+- No entropy in the world (hour.js's one read, data-seed, picks the opening and seeds all after the cut); no clock but
   clockNow(); no Date or Math.random; listeners only in the world, by name (one-entropy-one-clock, absence-*).
 - A shader's text changed: nothing derived is committed (same-shaders); the gate's census and T2 compare the base's
   build with the head's.
