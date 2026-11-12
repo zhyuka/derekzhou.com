@@ -67,6 +67,21 @@
      HALPHA: the ink birds' own clock while held (fixed steps, as the flight's) */
   var HELD = false, HDRAW = false, HACC = 0, HALPHA = 1;
   function hold(why) { if (!HELD) { HELD = true; HDRAW = true; HACC = 0; BOOT.held = why; bootMark('held: ' + why); recMark('held: ' + why); } }
+  /* (held, its memory) once the held frame is drawn and the frame lives in TG.win (the world under the canvas's size: not
+     DIRECT; every phone of the held tier), the targets that neither represent's blit nor the ink birds read are freed:
+     the scene's samples and colours, the clouds' accumulation but the one shown (CLT), the land's half-resolution
+     colour, the bloom's chain but its first, the shafts'. Kept: TG.win, the scene's depth, the clouds', the bloom's
+     first and the half-resolution depth (HOST.bindTextures). A resize or a restore makes them all again (allocTargets) */
+  function heldFree() {
+    if (DIRECT || !TG || TG.held) return;
+    TG.held = true;
+    freeMS(TG.ms); TG.ms = null;
+    gl.deleteTexture(TG.scene.t); if (TG.sceneH) gl.deleteTexture(TG.sceneH.t);
+    TG.ch.forEach(function (T) { if (T !== CLT) freeTarget(T); });
+    gl.deleteTexture(TG.lind.t); TG.bd.forEach(freeTarget); TG.bu.forEach(function (T, i) { if (i) freeTarget(T); }); freeTarget(TG.sb);
+    bootMark('held: targets freed');
+  }
+  function heldDraw() { if (TG && TG.held) allocTargets(); if (render()) heldFree(); }   // (drawn whole: never on freed targets)
   function giveUp() { if (shown && !LOST) { RUNG = 0; hold('the governor gave up'); return; } DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('gave up'); }
   /* the boot declines (a first frame doubted twice, a broken engine program; stage G's floor now holds): the canvas never
      shows; the hour's still sky stays */

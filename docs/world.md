@@ -363,7 +363,11 @@ leaving the still sky. It is drawn whole once at the tier's top, however
 slow, shown as a cut, then put up again every frame (represent: the
 composite or its copy) with the ink birds flying over it on their own fixed
 steps. Nothing else moves: no flight, no sky cycle, a drag steers nothing;
-the governor does not run. A resize draws it whole again. Reduced motion
+the governor does not run. Once held, where the frame lives in TG.win
+(the world under the canvas's size: every phone of that tier), the targets
+neither that copy nor the ink birds read are freed (heldFree: 14.8 to 7.9 MB
+of textures at a 4 GB Android's tier on a 393x852 phone). A resize draws it
+whole again, its targets made again first. Reduced motion
 keeps its own still (the birds still too).
 
 ## FALLBACKS

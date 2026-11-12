@@ -97,7 +97,7 @@
         if (hn >= NMAX) HACC = 0;
         HALPHA = clamp(HACC / SIM_DT, 0, 1);
       }
-      if (!shown || hf) render(); else { lateStep(); lateWarmProgs(); if (!represent()) render(); }
+      if (!shown || hf) heldDraw(); else { lateStep(); lateWarmProgs(); if (!represent()) heldDraw(); }
       gl.flush();
       return;
     }
