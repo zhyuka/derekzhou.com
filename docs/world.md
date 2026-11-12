@@ -411,7 +411,9 @@ above it the taller, landscape the narrower) and the memory tier (lo: the
 phones the world gives its least memory, Android under 8 GB; hi: the
 rest) by tools/gpu/bake-stills.js, named <sky>-<k>-<tier>-<W>x<H>.avif.
 The build copies the stills from an input folder (STILLS_DIR, or stills/,
-never committed) into assets/still/. The stylesheet shows the still as
+never committed) into assets/still/, and only the bake's own: each named
+in the folder's bake.json with its bytes' sha256 (anything else stops
+the build). The stylesheet shows the still as
 the body's ::before, the canvas's box, cropped as the canvas is; the world
 opens at the still's own view (its frustum and pose, cropped as cover
 crops it) and settles to the window's own in about a second (SVTAU 0.35

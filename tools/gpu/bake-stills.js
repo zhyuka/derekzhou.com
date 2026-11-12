@@ -1,6 +1,6 @@
 'use strict';
 // bake-stills.js (tools/gpu): the openings' stills, baked on the 4090 in ONE browser kept open.
-//   node tools/gpu/bake-stills.js --url http://127.0.0.1:PORT/ --twin DIR --out stills [--n 16] [--skies dawn,day,...]
+//   node tools/gpu/bake-stills.js --url http://127.0.0.1:PORT/ --twin DIR --out stills [--skies dawn,day,...] [--ks 0,1..]
 //        [--tiers hi,lo] [--shapes 393x861,...] [--png DIR] [--limit K] [--force]
 // --url serves --twin, a SETTLED TWIN (tools/gpu/twin.js) of the commit's plain build. Each still is that twin's first
 // shown frame for one opening (the hour's sky, the opening's index k of N: hour.js turns the harness's entropy k into
@@ -14,14 +14,17 @@
 // deviceMemory 4), every shape at 393 CSS px on its short side, 3x.
 // The cache: each still's key is a sha256 of the world's inputs (every file the twin serves but the stills, by content)
 // and the still's own inputs (sky, k, N, tier, shape, the window baked, the encoder's settings); OUT/bake.json keeps
-// each still's key, and a still whose key is unchanged and whose file is there is not baked again (--force bakes all).
+// each still's key and its bytes' sha256 (the build copies a still only when its bytes are these), and a still whose
+// key is unchanged and whose file is there is not baked again (--force bakes all). N, the openings per sky, is hour.js's.
 // Prints the time per still (the browser's launch apart) and the bytes in all.
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), { spawn } = require('child_process');
 const PW = require('./pw.js');
 const A = {};
 for (let i = 2; i < process.argv.length; i++) { const k = process.argv[i].replace(/^--/, ''), v = process.argv[i + 1]; if (v === undefined || v.startsWith('--')) A[k] = true; else { A[k] = v; i++; } }
 if (!A.url || !A.twin || !A.out) { console.error('usage: bake-stills.js --url URL --twin DIR --out DIR [--n 16] [--skies ..] [--tiers hi,lo] [--shapes ..]'); process.exit(2); }
-const N = +(A.n || 16), OUT = path.resolve(A.out), PNG = path.resolve(A.png || path.join(OUT, '.png'));
+const HOURJS = fs.readFileSync(path.join(path.resolve(A.twin), 'hour.js'), 'utf8'), NM = /var N = (\d+),/.exec(HOURJS);
+if (!NM) { console.error('bake-stills: no "var N = " in the hour script of the twin (the count of openings)'); process.exit(2); }
+const N = +NM[1], OUT = path.resolve(A.out), PNG = path.resolve(A.png || path.join(OUT, '.png'));
 const DAYR = { dawn: [5, 8], day: [8, 13], rain: [13, 16], sunset: [16, 19], dusk: [19, 21], night: [21, 29] };   // (hour.js's DAY)
 const AT = A.at !== undefined ? +A.at : 0.5, SKYH = {};   // (--at: how far through its time of day each sky is baked; the middle)
 for (const k in DAYR) SKYH[k] = DAYR[k][0] + AT * (DAYR[k][1] - DAYR[k][0]);
@@ -45,13 +48,15 @@ function worldKey(dir) {
   const hs = crypto.createHash('sha256'), walk = (d, rel) => { for (const n of fs.readdirSync(d).sort()) { const p = path.join(d, n), r = rel ? rel + '/' + n : n; if (r === 'assets/still') continue; if (fs.statSync(p).isDirectory()) walk(p, r); else hs.update(r + '\0').update(fs.readFileSync(p)); } };
   walk(dir, ''); return hs.digest('hex');
 }
+function sha(f) { return crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex'); }
 const WK = worldKey(path.resolve(A.twin));
 const manPath = path.join(OUT, 'bake.json'), MAN = fs.existsSync(manPath) ? JSON.parse(fs.readFileSync(manPath, 'utf8')) : {};
 const jobs = [];
 for (const sky of SKIES) for (const k of KS) for (const tier of TIERS) for (const shape of SHAPES) {
   const name = `${sky}-${k}-${tier}-${shape}.avif`, W = win(shape, tier);
   const key = crypto.createHash('sha256').update(JSON.stringify([WK, sky, k, N, tier, shape, W, ENC, SETTLE, SKYH[sky]])).digest('hex');
-  if (!A.force && MAN[name] === key && fs.existsSync(path.join(OUT, name))) continue;
+  const had = MAN[name], hk = had && (typeof had === 'string' ? had : had.key);
+  if (!A.force && hk === key && fs.existsSync(path.join(OUT, name))) { if (typeof had === 'string') MAN[name] = { key, sha: sha(path.join(OUT, name)) }; continue; }
   jobs.push({ sky, k, tier, shape, name, key, W });
 }
 const lim = A.limit ? +A.limit : jobs.length;
@@ -110,13 +115,13 @@ function encode(batch) {
   fs.writeFileSync(list, JSON.stringify(batch.map((j) => [path.join(PNG, j.name.replace(/\.avif$/, '.png')), path.join(OUT, j.name)])));
   return new Promise((ok, no) => spawn('python', ['-c', PY, list], { stdio: 'inherit' }).on('close', (c) => {
     if (c !== 0) return no(new Error('the encode exited ' + c));
-    for (const j of batch) MAN[j.name] = j.key;   // (a still's key is kept once its file is written)
+    for (const j of batch) MAN[j.name] = { key: j.key, sha: sha(path.join(OUT, j.name)) };   // (its key, and its bytes' hash: the build copies only stills whose bytes are these)
     const tmp = manPath + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(MAN, null, 1)); fs.renameSync(tmp, manPath); ok();
   }));
 }
 
 (async () => {
-  if (!jobs.length) { console.log('bake-stills: nothing to bake (every key unchanged)'); report(); return; }
+  if (!jobs.length) { const tmp = manPath + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(MAN, null, 1)); fs.renameSync(tmp, manPath); console.log('bake-stills: nothing to bake (every key unchanged)'); report(); return; }
   const t0 = Date.now();
   const b = await PW.chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist'] });
   const tL = Date.now(), ctxs = new Map(), times = [], encs = []; let batch = [];

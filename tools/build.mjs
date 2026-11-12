@@ -128,12 +128,21 @@ async function build(out, stamp) {   // the plain build
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
   // the openings' stills (the world's first frames, baked on the 4090 by tools/gpu/bake-stills.js): an input folder,
-  // STILLS_DIR or stills/ (never committed: whatever puts them there), its .avif files copied to assets/still/. Without
-  // it the page asks for stills that are not there and shows the hour's still sky until the world
+  // STILLS_DIR or stills/ (never committed: whatever puts them there), its stills copied to assets/still/. Without
+  // it the page asks for stills that are not there and shows the hour's still sky until the world. Only the bake's
+  // own output is copied: each still listed in the folder's bake.json by the bake's name, its bytes' sha256 the one the
+  // bake recorded; anything else in the folder (but bake.json and the bake's .png/) stops the build
   const stills = process.env.STILLS_DIR ? path.resolve(process.env.STILLS_DIR) : path.join(ROOT, 'stills');
   if (fs.existsSync(stills)) {
-    const sd = path.join(out, 'assets', 'still'); fs.mkdirSync(sd, { recursive: true });
-    for (const n of fs.readdirSync(stills).filter((x) => /^[a-z]+-\d+-(hi|lo)-\d+x\d+\.avif$/.test(x)).sort()) fs.copyFileSync(path.join(stills, n), path.join(sd, n));
+    const mp = path.join(stills, 'bake.json');
+    if (!fs.existsSync(mp)) die(stills + ' has no bake.json: the stills are the output of tools/gpu/bake-stills.js, nothing else');
+    const man = JSON.parse(fs.readFileSync(mp, 'utf8')), sd = path.join(out, 'assets', 'still'); fs.mkdirSync(sd, { recursive: true });
+    for (const n of fs.readdirSync(stills).sort()) {
+      if (n === 'bake.json' || n === '.png') continue;
+      const e = man[n], b = /^(dawn|day|rain|sunset|dusk|night)-\d+-(hi|lo)-\d+x\d+\.avif$/.test(n) && e && e.sha ? fs.readFileSync(path.join(stills, n)) : null;
+      if (!b || crypto.createHash('sha256').update(b).digest('hex') !== e.sha) die(path.join(stills, n) + ': not a still of the bake (its name and bytes are not in bake.json)');
+      fs.writeFileSync(path.join(sd, n), b);
+    }
   }
   for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.css')).sort()) fs.writeFileSync(path.join(out, n), cssMin(fs.readFileSync(path.join(out, n), 'utf8'), n));
   // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
