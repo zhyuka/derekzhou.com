@@ -10,7 +10,7 @@
 // assemble --ship src build/ship.
 //
 // The scripts are the five the world's page loads, readable as strip.py ships them (world, inkbirds, realm-kit,
-// realm-dunes, realm-above), and the sound icon's switch (sound.js), under their plain names (world.js); any other file in
+// realm-dunes, realm-above), the sound icon's switch (sound.js) and its score (score.js), under their plain names (world.js); any other file in
 // the folder is left alone. Each is:
 //   1. (world only, step 4b) cut: the record and the switches (diag v2's engine side) and the dev harness are taken
 //      out by exact, counted cuts (each anchor a whole line found exactly once, else exit 1). What the rest of the
@@ -44,7 +44,7 @@ import { createRequire } from 'module';
 import { pathToFileURL, fileURLToPath } from 'url';
 
 const TERSER_VERSION = '5.51.2';
-const STEMS = ['world', 'inkbirds', 'realm-kit', 'realm-dunes', 'realm-above', 'sound'];   // (sound: the sound icon's switch, 2026-11-07)
+const STEMS = ['world', 'inkbirds', 'realm-kit', 'realm-dunes', 'realm-above', 'sound', 'score'];   // (sound: the sound icon's switch, 2026-11-07; score: the music it plays, 2026-11-12)
 const NAME = new RegExp('^(' + STEMS.join('|') + ')(\\.v\\d+)?\\.js$');
 
 function die(msg) { console.error('minify: FAIL: ' + msg); process.exit(1); }

@@ -96,8 +96,8 @@ they read on (docs/world.md); and the birds are the ink birds alone, flying in
 the world (docs/birds.md). Then (2026-11-07), of the score built as a listening page on
 2026-10-04 and left out since: "bring it back, opt-in. using an icon that fits with
 the rest of the design" (2026-11-07); and of what it plays: "music and faint ambiance"
-(2026-11-07) (see docs/sound.md: one icon in the footer, silent until pressed, then one
-recording, looping).
+(2026-11-07) (see docs/sound.md: one icon in the footer, silent until pressed). And of the
+score that follows the sky as it changes and never repeats: "Yup ship it" (2026-11-12).
 
 The words' colours are one set, always (docs/world.md, ## THE WORDS), and the
 world is never changed for them: text #fdfcf7 (the lettered name, the

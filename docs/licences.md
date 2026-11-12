@@ -12,14 +12,14 @@ a study-only (rights-reserved) source states are cited, never its files
 or digitised curves: the barnacle goose's are kept as facts alone
 (data/kinematics/goose_barnacle_facts.json). The fonts: OFL (docs/type.md).
 
-## Recordings (DRAFT: needs the owner's approval in this PR, 2026-11-07)
+## Recordings (the sound icon's sheet of notes, 2026-11-12)
 
-Proposed: a recording the site serves (the sound icon's, site/assets/sound/, docs/sound.md)
-may also be a public-domain work whose source states that status: for example a US federal
-recording, such as the National Park Service's sound library, which is a work of the US
-government. Each one is listed here with its source, its link and the status the source states;
-no person is named. Until the owner approves this paragraph (and RULES.json "licences" with it),
-only the licences above apply.
+site/assets/sound/notes-N.mp3 (docs/sound.md) is cut from two sample libraries, both CC0 (public domain dedication),
+which ask for credit and get it here and in docs/sound.md:
 
-- site/assets/sound/score-1.mp3: a PLACEHOLDER, generated here with ffmpeg (two sine tones):
-  no source, no third-party rights. It is replaced, under a new name, once the music is picked.
+- VS Chamber Orchestra: Community Edition (Versilian Studios; VSCO-2-CE on GitHub): the cello, viola and
+  violin sections, the clarinet, the horn, the solo contrabass, the tuba and the harp.
+- The Versilian Community Sample Library (VCSL on GitHub): the grand piano.
+
+Only their recorded notes are used, shortened, filtered and mixed into one file by tools/sound/sheet.py. Their own
+organ set is not used: its notes file does not plainly state CC0.

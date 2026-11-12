@@ -25,7 +25,7 @@ WORLD=../src/world.js; INK=../src/inkbirds.js
 REALMS=$(ls ../src/realm-*.js | tr '\n' ' '); HOUR=hour.js; CSS=style.css
 WING=$(ls facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
 PLANW=$(ls plan.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
-SND="../src/sound.js"   # (2026-11-07: the sound icon's switch, as written)
+SND="../src/sound.js ../src/score.js"   # (2026-11-07: the sound icon's switch; 2026-11-12: the score it plays; as written)
 JS="site.js $HOUR $WORLD $REALMS $WING $INK $PLANW $SND"
 echo "checking $JS and $CSS"
 # The page has none of the internet's body language, and CI fails
@@ -102,7 +102,7 @@ if [ "$(grep -o 'performance\.now()' $WORLD | wc -l)" != "1" ]; then
   fail=1
 fi
 if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW $SND; then
-  echo "::error::the realms, the wing model, the ink birds, and the sound icon's switch draw no entropy and read no clock (the switch's clock is the audio context's own time)"
+  echo "::error::the realms, the wing model, the ink birds, and the sound icon's switch and score draw no entropy and read no clock (their clock is the audio context's own time; the score's seed is the world's, from WORLD.sky)"
   fail=1
 fi
 # the hour reads the clock exactly once, and draws no entropy
@@ -112,7 +112,8 @@ if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b'
 fi
 # (5) no URL hook, no sound until the visitor presses the sound icon, no network, no custom cursor: sound only in the
 # switch (the owner, 2026-11-07: "bring it back, opt-in"), the one audio context made by it alone, inside its click
-# handler (38-sound proves it is made at the press and never before)
+# handler (38-sound proves it is made at the press and never before); the score (score.js, 2026-11-12) only builds on
+# the context and the sheet the switch hands it: it makes no context and fetches nothing
 NOSND=$(echo "$JS" | tr ' ' '\n' | grep -vxF -e ../src/sound.js | tr '\n' ' ')
 if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams' $JS index.html 404.html \
   || grep -nE 'new Audio\(|AudioContext|<audio|speechSynthesis' $NOSND index.html 404.html \
@@ -130,12 +131,12 @@ if [ "$NW" != "$NP" ] || [ "$NP" -gt 1 ]; then
   echo "::error::a worker other than the plan's (the world starts plan.js by name, once)"
   fail=1
 fi
-# the one fetch: the switch's, of its one recording, a literal path under /assets/sound/ on this site, made inside
+# the one fetch: the switch's, of its one sheet of notes, a literal path under /assets/sound/ on this site, made inside
 # the press (2026-11-07; 38-sound proves nothing is requested before it)
 if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $NOSND \
   || grep -nE 'XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $SND \
-  || [ "$(grep -o 'fetch(' ../src/sound.js | wc -l)" != "1" ] || [ "$(grep -o 'fetch(SCORE)' ../src/sound.js | wc -l)" != "1" ] \
-  || [ "$(grep -cE "^  var SCORE = '/assets/sound/[a-z0-9-]+\.mp3';" ../src/sound.js)" != "1" ]; then
+  || [ "$(grep -o 'fetch(' ../src/sound.js | wc -l)" != "1" ] || [ "$(grep -o 'fetch(SHEET)' ../src/sound.js | wc -l)" != "1" ] \
+  || [ "$(grep -cE "^  var SHEET = '/assets/sound/[a-z0-9-]+\.mp3';" ../src/sound.js)" != "1" ]; then
   echo "::error::the scripts fetch nothing and run no code but their own (but the switch's one fetch, of its literal /assets/sound/ file)"
   fail=1
 fi

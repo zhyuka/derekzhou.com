@@ -12,6 +12,7 @@ files=(
   style.css
   site.js
   sound.js
+  score.js
   hour.js
   world.js
   realm-kit.js
@@ -33,7 +34,7 @@ files=(
   assets/apple-touch-icon.png
   assets/fonts/Geist-400-500.sub3.woff2
   assets/fonts/GeistMono-Regular.sub3.woff2
-  assets/sound/score-1.mp3
+  assets/sound/$(grep -o 'notes-[0-9]*\.mp3' ../src/sound.js | head -1)
   assets/fonts/OFL.txt
   .well-known/security.txt
 )

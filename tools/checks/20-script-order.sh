@@ -21,8 +21,8 @@ src = open('index.html', encoding='utf-8').read()
 head, body = src.split('<body>', 1)
 tags = lambda s: re.findall(r'<script\b([^>]*)\bsrc="/([^"]+)"([^>]*)></script>', s)
 want_head = [('hour', False)]
-want_body = [('site', False), ('sound', False), ('world', False), ('realm-kit', False), ('realm-dunes', False), ('realm-above', False), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True)]
-pri = {'sound': None, 'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low'}
+want_body = [('site', False), ('sound', False), ('world', False), ('realm-kit', False), ('realm-dunes', False), ('realm-above', False), ('facetform', True), ('facetpose', True), ('wingmodel', True), ('model', True), ('labbird', True), ('birdwing', True), ('inkbirds', True), ('score', True)]
+pri = {'sound': None, 'world': 'high', 'realm-kit': 'high', 'realm-dunes': 'high', 'realm-above': 'high', 'facetform': 'low', 'facetpose': 'low', 'wingmodel': 'low', 'model': 'low', 'labbird': 'low', 'birdwing': 'low', 'inkbirds': 'low', 'score': 'low'}
 fail = 0
 # no async script: each loads in the order below
 asyn = [g for g in tags(src) if 'async' in (g[0] + g[2]).split()]

@@ -22,7 +22,7 @@ site/404.html                Custom 404 page (the hour's still sky, no world, no
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
 site/assets/apple-touch-icon.png  180x180 iOS icon
-site/assets/sound/           The sound icon's one recording (score-N.mp3: fetched only at the press; docs/sound.md)
+site/assets/sound/           The sound icon's sheet of notes (notes-N.mp3: fetched only at the press; docs/sound.md)
 site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (the subsets'
                              sources; served too, loaded by no page) + two .sub3 subsets (the pages' letters)
                              (loaded), and OFL.txt (their licence)
@@ -33,9 +33,11 @@ site/\_redirects             HTTPS enforcement (http and www to https://derekzho
 CLAUDE.md                    The short version; docs/ the full record, one file an area
 subset-fonts.sh              Regenerates the .sub3 font subsets (the pages' letters: tools/fontglyphs.mjs) in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
-src/                         The five scripts the site serves minified, as written (the world, the kit and
-                             the realms, the ink birds): the realms whole under their served names, the
-                             world and the ink birds in sections (src/world/, src/birds/inkbirds/)
+src/                         The scripts the site serves minified, as written (the world, the kit and
+                             the realms, the ink birds, the sound icon's switch and its score): the realms,
+                             sound.js and score.js whole under their served names, the world and the ink
+                             birds in sections (src/world/, src/birds/inkbirds/; the world's read-only feed
+                             for the score is src/world/512-score-feed.js)
 src/birds/model/             The ink birds' wing model, six scripts served as written (copied by the build):
                              facetform.js (the tattoo's M as a faceted solid; generated), facetpose.js (the
                              faceted M posed), wingmodel.js (the measured wingbeat driving the M's rig),
@@ -60,6 +62,8 @@ tools/minify.mjs             Builds the five served scripts from build/ship/; CI
 tools/tsc.mjs                tsc --checkJs over the assembled world, by hand (npx typescript, pinned; not a dependency),
                              with tools/types/world.d.ts for what TypeScript's DOM types lack: each error as section:line
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
+tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)

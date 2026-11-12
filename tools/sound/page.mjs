@@ -1,17 +1,18 @@
-// page.mjs: the sound icon, pressed in headless Chromium against a build (2026-11-07). Not served; CI's "The sound
-// is opt-in" (tools/checks/38-sound.sh) runs it on build/site.
+// page.mjs: the sound icon, pressed in headless Chromium against a build (2026-11-07; the live score, 2026-11-12). Not
+// served; CI's "The sound is opt-in" (tools/checks/38-sound.sh) runs it on build/site.
 //
-//   node tools/sound/page.mjs SITE        exit 1 on a miss; about 10 s
+//   node tools/sound/page.mjs SITE        exit 1 on a miss; about 25 s
 //
 // The build is served from a local folder with its own _headers' Permissions-Policy, and opened with the autoplay
 // policy a visitor's browser has (a gesture first). It fails when:
-//   - before the press (2 s): an audio context is made, or anything audio is requested, or the icon is hidden or pressed;
-//   - the press: it makes other than one context, or requests other than one recording, once, from this site under
-//     /assets/sound/; the icon is not pressed and the context not running;
-//   - the recording does not loop: its one buffer source not looping, or ended, once the context has played past the
-//     buffer's length;
+//   - before the press (2 s): an audio context is made, or anything audio is requested, or the icon is hidden or
+//     pressed, or the score (score.js, loaded deferred) has not registered;
+//   - the press: it makes other than one context, or requests other than one sheet of notes, once, from this site
+//     under /assets/sound/; the icon is not pressed and the context not running; the score starts no notes (buffer
+//     sources from the one sheet, sustained ones looping), or the page throws;
+//   - the score stops planning: no new notes started between 4 s and 16 s after the press (it plans ten seconds ahead);
 //   - a second press: the icon not unpressed and the context not suspended (after the 1.5 s ramp);
-//   - a third press: the icon not pressed and the context not running again, and nothing fetched again.
+//   - a third press: the icon not pressed and the context not running again, and nothing fetched or made again.
 // The browser: playwright-core (PW_CORE names its folder, else node's resolution of playwright; CHROME_PATH a Chrome).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -45,7 +46,8 @@ function launch() {
 const srv = await serve(SITE), origin = 'http://127.0.0.1:' + srv.address().port;
 const browser = await launch();
 const page = await browser.newPage();
-const bad = [], audio = [];
+const bad = [], audio = [], errs = [];
+page.on('pageerror', (e) => errs.push(String(e)));
 page.on('request', (q) => {
   const u = q.url();
   if (q.resourceType() === 'media' || /\.(mp3|m4a|aac|ogg|opus|wav|flac|webm)(\?|$)/i.test(u) || /\/assets\/sound\//.test(u)) audio.push(u);
@@ -62,9 +64,9 @@ await page.addInitScript(() => {
   };
 });
 const state = () => page.evaluate(() => {
-  const b = document.getElementById('sound'), c = window.__ctx, s = window.__srcs;
-  return { made: window.__made, shown: !!b && !b.hidden, pressed: b && b.getAttribute('aria-pressed'), state: c && c.state, t: c ? c.currentTime : 0,
-    srcs: s.length, loop: s.length ? s[0].n.loop : null, ended: s.length ? s[0].ended : null, len: s.length && s[0].n.buffer ? s[0].n.buffer.duration : 0 };
+  const b = document.getElementById('sound'), c = window.__ctx, s = window.__srcs, sheet = s.filter((r) => r.n.buffer && r.n.buffer.duration > 60);
+  return { made: window.__made, shown: !!b && !b.hidden, pressed: b && b.getAttribute('aria-pressed'), state: c && c.state, t: c ? c.currentTime : 0, rate: c ? c.sampleRate : 0,
+    score: !!(window.SCORE && typeof window.SCORE.play === 'function'), notes: sheet.length, playing: sheet.filter((r) => !r.ended).length, looping: sheet.filter((r) => r.n.loop && !r.ended).length };
 });
 
 await page.goto(origin + '/');
@@ -74,21 +76,20 @@ if (before.made !== 0) bad.push(`an audio context was made before the press (${b
 if (audio.length) bad.push(`audio was requested before the press: ${audio.join(', ')}`);
 if (!before.shown) bad.push('the sound icon is not shown');
 if (before.pressed !== 'false') bad.push(`the icon is ${before.pressed} before the press (want false)`);
+if (!before.score) bad.push('the score (score.js) has not registered');
 
 await page.click('#sound');
-await page.waitForTimeout(1500);
-let on = await state();
-// (then past the recording's length, so a buffer that does not loop has ended)
-const wait = Math.min(8000, Math.max(0, (on.len - on.t) * 1000) + 800);
-await page.waitForTimeout(wait);
-on = await state();
+await page.waitForTimeout(4000);
+const on = await state();
+await page.waitForTimeout(12000);
+const later = await state();
 if (on.made !== 1) bad.push(`the press made ${on.made} audio contexts (want 1)`);
-if (audio.length !== 1) bad.push(`the press requested ${audio.length} recordings (want 1): ${audio.join(', ')}`);
-else if (!audio[0].startsWith(origin + '/assets/sound/')) bad.push(`the recording came from ${audio[0]} (want this site's /assets/sound/)`);
+if (audio.length !== 1) bad.push(`the press requested ${audio.length} files (want 1, the sheet of notes): ${audio.join(', ')}`);
+else if (!audio[0].startsWith(origin + '/assets/sound/')) bad.push(`the sheet came from ${audio[0]} (want this site's /assets/sound/)`);
 if (on.pressed !== 'true' || on.state !== 'running') bad.push(`after the press the icon is ${on.pressed} and the context ${on.state} (want true, running)`);
-if (on.srcs !== 1) bad.push(`${on.srcs} buffer sources (want 1)`);
-if (on.loop !== true || on.ended) bad.push(`the recording does not loop (loop ${on.loop}, ended ${on.ended})`);
-if (!(on.len > 0 && on.t > on.len)) bad.push(`the context played ${on.t.toFixed(2)} s of a ${on.len.toFixed(2)} s recording (want past its end, still playing)`);
+if (!(on.notes >= 3 && on.looping >= 3)) bad.push(`the score started ${on.notes} notes, ${on.looping} sustained and playing (want a chord: 3 or more)`);
+if (!(later.notes > on.notes)) bad.push(`no new notes between 4 s and 16 s after the press (${on.notes}, then ${later.notes}): the score stopped planning`);
+if (errs.length) bad.push('the page threw: ' + errs.join(' | '));
 
 await page.click('#sound');
 await page.waitForTimeout(2000);
@@ -99,10 +100,10 @@ await page.click('#sound');
 await page.waitForTimeout(800);
 const again = await state();
 if (again.pressed !== 'true' || again.state !== 'running') bad.push(`after the third press the icon is ${again.pressed} and the context ${again.state} (want true, running)`);
-if (again.made !== 1 || again.srcs !== 1 || audio.length !== 1) bad.push(`the third press made more (contexts ${again.made}, sources ${again.srcs}, requests ${audio.length}; want 1 each)`);
+if (again.made !== 1 || audio.length !== 1) bad.push(`the third press made or fetched more (contexts ${again.made}, requests ${audio.length}; want 1 each)`);
 
-console.log(`before: ${before.made} contexts, ${before.shown ? 'shown' : 'hidden'}, pressed ${before.pressed}`);
-console.log(`press: ${on.made} context ${on.state}, ${audio.length} request(s), loop ${on.loop}, ${on.t.toFixed(2)} s played of ${on.len.toFixed(2)} s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
+console.log(`before: ${before.made} contexts, ${before.shown ? 'shown' : 'hidden'}, pressed ${before.pressed}, score ${before.score ? 'registered' : 'missing'}`);
+console.log(`press: ${on.made} context ${on.state} at ${on.rate} Hz, ${audio.length} request(s); ${on.notes} notes started by 4 s (${on.looping} sustained), ${later.notes} by 16 s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
 await browser.close(); srv.close();
 for (const b of bad) console.log('::error::' + b);
 process.exit(bad.length ? 1 : 0);

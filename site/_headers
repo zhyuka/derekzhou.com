@@ -54,6 +54,9 @@
 /sound.js
   Cache-Control: public, max-age=31536000, immutable
 
+/score.js
+  Cache-Control: public, max-age=31536000, immutable
+
 /hour.js
   Cache-Control: public, max-age=31536000, immutable
 

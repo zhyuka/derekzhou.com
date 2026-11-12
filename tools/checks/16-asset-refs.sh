@@ -22,7 +22,7 @@ done
 # And the reverse: the css/js the page loads by name must be the
 # ones index.html loads, each with its immutable cache block (a
 # leftover old version, kept by a copy rather than a git mv, fails).
-for f in style.css hour.js sound.js world.js realm-*.js facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js inkbirds.js; do
+for f in style.css hour.js sound.js score.js world.js realm-*.js facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js inkbirds.js; do
   if [ -f "$f" ] && ! grep -q "\"/$f\"" index.html; then
     echo "::error::$f exists but index.html does not reference it"
     fail=1
