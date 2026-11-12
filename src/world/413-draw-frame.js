@@ -246,7 +246,7 @@
         src = TG.ch[CACC.i]; dst = TG.ch[CACC.i ^ 1];
         // this frame's rays into the last frame's view: d = x tanX R + y tanY U + F, then (d.R' / tanX,
         // d.U' / tanY, d.F') (column-major: the coefficients of x, of y, of 1)
-        var pb = CACC.pb, M = CACC.m, tx = FR.tanX, ty = FR.tanY, R0 = CAM.r, U0 = CAM.u, F0 = CAM.f;
+        var pb = CACC.pb, M = /** @type {any} */ (CACC.m), tx = FR.tanX, ty = FR.tanY, R0 = CAM.r, U0 = CAM.u, F0 = CAM.f;
         if (ca < 1) {
           M[0] = tx * (R0[0] * pb[0] + R0[1] * pb[1] + R0[2] * pb[2]) / tx; M[1] = tx * (R0[0] * pb[3] + R0[1] * pb[4] + R0[2] * pb[5]) / ty; M[2] = tx * (R0[0] * pb[6] + R0[1] * pb[7] + R0[2] * pb[8]);
           M[3] = ty * (U0[0] * pb[0] + U0[1] * pb[1] + U0[2] * pb[2]) / tx; M[4] = ty * (U0[0] * pb[3] + U0[1] * pb[4] + U0[2] * pb[5]) / ty; M[5] = ty * (U0[0] * pb[6] + U0[1] * pb[7] + U0[2] * pb[8]);

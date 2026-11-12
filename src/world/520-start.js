@@ -123,7 +123,7 @@
   var DEVHINT = null;
   function deviceHints() {
     try {
-      var nav = navigator, sc = window.screen || {};
+      var nav = navigator, sc = /** @type {Screen | {width?: number, height?: number}} */ (window.screen || {});
       DEVHINT = { renderer: EXT.renderer, screen: [sc.width || 0, sc.height || 0], dpr: window.devicePixelRatio || 1, touch: nav.maxTouchPoints || 0, ipadMac: /Macintosh/.test(nav.userAgent) && (nav.maxTouchPoints || 0) > 1,
         gpu: !!nav.gpu, cores: nav.hardwareConcurrency || null, mem: nav.deviceMemory || null, drawBuffers: gl.getParameter(gl.MAX_DRAW_BUFFERS), par: !!EXT.par, f32: FLOAT32_RT };
     } catch (e) { DEVHINT = { error: String(e) }; }
