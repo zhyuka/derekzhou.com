@@ -9,7 +9,9 @@ full design as of the build it came from (stage 2's changes are tagged
 inline: stage2, speed, quality; fast500's: fast500; where a header and
 its code differ, the code and this file are right); this is the outline.
 
-THE WORLD: one world over an endless plane, its land and its sea of cloud
+## THE WORLD
+
+One world over an endless plane, its land and its sea of cloud
 blended by smooth maps (the kits' weights), never a cut between places:
 the dunes' kit (a dune sea with its families of dunes, far rock ridges,
 mesas and buttes, giant shards, fields of ruins, temples on plateaus,
@@ -27,7 +29,9 @@ between: sharp in the distance, never a ring), bloom, and the composite
 nothing that fizzes). The light shafts' pass is still in the code, but no
 sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
-THE FLIGHT AND THE CAMERA: left alone the view holds its heading and flies
+## THE FLIGHT AND THE CAMERA
+
+Left alone the view holds its heading and flies
 straight and level but for the ground's rise; what stands ahead and
 cannot be climbed is passed by a slip sideways, planned from first sight
 (the owner: "should keep flying same-ish direction unless user drags").
@@ -37,13 +41,15 @@ never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
 view and the flight climbs or dives; let go, the turn runs on a little and
 eases out. The steering reads a pointer's moves only while it is pressed;
-the birds' play reads a hovering one (see Birds: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
+the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
-never at load); on Android the world would take the phone's motion
-without asking, but this site's Permissions-Policy denies the
-accelerometer and the gyroscope (see Security), so there only the drag
-steers. Under reduced motion all of it is inert. The camera is a pinhole,
+never at load); everywhere else only the drag steers, and no motion
+listener is added at all (the owner, 2026-11-06: "Keep drag-only"; this
+site's Permissions-Policy denies the accelerometer and the gyroscope, see
+Security, so on Android and desktop Chrome a listener only logged a
+policy error; Chrome now offers DeviceOrientationEvent.requestPermission
+too, so the ask itself is made only on iOS and iPadOS). Under reduced motion all of it is inert. The camera is a pinhole,
 72 degrees across the window's longer side (a tall window's view widened
 so it is never a slit, and never more than 80 degrees up); the realm
 frames the horizon 55% down a wide window and 58% down a tall one (blended by TALLK, the window's shape: smooth from
@@ -61,7 +67,9 @@ rotation re-aims at once (a change of height alone eases). Everything
 that frames the view reads the same pitch (the camera, the planner's
 forecast of it, the moon's place).
 
-THE TIME OF DAY: the world's sky (the moon, the gradient, the haze, the
+## THE TIME OF DAY
+
+The world's sky (the moon, the gradient, the haze, the
 cloud's light) is one of six skies, every one with light words (the
 owner: "never use any scenes that dont pass white text"): the afterglow
 (sunset), the blue hour (dusk), first light (the light before sunrise:
@@ -113,7 +121,9 @@ chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
 and first light's 0.15 are 0; the three nights' were 0 already). The cycle
 runs on the flight's own clock, its draws from the visit's own streams.
 
-THE WORDS (the owner: "Don't darken the background anywhere ever",
+## THE WORDS
+
+(The owner: "Don't darken the background anywhere ever",
 "remove that white background behind the text. it's fine failing
 accesibility", and "lets only use white text for everything"): nothing
 is done to the world for the words. No lift, no floor, no gain, no veil,
@@ -135,7 +145,7 @@ clear of every block of words at the view's own heading (a visitor's drag
 can bring the moon behind them; they still read there, the credit
 at 4.80:1 the lowest measured so, at 1440x900, with the moon's
 route). So 4.5:1 held against every ground pixel measured under
-the words (see Verify; the credit's lowest at the view's own
+the words (docs/verify.md; the credit's lowest at the view's own
 heading 4.90:1). The ceiling bounds lightness (OKLab L), not
 luminance, so the margin depends on hue: on a saturated green at the
 ceiling the credit would be about 4.4-4.5:1. A bird passing behind the
@@ -144,34 +154,49 @@ numbers: a night's light ink under the light words lowers their
 contrast for the moment it crosses, which the owner accepted ("it's
 completely fine if the birds fly behind/in front of it").
 
-BOOT (the owner: "should load instantly make it 10x faster"): the page
-paints at once with the hour's still sky (the stylesheet's, per time of
+## THE FIRST-PAINT HOLD
+
+(The owner, 2026-11-06: "Yes, build the preview";
+"Hold up to ~1 s"): where it runs, the page does not paint until the
+world's first frame is drawn; the browser keeps the previous page or a
+blank tab, then the words and the world appear in one frame. The world,
+the kit and the realms are parser-blocking after the footer (the world
+measures the words), and the head's link rel=expect href=#world-end
+blocking=render holds Chromium's paint until the empty, hidden marker
+right after the last realm's script is parsed (before 2026-11-06 it named
+no element and lasted until the parser ended, the same moment, with a
+console warning on every visit). The last realm's registration, the page still parsing, runs
+the boot at once (holdRun): its staged frames one after another in that
+one task, each a hold frame of 68267/4096 ms (no animation frame, the
+boot's own logic unchanged), until the canvas shows; the first animation
+frame after steps one hold frame. Inside one task WebGL 2 changes no
+fence's status, so in the hold the boot makes no fence, counts the GPU
+idle and reads at once (each read waits for its own data: RB.fix's way),
+and the plan is made on the main thread beside the compiles (the
+worker's answer cannot arrive; it is stopped after the first hold frame).
+No hold (hour.js takes the link out before the body): reduced motion,
+forced colours, no WebGL2, 4 or fewer cores, under 8 GB (deviceMemory),
+a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
+sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
+no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
+to show the world later than HOLD_WORLD (1000 ms from the navigation's
+start): from stage A (38 x A - 150 ms; only a clearly slow A, over
+1.3 x HOLD_WORLD, skips there: stage A swings 15-45 ms at 1x on the 4090)
+and from the first hold frame (26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
+1x-6x. Where a hold may run, world.js makes the canvas's context as its script
+ends, so the GPU process starts while the kits come, not inside stage A.
+The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+the link is taken out and the path below goes on. T2 shows the world's
+first frame byte for byte the one without the hold (frame 0: gstep
+counts a world shown in the page's own load as shown at frame 0). The
+ink birds stay deferred and join after the show.
+
+## BOOT
+
+(The owner: "should load instantly make it 10x faster"): without the
+hold, the page paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
-the world's first frame: the ink birds fly in the world. The start file
-(start.js: async, fetchpriority high, Early-Hinted, the first script
-after the canvas) runs its tests as soon as it comes: unless WebGL2 is
-missing, colours are forced or the browser is WebKit, it waits for the
-page's first contentful paint (PerformanceObserver 'paint'; two frames
-where paint timing is missing; or at once when the world asks for its
-context first: its getContext wrapped once, so the programs are issued
-just before the world takes the context if the table is in; else the
-start file stands aside and the world compiles its own, as without it). Issued at once, they held the
-first frame on a starved GPU process (FCP 0.07 -> 1.08 s on 4 cores).
-Then it starts its table as a worker (start-table.js, the programs'
-GLSL, 1 MB, posted back as strings: no DOM, no fetch; parsed on the main
-thread before the first paint it held it back on a slow phone, FCP 148 ->
-284 ms at 4x), and when the sources are in it makes the canvas's context with the world's attributes, and unless
-KHR_parallel_shader_compile is missing or the renderer is a CPU one by
-name, it issues every program of the world's first frame from its table
-for the device (26 programs, or on the split height's devices their own
-set of 32, HPSPLIT in their #defines; each text as the world hands it
-to shaderSource, the device's #defines put in) and flushes, reading no
-status, no layout and no clock. The world takes that context (getContext
-gives the same one) and adopts each program whose issued text is exactly
-the one it would issue itself, freeing the rest; a context lost before
-that goes the world's own lost path. tools/start.mjs makes the two tables
-from src/ in a fake browser, and fails unless each serves every device
-and visit of its set the start file serves. The kits, the wing model
+the world's first frame: the ink birds fly in the world. The kits, the wing model
 and the ink birds only define at their top level (each hands itself
 to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
 global on self); the world's also sets the browser's bar to the top
@@ -194,8 +219,7 @@ the landing and no grid made yet: the plan is the same doubles either
 way. Anything else (no Worker, an error, an answer for another seed or
 world, 8 s gone) and the page makes the plan itself, as before. Where
 the browser has KHR_parallel_shader_compile and is not WebKit (Chrome,
-Edge, Firefox): every program issued at once (or adopted from the start
-file), the probe and the land first, all polled once a frame; each warm-up
+Edge, Firefox): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
 draw made as soon as its own program is done, beside the links still
 compiling; the programs for what no first frame can show (the ink birds',
 and the sand's particles and ribbons where the flight cannot reach sand
@@ -288,7 +312,9 @@ the full scale (13.5 ms a frame). The flush was made in world.v5.js
 itself, not cut from the dev build; fast500's dev build carries the same
 line, so its cut keeps it.
 
-THE GOVERNOR AND COST (the owner: "everything should be 10x quality"):
+## THE GOVERNOR AND COST
+
+(The owner: "everything should be 10x quality"):
 the world is drawn at its memory tier's density: a desktop at most 2
 device px a CSS px and 6 Mpx (a Retina 1440x900 window's world
 2880x1800), a full phone (an iPhone 390-600 px across at 3x, an Android
@@ -320,13 +346,15 @@ at 0.35 of the old size in the boot's last stage still lets a device
 too slow even there decline (over 21.7 ms twice). The density costs
 memory: the world's targets for a 393x852 phone at 3 go from about 134 MB
 to 201 MB, a Retina 1440x900 window's from 239 MB to 589 MB (a real
-iPhone must hold a 10-minute visit at the full phone tier: see Verify). A
+iPhone must hold a 10-minute visit at the full phone tier: docs/verify.md). A
 renderer on the CPU (SwiftShader, llvmpipe and the like, by its name)
 keeps the still sky from the start; so does a boot whose 0.35 trial
 misses the floor, a first frame doubted twice, or a broken program. A
 hidden tab draws nothing.
 
-FALLBACKS: no WebGL2: the still sky of the hour (data-sky) and its words,
+## FALLBACKS
+
+No WebGL2: the still sky of the hour (data-sky) and its words,
 no bird; no script: the still day sky and the words, no bird; a lost
 context: the still sky of the time of day being drawn, until restored;
 prefers-reduced-motion: one still frame of the world, drawn again when the
@@ -344,11 +372,13 @@ takes up its change, and that list then fires no event: the world did not
 come back when they ended while the ink birds moved), and the world back
 when they end, on at load too; print: none of it.
 
-THE WEATHER (=rand()): one crypto.getRandomValues above world.js's
+## THE WEATHER (=rand())
+
+One crypto.getRandomValues above world.js's
 INIT-END marker, split into splitmix32 streams and integer hashes (the
 same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The realm and kit files, the wing model, the ink birds, the
-plan's worker and the start file draw nothing of their own (the worker is
+ink birds. The realm and kit files, the wing model, the ink birds and the
+plan's worker draw nothing of their own (the worker is
 handed the visit's seed): the world's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's

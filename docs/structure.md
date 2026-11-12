@@ -9,30 +9,28 @@ marked "built" below exist only in a build, never in site/. Everything else
 here is the repository's own, and never served.
 
 site/index.html              Home page: the words over a 3D world, drawn live behind them
-site/style.css           All styles (versioned name — see Caching): the words' colours, the still skies of each time of day
+site/style.css           All styles (named by its content in the deploy build: docs/caching.md): the words' colours, the still skies of each time of day
 site/site.js                 Email obfuscation only
 site/hour.js              The hour: which time of day the world opens on (the page's one clock read)
-site/start.js             The start file: the world's context and its first frame's programs, issued once the page has painted (made by tools/start.mjs; see World) (built)
-site/start-table.js       The start file's table: its programs' GLSL (1 MB), a worker's script the start file starts after the first paint (built)
-site/world.js             The world: the engine, the camera, the time of day, the words' colours, the governor (see World) (built)
+site/world.js             The world: the engine, the camera, the time of day, the words' colours, the governor (docs/world.md) (built)
 site/realm-kit.js         The builders the world's kits share (rocks, ruins, stupas, temples, isles) (built)
 site/realm-dunes.js       The dunes' kit: the sand province's land, rock, landmarks and light (built)
 site/realm-above.js       The cloud sea's kit: its surface, towers, canyons, floating isles and light (built)
-site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; see World) (built)
-site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (see Birds) (built)
+site/plan.js              The plan's worker: the visit's first plan, made off the main thread (the world's own code; docs/world.md) (built)
+site/inkbirds.js          The ink birds: the living sky, every flock on its own business in the world (docs/birds.md) (built)
 site/404.html                Custom 404 page (the hour's still sky, no world, no birds)
 site/assets/favicon.svg      Adaptive circle favicon (dark in light mode, inverse in dark)
 site/assets/favicon.png      PNG fallback favicon (32x32)
 site/assets/apple-touch-icon.png  180x180 iOS icon
 site/assets/fonts/           Self-hosted WOFF2: Geist and Geist Mono, full faces (the subsets'
-                             sources; served too, loaded by no page) + two .sub2 subsets
+                             sources; served too, loaded by no page) + two .sub3 subsets (the pages' letters)
                              (loaded), and OFL.txt (their licence)
 site/robots.txt              Allow search engines, block AI crawlers
 site/.well-known/security.txt  Vulnerability reporting
 site/\_headers               Cloudflare Pages security + caching + Early Hints headers
 site/\_redirects             HTTPS enforcement (http and www to https://derekzhou.com)
-CLAUDE.md                    This file
-subset-fonts.sh              Regenerates the .sub2 font subsets in site/assets/fonts (manual tooling)
+CLAUDE.md                    The short version; docs/ the full record, one file an area
+subset-fonts.sh              Regenerates the .sub3 font subsets (the pages' letters: tools/fontglyphs.mjs) in site/assets/fonts (manual tooling)
 download-fonts.sh            Fetches the full source fonts into site/assets/fonts (manual tooling)
 src/                         The five scripts the site serves minified, as written (the world, the kit and
                              the realms, the ink birds): the realms whole under their served names, the
@@ -49,20 +47,21 @@ tools/birds/model/           Generates src/birds/model/model.js: make.py runs bu
                              sources' licences. make.py --check: CI's proof that both files are what it makes
 tools/parts.mjs              Splits a long script into its sections and assembles src/ into build/src/
 src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.glsl, `@glsl NAME` in the part
-test/shaders.mjs             Every program the page issues, against its golden text (test/golden/shaders/); --compile in Chrome
-test/unit.mjs                The world's pure code in Node (streams, hashes, the sky order, the maps, the plan's worker); --write updates test/golden/unit.json
+test/shaders.mjs             Every program the page issues, compiled and linked in Chrome (--compile)
+test/unit/<area>.mjs         The world's pure code in Node, one file an area (streams, sky, maps and the plan's worker, governor, framing, drag, glslmin, verdict), sharing test/unit-lib.mjs; --write updates test/golden/unit/<area>.json
+tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
+test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
-tools/minify.mjs             Builds the five served scripts from build/ship/ (and the start file, by tools/start.mjs); CI checks the build
-tools/start.mjs              Makes the start file from src/'s scripts, run in a fake browser
+tools/minify.mjs             Builds the five served scripts from build/ship/; CI checks the build
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
-.github/workflows/validate.yml  CI checks (and, beside it, the world's: world_rules.py,
-                             w7_unit.js, lint_realms.js, and the shaders' guard, glsl_guard.js
-                             with glsl_manifest.txt)
+.github/workflows/validate.yml  CI checks: runs tools/check.mjs, every check a file of tools/checks/ (and, beside it, the world's: world_rules.py,
+                             w7_unit.js, and the shaders' guard, glsl_guard.js
+                             (every visit of a device, the same sources))
 
 Five scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js and inkbirds.js. src/ holds them
@@ -80,17 +79,24 @@ build/ship writes the shipped build, the dev parts left out by file.
 A plain GLSL literal (no ${...}) is kept as a file in its folder's glsl/
 (src/world/glsl/, src/birds/inkbirds/glsl/, src/glsl/ for the realms):
 the script has `@glsl NAME` where it was, and assemble writes the text
-back exactly. Edit a shader in its .glsl file; then node tools/build.mjs
---plain build/site and node test/shaders.mjs build/site --write update the golden texts (test/golden/shaders/: every
-program the reference device issues), committed with the manifest.
+back exactly. The build (tools/build.mjs: assemble --min-glsl, for the
+shipped build and the dev build) writes it
+back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
+blank line, no spare space, every line of code still a line (the world's
+folds work by lines), a #define's spacing kept, the same tokens (checked;
+the build fails otherwise); a file a script reads at run time stays as
+written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
+by its text). So the world issues and the browser
+compiles the short text; src/ keeps the readable one. Edit a shader in its
+.glsl file; nothing derived from it is committed (2026-11-06): the gate's
+census and T2 compare the base's build with the head's.
 tools/minify.mjs makes the served five from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
-as its default) and the ink birds' HOST.dev read as false, then terser
+as its default; the ink birds read no dev flag: checked), then terser
 (pinned in package.json) compresses and
-mangles, every string's value and every shader's text the same, every
+mangles, every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
-marker; where index.html loads the start file, tools/start.mjs makes it
-too (from the dev build). None of what they make is committed: a change
+marker. None of what they make is committed: a change
 is made in src/ and committed alone, and the build makes the rest. The
 rules that read the scripts' text (the absences, world_rules.py) read
 build/src/; every other check of a served file reads build/site/ (CI's
@@ -100,9 +106,9 @@ copied, src/ assembled, the built scripts written into the copy) and then
 (restructure step 5) names each script and
 stylesheet by its content: world.js becomes world.<sha8>.js, the first 8
 hex of the sha256 of its final bytes, files that load others by name (the
-world's plan worker, the start file's table) named after them, and every
-reference rewritten (index.html, 404.html, \_headers, the two workers'
-URLs); node tools/build.mjs OUT writes that, with OUT/build.txt holding the
+world, after its plan worker) named after them, and every
+reference rewritten (index.html, 404.html, \_headers, the plan
+worker's URL); node tools/build.mjs OUT writes that, with OUT/build.txt holding the
 commit. CI step "The build, the same bytes every time; site/ holds no
 built file" (node tools/build.mjs --check) builds twice and fails unless both
 builds are the same bytes, site/ holds none of the files the build writes
@@ -116,9 +122,14 @@ it, stamped with their md5, and the build fails when the world's PW_V is
 not that stamp (after a change to the spans, node tools/plan.mjs --stamp
 rewrites PW_V in its part); the build then minifies it as the world is
 (tools/plan.mjs buildPlan: terser with the world's options, its header
-kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit.mjs runs that
+kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit/maps.mjs runs that
 worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are
-served as written, the start file as tools/start.mjs writes it.
+served as written. The stylesheet is served without its comments
+(load-perf, 2026-11-07: tools/build.mjs cssMin, every comment but a /*!
+one dropped, every line trimmed, blank lines dropped, a rule still on its
+own line; the build fails unless only comments and white space went): it
+is render-blocking, and its notes were 8 KB of its 19 (4,995 B at Brotli
+11 before, 2,151 B after). Its notes stay in site/style.css.
 
 No Functions, no private pages. A private /studio/ needs an origin guard
 first (a Pages Function that checks the Cloudflare Access token again, in
@@ -133,13 +144,13 @@ for a sign-in there, and past it they serve 404.
 The shipped scripts have no development harness: the world is built and
 measured in a dev build with hooks on `<html>` (a seed, a moment, a still,
 switches, a record), and src/'s files are that build with every
-hook cut out by counted edits (see Verify), the served copies built
+hook cut out by counted edits (docs/verify.md), the served copies built
 from them. Nothing on the page reads such a hook. The record's code and
 the dev helpers those hooks called are in src/dev/world/, in the dev
 build only, unreachable (the switches keep their defaults); the served
 copy is built without them (assemble --ship: the four functions called
 without a guard kept as empty ones; tools/minify.mjs: every switch read
-as its default, and the ink birds' HOST.dev read as false). The
+as its default; the ink birds read no dev flag). The
 comments, in src/ (a served copy keeps only its first two lines and the
 INIT-END marker), keep the dev build's tags and the names of its files
 (design-v5 and its sections, rounds, fixes and judges; notes.md,

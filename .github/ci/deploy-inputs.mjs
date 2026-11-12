@@ -7,8 +7,9 @@
 // (A missing input would be a change Pages never builds, and post-deploy would not notice: so the check.)
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');   // (fileURLToPath: on Windows a URL's pathname keeps a leading /C:/)
 const list = fs.readFileSync(path.join(ROOT, '.github/ci/deploy-inputs.txt'), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
 const mode = process.argv[2] || '';
 const isDir = (p) => fs.existsSync(path.join(ROOT, p)) && fs.statSync(path.join(ROOT, p)).isDirectory();

@@ -1,12 +1,12 @@
 // The comments in this file keep the tags and file names of the world's development record (design-v5, its rounds,
 // fixes and judges; notes.md, w04b_sky.js, diag.js and the like), which lives outside this repository (CLAUDE.md).
-/* realm-dunes.js — the DUNES kit (world6): the sand province's land, rock, landmarks and light. It no longer is a place
-   of its own: the one world (world.js, w04_world.js) draws its land everywhere, its dunes' height by the maps' sand
-   weight (gKD) and sunk under the cloud sea by theirs, its landmarks scattered by density, its light blended with the
-   other kits' by the smoothed climate. Its bays are gone (the cloud sea is the maps'). */
+/* realm-dunes.js — the DUNES kit: the sand province's land, rock, landmarks and light. It is not a place of its own:
+   the one world (world.js) draws its land everywhere, its dunes' height by the maps' sand weight (gKD) and sunk under
+   the cloud sea by theirs, its landmarks scattered by density, its light blended with the other kits' by the smoothed
+   climate. It has no bays (the cloud sea is the maps'). */
 (function () {
   'use strict';
-  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-dunes.js top');   // (E0 Fix 3: the record bounds each script's evaluation)
+  if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-dunes.js top');   // (the record bounds each script's evaluation)
   var W = window.WORLD;
   if (!W || !W.forms) return;
   var K = W.kit, F = W.forms, lch = K.lch, PI = Math.PI;
@@ -16,25 +16,25 @@
   /* ------------------------------------------------------------------ DUNES: the dawn desert, endless */
   /* The land is one field over the plane: the dune sea (swells, the main dunes as an asymmetric wave across the wind,
      a smaller family across them), the areas laid out over it as regions (a jittered site per 1.5 km cell: open dunes,
-     a basin with a giant shard, a field of ruins, a temple on a plateau in terraces; the
-     bays are gone: the cloud sea is the maps'), and far ridges of rock (a site per 4.5 km cell, about half of them). The sites are hashed from the
+     a basin with a giant shard, a field of ruins, a temple on a plateau in terraces; no
+     bays: the cloud sea is the maps'), and far ridges of rock (a site per 4.5 km cell, about half of them). The sites are hashed from the
      visit's salt the same way here and in the GLSL, so the land the shaders raise and the things the cells place agree. */
   var DS = 1500, RS = 4500, SEA_Y = -160;
   var CUT_D = [77, 123, 169, 205, 256];   // the areas' shares (of 256): open, shard, ruins, temple, bay
   function dSite(ix, iz, salt) {
     var h = K.cellHash(ix, iz, salt), k = K.hk(h, 2) >>> 24, kind = 0;
     while (k >= CUT_D[kind]) kind++;
-    if (kind === 4) kind = 0;   // (world6: no bays: the cloud sea is the maps')
+    if (kind === 4) kind = 0;   // (no bays: the cloud sea is the maps')
     return { ix: ix, iz: iz, h: h, kind: kind, x: (ix + 0.2 + 0.6 * K.hfl(h)) * DS, z: (iz + 0.2 + 0.6 * K.hfl(K.hk(h, 1))) * DS,
       r: [K.hfl(K.hk(h, 3)), K.hfl(K.hk(h, 4)), K.hfl(K.hk(h, 5)), K.hfl(K.hk(h, 6))] };
   }
   var DUNES_GLSL = `@glsl dunes-glsl`;
-  /* (world6 step B fix, defect 7) the great formations at FORM_K of their height (mesas 35-80 m, buttes 45-90, rock
-     needles 18-35): the flight's envelope climbs over every one of them on any line the visitor turns to
-     (w06 solidEnv, 0.18 m/m from as far off as its height asks), so the eye rises at most about 120 m beside the tallest
-     (at 0.45 of their height the f6 flight's clearance had a median of 107 m: the low framing lost); at their old
-     heights (to 440 m) it would have climbed for minutes, and a slip cannot pass a 400 m wide
-     mesa met after a drag (875 hard-rule pushes along one's face in a dragged flight) */
+  /* the great formations at FORM_K of their height (mesas 35-80 m, buttes 45-90, rock needles 18-35): the flight's
+     envelope climbs over every one of them on any line the visitor turns to (world.js solidEnv, 0.18 m/m from as far
+     off as its height asks), so the eye rises at most about 120 m beside the tallest (at 0.45 of their height the
+     flight's clearance has a median of 107 m: the low framing is lost); at full height (to 440 m) it would climb for
+     minutes, and a slip cannot pass a 400 m wide mesa met after a drag (875 hard-rule pushes along one's face in a
+     dragged flight) */
   var FORM_K = 0.25;
   var D_STONE = [1, 1, 1, 1], D_DARK = [0.78, 0.76, 0.84, 1], D_ROCK = [1, 1, 1, 2], D_PALE = [1, 1, 1, 3];
   var D_BIRD_L = lch(0.40, 0.04, 300), D_BIRD_S = lch(0.22, 0.035, 288);
@@ -84,12 +84,12 @@
   }
   /* the open dunes' own: now and then a great formation (a mesa, a butte, a giant shard) clear of the areas' pieces, and
      far banks of cloud with flat bases high over the sand */
-  /* (world6 fix, the judges' defect 4) the great formations by density, the bays' buttes and mesas given back: FORM_N
-     candidate spots a cell, each with its own draws (the same whether kept or not), kept where its draw falls under
-     the density there: FORM_D in the open sand, more (FORM_C) in the band along the cloud sea's coast (its weight
-     0.05-0.85 there), where they are the bays' tall buttes and mesas, seated on the lowest ground of their footprint, so
-     those that stand where the land has sunk under the sea rise out of it as the bays' did. Each is marked a formation
-     (form): kept wherever the cloud sea lies (the world's aboveKeep passes them by) */
+  /* the great formations by density, tall buttes and mesas along the coast: FORM_N candidate spots a cell, each with
+     its own draws (the same whether kept or not), kept where its draw falls under the density there: FORM_D in the open
+     sand, more (FORM_C) in the band along the cloud sea's coast (its weight 0.05-0.85 there), where they are tall
+     buttes and mesas (bay), seated on the lowest ground of their footprint, so those that stand where the land has sunk
+     under the sea rise out of it. Each is marked a formation (form): kept wherever the cloud sea lies (the world's
+     aboveKeep passes them by) */
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
   function dForms(C, s, R) {
     for (var k = 0; k < FORM_N; k++) {
@@ -135,9 +135,9 @@
         lch(0.60, 0.09, 262), lch(0.50, 0.10, 260), lch(0.58, 0.045, 296), lch(0.50, 0.05, 285),
         lch(0.75, 0.05, 30, 0.3), [wind[0], wind[1], 2.2, SEA_Y], lch(0.42, 0.09, 262), lch(0.86, 0.03, 300)
       ] };
-      /* (world6 step B, W3) the sand's shade (0.475 -> 0.56, its deep 0.37 -> 0.50) and the rock's (lit 0.57 -> 0.60, shade
-         0.41 -> 0.50, deep 0.30 -> 0.42) lifted in the world's own light: at the one framing the links stand over the
-         near sand and the name beside the formations (the step's shadows stood at OKLab L about 0.44 as drawn) */
+      /* the sand's shade (L 0.56, its deep 0.50) and the rock's (lit 0.60, shade 0.50, deep 0.42) set light for the
+         world's own light: at the one framing the links stand over the near sand and the name beside the formations
+         (with the sand's shade at 0.475 the shadows stand at OKLab L about 0.44 as drawn) */
     },
     light: function (R, V) {
       // the low sun from upwind of the dunes (their windward slopes lit, their lee faces blue), 5-14 deg up

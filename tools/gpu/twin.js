@@ -17,8 +17,7 @@ node([path.join(repo, 'tools', 'parts.mjs'), 'assemble', '--ship', path.join(rep
 const worlds = fs.readdirSync(ship).filter((f) => /^world(\.v\d+)?\.js$/.test(f));
 if (worlds.length !== 1) { console.error('twin: want one world script in the shipped build, found ' + worlds.join(', ')); process.exit(1); }
 console.log(node([path.join(__dirname, 'settle.js'), path.join(ship, worlds[0])]).trim());
-// minified into an empty folder (no index.html there, so minify makes no start file: the build's own start file and
-// table stay, the settle edit changes no GLSL), then only the world script copied over the twin
+// minified into an empty folder then only the world script copied over the twin
 const min = path.join(tmp, 'min'); fs.mkdirSync(min);
 node([path.join(repo, 'tools', 'minify.mjs'), '--build', ship, min]);
 fs.copyFileSync(path.join(min, worlds[0]), path.join(out, worlds[0]));

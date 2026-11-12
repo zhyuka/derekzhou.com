@@ -15,7 +15,7 @@
 
 @font-face {
   font-family: 'Geist';
-  src: url('/assets/fonts/Geist-400-500.sub2.woff2') format('woff2');
+  src: url('/assets/fonts/Geist-400-500.sub3.woff2') format('woff2');
   font-weight: 400 500;
   font-style: normal;
   font-display: optional;
@@ -23,7 +23,7 @@
 
 @font-face {
   font-family: 'Geist Mono';
-  src: url('/assets/fonts/GeistMono-Regular.sub2.woff2') format('woff2');
+  src: url('/assets/fonts/GeistMono-Regular.sub3.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: optional;
@@ -104,7 +104,7 @@
   color-scheme: light;
   --svh: 100svh;
 
-  /* Two families (see CLAUDE.md, Type): Geist for the words, the links
+  /* Two families (docs/type.md): Geist for the words, the links
      and a heading set in type (the 404's); Geist Mono for the facts. The
      name is no font: it is lettering, drawn (.name) */
   --font-sans: 'Geist', 'Geist Fallback', 'Geist Fallback Android', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;

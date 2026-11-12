@@ -25,14 +25,6 @@
         {
           "kind": "world-rule",
           "id": "7b canvas-last"
-        },
-        {
-          "kind": "ci-step",
-          "name": "Nothing darkens (W7's unit test)"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's rules"
         }
       ]
     },
@@ -49,12 +41,8 @@
       ],
       "enforced_by": [
         {
-          "kind": "ci-step",
-          "name": "Still skies keep the words legible"
-        },
-        {
           "kind": "prose",
-          "note": "W8 and the words' contrast through every sky are measured in the dev build (CLAUDE.md: Verify)"
+          "note": "W8 and the words' contrast through every sky are measured in the dev build (docs/verify.md)"
         }
       ]
     },
@@ -73,17 +61,13 @@
         {
           "kind": "world-rule",
           "id": "7 no-mask"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's rules"
         }
       ]
     },
     {
       "id": "no-2d-birds",
       "area": "birds",
-      "rule": "The ink birds, drawn in the world, are the only birds. No script, SVG or rule of the old 2D birds is in the page, its stylesheet, its headers or the world's scripts; before the world's first frame the page is the still sky and the words, no bird.",
+      "rule": "The ink birds, drawn in the world, are the only birds. No script, SVG or rule of the old 2D birds is in the page, its stylesheet, its headers or the world's scripts; before the world's first frame the page is the still sky and the words, no bird (where the first-paint hold runs, nothing is painted before the world's first frame: the words and the world appear together).",
       "source": [
         {
           "quote": "Why do I still see the old birds at all … like when the page first loads. There shouldn't be any code at all for that, right?! wtf is going on pls fix from root and clean everything up",
@@ -95,14 +79,6 @@
         {
           "kind": "absence",
           "number": 7
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's page loads in order"
         }
       ]
     },
@@ -120,11 +96,7 @@
           "doc": "docs/world.md: THE TIME OF DAY"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "prose"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "no-glitter",
@@ -151,11 +123,7 @@
           "doc": "docs/world.md: FALLBACKS; THE FLIGHT AND THE CAMERA; docs/birds.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "prose"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "steer-only-by-drag",
@@ -173,10 +141,6 @@
           "number": 2
         },
         {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
-        },
-        {
           "kind": "world-rule",
           "id": "4 absences"
         }
@@ -185,7 +149,7 @@
     {
       "id": "one-entropy-one-clock",
       "area": "weather",
-      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker and start file draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds and plan's worker draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
       "source": [
         {
           "quote": "should b rand",
@@ -198,16 +162,8 @@
           "number": 4
         },
         {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
-        },
-        {
           "kind": "world-rule",
           "id": "4 absences"
-        },
-        {
-          "kind": "world-rule",
-          "id": "4b start"
         },
         {
           "kind": "world-rule",
@@ -229,10 +185,6 @@
         {
           "kind": "absence",
           "number": 4
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -249,10 +201,6 @@
         {
           "kind": "absence",
           "number": 1
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -269,10 +217,6 @@
         {
           "kind": "absence",
           "number": 2
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         },
         {
           "kind": "world-rule",
@@ -293,21 +237,13 @@
         {
           "kind": "absence",
           "number": 3
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
-        },
-        {
-          "kind": "world-rule",
-          "id": "4b start"
         }
       ]
     },
     {
       "id": "absence-network-sound-cursor",
       "area": "absences",
-      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's and the start file's table, each started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
+      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's, started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
       "source": [
         {
           "quote": "yes we need analytics",
@@ -319,10 +255,6 @@
         {
           "kind": "absence",
           "number": 5
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         },
         {
           "kind": "world-rule",
@@ -347,10 +279,6 @@
         {
           "kind": "absence",
           "number": 6
-        },
-        {
-          "kind": "ci-step",
-          "name": "Absences are enforced"
         }
       ]
     },
@@ -367,21 +295,13 @@
         {
           "kind": "world-rule",
           "id": "3 production-blind"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's rules"
-        },
-        {
-          "kind": "ci-step",
-          "name": "No inline code on CSP'd pages"
         }
       ]
     },
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, start file, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; the start file is the one async script.",
+      "rule": "The scripts load in their order (hour, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; no script is async; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
       "source": [
         {
           "doc": "docs/js.md"
@@ -391,14 +311,6 @@
         {
           "kind": "world-rule",
           "id": "1 rocket-loader"
-        },
-        {
-          "kind": "world-rule",
-          "id": "5 script-order"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The world's page loads in order"
         }
       ]
     },
@@ -411,12 +323,7 @@
           "doc": "docs/security.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Check required files exist"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "built-files-uncommitted",
@@ -427,12 +334,7 @@
           "doc": "docs/structure.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "The build, the same bytes every time; site/ holds no built file"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "changed-bytes-new-name",
@@ -443,36 +345,18 @@
           "doc": "docs/caching.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Asset references must resolve (immutable-rename integrity)"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The build, the same bytes every time; site/ holds no built file"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "same-shaders",
       "area": "caching",
-      "rule": "Every visit of a device compiles the same shader sources, and a change to a program's text comes with its manifest and golden texts in the same commit (a returning visitor's shader cache depends on it).",
+      "rule": "Every visit of a device compiles the same shader sources, and every program compiles; which programs a change edits is the gate's census of the base's and the head's builds, never a committed file (a returning visitor's shader cache depends on it).",
       "source": [
         {
           "doc": "docs/caching.md; docs/structure.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "Every visit compiles the same shaders"
-        },
-        {
-          "kind": "ci-step",
-          "name": "The shaders are their golden texts, and compile"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "page-words",
@@ -490,12 +374,7 @@
           "doc": "docs/content.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "The page says what it says"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "lettered-name",
@@ -511,12 +390,7 @@
           "doc": "docs/design.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "ci-step",
-          "name": "The lettered name keeps its words"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "licences",
@@ -529,11 +403,7 @@
           "doc": "docs/type.md (fonts)"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "prose"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "naming",
@@ -554,10 +424,6 @@
           "file": ".claude/hooks/guard.py"
         },
         {
-          "kind": "ci-step",
-          "name": "The rules are data, and the hooks hold"
-        },
-        {
           "kind": "prose"
         }
       ]
@@ -565,11 +431,16 @@
     {
       "id": "merge-rights",
       "area": "process",
-      "rule": "Changes reach main only through a pull request, merged by the owner, or by the merge bot when nothing visible changes. An agent never merges and never pushes to main.",
+      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot when nothing visible changes. An agent never merges, never enables auto-merge and never pushes to main.",
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
           "doc": ".github/workflows/merge.yml; docs/deploy.md"
+        },
+        {
+          "quote": "GitHub auto-merge (Recommended)",
+          "date": "2026-11-06",
+          "doc": "docs/deploy.md"
         }
       ],
       "enforced_by": [
@@ -626,11 +497,7 @@
           "doc": "CLAUDE.md (top); docs/design.md"
         }
       ],
-      "enforced_by": [
-        {
-          "kind": "prose"
-        }
-      ]
+      "enforced_by": []
     },
     {
       "id": "no-trusted-types-while-rocket-loader",
@@ -657,12 +524,31 @@
           "via": "the hub, after lane D found two `function lateWarm()` (070-programs, 490-birds-host): no late program was ever warmed"
         }
       ],
-      "enforced_by": [
+      "enforced_by": []
+    },
+    {
+      "id": "load-budget",
+      "area": "performance",
+      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile within 1,200 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
+      "source": [
         {
-          "kind": "ci-step",
-          "name": "No name declared twice in one scope"
+          "date": "2026-11-07",
+          "via": "the hub's load-perf lane, from the owner's ask that the site load near-instantly with every barrier to shipping fast removed; the budget a check so regressions cannot come back"
         }
-      ]
+      ],
+      "enforced_by": []
+    },
+    {
+      "id": "fonts-hold-the-words",
+      "area": "performance",
+      "rule": "The served fonts are cut to the letters the pages show (Geist to every page's text, Geist Mono to the credit row's), so the first paint waits for half the font bytes; every letter a page shows is in its font, or the words would draw it in the fallback face. When the words gain a letter: ./subset-fonts.sh, and the fonts renamed (.subN+1) with every reference, in the same commit.",
+      "source": [
+        {
+          "date": "2026-11-07",
+          "via": "the owner, asked by the load-perf lane whether to cut both fonts to the letters the pages use (20.3 KB to 10.1 KB): \"Cut them\""
+        }
+      ],
+      "enforced_by": []
     }
   ]
 }

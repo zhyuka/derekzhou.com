@@ -48,15 +48,12 @@
     var tc = clockNow();
     foldIssue(P);   // (fast500 lane E: the folds, before the text is given)
     P.kb = Math.round((P.vs.length + P.fs.length) / 1024);
-    var SP = START ? startProg(P) : null;   // (fast500 5: issued by the start file: adopted, its calls not made again)
-    if (SP) { P.p = SP.p; P.v = SP.v; P.f = SP.f; P.adopt = true; } else {
     P.p = gl.createProgram();
     P.v = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(P.v, P.vs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.v);
     P.f = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(P.f, P.fs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.f);
-    }
     P.vs = P.fs = null; P.st = 1; PROGX.compiled++;
     P.cms = +(clockNow() - tc).toFixed(2);   // (the main thread's share of its compile)
-    var tl = clockNow(); if (!SP) { gl.attachShader(P.p, P.v); gl.attachShader(P.p, P.f); gl.linkProgram(P.p); } P.st = 2; PROGX.linked++; P.lms = +(clockNow() - tl).toFixed(2);
+    var tl = clockNow(); gl.attachShader(P.p, P.v); gl.attachShader(P.p, P.f); gl.linkProgram(P.p); P.st = 2; PROGX.linked++; P.lms = +(clockNow() - tl).toFixed(2);
     P.issAt = +tc.toFixed(1); P.issF = FRAMEN; P.polls = 0; P.qms = 0;
   }
   /* (fast500 lane E, class A: e8.py E8z) the page's constant modes as defines, computed once from its own data at the
@@ -105,17 +102,6 @@
     if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n') + (claWx(CLA) ? '' : '#define NO_PKWX\n'); }
     return CLA.defs;
   }
-  function devDbg(v) {   // (dev hooks) a dev view the issued programs hold, or a loud failure
-    v = v | 0;
-    if (v && CLA && !CLA.dev) { fail('dev view dbg ' + v + ' asked, but the programs were issued with uDbg folded to 0: give the dev switch dbg at load (data-dev-switch "dbg")'); throw new Error('dbg ' + v + ' without dev use'); }
-    return v;
-  }
-  function devDefsHold() {   // (dev hooks) after a sky is changed: the words' and the rain's defines must still hold
-    if (!CLA) return;
-    var c = claCompute();
-    if (c.twilight !== CLA.twilight || c.rain !== CLA.rain) { fail('a sky changed so the issued defines no longer hold (NO_TWILIGHT / NO_RAIN): reload'); throw new Error('defines stale'); }
-  }
-  function defsRec() { return CLA ? { twilight: CLA.twilight, rain: CLA.rain, water: CLA.water, pkinds: CLA.pkinds.slice(), pkUnknown: CLA.pkUnknown, dev: CLA.dev, defs: CLA.defs } : null; }
   function progDone(P) {   // its status read (and its uniforms): true linked, false broken, LOSTP
     var tf = clockNow(), r = finish(P);
     if (r === LOSTP) return LOSTP;
@@ -140,12 +126,12 @@
        on WebKit (it has it, but links there are synchronous: E10), one at a time */
     if (EXT.parAll) {
       var issued = false;
-      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); issued = true; }
-      if (issued) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0 && !lateHeld(PORDER[i])) { progIssue(PORDER[i]); issued = true; }
+      if (issued) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
       var all = true; lateDecide();   // (fast500 step 9)
       for (i = 0; i < PORDER.length; i++) {
         P = PORDER[i]; if (P.st === 3) continue;
-        if (P.st !== 2) { all = false; continue; }
+        if (P.st !== 2) { if (!(P.st === 0 && P.late)) all = false; continue; }   // (world-perf lane: a held one, late, does not hold the show)
         var tq2 = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR);
         P.polls++; P.qms = +(P.qms + clockNow() - tq2).toFixed(2);
         if (gl.isContextLost()) return LOSTP;
@@ -157,7 +143,7 @@
     if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
       var iss = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
-      if (iss) { if (START) startDone(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (iss) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
       return progsDone();
     }
@@ -193,7 +179,7 @@
      camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
      is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
   var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
-  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper'];   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
+  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper', 'engine.creature', 'engine.glow', 'engine.beam'];   // (world-perf lane: the creatures, the glow sprites and the beams too: measured, none drawn in the first 20 s of 24 visits, desktop and phone, any hour; each draw guarded below)   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
   function lateCan() { return !!EXT.parAll && !STILLMODE && !FRUN && !BOOT.restore; }
   function lateSand(V) {   // the most sand anywhere within LATE_R of the landing (sandAt's weight, on kwAt)
     var R = 1.5 * Math.max(V.speed, 32) * LATE_T + 2 * KSTEP, st = KSTEP / 2, m = 0, x, z, k, s;
@@ -213,7 +199,8 @@
       else if (KW.ok) { LATEP.sand = lateSand(V); LATEP.decided = true; }
     }
     for (i = 0; i < PROGS.length; i++) {
-      P = PROGS[i]; if (P.late) continue; n = P.name;
+      P = PROGS[i]; n = P.name;
+      if (P.late) continue;
       if (LATE_ALWAYS.indexOf(n) >= 0 || (LATEP.decided && LATEP.sand <= LATE_SAND && (n === V.def.id + '.particle' || n === V.def.id + '.ribbon'))) { P.late = true; LATEP.names.push(n); }
     }
   }
@@ -241,8 +228,19 @@
     }
     return false;
   }
+  /* (world-perf lane) the late programs nothing draws before the world shows (LATE_HELD: the creatures, the glow sprites,
+     the beams) are not even issued before it, where programs are late at all (lateCan): their compiles leave the boot's
+     threads to the show's own; issued in the first frame after it (lateStep), finished and warmed as the late ones are */
+  var LATE_HELD = ['engine.creature', 'engine.glow', 'engine.beam'];
+  function lateSeen(n) { return LATE_HELD.indexOf(n) >= 0 && !!LATEK[n.slice(7)]; }   // (one of its kind laid out: it is needed)
+  function lateHeld(P) { return !shown && LATE_HELD.indexOf(P.name) >= 0 && lateCan() && !lateSeen(P.name); }
+  function lateSeenReady() {   // the show's own: every held program one of whose kind is laid out, finished and warmed
+    for (var i = 0; i < PROGS.length; i++) { var P = PROGS[i]; if (lateSeen(P.name) && !lateReady(P)) { lateStep(); lateWarmProgs(); return false; } }   // (the frame loop runs these only once shown: before the show the gate drives them)
+    return true;
+  }
   function lateStep() {   // the late ones' completion, once a frame after C (never waits)
     if (!LATEP.on || !BOOT.cDone || gl.isContextLost()) return;
+    { var iss = false; for (var h = 0; h < PROGS.length; h++) { var Q = PROGS[h]; if (Q.st === 0 && Q.late && (shown || lateSeen(Q.name))) { var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(Q); PROGX.compiled = c0; PROGX.linked = l0; iss = true; } } if (iss) gl.flush(); }   // (the held ones, issued now)
     for (var i = 0; i < PROGS.length; i++) {
       var P = PROGS[i]; if (!P.late || P.st !== 2) continue;
       var tq = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR);
@@ -276,9 +274,6 @@
     for (var i = 0; ok && i < BIRDPL.length; i++) { var P = BIRDPL[i]; if (P.late && !lateReady(P) && !(P.st === 3 && !P.ok)) ok = false; }
     if (!ok) { LATEP.birdWait++; return false; }
     LATEP.birdsAt = SIM.t; return true;
-  }
-  function lateRec() {
-    return { on: LATEP.on, decided: LATEP.decided, sand: LATEP.sand, R: Math.round(LATEP.R), names: LATEP.names.slice(), ready: LATEP.ready, done: LATEP.done.slice(), warmed: LATEP.warmed.slice(), miss: LATEP.miss, misses: LATEP.misses.slice(), birdWait: LATEP.birdWait, birdsAt: LATEP.birdsAt };
   }
   /* (fast500 lane E, the folds: ef.py) a uniform, or one component of it, whose value is fixed for the page is written
      into the program's text at its issue as the literal it always has, so the compiler folds the branch it selects.
@@ -319,11 +314,6 @@
     P.vs = vs; P.fs = fs;
     if (got.length) FOLDX.prog[P.name] = got;
     if (abs.length && DEVMODE) FOLDX.absent[P.name] = abs;
-  }
-  function foldRec() {
-    var G = EP && EP.compg;
-    return { on: FOLDX.on, fixed: FOLDX.fixed ? FOLDX.fixed.map(function (x) { return x[0] + ' = ' + x[1]; }) : null, prog: FOLDX.prog, absent: FOLDX.absent, B: FOLDX.B, live: FOLDX.live,
-      general: G ? (G.st === 3 ? (G.ok ? (G.warmed ? 'warmed' : 'done') : 'broken') : 'pending') : 'none', used: FOLDX.used, miss: FOLDX.miss, misses: FOLDX.misses.slice() };
   }
   var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20 };
   function finish(P) {   // true: linked; false: broken; LOSTP: the context was lost (asked again after the restore)

@@ -21,18 +21,9 @@
 #      addEventListener('pointermove' with their two removeEventListener (the drag's, and the birds' pointer play's,
 #      passive: the owner, 2026-11-05) and one pointerout, the play's, with its one remove (event names in either quotes, every
 #      listener's name a literal, no on* handler property in any of the world's files).
-#   4b The start file (start.v*.js, fast500 step 5, served as tools/start.mjs makes it): no DOM building, URL hook,
-#      storage, sound, module or network; one worker only, its table (start-table.vN.js, named literally, started
-#      after the first paint: the table's 1 MB read off the main thread and off the DOM); no entropy and no clock (no
-#      getRandomValues, Date, Math.random, performance.now or setTimeout; requestAnimationFrame only twice, the two
-#      frames where paint timing is missing); two listeners, webglcontextlost (a context lost before the world adopts
-#      it can still be restored) and the worker's message; nothing put on window but WORLD_START. Its table is data
-#      only: one postMessage of the sources (strings) and the two lists of numbers, then close.
-#   5  The script order: index.html loads world, the kit and the realms first, fetchpriority="high", then the wing
-#      model (facetform, facetpose, wingmodel, model, labbird, birdwing, in that order) and the ink birds last,
-#      fetchpriority="low", all deferred (the boot starts once the realms register); the one async script is the start
-#      file, fetchpriority="high", the first script after the canvas.
-#   6  The realm lint's report is a separate step (node lint_realms.js); the realms predate its API v4, so it reports.
+#   5  (The script order moved 2026-11-07 to tools/checks/20-script-order.sh, "The world's page loads in order",
+#      which checked all of it already; the Rocket Loader tag on every page's scripts stays here, rule 1.)
+#   6  (The realm lint, lint_realms.js, was dropped 2026-11-07: report-only, it never failed.)
 #   7  Nothing darkens, and nothing is done to the world for the words (the owner's rule; the words' lift is
 #      gone), and nothing masks a bird for them (the owner, 2026-11-05: "pls remove the masking boxes from behind the
 #      text completely. it's completely fine if the birds fly behind/in front of it"): no file names a keep-off or a
@@ -131,9 +122,9 @@ for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|contr
 #    `default-src 'none'` (a worker's policy is its own response's); the home blocks that start it carry worker-src
 #    exactly 'self' (and no other block names another); the worker's code is the world's own: the four spans
 #    tools/plan.mjs copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
-#    its stamp (PLANV) is their md5's first 12 hex and the world's PW_V. (2026-11-06) The build ships the worker minified as
+#    its stamp (PLANV) is the world's PW_V. (2026-11-06) The build ships the worker minified as
 #    the world is (tools/plan.mjs buildPlan): there the spans cannot appear verbatim, so the stamp, the one quoted 12-hex
-#    string in it, must be their md5's and the world's PW_V, and test/unit.mjs runs that worker against the page's own plan,
+#    string in it, must be their md5's and the world's PW_V, and test/unit/maps.mjs runs that worker against the page's own plan,
 #    hash for hash (the same code, minified).
 import hashlib
 PSP = [('  var PI = Math.PI, DEG = Math.PI / 180;', '\n', True), ('  var CW = (function () {\n', '\n  })();\n', True), ('  var MAPS = {', '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', True), ('  var KN = 256, KSTEP = 64,', '  var KFROWS = FN * FN / KN;', False)]
@@ -172,9 +163,8 @@ for p in gen:
         sp = plan_spans(src[f] or '')
         if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (tools/plan.mjs\'s anchors; a minified world needs its own check)'); continue
         if not mini and any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
-        st = hashlib.md5(''.join(sp).encode('utf-8')).hexdigest()[:12]
         wv = re.findall(r"var PW_V = '([0-9a-f]*)';", src[f] or '')
-        if pv[0] != st or wv != [st]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, the spans\' {st}, {f}\'s PW_V {wv} (all three the same)')
+        if wv != [pv[0]]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, {f}\'s PW_V {wv} (the same; the stamp itself, the spans\' code token by token, is tools/plan.mjs\'s: the build and test/unit/maps.mjs check it)')
     if p not in started: fail('2b plan-worker', f'{p}: in the site but started by no world file')
 
 # 4 the world's absences
@@ -231,35 +221,9 @@ for p in [g for g in gen if g.startswith('plan.')]:   # (fast500 step 11) the pl
         for ln, t in lines(c, pat): fail('4 absences', f'{p}:{ln} {what}: {t}')
     ks = re.findall(r"""addEventListener\(\s*['"]?([\w]*)""", c)
     if ks != ['message']: fail('4 absences', f'{p}: listeners {ks} (exactly one: message)')
-    if c.count('postMessage(') != 2: fail('4 absences', f'{p}: postMessage( {c.count("postMessage(")} times (its answer and its refusal)')
+    if c.count('postMessage(') != 3: fail('4 absences', f'{p}: postMessage( {c.count("postMessage(")} times (its two answers, the first frame and the rest, and its refusal)')
 for f in world + kit + realms + wing + ink:
     for ln, t in lines(strip_comments(src[f]), r'\.on[a-z]+\s*=(?!=)'): fail('4 absences', f'{f}:{ln} an on* handler property (listeners are added by name, in world*.v*.js only): {t}')
-
-# 4b the start file (fast500 5)
-for f in [f for f in files if re.fullmatch(r'start(?:\.v\d+)?\.js', f)]:
-    c = strip_comments(read(f) or '')   # (its code; its table, the programs' GLSL, is start-table.vN.js: below)
-    tn = re.sub(r'^start((?:\.v\d+)?)\.js$', r'start-table\1.js', f)
-    if c.count('new Worker(') != 1 or c.count("new Worker('/" + tn + "')") != 1 or not read(tn):
-        fail('4b start', f'{f}: its one worker, its table /{tn} (named literally, shipped beside it), not as tools/start.mjs writes it')
-    if c.count('requestAnimationFrame(') != 2: fail('4b start', f'{f}: requestAnimationFrame {c.count("requestAnimationFrame(")} times (want 2: the two frames where paint timing is missing)')
-    c = c.replace("new Worker('/" + tn + "')", 'tableWorker').replace('requestAnimationFrame(', 'twoFrames(')   # (the two allowed above)
-    for pat, what in [(r'createElement|innerHTML|outerHTML|appendChild|insertAdjacentHTML|insertBefore|document\.write', 'DOM building'),
-                      (r'location\.|URLSearchParams|localStorage|sessionStorage|indexedDB|document\.cookie', 'a URL hook or storage'),
-                      (r'new Audio\(|AudioContext|speechSynthesis', 'sound'),
-                      (r'\bimport\(|\bBlob\(|\bfetch\(|XMLHttpRequest|new Worker|importScripts|\beval\(|new Function', 'a module, worker or network call'),
-                      (r'getRandomValues|Math\.random|\bDate\b|randomUUID|performance\.|setTimeout|setInterval|requestAnimationFrame|requestIdleCallback', 'entropy or a clock')]:
-        for ln, t in lines(c, pat): fail('4b start', f'{f}:{ln} {what}: {t}')
-    kinds = re.findall(r"""addEventListener\(\s*['"]([\w]+)['"]""", c)
-    if kinds != ['webglcontextlost', 'message'] or c.count('addEventListener(') != 2: fail('4b start', f'{f}: listeners {kinds} (exactly two: webglcontextlost, then its table worker\'s message)')
-    for ln, t in lines(c, r'\.on[a-z]+\s*=(?!=)'): fail('4b start', f'{f}:{ln} an on* handler property: {t}')
-    for m in re.finditer(r'\bwindow\.(\w+)\s*=(?!=)', c):
-        if m.group(1) != 'WORLD_START': fail('4b start', f'{f}: puts window.{m.group(1)} (only WORLD_START)')
-    # its table, the worker's script: data only (one postMessage of the sources as strings and two lists of numbers,
-    # then close)
-    t = strip_comments(re.sub(r'"(?:[^"\\\n]|\\.)*"', 'S', read(tn) or ''))   # (the strings first: the GLSL in them holds // and /*)
-    t = re.sub(r'\[[\d, ]*\]', 'L', re.sub(r'\s+', ' ', t)).replace(' ', '')
-    if not re.fullmatch(r'postMessage\(\{Q:\[S(,S)*\],T:L,TH:(L|null)\}\);close\(\);', t):
-        fail('4b start', f'{tn}: not data only (one postMessage of the sources and the lists, then close): {t[:200]}')
 
 # 7 nothing darkens, and nothing is done to the world for the words (the lift is gone, the owner's word of
 # 2026-10-21): the composite takes no words input at all (no mask, keep-off, words' box, floor, gain or toe), its
@@ -325,37 +289,6 @@ for f in world:
             if re.search(r'P\s*=\s*EP\.(comp|blit)\b', l[m.end():m.end() + 60]): continue
             if re.search(r'target\s*:\s*function\s*\(\s*\)\s*\{\s*$', l[:m.start()].rstrip() + ' {') or re.search(r'\btarget\s*:\s*function\s*\(\s*\)\s*\{\s*gl\.bindFramebuffer', l): continue
             fail('7b canvas-last', f'{f}:{i + 1} draws onto the canvas with a program not named (the composite, the blit, the ink birds\' target): {l.strip()[:100]}')
-
-# 5 the script order
-s = html.get('index.html') or ''
-order = re.findall(r'<script\b[^>]*src="/?([^"]+)"[^>]*>', s)
-deferred = [x for x in re.findall(r'<script\b[^>]*>', s) if 'defer' in x]
-names = [re.search(r'src="/?([^"]+)"', x).group(1) for x in deferred if 'src=' in x]
-def kind(n):
-    for k, p in (('world', r'world[\w-]*(?:\.v\d+)?\.js'), ('kit', r'realm-kit(?:\.v\d+)?\.js'), ('realm', r'realm-\w+(?:\.v\d+)?\.js'), ('wing', r'(%s)(?:\.v\d+)?\.js' % '|'.join(WING)), ('ink', r'inkbirds(?:\.v\d+)?\.js'), ('diag', r'diag\.v\d+\.js')):
-        if re.fullmatch(p, n): return k
-    return 'other'
-ks = [kind(n) for n in names if kind(n) != 'diag']
-if world:
-    want = ['world', 'kit'] + ['realm'] * max(1, ks.count('realm')) + ['wing'] * len(WING) + ['ink']
-    if ks != want: fail('5 script-order', f'index.html deferred scripts {names}: want world, kit, the realms, then the wing model and the ink birds last')
-    wn = [re.sub(r'(?:\.v\d+)?\.js$', '', n) for n in names if kind(n) == 'wing']
-    if wn != list(WING): fail('5 script-order', f'index.html: the wing model {wn}: want {list(WING)}')
-    PRI = {'world': 'high', 'kit': 'high', 'realm': 'high', 'wing': 'low', 'ink': 'low'}
-    for tag in deferred:
-        m5 = re.search(r'src="/?([^"]+)"', tag)
-        if not m5 or kind(m5.group(1)) not in PRI: continue
-        fp = re.findall(r'\bfetchpriority="(\w+)"', tag)
-        if fp != [PRI[kind(m5.group(1))]]: fail('5 script-order', f'index.html {m5.group(1)}: fetchpriority {fp}, want "{PRI[kind(m5.group(1))]}"')
-
-tags5 = re.findall(r'<script\b[^>]*>', s)
-asyn = [x for x in tags5 if re.search(r'\sasync[\s>]', x)]
-st5 = [x for x in asyn if re.search(r'src="/?start(?:\.v\d+)?\.js"', x)]
-if asyn != st5 or len(st5) > 1: fail('5 script-order', f'index.html async scripts {asyn}: the only one is the start file')
-for x in st5:
-    if 'defer' in x.split() or re.findall(r'\bfetchpriority="(\w+)"', x) != ['high']: fail('5 script-order', f'index.html {x}: async, never defer, fetchpriority "high"')
-    i5 = s.find('<canvas class="sky"')
-    if i5 < 0 or re.search(r'<script\b', s[i5:s.find(x)]): fail('5 script-order', f'index.html {x}: the first script after the canvas')
 
 print('\n'.join(fails) if fails else 'world rules OK (' + ', '.join(f'{len(x)} {n}' for n, x in (('world', world), ('kit', kit), ('realm', realms), ('wing model', wing), ('ink birds', ink), ('worker', gen))) + ')')
 sys.exit(1 if fails else 0)

@@ -21,8 +21,7 @@
 # The order is the order Cloudflare sends them in (HTTP/2 in request order
 # without its Pro prioritisation): the stylesheet and the two fonts first,
 # since the first paint waits for them (font-display: optional), then the
-# hour and the start file (2026-11-06: first paint 32-68 ms sooner on a
-# 5 Mbps / 28 ms link). The world's four scripts are not early-hinted: the
+# hour. The world's four scripts are not early-hinted: the
 # build stores them Brotli-compressed, ready to send whole, and hinted they
 # went out ahead of the fonts and the hour on a slow link (first paint near
 # 550 ms in half the visits); requested from the page they come after.
@@ -30,10 +29,9 @@
   Cache-Control: max-age=0, must-revalidate
   Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
   Link: </style.css>; rel=preload; as=style
-  Link: </assets/fonts/Geist-400-500.sub2.woff2>; rel=preload; as=font; crossorigin
-  Link: </assets/fonts/GeistMono-Regular.sub2.woff2>; rel=preload; as=font; crossorigin
+  Link: </assets/fonts/Geist-400-500.sub3.woff2>; rel=preload; as=font; crossorigin
+  Link: </assets/fonts/GeistMono-Regular.sub3.woff2>; rel=preload; as=font; crossorigin
   Link: </hour.js>; rel=preload; as=script
-  Link: </start.js>; rel=preload; as=script
 
 /index.html
   Cache-Control: max-age=0, must-revalidate
@@ -55,16 +53,6 @@
 
 /hour.js
   Cache-Control: public, max-age=31536000, immutable
-
-/probe.js
-  Cache-Control: public, max-age=31536000, immutable
-
-/start.js
-  Cache-Control: public, max-age=31536000, immutable
-
-/start-table.js
-  Cache-Control: public, max-age=31536000, immutable
-  Content-Security-Policy: default-src 'none'
 
 /world.js
   Cache-Control: public, max-age=31536000, immutable
@@ -106,4 +94,7 @@
   Cache-Control: public, max-age=31536000, immutable
 
 /assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/probe.js
   Cache-Control: public, max-age=31536000, immutable

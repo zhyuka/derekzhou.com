@@ -92,8 +92,6 @@
     E('pre', EP.pre, FULLVAO, T, 3, 0, false, 'hdr');
     E('down', EP.down, FULLVAO, T, 3, 0, false, 'hdr');
     E('up', EP.up, FULLVAO, T, 3, 0, false, 'hdr');
-    E('smask', EP.smask, FULLVAO, T, 3, 0, false, 'hdr');
-    E('sblur', EP.sblur, FULLVAO, T, 3, 0, false, 'hdr');
     E('comp.win', EP.comp, FULLVAO, T, 3, 0, false, 'rgba8');
     E('comp', EP.comp, FULLVAO, T, 3, 0, false, 'canvas');
     E('blit', EP.blit, FULLVAO, T, 3, 0, false, 'canvas');

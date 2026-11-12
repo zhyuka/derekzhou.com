@@ -47,7 +47,7 @@ async function serve(dir, from) {
   }
   throw new Error('no free port from ' + from);
 }
-// (the canvas readable: its drawing buffer kept after it is shown; the start file and the world ask the same canvas)
+// (the canvas readable: its drawing buffer kept after it is shown)
 const PDB = `(() => { const gc = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, o) { if (t === 'webgl2') o = Object.assign({}, o || {}, { preserveDrawingBuffer: true }); return gc.call(this, t, o); }; })();`;
 // one read of the canvas: shown or not, the forced line (Canvas, CanvasText: the canvas's computed background and
 // colour, or the ones given), the share of read pixels off it, how many of them carry ink, a hash, and the words' ink
