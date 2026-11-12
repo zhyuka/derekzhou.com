@@ -29,7 +29,7 @@
      The still (tools/gpu/bake-stills.js): by the window's shape (the frustum's bands) and memory tier (lo: Android
      under 8 GB), the body's ::before, fetched at once by the head's preload. */
   var N = 16, e = new Uint32Array(1), k = 0, nav2 = navigator, mm = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
-  try { crypto.getRandomValues(e); k = e[0] % N; } catch (x) { k = 0; }
+  try { crypto.getRandomValues(e); e[0] -= e[0] % N; k = e[0] % N; } catch (x) { k = 0; }   // (the lab's preview only: opening 0 of each sky, the stills committed for it)
   document.documentElement.setAttribute('data-seed', String(e[0] >>> 0));
   var SHAPES = [['1000/2080', '393x861'], ['1000/1960', '393x817'], ['1000/1893', '393x770'], ['1000/1840', '393x724'], ['1000/1720', '393x676'], ['1000/1600', '393x629'], ['1000/1333', '393x524'],
     ['1249/1000', '1080x1080'], ['1599/1000', '1350x1080'], ['1777/1000', '1728x1080'], ['2099/1000', '1920x1080']], shape = '2268x1080', j;
