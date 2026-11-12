@@ -29,8 +29,9 @@
     EXT.issueAll = !EXT.par && !wkIs;
     /* (Firefox lane, 2026-11-12) Firefox has no KHR_parallel_shader_compile and runs WebGL in its GPU process in order:
        the first status read after the batch waited for the whole serial compile (Firefox 160, RTX 4090: one frame of
-       3.2-4.9 s, the page frozen). There a fence follows the batch and no status is read before it signals (polled a
-       frame, under 1 ms each; it signals 0.75-1.0 s after the read would have returned). Android's issueAll unchanged */
+       2.8-4.9 s, the page frozen). There a fence follows the batch and no status is read before it signals (polled a
+       frame, under 1 ms each). The cost: it signals late, so the world shows later (3 cold visits: 3.6 -> 4.8 s; warm
+       3.4 -> 5.6 s); the longest frame 2.9 s -> 160 ms cold, 35 ms warm. Android's issueAll unchanged */
     EXT.issueFence = EXT.issueAll && /Firefox\//.test(wkUA);
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
