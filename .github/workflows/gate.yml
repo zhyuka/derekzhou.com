@@ -269,9 +269,12 @@ jobs:
   # the verdict requires it. Offline, or the query fails: a notice, and the verdict rests on T0 and T1, so T2 never
   # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
   # T2 renders the plan's two builds (the `served` artifact): the PC never runs a PR's build.
+  # Only after the static checks passed: the 4090 is one runner that every gate's T2 queues for, and a gate whose
+  # static checks failed is red whatever T2 says (565 s of its time went to such gates on the night of Nov 11, with 830 s
+  # more queued). Static and plan run side by side and take about as long, so T2 starts a few seconds later at most.
   t2:
-    needs: plan
-    if: always() && needs.plan.outputs.t2_run == 'true'
+    needs: [static, plan]
+    if: always() && needs.plan.outputs.t2_run == 'true' && needs.static.result == 'success'
     uses: ./.github/workflows/gpu.yml
     with:
       base: ${{ needs.plan.outputs.base }}
