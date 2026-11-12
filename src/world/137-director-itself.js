@@ -273,7 +273,6 @@
     };
     // the record of what is seen (the sim calls it every 5 s with the look of the view ahead)
     D.see = function (t, look) { D.seen.push({ t: t, look: Float64Array.from(look) }); if (D.seen.length > 4000) D.seen.shift(); };
-    D.isCommitted = function (n, i, j) { return D.fam[n].tab.has(key(i, j)); };
     /* (fast500 F) the director's state, out of the worker's plan and into the page's: each family's anchors as [key,
        record] in their insertion order (a Map keeps it), its counts, the camera, the clock, the log, the looks seen */
     D.exportState = function () {
