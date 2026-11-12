@@ -11,7 +11,7 @@
    the top of that still sky (theme-color). Without it the page is the
    still day sky. */
 (function () {
-  var d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+  var d = new Date(), h = 17.5;   // (resume sketch C: main with sketch A's hour; a preview only)
   var DAY = [['dawn', 5, 8, '#173a63'], ['day', 8, 13, '#173a63'], ['rain', 13, 16, '#5f3d62'], ['sunset', 16, 19, '#5f3d62'], ['dusk', 19, 21, '#38396a'], ['night', 21, 29, '#17234f']];
   var i, a, b, at, meta = document.querySelector('meta[name="theme-color"]');
   if (h < 5) h += 24;
