@@ -61,7 +61,8 @@ export async function serveBuild(dir, brq) {
 // paced at its rate in 1,400-byte packets, delivered RTT/2 after they leave, behind a bottleneck buffer of about one
 // bandwidth-delay product (a source that fills it is paused: TCP's backpressure reaches the server, so a server that
 // schedules by priority is seen doing so). Chained to HTTPS_PROXY where one is set (this container's egress proxy:
-// it re-terminates TLS, so what is measured through it is its scheduling, not Cloudflare's); direct elsewhere.
+// it re-terminates TLS, so what is measured through it is its scheduling, not Cloudflare's); direct elsewhere. A local
+// build (http://) works too: its requests pass the same paced link, so a branch is A/B'd with no deploy.
 export async function throttleProxy() {
   const L = { rtt: 0, down: Infinity, up: Infinity };
   const dir = () => ({ free: 0, queued: 0, waiting: [] });
@@ -79,7 +80,24 @@ export async function throttleProxy() {
     if (d.queued > BUF()) { src.pause(); d.waiting.push(src); }
   }
   const up = process.env.HTTPS_PROXY ? new URL(process.env.HTTPS_PROXY) : null;
-  const srv = http.createServer((q, r) => { r.writeHead(405); r.end(); });
+  // a plain http:// request (a local build: Chrome asks the proxy for it with the whole URL, no tunnel): sent on after
+  // RTT/2, and its answer (a 103 first, then the headers, then the body in packets) through the same shared, paced
+  // downlink as the tunnels' bytes
+  const srv = http.createServer((q, r) => {
+    let u; try { u = new URL(q.url); } catch (e) { r.writeHead(400); r.end(); return; }
+    if (u.protocol !== 'http:') { r.writeHead(405); r.end(); return; }
+    const d0 = D, later = (f) => setTimeout(f, L.rtt / 2);
+    later(() => {
+      const up = http.request({ host: u.hostname, port: u.port || 80, path: u.pathname + u.search, method: q.method, headers: q.headers }, (a) => {
+        later(() => { if (!r.headersSent) r.writeHead(a.statusCode, a.headers); });
+        a.on('data', (b) => send(d0, L.down, a, r, b));
+        a.on('end', () => { const at = Math.max(performance.now(), d0.free) + L.rtt / 2 + 1; setTimeout(() => r.end(), at - performance.now()); });
+      });
+      up.on('information', (i) => { if (i.statusCode === 103 && i.headers.link) later(() => r.writeEarlyHints({ link: [].concat(i.headers.link).join(', ').split(/,\s*(?=<)/) })); });
+      up.on('error', () => { if (!r.headersSent) r.writeHead(502); r.end(); });
+      q.pipe(up);
+    });
+  });
   const open = new Set();
   srv.on('connect', (req, client, head) => {
     open.add(client); client.on('close', () => open.delete(client));

@@ -14,7 +14,7 @@ data-cfasync="false", so Rocket Loader leaves the order as served):
    address. A \<noscript\> fallback shows the email in HTML entities.
 3. world.js — the world (parser-blocking after the footer, for the
    first-paint hold; fetchpriority="high"; minified). As its script ends it
-   starts the plan's worker, plan.js, by name (no tag: see World: BOOT).
+   starts the plan's worker, plan.js, by name (no tag: docs/world.md, ## BOOT).
 4. realm-kit.js, realm-dunes.js, realm-above.js — the kits
    (parser-blocking, fetchpriority="high", minified; each registers
    itself with WORLD.realm; keep the order: the last one's registration

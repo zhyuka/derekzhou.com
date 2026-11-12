@@ -151,6 +151,9 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
     };
     // --- the window: requestAnimationFrame and timers on the visit's own clock
     let raf = [], rafN = 0, timers = [], timerN = 0;
+    // the page paints at the end of every frame, after its animation frames; the first paint is recorded (a paint entry)
+    // and told to the page's paint observers in a task, as a browser does (the world's boot waits for it: afterPaint)
+    let painted = false; const paintObs = [], PAINT = { name: 'first-paint', entryType: 'paint', startTime: 0, duration: 0 };
     const mq = (q) => {
       let m = false;
       if (/min-aspect-ratio:\s*6\s*\/\s*5/.test(q)) m = V.w * 5 >= V.h * 6;
@@ -174,10 +177,14 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       requestAnimationFrame(f) { raf.push([++rafN, f]); return rafN; }, cancelAnimationFrame(i) { raf = raf.filter((x) => x[0] !== i); },
       setTimeout(f, ms) { timers.push([++timerN, clock + (+ms || 0), f, 0]); return timerN; }, clearTimeout(i) { timers = timers.filter((x) => x[0] !== i); },
       setInterval(f, ms) { const p = Math.max(4, +ms || 0); timers.push([++timerN, clock + p, f, p]); return timerN; }, clearInterval(i) { timers = timers.filter((x) => x[0] !== i); },
-      performance: { now, mark() {}, measure() {}, getEntriesByName() { return []; }, getEntriesByType() { return []; }, timeOrigin: 1.7e12 + V.t0 },
+      performance: { now, mark() {}, measure() {}, getEntriesByName() { return []; }, getEntriesByType(t) { return t === 'paint' && painted ? [PAINT] : []; }, timeOrigin: 1.7e12 + V.t0 },
       crypto: { getRandomValues(a) { let s = V.seed; for (let i = 0; i < a.length; i++) { s = (s + 0x9e3779b9) >>> 0; let t = s ^ (s >>> 16); t = Math.imul(t, 0x21f0aaad); t ^= t >>> 15; t = Math.imul(t, 0x735a2d97); a[i] = (t ^ (t >>> 15)) >>> 0; } return a; } },
       addEventListener(t, f) { on(win, t, f); }, removeEventListener(t, f) { off(win, t, f); }, dispatchEvent() { return true; },
-      ResizeObserver: Obs, IntersectionObserver: Obs, MutationObserver: Obs, PerformanceObserver: class extends Obs { static get supportedEntryTypes() { return []; } },
+      ResizeObserver: Obs, IntersectionObserver: Obs, MutationObserver: Obs, PerformanceObserver: class extends Obs {
+        static get supportedEntryTypes() { return ['paint']; }
+        observe(o) { if (o && (o.type === 'paint' || (o.entryTypes || []).includes('paint')) && !paintObs.includes(this)) paintObs.push(this); }
+        disconnect() { const i = paintObs.indexOf(this); if (i >= 0) paintObs.splice(i, 1); }
+      },
       WebGL2RenderingContext: function WebGL2RenderingContext() {}, HTMLCanvasElement: function HTMLCanvasElement() {},
       location: { href: 'https://site.invalid/', origin: 'https://site.invalid', protocol: 'https:', host: 'site.invalid', hostname: 'site.invalid', pathname: '/', search: '', hash: '' },
       console: { log() {}, info() {}, warn() {}, error() {}, debug() {} },
@@ -210,6 +217,7 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
         const q = raf, ts = clock; raf = [];
         if (q.length) R.lastRafF = R.frames;
         for (const [, f] of q) guard(() => f(ts), 'frame ' + R.frames);
+        if (!painted) { painted = true; PAINT.startTime = clock; for (const o of paintObs.slice()) timers.push([++timerN, clock, () => o.f({ getEntries: () => [PAINT] }, o), 0]); }
         if (canvas.classList.contains('on') && !R.shown) { R.shown = true; R.shownF = R.frames; }
         if (O.reduced && R.shown && R.frames === R.shownF + 60) {   // (--reduced: a press, a drag across and a release on the page: under reduced motion, inert)
           const P = { pointerId: 7, pointerType: 'mouse', button: 0, buttons: 1, clientX: V.w / 2, clientY: V.h / 2, timeStamp: clock };

@@ -110,7 +110,7 @@
         if (pv > 1) { var al = (AV[0] * P.v[0] + AV[2] * P.v[2]) / pv, lack = 0.4 * pv - al; if (lack > 0) { AV[0] += lack * P.v[0] / pv; AV[2] += lack * P.v[2] / pv; } }
         /* out of view, it keeps off the perch until the gate (else it would come at it unseen, from beside the window) */
         if (d < PGATE && !onWindow(b, C)) { var kr = 1.5 * (PGATE - d) / (d || 1); AV[0] += rx * kr; AV[1] += ry * kr; AV[2] += rz * kr; }
-        clearOfEye(b, AV); flyTo(b, dt, AV[0], AV[1], AV[2]);
+        clearOfEye(b, AV); AV[1] = floorUp(b, AV[1], b.K.v, P.at[1]); flyTo(b, dt, AV[0], AV[1], AV[2]);
         return;
       }
     }
@@ -136,6 +136,7 @@
     /* (no clearOfEye here: the last leg runs between two points at the perch's depth or deeper, so never nearer the eye
        than the perch; on a phone that is nearer than clearOfEye's few spans, and it would push the bird off its landing) */
     b.flapA = b.flap = s < 0.45 || ry < -1 ? 1 : 0;   // (down with strong beats; up into it gliding; under it, beating: a glide cannot climb)
+    AV[1] = floorUp(b, AV[1], b.K.v, P.at[1]);
     flyTo(b, dt, AV[0], AV[1], AV[2]);
   }
   /* the last of the landing, in the perch's frame: a curve from where it is, at the speed it has, to rest on the perch
@@ -163,7 +164,7 @@
     var rx = b.p[0] - P.at[0], rz = b.p[2] - P.at[2], rl = Math.sqrt(rx * rx + rz * rz) || 1, out = Math.max(3 * b.sz, 25);
     var h = Math.atan2(rx, rz) + 0.9, v = b.K.v;
     AV[0] = P.v[0] * 0.6 + v * Math.sin(h); AV[1] = 0.2 * (P.at[1] + 8 - b.p[1]); AV[2] = P.v[2] * 0.6 + v * Math.cos(h);
-    clearOfEye(b, AV);
+    clearOfEye(b, AV); AV[1] = floorUp(b, AV[1], v, P.at[1]);
     flyTo(b, dt, AV[0], AV[1], AV[2]);
     if (t - P.rT > 4 && rl > out) { b.st = 'appr'; P.d0 = 0; P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; }
     if (t - P.rT > 14) giveUp(b);

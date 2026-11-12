@@ -57,7 +57,7 @@
   function stillTop(g) { return (wideWin() ? SKYTOPW : SKYTOP)[g]; }
   var THEME0 = document.querySelector('meta[name="theme-color"]'), TOP0 = stillTop(root.getAttribute('data-sky'));
   if (THEME0 && TOP0 && document.querySelector('canvas.sky')) THEME0.setAttribute('content', TOP0);
-  var canvas = document.querySelector('canvas.sky');
+  var canvas = /** @type {HTMLCanvasElement} */ (document.querySelector('canvas.sky'));
   if (!canvas || typeof WebGL2RenderingContext === 'undefined') return;
 
   function attr(n) { return root.getAttribute(n); }
