@@ -197,6 +197,24 @@ body {
   user-select: none;
 }
 
+/* (resume sketch A) the baked first frame: the canvas's box, under it; gone once the world is on (a cut) */
+.still {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  z-index: -2;
+  display: block;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+:root:has(.sky.on) .still {
+  display: none;
+}
+
 /* (fast500, no fades) the world shown: at once, a cut (the frame it shows in is drawn whole first) */
 .sky.on {
   opacity: 1;

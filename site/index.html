@@ -24,7 +24,7 @@
   <!-- The hold (first-paint preview): no paint until the parser ends, so the words and the world's first frame appear
        together (#world-end is the empty marker right after the last realm's script: the block ends as the hold does). hour.js takes this link out where
        the hold is skipped; the world, where its device check skips it or its deadline passes. -->
-  <link rel="expect" href="#world-end" blocking="render">
+  <link rel="preload" href="/assets/still/afterglow-393x852.avif" as="image" type="image/avif" fetchpriority="high">
   <script data-cfasync="false" src="/hour.js"></script>
   <script type="application/ld+json">
   {
@@ -40,6 +40,8 @@
 </head>
 <body>
   <!-- The world, drawn behind everything by the world's script (hidden until it is drawn). -->
+  <!-- (resume sketch A) the world's first frame, baked on the build machine: the first paint shows it; the live world cuts in over it. -->
+  <img class="still" src="/assets/still/afterglow-393x852.avif" alt="" aria-hidden="true" decoding="sync" fetchpriority="high">
   <canvas class="sky" aria-hidden="true"></canvas>
 
   <main>
