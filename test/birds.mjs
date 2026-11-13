@@ -29,7 +29,7 @@ function play(name, size, seed) {
     const B = sim.B, now = new Map();
     for (const b of B.BIRDS) {
       const was = last.get(b);
-      if (b.st in FLY && was && was.st in FLY && !(b.F && (b.F.far || b.F.off))) {
+      if (b.st in FLY && was && was.st in FLY && !(b.F && (b.F.far || b.F.off || b.F.spk))) {
         const rate = Math.abs(wrap(b.psi - was.psi)) / DT, may = G * Math.tan(Math.max(Math.abs(b.phi), Math.abs(was.phi))) / Math.max(Math.min(b.V, was.V), 3);
         if (rate > may * 1.05 + 0.02) { bad.turn++; bad.turnWorst = Math.max(bad.turnWorst, rate - may); }
       }
@@ -261,4 +261,20 @@ test('the cost of 1,000 clicked birds (printed)', () => {
   while (sim.t < 50) sim.step();
   let F = 0, n = 0; while (sim.t < 80) { const a = performance.now(); sim.step(); F += performance.now() - a; n++; }
   console.log(`# 1,000 clicked birds, 30-60 s on: ${(F / n).toFixed(3)} ms a frame (x 4 on a slow phone: ${(4 * F / n).toFixed(2)} ms; its 1 ms is 0.25 here), ${sim.B.BIRDS.length} birds`);
+});
+
+/* (the owner, 2026-11-13: "if you fly towards those birds ... theyll get back to normal") a flock gone beyond sight is
+   kept, asleep, and wakes, the same birds, when the eye comes to it: here one 40 km ahead of a camera flying 120 m/s */
+test('a flock beyond sight sleeps, and wakes the same birds when the eye comes to it', () => {
+  const sc = SCENES.natural(1, '960x600'); sc.opt.dt = 1 / 60; sc.opt.speed = 120; sc.opt.yaw = 0;
+  const sim = makeSim(sc.opt); sc.setup(sim); sim.run(2);
+  const C = sim.C, F = sim.B.newFlock(C.pos[0] + 40000 * C.f[0], C.pos[1] + 60, C.pos[2] + 40000 * C.f[2], Math.atan2(-C.f[0], -C.f[2]), sim.B.skyCls(), ['single', 'gull', 1]);
+  const b = F.lead; let slept = -1, woke = -1;
+  for (let k = 0; k < 60 * 400 && woke < 0; k++) {
+    sim.step(); const inn = sim.B.BIRDS.includes(b);
+    if (!inn && slept < 0) slept = sim.t; if (inn && slept >= 0) woke = sim.t;
+  }
+  const d = Math.hypot(b.p[0] - C.pos[0], b.p[2] - C.pos[2]);
+  console.log(`# sleep: asleep at ${slept.toFixed(1)} s, awake at ${woke.toFixed(1)} s, ${(d / 1000).toFixed(1)} km off`);
+  assert.ok(slept >= 0, 'it never slept'); assert.ok(woke > slept, 'it never woke'); assert.ok(d > 3000, 'it woke within 3 km');
 });
