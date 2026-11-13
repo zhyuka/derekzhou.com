@@ -91,7 +91,7 @@ if (on.session !== 'playback') bad.push(`the press set the audio session to ${on
 if (audio.length !== 1) bad.push(`the press requested ${audio.length} files (want 1, the sheet of notes): ${audio.join(', ')}`);
 else if (!audio[0].startsWith(origin + '/assets/sound/')) bad.push(`the sheet came from ${audio[0]} (want this site's /assets/sound/)`);
 if (on.pressed !== 'true' || on.state !== 'running') bad.push(`after the press the icon is ${on.pressed} and the context ${on.state} (want true, running)`);
-if (!(on.notes >= 3 && on.looping >= 3)) bad.push(`the score started ${on.notes} notes, ${on.looping} sustained and playing (want a chord: 3 or more)`);
+if (!(on.notes >= 3 && on.looping >= 3)) bad.push(`the score started ${on.notes} notes, ${on.looping} sustained and playing (want 3 or more: the first voices and the deep end)`);
 if (!(later.notes > on.notes)) bad.push(`no new notes between 4 s and 16 s after the press (${on.notes}, then ${later.notes}): the score stopped planning`);
 if (errs.length) bad.push('the page threw: ' + errs.join(' | '));
 

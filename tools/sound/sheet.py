@@ -8,17 +8,19 @@ Needs numpy and ffmpeg (libmp3lame). Writes site/assets/sound/notes-N.mp3 (N fro
 one: a changed file is a new name, changed-bytes-new-name; the old file removed), rewrites that SHEET line, and rewrites
 the NOTES line in src/score.js (the index: instrument, pitch, start, length, loops, gain).
 
-What it does, note by note (the same as the sketches the owner chose, round seventeen):
+What it does, note by note (round seventeen's sheet, the owner's pick, opened up in round twenty-two):
   - the note's own pitch (VSCO names its notes an octave under their sound, but not its harp; VCSL names them right);
-  - the silence before it cut; a low-pass at the instrument's cutoff and a soft high shelf (darker, never brighter);
+  - the silence before it cut; a low-pass at the instrument's cutoff (3.2-5.5 kHz: the bow's and the breath's texture
+    kept; at 1.8-2.8 kHz a held note was near a pure tone, and an ear model heard it as a tuner or a siren) and a soft
+    high shelf (darker, never brighter); the score darkens each note further as it swells in and away;
   - its level read as the sketches read it (the RMS from 0.3 s to 2 s), kept as a gain in the index;
   - a sustained note (strings, clarinet, horn, contrabass, tuba): 0.5 s in, past the attack (the score swells every
-    sustained note in over seconds), a loop of LOOP s with the 0.6 s before it crossfaded into its end, so it plays
-    on with no seam; a harp or piano note: from its start, with its own decay, the last 0.5 s faded;
+    sustained note in over seconds), a loop of up to LOOP s (as long as the note allows: a loop under about 10 s can
+    be heard repeating) with the 1.2 s before it crossfaded into its end at equal power, so it plays on with no seam; a harp or piano note: from its start, with its own decay, the last 0.5 s faded;
   - each peak-scaled for the MP3, its gain in the index undoing that.
 The sheet opens with one click at 0.2 s, so the score finds where the decoder put time zero (MP3 decoders differ by
 a few milliseconds), then 0.3 s of silence; 0.15 s of silence between notes. 24 kHz: nothing in the score is above
-about 4 kHz. Stereo: the sections' own width, as recorded (a mono sheet made them points).
+about 6 kHz. Stereo: the sections' own width, as recorded (a mono sheet made them points).
 """
 import json, os, re, subprocess, sys
 import numpy as np
@@ -28,17 +30,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 NAMES = {'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5, 'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11}
 # (instrument: folder, file pattern, octave offset, low-pass Hz, high shelf dB, the pitches kept, loop s or 0 for one-shot, one-shot s)
 INST = [
-    ('cello', 'V', 'Strings/Cello Section/susvib', r'susvib_([A-G]#?\d)_v1_1\.wav', 12, 2300, -3, [36, 40, 43, 47, 50, 53], 5.0, 0),
-    ('viola', 'V', 'Strings/Viola Section/susvib', r'ViolaEns_susvib_([A-G]#?\d)_v1_1\.wav', 12, 2500, -4, [55, 59, 62], 5.0, 0),
-    ('violin', 'V', 'Strings/Violin Section/susVib', r'VlnEns_susVib_([A-G]#?\d)_v1\.wav', 12, 2600, -5, [62, 66, 69, 72, 76], 5.0, 0),
-    ('clar', 'V', 'Woodwinds/Clarinet/susLong', r'DCClar_susLong_([A-G]#?\d)_v1_rr1_sum\.wav', 12, 2600, -4, [58, 62, 65, 70, 74, 77], 4.0, 0),
-    ('horn', 'V', 'Brass/F Horn/sus', r'MOHorn_sus_([A-G]#?\d)_v1_1\.wav', 12, 1800, -5, [43, 46, 50, 53, 57, 60, 74], 4.0, 0),
-    ('cbass', 'V', 'Strings/Solo Contrabass/SusNV', r'BKCtbss_SusNV_([A-G]#?\d)_v1_rr1\.wav', 12, 800, -8, [28, 30, 31, 34], 4.0, 0),
-    ('tuba', 'V', 'Brass/Tuba/sus', r'Tuba3_sus_([A-G]#?\d)_v1_rr1_Mid\.wav', 12, 900, -8, [41, 50], 4.0, 0),
-    ('harp', 'V', 'Strings/Harp', r'KSHarp_([A-G]#?\d)_m[fp]\.wav', 0, 2800, -5, [41, 45, 48, 52, 55, 59, 62, 65, 69, 72, 76, 79, 83, 86], 0, 4.5),
-    ('piano', 'P', 'Chordophones/Zithers/Grand Piano, Steinway B/Sus', r'JHPiano_Sus_Close_([A-G]#?\d)_vl2_rr1\.wav', 0, 2400, -6, [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84], 0, 6.0),
+    ('cello', 'V', 'Strings/Cello Section/susvib', r'susvib_([A-G]#?\d)_v1_1\.wav', 12, 4500, -2, [36, 40, 43, 47, 50, 53], 7.0, 0),
+    ('viola', 'V', 'Strings/Viola Section/susvib', r'ViolaEns_susvib_([A-G]#?\d)_v1_1\.wav', 12, 5000, -2, [55, 59, 62], 7.0, 0),
+    ('violin', 'V', 'Strings/Violin Section/susVib', r'VlnEns_susVib_([A-G]#?\d)_v1\.wav', 12, 5500, -3, [62, 66, 69, 72, 76], 7.0, 0),
+    ('clar', 'V', 'Woodwinds/Clarinet/susLong', r'DCClar_susLong_([A-G]#?\d)_v1_rr1_sum\.wav', 12, 4500, -3, [58, 62, 65, 70, 74, 77], 7.0, 0),
+    ('horn', 'V', 'Brass/F Horn/sus', r'MOHorn_sus_([A-G]#?\d)_v1_1\.wav', 12, 3200, -3, [43, 46, 50, 53, 57, 60, 74], 7.0, 0),
+    ('cbass', 'V', 'Strings/Solo Contrabass/SusNV', r'BKCtbss_SusNV_([A-G]#?\d)_v1_rr1\.wav', 12, 800, -8, [28, 30, 31, 34], 7.0, 0),
+    ('tuba', 'V', 'Brass/Tuba/sus', r'Tuba3_sus_([A-G]#?\d)_v1_rr1_Mid\.wav', 12, 900, -8, [29, 34], 7.0, 0),
+    ('harp', 'V', 'Strings/Harp', r'KSHarp_([A-G]#?\d)_m[fp]\.wav', 0, 5500, -3, [41, 45, 48, 52, 55, 59, 62, 65, 69, 72, 76, 79, 83, 86], 0, 4.5),
+    ('piano', 'P', 'Chordophones/Zithers/Grand Piano, Steinway B/Sus', r'JHPiano_Sus_Close_([A-G]#?\d)_vl2_rr1\.wav', 0, 4800, -3, [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84], 0, 6.0),
 ]
-XF = 0.6
+XF = 1.2
 
 def midi(n):
     m = re.fullmatch(r'([A-G]#?)(-?\d)', n); return 12 * (int(m.group(2)) + 1) + NAMES[m.group(1)]
@@ -63,8 +65,8 @@ def main(vsco, vcsl):
             x = load(files[m]); a = int(np.argmax(np.abs(x).max(0) > 0.002 * np.abs(x).max())); x = eq(x[:, max(0, a - 2):], lp, shelf)
             rms = np.sqrt(np.mean(x[:, int(0.3 * SR):int(2.0 * SR)] ** 2)) + 1e-12
             if loop:
-                a0, L, X = int(0.5 * SR) + int(XF * SR), int(loop * SR), int(XF * SR)
-                assert x.shape[1] >= a0 + L, (name, m, x.shape[1] / SR)
+                a0, X = int(0.5 * SR) + int(XF * SR), int(XF * SR); L = min(int(loop * SR), x.shape[1] - a0 - int(0.1 * SR))
+                assert L >= int(2 * SR), (name, m, x.shape[1] / SR)
                 body = x[:, a0:a0 + L].copy(); pre = x[:, a0 - X:a0]; t = np.linspace(0, np.pi / 2, X)
                 body[:, L - X:] = body[:, L - X:] * np.cos(t) + pre * np.sin(t)   # (the end runs into what comes just before the start: no seam)
                 y = body
