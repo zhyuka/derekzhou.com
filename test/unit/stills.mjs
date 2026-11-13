@@ -137,3 +137,22 @@ test('stills: the twin the PC bakes gets the still\'s preload back (the build ta
   assert.ok(S.withPreload(src, other).indexOf('class="still"') < S.withPreload(src, other).indexOf('src="/hour.js"'), 'before hour.js reads it');
   assert.throws(() => S.withPreload('<p>no block</p>', stripped), /no still preload/);
 });
+
+test('stills: the PC\'s bake renders a twin with the still\'s preload (stills.yml puts it back before bake-stills.js)', async () => {
+  const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8');
+  const fix = y.indexOf('node tools/stills-twin.mjs site/index.html served/head-twin'), bake = y.indexOf('node tools/gpu/bake-stills.js');
+  assert.ok(fix > 0, 'stills.yml puts the preload back in served/head-twin (run 43409850998: without it the page asks for no still)');
+  assert.ok(bake > fix, 'and does it before the bake renders the twin');
+  assert.ok(/--twin served\/head-twin/.test(y.slice(bake, y.indexOf('\n', bake))), 'the bake renders that same twin');
+  // the twin as the PC gets it: a plain build with no stills (the preload taken out), the preload then put back
+  const src = fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8'), d = tmp();
+  fs.writeFileSync(path.join(d, 'index.html'), src.replace(S.PRELOAD, ''));
+  const k = S.worldKey(d);
+  const r = await (await import('node:util')).promisify((await import('node:child_process')).execFile)(process.execPath, [path.join(ROOT, 'tools/stills-twin.mjs'), path.join(ROOT, 'site/index.html'), d]);
+  assert.match(r.stdout, /put back/);
+  assert.match(fs.readFileSync(path.join(d, 'index.html'), 'utf8'), /<link rel="preload" as="image" class="still"/, 'the twin asks for its still');
+  assert.notEqual(S.worldKey(d), k, '(the twin is not what the key is read from: stills.yml keys served/head)');
+  assert.ok(!/served\/head-twin/.test(y.slice(y.indexOf('worldKey'), y.indexOf('worldKey') + 120)), 'the key is read from served/head, never the twin');
+  fs.rmSync(d, { recursive: true, force: true });
+});
