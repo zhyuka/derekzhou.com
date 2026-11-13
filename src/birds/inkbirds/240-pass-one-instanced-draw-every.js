@@ -29,12 +29,12 @@
   var GRADE_GLSL = `@glsl grade-glsl`;
   var VS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + (HOST.glsl.AIR || HOST.glsl.LIB) + `@glsl vs-paper` + GRADE_GLSL + `@glsl vs-paper-2`;
   var FS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + `@glsl fs-paper` + PASS_TOPO.src + GRADE_GLSL + `@glsl fs-paper-2`;
-  var NF = 28, PTW = NV + NFAC + 4, BTX = new Float32Array(MAXP * PTW * 4), BT = null, PTS_UNIT = 6;   // 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6
-  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
+  var NF = 28, PTW = NV + NFAC + 4, CAP = MAXP, BTX = new Float32Array(CAP * PTW * 4), BT = null, PTS_UNIT = 6;   // 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6
+  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(CAP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
   /* the paper's program: asked for as the module is made (the engine links it while its still sky shows, never in
      flight); drawn once it is linked */
   function makeProgram() { if (!PROG && !BROKEN) PROG = HOST.program(VS_PAPER, FS_PAPER, 'paper'); }
-  /* the instance ring: three buffers, each with its own VAO (7 vec4 attributes, 112 B a bird, MAXP birds), made at
+  /* the instance ring: three buffers, each with its own VAO (7 vec4 attributes, 112 B a bird, CAP birds), made at
      the boot's stage B and warmed with the engine's table; a frame writes the next buffer, one last drawn three frames
      ago, so no buffer the GPU may still read is written and no VAO is made or pointed again in flight */
   function bootRing() {
@@ -47,14 +47,28 @@
       RING.push([vao, vbo]);
     }
     gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    /* the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
-       texelFetch only (no filtering) */
+    makePts();
+    VAO = RING[0][0]; VBO = RING[0][1]; RI = 0;
+    if (HOST.warm && PROG) HOST.warm({ n: 'birds.paper', p: PROG, vao: VAO, mode: gl.TRIANGLE_STRIP, cnt: 4, inst: 1, bl: [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE] });
+  }
+  /* the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
+     texelFetch only (no filtering) */
+  function makePts() {
     BT = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, PTW, MAXP); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
-    VAO = RING[0][0]; VBO = RING[0][1]; RI = 0;
-    if (HOST.warm && PROG) HOST.warm({ n: 'birds.paper', p: PROG, vao: VAO, mode: gl.TRIANGLE_STRIP, cnt: 4, inst: 1, bl: [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE] });
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, PTW, CAP); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+  }
+  /* more birds in view than the stores hold (none is left undrawn: every bird the window can show is drawn): the
+     stores twice as large, the ring's buffers and the points' texture made again at that size. Rare (a few times a
+     visit at most, at many clicks); the programs and the VAOs' pointers stay as they are */
+  function grow(n) {
+    while (CAP < n) CAP *= 2;
+    BTX = new Float32Array(CAP * PTW * 4); INST = new Float32Array(CAP * NF);
+    if (!RING) return;
+    for (var k = 0; k < RING.length; k++) { gl.bindBuffer(gl.ARRAY_BUFFER, RING[k][1]); gl.bufferData(gl.ARRAY_BUFFER, INST.byteLength, gl.DYNAMIC_DRAW); }
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.deleteTexture(BT); makePts();
   }
   var SAMPLERS = false;
   function ready() {
@@ -74,9 +88,8 @@
 
   var LIFT0 = new Float32Array(3), GAIN0 = new Float32Array([1, 1, 1]);
   var tmp3 = { x: 0, y: 0, z: 0, n: 0 }, DRAWQ = [], DF = 0, TONE_AT = 0;
-  function byDepth(x, y) { return x.dq - y.dq; }
-  /* every bird of the world the window can show, posed afresh every frame: the nearest MAXP (a speck past them changes
-     no pixel: far off, the air leaves nothing of it). No opacity but the world's own air (in the pass): no fade in
+  /* every bird of the world the window can show, posed afresh every frame, every one of them. No opacity but the
+     world's own air (in the pass): no fade in
      time, at an edge, near or far */
   function drawPaper() {
     var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0;
@@ -95,7 +108,7 @@
       if (b.st === 'fly' && (unseen(b) || hidden(b))) continue;
       b.dq = tmp3.z; DRAWQ[nq++] = b;
     }
-    if (nq > MAXP) { DRAWQ.length = nq; DRAWQ.sort(byDepth); nq = MAXP; }
+    if (nq > CAP) grow(nq);
     for (i = 0; i < nq; i++) {
       b = DRAWQ[i];
       if (!b.s) b.s = drawRec(b);

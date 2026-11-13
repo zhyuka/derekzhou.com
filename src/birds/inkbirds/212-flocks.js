@@ -39,22 +39,43 @@
     return F;
   }
   /* (the owner, 2026-11-06: any bird joins a flock or forms one) a lone bird, or a flock's few, near another flock of
-     its kind flying the same way joins it: a place at the end of its pattern, eased into by its own steering */
+     its kind flying the same way joins it: a place at the end of its pattern, eased into by its own steering. (The
+     flocks that may join, sorted by their leader's x: a flock looks only at those within 40 m of it in x and takes the
+     first of them in FLOCKS' order, as a search of every flock would; the pairs no longer grow as the count squared) */
+  var JI = new Int32Array(64), JX = new Float64Array(64), JO = new Int32Array(64);
+  function byJX(a, c) { return JX[a] - JX[c]; }
   function joinStep() {
-    for (var i = 0; i < FLOCKS.length; i++) {
+    var n = 0, i, j, k;
+    for (j = 0; j < FLOCKS.length; j++) {
+      var C = FLOCKS[j]; if (C.far || C.m.length > 2 || !C.lead || C.lead.st !== 'fly') continue;
+      if (n === JI.length) { var I2 = new Int32Array(2 * n), X2 = new Float64Array(2 * n); I2.set(JI); X2.set(JX); JI = I2; JX = X2; JO = new Int32Array(2 * n); }
+      JI[n] = j; JX[n] = C.lead.p[0]; n++;
+    }
+    if (!n) return;
+    for (k = 0; k < n; k++) JO[k] = k;
+    var O = JO.subarray(0, n); O.sort(byJX);
+    for (i = 0; i < FLOCKS.length; i++) {
       var A = FLOCKS[i]; if (A.far || !A.lead || A.lead.st !== 'fly') continue;
-      for (var j = 0; j < FLOCKS.length; j++) {
-        var B = FLOCKS[j]; if (B === A || B.far || B.kind !== A.kind || B.m.length > A.m.length || B.m.length > 2 || !B.lead || B.lead.st !== 'fly') continue;
+      var ax = A.lead.p[0], lo = 0, hi = n;
+      while (lo < hi) { var mid = (lo + hi) >> 1; if (JX[O[mid]] < ax - 40) lo = mid + 1; else hi = mid; }
+      var best = -1;
+      for (k = lo; k < n && JX[O[k]] <= ax + 40; k++) {
+        j = JI[O[k]]; if (best >= 0 && j > best) continue;
+        var B = FLOCKS[j]; if (B === A || B.kind !== A.kind || B.m.length > A.m.length) continue;
         if (A.m.length + B.m.length > 11) continue;
         var dx = B.lead.p[0] - A.lead.p[0], dy = B.lead.p[1] - A.lead.p[1], dz = B.lead.p[2] - A.lead.p[2];
         if (dx * dx + dy * dy + dz * dz > 40 * 40 || Math.cos(angDiff(B.lead.psi, A.lead.psi)) < 0.6) continue;
+        best = j;
+      }
+      if (best >= 0) {
+        B = FLOCKS[best];
         while (B.m.length) {
           var b = B.m.pop(), q = endPlace(A);
           if (A.pat === 'line') q[1] = (B.r() - 0.5) * 0.6;
           q[2] = (B.r() - 0.5) * 0.5; b.slot = q; b.F = A; b.goal = null; A.m.push(b);
         }
         if (A.m.length === 2) A.pat = 'pair';
-        var k = FLOCKS.indexOf(B); if (k >= 0) FLOCKS.splice(k, 1);
+        FLOCKS.splice(best, 1); B.out = true;
         return;
       }
     }
@@ -171,15 +192,41 @@
 
   /* ---------------- each step ---------------- */
   var FQ = [];
+  /* a flock no one can see now: every bird of it flying, past the eye's reach (clearOfEye's 160 m) and out of the view by 20 degrees
+     and its own breadth. It steps as a far flock does (its leader a coarse step, the rest held in their places); back
+     in the margin it steps every frame again from where it is (the time it skipped is skipped: no catching up, so no
+     jump), still out of the view. Seen birds cost a step a frame; the rest a step every COARSE s */
+  var OFF_A = 0.35, OFF_D = 160, OTX = 1, OTY = 1;
+  function offView(F, C) {
+    var L = F.lead, i;
+    for (i = 0; i < F.m.length; i++) if (F.m[i].st !== 'fly') return false;
+    var dx = L.p[0] - C.pos[0], dy = L.p[1] - C.pos[1], dz = L.p[2] - C.pos[2];
+    if (dx * dx + dy * dy + dz * dz < OFF_D * OFF_D) return false;
+    var zc = dx * C.f[0] + dy * C.f[1] + dz * C.f[2], xc = dx * C.r[0] + dy * C.r[1] + dz * C.r[2], yc = dx * C.u[0] + dy * C.u[1] + dz * C.u[2];
+    var rad = 2 * L.sz * (F.m.length + 1);
+    return Math.abs(xc) - rad > zc * OTX || Math.abs(yc) - rad > zc * OTY;
+  }
   function birdsStep(C, dt) {
     lvCam(C); windNow();
     popStep(C);
+    OTX = Math.tan(Math.atan(VW.tanX || 1) + OFF_A); OTY = Math.tan(Math.atan(VW.tanY || 1) + OFF_A);
     var i, j, F, b;
     var nq = FLOCKS.length; for (i = 0; i < nq; i++) FQ[i] = FLOCKS[i];   // (a stable list: a bird taking off joins or leaves a flock mid-step; filled in place, never emptied: no new store a step)
     for (i = 0; i < nq; i++) {
-      F = FQ[i]; if (!F.lead || FLOCKS.indexOf(F) < 0) continue;
+      F = FQ[i]; if (!F.lead || F.out) continue;
       var L = F.lead, dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       F.far = F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R;
+      var off = !F.far && !FORCED && offView(F, C);
+      if (F.off && !off) { F.acc = 0; for (j = 0; j < F.m.length; j++) if (F.m[j].wOff) wingOn(F.m[j]); }
+      F.off = off;
+      if (off) {
+        F.acc = (F.acc || 0) + dt; if (F.acc < COARSE) continue;
+        var odt = F.acc; F.acc = 0;
+        for (j = 0; j < F.m.length; j++) { b = F.m[j]; b.age += odt; b.wOff = true; b.flap = 1; }
+        var ow = goalVel(F, L, odt); flyTo(L, odt, ow[0], ow[1], ow[2]);
+        for (j = 0; j < F.m.length; j++) if (F.m[j] !== L) holdPlace(F, F.m[j]);
+        continue;
+      }
       if (F.far) {
         F.acc = (F.acc || 0) + dt; if (F.acc < COARSE) continue;
         var cdt = F.acc; F.acc = 0;

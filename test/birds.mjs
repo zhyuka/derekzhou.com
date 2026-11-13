@@ -29,7 +29,7 @@ function play(name, size, seed) {
     const B = sim.B, now = new Map();
     for (const b of B.BIRDS) {
       const was = last.get(b);
-      if (b.st in FLY && was && was.st in FLY && !(b.F && b.F.far)) {
+      if (b.st in FLY && was && was.st in FLY && !(b.F && (b.F.far || b.F.off))) {
         const rate = Math.abs(wrap(b.psi - was.psi)) / DT, may = G * Math.tan(Math.max(Math.abs(b.phi), Math.abs(was.phi))) / Math.max(Math.min(b.V, was.V), 3);
         if (rate > may * 1.05 + 0.02) { bad.turn++; bad.turnWorst = Math.max(bad.turnWorst, rate - may); }
       }

@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
@@ -92,12 +92,12 @@
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
   function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, acc: 0 }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, acc: 0, out: false }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */
   function endPlace(F) { var n = F.m.length; return [n * 1.9, (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 1.2, 0]; }
-  function dropFlock(F) { while (F.m.length) dropBird(F.m[F.m.length - 1]); var i = FLOCKS.indexOf(F); if (i >= 0) FLOCKS.splice(i, 1); }
+  function dropFlock(F) { while (F.m.length) dropBird(F.m[F.m.length - 1]); var i = FLOCKS.indexOf(F); if (i >= 0) FLOCKS.splice(i, 1); F.out = true; }   // (out: no longer in FLOCKS, read in place of a search of it)
   /* a flock's leader gone (landed, left, taken out): the bird foremost in it leads, every place then measured from it */
   function relead(F) {
     if (!F.m.length) return;
@@ -134,7 +134,10 @@
   /* its own pace: +-8-12 % about its kind's, slowly */
   function paceOf(b) { return b.vJ * (1 + 0.06 * wave(b.vK, b.age / 9)); }
   /* the measured wing's state at the bird's age, worked out once an age (the step's, read again by the draw) */
-  function wingState(b) { if (b.wsT !== b.age) { BW.state(b.w.wing, b.age, b.WS); b.wsT = b.age; } return b.WS; }
+  function wingState(b) { if (b.wOff) wingOn(b); if (b.wsT !== b.age) { BW.state(b.w.wing, b.age, b.WS); b.wsT = b.age; } return b.WS; }
+  /* a bird no one could see (offView) works out no wing: it flies as if beating (a glide cannot climb). Back where it
+     might be seen it has a wing of its own again, begun from its age (out of the view still: no beat seen to jump) */
+  function wingOn(b) { b.w = placeWing(b.kind, b.r, b.age); b.wOff = false; b.wsT = -1; b.wtT = 0; }
   /* its wing's history kept to the last seconds (else it grows all its life) */
   function wingTrim(b) { if (b.age > b.wtT) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 30; } }
   /* ... flapping 1, gliding 0: the integrator reads it */
