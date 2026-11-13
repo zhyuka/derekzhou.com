@@ -29,12 +29,12 @@
   var GRADE_GLSL = `@glsl grade-glsl`;
   var VS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + (HOST.glsl.AIR || HOST.glsl.LIB) + `@glsl vs-paper` + GRADE_GLSL + `@glsl vs-paper-2`;
   var FS_PAPER = HOST.glsl.HEAD + HOST.glsl.FRAME_U + `@glsl fs-paper` + PASS_TOPO.src + GRADE_GLSL + `@glsl fs-paper-2`;
-  var NF = 28, PTW = NV + NFAC + 4, BTX = new Float32Array(MAXP * PTW * 4), BT = null, PTS_UNIT = 6;   // 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6
-  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(MAXP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
+  var NF = 28, PTW = NV + NFAC + 4, CAP = MAXP, BTX = new Float32Array(CAP * PTW * 4), BT = null, PTS_UNIT = 6;   // 7 vec4 a bird; its 46 points and 30 facet lights a row of the points' texture, unit 6
+  var PROG = null, BROKEN = false, VAO = null, VBO = null, RING = null, RI = 0, INST = new Float32Array(CAP * NF), UGR = new Float32Array(4), USC = new Float32Array(4), UCL = new Float32Array(2), ULAND = new Float32Array(3), UBL = new Float32Array(4), UGL = new Float32Array(4), UMODE = new Float32Array(4), UINKF = new Float32Array(3);
   /* the paper's program: asked for as the module is made (the engine links it while its still sky shows, never in
      flight); drawn once it is linked */
   function makeProgram() { if (!PROG && !BROKEN) PROG = HOST.program(VS_PAPER, FS_PAPER, 'paper'); }
-  /* the instance ring: three buffers, each with its own VAO (7 vec4 attributes, 112 B a bird, MAXP birds), made at
+  /* the instance ring: three buffers, each with its own VAO (7 vec4 attributes, 112 B a bird, CAP birds), made at
      the boot's stage B and warmed with the engine's table; a frame writes the next buffer, one last drawn three frames
      ago, so no buffer the GPU may still read is written and no VAO is made or pointed again in flight */
   function bootRing() {
@@ -47,14 +47,57 @@
       RING.push([vao, vbo]);
     }
     gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    /* the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
-       texelFetch only (no filtering) */
+    makePts();
+    VAO = RING[0][0]; VBO = RING[0][1]; RI = 0;
+    if (HOST.warm && PROG) HOST.warm({ n: 'birds.paper', p: PROG, vao: VAO, mode: gl.TRIANGLE_STRIP, cnt: 4, inst: 1, bl: [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE] });
+  }
+  /* the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
+     texelFetch only (no filtering) */
+  function makePts() {
     BT = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, PTW, MAXP); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
-    VAO = RING[0][0]; VBO = RING[0][1]; RI = 0;
-    if (HOST.warm && PROG) HOST.warm({ n: 'birds.paper', p: PROG, vao: VAO, mode: gl.TRIANGLE_STRIP, cnt: 4, inst: 1, bl: [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE] });
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, PTW, CAP); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+  }
+  /* more birds in view than the stores hold (none is left undrawn: every bird the window can show is drawn): the
+     stores twice as large, the ring's buffers and the points' texture made again at that size. Rare (a few times a
+     visit at most, at many clicks); the programs and the VAOs' pointers stay as they are */
+  function grow(n) {
+    while (CAP < n) CAP *= 2;
+    BTX = new Float32Array(CAP * PTW * 4); INST = new Float32Array(CAP * NF);
+    if (!RING) return;
+    for (var k = 0; k < RING.length; k++) { gl.bindBuffer(gl.ARRAY_BUFFER, RING[k][1]); gl.bufferData(gl.ARRAY_BUFFER, INST.byteLength, gl.DYNAMIC_DRAW); }
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.deleteTexture(BT); makePts();
+  }
+  /* a bird posed, projected and lit for this frame (a held speck only carried on: holdMove); false: not drawn */
+  function poseDrawn(b, s, C, N, moving, bb) {
+    if (s.hold) return holdMove(b, s, C, bb);
+    var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, bb);
+    if (!ok || !projectBird(s, C, N)) return false;
+    bodyAt(s, C, s.HB);
+    lightBird(s, !moving, s.ldt); s.ldt = 0;
+    cloudWeights(s, C);
+    return true;
+  }
+  /* the body point on the window (device px) and its depth */
+  function bodyAt(s, C, o) {
+    var ax = s.body[0], ay = s.body[1], az = s.body[2], zc = ax * C.f[0] + ay * C.f[1] + az * C.f[2];
+    o[2] = zc; if (!(zc > 0.5)) return false;
+    o[0] = VW.outW / 2 + (VW.outW / 2) / VW.tanX * (ax * C.r[0] + ay * C.r[1] + az * C.r[2]) / zc; o[1] = VW.outH / 2 + (VW.outH / 2) / VW.tanY * (ax * C.u[0] + ay * C.u[1] + az * C.u[2]) / zc;
+    return true;
+  }
+  /* a held speck moved: its body where it is now (from the camera), its last points shifted with it on the window and
+     scaled by its depth (under SPECK px a turn of its form changes no pixel); its tone, cloud and pen kept */
+  var HB2 = new Float64Array(3);
+  function holdMove(b, s, C, bb) {
+    s.body[0] = b.p[0] - b.v[0] * bb - C.pos[0]; s.body[1] = b.p[1] - b.v[1] * bb - C.pos[1]; s.body[2] = b.p[2] - b.v[2] * bb - C.pos[2];
+    if (!bodyAt(s, C, HB2)) return false;
+    var H = s.HB, k = H[2] / HB2[2], D = s.D46, Z = s.IZ, i;
+    for (i = 0; i < NV; i++) { D[2 * i] = HB2[0] + (D[2 * i] - H[0]) * k; D[2 * i + 1] = HB2[1] + (D[2 * i + 1] - H[1]) * k; Z[i] *= k; }
+    s.spanPx *= k; s.n *= k;
+    H[0] = HB2[0]; H[1] = HB2[1]; H[2] = HB2[2];
+    return true;
   }
   var SAMPLERS = false;
   function ready() {
@@ -74,9 +117,8 @@
 
   var LIFT0 = new Float32Array(3), GAIN0 = new Float32Array([1, 1, 1]);
   var tmp3 = { x: 0, y: 0, z: 0, n: 0 }, DRAWQ = [], DF = 0, TONE_AT = 0;
-  function byDepth(x, y) { return x.dq - y.dq; }
-  /* every bird of the world the window can show, posed afresh every frame: the nearest MAXP (a speck past them changes
-     no pixel: far off, the air leaves nothing of it). No opacity but the world's own air (in the pass): no fade in
+  /* every bird of the world the window can show, posed afresh every frame, every one of them. No opacity but the
+     world's own air (in the pass): no fade in
      time, at an edge, near or far */
   function drawPaper() {
     var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0;
@@ -87,7 +129,7 @@
     var nq = 0; DF++;   // (DRAWQ filled in place: emptying it would make it a new store each frame)
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
-      var px = b.p[0] - b.v[0] * back, py = b.p[1] - b.v[1] * back, pz = b.p[2] - b.v[2] * back;
+      var bb = b.stT === t ? back : back - (t - b.stT), px = b.p[0] - b.v[0] * bb, py = b.p[1] - b.v[1] * bb, pz = b.p[2] - b.v[2] * bb;   // (bb: back to the frame's time from its own last step)
       projReal(px, py, pz, C, tmp3);
       if (!(tmp3.z > 1)) continue;
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
@@ -95,20 +137,22 @@
       if (b.st === 'fly' && (unseen(b) || hidden(b))) continue;
       b.dq = tmp3.z; DRAWQ[nq++] = b;
     }
-    if (nq > MAXP) { DRAWQ.length = nq; DRAWQ.sort(byDepth); nq = MAXP; }
+    if (nq > CAP) grow(nq);
     for (i = 0; i < nq; i++) {
       b = DRAWQ[i];
       if (!b.s) b.s = drawRec(b);
       s = b.s;
-      if (s.seenF !== DF - 1) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; }   // (back in view: its tone and attitude begin afresh)
+      var was = s.seenF === DF - 1;
+      if (!was) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
+      /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself one frame
+         in four, its own (by its number): between, its form and tone are held and only its place and attitude move */
+      s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && ((DF + b.id) & 3) !== 0;
       s.seenF = DF; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
       s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
       if (b.st === 'land') restProbe(b, C, s);
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
-      var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
-      if (!ok || !projectBird(s, C, N)) continue;
-      lightBird(s, !moving, fdt);
-      cloudWeights(s, C);
+      s.ldt += fdt;
+      if (!poseDrawn(b, s, C, N, moving, b.stT === t ? back : back - (t - b.stT))) continue;
       packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
       nB++;
     }

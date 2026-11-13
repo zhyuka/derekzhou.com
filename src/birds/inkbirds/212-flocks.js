@@ -39,22 +39,49 @@
     return F;
   }
   /* (the owner, 2026-11-06: any bird joins a flock or forms one) a lone bird, or a flock's few, near another flock of
-     its kind flying the same way joins it: a place at the end of its pattern, eased into by its own steering */
+     its kind flying the same way joins it: a place at the end of its pattern, eased into by its own steering. (The
+     flocks that may join, sorted by their leader's x: a flock looks only at those within 40 m of it in x and takes the
+     first of them in FLOCKS' order, as a search of every flock would; the pairs no longer grow as the count squared) */
+  var JI = new Int32Array(64), JX = new Float64Array(64), JO = new Int32Array(64);
+  /* O[0..n) sorted in place by K[O[i]], least first (a heapsort: no store made, as a typed array's sort with a rule makes) */
+  function heapSort(O, K, n) {
+    var i, e, v;
+    for (i = (n >> 1) - 1; i >= 0; i--) siftDown(O, K, i, n);
+    for (e = n - 1; e > 0; e--) { v = O[0]; O[0] = O[e]; O[e] = v; siftDown(O, K, 0, e); }
+  }
+  function siftDown(O, K, r, m) { var c, v; while ((c = 2 * r + 1) < m) { if (c + 1 < m && K[O[c + 1]] > K[O[c]]) c++; if (K[O[c]] <= K[O[r]]) return; v = O[r]; O[r] = O[c]; O[c] = v; r = c; } }
   function joinStep() {
-    for (var i = 0; i < FLOCKS.length; i++) {
+    var n = 0, i, j, k;
+    for (j = 0; j < FLOCKS.length; j++) {
+      var C = FLOCKS[j]; if (C.far || C.m.length > 2 || !C.lead || C.lead.st !== 'fly') continue;
+      if (n === JI.length) { var I2 = new Int32Array(2 * n), X2 = new Float64Array(2 * n); I2.set(JI); X2.set(JX); JI = I2; JX = X2; JO = new Int32Array(2 * n); }
+      JI[n] = j; JX[n] = C.lead.p[0]; n++;
+    }
+    if (!n) return;
+    for (k = 0; k < n; k++) JO[k] = k;
+    var O = JO; heapSort(O, JX, n);
+    for (i = 0; i < FLOCKS.length; i++) {
       var A = FLOCKS[i]; if (A.far || !A.lead || A.lead.st !== 'fly') continue;
-      for (var j = 0; j < FLOCKS.length; j++) {
-        var B = FLOCKS[j]; if (B === A || B.far || B.kind !== A.kind || B.m.length > A.m.length || B.m.length > 2 || !B.lead || B.lead.st !== 'fly') continue;
+      var ax = A.lead.p[0], lo = 0, hi = n;
+      while (lo < hi) { var mid = (lo + hi) >> 1; if (JX[O[mid]] < ax - 40) lo = mid + 1; else hi = mid; }
+      var best = -1;
+      for (k = lo; k < n && JX[O[k]] <= ax + 40; k++) {
+        j = JI[O[k]]; if (best >= 0 && j > best) continue;
+        var B = FLOCKS[j]; if (B === A || B.kind !== A.kind || B.m.length > A.m.length) continue;
         if (A.m.length + B.m.length > 11) continue;
         var dx = B.lead.p[0] - A.lead.p[0], dy = B.lead.p[1] - A.lead.p[1], dz = B.lead.p[2] - A.lead.p[2];
         if (dx * dx + dy * dy + dz * dz > 40 * 40 || Math.cos(angDiff(B.lead.psi, A.lead.psi)) < 0.6) continue;
+        best = j;
+      }
+      if (best >= 0) {
+        B = FLOCKS[best];
         while (B.m.length) {
           var b = B.m.pop(), q = endPlace(A);
           if (A.pat === 'line') q[1] = (B.r() - 0.5) * 0.6;
           q[2] = (B.r() - 0.5) * 0.5; b.slot = q; b.F = A; b.goal = null; A.m.push(b);
         }
         if (A.m.length === 2) A.pat = 'pair';
-        var k = FLOCKS.indexOf(B); if (k >= 0) FLOCKS.splice(k, 1);
+        FLOCKS.splice(best, 1); B.out = true;
         return;
       }
     }
@@ -147,11 +174,14 @@
     if (!POP.seeded) { seed(C); return; }
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
       var F = FLOCKS[i];
-      if (F.lead && F.lead.st === 'fly' && (F.goal && F.goal.k === 'sink' || unseen(F.lead)) && goneUnseen(F)) { dropFlock(F); continue; }
+      if (F.lead && F.lead.st === 'fly' && F.goal && F.goal.k === 'sink' && goneUnseen(F)) { dropFlock(F); continue; }
+      if (F.lead && F.lead.st === 'fly' && unseen(F.lead) && goneUnseen(F)) { if (FORCED) dropFlock(F); else sleepFlock(F, i); continue; }
       if (FORCED && F.lead && F.lead.st === 'fly') { var allOut = true; for (var q = 0; q < F.m.length && allOut; q++) allOut = outOfView(F.m[q], C) && dist3(F.m[q].p, C.pos) > 600; if (allOut) dropFlock(F); }
     }
+    if (!FORCED) wakeStep();
     if (t >= POP.nextT) {
       POP.nextT = t + 1.5;
+      if (!FORCED) disperse(cls);
       if (liveCount() < (LIVE_N[cls] || 6)) addFar(C, cls, POP.r);
       if (t >= (POP.comeT || PFIRST)) { recruit(); POP.comeT = t + pick(POP.r, COME_GAP); }
     }
@@ -162,34 +192,141 @@
      a speck, but it stays seeable for tens of km in clear air: left on its way, the world would fill with them.) */
   function homeStep() {
     for (var i = 0; i < FLOCKS.length; i++) {
-      var F = FLOCKS[i], L = F.lead; if (!L || L.st !== 'fly' || !F.goal || F.goal.k === 'sink' || F.goal.home) continue;
+      var F = FLOCKS[i], L = F.lead; if (!L || L.st !== 'fly' || !F.goal || F.goal.k === 'sink' || F.goal.home || F.goal.leave) continue;
       var dx = LVC.x - L.p[0], dz = LVC.z - L.p[2]; if (dx * dx + dz * dz < HOME_R * HOME_R) continue;
       var g = newGoal(F, 'sink', F.r, POP.cls);
       if (g.k !== 'sink') { g.psi = Math.atan2(dx, dz) + (F.r() - 0.5) * 1.2; g.T = pick(F.r, [80, 160]); g.home = true; }
     }
   }
 
+  /* (the owner, 2026-11-13: "the birds furthest away start flying further away") a sky holding more flocks than its
+     count (clicks let any number go) thins from its far edge: every 1.5 s a twentieth of the excess (one at least),
+     the farthest first, turns out, away from the eye, and flies on (homeStep never turns it back) */
+  var DSI = new Int32Array(64), DSD = new Float64Array(64), DSO = new Int32Array(64);
+
+  function disperse(cls) {
+    var n = 0, stay = 0, i, j, r2 = LIVE_R * LIVE_R;
+    for (i = 0; i < FLOCKS.length; i++) {
+      var F = FLOCKS[i], L = F.lead; if (!L || (F.goal && F.goal.leave)) continue;
+      var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
+      if (dd >= r2 && !(F.goal && F.goal.home)) continue;
+      stay++;
+      if (F.goal && (F.goal.k === 'sink' || F.goal.come || F.goal.k === 'pass')) continue;
+      var fly = true; for (j = 0; j < F.m.length && fly; j++) fly = F.m[j].st === 'fly';
+      if (!fly) continue;
+      if (n === DSI.length) { var I2 = new Int32Array(2 * n), D2 = new Float64Array(2 * n); I2.set(DSI); D2.set(DSD); DSI = I2; DSD = D2; DSO = new Int32Array(2 * n); }
+      DSI[n] = i; DSD[n] = dd; n++;
+    }
+    var ex = stay - (LIVE_N[cls] || 6); if (ex <= 0 || !n) return;
+    for (i = 0; i < n; i++) DSO[i] = i;
+    var O = DSO; heapSort(O, DSD, n);   // (nearest first: the farthest at the end)
+    var k = Math.min(n, Math.max(1, Math.ceil(0.05 * ex)));
+    for (i = 0; i < k; i++) {
+      var G = FLOCKS[DSI[O[n - 1 - i]]], Lg = G.lead, g = newGoal(G, 'out', G.r, cls);
+      g.psi = Math.atan2(Lg.p[0] - LVC.x, Lg.p[2] - LVC.z) + (G.r() - 0.5) * 0.6; g.leave = true;
+    }
+  }
+  /* a flock gone where no one can see it is kept, asleep: out of the lists, its wing and draw stores let go (its
+     record, about a kilobyte a bird, kept), flying on its way in a straight line at its speed (worked out only when
+     it wakes). Each step a 90th of the sleepers is looked at: one the eye could see again (it came nearer, or the eye
+     went to it) wakes where its way has brought it, still beyond sight, over the land and the cloud, on a goal of its
+     own: the world's birds are never thrown away, only let be where nothing of them shows */
+  var SLEEP = [], SWK = 0, SIGHT0 = {}, SIGHTT = {};
+  function sleepFlock(F, i) {
+    FLOCKS.splice(i, 1); F.out = true; F.zT = t;
+    for (var j = 0; j < F.m.length; j++) { var b = F.m[j], k = BIRDS.indexOf(b); if (k >= 0) BIRDS.splice(k, 1); b.s = null; b.w = null; b.wOff = true; }
+    SLEEP.push(F);
+  }
+  function wakeStep() {
+    var n = SLEEP.length; if (!n) return;
+    var m = Math.ceil(n / 90), q;
+    for (q = 0; q < m && SLEEP.length; q++) {
+      if (SWK >= SLEEP.length) SWK = 0;
+      var F = SLEEP[SWK], L = F.lead, dt = t - F.zT;
+      var x = L.p[0] + L.v[0] * dt - LVC.x, y = L.p[1] + L.v[1] * dt - LVC.y, z = L.p[2] + L.v[2] * dt - LVC.z, d = Math.sqrt(x * x + y * y + z * z);
+      var s0 = SIGHT0[F.kind]; if (!(s0 > 0) || t - (SIGHTT[F.kind] || -99) > 1.5) { s0 = SIGHT0[F.kind] = sightD(F.kind, LVC.y); SIGHTT[F.kind] = t; }
+      if (d < 1.5 * s0 && d < 1.05 * sightD(F.kind, L.p[1] + L.v[1] * dt)) { SLEEP.splice(SWK, 1); wakeFlock(F, dt); }
+      else SWK++;
+    }
+  }
+  function wakeFlock(F, dt) {
+    var L = F.lead, j, b, x = L.p[0] + L.v[0] * dt, z = L.p[2] + L.v[2] * dt, y = L.p[1] + L.v[1] * dt;
+    var lift = Math.max(0, lvGround(x, z) + 30 - y, hideTop(x, z) + 30 - y);
+    for (j = 0; j < F.m.length; j++) {
+      b = F.m[j]; b.p[0] += b.v[0] * dt; b.p[1] += b.v[1] * dt + lift; b.p[2] += b.v[2] * dt; b.age += dt;
+      wingOn(b); BIRDS.push(b);
+    }
+    F.out = false; F.far = true; F.off = false; F.acc = 0; FLOCKS.push(F);
+    nextGoal(F);
+  }
+
   /* ---------------- each step ---------------- */
   var FQ = [];
+  /* a flock no one can see now: every bird of it flying, past the eye's reach (clearOfEye's 160 m) and out of the view by 20 degrees
+     and its own breadth. It steps as a far flock does (its leader a coarse step, the rest held in their places); back
+     in the margin it steps every frame again from where it is (the time it skipped is skipped: no catching up, so no
+     jump), still out of the view. Seen birds cost a step a frame; the rest a step every COARSE s */
+  var OFF_A = 0.35, OFF_D = 160, OTX = 1, OTY = 1, SPECK_W = 2.5, HOLD_W = 3, SPK_DT = 4 / 60;   // (SPK_DT: a speck flock's step; HOLD_W: back to a wing only from the held glide's 3 px; SPECK_W: device px; under it a drawn bird works out no wing: it holds its glide from 3 px)
+  function offView(F, C) {
+    var L = F.lead, i;
+    for (i = 0; i < F.m.length; i++) if (F.m[i].st !== 'fly') return false;
+    var dx = L.p[0] - C.pos[0], dy = L.p[1] - C.pos[1], dz = L.p[2] - C.pos[2];
+    if (dx * dx + dy * dy + dz * dz < OFF_D * OFF_D) return false;
+    var zc = dx * C.f[0] + dy * C.f[1] + dz * C.f[2], xc = dx * C.r[0] + dy * C.r[1] + dz * C.r[2], yc = dx * C.u[0] + dy * C.u[1] + dz * C.u[2];
+    var rad = 2 * L.sz * (F.m.length + 1);
+    return Math.abs(xc) - rad > zc * OTX || Math.abs(yc) - rad > zc * OTY;
+  }
   function birdsStep(C, dt) {
     lvCam(C); windNow();
     popStep(C);
+    OTX = Math.tan(Math.atan(VW.tanX || 1) + OFF_A); OTY = Math.tan(Math.atan(VW.tanY || 1) + OFF_A);
     var i, j, F, b;
     var nq = FLOCKS.length; for (i = 0; i < nq; i++) FQ[i] = FLOCKS[i];   // (a stable list: a bird taking off joins or leaves a flock mid-step; filled in place, never emptied: no new store a step)
     for (i = 0; i < nq; i++) {
-      F = FQ[i]; if (!F.lead || FLOCKS.indexOf(F) < 0) continue;
+      F = FQ[i]; if (!F.lead || F.out) continue;
       var L = F.lead, dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       F.far = F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R;
+      var off = !F.far && !FORCED && offView(F, C);
+      if (F.off && !off) { F.acc = 0; for (j = 0; j < F.m.length; j++) if (F.m[j].wOff) wingOn(F.m[j]); }
+      F.off = off;
+      if (off) {
+        F.acc = (F.acc || 0) + dt; if (F.acc < COARSE) continue;
+        var odt = F.acc; F.acc = 0;
+        for (j = 0; j < F.m.length; j++) { b = F.m[j]; b.age += odt; wingOff(b); b.flap = 1; }
+        var ow = goalVel(F, L, odt); flyTo(L, odt, ow[0], ow[1], ow[2]);
+        for (j = 0; j < F.m.length; j++) { if (F.m[j] !== L) holdPlace(F, F.m[j]); F.m[j].stT = t; }
+        continue;
+      }
       if (F.far) {
         F.acc = (F.acc || 0) + dt; if (F.acc < COARSE) continue;
         var cdt = F.acc; F.acc = 0;
-        if (L.st === 'fly') { var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; wingNow(L); wingTrim(L); }
-        for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; BW.ensure(b.w.wing, b.age); wingTrim(b); }   // (its wing kept up with its age: never a long history to work out at once)
+        if (L.st === 'fly') { wingOff(L); L.flap = 1; var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; }
+        for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; wingOff(b); }   // (a speck that far holds its glide: its wing paused, going on from there when it is near)
+        for (j = 0; j < F.m.length; j++) F.m[j].stT = t;
+        continue;
+      }
+      /* a flock of specks (every bird of it flying and drawn last frame under SPECK_W device px, past the eye's reach)
+         steps one frame in four, a step of their time; between, the draw carries each bird on along its way
+         (stT: the time of its last step), so it moves every frame, its way corrected by far under a pixel */
+      var spk = !FORCED && dd > OFF_D * OFF_D;
+      for (j = 0; j < F.m.length && spk; j++) { b = F.m[j]; spk = b.st === 'fly' && !b.burst && !!b.s && b.s.seenF >= DF - 1 && b.s.spanPx > 0 && b.s.spanPx < (F.spk ? HOLD_W : SPECK_W); }
+      if (F.spk && !spk) F.acc = 0;
+      F.spk = spk;
+      if (spk) {
+        F.acc += dt; if (F.acc < SPK_DT - 1e-9) continue;
+        var sdt = F.acc; F.acc = 0;
+        for (j = 0; j < F.m.length; j++) {
+          b = F.m[j]; b.age += sdt; wingOff(b); b.flap = 1;
+          var sv = b === L ? goalVel(F, b, sdt) : placeVel(F, b);
+          flyTo(b, sdt, sv[0], sv[1], sv[2]); b.stT = t;
+        }
         continue;
       }
       for (j = 0; j < F.m.length; j++) {
-        b = F.m[j]; b.age += dt; wingTrim(b);
-        if (b.st === 'perch' || b.st === 'land') BW.ensure(b.w.wing, b.age); else wingNow(b);
+        b = F.m[j]; b.age += dt; wingTrim(b); b.stT = t;
+        if (b.st === 'perch' || b.st === 'land') BW.ensure(b.w.wing, b.age);
+        else if (b.st === 'fly' && !b.burst && b.s && b.s.seenF >= DF - 1 && b.s.spanPx > 0 && b.s.spanPx < (b.wOff ? HOLD_W : SPECK_W)) { wingOff(b); b.flap = 1; }   // (a speck holds its glide: HOLD_POSE; its wing paused till it is larger)
+        else wingNow(b);
         if (b.st !== 'fly') { perchStep(b, dt, C); continue; }
         var wv = b === L ? goalVel(F, b, dt) : placeVel(F, b);
         clearOfEye(b, wv);
@@ -197,7 +334,7 @@
       }
     }
   }
-  function birdsClear() { while (FLOCKS.length) dropFlock(FLOCKS[0]); BIRDS.length = 0; POP.seeded = false; POP.k = 0; POP.passT = 60; SEAC.clear(); perchReset(); POP.r = vstream(8800); POP.cls = ''; }
+  function birdsClear() { while (FLOCKS.length) dropFlock(FLOCKS[0]); BIRDS.length = 0; SLEEP.length = 0; SWK = 0; POP.seeded = false; POP.k = 0; POP.passT = 60; SEAC.clear(); perchReset(); POP.r = vstream(8800); POP.cls = ''; }
   function lvG(r) { return (r() + r() + r() + r() - 2) * 1.7320508; }
   /* the land's height under a point (the world's own ground; 0 where it gives none) */
   function lvGround(x, z) { var g = HOST.ground && !FORCED ? HOST.ground(x, z) : -1e4; return g === g ? g : 0; }
