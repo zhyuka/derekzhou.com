@@ -11,8 +11,10 @@ import { worldKey, unpack, ASSET, TAG, STILL_DIR } from '../../tools/stills.mjs'
 
 const A = {};
 for (let i = 2; i < process.argv.length; i++) { const k = process.argv[i].replace(/^--/, ''); const v = process.argv[i + 1]; if (v === undefined || v.startsWith('--')) A[k] = true; else { A[k] = v; i++; } }
-if (!A.plain || !A.url) { console.error('usage: stills-live.mjs --plain PLAIN_BUILD --url URL [--timeout S]'); process.exit(2); }
-const fail = (m) => { console.error('stills-live: FAIL: ' + m); process.exit(1); };
+class Fail extends Error {}
+const fail = (m) => { throw new Fail(m); };   // (never process.exit after a fetch: node on Windows crashes, tools/stills-release.mjs)
+async function main() {
+if (!A.plain || !A.url) { console.error('usage: stills-live.mjs --plain PLAIN_BUILD --url URL [--timeout S]'); return 2; }
 const token = process.env.GITHUB_TOKEN, repo = process.env.GITHUB_REPOSITORY;
 if (!token || !repo) fail('GITHUB_TOKEN and GITHUB_REPOSITORY are needed');
 const h = { authorization: 'Bearer ' + token, 'x-github-api-version': '2022-11-28', 'user-agent': 'derekzhou.com-post-deploy' };
@@ -20,7 +22,7 @@ const api = (process.env.STILLS_API || 'https://api.github.com') + '/repos/' + r
 
 const key = worldKey(path.resolve(A.plain));
 const rel = await fetch(api + '/releases/tags/' + TAG(key), { headers: { ...h, accept: 'application/vnd.github+json' } });
-if (rel.status === 404) fail(`no release ${TAG(key)}: live's world has no stills (stills.yml puts it up; the deploy gate waits for it)`);
+if (rel.status === 404) { await rel.body?.cancel(); fail(`no release ${TAG(key)}: live's world has no stills (stills.yml puts it up; the deploy gate waits for it)`); }
 if (!rel.ok) fail('the release lookup answered ' + rel.status);
 const a = ((await rel.json()).assets || []).find((x) => x.name === ASSET);
 if (!a) fail(TAG(key) + ' has no ' + ASSET);
@@ -34,8 +36,11 @@ for (;;) {
   if (r.status === 200) {
     const got = crypto.createHash('sha256').update(Buffer.from(await r.arrayBuffer())).digest('hex');
     if (got !== want) fail(`${url}: its bytes are not the set's (${got.slice(0, 12)}, not ${want.slice(0, 12)})`);
-    console.log(`stills-live: ${url} is the set's (${TAG(key).slice(0, 19)}, ${set.size} stills)`); process.exit(0);
+    console.log(`stills-live: ${url} is the set's (${TAG(key).slice(0, 19)}, ${set.size} stills)`); return 0;
   }
+  await r.body?.cancel?.();
   if (Date.now() > until) fail(`${url} answered ${r.status}${r.e ? ' (' + r.e.message + ')' : ''}: live does not serve its stills (is STILLS_TOKEN set in Pages?)`);
   await new Promise((f) => setTimeout(f, 15000));
 }
+}
+try { process.exitCode = await main(); } catch (e) { if (!(e instanceof Fail)) throw e; console.error('stills-live: FAIL: ' + e.message); process.exitCode = 1; }
