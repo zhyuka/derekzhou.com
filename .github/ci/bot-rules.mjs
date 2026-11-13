@@ -35,3 +35,14 @@ export function newestArtifact(list) {
   live.sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0) || (b.id || 0) - (a.id || 0));
   return live[0] || null;
 }
+
+// THE STILLS (docs/deploy.md, "The stills"). Once a tip has the bake (tools/gpu/bake-stills.js: #197 onward), the
+// Cloudflare build of it fetches the release for its world's key, so live moves there only once the PC's stills job
+// (stills.yml) has put that release up and said so: the commit status `stills`, success. Before the bake nothing waits.
+// statuses: GET /commits/{sha}/statuses, newest first (a re-run's status after the first's): the newest `stills` wins.
+export function stillsReady(hasBake, statuses) {
+  if (!hasBake) return { ok: true, why: 'no bake at this tip' };
+  const s = (statuses || []).find((x) => x && x.context === 'stills');
+  if (!s) return { ok: false, why: 'its stills release is not up yet (no stills status)' };
+  return s.state === 'success' ? { ok: true, why: s.description || 'stills up' } : { ok: false, why: `its stills status is ${s.state}${s.description ? ' (' + s.description + ')' : ''}` };
+}
