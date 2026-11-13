@@ -119,7 +119,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
 test('stills: the scripts that fetch never call process.exit (node on Windows crashes, 0xC0000409, with fetch\'s sockets open)', async () => {
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
   for (const f of ['tools/stills-release.mjs', '.github/ci/stills-live.mjs', 'tools/stills.mjs']) {
-    const code = fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+    const code = fs.readFileSync(path.join(ROOT, f), 'utf8').split(/\r?\n/).map((l) => l.replace(/\/\/.*$/, '')).join('\n');
     assert.ok(!/process\.exit\s*\(/.test(code), f + ' calls process.exit: set process.exitCode and return instead');
   }
 });
