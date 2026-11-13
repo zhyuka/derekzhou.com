@@ -146,7 +146,8 @@ public class LabRunner extends Instrumentation {
   }
 
   /**
-   * Several visits in one run (Arms#plan). The argument plan is visits split by '|', each BROWSER~URL~KIND~SECS[~FLAGS]:
+   * Several visits in one run (Arms#plan). The argument plan is visits split by '|', each
+   * BROWSER~URL~KIND~SECS[~FLAGS[~rec=START-SECS[-WxH]]] (FLAGS may be empty; rec: a screen recording, see record()):
    * BROWSER chrome (com.android.chrome) or chromium (org.chromium.chrome, installed with --additional-apks); KIND
    * cold (the browser's data cleared, first-run screens passed, then the visit) or return (the browser's process
    * ended, its disk caches kept); FLAGS extra browser command-line switches, '+' between them (for example
@@ -183,12 +184,14 @@ public class LabRunner extends Instrumentation {
       String[] am = new String[1];
       Thread t = new Thread(() -> am[0] = sh("am start -W -a android.intent.action.VIEW -d " + url + " -p " + pkg));
       t.start();
+      Thread rec = f.length > 5 && f[5].startsWith("rec=") ? record(tag, s, f[5].substring(4)) : null;
       // (named by the time the screenshot was taken, from just before am start)
       for (long at = 0; at <= 20000; at += 250) {
         until(s + at);
         shot(tag + "-" + String.format("%05d", SystemClock.uptimeMillis() - s));
       }
       t.join(30000);
+      if (rec != null) rec.join(60000);
       log(tag + " am start: " + grep(am[0] == null ? "" : am[0], "Time"));
       readout(tag);
       for (long at : new long[] { 30, 45, 60, 120, 300 }) {
@@ -325,6 +328,35 @@ public class LabRunner extends Instrumentation {
       AccessibilityNodeInfo c = n.getChild(i);
       if (c != null) texts(c, b, depth + 1);
     }
+  }
+
+  /**
+   * A screen recording beside the screenshots: spec START-SECS[-WxH] (seconds after am start, seconds long, START may
+   * be fractional; WxH a smaller recording size). screenrecord runs as the shell into /data/local/tmp, and the file is
+   * then copied into the results folder as TAG-rec.mp4. The log gives when it started, from am start, to line its
+   * frames up with the screenshots. screenrecord writes a frame only when the screen changes, so a still page gives few
+   * frames and each frame is a real change.
+   */
+  Thread record(String tag, long s, String spec) {
+    String[] p = spec.split("-");
+    long at = Math.round(Double.parseDouble(p[0]) * 1000);
+    int len = Integer.parseInt(p[1]);
+    Thread r = new Thread(() -> {
+      until(s + at);
+      log(tag + " screenrecord from " + (SystemClock.uptimeMillis() - s) + " ms, " + len + " s");
+      // (an optional third part, WxH, records at that size: some encoders write nothing at the panel's full size,
+      // as the Nord CE 3 Lite did at 1080x2400)
+      String size = p.length > 2 ? " --size " + p[2] + " --bit-rate 8000000" : " --bit-rate 12000000";
+      sh("screenrecord --time-limit " + len + size + " /data/local/tmp/rec.mp4");
+      try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(ua().executeShellCommand("cat /data/local/tmp/rec.mp4"));
+           OutputStream o = new FileOutputStream(new File(dir, tag + "-rec.mp4"))) {
+        byte[] b = new byte[65536];
+        for (int n; (n = in.read(b)) > 0; ) o.write(b, 0, n);
+      } catch (IOException e) { log(tag + " screenrecord copy failed " + e); }
+      sh("rm /data/local/tmp/rec.mp4");
+    });
+    r.start();
+    return r;
   }
 
   void shot(String name) {
