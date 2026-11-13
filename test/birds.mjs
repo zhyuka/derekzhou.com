@@ -242,8 +242,10 @@ test('the birds take well under a millisecond of a slow phone\'s frame', () => {
 });
 
 /* (the owner, 2026-11-13: "there shouldnt be any limit") every click that is not a drag and not on a link lets a bird
-   go: 300 at once make 300 birds. And the cost of 1,000 at once, printed against the slow phone's 1 ms (the bar on it
-   waits for the owner's choice of how the many disperse: docs/birds.md) */
+   go: 300 at once make 300 birds. And 1,000 at once: the work a frame is barred (it does not ride on a busy runner's
+   clock): at most half the drawn birds and 20 posed in full (the specks held between), under 400 stepped in full (the
+   unseen and the specks stepped coarsely; main uncapped: every drawn bird posed, ~900 stepped); the clock's ms printed
+   against the slow phone's 1 ms (posing on the GPU is what would bring 1,000 under it: the follow-up) */
 test('every click lets a bird go: no limit on them', () => {
   const sc = SCENES.natural(1, '390x844'); sc.opt.dt = 1 / 60; sc.opt.draw = {};
   sc.opt.clicks = Array.from({ length: 300 }, (_, i) => ({ t: 20, x: 195 + (i % 7) - 3, y: 300 + (i % 5) - 2 }));
@@ -254,13 +256,24 @@ test('every click lets a bird go: no limit on them', () => {
   assert.equal(sim.clicks, 300);
   assert.ok(sim.B.BIRDS.length - n0 >= 300, `300 clicks let ${sim.B.BIRDS.length - n0} birds go`);
 });
-test('the cost of 1,000 clicked birds (printed)', () => {
+test('1,000 clicked birds: the work a frame stays that of the birds one can see (and its cost printed)', () => {
   const sc = SCENES.natural(1, '390x844'); sc.opt.dt = 1 / 60; sc.opt.draw = {};
   sc.opt.clicks = Array.from({ length: 1000 }, (_, i) => ({ t: 20, x: 195 + (i % 7) - 3, y: 300 + (i % 5) - 2 }));
   const sim = makeSim(sc.opt); sc.setup(sim);
   while (sim.t < 50) sim.step();
-  let F = 0, n = 0; while (sim.t < 80) { const a = performance.now(); sim.step(); F += performance.now() - a; n++; }
-  console.log(`# 1,000 clicked birds, 30-60 s on: ${(F / n).toFixed(3)} ms a frame (x 4 on a slow phone: ${(4 * F / n).toFixed(2)} ms; its 1 ms is 0.25 here), ${sim.B.BIRDS.length} birds`);
+  let F = 0, n = 0, steps = 0, poses = 0, drawn = 0, k = 0;
+  while (sim.t < 170) {
+    const a = performance.now(); sim.step(); F += performance.now() - a; n++;
+    if (++k % 10) continue;   // (the work counted every 10th frame, outside the clock)
+    const B = sim.B; let df = -1;
+    for (const f of B.FLOCKS) if (!f.far && !f.off && !f.spk) steps += f.m.length;
+    for (const b of B.BIRDS) if (b.s && b.s.seenF > df) df = b.s.seenF;
+    for (const b of B.BIRDS) if (b.s && b.s.seenF === df) { drawn++; if (!b.s.hold) poses++; }
+  }
+  const st = steps / (n / 10), po = poses / (n / 10), dr = drawn / (n / 10);
+  console.log(`# 1,000 clicked birds, 30-150 s on: ${(F / n).toFixed(3)} ms a frame (x 4 on a slow phone: ${(4 * F / n).toFixed(2)} ms; its 1 ms is 0.25 here); a frame: ${dr.toFixed(0)} drawn, ${po.toFixed(0)} posed in full, ${st.toFixed(0)} stepped in full; ${sim.B.BIRDS.length} birds awake`);
+  assert.ok(po < 0.5 * dr + 20, `${po.toFixed(0)} of ${dr.toFixed(0)} drawn birds posed in full a frame: the specks are posed every frame again`);
+  assert.ok(st < 400, `${st.toFixed(0)} birds stepped in full a frame: the unseen and the specks are stepped every frame again`);
 });
 
 /* (the owner, 2026-11-13: "if you fly towards those birds ... theyll get back to normal") a flock gone beyond sight is
