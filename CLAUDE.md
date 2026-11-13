@@ -20,8 +20,10 @@ change it. The standing rules are data in RULES.json, checked in CI.
   bird (no-fades). Nothing glitters (no-glitter).
 - Reduced motion is one still frame; only a drag steers (reduced-motion-still,
   steer-only-by-drag).
-- One entropy read, one clock; only the opening sky depends on the visitor's
-  hour (one-entropy-one-clock, opening-sky-by-clock-only).
+- One entropy read (hour.js's: it picks one of the openings), one clock; only the
+  opening sky depends on the visitor's hour (one-entropy-one-clock,
+  opening-sky-by-clock-only). The only pictures are the world's own first frames,
+  baked at build time (no-frameworks).
 - The absences: no chrome vocabulary, no hover/idle/key/exit handlers (but the
   birds' two passive pointer listeners, in hoverSync: docs/birds.md, and the sound
   icon's one click), no JS-made DOM, no network, eval, URL hooks or cursor rules, no

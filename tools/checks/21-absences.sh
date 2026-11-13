@@ -72,14 +72,14 @@ if grep -nE 'createElement|innerHTML|outerHTML|insertAdjacentHTML|appendChild|in
   echo "::error::DOM built in script — the canvas and every element live in index.html"
   fail=1
 fi
-# (4) the weather (=rand()): ONE entropy read, in the world, above
-# INIT-END; no clock but the hour's one read and the world's
-# one clockNow (performance.now, for budgets: above INIT-END); never
-# Math.random. The realms and the ink birds draw from the world's streams
-# and read no clock at all.
+# (4) the weather (=rand()): ONE entropy read, in the hour's script (the openings as a set: it picks the opening
+# before the first paint, so the page can show that opening's still; the world takes the opening's seed from
+# data-seed); no clock but the hour's one read and the world's one clockNow (performance.now, for budgets: above
+# INIT-END); never Math.random. The world, the realms and the ink birds draw from the world's streams; the realms
+# and the ink birds read no clock at all.
 for f in $WORLD; do
-  if [ "$(grep -o 'getRandomValues(' $f | wc -l)" != "1" ]; then
-    echo "::error::$f must draw entropy exactly once (getRandomValues( count != 1)"
+  if grep -n 'getRandomValues(' $f; then
+    echo "::error::$f draws entropy: the visit's one draw is the hour's (data-seed)"
     fail=1
   fi
   if grep -nE 'Math\.random|\bDate\b|randomUUID' $f; then
@@ -105,9 +105,15 @@ if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REA
   echo "::error::the realms, the wing model, the ink birds, and the sound icon's switch and score draw no entropy and read no clock (their clock is the audio context's own time; the score's seed is the world's, from WORLD.sky)"
   fail=1
 fi
-# the hour reads the clock exactly once, and draws no entropy
-if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|getRandomValues|randomUUID|performance\.now' $HOUR; then
-  echo "::error::$HOUR must read the clock exactly once (new Date) and nothing else"
+# the hour reads the clock exactly once and draws entropy exactly once (the opening), and nothing else
+if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || [ "$(grep -o 'getRandomValues(' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|randomUUID|performance\.now' $HOUR; then
+  echo "::error::$HOUR must read the clock exactly once (new Date), draw entropy exactly once (getRandomValues) and nothing else"
+  fail=1
+fi
+# the openings' count is one number: the hour picks k = read % N for the still, the world k = read % OPENN for its seed
+HN=$(grep -oE 'var N = [0-9]+,' $HOUR | grep -oE '[0-9]+' || true); WN=$(grep -oE 'OPENN = [0-9]+,' $WORLD | grep -oE '[0-9]+' || true)
+if [ -z "$HN" ] || [ "$HN" != "$WN" ]; then
+  echo "::error::the openings' count: $HOUR's N ($HN) and the world's OPENN ($WN) must be one number"
   fail=1
 fi
 # (5) no URL hook, no sound until the visitor presses the sound icon, no network, no custom cursor: sound only in the
@@ -146,14 +152,14 @@ if grep -nE 'cursor *:' $CSS; then
 fi
 # (6) no dev or record hooks (the development harness stays out): nothing put
 # on or read from window.__*, no console, and of the attributes on <html>
-# the scripts read only the hour's data-sky and data-sky-at
+# the scripts read only the hour's data-sky, data-sky-at and data-seed
 if grep -nE 'window\.__|window\.claude|\bconsole\.' $JS; then
   echo "::error::a dev hook, a record or a console call in the shipped scripts"
   fail=1
 fi
 python3 - $JS <<'PY' || fail=1
 import re, sys
-ok = {'data-sky', 'data-sky-at', 'src'}
+ok = {'data-sky', 'data-sky-at', 'data-seed', 'src'}
 bad = 0
 for f in sys.argv[1:]:
     s = open(f, encoding='utf-8').read()

@@ -3,7 +3,9 @@
 <!-- Moved word for word from CLAUDE.md's section "World (world.js, realm-kit.js, realm-dunes.js, realm-above.js)" (restructure step 7, 2026-11-06). -->
 
 The window is a camera flying through one endless world drawn in WebGL2,
-generated in code from the visit's seed (no picture, no model file). Each
+generated in code from the visit's seed (no model file; its only pictures
+are its own first frames, the openings' stills, made by the same code at
+build time and shown until the live world cuts in: ## THE OPENINGS). Each
 file's header comment (src/'s copy: the served one is minified) is its
 full design as of the build it came from (stage 2's changes are tagged
 inline: stage2, speed, quality; fast500's: fast500; where a header and
@@ -396,14 +398,56 @@ takes up its change, and that list then fires no event: the world did not
 come back when they ended while the ink birds moved), and the world back
 when they end, on at load too; print: none of it.
 
+## THE OPENINGS
+
+A visit opens on one of a set: the hour's sky (hour.js's six times of day)
+by N seeds (N 16 in hour.js: 96 openings; the owner, 2026-11-12: "Yes to
+both, go with 96"). hour.js's one entropy read, written whole as
+data-seed, picks the seed, k = read mod N (opening k's seed: (11 + k *
+0x9e3779b9) mod 2^32, the world's OPENN and SEED0), before the first
+paint, and asks for that opening's still: the world's
+first frame for it, baked on the 4090 for the window's shape (twelve
+shapes: the frustum's bands; portrait below h/w 1.893 the shorter still,
+above it the taller, landscape the narrower) and the memory tier (lo: the
+phones the world gives its least memory, Android under 8 GB; hi: the
+rest) by tools/gpu/bake-stills.js, named <sky>-<k>-<tier>-<W>x<H>.avif.
+The build copies the stills from an input folder (STILLS_DIR, or stills/,
+never committed) into assets/still/, and only the bake's own: each named
+in the folder's bake.json with its bytes' sha256 (anything else stops
+the build), or from the release for its world (tools/stills.mjs). A build
+with no stills takes the still's preload out of the page (before the world
+key is read, so the key is the same with or without a set; put back where
+a set is placed), and hour.js asks for a still only where the preload is. The stylesheet shows the still as
+the body's ::before, the canvas's box, cropped as the canvas is; the world
+opens at the still's own view (its frustum and pose, cropped as cover
+crops it) and settles to the window's own in about a second (SVTAU 0.35
+s); reduced motion has no settle. The world cuts in over the still in the
+frame it shows and clears it (--still none) for good; without WebGL2 the
+still stays. How far through its time of day the visit is (data-sky-at)
+moves the first frame by at most one level (the moon's path), so it is
+not baked. The land is the opening seed's for the whole visit, one of 16 whatever
+the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
+over it is the read's own (## THE WEATHER).
+
 ## THE WEATHER (=rand())
 
-One crypto.getRandomValues above world.js's
-INIT-END marker, split into splitmix32 streams and integer hashes (the
-same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The realm and kit files, the wing model, the ink birds and the
+One crypto.getRandomValues, in hour.js, written whole as data-seed: it
+picks the visit's opening (## THE OPENINGS) and seeds all that follows.
+The opening's seed (SEED0) is the world's for all that is on screen at the
+cut: the land and its cells (the land's field and the cells' hashes hang
+on it for the whole visit), the opening sky, its light, the moon's side,
+the galaxy's lie, the first heading, the ink birds' noise and the flocks
+on show. The frame after the show (afterCut) the read itself (SEEDR)
+takes over the rest: the sky order after the skies on show, the events on
+the way, the ink birds' later flocks and the population's stream, the
+score's seed and the idle's ease. Both are split into splitmix32 streams
+and integer hashes (the same in JS and GLSL, bit for bit). So the land
+along a visit's flight is one of 16 (the opening's seed; the sky is the
+hour's), and what happens over it is the visit's own. The owner's pick,
+of land seeded past the cut's far plane or a seam: "Keep 16 lands"
+(2026-11-13). The world, the realm and kit files, the wing model, the ink birds and the
 plan's worker draw nothing of their own (the worker is
-handed the visit's seed): the world's is the page's one entropy read. The
+handed the visit's seed): the hour's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.

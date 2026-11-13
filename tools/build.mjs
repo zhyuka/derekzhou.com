@@ -128,6 +128,23 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
+  // the openings' stills (the world's first frames, baked on the 4090 by tools/gpu/bake-stills.js): an input folder,
+  // STILLS_DIR or stills/ (never committed: whatever puts them there), its stills copied to assets/still/. Without
+  // it the page asks for stills that are not there and shows the hour's still sky until the world. Only the bake's
+  // own output is copied: each still listed in the folder's bake.json by the bake's name, its bytes' sha256 the one the
+  // bake recorded; anything else in the folder (but bake.json and the bake's .png/) stops the build
+  const stills = process.env.STILLS_DIR ? path.resolve(process.env.STILLS_DIR) : path.join(ROOT, 'stills');
+  if (fs.existsSync(stills)) {
+    const mp = path.join(stills, 'bake.json');
+    if (!fs.existsSync(mp)) die(stills + ' has no bake.json: the stills are the output of tools/gpu/bake-stills.js, nothing else');
+    const man = JSON.parse(fs.readFileSync(mp, 'utf8')), sd = path.join(out, 'assets', 'still'); fs.mkdirSync(sd, { recursive: true });
+    for (const n of fs.readdirSync(stills).sort()) {
+      if (n === 'bake.json' || n === '.png') continue;
+      const e = man[n], b = /^(dawn|day|rain|sunset|dusk|night)-\d+-(hi|lo)-\d+x\d+\.avif$/.test(n) && e && e.sha ? fs.readFileSync(path.join(stills, n)) : null;
+      if (!b || crypto.createHash('sha256').update(b).digest('hex') !== e.sha) die(path.join(stills, n) + ': not a still of the bake (its name and bytes are not in bake.json)');
+      fs.writeFileSync(path.join(sd, n), b);
+    }
+  }
   for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.css')).sort()) fs.writeFileSync(path.join(out, n), cssMin(fs.readFileSync(path.join(out, n), 'utf8'), n));
   // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
   // tools/birds/: CI makes them again and compares)
@@ -151,10 +168,19 @@ async function build(out, stamp) {   // the plain build
   // the openings' stills for this world (docs/stills-hosting.md): with STILLS_TOKEN set (Cloudflare's build), the set
   // baked for this build's world key, from its release; else, or when anything fails, none (today's first paint). A
   // local bake folder (STILLS_DIR or stills/) is the bake's own and wins. Never fails the build.
+  // A page with no stills asks for none: without a bake folder the still's preload (hour.js's cue) is taken out
+  // BEFORE the world key is read, so the key is the same on the PC's served/head and here, and put back only where a
+  // set is placed
+  const ix = path.join(out, 'index.html'), withPre = fs.existsSync(ix) ? fs.readFileSync(ix, 'utf8') : null, sd0 = path.join(out, 'assets', 'still');
+  if (withPre !== null && !fs.existsSync(sd0)) {
+    const noPre = withPre.replace(/\n[ \t]*<!-- The opening's still[\s\S]*?-->\n[ \t]*<link rel="preload" as="image" class="still" fetchpriority="high">/, '');
+    if (noPre === withPre) die('index.html: the still\'s preload (and its comment) not found to take out');
+    fs.writeFileSync(ix, noPre);
+  }
   if (process.env.STILLS_TOKEN && !process.env.STILLS_DIR && !fs.existsSync(path.join(ROOT, 'stills'))) {
     try {
       const key = worldKey(out), r = await fetchSet({ key, token: process.env.STILLS_TOKEN, repo: process.env.STILLS_REPO || undefined, api: process.env.STILLS_API || undefined });   // (STILLS_API: a stand-in, for the check)
-      if (r.stills) place(out, r.stills);
+      if (r.stills) { place(out, r.stills); fs.writeFileSync(ix, withPre); }
       console.error('build: stills: ' + r.why);
     } catch (e) { fs.rmSync(path.join(out, 'assets', 'still'), { recursive: true, force: true }); console.error('build: stills: none (' + e.message + ')'); }
   }

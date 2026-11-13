@@ -34,6 +34,14 @@
     SKY.visits[id] = (SKY.visits[id] || 0) + 1;
     seq.push({ id: id, at: prev ? prev.at + prev.hold + prev.move : 0, hold: S.hold * (0.9 + 0.25 * r.f()), move: 55 + 5 * r.f(), far: false, n: seq.length });
   }
+  /* (the cut) the order after the skies on screen drawn again from the visit's own read: the one on show and, in a
+     change, the one it changes into are kept; the rest are taken back and drawn again from the new stream */
+  function skyReseed(seed) {
+    var seq = SKY.seq, keep = Math.max(1, SKY.i + (SKY.k > 0 ? 2 : 1)), j;
+    SKY.rO = RNG(subseed(seed, 41));
+    for (j = seq.length - 1; j >= keep; j--) { SKY.visits[seq[j].id]--; seq.pop(); }
+    seq[seq.length - 1].way = null; seq[seq.length - 1].far = false;
+  }
   function skyNext() {
     var seq = SKY.seq, last = seq[seq.length - 1], r = SKY.rO, recent = [], c = [], w = [], sum = 0, i, x, id;
     for (i = Math.max(0, seq.length - Math.min(SKY_RECENT, SKY.ids.length - 2)); i < seq.length; i++) recent.push(seq[i].id);   // (of four skies never the last two, so the order is never a fixed round)

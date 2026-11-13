@@ -134,7 +134,10 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       return () => undefined;
     } });
     // --- the document: today's index.html in outline
-    const root = el('html', { lang: 'en' }), meta = el('meta', { name: 'theme-color', content: '#173a63' }), body = el('body');
+    // (the hour's script is not run here: its one draw of entropy, the opening's seed, given as data-seed, the value the
+    // crypto below would have drawn first, so every visit keeps its own seed)
+    const seed0 = (() => { const a = new Uint32Array(1); let s = (V.seed + 0x9e3779b9) >>> 0, t = s ^ (s >>> 16); t = Math.imul(t, 0x21f0aaad); t ^= t >>> 15; t = Math.imul(t, 0x735a2d97); a[0] = (t ^ (t >>> 15)) >>> 0; return a[0]; })();
+    const root = el('html', { lang: 'en', 'data-seed': String(seed0) }), meta = el('meta', { name: 'theme-color', content: '#173a63' }), body = el('body');
     const main = el('main', {}, () => [16, 0, V.w - 32, V.h]);
     const stack = el('div', { class: 'stack' }, () => [Math.round(V.w * 0.1), Math.round(V.h * 0.32), Math.round(V.w * 0.6), 160]);
     const name = el('h1', { class: 'name' }, () => [Math.round(V.w * 0.1), Math.round(V.h * 0.32), Math.min(404, V.w - 32), 97]);

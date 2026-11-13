@@ -14,8 +14,27 @@ function skyWorld(seed, hour, at) {   // skyInit, skyPush and skyNext as the pag
     '  var PI = Math.PI, DEG = Math.PI / 180;\n' + STREAMS + VEC +
     '  function lch() { return [0, 0, 0]; }\n' + SKYDEF + SKYORD +
     '  skyInit({ paramsBase: new Float32Array(128) });\n' +
-    '  return { SKY: SKY, WSKY: WSKY, skyNext: skyNext, SKY_RECENT: SKY_RECENT, SKY_FAR: SKY_FAR };\n})')(seed, hour, at);
+    '  return { SKY: SKY, WSKY: WSKY, skyNext: skyNext, skyReseed: skyReseed, SKY_RECENT: SKY_RECENT, SKY_FAR: SKY_FAR };\n})')(seed, hour, at);
 }
+// (the openings as a set) the cut: the order after the sky on show drawn again from the visit's own read; the opening
+// (its sky, hold and place) is the opening seed's, the rest the read's, and the order's rules still hold after it
+test('sky: after the cut the order is the visit\'s own read\'s, the opening kept', () => {
+  const after = (read, inMove) => {
+    const K = skyWorld(11, 'sunset', 0.5); K.skyNext(); K.SKY.i = 0; K.SKY.k = inMove ? 0.3 : 0;
+    const open = JSON.stringify(K.SKY.seq.slice(0, inMove ? 2 : 1));
+    K.skyReseed(read); for (let n = 0; n < 30; n++) K.skyNext();
+    const ids = K.SKY.seq.map((x) => x.id), back = Math.min(K.SKY_RECENT, K.SKY.ids.length - 2);
+    for (let i = 1; i < ids.length; i++) assert.ok(!ids.slice(Math.max(0, i - back), i).includes(ids[i]), `read ${read}: sky ${i} (${ids[i]}) is one of the last ${back}`);
+    for (const id of new Set(ids)) assert.equal(K.SKY.visits[id], ids.filter((x) => x === id).length, `read ${read}: ${id}'s visits count the order`);
+    return { open, head: JSON.stringify(K.SKY.seq.slice(0, inMove ? 2 : 1).map((x) => [x.id, x.at, x.hold, x.move])), rest: K.SKY.seq.slice(inMove ? 2 : 1).map((x) => x.id + ':' + x.hold.toFixed(4)).join(' ') };
+  };
+  for (const inMove of [false, true]) {
+    const a = after(5, inMove), b = after(5 + 16, inMove), c = after(5, inMove);
+    assert.equal(a.head, b.head, 'the skies on show are kept, whatever the read');
+    assert.notEqual(a.rest, b.rest, 'two reads of one opening go on differently');
+    assert.equal(a.rest, c.rest, 'one read, one order');
+  }
+});
 test('sky: the order\'s rules', () => {
   const hours = ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'];
   let far = 0, steps = 0; const K0 = skyWorld(1, 'day', 0.5);

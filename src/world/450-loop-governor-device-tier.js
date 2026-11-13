@@ -96,7 +96,7 @@
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill)
     skyTheme(false);   // (the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
+    if (!shown) { shown = true; canvas.classList.add('on'); root.style.setProperty('--still', 'none'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the

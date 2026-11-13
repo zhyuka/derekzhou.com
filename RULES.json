@@ -154,7 +154,7 @@
     {
       "id": "one-entropy-one-clock",
       "area": "weather",
-      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker and the sound icon's switch and score draw no entropy and read no clock of the page's (they time the sound by the audio context's own time, ctx.currentTime, which times the sound alone; the score's randomness is a stream on a seed the world derives from its one read and hands over, read only, in WORLD.sky). hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "rule": "hour.js's one crypto.getRandomValues is the page's one entropy read: written whole as data-seed, it picks the visit's opening, one of a set (the hour's sky by 16 seeds: 96 openings; the seed is read mod 16), and seeds everything after the opening (the frame after the cut the world draws the sky order after the skies on show, the events, the ink birds' later flocks and the score from the read itself); what is on screen at the cut, the land among it, is the opening seed's. The world draws no entropy of its own. The world's one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker and the sound icon's switch and score draw no entropy and read no clock of the page's (they time the sound by the audio context's own time, ctx.currentTime, which times the sound alone; the score's randomness is a stream on a seed the world derives from its one read and hands over, read only, in WORLD.sky). hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
       "source": [
         {
           "quote": "should b rand",
@@ -164,6 +164,16 @@
           "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
           "date": "2026-11-07",
           "doc": "docs/design.md; docs/sound.md"
+        },
+        {
+          "quote": "Yes to both, go with 96",
+          "date": "2026-11-12",
+          "doc": "docs/world.md: THE WEATHER; .work/hub/RESUME.md (the bake: the openings as a set, their stills)"
+        },
+        {
+          "quote": "Keep 16 lands",
+          "date": "2026-11-13",
+          "doc": "docs/world.md: THE OPENINGS, THE WEATHER (the land is the opening seed's, one of 16)"
         }
       ],
       "enforced_by": [
@@ -293,7 +303,7 @@
     {
       "id": "absence-dev-hooks",
       "area": "absences",
-      "rule": "The shipped scripts carry no development harness: no window.__*, window.claude or console call, and no attribute read on <html> but the hour's data-sky and data-sky-at.",
+      "rule": "The shipped scripts carry no development harness: no window.__*, window.claude or console call, and no attribute read on <html> but the hour's data-sky, data-sky-at and data-seed.",
       "source": [
         {
           "doc": "docs/security.md; docs/structure.md"
@@ -552,11 +562,16 @@
     {
       "id": "no-frameworks",
       "area": "build",
-      "rule": "Pure HTML, CSS and JS, no frameworks; no Unreal or streamed engine: the world is drawn in the page itself, in WebGL2, generated in code (no picture, no model file).",
+      "rule": "Pure HTML, CSS and JS, no frameworks; no Unreal or streamed engine: the world is drawn in the page itself, in WebGL2, generated in code (no model file); its only pictures are its own first frames, made by the same code at build time and shown until the live world cuts in.",
       "source": [
         {
           "quote": "keep iterating through literally every possible method/frameworks/etc until it's seamless",
           "doc": "CLAUDE.md (top); docs/design.md"
+        },
+        {
+          "quote": "Yes to both, go with 96",
+          "date": "2026-11-12",
+          "doc": "docs/world.md: THE WEATHER; .work/hub/RESUME.md (the bake: the openings as a set, their stills)"
         }
       ],
       "enforced_by": []

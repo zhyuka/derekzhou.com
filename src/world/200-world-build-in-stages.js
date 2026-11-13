@@ -23,7 +23,7 @@
     V.light.sunDir = dirAzEl(V.light.sunAz, V.light.sunEl);
     V.lightRaw = Object.assign({}, V.light);
     var r3 = RNG(subseed(V.seed, 3)); V.ph = [r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28)];
-    V.evRng = RNG(subseed(V.seed, 5));
+    V.evRng = RNG(AFTER ? subseed(SEEDR, 5) : subseed(V.seed, 5));   // (built after the cut: the visit's own read)
     prepLight(V);
     worldLights(V);   // (the kits' lights, blended by the climate about the camera)
   }

@@ -108,7 +108,7 @@
     gl.clearColor(FCOL.paper[0], FCOL.paper[1], FCOL.paper[2], 1); gl.clear(gl.COLOR_BUFFER_BIT);
     M.draw(); gl.bindVertexArray(null);
     if (LATEB.dead) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; return; }   // (its program would not link: nothing drawn, the canvas stays hidden)
-    if (!shown) { shown = true; canvas.classList.add('on'); }
+    if (!shown) { shown = true; canvas.classList.add('on'); root.style.setProperty('--still', 'none'); }
     if (still) { FRUN = false; cancelAnimationFrame(FRAF); FRAF = 0; fcWatch(); }   // (reduced motion: this one still frame; the system's colours watched while it stands, fcWatch)
   }
 

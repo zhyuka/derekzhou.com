@@ -98,6 +98,11 @@ the world (docs/birds.md). Then (2026-11-07), of the score built as a listening 
 the rest of the design" (2026-11-07); and of what it plays: "music and faint ambiance"
 (2026-11-07) (see docs/sound.md: one icon in the footer, silent until pressed). And of the
 score that follows the sky as it changes and never repeats: "Yup ship it" (2026-11-12).
+Then (2026-11-12), shown the world's first frame baked at build time and cut into by the live
+world (the resume sketch A2, against the page without it): "Yes A2 is right"; and of what that
+asks of two rules, the page's only pictures its own first frames and the openings a set of 96
+(the hour's six skies by 16 seeds, the one read picking the seed): "Yes to both, go with 96"
+(see docs/world.md, ## THE OPENINGS).
 
 The words' colours are one set, always (docs/world.md, ## THE WORDS), and the
 world is never changed for them: text #fdfcf7 (the lettered name, the

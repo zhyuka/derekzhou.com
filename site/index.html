@@ -25,6 +25,9 @@
        together (#world-end is the empty marker right after the last realm's script: the block ends as the hold does). hour.js takes this link out where
        the hold is skipped; the world, where its device check skips it or its deadline passes. -->
   <link rel="expect" href="#world-end" blocking="render">
+  <!-- The opening's still (the world's first frame, baked): hour.js picks it and sets this preload's address, so the
+       image is on its way before the body is parsed; the stylesheet shows it as the body's ::before. -->
+  <link rel="preload" as="image" class="still" fetchpriority="high">
   <script data-cfasync="false" src="/hour.js"></script>
   <script type="application/ld+json">
   {
