@@ -98,7 +98,23 @@
     return true;
   }
   /* the 46 vertices from its pose, scaled to its size, turned by its basis, from the camera; the 16 points beside them */
-  function place(b, s, C, px, py, pz) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); placeAt(b, s, C, px, py, pz, s.V46); }
+  function place(b, s, C, px, py, pz) {
+    var V = s.V46, F = s.F46, i;
+    if (!sameFlex(s)) LB.flexOf(s.kind, s.P22, F);
+    for (i = 0; i < 3 * NV; i++) V[i] = F[i];
+    LB.bodyOn(NV, s.B3, V);
+    placeAt(b, s, C, px, py, pz, V);
+  }
+  /* the pose the flexing form (F46) was last made from: the same kind and pose (a speck holds its glide: HOLD_POSE)
+     make the same form, so it is kept; the body's heave, surge and bank go on it afresh each frame (LB.geom's sums) */
+  function sameFlex(s) {
+    var P = s.P22, G = s.G22, i, same = s.gKind === s.kind;
+    for (i = 0; i < 22 && same; i++) same = G[i] === P[i];
+    if (same) return true;
+    for (i = 0; i < 22; i++) G[i] = P[i];
+    s.gKind = s.kind;
+    return false;
+  }
   /* ... the same geometry V moved to (px, py, pz): the rest rule's tries rebuild nothing */
   function placeAt(b, s, C, px, py, pz, V) {
     var i, sp = b.sz, B = s.B;

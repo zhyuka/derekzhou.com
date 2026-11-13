@@ -16,6 +16,8 @@
      LB.cycle(kind, ph, o, pose22, body)   the pure beat at phase ph (no schedule): for the checks
      LB.geom(kind, pose22, body, out, beat)  every vertex (body frame, spans) with the body's heave, surge and pitch and
                                    this round's feather shares (beat 'this'); 'last' / 'shape' keep the form's shares
+     LB.flexOf(kind, pose22, out), LB.bodyOn(nv, body, out)  the two halves of geom's 'this' beat (the flexing form; then
+                                      the body's heave, surge and bank on it, in place): a held pose's form kept
      LB.skeleton(kind, pose22, body, out)  the skeleton in the posed form, per side (left then right): shoulder, elbow,
                                    wrist, the hand bones' end (the knuckle), the primaries' tip: 5 x 3 x 2 = 30 floats
      LB.elbowExt(kind, E)          the arm's length (shoulder-wrist, a share of its spread length) at elbow angle E
@@ -339,6 +341,12 @@
       var nv;
       if ((beat === 'this' || beat === undefined) && out.length >= 138) nv = flexVerts(kind, pose22, out);
       else { P.verts(kind, pose22, out); nv = P.kinds[kind].b.length; }
+      return bodyOn(nv, body, out, pitchDeg);
+    }
+    /* the flexing form alone (geom's first half, 'this' beat): its 46 vertices before the body's heave, surge and bank */
+    function flexOf(kind, pose22, out) { setPrimw(kind, 'this'); return flexVerts(kind, pose22, out); }
+    /* geom's second half: nv vertices of out with the body's bank (and pitch) and heave, surge (in place) */
+    function bodyOn(nv, body, out, pitchDeg) {
       var c = 1, s = 0, bk = body && body[1] ? body[1] * DEG : 0, cr = Math.cos(bk), sr = Math.sin(bk);
       if (pitchDeg) { c = Math.cos(pitchDeg * DEG); s = Math.sin(pitchDeg * DEG); }
       for (var i = 0; i < nv; i++) {
@@ -374,7 +382,7 @@
     }
     var P2 = null;   // a facetpose over the flexing kinds, for their facets' normals and light (facetpose unchanged)
     function flexPose() { if (!P2) { var ks = {}; Object.keys(P.kinds).forEach(function (k) { ks[k] = flexKind(k); }); P2 = FACETPOSE({ kinds: ks, primw: FORM.primw }); } return P2; }
-    return { P: P, W: W, flexKind: flexKind, flexPose: flexPose, FLEXK: FLEXK, CURL_TIP: CURL_TIP, TRIM: TRIM, bird: bird, state: state, pose: pose, cycle: cycle, geom: geom, skeleton: skeleton, elbowExt: elbowExt, gullExt: gullExt, skel: skel, rate: rate, setPrimw: setPrimw,
+    return { P: P, W: W, flexKind: flexKind, flexPose: flexPose, FLEXK: FLEXK, CURL_TIP: CURL_TIP, TRIM: TRIM, bird: bird, state: state, pose: pose, cycle: cycle, geom: geom, flexOf: flexOf, bodyOn: bodyOn, skeleton: skeleton, elbowExt: elbowExt, gullExt: gullExt, skel: skel, rate: rate, setPrimw: setPrimw,
              SCHED: SCHED, CALM: CALM, VAR: VAR, RAMP: RAMP, LOCK: LOCK, PRIMW: PRIMW, PRIMK: PRIMK, rng: rng, kinds: Object.keys(P.kinds).filter(function (k) { return !!KM[k]; }) };
   }
   root.LABBIRD = LABBIRD;
