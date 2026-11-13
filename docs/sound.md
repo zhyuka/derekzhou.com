@@ -15,6 +15,10 @@ site/index.html or `.sound` in site/style.css.
 - "It sounds like the strings or something is constantly going which gets a little annoying, like where's the
   expression, fading, complexity, etc. ?" (2026-11-12): so the passages (sketch round eighteen). Measured, the
   strings had sounded 97% of the time, all five voices at once for most of it.
+- "More complexity (elegantly), and a tad more variation pls"; "the string or somethning is still so droning at
+  times"; "i constantly hear some type of chord"; "you need to think bigger" (2026-11-13): so no chord is held at all
+  (sketch round twenty-one, below). Measured, a whole triad had sounded 52% of the time, three or more held notes
+  66%, one note up to 103 s.
 
 The music itself was chosen by ear over seventeen rounds of sketches (2026-11-07 to 2026-11-12). His words
 along the way set what it must and must not be:
@@ -71,25 +75,40 @@ what it would be at once (the unit test holds the two to the same bytes), and th
 when the last is done; unsliced (the unit test, the render tool), at once. `tick` does nothing before. Its time is the context's (`now`, passed in);
 its one entropy is the world's (a seed in `WORLD.sky()`); it reads the sky and never writes to the world.
 
-What it plays (sketch round seventeen, the owner's pick):
+What it plays (sketch round twenty-one: no chord held under it; the keys, colours, changes, room and air of round
+seventeen, the owner's pick):
 
-- **The strings** hold slow chords: a new chord every 16 to 24 s; notes two chords share are held, never struck
-  again; voices move one after another, each swelling by its own amount; an upper voice now and then rests a few
-  seconds and swells back. One soft breath in each sky (every voice lets go; 2.5 s; back), only where all the
-  strings have played for a chord.
-- **Passages** (round eighteen): the score moves through stretches of 30 to 60 s, each its own texture, never the
-  same twice running (weights: all the strings 0.26; two, wide apart, the bass or the next and the top 0.24; the
-  colour alone 0.24; high and open, the top three and no deep end 0.13; warm, the inner three over the deep end
-  0.13). In the colour alone the horns hold the chord at -9.5 dB; the harp or the piano turns it over (a spread,
-  then lighter figures of three, up or down, every 4 to 6.5 s, the last over before the next chord) over a low
-  cello on the bass; in the moonlit sea the clarinet keeps the top two; first light's colour is the strings, so
-  there it is two strings. Each passage rises to a peak (35-65% of the way) and falls 3 to 7 dB on the strings' and
-  the colour's own bus (the gestures and the deep end stand outside it), lifted when fewer voices play (two: +3 dB;
-  open +4, warm +1.5, the colour alone +3.5), so no passage reads as a dropout (over 30 minutes every kind is
-  within 2.7 LU of the others). A voice the passage takes away fades over 7 s; one coming back swells over 6 s,
-  and strings returning after the colour alone start 4 to 5 s early, under its last notes (never a step from a
-  colour note still ringing). A passage runs on into a sky change; the chord the change swells on brings all the
-  strings back over 4 s (out of the mist, the chord after it too).
+- **The voices**: three strings (low, the cello, C2 to E3; middle, the viola, F3 to F#4; high, the violins, D#4 to
+  G5), each singing one note at a time: in over 2.6 to 4.4 s, gone 4 to 6.5 s later (7 to
+  13 s a note), then quiet 6 to 20 s, on a cycle of its own, never in step with the others. So the notes meet and
+  part and never sit as a chord: over two hours, three or more held notes at once 10% of the time (never past 14 s),
+  a whole triad 10%, 1.9 notes sounding on average (round twenty's score: 66%, 52%, 3.6).
+- **The harmony, implied**: a slow walk through the sky's own chords (a new one every 20 to 32 s, the tonic first,
+  once a sky its borrowed chord), each voice taking its next note from the chord of the moment, near its last
+  (a step or a third likelier than a leap), sweeter where it meets another note a third or a sixth away, less likely
+  where it would only make open fourths and fifths (the open sound reads as pentatonic). The low voice keeps to the
+  chord's tones, its root likeliest; the others take any tone of the key. A note held into the next chord keeps to
+  that chord's key.
+- **The colour on top**, its own layer: the harp or the piano one note, two a third to a sixth apart, or three up or
+  down, ringing, every 7 to 13 s, and now and then the note a voice just sang, higher; the horns, the clarinet or the
+  violins one note swelling, or two or three legato (a sigh), every 13 to 21 s. Never a tune.
+- **Passages**: 40 to 80 s each, never the same twice running, which voices sing and how long they rest (all 0.28;
+  warm, no violins 0.2; air, no cello 0.18; still, the colour and one voice 0.14; rich, all, closer together 0.2),
+  the voices' level rising to a peak and falling 1 to 3 dB over each.
+- **Balance**, as a player keeps it: a note that comes in alone is 2.5 dB louder, beside one other 1 dB, beside three
+  or more 1.5 dB softer.
+- **Never a hole, never a note alone**: where fewer than two notes planned would be heard for more than 3 s (or none
+  at all), the voice best placed comes in early, so it is heard just before the other fades; one that found no note a
+  moment ago waits. Alone, a held note (a viola, a cello, the clarinet as a voice, the stretched contrabass) is heard by an
+  ear model (YAMNet, below) as a siren, a tuner or a foghorn, so the music moves in pairs of notes, a third, a sixth or
+  a tenth apart, a third now and then. The low voice comes in only under a note already sounding. Never two notes
+  begun within 1.2 s (no beat, no chord struck). Over two hours, nothing sounding for 2.5 s or more never (round
+  twenty's: 13 times); one held note alone at most 6.5 s.
+- **The deep end, a tide**: at the start of a chord, most chords, the root two octaves down (a tuba played at half
+  speed, kept to its fundamental, about 33-62 Hz, with a contrabass), in over 4 to 5 s, held, gone 5.5 to 7 s later
+  (12 to 17 s), then nothing until the next: sounding about 35% of the time. Felt, never bare: under no note it is
+  6 dB down, under one 3 dB, under two 1 dB. The contrabass never under its lowest recorded note (E1): below it, the
+  tuba alone. One deep note at a time; none in the mist; lighter over the cloud and under the borrowed minor chords.
 - **Each sky its key and its colour on top**: afterglow F, horns; the Milky Way A-flat (Lydian), harp; aurora
   B-flat (Lydian), harp; blue hour E-flat, piano; the moonlit sea C (Dorian), low strings and clarinet; first light
   G, the strings alone. Once a sky, a borrowed chord (the minor four; in the moonlit sea, the major one).
@@ -100,14 +119,17 @@ What it plays (sketch round seventeen, the owner's pick):
   the old has let go. None in the mist or a high, open passage; lighter over the cloud, under the borrowed minor
   chords, and under the horns or the clarinet alone (-4 dB).
 - **Sky changes, planned with the world's** (`WORLD.sky()` names the next sky and when its change starts, a whole
-  hold ahead): a near change goes through two chords both keys share, the second a major chord of the new key; a
-  far change thins to the strings alone on a mist chord (notes both keys share, in the middle) and grows the new sky
-  out of it (a minor sky arrives by its relative major). The colour changes halfway; the music swells to that
-  moment (all +2.5 dB, the deep end +6.5 dB: 10 s up, 2 s held, 9 s down), always on a major chord that is already
-  sounding in full (a near change's major chord comes in at 40% of the change, the swell peaks at 50%; out of the mist
-  it peaks 4.5 s into the arriving chord). Never two swells at once. If the world is already changing when the score
-  looks (a late press), it catches up, sooner and shorter.
-- **Never a clash**: no two notes closer than a minor third at once; low down (below C3) nothing closer than a fifth.
+  hold ahead), the one chord of it all: a near change walks through two chords both keys share, the second a major
+  chord of the new key; the colour changes halfway, and the music swells to that moment (all +1.5 dB, the deep end
+  +5.5 dB: 10 s up, 2 s held, 9 s down) as four voices gather into that chord one at a time, the bass first, 1.2 s
+  apart, with the deep end under them and, in the Milky Way, aurora or blue hour, the harp's or the piano's first
+  notes on the moment it changes; then they let it go, the top first. The voices rest from 5 s before the peak to
+  6 s after it. A far change goes into the mist: the strings alone on the notes both keys share, no deep end, no
+  colour, its heart three of them together a few seconds; out of it the new key's major chord rolls in over 6 s (a
+  minor sky arrives by its relative major), the deep end only once the mist has cleared. Never two swells at once.
+  If the world is already changing when the score looks (a late press), it catches up, sooner and shorter.
+- **Never a clash**: no two notes closer than a minor third at once, and none a minor ninth (or more octaves) apart;
+  low down (below C3) nothing closer than a fifth.
 - **The room and the air**: a long dark room (4.2 s low, 1.8 s high); a faint air (two slow noises, a billow and a
   stream, drifting on 7 to 29 s cycles; over the cloud the billow eases and the stream rises) about 22 dB under it.
 - **The ear**: the band the ear is most sensitive to eased (a -3 dB bell at 3.2 kHz, the strings' resonances at
@@ -164,6 +186,14 @@ then with the passages against that first live score (the figures in brackets):
   score (sine wave, tuner, effects, synthesizer, alarm, siren, rumble) a median 0.013 over 10 s windows (0.011),
   round seventeen's 0.016. (Its mood models call everything relaxed, round twelve too, so they decide nothing.)
 
+Round twenty-one (2026-11-13), the score with no chord under it, against the same flight (OUT 0.71): -25.9 LUFS,
+loudness range 9.1 LU, true peak -5.0 dBFS; the short-term loudness's middle 80% within 8.3 dB (round twenty's 7.0);
+sharpness 0.73-0.84 acum, roughness 0.011-0.021 asper; YAMNet's synthetic score a median 0.015 over 10 s windows, the
+worst 0.07 (round twenty's 0.008 and 0.11). Its first sketches let one held note sound alone (a viola, a cello, the
+clarinet above C5, the contrabass stretched under E1), and YAMNet heard those as "Siren", "Alarm", "Electronic tuner"
+and "Foghorn" (up to 0.36); muting one instrument at a time found each, so each is gone (never one held note alone, the
+clarinet the moonlit sea's colour only and to C5, the contrabass never under its lowest note).
+
 Change OUT only with a measurement.
 
 ## What it costs
@@ -171,7 +201,7 @@ Change OUT only with a measurement.
 | what | bytes | when |
 |---|---|---|
 | sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 18,189 minified, 6,828 as sent | every visit, deferred, low priority (36-load-budget: 7.5 KB) |
+| score.js | 20,383 minified, 7,654 as sent | every visit, deferred, low priority (36-load-budget: 8 KB) |
 | the sheet | about 3.5 MB | only at the first press |
 
 The CPU (2026-11-12, headless Chromium on a 2.1 GHz Xeon core, the 7:36 flight; the slowest phone modelled as six
@@ -213,7 +243,8 @@ needing a gesture) and takes about 25 s. It fails when:
 - **before the press (2 s):** an audio context is made or anything audio is requested, or the icon is hidden or
   pressed, or the score has not registered;
 - **at the press:** it makes other than one context, or requests other than one sheet from this site's
-  /assets/sound/, or the icon is not pressed and running, or the score starts no chord of sustained notes, or the
+  /assets/sound/, or the icon is not pressed and running, or the score starts fewer than three notes, three of them
+  sustained (the first voices and the deep end), or the
   page throws;
 - **ten seconds on:** no new notes (the score stopped planning);
 - **a second press:** the icon is not unpressed and the context suspended;
@@ -229,12 +260,13 @@ fifth, or two deep notes at once; when a colour plays outside its sky or a deep 
 same seed does not play the same notes (another seed must play others). Then every sky change the world can make
 (all thirty, near or far by the world's own near lists in 220-time-day.js) must keep those rules, swell once, on a
 major chord, and thin to a mist of three notes or more; and two hours of a flight ordered as the world orders it must
-keep them, with as many notes in the second hour as in the first; and over those two hours the strings must not all
-sound for long (five or more voices under 40% of the time, never more than 75 s at a stretch, two or fewer more than
-25% of it: the first live score had all of them 89% of the time); and the room and the air filled sliced, each step
+keep them, with as many notes in the second hour as in the first; and over those two hours no chord may be held under
+it (three or more held notes at once under 20% of the time and never past 20 s at a stretch; a whole triad under 20%:
+round twenty's score had them 66% and 52%, one stretch of 86 s), no note held past 18 s (the deep end 20 s: it held
+one 103 s), and never a hole (nothing sounding for more than 3.5 s, and 2.5 s or more four times at most), and never one held note alone
+for more than 8 s (alone, a held string or clarinet note reads as a tone, a siren: an ear model, YAMNet, said so); and the room and the air filled sliced, each step
 run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
-filled at once, in 20 steps or more. About 16 s. Its plant lets a note that moves by a
-step come in before its neighbour lets go.
+filled at once, in 20 steps or more. About 25 s. Its plant lets a note in a step from one it meets.
 
 Every automation curve goes through one guard (curveAt): Safari throws on a curve that overlaps another on the same
 parameter, so a curve that would is played as a plain ramp to its end instead.
