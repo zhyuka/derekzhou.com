@@ -1,6 +1,8 @@
 # Where the baked stills live (A2's first frames)
 
-Status: proposal, 2026-11-12. For #197 (claude/resume-stills). Nothing here is built yet.
+Status: proposal, 2026-11-12. For #197 (claude/resume-stills). The build's fetch and the PC's upload step are #199.
+
+**The world key** is `worldKey()` in `tools/stills.mjs`: a sha256 of the plain build's files (`tools/build.mjs --plain`), leaving out `assets/still/` and `build.txt`. The PC computes it on the gate's `served/head`, and the build on its own plain output, so a set is found only for the world it was baked from.
 
 ## The numbers (PC GPU's full bake for #197, 08e83a4)
 
@@ -52,6 +54,8 @@ I haven't measured any of these routes. The numbers above are the bake's, from P
    - Value: the token from step 1
    - Environment: Production
    - Save. It applies from the next build.
+
+3. **Add the new file to the build watch paths.** In the same project, Settings, Build, Build watch paths, add `tools/stills.mjs` to the include list. It should match `.github/ci/deploy-inputs.txt`.
 
 That's all. No bucket, no Cloudflare API token, and no change to the build command.
 
