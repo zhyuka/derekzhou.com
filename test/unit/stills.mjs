@@ -123,3 +123,17 @@ test('stills: the scripts that fetch never call process.exit (node on Windows cr
     assert.ok(!/process\.exit\s*\(/.test(code), f + ' calls process.exit: set process.exitCode and return instead');
   }
 });
+
+test('stills: the twin the PC bakes gets the still\'s preload back (the build takes it out of a build with no stills)', async () => {
+  const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
+  const src = fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8');
+  assert.ok(S.PRELOAD.test(src), 'site/index.html has the preload block the build takes out');
+  const stripped = src.replace(S.PRELOAD, '');
+  assert.ok(!/class="still"/.test(stripped), 'taken out, the page asks for no still');
+  assert.equal(S.withPreload(src, stripped), src, 'put back: the page as written');
+  assert.equal(S.withPreload(src, src), src, 'there already: unchanged');
+  const other = stripped.replace('<title>', '<title data-x="1">');   // (a built page that is not byte for byte the source)
+  assert.match(S.withPreload(src, other), /<link rel="preload" as="image" class="still" fetchpriority="high">/);
+  assert.ok(S.withPreload(src, other).indexOf('class="still"') < S.withPreload(src, other).indexOf('src="/hour.js"'), 'before hour.js reads it');
+  assert.throws(() => S.withPreload('<p>no block</p>', stripped), /no still preload/);
+});

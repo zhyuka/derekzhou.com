@@ -91,3 +91,20 @@ export function place(out, stills) {   // the set into a build, at assets/still/
   const d = path.join(out, STILL_DIR); fs.mkdirSync(d, { recursive: true });
   for (const n of [...stills.keys()].sort()) fs.writeFileSync(path.join(d, n), stills.get(n));
 }
+
+// The still's preload in index.html (hour.js's cue: it sets its address, and the page then asks for that still).
+// tools/build.mjs takes it out of a build with no stills, before the world key is read; the bake must render the page
+// WITH it (bake-stills.js checks the page asked for each still by name), so the PC's stills job puts it back in the
+// twin it bakes (tools/stills-twin.mjs). One pattern for both.
+export const PRELOAD = /\n[ \t]*<!-- The opening's still[\s\S]*?-->\n[ \t]*<link rel="preload" as="image" class="still" fetchpriority="high">/;
+export function withPreload(src, built) {   // built's index.html with src's (site/index.html's) preload block back in
+  if (/<link rel="preload" as="image" class="still"/.test(built)) return built;
+  const m = PRELOAD.exec(src);
+  if (!m) throw new Error('site/index.html has no still preload to put back');
+  if (built === src.slice(0, m.index) + src.slice(m.index + m[0].length)) return src;
+  const before = src.slice(0, m.index), cut = before.lastIndexOf('\n'), anchor = before.slice(cut + 1);   // (the line the block follows)
+  const at = built.indexOf(anchor);
+  if (!anchor.trim() || at < 0 || built.indexOf(anchor, at + 1) >= 0) throw new Error('the built index.html has no single line to put the still preload after');
+  const end = at + anchor.length;
+  return built.slice(0, end) + m[0] + built.slice(end);
+}

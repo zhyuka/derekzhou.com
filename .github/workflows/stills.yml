@@ -95,6 +95,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           "out=$out" | Add-Content -Encoding ascii $env:GITHUB_OUTPUT
           if (-not (Test-Path served/head-twin)) { 'no settled twin of served/head (served.sh makes it with tools/gpu/twin.js)'; exit 1 }
+          # the still's preload back in the page the bake renders (the build takes it out of a build with no stills)
+          node tools/stills-twin.mjs site/index.html served/head-twin
+          if ($LASTEXITCODE -ne 0) { exit 1 }
           $srv = Start-Process -PassThru -NoNewWindow node -ArgumentList 'tools/gpu/cfserve.js', 'served/head-twin', '9690' -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP 'cfserve.log')
           try {
             Start-Sleep -Seconds 1

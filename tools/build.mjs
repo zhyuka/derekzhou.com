@@ -52,7 +52,7 @@ import zlib from 'zlib';
 import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { buildPlan, workerName } from './plan.mjs';
-import { worldKey, fetchSet, place } from './stills.mjs';
+import { worldKey, fetchSet, place, PRELOAD } from './stills.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), WING = path.join(SRC, 'birds', 'model');
@@ -173,7 +173,7 @@ async function build(out, stamp) {   // the plain build
   // set is placed
   const ix = path.join(out, 'index.html'), withPre = fs.existsSync(ix) ? fs.readFileSync(ix, 'utf8') : null, sd0 = path.join(out, 'assets', 'still');
   if (withPre !== null && !fs.existsSync(sd0)) {
-    const noPre = withPre.replace(/\n[ \t]*<!-- The opening's still[\s\S]*?-->\n[ \t]*<link rel="preload" as="image" class="still" fetchpriority="high">/, '');
+    const noPre = withPre.replace(PRELOAD, '');   // (tools/stills.mjs: the stills job puts it back in the twin it bakes)
     if (noPre === withPre) die('index.html: the still\'s preload (and its comment) not found to take out');
     fs.writeFileSync(ix, noPre);
   }
