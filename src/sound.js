@@ -4,8 +4,9 @@
 
    Every visit starts silent, and this is all that runs before a press: the button is in index.html, hidden until
    this shows it (with no script, or no Web Audio, there is no dead icon). Its one handler is the button's click.
-   The first press, inside its own handler (iOS and Safari start audio only there), marks the audio session ambient
-   (it mixes with the visitor's own music and keeps the silent switch: a phone on silent stays silent), makes the one
+   The first press, inside its own handler (iOS and Safari start audio only there), marks the audio session playback
+   (the owner, 2026-11-12: "yes switch it to playback": heard with the ringer off, as a video is, and the visitor's own
+   music pauses, as it does for a video), makes the one
    audio context, fetches the one sheet of notes (SHEET, from this site) and decodes it, once, and hands both to the
    score (score.js, loaded deferred), which fills its room and air a step at a time and then plays on them,
    following the sky; this keeps it going, about twice a second, on the audio context's own clock. The level rises over four seconds. A second press takes it down over
@@ -29,7 +30,7 @@
 
   function start() {
     if (!ctx) {
-      try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
       var opt = { latencyHint: 'playback', sampleRate: 24000 };   // (24 kHz: nothing in the score is above 4 kHz; half the work and memory)
       for (var k = 0; k < 2 && !ctx; k++) { try { ctx = new AudioContext(opt); } catch (e) { delete opt.sampleRate; } }   // (a browser that will not take the rate: its own)
       if (!ctx) return;
