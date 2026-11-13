@@ -37,8 +37,7 @@
   var touch = mm('(pointer: coarse)') || nav2.maxTouchPoints > 1;
   var tier = touch && !/iPhone|iPad|Macintosh/.test(nav2.userAgent || '') && (nav2.deviceMemory || 0) < 8 ? 'lo' : 'hi';
   var url = '/assets/still/' + DAY[i][0] + '-' + k + '-' + tier + '-' + shape + '.avif', pre = document.querySelector('link.still');
-  document.documentElement.style.setProperty('--still', 'url("' + url + '")');
-  if (pre) pre.href = url;
+  if (pre) { document.documentElement.style.setProperty('--still', 'url("' + url + '")'); pre.href = url; }   // (no preload: a build with no stills)
   /* (first-paint preview) the hold: the page's first paint waits for the world's first frame (the link rel=expect in
      the head). Where the odds are low it is taken out here, before the body, so the words paint as soon as they can:
      reduced motion (one still frame, today's path), forced colours, no WebGL2, 4 or fewer cores, under 8 GB where the

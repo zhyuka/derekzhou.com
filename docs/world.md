@@ -414,7 +414,10 @@ rest) by tools/gpu/bake-stills.js, named <sky>-<k>-<tier>-<W>x<H>.avif.
 The build copies the stills from an input folder (STILLS_DIR, or stills/,
 never committed) into assets/still/, and only the bake's own: each named
 in the folder's bake.json with its bytes' sha256 (anything else stops
-the build). The stylesheet shows the still as
+the build), or from the release for its world (tools/stills.mjs). A build
+with no stills takes the still's preload out of the page (before the world
+key is read, so the key is the same with or without a set; put back where
+a set is placed), and hour.js asks for a still only where the preload is. The stylesheet shows the still as
 the body's ::before, the canvas's box, cropped as the canvas is; the world
 opens at the still's own view (its frustum and pose, cropped as cover
 crops it) and settles to the window's own in about a second (SVTAU 0.35
