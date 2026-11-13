@@ -80,7 +80,15 @@ and a lean, a leap, a few strong beats, then on in the world on any
 bird's goal (out into the distance, by the eye, down into the cloud, on).
 Each click or tap on the page that is not a drag and not on a link lets
 a bird go into the world from there, an ordinary bird from its first
-frame; none under reduced motion.
+frame; none under reduced motion. There is no limit on them (the owner,
+2026-11-13: "there shouldnt be any limit"): what a bird costs is what it
+takes to be seen. A flock no one can see (every bird flying, past the eye's
+160 m, out of the view by 20 degrees and its breadth) steps every 0.5 s and
+works out no wing; back in the view's margin it steps every frame again from
+where it is, with a wing begun at its age. Every bird the window can show is
+drawn (the draw's stores double when more are in view); a held pose's flexing
+form is kept from frame to frame. The flock passes grow with the count, not its
+square (joinStep by x).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
