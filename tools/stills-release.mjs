@@ -15,9 +15,28 @@
 // --dry: the key and the pack's size, nothing sent.
 // It never calls process.exit: it sets process.exitCode and lets node end by itself. process.exit() with fetch's
 // keep-alive sockets still open crashes node on Windows (0xC0000409, libuv's assertion on a closing handle: the
-// 4090 runner, --have --status with the set up, 2026-11-13); test/unit/stills.mjs checks there is none.
+// 4090 runner, --have --status with the set up, 2026-11-13); test/unit/stills.mjs checks there is none. And it
+// does not use fetch at all: on the runner, main's "is not up" ended in an exit code that was not 3 (runs 43399206931
+// on, 2026-11-13), so every request is node:https with no keep-alive agent (agent: false: the socket is closed with
+// its response) and every body read to its end; nothing is left open when main returns. stills.yml reads the answer
+// from what this prints, not from the exit code.
 import path from 'path';
+import http from 'http';
+import https from 'https';
 import { worldKey, pack, unpack, ASSET, TAG } from './stills.mjs';
+
+// one request, its socket closed with it: { status, ok, text() }
+function fetch(url, { method = 'GET', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url), mod = u.protocol === 'http:' ? http : https;
+    const q = mod.request(u, { method, headers: { ...headers, connection: 'close' }, agent: false }, (res) => {
+      const chunks = []; res.on('data', (c) => chunks.push(c)); res.on('error', reject);
+      res.on('end', () => { const t = Buffer.concat(chunks).toString('utf8'); resolve({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300, text: async () => t }); });
+    });
+    q.on('error', reject); q.setTimeout(120000, () => q.destroy(new Error('timed out: ' + u.host)));
+    q.end(body);
+  });
+}
 
 const A = {};
 for (let i = 2; i < process.argv.length; i++) { const k = process.argv[i].replace(/^--/, ''); const v = process.argv[i + 1]; if (v === undefined || v.startsWith('--')) A[k] = true; else { A[k] = v; i++; } }
@@ -43,7 +62,7 @@ if (A.fail) { if (!need()) return 2; await status(String(A.fail), 'failure', Str
 const key = worldKey(path.resolve(A.site));
 async function release() {   // the release for key, or null
   const r = await fetch(api + '/releases/tags/' + TAG(key), { headers: h });
-  if (r.status === 404) { await r.body?.cancel(); return null; }   // (each body read or cancelled: no socket left half-used)
+  if (r.status === 404) return null;
   return j(r);
 }
 const up = (rel) => !!rel && (rel.assets || []).some((a) => a.name === ASSET);

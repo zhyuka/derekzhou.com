@@ -64,13 +64,18 @@ jobs:
           $k = node -e "import('./tools/stills.mjs').then((m) => console.log(m.worldKey('served/head')))"
           $kb = node -e "import('./tools/stills.mjs').then((m) => console.log(m.worldKey('served/base')))"
           "key=$k" | Add-Content -Encoding ascii $env:GITHUB_OUTPUT
-          # (on main, a set up already is the status at once: --status)
-          if ($env:ON_MAIN -eq 'true') { node tools/stills-release.mjs --site served/head --have --status $env:SHA } else { node tools/stills-release.mjs --site served/head --have }
-          $have = $LASTEXITCODE
-          if ($have -ne 0 -and $have -ne 3) { exit 1 }
-          if ($have -eq 0) { 'up already: nothing to bake'; exit 0 }
+          # (on main, a set up already is the status at once: --status). The answer is what it prints, never its exit code
+          # (an exit code on this runner was not the script's, 2026-11-13; stdout only: Windows PowerShell stops on a native
+          # command's stderr line under 2>&1): up only with "is up" and, on main, its status
+          # posted; anything else is not up, and the bake runs (all hits when the PC's cache has the key; the release step
+          # then leaves a set that is up as it is and posts the status).
+          if ($env:ON_MAIN -eq 'true') { $said = node tools/stills-release.mjs --site served/head --have --status $env:SHA | Out-String } else { $said = node tools/stills-release.mjs --site served/head --have | Out-String }
+          "$said (exit $LASTEXITCODE)"
+          $up = $said -match ' is up\r?\n' -and ($env:ON_MAIN -ne 'true' -or $said -match 'status stills success')
+          if ($up) { 'up already: nothing to bake'; exit 0 }
           if ($env:ON_MAIN -ne 'true' -and $k -eq $kb) { "the served build is its base's ($k): main's own run bakes it"; exit 0 }
           'bake=true' | Add-Content -Encoding ascii $env:GITHUB_OUTPUT
+          exit 0   # (Windows PowerShell's -Command exits 1 when the script ends with a native command's nonzero $LASTEXITCODE: the "is not up" 3 failed this step on main, 2026-11-13)
       - name: playwright-core
         if: steps.need.outputs.bake == 'true'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
@@ -97,6 +102,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { exit 1 }
           } finally { Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue }
           Get-ChildItem $root -Directory | Sort-Object LastWriteTime -Descending | Select-Object -Skip 8 | Remove-Item -Recurse -Force
+          exit 0
       - name: Up (main)
         if: steps.need.outputs.bake == 'true' && env.ON_MAIN == 'true'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
@@ -105,8 +111,11 @@ jobs:
           GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
           STILLS_DEPLOY_HOOK: ${{ secrets.STILLS_DEPLOY_HOOK }}
         run: |
-          node tools/stills-release.mjs --site served/head --bake '${{ steps.bake.outputs.out }}' --status $env:SHA
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          # (done when it says its status is posted, whatever the exit code: see the step above)
+          $said = node tools/stills-release.mjs --site served/head --bake '${{ steps.bake.outputs.out }}' --status $env:SHA | Out-String
+          "$said (exit $LASTEXITCODE)"
+          if ($said -notmatch 'status stills success') { exit 1 }
+          exit 0
       - name: Say so (main)
         if: failure() && env.ON_MAIN == 'true' && steps.has.outputs.bake == 'true'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
