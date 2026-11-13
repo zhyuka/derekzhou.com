@@ -89,6 +89,20 @@ where it is, with a wing begun at its age. Every bird the window can show is
 drawn (the draw's stores double when more are in view); a held pose's flexing
 form is kept from frame to frame. The flock passes grow with the count, not its
 square (joinStep by x).
+A crowd thins from its far edge (the owner, 2026-11-13: "1 and yes to cheaper
+specks"; option 1, his own: "the birds furthest away start flying further
+away"): while the sky holds more flocks than its count, every 1.5 s a twentieth
+of the excess (one at least), the farthest first, takes an outward goal away
+from the eye and is never turned home. A flock gone where no pixel of it is left
+is not thrown away (the owner: "if you fly towards those birds ... theyll get
+back to normal"): it sleeps, out of the lists, its wing and draw stores freed
+(about a kilobyte a bird kept), flying on in a straight line worked out only
+when it wakes; one the eye could see again wakes where its way has brought it,
+still beyond sight, over the land and the cloud, the same birds, on a goal of
+its own. A speck (under 2 device px) poses its wings and lights itself one frame
+in four, its points carried with its body between; a flock of specks steps one
+frame in four, the draw carrying each bird on along its way; far, off-view and
+speck birds pause their wing (BW.skip: it goes on from where it paused).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
