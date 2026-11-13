@@ -8,7 +8,7 @@ tools/build.mjs dist`, build output directory `dist`, NODE_VERSION 22.
 Auto-deploys on push to `live`, the branch the merge bot fast-forwards to the newest main
 commit whose own gate is green (merge-bot.mjs, the deploy gate). Build watch paths (Settings > Build) limit that to
 pushes that touch a deploy input, .github/ci/deploy-inputs.txt (include site/*, src/*,
-tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/plan.mjs,
+tools/build.mjs, tools/minify.mjs, tools/parts.mjs, tools/glslmin.mjs, tools/plan.mjs, tools/stills.mjs,
 package.json, package-lock.json, .gitattributes; exclude nothing); post-deploy.yml waits
 for the newest main commit that touched one, and CI fails if the build loads a tool not listed. The gate decides whether a change alters what
 is served by building base and head (.github/ci/served.sh) and comparing the
@@ -36,3 +36,22 @@ account's included Actions minutes (2,000 a month on GitHub Free) until they ran
 on 2026-11-06; since then every job runs on the owner's PC (the owner: "All on my PC,
 free"): Linux jobs on a self-hosted runner in WSL2 labelled pc-wsl, T2 on the Windows
 gpu-4090 runner. One job at a time, so T1 is skipped when T2 runs for the same head.
+
+## The stills
+
+The openings' stills (the world's first frames, baked on the PC's RTX 4090 by tools/gpu/bake-stills.js, #197) are not
+in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
+key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt (docs/stills-hosting.md).
+The Cloudflare build fetches its own key's set with STILLS_TOKEN (a Pages secret) and ships without it on any failure.
+The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and live never
+goes without its set:
+- stills.yml, after every green Gate run on main: the set for the tip's key up already (one request), or baked and put
+  up (tools/stills-release.mjs); then the tip's commit status `stills` is success (failure, with why, if the job fails;
+  never a red main). After a green Gate run on a claude/* branch whose served build is not its base's: the same bake,
+  into the PC's cache by key (nothing uploaded), so main's run after the landing (the same served build) is all hits.
+- The deploy gate (merge-bot.mjs): live moves to a tip that has tools/gpu/bake-stills.js only once its `stills` status
+  is success (bot-rules.mjs stillsReady); before #197 nothing waits. merge.yml ticks when stills.yml completes.
+- post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
+  its sha256 (.github/ci/stills-live.mjs).
+The bake's own cache (each still's key in bake.json) decides what a served change costs on the PC: seconds when it
+hits, about 76 minutes for all 2,304 stills when it does not.

@@ -65,3 +65,53 @@ test('stills: the build fetches its own world\'s set; anything else ships withou
   assert.deepEqual(fs.readdirSync(path.join(out, 'assets/still')).sort(), Object.keys(SET).sort());
   fs.rmSync(out, { recursive: true, force: true });
 });
+
+test('stills: the PC\'s release step and the live check, against a stand-in GitHub and site', async () => {
+  const http = await import('node:http'), { execFile } = await import('node:child_process'), { promisify } = await import('node:util');
+  const run = promisify(execFile), ROOT = new URL('../..', import.meta.url).pathname;
+  const site = tmp(); fs.writeFileSync(path.join(site, 'index.html'), '<p>w</p>');
+  const key = S.worldKey(site), bk = tmp(); bake(bk, SET);
+  const st = { releases: {}, assets: {}, statuses: [], served: null, uploads: 0 };
+  const srv = http.createServer((q, r) => {
+    const body = []; q.on('data', (c) => body.push(c)); q.on('end', () => {
+      const b = Buffer.concat(body), u = q.url.split('?')[0], J = (s, o) => { r.writeHead(s, { 'content-type': 'application/json' }); r.end(JSON.stringify(o)); };
+      let m;
+      if ((m = /\/releases\/tags\/(.+)$/.exec(u))) return st.releases[m[1]] ? J(200, st.releases[m[1]]) : J(404, {});
+      if (u.endsWith('/releases') && q.method === 'POST') { const o = JSON.parse(b); st.releases[o.tag_name] = { tag: o.tag_name, assets: [], upload_url: `http://127.0.0.1:${port}/up/${o.tag_name}{?name}` }; return J(201, st.releases[o.tag_name]); }
+      if ((m = /^\/up\/(.+)$/.exec(u))) { st.uploads++; st.assets[9] = b; st.releases[m[1]].assets.push({ id: 9, name: 'stills.pack' }); return J(201, {}); }
+      if (/\/releases\/assets\/9$/.test(u)) { r.writeHead(200); return r.end(st.assets[9]); }
+      if ((m = /\/statuses\/(\w+)$/.exec(u))) { st.statuses.push({ sha: m[1], ...JSON.parse(b) }); return J(201, {}); }
+      if (u.startsWith('/assets/still/')) { const n = u.slice(14); if (!st.served || !st.served[n]) { r.writeHead(404); return r.end(); } r.writeHead(200); return r.end(st.served[n]); }
+      J(500, { u });
+    });
+  });
+  await new Promise((f) => srv.listen(0, '127.0.0.1', f)); const port = srv.address().port, base = `http://127.0.0.1:${port}`;
+  const env = { ...process.env, GITHUB_TOKEN: 't', GITHUB_REPOSITORY: 'o/r', STILLS_API: base, STILLS_DEPLOY_HOOK: '' };
+  const node = (args) => run(process.execPath, args, { cwd: ROOT, env }).then((x) => ({ code: 0, out: x.stdout + x.stderr }), (e) => ({ code: e.code, out: (e.stdout || '') + (e.stderr || '') }));
+  const REL = path.join(ROOT, 'tools/stills-release.mjs'), LIVE = path.join(ROOT, '.github/ci/stills-live.mjs'), SHA = 'c'.repeat(40);
+  try {
+    assert.equal((await node([REL, '--site', site, '--have', '--status', SHA])).code, 3, 'no release yet: 3, and no status');
+    assert.equal(st.statuses.length, 0);
+    let x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
+    assert.equal(x.code, 1, 'no release for live\'s world: the live check fails'); assert.match(x.out, /no release/);
+    assert.equal((await node([REL, '--site', site, '--bake', bk, '--status', SHA])).code, 0);
+    assert.equal(st.uploads, 1); assert.deepEqual(st.statuses.map((s) => [s.sha, s.context, s.state]), [[SHA, 'stills', 'success']]);
+    assert.equal((await node([REL, '--site', site, '--bake', bk])).code, 0, 'up already: left as it is');
+    assert.equal(st.uploads, 1, 'never uploaded twice');
+    assert.equal((await node([REL, '--site', site, '--have', '--status', SHA])).code, 0, 'a later commit of the same world: up, its status at once');
+    assert.equal(st.statuses.length, 2);
+    x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
+    assert.equal(x.code, 1, 'the release is up but the site serves no still (no STILLS_TOKEN): fails'); assert.match(x.out, /STILLS_TOKEN/);
+    st.served = Object.fromEntries(Object.entries(SET).map(([n, b]) => [n, Buffer.from('other')]));
+    x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
+    assert.equal(x.code, 1, 'another world\'s bytes: fails'); assert.match(x.out, /not the set's/);
+    st.served = SET;
+    x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
+    assert.equal(x.code, 0, x.out);
+    assert.equal((await node([REL, '--fail', SHA, '--why', 'the bake failed'])).code, 0);
+    assert.deepEqual(st.statuses.at(-1).state, 'failure');
+    fs.writeFileSync(path.join(site, 'sound.js'), '1');   // (a served change that is not the world's still makes a new key: main's stills job puts its set up)
+    assert.equal((await node([REL, '--site', site, '--have'])).code, 3, 'a new served build: no set until the PC puts one up');
+    assert.ok(key !== S.worldKey(site));
+  } finally { srv.close(); for (const d of [site, bk]) fs.rmSync(d, { recursive: true, force: true }); }
+});
