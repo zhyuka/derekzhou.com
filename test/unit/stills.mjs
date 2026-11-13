@@ -67,8 +67,8 @@ test('stills: the build fetches its own world\'s set; anything else ships withou
 });
 
 test('stills: the PC\'s release step and the live check, against a stand-in GitHub and site', async () => {
-  const http = await import('node:http'), { execFile } = await import('node:child_process'), { promisify } = await import('node:util');
-  const run = promisify(execFile), ROOT = new URL('../..', import.meta.url).pathname;
+  const http = await import('node:http'), { execFile } = await import('node:child_process'), { promisify } = await import('node:util'), { fileURLToPath } = await import('node:url');
+  const run = promisify(execFile), ROOT = fileURLToPath(new URL('../..', import.meta.url));   // (fileURLToPath: on Windows a URL's pathname is /C:/...)
   const site = tmp(); fs.writeFileSync(path.join(site, 'index.html'), '<p>w</p>');
   const key = S.worldKey(site), bk = tmp(); bake(bk, SET);
   const st = { releases: {}, assets: {}, statuses: [], served: null, uploads: 0 };
