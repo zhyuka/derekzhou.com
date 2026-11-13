@@ -36,7 +36,7 @@
   var sw = screen.width || 1, sh = screen.height || 1, sized = innerWidth > 0 && innerHeight > 0, ab;   // (a tab not yet sized: the screen's shape)
   for (j = 0; j < SHAPES.length; j++) { ab = SHAPES[j][0].split('/'); if (sized ? mm('(max-aspect-ratio: ' + SHAPES[j][0] + ')') : sw * ab[1] <= sh * ab[0]) { shape = SHAPES[j][1]; break; } }
   var touch = mm('(pointer: coarse)') || nav2.maxTouchPoints > 1;
-  var tier0 = touch && !/iPhone|iPad|Macintosh/.test(nav2.userAgent || '') && (nav2.deviceMemory || 0) < 8 ? 'lo' : 'hi', tier = 'lo';   // (DIAGNOSTIC PREVIEW: the tier forced)
+  var tier0 = touch && !/iPhone|iPad|Macintosh/.test(nav2.userAgent || '') && (nav2.deviceMemory || 0) < 8 ? 'lo' : 'hi', tier = 'hi';   // (DIAGNOSTIC PREVIEW: the tier forced)
   var url = '/assets/still/' + DAY[i][0] + '-' + k + '-' + tier + '-' + shape + '.avif', pre = document.querySelector('link.still');
   if (pre) { document.documentElement.style.setProperty('--still', 'url("' + url + '")'); pre.href = url; }   // (no preload: a build with no stills)
   document.documentElement.setAttribute('data-diag', 'DIAG ' + url.slice(14) + ' (own ' + tier0 + ') | head ' + innerWidth + 'x' + innerHeight + ' scr ' + screen.width + 'x' + screen.height + ' mem ' + nav2.deviceMemory + ' dpr ' + devicePixelRatio);
