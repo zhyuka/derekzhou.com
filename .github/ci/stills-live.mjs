@@ -43,4 +43,12 @@ for (;;) {
   await new Promise((f) => setTimeout(f, 15000));
 }
 }
-try { process.exitCode = await main(); } catch (e) { if (!(e instanceof Fail)) throw e; console.error('stills-live: FAIL: ' + e.message); process.exitCode = 1; }
+// what the live build said of its stills: /build.txt's second line, "stills: <why>" (tools/build.mjs)
+async function buildSaid() {
+  try {
+    const r = await fetch(A.url.replace(/\/$/, '') + '/build.txt', { headers: { 'cache-control': 'no-cache', 'user-agent': 'derekzhou.com-post-deploy' } });
+    const line = (await r.text()).split('\n').find((l) => l.startsWith('stills: '));
+    return line ? ' The live build says "' + line.replace(/[^ -~]/g, ' ').slice(0, 200) + '".' : ' (/build.txt says nothing of the stills: a build from before tools/build.mjs wrote it)';
+  } catch (e) { return ''; }
+}
+try { process.exitCode = await main(); } catch (e) { if (!(e instanceof Fail)) throw e; console.error('stills-live: FAIL: ' + e.message + (A.url ? await buildSaid() : '')); process.exitCode = 1; }

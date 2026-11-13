@@ -39,8 +39,10 @@
 //
 // The manifest: one line per file, "<sha256>  <path>", paths relative to the folder with '/' separators, sorted by
 // path in code-unit order; build.txt is left out (it changes with every commit).
-// build.txt: the commit the build was made from, one 40-hex line (the post-deploy check reads /build.txt to know the
-// live site serves this build). The commit is CF_PAGES_COMMIT_SHA (Cloudflare Pages' build), else GITHUB_SHA (CI),
+// build.txt: the commit the build was made from, a 40-hex first line (the post-deploy check reads /build.txt to know the
+// live site serves this build), then "stills: <why>", what the stills fetch did (no STILLS_TOKEN, no set for this world,
+// the answer it got, or N stills placed), so the live site says it without Cloudflare's build log. The why never holds
+// the token or a header: printable ASCII only, the token's value cut out if it were ever there, 160 characters at most. The commit is CF_PAGES_COMMIT_SHA (Cloudflare Pages' build), else GITHUB_SHA (CI),
 // else `git rev-parse HEAD`; anything but 40 hex characters is an error.
 // Node built-ins only (terser, pinned in package.json, is loaded by tools/minify.mjs). Deterministic: no time, no
 // absolute paths in any output byte.
@@ -58,6 +60,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), WING = path.join(SRC, 'birds', 'model');
 const PARTS = path.join(ROOT, 'tools', 'parts.mjs'), MINIFY = path.join(ROOT, 'tools', 'minify.mjs');
 const STAMP = 'build.txt';
+let stillsWhy = '';   // (build(): what the stills fetch did, for build.txt's second line)
+function stampText(stamp) {   // build.txt: the commit, then the stills' why (see the top), safe to serve
+  const tok = process.env.STILLS_TOKEN;
+  let w = String(stillsWhy || 'none');
+  if (tok) w = w.split(tok).join('[token]');
+  w = w.replace(/[^ -~]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+  return stamp + '\n' + 'stills: ' + w + '\n';
+}
 const NAMED = /^[a-z0-9-]+(\.v\d+)?\.(js|css)$/, HASHED = /^[a-z0-9-]+\.[0-9a-f]{8}\.(js|css)$/;
 const REWRITTEN = ['index.html', '404.html', '_headers', '_routes.json'];
 
@@ -177,14 +187,15 @@ async function build(out, stamp) {   // the plain build
     if (noPre === withPre) die('index.html: the still\'s preload (and its comment) not found to take out');
     fs.writeFileSync(ix, noPre);
   }
+  stillsWhy = fs.existsSync(sd0) ? 'from the local bake folder' : 'no STILLS_TOKEN: built without stills';
   if (process.env.STILLS_TOKEN && !process.env.STILLS_DIR && !fs.existsSync(path.join(ROOT, 'stills'))) {
     try {
       const key = worldKey(out), r = await fetchSet({ key, token: process.env.STILLS_TOKEN, repo: process.env.STILLS_REPO || undefined, api: process.env.STILLS_API || undefined });   // (STILLS_API: a stand-in, for the check)
       if (r.stills) { place(out, r.stills); fs.writeFileSync(ix, withPre); }
-      console.error('build: stills: ' + r.why);
-    } catch (e) { fs.rmSync(path.join(out, 'assets', 'still'), { recursive: true, force: true }); console.error('build: stills: none (' + e.message + ')'); }
+      stillsWhy = r.why; console.error('build: stills: ' + r.why);
+    } catch (e) { fs.rmSync(path.join(out, 'assets', 'still'), { recursive: true, force: true }); stillsWhy = 'none (' + e.message + ')'; console.error('build: stills: ' + stillsWhy); }
   }
-  if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
+  if (stamp) fs.writeFileSync(path.join(out, STAMP), stampText(stamp));
   return written.sort();
 }
 
@@ -285,7 +296,7 @@ async function deploy(out, stamp) {   // the plain build, named by content, chec
   const map = contentNames(out), err = verify(out, map);
   if (err.length) die('the deploy build fails its checks:\n  ' + err.join('\n  '));
   precompress(out);
-  if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
+  if (stamp) fs.writeFileSync(path.join(out, STAMP), stampText(stamp));
   return map;
 }
 

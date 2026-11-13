@@ -74,7 +74,12 @@ export async function fetchSet({ key, token, repo = 'zhyuka/derekzhou.com', fetc
   try {
     const h = { authorization: 'Bearer ' + token, 'x-github-api-version': '2022-11-28', 'user-agent': 'derekzhou.com-build' }, api = base + '/repos/' + repo;
     const rel = await fetch(api + '/releases/tags/' + TAG(key), { headers: { ...h, accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(timeoutMs) });
-    if (rel.status === 404) return { stills: null, why: 'no set baked for this world yet (' + key.slice(0, 12) + ')' };
+    if (rel.status === 404) {   // (GitHub answers 404 too for a repository the token cannot see: ask which)
+      const repoR = await fetch(api, { headers: { ...h, accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(timeoutMs) });
+      if (!repoR.ok) return { stills: null, why: 'the token cannot see ' + repo + ' (' + repoR.status + '): its repository access, its Contents permission or its expiry' };
+      return { stills: null, why: 'no set baked for this world yet (' + key.slice(0, 12) + ')' };
+    }
+    if (rel.status === 401) return { stills: null, why: 'the token was refused (401): expired or revoked' };
     if (!rel.ok) return { stills: null, why: 'the release lookup answered ' + rel.status };
     const a = ((await rel.json()).assets || []).find((x) => x.name === ASSET);
     if (!a) return { stills: null, why: 'the release has no ' + ASSET };

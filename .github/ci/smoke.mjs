@@ -25,7 +25,8 @@ const files = fs.readdirSync(SITE, { recursive: true }).map(String).filter((f) =
 
 async function served() {
   const bt = await get('/build.txt').catch(() => null);
-  if (bt && bt.status === 200 && /^[0-9a-f]{40}\s*$/.test(bt.body.toString())) return SHAS.includes(bt.body.toString().trim()) ? 'build.txt ' + bt.body.toString().trim().slice(0, 10) : null;
+  const first = bt && bt.status === 200 ? bt.body.toString().split('\n')[0].trim() : '';   // (line 1 the commit; line 2 the stills' why, tools/build.mjs)
+  if (/^[0-9a-f]{40}$/.test(first)) return SHAS.includes(first) ? 'build.txt ' + first.slice(0, 10) : null;
   for (const f of files) {
     if (f.endsWith('.html')) continue;
     const r = await get('/' + f.split(path.sep).join('/')), mine = fs.readFileSync(path.join(SITE, f));

@@ -12,10 +12,11 @@ const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'stills-'));
 const SET = { 'day-0-hi-1440x900.avif': Buffer.from('A'.repeat(50)), 'dawn-0-hi-1440x900.avif': Buffer.from('A'.repeat(50)), 'night-3-lo-393x852.avif': Buffer.from('night') };
 const KEY = 'a'.repeat(64);
 // a fetch stand-in: the release and its asset, or a status
-function gh(packBuf, { release = 200, asset = 200 } = {}) {
+function gh(packBuf, { release = 200, asset = 200, repo = 200 } = {}) {
   const calls = [];
   const f = async (url, o) => {
     calls.push(url);
+    if (/\/repos\/[^/]+\/[^/]+$/.test(url)) return new Response('{}', { status: repo });
     if (/\/releases\/tags\//.test(url)) return release === 200 ? new Response(JSON.stringify({ assets: [{ id: 7, name: 'stills.pack' }] }), { status: 200 }) : new Response('', { status: release });
     if (/\/releases\/assets\/7$/.test(url)) return asset === 200 ? new Response(packBuf, { status: 200 }) : new Response('', { status: asset });
     throw new Error('unexpected ' + url);
@@ -55,6 +56,9 @@ test('stills: the build fetches its own world\'s set; anything else ships withou
   const ok = await S.fetchSet({ key: KEY, token: 't', fetch: gh(good) });
   assert.equal(ok.stills.size, 3, ok.why);
   assert.equal((await S.fetchSet({ key: KEY, token: 't', fetch: gh(good, { release: 404 }) })).stills, null, 'no release: none');
+  assert.match((await S.fetchSet({ key: KEY, token: 't', fetch: gh(good, { release: 404 }) })).why, /no set baked for this world yet/, 'the repository visible: the set is not there');
+  assert.match((await S.fetchSet({ key: KEY, token: 't', fetch: gh(good, { release: 404, repo: 404 }) })).why, /the token cannot see .* \(404\)/, 'the repository not visible either: the token is why (a private repository answers 404)');
+  assert.match((await S.fetchSet({ key: KEY, token: 't', fetch: gh(good, { release: 401 }) })).why, /refused \(401\)/);
   assert.equal((await S.fetchSet({ key: KEY, token: 't', fetch: gh(good, { asset: 500 }) })).stills, null, 'a failed download: none');
   const bad = Buffer.from(good); bad[bad.length - 1] ^= 1;
   assert.equal((await S.fetchSet({ key: KEY, token: 't', fetch: gh(bad) })).stills, null, 'a bad sha: none');
@@ -81,6 +85,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
       if ((m = /^\/up\/(.+)$/.exec(u))) { st.uploads++; st.assets[9] = b; st.releases[m[1]].assets.push({ id: 9, name: 'stills.pack' }); return J(201, {}); }
       if (/\/releases\/assets\/9$/.test(u)) { r.writeHead(200); return r.end(st.assets[9]); }
       if ((m = /\/statuses\/(\w+)$/.exec(u))) { st.statuses.push({ sha: m[1], ...JSON.parse(b) }); return J(201, {}); }
+      if (u === '/build.txt') { r.writeHead(200); return r.end('c'.repeat(40) + '\nstills: no STILLS_TOKEN: built without stills\n'); }
       if (u.startsWith('/assets/still/')) { const n = u.slice(14); if (!st.served || !st.served[n]) { r.writeHead(404); return r.end(); } r.writeHead(200); return r.end(st.served[n]); }
       J(500, { u });
     });
@@ -102,6 +107,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
     assert.equal(st.statuses.length, 2);
     x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
     assert.equal(x.code, 1, 'the release is up but the site serves no still (no STILLS_TOKEN): fails'); assert.match(x.out, /STILLS_TOKEN/);
+    assert.match(x.out, /The live build says "stills: no STILLS_TOKEN: built without stills"/, 'the failure quotes what the live build said (build.txt line 2)');
     st.served = Object.fromEntries(Object.entries(SET).map(([n, b]) => [n, Buffer.from('other')]));
     x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
     assert.equal(x.code, 1, 'another world\'s bytes: fails'); assert.match(x.out, /not the set's/);
@@ -155,4 +161,19 @@ test('stills: the PC\'s bake renders a twin with the still\'s preload (stills.ym
   assert.notEqual(S.worldKey(d), k, '(the twin is not what the key is read from: stills.yml keys served/head)');
   assert.ok(!/served\/head-twin/.test(y.slice(y.indexOf('worldKey'), y.indexOf('worldKey') + 120)), 'the key is read from served/head, never the twin');
   fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('stills: build.txt says what the stills fetch did, on its second line, and never the token', async () => {
+  const http = await import('node:http'), { execFile } = await import('node:child_process'), { promisify } = await import('node:util'), { fileURLToPath } = await import('node:url');
+  const ROOT = fileURLToPath(new URL('../..', import.meta.url)), out = tmp();
+  const srv = http.createServer((q, r) => { r.writeHead(/^\/repos\/[^/]+\/[^/]+$/.test(q.url) ? 200 : 404, { 'content-type': 'application/json' }); r.end('{}'); });   // (the repository visible, no release)
+  await new Promise((f) => srv.listen(0, '127.0.0.1', f));
+  try {
+    const TOKEN = 'github_pat_SECRETSECRETSECRET';
+    await promisify(execFile)(process.execPath, [path.join(ROOT, 'tools/build.mjs'), path.join(out, 'dist')], { cwd: ROOT, env: { ...process.env, STILLS_TOKEN: TOKEN, STILLS_API: 'http://127.0.0.1:' + srv.address().port, GITHUB_SHA: 'd'.repeat(40) }, maxBuffer: 1 << 26 });
+    const bt = fs.readFileSync(path.join(out, 'dist/build.txt'), 'utf8').split('\n');
+    assert.equal(bt[0], 'd'.repeat(40), 'line 1: the commit, as before');
+    assert.match(bt[1], /^stills: no set baked for this world yet \([0-9a-f]{12}\)$/, 'line 2: the why');
+    assert.ok(!fs.readFileSync(path.join(out, 'dist/build.txt'), 'utf8').includes('SECRET'), 'never the token');
+  } finally { srv.close(); fs.rmSync(out, { recursive: true, force: true }); }
 });
