@@ -33,8 +33,8 @@ function play(seed, flight = FLIGHT, len = T, sliced = false) {
   const node = (x) => Object.assign({ out: [], connect(n) { this.out.push(n); return n; } }, x);
   const srcs = [], gains = [], convs = [], queue = [];
   const ctx = { currentTime: 0, sampleRate: 24000,
-    createGain: () => { const g = node({ gain: param(1) }); gains.push(g); return g; }, createBiquadFilter: () => node({ type: '', frequency: param(0), Q: param(1), gain: param(0) }),
-    createConvolver: () => { const c = node({ normalize: true, buffer: null }); convs.push(c); return c; }, createStereoPanner: () => node({ pan: param(0) }), createOscillator: () => node({ frequency: param(0), start() {} }),
+    createGain: () => { const g = node({ gain: param(1) }); gains.push(g); return g; }, createBiquadFilter: () => node({ type: '', frequency: param(0), detune: param(0), Q: param(1), gain: param(0) }),
+    createConvolver: () => { const c = node({ normalize: true, buffer: null }); convs.push(c); return c; }, createStereoPanner: () => node({ pan: param(0) }), createDelay: () => node({ delayTime: param(0) }), createOscillator: () => node({ frequency: param(0), start() {} }),
     createBuffer(ch, n, sr) { const d = Array.from({ length: ch }, () => new Float32Array(n)); return { getChannelData: (c) => d[c], sampleRate: sr, length: n }; },
     createBufferSource() { const s = node({ buffer: null, loop: false, playbackRate: param(1), start(w, o) { this.when = w; this.off = o; }, stop(t) { this.stopAt = t; } }); srcs.push(s); return s; } };
   const mark = new Float32Array(24000); mark[4800] = 0.9;   // (the sheet's click at 0.2 s)
