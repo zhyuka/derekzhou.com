@@ -4,11 +4,12 @@
 
    Every visit starts silent, and this is all that runs before a press: the button is in index.html, hidden until
    this shows it (with no script, or no Web Audio, there is no dead icon). Its one handler is the button's click.
-   The first press, inside its own handler (iOS and Safari start audio only there), marks the audio session ambient
-   (it mixes with the visitor's own music and keeps the silent switch: a phone on silent stays silent), makes the one
+   The first press, inside its own handler (iOS and Safari start audio only there), marks the audio session playback
+   (the owner, 2026-11-12: "yes switch it to playback": heard with the ringer off, as a video is, and the visitor's own
+   music pauses, as it does for a video), makes the one
    audio context, fetches the one sheet of notes (SHEET, from this site) and decodes it, once, and hands both to the
-   score (score.js, loaded deferred), which plays on them, following the sky; this keeps it going, about twice a
-   second, on the audio context's own clock. The level rises over four seconds. A second press takes it down over
+   score (score.js, loaded deferred), which fills its room and air a step at a time and then plays on them,
+   following the sky; this keeps it going, about twice a second, on the audio context's own clock. The level rises over four seconds. A second press takes it down over
    1.5 s and then lets the audio device go (suspend); a third resumes it and brings it back.
    The button's pressed state is always the truth: a fetch or decode that fails, no score, or a device that will not
    start in 3 s turns it off. Nothing is remembered between visits. The icon's two states are two drawings, swapped at
@@ -29,7 +30,7 @@
 
   function start() {
     if (!ctx) {
-      try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
       var opt = { latencyHint: 'playback', sampleRate: 24000 };   // (24 kHz: nothing in the score is above 4 kHz; half the work and memory)
       for (var k = 0; k < 2 && !ctx; k++) { try { ctx = new AudioContext(opt); } catch (e) { delete opt.sampleRate; } }   // (a browser that will not take the rate: its own)
       if (!ctx) return;
@@ -49,14 +50,17 @@
     var late = setTimeout(off, 3000);   // (the device must answer in 3 s)
     ctx.resume().then(function () { clearTimeout(late); }, off);
     loading.then(function (buffer) {
-      if (!score) {
+      if (!score) {   // (once; after a failure, the next press asks again)
         if (!window.SCORE) throw new Error('no score');
-        score = window.SCORE.play(ctx, level, buffer);
-        score.tick(ctx.currentTime);
-        setInterval(function () { score.tick(ctx.currentTime); }, 500);   // (it plans ten seconds ahead; this keeps it ahead)
+        var sc = window.SCORE.play(ctx, level, buffer, true);   // (sliced: it fills its room and air a step at a time, then starts)
+        score = sc.ready.then(function () {
+          sc.tick(ctx.currentTime);
+          setInterval(function () { sc.tick(ctx.currentTime); }, 500);   // (it plans ten seconds ahead; this keeps it ahead)
+        });
+        score.catch(function () { score = null; });
       }
-      if (on) ramp(1, ON_FADE);
-    }).catch(off);
+      return score;
+    }).then(function () { if (on) ramp(1, ON_FADE); }).catch(off);
   }
   function stop() {
     on = false; mark();

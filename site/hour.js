@@ -33,12 +33,12 @@
   document.documentElement.setAttribute('data-seed', String(e[0] >>> 0));
   var SHAPES = [['1000/2080', '393x861'], ['1000/1960', '393x817'], ['1000/1893', '393x770'], ['1000/1840', '393x724'], ['1000/1720', '393x676'], ['1000/1600', '393x629'], ['1000/1333', '393x524'],
     ['1249/1000', '1080x1080'], ['1599/1000', '1350x1080'], ['1777/1000', '1728x1080'], ['2099/1000', '1920x1080']], shape = '2268x1080', j;
-  for (j = 0; j < SHAPES.length; j++) if (mm('(max-aspect-ratio: ' + SHAPES[j][0] + ')')) { shape = SHAPES[j][1]; break; }
+  var sw = screen.width || 1, sh = screen.height || 1, sized = innerWidth > 0 && innerHeight > 0, ab;   // (a tab not yet sized: the screen's shape)
+  for (j = 0; j < SHAPES.length; j++) { ab = SHAPES[j][0].split('/'); if (sized ? mm('(max-aspect-ratio: ' + SHAPES[j][0] + ')') : sw * ab[1] <= sh * ab[0]) { shape = SHAPES[j][1]; break; } }
   var touch = mm('(pointer: coarse)') || nav2.maxTouchPoints > 1;
   var tier = touch && !/iPhone|iPad|Macintosh/.test(nav2.userAgent || '') && (nav2.deviceMemory || 0) < 8 ? 'lo' : 'hi';
   var url = '/assets/still/' + DAY[i][0] + '-' + k + '-' + tier + '-' + shape + '.avif', pre = document.querySelector('link.still');
-  document.documentElement.style.setProperty('--still', 'url("' + url + '")');
-  if (pre) pre.href = url;
+  if (pre) { document.documentElement.style.setProperty('--still', 'url("' + url + '")'); pre.href = url; }   // (no preload: a build with no stills)
   /* (first-paint preview) the hold: the page's first paint waits for the world's first frame (the link rel=expect in
      the head). Where the odds are low it is taken out here, before the body, so the words paint as soon as they can:
      reduced motion (one still frame, today's path), forced colours, no WebGL2, 4 or fewer cores, under 8 GB where the

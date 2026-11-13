@@ -414,7 +414,10 @@ rest) by tools/gpu/bake-stills.js, named <sky>-<k>-<tier>-<W>x<H>.avif.
 The build copies the stills from an input folder (STILLS_DIR, or stills/,
 never committed) into assets/still/, and only the bake's own: each named
 in the folder's bake.json with its bytes' sha256 (anything else stops
-the build). The stylesheet shows the still as
+the build), or from the release for its world (tools/stills.mjs). A build
+with no stills takes the still's preload out of the page (before the world
+key is read, so the key is the same with or without a set; put back where
+a set is placed), and hour.js asks for a still only where the preload is. The stylesheet shows the still as
 the body's ::before, the canvas's box, cropped as the canvas is; the world
 opens at the still's own view (its frustum and pose, cropped as cover
 crops it) and settles to the window's own in about a second (SVTAU 0.35
@@ -422,7 +425,9 @@ s); reduced motion has no settle. The world cuts in over the still in the
 frame it shows and clears it (--still none) for good; without WebGL2 the
 still stays. How far through its time of day the visit is (data-sky-at)
 moves the first frame by at most one level (the moon's path), so it is
-not baked.
+not baked. The land is the opening seed's for the whole visit, one of 16 whatever
+the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
+over it is the read's own (## THE WEATHER).
 
 ## THE WEATHER (=rand())
 
@@ -438,7 +443,9 @@ the way, the ink birds' later flocks and the population's stream, the
 score's seed and the idle's ease. Both are split into splitmix32 streams
 and integer hashes (the same in JS and GLSL, bit for bit). So the land
 along a visit's flight is one of 16 (the opening's seed; the sky is the
-hour's), and what happens over it is the visit's own. The world, the realm and kit files, the wing model, the ink birds and the
+hour's), and what happens over it is the visit's own. The owner's pick,
+of land seeded past the cut's far plane or a seam: "Keep 16 lands"
+(2026-11-13). The world, the realm and kit files, the wing model, the ink birds and the
 plan's worker draw nothing of their own (the worker is
 handed the visit's seed): the hour's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
