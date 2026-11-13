@@ -165,7 +165,7 @@ async function build(out, stamp) {   // the plain build
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile()).concat(wing);
   if (pn) written.push(pn);
   fs.rmSync(parts, { recursive: true, force: true });
-  // the openings' stills for this world (docs/stills-hosting.md): with STILLS_TOKEN set (Cloudflare's build), the set
+  // the openings' stills for this world (docs/deploy.md, "The stills"): with STILLS_TOKEN set (Cloudflare's build), the set
   // baked for this build's world key, from its release; else, or when anything fails, none (today's first paint). A
   // local bake folder (STILLS_DIR or stills/) is the bake's own and wins. Never fails the build.
   // A page with no stills asks for none: without a bake folder the still's preload (hour.js's cue) is taken out

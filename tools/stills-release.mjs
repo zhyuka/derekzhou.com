@@ -1,4 +1,4 @@
-// stills-release.mjs: a bake's stills up as the release the Cloudflare build fetches (docs/stills-hosting.md), from the
+// stills-release.mjs: a bake's stills up as the release the Cloudflare build fetches (docs/deploy.md, "The stills"), from the
 // PC's stills job (.github/workflows/stills.yml) after tools/gpu/bake-stills.js (kept out of tools/gpu/: it renders
 // nothing, so it is not T2's).
 //   node tools/stills-release.mjs --site PLAIN_BUILD --have [--status SHA]   0: the set is up, 3: it is not
@@ -63,7 +63,7 @@ if (up(rel)) console.log('stills-release: ' + TAG(key) + ' is up already: left a
 else {
   if (!rel) rel = await j(await fetch(api + '/releases', { method: 'POST', headers: { ...h, 'content-type': 'application/json' }, body: JSON.stringify({
     tag_name: TAG(key), target_commitish: process.env.GITHUB_SHA || undefined, name: 'stills ' + key.slice(0, 12),
-    body: `The openings' stills for world ${key} (${n} stills). Fetched by tools/build.mjs; docs/stills-hosting.md.`, prerelease: true, make_latest: 'false',
+    body: `The openings' stills for world ${key} (${n} stills). Fetched by tools/build.mjs; docs/deploy.md, "The stills".`, prerelease: true, make_latest: 'false',
   }) }));
   const u = rel.upload_url.replace(/\{.*\}$/, '') + '?name=' + ASSET;
   await j(await fetch(u, { method: 'POST', headers: { ...h, 'content-type': 'application/octet-stream', 'content-length': String(buf.length) }, body: buf }));

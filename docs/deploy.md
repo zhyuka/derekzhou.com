@@ -41,7 +41,7 @@ gpu-4090 runner. One job at a time, so T1 is skipped when T2 runs for the same h
 
 The openings' stills (the world's first frames, baked on the PC's RTX 4090 by tools/gpu/bake-stills.js, #197) are not
 in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
-key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt (docs/stills-hosting.md).
+key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt.
 The Cloudflare build fetches its own key's set with STILLS_TOKEN (a Pages secret) and ships without it on any failure.
 The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and live never
 goes without its set:
@@ -55,3 +55,14 @@ goes without its set:
   its sha256 (.github/ci/stills-live.mjs).
 The bake's own cache (each still's key in bake.json) decides what a served change costs on the PC: seconds when it
 hits, about 76 minutes for all 2,304 stills when it does not.
+
+The owner's steps (once; until they are done the build ships without stills, as before):
+1. A token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.
+   Resource owner `zhyuka`; Only select repositories, `zhyuka/derekzhou.com`; Repository permissions, Contents:
+   Read-only, nothing else. (When it expires the build ships without stills until it is renewed.)
+2. The secret: Cloudflare, Workers & Pages, the project, Settings, Variables and Secrets: a Secret named `STILLS_TOKEN`,
+   the token as its value, for Production.
+3. The watch paths: Settings, Build, Build watch paths: add `tools/stills.mjs` (the list above, as
+   .github/ci/deploy-inputs.txt has it).
+Optional: a Pages deploy hook stored as the repository secret `STILLS_DEPLOY_HOOK`, which stills.yml calls once a new set
+is up (live already rebuilds on every move of `live`, so the hook only matters when a set goes up after the last move).

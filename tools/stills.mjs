@@ -1,5 +1,5 @@
 // stills.mjs: the openings' baked stills (A2's first frames, baked on the 4090 by tools/gpu/bake-stills.js), between
-// the PC that bakes them and the Cloudflare build that serves them (docs/stills-hosting.md). Node built-ins only.
+// the PC that bakes them and the Cloudflare build that serves them (docs/deploy.md, "The stills"). Node built-ins only.
 //
 // The key: worldKey(dir), a sha256 of a plain build's files (tools/build.mjs --plain, the bytes a visitor gets) but the
 // stills themselves (assets/still/) and build.txt. The PC computes it on the gate's served/head, the build on its own

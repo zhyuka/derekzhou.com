@@ -1,7 +1,7 @@
 name: Stills
 
 # The openings' stills (the world's first frames, baked on the PC's RTX 4090 by tools/gpu/bake-stills.js) for every
-# served build, so live never ships without them (docs/deploy.md, "The stills"; docs/stills-hosting.md).
+# served build, so live never ships without them (docs/deploy.md, "The stills").
 # After each green Gate run (workflow_run):
 #   on main: the release stills-<key> (key: tools/stills.mjs worldKey of the gate's served/head, the plain build) is
 #     looked up; if it is not up, served/head's settled twin is baked (cached on the PC by key: a world baked before,

@@ -1,4 +1,4 @@
-// test/unit/stills.mjs: the baked stills between the PC and the Cloudflare build (tools/stills.mjs, docs/stills-hosting.md)
+// test/unit/stills.mjs: the baked stills between the PC and the Cloudflare build (tools/stills.mjs, docs/deploy.md, "The stills")
 import { test, assert, fs, os, path, crypto } from '../unit-lib.mjs';
 
 const S = await import(new URL('../../tools/stills.mjs', import.meta.url));
