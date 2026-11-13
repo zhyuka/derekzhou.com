@@ -29,6 +29,7 @@
   var NOTES = [[0,36,0.5,5.0,1,0.46542],[0,40,5.65,5.0,1,0.21259],[0,43,10.8,5.0,1,0.18428],[0,47,15.95,5.0,1,0.15703],[0,50,21.1,5.0,1,0.31815],[0,53,26.25,5.0,1,0.25647],[1,55,31.4,5.0,1,0.56921],[1,59,36.55,5.0,1,0.31169],[1,62,41.7,5.0,1,0.38332],[2,62,46.85,5.0,1,0.4439],[2,66,52.0,5.0,1,0.31866],[2,69,57.15,5.0,1,0.41829],[2,72,62.3,5.0,1,0.2508],[2,76,67.45,5.0,1,0.30487],[3,58,72.6,4.0,1,0.12701],[3,62,76.75,4.0,1,0.14562],[3,65,80.9,4.0,1,0.10728],[3,70,85.05,4.0,1,0.1062],[3,74,89.2,4.0,1,0.12793],[3,77,93.35,4.0,1,0.1262],[4,43,97.5,4.0,1,0.19314],[4,46,101.65,4.0,1,0.25987],[4,50,105.8,4.0,1,0.13615],[4,53,109.95,4.0,1,0.12133],[4,57,114.1,4.0,1,0.13613],[4,60,118.25,4.0,1,0.14096],[4,74,122.4,4.0,1,0.15428],[5,28,126.55,4.0,1,0.26297],[5,30,130.7,4.0,1,0.20173],[5,31,134.85,4.0,1,0.15188],[5,34,139.0,4.0,1,0.17654],[6,41,143.15,4.0,1,0.18657],[6,50,147.3,4.0,1,0.17992],[7,41,151.45,4.5,0,0.30174],[7,45,156.1,4.5,0,0.41835],[7,48,160.75,4.5,0,0.34362],[7,52,165.4,4.5,0,0.6044],[7,55,170.05,4.5,0,0.30406],[7,59,174.7,4.5,0,0.41814],[7,62,179.35,4.5,0,0.81824],[7,65,184.0,4.5,0,0.48499],[7,69,188.65,4.5,0,2.02098],[7,72,193.3,4.5,0,0.95475],[7,76,197.95,4.5,0,0.7057],[7,79,202.6,4.5,0,1.5404],[7,83,207.25,4.416,0,1.59554],[7,86,211.816,3.8974,0,3.00466],[8,36,215.8633,6.0,0,0.45523],[8,40,222.0133,6.0,0,0.35217],[8,44,228.1633,6.0,0,0.47107],[8,48,234.3133,6.0,0,0.50064],[8,52,240.4633,6.0,0,0.35333],[8,56,246.6133,6.0,0,0.37035],[8,60,252.7633,6.0,0,0.64495],[8,64,258.9133,6.0,0,0.90187],[8,68,265.0633,6.0,0,0.586],[8,72,271.2133,6.0,0,0.87843],[8,76,277.3633,6.0,0,0.58347],[8,80,283.5133,6.0,0,1.29236],[8,84,289.6633,6.0,0,1.39523]], MARK = 0.2;   // (tools/sound/sheet.py writes this line: [instrument, midi, start s, length s, loops, gain])
   var INST = ['cello', 'viola', 'violin', 'clar', 'horn', 'cbass', 'tuba', 'harp', 'piano'];
   var H = 10, GAP = 2.5, OUT = 0.78;   // (s: how far ahead it plans; a breath's gap; the output level: about -26 LUFS, measured with tools/sound/render.mjs)
+  var LIFE = 14, DEEP_LIFE = 24;   // (s: how long a string or the deep end may hold one note before a chord's turn bows it again: no drone)
   var MOVE = true, WIDE = true;   // (sketch round nineteen: voices that move; a wider harmony)
   var V9 = [0, 7, 16, 23, 26], V69 = [0, 7, 16, 21, 26], VM9 = [0, 7, 15, 22, 26], LIFT = [0, 7, 18, 21, 26];
   var MS = [0, 7, 14, 17, 23], LS = [0, 7, 14, 18, 26], M69 = [0, 7, 15, 21, 26], I3 = [0, 8, 15, 19, 22], P4 = [0, 12, 17, 21, 28], P2 = [0, 14, 18, 21, 26];   // (a suspended major seventh; Lydian's open chord, its raised fourth inside; minor six-nine; a major seventh with its third in the bass; the fourth's chord over the tonic; Lydian's second over it. Each keeps a seventh, a raised fourth or a minor sixth: none is the open five-note sound; no minor ninth)
@@ -237,7 +238,7 @@
     }
 
     /* the plan */
-    var S = { sky: null, hold: null, chg: null, next: null, swaps: [], C: [], active: {}, deep: null, wc: 0, log: [], figAt: 0, swellEnd: 0, pass: { kind: 'start', until: 0, alt: false }, arcV: 1, arcEnd: 0, prevN: null };
+    var S = { peaks: [], sky: null, hold: null, chg: null, next: null, swaps: [], C: [], active: {}, deep: null, wc: 0, log: [], figAt: 0, swellEnd: 0, pass: { kind: 'start', until: 0, alt: false }, arcV: 1, arcEnd: 0, prevN: null };
     function colourAt(t) { var c = SKIES[S.swaps.length ? S.swaps[0][1] : 'bluehour'].col, j; for (j = 0; j < S.swaps.length; j++) if (S.swaps[j][0] <= t) c = S.swaps[j][2]; return c; }
     function lastEnd() { return S.C.length ? S.C[S.C.length - 1].b : null; }
     function newHold(sky, a, first) { S.sky = sky; S.hold = { a: a, k: 0, i: 0, used: false, br: a + R.r(20, 45), brDone: false, first: first || null }; }
@@ -358,20 +359,39 @@
       var old = D && turn ? [D.root - 12] : [], next = root !== null && turn ? [root - 12] : [];   // (the deep note leaving: a low string close to it waits for it to go; the deep note coming: a low string close to it lets go first)
       keys.forEach(function (m) { if (c.br || sn.indexOf(m) < 0) ending.push(m); });
       sn.forEach(function (m) { if (c.br || !act[m] || ending.indexOf(m) >= 0) starting.push(m); });
+      var end = c.span || c.b;   // (a chord and its neighbours are one chord here: the voices that stay are bowed again across the whole of it)
+      var rebow = c.br || c.sub || c.tag === 'mist' || S.peaks.some(function (p) { return p > a - 3 && p < a + 12; }) ? [] :   // (not in the mist, nor where a swell blooms)
+        keys.filter(function (m) { return ending.indexOf(m) < 0 && sn.indexOf(m) >= 0 && m !== c.from && a - act[m].at >= LIFE; }).sort(function (x, y) { return act[x].at - act[y].at; }).slice(0, 2);
       ending.forEach(function (m) {
         near = c.n.concat(next).some(function (n) { return close(m, n); });
         var u = R.r(-0.8, 0.8), fade = !c.br && !near && c.n.indexOf(m) >= 0;   // (still in the harmony, the passage takes it away: a long fade)
         release(act[m], (near || c.br) ? a - 0.8 + 0.8 : a + u + 0.8, (near || c.br) ? 3.5 : fade ? 7 : 5.5); delete act[m];
       });
+      function bow(m, st, att) {
+        S.log.forEach(function (e) { if (close(e[0], m) && e[2] > st && e[1] < st + 6) st = Math.max(st, e[2]); });   // (a colour note still ringing a step away, or low down within a fifth: after it)
+        var col = colourAt(st), inst = m < 55 ? 'cello' : m < 64 ? 'viola' : col === 'clar' ? 'clar' : 'violin', g = m < 55 ? -8 : inst === 'clar' ? -11 : -10;
+        g += (LIFTS[col] || 0) + (m < 50 ? -3 * S.wc : 0) + R.r(-0.5, 0.5);
+        act[m] = voice(inst, m, st, g, att, -0.45 + 0.9 * (m - 36) / 41, false, sbus);
+      }
       starting.forEach(function (m) {
         near = ending.concat(old).some(function (n) { return close(m, n); });
         st = c.br ? a + GAP + R.r(0, 0.8) : near ? a + 1.0 + R.r(0, 0.8) : back ? a - 5 + R.r(0, 1) : a - 1.0 + R.r(-0.8, 1.4);
-        S.log.forEach(function (e) { if (e[0] !== m && Math.abs(e[0] - m) < 3 && e[2] > st && e[1] < st + 6) st = Math.max(st, e[2]); });   // (a harp or piano note still ringing a step away: after it)
-        var col = colourAt(st), inst = m < 55 ? 'cello' : m < 64 ? 'viola' : col === 'clar' ? 'clar' : 'violin', g = m < 55 ? -8 : inst === 'clar' ? -11 : -10;
-        g += (LIFTS[col] || 0) + (m < 50 ? -3 * S.wc : 0) + R.r(-0.5, 0.5);
-        act[m] = voice(inst, m, st, g, !c.br && (back || prev.indexOf(m) >= 0) ? 6.0 : 4.0, -0.45 + 0.9 * (m - 36) / 41, false, sbus);   // (back into a harmony it was part of: a slower swell)
+        bow(m, st, !c.br && (back || prev.indexOf(m) >= 0) ? 6.0 : 4.0);   // (back into a harmony it was part of: a slower swell)
       });
-      for (k in act) { m = +k; breathe(act[k], a, c.b, m >= 55 && (sn.length > 3 ? R.f() < 0.6 : sn.length === 2 && m === sn[1] && R.f() < 0.5)); }   // (two voices: the upper may rest too)
+      rebow.forEach(function (m, j) {   // (bowed again: it lets go, and a breath later comes back with a swell of its own; two at most, one after the other; only where the swell is done well before the chord's end)
+        var t0 = a + R.r(0.2, 1.0) + j * R.r(2.5, 4), t1 = t0 + R.r(2.2, 3.2);
+        if (t1 + 4.5 > end - 3) return;
+        release(act[m], t0, 3.5); delete act[m]; bow(m, t1, 4.5);
+      });
+      for (k in act) { m = +k; breathe(act[k], a, c.b, m >= 55 ? (sn.length > 3 ? R.f() < 0.6 : sn.length === 2 && m === sn[1] && R.f() < 0.5) : sn.length > 3 && m !== sn[0] && R.f() < 0.35); }   // (two voices: the upper may rest too; a low voice above the bass now and then, where others carry)
+      if (end - a > 22 && !c.br && !c.sub && c.tag !== 'mist' && !S.peaks.some(function (p) { return p > a - 3 && p < end + 3; })) {   // (a long chord: about halfway, the voices held longest are bowed again too)
+        var tm = a + (end - a) * R.r(0.45, 0.58);
+        Object.keys(act).map(Number).filter(function (m) { return sn.indexOf(m) >= 0 && m !== c.from && tm - act[m].at >= LIFE; }).sort(function (x, y) { return act[x].at - act[y].at; }).slice(0, 2).forEach(function (m, j) {
+          var t0 = tm + j * R.r(2.5, 4), t1 = t0 + R.r(2.2, 3.2);
+          if (t1 + 4.5 > end - 3) return;
+          release(act[m], t0, 3.5); delete act[m]; bow(m, t1, 4.5); breathe(act[m], act[m].at, c.b, false);
+        });
+      }
       S.prevN = c.n; S.prevS = sn;
     }
     function spread(n) { var b = n.slice(1), m; for (m = b[b.length - 1] + 3; m <= 84 && b.length < n.length + 1; m++) if (n.some(function (x) { return x % 12 === m % 12; }) && n.concat(b).every(function (x) { return Math.abs(m - x) >= 3; })) b.push(m); return b; }
@@ -404,7 +424,7 @@
        and under the borrowed minor chords; it breathes with the strings */
     function deep(c) {
       var root = deepRoot(c), gm = (c.bm ? -4 : 0) + (c.kind === 'colour' && /horn|clar/.test(colourAt(c.a)) ? -4 : 0), D = S.deep;
-      if (D && D.root === root && D.gm === gm && !c.br) return;
+      if (D && D.root === root && D.gm === gm && !c.br && c.a - D.t.at < DEEP_LIFE) return;   // (on one note long enough, it breathes and sounds again)
       if (D) { release(D.t, c.a - 1.8, 3.0); release(D.b, c.a - 1.8, 3.0); S.deep = null; }
       if (root === null) return;
       var sub = root - 12, at = c.a + (c.br ? GAP + 0.5 : 1.5), g = -2 * S.wc + gm + (sub <= 27 ? 4 : sub <= 30 ? 2 : 0);
@@ -412,7 +432,7 @@
     }
     function swell(p) {   // (10 s up to the moment the colour changes, 2 s held, 9 s settling: all +2.5 dB, the deep end +6.5)
       var t0 = Math.max(p - 11, ctx.currentTime + 0.05);
-      if (t0 < S.swellEnd) return; S.swellEnd = t0 + 21.05;   // (never two at once: a change hard on another's heels swells once)
+      if (t0 < S.swellEnd) return; S.swellEnd = t0 + 21.05; S.peaks.push(p);   // (never two at once: a change hard on another's heels swells once)
       curveAt(mswell.gain, curve(function (x) { var u = x * 21, e = u < 10 ? Math.pow(Math.sin(Math.PI / 2 * u / 10), 2) : u < 12 ? 1 : Math.pow(Math.cos(Math.PI / 2 * (u - 12) / 9), 2); return db(2.5 * e); }), t0, 21);
       curveAt(dswell.gain, curve(function (x) { var u = x * 21, e = u < 10 ? Math.pow(Math.sin(Math.PI / 2 * u / 10), 2) : u < 12 ? 1 : Math.pow(Math.cos(Math.PI / 2 * (u - 12) / 9), 2); return db(4 * e); }), t0, 21);
     }

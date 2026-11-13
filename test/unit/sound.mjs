@@ -11,7 +11,9 @@
 //   - two hours of a flight ordered as the world orders it: the rules hold, and nothing piles up;
 //   - over those two hours the strings are never all there for long (the passages: five or more voices under 40% of
 //     the time, never past 75 s at a stretch; two or fewer over 25% of it);
-//   - the room and the air filled a slice at a time (as the switch has it) play exactly what they play filled at once.
+//   - the room and the air filled a slice at a time (as the switch has it) play exactly what they play filled at once;
+//   - over two hours nothing drones: no string note held unbroken past 75 s, nor past 30 s more than 12% of the time,
+//     and no deep note past 60 s (the owner: "the string or somethning is still so droning at times").
 // plant: {"file": "src/score.js", "find": "return m !== n && (Math.abs(m - n) <= 2 ||", "with": "return m !== n && (Math.abs(m - n) <= 0 ||", "why": "a note that moves by a step comes in before its neighbour lets go"}
 import { test, assert, fs, path, vm, ROOT } from '../unit-lib.mjs';
 
@@ -149,4 +151,13 @@ test('sound: the room and the air filled a slice at a time, as the switch has it
   assert.equal(b.fills.length, 3, `${b.fills.length} filled buffers (want the room and two airs)`);
   b.fills.forEach((ch, i) => ch.forEach((x, c) => assert.ok(Buffer.from(x.buffer).equals(Buffer.from(a.fills[i][c].buffer)), `buffer ${i}, channel ${c}: other samples`)));
   assert.deepEqual(b.airStarts, a.airStarts, 'the air starts elsewhere');
+});
+test('sound: nothing drones: over two hours no string note is held unbroken for long, nor the deep end on one note', () => {
+  const n = long().n, STR = n.filter((v) => STRINGS.includes(v.inst) && isFinite(v.b) && v.b < 7150), deep = n.filter((v) => v.inst === 'tuba' && isFinite(v.b) && v.b < 7150);
+  const longest = Math.max(...STR.map((v) => v.b - v.a)), deepest = Math.max(...deep.map((v) => v.b - v.a));
+  let held = 0, total = 0;
+  for (let t = 30; t < 7150; t += 1) { total++; if (STR.some((v) => v.a <= t - 30 && t <= v.b)) held++; }
+  assert.ok(longest <= 75, `a string note held unbroken for ${longest.toFixed(0)} s (want 75 s at most)`);
+  assert.ok(held / total < 0.12, `a string note held past 30 s ${Math.round(100 * held / total)}% of the time (want under 12%)`);
+  assert.ok(deepest <= 60, `the deep end held one note ${deepest.toFixed(0)} s (want 60 s at most)`);
 });

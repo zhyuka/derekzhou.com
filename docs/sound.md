@@ -10,6 +10,9 @@ site/index.html or `.sound` in site/style.css.
 - "music and faint ambiance" (2026-11-07): what it plays.
 - "Yup ship it" (2026-11-12), answering: what we're building follows the sky as it changes and never
   repeats, so the rule of one looping recording has to change. That is this score.
+- "the string or somethning is still so droning at times" (2026-11-13): a note two chords share was held across the
+  change and never bowed again (one held 103 s in two simulated hours; a string had held one note past 30 s a quarter
+  of the time; the deep end sat on one note up to 57 s). Now every held note is bowed again (round twenty).
 - "More complexity  (elegantly), and a tad more variation pls" (2026-11-13): sketch round nineteen, three takes
   (voices that move; a wider harmony; both), MOVE and WIDE in score.js. Both are on, pending the owner's pick.
 - "yes switch it to playback" (2026-11-12), asked why it was silent with the ringer off: the press now plays
@@ -92,6 +95,13 @@ What it plays (sketch round seventeen, the owner's pick):
   and strings returning after the colour alone start 4 to 5 s early, under its last notes (never a step from a
   colour note still ringing). A passage runs on into a sky change; the chord the change swells on brings all the
   strings back over 4 s (out of the mist, the chord after it too).
+- **No drone** (round twenty): at a chord's turn, a string note that has sounded LIFE (14) s or more lets go and a
+  breath later is bowed again with a swell of its own (two voices at most, one after the other; not in the mist, nor
+  within a swell's bloom; only where the new swell is done 3 s before the chord's end); in a chord longer than 22 s the
+  voices held longest are bowed again about halfway; a chord and the neighbour chords its moving voice makes count as
+  one here. A low voice above the bass may rest now and then where others carry. The deep end re-sounds after
+  DEEP_LIFE (24) s on one note. Over two hours: the longest string note 52 s (103 before), a string held past 30 s 5%
+  of the time (25%), the deep end's longest 41 s (57).
 - **Voices that move** (MOVE, round nineteen): in most long chords (14 s or more, 85%, not where the colour is
   alone) one voice but the bass leans a step to a tone of the sky's scale not in the chord, a minor third or more from
   every other voice (a fifth low down), never a minor ninth, and is answered there; on a chord of 22 s or more it
@@ -246,7 +256,9 @@ keep them, with as many notes in the second hour as in the first; and over those
 sound for long (five or more voices under 40% of the time, never more than 75 s at a stretch, two or fewer more than
 25% of it: the first live score had all of them 89% of the time); and the room and the air filled sliced, each step
 run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
-filled at once, in 20 steps or more. About 16 s. Its plant lets a note that moves by a
+filled at once, in 20 steps or more; and over the two hours nothing drones: no string note held unbroken past 75 s,
+nor past 30 s more than 12% of the time, and no deep note past 60 s (the live score before round twenty failed it:
+103 s). About 20 s. Its plant lets a note that moves by a
 step come in before its neighbour lets go.
 
 Every automation curve goes through one guard (curveAt): Safari throws on a curve that overlaps another on the same
