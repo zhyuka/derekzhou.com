@@ -72,6 +72,7 @@
     var dt = CLK[1] === -2 ? HOLD_P : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; FRAMEN++;   // (first-paint preview: -2, the first animation frame after the hold, one hold frame on)
     var dtRaw = dt;   // (the interval itself, for the bake's learning)
     if (TSCALE !== 1) dt *= TSCALE;
+    if (shown && clockNow() - BOOT.shownAt < 2000) dt = 0;   // (DIAGNOSTIC PREVIEW: the world's clock held 2 s after the cut, so the cut is the render alone)
     if (SUPPRESS && FRAMEN > SUPPRESS_F + 3) SUPPRESS = false;   // (a drag's click comes at once, or never)
     if (gl.isContextLost()) return;
     if (shown && !AFTER) afterCut();   // (the frame after the show: the visit's own read seeds all after the cut)

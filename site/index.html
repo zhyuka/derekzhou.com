@@ -75,6 +75,7 @@
   <script data-cfasync="false" src="/realm-dunes.js" fetchpriority="high"></script>
   <script data-cfasync="false" src="/realm-above.js" fetchpriority="high"></script>
   <div id="world-end" hidden></div>
+  <script data-cfasync="false" src="/diag.js"></script>
   <!-- The plan's worker, fetched beside the world rather than after it: the world starts it (new Worker), and its
        bytes are then in the cache, not one round trip behind world.js on a cold visit. Low priority: it shares the link. -->
   <link rel="preload" href="/plan.js" as="script" fetchpriority="low">

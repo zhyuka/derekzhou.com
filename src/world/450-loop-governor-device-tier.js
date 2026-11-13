@@ -66,6 +66,7 @@
      all hold; reduced motion keeps its own still (the birds still too). HDRAW: the next held frame drawn whole; HACC,
      HALPHA: the ink birds' own clock while held (fixed steps, as the flight's) */
   var HELD = false, HDRAW = false, HACC = 0, HALPHA = 1;
+  function diagShow() { var c = document.querySelector('.credit'); if (c) c.textContent = (root.getAttribute('data-diag') || 'DIAG') + ' | world ' + memTier() + ' ' + canvas.width + 'x' + canvas.height + ' ' + (EXT.renderer || '').slice(0, 24); }   // (DIAGNOSTIC PREVIEW)
   function hold(why) { if (!HELD) { HELD = true; HDRAW = true; HACC = 0; BOOT.held = why; bootMark('held: ' + why); recMark('held: ' + why); } }
   /* (held, its memory) once the held frame is drawn and the frame lives in TG.win (the world under the canvas's size: not
      DIRECT; every phone of the held tier), the targets that neither represent's blit nor the ink birds read are freed:
@@ -96,7 +97,7 @@
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill)
     skyTheme(false);   // (the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); root.style.setProperty('--still', 'none'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
+    if (!shown) { shown = true; canvas.classList.add('on'); root.style.setProperty('--still', 'none'); diagShow(); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
