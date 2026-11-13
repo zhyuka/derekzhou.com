@@ -70,6 +70,35 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.deleteTexture(BT); makePts();
   }
+  /* a bird posed, projected and lit for this frame (a held speck only carried on: holdMove); false: not drawn */
+  function poseDrawn(b, s, C, N, moving, bb) {
+    if (s.hold) return holdMove(b, s, C, bb);
+    var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, bb);
+    if (!ok || !projectBird(s, C, N)) return false;
+    bodyAt(s, C, s.HB);
+    lightBird(s, !moving, s.ldt); s.ldt = 0;
+    cloudWeights(s, C);
+    return true;
+  }
+  /* the body point on the window (device px) and its depth */
+  function bodyAt(s, C, o) {
+    var ax = s.body[0], ay = s.body[1], az = s.body[2], zc = ax * C.f[0] + ay * C.f[1] + az * C.f[2];
+    o[2] = zc; if (!(zc > 0.5)) return false;
+    o[0] = VW.outW / 2 + (VW.outW / 2) / VW.tanX * (ax * C.r[0] + ay * C.r[1] + az * C.r[2]) / zc; o[1] = VW.outH / 2 + (VW.outH / 2) / VW.tanY * (ax * C.u[0] + ay * C.u[1] + az * C.u[2]) / zc;
+    return true;
+  }
+  /* a held speck moved: its body where it is now (from the camera), its last points shifted with it on the window and
+     scaled by its depth (under SPECK px a turn of its form changes no pixel); its tone, cloud and pen kept */
+  var HB2 = new Float64Array(3);
+  function holdMove(b, s, C, bb) {
+    s.body[0] = b.p[0] - b.v[0] * bb - C.pos[0]; s.body[1] = b.p[1] - b.v[1] * bb - C.pos[1]; s.body[2] = b.p[2] - b.v[2] * bb - C.pos[2];
+    if (!bodyAt(s, C, HB2)) return false;
+    var H = s.HB, k = H[2] / HB2[2], D = s.D46, Z = s.IZ, i;
+    for (i = 0; i < NV; i++) { D[2 * i] = HB2[0] + (D[2 * i] - H[0]) * k; D[2 * i + 1] = HB2[1] + (D[2 * i + 1] - H[1]) * k; Z[i] *= k; }
+    s.spanPx *= k; s.n *= k;
+    H[0] = HB2[0]; H[1] = HB2[1]; H[2] = HB2[2];
+    return true;
+  }
   var SAMPLERS = false;
   function ready() {
     if (BROKEN) return false;
@@ -100,7 +129,7 @@
     var nq = 0; DF++;   // (DRAWQ filled in place: emptying it would make it a new store each frame)
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
-      var px = b.p[0] - b.v[0] * back, py = b.p[1] - b.v[1] * back, pz = b.p[2] - b.v[2] * back;
+      var bb = b.stT === t ? back : back - (t - b.stT), px = b.p[0] - b.v[0] * bb, py = b.p[1] - b.v[1] * bb, pz = b.p[2] - b.v[2] * bb;   // (bb: back to the frame's time from its own last step)
       projReal(px, py, pz, C, tmp3);
       if (!(tmp3.z > 1)) continue;
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
@@ -113,15 +142,17 @@
       b = DRAWQ[i];
       if (!b.s) b.s = drawRec(b);
       s = b.s;
-      if (s.seenF !== DF - 1) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; }   // (back in view: its tone and attitude begin afresh)
+      var was = s.seenF === DF - 1;
+      if (!was) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
+      /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself one frame
+         in four, its own (by its number): between, its form and tone are held and only its place and attitude move */
+      s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && ((DF + b.id) & 3) !== 0;
       s.seenF = DF; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
       s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
       if (b.st === 'land') restProbe(b, C, s);
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
-      var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, back);
-      if (!ok || !projectBird(s, C, N)) continue;
-      lightBird(s, !moving, fdt);
-      cloudWeights(s, C);
+      s.ldt += fdt;
+      if (!poseDrawn(b, s, C, N, moving, b.stT === t ? back : back - (t - b.stT))) continue;
       packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
       nB++;
     }
