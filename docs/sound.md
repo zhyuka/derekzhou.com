@@ -10,6 +10,8 @@ site/index.html or `.sound` in site/style.css.
 - "music and faint ambiance" (2026-11-07): what it plays.
 - "Yup ship it" (2026-11-12), answering: what we're building follows the sky as it changes and never
   repeats, so the rule of one looping recording has to change. That is this score.
+- "More complexity  (elegantly), and a tad more variation pls" (2026-11-13): sketch round nineteen, three takes
+  (voices that move; a wider harmony; both), MOVE and WIDE in score.js. Both are on, pending the owner's pick.
 - "yes switch it to playback" (2026-11-12), asked why it was silent with the ringer off: the press now plays
   through the ringer switch, as a video does.
 - "It sounds like the strings or something is constantly going which gets a little annoying, like where's the
@@ -90,6 +92,17 @@ What it plays (sketch round seventeen, the owner's pick):
   and strings returning after the colour alone start 4 to 5 s early, under its last notes (never a step from a
   colour note still ringing). A passage runs on into a sky change; the chord the change swells on brings all the
   strings back over 4 s (out of the mist, the chord after it too).
+- **Voices that move** (MOVE, round nineteen): in most long chords (14 s or more, 85%, not where the colour is
+  alone) one voice but the bass leans a step to a tone of the sky's scale not in the chord, a minor third or more from
+  every other voice (a fifth low down), never a minor ninth, and is answered there; on a chord of 22 s or more it
+  leans back now and then (45%). The chord's notes are pushed as the chord and its neighbour, so the strings let the
+  old note go before the new one comes in, the deep end holds, the horns hold across both (not the voice that moves),
+  and a harp or piano touches the new note once, softly, after the old one has gone and clear of all that sounds.
+  Gestures keep clear of the notes of a neighbour coming in and of the chord just gone. About one lean every 75 s.
+- **A wider harmony** (WIDE, round nineteen): three or four more chords a sky (a suspended major seventh; Lydian's
+  open chord with its raised fourth inside; minor six-nine; a major seventh resting on its third; the fourth's chord,
+  or in Lydian the second's, over the tonic in the bass), each keeping a seventh, a raised fourth or a minor sixth so
+  none is the open five-note sound; and chords of 10-13 s (15%) or 27-33 s (12%) among the 15-25 s ones.
 - **Each sky its key and its colour on top**: afterglow F, horns; the Milky Way A-flat (Lydian), harp; aurora
   B-flat (Lydian), harp; blue hour E-flat, piano; the moonlit sea C (Dorian), low strings and clarinet; first light
   G, the strings alone. Once a sky, a borrowed chord (the minor four; in the moonlit sea, the major one).
@@ -171,7 +184,7 @@ Change OUT only with a measurement.
 | what | bytes | when |
 |---|---|---|
 | sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 18,189 minified, 6,828 as sent | every visit, deferred, low priority (36-load-budget: 7.5 KB) |
+| score.js | 20,570 minified, 7,725 as sent | every visit, deferred, low priority (36-load-budget: 8 KB) |
 | the sheet | about 3.5 MB | only at the first press |
 
 The CPU (2026-11-12, headless Chromium on a 2.1 GHz Xeon core, the 7:36 flight; the slowest phone modelled as six

@@ -43,7 +43,7 @@ const BUDGET = {
   '/sound.js': 1.5 * K,            // 614 (1,388 before Brotli) (the sound icon's switch, 2026-11-07). Its sheet of notes,
                                    // /assets/sound/notes-N.mp3, has no line on purpose: it is fetched only at the press, so a cold visit
                                    // that loads it fails here
-  '/score.js': 7.5 * K,            // 6,828 (18,189 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day)
+  '/score.js': 8 * K,              // 7,725 (20,570 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; its moving voices and wider harmony, 2026-11-13)
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
   '/world.js': 113 * K,            // 102,463
