@@ -5,10 +5,11 @@
 //
 // The build is served from a local folder with its own _headers' Permissions-Policy, and opened with the autoplay
 // policy a visitor's browser has (a gesture first). It fails when:
-//   - before the press (2 s): an audio context is made, or anything audio is requested, or the icon is hidden or
-//     pressed, or the score (score.js, loaded deferred) has not registered;
-//   - the press: it makes other than one context, or requests other than one sheet of notes, once, from this site
-//     under /assets/sound/; the icon is not pressed and the context not running; the score starts no notes (buffer
+//   - before the press (2 s): an audio context is made, or anything audio is requested, or the audio session is touched,
+//     or the icon is hidden or pressed, or the score (score.js, loaded deferred) has not registered;
+//   - the press: it does not set the audio session to playback (Safari's navigator.audioSession, stood in for here: the
+//     owner's "yes switch it to playback", heard with the ringer off), or makes other than one context, or requests
+//     other than one sheet of notes, once, from this site under /assets/sound/; the icon is not pressed and the context not running; the score starts no notes (buffer
 //     sources from the one sheet, sustained ones looping), or the page throws;
 //   - the score stops planning: no new notes started between 4 s and 16 s after the press (it plans ten seconds ahead);
 //   - a second press: the icon not unpressed and the context not suspended (after the 1.5 s ramp);
@@ -54,6 +55,7 @@ page.on('request', (q) => {
 });
 await page.addInitScript(() => {
   const A = window.AudioContext; window.__made = 0; window.__srcs = [];
+  Object.defineProperty(navigator, 'audioSession', { value: { type: 'auto' }, configurable: true });   // (Safari's; Chromium has none)
   window.AudioContext = function (o) { window.__made++; return (window.__ctx = new A(o)); };
   window.AudioContext.prototype = A.prototype;
   const make = A.prototype.createBufferSource;
@@ -65,7 +67,7 @@ await page.addInitScript(() => {
 });
 const state = () => page.evaluate(() => {
   const b = document.getElementById('sound'), c = window.__ctx, s = window.__srcs, sheet = s.filter((r) => r.n.buffer && r.n.buffer.duration > 60);
-  return { made: window.__made, shown: !!b && !b.hidden, pressed: b && b.getAttribute('aria-pressed'), state: c && c.state, t: c ? c.currentTime : 0, rate: c ? c.sampleRate : 0,
+  return { session: navigator.audioSession.type, made: window.__made, shown: !!b && !b.hidden, pressed: b && b.getAttribute('aria-pressed'), state: c && c.state, t: c ? c.currentTime : 0, rate: c ? c.sampleRate : 0,
     score: !!(window.SCORE && typeof window.SCORE.play === 'function'), notes: sheet.length, playing: sheet.filter((r) => !r.ended).length, looping: sheet.filter((r) => r.n.loop && !r.ended).length };
 });
 
@@ -73,6 +75,7 @@ await page.goto(origin + '/');
 await page.waitForTimeout(2000);
 const before = await state();
 if (before.made !== 0) bad.push(`an audio context was made before the press (${before.made})`);
+if (before.session !== 'auto') bad.push(`the audio session was set before the press (${before.session})`);
 if (audio.length) bad.push(`audio was requested before the press: ${audio.join(', ')}`);
 if (!before.shown) bad.push('the sound icon is not shown');
 if (before.pressed !== 'false') bad.push(`the icon is ${before.pressed} before the press (want false)`);
@@ -84,6 +87,7 @@ const on = await state();
 await page.waitForTimeout(12000);
 const later = await state();
 if (on.made !== 1) bad.push(`the press made ${on.made} audio contexts (want 1)`);
+if (on.session !== 'playback') bad.push(`the press set the audio session to ${on.session} (want playback: heard with the ringer off)`);
 if (audio.length !== 1) bad.push(`the press requested ${audio.length} files (want 1, the sheet of notes): ${audio.join(', ')}`);
 else if (!audio[0].startsWith(origin + '/assets/sound/')) bad.push(`the sheet came from ${audio[0]} (want this site's /assets/sound/)`);
 if (on.pressed !== 'true' || on.state !== 'running') bad.push(`after the press the icon is ${on.pressed} and the context ${on.state} (want true, running)`);
@@ -103,7 +107,7 @@ if (again.pressed !== 'true' || again.state !== 'running') bad.push(`after the t
 if (again.made !== 1 || audio.length !== 1) bad.push(`the third press made or fetched more (contexts ${again.made}, requests ${audio.length}; want 1 each)`);
 
 console.log(`before: ${before.made} contexts, ${before.shown ? 'shown' : 'hidden'}, pressed ${before.pressed}, score ${before.score ? 'registered' : 'missing'}`);
-console.log(`press: ${on.made} context ${on.state} at ${on.rate} Hz, ${audio.length} request(s); ${on.notes} notes started by 4 s (${on.looping} sustained), ${later.notes} by 16 s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
+console.log(`press: session ${on.session}, ${on.made} context ${on.state} at ${on.rate} Hz, ${audio.length} request(s); ${on.notes} notes started by 4 s (${on.looping} sustained), ${later.notes} by 16 s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
 await browser.close(); srv.close();
 for (const b of bad) console.log('::error::' + b);
 process.exit(bad.length ? 1 : 0);

@@ -52,6 +52,7 @@ import zlib from 'zlib';
 import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { buildPlan, workerName } from './plan.mjs';
+import { worldKey, fetchSet, place } from './stills.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), WING = path.join(SRC, 'birds', 'model');
@@ -164,6 +165,16 @@ async function build(out, stamp) {   // the plain build
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile()).concat(wing);
   if (pn) written.push(pn);
   fs.rmSync(parts, { recursive: true, force: true });
+  // the openings' stills for this world (docs/stills-hosting.md): with STILLS_TOKEN set (Cloudflare's build), the set
+  // baked for this build's world key, from its release; else, or when anything fails, none (today's first paint). A
+  // local bake folder (STILLS_DIR or stills/) is the bake's own and wins. Never fails the build.
+  if (process.env.STILLS_TOKEN && !process.env.STILLS_DIR && !fs.existsSync(path.join(ROOT, 'stills'))) {
+    try {
+      const key = worldKey(out), r = await fetchSet({ key, token: process.env.STILLS_TOKEN, repo: process.env.STILLS_REPO || undefined, api: process.env.STILLS_API || undefined });   // (STILLS_API: a stand-in, for the check)
+      if (r.stills) place(out, r.stills);
+      console.error('build: stills: ' + r.why);
+    } catch (e) { fs.rmSync(path.join(out, 'assets', 'still'), { recursive: true, force: true }); console.error('build: stills: none (' + e.message + ')'); }
+  }
   if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
   return written.sort();
 }

@@ -99,7 +99,7 @@
 
   /* the voices: one shared buffer (the sheet), each note a region of it, looped (sustained notes) or once (harp,
      piano); every note two gains: its envelope (in over seconds, out at its end) and its breathing (rests, swells) */
-  function Score(ctx, out, buffer, feed) {
+  function Score(ctx, out, buffer, feed, sliced) {
     var R = rng((feed() || {}).seed || 0x5c0e5c0e);
     var data = buffer.getChannelData(0), sr = buffer.sampleRate, zero = 0, i, best = 0;
     for (i = 0; i < Math.min(data.length, sr * 0.5); i++) if (Math.abs(data[i]) > best) { best = Math.abs(data[i]); zero = i / sr - MARK; }   // (where the decoder put time zero)
@@ -119,7 +119,7 @@
     var tail = chain([biquad('peaking', 160, 1.2, -3.5), biquad('peaking', 2200, 0.7, -2.5), biquad('peaking', 2000, 5.1, -1.1), biquad('peaking', 2519, 5.1, -4), biquad('peaking', 3174, 5.1, -3.1), biquad('peaking', 4000, 5.1, -3.2), biquad('peaking', 3200, 0.8, -3), biquad('highpass', 27, 0.7071), level]);
     level.connect(out);
     var mswell = ctx.createGain(), dswell = ctx.createGain(); mswell.connect(tail); dswell.connect(mswell);
-    var room = ctx.createConvolver(); room.normalize = false; room.buffer = hall();
+    var room = ctx.createConvolver(); room.normalize = false;   // (its buffer: the room's last step, below)
     var music = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain(), send = ctx.createGain(), deepIn = ctx.createGain(), fund = ctx.createGain();
     dry.gain.value = 0.88; wet.gain.value = 0.42; send.gain.value = 0.15;
     music.connect(dry); dry.connect(mswell); music.connect(room);
@@ -127,39 +127,69 @@
     var wetLp = biquad('lowpass', 3500, 0.7); room.connect(wetLp); wetLp.connect(wet); wet.connect(mswell);
     chain([fund, biquad('lowpass', 70, 0.5176), biquad('lowpass', 70, 0.7071), biquad('lowpass', 70, 1.9319), deepIn]);   // (the half-speed tuba: its fundamental only, felt)
     var deepOut = ctx.createGain(); deepOut.gain.value = db(-2.5); deepIn.connect(chain([biquad('lowshelf', 62, 0, 6), biquad('highpass', 27, 0.5412), biquad('highpass', 27, 1.3066), deepOut])); deepOut.connect(dswell); deepOut.connect(send); send.connect(room);
-    function hall() {   // (a long, soft room, its highs dying first: 4.2 s low, 1.8 s high, four early reflections)
-      var lo = 4.2, hi = 1.8, n = Math.floor(lo * 1.15 * ctx.sampleRate), b = ctx.createBuffer(2, n, ctx.sampleRate), c, j, e = 0;
-      for (c = 0; c < 2; c++) {
-        var x = b.getChannelData(c), l1 = 0, l2 = 0, h1 = 0, h2 = 0, pre = Math.floor(0.03 * ctx.sampleRate), al = 1 - Math.exp(-2 * Math.PI * 700 / ctx.sampleRate), ah = 1 - Math.exp(-2 * Math.PI * 4200 / ctx.sampleRate);
-        for (j = pre; j < n; j++) {
-          var t = (j - pre) / ctx.sampleRate, w = R.r(-1, 1);
-          l1 += al * (w - l1); l2 += al * (l1 - l2);   // (the lows: below 700 Hz)
-          h1 += ah * (w - h1); h2 += ah * (h1 - h2);   // (the highs: 700 Hz to 4.2 kHz)
-          x[j] = l2 * Math.exp(-6.9 * t / lo) + 0.7 * (h2 - l2) * Math.exp(-6.9 * t / hi);
-          if (t < 0.04) x[j] *= t / 0.04;
-        }
-        for (j = 0; j < 4; j++) x[pre + Math.floor(R.r(0.006, 0.07) * ctx.sampleRate)] += R.r(0.15, 0.4) * (R.f() < 0.5 ? -1 : 1) * 0.3;
-      }
-      var L = b.getChannelData(0), Rr = b.getChannelData(1);
-      for (j = 0; j < n; j++) { Rr[j] = 0.4 * L[j] + 0.6 * Rr[j]; e += L[j] * L[j] + Rr[j] * Rr[j]; }
-      e = Math.sqrt(e / 2); for (j = 0; j < n; j++) { L[j] /= e; Rr[j] /= e; }
-      return b;
-    }
+    /* the room and the air, filled a slice of samples at a time, in the order they always were, so every draw and every
+       sample is what it would be at once. Sliced (the switch), each step is its own task, so the press never holds the
+       page for the whole fill (about 55 ms of a desktop core, a third of a second on a slow phone); otherwise (the unit
+       test, the render tool) at once. The air's sources start with the music, when the last step is done */
+    var jobs = [], starts = [], begun = false;
+    (function () {   // (a long, soft room, its highs dying first: 4.2 s low, 1.8 s high, four early reflections)
+      var lo = 4.2, hi = 1.8, n = Math.floor(lo * 1.15 * ctx.sampleRate), b = ctx.createBuffer(2, n, ctx.sampleRate);
+      [0, 1].forEach(function (c) {
+        var x = b.getChannelData(c), l1 = 0, l2 = 0, h1 = 0, h2 = 0, pre = Math.floor(0.03 * ctx.sampleRate), al = 1 - Math.exp(-2 * Math.PI * 700 / ctx.sampleRate), ah = 1 - Math.exp(-2 * Math.PI * 4200 / ctx.sampleRate), j = pre;
+        jobs.push(function () {
+          for (var end = Math.min(n, j + 12288); j < end; j++) {
+            var t = (j - pre) / ctx.sampleRate, w = R.r(-1, 1);
+            l1 += al * (w - l1); l2 += al * (l1 - l2);   // (the lows: below 700 Hz)
+            h1 += ah * (w - h1); h2 += ah * (h1 - h2);   // (the highs: 700 Hz to 4.2 kHz)
+            x[j] = l2 * Math.exp(-6.9 * t / lo) + 0.7 * (h2 - l2) * Math.exp(-6.9 * t / hi);
+            if (t < 0.04) x[j] *= t / 0.04;
+          }
+          if (j < n) return false;
+          for (var k = 0; k < 4; k++) x[pre + Math.floor(R.r(0.006, 0.07) * ctx.sampleRate)] += R.r(0.15, 0.4) * (R.f() < 0.5 ? -1 : 1) * 0.3;
+          return true;
+        });
+      });
+      jobs.push(function () {
+        var L = b.getChannelData(0), Rr = b.getChannelData(1), j, e = 0;
+        for (j = 0; j < n; j++) { Rr[j] = 0.4 * L[j] + 0.6 * Rr[j]; e += L[j] * L[j] + Rr[j] * Rr[j]; }
+        e = Math.sqrt(e / 2); for (j = 0; j < n; j++) { L[j] /= e; Rr[j] /= e; }
+        room.buffer = b; return true;
+      });
+    })();
     /* a faint air: two slow noises (a low billow, a higher stream), drifting on their own slow cycles; over the cloud
        the billow eases and the stream rises */
     var air = [];
     (function () {
-      var n = Math.floor(16 * ctx.sampleRate), j, k;
+      var n = Math.floor(16 * ctx.sampleRate);
       [[70, 520, [11, 17, 29], 0.55], [450, 1500, [7, 13, 23], 0.45]].forEach(function (p) {
         var b = ctx.createBuffer(2, n, ctx.sampleRate);
-        for (k = 0; k < 2; k++) { var x = b.getChannelData(k); for (j = 0; j < n; j++) x[j] = R.r(-1, 1); for (j = 0; j < 2400; j++) { var w = j / 2400; x[j] *= w; x[n - 1 - j] *= w; } }
-        var s = ctx.createBufferSource(); s.buffer = b; s.loop = true;
-        var g = ctx.createGain(), dg = ctx.createGain(); g.gain.value = 0; dg.gain.value = 1;
-        chain([s, biquad('highpass', p[0], 0.7), biquad('lowpass', p[1], 0.7), biquad('lowpass', 1200, 0.7), dg, g, tail]);
-        p[2].forEach(function (per) { var o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = 1 / (per * R.r(0.9, 1.1)); og.gain.value = p[3] / 3; o.connect(og); og.connect(dg.gain); o.start(ctx.currentTime + R.r(0, per)); });
-        s.start(ctx.currentTime, R.r(0, 15)); air.push(g);
+        [0, 1].forEach(function (k) {
+          var x = b.getChannelData(k), j = 0;
+          jobs.push(function () {
+            for (var end = Math.min(n, j + 49152); j < end; j++) x[j] = R.r(-1, 1);
+            if (j < n) return false;
+            for (j = 0; j < 2400; j++) { var w = j / 2400; x[j] *= w; x[n - 1 - j] *= w; }
+            return true;
+          });
+        });
+        jobs.push(function () {
+          var s = ctx.createBufferSource(); s.buffer = b; s.loop = true;
+          var g = ctx.createGain(), dg = ctx.createGain(); g.gain.value = 0; dg.gain.value = 1;
+          chain([s, biquad('highpass', p[0], 0.7), biquad('lowpass', p[1], 0.7), biquad('lowpass', 1200, 0.7), dg, g, tail]);
+          p[2].forEach(function (per) { var o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = 1 / (per * R.r(0.9, 1.1)); og.gain.value = p[3] / 3; o.connect(og); og.connect(dg.gain); var d = R.r(0, per); starts.push(function (t) { o.start(t + d); }); });
+          var off = R.r(0, 15); starts.push(function (t) { s.start(t, off); }); air.push(g);
+          return true;
+        });
       });
     })();
+    function begin() { var t = ctx.currentTime; starts.forEach(function (f) { f(t); }); begun = true; }
+    if (!sliced) { while (jobs.length) if (jobs[0]()) jobs.shift(); begin(); }
+    var ready = sliced ? new Promise(function (ok, no) {
+      (function run() {
+        try { if (jobs[0]()) jobs.shift(); } catch (e) { no(e); return; }
+        if (jobs.length) setTimeout(run, 0); else { begin(); ok(); }
+      })();
+    }) : Promise.resolve();
     var AIR = 0.0035;   // (the air, about 22 dB under the music)
 
     function voice(inst, m, at, gdb, att, pan, half, bus) {
@@ -392,6 +422,7 @@
     }
 
     function tick(now) {
+      if (!begun) return;   // (still filling the room and the air)
       if (!S.sky) start(now);
       sync(now);
       var guard = 0;
@@ -400,8 +431,8 @@
       S.log = S.log.filter(function (e) { return e[2] > now - 5; });
       air[0].gain.setTargetAtTime(AIR * (1 - 0.4 * S.wc), now, 3); air[1].gain.setTargetAtTime(AIR * (0.1 + 0.2 * S.wc), now, 3);
     }
-    return { tick: tick };
+    return { tick: tick, ready: ready };
   }
 
-  window.SCORE = { play: function (ctx, out, buffer) { return Score(ctx, out, buffer, function () { return window.WORLD && window.WORLD.sky ? window.WORLD.sky() : null; }); } };
+  window.SCORE = { play: function (ctx, out, buffer, sliced) { return Score(ctx, out, buffer, function () { return window.WORLD && window.WORLD.sky ? window.WORLD.sky() : null; }, sliced); } };   // (sliced: ready resolves once the room and the air are filled; tick does nothing before)
 })();
