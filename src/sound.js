@@ -20,7 +20,7 @@
   var button = document.getElementById('sound');
   if (!button || !window.AudioContext || !window.Promise || !window.fetch) return;
 
-  var SHEET = '/assets/sound/notes-2.mp3';   // (tools/sound/sheet.py writes it; a new name when its bytes change: changed-bytes-new-name)
+  var SHEET = '/assets/sound/notes-3.mp3';   // (tools/sound/sheet.py writes it; a new name when its bytes change: changed-bytes-new-name)
   var ON_FADE = 4;      // s: the level rises over this
   var OFF_FADE = 1.5;   // s: and falls over this
   var ctx = null, level = null, loading = null, score = null, on = false, timer = 0;

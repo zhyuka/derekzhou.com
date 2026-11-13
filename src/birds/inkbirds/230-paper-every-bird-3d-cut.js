@@ -9,6 +9,7 @@
   var ZTRIM = [0, 0, 0, 0, 0, 0, 1, 1, 1], GS0 = { flap: 0, ph: 0, k: 1, D: 0.5, a: 0, e: 0 }, GLW = { kind: 'gull', trim: ZTRIM }, GB3 = new Float64Array(3);
   function glide22(kind, out) { GLW.kind = kind; GLW.trim = ZTRIM; BW.poseS(GLW, GS0, 0, out, GB3); return out; }
   var MODEL_K = 1.19;          // the drawn model's span on its ink span (the glide seen from below and behind looks 0.64-0.75 of its span): paths and MPU unchanged
+  var SPECK = 2;               // device px of span: under it a bird's wings and light are made one frame in four (drawPaper)
   var HOLD_POSE = [3, 8];      // device px of span: below 8 the beat's swing eases into the held glide, held in full at 3 (a speck holds its glide); from 8 px the measured beat in full, so a 1440 px desktop's birds (10-25 px) beat their whole stroke
   var TONE_T = 0.4;            // s: the bird's one tone eased (never a blink)
   var GLOW_ENC = 0.72, HALO_A = 0.14, HALO_E = [3, 2];   // night: the paper's own light (as encoded), the halo's strength and e-folding (CSS px: a desktop, a phone)
@@ -70,7 +71,7 @@
       for (var j = 0; j < 22; j++) s.P22[j] = GT1[j] + wb * (GP22[j] - M[j]);
       s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = wb; return;
     }
-    if (w0 && w0.wing) { WS0 = wingState(b); BW.poseS(w0.wing, WS0, b.age, s.P22, s.B3, WO); }
+    if (w0 && w0.wing && !b.wOff) { WS0 = wingState(b); BW.poseS(w0.wing, WS0, b.age, s.P22, s.B3, WO); }   // (a speck that works out no wing holds its glide)
     else { glide22(kind, s.P22); s.B3[0] = s.B3[1] = s.B3[2] = 0; }
     s.flapW = WS0 ? WS0.e * swing : 0;
   }
@@ -85,7 +86,7 @@
     var fx = VV[0] / vl, fy = VV[1] / vl, fz = VV[2] / vl;
     var lx = fz, lz = -fx, ll = Math.sqrt(lx * lx + lz * lz) || 1; lx /= ll; lz /= ll; var ly = 0;
     var ux = fy * lz - fz * ly, uy = fz * lx - fx * lz, uz = fx * ly - fy * lx;
-    wingsAir(b, s, rest);
+    if (!s.hold) wingsAir(b, s, rest);
     var flare = b.st === 'land' ? 80 * smoothK(0, 0.85, b.flareU || 0) : 0;
     var aoa = (AOA[0] + (AOA[1] - AOA[0]) * (s.flapW || 0) + flare) * DEG, ca = Math.cos(aoa), sa = Math.sin(aoa);
     var bxx = fx * ca + ux * sa, bxy = fy * ca + uy * sa, bxz = fz * ca + uz * sa;
@@ -98,7 +99,23 @@
     return true;
   }
   /* the 46 vertices from its pose, scaled to its size, turned by its basis, from the camera; the 16 points beside them */
-  function place(b, s, C, px, py, pz) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); placeAt(b, s, C, px, py, pz, s.V46); }
+  function place(b, s, C, px, py, pz) {
+    var V = s.V46, F = s.F46, i;
+    if (!sameFlex(s)) LB.flexOf(s.kind, s.P22, F);
+    for (i = 0; i < 3 * NV; i++) V[i] = F[i];
+    LB.bodyOn(NV, s.B3, V);
+    placeAt(b, s, C, px, py, pz, V);
+  }
+  /* the pose the flexing form (F46) was last made from: the same kind and pose (a speck holds its glide: HOLD_POSE)
+     make the same form, so it is kept; the body's heave, surge and bank go on it afresh each frame (LB.geom's sums) */
+  function sameFlex(s) {
+    var P = s.P22, G = s.G22, i, same = s.gKind === s.kind;
+    for (i = 0; i < 22 && same; i++) same = G[i] === P[i];
+    if (same) return true;
+    for (i = 0; i < 22; i++) G[i] = P[i];
+    s.gKind = s.kind;
+    return false;
+  }
   /* ... the same geometry V moved to (px, py, pz): the rest rule's tries rebuild nothing */
   function placeAt(b, s, C, px, py, pz, V) {
     var i, sp = b.sz, B = s.B;

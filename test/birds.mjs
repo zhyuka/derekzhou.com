@@ -29,7 +29,7 @@ function play(name, size, seed) {
     const B = sim.B, now = new Map();
     for (const b of B.BIRDS) {
       const was = last.get(b);
-      if (b.st in FLY && was && was.st in FLY && !(b.F && b.F.far)) {
+      if (b.st in FLY && was && was.st in FLY && !(b.F && (b.F.far || b.F.off || b.F.spk))) {
         const rate = Math.abs(wrap(b.psi - was.psi)) / DT, may = G * Math.tan(Math.max(Math.abs(b.phi), Math.abs(was.phi))) / Math.max(Math.min(b.V, was.V), 3);
         if (rate > may * 1.05 + 0.02) { bad.turn++; bad.turnWorst = Math.max(bad.turnWorst, rate - may); }
       }
@@ -239,4 +239,55 @@ test('the birds take well under a millisecond of a slow phone\'s frame', () => {
   const mean = F.reduce((x, y) => x + y, 0) / F.length, p99 = [...F].sort((x, y) => x - y)[Math.floor(0.99 * (F.length - 1))];
   console.log(`# cost: ${mean.toFixed(3)} ms a frame (bar 0.5; the phone's 1 ms is 0.25; x 4 on a slow phone: ${(4 * mean).toFixed(2)} ms), p99 ${p99.toFixed(3)} ms`);
   assert.ok(mean < 0.5, `the birds took ${mean.toFixed(3)} ms a frame`);
+});
+
+/* (the owner, 2026-11-13: "there shouldnt be any limit") every click that is not a drag and not on a link lets a bird
+   go: 300 at once make 300 birds. And 1,000 at once: the work a frame is barred (it does not ride on a busy runner's
+   clock): at most half the drawn birds and 20 posed in full (the specks held between), under 400 stepped in full (the
+   unseen and the specks stepped coarsely; main uncapped: every drawn bird posed, ~900 stepped); the clock's ms printed
+   against the slow phone's 1 ms (posing on the GPU is what would bring 1,000 under it: the follow-up) */
+test('every click lets a bird go: no limit on them', () => {
+  const sc = SCENES.natural(1, '390x844'); sc.opt.dt = 1 / 60; sc.opt.draw = {};
+  sc.opt.clicks = Array.from({ length: 300 }, (_, i) => ({ t: 20, x: 195 + (i % 7) - 3, y: 300 + (i % 5) - 2 }));
+  const sim = makeSim(sc.opt); sc.setup(sim);
+  while (sim.t < 19.9) sim.step();
+  const n0 = sim.B.BIRDS.length; sim.run(0.5);
+  console.log(`# clicks: 300 at once, ${sim.B.BIRDS.length - n0} birds more`);
+  assert.equal(sim.clicks, 300);
+  assert.ok(sim.B.BIRDS.length - n0 >= 300, `300 clicks let ${sim.B.BIRDS.length - n0} birds go`);
+});
+test('1,000 clicked birds: the work a frame stays that of the birds one can see (and its cost printed)', () => {
+  const sc = SCENES.natural(1, '390x844'); sc.opt.dt = 1 / 60; sc.opt.draw = {};
+  sc.opt.clicks = Array.from({ length: 1000 }, (_, i) => ({ t: 20, x: 195 + (i % 7) - 3, y: 300 + (i % 5) - 2 }));
+  const sim = makeSim(sc.opt); sc.setup(sim);
+  while (sim.t < 50) sim.step();
+  let F = 0, n = 0, steps = 0, poses = 0, drawn = 0, k = 0;
+  while (sim.t < 170) {
+    const a = performance.now(); sim.step(); F += performance.now() - a; n++;
+    if (++k % 10) continue;   // (the work counted every 10th frame, outside the clock)
+    const B = sim.B; let df = -1;
+    for (const f of B.FLOCKS) if (!f.far && !f.off && !f.spk) steps += f.m.length;
+    for (const b of B.BIRDS) if (b.s && b.s.seenF > df) df = b.s.seenF;
+    for (const b of B.BIRDS) if (b.s && b.s.seenF === df) { drawn++; if (!b.s.hold) poses++; }
+  }
+  const st = steps / (n / 10), po = poses / (n / 10), dr = drawn / (n / 10);
+  console.log(`# 1,000 clicked birds, 30-150 s on: ${(F / n).toFixed(3)} ms a frame (x 4 on a slow phone: ${(4 * F / n).toFixed(2)} ms; its 1 ms is 0.25 here); a frame: ${dr.toFixed(0)} drawn, ${po.toFixed(0)} posed in full, ${st.toFixed(0)} stepped in full; ${sim.B.BIRDS.length} birds awake`);
+  assert.ok(po < 0.5 * dr + 20, `${po.toFixed(0)} of ${dr.toFixed(0)} drawn birds posed in full a frame: the specks are posed every frame again`);
+  assert.ok(st < 400, `${st.toFixed(0)} birds stepped in full a frame: the unseen and the specks are stepped every frame again`);
+});
+
+/* (the owner, 2026-11-13: "if you fly towards those birds ... theyll get back to normal") a flock gone beyond sight is
+   kept, asleep, and wakes, the same birds, when the eye comes to it: here one 40 km ahead of a camera flying 120 m/s */
+test('a flock beyond sight sleeps, and wakes the same birds when the eye comes to it', () => {
+  const sc = SCENES.natural(1, '960x600'); sc.opt.dt = 1 / 60; sc.opt.speed = 120; sc.opt.yaw = 0;
+  const sim = makeSim(sc.opt); sc.setup(sim); sim.run(2);
+  const C = sim.C, F = sim.B.newFlock(C.pos[0] + 40000 * C.f[0], C.pos[1] + 60, C.pos[2] + 40000 * C.f[2], Math.atan2(-C.f[0], -C.f[2]), sim.B.skyCls(), ['single', 'gull', 1]);
+  const b = F.lead; let slept = -1, woke = -1;
+  for (let k = 0; k < 60 * 400 && woke < 0; k++) {
+    sim.step(); const inn = sim.B.BIRDS.includes(b);
+    if (!inn && slept < 0) slept = sim.t; if (inn && slept >= 0) woke = sim.t;
+  }
+  const d = Math.hypot(b.p[0] - C.pos[0], b.p[2] - C.pos[2]);
+  console.log(`# sleep: asleep at ${slept.toFixed(1)} s, awake at ${woke.toFixed(1)} s, ${(d / 1000).toFixed(1)} km off`);
+  assert.ok(slept >= 0, 'it never slept'); assert.ok(woke > slept, 'it never woke'); assert.ok(d > 3000, 'it woke within 3 km');
 });

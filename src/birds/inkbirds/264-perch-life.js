@@ -132,7 +132,6 @@
   var CQ = [0, 0, 0];
   function clickBird(x, y, C) {
     if (HOST.reduced() || FORCED) return;
-    if (liveCount() > (LIVE_N[skyCls()] || 6) + 4) return;
     var r = vstream(8000 + (++PW.k)), kind = weighted(r, [['gull', 70], ['crow', 20], ['swallow', 10]]);
     var b0 = { S: SORTS[kind], sz: B_SPAN * SORTS[kind].size * MODEL_K }, D = perchDepth(b0, 0.55);   // (a little beyond the perches: its span about 2.3 a mid bird's there, so it can come down soon)
     rayAt(C, x, y, D, CQ);

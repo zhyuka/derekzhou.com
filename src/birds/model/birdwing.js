@@ -15,6 +15,7 @@
                                          glide for a speck; o.shut: a pose the glide is replaced by, a bounding finch)
      BW.bouts(b, t0, t1, out)            the flapping bouts [start, end ...] (s) that meet [t0, t1]: the path's sink
      BW.ensure(b, t)                     the bird's day integrated to t (lazily; never needed by a caller)
+     BW.skip(b, d)                       the day moved on by d s unworked (reads after it as d s before: a paused beat)
      BW.trim(b, t)                       forgets what is before t (the knots, bouts, pauses and beats): later reads only
 
    WHY THIS FILE. The lab integrates a bird's whole day at once (LB.bird: 1/240 s from -5 to 120 s, seven arrays of
@@ -337,7 +338,10 @@
     /* the bouts as stored (5 a bout: its first step (-1: begun before the first step), its end step (-1 while it runs), its
        phase origin, its length in beats, 0), integrated to t: for a path's sink worked out from the past alone */
     function boutsTo(b, t) { ensure(b, t); return b.BO; }
-    return { make: make, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
+    /* the bird's day moved on by d s (a whole number of its steps) without working it out: every read after reads the
+       wing as it was d s before (a bird out of sight paused its beat, and goes on from there) */
+    function skip(b, d) { b.from += d; }
+    return { make: make, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
              knots: function (b) { return b.nk; }, CURL_R: CURL_R, PSI_TOL: PSI_TOL, LB: LB };
   }
   root.BIRDWING = BIRDWING;
