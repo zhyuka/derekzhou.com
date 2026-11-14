@@ -72,6 +72,7 @@
   function leave(b, why, J) {
     var P = b.P; if (!P || P.leaving) return;
     if (b.st !== 'perch') { toAir(b, J); return; }
+    P.walk = null; P.hop = 0;   // (a walk ends where it is: the take-off from there)
     P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]) };
   }
   function leavingStep(b, dt, C) {

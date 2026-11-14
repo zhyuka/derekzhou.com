@@ -178,7 +178,7 @@ test('every landing starts its flare from none (a second landing keeps nothing o
 });
 
 test('no perched bird stands in the air above its own ink (over 1 px for no more than 0.15 s)', () => {
-  const FT = [0, 0]; let n = 0, over = 0, runMax = 0, runAt = '', max = -1e9, at = '';
+  const FT = [0, 0]; let n = 0, over = 0, runMax = 0, runAt = '', max = -1e9, at = '', sinkMax = -1e9, sinkAt = '';
   for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
     const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [], run = new Map();
@@ -187,14 +187,22 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
       sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX;
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
-        if (P.hop || P.act || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose; an act lifts its wings, not it)
-        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), pts = B.ledges()[P.li].pts, x0 = pts[0][0], x1 = pts[pts.length - 1][0]; let air = 1e9;
+        if (P.hop || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose)
+        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), pts = B.ledges()[P.li].pts, x0 = pts[0][0], x1 = pts[pts.length - 1][0]; let air = 1e9, sink = -1e9;
         for (let i = 0; i < NV; i++) {   // (the gap between the ink and the lowest of its points over the ink: its own glyph's tops)
           const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
           const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
-          if (sx < x0 || sx > x1 || Math.abs(sx - FT[0]) > 0.18 * sp) continue;   // (over its own ink, by its feet)
-          const top = B.surfY(pts, sx); if (top === top) air = Math.min(air, top - sy);
+          if (Math.abs(sx - FT[0]) > 0.18 * sp) continue;   // (by its feet: the gap from its ink to its own glyph's top, in the window, less the pen's half width)
+          let g = 1e9;
+          for (let j = 0; j + 1 < pts.length; j++) {
+            const ax = pts[j][0], ay = pts[j][1], bx = pts[j + 1][0], by = pts[j + 1][1], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+            const u = L2 > 0 ? Math.max(0, Math.min(1, ((sx - ax) * dx + (sy - ay) * dy) / L2)) : 0, qx = ax + u * dx, qy = ay + u * dy;
+            g = Math.min(g, sy > qy ? 0 : Math.hypot(sx - qx, sy - qy));   // (a point at or below the top touches it)
+          }
+          air = Math.min(air, g - 0.5);
+          if (sx >= x0 && sx <= x1) { const top = B.surfY(pts, sx); if (top === top) sink = Math.max(sink, sy - top); }   // (how far into its own letter's ink)
         }
+        if (sink > sinkMax) { sinkMax = sink; sinkAt = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}${P.act ? ' act ' + P.act.k : ''}`; }
         if (air > 1e8) continue;
         n++; const r = air > 1 ? (run.get(b) || 0) + 1 : 0; run.set(b, r); if (r > runMax) { runMax = r; runAt = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; }
         if (air > max) { max = air; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; }
@@ -202,13 +210,16 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
       }
     }
   }
-  console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at}); longest ${runMax} frames (${runAt})`);
+  console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at}); longest ${runMax} frames (${runAt}); into the ink at most ${sinkMax.toFixed(2)} px (${sinkAt})`);
   assert.ok(n > 1000, 'too few perched frames');
   // (a change of what holds it up settles over a few frames, the rest following critically damped: no bird stays in the air)
+  assert.ok(sinkMax <= 4, `a perched bird's ink sank ${sinkMax.toFixed(2)} px into its letter (${sinkAt})`);
   assert.ok(runMax <= 9, `a perched bird stood over 1 px above its ink for ${runMax} frames (${runAt})`);
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
 
+/* (what it guards: a landing begun with the last one's flare, as when the draw reads the step's b.flareU and its reset
+   is gone: 1.92x on #225, 3.74x here) */
 test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
   const k60 = 1; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
   for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 80, null, size, true).values())
@@ -261,4 +272,28 @@ for (const hz of [60, 144]) test(`${hz} Hz, uneven (frames off by up to 0.5 ms, 
   assert.ok(frames > 1000, 'too few frames');
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
+});
+
+test('a standing bird\'s rest moves a little at a time (no support found or lost all at once)', () => {
+  let n = 0, big = 0, max = 0, at = '', maxU = 0, atU = '';
+  for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [], was = new Map();
+    for (let k = 0; k < 26 * 60; k++) {
+      if (sc.each) sc.each(sim, tags);
+      sim.step(); const B = sim.B;
+      for (const b of B.PERCHED) {
+        const s = b.s, P = b.P;
+        if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.hop || s.seenF !== B.DF() || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.05) || sim.t - P.tt < 1) { was.delete(b); continue; }   // (from when its wings have folded after the touch)
+        const r = P.rest, u = s.rU, w = was.get(b); was.set(b, [r, u]); if (w === undefined) continue;
+        const d = Math.abs(r - w[0]), du = Math.abs(u - w[1]); n++;
+        if (!P.act) { if (d > 5) big++; if (d > max) { max = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; } }
+        if (du > maxU) { maxU = du; atU = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}${P.act ? ' act ' + P.act.k : ''}`; }
+      }
+    }
+  }
+  console.log(`# standing steps: ${n}; the solved rest changed over 5 px in a step ${big} times; most ${max.toFixed(2)} px (${at}); the drawn rest at most ${maxU.toFixed(2)} px a step (${atU})`);
+  assert.ok(n > 10000, 'too few standing steps');
+  assert.ok(max <= 2, `a standing bird's solved rest changed ${max.toFixed(2)} px in one step (${at})`);
+  assert.ok(maxU <= 4, `a standing bird's drawn rest moved ${maxU.toFixed(2)} px in one step (${atU})`);
 });
