@@ -234,7 +234,7 @@ test('a speck moves evenly: its coarse steps are not drawn a share of one step b
    drawn motion is scored over the frames' own times (a second difference over uneven steps, at 60 Hz's scale) */
 function jitter(hz, seed) { let r = seed * 2654435761 % 4294967296; const rnd = () => (r = (r * 1664525 + 1013904223) % 4294967296) / 4294967296;
   return (k) => (rnd() < 0.01 ? 2 : 1) / hz + (rnd() - 0.5) * 0.001; }
-for (const hz of [60, 144]) test(`${hz} Hz, uneven (frames off by up to 0.5 ms, now and then one dropped): no landing or perched bird jumps`, () => {
+function uneven(hz) {   // (each a test of its own below: tools/checks/35-birds.sh finds a test by its plain name)
   let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
   for (const cs of ['perch', 'drop', 'cursor']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24, null, '960x600', false, jitter(hz, seed)).values())
     for (let n = 1; n < F.length - 1; n++) {
@@ -251,7 +251,9 @@ for (const hz of [60, 144]) test(`${hz} Hz, uneven (frames off by up to 0.5 ms, 
   assert.ok(frames > 1000, 'too few frames');
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
-});
+}
+test('60 Hz, uneven (frames off by up to 0.5 ms, now and then one dropped): no landing or perched bird jumps', () => uneven(60));
+test('144 Hz, uneven (frames off by up to 0.5 ms, now and then one dropped): no landing or perched bird jumps', () => uneven(144));
 
 test('a standing bird\'s rest moves a little at a time (no support found or lost all at once)', () => {
   let n = 0, big = 0, max = 0, at = '', maxU = 0, atU = '';

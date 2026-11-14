@@ -9,6 +9,7 @@ pids=(); i=0; total=0; clock=()
 for f in test/birds.mjs test/birds-motion.mjs; do   # (birds-motion.mjs: the drawn motion, frame by frame, at the page's loop)
   mapfile -t names < <(node -e "for (const m of require('fs').readFileSync(process.argv[1], 'utf8').matchAll(/^test\('((?:[^'\\\\]|\\\\.)*)'/gm)) console.log(m[1].replace(/\\\\(.)/g, '\$1'))" "$f")
   [ "${#names[@]}" -gt 0 ] || { echo "::error::no test found in $f"; exit 1; }
+  ! grep -nE 'test\(`' "$f" || { echo "::error::$f: a test named by a template is never run here (give it a plain name)"; exit 1; }
   for n in "${names[@]}"; do
     pat=$(node -e "process.stdout.write('^' + process.argv[1].replace(/[.*+?^\${}()|[\]\\\\]/g, '\\\\$&') + '$')" "$n")
     if [[ "$n" == *"slow phone"* ]]; then clock=("$pat" "$f"); continue; fi   # (the cost test reads the clock: run alone, after the rest)
