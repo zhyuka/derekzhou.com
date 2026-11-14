@@ -82,3 +82,18 @@ test('clouds: the edge band boils under 0.02 on the desktop at 80, 150 and 300 m
   }
   if (process.env.CLOUDS_SAY) console.log(rows.join('\n'));
 });
+
+// ------------------------------------------------------------------ the step budget (cloud-step-budget, 2026-11-14)
+// One budget of band steps a tier (48 the desktop's top tier, 32 the rest), never cut by distance (a far tower's 24
+// steps across a long box forced its band samples 12 m apart: the boil at its worst), and a ray's leaps counted against
+// their own cap, so a ray that leaps through a body's gaps keeps all its band steps
+test('clouds: the band\'s steps are one budget a tier, and the leaps have their own cap', () => {
+  const D = cut(WORLD, '    var push = pushVol;', '    ST.vols = m;');
+  assert.ok(!/d < 2500/.test(D), 'the volume draw cuts the steps by distance');
+  assert.match(D, /var VSTEPS = memTier\(\) === 'desktop' && TIER >= 1 \? 48 : 32;/);
+  assert.match(D, /var steps = VSTEPS;/);
+  assert.match(VBODY, /if \(t > tf \|\| last \|\| taken >= uVR\.y\) break;/, 'the march stops on the loop\'s count, leaps and all');
+  assert.match(VBODY, /&& leaps < 32\.0\) \{/, 'the leaps have no cap of their own');
+  const loop = /for \(int i = 0; i < (\d+); i\+\+\) \{\n\s*if \(t > tf/.exec(VBODY);
+  assert.ok(loop && +loop[1] >= 48 + 32, 'the loop is shorter than the band\'s steps and the leaps together');
+});

@@ -33,7 +33,7 @@ void main() {
   //   least a band step long, and where one lands beyond the face, the face uncounted would be skipped or not as the
   //   samples move: the far towers' speckle);
   // - no step inside the cloud shorter than the rest of the ray over the steps left, so every ray reaches its end (the
-  //   land, or the box's far side) within its budget (24-48 steps; 40% of that in a passage): a ray cut where its
+  //   land, or the box's far side) within its budget (the band's 48 steps on the desktop's top tier, 32 on the rest, whatever the distance; leaps on their own 32): a ray cut where its
   //   budget runs out, the rest left clear, shows the sea through a cloud's wispy flank, in holes that open and shut
   //   as the samples move (leaps are never stretched: a leap is bounded by the distance to the cloud);
   // - the fine billows' noise at an explicit LOD: its texel (32 to a tile) no finer than two of the half-resolution
@@ -52,29 +52,30 @@ void main() {
   //   apart from the sample's place within the body).
   // The same samples and texture reads as plain point sampling; a few more instructions a step.
   float t = tn, pxA = 2.0 * uProj.y / uRes.y;   // (pxA: a half-resolution pixel's angle; its footprint is t x pxA)
-  vec3 acc = vec3(0.0); float T = 1.0, taken = 0.0;
+  vec3 acc = vec3(0.0); float T = 1.0, taken = 0.0, leaps = 0.0;   // (the band's samples against uVR.y; the leaps against their own 32)
   vec3 sunL = vec3(uVY.x * uSun.x - uVY.y * uSun.z, uSun.y, uVY.y * uSun.x + uVY.x * uSun.z), nrm = vec3(0.0, 1.0, 0.0);
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
   float sP = 0.0, sBP = 0.0, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
   vec3 nOff = fract(uVC / uVR.z) + vec3(uT * 0.004, 0.0, uT * 0.003); float texel = uVR.z / 32.0;
-  for (int i = 0; i < 64; i++) {
-    if (t > tf || last || float(i) >= uVR.y) break;
+  for (int i = 0; i < 96; i++) {
+    if (t > tf || last || taken >= uVR.y) break;
     if (t >= tf) { t = tf; last = true; }   // (the ray's end is a sample, so its last segment is counted)
-    taken += 1.0;
-    float mS = (tf - t) / max(uVR.y - taken + 1.0, 1.0);   // (the shortest step that still reaches the ray's end)
     vec3 p = ro + rl * t;
     vec4 v = texture(uVol, p / (2.0 * uVH) + 0.5);
     float dE = max(dEdge, t * 0.012);
     float yb = uVR2.w - p.y - uVC.y;   // under the body's flat base: outside it
     float s = max(max((0.5 - v.r) * uVS.x, p.y + uVC.y - uVS.z), yb);
     float sl = max(max((0.5 - v.a) * uVS.x * 2.0 - uVR2.x, p.y + uVC.y - uVS.z), yb) - amp;
-    if (sl > band || s > band + amp) {   // a leap: its start kept as the next segment's front (above)
+    if ((sl > band || s > band + amp) && leaps < 32.0) {   // a leap: its start kept as the next segment's front (above); past 32 leaps, band steps
+      leaps += 1.0;
       vec3 fqL = (uVH - abs(p)) / uVH; float fzL = smoothstep(0.0, 0.07, min(min(fqL.x, fqL.y), fqL.z));
       if (uVS.w > 0.0) fzL *= smoothstep(uVS.w * 0.2, uVS.w, t);
       sP = s; sBP = s; tP = t; gP = v.g; bP = v.b; dP = 0.0; fP = fzL;
       t += sl > band ? max(sl * 0.9, dE) : max((s - amp) * 0.6, dE); continue;
     }
+    taken += 1.0;
+    float mS = (tf - t) / max(uVR.y - taken + 1.0, 1.0);   // (the shortest step that still reaches the ray's end: the band's steps left)
     float sB = s;
     if (!hit) {
       hit = true;

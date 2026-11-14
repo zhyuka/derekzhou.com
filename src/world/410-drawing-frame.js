@@ -88,6 +88,7 @@
     n = VOLS.length;
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
+    var VSTEPS = memTier() === 'desktop' && TIER >= 1 ? 48 : 32;   // (the band's steps a ray: the desktop's top tier 48, the rest 32)
     gl.uniform1f(P.u.uVK, memTier() === 'desktop' && TIER >= 1 ? 12 : 4);   // (the edge band's most pieces a segment: the desktop's 12 at its top tier, the rest 4)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
@@ -96,7 +97,7 @@
     var m = 0;
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
-      var steps = d < B.r * 1.5 ? 48 : d < 2500 ? 36 : 24;
+      var steps = VSTEPS;   // (one budget a tier, not by distance: a far tower's 24 steps forced its band 12 m apart)
       if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : B.fade, d, 1); wl('steps', B.wid, steps / 48, d, 1); }
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or
