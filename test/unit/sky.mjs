@@ -1,5 +1,7 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float b0 = uAur.z - (1.0 - uAur.x) * 90.0;", "with": "float b0 = uAur.z - (1.0 - uAur.x) * 0.0;", "why": "the aurora's base ignores its rise: it would show whole the moment a change began"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float g = (1.0 - uGalC.w) * 95.0 - 3.0;", "with": "float g = (1.0 - uGalC.w) * 0.0 - 3.0;", "why": "the galaxy's edge ignores its rise"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
@@ -129,12 +131,31 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
     }
   }
   assert.ok(changes > 500, `${changes} changes`);
-  // and the shader takes the rise (uGalC.w, uAur.x) by place: the galaxy under its edge, the aurora's base lowered, both
-  // not read at all before they begin to come in (the review: a shader that ignored the rise passed the JS check alone)
+  // and the shader takes the rise (uGalC.w, uAur.x) by place: its own galEdge and auroraAt base lines, run here (the
+  // review: text matches alone let a shader that ignored the rise pass)
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
-  assert.ok(/float galEdge\(float e\) \{ float g = \(1\.0 - uGalC\.w\) \* /.test(g), 'galEdge does not follow the galaxy\'s rise (uGalC.w)');
-  assert.ok(/uGal\.w \* 0\.04 \* smoothstep\(1\.0, 12\.0, e\) \* galEdge\(e\);/.test(g), 'galaxyAt is not under its edge');
-  assert.ok(/float b0 = uAur\.z - \(1\.0 - uAur\.x\) \* [\d.]+;/.test(g) && /float base = b0 \* sc/.test(g), 'auroraAt\'s base does not follow its rise (uAur.x)');
+  const js = (t) => t.replace(/\bfloat\s+/g, 'let ').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const GE = g.match(/^float galEdge\(float e\) \{(.*)\}\s*$/m);
+  assert.ok(GE, 'galEdge not found as a one-line function in sky-body.glsl');
+  const galEdge = (rise, e) => new Function('uGalC', 'smoothstep', 'e', js(GE[1]))({ w: rise }, ss, e);
+  const B0 = g.match(/^\s*float b0 = (.*);/m);
+  assert.ok(B0, 'auroraAt\'s base (float b0 = ...) not found');
+  const b0 = (rise, base) => new Function('uAur', 'return ' + js(B0[1]) + ';')({ x: rise, z: base });
+  assert.ok(/float base = b0 \* sc \+ 2\.0 \* fj \+ sc \* \(3\.5 \* sin/.test(g) && g.includes('float hgt = 7.0 + 9.0 * sc, x = e - base;') && g.includes('(1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x))'), 'auroraAt\'s curtains are not built on b0 as this test models them');
+  for (let e = 0; e <= 90; e += 0.5) {
+    assert.equal(galEdge(0, e), 0, `the galaxy shows at ${e} deg before it has begun to come in`);
+    if (e >= 1) assert.equal(galEdge(1, e), 1, `the whole galaxy is not shown at ${e} deg once it has come in (main's)`);
+    for (let r = 0; r < 1; r += 0.05) assert.ok(galEdge(r + 0.05, e) >= galEdge(r, e) - 1e-12, `the galaxy at ${e} deg goes back as it comes in (rise ${r})`);
+  }
+  for (const base of [5, 6.5, 8]) {
+    assert.equal(b0(1, base), base, 'the aurora is not at its own base once it has come in (main\'s)');
+    for (let r = 0; r < 1; r += 0.05) assert.ok(b0(r + 0.05, base) > b0(r, base), `the aurora's base does not rise with its rise (${r})`);
+    for (let j = 0; j < 3; j++) {   // every curtain's top (its waves at their highest, 2.5 hgt up) under the aurora's lowest drawn place (0.5 deg) just as it begins
+      const sc = 1 - 0.22 * j, hgt = 7 + 9 * sc, top = b0(0, base) * sc + 2 * j + sc * (3.5 + 2 + 1.2) + hgt * 2.5;
+      assert.ok(top < 0.5, `curtain ${j}'s top is at ${top.toFixed(1)} deg as the aurora begins to come in (base ${base}): it would show at once`);
+    }
+  }
   assert.ok(g.includes('vec3 galaxyAt(vec3 rd, float e) {\n  if (uGalC.w <= 0.0) return vec3(0.0);') && g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
   assert.ok(/gl\.uniform4f\(u\.uGalC, [^;]*SKY\.rise\[0\]\)/.test(WORLD) && /gl\.uniform4f\(u\.uAur, SKY\.rise\[1\]/.test(WORLD), 'the rises are not passed to the sky (uGalC.w, uAur.x)');
 });

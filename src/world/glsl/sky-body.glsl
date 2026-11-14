@@ -35,7 +35,7 @@ vec3 galaxyAt(vec3 rd, float e) {
 vec3 auroraAt(vec3 rd, float e) {
   if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
   float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
-  float b0 = uAur.z - (1.0 - uAur.x) * 70.0;   // (aurora-enter-by-place: its base under the poleward horizon until it has come in; whole at 1)
+  float b0 = uAur.z - (1.0 - uAur.x) * 90.0;   // (aurora-enter-by-place: its base under the poleward horizon until it has come in, every curtain's top under it at rise 0+; whole at 1)
   for (int j = 0; j < 3; j++) {
     float fj = float(j), sc = 1.0 - 0.22 * fj, ph = uT * (0.04 + 0.015 * fj) + uAur.y + fj * 2.1, f1 = 2.0 + fj, f2 = 5.0 + 2.0 * fj;
     float base = b0 * sc + 2.0 * fj + sc * (3.5 * sin(az * f1 + ph) + 2.0 * sin(az * f2 - ph * 1.3) + 2.4 * (n3v(vec3(u * 4.0 + fj * 0.31, ph * 0.02, 0.83)).b - 0.5));
