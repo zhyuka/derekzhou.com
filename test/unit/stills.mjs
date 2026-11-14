@@ -182,8 +182,9 @@ test('stills: the bake never holds the GPU runner for a whole set, and the newes
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
   const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
   assert.match(y, /cancel-in-progress: true\b/, 'a newer run cancels a stale one, on main too');
-  assert.match(y, /group: stills-\$\{\{ github\.event\.workflow_run\.head_branch == 'main' && 'main' \|\| 'branches' \}\}/, 'a branch\'s (idle) run keeps out of main\'s group, so it never cancels main\'s bake');
+  assert.match(y, /group: stills-\$\{\{ github\.event\.workflow_run\.head_branch != 'main' && 'branches' \|\| \(github\.event\.workflow_run\.run_attempt == 1 && 'main' \|\| format\('main-\{0\}', github\.event\.workflow_run\.head_sha\)\) \}\}/, 'only a main gate\'s first run is in main\'s group: a branch\'s or a re-run\'s never cancels the tip\'s bake');
   assert.match(y, /need:\n\s+if: >-\n\s+github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.head_branch == 'main'\n/, 'only main bakes: no branch warm bake holds the GPU runner ahead of T2');
+  assert.match(y, /if \[ -n "\$tip" \] && \[ "\$tip" != "\$SHA" \]; then echo .*; exit 0; fi\n\s+k=\$\(node/, 'a run for a commit that is no longer main\'s tip bakes nothing (so a re-run of an old gate never takes the tip\'s bake\'s place)');
   assert.match(y, /max-parallel: 1/, 'the sky jobs run one at a time');
   assert.match(y, /sky: \[dawn, day, rain, sunset, dusk, night\]/, 'a job a sky (T2 takes the runner between two)');
   assert.match(y, /--skies \$\{\{ matrix\.sky \}\}/, 'each job bakes only its sky');
