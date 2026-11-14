@@ -1,5 +1,8 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float b0 = uAur.z - (1.0 - uAur.x) * 90.0;", "with": "float b0 = uAur.z - (1.0 - uAur.x) * 0.0;", "why": "the aurora's base ignores its rise: it would show whole the moment a change began"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float g = (1.0 - uGalC.w) * 95.0 - 3.0;", "with": "float g = (1.0 - uGalC.w) * 0.0 - 3.0;", "why": "the galaxy's edge ignores its rise"}
+// plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
@@ -92,4 +95,67 @@ test('sky timing: the visit opens as far through its first hold as data-sky-at s
     assert.equal(SKY.landing.at, at);
   }
   for (const bad of ['x', -1, 2]) { const { SKY } = skyWorld(7, 'night', bad); assert.equal(SKY.landing.at, 0.5, `data-sky-at ${bad}: opens halfway`); }
+});
+
+// ------------------------------------------------------------------ the galaxy and the aurora come and go by place (aurora-enter-by-place)
+// their amounts (fx 2, 3) are only ever 0 or 1 across every change in the order, through the mist's waypoints too;
+// what moves is how far each has come in (SKY.rise), 0 to 1 with the change, and whole wherever both ends have it
+const FXSTEP = cut(WORLD, '    for (j = 0; j < 8; j++) SKY.fx[j] = X.fx[j]', '    skySun(V, w, L);');
+const FXPLACE = cut(WORLD, '  function skyFxPlace(', '  /* two skies\' colours blended');
+const FXOF = cut(WORLD, '    var fx = S.fx || {};', '\n', true) + cut(WORLD, '    O.fx = [fx.belt', '\n', true);
+test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 1, never between (no fades)', () => {
+  const step = new Function('SKY', 'X', 'Y', 'q', 'L', 'V', 'w', 'var j; function skySun() {}\n' + FXPLACE + FXSTEP);
+  const fxOf = new Function('S', 'var O = {};\n' + FXOF + 'return O.fx;');
+  const way = (a, b) => a.map((x, j) => (x + b[j]) / 2 * 0.25);   // (221's waypoint: the two skies' midpoint at a quarter)
+  let changes = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const K = skyWorld(seed * 2246822519 >>> 0, ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'][seed % 6], 0.5);
+    for (let n = 0; n < 30; n++) K.skyNext();
+    const seq = K.SKY.seq;
+    for (let i = 1; i < seq.length; i++) {
+      const A = { fx: fxOf(K.WSKY[seq[i - 1].id]), motes: 0 }, B = { fx: fxOf(K.WSKY[seq[i].id]), motes: 0 };
+      const halves = seq[i].far || seq[i - 1].far ? [[A, { fx: way(A.fx, B.fx), motes: 0 }], [{ fx: way(A.fx, B.fx), motes: 0 }, B]] : [[A, B]];
+      let last = null;
+      for (const [X, Y] of halves) for (let k = 0; k <= 40; k++) {
+        const S = { fx: new Float32Array(8), rise: new Float32Array(2) }, q = k / 40;
+        step(S, X, Y, q, {}, null, 0);
+        for (const j of [2, 3]) {
+          assert.ok(S.fx[j] === 0 || S.fx[j] === 1, `seed ${seed}: ${seq[i - 1].id} -> ${seq[i].id} at q ${q}: fx ${j} is ${S.fx[j]} (only 0 or 1)`);
+          assert.ok(S.rise[j - 2] >= 0 && S.rise[j - 2] <= 1, `rise ${j - 2} out of [0, 1]`);
+          if (S.fx[j] && X.fx[j] > 0 && Y.fx[j] > 0) assert.equal(S.rise[j - 2], 1, 'whole while both ends have it');
+        }
+        if (last) for (const j of [0, 1]) assert.ok(Math.abs(S.rise[j] - last[j]) <= 1 / 40 + 1e-6, `seed ${seed}: the rise jumps (${last[j]} -> ${S.rise[j]})`);
+        last = [S.rise[0], S.rise[1]];
+      }
+      changes++;
+    }
+  }
+  assert.ok(changes > 500, `${changes} changes`);
+  // and the shader takes the rise (uGalC.w, uAur.x) by place: its own galEdge and auroraAt base lines, run here (the
+  // review: text matches alone let a shader that ignored the rise pass)
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const js = (t) => t.replace(/\bfloat\s+/g, 'let ').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const GE = g.match(/^float galEdge\(float e\) \{(.*)\}\s*$/m);
+  assert.ok(GE, 'galEdge not found as a one-line function in sky-body.glsl');
+  const galEdge = (rise, e) => new Function('uGalC', 'smoothstep', 'e', js(GE[1]))({ w: rise }, ss, e);
+  const B0 = g.match(/^\s*float b0 = (.*);/m);
+  assert.ok(B0, 'auroraAt\'s base (float b0 = ...) not found');
+  const b0 = (rise, base) => new Function('uAur', 'return ' + js(B0[1]) + ';')({ x: rise, z: base });
+  assert.ok(/float base = b0 \* sc \+ 2\.0 \* fj \+ sc \* \(3\.5 \* sin/.test(g) && g.includes('float hgt = 7.0 + 9.0 * sc, x = e - base;') && g.includes('(1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x))'), 'auroraAt\'s curtains are not built on b0 as this test models them');
+  for (let e = 0; e <= 90; e += 0.5) {
+    assert.equal(galEdge(0, e), 0, `the galaxy shows at ${e} deg before it has begun to come in`);
+    if (e >= 1) assert.equal(galEdge(1, e), 1, `the whole galaxy is not shown at ${e} deg once it has come in (main's)`);
+    for (let r = 0; r < 1; r += 0.05) assert.ok(galEdge(r + 0.05, e) >= galEdge(r, e) - 1e-12, `the galaxy at ${e} deg goes back as it comes in (rise ${r})`);
+  }
+  for (const base of [5, 6.5, 8]) {
+    assert.equal(b0(1, base), base, 'the aurora is not at its own base once it has come in (main\'s)');
+    for (let r = 0; r < 1; r += 0.05) assert.ok(b0(r + 0.05, base) > b0(r, base), `the aurora's base does not rise with its rise (${r})`);
+    for (let j = 0; j < 3; j++) {   // every curtain's top (its waves at their highest, 2.5 hgt up) under the aurora's lowest drawn place (0.5 deg) just as it begins
+      const sc = 1 - 0.22 * j, hgt = 7 + 9 * sc, top = b0(0, base) * sc + 2 * j + sc * (3.5 + 2 + 1.2) + hgt * 2.5;
+      assert.ok(top < 0.5, `curtain ${j}'s top is at ${top.toFixed(1)} deg as the aurora begins to come in (base ${base}): it would show at once`);
+    }
+  }
+  assert.ok(g.includes('vec3 galaxyAt(vec3 rd, float e) {\n  if (uGalC.w <= 0.0) return vec3(0.0);') && g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
+  assert.ok(/gl\.uniform4f\(u\.uGalC, [^;]*SKY\.rise\[0\]\)/.test(WORLD) && /gl\.uniform4f\(u\.uAur, SKY\.rise\[1\]/.test(WORLD), 'the rises are not passed to the sky (uGalC.w, uAur.x)');
 });

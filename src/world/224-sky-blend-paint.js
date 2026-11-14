@@ -15,10 +15,18 @@
     SKY.ceil = X.ceil + (Y.ceil - X.ceil) * q; L.ceil = SKY.ceil;
     for (j = 0; j < 8; j++) SKY.fx[j] = X.fx[j] + (Y.fx[j] - X.fx[j]) * q;
     SKY.fx[6] = X.motes + (Y.motes - X.motes) * q; L.fx = SKY.fx;
+    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);
     skySun(V, w, L);   // (the sun sets or rises through a change into or out of a night)
     moonStep(SIM.t + SKY.dt);   // (and the moon's stay: its route planned once, as it begins)
     skyPaint(V);
     if (REC && SIM.t - SKY.recT >= 1) { SKY.recT = SIM.t; if (!REC.cycle) REC.cycle = []; if (REC.cycle.length < 4000) REC.cycle.push([+SIM.t.toFixed(1), A.id, B.id, +k.toFixed(3), +q.toFixed(3), +q.toFixed(3), SKYI.group, SKYI.words, +SKY.ceil.toFixed(3)]); }
+  }
+  /* (aurora-enter-by-place, no fades) the galaxy's and the aurora's amounts (fx 2, 3) never blended like colours: each
+     is 1 while either end of the change has it, else 0, and how far it has come in (rise: 0 gone, 1 whole) moves with
+     the change, so it comes and goes by place (the aurora's base rising from under the poleward horizon, the galaxy
+     uncovered from the horizon up as an edge sinks off it), never by a strength between */
+  function skyFxPlace(a, b, q, fx, rise) {
+    for (var j = 2; j < 4; j++) { var ia = a[j] > 0, ib = b[j] > 0; fx[j] = ia || ib ? 1 : 0; rise[j - 2] = ia && ib ? 1 : ia ? 1 - q : ib ? q : 0; }
   }
   /* two skies' colours blended by their chroma vectors (a, b) at q along the hue's arc, the chroma the two's own
      blended, never through the neutral axis (a straight blend greys the middle of a change: a tower to C 0.015): the
