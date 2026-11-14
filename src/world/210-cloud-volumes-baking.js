@@ -7,10 +7,16 @@
   /* a cloud body: its box from its lobes (in its own frame, turned about the vertical by its yaw, so a wall's box is
      tight along it), its voxels (res across its longest side), its texture; then baked: the density into the scratch
      volume a layer per draw, then the final volume (the distance, the optical depth toward the sun and the sky) */
-  /* the body's fine billows (their scale and depth, m), set once here from the light the body is made under and never
-     again: blended per frame by the place's weight they slid through the body in steps as the flight crossed realms
-     (the owner's wiggle, 2026-11-14) */
-  function volDetail(V) { var d = ((V.L || V.light || {}).clDetail) || [120, 4]; return new Float32Array([d[0], d[1]]); }
+  /* the body's fine billows (their scale and depth, m), set once here, never again: blended per frame by the place's
+     weight they slid through the body in steps as the flight crossed realms (the owner's wiggle, 2026-11-14). The two
+     kits' own (the skies keep theirs: skyRaw) blended by the light's weight about the camera as the body is made
+     (lightWeight, climateLight's own): in flight the light the body is made under; in the boot, before the landing's
+     first climateLight, the landing's light, not the dunes kit's unblended copy (V.L there) */
+  function volDetail(V) {
+    var A = V.lightRaw && V.lightRaw.clDetail, B = V.lightRawB && V.lightRawB.clDetail;
+    if (!A || !B || !KW.ok) { var d = ((V.L || V.light || {}).clDetail) || [120, 4]; return new Float32Array([d[0], d[1]]); }
+    var w = lightWeight(CS.x, CS.z); return new Float32Array([A[0] + (B[0] - A[0]) * w, A[1] + (B[1] - A[1]) * w]);
+  }
   function volPrep(PF, bi, G, res, V) {
     var B = PF.bodies[bi], a = PF.a, i0 = B.i0, i1 = bi + 1 < PF.bodies.length ? PF.bodies[bi + 1].i0 : PF.count(), i, k;
     var rs = []; for (i = i0; i < Math.min(i1, i0 + 96); i++) rs.push(a[i * 12 + 3]); rs.sort(function (x, y) { return x - y; });
