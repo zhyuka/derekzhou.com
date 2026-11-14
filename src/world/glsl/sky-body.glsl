@@ -66,9 +66,12 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
   float b = pow(fract(hx * 7.31 + hy * 3.17), 6.0) * 0.95 + 0.07;
   b *= 1.0 + 0.15 * uNight.z * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);
-  /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn wider (sigma by sqrt of its flux
-     over the cap: a pixel's share of a bell is at most its peak density, F / (2 pi sigma^2)), its flux kept whole */
-  float F = b * STF, sg = max(0.5, sqrt(F / (SKYTAU * max(cap, 1e-5))));
+  /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn a little wider (sigma by sqrt of
+     its flux over the cap, a pixel's share of a bell being at most its peak density F / (2 pi sigma^2)), but never past
+     0.7 px, so a star stays a point (the review: unbounded, the brightest became soft discs of 4-6x main's light); what
+     still passes is cut from the star's flux, never from its pixels, so its light stays whatever its place */
+  float F = b * STF, cp = SKYTAU * max(cap, 1e-5), sg = clamp(sqrt(F / cp), 0.5, 0.7);
+  F = min(F, cp * sg * sg);
   vec3 dv = rd - sd;   // (the chord, in pixels along the view's right and up: acos of a dot near 1 loses a star's footprint in float32)
   return F * starBox(dot(dv, uCamR) / pa, sg) * starBox(dot(dv, uCamU) / pa, sg);
 }

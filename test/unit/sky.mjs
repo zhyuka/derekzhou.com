@@ -108,18 +108,20 @@ test('sky: a star\'s light on the screen is the same wherever it stands between 
   const starBox = new Function('starErf', B[1].replace(/float /g, ''), js(B[2])).bind(null, starErf);
   const STF = +g.match(/const float STF = ([\d.]+);/)[1];
   assert.ok(g.includes('return F * starBox(dot(dv, uCamR) / pa, sg) * starBox(dot(dv, uCamU) / pa, sg);'), 'starAt does not integrate its bell over the pixel (starBox on both axes)');
-  assert.ok(g.includes('sg = max(0.5, sqrt(F / (SKYTAU * max(cap, 1e-5))))'), 'starAt does not cap the star by widening it');
+  assert.ok(g.includes('sg = clamp(sqrt(F / cp), 0.5, 0.7);') && g.includes('F = min(F, cp * sg * sg);'), 'starAt does not cap the star (at most 0.7 px wide, its flux cut to fit)');
   assert.ok(!/head \* \(1\.0 - exp\(-s/.test(g), 'the stars still go through the pixel\'s saturating cap');
   const shown = (b, head, ox, oy) => {   // the star's light on the screen, its pixels each capped as the shader caps them
-    const F = b * STF, sg = Math.max(0.5, Math.sqrt(F / (2 * Math.PI * Math.max(head, 1e-5))));
-    let sum = 0, peak = 0;
+    const cp = 2 * Math.PI * Math.max(head, 1e-5), sg = Math.min(Math.max(Math.sqrt(b * STF / cp), 0.5), 0.7), F = Math.min(b * STF, cp * sg * sg);
+    let sum = 0, peak = 0, half = 0;
     for (let y = -12; y <= 12; y++) for (let x = -12; x <= 12; x++) { const v = Math.min(F * starBox(x - ox, sg) * starBox(y - oy, sg), head); sum += v; peak = Math.max(peak, v); }
-    return { sum, peak };
+    for (let y = -12; y <= 12; y++) for (let x = -12; x <= 12; x++) if (Math.min(F * starBox(x - ox, sg) * starBox(y - oy, sg), head) >= peak / 2) half++;
+    return { sum, peak, half };
   };
   let seed = 7; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
   for (const b of [0.07, 0.3, 1.02]) for (const head of [0.02, 0.05, 0.09]) {
     let lo = Infinity, hi = 0;
-    for (let k = 0; k < 64; k++) { const r = shown(b, head, rnd() - 0.5, rnd() - 0.5); lo = Math.min(lo, r.sum); hi = Math.max(hi, r.sum); assert.ok(r.peak <= head + 1e-9, `b ${b}, head ${head}: a pixel at ${r.peak} passes the head`); }
+    for (let k = 0; k < 64; k++) { const r = shown(b, head, rnd() - 0.5, rnd() - 0.5); lo = Math.min(lo, r.sum); hi = Math.max(hi, r.sum); assert.ok(r.peak <= head + 1e-9, `b ${b}, head ${head}: a pixel at ${r.peak} passes the head`);
+      assert.ok(r.half <= 6, `b ${b}, head ${head}: ${r.half} pixels at half its peak (a point: at most 6)`); }
     assert.ok((hi - lo) / hi < 0.02, `b ${b}, head ${head}: the star's light swings ${(100 * (hi - lo) / hi).toFixed(1)}% as it slides (at most 2%)`);
   }
 });
