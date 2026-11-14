@@ -133,3 +133,49 @@ test('144 Hz: a take-off never steps back on the window', () => {
   assert.ok(n > 0, 'no take-off');
   assert.ok(worst <= 0.3, `a take-off stepped back ${worst.toFixed(2)} px at ${at}`);
 });
+
+test('every landing starts its flare from none (a second landing keeps nothing of the first)', () => {
+  let lands = 0, stale = 0, at = '';
+  for (const cs of ['natural', 'cursor', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); sc.setup(sim); const was = new Map();
+    for (let k = 0; k < 80 * 60; k++) {   // (80 s: long enough for birds to land, leave and land again)
+      sim.frame(1 / 60);
+      for (const b of sim.B.BIRDS) {
+        if (b.st === 'land' && was.get(b) !== 'land') { lands++; if (b.flareU > 0.5) { stale++; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; } }
+        was.set(b, b.st);
+      }
+    }
+  }
+  console.log(`# landings begun: ${lands}; begun with the last one's flare ${stale}`);
+  assert.ok(lands > 0, 'no landing');
+  assert.equal(stale, 0, `${stale} landings began with the last landing's flare (${at})`);
+});
+
+test('no perched bird stands in the air above its ink (at most 1 px under its feet)', () => {
+  const FT = [0, 0]; let n = 0, over = 0, max = -1e9, at = '';
+  for (const cs of ['drop', 'perch']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
+    for (let k = 0; k < 26 * 60; k++) {
+      if (sc.each) sc.each(sim, tags);
+      sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX;
+      for (const b of B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
+        if (P.hop || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose)
+        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k); let low = -1e9;
+        for (let i = 0; i < NV; i++) {
+          const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
+          const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
+          if (Math.abs(sx - FT[0]) <= 0.18 * sp) low = Math.max(low, sy);
+        }
+        const air = FT[1] - low; n++;
+        if (air > max) { max = air; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; }
+        if (air > 1) over++;
+      }
+    }
+  }
+  console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at})`);
+  assert.ok(n > 1000, 'too few perched frames');
+  assert.equal(over, 0, `${over} perched frames with over 1 px of air under the feet (most ${max.toFixed(2)} px, ${at})`);
+});

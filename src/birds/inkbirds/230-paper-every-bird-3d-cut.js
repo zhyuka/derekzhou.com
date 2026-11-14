@@ -78,7 +78,7 @@
   /* a change of what the wings are doing (a burst begun or ended, the approach's beats and glide, the flare, the perch,
      the leap): the pose carried over from the one last drawn, eased into the new one over XF_T s, never a snap */
   var XF_T = 0.22;
-  function wingKey(b) { var k = b.st === 'fly' ? 1 : b.st === 'appr' ? 2 : b.st === 'round' ? 3 : b.st === 'land' ? 4 : 5; k = k * 8 + (b.burst ? 4 : 0) + (b.st === 'appr' ? (b.flapA === 1 ? 2 : b.flapA === 0 ? 1 : 0) : 0); return k * 2 + (b.P && b.P.leaving ? 1 : 0); }
+  function wingKey(b) { var k = b.st === 'fly' ? 1 : b.st === 'appr' ? 2 : b.st === 'round' ? 3 : b.st === 'land' ? 4 : 5; k = k * 8 + (b.burst ? 4 : 0) + (b.st === 'appr' ? (b.flapA === 1 ? 2 : b.flapA === 0 ? 1 : 0) : 0); return k; }   // (not the leave: perchPose eases into its opening itself)
   function wingXF(b, s) {
     var k = wingKey(b), i;
     if (s.xKey >= 0 && k !== s.xKey) { for (i = 0; i < 22; i++) s.XF22[i] = s.LP22[i]; s.xT0 = TD; }
@@ -178,7 +178,7 @@
   function tilt(C, v0, v1, v2, o) { var a = v0 * C.u[0] + v1 * C.u[1] + v2 * C.u[2], bb = v0 * C.f[0] + v1 * C.f[1] + v2 * C.f[2], c = v0 * C.r[0] + v1 * C.r[1] + v2 * C.r[2], a2 = a * TCE + bb * TSE, b2 = bb * TCE - a * TSE; o[0] = C.r[0] * c + C.u[0] * a2 + C.f[0] * b2; o[1] = C.r[1] * c + C.u[1] * a2 + C.f[1] * b2; o[2] = C.r[2] * c + C.u[2] * a2 + C.f[2] * b2; }
   /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its lowest drawn points on the
      surface (a letter's ink under them; on the tip, the tip), with its pose and basis as they are */
-  function surfC(pts, x) { var n = pts.length; if (x <= pts[0][0]) return pts[0][1]; if (x >= pts[n - 1][0]) return pts[n - 1][1]; return surfY(pts, x); }   // (the ledge held level past its ends)
+  function surfC(pts, x) { var n = pts.length; if (x <= pts[0][0]) return pts[0][1] + 2 * (pts[0][0] - x); if (x >= pts[n - 1][0]) return pts[n - 1][1] + 2 * (x - pts[n - 1][0]); return surfY(pts, x); }   // (past its ends the ledge falls away steeply: continuous, and no ink where there is none)
   function restSolve(b, C, s, fxp, fyp, lift, V, hold) {
     if (!V) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); V = s.V46; }
     var P = b.P, sp = perchSpan(b, P.k), up = P.rest || 0.42 * sp, k2 = (W / 2) / VW.tanX, lg = P.kind === 'pointer' ? null : ledges()[P.li], i;
@@ -191,7 +191,7 @@
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (syy > low) low = syy;
-        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; anyOn = true; worst = Math.max(worst, syy - sf - (ax > 0 ? 3 * ax : 0)); }   // (one continuous support: the points far from its feet not counted, smoothly)
+        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; worst = Math.max(worst, syy - sf - (ax > 0 ? 3 * ax : 0)); } }   // (one continuous support: the points far from its feet, or past the ledge's ends, not counted, smoothly)
       }
       var err = anyOn ? worst - 1.6 : low - fyp;
       up += err; if (Math.abs(err) < 0.05) break;
