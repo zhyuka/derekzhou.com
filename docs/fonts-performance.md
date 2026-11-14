@@ -13,7 +13,7 @@ is 4.6 KB: 10 KB of fonts in all, before the first paint. The subsets keep
 the copyright and the OFL notice in their name tables (IDs 0, 13, 14), and
 assets/fonts/OFL.txt ships beside them. A page that shows a letter its
 font lacks would draw it in the fallback face: CI's check "Every letter the
-pages show is in its font" (tools/checks/37-font-glyphs.sh) fails then.
+pages show is in its font" (tools/checks/40-font-glyphs.sh) fails then.
 When the words gain a letter, run ./subset-fonts.sh and rename the fonts
 (.subN+1) and every reference in the same commit.
 font-display: optional + the metric-matched fallbacks give CLS = 0 by
