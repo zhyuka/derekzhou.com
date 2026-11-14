@@ -9,7 +9,7 @@
      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
-  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0 };   // (fx, fy: the drag drawn since the last step, for the release's speed)
+  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, relAny: false };   // (fx, fy: the drag drawn since the last step, for the release's speed; relAny: a release the next step counts as input)
   var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
@@ -109,45 +109,57 @@
   }
   /* each step: the drag's motion and the phone's into the flight's state */
   var IDLE_K = 0;
-  /* each frame, before its steps (simAdvance): the drag moved since the last frame turns both states the camera is
-     drawn between, so the view follows the finger in the frame that reads its move, by exactly the finger's move, on
-     any display and at any phase of the steps (a step's share of a frame's drag drew 0, 1 or 2 frames' worth a frame).
-     A drag ended by a release still draws its last moves; a cancelled one draws none. The steps then read what was
-     drawn (INP.fx, fy) for the release's speed */
-  function inputFrame() {
-    if (!INP.dx && !INP.dy) return;
-    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
-    INP.dx = 0; INP.dy = 0;
-    if (!INP.down && !INP.rel) return;
-    CS.yawV += ax; CSP.yawV += ax;
-    CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);
-    INP.fx += ax; INP.fy += ay;
-  }
-  function applyInput(dt, t, V) {
-    // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given)
-    while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
-    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, fx = INP.fx, fy = INP.fy, any = false;
-    INP.dx = 0; INP.dy = 0; INP.fx = 0; INP.fy = 0;
-    if (dx || dy || fx || fy) any = true;
-    if (INP.down) { CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX); }
-    if (INP.down || fx || fy) {   // (a step after the release still reads the moves drawn before it)
-      CS.ring[CS.ri] = dx * G + fx; CS.ringP[CS.ri] = dy * G + fy; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
-      CS.om = 0; CS.omP = 0; CS.since = 0;
+  /* each frame, before its steps (simAdvance, the frame's time fdt s): the view's own motion, in frame time on both
+     states the camera is drawn between, so the frame that reads it draws it exactly, on any display and at any phase of
+     the steps (drawn through the steps, a frame's drag turned 0, 1 or 2 frames' worth a frame, and the release's coast
+     doubled a frame or held still up to 12 ms):
+     - the drag moved since the last frame turns the view by exactly the finger's move (a release still draws its last
+       moves; a cancelled drag draws none);
+     - let go, the release's speed is taken (the ring's last 0.2 s of steps, its newest moves included) and the coast
+       runs on from the next frame: the turn's speed x 0.3 s (at most 14 deg), the tilt's x 0.2 s (at most 5.7 deg).
+       (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
+       18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
+       realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s
+       after it the tilt's own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at
+       most 1.5 deg/s).
+     Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it and a released one is
+     dropped, as the steps dropped it */
+  function inputFrame(fdt) {
+    if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } return; }
+    if (!INP.down && !INP.rel && (CS.om || CS.omP)) {
+      var cy = CS.om * fdt, cp = CS.omP * fdt;
+      CS.yawV += cy; CSP.yawV += cy;
+      CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);
+      CS.om *= Math.exp(-fdt / 0.3); CS.omP *= Math.exp(-fdt / 0.2);
+    }
+    if (INP.dx || INP.dy) {
+      var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
+      INP.dx = 0; INP.dy = 0;
+      if (INP.down || INP.rel) {
+        CS.yawV += ax; CSP.yawV += ax;
+        CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);
+        INP.fx += ax; INP.fy += ay;
+      }
     }
     if (INP.rel) {
-      INP.rel = false; any = true;
+      INP.rel = false; INP.relAny = true;
+      CS.ring[CS.ri] = INP.fx; CS.ringP[CS.ri] = INP.fy; CS.ri = (CS.ri + 1) % 12; INP.fx = 0; INP.fy = 0;   // (the moves drawn since the last step: the newest of the release's speed)
       var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
-      CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg)
+      CS.om = clamp(sx / (12 * SIM_DT), -0.8, 0.8); CS.omP = clamp(sy / (12 * SIM_DT), -0.5, 0.5);
     }
-    if (!INP.down) {
-      CS.yawV += CS.om * dt; CS.om *= Math.exp(-dt / 0.3);
-      // (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
-      // 18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
-      // realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s after it the tilt's
-      // own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at most 1.5 deg/s)
-      CS.thU = clamp(CS.thU + CS.omP * dt, -TH_MAX, TH_MAX); CS.omP *= Math.exp(-dt / 0.2);
-      CS.since += dt;
-    }
+  }
+  function applyInput(dt, t, V) {
+    // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given; its release is taken
+    // in the next frame)
+    while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
+    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, fx = INP.fx, fy = INP.fy, any = INP.relAny;
+    INP.dx = 0; INP.dy = 0; INP.fx = 0; INP.fy = 0; INP.relAny = false;
+    if (dx || dy || fx || fy) any = true;
+    if (INP.down) {
+      CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
+      CS.ring[CS.ri] = dx * G + fx; CS.ringP[CS.ri] = dy * G + fy; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
+      CS.om = 0; CS.omP = 0; CS.since = 0;
+    } else CS.since += dt;
     // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg
     if (MOTION.on && MOTION.has) {
       var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1);
