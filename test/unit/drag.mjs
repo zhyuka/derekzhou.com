@@ -42,21 +42,21 @@ test('drag: across the window\'s width the view turns 90 degrees, on any width',
 const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
 const ADV = cut(WORLD, '  var TSCALE = 1;', '  /* the world, built');
 const MOVE2 = cut(WORLD, '  function onMove(e) {', '  function onUp(e) {');
-function flying(phase, boot = 0) {   // boot: steps before the landing (arrive sets the view), the pre-roll's
+function flying(phase, boot = false) {   // boot: not yet landed (no frame before the pre-roll; arrive, its first step, sets the yaw and keeps the tilt)
   return vm.runInThisContext('(function (PHASE, BOOT) {\n  \'use strict\';\n' +
     '  var PI = Math.PI, DEG = PI / 180, SIM_DT = 1 / 60, DTMAX = 0.1, NMAX = Math.ceil(DTMAX / SIM_DT) + 2, TH_MAX = 35 * DEG, DEVMODE = false, shown = true, SEEDR = 1, J = { seed: 1 };\n' +
     '  var CLK = new Float64Array([0, -1]), SIM = { acc: PHASE * SIM_DT, alpha: 0, t: 0, V: BOOT ? null : {} }, OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0;\n' +
-    '  var INP = { dx: 0, dy: 0, down: true, rel: false, evT0: 0, fx: 0, fy: 0, relAny: false }, DRAG = { id: 1, x0: 0, y0: 0, x: 0, y: 0, on: true, type: \'mouse\' };\n' +
+    '  var INP = { dx: 0, dy: 0, down: true, rel: false, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 }, DRAG = { id: 1, x0: 0, y0: 0, x: 0, y: 0, on: true, type: \'mouse\' };\n' +
     '  var TOUCHMODE = \'none\', DOMQ = {}, running = true, REC = null, root = {}, coast = null, drawnTh = 0;\n' +
-    '  function S() { return { yawV: 0, thU: 0, ring: new Float32Array(12), ringP: new Float32Array(12), ri: 0, om: 0, omP: 0, since: 0, lastIn: 0, auto: 0, idleAfter: 0, phi: 0, thP: 0, thPraw: 0 }; }\n' +
+    '  function S() { return { yawV: 0, thU: 0, ring: new Float32Array(12), ringP: new Float32Array(12), ringT: new Float32Array(12), ri: 0, om: 0, omP: 0, since: 0, lastIn: 0, auto: 0, idleAfter: 0, phi: 0, thP: 0, thPraw: 0 }; }\n' +
     '  var CS = S(), CSP = S();\n' +
     '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { return a - b; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n' +
     '  function domNext() {}\n  function devInput() {}\n' +
-    '  function simStepOnce() {\n    if (!SIM.V) { if (--BOOT > 0) return true; SIM.V = {}; CS.yawV = CSP.yawV = 0; CS.thU = CSP.thU = 0; }   // (arrive: the landing sets the view)\n' +
+    '  function simStepOnce() {\n    if (!SIM.V) { SIM.V = {}; CS.yawV = CSP.yawV = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CSP.thU = CS.thU; }   // (arrive: the landing sets the yaw, keeps the tilt)\n' +
     '    CSP.yawV = CS.yawV; CSP.thU = CS.thU;\n    applyInput(SIM_DT, SIM.t, null); SIM.t += SIM_DT;\n    return true;\n  }\n' +
     INPUT + '\n' + MOVE2 + '\n' + ADV +
-    '\n  return {\n    move: function (x, ts, y) { onMove({ pointerId: 1, clientX: x, clientY: y || 0, timeStamp: ts }); },\n    up: function () { INP.down = false; INP.rel = true; },\n    press: function () { INP.down = true; },\n    cancel: function () { INP.down = false; INP.rel = false; },\n' +
-    '    frame: function (ts) { var dt = CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; var rel = INP.rel; simAdvance(dt / 1000);\n' +
+    '\n  return {\n    move: function (x, ts, y) { onMove({ pointerId: 1, clientX: x, clientY: y || 0, timeStamp: ts }); },\n    up: function () { INP.down = false; INP.rel = true; },\n    press: function () { INP.down = true; },\n    preroll: function (n) { for (var i = 0; i < n; i++) simAdvance(SIM_DT); },\n    prevYaw: function () { return CSP.yawV; },\n    cancel: function () { INP.down = false; INP.rel = false; },\n' +
+    '    frame: function (ts, dtMs) { var dt = dtMs !== undefined ? dtMs : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; var rel = INP.rel; simAdvance(dt / 1000);\n' +
     '      if (rel && !INP.rel) coast = { yaw: CS.yawV, om: CS.om, omP: CS.omP };   // (the release taken: the coast runs from the next frame)\n' +
     '      drawnTh = CSP.thU + (CS.thU - CSP.thU) * SIM.alpha; return CSP.yawV + (CS.yawV - CSP.yawV) * SIM.alpha; },\n' +
     '    tilt: function () { return drawnTh; }, rel: function () { return INP.rel; }, coast: function () { return coast; }, yaw: function () { return CS.yawV; }, om: function () { return CS.om; }, omP: function () { return CS.omP; }\n  };\n})')(phase, boot);
@@ -98,15 +98,14 @@ test('drag: released, the coast starts from the whole drag at the drag\'s speed,
     assert.ok(Math.abs(c.yaw - x * GAIN1000) < 1e-9, `${tag}: the coast starts at ${c.yaw} rad, the drag was ${x * GAIN1000}`);
     assert.ok(Math.abs(y - last - move) < 1e-9, `${tag}: the release's frame turned ${((y - last) / move * 100).toFixed(1)}% of the finger's move`);
     const om = V * 1000 * GAIN1000;
-    // (the coast's speed is the ring's last 12 steps of drag: exact at 60 Hz; above it a step holds 1-4 frames' moves, so
-    // the last 0.2 s is off by up to a frame's worth or so: within 7%, as on main)
-    assert.ok(Math.abs(c.om - om) / om < (hz === 60 ? 1e-6 : 0.07), `${tag}: the coast's speed ${c.om.toFixed(3)} rad/s, the drag's ${om.toFixed(3)}`);
-    // the coast: every frame turns on, never more than the finger's last move a frame (1% for the ring's sampling), and
+    // (the coast's speed is the ring's moves over the frames' time they were drawn in: exact at any rate)
+    assert.ok(Math.abs(c.om - om) / om < 1e-6, `${tag}: the coast's speed ${c.om.toFixed(3)} rad/s, the drag's ${om.toFixed(3)}`);
+    // the coast: every frame turns on, never more than the finger's last move a frame, and
     // never stands still while it has speed
     for (let n = 0; n < hz / 2; n++) {
       const omNow = F.om(), wNow = F.omP(), th1 = F.tilt(), y2 = F.frame(ts += P), d = y2 - y; y = y2;
       assert.ok(Math.abs(F.tilt() - th1 - wNow * P / 1000) < 1e-12, `${tag}: coast frame ${n} tilted ${F.tilt() - th1}, its speed x the frame's time is ${wNow * P / 1000}`);
-      assert.ok(d <= move * 1.01 + 1e-12, `${tag}: coast frame ${n} turned ${(d / move * 100).toFixed(1)}% of the finger's last move`);
+      assert.ok(d <= move * (1 + 1e-6), `${tag}: coast frame ${n} turned ${(d / move * 100).toFixed(1)}% of the finger's last move`);
       assert.ok(omNow <= 1e-6 || d > 0, `${tag}: coast frame ${n} stood still at ${omNow.toFixed(3)} rad/s`);
       assert.ok(Math.abs(d - omNow * P / 1000) < 1e-12, `${tag}: coast frame ${n} turned ${d}, its speed x the frame's time is ${omNow * P / 1000}`);
     }
@@ -156,11 +155,39 @@ test('drag: the tilt follows the finger up and down in the frame that reads it, 
 });
 test('drag: before the landing a held drag waits for it and a released one is dropped (no turn by itself after the world shows)', () => {
   const P = 1000 / 60;
-  const R = flying(0.5, 20); let ts = 1000;   // (the landing at the 20th step)
-  for (let k = 0; k < 10; k++) { R.move(30 * k, ts); if (k === 9) R.up(); R.frame(ts += P); }
+  const R = flying(0.5, true); let ts = 1000;
+  for (let k = 0; k < 10; k++) { R.move(30 * k, ts += P); } R.up();   // (moved and let go during the boot: no frame runs then)
+  R.preroll(1);   // (PREROLL: one step, its arrive)
   for (let k = 0; k < 90; k++) R.frame(ts += P);
   assert.equal(R.yaw(), 0, 'a drag let go before the landing turns nothing after it');
-  const H = flying(0.5, 20); ts = 1000; let x = 0;
-  for (let k = 0; k < 40; k++) { x = 10 * k; H.move(x, ts); H.frame(ts += P); }
-  assert.ok(Math.abs(H.yaw() - x * GAIN1000) < 1e-9, `a drag held across the landing: ${H.yaw()} rad, the drag ${x * GAIN1000}`);
+  for (const hz of [60, 144]) {
+    const H = flying(0.5, true), Q = 1000 / hz; let x = 0; ts = 1000;
+    for (let k = 0; k < 40; k++) { x = 30 * k; H.move(x, ts += Q); }   // (a fast drag, held through the boot)
+    H.preroll(1);
+    const y0 = H.frame(ts += Q);
+    assert.ok(Math.abs(y0 - x * GAIN1000) < 1e-9 && Math.abs(H.prevYaw() - x * GAIN1000) < 1e-9, `${hz} Hz: the first frame after the landing draws ${y0} rad, the boot's drag ${x * GAIN1000}`);
+    for (let k = 0; k < 6; k++) { x += 0.3 * Q; H.move(x, ts); if (k === 5) H.up(); H.frame(ts += Q); }   // (then 0.3 px/ms for 6 frames, let go)
+    const c = H.coast(), om = 0.3 * 1000 * GAIN1000;
+    assert.ok(c && c.om <= om * (1 + 1e-6), `${hz} Hz: let go just after the show, the coast's speed ${c && c.om.toFixed(3)} rad/s, the finger's ${om.toFixed(3)} (the boot's drag is not in it)`);
+  }
+});
+test('drag: a release read in a long frame coasts at the finger\'s speed; the coast holds the tilt within 35 deg and its speeds within their caps', () => {
+  for (const hz of [60, 144]) for (const long of [33, 100, 250]) for (const sp of [0, 0.5]) {
+    const F = flying(sp), P = 1000 / hz, V = 0.15; let ts = 1000, x = 0;
+    for (let k = 0; k < hz; k++) { ts += P; x = V * ts; F.move(x, ts - 0.4); F.frame(ts); }
+    ts += long; x = V * ts; F.move(x, ts - 0.4); F.up(); F.frame(ts, long);   // (the release's frame: long, its moves the finger's over it)
+    const c = F.coast(), om = V * 1000 * GAIN1000;
+    assert.ok(c && Math.abs(c.om - om) / om < 1e-6, `${hz} Hz, a ${long} ms release frame, steps at ${sp}: the coast's speed ${c && c.om.toFixed(4)} rad/s, the finger's ${om.toFixed(4)}`);
+  }
+  const TH = 35 * Math.PI / 180;
+  for (const hz of [60, 144]) for (const dir of [1, -1]) {
+    const F = flying(0.3), P = 1000 / hz; let ts = 1000;
+    for (let k = 0; k < hz; k++) { ts += P; F.move(3 * ts, ts - 0.4, -dir * 2 * ts); F.frame(ts); }   // (3 px/ms across, 2 px/ms up or down: past both caps, and the tilt pushed past 35 deg)
+    F.up(); F.frame(ts += P);
+    const c = F.coast();
+    assert.equal(c.om, 0.8, `${hz} Hz: the turn's coast capped at 0.8 rad/s (${c.om})`);
+    assert.equal(c.omP, -dir * 0.5, `${hz} Hz: the tilt's coast capped at 0.5 rad/s (${c.omP})`);
+    for (let k = 0; k < 60; k++) { F.frame(ts += P); assert.ok(Math.abs(F.tilt()) <= TH + 1e-12, `${hz} Hz: coast frame ${k} drew a tilt of ${(F.tilt() * 180 / Math.PI).toFixed(2)} deg`); }
+    assert.ok(Math.abs(Math.abs(F.tilt()) - TH) < 1e-12, `${hz} Hz: the coast left the tilt at ${(F.tilt() * 180 / Math.PI).toFixed(2)} deg, held at 35`);
+  }
 });

@@ -9,7 +9,7 @@
      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
-  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, relAny: false };   // (fx, fy: the drag drawn since the last step, for the release's speed; relAny: a release the next step counts as input)
+  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };   // (fx, fy: the drag drawn since the last step and ft the frames' time it took, for the release's speed; relAny: a release the next step counts as input; held: a drag held through the landing; qx, qy: a dev script's drag)
   var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
@@ -122,42 +122,48 @@
        realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s
        after it the tilt's own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at
        most 1.5 deg/s).
-     Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it and a released one is
-     dropped, as the steps dropped it */
-  function inputFrame(fdt) {
-    if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } return; }
+     The release's speed is the ring's moves over the frames' time they were drawn in (each slot keeps its own: a long
+     release frame holds a long frame's moves, and over 12 steps' time it threw the coast up to 2.2 x the finger's
+     speed; a frame of two steps leaves a slot with no time and no move).
+     Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it, drawn whole in the first
+     frame after it and kept out of the release's speed; a released one is dropped, as the steps dropped it */
+  function inputFrame(dt) {
+    var fdt = Math.min(dt, DTMAX);
+    if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } else INP.held = true; return; }
     if (!INP.down && !INP.rel && (CS.om || CS.omP)) {
       var cy = CS.om * fdt, cp = CS.omP * fdt;
       CS.yawV += cy; CSP.yawV += cy;
       CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);
       CS.om *= Math.exp(-fdt / 0.3); CS.omP *= Math.exp(-fdt / 0.2);
     }
+    var boot = INP.held; INP.held = false;   // (the first frame after the landing)
     if (INP.dx || INP.dy) {
       var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
       INP.dx = 0; INP.dy = 0;
       if (INP.down || INP.rel) {
         CS.yawV += ax; CSP.yawV += ax;
         CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);
-        INP.fx += ax; INP.fy += ay;
+        if (!boot) { INP.fx += ax; INP.fy += ay; }
       }
     }
+    if (INP.down || INP.rel) INP.ft += dt;
     if (INP.rel) {
       INP.rel = false; INP.relAny = true;
-      CS.ring[CS.ri] = INP.fx; CS.ringP[CS.ri] = INP.fy; CS.ri = (CS.ri + 1) % 12; INP.fx = 0; INP.fy = 0;   // (the moves drawn since the last step: the newest of the release's speed)
-      var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
-      CS.om = clamp(sx / (12 * SIM_DT), -0.8, 0.8); CS.omP = clamp(sy / (12 * SIM_DT), -0.5, 0.5);
+      CS.ring[CS.ri] = INP.fx; CS.ringP[CS.ri] = INP.fy; CS.ringT[CS.ri] = INP.ft; CS.ri = (CS.ri + 1) % 12; INP.fx = 0; INP.fy = 0; INP.ft = 0;   // (the moves drawn since the last step: the newest of the release's speed)
+      var sx = 0, sy = 0, st = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; st += CS.ringT[i]; CS.ring[i] = 0; CS.ringP[i] = 0; CS.ringT[i] = 0; }
+      CS.om = st > 0 ? clamp(sx / st, -0.8, 0.8) : 0; CS.omP = st > 0 ? clamp(sy / st, -0.5, 0.5) : 0;
     }
   }
   function applyInput(dt, t, V) {
     // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given; its release is taken
     // in the next frame)
     while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
-    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, fx = INP.fx, fy = INP.fy, any = INP.relAny;
-    INP.dx = 0; INP.dy = 0; INP.fx = 0; INP.fy = 0; INP.relAny = false;
+    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.qx, dy = INP.qy, fx = INP.fx, fy = INP.fy, ft = INP.ft, any = INP.relAny;
+    INP.qx = 0; INP.qy = 0; INP.fx = 0; INP.fy = 0; INP.ft = 0; INP.relAny = false;
     if (dx || dy || fx || fy) any = true;
     if (INP.down) {
       CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
-      CS.ring[CS.ri] = dx * G + fx; CS.ringP[CS.ri] = dy * G + fy; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
+      CS.ring[CS.ri] = dx * G + fx; CS.ringP[CS.ri] = dy * G + fy; CS.ringT[CS.ri] = ft + (dx || dy ? dt : 0); CS.ri = (CS.ri + 1) % 12;   // (the last 12 steps: the release's speed; a dev script's drag takes its step's time)
       CS.om = 0; CS.omP = 0; CS.since = 0;
     } else CS.since += dt;
     // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg
@@ -179,7 +185,7 @@
      release; { t, orient: [alpha, beta, gamma] } the phone; { t, motion: true } motion enabled) */
   function devInput(ev) {
     if (ev.down) { INP.down = true; }
-    if (ev.drag) { INP.dx += ev.drag[0]; INP.dy += ev.drag[1]; }
+    if (ev.drag) { INP.qx += ev.drag[0]; INP.qy += ev.drag[1]; }
     if (ev.up) { INP.down = false; INP.rel = true; }
     if (ev.motion) { MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; }
     if (ev.orient) orientAt(ev.orient[0], ev.orient[1], ev.orient[2]);
