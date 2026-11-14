@@ -146,7 +146,7 @@ test('stills: the twin the PC bakes gets the still\'s preload back (the build ta
 
 test('stills: the PC\'s bake renders a twin with the still\'s preload (stills.yml puts it back before bake-stills.js)', async () => {
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
-  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8');
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
   const fix = y.indexOf('node tools/stills-twin.mjs site/index.html served/head-twin'), bake = y.indexOf('node tools/gpu/bake-stills.js');
   assert.ok(fix > 0, 'stills.yml puts the preload back in served/head-twin (run 43409850998: without it the page asks for no still)');
   assert.ok(bake > fix, 'and does it before the bake renders the twin');
@@ -180,8 +180,9 @@ test('stills: build.txt says what the stills fetch did, on its second line, and 
 
 test('stills: the bake never holds the GPU runner for a whole set, and the newest tip wins (stills.yml)', async () => {
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
-  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8');
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
   assert.match(y, /cancel-in-progress: true\b/, 'a newer run cancels a stale one, on main too');
+  assert.match(y, /group: stills-\$\{\{ github\.event\.workflow_run\.head_branch == 'main' && 'main' \|\| 'branches' \}\}/, 'every branch\'s warm bake shares one group: a newer cancels the queued older');
   assert.match(y, /max-parallel: 1/, 'the sky jobs run one at a time');
   assert.match(y, /sky: \[dawn, day, rain, sunset, dusk, night\]/, 'a job a sky (T2 takes the runner between two)');
   assert.match(y, /--skies \$\{\{ matrix\.sky \}\}/, 'each job bakes only its sky');
