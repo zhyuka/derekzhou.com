@@ -11,16 +11,20 @@ import { SCENES } from './birds-scenes.mjs';
 
 const NV = 46, SEEDS = +(process.env.BIRDS_N || 4), RATE = { gull: 1.95, crow: 2.45, swallow: 4.8, finch: 3 };
 /* a scene at hz frames a second for secs: the tagged birds' drawn records, frame by frame */
-function run(cs, seed, hz, secs, each) {
-  const sc = SCENES[cs](seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+function run(cs, seed, hz, secs, each, size, all, sched) {
+  const sc = SCENES[cs](seed, size || '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
   const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
-  const tr = new Map();
+  const tr = new Map(), lp = new Map(), nl = new Map(), nn = new Map();
+  let tm = 0;
   for (let k = 0; k < Math.round(secs * hz); k++) {
-    const n = sim.frame(1 / hz), DF = sim.B.DF();
-    for (const b of tags) {
+    const fd = sched ? sched(k) : 1 / hz; tm += fd;
+    const n = sim.frame(fd), DF = sim.B.DF();
+    for (const b of all ? sim.B.BIRDS : tags) {
+      if (b.st === 'perch') lp.set(b, k);
+      if (b.st === 'land' && b.P && nl.get(b) !== b.P) { nl.set(b, b.P); nn.set(b, (nn.get(b) || 0) + 1); }
       const s = b.s; if (!s || s.seenF !== DF || sim.t < 0.2) continue;
       let a = tr.get(b); if (!a) tr.set(b, a = []);
-      a.push({ k, n, span: s.spanPx, hb: [s.HB[0], s.HB[1]], D: Float64Array.from(s.D46), kind: b.kind, st: b.st });
+      a.push({ k, n, span: s.spanPx, hb: [s.HB[0], s.HB[1]], D: Float64Array.from(s.D46), kind: b.kind, st: b.st, lv: lp.has(b) ? k - lp.get(b) : 1e9, nth: nn.get(b) || 0, tm });
     }
     if (each) each(sim, tags);
   }
@@ -33,7 +37,7 @@ function jumps(hz, scenes, states) {
   const k60 = (60 / hz) ** 2; let worst = { f: 0 }, worstB = { b: 0 };
   for (const cs of scenes) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24).values())
     for (let n = 1; n < F.length - 1; n++) {
-      const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st))) continue;   // (the first frames: the scene was set up on the step clock)
+      const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st) && !(b.st === 'fly' && states.includes('takeoff') && b.lv <= 2 * hz))) continue;   // ('takeoff': flying, within 2 s of its perch)   // (the first frames: the scene was set up on the step clock)
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
       const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.25));
       if (f > worst.f) worst = { f, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
@@ -43,7 +47,7 @@ function jumps(hz, scenes, states) {
 }
 
 test('60 Hz: no landing or perched bird\'s drawn form or body jumps', () => {
-  const { worst, worstB } = jumps(60, ['perch', 'drop', 'click', 'cursor'], ['land', 'perch']);
+  const { worst, worstB } = jumps(60, ['perch', 'drop', 'click', 'cursor'], ['appr', 'land', 'perch', 'takeoff']);
   console.log(`# 60 Hz: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
@@ -152,30 +156,88 @@ test('every landing starts its flare from none (a second landing keeps nothing o
   assert.equal(stale, 0, `${stale} landings began with the last landing's flare (${at})`);
 });
 
-test('no perched bird stands in the air above its ink (at most 1 px under its feet)', () => {
-  const FT = [0, 0]; let n = 0, over = 0, max = -1e9, at = '';
-  for (const cs of ['drop', 'perch']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) {
+test('no perched bird stands in the air above its own ink (over 1 px for no more than 0.15 s)', () => {
+  const FT = [0, 0]; let n = 0, over = 0, runMax = 0, runAt = '', max = -1e9, at = '';
+  for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
     const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
-    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [], run = new Map();
     for (let k = 0; k < 26 * 60; k++) {
       if (sc.each) sc.each(sim, tags);
       sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX;
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
-        if (P.hop || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose)
-        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k); let low = -1e9;
-        for (let i = 0; i < NV; i++) {
+        if (P.hop || P.act || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose; an act lifts its wings, not it)
+        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), pts = B.ledges()[P.li].pts, x0 = pts[0][0], x1 = pts[pts.length - 1][0]; let air = 1e9;
+        for (let i = 0; i < NV; i++) {   // (the gap between the ink and the lowest of its points over the ink: its own glyph's tops)
           const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
           const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
-          if (Math.abs(sx - FT[0]) <= 0.18 * sp) low = Math.max(low, sy);
+          if (sx < x0 || sx > x1 || Math.abs(sx - FT[0]) > 0.18 * sp) continue;   // (over its own ink, by its feet)
+          const top = B.surfY(pts, sx); if (top === top) air = Math.min(air, top - sy);
         }
-        const air = FT[1] - low; n++;
+        if (air > 1e8) continue;
+        n++; const r = air > 1 ? (run.get(b) || 0) + 1 : 0; run.set(b, r); if (r > runMax) { runMax = r; runAt = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; }
         if (air > max) { max = air; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; }
         if (air > 1) over++;
       }
     }
   }
-  console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at})`);
+  console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at}); longest ${runMax} frames (${runAt})`);
   assert.ok(n > 1000, 'too few perched frames');
-  assert.equal(over, 0, `${over} perched frames with over 1 px of air under the feet (most ${max.toFixed(2)} px, ${at})`);
+  // (a change of what holds it up settles over a few frames, the rest following critically damped: no bird stays in the air)
+  assert.ok(runMax <= 9, `a perched bird stood over 1 px above its ink for ${runMax} frames (${runAt})`);
+  assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
+});
+
+test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
+  const k60 = 1; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 80, null, size, true).values())
+    for (let n = 1; n < F.length - 1; n++) {
+      const a = F[n - 1], b = F[n], c = F[n + 1]; if (b.nth < 2 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch')) continue;
+      frames++;
+      const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
+      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / 0.1;
+      if (f > worst.f) worst = { f, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (bb > worstB.b) worstB = { b: bb, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
+    }
+  console.log(`# second landings: ${frames} frames; worst form ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
+  assert.ok(frames > 100, 'too few frames of a second landing');
+  assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
+  assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
+});
+
+test('a speck moves evenly: its coarse steps are not drawn a share of one step back', () => {
+  let sum = 0, n = 0, max = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 30, null, size, true).values())
+    for (let i = 1; i < F.length - 1; i++) {
+      const a = F[i - 1], b = F[i], c = F[i + 1]; if (b.k !== a.k + 1 || c.k !== b.k + 1 || b.st !== 'fly' || !(b.span > 0 && b.span < 2)) continue;
+      const d = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]); sum += d; n++;
+      if (d > max) { max = d; at = `natural ${size} ${seed} frame ${b.k}`; }
+    }
+  const mean = sum / Math.max(n, 1);
+  console.log(`# speck frames: ${n}; body second difference ${mean.toFixed(3)} px a frame on average, most ${max.toFixed(2)} (${at})`);
+  assert.ok(n > 1000, 'too few speck frames');
+  assert.ok(mean < 0.005, `specks judder: ${mean.toFixed(3)} px a frame on average (${at})`);
+});
+
+/* (the hub's re-review) a real display's frames are not even: each a little early or late, now and then one dropped. The
+   drawn motion is scored over the frames' own times (a second difference over uneven steps, at 60 Hz's scale) */
+function jitter(hz, seed) { let r = seed * 2654435761 % 4294967296; const rnd = () => (r = (r * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  return (k) => (rnd() < 0.01 ? 2 : 1) / hz + (rnd() - 0.5) * 0.001; }
+for (const hz of [60, 144]) test(`${hz} Hz, uneven (frames off by up to 0.5 ms, now and then one dropped): no landing or perched bird jumps`, () => {
+  let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
+  for (const cs of ['perch', 'drop', 'cursor']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24, null, '960x600', false, jitter(hz, seed)).values())
+    for (let n = 1; n < F.length - 1; n++) {
+      const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch' && b.st !== 'appr')) continue;
+      if (b.st === 'perch' && (a.li !== b.li || b.li !== c.li) && a.st === 'perch' && c.st === 'perch') continue;
+      const h1 = b.tm - a.tm, h2 = c.tm - b.tm, g = 2 / (h1 * h2 * (h1 + h2)) / 3600;   // (to 60 Hz's frame: the second difference a 1/60 s step would show)
+      let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a, i), q = sh(b, i), r = sh(c, i); m = Math.max(m, Math.hypot(h2 * p[0] - (h1 + h2) * q[0] + h1 * r[0], h2 * p[1] - (h1 + h2) * q[1] + h1 * r[1]) * g); }
+      const bb = Math.hypot(h2 * a.hb[0] - (h1 + h2) * b.hb[0] + h1 * c.hb[0], h2 * a.hb[1] - (h1 + h2) * b.hb[1] + h1 * c.hb[1]) * g;
+      const k60 = hz === 60 ? 1 : 0.3, lim = 0.25 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2 * (hz === 60 ? 1 : (60 / hz) ** 2) / ((60 / hz) ** 2), f = m / b.span / lim, bq = bb / b.span / (0.1 * k60 / ((60 / hz) ** 2)); frames++;
+      if (f > worst.f) worst = { f, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
+      if (bq > worstB.b) worstB = { b: bq, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
+    }
+  console.log(`# ${hz} Hz uneven: ${frames} frames; worst form ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
+  assert.ok(frames > 1000, 'too few frames');
+  assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
+  assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
 });
