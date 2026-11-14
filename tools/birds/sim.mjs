@@ -28,8 +28,8 @@ export const SIZES = {
 const TANX = Math.tan(36 * Math.PI / 180), G = 9.81;
 /* the land: the world's real ground, recorded on the 4090 (tools/gpu/record-ground.mjs: world seed 11, the camera's
    ground and the sea of cloud's weight and level, +-1500 m about the landing, every 10 m; outside it, its edge).
-   test/ground.mjs refuses a stale recording (the land's sources changed since): every case then fails, saying to
-   re-record. BIRDS_GROUND=stub: the old low hills and patches of sea instead. The sea is where the module's own test
+   tools/checks/37-ground-fresh.sh fails a stale recording (the world's ground moved since), saying to re-record.
+   BIRDS_GROUND=stub: the old low hills and patches of sea instead. The sea is where the module's own test
    holds (its weight over 0.85: a sink starts only there), and its level is the page's (SEA_LO + RISE x weight) */
 export const GROUND = process.env.BIRDS_GROUND === 'stub' ? null : loadGround(11);
 export const groundAt = GROUND ? (x, z) => GROUND.groundAt(x, z) : (x, z) => -60 + 35 * Math.sin(x / 700) * Math.cos(z / 900);

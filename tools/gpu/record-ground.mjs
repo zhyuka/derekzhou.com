@@ -5,29 +5,17 @@
 // asks its own probe program for the camera's ground (mode 1: what the ink birds' host reads) and its CPU maps for the
 // sea of cloud's weight (kitAt) on a grid of cell metres, half metres about the landing. Writes
 // test/golden/ground/<seed>.bin (float32: the heights, then the sea's weights, row by row from x0, z0) and <seed>.json
-// (the grid, the renderer, the sea's level constants and landHash(): test/ground.mjs refuses a recording whose hash
-// is not today's, so a stale one never passes).
-import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { spawn, execFileSync } from 'node:child_process';
+// (the grid, the renderer, the sea's level constants). The page is tools/ground-site.mjs's, the one
+// tools/ground-fresh.mjs reads under SwiftShader in every check (37-ground-fresh): a recording that is not today's
+// world's fails there.
+import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url';
-import { landHash, DIR } from '../../test/ground.mjs';
+import { DIR } from '../../test/ground.mjs';
+import { hookedSite } from '../ground-site.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(HERE, '../..'), PW = createRequire(import.meta.url)('./pw.js');
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const seed = +(A.seed || 11), half = +(A.half || 1500), cell = +(A.cell || 10), n = Math.round(2 * half / cell) + 1, x0 = -half, z0 = -half;
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ground-')), site = path.join(tmp, 'site');
-execFileSync(process.execPath, [path.join(ROOT, 'tools/build.mjs'), '--plain', site], { cwd: ROOT, stdio: 'ignore' });
-execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', '--min-glsl', path.join(ROOT, 'src'), path.join(tmp, 'ship')], { cwd: ROOT, stdio: 'ignore' });   // (the world readable, its GLSL as the build minifies it: the dev assembly, the record in it but off, REC null and DEVMODE false, so it runs as the shipped page does)
-const readable = fs.readFileSync(path.join(tmp, 'ship', 'world.js'), 'utf8'), end = readable.lastIndexOf('})();');
-if (end < 0) throw new Error('record-ground: the world script\'s end not found');
-const HOOK = `
-  /* (record-ground.mjs, this copy only) the camera's ground at points, by the world's probe, and the sea's weight */
-  self.__GROUND = function (xz) {
-    var V = SIM.V; if (!V || !READY || !shown) return null;
-    var k, m = xz.length / 2, pts = new Float32Array(xz), J = probeJob(V, pts, m, 1, true), w = [];
-    for (k = 0; k < m; k++) w.push(kitAt(pts[2 * k], pts[2 * k + 1]).wC);
-    return { h: Array.from(J.h), w: w, seaLo: SEA_LO, rise: RISE, renderer: EXT.renderer };
-  };
-`;
-fs.writeFileSync(path.join(site, 'world.js'), readable.slice(0, end) + HOOK + readable.slice(end));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ground-')), site = hookedSite(ROOT, tmp);
 const port = 9930 + Math.floor(Math.random() * 40), srv = spawn(process.execPath, [path.join(HERE, 'cfserve.js'), site, String(port)], { stdio: 'ignore' });
 await new Promise((r) => setTimeout(r, 900));
 const br = await PW.chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist'] });
@@ -49,8 +37,8 @@ try {
   const both = new Float32Array(2 * n * n); both.set(H); both.set(W, n * n);
   fs.writeFileSync(path.join(DIR, seed + '.bin'), Buffer.from(both.buffer));
   let lo = Infinity, hi = -Infinity; for (const v of H) { if (v < lo) lo = v; if (v > hi) hi = v; }
-  const J = { seed, x0, z0, cell, n, hash: landHash(), seaLo: meta.seaLo, rise: meta.rise, renderer: meta.renderer, heights: [+lo.toFixed(2), +hi.toFixed(2)],
+  const J = { seed, x0, z0, cell, n, seaLo: meta.seaLo, rise: meta.rise, renderer: meta.renderer, heights: [+lo.toFixed(2), +hi.toFixed(2)],
     what: "the camera's ground (the world's probe, mode 1) and the sea of cloud's weight (kitAt) on a grid about the landing; float32, heights then weights, row by row from x0, z0" };
   fs.writeFileSync(path.join(DIR, seed + '.json'), JSON.stringify(J, null, 1) + '\n');
-  console.log(`record-ground: seed ${seed}: ${n} x ${n} points every ${cell} m about the landing, heights ${J.heights.join(' to ')} m, on ${meta.renderer}; hash ${J.hash}`);
+  console.log(`record-ground: seed ${seed}: ${n} x ${n} points every ${cell} m about the landing, heights ${J.heights.join(' to ')} m, on ${meta.renderer}`);
 } finally { await br.close(); srv.kill(); fs.rmSync(tmp, { recursive: true, force: true }); }
