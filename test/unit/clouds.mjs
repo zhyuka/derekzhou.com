@@ -138,6 +138,8 @@ test('clouds: a far bank hazes by its colour and stays opaque to the last quarte
   assert.match(VBODY, /oC = vec4\(col \* al, al\) \* smoothstep\(0\.0, 0\.25, uVR2\.y\);/, 'the far body fades by its opacity over its whole weight');
   const op = (w) => Math.min(Math.max(w / 0.25, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max(w / 0.25, 0), 1));
   for (const w of [0.25, 0.5, 0.9]) assert.equal(op(w), 1, `at weight ${w} the bank is opaque`);
+});
+
 // ------------------------------------------------------------------ one cloud field on every tier (the hub's review of #238)
 // The landscape 'hi' stills are baked as a non-touch desktop and shown to touch landscape devices of other tiers (an
 // iPad 'low', an 8 GB Android or Windows touch 'full') until the cut to the live world: the bake's field must be the
