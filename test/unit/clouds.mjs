@@ -124,8 +124,30 @@ const VDENS = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vdens.glsl'), '
 test('clouds: the bake reads its billows at LOD 0 on a tile of 24 voxels or more; the march uses the body\'s voxel', () => {
   assert.match(VDENS, /float n = textureLod\(uN3, q, 0\.0\)\.g;/, 'the bake\'s billows at an implicit LOD');
   assert.ok(!/texture\(uN3/.test(VDENS), 'an implicit-LOD read of the noise is left in the bake');
-  assert.match(WORLD, /gl\.uniform4f\(P\.u\.uVK, B\.seed, B\.erode, Math\.max\(vb\.Rm \* B\.noise, 24 \* vb\.vox\), vb\.Rm \* B\.blend\);/);
+  assert.match(WORLD, /var tile = Math\.max\(Rm \* \(B\.noise \|\| 3\.6\), 24 \* voxL\);/, 'the billows\' tile is not at least 24 of the layout\'s voxels');
   assert.match(WORLD, /if \(memTier\(\) === 'desktop'\) res = Math\.round\(\(res \|\| 52\) \* 64 \/ 44\);/);
   assert.match(VBODY, /float vox = uVVox,/, 'the march\'s voxel is its box over 26');
   assert.match(WORLD, /gl\.uniform1f\(P\.u\.uVVox, B\.vox\);/);
+});
+
+// ------------------------------------------------------------------ one cloud field on every tier (the hub's review of #238)
+// The landscape 'hi' stills are baked as a non-touch desktop and shown to touch landscape devices of other tiers (an
+// iPad 'low', an 8 GB Android or Windows touch 'full') until the cut to the live world: the bake's field must be the
+// same on every tier. volPrep, run for the desktop and for a touch tier: the lobes, the box, the billows' tile and the
+// body's noise all the same (the field fs-vdens bakes is a function of these alone); only the voxels' count differs
+test('clouds: a body bakes the same field on the desktop and on a touch tier, only finer on the desktop', () => {
+  const PREP = cut(WORLD, '  function volPrep(', '  /* up to budget units');
+  const lobes = [[0, 300, 0, 60], [55, 330, 20, 48], [-40, 310, -30, 52], [10, 380, 5, 40]];
+  const a = new Float32Array(lobes.length * 12); lobes.forEach((l, i) => a.set(l, i * 12));
+  const PF = { a, bodies: [{ i0: 0, yaw: 0.4, billow: 0.8, noise: 3.6, erode: 0.75, seed: 0.41 }], count: () => lobes.length };
+  const run = (tier) => vm.runInThisContext('(function (memTier) { var DEVMODE = false, SW = {}, VOL16 = false; function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function volDetail() { return new Float32Array([96, 4.6]); }\n' + PREP + ' return volPrep; })')(() => tier)(PF, 0, null, 44, {});
+  const d = run('desktop'), t = run('full'), l = run('low');
+  for (const [name, o] of [['full', t], ['low', l]]) {
+    assert.equal(d.tile, o.tile, `the billows' tile differs between the desktop and ${name}: ${d.tile} m against ${o.tile} m`);
+    assert.deepEqual(Array.from(d.L), Array.from(o.L), `the lobes differ on ${name}`);
+    assert.deepEqual(Array.from(d.h), Array.from(o.h), `the box differs on ${name}`);
+    assert.deepEqual(d.B, o.B, `the body's noise differs on ${name}`);
+  }
+  assert.ok(d.vox < t.vox && d.dims[0] > t.dims[0], 'the desktop is not baked finer than a touch tier');
+  assert.match(WORLD, /gl\.uniform4f\(P\.u\.uVK, B\.seed, B\.erode, vb\.tile, vb\.Rm \* B\.blend\);/, 'the bake does not use volPrep\'s tile');
 });
