@@ -30,7 +30,7 @@
         var d = Math.sqrt(dx * dx + dz * dz), R = o.r + mh;
         if (d >= R) continue;
         var up = o.y1 + mh - CS.y, outh = R - d;
-        if (up < outh) { CS.y = o.y1 + mh; if (CS.vy < 0) CS.vy = 0; }
+        if (up < outh) { CS.y = o.y1 + mh; if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; }
         else { var k = R / Math.max(d, 1e-3); CS.x = o.x + dx * k; CS.z = o.z + dz * k; }
         SIM.fixO++;
       } else {
