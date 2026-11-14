@@ -15,8 +15,10 @@
   var TSCALE = 1;
   function simAdvance(dt) {
     SIM.acc += Math.min(dt, DTMAX);
-    var n = 0;
-    while (SIM.acc >= SIM_DT && n < NMAX) { if (!simStepOnce()) { SIM.acc = 0; break; } SIM.acc -= SIM_DT; n++; }
+    var n = 0, T = TSCALE === 1 && dt > 0 && CLK[1] >= 0 ? CLK[1] : -1;   // (the frame's time, ms: each step ends SIM.acc before it, less the moves' lag, and takes the drag made by then)
+    if (T >= 0) T -= dragLag(T, Math.min(dt, DTMAX));
+    while (SIM.acc >= SIM_DT && n < NMAX) { INP.until = T < 0 ? Infinity : T - (SIM.acc - SIM_DT) * 1000; if (!simStepOnce()) { SIM.acc = 0; break; } SIM.acc -= SIM_DT; n++; }
+    INP.until = Infinity;
     if (n >= NMAX) SIM.acc = 0;
     SIM.alpha = clamp(SIM.acc / SIM_DT, 0, 1);
   }
