@@ -75,16 +75,23 @@ function boil({ dist, v, Kmax, scale = 80, amp = 5, band = 4, R = 60, frames = 4
 test('clouds: the edge band is cut into pieces in the shader, at most 12, the cap a uniform the world sets per tier', () => {
   assert.match(VBODY, /uniform float uVK;/, 'fs-vbody has no uVK: one piece a segment');
   assert.match(VBODY, /for \(int k = 1; k < 12; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 12, broken at K) is not in fs-vbody');
+  // (the shader's own cutting, as the model below does it: a mutation of any of these passed before, the hub's review)
+  assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (0.5 * texel * exp2(lod))), 1.0, uVK) : 1.0;'), 'the pieces\' count is not the two-sided test and half a texel at the LOD, capped by uVK');
+  assert.ok(VBODY.includes('sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;'), 'a cut does not read the billows again at its own place');
+  assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
+  assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
+  assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
+  assert.ok(VBODY.includes('vec3 nOff = fract(uVC / uVR.z)') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
   assert.ok(VK, '410 sets no uVK for the tiers');
   assert.ok(CAP.desktop <= 12 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 12`);
 });
-test('clouds: the edge band boils under 0.02 on the desktop at 80, 150 and 300 m; the rest 4 times calmer than one piece', () => {
+test('clouds: the edge band boils under 0.02 on the desktop at 80, 150 and 300 m; the rest take one piece', () => {
+  assert.equal(CAP.rest, 1, 'off the desktop\'s top tier the band is not cut (4 pieces bound every segment on a phone for no gain)');
   const rows = [];
   for (const dist of [80, 150, 300]) for (const v of [0.25, 0.5]) {
     const one = boil({ dist, v, Kmax: 1 }), d = boil({ dist, v, Kmax: CAP.desktop }), r = boil({ dist, v, Kmax: CAP.rest });
     rows.push(`${dist} m at ${v} m/frame: one piece ${one.toFixed(3)}, desktop ${d.toFixed(3)}, the rest ${r.toFixed(3)}`);
     assert.ok(d < 0.02, `the desktop's edge boils: ${rows.at(-1)}`);
-    assert.ok(r < one / 4, `the rest's edge boils: ${rows.at(-1)}`);
   }
   if (process.env.CLOUDS_SAY) console.log(rows.join('\n'));
 });
@@ -97,7 +104,12 @@ test('clouds: the band\'s steps are one budget a tier, and the leaps have their 
   const D = cut(WORLD, '    var push = pushVol;', '    ST.vols = m;');
   assert.ok(!/d < 2500/.test(D), 'the volume draw cuts the steps by distance');
   assert.match(D, /var VSTEPS = memTier\(\) === 'desktop' && TIER >= 1 \? 48 : 32;/);
-  assert.match(D, /var steps = VSTEPS;/);
+  assert.match(D, /var steps = d < B\.r \* 1\.5 \? 48 : VSTEPS;/, 'a body the camera is near does not keep its 48 steps on every tier');
+  // (leaps never shrink the band's steps: taken counts band samples only, so it is counted after the leap branch's
+  // continue and before mS reads it; moved back before the leap test, or dropped, every leap would cut a band step)
+  const leapEnd = VBODY.indexOf('max((s - amp) * 0.6, dE); continue;'), tk = VBODY.indexOf('taken += 1.0;'), ms = VBODY.indexOf('float mS = (tf - t) / max(uVR.y - taken + 1.0, 1.0);');
+  assert.ok(leapEnd > 0 && tk > leapEnd && ms > tk, 'taken is not counted after the leap branch and before mS: leaps would shrink the band\'s steps');
+  assert.equal(VBODY.split('taken += 1.0;').length - 1, 1, 'taken is counted more than once a sample');
   assert.match(VBODY, /if \(t > tf \|\| last \|\| taken >= uVR\.y\) break;/, 'the march stops on the loop\'s count, leaps and all');
   assert.match(VBODY, /&& leaps < 32\.0\) \{/, 'the leaps have no cap of their own');
   const loop = /for \(int i = 0; i < (\d+); i\+\+\) \{\n\s*if \(t > tf/.exec(VBODY);
