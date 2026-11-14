@@ -9,9 +9,9 @@
      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
-  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, q: /** @type {number[]} */ ([]), until: Infinity, lt: -1, ln: 0, lag: -1, lnF: 0 };   // (q: the drag's moves not yet taken, four numbers a move: from, to (ms, the events' clock), dx, dy; until: the wall time the step being taken ends at; lt, ln: the newest move's time and a count; lag: how far behind the frame the moves come, ms)
+  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0 };   // (fx, fy: the drag drawn since the last step, for the release's speed)
   var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
-  var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0, lt: 0 };
+  var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
      pointer where the device hovers: one passive listener of its moves (onHover: a mouse's or a pen's place, CSS px,
      hover included) and one of its leaving (onHoverOut: the pointer off the window), both added and removed by hoverSync
@@ -46,13 +46,9 @@
       if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
       DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (data-steer and the selection cleared in the next frame)
       if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
-      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0; DRAG.lt = -1; INP.lag = -1;   // (the first 8 px are taken too: the scene catches the finger up)
+      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0;   // (the first 8 px are taken too: the scene catches the finger up)
     }
-    var mx = x - DRAG.x, my = y - DRAG.y, ts = e.timeStamp;
-    INP.dx += mx; INP.dy += my; DRAG.x = x; DRAG.y = y;
-    // (the move, timed: spread over the time since the last, so each step takes what the finger moved in its own time;
-    // a time not on the frame's clock is taken whole by the next step, as is the first move of a drag)
-    if (ts > 0 && Math.abs(ts - clockNow()) < 1000) { if (INP.q.length >= 256) INP.q.splice(0, 4); INP.q.push(DRAG.lt >= 0 && DRAG.lt < ts ? DRAG.lt : ts, ts, mx, my); DRAG.lt = ts; INP.lt = ts; INP.ln++; }
+    INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y;
     if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (the record: the oldest move not yet drawn, for the input's latency)
   }
   function onUp(e) {
@@ -113,49 +109,37 @@
   }
   /* each step: the drag's motion and the phone's into the flight's state */
   var IDLE_K = 0;
-  /* the drag a step takes: every move made by the wall time u, a move that spans u in part (its share of its time);
-     what is left waits for the next step, so a steady drag turns the view the same amount each frame on any display.
-     Untimed motion (a dev script's) is taken whole. TAKE: what was taken */
-  var TAKE = { x: 0, y: 0 };
-  function dragTake(u) {
-    var q = INP.q, j = 0, rx = 0, ry = 0;
-    for (var i = 0; i < q.length; i += 4) {
-      var p = q[i], s = q[i + 1];
-      if (s <= u) continue;
-      if (p < u) { var f = (s - u) / (s - p); q[i] = u; q[i + 2] *= f; q[i + 3] *= f; }
-      rx += q[i + 2]; ry += q[i + 3];
-      if (j !== i) { q[j] = q[i]; q[j + 1] = s; q[j + 2] = q[i + 2]; q[j + 3] = q[i + 3]; }
-      j += 4;
-    }
-    q.length = j;
-    TAKE.x = INP.dx - rx; TAKE.y = INP.dy - ry; INP.dx = rx; INP.dy = ry;
-    if (!j) { INP.dx = 0; INP.dy = 0; }
-  }
-  /* the frame's clock for the drag (simAdvance, a frame at T ms, dt s): the steps end that much before the frame, so a
-     step never takes a time the finger has not yet reported (a move comes a little before the frame that reads it: a
-     mouse's under 1 ms, a phone's touch up to 8). It is learnt in each frame a move came in, from the drag's first: it
-     rises at once and falls 0.5 ms a second, so it holds still while the drag does */
-  function dragLag(T, dt) {
-    if (INP.ln !== INP.lnF) { INP.lnF = INP.ln; var g = clamp(T - INP.lt, 0, 34); INP.lag = INP.lag < 0 || g > INP.lag ? g : Math.max(g, INP.lag - 0.5 * dt); }
-    return INP.lag < 0 ? 0 : INP.lag;
+  /* each frame, before its steps (simAdvance): the drag moved since the last frame turns both states the camera is
+     drawn between, so the view follows the finger in the frame that reads its move, by exactly the finger's move, on
+     any display and at any phase of the steps (a step's share of a frame's drag drew 0, 1 or 2 frames' worth a frame).
+     A drag ended by a release still draws its last moves; a cancelled one draws none. The steps then read what was
+     drawn (INP.fx, fy) for the release's speed */
+  function inputFrame() {
+    if (!INP.dx && !INP.dy) return;
+    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
+    INP.dx = 0; INP.dy = 0;
+    if (!INP.down && !INP.rel) return;
+    CS.yawV += ax; CSP.yawV += ax;
+    CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);
+    INP.fx += ax; INP.fy += ay;
   }
   function applyInput(dt, t, V) {
-    // (dev: a scripted input replayed at its own times)
+    // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given)
     while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
-    dragTake(INP.down || INP.rel ? INP.until : Infinity);   // (released: the moves before it still taken at their own times; cancelled: none)
-    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = TAKE.x, dy = TAKE.y, any = false;
-    if (dx || dy) any = true;
-    if (INP.down || INP.rel) {
-      CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
-      CS.ring[CS.ri] = dx * G; CS.ringP[CS.ri] = dy * G; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
+    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, fx = INP.fx, fy = INP.fy, any = false;
+    INP.dx = 0; INP.dy = 0; INP.fx = 0; INP.fy = 0;
+    if (dx || dy || fx || fy) any = true;
+    if (INP.down) { CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX); }
+    if (INP.down || fx || fy) {   // (a step after the release still reads the moves drawn before it)
+      CS.ring[CS.ri] = dx * G + fx; CS.ringP[CS.ri] = dy * G + fy; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
       CS.om = 0; CS.omP = 0; CS.since = 0;
     }
-    if (INP.rel && !INP.q.length) {
+    if (INP.rel) {
       INP.rel = false; any = true;
       var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
       CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg)
     }
-    if (!INP.down && !INP.rel) {
+    if (!INP.down) {
       CS.yawV += CS.om * dt; CS.om *= Math.exp(-dt / 0.3);
       // (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
       // 18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
@@ -176,7 +160,7 @@
     if (any) {
       CS.lastIn = t; CS.auto = 0;
       IDLE_K++; CS.idleAfter = 6 + 4 * hfl(ihash((IDLE_K * 2654435761 + (shown ? SEEDR : J.seed)) >>> 0));   // (6-10 s before the clearance eases back to the cruise height)
-      if (DEVMODE) INPLOG.push([+t.toFixed(4), +dx.toFixed(2), +dy.toFixed(2), INP.down ? 1 : 0, MOTION.has ? +(MOTION.yaw / DEG).toFixed(3) : null, MOTION.has ? +(MOTION.pitch / DEG).toFixed(3) : null]);
+      if (DEVMODE) INPLOG.push([+t.toFixed(4), +(dx + fx / G).toFixed(2), +(dy + fy / G).toFixed(2), INP.down ? 1 : 0, MOTION.has ? +(MOTION.yaw / DEG).toFixed(3) : null, MOTION.has ? +(MOTION.pitch / DEG).toFixed(3) : null]);
     }
   }
   /* dev: an input injected at a step's time ({ t, drag: [dx, dy] } moves a held drag; { t, down } / { t, up } press and

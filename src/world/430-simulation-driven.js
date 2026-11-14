@@ -14,11 +14,10 @@
   var DTMAX = DEVMODE && OPT.dtmax && +OPT.dtmax > 0 ? Math.min(+OPT.dtmax, 2) : 0.1, NMAX = Math.ceil(DTMAX / SIM_DT) + 2;
   var TSCALE = 1;
   function simAdvance(dt) {
+    inputFrame();   // (the frame's drag, drawn in this frame: both states turned by it)
     SIM.acc += Math.min(dt, DTMAX);
-    var n = 0, T = TSCALE === 1 && dt > 0 && CLK[1] >= 0 ? CLK[1] : -1;   // (the frame's time, ms: each step ends SIM.acc before it, less the moves' lag, and takes the drag made by then)
-    if (T >= 0) T -= dragLag(T, Math.min(dt, DTMAX));
-    while (SIM.acc >= SIM_DT && n < NMAX) { INP.until = T < 0 ? Infinity : T - (SIM.acc - SIM_DT) * 1000; if (!simStepOnce()) { SIM.acc = 0; break; } SIM.acc -= SIM_DT; n++; }
-    INP.until = Infinity;
+    var n = 0;
+    while (SIM.acc >= SIM_DT && n < NMAX) { if (!simStepOnce()) { SIM.acc = 0; break; } SIM.acc -= SIM_DT; n++; }
     if (n >= NMAX) SIM.acc = 0;
     SIM.alpha = clamp(SIM.acc / SIM_DT, 0, 1);
   }
