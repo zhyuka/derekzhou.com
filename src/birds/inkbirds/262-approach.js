@@ -127,7 +127,7 @@
       perchFoot(P, PF2); rayAt(C, PF2[0], PF2[1] - P.rest, P.D, P.at);
       rx = b.p[0] - P.at[0] + P.v[0] * dt; ry = b.p[1] - P.at[1] + P.v[1] * dt; rz = b.p[2] - P.at[2] + P.v[2] * dt; d = Math.sqrt(rx * rx + ry * ry + rz * rz);   // (from the perch a step ago: where the bird is, before this step)
       var wx = b.v[0] - P.v[0], wy = b.v[1] - P.v[1], wz = b.v[2] - P.v[2], wc = -(rx * wx + ry * wy + rz * wz) / (d || 1);
-      b.st = 'land'; P.tl = t - dt; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
+      b.st = 'land'; b.flareU = 0; P.tl = t - dt; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
       landCurve(b, dt);   // (the curve begun a step back and flown now: the step it switches in is not lost)
       return;
     }
