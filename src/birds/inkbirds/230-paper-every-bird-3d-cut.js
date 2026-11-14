@@ -81,10 +81,10 @@
   function wingKey(b) { var k = b.st === 'fly' ? 1 : b.st === 'appr' ? 2 : b.st === 'round' ? 3 : b.st === 'land' ? 4 : 5; k = k * 8 + (b.burst ? 4 : 0) + (b.st === 'appr' ? (b.flapA === 1 ? 2 : b.flapA === 0 ? 1 : 0) : 0); return k; }   // (not the leave: perchPose eases into its opening itself)
   function wingXF(b, s) {
     var k = wingKey(b), i;
-    if (s.xKey >= 0 && k !== s.xKey) { for (i = 0; i < 22; i++) s.XF22[i] = s.LP22[i]; s.xT0 = t; }
+    if (s.xKey >= 0 && k !== s.xKey) { for (i = 0; i < 22; i++) s.XF22[i] = s.LP22[i]; for (i = 0; i < 3; i++) s.XB3[i] = s.LB3[i]; s.xFW = s.lFW; s.xT0 = t; }
     s.xKey = k;
-    if (s.xT0 >= 0) { var u = (t - s.xT0) / XF_T; if (u >= 1) s.xT0 = -1; else { var w = ease(u); for (i = 0; i < 22; i++) s.P22[i] = s.XF22[i] + (s.P22[i] - s.XF22[i]) * w; } }
-    for (i = 0; i < 22; i++) s.LP22[i] = s.P22[i];
+    if (s.xT0 >= 0) { var u = (t - s.xT0) / XF_T; if (u >= 1) s.xT0 = -1; else { var w = ease(u); for (i = 0; i < 22; i++) s.P22[i] = s.XF22[i] + (s.P22[i] - s.XF22[i]) * w; for (i = 0; i < 3; i++) s.B3[i] = s.XB3[i] + (s.B3[i] - s.XB3[i]) * w; s.flapW = s.xFW + ((s.flapW || 0) - s.xFW) * w; } }   // (the pose, the glide's bank and the wings' angle of attack, all three)
+    for (i = 0; i < 22; i++) s.LP22[i] = s.P22[i]; for (i = 0; i < 3; i++) s.LB3[i] = s.B3[i]; s.lFW = s.flapW || 0;
   }
   function dist3(a, c) { var x = a[0] - c[0], y = a[1] - c[1], z = a[2] - c[2]; return Math.sqrt(x * x + y * y + z * z); }
   /* a bird in the air, posed: its place now (between the last two steps: back along its way), its basis, its wings */
@@ -159,6 +159,7 @@
     var br = 2.4 * wave(b.vK + 7, b.age / 3.1), bh = 1.8 * wave(b.vK + 19, b.age / 2.3);
     s.P22[0] += br; s.P22[NP] += br; s.P22[4] += bh; s.P22[NP + 4] += bh;
     var A = P.act;
+    if (A) { for (var j = 0; j < 22; j++) RP22[j] = s.P22[j]; }   // (the pose it stands in, before the act: its rest is solved on that)
     if (A) {
       var ua = (t - A.t0) / A.T, wa = Math.sin(Math.PI * clamp(ua, 0, 1));
       if (A.k === 'wings') gmix(s.P22, s.P22, Q.open, 0.7 * ease(1.4 * wa));   // (both wings raised: a lifted M, and let down)
@@ -172,10 +173,10 @@
   function tilt(C, v0, v1, v2, o) { var a = v0 * C.u[0] + v1 * C.u[1] + v2 * C.u[2], bb = v0 * C.f[0] + v1 * C.f[1] + v2 * C.f[2], c = v0 * C.r[0] + v1 * C.r[1] + v2 * C.r[2], a2 = a * TCE + bb * TSE, b2 = bb * TCE - a * TSE; o[0] = C.r[0] * c + C.u[0] * a2 + C.f[0] * b2; o[1] = C.r[1] * c + C.u[1] * a2 + C.f[1] * b2; o[2] = C.r[2] * c + C.u[2] * a2 + C.f[2] * b2; }
   /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its lowest drawn points on the
      surface (a letter's ink under them; on the tip, the tip), with its pose and basis as they are */
-  function surfC(pts, x) { var n = pts.length; if (x <= pts[0][0]) return pts[0][1] + 2 * (pts[0][0] - x); if (x >= pts[n - 1][0]) return pts[n - 1][1] + 2 * (x - pts[n - 1][0]); return surfY(pts, x); }   // (past its ends the ledge falls away steeply: continuous, and no ink where there is none)
-  function restSolve(b, C, s, fxp, fyp, lift, V) {
+  function restSolve(b, C, s, fxp, fyp, lift, V, at) {
     if (!V) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); V = s.V46; }
     var P = b.P, sp = perchSpan(b, P.k), up = P.rest || 0.42 * sp, k2 = (W / 2) / VW.tanX, lg = P.kind === 'pointer' ? null : ledges()[P.li], i;
+    if (at !== undefined) { rayAt(C, fxp, fyp - at - lift * sp, P.D, RQ); placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V); return at; }   // (placed at a rest given, not solved)
     for (var it = 0; it < 4; it++) {
       rayAt(C, fxp, fyp - up - lift * sp, P.D, RQ);
       placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V);
@@ -184,7 +185,7 @@
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (syy > low) low = syy;
-        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; var v = syy - sf - (ax > 0 ? 3 * ax : 0); if (v > worst) { sS = sS * Math.exp(worst - v) + 1; worst = v; } else sS += Math.exp(v - worst); } }   // (one continuous support: the points far from its feet, or past the ledge's ends, not counted, smoothly; the lowest of them by a soft max, 1 px wide, so the rest never kinks as one point passes another)
+        if (lg) { var sf = surfY(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; var v = syy - sf - (ax > 0 ? 3 * ax : 0); if (v > worst) { sS = sS * Math.exp(worst - v) + 1; worst = v; } else sS += Math.exp(v - worst); } }   // (the ink under it only, the points far from its feet not counted, smoothly; the lowest of them by a soft max, 1 px wide, so the rest never kinks as one point passes another)
       }
       var err = anyOn ? worst + Math.log(sS) - 1.6 : low - fyp;
       up += err; if (Math.abs(err) < 0.05) break;
@@ -198,18 +199,23 @@
   /* the touch pose's geometry, a kind's own (the same every landing) */
   function touchGeom(kind) { var g = TOUCHG[kind]; if (!g) { g = TOUCHG[kind] = new Float64Array(3 * NV); LB.geom(kind, PERCH.poses.touch, ZERO3, g, 'this'); } return g; }
   var PRB = null;
+  /* a scratch bird record for a rest solved ahead (the touch's, a turn's end): its kind's form on a basis of its own */
+  function prb(b) {
+    if (!PRB) PRB = { kind: 'gull', B: new Float64Array(9), V46: new Float64Array(3 * NV), X46: new Float64Array(3 * NV), X16: new Float64Array(48), body: new Float64Array(3), B3: new Float64Array(3) };
+    PRB.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull'; return PRB;
+  }
   function landRest(b, C) {
     var P = b.P; perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return;
-    if (!PRB) PRB = { kind: 'gull', B: new Float64Array(9), V46: new Float64Array(3 * NV), X46: new Float64Array(3 * NV), X16: new Float64Array(48), body: new Float64Array(3), B3: new Float64Array(3) };
-    PRB.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
-    perchBasis(C, P.yaw, PERCH.pitch * DEG, 0, PRB.B);
-    P.rest = null; P.rest = restSolve(b, C, PRB, PFD[0], PFD[1], 0, touchGeom(PRB.kind));
+    var R = prb(b); perchBasis(C, P.yaw, PERCH.pitch * DEG, 0, R.B);
+    P.rest = null; P.rest = restSolve(b, C, R, PFD[0], PFD[1], 0, touchGeom(R.kind));
   }
   /* a bird on its perch, posed in the camera's frame at the perch's depth, its lowest points on the ink (on the tip:
      its feet the tip's), solved every frame from where the perch is drawn */
+  var RW = 30, RP22 = new Float64Array(22), RV46 = new Float64Array(3 * NV);
   function posePerch(b, C, s) {
     var P = b.P;
     perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return false;
+    if (s.rT < P.tt) s.rT0 = P.rest || 0;   // (the rest the landing closed on)
     perchPose(b, s); wingXF(b, s);
     var yawNow = P.yaw;
     if (P.yawTo !== undefined && t - P.yawT < P.yawD) yawNow = P.yaw0 + (P.yawTo - P.yaw0) * ease((t - P.yawT) / P.yawD);
@@ -217,8 +223,23 @@
     var pt = (P.pitch + 3 * wave(b.vK + 31, b.age / 3.7) - (P.crouch || 0) * 10 + (P.swing || 0) * 20) * DEG, rl = (P.swing || 0) * 0.8;
     perchBasis(C, yawNow, pt, rl, PB9);
     basis(s, PB9[0], PB9[1], PB9[2], PB9[3], PB9[4], PB9[5], PB9[6], PB9[7], PB9[8]);
-    var up = restSolve(b, C, s, PFD[0], PFD[1], hopL);
+    var up, V0;
+    if (turning && P.yawTo !== undefined && P.kind !== 'pointer') {   // (a turn is a hop from one rest to the next: off the ink, its rest eased from the one it stood at to the one it will stand at, solved once at its start)
+      if (P.rT !== P.yawT) { P.rT = P.yawT; P.rA = P.rest || 0; LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); var R = prb(b); perchBasis(C, P.yawTo, pt, rl, R.B); P.rB = restSolve(b, C, R, PFD[0], PFD[1], 0, s.V46); }
+      up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, P.rA + (P.rB - P.rA) * ease(clamp((t - P.yawT) / P.yawD, 0, 1)));
+      s.rU = up; s.rV = 0; s.rT = t; return true;   // (the turn's own rest is the drawn one: it ends at the next one's, at rest)
+    } else {
+      if (P.act) { LB.geom(s.kind, RP22, s.B3, RV46, 'this'); V0 = RV46; }   // (an act (wings raised, a rouse) moves its wings, not how it stands)
+      up = restSolve(b, C, s, PFD[0], PFD[1], hopL, V0);
+    }
     if (!hopL) P.rest = up;
+    /* the drawn rest follows the solved one, critically damped (RW per s): a change of what holds it up (a point onto the
+       ink at a stroke's end) settles over a few frames, never a snap; from the touch it starts where the landing ended */
+    var dr = t - s.rT;
+    if (s.rT < P.tt || !(dr > 0 && dr < 0.25)) { if (s.rT < P.tt) { s.rU = s.rT0; s.rV = 0; } if (!(dr > 0)) dr = 0; }
+    s.rT = t;
+    var e = s.rU - up, x = Math.exp(-RW * dr), q = (s.rV + RW * e) * dr; s.rU = up + (e + q) * x; s.rV = (s.rV - RW * q) * x;
+    if (V0 || Math.abs(s.rU - up) > 0.01) restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, s.rU);
     return true;
   }
   /* the perched attitude: its yaw about the camera's up (from facing the camera), its pitch and roll, the eye's tilt */
