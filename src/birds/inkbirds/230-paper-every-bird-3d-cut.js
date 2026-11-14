@@ -179,14 +179,14 @@
     for (var it = 0; it < 4; it++) {
       rayAt(C, fxp, fyp - up - lift * sp, P.D, RQ);
       placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V);
-      var worst = -1e9, anyOn = false, low = -1e9;
+      var worst = -1e9, anyOn = false, low = -1e9, sS = 0;
       for (i = 0; i < NV; i++) {
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (syy > low) low = syy;
-        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; worst = Math.max(worst, syy - sf - (ax > 0 ? 3 * ax : 0)); } }   // (one continuous support: the points far from its feet, or past the ledge's ends, not counted, smoothly)
+        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; var v = syy - sf - (ax > 0 ? 3 * ax : 0); if (v > worst) { sS = sS * Math.exp(worst - v) + 1; worst = v; } else sS += Math.exp(v - worst); } }   // (one continuous support: the points far from its feet, or past the ledge's ends, not counted, smoothly; the lowest of them by a soft max, 1 px wide, so the rest never kinks as one point passes another)
       }
-      var err = anyOn ? worst - 1.6 : low - fyp;
+      var err = anyOn ? worst + Math.log(sS) - 1.6 : low - fyp;
       up += err; if (Math.abs(err) < 0.05) break;
     }
     return up;
