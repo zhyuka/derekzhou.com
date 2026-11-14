@@ -64,9 +64,34 @@
        some phones) and the rest. On a return visit the scripts come from cache and the boot used to run in the first
        frame, before any paint: the words waited for it. A page that painted already (a cold visit, the paint while the
        scripts came) boots at once; no paint record within PAINT_WAIT, or no observer, boots anyway */
-    bootRaf = requestAnimationFrame(function () { afterPaint(bootOnce); });
+    bootRaf = requestAnimationFrame(function () { afterPaint(function () { afterStill(bootOnce); }); });
   }
   var PAINT_WAIT = 1000;   // (ms: the boot never waits longer than this for the paint record)
+  /* (load-perf, the lab's run 20, 2026-11-14) the still on screen before the batch too: the words' paint comes first
+     (on a Nord 1.09-1.22 s), the still's (the opening's sky, an image the stylesheet shows) some 0.4-0.7 s later, and
+     the boot's batch of programs ends in one flush that holds the GPU process's main thread 2.6-2.7 s: a still not yet
+     uploaded waited behind it, to 5.75 s (3 of 4 cold visits) instead of about 3 s. So on a page with a still (the
+     preload hour.js addressed) the boot waits for the still's file (its resource entry), then STILL_SHOW ms for its
+     decode (60-133 ms there, off the main thread) and two frames for its paint and upload; or for its paint record (a
+     largest-contentful-paint entry for its address, where the browser makes one), whichever is first. Never longer
+     than STILL_WAIT past the moment the boot would have begun: a still that is lost or late never holds the world */
+  var STILL_WAIT = 1000, STILL_SHOW = 150;   // (ms)
+  function afterStill(f) {
+    var l = document.querySelector('link.still'), u = l && l.href;
+    if (!u) { f(); return; }
+    var done = false, seen = false, obs = [], go = function () { if (done) return; done = true; obs.forEach(function (o) { o.disconnect(); }); f(); };
+    var shown = function () { if (seen) return; seen = true; setTimeout(function () { requestAnimationFrame(function () { requestAnimationFrame(go); }); }, STILL_SHOW); };
+    var watch = function (type, then) {
+      var o = new PerformanceObserver(function (list) { if (list.getEntries().some(function (e) { return e.name === u || e.url === u; })) then(); });
+      o.observe({ type: type, buffered: true }); obs.push(o);
+    };
+    try {
+      if (performance.getEntriesByName(u).length) shown();
+      else watch('resource', shown);
+      watch('largest-contentful-paint', go);
+    } catch (e) { go(); return; }
+    setTimeout(go, STILL_WAIT);
+  }
   function afterPaint(f) {
     var done = false, po = null, go = function () { if (done) return; done = true; if (po) po.disconnect(); f(); };
     try {

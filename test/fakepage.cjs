@@ -1,6 +1,6 @@
 // test/fakepage.cjs: the one fake browser the static checks share (moved out of glsl_guard.js, 2026-11-07): the devices the
 // world is visited on, the page's scripts as index.html loads them, and run(V, page, O), one visit in a small fake browser
-// (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion). Used by
+// (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion; O.still: the page has the opening's still, its file in at that frame). Used by
 // .github/workflows/glsl_guard.js (the shaders' guard and --reduced) and the sims on it. Plain node 22.8+, no dependency.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -49,7 +49,7 @@ function loadScripts(site, scripts) {
 // ------------------------------------------------------------------ one visit in a small fake browser
 function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
   return new Promise((resolve) => {
-    const R = { shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
+    const R = { firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
     let clock = V.t0;
     const now = () => (clock += 0.02);   // (each read moves the clock on a little, so a loop that works to a deadline ends)
     function guard(f, where) { try { f(); } catch (e) { R.errors.push(where + ': ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).map((x) => x.trim()).join(' | ') : String(e))); } }
@@ -111,7 +111,7 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       getShaderPrecisionFormat() { return { rangeMin: 127, rangeMax: 127, precision: 23 }; },
       getInternalformatParameter() { return V.dev.samples ? Int32Array.of(V.dev.samples, 2) : new Int32Array(0); },
       createShader(type) { return { __kind: 'shader', type: NAME(type), src: null }; },
-      shaderSource(s, src) { s.src = String(src); R.shaders.push(s.type + '\n' + s.src); },
+      shaderSource(s, src) { s.src = String(src); if (R.firstShaderF < 0) R.firstShaderF = R.frames; R.shaders.push(s.type + '\n' + s.src); },
       getShaderSource(s) { return s.src; }, getShaderParameter() { return true; }, getShaderInfoLog() { return ''; },
       createProgram() { return { __kind: 'program', sh: [] }; },
       attachShader(p, s) { p.sh.push(s); },
@@ -143,7 +143,10 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
     const name = el('h1', { class: 'name' }, () => [Math.round(V.w * 0.1), Math.round(V.h * 0.32), Math.min(404, V.w - 32), 97]);
     const footer = el('footer', {}, () => [16, V.h - 64, V.w - 32, 48]);
     const links = [el('a', { href: '#', id: 'email-link' }, () => [16, V.h - 48, 40, 22]), el('a', { href: '#second', rel: 'me' }, () => [72, V.h - 48, 62, 22])];
+    // (O.still: the page has the opening's still, its file in at frame O.still: its resource entry, told to resource observers)
+    const still = el('link', { rel: 'preload', as: 'image', class: 'still' }); let stillIn = false; const resObs = [];
     const SEL = { 'canvas.sky': canvas, canvas, 'meta[name="theme-color"]': meta, main, footer, '.stack': stack, h1: name, '.name': name, 'h1.name': name, body, html: root };
+    if (O.still) SEL['link.still'] = still;
     const document = {
       __id: 'doc', documentElement: root, body, head: el('head'), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
       fonts: { ready: Promise.resolve(), status: 'loaded', addEventListener() {}, check() { return true; } },
@@ -180,13 +183,13 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       requestAnimationFrame(f) { raf.push([++rafN, f]); return rafN; }, cancelAnimationFrame(i) { raf = raf.filter((x) => x[0] !== i); },
       setTimeout(f, ms) { timers.push([++timerN, clock + (+ms || 0), f, 0]); return timerN; }, clearTimeout(i) { timers = timers.filter((x) => x[0] !== i); },
       setInterval(f, ms) { const p = Math.max(4, +ms || 0); timers.push([++timerN, clock + p, f, p]); return timerN; }, clearInterval(i) { timers = timers.filter((x) => x[0] !== i); },
-      performance: { now, mark() {}, measure() {}, getEntriesByName() { return []; }, getEntriesByType(t) { return t === 'paint' && painted ? [PAINT] : []; }, timeOrigin: 1.7e12 + V.t0 },
+      performance: { now, mark() {}, measure() {}, getEntriesByName(n) { return stillIn && n && n === still.href ? [{ name: n, entryType: 'resource' }] : []; }, getEntriesByType(t) { return t === 'paint' && painted ? [PAINT] : []; }, timeOrigin: 1.7e12 + V.t0 },
       crypto: { getRandomValues(a) { let s = V.seed; for (let i = 0; i < a.length; i++) { s = (s + 0x9e3779b9) >>> 0; let t = s ^ (s >>> 16); t = Math.imul(t, 0x21f0aaad); t ^= t >>> 15; t = Math.imul(t, 0x735a2d97); a[i] = (t ^ (t >>> 15)) >>> 0; } return a; } },
       addEventListener(t, f) { on(win, t, f); }, removeEventListener(t, f) { off(win, t, f); }, dispatchEvent() { return true; },
       ResizeObserver: Obs, IntersectionObserver: Obs, MutationObserver: Obs, PerformanceObserver: class extends Obs {
-        static get supportedEntryTypes() { return ['paint']; }
-        observe(o) { if (o && (o.type === 'paint' || (o.entryTypes || []).includes('paint')) && !paintObs.includes(this)) paintObs.push(this); }
-        disconnect() { const i = paintObs.indexOf(this); if (i >= 0) paintObs.splice(i, 1); }
+        static get supportedEntryTypes() { return ['paint', 'resource']; }
+        observe(o) { const t = (o && (o.type ? [o.type] : o.entryTypes)) || []; if (t.includes('paint') && !paintObs.includes(this)) paintObs.push(this); if (t.includes('resource') && !resObs.includes(this)) resObs.push(this); }
+        disconnect() { for (const a of [paintObs, resObs]) { const i = a.indexOf(this); if (i >= 0) a.splice(i, 1); } }
       },
       WebGL2RenderingContext: function WebGL2RenderingContext() {}, HTMLCanvasElement: function HTMLCanvasElement() {},
       location: { href: 'https://site.invalid/', origin: 'https://site.invalid', protocol: 'https:', host: 'site.invalid', hostname: 'site.invalid', pathname: '/', search: '', hash: '' },
@@ -221,6 +224,7 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
         if (q.length) R.lastRafF = R.frames;
         for (const [, f] of q) guard(() => f(ts), 'frame ' + R.frames);
         if (!painted) { painted = true; PAINT.startTime = clock; for (const o of paintObs.slice()) timers.push([++timerN, clock, () => o.f({ getEntries: () => [PAINT] }, o), 0]); }
+        if (O.still && !stillIn && R.frames >= O.still && still.href) { stillIn = true; R.stillF = R.frames; const E = { name: still.href, entryType: 'resource' }; for (const o of resObs.slice()) timers.push([++timerN, clock, () => o.f({ getEntries: () => [E] }, o), 0]); }
         if (canvas.classList.contains('on') && !R.shown) { R.shown = true; R.shownF = R.frames; }
         if (O.reduced && R.shown && R.frames === R.shownF + 60) {   // (--reduced: a press, a drag across and a release on the page: under reduced motion, inert)
           const P = { pointerId: 7, pointerType: 'mouse', button: 0, buttons: 1, clientX: V.w / 2, clientY: V.h / 2, timeStamp: clock };
