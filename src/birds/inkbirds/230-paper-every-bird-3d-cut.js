@@ -186,14 +186,14 @@
     for (var it = 0; it < 4; it++) {
       rayAt(C, fxp, fyp - up - lift * sp, P.D, RQ);
       placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V);
-      var worst = -1e9, anyOn = false, low = -1e9;
+      var worst = -1e9, anyOn = false, low = -1e9, sS = 0;
       for (i = 0; i < NV; i++) {
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (syy > low) low = syy;
-        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; worst = Math.max(worst, syy - sf - (ax > 0 ? 3 * ax : 0)); } }   // (one continuous support: the points far from its feet, or past the ledge's ends, not counted, smoothly)
+        if (lg) { var sf = surfC(lg.pts, sx), ax = Math.abs(sx - fxp) - 0.18 * sp; if (sf === sf) { anyOn = true; var v = syy - sf - (ax > 0 ? 3 * ax : 0); if (v > worst) { sS = sS * Math.exp(worst - v) + 1; worst = v; } else sS += Math.exp(v - worst); } }   // (one continuous support: the points far from its feet, or past the ledge's ends, not counted, smoothly; the lowest of them by a soft max, 1 px wide, so the rest never kinks as one point passes another)
       }
-      var err = anyOn ? worst - 1.6 : low - fyp;
+      var err = anyOn ? worst + Math.log(sS) - 1.6 : low - fyp;
       up += err; if (Math.abs(err) < 0.05) break;
     }
     return up;
@@ -217,10 +217,12 @@
   function posePerch(b, C, s) {
     var P = b.P;
     perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return false;
+    var wh = P.hop || 0;
+    if (P.walk && TD >= P.walk.t0 && P.kind !== 'pointer') { walkAt(P, TD, WKA); var Lw = ledges()[P.li], yw = surfY(Lw.pts, WKA[0]); PFD[0] = WKA[0]; if (yw === yw) PFD[1] = yw; wh = WKA[1]; }   // (a walk's foot and hop at the frame's own time)
     perchPose(b, s); wingXF(b, s);
     var yawNow = P.yaw;
     if (P.yawTo !== undefined && TD - P.yawT < P.yawD) yawNow = P.yaw0 + (P.yawTo - P.yaw0) * ease((TD - P.yawT) / P.yawD);
-    var turning = TD - P.yawT < P.yawD && TD >= P.yawT, hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((TD - P.yawT) / P.yawD, 0, 1)) : (P.hop || 0) * 0.05;
+    var turning = TD - P.yawT < P.yawD && TD >= P.yawT, hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((TD - P.yawT) / P.yawD, 0, 1)) : wh * 0.05;
     var L = P.leaving, crouch = L ? Math.sin(0.5 * Math.PI * clamp((TD - L.t0) / Math.max(L.tc, 1e-3), 0, 1)) : (P.crouch || 0);   // (the crouch at the frame's own time)
     var pt = (P.pitch + 3 * wave(b.vK + 31, AD / 3.7) - crouch * 10 + (P.swing || 0) * 20) * DEG, rl = (P.swing || 0) * 0.8;
     perchBasis(C, yawNow, pt, rl, PB9);
