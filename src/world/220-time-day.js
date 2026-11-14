@@ -40,7 +40,7 @@
   var SKY_CLOUDK = ['clLit', 'clShade', 'clDeep', 'clRim'];
   var SKY = { seed: null, hour: null, V: null, ids: [], land: {}, seq: [], visits: {}, rO: null, rV: null, sets: {}, dt: 0,
     i: -1, e: null, pair: '', A: null, B: null, X: null, Y: null, k: 0, q: 0, x: 0, half: 0, gen: 0, pgen: 0, far: false,
-    baseLab: null, recT: -1e9, skyS: new Float32Array(3), fx: new Float32Array(8), sunVis: 1, ceil: 2, moonD: null };
+    baseLab: null, recT: -1e9, skyS: new Float32Array(3), fx: new Float32Array(8), rise: new Float32Array(2), sunVis: 1, ceil: 2, moonD: null };
   /* the cycle as each frame stands (skyAt): the change's index and how far it is, the words' kind of the sky on show
      (every sky's are light: the record's), the two skies and the time of day on show (the still sky's mark) */
   var SKYI = { id: -1, k: 0, words: 'light', sky: '', next: '', group: '' };

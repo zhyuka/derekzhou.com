@@ -7,8 +7,8 @@ uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
-uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
-uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
+uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1); its core's direction and how far it has come in (1 whole)
+uniform vec4 uAur;    // (tod, phase 2) the aurora: how far it has come in (1 whole), its phase, its base (deg), its amount (0 or 1)
 out vec4 oC;
 const float SKYTAU = 6.2831853;
 /* (tod) the stars: world-anchored (a cell of the sphere by the direction: elevation bands STC rad deep, each cut into
@@ -16,6 +16,9 @@ const float SKYTAU = 6.2831853;
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
    never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
 const float STC = 0.04;
+/* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: an edge (as the Earth's shadow over the wisps)
+   climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
+float galEdge(float e) { float g = (1.0 - uGalC.w) * 95.0 - 3.0; return smoothstep(g - 0.8, g + 1.2, e); }
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
@@ -26,13 +29,14 @@ vec3 galaxyAt(vec3 rd, float e) {
   float band = exp(-b * b / 0.0225), core = exp(-l * l / 0.36) * exp(-b * b / 0.05);
   float n = n3v(vec3(u * 7.0, b * 3.15, 0.13)).b * 0.45 + n3v(vec3(u * 21.0, b * 9.9, 0.71)).a * 0.35 + n3v(vec3(u * 62.0, b * 29.7, 0.29)).a * 0.2;
   float lanes = smoothstep(0.4, 0.64, n3v(vec3(u * 4.0, b * 5.6 * 0.33 + 0.1 * n3v(vec3(u * 13.0, 0.4, 0.61)).b, 0.37)).b) * exp(-pow(b - 0.02 * sin(l * 5.0), 2.0) / 0.003);
-  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
+  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e) * galEdge(e);
 }
 vec3 auroraAt(vec3 rd, float e) {
   float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
+  float b0 = uAur.z - (1.0 - uAur.x) * 70.0;   // (aurora-enter-by-place: its base under the poleward horizon until it has come in; whole at 1)
   for (int j = 0; j < 3; j++) {
     float fj = float(j), sc = 1.0 - 0.22 * fj, ph = uT * (0.04 + 0.015 * fj) + uAur.y + fj * 2.1, f1 = 2.0 + fj, f2 = 5.0 + 2.0 * fj;
-    float base = uAur.z * sc + 2.0 * fj + sc * (3.5 * sin(az * f1 + ph) + 2.0 * sin(az * f2 - ph * 1.3) + 2.4 * (n3v(vec3(u * 4.0 + fj * 0.31, ph * 0.02, 0.83)).b - 0.5));
+    float base = b0 * sc + 2.0 * fj + sc * (3.5 * sin(az * f1 + ph) + 2.0 * sin(az * f2 - ph * 1.3) + 2.4 * (n3v(vec3(u * 4.0 + fj * 0.31, ph * 0.02, 0.83)).b - 0.5));
     float slope = abs(3.5 * f1 * cos(az * f1 + ph) + 2.0 * f2 * cos(az * f2 - ph * 1.3)) * sc;
     float fold = 0.65 + 0.7 / (1.0 + slope * 0.12);
     float hgt = 7.0 + 9.0 * sc, x = e - base;
@@ -53,7 +57,7 @@ float starAt(vec3 rd, float el, float az, float pa, int dj, int di) {
   ib = mod(ib, n);
   uint h = ih(ih(uint(int(jb) + 4096) * 0x9e3779b1u) ^ uint(int(ib)) * 0x85ebca6bu);
   float hx = hf(h), hy = hf(ih(h + 1u)), hz = hf(ih(h + 2u)), hw = hf(ih(h + 3u));
-  float dens = 1.0 + (uGal.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) : 0.0);   // (the stars crowd in the galaxy's band)
+  float dens = 1.0 + (uGal.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) * galEdge(degrees(elc)) : 0.0);   // (the stars crowd in the galaxy's band)
   if (hx > 0.42 * dens) return 0.0;
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));

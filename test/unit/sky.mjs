@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
@@ -92,4 +93,40 @@ test('sky timing: the visit opens as far through its first hold as data-sky-at s
     assert.equal(SKY.landing.at, at);
   }
   for (const bad of ['x', -1, 2]) { const { SKY } = skyWorld(7, 'night', bad); assert.equal(SKY.landing.at, 0.5, `data-sky-at ${bad}: opens halfway`); }
+});
+
+// ------------------------------------------------------------------ the galaxy and the aurora come and go by place (aurora-enter-by-place)
+// their amounts (fx 2, 3) are only ever 0 or 1 across every change in the order, through the mist's waypoints too;
+// what moves is how far each has come in (SKY.rise), 0 to 1 with the change, and whole wherever both ends have it
+const FXSTEP = cut(WORLD, '    for (j = 0; j < 8; j++) SKY.fx[j] = X.fx[j]', '    skySun(V, w, L);');
+const FXPLACE = cut(WORLD, '  function skyFxPlace(', '  /* two skies\' colours blended');
+const FXOF = cut(WORLD, '    var fx = S.fx || {};', '\n', true) + cut(WORLD, '    O.fx = [fx.belt', '\n', true);
+test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 1, never between (no fades)', () => {
+  const step = new Function('SKY', 'X', 'Y', 'q', 'L', 'V', 'w', 'var j; function skySun() {}\n' + FXPLACE + FXSTEP);
+  const fxOf = new Function('S', 'var O = {};\n' + FXOF + 'return O.fx;');
+  const way = (a, b) => a.map((x, j) => (x + b[j]) / 2 * 0.25);   // (221's waypoint: the two skies' midpoint at a quarter)
+  let changes = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const K = skyWorld(seed * 2246822519 >>> 0, ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'][seed % 6], 0.5);
+    for (let n = 0; n < 30; n++) K.skyNext();
+    const seq = K.SKY.seq;
+    for (let i = 1; i < seq.length; i++) {
+      const A = { fx: fxOf(K.WSKY[seq[i - 1].id]), motes: 0 }, B = { fx: fxOf(K.WSKY[seq[i].id]), motes: 0 };
+      const halves = seq[i].far || seq[i - 1].far ? [[A, { fx: way(A.fx, B.fx), motes: 0 }], [{ fx: way(A.fx, B.fx), motes: 0 }, B]] : [[A, B]];
+      let last = null;
+      for (const [X, Y] of halves) for (let k = 0; k <= 40; k++) {
+        const S = { fx: new Float32Array(8), rise: new Float32Array(2) }, q = k / 40;
+        step(S, X, Y, q, {}, null, 0);
+        for (const j of [2, 3]) {
+          assert.ok(S.fx[j] === 0 || S.fx[j] === 1, `seed ${seed}: ${seq[i - 1].id} -> ${seq[i].id} at q ${q}: fx ${j} is ${S.fx[j]} (only 0 or 1)`);
+          assert.ok(S.rise[j - 2] >= 0 && S.rise[j - 2] <= 1, `rise ${j - 2} out of [0, 1]`);
+          if (S.fx[j] && X.fx[j] > 0 && Y.fx[j] > 0) assert.equal(S.rise[j - 2], 1, 'whole while both ends have it');
+        }
+        if (last) for (const j of [0, 1]) assert.ok(Math.abs(S.rise[j] - last[j]) <= 1 / 40 + 1e-6, `seed ${seed}: the rise jumps (${last[j]} -> ${S.rise[j]})`);
+        last = [S.rise[0], S.rise[1]];
+      }
+      changes++;
+    }
+  }
+  assert.ok(changes > 500, `${changes} changes`);
 });
