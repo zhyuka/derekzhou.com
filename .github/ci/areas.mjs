@@ -82,7 +82,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || f.startsWith('tools/gpu/'));   // (T2's own files: T2 runs on itself)
   const input = inputChanges(base, head, git);
   if (input.length) console.log(`input handling changed in: ${input.join(' ')}`);
-  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, t2_self: t2Self, input_changed: input.length > 0, input_files: input.join(' ').slice(0, 900), files: files.length };
+  // the page outside the canvas changed too (HTML, CSS, fonts, the page's own scripts: any served file T2 does not cover):
+  // when T2 runs, T1 still compares the DOM (gate.yml, --dom-only), else such a change landed as "frames identical"
+  const domChanged = changedServed.some((f) => !areasOf(['site/' + f]).areas.includes('gpu') && !f.startsWith('assets/still/'));
+  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, dom_changed: domChanged, gpu_js: gpuJs, t2_self: t2Self, input_changed: input.length > 0, input_files: input.join(' ').slice(0, 900), files: files.length };
   console.log(`${files.length} files changed${unknown.length ? '; unmapped (ALL): ' + unknown.join(' ') : ''}`);
   console.log(`served: ${changedServed.length ? changedServed.length + ' files differ: ' + changedServed.join(' ') : 'byte for byte the base\'s (' + H.size + ' files)'}`);
   for (const [k, v] of Object.entries(o)) console.log(`${k}=${v}`);
