@@ -49,7 +49,7 @@ function loadScripts(site, scripts) {
 // ------------------------------------------------------------------ one visit in a small fake browser
 function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
   return new Promise((resolve) => {
-    const R = { firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
+    const R = { ctxF: -1, flushF: -1, firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
     let clock = V.t0;
     const now = () => (clock += 0.02);   // (each read moves the clock on a little, so a loop that works to a deadline ends)
     function guard(f, where) { try { f(); } catch (e) { R.errors.push(where + ': ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).map((x) => x.trim()).join(' | ') : String(e))); } }
@@ -79,7 +79,7 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
         get offsetWidth() { return this.getBoundingClientRect().width; }, get offsetHeight() { return this.getBoundingClientRect().height; },
         querySelector() { return null; }, querySelectorAll() { return []; }, closest() { return null; }, contains() { return false; },
         setPointerCapture() {}, releasePointerCapture() {}, hasPointerCapture() { return false; }, focus() {}, blur() {},
-        getContext(type) { return tag === 'canvas' && type === 'webgl2' ? gl : null; }
+        getContext(type) { if (tag === 'canvas' && type === 'webgl2' && R.ctxF < 0) R.ctxF = R.frames; return tag === 'canvas' && type === 'webgl2' ? gl : null; }
       };
       return e;
     }
@@ -131,6 +131,7 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       if (/^[A-Z0-9_]+$/.test(p)) return C(p);
       if (/^create[A-Z]/.test(p)) return () => obj(p.slice(6));
       if (/^(draw|blitFramebuffer$|clear$)/.test(p)) return () => { R.lastDrawF = R.frames; };   // (--reduced: when the page last drew)
+      if (p === 'flush') return () => { if (R.flushF < 0) R.flushF = R.frames; };   // (the programs' batch ends in the boot's first flush: the still waits for nothing else)
       return () => undefined;
     } });
     // --- the document: today's index.html in outline

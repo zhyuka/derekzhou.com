@@ -64,7 +64,7 @@
        some phones) and the rest. On a return visit the scripts come from cache and the boot used to run in the first
        frame, before any paint: the words waited for it. A page that painted already (a cold visit, the paint while the
        scripts came) boots at once; no paint record within PAINT_WAIT, or no observer, boots anyway */
-    bootRaf = requestAnimationFrame(function () { afterPaint(function () { afterStill(bootOnce); }); });
+    bootRaf = requestAnimationFrame(function () { afterPaint(function () { STILLHOLD = true; afterStill(function () { STILLHOLD = false; }); bootOnce(); }); });
   }
   var PAINT_WAIT = 1000;   // (ms: the boot never waits longer than this for the paint record)
   /* (load-perf, the lab's run 20, 2026-11-14) the still on screen before the batch too: the words' paint comes first
@@ -76,6 +76,11 @@
      largest-contentful-paint entry for its address, where the browser makes one), whichever is first. Never longer
      than STILL_WAIT past the moment the boot would have begun: a still that is lost or late never holds the world */
   var STILL_WAIT = 1000, STILL_SHOW = 150;   // (ms)
+  /* (load-perf, the lab's run 21, 2026-11-14) the boot itself no longer waits: stages A and B (the context, the objects,
+     the filter probe) run at the words' paint, beside the still's landing; only the programs' batch, issued with its one
+     flush (progStep, from bootFrame), waits while STILLHOLD. Run 21's gap from the still's upload to that flush (Nord 438-637 ms, A15
+     474-1002) was stages A and B done after the still, not the wait */
+  var STILLHOLD = false;
   function afterStill(f) {
     var l = document.querySelector('link.still'), u = l && l.href;
     if (!u) { f(); return; }

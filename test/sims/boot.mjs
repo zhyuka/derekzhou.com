@@ -16,16 +16,17 @@ for (const d of FP.DEVICES) {
   else if (R.errors.length) bad.push(`${d.id}: page errors: ${R.errors[0].slice(0, 160)}`);
   now[d.id] = R.shownF;
 }
-/* (load-perf, the lab's run 20, 2026-11-14) on a page with the opening's still, no program is issued before the still's
-   file is in (its resource entry; then its decode and paint: afterStill), and a still that never comes holds the boot
-   no longer than STILL_WAIT (1 s, 60 frames here) past the moment it would have begun: the reference phone, the still in at frame 30
-   and never */
+/* (load-perf, the lab's runs 20 and 21, 2026-11-14) on a page with the opening's still, the programs' batch and its one
+   flush wait for the still's file (its resource entry; then its decode and paint: afterStill), while the boot's stages
+   A and B (the context, the objects) do not wait; a still that never comes holds the batch no longer than STILL_WAIT
+   (1 s, 60 frames here): the reference phone, the still in at frame 30 and never */
 {
   const d = FP.DEVICES.find((x) => x.id === 'phone'), w = d.wins[0], V = { dev: d, n: 0, seed: 0x9e3779b9, hour: 11.5, w: w[0], h: w[1], dpr: w[2], hz: 60, t0: 200 };
   const A = await FP.run(V, page, { still: 30 }), B = await FP.run(V, page, { still: 1e9 });
-  if (!(A.stillF === 30 && A.firstShaderF > A.stillF && A.shown)) bad.push(`the still in at frame ${A.stillF}: the first program issued at frame ${A.firstShaderF} (it must come after the still), shown ${A.shown}`);
-  if (!(B.shown && B.firstShaderF > 0 && B.firstShaderF <= 70)) bad.push(`a still that never comes: the first program at frame ${B.firstShaderF}, shown ${B.shown} (the boot must go on by about frame 62)`);
-  if (!bad.length) console.log(`boot: the still in at frame 30, the first program at ${A.firstShaderF}; no still, at ${B.firstShaderF}`);
+  if (!(A.stillF === 30 && A.flushF > A.stillF && A.shown)) bad.push(`the still in at frame ${A.stillF}: the programs' batch flushed at frame ${A.flushF} (it must come after the still), shown ${A.shown}`);
+  if (!(A.ctxF >= 0 && A.ctxF < A.stillF)) bad.push(`the still in at frame ${A.stillF}: the context made at frame ${A.ctxF} (the boot's stages A and B must not wait for the still)`);
+  if (!(B.shown && B.flushF > 0 && B.flushF <= 70)) bad.push(`a still that never comes: the batch flushed at frame ${B.flushF}, shown ${B.shown} (it must go on by about frame 62)`);
+  if (!bad.length) console.log(`boot: the still in at frame 30: the context at ${A.ctxF}, the batch at ${A.flushF}; no still: the batch at ${B.flushF}`);
 }
 if (WRITE) { fs.writeFileSync(GOLD, JSON.stringify(now, null, 1) + '\n'); console.log('boot: wrote ' + path.relative(ROOT, GOLD) + ': ' + JSON.stringify(now)); process.exit(bad.length ? 1 : 0); }
 const gold = JSON.parse(fs.readFileSync(GOLD, 'utf8')), better = [];
