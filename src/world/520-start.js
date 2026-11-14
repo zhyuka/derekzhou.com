@@ -82,7 +82,7 @@
      474-1002) was stages A and B done after the still, not the wait */
   var STILLHOLD = false;
   function afterStill(f) {
-    var l = document.querySelector('link.still'), u = l && l.href;
+    var l = /** @type {HTMLLinkElement} */ (document.querySelector('link.still')), u = l && l.href;
     if (!u) { f(); return; }
     var done = false, seen = false, obs = [], go = function () { if (done) return; done = true; obs.forEach(function (o) { o.disconnect(); }); f(); };
     var shown = function () { if (seen) return; seen = true; setTimeout(function () { requestAnimationFrame(function () { requestAnimationFrame(go); }); }, STILL_SHOW); };

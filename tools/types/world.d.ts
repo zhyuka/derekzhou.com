@@ -3,7 +3,7 @@
 // tools/tsc.mjs's copy: each span also runs, in the plan's worker and the unit tests, as a CommonJS module).
 declare function CJS_REQUIRE(name: string): any;   // (tools/tsc.mjs's copy: the spans' require, renamed)
 interface Navigator { deviceMemory?: number; gpu?: unknown }
-interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number }
+interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number; url?: string }   // (url: a paint entry's, 520's afterStill)
 interface EventListenerOptions { passive?: boolean }
 // window.WORLD (510): what the realm scripts and the ink birds register with and read; forms is set by realm-kit.js
 interface WorldApi { realm(def: object): void; kit: KitApi; birds(factory: Function): void; sky(): SkyFeed | null; stamp(name: string): void; forms?: any }
@@ -21,7 +21,8 @@ interface Ext { cbf: EXT_color_buffer_float | null; cbh: EXT_color_buffer_half_f
   parAll: KHR_parallel_shader_compile | null; renderer: string; issueAll: boolean; hp: boolean }
 // the ink birds' module as the engine sees it (inkbirds.js's factory returns it; 490's header names the four hooks):
 // BIRDS, the boot's, and BIRDL, one made late (495)
-interface BirdsModule { step(dt: number): void; draw(): void; visit(k: number): void; lost(): void; boot?(): void; prepare?(): boolean }
+interface BirdsModule { step(dt: number): void; draw(): void; visit(k: number): void; lost(): void; boot?(): void; prepare?(): boolean;
+  after?(seed: number): void }   // (after: the frame after the opening's cut, the visit's own read, 460)
 // WORLD.kit (510's KITAPI): the engine's mesh builders and helpers, as the realm scripts call them. A mesh is built
 // into a Builder (110), a colour is linear RGB (030), a vector is [x, y, z], a stream is 020's RNG
 type V3 = number[];
