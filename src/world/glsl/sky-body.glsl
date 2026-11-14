@@ -57,7 +57,7 @@ float starAt(vec3 rd, float el, float az, float pa, int dj, int di) {
   ib = mod(ib, n);
   uint h = ih(ih(uint(int(jb) + 4096) * 0x9e3779b1u) ^ uint(int(ib)) * 0x85ebca6bu);
   float hx = hf(h), hy = hf(ih(h + 1u)), hz = hf(ih(h + 2u)), hw = hf(ih(h + 3u));
-  float dens = 1.0 + (uGal.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) * galEdge(degrees(elc)) : 0.0);   // (the stars crowd in the galaxy's band)
+  float dens = 1.0 + (uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) * galEdge(degrees(elc)) : 0.0);   // (the stars crowd in the galaxy's band)
   if (hx > 0.42 * dens) return 0.0;
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
@@ -153,8 +153,8 @@ void main() {
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
   }
 #ifdef SKY_PH2
-  if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2)
-  if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2)
+  if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2; not read at all until it has begun to come in: aurora-enter-by-place)
+  if (uAur.w > 0.0 && uAur.x > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2; likewise)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
