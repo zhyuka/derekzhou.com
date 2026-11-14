@@ -27,6 +27,7 @@
     for (i = 0; i < n; i++) for (k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], LP[i * 3 + k] - a[(i0 + i) * 12 + 3] - mg); hi[k] = Math.max(hi[k], LP[i * 3 + k] + a[(i0 + i) * 12 + 3] + mg); }
     var cl = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2], h = [(hi[0] - lo[0]) / 2 * 1.06, (hi[1] - lo[1]) / 2 * 1.06, (hi[2] - lo[2]) / 2 * 1.06];
     var c = [cy * cl[0] + sy * cl[2], cl[1], -sy * cl[0] + cy * cl[2]];   // the centre in the world
+    var voxL = Math.max(h[0], h[1], h[2]) * 2 / (res || 52);   // (the layout's own voxel: the billows' tile is set from it, so every tier bakes the same field)
     if (memTier() === 'desktop') res = Math.round((res || 52) * 64 / 44);   // (the desktop's volumes finer: the layout's 44 voxels across a body's longest side, 64 there)
     if (DEVMODE && SW.volres > 0) res = SW.volres;   // (dev: the structural harness's long flights with small bodies: the same calls, a fraction of SwiftShader's bake time)
     var vox = Math.max(h[0], h[1], h[2]) * 2 / (res || 52), dims = [0, 0, 0];
@@ -38,7 +39,8 @@
     // the opaque cores: an icosahedron inside each lobe, past its billows and 25 m of cloud
     var inward = erode * bil * Rm * 0.42 + 4 + 25, cores = [];
     for (i = i0; i < i1; i++) { var rc = a[i * 12 + 3] * Math.min(B.squash || 0.9, 1) - inward; if (rc > 6) cores.push(a[i * 12], a[i * 12 + 1], a[i * 12 + 2], rc); }
-    return { G: G || null, L: L, n: n, h: h, dims: dims, vox: vox, Rm: Rm, cy: cy, sy: sy, B: { seed: B.seed || 0.37, erode: erode, noise: B.noise || 3.6, blend: B.blend || 0.5, squash: B.squash || 0.9, billow: bil }, pass: 0, z: 0, done: false,
+    var tile = Math.max(Rm * (B.noise || 3.6), 24 * voxL);   // (the noise's tile: at least 24 of the layout's voxels, whatever the tier's own; the desktop samples the same billows finer, never other billows: the hi stills are baked as a desktop and shown to touch landscape devices of other tiers until the cut to the live world)
+    return { G: G || null, L: L, n: n, h: h, dims: dims, vox: vox, tile: tile, Rm: Rm, cy: cy, sy: sy, B: { seed: B.seed || 0.37, erode: erode, noise: B.noise || 3.6, blend: B.blend || 0.5, squash: B.squash || 0.9, billow: bil }, pass: 0, z: 0, done: false,
       out: { t: T3, c: new Float32Array(c), h: new Float32Array(h), yaw: new Float32Array([cy, sy]), dims: dims, r: Math.sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]), range: Rm * 4, band: Math.max(Rm * (B.band || 0.07), 3),
         reach: erode * Rm * bil * 0.5 + 2, kind: B.kind || 0, vox: vox, y0: lo[1], y1: hi[1], base: B.base !== undefined ? B.base : -1e5, fade: 0, ready: false, cores: cores, bytes: dims[0] * dims[1] * dims[2] * (VOL16 ? 8 : 4),
         det: volDetail(V || {}), u4a: new Float32Array(4), u4b: new Float32Array(4), u4c: new Float32Array(4) } };
@@ -66,7 +68,7 @@
     if (vb.pass === 0) {
       P = EP.vdens; gl.useProgram(P.p); setFrameUniforms(P, V);
       gl.uniform4fv(P.u.uLobe, vb.L); gl.uniform1i(P.u.uLobeN, vb.n); gl.uniform3fv(P.u.uHalf, vb.h); gl.uniform3f(P.u.uDims, d[0], d[1], d[2]);
-      gl.uniform4f(P.u.uVK, B.seed, B.erode, Math.max(vb.Rm * B.noise, 24 * vb.vox), vb.Rm * B.blend);   // (the noise's tile: at least 24 voxels)
+      gl.uniform4f(P.u.uVK, B.seed, B.erode, vb.tile, vb.Rm * B.blend);   // (the noise's tile: volPrep's, the same on every tier)
       gl.uniform4f(P.u.uVK2, 0, B.squash, vb.Rm * 4, vb.Rm * B.billow);
       gl.bindFramebuffer(gl.FRAMEBUFFER, VTMP.f); gl.viewport(0, 0, d[0], d[1]); gl.bindVertexArray(FULLVAO);
       while (vb.z < d[2] && made < budget) { gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, VTMP.t, 0, vb.z); gl.uniform1f(P.u.uLayer, vb.z); gl.drawArrays(gl.TRIANGLES, 0, 3); vb.z++; made += uD; }
