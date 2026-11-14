@@ -182,6 +182,7 @@ test('stills: the bake never holds the GPU runner for a whole set, and the newes
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
   const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
   assert.match(y, /cancel-in-progress: true\b/, 'a newer run cancels a stale one, on main too');
+  assert.match(y, /group: stills-\$\{\{ github\.event\.workflow_run\.head_branch == 'main' && 'main' \|\| 'branches' \}\}/, 'every branch\'s warm bake shares one group: a newer cancels the queued older');
   assert.match(y, /max-parallel: 1/, 'the sky jobs run one at a time');
   assert.match(y, /sky: \[dawn, day, rain, sunset, dusk, night\]/, 'a job a sky (T2 takes the runner between two)');
   assert.match(y, /--skies \$\{\{ matrix\.sky \}\}/, 'each job bakes only its sky');
