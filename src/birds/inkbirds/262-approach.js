@@ -125,7 +125,7 @@
       perchFoot(P, PF2); rayAt(C, PF2[0], PF2[1] - P.rest, P.D, P.at);
       rx = b.p[0] - P.at[0]; ry = b.p[1] - P.at[1]; rz = b.p[2] - P.at[2]; d = Math.sqrt(rx * rx + ry * ry + rz * rz);
       var wx = b.v[0] - P.v[0], wy = b.v[1] - P.v[1], wz = b.v[2] - P.v[2], wc = -(rx * wx + ry * wy + rz * wz) / (d || 1);
-      b.st = 'land'; P.tl = t; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
+      b.st = 'land'; b.flareU = 0; P.tl = t; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
       return;
     }
     /* matched to the perch's motion, then closing: aimed at the dipped way's point, at the closing tau asks */
