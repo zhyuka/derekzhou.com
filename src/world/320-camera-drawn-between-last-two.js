@@ -60,7 +60,7 @@
      followed at most CW_V a second (of the weight: 18 m of clearance over about 90 s at the most). There is no framing
      to blend and no mode: a framing weight turns the view by 41 deg and lifts the camera 150 m at every coast. The margin
      about solids follows the same weight */
-  var CW_S = [150, 300, 450], CW_A = 0.25, CW_B = 0.85, CW_V = 0.011, CRUISE = [14, 32];
+  var CW_S = [150, 300, 450], CW_A = 0.25, CW_B = 0.85, CW_V = 0.011, CRUISE = [14, 32], CRUISE_IN = 2;   // (CRUISE_IN: over the cloud sea the aim is 2 m under the band's top, so its swells keep it in the band)
   function cruiseTarget(S) {
     var hx = Math.sin(S.psi), hz = Math.cos(S.psi), s = 0;
     for (var i = 0; i < CW_S.length; i++) s += kwAt(S.x + hx * CW_S[i], S.z + hz * CW_S[i])[3];
@@ -71,7 +71,7 @@
     if (!(S.cw === S.cw)) { S.cw = T; return; }
     S.cw = clamp(S.cw + clamp(T - S.cw, -CW_V * dt, CW_V * dt), 0, 1);
   }
-  function cruiseOf(V, cw) { var C = V.def.cruise || CRUISE, w = cw === cw ? cw : 0; return lerp(C[0], C[1], w * w * (3 - 2 * w)); }
+  function cruiseOf(V, cw) { var C = V.def.cruise || CRUISE, w = cw === cw ? cw : 0; return lerp(C[0], C[1] - CRUISE_IN, w * w * (3 - 2 * w)); }
   function flightParams(V, cw) {
     var A = V.def.clear || [7, 14, 60], w = cw === cw ? cw : 0;
     if (!V.clear || V.clear === V.def.clear) V.clear = A.slice();
