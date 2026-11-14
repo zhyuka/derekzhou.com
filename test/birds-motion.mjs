@@ -154,3 +154,30 @@ test('no bird drawn in the window is stepped as unseen', () => {
   console.log(`# drawn bird-frames ${frames}; in the window while stepped as unseen ${bad} (${at})`);
   assert.equal(bad, 0, `${bad} drawn bird-frames in the window while stepped as unseen (last ${at})`);
 });
+
+/* (with bird-lost-steps: the landing's switch to its last leg loses no step) the 144 Hz bound on landing and perched birds */
+test('144 Hz: no landing or perched bird\'s drawn form or body jumps', () => {
+  const { worst, worstB } = jumps(144, ['perch', 'drop', 'click', 'cursor'], ['land', 'perch']);
+  console.log(`# 144 Hz: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
+  assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
+  assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
+});
+
+/* (the audit's bird-lost-steps) a state switch flies the step it switches in: no bird in the air stands still for a
+   step while it moves (main: every landing's switch to its last leg, and each replan, go-round and give-up, lost one
+   step: a reversal of 1-4 px on the window) */
+test('no bird in the air loses a step (a state switch flies the step it switches in)', () => {
+  let lost = 0, at = '';
+  for (const cs of ['perch', 'drop', 'click']) for (let seed = 1; seed <= SEEDS; seed++) {
+    const sc = SCENES[cs](seed, '960x600'); sc.opt.dt = 1 / 60; const sim = makeSim(sc.opt); sc.setup(sim);
+    for (let k = 0; k < 24 * 60; k++) {
+      const q = new Map(sim.B.BIRDS.map((b) => [b, [b.p[0], b.p[1], b.p[2], b.st]])); sim.step();
+      for (const b of sim.B.BIRDS) {
+        const p = q.get(b); if (!p || (b.F && (b.F.off || b.F.far || b.F.spk)) || (p[3] === 'perch' && b.st === 'perch')) continue;
+        if (Math.hypot(b.p[0] - p[0], b.p[1] - p[1], b.p[2] - p[2]) < 1e-9 && Math.hypot(...b.v) > 1) { lost++; at = `${cs} ${seed} step ${k} ${p[3]} to ${b.st}`; }
+      }
+    }
+  }
+  console.log(`# lost steps: ${lost} (${at})`);
+  assert.equal(lost, 0, `${lost} lost steps (last ${at})`);
+});
