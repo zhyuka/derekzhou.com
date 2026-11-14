@@ -160,11 +160,11 @@ test('no bird drawn in the window is stepped as unseen', () => {
 });
 
 /* (with bird-lost-steps: the landing's switch to its last leg loses no step) the 144 Hz bound on landing and perched birds */
-test('144 Hz: no landing or perched bird\'s drawn form or body jumps', () => {
+for (const hz of [144, 165, 240]) test(`${hz} Hz: no landing or perched bird's drawn form or body jumps`, () => {   // (the displays a visitor has: 144, 165 and 240 Hz)
   // (not the frames where a perched bird walks from one stroke onto the next: its support changes ledge there, a snap of
   // its own (BACKLOG: bird-walk-across-strokes, on main too); every other perched frame is bounded)
-  const { worst, worstB } = jumps(144, ['perch', 'drop', 'click', 'cursor'], ['appr', 'land', 'perch', 'takeoff'], true);
-  console.log(`# 144 Hz: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
+  const { worst, worstB } = jumps(hz, ['perch', 'drop', 'click', 'cursor'], ['appr', 'land', 'perch', 'takeoff'], true);
+  console.log(`# ${hz} Hz: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
 });
