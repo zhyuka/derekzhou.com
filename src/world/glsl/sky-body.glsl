@@ -38,11 +38,12 @@ vec3 auroraAt(vec3 rd, float e) {
     float hgt = 7.0 + 9.0 * sc, x = e - base;
     if (x < -1.5 || x > hgt * 2.5) continue;
     float rays = 0.3 + 0.7 * pow(n3v(vec3(u * (100.0 + 31.0 * fj) + uT * 0.0005, 0.5 + fj * 0.2, 0.19)).a, 1.6) * (0.6 + 0.4 * n3v(vec3(u * 257.0 - uT * 0.0003, 0.27 + fj * 0.1, 0.47)).b);
-    /* (aurora-colour) green below, a warm overlap, the red top: three stops whose straight mixes keep their chroma (the
-       old two ends, h 160 and h 345, near-complementary, went through grey), the green the oxygen line's (h about 142),
-       half as strong again; test/unit/aurora.mjs pins the ramp's chroma floor and the composited peak's hue */
+    /* (aurora-colour) green below, the sky's own violet over it, the red top: stops whose mixes keep their chroma over
+       the aurora sky's blue (the old ends, h 160 and h 345, went through grey; a warm overlap went through yellow, which
+       cancels the sky's blue: a grey-brown band, the review's), the green the oxygen line's (h about 142), half as
+       strong again; test/unit/aurora.mjs composites the whole curtain over the sky and pins its chroma and hue */
     float t = smoothstep(0.25, 1.2, x / hgt);
-    vec3 col = mix(mix(vec3(0.225, 1.5, 0.18), vec3(1.006, 0.487, 0.098), clamp(2.0 * t, 0.0, 1.0)), vec3(0.85, 0.25, 0.55), clamp(2.0 * t - 1.0, 0.0, 1.0));
+    vec3 col = mix(mix(vec3(0.225, 1.5, 0.18), vec3(0.45, 0.5, 1.0), clamp(2.0 * t, 0.0, 1.0)), vec3(0.85, 0.25, 0.55), clamp(2.0 * t - 1.0, 0.0, 1.0));
     c += col * smoothstep(-0.6, 0.25, x) * (1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x)) * (exp(-max(x, 0.0) / hgt) + 0.6 * exp(-max(x, 0.0) / (hgt * 0.15))) * rays * fold * (0.85 - 0.25 * fj);
   }
   return c * uAur.w * 0.09 * smoothstep(0.5, 6.0, e);

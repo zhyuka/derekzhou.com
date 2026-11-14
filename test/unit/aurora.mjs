@@ -1,6 +1,6 @@
 // test/unit/aurora.mjs: the aurora's colour (aurora-colour): its ramp in sky-body.glsl keeps its chroma, and over the
 // aurora sky's own low stops it composites green, not cyan
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "    vec3 col = mix(mix(vec3(0.225, 1.5, 0.18), vec3(1.006, 0.487, 0.098), clamp(2.0 * t, 0.0, 1.0)), vec3(0.85, 0.25, 0.55), clamp(2.0 * t - 1.0, 0.0, 1.0));", "with": "    vec3 col = mix(vec3(0.25, 1.0, 0.55), vec3(0.85, 0.25, 0.55), t);", "why": "the old two-stop mix between near-complementary ends: grey in the middle, cyan over the sky"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "vec3(0.45, 0.5, 1.0), clamp(2.0 * t", "with": "vec3(1.006, 0.487, 0.098), clamp(2.0 * t", "why": "a warm overlap: yellow over the sky's blue, a grey-brown band (the review's)"}
 import { test, assert, fs, path, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ OKLab (the world's own matrices, 030-colour.js)
@@ -28,6 +28,8 @@ const GLSL = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.g
 const AUR = GLSL.slice(GLSL.indexOf('vec3 auroraAt('), GLSL.indexOf('#endif', GLSL.indexOf('vec3 auroraAt(')));
 const COLM = AUR.match(/^\s*vec3 col = (.*);\s*$/m);
 assert.ok(COLM, 'auroraAt\'s ramp line (vec3 col = ...) not found in sky-body.glsl');
+const TM = AUR.match(/^\s*float t = smoothstep\(([\d.]+), ([\d.]+), x \/ hgt\);\s*$/m);
+assert.ok(TM, 'auroraAt\'s ramp place (float t = smoothstep(a, b, x / hgt);) not found in sky-body.glsl');
 const ramp = new Function('vec3', 'clamp', 'smoothstep', 'mix', 't', 'return ' + COLM[1].replace(/(\d)\.(?!\d)/g, '$1.0') + ';').bind(null, G.vec3, G.clamp, G.smoothstep, G.mix);
 
 // ------------------------------------------------------------------ the aurora sky as 220 defines it
@@ -35,10 +37,22 @@ const line = cut(WORLD, '    aurora: { ', '\n');
 const SKY = new Function('return ' + line.trim().replace(/^aurora:\s*/, '').replace(/,\s*$/, ''))();
 const SKYE = JSON.parse(WORLD.match(/SKYE_W = (\[[^\]]*\])/)[1]);
 
-test('aurora: the ramp keeps its chroma all the way up (no grey band)', () => {
-  let floor = Infinity, at = 0;
-  for (let i = 0; i <= 200; i++) { const t = i / 200, C = LCh(ramp(t))[1]; if (C < floor) { floor = C; at = t; } }
-  assert.ok(floor >= 0.08, `the ramp's chroma falls to ${floor.toFixed(3)} at t ${at.toFixed(3)} (a grey band: at least 0.08)`);
+test('aurora: the whole curtain over its sky keeps the sky\'s chroma, never through yellow (no grey band)', () => {
+  // auroraAt's nearest curtain (j 0: hgt 16, its base about 8 deg) from its foot to where it ends (x to 1.6 hgt), each
+  // place's ramp colour at its own strength added to the sky behind it (skyGrad from WSKY.aurora's stops)
+  const ss = G.smoothstep, mix = G.mix, sky = SKY.sky.map((c) => lch(...c)), hgt = 16, base = 8;
+  const skyAt = (e) => { let c = mix(sky[1], sky[2], ss(0, SKYE[0], e)); c = mix(c, sky[3], ss(SKYE[0], SKYE[1], e)); c = mix(c, sky[4], ss(SKYE[1], SKYE[2], e)); return mix(c, sky[5], ss(SKYE[2], SKYE[3], e)); };
+  let worst = Infinity, wx = 0, minC = Infinity;
+  for (let x = 0.25; x <= hgt * 1.6; x += 0.25) {
+    const t = ss(+TM[1], +TM[2], x / hgt), col = ramp(t);
+    const amp = 0.09 * 0.85 * (Math.exp(-x / hgt) + 0.6 * Math.exp(-x / (0.15 * hgt))) * 0.65;
+    const s0 = skyAt(base + x), c = s0.map((v, i) => v + col[i] * amp), [, Cs] = LCh(s0), [, Cc, hc] = LCh(c);
+    if (Cc / Cs < worst) { worst = Cc / Cs; wx = x; }
+    minC = Math.min(minC, Cc);
+    assert.ok(!(hc > 40 && hc < 125), `at ${x} deg up the curtain the sky turns h ${hc.toFixed(0)} (yellow or orange over the blue: a grey-brown band)`);
+  }
+  assert.ok(worst >= 0.7, `at ${wx} deg up the curtain the sky keeps ${(100 * worst).toFixed(0)}% of its own chroma (a grey band: at least 70%)`);
+  assert.ok(minC >= 0.035, `the curtain over its sky falls to C ${minC.toFixed(3)} (grey: at least 0.035)`);
   const h0 = LCh(ramp(0))[2];
   assert.ok(h0 >= 130 && h0 <= 155, `the ramp's foot is h ${h0.toFixed(1)} (green, the oxygen line's: 130-155)`);
 });
