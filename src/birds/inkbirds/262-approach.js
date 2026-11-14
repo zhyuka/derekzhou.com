@@ -6,15 +6,17 @@
     PW.appr = b; PERCHED.push(b);
   }
   /* the perch's place in the world now (its body's rest point: over its foot by its standing height) and its motion */
-  var PQ = [0, 0, 0], PF2 = [0, 0];
+  var PQ = [0, 0, 0], PF2 = [0, 0], PFQ = [0, 0, 0];
   function perchWorld(b, C, dt) {
     var P = b.P; perchFoot(P, PF2);
     if (!(PF2[0] === PF2[0])) return false;
     var up = P.rest ? P.rest : 0.42 * perchSpan(b, P.k);   // (CSS px from its foot to its body: the rest rule's, once it is known)
-    rayAt(C, PF2[0], PF2[1] - up, P.D, PQ);
+    rayAt(C, PF2[0], PF2[1], P.D, PFQ);   // (the perch's motion is its foot's: the body's rest over it changing (a crouch, a turn) is not the perch moving)
     var et = t - (P.tAt === undefined ? t - dt : P.tAt); P.tAt = t;   // (the time since it was last placed: a step missed counts)
-    if (P.ok && et > 1e-4) { var k = Math.min(1, et / 0.12); for (var i = 0; i < 3; i++) P.v[i] += ((PQ[i] - P.at[i]) / et - P.v[i]) * k; }
+    if (P.ok && et > 1e-4) { var k = Math.min(1, et / 0.12); for (var i = 0; i < 3; i++) P.v[i] += ((PFQ[i] - P.af[i]) / et - P.v[i]) * k; }
     else { P.v[0] = LVC.vx; P.v[1] = LVC.vy; P.v[2] = LVC.vz; }
+    P.af[0] = PFQ[0]; P.af[1] = PFQ[1]; P.af[2] = PFQ[2];
+    rayAt(C, PF2[0], PF2[1] - up, P.D, PQ);
     P.at[0] = PQ[0]; P.at[1] = PQ[1]; P.at[2] = PQ[2]; P.ok = true; P.foot[0] = PF2[0]; P.foot[1] = PF2[1];
     return true;
   }

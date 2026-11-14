@@ -124,7 +124,7 @@
   /* a perch: a ledge's place (kind, its index, x and its foot's y, CSS px) or the tip's, and every field a landing and
      a perched life set (one shape for every perch, so their steps stay optimised) */
   function perchRec(kind, li, x, fy, k) {
-    return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false,
+    return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: [0, 0], at: [0, 0, 0], af: [0, 0, 0], v: [0, 0, 0], ok: false,
       t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
       tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, nextAct: 0, act: null, walk: null,
       swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined, landYaw: false };

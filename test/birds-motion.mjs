@@ -88,3 +88,48 @@ test('144 Hz: the wings and attitude move on every frame, not only on those with
   assert.ok(Object.keys(S).length > 0, 'no frames');
   assert.equal(bad.length, 0, `form change without a step out of 0.6-1.6 of that with one: ${bad.join(', ')}`);
 });
+
+/* (the audit's bird-leap-up) a bird leaves its perch upward: the perch's motion is its foot's, not its body's rest
+   point (main: the crouch and the rest re-solved under it counted as the perch moving down; 48 of 53 leaps went down) */
+test('a leap off a perch goes up', () => {
+  let n = 0, down = 0, worst = 1e9;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const sc = SCENES.perch(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); sc.setup(sim); const was = new Map();
+    for (let k = 0; k < 95 * 60; k++) {
+      const pc = sim.C.pos.slice(); sim.frame(1 / 60);   // (drawn: the draw once wrote the perch's rest)
+      for (const b of sim.B.BIRDS) {
+        const w = was.get(b);
+        if (w === 'L' && b.st === 'fly') { n++; const vy = b.v[1] - (sim.C.pos[1] - pc[1]) * 60; worst = Math.min(worst, vy); if (vy < 0) down++; }
+        was.set(b, b.st === 'perch' && b.P && b.P.leaving ? 'L' : b.st);
+      }
+    }
+  }
+  console.log(`# leaps: ${n}, ${down} down; the lowest climb ${worst.toFixed(2)} m/s`);
+  assert.ok(n > 0 && down === 0, `${down} of ${n} leaps went down`);
+});
+
+test('144 Hz: a take-off never steps back on the window', () => {
+  let worst = 0, at = '', n = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const sc = SCENES.perch(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let perchT = -1, left = -1, prev = null;
+    for (let k = 0; k < 40 * 144; k++) {
+      sim.frame(1 / 144); const s = b.s, DF = sim.B.DF();
+      if (b.st === 'perch' && perchT < 0) perchT = sim.t;
+      if (perchT >= 0 && left < 0 && sim.t - perchT > 2) { sim.B.leave(b, 'own'); left = k; }
+      if (left < 0 || !s || s.seenF !== DF) { prev = null; continue; }
+      const cur = [s.HB[0], s.HB[1]];
+      if (b.st === 'fly' && prev && prev.st !== 'fly') n++;
+      if (prev && prev.st === 'fly' && b.st === 'fly' && prev.v) {   // (moving: a frame's step against the last frame's, where it moved at all)
+        const dx = cur[0] - prev.x, dy = cur[1] - prev.y, dot = dx * prev.v[0] + dy * prev.v[1], pl = Math.hypot(...prev.v);
+        if (pl > 0.05 && -dot / pl > worst) { worst = -dot / pl; at = `seed ${seed} frame ${k}`; }
+      }
+      prev = { x: cur[0], y: cur[1], st: b.st, v: prev ? [cur[0] - prev.x, cur[1] - prev.y] : null };
+      if (k - left > 1.5 * 144) break;
+    }
+  }
+  console.log(`# take-offs: ${n}; the worst step back on the window ${worst.toFixed(2)} px (${at})`);
+  assert.ok(n > 0, 'no take-off');
+  assert.ok(worst <= 0.3, `a take-off stepped back ${worst.toFixed(2)} px at ${at}`);
+});
