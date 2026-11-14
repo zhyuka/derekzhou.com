@@ -4,14 +4,13 @@ name: Stills
 # served build, so live never ships without them (docs/deploy.md, "The stills").
 # After each green Gate run (workflow_run):
 #   on main: the release stills-<key> (key: tools/stills.mjs worldKey of the gate's served/head, the plain build) is
-#     looked up; if it is not up, served/head's settled twin is baked (cached on the PC by key: a world baked before,
-#     on its PR's branch, costs seconds) and put up (tools/stills-release.mjs). Either way the commit's status `stills`
+#     looked up; if it is not up, served/head's settled twin is baked (cached on the PC by key: a world baked before
+#     costs seconds) and put up (tools/stills-release.mjs). Either way the commit's status `stills`
 #     says so, and the merge bot's deploy gate moves live to a tip that has the bake only once it is success
 #     (merge-bot.mjs, bot-rules.mjs stillsReady). A failure here never turns main red: live waits, the status says why.
-#   on a claude/* branch: when its served build is not its base's and no set is up for it, the same bake fills the
-#     PC's cache for that key (the newest branch's only: every branch shares one group, so the GPU runner never holds a
-#     queue of warm bakes) (nothing is uploaded: a branch's key is main's only once it lands), so main's run after
-#     the landing finds it (the bot fast-forwards main to the tested head: the same served build, the same key).
+#   on a claude/* branch: nothing (2026-11-14). A branch's warm bake (filling the PC's cache before its landing) cost
+#     six 13-minute GPU jobs for every visible PR's gate, against T2's 1.3 minutes, and T2s queued behind them for
+#     hours; main bakes a world once, after it lands, and a wave of landings once, at its end (below).
 # The PC's one gpu-4090 runner is T2's too (2026-11-14: main's gate waited 65 minutes behind a full bake of a tip main
 # had already passed), so:
 #   - the bake is six jobs, a sky each (about 13 minutes), one at a time: between two, a T2 queued meanwhile takes the
@@ -37,21 +36,20 @@ permissions:
 concurrency:
   # one group for main, one for every claude/* branch together (2026-11-14: a group a branch let seven branches' warm
   # bakes, 38 GPU jobs, queue ahead of T2): the newest run in each cancels the older, queued or running
+  # (a branch's run does nothing now, but keeps its own group: in main's, it would cancel main's bake)
   group: stills-${{ github.event.workflow_run.head_branch == 'main' && 'main' || 'branches' }}
   cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
 
 env:
   PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0), as gpu.yml
   SHA: ${{ github.event.workflow_run.head_sha }}
-  ON_MAIN: ${{ github.event.workflow_run.head_branch == 'main' }}
-  REF: ${{ github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_sha || 'main' }}
+  REF: ${{ github.event.workflow_run.head_sha }}   # (main's tip: only main's runs do anything)
 
 jobs:
   # Is there a bake, and is this world's set up already? (seconds, on Linux)
   need:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'claude/'))
+      github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 10
     outputs:
@@ -77,14 +75,12 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           k=$(node -e "import('./tools/stills.mjs').then((m) => console.log(m.worldKey('served/head')))")
-          kb=$(node -e "import('./tools/stills.mjs').then((m) => console.log(m.worldKey('served/base')))")
           echo "key=$k" >> "$GITHUB_OUTPUT"
-          # the answer is what stills-release prints: up only with "is up" and, on main, its status posted (--status);
+          # the answer is what stills-release prints: up only with "is up" and its status posted (--status);
           # anything else is not up, and the bake runs (all hits when the PC's cache has the key)
-          if [ "$ON_MAIN" = true ]; then said=$(node tools/stills-release.mjs --site served/head --have --status "$SHA" || true); else said=$(node tools/stills-release.mjs --site served/head --have || true); fi
+          said=$(node tools/stills-release.mjs --site served/head --have --status "$SHA" || true)
           echo "$said"
-          if grep -q ' is up$' <<<"$said" && { [ "$ON_MAIN" != true ] || grep -q 'status stills success' <<<"$said"; }; then echo "up already: nothing to bake"; exit 0; fi
-          if [ "$ON_MAIN" != true ] && [ "$k" = "$kb" ]; then echo "the served build is its base's ($k): main's own run bakes it"; exit 0; fi
+          if grep -q ' is up$' <<<"$said" && grep -q 'status stills success' <<<"$said"; then echo "up already: nothing to bake"; exit 0; fi
           echo "bake=true" >> "$GITHUB_OUTPUT"
 
   # The bake, a sky a job, one at a time on the GPU runner (T2 takes the runner between two)
