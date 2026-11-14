@@ -81,6 +81,7 @@
           q[2] = (B.r() - 0.5) * 0.5; b.slot = q; b.F = A; b.goal = null; A.m.push(b);
         }
         if (A.m.length === 2) A.pat = 'pair';
+        A.off = false; A.acc = 0;   // (joined: judged again with its new birds)
         FLOCKS.splice(best, 1); B.out = true;
         return;
       }
@@ -270,11 +271,14 @@
   function offView(F, C) {
     var L = F.lead, i;
     for (i = 0; i < F.m.length; i++) if (F.m[i].st !== 'fly') return false;
-    var dx = L.p[0] - C.pos[0], dy = L.p[1] - C.pos[1], dz = L.p[2] - C.pos[2];
-    if (dx * dx + dy * dy + dz * dz < OFF_D * OFF_D) return false;
-    var zc = dx * C.f[0] + dy * C.f[1] + dz * C.f[2], xc = dx * C.r[0] + dy * C.r[1] + dz * C.r[2], yc = dx * C.u[0] + dy * C.u[1] + dz * C.u[2];
     var rad = 2 * L.sz * (F.m.length + 1);
-    return Math.abs(xc) - rad > zc * OTX || Math.abs(yc) - rad > zc * OTY;
+    for (i = 0; i < F.m.length; i++) {   // (every bird of it, not its leader alone: a straggler or a joiner may be in view while its leader is not)
+      var q = F.m[i], dx = q.p[0] - C.pos[0], dy = q.p[1] - C.pos[1], dz = q.p[2] - C.pos[2];
+      if (dx * dx + dy * dy + dz * dz < OFF_D * OFF_D) return false;
+      var zc = dx * C.f[0] + dy * C.f[1] + dz * C.f[2], xc = dx * C.r[0] + dy * C.r[1] + dz * C.r[2], yc = dx * C.u[0] + dy * C.u[1] + dz * C.u[2];
+      if (!(Math.abs(xc) - rad > zc * OTX || Math.abs(yc) - rad > zc * OTY)) return false;
+    }
+    return true;
   }
   function birdsStep(C, dt) {
     lvCam(C); windNow();

@@ -133,3 +133,24 @@ test('144 Hz: a take-off never steps back on the window', () => {
   assert.ok(n > 0, 'no take-off');
   assert.ok(worst <= 0.3, `a take-off stepped back ${worst.toFixed(2)} px at ${at}`);
 });
+
+/* (the audit's bird-offview-members) a flock is stepped as unseen (coarsely, held in its places) only while no bird of it
+   could be seen: no bird drawn inside the window belongs to such a flock (main: one far from its leader, a joiner or a
+   straggler, was drawn in view, 96 px wide, while its flock stepped by its leader's place out of view: held, then snapped
+   11 px into its place) */
+test('no bird drawn in the window is stepped as unseen', () => {
+  let bad = 0, frames = 0, at = '';
+  for (const cs of ['drop', 'natural']) for (let seed = 1; seed <= SEEDS * 3; seed++) {
+    const sc = SCENES[cs](seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); sc.setup(sim);
+    for (let k = 0; k < 30 * 60; k++) {
+      sim.frame(1 / 60); const DF = sim.B.DF();
+      for (const b of sim.B.BIRDS) {
+        const s = b.s; if (!s || s.seenF !== DF) continue; frames++;
+        if (b.F && b.F.off && s.HB[0] > 0 && s.HB[0] < 960 && s.HB[1] > 0 && s.HB[1] < 600) { bad++; at = `${cs} ${seed} frame ${k}, ${s.spanPx.toFixed(0)} px`; }
+      }
+    }
+  }
+  console.log(`# drawn bird-frames ${frames}; in the window while stepped as unseen ${bad} (${at})`);
+  assert.equal(bad, 0, `${bad} drawn bird-frames in the window while stepped as unseen (last ${at})`);
+});
