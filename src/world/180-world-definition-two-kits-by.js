@@ -5,6 +5,8 @@ vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast50
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
 #define HAS_GTX
+#define HAS_GDP
+vec2 gDPX = vec2(1e4), gDPY = vec2(1e4);   // the land pixel's step in x and y on the ground (dFdx, dFdy of vW.xz: set by FS_TERRAIN, the one stage that may take them; unset, a step past every detail)
 float gTX = 1e4; vec3 gLV = vec3(0.0), gWC = vec3(0.0);   // (world6 fix) the land's height over the cloud sea's top (from its vertices), and Hd's last level and cloud weight
 vec4 kwT(ivec2 i) { uint m = uint(uKWc.w) - 1u; return texelFetch(uKW, ivec2(uvec2(i) & uvec2(m)), 0); }
 vec4 kfT(ivec2 i) { uint m = uint(uKFc.w) - 1u, W = uint(uKWc.w); uvec2 u = uvec2(i) & uvec2(m); uint L = u.y * uint(uKFc.w) + u.x; return texelFetch(uKW, ivec2(int(L % W), int(W + L / W)), 0); }

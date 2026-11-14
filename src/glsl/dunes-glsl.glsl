@@ -220,6 +220,20 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
     float rpatch = smoothstep(0.38, 0.62, nz.b);
     n = normalize(n - rk * rpatch * 0.06 * sl * vec3(wr.x, 0.0, wr.y));
   }
+  // the swell (the owner's near sand, 2026-11-14): long parallel swells across the wind, 9 m apart, their line
+  // wandering (a 70 m warp), that catch the low light, tilting the normal 0.12 at most. At the default framing the
+  // land is 0.3 m a pixel and more, where the grain and the ripples cannot be drawn: this is the detail that can. Faded
+  // by the cycles it puts in one pixel along its own phase (the phase's gradient, the warp's included, against the
+  // pixel's step on the ground in x and y: gDPX, gDPY), full under 1/8 of a cycle a pixel, gone at 1/4: never under four
+  // pixels a cycle, so it never aliases into a glitter (measured against the same frames drawn at twice the pixels)
+  if (steep < 1.0) {
+    vec2 sw = WINDDIR; vec3 sv = gnd(p.xz / 70.0);
+    float sph = dot(p.xz, sw) / 9.0 + 1.5 * sv.x;
+    vec2 sg = sw / 9.0 + 1.5 * sv.yz / 70.0;   // (the phase's gradient, cycles a metre)
+    float scp = max(abs(dot(gDPX, sg)), abs(dot(gDPY, sg)));   // (cycles a pixel)
+    float sk = (1.0 - smoothstep(0.125, 0.25, scp)) * (1.0 - steep);
+    if (sk > 0.0) n = normalize(n - sk * 0.12 * sin(6.2831853 * sph) * vec3(sw.x, 0.0, sw.y));
+  }
   float ndl = dot(n, uSun);
   // the low sun lights the level sand and the faces toward it; the faces turned from it fall into the sky's blue
   float dif = smoothstep(-0.08, 0.26, ndl);

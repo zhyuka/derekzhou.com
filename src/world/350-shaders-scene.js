@@ -106,6 +106,9 @@ void main() {
 #ifdef HAS_GTX
   gTX = vX;
 #endif
+#ifdef HAS_GDP
+  gDPX = dFdx(vW.xz); gDPY = dFdy(vW.xz);   // (here, in main's uniform flow: the shading's details faded by what a pixel spans)
+#endif
   vec3 v = vW - uCam;
   float t = length(v); vec3 rd = v / t;
   float fp = t * 2.0 * uProj.y / uRes.y;
