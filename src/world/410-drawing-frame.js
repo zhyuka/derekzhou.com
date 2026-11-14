@@ -88,6 +88,7 @@
     n = VOLS.length;
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
+    gl.uniform1f(P.u.uVK, memTier() === 'desktop' && TIER >= 1 ? 12 : 4);   // (the edge band's most pieces a segment: the desktop's 12 at its top tier, the rest 4)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position
