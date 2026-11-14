@@ -58,7 +58,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/drag.mjs (the drag),
                              test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
-                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/held.mjs (the
+                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
                              test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
