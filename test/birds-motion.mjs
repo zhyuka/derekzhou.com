@@ -11,18 +11,20 @@ import { SCENES } from './birds-scenes.mjs';
 
 const NV = 46, SEEDS = +(process.env.BIRDS_N || 4), RATE = { gull: 1.95, crow: 2.45, swallow: 4.8, finch: 3 };
 /* a scene at hz frames a second for secs: the tagged birds' drawn records, frame by frame */
-function run(cs, seed, hz, secs, each, size, all) {
+function run(cs, seed, hz, secs, each, size, all, sched) {
   const sc = SCENES[cs](seed, size || '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
   const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
   const tr = new Map(), lp = new Map(), nl = new Map(), nn = new Map();
+  let tm = 0;
   for (let k = 0; k < Math.round(secs * hz); k++) {
-    const n = sim.frame(1 / hz), DF = sim.B.DF();
+    const fd = sched ? sched(k) : 1 / hz; tm += fd;
+    const n = sim.frame(fd), DF = sim.B.DF();
     for (const b of all ? sim.B.BIRDS : tags) {
       if (b.st === 'perch') lp.set(b, k);
       if (b.st === 'land' && b.P && nl.get(b) !== b.P) { nl.set(b, b.P); nn.set(b, (nn.get(b) || 0) + 1); }
       const s = b.s; if (!s || s.seenF !== DF || sim.t < 0.2) continue;
       let a = tr.get(b); if (!a) tr.set(b, a = []);
-      a.push({ k, n, span: s.spanPx, hb: [s.HB[0], s.HB[1]], D: Float64Array.from(s.D46), kind: b.kind, st: b.st, lv: lp.has(b) ? k - lp.get(b) : 1e9, nth: nn.get(b) || 0 });
+      a.push({ k, n, span: s.spanPx, hb: [s.HB[0], s.HB[1]], D: Float64Array.from(s.D46), kind: b.kind, st: b.st, lv: lp.has(b) ? k - lp.get(b) : 1e9, nth: nn.get(b) || 0, tm });
     }
     if (each) each(sim, tags);
   }
@@ -154,6 +156,43 @@ test('a bird\'s second landing is as smooth as its first (land, leave, land: eve
     }
   console.log(`# second landings: ${frames} frames; worst form ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(frames > 100, 'too few frames of a second landing');
+  assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
+  assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
+});
+
+test('a speck moves evenly: its coarse steps are not drawn a share of one step back', () => {
+  let sum = 0, n = 0, max = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 30, null, size, true).values())
+    for (let i = 1; i < F.length - 1; i++) {
+      const a = F[i - 1], b = F[i], c = F[i + 1]; if (b.k !== a.k + 1 || c.k !== b.k + 1 || b.st !== 'fly' || !(b.span > 0 && b.span < 2)) continue;
+      const d = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]); sum += d; n++;
+      if (d > max) { max = d; at = `natural ${size} ${seed} frame ${b.k}`; }
+    }
+  const mean = sum / Math.max(n, 1);
+  console.log(`# speck frames: ${n}; body second difference ${mean.toFixed(3)} px a frame on average, most ${max.toFixed(2)} (${at})`);
+  assert.ok(n > 1000, 'too few speck frames');
+  assert.ok(mean < 0.005, `specks judder: ${mean.toFixed(3)} px a frame on average (${at})`);
+});
+
+/* (the hub's re-review) a real display's frames are not even: each a little early or late, now and then one dropped. The
+   drawn motion is scored over the frames' own times (a second difference over uneven steps, at 60 Hz's scale) */
+function jitter(hz, seed) { let r = seed * 2654435761 % 4294967296; const rnd = () => (r = (r * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  return (k) => (rnd() < 0.01 ? 2 : 1) / hz + (rnd() - 0.5) * 0.001; }
+for (const hz of [60, 144]) test(`${hz} Hz, uneven (frames off by up to 0.5 ms, now and then one dropped): no landing or perched bird jumps`, () => {
+  let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
+  for (const cs of ['perch', 'drop', 'cursor']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24, null, '960x600', false, jitter(hz, seed)).values())
+    for (let n = 1; n < F.length - 1; n++) {
+      const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch' && b.st !== 'appr')) continue;
+      if (b.st === 'perch' && (a.li !== b.li || b.li !== c.li) && a.st === 'perch' && c.st === 'perch') continue;
+      const h1 = b.tm - a.tm, h2 = c.tm - b.tm, g = 2 / (h1 * h2 * (h1 + h2)) / 3600;   // (to 60 Hz's frame: the second difference a 1/60 s step would show)
+      let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a, i), q = sh(b, i), r = sh(c, i); m = Math.max(m, Math.hypot(h2 * p[0] - (h1 + h2) * q[0] + h1 * r[0], h2 * p[1] - (h1 + h2) * q[1] + h1 * r[1]) * g); }
+      const bb = Math.hypot(h2 * a.hb[0] - (h1 + h2) * b.hb[0] + h1 * c.hb[0], h2 * a.hb[1] - (h1 + h2) * b.hb[1] + h1 * c.hb[1]) * g;
+      const k60 = hz === 60 ? 1 : 0.3, lim = 0.25 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2 * (hz === 60 ? 1 : (60 / hz) ** 2) / ((60 / hz) ** 2), f = m / b.span / lim, bq = bb / b.span / (0.1 * k60 / ((60 / hz) ** 2)); frames++;
+      if (f > worst.f) worst = { f, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
+      if (bq > worstB.b) worstB = { b: bq, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
+    }
+  console.log(`# ${hz} Hz uneven: ${frames} frames; worst form ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
+  assert.ok(frames > 1000, 'too few frames');
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
 });
