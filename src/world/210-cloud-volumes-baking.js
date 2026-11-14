@@ -21,6 +21,7 @@
     for (i = 0; i < n; i++) for (k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], LP[i * 3 + k] - a[(i0 + i) * 12 + 3] - mg); hi[k] = Math.max(hi[k], LP[i * 3 + k] + a[(i0 + i) * 12 + 3] + mg); }
     var cl = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2], h = [(hi[0] - lo[0]) / 2 * 1.06, (hi[1] - lo[1]) / 2 * 1.06, (hi[2] - lo[2]) / 2 * 1.06];
     var c = [cy * cl[0] + sy * cl[2], cl[1], -sy * cl[0] + cy * cl[2]];   // the centre in the world
+    if (memTier() === 'desktop') res = Math.round((res || 52) * 64 / 44);   // (the desktop's volumes finer: the layout's 44 voxels across a body's longest side, 64 there)
     if (DEVMODE && SW.volres > 0) res = SW.volres;   // (dev: the structural harness's long flights with small bodies: the same calls, a fraction of SwiftShader's bake time)
     var vox = Math.max(h[0], h[1], h[2]) * 2 / (res || 52), dims = [0, 0, 0];
     for (k = 0; k < 3; k++) dims[k] = clamp(Math.ceil(h[k] * 2 / vox), 6, 64);
@@ -59,7 +60,7 @@
     if (vb.pass === 0) {
       P = EP.vdens; gl.useProgram(P.p); setFrameUniforms(P, V);
       gl.uniform4fv(P.u.uLobe, vb.L); gl.uniform1i(P.u.uLobeN, vb.n); gl.uniform3fv(P.u.uHalf, vb.h); gl.uniform3f(P.u.uDims, d[0], d[1], d[2]);
-      gl.uniform4f(P.u.uVK, B.seed, B.erode, vb.Rm * B.noise, vb.Rm * B.blend);
+      gl.uniform4f(P.u.uVK, B.seed, B.erode, Math.max(vb.Rm * B.noise, 24 * vb.vox), vb.Rm * B.blend);   // (the noise's tile: at least 24 voxels)
       gl.uniform4f(P.u.uVK2, 0, B.squash, vb.Rm * 4, vb.Rm * B.billow);
       gl.bindFramebuffer(gl.FRAMEBUFFER, VTMP.f); gl.viewport(0, 0, d[0], d[1]); gl.bindVertexArray(FULLVAO);
       while (vb.z < d[2] && made < budget) { gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, VTMP.t, 0, vb.z); gl.uniform1f(P.u.uLayer, vb.z); gl.drawArrays(gl.TRIANGLES, 0, 3); vb.z++; made += uD; }

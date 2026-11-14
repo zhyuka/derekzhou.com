@@ -3,6 +3,7 @@ uniform sampler3D uVol; uniform sampler2D uLinD; uniform vec3 uVC, uVH; uniform 
 uniform vec4 uVR;   // extinction (1/m), most steps, the fine billows' scale (m), their depth (m)
 uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the ceiling a forming cloud rises under (world y), a passage cloud's near reach (m)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
+uniform float uVVox;   // the body's voxel (m)
 uniform float uVK;  // the most pieces a band segment is cut into (the device's tier: 12 desktop, 4 the rest)
 float segRamp(float s0, float s1, float bE) {   // the band's ramp clamp(-s / bE, 0, 1) over a piece, its mean with s linear between its ends
   float G0 = s0 >= 0.0 ? 0.0 : (s0 > -bE ? s0 * s0 / (2.0 * bE) : -s0 - 0.5 * bE), G1 = s1 >= 0.0 ? 0.0 : (s1 > -bE ? s1 * s1 / (2.0 * bE) : -s1 - 0.5 * bE), ds = s1 - s0;
@@ -19,7 +20,7 @@ void main() {
   if (tf <= tn) discard;
   float cs = dot(rd, uSun), g = uClK.z;
   float P0 = mix(hgN(cs, g), hgN(cs, -0.25), 0.22), P1 = hgN(cs, g * 0.6), P2 = hgN(cs, g * 0.36);
-  float vox = max(uVH.x, max(uVH.y, uVH.z)) / 26.0, band = uVS.y, amp = uVR.w;
+  float vox = uVVox, band = uVS.y, amp = uVR.w;
   float dIn = max(vox * 0.75, band * 1.2), dEdge = max(band * 0.6, 1.0);
   // (no glitter) the march, stable from one frame to the next:
   // - no start offset: a fixed per-pixel offset (an R2 pattern on the window, up to one edge step) is a pattern the

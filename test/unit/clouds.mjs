@@ -97,3 +97,17 @@ test('clouds: the band\'s steps are one budget a tier, and the leaps have their 
   const loop = /for \(int i = 0; i < (\d+); i\+\+\) \{\n\s*if \(t > tf/.exec(VBODY);
   assert.ok(loop && +loop[1] >= 48 + 32, 'the loop is shorter than the band\'s steps and the leaps together');
 });
+
+// ------------------------------------------------------------------ the bake's detail (cloud-bake-detail, 2026-11-14)
+// The density pass's billows at LOD 0 (a full-screen pass's implicit LOD took a coarse mip: 22-37% of their depth kept),
+// one octave, on a tile of at least 24 voxels; the desktop's volumes 64 voxels across where the layout asks 44; and the
+// march's voxel the body's own, not its box over 26
+const VDENS = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vdens.glsl'), 'utf8');
+test('clouds: the bake reads its billows at LOD 0 on a tile of 24 voxels or more; the march uses the body\'s voxel', () => {
+  assert.match(VDENS, /float n = textureLod\(uN3, q, 0\.0\)\.g;/, 'the bake\'s billows at an implicit LOD');
+  assert.ok(!/texture\(uN3/.test(VDENS), 'an implicit-LOD read of the noise is left in the bake');
+  assert.match(WORLD, /gl\.uniform4f\(P\.u\.uVK, B\.seed, B\.erode, Math\.max\(vb\.Rm \* B\.noise, 24 \* vb\.vox\), vb\.Rm \* B\.blend\);/);
+  assert.match(WORLD, /if \(memTier\(\) === 'desktop'\) res = Math\.round\(\(res \|\| 52\) \* 64 \/ 44\);/);
+  assert.match(VBODY, /float vox = uVVox,/, 'the march\'s voxel is its box over 26');
+  assert.match(WORLD, /gl\.uniform1f\(P\.u\.uVVox, B\.vox\);/);
+});
