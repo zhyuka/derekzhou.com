@@ -134,8 +134,7 @@
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
       var bb = b.stT === t ? back : back - (t - b.stT), qb = b.stT === t && STEP_DT > 0 ? clamp(back / STEP_DT, 0, 1) : 0;   // (bb: back to the frame's time from its own last step)
-      var px = qb > 0 ? b.p[0] - (b.p[0] - b.pp[0]) * qb : b.p[0] - b.v[0] * bb, py = qb > 0 ? b.p[1] - (b.p[1] - b.pp[1]) * qb : b.p[1] - b.v[1] * bb, pz = qb > 0 ? b.p[2] - (b.p[2] - b.pp[2]) * qb : b.p[2] - b.v[2] * bb;
-      projReal(px, py, pz, C, tmp3);
+      drawnAt(b, qb, bb, DP); projReal(DP[0], DP[1], DP[2], C, tmp3);
       if (!(tmp3.z > 1)) continue;
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
       if (tmp3.z > 1 && !inView(tmp3.x, tmp3.y, rpx, rpx)) continue;
