@@ -24,6 +24,7 @@ float galEdge(float e) { float g = (1.0 - uGalC.w) * 95.0 - 3.0; return smoothst
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
 #ifdef SKY_PH2
 vec3 galaxyAt(vec3 rd, float e) {
+  if (uGalC.w <= 0.0) return vec3(0.0);   // (aurora-enter-by-place: nothing read until it has begun to come in)
   vec3 P = uGal.xyz, C = uGalC.xyz;
   float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU;
   float band = exp(-b * b / 0.0225), core = exp(-l * l / 0.36) * exp(-b * b / 0.05);
@@ -32,6 +33,7 @@ vec3 galaxyAt(vec3 rd, float e) {
   return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e) * galEdge(e);
 }
 vec3 auroraAt(vec3 rd, float e) {
+  if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
   float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
   float b0 = uAur.z - (1.0 - uAur.x) * 70.0;   // (aurora-enter-by-place: its base under the poleward horizon until it has come in; whole at 1)
   for (int j = 0; j < 3; j++) {
@@ -153,8 +155,8 @@ void main() {
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
   }
 #ifdef SKY_PH2
-  if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2; not read at all until it has begun to come in: aurora-enter-by-place)
-  if (uAur.w > 0.0 && uAur.x > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2; likewise)
+  if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2)
+  if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below

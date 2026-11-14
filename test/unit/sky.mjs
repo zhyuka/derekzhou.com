@@ -135,6 +135,6 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
   assert.ok(/float galEdge\(float e\) \{ float g = \(1\.0 - uGalC\.w\) \* /.test(g), 'galEdge does not follow the galaxy\'s rise (uGalC.w)');
   assert.ok(/uGal\.w \* 0\.04 \* smoothstep\(1\.0, 12\.0, e\) \* galEdge\(e\);/.test(g), 'galaxyAt is not under its edge');
   assert.ok(/float b0 = uAur\.z - \(1\.0 - uAur\.x\) \* [\d.]+;/.test(g) && /float base = b0 \* sc/.test(g), 'auroraAt\'s base does not follow its rise (uAur.x)');
-  assert.ok(g.includes('uGalC.w > 0.0 && eS > 0.0) c += galaxyAt(') && g.includes('uAur.x > 0.0 && eS > 0.5) c += auroraAt('), 'the galaxy and the aurora are read before they begin to come in');
+  assert.ok(g.includes('vec3 galaxyAt(vec3 rd, float e) {\n  if (uGalC.w <= 0.0) return vec3(0.0);') && g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
   assert.ok(/gl\.uniform4f\(u\.uGalC, [^;]*SKY\.rise\[0\]\)/.test(WORLD) && /gl\.uniform4f\(u\.uAur, SKY\.rise\[1\]/.test(WORLD), 'the rises are not passed to the sky (uGalC.w, uAur.x)');
 });
