@@ -89,13 +89,15 @@
   /* the flare's progress (0 to 1) at the frame's own time: landStep's sum, read at TD (b.flareU is the step's) */
   function flareAt(b) { var P = b.P; if (!P || !(P.T > 0)) return b.flareU || 0; var T = P.T, tf = Math.min(PFLARE, T); return clamp((Math.max(0, TD - P.tl) - (T - tf)) / tf, 0, 1); }
   function dist3(a, c) { var x = a[0] - c[0], y = a[1] - c[1], z = a[2] - c[2]; return Math.sqrt(x * x + y * y + z * z); }
+  /* where a bird is at the frame's time: stepped this step, between where it was and is (q of the way back, by the
+     loop's own alpha); else (a coarse speck) carried back along its way by bb s */
+  var DP = [0, 0, 0];
+  function drawnAt(b, q, bb, o) { for (var i = 0; i < 3; i++) o[i] = q > 0 ? b.p[i] - (b.p[i] - b.pp[i]) * q : b.p[i] - b.v[i] * bb; return o; }
   /* a bird in the air, posed: its place now (between the last two steps: back along its way), its basis, its wings */
   function poseFly(b, C, s, rest, back) {
     var kind = s.kind, i;
-    var px, py, pz;
-    if (QB > 0) { px = b.p[0] - (b.p[0] - b.pp[0]) * QB; py = b.p[1] - (b.p[1] - b.pp[1]) * QB; pz = b.p[2] - (b.p[2] - b.pp[2]) * QB; }   // (stepped this step: between where it was and is, by the loop's own alpha)
-    else { px = b.p[0] - b.v[0] * back; py = b.p[1] - b.v[1] * back; pz = b.p[2] - b.v[2] * back; }   // (a coarse speck: carried on along its way)
-    VV[0] = b.v[0] - (b.v[0] - b.v0[0]) * QB - WINDV[0]; VV[1] = b.v[1] - (b.v[1] - b.v0[1]) * QB - WINDV[1]; VV[2] = b.v[2] - (b.v[2] - b.v0[2]) * QB - WINDV[2];   // (its way at the frame's time: between its last two steps)
+    drawnAt(b, QB, back, DP); var px = DP[0], py = DP[1], pz = DP[2];
+    for (i = 0; i < 3; i++) VV[i] = b.v[i] - (b.v[i] - b.v0[i]) * QB - WINDV[i];   // (its way at the frame's time: between its last two steps)
     var vl = Math.sqrt(VV[0] * VV[0] + VV[1] * VV[1] + VV[2] * VV[2]);
     if (!(vl > 0.3)) { VV[0] = Math.sin(b.psi); VV[1] = 0; VV[2] = Math.cos(b.psi); vl = 1; }
     var fx = VV[0] / vl, fy = VV[1] / vl, fz = VV[2] / vl;
