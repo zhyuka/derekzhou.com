@@ -89,8 +89,8 @@
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
     var VSTEPS = memTier() === 'desktop' && TIER >= 1 ? 48 : 32;   // (the band's steps a ray: the desktop's top tier 48, the rest 32)
-    var CRISP = memTier() === 'desktop' && TIER >= 1;
-    gl.uniform2f(P.u.uVK, CRISP ? 16 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's top tier only; a phone's one-piece band cannot hold a hard edge still, so it keeps the soft one)
+    var CRISP = memTier() === 'desktop';   // (the device's kind, never the governor's tier: the clouds' character never changes within a visit)
+    gl.uniform2f(P.u.uVK, CRISP ? 32 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 32, its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position
@@ -105,7 +105,7 @@
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
       var mk = mistK(B); if (mk > MISTMAX) MISTMAX = mk;
       var ceil = 1e5;
-      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];   // (the body's own, from volPrep)
+      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 2 : 1); B.u4a[3] = B.det[1] * (CRISP ? 5 : 1);   // (crisp cauliflower on the desktop: the kit's billows twice the size, five times the depth)   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);

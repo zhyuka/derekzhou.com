@@ -14,7 +14,7 @@
      first climateLight, the landing's light, not the dunes kit's unblended copy (V.L there) */
   function volDetail(V) {
     var A = V.lightRaw && V.lightRaw.clDetail, B = V.lightRawB && V.lightRawB.clDetail;
-    if (!A || !B || !KW.ok) { var d = ((V.L || V.light || {}).clDetail) || [240, 8]; return new Float32Array([d[0], d[1]]); }
+    if (!A || !B || !KW.ok) { var d = ((V.L || V.light || {}).clDetail) || [120, 4]; return new Float32Array([d[0], d[1]]); }
     var w = lightWeight(CS.x, CS.z); return new Float32Array([A[0] + (B[0] - A[0]) * w, A[1] + (B[1] - A[1]) * w]);
   }
   function volPrep(PF, bi, G, res, V) {

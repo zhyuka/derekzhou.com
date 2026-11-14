@@ -4,7 +4,7 @@ uniform vec4 uVR;   // extinction (1/m), most steps, the fine billows' scale (m)
 uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the ceiling a forming cloud rises under (world y), a passage cloud's near reach (m)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
 uniform float uVVox;   // the body's voxel (m)
-uniform vec2 uVK;  // the most pieces a band segment is cut into (the device's tier: 16 the desktop's top, 1 the rest); 1: the crisp edge (the desktop's top tier), 0: the soft one
+uniform vec2 uVK;  // the most pieces a band segment is cut into (32 the desktop, 1 a touch device); 1: the crisp edge (the desktop), 0: the soft one
 float segRamp(float s0, float s1, float bE) {   // the band's ramp clamp(-s / bE, 0, 1) over a piece, its mean with s linear between its ends
   float G0 = s0 >= 0.0 ? 0.0 : (s0 > -bE ? s0 * s0 / (2.0 * bE) : -s0 - 0.5 * bE), G1 = s1 >= 0.0 ? 0.0 : (s1 > -bE ? s1 * s1 / (2.0 * bE) : -s1 - 0.5 * bE), ds = s1 - s0;
   return abs(ds) < 1e-3 * bE ? clamp(-0.5 * (s0 + s1) / bE, 0.0, 1.0) : (G0 - G1) / ds;
@@ -94,17 +94,17 @@ void main() {
     // (no face of the box can draw an edge: the density thins over its outer few per cent)
     vec3 fq = (uVH - abs(p)) / uVH; float fz = smoothstep(0.0, 0.07, min(min(fq.x, fq.y), fq.z));
     if (uVS.w > 0.0) fz *= smoothstep(uVS.w * 0.2, uVS.w, t);
-    // (the crisp edge, the desktop's top tier: 1.25 half-resolution pixels near, widening to the soft band by 350 m;
-    // its cuts an eighth of a texel, as they must be for an edge that hard not to boil (half a texel lets whole billows
-    // dip in and out between two cuts). Elsewhere the soft band, cut at half a texel, as before.)
-    float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.125 : 0.5;
+    // (the crisp edge, the desktop: 1.25 half-resolution pixels near, widening to the soft band by 350 m;
+    // its cuts a sixteenth of a texel, as they must be for an edge that hard over billows that deep not to boil (half a
+    // texel lets whole billows dip in and out between two cuts). Elsewhere the soft band, cut at half a texel, as before.)
+    float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.0625 : 0.5;
     float bE = max(band * cw, mix(1.25, 2.0, cw) * t * pxA);
     if (tP >= 0.0) {
       // the segment from the last band sample to this one: the band's ramp integrated with s linear over each piece; a
       // segment that can reach the band (on either side of it, the billows' depth allowed) cut into K pieces
       float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;
       float dsum = 0.0, sa = sP;
-      for (int k = 1; k < 16; k++) {
+      for (int k = 1; k < 32; k++) {
         if (float(k) >= K) break;
         float u = float(k) / K, sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;
         dsum += segRamp(sa, sk, bE); sa = sk;

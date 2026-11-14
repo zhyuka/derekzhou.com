@@ -10,7 +10,7 @@ const DET = cut(WORLD, '  function volDetail(V) {', '  function volPrep(');
 
 test('clouds: the volume draw reads no light for the billows; each body brings its own', () => {
   assert.ok(!/clDetail/.test(DRAW), 'the draw loop reads clDetail: the billows\' scale changes per frame with the place');
-  assert.match(DRAW, /B\.u4a\[2\] = B\.det\[0\]; B\.u4a\[3\] = B\.det\[1\];/, 'the billows\' scale and depth are not the body\'s own');
+  assert.match(DRAW, /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? \d+ : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? \d+ : 1\);/, 'the billows\' scale and depth are not the body\'s own (the desktop\'s deepened by the device\'s kind alone)');
 });
 test('clouds: a body\'s billows are set once, from the kits\' own blended by the light\'s weight about the camera, and never follow it', () => {
   assert.ok(DET, 'volDetail not found in world.js');
@@ -23,8 +23,8 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
   const V = Object.assign({ L: { clDetail: new Float32Array([96, 4.6]) } }, kits), d = make(true, 0.6)(V);
   V.L.clDetail[0] = 120; V.L.clDetail[1] = 4;   // (the flight crosses into the dunes)
   assert.ok(Math.abs(d[0] - 96) < 1e-4, 'the body\'s billows followed the light');
-  assert.deepEqual(Array.from(make(false, 0)({})), [240, 8], 'no weights, no light yet: the default (the dunes kit\'s)');
-  // (the one call: without V every body would fall back to [240, 8] and the stubs above would still pass)
+  assert.deepEqual(Array.from(make(false, 0)({})), [120, 4], 'no weights, no light yet: the default');
+  // (the one call: without V every body would fall back to [120, 4] and the stubs above would still pass)
   assert.match(WORLD, /volPrep\(PF, bi, null, [^;]*, V\)/, 'cells-resolve calls volPrep without the visit: every body would take the default billows');
 });
 
@@ -36,7 +36,7 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
 // The pieces' cap is the world's own (410's uVK for the desktop and the rest; none on main: one piece), and the cut loop
 // must be in the shader; desktop under 0.02 everywhere, the rest at least 4 times calmer than one piece.
 const VBODY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8');
-const VK = /var CRISP = memTier\(\) === 'desktop' && TIER >= 1;\s*gl\.uniform2f\(P\.u\.uVK, CRISP \? (\d+) : (\d+), CRISP \? 1 : 0\)/.exec(WORLD);
+const VK = /var CRISP = memTier\(\) === 'desktop';[^\n]*\s*gl\.uniform2f\(P\.u\.uVK, CRISP \? (\d+) : (\d+), CRISP \? 1 : 0\)/.exec(WORLD);
 const CAP = VK ? { desktop: +VK[1], rest: +VK[2] } : { desktop: 1, rest: 1 };
 function hash(i, L) { let x = Math.imul(i ^ Math.imul(L + 1, 0x9e3779b1), 0x85ebca6b) ^ 0x1234567; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
 function row(x, L) { const i = Math.floor(x), f = x - i; return hash(i, L) * (1 - f) + hash(i + 1, L) * f; }   // (a row of texels, filtered linearly)
@@ -45,7 +45,7 @@ function G(x, bE) { return x >= 0 ? 0 : x > -bE ? x * x / (2 * bE) : -x - 0.5 * 
 function ramp(s0, s1, bE) { const ds = s1 - s0; return Math.abs(ds) < 1e-3 * bE ? Math.min(Math.max(-0.5 * (s0 + s1) / bE, 0), 1) : (G(s0, bE) - G(s1, bE)) / ds; }   // (segRamp)
 const ss = (a, b, x) => { const q = Math.min(Math.max((x - a) / (b - a), 0), 1); return q * q * (3 - 2 * q); };
 function boil({ dist, v, Kmax, crisp = false, scale = 80, amp = 5, band = 4, R = 60, frames = 48, px = 96, pxA = 0.0019, sig = 0.19 }) {
-  const cw = crisp ? ss(150, 350, dist) : 1, pf = crisp ? 0.125 : 0.5;   // (fs-vbody's crisp edge: cw 0 near, 1 from 350 m; its cuts an eighth of a texel throughout)
+  const cw = crisp ? ss(150, 350, dist) : 1, pf = crisp ? 0.0625 : 0.5;   // (fs-vbody's crisp edge: cw 0 near, 1 from 350 m; its cuts an eighth of a texel throughout)
   const texel = scale / 32, dE = Math.max(Math.max(band * 0.6, 1), dist * 0.012), bE = Math.max(band * cw, (1.25 + 0.75 * cw) * dist * pxA);
   const lod = Math.min(Math.max(Math.log2(Math.max(Math.max(2 * dist * pxA, 0.5 * dE) * 32 / scale, 1e-4)), 0), 5), step = Math.max(dE, dist / 25);
   const out = [];
@@ -76,28 +76,30 @@ function boil({ dist, v, Kmax, crisp = false, scale = 80, amp = 5, band = 4, R =
   out.sort((a, b) => a - b);
   return out[Math.floor(out.length * 0.95)];
 }
-test('clouds: the edge band is cut into pieces in the shader, at most 16, the cap a uniform the world sets per tier', () => {
+test('clouds: the edge band is cut into pieces in the shader, at most 32, the cap a uniform the world sets per tier', () => {
   assert.match(VBODY, /uniform vec2 uVK;/, 'fs-vbody has no uVK: one piece a segment');
-  assert.match(VBODY, /for \(int k = 1; k < 16; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 16, broken at K) is not in fs-vbody');
+  assert.match(VBODY, /for \(int k = 1; k < 32; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 32, broken at K) is not in fs-vbody');
   // (the shader's own cutting, as the model below does it: a mutation of any of these passed before, the hub's review)
-  assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;'), 'the pieces\' count is not the two-sided test and an eighth (crisp) to half a texel at the LOD, capped by uVK');
+  assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;'), 'the pieces\' count is not the two-sided test and a sixteenth (crisp) to half a texel at the LOD, capped by uVK');
   assert.ok(VBODY.includes('sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;'), 'a cut does not read the billows again at its own place');
   assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
   assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
   assert.ok(VBODY.includes('vec3 nOff = fract(uVC / uVR.z)') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
   assert.ok(VK, '410 sets no uVK for the tiers');
-  assert.ok(CAP.desktop <= 16 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 16`);
+  assert.ok(CAP.desktop <= 32 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 32`);
 });
 // (each kit's billows as the realms give them: the scale and depth fs-vbody reads, uVR.z and uVR.w)
 const KITS = Object.fromEntries(['above', 'dunes'].map((k) => { const m = /clDetail: \[(\d+), (\d+)\]/.exec(fs.readFileSync(path.join(ROOT, `src/realm-${k}.js`), 'utf8')); return [k, { scale: +m[1], amp: +m[2] }]; }));
-test('clouds: crisp on the desktop\'s top tier, 1.25 px near, and it boils under 0.02 at 80, 150 and 300 m in both kits; the rest keep the soft edge in one piece', () => {
+const DM = /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? (\d+) : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? (\d+) : 1\);/.exec(WORLD);
+test('clouds: crisp cauliflower on the desktop (lumps 2x the size, 5x the depth, the edge 1.25 px near), and it boils under 0.02 at 80, 150 and 300 m in both kits; touch devices keep today\'s soft clouds in one piece', () => {
   assert.equal(CAP.rest, 1, 'off the desktop\'s top tier the band is not cut (4 pieces bound every segment on a phone for no gain)');
-  assert.ok(VBODY.includes('float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.125 : 0.5;') && VBODY.includes('float bE = max(band * cw, mix(1.25, 2.0, cw) * t * pxA);'), 'the edge is not crisp near (1.25 px to 150 m, the soft band by 350 m) where uVK.y asks');
+  assert.ok(VBODY.includes('float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.0625 : 0.5;') && VBODY.includes('float bE = max(band * cw, mix(1.25, 2.0, cw) * t * pxA);'), 'the edge is not crisp near (1.25 px to 150 m, the soft band by 350 m) where uVK.y asks');
+  assert.ok(DM, '410 does not deepen the desktop\'s billows');
   const rows = [];
   for (const [kit, K] of Object.entries(KITS)) for (const dist of [80, 150, 300]) for (const v of [0.25, 0.5]) {
-    const d = boil({ dist, v, Kmax: CAP.desktop, crisp: true, ...K }), r = boil({ dist, v, Kmax: CAP.rest, ...K }), soft = boil({ dist, v, Kmax: CAP.desktop, ...K });
-    rows.push(`${kit} ${dist} m at ${v} m/frame: desktop crisp ${d.toFixed(3)} (soft would be ${soft.toFixed(3)}), the rest (soft, one piece) ${r.toFixed(3)}`);
+    const D = { scale: K.scale * +DM[1], amp: K.amp * +DM[2] }, d = boil({ dist, v, Kmax: CAP.desktop, crisp: true, ...D }), r = boil({ dist, v, Kmax: CAP.rest, ...K }), soft = boil({ dist, v, Kmax: 12, ...K });
+    rows.push(`${kit} ${dist} m at ${v} m/frame: desktop crisp ${d.toFixed(3)} (today's soft desktop ${soft.toFixed(3)}), the rest (soft, one piece) ${r.toFixed(3)}`);
     assert.ok(d < 0.02, `the desktop's crisp edge boils: ${rows.at(-1)}`);
   }
   if (process.env.CLOUDS_SAY) console.log(rows.join('\n'));
