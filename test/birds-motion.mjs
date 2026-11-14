@@ -35,7 +35,7 @@ function jumps(hz, scenes, states, ledgeWalk) {
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st)) || (ledgeWalk && b.st === 'perch' && (a.li !== b.li || b.li !== c.li))) continue;   // (the first frames: the scene was set up on the step clock)
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
-      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.25));
+      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));   // (at 144 Hz 0.03 span a frame: the hub review's 0.02-0.03)
       if (f > worst.f) worst = { f, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
       if (bb > worstB.b) worstB = { b: bb, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
     }
