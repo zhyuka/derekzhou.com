@@ -24,6 +24,8 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
   V.L.clDetail[0] = 120; V.L.clDetail[1] = 4;   // (the flight crosses into the dunes)
   assert.ok(Math.abs(d[0] - 96) < 1e-4, 'the body\'s billows followed the light');
   assert.deepEqual(Array.from(make(false, 0)({})), [120, 4], 'no weights, no light yet: the default');
+  // (the one call: without V every body would fall back to [120, 4] and the stubs above would still pass)
+  assert.match(WORLD, /volPrep\(PF, bi, null, [^;]*, V\)/, 'cells-resolve calls volPrep without the visit: every body would take the default billows');
 });
 
 // ------------------------------------------------------------------ the edge band's boil (cloud-edge-boil, 2026-11-14)
