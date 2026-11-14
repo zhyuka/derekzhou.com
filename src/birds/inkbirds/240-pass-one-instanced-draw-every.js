@@ -76,7 +76,7 @@
   var TD = 0, AD = 0, QB = 0;
   function poseDrawn(b, s, C, N, moving, bb) {
     if (s.hold) return holdMove(b, s, C, bb);
-    AD = b.age - bb; QB = b.stT === t && STEP_DT > 0 ? clamp(bb / STEP_DT, 0, 1) : 0;
+    AD = b.age - bb; QB = b.stT === t && !b.cs && STEP_DT > 0 ? clamp(bb / STEP_DT, 0, 1) : 0;   // (a coarse step (a speck's, a far or unseen flock's) is drawn carried on along its way, never lerped a step's share of several)
     var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, bb);
     if (!ok || !projectBird(s, C, N)) return false;
     bodyAt(s, C, s.HB);
@@ -133,7 +133,7 @@
     var nq = 0; DF++;   // (DRAWQ filled in place: emptying it would make it a new store each frame)
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
-      var bb = b.stT === t ? back : back - (t - b.stT), qb = b.stT === t && STEP_DT > 0 ? clamp(back / STEP_DT, 0, 1) : 0;   // (bb: back to the frame's time from its own last step)
+      var bb = b.stT === t ? back : back - (t - b.stT), qb = b.stT === t && !b.cs && STEP_DT > 0 ? clamp(back / STEP_DT, 0, 1) : 0;   // (bb: back to the frame's time from its own last step)
       drawnAt(b, qb, bb, DP); projReal(DP[0], DP[1], DP[2], C, tmp3);
       if (!(tmp3.z > 1)) continue;
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;

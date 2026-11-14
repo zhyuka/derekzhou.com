@@ -299,7 +299,7 @@
         var odt = F.acc; F.acc = 0;
         for (j = 0; j < F.m.length; j++) { b = F.m[j]; b.age += odt; wingOff(b); b.flap = 1; }
         var ow = goalVel(F, L, odt); flyTo(L, odt, ow[0], ow[1], ow[2]);
-        for (j = 0; j < F.m.length; j++) { if (F.m[j] !== L) holdPlace(F, F.m[j]); F.m[j].stT = t; }
+        for (j = 0; j < F.m.length; j++) { if (F.m[j] !== L) holdPlace(F, F.m[j]); F.m[j].stT = t; F.m[j].cs = true; }
         continue;
       }
       if (F.far) {
@@ -307,7 +307,7 @@
         var cdt = F.acc; F.acc = 0;
         if (L.st === 'fly') { wingOff(L); L.flap = 1; var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; }
         for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; wingOff(b); }   // (a speck that far holds its glide: its wing paused, going on from there when it is near)
-        for (j = 0; j < F.m.length; j++) F.m[j].stT = t;
+        for (j = 0; j < F.m.length; j++) { F.m[j].stT = t; F.m[j].cs = true; }
         continue;
       }
       /* a flock of specks (every bird of it flying and drawn last frame under SPECK_W device px, past the eye's reach)
@@ -323,12 +323,12 @@
         for (j = 0; j < F.m.length; j++) {
           b = F.m[j]; b.age += sdt; wingOff(b); b.flap = 1;
           var sv = b === L ? goalVel(F, b, sdt) : placeVel(F, b);
-          flyTo(b, sdt, sv[0], sv[1], sv[2]); b.stT = t;
+          flyTo(b, sdt, sv[0], sv[1], sv[2]); b.stT = t; b.cs = true;
         }
         continue;
       }
       for (j = 0; j < F.m.length; j++) {
-        b = F.m[j]; b.age += dt; wingTrim(b); b.stT = t;
+        b = F.m[j]; b.age += dt; wingTrim(b); b.stT = t; b.cs = false;
         if (b.st === 'perch' || b.st === 'land') BW.ensure(b.w.wing, b.age);
         else if (b.st === 'fly' && !b.burst && b.s && b.s.seenF >= DF - 1 && b.s.spanPx > 0 && b.s.spanPx < (b.wOff ? HOLD_W : SPECK_W)) { wingOff(b); b.flap = 1; }   // (a speck holds its glide: HOLD_POSE; its wing paused till it is larger)
         else wingNow(b);
