@@ -9,7 +9,8 @@ name: Stills
 #     says so, and the merge bot's deploy gate moves live to a tip that has the bake only once it is success
 #     (merge-bot.mjs, bot-rules.mjs stillsReady). A failure here never turns main red: live waits, the status says why.
 #   on a claude/* branch: when its served build is not its base's and no set is up for it, the same bake fills the
-#     PC's cache for that key (nothing is uploaded: a branch's key is main's only once it lands), so main's run after
+#     PC's cache for that key (the newest branch's only: every branch shares one group, so the GPU runner never holds a
+#     queue of warm bakes) (nothing is uploaded: a branch's key is main's only once it lands), so main's run after
 #     the landing finds it (the bot fast-forwards main to the tested head: the same served build, the same key).
 # The PC's one gpu-4090 runner is T2's too (2026-11-14: main's gate waited 65 minutes behind a full bake of a tip main
 # had already passed), so:
@@ -34,7 +35,9 @@ permissions:
   actions: read     # (the Gate run's `served` artifact)
 
 concurrency:
-  group: stills-${{ github.event.workflow_run.head_branch }}
+  # one group for main, one for every claude/* branch together (2026-11-14: a group a branch let seven branches' warm
+  # bakes, 38 GPU jobs, queue ahead of T2): the newest run in each cancels the older, queued or running
+  group: stills-${{ github.event.workflow_run.head_branch == 'main' && 'main' || 'branches' }}
   cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
 
 env:
