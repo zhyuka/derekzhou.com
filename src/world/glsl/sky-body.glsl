@@ -44,8 +44,15 @@ vec3 auroraAt(vec3 rd, float e) {
   return c * uAur.w * 0.09 * smoothstep(0.5, 6.0, e);
 }
 #endif
+/* (stars-flux, no glitter) a star's light integrated over the pixel's footprint (a box of the bell, by erf, each axis
+   alone): what falls in the pixels about it sums to its flux wherever it stands between their centres, so a turn that
+   slides it across them never makes it pulse (a bell sampled at the pixel's centre, 0.42 px wide, did, and the pixel's
+   own saturating cap made it worse); erf: Winitzki's, |err| < 2e-3, and the sums telescope whatever its error */
+const float STF = 1.1083;   // (the star's flux in pixels at b 1: the old bell's, 2 pi 0.42^2)
+float starErf(float x) { float x2 = x * x; return sign(x) * sqrt(1.0 - exp(-x2 * (1.2732395 + 0.147 * x2) / (1.0 + 0.147 * x2))); }
+float starBox(float d, float sg) { float k = 0.70710678 / sg; return 0.5 * (starErf((d + 0.5) * k) - starErf((d - 0.5) * k)); }
 vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 0.5) / n * SKYTAU - PI; return vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se)); }
-float starAt(vec3 rd, float el, float az, float pa, int dj, int di) {
+float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
   float jb = floor(el / STC) + float(dj), elc = (jb + 0.5) * STC;
   if (elc <= 0.0 || elc >= 1.5) return 0.0;
   float n = max(1.0, floor(SKYTAU * cos(elc) / STC));
@@ -59,8 +66,11 @@ float starAt(vec3 rd, float el, float az, float pa, int dj, int di) {
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
   float b = pow(fract(hx * 7.31 + hy * 3.17), 6.0) * 0.95 + 0.07;
   b *= 1.0 + 0.15 * uNight.z * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);
-  float sg = 0.42 * pa; vec3 dv = rd - sd; float d2 = dot(dv, dv);   // (the chord: acos of a dot near 1 loses a star's footprint in float32)
-  return b * exp(-d2 / (2.0 * sg * sg));
+  /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn wider (sigma by sqrt of its flux
+     over the cap: a pixel's share of a bell is at most its peak density, F / (2 pi sigma^2)), its flux kept whole */
+  float F = b * STF, sg = max(0.5, sqrt(F / (SKYTAU * max(cap, 1e-5))));
+  vec3 dv = rd - sd;   // (the chord, in pixels along the view's right and up: acos of a dot near 1 loses a star's footprint in float32)
+  return F * starBox(dot(dv, uCamR) / pa, sg) * starBox(dot(dv, uCamU) / pa, sg);
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
@@ -170,11 +180,10 @@ void main() {
   }
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
     float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
+    float head = max(uNight.w - dot(c, LUMA), 0.0), sk = uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
     float s = 0.0;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
-    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, dj, di); }
-    s *= uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
-    float head = max(uNight.w - dot(c, LUMA), 0.0);
-    c += vec3(0.92, 0.94, 1.0) / 0.94 * head * (1.0 - exp(-s / max(head, 1e-5)));
+    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, head / max(sk, 1e-5), dj, di); }
+    c += vec3(0.92, 0.94, 1.0) / 0.94 * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap
   }
 #ifdef SKY_HOOK
   c = skyHook(rd, c);
