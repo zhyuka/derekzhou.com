@@ -16,13 +16,13 @@ float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
   function VS_TERRAIN(H, G) {   // (G, a surface's gap function: its height over another surface, passed to its shading as gTX)
     return `
 layout(location = 0) in vec2 aG;
-uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
+uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
 centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;
 void main() {
-  vec2 w = uLev.xy + aG * uLev.z;
+  vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
   float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
-  w -= mod(aG, 2.0) * uLev.z * m;
+  w = (c - mod(aG, 2.0) * m) * uLev.z;
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
@@ -80,15 +80,15 @@ void main() {
   function VS_TERRAIN_SPLIT(G) {   // VS_TERRAIN with the height read from the passes (Hd - sk, HdGap's terms)
     return `
 layout(location = 0) in vec2 aG;
-uniform vec4 uLev;   // ring origin x, z; cell size; half the cells across
+uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
 uniform int uLvl;    // the level: its rows in the passes' texels
 uniform highp sampler2D uHP0, uHP1, uHP3, uHP4;   // kit (wD, lv), kit (sk, wC), the sites' h, the ridges (+ A_Hd)
 centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;
 void main() {
-  vec2 w = uLev.xy + aG * uLev.z;
+  vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
   float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
-  w -= mod(aG, 2.0) * uLev.z * m;
+  w = (c - mod(aG, 2.0) * m) * uLev.z;
   ivec2 q = ivec2(aG) + ivec2(0, uLvl * 97);
   vec4 k0 = texelFetch(uHP0, q, 0), k1 = texelFetch(uHP1, q, 0), s = texelFetch(uHP3, q, 0), r = texelFetch(uHP4, q, 0);
   vec3 hd = (s.xyz + r.xyz) - k1.xyz;
