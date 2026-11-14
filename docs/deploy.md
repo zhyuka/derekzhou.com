@@ -55,13 +55,19 @@ goes without its set:
   its sha256 (.github/ci/stills-live.mjs).
 The bake's own cache (each still's key in bake.json) decides what a served change costs on the PC: seconds when it
 hits, about 76 minutes for all 2,304 stills when it does not.
+The PC's gpu-4090 runner is also T2's, so the bake is six jobs, a sky each (about 13 minutes), one at a time, and a
+T2 queued meanwhile takes the runner between two; and a newer main tip's Stills run cancels a stale tip's (the cache
+keeps every encoded batch, so the same key goes on where it stopped). In a wave of world changes, live waits for the
+newest tip's set: one bake, at the wave's end.
 
 The owner's steps (once; until they are done the build ships without stills, as before):
 1. A token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.
    Resource owner `zhyuka`; Only select repositories, `zhyuka/derekzhou.com`; Repository permissions, Contents:
    Read-only, nothing else. (When it expires the build ships without stills until it is renewed.)
-2. The secret: Cloudflare, Workers & Pages, the project, Settings, Variables and Secrets: a Secret named `STILLS_TOKEN`,
-   the token as its value, for Production.
+2. The variable: Cloudflare, Workers & Pages, the project, Settings, Variables and Secrets: Type **Text** (not
+   Secret: a Secret reaches Pages Functions at runtime only, never the build, which then says "stills: no STILLS_TOKEN"
+   on /build.txt, as it did 2026-11-13), named `STILLS_TOKEN`, the token as its value, for Production. Then retry the
+   production deployment; /build.txt's second line says what the fetch did.
 3. The watch paths: Settings, Build, Build watch paths: add `tools/stills.mjs` (the list above, as
    .github/ci/deploy-inputs.txt has it).
 Optional: a Pages deploy hook stored as the repository secret `STILLS_DEPLOY_HOOK`, which stills.yml calls once a new set

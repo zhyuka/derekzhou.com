@@ -177,3 +177,13 @@ test('stills: build.txt says what the stills fetch did, on its second line, and 
     assert.ok(!fs.readFileSync(path.join(out, 'dist/build.txt'), 'utf8').includes('SECRET'), 'never the token');
   } finally { srv.close(); fs.rmSync(out, { recursive: true, force: true }); }
 });
+
+test('stills: the bake never holds the GPU runner for a whole set, and the newest tip wins (stills.yml)', async () => {
+  const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8');
+  assert.match(y, /cancel-in-progress: true\b/, 'a newer run cancels a stale one, on main too');
+  assert.match(y, /max-parallel: 1/, 'the sky jobs run one at a time');
+  assert.match(y, /sky: \[dawn, day, rain, sunset, dusk, night\]/, 'a job a sky (T2 takes the runner between two)');
+  assert.match(y, /--skies \$\{\{ matrix\.sky \}\}/, 'each job bakes only its sky');
+  assert.match(y, /need:\n(?:.*\n)*?\s+runs-on: \[self-hosted, linux, pc-wsl\]/, 'the look-up never holds the GPU runner');
+});
