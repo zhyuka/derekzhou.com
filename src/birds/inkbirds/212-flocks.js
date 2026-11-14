@@ -278,6 +278,7 @@
   }
   function birdsStep(C, dt) {
     lvCam(C); windNow();
+    for (var q = 0; q < BIRDS.length; q++) { var bq = BIRDS[q]; bq.pp[0] = bq.p[0]; bq.pp[1] = bq.p[1]; bq.pp[2] = bq.p[2]; bq.v0[0] = bq.v[0]; bq.v0[1] = bq.v[1]; bq.v0[2] = bq.v[2]; bq.phi0 = bq.phi; }   // (where each was as the step began: the draw goes between)
     popStep(C);
     OTX = Math.tan(Math.atan(VW.tanX || 1) + OFF_A); OTY = Math.tan(Math.atan(VW.tanY || 1) + OFF_A);
     var i, j, F, b;

@@ -77,7 +77,11 @@ A change of what the wings do (a burst, the approach's beats and glide,
 the flare, the perch, the leap) carries the last drawn pose over and eases
 into the new one over 0.22 s (the owner, 2026-11-14: "the birds sometimes
 feel choppy at times (esp when they land/takeoff ...)"); test/birds-motion.mjs
-bounds the drawn motion frame by frame.
+bounds the drawn motion frame by frame. Everything posed reads the frame's
+own time (between the last two steps), never the step's clock: the wings,
+the flare, the attitude, the perched life, the crouch; a bird stepped this
+step is drawn between where it was and is (at 144 Hz the wings move on every
+frame, not on the 42 % with a step). Getting up to leave, its rest is held.
 If the perch gets away it goes round once, far out, then flies on. At
 most 6 on the letters, one coming down at a time. On the perch it faces
 into the wind (a row turning bird by bird as the wind shifts), turns by

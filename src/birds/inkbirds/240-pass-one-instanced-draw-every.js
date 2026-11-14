@@ -71,8 +71,12 @@
     gl.deleteTexture(BT); makePts();
   }
   /* a bird posed, projected and lit for this frame (a held speck only carried on: holdMove); false: not drawn */
+  /* the frame's own time (TD, behind the last step by the loop's alpha), a bird's age then (AD) and its share back
+     toward its previous step (QB: 0 for one not stepped this step): every posed thing reads these, never the step's clock */
+  var TD = 0, AD = 0, QB = 0;
   function poseDrawn(b, s, C, N, moving, bb) {
     if (s.hold) return holdMove(b, s, C, bb);
+    AD = b.age - bb; QB = b.stT === t && STEP_DT > 0 ? clamp(bb / STEP_DT, 0, 1) : 0;
     var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, bb);
     if (!ok || !projectBird(s, C, N)) return false;
     bodyAt(s, C, s.HB);
@@ -121,7 +125,7 @@
      world's own air (in the pass): no fade in
      time, at an edge, near or far */
   function drawPaper() {
-    var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0;
+    var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0; TD = t - back;
     measureIf();
     var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
     lightFrame(L);
@@ -129,7 +133,8 @@
     var nq = 0; DF++;   // (DRAWQ filled in place: emptying it would make it a new store each frame)
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
-      var bb = b.stT === t ? back : back - (t - b.stT), px = b.p[0] - b.v[0] * bb, py = b.p[1] - b.v[1] * bb, pz = b.p[2] - b.v[2] * bb;   // (bb: back to the frame's time from its own last step)
+      var bb = b.stT === t ? back : back - (t - b.stT), qb = b.stT === t && STEP_DT > 0 ? clamp(back / STEP_DT, 0, 1) : 0;   // (bb: back to the frame's time from its own last step)
+      var px = qb > 0 ? b.p[0] - (b.p[0] - b.pp[0]) * qb : b.p[0] - b.v[0] * bb, py = qb > 0 ? b.p[1] - (b.p[1] - b.pp[1]) * qb : b.p[1] - b.v[1] * bb, pz = qb > 0 ? b.p[2] - (b.p[2] - b.pp[2]) * qb : b.p[2] - b.v[2] * bb;
       projReal(px, py, pz, C, tmp3);
       if (!(tmp3.z > 1)) continue;
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;

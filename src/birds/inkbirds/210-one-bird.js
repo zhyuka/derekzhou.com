@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);

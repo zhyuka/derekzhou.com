@@ -66,3 +66,25 @@ test('a landing\'s rest is fixed once in the step, and the drawn bird is never u
   assert.equal(changed, 0, `the landing's rest changed ${changed} times during the landing (the draw fed it back)`);
   assert.equal(upside, 0, `a landing bird drawn upside down on ${upside} frames`);
 });
+
+/* (the audit's bird-frame-time-pose) everything posed reads the frame's own time, not the step's: at 144 Hz a bird's
+   drawn form changes as much on the frames that took no step as on those that did (main: the wings moved on 42 % of
+   frames, a fine judder at 120-165 Hz) */
+function d1(a, b) { let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a, i), q = sh(b, i); m = Math.max(m, Math.hypot(p[0] - q[0], p[1] - q[1])); } return m; }
+test('144 Hz: the wings and attitude move on every frame, not only on those with a step', () => {
+  const S = {};
+  for (const cs of ['perch', 'cursor']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, 144, 20).values())
+    for (let n = 1; n < F.length; n++) {
+      const a = F[n - 1], b = F[n]; if (b.k !== a.k + 1 || a.st !== b.st || b.span < 6) continue;
+      const d = d1(a, b) / b.span, o = S[b.st] || (S[b.st] = { s0: 0, n0: 0, s1: 0, n1: 0 });
+      if (b.n) { o.s1 += d; o.n1++; } else { o.s0 += d; o.n0++; }
+    }
+  const bad = [];
+  for (const st of ['fly', 'appr', 'land', 'perch']) {
+    const o = S[st]; if (!o || o.n0 < 20 || o.n1 < 20) continue;
+    const r = (o.s0 / o.n0) / (o.s1 / o.n1); console.log(`# 144 Hz ${st}: form change without a step ${r.toFixed(2)} of that with one (${o.n0 + o.n1} frames)`);
+    if (!(r > 0.6 && r < 1.6)) bad.push(`${st} ${r.toFixed(2)}`);
+  }
+  assert.ok(Object.keys(S).length > 0, 'no frames');
+  assert.equal(bad.length, 0, `form change without a step out of 0.6-1.6 of that with one: ${bad.join(', ')}`);
+});
