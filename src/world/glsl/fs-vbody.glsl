@@ -128,8 +128,11 @@ void main() {
   if (T > 0.996) discard;
   float al = 1.0 - T;
   vec3 col = atmos(acc / al, rd, tn + (tf - tn) * 0.25);
-  // a body coming in out of the haze fades by its opacity (uVR2.y, 0 .. 1 over 2.5 s from its bake), not its
-  // extinction: scaled so, a thick tower is a third opaque at 2% of its fade (a pop-in)
-  oC = vec4(col * al, al) * uVR2.y;
+  // a far body goes into the haze by its colour (uVR2.y, its distance's weight: 1 near, 0 at the cells' reach), opaque
+  // until the last quarter of it: faded by its opacity over the whole reach, a far bank let the stars and the night's
+  // sky through, a tower's silhouette a veil (cloud-far-banks-opaque, 2026-11-14). Its opacity, not its extinction,
+  // takes that last quarter: scaled so, a thick tower is a third opaque at 2% of its weight (a pop-in)
+  col = mix(hazeCol(rd), col, smoothstep(0.0, 1.0, uVR2.y));
+  oC = vec4(col * al, al) * smoothstep(0.0, 0.25, uVR2.y);
   if (oC.a < 0.0005) discard;
 }
