@@ -6,6 +6,7 @@
 // across the land, far from the start (a tab open for hours). And a lint: no source places a vertex as origin metres
 // plus aG cells (`uLev.xy + aG * uLev.z`, the form that cracked).
 // plant: {"file": "src/world/glsl/hp-gridw.glsl", "find": "vec2 c = L.xy + aG, w = c * L.z;", "with": "vec2 c = L.xy + aG, w = L.xy + aG * L.z;", "why": "the height passes placed from origin metres again"}
+// plant: {"file": "src/world/100-clipmap-grid.js", "find": "* 2 - GN / 2; }", "with": "* 2 - GN / 2 + (g > 100 ? 2 : 0); }", "why": "the outermost ring alone (level 9, 179 m cells) moved two cells: its seam with level 8 apart"}
 // plant: {"file": "src/world/414-draw-scene.js", "find": "gl.uniform4f(P.u.uLev, ringCell(g, 0), ringCell(g, 2), g, GN / 2);", "with": "gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2);", "why": "the rings' origin in metres again"}
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,7 +19,8 @@ const GRID = rd('src/world/100-clipmap-grid.js'), DRAW = rd('src/world/414-draw-
 const HPF = rd('src/world/250-probes-realm-ground-read-back.js'), SCN = rd('src/world/350-shaders-scene.js');
 const GRIDW = rd('src/world/glsl/hp-gridw.glsl');
 const GN = Number(/var GN = (\d+);/.exec(GRID)[1]);
-const G0 = Number(/height: 'Hd'[^}]*g0: ([\d.]+)/.exec(rd('src/world/180-world-definition-two-kits-by.js'))[1]);
+const DEF = rd('src/world/180-world-definition-two-kits-by.js');
+const G0 = Number(/height: 'Hd'[^}]*g0: ([\d.]+)/.exec(DEF)[1]), LEVELS = Number(/height: 'Hd'[^}]*levels: (\d+)/.exec(DEF)[1]);   // (the land's finest cell and its rings, as the world defines them)
 
 // ---- the JS side: the ring uniforms, as the draw and hpClip make them (fp32 on upload)
 function fnSrc(src, name) {   // a function's whole text, by brace matching
@@ -32,7 +34,7 @@ function drawUniforms(cam) {   // [levels][4] from drawScene's loop: its `var g 
   const gl = /var g = S\.g0 \* Math\.pow\(2, l\)[^;]*;/.exec(DRAW)[0];
   const args = /gl\.uniform4f\(P\.u\.uLev, ([^;]*?)\);/.exec(DRAW)[1];
   const f = new Function('CAM', 'S', 'GN', HELPERS + '\nvar out = []; for (var l = 0; l < S.levels; l++) { ' + gl + ' out.push([' + args + ']); } return out;');
-  return f({ pos: cam }, { g0: G0, levels: 10 }, GN).map((v) => v.map(F));
+  return f({ pos: cam }, { g0: G0, levels: LEVELS }, GN).map((v) => v.map(F));
 }
 function hpUniforms(cam) {   // hpClip's HPLA, run as written (hpRun stubbed)
   const f = new Function('CAM', 'S', 'GN', 'HPLA', 'hpRun', HELPERS + '\n' + fnSrc(HPF, 'hpClip') + '\nhpClip(null, S); return HPLA;');
@@ -104,7 +106,7 @@ const place = (pl, lev, aG, cam) => run(pl, { uLev: lev, L: lev, aG, uCam: cam.m
 // ---- the seams: each level's outer edge against the next level's inner edge
 function seams(cam, pl, U) {
   let n = 0, bad = 0, first = null;
-  for (let l = 0; l < 8; l++) {
+  for (let l = 0; l + 1 < LEVELS; l++) {   // (every seam: LEVELS rings meet at LEVELS - 1 of them)
     const gc = G0 * Math.pow(2, l + 1);   // (the coarse ring's cell and corner, in doubles: whichever units its uniform takes)
     const ox = (Math.floor(cam[0] / (2 * gc)) * 2 - GN / 2) * gc, oz = (Math.floor(cam[2] / (2 * gc)) * 2 - GN / 2) * gc;
     for (let k = 0; k <= GN; k++) for (const [i, j] of [[k, 0], [k, GN], [0, k], [GN, k]]) {
@@ -136,7 +138,7 @@ for (let s = 1; s <= 24; s++) { const r = (k) => (((Math.sin(s * 12.9898 + k * 7
 test('clipmap: every seam bit-identical out to +-2e6 m (fp32 replay)', () => {
   for (const cam of CAMS) {
     const U = drawUniforms(cam), r = seams(cam, PL.terrain, U);
-    assert.ok(r.n > 8 * 4 * GN / 2, 'seams found at ' + cam + ': ' + r.n);
+    assert.ok(r.n > (LEVELS - 1) * 4 * GN / 2, 'seams found at ' + cam + ': ' + r.n);
     assert.equal(r.bad, 0, `cam ${cam}: ${r.bad} of ${r.n} seam vertices apart, first ${JSON.stringify(r.first)}`);
   }
 });

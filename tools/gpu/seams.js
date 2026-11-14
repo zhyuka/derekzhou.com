@@ -19,6 +19,10 @@ const [dir, outFile] = process.argv.slice(2);
 const SOFT = process.argv.includes('--soft');
 const PW = SOFT ? require(process.env.PW_CORE || 'playwright-core') : require('./pw.js');
 const GN = 96;
+// the rings each surface draws, as the world defines them (180's surfaces: `levels`); LEVELS rings meet at LEVELS - 1 seams
+const DEF = fs.readFileSync(path.join(__dirname, '../../src/world/180-world-definition-two-kits-by.js'), 'utf8');
+const LEV = { land: Number(/height: 'Hd'[^}]*levels: (\d+)/.exec(DEF)[1]), sea: Number(/height: 'HdSea'[^}]*levels: (\d+)/.exec(DEF)[1]) };
+let LEVELS = LEV.land;
 let G0 = 0.35;   // (the surface's finest cell: the land's 0.35 m, the sea's 2 m: 180-world-definition)
 const CAMS = [[0.1, 40, -0.2], [681043.7, 220, 3317.9], [-681043.7, 220, -3317.9], [123456.7, 90, -654321.3], [2e6 - 3.3, 90, -2e6 + 7.1]];
 
@@ -66,7 +70,7 @@ function ringUniform(cam, l, metres) {
 }
 function jobsFor(cam, metres) {   // each pair: the fine ring's edge vertices and, in doubles, the coarse vertex each lands on (odd ones pulled to their even neighbour)
   const J = [];
-  for (let l = 0; l < 8; l++) {
+  for (let l = 0; l + 1 < LEVELS; l++) {
     const af = [], ac = [], seen = new Set(), o = (a, ll) => Math.floor(cam[a] / (2 * G0 * Math.pow(2, ll))) * 2 - GN / 2;
     const fx = o(0, l), fz = o(2, l), cx = o(0, l + 1), cz = o(2, l + 1);   // (the rings' corners in their own cells: the fine one's even)
     for (let k = 0; k <= GN; k++) for (const [i, j] of [[k, 0], [k, GN], [0, k], [GN, k]]) {
@@ -102,7 +106,7 @@ function jobsFor(cam, metres) {   // each pair: the fine ring's edge vertices an
     }
     for (const [name, g0, vs] of vars) {
       if (res.paths.some((x) => x.name === name)) continue;
-      G0 = g0; const metres = /uLev\.xy \+ aG \* uLev\.z/.test(vs), f = fsFor(vs);
+      G0 = g0; LEVELS = name === 'sea' ? LEV.sea : LEV.land; const metres = /uLev\.xy \+ aG \* uLev\.z/.test(vs), f = fsFor(vs);
       let n = 0, apart = 0, first = null;
       for (const cam of CAMS) {
         const jobs = jobsFor(cam, metres), out = await pg.evaluate(runInPage, [vs, f, jobs]);
