@@ -51,6 +51,8 @@
   var BIRDL = /** @type {BirdsModule} */ (null), LATEB = { on: false, P: [], W: [], dead: false, gen: 0, fin: -1, wf: -1 }, INKWAIT = true, LATE_WAIT = 30;
   function inkAside(f) { if (BIRDS) return true; if (BIRDL || INKWAIT) { f.ia = 1; return true; } return f.ia === 1; }
   function lateProg(vs, fs, name) { var P = { p: null, name: name, u: null, ok: false, vs: vs, fs: fs, v: null, f: null, st: 0, late: true }; LATEB.P.push(P); return P; }
+  /* (load-perf, the lab's run 22, 2026-11-14) a module made late while the programs' batch still waits for the opening's
+     still (STILLHOLD, 520-start) issues nothing until it ends: its own flush would beat the still to the GPU too */
   function birdsLate() {
     if (!BIRDL) { makeBirds(); if (!BIRDL) return; }
     if (LOST || gl.isContextLost()) return;
@@ -58,7 +60,7 @@
     var i, P, n = LATEB.P.length, done = 0;
     for (i = 0; i < n; i++) {
       P = LATEB.P[i];
-      if (P.st === 0) { var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(P); PROGX.compiled = c0; PROGX.linked = l0; gl.flush(); continue; }
+      if (P.st === 0) { if (STILLHOLD) continue; var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(P); PROGX.compiled = c0; PROGX.linked = l0; gl.flush(); continue; }
       if (P.st === 2) {
         if (EXT.par) { var tq = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR); P.polls++; P.qms = +(P.qms + clockNow() - tq).toFixed(2); if (gl.isContextLost()) return; if (!dn) continue; }
         else if (FRAMEN - P.issF < LATE_WAIT) continue;
