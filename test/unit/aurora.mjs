@@ -45,7 +45,7 @@ test('aurora: the whole curtain over its sky keeps the sky\'s chroma, never thro
   let worst = Infinity, wx = 0, minC = Infinity;
   for (let x = 0.25; x <= hgt * 1.6; x += 0.25) {
     const t = ss(+TM[1], +TM[2], x / hgt), col = ramp(t);
-    const amp = 0.09 * 0.85 * (Math.exp(-x / hgt) + 0.6 * Math.exp(-x / (0.15 * hgt))) * 0.65;
+    const amp = 0.09 * 0.85 * (Math.exp(-x / hgt) + 0.6 * Math.exp(-x / (0.15 * hgt))) * 0.7;
     const s0 = skyAt(base + x), c = s0.map((v, i) => v + col[i] * amp), [, Cs] = LCh(s0), [, Cc, hc] = LCh(c);
     if (Cc / Cs < worst) { worst = Cc / Cs; wx = x; }
     minC = Math.min(minC, Cc);
@@ -62,8 +62,8 @@ test('aurora: its green ribbon over the low sky composites green, not cyan, unde
   // skyGrad at 8 deg (lib-air.glsl), then the warm band toward the key at its strongest (side 1)
   let c = mix(mix(sky[1], sky[2], ss(0, SKYE[0], e)), sky[3], ss(SKYE[0], SKYE[1], e));
   c = mix(c, lch(...SKY.skyW), SKY.skyK[0] * Math.exp(-e / SKY.skyK[1]));
-  // the nearest curtain's ribbon (auroraAt at x 0.25, j 0): 0.09 x 0.85 x (e^-x/h + 0.6 e^-x/0.15h) x rays (their mean, 0.65) x fold 1
-  const amp = 0.09 * 0.85 * (Math.exp(-0.25 / 16) + 0.6 * Math.exp(-0.25 / 2.4)) * 0.65;
+  // the arc's ribbon at its centre (auroraAt at x 0.25, hgt 16): 0.09 x 0.85 x (e^-x/h + 0.6 e^-x/0.15h) x rays (their mean, 0.7)
+  const amp = 0.09 * 0.85 * (Math.exp(-0.25 / 16) + 0.6 * Math.exp(-0.25 / 2.4)) * 0.7;
   c = c.map((x, i) => x + ramp(0)[i] * amp);
   // the composite's saturation (post.sat about the luma), its shoulder and the light ceiling (fs-comp.glsl; knee 0.08)
   const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
@@ -80,5 +80,25 @@ test('aurora: its green ribbon over the low sky composites green, not cyan, unde
 test('aurora: its sky is near neutral where the arc stands, so the arc is the green in it', () => {
   for (let i = 0; i < 4; i++) assert.ok(SKY.sky[i][1] <= 0.05, `the aurora sky's stop ${i} has C ${SKY.sky[i][1]} (at most 0.05)`);
   for (const k of ['skyW', 'hazeC', 'hazeW']) assert.ok(SKY[k][1] <= 0.02, `the aurora sky's ${k} has C ${SKY[k][1]} (at most 0.02)`);
-  for (const k of ['key', 'ambU', 'clLit', 'clRim']) assert.ok(SKY[k][1] <= 0.035, `the aurora sky's ${k} has C ${SKY[k][1]} (about 0.03)`);
+  assert.ok(SKY.clLit[1] <= 0.035, `the aurora sky's clLit has C ${SKY.clLit[1]} (about 0.03)`);
+  // (light B) a faint green on the side facing the arc: key, rim and the light from above, never teal again
+  for (const k of ['key', 'ambU', 'clRim']) {
+    assert.ok(SKY[k][1] <= 0.065, `the aurora sky's ${k} has C ${SKY[k][1]} (faint: at most 0.065)`);
+    assert.ok(SKY[k][2] >= 140 && SKY[k][2] <= 165, `the aurora sky's ${k} is h ${SKY[k][2]} (green, never teal: 140-165)`);
+  }
+});
+
+test('aurora: the arc has no seam round the sky and nothing finer than a few pixels (no glitter)', () => {
+  // its azimuth enters only as cos(az - centre) and as u = az / 2 pi times whole numbers (the noise's period), so it is
+  // the same either side of az +-180; its finest feature (the rays, u x N) at least 8 px wide on a 1440-px laptop
+  // window (60 deg up, 16:10: 92 deg across)
+  const uses = AUR.replace(/float az = atan\(rd\.x, rd\.z\), u = az \/ SKYTAU;/, '').match(/\baz\b[^;]*/g) || [];
+  for (const m of uses) assert.ok(/^az - uAur\.y\)/.test(m), 'auroraAt reads its azimuth other than by cos(az - centre): ' + m);
+  const fr = [...AUR.matchAll(/\bu \* ([\d.]+)/g)].map((m) => +m[1]);
+  assert.ok(fr.length > 0, 'no noise read along the arc');
+  for (const f of fr) {
+    assert.ok(Number.isInteger(f), `a noise along the arc at u x ${f}: not a whole number of periods round the sky (a seam at az 180)`);
+    const across = 2 * Math.atan(Math.tan(Math.PI / 6) * 1.6) * 180 / Math.PI, px = 1440 / across * (360 / f);
+    assert.ok(px >= 8, `the arc's noise at u x ${f} is ${px.toFixed(1)} px a period (at least 8: finer glitters as the view turns)`);
+  }
 });

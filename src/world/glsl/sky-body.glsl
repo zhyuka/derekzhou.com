@@ -20,8 +20,7 @@ const float STC = 0.04;
    climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
 float galEdge(float e) { float g = (1.0 - uGalC.w) * 95.0 - 3.0; return smoothstep(g - 0.8, g + 1.2, e); }
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
-   period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
-   fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
+   period round the band so a turn never meets a seam) and the aurora (one quiet arc low over the poleward horizon, green below and red above, softly rayed: form A) */
 #ifdef SKY_PH2
 vec3 galaxyAt(vec3 rd, float e) {
   if (uGalC.w <= 0.0) return vec3(0.0);   // (aurora-enter-by-place: nothing read until it has begun to come in)
@@ -34,25 +33,27 @@ vec3 galaxyAt(vec3 rd, float e) {
 }
 vec3 auroraAt(vec3 rd, float e) {
   if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
-  float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
+  float az = atan(rd.x, rd.z), u = az / SKYTAU;
   float b0 = uAur.z - (1.0 - uAur.x) * 90.0;   // (aurora-enter-by-place: its base under the poleward horizon until it has come in, every curtain's top under it at rise 0+; whole at 1)
-  for (int j = 0; j < 3; j++) {
-    float fj = float(j), sc = 1.0 - 0.22 * fj, ph = uT * (0.04 + 0.015 * fj) + uAur.y + fj * 2.1, f1 = 2.0 + fj, f2 = 5.0 + 2.0 * fj;
-    float base = b0 * sc + 2.0 * fj + sc * (3.5 * sin(az * f1 + ph) + 2.0 * sin(az * f2 - ph * 1.3) + 2.4 * (n3v(vec3(u * 4.0 + fj * 0.31, ph * 0.02, 0.83)).b - 0.5));
-    float slope = abs(3.5 * f1 * cos(az * f1 + ph) + 2.0 * f2 * cos(az * f2 - ph * 1.3)) * sc;
-    float fold = 0.65 + 0.7 / (1.0 + slope * 0.12);
-    float hgt = 7.0 + 9.0 * sc, x = e - base;
-    if (x < -1.5 || x > hgt * 2.5) continue;
-    float rays = 0.3 + 0.7 * pow(n3v(vec3(u * (100.0 + 31.0 * fj) + uT * 0.0005, 0.5 + fj * 0.2, 0.19)).a, 1.6) * (0.6 + 0.4 * n3v(vec3(u * 257.0 - uT * 0.0003, 0.27 + fj * 0.1, 0.47)).b);
-    /* (aurora-colour) green below, the sky's own violet over it, the red top: stops whose mixes keep their chroma over
-       the aurora sky's blue (the old ends, h 160 and h 345, went through grey; a warm overlap went through yellow, which
-       cancels the sky's blue: a grey-brown band, the review's), the green the oxygen line's (h about 142), half as
-       strong again; test/unit/aurora.mjs composites the whole curtain over the sky and pins its chroma and hue */
-    float t = smoothstep(0.25, 1.2, x / hgt);
-    vec3 col = mix(mix(vec3(0.225, 1.5, 0.18), vec3(0.45, 0.5, 1.0), clamp(2.0 * t, 0.0, 1.0)), vec3(0.85, 0.25, 0.55), clamp(2.0 * t - 1.0, 0.0, 1.0));
-    c += col * smoothstep(-0.6, 0.25, x) * (1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x)) * (exp(-max(x, 0.0) / hgt) + 0.6 * exp(-max(x, 0.0) / (hgt * 0.15))) * rays * fold * (0.85 - 0.25 * fj);
-  }
-  return c * uAur.w * 0.09 * smoothstep(0.5, 6.0, e);
+  /* (aurora form A, from the sketches: one quiet arc low over the horizon, soft rays) one band far poleward, east-west,
+     centred on the visit's own azimuth (uAur.y): seen in perspective its base stands highest there and sinks toward
+     east and west (tan(base) = tan(b) cos(da)), its height shrinking with it (x sqrt(cos da)), so it meets the horizon
+     whole at both ends and is nothing behind; its swell slow and its rays soft and broad (whole noise periods round the
+     sky: no seam; the finest ray 3.6 deg: never under a pixel: no glitter) */
+  float cd = cos(az - uAur.y);
+  if (cd <= 0.0) return vec3(0.0);
+  float bc = clamp(b0 + 1.2 * (n3v(vec3(u * 3.0, uT * 0.0008, 0.83)).b - 0.5), -89.0, 89.0);
+  float base = degrees(atan(tan(radians(bc)) * cd)), hgt = 16.0 * sqrt(cd), x = e - base;
+  if (x < -1.5 || x > hgt * 2.5) return vec3(0.0);
+  float rays = 0.6 + 0.2 * n3v(vec3(u * 100.0 + uT * 0.0005, 0.5, 0.19)).a;
+  /* (aurora-colour) green below, the sky's own violet over it, the red top: stops whose mixes keep their chroma over
+     the aurora sky's blue (the old ends, h 160 and h 345, went through grey; a warm overlap went through yellow, which
+     cancels the sky's blue: a grey-brown band, the review's), the green the oxygen line's (h about 142), half as
+     strong again; test/unit/aurora.mjs composites the whole curtain over the sky and pins its chroma and hue */
+  float t = smoothstep(0.25, 1.2, x / hgt);
+  vec3 col = mix(mix(vec3(0.225, 1.5, 0.18), vec3(0.45, 0.5, 1.0), clamp(2.0 * t, 0.0, 1.0)), vec3(0.85, 0.25, 0.55), clamp(2.0 * t - 1.0, 0.0, 1.0));
+  vec3 c = col * smoothstep(-0.6, 0.25, x) * (1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x)) * (exp(-max(x, 0.0) / hgt) + 0.6 * exp(-max(x, 0.0) / (hgt * 0.15))) * rays * 0.85;
+  return c * uAur.w * 0.09 * smoothstep(0.5, 6.0, e) * smoothstep(0.0, 0.25, cd);
 }
 #endif
 vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 0.5) / n * SKYTAU - PI; return vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se)); }

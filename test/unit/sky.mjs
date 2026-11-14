@@ -142,7 +142,7 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
   const B0 = g.match(/^\s*float b0 = (.*);/m);
   assert.ok(B0, 'auroraAt\'s base (float b0 = ...) not found');
   const b0 = (rise, base) => new Function('uAur', 'return ' + js(B0[1]) + ';')({ x: rise, z: base });
-  assert.ok(/float base = b0 \* sc \+ 2\.0 \* fj \+ sc \* \(3\.5 \* sin/.test(g) && g.includes('float hgt = 7.0 + 9.0 * sc, x = e - base;') && g.includes('(1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x))'), 'auroraAt\'s curtains are not built on b0 as this test models them');
+  assert.ok(g.includes('float base = degrees(atan(tan(radians(bc)) * cd)), hgt = 16.0 * sqrt(cd), x = e - base;') && g.includes('float bc = clamp(b0 + 1.2 * (') && g.includes('(1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x))'), 'auroraAt\'s arc is not built on b0 as this test models it');
   for (let e = 0; e <= 90; e += 0.5) {
     assert.equal(galEdge(0, e), 0, `the galaxy shows at ${e} deg before it has begun to come in`);
     if (e >= 1) assert.equal(galEdge(1, e), 1, `the whole galaxy is not shown at ${e} deg once it has come in (main's)`);
@@ -151,9 +151,9 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
   for (const base of [5, 6.5, 8]) {
     assert.equal(b0(1, base), base, 'the aurora is not at its own base once it has come in (main\'s)');
     for (let r = 0; r < 1; r += 0.05) assert.ok(b0(r + 0.05, base) > b0(r, base), `the aurora's base does not rise with its rise (${r})`);
-    for (let j = 0; j < 3; j++) {   // every curtain's top (its waves at their highest, 2.5 hgt up) under the aurora's lowest drawn place (0.5 deg) just as it begins
-      const sc = 1 - 0.22 * j, hgt = 7 + 9 * sc, top = b0(0, base) * sc + 2 * j + sc * (3.5 + 2 + 1.2) + hgt * 2.5;
-      assert.ok(top < 0.5, `curtain ${j}'s top is at ${top.toFixed(1)} deg as the aurora begins to come in (base ${base}): it would show at once`);
+    for (let cd = 0.01; cd <= 1; cd += 0.01) {   // the arc's top (its swell at its highest, 2.5 hgt up) under the aurora's lowest drawn place (0.5 deg) just as it begins, all along it
+      const bc = Math.min(Math.max(b0(0, base) + 0.6, -89), 89), top = Math.atan(Math.tan(bc * Math.PI / 180) * cd) * 180 / Math.PI + 2.5 * 16 * Math.sqrt(cd);
+      assert.ok(top < 0.5, `the arc's top is at ${top.toFixed(1)} deg (cos ${cd.toFixed(2)}) as the aurora begins to come in (base ${base}): it would show at once`);
     }
   }
   assert.ok(g.includes('vec3 galaxyAt(vec3 rd, float e) {\n  if (uGalC.w <= 0.0) return vec3(0.0);') && g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
