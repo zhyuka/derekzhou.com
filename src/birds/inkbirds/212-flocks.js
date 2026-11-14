@@ -112,6 +112,7 @@
         break;
       }
     }
+    for (i = 0; i < BIRDS.length; i++) { var q = BIRDS[i]; for (k = 0; k < 3; k++) { q.pp[k] = q.p[k]; q.v0[k] = q.v[k]; } q.phi0 = q.phi; }   // (seeded where they are: no step behind them to draw between)
     POP.seeded = true; POP.nextT = t + 2;
   }
   /* a new flock (the owner, 2026-11-06: never born near the viewer, not under the land nor in the sea of cloud): only
