@@ -23,7 +23,12 @@ Places come a minute or two apart at the flight's 12 m/s. Cells (landmarks, clou
 world cell from the seed and the cell's coordinates, streamed in about
 the camera within a budget a frame and freed behind it. Each frame: the
 scene in HDR (4 samples a pixel where the device allows), the land as a
-GPU clipmap raised by the kits' height functions, the cloud bodies baked
+GPU clipmap raised by the kits' height functions (its rings placed from a
+whole-cell lattice, (cell + aG) x cell size in one fp32 product, so the rings'
+seams meet to the bit however far the flight has gone: origin metres + aG x
+cell size parted them by 1.6 cm at 100 km and 12.5 cm at 681 km, the owner's
+one-pixel lines (2026-11-14); test/unit/clipmap.mjs replays it in fp32 and
+lints the old form, tools/gpu/seams.js reads both land programs on a GPU), the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
 up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
 between: sharp in the distance, never a ring), bloom, and the composite
