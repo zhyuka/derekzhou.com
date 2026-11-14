@@ -4,7 +4,7 @@ uniform vec4 uVR;   // extinction (1/m), most steps, the fine billows' scale (m)
 uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the ceiling a forming cloud rises under (world y), a passage cloud's near reach (m)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
 uniform float uVVox;   // the body's voxel (m)
-uniform float uVK;  // the most pieces a band segment is cut into (the device's tier: 12 desktop, 4 the rest)
+uniform float uVK;  // the most pieces a band segment is cut into (the device's tier: 12 the desktop's top, 1 the rest)
 float segRamp(float s0, float s1, float bE) {   // the band's ramp clamp(-s / bE, 0, 1) over a piece, its mean with s linear between its ends
   float G0 = s0 >= 0.0 ? 0.0 : (s0 > -bE ? s0 * s0 / (2.0 * bE) : -s0 - 0.5 * bE), G1 = s1 >= 0.0 ? 0.0 : (s1 > -bE ? s1 * s1 / (2.0 * bE) : -s1 - 0.5 * bE), ds = s1 - s0;
   return abs(ds) < 1e-3 * bE ? clamp(-0.5 * (s0 + s1) / bE, 0.0, 1.0) : (G0 - G1) / ds;
