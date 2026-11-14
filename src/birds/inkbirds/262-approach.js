@@ -121,6 +121,9 @@
     /* carried away from it (past it, or blown off): planned again from here, three times at most, then round */
     if (d > P.d0 * 1.25 + 10) { if (++P.go > 3) { goRound(b, 'away'); return; } P.d0 = 0; if (!onWindow(b, C)) { P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; } return; }   // (out of view, by the gate again: never in at it unseen)
     if (tau <= PLAND[0] || d <= PLAND[1]) {   /* the last of it: down a curve to rest on the perch, from where it is and how it moves */
+      P.yaw = touchYaw(b, C); P.landYaw = true; landRest(b, C);   // (its yaw on the perch decided now, its rest solved once for it: fixed through the landing)
+      perchFoot(P, PF2); rayAt(C, PF2[0], PF2[1] - P.rest, P.D, P.at);
+      rx = b.p[0] - P.at[0]; ry = b.p[1] - P.at[1]; rz = b.p[2] - P.at[2]; d = Math.sqrt(rx * rx + ry * ry + rz * rz);
       var wx = b.v[0] - P.v[0], wy = b.v[1] - P.v[1], wz = b.v[2] - P.v[2], wc = -(rx * wx + ry * wy + rz * wz) / (d || 1);
       b.st = 'land'; P.tl = t; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
       return;
@@ -142,6 +145,9 @@
   /* the last of the landing, in the perch's frame: a curve from where it is, at the speed it has, to rest on the perch
      (a cubic: its place and its motion at both ends, so no jump and no overshoot; head-on, an even braking), the flare
      its last PFLARE s: its body pitched up to near upright, its wings forward and spread as brakes, its feet out */
+  /* the side it will stand facing: toward the side it comes moving across the view (seen from behind, a perched gull is a
+     thin tent), or by the perch's side of the window */
+  function touchYaw(b, C) { var P = b.P, fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2], fr = fx * C.r[0] + fz * C.r[2]; return (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw; }
   function landStep(b, dt, C) {
     var P = b.P;
     if (!perchWorld(b, C, dt)) { giveUp(b); return; }
@@ -179,7 +185,7 @@
     /* its attitude on the perch from its attitude now (the flare's): its heading about the camera's up, as it came */
     var fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2];   // (its way through the air: as its body lay)
     var fr = fx * C.r[0] + fz * C.r[2], ff = fx * C.f[0] + fz * C.f[2];
-    P.yaw = (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw;   // (it stands in profile, toward the side it came moving: seen from behind, the perched form is a thin tent)
+    if (!P.landYaw) P.yaw = (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw;   // (it stands in profile, toward the side it came moving: seen from behind, the perched form is a thin tent)
     P.yaw0 = P.yaw; P.yawT = t; P.yawTo = P.yaw; P.pitch = PERCH.pitch; P.face = P.yaw >= 0 ? 1 : -1;
     P.stay = t + pick(b.r, PSTAY); P.nextAct = t + pick(b.r, [1.2, 2.5]); P.act = null; P.walk = null; P.swing = 0; P.swingV = 0;
     b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2];

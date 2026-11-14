@@ -143,13 +143,12 @@
       if (!b.s) b.s = drawRec(b);
       s = b.s;
       var was = s.seenF === DF - 1;
-      if (!was) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
+      if (!was) { s.xKey = -1; s.xT0 = -1; s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
       /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself one frame
          in four, its own (by its number): between, its form and tone are held and only its place and attitude move */
       s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && ((DF + b.id) & 3) !== 0;
       s.seenF = DF; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
       s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
-      if (b.st === 'land') restProbe(b, C, s);
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
       s.ldt += fdt;
       if (!poseDrawn(b, s, C, N, moving, b.stT === t ? back : back - (t - b.stT))) continue;

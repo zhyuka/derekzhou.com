@@ -69,6 +69,15 @@ little (its low point 61 % of the way in, 3.2 % of the way below) and
 up into it, its closing at a constant tau-dot (0.72), its wings braking
 in the flare, its feet out at the end; from the touch its feet are the
 perch's, solved every frame from where the perch is drawn (no easing).
+Its rest over the perch is solved in the step, once, at the start of the
+last leg (the touch pose on the perched attitude it will stand in, its
+yaw decided then), never from what was drawn; over the flare its attitude
+eases into that perched one, and the flare's pose passes into the touch's.
+A change of what the wings do (a burst, the approach's beats and glide,
+the flare, the perch, the leap) carries the last drawn pose over and eases
+into the new one over 0.22 s (the owner, 2026-11-14: "the birds sometimes
+feel choppy at times (esp when they land/takeoff ...)"); test/birds-motion.mjs
+bounds the drawn motion frame by frame.
 If the perch gets away it goes round once, far out, then flies on. At
 most 6 on the letters, one coming down at a time. On the perch it faces
 into the wind (a row turning bird by bird as the wind shifts), turns by
