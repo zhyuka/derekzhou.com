@@ -109,6 +109,22 @@
     PROGX.finished++; if (!r) PROGX.broken++;
     return r;
   }
+  /* (load-perf, the audit's boot-fence-gated-poll, 2026-11-14) a fence behind the batch, and no status asked of any
+     program until it signals. A program's first status read (COMPLETION_STATUS_KHR, or LINK_STATUS without the
+     extension) waits in the renderer for the GPU process to have run the batch; where a driver compiles the batch
+     serially, that is the whole batch (the lab's phones: the main thread frozen 2.4-2.7 s in one read, no frame, no
+     tap). The fence's status is the GPU process's answer, read without waiting, so the frames go on while the batch
+     compiles and the first read comes once there is nothing left to wait for. Not under the hold (its frames run in one
+     task, where no fence can signal: bootFence's rule), nor past PFENCE_MAX frames (a fence that never answers never
+     holds the boot) */
+  var PFENCE = null, PFENCE_F = 0, PFENCE_G = -1, PFENCE_MAX = 600;   // (PFENCE_G: the context it was made in; a restored context's boot never reads the lost one's)
+  function progFence() { if (HOLD.on || (PFENCE && PFENCE_G === MEMN.restored)) return; PFENCE = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); PFENCE_F = FRAMEN; PFENCE_G = MEMN.restored; }
+  function progFenced() {
+    if (PFENCE && PFENCE_G !== MEMN.restored) PFENCE = null;
+    if (!PFENCE) return true;
+    if (gl.getSyncParameter(PFENCE, gl.SYNC_STATUS) !== gl.SIGNALED && FRAMEN - PFENCE_F < PFENCE_MAX) return false;
+    gl.deleteSync(PFENCE); PFENCE = null; return true;
+  }
   function progStep(sync, deadline) {
     var i, P;
     if (gl.isContextLost()) return LOSTP;
@@ -126,7 +142,8 @@
     if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0 && !lateHeld(PORDER[i])) { progIssue(PORDER[i]); issued = true; }
-      if (issued) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      if (issued) { progFence(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      if (!progFenced()) return false;
       var all = true; lateDecide();   // (fast500 step 9)
       for (i = 0; i < PORDER.length; i++) {
         P = PORDER[i]; if (P.st === 3) continue;
@@ -142,7 +159,8 @@
     if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
       var iss = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
-      if (iss) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (iss) { progFence(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (!progFenced()) return false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
       return progsDone();
     }

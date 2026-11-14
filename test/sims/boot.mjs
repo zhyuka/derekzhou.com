@@ -28,6 +28,16 @@ for (const d of FP.DEVICES) {
   if (!(B.shown && B.flushF > 0 && B.flushF <= 70)) bad.push(`a still that never comes: the batch flushed at frame ${B.flushF}, shown ${B.shown} (it must go on by about frame 62)`);
   if (!bad.length) console.log(`boot: the still in at frame 30: the context at ${A.ctxF}, the batch at ${A.flushF}; no still: the batch at ${B.flushF}`);
 }
+/* (load-perf, the audit's boot-fence-gated-poll, 2026-11-14) no program's status is read before the fence behind the
+   batch signals: a GPU process busy 40 frames with the batch (a serial compile) holds the first read off 40 frames, and
+   the world still shows; a fence that never signals holds it no longer than PFENCE_MAX (600 frames) */
+{
+  const d = FP.DEVICES.find((x) => x.id === 'phone'), w = d.wins[0], V = { dev: d, n: 0, seed: 0x9e3779b9, hour: 11.5, w: w[0], h: w[1], dpr: w[2], hz: 60, t0: 200 };
+  const A = await FP.run(V, page, {}), B = await FP.run(V, page, { fenceLag: 40 });
+  if (!(B.shown && B.statusF >= B.flushF + 40)) bad.push(`a fence 40 frames late: the batch flushed at frame ${B.flushF}, the first status read at ${B.statusF} (it must wait for the fence), shown ${B.shown}`);
+  if (!(A.statusF > A.flushF && A.statusF <= A.flushF + 2)) bad.push(`a fence at once: the first status read at frame ${A.statusF}, the batch at ${A.flushF} (it must come the next frame)`);
+  if (!bad.length) console.log(`boot: the first status read ${A.statusF - A.flushF} frame(s) after the batch; with the fence 40 frames late, ${B.statusF - B.flushF}`);
+}
 if (WRITE) { fs.writeFileSync(GOLD, JSON.stringify(now, null, 1) + '\n'); console.log('boot: wrote ' + path.relative(ROOT, GOLD) + ': ' + JSON.stringify(now)); process.exit(bad.length ? 1 : 0); }
 const gold = JSON.parse(fs.readFileSync(GOLD, 'utf8')), better = [];
 for (const [id, f] of Object.entries(now)) {

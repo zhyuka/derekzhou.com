@@ -1,6 +1,6 @@
 // test/fakepage.cjs: the one fake browser the static checks share (moved out of glsl_guard.js, 2026-11-07): the devices the
 // world is visited on, the page's scripts as index.html loads them, and run(V, page, O), one visit in a small fake browser
-// (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion; O.still: the page has the opening's still, its file in at that frame). Used by
+// (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion; O.still: the page has the opening's still, its file in at that frame; O.fenceLag: fences signal that many frames on). Used by
 // .github/workflows/glsl_guard.js (the shaders' guard and --reduced) and the sims on it. Plain node 22.8+, no dependency.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -49,7 +49,7 @@ function loadScripts(site, scripts) {
 // ------------------------------------------------------------------ one visit in a small fake browser
 function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
   return new Promise((resolve) => {
-    const R = { ctxF: -1, flushF: -1, firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
+    const R = { statusF: -1, ctxF: -1, flushF: -1, firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
     let clock = V.t0;
     const now = () => (clock += 0.02);   // (each read moves the clock on a little, so a loop that works to a deadline ends)
     function guard(f, where) { try { f(); } catch (e) { R.errors.push(where + ': ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).map((x) => x.trim()).join(' | ') : String(e))); } }
@@ -116,11 +116,11 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       createProgram() { return { __kind: 'program', sh: [] }; },
       attachShader(p, s) { p.sh.push(s); },
       linkProgram(p) { const v = p.sh.find((s) => s.type === 'VERTEX_SHADER'), f = p.sh.find((s) => s.type === 'FRAGMENT_SHADER'); R.programs.push({ vs: v ? v.src : '', fs: f ? f.src : '' }); },
-      getProgramParameter(p, x) { const n = NAME(x); if (/STATUS/.test(n)) return true; if (n === 'ATTACHED_SHADERS') return p.sh.length; return 0; },
+      getProgramParameter(p, x) { const n = NAME(x); if (n === 'COMPLETION_STATUS_KHR' && R.statusF < 0) R.statusF = R.frames; if (/STATUS/.test(n)) return true; if (n === 'ATTACHED_SHADERS') return p.sh.length; return 0; },
       getProgramInfoLog() { return ''; }, getUniformLocation() { return {}; }, getAttribLocation() { return 0; }, getUniformBlockIndex() { return 0; },
       getActiveUniform() { return null; }, getActiveAttrib() { return null; }, getFragDataLocation() { return 0; },
       checkFramebufferStatus() { return C('FRAMEBUFFER_COMPLETE'); },
-      fenceSync() { return obj('sync'); }, clientWaitSync() { return C('ALREADY_SIGNALED'); }, getSyncParameter(s, x) { return NAME(x) === 'SYNC_STATUS' ? C('SIGNALED') : 0; },
+      fenceSync() { const f = obj('sync'); f.f = R.frames; return f; }, clientWaitSync() { return C('ALREADY_SIGNALED'); }, getSyncParameter(s, x) { return NAME(x) === 'SYNC_STATUS' ? (!O.fenceLag || R.frames >= s.f + O.fenceLag ? C('SIGNALED') : C('UNSIGNALED')) : 0; },   // (getSyncParameter, O.fenceLag: a fence signals that many frames on: a GPU process busy with a serial compile)
       getQueryParameter(q, x) { return NAME(x) === 'QUERY_RESULT_AVAILABLE' ? true : 0; },
       readPixels(x, y, w, h, f, t, dst) { fillRead(dst); }, getBufferSubData(tg, off, dst) { fillRead(dst); },
       isProgram() { return true; }, isShader() { return true; }, isTexture() { return true; }, isBuffer() { return true; }, isFramebuffer() { return true; }
