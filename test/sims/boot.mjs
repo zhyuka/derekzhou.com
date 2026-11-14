@@ -36,7 +36,11 @@ for (const d of FP.DEVICES) {
   const A = await FP.run(V, page, {}), B = await FP.run(V, page, { fenceLag: 40 });
   if (!(B.shown && B.statusF >= B.flushF + 40)) bad.push(`a fence 40 frames late: the batch flushed at frame ${B.flushF}, the first status read at ${B.statusF} (it must wait for the fence), shown ${B.shown}`);
   if (!(A.statusF > A.flushF && A.statusF <= A.flushF + 2)) bad.push(`a fence at once: the first status read at frame ${A.statusF}, the batch at ${A.flushF} (it must come the next frame)`);
-  if (!bad.length) console.log(`boot: the first status read ${A.statusF - A.flushF} frame(s) after the batch; with the fence 40 frames late, ${B.statusF - B.flushF}`);
+  /* (the hub's review) and the late ink birds' reads too: their file in at frame 10, after stage B, their programs
+     issued late with a fence of their own; no status read, theirs or the boot's, before it signals 40 frames on */
+  const C = await FP.run(V, page, { fenceLag: 40, lateScript: ['inkbirds.js', 10] });
+  if (!(C.shown && C.lateF === 10 && C.lateStatusF >= 50 && C.statusF >= 50)) bad.push(`the ink birds in at frame ${C.lateF} with fences 40 frames late: the first status read after them at ${C.lateStatusF}, the first at all at ${C.statusF} (none before 50), shown ${C.shown}`);
+  if (!bad.length) console.log(`boot: the first status read ${A.statusF - A.flushF} frame(s) after the batch; with the fence 40 frames late, ${B.statusF - B.flushF}; the ink birds late at frame 10, the first read at ${C.lateStatusF}`);
 }
 if (WRITE) { fs.writeFileSync(GOLD, JSON.stringify(now, null, 1) + '\n'); console.log('boot: wrote ' + path.relative(ROOT, GOLD) + ': ' + JSON.stringify(now)); process.exit(bad.length ? 1 : 0); }
 const gold = JSON.parse(fs.readFileSync(GOLD, 'utf8')), better = [];

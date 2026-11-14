@@ -118,7 +118,9 @@
      task, where no fence can signal: bootFence's rule), nor past PFENCE_MAX frames (a fence that never answers never
      holds the boot) */
   var PFENCE = null, PFENCE_F = 0, PFENCE_G = -1, PFENCE_MAX = 600;   // (PFENCE_G: the context it was made in; a restored context's boot never reads the lost one's)
-  function progFence() { if (HOLD.on || (PFENCE && PFENCE_G === MEMN.restored)) return; PFENCE = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); PFENCE_F = FRAMEN; PFENCE_G = MEMN.restored; }
+  /* (the hub's review, 2026-11-14) every later issue (a program unheld after the batch, the late ink birds') puts a new
+     fence behind it in place of one still pending, and every status read waits for it: the late birds' too (birdsLate) */
+  function progFence() { if (HOLD.on) return; if (PFENCE && PFENCE_G === MEMN.restored) gl.deleteSync(PFENCE); PFENCE = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); PFENCE_F = FRAMEN; PFENCE_G = MEMN.restored; }
   function progFenced() {
     if (PFENCE && PFENCE_G !== MEMN.restored) PFENCE = null;
     if (!PFENCE) return true;
