@@ -7,7 +7,17 @@
   /* a cloud body: its box from its lobes (in its own frame, turned about the vertical by its yaw, so a wall's box is
      tight along it), its voxels (res across its longest side), its texture; then baked: the density into the scratch
      volume a layer per draw, then the final volume (the distance, the optical depth toward the sun and the sky) */
-  function volPrep(PF, bi, G, res) {
+  /* the body's fine billows (their scale and depth, m), set once here, never again: blended per frame by the place's
+     weight they slid through the body in steps as the flight crossed realms (the owner's wiggle, 2026-11-14). The two
+     kits' own (the skies keep theirs: skyRaw) blended by the light's weight about the camera as the body is made
+     (lightWeight, climateLight's own): in flight the light the body is made under; in the boot, before the landing's
+     first climateLight, the landing's light, not the dunes kit's unblended copy (V.L there) */
+  function volDetail(V) {
+    var A = V.lightRaw && V.lightRaw.clDetail, B = V.lightRawB && V.lightRawB.clDetail;
+    if (!A || !B || !KW.ok) { var d = ((V.L || V.light || {}).clDetail) || [120, 4]; return new Float32Array([d[0], d[1]]); }
+    var w = lightWeight(CS.x, CS.z); return new Float32Array([A[0] + (B[0] - A[0]) * w, A[1] + (B[1] - A[1]) * w]);
+  }
+  function volPrep(PF, bi, G, res, V) {
     var B = PF.bodies[bi], a = PF.a, i0 = B.i0, i1 = bi + 1 < PF.bodies.length ? PF.bodies[bi + 1].i0 : PF.count(), i, k;
     var rs = []; for (i = i0; i < Math.min(i1, i0 + 96); i++) rs.push(a[i * 12 + 3]); rs.sort(function (x, y) { return x - y; });
     var Rm = rs[rs.length >> 1] || 10, mg = Rm * ((B.billow || 0.8) * 0.45 + 0.12);   // the median lobe; room for the billows and fillets
@@ -30,7 +40,7 @@
     return { G: G || null, L: L, n: n, h: h, dims: dims, vox: vox, Rm: Rm, cy: cy, sy: sy, B: { seed: B.seed || 0.37, erode: erode, noise: B.noise || 3.6, blend: B.blend || 0.5, squash: B.squash || 0.9, billow: bil }, pass: 0, z: 0, done: false,
       out: { t: T3, c: new Float32Array(c), h: new Float32Array(h), yaw: new Float32Array([cy, sy]), dims: dims, r: Math.sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]), range: Rm * 4, band: Math.max(Rm * (B.band || 0.07), 3),
         reach: erode * Rm * bil * 0.5 + 2, kind: B.kind || 0, vox: vox, y0: lo[1], y1: hi[1], base: B.base !== undefined ? B.base : -1e5, fade: 0, ready: false, cores: cores, bytes: dims[0] * dims[1] * dims[2] * (VOL16 ? 8 : 4),
-        u4a: new Float32Array(4), u4b: new Float32Array(4), u4c: new Float32Array(4) } };
+        det: volDetail(V || {}), u4a: new Float32Array(4), u4b: new Float32Array(4), u4c: new Float32Array(4) } };
   }
   /* up to budget units of this body's baking; returns the units spent. A unit is a 44 x 44 layer of 48 lobes (the
      density pass: its pixels times its lobes; the light pass: its pixels, half again), so a great wall of 64 x 64 and

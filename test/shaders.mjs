@@ -7,7 +7,7 @@
 //   node test/shaders.mjs SITE --compile       also compile and link each one in headless Chrome (WebGL2)
 //
 // The programs are the reference device's (a desktop Chrome with float targets: the first device of
-// .github/workflows/glsl_guard.js), as the page issues them in its first visit there, each named by glsl_guard's dump.
+// tools/checks/lib/glsl_guard.js), as the page issues them in its first visit there, each named by glsl_guard's dump.
 // --compile drives Chrome through playwright-core (PW_CORE names its package folder; CHROME_PATH a Chrome, else the
 // installed Chrome channel), with SwiftShader as validate.yml's W7 step runs it. Exit 2: no WebGL2 context (warn).
 import fs from 'fs';
@@ -19,7 +19,7 @@ import { createRequire } from 'module';
 const argv = process.argv.slice(2), SITE = argv.find((a) => !a.startsWith('--'));
 const COMPILE = argv.includes('--compile');
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
-const GUARD = path.join(ROOT, '.github', 'workflows', 'glsl_guard.js');
+const GUARD = path.join(ROOT, 'tools', 'checks', 'lib', 'glsl_guard.js');
 if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node test/shaders.mjs SITE [--compile]'); process.exit(2); }
 
 // ------------------------------------------------------------------ the programs as issued (glsl_guard's fake browser)

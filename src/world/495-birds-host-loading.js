@@ -60,8 +60,9 @@
     var i, P, n = LATEB.P.length, done = 0;
     for (i = 0; i < n; i++) {
       P = LATEB.P[i];
-      if (P.st === 0) { if (STILLHOLD) continue; var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(P); PROGX.compiled = c0; PROGX.linked = l0; gl.flush(); continue; }
+      if (P.st === 0) { if (STILLHOLD) continue; var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(P); PROGX.compiled = c0; PROGX.linked = l0; progFence(); gl.flush(); continue; }
       if (P.st === 2) {
+        if (!progFenced()) continue;   // (no status read before the fence behind what was issued signals: progFenced, 070)
         if (EXT.par) { var tq = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR); P.polls++; P.qms = +(P.qms + clockNow() - tq).toFixed(2); if (gl.isContextLost()) return; if (!dn) continue; }
         else if (FRAMEN - P.issF < LATE_WAIT) continue;
         var tf = clockNow(), r = finish(P);
