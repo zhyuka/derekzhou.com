@@ -72,8 +72,12 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
      still passes is cut from the star's flux, never from its pixels, so its light stays whatever its place */
   float F = b * STF, cp = SKYTAU * max(cap, 1e-5), sg = clamp(sqrt(F / cp), 0.5, 0.7);
   F = min(F, cp * sg * sg);
-  vec3 dv = rd - sd;   // (the chord, in pixels along the view's right and up: acos of a dot near 1 loses a star's footprint in float32)
-  return F * starBox(dot(dv, uCamR) / pa, sg) * starBox(dot(dv, uCamU) / pa, sg);
+  /* the star's place on the screen in pixels (the inverse of main's rd: ndc = (r, u) / (f x uProj)), so the box is the
+     pixel's own footprint at any place in any window (the review: the chord over the centre's angle was 1.2 pixels a
+     step at the centre of a tall window and 0.7 px became 1.1-1.4 at its sides) */
+  float zf = max(dot(sd, uCamF), 1e-4);
+  vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
+  return F * starBox(d.x, sg) * starBox(d.y, sg);
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
