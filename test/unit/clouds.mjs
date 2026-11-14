@@ -133,11 +133,12 @@ test('clouds: the bake reads its billows at LOD 0 on a tile of 24 voxels or more
 // ------------------------------------------------------------------ the far banks (cloud-far-banks-opaque, 2026-11-14)
 // A far body goes into the haze by its colour and stays opaque until the last quarter of its distance's weight: faded
 // by its opacity over the whole weight, a bank half way out let half the stars through
-test('clouds: a far bank hazes by its colour and stays opaque to the last quarter of its weight', () => {
-  assert.match(VBODY, /col = mix\(hazeCol\(rd\), col, smoothstep\(0\.0, 1\.0, uVR2\.y\)\);/, 'the far body\'s colour is not taken into the haze');
+test('clouds: a far bank keeps its colour and stays opaque to the last quarter of its weight, then fades into the sky', () => {
+  assert.ok(!/col = mix\(hazeCol\(rd\), col/.test(VBODY), 'the far body\'s colour is mixed toward the haze colour: a flat silhouette off the sky behind it');
   assert.match(VBODY, /oC = vec4\(col \* al, al\) \* smoothstep\(0\.0, 0\.25, uVR2\.y\);/, 'the far body fades by its opacity over its whole weight');
   const op = (w) => Math.min(Math.max(w / 0.25, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max(w / 0.25, 0), 1));
   for (const w of [0.25, 0.5, 0.9]) assert.equal(op(w), 1, `at weight ${w} the bank is opaque`);
+  assert.equal(op(0), 0, 'at weight 0 the bank is gone: the sky behind it');
 });
 
 // ------------------------------------------------------------------ one cloud field on every tier (the hub's review of #238)
