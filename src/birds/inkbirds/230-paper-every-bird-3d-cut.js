@@ -217,10 +217,12 @@
   function posePerch(b, C, s) {
     var P = b.P;
     perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return false;
+    var wh = P.hop || 0;
+    if (P.walk && TD >= P.walk.t0 && P.kind !== 'pointer') { walkAt(P, TD, WKA); var Lw = ledges()[P.li], yw = surfY(Lw.pts, WKA[0]); PFD[0] = WKA[0]; if (yw === yw) PFD[1] = yw; wh = WKA[1]; }   // (a walk's foot and hop at the frame's own time)
     perchPose(b, s); wingXF(b, s);
     var yawNow = P.yaw;
     if (P.yawTo !== undefined && TD - P.yawT < P.yawD) yawNow = P.yaw0 + (P.yawTo - P.yaw0) * ease((TD - P.yawT) / P.yawD);
-    var turning = TD - P.yawT < P.yawD && TD >= P.yawT, hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((TD - P.yawT) / P.yawD, 0, 1)) : (P.hop || 0) * 0.05;
+    var turning = TD - P.yawT < P.yawD && TD >= P.yawT, hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((TD - P.yawT) / P.yawD, 0, 1)) : wh * 0.05;
     var L = P.leaving, crouch = L ? Math.sin(0.5 * Math.PI * clamp((TD - L.t0) / Math.max(L.tc, 1e-3), 0, 1)) : (P.crouch || 0);   // (the crouch at the frame's own time)
     var pt = (P.pitch + 3 * wave(b.vK + 31, AD / 3.7) - crouch * 10 + (P.swing || 0) * 20) * DEG, rl = (P.swing || 0) * 0.8;
     perchBasis(C, yawNow, pt, rl, PB9);

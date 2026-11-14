@@ -15,6 +15,14 @@
   }
   /* a step turn kept a profile, on the side it faces (from in front or behind the perched form is a thin tent) */
   function profile(y, was) { return (was >= 0 ? 1 : -1) * clamp(Math.abs(y), 65, 120); }
+  /* a walk's foot and hop at time T (the step's, or the frame's own): a hop of a step, then a pause; o[2] 1 once done */
+  var WKA = [0, 0, 0];
+  function walkAt(P, T, o) {
+    var wk = P.walk, k = Math.floor((T - wk.t0) / 0.45), f = ((T - wk.t0) % 0.45) / 0.22;
+    if (k >= wk.n) { o[0] = wk.x0 + wk.dir * wk.step * wk.n; o[1] = 0; o[2] = 1; }
+    else { o[0] = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); o[1] = f < 1 ? Math.sin(Math.PI * f) : 0; o[2] = 0; }
+    return o;
+  }
   function perchedStep(b, dt, C) {
     var P = b.P, r = b.r;
     if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast, steers, goes or nears the edge */
@@ -24,9 +32,7 @@
       if (PTR.gone || PTR.steer || sp > PJ.jerk || PTR.x < 20 || PTR.y < 20 || PTR.x > W - 20 || PTR.y > H - 20) { leave(b, 'tip'); return; }
     }
     if (P.walk && t >= P.walk.t0) {   /* a side-step (or a walk along the stroke): a hop of a step, pausing between */
-      var wk = P.walk, k = Math.floor((t - wk.t0) / 0.45), f = ((t - wk.t0) % 0.45) / 0.22;
-      if (k >= wk.n) { P.x = wk.x0 + wk.dir * wk.step * wk.n; P.walk = null; }
-      else { P.x = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); P.hop = f < 1 ? Math.sin(Math.PI * f) : 0; }
+      walkAt(P, t, WKA); P.x = WKA[0]; P.hop = WKA[1]; if (WKA[2]) P.walk = null;
       var Lg = ledges()[P.li]; if (Lg && (P.x < Lg.pts[0][0] || P.x > Lg.pts[Lg.pts.length - 1][0])) { var L2 = nearLedge(P.x, P.fy, P.li); if (L2 >= 0) P.li = L2; else { P.x = clamp(P.x, Lg.pts[0][0], Lg.pts[Lg.pts.length - 1][0]); P.walk = null; } }
     } else P.hop = 0;
     /* its body over its feet where they are this step (after any step it takes) */
