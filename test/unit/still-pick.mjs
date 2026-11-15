@@ -3,6 +3,7 @@
 // not make (tools/gpu/bake-stills.js's shapes and tiers), the wrong tier, or a shape outside A2's rule (portrait under
 // h/w 1.893 the shorter still, above it the taller, the tallest past it; landscape and squat windows the narrower,
 // the square under it). The run-16 Nord (no still on a real phone) is why: this can't come back on another phone.
+// plant: {"file": "site/hour.js", "find": "  if (touch && dk) tier = 'lo';", "with": "", "why": "a touch device in landscape shown the desktop-baked still, and so the desktop's look"}
 import { test, assert, fs, path, vm, ROOT, WORLD } from '../unit-lib.mjs';
 
 const HOUR = fs.readFileSync(path.join(ROOT, 'site', 'hour.js'), 'utf8');
@@ -27,7 +28,7 @@ function pick(o) {   // hour.js in a fake page: o = { w, h (the window, 0 unsize
   };
   ctx.window = ctx; ctx.window.matchMedia = mm;
   vm.runInNewContext(HOUR, ctx);
-  return { href: link.href, still: props['--still'] || '' };
+  return { href: link.href, still: props['--still'] || '', look: at['data-look'] ?? null };
 }
 
 // the rule, stated on its own: the still a window of these sizes should get
@@ -65,7 +66,12 @@ test('still-pick: every phone and desktop window, both orientations, the bars in
     if (!m) { misses.push(`${who}: no still asked (${r.href || 'nothing'})`); return; }
     if (r.still !== `url("${r.href}")`) misses.push(`${who}: --still ${r.still} is not the preload's ${r.href}`);
     if (!SHAPES.includes(m[4]) || !TIERS.includes(m[3])) misses.push(`${who}: ${m[3]}-${m[4]} is not a still the bake makes`);
-    if (m[3] !== tier) misses.push(`${who}: tier ${m[3]}, want ${tier}`);
+    // (the hub, 2026-11-15: one tier for every look) a touch device is shown the lo still where a hi one would be baked as
+    // a desktop (a landscape or square shape): it never draws the desktop's look
+    const ws = want(w, h).split('x').map(Number), want3 = o.touch && ws[0] >= ws[1] ? 'lo' : tier;
+    if (m[3] !== want3) misses.push(`${who}: tier ${m[3]}, want ${want3}`);
+    const lk = m[3] === 'hi' && ws[0] >= ws[1] ? 'desk' : 'touch';
+    if (r.look !== lk) misses.push(`${who}: data-look ${r.look}, want ${lk} (the still's own look)`);
     if (m[4] !== want(w, h)) misses.push(`${who} ${w}x${h} (h/w ${(h / w).toFixed(3)}): ${m[4]}, want ${want(w, h)}`);
     if (m[1] !== 'sunset' || m[2] !== '5') misses.push(`${who}: opening ${m[1]}-${m[2]}, want sunset-5 (18:30, read 5)`);
   };
@@ -148,10 +154,15 @@ test('still-pick: the bake\'s device takes the same look branches by memTier as 
     '\nKey the look off what the still was baked as (hour.js\'s tier and shape), or bake those stills on a device of the visitor\'s tier (bake-stills.js win()).');
 });
 
-test('still-pick: the look check bites: a desktop-only look splits every touch window in landscape (21 of them today)', () => {
-  const bad = lookSplits(['desktop']);
-  for (const w of ['iPhone 16 852x393', 'iPhone SE 667x375', 'Pixel 8 915x412 8 GB', 'iPad Air 1180x820']) assert.ok(bad.some((b) => b.startsWith(w + ':')), w + ' is split by a desktop-only look:\n' + bad.join('\n'));
-  assert.equal(bad.length, 21, bad.join('\n'));
-  assert.ok(!bad.some((b) => /^desktop /.test(b)), 'a desktop of any shape gets its own look');
-  assert.ok(!bad.some((b) => b.startsWith('iPhone 16 393x852:')), 'a portrait iPhone gets its own look');
+test('still-pick: the look\'s tier is the still\'s on every window (hour.js\'s data-look), and no touch device draws the desktop\'s look', () => {
+  const bad = [];
+  for (const [who, o] of windows()) {
+    const r = pick(o), m = /-(hi|lo)-(\d+x\d+)\.avif$/.exec(r.href), baked = bakeDevice(m[1], m[2]), bakedDesk = !baked.touch;
+    if ((r.look === 'desk') !== bakedDesk) bad.push(`${who}: data-look ${r.look}, the still (${m[1]}-${m[2]}) baked as ${bakedDesk ? 'a desktop' : 'a touch device'}`);
+    if (o.touch && r.look === 'desk') bad.push(`${who}: a touch device given the desktop's look`);
+  }
+  assert.deepEqual(bad, [], bad.join('\n'));
+  // (and the world keys its looks on it: data-look read once, never memTier)
+  assert.match(WORLD, /var LOOKD = attr\('data-look'\) === 'desk';/, 'the world does not read the look\'s tier from the page');
+  assert.deepEqual(BRANCHES, [], `the world branches a look on memTier() === ${BRANCHES.join(', ')}: key it on LOOKD (data-look)`);
 });
