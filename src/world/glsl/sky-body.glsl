@@ -7,7 +7,8 @@ uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
-uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1); its core's direction and how far it has come in (1 whole)
+uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1), its core's direction, in the sky's frame
+uniform mat3 uSkyF;   // (physics: night/sky-turn) world to the sky's frame (215's skyFrame, transposed): the stars and the galaxy turn together, at SKY_RATE
 uniform vec4 uAur;    // (tod, phase 2) the aurora: how far it has come in (1 whole), its centre's azimuth, its folds' phase, its amount (0 or 1)
 uniform vec4 uAurB;   // (physics: aurora/phases) how far through its hold, the breakup's front (km along the sheet, east +), the second arc's km farther (0 none), a breakup (0 or 1)
 out vec4 oC;
@@ -19,18 +20,16 @@ const float SKYTAU = 6.2831853;
 const float STC = 0.04;
 /* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: an edge (as the Earth's shadow over the wisps)
    climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
-float galEdge(float e) { float g = (1.0 - uGalC.w) * 95.0 - 3.0; return smoothstep(g - 0.8, g + 1.2, e); }
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (one sheet low over the key's horizon, its colour by altitude: physics: aurora) */
 #ifdef SKY_PH2
 vec3 galaxyAt(vec3 rd, float e) {
-  if (uGalC.w <= 0.0) return vec3(0.0);   // (aurora-enter-by-place: nothing read until it has begun to come in)
   vec3 P = uGal.xyz, C = uGalC.xyz;
   float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU;
   float band = exp(-b * b / 0.0225), core = exp(-l * l / 0.36) * exp(-b * b / 0.05);
   float n = n3v(vec3(u * 7.0, b * 3.15, 0.13)).b * 0.45 + n3v(vec3(u * 21.0, b * 9.9, 0.71)).a * 0.35 + n3v(vec3(u * 62.0, b * 29.7, 0.29)).a * 0.2;
   float lanes = smoothstep(0.4, 0.64, n3v(vec3(u * 4.0, b * 5.6 * 0.33 + 0.1 * n3v(vec3(u * 13.0, 0.4, 0.61)).b, 0.37)).b) * exp(-pow(b - 0.02 * sin(l * 5.0), 2.0) / 0.003);
-  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e) * galEdge(e);
+  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
 }
 /* (physics: aurora/phases) one sheet D km away toward the key's azimuth, seen from the ground: phi from its centre,
    the folds' phase f0, and how deep into a breakup it is (bk: 0 none; the section east of the front, s > uAurB.y) */
@@ -103,13 +102,13 @@ vec3 auroraAt(vec3 rd, float e) {
 vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 0.5) / n * SKYTAU - PI; return vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se)); }
 float starAt(vec3 rd, float el, float az, float pa, int dj, int di) {
   float jb = floor(el / STC) + float(dj), elc = (jb + 0.5) * STC;
-  if (elc <= 0.0 || elc >= 1.5) return 0.0;
+  if (abs(elc) > 1.56) return 0.0;   // (both of the frame's hemispheres: the sky turns, its south rises)
   float n = max(1.0, floor(SKYTAU * cos(elc) / STC));
   float ib = floor((az + PI) / SKYTAU * n) + float(di);
   ib = mod(ib, n);
   uint h = ih(ih(uint(int(jb) + 4096) * 0x9e3779b1u) ^ uint(int(ib)) * 0x85ebca6bu);
   float hx = hf(h), hy = hf(ih(h + 1u)), hz = hf(ih(h + 2u)), hw = hf(ih(h + 3u));
-  float dens = 1.0 + (uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) * galEdge(degrees(elc)) : 0.0);   // (the stars crowd in the galaxy's band)
+  float dens = 1.0 + (uGal.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) : 0.0);   // (the stars crowd in the galaxy's band)
   if (hx > 0.42 * dens) return 0.0;
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
@@ -205,7 +204,7 @@ void main() {
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
   }
 #ifdef SKY_PH2
-  if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2)
+  if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(uSkyF * rd, eS);   // (by the sky's turn: physics: night/sky-turn)   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
@@ -225,9 +224,10 @@ void main() {
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
-    float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
+    vec3 rs = uSkyF * rd;   // (the sky's frame: the stars turn with it, at SKY_RATE)
+    float el = asin(clamp(rs.y, -1.0, 1.0)), az = atan(rs.x, rs.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float s = 0.0;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
-    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, dj, di); }
+    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rs, el, az, pa, dj, di); }
     s *= uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
     float head = max(uNight.w - dot(c, LUMA), 0.0);
     c += vec3(0.92, 0.94, 1.0) / 0.94 * head * (1.0 - exp(-s / max(head, 1e-5)));

@@ -8,8 +8,8 @@
 
      THE CLOCK (declared): physical motion (the wind, the clouds, the birds, the particles, the aurora's own motion)
      runs at 1x real time, SIM.t; the sky's light (sun, moon, stars, galaxy) at one rate, SKY_RATE, together. Today the
-     sun sinks about 115x real through a change into a night, the moon crosses at 70-120x and the stars and galaxy stand
-     still (skyFrame is the identity): the sky's lane brings them to SKY_RATE (test/unit/air.mjs lists each one's rate).
+     sun sinks about 115x real through a change into a night and the moon crosses at 70-120x; the stars and the galaxy
+     turn at SKY_RATE (skyFrame: physics: night/sky-turn); test/unit/air.mjs lists each one's rate.
 
      THE WIND (physics: air/wind-profile): one direction a visit at the surface (AIR_DIR, drawn by airDraw from the
      dunes' field stream), blowing toward azimuth V.windAz at V.u10 m/s 10 m up: the visit's own wind speed, drawn once from its own stream
@@ -70,7 +70,19 @@
   function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }   // a sky's own sun, deg (null: a night's, the key's own place)
   function airSkySun(V, el) { return el === null ? Array.prototype.slice.call(keyAt(V)) : dirAzEl(V.light.sunAz, el); }   // the sky's own sun (uSkyS at a hold)
   function airMoon(t) { return moonShown(t, AIR_MOON); }   // the moon on show at sky time t (226: its route)
-  function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
+  /* (physics: night/sky-turn) the sky's frame at sky time t: the stars and the galaxy turn together about the sky's pole,
+     AIR_POLE_EL deg up toward the key's azimuth (the aurora's poleward side), at SKY_RATE times the sidereal rate; the
+     identity at t 0 (the landing's sky as it was laid). Row-major, frame to world: a star at s in the frame stands at
+     F s in the world */
+  var AIR_POLE_EL = 60, AIR_SIDEREAL = 86164.1;
+  function skyFrame(t, V) {
+    var k = keyAt(V), az = Math.atan2(k[0], k[2]), e = AIR_POLE_EL * PI / 180, p = [Math.sin(az) * Math.cos(e), Math.sin(e), Math.cos(az) * Math.cos(e)];
+    var a = SKY_RATE * 2 * PI / AIR_SIDEREAL * (t || 0), c = Math.cos(a), s = Math.sin(a), C = 1 - c, F = AIR_FRAME;
+    F[0] = c + p[0] * p[0] * C; F[1] = p[0] * p[1] * C - p[2] * s; F[2] = p[0] * p[2] * C + p[1] * s;
+    F[3] = p[1] * p[0] * C + p[2] * s; F[4] = c + p[1] * p[1] * C; F[5] = p[1] * p[2] * C - p[0] * s;
+    F[6] = p[2] * p[0] * C - p[1] * s; F[7] = p[2] * p[1] * C + p[0] * s; F[8] = c + p[2] * p[2] * C;
+    return F;
+  }
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }   // (the shaders' share: the billows' offset at t, fs-vbody)

@@ -1,7 +1,8 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float eb = radians(mix(-5.735, mix(6.17, 9.51, uAurB.x), uAur.x));", "with": "float eb = radians(mix(6.17, mix(6.17, 9.51, uAurB.x), uAur.x));", "why": "the aurora's sheet ignores its rise: it would show whole the moment a change began"}
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float g = (1.0 - uGalC.w) * 95.0 - 3.0;", "with": "float g = (1.0 - uGalC.w) * 0.0 - 3.0;", "why": "the galaxy's edge ignores its rise"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += galaxyAt(uSkyF * rd, eS);", "with": "c += galaxyAt(rd, eS);", "why": "the galaxy left out of the sky's turn: it slides against its stars"}
+// plant: {"file": "src/world/215-air.js", "find": "var AIR_POLE_EL = 60, AIR_SIDEREAL = 86164.1;", "with": "var AIR_POLE_EL = 60, AIR_SIDEREAL = 8616.41;", "why": "the sky turning ten times SKY_RATE"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
@@ -132,25 +133,17 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
     }
   }
   assert.ok(changes > 500, `${changes} changes`);
-  // and the shader takes the rise (uGalC.w, uAur.x) by place: its own galEdge and auroraAt base lines, run here (the
+  // and the shader takes the aurora's rise (uAur.x) by place: its own auroraAt base lines, run here (the
   // review: text matches alone let a shader that ignored the rise pass)
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const js = (t) => t.replace(/\bfloat\s+/g, 'let ').replace(/(\d)\.(?!\d)/g, '$1.0');
   const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
-  const GE = g.match(/^float galEdge\(float e\) \{(.*)\}\s*$/m);
-  assert.ok(GE, 'galEdge not found as a one-line function in sky-body.glsl');
-  const galEdge = (rise, e) => new Function('uGalC', 'smoothstep', 'e', js(GE[1]))({ w: rise }, ss, e);
   const EB = g.match(/^\s*float eb = radians\((mix\(-?[\d.]+, mix\(-?[\d.]+, -?[\d.]+, uAurB\.x\), uAur\.x\))\);/m), DL = g.match(/^\s*float D = (6371\.0 \* \(acos\(cos\(eb\) \/ \(1\.0 \+ [\d.]+ \/ 6371\.0\)\) - eb\));/m);
   assert.ok(EB && DL, 'auroraAt\'s sheet (float eb = radians(mix(...)); float D = ...) not found');
   const mixf = (a, b, t) => a + (b - a) * t;
   const ebAt = (rise) => new Function('uAur', 'uAurB', 'mix', 'return ' + js(EB[1]) + ';')({ x: rise }, { x: 0 }, mixf);   // (as it comes in: its hold not begun)
   const DAt = (rise) => { const eb = ebAt(rise) * Math.PI / 180; return new Function('eb', 'cos', 'acos', 'return ' + js(DL[1]) + ';')(eb, Math.cos, Math.acos); };
   assert.ok(g.includes('float h = 6371.0 * (cos(el) / cos(ee) - 1.0)'), 'auroraAt\'s altitude is not the one this test models');
-  for (let e = 0; e <= 90; e += 0.5) {
-    assert.equal(galEdge(0, e), 0, `the galaxy shows at ${e} deg before it has begun to come in`);
-    if (e >= 1) assert.equal(galEdge(1, e), 1, `the whole galaxy is not shown at ${e} deg once it has come in (main's)`);
-    for (let r = 0; r < 1; r += 0.05) assert.ok(galEdge(r + 0.05, e) >= galEdge(r, e) - 1e-12, `the galaxy at ${e} deg goes back as it comes in (rise ${r})`);
-  }
   for (let r = 0; r < 1; r += 0.05) assert.ok(DAt(r + 0.05) < DAt(r), `the aurora's sheet does not come nearer with its rise (${r})`);
   assert.ok(Math.abs(DAt(1) - 650) < 5, `the sheet, come in, is ${DAt(1).toFixed(0)} km away (650)`);
   {   // as it begins to come in (D 1950), wherever it is drawn (from 0.5 deg up, eased in over 2) it is the red's thin
@@ -161,6 +154,36 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
       assert.ok(h > 300 && k <= 0.02, `as the aurora begins to come in, ${ed.toFixed(1)} deg up meets its sheet at ${h.toFixed(0)} km, ${(100 * k).toFixed(1)}% of the green's peak (it would show at once: over 300 km, at most 2%)`);
     }
   }
-  assert.ok(g.includes('vec3 galaxyAt(vec3 rd, float e) {\n  if (uGalC.w <= 0.0) return vec3(0.0);') && g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
-  assert.ok(/gl\.uniform4f\(u\.uGalC, [^;]*SKY\.rise\[0\]\)/.test(WORLD) && /gl\.uniform4f\(u\.uAur, SKY\.aur\.rise,/.test(WORLD), 'the rises are not passed to the sky (uGalC.w; uAur.x, the aurora\'s own: skyAur)');
+  assert.ok(g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
+  assert.ok(/gl\.uniform4f\(u\.uAur, SKY\.aur\.rise,/.test(WORLD), 'the aurora\'s rise is not passed to the sky (uAur.x, its own: skyAur)');
+});
+
+test('physics: night/sky-turn: the stars and the galaxy turn together about the sky\'s pole at SKY_RATE (no edge of the galaxy\'s own)', () => {
+  // 215's own skyFrame, run here: a rotation (orthonormal, det 1), the identity at t 0, about the pole AIR_POLE_EL up toward
+  // the key's azimuth, at SKY_RATE x the sidereal rate (15 deg an hour x SKY_RATE: within 10%); and the shader reads the
+  // stars and the galaxy both through it, so the angle between the galaxy and any star never changes over a stay
+  const AIR = cut(WORLD, '  var AIR_POLE_EL = ', '\n    return F;\n  }\n', true), RATE = +WORLD.match(/var SKY_RATE = ([\d.]+);/)[1];
+  const key = [Math.sin(1.1) * Math.cos(0.2), Math.sin(0.2), Math.cos(1.1) * Math.cos(0.2)];
+  const skyFrame = new Function('SKY_RATE', 'PI', 'keyAt', 'AIR_FRAME', AIR + '\nreturn skyFrame;')(RATE, Math.PI, () => key, new Array(9).fill(0));
+  const F0 = skyFrame(0, {}).slice();
+  F0.forEach((v, i) => assert.ok(Math.abs(v - (i % 4 === 0 ? 1 : 0)) < 1e-12, `skyFrame(0) is not the identity (the landing's sky as laid): ${F0}`));
+  const mul = (F, v) => [F[0] * v[0] + F[1] * v[1] + F[2] * v[2], F[3] * v[0] + F[4] * v[1] + F[5] * v[2], F[6] * v[0] + F[7] * v[1] + F[8] * v[2]];
+  for (const t of [7.3, 100, 1234]) {
+    const F = skyFrame(t, {}).slice(), c = [0, 1, 2].map((i) => [F[i * 3], F[i * 3 + 1], F[i * 3 + 2]]);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) assert.ok(Math.abs(c[i][0] * c[j][0] + c[i][1] * c[j][1] + c[i][2] * c[j][2] - (i === j ? 1 : 0)) < 1e-9, `skyFrame(${t}) is not a rotation`);
+    // the pole stays put, and a direction 90 deg from it turns at the rate
+    const pole = [Math.sin(1.1) * Math.cos(Math.PI / 3), Math.sin(Math.PI / 3), Math.cos(1.1) * Math.cos(Math.PI / 3)], pp = mul(F, pole);
+    assert.ok(Math.hypot(pp[0] - pole[0], pp[1] - pole[1], pp[2] - pole[2]) < 1e-9, 'the sky\'s pole moves');
+    const q0 = [Math.cos(1.1), 0, -Math.sin(1.1)], q1 = mul(F, q0), ang = Math.acos(Math.min(1, q0[0] * q1[0] + q0[1] * q1[1] + q0[2] * q1[2])) * 180 / Math.PI;
+    const want = RATE * 15 / 3600 * t;
+    if (want < 170) assert.ok(Math.abs(ang / want - 1) <= 0.1, `at t ${t} the sky has turned ${ang.toFixed(2)} deg (SKY_RATE ${RATE}x: ${want.toFixed(2)})`);
+  }
+  // under the pixel limit: 0.25 px a frame at 60 Hz on a phone's 0.0376 deg/px, for the stars (points of 1-2 px)
+  const degS = RATE * 15 / 3600;
+  assert.ok(degS / 60 / 0.0376 <= 0.25, `the stars move ${(degS / 60 / 0.0376).toFixed(3)} px a frame (at most 0.25)`);
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('c += galaxyAt(uSkyF * rd, eS);') && g.includes('vec3 rs = uSkyF * rd;') && g.includes('s += starAt(rs, el, az, pa, dj, di);'), 'the galaxy and the stars are not both read through the sky\'s frame (uSkyF): one would slide against the other');
+  assert.ok(!/galEdge/.test(g), 'the galaxy keeps an edge of its own (it comes and goes by the sky\'s turn)');
+  assert.ok(g.includes('if (abs(elc) > 1.56) return 0.0;'), 'the stars fill only one of the frame\'s hemispheres: a turn would bring up a starless sky');
+  assert.ok(/gl\.uniformMatrix3fv\(u\.uSkyF, false, skyFrame\(SIM\.t - \(1 - SIM\.alpha\) \* SIM_DT \+ SKY\.dt, V\)\)/.test(WORLD), '226 does not pass the sky\'s frame at the sky clock\'s time');
 });
