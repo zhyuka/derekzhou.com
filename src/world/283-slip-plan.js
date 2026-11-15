@@ -56,7 +56,7 @@
     SPS[SPN] = sc; SPSH[SPN] = sh; SPL[SPN] = lc; SPLH[SPN] = lh; SPRI[SPN] = ri; SPU[SPN] = 0.3 + 3 * Math.exp(-t / SLIP_URG); SPUI[SPN] = 0.02 + Math.exp(-t / SLIP_URGI); SPN++;
   }
   /* what stands on the way (from S, out to wide m more to either side): SPN constraints in the heading's frame */
-  var SPOFF = 0, SLIPO = new Float64Array(2);
+  var SPOFF = 0, SLIPO = new Float64Array(3);
   /* (physics: clouds/drift) the time the way, at v along the heading, meets a thing s metres ahead that moves wh m/s
      along it: t* = s / (v - wh); behind, or outrunning the way, its place now (t* = s / v) */
   function slipMeet(s, v, wh) { var cl = v - wh; return s > 0 && cl > 0.5 ? s / cl : s / v; }
@@ -85,10 +85,10 @@
       for (var bj = 0; bj < C.softB.length; bj++) {
         var sb = C.softB[bj], bx = sb[0] - xc, bz = sb[2] - zc, bs = bx * hx + bz * hz, bl = bx * rx + bz * rz, R = sb[3] + SLIP_SOFT;
         if (wv) { var bt = slipMeet(bs, v, wh); bl += wr * bt; bs = v * bt; }
-        if (bs < -R || bs > Smax + R || Math.abs(bl) > Lmax + R || Math.abs(sb[1] - S.y) > R) continue;
+        if (bs < -R || bs > Smax + R || Math.abs(bl) > Lmax + R || Math.abs(sb[1] + off[2] - S.y) > R) continue;
         var s0 = 1e9, s1 = -1e9, l0 = 1e9, l1 = -1e9, Sf = C.soft;
         for (var li = sb[4]; li < sb[5]; li += 4) {
-          var dy = S.y - Sf[li + 1], Rl = Sf[li + 3] + SLIP_SOFT; if (dy >= Rl || dy <= -Rl) continue;
+          var dy = S.y - off[2] - Sf[li + 1], Rl = Sf[li + 3] + SLIP_SOFT; if (dy >= Rl || dy <= -Rl) continue;
           var r2 = Math.sqrt(Rl * Rl - dy * dy), qx = Sf[li] - xc, qz = Sf[li + 2] - zc, qs = qx * hx + qz * hz, ql = qx * rx + qz * rz;
           if (wv) { var qt = slipMeet(qs, v, wh); ql += wr * qt; qs = v * qt; }
           if (qs - r2 < s0) s0 = qs - r2; if (qs + r2 > s1) s1 = qs + r2; if (ql - r2 < l0) l0 = ql - r2; if (ql + r2 > l1) l1 = ql + r2;

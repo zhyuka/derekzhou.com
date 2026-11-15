@@ -50,7 +50,7 @@ test('drift: an air cell holds what it laid out where the air had carried it; at
     const p = F.cloudPos(o, t), off = F.cellOff(C, t);
     assert.ok(Math.abs(p[0] - (s[0] + off[0])) < 1e-6 && Math.abs(p[2] - (s[2] + off[1])) < 1e-6, `at ${t} the body and its cell's lobes part`);
   }
-  assert.deepEqual(Array.from(F.cellOff({ air: false, V }, 999)), [0, 0], 'a world cell is never carried');
+  assert.deepEqual(Array.from(F.cellOff({ air: false, V }, 999)), [0, 0, 0], 'a world cell is never carried, nor lifted');
   assert.ok(Math.abs(Math.hypot(...F.cellOff(C, tL + 1)) - Math.hypot(...F.airW(V))) < 1e-9 && Math.hypot(...F.airW(V)) > 1, 'a second on, the low layer\'s wind');
 });
 
@@ -62,7 +62,7 @@ test('drift: the readers take an air cell\'s offset (physics: clouds/drift G1)',
     ['the mist about the eye', /var off = cellOff\(B\.cell, cloudT\(\), MISTO\)/],
     ['the drawn bodies', /if \(o\.w\) \{ cloudPos\(o, tv, VPOS\);/],
     ['the bodies\' distance fade', /var pc = o\.w \? cloudPos\(o, cloudT\(\), VDF\) : o\.c/],
-    ['the cores in the depth', /gl\.uniform3f\(P\.u\.uOccOff, oo\[0\], 0, oo\[1\]\)/],
+    ['the cores in the depth', /gl\.uniform3f\(P\.u\.uOccOff, oo\[0\], oo\[2\], oo\[1\]\)/],
     ['the birds\' cloud chords', /o2 = cellOff\(C2, cloudT\(\), CBO\)/],
     ['the birds\' places', /var po = p\.cell \? cellOff\(p\.cell, cloudT\(\), CBP\) : CBZ/],
     ['the boot\'s need', /pc = o\.c0 \? cloudPos\(o, SIM\.t, BOOTP\) : o\.c/],

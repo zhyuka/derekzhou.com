@@ -47,6 +47,11 @@
         cxB /= (bj1 - bj0); czB /= (bj1 - bj0);
         var btB = bandTopAt(cxB, czB, clb ? (clb.landMax !== undefined ? clb.landMax : clb.ground) : undefined), dB = btB - lowB;
         if (dB > 0) { for (j = bj0; j < bj1; j++) PF.a[j * 12 + 1] += dB; var Bb = PF.bodies[bi]; Bb.y0 += dB; Bb.y1 += dB; Bb.cy += dB; BAND.lifted++; BAND.liftM = Math.max(BAND.liftM, dB); }
+        // (physics: clouds/drift) an air cell's body: where it stands (the cell's stored frame), its lowest billow as laid out
+        // and the land it was seated over: the cell's lift as the air carries it over the band (212: cellLift)
+        // (a body over the most the band can reach over its land, anywhere, never needs one: left out)
+        var lnB = clb ? (clb.landMax !== undefined ? clb.landMax : clb.ground) : undefined;
+        if (C.air && lowB + Math.max(dB, 0) < bandTopMost(lnB) + LIFT_M) (C.lift || (C.lift = [])).push({ x: cxB, z: czB, low: lowB + Math.max(dB, 0), land: lnB });
         // its base flat at its lowest lobe's centre: seen from under it a cloud floats on its condensation level,
         // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
         var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = ycB;
@@ -73,6 +78,7 @@
     var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
     function grow(x, y, z, r) { lo[0] = Math.min(lo[0], x - r); lo[1] = Math.min(lo[1], y - r); lo[2] = Math.min(lo[2], z - r); hi[0] = Math.max(hi[0], x + r); hi[1] = Math.max(hi[1], y + r); hi[2] = Math.max(hi[2], z + r); }
     for (i = 0; i < C.items.length; i++) { var q = C.items[i], rr = Math.max(q.foot || 0, q.solid ? q.solid[0] : 0, q.reach || 0, 20); grow(q.x, q.seat + (q.solid ? q.solid[1] * 0.5 : 0), q.z, rr + (q.solid ? q.solid[1] * 0.6 : 30)); }
+    if (C.lift) cellLift(C, SIM.t);   // (the lift's samples about now made here, in the resolve's slice, not at a draw)
     for (i = 0; i < C.vols.length; i++) { var o2 = C.vols[i].out; grow(o2.c[0], o2.c[1], o2.c[2], o2.r); }
     for (i = 0; i < C.places.length; i++) { var pl = C.places[i]; grow(pl.x, pl.seat + pl.cy, pl.z, pl.r); }
     if (C.glowB) { var gb = C.glowB.bound; grow(gb[0], gb[1], gb[2], gb[3]); }

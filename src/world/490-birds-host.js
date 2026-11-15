@@ -122,7 +122,7 @@
         var C = L[i]; if (C.st < 3 || !C.soft || !C.softB) continue;
         var off = cellOff(C, cloudT(), CBO);   // (physics: clouds/drift: an air cell's lobes where the air has carried them)
         for (k = 0; k < C.softB.length; k++) {
-          var B = C.softB[k]; if (!cbChord(B[0] + off[0], B[1], B[2] + off[1], B[3] + pad)) continue;
+          var B = C.softB[k]; if (!cbChord(B[0] + off[0], B[1] + off[2], B[2] + off[1], B[3] + pad)) continue;
           if (n + 2 > CBH.length) { var G = new Int32Array(2 * CBH.length); G.set(CBH); CBH = G; }
           CBH[n++] = i; CBH[n++] = k;
         }
@@ -132,8 +132,8 @@
         cbSet(ax, ay, az, ax + P[3 * q], ay + P[3 * q + 1], az + P[3 * q + 2]);
         var tot = 0;
         for (h = 0; h < n; h += 2) {
-          var C2 = L[CBH[h]], B2 = C2.softB[CBH[h + 1]], o2 = cellOff(C2, cloudT(), CBO); if (!cbChord(B2[0] + o2[0], B2[1], B2[2] + o2[1], B2[3])) continue;
-          for (var l = B2[4]; l < B2[5]; l += 4) tot += cbChord(C2.soft[l] + o2[0], C2.soft[l + 1], C2.soft[l + 2] + o2[1], C2.soft[l + 3]);
+          var C2 = L[CBH[h]], B2 = C2.softB[CBH[h + 1]], o2 = cellOff(C2, cloudT(), CBO); if (!cbChord(B2[0] + o2[0], B2[1] + o2[2], B2[2] + o2[1], B2[3])) continue;
+          for (var l = B2[4]; l < B2[5]; l += 4) tot += cbChord(C2.soft[l] + o2[0], C2.soft[l + 1] + o2[2], C2.soft[l + 2] + o2[1], C2.soft[l + 3]);
         }
         out[q] = tot;
       }
@@ -156,7 +156,7 @@
         for (var k = 0; k < C.flocks.length; k++) {
           var f = C.flocks[k]; if (f.kind !== 'bird' || !f.at) continue;
           var dx = f.at[0] + fo[0] - CS.x, dz = f.at[2] + fo[1] - CS.z; if (dx * dx + dz * dz > r * r) continue;
-          out.push({ x: f.at[0] + fo[0], y: f.at[1], z: f.at[2] + fo[1], orbit: f.orbit || 40, wheel: f.wheel || 0.2, n: f.n || 8, size: f.size || 1.5, key: (C.ix * 73856093 ^ C.iz * 19349663 ^ k * 83492791 ^ C.sc * 2654435761) >>> 0 });
+          out.push({ x: f.at[0] + fo[0], y: f.at[1] + fo[2], z: f.at[2] + fo[1], orbit: f.orbit || 40, wheel: f.wheel || 0.2, n: f.n || 8, size: f.size || 1.5, key: (C.ix * 73856093 ^ C.iz * 19349663 ^ k * 83492791 ^ C.sc * 2654435761) >>> 0 });
         }
       }
       return out;
@@ -195,7 +195,7 @@
         } else if (p.kind === 'island') o.r = Math.max(20, o.pass - 70);
         else if (p.kind === 'isle') o.r = Math.max(60, o.pass - 190);
         else o.r = Math.max(20, o.pass * 0.5);
-        o.x += po[0]; o.z += po[1];
+        o.x += po[0]; o.z += po[1]; o.y += po[2]; o.base += po[2]; o.top += po[2];
         out.push(o);
       }
       return out;

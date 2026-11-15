@@ -25,7 +25,7 @@
   /* a body's centre at t: its laid-out centre c0 carried by its layer's wind (o.w: [x, z] m/s, set when it is made) */
   function cloudPos(o, t, out) {
     var r = out || new Float64Array(3), w = o.w;
-    r[0] = o.c0[0] + (w ? w[0] * t : 0); r[1] = o.c0[1]; r[2] = o.c0[2] + (w ? w[1] * t : 0); return r;
+    r[0] = o.c0[0] + (w ? w[0] * t : 0); r[1] = o.c0[1] + (o.cell && o.cell.lift ? cellLift(o.cell, t) : 0); r[2] = o.c0[2] + (w ? w[1] * t : 0); return r;
   }
   /* the air frame: the low layer's clouds, with their points of interest and flocks, live in air cells (a grid keyed by
      x - W t, streamed about the camera's place in it); D(t) = W_low t is how far the air has carried them by t. An air
@@ -34,8 +34,35 @@
      is none. */
   function airW(V) { return V.airW || (V.airW = cloudWind(V, 'low')); }
   function airD(V, t, out) { var w = airW(V), o = out || new Float64Array(2); o[0] = w[0] * t; o[1] = w[1] * t; return o; }
-  function cellOff(C, t, out) {
-    var o = out || new Float64Array(2);
-    if (!C.air) { o[0] = 0; o[1] = 0; return o; }
-    var w = airW(C.V); o[0] = w[0] * t - C.dL[0]; o[1] = w[1] * t - C.dL[1]; return o;
+  function cellOff(C, t, out) {   // [x, z, y]: the carry, and the lift over the band
+    var o = out || new Float64Array(3);
+    if (!C.air) { o[0] = 0; o[1] = 0; o[2] = 0; return o; }
+    var w = airW(C.V); o[0] = w[0] * t - C.dL[0]; o[1] = w[1] * t - C.dL[1]; o[2] = cellLift(C, t); return o;
+  }
+  /* the lift (physics: clouds/drift, the band): as the air carries a cell over higher ground or a higher sea, its bodies
+     rise so their lowest billow stays over the flight band's top, and come down after, never faster than LIFT_V: one
+     lift a cell, the most any of its bodies needs, y(t) = max over tau of (need(tau) - LIFT_V |t - tau|), a pure
+     function of t. need: the band's top where the body stands at tau (bandTopAt, the maps' own, over the land it was
+     seated on) less its lowest billow as laid out, sampled every LIFT_DT s along its straight way (cached; LIFT_M m for
+     what falls between two samples) over LIFT_T s each side: a rise LIFT_V x LIFT_T high is met in time */
+  var LIFT_DT = 2, LIFT_T = 240, LIFT_V = 0.5, LIFT_M = 8;
+  /* the most bandTopAt can be over a land, anywhere (the sea at its highest with its heaps, or the land with the tallest
+     formation's allowance): a body over it never meets the band */
+  function bandTopMost(land) { return Math.max(SEA_LO + RISE + HEAP_MAX, (land === undefined || land !== land ? -1e9 : land) + FORM_ALLOW) + FLY_TOP + BAND_M; }
+  function cellLift(C, t) {
+    var L = C.lift; if (!L || !L.length) return 0;
+    if (C.liftT === t) return C.liftY;
+    var w = airW(C.V), k0 = Math.floor((t - LIFT_T) / LIFT_DT), k1 = Math.ceil((t + LIFT_T) / LIFT_DT), y = 0, N = C.liftN;
+    if (!N || k0 < C.liftK) { N = C.liftN = []; C.liftK = k0; }
+    else if (k0 - C.liftK > 512) { N = C.liftN = N.slice(k0 - C.liftK); C.liftK = k0; }   // (the samples behind the window dropped)
+    for (var k = k0; k <= k1; k++) {
+      var q = k - C.liftK, n = N[q];
+      if (n === undefined) {   // the most any body needs at the k-th sample, once
+        var tau = k * LIFT_DT, ox = w[0] * tau - C.dL[0], oz = w[1] * tau - C.dL[1]; n = 0;
+        for (var i = 0; i < L.length; i++) { var b = L[i], e0 = bandTopAt(b.x + ox, b.z + oz, b.land) + LIFT_M - b.low; if (e0 > n) n = e0; }
+        N[q] = n;
+      }
+      var e = n - LIFT_V * Math.abs(t - k * LIFT_DT); if (e > y) y = e;
+    }
+    C.liftT = t; C.liftY = y; return y;
   }

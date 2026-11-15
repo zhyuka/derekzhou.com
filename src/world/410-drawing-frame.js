@@ -85,7 +85,7 @@
     var push = pushVol;
     var L = V.cellList;
     var tv = cloudT();   // (physics: clouds/drift: each body where its layer's wind has carried it by the draw's moment)
-    if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 3) continue; for (j = 0; j < C.vols.length; j++) { var o = C.vols[j].out; if (o.w) { cloudPos(o, tv, VPOS); o.c[0] = VPOS[0]; o.c[2] = VPOS[2]; } if (o.ready) { o.fade = volDistFade(o) * fadeOf(o.born); if (o.fade > 0) push(o); } } }
+    if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 3) continue; for (j = 0; j < C.vols.length; j++) { var o = C.vols[j].out; if (o.w) { cloudPos(o, tv, VPOS); o.c[0] = VPOS[0]; o.c[1] = VPOS[1]; o.c[2] = VPOS[2]; } if (o.ready) { o.fade = volDistFade(o) * fadeOf(o.born); if (o.fade > 0) push(o); } } }
     n = VOLS.length;
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
@@ -119,10 +119,10 @@
     gl.disable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.disable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
     ST.vols = m;
   }
-  var MIST_IN = 20, MIST_OUT = 80, MISTMAX = 0, MISTO = new Float64Array(2);   // (dev: the most mist about the eye drawn since the last state read)
+  var MIST_IN = 20, MIST_OUT = 80, MISTMAX = 0, MISTO = new Float64Array(3);   // (dev: the most mist about the eye drawn since the last state read)
   function mistK(B) {   // 1 - smoothstep(20, 80, the eye's distance to the surface of the body's nearest lobe)
     var sb = B.soft; if (!sb || !B.cell || !B.cell.soft) return 0;
-    var off = cellOff(B.cell, cloudT(), MISTO), S = B.cell.soft, x = CAM.pos[0] - off[0], y = CAM.pos[1], z = CAM.pos[2] - off[1];   // (the eye in the cell's frame: an air cell's lobes are where it was laid out)
+    var off = cellOff(B.cell, cloudT(), MISTO), S = B.cell.soft, x = CAM.pos[0] - off[0], y = CAM.pos[1] - off[2], z = CAM.pos[2] - off[1];   // (the eye in the cell's frame: an air cell's lobes are where it was laid out)
     var bx = sb[0] - x, by = sb[1] - y, bz = sb[2] - z;
     if (Math.sqrt(bx * bx + by * by + bz * bz) - sb[3] > MIST_OUT) return 0;   // (the body's bound: no lobe within reach)
     var dm = 1e9;
