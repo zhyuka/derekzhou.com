@@ -107,7 +107,7 @@
     // the hard rules: never in the ground, a landmark or a cloud's core
     // (world6 step B fix, defect 10) over the envelope (never under the ground), and rate-limited to the climb's own
     // travel in a step (PUSH_V): the hard rule, if it acts at all, is never a jump; every push is counted (a gate fails)
-    var gh = groundAt(V, CS.x, CS.z, true, true) + cl[0] * 0.6;   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
+    var gh = groundAt(V, CS.x, CS.z, true, true) + Math.max(cl[0] * 0.6, ((V.L && V.L.mist) || 0) + 1);   // (delight-weather 1: and over the mist pools, whose top stands at most their depth over the land: 227-mist-pools.js)   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
     if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; SIM.fixG++; }
     pushOut(V);
     var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)

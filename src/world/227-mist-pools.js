@@ -5,8 +5,10 @@
      weather(sky) gives it, the hub's table), blended from one sky's to the next through a change by the flight's own
      clock, never faster than MIST_RATE: the level moves, so the rim is a moving shoreline, never a fade; nothing thickens
      in place (the pool's top is opaque within MIST_OPAQUE of depth, the same at every depth: FS_TERRAIN). A pure function
-     of the sky's time (no state: a still at any moment is the flight's own). The camera's ground reads the pool's top
-     (HdCam, HdProbe, the split's probe), so the flight passes over it as over the cloud sea, never through it.
+     of the sky's time (no state: a still at any moment is the flight's own). The camera's ground never reads the pools
+     (it is the same under every sky: the recorded ground, the flight's grid, the birds'); the flight keeps over them by
+     its own floor, the land and the pools' depth and 1 m (270-flight.js: the pools' top stands at most their depth over
+     the land, which never lies under its own floor).
      Measured by tools/physics/mist-sim.mjs on the 16 openings' land (docs/world.md, ## THE MIST POOLS) */
   var MIST_D = { firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5, bluehour: 1, afterglow: 0 };   // (m: the hub's table, delight-weather 1; the blue hour AIR's 1 m, #297)
   var MIST_RATE = 0.085, MIST_OPAQUE = 1.5;   // (m/s: the level's most, so first light's 10 m drains within a change and the next sky's shortest hold (55 + 63 s); m)

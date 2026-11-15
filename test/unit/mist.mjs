@@ -3,11 +3,13 @@
 // frame (no ramp in), each sky's own depth through its hold, and through a change a ramp never faster than MIST_RATE
 // and never a step (the hub's ruling 1: the level moves, the rim a shoreline, never a fade). Their top is opaque within
 // MIST_OPAQUE of depth whatever the depth (nothing thickens in place), drawn over the land and over the stones and the
-// landmarks alike, its rim's ramp at least two pixels' worth of the surface's depth; the camera's ground reads it on
-// both paths (the flight passes over the pools, never through them); none at all at depth 0.
+// landmarks alike, its rim's ramp at least two pixels' worth of the surface's depth; none at all at depth 0. The
+// camera's ground never reads the pools on any path (the same under every sky: the recorded ground, the flight's grid,
+// the birds'); the flight keeps over them by its own floor, the land and the pools' depth and 1 m, which holds because
+// the land never lies under the pools' floor (the hub's round-2 review of #302).
 // plant: {"file": "src/world/227-mist-pools.js", "find": "var b = mistD(n.id), T = Math.max(e.move, Math.abs(b - a) / MIST_RATE);", "with": "var b = mistD(n.id), T = e.move;", "why": "the level as fast as the sky's change: past MIST_RATE"}
 // plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "max(uMist.y, 2.0 * px)", "with": "uMist.y", "why": "the rim's ramp not widened by the pixel: the far shorelines crawl"}
-// plant: {"file": "src/world/glsl/fs-probe-split.glsl", "find": "h = max(max(h, mistTop(", "with": "h = max(max(h, -1e4 + 0.0 * mistTop(", "why": "the split's camera ground under the pools"}
+// plant: {"file": "src/world/270-flight.js", "find": "Math.max(cl[0] * 0.6, ((V.L && V.L.mist) || 0) + 1)", "with": "cl[0] * 0.6", "why": "the camera down into the pools"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 const MIST = cut(WORLD, '  /* ---------------------------------------------------------------- the mist pools (delight-weather 1) */', '  function mistU(');
@@ -58,9 +60,9 @@ test('mist: the shaders: opaque within MIST_OPAQUE whatever the depth, the rim a
   assert.match(over[1], /float px = fp \* length\(n\.xz\) \/ max\(abs\(dot\(n, rd\)\), 0\.05\);/, 'the depth a pixel spans on the surface');
   assert.match(over[1], /cloudLight\(/, 'lit by the sky\'s own cloud light');
   assert.match(W, /float mistTop\(vec2 mb\) \{ return uMist\.x > 0\.0 \? mb\.x \+ uMist\.x \* mb\.y : -1e4; \}/, 'the top: the floor and the depth by the sand; none at depth 0');
-  assert.match(W, /float HdCam\(vec2 p\) \{ float h = Hd\(p\)\.x; return max\(max\(h, mistTop\(gMB\)\), HdSea\(p\)\.x\); \}/, 'the camera\'s ground over the pools');
-  assert.match(W, /return max\(max\(h\.x, mistTop\(gMB\)\), \(lv \+ dMul\(A_Hd\(p\), amp\)\)\.x\);/, 'and the probe\'s');
-  assert.match(strip(GLSL('world/glsl/fs-probe-split.glsl')), /h = max\(max\(h, mistTop\(vec2\(swell\(p\) \* p7\.x \+ p7\.y - k1\.x, k0\.x\)\)\), /, 'and the split\'s probe');
+  assert.match(W, /float HdCam\(vec2 p\) \{ return max\(Hd\(p\)\.x, HdSea\(p\)\.x\); \}/, 'the camera\'s ground never the pools\'');
+  assert.match(W, /return max\(h\.x, \(lv \+ dMul\(A_Hd\(p\), amp\)\)\.x\);/, 'nor the probe\'s');
+  assert.doesNotMatch(strip(GLSL('world/glsl/fs-probe-split.glsl')), /mistTop|uMist/, 'nor the split\'s probe\'s');
   const SCN = fs.readFileSync(path.join(ROOT, 'src/world/350-shaders-scene.js'), 'utf8');
   assert.match(SCN, /c = mistOver\(c, mistTop\(vMB\) - vW\.y, n, rd, fp\);/, 'over the land');
   const LM = fs.readFileSync(path.join(ROOT, 'src/world/353-shaders-landmarks-probe.js'), 'utf8');
@@ -68,7 +70,13 @@ test('mist: the shaders: opaque within MIST_OPAQUE whatever the depth, the rim a
   for (const f of ['vs-landmark', 'vs-lmsc', 'vs-landmark-inst', 'vs-scatter']) assert.match(GLSL('world/glsl/' + f + '.glsl'), /vMT = mistTopAt\(vW\.xz\);/, f + ' gives its vertices the pools\' top');
 });
 
-test('mist: why: a ramp as fast as a sky\'s change would move the level twice as fast', () => {
-  // (the arithmetic the rate cap prevents) first light to the afterglow, 10 m over a 57 s change
-  assert.ok(10 / 57 > 2 * 0.085, 'the change\'s own ramp at ' + (10 / 57).toFixed(3) + ' m/s');
+test('mist: the flight over the pools by its own floor, which holds: the land never under the pools\' floor', async () => {
+  const F = fs.readFileSync(path.join(ROOT, 'src/world/270-flight.js'), 'utf8');
+  assert.match(F, /var gh = groundAt\(V, CS\.x, CS\.z, true, true\) \+ Math\.max\(cl\[0\] \* 0\.6, \(\(V\.L && V\.L\.mist\) \|\| 0\) \+ 1\);/, 'the hard rule\'s floor: the land and the pools\' depth and 1 m');
+  // (the floor holds only if the pools' top stands at most their depth over the land: the main dunes never under the
+  // ground they stand on. The JS port of the shipped duneS1, walked in four winds)
+  const { mainAt } = await import(new URL('../../tools/physics/dune-census.mjs', import.meta.url).href);
+  let low = 0;
+  for (const wind of [0, 0.6, 1.7, 2.9]) for (let i = 0; i < 20000; i++) low = Math.min(low, mainAt(-3000 + i * 0.37, 1200 - i * 0.211, wind).h[0]);
+  assert.ok(low > -0.05, 'the main dunes ' + (-low).toFixed(3) + ' m under their floor: the pools\' top over the land past their depth');
 });

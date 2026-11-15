@@ -51,8 +51,9 @@ vec3 mistOver(vec3 c, float d, vec3 n, vec3 rd, float fp) {
   float a = clamp((d - 0.5 * uMist.y) / max(uMist.y, 2.0 * px) + 0.5, 0.0, 1.0);
   return mix(c, cloudLight(vec3(0.0, 1.0, 0.0), rd, 1.4, 0.9, 0.35, 0.0), a * a * (3.0 - 2.0 * a));
 }
-/* the camera's ground: the land, the mist pools' top or the cloud's top, whichever is higher */
-float HdCam(vec2 p) { float h = Hd(p).x; return max(max(h, mistTop(gMB)), HdSea(p).x); }   // (delight-weather 1: over the mist pools too)
+/* the camera's ground: the land or the cloud's top, whichever is higher (never the mist pools': the ground is the same
+   under every sky; the flight keeps over the pools by its own floor, 270-flight.js) */
+float HdCam(vec2 p) { return max(Hd(p).x, HdSea(p).x); }
 /* the probe's height: Hd(p).x, or (cam) HdCam(p), with the weights and the dunes' land made once: HdCam inlines
    kitW4 three times and D_Hd twice into the probe (its compile on D3D11 2.4x the terrain's). The same
    operations in the same order: kitW4 reads none of the globals Hd sets, A_Hd none but gLodD */
@@ -64,7 +65,7 @@ float HdProbe(vec2 p, bool cam) {
   gMB.x = gMB.x * gMS.x + gMS.y - sk.x;   // (delight-weather 1: the mist pools' floor, the basins and the sink in)
   if (!cam) return h.x;
   vec3 amp = vec3(0.4, 0.0, 0.0) + 0.6 * wC;
-  return max(max(h.x, mistTop(gMB)), (lv + dMul(A_Hd(p), amp)).x);
+  return max(h.x, (lv + dMul(A_Hd(p), amp)).x);
 }
 vec3 shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   vec3 wD, wC, lv, sk; kitW4(p.xz, wD, wC, lv, sk);
