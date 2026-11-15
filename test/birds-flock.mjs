@@ -1,7 +1,7 @@
 // birds-flock.mjs: how a flock's birds fly together (the hub's flock physics spec, .work/hub/physics/birds.md), measured in
 // the headless sim (tools/birds/sim.mjs) with the eye held still and a flock made in view.
 //   physics: birds/phase   an ibis or a goose in a skein beats with the bird ahead on its leg in wake bouts at the spatial
-//                          phase (Portugal 2014, Voelkl 2015); directly behind in a line, in antiphase; every other flock free
+//                          phase (doi:10.1038/nature12939, doi:10.1073/pnas.1413589112); directly behind in a line, in antiphase; every other flock free
 //   node --test test/birds-flock.mjs        CI (tools/checks/35-birds.sh: a process a test)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
