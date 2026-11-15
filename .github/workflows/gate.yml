@@ -46,6 +46,7 @@ jobs:
       areas: ${{ steps.areas.outputs.areas }}
       site_changed: ${{ steps.areas.outputs.site_changed }}
       run_t1: ${{ steps.areas.outputs.run_t1 }}
+      dom_changed: ${{ steps.areas.outputs.dom_changed }}   # (the page outside the canvas changed: T1 compares the DOM beside T2)
       gpu_js: ${{ steps.areas.outputs.gpu_js }}
       t2_self: ${{ steps.areas.outputs.t2_self }}
       input_changed: ${{ steps.areas.outputs.input_changed }}
@@ -206,15 +207,18 @@ jobs:
   # saved on a miss (on a branch, for that branch's next push; on main, for every branch) and, on main, the head's, so
   # a branch cut from main's tip finds its base already rendered. Run the gate by hand with t1_cache = verify to prove
   # the records byte for byte a fresh render's.
-  # Not when T2 runs for the same head: the 4090 compares the same builds on real hardware, and every job shares the
-  # PC's one runner, so SwiftShader's frames would only add an hour of CPU. (T2 offline or not wanted: T1 runs.)
+  # When T2 runs (or its answer is cached) for the same head, the 4090 owns the canvas: T1 runs then only if the page
+  # outside the canvas changed too (dom_changed: HTML, CSS, fonts, the page's own scripts), and compares the DOM and the
+  # stills alone (t1.mjs --dom-only), so a world change that also changes the page can no longer land as "frames
+  # identical" on T2's canvas alone (the audit of 2026-11-14, ci-dom-changed). (T2 offline or not wanted: T1 in full.)
   t1:
     needs: plan
-    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.has_pr != 'false' && needs.plan.outputs.t2_run != 'true' && needs.plan.outputs.t2_cached == ''
+    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.has_pr != 'false' && ((needs.plan.outputs.t2_run != 'true' && needs.plan.outputs.t2_cached == '') || needs.plan.outputs.dom_changed == 'true')
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 12
     env:
       T1_CACHE: ${{ inputs.t1_cache || 'use' }}
+      DOM_ONLY: ${{ (needs.plan.outputs.t2_run == 'true' || needs.plan.outputs.t2_cached != '') && '1' || '0' }}
     # One job, its four shards as four processes side by side: the PC's runners share one CPU, so four jobs rendered
     # no faster than four processes do, and each job waited for a runner of its own (80 s on #157's gate) and set up
     # again (about 13 s). The records stay one per shard, kept together in one cache entry.
@@ -244,7 +248,7 @@ jobs:
           fail=0; pids=()
           for s in 0 1 2 3; do
             node .github/ci/t1.mjs --base "$RUNNER_TEMP/served/base" --head "$RUNNER_TEMP/served/head" --shard $s --shards 4 --out "$RUNNER_TEMP/t1/s$s" \
-              --base-rec "$RUNNER_TEMP/t1rec/rec-$s.json" --cache "$T1_CACHE" --save-base-rec "$RUNNER_TEMP/t1new/base-$s.json" --save-head-rec "$RUNNER_TEMP/t1new/head-$s.json" \
+              --base-rec "$RUNNER_TEMP/t1rec/rec-$s.json" --cache "$T1_CACHE" --save-base-rec "$RUNNER_TEMP/t1new/base-$s.json" --save-head-rec "$RUNNER_TEMP/t1new/head-$s.json" --dom-only "$DOM_ONLY" \
               > "$RUNNER_TEMP/t1-s$s.log" 2>&1 &
             pids+=($!)
           done

@@ -202,6 +202,17 @@ vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
   vec3 lit = ROCK_LIT * mix(vec3(1.0), vec3(1.1, 0.98, 0.94), smoothstep(-0.2, 0.4, b1));
   return mix(shd, lit, dif) * (1.0 + 0.17 * st + 0.08 * streak);
 }
+/* the noise volume read C1 across its texels in x and y (z as given): the lattice's fraction through a cubic
+   (f^2 (3 - 2 f)) before the linear read, so the value's gradient is continuous where the read moves from one cell
+   of four texels to the next (each texel's centre), where the plain read's jumps (C0). For the ripples' warp, whose
+   gradient is their phase's: the plain read kinked the ripples every 1.9 m (61 m / 32 texels). Level 0 (the ripples are drawn only under 0.05 m a pixel, magnified texels: the same
+   level the plain read takes there) */
+vec4 n3vC1(vec3 p) {
+  float N = float(textureSize(uN3, 0).x);
+  vec2 q = p.xy * N - 0.5, i = floor(q), f = q - i;
+  f = f * f * (3.0 - 2.0 * f);
+  return textureLod(uN3, vec3((i + f + 0.5) / N, p.z), 0.0);
+}
 vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   vec3 n = n0;
   float steep = smoothstep(0.42, 0.66, 1.0 - n0.y);
@@ -212,7 +223,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
     // gradient (their wander, turn and spacing): the step divided the position by a wavelength and turned it by an angle
     // that both varied over the sand, so the pattern's frequency grew with the distance from the world's origin (at
     // x -5000 a few centimetres: fingerprint rings, a G0 risk)
-    vec4 nz = n3v(vec3(p.xz / 61.0, 0.71));
+    vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));   // (C1: the warp's gradient continuous at the texels' borders)
     vec2 w = WINDDIR, wp = vec2(-w.y, w.x), wr = normalize(w + wp * (nz.r - 0.5) * 0.6);
     float ph = dot(p.xz, w) / 0.9 + (nz.g - 0.5) * 9.0 + (nz.a - 0.5) * 6.0;
     float sl = cos(6.2831853 * ph) + 0.35 * cos(12.566 * ph + 1.0);

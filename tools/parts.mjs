@@ -22,6 +22,7 @@
 import fs from 'fs';
 import path from 'path';
 import { minGlsl, checkGlsl, KEEP } from './glslmin.mjs';
+import { fillStamp } from './plan.mjs';
 
 const DIVIDERS = {   // (the section dividers each long script already uses)
   world: '^  /\\* -{20,}',
@@ -134,7 +135,8 @@ function assemble(src, ship) {   // -> [[name, text]] in name order: SRC's plain
     const unused = fs.readdirSync(g).filter((n) => !(USED.get(g) || new Set()).has(n));
     if (unused.length) die(g + ': not used by any part (or not a .glsl file): ' + unused.join(', '));
   }
-  return [...out.entries()].sort((x, y) => (x[0] < y[0] ? -1 : 1));
+  // (2026-11-15) the plan's stamp: the world's part holds var PW_V = ''; each assembly writes in its spans' stamp
+  return [...out.entries()].map(([n, t]) => { try { return [n, fillStamp(t)]; } catch (e) { die(n + ': ' + e.message); } }).sort((x, y) => (x[0] < y[0] ? -1 : 1));
 }
 function partDirs(src) {   // every part folder under SRC (not src/dev/)
   const out = [], DEV = path.join(src, 'dev');
