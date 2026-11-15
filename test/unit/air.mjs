@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "gl.uniform3fv(u.uSun, airLightDir(L));", "with": "gl.uniform3fv(u.uSun, L.sunDir);", "why": "the night lit by the key, 36 deg off the moon"}
 // plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.el; o.el = m.az; o.up = m.w > 0;", "why": "the moon's az and el swapped"}
 // plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.az; o.el = m.el; o.up = m.w >= 0;", "why": "a moon of no weight counted up"}
 // plant: {"file": "src/world/215-air.js", "find": "var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);", "with": "var m = moonShown(SIM.t, AIR_MOONS);", "why": "the moon's direction a step behind the drawn disc"}
@@ -29,7 +30,7 @@ function page() {   // the air on a fake page (no clock, no DOM), and the dunes'
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
-    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON, AIR_MOONS: AIR_MOONS, stub: function (m) { MSTUB = m; },\n' +
+    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON, AIR_MOONS: AIR_MOONS, stub: function (m) { MSTUB = m; }, airLightDir: airLightDir, airNightShare: airNightShare,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -196,5 +197,23 @@ test('air: one moon direction (the disc as drawn: a glory, a fogbow or a moonlit
   G.stub({ d: [0, -1, 0], w: 0, az: 10, el: -30 }); assert.equal(G.airMoonDir().up, false, 'a moon of weight 0 is not up');
   G.stub({ d: [0.6, 0.48, 0.64], w: 0.8, az: 30, el: 20 }); const q = G.airMoonDir();
   assert.notStrictEqual(q.d, G.AIR_MOONS.d, 'its own array: a reader never writes the route');
+});
+
+test('air: one light at night (the live key stands on the moon\'s disc, by its weight and the night\'s share; the clouds stay baked along the key)', () => {
+  const G = page(), key = [0.3, 0.2, 0.932], n = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); }, K = n(key), L = { sunDir: K };
+  const moon = n([-0.5, 0.6, 0.62]), ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * 180 / Math.PI;
+  G.SIM.V = { seed: 1 }; G.SIM.alpha = 1; G.SKY.dt = 0;
+  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'afterglow', at: -20, hold: 80, move: 58 }, { id: 'moonlit', at: 118, hold: 190, move: 58 });
+  G.stub({ d: moon, w: 1, az: 0, el: 37 });
+  G.SIM.t = 30;   assert.ok(ang(G.airLightDir(L), K) < 0.05, 'a twilight\'s hold: the key');
+  G.SIM.t = 200; assert.ok(ang(G.airLightDir(L), moon) < 0.05, 'a moonlit night\'s hold, the moon full on show: its disc');
+  G.stub({ d: moon, w: 0.4, az: 0, el: 37 }); const half = Array.from(G.airLightDir(L)); assert.ok(ang(half, K) > 1 && ang(half, moon) > 1, 'the moon partly on show: between, by its weight');
+  G.stub({ d: [0, -1, 0], w: 0, az: 0, el: -60 }); assert.ok(ang(G.airLightDir(L), K) < 0.05, 'no moon up: the key');
+  G.stub({ d: moon, w: 1, az: 0, el: 37 }); let p = Array.from((G.SIM.t = 50, G.airLightDir(L))), worst = 0;
+  for (let t = 50.05; t < 140; t += 0.05) { G.SIM.t = t; const d = Array.from(G.airLightDir(L)); worst = Math.max(worst, ang(d, p)); p = d; }
+  assert.ok(worst < 0.2, `through the change into the night the light turns ${worst.toFixed(3)} deg in 50 ms (eased with the light, never a jump)`);
+  assert.match(WORLD, /if \(u\.uSun\) gl\.uniform3fv\(u\.uSun, airLightDir\(L\)\);/, 'every program\'s uSun is the live key');
+  assert.match(WORLD, /if \(u\.uSkyS\) gl\.uniform3fv\(u\.uSkyS, L\.skyS \|\| L\.sunDir\);/, 'the sky\'s own sun stays on the key');
+  assert.match(WORLD, /var sd = keyAt\(V\)/, 'the clouds stay baked along the key');
 });
 

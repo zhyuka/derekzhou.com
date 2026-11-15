@@ -490,6 +490,14 @@ shader). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
+- One light at night (physics: air/night-light): the moon is the night's
+  light, so the live key every reader shades by (the shaders' uSun: the
+  land, the veils' backlight, the motes' forward glow, the wings'
+  backlit edges) stands on the moon's disc as drawn (moonDir), by the
+  moon's weight on show and the sky's night share (1 through a night's
+  hold, eased through a change with the light). With no moon up, or out
+  of the night, it is the visit's key. The clouds stay baked along the
+  key (keyAt) and the sky's own sun (uSkyS) stays on it.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's

@@ -82,4 +82,27 @@
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
+  /* ONE LIGHT AT NIGHT (physics: air/night-light): the moon is the night's light, so the live key every reader
+     shades by (the shaders' uSun: the land, the veils' and motes' glows, the wings' backlit edges) stands on the moon's
+     disc as drawn (airMoonDir: the very moment and route of uMoon), by the moon's own weight on show and the sky's
+     night share (1 through a night's hold, eased through a change with the light). With no moon up, or out of the
+     night, it is the visit's key (keyAt, which the clouds stay baked along); the sky's own sun (uSkyS) stays on the
+     key. airLightDir(L): the direction, the one array, filled in place */
+  var AIR_LD = new Float32Array(3);
+  function airNightShare(tS) {   // the sky's night share at sky time tS: 1 a night's hold, 0 a twilight's, eased with the light through a change
+    var seq = SKY.seq; if (!seq.length) return 0;
+    var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--;
+    var e = seq[i], a = airSunEl(e.id) === null ? 1 : 0, b = seq[i + 1] ? (airSunEl(seq[i + 1].id) === null ? 1 : 0) : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
+    return a + (b - a) * k * k * (3 - 2 * k);
+  }
+  function airLightDir(L) {   // the live key at the drawn moment (uSun)
+    var k = L.sunDir, V = SIM.V, c;
+    for (c = 0; c < 3; c++) AIR_LD[c] = k[c];
+    if (!V) return AIR_LD;
+    var m = airMoonDir(); if (!m.up) return AIR_LD;
+    var f = m.w * airNightShare(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt); if (!(f > 0)) return AIR_LD;
+    var x = k[0] + (m.d[0] - k[0]) * f, y = k[1] + (m.d[1] - k[1]) * f, z = k[2] + (m.d[2] - k[2]) * f, n = Math.sqrt(x * x + y * y + z * z);
+    if (n < 1e-6) return AIR_LD;   // (the key and the disc opposite: none between; the key stays)
+    AIR_LD[0] = x / n; AIR_LD[1] = y / n; AIR_LD[2] = z / n; return AIR_LD;
+  }
   var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
