@@ -57,7 +57,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 28 * K,          // 28,498 with the roost on the name (2026-11-15, delight-life 1: +387 B over the wave-1 stack's 28,111; raised from 27.5 K with LOAD-PERF's OK, asked)
+  '/inkbirds.js': 28 * K,          // 28,498 with the roost on the name (2026-11-15, delight-life 1: +387 B over the wave-1 stack's 28,111; 174 B left; raised from 27.5 K with LOAD-PERF's OK, 2026-11-15 22:14)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
