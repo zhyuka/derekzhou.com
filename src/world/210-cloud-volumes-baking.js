@@ -76,7 +76,7 @@
     P = EP.vlight; gl.useProgram(P.p); setFrameUniforms(P, V);
     gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_3D, VTMP.t); gl.activeTexture(gl.TEXTURE0);
     gl.uniform3fv(P.u.uHalf, vb.h); gl.uniform3f(P.u.uDims, d[0], d[1], d[2]); gl.uniform3f(P.u.uScale, d[0] / 64, d[1] / 64, d[2] / 64);
-    var sd = V.light.sunDir, cy = vb.cy, sy = vb.sy;
+    var sd = keyAt(V), cy = vb.cy, sy = vb.sy;
     gl.uniform3f(P.u.uSunL, cy * sd[0] - sy * sd[2], sd[1], sy * sd[0] + cy * sd[2]); gl.uniform2f(P.u.uYawCS, cy, sy);
     gl.uniform1f(P.u.uSigma, VSIGMA); gl.uniform1f(P.u.uSD, vb.Rm * 4 / (vb.vox * 2.2)); gl.uniform1f(P.u.uVox, vb.vox);
     gl.bindFramebuffer(gl.FRAMEBUFFER, BAKEFB); gl.viewport(0, 0, d[0], d[1]); gl.bindVertexArray(FULLVAO);
