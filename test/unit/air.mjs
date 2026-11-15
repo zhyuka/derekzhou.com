@@ -4,12 +4,14 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv, uT - AIR_UT0)", "with": "airGust(sp.xy, w, uAirU, Wv, uT)", "why": "the veils read the field 40 s ahead of the birds"}
+// plant: {"file": "src/world/215-air.js", "find": "return AIR_GUST[0] * airSpeed(y, V) * gustN(xi, eta);", "with": "return AIR_GUST[0] * airSpeed(y, V) * gustN(xi * AIR_GUST[1] * U / (AIR_GUST[1] * airSpeed(y, V)), eta);", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
 // plant: {"file": "src/world/215-air.js", "find": "AIR_Z0 = 0.003,", "with": "AIR_Z0 = 0.03,", "why": "the sand ten times rougher (the profile's shares off)"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_GUST = [0.26, 22,", "with": "var AIR_GUST = [0.12, 22,", "why": "gusts too weak (the 3-s gust under 1.4 of the mean)"}
-// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, Wv, uT)", "with": "Wv * AIR_GUST_I * sin(uT * 0.9 + r1 * 7.0)", "why": "the veils on a private cycle again"}
+// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv, uT - AIR_UT0)", "with": "Wv * AIR_GUST_I * sin(uT * 0.9 + r1 * 7.0)", "why": "the veils on a private cycle again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec3 prev = grain(id, uT - uMBdt, e2);", "with": "vec3 prev = head;", "why": "the motes' streak the camera's motion only (a windy mote a dot that jumps)"}
 // plant: {"file": "src/world/210-cloud-volumes-baking.js", "find": "var sd = keyAt(V), cy", "with": "var sd = dirAzEl(V.light.sunAz, 9), cy", "why": "the clouds baked along a sun of their own"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
@@ -180,7 +182,7 @@ test('air: one gust field, frozen and carried downwind (16 visits x 10 min at 10
     let acc = 0, best = 0; for (let i = 0; i < N; i++) { acc += u[i]; if (i >= 30) acc -= u[i - 30]; if (i >= 29) best = Math.max(best, acc / 30); }
     Gs.push(best / mean);
     for (let L = 1; L < N / 2; L++) { let c = 0; for (let i = 0; i + L < N; i++) c += (u[i] - mean) * (u[i + L] - mean); if (c / (N - L) / v0 < 1 / Math.E) { taus.push(L * dt); break; } }
-    let bl = 0, bc = -Infinity; const T = d / W;   // (the peak of the cross-correlation within twice the expected lag)
+    let bl = 0, bc = -Infinity; const T = d / V.u10;   // (the peak of the cross-correlation within twice the expected lag: the field is carried at the visit's U10)
     for (let L = 0; L * dt < 2 * T; L++) { let c = 0; for (let i = 0; i + L < N; i++) c += (u[i] - mean) * (u2[i + L] - mean); if (c > bc) { bc = c; bl = L * dt; } }
     lags.push(bl / T);
     for (let i = 1, p = G.gustAt(0, 0, y, 0, V); i < 3600; i++) { const g = G.gustAt(0, 0, y, i / 60, V); fastest = Math.max(fastest, Math.abs(g - p) * 60 / W); p = g; }
@@ -189,7 +191,7 @@ test('air: one gust field, frozen and carried downwind (16 visits x 10 min at 10
   assert.ok(Gs.length >= 10, `${Gs.length} windy visits of 16`);
   assert.ok(med(Gs) >= 1.4 && med(Gs) <= 1.7, `the 3-s gust over the 10-min mean: median ${med(Gs).toFixed(3)} (${Math.min(...Gs).toFixed(2)}-${Math.max(...Gs).toFixed(2)}), not 1.4-1.7`);
   assert.ok(med(taus) >= 10 && med(taus) <= 30, `the gusts' e-fold time: median ${med(taus).toFixed(1)} s, not 10-30`);
-  for (const r of lags) assert.ok(Math.abs(r - 1) <= 0.1, `the lag 100 m downwind is ${r.toFixed(3)} of 100 / W, not within 10%`);
+  for (const r of lags) assert.ok(Math.abs(r - 1) <= 0.1, `the lag 100 m downwind is ${r.toFixed(3)} of 100 / U10, not within 10%`);
   assert.ok(fastest < 1 / 0.5, `the gust changes by ${fastest.toFixed(3)} W a second (a change faster than 0.5 s)`);
   assert.ok(fastest < 0.3, `the gust changes by ${fastest.toFixed(3)} W a second: no flicker`);
   // still air: no gust, no phase
@@ -197,8 +199,21 @@ test('air: one gust field, frozen and carried downwind (16 visits x 10 min at 10
   // HOST: the birds' gust and phase at the default height and their own
   G.SIM.t = 12.5; const V = G.SIM.V, f = G.windAt(0, 0, 40, 0, V), Wb = Math.hypot(f.x, f.z);
   assert.equal(G.HOST.gust(30, -20), G.gustAt(30, -20, 40, 12.5, V)); assert.equal(G.HOST.gust(30, -20, 200), G.gustAt(30, -20, 200, 12.5, V));
-  assert.ok(Math.abs(G.HOST.gustPhase(30, -20) - (12.5 - (30 * f.x - 20 * f.z) / (Wb * Wb))) < 1e-9, 'the phase is t - x.w / W');
+  assert.ok(Math.abs(G.HOST.gustPhase(30, -20) - (12.5 - (30 * V.wind[0] - 20 * V.wind[1]) / V.u10)) < 1e-9 && G.HOST.gustPhase(30, -20, 200) === G.HOST.gustPhase(30, -20), 'the phase is t - x.w / U10, the same at every height');
   assert.ok(Math.abs(G.HOST.gustSigma() - 0.26 * Wb) < 1e-12 && G.gustSigma(40, Vs) === 0, 'sigma at the birds\' height, 0 in still air');
+});
+
+test('air: one field at every height (a bird over a veil feels the veil\'s gust, near the landing and far from it)', () => {
+  const G = page(), corr = (a, b) => { let ab = 0, aa = 0, bb = 0; for (let i = 0; i < a.length; i++) { ab += a[i] * b[i]; aa += a[i] * a[i]; bb += b[i] * b[i]; } return ab / Math.sqrt(aa * bb); };
+  for (const seed of SEEDS.slice(0, 6)) {
+    const V = visit(G, seed); if (!(V.u10 > 0)) continue;
+    for (const d of [0, 500, 3000, 8000]) {
+      const a = [], b = [], c = [];
+      for (let i = 0; i < 400; i++) { const t = i * 0.5, x = d + 37 * Math.sin(i), z = -d / 2 + 23 * Math.cos(i * 1.3); a.push(G.gustAt(x, z, 5, t, V)); b.push(G.gustAt(x, z, 40, t, V)); c.push(G.gustAt(x, z, 200, t, V)); }
+      assert.ok(corr(a, b) > 0.9999 && corr(a, c) > 0.9999, `${d} m out: the gust at 5 m and 40 m (and 200 m) is one gust (${corr(a, b).toFixed(4)})`);
+      assert.ok(Math.abs(b[7] / a[7] - G.airSpeed(40, V) / G.airSpeed(5, V)) < 1e-9, 'its size the height\'s wind');
+    }
+  }
 });
 
 test('air: the shaders\' gust is the same field (the same constants and hash), and the veils read it', () => {
@@ -208,7 +223,11 @@ test('air: the shaders\' gust is the same field (the same constants and hash), a
   assert.ok(g.includes(') * ' + F(G.AIR_GUST[2]) + '; }'), 'the same unit-variance gain');
   assert.ok(g.includes('hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0'), 'lib.glsl\'s hash, as the JS mirrors it');
   assert.match(WORLD, /C\(preG \+ airGustGlsl\(\) \+ VS_RIBBON,/, 'the veils\' program is given the gust field');
-  assert.ok(/airGust\(sp\.xy, w, Wv, uT\)/.test(vr), 'the veils lift with the gust over their brink');
+  assert.ok(/airGust\(sp\.xy, w, uAirU, Wv, uT - AIR_UT0\) \/ max\(Wv \* AIR_GUST_I, 1e-4\)/.test(vr), 'the veils lift with the gust over their brink, in sigmas, on the flight\'s clock');
+  assert.match(WORLD, /UT\[0\] = u \+ AIR_UT0;/, 'the shaders\' clock leads the flight\'s by the air\'s AIR_UT0, which the veils take off (one clock: HOST.gust reads SIM.t)');
+  assert.match(WORLD, /if \(P\.u\.uAirU\) gl\.uniform1f\(P\.u\.uAirU, u10Of\(V\)\);/, 'the veils carry the field at the visit\'s U10');
+  assert.ok(!/\*\s*gust\s*\*/.test(vr.split('float a =')[1].split(';')[0]), 'a veil\'s opacity never follows the gust (no fade: it rises and lies down)');
+  assert.ok(/max\(lie, mix\(lie, up, gust\)\)/.test(vr), 'at calm the sheet settles flat onto the sand');
   assert.ok(!/uRb|fract\(g\)/.test(vr), 'no private cycle of their own');
 });
 
