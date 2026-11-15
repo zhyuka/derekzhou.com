@@ -45,14 +45,18 @@ void main() {
      input (the beams' vA.., the paper birds' flat vK1..) its components from the point's hash, in [-1, 1]. No input
      at all: a full-screen pass (the sky), gl_FragCoord only, as before */
   const IN = [];
-  for (const m of fsOld.matchAll(/(?<=^|[;\s}])((?:centroid|flat|smooth)\s+)?in\s+(?:(?:highp|mediump|lowp)\s+)?(float|vec[234]|int|ivec[234]|uint|uvec[234])\s+([^;]+);/g))
-    for (const nm of m[3].split(',').map((x) => x.trim()).filter(Boolean)) IN.push({ q: (m[1] || '').trim(), t: m[2], n: nm });
+  for (const src of [fsOld, fsNew])   // (both sides' inputs: a head that reads a new one links against the same test stage)
+    for (const m of src.matchAll(/(?<=^|[;\s}])((?:centroid|flat|smooth)\s+)?in\s+(?:(?:highp|mediump|lowp)\s+)?(float|vec[234]|int|ivec[234]|uint|uvec[234])\s+([^;]+);/g))
+      for (const nm of m[3].split(',').map((x) => x.trim()).filter(Boolean)) if (!IN.some((v) => v.n === nm)) IN.push({ q: (m[1] || '').trim(), t: m[2], n: nm });
   const full = IN.length === 0, mesh = IN.some((v) => v.n === 'vC' && v.t === 'vec4') && IN.some((v) => v.n === 'vY');
   let K = 6;
   const KNOWN = {
     'vW:vec3': 'vW = vec3(uTG.x + ij.x * uTG.z, uCamT.y - 140.0 + 150.0 * hr(u, 1u), uTG.y + ij.y * uTG.z);',
     'vN:vec3': 'vN = vec3(hr(u, 3u) * 2.0 - 1.0, mix(1.0, 0.05, hr(u, 2u) * hr(u, 2u)), hr(u, 4u) * 2.0 - 1.0) * (0.7 + 0.6 * hr(u, 5u));',
     'vX:float': "vX = -6.0 + 30.0 * hr(u, 6u);   // the coast's gap: under and over COAST_H (14 m)",
+    // (physics: sand/S2: the main dunes' phase, its gradient about 1/205 m, their height 0-30 m; the slip face's share, the vertex's slope)
+    'vS1:vec4': 'vS1 = vec4(40.0 * hr(u, 21u), (hr(u, 22u) - 0.5) * 0.012, (hr(u, 23u) - 0.5) * 0.012, 30.0 * hr(u, 24u));',
+    'vS1g:vec3': 'vS1g = vec3(0.04 + 0.5 * hr(u, 25u), hr(u, 26u) - 0.5, hr(u, 27u) - 0.5);',
     'vC:vec4': mesh ? 'vC = vec4(hr(u, 6u), hr(u, 7u), hr(u, 8u), 1.0 + floor(hr(u, 9u) * 6.0) + 0.25 * hr(u, 10u));' : null,
     'vY:float': mesh ? 'vY = 20.0 * hr(u, 11u);' : null,
     'vE:vec2': mesh ? 'vE = vec2(hr(u, 12u), hr(u, 13u));' : null };

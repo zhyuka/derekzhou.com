@@ -88,7 +88,7 @@ vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
    dune's height, 0.13 of the local wavelength). Census (tools/physics/dune-census.mjs, 2.25 M points): lee mode 31,
    p99 32.0, none over 34 deg (the steepest 32.0), stoss p50 9.1, p90 13.6 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
    (none on the slip face, eased over 0.06 of the phase at both ends) */
-vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
+vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw, out vec2 hf) {
   float k = length(ph.yz); vec2 g = ph.yz / k;
   vec3 H = dSmin(Hm, vec3(0.13 / k, 0.0, 0.0), 2.0);   // (a smooth cap: a hard one switched H's slope, and with it m and fl: a 1 m step)
   // (on the face the slope is G0 + v dH - m g, v 1 at the brink to 0 at the toe: convex in v, its largest at an end.
@@ -105,8 +105,21 @@ vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
   vec3 P = dMul(vec3(-f / fl, ph.yz * (-1.0 / fl)), H);
   vec3 top = dSmin(A, F, 2.0), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));
   vec3 e1 = dSstep(L - 0.06, L, vec3(f, ph.yz)), e2 = dSstep(0.0, 0.06, vec3(f, ph.yz));
-  nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2);
+  nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2); hf = vec2(H.x, fl);
   return h;
+}
+/* (physics: sand/S2, a crisp brink) the main dune's slope rebuilt from its phase: f = fract(phase), g its gradient
+   (cycles per m), H its height (the sites' share in), fl the slip face's share; duneS1's pieces with H held (its own
+   change across the dune left to the vertices). rb, rt: the brink's and the toe's rounding (height, m). The land's
+   fragments take this at their own phase in place of the vertices' (FS_TERRAIN), so the brink's lit and shaded sides
+   meet on the brink to the pixel, not across a cell of the grid */
+vec2 s1Slope(float f, vec2 g, float H, float fl, float rb, float rt) {
+  float L = 1.0 - fl, a = f / L, n = (f - 1.0) / L;
+  vec3 A = vec3(H * (0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a)), g * (H * (0.5 + 3.0 * a * (1.0 - a)) / L));
+  vec3 F = vec3(H * (1.0 - f) / fl, g * (-H / fl));
+  vec3 N = vec3(H * 0.5 * n, g * (H * 0.5 / L));
+  vec3 P = vec3(-H * f / fl, g * (-H / fl));
+  return dSmax(dSmin(A, F, rb), f > 0.5 ? N : P, rt).yz;
 }
 float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0) * (p + vec2(311.0, -97.0))).x; }
 /* (fast500 D) the dunes' taps: offsets and (diagonal) scales; taps 1 and 4 take a full matrix */
@@ -129,8 +142,9 @@ vec3 dunes(vec2 p) {
   }
   vec3 h = 40.0 * dNg(g0, mat2(1.0 / 760.0)) + 15.0 * dNg(g1, D_M1);
   vec3 amp = dSstep(-0.42, 0.3, dNg(g4, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
-  vec3 nw, s1 = duneS1(s1Phase(p, w, pp, 205.0, g2, g3), 32.0 * dMul(amp, gKD), h - gSK, nw);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
-  h += s1;
+  vec3 nw, ph = s1Phase(p, w, pp, 205.0, g2, g3); vec2 hf;
+  vec3 s1 = duneS1(ph, 32.0 * dMul(amp, gKD), h - gSK, nw, hf);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
+  h += s1; gS1 = vec4(ph, hf.x); gS1F = hf.y; gS1W = 1.0;   // (physics: sand/S2: for the land's fragments)
   if (wSmall > 0.0) {
     vec2 w2 = normalize(w + 1.3 * pp);
     vec3 s2 = duneWave(p + 37.0, w2, 64.0, 0.7, 0.25 * dNg(g5, mat2(1.0 / 80.0)));
@@ -151,6 +165,7 @@ vec3 basinOf(vec2 p, vec3 h, Site s) {
   vec2 dp = p - s.p; float d = length(dp);
   if (d >= R) return h;
   vec3 w = dSstep(R, R * 0.25, vec3(d, dp / max(d, 1e-3)));
+  gS1W *= 1.0 - fl * w.x;   // (physics: sand/S2: the main dunes' share of the slope, calmed)
   return dMul(h, vec3(1.0, 0.0, 0.0) - fl * w) - depth * w;
 }
 /* a plateau: an oval of flat top, its sides in terraces (a riser, then a ledge), a stair's way cut down its -x face */
@@ -176,6 +191,8 @@ vec3 plateauOf(vec2 p, vec3 h, Site s, vec3 n17, float g8) {   // (fast500 D) n1
     vec3 cut = dSmin(pl, ramp, 1.5);
     pl = vec3(mix(pl.x, cut.x, w), mix(pl.yz, cut.yz, w));
   }
+  float b = clamp(0.5 + 0.5 * (h.x - pl.x) / 5.0, 0.0, 1.0);
+  gS1W *= b + (1.0 - b) * 0.16 * sstepDown(0.0, -45.0, e.x);   // (physics: sand/S2: the dunes' share where the plateau rises over them)
   return dSmax(h, pl, 5.0);
 }
 vec3 D_Hd(vec2 p) {
