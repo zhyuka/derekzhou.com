@@ -81,6 +81,30 @@
     return b;
   }
   /* a bank: a heap of lobes over a round footprint (the cloud a passage goes through): a flat base, mounds on top */
+  /* a lenticular (delight-weather 3, terrain-held clouds): smooth lens plates stacked one to three over a ridge's lee
+     wave, their long axis along the crest (dir), each a flat ellipse of squashed lobes, thinner toward its rim, each
+     plate over the one below smaller; edges smooth and crisp (little erosion, small billows, a narrow band). Its
+     envelope stands still (a world cell's: held); only the billows in it flow, at the wind at its height (b.flow:
+     410 moves their offset, the shader reads no clock) */
+  function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {
+    o = o || {};
+    var b = PF.body(); b.vol = true; b.seed = rng.f() * 10; b.yaw = dir;
+    b.erode = 0.3; b.billow = 0.35; b.squash = 0.45; b.blend = 0.8; b.band = 0.035; b.noise = 6;
+    var dx = Math.sin(dir), dz = Math.cos(dir), px = dz, pz = -dx;
+    b.cx = x; b.cz = z; b.y0 = y0; b.y1 = y0 + T * (1 + 1.6 * (n - 1)); b.cy = y0 + T * 0.5;
+    for (var k = 0; k < n; k++) {
+      var sk = 1 - 0.24 * k, yk = y0 + T * 0.5 + k * T * 1.6, L = len * sk, Wk = W * sk;
+      var nu = Math.round(clamp(L / (T * 1.6), 6, 12)), i, j;
+      for (i = 0; i < nu; i++) {
+        var u = ((i + 0.5) / nu) * 2 - 1, half = Math.sqrt(Math.max(1 - u * u, 0.04)), nv = Math.min(4, Math.max(1, Math.round(half * Wk / (T * 1.6))));
+        for (j = 0; j < nv && PF.count() - b.i0 < 96; j++) {   // (at most a great wall's 96 lobes)
+          var v = nv > 1 ? (j / (nv - 1)) * 2 - 1 : 0, rim = Math.sqrt(u * u + v * v * half * half);
+          PF.add(x + dx * u * L * 0.5 + px * v * half * Wk * 0.45, yk + rng.r(-0.06, 0.06) * T, z + dz * u * L * 0.5 + pz * v * half * Wk * 0.45, T * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08), rng.f(), 1);
+        }
+      }
+    }
+    return b;
+  }
   function mound(PF, rng, x, y0, z, W, H, o) {
     o = o || {};
     var b = PF.body(); b.vol = true; b.seed = rng.f() * 10; b.erode = o.erode === undefined ? 0.7 : o.erode; b.squash = o.squash || 0.85; b.blend = o.blend || 0.6; b.billow = o.billow || 0.9;

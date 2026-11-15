@@ -36,6 +36,20 @@ between: sharp in the distance, never a ring), bloom, and the composite
 nothing that fizzes). The light shafts' pass is still in the code, but no
 sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
+
+Terrain-held clouds (delight-weather 3): on a windy visit (the wind over
+a far ridge's crest, 100 m up, at least 7.7 m/s and within 30 deg of
+square to it) a lenticular stands in the ridge's lee wave, 300-600 m
+downwind of the crest and 1100-1700 m up: one to three smooth lens plates
+(120's lens), laid out with the 1500 m cell its ridge's centre falls in,
+from the ridge's own hashes (dunes-glsl's ridges(): the land raises the
+same ridges), never over the cloud sea. Its envelope is held (a world
+cell's); only its billows flow through it, at the wind at its height
+(410 moves their offset in doubles; the shader reads no clock).
+test/unit/lenticular.mjs: the gate, the ridges, the held envelope, the
+flow within 5% of windAt, and a census (windy visits: about one lens in
+reach in half the minutes of a flight, at most three; calm: none).
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
