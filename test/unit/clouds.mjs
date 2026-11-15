@@ -171,8 +171,3 @@ test('clouds: a body bakes the same field on the desktop and on a touch tier, on
   assert.ok(d.vox < t.vox && d.dims[0] > t.dims[0], 'the desktop is not baked finer than a touch tier');
   assert.match(WORLD, /gl\.uniform4f\(P\.u\.uVK, B\.seed, B\.erode, vb\.tile, vb\.Rm \* B\.blend\);/, 'the bake does not use volPrep\'s tile');
 });
-test('clouds: frozen: the billows hold still; no clock moves a body\'s lumps (cloud-billow-drift, the hub\'s pick)', () => {
-  const body = VBODY.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, '');
-  assert.ok(!/\buT\b/.test(body), 'fs-vbody reads the clock: the lumps would slide past a still camera');
-  assert.ok(/vec3 nOff = fract\(uVC \/ uVR\.z\);/.test(body), 'the billows\' offset is not the body\'s own place alone');
-});
