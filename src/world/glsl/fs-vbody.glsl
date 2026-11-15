@@ -4,6 +4,7 @@ uniform vec4 uVR;   // extinction (1/m), most steps, the fine billows' scale (m)
 uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the ceiling a forming cloud rises under (world y), a passage cloud's near reach (m)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
 uniform float uVVox;   // the body's voxel (m)
+uniform vec3 uVO;   // the billows' offset (tiles): the body's own, from its laid-out centre, so its lumps ride with it as it drifts (physics: clouds/drift)
 uniform vec2 uVK;  // the most pieces a band segment is cut into (32 the desktop, 1 a touch device); 1: the crisp edge (the desktop), 0: the soft one
 float segRamp(float s0, float s1, float bE) {   // the band's ramp clamp(-s / bE, 0, 1) over a piece, its mean with s linear between its ends
   float G0 = s0 >= 0.0 ? 0.0 : (s0 > -bE ? s0 * s0 / (2.0 * bE) : -s0 - 0.5 * bE), G1 = s1 >= 0.0 ? 0.0 : (s1 > -bE ? s1 * s1 / (2.0 * bE) : -s1 - 0.5 * bE), ds = s1 - s0;
@@ -58,7 +59,7 @@ void main() {
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
   float sP = 0.0, sBP = 0.0, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
-  vec3 nOff = fract(uVC / uVR.z) + vec3(uT * 0.004, 0.0, uT * 0.003); float texel = uVR.z / 32.0;
+  vec3 nOff = uVO; float texel = uVR.z / 32.0;
   for (int i = 0; i < 96; i++) {
     if (t > tf || last || taken >= uVR.y) break;
     if (t >= tf) { t = tf; last = true; }   // (the ray's end is a sample, so its last segment is counted)

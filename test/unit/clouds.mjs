@@ -85,7 +85,10 @@ test('clouds: the edge band is cut into pieces in the shader, at most 32, the ca
   assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
   assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
-  assert.ok(VBODY.includes('vec3 nOff = fract(uVC / uVR.z)') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
+  assert.ok(VBODY.includes('vec3 nOff = uVO;') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
+  // (physics: clouds/drift: the billows ride with the body: no clock in them, their offset from the laid-out centre)
+  assert.ok(!/\buT\b/.test(VBODY.replace(/\/\/[^\n]*/g, '')), 'fs-vbody reads the clock: the lumps slide through a body');
+  assert.match(WORLD, /var c0 = B\.c0 \|\| B\.c, nS = B\.u4a\[2\];/, 'the billows\' offset is not taken from the body\'s laid-out centre');
   assert.ok(VK, '410 sets no uVK for the tiers');
   assert.ok(CAP.desktop <= 32 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 32`);
 });

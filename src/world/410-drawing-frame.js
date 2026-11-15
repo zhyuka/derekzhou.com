@@ -109,6 +109,9 @@
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
+      var c0 = B.c0 || B.c, nS = B.u4a[2]; if (!B.nO) B.nO = new Float32Array(3);   // (the billows ride with the body: an offset from where it was laid out, in doubles, never the clock's)
+      for (var k3 = 0; k3 < 3; k3++) { var q3 = c0[k3] / nS; B.nO[k3] = q3 - Math.floor(q3); }
+      gl.uniform3fv(P.u.uVO, B.nO);
       gl.activeTexture(gl.TEXTURE10); gl.bindTexture(gl.TEXTURE_3D, B.t); gl.activeTexture(gl.TEXTURE0);
       dc(gl.TRIANGLES, 36); m++;
     }
