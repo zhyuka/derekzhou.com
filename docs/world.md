@@ -511,10 +511,12 @@ never crawl. It is lit by the sky's own cloud light, as the cloud sea's
 flat tops are, and drawn over the land (FS_TERRAIN, from the floor its
 vertices carry, vMB) and over the stones and the landmarks
 (FS_LANDMARK, the top worked per vertex, vMT). The split path carries
-the basins' change to the floor in P7. The camera's ground reads the
-pool's top (HdCam, HdProbe, the split's probe), so the flight passes
-over the pools as over the cloud sea, never through them. At depth 0
-there is no pool at all: the land never lies under its own floor.
+the basins' change to the floor in P7. The camera's ground never reads
+the pools (HdCam, HdProbe, the split's probe): it is the same under
+every sky (the recorded ground, the flight's grid, the birds'). The
+flight keeps over the pools by its hard rule's floor, the land and the
+pools' depth and 1 m (270-flight.js), which holds since the land never
+lies under the pools' floor. At depth 0 there is no pool at all.
 
 Measured by tools/physics/mist-sim.mjs (the page's own probe, the 16
 openings' land within 1 km of the landing, at first light): see its PR
