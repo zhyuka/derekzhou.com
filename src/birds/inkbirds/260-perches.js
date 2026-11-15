@@ -27,6 +27,7 @@
   var PLAND = [1.2, 10];       // the last of a landing (a curve to rest: landStep) from this tau (s) or this range (m)
   var PFLARE = 0.6;            // s of tau: the flare (the feet out from 0.15)
   var PNOTICE = [16, 34];      // s between the letters' turns to have a bird (one at a time) ...
+  var PROOST = [3, 8];          // ... at afterglow and blue hour, when crows come in to roost on the name (delight-life 1: roost flights peak 15-30 min after sunset)
   var PSEEK = 20;              // ... each turn looking this long (every PLOOK s) for a bird that can be there soon (PREACH s): the perch moves
   var PLOOK = 0.5, PREACH = 20;   // with the camera, so only a bird near it or beside its way can come down in a believable time
   var PDWELL = 8;              // s down before a passing flock may take it (just landed, it settles first)
@@ -126,7 +127,7 @@
   function perchRec(kind, li, x, fy, k) {
     return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: [0, 0], at: [0, 0, 0], af: [0, 0, 0], v: [0, 0, 0], ok: false,
       t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
-      tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, nextAct: 0, act: null, walk: null,
+      tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, wake: 0, wakeNew: false, nextAct: 0, act: null, walk: null,
       swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined, landYaw: false, rA: 0, rB: 0, rT: -1, nb: new Int32Array(24), nbN: 0, nbI: -1, nbL: null };
   }
   function perchCount() { var n = 0; for (var i = 0; i < PERCHED.length; i++) if (PERCHED[i].P && PERCHED[i].P.kind !== 'pointer') n++; return n; }
@@ -144,20 +145,22 @@
     if (PW.appr || t < PW.nextT || perchCount() >= PMAX || HOST.reduced()) return;
     if (!(PW.seekEnd > t)) PW.seekEnd = t + PSEEK;   // (this turn's look begins)
     PW.nextT = t + PLOOK;
-    if (t >= PW.seekEnd) { PW.seekEnd = 0; PW.nextT = t + pick(POP.r, PNOTICE); return; }
+    var cl = skyCls(), dusk = cl === 'glow' || cl === 'blue';
+    if (t >= PW.seekEnd) { PW.seekEnd = 0; PW.nextT = t + pick(POP.r, dusk ? PROOST : PNOTICE); return; }
     var best = null, bs = 0, i, j;
     for (i = 0; i < FLOCKS.length; i++) {
       var F = FLOCKS[i]; if (F.far || !KINDS[F.kind].perch) continue;
       for (j = 0; j < F.m.length; j++) {
         var b = F.m[j]; if (b.st !== 'fly') continue;
-        var T = reachT(b, C, 200);
-        if (T > PREACH) continue;
-        var sc = (0.5 + POP.r()) / T;
+        var T = reachT(b, C, dusk && F.kind === 'crow' ? 400 : 200);
+        var ro = dusk && F.kind === 'crow';
+        if (T > (ro ? 2 * PREACH : PREACH)) continue;   // (a crow coming in to roost comes from farther)
+        var sc = (0.5 + POP.r()) / T * (ro ? 20 : 1);   // (at dusk the crows come to roost)
         if (sc > bs) { bs = sc; best = b; }
       }
     }
     if (!best) return;
-    PW.seekEnd = 0; PW.nextT = t + pick(POP.r, PNOTICE);
+    PW.seekEnd = 0; PW.nextT = t + pick(POP.r, dusk ? PROOST : PNOTICE);
     /* from a flock: one to three of it come down, the rest fly on */
     var F0 = best.F, nd = F0.m.length > 2 ? 1 + Math.floor(POP.r() * Math.min(3, F0.m.length - 1)) : 1, list = [best];
     for (j = 0; j < F0.m.length && list.length < nd; j++) if (F0.m[j] !== best && F0.m[j].st === 'fly') list.push(F0.m[j]);

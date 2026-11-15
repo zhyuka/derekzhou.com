@@ -136,6 +136,22 @@ top of the ink and no drawn point hangs below it (the hub's re-review 3, option 
 included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
 
+THE ROOST ON THE NAME (delight-life 1). Crows come in to roost on the letters
+at dusk and leave as one at first light, on the sky's state, never a timer:
+- afterglow and blue hour: a crow flock passing is much likelier to send
+  1-3 down (the letters look every 3-8 s, from up to 40 s away; one landing
+  at a time; 6 at most); more crows commute at blue hour;
+- afterglow, blue hour and night: a crow on the name never leaves of its own
+  wish nor to a passing flock; it stays folded, the end birds facing out,
+  with a rare rouse (every 12-30 s at most, no walks);
+- first light after the night: the crouch runs down the row (left to right)
+  within 0.25-0.7 s and they leave as one loose flock (each joining the
+  first up); one bold bird now and then stays on; some mornings they leave
+  in pairs over 10-30 s instead.
+test/birds.mjs scripts afterglow, blue hour, night and first light at both
+sizes (12 nights) and pins: no own-wish leave from dusk to dawn, no group
+over 3, the crows on the name at dawn, and each morning's departure as one.
+
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
 with the mouse"; and, 2026-11-06: "why is the bird flying away when i
 just get near it instead of actually going on top of it?"). Friendly and

@@ -75,7 +75,7 @@ export function makeSim(o = {}) {
     view: (v) => { v.cssW = W; v.cssH = H; v.outW = W; v.outH = H; v.dpr = 1; v.bdpr = 1; v.ddpr = 1; v.tanX = TANX; v.tanY = TANX * H / W; v.sUx = v.sUy = v.hUx = v.hUy = 1; return v; },
     camera: () => (o.frames ? CD : C), cameraStep: () => C, wind: (v) => { v[0] = o.wind ? o.wind[0] : 0; v[1] = 0; v[2] = o.wind ? o.wind[1] : 0; return v; },
     flight: (v) => { v.ok = true; v.x = C.pos[0]; v.y = C.pos[1]; v.z = C.pos[2]; v.psi = psi; v.view = 0; v.speed = SPEED; v.vy = 0; v.ground = -60; return v; },
-    sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => (o.frames ? ALPHA : 1), forced: () => FORCED,
+    sky: () => o.sky || 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => (o.frames ? ALPHA : 1), forced: () => FORCED,
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
     grade: () => null, light: () => LIGHT, words: () => WORDS,
     bindTextures: () => !!o.draw, target() {}, cloudBetween3: (ax, ay, az, P, v) => { v[0] = v[1] = v[2] = 0; return v; }, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,

@@ -291,3 +291,32 @@ test('a flock beyond sight sleeps, and wakes the same birds when the eye comes t
   console.log(`# sleep: asleep at ${slept.toFixed(1)} s, awake at ${woke.toFixed(1)} s, ${(d / 1000).toFixed(1)} km off`);
   assert.ok(slept >= 0, 'it never slept'); assert.ok(woke > slept, 'it never woke'); assert.ok(d > 3000, 'it woke within 3 km');
 });
+
+/* (delight-life 1) a roost on the name: crows come down at afterglow and blue hour, 1-3 at a time; from dusk to dawn
+   a crow on the name never leaves of its own wish; at first light the row leaves as one, the crouch running down it
+   within 0.7 s (pairs mornings and the bold one apart). Sky by state: afterglow 90 s, blue hour 90 s, night 120 s, first light */
+test('a roost on the name: dusk in, night held, first light out as one', () => {
+  let held = 0, onAtDawn = 0, mornings = 0, quick = 0, groupsOver = 0; const fills = [];
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.natural(seed, size); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = 'afterglow';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
+    const on = () => (sim.B ? sim.B.PERCHED.filter((b) => b.kind === 'crow' && b.st === 'perch' && b.P.kind !== 'pointer') : []);
+    let fill = -1, wake = [], seen = new Set(), lastT = -1, grp = 0;
+    for (let k = 0; k < 320 * 20; k++) {
+      const t = k / 20;
+      if (t === 90) sc.opt.sky = 'bluehour'; if (t === 180) sc.opt.sky = 'moonlit'; if (t === 300) { sc.opt.sky = 'firstlight'; onAtDawn += on().length; }
+      const pre = on(), was = new Map(pre.map((b) => [b, !!b.P.leaving]));
+      sim.step();
+      for (const b of sim.B ? sim.B.PERCHED : []) if (b.kind === 'crow' && b.P.kind !== 'pointer' && !seen.has(b) && t < 300) { seen.add(b); if (t - lastT < 5) grp++; else grp = 1; lastT = t; if (grp > 3) groupsOver++; }
+      if (fill < 0 && t < 180 && on().length >= 3) fill = t;
+      for (const b of pre) { const L = b.P && b.P.leaving; if (L && !was.get(b)) { if (t < 300 && L.why === 'wish') held++; if (t >= 300 && L.why === 'roost') wake.push(L.t0); } }
+    }
+    if (fill >= 0) fills.push(fill);
+    if (wake.length >= 2) { mornings++; wake.sort((a, c) => a - c); const n = wake.filter((w) => w - wake[0] <= 0.7).length; if (n >= 0.8 * wake.length) quick++; }
+  }
+  console.log(`# roost: 3 crows on the name by ${fills.map((f) => f.toFixed(0)).join(', ')} s (of 12 dusks: ${fills.length}); crows on it at first light ${onAtDawn}; own-wish leaves from dusk to dawn ${held}; arrival groups over 3: ${groupsOver}; mornings with 2+ leaving ${mornings}, of them as one (80 % within 0.7 s) ${quick}`);
+  assert.equal(held, 0, 'a crow on the name left of its own wish between dusk and dawn');
+  assert.equal(groupsOver, 0, 'more than 3 crows came down in one group');
+  assert.ok(onAtDawn >= 20, `only ${onAtDawn} crows on the name at first light over 12 nights`);
+  assert.ok(mornings >= 6 && quick >= mornings - 1, `${quick} of ${mornings} mornings left as one`);
+});

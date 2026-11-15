@@ -24,9 +24,9 @@
     glow:  { pat: [['skein', 27], ['line', 15], ['pair', 18], ['single', 25], ['loose', 15]],
              kinds: { skein: [['goose', 80], ['ibis', 20]], line: [['goose', 35], ['ibis', 30], ['gull', 35]], pair: [['gull', 40], ['crow', 35], ['goose', 15], ['swallow', 10]],
                       single: [['gull', 40], ['heron', 35], ['crow', 20], ['swallow', 5]], loose: [['crow', 70], ['gull', 30]] } },
-    blue:  { pat: [['skein', 32], ['line', 15], ['pair', 15], ['single', 35], ['loose', 10]],
-             kinds: { skein: [['goose', 80], ['ibis', 20]], line: [['goose', 35], ['ibis', 30], ['gull', 35]], pair: [['gull', 50], ['crow', 15], ['goose', 35]],
-                      single: [['gull', 45], ['heron', 45], ['crow', 10]], loose: [['crow', 60], ['gull', 40]] } },
+    blue:  { pat: [['skein', 32], ['line', 15], ['pair', 15], ['single', 27], ['loose', 18]],   // (crows still commuting in to roost: delight-life 1)
+             kinds: { skein: [['goose', 80], ['ibis', 20]], line: [['goose', 35], ['ibis', 30], ['gull', 35]], pair: [['gull', 35], ['crow', 40], ['goose', 25]],
+                      single: [['gull', 40], ['heron', 35], ['crow', 25]], loose: [['crow', 75], ['gull', 25]] } },
     first: { pat: [['skein', 27], ['line', 10], ['pair', 15], ['single', 50]],
              kinds: { skein: [['goose', 1]], line: [['goose', 50], ['gull', 50]], pair: [['gull', 60], ['goose', 40]], single: [['gull', 50], ['heron', 50]] } },
     moon:  { pat: [['skein', 20], ['pair', 15], ['single', 60]],
