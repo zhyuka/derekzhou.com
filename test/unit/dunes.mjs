@@ -6,6 +6,7 @@
 // census of that model (tools/physics/dune-census.mjs, a port of dunes() in doubles) must meet the spec: at most 0.1%
 // of the sand over 34 deg, the lee's mode 32 +- 1 deg, the stoss's 90th percentile at most 15 deg, in four winds.
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "float m = min(m0, m1);", "with": "float m = 1.3 * min(m0, m1);", "why": "the slip face at 38 deg, past the angle of repose"}
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "vec3 H = dSmin(Hm, vec3(0.13 / k, 0.0, 0.0), 2.0);", "with": "vec3 H = Hm.x <= 0.13 / k ? Hm : vec3(0.13 / k, 0.0, 0.0);", "why": "a hard cap on the height: a 1 m step where it switches"}
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath, pathToFileURL } from 'node:url';
