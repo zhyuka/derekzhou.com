@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "float a = uPc.a * 0.55 *", "with": "float a = uPc.a * 0.55 * mix(0.15, 1.0, gust) *", "why": "the veils fading with the gust again"}
 // plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv, uT - AIR_UT0)", "with": "airGust(sp.xy, w, uAirU, Wv, uT)", "why": "the veils read the field 40 s ahead of the birds"}
 // plant: {"file": "src/world/215-air.js", "find": "return AIR_GUST[0] * airSpeed(y, V) * gustN(xi, eta);", "with": "return AIR_GUST[0] * airSpeed(y, V) * gustN(xi * AIR_GUST[1] * U / (AIR_GUST[1] * airSpeed(y, V)), eta);", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
@@ -226,7 +227,8 @@ test('air: the shaders\' gust is the same field (the same constants and hash), a
   assert.ok(/airGust\(sp\.xy, w, uAirU, Wv, uT - AIR_UT0\) \/ max\(Wv \* AIR_GUST_I, 1e-4\)/.test(vr), 'the veils lift with the gust over their brink, in sigmas, on the flight\'s clock');
   assert.match(WORLD, /UT\[0\] = u \+ AIR_UT0;/, 'the shaders\' clock leads the flight\'s by the air\'s AIR_UT0, which the veils take off (one clock: HOST.gust reads SIM.t)');
   assert.match(WORLD, /if \(P\.u\.uAirU\) gl\.uniform1f\(P\.u\.uAirU, u10Of\(V\)\);/, 'the veils carry the field at the visit\'s U10');
-  assert.ok(!/\*\s*gust\s*\*/.test(vr.split('float a =')[1].split(';')[0]), 'a veil\'s opacity never follows the gust (no fade: it rises and lies down)');
+  const alpha = vr.split('float a =')[1].split(';')[0];
+  assert.ok(!/\bgust\b|\buAir\b|\buT\b/.test(alpha), 'a veil\'s opacity follows neither the gust, the sky\'s wind nor the clock (no fade: it rises and lies down): ' + alpha.trim());
   assert.ok(/max\(lie, mix\(lie, up, gust\)\)/.test(vr), 'at calm the sheet settles flat onto the sand');
   assert.ok(!/uRb|fract\(g\)/.test(vr), 'no private cycle of their own');
 });
