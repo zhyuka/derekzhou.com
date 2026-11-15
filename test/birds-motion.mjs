@@ -332,3 +332,20 @@ test('a standing bird\'s rest moves a little at a time (no support found or lost
   assert.ok(max <= 2, `a standing bird's solved rest changed ${max.toFixed(2)} px in one step (${at})`);
   assert.ok(maxU <= 4, `a standing bird's drawn rest moved ${maxU.toFixed(2)} px in one step (${atU})`);
 });
+
+/* (the hub's review 3) a seeded flock's first frame: its way over the ground already its way through the air and the
+   wind (air alone drew it up to 33 deg off its next step's way) */
+test('a seeded bird\'s first way over the ground is its next step\'s (the wind in it)', () => {
+  let n = 0, worst = 0, at = '';
+  for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.wind = [5 * Math.sin(seed), 5 * Math.cos(seed)];
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
+    sim.step(); const B = sim.B, first = new Map();
+    for (const b of B.BIRDS) if (b.st === 'fly') first.set(b, Math.atan2(b.v0[0], b.v0[2]));
+    sim.step();
+    for (const [b, a0] of first) { if (b.st !== 'fly') continue; const d = Math.abs(Math.atan2(Math.sin(Math.atan2(b.v[0], b.v[2]) - a0), Math.cos(Math.atan2(b.v[0], b.v[2]) - a0))) * 180 / Math.PI; n++; if (d > worst) { worst = d; at = `natural ${seed} bird ${b.id}`; } }
+  }
+  console.log(`# seeded birds: ${n}; their first way off the next step's by at most ${worst.toFixed(2)} deg (${at})`);
+  assert.ok(n > 20, 'too few seeded birds');
+  assert.ok(worst <= 5, `a seeded bird's first way was ${worst.toFixed(2)} deg off its next step's (${at})`);
+});
