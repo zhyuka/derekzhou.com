@@ -33,7 +33,8 @@ void main() {
   //   least a band step long, and where one lands beyond the face, the face uncounted would be skipped or not as the
   //   samples move: the far towers' speckle);
   // - no step inside the cloud shorter than the rest of the ray over the steps left, so every ray reaches its end (the
-  //   land, or the box's far side) within its budget (the band's 48 steps on the desktop's top tier, 32 on the rest, whatever the distance; leaps on their own 32): a ray cut where its
+  //   land, or the box's far side) within its budget (uVR.y: 48 steps on the desktop look (LOOKD), 32 on the rest, 48 on every look within 1.3 radii of
+  //   a body, eased to 1.7 (410)): a ray cut where its
   //   budget runs out, the rest left clear, shows the sea through a cloud's wispy flank, in holes that open and shut
   //   as the samples move (leaps are never stretched: a leap is bounded by the distance to the cloud);
   // - the fine billows' noise at an explicit LOD: its texel (32 to a tile) no finer than two of the half-resolution
