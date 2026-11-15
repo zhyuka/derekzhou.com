@@ -8,7 +8,7 @@
      of the sky's time (no state: a still at any moment is the flight's own). The camera's ground reads the pool's top
      (HdCam, HdProbe, the split's probe), so the flight passes over it as over the cloud sea, never through it.
      Measured by tools/physics/mist-sim.mjs on the 16 openings' land (docs/world.md, ## THE MIST POOLS) */
-  var MIST_D = { firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5, bluehour: 1.5, afterglow: 0 };   // (m: the hub's table, delight-weather 1)
+  var MIST_D = { firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5, bluehour: 1, afterglow: 0 };   // (m: the hub's table, delight-weather 1; the blue hour AIR's 1 m, #297)
   var MIST_RATE = 0.085, MIST_OPAQUE = 1.5;   // (m/s: the level's most, so first light's 10 m drains within a change and the next sky's shortest hold (55 + 63 s); m)
   var MISTU = new Float32Array(4);
   function mistD(id) { return MIST_D[id] || 0; }

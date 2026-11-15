@@ -497,7 +497,7 @@ delight-weather 1 (src/world/227-mist-pools.js). Mist lies in the dunes'
 troughs and about the mesas' feet. The pool's top is the ground the
 dunes stand on (the swell, sunk with the basins and toward the cloud
 sea) plus a depth by the sky, times the sand weight: 10 m at first
-light, so the crests stand out as islands; 3.5 m at night; 1.5 m in the
+light, so the crests stand out as islands; 3.5 m at night; 1 m in the
 blue hour; none in the afterglow (MIST_D, the hub's table, until AIR's
 weather(sky) gives it). The depth is a pure function of the sky's time:
 each sky's own through its hold, and through a change a ramp at one
