@@ -81,6 +81,7 @@
           q[2] = (B.r() - 0.5) * 0.5; b.slot = q; b.F = A; b.goal = null; A.m.push(b);
         }
         if (A.m.length === 2) A.pat = 'pair';
+        A.off = false; A.acc = 0;   // (joined: judged again with its new birds)
         FLOCKS.splice(best, 1); B.out = true;
         return;
       }
@@ -111,6 +112,7 @@
         break;
       }
     }
+    for (i = 0; i < BIRDS.length; i++) { var q = BIRDS[i]; for (k = 0; k < 3; k++) { q.pp[k] = q.p[k]; q.v0[k] = q.v[k]; } q.phi0 = q.phi; }   // (seeded where they are: no step behind them to draw between)
     POP.seeded = true; POP.nextT = t + 2;
   }
   /* a new flock (the owner, 2026-11-06: never born near the viewer, not under the land nor in the sea of cloud): only
@@ -270,14 +272,18 @@
   function offView(F, C) {
     var L = F.lead, i;
     for (i = 0; i < F.m.length; i++) if (F.m[i].st !== 'fly') return false;
-    var dx = L.p[0] - C.pos[0], dy = L.p[1] - C.pos[1], dz = L.p[2] - C.pos[2];
-    if (dx * dx + dy * dy + dz * dz < OFF_D * OFF_D) return false;
-    var zc = dx * C.f[0] + dy * C.f[1] + dz * C.f[2], xc = dx * C.r[0] + dy * C.r[1] + dz * C.r[2], yc = dx * C.u[0] + dy * C.u[1] + dz * C.u[2];
     var rad = 2 * L.sz * (F.m.length + 1);
-    return Math.abs(xc) - rad > zc * OTX || Math.abs(yc) - rad > zc * OTY;
+    for (i = 0; i < F.m.length; i++) {   // (every bird of it, not its leader alone: a straggler or a joiner may be in view while its leader is not)
+      var q = F.m[i], dx = q.p[0] - C.pos[0], dy = q.p[1] - C.pos[1], dz = q.p[2] - C.pos[2];
+      if (dx * dx + dy * dy + dz * dz < OFF_D * OFF_D) return false;
+      var zc = dx * C.f[0] + dy * C.f[1] + dz * C.f[2], xc = dx * C.r[0] + dy * C.r[1] + dz * C.r[2], yc = dx * C.u[0] + dy * C.u[1] + dz * C.u[2];
+      if (!(Math.abs(xc) - rad > zc * OTX || Math.abs(yc) - rad > zc * OTY)) return false;
+    }
+    return true;
   }
   function birdsStep(C, dt) {
     lvCam(C); windNow();
+    for (var q = 0; q < BIRDS.length; q++) { var bq = BIRDS[q]; bq.pp[0] = bq.p[0]; bq.pp[1] = bq.p[1]; bq.pp[2] = bq.p[2]; bq.v0[0] = bq.v[0]; bq.v0[1] = bq.v[1]; bq.v0[2] = bq.v[2]; bq.phi0 = bq.phi; }   // (where each was as the step began: the draw goes between)
     popStep(C);
     OTX = Math.tan(Math.atan(VW.tanX || 1) + OFF_A); OTY = Math.tan(Math.atan(VW.tanY || 1) + OFF_A);
     var i, j, F, b;
@@ -294,7 +300,7 @@
         var odt = F.acc; F.acc = 0;
         for (j = 0; j < F.m.length; j++) { b = F.m[j]; b.age += odt; wingOff(b); b.flap = 1; }
         var ow = goalVel(F, L, odt); flyTo(L, odt, ow[0], ow[1], ow[2]);
-        for (j = 0; j < F.m.length; j++) { if (F.m[j] !== L) holdPlace(F, F.m[j]); F.m[j].stT = t; }
+        for (j = 0; j < F.m.length; j++) { if (F.m[j] !== L) holdPlace(F, F.m[j]); F.m[j].stT = t; F.m[j].cs = true; }
         continue;
       }
       if (F.far) {
@@ -302,7 +308,7 @@
         var cdt = F.acc; F.acc = 0;
         if (L.st === 'fly') { wingOff(L); L.flap = 1; var w = goalVel(F, L, cdt); flyTo(L, cdt, w[0], w[1], w[2]); L.age += cdt; }
         for (j = 0; j < F.m.length; j++) { b = F.m[j]; if (b === L || b.st !== 'fly') continue; holdPlace(F, b); b.age += cdt; wingOff(b); }   // (a speck that far holds its glide: its wing paused, going on from there when it is near)
-        for (j = 0; j < F.m.length; j++) F.m[j].stT = t;
+        for (j = 0; j < F.m.length; j++) { F.m[j].stT = t; F.m[j].cs = true; }
         continue;
       }
       /* a flock of specks (every bird of it flying and drawn last frame under SPECK_W device px, past the eye's reach)
@@ -318,12 +324,12 @@
         for (j = 0; j < F.m.length; j++) {
           b = F.m[j]; b.age += sdt; wingOff(b); b.flap = 1;
           var sv = b === L ? goalVel(F, b, sdt) : placeVel(F, b);
-          flyTo(b, sdt, sv[0], sv[1], sv[2]); b.stT = t;
+          flyTo(b, sdt, sv[0], sv[1], sv[2]); b.stT = t; b.cs = true;
         }
         continue;
       }
       for (j = 0; j < F.m.length; j++) {
-        b = F.m[j]; b.age += dt; wingTrim(b); b.stT = t;
+        b = F.m[j]; b.age += dt; wingTrim(b); b.stT = t; b.cs = false;
         if (b.st === 'perch' || b.st === 'land') BW.ensure(b.w.wing, b.age);
         else if (b.st === 'fly' && !b.burst && b.s && b.s.seenF >= DF - 1 && b.s.spanPx > 0 && b.s.spanPx < (b.wOff ? HOLD_W : SPECK_W)) { wingOff(b); b.flap = 1; }   // (a speck holds its glide: HOLD_POSE; its wing paused till it is larger)
         else wingNow(b);
