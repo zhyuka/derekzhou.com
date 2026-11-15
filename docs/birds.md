@@ -138,7 +138,7 @@ pace (before: air speed rose 0.82 m/s a m/s of headwind). A lone bird that perch
 begun in the last 30 s, works the view and keeps its pace over the ground. The body is drawn along its way through the air (230), so it crabs. In a side wind
 over 1 m/s a landing on the letters comes in against it (to the pointer's moving tip, however it can): its gate on the perch's downwind side (gateFor), straight in only from that
 side (approachStep); it touches facing into the wind (touchYaw, as wantYaw will want it) and never hops round of its own
-while the wind holds (264). test/birds-wind.mjs: 93 % of landings against the wind (before 54 %), none turned round within
+in its first 2 s down (264). test/birds-wind.mjs: 93 % of landings against the wind (before 54 %), none turned round within
 2 s of the touch (before 4 of 13).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
