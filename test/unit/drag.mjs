@@ -1,11 +1,11 @@
 // test/unit/drag.mjs: the drag: where it starts, how far it turns
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "if (dx * dx + dy * dy < 64) return;", "with": "if (dx * dx + dy * dy < 16) return;", "why": "a drag that starts after 4 px, not 8"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "      INP.down = true; INP.held = true; DRAG.x = DRAG.x0;", "with": "      INP.down = true; DRAG.x = DRAG.x0;", "why": "the drag's 8 px catch-up counted in the release's speed: a small drag coasts at the cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": " DRAG.y = DRAG.y0; REL.n = 0;", "with": " DRAG.y = DRAG.y0;", "why": "the last drag's samples kept at the start: its catch-up counted in the release's speed, a small drag coasts at the cap"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);", "with": "CS.thU = CS.thU + ay; CSP.thU = CSP.thU + ay;", "why": "the drag's tilt not held within 35 deg"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);", "with": "CS.thU = CS.thU + cp; CSP.thU = CSP.thU + cp;", "why": "the coast's tilt not held within 35 deg"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(sy / st, -0.5, 0.5)", "with": "clamp(sy / st, -0.6, 0.6)", "why": "the tilt's coast past its 0.5 rad/s cap"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(sx / st, -0.8, 0.8)", "with": "clamp(sx / st, -1, 1)", "why": "the turn's coast past its 0.8 rad/s cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vy * GR, -0.5, 0.5)", "with": "clamp(REL.vy * GR, -0.6, 0.6)", "why": "the tilt's coast past its 0.5 rad/s cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vx * GR, -0.8, 0.8)", "with": "clamp(REL.vx * GR, -1, 1)", "why": "the turn's coast past its 0.8 rad/s cap"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "        CS.yawV += ax; CSP.yawV += ax;", "with": "        CS.yawV += ax;", "why": "the drag drawn on one state only: a frame turns part of the finger's move"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (tU - tS >= REL_STOP) return;", "with": "    if (false) return;", "why": "no stop: a glance let go 25 ms after it rested runs on"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    var b, det = m > 2 ? ", "with": "    var b, det = m > 1e9 ? ", "why": "the release's speed a line's, not a quadratic's: a glance easing out runs on more"}
@@ -210,14 +210,17 @@ test('drag: a small drag just past the 8 px start runs on little: its catch-up i
   // over the time since the press, so counted as one frame's move they threw the coast to its cap, a 9-16 px drag
   // running on 6.8-14.1 deg by itself; main ran on 0.9-6.0)
   const DEG = Math.PI / 180;
-  for (const hz of [60, 144]) for (const v of [0.15, 0.3, 0.6]) for (const len of [9, 12, 16]) for (const hold of [0, 1, 3]) {
+  for (const hz of [60, 144]) for (const v of [0.15, 0.3, 0.6]) for (const len of [9, 12, 16]) for (const hold of [0, 1, 3]) for (const after of [false, true]) {
     const F = flying(0.5), P = 1000 / hz; let ts = 1000, x = 0;
-    F.start(0); F.frame(ts);
-    while (x < len) { ts += P; x = Math.min(len, x + v * P); F.move(x, ts - 0.4); if (x >= len && !hold) F.up(); F.frame(ts); }
+    if (after) {   // (a flick first, let go a second before: its samples are not the small drag's)
+      F.start(0); for (let k = 1; k <= hz / 5; k++) { ts += P; F.move(k * P, ts - 0.4); F.frame(ts); } F.up(); for (let k = 0; k < hz; k++) F.frame(ts += P);
+    }
+    const x0 = after ? 200 : 0; F.start(x0); F.frame(ts);
+    while (x < len) { ts += P; x = Math.min(len, x + v * P); F.move(x0 + x, ts - 0.4); if (x >= len && !hold) F.up(); F.frame(ts); }
     for (let k = 0; k < hold; k++) { if (k === hold - 1) F.up(); F.frame(ts += P); }
     const at = F.yaw(); for (let k = 0; k < 2 * hz; k++) F.frame(ts += P);
     const runOn = (F.yaw() - at) / DEG;
-    assert.ok(runOn <= 2, `${hz} Hz, a ${len} px drag at ${v * 1000} px/s, let go ${hold} frames after: ran on ${runOn.toFixed(2)} deg by itself`);
+    assert.ok(runOn <= 2, `${hz} Hz, a ${len} px drag at ${v * 1000} px/s${after ? ' after a flick' : ''}, let go ${hold} frames after: ran on ${runOn.toFixed(2)} deg by itself`);
   }
 });
 

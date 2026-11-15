@@ -9,7 +9,7 @@
      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
-  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, relAny: false, held: false, qx: 0, qy: 0 };   // (fx, fy: the drag drawn since the last step; relAny: a release the next step counts as input; held: a drag held through the landing; qx, qy: a dev script's drag)
+  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, relAny: false, qx: 0, qy: 0 };   // (fx, fy: the drag drawn since the last step; relAny: a release the next step counts as input; qx, qy: a dev script's drag)
   var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
@@ -46,7 +46,7 @@
       if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
       DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (data-steer and the selection cleared in the next frame)
       if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
-      INP.down = true; INP.held = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0; REL.n = 0;   // (the first 8 px are taken too: the scene catches the finger up; drawn whole, kept out of the release's speed as a drag held through the landing is)
+      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0; REL.n = 0;   // (the first 8 px are taken too: the scene catches the finger up, drawn whole; the samples start at the place it caught up to, so the catch-up is no speed)
     }
     INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y; relAdd(x, y, e.timeStamp);   // (the first: the place the start caught up to)
     if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (the record: the oldest move not yet drawn, for the input's latency)
@@ -124,7 +124,8 @@
        after it the tilt's own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at
        most 1.5 deg/s).
      Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it, drawn whole in the first
-     frame after it and kept out of the release's speed; a released one is dropped, as the steps dropped it */
+     frame after it (its samples are the finger's own: its release's speed is the finger's, never the catch-up's); a
+     released one is dropped, as the steps dropped it */
   /* the release's speed: the drag's own samples (each move's place and time, and the lift's), never the frames': a
      finger that rested before it lifted has none, else the slope at the lift of a least-squares fit through the last
      REL_H ms of them (exact for a steady drag, on any display and any rate of moves). (Before: the mean of the last
@@ -160,14 +161,13 @@
   }
   function inputFrame(dt) {
     var fdt = Math.min(dt, DTMAX);
-    if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } else INP.held = true; return; }
+    if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } return; }
     if (!INP.down && !INP.rel && (CS.om || CS.omP)) {
       var cy = CS.om * fdt, cp = CS.omP * fdt;
       CS.yawV += cy; CSP.yawV += cy;
       CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);
       CS.om *= Math.exp(-fdt / 0.3); CS.omP *= Math.exp(-fdt / 0.2);
     }
-    var boot = INP.held; INP.held = false;   // (the first frame after the landing, or the drag's start: its catch-up, gathered since the press, is no speed)
     if (INP.dx || INP.dy) {
       var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
       INP.dx = 0; INP.dy = 0;
