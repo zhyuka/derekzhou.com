@@ -105,7 +105,7 @@ test('clouds: the band\'s steps are one budget a tier, and the leaps have their 
   const D = cut(WORLD, '    var push = pushVol;', '    ST.vols = m;');
   assert.ok(!/d < 2500/.test(D), 'the volume draw cuts the steps by distance');
   assert.match(D, /var VSTEPS = LOOKD \? 48 : 32;/);
-  assert.match(D, /var steps = d < B\.r \* 1\.5 \? 48 : VSTEPS;/, 'a body the camera is near does not keep its 48 steps on every tier');
+  assert.match(D, /var steps = VSTEPS \+ \(48 - VSTEPS\) \* \(1 - smooth\(B\.r \* 1\.3, B\.r \* 1\.7, d\)\);/, 'a body the camera is near does not keep its 48 steps on every look, eased between 1.3 and 1.7 radii');
   // (leaps never shrink the band's steps: taken counts band samples only, so it is counted after the leap branch's
   // continue and before mS reads it; moved back before the leap test, or dropped, every leap would cut a band step)
   // (by meaning, not text: every write to taken, in any spelling (taken++, ++taken, taken += k, taken = taken + k),

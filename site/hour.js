@@ -27,7 +27,7 @@
   /* The opening (docs/world.md, THE OPENINGS): the visit's one entropy read, here so the page shows that opening's
      still at first paint. It picks opening k of N (the world's OPENN) and, whole as data-seed, seeds all after it.
      The still (tools/gpu/bake-stills.js): by the window's shape (the frustum's bands) and memory tier (lo: Android
-     under 8 GB), the body's ::before, fetched at once by the head's preload. */
+     under 8 GB; coarse in landscape), the body's ::before, fetched at once by the head's preload. */
   var N = 16, e = new Uint32Array(1), k = 0, nav2 = navigator, mm = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
   try { crypto.getRandomValues(e); k = e[0] % N; } catch (x) { k = 0; }
   document.documentElement.setAttribute('data-seed', String(e[0] >>> 0));
@@ -35,10 +35,10 @@
     ['1249/1000', '1080x1080'], ['1599/1000', '1350x1080'], ['1777/1000', '1728x1080'], ['2099/1000', '1920x1080']], shape = '2268x1080', j;
   var sw = screen.width || 1, sh = screen.height || 1, sized = innerWidth > 0 && innerHeight > 0, ab;   // (a tab not yet sized: the screen's shape)
   for (j = 0; j < SHAPES.length; j++) { ab = SHAPES[j][0].split('/'); if (sized ? mm('(max-aspect-ratio: ' + SHAPES[j][0] + ')') : sw * ab[1] <= sh * ab[0]) { shape = SHAPES[j][1]; break; } }
-  var touch = mm('(pointer: coarse)') || nav2.maxTouchPoints > 1;
+  var crs = mm('(pointer: coarse)'), touch = crs || nav2.maxTouchPoints > 1;
   var tier = touch && !/iPhone|iPad|Macintosh/.test(nav2.userAgent || '') && (nav2.deviceMemory || 0) < 8 ? 'lo' : 'hi';
   var q = shape.split('x'), dk = +q[0] >= +q[1];
-  if (touch && dk) tier = 'lo';
+  if (dk && crs) tier = 'lo';
   document.documentElement.setAttribute('data-look', tier == 'hi' && dk ? 'desk' : 'touch');
   var url = '/assets/still/' + DAY[i][0] + '-' + k + '-' + tier + '-' + shape + '.avif', pre = document.querySelector('link.still');
   if (pre) { document.documentElement.style.setProperty('--still', 'url("' + url + '")'); pre.href = url; }   // (no preload: a build with no stills)
