@@ -68,3 +68,13 @@ test('verdict: a push with no open PR (a preview) is not compared, so it never l
   assert.equal(run({}).frames_identical, true, 'an older plan with no has_pr output: as before');
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('areas: the tools/gpu files T2 is not run on for (NOT_T2) are run by nothing T2 runs', async () => {
+  const { NOT_T2 } = await import('../../.github/ci/areas.mjs');
+  const t2 = ['.github/workflows/gpu.yml'].concat(fs.readdirSync(path.join(ROOT, 'tools/gpu')).map((n) => 'tools/gpu/' + n).filter((p) => /\.m?js$/.test(p) && !NOT_T2.has(p)));
+  for (const f of NOT_T2) {
+    assert.ok(fs.existsSync(path.join(ROOT, f)), f + ' exists');
+    const base = path.basename(f);
+    for (const g of t2) assert.ok(!fs.readFileSync(path.join(ROOT, g), 'utf8').includes(base), `${g} names ${base}: T2 runs it, so it is T2's own`);
+  }
+});
