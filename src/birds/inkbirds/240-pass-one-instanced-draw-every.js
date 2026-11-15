@@ -116,7 +116,7 @@
   }
 
   var LIFT0 = new Float32Array(3), GAIN0 = new Float32Array([1, 1, 1]);
-  var tmp3 = { x: 0, y: 0, z: 0, n: 0 }, DRAWQ = [], DF = 0, TONE_AT = 0;
+  var tmp3 = { x: 0, y: 0, z: 0, n: 0 }, DRAWQ = [], DF = 0, TONE_AT = 0, SPECK_HZ = 15;
   /* every bird of the world the window can show, posed afresh every frame, every one of them. No opacity but the
      world's own air (in the pass): no fade in
      time, at an edge, near or far */
@@ -144,9 +144,13 @@
       s = b.s;
       var was = s.seenF === DF - 1;
       if (!was) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
-      /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself one frame
-         in four, its own (by its number): between, its form and tone are held and only its place and attitude move */
-      s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && ((DF + b.id) & 3) !== 0;
+      /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself
+         SPECK_HZ times a second, at its own phase (by its number): between, its form and tone are held and only its place
+         and attitude move. (time-based-constants) By the steps' clock, not the frames: one frame in four posed it 15
+         times a second at 60 Hz and 36 at 144; at 60 Hz it is still one frame in four */
+      var pk = Math.floor(ft * SPECK_HZ + (b.id & 3) / 4 + 1e-6);
+      s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && pk === s.pk;
+      if (!s.hold) s.pk = pk;
       s.seenF = DF; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
       s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
       if (b.st === 'land') restProbe(b, C, s);
