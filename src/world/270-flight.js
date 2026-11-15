@@ -24,7 +24,7 @@
     planVisit(V);
     var cl = V.clear;
     if (!SIM.inited) {
-      var r = RNG(subseed(J.seed, 77)); CS.psi = CS.yawV = r.r(0, 2 * PI); SIM.inited = true;
+      CS.psi = CS.yawV = airHeading0(); SIM.inited = true;
       if (DEVMODE && POSE) CS.psi = CS.yawV = POSE[2] * DEG;
     }
     CS.x = 0; CS.z = 0; CS.c = cl[1]; CS.vy = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CS.om = 0; CS.omP = 0; CS.sv = 0; CS.lat = 0; CS.latT = 0; CS.latT2 = 0; CS.tsw = -1; CS.fpsi = CS.psi; CS.vs = 0; CS.acc = 0; CS.pt = -1e9; if (CS.climbs) CS.climbs.length = 0;
