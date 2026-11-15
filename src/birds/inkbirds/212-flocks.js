@@ -142,7 +142,7 @@
   function recruit() {
     var best = null, bd = 1e18, i;
     for (i = 0; i < FLOCKS.length; i++) {
-      var F = FLOCKS[i], L = F.lead; if (!L || L.st !== 'fly' || (F.goal && (F.goal.k === 'sink' || F.goal.come))) continue;
+      var F = FLOCKS[i], L = F.lead; if (!L || L.st !== 'fly' || (F.goal && (F.goal.k === 'sink' || F.goal.come)) || (POP.cls === 'moon' && !NIGHT_K[F.kind])) continue;   // (at night never a day kind: it is going to roost)
       var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       if (dd < 150 * 150 || dd > LIVE_R * LIVE_R) continue;
       if (!KINDS[F.kind].perch) dd *= 4;   // (one that perches first: it may come down on the words)

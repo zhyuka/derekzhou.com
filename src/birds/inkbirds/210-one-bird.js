@@ -24,7 +24,7 @@
   };
   var G = 9.81;
   var LIVE_R = 2600;           // m: the visitor's sky (the flocks within it counted) ...
-  var LIVE_N = { glow: 7, blue: 7, first: 6, moon: 5, day: 8 };   // ... this many flocks in it, by the sky
+  var LIVE_N = { glow: 7, blue: 6, first: 6, moon: 4, day: 8 };   // ... this many flocks in it, by the sky
   var HOME_R = 1.25 * LIVE_R;   // m: past this a bird turns home (homeStep)
   var NEAR_R = 3000;           // m: a flock nearer than this flies every bird of it each step; farther, its leader a coarse step and the rest held in their places
   var COARSE = 0.5;            // s: the far flocks' step
@@ -173,9 +173,14 @@
      downwind and climbing a little; loiter: about a home; sink: down into the sea of cloud; out: climbing away into
      the distance; pass: by the eye, near (rare). Each ends in another, drawn from the bird's own stream */
   var GOALS = {
-    glow: [['commute', 50], ['wheel', 14], ['loiter', 20], ['sink', 8], ['out', 8]], blue: [['commute', 55], ['wheel', 12], ['loiter', 18], ['sink', 8], ['out', 7]],
-    first: [['commute', 55], ['wheel', 12], ['loiter', 20], ['sink', 8], ['out', 5]], moon: [['commute', 60], ['loiter', 20], ['sink', 10], ['out', 10]],
+    glow: [['commute', 50], ['wheel', 14], ['loiter', 16], ['sink', 12], ['out', 8]], blue: [['commute', 45], ['wheel', 10], ['loiter', 13], ['sink', 25], ['out', 7]],
+    first: [['commute', 60], ['loiter', 20], ['out', 20]], moon: [['commute', 60], ['loiter', 20], ['sink', 10], ['out', 10]],
     day: [['commute', 40], ['wheel', 20], ['loiter', 22], ['sink', 10], ['out', 8]] };
+  /* (physics: birds/day) the sky's part in a commute: the share flown toward the roost's bearing (POP.line, +0) or away
+     from it (+pi). Roost flights peak 15-30 min after sunset, the last arrivals in the blue hour; at first light the
+     roost empties (https://seafwa.org/journal/1979/analysis-wood-duck-roost-counts-northwest-south-carolina) */
+  var ROOST_B = { glow: [0.9, 0], blue: [0.75, 0], first: [0.9, Math.PI] };   // (the spec's 85 %, a little over: a commute begun as a pass or brought home flies its own way)
+  var NIGHT_K = { goose: 1, gull: 1, heron: 1 };   // the kinds that fly at night; crows, swallows and finches roost
   var PASS_GAP = [120, 300], PASS_D = [30, 70];   // s between the near passes (at most one, and rare); m beside the eye
   var PLQ = [];
   /* a near pass flown: the next not before PASS_GAP */
@@ -184,7 +189,8 @@
     var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false, leave: false };
     var eye = LVC.y, gr = lvGround(x, z), top = Math.max(hideTop(x, z), gr);
     if (kind === 'commute') {
-      g.psi = r() < 0.6 ? POP.line + (r() < 0.65 ? 0 : Math.PI) + (r() - 0.5) * 0.9 : TAU * r();
+      var rb = ROOST_B[cls];   // (physics: birds/day: at dusk toward the roost's bearing, POP.line; at first light away from it)
+      g.psi = rb ? (r() < rb[0] ? POP.line + rb[1] + (r() - 0.5) * 0.9 : TAU * r()) : r() < 0.6 ? POP.line + (r() < 0.65 ? 0 : Math.PI) + (r() - 0.5) * 0.9 : TAU * r();
       g.y = Math.max(top + 25, eye + mix(r(), -40, 90)); g.T = pick(r, [40, 120]);
     } else if (kind === 'wheel') {
       HOST.places && HOST.places(1500, PLQ);
@@ -196,7 +202,7 @@
     else if (kind === 'sink') {
       var s = seaAt(x, z);
       g.y = Math.min(hideTop(x, z), s.lv - 60) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;   // (under both the near top and the far margin: hidden as it drifts either side of the ground grid)
-      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.p[1] - g.y, Lb.psi)) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it, or too little for the way down: on)
+      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.p[1] - g.y, Lb.psi)) return newGoal(F, cls === 'moon' && !NIGHT_K[F.kind] ? 'out' : 'commute', r, cls);   // (no sea of cloud under it, or too little for the way down: on)
     } else if (kind === 'out') { g.psi = TAU * r(); g.y = eye + mix(r(), 120, 300); g.T = 600; }
     else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), 10, 28); }   // (over the eye a little: seen from below its M shows; at the eye's height it is a line)
     F.goal = g; Lb.goal = g;
@@ -204,7 +210,8 @@
   }
   function nextGoal(F) {
     var r = F.r, cls = skyCls(), k = weighted(r, GOALS[cls] || GOALS.day);
-    if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || F.kind === 'crow')) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';
+    if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || (F.kind === 'crow' && cls !== 'blue'))) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';   // (in the blue hour the crows have roosted: no crow wheels)
+    if (cls === 'moon' && !NIGHT_K[F.kind]) k = 'sink';   // (night: a crow, swallow or finch still up goes down to roost, under the sea of cloud, or else away)
     if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
     return newGoal(F, k, r, cls);
   }
@@ -236,7 +243,7 @@
     g.eh += -g.eh * dt / 8 + 9 * DEG * Math.sqrt(2 * dt / 8) * lvG(r);
     g.ec += -g.ec * dt / 6 + 2 * DEG * Math.sqrt(2 * dt / 6) * lvG(r);
     if (g.k === 'wheel') {
-      g.cx += WINDV[0] * dt * 0.7; g.cz += WINDV[2] * dt * 0.7; g.y += 0.4 * dt;
+      g.cx += WINDV[0] * dt * 0.7; g.cz += WINDV[2] * dt * 0.7;   // (no climb on a timer: a thermal never forms at dusk or night; physics: birds/day)
       var rx = x - g.cx, rz = z - g.cz, rr = Math.sqrt(rx * rx + rz * rz) || 1, ph = Math.atan2(rx, rz);
       h = ph + g.sense * Math.PI / 2 - g.sense * clamp(1.2 * (rr - g.R) / g.R, -0.7, 0.7);
     } else if (g.k === 'loiter') {

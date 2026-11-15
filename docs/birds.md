@@ -140,6 +140,16 @@ over 1 m/s a landing on the letters comes in against it (to the pointer's moving
 side (approachStep); it touches facing into the wind (touchYaw, as wantYaw will want it) and never hops round of its own
 in its first 2 s down (264). test/birds-wind.mjs: 93 % of landings against the wind (before 54 %), none turned round within
 2 s of the touch (before 4 of 13).
+THE SKY'S DAY (physics: birds/day; this world keeps only white-word skies, no day: afterglow, blue hour, night, first
+light, each 70-190 s, in no day's order). At afterglow and in the blue hour commuters fly toward the roost's bearing
+(POP.line, drawn afresh at each change of sky): 90 % and 75 % of commutes (roost flights peak 15-30 min after sunset);
+at first light 90 % fly away from it. The way down to roost (sink) is 12 % of goals at afterglow, 25 % in the blue hour,
+10 % at night, none at first light; a wheel never climbs on a timer (no thermal at dusk or night). At night only geese,
+gulls and herons fly, about 4 flocks (LIVE_N); a crow, swallow or finch still up goes down to roost (or away) at its next
+goal, off the words too, and is never sent across the eye. In the blue hour no crow wheels; at first light crows leave in
+loose flocks. A change of sky takes effect only at each flock's next goal (the one clock, no shared timer).
+test/birds-flock.mjs: afterglow 90 % of commutes within 30 deg of the roost's bearing (before 38 %), first light 92 %
+away (before 19 %), night 4.1 flocks (before 5.0).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,

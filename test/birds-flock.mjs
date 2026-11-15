@@ -3,6 +3,7 @@
 //   physics: birds/phase   an ibis or a goose in a skein beats with the bird ahead on its leg in wake bouts at the spatial
 //                          phase (doi:10.1038/nature12939, doi:10.1073/pnas.1413589112); directly behind in a line, in antiphase; every other flock free
 //   physics: birds/leaving together   a take-off's strong beats hand over to its schedule at their own phase (BW.skip)
+//   physics: birds/day   the sky decides the commute's way (to the roost at dusk, away at first light) and who flies at night
 //   node --test test/birds-flock.mjs        CI (tools/checks/35-birds.sh: a process a test)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -134,4 +135,52 @@ test('a take-off\'s burst hands over to the schedule at its own phase (gap at mo
   console.log(`# handovers ${gaps.length}; the worst phase gap ${worst.toFixed(3)} cycle`);
   assert.ok(gaps.length >= 4, `only ${gaps.length} take-offs handed over`);
   assert.ok(worst <= 0.02, `a burst handed over ${worst.toFixed(3)} cycle off its phase`);
+});
+
+/* (physics: birds/day) the sky decides the commute's way and who is up (no day in this world: afterglow, blue hour, night,
+   first light). A goal is judged once, as it is made; commutes aimed at the eye to bring a flock into view (g.home) or
+   flown on from a pass (T 60) are not the sky's */
+function daySky(sky, seeds, each) {
+  for (let seed = 1; seed <= seeds; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = sky;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); const seen = new Set();
+    for (let k = 0; k < 20 * 300; k++) { sim.step(); each(sim, seen, k); }
+  }
+}
+const angOff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+test('at afterglow commuters fly toward the roost, at first light away from it (at least 80 % within 30 deg)', () => {
+  for (const [sky, back] of [['afterglow', 0], ['firstlight', Math.PI]]) {
+    let n = 0, on = 0;
+    daySky(sky, 8, (sim, seen) => {
+      for (const F of sim.B.FLOCKS) {
+        const g = F.goal; if (!g || seen.has(g)) continue; seen.add(g);
+        if (g.k !== 'commute' || g.home || g.T === 60) continue;
+        n++; if (angOff(g.psi, sim.B.POP.line + back) <= Math.PI / 6) on++;
+      }
+    });
+    console.log(`# ${sky}: ${n} commutes, ${(100 * on / n).toFixed(0)} % within 30 deg of ${back ? 'away from ' : ''}the roost's bearing`);
+    assert.ok(n >= 40, `only ${n} commutes at ${sky}`);
+    assert.ok(on >= 0.8 * n, `${sky}: only ${on} of ${n} commutes within 30 deg`);
+  }
+});
+test('at night only geese, gulls and herons fly, about 4 flocks (crows, swallows and finches roost)', () => {
+  let sum = 0, m = 0; const kinds = new Set();
+  daySky('moonlit', 4, (sim, seen, k) => {
+    if (k < 20 * 60) return;   // (a minute in: the night's own flocks)
+    sum += sim.B.liveCount(); m++; for (const F of sim.B.FLOCKS) if (F.lead) kinds.add(F.kind);
+  });
+  const mean = sum / m, odd = [...kinds].filter((k) => !['goose', 'gull', 'heron'].includes(k));
+  console.log(`# night: ${mean.toFixed(2)} flocks live on average; kinds ${[...kinds].join(', ')}`);
+  assert.deepEqual(odd, [], `${odd.join(', ')} flew at night`);
+  assert.ok(mean <= 4.25, `${mean.toFixed(2)} flocks at night on average (3-4 wanted)`);
+  /* night falling: every crow, swallow or finch still up near the eye goes down to roost or away at its next goal */
+  let up = 0, n = 0;
+  for (let seed = 1; seed <= 4; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = 'afterglow';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
+    for (let k = 0; k < 20 * 300; k++) { if (k === 20 * 60) sc.opt.sky = 'moonlit'; sim.step(); }   // (night from 60 s; judged 4 min after)
+    for (const F of sim.B.FLOCKS) if (F.lead && !F.far && !['goose', 'gull', 'heron'].includes(F.kind)) { n++; if (F.lead.st === 'fly' && F.goal && !['sink', 'out'].includes(F.goal.k)) up++; }
+  }
+  console.log(`# 4 min into the night: ${n} crow, swallow or finch flocks near, ${up} of them not roosting or leaving`);
+  assert.equal(up, 0, `${up} day kinds still about their day 4 min into the night`);
 });

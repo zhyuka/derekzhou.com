@@ -14,7 +14,7 @@ import { SCENES } from './birds-scenes.mjs';
 test('into a headwind a bird flies faster through the air, about 0.2 m/s a m/s (never held to its ground speed)', () => {
   const X = [], Y = [];
   for (let seed = 1; seed <= 3; seed++) {
-    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.draw = null; sc.opt.speed = 0; sc.opt.yaw = 0; sc.opt.wind = [6.5, 0];
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.draw = null; sc.opt.speed = 0; sc.opt.yaw = 0; sc.opt.wind = [6.5, 0]; sc.opt.sky = 'afterglow';   // (afterglow: the sky's full count of flocks)
     const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
     for (let k = 0; k < 120 * 20; k++) {
       sim.step(); if (k % 20) continue;

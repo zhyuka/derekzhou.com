@@ -102,6 +102,7 @@
       if (!b.F) soloFlock(b);
       var r = b.r, g = weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
       if (g === 'pass' && t < POP.passT) g = 'commute';
+      if (!NIGHT_K[b.kind] && skyCls() === 'moon') g = 'sink';   // (night: a crow, swallow or finch off the words goes down to roost, physics: birds/day)
       if (g === 'pass') passTaken(r);
       newGoal(b.F, g, r, skyCls());
     }
@@ -141,6 +142,7 @@
   function clickBird(x, y, C) {
     if (HOST.reduced() || FORCED) return;
     var r = vstream(8000 + (++PW.k)), kind = weighted(r, [['gull', 70], ['crow', 20], ['swallow', 10]]);
+    if (skyCls() === 'moon') kind = 'gull';   // (at night a gull: crows and swallows roost, physics: birds/day; drawn first all the same, the click's stream unchanged)
     var b0 = { S: SORTS[kind], sz: B_SPAN * SORTS[kind].size * MODEL_K }, D = perchDepth(b0, 0.55);   // (a little beyond the perches: its span about 2.3 a mid bird's there, so it can come down soon)
     rayAt(C, x, y, D, CQ);
     var F = newFlock(CQ[0], CQ[1], CQ[2], Math.atan2(C.f[0], C.f[2]) + (x < W / 2 ? -0.9 : 0.9), skyCls(), ['single', kind, 1]), b = F.lead;
