@@ -109,8 +109,8 @@ vec3 venusAt(vec3 rd, vec3 c) {
   if (zf <= 0.01) return vec3(0.0);
   vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   if (dot(d, d) > 400.0) return vec3(0.0);
-  float hv = max(uStarM.z - dot(c, LUMA), 0.0), sg = 0.7, F = SKYTAU * hv * sg * sg;
-  float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.12 * hv * exp(-length(d) / 2.5);
+  float hv = max(uStarM.z - dot(c, LUMA), 0.0), sg = 0.7, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
+  float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.2 * hv * exp(-length(d) / 3.0);
   return vec3(1.0583, 0.9954, 0.8738) * min(v, hv) * (1.0 - hazeSky(rd));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it

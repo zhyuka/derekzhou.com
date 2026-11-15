@@ -211,3 +211,21 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
   for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }
 });
+test('night: the evening star never glitters as it slides between pixels (its light the same within 2%)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const fn = (name) => g.match(new RegExp('^float ' + name + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm'));
+  const js = (src) => src.replace(/\bfloat\s+/g, 'let ').replace(/\b(sign|sqrt|exp)\(/g, 'Math.$1(').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const E = fn('starErf'), B = fn('starBox'), starErf = new Function(E[1].replace(/float /g, ''), js(E[2])), starBox = new Function('starErf', B[1].replace(/float /g, ''), js(B[2])).bind(null, starErf);
+  const V = g.match(/^vec3 venusAt[\s\S]*?^}/m)[0];
+  assert.ok(V.includes('sg = 0.7, F = 1.1 * SKYTAU * hv * sg * sg;') && V.includes('float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.2 * hv * exp(-length(d) / 3.0);') && V.includes('min(v, hv)') && !/uT\b/.test(V), 'venusAt: its core, glow and cap as measured here, and no clock (steady)');
+  let seed = 3; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  for (const hv of [0.02, 0.05, 0.1]) {
+    let lo = Infinity, hi = 0;
+    for (let k = 0; k < 64; k++) {
+      const ox = rnd() - 0.5, oy = rnd() - 0.5, F = 1.1 * 2 * Math.PI * hv * 0.49; let sum = 0, peak = 0;
+      for (let y = -20; y <= 20; y++) for (let x = -20; x <= 20; x++) { const dx = x - ox, dy = y - oy; if (dx * dx + dy * dy > 400) continue; const v = Math.min(F * starBox(dx, 0.7) * starBox(dy, 0.7) + 0.2 * hv * Math.exp(-Math.hypot(dx, dy) / 3), hv); sum += v; peak = Math.max(peak, v); }
+      lo = Math.min(lo, sum); hi = Math.max(hi, sum); assert.ok(peak <= hv + 1e-12);
+    }
+    assert.ok((hi - lo) / hi < 0.02, `head ${hv}: its light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides`);
+  }
+});
