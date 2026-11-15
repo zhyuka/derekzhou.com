@@ -17,8 +17,9 @@
 //   node tools/plan.mjs WORLD_JS OUT_JS     write the worker made from WORLD_JS (an assembled world.js)
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import crypto from 'node:crypto';
-import * as acorn from 'acorn';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const A0 = '  var PI = Math.PI, DEG = Math.PI / 180;\n';
@@ -35,20 +36,29 @@ export function spans(s) {
 }
 /* the spans' stamp: the md5 (first 12 hex) of their CODE alone, token by token (acorn's tokenizer: no comment, no spacing),
    so a comment or a line's layout changed in the spans leaves PW_V as it was, and only a change to what runs moves it */
+let acorn = null;   // (loaded on first use: fillStamp's cache spares most assemblies the tokenizer)
 export const stamp = (sp) => {
+  if (!acorn) acorn = createRequire(import.meta.url)('acorn');
   const code = sp.join(''), toks = [];
   for (const t of acorn.tokenizer(code, { ecmaVersion: 'latest' })) toks.push(code.slice(t.start, t.end));
   return crypto.createHash('md5').update(toks.join(' '), 'utf8').digest('hex').slice(0, 12);
 };
 
 // an assembled script with the source's empty stamp (`var PW_V = '';`, once) gets its plan spans' stamp written in;
-// any other text comes back as it is (tools/parts.mjs assemble runs every assembled script through this)
+// any other text comes back as it is (tools/parts.mjs assemble runs every assembled script through this). The stamp
+// is kept in the system's temp folder under the md5 of the spans' exact text (the stamp is a function of that text), so
+// the many assemblies of one tree tokenize once (a check run assembles in every birds test's process)
 const EMPTY = "var PW_V = '';";
 export function fillStamp(text) {
   const n = text.split(EMPTY).length - 1;
   if (!n) return text;
   if (n > 1) throw new Error('plan: ' + EMPTY + ' found ' + n + ' times');
-  return text.replace(EMPTY, "var PW_V = '" + stamp(spans(text)) + "';");
+  const sp = spans(text), key = crypto.createHash('md5').update(sp.join('\u0000'), 'utf8').digest('hex');
+  const f = path.join(os.tmpdir(), 'plan-stamp-' + key);
+  let st = null;
+  try { st = fs.readFileSync(f, 'utf8'); } catch (e) { /* not made yet */ }
+  if (!/^[0-9a-f]{12}$/.test(st || '')) { st = stamp(sp); try { fs.writeFileSync(f + '.' + process.pid, st); fs.renameSync(f + '.' + process.pid, f); } catch (e) { /* no cache: fine */ } }
+  return text.replace(EMPTY, "var PW_V = '" + st + "';");
 }
 
 const HEAD = (name, st) => `// ${name}: the world's first plan, made in a worker (fast500 step 11). Made by tools/plan.mjs from world.js:
