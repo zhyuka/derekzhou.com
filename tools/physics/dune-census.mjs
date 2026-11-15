@@ -80,19 +80,18 @@ function waveS1(x, y, lam, Hmax, swell) {
   const e1 = ss(L - 0.06, L, f), e2 = ss(0, 0.06, f);   // (the near family's share: none on the slip face, eased in and out)
   const wv = (1 - e1[0]) * e2[0], dw = -e1[1] * e2[0] + (1 - e1[0]) * e2[1];
   const nearW = [wv, dw * gph[0], dw * gph[1]];
-  return { h, lee: f > L - 0.02, f, fl, nearW, ph, gph, H: H[0] };
+  return { h, lee: f > L - 0.02, f, fl, nearW, ph, gph, H: H[0], dH: [H[1], H[2]] };
 }
-/* (physics: sand/S2) the slope the land's fragments rebuild from the phase (dunes-glsl's s1Slope): duneS1's pieces with
-   H held, the brink's and the toe's rounding rb, rt (height, m) */
-export function s1Slope(f, g, H, fl, rb, rt) {
-  const L = 1 - fl, a = f / L, n = (f - 1) / L;
-  const st = (t) => [0.5 * t + 0.5 * t * t * (3 - 2 * t), 0.5 + 3 * t * (1 - t)];
-  const pc = (v, d) => [H * v, g[0] * H * d, g[1] * H * d];
-  const sa = st(a);
-  const A = pc(sa[0], sa[1] / L), F = pc((1 - f) / fl, -1 / fl), N = pc(0.5 * n, 0.5 / L), P = pc(-f / fl, -1 / fl);
+/* (physics: sand/S2) the slope the land's fragments rebuild from the phase (dunes-glsl's s1Slope): duneS1's pieces and
+   their slopes, dH where duneS1 has it (the stoss and the next stoss), the brink's and the toe's rounding rb, rt */
+export function s1Slope(f, g, H, fl, rb, rt, dH = [0, 0]) {
+  const L = 1 - fl, a = f / L, n = (f - 1) / L, sa = 0.5 * a + 0.5 * a * a * (3 - 2 * a), da = (0.5 + 3 * a * (1 - a)) / L;
+  const A = [H * sa, g[0] * H * da + sa * dH[0], g[1] * H * da + sa * dH[1]], F = [H * (1 - f) / fl, -g[0] * H / fl, -g[1] * H / fl];
+  const N = [H * 0.5 * n, g[0] * H * 0.5 / L + 0.5 * n * dH[0], g[1] * H * 0.5 / L + 0.5 * n * dH[1]], P = [-H * f / fl, -g[0] * H / fl, -g[1] * H / fl];
   const r = smax(smin(A, F, rb), f > 0.5 ? N : P, rt);
   return [r[1], r[2]];
 }
+export const s1Rb = (H, k, fl) => Math.max(H * k * (0.5 / (1 - fl) + 1 / fl), 0.05);
 /* the main wave alone at (x, y) in wind angle a, its swell and height as dunes() makes them (the S1 model) */
 export function mainAt(x, y, a = 0.6) {
   w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];

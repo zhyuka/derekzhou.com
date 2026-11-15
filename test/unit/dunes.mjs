@@ -9,6 +9,7 @@
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  vec2 G0 = swell.yz;\n", "with": "  vec2 G0 = swell.yz + H.yz;\n", "why": "the face solved for a gradient the surface does not have"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "vec3 H = dSmin(Hm, vec3(0.13 / k, 0.0, 0.0), 2.0);", "with": "vec3 H = Hm.x <= 0.13 / k ? Hm : vec3(0.13 / k, 0.0, 0.0);", "why": "a hard cap on the height: a 1 m step where it switches"}
 // plant: {"file": "src/world/350-shaders-scene.js", "find": "max(1.0, 0.5 * wpx) * sB", "with": "max(4.0, 0.5 * wpx) * sB", "why": "the brink rounded over 8 m, not crisp"}
+// plant: {"file": "src/world/350-shaders-scene.js", "find": "0.5 * wpx * sB), vS1d);", "with": "0.5 * wpx * sB), vec2(0.0));", "why": "the fragment without dH: the vertices' dH part left to the triangles, a sawtooth at the brink"}
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -26,7 +27,7 @@ function body(sig) {
 test('dunes: the shipped main wave is duneS1, its slip face at the angle of repose', () => {
   const d = body(/vec3 dunes\(vec2 p\) \{/); assert.ok(d, 'dunes() found');
   assert.match(d, /ph = s1Phase\(p, w, pp, 205\.0, g2, g3\)/, 'the main dunes\' phase (205 m)');
-  assert.match(d, /duneS1\(ph, 32\.0 \* dMul\(amp, gKD\), h - gSK, nw, hf\)/, 'the main dunes from duneS1 (32 m by the sand weight, over the swell)');
+  assert.match(d, /duneS1\(ph, 32\.0 \* dMul\(amp, gKD\), h - gSK, nw, s1o\)/, 'the main dunes from duneS1 (32 m by the sand weight, over the swell)');
   assert.doesNotMatch(d, /duneWave\(p, w, 205\.0/, 'not the old asymmetric wave');
   assert.match(d, /2\.4 \* wSmall\) \* dMul\(dMul\(dMul\(s2, /, 'the near family at 0.6 of its 4 m');
   assert.match(d, /, nw\);/, 'and weighted off the slip face');
@@ -93,19 +94,19 @@ test('dunes: the main wave has no step and no crease (walked along the wind ever
 });
 
 // (physics: sand/S2, a crisp brink) the land's fragments rebuild the main dune's slope at their own phase (s1Slope, from
-// the 7 varyings) in place of the vertices': walked along the wind across a cell of the land's grid (0.7-5.6 m), the
+// the 9 varyings: dH in) in place of the vertices' whole: walked along the wind across a cell of the land's grid (0.7-5.6 m), the
 // fragment's slope (the vertices' interpolated, less their own rebuilt slope interpolated, plus the rebuilt slope at the
 // fragment's phase) is the dune's own within 1 deg away from the brink and the toe, and at the brink it turns from the
 // stoss to the face within max(2 m, 1.5 px), where the vertices' alone took the whole cell.
 test('dunes: the brink rebuilt per fragment (physics: sand/S2): within 1 deg of the slope away from it, crisp at it', async () => {
-  const { mainAt, s1Slope } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
+  const { mainAt, s1Slope, s1Rb } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
   const fsSrc = fs.readFileSync(path.join(ROOT, 'src/world/350-shaders-scene.js'), 'utf8');
-  assert.match(fsSrc, /vec2 s = s1Slope\(fract\(vS1\.x\), g, H, fl, max\(1\.0, 0\.5 \* wpx\) \* sB, /, 'the fragment rebuilds the slope, its brink max(2 m, 1.5 px) wide');
+  assert.match(fsSrc, /vec2 s = s1Slope\(fract\(vS1\.x\), g, H, fl, max\(1\.0, 0\.5 \* wpx\) \* sB, [^;]*, vS1d\);/, 'the fragment rebuilds the whole slope (dH in), its brink max(2 m, 1.5 px) wide');
   assert.match(fsSrc, /float B = 1\.0 - smoothstep\(0\.25, 0\.5, cp\);/, 'only as far as the dunes are resolved');
-  assert.match(fsSrc, /vS1g = vec3\(fl, s1Slope\(fract\(s\.x\), s\.yz, vS1\.w, fl, 2\.0, max\(0\.15 \* vS1\.w, 0\.05\)\)\);/, 'the vertex\'s own rebuilt slope (the height\'s rounding)');
+  assert.match(fsSrc, /vS1g = vec3\(fl, s1Slope\(fract\(s\.x\), s\.yz, vS1\.w, fl, s1Rb\(vS1\.w, length\(s\.yz\), fl\), max\(0\.15 \* vS1\.w, 0\.05\), vS1d\)\);/, 'the vertex\'s whole slope, rounded as the height is');
   const ang = (a, b) => { const d = a[0] * b[0] + 1 + a[1] * b[1]; return Math.acos(Math.min(1, d / Math.hypot(a[0], 1, a[1]) / Math.hypot(b[0], 1, b[1]))) * 180 / Math.PI; };
-  const sv = (v) => s1Slope(v.f, v.gph, v.H, v.fl, 2, Math.max(0.15 * v.H, 0.05));
-  let far = 0, turnNew = 0, turnOld = Infinity;
+  const sv = (v) => s1Slope(v.f, v.gph, v.H, v.fl, s1Rb(v.H, Math.hypot(v.gph[0], v.gph[1]), v.fl), Math.max(0.15 * v.H, 0.05), v.dH);
+  let far = 0, turnNew = 0, turnOld = Infinity, left = 0;
   for (const c of [0.7, 1.4, 2.8, 5.6]) for (const wind of [0.6, 2.9]) {
     const wx = Math.cos(wind), wy = Math.sin(wind);
     for (let l = 0; l < 6; l++) {
@@ -113,10 +114,11 @@ test('dunes: the brink rebuilt per fragment (physics: sand/S2): within 1 deg of 
       for (let i = 0; i < 300 / c; i++) {
         const p0 = [ox + wx * i * c, oy + wy * i * c], p1 = [p0[0] + wx * c, p0[1] + wy * c];
         const v0 = mainAt(p0[0], p0[1], wind), v1 = mainAt(p1[0], p1[1], wind), s0 = sv(v0), s1 = sv(v1);
+        left = Math.max(left, Math.hypot(v0.h[1] - s0[0], v0.h[2] - s0[1]));   // (what the vertex keeps of the main dune: nothing)
         for (let t = 0.0625; t < 1; t += 0.125) {
           const m = (x, y) => x + (y - x) * t, a = mainAt(m(p0[0], p1[0]), m(p0[1], p1[1]), wind);
-          const ph = m(v0.ph, v1.ph), g = [m(v0.gph[0], v1.gph[0]), m(v0.gph[1], v1.gph[1])], H = m(v0.H, v1.H), fl = m(v0.fl, v1.fl), k = Math.hypot(g[0], g[1]);
-          const sB = H * k * (0.5 / (1 - fl) + 1 / fl), sf = s1Slope(ph - Math.floor(ph), g, H, fl, sB, Math.max(0.15 * H, 0.05));
+          const ph = m(v0.ph, v1.ph), g = [m(v0.gph[0], v1.gph[0]), m(v0.gph[1], v1.gph[1])], H = m(v0.H, v1.H), fl = m(v0.fl, v1.fl), k = Math.hypot(g[0], g[1]), dH = [m(v0.dH[0], v1.dH[0]), m(v0.dH[1], v1.dH[1])];
+          const sB = H * k * (0.5 / (1 - fl) + 1 / fl), sf = s1Slope(ph - Math.floor(ph), g, H, fl, sB, Math.max(0.15 * H, 0.05), dH);
           const old = [m(v0.h[1], v1.h[1]), m(v0.h[2], v1.h[2])], neu = [old[0] + sf[0] - m(s0[0], s1[0]), old[1] + sf[1] - m(s0[1], s1[1])];
           const dB = Math.min(Math.abs(a.f - (1 - a.fl)), a.f, 1 - a.f) / k;
           if (dB > c + 6) far = Math.max(far, ang(neu, [a.h[1], a.h[2]]));
@@ -134,7 +136,8 @@ test('dunes: the brink rebuilt per fragment (physics: sand/S2): within 1 deg of 
       }
     }
   }
+  assert.ok(left < 1e-9, 'the vertex keeps ' + left + ' of the main dune\'s slope: none is left to the triangles (the dH part, kept per vertex, made the brink a sawtooth)');
   assert.ok(far < 1, 'away from the brink and the toe: ' + far.toFixed(2) + ' deg from the dune\'s slope');
   assert.ok(turnNew <= 3.5, 'the brink turns within ' + turnNew.toFixed(1) + ' m (2 m and a fragment step)');
-  assert.ok(turnOld >= 4.5, 'where the vertices\' alone took ' + turnOld.toFixed(1) + ' m (the test can tell)');
+  assert.ok(turnOld >= 4.0, 'where the vertices\' alone took ' + turnOld.toFixed(1) + ' m (the test can tell)');
 });

@@ -5,7 +5,7 @@ vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast50
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
 vec3 gSK = vec3(0.0);   // (physics: sand/S1) the land's sink toward the cloud sea (sk: value, d/dx, d/dz) while the dunes are raised: the slip faces stand at repose on the ground as it is after it (set by Hd, HdProbe and the split's dunes pass)
-vec4 gS1 = vec4(0.0); float gS1F = 0.5, gS1W = 1.0;   // (physics: sand/S2) the main dunes at the last point the land was raised: phase, its gradient, height; the slip face's share; the sites' share of their slope
+vec4 gS1 = vec4(0.0); vec2 gS1D = vec2(0.0); float gS1F = 0.5, gS1W = 1.0;   // (physics: sand/S2) the main dunes at the last point the land was raised: phase, its gradient, height; the slip face's share; the sites' share of their slope
 #define HAS_GTX
 float gTX = 1e4; vec3 gLV = vec3(0.0), gWC = vec3(0.0);   // (world6 fix) the land's height over the cloud sea's top (from its vertices), and Hd's last level and cloud weight
 vec4 kwT(ivec2 i) { uint m = uint(uKWc.w) - 1u; return texelFetch(uKW, ivec2(uvec2(i) & uvec2(m)), 0); }

@@ -57,6 +57,7 @@ void main() {
     // (physics: sand/S2: the main dunes' phase, its gradient about 1/205 m, their height 0-30 m; the slip face's share, the vertex's slope)
     'vS1:vec4': 'vS1 = vec4(40.0 * hr(u, 21u), (hr(u, 22u) - 0.5) * 0.012, (hr(u, 23u) - 0.5) * 0.012, 30.0 * hr(u, 24u));',
     'vS1g:vec3': 'vS1g = vec3(0.04 + 0.5 * hr(u, 25u), hr(u, 26u) - 0.5, hr(u, 27u) - 0.5);',
+    'vS1d:vec2': 'vS1d = vec2(hr(u, 28u) - 0.5, hr(u, 29u) - 0.5) * 0.2;',
     'vC:vec4': mesh ? 'vC = vec4(hr(u, 6u), hr(u, 7u), hr(u, 8u), 1.0 + floor(hr(u, 9u) * 6.0) + 0.25 * hr(u, 10u));' : null,
     'vY:float': mesh ? 'vY = 20.0 * hr(u, 11u);' : null,
     'vE:vec2': mesh ? 'vE = vec2(hr(u, 12u), hr(u, 13u));' : null };

@@ -17,10 +17,10 @@ float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
      gradient, the height with the sites' share; the slip face's share, the slope the vertex took from them). The
      fragment rebuilds the slope at its own phase (s1Slope) and puts it in place of the vertices' (FS_TERRAIN) */
   var S1_OUT = `
-centroid out vec4 vS1; centroid out vec3 vS1g;
-void s1Out(vec4 s, float fl, float sw) {
-  vS1 = vec4(s.xyz, s.w * sw);
-  vS1g = vec3(fl, s1Slope(fract(s.x), s.yz, vS1.w, fl, 2.0, max(0.15 * vS1.w, 0.05)));
+centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec2 vS1d;
+void s1Out(vec4 s, float fl, float sw, vec2 dH) {
+  vS1 = vec4(s.xyz, s.w * sw); vS1d = dH * sw;
+  vS1g = vec3(fl, s1Slope(fract(s.x), s.yz, vS1.w, fl, s1Rb(vS1.w, length(s.yz), fl), max(0.15 * vS1.w, 0.05), vS1d));
 }`;
   function VS_TERRAIN(H, G) {   // (G, a surface's gap function: its height over another surface, passed to its shading as gTX)
     return `
@@ -35,7 +35,7 @@ void main() {
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
-  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W);' : ''}
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D);' : ''}
   gl_Position = uVP * vec4(vW - uCam, 1.0);
 }`;
   }
@@ -61,7 +61,7 @@ void main() {
   var HP_GRIDW = `@glsl hp-gridw`;
   var HP_MAIN = {
     kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',
-    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), gS1.x); o1 = vec4(gS1.yzw, gS1F); }',   // (physics: sand/S2: the phase and the rest to P2.w and P5)
+    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), gS1.x); o1 = vec4(gS1.yzw, gS1F); o2 = vec4(gS1D, 0.0, 0.0); }',   // (physics: sand/S2: the phase and the rest to P2.w, P5 and P6)
     sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), gS1W); o1 = vec4(0.0); }',
     ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
     /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses
@@ -91,7 +91,7 @@ void main() {
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
 uniform int uLvl;    // the level: its rows in the passes' texels
-uniform highp sampler2D uHP0, uHP1, uHP2, uHP3, uHP4, uHP5;   // kit (wD, lv), kit (sk, wC), the dunes' h (+ their phase), the sites' h (+ their share), the ridges (+ A_Hd), the dunes' phase's gradient, height and slip face
+uniform highp sampler2D uHP0, uHP1, uHP2, uHP3, uHP4, uHP5, uHP6;   // kit (wD, lv), kit (sk, wC), the dunes' h (+ their phase), the sites' h (+ their share), the ridges (+ A_Hd), the dunes' phase's gradient, height and slip face, their height's change
 centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;${S1_OUT}
 void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
@@ -103,7 +103,7 @@ void main() {
   vec3 hd = (s.xyz + r.xyz) - k1.xyz;
   vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
-  vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w);
+  vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0).xy);
   gl_Position = uVP * vec4(vW - uCam, 1.0);
 }`;
   }
@@ -112,7 +112,7 @@ void main() {
      across the cell, they smeared the brink over it): the rounding max(2 m, 1.5 px) at the brink and the toe, and the
      whole put in only as far as the dunes are resolved (B, by the cycles of phase a pixel spans: the spec's band-limit) */
   var S1_IN = `
-centroid in vec4 vS1; centroid in vec3 vS1g;`;
+centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec2 vS1d;`;
   var S1_FS = `
   if (vS1.w > 0.01) {
     vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
@@ -121,7 +121,7 @@ centroid in vec4 vS1; centroid in vec3 vS1g;`;
     float B = 1.0 - smoothstep(0.25, 0.5, cp);
     if (B > 0.0) {
       float wpx = 1.5 * cp / k, sB = H * k * (0.5 / L + 1.0 / fl);   // (1.5 px in metres along the wind; the slopes' sum either side)
-      vec2 s = s1Slope(fract(vS1.x), g, H, fl, max(1.0, 0.5 * wpx) * sB, max(max(0.15 * H, 0.05), 0.5 * wpx * sB));
+      vec2 s = s1Slope(fract(vS1.x), g, H, fl, max(1.0, 0.5 * wpx) * sB, max(max(0.15 * H, 0.05), 0.5 * wpx * sB), vS1d);
       vec2 dg = B * (s - vS1g.yz);
       n = normalize(vN - vec3(dg.x, 0.0, dg.y));
     }

@@ -31,20 +31,20 @@
     PROBE_PTS = []; for (var i = 0; i < 3; i++) PROBE_PTS.push(tex2d(PROBE_W, PROBE_H, gl.RG32F, gl.RG, gl.FLOAT, gl.NEAREST));
     gl.activeTexture(gl.TEXTURE0);
   }
-  /* the split height's targets and passes: two sets of six RGBA32F textures (the clipmap's: 97 x 970, a texel a vertex
-     of the ten levels; the probe's: 256 x 160, its points' batch or the ground's grid), bound to units 16-21 by the run
+  /* the split height's targets and passes: two sets of seven RGBA32F textures (the clipmap's: 97 x 970, a texel a vertex
+     of the ten levels; the probe's: 256 x 160, its points' batch or the ground's grid), bound to units 16-22 by the run
      that fills them, so the draw after it reads them. P0 kit (wD, lv), P1 kit (sk, wC), P2 the dunes' h (+ their phase), P3 the sites'
      h (+ their share of the dunes' slope), P4 the ridges (+ A_Hd's value), P5 the dunes' phase's gradient, height and
-     slip face (physics: sand/S2) */
+     slip face, P6 their height's change (physics: sand/S2) */
   var HPT = null, HPLA = new Float32Array(40);
   function hpSet(w, h) {
-    var S = { w: w, h: h, t: [], f: [] }, k, A = [[0, 1], [2, 5], [3], [4]];   // (physics: sand/S2: the dunes' pass also writes P5)
-    for (k = 0; k < 6; k++) { gl.activeTexture(gl.TEXTURE16 + k); S.t.push(tex2d(w, h, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST)); }
+    var S = { w: w, h: h, t: [], f: [] }, k, A = [[0, 1], [2, 5, 6], [3], [4]];   // (physics: sand/S2: the dunes' pass also writes P5 and P6)
+    for (k = 0; k < 7; k++) { gl.activeTexture(gl.TEXTURE16 + k); S.t.push(tex2d(w, h, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST)); }
     gl.activeTexture(gl.TEXTURE0);
     for (k = 0; k < 4; k++) {
       var f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
       for (var a = 0; a < A[k].length; a++) gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + a, gl.TEXTURE_2D, S.t[A[k][a]], 0);
-      gl.drawBuffers(A[k].length > 1 ? [gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1] : [gl.COLOR_ATTACHMENT0]);
+      gl.drawBuffers(A[k].map(function (t, a) { return gl.COLOR_ATTACHMENT0 + a; }));
       S.f.push(f);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -55,7 +55,7 @@
     hpTargets();
     var S = src === 0 ? HPT.clip : HPT.pr, hp = V.def.P.hp, k, P, ord = src === 0 ? [0, 1, 2, 3] : HP_PORD;   // (the probe: its .x-only sites and ridges)
     if (w > S.w || h > S.h) { fail('split height: ' + w + ' x ' + h + ' over its targets'); return; }
-    for (k = 0; k < 6; k++) { gl.activeTexture(gl.TEXTURE16 + k); gl.bindTexture(gl.TEXTURE_2D, S.t[k]); }
+    for (k = 0; k < 7; k++) { gl.activeTexture(gl.TEXTURE16 + k); gl.bindTexture(gl.TEXTURE_2D, S.t[k]); }
     gl.activeTexture(gl.TEXTURE0);
     gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.colorMask(true, true, true, true); gl.bindVertexArray(FULLVAO);
     for (k = 0; k < 4; k++) {
