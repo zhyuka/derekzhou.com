@@ -144,10 +144,10 @@
       s = b.s;
       var was = s.seenF === DF - 1;
       if (!was) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
-      /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself
-         SPECK_HZ times a second, at its own phase (by its number): between, its form and tone are held and only its place
-         and attitude move. (time-based-constants) By the steps' clock, not the frames: one frame in four posed it 15
-         times a second at 60 Hz and 36 at 144; at 60 Hz it is still one frame in four */
+      /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself one frame
+         in four at 60 Hz: SPECK_HZ times a second by the frame's own time (ft, TD), at its own phase (by its number):
+         between, its form and tone are held and only its place and attitude move. (time-based-constants) One frame in
+         four by the frames' count posed it 36 times a second at 144 Hz */
       var pk = Math.floor(ft * SPECK_HZ + (b.id & 3) / 4 + 1e-6);
       s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && pk === s.pk;
       if (!s.hold) s.pk = pk;
