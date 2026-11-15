@@ -541,17 +541,21 @@ shader). It holds:
   breeze is the same table, handed it read only by its feed
   (docs/sound.md).
 - The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
-  the visit's own U10 and the sky's shares (no new draw), constant
-  through a hold and eased through a change with the light. mist (m
-  deep): radiation mist on a still clear night, thickest before sunrise
-  (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow
-  0), gone as the surface wind mixes it up (2-4.5 m/s at 10 m). oro (0-1):
-  the orographic gate, the ridge-top wind (1.28 the wind at the jet's
-  height) past 7.7 m/s: lee waves, lenticulars and banner clouds (about a
-  quarter of afternoons, most nights, where the jet runs). vis (km): 10
-  in clean air, 4 in blown sand once the surface wind passes the sand's
-  threshold (5.8-7 m/s; about one afternoon in six). LAND's mist and
-  CLOUDS' lenticulars and banners read it.
+  the visit's own U10 and the sky (no new draw). mist (m deep): radiation
+  mist on a still clear night, thickest before sunrise; each sky's depth
+  set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour
+  1, the afterglow 0), whole while the sky's surface wind is under 3.6
+  m/s, mixed out by 5 (set by eye); through a change its level moves
+  toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
+  never a jump, never a race). oro (0-1): the orographic gate, the
+  visit's own from U10 alone: the ridge-top wind is the log law's 100 m
+  share of U10 (1.28), and past 7.7 m/s there (U10 about 6) the ridges
+  stand lee waves, lenticulars and banner clouds (about a quarter of
+  visits). vis (km): the visit's own, 10 in clean air, 4 in blown sand
+  once U10 is past the sand's threshold (5.8-7 m/s; about one visit in
+  six). The gate and the haze never change with the sky, so the far land
+  never fades in place. LAND's mist and CLOUDS' lenticulars and banners
+  read it.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route) and the
   sky's frame (skyFrame: the turn the stars and the galaxy take; today
   none).

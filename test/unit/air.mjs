@@ -4,7 +4,9 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
-// plant: {"file": "src/world/215-air.js", "find": "o.mist = airSkyMix(AIR_MIST, t, 0) * (1 - airEase(K.mist[0], K.mist[1], sfc));", "with": "o.mist = airSkyMix(AIR_MIST, t, 0);", "why": "the mist the same in any wind"}
+// plant: {"file": "src/world/215-air.js", "find": "return d === undefined ? 0 : d * (1 - airEase(AIR_WXK.mist[0], AIR_WXK.mist[1], u * (sh ? sh[0] : 1)));", "with": "return d === undefined ? 0 : d;", "why": "the mist the same in any wind"}
+// plant: {"file": "src/world/215-air.js", "find": "var AIR_MIST_RATE = 0.18,", "with": "var AIR_MIST_RATE = 0.5,", "why": "the mist racing through a change"}
+// plant: {"file": "src/world/215-air.js", "find": "o.dust = airEase(K.dust[0], K.dust[1], u);", "with": "o.dust = airEase(K.dust[0], K.dust[1], u * weather(t)[0]);", "why": "the haze changing with the sky (the far land fading in place)"}
 // plant: {"file": "src/world/glsl/fs-ribbon.glsl", "find": "(dot(vW.xz, w) - uAir.x * length(uWind.xz)) * 0.035", "with": "dot(vW.xz, w) * 0.035 - uT * 0.22", "why": "the veils' streaks at a pace of their own"}
 // plant: {"file": "src/world/215-air.js", "find": "eta = (z * f.x - x * f.z - U * T[3]) / L + oz;", "with": "eta = (z * f.x - x * f.z) / L + oz;", "why": "the night's gusts lingering past row 6 (no slide)"}
 // plant: {"file": "src/world/215-air.js", "find": "if (tS <= seq[0].at) { var A0 = airSh(seq[0]); for (c = 0; c < AIR_NC; c++) out[c] = (tS - seq[0].at) * A0[c]; return out; }", "with": "if (tS <= 0) { var A0 = airSh(seq[0]); for (c = 0; c < AIR_NC; c++) out[c] = tS * A0[c]; return out; }", "why": "the wind's clock jumps at the flight's start (the opening part way through its hold)"}
@@ -326,14 +328,22 @@ test('air: the weather the wind makes (mist on still nights and before sunrise, 
   // the windiest visits: no mist (a surface wind past 4.5 m/s mixes it up)
   const V = { seed: 1, u10: 7.5 }; G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'bluehour', at: 0, hold: 1e6, move: 60 });
   assert.equal(G.airWx(5, V).mist, 0, 'the blue hour at the windiest: none');
-  assert.ok(out.afterglow.oro > 0.05 && out.afterglow.oro < 0.4, `the ridge's lee waves on the windier afternoons only (${(100 * out.afterglow.oro).toFixed(0)}% of visits)`);
-  assert.ok(out.firstlight.dust === 0 && out.afterglow.dust > 0.05, 'the sand haze only where the surface wind lifts the sand');
-  assert.ok(out.afterglow.visMin < 5 && out.firstlight.visMin === 10, 'the visibility: 10 km clean, 3-5 km in blown sand');
-  // through a change: eased with the light
-  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'milkyway', at: 0, hold: 60, move: 60 }, { id: 'firstlight', at: 120, hold: 1e6, move: 60 });
-  const W = { seed: 2, u10: 3 }; let p = G.airWx(0, W).mist, worst = 0;
-  for (let t = 0.05; t < 200; t += 0.05) { const m = G.airWx(t, W).mist; worst = Math.max(worst, Math.abs(m - p)); p = m; }
-  assert.ok(worst < 0.02, `the mist deepens by ${worst.toFixed(4)} m in 50 ms (eased, never a jump)`);
+  for (const id of skies) assert.ok(Math.abs(out[id].oro - out.afterglow.oro) < 1e-12 && Math.abs(out[id].dust - out.afterglow.dust) < 1e-12 && out[id].visMin === out.afterglow.visMin, `${id}: the lee-wave gate and the haze the visit's own (U10 alone), the same in every sky`);
+  assert.ok(out.afterglow.oro > 0.05 && out.afterglow.oro < 0.4, `the ridge's lee waves on the windier visits only (${(100 * out.afterglow.oro).toFixed(0)}% of visits)`);
+  assert.ok(out.afterglow.dust > 0.05 && out.afterglow.dust < 0.4 && out.afterglow.visMin < 5, 'the sand haze only on the visits past the sand\'s threshold, the visibility 10 km clean, 4-5 km in blown sand');
+  // through every change of sky, at every wind: the mist's level never faster than 0.01 m in 50 ms; the gate and the haze never move
+  let worst = 0, wv = 0;
+  for (const A of skies) for (const B of skies) {
+    if (A === B) continue;
+    G.SKY.seq.length = 0; G.SKY.seq.push({ id: A, at: -20, hold: 40, move: 55 }, { id: B, at: 75, hold: 300, move: 60 });
+    for (let u = 3; u <= 7.5; u += 0.25) {
+      const W = { seed: 2, u10: u }; let p = G.airWx(0, W).mist; const o0 = G.airWx(0, W).oro, v0 = G.airWx(0, W).vis;
+      for (let i = 1; i <= 3600; i++) { const o = G.airWx(i * 0.05, W); worst = Math.max(worst, Math.abs(o.mist - p)); p = o.mist; wv = Math.max(wv, Math.abs(o.oro - o0), Math.abs(o.vis - v0)); }
+      assert.ok(Math.abs(p - G.airWx(1e4, W).mist) < 1e-9, `${A} into ${B} at ${u} m/s: the mist reaches the next sky's level within its hold`);
+    }
+  }
+  assert.ok(worst <= 0.01 + 1e-12, `the mist's level moves ${worst.toFixed(4)} m in 50 ms (at most 0.01: 0.2 m/s)`);
+  assert.equal(wv, 0, 'the gate and the haze never move through a change');
 });
 
 test('air: the gusts by sky: the e-fold within row 6 in every sky, the streaks on the veils\' own wind', () => {
