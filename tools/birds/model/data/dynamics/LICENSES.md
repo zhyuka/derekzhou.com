@@ -48,7 +48,7 @@ domain) and doi:10.7554/eLife.44986 (eLife, CC0).
 | a PDF and its text | Jackdaw gliding in a wind tunnel (Lund University repository copy; doi:10.1242/jeb.204.6.1153) | private study per the repository's terms |
 | a PDF and its text | Bar-headed goose migration, heart rate and wingbeat (University of Konstanz repository copy; doi:10.1126/science.1258732) | rights reserved (Science) |
 | `t.txt` | Review (arXiv:1606.08969; doi:10.1016/j.biosystems.2016.05.010), used only for two SECONDARY goose wingtip-spacing values | arXiv licence; quoted as secondary |
-| `b.txt` | CFD study of goose formations (MDPI Birds 2025); text kept, PDF deleted; read for its citations only, no numbers used | CC BY 4.0, but not used |
+| `b.txt` | CFD study of goose formations, Birds 2025, 6(2), 15, https://www.mdpi.com/2673-6004/6/2/15; text kept, PDF deleted; read for its citations only, no numbers used | CC BY 4.0, but not used |
 
 Also read but not downloaded, as study only:
 

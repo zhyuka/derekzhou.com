@@ -39,7 +39,7 @@ a URI to a resource that carries it); no person is named here.
 | J R Soc Interface 19: 20220168 (2022), doi:10.1098/rsif.2022.0168 | the heave's phase; amplitude and frequency independence | CC BY 4.0 |
 | eLife 8: e44986 (2019), doi:10.7554/eLife.44986 (Supplementary file 4; Video 2) | the bar-headed goose's stroke amplitude and timing; the goose film check | CC0 (data), CC BY 4.0 (video) |
 | Proc R Soc B 286: 20191083 (2019), doi:10.1098/rspb.2019.1083 (ESM M5; Appendix I) | the great egret film: downstroke share, landmarks for the footage check | CC BY 4.0 |
-| "4K Free Stock Footage: Seagulls: Regular and Slow Motion" (Internet Archive; cited by its title: the item's URL carries a person's name) | the gull filmed from below (landmarks) and gliding (front profile) | CC BY 4.0 |
+| "4K Free Stock Footage: Seagulls: Regular and Slow Motion", https://archive.org/search?query=%224K+Free+Stock+Footage%3A+Seagulls%22 (the Internet Archive item found by its title; its own address carries a person's name) | the gull filmed from below (landmarks) and gliding (front profile) | CC BY 4.0 |
 | eLife 8: e45071 (2019), doi:10.7554/eLife.45071 | no phase locking in shorebird Vs | CC BY 4.0 |
 | J R Soc Interface 11: 20140645 (2014), doi:10.1098/rsif.2014.0645; PLoS ONE 4: e5400 (2009), doi:10.1371/journal.pone.0005400; J Exp Biol 228: jeb249393 (2025), doi:10.1242/jeb.249393; dataset figshare doi:10.6084/m9.figshare.4236305.v2 (2017) | wing tucks; frequency scaling; swallow glides; jackdaw glide spans | CC BY |
 | The Feather Atlas, US Fish & Wildlife Service Forensics Laboratory, https://www.fws.gov/lab/featheratlas/ | slot counts per kind (numbers only) | US federal work |

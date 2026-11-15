@@ -85,7 +85,7 @@
      slots as their curl, washout and fan differ (doi:10.1242/jeb.180.1.285; doi:10.1098/rsif.2017.0099); gull and swallow (no notch)
      stay one surface. THE GLIDE carries the bird's weight, so its primaries hold the beat's mean load (tip_load a0 of
      the peak), and it TRIMS: the arm's dihedral and the bank wander as measured in a gull's level glide (stock
-     footage "4K Free Stock Footage: Seagulls", Internet Archive, CC BY, study only: the research record's gull front-glide
+     footage "4K Free Stock Footage: Seagulls", https://archive.org/search?query=%224K+Free+Stock+Footage%3A+Seagulls%22, CC BY, study only: the research record's gull front-glide
      file, frames 50-120: bank SD 3.2 deg (range 12.7),
      the arms' front-view angle SD 5.6 deg (range 22, detrended), its power at 0.35-1.4 Hz of video time, left-right
      2.0 deg (the noise floor); the clip's time base 25 fps assumed real time), in beat time (x f_real / f). */

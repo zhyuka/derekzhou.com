@@ -4,7 +4,7 @@
    doi:10.6084/m9.figshare.c.5275490; doi:10.6084/m9.figshare.8856161; doi:10.6084/m9.figshare.11369364;
    doi:10.3390/biomimetics9090555; doi:10.1002/ece3.2585; doi:10.1007/s10336-022-01978-1; doi:10.1371/journal.pbio.3000299;
    doi:10.1098/rsif.2022.0168; doi:10.7554/eLife.44986 (video); doi:10.1098/rspb.2019.1083; "4K Free Stock Footage:
-   Seagulls" (Internet Archive); doi:10.7554/eLife.45071; and, CC BY: doi:10.1371/journal.pone.0028672;
+   Seagulls" (https://archive.org/search?query=%224K+Free+Stock+Footage%3A+Seagulls%22); doi:10.7554/eLife.45071; and, CC BY: doi:10.1371/journal.pone.0028672;
    doi:10.1371/journal.pbio.0050197; doi:10.1098/rsif.2014.0645; doi:10.1371/journal.pone.0005400; doi:10.1242/jeb.249393;
    doi:10.6084/m9.figshare.4236305.v2. CC BY 3.0: doi:10.1371/journal.pone.0063982. CC0: doi:10.5281/zenodo.4963689;
    doi:10.5441/001/1.78152p3q; doi:10.7554/eLife.44986 (data). Public domain: https://ntrs.nasa.gov/citations/20040075526
