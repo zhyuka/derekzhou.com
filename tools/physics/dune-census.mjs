@@ -74,7 +74,7 @@ function waveS1(x, y, lam, Hmax, swell) {
   const N = lin(0.5 * (f - 1) / L, 0.5 / L);   // (the next stoss, below its toe: its plane there, C1 at the toe; the cubic turned up behind it and,
   // past f 0.5 on wide faces, rose into the smooth max: the land stepped 1.9 m where the toe's choice switched)
   const P = [-H[0] * f / fl, -H[0] / fl * gph[0], -H[0] / fl * gph[1]];   // (the face before, below its toe: the same)
-  const kb = 2.0, kt = Math.max(0.15 * H[0], 0.05);
+  const kb = Math.max(H[0] * k * (0.5 / L + 1 / fl), 0.05), kt = Math.max(0.15 * H[0], 0.05);   // (the brink rounded over 2 m across)
   const top = smin(A, F, kb), h = f > 0.5 ? smax(top, N, kt) : smax(top, P, kt);
   const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return [t * t * (3 - 2 * t), 6 * t * (1 - t) / (b - a)]; };
   const e1 = ss(L - 0.06, L, f), e2 = ss(0, 0.06, f);   // (the near family's share: none on the slip face, eased in and out)

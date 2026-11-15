@@ -84,7 +84,7 @@ vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
    face at sand's angle of repose, 32 deg, down to a toe) one main dune: the windward rise 0.5x + 0.5x^2 (3 - 2x), the
    slip face a plane from the brink, its own slope m chosen so the surface's steepest descent there is 32 deg with the
    swell and the crest's change in height (G) included: m = G.g + sqrt(tan^2 32 - |G across g|^2); its share of the
-   wavelength fl = H k / m. The brink a smooth min over 2 m, the toe a smooth max over 0.15 of the face. H = min(the
+   wavelength fl = H k / m. The brink a smooth min over 2 m across, the toe a smooth max over 0.15 of the face. H = min(the
    dune's height, 0.13 of the local wavelength). Census (tools/physics/dune-census.mjs, 2.25 M points): lee mode 31,
    p99 32.0, none over 34 deg (the steepest 32.0), stoss p50 9.1, p90 13.6 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
    (none on the slip face, eased over 0.06 of the phase at both ends) */
@@ -102,7 +102,7 @@ vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
   vec3 F = vec3(H.x * (1.0 - f) / fl, ph.yz * (-H.x / fl));   // (no dH: see m)
   vec3 N = dMul(vec3(0.5 * n, ph.yz * (0.5 / L)), H);   // (the next stoss's plane below its toe: the cubic turned up behind it, a 1.9 m step at f 0.5)
   vec3 P = vec3(-H.x * f / fl, ph.yz * (-H.x / fl));
-  vec3 top = dSmin(A, F, 2.0), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));
+  vec3 top = dSmin(A, F, max(H.x * k * (0.5 / L + 1.0 / fl), 0.05)), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));   // (the brink rounded over 2 m across: a smooth min over the height the two slopes part by in 1 m each side)
   vec3 e1 = dSstep(L - 0.06, L, vec3(f, ph.yz)), e2 = dSstep(0.0, 0.06, vec3(f, ph.yz));
   nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2);
   return h;
