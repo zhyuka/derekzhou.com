@@ -12,6 +12,7 @@
   var SIM = { t: 0, V: null, u: 0, acc: 0, alpha: 1, steps: 0, fixG: 0, fixO: 0, inited: false, junction: false, waits: 0 };
   var TH_MAX = 35 * DEG;
   var HEAD_T = 0.07, HEAD_MAX = 2.5, BANK_MAX = 2 * DEG, BANK_T = 0.08;   // (the heading's follow of the view; the bank's limit and ease)
+  var VY_J = 2, VY_TV = 0.6;   // (the height's spring: its acceleration's own rate, m/s3, and the time its speed limits are approached over)
   function freshState() {
     return { x: 0, y: 0, z: 0, psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, c: 0, vy: 0, om: 0, omP: 0, since: 9, roll: 0, yawRate: 0,
       lastIn: -1e9, idleAfter: 8, auto: 1, cy: 0, hl: 0, pf: NaN, pfT: 0, ring: new Float32Array(12), ringP: new Float32Array(12), ringT: new Float32Array(12), ri: 0, sv: 0,
@@ -27,7 +28,7 @@
       CS.psi = CS.yawV = airHeading0(); SIM.inited = true;
       if (DEVMODE && POSE) CS.psi = CS.yawV = POSE[2] * DEG;
     }
-    CS.x = 0; CS.z = 0; CS.c = cl[1]; CS.vy = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CS.om = 0; CS.omP = 0; CS.sv = 0; CS.lat = 0; CS.latT = 0; CS.latT2 = 0; CS.tsw = -1; CS.fpsi = CS.psi; CS.vs = 0; CS.acc = 0; CS.pt = -1e9; if (CS.climbs) CS.climbs.length = 0;
+    CS.x = 0; CS.z = 0; CS.c = cl[1]; CS.vy = 0; CS.ay = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CS.om = 0; CS.omP = 0; CS.sv = 0; CS.lat = 0; CS.latT = 0; CS.latT2 = 0; CS.tsw = -1; CS.fpsi = CS.psi; CS.vs = 0; CS.acc = 0; CS.pt = -1e9; if (CS.climbs) CS.climbs.length = 0;
     if (DEVMODE && POSE) { CS.x = POSE[0]; CS.z = POSE[1]; }
     if (CS.x || CS.z) { kwFollow(CS.x, CS.z, true); if (V.G) kwUpload(); }   // (dev: a landing elsewhere: its weights at once)
     CS.cw = NaN; cruiseStep(CS, 0); flightParams(V, CS.cw); CS.c = cl[1];   // (world6 step B: the landing's own clearance, from the maps ahead; one framing everywhere)
@@ -98,20 +99,26 @@
     if (!INP.down && CS.thU < -0.02 && CS.c < keptFloor(cl)) CS.c = Math.min(keptFloor(cl), CS.c + KEEP_UP * dt);   // (E1.1 Fix 2: below the kept tilt's floor once the finger is up: back up to it)
     if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;
     CS.c = clamp(CS.c, cl[0], cl[2]);
-    // the height: the ground ahead in time and what stands on it, a spring toward it
+    // the height: the ground ahead in time and what stands on it, a spring toward it. (flight-controllers-smooth) Its
+    // acceleration eases toward the spring's own at most VY_J m/s3, and the climb's and descent's limits are approached over
+    // VY_TV s, never struck: the height is smooth to its acceleration (C2). It was smooth only to its speed (C1): the
+    // acceleration jumped whenever the target moved (a rise or a solid coming into the look) and stopped dead at the speed
+    // limits, a small nod each time
     pitchLook(V, CS, dt);   // (the look at the ground ahead)
-    var yT = heightTarget(V, t), w = VY_W, acc = clamp(w * w * (yT - CS.y) - 2 * w * CS.vy, -VY_ACC, yT > CS.y ? VY_ACCU : VY_ACC);
-    CS.vy = clamp(CS.vy + acc * dt, -VY_DN, VY_UP);
+    var yT = heightTarget(V, t), w = VY_W, aW = clamp(w * w * (yT - CS.y) - 2 * w * CS.vy, -VY_ACC, yT > CS.y ? VY_ACCU : VY_ACC);
+    aW = clamp(aW, (-VY_DN - CS.vy) / VY_TV, (VY_UP - CS.vy) / VY_TV);
+    CS.ay += clamp(aW - CS.ay, -VY_J * dt, VY_J * dt);
+    CS.vy = clamp(CS.vy + CS.ay * dt, -VY_DN, VY_UP);
     CS.y += CS.vy * dt;
     CS.x += (Math.sin(CS.psi) * v - Math.cos(CS.psi) * CS.sv) * dt; CS.z += (Math.cos(CS.psi) * v + Math.sin(CS.psi) * CS.sv) * dt;   // (on the heading, and the slip to its right: (-cos, sin))
     // the hard rules: never in the ground, a landmark or a cloud's core
     // (world6 step B fix, defect 10) over the envelope (never under the ground), and rate-limited to the climb's own
     // travel in a step (PUSH_V): the hard rule, if it acts at all, is never a jump; every push is counted (a gate fails)
     var gh = groundAt(V, CS.x, CS.z, true, true) + cl[0] * 0.6;   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
-    if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; SIM.fixG++; }
+    if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; SIM.fixG++; }
     pushOut(V);
     var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
-    if (CS.y > ceil) { CS.y = ceil; if (CS.vy > 0) CS.vy = 0; }
+    if (CS.y > ceil) { CS.y = ceil; if (CS.vy > 0) CS.vy = 0; if (CS.ay > 0) CS.ay = 0; }
     // a flyer's bank: atan(v x the way's turn rate / g), its lateral acceleration, at most BANK_MAX (a flyer at the
     // camera's 12 m/s would bank past 40 deg in a drag's turn), eased over BANK_T: it banks only while the way curves
     // and is level about 0.6 s after it stops. The roll is drawn only: it never turns the heading (it banked to 7.4 deg,

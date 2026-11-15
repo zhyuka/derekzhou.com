@@ -123,7 +123,7 @@
     else if (f < 0.54) { var th = R.r(0, 180); for (k = 0; k < 2; k++) { var sl = R.r(20, 26), ly = 3 + R.i(2); C.add({ kind: 'ruin', x: x + Math.sin(th * PI / 180) * k * sl, z: z + Math.cos(th * PI / 180) * k * sl, foot: sl * 0.5, yaw: th, len: sl, layers: ly, seed: R.seed(), solid: [sl * 0.62, ly * 3 + 4] }); } }
   }
   W.realm({
-    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12, lookT: 20, lookTan: 0.15,   // (what worldDef reads: world.js)
+    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12,   // (what worldDef reads: world.js)
     glsl: DUNES_GLSL,
     layout: { scales: [{ size: DS, radius: 5200 }, { size: 375, radius: 1300 }] },
     field: function (R, V) {
