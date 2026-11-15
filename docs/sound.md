@@ -164,7 +164,8 @@ How it sounds (sketch round twenty-two):
   compression. About -26 LUFS.
 
 Under reduced motion the world is one still frame and its clock holds, so the score stays in that sky. With no
-world (no WebGL2), the score plays blue hour and never changes.
+world (no WebGL2), the score plays blue hour and never changes, and its air holds at its floor (no world, no wind by
+sky: the breeze's least, 0.05).
 
 ## The feed (src/world/512-score-feed.js)
 
