@@ -1,0 +1,1154 @@
+{
+ "hi-393x861": {
+  "css": [
+   393,
+   861
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 260.1706237792969,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 374.8581237792969,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 485.8893737792969,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 800,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 808.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-393x817": {
+  "css": [
+   393,
+   817
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 239.05062866210938,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 353.7381286621094,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 464.7693786621094,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 756,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 764.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-393x770": {
+  "css": [
+   393,
+   770
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 216.49063110351562,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 331.1781311035156,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 442.2093811035156,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 709,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 717.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-393x724": {
+  "css": [
+   393,
+   724
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 194.41062927246094,
+    "w": 345,
+    "h": 82.68751525878906,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 309.09814453125,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 420.12939453125,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 663,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 671.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-393x676": {
+  "css": [
+   393,
+   676
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 171.37062072753906,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 286.05810546875,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 397.08935546875,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 615,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 623.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-393x629": {
+  "css": [
+   393,
+   629
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 148.8106231689453,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 263.49810791015625,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 374.52935791015625,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 568,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 576.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-393x524": {
+  "css": [
+   393,
+   524
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 98.41062927246094,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 213.09812927246094,
+    "w": 345,
+    "h": 79.03126525878906,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 324.12939453125,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 463,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 471.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-1080x1080": {
+  "css": [
+   1080,
+   1080
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 338,
+    "y": 345.8218688964844,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 338,
+    "y": 474.6499938964844,
+    "w": 382.5,
+    "h": 79.03128051757812,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 338,
+    "y": 585.6812744140625,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 994.21875,
+    "w": 1080,
+    "h": 85.78125,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 157.890625,
+    "y": 1015.109375,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-1350x1080": {
+  "css": [
+   1350,
+   1080
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 473,
+    "y": 338.2124938964844,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 473,
+    "y": 467.0406188964844,
+    "w": 382.5,
+    "h": 79.03128051757812,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 473,
+    "y": 578.0718994140625,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 979,
+    "w": 1350,
+    "h": 101,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 165.5,
+    "y": 1007.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-1728x1080": {
+  "css": [
+   1728,
+   1080
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 662,
+    "y": 338.2124938964844,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 662,
+    "y": 467.0406188964844,
+    "w": 382.5,
+    "h": 79.03128051757812,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 662,
+    "y": 578.0718994140625,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 979,
+    "w": 1728,
+    "h": 101,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 165.5,
+    "y": 1007.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-1920x1080": {
+  "css": [
+   1920,
+   1080
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 758,
+    "y": 338.2124938964844,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 758,
+    "y": 467.0406188964844,
+    "w": 382.5,
+    "h": 79.03128051757812,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 758,
+    "y": 578.0718994140625,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 979,
+    "w": 1920,
+    "h": 101,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 165.5,
+    "y": 1007.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "hi-2268x1080": {
+  "css": [
+   2268,
+   1080
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 932,
+    "y": 338.2124938964844,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 932,
+    "y": 467.0406188964844,
+    "w": 382.5,
+    "h": 79.03128051757812,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 932,
+    "y": 578.0718994140625,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 979,
+    "w": 2268,
+    "h": 101,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 165.5,
+    "y": 1007.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x861": {
+  "css": [
+   393,
+   861
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 260.1706237792969,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 374.8581237792969,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 485.8893737792969,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 800,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 808.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x817": {
+  "css": [
+   393,
+   817
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 239.05062866210938,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 353.7381286621094,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 464.7693786621094,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 756,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 764.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x770": {
+  "css": [
+   393,
+   770
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 216.49063110351562,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 331.1781311035156,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 442.2093811035156,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 709,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 717.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x724": {
+  "css": [
+   393,
+   724
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 194.41062927246094,
+    "w": 345,
+    "h": 82.68751525878906,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 309.09814453125,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 420.12939453125,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 663,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 671.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x676": {
+  "css": [
+   393,
+   676
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 171.37062072753906,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 286.05810546875,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 397.08935546875,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 615,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 623.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x629": {
+  "css": [
+   393,
+   629
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 148.8106231689453,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 263.49810791015625,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 374.52935791015625,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 568,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 576.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-393x524": {
+  "css": [
+   393,
+   524
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 98.41062927246094,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 213.09812927246094,
+    "w": 345,
+    "h": 79.03126525878906,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 324.12939453125,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 463,
+    "w": 393,
+    "h": 61,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 471.5,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-1080x1080": {
+  "css": [
+   393,
+   393
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 24,
+    "y": 63.953125,
+    "w": 345,
+    "h": 82.6875,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 24,
+    "y": 162.359375,
+    "w": 345,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 24,
+    "y": 257.109375,
+    "w": 345,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 340.5625,
+    "w": 393,
+    "h": 52.4375,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 344.78125,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-1350x1080": {
+  "css": [
+   491,
+   393
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 43.5,
+    "y": 56.875,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 43.5,
+    "y": 169.421875,
+    "w": 382.5,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 43.5,
+    "y": 264.171875,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 340.5625,
+    "w": 491,
+    "h": 52.4375,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 344.78125,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-1728x1080": {
+  "css": [
+   629,
+   393
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 112.5,
+    "y": 56.875,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 112.5,
+    "y": 169.421875,
+    "w": 382.5,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 112.5,
+    "y": 264.171875,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 340.5625,
+    "w": 629,
+    "h": 52.4375,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 145.5,
+    "y": 344.78125,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-1920x1080": {
+  "css": [
+   699,
+   393
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 147.5,
+    "y": 56.875,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 147.5,
+    "y": 169.421875,
+    "w": 382.5,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 147.5,
+    "y": 264.171875,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 340.5625,
+    "w": 699,
+    "h": 52.4375,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 146.46875,
+    "y": 344.78125,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ },
+ "lo-2268x1080": {
+  "css": [
+   825,
+   393
+  ],
+  "boxes": [
+   {
+    "sel": ".name",
+    "x": 210.5,
+    "y": 56.875,
+    "w": 404,
+    "h": 96.828125,
+    "text": "Derek Zhou"
+   },
+   {
+    "sel": ".words",
+    "x": 210.5,
+    "y": 169.421875,
+    "w": 382.5,
+    "h": 79.03125,
+    "text": "Hands-on technology leader in "
+   },
+   {
+    "sel": ".credit",
+    "x": 210.5,
+    "y": 264.171875,
+    "w": 404,
+    "h": 19.5,
+    "text": "Team Lead · Accenture Song · 2"
+   },
+   {
+    "sel": ".stack footer, footer",
+    "x": 0,
+    "y": 340.5625,
+    "w": 825,
+    "h": 52.4375,
+    "text": "Email\n    LinkedIn\n    \n    \n "
+   },
+   {
+    "sel": "button, .sound",
+    "x": 150.25,
+    "y": 344.78125,
+    "w": 44,
+    "h": 44,
+    "text": ""
+   }
+  ]
+ }
+}

@@ -1,0 +1,86 @@
+diff --git a/src/world/340-input-drag-anywhere-phone-turn.js b/src/world/340-input-drag-anywhere-phone-turn.js
+index 02594a0..ddeedab 100644
+--- a/src/world/340-input-drag-anywhere-phone-turn.js
++++ b/src/world/340-input-drag-anywhere-phone-turn.js
+@@ -9,7 +9,27 @@
+      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
+      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
+      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
+-  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
++  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, cx: 0, cy: 0, ux: 0, uy: 0 };
++  /* the finger's place sampled once a frame on the flight's time axis (the frame's flight time, the moves delivered
++     before it), INPN samples kept: a step reads the place at its own time, so a steady drag turns each step by the
++     same amount whatever the display's rate (consumed whole at each step, a step took 2 or 3 frames' moves at 144 Hz,
++     0, 1 or 2 at 60 Hz, and the drawn turn juddered by up to 100%); never allocates */
++  var INPN = 8, INPT = new Float64Array(INPN), INPX = new Float64Array(INPN), INPY = new Float64Array(INPN), INPI = 0, INPC = 0;
++  function inpSample(t) {
++    INP.cx += INP.dx; INP.cy += INP.dy; INP.dx = 0; INP.dy = 0;
++    INPT[INPI] = t; INPX[INPI] = INP.cx; INPY[INPI] = INP.cy; INPI = (INPI + 1) % INPN; if (INPC < INPN) INPC++;
++  }
++  function inpAt(t, out) {   // the finger's place at flight time t: between the two samples about it (the oldest kept before them all, the newest after)
++    out[0] = INP.cx; out[1] = INP.cy;
++    for (var k = 1; k <= INPC; k++) {
++      var i = (INPI - k + INPN) % INPN; if (INPT[i] > t + 1e-9) { out[0] = INPX[i]; out[1] = INPY[i]; continue; }
++      if (k > 1) { var j = (i + 1) % INPN, w = (t - INPT[i]) / Math.max(INPT[j] - INPT[i], 1e-9); out[0] = INPX[i] + (INPX[j] - INPX[i]) * w; out[1] = INPY[i] + (INPY[j] - INPY[i]) * w; }
++      else { out[0] = INP.cx; out[1] = INP.cy; }   // (at or past the newest sample: all the finger has moved)
++      return out;
++    }
++    return out;
++  }
++  var INPAT = new Float64Array(2);
+   var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
+   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
+   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
+@@ -108,12 +128,24 @@
+     MOTION.yaw = yaw; MOTION.pitch = pitch; MOTION.has = true; MOTION.n++;
+   }
+   /* each step: the drag's motion and the phone's into the flight's state */
++  var RELN = 6;
++  function relRate(R, ri, dt) {   // least squares p = a + b t + c t2 over the last RELN steps' places (t = 0 the last); its slope at 0
++    var p = 0, S0 = 0, S1 = 0, S2 = 0, S3 = 0, S4 = 0, P0 = 0, P1 = 0, P2 = 0, mean = 0;
++    for (var k = 0; k < RELN; k++) { var i = (ri - 1 - k + 24) % 12, tk = -k * dt; if (k) p -= R[(i + 1) % 12]; mean += R[i];
++      S0 += 1; S1 += tk; S2 += tk * tk; S3 += tk * tk * tk; S4 += tk * tk * tk * tk; P0 += p; P1 += p * tk; P2 += p * tk * tk; }
++    var det = S0 * (S2 * S4 - S3 * S3) - S1 * (S1 * S4 - S2 * S3) + S2 * (S1 * S3 - S2 * S2);
++    if (Math.abs(det) < 1e-30) return 0;
++    var b = (S0 * (P1 * S4 - S3 * P2) - P0 * (S1 * S4 - S2 * S3) + S2 * (S1 * P2 - P1 * S2)) / det;
++    return b * mean > 0 ? b : 0;
++  }
+   var IDLE_K = 0;
+   function applyInput(dt, t, V) {
+     // (dev: a scripted input replayed at its own times)
+     while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
+-    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, any = false;
+-    INP.dx = 0; INP.dy = 0;
++    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), any = false;
++    INP.cx += INP.dx; INP.cy += INP.dy; INP.dx = 0; INP.dy = 0;   // (a move not yet sampled: a scripted one; taken whole)
++    if (INP.down && !INP.rel) inpAt(t, INPAT); else { INPAT[0] = INP.cx; INPAT[1] = INP.cy; }
++    var dx = INPAT[0] - INP.ux, dy = INPAT[1] - INP.uy; INP.ux = INPAT[0]; INP.uy = INPAT[1];
+     if (dx || dy) any = true;
+     if (INP.down) {
+       CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
+@@ -122,8 +154,11 @@
+     }
+     if (INP.rel) {
+       INP.rel = false; any = true;
+-      var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
+-      CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg)
++      // the release's speed: the turn's rate at the release itself, from a quadratic fitted to the last RELN steps of
++      // the drag (a finger slowing to a stop has none: the mean of the last 0.2 s ran a 10 degree drag that ended at rest
++      // on by 12 degrees), never against the drag's own way
++      CS.om = clamp(relRate(CS.ring, CS.ri, dt), -0.8, 0.8); CS.omP = clamp(relRate(CS.ringP, CS.ri, dt), -0.5, 0.5);
++      for (var i = 0; i < 12; i++) { CS.ring[i] = 0; CS.ringP[i] = 0; }   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg)
+     }
+     if (!INP.down) {
+       CS.yawV += CS.om * dt; CS.om *= Math.exp(-dt / 0.3);
+diff --git a/src/world/430-simulation-driven.js b/src/world/430-simulation-driven.js
+index a1a6ab4..0edb762 100644
+--- a/src/world/430-simulation-driven.js
++++ b/src/world/430-simulation-driven.js
+@@ -15,6 +15,7 @@
+   var TSCALE = 1;
+   function simAdvance(dt) {
+     SIM.acc += Math.min(dt, DTMAX);
++    inpSample(SIM.t + SIM.acc);   // (the finger's place this frame, on the flight's own time: each step reads it at its time)
+     var n = 0;
+     while (SIM.acc >= SIM_DT && n < NMAX) { if (!simStepOnce()) { SIM.acc = 0; break; } SIM.acc -= SIM_DT; n++; }
+     if (n >= NMAX) SIM.acc = 0;
