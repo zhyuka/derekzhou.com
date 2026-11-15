@@ -7,6 +7,6 @@
 # air's names declared and written only there (tools/where.mjs), and no wind or sun literal in any other section, the
 # realms or the billows' shader. test/unit/air.mjs holds every reader to the one wind and the one key by value.
 # plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 1.6, 0.1, V.wind[1] * 1.6]", "why": "the motes' wind a literal of their own again"}
-# plant: {"file": "src/world/320-camera-drawn-between-last-two.js", "find": "CW_V = 0.011;", "with": "CW_V = 0.011, CRUISE = [14, 32];", "why": "a second cruise band"}
+# plant: {"file": "src/world/320-camera-drawn-between-last-two.js", "find": "CW_V = 0.011, CRUISE_IN = 2;", "with": "CW_V = 0.011, CRUISE_IN = 2, CRUISE = [14, 32];", "why": "a second cruise band"}
 # plant: {"file": "src/world/490-birds-host.js", "find": "  var HOST = {", "with": "  AIR_DIR[0] = 1;\n  var HOST = {", "why": "a section that writes the air's wind"}
 node tools/checks/lib/one-air.mjs "$RUNNER_TEMP"

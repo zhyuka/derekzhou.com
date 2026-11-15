@@ -68,8 +68,8 @@
   }
   function hpClip(V, S) {   // the frame's clipmap vertices of the land, placed as the draw's rings place them
     for (var l = 0; l < 10; l++) {
-      var g = S.g0 * Math.pow(2, l), cx = Math.floor(CAM.pos[0] / (2 * g)) * 2 * g, cz = Math.floor(CAM.pos[2] / (2 * g)) * 2 * g;
-      HPLA[l * 4] = cx - GN / 2 * g; HPLA[l * 4 + 1] = cz - GN / 2 * g; HPLA[l * 4 + 2] = g; HPLA[l * 4 + 3] = GN / 2;
+      var g = S.g0 * Math.pow(2, l);
+      HPLA[l * 4] = ringCell(g, 0); HPLA[l * 4 + 1] = ringCell(g, 2); HPLA[l * 4 + 2] = g; HPLA[l * 4 + 3] = GN / 2;
     }
     hpRun(V, 0, GN + 1, (GN + 1) * 10, HPLA);
   }
