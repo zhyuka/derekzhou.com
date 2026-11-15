@@ -105,7 +105,7 @@
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
       var mk = mistK(B); if (mk > MISTMAX) MISTMAX = mk;
       var ceil = 1e5;
-      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 2 : 1); B.u4a[3] = B.det[1] * (CRISP ? 5 : 1);   // (crisp cauliflower on the desktop: the kit's billows twice the size, five times the depth)   // (the body's own, from volPrep)
+      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 4 : 1); B.u4a[3] = B.det[1] * (CRISP ? 5 : 1);   // (crisp cauliflower on the desktop: the kit's billows four times the size, five times the depth: as steep as the kit's own within 1.25 (twice the size at five times the depth, 2.5 times as steep, cut free puffs off the tops: the hub's review of #254))   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);

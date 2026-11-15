@@ -91,7 +91,7 @@ void main() {
     }
     float lod = clamp(log2(max(max(2.0 * t * pxA, 0.5 * dE) * 32.0 / uVR.z, 1e-4)), 0.0, 5.0);
     float dn = textureLod(uN3, p / uVR.z + nOff, lod).g;
-    s -= (dn - 0.5) * amp * 2.0;
+    s = max(s - (dn - 0.5) * amp * 2.0, yb);   // (the flat base after the billows: no billow hangs under it (the underside's specks))
     float dt = max(s > 0.0 ? max(dE, s * 0.5) : (s > -band ? dE : max(dIn, dE)), mS);
     // (no face of the box can draw an edge: the density thins over its outer few per cent)
     vec3 fq = (uVH - abs(p)) / uVH; float fz = smoothstep(0.0, 0.07, min(min(fq.x, fq.y), fq.z));
