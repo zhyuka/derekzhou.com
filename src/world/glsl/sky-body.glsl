@@ -8,7 +8,8 @@ uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, hel
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1); its core's direction and how far it has come in (1 whole)
-uniform vec4 uAur;    // (tod, phase 2) the aurora: how far it has come in (1 whole), its phase, its base (deg), its amount (0 or 1)
+uniform vec4 uAur;    // (tod, phase 2) the aurora: how far it has come in (1 whole), its centre's azimuth, its folds' phase, its amount (0 or 1)
+uniform vec4 uAurB;   // (physics: aurora/phases) how far through its hold, the breakup's front (km along the sheet, east +), the second arc's km farther (0 none), a breakup (0 or 1)
 out vec4 oC;
 const float SKYTAU = 6.2831853;
 /* (tod) the stars: world-anchored (a cell of the sphere by the direction: elevation bands STC rad deep, each cut into
@@ -31,27 +32,23 @@ vec3 galaxyAt(vec3 rd, float e) {
   float lanes = smoothstep(0.4, 0.64, n3v(vec3(u * 4.0, b * 5.6 * 0.33 + 0.1 * n3v(vec3(u * 13.0, 0.4, 0.61)).b, 0.37)).b) * exp(-pow(b - 0.02 * sin(l * 5.0), 2.0) / 0.003);
   return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e) * galEdge(e);
 }
-vec3 auroraAt(vec3 rd, float e) {
-  if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
-  /* (physics: aurora/geometry) one vertical sheet D km away over the ground toward the key's azimuth (uAur.y), seen
-     from the ground: the ray's crossing with it (rho cos phi = D + y(rho sin phi), three fixed-point steps) and the
-     altitude there, h = R (cos e / cos(e + rho / R) - 1). D from its lower border's elevation at its centre (h 105 km),
-     which rises evenly with the rise, from 9.3 deg under the horizon (D 3000: nothing of it over) to 6.2 deg over it (D 650): at most 0.27
-     deg/s; at infinity (drawn by direction: no parallax in flight), not tied to the stars */
-  float eb = radians(mix(-9.3, 6.17, uAur.x));
-  float D = 6371.0 * (acos(cos(eb) / (1.0 + 105.0 / 6371.0)) - eb);
-  float phi = atan(rd.x, rd.z) - uAur.y, cp = cos(phi), sp = sin(phi);
-  if (cp < 0.05) return vec3(0.0);
-  float el = asin(clamp(rd.y, -1.0, 1.0)), pa = 2.0 * atan(uProj.y) / uRes.y;
+/* (physics: aurora/phases) one sheet D km away toward the key's azimuth, seen from the ground: phi from its centre,
+   the folds' phase f0, and how deep into a breakup it is (bk: 0 none; the section east of the front, s > uAurB.y) */
+vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, float pa) {
+  /* (physics: aurora/geometry) the ray's crossing with it (rho cos phi = D + y(rho sin phi), three fixed-point steps)
+     and the altitude there, h = R (cos e / cos(e + rho / R) - 1); at infinity (drawn by direction: no parallax in
+     flight), not tied to the stars */
   /* (physics: aurora/motion) the sheet's line y(s): a swell (15 km, 500 km, 0.3 km/s: 0.0038 rad/s) and folds (3 km,
-     40 km, 1 km/s: 0.157 rad/s), the folds gone where 40 km spans under 8 px; nothing faster (no curls, corona,
-     pulsing or flicker: on screen they would glitter or fade) */
-  float rho = D / cp, y = 0.0, yd = 0.0, ys = 0.0;
+     40 km, 1 km/s: 0.157 rad/s; 9 km inside a breakup), the folds gone where 40 km spans under 8 px; nothing faster
+     (no curls, corona, pulsing or flicker: on screen they would glitter or fade) */
+  float rho = D / cp, y = 0.0, yd = 0.0, ys = 0.0, b = 0.0;
   for (int i = 0; i < 3; i++) {
     /* (the folds' spacing irregular, as real folds are: a fixed wobble of their phase over 170 km, so their edge-on
        flanks never stand in a regular comb) */
-    float s = rho * sp, fa = 3.0 * smoothstep(8.0, 16.0, 40.0 / max(rho, 1.0) / pa), w = SKYTAU * s / 170.0 + uAur.y * 3.0;
-    float a1 = SKYTAU * s / 500.0 + 0.0038 * uT + uAur.y * 7.0, a2 = SKYTAU * s / 40.0 - 0.157 * uT + uAur.y * 13.0 + 1.3 * sin(w);
+    float s = rho * sp, w = SKYTAU * s / 170.0 + f0 * 3.0;
+    b = bk * smoothstep(uAurB.y - 15.0, uAurB.y + 15.0, s);
+    float fa = mix(3.0, 9.0, b) * smoothstep(8.0, 16.0, 40.0 / max(rho, 1.0) / pa);
+    float a1 = SKYTAU * s / 500.0 + 0.0038 * uT + f0 * 7.0, a2 = SKYTAU * s / 40.0 - 0.157 * uT + f0 * 13.0 + 1.3 * sin(w);
     y = 15.0 * sin(a1) + fa * sin(a2);
     ys = 15.0 * SKYTAU / 500.0 * cos(a1);
     yd = ys + fa * (SKYTAU / 40.0 + 1.3 * SKYTAU / 170.0 * cos(w)) * cos(a2);
@@ -63,14 +60,31 @@ vec3 auroraAt(vec3 rd, float e) {
   /* (physics: aurora/colour) by altitude: the green line's hem (557.7 nm) rising from h0 - 2 to h0 + 4 (h0 105 km),
      then e-folding over 15 km (30-40 inside a ray); no stop in the saddle (150-190 km: the sky's own blue shows); the
      red line's top (630 nm) rising from 180 to 230 km, e-folding over 60, a fifth of the green's column, unrayed. The
-     rays along the sheet only (functions of s: they meet at the zenith in perspective), 12 km a period at 1 km/s */
-  float ry = smoothstep(0.45, 0.9, n3v(vec3(s / 12.0 + uT / 12.0, 0.5, 0.19)).a);
-  float g = smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, 35.0, ry)) * (0.75 + 0.5 * ry);
-  float r = smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2;
+     rays along the sheet only (functions of s: they meet at the zenith in perspective), 12 km a period at 1 km/s.
+     (physics: aurora/phases) inside a breakup: brighter, the rays twice as tall, the pink fringe under the hem (the
+     nitrogen bands, 95-103 km), and the red brightened where the front passed 10 deg back (it trails it, east) */
+  float ry = smoothstep(0.45, 0.9, n3v(vec3(s / 12.0 + uT / 12.0, 0.5, 0.19 + f0)).a);
+  float g = smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, mix(35.0, 70.0, b), ry)) * (0.75 + 0.5 * ry) * (1.0 + 0.5 * b);
+  float r = smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2 * (1.0 + 1.5 * bk * smoothstep(uAurB.y + 0.18 * D - 15.0, uAurB.y + 0.18 * D + 15.0, s));
+  float pk = b * smoothstep(95.0, 98.0, h) * (1.0 - smoothstep(101.0, 104.0, h)) * 0.5;
   /* edge-on is brightest: the column along the ray through the sheet, 1 / |cos psi| (at most 3); the red's by the
      swell alone (it is blurred over 30 km and more: the folds' flanks never show in it) */
   float cps = abs(cos(el) * (cp - yd * sp)) / sqrt(1.0 + yd * yd), cpr = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys);
-  vec3 c = (vec3(0.225, 1.5, 0.18) * g * min(1.0 / max(cps, 1e-3), 3.0) + vec3(0.9, 0.1, 0.06) * r * min(1.0 / max(cpr, 1e-3), 3.0)) * 0.08;
+  return (vec3(0.225, 1.5, 0.18) * g * min(1.0 / max(cps, 1e-3), 3.0) + vec3(0.9, 0.1, 0.06) * r * min(1.0 / max(cpr, 1e-3), 3.0) + vec3(0.9, 0.2, 0.45) * pk * min(1.0 / max(cps, 1e-3), 3.0)) * 0.08;
+}
+vec3 auroraAt(vec3 rd, float e) {
+  if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
+  /* (physics: aurora/phases) the night's: D from its lower border's elevation at its centre (h 105 km), which rises with
+     its own rise from 5.7 deg under the horizon (D 1950: nothing of it over, the red's 300 km first) to 6.2 deg over it
+     (D 650), drifts over the hold to 9.5 (D 500: uAurB.x), and sinks again (the green first, the red last); at most
+     0.3 deg/s (222's skyAur). In half the stays a second arc uAurB.z km farther at 0.6 */
+  float eb = radians(mix(-5.735, mix(6.17, 9.51, uAurB.x), uAur.x));
+  float D = 6371.0 * (acos(cos(eb) / (1.0 + 105.0 / 6371.0)) - eb);
+  float phi = atan(rd.x, rd.z) - uAur.y, cp = cos(phi), sp = sin(phi);
+  if (cp < 0.05) return vec3(0.0);
+  float el = asin(clamp(rd.y, -1.0, 1.0)), pa = 2.0 * atan(uProj.y) / uRes.y;
+  vec3 c = auroraSheet(el, cp, sp, D, uAur.z, uAurB.w, pa);
+  if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z, uAur.z + 0.37, 0.0, pa);
   /* its light held under the words' floor: the green's composited peak at most L 0.50 (a soft cap on what it adds,
      its hue kept: test/unit/aurora.mjs) */
   float yl = dot(c, LUMA);
