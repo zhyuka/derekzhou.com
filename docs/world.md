@@ -511,7 +511,7 @@ never crawl. It is lit by the sky's own cloud light, as the cloud sea's
 flat tops are, and drawn over the land (FS_TERRAIN, from the floor its
 vertices carry, vMB) and over the stones and the landmarks
 (FS_LANDMARK, the top worked per vertex, vMT). The split path carries
-the basins' change to the floor in P6. The camera's ground reads the
+the basins' change to the floor in P7. The camera's ground reads the
 pool's top (HdCam, HdProbe, the split's probe), so the flight passes
 over the pools as over the cloud sea, never through them. At depth 0
 there is no pool at all: the land never lies under its own floor.

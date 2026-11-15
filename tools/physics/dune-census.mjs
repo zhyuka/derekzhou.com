@@ -59,39 +59,39 @@ function waveS1(x, y, lam, Hmax, swell) {
   // is 32 deg: |G - m g| = tan 32, G the slope of everything else there (the swell, and the height's change along the
   // crest, taken at the face's middle): m = G.g + sqrt(tan^2 32 - |G across g|^2)
   const gx = gph[0] / k, gy = gph[1] / k;
-  // (|G0 + v dH - m g| is convex in v, 1 at the brink to 0 at the toe: its largest is at an end. The steepest m that
-  // keeps both ends at 32 deg or under: the smaller of the two solutions)
+  // (the face's height H (1 - f) / fl is m (1 - f) / k: H drops out of it, so its slope holds no dH, and m is solved
+  // for the ground under it alone (G0); solving it for G0 + dH too held a gradient the surface does not have at 32 deg,
+  // and where fl changed fast across the wind the brink turned along it in walls of 48-62 deg)
   const mAt = (Gx, Gy) => { const Gg = Gx * gx + Gy * gy, Gc = -Gx * gy + Gy * gx; return Gg + Math.sqrt(Math.max(TAN32 * TAN32 - Gc * Gc, 0.04)); };
-  const m = Math.min(mAt(swell[1], swell[2]), mAt(swell[1] + H[1], swell[2] + H[2]));
+  const m = mAt(swell[1], swell[2]);
   let fl = H[0] * k / Math.max(m, 0.2); fl = Math.min(0.6, Math.max(0.04, fl));
   const f = ph - Math.floor(ph);
   const st = (t) => { const v = 0.5 * t + 0.5 * t * t * (3 - 2 * t), dv = 0.5 + 3 * t * (1 - t); return [v, dv]; };   // (the stoss, 0 .. 1 over t 0 .. 1)
   const L = 1 - fl;
   const lin = (v, dvdf) => [H[0] * v, H[0] * dvdf * gph[0] + v * H[1], H[0] * dvdf * gph[1] + v * H[2]];
   const a = st(f / L), A = lin(a[0], a[1] / L);   // (the stoss)
-  const F = lin((1 - f) / fl, -1 / fl);   // (the slip face, the plane from the brink at 1 - fl to the toe at 1)
+  const F = [H[0] * (1 - f) / fl, -H[0] / fl * gph[0], -H[0] / fl * gph[1]];   // (the slip face, the plane from the brink at 1 - fl to the toe at 1: no dH, see m)
   const N = lin(0.5 * (f - 1) / L, 0.5 / L);   // (the next stoss, below its toe: its plane there, C1 at the toe; the cubic turned up behind it and,
   // past f 0.5 on wide faces, rose into the smooth max: the land stepped 1.9 m where the toe's choice switched)
-  const P = lin(-f / fl, -1 / fl);   // (the face before, below its toe)
-  const kb = 2.0, kt = Math.max(0.15 * H[0], 0.05);
+  const P = [-H[0] * f / fl, -H[0] / fl * gph[0], -H[0] / fl * gph[1]];   // (the face before, below its toe: the same)
+  const kb = Math.max(H[0] * k * (0.5 / L + 1 / fl), 0.05), kt = Math.max(0.15 * H[0], 0.05);   // (the brink rounded over 2 m across)
   const top = smin(A, F, kb), h = f > 0.5 ? smax(top, N, kt) : smax(top, P, kt);
   const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return [t * t * (3 - 2 * t), 6 * t * (1 - t) / (b - a)]; };
   const e1 = ss(L - 0.06, L, f), e2 = ss(0, 0.06, f);   // (the near family's share: none on the slip face, eased in and out)
   const wv = (1 - e1[0]) * e2[0], dw = -e1[1] * e2[0] + (1 - e1[0]) * e2[1];
   const nearW = [wv, dw * gph[0], dw * gph[1]];
-  return { h, lee: f > L - 0.02, f, fl, nearW, ph, gph, H: H[0] };
+  return { h, lee: f > L - 0.02, f, fl, nearW, ph, gph, H: H[0], dH: [H[1], H[2]] };
 }
-/* (physics: sand/S2) the slope the land's fragments rebuild from the phase (dunes-glsl's s1Slope): duneS1's pieces with
-   H held, the brink's and the toe's rounding rb, rt (height, m) */
-export function s1Slope(f, g, H, fl, rb, rt) {
-  const L = 1 - fl, a = f / L, n = (f - 1) / L;
-  const st = (t) => [0.5 * t + 0.5 * t * t * (3 - 2 * t), 0.5 + 3 * t * (1 - t)];
-  const pc = (v, d) => [H * v, g[0] * H * d, g[1] * H * d];
-  const sa = st(a);
-  const A = pc(sa[0], sa[1] / L), F = pc((1 - f) / fl, -1 / fl), N = pc(0.5 * n, 0.5 / L), P = pc(-f / fl, -1 / fl);
+/* (physics: sand/S2) the slope the land's fragments rebuild from the phase (dunes-glsl's s1Slope): duneS1's pieces and
+   their slopes, dH where duneS1 has it (the stoss and the next stoss), the brink's and the toe's rounding rb, rt */
+export function s1Slope(f, g, H, fl, rb, rt, dH = [0, 0]) {
+  const L = 1 - fl, a = f / L, n = (f - 1) / L, sa = 0.5 * a + 0.5 * a * a * (3 - 2 * a), da = (0.5 + 3 * a * (1 - a)) / L;
+  const A = [H * sa, g[0] * H * da + sa * dH[0], g[1] * H * da + sa * dH[1]], F = [H * (1 - f) / fl, -g[0] * H / fl, -g[1] * H / fl];
+  const N = [H * 0.5 * n, g[0] * H * 0.5 / L + 0.5 * n * dH[0], g[1] * H * 0.5 / L + 0.5 * n * dH[1]], P = [-H * f / fl, -g[0] * H / fl, -g[1] * H / fl];
   const r = smax(smin(A, F, rb), f > 0.5 ? N : P, rt);
   return [r[1], r[2]];
 }
+export const s1Rb = (H, k, fl) => Math.max(H * k * (0.5 / (1 - fl) + 1 / fl), 0.05);
 /* the main wave alone at (x, y) in wind angle a, its swell and height as dunes() makes them (the S1 model) */
 export function mainAt(x, y, a = 0.6) {
   w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];
@@ -119,6 +119,7 @@ function dunes(x, y) {
   return { h: add(add(swell, main), near), mainGrad: main, lee };
 }
 
+const E = 0.25;
 export function census(o = {}) {
   MODEL = o.model || MODEL; HALF = o.half || HALF; CELL = o.cell || CELL;
   if (o.wind !== undefined) { w = [Math.cos(o.wind), Math.sin(o.wind)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; }
@@ -126,7 +127,9 @@ export function census(o = {}) {
   let over34 = 0, total = 0, steepest = 0;
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
     const x = -HALF + i * CELL, y = -HALF + j * CELL, r = dunes(x, y);
-    const deg = Math.atan(Math.hypot(r.h[1], r.h[2])) * 180 / Math.PI;
+    // (fd: the slope from the heights themselves, central differences over 2 E: what the surface is, whatever the gradient the code carries says)
+    const g = o.fd ? [(dunes(x + E, y).h[0] - dunes(x - E, y).h[0]) / (2 * E), (dunes(x, y + E).h[0] - dunes(x, y - E).h[0]) / (2 * E)] : [r.h[1], r.h[2]];
+    const deg = Math.atan(Math.hypot(g[0], g[1])) * 180 / Math.PI;
     total++; if (deg > 34) over34++; if (deg > steepest) steepest = deg;
     (r.lee ? le : st).push(deg);
   }

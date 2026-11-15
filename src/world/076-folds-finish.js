@@ -37,7 +37,7 @@
     if (got.length) FOLDX.prog[P.name] = got;
     if (abs.length && DEVMODE) FOLDX.absent[P.name] = abs;
   }
-  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20, uHP5: 21, uHP6: 22 };
+  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20, uHP5: 21, uHP6: 22, uHP7: 23 };
   function finish(P) {   // true: linked; false: broken; LOSTP: the context was lost (asked again after the restore)
     if (P.st === 3) return P.ok;
     if (P.st !== 2) return false;

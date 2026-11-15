@@ -60,7 +60,7 @@ test('mist: the shaders: opaque within MIST_OPAQUE whatever the depth, the rim a
   assert.match(W, /float mistTop\(vec2 mb\) \{ return uMist\.x > 0\.0 \? mb\.x \+ uMist\.x \* mb\.y : -1e4; \}/, 'the top: the floor and the depth by the sand; none at depth 0');
   assert.match(W, /float HdCam\(vec2 p\) \{ float h = Hd\(p\)\.x; return max\(max\(h, mistTop\(gMB\)\), HdSea\(p\)\.x\); \}/, 'the camera\'s ground over the pools');
   assert.match(W, /return max\(max\(h\.x, mistTop\(gMB\)\), \(lv \+ dMul\(A_Hd\(p\), amp\)\)\.x\);/, 'and the probe\'s');
-  assert.match(strip(GLSL('world/glsl/fs-probe-split.glsl')), /h = max\(max\(h, mistTop\(vec2\(swell\(p\) \* p6\.x \+ p6\.y - k1\.x, k0\.x\)\)\), /, 'and the split\'s probe');
+  assert.match(strip(GLSL('world/glsl/fs-probe-split.glsl')), /h = max\(max\(h, mistTop\(vec2\(swell\(p\) \* p7\.x \+ p7\.y - k1\.x, k0\.x\)\)\), /, 'and the split\'s probe');
   const SCN = fs.readFileSync(path.join(ROOT, 'src/world/350-shaders-scene.js'), 'utf8');
   assert.match(SCN, /c = mistOver\(c, mistTop\(vMB\) - vW\.y, n, rd, fp\);/, 'over the land');
   const LM = fs.readFileSync(path.join(ROOT, 'src/world/353-shaders-landmarks-probe.js'), 'utf8');

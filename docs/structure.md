@@ -128,6 +128,8 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
                              tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
+                             tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
+                             the sand spec's bounds, physics: sand/S1)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
