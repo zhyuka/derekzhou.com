@@ -3,6 +3,7 @@
 # test/birds.mjs (about 20 s): the real ink birds module run headless (tools/birds/sim.mjs) over random scenes at
 # 960x600 and 390x844, against the research's numbers. The full run: BIRDS_N=16 BIRDS_LONG=1 node test/birds.mjs.
 # plant: {"file": "src/birds/inkbirds/262-approach.js", "find": "function airLo(b) { return 0.45 * b.K.v; }", "with": "function airLo(b) { return 2.5 * b.K.v; }", "why": "a landing that can never happen (#89's own plant)"}
+# plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "if (s.rT0 !== P.tt) { s.rT0 = P.tt; s.rU = P.rest || 0; s.rV = 0; s.rT = TD; }", "with": "if (s.rT0 !== P.tt) { s.rT0 = P.tt; s.rT = TD; }", "why": "a second landing begun from the first perch's drawn rest (the second-landing test: 4.14x the body bound)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 pids=(); i=0; total=0; clock=()

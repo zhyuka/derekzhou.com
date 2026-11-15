@@ -250,8 +250,9 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
 
-/* (what it guards: a landing begun with the last one's flare, as when the draw reads the step's b.flareU and its reset
-   is gone: 1.92x on #225, 3.74x here) */
+/* (what it guards: a landing begun from anything the last one left, e.g. its drawn rest: 35-birds.sh's plant keeps the
+   first perch's rest at the second touch, 4.14x the body bound. The flare's reset it once named is now made twice, so
+   taking one away reads 0.13x: the hub's review 3) */
 test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
   const k60 = 1; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
   for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 80, null, size, true).values())
