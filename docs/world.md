@@ -339,7 +339,12 @@ with 8 GB or more) 2 and 1.4 Mpx (a 393x852 phone's 786x1704, it was
 Android 1.25 and 1.3 Mpx (every device's before); the canvas at the
 device's own px (at most 2 a CSS px and 2.5 Mpx, or the world's own size
 where that is larger), the world put up to it by one Catmull-Rom clamped
-to the range of the 2x2 texels it lies between (it was bilinear). Every
+to the range of the 2x2 texels it lies between (it was bilinear). On a rung
+under the window's size the composite itself is drawn at the scene's
+size, into the window target's corner, and that one Catmull-Rom puts it
+up (the owner, 2026-11-15, "Build it, show stills": its passes over the
+rung's pixels, not the window's; the top rung, and the boot's trials,
+as before). Every
 frame's time in a two-second ring, each second the median; three slow
 seconds step the render scale down a rung (the
 ladder: the tier's top and its 0.85, 0.72 and 0.6 where they stand 8% or

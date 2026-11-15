@@ -10,7 +10,8 @@
     if (!BOOT.thumb) BOOT.thumb = target(16, 16, 'rgba8');
     var T = BOOT.thumb, px = new Uint8Array(16 * 16 * 4);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, DIRECT ? null : TG.win.f); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, T.f);
-    gl.blitFramebuffer(0, 0, OUT.w, OUT.h, 0, 0, 16, 16, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+    var hw = DIRECT || !CMP.sub ? OUT.w : CMP.w, hh = DIRECT || !CMP.sub ? OUT.h : CMP.h;   // (TG.win holds the composite in its corner at a rung under the window's: CMP)
+    gl.blitFramebuffer(0, 0, hw, hh, 0, 0, 16, 16, gl.COLOR_BUFFER_BIT, gl.LINEAR);
     gl.bindFramebuffer(gl.FRAMEBUFFER, T.f); gl.readPixels(0, 0, 16, 16, gl.RGBA, gl.UNSIGNED_BYTE, px); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     if (DEVMODE && SW.hblack) px.fill(0);   // (dev: a forced-black first frame, the fallback's test)
     var sum = 0, same = true, i, lo = 255, hi = 0;

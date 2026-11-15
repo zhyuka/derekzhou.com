@@ -9,7 +9,7 @@
     if (LOST || DEAD || gl.isContextLost() || !TG || REPTG !== TG || !LASTE) return false;
     var P;
     gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
-    if (DIRECT) {
+    if (DIRECT && !CMP.sub) {
       useTarget(null, OUT.w, OUT.h); P = EP.comp; gl.useProgram(P.p);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, TG.scene.d);
       gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, TG.scene.t);
@@ -18,7 +18,7 @@
       gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, TG.sb.t);
       gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_2D, TG.lind.t);
     } else {
-      useTarget(null, FULL.w, FULL.h); P = EP.blit; gl.useProgram(P.p);
+      useTarget(null, FULL.w, FULL.h); P = EP.blit; gl.useProgram(P.p); gl.uniform2f(P.u.uSz, CMP.w, CMP.h);
       gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, TG.win.t);
     }
     gl.activeTexture(gl.TEXTURE0);

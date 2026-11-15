@@ -34,10 +34,18 @@
     DFR.E = E; DFR.bl = bl; DFR.sUx = sUx; DFR.sUy = sUy; DFR.hUx = hUx; DFR.hUy = hUy; DFR.shaftK = shaftK; DFR.qw = qw; DFR.qh = qh;
   }
   /* (drawFrame's pass) the composite, to the window */
+  var CMP = { w: 0, h: 0, sub: false };   // (the composite's size this frame, and whether it is under the window's: represent puts up the same)
   function drawComposite(V, u) {
     var W = DFR.W, H = DFR.H, P, sUx = DFR.sUx, sUy = DFR.sUy, MS = DFR.MS, hUx = DFR.hUx, hUy = DFR.hUy, w2 = DFR.w2, h2 = DFR.h2, bl = DFR.bl, shaftK = DFR.shaftK, qw = DFR.qw, qh = DFR.qh, E = DFR.E, L = DFR.L;
     // -------- the composite, to the window
-    useTarget(DIRECT && !TRIAL ? null : TG.win, OUT.w, OUT.h); RES[0] = W; RES[1] = H;   // (straight onto the canvas when it is the world's size; stage G's trials offscreen)
+    /* (the owner, 2026-11-15: "Build it, show stills") at a rung under the window's size the composite is drawn at the
+       scene's own size (CMP), into TG.win's corner, and put up to the canvas by the blit's one Catmull-Rom: its every
+       pass (the samples, the history, the cloud, the grade, the dither) over the rung's pixels, not the window's. The
+       top rung (and any rung at or over the window's size) draws as before; stage G's trials too (their timing is the
+       floor's, kept as it was) */
+    var sub = !TRIAL && (W < OUT.w || H < OUT.h);
+    CMP.w = sub ? Math.min(W, OUT.w) : OUT.w; CMP.h = sub ? Math.min(H, OUT.h) : OUT.h; CMP.sub = sub;
+    useTarget(sub ? TG.win : (DIRECT && !TRIAL ? null : TG.win), CMP.w, CMP.h); RES[0] = W; RES[1] = H;   // (straight onto the canvas when it is the world's size; stage G's trials offscreen)
     P = EP.comp; gl.useProgram(P.p); setFrameUniforms(P, V);
     gl.uniform4f(P.u.uSc, sUx, sUy, RUNG === 0 ? SS : 1, SW.fxaa > 0 || (SW.fxaa < 0 && !MS) ? 1 : 0);   // (w, FXAA: off where the scene has its samples)
     gl.uniform4f(P.u.uClS, hUx, hUy, w2, h2);
@@ -45,7 +53,7 @@
     gl.uniform4f(P.u.uShK, qw / TG.sb.w, qh / TG.sb.h, E.exposure, E.sat);
     gl.uniform3fv(P.u.uShC, E.shaftC); gl.uniform3fv(P.u.uLift, E.lift); gl.uniform3fv(P.u.uGain, E.gain);
     if (P.u.uCeil) gl.uniform4f(P.u.uCeil, L.ceil === undefined ? 2 : L.ceil, CEIL_KNEE, 0, 0);   // (tod: the light ceiling, the cycle's blended value: 2 off)
-    gl.uniform2f(P.u.uOut, OUT.w, OUT.h);
+    gl.uniform2f(P.u.uOut, CMP.w, CMP.h);
     if (P.u.uSSR) gl.uniform4f(P.u.uSSR, V.def.water ? 1 : 0, V.def.waterReach || 240, 0, 0);
     if (P.u.uHC) { gl.uniformMatrix4fv(P.u.uHVP, false, SHIST.uvp); gl.uniform4f(P.u.uHC, SHIST.ucam[0], SHIST.ucam[1], SHIST.ucam[2], TG.sceneH ? SHIST.use : 0); if (P.u.uStb) gl.uniform1f(P.u.uStb, SW.stb > 0 ? 1 : 0); if (P.u.uLay) gl.uniform1f(P.u.uLay, SW.lay > 0 ? 1 : 0); gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, TG.sceneH ? TG.sceneH.t : TG.scene.t); gl.activeTexture(gl.TEXTURE0); }
     if (P.u.uMi) { gl.uniform4f(P.u.uMi, 0, 0, 0, MS ? AAS : 0); }   // (w the samples a pixel)   // (the cloud about the eye coming out, brought up plainly where it stands: FS_COMP)
@@ -58,9 +66,9 @@
     gl.activeTexture(gl.TEXTURE0);
     gl.bindVertexArray(FULLVAO);
     dc(gl.TRIANGLES, 3);
-    if (!DIRECT && !TRIAL) {   // (put up to the canvas's own resolution: the birds' ink is drawn at it)
+    if (sub || (!DIRECT && !TRIAL)) {   // (put up to the canvas's own resolution: the birds' ink is drawn at it)
       useTarget(null, FULL.w, FULL.h); P = EP.blit; gl.useProgram(P.p);
-      gl.uniform2f(P.u.uOut, FULL.w, FULL.h);
+      gl.uniform2f(P.u.uOut, FULL.w, FULL.h); gl.uniform2f(P.u.uSz, CMP.w, CMP.h);
       gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, TG.win.t); gl.activeTexture(gl.TEXTURE0);
       dc(gl.TRIANGLES, 3);
     }
