@@ -27,6 +27,11 @@
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
     SKY.gal = best; SKY.aur = { ph: SKY.rV.f() * 6.2832, base: 5 + 3 * SKY.rV.f() };
+    /* (physics: weather/far-anvil) a far storm, from its own stream (the other draws stay as they are): in about 3
+       visits of 16 (the opening's seed: so its baked first frame has it), 30-70 deg either side of the sun's bearing,
+       160-240 km away */
+    var rA = RNG(subseed(J.seed, 83)), anv = rA.f() < 3 / 16, side = rA.sign(), off = rA.r(30, 70), dist = rA.r(160, 240);
+    SKY.anv = anv && V.light ? { az: (V.light.sunAz + side * off) * DEG, d: dist } : null;
     SKY.gen++;
   }
   function skyPush(id) {

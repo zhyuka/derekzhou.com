@@ -4,6 +4,7 @@ uniform int uZs;   // (fast500 D T1) never set: 0 at link; the star loop's bound
 uniform vec4 uHi;     // high cloud: cover, brightness, scale, drift
 uniform vec3 uHiC;
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
+uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth (rad), its distance (km, 0: none), the sun's height (deg), the sun's azimuth (rad)
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
@@ -16,6 +17,30 @@ const float SKYTAU = 6.2831853;
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
    never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
 const float STC = 0.04;
+const float ANV_K = 0.05;   // (physics: weather/far-anvil) its lit top's strength (composited at most L 0.50: test/unit/sky.mjs)
+/* (physics: weather/far-anvil) a far storm's anvil, uAnv.y km away (160-240) at uAnv.x, drawn by direction (no parallax
+   at that distance): its tower and its anvil in km across (x) and up (z, the Earth's curve added), its edges lumped by
+   the noise at 2-4 km (10-20 px: never under a pixel). It only adds light: the low sun's, wherever it still reaches the
+   cloud above the Earth's shadow there, R (1 / cos d - 1) with d the sun's depression at the storm's own place; its
+   unlit body is the sky behind it, never darker. At the afterglow and first light (the sun 3 deg down) only its top is
+   lit; by the blue hour the shadow has climbed it all. No lightning, no rays */
+vec3 anvilAt(vec3 rd) {
+  float D = uAnv.y, phi = atan(rd.x, rd.z) - uAnv.x;
+  phi = atan(sin(phi), cos(phi));
+  if (abs(phi) > 0.7 || rd.y < -0.01) return vec3(0.0);
+  float x = D * tan(phi), z = D * rd.y / max(sqrt(1.0 - rd.y * rd.y), 1e-3) + D * D / 12742.0;
+  float lump = (textureLod(uN3, vec3(z / 36.0, x / 68.0, 0.43), 0.0).a - 0.5) * 2.4;
+  float wc = 3.2 + 0.18 * z + lump, col = (1.0 - smoothstep(wc - 0.7, wc + 0.7, abs(x - 0.35 * z))) * smoothstep(0.5, 1.5, z) * (1.0 - smoothstep(10.2, 11.2, z));
+  /* the anvil's underside flares fast (its half-width grows up to 26 km a km): its edge faded over 1.2 km measured
+     across the edge itself (the distance outside it over sqrt(1 + slope^2)), so however flat the edge lies it stays
+     5 px or more thick */
+  float ta = clamp((z - 9.4) / 2.6, 0.0, 1.0), sa = ta * ta * (3.0 - 2.0 * ta), sl = 26.0 * 6.0 * ta * (1.0 - ta) / 2.6;
+  float wa = 5.0 + 19.0 * sa + lump, anv = (1.0 - smoothstep(-0.6, 0.6, (abs(x - 4.0 - 7.0 * sa) - wa) / sqrt(1.0 + sl * sl))) * smoothstep(9.2, 10.2, z) * (1.0 - smoothstep(12.0, 12.7, z - 0.9 * exp(-pow((x - 3.5) / 4.0, 2.0))));
+  float m = max(col, anv);
+  float ps = uAnv.x - uAnv.w, dc = radians(-uAnv.z) - D / 6371.0 * cos(ps), hs = dc > 0.0 ? 6371.0 * (1.0 / cos(dc) - 1.0) : 0.0;
+  float lit = smoothstep(hs - 0.5, hs + 0.5, z);
+  return vec3(1.0, 0.6, 0.46) * m * lit * ANV_K;
+}
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
@@ -152,6 +177,13 @@ void main() {
   if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2)
 #endif
+  if (uAnv.y > 0.0 && uAnv.z > -8.0) {   // (physics: weather/far-anvil: the far storm's lit top, through the haze)
+    /* its light held under L 0.50 over whatever sky stands behind it (a soft cap on what it adds, by the room left
+       under Y 0.118; where the sky itself stands at 0.50 it gives way): only ever less light added, never darker */
+    vec3 aA = anvilAt(rd) * (1.0 - hazeSky(rd));
+    float yA = dot(aA, LUMA), room = max(0.118 - dot(c, LUMA), 0.0);
+    c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
+  }
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
        the horizon the sea and the land, drawn before the sky, hide it by place); only its faint broad light on the whole

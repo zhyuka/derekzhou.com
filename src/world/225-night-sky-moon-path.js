@@ -2,6 +2,14 @@
      the window has room at the default pitch, else above the top edge, its light the key's), the belt, the wisps, the
      stars' twinkle (held under reduced motion) and their top */
   var CEIL_KNEE = 0.08, STAR_TOP_Y = 0.0911, MOON_R = 1.8, MOON_FOOT = 4.5, MOON_KEEP = 12;
+  /* (physics: weather/far-anvil) the sun's own height now, deg: in a change through the sun's band, the one the sun is
+     drawn at (223's SUNU.es); otherwise the two skies' own (a night's AIR_SUN_NIGHT) on the change's clock */
+  function anvSunEl() {
+    if (SUNU.on) return SUNU.es;
+    var ex = anvElOf(SKY.X), ey = anvElOf(SKY.Y);
+    return ex + (ey - ex) * (SKY.q || 0);
+  }
+  function anvElOf(O) { var e = O && O.skyEl; return typeof e === "number" ? e : AIR_SUN_NIGHT; }   // (a sky's own sun, or a night's)
   var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4) };
   // MOON-ROUTE-BEGIN
   /* (the sun and moon: the owner's "Drift all night" and "Slower moon") the moon never fades, stops or
