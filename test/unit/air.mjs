@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "var id = seq[j].id; return airSunEl(id) === null ? false : id === 'firstlight';", "with": "return seq[i].id === 'firstlight';", "why": "a night after first light run back through midnight"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_LAT = 64, AIR_OBL = 23.4393,", "with": "var AIR_LAT = 64, AIR_OBL = 0,", "why": "the ecliptic laid on the equator"}
 // plant: {"file": "src/world/215-air.js", "find": "return morning ? 2 * PI - H : H;", "with": "return H;", "why": "first light's sun in the evening"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
@@ -212,6 +213,17 @@ test('air: the sky\'s frame (one celestial sphere: the pole at the latitude, the
     assert.ok(y1 > y0, 'a star rising in the east climbs as the night goes on (the sky turns east to west)');
   }
   assert.ok(Math.min(...decs) < -15 && Math.max(...decs) > -8, 'the visits\' seasons spread over the dark half');
+  // a night after first light is the small hours: its change turns the sky a little (not back through midnight), the sun never deeper than the night's
+  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'firstlight', at: 0, hold: 60, move: 58 }, { id: 'moonlit', at: 118, hold: 190, move: 58 }, { id: 'afterglow', at: 366, hold: 80, move: 58 });
+  for (const seed of SEEDS.slice(0, 8)) {
+    G.SIM.V = { seed, light: { sunAz: 40 } };
+    const H0 = G.skyFrame(10).H, H1 = G.skyFrame(200).H; let lo = 90, fast = 0, p = G.skyFrame(60).sun.slice();
+    for (let t = 60.05; t < 118; t += 0.05) { const s2 = G.skyFrame(t).sun; lo = Math.min(lo, el(s2)); fast = Math.max(fast, ang(s2, p) / 0.05); p = s2.slice(); }
+    assert.ok(Math.abs(H1 - H0) * 180 / Math.PI < 70, `first light into a night turns the hour ${(Math.abs(H1 - H0) * 180 / Math.PI).toFixed(0)} deg (the small hours, not back through midnight)`);
+    assert.ok(lo >= -24 - 1e-4, `the sun no deeper than the night's 24 deg through it (${lo.toFixed(1)})`);
+    assert.ok(fast < 2, `the sky turns at most ${fast.toFixed(2)} deg/s through it`);
+    assert.ok(Math.abs(el(G.skyFrame(200).sun) - -24) < 1e-4, 'the night: 24 deg down, before dawn');
+  }
   G.SIM.V = null; assert.deepEqual(Array.from(G.skyFrame(0).M), Array.from(G.skyFrame(0).M), 'before a visit: the frame unchanged');
 });
 
