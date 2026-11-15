@@ -98,7 +98,7 @@
          uploads and bakes once every probe is read (no read waits on a bake); laid out beside C once the visit is planned */
       var dlD = gpuFree ? t0 + BOOT_D_MS : dl, rd = 0, ready = false, flew = false, idle = gpuFree && bootIdle();
       budgets(true); BAKE.left = BUD.bake; WDL = dlD;
-      var h = SIM.V ? CS.psi : heading0(), cx = SIM.V ? CS.x : 0, cz = SIM.V ? CS.z : 0;
+      var h = SIM.V ? CS.psi : airHeading0(), cx = SIM.V ? CS.x : 0, cz = SIM.V ? CS.z : 0;
       do {
         WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0;
         var p0 = bootSig(V);
