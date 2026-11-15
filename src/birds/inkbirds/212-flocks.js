@@ -290,6 +290,7 @@
     var nq = FLOCKS.length; for (i = 0; i < nq; i++) FQ[i] = FLOCKS[i];   // (a stable list: a bird taking off joins or leaves a flock mid-step; filled in place, never emptied: no new store a step)
     for (i = 0; i < nq; i++) {
       F = FQ[i]; if (!F.lead || F.out) continue;
+      trailPush(F);
       var L = F.lead, dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       F.far = F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R;
       var off = !F.far && !FORCED && offView(F, C);

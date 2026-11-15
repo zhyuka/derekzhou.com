@@ -92,7 +92,7 @@
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
   function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false, tr: new Float64Array(4 * TR_N), trI: 0, trN: 0, trT: -1 }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */
@@ -105,7 +105,7 @@
     for (i = 1; i < F.m.length; i++) if (F.m[i].slot[0] < best.slot[0]) best = F.m[i];
     var s0 = best.slot.slice();
     for (i = 0; i < F.m.length; i++) { var q = F.m[i].slot; q[0] -= s0[0]; q[1] -= s0[1]; q[2] -= s0[2]; }
-    F.lead = best; if (!best.goal) best.goal = F.goal;
+    F.lead = best; if (!best.goal) best.goal = F.goal; F.trN = 0;   // (a new leader: its own way from here)
     if (F.m.length === 1) F.pat = 'single'; else if (F.m.length === 2) F.pat = 'pair';
   }
 
@@ -262,23 +262,51 @@
     if (t - g.t0 > g.T && g.k !== 'out' && g.k !== 'sink') nextGoal(F);   // (a sink is never given up: under the cloud it is only ever taken out)
     return WV;
   }
-  /* a member's wanted velocity: its leader's, and on toward its place (behind, aside, up: in spans), drifting about it */
+  /* the leader's way (physics: birds/turning; a turn's wave, equal-radius turns): a ring of where it was and its heading,
+     every TR_DT s for TR_N of them (8 s). A member's place is on that way a lag behind (the turn reaching it at c, 1.5
+     times its speed in a skein or a line, 2.5 in a loose flock), then back along the way and aside by its place: so it
+     turns where its leader turned, on the same radius, never swung round the leader as a rigid frame */
+  var TR_DT = 0.1, TR_N = 80, TP = [0, 0, 0, 0];
+  function trailPush(F) {
+    var L = F.lead; if (F.trN && t - F.trT < TR_DT - 1e-9) return;
+    var o = 4 * F.trI; F.tr[o] = L.p[0]; F.tr[o + 1] = L.p[1]; F.tr[o + 2] = L.p[2]; F.tr[o + 3] = L.psi;
+    F.trI = (F.trI + 1) % TR_N; if (F.trN < TR_N) F.trN++; F.trT = t;
+  }
+  /* where the leader was tau s ago (x, y, z, heading), between the ring's samples and where it is now; false past the ring */
+  function trailAt(F, tau, o) {
+    var L = F.lead, d0 = t - F.trT, a, f, i0, i1, k;
+    if (!F.trN || tau <= 0) { o[0] = L.p[0]; o[1] = L.p[1]; o[2] = L.p[2]; o[3] = L.psi; return true; }
+    if (tau <= d0) { f = d0 > 0 ? tau / d0 : 0; i1 = 4 * ((F.trI + TR_N - 1) % TR_N); for (k = 0; k < 3; k++) o[k] = L.p[k] + (F.tr[i1 + k] - L.p[k]) * f; o[3] = L.psi + angDiff(F.tr[i1 + 3], L.psi) * f; return true; }
+    a = (tau - d0) / TR_DT; var j = Math.floor(a); f = a - j; if (j + 1 >= F.trN) return false;
+    i0 = 4 * ((F.trI + TR_N - 1 - j) % TR_N); i1 = 4 * ((F.trI + TR_N - 2 - j) % TR_N);
+    for (k = 0; k < 3; k++) o[k] = F.tr[i0 + k] + (F.tr[i1 + k] - F.tr[i0 + k]) * f;
+    o[3] = F.tr[i0 + 3] + angDiff(F.tr[i1 + 3], F.tr[i0 + 3]) * f; return true;
+  }
+  /* a member's place now (x, y, z, heading, in TP and its heading's sin and cos): on its leader's way, or (no way that far
+     back yet) in its leader's frame */
+  function slotAt(F, b, back, side, up) {
+    var L = F.lead, c = (F.pat === 'skein' || F.pat === 'line' ? 1.5 : 2.5) * b.K.v, tau = back > 0 ? back / c : 0, V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
+    if (!(tau < TR_N * TR_DT - 0.2 && trailAt(F, tau, TP))) { TP[0] = L.p[0]; TP[1] = L.p[1]; TP[2] = L.p[2]; TP[3] = L.psi; tau = 0; }
+    var h = TP[3], ch = Math.cos(h), sh = Math.sin(h), rem = back - V * tau;
+    TP[0] += -rem * sh + side * ch; TP[2] += -rem * ch - side * sh; TP[1] += up; return h;
+  }
+  /* a member's wanted velocity: its leader's, as it was where its place is, and on toward its place (behind, aside, up: in
+     spans), drifting about it */
   var MV = [0, 0, 0];
   function placeVel(F, b) {
-    var L = F.lead, h = L.psi, ch = Math.cos(h), sh = Math.sin(h), sp = L.sz, q = b.slot;
+    var L = F.lead, sp = L.sz, q = b.slot;
     var dl = 0.18 * sp * wave(b.vK + 11, b.age / 6.5), da = 0.3 * sp * wave(b.vK + 53, b.age / 8.3), du = 0.22 * sp * wave(b.vK + 97, b.age / 7.1);
-    var back = q[0] * sp + dl, side = q[1] * sp + da, up = q[2] * sp + du;
-    var tx = L.p[0] - back * sh + side * ch, tz = L.p[2] - back * ch - side * sh, ty = L.p[1] + up;
-    var ex = tx - b.p[0], ey = ty - b.p[1], ez = tz - b.p[2], k = 0.45, cap = 0.35 * b.K.v;
+    var back = q[0] * sp + dl, side = q[1] * sp + da, up = q[2] * sp + du, h = slotAt(F, b, back, side, up), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
+    var ex = TP[0] - b.p[0], ey = TP[1] - b.p[1], ez = TP[2] - b.p[2], k = 0.45, cap = 0.1 * b.K.v;
     var cx = clamp(k * ex, -cap, cap), cy = clamp(k * ey, -cap, cap), cz = clamp(k * ez, -cap, cap);
-    MV[0] = L.v[0] + cx; MV[1] = L.v[1] + cy; MV[2] = L.v[2] + cz;
+    MV[0] = V * Math.sin(h) + cx; MV[1] = L.v[1] + cy; MV[2] = V * Math.cos(h) + cz;
     if (!(F.goal && F.goal.k === 'sink' && seaAt(b.p[0], b.p[2]).w > 0.85)) MV[1] = floorUp(b, MV[1], b.K.v, Infinity);   // (its place never under the land: as its leader's)
     return MV;
   }
   /* held in its place (a far flock's coarse step): exactly where its place is, at its leader's motion */
   function holdPlace(F, b) {
-    var L = F.lead, h = L.psi, ch = Math.cos(h), sh = Math.sin(h), sp = L.sz, q = b.slot;
-    b.p[0] = L.p[0] - q[0] * sp * sh + q[1] * sp * ch; b.p[2] = L.p[2] - q[0] * sp * ch - q[1] * sp * sh; b.p[1] = L.p[1] + q[2] * sp;
-    b.v[0] = L.v[0]; b.v[1] = L.v[1]; b.v[2] = L.v[2]; b.psi = L.psi; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
+    var L = F.lead, sp = L.sz, q = b.slot, h = slotAt(F, b, q[0] * sp, q[1] * sp, q[2] * sp), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
+    b.p[0] = TP[0]; b.p[1] = TP[1]; b.p[2] = TP[2];
+    b.v[0] = V * Math.sin(h); b.v[1] = L.v[1]; b.v[2] = V * Math.cos(h); b.psi = h; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
   }
 
