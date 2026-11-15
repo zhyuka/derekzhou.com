@@ -517,11 +517,15 @@ shader). It holds:
   the surface's wind is mixed down from aloft; at dusk the mixing dies,
   the ground's air slows and the air 100-300 m up speeds past its day's
   speed (the nocturnal jet); first light is the stillest at the ground.
-  AIR_BYSKY gives each sky three shares of the visit's day wind: the
-  surface's (to 20 m), the jet's (100-300 m) and the gusts' (their
-  intensity): the afterglow 1, 1, 1; the blue hour 0.7, 1.2, 0.65; the
-  moonlit sea 0.5, 1.4, 0.6; the aurora 0.45, 1.4, 0.55; the Milky Way
-  0.4, 1.5, 0.5; first light 0.35, 1.3, 0.5. Up the profile the share
+  AIR_BYSKY gives each sky its shares of the visit's day wind: the
+  surface's (to 20 m), the jet's (100-300 m), the gusts' intensity (set
+  by eye within row 6's band) and the gusts' slide across the wind (on a
+  calm sky the field's frame drifts sideways, as weak night air
+  meanders, so a gust's e-fold stays within row 6's 10-30 s): the
+  afterglow 1, 1, 1, 0; the blue hour 0.7, 1.2, 0.65, 0; the moonlit sea
+  0.5, 1.4, 0.6, 0.49; the aurora 0.45, 1.4, 0.55, 0.54; the Milky Way
+  0.4, 1.5, 0.5, 0.57; first light 0.35, 1.3, 0.5, 0.61 (the e-fold's
+  median 14-25 s in every sky). Up the profile the share
   eases from the surface's to the jet's (20-100 m, in log height) and from
   the jet's to the free air's 1 (300-1500 m); the particles, all at 20 m
   or under, take the surface's, the birds at 40 m a blend. Over a hold a
@@ -531,8 +535,9 @@ shader). It holds:
   (airClock; the shaders' uAir: the surface's clock, its share, the
   gustiness, the clock a frame back), so a change of sky never jumps a
   grain, a mote, a veil or a gust: the grains drift by the day's wind
-  times the clock, the gust field is carried by it, and the veils lift
-  past the day's sigma, so in a night's weak air seldom. The score's
+  times the clock, the gust field is carried by it, the veils' sand
+  streaks run at the veils' own wind on it, and the veils lift past the
+  day's sigma, so in a night's weak air seldom. The score's
   breeze is the same table, handed it read only by its feed
   (docs/sound.md).
 - The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
