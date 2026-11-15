@@ -212,6 +212,7 @@
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (syy > low) low = syy;
         if (!lg) continue;
+        if (i !== 0 && i !== 2 && i !== 3) continue;   // (it stands on its feet, the body's own bottom at its origin: its wings and tail never hold it up and may pass behind the letters, whose ink is drawn over the world; so folding, raising its wings or landing never lifts or drops it)
         /* the ink under it only: its own ledge's, and past that ledge's ends the neighbouring glyphs' (nbAdd), each
            weighted, its weight fading to none over fw px past a ledge's ends, the points far from its feet not
            counted, smoothly; the lowest of them all by a soft max, 1 px wide: so the rest never kinks as one point
@@ -269,11 +270,6 @@
       if (P.rT !== P.yawT) { P.rT = P.yawT; P.rA = s.rU || P.rest || 0; LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); var R = prb(b); perchBasis(C, P.yawTo, pt, rl, R.B); P.rB = restSolve(b, C, R, PFD[0], PFD[1], 0, s.V46); }
       up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, P.rA + (P.rB - P.rA) * ease(clamp((TD - P.yawT) / P.yawD, 0, 1)));
       s.rU = up; s.rV = 0; s.rT = TD; return true;   // (the turn's own rest is the drawn one: it ends at the next one's, at rest)
-    } else if (P.act && P.act.k === 'wings' && P.kind !== 'pointer') {   // (a wings act: its rest eased with its pose, from the one it stood at to the one its raised wings stand at, solved once at its start: never left behind in the air, the hub's review 3)
-      var A = P.act, ka = ease(1.4 * Math.sin(Math.PI * clamp((TD - A.t0) / A.T, 0, 1)));
-      if (P.aT !== A.t0) { P.aT = A.t0; P.aA = s.rU || P.rest || 0; gmix(GT2, s.P22, PERCH.poses.open, 0.7); var R2 = prb(b); LB.geom(R2.kind, GT2, s.B3, R2.V46, 'this'); perchBasis(C, yawNow, pt, rl, R2.B); P.aB = restSolve(b, C, R2, PFD[0], PFD[1], 0, R2.V46); }
-      up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, P.aA + (P.aB - P.aA) * ka);
-      s.rU = up; s.rV = 0; s.rT = TD; return true;
     } else {
       up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, L && P.rest ? P.rest : undefined);   // (leaving: its rest held as it was: the crouch and the opening wings do not lift it)
     }
