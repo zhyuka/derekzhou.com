@@ -33,7 +33,7 @@
     var V = C.V, ox = C.air ? C.dL[0] : 0, oz = C.air ? C.dL[1] : 0;
     return {
       V: V, scale: C.sc, ix: C.ix, iz: C.iz, x0: C.x0 + ox, z0: C.z0 + oz, size: C.size, salt: V.salt, air: C.air, hash: cellHash(C.ix, C.iz, ((C.air ? subseed(V.seed, 47) : V.salt) ^ (C.sc * 0x9e3779b9)) >>> 0),   // (an air cell: its own stream, subseed 47, and laid out where the air has carried it)
-      field: V.field, sun: keyAt(V),
+      field: V.field, sun: keyAt(V), dL: C.air ? C.dL : null,
       inside: function (x, z) { return x >= C.x0 + ox && x < C.x0 + ox + C.size && z >= C.z0 + oz && z < C.z0 + oz + C.size; },
       // a landmark: { kind, x, z, yaw (deg), foot (m: the footprint seated on its lowest ground), dy (m), air (y given),
       //   y, solid: [radius, height] (an obstacle: a cylinder over its seat), seed, ...the realm's own fields }

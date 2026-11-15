@@ -79,8 +79,8 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
     for (var i = 0; i < BQ.length; i++) fd = Math.max(fd, densD(x + BQ[i][0], z + BQ[i][1]));
     return Math.max(SEA_LO + RISE * wc + HEAP_MAX * (0.4 + 0.6 * wc), (land === undefined || land !== land ? -1e9 : land) + FORM_ALLOW * fd) + FLY_TOP + BAND_M;
   }
-  function aboveKeep(o) {
-    var wc = kitAt(o.x, o.z).wC, d = smooth(-10, 25, SEA_LO + RISE * wc + 18 * (0.4 + 0.6 * wc) - o.landMax) * densA(o.x, o.z), k = pickOf(o, 0x5bd1e995) < d;   // (fix, defect 14: the raw level, which bounds the drawn one from above)   // (world6 step B: against the sea's mean top, which now lies near the land's height)
+  function aboveKeep(o, ox, oz) {   // (ox, oz: an air cell's dL, as keep's)
+    ox = ox || 0; oz = oz || 0; var wc = kitAt(o.x - ox, o.z - oz).wC, d = smooth(-10, 25, SEA_LO + RISE * wc + 18 * (0.4 + 0.6 * wc) - o.landMax) * densA(o.x - ox, o.z - oz), k = pickOf(o, 0x5bd1e995, ox, oz) < d;   // (fix, defect 14: the raw level, which bounds the drawn one from above)   // (world6 step B: against the sea's mean top, which now lies near the land's height)
     if (k) GATE.kept++; else GATE.dropped++;
     return k;
   }
@@ -91,11 +91,12 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
      only birds, one language (judge-eye1: a dark ray with a tail line shared the sky with them). The moths, jellies and
      caps stay. Their draws are made as before; only what they would add is dropped. true: as the world was */
   var WORLD_FLYERS = false;
-  function pickOf(o, salt) { return hfl(ihash(((Math.round(o.x * 8) * 0x9e3779b1) ^ (Math.round(o.z * 8) * 0x85ebca6b) ^ salt) >>> 0)); }
+  function pickOf(o, salt, ox, oz) { return hfl(ihash(((Math.round((o.x - (ox || 0)) * 8) * 0x9e3779b1) ^ (Math.round((o.z - (oz || 0)) * 8) * 0x85ebca6b) ^ salt) >>> 0)); }   // (ox, oz: an air cell's carry when it was laid out, dL: the pick is the air frame's, whenever the layout ran)
   function kitApi(C, kit, dens, lift) {
     var A = {}, k;
     for (k in C) A[k] = C[k];
-    function keep(o) { return pickOf(o, kit === 'above' ? 0x5bd1e995 : 0x27d4eb2d) < dens(o.x, o.z); }
+    var ox = C.dL ? C.dL[0] : 0, oz = C.dL ? C.dL[1] : 0;   // (physics: clouds/drift: an air cell's keep, its hash and its kit's density, read in the air frame (x - dL), so no frame in which the layout runs moves it)
+    function keep(o) { return pickOf(o, kit === 'above' ? 0x5bd1e995 : 0x27d4eb2d, ox, oz) < dens(o.x - ox, o.z - oz); }
     function seat(o) { if (lift && o.y !== undefined) o.y += seaBaseAt(o.x, o.z); }   // (the ABOVE kit's heights are over its sea)
     A.add = function (it) { it.kit = kit; if (!keep(it)) { it._drop = true; return it; } seat(it); if (lift) it.landQ = it.r || 50; return C.add(it); };
     A.cloud = function (cl) { cl.kit = kit; if (!keep(cl)) { cl._drop = true; return cl; } seat(cl); if (lift) cl.landQ = (cl.w || cl.thick || 300) * 0.5; return C.cloud(cl); };   // (world6 fix: the land under its footprint probed: aboveKeep)
