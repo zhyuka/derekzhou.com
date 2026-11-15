@@ -254,6 +254,7 @@
   function posePerch(b, C, s) {
     var P = b.P;
     perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return false;
+    if (P.kind === 'pointer' && QB > 0) { PFD[0] -= (PTR.x - PW.qx) * QB; PFD[1] -= (PTR.y - PW.qy) * QB; }   // (on the pointer: its tip at the frame's time, back toward the last step's read; the step's alone stood still and jumped, 2.69x the body bound at 144 Hz)
     var wh = P.hop || 0;
     if (P.walk && TD >= P.walk.t0 && P.kind !== 'pointer') { walkAt(P, TD, WKA); var Lw = ledges()[P.li], yw = surfY(Lw.pts, WKA[0]); PFD[0] = WKA[0]; if (yw === yw) PFD[1] = yw; wh = WKA[1]; }   // (a walk's foot and hop at the frame's own time)
     if (s.rT0 !== P.tt) { s.rT0 = P.tt; s.rU = P.rest || 0; s.rV = 0; s.rT = TD; }   // (once a touch: from the rest the landing closed on)

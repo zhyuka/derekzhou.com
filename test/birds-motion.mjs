@@ -289,3 +289,35 @@ test('a perched bird stands on top of its ink: no drawn point far below the ink 
   assert.ok(worst <= 5, `a perched bird's drawn point hung ${worst.toFixed(2)} px below the ink under it (${at})`);
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames had a drawn point over 2 px below the ink under it`);
 });
+
+/* (the hub's re-review 3, #227) a bird riding the pointer, the pointer round a 60 px circle at 200 px/s (the cursor
+   scene's own 28 px/s is too slow to show it), drawn at 144 Hz: posed at the frame's time, its body moves every frame
+   within the bound (posed from the step's pointer it stood still on 56 % of frames and jumped on the rest: 2.69x) */
+test('144 Hz: a bird riding a moving pointer moves smoothly with it (posed at the frame\'s time)', () => {
+  const hz = 144, V = 200, k60 = (60 / hz) ** 2; let worst = 0, at = '', frames = 0, rides = 0;
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 12; seed++) {
+    const sc = SCENES.cursor(seed, size), Z = size === '390x844' ? [390, 844] : [960, 600];
+    const slow = sc.opt.pointer; let t0 = -1, p0 = null;
+    sc.opt.pointer = (t) => {   // (slow until the bird is on it, then round a circle at V px/s, through where it is: no jump)
+      if (t0 < 0) return slow(t);
+      const R = 60, w = V / R, a0 = Math.atan2(p0.y - Z[1] / 2, p0.x - Z[0] / 2), a = a0 + (t - t0) * w, cx = p0.x - R * Math.cos(a0), cy = p0.y - R * Math.sin(a0);
+      return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+    };
+    sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let hist = [], rode = false;
+    for (let k = 0; k < 30 * hz; k++) {
+      sim.frame(1 / hz); const s = b.s, on = b.st === 'perch' && b.P && b.P.kind === 'pointer' && !b.P.leaving;
+      if (on && t0 < 0 && sim.t - b.P.tt > 1.5) { t0 = sim.t; p0 = { x: sim.PT.x, y: sim.PT.y }; }
+      if (!on || t0 < 0 || sim.t - t0 < 0.3 || !s || s.seenF !== sim.B.DF()) { hist = []; continue; }
+      if (!rode) { rode = true; rides++; }
+      hist.push({ x: s.HB[0], y: s.HB[1], span: s.spanPx, k });
+      if (hist.length < 3) continue;
+      const [a, c, d] = hist.slice(-3); if (c.k !== a.k + 1 || d.k !== c.k + 1 || c.span < 6) continue;
+      const bb = Math.hypot(a.x - 2 * c.x + d.x, a.y - 2 * c.y + d.y) / c.span / (0.1 * Math.max(k60, 0.3)); frames++;
+      if (bb > worst) { worst = bb; at = `cursor ${size} ${seed} frame ${c.k}`; }
+    }
+  }
+  console.log(`# pointer rides at ${V} px/s, ${hz} Hz: ${rides} rides, ${frames} frames; the worst body step ${worst.toFixed(2)} of its bound (${at})`);
+  assert.ok(rides >= 10 && frames > 1000, `too few rides (${rides}) or frames (${frames})`);
+  assert.ok(worst <= 1, `a bird on the moving pointer jumped ${worst.toFixed(2)}x its bound (${at})`);
+});
