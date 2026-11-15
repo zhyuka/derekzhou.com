@@ -100,31 +100,42 @@
     return AIR_WX;
   }
   /* THE WEATHER BY WIND (physics: air/weather): what the visit's own wind (V.u10, no new draw) and the sky make of
-     the air, constant through a hold and eased through a change with the light (as the shares are), for each reader
-     to read: LAND's mist, CLOUDS' lenticulars and banners, the haze. wx(t) = { mist, oro, ridge, vis, dust }:
-     - mist (m deep): radiation mist pooled on the sand on a still clear night, thickest before sunrise. A sky's depth
-       (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0) under a still surface wind, gone as
-       the wind mixes it up (from 2 to 4.5 m/s at 10 m: the visit's U10 times the sky's surface share);
-     - oro (0..1): the orographic gate, the ridge-top wind (1.28 the wind at the jet's height: the flow speeds up
-       over a ridge) past 7.7 m/s (eased over 7.2-8.2): standing waves in its lee, lenticulars and banner clouds.
-       ridge is that wind, m/s;
-     - vis (km): the visibility, 10 km in clean air, 4 km when the wind is past the sand's threshold (eased over
-       5.8-7.0 m/s at 10 m: blown dust, a sand haze); dust (0..1) is how far it is past */
+     the air, for each reader to read (LAND's mist, CLOUDS' lenticulars and banners, the haze): wx(t) = { mist, oro,
+     ridge, vis, dust }.
+     - mist (m deep): radiation mist pooled on the sand on a still clear night, thickest before sunrise. Each sky's
+       depth is set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0, thinned
+       by the sky's surface wind, U10 x its share: whole to 3.6 m/s, where light wind still thickens radiation fog,
+       mixed out by 5 m/s, set by eye). Through a change the level moves toward the next sky's at AIR_MIST_RATE
+       (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
+       never jumps and never races;
+     - oro (0..1): the orographic gate, the visit's own (U10 alone, the whole visit): the ridge-top wind is the log
+       law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (eased over 7.2-8.2: U10 about 6) the ridges
+       stand lee waves, lenticulars and banner clouds;
+     - vis (km): the visit's own visibility, 10 km in clean air, 4 km in blown sand once U10 is past the sand's
+       threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
+       never fades in place */
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
-  var AIR_WXK = { mist: [2, 4.5], ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
+  var AIR_MIST_RATE = 0.18, AIR_WXK = { mist: [3.6, 5], ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
   var AIR_WXO = { mist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
-  function airSkyMix(T, t, dflt) {   // a sky table's value at the flight's t: a hold's, eased through a change with the light
-    var seq = SKY.seq; if (!seq.length) return dflt;
-    var tS = t + (SKY.dt || 0), i = airIdx(seq, tS), e = seq[i], a = T[e.id], b = seq[i + 1] ? T[seq[i + 1].id] : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
-    a = a === undefined ? dflt : a; b = b === undefined ? dflt : b;
-    return a + (b - a) * k * k * (3 - 2 * k);
+  function airMistOf(id, u) { var d = AIR_MIST[id], sh = AIR_BYSKY[id]; return d === undefined ? 0 : d * (1 - airEase(AIR_WXK.mist[0], AIR_WXK.mist[1], u * (sh ? sh[0] : 1))); }   // a sky's mist depth on this visit, m
+  function airMistAt(t, u) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
+    var seq = SKY.seq; if (!seq.length) return 0;
+    var tS = t + (SKY.dt || 0), i = airIdx(seq, tS), j, e, a, b, t0, r;
+    for (j = i; j >= Math.max(0, i - 1); j--) {   // (the change under way, else the last one whose ramp may still run)
+      e = seq[j]; if (!seq[j + 1]) continue;
+      t0 = e.at + e.hold; if (tS < t0) continue;
+      a = airMistOf(e.id, u); b = airMistOf(seq[j + 1].id, u); r = AIR_MIST_RATE * (tS - t0);
+      if (r < Math.abs(b - a)) return a + (b > a ? r : -r);
+      if (j === i) return b;
+    }
+    return airMistOf(seq[i].id, u);
   }
   function airWx(t, V) {   // the weather the wind makes at the flight's t (the one object, reused)
     t = t === undefined ? SIM.t : t;
-    var u = u10Of(V), w = weather(t), K = AIR_WXK, o = AIR_WXO, sfc = u * w[0];
-    o.mist = airSkyMix(AIR_MIST, t, 0) * (1 - airEase(K.mist[0], K.mist[1], sfc));
-    o.ridge = K.ridge * u * w[1]; o.oro = airEase(K.oro[0], K.oro[1], o.ridge);
-    o.dust = airEase(K.dust[0], K.dust[1], sfc); o.vis = K.vis[0] + (K.vis[1] - K.vis[0]) * o.dust;
+    var u = u10Of(V), K = AIR_WXK, o = AIR_WXO;
+    o.mist = airMistAt(t, u);
+    o.ridge = K.ridge * u; o.oro = airEase(K.oro[0], K.oro[1], o.ridge);
+    o.dust = airEase(K.dust[0], K.dust[1], u); o.vis = K.vis[0] + (K.vis[1] - K.vis[0]) * o.dust;
     return o;
   }
   function airClock(t) { var dt = SKY.dt || 0; airInt(t + dt, AIR_IA); airInt(dt, AIR_IB); for (var c = 0; c < AIR_NC; c++) AIR_TC[c] = AIR_IA[c] - AIR_IB[c]; return AIR_TC; }   // the shares' clocks from the flight's start: s x s
