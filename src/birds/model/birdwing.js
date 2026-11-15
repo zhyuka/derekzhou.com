@@ -82,7 +82,7 @@
       var m = KM[kind], f0 = (o.f || LB.rate(kind, o.rate)) * (1 + VAR.SPREAD * (o.spread === undefined ? 2 * r() - 1 : o.spread));
       var sc = o.sched === 'continuous' ? { cont: true } : o.sched === 'calm' ? { calm: CALM[kind] } : SCHED[o.V && kind === 'ibis' ? 'ibisV' : kind] || { cont: true };
       var from = o.from === undefined ? -5 : o.from, dt = 1 / 240;
-      var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null,
+      var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null, loff: 0,
         EPS: new Float32Array(64), KK: new Float32Array(64), PAU: new Float32Array(64), nbt: 0, pz: 0, pzrun: 0,
         KI: new Float64Array(64), KP: new Float64Array(64), nk: 0, cone: [0, 0, 0, 0, 0, 0],   // the phase's knots: step, psi; the open segment's cone
         BO: [], PA: [], i: -1, pre: !!o.pre, boff: 0 };   // boff: the first beat the per-beat draws still hold
@@ -136,6 +136,15 @@
       while (b.lt < to) { var dur = Math.exp(Math.log(b.lon ? LOCK.HOLD[0] : LOCK.FREE[0]) + (b.lon ? LOCK.HOLD[1] : LOCK.FREE[1]) * gauss(r) * 0.7); if (b.lon) b.lockOn.push(b.lt, b.lt + dur); b.lt += dur; b.lon = !b.lon; }
     }
     function wander(b, t) { var wq = b.wq, f0 = b.f; return VAR.WANDER * Math.SQRT2 * (0.6 * Math.sin(TAU * t * f0 / wq[3] + wq[0]) + 0.6 * Math.sin(TAU * t * f0 / wq[4] + wq[1]) + 0.53 * Math.sin(TAU * t * f0 / wq[5] + wq[2])) / 1.0; }
+    /* (physics: birds/phase) the bird ahead changed (a flock made, joined, split, re-led): the lock's target only, never
+       a phase (the nudge, clipped to LOCK.MAXF, carries it there): lead null frees it. d the distance to the bird ahead (m), U
+       the speed, off the lead's clock ahead of this one's (its age less this bird's), phase the cycle's offset (LOCK.PHASE
+       behind a side position, 0.46 directly behind) */
+    function relock(b, lead, d, U, off, phase) {
+      if (!lead || lead === b) { b.lead = null; return; }
+      b.lead = lead; if (!b.lock) b.lock = { d: 0, U: 1 }; b.lock.d = d; b.lock.U = U; b.loff = off || 0;
+      b.delta = b.f * d / U + (phase === undefined ? LOCK.PHASE : phase);
+    }
     function lockW(b, t) {
       var lk = 0, q, L = b.lockOn;
       if (!(b.lead && b.lock)) return 0;
@@ -175,7 +184,7 @@
         var fi = fb / (1 + b.EPS[jj]);
         var lk = b.lead && b.lock ? lockW(b, t) : 0;
         if (lk > 0 && b.lead) {
-          var ld = b.lead, li = Math.max(0, Math.round((t - ld.from) / ld.dt));
+          var ld = b.lead, li = Math.max(0, Math.round((t + (b.loff || 0) - ld.from) / ld.dt));   // (the lead's own clock: its age, loff ahead of this bird's)
           ensure(ld, ld.from + (li + 1) * ld.dt);
           if (flAtStep(ld, li) && L.inBout) { var err = (psiAtI(ld, li) - b.delta) - L.Psi; err = err - Math.round(err); fi += clip(LOCK.GAIN * f0 * err, LOCK.MAXF * f0) * lk; }
         }
@@ -341,7 +350,7 @@
     /* the bird's day moved on by d s (a whole number of its steps) without working it out: every read after reads the
        wing as it was d s before (a bird out of sight paused its beat, and goes on from there) */
     function skip(b, d) { b.from += d; }
-    return { make: make, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
+    return { make: make, relock: relock, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
              knots: function (b) { return b.nk; }, CURL_R: CURL_R, PSI_TOL: PSI_TOL, LB: LB };
   }
   root.BIRDWING = BIRDWING;

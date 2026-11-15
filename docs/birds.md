@@ -117,6 +117,16 @@ in four, its points carried with its body between; a flock of specks steps one
 frame in four, the draw carrying each bird on along its way; far, off-view and
 speck birds pause their wing (BW.skip: it goes on from where it paused).
 
+FLYING TOGETHER (the hub's flock physics spec, 2026-11-15: .work/hub/physics/birds.md; the owner: "some types of birds/flocks
+flap their wings mostly in sync too sometimes, right?"). Real flocks almost never beat in lockstep. An ibis or a goose in
+a skein beats with the bird ahead on its own leg in wake bouts, about a third of the time, median 2 s, at the spatial phase
+(f d / U - 0.18 cycle); in a line, directly behind, in antiphase (+0.46); everywhere else free, each at its own rate (+-3 %),
+so neighbours' offsets hold for seconds and drift. BW.relock (birdwing.js) points a wing at the wing ahead, worked out
+whenever a flock's birds change (flockLocks, 120): only the nudge's target, never a phase. An ibis in a skein or a line
+flies the ibis-in-a-V schedule (gliding about 3 %). A formation turns where its leader turned: each member flies its
+leader's heading from back / c ago (c 1.5 V in a skein or a line, 2.5 V in a loose flock), on a ring of the leader's way
+(210). test/birds-flock.mjs measures both.
+
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
 +-1500 m about the landing; BIRDS_GROUND=stub for the old low hills): a camera flying its heading, the words' boxes as the served page lays

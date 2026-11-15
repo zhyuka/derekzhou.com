@@ -96,7 +96,7 @@
     b.burst = leapt ? { t0: t, n: 3 + Math.floor(b.r() * 3) } : null;
     if (J && J.lead) {   /* to the flock: a place at its end, flown into */
       if (b.F && b.F !== J) { var F0 = leaveFlock(b); if (!F0.m.length) dropFlock(F0); }
-      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b); J.off = false; J.acc = 0;   // (a bird joining: the flock is judged again with it, from this frame)
+      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b); J.off = false; J.acc = 0; J.lk = true;   // (a bird joining: the flock is judged again with it, from this frame)
     } else {
       if (!b.F) soloFlock(b);
       var r = b.r, g = weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);

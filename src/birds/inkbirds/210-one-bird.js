@@ -78,7 +78,7 @@
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
       flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
-    b.w = placeWing(kind, r, b.age);
+    b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
     BIRDS.push(b);
@@ -90,9 +90,9 @@
     if (b.F) { var F = leaveFlock(b); if (!F.m.length) dropFlock(F); }
   }
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
-  function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
+  function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; F.lk = true; if (b.w) BW.relock(b.w.wing, null); if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false, tr: new Float64Array(4 * TR_N), trI: 0, trN: 0, trT: -1 }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false, tr: new Float64Array(4 * TR_N), trI: 0, trN: 0, trT: -1, lk: true }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */
@@ -105,7 +105,7 @@
     for (i = 1; i < F.m.length; i++) if (F.m[i].slot[0] < best.slot[0]) best = F.m[i];
     var s0 = best.slot.slice();
     for (i = 0; i < F.m.length; i++) { var q = F.m[i].slot; q[0] -= s0[0]; q[1] -= s0[1]; q[2] -= s0[2]; }
-    F.lead = best; if (!best.goal) best.goal = F.goal; F.trN = 0;   // (a new leader: its own way from here)
+    F.lead = best; if (!best.goal) best.goal = F.goal; F.trN = 0; F.lk = true;   // (a new leader: its own way from here)
     if (F.m.length === 1) F.pat = 'single'; else if (F.m.length === 2) F.pat = 'pair';
   }
 
@@ -142,7 +142,7 @@
   function wingOff(b) { if (!b.wOff) { b.wOff = true; b.wP = b.age; } }
   function wingOn(b) {
     if (b.w) { var g = b.w.wing, d = Math.round((b.age - b.wP) / g.dt) * g.dt; if (d > 0) BW.skip(g, d); }
-    else { b.w = placeWing(b.kind, b.r, b.age); b.wtT = 0; }
+    else { b.w = placeWing(b.kind, b.r, b.age, inV(b.F)); b.wtT = 0; if (b.F) b.F.lk = true; }
     b.wOff = false; b.wsT = -1;
   }
   /* its wing's history kept to the last seconds (else it grows all its life) */

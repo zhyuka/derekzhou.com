@@ -67,7 +67,7 @@
     SPREAD: 0.03       // bird to bird (FIX): gull 2.4% (between-bird SD of 16 birds' means, CC0, judge-bio), stork 2.4% (4 birds, CC0): a flight's birds spread evenly over +-3%, an SD of 2.0-2.2% for 5-7 birds, with each bout's own rate (BOUT_SD) about 2.4%
   };
   var RAMP = { A_IN: 0.4, A_OUT: 0.6, E_IN: 0.45, E_OUT: 0.75 };   // cycles: glide <-> flap (not measured: MODEL.md 3.9 keeps the last round's envelopes)
-  var LOCK = { HOLD: [2, 1.03], FREE: [4.25, 1.03], GAIN: 0.6, MAXF: 0.15, PHASE: -0.18 };   // ibis V: in a wake 32% of the time, bouts median 2 s (IQR 1-4) (Voelkl et al. 2015); spatial phase -0.18 (Portugal 2014)
+  var LOCK = { HOLD: [2, 1.03], FREE: [4.25, 1.03], GAIN: 1.0, MAXF: 0.15, PHASE: -0.18 };   // ibis V: in a wake 32% of the time, bouts median 2 s (IQR 1-4) (Voelkl et al. 2015); spatial phase -0.18 (Portugal 2014)
   var PRIMW = {   // MODEL.md 4.4.1: the pleats' shares of the curl and washout
     one: [1, 0.95, 0.9], slot: [1, 0.8, 0.6], deep: [1, 0.7, 0.45]
   };
