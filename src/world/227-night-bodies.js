@@ -39,7 +39,7 @@
   function venusFrame(V, morning, D0) {
     var F = VEN_F;
     if (F.seed === J.seed && F.morning === morning && F.D0 === D0 && F.az === V.light.sunAz) return F;
-    var f = AIR_LAT * DEG, d = skyFrame().sunDec * DEG, h = -D0 * DEG;
+    var f = AIR_LAT * DEG, d = skySphere(SIM.t + (SKY.dt || 0), V).sunDec * DEG, h = -D0 * DEG;
     var A = Math.acos(clamp((Math.sin(d) - Math.sin(f) * Math.sin(h)) / (Math.cos(f) * Math.cos(h)), -1, 1)), bs = morning ? A : 2 * PI - A;   // (the drawn sun's compass bearing, from north through east)
     var S0 = airSkySun(V, -D0), kn = Math.sqrt(S0[0] * S0[0] + S0[2] * S0[2]) || 1, K = [S0[0] / kn, 0, S0[2] / kn], Rk = [-K[2], 0, K[0]];   // (its level direction, and that direction's right: cross(K, up))
     var N = [Math.cos(bs) * K[0] - Math.sin(bs) * Rk[0], 0, Math.cos(bs) * K[2] - Math.sin(bs) * Rk[2]];   // (north: the sun's level direction turned left by its bearing)
