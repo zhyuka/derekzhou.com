@@ -10,11 +10,11 @@
      the end bird looks out; it leaves by its own wish, when a flock of its kind passes (to join it), or startled by a
      jab (the startle running down the row bird to bird). It leaves as a bird does: a crouch and a lean, a leap, a few
      strong beats, and on in the world on a goal any bird may fly. */
-  var PERCH = (function () {   /* the perched shape: the owner's chosen one: its poses */
+  var PERCH = (function () {   /* the perched shape: the owner's chosen one: its poses. Pitched up 70 deg, each keeps its wings swept forward (up) or raised, never hanging below the wings' root: the feet it stands on (230 restSolve), so it stands on top of the ink (the hub's re-review 3, option c) */
     function side(a) { var p = FP.pose(); for (var i = 0; i < 11; i++) { p[i] = a[i]; p[11 + i] = a[i]; } return p; }
-    var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 10, 12, 0.95, -40, 0, 4, 6, 0, 0, 8]),
-      fold: side([0, -78, 88, 0.48, 0, -14, 0, 0, -6, 0, 0]), foldHalf: side([40, -20, 30, 0.8, -40, -25, 0, 0, -5, 0, 6]),
-      foldLoose: side([8, -62, 70, 0.6, -6, -10, 0, 0, -4, 0, 2]), open: side([40, 8, 6, 0.9, -30, -10, 4, 0, -4, 0, 6]) };
+    var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 65, 12, 0.95, -10, 0, 4, 6, 0, 0, 8]),
+      fold: side([0, 78, 88, 0.48, 0, 14, 0, 0, 6, 0, 0]), foldHalf: side([40, 65, 30, 0.8, -10, 25, 0, 0, 5, 0, 6]),
+      foldLoose: side([20, 72, 70, 0.6, -6, 10, 0, 0, 4, 0, 2]), open: side([40, 65, 6, 0.9, -5, 10, 4, 0, -4, 0, 6]) };
     return { poses: P, scale: 4.2, el: 4, pitch: 70, yaw: 95 };
   })();
   var P_LINK_K = 0.75, P_PTR_K = 0.75;   // a perched bird's size on a link or the credit, and on the pointer, against the name's
