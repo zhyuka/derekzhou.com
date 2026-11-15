@@ -200,7 +200,13 @@ ink birds stay deferred and join after the show.
 
 ## BOOT
 
-(The owner: "should load instantly make it 10x faster"): without the
+(The programs' text, load-perf 2026-11-15: each shader is handed to WebGL
+without the functions its main never reaches (src/world/071-glsl-prune.js:
+whole top-level definitions only, the rest byte for byte; about a third of
+the batch's text), and with the parallel compile the programs the show never
+waits for (LATE_ALWAYS) are issued last: the lab's phones compile the batch
+one program after another, 4.1-4.5 s on the A15, and every GPU job waits
+behind it.) (The owner: "should load instantly make it 10x faster"): without the
 hold, the page paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The kits, the wing model
