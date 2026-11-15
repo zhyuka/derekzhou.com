@@ -15,6 +15,10 @@ const { map } = JSON.parse(fs.readFileSync(path.join(here, 'areas.json'), 'utf8'
 const glob = (g) => new RegExp('^' + g.split('**').map((p) => p.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*')).join('.*') + '$');
 const RULES = map.map(([g, a]) => [glob(g), a]);
 
+// tools/gpu/ files T2 never runs (the 4090's other jobs: the ground's recorder, the stills' bake): a change to one
+// alone is not T2's own (2026-11-14: #237's recorder edit waited for T2 behind a stalled GPU queue)
+export const NOT_T2 = new Set(['tools/gpu/record-ground.mjs', 'tools/gpu/bake-stills.js']);
+
 export function areasOf(files) {
   const out = new Set(['static']); const unknown = [];
   for (const f of files) {
@@ -79,7 +83,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   // T2 when the world's, the realms' or the birds' served JS changed (the census adds a changed shader).
   const harness = files.some((f) => f.startsWith('.github/ci/') || f.startsWith('.github/actions/') || f === '.github/workflows/gate.yml');
   const gpuJs = changedServed.some((f) => areasOf(['site/' + f]).areas.includes('gpu'));   // (a served file, mapped as site/'s)
-  const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || f.startsWith('tools/gpu/'));   // (T2's own files: T2 runs on itself)
+  const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || (f.startsWith('tools/gpu/') && !NOT_T2.has(f)));   // (T2's own files: T2 runs on itself)
   const input = inputChanges(base, head, git);
   if (input.length) console.log(`input handling changed in: ${input.join(' ')}`);
   // the page outside the canvas changed too (HTML, CSS, fonts, the page's own scripts: any served file T2 does not cover):

@@ -1,5 +1,5 @@
 {
-  "_": "The file-to-test map (areas.mjs). Each changed path takes the areas of the first pattern it matches (globs: * one segment, ** any). A path no pattern matches means ALL. Areas: static (T0's checks: always), frames (T1, the frames and the DOM), gpu (T2, the RTX 4090), harness (the gates' own code: it changes how a build is judged, never what is served; which gates run is decided by the builds and by areas.mjs's harness rule, not by this area), none (nothing shipped or tested). The merge bot re-gates a PR only when main changed one of its areas since its gate's base, so a harness PR and a site PR land side by side: main's gate then runs the new harness on the new site, and the deploy gate waits for it.",
+  "_": "The file-to-test map (areas.mjs). Each changed path takes the areas of the first pattern it matches (globs: * one segment, ** any). A path no pattern matches means ALL. Areas: static (T0's checks: always), frames (T1, the frames and the DOM), gpu (T2, the RTX 4090), harness (the gates' own code: it changes how a build is judged, never what is served; which gates run is decided by the builds and by areas.mjs's harness rule, not by this area), none (nothing shipped or tested). The site/ patterns of the built scripts (world, realm-*, plan, inkbirds) match no tracked file: they map the served build's files (areas.mjs's gpu_js), so they stay. tools/checks/lib/glsl_guard.js and test/fakepage.cjs are the plan job's shader census (glsl-changed.mjs); the rest of tools/checks/ and test/ is T0's own. Every pattern matches a tracked file or a served one (tools/checks/41-docs-drift.sh). The merge bot re-gates a PR only when main changed one of its areas since its gate's base, so a harness PR and a site PR land side by side: main's gate then runs the new harness on the new site, and the deploy gate waits for it.",
   "map": [
     ["site/world*.js", ["frames", "gpu"]],
     ["site/realm-*.js", ["frames", "gpu"]],
@@ -9,6 +9,8 @@
     ["tools/dup-names.mjs", ["static"]],
     ["tools/check-quick.mjs", ["static"]],
     ["tools/gpu/**", ["harness"]],
+    ["tools/checks/lib/glsl_guard.js", ["harness"]],
+    ["tools/checks/**", ["static"]],
     ["tools/**", ["frames", "gpu"]],
     ["site/**", ["frames"]],
     ["package.json", ["frames"]],
@@ -20,10 +22,10 @@
     [".github/workflows/*", ["static"]],
     ["RULES.json", ["static"]],
     [".claude/**", ["static"]],
+    ["test/fakepage.cjs", ["harness"]],
+    ["test/**", ["static"]],
     ["CLAUDE.md", ["none"]],
-    ["*.md", ["none"]],
     ["docs/**", ["none"]],
-    [".work/**", ["none"]],
     [".gitignore", ["none"]],
     [".gitattributes", ["frames"]],
     ["download-fonts.sh", ["none"]],

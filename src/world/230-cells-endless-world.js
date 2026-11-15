@@ -32,7 +32,7 @@
     var V = C.V;
     return {
       V: V, scale: C.sc, ix: C.ix, iz: C.iz, x0: C.x0, z0: C.z0, size: C.size, salt: V.salt, hash: cellHash(C.ix, C.iz, (V.salt ^ (C.sc * 0x9e3779b9)) >>> 0),
-      field: V.field, sun: V.light.sunDir,
+      field: V.field, sun: keyAt(V),
       inside: function (x, z) { return x >= C.x0 && x < C.x0 + C.size && z >= C.z0 && z < C.z0 + C.size; },
       // a landmark: { kind, x, z, yaw (deg), foot (m: the footprint seated on its lowest ground), dy (m), air (y given),
       //   y, solid: [radius, height] (an obstacle: a cylinder over its seat), seed, ...the realm's own fields }
