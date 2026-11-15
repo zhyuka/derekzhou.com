@@ -96,6 +96,34 @@
     for (c = 0; c < 3; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;
     return AIR_WX;
   }
+  /* THE WEATHER BY WIND (physics: air/weather): what the visit's own wind (V.u10, no new draw) and the sky make of
+     the air, constant through a hold and eased through a change with the light (as the shares are), for each reader
+     to read: LAND's mist, CLOUDS' lenticulars and banners, the haze. wx(t) = { mist, oro, ridge, vis, dust }:
+     - mist (m deep): radiation mist pooled on the sand on a still clear night, thickest before sunrise. A sky's depth
+       (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0) under a still surface wind, gone as
+       the wind mixes it up (from 2 to 4.5 m/s at 10 m: the visit's U10 times the sky's surface share);
+     - oro (0..1): the orographic gate, the ridge-top wind (1.28 the wind at the jet's height: the flow speeds up
+       over a ridge) past 7.7 m/s (eased over 7.2-8.2): standing waves in its lee, lenticulars and banner clouds.
+       ridge is that wind, m/s;
+     - vis (km): the visibility, 10 km in clean air, 4 km when the wind is past the sand's threshold (eased over
+       5.8-7.0 m/s at 10 m: blown dust, a sand haze); dust (0..1) is how far it is past */
+  var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
+  var AIR_WXK = { mist: [2, 4.5], ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
+  var AIR_WXO = { mist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
+  function airSkyMix(T, t, dflt) {   // a sky table's value at the flight's t: a hold's, eased through a change with the light
+    var seq = SKY.seq; if (!seq.length) return dflt;
+    var tS = t + (SKY.dt || 0), i = airIdx(seq, tS), e = seq[i], a = T[e.id], b = seq[i + 1] ? T[seq[i + 1].id] : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
+    a = a === undefined ? dflt : a; b = b === undefined ? dflt : b;
+    return a + (b - a) * k * k * (3 - 2 * k);
+  }
+  function airWx(t, V) {   // the weather the wind makes at the flight's t (the one object, reused)
+    t = t === undefined ? SIM.t : t;
+    var u = u10Of(V), w = weather(t), K = AIR_WXK, o = AIR_WXO, sfc = u * w[0];
+    o.mist = airSkyMix(AIR_MIST, t, 0) * (1 - airEase(K.mist[0], K.mist[1], sfc));
+    o.ridge = K.ridge * u * w[1]; o.oro = airEase(K.oro[0], K.oro[1], o.ridge);
+    o.dust = airEase(K.dust[0], K.dust[1], sfc); o.vis = K.vis[0] + (K.vis[1] - K.vis[0]) * o.dust;
+    return o;
+  }
   function airClock(t) { var dt = SKY.dt || 0; airInt(t + dt, AIR_IA); airInt(dt, AIR_IB); for (var c = 0; c < 3; c++) AIR_TC[c] = AIR_IA[c] - AIR_IB[c]; return AIR_TC; }   // the shares' clocks from the flight's start: s x s
   function airABC(y) {   // the share at y m up as a s + b j + c 1 (the one array, reused)
     var e1 = y <= AIR_SL[0] ? 0 : airEase(0, 1, Math.log(y / AIR_SL[0]) / Math.log(AIR_SL[1] / AIR_SL[0])), e2 = airEase(AIR_SL[2], AIR_SL[3], y);
@@ -157,4 +185,4 @@
     return s;
   }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, share: airShare, carried: airCarried, clock: airClock, BYSKY: AIR_BYSKY, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, wx: airWx, MIST: AIR_MIST, share: airShare, carried: airCarried, clock: airClock, BYSKY: AIR_BYSKY, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

@@ -524,6 +524,18 @@ shader). It holds:
   past the day's sigma, so in a night's weak air seldom. The score's
   breeze is the same table, handed it read only by its feed
   (docs/sound.md).
+- The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
+  the visit's own U10 and the sky's shares (no new draw), constant
+  through a hold and eased through a change with the light. mist (m
+  deep): radiation mist on a still clear night, thickest before sunrise
+  (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow
+  0), gone as the surface wind mixes it up (2-4.5 m/s at 10 m). oro (0-1):
+  the orographic gate, the ridge-top wind (1.28 the wind at the jet's
+  height) past 7.7 m/s: lee waves, lenticulars and banner clouds (about a
+  quarter of afternoons, most nights, where the jet runs). vis (km): 10
+  in clean air, 4 in blown sand once the surface wind passes the sand's
+  threshold (5.8-7 m/s; about one afternoon in six). LAND's mist and
+  CLOUDS' lenticulars and banners read it.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route) and the
   sky's frame (skyFrame: the turn the stars and the galaxy take; today
   none).

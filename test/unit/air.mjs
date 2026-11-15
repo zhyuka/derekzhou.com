@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "o.mist = airSkyMix(AIR_MIST, t, 0) * (1 - airEase(K.mist[0], K.mist[1], sfc));", "with": "o.mist = airSkyMix(AIR_MIST, t, 0);", "why": "the mist the same in any wind"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
@@ -31,7 +32,7 @@ function page() {   // the air on a fake page (no clock, no DOM), and the dunes'
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, AIR_GUST: AIR_GUST, AIR_GOCT: AIR_GOCT, airGustGlsl: airGustGlsl, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
-    '    SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
+    '    airWx: airWx, AIR_MIST: AIR_MIST, SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -273,5 +274,39 @@ test('air: the wind by sky (one table: the world and the score), eased with the 
   const c = G.airTable(); c.afterglow[0] = 9; assert.equal(T.afterglow[0], 1, 'a copy: the score never writes the world\'s');
   assert.ok(/function breeze\(id\) \{ var a = S\.air && S\.air\[id\];/.test(SC) && /S\.air = F\.air/.test(SC), 'the score\'s breeze is the feed\'s table');
   assert.ok(!/\b(afterglow|bluehour|firstlight|moonlit|milkyway|aurora)\s*:\s*\[\s*0?\.\d+\s*,\s*0?\.\d+\s*\]/.test(SC), 'no breeze of the score\'s own by sky');
+});
+
+test('air: the weather the wind makes (mist on still nights and before sunrise, the ridge\'s lee waves, the sand haze)', () => {
+  const G = page(), skies = Object.keys(G.WSKY), N = 400, out = {};
+  for (const id of skies) assert.ok(typeof G.AIR_MIST[id] === 'number', `the sky ${id} has its mist`);
+  G.SKY.dt = 0;
+  for (const id of skies) {
+    G.SKY.seq.length = 0; G.SKY.seq.push({ id, at: 0, hold: 1e6, move: 60 });
+    const r = { mist: [], oro: 0, dust: 0, vis: [] };
+    for (let i = 0; i < N; i++) {
+      const V = { seed: (i * 2654435761 + 99) >>> 0 }; V.u10 = G.airU10(V.seed);
+      const a = G.airWx(10, V), b = G.airWx(500, V);
+      assert.deepEqual([a.mist, a.oro, a.vis], [b.mist, b.oro, b.vis], 'constant through a hold');
+      r.mist.push(a.mist); r.oro += a.oro > 0.5; r.dust += a.dust > 0.5; r.vis.push(a.vis);
+      assert.ok(a.mist >= 0 && a.mist <= G.AIR_MIST[id] + 1e-12 && a.vis >= 4 - 1e-12 && a.vis <= 10 + 1e-12 && a.oro >= 0 && a.oro <= 1);
+    }
+    r.mist.sort((x, y) => x - y);
+    out[id] = { mistMed: r.mist[N >> 1], mistMax: r.mist[N - 1], oro: r.oro / N, dust: r.dust / N, visMin: Math.min(...r.vis) };
+  }
+  if (process.env.WX) console.log(JSON.stringify(out));
+  assert.equal(out.afterglow.mistMax, 0, 'the afterglow: no mist');
+  assert.ok(out.firstlight.mistMed > 8, `first light: mist about 10 m on a still morning (median ${out.firstlight.mistMed.toFixed(1)})`);
+  for (const n of ['moonlit', 'milkyway', 'aurora']) assert.ok(out[n].mistMax <= 3.5 && out[n].mistMed > 2, `${n}: 3-4 m`);
+  // the windiest visits: no mist (a surface wind past 4.5 m/s mixes it up)
+  const V = { seed: 1, u10: 7.5 }; G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'bluehour', at: 0, hold: 1e6, move: 60 });
+  assert.equal(G.airWx(5, V).mist, 0, 'the blue hour at the windiest: none');
+  assert.ok(out.afterglow.oro > 0.05 && out.afterglow.oro < 0.4, `the ridge's lee waves on the windier afternoons only (${(100 * out.afterglow.oro).toFixed(0)}% of visits)`);
+  assert.ok(out.firstlight.dust === 0 && out.afterglow.dust > 0.05, 'the sand haze only where the surface wind lifts the sand');
+  assert.ok(out.afterglow.visMin < 5 && out.firstlight.visMin === 10, 'the visibility: 10 km clean, 3-5 km in blown sand');
+  // through a change: eased with the light
+  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'milkyway', at: 0, hold: 60, move: 60 }, { id: 'firstlight', at: 120, hold: 1e6, move: 60 });
+  const W = { seed: 2, u10: 3 }; let p = G.airWx(0, W).mist, worst = 0;
+  for (let t = 0.05; t < 200; t += 0.05) { const m = G.airWx(t, W).mist; worst = Math.max(worst, Math.abs(m - p)); p = m; }
+  assert.ok(worst < 0.02, `the mist deepens by ${worst.toFixed(4)} m in 50 ms (eased, never a jump)`);
 });
 
