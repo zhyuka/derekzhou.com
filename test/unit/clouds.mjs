@@ -1,4 +1,5 @@
 // test/unit/clouds.mjs: the cloud bodies' fine billows: one scale and depth a body, set once
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "atmos(c0, rd, tn + (tf - tn) * 0.25), wF);", "with": "atmos(c0, rd, tn + (tf - tn) * 0.25), 1.0);", "why": "the far banks dark against hazed hills at night"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "max((s - amp) * 0.6, dE); continue;", "with": "max((s - amp) * 0.6, dE); taken++; continue;", "why": "a leap counted as a band step in another spelling: every leap cuts the band's steps"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];", "with": "B.u4a[2] = (V.L || V.light).clDetail[0]; B.u4a[3] = B.det[1];", "why": "the billows' scale blended per frame by the place's weight again"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
@@ -144,6 +145,9 @@ test('clouds: a far bank keeps its colour and stays opaque to the last quarter o
   const op = (w) => Math.min(Math.max(w / 0.25, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max(w / 0.25, 0), 1));
   for (const w of [0.25, 0.5, 0.9]) assert.equal(op(w), 1, `at weight ${w} the bank is opaque`);
   assert.equal(op(0), 0, 'at weight 0 the bank is gone: the sky behind it');
+  // the night's far banks (the hub's review of #240): a bank takes the land's own haze at its distance over its weight,
+  // so it goes toward the sky with range as the hills behind it do, and is nearly sky-coloured where it ends
+  assert.match(VBODY, /col = mix\(atmos\(c0, normalize\(vec3\(rd\.x, min\(rd\.y, 0\.0\), rd\.z\)\), 1\.0e5\), atmos\(c0, rd, tn \+ \(tf - tn\) \* 0\.25\), wF\);/, 'a far bank does not go toward the hazed horizon with its range: a dark shape in front of lighter hills at night');
 });
 
 // ------------------------------------------------------------------ one cloud field on every tier (the hub's review of #238)
