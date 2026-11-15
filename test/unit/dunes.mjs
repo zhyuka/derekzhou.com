@@ -8,7 +8,7 @@
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "float m = min(m0, m1);", "with": "float m = 1.3 * min(m0, m1);", "why": "the slip face at 38 deg, past the angle of repose"}
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const G = fs.readFileSync(path.join(ROOT, 'src/glsl/dunes-glsl.glsl'), 'utf8');
@@ -37,7 +37,7 @@ test('dunes: the shipped main wave is duneS1, its slip face at the angle of repo
 });
 
 test('dunes: the census meets the spec in four winds (lee mode 32 +- 1, <= 0.1% over 34 deg, stoss p90 <= 15)', async () => {
-  const { census } = await import(path.join(ROOT, 'tools/physics/dune-census.mjs'));
+  const { census } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
   for (const wind of [0, 0.6, 1.7, 2.9]) {
     const r = census({ model: 's1', half: 800, cell: 8, wind });
     assert.ok(r.over34_pct <= 0.1, `wind ${wind}: ${r.over34_pct}% over 34 deg`);
@@ -47,7 +47,7 @@ test('dunes: the census meets the spec in four winds (lee mode 32 +- 1, <= 0.1% 
 });
 
 test('dunes: today\'s old wave fails the same census (the test can tell)', async () => {
-  const { census } = await import(path.join(ROOT, 'tools/physics/dune-census.mjs'));
+  const { census } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
   const r = census({ model: 'old', half: 800, cell: 8, wind: 0.6 });
   assert.ok(r.over34_pct > 1, 'the old wave: ' + r.over34_pct + '% over 34 deg');
 });
