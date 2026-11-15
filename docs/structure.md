@@ -56,7 +56,7 @@ test/shaders.mjs             Every program the page issues, compiled and linked 
 test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/24-unit.sh runs them, a process each), sharing
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/aurora.mjs (the aurora's colour over its sky), test/unit/clouds.mjs (the cloud bodies' billows), test/unit/drag.mjs (the drag),
-                             test/unit/framing.mjs (the camera's framing),
+                             test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
