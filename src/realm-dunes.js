@@ -19,7 +19,7 @@
      a basin with a giant shard, a field of ruins, a temple on a plateau in terraces; no
      bays: the cloud sea is the maps'), and far ridges of rock (a site per 4.5 km cell, about half of them). The sites are hashed from the
      visit's salt the same way here and in the GLSL, so the land the shaders raise and the things the cells place agree. */
-  var DS = 1500, RS = 4500, SEA_Y = -160;
+  var DS = 1500, RS = 4500, A = W.air;
   var CUT_D = [77, 123, 169, 205, 256];   // the areas' shares (of 256): open, shard, ruins, temple, bay
   function dSite(ix, iz, salt) {
     var h = K.cellHash(ix, iz, salt), k = K.hk(h, 2) >>> 24, kind = 0;
@@ -123,17 +123,17 @@
     else if (f < 0.54) { var th = R.r(0, 180); for (k = 0; k < 2; k++) { var sl = R.r(20, 26), ly = 3 + R.i(2); C.add({ kind: 'ruin', x: x + Math.sin(th * PI / 180) * k * sl, z: z + Math.cos(th * PI / 180) * k * sl, foot: sl * 0.5, yaw: th, len: sl, layers: ly, seed: R.seed(), solid: [sl * 0.62, ly * 3 + 4] }); } }
   }
   W.realm({
-    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12, lookT: 20, lookTan: 0.15,   // (what worldDef reads: world.js)
+    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12,   // (what worldDef reads: world.js)
     glsl: DUNES_GLSL,
     layout: { scales: [{ size: DS, radius: 5200 }, { size: 375, radius: 1300 }] },
     field: function (R, V) {
       // the wind the dunes lie across (their crests across it, their steep lee faces downwind), drawn per visit
-      var wa = R.r(0, 2 * PI), wind = [Math.sin(wa), Math.cos(wa)]; V.wind = wind; V.windAz = wa * 180 / PI;
+      var wind = A.draw(R, V);   // (world.js 215: the air, its one wind)
       var hue = R.r(-8, 8);   // (a pinker or a bluer visit)
       return { params: [
         lch(0.615, 0.07, 322 + hue), lch(0.665, 0.066, 330 + hue), lch(0.56, 0.085, 284 + hue * 0.5), lch(0.50, 0.09, 276),
         lch(0.60, 0.09, 262), lch(0.50, 0.10, 260), lch(0.58, 0.045, 296), lch(0.50, 0.05, 285),
-        lch(0.75, 0.05, 30, 0.3), [wind[0], wind[1], 2.2, SEA_Y], lch(0.42, 0.09, 262), lch(0.86, 0.03, 300)
+        lch(0.75, 0.05, 30, 0.3), [wind[0], wind[1], 2.2, 0], lch(0.42, 0.09, 262), lch(0.86, 0.03, 300)
       ] };
       /* the sand's shade (L 0.56, its deep 0.50) and the rock's (lit 0.60, shade 0.50, deep 0.42) set light for the
          world's own light: at the one framing the links stand over the near sand and the name beside the formations
@@ -141,9 +141,9 @@
     },
     light: function (R, V) {
       // the low sun from upwind of the dunes (their windward slopes lit, their lee faces blue), 5-14 deg up
-      var up = Math.atan2(-V.wind[0], -V.wind[1]) * 180 / PI, el = R.r(5, 14), hz = R.r(0.45, 0.85);
+      var up = A.upwind(V), el = R.r(A.KEY_EL[0], A.KEY_EL[1]), hz = R.r(0.45, 0.85);
       return {
-        sunAz: up + R.r(-55, 55), sunEl: el, sunC: lch(0.97, 0.04, 65, 3.1),
+        sunAz: up + R.r(-A.KEY_AZ, A.KEY_AZ), sunEl: el, sunC: lch(0.97, 0.04, 65, 3.1),
         sky: [lch(0.62, 0.08, 272), lch(0.84, 0.05, 238), lch(0.82, 0.058, 230), lch(0.79, 0.068, 225), lch(0.75, 0.078, 222), lch(0.70, 0.085, 224)],
         skyE: [3, 10, 26, 58], skyW: lch(0.88, 0.07, 45), skyK: [0.5, 8, 0.08, 0],
         glow: [0.3, 6, 0.16, 90], glowC: lch(0.95, 0.06, 65),
@@ -192,12 +192,12 @@
     ],
     // grains blowing over the sand (now and then one glints), motes in the low sun, veils of sand off the brinks
     particles: function (V) {
-      var w = V.wind, sand = lch(0.9, 0.04, 60), mote = lch(0.96, 0.05, 70, 1.4);
+      var sand = lch(0.9, 0.04, 60), mote = lch(0.96, 0.05, 70, 1.4);
       return [
-        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: [w[0] * 6.5, 0, w[1] * 6.5], color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
-        { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: [w[0] * 1.6, 0.1, w[1] * 1.6], color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
+        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: A.vec3(V, A.H.grains, 0), color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
+        { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: A.vec3(V, A.H.motes, 0.1), color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
       ];
     },
-    ribbons: function (V) { var w = V.wind, sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: [w[0] * 5.5, 0, w[1] * 5.5], color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
+    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
   });
 })();

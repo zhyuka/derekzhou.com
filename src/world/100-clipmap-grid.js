@@ -7,6 +7,13 @@
      set's blk holds each block's first index and count (block s * GBN + b, in the order drawn), so a ring is drawn as
      the runs of its blocks in view, its triangles in the same order as when it is drawn whole */
   var GBR = 8, GBN = GN / GBR, GBS = GN / 16 * GBN;
+  /* a ring's origin in its own whole cells (its corner at ringCell g metres): the camera's 2g-cell, less half the ring.
+     The rings' vertices are placed from this lattice, (cell + aG) g in one product (VS_TERRAIN, hp-gridw), never as
+     origin metres + aG g: far out (a tab open for hours) fp32 rounds each ring's origin and sum its own way, and the
+     rings' shared edges part by a pixel (the owner's lines across the land). Whole cells are exact in fp32 to 2^24
+     (+-5.8e6 m at the land's 0.35 m), and a seam's vertex is then the same real number c g on both rings, rounded
+     once (test/unit/clipmap.mjs) */
+  function ringCell(g, a) { return Math.floor(CAM.pos[a] / (2 * g)) * 2 - GN / 2; }
   function makeGrid() {
     var G = { vao: gl.createVertexArray(), ib: [] }, n = GN + 1, v = new Float32Array(n * n * 2), i, j;   // (floats, not unnormalised bytes: ANGLE-D3D11 would convert those in the vertex shader, a second compile of the terrain's vertex program at its first draw; the same integers)
     for (j = 0; j < n; j++) for (i = 0; i < n; i++) { v[(j * n + i) * 2] = i; v[(j * n + i) * 2 + 1] = j; }
