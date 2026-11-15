@@ -4,7 +4,7 @@ layout(location = 0) in vec3 aP; layout(location = 1) in vec3 aN; layout(locatio
 uniform vec4 uSc;    // cell size, cells across, density, salt
 uniform vec4 uSc2;   // scale min, max, sink (fraction of size), tilt (rad)
 uniform vec4 uSc3;   // -, height stretch, -, -
-centroid out vec3 vW; centroid out vec3 vN; centroid out vec4 vC; centroid out float vY; centroid out vec2 vE;
+centroid out vec3 vW; centroid out vec3 vN; centroid out vec4 vC; centroid out float vY; centroid out vec2 vE; centroid out float vMT;   // (delight-weather 1) the mist pools' top over the vertex
 mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0.0, -s, 0.0, 1.0, 0.0, s, 0.0, c); }
 mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0, 0.0, c, s, 0.0, -s, c); }
 mat3 rotZ(float a) { float c = cos(a), s = sin(a); return mat3(c, s, 0.0, -s, c, 0.0, 0.0, 0.0, 1.0); }
@@ -40,6 +40,6 @@ void main() {
   vec3 lp = R * (aP * sc);
   vW = vec3(pos.x, gy - uSc2.z * s, pos.y) + lp;
   vN = R * (aN / max(sc, vec3(1e-4)));
-  vC = vec4(aC.rgb * 2.0, floor(aC.a * 255.0 + 0.5)); vY = lp.y - uSc2.z * s; vE = vec2(aE * 15.9375, r7);
+  vC = vec4(aC.rgb * 2.0, floor(aC.a * 255.0 + 0.5)); vY = lp.y - uSc2.z * s; vE = vec2(aE * 15.9375, r7); vMT = mistTopAt(vW.xz);
   gl_Position = s > 1e-4 ? uVP * vec4(vW - uCam, 1.0) : vec4(0.0, 0.0, -2.0, 1.0);
 }

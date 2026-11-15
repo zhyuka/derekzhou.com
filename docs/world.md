@@ -491,6 +491,36 @@ rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
 and the stars and galaxy stand still; test/unit/air.mjs's clock test is
 marked todo until the sky's lane brings them to SKY_RATE.
 
+## THE MIST POOLS
+
+delight-weather 1 (src/world/227-mist-pools.js). Mist lies in the dunes'
+troughs and about the mesas' feet. The pool's top is the ground the
+dunes stand on (the swell, sunk with the basins and toward the cloud
+sea) plus a depth by the sky, times the sand weight: 10 m at first
+light, so the crests stand out as islands; 3.5 m at night; 1.5 m in the
+blue hour; none in the afterglow (MIST_D, the hub's table, until AIR's
+weather(sky) gives it). The depth is a pure function of the sky's time:
+each sky's own through its hold, and through a change a ramp at one
+speed, MIST_RATE 0.085 m/s at most, which may run on into the next hold.
+So the rim is a moving shoreline, never a fade (the hub's ruling 1).
+
+The top is opaque within 1.5 m of depth, the same at every depth, so
+nothing thickens in place (mistOver, world-glsl). The rim's ramp is
+widened to two pixels' worth of the surface's depth, so far shorelines
+never crawl. It is lit by the sky's own cloud light, as the cloud sea's
+flat tops are, and drawn over the land (FS_TERRAIN, from the floor its
+vertices carry, vMB) and over the stones and the landmarks
+(FS_LANDMARK, the top worked per vertex, vMT). The split path carries
+the basins' change to the floor in P6. The camera's ground reads the
+pool's top (HdCam, HdProbe, the split's probe), so the flight passes
+over the pools as over the cloud sea, never through them. At depth 0
+there is no pool at all: the land never lies under its own floor.
+
+Measured by tools/physics/mist-sim.mjs (the page's own probe, the 16
+openings' land within 1 km of the landing, at first light): see its PR
+for the numbers. test/unit/mist.mjs holds the rate, the purity, the
+opacity's ramp and the camera's ground.
+
 ## THE WEATHER (=rand())
 
 One crypto.getRandomValues, in hour.js, written whole as data-seed: it

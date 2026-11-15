@@ -141,6 +141,7 @@ vec3 dunes(vec2 p) {
     if (o == 0) g0 = g; else if (o == 1) g1 = g; else if (o == 2) g2 = g; else if (o == 3) g3 = g; else if (o == 4) g4 = g; else if (o == 5) g5 = g; else g6 = g;
   }
   vec3 h = 40.0 * dNg(g0, mat2(1.0 / 760.0)) + 15.0 * dNg(g1, D_M1);
+  gMB = vec2(h.x, gKD.x);   // (delight-weather 1: the mist pools' floor before the basins and the sink (the swell the dunes stand on), and their reach, the sand)
   vec3 amp = dSstep(-0.42, 0.3, dNg(g4, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
   vec3 nw, ph = s1Phase(p, w, pp, 205.0, g2, g3); vec2 hf;
   vec3 s1 = duneS1(ph, 32.0 * dMul(amp, gKD), h - gSK, nw, hf);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
@@ -166,6 +167,7 @@ vec3 basinOf(vec2 p, vec3 h, Site s) {
   if (d >= R) return h;
   vec3 w = dSstep(R, R * 0.25, vec3(d, dp / max(d, 1e-3)));
   gS1W *= 1.0 - fl * w.x;   // (physics: sand/S2: the main dunes' share of the slope, calmed)
+  gMS = vec2(gMS.x * (1.0 - fl * w.x), gMS.y * (1.0 - fl * w.x) - depth * w.x);   // (delight-weather 1: the mist pools' floor sinks with the basin)
   return dMul(h, vec3(1.0, 0.0, 0.0) - fl * w) - depth * w;
 }
 /* a plateau: an oval of flat top, its sides in terraces (a riser, then a ledge), a stair's way cut down its -x face */

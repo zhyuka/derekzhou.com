@@ -6,9 +6,10 @@
    the coast is cloud lapping the sand (softened by the fringe below), never a cliff */
 vec3 Hd(vec2 p) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
-  gKD = wD; gLV = lv; gWC = wC; gSK = sk;
+  gKD = wD; gLV = lv; gWC = wC; gSK = sk; gMS = vec2(1.0, 0.0);
   vec3 h = D_Hd(p) - sk;
   gKD = vec3(1.0, 0.0, 0.0); gSK = vec3(0.0);
+  gMB.x = gMB.x * gMS.x + gMS.y - sk.x;   // (delight-weather 1: the mist pools' floor, the basins and the sink in)
   return h;
 }
 /* the cloud sea's top: its level (rising with the cloud weight out of the low ground, far under the land where the
@@ -29,19 +30,41 @@ vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   if (gTX < COAST_H) { float k = 1.0 - smoothstep(0.0, COAST_H, gTX); c = mix(c, shadeSea(vec3(p.x, p.y - max(gTX, 0.0), p.z), vec3(0.0, 1.0, 0.0), rd, t, fp), k * k); }
   return c;
 }
-/* the camera's ground: the land or the cloud's top, whichever is higher */
-float HdCam(vec2 p) { return max(Hd(p).x, HdSea(p).x); }
+/* (delight-weather 1) the mist pools' top over a point: its floor (the ground the dunes stand on) and the sky's depth
+   by the sand weight (227-mist-pools.js) */
+float mistTop(vec2 mb) { return uMist.x > 0.0 ? mb.x + uMist.x * mb.y : -1e4; }   // (none at depth 0: the land never under its own floor, so nothing changes as the depth leaves 0)
+/* the same at a point, from the weights (the landmarks and the scatter, per vertex: no varying of the land's to read) */
+float mistTopAt(vec2 p) {
+  if (uMist.x <= 0.0) return -1e4;
+  vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
+  gMS = vec2(1.0, 0.0);
+  ivec2 c0 = ivec2(floor(p / DS));   // (the basins about p, as D_Hd's: their change to the floor)
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) { Site S = siteOf(c0 + ivec2(i, j)); if (S.kind == 1 || S.kind == 2) basinOf(p, vec3(0.0), S); }
+  return mistTop(vec2(swell(p) * gMS.x + gMS.y - sk.x, wD.x));
+}
+/* the mist over a surface d m under the pool's top: opaque within uMist.y of depth, the same at every depth (the level
+   moves, nothing thickens in place); the rim's ramp at least two pixels' worth of the surface's depth (the far
+   shorelines never crawl); lit by the sky's own cloud light, as the cloud sea's flat tops */
+vec3 mistOver(vec3 c, float d, vec3 n, vec3 rd, float fp) {
+  if (uMist.x <= 0.0 || d < -12.0) return c;
+  float px = fp * length(n.xz) / max(abs(dot(n, rd)), 0.05);   // (the depth a pixel spans on this surface)
+  float a = clamp((d - 0.5 * uMist.y) / max(uMist.y, 2.0 * px) + 0.5, 0.0, 1.0);
+  return mix(c, cloudLight(vec3(0.0, 1.0, 0.0), rd, 1.4, 0.9, 0.35, 0.0), a * a * (3.0 - 2.0 * a));
+}
+/* the camera's ground: the land, the mist pools' top or the cloud's top, whichever is higher */
+float HdCam(vec2 p) { float h = Hd(p).x; return max(max(h, mistTop(gMB)), HdSea(p).x); }   // (delight-weather 1: over the mist pools too)
 /* the probe's height: Hd(p).x, or (cam) HdCam(p), with the weights and the dunes' land made once: HdCam inlines
    kitW4 three times and D_Hd twice into the probe (its compile on D3D11 2.4x the terrain's). The same
    operations in the same order: kitW4 reads none of the globals Hd sets, A_Hd none but gLodD */
 float HdProbe(vec2 p, bool cam) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
-  gKD = wD; gLV = lv; gWC = wC; gSK = sk;
+  gKD = wD; gLV = lv; gWC = wC; gSK = sk; gMS = vec2(1.0, 0.0);
   vec3 h = D_Hd(p) - sk;
   gKD = vec3(1.0, 0.0, 0.0); gSK = vec3(0.0);
+  gMB.x = gMB.x * gMS.x + gMS.y - sk.x;   // (delight-weather 1: the mist pools' floor, the basins and the sink in)
   if (!cam) return h.x;
   vec3 amp = vec3(0.4, 0.0, 0.0) + 0.6 * wC;
-  return max(h.x, (lv + dMul(A_Hd(p), amp)).x);
+  return max(max(h.x, mistTop(gMB)), (lv + dMul(A_Hd(p), amp)).x);
 }
 vec3 shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   vec3 wD, wC, lv, sk; kitW4(p.xz, wD, wC, lv, sk);

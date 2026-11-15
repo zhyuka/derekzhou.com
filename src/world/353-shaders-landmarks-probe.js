@@ -9,7 +9,7 @@
   function FS_LANDMARK(S) {
     return ZCODE + `
 uniform float uFade;
-centroid in vec3 vW; centroid in vec3 vN; centroid in vec4 vC; centroid in float vY; centroid in vec2 vE; out vec4 oC;
+centroid in vec3 vW; centroid in vec3 vN; centroid in vec4 vC; centroid in float vY; centroid in vec2 vE; centroid in float vMT; out vec4 oC;
 void main() {
   vec3 v = vW - uCam; float t = length(v); vec3 rd = v / t;
   vec3 n = normalize(vN); if (dot(n, rd) > 0.0) n = -n;
@@ -20,6 +20,7 @@ void main() {
   gEmit = emitMod(vW, vC, gEmit, gPhase);
 #endif
   if (gEmit > 0.0) c += vC.rgb * gEmit;
+  c = mistOver(c, vMT - vW.y, n, rd, fp);   // (delight-weather 1: the mist pools over the stones too)
   vec3 o = atmos(c, rd, t);
   if (uFade < 0.999) o = mix(atmos(c, rd, 3.0e4), o, uFade);
   oC = vec4(o, sceneA());
