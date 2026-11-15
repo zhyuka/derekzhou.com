@@ -133,7 +133,7 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
          the cloud sea, by the maps ahead; flightParams), a ceiling of 60 m over the ground (a solid taller is passed
          beside, never climbed), one speed (12 m/s: the maps' pacing was worked out for it) */
       speed: KD.speed || 12, clear: [7, 14, 45], frame: [0.55, 0.58], cruise: AIR_CRUISE, marginB: KA.margin,
-       look: KD.look, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
+       look: KD.look, pitchFollow: 0, margin: KD.margin,
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
       surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true, yb: YB.land }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10, yb: YB.sea }],
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',

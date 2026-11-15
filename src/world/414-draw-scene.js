@@ -28,7 +28,7 @@
         var g = S.g0 * Math.pow(2, l), cx = Math.floor(CAM.pos[0] / (2 * g)) * 2 * g, cz = Math.floor(CAM.pos[2] / (2 * g)) * 2 * g;
         var set = 0;
         if (l > 0) { var gf = g / 2, fx = Math.floor(CAM.pos[0] / (2 * gf)) * 2 * gf, fz = Math.floor(CAM.pos[2] / (2 * gf)) * 2 * gf; set = 1 + Math.round((fx - cx) / g) + 2 * Math.round((fz - cz) / g); }
-        gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2); if (S.split) gl.uniform1i(P.u.uLvl, l);
+        gl.uniform4f(P.u.uLev, ringCell(g, 0), ringCell(g, 2), g, GN / 2); if (S.split) gl.uniform1i(P.u.uLvl, l);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, GRID.ib[set].b);
         ST.ringAll += GRID.ib[set].n;
         if (!S.yb) { dc(gl.TRIANGLES, GRID.ib[set].n, 0, true); ST.ringIdx += GRID.ib[set].n; }
@@ -112,7 +112,7 @@
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
     if (V.parts && V.parts.length && DP.pt && !SW.noanim && (lateReady(DP.pt) || lateMissIf(DP.pt, latePartsWould(V)))) {
       P = DP.pt; gl.useProgram(P.p); setFrameUniforms(P, V); gl.bindVertexArray(STRIP.vaoP);
-      if (P.u.uPVP2) { gl.uniformMatrix4fv(P.u.uPVP2, false, MBS.vp); gl.uniform3fv(P.u.uPCam2, MBS.cam); gl.uniform1f(P.u.uMB, MBK); }   // (the motes along their motion)
+      if (P.u.uPVP2) { gl.uniformMatrix4fv(P.u.uPVP2, false, MBS.vp); gl.uniform3fv(P.u.uPCam2, MBS.cam); gl.uniform1f(P.u.uMB, MBK); if (P.u.uMBdt) gl.uniform1f(P.u.uMBdt, MBS.dt); }   // (the motes along their motion)
       var LL = V.L || V.light;
       for (var pi = 0; pi < V.parts.length; pi++) {
         var pa = V.parts[pi], share = 1, kd = pa.hop[3];

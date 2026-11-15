@@ -35,19 +35,22 @@
      the ground ahead looked at over HT_T s at TAN_CLIMB (the slope those limits can climb, with room), so a rise is
      climbed early and gently */
   var TAN_CLIMB = Math.tan(11 * DEG), VY_UP = 2.6, VY_DN = 2.2, VY_ACC = 0.5, VY_ACCU = 1.0, VY_W = 0.55, HT_T = 12, CEIL_OVER = 10, PUSH_V = 3.9;   // (a climb may gather at up to VY_ACCU m/s2, a descent's change at VY_ACC)
+  /* (flight-height, the owner's band: the camera in its 14-32 m band over 90% of the time) the height aims at the way's
+     own ground: the clearance over a forward-weighted mean of the ground along the way over HT_W s; under it, never
+     less than the climb the ground ahead asks at HT_LEAST x the least clearance (over HT_T s at TAN_CLIMB, the slope the
+     spring can climb), so a rise is still climbed early and gently. It aimed at the highest ground of the next 12 s at
+     the full clearance, and in DUNES at a crest 20 s ahead (lookT): the camera rode on crests well ahead, 66% of the
+     time in the band on seed 11's recorded ground, p90 35 m; now 97%, p90 31.5 m, with no push of the hard rule and
+     fewer nods (3.7 turns of the climb a km against 5.2: test/unit/height.mjs) */
+  var HT_W = 6, HT_LEAST = 2;
   function heightTarget(V, t) {
-    var v = V.speed, cl = V.clear, hx = Math.sin(CS.psi), hz = Math.cos(CS.psi), yT = -1e9, T = HT_T, i;
+    var v = V.speed, cl = V.clear, hx = Math.sin(CS.psi), hz = Math.cos(CS.psi), T = HT_T, i, s, sw = 0, sy = 0;
     var g0 = groundAt(V, CS.x, CS.z, true);
+    for (i = 0; i <= 16; i++) { s = v * HT_W * i / 16; var wi = 1 - i / 20; sw += wi; sy += wi * groundAt(V, CS.x + hx * s, CS.z + hz * s, true); }
+    var yT = sy / sw + CS.c;
     for (i = 0; i <= 16; i++) {
-      var s = v * T * i / 16, ye = groundAt(V, CS.x + hx * s, CS.z + hz * s, true) + CS.c - s * TAN_CLIMB;
+      s = v * T * i / 16; var ye = groundAt(V, CS.x + hx * s, CS.z + hz * s, true) + cl[0] * HT_LEAST - s * TAN_CLIMB;
       if (ye > yT) yT = ye;
-    }
-    // a realm may look further, with a gentler slope: the eye rises early toward a crest far ahead, so it sees over it
-    // (DUNES: the land's rises would otherwise fill the window behind the words)
-    var LT = V.def.lookT || 0, LK = V.def.lookTan || TAN_CLIMB;
-    if (LT > T) for (i = 1; i <= 12; i++) {
-      var s3 = v * T + (v * LT - v * T) * i / 12, ye3 = groundAt(V, CS.x + hx * s3, CS.z + hz * s3, true) + CS.c - s3 * LK;
-      if (ye3 > yT) yT = ye3;
     }
     // on the slip's planned way (between the line now and the line it is going to: e), and with a lead of CLIMB_LEAD s:
     // the height's spring lags a ramp at TAN_CLIMB by about 2 s of it (2 x its rate / 0.95), so a ramp aimed at the top's

@@ -2,20 +2,21 @@
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c,", "with": "var pc = o.c0 || o.c,", "why": "a drifting body's distance fade read where it was laid out: it comes out of the haze where it no longer is"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
-const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
-const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) {' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
+const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
 const D = make();
 const deg = (v) => Math.atan2(v[0], v[1]) * 180 / Math.PI;
 
 test('drift: the clouds\' wind is the air\'s: windAt at the low layer\'s height, and the deck\'s; the cloud sea held', () => {
-  const W = vm.runInThisContext('(function (SIM) {' + AIRSRC + ' return { windAt: windAt, AIR_H: AIR_H }; })')({ V: null, t: 0 });
+  const W = vm.runInThisContext('(function (SIM) { var PI = Math.PI;' + AIRSRC + ' return { windAt: windAt, AIR_H: AIR_H }; })')({ V: null, t: 0 });
   for (const az of [0, 37, 200, 333]) {
-    const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)] };
+    const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10: 3 + az / 90 };
     const lo = D.cloudWind(V, 'low'), dk = D.cloudWind(V, 'deck'), sea = D.cloudWind(V, 'sea');
-    const wl = W.windAt(0, 0, W.AIR_H.clouds, 0, V), wd = W.windAt(0, 0, W.AIR_H.deck, 0, V);
+    const wl = { ...W.windAt(0, 0, W.AIR_H.clouds, 0, V) }, wd = { ...W.windAt(0, 0, W.AIR_H.deck, 0, V) };   // (copies: windAt returns its one object)
     assert.ok(Math.abs(lo[0] - wl.x) < 1e-12 && Math.abs(lo[1] - wl.z) < 1e-12, `low ${Array.from(lo)} is not windAt's ${wl.x}, ${wl.z}`);
     assert.ok(Math.abs(dk[0] - wd.x) < 1e-12 && Math.abs(dk[1] - wd.z) < 1e-12, 'the deck is not windAt\'s');
-    assert.ok(Math.abs(deg(lo) - az) % 360 < 1e-9 || Math.abs(Math.abs(deg(lo) - az) - 360) < 1e-9, `the low layer blows toward ${deg(lo)}, the air toward ${az}`);
+    const veer = (x) => ((deg(x) - az) % 360 + 540) % 360 - 180;   // (clockwise of the surface's way: the low layer 20 deg, the deck 40: physics: air/wind-profile)
+    assert.ok(Math.abs(veer(lo) - 20) < 1e-9 && Math.abs(veer(dk) - 40) < 1e-9, `the low layer veers ${veer(lo)} deg, the deck ${veer(dk)}: not the air's 20 and 40`);
     assert.deepEqual(Array.from(sea), [0, 0], 'the cloud sea is held');
   }
   assert.deepEqual(Array.from(D.cloudWind({}, 'low')), [0, 0], 'a visit with no wind: no drift');
@@ -41,8 +42,8 @@ test('drift: the draw\'s moment is between the last two steps, as the camera\'s'
 test('drift: an air cell holds what it laid out where the air had carried it; at t its body and its lobes stand together, D(t) - D(tL) on', () => {
   const M = make();
   const ctx = vm.createContext({ SIM: { t: 0, alpha: 1 }, SIM_DT: 1 / 60 });
-  vm.runInContext(AIRSRC + SRC + '; this.F = { airW, airD, cellOff, cloudPos };', ctx);
-  const F = ctx.F, V = { wind: [Math.sin(1.1), Math.cos(1.1)] }, tL = 2345.6;
+  vm.runInContext('var PI = Math.PI;' + AIRSRC + SRC + '; this.F = { airW, airD, cellOff, cloudPos };', ctx);
+  const F = ctx.F, V = { wind: [Math.sin(1.1), Math.cos(1.1)], u10: 5.5 }, tL = 2345.6;
   const C = { air: true, V, dL: F.airD(V, tL) };
   // a body laid out at tL at the stored place s (where the air had carried it then); its centre in the air c0 = s - D(tL)
   const s = [1000, 650, -400], o = { c0: Float64Array.from([s[0] - C.dL[0], s[1], s[2] - C.dL[1]]), w: F.airW(V) };
