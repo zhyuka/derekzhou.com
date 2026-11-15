@@ -1,4 +1,4 @@
-// bot-rules.mjs: small decisions of the merge bot (merge-bot.mjs), apart so they are unit-tested (test/unit.mjs).
+// bot-rules.mjs: small decisions of the merge bot (merge-bot.mjs), apart so they are unit-tested (test/unit/merge-bot.mjs).
 // An update from main GitHub refuses because the branch conflicts (422; 409 from the merge API) is the branch's own
 // session's to fix, never the owner's: it gets one comment a head and no label, and the bot tries again every tick,
 // so the PR lands as soon as its session merges main and the gate is green. Any other refusal (403: the token's

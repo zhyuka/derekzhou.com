@@ -92,7 +92,7 @@
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position
     gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.disable(gl.DEPTH_TEST); gl.bindVertexArray(VCUBE.vao);
-    var det = (V.L || V.light).clDetail, m = 0;
+    var m = 0;
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
       var steps = d < B.r * 1.5 ? 48 : d < 2500 ? 36 : 24;
@@ -102,7 +102,7 @@
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
       var mk = mistK(B); if (mk > MISTMAX) MISTMAX = mk;
       var ceil = 1e5;
-      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = det[0]; B.u4a[3] = det[1];
+      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c);

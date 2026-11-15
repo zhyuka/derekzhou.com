@@ -50,7 +50,7 @@
         // its base flat at its lowest lobe's centre: seen from under it a cloud floats on its condensation level,
         // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
         var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = ycB;
-        var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
+        var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48, V); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
         var cores = vb.out.cores;
         for (j = 0; j < cores.length; j += 4) C.obst.push({ c: 0, x: cores[j], y: cores[j + 1], z: cores[j + 2], r: cores[j + 3], cloud: true });
         var s0 = soft.length, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];

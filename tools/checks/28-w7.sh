@@ -13,19 +13,19 @@
 # this step only, never part of the site; PW_CORE and CHROME_PATH name
 # others where they are set). Exit 2 (no WebGL2 context on the runner)
 # warns; any lower or higher code fails.
-# plant: {"file": ".github/workflows/w7_unit.js", "find": "--mutate", "with": "--mutate", "why": "self-proved: the step runs W7 with each mutation and wants each caught", "self": true}
+# plant: {"file": "tools/checks/lib/w7_unit.js", "find": "--mutate", "with": "--mutate", "why": "self-proved: the step runs W7 with each mutation and wants each caught", "self": true}
 W=build/src/world.js   # (as written: site/'s is its minified build, the same shader text)
 [ -n "$W" ] && [ -f "$W" ] || { echo "::error::no build/src/world.js for W7's unit test"; exit 1; }
 if [ -z "${PW_CORE:-}" ]; then
   npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1
   export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
 fi
-rc=0; node .github/workflows/w7_unit.js "$W" --engine chromium > "$RUNNER_TEMP/w7.json" || rc=$?
+rc=0; node tools/checks/lib/w7_unit.js "$W" --engine chromium > "$RUNNER_TEMP/w7.json" || rc=$?
 tail -1 "$RUNNER_TEMP/w7.json"
 if [ $rc -eq 2 ]; then echo "::warning::W7's unit test could not run (no WebGL2 context on the runner?)"; exit 0; fi
 if [ $rc -ne 0 ]; then cat "$RUNNER_TEMP/w7.json"; echo "::error::W7's unit test: the composite's tail is not the encode and the dither"; exit 1; fi
 for m in lift dark panel; do
-  rc=0; node .github/workflows/w7_unit.js "$W" --engine chromium --mutate $m > /dev/null || rc=$?
+  rc=0; node tools/checks/lib/w7_unit.js "$W" --engine chromium --mutate $m > /dev/null || rc=$?
   if [ $rc -ne 1 ]; then echo "::error::W7's unit test no longer catches a planted $m (exit $rc)"; exit 1; fi
   echo "a planted $m is caught"
 done

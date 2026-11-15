@@ -151,12 +151,21 @@ void main() {
        no overshoot: never above the brightest texel there, never below the darkest; so never above the light ceiling
        either). The four reads above are only the gate's (the 4x4's reach) */
     vec4 cS; { vec2 w0c = f * (-0.5 + f * (1.0 - 0.5 * f)), w1c = 1.0 + f * f * (-2.5 + 1.5 * f), w2c = f * (0.5 + f * (2.0 - 1.5 * f)), w3c = f * f * (-0.5 + 0.5 * f);
-      ivec2 qm = ivec2(uClS.zw) - 1; vec4 s4 = vec4(0.0), mn4 = vec4(1e9), mx4 = vec4(-1e9);
-      for (int j = 0; j < 4; j++) { float wy = j == 0 ? w0c.y : (j == 1 ? w1c.y : (j == 2 ? w2c.y : w3c.y));
-        for (int i = 0; i < 4; i++) { float wx = i == 0 ? w0c.x : (i == 1 ? w1c.x : (i == 2 ? w2c.x : w3c.x));
-          vec4 q4 = texelFetch(uCloud, clamp(h0 + ivec2(i - 1, j - 1), ivec2(0), qm), 0); s4 += q4 * (wx * wy);
-          if (i >= 1 && i <= 2 && j >= 1 && j <= 2) { mn4 = min(mn4, q4); mx4 = max(mx4, q4); } } }
-      cS = clamp(s4, mn4, mx4); }
+      /* (load-perf, the audit's comp-early-out, 2026-11-14) the inner 2x2 first: where its four texels are one value
+         (the open sky, a cloud's even body: most of the window) the clamp below returns that value whatever the sum,
+         so the outer twelve are not fetched. Elsewhere the sum is taken as it always was, the same sixteen terms in the
+         same order (the inner four reused), so every pixel's result is the same to the bit */
+      ivec2 qm = ivec2(uClS.zw) - 1;
+      vec4 p11 = texelFetch(uCloud, clamp(h0, ivec2(0), qm), 0), p21 = texelFetch(uCloud, clamp(h0 + ivec2(1, 0), ivec2(0), qm), 0);
+      vec4 p12 = texelFetch(uCloud, clamp(h0 + ivec2(0, 1), ivec2(0), qm), 0), p22 = texelFetch(uCloud, clamp(h0 + ivec2(1, 1), ivec2(0), qm), 0);
+      vec4 mn4 = min(min(p11, p21), min(p12, p22)), mx4 = max(max(p11, p21), max(p12, p22));
+      if (all(equal(mn4, mx4))) cS = p11;
+      else { vec4 s4 = vec4(0.0);
+        for (int j = 0; j < 4; j++) { float wy = j == 0 ? w0c.y : (j == 1 ? w1c.y : (j == 2 ? w2c.y : w3c.y));
+          for (int i = 0; i < 4; i++) { float wx = i == 0 ? w0c.x : (i == 1 ? w1c.x : (i == 2 ? w2c.x : w3c.x));
+            vec4 q4 = j == 1 && i == 1 ? p11 : j == 1 && i == 2 ? p21 : j == 2 && i == 1 ? p12 : j == 2 && i == 2 ? p22 : texelFetch(uCloud, clamp(h0 + ivec2(i - 1, j - 1), ivec2(0), qm), 0);
+            s4 += q4 * (wx * wy); } }
+        cS = clamp(s4, mn4, mx4); } }
     cl = cS;
     /* km: the share of a cloud about the eye, brought up plainly where it stands. There is none (no passages), so km
        is 0 and every pixel takes the depth-weighted 2x2 below */
