@@ -209,6 +209,24 @@
       ]
     },
     {
+      "id": "one-world-state",
+      "area": "weather",
+      "rule": "The world has one air: src/world/215-air.js holds the visit's one wind (its direction, drawn once, and its speed by height, windAt), the one key light (keyAt: the clouds' bake, the land and the birds are lit along it), each sky's own sun (AIR_SUN_EL), the moon on show, the sky's frame, the clock rates (physical motion at 1x real; the sky's light at one rate, SKY_RATE), the weather, the landing's heading and the flight's cruise band. Every other system reads them there and keeps no wind, sun or clock rate of its own: a reader still apart is listed in AIR_APART with the change that joins it, and taken off the list when it is joined.",
+      "source": [
+        {
+          "quote": "they should follow real physics, clouds moving (when/how they move), same w auroras, sand, etc. ... make sure there are 0 disconnects.",
+          "date": "2026-11-15",
+          "doc": "docs/world.md: THE AIR"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The world's pure code, unit-tested"
+        }
+      ]
+    },
+    {
       "id": "absence-chrome",
       "area": "absences",
       "rule": "The HTML has none of the internet's body language: no arrows, cookie or analytics vocabulary, Loading states or navigation roles.",
