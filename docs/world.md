@@ -139,13 +139,15 @@ as the sun's depth moves (a hold holds it). So the twilights show only Venus
 and, in the blue hour, the brightest stars; a dark night keeps the whole field.
 The bright stars (b over 0.35) take pastel colours by spectral kind, each at
 the white's own luminance. The evening (or morning, on a visit that opens on
-first light) star stands within 46 deg of the sun on the ecliptic, from SEED0
-(the frame's latitude and season, its elongation), placed on the true
-ecliptic at the opening's depth and turned with the sun as it sinks (the
-world's sun sets straight down), so it sets by moving, never fading; steady,
-a point of the stars' kind with a small glow, its peak under OKLab L 0.49;
-its elongation the first of 12 drawn whose path down keeps clear of the
-words' boxes at the view's own heading and pitch (moonInputs).
+first light) star stands on the ecliptic of the sky's frame (skyFrame(t),
+THE AIR), 24-46 deg east (or west) of the frame's sun, so it sets and rises
+with the sphere by moving, never fading; steady, a point of the stars' kind
+with a small glow, its peak under OKLab L 0.49; its elongation the first of
+12 drawn (SEED0's stream) whose path through the opening's hold and the
+changes the order has drawn after it keeps clear of the words' boxes at the
+view's own heading and pitch (moonInputs). The stars follow the depth of the
+sun the sky draws, not the frame's, which passes midnight in a change between
+first light and an evening sky.
 
 ## THE WORDS
 
@@ -509,9 +511,23 @@ shader). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
-  frame (skyFrame: the turn the stars and the galaxy take; today none; and
-  airSkyFrame/eclPole: the visit's latitude, north and pole, the ecliptic through the sky's own sun) and
+- The sky's frame (physics: air/sky-frame), skyFrame(t): one celestial
+  sphere for the sun, the moon, the planets, the stars and the galaxy. The
+  place is 64 deg north (the aurora is one of the skies), so the celestial
+  pole stands 64 deg up in the north; the season, from the visit's own
+  stream, puts the sun on the ecliptic in the dark half of the year;
+  north is set once a visit so that the evening sun stands on the sky's
+  own sun's azimuth. Each sky's sun depth is an hour (first light in the
+  morning, the others in the evening): a hold holds it, a change eases to
+  the next sky's with the light, through midnight, never noon. The
+  ecliptic leans 23.44 deg to the equator; the galactic pole and centre
+  are J2000's (the pole 60.2 deg from the ecliptic's, the centre 5.5 deg
+  south of the ecliptic). It returns the equatorial frame in world axes
+  (M, a mat3), the pole, the ecliptic's pole, the galactic pole and
+  centre and the sun; the night's lane places the planets and the stars
+  by it. First light's frame sun is in the east, where the sky's own sun
+  (drawn on one azimuth a visit) is not yet.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and
   the weather (weather(sky): today one wind for every sky; physics:
   air/wind-by-sky).
 - The landing's heading, airHeading0 (drawn once from its own stream: the
