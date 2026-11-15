@@ -15,9 +15,18 @@
           "quote": "remove that white background behind the text. it's fine failing accesibility",
           "date": "2026-10-21",
           "doc": "docs/design.md"
+        },
+        {
+          "quote": "No, natural light is fine",
+          "date": "2026-11-15",
+          "via": "the hub, relaying the owner, asked whether the world's own natural shading counts"
         }
       ],
       "enforced_by": [
+        {
+          "kind": "prose",
+          "note": "Scope (the owner, 2026-11-15, asked whether the world's own natural shading counts: 'No, natural light is fine'): nothing is ever darkened for the words; the world's own physical light and shadow (cast shadows, a softer twilight key, views into the sun) are free under the light ceiling. W7 is unchanged."
+        },
         {
           "kind": "world-rule",
           "id": "7 never-darker"
@@ -506,6 +515,11 @@
         {
           "date": "2026-11-06",
           "via": "the hub, relaying the owner"
+        },
+        {
+          "quote": "credit another way",
+          "date": "2026-11-15",
+          "via": "the hub, relaying the owner, asked whether the rule may exempt the CC BY credit line of src/birds/model/model.js: no. Credits become DOI/URL links, never a person's name"
         }
       ],
       "enforced_by": [
