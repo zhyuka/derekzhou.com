@@ -54,7 +54,7 @@ function waveS1(x, y, lam, Hmax, swell) {
   const D = lam * (0.42 * d1[0] + 0.13 * d2[0]), dD = lam * (0.42 * d1[1] / 340 + 0.13 * d2[1] / 95);
   const ph = (x * w[0] + y * w[1] + D) / lam, gph = [(w[0] + dD * pp[0]) / lam, (w[1] + dD * pp[1]) / lam];
   const k = Math.hypot(gph[0], gph[1]);   // (cycles a metre: 1 / the local wavelength)
-  const Hc = 0.13 / k, H = Hmax[0] <= Hc ? Hmax : [Hc, 0, 0];
+  const Hc = 0.13 / k, H = smin(Hmax, [Hc, 0, 0], 2.0);   // (a smooth cap: its slope continuous, so the face's m and fl are)
   // the face's own slope m (along g, the phase's direction) such that the whole surface's steepest descent on the face
   // is 32 deg: |G - m g| = tan 32, G the slope of everything else there (the swell, and the height's change along the
   // crest, taken at the face's middle): m = G.g + sqrt(tan^2 32 - |G across g|^2)
@@ -70,7 +70,8 @@ function waveS1(x, y, lam, Hmax, swell) {
   const lin = (v, dvdf) => [H[0] * v, H[0] * dvdf * gph[0] + v * H[1], H[0] * dvdf * gph[1] + v * H[2]];
   const a = st(f / L), A = lin(a[0], a[1] / L);   // (the stoss)
   const F = lin((1 - f) / fl, -1 / fl);   // (the slip face, the plane from the brink at 1 - fl to the toe at 1)
-  const n = st((f - 1) / L), N = lin(n[0], n[1] / L);   // (the next stoss, below its toe)
+  const N = lin(0.5 * (f - 1) / L, 0.5 / L);   // (the next stoss, below its toe: its plane there, C1 at the toe; the cubic turned up behind it and,
+  // past f 0.5 on wide faces, rose into the smooth max: the land stepped 1.9 m where the toe's choice switched)
   const P = lin(-f / fl, -1 / fl);   // (the face before, below its toe)
   const kb = 2.0, kt = Math.max(0.15 * H[0], 0.05);
   const top = smin(A, F, kb), h = f > 0.5 ? smax(top, N, kt) : smax(top, P, kt);
@@ -78,7 +79,14 @@ function waveS1(x, y, lam, Hmax, swell) {
   const e1 = ss(L - 0.06, L, f), e2 = ss(0, 0.06, f);   // (the near family's share: none on the slip face, eased in and out)
   const wv = (1 - e1[0]) * e2[0], dw = -e1[1] * e2[0] + (1 - e1[0]) * e2[1];
   const nearW = [wv, dw * gph[0], dw * gph[1]];
-  return { h, lee: f > L - 0.02, f, fl, nearW };
+  return { h, lee: f > L - 0.02, f, fl, nearW, ph, gph, H: H[0] };
+}
+/* the main wave alone at (x, y) in wind angle a, its swell and height as dunes() makes them (the S1 model) */
+export function mainAt(x, y, a = 0.6) {
+  w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];
+  const swell = add(sc(dNs(x, y, 1 / 760), 40), sc(dNm(x + 311, y - 97, M1), 15));
+  const amp = add(sc(sstep(-0.42, 0.3, dNm(x + 400, y + 400, Ma)), 0.75), [0.25, 0, 0]);
+  return waveS1(x, y, 205, sc(amp, 32), swell);
 }
 function dunes(x, y) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);

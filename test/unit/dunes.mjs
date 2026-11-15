@@ -29,7 +29,8 @@ test('dunes: the shipped main wave is duneS1, its slip face at the angle of repo
   const s1 = body(/vec3 duneS1\(/); assert.ok(s1, 'duneS1 found');
   assert.match(s1, /0\.39046 - pow\(-G0\.x \* g\.y \+ G0\.y \* g\.x, 2\.0\)/, 'the face solved for tan^2 32 = 0.39046 in the steepest direction, at the toe');
   assert.match(s1, /float m = min\(m0, m1\);/, 'and at the brink, the smaller: never over 32 deg on the face');
-  assert.match(s1, /Hm\.x <= 0\.13 \/ k/, 'H at most 0.13 of the local wavelength');
+  assert.match(s1, /vec3 H = dSmin\(Hm, vec3\(0\.13 \/ k, 0\.0, 0\.0\), 2\.0\);/, 'H at most 0.13 of the local wavelength, a smooth cap');
+  assert.match(s1, /vec3 N = dMul\(vec3\(0\.5 \* n, ph\.yz \* \(0\.5 \/ L\)\), H\);/, 'the next stoss a plane below its toe');
   assert.match(s1, /dSmin\(A, F, 2\.0\)/, 'the brink a smooth min over 2 m');
   assert.match(s1, /max\(0\.15 \* H\.x, 0\.05\)/, 'the toe a smooth max over 0.15 of the face');
   const ph = body(/vec3 s1Phase\(/); assert.ok(ph, 's1Phase found');
@@ -50,4 +51,26 @@ test('dunes: today\'s old wave fails the same census (the test can tell)', async
   const { census } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
   const r = census({ model: 'old', half: 800, cell: 8, wind: 0.6 });
   assert.ok(r.over34_pct > 1, 'the old wave: ' + r.over34_pct + '% over 34 deg');
+});
+
+test('dunes: the main wave has no step and no crease (walked along the wind every 0.1 m, four winds)', async () => {
+  const { mainAt } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
+  let worst = 0, crease = 0;
+  for (const wind of [0, 0.6, 1.7, 2.9]) {
+    const wx = Math.cos(wind), wy = Math.sin(wind);
+    for (let l = 0; l < 6; l++) {
+      let prev = null; const ox = -4000 + l * 1263.1, oy = 2000 - l * 741.7;
+      for (let i = 0; i < 6000; i++) {
+        const r = mainAt(ox + wx * i * 0.1, oy + wy * i * 0.1, wind);
+        if (prev) {
+          worst = Math.max(worst, Math.abs(r.h[0] - prev.h[0] - 0.1 * (prev.h[1] * wx + prev.h[2] * wy)));
+          crease = Math.max(crease, Math.hypot(r.h[1] - prev.h[1], r.h[2] - prev.h[2]));
+        }
+        prev = r;
+      }
+    }
+  }
+  // (a hard cap on H switched its slope, and with it the face's width: a 1.0 m step; the cubic stoss behind the toe a 1.9 m one)
+  assert.ok(worst < 0.05, 'a step of ' + worst.toFixed(3) + ' m in 0.1 m');
+  assert.ok(crease < 0.05, 'a crease of ' + crease.toFixed(3) + ' in the slope in 0.1 m');
 });

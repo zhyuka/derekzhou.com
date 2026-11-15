@@ -90,7 +90,7 @@ vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
    (none on the slip face, eased over 0.06 of the phase at both ends) */
 vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
   float k = length(ph.yz); vec2 g = ph.yz / k;
-  vec3 H = Hm.x <= 0.13 / k ? Hm : vec3(0.13 / k, 0.0, 0.0);
+  vec3 H = dSmin(Hm, vec3(0.13 / k, 0.0, 0.0), 2.0);   // (a smooth cap: a hard one switched H's slope, and with it m and fl: a 1 m step)
   // (on the face the slope is G0 + v dH - m g, v 1 at the brink to 0 at the toe: convex in v, its largest at an end.
   // The steepest m that keeps both ends at 32 deg or under: the smaller of the two solutions)
   vec2 G0 = swell.yz, G1 = swell.yz + H.yz;
@@ -101,7 +101,7 @@ vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
   float a = f / L, n = (f - 1.0) / L;
   vec3 A = dMul(vec3(0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a), ph.yz * ((0.5 + 3.0 * a * (1.0 - a)) / L)), H);
   vec3 F = dMul(vec3((1.0 - f) / fl, ph.yz * (-1.0 / fl)), H);
-  vec3 N = dMul(vec3(0.5 * n + 0.5 * n * n * (3.0 - 2.0 * n), ph.yz * ((0.5 + 3.0 * n * (1.0 - n)) / L)), H);
+  vec3 N = dMul(vec3(0.5 * n, ph.yz * (0.5 / L)), H);   // (the next stoss's plane below its toe: the cubic turned up behind it, a 1.9 m step at f 0.5)
   vec3 P = dMul(vec3(-f / fl, ph.yz * (-1.0 / fl)), H);
   vec3 top = dSmin(A, F, 2.0), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));
   vec3 e1 = dSstep(L - 0.06, L, vec3(f, ph.yz)), e2 = dSstep(0.0, 0.06, vec3(f, ph.yz));
