@@ -444,9 +444,12 @@ shader). It holds:
   first draw, as before), blowing toward V.windAz, and its speed by height,
   windAt(x, z, y, t), y over the ground. U10, the speed 10 m up, is the
   visit's own (V.u10), drawn once from its own stream (subseed(V.seed,
-  61)) from a Rayleigh distribution of mean 5 m/s, within 0.5-14 m/s: the
-  sand blows (over its threshold, about 6.2 m/s at 10 m) on about three
-  visits in ten and lies still on the rest. Under 100 m the
+  61)): a Rayleigh distribution of mean 5 m/s mapped by its CDF into
+  3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays
+  under about 8.8 m/s, under every bird kind's airspeed, so no bird flying
+  upwind goes backward; truncated, so nothing piles at the ends). Whether
+  the sand moves at a given speed (its threshold, about 6.2 m/s at 10 m,
+  the crests' speed-up 1.5x) is the sand's to decide. Under 100 m the
   log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0) with z0 = 0.003 m
   (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
   the surface's direction; from 100 to 300 m it eases to the low cloud
