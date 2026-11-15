@@ -88,8 +88,8 @@
     n = VOLS.length;
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
-    var VSTEPS = LOOKD && TIER >= 1 ? 48 : 32;   // (the band's steps a ray: the desktop look's top tier 48 (data-look, the still's), the rest 32)
-    gl.uniform1f(P.u.uVK, LOOKD && TIER >= 1 ? 12 : 1);   // (the edge band's most pieces a segment: the desktop look's 12 (hour.js's data-look, the still's) at its top tier; the rest 1, no cutting: on a phone 4 pieces bound every segment, +48% texture reads for a frame bit-identical to 12's (the hub's review))
+    var VSTEPS = LOOKD ? 48 : 32;   // (the band's steps a ray: the desktop look's 48 (data-look, the still's, never the governor's tier), the rest 32)
+    gl.uniform1f(P.u.uVK, LOOKD ? 12 : 1);   // (the edge band's most pieces a segment: the desktop look's 12 (hour.js's data-look, the still's, never the governor's tier: nothing in the clouds' look changes within a visit); the rest 1, no cutting: on a phone 4 pieces bound every segment, +48% texture reads for a frame bit-identical to 12's (the hub's review))
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position
