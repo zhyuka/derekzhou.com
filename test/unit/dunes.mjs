@@ -24,14 +24,15 @@ function body(sig) {
 
 test('dunes: the shipped main wave is duneS1, its slip face at the angle of repose', () => {
   const d = body(/vec3 dunes\(vec2 p\) \{/); assert.ok(d, 'dunes() found');
-  assert.match(d, /duneS1\(s1Phase\(p, w, pp, 205\.0, g2, g3\), 32\.0 \* dMul\(amp, gKD\), h - gSK, nw\)/, 'the main dunes from duneS1 (205 m, 32 m by the sand weight, over the swell)');
+  assert.match(d, /duneS1\(s1Phase\(p, w, pp, 205\.0, g2, g3\), 32\.0 \* dMul\(amp, gKD\), h - gSK, Hs, dph, nw\)/, 'the main dunes from duneS1 (205 m, 32 m by the sand weight, over the swell)');
   assert.doesNotMatch(d, /duneWave\(p, w, 205\.0/, 'not the old asymmetric wave');
   assert.match(d, /2\.4 \* wSmall\) \* dMul\(dMul\(dMul\(s2, /, 'the near family at 0.6 of its 4 m');
   assert.match(d, /, nw\);/, 'and weighted off the slip face');
   const s1 = body(/vec3 duneS1\(/); assert.ok(s1, 'duneS1 found');
   assert.match(s1, /vec2 G0 = swell\.yz;\s+float m = dot\(G0, g\) \+ sqrt\(max\(0\.39046 - pow\(-G0\.x \* g\.y \+ G0\.y \* g\.x, 2\.0\), 0\.04\)\);/, 'the face solved for tan^2 32 = 0.39046 in the steepest direction, on the ground under it alone');
-  assert.match(s1, /vec3 F = vec3\(H\.x \* \(1\.0 - f\) \/ fl, ph\.yz \* \(-H\.x \/ fl\)\);/, 'the face\'s slope with no dH (its height m (1 - f) / k: H drops out)');
-  assert.match(s1, /vec3 P = vec3\(-H\.x \* f \/ fl, ph\.yz \* \(-H\.x \/ fl\)\);/, 'and the face before');
+  assert.match(s1, /vec3 F = vec3\(H\.x \* \(1\.0 - f\) \/ fl, ph\.yz \* \(-H\.x \/ fl\) \+ \(1\.0 - f\) \* dQ\);/, 'the face\'s slope with (1 - f) d(H / fl) (its height m (1 - f) / k: no dH unless fl is clamped)');
+  assert.match(s1, /vec3 P = vec3\(-H\.x \* f \/ fl, ph\.yz \* \(-H\.x \/ fl\) - f \* dQ\);/, 'and the face before');
+  assert.match(d, /mat2 Q1 = transpose\(D_M1\) \* mat2\(q1\.xy, q1\.yz\) \* D_M1;/, 'the swell\'s Hessian from gndH, M^T Hn M');
   assert.match(s1, /vec3 H = dSmin\(Hm, vec3\(0\.13 \/ k, 0\.0, 0\.0\), 2\.0\);/, 'H at most 0.13 of the local wavelength, a smooth cap');
   assert.match(s1, /vec3 N = dMul\(vec3\(0\.5 \* n, ph\.yz \* \(0\.5 \/ L\)\), H\);/, 'the next stoss a plane below its toe');
   assert.match(s1, /dSmin\(A, F, max\(H\.x \* k \* \(0\.5 \/ L \+ 1\.0 \/ fl\), 0\.05\)\)/, 'the brink a smooth min over 2 m across');
@@ -88,4 +89,21 @@ test('dunes: the main wave has no step and no crease (walked along the wind ever
   // (a hard cap on H switched its slope, and with it the face's width: a 1.0 m step; the cubic stoss behind the toe a 1.9 m one)
   assert.ok(worst < 0.05, 'a step of ' + worst.toFixed(3) + ' m in 0.1 m');
   assert.ok(crease < 0.1, 'a crease of ' + crease.toFixed(3) + ' in the slope in 0.1 m');   // (the brink's own turn over 2 m reaches 0.052; the steps' creases were 0.56)
+});
+
+// (the hub's round 2 on #271: the slope the code carries on the slip face is the surface's own, (1 - f) d(H / fl)
+// included: the swell's Hessian and the crests' wander, analytic. Was p99 0.074, max 0.12: shading only)
+test('dunes: on the slip face the carried slope is the surface\'s (central differences): p99 <= 0.002, max <= 0.01', async () => {
+  const { mainAt } = await import(pathToFileURL(path.join(ROOT, 'tools/physics/dune-census.mjs')).href);
+  const e = 0.05, err = [];
+  for (const wind of [0, 0.6, 1.7, 2.9]) for (let i = 0; i < 12000; i++) {
+    const x = -3000 + i * 0.577, y = 1500 - i * 0.303, r = mainAt(x, y, wind);
+    if (r.f < 1 - r.fl + 0.02 || r.f > 0.98) continue;   // (the face, off the brink's and the toe's blends)
+    const hx = (mainAt(x + e, y, wind).h[0] - mainAt(x - e, y, wind).h[0]) / (2 * e), hy = (mainAt(x, y + e, wind).h[0] - mainAt(x, y - e, wind).h[0]) / (2 * e);
+    err.push(Math.hypot(r.h[1] - hx, r.h[2] - hy));
+  }
+  err.sort((a, b) => a - b);
+  assert.ok(err.length > 1000, `${err.length} points on the face`);
+  const p99 = err[Math.floor(0.99 * err.length)], mx = err[err.length - 1];
+  assert.ok(p99 <= 0.002 && mx <= 0.01, `the carried slope off the surface's: p99 ${p99.toFixed(4)}, max ${mx.toFixed(4)}`);
 });
