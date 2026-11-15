@@ -54,7 +54,7 @@
   function onUp(e) {
     if (e.pointerId !== DRAG.id) return;
     var was = DRAG.on;
-    if (was) relAdd(DRAG.x, DRAG.y, e.timeStamp);   // (the lift: its time, at the place last drawn)
+    if (was) { REL.tl = e.timeStamp; if (REL.n) relAdd(DRAG.x, DRAG.y, REL.t[(REL.i + REL_N - 1) % REL_N]); }   // (the lift: its time apart, for the rest; its place, the last drawn, at the last move's time: a lift comes a digitizer frame (4-17 ms) after the last move, and sampled at its own time the fit saw the finger stop: a steady flick coasted at 0.41-0.84 x its speed)
     var held = DRAG.type === 'touch' && e.timeStamp - DRAG.ts >= HOLD_S * 1000;   // (a touch held for the birds is no tap)
     if (!was && !held && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (each click spawns a bird)
     endDrag(true);
@@ -133,7 +133,7 @@
      deg.) A drag shorter than RING_T s coasts by its share of it, as a 0.2 s ring of steps did; 0 against the drag (a
      fit's overshoot as the finger slows) */
   var RING_T = 0.18, REL_H = 100, REL_STOP = 24, REL_N = 128;   // (ms: the fit's reach, and at least 3 times: a long frame leaves one move a frame; the rest within 1 px that is a stop, 25 ms on any display)
-  var REL = { x: new Float64Array(REL_N), y: new Float64Array(REL_N), t: new Float64Array(REL_N), i: 0, n: 0, t0: 0, px: 0, py: 0, vx: 0, vy: 0 };
+  var REL = { x: new Float64Array(REL_N), y: new Float64Array(REL_N), t: new Float64Array(REL_N), i: 0, n: 0, t0: 0, tl: -1e9, px: 0, py: 0, vx: 0, vy: 0 };
   function relAdd(x, y, t) {
     if (!REL.n) REL.t0 = t;
     REL.x[REL.i] = x; REL.y[REL.i] = y; REL.t[REL.i] = t; REL.i = (REL.i + 1) % REL_N; if (REL.n < REL_N) REL.n++;
@@ -153,7 +153,7 @@
     if (REL.n < 2) return;
     var j0 = (REL.i - 1 + REL_N) % REL_N, tU = REL.t[j0], tS = tU, m = 1, k, j, ex, ey, nt;
     for (k = 1; k < REL.n; k++) { j = (j0 - k + REL_N) % REL_N; ex = REL.x[j] - REL.x[j0]; ey = REL.y[j] - REL.y[j0]; if (ex * ex + ey * ey > 1) break; tS = REL.t[j]; }   // (since tS within 1 px of where it lifted)
-    if (tU - tS >= REL_STOP) return;   // (it rested before it lifted: no speed)
+    if (Math.max(REL.tl, tU) - tS >= REL_STOP) return;   // (it rested before it lifted, moves or none, up to the lift's own time: no speed)
     for (k = 1, nt = 1; k < REL.n; k++) { j = (j0 - k + REL_N) % REL_N; if (tU - REL.t[j] > REL_H && nt >= 3) break; if (REL.t[j] !== REL.t[(j + 1) % REL_N]) nt++; m++; }
     if (m < 2) return;
     var share = Math.min(1, (tU - REL.t0) / (RING_T * 1000));
@@ -215,7 +215,7 @@
   function devInput(ev) {
     if (ev.down) { INP.down = true; REL.n = 0; REL.px = 0; REL.py = 0; relAdd(0, 0, ev.t * 1000); }
     if (ev.drag) { INP.qx += ev.drag[0]; INP.qy += ev.drag[1]; REL.px += ev.drag[0]; REL.py += ev.drag[1]; relAdd(REL.px, REL.py, ev.t * 1000); }
-    if (ev.up) { INP.down = false; INP.rel = true; relAdd(REL.px, REL.py, ev.t * 1000); }
+    if (ev.up) { INP.down = false; INP.rel = true; REL.tl = ev.t * 1000; }
     if (ev.motion) { MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; }
     if (ev.orient) orientAt(ev.orient[0], ev.orient[1], ev.orient[2]);
   }

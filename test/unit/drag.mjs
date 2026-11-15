@@ -7,10 +7,10 @@
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vy * GR, -0.5, 0.5)", "with": "clamp(REL.vy * GR, -0.6, 0.6)", "why": "the tilt's coast past its 0.5 rad/s cap"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vx * GR, -0.8, 0.8)", "with": "clamp(REL.vx * GR, -1, 1)", "why": "the turn's coast past its 0.8 rad/s cap"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "        CS.yawV += ax; CSP.yawV += ax;", "with": "        CS.yawV += ax;", "why": "the drag drawn on one state only: a frame turns part of the finger's move"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (tU - tS >= REL_STOP) return;", "with": "    if (false) return;", "why": "no stop: a glance let go 25 ms after it rested runs on"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (Math.max(REL.tl, tU) - tS >= REL_STOP) return;", "with": "    if (false) return;", "why": "no stop: a glance let go 24 ms or more after it rested runs on"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    var b, det = m > 2 ? ", "with": "    var b, det = m > 1e9 ? ", "why": "the release's speed a line's, not a quadratic's: a glance easing out runs on more"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    return b * (A[j0] - A[j]) > 0 ? b : 0;", "with": "    return b;", "why": "the release's speed against the drag: a glance settling back as it lifts coasts back"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (was) relAdd(DRAG.x, DRAG.y, e.timeStamp);", "with": "    if (was) {}", "why": "no lift sample: a rest with no moves is not seen"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (was) { REL.tl = e.timeStamp;", "with": "    if (was) { REL.tl = -1e9;", "why": "no lift time: a rest with no moves before the lift is not seen"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    REL.vx = relFit(REL.x, j0, m, tU) * share;", "with": "    REL.vx = relFit(REL.x, j0, m, tU);", "why": "a short drag coasts at its whole speed, not its share"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "if (tU - REL.t[j] > REL_H && nt >= 3) break;", "with": "if (tU - REL.t[j] > REL_H) break;", "why": "a long frame's one move: no speed"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
@@ -270,5 +270,18 @@ test('drag: a steady drag\'s coast is its own speed with 60 Hz touch on a 60-240
     F.up(); F.frame(ts += P);
     const c = F.coast(), om = V * 1000 * GAIN1000;
     assert.ok(c && Math.abs(c.om - om) / om < 1e-6, `${hz} Hz, 60 Hz touch at ${ip}, steps at ${sp}: the coast's speed ${c && c.om.toFixed(4)} rad/s, the finger's ${om.toFixed(4)}`);
+  }
+});
+test('drag: a flick lifted a digitizer frame after its last move coasts at the finger\'s speed, on any display', () => {
+  // (the hub's review of #286: a lift's pointerup comes a digitizer frame after the last move, 4-17 ms; taken as a sample
+  // at its own time, the fit saw the finger stop for that frame, and a steady 300 px/s flick coasted at 0.41-0.84 x its
+  // speed (main: 0.91-0.99). The lift's place is the last move's, at the last move's time; its own time only says how
+  // long the finger rested)
+  for (const [inHz, gaps] of [[60, [4, 8.3, 16.7]], [120, [4, 8.3]]]) for (const gap of gaps) for (const hz of [60, 120, 144, 240]) for (const sp of [0, 0.5, 0.87]) {
+    const F = flying(sp), P = 1000 / hz, Q = 1000 / inHz, V = 0.3; let ts = 1000, te = 1000.3, last = 0;
+    for (let k = 1; k <= hz / 2; k++) { ts += P; for (; te <= ts - 0.4; te += Q) { F.move(V * te, te); last = te; } F.frame(ts); }
+    F.up(last + gap); F.frame(ts += P);
+    const c = F.coast(), om = V * 1000 * GAIN1000;
+    assert.ok(c && Math.abs(c.om - om) / om < 1e-6, `${inHz} Hz touch, lifted ${gap} ms after its last move, a ${hz} Hz display, steps at ${sp}: the coast's speed ${c && (c.om / om).toFixed(3)} x the finger's`);
   }
 });

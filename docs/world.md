@@ -48,7 +48,7 @@ never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
 view and the flight climbs or dives; let go moving, the turn runs on a
 little at the finger's speed as it lifts and eases out; let go after it
-rested (25 ms or more), it stays where it is. The steering reads a pointer's moves only while it is pressed;
+rested (24 ms or more), it stays where it is. The steering reads a pointer's moves only while it is pressed;
 the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
