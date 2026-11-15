@@ -1,5 +1,6 @@
 // test/unit/flight-sim.mjs: the flight flown whole: its controllers under random drags among solids
-// plant: {"file": "src/world/286-hard-rule.js", "find": "!(Math.abs(angDiff(S.psi, S.ppsi)) < SLIP_REPSI)", "with": "!(Math.abs(angDiff(S.psi, S.ppsi)) < 0.004)", "why": "the slip re-planned at every step of a turn"}
+// plant: {"file": "src/world/286-hard-rule.js", "find": "(SIM.t - S.pt >= SLIP_REGAP && !(Math.abs(angDiff(S.psi, S.ppsi)) < SLIP_REPSI))", "with": "!(Math.abs(angDiff(S.psi, S.ppsi)) < 0.004)", "why": "the slip re-planned at every step of a turn"}
+// plant: {"file": "src/world/286-hard-rule.js", "find": "(SIM.t - S.pt >= SLIP_REGAP && !(", "with": "((true) && !(", "why": "the slip re-planned at every 2 deg of a fast turn: no floor between plans"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "    if (Math.abs(S.latT - S.lat) < 0.05 && Math.abs(S.sv) < 0.02) S.sv = 0;\n", "with": "", "why": "the slip not held at rest on its line: it chatters"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "var k = Math.max(Math.min(R, d + ds), o.r + HARD_IN) / Math.max(d, 1e-3);", "with": "var k = R / Math.max(d, 1e-3);", "why": "the hard rule's push out of a landmark a jump"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "var k2 = Math.max(Math.min(R2, dd + ds), o.r + HARD_IN) / Math.max(dd, 1e-3);", "with": "var k2 = Math.min(R2, dd + ds) / Math.max(dd, 1e-3);", "why": "the hard rule's ease out of a cloud's core with no floor: the camera inside the solid"}
@@ -14,7 +15,8 @@ import { loadGround } from '../ground.mjs';
 // cruise (320), flown over seed 11's recorded ground (test/golden/ground/11) among solids made here (landmarks'
 // cylinders and clouds' cores, one a 400 m cell, out to 3.2 km), 4 seeds x 240 s of random drags (a turn of up to
 // 900 px/s on a 1000 px window, a tilt of up to 150 px/s, 0.3-2 s each, one every 4 s or so).
-//   - while the way turns, the slip is planned at most 15 times a second (it was every step: 46-48 a second);
+//   - while the way turns, the slip is planned at most 10 times a second, every 0.1 s at most however fast the turn
+//     (it was every step: 46-48 a second);
 //   - the slip's sign flips under once in 2 s (its controller chattered about its line: 2.1-8 times a second);
 //   - the height's acceleration changes at most 2 m/s3 (VY_J), the hard rules included;
 //   - the ground's rule never acts, and no step leaves the camera nearer a solid's face than HARD_IN (1 m).
@@ -27,7 +29,7 @@ const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
 const CRUISE = cut(WORLD, '  var CW_S = [', '\n  function flightParams') + '\n' + cut(WORLD, '  function flightParams(V, cw) {', '\n  }\n', true);
 const MAKE = vm.runInThisContext('(function (G, OBST) {\n  \'use strict\';\n' +
   '  var PI = Math.PI, DEG = PI / 180, DEVMODE = false, POSE = null, NOAUTO = false, shown = true, STILLMODE = false, SEEDR = 1, J = { seed: 1 }, VSTAGES = [], BIRDS = null, DTMAX = 0.1, SW = {};\n' +
-  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 };\n' +
+  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false;\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
   '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
@@ -37,6 +39,7 @@ const MAKE = vm.runInThisContext('(function (G, OBST) {\n  \'use strict\';\n' +
   '  function worldAt() { return { V: V, u: 0 }; }\n' +
   CRUISE + '\n' + FLIGHT + '\n' + INPUT +
   '\n  return { SIM: SIM, CS: CS, INP: INP, pushOut: function () { pushOut(V); }, ceil: function () { return groundAt(V, CS.x, CS.z) + V.clear[2] + CEIL_OVER; }, ds: PUSH_V * SIM_DT,\n' +
+  '    drag: function (dx, dy, up) { INP.down = !up; INP.rel = !!up; INP.dx += dx; INP.dy += dy; px += dx; py += dy; if (typeof relAdd === "function") { if (!pd) REL.n = 0; relAdd(px, py, SIM.t * 1000); } pd = !up; },\n' +   // (onMove's and onUp's samples, where the release reads them)
   '    step: function () { if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 function solids(seed) {
@@ -62,7 +65,7 @@ function dragged(seed, secs) {
   let drag = null, turnSteps = 0, turnPlans = 0, flips = 0, lastSv = 0, jerk = 0, lastAy = 0, near = 1e9;
   for (let k = 0; k < secs * 60; k++) {
     if (!drag && r() < 1 / 240) drag = { left: Math.round((0.3 + 1.7 * r()) * 60), vx: (r() - 0.5) * 1800 / 60, vy: (r() - 0.5) * 300 / 60 };
-    if (drag) { INP.down = true; INP.dx += drag.vx; INP.dy += drag.vy; if (--drag.left <= 0) { drag = null; INP.down = false; INP.rel = true; } }
+    if (drag) { const up = --drag.left <= 0; F.drag(drag.vx, drag.vy, false); if (up) { drag = null; F.drag(0, 0, true); } }
     if (!F.step()) continue;
     if (Math.abs(CS.yawRate) > 0.05) { turnSteps++; if (CS.pt === SIM.t) turnPlans++; }
     if (k > 60) {
@@ -74,10 +77,10 @@ function dragged(seed, secs) {
   }
   return { plans: turnPlans / (turnSteps / 60), flips: flips / secs, jerk, near, fixG: SIM.fixG };
 }
-test('flight-sim: under random drags the slip plans at most 15 times a second while turning and does not chatter; the height stays smooth', () => {
+test('flight-sim: under random drags the slip plans at most 10 times a second while turning and does not chatter; the height stays smooth', () => {
   for (const seed of [1, 2, 3, 4]) {
     const r = dragged(seed, 240), f = (x) => x.toFixed(2);
-    assert.ok(r.plans <= 15, `seed ${seed}: ${f(r.plans)} plans a second while the way turns (want 15 at most; main: 46-48)`);
+    assert.ok(r.plans <= 10, `seed ${seed}: ${f(r.plans)} plans a second while the way turns (want 10 at most, a plan at most every 0.1 s; main: 46-48)`);
     assert.ok(r.flips < 0.5, `seed ${seed}: the slip's sign flipped ${f(r.flips)} times a second (want under 0.5; main: 2.1-8)`);
     assert.ok(r.jerk <= 2 + 1e-6, `seed ${seed}: the height's acceleration changed at ${f(r.jerk)} m/s3 (want 2 at most)`);
     assert.equal(r.fixG, 0, `seed ${seed}: the ground's rule pushed the camera up ${r.fixG} times`);

@@ -10,16 +10,17 @@
   }
   /* the view not yet shown: the landing before its first frame (there is no other cover) */
   function arrivalCovered(V) { return !shown && SIM.t < 1; }
-  /* a step of the slip. (flight-controllers-smooth) The plan is made every SLIP_PLAN s, and at once only once the
-     heading has turned SLIP_REPSI since the last (S.ppsi): a drag's turn re-planned every step, 41-48 plans a second
-     while turning (test/unit/flight-sim.mjs); a few degrees of turn move what stands ahead little against a plan's 90 s.
+  /* a step of the slip. (flight-controllers-smooth) The plan is made every SLIP_PLAN s, and sooner only once the
+     heading has turned SLIP_REPSI since the last (S.ppsi), and never within SLIP_REGAP s of it: a drag's turn
+     re-planned every step, 46-48 plans a second while turning (test/unit/flight-sim.mjs); a few degrees of turn move
+     what stands ahead little against a plan's 90 s, and the line still to go is turned with the heading every step.
      On its line and at rest the slip is held at rest (as slipTraj flies it): its controller chattered about the line,
      the slip's sign flipping 2-12 times a second */
-  var SLIP_REPSI = 2 * DEG;
+  var SLIP_REPSI = 2 * DEG, SLIP_REGAP = 0.1;
   function slipStep(V, S, dt) {
     var v = V.speed;
     if (!(S.fpsi === S.fpsi) || Math.abs(angDiff(S.psi, S.fpsi)) > 0.004) { S.latT -= S.lat; S.latT2 -= S.lat; S.lat = 0; S.fpsi = S.psi; }   // (the heading turned: the line still to go, in the new frame)
-    if (SIM.t - S.pt >= SLIP_PLAN || !(Math.abs(angDiff(S.psi, S.ppsi)) < SLIP_REPSI)) { S.pt = SIM.t; S.ppsi = S.psi; slipPlan(V, S); }
+    if (SIM.t - S.pt >= SLIP_PLAN || (SIM.t - S.pt >= SLIP_REGAP && !(Math.abs(angDiff(S.psi, S.ppsi)) < SLIP_REPSI))) { S.pt = SIM.t; S.ppsi = S.psi; slipPlan(V, S); }
     if (S.tsw > 0 && SIM.t >= S.tsw) { S.latT = S.latT2; S.tsw = -1; }   // (the plan's second line, from its time on)
     S.sv = slipCtl(S.sv, S.latT - S.lat, S.vs || SLIP_SPD[0] * v, (S.acc || SLIP_ACC) * v, dt);   // (at the rate its plan was made at)
     if (Math.abs(S.latT - S.lat) < 0.05 && Math.abs(S.sv) < 0.02) S.sv = 0;
