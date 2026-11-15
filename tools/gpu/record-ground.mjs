@@ -20,10 +20,7 @@ const port = 9930 + Math.floor(Math.random() * 40), srv = spawn(process.execPath
 await new Promise((r) => setTimeout(r, 900));
 const br = await PW.chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist'] });
 try {
-  // (the moment tools/ground-fresh.mjs reads the ground at, in its time zone: the visit opens on the same sky, and the camera's
-  // ground over the mist pools is the same depth (delight-weather 1: the pools' depth is the sky's); the clock runs on from it)
-  const p = await (await br.newContext({ viewport: { width: 1440, height: 900 }, timezoneId: 'UTC' })).newPage();
-  await p.clock.install({ time: Date.parse('2026-11-05T12:00:00Z') });
+  const p = await (await br.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   await p.addInitScript((s) => { crypto.getRandomValues = function (a) { const u = new Uint32Array(a.buffer, a.byteOffset, a.byteLength >> 2); for (let i = 0; i < u.length; i++) u[i] = (s + i * 0x9e3779b9) >>> 0; return a; }; }, seed);
   await p.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' });
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
