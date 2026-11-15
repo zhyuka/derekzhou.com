@@ -56,12 +56,16 @@ test/shaders.mjs             Every program the page issues, compiled and linked 
 test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/24-unit.sh runs them, a process each), sharing
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
-                             test/unit/aurora.mjs (the aurora by its physics: its sheet, colour, motion and the night's phases), test/unit/clouds.mjs (the cloud bodies' billows), test/unit/drag.mjs (the drag),
+                             test/unit/aurora.mjs (the aurora by its physics: its sheet, colour, motion and the night's phases),
+                             test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
+                             test/unit/clouds.mjs (the cloud bodies' billows), test/unit/coast.mjs (the land's
+                             varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
-                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/sky.mjs (the order of the
+                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/ripples.mjs (the sand
+                             ripples' warp read C1), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
