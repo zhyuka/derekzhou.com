@@ -194,7 +194,7 @@
     particles: function (V) {
       var sand = lch(0.9, 0.04, 60), mote = lch(0.96, 0.05, 70, 1.4);
       return [
-        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: A.vec3(V, A.H.grains, 0), color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
+        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: A.vec3(V, A.H.grains, 0, A.GRAIN_K), color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
         { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: A.vec3(V, A.H.motes, 0.1), color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
       ];
     },

@@ -442,13 +442,20 @@ shader). It holds:
 
 - The wind: one direction a visit (airDraw, the dunes' field stream's
   first draw, as before), blowing toward V.windAz, and its speed by height,
-  windAt(x, z, y, t). Each reader has a declared height (AIR_H): the
-  grains 0.8 m, the veils 5 m, the motes 13 m, the birds 40 m. Today the
-  profile is the readers' own old speeds (6.5, 5.5, 1.6 and 6.5 m/s: the
-  motes slower than the grains under them, the reverse of real air); the
-  log law replaces it (physics: air/wind-profile). The dunes' crests, the
-  grains, the motes, the veils, the birds' HOST.wind and the water's
-  ripples read it.
+  windAt(x, z, y, t), y over the ground. U10 is 6.5 m/s. Under 100 m the
+  log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0) with z0 = 0.003 m
+  (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
+  the surface's direction; from 100 to 300 m it eases to the low cloud
+  layer's 1.3 U10, veered 20 deg, held to 1500 m; from 1500 to 3000 m to
+  the deck's 2 U10, veered 40 deg (the wind turns clockwise with height
+  toward the free air's). Each reader has a declared height (AIR_H): the
+  grains 0.8 m (4.5 m/s, times AIR_GRAIN_K, the sand's own share), the
+  veils 5 m (5.9), the motes 13 m (6.7), the birds their own height
+  (HOST.wind(o, y); 40 m by default, 7.6). Before physics: air/wind-profile
+  the readers kept their own speeds (6.5, 5.5, 1.6, 6.5: the motes slower
+  than the grains under them, the reverse of real air). The dunes' crests,
+  the grains, the motes, the veils, the birds and the water's ripples read
+  it.
 - The readers still apart (AIR_APART, each with the change that joins
   it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
   0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
