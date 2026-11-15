@@ -1,7 +1,7 @@
 name: Scheduled checks
 
 # The checks too date-bound for every PR (tools/checks/*.sh marked "kind: schedule"): security.txt's expiry (from
-# 2027-03-08 it would fail every PR).
+# 2027-03-08 it would fail every PR). And every check's planted failures (--prove: too long for every gate).
 # Weekly, or by hand; a red run is a task for the owning lane, never a PR's gate.
 on:
   schedule:
@@ -19,3 +19,8 @@ jobs:
           node-version: '22'
       - name: The scheduled checks (tools/check.mjs --scheduled)
         run: node tools/check.mjs --scheduled
+      # (CI lane, 2026-11-15) every check's planted failures, all 45 (about 8 minutes): a gate proves only those its
+      # change can break (validate.yml)
+      - name: Every planted failure (tools/check.mjs --prove)
+        if: always()
+        run: node tools/check.mjs --prove
