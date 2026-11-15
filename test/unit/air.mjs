@@ -4,19 +4,21 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
-// plant: {"file": "src/world/215-air.js", "find": "if (tS <= seq[0].at) { var A0 = airSh(seq[0]); for (c = 0; c < 3; c++) out[c] = (tS - seq[0].at) * A0[c]; return out; }", "with": "if (tS <= 0) { var A0 = airSh(seq[0]); for (c = 0; c < 3; c++) out[c] = tS * A0[c]; return out; }", "why": "the wind's clock jumps at the flight's start (the opening part way through its hold)"}
+// plant: {"file": "src/world/glsl/fs-ribbon.glsl", "find": "(dot(vW.xz, w) - uAir.x * length(uWind.xz)) * 0.035", "with": "dot(vW.xz, w) * 0.035 - uT * 0.22", "why": "the veils' streaks at a pace of their own"}
+// plant: {"file": "src/world/215-air.js", "find": "eta = (z * f.x - x * f.z - U * T[3]) / L + oz;", "with": "eta = (z * f.x - x * f.z) / L + oz;", "why": "the night's gusts lingering past row 6 (no slide)"}
+// plant: {"file": "src/world/215-air.js", "find": "if (tS <= seq[0].at) { var A0 = airSh(seq[0]); for (c = 0; c < AIR_NC; c++) out[c] = (tS - seq[0].at) * A0[c]; return out; }", "with": "if (tS <= 0) { var A0 = airSh(seq[0]); for (c = 0; c < AIR_NC; c++) out[c] = tS * A0[c]; return out; }", "why": "the wind's clock jumps at the flight's start (the opening part way through its hold)"}
 // plant: {"file": "src/world/413-draw-frame.js", "find": "airFrameU(UT[0] - AIR_UT0, MBS.dt);", "with": "airFrameU(UT[0], MBS.dt);", "why": "the veils and the grains carried 40 s ahead of the birds"}
-// plant: {"file": "src/world/215-air.js", "find": "var xi = (x * f.x + z * f.z - U * airClock(t)[0]) / L + ox,", "with": "var xi = (x * f.x + z * f.z - U * airCarried(y, t)) / L + ox,", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
+// plant: {"file": "src/world/215-air.js", "find": "xi = (x * f.x + z * f.z - U * T[0]) / L + ox,", "with": "xi = (x * f.x + z * f.z - U * airCarried(y, t)) / L + ox,", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
 // plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "float a = uPc.a * 0.55 *", "with": "float a = uPc.a * 0.55 * mix(0.15, 1.0, gust) *", "why": "the veils fading with the gust again"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
 // plant: {"file": "src/world/215-air.js", "find": "AIR_Z0 = 0.003,", "with": "AIR_Z0 = 0.03,", "why": "the sand ten times rougher (the profile's shares off)"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_GUST = [0.26, 22,", "with": "var AIR_GUST = [0.12, 22,", "why": "gusts too weak (the 3-s gust under 1.4 of the mean)"}
-// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv * uAir.y * uAir.z, uAir.x)", "with": "Wv * AIR_GUST_I * sin(uT * 0.9 + r1 * 7.0)", "why": "the veils on a private cycle again"}
+// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv * uAir.y * uAir.z, uAir.x, uAirM)", "with": "Wv * AIR_GUST_I * sin(uT * 0.9 + r1 * 7.0)", "why": "the veils on a private cycle again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec2 pos = p0 + vel.xz * tau +", "with": "vec2 pos = p0 + vel.xz * t +", "why": "the grains carried by the wind times the time (a change of sky jumps them)"}
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
-// plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < 3; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < 3; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
+// plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec3 prev = grain(id, uT - uMBdt, uAir.w, e2);", "with": "vec3 prev = head;", "why": "the motes' streak the camera's motion only (a windy mote a dot that jumps)"}
 // plant: {"file": "src/world/210-cloud-volumes-baking.js", "find": "var sd = keyAt(V), cy", "with": "var sd = dirAzEl(V.light.sunAz, 9), cy", "why": "the clouds baked along a sun of their own"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
@@ -216,9 +218,9 @@ test('air: one field at every height (a bird over a veil feels the veil\'s gust,
     const V = visit(G, seed); if (!(V.u10 > 0)) continue;
     for (const d of [0, 500, 3000, 8000]) {
       const a = [], b = [], c = [];
-      for (let i = 0; i < 400; i++) { const t = 1000 + i * 0.5, x = d + 37 * Math.sin(i), z = -d / 2 + 23 * Math.cos(i * 1.3); a.push(G.gustAt(x, z, 5, t, V)); b.push(G.gustAt(x, z, 40, t, V)); c.push(G.gustAt(x, z, 200, t, V)); }
+      for (let i = 0; i < 400; i++) { const t = i * 0.5, x = d + 37 * Math.sin(i), z = -d / 2 + 23 * Math.cos(i * 1.3); a.push(G.gustAt(x, z, 5, t, V) / G.gustSigma(5, V, t)); b.push(G.gustAt(x, z, 40, t, V) / G.gustSigma(40, V, t)); c.push(G.gustAt(x, z, 200, t, V) / G.gustSigma(200, V, t)); }   // (t 0-200 s: through the blue hour's change into the night, each in its own sigmas)
       assert.ok(corr(a, b) > 0.9999 && corr(a, c) > 0.9999, `${d} m out: the gust at 5 m and 40 m (and 200 m) is one gust (${corr(a, b).toFixed(4)})`);
-      assert.ok(Math.abs(b[7] / a[7] - G.airSpeed(40, V) * G.airShare(40, 1003.5) / (G.airSpeed(5, V) * G.airShare(5, 1003.5))) < 1e-9, 'its size the height\'s wind');
+      assert.ok(Math.abs(G.gustAt(d, 0, 40, 50, V) / G.gustAt(d, 0, 5, 50, V) - G.airSpeed(40, V) * G.airShare(40, 50) / (G.airSpeed(5, V) * G.airShare(5, 50))) < 1e-9, 'its size the height\'s wind');
     }
   }
 });
@@ -230,7 +232,7 @@ test('air: the shaders\' gust is the same field (the same constants and hash), a
   assert.ok(g.includes(') * ' + F(G.AIR_GUST[2]) + '; }'), 'the same unit-variance gain');
   assert.ok(g.includes('hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0'), 'lib.glsl\'s hash, as the JS mirrors it');
   assert.match(WORLD, /C\(preG \+ airGustGlsl\(\) \+ VS_RIBBON,/, 'the veils\' program is given the gust field');
-  assert.ok(/airGust\(sp\.xy, w, uAirU, Wv \* uAir\.y \* uAir\.z, uAir\.x\) \/ max\(Wv \* AIR_GUST_I, 1e-4\)/.test(vr), 'the veils lift with the gust over their brink, in the day\'s sigmas, carried on the surface\'s clock (gustAt\'s)');
+  assert.ok(/airGust\(sp\.xy, w, uAirU, Wv \* uAir\.y \* uAir\.z, uAir\.x, uAirM\) \/ max\(Wv \* AIR_GUST_I, 1e-4\)/.test(vr), 'the veils lift with the gust over their brink, in the day\'s sigmas, carried on the surface\'s clock (gustAt\'s)');
   assert.match(WORLD, /airFrameU\(UT\[0\] - AIR_UT0, MBS\.dt\);/, 'uAir on the flight\'s clock (the shaders\' lead taken off: one clock with HOST.gust)');
   assert.match(WORLD, /if \(P\.u\.uAirU\) gl\.uniform1f\(P\.u\.uAirU, u10Of\(V\)\);/, 'the veils carry the field at the visit\'s U10');
   const alpha = vr.split('float a =')[1].split(';')[0];
@@ -249,26 +251,26 @@ test('air: a mote is drawn along its whole motion on the window (its own wind an
 
 test('air: the wind by sky (one table: the world and the score), eased with the sky and carried by its integral, never a jump', () => {
   const G = page(), T = G.AIR_BYSKY, ids = Object.keys(G.WSKY);
-  for (const id of ids) assert.ok(Array.isArray(T[id]) && T[id].length === 3, `the sky ${id} has its wind`);
-  assert.deepEqual(T.afterglow, [1, 1, 1], 'the afterglow: the day\'s own wind');
+  for (const id of ids) assert.ok(Array.isArray(T[id]) && T[id].length === 4, `the sky ${id} has its wind`);
+  assert.deepEqual(T.afterglow, [1, 1, 1, 0], 'the afterglow: the day\'s own wind (no slide)');
   const nights = ['moonlit', 'milkyway', 'aurora'];
   assert.ok(T.afterglow[0] > T.bluehour[0] && nights.every((n) => T.bluehour[0] > T[n][0] && T[n][0] > T.firstlight[0]), 'the surface: the afterglow, then the blue hour, then the nights, first light the stillest');
   assert.ok(nights.every((n) => T[n][1] >= 1.2 && T[n][1] <= 1.5 && T[n][2] < 1), 'a night: the jet aloft 1.2-1.5 of the day\'s, its gusts weaker');
-  // an order: two near changes and a far one, the cycle's clock 25 s ahead of the flight's
+  // an order: two near changes and a far one, opening part way through its first hold
   G.SKY.seq.push({ id: 'afterglow', at: -25, hold: 80, move: 58 }, { id: 'bluehour', at: 113, hold: 90, move: 56 }, { id: 'milkyway', at: 259, hold: 100, move: 60, far: true }, { id: 'firstlight', at: 419, hold: 80, move: 55 });
   G.SKY.dt = 0;   // (as skyInit makes it: the opening part way through its first hold, seq[0].at below 0; SKY.dt 0 outside dev)
-  assert.deepEqual(Array.from(G.airClock(0)), [0, 0, 0], 'the clocks start at the flight\'s start'); assert.ok(G.airClock(1 / 60)[0] < 1 / 60 + 1e-12, 'and run no faster than the wind: no jump at the start');
-  const h = 0.01; let I = [0, 0, 0], prev = G.weather(0).slice(), worst = 0, worstI = 0, last = G.airClock(0).slice();
+  assert.deepEqual(Array.from(G.airClock(0)), [0, 0, 0, 0], 'the clocks start at the flight\'s start'); assert.ok(G.airClock(1 / 60)[0] < 1 / 60 + 1e-12, 'and run no faster than the wind: no jump at the start');
+  const h = 0.01; let I = [0, 0, 0, 0], prev = G.weather(0).slice(), worst = 0, worstI = 0, last = G.airClock(0).slice();
   for (let t = h; t <= 520; t += h) {
     const w = G.weather(t).slice();
-    for (let c = 0; c < 3; c++) { I[c] += (w[c] + prev[c]) / 2 * h; worst = Math.max(worst, Math.abs(w[c] - prev[c])); }
+    for (let c = 0; c < 4; c++) { I[c] += (w[c] + prev[c]) / 2 * h; worst = Math.max(worst, Math.abs(w[c] - prev[c])); }
     const C = G.airClock(t);
-    for (let c = 0; c < 3; c++) { worstI = Math.max(worstI, Math.abs(C[c] - I[c])); assert.ok(C[c] > last[c], 'each clock runs forward'); last[c] = C[c]; }
+    for (let c = 0; c < 4; c++) { worstI = Math.max(worstI, Math.abs(C[c] - I[c])); assert.ok(C[c] >= last[c] && (c === 3 || C[c] > last[c]), 'each clock runs forward (the meander\'s only on calm skies)'); last[c] = C[c]; }
     prev = w;
   }
   assert.ok(worst < 0.002, `the shares step ${worst.toFixed(4)} in 10 ms (eased with the sky, never a jump)`);
   assert.ok(worstI < 1e-4, `the clocks are the shares' integral (off by ${worstI.toExponential(2)} s)`);
-  assert.deepEqual(G.weather(30).slice(), [1, 1, 1], 'a hold: its own sky\'s'); assert.deepEqual(G.weather(180).slice(), T.bluehour, 'the next hold: the next sky\'s');
+  assert.deepEqual(G.weather(30).slice(), [1, 1, 1, 0], 'a hold: its own sky\'s'); assert.deepEqual(G.weather(180).slice(), T.bluehour, 'the next hold: the next sky\'s');
   // by height: the particles (20 m and under) on the surface's share, the jet at 100-300 m, the free air's 1 by 1500 m
   const t = 420, w = G.weather(t).slice();
   for (const y of [0.8, 5, 13, 20]) assert.equal(G.airShare(y, t), w[0], `at ${y} m the surface's share`);
@@ -297,5 +299,27 @@ test('air: the wind by sky (one table: the world and the score), eased with the 
   const c = G.airTable(); c.afterglow[0] = 9; assert.equal(T.afterglow[0], 1, 'a copy: the score never writes the world\'s');
   assert.ok(/function breeze\(id\) \{ var a = S\.air && S\.air\[id\];/.test(SC) && /S\.air = F\.air/.test(SC), 'the score\'s breeze is the feed\'s table');
   assert.ok(!/\b(afterglow|bluehour|firstlight|moonlit|milkyway|aurora)\s*:\s*\[\s*0?\.\d+\s*,\s*0?\.\d+\s*\]/.test(SC), 'no breeze of the score\'s own by sky');
+});
+
+test('air: the gusts by sky: the e-fold within row 6 in every sky, the streaks on the veils\' own wind', () => {
+  const G = page(), med = (a) => [...a].sort((x, y) => x - y)[a.length >> 1], out = {};
+  G.SKY.dt = 0;
+  for (const id of Object.keys(G.AIR_BYSKY)) {
+    G.SKY.seq.length = 0; G.SKY.seq.push({ id, at: -10, hold: 1e6, move: 60 });
+    const taus = [];
+    for (const seed of SEEDS.slice(0, 8)) {
+      const V = visit(G, seed), dt = 0.25, N = 2400, u = new Float64Array(N);
+      for (let i = 0; i < N; i++) u[i] = G.gustAt(0, 0, 5, i * dt, V);
+      let m = 0, v0 = 0; for (let i = 0; i < N; i++) m += u[i] / N; for (let i = 0; i < N; i++) v0 += (u[i] - m) ** 2 / N;
+      for (let L = 1; L < N / 2; L++) { let c = 0; for (let i = 0; i + L < N; i++) c += (u[i] - m) * (u[i + L] - m); if (c / (N - L) / v0 < 1 / Math.E) { taus.push(L * dt); break; } }
+    }
+    out[id] = med(taus);
+    assert.ok(out[id] >= 10 && out[id] <= 30, `${id}: the gusts' e-fold median ${out[id].toFixed(1)} s, not row 6's 10-30 s`);
+  }
+  if (process.env.EF) console.log(JSON.stringify(out));
+  const fr = GLSL('fs-ribbon.glsl');
+  assert.ok(/\(dot\(vW\.xz, w\) - uAir\.x \* length\(uWind\.xz\)\) \* 0\.035/.test(fr) && !/\buT\b/.test(fr), 'the sand\'s streaks carried at the veils\' own wind on the air\'s clock, never a pace of their own');
+  assert.match(GLSL('vs-ribbon.glsl'), /uAir\.x, uAirM\)/, 'the veils read the meander\'s clock too');
+  assert.match(WORLD, /if \(u\.uAirM\) gl\.uniform1f\(u\.uAirM, UAIRM\[0\]\);/, 'the shaders are given it');
 });
 
