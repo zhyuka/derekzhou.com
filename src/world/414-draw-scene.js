@@ -27,7 +27,7 @@
         var g = S.g0 * Math.pow(2, l), cx = Math.floor(CAM.pos[0] / (2 * g)) * 2 * g, cz = Math.floor(CAM.pos[2] / (2 * g)) * 2 * g;
         var set = 0;
         if (l > 0) { var gf = g / 2, fx = Math.floor(CAM.pos[0] / (2 * gf)) * 2 * gf, fz = Math.floor(CAM.pos[2] / (2 * gf)) * 2 * gf; set = 1 + Math.round((fx - cx) / g) + 2 * Math.round((fz - cz) / g); }
-        gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2); if (S.split) gl.uniform1i(P.u.uLvl, l);
+        gl.uniform4f(P.u.uLev, ringCell(g, 0), ringCell(g, 2), g, GN / 2); if (S.split) gl.uniform1i(P.u.uLvl, l);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, GRID.ib[set].b);
         ST.ringAll += GRID.ib[set].n;
         if (!S.yb) { dc(gl.TRIANGLES, GRID.ib[set].n, 0, true); ST.ringIdx += GRID.ib[set].n; }
