@@ -28,7 +28,7 @@
     var cl = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2], h = [(hi[0] - lo[0]) / 2 * 1.06, (hi[1] - lo[1]) / 2 * 1.06, (hi[2] - lo[2]) / 2 * 1.06];
     var c = [cy * cl[0] + sy * cl[2], cl[1], -sy * cl[0] + cy * cl[2]];   // the centre in the world
     var voxL = Math.max(h[0], h[1], h[2]) * 2 / (res || 52);   // (the layout's own voxel: the billows' tile is set from it, so every tier bakes the same field)
-    if (memTier() === 'desktop') res = Math.round((res || 52) * 64 / 44);   // (the desktop's volumes finer: the layout's 44 voxels across a body's longest side, 64 there)
+    if (LOOKD) res = Math.round((res || 52) * 64 / 44);   // (the desktop look's volumes finer (data-look, the still's): the layout's 44 voxels across a body's longest side, 64 there)
     if (DEVMODE && SW.volres > 0) res = SW.volres;   // (dev: the structural harness's long flights with small bodies: the same calls, a fraction of SwiftShader's bake time)
     var vox = Math.max(h[0], h[1], h[2]) * 2 / (res || 52), dims = [0, 0, 0];
     for (k = 0; k < 3; k++) dims[k] = clamp(Math.ceil(h[k] * 2 / vox), 6, 64);
