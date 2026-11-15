@@ -14,5 +14,5 @@
 # derived file for shader PRs to conflict in). --selftest: the guard's own proof (a planted per-visit literal, a
 # per-window literal and one program changed must each be caught). Exit 3: the fake browser could not bring the
 # world to its show (extend the fake for what the page needs; never relax the rules).
-# plant: {"file": ".github/workflows/glsl_guard.js", "find": "--selftest", "with": "--selftest", "why": "self-proved: --selftest plants its own failures first", "self": true}
-node .github/workflows/glsl_guard.js build/site --selftest
+# plant: {"file": "tools/checks/lib/glsl_guard.js", "find": "--selftest", "with": "--selftest", "why": "self-proved: --selftest plants its own failures first", "self": true}
+node tools/checks/lib/glsl_guard.js build/site --selftest

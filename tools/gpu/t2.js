@@ -1,6 +1,6 @@
 'use strict';
 // t2.js (tools/gpu): the T2 graphics check on the RTX 4090 (ANGLE D3D11), base against head in one job.
-//   node tools/gpu/t2.js --base BASE_SITE --head HEAD_SITE --out OUT [--cases d11,n23,w303,d707] [--frames 600] [--settle 4000]
+//   node tools/gpu/t2.js --base BASE_SITE --head HEAD_SITE --out OUT [--cases d11,n23,w303,d707,a2,m1] [--frames 600] [--settle 4000]
 //        [--gpuname NAME]   (the page sees NAME as its GPU: another maker's paths, rendered on this GPU)
 //        [--par 4] [--profiles DIR] [--port 9600] [--no-null]
 // 1. Serves both site folders as Cloudflare Pages serves them (cfserve.js: _headers, so the CSP is the real one).
@@ -27,12 +27,17 @@ const fs = require('fs'), path = require('path'), net = require('net'), { spawn 
 const A = {}; for (let i = 2; i < process.argv.length; i++) { const k = process.argv[i].replace(/^--/, ''), v = process.argv[i + 1]; if (v === undefined || v.startsWith('--')) A[k] = true; else { A[k] = v; i++; } }
 const HERE = __dirname, OUT = path.resolve(A.out || 't2out'), N = +(A.frames || 600), PAR = +(A.par || 4);
 const CASES = { d11: ['1440x900@1', '2026-10-29T10:30:00Z', 11, false], n23: ['393x852@3', '2026-10-29T23:30:00Z', 23, true],
-  w303: ['1440x900@1', '2026-10-29T06:30:00Z', 303, false], d707: ['393x852@3', '2026-10-29T10:30:00Z', 707, true] };
+  w303: ['1440x900@1', '2026-10-29T06:30:00Z', 303, false], d707: ['393x852@3', '2026-10-29T10:30:00Z', 707, true],
+  // (CI lane, 2026-11-15) the night's other skies, so T2 sees them: at 23:30 seed 2 opens on the aurora (a desktop)
+  // and seed 1 on the moonlit sea (a phone: the moon and its stars drift over the visit's frames); n23 opens on the
+  // Milky Way. Measured under SwiftShader (the world's SKYI.sky, desktop and phone alike); a world change that moves
+  // which sky a seed opens on moves these: re-pick the seeds, never drop the skies
+  a2: ['1440x900@1', '2026-10-29T23:30:00Z', 2, false], m1: ['393x852@3', '2026-10-29T23:30:00Z', 1, true] };
 // --settle T: base and head are SETTLED TWINS (twin.js): every visit holds its first shown frame until its world's build is
 // idle and the page clock is T ms (the kit's 4000), so base and head show the same settled world at the same page time
 // whatever their compile times; without it, plain arms, each from its own first shown frame
 const SETTLE = A.settle ? ['--settle', String(+A.settle === +A.settle && A.settle !== true ? A.settle : 4000), '--settle-extra', '0', '--settle-quiet', '8', '--settle-boot'] : [];
-const CS = String(A.cases || 'd11,n23,w303,d707').split(',');
+const CS = String(A.cases || 'd11,n23,w303,d707,a2,m1').split(',');
 const NB = JSON.parse(fs.readFileSync(path.join(HERE, 'noise_bounds.json'), 'utf8'));
 fs.mkdirSync(OUT, { recursive: true });
 const log = (s) => { console.log(s); fs.appendFileSync(path.join(OUT, 't2.log'), s + '\n'); };

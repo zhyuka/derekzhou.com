@@ -1,5 +1,5 @@
-# The world's CI rules, on the site's folder: run from the repository's root by .github/workflows/validate.yml ("The
-# world's rules"), or locally: python3 .github/workflows/world_rules.py [the site's folder: site] [the scripts as written: src].
+# The world's CI rules, on the site's folder: run from the repository's root by tools/checks/25-world-rules.sh ("The
+# world's rules"), or locally: python3 tools/checks/lib/world_rules.py [the site's folder: site] [the scripts as written: src].
 # Exit 1 on any failure. (The world's scripts are served minified: rules 2, 4, 7 and 7b read them as written, in the
 # second folder, whose build validate.yml checks site/'s are; the pages, _headers and a worker file are site/'s.)
 # Each rule prints OK or the files and lines that break it.
