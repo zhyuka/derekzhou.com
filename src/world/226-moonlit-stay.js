@@ -22,12 +22,47 @@
     var lift = svh === svh && WORDSIH > 0 ? Math.max(0, WORDSIH - svh) / 2 * OUT.dpr : 0, boxes = [], mt = E && E.mt ? E.mt : [0, 0, 0, 0];
     for (b = 0; b < 5; b++) boxes.push([WORDS[b * 4], WORDS[b * 4 + 1] - (b < 3 ? lift : 0), WORDS[b * 4 + 2], WORDS[b * 4 + 3] - (b < 3 ? lift : 0)]);
     return { psi: (CS.yawV + CS.phi) / DEG, pN: basePitchT(V) / DEG, pL: (basePitchT(V) + CS.thU + CS.thP) / DEG, tanX: FRT.tanX, tanY: FRT.tanY, W: OUT.w, H: OUT.h, boxes: boxes, keepPx: MOON_KEEP * OUT.dpr,
-      coarse: coarse, noRoom: TOUCHMODE === 'scroll', keyAz: V.light.sunAz, side: SKY.moonSide || 1, sigma: SKY.moonDir || 1, lift: lift, t0: mt[0], t1: mt[1], t2: mt[2], t3: mt[3], land: E && E.landT !== undefined ? E.landT : null };
+      coarse: coarse, noRoom: TOUCHMODE === 'scroll', keyAz: V.light.sunAz, side: SKY.moonSide || 1, sigma: SKY.moonDir || 1, lift: lift, t0: mt[0], t1: mt[1], t2: mt[2], t3: mt[3], land: E && E.landT !== undefined ? E.landT : null, landX: E && E.landX, landUp: E && E.landUp };
   }
   function moonStep(t) {
     var E = moonStay(t); MOON.E = E;
     if (E && !E.moon && E === SKY.seq[0] && E.landT === undefined) E.landT = t;   // (the opening's own moonlit stay: its moon in frame at the cut, the plan timed to it: 225's P.land)
-    if (E && !E.moon) { var I = moonInputs(E); if (I) { E.moon = moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
+    if (E && !E.moon) { var I = moonInputs(E); if (I) { E.moon = I.land !== null ? moonClear(E, I) : moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
+  }
+  /* (the opening's moon, the hub's review of #303) its place at the cut kept off the cloud bodies about the eye: the
+     places tried in order (along its band from 0.11 to 0.58 of the way out by 0.025, nearest LANDX first, at each of 5 heights in its room), the first whose disc (its
+     centre and 8 points on its limb) meets less than MOON_VEIL m (mean) of the visible lobes (each a sphere: cloudBetween3's measure) out to
+     MOON_VEIL_D m wins, else the least veiled: a moon behind thin cloud, never one hidden by a solid body when a clear or
+     thinner place is there. Placed before the first frame; the place is kept on the stay (E.landX, E.landUp) so a resize's
+     re-plan keeps it */
+  var MOON_VEIL = 5, MOON_VEIL_D = 9000, MOON_TRY = [];
+  (function () { var X = [1 / 3], U = [null, 0.35, 1, 0.55, 0.15], i, j; for (i = 1; i <= 9; i++) { X.push(1 / 3 - 0.025 * i); if (1 / 3 + 0.025 * i <= 0.6) X.push(1 / 3 + 0.025 * i); } for (j = 0; j < U.length; j++) for (i = 0; i < X.length; i++) MOON_TRY.push([X[i], U[j]]); })();   // (across, then up its room: LANDX at the plan's own height first)
+  function moonVeil(dir, R) {   // the mean chord (m) through the visible lobes along the disc's centre and 8 limb rays, from the eye
+    var V = SIM.V, L = V && V.cellList, ex = CS.x, ey = CS.y, ez = CS.z, up = Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0], a = mrNorm([up[1] * dir[2] - up[2] * dir[1], up[2] * dir[0] - up[0] * dir[2], up[0] * dir[1] - up[1] * dir[0]]), b = [dir[1] * a[2] - dir[2] * a[1], dir[2] * a[0] - dir[0] * a[2], dir[0] * a[1] - dir[1] * a[0]];
+    if (!L) return 0;
+    var tot = 0, k, i, j, l, tr = Math.tan(R * DEG);
+    for (k = 0; k < 9; k++) {
+      var c = k ? Math.cos(k * PI / 4) * tr : 0, s2 = k ? Math.sin(k * PI / 4) * tr : 0, d = mrNorm([dir[0] + a[0] * c + b[0] * s2, dir[1] + a[1] * c + b[1] * s2, dir[2] + a[2] * c + b[2] * s2]);
+      cbSet(ex, ey, ez, ex + d[0] * MOON_VEIL_D, ey + d[1] * MOON_VEIL_D, ez + d[2] * MOON_VEIL_D);
+      for (i = 0; i < L.length; i++) {
+        var C = L[i]; if (C.st < 3 || !C.soft || !C.softB) continue;
+        for (j = 0; j < C.softB.length; j++) { var B = C.softB[j]; if (!cbChord(B[0], B[1], B[2], B[3])) continue; for (l = B[4]; l < B[5]; l += 4) tot += cbChord(C.soft[l], C.soft[l + 1], C.soft[l + 2], C.soft[l + 3]); }
+      }
+    }
+    return tot / 9;
+  }
+  function moonClear(E, I) {
+    var best = null, bv = Infinity, k, P, o = { d: [0, 0, 0] };
+    for (k = 0; k < MOON_TRY.length; k++) {
+      I.landX = MOON_TRY[k][0]; I.landUp = MOON_TRY[k][1]; P = moonPlan(I);
+      if (!(P.room || P.landRoom)) { best = P; bv = 0; E.landX = I.landX; E.landUp = I.landUp; break; }   // (no place for it in frame at all: the plan as it is)
+      moonAt(P, I.land, o); var v = moonVeil(o.d, MRK.R);
+      P.veil = v;
+      if (v < bv) { bv = v; best = P; E.landX = I.landX; E.landUp = I.landUp; }
+      if (v < MOON_VEIL) break;
+    }
+    MOON.veil = bv;
+    return best;
   }
   function moonShown(t, out) {   // the plan's moon at t, turned by the re-plan's offset (0 with no resize: a still and a flight agree)
     var E = MOON.E, P = E && E.moon;

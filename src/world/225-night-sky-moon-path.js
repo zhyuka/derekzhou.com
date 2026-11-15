@@ -119,15 +119,17 @@
        has no room under its top edge at the side edges (the lo tier's wide and square windows, the words high), the room
        is taken where the moon stands at the cut (LANDX): the band still over every box's keep line, its centre R + 1 deg
        under the top edge there; it leaves by the top corner on its way out (only there, by moving) */
-    P.land = I.land === undefined || I.land === null ? null : I.land; P.landRoom = false; P.landX = MRK.LANDX;
+    P.land = I.land === undefined || I.land === null ? null : I.land; P.landRoom = false; P.landX = I.landX || MRK.LANDX;
+    var upL = I.landUp === undefined || I.landUp === null ? MRK.UP : I.landUp;   // (the opening's moon: how far up its room it stands; 226 tries a few to clear the clouds)
+    if (P.land !== null && P.room && !I.coarse) P.ec = P.lo + upL * Math.min(P.hi - P.lo, MRK.SPAN);
     if (P.land !== null && !P.room && !I.noRoom) {   // (and, if it must, with less of the keep beyond the footprint: 12, 6, then 0 px; the footprint itself always clear)
       var hT, kf, I2, lo2, mg;
       for (mg = 1; mg >= 0 && !P.landRoom; mg -= 0.5) {   // (and, last, less of the margin under the top edge, to none: the disc still whole in the window)
-        hT = Math.min(mrHiAt(I, I.pN, MRK.LANDX, mg), mrHiAt(I, I.pL, MRK.LANDX, mg));
+        hT = Math.min(mrHiAt(I, I.pN, P.landX, mg), mrHiAt(I, I.pL, P.landX, mg));
         for (kf = 1; kf >= 0 && !P.landRoom; kf -= 0.5) {
           I2 = {}; for (var kk in I) I2[kk] = I[kk]; I2.keepPx = I.keepPx * kf;
           lo2 = Math.max(mrLo(I2, S, I.pN), mrLo(I2, S, I.pL));
-          if (hT - lo2 >= (mg < 1 ? MRK.LANDROOM / 2 : MRK.LANDROOM)) { P.lo = lo2; P.ec = lo2 + MRK.UP * Math.min(hT - lo2, MRK.SPAN); P.landRoom = true; P.landKeep = kf; P.landMg = mg; }
+          if (hT - lo2 >= (mg < 1 ? MRK.LANDROOM / 2 : MRK.LANDROOM)) { P.lo = lo2; P.ec = lo2 + upL * Math.min(hT - lo2, MRK.SPAN); P.landRoom = true; P.landKeep = kf; P.landMg = mg; }
         }
       }
       /* no row over the words at all (the lo tier's wide windows: the name 6-9 deg under the top edge): the moon at the cut
@@ -142,7 +144,7 @@
           n2 = Math.max(1, Math.ceil((x1 - x0) / MRK.STEP)); for (j2 = 0; j2 <= n2; j2++) { OL.push([x0 + (x1 - x0) * j2 / n2, y0]); OL.push([x0 + (x1 - x0) * j2 / n2, y1]); }
           n2 = Math.max(1, Math.ceil((y1 - y0) / MRK.STEP)); for (j2 = 0; j2 <= n2; j2++) { OL.push([x0, y0 + (y1 - y0) * j2 / n2]); OL.push([x1, y0 + (y1 - y0) * j2 / n2]); }
         }
-        for (xx = MRK.LANDX; xx <= 0.92 && !P.landRoom; xx += 0.02) {
+        for (xx = P.landX; xx <= 0.92 && !P.landRoom; xx += 0.02) {
           var ex = Math.min(mrHiAt(I, I.pN, xx), mrHiAt(I, I.pL, xx)) - MRK.SLACK, ok = true, pp, Cq, dq = [0, 0, 0];
           mrBandSet(Bd, ex, 0);
           for (pp = 0; pp < 2 && ok; pp++) {
