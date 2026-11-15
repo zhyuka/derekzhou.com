@@ -110,8 +110,8 @@ function lookKind(lk, wC) {
 const q = (a, p) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
 
 // one land: the flight's ray for secs, the director replayed along it; the places and flocks beside it
-export function flyLand(k, secs = 7200) {
-  const L = landOf(k), kits = KITS(L.STREAMS), psi = L.heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
+export function flyLand(k, secs = 7200, heading = null) {   // (heading: another first heading than the land's own, rad)
+  const L = landOf(k), kits = KITS(L.STREAMS), psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
   const looks = [], sea = [];
   for (let t = 0, i = 0; t <= secs; t += 0.5, i++) {   // (the director's tick, 0.5 s; its look every 5 s)
     L.CS.x = hx * V_MS * t; L.CS.z = hz * V_MS * t; L.directorStep(t);

@@ -88,6 +88,7 @@ tools/dup-names.mjs          No name declared twice in one scope of a served scr
 tools/where.mjs              Where a world name is declared, and which sections read, assign and write it
 tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, headless, in about a minute (places passed,
                              the first near pass, flocks, crossings, the sky's changes, look runs, the longest gap)
+tools/visit/headings.mjs     Each land's first heading chosen by the ruler: a near pass by 40 s, the least longest gap
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
 tools/ground-site.mjs        The page the recorded ground is read from, and the measure of a recording against it
