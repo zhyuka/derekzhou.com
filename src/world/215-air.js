@@ -72,7 +72,13 @@
   function airMoon(t) { return moonShown(t, AIR_MOON); }   // the moon on show at sky time t (226: its route)
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
-  function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
+  /* the landing's heading (the flight, the first plan, the galaxy's lie and the boot read it). (curated openings, step 2:
+     delight-visit 5.2) each of the 16 lands' own, chosen by the visit ruler (tools/visit/headings.mjs) for a near pass
+     soonest (within 150 m: by 40 s on 9 lands, where its own came at 18-1137 s) and the least longest stretch with no
+     reward; null, the land's own draw from its stream where that was already the best (k6, k10). Chosen once, before
+     anything is drawn, as the landing is; nothing turns the view. A land k is the one whose seed is 010's (11 + k x
+     0x9e3779b9) */
+  function airHeading0() { var T = [170, 160, 50, 210, 235, 225, null, 65, 245, 50, null, 110, 210, 310, 205, 230], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
   var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
