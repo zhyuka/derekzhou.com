@@ -514,6 +514,10 @@
           "file": ".claude/hooks/guard.py"
         },
         {
+          "kind": "ci-step",
+          "name": "No author-style citation in a tracked file"
+        },
+        {
           "kind": "prose"
         }
       ]
