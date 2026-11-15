@@ -20,7 +20,7 @@ const float STC = 0.04;
    climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
 float galEdge(float e) { float g = (1.0 - uGalC.w) * 95.0 - 3.0; return smoothstep(g - 0.8, g + 1.2, e); }
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
-   period round the band so a turn never meets a seam) and the aurora (one quiet arc low over the poleward horizon, green below and red above, softly rayed: form A) */
+   period round the band so a turn never meets a seam) and the aurora (one sheet low over the key's horizon, its colour by altitude: physics: aurora) */
 #ifdef SKY_PH2
 vec3 galaxyAt(vec3 rd, float e) {
   if (uGalC.w <= 0.0) return vec3(0.0);   // (aurora-enter-by-place: nothing read until it has begun to come in)
@@ -33,27 +33,49 @@ vec3 galaxyAt(vec3 rd, float e) {
 }
 vec3 auroraAt(vec3 rd, float e) {
   if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
-  float az = atan(rd.x, rd.z), u = az / SKYTAU;
-  float b0 = uAur.z - (1.0 - uAur.x) * 90.0;   // (aurora-enter-by-place: its base under the poleward horizon until it has come in, every curtain's top under it at rise 0+; whole at 1)
-  /* (aurora form A, from the sketches: one quiet arc low over the horizon, soft rays) one band far poleward, east-west,
-     centred on the visit's own azimuth (uAur.y): seen in perspective its base stands highest there and sinks toward
-     east and west (tan(base) = tan(b) cos(da)), its height shrinking with it (x sqrt(cos da)), so it meets the horizon
-     whole at both ends and is nothing behind; its swell slow and its rays soft and broad (whole noise periods round the
-     sky: no seam; the finest ray 3.6 deg: never under a pixel: no glitter) */
-  float cd = cos(az - uAur.y);
-  if (cd <= 0.0) return vec3(0.0);
-  float bc = clamp(b0 + 1.2 * (n3v(vec3(u * 3.0, uT * 0.0008, 0.83)).b - 0.5), -89.0, 89.0);
-  float base = degrees(atan(tan(radians(bc)) * cd)), hgt = 16.0 * sqrt(cd), x = e - base;
-  if (x < -1.5 || x > hgt * 2.5) return vec3(0.0);
-  float rays = 0.6 + 0.2 * n3v(vec3(u * 100.0 + uT * 0.0005, 0.5, 0.19)).a;
-  /* (aurora-colour) green below, the sky's own violet over it, the red top: stops whose mixes keep their chroma over
-     the aurora sky's blue (the old ends, h 160 and h 345, went through grey; a warm overlap went through yellow, which
-     cancels the sky's blue: a grey-brown band, the review's), the green the oxygen line's (h about 142), half as
-     strong again; test/unit/aurora.mjs composites the whole curtain over the sky and pins its chroma and hue */
-  float t = smoothstep(0.25, 1.2, x / hgt);
-  vec3 col = mix(mix(vec3(0.225, 1.5, 0.18), vec3(0.45, 0.5, 1.0), clamp(2.0 * t, 0.0, 1.0)), vec3(0.85, 0.25, 0.55), clamp(2.0 * t - 1.0, 0.0, 1.0));
-  vec3 c = col * smoothstep(-0.6, 0.25, x) * (1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x)) * (exp(-max(x, 0.0) / hgt) + 0.6 * exp(-max(x, 0.0) / (hgt * 0.15))) * rays * 0.85;
-  return c * uAur.w * 0.09 * smoothstep(0.5, 6.0, e) * smoothstep(0.0, 0.25, cd);
+  /* (physics: aurora/geometry) one vertical sheet D km away over the ground toward the key's azimuth (uAur.y), seen
+     from the ground: the ray's crossing with it (rho cos phi = D + y(rho sin phi), three fixed-point steps) and the
+     altitude there, h = R (cos e / cos(e + rho / R) - 1). D from its lower border's elevation at its centre (h 105 km),
+     which rises evenly with the rise, from 9.3 deg under the horizon (D 3000: nothing of it over) to 6.2 deg over it (D 650): at most 0.27
+     deg/s; at infinity (drawn by direction: no parallax in flight), not tied to the stars */
+  float eb = radians(mix(-9.3, 6.17, uAur.x));
+  float D = 6371.0 * (acos(cos(eb) / (1.0 + 105.0 / 6371.0)) - eb);
+  float phi = atan(rd.x, rd.z) - uAur.y, cp = cos(phi), sp = sin(phi);
+  if (cp < 0.05) return vec3(0.0);
+  float el = asin(clamp(rd.y, -1.0, 1.0)), pa = 2.0 * atan(uProj.y) / uRes.y;
+  /* (physics: aurora/motion) the sheet's line y(s): a swell (15 km, 500 km, 0.3 km/s: 0.0038 rad/s) and folds (3 km,
+     40 km, 1 km/s: 0.157 rad/s), the folds gone where 40 km spans under 8 px; nothing faster (no curls, corona,
+     pulsing or flicker: on screen they would glitter or fade) */
+  float rho = D / cp, y = 0.0, yd = 0.0, ys = 0.0;
+  for (int i = 0; i < 3; i++) {
+    /* (the folds' spacing irregular, as real folds are: a fixed wobble of their phase over 170 km, so their edge-on
+       flanks never stand in a regular comb) */
+    float s = rho * sp, fa = 3.0 * smoothstep(8.0, 16.0, 40.0 / max(rho, 1.0) / pa), w = SKYTAU * s / 170.0 + uAur.y * 3.0;
+    float a1 = SKYTAU * s / 500.0 + 0.0038 * uT + uAur.y * 7.0, a2 = SKYTAU * s / 40.0 - 0.157 * uT + uAur.y * 13.0 + 1.3 * sin(w);
+    y = 15.0 * sin(a1) + fa * sin(a2);
+    ys = 15.0 * SKYTAU / 500.0 * cos(a1);
+    yd = ys + fa * (SKYTAU / 40.0 + 1.3 * SKYTAU / 170.0 * cos(w)) * cos(a2);
+    rho = (D + y) / cp;
+  }
+  float ee = el + rho / 6371.0;
+  if (ee >= 1.5) return vec3(0.0);
+  float h = 6371.0 * (cos(el) / cos(ee) - 1.0), s = rho * sp;
+  /* (physics: aurora/colour) by altitude: the green line's hem (557.7 nm) rising from h0 - 2 to h0 + 4 (h0 105 km),
+     then e-folding over 15 km (30-40 inside a ray); no stop in the saddle (150-190 km: the sky's own blue shows); the
+     red line's top (630 nm) rising from 180 to 230 km, e-folding over 60, a fifth of the green's column, unrayed. The
+     rays along the sheet only (functions of s: they meet at the zenith in perspective), 12 km a period at 1 km/s */
+  float ry = smoothstep(0.45, 0.9, n3v(vec3(s / 12.0 + uT / 12.0, 0.5, 0.19)).a);
+  float g = smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, 35.0, ry)) * (0.75 + 0.5 * ry);
+  float r = smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2;
+  /* edge-on is brightest: the column along the ray through the sheet, 1 / |cos psi| (at most 3); the red's by the
+     swell alone (it is blurred over 30 km and more: the folds' flanks never show in it) */
+  float cps = abs(cos(el) * (cp - yd * sp)) / sqrt(1.0 + yd * yd), cpr = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys);
+  vec3 c = (vec3(0.225, 1.5, 0.18) * g * min(1.0 / max(cps, 1e-3), 3.0) + vec3(0.9, 0.1, 0.06) * r * min(1.0 / max(cpr, 1e-3), 3.0)) * 0.08;
+  /* its light held under the words' floor: the green's composited peak at most L 0.50 (a soft cap on what it adds,
+     its hue kept: test/unit/aurora.mjs) */
+  float yl = dot(c, LUMA);
+  c *= yl > 1e-6 ? 0.11 * (1.0 - exp(-yl / 0.11)) / yl : 1.0;
+  return c * uAur.w * smoothstep(0.5, 2.5, e);
 }
 #endif
 vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 0.5) / n * SKYTAU - PI; return vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se)); }

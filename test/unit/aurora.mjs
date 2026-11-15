@@ -1,6 +1,7 @@
-// test/unit/aurora.mjs: the aurora's colour (aurora-colour): its ramp in sky-body.glsl keeps its chroma, and over the
-// aurora sky's own low stops it composites green, not cyan
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "vec3(0.45, 0.5, 1.0), clamp(2.0 * t", "with": "vec3(1.006, 0.487, 0.098), clamp(2.0 * t", "why": "a warm overlap: yellow over the sky's blue, a grey-brown band (the review's)"}
+// test/unit/aurora.mjs: the aurora by its physics (the hub's spec, physics: aurora): one sheet D km toward the key, its
+// colour by altitude, its motion at real speeds, its light under the words' floor; sky-body.glsl's own lines run here
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "a2 = SKYTAU * s / 40.0 - 0.157 * uT", "with": "a2 = SKYTAU * s / 40.0 - 1.57 * uT", "why": "folds ten times too fast: they would glitter"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "vec3(0.9, 0.1, 0.06) * r *", "with": "vec3(0.85, 0.25, 0.55) * r *", "why": "the old magenta top: mauve over the h 250 sky"}
 import { test, assert, fs, path, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ OKLab (the world's own matrices, 030-colour.js)
@@ -16,65 +17,90 @@ const lin2lab = (c) => {
 const lch = (L, C, h) => { const r = h * Math.PI / 180; return oklab2lin(L, C * Math.cos(r), C * Math.sin(r)).map((x) => Math.max(x, 0)); };
 const LCh = (c) => { const o = lin2lab(c); return [o[0], Math.hypot(o[1], o[2]), (Math.atan2(o[2], o[1]) * 180 / Math.PI + 360) % 360]; };
 
-// ------------------------------------------------------------------ GLSL's few functions, on arrays, for the ramp's own line
-const V = (x) => (Array.isArray(x) ? x : [x, x, x]);
-const G = {
-  vec3: (a, b, c) => (b === undefined ? V(a) : [a, b, c]),
-  clamp: (x, a, b) => Math.min(Math.max(x, a), b),
-  smoothstep: (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); },
-  mix: (a, b, t) => { const A = V(a), B = V(b), T = V(t); return A.map((x, i) => x + (B[i] - x) * T[i]); },
-};
-const GLSL = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
-const AUR = GLSL.slice(GLSL.indexOf('vec3 auroraAt('), GLSL.indexOf('#endif', GLSL.indexOf('vec3 auroraAt(')));
-const COLM = AUR.match(/^\s*vec3 col = (.*);\s*$/m);
-assert.ok(COLM, 'auroraAt\'s ramp line (vec3 col = ...) not found in sky-body.glsl');
-const TM = AUR.match(/^\s*float t = smoothstep\(([\d.]+), ([\d.]+), x \/ hgt\);\s*$/m);
-assert.ok(TM, 'auroraAt\'s ramp place (float t = smoothstep(a, b, x / hgt);) not found in sky-body.glsl');
-const ramp = new Function('vec3', 'clamp', 'smoothstep', 'mix', 't', 'return ' + COLM[1].replace(/(\d)\.(?!\d)/g, '$1.0') + ';').bind(null, G.vec3, G.clamp, G.smoothstep, G.mix);
-
 // ------------------------------------------------------------------ the aurora sky as 220 defines it
 const line = cut(WORLD, '    aurora: { ', '\n');
 const SKY = new Function('return ' + line.trim().replace(/^aurora:\s*/, '').replace(/,\s*$/, ''))();
 const SKYE = JSON.parse(WORLD.match(/SKYE_W = (\[[^\]]*\])/)[1]);
 
-test('aurora: the whole curtain over its sky keeps the sky\'s chroma, never through yellow (no grey band)', () => {
-  // auroraAt's nearest curtain (j 0: hgt 16, its base about 8 deg) from its foot to where it ends (x to 1.6 hgt), each
-  // place's ramp colour at its own strength added to the sky behind it (skyGrad from WSKY.aurora's stops)
-  const ss = G.smoothstep, mix = G.mix, sky = SKY.sky.map((c) => lch(...c)), hgt = 16, base = 8;
-  const skyAt = (e) => { let c = mix(sky[1], sky[2], ss(0, SKYE[0], e)); c = mix(c, sky[3], ss(SKYE[0], SKYE[1], e)); c = mix(c, sky[4], ss(SKYE[1], SKYE[2], e)); return mix(c, sky[5], ss(SKYE[2], SKYE[3], e)); };
-  let worst = Infinity, wx = 0, minC = Infinity;
-  for (let x = 0.25; x <= hgt * 1.6; x += 0.25) {
-    const t = ss(+TM[1], +TM[2], x / hgt), col = ramp(t);
-    const amp = 0.09 * 0.85 * (Math.exp(-x / hgt) + 0.6 * Math.exp(-x / (0.15 * hgt))) * 0.7;
-    const s0 = skyAt(base + x), c = s0.map((v, i) => v + col[i] * amp), [, Cs] = LCh(s0), [, Cc, hc] = LCh(c);
-    if (Cc / Cs < worst) { worst = Cc / Cs; wx = x; }
-    minC = Math.min(minC, Cc);
-    assert.ok(!(hc > 40 && hc < 125), `at ${x} deg up the curtain the sky turns h ${hc.toFixed(0)} (yellow or orange over the blue: a grey-brown band)`);
+// ------------------------------------------------------------------ the shader's own lines
+const GLSL = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+const AUR = GLSL.slice(GLSL.indexOf('vec3 auroraAt('), GLSL.indexOf('#endif', GLSL.indexOf('vec3 auroraAt(')));
+const num = (re, what) => { const m = AUR.match(re); assert.ok(m, `auroraAt's ${what} not found (${re})`); return m.slice(1).map(Number); };
+const R = 6371, DEG = Math.PI / 180;
+const [eb0, eb1] = num(/float eb = radians\(mix\((-?[\d.]+), (-?[\d.]+), uAur\.x\)\);/, 'border elevation');
+const [h0D] = num(/float D = 6371\.0 \* \(acos\(cos\(eb\) \/ \(1\.0 \+ ([\d.]+) \/ 6371\.0\)\) - eb\);/, 'distance from the border');
+assert.ok(AUR.includes('float h = 6371.0 * (cos(el) / cos(ee) - 1.0)') && AUR.includes('float ee = el + rho / 6371.0;'), 'auroraAt\'s altitude is not the spherical h = R (cos e / cos(e + rho / R) - 1)');
+const [sA, sL, sW] = num(/y = ([\d.]+) \* sin\(a1\)/, 'swell amplitude').concat(num(/float a1 = SKYTAU \* s \/ ([\d.]+) \+ ([\d.]+) \* uT/, 'swell'));
+const [fL, fW] = num(/a2 = SKYTAU \* s \/ ([\d.]+) - ([\d.]+) \* uT/, 'folds');
+const [fA] = num(/fa = ([\d.]+) \* smoothstep\(8\.0, 16\.0, 40\.0/, 'fold amplitude');
+const [rP, rP2] = num(/n3v\(vec3\(s \/ ([\d.]+) \+ uT \/ ([\d.]+),/, 'rays');
+const [gC] = [num(/vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* g \* min/, 'green')];
+const [rC] = [num(/\+ vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* r \* min/, 'red')];
+const [K] = num(/min\(1\.0 \/ max\(cpr, 1e-3\), 3\.0\)\) \* ([\d.]+);/, 'strength');
+const [Ym] = num(/c \*= yl > 1e-6 \? ([\d.]+) \* \(1\.0 - exp\(-yl \/ ([\d.]+)\)\) \/ yl/, 'cap');
+const Dof = (rise) => { const eb = (eb0 + (eb1 - eb0) * rise) * DEG; return R * (Math.acos(Math.cos(eb) / (1 + h0D / R)) - eb); };
+const hAt = (e, rho) => R * (Math.cos(e) / Math.cos(e + rho / R) - 1);
+const eFor = (h, rho) => { let lo = -0.4, hi = 1.4; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (hAt(m, rho) < h) lo = m; else hi = m; } return lo / DEG; };
+const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+const green = (h, ry) => ss(103, 109, h) * Math.exp(-Math.max(h - 109, 0) / (15 + 20 * ry)) * (0.75 + 0.5 * ry), red = (h) => ss(180, 230, h) * Math.exp(-Math.max(h - 230, 0) / 60) * 0.2;
+assert.ok(AUR.includes('smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, 35.0, ry))') && AUR.includes('smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2'), 'auroraAt\'s emission by altitude is not the one this test models');
+
+test('physics: aurora/geometry: the border where the spherical formula puts it, the sheet at infinity and rising slowly', () => {
+  for (const rise of [0.25, 0.5, 0.75, 1]) {
+    const eb = eb0 + (eb1 - eb0) * rise, e = eFor(h0D, Dof(rise));
+    assert.ok(Math.abs(e - eb) < 0.05, `rise ${rise}: the border (h ${h0D} km) stands at ${e.toFixed(3)} deg, not ${eb.toFixed(3)} (+-0.05)`);
   }
-  assert.ok(worst >= 0.7, `at ${wx} deg up the curtain the sky keeps ${(100 * worst).toFixed(0)}% of its own chroma (a grey band: at least 70%)`);
-  assert.ok(minC >= 0.035, `the curtain over its sky falls to C ${minC.toFixed(3)} (grey: at least 0.035)`);
-  const h0 = LCh(ramp(0))[2];
-  assert.ok(h0 >= 130 && h0 <= 155, `the ramp's foot is h ${h0.toFixed(1)} (green, the oxygen line's: 130-155)`);
+  assert.ok(Math.abs(eFor(h0D, 650) - 6.17) < 0.05 && Math.abs(eFor(h0D, 500) - 9.51) < 0.05, 'the spherical formula itself (D 650 -> 6.2 deg, 500 -> 9.5)');
+  // growth: the border rises at most 0.3 deg/s over a 55-s change; at rise 0+ nothing of it (red's 300 km included) stands over 0.5 deg
+  assert.ok((eb1 - eb0) / 55 <= 0.3, `the border rises ${((eb1 - eb0) / 55).toFixed(3)} deg/s (at most 0.3)`);
+  const D0 = Dof(0.001), eTop = eFor(300, D0);
+  assert.ok(eTop < 0.5 || (green(hAt(0.5 * DEG, D0), 1) + red(hAt(0.5 * DEG, D0))) < 2e-3, `as it begins, 300 km stands at ${eTop.toFixed(2)} deg: it would show at once`);
 });
 
-test('aurora: its green ribbon over the low sky composites green, not cyan, under the ceiling', () => {
-  const ss = G.smoothstep, mix = G.mix, sky = SKY.sky.map((c) => lch(...c)), e = 8;
-  // skyGrad at 8 deg (lib-air.glsl), then the warm band toward the key at its strongest (side 1)
-  let c = mix(mix(sky[1], sky[2], ss(0, SKYE[0], e)), sky[3], ss(SKYE[0], SKYE[1], e));
-  c = mix(c, lch(...SKY.skyW), SKY.skyK[0] * Math.exp(-e / SKY.skyK[1]));
-  // the arc's ribbon at its centre (auroraAt at x 0.25, hgt 16): 0.09 x 0.85 x (e^-x/h + 0.6 e^-x/0.15h) x rays (their mean, 0.7)
-  const amp = 0.09 * 0.85 * (Math.exp(-0.25 / 16) + 0.6 * Math.exp(-0.25 / 2.4)) * 0.7;
-  c = c.map((x, i) => x + ramp(0)[i] * amp);
-  // the composite's saturation (post.sat about the luma), its shoulder and the light ceiling (fs-comp.glsl; knee 0.08)
-  const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-  c = c.map((x) => Math.max(y + (x - y) * SKY.post.sat, 0));
-  const m = Math.max(...c); if (m > 0.78) { const mm = 0.78 + 0.22 * (1 - Math.exp(-(m - 0.78) / 0.22)); c = c.map((x) => x * mm / m); }
-  let [L] = LCh(c); const Kc = SKY.ceil - 0.08;
-  if (L > Kc) { const k = Math.pow((Kc + 0.08 * (1 - Math.exp(-(L - Kc) / 0.08))) / L, 3); c = c.map((x) => x * k); }
-  const [Lp, Cp, hp] = LCh(c);
-  assert.ok(hp >= 140 && hp <= 165, `the composited peak is h ${hp.toFixed(1)} (green: 140-165; cyan is about 200)`);
-  assert.ok(Cp >= 0.08, `the composited peak's chroma ${Cp.toFixed(3)} (at least 0.08)`);
-  assert.ok(Lp <= 0.525, `the composited peak's L ${Lp.toFixed(3)} (under the ceiling, 0.525)`);
+test('physics: aurora/motion: every motion at real speeds, under the pixel limits (no glitter)', () => {
+  // the swell's and folds' speeds along the sheet (km/s) from their wavelengths and phase rates; the rays' 1 km/s
+  const vS = sW * sL / (2 * Math.PI), vF = fW * fL / (2 * Math.PI), vR = rP / rP2;
+  assert.ok(Math.abs(vS - 0.3) < 0.02 && sA === 15 && sL === 500, `the swell: ${sA} km, ${sL} km, ${vS.toFixed(3)} km/s (15, 500, 0.3)`);
+  assert.ok(Math.abs(vF - 1) < 0.05 && fA === 3 && fL === 40, `the folds: ${fA} km, ${fL} km, ${vF.toFixed(3)} km/s (3, 40, 1)`);
+  assert.ok(vR >= 0.5 && vR <= 2 && rP >= 8, `the rays: ${rP} km a period at ${vR} km/s (at least 8 km, at most 2 km/s)`);
+  for (const pxDeg of [0.0578, 0.0376]) for (const D of [500, 650]) {
+    const px = (v) => v / D / DEG / 60 / pxDeg;   // pixels a frame, along the sheet at its nearest
+    assert.ok(px(vF) <= 0.25 && px(vR) <= 0.25, `at ${pxDeg} deg/px, D ${D}: folds ${px(vF).toFixed(3)}, rays ${px(vR).toFixed(3)} px a frame (at most 0.25)`);
+    assert.ok(px(vS) <= 0.5, `the swell ${px(vS).toFixed(3)} px a frame (at most 0.5)`);
+    assert.ok(vS / D / DEG <= 0.05 && vF / D / DEG <= 0.15, `the swell ${(vS / D / DEG).toFixed(3)} and folds ${(vF / D / DEG).toFixed(3)} deg/s (today's were 1.0-1.15)`);
+    // the rays at least 4 px a period wherever they can show (h at most 300 km: rho at most where 300 km meets the horizon)
+    const rhoMax = R * Math.acos(1 / (1 + 300 / R)), perPx = rP / rhoMax / DEG / pxDeg;
+    assert.ok(perPx >= 4, `the rays are ${perPx.toFixed(1)} px a period at their farthest (at least 4)`);
+  }
+  assert.ok(!/pulse|flicker|corona/.test(AUR.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')), 'auroraAt pulses or flickers');
+});
+
+test('physics: aurora/colour: the green hem, no stop in the saddle, the red top, under the words\' floor', () => {
+  const [, , hG] = LCh(gC), [, , hR] = LCh(rC);
+  assert.ok(hG >= 140 && hG <= 150, `the green hem is h ${hG.toFixed(1)} (557.7 nm: 140-150)`);
+  assert.ok(hR >= 20 && hR <= 40, `the red top is h ${hR.toFixed(1)} (630 nm: 20-40)`);
+  assert.ok(green(170, 0) < 0.15 && red(170) < 0.002, 'the saddle (150-190 km) carries a colour of its own');
+  // composited over the aurora sky at the border's height, at its centre (seen face on) and its ends (edge-on, x3), rays at their most
+  const sky = SKY.sky.map((c) => lch(...c)), mix = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
+  const skyAt = (e) => { let c = mix(sky[1], sky[2], ss(0, SKYE[0], e)); c = mix(c, sky[3], ss(SKYE[0], SKYE[1], e)); return mix(c, lch(...SKY.skyW), SKY.skyK[0] * Math.exp(-e / SKY.skyK[1])); };
+  const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const comp = (e, emis, proj) => {
+    let a = emis.map((x) => x * proj * K); const yl = Y(a); a = a.map((x) => x * (yl > 1e-6 ? Ym * (1 - Math.exp(-yl / Ym)) / yl : 1));
+    let c = skyAt(e).map((v, i) => v + a[i]); const y = Y(c); c = c.map((x) => Math.max(y + (x - y) * SKY.post.sat, 0));
+    let [L] = LCh(c); const knee = +WORLD.match(/var CEIL_KNEE = ([\d.]+),/)[1], Kc = SKY.ceil - knee;
+    if (L > Kc) { const k = Math.pow((Kc + knee * (1 - Math.exp(-(L - Kc) / knee))) / L, 3); c = c.map((x) => x * k); }
+    return [c, LCh(c)];
+  };
+  const pk = gC.map((x) => x * green(109, 1)), word = 0.82;
+  for (const proj of [1, 3]) {
+    const [c, [L, , h]] = comp(7, pk, proj);
+    assert.ok(L <= 0.50 + 1e-9, `the green's composited peak (x${proj}) is L ${L.toFixed(3)} (at most 0.50: the words' floor)`);
+    assert.ok(h >= 140 && h <= 170, `the green's composited peak (x${proj}) is h ${h.toFixed(0)} (green: 140-170)`);
+    const cr = (word + 0.05) / (Y(c) + 0.05);
+    assert.ok(cr >= 4.6, `the credit over the green's peak (x${proj}) is ${cr.toFixed(2)}:1 (at least 4.6)`);
+  }
+  const [, [, Cs]] = comp(9, gC.map((x) => x * green(170, 1)), 1);
+  assert.ok(Cs >= 0.035, `the saddle composites to C ${Cs.toFixed(3)} (the sky's own blue: at least 0.035)`);
 });
 
 test('aurora: its sky is near neutral where the arc stands, so the arc is the green in it', () => {
@@ -88,17 +114,8 @@ test('aurora: its sky is near neutral where the arc stands, so the arc is the gr
   }
 });
 
-test('aurora: the arc has no seam round the sky and nothing finer than a few pixels (no glitter)', () => {
-  // its azimuth enters only as cos(az - centre) and as u = az / 2 pi times whole numbers (the noise's period), so it is
-  // the same either side of az +-180; its finest feature (the rays, u x N) at least 8 px wide on a 1440-px laptop
-  // window (60 deg up, 16:10: 92 deg across)
-  const uses = AUR.replace(/float az = atan\(rd\.x, rd\.z\), u = az \/ SKYTAU;/, '').match(/\baz\b[^;]*/g) || [];
-  for (const m of uses) assert.ok(/^az - uAur\.y\)/.test(m), 'auroraAt reads its azimuth other than by cos(az - centre): ' + m);
-  const fr = [...AUR.matchAll(/\bu \* ([\d.]+)/g)].map((m) => +m[1]);
-  assert.ok(fr.length > 0, 'no noise read along the arc');
-  for (const f of fr) {
-    assert.ok(Number.isInteger(f), `a noise along the arc at u x ${f}: not a whole number of periods round the sky (a seam at az 180)`);
-    const across = 2 * Math.atan(Math.tan(Math.PI / 6) * 1.6) * 180 / Math.PI, px = 1440 / across * (360 / f);
-    assert.ok(px >= 8, `the arc's noise at u x ${f} is ${px.toFixed(1)} px a period (at least 8: finer glitters as the view turns)`);
-  }
+test('aurora: no seam round the sky (its azimuth only through cos and sin)', () => {
+  assert.ok(/float phi = atan\(rd\.x, rd\.z\) - uAur\.y, cp = cos\(phi\), sp = sin\(phi\);/.test(AUR), 'auroraAt\'s azimuth is not read through cos and sin alone');
+  const uses = AUR.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '').replace(/float phi = atan\(rd\.x, rd\.z\) - uAur\.y, cp = cos\(phi\), sp = sin\(phi\);/, '').match(/\bphi\b/g) || [];
+  assert.equal(uses.length, 0, 'auroraAt reads phi other than by cos and sin');
 });
