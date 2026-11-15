@@ -1,5 +1,5 @@
 // test/unit/clouds.mjs: the cloud bodies' fine billows: one scale and depth a body, set once
-// plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];", "with": "B.u4a[2] = (V.L || V.light).clDetail[0]; B.u4a[3] = B.det[1];", "why": "the billows' scale blended per frame by the place's weight again"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0] * (CRISP ? 2 : 1);", "with": "B.u4a[2] = (V.L || V.light).clDetail[0] * (CRISP ? 2 : 1);", "why": "the billows' scale blended per frame by the place's weight again"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // (the owner's wiggle, 2026-11-14: clDetail, blended each frame by the place's weight between ABOVE's [80, 5] and the
