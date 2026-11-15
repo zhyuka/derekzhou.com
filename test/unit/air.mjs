@@ -170,7 +170,7 @@ test('air: the wind profile (the log law over sand under 100 m, veering aloft to
 test('air: a mote is drawn along its whole motion on the window (its own wind and the camera\'s), never a jumping dot', () => {
   const vp = GLSL('vs-particle.glsl');
   assert.ok(/vec3 prev = grain\(id, uT - uMBdt, e2\);/.test(vp), 'the streak starts where the mote was a frame ago (its own wind)');
-  assert.ok(/uPVP2 \* vec4\(prev - uPCam2, 1\.0\)/.test(vp), 'seen from where the camera was');
+  assert.ok(/uPVP2 \* vec4\(prev \+ uPCamD, 1\.0\)/.test(vp), 'seen from where the camera was (the mote the eye\'s, uPCamD the two cameras\' difference in the JS\'s doubles: large world)');
   assert.match(WORLD, /if \(P\.u\.uMBdt\) gl\.uniform1f\(P\.u\.uMBdt, MBS\.dt\);/, 'the frame\'s own time since the last');
   assert.match(WORLD, /MBS\.dt = dU > 0 \? dU : 0;/, 'kept with the moment\'s first drawing (W7\'s pair draws it the same)');
 });

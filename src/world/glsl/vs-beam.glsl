@@ -12,5 +12,5 @@ void main() {
   float R = max(bA.w, bB.w) * 2.2;
   vec3 p = bA.xyz + a * (aB.x * 0.5 + 0.5) * L + (u * aB.y + w * aB.z) * R;
   vW = p; vA = bA; vB = bB; vC = bC; vD = bD; vE = bE;
-  gl_Position = uVP * vec4(p - uCam, 1.0);
+  gl_Position = uVP * vec4(eyeRel(p), 1.0);
 }

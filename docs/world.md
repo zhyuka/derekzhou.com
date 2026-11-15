@@ -507,6 +507,22 @@ rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
 and the stars and galaxy stand still; test/unit/air.mjs's clock test is
 marked todo until the sky's lane brings them to SKY_RATE.
 
+## THE LARGE WORLD
+
+A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
+to 8 mm. Every vertex stage's clip position goes through eyeRel
+(frame-u.glsl): the exact difference from the camera's fp32 (uCam), less
+what fp32 dropped of it (uCamL, from the JS's doubles). So the camera's
+own rounding never reaches the screen; it was a 1.3 px judder at 3 m. The
+particles wrap their box from terms the JS works in doubles (wrapU, 413:
+the camera modulo the box, the wind's drift in boxes), with a mote's share
+of the wind in 256ths so its drift modulo the box is exact (kDrift). Their
+positions stay the eye's from there (motion blur: uPCamD, the two cameras'
+difference). The ribbons' anchor is whole boxes plus the rest, the same
+while the camera moves. Noise domains are left in world coordinates: 86 km
+out they are off by under a centimetre (tools/precision/far-origin.mjs).
+test/unit/largeworld.mjs replays the arithmetic in fp32.
+
 ## THE WEATHER (=rand())
 
 One crypto.getRandomValues, in hour.js, written whole as data-seed: it

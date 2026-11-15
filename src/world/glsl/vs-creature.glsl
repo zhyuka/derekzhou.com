@@ -36,7 +36,7 @@ void main() {
     }
     vW = pos + vec3(cy * v.x + sy * v.z, v.y, -sy * v.x + cy * v.z);
     vN = vec3(cy * nl.x + sy * nl.z, nl.y, -sy * nl.x + cy * nl.z);
-    gl_Position = uVP * vec4(vW - uCam, 1.0);
+    gl_Position = uVP * vec4(eyeRel(vW), 1.0);
     return;
   }
   vec3 fw = normalize(vel + vec3(1e-4, 0.0, 0.0)), rt = normalize(cross(vec3(0.0, 1.0, 0.0), fw)), up = cross(fw, rt);
@@ -62,5 +62,5 @@ void main() {
   }
   vW = pos + rt2 * v.x + up2 * v.y + fw * v.z;
   vN = up2;
-  gl_Position = uVP * vec4(vW - uCam, 1.0);
+  gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }
