@@ -53,6 +53,19 @@
     if (sh.w > 0 || MOON.a.w > 0) { MOON.off[0] = angd(az0, MOON.a.az); MOON.off[1] = el0 - MOON.a.el; } else MOON.off[0] = MOON.off[1] = 0;
   }
   function moonEase(dt) { if (!MOON.off[0] && !MOON.off[1]) return; var k = Math.exp(-dt / MOON_EASE); MOON.off[0] *= k; MOON.off[1] *= k; if (Math.abs(MOON.off[0]) < 1e-7 / DEG) MOON.off[0] = 0; if (Math.abs(MOON.off[1]) < 1e-7 / DEG) MOON.off[1] = 0; }
+  /* (delight-weather 4) the glory's uniform: the moon's own direction (the air's airMoon, at the drawn sky time, as the
+     sky draws it) and the amount, the moon's own (w: nought on any sky but the moonlit) while it stands over the sea's
+     top (its first 3 degrees up: the point opposite it under the horizon) */
+  var GLORYU = new Float32Array(4), GLORYT = NaN;
+  function gloryUniform() {
+    var tD = SIM.V ? SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt : NaN;
+    if (tD === GLORYT) return GLORYU;
+    GLORYT = tD; GLORYU[3] = 0;
+    if (!SIM.V) { GLORYU[0] = 0; GLORYU[1] = 1; GLORYU[2] = 0; return GLORYU; }
+    var m = airMoon(tD); GLORYU[0] = m.d[0]; GLORYU[1] = m.d[1]; GLORYU[2] = m.d[2];
+    GLORYU[3] = DEVMODE && MOONF.moonOff ? 0 : m.w * mrSmooth(0, 3, m.el);
+    return GLORYU;
+  }
   function skyNightUniforms(P) {
     var V = SIM.V, fx = SKY.fx, u = P.u;
     if (!u.uMoon) return;
