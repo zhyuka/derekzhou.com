@@ -47,8 +47,8 @@ The key is the whole served build, so any served change (a sound, a stylesheet, 
 goes without its set:
 - stills.yml, after every green Gate run on main: the set for the tip's key up already (one request), or baked and put
   up (tools/stills-release.mjs); then the tip's commit status `stills` is success (failure, with why, if the job fails;
-  never a red main). After a green Gate run on a claude/* branch whose served build is not its base's: the same bake,
-  into the PC's cache by key (nothing uploaded), so main's run after the landing (the same served build) is all hits.
+  never a red main). Never on a claude/* branch (2026-11-14): a branch's warm bake cost six 13-minute GPU jobs a
+  visible PR's gate and held T2 (1.3 minutes) behind it for hours; main bakes each world once, after it lands.
 - The deploy gate (merge-bot.mjs): live moves to a tip that has tools/gpu/bake-stills.js only once its `stills` status
   is success (bot-rules.mjs stillsReady); before #197 nothing waits. merge.yml ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and

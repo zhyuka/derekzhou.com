@@ -117,7 +117,7 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The sun stays below the sea in every sky: through a change into a
+phone). The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow climbs and
@@ -433,6 +433,63 @@ moves the first frame by at most one level (the moon's path), so it is
 not baked. The land is the opening seed's for the whole visit, one of 16 whatever
 the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
 over it is the read's own (## THE WEATHER).
+
+## THE AIR
+
+The owner (2026-11-15): "they should follow real physics, clouds moving
+(when/how they move), same w auroras, sand, etc. ... make sure there are
+0 disconnects." The world keeps one state of its air and light in one
+section, src/world/215-air.js, and every other system reads it there
+(RULES.json one-world-state; test/unit/air.mjs by value, 16 seeds by six
+skies; tools/checks/42-one-air.sh: the air's names written only there, no
+wind or sun literal in any other section, the realms or the billows'
+shader). It holds:
+
+- The wind: one direction a visit (airDraw, the dunes' field stream's
+  first draw, as before), blowing toward V.windAz, and its speed by height,
+  windAt(x, z, y, t). Each reader has a declared height (AIR_H): the
+  grains 0.8 m, the veils 5 m, the motes 13 m, the birds 40 m. Today the
+  profile is the readers' own old speeds (6.5, 5.5, 1.6 and 6.5 m/s: the
+  motes slower than the grains under them, the reverse of real air); the
+  log law replaces it (physics: air/wind-profile). The dunes' crests, the
+  grains, the motes, the veils, the birds' HOST.wind and the water's
+  ripples read it.
+- The readers still apart (AIR_APART, each with the change that joins
+  it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
+  0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
+  (AIR_CIRRUS: along world x), the maps' own wind field (mc.wind: the
+  director's cover and the plan's dunes read it, so it is not dead: taking
+  it out moves the plan's anchors), the wing gusts' private 25 s timers
+  (birdwing.js) and the score's own gusts (score.js). The test fails when
+  a listed reader is joined and still listed.
+- The key light, keyAt(V): one direction for every sky, 5-14 deg up within
+  55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
+  (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
+  birds' HOST.light), the sky's sets, the sun's change and the cells read
+  it; the cloud sea's kit has no sun of its own. At night it is the moon's
+  light from the same place.
+- The sky's own sun, airSkySun: the twilights' sun under the sea
+  (AIR_SUN_EL: the afterglow and first light 3 deg, the blue hour 7), on
+  the key's azimuth; a night's is the key's place; through a change into a
+  night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
+  the land and the sky's own sun are two lights on purpose: the land is lit
+  by a low key, the sky's glow stands where the sun is under the sea.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
+  frame (skyFrame: the turn the stars and the galaxy take; today none) and
+  the weather (weather(sky): today one wind for every sky; physics:
+  air/wind-by-sky).
+- The landing's heading, airHeading0 (drawn once from its own stream: the
+  flight, the first plan, the galaxy's lie and the boot read it), and the
+  flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
+  cloud sea).
+
+THE CLOCK. Physical motion (the wind, the clouds, the birds, the
+particles, the aurora's own motion) runs at 1x real time, the flight's
+SIM.t. The sky's light (sun, moon, stars, galaxy) runs at one declared
+rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
+70-90x real through a change into a night, the moon crosses at 70-120x
+and the stars and galaxy stand still; test/unit/air.mjs's clock test is
+marked todo until the sky's lane brings them to SKY_RATE.
 
 ## THE WEATHER (=rand())
 

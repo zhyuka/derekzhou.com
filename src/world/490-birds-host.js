@@ -10,7 +10,6 @@
   var BIRDB = { ms: 1.5, spent: 0, at: 0, prep: 6 };   // (round 3: the birds' planning budget a frame, ms; their steps' time this frame)
   var BIRDS = /** @type {BirdsModule} */ (null), LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'light', text: '#fdfcf7' }, BIRDPL = [];
   var CAMP = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], roll: 0, pitch: 0, inCloud: 0, arrive: 0, cover: 0, pmode: 0, hold: -1, open: -1, expo: 1, yaw: 0 };
-  var WIND_AIR = 6.5;   // (way-other) m/s: the wind at the birds' height, the dunes' grains' own speed (realm-dunes.js), the least the drawn sand says
   var HOST = {
     gl: null,   // (Fix 2: the context, from the boot's first frame; the module is made then, makeBirds)
     glsl: { HEAD: HEAD, FRAME_U: FRAME_U, LIB: LIB, AIR: LIB_AIR },
@@ -47,9 +46,9 @@
     /* the camera as drawn this frame (CAM), and as it is at the end of the last fixed step (for the birds' planning) */
     camera: function () { return CAM; },
     /* (way-other) the air the birds fly in: the realm's own wind (m/s, world x, y, z), the one the dunes lie across and the
-       sand blows on (realm-dunes.js: V.wind, its grains 6.5 m/s, its veils 5.5 m/s); a realm with no wind of its own, still
+       sand blows on (215: windAt at the birds' declared height, AIR_H.birds); a realm with no wind of its own, still
        air. Read only: nothing drawn changes */
-    wind: function (o) { var V = SIM.V, w = V && V.wind; o[0] = w ? w[0] * WIND_AIR : 0; o[1] = 0; o[2] = w ? w[1] * WIND_AIR : 0; return o; },
+    wind: function (o) { var a = windAt(CS.x, CS.z, AIR_H.birds, SIM.t, SIM.V); o[0] = a.x; o[1] = 0; o[2] = a.z; return o; },
     cameraStep: function () { var V = SIM.V; if (!V) return null; camPose(V, SIM.u, 1, CAMP); return CAMP; },
     /* the flight: the view's yaw (the way the camera looks), its heading and speed, its climb rate, its clearance band */
     flight: function (o) {
