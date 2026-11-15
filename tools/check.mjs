@@ -5,9 +5,13 @@
 //   node tools/check.mjs --no-build   skip the build (build/site and build/src are already made)
 //   node tools/check.mjs --scheduled  build once, then only the checks marked "kind: schedule" (weekly: scheduled.yml)
 //   node tools/check.mjs --list       the checks and their kinds
-//   node tools/check.mjs --prove      each check with a failure planted must fail: a check's plants are its own `# plant: {json}`
+//   node tools/check.mjs --prove [--changed FILE]
+//                                     each check with a failure planted must fail: a check's plants are its own `# plant: {json}`
 //                                     lines, and the `// plant: {json}` lines of the files its `# plants-also: dir/*.ext` names
-//                                     (the unit check: test/unit/*.mjs), so two PRs that add a check or a test never share a file
+//                                     (the unit check: test/unit/*.mjs), so two PRs that add a check or a test never share a file.
+//                                     --changed FILE (the gate: a PR's changed paths, one a line): only the plants a change
+//                                     can break: those written in a changed file, and every plant of a check whose script, or a
+//                                     tools/checks/lib/ file it names, changed. The whole set: weekly (scheduled.yml), ~8 min.
 // Each check is tools/checks/NN-slug.sh, run from the repository's root in bash -eo pipefail, with RUNNER_TEMP its own
 // folder (build/.check/<slug>), so checks that run side by side never share a scratch file. A check's output is shown
 // whole when it fails, its last line when it passes.
@@ -69,8 +73,16 @@ if (has('--prove')) {
       try { P.push(Object.assign(JSON.parse(j), { check: c.slug, at: path.relative(ROOT, g) })); } catch (e) { console.log('FAIL   ' + path.relative(ROOT, g) + ': a plant line that is not JSON: ' + j.slice(0, 80)); bad = 1; }
     }
   }
-  for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
-  for (const p of P) {
+  let todo = P;
+  if (val('--changed')) {
+    const ch = new Set(fs.readFileSync(val('--changed'), 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean));
+    const libs = [...ch].filter((f) => f.startsWith('tools/checks/lib/')).map((f) => path.basename(f));
+    const whole = new Set(all.filter((c) => { const t = 'tools/checks/' + c.file; return ch.has(t) || libs.some((b) => fs.readFileSync(path.join(DIR, c.file), 'utf8').includes(b)); }).map((c) => c.slug));
+    todo = P.filter((p) => ch.has(p.at) || whole.has(p.check));
+    console.log(`--changed: ${ch.size} path(s); ${todo.length} of ${P.length} plants a change there can break` + (whole.size ? ` (every plant of ${[...whole].join(', ')})` : ''));
+  }
+  if (todo.length) for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
+  for (const p of todo) {
     const c = pick(p.check)[0];
     if (p.self) { console.log('self   ' + c.slug.padEnd(20) + ' ' + p.why); continue; }
     const f = path.join(ROOT, p.file || p.create), keep = p.create ? null : fs.readFileSync(f);
@@ -83,7 +95,7 @@ if (has('--prove')) {
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
   }
-  const unproved = rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);
+  const unproved = rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);   // (every check, --changed or not: a new check without a plant fails its own PR)
   if (unproved.length) { console.log('no plant: ' + unproved.join(', ')); bad = 1; }
   process.exit(bad);
 }

@@ -55,6 +55,7 @@ src/**/glsl/                 The shaders' text: each plain GLSL literal as NAME.
 test/shaders.mjs             Every program the page issues, compiled and linked in Chrome (--compile)
 test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/24-unit.sh runs them, a process each), sharing
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
+                             test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
                              test/unit/aurora.mjs (the aurora's colour over its sky), test/unit/clouds.mjs (the cloud bodies' billows), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
@@ -117,12 +118,14 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/33-no-frameworks.sh, tools/checks/34-reduced-motion.sh, tools/checks/35-birds.sh,
                              tools/checks/36-load-budget.sh, tools/checks/37-ground-fresh.sh, tools/checks/38-sound.sh,
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
-                             tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files)
+                             tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
+                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
-                             sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked)
+                             sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
+                             tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh)
 
 Seven scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js, inkbirds.js, sound.js and score.js

@@ -55,12 +55,12 @@
   /* the look at the ground ahead's share of the pitch: the world's own (0: none: one pitch everywhere) */
   function pfK(V) { return V.def.pitchFollow === undefined ? 0.2 : V.def.pitchFollow; }
   /* (the one camera) the cruise clearance: one band over the surface flown (the higher of the land and the
-     cloud sea's top: the camera's ground), CRUISE[0] m over the sand to CRUISE[1] over the cloud sea, by a smooth function
+     cloud sea's top: the camera's ground), AIR_CRUISE[0] m over the sand to AIR_CRUISE[1] over the cloud sea, by a smooth function
      of the maps ahead (the cloud weight averaged over CW_S m along the held heading, through smooth(CW_A, CW_B)),
      followed at most CW_V a second (of the weight: 18 m of clearance over about 90 s at the most). There is no framing
      to blend and no mode: a framing weight turns the view by 41 deg and lifts the camera 150 m at every coast. The margin
      about solids follows the same weight */
-  var CW_S = [150, 300, 450], CW_A = 0.25, CW_B = 0.85, CW_V = 0.011, CRUISE = [14, 32];
+  var CW_S = [150, 300, 450], CW_A = 0.25, CW_B = 0.85, CW_V = 0.011;
   function cruiseTarget(S) {
     var hx = Math.sin(S.psi), hz = Math.cos(S.psi), s = 0;
     for (var i = 0; i < CW_S.length; i++) s += kwAt(S.x + hx * CW_S[i], S.z + hz * CW_S[i])[3];
@@ -71,7 +71,7 @@
     if (!(S.cw === S.cw)) { S.cw = T; return; }
     S.cw = clamp(S.cw + clamp(T - S.cw, -CW_V * dt, CW_V * dt), 0, 1);
   }
-  function cruiseOf(V, cw) { var C = V.def.cruise || CRUISE, w = cw === cw ? cw : 0; return lerp(C[0], C[1], w * w * (3 - 2 * w)); }
+  function cruiseOf(V, cw) { var C = V.def.cruise || AIR_CRUISE, w = cw === cw ? cw : 0; return lerp(C[0], C[1], w * w * (3 - 2 * w)); }
   function flightParams(V, cw) {
     var A = V.def.clear || [7, 14, 60], w = cw === cw ? cw : 0;
     if (!V.clear || V.clear === V.def.clear) V.clear = A.slice();

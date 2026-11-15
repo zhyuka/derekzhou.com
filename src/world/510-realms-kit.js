@@ -6,4 +6,4 @@
   };
   /* stamp: each realm file and the ink birds' stamp their own top (their registration stamps their end), so the
      record bounds every script's evaluation (recScripts); without a record it does nothing */
-  window.WORLD = { realm: registerRealm, kit: KITAPI, birds: registerBirds, sky: skyFeed, stamp: function (name) { if (REC) REC.regs.push([String(name), +clockNow().toFixed(1)]); } };
+  window.WORLD = { realm: registerRealm, kit: KITAPI, air: AIRAPI, birds: registerBirds, sky: skyFeed, stamp: function (name) { if (REC) REC.regs.push([String(name), +clockNow().toFixed(1)]); } };
