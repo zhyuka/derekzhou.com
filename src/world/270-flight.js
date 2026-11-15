@@ -9,7 +9,7 @@
      ceiling allows, passed beside by a slip sideways when not, the heading held). Whatever the input, no step leaves the camera in the ground, in a landmark's
      solid or in a cloud's core (the hard rules, applied after every step and counted). */
   var SIM_DT = 1 / 60;
-  var SIM = { t: 0, V: null, u: 0, acc: 0, alpha: 1, steps: 0, fixG: 0, fixO: 0, inited: false, junction: false, waits: 0 };
+  var SIM = { t: 0, V: null, u: 0, acc: 0, alpha: 1, steps: 0, fixG: 0, fixO: 0, fixC: 0, inited: false, junction: false, waits: 0 };
   var TH_MAX = 35 * DEG;
   var HEAD_T = 0.07, HEAD_MAX = 2.5, BANK_MAX = 2 * DEG, BANK_T = 0.08;   // (the heading's follow of the view; the bank's limit and ease)
   var VY_J = 2, VY_TV = 0.6;   // (the height's spring: its acceleration's own rate, m/s3, and the time its speed limits are approached over)
@@ -28,7 +28,7 @@
       CS.psi = CS.yawV = airHeading0(); SIM.inited = true;
       if (DEVMODE && POSE) CS.psi = CS.yawV = POSE[2] * DEG;
     }
-    CS.x = 0; CS.z = 0; CS.c = cl[1]; CS.vy = 0; CS.ay = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CS.om = 0; CS.omP = 0; CS.sv = 0; CS.lat = 0; CS.latT = 0; CS.latT2 = 0; CS.tsw = -1; CS.fpsi = CS.psi; CS.vs = 0; CS.acc = 0; CS.pt = -1e9; if (CS.climbs) CS.climbs.length = 0;
+    CS.x = 0; CS.z = 0; CS.c = cl[1]; CS.vy = 0; CS.ay = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CS.om = 0; CS.omP = 0; CS.sv = 0; CS.lat = 0; CS.latT = 0; CS.latT2 = 0; CS.tsw = -1; CS.fpsi = CS.psi; CS.ppsi = CS.psi; CS.vs = 0; CS.acc = 0; CS.pt = -1e9; if (CS.climbs) CS.climbs.length = 0;
     if (DEVMODE && POSE) { CS.x = POSE[0]; CS.z = POSE[1]; }
     if (CS.x || CS.z) { kwFollow(CS.x, CS.z, true); if (V.G) kwUpload(); }   // (dev: a landing elsewhere: its weights at once)
     CS.cw = NaN; cruiseStep(CS, 0); flightParams(V, CS.cw); CS.c = cl[1];   // (world6 step B: the landing's own clearance, from the maps ahead; one framing everywhere)
@@ -82,7 +82,7 @@
     var idle = t - CS.lastIn;
     if (idle > CS.idleAfter && !NOAUTO) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
     // what stands ahead and cannot be climbed over: passed beside, the heading held (a slip sideways, never a turn)
-    slipStep(V, CS, dt, true);
+    slipStep(V, CS, dt);
     // the flight follows the view: it catches it about 0.1 s after a drag stops (HEAD_T 0.07 s; at most HEAD_MAX, 143 deg/s,
     // well over a drag's turn): the way goes where the visitor looks, the heading the visitor chose (it trailed the view
     // by 14 deg in a turn and more than 1.3 s after it, banking all the while)
@@ -118,7 +118,7 @@
     if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; SIM.fixG++; }
     pushOut(V);
     var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
-    if (CS.y > ceil) { CS.y = ceil; if (CS.vy > 0) CS.vy = 0; if (CS.ay > 0) CS.ay = 0; }
+    if (CS.y > ceil) { CS.y = Math.max(ceil, CS.y - PUSH_V * dt); if (CS.vy > 0) CS.vy = 0; if (CS.ay > 0) CS.ay = 0; SIM.fixC++; }   // (flight-controllers-smooth: eased down at the climb's own travel, as the ground's rule is, and counted)
     // a flyer's bank: atan(v x the way's turn rate / g), its lateral acceleration, at most BANK_MAX (a flyer at the
     // camera's 12 m/s would bank past 40 deg in a drag's turn), eased over BANK_T: it banks only while the way curves
     // and is level about 0.6 s after it stops. The roll is drawn only: it never turns the heading (it banked to 7.4 deg,

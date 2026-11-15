@@ -1,5 +1,6 @@
 // test/unit/clouds.mjs: the cloud bodies' fine billows: one scale and depth a body, set once
-// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "atmos(c0, rd, tn + (tf - tn) * 0.25), wF);", "with": "atmos(c0, rd, tn + (tf - tn) * 0.25), 1.0);", "why": "the far banks dark against hazed hills at night"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 col = max(atmos(c0, rd, tB), fl);", "with": "vec3 col = atmos(c0, rd, tB);", "why": "no floor: a far bank darker than the land would be at its own range"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 col = max(atmos(c0, rd, tB), fl);", "with": "vec3 col = max(atmos(c0, rd, 1.0e5), fl);", "why": "the bank hazed as if at the end of the view, not at its own range"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "max((s - amp) * 0.6, dE); continue;", "with": "max((s - amp) * 0.6, dE); taken++; continue;", "why": "a leap counted as a band step in another spelling: every leap cuts the band's steps"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0] * (CRISP ? 2 : 1);", "with": "B.u4a[2] = (V.L || V.light).clDetail[0] * (CRISP ? 2 : 1);", "why": "the billows' scale blended per frame by the place's weight again"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
@@ -154,9 +155,33 @@ test('clouds: a far bank keeps its colour and stays opaque to the last quarter o
   const op = (w) => Math.min(Math.max(w / 0.25, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max(w / 0.25, 0), 1));
   for (const w of [0.25, 0.5, 0.9]) assert.equal(op(w), 1, `at weight ${w} the bank is opaque`);
   assert.equal(op(0), 0, 'at weight 0 the bank is gone: the sky behind it');
-  // the night's far banks (the hub's review of #240): a bank takes the land's own haze at its distance over its weight,
-  // so it goes toward the sky with range as the hills behind it do, and is nearly sky-coloured where it ends
-  assert.match(VBODY, /col = mix\(atmos\(c0, normalize\(vec3\(rd\.x, min\(rd\.y, 0\.0\), rd\.z\)\), 1\.0e5\), atmos\(c0, rd, tn \+ \(tf - tn\) \* 0\.25\), wF\);/, 'a far bank does not go toward the hazed horizon with its range: a dark shape in front of lighter hills at night');
+  // the night's far banks (the hub's ruling on #240, round 2): the bank hazed at its own range by the land's curve
+  // (atmos), its colour floored at the land's own paint hazed to that same range along the level ray. The shader's own
+  // lines run in Node a channel at a time (every vec3 in them a constructor, a sum or a scalar product), atmos taken as
+  // the land's curve in miniature: a colour toward a haze colour by a share that grows with the range
+  const SRC = cut(VBODY, '  float tB = ', '  // a far body keeps its own colour');
+  const run = (ch, c0, P0, P2, haze, tn, tf) => {
+    let b = SRC.replace(/\/\/[^\n]*/g, '').replace(/normalize\(vec3\(rd\.x, min\(rd\.y, 0\.0\), rd\.z\)\)/g, 'RDL').replace(/uP\[(\d+)\]\.rgb/g, 'uP$1')
+      .replace(/acc \/ al/, 'C0');
+    b = b.replace(/\b(float|vec3)\s+/g, 'let ');
+    const atmos = (x, rd, t) => { const f = 1 - Math.exp(-t / 9000); return x * (1 - f) + haze[ch] * f; };
+    return vm.runInThisContext(`(function (atmos, max, C0, uP0, uP2, tn, tf, RDL, rd) { ${b} return [col, fl, tB]; })`)(atmos, Math.max, c0[ch], P0[ch], P2[ch], tn, tf, 0, 0);
+  };
+  let floored = 0;
+  for (let k = 0; k < 400; k++) {
+    const r = (a, b2) => a + (b2 - a) * Math.random(), c0 = [r(0, 0.3), r(0, 0.3), r(0, 0.3)], P0 = [r(0.2, 0.8), r(0.2, 0.8), r(0.2, 0.8)], P2 = [r(0.1, 0.6), r(0.1, 0.6), r(0.1, 0.6)];
+    const haze = [r(0.05, 0.5), r(0.05, 0.5), r(0.05, 0.5)], tn = r(500, 30000), tf = tn + r(50, 3000);
+    for (let ch = 0; ch < 3; ch++) {
+      const [col, fl, tB] = run(ch, c0, P0, P2, haze, tn, tf), f = 1 - Math.exp(-tB / 9000);
+      assert.ok(Math.abs(tB - (tn + 0.25 * (tf - tn))) < 1e-9, 'the bank is not hazed at its own range');
+      const own = c0[ch] * (1 - f) + haze[ch] * f, land = 0.5 * (P0[ch] + P2[ch]) * (1 - f) + haze[ch] * f;
+      assert.ok(Math.abs(fl - land) < 1e-9, `the floor is not the land's paint hazed at the bank's range (${fl} against ${land})`);
+      assert.ok(Math.abs(col - Math.max(own, land)) < 1e-9, `the bank's colour ${col} is not its own hazed at its range (${own}) floored at the land's (${land})`);
+      assert.ok(col >= land - 1e-12, 'a bank darker than the land at its own range');
+      if (land > own) floored++;
+    }
+  }
+  assert.ok(floored > 50, 'the floor never binds in the sample: the test proves nothing');
 });
 
 // ------------------------------------------------------------------ one cloud field on every tier (the hub's review of #238)

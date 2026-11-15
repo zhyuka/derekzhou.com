@@ -4,7 +4,8 @@ uniform vec4 uVR;   // extinction (1/m), most steps, the fine billows' scale (m)
 uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the ceiling a forming cloud rises under (world y), a passage cloud's near reach (m)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
 uniform float uVVox;   // the body's voxel (m)
-uniform vec2 uVK;  // the most pieces a band segment is cut into (32 the desktop, 1 a touch device); 1: the crisp edge (the desktop), 0: the soft one
+uniform vec2 uVK;  // the most pieces a band segment is cut into, and 1 for the crisp edge, 0 the soft one (the look's tier,
+                   // LOOKD from hour.js's data-look: 48 and 1 on the desktop look, 1 and 0 the rest)
 float segRamp(float s0, float s1, float bE) {   // the band's ramp clamp(-s / bE, 0, 1) over a piece, its mean with s linear between its ends
   float G0 = s0 >= 0.0 ? 0.0 : (s0 > -bE ? s0 * s0 / (2.0 * bE) : -s0 - 0.5 * bE), G1 = s1 >= 0.0 ? 0.0 : (s1 > -bE ? s1 * s1 / (2.0 * bE) : -s1 - 0.5 * bE), ds = s1 - s0;
   return abs(ds) < 1e-3 * bE ? clamp(-0.5 * (s0 + s1) / bE, 0.0, 1.0) : (G0 - G1) / ds;
@@ -34,7 +35,8 @@ void main() {
   //   least a band step long, and where one lands beyond the face, the face uncounted would be skipped or not as the
   //   samples move: the far towers' speckle);
   // - no step inside the cloud shorter than the rest of the ray over the steps left, so every ray reaches its end (the
-  //   land, or the box's far side) within its budget (the band's 48 steps on the desktop's top tier, 32 on the rest, whatever the distance; leaps on their own 32): a ray cut where its
+  //   land, or the box's far side) within its budget (uVR.y: 48 steps on the desktop look (LOOKD), 32 on the rest, 48 on every look within 1.3 radii of
+  //   a body, eased to 1.7 (410)): a ray cut where its
   //   budget runs out, the rest left clear, shows the sea through a cloud's wispy flank, in holes that open and shut
   //   as the samples move (leaps are never stretched: a leap is bounded by the distance to the cloud);
   // - the fine billows' noise at an explicit LOD: its texel (32 to a tile) no finer than two of the half-resolution
@@ -131,13 +133,16 @@ void main() {
   }
   if (T > 0.996) discard;
   float al = 1.0 - T;
-  // the land's own aerial perspective (atmos, the curve the hills take): a near body at its distance, as before; a far
-  // one toward the colour the land takes at the end of the view (atmos far along a level ray: the hazed horizon the hills
-  // behind it dissolve into) by its distance weight (uVR2.y: 1 near, 0 at the cells' reach), so a bank goes toward the
-  // sky with range, is never a dark shape in front of lighter hills, and is nearly the horizon's colour where it ends at
-  // the stream's edge (the hub's ruling on #240, the night's far banks)
-  float wF = uVR2.y;
-  vec3 c0 = acc / al, col = mix(atmos(c0, normalize(vec3(rd.x, min(rd.y, 0.0), rd.z)), 1.0e5), atmos(c0, rd, tn + (tf - tn) * 0.25), wF);
+  // the land's own aerial perspective (atmos, the curve the hills take) at the body's real range (a quarter of the way
+  // through it: where its light mostly comes from), and never darker than the land would be at that same range: its
+  // colour floored at the land's own paint (the dunes' sand, its shade and lit paint halved: dunes-glsl's SAND_SHADE
+  // and SAND_LIT, uP[2] and uP[0], as the sky paints them) taken through the same haze along the level ray (the land
+  // lies at the horizon, under the bank). So a far bank is never a dark shape in front of the hazed hills behind it,
+  // and ends at the stream's edge already near the land's hazed colour (the hub's ruling on #240, round 2). Light
+  // added to the cloud's own, a floor, never a darkening: nothing here reads the words
+  float tB = tn + (tf - tn) * 0.25;
+  vec3 c0 = acc / al, fl = atmos(0.5 * (uP[2].rgb + uP[0].rgb), normalize(vec3(rd.x, min(rd.y, 0.0), rd.z)), tB);
+  vec3 col = max(atmos(c0, rd, tB), fl);
   // a far body keeps its own colour (atmos above has taken it into the haze by its distance) and stays opaque
   // until the last quarter of its distance's weight (uVR2.y: 1 near, 0 at the cells' reach), then fades by its opacity
   // into the sky the sky pass drew behind it: faded by its opacity over the whole weight, a far bank let the stars and
