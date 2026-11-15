@@ -27,6 +27,7 @@
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
     SKY.gal = best; SKY.aur = { ph: SKY.rV.f() * 6.2832, base: 5 + 3 * SKY.rV.f() };
+    SKY.halo = SKY.rV.f() < 1 / 3 ? 1 : 0;   // (physics: weather/moon-halo: the ice veil, one visit in three, held: after the draws above, which stay as they are)
     SKY.gen++;
   }
   function skyPush(id) {
