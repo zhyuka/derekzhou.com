@@ -46,3 +46,9 @@ export function stillsReady(hasBake, statuses) {
   if (!s) return { ok: false, why: 'its stills release is not up yet (no stills status)' };
   return s.state === 'success' ? { ok: true, why: s.description || 'stills up' } : { ok: false, why: `its stills status is ${s.state}${s.description ? ' (' + s.description + ')' : ''}` };
 }
+
+// The PR's tested head of a merge commit the bot made ("Merge #N: ...": its first parent main, its second the PR's head,
+// whose gate the bot read before it merged); null for any other commit (the owner's "Merge pull request #N", a plain one).
+export function botMergeHead(message, parents) {
+  return /^Merge #\d+: /.test(message || '') && (parents || []).length === 2 ? parents[1] : null;
+}
