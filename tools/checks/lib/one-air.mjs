@@ -7,12 +7,14 @@
 //   node tools/checks/lib/one-air.mjs OUT_DIR   (src/ assembled into OUT_DIR/src; exit 1 on a breach)
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import * as acorn from 'acorn';
 import { where } from '../../where.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
-const OUT = process.argv[2] || fs.mkdtempSync('/tmp/one-air-');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');   // (fileURLToPath: a URL's pathname doubles the drive on Windows, C:\C:\)
+const OUT = process.argv[2] || fs.mkdtempSync(path.join(os.tmpdir(), 'one-air-'));
 execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', path.join(ROOT, 'src'), path.join(OUT, 'src')], { stdio: 'ignore' });
 const AIRF = 'src/world/215-air.js', errs = [];
 
