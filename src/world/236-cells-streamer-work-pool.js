@@ -3,8 +3,8 @@
   /* (physics: clouds/drift) how far out a scale's cells are made: its radius; an air cell's further, by the air's
      closing speed (the camera's 12 m/s and the low layer's 8.45 against it: 20.5 m/s at most, 1.71 times the land's), so
      it has the land's time between being wanted and coming out of the haze (that lead, 0.1 R + 100 m and half a cell,
-     made 1.71 times as long); where it comes out of the haze is the radius's, as before */
-  function streamR(L) { return L.air ? L.radius + 0.71 * (0.1 * L.radius + 100 + L.size * 0.5) : L.radius; }
+     made 1.71 times as long), from the show on; where it comes out of the haze is the radius's, as before */
+  function streamR(L) { return L.air && shown ? L.radius + 0.71 * (0.1 * L.radius + 100 + L.size * 0.5) : L.radius; }   // (from the show: the boot's own work as before, nothing yet carried)
   function streamCells(V, cx, cz, hx, hz, sync, focusOnly) {
     if (!V.cells) { V.cells = new Map(); V.cellList = []; V.scanAt = [1e9, 1e9]; }
     var sc, L, scales = V.def.layout.scales, i;
