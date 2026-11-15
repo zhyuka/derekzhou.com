@@ -2,12 +2,12 @@
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "var tv = cloudT();", "with": "var tv = SIM.t;", "why": "the drawn bodies a step ahead of the camera: a judder at every frame between two steps"}
 // plant: {"file": "src/world/180-world-definition-two-kits-by.js", "find": "Math.round((o.x - (ox || 0)) * 8)", "with": "Math.round(o.x * 8)", "why": "an air cell's keep hashed at its stored place: the layout's frame flips it"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c,", "with": "var pc = o.c0 || o.c,", "why": "a drifting body's distance fade read where it was laid out: it comes out of the haze where it no longer is"}
+// plant: {"file": "src/realm-dunes.js", "find": "dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180,", "with": "dir: dAirDir(C.V) + R.r(45, 75) * PI / 180,", "why": "the ranges at 60 deg to the wind, not along it"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
 const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
 const D = make();
-const deg = (v) => Math.atan2(v[0], v[1]) * 180 / Math.PI;
 
 test('drift: the clouds\' wind is the air\'s: windAt at the low layer\'s height, and the deck\'s; the cloud sea held', () => {
   const W = vm.runInThisContext('(function (SIM) { var PI = Math.PI;' + AIRSRC + ' return { windAt: windAt, AIR_H: AIR_H }; })')({ V: null, t: 0 });
@@ -17,8 +17,6 @@ test('drift: the clouds\' wind is the air\'s: windAt at the low layer\'s height,
     const wl = { ...W.windAt(0, 0, W.AIR_H.clouds, 0, V) }, wd = { ...W.windAt(0, 0, W.AIR_H.deck, 0, V) };   // (copies: windAt returns its one object)
     assert.ok(Math.abs(lo[0] - wl.x) < 1e-12 && Math.abs(lo[1] - wl.z) < 1e-12, `low ${Array.from(lo)} is not windAt's ${wl.x}, ${wl.z}`);
     assert.ok(Math.abs(dk[0] - wd.x) < 1e-12 && Math.abs(dk[1] - wd.z) < 1e-12, 'the deck is not windAt\'s');
-    const veer = (x) => ((deg(x) - az) % 360 + 540) % 360 - 180;   // (clockwise of the surface's way: the low layer 20 deg, the deck 40: physics: air/wind-profile)
-    assert.ok(Math.abs(veer(lo) - 20) < 1e-9 && Math.abs(veer(dk) - 40) < 1e-9, `the low layer veers ${veer(lo)} deg, the deck ${veer(dk)}: not the air's 20 and 40`);
     assert.deepEqual(Array.from(sea), [0, 0], 'the cloud sea is held');
   }
   assert.deepEqual(Array.from(D.cloudWind({}, 'low')), [0, 0], 'a visit with no wind: no drift');
@@ -109,4 +107,27 @@ test('drift: an air cell keeps the same pieces whatever frame its layout ran in 
   assert.match(WORLD, /var ox = C\.dL \? C\.dL\[0\] : 0, oz = C\.dL \? C\.dL\[1\] : 0;/);
   assert.match(WORLD, /return aboveKeep\(it, C\.air \? C\.dL\[0\] : 0, C\.air \? C\.dL\[1\] : 0\); \}\);/);
   assert.match(WORLD, /return !cl\.lq \|\| aboveKeep\(cl, C\.air \? C\.dL\[0\] : 0, C\.air \? C\.dL\[1\] : 0\); \}\);/);
+});
+
+// the ranges lie along the low layer's own way, +- 15 deg (a cloud street; physics: clouds/drift, the spec's ranges row):
+// the dunes' own dAir run in Node with the air's windAt, its draws recorded, over winds from every way
+test('drift: a range lies along the low layer\'s wind, within 15 deg of it', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT } = await import('../unit-lib.mjs');
+  const DUNES = fs.readFileSync(path.join(ROOT, 'src/realm-dunes.js'), 'utf8');
+  const AIRSRC2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+  const DAIR = cut(DUNES, '  function dAirDir(V) {', '\n', true) + cut(DUNES, '  function dAir(C, R) {', '\n  }\n', true);
+  const run = vm.runInThisContext('(function (SIM, C, R) { var PI = Math.PI;' + AIRSRC2 + ' var A = { windAt: windAt, H: AIR_H };\n' + DAIR + ' dAir(C, R); })');
+  let n = 0, worst = 0;
+  for (let az = 0; az < 360; az += 7.5) for (const u10 of [3, 5.5, 7.5]) for (const ex of [-1, -0.4, 0, 0.4, 1]) {
+    const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10 }, out = [];
+    const W = vm.runInThisContext('(function (SIM, V) { var PI = Math.PI;' + AIRSRC2 + ' var w = windAt(0, 0, AIR_H.clouds, 0, V); return Math.atan2(w.x, w.z); })')({ V: null, t: 0 }, V);
+    // (R: its first draw admits the range; its uniform draws at the ends of their spans (ex -1, 1) and between)
+    const R = { f: () => 0, r: (lo, hi) => lo + (hi - lo) * (0.5 + 0.5 * ex), seed: () => 1 };
+    run({ V: null, t: 0 }, { V, x0: 0, z0: 0, size: 3000, cloud: (o) => out.push(o) }, R);
+    assert.equal(out.length, 1, 'no range laid out');
+    const d = ((out[0].dir - W) * 180 / Math.PI % 360 + 540) % 360 - 180;
+    worst = Math.max(worst, Math.abs(d)); n++;
+    assert.ok(Math.abs(d) <= 15 + 1e-9, `a range at ${d.toFixed(1)} deg from the low layer's wind (az ${az}, U10 ${u10})`);
+  }
+  assert.ok(worst > 14.9, `the ranges' spread reaches only ${worst.toFixed(1)} deg: the test does not see their span`);
 });
