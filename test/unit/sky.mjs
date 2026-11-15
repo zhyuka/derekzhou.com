@@ -244,6 +244,6 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   assert.ok(rho >= 0.9, `Spearman's rho ${rho.toFixed(3)} (at least 0.9)`);
   assert.ok(worst <= 0.02, `a star's share changes ${(100 * worst).toFixed(2)}% in a frame (at most 2%)`);
   const N = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
-  assert.ok(N.includes('NIGHTB.none = bf > 0;') && N.includes('venusPlan(V) && !NIGHTB.none'), 'no clear path down: no Venus');
+  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0)) continue;') && N.includes('venusPlan(V) && !NIGHTB.none'), 'no clear path down: no Venus');
   console.log(`# stars out in order: rho ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
 });
