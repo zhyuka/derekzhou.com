@@ -105,7 +105,7 @@ void main() {
       // segment that can reach the band (on either side of it, the billows' depth allowed) cut into K pieces
       float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;
       float dsum = 0.0, sa = sP;
-      for (int k = 1; k < 32; k++) {
+      for (int k = 1; k < 48; k++) {
         if (float(k) >= K) break;
         float u = float(k) / K, sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;
         dsum += segRamp(sa, sk, bE); sa = sk;
@@ -132,8 +132,14 @@ void main() {
   }
   if (T > 0.996) discard;
   float al = 1.0 - T;
-  vec3 col = atmos(acc / al, rd, tn + (tf - tn) * 0.25);
-  // a far body keeps its own colour (atmos above has already taken it into the haze by its distance) and stays opaque
+  // the land's own aerial perspective (atmos, the curve the hills take): a near body at its distance, as before; a far
+  // one toward the colour the land takes at the end of the view (atmos far along a level ray: the hazed horizon the hills
+  // behind it dissolve into) by its distance weight (uVR2.y: 1 near, 0 at the cells' reach), so a bank goes toward the
+  // sky with range, is never a dark shape in front of lighter hills, and is nearly the horizon's colour where it ends at
+  // the stream's edge (the hub's ruling on #240, the night's far banks)
+  float wF = uVR2.y;
+  vec3 c0 = acc / al, col = mix(atmos(c0, normalize(vec3(rd.x, min(rd.y, 0.0), rd.z)), 1.0e5), atmos(c0, rd, tn + (tf - tn) * 0.25), wF);
+  // a far body keeps its own colour (atmos above has taken it into the haze by its distance) and stays opaque
   // until the last quarter of its distance's weight (uVR2.y: 1 near, 0 at the cells' reach), then fades by its opacity
   // into the sky the sky pass drew behind it: faded by its opacity over the whole weight, a far bank let the stars and
   // the night's sky through (cloud-far-banks-opaque, 2026-11-14); its colour mixed toward a haze colour instead drew a

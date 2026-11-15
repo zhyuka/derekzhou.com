@@ -31,6 +31,7 @@ export function bandSim(nBodies, minutes, seed) {
   for (let c = 0; c * PER < nBodies; c++) {
     // a visit's wind: any way; the low layer's free clouds carried at 1.3 U10 (3.9-9.75 m/s), the air's own profile
     const a = r() * 2 * Math.PI, V = { wind: [Math.sin(a), Math.cos(a)], u10: 3 + 4.5 * r() };   // (a visit's U10 over its range, 3.0-7.5 m/s: the low layer 1.3 U10, veered 20 deg)
+    assert.ok(Math.hypot(...G.airW(V)) >= 3, `a visit's low layer at ${Math.hypot(...G.airW(V)).toFixed(2)} m/s: the sim carries nothing`);
     const tL = r() * 3600, C = { air: true, V, dL: G.airD(V, tL), lift: [], all: [] };
     const cx = (r() - 0.5) * 60000, cz = (r() - 0.5) * 60000, w = G.airW(V);
     for (let i = 0; i < PER && c * PER + i < nBodies; i++) {

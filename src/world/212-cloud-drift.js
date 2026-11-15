@@ -44,8 +44,8 @@
      lift a cell, the most any of its bodies needs, y(t) = max over tau of (need(tau) - LIFT_V |t - tau|), a pure
      function of t. need: the band's top where the body stands at tau (bandTopAt, the maps' own, over the land it was
      seated on) less its lowest billow as laid out, sampled every LIFT_DT s along its straight way (cached; LIFT_M m for
-     what falls between two samples) over LIFT_T s each side: a rise LIFT_V x LIFT_T high is met in time */
-  var LIFT_DT = 2, LIFT_T = 240, LIFT_V = 0.5, LIFT_M = 8;
+     what falls between two samples) over LIFT_T s each side: a rise LIFT_V x LIFT_T (140 m) high is met in time */
+  var LIFT_DT = 2, LIFT_T = 280, LIFT_V = 0.5, LIFT_M = 8;   // (LIFT_T: a rise of 140 m met in time at LIFT_V; the band's rises reach 123-130 m)
   /* the most bandTopAt can be over a land, anywhere (the sea at its highest with its heaps, or the land with the tallest
      formation's allowance): a body over it never meets the band */
   function bandTopMost(land) { return Math.max(SEA_LO + RISE + HEAP_MAX, (land === undefined || land !== land ? -1e9 : land) + FORM_ALLOW) + FLY_TOP + BAND_M; }

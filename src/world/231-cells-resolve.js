@@ -13,7 +13,7 @@
     // the cloud sea's pieces only where its sea is up about them (aboveKeep)
     // (what is kept is the place's, whatever line is flown: no corridor held about a line; the floating pieces raised
     // over the flight band)
-    if (C.items.length) C.items = C.items.filter(function (it) { if (it.form) return true; if (!it.lq) return true; return aboveKeep(it); });
+    if (C.items.length) C.items = C.items.filter(function (it) { if (it.form) return true; if (!it.lq) return true; return aboveKeep(it, C.air ? C.dL[0] : 0, C.air ? C.dL[1] : 0); });
     for (i = 0; i < C.items.length; i++) {
       var ia = C.items[i]; if (!ia.air || !ia.spheres) continue;
       var lowS = 1e9; for (j = 0; j < ia.spheres.length; j += 4) lowS = Math.min(lowS, ia.spheres[j + 1] - ia.spheres[j + 3]);
@@ -22,7 +22,7 @@
     }
     if (C.pois.length) C.pois = C.pois.filter(function (p) { return !(p.ref && p.ref._drop); });
     if (C.flocks.length) C.flocks = C.flocks.filter(function (f) { return !(f.ref && f.ref._drop); });
-    if (C.clouds.length) C.clouds = C.clouds.filter(function (cl) { return !cl.lq || aboveKeep(cl); });
+    if (C.clouds.length) C.clouds = C.clouds.filter(function (cl) { return !cl.lq || aboveKeep(cl, C.air ? C.dL[0] : 0, C.air ? C.dL[1] : 0); });
     // obstacles: each solid item a cylinder over its seat
     for (i = 0; i < C.items.length; i++) {
       var it = C.items[i]; it.seat = it.air ? it.y : yOf(it);

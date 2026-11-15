@@ -91,7 +91,7 @@
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
     var VSTEPS = LOOKD ? 48 : 32;   // (the band's steps a ray: the desktop look's 48 (data-look, the still's, never the governor's tier), the rest 32)
     var CRISP = LOOKD;   // (the still's look tier, hour.js's data-look, never memTier or the governor's tier: the clouds' character is the still's and never changes within a visit)
-    gl.uniform2f(P.u.uVK, CRISP ? 32 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 32, its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
+    gl.uniform2f(P.u.uVK, CRISP ? 48 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 48 (32 boiled at 0.025 at 20 and 60 m over the cloud sea), its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position
@@ -99,8 +99,8 @@
     var m = 0;
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
-      var steps = d < B.r * 1.5 ? 48 : VSTEPS;   // (near a body 48 on every tier, as before; beyond, one budget a tier, never cut by distance: a far tower's 24 steps forced its band 12 m apart)
-      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : B.fade, d, 1); wl('steps', B.wid, steps / 48, d, 1); }
+      var steps = VSTEPS + (48 - VSTEPS) * (1 - smooth(B.r * 1.3, B.r * 1.7, d));   // (near a body 48 on every tier, as before; beyond, one budget a look, never cut by distance: a far tower's 24 steps forced its band 12 m apart; between 1.3 and 1.7 radii eased, a step at a time, never a switch in one frame)
+      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : smooth(0, 0.25, B.fade), d, 1);   /* (the drawn opacity, fs-vbody's smoothstep(0, 0.25, w)) */ wl('steps', B.wid, steps / 48, d, 1); }
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or
       // 1 on the camera's position (a one-frame flash of 50 grey levels)

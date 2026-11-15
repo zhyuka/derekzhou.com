@@ -1,4 +1,6 @@
 // test/unit/drift.mjs: the clouds' drift with the wind at their level (physics: clouds/drift)
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "var tv = cloudT();", "with": "var tv = SIM.t;", "why": "the drawn bodies a step ahead of the camera: a judder at every frame between two steps"}
+// plant: {"file": "src/world/180-world-definition-two-kits-by.js", "find": "Math.round((o.x - (ox || 0)) * 8)", "with": "Math.round(o.x * 8)", "why": "an air cell's keep hashed at its stored place: the layout's frame flips it"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c,", "with": "var pc = o.c0 || o.c,", "why": "a drifting body's distance fade read where it was laid out: it comes out of the haze where it no longer is"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
@@ -62,6 +64,8 @@ test('drift: the readers take an air cell\'s offset (physics: clouds/drift G1)',
     ['the slip plan\'s meeting point', /if \(o\.w\) \{ var mt = slipMeet\(s, v, o\.w\[0\] \* hx \+ o\.w\[1\] \* hz\);/],
     ['the mist about the eye', /var off = cellOff\(B\.cell, cloudT\(\), MISTO\)/],
     ['the drawn bodies', /if \(o\.w\) \{ cloudPos\(o, tv, VPOS\);/],
+    ['the drawn bodies\' moment (the draw\'s, between the last two steps)', /var tv = cloudT\(\);/],
+    ['the air cells\' stream reach (the air\'s own closing speed)', /return L\.radius \+ Math\.sqrt\(w\[0\] \* w\[0\] \+ w\[1\] \* w\[1\]\) \/ Math\.max\(V\.speed, 1\) \* \(0\.1 \* L\.radius \+ 100 \+ L\.size \* 0\.5\);/],
     ['the bodies\' distance fade', /var pc = o\.w \? cloudPos\(o, cloudT\(\), VDF\) : o\.c/],
     ['the cores in the depth', /gl\.uniform3f\(P\.u\.uOccOff, oo\[0\], oo\[2\], oo\[1\]\)/],
     ['the birds\' cloud chords', /o2 = cellOff\(C2, cloudT\(\), CBO\)/],
@@ -88,4 +92,21 @@ test('drift: the march sees only the camera less the body (a body carried at W, 
   // the billows: the body's own offset, no clock, no world place
   assert.ok(/vec3 nOff = uVO;/.test(FS) && !/\buT\b/.test(FS), 'the billows read a clock or the world');
   assert.ok(!/\buCam\.(x|z|xz)\b/.test(FS), 'fs-vbody reads the camera\'s level place');
+});
+
+test('drift: an air cell keeps the same pieces whatever frame its layout ran in (its pick and gates in the air frame, x - dL)', () => {
+  const PICK = cut(WORLD, '  function pickOf(o, salt, ox, oz) {', '\n', true);
+  const P = vm.runInThisContext('(function () {' + cut(WORLD, '  function ihash(x) {', '\n', true) + cut(WORLD, '  function hfl(h) {', '\n', true) + PICK + ' return pickOf; })')();
+  let flips = 0, n = 0;
+  for (let i = 0; i < 10000; i++) {
+    const ax = (i * 7919.37) % 40000 - 20000, az = (i * 104729.11) % 40000 - 20000, w = [6.3, -4.1], t = 1000 + i * 0.37;
+    const d1 = [w[0] * t, w[1] * t], d2 = [w[0] * (t + 1 / 60), w[1] * (t + 1 / 60)];   // (laid out a frame later)
+    const a = P({ x: ax + d1[0], z: az + d1[1] }, 0x5bd1e995, d1[0], d1[1]) < 0.5, b = P({ x: ax + d2[0], z: az + d2[1] }, 0x5bd1e995, d2[0], d2[1]) < 0.5;
+    n++; if (a !== b) flips++;
+  }
+  assert.equal(flips, 0, `${flips} of ${n} keep decisions flip when the layout runs a frame later`);
+  assert.match(WORLD, /function keep\(o\) \{ return pickOf\(o, kit === 'above' \? 0x5bd1e995 : 0x27d4eb2d, ox, oz\) < dens\(o\.x - ox, o\.z - oz\); \}/, 'the kit\'s keep hashes the stored place, not the air frame\'s');
+  assert.match(WORLD, /var ox = C\.dL \? C\.dL\[0\] : 0, oz = C\.dL \? C\.dL\[1\] : 0;/);
+  assert.match(WORLD, /return aboveKeep\(it, C\.air \? C\.dL\[0\] : 0, C\.air \? C\.dL\[1\] : 0\); \}\);/);
+  assert.match(WORLD, /return !cl\.lq \|\| aboveKeep\(cl, C\.air \? C\.dL\[0\] : 0, C\.air \? C\.dL\[1\] : 0\); \}\);/);
 });
