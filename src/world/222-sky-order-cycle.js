@@ -26,7 +26,7 @@
         if (dot(g, fw) > 0.85 && e > 4 && e < 34) { nn++; if (e < lo) { lo = e; core = g; } } }
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
-    SKY.gal = best; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(V.light.sunDir[0], V.light.sunDir[2]) : 0), base: 5 + 3 * SKY.rV.f() };   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
+    SKY.gal = best; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(keyAt(V)[0], keyAt(V)[2]) : 0), base: 5 + 3 * SKY.rV.f() };   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
     SKY.gen++;
   }
   function skyPush(id) {
