@@ -78,9 +78,9 @@ function boil({ dist, v, Kmax, crisp = false, scale = 80, amp = 5, band = 4, R =
   out.sort((a, b) => a - b);
   return out[Math.floor(out.length * 0.95)];
 }
-test('clouds: the edge band is cut into pieces in the shader, at most 32, the cap a uniform the world sets per tier', () => {
+test('clouds: the edge band is cut into pieces in the shader, at most 48, the cap a uniform the world sets per tier', () => {
   assert.match(VBODY, /uniform vec2 uVK;/, 'fs-vbody has no uVK: one piece a segment');
-  assert.match(VBODY, /for \(int k = 1; k < 32; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 32, broken at K) is not in fs-vbody');
+  assert.match(VBODY, /for \(int k = 1; k < 48; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 48, broken at K) is not in fs-vbody');
   // (the shader's own cutting, as the model below does it: a mutation of any of these passed before, the hub's review)
   assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;'), 'the pieces\' count is not the two-sided test and a sixteenth (crisp) to half a texel at the LOD, capped by uVK');
   assert.ok(VBODY.includes('sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;'), 'a cut does not read the billows again at its own place');
@@ -89,17 +89,17 @@ test('clouds: the edge band is cut into pieces in the shader, at most 32, the ca
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
   assert.ok(VBODY.includes('vec3 nOff = fract(uVC / uVR.z)') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
   assert.ok(VK, '410 sets no uVK for the tiers');
-  assert.ok(CAP.desktop <= 32 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 32`);
+  assert.ok(CAP.desktop <= 48 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 48`);
 });
 // (each kit's billows as the realms give them: the scale and depth fs-vbody reads, uVR.z and uVR.w)
 const KITS = Object.fromEntries(['above', 'dunes'].map((k) => { const m = /clDetail: \[(\d+), (\d+)\]/.exec(fs.readFileSync(path.join(ROOT, `src/realm-${k}.js`), 'utf8')); return [k, { scale: +m[1], amp: +m[2] }]; }));
 const DM = /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? (\d+) : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? (\d+) : 1\);/.exec(WORLD);
-test('clouds: crisp cauliflower on the desktop (lumps 2x the size, 5x the depth, the edge 1.25 px near), and it boils under 0.02 at 80, 150 and 300 m in both kits; touch devices keep today\'s soft clouds in one piece', () => {
+test('clouds: crisp cauliflower on the desktop (lumps 2x the size, 5x the depth, the edge 1.25 px near), and it boils under 0.02 at 20, 40, 60, 80, 150 and 300 m in both kits; touch devices keep today\'s soft clouds in one piece', () => {
   assert.equal(CAP.rest, 1, 'off the desktop look the band is not cut (4 pieces bound every segment on a phone for no gain)');
   assert.ok(VBODY.includes('float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.0625 : 0.5;') && VBODY.includes('float bE = max(band * cw, mix(1.25, 2.0, cw) * t * pxA);'), 'the edge is not crisp near (1.25 px to 150 m, the soft band by 350 m) where uVK.y asks');
   assert.ok(DM, '410 does not deepen the desktop\'s billows');
   const rows = [];
-  for (const [kit, K] of Object.entries(KITS)) for (const dist of [80, 150, 300]) for (const v of [0.25, 0.5]) {
+  for (const [kit, K] of Object.entries(KITS)) for (const dist of [20, 40, 60, 80, 150, 300]) for (const v of [0.25, 0.5]) {
     const D = { scale: K.scale * +DM[1], amp: K.amp * +DM[2] }, d = boil({ dist, v, Kmax: CAP.desktop, crisp: true, ...D }), r = boil({ dist, v, Kmax: CAP.rest, ...K }), soft = boil({ dist, v, Kmax: 12, ...K });
     rows.push(`${kit} ${dist} m at ${v} m/frame: desktop crisp ${d.toFixed(3)} (today's soft desktop ${soft.toFixed(3)}), the rest (soft, one piece) ${r.toFixed(3)}`);
     assert.ok(d < 0.02, `the desktop's crisp edge boils: ${rows.at(-1)}`);

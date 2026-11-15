@@ -90,7 +90,7 @@
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
     var VSTEPS = LOOKD ? 48 : 32;   // (the band's steps a ray: the desktop look's 48 (data-look, the still's, never the governor's tier), the rest 32)
     var CRISP = LOOKD;   // (the still's look tier, hour.js's data-look, never memTier or the governor's tier: the clouds' character is the still's and never changes within a visit)
-    gl.uniform2f(P.u.uVK, CRISP ? 32 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 32, its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
+    gl.uniform2f(P.u.uVK, CRISP ? 48 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 48 (32 boiled at 0.025 at 20 and 60 m over the cloud sea), its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position

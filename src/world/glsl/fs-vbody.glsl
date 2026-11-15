@@ -104,7 +104,7 @@ void main() {
       // segment that can reach the band (on either side of it, the billows' depth allowed) cut into K pieces
       float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;
       float dsum = 0.0, sa = sP;
-      for (int k = 1; k < 32; k++) {
+      for (int k = 1; k < 48; k++) {
         if (float(k) >= K) break;
         float u = float(k) / K, sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;
         dsum += segRamp(sa, sk, bE); sa = sk;
