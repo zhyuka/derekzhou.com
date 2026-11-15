@@ -37,6 +37,9 @@
   for (j = 0; j < SHAPES.length; j++) { ab = SHAPES[j][0].split('/'); if (sized ? mm('(max-aspect-ratio: ' + SHAPES[j][0] + ')') : sw * ab[1] <= sh * ab[0]) { shape = SHAPES[j][1]; break; } }
   var touch = mm('(pointer: coarse)') || nav2.maxTouchPoints > 1;
   var tier = touch && !/iPhone|iPad|Macintosh/.test(nav2.userAgent || '') && (nav2.deviceMemory || 0) < 8 ? 'lo' : 'hi';
+  var q = shape.split('x'), dk = +q[0] >= +q[1];
+  if (touch && dk) tier = 'lo';
+  document.documentElement.setAttribute('data-look', tier == 'hi' && dk ? 'desk' : 'touch');
   var url = '/assets/still/' + DAY[i][0] + '-' + k + '-' + tier + '-' + shape + '.avif', pre = document.querySelector('link.still');
   if (pre) { document.documentElement.style.setProperty('--still', 'url("' + url + '")'); pre.href = url; }   // (no preload: a build with no stills)
   /* (first-paint preview) the hold: the page's first paint waits for the world's first frame (the link rel=expect in

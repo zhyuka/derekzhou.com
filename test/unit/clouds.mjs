@@ -36,7 +36,7 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
 // The pieces' cap is the world's own (410's uVK for the desktop and the rest; none on main: one piece), and the cut loop
 // must be in the shader; desktop under 0.02 everywhere, the rest at least 4 times calmer than one piece.
 const VBODY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8');
-const VK = /gl\.uniform1f\(P\.u\.uVK, memTier\(\) === 'desktop' && TIER >= 1 \? (\d+) : (\d+)\)/.exec(WORLD);
+const VK = /gl\.uniform1f\(P\.u\.uVK, LOOKD && TIER >= 1 \? (\d+) : (\d+)\)/.exec(WORLD);
 const CAP = VK ? { desktop: +VK[1], rest: +VK[2] } : { desktop: 1, rest: 1 };
 function hash(i, L) { let x = Math.imul(i ^ Math.imul(L + 1, 0x9e3779b1), 0x85ebca6b) ^ 0x1234567; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
 function row(x, L) { const i = Math.floor(x), f = x - i; return hash(i, L) * (1 - f) + hash(i + 1, L) * f; }   // (a row of texels, filtered linearly)
