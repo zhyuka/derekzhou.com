@@ -19,17 +19,17 @@
     SKY.moonDir = RNG(subseed(J.seed, 79)).sign();   // (the visit's own way the moon crosses the window, one way, from its own stream: the other draws stay as they are)
     /* (phase 2) the visit's own: the galaxy's lie (the live's: of 24 poles drawn, the one whose band crosses most of the
        landing's view low, its core the lowest point of the band there), the aurora's arc's centre and base */
-    var h0 = RNG(subseed(J.seed, 77)).r(0, 2 * PI), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
+    var h0 = airHeading0(), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
     for (i = 0; i < 24; i++) {
       var P = dirAzEl(SKY.rV.r(-180, 180), SKY.rV.r(15, 60)), U = norm(cross(P, [0, 1, 0])), W = cross(P, U), nn = 0, lo = 99, core = null;
       for (j = 0; j < 90; j++) { var a = j / 90 * 2 * PI, g = /** @type {any} */ ([U[0] * Math.cos(a) + W[0] * Math.sin(a), U[1] * Math.cos(a) + W[1] * Math.sin(a), U[2] * Math.cos(a) + W[2] * Math.sin(a)]), e = Math.asin(clamp(g[1], -1, 1)) / DEG;
         if (dot(g, fw) > 0.85 && e > 4 && e < 34) { nn++; if (e < lo) { lo = e; core = g; } } }
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
-    SKY.gal = best; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(V.light.sunDir[0], V.light.sunDir[2]) : 0), fp: 5 + 3 * SKY.rV.f() };
+    SKY.gal = best; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(keyAt(V)[0], keyAt(V)[2]) : 0), fp: 5 + 3 * SKY.rV.f() };   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
     /* (physics: aurora/phases) the stay's own, after the draws above (they stay as they are): a breakup in half the
        stays, its front 20-40 deg east of centre as it begins, a second arc in half, 150-300 km beyond the first */
-    SKY.aur.bk = SKY.rV.f() < 0.5 ? 1 : 0; SKY.aur.f0 = SKY.rV.r(20, 40); SKY.aur.dD = SKY.rV.f() < 0.5 ? SKY.rV.r(150, 300) : 0; SKY.aur.rise = 0; SKY.aur.p = 0; SKY.aur.sf = 0;   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
+    SKY.aur.bk = SKY.rV.f() < 0.5 ? 1 : 0; SKY.aur.f0 = SKY.rV.r(20, 40); SKY.aur.dD = SKY.rV.f() < 0.5 ? SKY.rV.r(150, 300) : 0; SKY.aur.rise = 0; SKY.aur.p = 0; SKY.aur.sf = 0;
     SKY.gen++;
   }
   function skyPush(id) {
