@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
@@ -92,7 +92,7 @@
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
   function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; F.lk = true; if (b.w) BW.relock(b.w.wing, null); if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false, tr: new Float64Array(4 * TR_N), trI: 0, trN: 0, trT: -1, lk: true }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false, tr: new Float64Array(4 * TR_N), trI: 0, trN: 0, trT: -1, lk: true, gD: 0 }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */

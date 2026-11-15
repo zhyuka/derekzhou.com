@@ -66,3 +66,46 @@ test('an ibis in a skein flies the ibis-in-a-V schedule (gliding a few % of the 
   const p = phases('ibis', 'skein', 5, 120); show('ibis skein of 5', p);
   assert.ok(p.glide < 0.1, `an ibis in a skein glides ${(100 * p.glide).toFixed(1)} % of the time`);
 });
+
+/* physics: birds/glides. A flock made in view and flown 120 s, level or with its way 200 m down: the share of its birds'
+   flying time gliding; and each glide its leader is sent into, its followers' starts against their lag (distance back over
+   speed, and their reaction): a glide begins at a beat's end, so to within a beat */
+function glides(kind, pat, n, down) {
+  const sc = SCENES.natural(1, '960x600'); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null }; sc.opt.speed = 0; sc.opt.yaw = 0;
+  const sim = makeSim(sc.opt); sc.setup(sim);
+  for (let k = 0; k < 60; k++) sim.step();
+  const B = sim.B, C = sim.C, BW = B.BW, psi0 = Math.atan2(C.f[0], C.f[2]) + Math.PI / 2;
+  const F = B.newFlock(C.pos[0] + 400 * C.f[0], C.pos[1] + 60 + down, C.pos[2] + 400 * C.f[2], psi0, 'day', [pat, kind, n]);
+  const g = B.newGoal(F, 'commute', F.r, 'day'); g.psi = psi0; g.T = 1e9; g.y = F.lead.p[1] - down; F.goal = g; F.lead.goal = g;
+  const ST = {}, req = new Map(), prev = new Map(), g0 = BW.glide; let fl = 0, all = 0, LS = -1; const err = [];
+  BW.glide = (w, age, dur) => { req.set(w, sim.t); return g0(w, age, dur); };
+  try {
+    for (let k = 0; k < 60 * 120; k++) {
+      sim.step(); assert.ok(!F.out, 'the flock went out');
+      for (const b of F.m) {
+        const w = b.w && b.w.wing; if (!w || b.st !== 'fly') continue;
+        const f = BW.state(w, b.age, ST).flap > 0.5, was = prev.get(b); prev.set(b, f); all++; if (f) fl++;
+        if (was && !f && req.has(w)) { req.delete(w); if (b === F.lead) LS = sim.t; else if (LS >= 0) err.push(Math.abs(sim.t - LS - (Math.max(0, b.slot[0] * F.lead.sz) / Math.max(F.lead.V, 3) + b.lat))); }
+      }
+    }
+  } finally { BW.glide = g0; }
+  err.sort((a, b) => a - b);
+  return { glide: 1 - fl / Math.max(1, all), med: err.length ? err[err.length >> 1] : NaN, n: err.length };
+}
+
+test('every kind glides more going down than level (geese and herons too: the owner, 2026-11-04)', () => {
+  for (const [kind, pat, n] of [['goose', 'skein', 5], ['heron', 'single', 1], ['ibis', 'skein', 5], ['gull', 'cloud', 5], ['crow', 'cloud', 6]]) {
+    const lv = glides(kind, pat, n, 0), dn = glides(kind, pat, n, 200);
+    console.log(`# ${kind}: gliding ${(100 * lv.glide).toFixed(1)} % level, ${(100 * dn.glide).toFixed(1)} % going down`);
+    assert.ok(dn.glide > lv.glide + 0.02, `${kind}: glides ${(100 * dn.glide).toFixed(1)} % going down against ${(100 * lv.glide).toFixed(1)} % level`);
+  }
+});
+
+test('a skein glides in turn after its leader, each bird as it reaches where its leader began (median within 0.15 s)', () => {
+  for (const [kind, n] of [['goose', 7], ['ibis', 5]]) {
+    const p = glides(kind, 'skein', n, 200);
+    console.log(`# ${kind} skein: ${p.n} follower glides, their start off their lag by ${p.med.toFixed(3)} s (median)`);
+    assert.ok(p.n >= 10, `${kind}: only ${p.n} follower glides`);
+    assert.ok(p.med <= 0.15, `${kind}: followers' glides off their lag by ${p.med.toFixed(3)} s (median)`);
+  }
+});

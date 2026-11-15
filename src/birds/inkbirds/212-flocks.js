@@ -262,6 +262,23 @@
     nextGoal(F);
   }
 
+  /* (physics: birds/glides) a leader (or a bird on its own) glides, whatever its kind, when its way goes down steeper than
+     a glide's (5 deg) for over a second, or as it banks past 15 deg rolling into a turn: 1.5-6 s, then at least 4 s on its
+     wings. Its flock glides after it, each bird as it reaches the point its leader began from (its distance back over its
+     speed, and its own reaction, b.lat) */
+  var GLIDE_DN = -5 * DEG, GLIDE_BANK = 15 * DEG;
+  /* how long its wing takes from now to glide, asked now: the rest of the beat it is in, and the ramp out (RAMP.E_OUT) */
+  function toGlide(b) { var g = b.w.wing, p = BW.psiAt(g, b.age); return (1 - (p - Math.floor(p)) + 0.1 + BW.LB.RAMP.E_OUT) / Math.max(g.f, 0.5); }
+  function glideWhen(F, b, wv, dt) {
+    var hz = Math.sqrt(wv[0] * wv[0] + wv[2] * wv[2]), dn = Math.atan2(wv[1], Math.max(hz, 0.5)) < GLIDE_DN;
+    b.dsT = dn ? b.dsT + dt : 0;
+    if (!b.w || b.wOff || b.burst || b.flap !== 1 || t < b.gOK) return;
+    var roll = Math.abs(b.phi) > GLIDE_BANK && Math.abs(b.phi) > Math.abs(b.phi0) + 1e-4;
+    if (b.dsT < 1 && !roll) return;
+    var dur = pick(b.r, [1.5, 6]), t0 = t + toGlide(b); BW.glide(b.w.wing, b.age, dur); b.gOK = t + dur + 4; F.gD = dur;
+    for (var j = 0; j < F.m.length; j++) { var q = F.m[j]; if (q !== b && q.st === 'fly') q.gAt = t0 + Math.max(0, q.slot[0] * b.sz) / Math.max(b.V, 3) + q.lat; }
+  }
+
   /* ---------------- each step ---------------- */
   var FQ = [];
   /* a flock no one can see now: every bird of it flying, past the eye's reach (clearOfEye's 160 m) and out of the view by 20 degrees
@@ -337,6 +354,7 @@
         if (b.st !== 'fly') { perchStep(b, dt, C); continue; }
         var wv = b === L ? goalVel(F, b, dt) : placeVel(F, b);
         clearOfEye(b, wv);
+        if (b === L) glideWhen(F, b, wv, dt); else if (b.gAt && b.w && t + toGlide(b) >= b.gAt - 0.5 / Math.max(b.w.wing.f, 0.5)) { b.gAt = 0; if (!b.burst) BW.glide(b.w.wing, b.age, F.gD); }   // (asked as its beat takes to end, at the beat's end nearest its time: it glides from its own time)
         flyTo(b, dt, wv[0], wv[1], wv[2]);
       }
     }

@@ -82,7 +82,7 @@
       var m = KM[kind], f0 = (o.f || LB.rate(kind, o.rate)) * (1 + VAR.SPREAD * (o.spread === undefined ? 2 * r() - 1 : o.spread));
       var sc = o.sched === 'continuous' ? { cont: true } : o.sched === 'calm' ? { calm: CALM[kind] } : SCHED[o.V && kind === 'ibis' ? 'ibisV' : kind] || { cont: true };
       var from = o.from === undefined ? -5 : o.from, dt = 1 / 240;
-      var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null, loff: 0,
+      var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null, loff: 0, gq: 0,
         EPS: new Float32Array(64), KK: new Float32Array(64), PAU: new Float32Array(64), nbt: 0, pz: 0, pzrun: 0,
         KI: new Float64Array(64), KP: new Float64Array(64), nk: 0, cone: [0, 0, 0, 0, 0, 0],   // the phase's knots: step, psi; the open segment's cone
         BO: [], PA: [], i: -1, pre: !!o.pre, boff: 0 };   // boff: the first beat the per-beat draws still hold
@@ -140,6 +140,14 @@
        a phase (the nudge, clipped to LOCK.MAXF, carries it there): lead null frees it. d the distance to the bird ahead (m), U
        the speed, off the lead's clock ahead of this one's (its age less this bird's), phase the cycle's offset (LOCK.PHASE
        behind a side position, 0.46 directly behind) */
+    /* (physics: birds/glides) a glide asked for (a descent, a turn, a leader's glide followed): the open bout ends at the end
+       of the beat it is in (its ramp out, RAMP.E_OUT, as any bout's), then a glide of dur s; already gliding, its glide goes on
+       at least that long. Any kind, a continuous flier's too */
+    function glide(b, t, dur) {
+      ensure(b, t); var L = b.L;
+      if (L.inBout) { b.gq = dur; var nb = Math.floor(L.Psi - L.s0) + 1; if (nb < L.nb) { L.nb = nb; if (b.BO.length >= 5) b.BO[b.BO.length - 2] = nb; } }
+      else L.glideLeft = Math.max(L.glideLeft, dur);
+    }
     function relock(b, lead, d, U, off, phase) {
       if (!lead || lead === b) { b.lead = null; return; }
       b.lead = lead; if (!b.lock) b.lock = { d: 0, U: 1 }; b.lock.d = d; b.lock.U = U; b.loff = off || 0;
@@ -200,7 +208,7 @@
         if (paused) { if (PA.length && PA[PA.length - 1] === i - 1) PA[PA.length - 1] = i; else PA.push(i, i); }
         var x = L.Psi - L.s0;
         if (L.inBout) {
-          if (!sc.cont && x >= L.nb + 0.1 + RAMP.E_OUT) { L.inBout = false; b.BO[b.BO.length - 4] = i; newGlide(b); }   // (this step's a, e still the bout's: AE[i], EE[i] as the lab stores them)
+          if ((!sc.cont || b.gq > 0) && x >= L.nb + 0.1 + RAMP.E_OUT) { L.inBout = false; b.BO[b.BO.length - 4] = i; if (b.gq > 0) { L.glideLeft = b.gq; b.gq = 0; } else newGlide(b); }   // (a glide asked for: this long)   // (this step's a, e still the bout's: AE[i], EE[i] as the lab stores them)
         } else {
           L.glideLeft -= dt;
           if (L.glideLeft <= 0 && fr(L.Psi) > 0.97) { newBout(b); b.BO.push(i, -1, L.s0, L.nb, 0); }   // (this step's a, e 0, its flag 1: as the lab's)
@@ -350,7 +358,7 @@
     /* the bird's day moved on by d s (a whole number of its steps) without working it out: every read after reads the
        wing as it was d s before (a bird out of sight paused its beat, and goes on from there) */
     function skip(b, d) { b.from += d; }
-    return { make: make, relock: relock, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
+    return { make: make, relock: relock, glide: glide, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
              knots: function (b) { return b.nk; }, CURL_R: CURL_R, PSI_TOL: PSI_TOL, LB: LB };
   }
   root.BIRDWING = BIRDWING;
