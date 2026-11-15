@@ -13,7 +13,7 @@ import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 
 const [base, head] = process.argv.slice(2);
-const GUARD = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'workflows', 'glsl_guard.js');
+const GUARD = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..', 'tools', 'checks', 'lib', 'glsl_guard.js');
 const sources = (site) => new Promise((ok) => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'glsl-'));
   execFile(process.execPath, [GUARD, site, '--visits', '1', '--dump', d], { maxBuffer: 1 << 26 }, (e) => {

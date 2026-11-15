@@ -133,7 +133,7 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
          (pitchFollow 0: one pitch), one clearance band over the surface flown (cruise: 14 m over the sand to 32 m over
          the cloud sea, by the maps ahead; flightParams), a ceiling of 60 m over the ground (a solid taller is passed
          beside, never climbed), one speed (12 m/s: the maps' pacing was worked out for it) */
-      speed: KD.speed || 12, clear: [7, 14, 45], frame: [0.55, 0.58], cruise: [14, 32], marginB: KA.margin,
+      speed: KD.speed || 12, clear: [7, 14, 45], frame: [0.55, 0.58], cruise: AIR_CRUISE, marginB: KA.margin,
        look: KD.look, pitchFollow: 0, margin: KD.margin, lookT: KD.lookT, lookTan: KD.lookTan,
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
       surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true, yb: YB.land }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10, yb: YB.sea }],
@@ -162,9 +162,9 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
      the camera (climateLight), colours in OKLab, as round 3b's light by area did */
   function worldLights(V) {
     var raw = V.lightRaw, rawB = V.def.lightB(RNG(subseed(V.seed, 21)), V);
-    var LB = prepOne(Object.assign({}, rawB)); LB.sunDir = V.light.sunDir;
+    var LB = prepOne(Object.assign({}, rawB)); LB.sunDir = keyAt(V);
     V.LA = [V.light, LB]; V.areaNames = ['dunes', 'cloud sea'];   // (the two kits' lights; skyStep replaces them, and their OKLab sets with them, with the two skies' before blendSky reads them)
-    var live = prepOne(Object.assign({}, raw)); live.sunDir = V.light.sunDir; V.L = live;
+    var live = prepOne(Object.assign({}, raw)); live.sunDir = keyAt(V); V.L = live;
     V.aw = new Float32Array(2); V.aw[0] = 1;
     V.lightRawB = rawB; V.paramsBase = new Float32Array(V.paramsFlat);   // (tod: the skies are laid over the kits' raw lights and the kits' own paint)
   }
