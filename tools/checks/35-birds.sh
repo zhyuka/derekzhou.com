@@ -6,7 +6,7 @@
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 pids=(); i=0; total=0; clock=()
-for f in test/birds.mjs test/birds-motion.mjs test/birds-flock.mjs; do   # (birds-motion.mjs: the drawn motion, frame by frame, at the page's loop; birds-flock.mjs: how a flock flies together)
+for f in test/birds.mjs test/birds-motion.mjs test/birds-flock.mjs test/birds-wind.mjs; do   # (birds-motion.mjs: the drawn motion, frame by frame, at the page's loop; birds-flock.mjs: how a flock flies together; birds-wind.mjs: in the dunes' wind)
   mapfile -t names < <(node -e "for (const m of require('fs').readFileSync(process.argv[1], 'utf8').matchAll(/^test\('((?:[^'\\\\]|\\\\.)*)'/gm)) console.log(m[1].replace(/\\\\(.)/g, '\$1'))" "$f")
   [ "${#names[@]}" -gt 0 ] || { echo "::error::no test found in $f"; exit 1; }
   ! grep -nE 'test\(`' "$f" || { echo "::error::$f: a test named by a template is never run here (give it a plain name)"; exit 1; }

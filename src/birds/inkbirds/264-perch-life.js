@@ -3,7 +3,7 @@
      side nearer the wind's (it faces into the wind), the end bird of a row looking out */
   function wantYaw(b) {
     var P = b.P, wr = WINDV[0] * LVC_R[0] + WINDV[2] * LVC_R[2], wf = WINDV[0] * LVC_F[0] + WINDV[2] * LVC_F[2], ws = Math.sqrt(wr * wr + wf * wf);
-    var side = ws > 1 ? (wr > 0 ? -1 : 1) : P.face;   // (the wind blowing toward its right comes from its left: it faces left, into it)
+    var side = Math.abs(wr) > 1 ? (wr > 0 ? -1 : 1) : P.face;   // (the wind blowing toward its right comes from its left: it faces left, into it)
     var edge = edgeOf(b); if (edge) side = edge;
     return side * PERCH.yaw;
   }
@@ -44,7 +44,8 @@
       var want = wantYaw(b), u = r(), off = angDiff(want * DEG, P.yaw * DEG) / DEG;
       /* a hop-turn: round to face the other way (to its wanted side when it faces from it, else now and then of its own);
          off its wanted side by less than a hop, a step toward it */
-      if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30)) { var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
+      if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30 && Math.abs(WINDV[0] * LVC_R[0] + WINDV[2] * LVC_R[2]) <= 1)) {   // (of its own only in still air or a light side wind: in a side wind it stays facing into it)
+        var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
       else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.82 && P.kind === 'name') { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }

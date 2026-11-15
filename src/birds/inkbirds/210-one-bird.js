@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
@@ -229,7 +229,7 @@
     var x = b.p[0], z = b.p[2], fl = Math.min(Math.max(lvGround(x, z), lvGround(x + b.v[0] * 2, z + b.v[2] * 2)) + CLEAR + b.sz, top);
     return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
-  /* the leader's wanted velocity for its goal (m/s over the ground, before the wind) */
+  /* the leader's wanted velocity for its goal (m/s over the ground, the wind in it) */
   var WV = [0, 0, 0];
   function goalVel(F, b, dt) {
     var g = F.goal || nextGoal(F), r = F.r, v = b.K.v * paceOf(b), x = b.p[0], z = b.p[2], h = g.psi;
@@ -258,7 +258,11 @@
     }
     /* never under the land below it and 15 m (the land here and 2 s on): only into the sea of cloud, going down into it */
     if (!(g.k === 'sink' && seaAt(x, z).w > 0.85)) dy = floorUp(b, dy, v, Infinity);
-    WV[0] = v * sh; WV[1] = dy; WV[2] = v * ch;
+    /* (physics: birds/wind) v is its speed through the air, a little more into a headwind (0.2 m/s a m/s; gulls 0.16,
+       doi:10.3354/meps14431), a little less with it behind; over the ground along its track, crabbed against the side
+       wind: so a headwind slows it over the ground, never held to its still-air pace (still air everywhere but the dunes) */
+    var wa = WINDV[0] * sh + WINDV[2] * ch, wp = WINDV[0] * ch - WINDV[2] * sh, va = v * clamp(1 - 0.2 * wa / v, 0.85, 1.35), gs = b.P || t - b.hT < 30 || (b.K.perch && F.m.length < 2) ? v : wa + Math.sqrt(Math.max(0, va * va - wp * wp));   // (a lone bird that perches, or one with a landing in hand or begun in the last 30 s, works the view: it holds its pace over the ground; flocks and the commuting kinds fly the air speed)
+    WV[0] = gs * sh; WV[1] = dy; WV[2] = gs * ch;
     if (t - g.t0 > g.T && g.k !== 'out' && g.k !== 'sink') nextGoal(F);   // (a sink is never given up: under the cloud it is only ever taken out)
     return WV;
   }

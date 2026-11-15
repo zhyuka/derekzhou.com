@@ -1,7 +1,7 @@
   /* ---------------- the approach ---------------- */
   function startApproach(b, P, delay) {
     splitOff(b);
-    b.st = 'appr'; b.P = P; b.vLo = airLo(b); b.vHi = airHi(b); P.t0 = t + (delay || 0); P.tries = 0; P.d0 = 0; P.tau0 = 0; P.go = 0;
+    b.st = 'appr'; b.P = P; b.hT = t; b.vLo = airLo(b); b.vHi = airHi(b); P.t0 = t + (delay || 0); P.tries = 0; P.d0 = 0; P.tau0 = 0; P.go = 0;
     P.D = perchDepth(b, P.k); P.rest = null;
     PW.appr = b; PERCHED.push(b);
   }
@@ -54,13 +54,13 @@
     var q = projReal(b.p[0], b.p[1], b.p[2], C, GP), a0;
     if (q.z > 0.5) a0 = Math.atan2(q.y - P.foot[1], q.x - P.foot[0]);
     else a0 = (b.p[0] - C.pos[0]) * C.r[0] + (b.p[2] - C.pos[2]) * C.r[2] >= 0 ? -0.5 : Math.PI + 0.5;
-    var L = 0.36 * Math.min(W, H) + 0.12 * Math.max(W, H), best = null, bs = 1e9, k, dz;
+    var L = 0.36 * Math.min(W, H) + 0.12 * Math.max(W, H), best = null, bs = 1e9, k, dz, wr = P.kind === 'pointer' ? 0 : WINDV[0] * C.r[0] + WINDV[2] * C.r[2];
     rayAt(C, P.foot[0], P.foot[1], P.D, GA);
     for (k = 0; k < 12; k++) {
       var a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 6;
       var gx = clamp(P.foot[0] + Math.cos(a) * L, 0.1 * W, 0.9 * W), gy = clamp(P.foot[1] + Math.sin(a) * L, 0.08 * H, 0.9 * H);
       for (dz = 4; dz < 60; dz += 2) { rayAt(C, gx, gy, P.D + dz, GQ); if (dist3(GQ, GA) >= PGATE) break; }
-      var sc = dz + 2 * Math.ceil(k / 2) + 60 * Math.max(0, gy - P.foot[1]) / H;   // (from under it costs: it would climb at its slowest)
+      var sc = dz + 2 * Math.ceil(k / 2) + 60 * Math.max(0, gy - P.foot[1]) / H + 5 * Math.max(0, -Math.cos(a) * wr);   // (from under it costs: it would climb at its slowest)   // (and from upwind: the last leg runs into the wind, physics: birds/wind; landings on ledges fail in wind from behind, doi:10.7554/eLife.43842)
       if (sc < bs) { bs = sc; best = [gx, gy, P.D + dz]; }
     }
     return best;
@@ -100,7 +100,8 @@
       rayAt(C, P.gate[0], P.gate[1], P.gate[2], GQ);
       var gx = GQ[0] - b.p[0], gy = GQ[1] - b.p[1], gz = GQ[2] - b.p[2], gd = Math.sqrt(gx * gx + gy * gy + gz * gz);
       var ux = b.v[0] - P.v[0], uy = b.v[1] - P.v[1], uz = b.v[2] - P.v[2], cn = -(rx * ux + ry * uy + rz * uz) / (d || 1);   // (closing now)
-      if ((gd < 8 || (d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; }
+      var wr = WINDV[0] * C.r[0] + WINDV[2] * C.r[2], dw = P.kind === 'pointer' || Math.abs(wr) <= 1 || (rx * C.r[0] + rz * C.r[2]) * wr > 0;   // (in a side wind, only from its downwind side straight in: the last leg into the wind; to the pointer's moving tip, however it can)
+      if ((gd < 8 || (dw && d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; }
       else {
         if (!P.gT) P.gT = Math.max(14, 6 + d / 8);   // (its time to the gate, by how far it began)
         if (t - P.t0 > P.gT) { goRound(b, 'away'); coast(b, dt); return; }
@@ -150,7 +151,8 @@
      its last PFLARE s: its body pitched up to near upright, its wings forward and spread as brakes, its feet out */
   /* the side it will stand facing: toward the side it comes moving across the view (seen from behind, a perched gull is a
      thin tent), or by the perch's side of the window */
-  function touchYaw(b, C) { var P = b.P, fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2], fr = fx * C.r[0] + fz * C.r[2]; return (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw; }
+  function touchYaw(b, C) { var P = b.P, wr = WINDV[0] * C.r[0] + WINDV[2] * C.r[2]; if (Math.abs(wr) > 1) return (wr > 0 ? -1 : 1) * PERCH.yaw;   // (in a side wind over 1 m/s: facing into it, as wantYaw will want: no turn after the touch)
+    var fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2], fr = fx * C.r[0] + fz * C.r[2]; return (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw; }
   function landStep(b, dt, C) {
     var P = b.P;
     if (!perchWorld(b, C, dt)) { giveUp(b); coast(b, dt); return; }

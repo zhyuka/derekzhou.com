@@ -131,6 +131,15 @@ the level beat, the first the biggest) end on the beat; the bird's own schedule 
 continues the burst's, within 0.02 cycle, and only the beat's size eases from the burst's into the schedule's over XF_T
 (0.22 s): no half-beat, no frozen pose (before: up to half a cycle off, median 0.33, eased over by the last pose held).
 A row startled off together keeps its 120-250 ms ripple and then drifts at its birds' own rates (test/birds-flock.mjs).
+IN WIND (physics: birds/wind; the dunes realm's wind only, still air elsewhere). A goal asks for a speed through the air,
+0.2 m/s more a m/s of headwind (gulls 0.16: doi:10.3354/meps14431), along its track over the ground, crabbed against the
+side wind (goalVel, 210): into the wind a flock or a commuting kind slows over the ground, never held to its still-air
+pace (before: air speed rose 0.82 m/s a m/s of headwind). A lone bird that perches, or one with a landing in hand or
+begun in the last 30 s, works the view and keeps its pace over the ground. The body is drawn along its way through the air (230), so it crabs. In a side wind
+over 1 m/s a landing on the letters comes in against it (to the pointer's moving tip, however it can): its gate on the perch's downwind side (gateFor), straight in only from that
+side (approachStep); it touches facing into the wind (touchYaw, as wantYaw will want it) and never hops round of its own
+while the wind holds (264). test/birds-wind.mjs: 93 % of landings against the wind (before 54 %), none turned round within
+2 s of the touch (before 4 of 13).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
