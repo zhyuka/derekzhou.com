@@ -17,7 +17,7 @@ float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
     return `
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
-centroid out vec3 vW; centroid out vec3 vN; out float vX;
+centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;
 void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
@@ -83,7 +83,7 @@ layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
 uniform int uLvl;    // the level: its rows in the passes' texels
 uniform highp sampler2D uHP0, uHP1, uHP3, uHP4;   // kit (wD, lv), kit (sk, wC), the sites' h, the ridges (+ A_Hd)
-centroid out vec3 vW; centroid out vec3 vN; out float vX;
+centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;
 void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
@@ -100,7 +100,7 @@ void main() {
   var FS_PROBE_SPLIT = `@glsl fs-probe-split`;
   function FS_TERRAIN(H, S) {
     return ZCODE + `
-centroid in vec3 vW; centroid in vec3 vN; in float vX; out vec4 oC;
+centroid in vec3 vW; centroid in vec3 vN; centroid in float vX; out vec4 oC;
 void main() {
   vec3 n = normalize(vN);
 #ifdef HAS_GTX
