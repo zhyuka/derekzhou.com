@@ -126,6 +126,11 @@ whenever a flock's birds change (flockLocks, 120): only the nudge's target, neve
 flies the ibis-in-a-V schedule (gliding about 3 %). A formation turns where its leader turned: each member flies its
 leader's heading from back / c ago (c 1.5 V in a skein or a line, 2.5 V in a loose flock), on a ring of the leader's way
 (210). test/birds-flock.mjs measures both.
+LEAVING TOGETHER (physics: birds/leaving together). A take-off's strong beats (a burst: 3-5 beats a fifth quicker than
+the level beat, the first the biggest) end on the beat; the bird's own schedule is then skipped on (BW.skip) so its phase
+continues the burst's, within 0.02 cycle, and only the beat's size eases from the burst's into the schedule's over XF_T
+(0.22 s): no half-beat, no frozen pose (before: up to half a cycle off, median 0.33, eased over by the last pose held).
+A row startled off together keeps its 120-250 ms ripple and then drifts at its birds' own rates (test/birds-flock.mjs).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,

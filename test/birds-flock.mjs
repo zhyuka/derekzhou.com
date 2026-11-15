@@ -2,6 +2,7 @@
 // the headless sim (tools/birds/sim.mjs) with the eye held still and a flock made in view.
 //   physics: birds/phase   an ibis or a goose in a skein beats with the bird ahead on its leg in wake bouts at the spatial
 //                          phase (doi:10.1038/nature12939, doi:10.1073/pnas.1413589112); directly behind in a line, in antiphase; every other flock free
+//   physics: birds/leaving together   a take-off's strong beats hand over to its schedule at their own phase (BW.skip)
 //   node --test test/birds-flock.mjs        CI (tools/checks/35-birds.sh: a process a test)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -108,4 +109,29 @@ test('a skein glides in turn after its leader, each bird as it reaches where its
     assert.ok(p.n >= 10, `${kind}: only ${p.n} follower glides`);
     assert.ok(p.med <= 0.15, `${kind}: followers' glides off their lag by ${p.med.toFixed(3)} s (median)`);
   }
+});
+
+/* (physics: birds/leaving together) a take-off's strong beats hand over to the bird's own schedule with no half-beat:
+   at the burst's end the schedule is skipped on (BW.skip) so its phase continues the burst's, within 0.02 cycle
+   (before: a gap of up to half a cycle, median 0.33, eased over by a frozen pose) */
+test('a take-off\'s burst hands over to the schedule at its own phase (gap at most 0.02 cycle)', () => {
+  const gaps = [];
+  for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.perch(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let perchT = -1, left = false, bu = null;
+    for (let k = 0; k < 40 * 60 && gaps.length < seed; k++) {
+      sim.frame(1 / 60); const B = sim.B;
+      if (b.st === 'perch' && perchT < 0) perchT = sim.t;
+      if (perchT >= 0 && !left && sim.t - perchT > 2) { B.leave(b, 'own'); left = true; }
+      if (bu && !b.burst && b.st === 'fly' && b.w && b.w.wing) {
+        const nb = (B.TD() - bu.t0) * (b.w.f || 3) * 1.2, g = B.BW.psiAt(b.w.wing, B.AD()) - nb;
+        gaps.push(Math.abs(g - Math.round(g)));
+      }
+      bu = b.burst;
+    }
+  }
+  const worst = Math.max(...gaps);
+  console.log(`# handovers ${gaps.length}; the worst phase gap ${worst.toFixed(3)} cycle`);
+  assert.ok(gaps.length >= 4, `only ${gaps.length} take-offs handed over`);
+  assert.ok(worst <= 0.02, `a burst handed over ${worst.toFixed(3)} cycle off its phase`);
 });
