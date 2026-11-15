@@ -3,7 +3,7 @@
 // not make (tools/gpu/bake-stills.js's shapes and tiers), the wrong tier, or a shape outside A2's rule (portrait under
 // h/w 1.893 the shorter still, above it the taller, the tallest past it; landscape and squat windows the narrower,
 // the square under it). The run-16 Nord (no still on a real phone) is why: this can't come back on another phone.
-// plant: {"file": "site/hour.js", "find": "  if (touch && dk) tier = 'lo';", "with": "", "why": "a touch device in landscape shown the desktop-baked still, and so the desktop's look"}
+// plant: {"file": "site/hour.js", "find": "  if (dk && crs) tier = 'lo';", "with": "", "why": "a touch device in landscape shown the desktop-baked still, and so the desktop's look"}
 import { test, assert, fs, path, vm, ROOT, WORLD } from '../unit-lib.mjs';
 
 const HOUR = fs.readFileSync(path.join(ROOT, 'site', 'hour.js'), 'utf8');
@@ -17,13 +17,13 @@ function pick(o) {   // hour.js in a fake page: o = { w, h (the window, 0 unsize
   const mm = (q) => {
     let m = /\(max-aspect-ratio: (\d+)\/(\d+)\)/.exec(q);
     if (m) return { matches: o.w * +m[2] <= o.h * +m[1] };
-    return { matches: q === '(pointer: coarse)' ? !!o.touch : false };
+    return { matches: q === '(pointer: coarse)' ? !!o.touch && !o.fine : false };
   };
   const ctx = {
     Date: class { getHours() { return 18; } getMinutes() { return 30; } }, Uint32Array,   // (18:30 on the visitor's clock: sunset)
     crypto: { getRandomValues: (a) => { a[0] = 5; return a; } },
     document: { documentElement: root, visibilityState: 'visible', querySelector: (s) => (s === 'link.still' ? link : null) },
-    navigator: { userAgent: o.ua, deviceMemory: o.mem, maxTouchPoints: o.touch ? 5 : 0, hardwareConcurrency: 8 },
+    navigator: { userAgent: o.ua, deviceMemory: o.mem, maxTouchPoints: o.touch ? (o.fine ? 10 : 5) : 0, hardwareConcurrency: 8 },
     screen: { width: o.sw, height: o.sh }, innerWidth: o.w, innerHeight: o.h
   };
   ctx.window = ctx; ctx.window.matchMedia = mm;
@@ -165,4 +165,15 @@ test('still-pick: the look\'s tier is the still\'s on every window (hour.js\'s d
   // (and the world keys its looks on it: data-look read once, never memTier)
   assert.match(WORLD, /var LOOKD = attr\('data-look'\) === 'desk';/, 'the world does not read the look\'s tier from the page');
   assert.deepEqual(BRANCHES, [], `the world branches a look on memTier() === ${BRANCHES.join(', ')}: key it on LOOKD (data-look)`);
+});
+
+test('still-pick: a touchscreen laptop (touch points, a fine pointer) keeps the desktop\'s still and look', () => {
+  const WIN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36';
+  for (const [w, h] of [[1920, 1080], [1536, 864], [1366, 768]]) {
+    const r = pick({ w, h, sw: w, sh: h, ua: WIN, mem: 8, touch: true, fine: true });
+    assert.match(r.href, /-hi-/, `${w}x${h}: a touchscreen laptop given the lo still (${r.href})`);
+    assert.equal(r.look, 'desk', `${w}x${h}: a touchscreen laptop given the phone's look`);
+    const t = pick({ w, h, sw: w, sh: h, ua: WIN, mem: 8, touch: true });
+    assert.equal(t.look, 'touch', `${w}x${h}: a coarse pointer in landscape given the desktop's look`);
+  }
 });
