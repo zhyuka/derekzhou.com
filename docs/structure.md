@@ -60,7 +60,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
-                             test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
+                             test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
@@ -76,6 +76,7 @@ test/ground.mjs              The land's real ground for the sims, from test/gold
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
 test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
+test/birds-motion.mjs        The ink birds' drawn motion frame by frame on the headless sim (their form and place on the window bounded in their second difference)
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves

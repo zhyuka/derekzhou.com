@@ -56,11 +56,11 @@
   /* (delight-weather 4) the glory's uniform: the moon's own direction (the air's airMoon, at the drawn sky time, as the
      sky draws it) and the amount, the moon's own (w: nought on any sky but the moonlit) while it stands over the sea's
      top (its first 3 degrees up: the point opposite it under the horizon) */
-  var GLORYU = new Float32Array(4), GLORYT = NaN;
+  var GLORYU = new Float32Array(4), GLORYT = NaN, GLORYP = -1;
   function gloryUniform() {
     var tD = SIM.V ? SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt : NaN;
-    if (tD === GLORYT) return GLORYU;
-    GLORYT = tD; GLORYU[3] = 0;
+    if (tD === GLORYT && MOON.plans === GLORYP) return GLORYU;   // (and the moon's plan: a resize re-plans it at the same moment (reduced motion's still), and the glory follows it)
+    GLORYT = tD; GLORYP = MOON.plans; GLORYU[3] = 0;
     if (!SIM.V) { GLORYU[0] = 0; GLORYU[1] = 1; GLORYU[2] = 0; return GLORYU; }
     var m = airMoon(tD); GLORYU[0] = m.d[0]; GLORYU[1] = m.d[1]; GLORYU[2] = m.d[2];
     GLORYU[3] = DEVMODE && MOONF.moonOff ? 0 : m.w * mrSmooth(0, 3, m.el);

@@ -6,6 +6,7 @@
 // plant: {"file": "src/glsl/above-glsl.glsl", "find": "const float GLORY_R = 3.9,", "with": "const float GLORY_R = 2.4,", "why": "the glory's ring for 10 um droplets: it no longer matches the corona's 6 um"}
 // plant: {"file": "src/glsl/above-glsl.glsl", "find": "float a = degrees(acos(clamp(-dot(rd, uGlory.xyz), -1.0, 1.0)));", "with": "float a = degrees(acos(clamp(dot(rd, uGlory.xyz), -1.0, 1.0)));", "why": "the rings about the moon, not the point opposite it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  if (uMoon.w > 0.0) {   // the moon:", "with": "  if (uGlory.w > 0.0) c += c * A_glory(rd);\n  if (uMoon.w > 0.0) {   // the moon:", "why": "the glory drawn on the sky"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "if (tD === GLORYT && MOON.plans === GLORYP) return GLORYU;", "with": "if (tD === GLORYT) return GLORYU;", "why": "a resize in the still re-plans the moon, the glory left opposite the old one"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 const ABOVE = fs.readFileSync(path.join(ROOT, 'src/glsl/above-glsl.glsl'), 'utf8');
@@ -95,12 +96,17 @@ test('glory: light added to the sea\'s own (its brightness), on the cloud sea\'s
 test('glory: its uniform is the air\'s moon, at the sky\'s drawn time; nought with no moon or under the horizon', () => {
   const SRC = cut(WORLD, '  var GLORYU = new Float32Array(4)', '  function skyNightUniforms(');
   assert.match(SRC, /var m = airMoon\(tD\);/, 'the glory reads a moon of its own (map.md disconnect 4: the air\'s airMoon)');
-  const run = (moon, V) => vm.runInThisContext('(function (M, V) { var SIM = { V: V, t: 100, alpha: 1 }, SIM_DT = 1 / 60, SKY = { dt: 0 }, DEVMODE = false, MOONF = {};' +
+  const run = (moon, V) => vm.runInThisContext('(function (M, V) { var SIM = { V: V, t: 100, alpha: 1 }, SIM_DT = 1 / 60, SKY = { dt: 0 }, DEVMODE = false, MOONF = {}, MOON = { plans: 0 };' +
     ' function airMoon(t) { return M; } function mrSmooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }\n' + SRC + ' return Array.from(gloryUniform()); })')(moon, V);
   const up = run({ d: [0.5, 0.4, 0.7], w: 1, el: 23 }, {});
   assert.deepEqual(up.map((v) => +v.toFixed(5)), [0.5, 0.4, 0.7, 1]);
   assert.equal(run({ d: [0, -0.1, 1], w: 0.6, el: -5 }, {})[3], 0, 'a moon under the horizon has a glory');
   assert.equal(run({ d: [0, 0.5, 0.8], w: 0, el: 30 }, {})[3], 0, 'a sky with no moon has a glory');
   assert.equal(run({ d: [0, 0.5, 0.8], w: 1, el: 30 }, null)[3], 0, 'no visit, a glory');
+  // a re-plan at the same moment (a resize in reduced motion's still: the clock stands) moves the glory with the moon
+  const re = vm.runInThisContext('(function () { var M = { d: [0.5, 0.4, 0.7], w: 1, el: 23 }, SIM = { V: {}, t: 100, alpha: 1 }, SIM_DT = 1 / 60, SKY = { dt: 0 }, DEVMODE = false, MOONF = {}, MOON = { plans: 0 };' +
+    ' function airMoon(t) { return M; } function mrSmooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }\n' + SRC +
+    ' var a = Array.from(gloryUniform()); M = { d: [-0.6, 0.3, 0.74], w: 1, el: 17 }; MOON.plans++; var b = Array.from(gloryUniform()); return [a, b]; })')();
+  assert.deepEqual(re[1].slice(0, 3).map((v) => +v.toFixed(5)), [-0.6, 0.3, 0.74], 'a re-plan at the same moment leaves the glory opposite the old moon');
   assert.match(WORLD, /if \(u\.uGlory\) gl\.uniform4fv\(u\.uGlory, gloryUniform\(\)\);/);
 });
