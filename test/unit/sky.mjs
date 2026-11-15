@@ -142,3 +142,72 @@ test('sky: a star\'s light on the screen is the same wherever it stands between 
     assert.ok((hi - lo) / hi < 0.02, `b ${b}, head ${head}: the star's light swings ${(100 * (hi - lo) / hi).toFixed(1)}% as it slides (at most 2%)`);
   }
 });
+
+// ------------------------------------------------------------------ the night's bodies (delight-night §1 and §4)
+// 215's airSkyFrame and eclPole and 227's starLim and venusDir run here as the page runs them; the shader's own tint
+// and Venus constants read from sky-body.glsl
+const NIGHT = cut(WORLD, '  var AIR_LAT =', '  function weather()') + cut(WORLD, '  var STAR_LIM =', '  function venusFails(');
+function nightWorld(seed, keyAz) {
+  return vm.runInThisContext('(function (SEED, KEYAZ) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, SUNU = { on: false }, SKY = {};\n' +
+    '  var SIM = { V: { light: { sunAz: KEYAZ } } };\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n' + STREAMS + VEC + NIGHT +
+    '  return { F: function (m) { return airSkyFrame(SIM.V, m); }, eclPole: eclPole, starLim: starLim, venusDir: venusDir, V: SIM.V, STAR_LIM: STAR_LIM, VEN_EL: VEN_EL, VEN_TOP_Y: VEN_TOP_Y };\n})')(seed, keyAz);
+}
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const angD = (a, b) => Math.atan2(Math.hypot(...cross3(a, b)), dot3(a, b)) * 180 / Math.PI;
+test('night: the sky frame (the pole, north, east, the ecliptic through the sun) is the sky\'s own', () => {
+  for (let s = 1; s <= 60; s++) for (const morning of [false, true]) {
+    const keyAz = (s * 47) % 360, K = nightWorld(s * 2654435761 >>> 0, keyAz), F = K.F(morning);
+    assert.ok(F.lat >= 28 && F.lat <= 48, `seed ${s}: latitude ${F.lat}`);
+    assert.ok(Math.abs(Math.hypot(...F.P) - 1) < 1e-9 && Math.abs(Math.asin(F.P[1]) * 180 / Math.PI - F.lat) < 1e-9, `seed ${s}: the pole stands the latitude up`);
+    assert.ok(Math.abs(F.N[1]) < 1e-12 && Math.abs(dot3(F.N, F.E)) < 1e-12, 'north and east are level and at right angles');
+    const R = cross3(F.N, [0, 1, 0]); assert.ok(angD(R, F.E) < 1e-6, 'east is on north\'s right (the camera\'s right: cross(f, up))');
+    const key = [Math.sin(keyAz * Math.PI / 180), 0, Math.cos(keyAz * Math.PI / 180)], bear = (Math.atan2(dot3(key, F.E), dot3(key, F.N)) * 180 / Math.PI + 360) % 360;
+    const want = morning ? 90 - F.bear : 270 + F.bear;
+    assert.ok(Math.abs(((bear - want + 540) % 360) - 180) < 1e-6, `seed ${s}: the key's bearing ${bear} (${want})`);
+    for (const D of [3, 7, 12, 18, 24]) {
+      const S = [key[0] * Math.cos(-D * Math.PI / 180), Math.sin(-D * Math.PI / 180), key[2] * Math.cos(-D * Math.PI / 180)], E = K.eclPole(F, S, [0, 0, 0]);
+      assert.ok(Math.abs(dot3(E, S)) < 1e-9 && Math.abs(Math.hypot(...E) - 1) < 1e-9, 'the ecliptic passes through the sun');
+      const dec = 90 - angD(F.P, S);
+      assert.ok(Math.abs(angD(E, F.P) - Math.max(23.44, Math.abs(dec))) < 1e-6, `seed ${s}, D ${D}: the ecliptic's pole ${angD(E, F.P)} deg from the pole (23.44, or the nearest past the solstices' declination: ${dec})`);
+    }
+  }
+});
+test('night: the evening star keeps to the sun (its elongation, its side, east in the evening) and sets with its depth', () => {
+  for (let s = 1; s <= 60; s++) for (const morning of [false, true]) {
+    const K = nightWorld(s * 40503 >>> 0, (s * 71) % 360), F = K.F(morning), side = morning ? -1 : 1, eps = K.VEN_EL[0] + (K.VEN_EL[1] - K.VEN_EL[0]) * ((s * 0.618) % 1);
+    assert.ok(K.VEN_EL[1] <= 47 && K.VEN_EL[0] > 0, 'within 47 deg of the sun');
+    let prev = null; const D0 = [3, 7, 24][s % 3];
+    for (let D = 3; D <= 24; D += 0.5) {
+      const v = K.venusDir(F, eps, side, D, D0, [0, 0, 0]), S = K.venusDir(F, 0, side, D, D0, [0, 0, 0]), S0 = K.venusDir(F, 0, side, D0, D0, [0, 0, 0]);
+      assert.ok(Math.abs(Math.asin(S[1]) * 180 / Math.PI + D) < 1e-9, 'elongation 0 is the sun itself');
+      assert.ok(Math.abs(angD(v, S) - eps) < 1e-6, `elongation ${angD(v, S)} (${eps})`);
+      if (D === D0) {
+        assert.ok(Math.abs(dot3(v, K.eclPole(F, S0, [0, 0, 0]))) < 1e-9, 'on the ecliptic at the opening\'s depth');
+        assert.ok(side * dot3(v, cross3(F.P, S)) > 0, `seed ${s}: ${morning ? 'west' : 'east'} of the sun on the sky (cross(P, S) is east)`);
+      }
+      if (D <= 7 && D0 <= 7) assert.ok(v[1] > S[1], `seed ${s}, D ${D}: above the sun in its own twilight (${v[1]} under ${S[1]})`);
+      if (prev && v[1] > -0.3) { assert.ok(v[1] < prev[1] + 1e-12, `seed ${s}: it sinks as the sun does (D ${D})`); assert.ok(angD(v, prev) < 0.5 + 1e-9, `seed ${s}: no jump (${angD(v, prev)} deg in 0.5 deg of the sun)`); }
+      prev = v;
+    }
+  }
+});
+test('night: the stars come out by the sun\'s depth, brightest first; their colours never move their light; Venus under L 0.50', () => {
+  const K = nightWorld(1, 0), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (let D = 0; D < 30; D += 0.25) assert.ok(K.starLim(D + 0.25) >= K.starLim(D), 'the limit only deepens with the sun');
+  assert.ok(K.starLim(3) < 1.5 && K.starLim(6) >= 0.9 && K.starLim(6) <= 1.5 && Math.abs(K.starLim(12) - 4.5) < 1e-9 && K.starLim(18) >= 6, 'civil, nautical, astronomical');
+  assert.ok(g.includes('float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }'), 'starMag');
+  const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07);
+  assert.ok(mag(1.02) < mag(0.3) && mag(0.3) < mag(0.07), 'brightest first');
+  assert.ok(/float bk = clamp\(\(ml - starMag\(b\)\) \/ 0\.6, 0\.0, 1\.0\);/.test(g) && g.includes('b *= bk;'), 'each star by its own margin under the limit');
+  assert.ok(!/uSunD\.z \* \(/.test(g) && /, sk = uSunD\.z \* smoothstep/.test(g), 'the amount is only the stars\' on/off');
+  const stars = [...WORLD.matchAll(/post:\{[^}]*stars:([\d.]+)/g)].map((m) => +m[1]);
+  assert.equal(stars.length, 6); assert.ok(stars.every((x) => x === 1), `every sky's stars' amount is 1 (no blend between skies): ${stars}`);
+  const lab = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; };
+  const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], W = [0.92 / 0.94, 1, 1 / 0.94];
+  const T = g.match(/^vec3 starTint[\s\S]*?^}/m)[0], cols = [...T.matchAll(/vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]).filter((c) => c[0] !== 0.92);
+  assert.equal(cols.length, 4);
+  for (const c of cols) { const L = lab(c); assert.ok(Math.abs(Y(c) - Y(W)) < 2e-3, `tint ${c}: Y ${Y(c)}`); assert.ok(Math.abs(L[0] - lab(W)[0]) < 5e-3, `tint ${c}: L ${L[0]}`); assert.ok(Math.hypot(L[1], L[2]) < 0.065, `tint ${c}: pastel`); }
+  const vc = g.match(/return vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* min\(v, hv\)/); assert.ok(vc, 'Venus\'s colour, capped at its head');
+  const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
+  for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }
+});
