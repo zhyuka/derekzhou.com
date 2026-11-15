@@ -139,15 +139,17 @@ as the sun's depth moves (a hold holds it). So the twilights show only Venus
 and, in the blue hour, the brightest stars; a dark night keeps the whole field.
 The bright stars (b over 0.35) take pastel colours by spectral kind, each at
 the white's own luminance. The evening (or morning, on a visit that opens on
-first light) star stands on the ecliptic of the sky's frame (skyFrame(t),
-THE AIR), 24-46 deg east (or west) of the frame's sun, so it sets and rises
-with the sphere by moving, never fading; steady, a point of the stars' kind
-with a small glow, its peak under OKLab L 0.49; its elongation the first of
-12 drawn (SEED0's stream) whose path through the opening's hold and the
-changes the order has drawn after it keeps clear of the words' boxes at the
-view's own heading and pitch (moonInputs). The stars follow the depth of the
-sun the sky draws, not the frame's, which passes midnight in a change between
-first light and an evening sky.
+first light) star stands by the drawn sky's sun, its glow (the hub's ruling,
+2026-11-15: until one forward clock drives the sun, the stars and the planet
+together): on the ecliptic through that sun at the opening's depth, in a
+local frame at AIR's latitude and season, 24-46 deg east (or west) of it,
+then turned with the sun as it sinks, rigid in the sun's vertical plane, so
+it keeps its elongation, stands by the glow and sets by moving, never
+fading; steady, a point of the stars' kind with a small glare, its peak
+under OKLab L 0.49; its elongation the first of 12 drawn (SEED0's stream)
+whose path down keeps clear of the words' boxes at the view's own heading
+and pitch (moonInputs). It slips against the stars, which turn on their own
+clock, until that forward clock lands (delight-visit §5.5).
 
 ## THE WORDS
 
