@@ -38,7 +38,7 @@ assert.ok(AUR.includes('float h = 6371.0 * (cos(el) / cos(ee) - 1.0)') && AUR.in
 const [sA, sL, sW] = num(/y = ([\d.]+) \* sin\(a1\)/, 'swell amplitude').concat(num(/float a1 = SKYTAU \* s \/ ([\d.]+) \+ ([\d.]+) \* uT/, 'swell'));
 const [fL, fW] = num(/a2 = SKYTAU \* s \/ ([\d.]+) - ([\d.]+) \* uT/, 'folds');
 const [fA, fAB] = num(/fa = min\(mix\(([\d.]+), ([\d.]+), b\) \* smoothstep\(8\.0, 16\.0, 40\.0(?: \* cw)? \/ max\(rho \* pa, 1e-4\)\), [\d.]+ \* cp \/ max\(abs\(sp\), 1e-3\)\);/, 'fold amplitude (by its projected span, and the crossing held to converge)');
-const [rP, rP2, rV] = num(/textureLod\(uN3, vec3\(s \/ ([\d.]+) \+ uT \/ ([\d.]+), 0\.5 \+ s \/ ([\d.]+), 0\.19 \+ f0\), 0\.0\)\.a\)/, 'rays (level 0, v drifting with s)');
+const [rP, rP2, rV, rW] = num(/textureLod\(uN3, vec3\(s \/ ([\d.]+) \+ uT \/ ([\d.]+), 0\.5 \+ s \/ ([\d.]+), 0\.19 \+ f0 \+ s \/ ([\d.]+)\), 0\.0\)\.a\)/, 'rays (level 0, v and w drifting with s)');
 const [rMean, rLo, rHi, rSpan] = num(/float ry = mix\(([\d.]+), smoothstep\(0\.45, 0\.9, textureLod\(.*\), smoothstep\((-?[\d.]+), (-?[\d.]+), ([\d.]+) \* cpr \/ max\(rho \* pa, 1e-4\)\)\);/, 'the rays eased to their mean where they would alias');
 const [EOK] = num(/float eo = inversesqrt\(cps \* cps \+ ([\d.]+)\);/, 'edge-on');
 const EO = 1 / Math.sqrt(EOK);   // (edge-on brightening at its most)
@@ -80,9 +80,6 @@ test('physics: aurora/motion: every motion at real speeds, under the pixel limit
   // the rays read at level 0 (no mip before the hard smoothstep: 1x and 2x2 read the same texels), eased to their own
   // mean (the volume's: 0.12) wherever the noise's 8-cell octave (rP / 8 km) spans under rHi projected pixels, so they never alias
   assert.ok(Math.abs(rSpan - rP / 8) < 1e-9 && rLo >= 2 && rHi >= rLo, `the rays' ease: ${rSpan} km (the 8-cell octave, ${rP / 8}) over ${rLo}-${rHi} px`);
-  // and never repeat in view: their u wraps every rP km, their v every rV km, so the pattern comes round only at the two's least common multiple
-  const gcd = (a, b) => (b ? gcd(b, a % b) : a), lcm = rP * rV / gcd(rP, rV);
-  assert.ok(lcm >= 4000, `the rays repeat every ${lcm} km (the sheet in view spans 3000: at least 4000)`);
   assert.ok(!/pulse|flicker|corona/.test(AUR.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')), 'auroraAt pulses or flickers');
 });
 
@@ -172,7 +169,7 @@ test('physics: aurora/phases: it comes in, holds, drifts and goes by its own clo
   const dr = WORLD.match(/SKY\.aur\.bk = SKY\.rV\.f\(\) < 0\.5 \? 1 : 0; SKY\.aur\.f0 = SKY\.rV\.r\(20, 40\); SKY\.aur\.dD = SKY\.rV\.f\(\) < 0\.5 \? SKY\.rV\.r\(150, 300\) : 0;/);
   assert.ok(dr, 'the stay\'s draws (a breakup, its front, a second arc) are not 222\'s as tested');
   assert.ok(WORLD.indexOf(dr[0]) > WORLD.indexOf('SKY.gal = best; SKY.aur = {'), 'the stay\'s draws come before skyInit\'s others: they would move them');
-  assert.ok(AUR.includes('if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z,'), 'the second arc is not 0.6 of the first, uAurB.z km beyond it');
+  assert.ok(AUR.includes('if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z, uAur.z + 0.37, 0.0, 0.0, pa);'), 'the second arc is not 0.6 of the first, uAurB.z km beyond it');
 });
 
 test('physics: aurora/phases: a breakup brighter, its folds deeper, its fringe pink, all under the words\' floor', () => {
@@ -206,7 +203,7 @@ const SHB = (() => {
   let body = GLSL.slice(GLSL.indexOf('{', a) + 1, b).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   assert.ok(!/\bn3v\(|texture\(/.test(body), 'auroraSheet reads its noise with a mip (texture or n3v): 1x and 2x2 read different texels before the hard smoothstep');
   body = body.replace(/\bfloat\s+/g, 'let ').replace(/for \(int /g, 'for (let ').replace(/textureLod\(uN3, vec3\(([^;]*?)\), 0\.0\)\.a/g, (m, x) => 'NA(' + x + ')').replace(/\bvec3\(/g, 'V3(');
-  return new Function('el', 'cp', 'sp', 'D', 'f0', 'bk', 'pa', 'U', 'const { uT, uAurB, NA, V3 } = U, SKYTAU = 2 * Math.PI, { abs, sqrt, exp, sin, cos, min, max } = Math, inversesqrt = (x) => 1 / Math.sqrt(x), mix = (x, y, t) => x + (y - x) * t, smoothstep = (e0, e1, x) => { const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1); return t * t * (3 - 2 * t); };' + body);
+  return new Function('el', 'cp', 'sp', 'D', 'f0', 'bk', 'rk', 'pa', 'U', 'const { uT, uAurB, NA, V3 } = U, SKYTAU = 2 * Math.PI, { abs, sqrt, exp, sin, cos, min, max } = Math, inversesqrt = (x) => 1 / Math.sqrt(x), mix = (x, y, t) => x + (y - x) * t, smoothstep = (e0, e1, x) => { const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1); return t * t * (3 - 2 * t); };' + body);
 })();
 const auroraJS = (rd, Un) => {
   const e = Math.asin(rd[1]) / DEG, eb = (eb0 + (eb1 + (eb2 - eb1) * Un.uAurB.x - eb0) * Un.uAur.x) * DEG, D = R * (Math.acos(Math.cos(eb) / (1 + h0D / R)) - eb);
@@ -215,7 +212,7 @@ const auroraJS = (rd, Un) => {
   const el = Math.asin(rd[1]), c = [0, 0, 0];
   for (let ch = 0; ch < 3; ch++) {
     const U = { uT: Un.uT, uAurB: Un.uAurB, NA: n3a, V3: (p, q, r) => [p, q, r][ch] };
-    c[ch] = SHB(el, cp, sp, D, Un.uAur.z, Un.uAurB.w, Un.pa, U) + (Un.uAurB.z > 0 ? 0.6 * SHB(el, cp, sp, D + Un.uAurB.z, Un.uAur.z + 0.37, 0, Un.pa, U) : 0);
+    c[ch] = SHB(el, cp, sp, D, Un.uAur.z, Un.uAurB.w, 1, Un.pa, U) + (Un.uAurB.z > 0 ? 0.6 * SHB(el, cp, sp, D + Un.uAurB.z, Un.uAur.z + 0.37, 0, 0, Un.pa, U) : 0);
   }
   const yl = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], k = (yl > 1e-6 ? Ym * (1 - Math.exp(-yl / Ym)) / yl : 1) * ss(0.5, 2.5, e);
   return c.map((x) => x * k);
@@ -243,9 +240,53 @@ test('physics: aurora/sampling: auroraAt at 1x within 3 codes of 2x2, quiet and 
   const [fc] = num(/, ([\d.]+) \* cp \/ max\(abs\(sp\), 1e-3\)\);/, 'the folds held to converge');
   assert.ok(fc * 2 * Math.PI / fL * (1 + 1.3 * fL / 170) <= 0.5 + 1e-9, `the folds' slope times tan phi reaches ${(fc * 2 * Math.PI / fL * (1 + 1.3 * fL / 170)).toFixed(2)} (at most 0.5: the crossing's three steps converge)`);
   for (const [name, B] of [['a quiet stay', { x: 0.5, y: -1e5, z: 0, w: 0 }], ['a breakup with its second arc', { x: 0.3, y: -1e5, z: 220, w: 1 }]])
-    for (const [yaw, pitch] of [[0, 8], [40, 6], [70, 3]]) for (const degpx of [0.0578, 0.0376]) {
+    for (const [yaw, pitch, both] of [[0, 8, 1], [40, 6, 1], [70, 3, 1], [80, 2, 0], [-45, 12, 0], [55, 4, 0]]) for (const degpx of both ? [0.0578, 0.0376] : [0.0578]) {   // (the last three: the hub's, where its own sweep found 3.03-3.32; their worst is a laptop's pixel)
       const m = auroraMeter({ degpx, yaw, pitch, Un: { uT: 523.7, uAur: { x: 1, y: 0.3, z: 6.2, w: 1 }, uAurB: B } });
       assert.ok(m.lit > 2000, `${name}, ${yaw} deg along, ${degpx} deg/px: the view holds only ${m.lit} lit samples (the meter looks past the sheet)`);
       assert.ok(m.worst <= 3, `${name}, ${yaw} deg along the sheet, ${degpx} deg/px: 1x is ${m.worst.toFixed(1)} codes from 2x2 at (${m.at.map(Math.round)}) (at most 3: it glitters)`);
     }
+});
+
+test('physics: aurora/rays: they never nearly repeat along the sheet (autocorrelation at most 0.6 for lags 10-1100 km)', () => {
+  // the rays' own field along the sheet, as auroraSheet reads it from the world's noise volume (its u, v and w all drifting
+  // with s), in 300 km windows: no lag from 10 to 1100 km (two places 1-90 deg apart at D 650, inside any view) finds
+  // the pattern again (Pearson r at most 0.6), at three fold phases and two moments
+  const ry = (s, uT, f0) => ss(0.45, 0.9, n3a(s / rP + uT / rP2, 0.5 + s / rV, 0.19 + f0 + s / rW));
+  let worst = { r: -1 };
+  for (const f0 of [5.0, 6.2, 7.9]) for (const uT of [0, 523.7]) for (const s0 of [-1500, -300, 900]) {
+    const ds = 1, win = 300, a = [];
+    for (let i = 0; i <= win + 1100; i += ds) a.push(ry(s0 + i, uT, f0));
+    const n = win / ds, A = a.slice(0, n), mA = A.reduce((x, y) => x + y, 0) / n, vA = A.reduce((x, y) => x + (y - mA) ** 2, 0);
+    for (let lag = 10; lag <= 1100; lag += ds) {
+      const B = a.slice(lag / ds, lag / ds + n), mB = B.reduce((x, y) => x + y, 0) / n, vB = B.reduce((x, y) => x + (y - mB) ** 2, 0);
+      let cv = 0; for (let i = 0; i < n; i++) cv += (A[i] - mA) * (B[i] - mB);
+      const r = cv / Math.sqrt(vA * vB + 1e-12);
+      if (r > worst.r) worst = { r, lag, f0, uT, s0 };
+    }
+  }
+  assert.ok(worst.r <= 0.6, `the rays nearly repeat: r ${worst.r.toFixed(3)} at a lag of ${worst.lag} km (f0 ${worst.f0}, uT ${worst.uT}, from s ${worst.s0}): at most 0.6`);
+});
+
+test('physics: aurora/colour: the saddle keeps the sky\'s blue everywhere: the second arc on, at the arc\'s ends', () => {
+  // auroraSheet's own lines (auroraJS), composited over the aurora sky (skyGrad, its warm band toward the key at its
+  // strongest), saturated and under the ceiling, wherever the near sheet's saddle stands (150-190 km): the arc's centre
+  // to its ends (|phi| to 60 deg), quiet and with the second arc 150 or 300 km beyond, at the hold's ends: the
+  // composite keeps the sky's own chroma, or within 0.005 of it where the sky itself is greyer than 0.035
+  const sky = SKY.sky.map((c) => lch(...c)), mix3 = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
+  const skyAt = (e) => { let c = mix3(sky[1], sky[2], ss(0, SKYE[0], e)); c = mix3(c, sky[3], ss(SKYE[0], SKYE[1], e)); return mix3(c, lch(...SKY.skyW), SKY.skyK[0] * Math.exp(-e / SKY.skyK[1])); };
+  const Yl = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], knee = +WORLD.match(/var CEIL_KNEE = ([\d.]+),/)[1];
+  const post = (c) => { const y = Yl(c); c = c.map((x) => Math.max(y + (x - y) * SKY.post.sat, 0)); const [L] = LCh(c), Kc = SKY.ceil - knee; if (L > Kc) { const k = Math.pow((Kc + knee * (1 - Math.exp(-(L - Kc) / knee))) / L, 3); c = c.map((x) => x * k); } return c; };
+  let worst = null;
+  for (const p of [0, 1]) for (const dD of [0, 150, 300]) for (const phiD of [0, 20, 40, 50, 60]) for (const uT of [0, 523.7]) {
+    const Un = { uT, uAur: { x: 1, y: 0, z: 6.2, w: 1 }, uAurB: { x: p, y: -1e5, z: dD, w: 0 }, pa: 2 * Math.atan(Math.tan(26 * DEG)) / 900 };
+    const D = Dof(1, p), phi = phiD * DEG;
+    for (let e = 1; e <= 40; e += 0.25) {
+      const h = hAt(e * DEG, D / Math.cos(phi));
+      if (h < 150 || h > 190) continue;
+      const rd = [Math.sin(phi) * Math.cos(e * DEG), Math.sin(e * DEG), Math.cos(phi) * Math.cos(e * DEG)], a = auroraJS(rd, Un), s0 = skyAt(e);
+      const [, Cs] = LCh(post(s0)), [, Cc] = LCh(post(s0.map((v, i) => v + a[i]))), need = Math.min(Cs, 0.035) - 0.005;
+      if (!worst || Cc - need < worst.m) worst = { m: Cc - need, Cc, Cs, e, phiD, dD, p, h };
+    }
+  }
+  assert.ok(worst.m >= 0, `the saddle greys: C ${worst.Cc.toFixed(4)} over a sky of ${worst.Cs.toFixed(4)} at ${worst.e} deg, ${worst.phiD} deg along the arc (h ${worst.h.toFixed(0)} km, second arc ${worst.dD} km, hold ${worst.p}): within 0.005 of the sky's own chroma, or of 0.035`);
 });

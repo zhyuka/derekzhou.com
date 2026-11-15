@@ -34,7 +34,7 @@ vec3 galaxyAt(vec3 rd, float e) {
 }
 /* (physics: aurora/phases) one sheet D km away toward the key's azimuth, seen from the ground: phi from its centre,
    the folds' phase f0, and how deep into a breakup it is (bk: 0 none; the section east of the front, s > uAurB.y) */
-vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, float pa) {
+vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, float rk, float pa) {
   /* (physics: aurora/geometry) the ray's crossing with it (rho cos phi = D + y(rho sin phi), three fixed-point steps)
      and the altitude there, h = R (cos e / cos(e + rho / R) - 1); at infinity (drawn by direction: no parallax in
      flight), not tied to the stars */
@@ -49,7 +49,7 @@ vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, floa
        flanks never stand in a regular comb) */
     float s = rho * sp, w = SKYTAU * s / 170.0 + f0 * 3.0;
     b = bk * smoothstep(uAurB.y - 15.0, uAurB.y + 15.0, s);
-    float cw = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys), fa = min(mix(3.0, 9.0, b) * smoothstep(8.0, 16.0, 40.0 * cw / max(rho * pa, 1e-4)), 2.0 * cp / max(abs(sp), 1e-3));
+    float cw = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys), fa = min(mix(3.0, 9.0, b) * smoothstep(8.0, 16.0, 40.0 / max(rho * pa, 1e-4)), 2.0 * cp / max(abs(sp), 1e-3));
     float a1 = SKYTAU * s / 500.0 + 0.0038 * uT + f0 * 7.0, a2 = SKYTAU * s / 40.0 - 0.157 * uT + f0 * 13.0 + 1.3 * sin(w);
     y = 15.0 * sin(a1) + fa * sin(a2);
     ys = 15.0 * SKYTAU / 500.0 * cos(a1);
@@ -63,21 +63,21 @@ vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, floa
      then e-folding over 15 km (30-40 inside a ray); no stop in the saddle (150-190 km: the sky's own blue shows); the
      red line's top (630 nm) rising from 180 to 230 km, e-folding over 60, a fifth of the green's column, unrayed. The
      rays along the sheet only (functions of s: they meet at the zenith in perspective), the noise's 48 km period at
-     1 km/s, read at level 0 (no mip before the hard smoothstep) and drifting in v (131 km) so they never repeat in view,
+     1 km/s, read at level 0 (no mip before the hard smoothstep) and drifting in v and w (113 and 271 km: their autocorrelation along the sheet at most 0.6 for lags of 10-1100 km),
      eased to their own mean (the volume's, 0.12) wherever its 6 km octave spans under 3-6 px as projected (physics:
      aurora/sampling: 1x within 3 codes of 2x2, test/unit/aurora.mjs).
      (physics: aurora/phases) inside a breakup: brighter, the rays twice as tall, the pink fringe under the hem (the
      nitrogen bands, 95-108 km, running into the hem), and the red brightened where the front passed 10 deg back (it trails it, east) */
   float cps = abs(cos(el) * (cp - yd * sp)) / sqrt(1.0 + yd * yd), cpr = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys);
-  float ry = mix(0.12, smoothstep(0.45, 0.9, textureLod(uN3, vec3(s / 48.0 + uT / 48.0, 0.5 + s / 131.0, 0.19 + f0), 0.0).a), smoothstep(3.0, 6.0, 6.0 * cpr / max(rho * pa, 1e-4)));
+  float ry = mix(0.12, smoothstep(0.45, 0.9, textureLod(uN3, vec3(s / 48.0 + uT / 48.0, 0.5 + s / 113.0, 0.19 + f0 + s / 271.0), 0.0).a), smoothstep(3.0, 6.0, 6.0 * cpr / max(rho * pa, 1e-4)));
   float g = smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, mix(35.0, 70.0, b), ry)) * (0.75 + 0.5 * ry) * (1.0 + 0.5 * b);
-  float r = smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2 * (1.0 + 1.5 * bk * smoothstep(uAurB.y + 0.18 * D - 15.0, uAurB.y + 0.18 * D + 15.0, s));
+  float r = rk * smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2 * (1.0 + 1.5 * bk * smoothstep(uAurB.y + 0.18 * D - 15.0, uAurB.y + 0.18 * D + 15.0, s));
   float pk = b * smoothstep(95.0, 100.0, h) * (1.0 - smoothstep(104.0, 110.0, h)) * 0.7;
   /* edge-on is brightest: the column along the ray through the sheet, 1 / |cos psi| (eased to 3 at most: a smooth
      peak, never a pixel-thin flank); the red's by the
      swell alone (it is blurred over 30 km and more: the folds' flanks never show in it) */
   float eo = inversesqrt(cps * cps + 0.11);
-  return (vec3(0.225, 1.5, 0.18) * g * eo + vec3(0.9, 0.1, 0.06) * r * min(1.0 / max(cpr, 1e-3), 3.0) + vec3(0.9, 0.2, 0.45) * pk * eo) * 0.08;
+  return (vec3(0.225, 1.5, 0.18) * g * eo + vec3(0.9, 0.1, 0.06) * r * min(1.0 / max(cpr, 1e-3), 1.2) + vec3(0.9, 0.2, 0.45) * pk * eo) * 0.08;
 }
 vec3 auroraAt(vec3 rd, float e) {
   if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
@@ -90,8 +90,8 @@ vec3 auroraAt(vec3 rd, float e) {
   float phi = atan(rd.x, rd.z) - uAur.y, cp = cos(phi), sp = sin(phi);
   if (cp < 0.05) return vec3(0.0);
   float el = asin(clamp(rd.y, -1.0, 1.0)), pa = 2.0 * atan(uProj.y) / uRes.y;
-  vec3 c = auroraSheet(el, cp, sp, D, uAur.z, uAurB.w, pa);
-  if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z, uAur.z + 0.37, 0.0, pa);
+  vec3 c = auroraSheet(el, cp, sp, D, uAur.z, uAurB.w, 1.0, pa);
+  if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z, uAur.z + 0.37, 0.0, 0.0, pa);   // (the far arc green only: its red top would stand in the near arc's saddle and grey the sky's blue)
   /* its light held under the words' floor: the green's composited peak at most L 0.50 at every height it stands, in a
      breakup and edge-on, under either ceiling knee (a soft cap on what it adds,
      its hue kept: test/unit/aurora.mjs) */
