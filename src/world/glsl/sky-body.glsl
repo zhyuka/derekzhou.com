@@ -62,11 +62,11 @@ vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, floa
      red line's top (630 nm) rising from 180 to 230 km, e-folding over 60, a fifth of the green's column, unrayed. The
      rays along the sheet only (functions of s: they meet at the zenith in perspective), 12 km a period at 1 km/s.
      (physics: aurora/phases) inside a breakup: brighter, the rays twice as tall, the pink fringe under the hem (the
-     nitrogen bands, 95-103 km), and the red brightened where the front passed 10 deg back (it trails it, east) */
+     nitrogen bands, 95-108 km, running into the hem), and the red brightened where the front passed 10 deg back (it trails it, east) */
   float ry = smoothstep(0.45, 0.9, n3v(vec3(s / 12.0 + uT / 12.0, 0.5, 0.19 + f0)).a);
   float g = smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, mix(35.0, 70.0, b), ry)) * (0.75 + 0.5 * ry) * (1.0 + 0.5 * b);
   float r = smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2 * (1.0 + 1.5 * bk * smoothstep(uAurB.y + 0.18 * D - 15.0, uAurB.y + 0.18 * D + 15.0, s));
-  float pk = b * smoothstep(95.0, 98.0, h) * (1.0 - smoothstep(101.0, 104.0, h)) * 0.5;
+  float pk = b * smoothstep(95.0, 100.0, h) * (1.0 - smoothstep(104.0, 110.0, h)) * 0.7;
   /* edge-on is brightest: the column along the ray through the sheet, 1 / |cos psi| (at most 3); the red's by the
      swell alone (it is blurred over 30 km and more: the folds' flanks never show in it) */
   float cps = abs(cos(el) * (cp - yd * sp)) / sqrt(1.0 + yd * yd), cpr = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys);
