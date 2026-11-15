@@ -86,7 +86,7 @@ one is committed to site/ (built-files-uncommitted).
      a deliberate change to what one pins, `node test/unit/<area>.mjs --write`.
    - A shader changed: nothing derived to commit; the gate's census and
      T2 compare the base's build with the head's.
-   - The plan's spans changed: `node tools/plan.mjs --stamp`.
+   - The plan's spans changed: nothing to do; every assembly writes their stamp into PW_V.
    - `node tools/build.mjs --check`: two builds the same bytes.
    - `npm run check`: every static check CI runs (tools/check.mjs: the
      build once, then tools/checks/*.sh in parallel; about a minute).
