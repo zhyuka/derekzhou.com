@@ -43,8 +43,8 @@ const R = await page.evaluate(async ({ d, rule, VW, VH, COL, links, credit, sans
   const A = g.getImageData(0, 0, VW, VH).data, cols = [];
   for (let c = 0; c * COL < VW; c++) {
     const x = c * COL + (COL >> 1), runs = []; let y = 0;
-    while (y < VH) { const ink = A[4 * (y * VW + x) + 3] > 127; let e = y; while (e < VH && (A[4 * (e * VW + x) + 3] > 127) === ink) e++; if (!ink) runs.push(y + ',' + e); y = e; }
-    cols.push(runs.join(';'));
+    while (y < VH) { const ink = A[4 * (y * VW + x) + 3] > 127; let e = y; while (e < VH && (A[4 * (e * VW + x) + 3] > 127) === ink) e++; if (!ink) runs.push([y, e]); y = e; }
+    cols.push(runs);
   }
   /* a glyph's ink: drawn alone at its place in the word, at 400 px; its left and right over the word's advance, its top over the baseline in em */
   const S = 400, cw = document.createElement('canvas'); cw.width = 4000; cw.height = 800; const q = cw.getContext('2d', { willReadFrequently: true });
@@ -63,9 +63,20 @@ const R = await page.evaluate(async ({ d, rule, VW, VH, COL, links, credit, sans
 }, { d, rule, VW, VH, COL, links, credit, sans: font('Geist-400-500.sub3.woff2'), mono: font('GeistMono-Regular.sub3.woff2') });
 await browser.close();
 
+/* the name's columns written small (LOAD-PERF's review, 2026-11-15: -245 B Brotli): each column's numbers (its sky runs'
+   tops and bottoms, flat) as differences from the same place in the column before, and a column the same as the one
+   before as nothing; 260's nameInk() reads them back */
+function encodeName(cols) {
+  let p = [], prev = null;
+  return cols.map((c) => { const v = c.flat(); if (!v.length) throw new Error('make.mjs: a column of the name with no sky'); const k = v.join(); if (k === prev) return ''; prev = k; const o = v.map((x, i) => x - (p[i] || 0)); p = v; return o.join(); }).join('|');
+}
+function decodeName(s) {
+  let p = [];
+  return s.split('|').map((c) => { if (c) p = c.split(',').map((d, i) => (p[i] || 0) + +d); const o = []; for (let i = 0; i < p.length; i += 2) o.push([p[i], p[i + 1]]); return o; });
+}
 /* the same tables but for what another Chromium's antialiasing moves: every number within its tolerance */
 function near(a, b) {
-  const nums = (t) => { const m = t.match(/name: '([^']*)'/), rest = t.replace(/name: '[^']*'/, ''); return { name: m ? m[1].split(/[|;,]/) : [], rest: rest.match(/-?\d+(\.\d+)?/g) || [], shape: rest.replace(/-?\d+(\.\d+)?/g, '#') }; };
+  const nums = (t) => { const m = t.match(/name: '([^']*)'/), rest = t.replace(/name: '[^']*'/, ''); return { name: m ? decodeName(m[1]).map((c) => c.flat().join() || '-').join(';').split(/[;,]/) : [], rest: rest.match(/-?\d+(\.\d+)?/g) || [], shape: rest.replace(/-?\d+(\.\d+)?/g, '#') }; };
   const A = nums(a), B = nums(b);
   if (A.shape !== B.shape || A.name.length !== B.name.length || A.rest.length !== B.rest.length) return false;
   for (let i = 0; i < A.name.length; i++) if ((A.name[i] === '') !== (B.name[i] === '') || Math.abs(+A.name[i] - +B.name[i]) > 1) return false;
@@ -79,11 +90,11 @@ const text = `  /* ---------------- the perches' ink (the words' letters, measur
 
   /* where a bird can stand on the words. Made by tools/birds/perch/make.mjs from what is served (do not edit by hand):
      the lettered name's ink (its drawing on its ${VW} x ${VH} viewBox, read down the middle of each column of ${COL} units:
-     the runs of sky, top to bottom), each link word's glyphs (their ink's left and right over the word's advance, their
+     the runs of sky, top to bottom, each column as differences from the one before: 260's nameInk()), each link word's glyphs (their ink's left and right over the word's advance, their
      top over the baseline in em: ${links.join(', ')}) and the credit's characters (their ink's top in em, 0 for none) */
   var PERCH_INK = {
     h: ${VH}, col: ${COL}, room: ${ROOM}, flat: ${FLAT}, span: ${SPAN},
-    name: '${R.cols.join('|')}',
+    name: '${encodeName(R.cols)}',
     links: [${linkT.join(',\n      ')}],
     credit: [${credT.join(', ')}]
   };

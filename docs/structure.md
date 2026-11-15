@@ -63,7 +63,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
-                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/ripples.mjs (the sand
+                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
@@ -75,6 +75,7 @@ test/ground.mjs              The land's real ground for the sims, from test/gold
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
 test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
+test/birds-motion.mjs        The drawn motion frame by frame on the sim (o.frames, 60-240 Hz): landings, perches, take-offs, the pointer ride; perched birds on top of their ink
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
