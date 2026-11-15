@@ -24,7 +24,7 @@ function page() {   // the air on a fake page (no clock, no DOM), and the dunes'
     '  function moonShown(t, o) { o.t = t; return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
-    '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
+    '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -135,10 +135,17 @@ test('air: the clock (the sky\'s light at one rate, SKY_RATE)', { todo: 'the SKY
 });
 
 test('air: the wind profile (the log law over sand under 100 m, veering aloft to the deck)', () => {
-  const G = page(), U = 6.5, share = (y) => G.airProfile(y).s, veer = (y) => G.airProfile(y).veer;
+  const G = page(), share = (y) => G.airProfile(y).s, veer = (y) => G.airProfile(y).veer;
   for (const [y, lo, hi] of [[0.1, 0.39, 0.5], [0.87, 0.68, 0.72], [2.5, 0.82, 0.88], [10, 1, 1], [26, 1.09, 1.13], [60, 1.18, 1.24]])
     assert.ok(share(y) >= lo - 1e-12 && share(y) <= hi + 1e-12, `${y} m: ${share(y).toFixed(3)} of U10, not ${lo}-${hi}`);
-  assert.ok(Math.abs(G.airSpeed(10) - U) < 1e-12, 'U10 is 6.5 m/s');
+  assert.equal(G.airSpeed(10), 0, 'still air before a visit\'s wind');
+  let sum = 0, over = 0, lo = 99, hi = 0; const N = 20000;   // the visits' U10: Rayleigh, mean 5 m/s, within 0.5-14; the sand over its threshold (6.2) about 3 in 10
+  for (let i = 0; i < N; i++) { const u = G.airU10((i * 2654435761 + 7) >>> 0); sum += u; over += u > 6.2; lo = Math.min(lo, u); hi = Math.max(hi, u); }
+  assert.ok(Math.abs(sum / N - 5) < 0.1, `the visits' mean U10 ${(sum / N).toFixed(2)} m/s, not 5`);
+  assert.ok(Math.abs(over / N - 0.3) < 0.03, `the sand blows on ${(100 * over / N).toFixed(1)}% of visits, not about 30%`);
+  assert.ok(lo >= 0.5 && hi <= 14, `U10 within 0.5-14 m/s (${lo.toFixed(2)}-${hi.toFixed(2)})`);
+  const V0 = visit(G, SEEDS[3]); assert.equal(V0.u10, G.airU10(SEEDS[3]), 'the visit\'s U10 is its own stream\'s, drawn once');
+  assert.ok(Math.abs(G.airSpeed(10, V0) - V0.u10) < 1e-12, 'airSpeed at 10 m is the visit\'s U10');
   for (const y of [400, 1000, 1500]) { assert.ok(Math.abs(share(y) - 1.3) < 1e-12 && Math.abs(veer(y) - 20) < 1e-12, `${y} m: the low cloud layer, 1.3 U10 veered 20 deg`); }
   for (const y of [3000, 6000]) { assert.ok(Math.abs(share(y) - 2) < 1e-12 && Math.abs(veer(y) - 40) < 1e-12, `${y} m: the deck, 2 U10 veered 40 deg`); }
   let ps = 0, pv = 0;   // never slower or backing with height, and no step (0.05 m apart: within 1% of U10, 0.05 deg)
