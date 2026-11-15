@@ -14,7 +14,7 @@ const float SKYTAU = 6.2831853;
 /* (tod) the stars: world-anchored (a cell of the sphere by the direction: elevation bands STC rad deep, each cut into
    cells about STC rad wide), a star in a share of the cells at a hashed place well inside its own, a bell at least
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
-   never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
+   never blinks it), held (uNight.z 0: no twinkle, 226); the cell and its four neighbours read */
 const float STC = 0.04;
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
@@ -130,10 +130,13 @@ void main() {
   // (tod) the sky's night: each its amount times its shape, 0 at amount 0
   float eS = degrees(asin(clamp(rd.y, -1.0, 1.0)));
   if (uNight.x > 0.0 && eS > -1.0) {   // the Earth's shadow rising opposite the sky's own light, and the Belt of Venus over it (the live's belt)
-    float se = degrees(asin(clamp(uSkyS.y, -1.0, 1.0))), side = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(-uSkyS.xz + 1e-5)), 0.0, 1.0), 2.0) * uNight.x * smoothstep(-1.0, 0.0, eS);
+    float se = degrees(asin(clamp(uSkyS.y, -1.0, 1.0))), sideS = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(-uSkyS.xz + 1e-5)), 0.0, 1.0), 2.0) * smoothstep(-1.0, 0.0, eS), side = sideS * uNight.x;
     float hs = 1.0 + max(-se, 0.0) * 1.1;
     float sh = 1.0 - smoothstep(hs - 0.8, hs + 1.2, eS), bl = smoothstep(hs - 0.4, hs + 2.0, eS) * (1.0 - smoothstep(hs + 5.0, hs + 13.0, eS));
-    c = mix(c, c * vec3(0.72, 0.78, 0.95), sh * side * 0.55);
+    /* (physics: twilight/shadow) the Earth's shadow blue-grey, h 270, at the sky's own lightness (OKLab L within 0.005
+       either way: the tint's luma 1.05, which OKLab's L reads as equal; never a darkening), whole at its core in any
+       sky that has a belt (a partial mix passes through mauve) */
+    c = mix(c, dot(c, LUMA) * vec3(0.861, 1.04, 1.68), sh * sideS * min(uNight.x / 0.4, 1.0));
     c += vec3(0.95, 0.6, 0.66) * bl * side * dot(c, LUMA) * 0.35;
   }
   if (uNight.y > 0.0 && eS > 0.5 && eS < 18.0) {   // noctilucent wisps, fine and blue, low on the side the sun set (the live's nlc; the noise seamless round the sky)

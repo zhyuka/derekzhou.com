@@ -1,6 +1,8 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "dot(c, LUMA) * vec3(0.861, 1.04, 1.68)", "with": "dot(c, LUMA) * vec3(1.2, 0.85, 0.95)", "why": "the Earth's shadow pink again"}
+// plant: {"file": "src/world/220-time-day.js", "find": "fx:{belt:0,nlc:1}", "with": "fx:{belt:0.4,nlc:1}", "why": "the belt drawn in the blue hour (the sun too low for it)"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -93,4 +95,36 @@ test('sky timing: the visit opens as far through its first hold as data-sky-at s
     assert.equal(SKY.landing.at, at);
   }
   for (const bad of ['x', -1, 2]) { const { SKY } = skyWorld(7, 'night', bad); assert.equal(SKY.landing.at, 0.5, `data-sky-at ${bad}: opens halfway`); }
+});
+
+test('physics: twilight and night (B6-B9): the Earth\'s shadow blue-grey at the sky\'s lightness, the belt only in civil twilight, no stars at first light, no twinkle', () => {
+  const { WSKY } = skyWorld(1, 'night', 0.5);
+  const o2l = (L, a, b) => { let l = L + 0.3963377774 * a + 0.2158037573 * b, m = L - 0.1055613458 * a - 0.0638541728 * b, s = L - 0.0894841775 * a - 1.2914855480 * b; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]; };
+  const l2o = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); const o = [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; return [o[0], Math.hypot(o[1], o[2]), (Math.atan2(o[2], o[1]) * 180 / Math.PI + 360) % 360]; };
+  const lch = (L, C, h) => o2l(L, C * Math.cos(h * Math.PI / 180), C * Math.sin(h * Math.PI / 180)).map((x) => Math.max(x, 0));
+  // B6: sky-body.glsl's own shadow line, its core (sh, side 1) over every belted sky's low stops: h 260-280, L within 0.005, never the old darkening
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const SH = g.match(/c = mix\(c, dot\(c, LUMA\) \* vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), sh \* sideS \* min\(uNight\.x \/ ([\d.]+), 1\.0\)\);/);
+  assert.ok(SH, 'the Earth\'s shadow line (c = mix(c, dot(c, LUMA) * vec3(...), sh * sideS * min(uNight.x / a, 1.0))) not found');
+  assert.ok(!/c \* vec3\(0\.72, 0\.78, 0\.95\)/.test(g), 'the Earth\'s shadow still multiplies the sky (a pink darkening)');
+  const T = SH.slice(1, 4).map(Number), full = +SH[4];
+  let belted = 0;
+  for (const id of Object.keys(WSKY)) {
+    const S = WSKY[id], belt = (S.fx && S.fx.belt) || 0;
+    if (!belt) continue;
+    belted++;
+    assert.ok(belt >= full, `${id}'s belt ${belt} is under ${full}: its shadow's core would be a partial mix (mauve)`);
+    for (const st of S.sky.slice(0, 4)) {
+      const c = lch(...st), y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], d = T.map((t) => y * t), [L0] = l2o(c), [L1, C1, h1] = l2o(d);
+      assert.ok(h1 >= 260 && h1 <= 280 && C1 >= 0.015, `${id}: the shadow over [${st}] is h ${h1.toFixed(0)}, C ${C1.toFixed(3)} (blue-grey: 260-280)`);
+      assert.ok(Math.abs(L1 - L0) <= 0.005, `${id}: the shadow over [${st}] moves L ${(L1 - L0).toFixed(4)} (equal: within 0.005)`);
+    }
+  }
+  // B7: the belt (the shadow and the Belt of Venus) only in the civil twilights: the sunset's and the dawn's skies
+  for (const id of Object.keys(WSKY)) if ((WSKY[id].fx || {}).belt) assert.ok(['sunset', 'dawn'].includes(WSKY[id].g), `${id} (${WSKY[id].g}) draws the belt: only in civil twilight`);
+  assert.ok(belted >= 2, 'no sky draws the belt');
+  // B8: first light's stars nearly gone (the sun 6 deg or less under: only the brightest few)
+  assert.ok(WSKY.firstlight.post.stars <= 0.05, `first light's stars ${WSKY.firstlight.post.stars} (at most 0.05)`);
+  // B9: no twinkle (226 holds uNight.z at 0)
+  assert.ok(/SKYN\.night\[2\] = 0;/.test(WORLD), 'the stars twinkle (uNight.z not held at 0)');
 });
