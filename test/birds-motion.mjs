@@ -233,3 +233,28 @@ test('a standing bird\'s rest moves a little at a time (no support found or lost
   assert.ok(max <= 2, `a standing bird's solved rest changed ${max.toFixed(2)} px in one step (${at})`);
   assert.ok(maxU <= 4, `a standing bird's drawn rest moved ${maxU.toFixed(2)} px in one step (${atU})`);
 });
+
+/* (the hub's review 3, B) a bird that leaves mid-hop on a walk: the hop's lift eased out with the crouch, never dropped
+   (it fell 4.5 px in one 144 Hz frame: a body second difference 1.9 times the bound) */
+test('144 Hz: a bird leaving in the middle of a hop eases its hop down (no drop)', () => {
+  let n = 0, worst = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.perch(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let st = 0, left = -1; const hb = [];
+    for (let k = 0; k < 40 * 144; k++) {
+      sim.frame(1 / 144); const P = b.P, s = b.s, B = sim.B;
+      if (st === 0 && b.st === 'perch' && P && sim.t - P.tt > 2 && !P.act) { P.walk = { dir: 1, n: 2, step: 0.08 * B.perchSpan(b, P.k), t0: sim.t, x0: P.x }; st = 1; }   // (a walk made)
+      else if (st === 1 && P && P.walk && sim.t - P.walk.t0 > 0.11 && sim.t - P.walk.t0 < 0.13) { B.leave(b, 'own'); st = 2; left = k; }   // (left at the top of its first hop)
+      if (st === 2 && s && s.seenF === B.DF()) { hb.push([s.HB[0], s.HB[1], s.spanPx, k]); if (k - left > 0.4 * 144) break; }
+    }
+    if (st < 2) continue; n++;
+    for (let i = 1; i + 1 < hb.length; i++) {
+      const [a, c, d] = [hb[i - 1], hb[i], hb[i + 1]]; if (c[3] !== a[3] + 1 || d[3] !== c[3] + 1 || c[2] < 6) continue;
+      const bb = Math.hypot(a[0] - 2 * c[0] + d[0], a[1] - 2 * c[1] + d[1]) / c[2] / (0.1 * Math.max((60 / 144) ** 2, 0.25));
+      if (bb > worst) { worst = bb; at = `perch ${size} ${seed} frame ${c[3] - left} after the leave`; }
+    }
+  }
+  console.log(`# leaves mid-hop: ${n}; the worst body step ${worst.toFixed(2)} of its bound (${at})`);
+  assert.ok(n >= 6, `only ${n} leaves mid-hop`);
+  assert.ok(worst <= 1, `a leave mid-hop jumped ${worst.toFixed(2)} times the bound (${at})`);
+});

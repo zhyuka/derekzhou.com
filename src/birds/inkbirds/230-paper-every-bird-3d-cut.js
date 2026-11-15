@@ -228,6 +228,7 @@
     if (P.yawTo !== undefined && TD - P.yawT < P.yawD) yawNow = P.yaw0 + (P.yawTo - P.yaw0) * ease((TD - P.yawT) / P.yawD);
     var turning = TD - P.yawT < P.yawD && TD >= P.yawT, hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((TD - P.yawT) / P.yawD, 0, 1)) : wh * 0.05;
     var L = P.leaving, crouch = L ? Math.sin(0.5 * Math.PI * clamp((TD - L.t0) / Math.max(L.tc, 1e-3), 0, 1)) : (P.crouch || 0);   // (the crouch at the frame's own time)
+    if (L && L.hop0 && !turning) hopL = L.hop0 * 0.05 * (1 - ease((TD - L.t0) / Math.max(L.tc, 1e-3)));   // (a hop it left in: its lift eased out with the crouch)
     var pt = (P.pitch + 3 * wave(b.vK + 31, AD / 3.7) - crouch * 10 + (P.swing || 0) * 20) * DEG, rl = (P.swing || 0) * 0.8;
     perchBasis(C, yawNow, pt, rl, PB9);
     basis(s, PB9[0], PB9[1], PB9[2], PB9[3], PB9[4], PB9[5], PB9[6], PB9[7], PB9[8]);
