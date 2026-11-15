@@ -1,5 +1,10 @@
   /* the streamer: which cells a visit wants about a point (heading hx, hz), made in order of need, freed far behind */
   var SCAN = new Float64Array(4), SCANA = new Float64Array(2);
+  /* (physics: clouds/drift) how far out a scale's cells are made: its radius; an air cell's further, by the air's
+     closing speed (the camera's 12 m/s and the low layer's 8.45 against it: 20.5 m/s at most, 1.71 times the land's), so
+     it has the land's time between being wanted and coming out of the haze (that lead, 0.1 R + 100 m and half a cell,
+     made 1.71 times as long); where it comes out of the haze is the radius's, as before */
+  function streamR(L) { return L.air ? L.radius + 0.71 * (0.1 * L.radius + 100 + L.size * 0.5) : L.radius; }
   function streamCells(V, cx, cz, hx, hz, sync, focusOnly) {
     if (!V.cells) { V.cells = new Map(); V.cellList = []; V.scanAt = [1e9, 1e9]; }
     var sc, L, scales = V.def.layout.scales, i;
@@ -12,7 +17,7 @@
     if (sync || dx * dx + dz * dz > 576 || dax * dax + daz * daz > 576) {
       V.scanAt[0] = cx; V.scanAt[1] = cz; V.scanAtA[0] = ax; V.scanAtA[1] = az;
       for (sc = 0; sc < scales.length; sc++) {
-        L = scales[sc]; var px0 = L.air ? ax : cx, pz0 = L.air ? az : cz, R = L.radius, n = Math.ceil(R / L.size) + 1, bx = Math.floor(px0 / L.size), bz = Math.floor(pz0 / L.size);
+        L = scales[sc]; var px0 = L.air ? ax : cx, pz0 = L.air ? az : cz, R = streamR(L), n = Math.ceil(R / L.size) + 1, bx = Math.floor(px0 / L.size), bz = Math.floor(pz0 / L.size);
         for (var jz = -n; jz <= n; jz++) for (var jx = -n; jx <= n; jx++) {
           var ix = bx + jx, iz = bz + jz, ccx = (ix + 0.5) * L.size - px0, ccz = (iz + 0.5) * L.size - pz0, d = Math.sqrt(ccx * ccx + ccz * ccz);
           if (d > R + L.size * 0.5) continue;
@@ -30,7 +35,7 @@
       // free the cells far behind (past 1.3 radii)
       for (i = V.cellList.length - 1; i >= 0; i--) {
         var Cf = V.cellList[i], Lf = scales[Cf.sc], fx = Cf.cx - (Cf.air ? ax : cx), fz = Cf.cz - (Cf.air ? az : cz);
-        if (Math.sqrt(fx * fx + fz * fz) > Lf.radius * 1.3 + Lf.size * 0.5) {
+        if (Math.sqrt(fx * fx + fz * fz) > streamR(Lf) * 1.3 + Lf.size * 0.5) {
           if (WLOG && Cf.mesh && V === SIM.V) wl('free', V.k + ':' + Cf.key, Cf.lastW || 0, nearDist(Cf, CAM.pos[0], CAM.pos[2]), Cf.lastVis);   // (dev: a drawn cell dropped)
           freeCell(Cf); V.cells.delete(Cf.key); V.cellList.splice(i, 1);
         }
