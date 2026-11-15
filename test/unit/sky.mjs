@@ -9,13 +9,14 @@ import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD,
 // ------------------------------------------------------------------ the sky order
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
 const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the cycle at t');
+const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true);   // (the landing's heading: the air's, 215)
 function skyWorld(seed, hour, at) {   // skyInit, skyPush and skyNext as the page runs them, a fake page under them (the colours unread)
   return vm.runInThisContext('(function (SEED, HOURV, AT) {\n  \'use strict\';\n' +
     '  var DEVMODE = false, OPT = { skyScene: null, skyNext: null, skyDt: null }, HOUR = HOURV, J = { seed: SEED };\n' +
     '  function attr(n) { return n === \'data-sky-at\' ? String(AT) : null; }\n' +
     '  function lin2lab(c) { return [0, 0, 0]; } function lab2linA() { return [0, 0, 0]; } function lin2lab3() { return [0, 0, 0]; }\n' +
     '  var PI = Math.PI, DEG = Math.PI / 180;\n' + STREAMS + VEC +
-    '  function lch() { return [0, 0, 0]; }\n' + SKYDEF + SKYORD +
+    '  function lch() { return [0, 0, 0]; }\n' + SKYDEF + HEAD0 + SKYORD +
     '  skyInit({ paramsBase: new Float32Array(128) });\n' +
     '  return { SKY: SKY, WSKY: WSKY, skyNext: skyNext, skyReseed: skyReseed, SKY_RECENT: SKY_RECENT, SKY_FAR: SKY_FAR };\n})')(seed, hour, at);
 }
