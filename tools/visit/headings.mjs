@@ -10,7 +10,7 @@ import { flyLand, measure, HOURS } from './ruler.mjs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const K = arg('--k', null) ? arg('--k').split(',').map(Number) : [...Array(16).keys()], TOP = +arg('--top', 5), READS = +arg('--reads', 2), out = arg('--json', null);
-const SHORT = 120, NEAR_BY = 40, STEP = 5, DEG = Math.PI / 180, t0 = Date.now(), table = [];
+const SHORT = 120, NEAR_BY = 40, FALL_BY = 120, STEP = 5, DEG = Math.PI / 180, t0 = Date.now(), table = [];
 const q50 = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 function whole(k, psi) {
   const land = flyLand(k, 7200, psi), rows = [];
@@ -22,14 +22,16 @@ for (const k of K) {
   const own = flyLand(k, SHORT).heading, cand = [];
   for (let a = 0; a < 360; a += STEP) {
     const L = flyLand(k, SHORT, a * DEG), near = L.places.find((p) => p.d <= 150);
-    if (near && near.t <= NEAR_BY) cand.push({ a, t: near.t, kind: near.kind });
+    if (near && near.t <= FALL_BY) cand.push({ a, t: near.t, kind: near.kind });
   }
-  const mine = whole(k, own), picks = cand.sort((x, y) => Math.abs(x.t - 30) - Math.abs(y.t - 30)).slice(0, TOP).map((c) => ({ deg: c.a, ...whole(k, c.a * DEG) }));
-  const ok = (r) => r.firstNear !== null && r.firstNear <= NEAR_BY;
+  // (a land with no near pass by NEAR_BY s on any heading: its earliest within FALL_BY s, as a fallback)
+  const by = cand.filter((c) => c.t <= NEAR_BY), fall = !by.length, pool = fall ? cand.sort((x, y) => x.t - y.t) : by;
+  const mine = whole(k, own), picks = (fall ? pool : pool.sort((x, y) => Math.abs(x.t - 30) - Math.abs(y.t - 30))).slice(0, TOP).map((c) => ({ deg: c.a, ...whole(k, c.a * DEG) }));
+  const ok = (r) => r.firstNear !== null && r.firstNear <= (fall ? Math.min(FALL_BY, picks.length ? Math.max(...picks.map((p) => p.firstNear)) : FALL_BY) : NEAR_BY);
   const best = [...(ok(mine) ? [{ deg: +(own / DEG).toFixed(1), own: true, ...mine }] : []), ...picks].sort((x, y) => y.gapOk - x.gapOk || x.gapP50 - y.gapP50)[0] || null;
-  table.push({ k, own: +(own / DEG).toFixed(1), ownNear: mine.firstNear, ownGapP50: mine.gapP50, ownGapOk: mine.gapOk, candidates: cand.length, best });
+  table.push({ k, own: +(own / DEG).toFixed(1), ownNear: mine.firstNear, ownGapP50: mine.gapP50, ownGapOk: mine.gapOk, candidates: by.length, fallback: fall, best });
   const f = (x) => (x === null || x === undefined ? '-' : x);
   console.log(`k${String(k).padEnd(2)} own ${String(f(+(own / DEG).toFixed(0))).padStart(3)} deg: near ${String(f(mine.firstNear)).padStart(6)} s, gap p50 ${mine.gapP50} s, under 180 s ${(mine.gapOk * 100).toFixed(0)}% | ` +
-    `${cand.length} of 72 headings near by ${NEAR_BY} s` + (best ? ` | pick ${best.deg} deg${best.own ? ' (its own)' : ''}: near ${best.firstNear} s (${best.kind}), sight ${best.firstSight} s, gap p50 ${best.gapP50} s (worst ${best.gapMax}), under 180 s ${(best.gapOk * 100).toFixed(0)}%, places ${best.placesPerHour}/h, stretch ${best.stretch && best.stretch.join('/')}` : ' | no pick') + ` (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+    `${by.length} of 72 headings near by ${NEAR_BY} s` + (fall ? ` (fallback: the earliest by ${FALL_BY} s)` : '') + (best ? ` | pick ${best.deg} deg${best.own ? ' (its own)' : ''}: near ${best.firstNear} s (${best.kind}), sight ${best.firstSight} s, gap p50 ${best.gapP50} s (worst ${best.gapMax}), under 180 s ${(best.gapOk * 100).toFixed(0)}%, places ${best.placesPerHour}/h, stretch ${best.stretch && best.stretch.join('/')}` : ' | no pick') + ` (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
 }
 if (out) fs.writeFileSync(out, JSON.stringify(table, null, 1));
