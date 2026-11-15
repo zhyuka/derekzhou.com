@@ -208,7 +208,7 @@ then with the passages against that first live score (the figures in brackets):
   round seventeen (a 2.5 dB dip at 2.2 kHz and one at 160 Hz match it: the browser's mix came out a little brighter
   and fuller there);
 - quiet: over those 30 minutes, 15 s in all under -36 LUFS, none longer than 4.2 s (breaths and handovers);
-- the standard sound-quality metrics (MoSQITo: ISO 532-1 loudness, DIN 45692 sharpness, Daniel and Weber roughness),
+- the standard sound-quality metrics (MoSQITo: ISO 532-1 loudness, DIN 45692 sharpness, roughness by the model MoSQITo implements: https://mosqito.readthedocs.io),
   one 20 s stretch a sky, both takes at the same loudness: sharpness 0.57-0.75 acum (0.60-0.73; round seventeen
   0.61-0.72), roughness 0.006-0.027 asper (0.012-0.019): both far under where either is noticed;
 - an independent ear (YAMNet, trained on AudioSet's 521 kinds of sound, through Essentia), checked first against the

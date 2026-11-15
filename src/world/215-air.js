@@ -13,7 +13,7 @@
 
      THE WIND (physics: air/wind-profile): one direction a visit at the surface (AIR_DIR, drawn by airDraw from the
      dunes' field stream), blowing toward azimuth V.windAz at V.u10 m/s 10 m up: the visit's own wind speed, drawn once from its own stream
-     (subseed(V.seed, 61)): a Rayleigh distribution of mean 5 m/s (a site's winds over a year) mapped by its CDF into
+     (subseed(V.seed, 61)): the speed distribution of a 2D normal wind (chi, two degrees of freedom) of mean 5 m/s (a site's winds over a year) mapped by its CDF into
      3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays under about 8.8 m/s, under every bird kind's own
      airspeed, so no bird flying upwind goes backward over the ground; truncated, not clamped, so nothing piles at the
      ends). The sand's own threshold (about 6.2 m/s at 10 m, the crests' speed-up 1.5x) is the sand's to apply. Its speed and its turn by height
@@ -51,7 +51,7 @@
     AIR_P.s = lg0 + (L0[2] - lg0) * k0 + (L1[2] - L0[2]) * k1; AIR_P.veer = L0[3] * k0 + (L1[3] - L0[3]) * k1;
     return AIR_P;
   }
-  function airU10(seed) {   // a visit's wind speed 10 m up, m/s: the Rayleigh of mean AIR_U10[0] (sigma = mean / sqrt(pi / 2)) truncated to [AIR_U10[1], AIR_U10[2]] by its CDF
+  function airU10(seed) {   // a visit's wind speed 10 m up, m/s: the 2D-normal speed distribution of mean AIR_U10[0] (sigma = mean / sqrt(pi / 2)) truncated to [AIR_U10[1], AIR_U10[2]] by its CDF
     var u = RNG(subseed(seed, 61)).f(), s2 = 2 * Math.pow(AIR_U10[0] / Math.sqrt(PI / 2), 2), F = function (r) { return 1 - Math.exp(-r * r / s2); };
     var a = F(AIR_U10[1]), b = F(AIR_U10[2]);
     return Math.sqrt(-s2 * Math.log(1 - (a + (b - a) * u)));
