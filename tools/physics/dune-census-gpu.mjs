@@ -2,7 +2,7 @@
 // program (the camera's ground, as tools/ground-site.mjs hooks it), under SwiftShader on the T1 harness's NVIDIA persona
 // (the split height passes run): the land alone (probe mode 0, Hd), read on a grid; slopes by central differences. Prints the slopes' percentiles, the mode between 20 and 40 deg (a slip face's angle) and the share
 // over 34 deg (sand's angle of repose is 32-34 deg).
-//   node tools/physics/dune-census-gpu.mjs [ROOT] [--half 500] [--cell 2] [--seed 3] [--where 1]   (where: the over-34 deg points by 50 m cell)
+//   node tools/physics/dune-census-gpu.mjs [ROOT] [--half 500] [--cell 2] [--seed 3] [--where 1] [--check 1]   (where: the over-34 deg points by 50 m cell; check: fail past the spec's bounds)
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import url from 'node:url';
 const HERE = path.dirname(url.fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), root = args[0] && !args[0].startsWith('--') ? path.resolve(args[0]) : path.resolve(HERE, '../..');
@@ -48,6 +48,8 @@ try {
   const hist = new Array(41).fill(0); for (const d of sl) if (d >= 20 && d < 40) hist[Math.floor(d)]++;
   const out = { root: path.basename(root), seed: SEED, points: sl.length, p50: pc(0.5), p90: pc(0.9), p99: pc(0.99), mode_20_40: hist.indexOf(Math.max(...hist)), over34_pct: +(100 * over34 / sl.length).toFixed(2), steepest: +sl[sl.length - 1].toFixed(1) };
   console.log(JSON.stringify(out));
+  // (--check: the spec's bounds, a failure for CI: at most 0.1% of the sand over 34 deg, the slip faces' mode 31-33 deg)
+  if (A.check && (out.over34_pct > 0.1 || out.mode_20_40 < 31 || out.mode_20_40 > 33)) { console.log('::error::the shipped dunes break the sand spec (physics: sand/S1): ' + out.over34_pct + '% over 34 deg (at most 0.1), the slip faces\' mode ' + out.mode_20_40 + ' deg (31-33), the steepest ' + out.steepest + ' deg'); process.exitCode = 1; }
   if (A.where) console.log('over 34 deg by 50 m cell (x,z: count, height, steepest):', JSON.stringify(Object.entries(where).sort((a, b) => b[1].n - a[1].n).slice(0, 12).map(([k, v]) => k + ': ' + v.n + ', ' + v.h.toFixed(1) + ' m, ' + v.max.toFixed(1))));
   await arm.ctx.close();
 } finally { await br.close(); await S.close(); fs.rmSync(tmp, { recursive: true, force: true }); }

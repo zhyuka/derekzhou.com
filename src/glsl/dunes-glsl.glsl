@@ -91,18 +91,17 @@ vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
 vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
   float k = length(ph.yz); vec2 g = ph.yz / k;
   vec3 H = dSmin(Hm, vec3(0.13 / k, 0.0, 0.0), 2.0);   // (a smooth cap: a hard one switched H's slope, and with it m and fl: a 1 m step)
-  // (on the face the slope is G0 + v dH - m g, v 1 at the brink to 0 at the toe: convex in v, its largest at an end.
-  // The steepest m that keeps both ends at 32 deg or under: the smaller of the two solutions)
-  vec2 G0 = swell.yz, G1 = swell.yz + H.yz;
-  float m0 = dot(G0, g) + sqrt(max(0.39046 - pow(-G0.x * g.y + G0.y * g.x, 2.0), 0.04));   // (tan^2 32 = 0.39046)
-  float m1 = dot(G1, g) + sqrt(max(0.39046 - pow(-G1.x * g.y + G1.y * g.x, 2.0), 0.04));
-  float m = min(m0, m1);
+  // (the face's height H (1 - f) / fl is m (1 - f) / k: H drops out of it, so its slope holds no dH, and m is solved for
+  // the ground under it alone, G0; solving it for G0 + dH as well held a gradient the surface does not have at 32 deg,
+  // and where fl changed fast across the wind the brink turned along it in walls of 48-62 deg: the hub's review)
+  vec2 G0 = swell.yz;
+  float m = dot(G0, g) + sqrt(max(0.39046 - pow(-G0.x * g.y + G0.y * g.x, 2.0), 0.04));   // (tan^2 32 = 0.39046)
   float fl = clamp(H.x * k / max(m, 0.2), 0.04, 0.6), L = 1.0 - fl, f = fract(ph.x);
   float a = f / L, n = (f - 1.0) / L;
   vec3 A = dMul(vec3(0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a), ph.yz * ((0.5 + 3.0 * a * (1.0 - a)) / L)), H);
-  vec3 F = dMul(vec3((1.0 - f) / fl, ph.yz * (-1.0 / fl)), H);
+  vec3 F = vec3(H.x * (1.0 - f) / fl, ph.yz * (-H.x / fl));   // (no dH: see m)
   vec3 N = dMul(vec3(0.5 * n, ph.yz * (0.5 / L)), H);   // (the next stoss's plane below its toe: the cubic turned up behind it, a 1.9 m step at f 0.5)
-  vec3 P = dMul(vec3(-f / fl, ph.yz * (-1.0 / fl)), H);
+  vec3 P = vec3(-H.x * f / fl, ph.yz * (-H.x / fl));
   vec3 top = dSmin(A, F, 2.0), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));
   vec3 e1 = dSstep(L - 0.06, L, vec3(f, ph.yz)), e2 = dSstep(0.0, 0.06, vec3(f, ph.yz));
   nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2);
