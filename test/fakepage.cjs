@@ -1,7 +1,7 @@
 // test/fakepage.cjs: the one fake browser the static checks share (moved out of glsl_guard.js, 2026-11-07): the devices the
 // world is visited on, the page's scripts as index.html loads them, and run(V, page, O), one visit in a small fake browser
 // (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion; O.still: the page has the opening's still, its file in at that frame; O.fenceLag: fences signal that many frames on; O.lateScript: [name, frame], that script run at that frame). Used by
-// .github/workflows/glsl_guard.js (the shaders' guard and --reduced) and the sims on it. Plain node 22.8+, no dependency.
+// tools/checks/lib/glsl_guard.js (the shaders' guard and --reduced) and the sims on it. Plain node 22.8+, no dependency.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 

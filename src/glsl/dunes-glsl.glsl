@@ -10,7 +10,6 @@
 #define SHEEN uP[8].rgb
 #define WINDDIR uP[9].xy
 #define GLINT uP[9].z
-#define SEA_Y uP[9].w
 #define ROCK_DEEP uP[10].rgb
 #define PALE uP[11].rgb
 const float DS = 1500.0, RS = 4500.0;
