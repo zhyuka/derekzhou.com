@@ -126,7 +126,10 @@ What it pins: a landing comes in by a gate in view (wide of the perch, beyond it
 by a closed-loop tau-dot law (the closing a constant tau-dot gives at the range left), takes out its drift across
 the line, and ends on a curve to rest in the perch's frame (its place and motion at both ends: no jump, no
 overshoot); a bird ahead lets the perch come to it (never flying against the camera's way); feet fixed on the
-perch (the pointer read before the birds step); turns only by bank; births and removals unseen; no object made in a
+perch (the pointer read before the birds step); standing on its feet, the wings' root, on a letter and on the pointer
+alike, its perched poses (touch, settling, folded, wings raised) keeping its wings at or above them, so it stands on
+top of the ink and no drawn point hangs below it (the hub's re-review 3, option c: within 5 px, the feet's own sink
+included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
 
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
