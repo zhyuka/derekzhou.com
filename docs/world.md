@@ -497,7 +497,8 @@ shader). It holds:
   stream, puts the sun on the ecliptic in the dark half of the year;
   north is set once a visit so that the evening sun stands on the sky's
   own sun's azimuth. Each sky's sun depth is an hour (first light in the
-  morning, the others in the evening): a hold holds it, a change eases to
+  morning, the afterglow and the blue hour in the evening, a night on the
+  side of the sky before it): a hold holds it, a change eases to
   the next sky's with the light, through midnight, never noon. The
   ecliptic leans 23.44 deg to the equator; the galactic pole and centre
   are J2000's (the pole 60.2 deg from the ecliptic's, the centre 5.5 deg
