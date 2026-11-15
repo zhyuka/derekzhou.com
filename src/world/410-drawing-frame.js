@@ -98,8 +98,8 @@
     var m = 0;
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
-      var steps = d < B.r * 1.5 ? 48 : VSTEPS;   // (near a body 48 on every tier, as before; beyond, one budget a tier, never cut by distance: a far tower's 24 steps forced its band 12 m apart)
-      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : B.fade, d, 1); wl('steps', B.wid, steps / 48, d, 1); }
+      var steps = VSTEPS + (48 - VSTEPS) * (1 - smooth(B.r * 1.3, B.r * 1.7, d));   // (near a body 48 on every tier, as before; beyond, one budget a look, never cut by distance: a far tower's 24 steps forced its band 12 m apart; between 1.3 and 1.7 radii eased, a step at a time, never a switch in one frame)
+      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : smooth(0, 0.25, B.fade), d, 1);   /* (the drawn opacity, fs-vbody's smoothstep(0, 0.25, w)) */ wl('steps', B.wid, steps / 48, d, 1); }
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
