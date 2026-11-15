@@ -57,7 +57,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 27.5 * K,        // 27,845 at the top of the wave-1 stack (2026-11-14: the five motion fixes, #225-#231, and their reviews: +1,618 B over main's 26,227)
+  '/inkbirds.js': 30 * K,          // 28,165 with the turn (#259); the hub's flock physics spec (2026-11-15: turning, phase, glides, wind, the day, leaders, ridges, gusts) grows it item by item (27,845 at the top of the wave-1 stack, main 26,227)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
