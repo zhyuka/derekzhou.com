@@ -9,7 +9,7 @@
      THE CLOCK (declared): physical motion (the wind, the clouds, the birds, the particles, the aurora's own motion)
      runs at 1x real time, SIM.t; the sky's light (sun, moon, stars, galaxy) at one rate, SKY_RATE, together. Today the
      sun sinks about 115x real through a change into a night, the moon crosses at 70-120x and the stars and galaxy stand
-     still (skyFrame's hour holds through a hold): the sky's lane brings them to SKY_RATE (test/unit/air.mjs lists each one's rate).
+     still (skyFrame turns forward at SKY_RATE): the sky's lane brings them to SKY_RATE (test/unit/air.mjs lists each one's rate).
 
      THE WIND (physics: air/wind-profile): one direction a visit at the surface (AIR_DIR, drawn by airDraw from the
      dunes' field stream), blowing toward azimuth V.windAz at V.u10 m/s 10 m up: the visit's own wind speed, drawn once from its own stream
@@ -74,63 +74,63 @@
      the galaxy, so that every light in the night stands where the others say. The place: AIR_LAT 64 deg north (the
      aurora is one of the skies: a black-sand coast under the auroral oval), so the celestial pole stands 64 deg up in
      the north. The season: the visit's own stream (subseed(V.seed, 63)) puts the sun on the ecliptic in the dark half
-     of the year (its longitude 180-360 deg, its declination 0 to -23.4: every sky's sun depth is reached). North: once
-     a visit, where an evening sun at the afterglow's depth stands on the sky's own sun's azimuth (V.light.sunAz), so the
-     evening sun is the drawn one. The hour: each sky's sun depth (AIR_SUN_EL, a night's AIR_SUN_NIGHT; first light in
-     the morning, the afterglow and the blue hour in the evening, a night on the side of the sky before it) is an
-     hour angle; a hold holds it (as it holds the light), a change eases to the next sky's with the light, through
-     midnight when it changes side, never noon. The ecliptic leans AIR_OBL to the equator;
-     the galactic pole and centre are J2000's (AIR_GAL: the pole 60.2 deg from the ecliptic's, the centre 5.6 deg south
-     of the ecliptic). skyFrame(t): { M, the equatorial frame in world axes (columns: right ascension 0 and 90 deg,
-     the pole; column-major, a mat3 for the shaders), pole, ecl, galPole, galCentre, sun (unit, world), lat, lst, H
-     (rad), sunDec (deg) }, the one object, filled in place; before a visit the identity and the sun overhead. Nothing
-     reads it yet: the night's lane places the planets and the stars by it */
-  var AIR_LAT = 64, AIR_OBL = 23.4393, AIR_GAL = { pole: [192.8595, 27.1283], centre: [266.4051, -28.9362] };   // (deg: the latitude, the obliquity, the galactic pole's and centre's right ascension and declination)
-  var AIR_SKYF = { M: new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]), pole: [0, 1, 0], ecl: [0, 1, 0], galPole: [0, 1, 0], galCentre: [1, 0, 0], sun: [0, 1, 0], lat: AIR_LAT, lst: 0, H: 0, sunDec: 0 };
-  var AIR_SV = { V: null, azN: 0, lam: 0, ra: 0, dec: 0, N: null, E: null };
-  function airEq(ra, dec) { var a = ra * DEG, d = dec * DEG; return [Math.cos(d) * Math.cos(a), Math.cos(d) * Math.sin(a), Math.sin(d)]; }   // (a direction in the equatorial frame)
+     of the year (its longitude 180-360 deg, its declination 0 to -23.4). North: once a visit, where an evening sun at
+     the afterglow's depth stands on the sky's own sun's azimuth (V.light.sunAz). The clock: the sphere turns forward
+     only, at SKY_RATE times the sidereal rate (AIR_SIDEREAL s a turn), never stopping and never turning back; at sky
+     time 0 its hour is the opening sky's (its sun's depth, first light in the morning, the others in the evening), so
+     the frame's sun stands at the opening's drawn sun. The drawn sky's sun keeps its depth by sky (the night's true
+     order is the next change); the planets are placed by the drawn sun (the night's lane). The ecliptic leans AIR_OBL
+     to the equator; the galactic pole and centre are J2000's (AIR_GAL: the pole 60.2 deg from the ecliptic's, the
+     centre 5.5 deg south of the ecliptic). skyFrame(tS, V): the frame as the night sky's shader reads it (226's uSkyF),
+     row-major, frame to world: a direction s in equatorial axes (right ascension 0, 90 deg, the pole) stands at F s in
+     the world; the one array, AIR_FRAME, filled in place. skySphere(tS, V): { M (the same, column-major), pole, ecl,
+     galPole, galCentre, sun (the frame's own), lat, lst, sunDec (deg) }, the one object. Both take the sky's time tS
+     (the flight's t plus SKY.dt); before a visit the identity */
+  var AIR_LAT = 64, AIR_OBL = 23.4393, AIR_SIDEREAL = 86164.1, AIR_GAL = { pole: [192.8595, 27.1283], centre: [266.4051, -28.9362] };   // (deg: the latitude, the obliquity; a sidereal day, s; the galactic pole's and centre's right ascension and declination)
+  var AIR_FRAME = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  var AIR_SKYF = { M: new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]), pole: [0, 1, 0], ecl: [0, 1, 0], galPole: [0, 1, 0], galCentre: [1, 0, 0], sun: [0, 1, 0], lat: AIR_LAT, lst: 0, sunDec: 0 };
+  var AIR_SV = { V: null, n: -1, azN: 0, lam: 0, ra: 0, dec: 0, lst0: 0, N: [0, 0, 1], E: [-1, 0, 0], P: [0, 1, 0], Q: [0, 1, 0], eq: null };
+  function airEq(ra, dec, o) { var a = ra * DEG, d = dec * DEG; o = o || [0, 0, 0]; o[0] = Math.cos(d) * Math.cos(a); o[1] = Math.cos(d) * Math.sin(a); o[2] = Math.sin(d); return o; }   // (a direction in the equatorial frame)
   function airSunH(h, morning, dec) {   // the sun's hour angle (rad, from upper culmination, 0..2 pi) at elevation h deg: an evening's west, a morning's east
     var f = AIR_LAT * DEG, d = dec * DEG, c = (Math.sin(h * DEG) - Math.sin(f) * Math.sin(d)) / (Math.cos(f) * Math.cos(d)), H = Math.acos(Math.max(-1, Math.min(1, c)));
     return morning ? 2 * PI - H : H;
   }
-  function airMorning(seq, i) {   // whether the sky at seq[i] is on the morning side: first light is; the afterglow and the blue hour are not; a night keeps the side of the sky before it (a night after first light is the small hours, so its change turns the sky a little, not back through midnight)
-    var j = i; while (j > 0 && airSunEl(seq[j].id) === null) j--;
-    var id = seq[j].id; return airSunEl(id) === null ? false : id === 'firstlight';
+  function airSvSet(V) {   // the visit's place, season, north and the opening's hour, once a visit (the hour once the sky's order exists)
+    var S = AIR_SV, seq = SKY.seq, c;
+    if (S.V !== V) {
+      var u = RNG(subseed(V.seed, 63)).f(), lam = PI + PI * u, e = AIR_OBL * DEG, ra = Math.atan2(Math.cos(e) * Math.sin(lam), Math.cos(lam)), dec = Math.asin(Math.sin(e) * Math.sin(lam)) / DEG;
+      var f = AIR_LAT * DEG, d = dec * DEG, h = airSunEl('afterglow') * DEG;
+      var cA = (Math.sin(d) - Math.sin(f) * Math.sin(h)) / (Math.cos(f) * Math.cos(h)), A = 2 * PI - Math.acos(Math.max(-1, Math.min(1, cA)));   // (its compass azimuth: the west, from north through east)
+      S.V = V; S.n = -1; S.lam = lam; S.ra = ((ra % (2 * PI)) + 2 * PI) % (2 * PI); S.dec = dec; S.azN = V.light.sunAz + A / DEG;
+      var N = dirAzEl(S.azN, 0); for (c = 0; c < 3; c++) S.N[c] = N[c];
+      S.E[0] = -N[2]; S.E[1] = 0; S.E[2] = N[0];   // (north x up: a compass azimuth A is the world's azN - A)
+      for (c = 0; c < 3; c++) { S.P[c] = Math.cos(f) * N[c] + (c === 1 ? Math.sin(f) : 0); S.Q[c] = -Math.sin(f) * N[c] + (c === 1 ? Math.cos(f) : 0); }   // (the pole, AIR_LAT up in the north; the equator on the meridian, to the south)
+      S.eq = { ecl: [0, -Math.sin(e), Math.cos(e)], gp: airEq(AIR_GAL.pole[0], AIR_GAL.pole[1]), gc: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), sun: airEq(S.ra / DEG, S.dec) };
+    }
+    if (S.n < 0 && seq.length) {   // (the opening's hour: its sun's depth, on its side)
+      var o = seq[0].id, el = airSunEl(o); S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, o === 'firstlight', S.dec) + S.ra; S.n = 0;
+    } else if (S.n < 0) S.lst0 = airSunH(airSunEl('afterglow'), false, S.dec) + S.ra;
+    return S;
   }
-  function airSkyH(seq, i, dec) { var id = seq[i].id, e = airSunEl(id); return airSunH(e === null ? AIR_SUN_NIGHT : e, airMorning(seq, i), dec); }
-  function airLocal(azN) { var N = dirAzEl(azN, 0); return { N: N, E: cross(N, [0, 1, 0]) }; }   // (north and east on the ground: a compass azimuth A is the world's azN - A)
-  function airSvSet(V) {   // the visit's place and season, once a visit
-    if (AIR_SV.V === V) return AIR_SV;
-    var u = RNG(subseed(V.seed, 63)).f(), lam = PI + PI * u, e = AIR_OBL * DEG, ra = Math.atan2(Math.cos(e) * Math.sin(lam), Math.cos(lam)), dec = Math.asin(Math.sin(e) * Math.sin(lam)) / DEG;
-    var f = AIR_LAT * DEG, d = dec * DEG, H = airSunH(airSunEl('afterglow'), false, dec), h = airSunEl('afterglow') * DEG;
-    var cA = (Math.sin(d) - Math.sin(f) * Math.sin(h)) / (Math.cos(f) * Math.cos(h)), A = 2 * PI - Math.acos(Math.max(-1, Math.min(1, cA)));   // (its compass azimuth: the west, from north through east)
-    AIR_SV.V = V; AIR_SV.lam = lam; AIR_SV.ra = ((ra % (2 * PI)) + 2 * PI) % (2 * PI); AIR_SV.dec = dec; AIR_SV.azN = V.light.sunAz + A / DEG; AIR_SV.H0 = H;
-    var L = airLocal(AIR_SV.azN); AIR_SV.N = L.N; AIR_SV.E = L.E;
-    return AIR_SV;
-  }
-  function airHour(t, dec) {   // the sun's hour angle at the flight's t: the sky on show's, eased through a change with its light (through midnight)
-    var seq = SKY.seq; if (!seq.length) return airSunH(airSunEl('afterglow'), false, dec);
-    var tS = t + (SKY.dt || 0), i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--;
-    var e = seq[i], a = airSkyH(seq, i, dec), b = seq[i + 1] ? airSkyH(seq, i + 1, dec) : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
-    return a + (b - a) * k * k * (3 - 2 * k);
-  }
-  function skyFrame(t) {   // the celestial sphere in world axes at the flight's t (the one object, filled in place)
-    var V = SIM.V, F = AIR_SKYF; if (!V || !V.light) return F;
-    t = t === undefined ? SIM.t : t;
-    var S = airSvSet(V), f = AIR_LAT * DEG, U = [0, 1, 0], N = S.N, E = S.E, c, j;
-    var P = [Math.cos(f) * N[0] + Math.sin(f) * U[0], Math.cos(f) * N[1] + Math.sin(f) * U[1], Math.cos(f) * N[2] + Math.sin(f) * U[2]];   // (the pole: north, AIR_LAT up)
-    var Q = [-Math.sin(f) * N[0] + Math.cos(f) * U[0], -Math.sin(f) * N[1] + Math.cos(f) * U[1], -Math.sin(f) * N[2] + Math.cos(f) * U[2]];   // (the equator on the meridian, to the south)
-    var H = airHour(t, S.dec), lst = H + S.ra, cl = Math.cos(lst), sl = Math.sin(lst);
-    for (c = 0; c < 3; c++) { F.M[c] = cl * Q[c] - sl * E[c]; F.M[3 + c] = sl * Q[c] + cl * E[c]; F.M[6 + c] = P[c]; }   // (right ascension 0 and 90 deg at local sidereal time lst; hour angle west)
-    function w(v, o) { for (j = 0; j < 3; j++) o[j] = F.M[j] * v[0] + F.M[3 + j] * v[1] + F.M[6 + j] * v[2]; return o; }
-    var e = AIR_OBL * DEG;
-    w([0, -Math.sin(e), Math.cos(e)], F.ecl); w(airEq(AIR_GAL.pole[0], AIR_GAL.pole[1]), F.galPole); w(airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), F.galCentre);
-    w(airEq(S.ra / DEG, S.dec), F.sun); F.pole[0] = P[0]; F.pole[1] = P[1]; F.pole[2] = P[2];
-    F.lst = lst; F.H = H; F.sunDec = S.dec;
+  function airSphereW(v, o) { var M = AIR_SKYF.M; for (var j = 0; j < 3; j++) o[j] = M[j] * v[0] + M[3 + j] * v[1] + M[6 + j] * v[2]; return o; }
+  function skySphere(tS, V) {   // the celestial sphere in world axes at sky time tS (the one object, filled in place)
+    V = V || SIM.V; var F = AIR_SKYF; if (!V || !V.light) return F;
+    tS = tS === undefined ? SIM.t + (SKY.dt || 0) : tS;
+    var S = airSvSet(V), E = S.E, Q = S.Q, P = S.P, c;
+    var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS, cl = Math.cos(lst), sl = Math.sin(lst);
+    for (c = 0; c < 3; c++) { F.M[c] = cl * Q[c] - sl * E[c]; F.M[3 + c] = sl * Q[c] + cl * E[c]; F.M[6 + c] = P[c]; }   // (right ascension 0 and 90 deg at local sidereal time lst; the hour angle west)
+    airSphereW(S.eq.ecl, F.ecl); airSphereW(S.eq.gp, F.galPole); airSphereW(S.eq.gc, F.galCentre); airSphereW(S.eq.sun, F.sun);
+    for (c = 0; c < 3; c++) F.pole[c] = P[c];
+    F.lst = lst; F.sunDec = S.dec;
     return F;
+  }
+  function skyFrame(tS, V) {   // the frame as the night sky's shader reads it: row-major, frame (equatorial) to world (AIR_FRAME, filled in place)
+    var M = skySphere(tS, V).M, r, c;
+    for (r = 0; r < 3; r++) for (c = 0; c < 3; c++) AIR_FRAME[r * 3 + c] = M[c * 3 + r];
+    return AIR_FRAME;
   }
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
