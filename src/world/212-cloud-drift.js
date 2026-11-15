@@ -12,6 +12,24 @@
     var a = Math.atan2(w[0], w[1]) + L[1] * Math.PI / 180, s = CLOUD_U10 * L[0];
     o[0] = Math.sin(a) * s; o[1] = Math.cos(a) * s; return o;
   }
+  /* the wind at h m over the surface (the hub's profile, until windAt(y)): a log law under 100 m (z0 = 0.003 m, U10
+     along the visit's wind), the low layer's over it */
+  var CLOUD_Z0 = 0.003;
+  function cloudWindAt(V, h, out) {
+    var o = out || new Float64Array(2), w = V && V.wind;
+    if (!w) { o[0] = 0; o[1] = 0; return o; }
+    if (h >= 100) return cloudWind(V, 'low', o);
+    var u = CLOUD_U10 * Math.log(Math.max(h, CLOUD_Z0 * 1.01) / CLOUD_Z0) / Math.log(10 / CLOUD_Z0);
+    o[0] = w[0] * u; o[1] = w[1] * u; return o;
+  }
+  /* a tower's lean downwind (physics: clouds/drift): the shear across it, du = W(top) - W(base), over twice its updraft
+     (w, about 1.5 m/s), at most 0.15 (m across a metre up); [x, z] */
+  var CLOUD_UP = 1.5, CLOUD_LEAN = 0.15, LEANA = new Float64Array(2), LEANB = new Float64Array(2);
+  function cloudLean(V, hBase, hTop) {
+    var a = cloudWindAt(V, hBase, LEANA), b = cloudWindAt(V, hTop, LEANB), dx = b[0] - a[0], dz = b[1] - a[1], du = Math.sqrt(dx * dx + dz * dz);
+    if (du < 1e-9) return [0, 0];
+    var k = Math.min(du / (2 * CLOUD_UP), CLOUD_LEAN) / du; return [dx * k, dz * k];
+  }
   /* the draw's own moment (between the last two steps, as the camera is drawn) */
   function cloudT() { return SIM.t - (1 - SIM.alpha) * SIM_DT; }
   /* a body's centre at t: its laid-out centre c0 carried by its layer's wind (o.w: [x, z] m/s, set when it is made) */

@@ -33,7 +33,7 @@
     // clouds: their lobes laid out on their seats, prepared for baking; their cores are obstacles
     if (C.clouds.length) {
       var PF = new Puffs(), bodyCl = [];
-      for (i = 0; i < C.clouds.length; i++) { var cl = C.clouds[i], nb0 = PF.bodies.length; cl.base = yOf(cl); V.def.cloud(cl, PF, RNG(cl.seed || (C.key + i * 7919) >>> 0), KITAPI); for (j = nb0; j < PF.bodies.length; j++) bodyCl[j] = cl; }
+      for (i = 0; i < C.clouds.length; i++) { var cl = C.clouds[i], nb0 = PF.bodies.length; cl.base = yOf(cl); if (C.air && cl.kind === 'cumulus') { var hS = cl.base - seaBaseAt(cl.x, cl.z); cl.lean = cloudLean(V, Math.max(hS, 1), Math.max(hS, 1) + cl.h); }   /* (physics: clouds/drift: a free tower leans downwind with the shear across it) */ V.def.cloud(cl, PF, RNG(cl.seed || (C.key + i * 7919) >>> 0), KITAPI); for (j = nb0; j < PF.bodies.length; j++) bodyCl[j] = cl; }
       // each body kept (not empty), its volume prepared and its cores obstacles; its
       // visible body (its lobes) kept for the slip (a cost) and the mist about the eye (mistK), in the volumes' order
       var soft = [], softB = [];

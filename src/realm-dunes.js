@@ -113,10 +113,11 @@
       C.poi({ kind: 'form', x: x, z: z, ref: it, dy: H * 0.5, pass: rad * 1.2 + 80 });
     }
   }
-  /* an air cell (physics: clouds/drift): the low layer's ranges, drifting with the wind; laid out where the air has
-     carried the cell, their seats read there */
+  /* an air cell (physics: clouds/drift): the low layer's ranges, drifting with the wind and lying along it (the low
+     layer's azimuth, the wind's + 20 deg, +- 15: a cloud street); laid out where the air has carried the cell, their
+     seats read there */
   function dAir(C, R) {
-    if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: R.r(0, PI), len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
+    if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: Math.atan2(C.V.wind[0], C.V.wind[1]) + R.r(5, 35) * PI / 180, len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
   }
   /* a small cell of open dunes: a few stones of its own */
   function dSmall(C, R) {

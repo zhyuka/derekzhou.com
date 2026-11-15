@@ -120,7 +120,7 @@
     cloud: function (cl, PF, R) {
       // (smaller, crisper billows than DUNES' far banks: cells about a quarter of a lobe, a harder edge)
       if (cl.kind === 'wall') K.wall(PF, R, cl.x, cl.base, cl.z, cl.dir, cl.len, cl.thick, cl.h, { face: cl.face, noise: 2.4, band: 0.05 });
-      else if (cl.kind === 'cumulus') K.cumulus(PF, R, cl.x, cl.base, cl.z, cl.w, cl.h, { puff: 1.25, noise: 2.2, band: 0.045 });
+      else if (cl.kind === 'cumulus') K.cumulus(PF, R, cl.x, cl.base, cl.z, cl.w, cl.h, { puff: 1.25, noise: 2.2, band: 0.045, lean: cl.lean });
     }
   });
 })();

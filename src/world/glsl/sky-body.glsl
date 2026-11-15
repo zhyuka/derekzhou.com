@@ -3,6 +3,7 @@ uniform vec4 uSunD;   // disc: cos of radius, intensity, star amount, disc kind 
 uniform int uZs;   // (fast500 D T1) never set: 0 at link; the star loop's bound FXC cannot fold
 uniform vec4 uHi;     // high cloud: cover, brightness, scale, drift
 uniform vec3 uHiC;
+uniform vec4 uDeck;   // (physics: clouds/drift) the 3000 m deck's wind: its direction (x, z: unit) and how far it has carried the streaks along it (m, wrapped at 5 of the noise's tiles, the octaves' common period); unset: the world's x, still
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
@@ -102,7 +103,9 @@ void main() {
        along the streaks and 600 m across (the second octave 1.8x finer), faded out low (where the deck's texels would
        come under a pixel: never a glitter) */
     vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
-    vec2 qs = P * vec2(1.0 / 153600.0, 1.0 / 38400.0);
+    // (physics: clouds/drift) the streaks lie along the deck's wind and drift with it: the point in its frame, carried
+    vec2 dD = dot(uDeck.xy, uDeck.xy) > 0.25 ? uDeck.xy : vec2(1.0, 0.0);
+    vec2 qs = (vec2(dot(P, dD), dot(P, vec2(-dD.y, dD.x))) - vec2(uDeck.z, 0.0)) * vec2(1.0 / 153600.0, 1.0 / 38400.0);
     float n = n3v(vec3(qs, 0.37)).a * 0.66 + n3v(vec3(qs * 1.8 + 0.31, 0.71)).a * 0.34 - 0.5;
     float cov = smoothstep(0.55 - uHi.x, 0.95 - uHi.x, n * 1.6 + 0.5) * smoothstep(0.06, 0.25, rd.y);
     vec3 hc = uHiC * (1.0 + 1.5 * pow(max(cs, 0.0), 6.0));
@@ -119,7 +122,9 @@ void main() {
   }
   if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {   // (fast500 no-fades) the veil in a change between a twilight sky and a night (above, its strength 0): the same, its brightening toward the sun sinking with it and weakening with its depth, the night's coming in at the key
     vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
-    vec2 qs = P * vec2(1.0 / 153600.0, 1.0 / 38400.0);
+    // (physics: clouds/drift) the streaks lie along the deck's wind and drift with it: the point in its frame, carried
+    vec2 dD = dot(uDeck.xy, uDeck.xy) > 0.25 ? uDeck.xy : vec2(1.0, 0.0);
+    vec2 qs = (vec2(dot(P, dD), dot(P, vec2(-dD.y, dD.x))) - vec2(uDeck.z, 0.0)) * vec2(1.0 / 153600.0, 1.0 / 38400.0);
     float n = n3v(vec3(qs, 0.37)).a * 0.66 + n3v(vec3(qs * 1.8 + 0.31, 0.71)).a * 0.34 - 0.5;
     float cov = smoothstep(0.55 - uHi.x, 0.95 - uHi.x, n * 1.6 + 0.5) * smoothstep(0.06, 0.25, rd.y);
     vec3 hc = uHiC * (1.0 + 1.5 * (pow(max(cs, 0.0), 6.0) * uSunK.y + pow(max(dot(rd, uSkyN.xyz), 0.0), 6.0) * uSunK.z));
