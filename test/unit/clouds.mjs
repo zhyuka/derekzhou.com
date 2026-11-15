@@ -1,4 +1,5 @@
 // test/unit/clouds.mjs: the cloud bodies' fine billows: one scale and depth a body, set once
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "max((s - amp) * 0.6, dE); continue;", "with": "max((s - amp) * 0.6, dE); taken++; continue;", "why": "a leap counted as a band step in another spelling: every leap cuts the band's steps"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];", "with": "B.u4a[2] = (V.L || V.light).clDetail[0]; B.u4a[3] = B.det[1];", "why": "the billows' scale blended per frame by the place's weight again"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
@@ -36,7 +37,7 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
 // The pieces' cap is the world's own (410's uVK for the desktop and the rest; none on main: one piece), and the cut loop
 // must be in the shader; desktop under 0.02 everywhere, the rest at least 4 times calmer than one piece.
 const VBODY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8');
-const VK = /gl\.uniform1f\(P\.u\.uVK, LOOKD && TIER >= 1 \? (\d+) : (\d+)\)/.exec(WORLD);
+const VK = /gl\.uniform1f\(P\.u\.uVK, LOOKD \? (\d+) : (\d+)\)/.exec(WORLD);
 const CAP = VK ? { desktop: +VK[1], rest: +VK[2] } : { desktop: 1, rest: 1 };
 function hash(i, L) { let x = Math.imul(i ^ Math.imul(L + 1, 0x9e3779b1), 0x85ebca6b) ^ 0x1234567; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
 function row(x, L) { const i = Math.floor(x), f = x - i; return hash(i, L) * (1 - f) + hash(i + 1, L) * f; }   // (a row of texels, filtered linearly)
@@ -86,7 +87,7 @@ test('clouds: the edge band is cut into pieces in the shader, at most 12, the ca
   assert.ok(CAP.desktop <= 12 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 12`);
 });
 test('clouds: the edge band boils under 0.02 on the desktop at 80, 150 and 300 m; the rest take one piece', () => {
-  assert.equal(CAP.rest, 1, 'off the desktop\'s top tier the band is not cut (4 pieces bound every segment on a phone for no gain)');
+  assert.equal(CAP.rest, 1, 'off the desktop look the band is not cut (4 pieces bound every segment on a phone for no gain)');
   const rows = [];
   for (const dist of [80, 150, 300]) for (const v of [0.25, 0.5]) {
     const one = boil({ dist, v, Kmax: 1 }), d = boil({ dist, v, Kmax: CAP.desktop }), r = boil({ dist, v, Kmax: CAP.rest });
@@ -103,13 +104,17 @@ test('clouds: the edge band boils under 0.02 on the desktop at 80, 150 and 300 m
 test('clouds: the band\'s steps are one budget a tier, and the leaps have their own cap', () => {
   const D = cut(WORLD, '    var push = pushVol;', '    ST.vols = m;');
   assert.ok(!/d < 2500/.test(D), 'the volume draw cuts the steps by distance');
-  assert.match(D, /var VSTEPS = LOOKD && TIER >= 1 \? 48 : 32;/);
+  assert.match(D, /var VSTEPS = LOOKD \? 48 : 32;/);
   assert.match(D, /var steps = d < B\.r \* 1\.5 \? 48 : VSTEPS;/, 'a body the camera is near does not keep its 48 steps on every tier');
   // (leaps never shrink the band's steps: taken counts band samples only, so it is counted after the leap branch's
   // continue and before mS reads it; moved back before the leap test, or dropped, every leap would cut a band step)
-  const leapEnd = VBODY.indexOf('max((s - amp) * 0.6, dE); continue;'), tk = VBODY.indexOf('taken += 1.0;'), ms = VBODY.indexOf('float mS = (tf - t) / max(uVR.y - taken + 1.0, 1.0);');
-  assert.ok(leapEnd > 0 && tk > leapEnd && ms > tk, 'taken is not counted after the leap branch and before mS: leaps would shrink the band\'s steps');
-  assert.equal(VBODY.split('taken += 1.0;').length - 1, 1, 'taken is counted more than once a sample');
+  // (by meaning, not text: every write to taken, in any spelling (taken++, ++taken, taken += k, taken = taken + k),
+  // found; there is one, and it is after the leap branch's continue and before mS)
+  const code = VBODY.replace(/\/\/[^\n]*/g, '').replace(/(float T = 1\.0, )taken = 0\.0, /, '$1'), inc = [...code.matchAll(/\+\+\s*taken\b|\btaken\s*(?:\+\+|--|[-+*\/]?=(?!=))/g)].map((m) => m.index);
+  assert.match(VBODY, /float T = 1\.0, taken = 0\.0, leaps = 0\.0;/, 'taken does not start at none');
+  const leapEnd = code.indexOf('max((s - amp) * 0.6, dE); continue;'), ms = code.indexOf('float mS = (tf - t) / max(uVR.y - taken + 1.0, 1.0);');
+  assert.equal(inc.length, 1, `taken is written ${inc.length} times a sample (one count, after the leaps)`);
+  assert.ok(leapEnd > 0 && inc[0] > leapEnd && ms > inc[0], 'taken is not counted after the leap branch and before mS: leaps would shrink the band\'s steps');
   assert.match(VBODY, /if \(t > tf \|\| last \|\| taken >= uVR\.y\) break;/, 'the march stops on the loop\'s count, leaps and all');
   assert.match(VBODY, /&& leaps < 32\.0\) \{/, 'the leaps have no cap of their own');
   const loop = /for \(int i = 0; i < (\d+); i\+\+\) \{\n\s*if \(t > tf/.exec(VBODY);

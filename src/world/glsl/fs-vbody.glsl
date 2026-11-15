@@ -58,7 +58,7 @@ void main() {
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
   float sP = 0.0, sBP = 0.0, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
-  vec3 nOff = fract(uVC / uVR.z) + AIR_DRIFT(uT); float texel = uVR.z / 32.0;
+  vec3 nOff = fract(uVC / uVR.z); float texel = uVR.z / 32.0;
   for (int i = 0; i < 96; i++) {
     if (t > tf || last || taken >= uVR.y) break;
     if (t >= tf) { t = tf; last = true; }   // (the ray's end is a sample, so its last segment is counted)
