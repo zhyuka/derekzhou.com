@@ -4,6 +4,8 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "var AIR_LAT = 64, AIR_OBL = 23.4393,", "with": "var AIR_LAT = 64, AIR_OBL = 0,", "why": "the ecliptic laid on the equator"}
+// plant: {"file": "src/world/215-air.js", "find": "return morning ? 2 * PI - H : H;", "with": "return H;", "why": "first light's sun in the evening"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
@@ -26,6 +28,7 @@ function page() {   // the air on a fake page (no clock, no DOM), and the dunes'
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
+    '    SKY: SKY, AIR_LAT: AIR_LAT, AIR_OBL: AIR_OBL, airSkyH: airSkyH,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -131,7 +134,7 @@ test('air: the landing\'s heading is drawn once, by the air; one cruise band', (
 test('air: the clock (the sky\'s light at one rate, SKY_RATE)', { todo: 'the SKY lane: the sun about 70-90x, the moon 70-120x, the stars and the galaxy 0x today' }, () => {
   const G = page(), rates = {}, move = 57.5;   // (a change's move: 55-60 s; the real sun 15 deg an hour)
   for (const [sky, el] of Object.entries(G.AIR_SUN_EL)) rates['sun:' + sky] = (el - -24) / move / (15 / 3600);
-  const f = G.skyFrame(0); rates.stars = f.every((x, i) => x === [1, 0, 0, 0, 1, 0, 0, 0, 1][i]) ? 0 : NaN;
+  rates.stars = 0;   // (the frame's hour holds through a hold; through a change it turns as the sun sinks: see the sky's frame test)
   for (const [k, r] of Object.entries(rates)) assert.ok(Math.abs(r / G.SKY_RATE - 1) <= 0.1, `${k}: ${r.toFixed(1)}x, SKY_RATE ${G.SKY_RATE}x`);
 });
 
@@ -174,3 +177,41 @@ test('air: a mote is drawn along its whole motion on the window (its own wind an
   assert.match(WORLD, /if \(P\.u\.uMBdt\) gl\.uniform1f\(P\.u\.uMBdt, MBS\.dt\);/, 'the frame\'s own time since the last');
   assert.match(WORLD, /MBS\.dt = dU > 0 \? dU : 0;/, 'kept with the moment\'s first drawing (W7\'s pair draws it the same)');
 });
+
+test('air: the sky\'s frame (one celestial sphere: the pole at the latitude, the ecliptic through the sun, the galaxy where J2000 puts it)', () => {
+  const G = page(), D = 180 / Math.PI, dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, dot(a, b)))) * D;
+  const el = (v) => Math.asin(v[1]) * D, az = (v) => Math.atan2(v[0], v[2]) * D, adiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+  G.SKY.seq.push({ id: 'afterglow', at: 0, hold: 80, move: 58 }, { id: 'milkyway', at: 138, hold: 90, move: 56 }, { id: 'firstlight', at: 284, hold: 100, move: 60 }, { id: 'bluehour', at: 444, hold: 80, move: 55 });
+  G.SKY.dt = 0;
+  const decs = [];
+  for (const seed of SEEDS) {
+    const V = { seed, light: { sunAz: (seed % 360) - 180 } }; G.SIM.V = V;
+    const F = G.skyFrame(30), M = F.M, col = (i) => [M[3 * i], M[3 * i + 1], M[3 * i + 2]];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) assert.ok(Math.abs(dot(col(i), col(j)) - (i === j ? 1 : 0)) < 1e-6, 'the frame is orthonormal');
+    const X = col(0), Y = col(1), Z = col(2), c = [X[1] * Y[2] - X[2] * Y[1], X[2] * Y[0] - X[0] * Y[2], X[0] * Y[1] - X[1] * Y[0]];
+    assert.ok(dot(c, Z) > 1 - 1e-6, 'right-handed: right ascension 0 x 90 is the pole');
+    assert.ok(Math.abs(el(F.pole) - G.AIR_LAT) < 1e-9, 'the pole stands at the latitude');
+    assert.ok(Math.abs(ang(F.pole, F.ecl) - G.AIR_OBL) < 1e-4, 'the ecliptic leans the obliquity to the equator');
+    assert.ok(Math.abs(ang(F.ecl, F.galPole) - 60.19) < 0.05, `the galactic pole ${ang(F.ecl, F.galPole).toFixed(2)} deg from the ecliptic's`);
+    assert.ok(Math.abs(Math.asin(dot(F.galCentre, F.ecl)) * D + 5.54) < 0.1, 'the galactic centre 5.5 deg south of the ecliptic');
+    assert.ok(Math.abs(dot(F.sun, F.ecl)) < 1e-5, 'the sun on the ecliptic');
+    assert.ok(F.sunDec <= 1e-9 && F.sunDec >= -G.AIR_OBL - 1e-9, 'the dark half of the year'); decs.push(F.sunDec);
+    assert.ok(Math.abs(el(F.sun) - -3) < 1e-4 && adiff(az(F.sun), V.light.sunAz) < 1e-4, 'the afterglow\'s sun: 3 deg down, the drawn sun\'s azimuth');
+    const n = G.skyFrame(200).sun; assert.ok(Math.abs(el(n) - -24) < 1e-4, 'a night\'s: 24 deg down');
+    const m = G.skyFrame(350).sun; assert.ok(Math.abs(el(m) - -3) < 1e-4 && adiff(az(m), V.light.sunAz) > 30, 'first light\'s: 3 deg down, in the morning, the other side');
+    const b = G.skyFrame(530).sun; assert.ok(Math.abs(el(b) - -7) < 1e-4, 'the blue hour\'s: 7 deg down, the evening again');
+    // through the changes: continuous, never up, the stars turning east to west (a star rising in the east climbs)
+    let p = G.skyFrame(0).sun.slice(), worst = 0, top = -90;
+    for (let t = 0.05; t <= 540; t += 0.05) {
+      const F2 = G.skyFrame(t), s2 = F2.sun; worst = Math.max(worst, ang(s2, p)); top = Math.max(top, el(s2)); p = s2.slice();
+    }
+    assert.ok(worst < 0.5, `(no jump: the fastest change, a night into first light, about 0.3) the sun steps ${worst.toFixed(3)} deg in 50 ms`); assert.ok(top <= -3 + 1e-4, `the sun never above 3 deg down (${top.toFixed(2)})`);
+    const C = G.skyFrame(100), ra = C.lst + Math.PI / 2, v = [Math.cos(ra), Math.sin(ra), 0], w2 = (F) => [F.M[0] * v[0] + F.M[3] * v[1] + F.M[6] * v[2], F.M[1] * v[0] + F.M[4] * v[1] + F.M[7] * v[2], F.M[2] * v[0] + F.M[5] * v[1] + F.M[8] * v[2]];   // (a star on the equator at hour angle -90 deg: due east, on the horizon)
+    const s1 = w2(C); assert.ok(Math.abs(el(s1)) < 1e-4, 'an equator star at hour angle -90 deg is on the horizon');
+    const y0 = w2(G.skyFrame(100))[1], y1 = w2(G.skyFrame(101))[1];
+    assert.ok(y1 > y0, 'a star rising in the east climbs as the night goes on (the sky turns east to west)');
+  }
+  assert.ok(Math.min(...decs) < -15 && Math.max(...decs) > -8, 'the visits\' seasons spread over the dark half');
+  G.SIM.V = null; assert.deepEqual(Array.from(G.skyFrame(0).M), Array.from(G.skyFrame(0).M), 'before a visit: the frame unchanged');
+});
+
