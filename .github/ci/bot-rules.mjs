@@ -52,3 +52,21 @@ export function stillsReady(hasBake, statuses) {
 export function botMergeHead(message, parents) {
   return /^Merge #\d+: /.test(message || '') && (parents || []).length === 2 ? parents[1] : null;
 }
+
+// What the deploy gate does about a cancelled main tip nothing proves (its run r, among main's runs since live, the
+// tip's own synthetic entry included): 'wait' while any of them has not completed (main's gate group keeps one run and
+// one pending: a re-run asked now would be the pending one, cancelled by the next landing, or would cancel a landed
+// tip's pending gate: the hub's review of #289); 'again' when r is a re-run already (once only: the owner looks); else
+// 'rerun'.
+export function rerunAnswer(r, runs) {
+  if ((runs || []).some((x) => x.status !== 'completed')) return 'wait';
+  return (r.run_attempt || 1) > 1 ? 'again' : 'rerun';
+}
+
+// The commits whose own branch gate proves a main tip's frames: the tip itself, and for the bot's own merge commit its
+// PR's tested head (botMergeHead). The proof is the PR's diff on its own base, the trust the bot gave it when it merged;
+// the merged tree is checked by main's own gate only when that runs.
+export function proofHeads(sha, message, parents) {
+  const h = botMergeHead(message, parents);
+  return h ? [sha, h] : [sha];
+}

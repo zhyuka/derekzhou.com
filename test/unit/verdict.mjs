@@ -52,36 +52,50 @@ test('deploy gate: a red tip whose frames are proved, covered by a later green g
   assert.equal((await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', null, 'in_progress')], d(true))).to, S('a'), 'a red proved tip, no later green yet: live waits');
 });
 
-test('deploy gate: the 2026-11-15 stall: a cancelled tip nothing proves gets its gate re-run, once; a bot merge is proved by its PR\'s head', async () => {
+test('deploy gate: the 2026-11-15 stall: a cancelled tip nothing proves gets its gate re-run once, only when main\'s gates are done; a bot merge is proved by its PR\'s head', async () => {
   const { walk } = await import(new URL('../../.github/ci/deploy-walk.mjs', import.meta.url));
-  const { botMergeHead } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  const { botMergeHead, rerunAnswer, proofHeads } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
   const S = (c) => c.repeat(40);
-  const run = (c, conclusion, attempt = 1) => ({ head_sha: S(c), status: 'completed', conclusion, html_url: 'u' + c, run_attempt: attempt, id: c });
-  // live 7ab73d1 (0); a9fab98 (a) green; 2715e19 (m: the bot's "Merge #258", main gate cancelled); then green tips d, t (main's tip)
+  const run = (c, conclusion, attempt = 1, status = 'completed') => ({ head_sha: S(c), status, conclusion, html_url: 'u' + c, run_attempt: attempt, id: c });
+  // live 7ab73d1 (0); a9fab98 (a) green; 2715e19 (m: the bot's "Merge #258", main gate cancelled); then d, t (main's tip)
   const V = { [S('a')]: { gate_ok: true, frames_identical: true, base: S('0') }, [S('d')]: { gate_ok: true, frames_identical: true, base: S('m') },
     [S('t')]: { gate_ok: true, frames_identical: true, base: S('d') } };
-  const seq = (m) => [run('a', 'success'), m, run('d', 'success'), run('t', 'success')];
-  const reruns = [];
+  const seq = (m, t = run('t', 'success')) => [run('a', 'success'), m, run('d', 'success'), t];
+  const asked = [];
   const d = (proved) => ({ verdict: async (r) => V[r.head_sha], ownerMerge: async () => false, branchIdentical: async () => proved, laterStallOk: async () => -1, say: () => {},
-    rerun: async (r) => { reruns.push(r.id); return (r.run_attempt || 1) > 1 ? 'again' : 'rerun'; } });
-  // before: nothing proves m: the walk stopped at a for good (no later gate ever runs on m)
+    rerun: async (r, runs) => { const x = rerunAnswer(r, runs); if (x === 'rerun') asked.push(r.id); return x; } });   // (the bot's own rule: rerunTip is rerunAnswer, then the POST)
+  // nothing proves m: the walk stops at a, and m's gate is re-run (all of main's gates done)
   const w = await walk(S('0'), seq(run('m', 'cancelled')), d(false));
-  assert.equal(w.to, S('a')); assert.deepEqual(reruns, ['m'], 'm\'s own gate re-run'); assert.match(w.why, /re-ran its gate \(once\)/);
+  assert.equal(w.to, S('a')); assert.deepEqual(asked, ['m']); assert.match(w.why, /re-ran its gate \(once\)/);
+  // a gate of main's still running (or the tip's, queued): no re-run yet (it would be the pending one, or cancel the tip's)
+  for (const t of [run('t', null, 1, 'in_progress'), run('t', null, 1, 'queued')]) {
+    const ww = await walk(S('0'), seq(run('m', 'cancelled'), t), d(false));
+    assert.equal(ww.to, S('a')); assert.match(ww.why, /once main's gates are done the bot re-runs it/);
+  }
+  assert.deepEqual(asked, ['m'], 'never asked while a gate of main\'s runs');
+  // m's re-run cancelled again: never a second re-run, the owner looks
   const w2 = await walk(S('0'), seq(run('m', 'cancelled', 2)), d(false));
-  assert.equal(w2.to, S('a')); assert.match(w2.why, /cancelled again on its re-run/, 'never re-run twice: the owner looks');
-  assert.deepEqual(reruns, ['m', 'm'], '(the second walk asked, and was told again)');
-  // the re-run green: the walk goes on to main's tip
+  assert.equal(w2.to, S('a')); assert.match(w2.why, /cancelled again on its re-run/); assert.deepEqual(asked, ['m']);
+  // the re-run green: on to main's tip
   V[S('m')] = { gate_ok: true, frames_identical: true, base: S('a') };
   assert.equal((await walk(S('0'), seq(run('m', 'success', 2)), d(false))).to, S('t'));
   delete V[S('m')];
-  // with the bot merge proved by its PR's head (branchIdentical true): past m at once, no re-run
-  reruns.length = 0;
-  assert.equal((await walk(S('0'), seq(run('m', 'cancelled')), d(true))).to, S('t')); assert.deepEqual(reruns, []);
-  // the PR's head of the bot's own merge commit, and nothing else's
-  assert.equal(botMergeHead('Merge #258: still-pick: the bake\'s device ...', ['a9fab98', 'c9a2907']), 'c9a2907');
-  assert.equal(botMergeHead('Merge pull request #256 from zhyuka/claude/flight-height', ['x', 'y']), null, 'the owner\'s merge');
-  assert.equal(botMergeHead('Merge #258: x', ['a9fab98']), null, 'one parent');
-  assert.equal(botMergeHead('CI: a plain commit', ['x', 'y']), null);
+  // m proved by its PR's head: past it at once, no re-run
+  assert.equal((await walk(S('0'), seq(run('m', 'cancelled')), d(true))).to, S('t')); assert.deepEqual(asked, ['m']);
+  // the rules themselves
+  assert.equal(rerunAnswer({ run_attempt: 1 }, [{ status: 'completed' }]), 'rerun');
+  assert.equal(rerunAnswer({ run_attempt: 2 }, [{ status: 'completed' }]), 'again');
+  assert.equal(rerunAnswer({}, [{ status: 'completed' }, { status: 'queued' }]), 'wait');
+  assert.deepEqual(proofHeads(S('m'), 'Merge #258: still-pick: the bake\'s device ...', [S('a'), S('h')]), [S('m'), S('h')], 'the bot\'s merge: its PR\'s head, the second parent');
+  assert.deepEqual(proofHeads(S('m'), 'Merge pull request #256 from zhyuka/claude/flight-height', [S('a'), S('h')]), [S('m')], 'the owner\'s merge: itself only');
+  assert.deepEqual(proofHeads(S('m'), 'Merge #258: x', [S('a')]), [S('m')], 'one parent');
+  assert.deepEqual(proofHeads(S('m'), 'CI: a plain commit', [S('a'), S('h')]), [S('m')]);
+  assert.equal(botMergeHead('Merge #258: x', [S('a'), S('h')]), S('h'));
+  // and the bot runs them: rerunTip asks rerunAnswer first, branchIdentical proves every head proofHeads names
+  const BOT = fs.readFileSync(path.join(ROOT, '.github/ci/merge-bot.mjs'), 'utf8');
+  assert.match(BOT, /async function rerunTip\(r, runs\) \{\n  const a = rerunAnswer\(r, runs\);\n  if \(a !== 'rerun'\) return a;/);
+  assert.match(BOT, /for \(const h of proofHeads\(sha, c\?\.commit\?\.message, \(c\?\.parents \|\| \[\]\)\.map\(\(p\) => p\.sha\)\)\.slice\(1\)\) if \(await proved\(h\)\) return true;/);
+  assert.match(BOT, /rerun: rerunTip/);
 });
 
 test('verdict: a push with no open PR (a preview) is not compared, so it never lands on that run', () => {

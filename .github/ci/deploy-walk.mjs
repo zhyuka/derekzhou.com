@@ -1,7 +1,7 @@
 // deploy-walk.mjs: the deploy gate's walk over main's tips since live (merge-bot.mjs, step 3), apart so it can be
 // unit-tested (test/unit/verdict.mjs). runs: main's push runs of the Gate between live and main, oldest first. d: the bot's
-// lookups (verdict, ownerMerge, branchIdentical, laterStallOk, prProved, revertOf), its one act (rerun(run): re-run a
-// cancelled tip's gate, once: 'rerun', or 'again' when it was re-run already) and say, injected. Returns { to, why }: the newest tip
+// lookups (verdict, ownerMerge, branchIdentical, laterStallOk, prProved, revertOf), its one act (rerun(run, runs): re-run a
+// cancelled tip's gate, once and only when all of main's gates are done: 'rerun', 'wait', or 'again' (bot-rules.mjs rerunAnswer)) and say, injected. Returns { to, why }: the newest tip
 // live may move to, and why it stops there.
 // A cancelled run (a newer push to main superseded it) is no result, never red: that tip is judged by its own
 // branch's gate or the owner's merge (as a tip judged against another base is), and the next green gate, which runs
@@ -25,8 +25,9 @@ export async function walk(live, runs, d) {
       if (!(await d.ownerMerge(r.head_sha)) && !(await d.branchIdentical(r.head_sha))) {
         // (2026-11-15: live waited 4 hours at 7ab73d1 on #258's cancelled tip for "a later gate" that could never come:
         // no later gate runs on this tip. Its own gate is re-run, once, by the bot; cancelled again, the owner looks)
-        const re = d.rerun ? await d.rerun(r) : null;
+        const re = d.rerun ? await d.rerun(r, runs) : null;
         why = re === 'rerun' ? `main ${tip}'s gate was cancelled and nothing else proves its frames: the bot re-ran its gate (once); live waits at ${to.slice(0, 10)} for it`
+          : re === 'wait' ? `main ${tip}'s gate was cancelled and nothing else proves its frames: live waits at ${to.slice(0, 10)}; once main's gates are done the bot re-runs it (a re-run asked now would be cancelled, or cancel a landed tip's)`
           : `main ${tip}'s gate was cancelled${re === 'again' ? ' again on its re-run' : ''} and nothing else proves its frames: live waits at ${to.slice(0, 10)}; re-run that gate (${r.html_url})`;
         break;
       }
