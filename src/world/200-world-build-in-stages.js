@@ -5,7 +5,7 @@
   function firstYaw() {   // the first frame's view yaw as arrive sets it (CS.yawV + CS.phi = CS.psi), read without drawing from any stream
     if (SIM.inited) return CS.yawV + CS.phi;
     if (DEVMODE && POSE) return POSE[2] * DEG;
-    return RNG(subseed(J.seed, 77)).r(0, 2 * PI);
+    return airHeading0();
   }
   function planVisit(V) {
     if (V.light) return;
@@ -20,7 +20,7 @@
     V.speed = (def.speed || 12) * CAMK; V.clear = (def.clear || [6, 12, 120]).slice(); V.margin = def.margin || 14;
     V.field = def.field ? def.field(V.rng, V) : { params: [] };
     V.light = def.light(V.rng2, V);
-    V.light.sunDir = dirAzEl(V.light.sunAz, V.light.sunEl);
+    airKeySet(V.light);   // (215: the key, once)
     V.lightRaw = Object.assign({}, V.light);
     var r3 = RNG(subseed(V.seed, 3)); V.ph = [r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28)];
     V.evRng = RNG(AFTER ? subseed(SEEDR, 5) : subseed(V.seed, 5));   // (built after the cut: the visit's own read)
