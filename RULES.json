@@ -15,9 +15,18 @@
           "quote": "remove that white background behind the text. it's fine failing accesibility",
           "date": "2026-10-21",
           "doc": "docs/design.md"
+        },
+        {
+          "quote": "No, natural light is fine",
+          "date": "2026-11-15",
+          "via": "the hub, relaying the owner, asked whether the world's own natural shading counts"
         }
       ],
       "enforced_by": [
+        {
+          "kind": "prose",
+          "note": "Scope (the owner, 2026-11-15, asked whether the world's own natural shading counts: 'No, natural light is fine'): nothing is ever darkened for the words; the world's own physical light and shadow (cast shadows, a softer twilight key, views into the sun) are free under the light ceiling. W7 is unchanged."
+        },
         {
           "kind": "world-rule",
           "id": "7 never-darker"
@@ -205,6 +214,24 @@
         {
           "kind": "absence",
           "number": 4
+        }
+      ]
+    },
+    {
+      "id": "one-world-state",
+      "area": "weather",
+      "rule": "The world has one air: src/world/215-air.js holds the visit's one wind (its direction, drawn once, and its speed by height, windAt), the one key light (keyAt: the clouds' bake, the land and the birds are lit along it), each sky's own sun (AIR_SUN_EL), the moon on show, the sky's frame, the clock rates (physical motion at 1x real; the sky's light at one rate, SKY_RATE), the weather, the landing's heading and the flight's cruise band. Every other system reads them there and keeps no wind, sun or clock rate of its own: a reader still apart is listed in AIR_APART with the change that joins it, and taken off the list when it is joined.",
+      "source": [
+        {
+          "quote": "they should follow real physics, clouds moving (when/how they move), same w auroras, sand, etc. ... make sure there are 0 disconnects.",
+          "date": "2026-11-15",
+          "doc": "docs/world.md: THE AIR"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The world's pure code, unit-tested"
         }
       ]
     },
@@ -488,6 +515,11 @@
         {
           "date": "2026-11-06",
           "via": "the hub, relaying the owner"
+        },
+        {
+          "quote": "credit another way",
+          "date": "2026-11-15",
+          "via": "the hub, relaying the owner, asked whether the rule may exempt the CC BY credit line of src/birds/model/model.js: no. Credits become DOI/URL links, never a person's name"
         }
       ],
       "enforced_by": [
