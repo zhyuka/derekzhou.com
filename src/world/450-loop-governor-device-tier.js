@@ -11,7 +11,9 @@
      governor at 1.35 kept those at 45-55 fps at the top rung; at 1.08 it steps down until they run at their next
      multiple over 60 (90, 100, 72, 82 fps). Three seconds later, if the step did not help, one more rung is tried, and
      then one more (a cost quantised by the display's sync needs steps to show its knee: two at 60 Hz, three at 75 Hz,
-     whose 26.7 ms two rungs could not cross); if none helped, all are undone and the frame time they could not beat is
+     whose 26.7 ms two rungs could not cross: the third only when the quickest tenth of the frames already beat the old
+     median by 15%, the sign of a cost near a sync's knee; a cost the scale cannot touch, a 30 fps cap, a CPU-bound
+     phone, a 50 Hz display, sees two trials as before); if none helped, all are undone and the frame time they could not beat is
      learnt as the period (a 30 fps cap is then simply the pace). No step is taken while one is on trial. Twenty seconds at ease
      (median under 1.04 periods) step back up. The floor: ten seconds at under half the pace at the last rung, or under 15 fps with the period
      learnt at its 50 ms ceiling (a cost the scale cannot touch: vertex work, the CPU, the driver) at any rung, give
@@ -41,7 +43,7 @@
     if (GOVN[9] === 1 && GOVN[8] >= 3) {
       GOVN[9] = 0;
       if (p50 > GOVN[7] * 0.85 && RUNG > 0) {
-        if (GOVN[16] < 2 && RUNG < RUNGS.length - 1) { GOVN[16] += 1; RUNG++; GOVN[3] = 0; GOVN[8] = 0; GOVN[9] = 1; GOVN[0] = 0; return; }
+        if ((GOVN[16] < 1 || (GOVN[16] < 2 && p10 < GOVN[7] * 0.85)) && RUNG < RUNGS.length - 1) { GOVN[16] += 1; RUNG++; GOVN[3] = 0; GOVN[8] = 0; GOVN[9] = 1; GOVN[0] = 0; return; }
         RUNG = Math.max(RUNG - 1 - GOVN[16], 0); GOVN[16] = 0;
         GOVN[6] = GOVN[10]; GOVN[10] = Math.min(GOVN[10] * 2, 960); GOVN[13] = clamp(Math.max(GOVN[7], p50), FRAME60, 50); GOVN[0] = 0; return;
       }

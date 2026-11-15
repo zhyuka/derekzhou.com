@@ -348,7 +348,9 @@ the top rung) step the render scale down a rung (the
 ladder: the tier's top and its 0.85, 0.72 and 0.6 where they stand 8% or
 more above the old size, then the old five, 1, 0.85, 0.72, 0.6 and 0.5
 of it), a second and then a third rung tried if the first did not help
-(75 Hz's 26.7 ms needs three), all undone and the frame time learnt as
+(75 Hz's 26.7 ms needs three; the third only when the quickest tenth
+of the frames already beat the old median by 15%, so a 30 fps cap, a
+CPU-bound phone or a 50 Hz display sees two, as before), all undone and the frame time learnt as
 the pace if none did (a 30 fps cap is simply the pace); twenty seconds at
 ease (a median under 1.04 of the pace) step back up (three, in the first
 twenty seconds shown and until the first step down: every boot
