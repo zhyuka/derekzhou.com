@@ -134,7 +134,7 @@ each star comes out by itself, brightest first, once the faintest magnitude
 the sky lets through where it stands passes its own (the zenith's limit by the
 sky's own sun's depth, -1 at 3 deg, about 1 at the end of civil twilight, 4.5
 at nautical's, 7 at the night's 24 deg; lowered further where the sky's own
-light is brighter), its light coming in over its first 0.6 magnitude of margin
+light is brighter), its light coming in over its first 0.5 magnitude of margin
 as the sun's depth moves (a hold holds it). So the twilights show only Venus
 and, in the blue hour, the brightest stars; a dark night keeps the whole field.
 The bright stars (b over 0.35) take pastel colours by spectral kind, each at
