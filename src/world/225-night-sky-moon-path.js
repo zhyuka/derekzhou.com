@@ -196,7 +196,7 @@
        sets behind the sea before the stay ends; the rising leg, before the cut, is never drawn */
     if (P.land !== null && P.room !== undefined && (P.room || P.landRoom)) {
       var sT = Math.min(mrSAt(B, I, I.pN, P.landX, P.thetaE), mrSAt(B, I, I.pL, P.landX, P.thetaE)), sM = P.wv * (P.land - P.tm), sC = Math.min(Math.max(sT, sM), P.tauV * P.wv);
-      P.tm = P.land - sC / P.wv; P.landS = sC;
+      P.tm0 = P.tm; P.tm = P.land - sC / P.wv; P.landS = sC;
     }
     return P;
   }
