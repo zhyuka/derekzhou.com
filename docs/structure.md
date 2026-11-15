@@ -61,9 +61,9 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
-                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
+                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
-                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/ripples.mjs (the sand
+                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
