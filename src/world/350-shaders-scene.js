@@ -52,7 +52,7 @@ void main() {
   var HP_GRIDW = `@glsl hp-gridw`;
   var HP_MAIN = {
     kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',
-    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; o0 = vec4(dunes(gw), 0.0); o1 = vec4(0.0); }',
+    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), 0.0); o1 = vec4(0.0); }',
     sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), 0.0); o1 = vec4(0.0); }',
     ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
     /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses

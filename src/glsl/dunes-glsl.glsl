@@ -74,6 +74,41 @@ vec3 duneWave(vec2 p, vec2 w, float lam, float c, vec3 warp) {
   else { float y = (f - c) / (1.0 - c); s = 1.0 - y * y * (3.0 - 2.0 * y); ds = -6.0 * y * (1.0 - y) / (1.0 - c); }
   return vec3(s, ph.yz * ds);
 }
+/* (physics: sand/S1) the main dunes' phase: along the wind, moved by a noise of the across-wind coordinate only (the
+   crests wander as a line; a 2D warp squeezed the local wavelength 0.55-1.47x and with it the slip faces). d1, d2: the
+   two slices of noise (gnd of the across-wind coordinate / 340 m and / 95 m). vec3(phase, its gradient) */
+vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
+  float dD = lam * (0.42 * d1.y / 340.0 + 0.13 * d2.y / 95.0);
+  return vec3((dot(p, w) + lam * (0.42 * d1.x + 0.13 * d2.x)) / lam, (w + dD * pp) / lam);
+}
+/* (physics: sand/S1, the hub's sand spec: a transverse dune is a gentle windward slope (7-15 deg), a brink, and a slip
+   face at sand's angle of repose, 32 deg, down to a toe) one main dune: the windward rise 0.5x + 0.5x^2 (3 - 2x), the
+   slip face a plane from the brink, its own slope m chosen so the surface's steepest descent there is 32 deg with the
+   swell and the crest's change in height (G) included: m = G.g + sqrt(tan^2 32 - |G across g|^2); its share of the
+   wavelength fl = H k / m. The brink a smooth min over 2 m, the toe a smooth max over 0.15 of the face. H = min(the
+   dune's height, 0.13 of the local wavelength). Census (tools/physics/dune-census.mjs, 2.25 M points): lee mode 31,
+   p99 32.0, none over 34 deg (the steepest 32.0), stoss p50 9.1, p90 13.6 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
+   (none on the slip face, eased over 0.06 of the phase at both ends) */
+vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw) {
+  float k = length(ph.yz); vec2 g = ph.yz / k;
+  vec3 H = Hm.x <= 0.13 / k ? Hm : vec3(0.13 / k, 0.0, 0.0);
+  // (on the face the slope is G0 + v dH - m g, v 1 at the brink to 0 at the toe: convex in v, its largest at an end.
+  // The steepest m that keeps both ends at 32 deg or under: the smaller of the two solutions)
+  vec2 G0 = swell.yz, G1 = swell.yz + H.yz;
+  float m0 = dot(G0, g) + sqrt(max(0.39046 - pow(-G0.x * g.y + G0.y * g.x, 2.0), 0.04));   // (tan^2 32 = 0.39046)
+  float m1 = dot(G1, g) + sqrt(max(0.39046 - pow(-G1.x * g.y + G1.y * g.x, 2.0), 0.04));
+  float m = min(m0, m1);
+  float fl = clamp(H.x * k / max(m, 0.2), 0.04, 0.6), L = 1.0 - fl, f = fract(ph.x);
+  float a = f / L, n = (f - 1.0) / L;
+  vec3 A = dMul(vec3(0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a), ph.yz * ((0.5 + 3.0 * a * (1.0 - a)) / L)), H);
+  vec3 F = dMul(vec3((1.0 - f) / fl, ph.yz * (-1.0 / fl)), H);
+  vec3 N = dMul(vec3(0.5 * n + 0.5 * n * n * (3.0 - 2.0 * n), ph.yz * ((0.5 + 3.0 * n * (1.0 - n)) / L)), H);
+  vec3 P = dMul(vec3(-f / fl, ph.yz * (-1.0 / fl)), H);
+  vec3 top = dSmin(A, F, 2.0), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));
+  vec3 e1 = dSstep(L - 0.06, L, vec3(f, ph.yz)), e2 = dSstep(0.0, 0.06, vec3(f, ph.yz));
+  nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2);
+  return h;
+}
 float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0) * (p + vec2(311.0, -97.0))).x; }
 /* (fast500 D) the dunes' taps: offsets and (diagonal) scales; taps 1 and 4 take a full matrix */
 const vec2 D_TO[7] = vec2[7](vec2(0.0), vec2(311.0, -97.0), vec2(0.0), vec2(71.0), vec2(400.0), vec2(9.0), vec2(900.0));
@@ -89,18 +124,18 @@ vec3 dunes(vec2 p) {
   for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
     vec3 g;
     if (o == 1 || o == 4) g = gnd((o == 1 ? D_M1 : Ma) * (p + D_TO[o]));
+    else if (o == 2 || o == 3) g = gnd(vec2(dot(p, pp) * D_TS[o], o == 2 ? 3.7 : 11.3));   // (physics: sand/S1: the crests' wander, a slice in the across-wind coordinate)
     else g = gnd(mat2(D_TS[o]) * (p + D_TO[o]));
     if (o == 0) g0 = g; else if (o == 1) g1 = g; else if (o == 2) g2 = g; else if (o == 3) g3 = g; else if (o == 4) g4 = g; else if (o == 5) g5 = g; else g6 = g;
   }
   vec3 h = 40.0 * dNg(g0, mat2(1.0 / 760.0)) + 15.0 * dNg(g1, D_M1);
-  vec3 warp = 0.42 * dNg(g2, mat2(1.0 / 340.0)) + 0.13 * dNg(g3, mat2(1.0 / 95.0));
-  vec3 s1 = duneWave(p, w, 205.0, 0.68, warp);
   vec3 amp = dSstep(-0.42, 0.3, dNg(g4, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
-  h += 32.0 * dMul(dMul(s1, amp), gKD);   // (world6: the main dunes by the maps' sand weight)
+  vec3 nw, s1 = duneS1(s1Phase(p, w, pp, 205.0, g2, g3), 32.0 * dMul(amp, gKD), h - gSK, nw);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
+  h += s1;
   if (wSmall > 0.0) {
     vec2 w2 = normalize(w + 1.3 * pp);
     vec3 s2 = duneWave(p + 37.0, w2, 64.0, 0.7, 0.25 * dNg(g5, mat2(1.0 / 80.0)));
-    h += (4.0 * wSmall) * dMul(dMul(s2, dSstep(-0.5, 0.4, dNg(g6, mat2(1.0 / 160.0)))), gKD);
+    h += (2.4 * wSmall) * dMul(dMul(dMul(s2, dSstep(-0.5, 0.4, dNg(g6, mat2(1.0 / 160.0)))), gKD), nw);   // (physics: sand/S1: x0.6, none on the slip face)
   }
   return h;
 }
@@ -164,14 +199,17 @@ float D_scatterDensity(vec2 p, int layer) {
    crests' wander followed twice), the crest's height, and how much of a crest it is (the dunes' height there) */
 vec4 veilSpot(vec2 p) {
   vec2 w = WINDDIR, pp = vec2(-w.y, w.x);
-  for (int k = 0; k < 2; k++) {
-    vec3 warp = 0.42 * dN(p, mat2(1.0 / 340.0)) + 0.13 * dN(p + 71.0, mat2(1.0 / 95.0));
-    float df = 0.68 - fract(dot(p, w) / 205.0 + warp.x);
-    df -= floor(df + 0.5);
-    p += w * df * 205.0;
-  }
   mat2 Ma = mat2(w.x / 420.0, pp.x / 190.0, w.y / 420.0, pp.y / 190.0);
-  float amp = dSstep(-0.42, 0.3, dN(p + 400.0, Ma)).x;
+  float amp = 0.0;
+  for (int k = 0; k < 2; k++) {   // (physics: sand/S1: onto the brink, f = 1 - fl, with the dunes' own phase and height)
+    float sx = dot(p, pp);
+    vec3 ph = s1Phase(p, w, pp, 205.0, gnd(vec2(sx / 340.0, 3.7)), gnd(vec2(sx / 95.0, 11.3)));
+    amp = dSstep(-0.42, 0.3, dN(p + 400.0, Ma)).x;
+    float kk = length(ph.yz), H = min(32.0 * (0.25 + 0.75 * amp), 0.13 / kk);
+    float df = (1.0 - clamp(H * kk / 0.62487, 0.04, 0.6)) - fract(ph.x);   // (tan 32 = 0.62487)
+    df -= floor(df + 0.5);
+    p += w * df / kk;
+  }
   return vec4(p, groundH(p), smoothstep(0.3, 0.8, amp));
 }
 #endif

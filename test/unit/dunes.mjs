@@ -1,0 +1,53 @@
+// test/unit/dunes.mjs: the main dunes follow the sand physics spec (physics: sand/S1).
+// A transverse dune is a gentle windward slope (7-15 deg), a brink, and a slip face at sand's angle of repose (32-34
+// deg) down to a toe; sand steeper than 34 deg slides. The shipped dunes() must build its main wave with duneS1 (the
+// slip face a 32 deg plane in the surface's own steepest direction, H at most 0.13 of the local wavelength, the brink a
+// smooth min over 2 m, the toe a smooth max over 0.15 of the face, the near family x0.6 and kept off the face), and the
+// census of that model (tools/physics/dune-census.mjs, a port of dunes() in doubles) must meet the spec: at most 0.1%
+// of the sand over 34 deg, the lee's mode 32 +- 1 deg, the stoss's 90th percentile at most 15 deg, in four winds.
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "float m = min(m0, m1);", "with": "float m = 1.3 * min(m0, m1);", "why": "the slip face at 38 deg, past the angle of repose"}
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const G = fs.readFileSync(path.join(ROOT, 'src/glsl/dunes-glsl.glsl'), 'utf8');
+const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+function body(sig) {
+  const a = G.search(sig); if (a < 0) return null;
+  let i = G.indexOf('{', a), n = 0;
+  for (; i < G.length; i++) { if (G[i] === '{') n++; else if (G[i] === '}' && --n === 0) break; }
+  return strip(G.slice(G.indexOf('{', a) + 1, i));
+}
+
+test('dunes: the shipped main wave is duneS1, its slip face at the angle of repose', () => {
+  const d = body(/vec3 dunes\(vec2 p\) \{/); assert.ok(d, 'dunes() found');
+  assert.match(d, /duneS1\(s1Phase\(p, w, pp, 205\.0, g2, g3\), 32\.0 \* dMul\(amp, gKD\), h - gSK, nw\)/, 'the main dunes from duneS1 (205 m, 32 m by the sand weight, over the swell)');
+  assert.doesNotMatch(d, /duneWave\(p, w, 205\.0/, 'not the old asymmetric wave');
+  assert.match(d, /2\.4 \* wSmall\) \* dMul\(dMul\(dMul\(s2, /, 'the near family at 0.6 of its 4 m');
+  assert.match(d, /, nw\);/, 'and weighted off the slip face');
+  const s1 = body(/vec3 duneS1\(/); assert.ok(s1, 'duneS1 found');
+  assert.match(s1, /0\.39046 - pow\(-G0\.x \* g\.y \+ G0\.y \* g\.x, 2\.0\)/, 'the face solved for tan^2 32 = 0.39046 in the steepest direction, at the toe');
+  assert.match(s1, /float m = min\(m0, m1\);/, 'and at the brink, the smaller: never over 32 deg on the face');
+  assert.match(s1, /Hm\.x <= 0\.13 \/ k/, 'H at most 0.13 of the local wavelength');
+  assert.match(s1, /dSmin\(A, F, 2\.0\)/, 'the brink a smooth min over 2 m');
+  assert.match(s1, /max\(0\.15 \* H\.x, 0\.05\)/, 'the toe a smooth max over 0.15 of the face');
+  const ph = body(/vec3 s1Phase\(/); assert.ok(ph, 's1Phase found');
+  assert.match(ph, /dot\(p, w\) \+ lam \* \(0\.42 \* d1\.x \+ 0\.13 \* d2\.x\)/, 'the crests\' wander along the wind, from the across-wind coordinate');
+});
+
+test('dunes: the census meets the spec in four winds (lee mode 32 +- 1, <= 0.1% over 34 deg, stoss p90 <= 15)', async () => {
+  const { census } = await import(path.join(ROOT, 'tools/physics/dune-census.mjs'));
+  for (const wind of [0, 0.6, 1.7, 2.9]) {
+    const r = census({ model: 's1', half: 800, cell: 8, wind });
+    assert.ok(r.over34_pct <= 0.1, `wind ${wind}: ${r.over34_pct}% over 34 deg`);
+    assert.ok(Math.abs(r.lee.mode_deg - 32) <= 1, `wind ${wind}: the lee's mode ${r.lee.mode_deg} deg`);
+    assert.ok(r.stoss.p90 <= 15, `wind ${wind}: the stoss's p90 ${r.stoss.p90} deg`);
+  }
+});
+
+test('dunes: today\'s old wave fails the same census (the test can tell)', async () => {
+  const { census } = await import(path.join(ROOT, 'tools/physics/dune-census.mjs'));
+  const r = census({ model: 'old', half: 800, cell: 8, wind: 0.6 });
+  assert.ok(r.over34_pct > 1, 'the old wave: ' + r.over34_pct + '% over 34 deg');
+});
