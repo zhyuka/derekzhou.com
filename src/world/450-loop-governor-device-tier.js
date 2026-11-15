@@ -101,5 +101,4 @@
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
      stylesheet's still sky shows; the journey's clock starts with the first frame drawn */
-  function heading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
 

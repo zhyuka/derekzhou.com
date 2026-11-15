@@ -2,18 +2,20 @@
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c,", "with": "var pc = o.c0 || o.c,", "why": "a drifting body's distance fade read where it was laid out: it comes out of the haze where it no longer is"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
-const SRC = cut(WORLD, '  var CLOUD_U10 =', '  /* ----');
-const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) {' + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
+const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) {' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
 const D = make();
 const deg = (v) => Math.atan2(v[0], v[1]) * 180 / Math.PI;
 
-test('drift: the hub\'s profile: the low layer 8.45 m/s at the wind + 20 deg, the deck 13 m/s at + 40, the cloud sea none', () => {
+test('drift: the clouds\' wind is the air\'s: windAt at the low layer\'s height, and the deck\'s; the cloud sea held', () => {
+  const W = vm.runInThisContext('(function (SIM) {' + AIRSRC + ' return { windAt: windAt, AIR_H: AIR_H }; })')({ V: null, t: 0 });
   for (const az of [0, 37, 200, 333]) {
     const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)] };
     const lo = D.cloudWind(V, 'low'), dk = D.cloudWind(V, 'deck'), sea = D.cloudWind(V, 'sea');
-    assert.ok(Math.abs(Math.hypot(lo[0], lo[1]) - 1.3 * 6.5) < 1e-9, `low speed ${Math.hypot(lo[0], lo[1])}`);
-    assert.ok(Math.abs(((deg(lo) - az - 20) % 360 + 540) % 360 - 180) < 1e-9, `low azimuth ${deg(lo)} for wind ${az}`);
-    assert.ok(Math.abs(Math.hypot(dk[0], dk[1]) - 13) < 1e-9 && Math.abs(((deg(dk) - az - 40) % 360 + 540) % 360 - 180) < 1e-9, 'the deck');
+    const wl = W.windAt(0, 0, W.AIR_H.clouds, 0, V), wd = W.windAt(0, 0, W.AIR_H.deck, 0, V);
+    assert.ok(Math.abs(lo[0] - wl.x) < 1e-12 && Math.abs(lo[1] - wl.z) < 1e-12, `low ${Array.from(lo)} is not windAt's ${wl.x}, ${wl.z}`);
+    assert.ok(Math.abs(dk[0] - wd.x) < 1e-12 && Math.abs(dk[1] - wd.z) < 1e-12, 'the deck is not windAt\'s');
+    assert.ok(Math.abs(deg(lo) - az) % 360 < 1e-9 || Math.abs(Math.abs(deg(lo) - az) - 360) < 1e-9, `the low layer blows toward ${deg(lo)}, the air toward ${az}`);
     assert.deepEqual(Array.from(sea), [0, 0], 'the cloud sea is held');
   }
   assert.deepEqual(Array.from(D.cloudWind({}, 'low')), [0, 0], 'a visit with no wind: no drift');
@@ -39,7 +41,7 @@ test('drift: the draw\'s moment is between the last two steps, as the camera\'s'
 test('drift: an air cell holds what it laid out where the air had carried it; at t its body and its lobes stand together, D(t) - D(tL) on', () => {
   const M = make();
   const ctx = vm.createContext({ SIM: { t: 0, alpha: 1 }, SIM_DT: 1 / 60 });
-  vm.runInContext(SRC + '; this.F = { airW, airD, cellOff, cloudPos };', ctx);
+  vm.runInContext(AIRSRC + SRC + '; this.F = { airW, airD, cellOff, cloudPos };', ctx);
   const F = ctx.F, V = { wind: [Math.sin(1.1), Math.cos(1.1)] }, tL = 2345.6;
   const C = { air: true, V, dL: F.airD(V, tL) };
   // a body laid out at tL at the stored place s (where the air had carried it then); its centre in the air c0 = s - D(tL)
@@ -49,7 +51,7 @@ test('drift: an air cell holds what it laid out where the air had carried it; at
     assert.ok(Math.abs(p[0] - (s[0] + off[0])) < 1e-6 && Math.abs(p[2] - (s[2] + off[1])) < 1e-6, `at ${t} the body and its cell's lobes part`);
   }
   assert.deepEqual(Array.from(F.cellOff({ air: false, V }, 999)), [0, 0], 'a world cell is never carried');
-  assert.ok(Math.abs(Math.hypot(...F.cellOff(C, tL + 1)) - 8.45) < 1e-9, 'a second on, the low layer\'s 8.45 m');
+  assert.ok(Math.abs(Math.hypot(...F.cellOff(C, tL + 1)) - Math.hypot(...F.airW(V))) < 1e-9 && Math.hypot(...F.airW(V)) > 1, 'a second on, the low layer\'s wind');
 });
 
 test('drift: the readers take an air cell\'s offset (physics: clouds/drift G1)', () => {
