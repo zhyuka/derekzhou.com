@@ -56,6 +56,7 @@
        meet each gust dx / W later. Read only: nothing drawn changes */
     gust: function (x, z, y) { return gustAt(x, z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); },
     gustPhase: function (x, z, y) { return gustPhase(x, z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); },
+    gustSigma: function (y) { return gustSigma(y === undefined ? AIR_H.birds : y, SIM.V); },   // (sigma at y, m/s: the +-1 sigma trims without a division a bird)
     cameraStep: function () { var V = SIM.V; if (!V) return null; camPose(V, SIM.u, 1, CAMP); return CAMP; },
     /* the flight: the view's yaw (the way the camera looks), its heading and speed, its climb rate, its clearance band */
     flight: function (o) {
