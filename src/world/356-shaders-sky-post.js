@@ -29,7 +29,7 @@
   var VS_OCC = HEAD + FRAME_U + `@glsl vs-occ`;
   var FS_OCC = HEAD + `@glsl fs-occ`;
   var VS_VBODY = HEAD + FRAME_U + `@glsl vs-vbody`;
-  var FS_VBODY = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-vbody`;
+  var FS_VBODY = HEAD + airGlsl() + FRAME_U + LIB + LIB_LIND + `@glsl fs-vbody`;
   /* bloom (dual filter): the first pass composes scene and cloud and keeps what is bright; every tap clamped to the
      part of its target this frame drew (a lower rung draws only part of each) */
   var FS_PRE = HEAD + FRAME_U + `@glsl fs-pre`;
