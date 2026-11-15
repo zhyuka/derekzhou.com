@@ -65,12 +65,12 @@ test('aurora: its green ribbon over the low sky composites green, not cyan, unde
   // the nearest curtain's ribbon (auroraAt at x 0.25, j 0): 0.09 x 0.85 x (e^-x/h + 0.6 e^-x/0.15h) x rays (their mean, 0.65) x fold 1
   const amp = 0.09 * 0.85 * (Math.exp(-0.25 / 16) + 0.6 * Math.exp(-0.25 / 2.4)) * 0.65;
   c = c.map((x, i) => x + ramp(0)[i] * amp);
-  // the composite's saturation (post.sat about the luma), its shoulder and the light ceiling (fs-comp.glsl; knee 0.08)
+  // the composite's saturation (post.sat about the luma), its shoulder and the light ceiling (fs-comp.glsl; its knee 225's CEIL_KNEE)
   const y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   c = c.map((x) => Math.max(y + (x - y) * SKY.post.sat, 0));
   const m = Math.max(...c); if (m > 0.78) { const mm = 0.78 + 0.22 * (1 - Math.exp(-(m - 0.78) / 0.22)); c = c.map((x) => x * mm / m); }
-  let [L] = LCh(c); const Kc = SKY.ceil - 0.08;
-  if (L > Kc) { const k = Math.pow((Kc + 0.08 * (1 - Math.exp(-(L - Kc) / 0.08))) / L, 3); c = c.map((x) => x * k); }
+  let [L] = LCh(c); const knee = +WORLD.match(/var CEIL_KNEE = ([\d.]+),/)[1], Kc = SKY.ceil - knee;
+  if (L > Kc) { const k = Math.pow((Kc + knee * (1 - Math.exp(-(L - Kc) / knee))) / L, 3); c = c.map((x) => x * k); }
   const [Lp, Cp, hp] = LCh(c);
   assert.ok(hp >= 140 && hp <= 165, `the composited peak is h ${hp.toFixed(1)} (green: 140-165; cyan is about 200)`);
   assert.ok(Cp >= 0.08, `the composited peak's chroma ${Cp.toFixed(3)} (at least 0.08)`);
