@@ -470,6 +470,17 @@ shader). It holds:
   it out moves the plan's anchors), the wing gusts' private 25 s timers
   (birdwing.js) and the score's own gusts (score.js). The test fails when
   a listed reader is joined and still listed.
+- The gusts (physics: air/gust-field): one field of turbulence, frozen
+  and carried downwind at the mean wind (gustAt, the shaders' airGust:
+  the same hash and constants), so a point 100 m downwind meets each gust
+  100 / W later; each visit on its own slice (its salt). The gust is 0.26
+  of the mean wind times unit noise over a scale of 22 W metres: the 3-s
+  gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s,
+  nothing faster than 0.11 W a second; none in still air. The sand veils
+  lift as a gust passes over their brink (their private 5.6-8.4 s cycles
+  are gone); the birds read HOST.gust (the excess along the wind, m/s)
+  and HOST.gustPhase (t - x.w / W) for their wing trim. The grains' speed,
+  the perched lean and the score are not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
