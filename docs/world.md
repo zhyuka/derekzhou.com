@@ -494,6 +494,20 @@ shader). It holds:
   frame (skyFrame: the turn the stars and the galaxy take; today none) and
   the weather (weather(sky): today one wind for every sky; physics:
   air/wind-by-sky).
+- The events (physics: air/events; src/world/216-events.js, WORLD.events):
+  the rare sights a visit may come on, each a site on the ground placed
+  by where it is, never by when or by the way flown (path-independent).
+  Each tier of rarity is a hex lattice of its own, one site a cell
+  jittered within 0.24 of the spacing: common 8 km (fog pools in hollows),
+  uncommon 19 km (a dusk murmuration), rare 43 km (no kind yet). At most
+  one rare site is in reach (4 km) anywhere: a tier's sites stay over
+  twice the reach apart and a rare site yields to a rarer one within
+  twice the reach. A common site is in reach over about 82% of the
+  ground, an uncommon one over 16%. The sites are the read's own
+  (SEEDR's stream): none before the cut and none within 6 km of the
+  landing, so the opening's frames never show them. A site says only
+  where and what; its reader (LAND, BIRDS) decides when it shows, by the
+  air (WORLD.air.wx) and the sky. test/unit/events.mjs.
 - The landing's heading, airHeading0 (drawn once from its own stream: the
   flight, the first plan, the galaxy's lie and the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the

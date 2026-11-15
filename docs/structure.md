@@ -56,7 +56,8 @@ test/shaders.mjs             Every program the page issues, compiled and linked 
 test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/24-unit.sh runs them, a process each), sharing
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
-                             test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
+                             test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay), test/unit/events.mjs (the
+                             rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
