@@ -176,8 +176,9 @@
   /* the perched pose's scratch; tilt turns a vector by the perch's elevation (PERCH.el, in TCE/TSE) about the camera's right */
   var RQ = [0, 0, 0], PFD = [0, 0], F0V = [0, 0, 0], L0V = [0, 0, 0], U0V = [0, 0, 0], T1 = [0, 0, 0], T2 = [0, 0, 0], T3 = [0, 0, 0], TCE = 1, TSE = 0;
   function tilt(C, v0, v1, v2, o) { var a = v0 * C.u[0] + v1 * C.u[1] + v2 * C.u[2], bb = v0 * C.f[0] + v1 * C.f[1] + v2 * C.f[2], c = v0 * C.r[0] + v1 * C.r[1] + v2 * C.r[2], a2 = a * TCE + bb * TSE, b2 = bb * TCE - a * TSE; o[0] = C.r[0] * c + C.u[0] * a2 + C.f[0] * b2; o[1] = C.r[1] * c + C.u[1] * a2 + C.f[1] * b2; o[2] = C.r[2] * c + C.u[2] * a2 + C.f[2] * b2; }
-  /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its lowest drawn points on the
-     surface (a letter's ink under them; on the tip, the tip), with its pose and basis as they are */
+  /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its feet (points 0, 2 and 3: the
+     wings' root) on the surface (a letter's ink under them; on the tip, the tip), with its pose and basis as they are.
+     Its perched poses keep its wings at or above its feet, so standing on them it stands on top (the hub's re-review 3) */
   /* the ledges beside its own on its row (the neighbouring glyphs' ink, the hub's review 3): a point past its own
      ledge's end rests on theirs, so support is never lost all at once at a stroke's end, nor a wing sunk into the next
      letter. Found once a ledge (its indices kept in the perch's own array: nothing made in the step) */
@@ -210,9 +211,9 @@
       for (i = 0; i < NV; i++) {
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
+        if (i !== 0 && i !== 2 && i !== 3) continue;   // (it stands on its feet, the wings' root, on a letter and on the pointer alike: its perched poses keep the wings at or above it (260 PERCH), so on its feet it stands on top; folding, raising its wings or landing never lifts or drops it)
         if (syy > low) low = syy;
         if (!lg) continue;
-        if (i !== 0 && i !== 2 && i !== 3) continue;   // (it stands on its feet, the body's own bottom at its origin: its wings and tail never hold it up and may pass behind the letters, whose ink is drawn over the world; so folding, raising its wings or landing never lifts or drops it)
         /* the ink under it only: its own ledge's, and past that ledge's ends the neighbouring glyphs' (nbAdd), each
            weighted, its weight fading to none over fw px past a ledge's ends, the points far from its feet not
            counted, smoothly; the lowest of them all by a soft max, 1 px wide: so the rest never kinks as one point
@@ -247,12 +248,13 @@
     var R = prb(b); perchBasis(C, P.yaw, PERCH.pitch * DEG, 0, R.B);
     P.rest = null; P.rest = restSolve(b, C, R, PFD[0], PFD[1], 0, touchGeom(R.kind));
   }
-  /* a bird on its perch, posed in the camera's frame at the perch's depth, its lowest points on the ink (on the tip:
-     its feet the tip's), solved every frame from where the perch is drawn */
+  /* a bird on its perch, posed in the camera's frame at the perch's depth, its feet on the ink (on the tip: on the
+     tip), solved every frame from where the perch is drawn */
   var RW = 30;
   function posePerch(b, C, s) {
     var P = b.P;
     perchFoot(P, PFD); if (!(PFD[0] === PFD[0])) return false;
+    if (P.kind === 'pointer' && QB > 0) { PFD[0] -= (PTR.x - PW.qx) * QB; PFD[1] -= (PTR.y - PW.qy) * QB; }   // (on the pointer: its tip at the frame's time, back toward the last step's read; the step's alone stood still and jumped, 2.69x the body bound at 144 Hz)
     var wh = P.hop || 0;
     if (P.walk && TD >= P.walk.t0 && P.kind !== 'pointer') { walkAt(P, TD, WKA); var Lw = ledges()[P.li], yw = surfY(Lw.pts, WKA[0]); PFD[0] = WKA[0]; if (yw === yw) PFD[1] = yw; wh = WKA[1]; }   // (a walk's foot and hop at the frame's own time)
     if (s.rT0 !== P.tt) { s.rT0 = P.tt; s.rU = P.rest || 0; s.rV = 0; s.rT = TD; }   // (once a touch: from the rest the landing closed on)
