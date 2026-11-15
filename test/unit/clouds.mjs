@@ -36,7 +36,7 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
 // The pieces' cap is the world's own (410's uVK for the desktop and the rest; none on main: one piece), and the cut loop
 // must be in the shader; desktop under 0.02 everywhere, the rest at least 4 times calmer than one piece.
 const VBODY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8');
-const VK = /var CRISP = memTier\(\) === 'desktop';[^\n]*\s*gl\.uniform2f\(P\.u\.uVK, CRISP \? (\d+) : (\d+), CRISP \? 1 : 0\)/.exec(WORLD);
+const VK = /var CRISP = LOOKD;[^\n]*\s*gl\.uniform2f\(P\.u\.uVK, CRISP \? (\d+) : (\d+), CRISP \? 1 : 0\)/.exec(WORLD);
 const CAP = VK ? { desktop: +VK[1], rest: +VK[2] } : { desktop: 1, rest: 1 };
 function hash(i, L) { let x = Math.imul(i ^ Math.imul(L + 1, 0x9e3779b1), 0x85ebca6b) ^ 0x1234567; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
 function row(x, L) { const i = Math.floor(x), f = x - i; return hash(i, L) * (1 - f) + hash(i + 1, L) * f; }   // (a row of texels, filtered linearly)
@@ -112,7 +112,7 @@ test('clouds: crisp cauliflower on the desktop (lumps 2x the size, 5x the depth,
 test('clouds: the band\'s steps are one budget a tier, and the leaps have their own cap', () => {
   const D = cut(WORLD, '    var push = pushVol;', '    ST.vols = m;');
   assert.ok(!/d < 2500/.test(D), 'the volume draw cuts the steps by distance');
-  assert.match(D, /var VSTEPS = memTier\(\) === 'desktop' && TIER >= 1 \? 48 : 32;/);
+  assert.match(D, /var VSTEPS = LOOKD && TIER >= 1 \? 48 : 32;/);
   assert.match(D, /var steps = d < B\.r \* 1\.5 \? 48 : VSTEPS;/, 'a body the camera is near does not keep its 48 steps on every tier');
   // (leaps never shrink the band's steps: taken counts band samples only, so it is counted after the leap branch's
   // continue and before mS reads it; moved back before the leap test, or dropped, every leap would cut a band step)
@@ -134,7 +134,7 @@ test('clouds: the bake reads its billows at LOD 0 on a tile of 24 voxels or more
   assert.match(VDENS, /float n = textureLod\(uN3, q, 0\.0\)\.g;/, 'the bake\'s billows at an implicit LOD');
   assert.ok(!/texture\(uN3/.test(VDENS), 'an implicit-LOD read of the noise is left in the bake');
   assert.match(WORLD, /var tile = Math\.max\(Rm \* \(B\.noise \|\| 3\.6\), 24 \* voxL\);/, 'the billows\' tile is not at least 24 of the layout\'s voxels');
-  assert.match(WORLD, /if \(memTier\(\) === 'desktop'\) res = Math\.round\(\(res \|\| 52\) \* 64 \/ 44\);/);
+  assert.match(WORLD, /if \(LOOKD\) res = Math\.round\(\(res \|\| 52\) \* 64 \/ 44\);/);
   assert.match(VBODY, /float vox = uVVox,/, 'the march\'s voxel is its box over 26');
   assert.match(WORLD, /gl\.uniform1f\(P\.u\.uVVox, B\.vox\);/);
 });
@@ -160,7 +160,7 @@ test('clouds: a body bakes the same field on the desktop and on a touch tier, on
   const lobes = [[0, 300, 0, 60], [55, 330, 20, 48], [-40, 310, -30, 52], [10, 380, 5, 40]];
   const a = new Float32Array(lobes.length * 12); lobes.forEach((l, i) => a.set(l, i * 12));
   const PF = { a, bodies: [{ i0: 0, yaw: 0.4, billow: 0.8, noise: 3.6, erode: 0.75, seed: 0.41 }], count: () => lobes.length };
-  const run = (tier) => vm.runInThisContext('(function (memTier) { var DEVMODE = false, SW = {}, VOL16 = false; function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function volDetail() { return new Float32Array([96, 4.6]); }\n' + PREP + ' return volPrep; })')(() => tier)(PF, 0, null, 44, {});
+  const run = (tier) => vm.runInThisContext('(function (memTier, LOOKD) { var DEVMODE = false, SW = {}, VOL16 = false; function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function volDetail() { return new Float32Array([96, 4.6]); }\n' + PREP + ' return volPrep; })')(() => tier, tier === 'desktop')(PF, 0, null, 44, {});
   const d = run('desktop'), t = run('full'), l = run('low');
   for (const [name, o] of [['full', t], ['low', l]]) {
     assert.equal(d.tile, o.tile, `the billows' tile differs between the desktop and ${name}: ${d.tile} m against ${o.tile} m`);

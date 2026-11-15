@@ -88,8 +88,8 @@
     n = VOLS.length;
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
-    var VSTEPS = memTier() === 'desktop' && TIER >= 1 ? 48 : 32;   // (the band's steps a ray: the desktop's top tier 48, the rest 32)
-    var CRISP = memTier() === 'desktop';   // (the device's kind, never the governor's tier: the clouds' character never changes within a visit)
+    var VSTEPS = LOOKD && TIER >= 1 ? 48 : 32;   // (the band's steps a ray: the desktop look's top tier 48 (data-look, the still's), the rest 32)
+    var CRISP = LOOKD;   // (the still's look tier, hour.js's data-look, never memTier or the governor's tier: the clouds' character is the still's and never changes within a visit)
     gl.uniform2f(P.u.uVK, CRISP ? 32 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 32, its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
