@@ -14,6 +14,7 @@
   var DTMAX = DEVMODE && OPT.dtmax && +OPT.dtmax > 0 ? Math.min(+OPT.dtmax, 2) : 0.1, NMAX = Math.ceil(DTMAX / SIM_DT) + 2;
   var TSCALE = 1;
   function simAdvance(dt) {
+    inputFrame(dt);   // (the view's own motion, the drag and the release's coast, drawn in this frame: both states turned by it)
     SIM.acc += Math.min(dt, DTMAX);
     var n = 0;
     while (SIM.acc >= SIM_DT && n < NMAX) { if (!simStepOnce()) { SIM.acc = 0; break; } SIM.acc -= SIM_DT; n++; }
