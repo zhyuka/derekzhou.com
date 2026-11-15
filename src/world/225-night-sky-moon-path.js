@@ -13,7 +13,7 @@
      globals, no clock), so tools/moonkeep.js runs this same text in node. Angles in deg; directions world unit vectors
      (x, y up, z); the window's camera as camPose builds it (heading psi, pitch p, roll 0). Canonical frame: the band
      culminates at heading 0, its +s side toward the window's right (-x); moonAt turns it to the stay's own */
-  var MRK = { R: 1.8, FOOT: 4.5, SLACK: 0.05, UP: 0.75, SPAN: 8, RES: 6, ROOM: 2, BOWL: 0.35, GLARE: 6, SPILL: 0.15, M: 1.5, SETV: 3, V10: 3.6, VPK: 4, TURN: 4, TURNUP: 3.3, WMAX: 1, DEEP: 16, MONO: 2, RHO: 30, STEP: 8 };
+  var MRK = { R: 1.8, FOOT: 4.5, SLACK: 0.05, UP: 0.75, SPAN: 8, RES: 6, ROOM: 2, BOWL: 0.35, GLARE: 6, SPILL: 0.15, M: 1.5, SETV: 3, V10: 3.6, VPK: 4, TURN: 4, TURNUP: 3.3, WMAX: 1, DEEP: 16, MONO: 2, RHO: 30, STEP: 8, LANDX: 1 / 3, LANDROOM: 0.5 };
   var MRD = Math.PI / 180, MRC = [0, 0, 0];
   function mrDot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
   function mrNorm(a) { var n = Math.sqrt(mrDot(a, a)) || 1; a[0] /= n; a[1] /= n; a[2] /= n; return a; }
@@ -64,6 +64,16 @@
     for (it = 0; it < 40; it++) { var m = (a + b) / 2; if (mrAng(mrRay(C, I, 1, m), top) >= MRK.R + 1 + MRK.SLACK) a = m; else b = m; }
     return p + Math.atan(a * I.tanY) / MRD;
   }
+  function mrHiAt(I, p, x, mg) {   // (the opening's moon) mrHi with the margin under the top edge (mg deg past the disc's radius, 1 unless given) taken at ndc x, where the moon stands at the cut, not at the side edge
+    var C = mrCam(0, p), top = mrRay(C, I, x, 1), a = -1, b = 1, it, g = MRK.R + (mg === undefined ? 1 : mg) + MRK.SLACK;
+    for (it = 0; it < 40; it++) { var m = (a + b) / 2; if (mrAng(mrRay(C, I, x, m), top) >= g) a = m; else b = m; }
+    return p + Math.atan(a * I.tanY) / MRD;
+  }
+  function mrSAt(B, I, p, x, sMax) {   // (the opening's moon) the band's arc on its leaving side whose centre stands at ndc x (pitch p)
+    var C = mrCam(0, p), d = [0, 0, 0], a = 0, b = sMax, it, q;
+    for (it = 0; it < 32; it++) { var m = (a + b) / 2; q = mrProj(C, I, mrBand(B, m, d)); if (q[2] > 0 && q[0] < x) a = m; else b = m; }
+    return a;
+  }
   function mrEdge(B, I, p) {   // the arc at which the band's centre crosses the side edge's plane (pitch p)
     var C = mrCam(0, p), d = [0, 0, 0], a, b, q, it;
     for (b = 5; b < 180; b += 5) { q = mrProj(C, I, mrBand(B, b, d)); if (q[2] <= 0 || Math.abs(q[0]) >= 1) break; }
@@ -105,6 +115,44 @@
     P.lo = Math.max(P.loN, P.loL); P.hi = Math.min(P.hiN, P.hiL); P.top = Math.max(I.pN, I.pL) + Math.atan(I.tanY) / MRD;
     P.room = !I.noRoom && P.hi - P.lo >= MRK.ROOM;
     P.ec = P.room ? P.lo + (I.coarse ? Math.min(P.hi - P.lo, MRK.RES) : MRK.UP * Math.min(P.hi - P.lo, MRK.SPAN)) : Math.max(P.top + MRK.FOOT, P.lo + 0.5);
+    /* (the opening's moon, NIGHT lane: the hub's "the moon in frame at the cut on every moonlit opening") where the window
+       has no room under its top edge at the side edges (the lo tier's wide and square windows, the words high), the room
+       is taken where the moon stands at the cut (LANDX): the band still over every box's keep line, its centre R + 1 deg
+       under the top edge there; it leaves by the top corner on its way out (only there, by moving) */
+    P.land = I.land === undefined || I.land === null ? null : I.land; P.landRoom = false; P.landX = MRK.LANDX;
+    if (P.land !== null && !P.room && !I.noRoom) {   // (and, if it must, with less of the keep beyond the footprint: 12, 6, then 0 px; the footprint itself always clear)
+      var hT, kf, I2, lo2, mg;
+      for (mg = 1; mg >= 0 && !P.landRoom; mg -= 0.5) {   // (and, last, less of the margin under the top edge, to none: the disc still whole in the window)
+        hT = Math.min(mrHiAt(I, I.pN, MRK.LANDX, mg), mrHiAt(I, I.pL, MRK.LANDX, mg));
+        for (kf = 1; kf >= 0 && !P.landRoom; kf -= 0.5) {
+          I2 = {}; for (var kk in I) I2[kk] = I[kk]; I2.keepPx = I.keepPx * kf;
+          lo2 = Math.max(mrLo(I2, S, I.pN), mrLo(I2, S, I.pL));
+          if (hT - lo2 >= (mg < 1 ? MRK.LANDROOM / 2 : MRK.LANDROOM)) { P.lo = lo2; P.ec = lo2 + MRK.UP * Math.min(hT - lo2, MRK.SPAN); P.landRoom = true; P.landKeep = kf; P.landMg = mg; }
+        }
+      }
+      /* no row over the words at all (the lo tier's wide windows: the name 6-9 deg under the top edge): the moon at the cut
+         stands beside the words on its leaving side, as high as the top edge allows, its footprint and keep clear of every
+         box's whole outline; from there it only moves out, through the side edge (its way under the keep line, behind the
+         words, is before the cut, never drawn) */
+      if (!P.landRoom) {
+        var mir = (I.sigma || 1) < 0, OL = [], bi, j2, n2, xx, Bd = {};
+        for (bi = 0; bi < I.boxes.length; bi++) {
+          var bx = I.boxes[bi], x0 = mir ? I.W - bx[2] : bx[0], x1 = mir ? I.W - bx[0] : bx[2], y0 = bx[1], y1 = bx[3];
+          if (!(x1 - x0 > 1 && y1 - y0 > 1)) continue;
+          n2 = Math.max(1, Math.ceil((x1 - x0) / MRK.STEP)); for (j2 = 0; j2 <= n2; j2++) { OL.push([x0 + (x1 - x0) * j2 / n2, y0]); OL.push([x0 + (x1 - x0) * j2 / n2, y1]); }
+          n2 = Math.max(1, Math.ceil((y1 - y0) / MRK.STEP)); for (j2 = 0; j2 <= n2; j2++) { OL.push([x0, y0 + (y1 - y0) * j2 / n2]); OL.push([x1, y0 + (y1 - y0) * j2 / n2]); }
+        }
+        for (xx = MRK.LANDX; xx <= 0.92 && !P.landRoom; xx += 0.02) {
+          var ex = Math.min(mrHiAt(I, I.pN, xx), mrHiAt(I, I.pL, xx)) - MRK.SLACK, ok = true, pp, Cq, dq = [0, 0, 0];
+          mrBandSet(Bd, ex, 0);
+          for (pp = 0; pp < 2 && ok; pp++) {
+            var pq = pp ? I.pL : I.pN; Cq = mrCam(0, pq); mrBand(Bd, mrSAt(Bd, I, pq, xx, 120), dq);
+            for (j2 = 0; j2 < OL.length; j2++) { var sp = mrPix(Cq, I, OL[j2][0], OL[j2][1]); if (mrAng(dq, sp) < MRK.FOOT + mrAng(sp, mrPix(Cq, I, OL[j2][0], OL[j2][1] - I.keepPx))) { ok = false; break; } }
+          }
+          if (ok) { P.ec = ex; P.landRoom = true; P.landX = xx; P.landSide = true; }
+        }
+      }
+    }
     // STEP 4: the bowl, as much as the room under the top edge allows at both pitches (0 passes by STEP 2's hi)
     var beta = 0, a = 0, b = MRK.BOWL;
     if (P.room) {
@@ -116,6 +164,7 @@
     // STEP 3: the case: today's moon place (the key's azimuth and 25 deg to the visit's side, at ec) in the plan window: A, it culminates ahead; else B, behind
     var Cp = mrCam(I.psi, I.pN), ma = (I.keyAz + 25 * I.side) * MRD, me = P.ec * MRD, mq = mrProj(Cp, I, [Math.sin(ma) * Math.cos(me), Math.sin(me), Math.cos(ma) * Math.cos(me)]);
     P.caseA = mq[2] > 0 && Math.abs(mq[0]) <= 1; P.Hc = P.caseA ? I.psi : I.psi + 180;
+    if (P.land !== null) { P.caseA = true; P.Hc = I.psi; }   // (the opening's moon: ahead, culminating at the view's own heading, wherever the key stands)
     if (K) { P.psi = K.psi; P.Hc = K.Hc; P.caseA = K.caseA; P.sigma = K.sigma; }
     // STEP 5: the reach: the centre past the side edge's plane at either pitch, and the disc's radius; the glare's 6 deg more at one pace
     P.thetaE = Math.max(mrEdge(B, I, I.pN), mrEdge(B, I, I.pL)) + MRK.R; P.thetaV = P.thetaE + MRK.GLARE;
@@ -139,6 +188,14 @@
       else { for (it = 0; it < 20; it++) { var mm = (lo2 + hi2) / 2; if (mrFeas(P, mrPace(P, mm))) hi2 = mm; else lo2 = mm; } o = mrPace(P, hi2); mrFeas(P, o); }
     }
     P.wv = o.wv; P.tauV = o.tauV; P.T = o.T; P.A = o.A; P.vH = o.vH; P.v10 = o.v10; P.peak = o.peak; P.turnH = o.turnH; P.turn = o.turn;
+    /* (the opening's moon) the crossing timed so that at the cut (I.land, sky time) the moon stands LANDX of the way out
+       on its leaving side (a third of the window in from the edge it is heading for), or later on its way if the stay's own
+       timing has it farther: never earlier than the plan's culmination, so the setting leg keeps at least its own time and
+       sets behind the sea before the stay ends; the rising leg, before the cut, is never drawn */
+    if (P.land !== null && P.room !== undefined && (P.room || P.landRoom)) {
+      var sT = Math.min(mrSAt(B, I, I.pN, P.landX, P.thetaE), mrSAt(B, I, I.pL, P.landX, P.thetaE)), sM = P.wv * (P.land - P.tm), sC = Math.min(Math.max(sT, sM), P.tauV * P.wv);
+      P.tm = P.land - sC / P.wv; P.landS = sC;
+    }
     return P;
   }
   function moonAt(P, t, out) {   // the moon's direction (out.d, world) and its broad light's share (out.w) at sky time t; out.s its arc from the culmination, out.leg -1 rising, 1 setting, 0 on the band
