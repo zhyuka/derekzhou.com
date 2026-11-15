@@ -1,5 +1,5 @@
 // test/unit/height.mjs: the camera's height over the world's real ground
-// plant: {"file": "src/world/320-camera-drawn-between-last-two.js", "find": "CRUISE = [14, 32], CRUISE_IN = 2;", "with": "CRUISE = [14, 32], CRUISE_IN = 0;", "why": "the cloud sea's aim on the band's top: half its swells over it"}
+// plant: {"file": "src/world/320-camera-drawn-between-last-two.js", "find": "CW_V = 0.011, CRUISE_IN = 2;", "with": "CW_V = 0.011, CRUISE_IN = 0;", "why": "the cloud sea's aim on the band's top: half its swells over it"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 import { loadGround } from '../ground.mjs';
 
