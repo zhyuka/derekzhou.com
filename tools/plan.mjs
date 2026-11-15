@@ -10,17 +10,15 @@
 //   span 3  the weights' grids and their bake (`  var KN = 256, KSTEP = 64,` .. up to `  var KFROWS`),
 // each copied byte for byte (span 0 first), inside one strict function. Their md5 (first 12 hex) is the plan's stamp:
 // the worker answers with it and the page compares it with its own PW_V, so a worker of another world is never adopted
-// (the page then makes the plan itself). The build fails when the world's PW_V is not the spans' stamp: after a change
-// to those spans, run node tools/plan.mjs --stamp (it rewrites PW_V in its src/world/ part). CI's world_rules.py rule
-// 2b checks the same spans and stamp on its own (it repeats the anchors).
+// (the page then makes the plan itself). The source holds no stamp: its part has `var PW_V = '';` and every assembly
+// writes the stamp in (tools/parts.mjs assemble calls fillStamp), so a change to the spans needs no step by hand
+// (2026-11-15: --stamp is gone). makePlan still fails when the world's PW_V is not the spans' stamp. CI's
+// world_rules.py rule 2b holds the worker's stamp to the world's PW_V.
 //   node tools/plan.mjs WORLD_JS OUT_JS     write the worker made from WORLD_JS (an assembled world.js)
-//   node tools/plan.mjs --stamp             set src/world/'s PW_V to the stamp of the spans in src/ assembled
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
 import crypto from 'node:crypto';
 import * as acorn from 'acorn';
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const A0 = '  var PI = Math.PI, DEG = Math.PI / 180;\n';
@@ -42,6 +40,16 @@ export const stamp = (sp) => {
   for (const t of acorn.tokenizer(code, { ecmaVersion: 'latest' })) toks.push(code.slice(t.start, t.end));
   return crypto.createHash('md5').update(toks.join(' '), 'utf8').digest('hex').slice(0, 12);
 };
+
+// an assembled script with the source's empty stamp (`var PW_V = '';`, once) gets its plan spans' stamp written in;
+// any other text comes back as it is (tools/parts.mjs assemble runs every assembled script through this)
+const EMPTY = "var PW_V = '';";
+export function fillStamp(text) {
+  const n = text.split(EMPTY).length - 1;
+  if (!n) return text;
+  if (n > 1) throw new Error('plan: ' + EMPTY + ' found ' + n + ' times');
+  return text.replace(EMPTY, "var PW_V = '" + stamp(spans(text)) + "';");
+}
 
 const HEAD = (name, st) => `// ${name}: the world's first plan, made in a worker (fast500 step 11). Made by tools/plan.mjs from world.js:
 // its four code spans (the maps and the director; MAPS, mapsInit, kitAt; the weights' grids), minified as the world
@@ -90,29 +98,18 @@ export function makePlan(world, name) {
   const sp = spans(world), st = stamp(sp);
   const pv = [...world.matchAll(/var PW_V = '([0-9a-f]*)';/g)].map((x) => x[1]);
   if (pv.length !== 1) throw new Error('plan: PW_V found ' + pv.length + ' times in the world');
-  if (pv[0] !== st) throw new Error(`plan: the world's PW_V is ${pv[0]}, its plan spans' stamp ${st} (they changed: node tools/plan.mjs --stamp, then commit the part)`);
+  if (pv[0] !== st) throw new Error(`plan: the world's PW_V is ${pv[0]}, its plan spans' stamp ${st} (a world assembled by tools/parts.mjs has its stamp written in: is the part's line still var PW_V = '';?)`);
   return { text: HEAD(name, st) + sp.join('') + TAIL, stamp: st };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const a = process.argv.slice(2), die = (m) => { console.error(m); process.exit(1); };
-  if (a[0] === '--stamp' && a.length === 1) {
-    const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-'));
-    try {
-      execFileSync(process.execPath, [path.join(root, 'tools', 'parts.mjs'), 'assemble', path.join(root, 'src'), tmp], { stdio: 'ignore' });
-      const st = stamp(spans(fs.readFileSync(path.join(tmp, 'world.js'), 'utf8')));
-      const dir = path.join(root, 'src', 'world'), hits = fs.readdirSync(dir).filter((n) => /\.js$/.test(n) && /var PW_V = '[0-9a-f]*';/.test(fs.readFileSync(path.join(dir, n), 'utf8')));
-      if (hits.length !== 1) die('plan: PW_V found in ' + hits.length + ' parts of src/world/');
-      const p = path.join(dir, hits[0]), t = fs.readFileSync(p, 'utf8');
-      fs.writeFileSync(p, t.replace(/var PW_V = '[0-9a-f]*';/, `var PW_V = '${st}';`));
-      console.log('plan: ' + path.relative(root, p) + ' PW_V = ' + st);
-    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
-  } else if (a.length === 2 && !a[0].startsWith('--')) {
+  if (a.length === 2 && !a[0].startsWith('--')) {
     const w = fs.readFileSync(a[0], 'utf8'), name = workerName(w) || path.basename(a[1]);
     let r; try { r = makePlan(w, name); } catch (e) { die(e.message); }
     fs.writeFileSync(a[1], r.text);
     console.log('plan: ' + a[1] + ' (stamp ' + r.stamp + ', ' + Buffer.byteLength(r.text) + ' bytes)');
-  } else die('usage: plan.mjs WORLD_JS OUT_JS | --stamp');
+  } else die('usage: plan.mjs WORLD_JS OUT_JS');
 }
 
 // The worker as the build ships it: makePlan's text minified by terser (pinned in package.json; the world's own
