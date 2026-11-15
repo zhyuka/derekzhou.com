@@ -4,8 +4,10 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "vec3(0.9, 0.1, 0.06) * r *", "with": "vec3(0.85, 0.25, 0.55) * r *", "why": "the old magenta top: mauve over the h 250 sky"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "var AUR_IN = 64, AUR_OUT = 80", "with": "var AUR_IN = 40, AUR_OUT = 80", "why": "the aurora rises over 40 s: 0.45 deg/s at its fastest"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "AUR_FRONT = 2.2;", "with": "AUR_FRONT = 22;", "why": "the breakup's front ten times too fast"}
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float fa = mix(3.0, 9.0, b)", "with": "float fa = mix(3.0, 30.0, b)", "why": "a breakup's folds 30 km deep (8-10)"}
-import { test, assert, fs, path, ROOT, WORLD, cut } from '../unit-lib.mjs';
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "fa = min(mix(3.0, 9.0, b)", "with": "fa = min(mix(3.0, 30.0, b)", "why": "a breakup's folds 30 km deep (8-10)"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "smoothstep(3.0, 6.0, 6.0 * cpr / max(rho * pa, 1e-4))", "with": "smoothstep(-2.0, -1.0, 6.0 * cpr / max(rho * pa, 1e-4))", "why": "the rays never eased where they alias: they glitter seen along the sheet"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "40.0 * cw / max(rho * pa, 1e-4)), 2.0 * cp", "with": "40.0 / max(rho * pa, 1e-4)), 2.0 * cp", "why": "the folds faded by their face-on span: a breakup's flanks under a pixel glitter"}
+import { test, assert, fs, path, ROOT, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ OKLab (the world's own matrices, 030-colour.js)
 const oklab2lin = (L, a, b) => {
@@ -35,11 +37,14 @@ const [h0D] = num(/float D = 6371\.0 \* \(acos\(cos\(eb\) \/ \(1\.0 \+ ([\d.]+) 
 assert.ok(AUR.includes('float h = 6371.0 * (cos(el) / cos(ee) - 1.0)') && AUR.includes('float ee = el + rho / 6371.0;'), 'auroraAt\'s altitude is not the spherical h = R (cos e / cos(e + rho / R) - 1)');
 const [sA, sL, sW] = num(/y = ([\d.]+) \* sin\(a1\)/, 'swell amplitude').concat(num(/float a1 = SKYTAU \* s \/ ([\d.]+) \+ ([\d.]+) \* uT/, 'swell'));
 const [fL, fW] = num(/a2 = SKYTAU \* s \/ ([\d.]+) - ([\d.]+) \* uT/, 'folds');
-const [fA, fAB] = num(/float fa = mix\(([\d.]+), ([\d.]+), b\) \* smoothstep\(8\.0, 16\.0, 40\.0/, 'fold amplitude');
-const [rP, rP2] = num(/n3v\(vec3\(s \/ ([\d.]+) \+ uT \/ ([\d.]+),/, 'rays');
-const [gC] = [num(/vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* g \* min/, 'green')];
+const [fA, fAB] = num(/fa = min\(mix\(([\d.]+), ([\d.]+), b\) \* smoothstep\(8\.0, 16\.0, 40\.0(?: \* cw)? \/ max\(rho \* pa, 1e-4\)\), [\d.]+ \* cp \/ max\(abs\(sp\), 1e-3\)\);/, 'fold amplitude (by its projected span, and the crossing held to converge)');
+const [rP, rP2, rV] = num(/textureLod\(uN3, vec3\(s \/ ([\d.]+) \+ uT \/ ([\d.]+), 0\.5 \+ s \/ ([\d.]+), 0\.19 \+ f0\), 0\.0\)\.a\)/, 'rays (level 0, v drifting with s)');
+const [rMean, rLo, rHi, rSpan] = num(/float ry = mix\(([\d.]+), smoothstep\(0\.45, 0\.9, textureLod\(.*\), smoothstep\((-?[\d.]+), (-?[\d.]+), ([\d.]+) \* cpr \/ max\(rho \* pa, 1e-4\)\)\);/, 'the rays eased to their mean where they would alias');
+const [EOK] = num(/float eo = inversesqrt\(cps \* cps \+ ([\d.]+)\);/, 'edge-on');
+const EO = 1 / Math.sqrt(EOK);   // (edge-on brightening at its most)
+const [gC] = [num(/vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* g \* eo/, 'green')];
 const [rC] = [num(/\+ vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* r \* min/, 'red')];
-const [K] = num(/min\(1\.0 \/ max\(cps, 1e-3\), 3\.0\)\) \* ([\d.]+);\n\}/, 'strength');
+const [K] = num(/pk \* eo\) \* ([\d.]+);\n\}/, 'strength');
 const [Ym] = num(/c \*= yl > 1e-6 \? ([\d.]+) \* \(1\.0 - exp\(-yl \/ ([\d.]+)\)\) \/ yl/, 'cap');
 const Dof = (rise, p = 0) => { const eb = (eb0 + (eb1 + (eb2 - eb1) * p - eb0) * rise) * DEG; return R * (Math.acos(Math.cos(eb) / (1 + h0D / R)) - eb); };
 const hAt = (e, rho) => R * (Math.cos(e) / Math.cos(e + rho / R) - 1);
@@ -71,10 +76,13 @@ test('physics: aurora/motion: every motion at real speeds, under the pixel limit
     assert.ok(px(vF) <= 0.25 && px(vR) <= 0.25, `at ${pxDeg} deg/px, D ${D}: folds ${px(vF).toFixed(3)}, rays ${px(vR).toFixed(3)} px a frame (at most 0.25)`);
     assert.ok(px(vS) <= 0.5, `the swell ${px(vS).toFixed(3)} px a frame (at most 0.5)`);
     assert.ok(vS / D / DEG <= 0.05 && vF / D / DEG <= 0.15, `the swell ${(vS / D / DEG).toFixed(3)} and folds ${(vF / D / DEG).toFixed(3)} deg/s (today's were 1.0-1.15)`);
-    // the rays at least 4 px a period wherever they can show (h at most 300 km: rho at most where 300 km meets the horizon)
-    const rhoMax = R * Math.acos(1 / (1 + 300 / R)), perPx = rP / rhoMax / DEG / pxDeg;
-    assert.ok(perPx >= 4, `the rays are ${perPx.toFixed(1)} px a period at their farthest (at least 4)`);
   }
+  // the rays read at level 0 (no mip before the hard smoothstep: 1x and 2x2 read the same texels), eased to their own
+  // mean (the volume's: 0.12) wherever the noise's 8-cell octave (rP / 8 km) spans under rHi projected pixels, so they never alias
+  assert.ok(Math.abs(rSpan - rP / 8) < 1e-9 && rLo >= 2 && rHi >= rLo, `the rays' ease: ${rSpan} km (the 8-cell octave, ${rP / 8}) over ${rLo}-${rHi} px`);
+  // and never repeat in view: their u wraps every rP km, their v every rV km, so the pattern comes round only at the two's least common multiple
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a), lcm = rP * rV / gcd(rP, rV);
+  assert.ok(lcm >= 4000, `the rays repeat every ${lcm} km (the sheet in view spans 3000: at least 4000)`);
   assert.ok(!/pulse|flicker|corona/.test(AUR.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')), 'auroraAt pulses or flickers');
 });
 
@@ -87,22 +95,28 @@ test('physics: aurora/colour: the green hem, no stop in the saddle, the red top,
   const sky = SKY.sky.map((c) => lch(...c)), mix = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
   const skyAt = (e) => { let c = mix(sky[1], sky[2], ss(0, SKYE[0], e)); c = mix(c, sky[3], ss(SKYE[0], SKYE[1], e)); return mix(c, lch(...SKY.skyW), SKY.skyK[0] * Math.exp(-e / SKY.skyK[1])); };
   const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-  const comp = (e, emis, proj) => {
-    let a = emis.map((x) => x * proj * K); const yl = Y(a); a = a.map((x) => x * (yl > 1e-6 ? Ym * (1 - Math.exp(-yl / Ym)) / yl : 1));
+  const [fl0, fl1] = num(/return c \* uAur\.w \* smoothstep\(([\d.]+), ([\d.]+), e\);/, 'the floor it is drawn from'), FL = (e) => ss(fl0, fl1, e);   // (auroraAt's own floor)
+  const comp = (e, emis, proj, knee) => {
+    let a = emis.map((x) => x * proj * K); const yl = Y(a); a = a.map((x) => x * (yl > 1e-6 ? Ym * (1 - Math.exp(-yl / Ym)) / yl : 1) * FL(e));
     let c = skyAt(e).map((v, i) => v + a[i]); const y = Y(c); c = c.map((x) => Math.max(y + (x - y) * SKY.post.sat, 0));
-    let [L] = LCh(c); const knee = +WORLD.match(/var CEIL_KNEE = ([\d.]+),/)[1], Kc = SKY.ceil - knee;
+    let [L] = LCh(c); const Kc = SKY.ceil - knee;
     if (L > Kc) { const k = Math.pow((Kc + knee * (1 - Math.exp(-(L - Kc) / knee))) / L, 3); c = c.map((x) => x * k); }
     return [c, LCh(c)];
   };
-  const pk = gC.map((x) => x * green(109, 1)), word = 0.82;
-  for (const proj of [1, 3]) {
-    const [c, [L, , h]] = comp(7, pk, proj);
-    assert.ok(L <= 0.50 + 1e-9, `the green's composited peak (x${proj}) is L ${L.toFixed(3)} (at most 0.50: the words' floor)`);
-    assert.ok(h >= 140 && h <= 170, `the green's composited peak (x${proj}) is h ${h.toFixed(0)} (green: 140-170)`);
+  // the green's peak, quiet and in a breakup (x1.5, rays 70 km tall) with the second arc's (0.6) under it, face on to
+  // fully edge-on, at every height it can stand (0.5-40 deg), under main's ceiling knee and the night-contrast one (0.04)
+  const pk = gC.map((x) => x * green(109, 1)), pkB = gC.map((x) => x * green(109, 1, 1) * 1.6), word = 0.82;
+  const knees = [+WORLD.match(/var CEIL_KNEE = ([\d.]+),/)[1], 0.04];
+  let worst = null;
+  for (const knee of knees) for (const emis of [pk, pkB]) for (const proj of [1, 2, EO]) for (let e = 0.5; e <= 40; e += 0.5) {
+    const [c, [L, , h]] = comp(e, emis, proj, knee);
+    if (!worst || L > worst.L) worst = { L, e, proj, knee, b: emis === pkB };
+    if (FL(e) >= 0.99) assert.ok(h >= 140 && h <= 170, `the green's composited peak (x${proj.toFixed(2)}, ${e} deg) is h ${h.toFixed(0)} (green: 140-170)`);
     const cr = (word + 0.05) / (Y(c) + 0.05);
-    assert.ok(cr >= 4.6, `the credit over the green's peak (x${proj}) is ${cr.toFixed(2)}:1 (at least 4.6)`);
+    assert.ok(cr >= 4.6, `the credit over the green's peak (x${proj.toFixed(2)}, ${e} deg, knee ${knee}) is ${cr.toFixed(2)}:1 (at least 4.6)`);
   }
-  const [, [, Cs]] = comp(9, gC.map((x) => x * green(170, 1)), 1);
+  assert.ok(worst.L <= 0.50 + 1e-9, `the green's composited peak is L ${worst.L.toFixed(4)} at ${worst.e} deg (x${worst.proj.toFixed(2)}, knee ${worst.knee}${worst.b ? ', a breakup' : ''}): at most 0.50, the words' floor`);
+  const [, [, Cs]] = comp(9, gC.map((x) => x * green(170, 1)), 1, knees[0]);
   assert.ok(Cs >= 0.035, `the saddle composites to C ${Cs.toFixed(3)} (the sky's own blue: at least 0.035)`);
 });
 
@@ -162,11 +176,76 @@ test('physics: aurora/phases: it comes in, holds, drifts and goes by its own clo
 });
 
 test('physics: aurora/phases: a breakup brighter, its folds deeper, its fringe pink, all under the words\' floor', () => {
-  const [, , hP] = LCh(num(/vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* pk \* min/, 'pink fringe'));
+  const [, , hP] = LCh(num(/vec3\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\) \* pk \* eo/, 'pink fringe'));
   assert.ok(hP >= 330 || hP <= 15, `the breakup's fringe is h ${hP.toFixed(1)} (pink: 330-15)`);
   // the breakup's own green (x1.5, rays 70 km) at its most and edge-on, with the second arc's under it: the soft cap holds the composited peak
   const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   const em = gC.map((x) => x * green(109, 1, 1) * 3 * K * 1.6), yl = Y(em), capped = Ym * (1 - Math.exp(-yl / Ym));
   assert.ok(capped <= Ym + 1e-12, `the breakup adds Y ${capped.toFixed(3)} (the cap's ${Ym})`);
   assert.ok(green(109, 1, 1) > green(109, 1, 0) && green(160, 1, 1) > 2 * green(160, 1, 0), 'a breakup is not brighter, its rays not taller');
+});
+
+// ------------------------------------------------------------------ the meter: auroraAt at 1x against 2x2 (physics: aurora/sampling)
+// The world's own noise volume (090's bake, the same bytes), sampled as WebGL samples level 0 (trilinear, repeat), and
+// sky-body.glsl's own auroraSheet made JS a channel at a time (its vec3s are colour constants times scalars); auroraAt's
+// few vector lines by hand. A pixel's one sample against the mean of four at its quarter-pixel corners (the same
+// footprint), in display codes of the aurora's light alone: at most 3 apart anywhere, in a quiet stay and in a breakup
+// with its second arc, at the sheet's centre and seen along it, on a laptop's and a phone's pixel
+const NZ = cut(WORLD, '  var NOISE = { t: null', '  /* stage B: the texture');
+const N3VOL = new Function(STREAMS + VEC + NZ + '\n NOISE.data = noiseData(); NOISE.d64 = new Float64Array(NOISE.data); NOISE.vol = new Uint8Array(NOISE_N * NOISE_N * NOISE_N * 4); for (var z = 0; z < NOISE_N; z++) noiseLayer(z); return NOISE.vol;')();
+const N3 = 32, wrap3 = (i) => ((i % N3) + N3) % N3;
+const n3a = (x, y, z) => {
+  const X = x * N3 - 0.5, Y = y * N3 - 0.5, Z = z * N3 - 0.5, x0 = Math.floor(X), y0 = Math.floor(Y), z0 = Math.floor(Z), fx = X - x0, fy = Y - y0, fz = Z - z0;
+  let v = 0;
+  for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++)
+    v += (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz) * N3VOL[((wrap3(z0 + dz) * N3 + wrap3(y0 + dy)) * N3 + wrap3(x0 + dx)) * 4 + 3];
+  return v / 255;
+};
+const SHB = (() => {
+  const a = GLSL.indexOf('vec3 auroraSheet('), b = GLSL.indexOf('\n}\n', a);
+  let body = GLSL.slice(GLSL.indexOf('{', a) + 1, b).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.ok(!/\bn3v\(|texture\(/.test(body), 'auroraSheet reads its noise with a mip (texture or n3v): 1x and 2x2 read different texels before the hard smoothstep');
+  body = body.replace(/\bfloat\s+/g, 'let ').replace(/for \(int /g, 'for (let ').replace(/textureLod\(uN3, vec3\(([^;]*?)\), 0\.0\)\.a/g, (m, x) => 'NA(' + x + ')').replace(/\bvec3\(/g, 'V3(');
+  return new Function('el', 'cp', 'sp', 'D', 'f0', 'bk', 'pa', 'U', 'const { uT, uAurB, NA, V3 } = U, SKYTAU = 2 * Math.PI, { abs, sqrt, exp, sin, cos, min, max } = Math, inversesqrt = (x) => 1 / Math.sqrt(x), mix = (x, y, t) => x + (y - x) * t, smoothstep = (e0, e1, x) => { const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1); return t * t * (3 - 2 * t); };' + body);
+})();
+const auroraJS = (rd, Un) => {
+  const e = Math.asin(rd[1]) / DEG, eb = (eb0 + (eb1 + (eb2 - eb1) * Un.uAurB.x - eb0) * Un.uAur.x) * DEG, D = R * (Math.acos(Math.cos(eb) / (1 + h0D / R)) - eb);
+  const phi = Math.atan2(rd[0], rd[2]) - Un.uAur.y, cp = Math.cos(phi), sp = Math.sin(phi);
+  if (cp < 0.05) return [0, 0, 0];
+  const el = Math.asin(rd[1]), c = [0, 0, 0];
+  for (let ch = 0; ch < 3; ch++) {
+    const U = { uT: Un.uT, uAurB: Un.uAurB, NA: n3a, V3: (p, q, r) => [p, q, r][ch] };
+    c[ch] = SHB(el, cp, sp, D, Un.uAur.z, Un.uAurB.w, Un.pa, U) + (Un.uAurB.z > 0 ? 0.6 * SHB(el, cp, sp, D + Un.uAurB.z, Un.uAur.z + 0.37, 0, Un.pa, U) : 0);
+  }
+  const yl = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], k = (yl > 1e-6 ? Ym * (1 - Math.exp(-yl / Ym)) / yl : 1) * ss(0.5, 2.5, e);
+  return c.map((x) => x * k);
+};
+const code = (x) => { x = Math.min(Math.max(x, 0), 1); return 255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055); };
+function auroraMeter({ W = 1440, H = 900, degpx, yaw, pitch, step = 5, Un }) {
+  const tv = Math.tan(degpx * H / 2 * DEG), U = { ...Un, pa: 2 * Math.atan(tv) / H }, y0 = Un.uAur.y + yaw * DEG, p = pitch * DEG;
+  const f = [Math.sin(y0) * Math.cos(p), Math.sin(p), Math.cos(y0) * Math.cos(p)], r = [Math.cos(y0), 0, -Math.sin(y0)];
+  const u = [f[1] * r[2] - f[2] * r[1], f[2] * r[0] - f[0] * r[2], f[0] * r[1] - f[1] * r[0]];
+  const dir = (x, y) => { const nx = (2 * x / W - 1) * tv * W / H, ny = (1 - 2 * y / H) * tv, d = [0, 1, 2].map((i) => f[i] + r[i] * nx + u[i] * ny), l = Math.hypot(...d); return d.map((v) => v / l); };
+  let worst = 0, at = null, lit = 0;
+  for (let y = 0.5; y < H; y += step) for (let x = 0.5; x < W; x += step) {
+    const one = auroraJS(dir(x, y), U), ref = [0, 0, 0];
+    for (const [dx, dy] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) auroraJS(dir(x + dx, y + dy), U).forEach((v, i) => { ref[i] += v / 4; });
+    if (one[1] + ref[1] > 1e-4) lit++;
+    const d = Math.max(...[0, 1, 2].map((i) => Math.abs(code(one[i]) - code(ref[i]))));
+    if (d > worst) { worst = d; at = [x, y]; }
+  }
+  return { worst, at, lit };
+}
+test('physics: aurora/sampling: auroraAt at 1x within 3 codes of 2x2, quiet and in a breakup, face on and seen along it', () => {
+  // the folds fade by their projected span (40 km over rho pa / |cos psi| px, psi the sheet's swell-only angle to the
+  // view: the spec's), and their depth is held where the crossing's fixed point would not converge (slope x tan phi <= 0.5)
+  assert.ok(/float cw = abs\(cos\(el\) \* \(cp - ys \* sp\)\) \/ sqrt\(1\.0 \+ ys \* ys\), fa = min\(mix\([\d.]+, [\d.]+, b\) \* smoothstep\(8\.0, 16\.0, 40\.0 \* cw \/ max\(rho \* pa, 1e-4\)\)/.test(AUR), 'the folds fade by their face-on span, not their projected span (40 cos psi / rho pa)');
+  const [fc] = num(/, ([\d.]+) \* cp \/ max\(abs\(sp\), 1e-3\)\);/, 'the folds held to converge');
+  assert.ok(fc * 2 * Math.PI / fL * (1 + 1.3 * fL / 170) <= 0.5 + 1e-9, `the folds' slope times tan phi reaches ${(fc * 2 * Math.PI / fL * (1 + 1.3 * fL / 170)).toFixed(2)} (at most 0.5: the crossing's three steps converge)`);
+  for (const [name, B] of [['a quiet stay', { x: 0.5, y: -1e5, z: 0, w: 0 }], ['a breakup with its second arc', { x: 0.3, y: -1e5, z: 220, w: 1 }]])
+    for (const [yaw, pitch] of [[0, 8], [40, 6], [70, 3]]) for (const degpx of [0.0578, 0.0376]) {
+      const m = auroraMeter({ degpx, yaw, pitch, Un: { uT: 523.7, uAur: { x: 1, y: 0.3, z: 6.2, w: 1 }, uAurB: B } });
+      assert.ok(m.lit > 2000, `${name}, ${yaw} deg along, ${degpx} deg/px: the view holds only ${m.lit} lit samples (the meter looks past the sheet)`);
+      assert.ok(m.worst <= 3, `${name}, ${yaw} deg along the sheet, ${degpx} deg/px: 1x is ${m.worst.toFixed(1)} codes from 2x2 at (${m.at.map(Math.round)}) (at most 3: it glitters)`);
+    }
 });
