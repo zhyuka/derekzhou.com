@@ -9,7 +9,7 @@ uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venu
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
 uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
-uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, -, Venus's top (Y), -
+uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), -
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
 out vec4 oC;
 const float SKYTAU = 6.2831853;
@@ -61,14 +61,15 @@ vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 
 float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }
 /* (night) the shared rule for anything faint in the night sky (the stars; the galaxy's wings, SKY's: a surface's light
    as a magnitude, by the same rule): nightLim, the faintest magnitude that shows at a pixel whose sky light (before the
-   faint thing) is c: the sun's depth's at the zenith (uStarM.x), and no fainter than the sky's own light there allows
-   (7.9 on the darkest night's sky, Y 0.016, so every night's sky above the horizon's glow, to Y 0.045, keeps the whole
-   field; 2.5 log10 of the ratio less for a brighter sky); nightShow, a thing of magnitude m's share shown there, coming
+   faint thing) is c: the sun's depth's at the zenith (uStarM.x), less by 2.5 log10 of how much brighter the sky is there
+   than at the zenith (uStarM.y: the hub's review, the sky's own light near the glow holds the stars back longer, so they
+   come out overhead and away from the sun first), and no fainter than a dark night's sky allows (7.9 at Y 0.016, so
+   every night's sky above the horizon's glow, to Y 0.045, keeps the whole field); nightShow, a thing of magnitude m's share shown there, coming
    in over its first 0.5 magnitude of margin (delight-night §4: a soft threshold over about 0.5 mag) */
-float nightLim(vec3 c) { return min(uStarM.x, 7.9 - 2.5 * log(max(dot(c, LUMA), 1e-4) / 0.016) / log(10.0)); }
+float nightLim(vec3 c) { float y = max(dot(c, LUMA), 1e-4); return min(uStarM.x - 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - 2.5 * log(y / 0.016) / log(10.0)); }
 float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }
 vec3 starTint(float b, float u) {
-  vec3 t = u < 0.36 ? vec3(0.868, 1.0161, 1.2295) : (u < 0.62 ? vec3(1.0552, 1.0025, 0.8129) : (u < 0.9 ? vec3(1.2240, 0.9621, 0.7145) : vec3(1.3630, 0.9202, 0.7223)));
+  vec3 t = u < 0.36 ? vec3(0.868, 1.0161, 1.2295) : (u < 0.62 ? vec3(1.0552, 1.0025, 0.8129) : (u < 0.9 ? vec3(1.2240, 0.9621, 0.7145) : vec3(1.3002, 0.9344, 0.7663)));
   return mix(vec3(0.92, 0.94, 1.0) / 0.94, t, smoothstep(0.35, 0.8, b));
 }
 float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj, int di, out vec3 tc) {

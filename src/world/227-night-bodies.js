@@ -16,6 +16,8 @@
     for (i = 1; i < T.length; i++) if (D <= T[i][0]) return T[i - 1][1] + (T[i][1] - T[i - 1][1]) * (D - T[i - 1][0]) / (T[i][0] - T[i - 1][0]);
     return T[T.length - 1][1];
   }
+  var ZEN = [0, 0, 0];
+  function zenithY(L) { skyGradCPU(L, 90, ZEN); return Math.max(ZEN[0] * 0.2126 + ZEN[1] * 0.7152 + ZEN[2] * 0.0722, 1e-4); }   // (the sky's own light at the zenith, Y: nightLim's reference)
   function skyElOf(O) { return O.skyEl === null || O.skyEl === undefined ? AIR_SUN_NIGHT : O.skyEl; }
   function skyDepth() {   // the sky's own sun's depth under the horizon now (deg): a twilight's, a night's AIR_SUN_NIGHT, and in a change between the two the sinking sun's
     var A = SKY.A, B = SKY.B, k = SKY.k;
@@ -73,7 +75,7 @@
     }
     return n;
   }
-  function venusPlan(V) {   // once a visit, at its first frame with a window: its side (a morning star on a visit that opens on first light) and the first elongation drawn whose path down keeps clear (else the clearest)
+  function venusPlan(V) {   // once a visit, at its first frame with a window: its side (a morning star on a visit that opens on first light) and the first elongation drawn whose path down keeps clear of the words (none clear: no Venus this visit)
     if (NIGHTB.seed === J.seed) return true;
     var I = moonInputs(null); if (!I) return false;
     var morning = !!(SKY.landing && SKY.landing.sky === 'firstlight'), R = RNG(subseed(J.seed, 84));
@@ -84,14 +86,14 @@
       if (f < bf) { bf = f; best = e; }
       if (!f) break;
     }
-    NIGHTB.eps = best; NIGHTB.fails = bf; NIGHTB.D0 = D0; NIGHTB.seed = J.seed;
+    NIGHTB.eps = best; NIGHTB.fails = bf; NIGHTB.D0 = D0; NIGHTB.seed = J.seed; NIGHTB.none = bf > 0;   // (the hub's ruling: no clear path down, no Venus this visit, as its still has none)
     return true;
   }
   function nightBodiesUniforms(u) {
     var V = SIM.V, D = skyDepth();
-    NIGHTB.m[0] = starLim(D); NIGHTB.m[1] = 0; NIGHTB.m[2] = VEN_TOP_Y; NIGHTB.m[3] = 0;
+    NIGHTB.m[0] = starLim(D); NIGHTB.m[1] = V && V.L && V.L.skyFlat ? zenithY(V.L) : 0.016; NIGHTB.m[2] = VEN_TOP_Y; NIGHTB.m[3] = 0;
     NIGHTB.v[3] = 0;
-    if (V && V.light && venusPlan(V)) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, D, NIGHTB.D0, NIGHTB.d); NIGHTB.v[0] = NIGHTB.d[0]; NIGHTB.v[1] = NIGHTB.d[1]; NIGHTB.v[2] = NIGHTB.d[2]; NIGHTB.v[3] = 1; }
+    if (V && V.light && venusPlan(V) && !NIGHTB.none) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, D, NIGHTB.D0, NIGHTB.d); NIGHTB.v[0] = NIGHTB.d[0]; NIGHTB.v[1] = NIGHTB.d[1]; NIGHTB.v[2] = NIGHTB.d[2]; NIGHTB.v[3] = 1; }
     if (u.uStarM) gl.uniform4fv(u.uStarM, NIGHTB.m);
     if (u.uVen) gl.uniform4fv(u.uVen, NIGHTB.v);
   }
