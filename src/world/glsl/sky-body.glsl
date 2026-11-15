@@ -49,7 +49,7 @@ vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, floa
        flanks never stand in a regular comb) */
     float s = rho * sp, w = SKYTAU * s / 170.0 + f0 * 3.0;
     b = bk * smoothstep(uAurB.y - 15.0, uAurB.y + 15.0, s);
-    float cw = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys), fa = min(mix(3.0, 9.0, b) * smoothstep(8.0, 16.0, 40.0 / max(rho * pa, 1e-4)), 2.0 * cp / max(abs(sp), 1e-3));
+    float cw = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys), fa = min(mix(3.0, 9.0, b) * smoothstep(8.0, 16.0, 40.0 * cw / max(rho * pa, 1e-4)), 2.0 * cp / max(abs(sp), 1e-3));
     float a1 = SKYTAU * s / 500.0 + 0.0038 * uT + f0 * 7.0, a2 = SKYTAU * s / 40.0 - 0.157 * uT + f0 * 13.0 + 1.3 * sin(w);
     y = 15.0 * sin(a1) + fa * sin(a2);
     ys = 15.0 * SKYTAU / 500.0 * cos(a1);
