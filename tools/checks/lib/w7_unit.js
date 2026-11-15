@@ -1,4 +1,4 @@
-// w7_unit.js (CI: validate.yml's "Nothing darkens" step): the words' lift is gone (the owner's word of
+// w7_unit.js (CI: tools/checks/28-w7.sh, "Nothing darkens"): the words' lift is gone (the owner's word of
 // 2026-10-21), so the composite takes nothing from the words, and this test holds it to that. Two parts:
 //  1. The shipped world.vN.js (comments stripped) names none of the lift's parts anywhere (liftWords, LIB_LIFT,
 //     LIFT-BEGIN, uLiftOn, uVeil*, uLinkCore, worldToe, TOE_*), and the composite's tail (FS_COMP between W7-TAIL-BEGIN

@@ -6,6 +6,6 @@
 # absence block and hook it names exists. Then the project's hooks (.claude/hooks/guard.py: no push to main,
 # no force push, no merge, no banned name) pass their own tests, and no tracked file holds a banned name.
 # plant: {"file": "RULES.json", "find": "\"id\": \"script-order\"", "with": "\"id\": \"script order\"", "why": "a rule id that is not kebab-case"}
-python3 .github/workflows/rules_check.py
+python3 tools/checks/lib/rules_check.py
 python3 .claude/hooks/test_guard.py
 python3 .claude/hooks/guard.py --scan   # (no tracked file holds a banned name: names.json's salted hashes)

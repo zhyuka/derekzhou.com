@@ -45,9 +45,9 @@
     },
     /* the cloud's shade (clShade 0.67, clDeep 0.60) the sky's blue (towers stand behind the name at the one framing);
        strong aerial perspective (fog.w 1.1e-4: far towers and rock fade toward the horizon's light) */
-    light: function (R) {
+    light: function () {   // (one sun, the world's key: world.js 215; this kit's light has its colours, never a direction of its own)
       return {
-        sunAz: R.r(0, 360), sunEl: R.r(7, 10), sunC: lch(0.97, 0.035, 85, 2.2),
+        sunC: lch(0.97, 0.035, 85, 2.2),
         sky: [lch(0.54, 0.11, 262), lch(0.80, 0.05, 238), lch(0.76, 0.07, 234), lch(0.69, 0.1, 236), lch(0.61, 0.125, 242), lch(0.55, 0.135, 252)],
         skyE: [2, 7, 14, 30], skyW: lch(0.88, 0.045, 205), skyK: [0.4, 6, 0.12, 0],
         glow: [0.12, 22, 0.05, 300], glowC: lch(0.97, 0.03, 95),

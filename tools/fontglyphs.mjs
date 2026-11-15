@@ -2,7 +2,7 @@
 // The served fonts are cut to the letters the pages show (subset-fonts.sh, .sub3): Geist to every letter of every page's
 // text, Geist Mono to the credit row's (.credit, the only text set in mono). A page that shows a letter its font lacks
 // would draw that letter in the fallback face, so CI's check "Every letter the pages show is in its font"
-// (tools/checks/37-font-glyphs.sh) holds each cut font to the pages' letters, those the full face has.
+// (tools/checks/40-font-glyphs.sh) holds each cut font to the pages' letters, those the full face has.
 //   node tools/fontglyphs.mjs --text sans|mono [DIR]   the letters (DIR: the pages' folder, default site): subset-fonts.sh
 //   node tools/fontglyphs.mjs --check [DIR]            exit 1 unless every font holds its letters
 // Node built-ins only: the woff2's tables are Brotli (zlib), and only its cmap is read.
