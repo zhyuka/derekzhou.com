@@ -438,7 +438,8 @@ section, src/world/215-air.js, and every other system reads it there
 (RULES.json one-world-state; test/unit/air.mjs by value, 16 seeds by six
 skies; tools/checks/42-one-air.sh: the air's names written only there, no
 wind or sun literal in any other section, the realms or the billows'
-shader). It holds:
+shader; the billows read no clock at all: they ride with their body,
+physics: clouds/drift). It holds:
 
 - The wind: one direction a visit (airDraw, the dunes' field stream's
   first draw, as before), blowing toward V.windAz, and its speed by height,
@@ -448,11 +449,11 @@ shader). It holds:
   motes slower than the grains under them, the reverse of real air); the
   log law replaces it (physics: air/wind-profile). The dunes' crests, the
   grains, the motes, the veils, the birds' HOST.wind and the water's
-  ripples read it.
+  ripples read it; so do the clouds (AIR_H.clouds 800 m, the low layer's
+  free clouds, and AIR_H.deck 3000 m, the high streaks, which lie along
+  it: cloudWind, physics: clouds/drift).
 - The readers still apart (AIR_APART, each with the change that joins
-  it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
-  0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
-  (AIR_CIRRUS: along world x), the maps' own wind field (mc.wind: the
+  it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
   it out moves the plan's anchors), the wing gusts' private 25 s timers
   (birdwing.js) and the score's own gusts (score.js). The test fails when
