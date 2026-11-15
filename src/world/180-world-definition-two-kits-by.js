@@ -137,7 +137,9 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
       surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true, yb: YB.land }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10, yb: YB.sea }],
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
-      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0]], volRes: 44 },
+      // (physics: clouds/drift) and the air cells, the free clouds' (the low layer's: its ranges and towers, with their
+      // points of interest), each kit's at its own grid and reach, streamed about the camera's place in the air
+      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0], { size: KD.layout.scales[0].size, radius: KD.layout.scales[0].radius, air: 'dunes' }, { size: KA.layout.scales[0].size, radius: KA.layout.scales[0].radius, air: 'above' }], volRes: 44 },
       field: function (R, V) {
         var fd = KD.field(R, V), fa = KA.field(RNG(subseed(V.seed, 23)), V), P = fd.params.slice(0, 12);
         while (P.length < 12) P.push([0, 0, 0, 0]);
@@ -146,7 +148,9 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       light: function (R, V) { return KD.light(R, V); },
       lightB: function (R, V) { return KA.light(R, V); },
       cell: function (C, R, K2) {
-        if (C.scale < 2) KD.cell(kitApi(C, 'dunes', densD, false), R, K2);
+        if (C.scale === 3) { if (KD.air) KD.air(kitApi(C, 'dunes', densD, false), R, K2); }
+        else if (C.scale === 4) { if (KA.air) KA.air(kitApi(C, 'above', densA, true), R, K2); }
+        else if (C.scale < 2) KD.cell(kitApi(C, 'dunes', densD, false), R, K2);
         else KA.cell(kitApi(C, 'above', densA, true), R, K2);
       },
       build: function (it, B, R, K2) { return (it.kit === 'above' ? KA : KD).build(it, B, R, K2); },

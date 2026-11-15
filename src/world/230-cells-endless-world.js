@@ -26,14 +26,15 @@
     this.places = []; this.glowG = []; this.beamL = []; this.inst = null; this.glowB = null; this.beamB = null;
     this.bound = new Float32Array([this.cx, 0, this.cz, L.size]); this.soft = null; this.softB = null; this.born = -1; this.prio = 0; this.job = null; this.bi = 0; this.B = null; this.gone = false;
     this.lod = 0; this.RB = null; this.rbi = 0; this.gen = null; this.rgen = null;
+    this.air = !!L.air; this.dL = null;   // (an air cell: its place in the air frame; dL, how far the air had carried it when it was laid out)
   }
   /* the cell handed to the realm's cell(): where it is, its stream, and the means to place things */
   function cellApi(C) {
-    var V = C.V;
+    var V = C.V, ox = C.air ? C.dL[0] : 0, oz = C.air ? C.dL[1] : 0;
     return {
-      V: V, scale: C.sc, ix: C.ix, iz: C.iz, x0: C.x0, z0: C.z0, size: C.size, salt: V.salt, hash: cellHash(C.ix, C.iz, (V.salt ^ (C.sc * 0x9e3779b9)) >>> 0),
+      V: V, scale: C.sc, ix: C.ix, iz: C.iz, x0: C.x0 + ox, z0: C.z0 + oz, size: C.size, salt: V.salt, air: C.air, hash: cellHash(C.ix, C.iz, ((C.air ? subseed(V.seed, 47) : V.salt) ^ (C.sc * 0x9e3779b9)) >>> 0),   // (an air cell: its own stream, subseed 47, and laid out where the air has carried it)
       field: V.field, sun: V.light.sunDir,
-      inside: function (x, z) { return x >= C.x0 && x < C.x0 + C.size && z >= C.z0 && z < C.z0 + C.size; },
+      inside: function (x, z) { return x >= C.x0 + ox && x < C.x0 + ox + C.size && z >= C.z0 + oz && z < C.z0 + oz + C.size; },
       // a landmark: { kind, x, z, yaw (deg), foot (m: the footprint seated on its lowest ground), dy (m), air (y given),
       //   y, solid: [radius, height] (an obstacle: a cylinder over its seat), seed, ...the realm's own fields }
       add: function (it) { C.items.push(it); return it; },
@@ -91,7 +92,9 @@
     return pts;
   }
   function cellLayout(C, sync) {
-    var V = C.V, api = cellApi(C);
+    var V = C.V;
+    if (C.air) { C.dL = airD(V, SIM.t); C.bound[0] += C.dL[0]; C.bound[2] += C.dL[1]; }   // (laid out where the air has carried the cell by now: its seats and gates read there; its bound, as what it holds, stored as it stood then)
+    var api = cellApi(C);
     V.def.cell(api, RNG(api.hash), KITAPI);
     var pts = anchorsOf(C);
     C.job = pts.length ? probeJob(V, pts, pts.length / 2, 0, sync) : { done: true, h: new Float32Array(0) };

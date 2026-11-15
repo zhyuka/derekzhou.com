@@ -112,6 +112,10 @@
       else it = C.add({ kind: 'gshard', form: true, x: x, z: z, foot: 30, yaw: yaw, h: H, w: rad * 0.7, seed: seed, solid: [rad * 0.7 + 0.42 * H + 6, H] });
       C.poi({ kind: 'form', x: x, z: z, ref: it, dy: H * 0.5, pass: rad * 1.2 + 80 });
     }
+  }
+  /* an air cell (physics: clouds/drift): the low layer's ranges, drifting with the wind; laid out where the air has
+     carried the cell, their seats read there */
+  function dAir(C, R) {
     if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: R.r(0, PI), len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
   }
   /* a small cell of open dunes: a few stones of its own */
@@ -157,6 +161,7 @@
         cl: [7.0, 0.13, 0.0035, 1], inCloudK: 1.04
       };
     },
+    air: function (C, R) { dAir(C, R); },
     cell: function (C, R, K2) {
       if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); return; }
       // a small cell: the details of the areas about it that fall in it, and its own stones

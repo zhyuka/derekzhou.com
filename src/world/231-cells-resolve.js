@@ -51,8 +51,9 @@
         // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
         var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = ycB;
         var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48, V); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
-        // (its laid-out centre and its layer's wind: cloudPos carries it, physics: clouds/drift; a canyon's walls are the cloud sea's, held)
-        vb.out.c0 = Float64Array.from(vb.out.c); vb.out.w = cloudWind(V, clb && clb.kind === 'wall' ? 'sea' : 'low');
+        // (its centre in the air frame and the low layer's wind: cloudPos carries it, physics: clouds/drift; a world cell's
+        // clouds, a canyon's walls, are the cloud sea's: held)
+        vb.out.c0 = Float64Array.from(vb.out.c); if (C.air) { vb.out.c0[0] -= C.dL[0]; vb.out.c0[2] -= C.dL[1]; vb.out.w = airW(V); } else vb.out.w = null;
         var cores = vb.out.cores;
         for (j = 0; j < cores.length; j += 4) C.obst.push({ c: 0, x: cores[j], y: cores[j + 1], z: cores[j + 2], r: cores[j + 3], cloud: true });
         var s0 = soft.length, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];

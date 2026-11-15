@@ -19,3 +19,15 @@
     var r = out || new Float64Array(3), w = o.w;
     r[0] = o.c0[0] + (w ? w[0] * t : 0); r[1] = o.c0[1]; r[2] = o.c0[2] + (w ? w[1] * t : 0); return r;
   }
+  /* the air frame: the low layer's clouds, with their points of interest and flocks, live in air cells (a grid keyed by
+     x - W t, streamed about the camera's place in it); D(t) = W_low t is how far the air has carried them by t. An air
+     cell is laid out at tL where its ground is then (its seats, gates and the band's lift read there, out of view), so
+     what it holds is stored as it stood at tL, and at t it stands D(t) - D(tL) further on: cellOff. A world cell's offset
+     is none. */
+  function airW(V) { return V.airW || (V.airW = cloudWind(V, 'low')); }
+  function airD(V, t, out) { var w = airW(V), o = out || new Float64Array(2); o[0] = w[0] * t; o[1] = w[1] * t; return o; }
+  function cellOff(C, t, out) {
+    var o = out || new Float64Array(2);
+    if (!C.air) { o[0] = 0; o[1] = 0; return o; }
+    var w = airW(C.V); o[0] = w[0] * t - C.dL[0]; o[1] = w[1] * t - C.dL[1]; return o;
+  }
