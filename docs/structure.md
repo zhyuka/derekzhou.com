@@ -62,7 +62,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
-                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/held.mjs (the
+                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
                              test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/mist.mjs (the mist pools:
                              their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/ripples.mjs (the sand
@@ -108,7 +108,7 @@ tools/tsc.mjs                tsc --checkJs over the assembled world and src/real
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
 tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
 tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand
-tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (--stamp sets PW_V), minified as the world is
+tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (fillStamp writes PW_V at assembly), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks: runs tools/check.mjs, every check a file of tools/checks/
@@ -130,12 +130,14 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
                              the sand spec's bounds, physics: sand/S1)
+                             tools/checks/43-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
                              tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh)
+                             tools/checks/lib/gust-glsl.mjs (the shaders' gust rendered and held to the JS's, for 43-gust-glsl.sh)
 
 Seven scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js, inkbirds.js, sound.js and score.js
@@ -193,9 +195,11 @@ every script and stylesheet has its own immutable \_headers block. The
 plan's worker is built too, never committed: tools/plan.mjs copies the
 world's plan spans (the angle constants; the maps and the director; MAPS,
 mapsInit, kitAt; the weights' grids) verbatim from the assembled world into
-it, stamped with their md5, and the build fails when the world's PW_V is
-not that stamp (after a change to the spans, node tools/plan.mjs --stamp
-rewrites PW_V in its part); the build then minifies it as the world is
+it, stamped with their md5. The source holds no stamp (its part has
+var PW_V = '';): tools/parts.mjs assemble writes the spans' stamp into
+every assembled world (tools/plan.mjs fillStamp, 2026-11-15), so a change
+to the spans needs no step by hand, and the build fails if the world's
+PW_V is ever not that stamp; the build then minifies it as the world is
 (tools/plan.mjs buildPlan: terser with the world's options, its header
 kept; 27 -> 15 KB at Brotli 4, 2026-11-06), and test/unit/maps.mjs runs that
 worker against the page's own plan, hash for hash. The hour, site.js and the wing model (src/birds/model/) are

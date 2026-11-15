@@ -2,7 +2,7 @@
 // (delight-weather 1: mist in the dune troughs and at the mesa feet). For each opening, on a 10 m grid within 1 km of
 // the landing: the land (probe mode 0, Hd), the camera's ground (mode 1, over the cloud sea too) and the ground the
 // dunes stand on and the sand weight (the swell, the basins' and the sink's change in, and wD: the pools' floor and their reach), read under SwiftShader on
-// the T1 harness's generic persona. The pool's top is that floor + D x the sand weight (D the sky's depth: MIST_D).
+// the T1 harness's generic persona. The pool's top is that floor + D x the sand weight (D the sky's depth: AIR_MIST, airWx).
 // Prints, per opening and in all, at the deepest sky: the share of the ground under the mist (its depth over 0.75 m:
 // half opaque), the share of the crests clear (local highs over 50 m), the share where the pool's top would stand over
 // the camera's lowest (its ground + clear[0], 7 m: in the flight band) without the camera's ground reading the pools,

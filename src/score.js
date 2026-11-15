@@ -241,7 +241,7 @@
        note under a chord now and then. On top the colour's own few notes. A sky change is the one chord of it all:
        the voices gather into it, one at a time, as the music swells to the moment the colour changes, and let it
        go. And never a hole: where every note would be gone at once, the next voice comes in early) */
-    var S = { sky: null, hold: null, next: null, swaps: [], R: [], N: [], B: [], P: [], wc: 0, front: 0, hf: 0, root: null, ct: 0, sus: false, swellEnd: 0, pass: { kind: 'start', until: 0 }, arcV: 1, arcEnd: 0, V: null };
+    var S = { sky: null, hold: null, next: null, swaps: [], R: [], N: [], B: [], P: [], wc: 0, front: 0, hf: 0, root: null, ct: 0, sus: false, swellEnd: 0, pass: { kind: 'start', until: 0 }, arcV: 1, arcEnd: 0, V: null, air: null };
     var LAYER = {   // (each voice: its range, its notes' length (s), its rest after one (s), its level (dB))
       low: { lo: 36, hi: 52, len: [9, 13], rest: [10, 20], g: -2.5 },
       mid: { lo: 53, hi: 66, len: [7.5, 11], rest: [6, 13], g: -4 },
@@ -320,7 +320,7 @@
     function sync(now) {   // (the world's sky, mapped onto the audio clock: when the next change comes, and to what)
       var F = feed(), e, tc;
       S.next = null;
-      if (F) { S.wc += (F.wc - S.wc) * 0.2; }
+      if (F) { S.wc += (F.wc - S.wc) * 0.2; if (F.air) S.air = F.air; }
       if (!F || F.still || !F.seq.length) return F;
       e = F.seq[0]; tc = e.at + e.hold;
       if (e.id === S.sky && F.seq.length > 1 && F.seq[1].id !== S.sky) {
@@ -333,7 +333,7 @@
     }
     function start(now) {
       var F = feed(), sky = 'bluehour', e;
-      if (F && F.seq.length) { e = F.seq[0]; sky = (F.t > e.at + e.hold && F.seq.length > 1) ? F.seq[1].id : e.id; S.wc = F.wc; }
+      if (F && F.seq.length) { e = F.seq[0]; sky = (F.t > e.at + e.hold && F.seq.length > 1) ? F.seq[1].id : e.id; S.wc = F.wc; S.air = F.air || null; }
       S.swaps.push([-1e9, sky, SKIES[sky].col]);
       newHold(sky, voiced(tonic(SKIES[sky])[0], tonic(SKIES[sky])[1]));
       S.a0 = now + 0.3; S.front = now - 0.9; S.hf = now + 0.3;
@@ -553,20 +553,23 @@
 
     /* the wind: four random walks, each to a new value every 1.2, 2, 6.5 and 21 s or so (half to one and a half times
        that), each glided to over half its time, weighted as gusts are (the slower, the larger: 0.3, 0.45, 0.67, 1), on the
-       sky's own speed (the Milky Way stillest, aurora and blue hour calm, the moonlit sea and first light a breeze,
-       afterglow the breeziest; gusts about +-15 to 30% of it), which moves to the next sky's over about 15 s. The billow
-       goes with the wind; the stream with its square, 0.4 s behind (calm air near silent, a gust bringing it). Over the
-       cloud the billow eases and the stream rises. Planned 4 s ahead, a walk at a time in time order */
-    var WK = [[1.2, 0.3], [2, 0.45], [6.5, 0.67], [21, 1]], WS = { milkyway: [0.18, 0.5], aurora: [0.2, 0.65], bluehour: [0.2, 0.65], moonlit: [0.3, 0.9], firstlight: [0.3, 0.8], afterglow: [0.35, 1] };
+       sky's own breeze: the world's wind by sky (its feed's air, the world's own table, read only: each sky's share of
+       the day's wind, WIND_DAY at the afterglow's 1, and its gustiness, the gusts about +-15 to 30% of it at 1: the
+       afterglow the breeziest, the blue hour calmer, the nights calm, first light the stillest), which moves to the next
+       sky's over about 15 s; with no world, no table: the air at its floor. The billow goes with the wind; the stream
+       with its square, 0.4 s behind (calm air near silent, a gust bringing it). Over the cloud the billow eases and the
+       stream rises. Planned 4 s ahead, a walk at a time in time order */
+    var WK = [[1.2, 0.3], [2, 0.45], [6.5, 0.67], [21, 1]], WIND_DAY = 0.35;
+    function breeze(id) { var a = S.air && S.air[id]; return a ? [WIND_DAY * a[0], a[2]] : [0, 0]; }   // (the sky's breeze, its gustiness)
     function skyAt(t) { var id = S.swaps[0][1], j; for (j = 1; j < S.swaps.length; j++) if (S.swaps[j][0] <= t && S.swaps[j][1]) id = S.swaps[j][1]; return id; }
     function wind(now) {
-      var W = S.W || (S.W = { v: [0, 0, 0, 0], at: [now, now, now, now], m: (WS[skyAt(now)] || WS.bluehour)[0], g: 1, t: now }), k, j, t, g, w, sk, c;
+      var W = S.W || (S.W = { v: [0, 0, 0, 0], at: [now, now, now, now], m: breeze(skyAt(now))[0], g: 1, t: now }), k, j, t, g, w, sk, c;
       for (;;) {
         for (k = 0, j = 1; j < 4; j++) if (W.at[j] < W.at[k]) k = j;
         t = W.at[k]; if (t > now + 4) break;
         W.v[k] = R.r(-1, 1); W.at[k] = t + WK[k][0] * R.r(0.5, 1.5);
         for (g = 0, j = 0; j < 4; j++) g += WK[j][1] * W.v[j];
-        sk = WS[skyAt(t)] || WS.bluehour; c = 1 - Math.exp(-(t - W.t) / 15); W.m += (sk[0] - W.m) * c; W.g += (sk[1] - W.g) * c; W.t = t;
+        sk = breeze(skyAt(t)); c = 1 - Math.exp(-(t - W.t) / 15); W.m += (sk[0] - W.m) * c; W.g += (sk[1] - W.g) * c; W.t = t;
         w = Math.max(0.05, W.m * (1 + 0.6 * W.g * g / 2.42));
         air[0].gain.setTargetAtTime(AIR * (1 - 0.4 * S.wc) * (0.6 + 1.6 * w), t, WK[k][0] / 2);
         air[1].gain.setTargetAtTime(AIR * (0.12 + 0.25 * S.wc) * Math.pow((w + 0.1) / 0.35, 2), t + 0.4, WK[k][0] / 2);

@@ -123,7 +123,7 @@
     else if (f < 0.54) { var th = R.r(0, 180); for (k = 0; k < 2; k++) { var sl = R.r(20, 26), ly = 3 + R.i(2); C.add({ kind: 'ruin', x: x + Math.sin(th * PI / 180) * k * sl, z: z + Math.cos(th * PI / 180) * k * sl, foot: sl * 0.5, yaw: th, len: sl, layers: ly, seed: R.seed(), solid: [sl * 0.62, ly * 3 + 4] }); } }
   }
   W.realm({
-    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12, lookT: 20, lookTan: 0.15,   // (what worldDef reads: world.js)
+    id: 'dunes', still: 'dunes', speed: 12, look: 90, margin: 12,   // (what worldDef reads: world.js)
     glsl: DUNES_GLSL,
     layout: { scales: [{ size: DS, radius: 5200 }, { size: 375, radius: 1300 }] },
     field: function (R, V) {
@@ -194,10 +194,10 @@
     particles: function (V) {
       var sand = lch(0.9, 0.04, 60), mote = lch(0.96, 0.05, 70, 1.4);
       return [
-        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: A.vec3(V, A.H.grains, 0), color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
+        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: A.vec3(V, A.H.grains, 0, A.GRAIN_K), color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
         { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: A.vec3(V, A.H.motes, 0.1), color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
       ];
     },
-    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
+    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
   });
 })();
