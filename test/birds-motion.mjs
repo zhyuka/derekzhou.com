@@ -18,7 +18,7 @@ function run(cs, seed, hz, secs, each, size, all, sched) {
   let tm = 0;
   for (let k = 0; k < Math.round(secs * hz); k++) {
     const fd = sched ? sched(k) : 1 / hz; tm += fd;
-    const n = sim.frame(fd), DF = sim.B.DF();
+    const n = sim.frame(fd); if (!sim.B) continue; const DF = sim.B.DF();   // (no step yet in the first frames at a high rate)
     for (const b of all ? sim.B.BIRDS : tags) {
       if (b.st === 'perch') lp.set(b, k);
       if (b.st === 'land' && b.P && nl.get(b) !== b.P) { nl.set(b, b.P); nn.set(b, (nn.get(b) || 0) + 1); }
@@ -248,17 +248,18 @@ test('no perched bird stands in the air above the ink (over 1 px for no more tha
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
 
-/* (what it guards: a landing begun from anything the last one left, e.g. its drawn rest: 35-birds.sh's plant keeps the
-   first perch's rest at the second touch, 4.14x the body bound. The flare's reset it once named is now made twice, so
-   taking one away reads 0.13x: the hub's review 3) */
+/* (what it guards: a second landing drawn as smoothly as a first, at 144 Hz, where a snap of a few px is over its bound.
+   35-birds.sh's plant takes away the wings' crossfade at a change of what they do: 2.40x the form bound. A perched bird
+   now stands on its feet, so the first perch's rest kept at the second touch no longer shows, and the flare's reset is
+   made twice: neither can be planted here, the hub's review 3) */
 test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
-  const k60 = 1; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
-  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 80, null, size, true).values())
+  const k60 = (60 / 144) ** 2; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;   // (at 144 Hz: a snap of a few px reads at 60 Hz within a frame's bound)
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 144, 80, null, size, true).values())
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (b.nth < 2 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch')) continue;
       frames++;
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
-      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / 0.1;
+      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));
       if (f > worst.f) worst = { f, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
       if (bb > worstB.b) worstB = { b: bb, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
     }
