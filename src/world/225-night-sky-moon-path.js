@@ -11,6 +11,30 @@
     var ex = anvElOf(SKY.X), ey = anvElOf(SKY.Y);
     return ex + (ey - ex) * (SKY.q || 0);
   }
+  /* (physics: weather/far-anvil; the owner, 2026-11-15: "Soft distant flicker") lightning inside the far storm, dim and
+     slow: groups of 1-4 flashes every 10-40 s, from the visit's own read (SEEDR), so never before the cut (the stills, the
+     opening's first frames); each flash a smooth rise and fall (sin^2 over 0.26-0.44 s: 130 ms up, 130 ms down at the
+     least) and the next one not before the last has ended and 0.36 s on (at most 3 in any second); a group plays only with
+     the sun 5 deg or more down (the storm unlit), never in reduced motion. Each lights a soft blob of the cloud (4-8 km)
+     somewhere in the storm; the shader holds its light to Y +0.02 under the cap (ANV_FK) */
+  var FL_GAP = [10, 40], FL_DUR = [0.26, 0.44], FL_SEP = 0.36, FL_SUN = -5, ANV_FL = { r: null, g: null, next: 0, out: new Float32Array(4) };
+  function anvGroup(r, t0) {   // one group from t0: its flashes (start, length, peak, place, reach) and the next group's time
+    var n = 1 + Math.floor(r.f() * 4), fl = [], s = t0, i, d;
+    for (i = 0; i < n; i++) { d = r.r(FL_DUR[0], FL_DUR[1]); fl.push({ s: s, d: d, a: r.r(0.5, 1), x: r.r(-6, 10), z: r.r(4, 11), w: r.r(4, 8) }); s += Math.max(d, FL_SEP) + r.r(0.02, 0.5); }
+    return { fl: fl, next: s + r.r(FL_GAP[0], FL_GAP[1]), on: false };
+  }
+  function anvEnv(f, t) { var u = (t - f.s) / f.d; return u > 0 && u < 1 ? Math.pow(Math.sin(Math.PI * u), 2) * f.a : 0; }
+  function anvFlashAt(t) {   // [envelope, x km, z km, reach km] at sky time t (0: none)
+    var F = ANV_FL, out = F.out, i, e, b = 0, bf = null;
+    out[0] = 0;
+    if (!SKY.anv || !AFTER || reduced()) return out;
+    if (!F.r) { F.r = RNG(subseed(SEEDR, 86)); F.next = t + F.r.r(FL_GAP[0], FL_GAP[1]); }
+    if (t - F.next > 120) F.next = t;   // (a tab come back: the next group from now, not a backlog)
+    while (t >= F.next) { F.g = anvGroup(F.r, F.next); F.g.on = anvSunEl() <= FL_SUN; F.next = F.g.next; }
+    if (F.g && F.g.on) for (i = 0; i < F.g.fl.length; i++) { e = anvEnv(F.g.fl[i], t); if (e > b) { b = e; bf = F.g.fl[i]; } }
+    if (bf) { out[0] = b; out[1] = bf.x; out[2] = bf.z; out[3] = bf.w; }
+    return out;
+  }
   function anvElOf(O) { var e = O && O.skyEl; return typeof e === "number" ? e : AIR_SUN_NIGHT; }   // (a sky's own sun, or a night's)
   var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4) };
   // MOON-ROUTE-BEGIN
