@@ -50,6 +50,12 @@
        air. o is the output alone (the birds' reused WINDV); y, a bird's own height over the ground, is a second argument so
        a bird can ask at its own height without making an object (the birds' ask, 2026-11-15). Read only: nothing drawn changes */
     wind: function (o, y) { var a = windAt(CS.x, CS.z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); o[0] = a.x; o[1] = 0; o[2] = a.z; return o; },
+    /* (physics: air/gust-field) the air's one gust field (215: frozen, carried downwind at the mean wind) at (x, z), y m over
+       the ground (AIR_H.birds when y is left out): gust, its excess along the wind, m/s, signed (0 in still air: the whole
+       wind is HOST.wind's times 1 + gust / W); gustPhase, t - (x . w) / W, s (NaN in still air), so neighbours downwind
+       meet each gust dx / W later. Read only: nothing drawn changes */
+    gust: function (x, z, y) { return gustAt(x, z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); },
+    gustPhase: function (x, z, y) { return gustPhase(x, z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); },
     cameraStep: function () { var V = SIM.V; if (!V) return null; camPose(V, SIM.u, 1, CAMP); return CAMP; },
     /* the flight: the view's yaw (the way the camera looks), its heading and speed, its climb rate, its clearance band */
     flight: function (o) {
