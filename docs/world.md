@@ -476,8 +476,8 @@ shader). It holds:
   (AIR_CIRRUS: along world x), the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
   it out moves the plan's anchors), the wing gusts' private 25 s timers
-  (birdwing.js) and the score's own gusts (score.js). The test fails when
-  a listed reader is joined and still listed.
+  (birdwing.js). The test fails when a listed reader is joined and still
+  listed.
 - The gusts (physics: air/gust-field): one field of turbulence, frozen
   and carried downwind at the mean wind (gustAt, the shaders' airGust:
   the same hash and constants), so a point 100 m downwind meets each gust
@@ -487,8 +487,8 @@ shader). It holds:
   nothing faster than 0.11 W a second; none in still air. The sand veils
   lift as a gust passes over their brink (their private 5.6-8.4 s cycles
   are gone); the birds read HOST.gust (the excess along the wind, m/s)
-  and HOST.gustPhase (t - x.w / W) for their wing trim. The grains' speed,
-  the perched lean and the score are not on it yet.
+  and HOST.gustPhase (the field's own clock here) for their wing trim.
+  The grains' speed and the perched lean are not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
@@ -501,10 +501,32 @@ shader). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
-  frame (skyFrame: the turn the stars and the galaxy take; today none) and
-  the weather (weather(sky): today one wind for every sky; physics:
-  air/wind-by-sky).
+- The wind by sky (physics: air/wind-by-sky): the sky is the time of
+  day, and the wind follows the day as the boundary layer does. By day
+  the surface's wind is mixed down from aloft; at dusk the mixing dies,
+  the ground's air slows and the air 100-300 m up speeds past its day's
+  speed (the nocturnal jet); first light is the stillest at the ground.
+  AIR_BYSKY gives each sky three shares of the visit's day wind: the
+  surface's (to 20 m), the jet's (100-300 m) and the gusts' (their
+  intensity): the afterglow 1, 1, 1; the blue hour 0.7, 1.2, 0.65; the
+  moonlit sea 0.5, 1.4, 0.6; the aurora 0.45, 1.4, 0.55; the Milky Way
+  0.4, 1.5, 0.5; first light 0.35, 1.3, 0.5. Up the profile the share
+  eases from the surface's to the jet's (20-100 m, in log height) and from
+  the jet's to the free air's 1 (300-1500 m); the particles, all at 20 m
+  or under, take the surface's, the birds at 40 m a blend. Over a hold a
+  sky's shares hold; through a change they ease into the next sky's with
+  its light (weather(t)). Whatever the wind carries is carried by its
+  integral, a clock of each share in closed form over the sky's order
+  (airClock; the shaders' uAir: the surface's clock, its share, the
+  gustiness, the clock a frame back), so a change of sky never jumps a
+  grain, a mote, a veil or a gust: the grains drift by the day's wind
+  times the clock, the gust field is carried by it, and the veils lift
+  past the day's sigma, so in a night's weak air seldom. The score's
+  breeze is the same table, handed it read only by its feed
+  (docs/sound.md).
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and the
+  sky's frame (skyFrame: the turn the stars and the galaxy take; today
+  none).
 - The landing's heading, airHeading0 (drawn once from its own stream: the
   flight, the first plan, the galaxy's lie and the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the

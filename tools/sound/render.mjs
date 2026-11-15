@@ -16,12 +16,14 @@ const require = createRequire(import.meta.url);
 let PW; for (const n of [process.env.PW_CORE, 'playwright-core', 'playwright'].filter(Boolean)) { try { PW = require(n); break; } catch {} }
 if (!PW) { console.error('no playwright'); process.exit(2); }
 const sheet = (fs.readFileSync(path.join(ROOT, 'src/sound.js'), 'utf8').match(/var SHEET = '([^']+)'/) || [])[1];
+const air = fs.readFileSync(path.join(ROOT, 'src/world/215-air.js'), 'utf8').match(/var AIR_BYSKY = (\{[^;]*\});/)[1];   // (the world's wind by sky, as its feed hands it to the score)
 const page = `<!doctype html><meta charset=utf-8><script>
+window.AIRT = ${air};
 window.FLIGHT = [{ id: 'afterglow', at: 0, hold: 63, move: 57, far: false }, { id: 'milkyway', at: 120, hold: 86, move: 58, far: true },
   { id: 'bluehour', at: 264, hold: 63, move: 57, far: false }, { id: 'moonlit', at: 384, hold: 190, move: 58, far: false }];
 window.NOW = 0;
 window.WORLD = { sky: function () { var t = NOW, i = 0; while (i < FLIGHT.length - 1 && FLIGHT[i + 1].at <= t) i++;
-  var x = Math.min(1, Math.max(0, (t - 150) / 40)); return { t: t, seq: FLIGHT.slice(i), wc: x * x * (3 - 2 * x), still: false, seed: 1501 }; } };
+  var x = Math.min(1, Math.max(0, (t - 150) / 40)); return { t: t, seq: FLIGHT.slice(i), wc: x * x * (3 - 2 * x), air: AIRT, still: false, seed: 1501 }; } };
 </script><script src="/src/score.js"></script>`;
 const srv = http.createServer((q, r) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
