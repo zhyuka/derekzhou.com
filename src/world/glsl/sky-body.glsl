@@ -16,6 +16,7 @@ const float SKYTAU = 6.2831853;
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
    never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
 const float STC = 0.04;
+const float MOON_PHASE = 15.0;   // (physics: night/moon-phase) the moon's phase angle, deg: a near-full moon, its sun under the far horizon
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
@@ -165,7 +166,15 @@ void main() {
     c = mix(c, max(c, uMoonG), clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0));
     if (ma < 7.0) c += uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);
-    c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
+    /* (physics: night/moon-phase) a gibbous moon, lit by the hidden sun at its opposite azimuth, 15 deg short of opposite
+       (MOON_PHASE: the phase angle; lit fraction (1 + cos 15) / 2 = 0.983): the disc's sphere, its normal at this
+       pixel against the sun, a soft terminator; its unlit sliver is the sky behind it, never darker (no-darkening) */
+    vec3 mt1 = normalize(cross(vec3(0.0, 1.0, 0.0), uMoon.xyz) + vec3(1e-5, 0.0, 0.0)), mt2 = cross(uMoon.xyz, mt1);
+    vec2 mo = vec2(dot(rd, mt1), dot(rd, mt2)) / tan(radians(mr));
+    float mz = sqrt(max(1.0 - dot(mo, mo), 0.0)), mse = -asin(clamp(uMoon.y, -1.0, 1.0)) - radians(MOON_PHASE);
+    vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);
+    float mlit = smoothstep(-0.06, 0.06, dot(mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz, msun));
+    c = mix(c, mix(c, uMoonC, mlit), 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
