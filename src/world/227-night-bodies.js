@@ -9,7 +9,7 @@
      the planets at the end of civil twilight (6 deg), the horizon lost and about fourth magnitude at the end of nautical
      (12), the faintest to the eye at the end of astronomical (18): https://aa.usno.navy.mil/faq/RST_defs; between, by
      straight lines; the sky's own light where each star stands lowers it further (sky-body.glsl) */
-  var STAR_LIM = [[0, -4], [3, -1], [6, 1], [9, 3], [12, 4.5], [15, 5.6], [18, 6.5], [24, 7]];   // (deeper than the eye's 6.5 at the night's 24 deg so the field's faintest, 6.2, shows whole with its 0.6 of margin: a night keeps every star it had)
+  var STAR_LIM = [[0, -4], [3, -1], [6, 1], [9, 3], [12, 4.5], [15, 5.6], [18, 6.5], [24, 7]];   // (deeper than the eye's 6.5 at the night's 24 deg so the field's faintest, 6.2, shows whole with its 0.5 of margin: a night keeps every star it had)
   var VEN_EL = [24, 46], VEN_TRY = 12, VEN_TOP_Y = 0.118, VEN_GLOW = 10;   // (its elongation from the sun, deg, on the ecliptic: at most 47; the tries for a clear path; its peak, Y: OKLab L 0.49 in its warm white; its glow's reach, px)
   var NIGHTB = { m: new Float32Array(4), v: new Float32Array(4), seed: NaN, eps: 0, side: 1, morning: false, fails: -1, d: [0, 0, 0] };
   function starLim(D) {   // the zenith's faintest magnitude at the sun's depth D (deg under the horizon)
