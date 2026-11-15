@@ -178,21 +178,53 @@
   function tilt(C, v0, v1, v2, o) { var a = v0 * C.u[0] + v1 * C.u[1] + v2 * C.u[2], bb = v0 * C.f[0] + v1 * C.f[1] + v2 * C.f[2], c = v0 * C.r[0] + v1 * C.r[1] + v2 * C.r[2], a2 = a * TCE + bb * TSE, b2 = bb * TCE - a * TSE; o[0] = C.r[0] * c + C.u[0] * a2 + C.f[0] * b2; o[1] = C.r[1] * c + C.u[1] * a2 + C.f[1] * b2; o[2] = C.r[2] * c + C.u[2] * a2 + C.f[2] * b2; }
   /* the rest rule: its body over its foot (CSS px up from it) by as much as puts its lowest drawn points on the
      surface (a letter's ink under them; on the tip, the tip), with its pose and basis as they are */
+  /* the ledges beside its own on its row (the neighbouring glyphs' ink, the hub's review 3): a point past its own
+     ledge's end rests on theirs, so support is never lost all at once at a stroke's end, nor a wing sunk into the next
+     letter. Found once a ledge (its indices kept in the perch's own array: nothing made in the step) */
+  function nbLedges(P, lg, sp) {
+    var L = ledges(); if (P.nbI === P.li && P.nbL === L) return;
+    P.nbI = P.li; P.nbL = L; P.nbN = 0;
+    for (var j = 0; j < L.length && P.nbN < P.nb.length; j++) { var q = L[j]; if (j === P.li || q.kind !== lg.kind || Math.abs(q.y - lg.y) > 0.6 * sp || Math.abs(q.x - lg.x) > 2.5 * sp) continue; P.nb[P.nbN++] = j; }
+  }
+  var SMX = -1e9, SMS = 0;   // (the rest's soft max over its points: the largest term and the sum of the rest's weights against it)
+  function smAdd(v) { if (v > SMX) { SMS = SMS * Math.exp(SMX - v) + 1; SMX = v; } else SMS += Math.exp(v - SMX); }
+  /* one point's support from the neighbouring glyphs' ledges, each its own term in the soft max: weight 1 on its ink,
+     fading to none over fw px past its ends, all of them faded in by lm (0 at its own ledge's end, 1 fw past it) */
+  function nbAdd(P, sx, base, fw, lm) {
+    var L = P.nbL, lw = Math.log(lm);
+    for (var j = 0; j < P.nbN; j++) {
+      var p = L[P.nb[j]].pts, n = p.length, y = surfY(p, sx);
+      if (y === y) smAdd(base - y + lw);
+      else { var we = sx < p[0][0] ? p[0][0] - sx : sx - p[n - 1][0]; if (we < fw) smAdd(base - (sx < p[0][0] ? p[0][1] : p[n - 1][1]) + Math.log(1 - we / fw) + lw); }
+    }
+  }
   function restSolve(b, C, s, fxp, fyp, lift, V, at) {
     if (!V) { LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); V = s.V46; }
-    var P = b.P, sp = perchSpan(b, P.k), up = P.rest || 0.42 * sp, k2 = (W / 2) / VW.tanX, lg = P.kind === 'pointer' ? null : ledges()[P.li], i;
+    var P = b.P, sp = perchSpan(b, P.k), up = P.rest || 0.42 * sp, k2 = (W / 2) / VW.tanX, lg = P.kind === 'pointer' ? null : ledges()[P.li], i, fw = 3;   // (fw: a ledge's ink fades to none over this many px past its ends)
+    if (lg) nbLedges(P, lg, sp);
     if (at !== undefined) { rayAt(C, fxp, fyp - at - lift * sp, P.D, RQ); placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V); return at; }   // (placed at a rest given, not solved)
     for (var it = 0; it < 4; it++) {
       rayAt(C, fxp, fyp - up - lift * sp, P.D, RQ);
       placeAt(b, s, C, RQ[0], RQ[1], RQ[2], V);
-      var worst = -1e9, anyOn = false, low = -1e9, sS = 0;
+      SMX = -1e9; SMS = 0; var low = -1e9;
       for (i = 0; i < NV; i++) {
         var X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
         var sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, syy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / VW.tanY * (H / 2);
         if (syy > low) low = syy;
-        if (lg) { var lp = lg.pts, ln = lp.length, sf = surfY(lp, sx), ax = Math.abs(sx - fxp) - 0.18 * sp, we = 0; if (!(sf === sf)) { we = sx < lp[0][0] ? lp[0][0] - sx : sx - lp[ln - 1][0]; sf = we < 2 ? (sx < lp[0][0] ? lp[0][1] : lp[ln - 1][1]) : NaN; } if (sf === sf) { anyOn = true; var v = syy - sf - (ax > 0 ? 3 * ax : 0) + (we > 0 ? Math.log(1 - we / 2) : 0); if (v > worst) { sS = sS * Math.exp(worst - v) + 1; worst = v; } else sS += Math.exp(v - worst); } }   // (the ink under it only, its weight fading to none over 2 px past a ledge's ends, the points far from its feet not counted, smoothly; the lowest of them by a soft max, 1 px wide, so the rest never kinks as one point passes another)
+        if (!lg) continue;
+        /* the ink under it only: its own ledge's, and past that ledge's ends the neighbouring glyphs' (nbAdd), each
+           weighted, its weight fading to none over fw px past a ledge's ends, the points far from its feet not
+           counted, smoothly; the lowest of them all by a soft max, 1 px wide: so the rest never kinks as one point
+           passes another, nor jumps as a point crosses from one glyph's ink to the next */
+        var lp = lg.pts, ln = lp.length, sf = surfY(lp, sx), ax = Math.abs(sx - fxp) - 0.18 * sp, base = syy - (ax > 0 ? 3 * ax : 0);
+        if (sf === sf) smAdd(base - sf);
+        else {
+          var we = sx < lp[0][0] ? lp[0][0] - sx : sx - lp[ln - 1][0];
+          if (we < fw) smAdd(base - (sx < lp[0][0] ? lp[0][1] : lp[ln - 1][1]) + Math.log(1 - we / fw));
+          if (we > 1e-3) nbAdd(P, sx, base, fw, Math.min(1, we / fw));
+        }
       }
-      var err = anyOn ? worst + Math.log(sS) - 1.6 : low - fyp;
+      var err = SMS > 0 ? SMX + Math.log(SMS) - 1.6 : low - fyp;
       up += err; if (Math.abs(err) < 0.05) break;
     }
     return up;
@@ -237,6 +269,11 @@
       if (P.rT !== P.yawT) { P.rT = P.yawT; P.rA = s.rU || P.rest || 0; LB.geom(s.kind, s.P22, s.B3, s.V46, 'this'); var R = prb(b); perchBasis(C, P.yawTo, pt, rl, R.B); P.rB = restSolve(b, C, R, PFD[0], PFD[1], 0, s.V46); }
       up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, P.rA + (P.rB - P.rA) * ease(clamp((TD - P.yawT) / P.yawD, 0, 1)));
       s.rU = up; s.rV = 0; s.rT = TD; return true;   // (the turn's own rest is the drawn one: it ends at the next one's, at rest)
+    } else if (P.act && P.act.k === 'wings' && P.kind !== 'pointer') {   // (a wings act: its rest eased with its pose, from the one it stood at to the one its raised wings stand at, solved once at its start: never left behind in the air, the hub's review 3)
+      var A = P.act, ka = ease(1.4 * Math.sin(Math.PI * clamp((TD - A.t0) / A.T, 0, 1)));
+      if (P.aT !== A.t0) { P.aT = A.t0; P.aA = s.rU || P.rest || 0; gmix(GT2, s.P22, PERCH.poses.open, 0.7); var R2 = prb(b); LB.geom(R2.kind, GT2, s.B3, R2.V46, 'this'); perchBasis(C, yawNow, pt, rl, R2.B); P.aB = restSolve(b, C, R2, PFD[0], PFD[1], 0, R2.V46); }
+      up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, P.aA + (P.aB - P.aA) * ka);
+      s.rU = up; s.rV = 0; s.rT = TD; return true;
     } else {
       up = restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, L && P.rest ? P.rest : undefined);   // (leaving: its rest held as it was: the crouch and the opening wings do not lift it)
     }
@@ -246,7 +283,7 @@
     var dr = TD - s.rT;
     if (!(dr > 0 && dr < 0.25)) dr = dr > 0 ? 0.25 : 0;
     s.rT = TD;
-    var e = s.rU - up, rw = e < 0 ? 4 * RW : RW, x = Math.exp(-rw * dr), q = (s.rV + rw * e) * dr; s.rU = up + (e + q) * x; s.rV = (s.rV - rw * q) * x;   // (out of the ink four times as fast as it settles down onto it)
+    var e = s.rU - up, x = Math.exp(-RW * dr), q = (s.rV + RW * e) * dr; s.rU = up + (e + q) * x; s.rV = (s.rV - RW * q) * x;   // (up out of the ink as gently as down onto it: four times as fast snapped it up 21.7 px in a step, the hub's review 3)
     if (Math.abs(s.rU - up) > 0.01) restSolve(b, C, s, PFD[0], PFD[1], hopL, undefined, s.rU);
     return true;
   }

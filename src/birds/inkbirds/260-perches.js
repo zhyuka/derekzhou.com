@@ -109,6 +109,16 @@
 
   /* ---------------- choosing a perch ---------------- */
   function perchTaken(x, y, w) { for (var i = 0; i < PERCHED.length; i++) { var q = PERCHED[i].P; if (q && Math.abs(q.x - x) < w && Math.abs(q.fy - y) < 2 * w) return true; } return false; }
+  /* a ledge too narrow for the bird beside a taller letter (the hub's review 3): another glyph's ink under where its body
+     would be (0.6 of its span either side of the foot) rising over 3 px above this ledge and within its height. Its
+     body would rest on that letter and its feet hang over its own ink (or its wings sink into the letter) */
+  function cramped(L, Lg, sp) {
+    for (var x = Lg.x - 0.6 * sp; x <= Lg.x + 0.6 * sp; x += 2) {
+      var own = surfY(Lg.pts, x); if (!(own === own)) own = Lg.y;
+      for (var j = 0; j < L.length; j++) { var q = L[j]; if (q === Lg || q.kind !== Lg.kind) continue; var y = surfY(q.pts, x); if (y === y && y < own - 3 && y > own - 1.2 * sp) return true; }
+    }
+    return false;
+  }
   function pickLedge(b, r) {
     var L = ledges(), n = L.length, i, k;
     if (!n) return null;
@@ -117,6 +127,7 @@
       if (Math.abs(Lg.slope) > 0.7) continue;   // (too steep to stand on)
       if (!PTR.gone && Math.abs(PTR.x - Lg.x) < 1.5 * w && Math.abs(PTR.y - Lg.y) < 2 * w) continue;   // (not under the pointer)
       if (perchTaken(Lg.x, Lg.y, 1.6 * w * 0.35 + 6)) continue;
+      if (cramped(L, Lg, 2 * w)) continue;   // (a narrow top beside a taller letter: its body would stand on that letter, its feet in the air)
       return perchRec(Lg.kind, i, Lg.x, Lg.y, Lg.k);
     }
     return null;
@@ -127,7 +138,7 @@
     return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: [0, 0], at: [0, 0, 0], v: [0, 0, 0], ok: false,
       t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
       tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, nextAct: 0, act: null, walk: null,
-      swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined, landYaw: false, rA: 0, rB: 0, rT: -1 };
+      swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined, landYaw: false, rA: 0, rB: 0, rT: -1, nb: new Int32Array(24), nbN: 0, nbI: -1, nbL: null, aT: -1, aA: 0, aB: 0 };
   }
   function perchCount() { var n = 0; for (var i = 0; i < PERCHED.length; i++) if (PERCHED[i].P && PERCHED[i].P.kind !== 'pointer') n++; return n; }
   var VPN = [0, 0, 0];

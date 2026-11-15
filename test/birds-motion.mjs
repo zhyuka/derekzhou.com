@@ -35,13 +35,13 @@ function d2(a, b, c) { let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a,
 /* the worst form and body second differences over the landing scenes, each over its bound (1: at the bound) */
 function jumps(hz, scenes, states) {
   const k60 = (60 / hz) ** 2; let worst = { f: 0 }, worstB = { b: 0 };
-  for (const cs of scenes) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24).values())
+  for (const cs of scenes) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= Math.max(SEEDS, 6); seed++) for (const F of run(cs, seed, hz, 24, null, size).values())   // (a phone too: the hub's review 3 found a snap up there, 3.9x the bound)
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st) && !(b.st === 'fly' && states.includes('takeoff') && b.lv <= 2 * hz))) continue;   // ('takeoff': flying, within 2 s of its perch)   // (the first frames: the scene was set up on the step clock)
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
       const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.25));
-      if (f > worst.f) worst = { f, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
-      if (bb > worstB.b) worstB = { b: bb, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
+      if (f > worst.f) worst = { f, at: `${cs} ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (bb > worstB.b) worstB = { b: bb, at: `${cs} ${size} ${seed} frame ${b.k} ${b.st}` };
     }
   return { worst, worstB };
 }
@@ -111,7 +111,7 @@ test('every landing starts its flare from none (a second landing keeps nothing o
   assert.equal(stale, 0, `${stale} landings began with the last landing's flare (${at})`);
 });
 
-test('no perched bird stands in the air above its own ink (over 1 px for no more than 0.15 s)', () => {
+test('no perched bird stands in the air above the ink (over 1 px for no more than 0.15 s)', () => {
   const FT = [0, 0]; let n = 0, over = 0, runMax = 0, runAt = '', max = -1e9, at = '', sinkMax = -1e9, sinkAt = '';
   for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
     const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
@@ -122,19 +122,17 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
         if (P.hop || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose)
-        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), pts = B.ledges()[P.li].pts, x0 = pts[0][0], x1 = pts[pts.length - 1][0]; let air = 1e9, sink = -1e9;
-        for (let i = 0; i < NV; i++) {   // (the gap between the ink and the lowest of its points over the ink: its own glyph's tops)
+        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), L = B.ledges(), own = L[P.li]; let air = 1e9, sink = -1e9;
+        /* the ink it may stand on: its own ledge and the neighbouring glyphs' on its row (the hub's review 3: a bird on a
+           narrow link top rests on the next letter's ink, never sinks into it); found here, not read from the bird */
+        const ink = L.filter((q) => q === own || (q.kind === own.kind && Math.abs(q.y - own.y) <= 0.6 * sp && Math.abs(q.x - own.x) <= 2.5 * sp)).map((q) => q.pts);
+        for (let i = 0; i < NV; i++) {   // (each point's gap to the ink straight under it, in the window, less the pen's half width)
           const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
           const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
-          if (Math.abs(sx - FT[0]) > 0.18 * sp) continue;   // (by its feet: the gap from its ink to its own glyph's top, in the window, less the pen's half width)
-          let g = 1e9;
-          for (let j = 0; j + 1 < pts.length; j++) {
-            const ax = pts[j][0], ay = pts[j][1], bx = pts[j + 1][0], by = pts[j + 1][1], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-            const u = L2 > 0 ? Math.max(0, Math.min(1, ((sx - ax) * dx + (sy - ay) * dy) / L2)) : 0, qx = ax + u * dx, qy = ay + u * dy;
-            g = Math.min(g, sy > qy ? 0 : Math.hypot(sx - qx, sy - qy));   // (a point at or below the top touches it)
-          }
-          air = Math.min(air, g - 0.5);
-          if (sx >= x0 && sx <= x1) { const top = B.surfY(pts, sx); if (top === top) sink = Math.max(sink, sy - top); }   // (how far into its own letter's ink)
+          if (Math.abs(sx - FT[0]) > 0.18 * sp) continue;   // (by its feet: the points the rest rule counts in full)
+          let top = NaN; for (const q of ink) { const n = q.length, xc = Math.max(q[0][0], Math.min(q[n - 1][0], sx)); if (Math.abs(sx - xc) > 2) continue; const y = B.surfY(q, xc); if (y === y && !(y >= top)) top = y; }   // (only ink under it, the pen's round end 2 px past a ledge's last point included: a point farther beside a ledge's end is not on it)
+          if (!(top === top)) continue;
+          air = Math.min(air, top - sy - 0.5); sink = Math.max(sink, sy - top);
         }
         if (sink > sinkMax) { sinkMax = sink; sinkAt = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}${P.act ? ' act ' + P.act.k : ''}`; }
         if (air > 1e8) continue;
@@ -147,7 +145,7 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
   console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at}); longest ${runMax} frames (${runAt}); into the ink at most ${sinkMax.toFixed(2)} px (${sinkAt})`);
   assert.ok(n > 1000, 'too few perched frames');
   // (a change of what holds it up settles over a few frames, the rest following critically damped: no bird stays in the air)
-  assert.ok(sinkMax <= 4, `a perched bird's ink sank ${sinkMax.toFixed(2)} px into its letter (${sinkAt})`);
+  assert.ok(sinkMax <= 4, `a perched bird's ink sank ${sinkMax.toFixed(2)} px into the letters (${sinkAt})`);
   assert.ok(runMax <= 9, `a perched bird stood over 1 px above its ink for ${runMax} frames (${runAt})`);
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
@@ -220,10 +218,10 @@ test('a standing bird\'s rest moves a little at a time (no support found or lost
       sim.step(); const B = sim.B;
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P;
-        if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.hop || s.seenF !== B.DF() || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.05) || sim.t - P.tt < 1) { was.delete(b); continue; }   // (from when its wings have folded after the touch)
+        if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.hop || s.seenF !== B.DF() || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.05) || sim.t < P.tt) { was.delete(b); continue; }   // (from the touch: the hub's review 3 found a snap up 0.22 s after it)
         const r = P.rest, u = s.rU, w = was.get(b); was.set(b, [r, u]); if (w === undefined) continue;
         const d = Math.abs(r - w[0]), du = Math.abs(u - w[1]); n++;
-        if (!P.act) { if (d > 5) big++; if (d > max) { max = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; } }
+        if (!P.act && sim.t - P.tt >= 0.6) { if (d > 5) big++; if (d > max) { max = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; } }   // (the solved rest from 0.6 s, the wings folded from the touch pose (it follows that pose); the drawn rest from the touch)
         if (du > maxU) { maxU = du; atU = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}${P.act ? ' act ' + P.act.k : ''}`; }
       }
     }
