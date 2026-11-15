@@ -75,18 +75,25 @@
     }
     return n;
   }
-  function venusPlan(V) {   // once a visit, at its first frame with a window: its side (a morning star on a visit that opens on first light) and the first elongation drawn whose path down keeps clear of the words (none clear: no Venus this visit)
+  function venusSeen(I, d) {   // in the window at the view's own heading and pitch, its glare inside the edges, and over the horizon
+    var q = mrProj(mrCam(I.psi, I.pN), I, d);
+    return d[1] > 0.02 && q[2] > 0 && Math.abs(q[0]) < 0.92 && Math.abs(q[1]) < 0.92;
+  }
+  function venusPlan(V) {   // once a visit, at its first frame with a window: its side (a morning star on a visit that opens on first light) and, of VEN_TRY elongations drawn, the first whose path down keeps clear of the words and that stands in view at the cut (the hub's review of the 4090 frames: seen, not only possible), else the first clear one over the horizon at the cut; none clear: no Venus this visit
     if (NIGHTB.seed === J.seed) return true;
     var I = moonInputs(null); if (!I) return false;
     var morning = !!(SKY.landing && SKY.landing.sky === 'firstlight'), R = RNG(subseed(J.seed, 84));
-    var el0 = SKY.landing ? airSunEl(SKY.landing.sky) : null, D0 = -(el0 === null ? AIR_SUN_NIGHT : el0), F = venusFrame(V, morning, D0), best = -1, bf = Infinity, k;
+    var el0 = SKY.landing ? airSunEl(SKY.landing.sky) : null, D0 = -(el0 === null ? AIR_SUN_NIGHT : el0), F = venusFrame(V, morning, D0), seen = -1, up = -1, k, d = [0, 0, 0];
     NIGHTB.side = morning ? -1 : 1; NIGHTB.morning = morning;
-    for (k = 0; k < VEN_TRY; k++) {
-      var e = R.r(VEN_EL[0], VEN_EL[1]), f = venusFails(I, F, e, NIGHTB.side, D0);
-      if (f < bf) { bf = f; best = e; }
-      if (!f) break;
+    for (k = 0; k < VEN_TRY && seen < 0; k++) {
+      var e = R.r(VEN_EL[0], VEN_EL[1]);
+      if (venusFails(I, F, e, NIGHTB.side, D0)) continue;
+      venusDir(F, e, NIGHTB.side, D0, D0, d);
+      if (venusSeen(I, d)) seen = e; else if (up < 0 && d[1] > 0.02) up = e;
     }
-    NIGHTB.eps = best; NIGHTB.fails = bf; NIGHTB.D0 = D0; NIGHTB.seed = J.seed; NIGHTB.none = bf > 0;   // (the hub's ruling: no clear path down, no Venus this visit, as its still has none)
+    NIGHTB.eps = seen >= 0 ? seen : up; NIGHTB.seen = seen >= 0; NIGHTB.D0 = D0; NIGHTB.seed = J.seed;
+    NIGHTB.none = NIGHTB.eps < 0;   // (the hub's ruling: no clear path down, no Venus this visit, as its still has none)
+    NIGHTB.fails = NIGHTB.none ? 1 : 0;
     return true;
   }
   function nightBodiesUniforms(u) {
