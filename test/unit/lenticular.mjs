@@ -7,6 +7,9 @@
 // plant: {"file": "src/realm-dunes.js", "find": "if (sp < HELD_V || Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) return;", "with": "if (Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) return;", "why": "lenses on calm visits"}
 // plant: {"file": "src/realm-dunes.js", "find": "h = K.ihash(K.cellHash(ix, iz, C.salt) ^ 0x51ed27);", "with": "h = K.ihash(K.cellHash(ix, iz, C.salt) ^ 0x51ed28);", "why": "the lenses over ridges the land never raised"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS;", "with": "var q3 = (c0[k3] + (fl ? fl[k3] * tf : 0)) / nS;", "why": "the billows flow upwind through the lens"}
+// plant: {"file": "src/realm-dunes.js", "find": "    air: function (C, R) { dAir(C, R); },", "with": "    air: function (C, R) { dAir(C, R); dHeld(C); },", "why": "lenses laid out in air cells: the air carries them off their ridges"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.5; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
+// plant: {"file": "src/realm-dunes.js", "find": "flow: [hw.x, 0, hw.z]", "with": "flow: [hw.z, 0, hw.x]", "why": "the flow's components swapped: the billows cross the lens at the wrong way"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -55,7 +58,8 @@ test('lenticular: only on windy visits (the crest\'s wind >= 7.7 m/s, within 30 
         const ax = Math.sin(cl.dir), az = Math.cos(cl.dir);
         assert.ok(Math.abs((w.x * ax + w.z * az) / sp) <= 0.5 + 1e-12, 'a lens with the wind along its ridge');
         assert.ok(cl.dy >= 1100 && cl.dy <= 1700 && cl.n >= 1 && cl.n <= 3, `a lens ${cl.dy} m up, ${cl.n} plates`);
-        assert.ok(cl.flow && Math.abs(Math.hypot(cl.flow[0], cl.flow[2]) - Math.hypot(...Object.values(H.windAt(0, 0, cl.dy, 0, V)))) < 1e-9, 'the flow is not the wind at its height');
+        const wf = { ...H.windAt(0, 0, cl.dy, 0, V) };   // (the wind at its height, as a vector: x, y, z)
+        assert.ok(cl.flow && Math.abs(cl.flow[0] - wf.x) < 1e-9 && cl.flow[1] === 0 && Math.abs(cl.flow[2] - wf.z) < 1e-9, `the flow ${cl.flow} is not the wind at its height (${wf.x}, ${wf.z})`);
         if (u10 >= 6.2) windy++; else calm++;
       }
       // none where the cloud sea lies
@@ -68,10 +72,27 @@ test('lenticular: only on windy visits (the crest\'s wind >= 7.7 m/s, within 30 
 });
 
 test('lenticular: the envelope is held (its place a constant of t); its billows flow at the wind at its height, within 5%', () => {
-  const D = vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + cut(WORLD, '  function cloudWind(', '  /* ----') + ' return { cloudPos: cloudPos }; })')({ t: 0, alpha: 1 }, 1 / 60);
-  const o = { c0: Float64Array.from([4321.5, 1400, -987.25]), w: null, flow: [6.1, 0, -4.2] };
-  const p0 = Array.from(D.cloudPos(o, 0)), p1 = Array.from(D.cloudPos(o, 3600.5));
-  assert.deepEqual(p1, p0, 'a held body moves');
+  // laid out by the world cell alone: the realm's own dispatch (its air: and cell:) run with its pieces stubbed, a lens
+  // from the great cell (scale 0) and never from an air cell (whose pieces the air carries)
+  const DISP = cut(DUNES, '    air: function (C, R) {', '    build: function (it, B, R) {');
+  const calls = [], R = vm.runInThisContext('(function (calls) { var DS = 1500;' +
+    ' function dAir() { calls.push("air"); } function dHeld() { calls.push("held"); } function dSite() { return { kind: 0, x: 0, z: 0 }; } function dGreat() {} function dForms() {} function dSmall() {} function dDetails() {}' +
+    ' return {\n' + DISP + '}; })')(calls);
+  R.air({ air: true, scale: 3, x0: 0, z0: 0, size: 3000 }, {});
+  assert.ok(!calls.includes('held'), 'an air cell lays out a lens: the air would carry a terrain-held cloud off its ridge');
+  R.cell({ scale: 0, ix: 0, iz: 0, x0: 0, z0: 0, size: 1500, salt: 1 }, {});
+  assert.deepEqual(calls, ['air', 'held'], 'the great cell does not lay out the lenses');
+  R.cell({ scale: 1, ix: 0, iz: 0, x0: 0, z0: 0, size: 375, salt: 1 }, {});
+  assert.equal(calls.filter((c) => c === 'held').length, 1, 'a small cell lays out lenses');
+  // and resolved held: resolve's own lines, a world cell's body with no carry (w null, c0 its laid-out centre) and its
+  // flow; an air cell's body carried, with no flow
+  const RES = cut(WORLD, '        if (PF.bodies[bi].flow && !C.air) vb.out.flow = PF.bodies[bi].flow;', '\n', true) + cut(WORLD, '        vb.out.c0 = Float64Array.from(vb.out.c);', '\n', true);
+  const res = (air) => vm.runInThisContext('(function (C, PF, bi, vb, V) { function airW() { return [3, 4]; }\n' + RES + ' return vb.out; })')(
+    { air, dL: [100, 200] }, { bodies: [{ flow: [7, 0, -2] }] }, 0, { out: { c: [5000, 1400, -900] } }, {});
+  const hw = res(false), ha = res(true);
+  assert.ok(hw.w === null && Array.from(hw.c0).join() === '5000,1400,-900' && hw.flow && hw.flow.join() === '7,0,-2', 'a world cell\'s lens is not held with its flow');
+  assert.ok(ha.w && !ha.flow, 'an air cell\'s body is given a flow, or is not carried');
+  const o = { c0: Float64Array.from([4321.5, 1400, -987.25]) };
   // 410's offset, run at two moments: the billows' offset moves by the flow over the noise's scale
   const SRC = cut(WORLD, '      var fl = B.flow, tf = fl ? cloudT() : 0;', '      gl.uniform3fv(P.u.uVO, B.nO);');
   const nO = (t, B) => vm.runInThisContext('(function (B, c0, nS, cloudT) {' + SRC + ' return Array.from(B.nO); })')(B, B.c0, 120, () => t);
@@ -98,4 +119,18 @@ test('lenticular: a census, the lenses within the dunes\' cloud reach (5.2 km) o
   assert.equal(mean(rows.calm), 0);
   assert.ok(mean(rows.windy) > 0.1, 'a windy visit almost never meets one');
   assert.ok(Math.max(...rows.windy) <= 4, 'more than four in reach (the phone\'s budget)');
+});
+
+// smooth and crisp (the spec): a held body's billows are the kit's size at half its depth on every look, never the
+// desktop's deep cauliflower (four times the size, five the depth: 20 m billows through 28-78 m plates, flowing at
+// 8-10 m/s, open holes that move through them). 410's own line run in Node on both looks
+test('lenticular: a lens keeps small billows on every look; a free body takes the desktop\'s deep ones', () => {
+  const L410 = /\n {6}(B\.u4a\[0\] = VSIGMA;[^\n]*)/.exec(WORLD)[1].replace(/\/\/.*$/, '');
+  const run = (CRISP, B) => vm.runInThisContext('(function (CRISP, B, VSIGMA, steps) {' + L410 + ' return Array.from(B.u4a); })')(CRISP, { u4a: [0, 0, 0, 0], det: [120, 4], ...B }, 7, 48);
+  for (const crisp of [true, false]) {
+    const lens = run(crisp, { flow: [8, 0, -3] });
+    assert.deepEqual(lens.slice(2), [120, 2], `a lens on the ${crisp ? 'desktop' : 'touch'} look: billows ${lens[2]} m, ${lens[3]} m deep`);
+  }
+  assert.deepEqual(run(true, {}).slice(2), [480, 20], 'a free body on the desktop: not the deep cauliflower');
+  assert.deepEqual(run(false, {}).slice(2), [120, 4]);
 });
