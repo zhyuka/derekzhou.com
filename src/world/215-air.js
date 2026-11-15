@@ -71,6 +71,33 @@
   function airSkySun(V, el) { return el === null ? Array.prototype.slice.call(keyAt(V)) : dirAzEl(V.light.sunAz, el); }   // the sky's own sun (uSkyS at a hold)
   function airMoon(t) { return moonShown(t, AIR_MOON); }   // the moon on show at sky time t (226: its route)
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
+  /* the sky's frame (NIGHT lane, delight-night §1; the smallest version until AIR's own skyFrame lands): an observer's
+     latitude (AIR_LAT deg north) and the sun's compass bearing in the opening's twilight (due west on an evening
+     visit, due east on a morning one, +-AIR_BEAR deg for the season), both drawn once from SEED0's own stream, fix north
+     against the key's azimuth (the sky's own sun stands on it), so the celestial pole P stands AIR_LAT deg up toward
+     north. eclPole(S, sg) is the ecliptic's north pole for the sky's sun S: at right angles to S and 23.44 deg from P
+     (two such, sg +-1, the season's), drawn whatever the sun's depth (where S's declination passes 23.44 deg, as a
+     sun sinking straight down can, the nearest: the pole of the great circle through S nearest P). Pure numbers; the
+     stars still stand still (AIR_FRAME, skyFrame(): THE CLOCK) */
+  var AIR_LAT = [28, 48], AIR_BEAR = 25, AIR_OBL = 23.44, AIR_SF = { seed: NaN, morning: null, lat: 0, bear: 0, sg: 1, N: [0, 0, 1], E: [1, 0, 0], P: [0, 1, 0] };
+  function airSkyFrame(V, morning) {   // the visit's frame (once a visit and opening): its latitude, north (N), east (E) and pole (P); V.light.sunAz the key's azimuth
+    var F = AIR_SF;
+    if (F.seed === J.seed && F.morning === morning && F.az === V.light.sunAz) return F;
+    var R = RNG(subseed(J.seed, 83)); F.lat = R.r(AIR_LAT[0], AIR_LAT[1]); F.bear = R.r(-AIR_BEAR, AIR_BEAR); F.sg = R.f() < 0.5 ? -1 : 1; F.u = R.f();
+    var bs = (morning ? 90 - F.bear : 270 + F.bear) * DEG, K = dirAzEl(V.light.sunAz, 0), Rk = [-K[2], 0, K[0]];   // (the key's right: cross(K, up))
+    F.N = [Math.cos(bs) * K[0] - Math.sin(bs) * Rk[0], 0, Math.cos(bs) * K[2] - Math.sin(bs) * Rk[2]];   // (north: the key turned left by its bearing)
+    F.E = [-F.N[2], 0, F.N[0]];   // (east: north's right)
+    var la = F.lat * DEG; F.P = [F.N[0] * Math.cos(la), Math.sin(la), F.N[2] * Math.cos(la)];
+    F.seed = J.seed; F.morning = morning; F.az = V.light.sunAz;
+    return F;
+  }
+  function eclPole(F, S, out) {   // the ecliptic's north pole through the sky's sun S (unit), out: [x, y, z]
+    var P = F.P, ps = P[0] * S[0] + P[1] * S[1] + P[2] * S[2], q = [P[0] - ps * S[0], P[1] - ps * S[1], P[2] - ps * S[2]], cd = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2]) || 1;
+    q[0] /= cd; q[1] /= cd; q[2] /= cd;
+    var t = [S[1] * q[2] - S[2] * q[1], S[2] * q[0] - S[0] * q[2], S[0] * q[1] - S[1] * q[0]], ca = Math.min(1, Math.cos(AIR_OBL * DEG) / cd), sa = F.sg * Math.sqrt(1 - ca * ca);
+    for (var i = 0; i < 3; i++) out[i] = ca * q[i] + sa * t[i];
+    return out;
+  }
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }   // (the shaders' share: the billows' offset at t, fs-vbody)

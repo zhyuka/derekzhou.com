@@ -8,6 +8,8 @@ uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, hel
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
+uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
+uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, -, Venus's top (Y), -
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
 out vec4 oC;
 const float SKYTAU = 6.2831853;
@@ -52,7 +54,17 @@ const float STF = 1.1083;   // (the star's flux in pixels at b 1: the old bell's
 float starErf(float x) { float x2 = x * x; return sign(x) * sqrt(1.0 - exp(-x2 * (1.2732395 + 0.147 * x2) / (1.0 + 0.147 * x2))); }
 float starBox(float d, float sg) { float k = 0.70710678 / sg; return 0.5 * (starErf((d + 0.5) * k) - starErf((d - 0.5) * k)); }
 vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 0.5) / n * SKYTAU - PI; return vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se)); }
-float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
+/* (night, delight-night §1 and §4) a star's magnitude from its brightness (b 0.07: 6.2, the faintest; b 1.02: 1.5), and
+   its pastel colour: only the bright ones (b over 0.35, all of it from 0.8), by the share of spectral kinds among the
+   bright naked-eye stars (blue-white B/A, white-yellow F/G, orange K, red-orange M), each at the white's own luminance
+   (Y 1: OKLab L within 0.002 of it), so a tint never moves a star's light */
+float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }
+vec3 starTint(float b, float u) {
+  vec3 t = u < 0.36 ? vec3(0.868, 1.0161, 1.2295) : (u < 0.62 ? vec3(1.0552, 1.0025, 0.8129) : (u < 0.9 ? vec3(1.2240, 0.9621, 0.7145) : vec3(1.3630, 0.9202, 0.7223)));
+  return mix(vec3(0.92, 0.94, 1.0) / 0.94, t, smoothstep(0.35, 0.8, b));
+}
+float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj, int di, out vec3 tc) {
+  tc = vec3(0.0);
   float jb = floor(el / STC) + float(dj), elc = (jb + 0.5) * STC;
   if (elc <= 0.0 || elc >= 1.5) return 0.0;
   float n = max(1.0, floor(SKYTAU * cos(elc) / STC));
@@ -65,7 +77,14 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
   float b = pow(fract(hx * 7.31 + hy * 3.17), 6.0) * 0.95 + 0.07;
+  tc = starTint(b, fract(hw * 5.13 + hz * 2.71));
+  /* (night) out one by one, brightest first: a star shows once the faintest magnitude the sky lets through where it
+     stands (ml) passes its own, its light coming in over its first 0.6 magnitude of margin (the sun's depth moving the
+     limit, never a clock: a hold holds it) */
+  float bk = clamp((ml - starMag(b)) / 0.6, 0.0, 1.0);
+  if (bk <= 0.0) return 0.0;
   b *= 1.0 + 0.15 * uNight.z * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);
+  b *= bk;
   /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn a little wider (sigma by sqrt of
      its flux over the cap, a pixel's share of a bell being at most its peak density F / (2 pi sigma^2)), but never past
      0.7 px, so a star stays a point (the review: unbounded, the brightest became soft discs of 4-6x main's light); what
@@ -78,6 +97,21 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
   float zf = max(dot(sd, uCamF), 1e-4);
   vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   return F * starBox(d.x, sg) * starBox(d.y, sg);
+}
+/* (night, delight-night §1) the evening or morning star: steady (no twinkle: a planet's disc, not a point), a point of the
+   stars' own kind (its light integrated over the pixel, never glittering as it slides), 0.7 px, with a small glow
+   about it (a few px, the eye's own scatter of a -4 magnitude light); its peak never past Y uStarM.z (OKLab L 0.49 in
+   its warm white) whatever the sky under it, its light whole while the sky under it stays under that: it is seen
+   wherever the sky is darker than it, and goes behind the sea and the land by place as the sun's depth takes it down */
+vec3 venusAt(vec3 rd, vec3 c) {
+  vec3 sd = uVen.xyz;
+  float zf = dot(sd, uCamF);
+  if (zf <= 0.01) return vec3(0.0);
+  vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
+  if (dot(d, d) > 400.0) return vec3(0.0);
+  float hv = max(uStarM.z - dot(c, LUMA), 0.0), sg = 0.7, F = SKYTAU * hv * sg * sg;
+  float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.12 * hv * exp(-length(d) / 2.5);
+  return vec3(1.0583, 0.9954, 0.8738) * min(v, hv) * (1.0 - hazeSky(rd));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
@@ -188,10 +222,15 @@ void main() {
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
     float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float head = max(uNight.w - dot(c, LUMA), 0.0), sk = uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
-    float s = 0.0;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
-    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, head / max(sk, 1e-5), dj, di); }
-    c += vec3(0.92, 0.94, 1.0) / 0.94 * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap
+    /* (night) the faintest magnitude that shows here: the sun's depth's at the zenith (uStarM.x), and no fainter than the
+       sky's own light here allows (7.9 on the darkest night's sky, Y 0.016, so every night's sky above the horizon's glow,
+       to Y 0.045, keeps the whole field; 2.5 log10 of the ratio less for a brighter sky: the glow low toward the sun), so the stars come out overhead and away from the sun first */
+    float ml = min(uStarM.x, 7.9 - 2.5 * log(max(dot(c, LUMA), 1e-4) / 0.016) / log(10.0));
+    float s = 0.0; vec3 sc = vec3(0.0), tc;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
+    for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rd, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
+    c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)
   }
+  if (uVen.w > 0.0 && rd.y > 0.0) c += venusAt(rd, c);   // (night) the evening or morning star
 #ifdef SKY_HOOK
   c = skyHook(rd, c);
 #endif

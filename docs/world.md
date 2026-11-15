@@ -128,6 +128,25 @@ chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
 and first light's 0.15 are 0; the three nights' were 0 already). The cycle
 runs on the flight's own clock, its draws from the visit's own streams.
 
+The night's bodies (delight-night §1 and §4; src/world/227-night-bodies.js). The
+stars' amount no longer blends between skies (every sky's post.stars is 1):
+each star comes out by itself, brightest first, once the faintest magnitude
+the sky lets through where it stands passes its own (the zenith's limit by the
+sky's own sun's depth, -1 at 3 deg, about 1 at the end of civil twilight, 4.5
+at nautical's, 7 at the night's 24 deg; lowered further where the sky's own
+light is brighter), its light coming in over its first 0.6 magnitude of margin
+as the sun's depth moves (a hold holds it). So the twilights show only Venus
+and, in the blue hour, the brightest stars; a dark night keeps the whole field.
+The bright stars (b over 0.35) take pastel colours by spectral kind, each at
+the white's own luminance. The evening (or morning, on a visit that opens on
+first light) star stands within 46 deg of the sun on the ecliptic, from SEED0
+(the frame's latitude and season, its elongation), placed on the true
+ecliptic at the opening's depth and turned with the sun as it sinks (the
+world's sun sets straight down), so it sets by moving, never fading; steady,
+a point of the stars' kind with a small glow, its peak under OKLab L 0.49;
+its elongation the first of 12 drawn whose path down keeps clear of the
+words' boxes at the view's own heading and pitch (moonInputs).
+
 ## THE WORDS
 
 (The owner: "Don't darken the background anywhere ever",
@@ -491,7 +510,8 @@ shader). It holds:
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
-  frame (skyFrame: the turn the stars and the galaxy take; today none) and
+  frame (skyFrame: the turn the stars and the galaxy take; today none; and
+  airSkyFrame/eclPole: the visit's latitude, north and pole, the ecliptic through the sky's own sun) and
   the weather (weather(sky): today one wind for every sky; physics:
   air/wind-by-sky).
 - The landing's heading, airHeading0 (drawn once from its own stream: the
