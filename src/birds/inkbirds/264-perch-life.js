@@ -111,6 +111,7 @@
   var CLKQ = [];
   function pointerStep(dt, C) {
     var was = !PTR.gone, ox = PTR.x, oy = PTR.y;
+    PW.qx = PTR.x; PW.qy = PTR.y;   // (the pointer as the last step read it: a bird riding it is posed at the frame's time, between the two)
     if (HOST.pointer) HOST.pointer(PTR); else PTR.gone = true;
     if (PTR.gone || !was) { PW.pvx = PW.pvy = PW.pax = PW.pay = 0; PW.ptrStill = 0; }
     else {
