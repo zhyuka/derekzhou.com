@@ -163,7 +163,7 @@ void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2
             if (base === 'uCam') { v[0] = cam[0]; v[1] = cam[1]; v[2] = cam[2]; }
             if (base === 'uT') v[0] = 37.7 * sp + 3.1 * sky;   // (three times a sky: the stars' twinkle, the wisps)
             if (base === 'uP') { v[36] = Math.cos(sky); v[37] = Math.sin(sky); v[39] = -160; v[60] = 1; }   // uP[9]: the wind, SEA_Y; uP[15].x the sea's light
-            if (HPS && base === 'uLevA') for (let l = 0; l < 10; l++) { const gg = 0.35 * Math.pow(2, l); v[l * 4] = cam[0] - 48 * gg; v[l * 4 + 1] = cam[2] - 48 * gg; v[l * 4 + 2] = gg; v[l * 4 + 3] = 48; }
+            if (HPS && base === 'uLevA') for (let l = 0; l < 10; l++) { const gg = 0.35 * Math.pow(2, l); v[l * 4] = Math.floor(cam[0] / (2 * gg)) * 2 - 48; v[l * 4 + 1] = Math.floor(cam[2] / (2 * gg)) * 2 - 48; v[l * 4 + 2] = gg; v[l * 4 + 3] = 48; }
             if (HPS && base === 'uGCw') { v[0] = cam[0] - 256 * 20; v[1] = cam[2] - 256 * 20; v[2] = 20; v[3] = 0; }
             if (HPS && base === 'uHsrc') { g.uniform1i(L, sky % 3); continue; }
             if (VDN && base === 'uLobeN') { g.uniform1i(L, 24); continue; }

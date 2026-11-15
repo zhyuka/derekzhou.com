@@ -69,6 +69,28 @@ test('verdict: a push with no open PR (a preview) is not compared, so it never l
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('verdict: a world change that also changes the page is not "frames identical" on T2 alone (T1 --dom-only beside T2)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verdict-dom-'));
+  const run = (shards, t1result = 'success', t2result = 'success') => {
+    for (const f of fs.readdirSync(dir)) fs.rmSync(path.join(dir, f), { recursive: true, force: true });
+    shards.forEach((s, i) => { fs.mkdirSync(path.join(dir, 's' + i)); fs.writeFileSync(path.join(dir, 's' + i, 'result.json'), JSON.stringify(Object.assign({ shard: i, shards: 4, null_ok: true }, s))); });
+    const needs = { static: { result: 'success' }, plan: { result: 'success', outputs: { base: 'abc', site_changed: 'true', dom_changed: 'true' } },
+      t1: { result: t1result }, t2: { result: t2result, outputs: { frames_identical: 'true', glsl_changed: 'false', csp_ok: 'true', bits_identical: 'true', bits_differ: 'false' } } };
+    const out = path.join(os.tmpdir(), 'verdict-dom-out.json');
+    try { execFileSync(process.execPath, [fileURLToPath(new URL('../../.github/ci/verdict.mjs', import.meta.url)), dir, out], { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), T2_CACHED: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), stdio: 'pipe' }); } catch {}
+    return JSON.parse(fs.readFileSync(out, 'utf8'));
+  };
+  const four = (o) => [0, 1, 2, 3].map(() => Object.assign({ dom_only: true }, o));
+  const same = run(four({ frames_identical: true }));
+  assert.equal(same.frames_identical, true, 'T2 frames and T1 DOM both the base\'s');
+  assert.equal(same.t1.dom_only, true); assert.match(same.reason, /T1 \(the DOM/);
+  const dom = run([{ dom_only: true, frames_identical: false }].concat(four({ frames_identical: true }).slice(1)));
+  assert.equal(dom.frames_identical, false, 'the page outside the canvas changed: the owner sees it');
+  assert.match(dom.reason, /outside the canvas/);
+  assert.equal(run(four({ frames_identical: true }), 'success', 'skipped').frames_identical, false, 'DOM only, and no T2: not identical');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('areas: the tools/gpu files T2 is not run on for (NOT_T2) are run by nothing T2 runs', async () => {
   const { NOT_T2 } = await import('../../.github/ci/areas.mjs');
   const t2 = ['.github/workflows/gpu.yml'].concat(fs.readdirSync(path.join(ROOT, 'tools/gpu')).map((n) => 'tools/gpu/' + n).filter((p) => /\.m?js$/.test(p) && !NOT_T2.has(p)));
