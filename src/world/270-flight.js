@@ -11,6 +11,7 @@
   var SIM_DT = 1 / 60;
   var SIM = { t: 0, V: null, u: 0, acc: 0, alpha: 1, steps: 0, fixG: 0, fixO: 0, inited: false, junction: false, waits: 0 };
   var TH_MAX = 35 * DEG;
+  var HEAD_T = 0.07, HEAD_MAX = 2.5, BANK_MAX = 2 * DEG, BANK_T = 0.08;   // (the heading's follow of the view; the bank's limit and ease)
   var VY_J = 2, VY_TV = 0.6;   // (the height's spring: its acceleration's own rate, m/s3, and the time its speed limits are approached over)
   function freshState() {
     return { x: 0, y: 0, z: 0, psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, c: 0, vy: 0, ay: 0, om: 0, omP: 0, since: 9, roll: 0, yawRate: 0,
@@ -82,8 +83,10 @@
     if (idle > CS.idleAfter && !NOAUTO) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
     // what stands ahead and cannot be climbed over: passed beside, the heading held (a slip sideways, never a turn)
     slipStep(V, CS, dt, true);
-    // the flight follows the view (within about half a second; at most 52 deg/s)
-    var want = CS.yawV + CS.phi, d = angDiff(want, CS.psi), turn = clamp(d * (1 - Math.exp(-dt / 0.45)), -0.9 * dt, 0.9 * dt);
+    // the flight follows the view: it catches it about 0.1 s after a drag stops (HEAD_T 0.07 s; at most HEAD_MAX, 143 deg/s,
+    // well over a drag's turn): the way goes where the visitor looks, the heading the visitor chose (it trailed the view
+    // by 14 deg in a turn and more than 1.3 s after it, banking all the while)
+    var want = CS.yawV + CS.phi, d = angDiff(want, CS.psi), turn = clamp(d * (1 - Math.exp(-dt / HEAD_T)), -HEAD_MAX * dt, HEAD_MAX * dt);
     CS.psi += turn; CS.yawRate = turn / dt;
     // (world6 step B) one framing everywhere (basePitch: no weight, no mode); the cruise clearance a smooth function of
     // the maps ahead (the cloud sea's weight on the held line), followed at most CW_V a second, never by a clock
@@ -116,9 +119,12 @@
     pushOut(V);
     var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
     if (CS.y > ceil) { CS.y = ceil; if (CS.vy > 0) CS.vy = 0; if (CS.ay > 0) CS.ay = 0; }
-    // banking with the turn, gentle and bounded
-    var rl = clamp(-CS.yawRate * 0.42, -0.13, 0.13);
-    CS.roll += (rl - CS.roll) * (1 - Math.exp(-dt / 0.6));
+    // a flyer's bank: atan(v x the way's turn rate / g), its lateral acceleration, at most BANK_MAX (a flyer at the
+    // camera's 12 m/s would bank past 40 deg in a drag's turn), eased over BANK_T: it banks only while the way curves
+    // and is level about 0.6 s after it stops. The roll is drawn only: it never turns the heading (it banked to 7.4 deg,
+    // 0.42 x the turn rate, eased over 0.6 s, and was still rolling when the next drag began)
+    var rl = clamp(-Math.atan(v * CS.yawRate / 9.81), -BANK_MAX, BANK_MAX);
+    CS.roll += (rl - CS.roll) * (1 - Math.exp(-dt / BANK_T));
     events(V, t, u);
     directorStep(t);   // (world6: the director composes what lies ahead, out of sight; it never steers)
     climateLight(V);   // (world6 fix: every step: a pure function of where the camera is; at every sixth it stepped at 10 Hz)
