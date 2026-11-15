@@ -125,7 +125,7 @@ test('clouds: the bake reads its billows at LOD 0 on a tile of 24 voxels or more
   assert.match(VDENS, /float n = textureLod\(uN3, q, 0\.0\)\.g;/, 'the bake\'s billows at an implicit LOD');
   assert.ok(!/texture\(uN3/.test(VDENS), 'an implicit-LOD read of the noise is left in the bake');
   assert.match(WORLD, /var tile = Math\.max\(Rm \* \(B\.noise \|\| 3\.6\), 24 \* voxL\);/, 'the billows\' tile is not at least 24 of the layout\'s voxels');
-  assert.match(WORLD, /if \(memTier\(\) === 'desktop'\) res = Math\.round\(\(res \|\| 52\) \* 64 \/ 44\);/);
+  assert.match(WORLD, /if \(LOOKD\) res = Math\.round\(\(res \|\| 52\) \* 64 \/ 44\);/);
   assert.match(VBODY, /float vox = uVVox,/, 'the march\'s voxel is its box over 26');
   assert.match(WORLD, /gl\.uniform1f\(P\.u\.uVVox, B\.vox\);/);
 });
@@ -140,7 +140,7 @@ test('clouds: a body bakes the same field on the desktop and on a touch tier, on
   const lobes = [[0, 300, 0, 60], [55, 330, 20, 48], [-40, 310, -30, 52], [10, 380, 5, 40]];
   const a = new Float32Array(lobes.length * 12); lobes.forEach((l, i) => a.set(l, i * 12));
   const PF = { a, bodies: [{ i0: 0, yaw: 0.4, billow: 0.8, noise: 3.6, erode: 0.75, seed: 0.41 }], count: () => lobes.length };
-  const run = (tier) => vm.runInThisContext('(function (memTier) { var DEVMODE = false, SW = {}, VOL16 = false; function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function volDetail() { return new Float32Array([96, 4.6]); }\n' + PREP + ' return volPrep; })')(() => tier)(PF, 0, null, 44, {});
+  const run = (tier) => vm.runInThisContext('(function (memTier, LOOKD) { var DEVMODE = false, SW = {}, VOL16 = false; function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function volDetail() { return new Float32Array([96, 4.6]); }\n' + PREP + ' return volPrep; })')(() => tier, tier === 'desktop')(PF, 0, null, 44, {});
   const d = run('desktop'), t = run('full'), l = run('low');
   for (const [name, o] of [['full', t], ['low', l]]) {
     assert.equal(d.tile, o.tile, `the billows' tile differs between the desktop and ${name}: ${d.tile} m against ${o.tile} m`);
