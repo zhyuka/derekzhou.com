@@ -120,7 +120,9 @@ jobs:
           name: served
           path: ${{ runner.temp }}/served
           include-hidden-files: true   # (site/.well-known/security.txt is served)
-          retention-days: 7
+          # (2026-11-15: the repository's artifact storage quota was hit, every gate's plan job failing at this upload: the
+          # two builds are ~19 MB a run, read only by this run's T1/T2 and the Stills job after it, within hours)
+          retention-days: 1
       # T2's probe (once its own job: one queue hop less on every gate)
       # T2's answer for these two builds and this T2 code, if a run of this branch (or of main) already has it: then the
       # 4090 is not asked again (a re-gate after main moved elsewhere, a re-run). Saved by the verdict job.
@@ -285,7 +287,7 @@ jobs:
         with:
           name: t1-shard-all
           path: ${{ runner.temp }}/t1
-          retention-days: 7
+          retention-days: 1   # (~19 MB a run, a failure's frames to look at: a day; the artifact storage quota)
 
   # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
   # programs read back bit for bit. Wanted when a shader's text or the world's, the realms' or the birds' served JS

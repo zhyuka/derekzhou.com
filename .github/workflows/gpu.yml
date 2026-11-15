@@ -70,7 +70,7 @@ jobs:
       - name: Base and head, built
         run: bash .github/ci/served.sh '${{ github.event.pull_request.base.sha || github.sha }}' "$RUNNER_TEMP/served"
       - uses: actions/upload-artifact@v4
-        with: { name: served, path: '${{ runner.temp }}/served', include-hidden-files: true, retention-days: 7 }
+        with: { name: served, path: '${{ runner.temp }}/served', include-hidden-files: true, retention-days: 1 }   # (the artifact storage quota: read within the run)
   t2:
     needs: served
     if: always() && !cancelled() && needs.served.result != 'failure' && github.event.action != 'labeled'   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
