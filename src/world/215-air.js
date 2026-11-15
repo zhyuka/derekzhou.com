@@ -70,11 +70,11 @@
   function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }   // a sky's own sun, deg (null: a night's, the key's own place)
   function airSkySun(V, el) { return el === null ? Array.prototype.slice.call(keyAt(V)) : dirAzEl(V.light.sunAz, el); }   // the sky's own sun (uSkyS at a hold)
   function airMoon(t) { return moonShown(t, AIR_MOON); }   // the moon on show at sky time t (226: its route)
-  var AIR_MOOND = { d: [0, -1, 0], w: 0, az: 0, el: -90, up: false };
+  var AIR_MOOND = { d: [0, -1, 0], w: 0, az: 0, el: -90, up: false }, AIR_MOONS = { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 };   // (the answer, and its own scratch for the route: never moonAt's)
   function airMoonDir() {   // (physics: air/moon-dir) the moon's disc as drawn this frame: d its direction (unit, toward it), w its weight on show (0 none .. 1), az and el deg, up whether any of it shows; the very moment and route the night sky's uMoon is drawn at (226's skyNightUniforms), so a glory, a fogbow or a moonlit edge stands on the disc, never on the key
     var V = SIM.V, o = AIR_MOOND;
     if (!V) { o.d[0] = 0; o.d[1] = -1; o.d[2] = 0; o.w = 0; o.az = 0; o.el = -90; o.up = false; return o; }
-    var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOON);
+    var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);
     o.d[0] = m.d[0]; o.d[1] = m.d[1]; o.d[2] = m.d[2]; o.w = m.w; o.az = m.az; o.el = m.el; o.up = m.w > 0; return o;
   }
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)

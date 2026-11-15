@@ -4,6 +4,8 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.el; o.el = m.az; o.up = m.w > 0;", "why": "the moon's az and el swapped"}
+// plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.az; o.el = m.el; o.up = m.w >= 0;", "why": "a moon of no weight counted up"}
 // plant: {"file": "src/world/215-air.js", "find": "var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOON);", "with": "var m = moonShown(SIM.t, AIR_MOON);", "why": "the moon's direction a step behind the drawn disc"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
@@ -23,11 +25,11 @@ const SEEDS = Array.from({ length: 16 }, (_, i) => (i * 2654435761 + 12345) >>> 
 
 function page() {   // the air on a fake page (no clock, no DOM), and the dunes' kit registered on it
   const G = vm.runInThisContext('(function (W) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, SIM_DT = 1 / 60, SIM = { V: null, t: 0, alpha: 1 }, CS = { x: 0, z: 0 }, J = { seed: 0 };\n' +
-    '  function moonShown(t, o) { o.t = t; return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
+    '  var MSTUB = null; function moonShown(t, o) { o.t = t; if (MSTUB) { o.d = MSTUB.d.slice(); o.w = MSTUB.w; o.az = MSTUB.az; o.el = MSTUB.el; } return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
-    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON,\n' +
+    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON, AIR_MOONS: AIR_MOONS, stub: function (m) { MSTUB = m; },\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -182,14 +184,17 @@ test('air: one moon direction (the disc as drawn: a glory, a fogbow or a moonlit
   // the night sky's uMoon and the air's moonDir: the same route at the same drawn moment
   const drawn = WORLD.match(/moonShown\((SIM\.t - \(1 - SIM\.alpha\) \* SIM_DT \+ SKY\.dt), MOON\.s\); SKYN\.moon\[0\] = MOON\.s\.d\[0\]/);
   assert.ok(drawn, 'the night sky draws the disc at the frame\'s own moment');
-  assert.ok(WORLD.includes('var m = moonShown(' + drawn[1] + ', AIR_MOON);'), 'moonDir reads the route at that same moment');
+  assert.ok(WORLD.includes('var m = moonShown(' + drawn[1] + ', AIR_MOONS);'), 'moonDir reads the route at that same moment, on its own scratch (never moonAt\'s AIR_MOON)');
   assert.match(WORLD, /moonDir: airMoonDir,/, 'the realms and the kits read it as WORLD.air.moonDir');
-  // on the fake page: the route stubbed (226's moonShown fills d, w, az, el at t); before a visit, no moon
   assert.equal(G.airMoonDir().up, false, 'before a visit: none');
   G.SIM.V = { seed: 1 }; G.SIM.t = 100; G.SIM.alpha = 0.25; G.SKY.dt = 7;
-  const o = G.airMoonDir(); assert.ok(Math.abs(G.AIR_MOON.t - (100 - 0.75 / 60 + 7)) < 1e-12, 'asked at the drawn moment (the step\'s interpolation and the cycle\'s offset)');
-  G.AIR_MOON.d = [0.6, 0.48, 0.64]; G.AIR_MOON.w = 0.8; const p = G.airMoonDir();
+  G.airMoonDir(); assert.ok(Math.abs(G.AIR_MOONS.t - (100 - 0.75 / 60 + 7)) < 1e-12, 'asked at the drawn moment (the step\'s interpolation and the cycle\'s offset)');
+  assert.equal(G.AIR_MOON.t, undefined, 'moonAt\'s scratch untouched');
+  G.stub({ d: [0.6, 0.48, 0.64], w: 0.8, az: 30, el: 20 }); const p = G.airMoonDir();
   assert.deepEqual(p.d, [0.6, 0.48, 0.64]); assert.equal(p.w, 0.8); assert.equal(p.up, true);
-  assert.notStrictEqual(p.d, G.AIR_MOON.d, 'its own array: a reader never writes the route'); void o;
+  assert.ok(p.az === 30 && p.el === 20, 'az and el each its own (never swapped)');
+  G.stub({ d: [0, -1, 0], w: 0, az: 10, el: -30 }); assert.equal(G.airMoonDir().up, false, 'a moon of weight 0 is not up');
+  G.stub({ d: [0.6, 0.48, 0.64], w: 0.8, az: 30, el: 20 }); const q = G.airMoonDir();
+  assert.notStrictEqual(q.d, G.AIR_MOONS.d, 'its own array: a reader never writes the route');
 });
 
