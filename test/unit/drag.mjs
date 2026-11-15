@@ -1,6 +1,12 @@
 // test/unit/drag.mjs: the drag: where it starts, how far it turns
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "if (dx * dx + dy * dy < 64) return;", "with": "if (dx * dx + dy * dy < 16) return;", "why": "a drag that starts after 4 px, not 8"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "      INP.down = true; INP.held = true; DRAG.x = DRAG.x0;", "with": "      INP.down = true; DRAG.x = DRAG.x0;", "why": "the drag's 8 px catch-up counted in the release's speed: a small drag coasts at the cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);", "with": "CS.thU = CS.thU + ay; CSP.thU = CSP.thU + ay;", "why": "the drag's tilt not held within 35 deg"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);", "with": "CS.thU = CS.thU + cp; CSP.thU = CSP.thU + cp;", "why": "the coast's tilt not held within 35 deg"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(sy / st, -0.5, 0.5)", "with": "clamp(sy / st, -0.6, 0.6)", "why": "the tilt's coast past its 0.5 rad/s cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(sx / st, -0.8, 0.8)", "with": "clamp(sx / st, -1, 1)", "why": "the turn's coast past its 0.8 rad/s cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "        CS.yawV += ax; CSP.yawV += ax;", "with": "        CS.yawV += ax;", "why": "the drag drawn on one state only: a frame turns part of the finger's move"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the drag: where it starts, how far it turns
@@ -55,7 +61,7 @@ function flying(phase, boot = false) {   // boot: not yet landed (no frame befor
     '  function simStepOnce() {\n    if (!SIM.V) { SIM.V = {}; CS.yawV = CSP.yawV = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CSP.thU = CS.thU; }   // (arrive: the landing sets the yaw, keeps the tilt)\n' +
     '    CSP.yawV = CS.yawV; CSP.thU = CS.thU;\n    applyInput(SIM_DT, SIM.t, null); SIM.t += SIM_DT;\n    return true;\n  }\n' +
     INPUT + '\n' + MOVE2 + '\n' + ADV +
-    '\n  return {\n    move: function (x, ts, y) { onMove({ pointerId: 1, clientX: x, clientY: y || 0, timeStamp: ts }); },\n    up: function () { INP.down = false; INP.rel = true; },\n    press: function () { INP.down = true; },\n    preroll: function (n) { for (var i = 0; i < n; i++) simAdvance(SIM_DT); },\n    prevYaw: function () { return CSP.yawV; },\n    cancel: function () { INP.down = false; INP.rel = false; },\n' +
+    '\n  return {\n    move: function (x, ts, y) { onMove({ pointerId: 1, clientX: x, clientY: y || 0, timeStamp: ts }); },\n    up: function () { INP.down = false; INP.rel = true; },\n    press: function () { INP.down = true; },\n    start: function (x0) { DRAG.on = false; DRAG.x0 = DRAG.x = x0; DRAG.y0 = DRAG.y = 0; INP.down = false; },\n    preroll: function (n) { for (var i = 0; i < n; i++) simAdvance(SIM_DT); },\n    prevYaw: function () { return CSP.yawV; },\n    cancel: function () { INP.down = false; INP.rel = false; },\n' +
     '    frame: function (ts, dtMs) { var dt = dtMs !== undefined ? dtMs : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; var rel = INP.rel; simAdvance(dt / 1000);\n' +
     '      if (rel && !INP.rel) coast = { yaw: CS.yawV, om: CS.om, omP: CS.omP };   // (the release taken: the coast runs from the next frame)\n' +
     '      drawnTh = CSP.thU + (CS.thU - CSP.thU) * SIM.alpha; return CSP.yawV + (CS.yawV - CSP.yawV) * SIM.alpha; },\n' +
@@ -189,5 +195,21 @@ test('drag: a release read in a long frame coasts at the finger\'s speed; the co
     assert.equal(c.omP, -dir * 0.5, `${hz} Hz: the tilt's coast capped at 0.5 rad/s (${c.omP})`);
     for (let k = 0; k < 60; k++) { F.frame(ts += P); assert.ok(Math.abs(F.tilt()) <= TH + 1e-12, `${hz} Hz: coast frame ${k} drew a tilt of ${(F.tilt() * 180 / Math.PI).toFixed(2)} deg`); }
     assert.ok(Math.abs(Math.abs(F.tilt()) - TH) < 1e-12, `${hz} Hz: the coast left the tilt at ${(F.tilt() * 180 / Math.PI).toFixed(2)} deg, held at 35`);
+  }
+});
+
+test('drag: a small drag just past the 8 px start runs on little: its catch-up is no speed', () => {
+  // (a drag begins 8 px from the press and takes those 8 px at once, the scene catching the finger up: they were moved
+  // over the time since the press, so counted as one frame's move they threw the coast to its cap, a 9-16 px drag
+  // running on 6.8-14.1 deg by itself; main ran on 0.9-6.0)
+  const DEG = Math.PI / 180;
+  for (const hz of [60, 144]) for (const v of [0.15, 0.3, 0.6]) for (const len of [9, 12, 16]) for (const hold of [0, 1, 3]) {
+    const F = flying(0.5), P = 1000 / hz; let ts = 1000, x = 0;
+    F.start(0); F.frame(ts);
+    while (x < len) { ts += P; x = Math.min(len, x + v * P); F.move(x, ts - 0.4); if (x >= len && !hold) F.up(); F.frame(ts); }
+    for (let k = 0; k < hold; k++) { if (k === hold - 1) F.up(); F.frame(ts += P); }
+    const at = F.yaw(); for (let k = 0; k < 2 * hz; k++) F.frame(ts += P);
+    const runOn = (F.yaw() - at) / DEG;
+    assert.ok(runOn <= 2, `${hz} Hz, a ${len} px drag at ${v * 1000} px/s, let go ${hold} frames after: ran on ${runOn.toFixed(2)} deg by itself`);
   }
 });

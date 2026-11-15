@@ -46,7 +46,7 @@
       if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
       DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (data-steer and the selection cleared in the next frame)
       if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
-      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0;   // (the first 8 px are taken too: the scene catches the finger up)
+      INP.down = true; INP.held = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0;   // (the first 8 px are taken too: the scene catches the finger up; drawn whole, kept out of the release's speed as a drag held through the landing is)
     }
     INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y;
     if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (the record: the oldest move not yet drawn, for the input's latency)
@@ -127,6 +127,7 @@
      speed; a frame of two steps leaves a slot with no time and no move).
      Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it, drawn whole in the first
      frame after it and kept out of the release's speed; a released one is dropped, as the steps dropped it */
+  var RING_T = 0.18;   // (12 steps' time less a frame: a steady drag's ring holds more, so its speed is exact)
   function inputFrame(dt) {
     var fdt = Math.min(dt, DTMAX);
     if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } else INP.held = true; return; }
@@ -136,7 +137,7 @@
       CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);
       CS.om *= Math.exp(-fdt / 0.3); CS.omP *= Math.exp(-fdt / 0.2);
     }
-    var boot = INP.held; INP.held = false;   // (the first frame after the landing)
+    var boot = INP.held; INP.held = false;   // (the first frame after the landing, or the drag's start: its catch-up, gathered since the press, is no speed)
     if (INP.dx || INP.dy) {
       var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
       INP.dx = 0; INP.dy = 0;
@@ -146,12 +147,13 @@
         if (!boot) { INP.fx += ax; INP.fy += ay; }
       }
     }
-    if (INP.down || INP.rel) INP.ft += dt;
+    if ((INP.down || INP.rel) && !boot) INP.ft += dt;
     if (INP.rel) {
       INP.rel = false; INP.relAny = true;
       CS.ring[CS.ri] = INP.fx; CS.ringP[CS.ri] = INP.fy; CS.ringT[CS.ri] = INP.ft; CS.ri = (CS.ri + 1) % 12; INP.fx = 0; INP.fy = 0; INP.ft = 0;   // (the moves drawn since the last step: the newest of the release's speed)
       var sx = 0, sy = 0, st = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; st += CS.ringT[i]; CS.ring[i] = 0; CS.ringP[i] = 0; CS.ringT[i] = 0; }
-      CS.om = st > 0 ? clamp(sx / st, -0.8, 0.8) : 0; CS.omP = st > 0 ? clamp(sy / st, -0.5, 0.5) : 0;
+      st = Math.max(st, RING_T);   // (over at least RING_T s: a drag shorter than that coasts by its share of it, as a 0.2 s ring of steps did)
+      CS.om = clamp(sx / st, -0.8, 0.8); CS.omP = clamp(sy / st, -0.5, 0.5);
     }
   }
   function applyInput(dt, t, V) {
