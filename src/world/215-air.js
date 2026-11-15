@@ -73,15 +73,18 @@
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
-  /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (Taylor's
-     hypothesis), so a point dx downwind meets each gust dx / W later and nothing steps it in time. Its value is
-     value noise (the shaders' own hash: lib.glsl's ih, ih2, hf; three octaves, quintic, normalised to unit variance)
-     in the wind's own frame, xi = x.w - W t along and eta = x.p across, both over L = AIR_GUST[1] W (the field's scale
-     grows with the wind, so its time scale is one); the gust is AIR_GUST[0] W n, each visit
-     on its own slice of the field (its salt, uSalt in the shaders): the 3-s gust over the 10-min mean 1.43-1.68 (median
-     1.54), its e-fold 10-23 s (median 13.6), the lag between points 100 m apart downwind 0.98-1.00 of 100 / W, nothing
-     faster than 0.11 W a second (test/unit/air.mjs: 16 visits of 10 min). Still air: none. The veils lift with it
-     (vs-ribbon, airGustGlsl); the birds read it as HOST.gust and HOST.gustPhase */
+  /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
+     frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence), so a point dx downwind meets
+     each gust dx / U10 later and nothing steps it in time. Its value is value noise (the shaders' own hash: lib.glsl's
+     ih, ih2, hf; three octaves, quintic, normalised to unit variance) in the visit's wind frame, xi = x.w - U10 t along
+     and eta = x.p across, both over L = AIR_GUST[1] U10: one reference speed (the visit's U10) carries and scales the
+     field at every height, so a bird over a veil feels the veil's gust; the height sets only its size, AIR_GUST[0]
+     W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), on the flight's clock (the shaders' uT
+     less AIR_UT0): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median 13.6), the
+     lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
+     (test/unit/air.mjs: 16 visits of 10 min). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
+     birds read it as HOST.gust, HOST.gustPhase and HOST.gustSigma */
+  var AIR_UT0 = 40;   // (the shaders' clock's lead over the flight's: 413's UT[0] = u + AIR_UT0)
   var AIR_GUST = [0.26, 22, 1.92946], AIR_GOCT = [[1, 1, 0x27d4eb2d], [2.03, 0.5, 0x165667b1], [4.11, 0.25, 0x61c88647]];   // (intensity, time scale s, the noise's unit-variance gain; the octaves: frequency, amplitude, salt)
   function aih(x) { x >>>= 0; x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16; return x >>> 0; }   // (lib.glsl's ih)
   function aLat(i, j, s) { var h = aih((Math.imul(i >>> 0, 0x8da6b343) ^ aih(((j >>> 0) + 0x68e31da4) >>> 0)) >>> 0); return ((aih((h ^ s) >>> 0) >>> 8) / 16777216) * 2 - 1; }   // (lib.glsl's ih2, then the octave's salt, hf)
@@ -89,22 +92,22 @@
   function aVn(x, y, s) { var i = Math.floor(x), j = Math.floor(y), u = aQ(x - i), v = aQ(y - j), a = aLat(i, j, s), b = aLat(i + 1, j, s), c = aLat(i, j + 1, s), d = aLat(i + 1, j + 1, s); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
   function gustN(xi, eta) { var v = 0, k, o; for (k = 0; k < 3; k++) { o = AIR_GOCT[k]; v += o[1] * aVn(xi * o[0], eta * o[0], o[2]); } return v * AIR_GUST[2]; }   // unit-variance noise, xi and eta in L
   var AIR_GW = { x: 0, z: 0, W: 0 };
-  function airFrame(y, V) { var a = windAt(0, 0, y, 0, V), W = Math.sqrt(a.x * a.x + a.z * a.z); AIR_GW.W = W; AIR_GW.x = W > 0 ? a.x / W : 0; AIR_GW.z = W > 0 ? a.z / W : 0; return AIR_GW; }
-  function gustAt(x, z, y, t, V) {   // the gust's excess along the wind at (x, z), y m up, at t: m/s, signed (0 in still air)
-    var f = airFrame(y, V), W = f.W; if (!(W > 0)) return 0;
-    var L = AIR_GUST[1] * W, sl = ((V || SIM.V || {}).salt || 0) >>> 0, ox = (aih(sl) >>> 8) / 16777216 * 4096, oz = (aih((sl + 1) >>> 0) >>> 8) / 16777216 * 4096;   // (the visit's own slice of the field: its salt, as uSalt)
-    var xi = (x * f.x + z * f.z - W * t) / L + ox, eta = (z * f.x - x * f.z) / L + oz;
-    return AIR_GUST[0] * W * gustN(xi, eta);
+  function airFrame(V) { var w = (V || SIM.V || {}).wind, U = u10Of(V); AIR_GW.W = w ? U : 0; AIR_GW.x = w ? w[0] : 0; AIR_GW.z = w ? w[1] : 0; return AIR_GW; }   // (the field's frame: the visit's wind direction and its one reference speed, U10)
+  function gustAt(x, z, y, t, V) {   // the gust's excess along the wind at (x, z), y m up, at the flight's t: m/s, signed (0 in still air)
+    var f = airFrame(V), U = f.W; if (!(U > 0)) return 0;
+    var L = AIR_GUST[1] * U, sl = ((V || SIM.V || {}).salt || 0) >>> 0, ox = (aih(sl) >>> 8) / 16777216 * 4096, oz = (aih((sl + 1) >>> 0) >>> 8) / 16777216 * 4096;   // (the visit's own slice of the field: its salt, as uSalt)
+    var xi = (x * f.x + z * f.z - U * t) / L + ox, eta = (z * f.x - x * f.z) / L + oz;
+    return AIR_GUST[0] * airSpeed(y, V) * gustN(xi, eta);
   }
-  function gustSigma(y, V) { return AIR_GUST[0] * airFrame(y, V).W; }   // the gust's standard deviation at y m up, m/s (0 in still air)
-  function gustPhase(x, z, y, t, V) { var f = airFrame(y, V); return f.W > 0 ? t - (x * f.x + z * f.z) / f.W : NaN; }   // s: when this point meets the field's t = 0 slice (NaN in still air)
+  function gustSigma(y, V) { return airFrame(V).W > 0 ? AIR_GUST[0] * airSpeed(y, V) : 0; }   // the gust's standard deviation at y m up, m/s (0 in still air)
+  function gustPhase(x, z, y, t, V) { var f = airFrame(V); return f.W > 0 ? t - (x * f.x + z * f.z) / f.W : NaN; }   // s: the field's own clock here (the flight's t less the way along the wind over U10; NaN in still air; the same at every height)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }
-  function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, W, t))
-    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n';
+  function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, t): w the visit's wind direction, U its U10, W the wind at its height, t the flight's clock, uT - AIR_UT0)
+    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n#define AIR_UT0 ' + airF(AIR_UT0) + '\n';
     s += 'float airLat(int i, int j, uint s) { return hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0; }\n';
     s += 'float airVn(vec2 p, uint s) { vec2 c = floor(p), f = p - c, u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); ivec2 i = ivec2(c); float a = airLat(i.x, i.y, s), b = airLat(i.x + 1, i.y, s), cc = airLat(i.x, i.y + 1, s), d = airLat(i.x + 1, i.y + 1, s); return a + (b - a) * u.x + (cc - a) * u.y + (a - b - cc + d) * u.x * u.y; }\n';
     s += 'float airGustN(vec2 q) { return (' + o.map(function (k) { return airF(k[1]) + ' * airVn(q * ' + airF(k[0]) + ', ' + k[2] + 'u)'; }).join(' + ') + ') * ' + airF(AIR_GUST[2]) + '; }\n';
-    s += 'float airGust(vec2 xz, vec2 w, float W, float t) { if (W <= 0.0) return 0.0; float L = AIR_GUST_T * W; return AIR_GUST_I * W * airGustN(vec2(dot(xz, w) - W * t, xz.y * w.x - xz.x * w.y) / L + vec2(hf(ih(uSalt)), hf(ih(uSalt + 1u))) * 4096.0); }\n';
+    s += 'float airGust(vec2 xz, vec2 w, float U, float W, float t) { if (U <= 0.0) return 0.0; float L = AIR_GUST_T * U; return AIR_GUST_I * W * airGustN(vec2(dot(xz, w) - U * t, xz.y * w.x - xz.x * w.y) / L + vec2(hf(ih(uSalt)), hf(ih(uSalt + 1u))) * 4096.0); }\n';
     return s;
   }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
