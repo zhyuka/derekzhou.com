@@ -75,6 +75,7 @@ test/ground.mjs              The land's real ground for the sims, from test/gold
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
 test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
+test/birds-motion.mjs        The birds' drawn motion frame by frame on the sim, at the page's fixed steps: no jump in a form or on the window
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
@@ -122,7 +123,9 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/36-load-budget.sh, tools/checks/37-ground-fresh.sh, tools/checks/38-sound.sh,
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
-                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
+                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own),
+                             tools/checks/44-names-in-messages.sh (no banned name in a commit message from main to HEAD,
+                             the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:

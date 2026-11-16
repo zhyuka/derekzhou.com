@@ -9,6 +9,9 @@
 #     GitHub tool posts
 # CI runs it as `python3 .claude/hooks/guard.py --scan`: every tracked file (names.json aside) checked for a banned
 # name; exit 1 on one, and on a names.json it cannot read (CI fails closed; the hook fails open).
+# CI also runs `python3 .claude/hooks/guard.py --messages` (tools/checks/44-names-in-messages.sh): every commit message
+# from main to HEAD, and the PR's title and body (from the Actions event file), checked against the same list, so a
+# named commit is caught before the merge bot can fast-forward it onto main. --selftest-messages proves it first.
 # It fails open: any error of its own (a parse it cannot make, git missing, a timeout) lets the call through, so a broken
 # hook never stops a session. Exit 2 blocks (its stderr is the reason); anything else allows.
 # Test: python3 .claude/hooks/test_guard.py
@@ -357,7 +360,83 @@ def scan(root='.'):
     return bad
 
 
+def messages(root='.', base=None, event=None):
+    """CI: each commit message in base..HEAD (base: the merge base with origin/main) and the PR's title and body (the
+    Actions event file) checked for a banned name. Exit 1 on a hit, or on a names.json it cannot read."""
+    try:
+        salt, hashes, _ = names()
+        assert isinstance(salt, str) and salt
+    except Exception as e:
+        print(f'::error::.claude/hooks/names.json cannot be read ({type(e).__name__}: {e})')
+        return 1
+    if not hashes:
+        print('messages: the list is empty (nothing to scan for)')
+        return 0
+    g = lambda *a: subprocess.run(['git', '-C', root, *a], capture_output=True, text=True)
+    if base is None:
+        r = g('merge-base', 'HEAD', 'origin/main')
+        base = r.stdout.strip() if r.returncode == 0 else ''
+    texts = []
+    if base:
+        log = g('log', '--format=%H%x00%B%x01', f'{base}..HEAD').stdout
+        for rec in filter(None, (x.strip() for x in log.split('\x01'))):
+            sha, _, body = rec.partition('\0')
+            texts.append((f'commit {sha[:10]}\'s message', body))
+    ev = event if event is not None else os.environ.get('GITHUB_EVENT_PATH')
+    if ev and os.path.isfile(ev):
+        pr = (json.load(open(ev, encoding='utf-8')) or {}).get('pull_request') or {}
+        texts += [(f'the PR\'s {k}', pr.get(k) or '') for k in ('title', 'body')]
+    bad = 0
+    for where, text in texts:
+        h = banned_in(text)
+        if h:
+            print(f'::error::{where}: a banned name (names.json {h}...). RULES.json "naming": reword it (a commit: a new '
+                  'commit cannot fix it; the branch is cut again without it)')
+            bad = 1
+    print(f'messages: {len(texts)} checked ({"from " + base[:10] if base else "no range"}), '
+          + ('banned names found' if bad else 'no banned name'))
+    return bad
+
+
+def selftest_messages():
+    """A planted name must be caught in a commit message, the PR's title and its body; a clean range must pass."""
+    global _names
+    import tempfile
+    keep, salt = _names, 'selftest'
+    _names = (salt, {digest(salt, 'zqplanted')}, 1)
+    fails = []
+    with tempfile.TemporaryDirectory() as d:
+        g = lambda *a: subprocess.run(['git', '-C', d, '-c', 'user.name=t', '-c', 'user.email=t@t', *a], capture_output=True, text=True, check=True)
+        g('init', '-q', '-b', 'main'); open(os.path.join(d, 'a'), 'w').write('a'); g('add', 'a'); g('commit', '-qm', 'base')
+        base = g('rev-parse', 'HEAD').stdout.strip()
+        open(os.path.join(d, 'a'), 'w').write('b'); g('commit', '-qam', 'a clean change')
+        ev = os.path.join(d, 'event.json')
+        def event(title='a title', body='a body'):
+            json.dump({'pull_request': {'title': title, 'body': body}}, open(ev, 'w'))
+            return ev
+        cases = [('a clean range', 0, lambda: messages(d, base, event()))]
+        def planted():
+            open(os.path.join(d, 'a'), 'w').write('c'); g('commit', '-qam', 'after Zqplanted\'s idea')
+            return messages(d, base, event())
+        cases += [('the PR title', 1, lambda: messages(d, base, event(title='Zqplanted\'s law'))),
+                  ('the PR body', 1, lambda: messages(d, base, event(body='see ZQPLANTED, 1901'))),
+                  ('a commit message', 1, planted)]
+        import contextlib, io
+        for what, want, fn in cases:
+            with contextlib.redirect_stdout(io.StringIO()):   # (the planted runs' own ::error:: lines are not CI's)
+                got = fn()
+            if got != want: fails.append(f'{what}: exit {got}, want {want}')
+    _names = keep
+    for f in fails: print('::error::--selftest-messages: ' + f)
+    print('selftest: ' + ('FAILED' if fails else 'a planted name is caught in a commit message, the PR title and its body; a clean range passes'))
+    return 1 if fails else 0
+
+
 if __name__ == '__main__':
     if '--scan' in sys.argv:
         sys.exit(scan())
+    if '--selftest-messages' in sys.argv:
+        sys.exit(selftest_messages())
+    if '--messages' in sys.argv:
+        sys.exit(messages())
     main()
