@@ -4,7 +4,8 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
-// plant: {"file": "src/world/215-air.js", "find": "return d === undefined ? 0 : d * (1 - airEase(AIR_WXK.mist[0], AIR_WXK.mist[1], u * (sh ? sh[0] : 1)));", "with": "return d === undefined ? 0 : d;", "why": "the mist the same in any wind"}
+// plant: {"file": "src/world/215-air.js", "find": "q * d * (1 - airEase(AIR_WXK.mist[0], AIR_WXK.mist[1], u * (sh ? sh[0] : 1)));", "with": "q * d;", "why": "the mist the same in any wind"}
+// plant: {"file": "src/world/215-air.js", "find": "return d === undefined ? 0 : q * d * (1 -", "with": "return d === undefined ? 0 : d * (1 -", "why": "the mist on every land again (no moisture)"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_MIST_RATE = 0.18,", "with": "var AIR_MIST_RATE = 0.5,", "why": "the mist racing through a change"}
 // plant: {"file": "src/world/215-air.js", "find": "o.dust = airEase(K.dust[0], K.dust[1], u);", "with": "o.dust = airEase(K.dust[0], K.dust[1], u * weather(t)[0]);", "why": "the haze changing with the sky (the far land fading in place)"}
 // plant: {"file": "src/world/glsl/fs-ribbon.glsl", "find": "(dot(vW.xz, w) - uAir.x * length(uWind.xz)) * 0.035", "with": "dot(vW.xz, w) * 0.035 - uT * 0.22", "why": "the veils' streaks at a pace of their own"}
@@ -36,11 +37,11 @@ const SEEDS = Array.from({ length: 16 }, (_, i) => (i * 2654435761 + 12345) >>> 
 
 function page() {   // the air on a fake page (no clock, no DOM), and the dunes' kit registered on it
   const G = vm.runInThisContext('(function (W) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, SIM = { V: null, t: 0 }, CS = { x: 0, z: 0 }, J = { seed: 0 };\n' +
-    '  function moonShown(t, o) { o.t = t; return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
+    '  function moonShown(t, o) { o.t = t; return o; }\n  var KSTUB = { wC: 1 }; function kitAt() { return KSTUB; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, AIR_GUST: AIR_GUST, AIR_GOCT: AIR_GOCT, airGustGlsl: airGustGlsl, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
-    '    airWx: airWx, AIR_MIST: AIR_MIST, SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
+    '    airWx: airWx, AIR_MIST: AIR_MIST, KSTUB: KSTUB, airMoistBy: airMoistBy, AIR_MOIST: AIR_MOIST, SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -344,6 +345,29 @@ test('air: the weather the wind makes (mist on still nights and before sunrise, 
   }
   assert.ok(worst <= 0.01 + 1e-12, `the mist's level moves ${worst.toFixed(4)} m in 50 ms (at most 0.01: 0.2 m/s)`);
   assert.equal(wv, 0, 'the gate and the haze never move through a change');
+});
+
+test('air: the mist by the land\'s moisture: a find on about 1 land in 3, never a fixture; MIST a copy', () => {
+  const G = page(), skies = Object.keys(G.WSKY);
+  // the 16 openings' lands (hour.js: seed k = 11 + k * 0x9e3779b9), on the world's own maps
+  const A1 = '  var CW = (function () {\n', A2 = '  var MAPS = {', A3 = '  var KN = 256, KSTEP = 64,';
+  const E1 = '\n  })();\n', E2 = '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', E3 = '  var KFROWS = FN * FN / KN;';
+  const MAPC = cut(WORLD, A1, E1, true) + cut(WORLD, A2, E2, true) + cut(WORLD, A3, E3);
+  const mapsFn = vm.runInThisContext('(function (G) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180;\n' + MAPC + '\n  G.mapsInit = mapsInit; G.kitAt = kitAt;\n})');
+  const q = [];
+  for (let k = 0; k < 16; k++) { const M = {}; mapsFn(M); M.mapsInit((11 + Math.imul(k, 0x9e3779b9)) >>> 0); q.push(G.airMoistBy(M.kitAt)); }
+  const misty = q.filter((x) => x > 0.1).length, dry = q.filter((x) => x === 0).length;
+  if (process.env.WX) console.log(JSON.stringify(q.map((x) => +x.toFixed(3))));
+  assert.ok(misty >= 4 && misty <= 6, `mist (over a tenth of the sky's depth) on ${misty} of the 16 lands, not 1 in 3-4`);
+  assert.ok(dry >= 8, `no mist at all on ${dry} of the 16 lands (the dry dunes)`);
+  // the moisture scales the depth, once a visit, on the visit; a dry land none on any sky
+  G.SKY.dt = 0; G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'firstlight', at: 0, hold: 1e6, move: 60 });
+  const V1 = { seed: 1, u10: 3 }, full = G.airWx(5, V1).mist; G.KSTUB.wC = 0;
+  assert.ok(full > 8 && G.airWx(5, V1).mist === full && V1.moist === 1, 'read once a visit and kept on it');
+  const V0 = { seed: 1, u10: 3 }; assert.equal(G.airWx(5, V0).mist, 0, 'first light on a dry land: no mist');
+  G.KSTUB.wC = 0.6; const Vh = { seed: 1, u10: 3 }; assert.ok(Math.abs(G.airWx(5, Vh).mist - full / 2) < 1e-9, 'halfway through the ease: half the depth');
+  for (const id of skies) { G.SKY.seq.length = 0; G.SKY.seq.push({ id, at: 0, hold: 1e6, move: 60 }); assert.equal(G.airWx(5, V0).mist, 0, `${id} on a dry land: none`); }
+  const M1 = G.AIRAPI.MIST(); M1.firstlight = 99; assert.equal(G.AIR_MIST.firstlight, 10, 'MIST hands a reader a copy, never the table');
 });
 
 test('air: the gusts by sky: carried at the mean wind in every sky (row 6), the streaks on the veils\' own wind', () => {
