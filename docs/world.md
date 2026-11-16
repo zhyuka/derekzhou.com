@@ -23,7 +23,12 @@ Places come a minute or two apart at the flight's 12 m/s. Cells (landmarks, clou
 world cell from the seed and the cell's coordinates, streamed in about
 the camera within a budget a frame and freed behind it. Each frame: the
 scene in HDR (4 samples a pixel where the device allows), the land as a
-GPU clipmap raised by the kits' height functions, the cloud bodies baked
+GPU clipmap raised by the kits' height functions (its rings placed from a
+whole-cell lattice, (cell + aG) x cell size in one fp32 product, so the rings'
+seams meet to the bit however far the flight has gone: origin metres + aG x
+cell size parted them by 1.6 cm at 100 km and 12.5 cm at 681 km, the owner's
+one-pixel lines (2026-11-14); test/unit/clipmap.mjs replays it in fp32 and
+lints the old form, tools/gpu/seams.js reads both land programs on a GPU), the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
 up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
 between: sharp in the distance, never a ring), bloom, and the composite
@@ -41,8 +46,9 @@ A drag anywhere (touch, pen, or a mouse with its main button held; it
 starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
-view and the flight climbs or dives; let go, the turn runs on a little and
-eases out. The steering reads a pointer's moves only while it is pressed;
+view and the flight climbs or dives; let go moving, the turn runs on a
+little at the finger's speed as it lifts and eases out; let go after it
+rested (24 ms or more), it stays where it is. The steering reads a pointer's moves only while it is pressed;
 the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
@@ -442,13 +448,29 @@ shader). It holds:
 
 - The wind: one direction a visit (airDraw, the dunes' field stream's
   first draw, as before), blowing toward V.windAz, and its speed by height,
-  windAt(x, z, y, t). Each reader has a declared height (AIR_H): the
-  grains 0.8 m, the veils 5 m, the motes 13 m, the birds 40 m. Today the
-  profile is the readers' own old speeds (6.5, 5.5, 1.6 and 6.5 m/s: the
-  motes slower than the grains under them, the reverse of real air); the
-  log law replaces it (physics: air/wind-profile). The dunes' crests, the
-  grains, the motes, the veils, the birds' HOST.wind and the water's
-  ripples read it.
+  windAt(x, z, y, t), y over the ground. U10, the speed 10 m up, is the
+  visit's own (V.u10), drawn once from its own stream (subseed(V.seed,
+  61)): a Rayleigh distribution of mean 5 m/s mapped by its CDF into
+  3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays
+  under about 8.8 m/s, under every bird kind's airspeed, so no bird flying
+  upwind goes backward; truncated, so nothing piles at the ends). Whether
+  the sand moves at a given speed (its threshold, about 6.2 m/s at 10 m,
+  the crests' speed-up 1.5x) is the sand's to decide. Under 100 m the
+  log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0) with z0 = 0.003 m
+  (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
+  the surface's direction; from 100 to 300 m it eases to the low cloud
+  layer's 1.3 U10, veered 20 deg, held to 1500 m; from 1500 to 3000 m to
+  the deck's 2 U10, veered 40 deg (the wind turns clockwise with height
+  toward the free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
+  https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf).
+  Each reader has a declared height (AIR_H); at a U10 of 6.5 m/s: the
+  grains 0.8 m (4.5 m/s, times AIR_GRAIN_K, the sand's own share), the
+  veils 5 m (5.9), the motes 13 m (6.7), the birds their own height
+  (HOST.wind(o, y); 40 m by default, 7.6). Before physics: air/wind-profile
+  the readers kept their own speeds (6.5, 5.5, 1.6, 6.5: the motes slower
+  than the grains under them, the reverse of real air). The dunes' crests,
+  the grains, the motes, the veils, the birds and the water's ripples read
+  it.
 - The readers still apart (AIR_APART, each with the change that joins
   it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
   0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
