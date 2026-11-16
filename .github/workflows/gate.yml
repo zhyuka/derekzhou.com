@@ -29,7 +29,7 @@ jobs:
   # T0, the plan: which files changed and what they touch (areas.json), whether what is served is byte for byte the
   # base's, and so which gates run. site/ holds only sources: what a visitor gets is the build, so base and head are
   # built here (served.sh: each commit's tools/build.mjs --plain) and compared file by file. The two builds go to the
-  # `served` artifact: the census, T1 and T2 render exactly these, and nothing builds a PR's code anywhere else.
+  # later jobs on the PC's disk (.github/ci/handoff.mjs): the census, T1 and T2 render exactly these, and nothing builds a PR's code anywhere else.
   plan:
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 10
@@ -115,12 +115,15 @@ jobs:
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: served
-          path: ${{ runner.temp }}/served
-          include-hidden-files: true   # (site/.well-known/security.txt is served)
-          retention-days: 7
+      # (2026-11-16) the two builds go to the later jobs on the PC's own disk, never as an artifact: the repository's
+      # artifact storage quota was hit on 2026-11-15 and every gate failed here. .github/ci/handoff.mjs: a folder a run
+      # (and attempt), a sha256 manifest every reader checks, swept after 24 h. Its own check is proved on every gate: a
+      # byte changed in a copy of the hand-off must be caught.
+      - name: The two builds, handed to T1, T2 and the Stills job (the PC's disk)
+        run: |
+          node .github/ci/handoff.mjs sweep --hours 24
+          node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
+          node .github/ci/handoff.mjs selftest served
       # T2's probe (once its own job: one queue hop less on every gate)
       # T2's answer for these two builds and this T2 code, if a run of this branch (or of main) already has it: then the
       # 4090 is not asked again (a re-gate after main moved elsewhere, a re-run). Saved by the verdict job.
@@ -149,10 +152,14 @@ jobs:
           R="https://api.github.com/repos/$GITHUB_REPOSITORY"; K="${KEY%-stall*}"
           shas="$GITHUB_SHA $(api "$R/commits/$GITHUB_SHA/pulls" | jq -r '.[] | select(.merged_at != null) | .head.sha' | tr '\n' ' ')"
           ids=$(for s in $shas; do api "$R/actions/workflows/gate.yml/runs?head_sha=$s&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'; done | sort -u)
+          HR=$(node -e "import('./.github/ci/handoff.mjs').then((m) => console.log(m.root()))")
           for id in $ids; do
+            v=""; for f in "$HR/verdict/$id-"*.json; do [ -f "$f" ] && v="$f"; done   # (the PC's copy first: the last attempt's)
+            if [ -n "$v" ]; then rm -rf "$D"; mkdir -p "$D"; cp "$v" "$D/verdict.json"; else
             a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '[.artifacts[] | select(.name == "gate-verdict" and (.expired | not))] | sort_by(.created_at) | last | .archive_download_url // empty')   # (a re-run's newest, as the bot reads it)
             [ -n "$a" ] || continue
             rm -rf "$D"; mkdir -p "$D"; api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
+            fi
             if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" --arg k "$K" '((.t2_key // "" | sub("-stall(yes|no)$"; "")) == $k or (.sha == $s and .base == $b)) and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
               jq -c '.t2 | {frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok} | map_values(if . == null then "" else tostring end)' "$D/verdict.json" > "$D/t2.json"
               echo "the PR's gate (run $id) compared these builds: $(cat "$D/t2.json")"; echo "hit=true" >> "$GITHUB_OUTPUT"; exit 0
@@ -228,10 +235,8 @@ jobs:
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
-      - uses: actions/download-artifact@v4
-        with:
-          name: served
-          path: ${{ runner.temp }}/served
+      - name: The two builds (the plan's hand-off, checked against its manifest)
+        run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served"
       - name: The records' key
         id: rk
         run: echo "pre=t1rec-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-x4" >> "$GITHUB_OUTPUT"
@@ -280,12 +285,9 @@ jobs:
         with:
           path: ${{ runner.temp }}/t1rec
           key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.head_build }}
-      - uses: actions/upload-artifact@v4
+      - name: T1's shards, handed to the verdict (the PC's disk)
         if: always()
-        with:
-          name: t1-shard-all
-          path: ${{ runner.temp }}/t1
-          retention-days: 7
+        run: if [ -d "$RUNNER_TEMP/t1" ]; then node .github/ci/handoff.mjs put "$RUNNER_TEMP/t1" t1; fi
 
   # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
   # programs read back bit for bit. Wanted when a shader's text or the world's, the realms' or the birds' served JS
@@ -294,7 +296,7 @@ jobs:
   # gpu-4090 is online (GET .../actions/runners with MERGE_TOKEN, which has Administration: read). Online: T2 runs and
   # the verdict requires it. Offline, or the query fails: a notice, and the verdict rests on T0 and T1, so T2 never
   # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
-  # T2 renders the plan's two builds (the `served` artifact): the PC never runs a PR's build.
+  # T2 renders the plan's two builds (the plan's hand-off on the PC's disk): the PC never runs a PR's build.
   # Only after the static checks passed: the 4090 is one runner that every gate's T2 queues for, and a gate whose
   # static checks failed is red whatever T2 says (565 s of its time went to such gates on the night of Nov 11, with 830 s
   # more queued). Static and plan run side by side and take about as long, so T2 starts a few seconds later at most.
@@ -320,11 +322,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: .github/ci
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          pattern: t1-shard-*
-          path: ${{ runner.temp }}/t1
+      - name: T1's shards (the hand-off, checked; none when T1 did not run)
+        run: if node .github/ci/handoff.mjs has t1; then node .github/ci/handoff.mjs get t1 "$RUNNER_TEMP/t1"; else mkdir -p "$RUNNER_TEMP/t1"; echo "no T1 shards handed off"; fi
       - name: Verdict
         id: v
         env:
@@ -346,9 +345,18 @@ jobs:
         with:
           path: ${{ runner.temp }}/t2c/t2.json
           key: ${{ needs.plan.outputs.t2_key }}
+      # the verdict: kept on the PC (the merge bot reads it there first) and as the small gate-verdict artifact (the
+      # bot's fallback, and the PR's answer for main's T2 probe); the artifact is never what fails the verdict
+      - name: The verdict, kept on the PC
+        if: always()
+        run: if [ -f "$RUNNER_TEMP/verdict.json" ]; then node .github/ci/handoff.mjs verdict-put "$RUNNER_TEMP/verdict.json"; fi
       - uses: actions/upload-artifact@v4
         if: always()
+        continue-on-error: true   # (the artifact quota: the verdict stands on the PC's copy)
         with:
           name: gate-verdict
           path: ${{ runner.temp }}/verdict.json
           retention-days: 30
+      - name: The run's hand-off dropped (green, off main; main's stays for the Stills job and a red run's for a re-run, both swept after 24 h)
+        if: always() && github.ref != 'refs/heads/main' && steps.v.outputs.gate_ok == 'true'
+        run: node .github/ci/handoff.mjs drop

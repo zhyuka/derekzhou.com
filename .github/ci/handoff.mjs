@@ -1,0 +1,111 @@
+// handoff.mjs: the gate's jobs hand each other their files on the PC's own disk, not as GitHub artifacts (2026-11-15:
+// the repository's artifact storage quota was hit and every gate's plan job failed uploading its two builds). Every
+// job of the gate runs on the PC: the Linux runners in WSL and the Windows GPU runner see one folder,
+// HANDOFF_ROOT (default /mnt/c/ci-handoff in WSL, C:\ci-handoff on Windows: the same folder).
+//   node .github/ci/handoff.mjs put SRC NAME [--run R]   copy the folder SRC to ROOT/gate/R/NAME, with a sha256 manifest
+//   node .github/ci/handoff.mjs get NAME DEST [--run R]  copy ROOT/gate/R/NAME to DEST (R's newest attempt that has it),
+//                                                        every file checked against its manifest: a missing folder, file
+//                                                        or byte fails, loudly
+//   node .github/ci/handoff.mjs has NAME [--run R]       exit 0 when ROOT/gate/R/NAME is there (an optional hand-off)
+//   node .github/ci/handoff.mjs drop [--run R]           delete every attempt of R's run (a green verdict, off main: a
+//                                                        red one keeps its builds for a re-run, swept after 24 h)
+//   node .github/ci/handoff.mjs sweep [--hours 24]       delete every ROOT/gate/* older than that (each gate's start)
+//   node .github/ci/handoff.mjs selftest NAME [--run R]  the check proved on the real hand-off: a copy with one byte
+//                                                        changed must be caught (every gate's plan job runs it)
+//   node .github/ci/handoff.mjs verdict-put FILE         keep FILE as ROOT/verdict/<run id>-<attempt>.json (30 days: the
+//                                                        merge bot reads a run's verdict here before its artifact)
+// R: <run id>-<attempt>, from GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. A job writes its own attempt's folder; a reader takes
+// the newest attempt at or below its own that has the name (a re-run of failed jobs keeps the earlier attempt's plan).
+import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto'; import { fileURLToPath } from 'node:url';
+
+export function root(env = process.env, platform = process.platform) {
+  return env.HANDOFF_ROOT || (platform === 'win32' ? 'C:\\ci-handoff' : '/mnt/c/ci-handoff');
+}
+export const runKey = (env = process.env) => {
+  if (!env.GITHUB_RUN_ID) throw new Error('handoff: no GITHUB_RUN_ID (and no --run)');
+  return `${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT || 1}`;
+};
+const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+function walk(dir, rel = '', out = []) {
+  for (const e of fs.readdirSync(path.join(dir, rel), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const r = rel ? rel + '/' + e.name : e.name;
+    if (e.isDirectory()) walk(dir, r, out); else if (e.isFile()) out.push(r);
+  }
+  return out;
+}
+export function manifest(dir) { const m = {}; for (const f of walk(dir)) m[f] = sha(path.join(dir, f)); return m; }
+
+export function put(src, name, base) {
+  if (!fs.existsSync(src) || !fs.statSync(src).isDirectory()) throw new Error(`handoff put: ${src} is not a folder`);
+  const dst = path.join(base, name), tmp = dst + '.part';
+  fs.rmSync(tmp, { recursive: true, force: true }); fs.rmSync(dst, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
+  fs.cpSync(src, tmp, { recursive: true });
+  const m = manifest(tmp);
+  fs.writeFileSync(tmp + '.manifest.json', JSON.stringify(m));
+  fs.renameSync(tmp, dst); fs.renameSync(tmp + '.manifest.json', dst + '.manifest.json');   // (a reader never sees half a hand-off)
+  return Object.keys(m).length;
+}
+// every file of the manifest there, byte for byte, and nothing else: then the copy; else an Error naming the first misses
+export function check(dir, m) {
+  const bad = [], have = new Set(walk(dir));
+  for (const [f, h] of Object.entries(m)) { if (!have.has(f)) bad.push('missing ' + f); else if (sha(path.join(dir, f)) !== h) bad.push('changed ' + f); }
+  for (const f of have) if (!(f in m)) bad.push('not in the manifest ' + f);
+  return bad;
+}
+export function get(name, dest, base) {
+  const src = path.join(base, name), mf = src + '.manifest.json';
+  if (!fs.existsSync(src) || !fs.existsSync(mf)) throw new Error(`handoff get: ${src} is not there (its run's job did not hand it off, or it was swept)`);
+  const m = JSON.parse(fs.readFileSync(mf, 'utf8'));
+  fs.rmSync(dest, { recursive: true, force: true }); fs.mkdirSync(path.dirname(path.resolve(dest)), { recursive: true });
+  fs.cpSync(src, dest, { recursive: true });
+  const bad = check(dest, m);
+  if (bad.length) throw new Error(`handoff get: ${name} is not the bytes handed off (${bad.length}: ${bad.slice(0, 5).join('; ')})`);
+  return Object.keys(m).length;
+}
+export function sweep(r, hours, now = Date.now()) {
+  const g = path.join(r, 'gate'); let n = 0;
+  if (fs.existsSync(g)) for (const e of fs.readdirSync(g)) { const p = path.join(g, e); if (now - fs.statSync(p).mtimeMs > hours * 3600e3) { fs.rmSync(p, { recursive: true, force: true }); n++; } }
+  const v = path.join(r, 'verdict');
+  if (fs.existsSync(v)) for (const e of fs.readdirSync(v)) { const p = path.join(v, e); if (now - fs.statSync(p).mtimeMs > 30 * 24 * 3600e3) { fs.rmSync(p, { force: true }); n++; } }
+  return n;
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  const a = process.argv.slice(2), opt = (k) => { const i = a.indexOf(k); return i >= 0 ? a.splice(i, 2)[1] : null; };
+  const run = opt('--run'), hours = +(opt('--hours') || 24), [cmd, x, y] = a, r = root();
+  const base = () => path.join(r, 'gate', run || runKey());
+  // a reader takes the newest attempt of this run that handed NAME off: a re-run of only the failed jobs (attempt 2)
+  // keeps attempt 1's plan, whose hand-off is attempt 1's
+  const from = (name) => {
+    const [id, at] = (run || runKey()).split('-');
+    for (let k = +at || 1; k >= 1; k--) { const b = path.join(r, 'gate', `${id}-${k}`); if (fs.existsSync(path.join(b, name + '.manifest.json'))) return b; }
+    return base();
+  };
+  try {
+    if (cmd === 'put') console.log(`handoff: ${put(x, y, base())} files of ${x} handed off as ${path.join(base(), y)}`);
+    else if (cmd === 'get') console.log(`handoff: ${get(x, y, from(x))} files of ${x} checked against their manifest, in ${y}`);
+    else if (cmd === 'has') process.exitCode = fs.existsSync(path.join(from(x), x + '.manifest.json')) ? 0 : 1;
+    else if (cmd === 'drop') {   // (every attempt of the run)
+      const id = (run || runKey()).split('-')[0], g = path.join(r, 'gate'); let n = 0;
+      if (fs.existsSync(g)) for (const e of fs.readdirSync(g)) if (e.split('-')[0] === id) { fs.rmSync(path.join(g, e), { recursive: true, force: true }); n++; }
+      console.log(`handoff: dropped run ${id}'s hand-off (${n} attempt folder(s))`);
+    }
+    else if (cmd === 'sweep') { fs.mkdirSync(r, { recursive: true }); console.log(`handoff: swept ${sweep(r, hours)} hand-off(s) older than ${hours} h from ${r}`); }
+    else if (cmd === 'selftest') {
+      const src = path.join(from(x), x), m = JSON.parse(fs.readFileSync(src + '.manifest.json', 'utf8')), f = Object.keys(m).sort()[0];
+      if (!f) throw new Error('handoff selftest: ' + x + ' is empty');
+      const t = fs.mkdtempSync(path.join(path.dirname(src), '.selftest-')), c = path.join(t, x);
+      try {
+        fs.cpSync(src, c, { recursive: true });
+        if (check(c, m).length) throw new Error('handoff selftest: the untouched copy failed its manifest');
+        const b = fs.readFileSync(path.join(c, f)), d = b.length ? Buffer.from(b) : Buffer.alloc(1); d[0] ^= 1; fs.writeFileSync(path.join(c, f), d);
+        const bad = check(c, m);
+        if (!bad.some((l) => l === 'changed ' + f)) throw new Error('handoff selftest: a byte changed in ' + f + ' was not caught');
+        console.log(`handoff selftest: one byte changed in ${x}/${f} is caught ("${bad[0]}"); the untouched copy passes`);
+      } finally { fs.rmSync(t, { recursive: true, force: true }); }
+    }
+    else if (cmd === 'verdict-put') { const d = path.join(r, 'verdict'); fs.mkdirSync(d, { recursive: true }); fs.copyFileSync(x, path.join(d, (run || runKey()) + '.json')); console.log('handoff: verdict kept as ' + path.join(d, (run || runKey()) + '.json')); }
+    else { console.error('usage: handoff.mjs put|get|has|drop|sweep|verdict-put ...'); process.exitCode = 2; }
+  } catch (e) { console.log('::error::' + e.message); process.exitCode = 1; }
+}

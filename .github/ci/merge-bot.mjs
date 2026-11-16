@@ -23,6 +23,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { areasOf } from './areas.mjs';
 import { walk } from './deploy-walk.mjs';
+import { root as handoffRoot } from './handoff.mjs';
 import { updateRefused, HOLD, botLanded, revertMessage, revertedTip, newestArtifact, stillsReady, rerunAnswer, proofHeads } from './bot-rules.mjs';
 
 const REPO = process.env.REPO, API = 'https://api.github.com/repos/' + REPO, DRY = process.env.DRY === '1';
@@ -54,7 +55,16 @@ async function gateRun(sha) {
   const r = (await gh('GET', `/actions/workflows/gate.yml/runs?head_sha=${sha}&per_page=1`)).json;
   return r?.workflow_runs?.[0] || null;
 }
+// The PC's copy first (the gate's verdict job keeps it under handoff.mjs root()/verdict, run id and attempt: the bot runs on
+// the PC too): the artifact quota cannot hide a verdict. Then the gate-verdict artifact, as before.
+function localVerdict(run) {
+  const d = path.join(handoffRoot(), 'verdict');
+  for (let k = run.run_attempt || 1; k >= 1; k--) { const f = path.join(d, `${run.id}-${k}.json`); try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch {} }
+  return null;
+}
 async function verdict(run) {
+  const lv = localVerdict(run);
+  if (lv) return lv;
   const a = newestArtifact((await gh('GET', `/actions/runs/${run.id}/artifacts?name=gate-verdict&per_page=100`)).json?.artifacts);   // (a re-run's own, not its first attempt's)
   if (!a) return null;
   const r = await net(a.archive_download_url, { headers: { authorization: 'Bearer ' + process.env.GITHUB_TOKEN, 'user-agent': 'derekzhou.com-merge-bot' } });

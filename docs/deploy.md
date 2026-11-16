@@ -43,6 +43,18 @@ on 2026-11-06; since then every job runs on the owner's PC (the owner: "All on m
 free"): Linux jobs on a self-hosted runner in WSL2 labelled pc-wsl, T2 on the Windows
 gpu-4090 runner. One job at a time, so T1 is skipped when T2 runs for the same head.
 
+The hand-off (2026-11-16): the gate's jobs pass each other their files on the PC's own disk, not as GitHub artifacts
+(2026-11-15: the repository's artifact storage quota was hit and every gate's plan job failed uploading its two
+builds). Every job runs on the PC, and the WSL runners and the Windows gpu-4090 runner see one folder, HANDOFF_ROOT
+(default /mnt/c/ci-handoff, C:\ci-handoff on Windows). .github/ci/handoff.mjs puts a folder under
+gate/<run id>-<attempt>/ with a sha256 manifest; each reader (T1, T2, T3, the verdict, the Stills job) gets it checked
+against the manifest and fails loudly on a missing, changed or extra file, never falling back to anything else. The
+plan job proves the check on the real builds each run (selftest: one byte flipped must be caught). A re-run of failed
+jobs reads its run's newest attempt that has the name. The verdict job drops a green off-main run's hand-off; main's
+is kept for the Stills job; every gate's start sweeps anything older than 24 hours. The verdict itself is kept as
+verdict/<run id>-<attempt>.json for 30 days and the merge bot reads it there before the gate-verdict artifact, the one
+artifact left (tiny, and its upload may fail without failing the gate).
+
 ## The stills
 
 The openings' stills (the world's first frames, baked on the PC's RTX 4090 by tools/gpu/bake-stills.js, #197) are not
