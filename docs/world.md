@@ -484,12 +484,15 @@ shader). It holds:
   hypothesis, https://glossary.ametsoc.org/wiki/Frozen_turbulence;
   gustAt, the shaders' airGust: the same hash and constants, held equal
   by value at 4096 points a visit, tools/checks/43-gust-glsl.sh), so a
-  point 100 m downwind meets each gust 100 / U10 later; each visit on its
+  point 100 m downwind meets each gust 100 / U10 later on the surface's
+  clock (airClock), 100 / (s U10) later in flight time (s the sky's
+  surface share: 1 by day); each visit on its
   own slice (its salt). One reference speed, the visit's U10, carries the
   field and sets its scale (22 U10 m) at every height, so a bird over a
   veil feels the veil's gust; the height sets only its size, 0.26 of the
   wind there times unit noise. The 3-s gust over the 10-min mean
-  1.43-1.68 (median 1.54), its e-fold 10-23 s, nothing faster than 0.11
+  1.43-1.68 (median 1.54), its e-fold by day 10-23 s (on a sky of
+  surface share s, the day's over s), nothing faster than 0.11
   W a second; none in still air. Every reader carries it on one clock,
   the surface's wind clock (airClock; the shaders' uAir.x), and by the
   wind by sky its size is the sky's share times its gustiness. The sand veils rise with it: as a gust
