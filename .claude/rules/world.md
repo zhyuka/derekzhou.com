@@ -20,14 +20,15 @@ and streams (## THE WEATHER). docs/verify.md before anything visible ships.
   (NNN-slug.ship.js) beside the world's parts.
 - Never darken the background, never fade, never mask a bird, never read the words (no-darkening, no-fades,
   no-masking-boxes; W7 and world_rules.py check them).
-- One entropy read above INIT-END; no clock but clockNow(); no Date or Math.random; listeners only in the world, by
-  name (one-entropy-one-clock, absence-*).
+- No entropy in the world (hour.js's one read, data-seed, picks the opening and seeds all after the cut); no clock but
+  clockNow(); no Date or Math.random; listeners only in the world, by name (one-entropy-one-clock, absence-*).
 - A shader's text changed: nothing derived is committed (same-shaders); the gate's census and T2 compare the base's
   build with the head's.
   The build ships shaders minified (tools/glslmin.mjs); if the world's code ever reads a .glsl file's text at run
   time (as the land split reads dunes-glsl's D_Hd), add that file to glslmin.mjs's KEEP.
-- The plan's spans changed (the maps, the director, MAPS/mapsInit/kitAt, the weights' grids): node tools/plan.mjs
-  --stamp, and node --test 'test/unit/*.mjs' (the worker must still equal the page's plan).
+- The plan's spans changed (the maps, the director, MAPS/mapsInit/kitAt, the weights' grids): node --test
+  'test/unit/*.mjs' (the worker must still equal the page's plan). The stamp needs nothing: 190's PW_V stays '', and
+  every assembly writes the spans' stamp in (tools/plan.mjs fillStamp).
 - Forced colours: read them from the world's own media query list (forced()), never from the one it listens on (in
   Chromium a read takes up the change and its event never fires: the world did not come back when they ended); while
   they hold from the load no render target of the world's is made (docs/world.md, ## FALLBACKS). tools/gpu/forced-off.js

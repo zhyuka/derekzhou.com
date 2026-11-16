@@ -5,7 +5,7 @@
   function firstYaw() {   // the first frame's view yaw as arrive sets it (CS.yawV + CS.phi = CS.psi), read without drawing from any stream
     if (SIM.inited) return CS.yawV + CS.phi;
     if (DEVMODE && POSE) return POSE[2] * DEG;
-    return RNG(subseed(J.seed, 77)).r(0, 2 * PI);
+    return airHeading0();
   }
   function planVisit(V) {
     if (V.light) return;
@@ -20,10 +20,10 @@
     V.speed = (def.speed || 12) * CAMK; V.clear = (def.clear || [6, 12, 120]).slice(); V.margin = def.margin || 14;
     V.field = def.field ? def.field(V.rng, V) : { params: [] };
     V.light = def.light(V.rng2, V);
-    V.light.sunDir = dirAzEl(V.light.sunAz, V.light.sunEl);
+    airKeySet(V.light);   // (215: the key, once)
     V.lightRaw = Object.assign({}, V.light);
     var r3 = RNG(subseed(V.seed, 3)); V.ph = [r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28), r3.r(0, 6.28)];
-    V.evRng = RNG(subseed(V.seed, 5));
+    V.evRng = RNG(AFTER ? subseed(SEEDR, 5) : subseed(V.seed, 5));   // (built after the cut: the visit's own read)
     prepLight(V);
     worldLights(V);   // (the kits' lights, blended by the climate about the camera)
   }
@@ -90,109 +90,3 @@
     V.scB = null;
     return true;
   }
-  /* the realm's instanced sets: each a mesh built once a visit (and a coarse one, the same draws at the far cells'
-     detail), placed by the cells as many times as they like (C.place): one draw a set a cell */
-  function vsSets(V) {   // (the sets' meshes built here, CPU; uploaded by vsSetsUp, GPU)
-    var S = V.def.sets; V.setB = [];
-    if (!S) return true;
-    var names = Object.keys(S);
-    for (var k = 0; k < names.length; k++) {
-      var d = S[names[k]], seed = subseed(V.seed, 500 + k);
-      var B = new Builder(1024); B.place(0, 0, 0, 0, false); d.mesh(B, RNG(seed), KITAPI);
-      var B2 = null;
-      if (d.coarse !== false) { B2 = new Builder(512); B2.lod = 1; B2.place(0, 0, 0, 0, false); d.mesh(B2, RNG(seed), KITAPI); if (!(B2.n && B2.n < B.n * 0.9)) B2 = null; }
-      V.setB.push([names[k], d, B, B2]);
-    }
-    return true;
-  }
-  function vsSetsUp(V) {
-    V.G.sets = {};
-    var L = V.setB || [];
-    for (var k = 0; k < L.length; k++) {
-      var d = L[k][1], B = L[k][2], B2 = L[k][3];
-      var full = uploadMesh(B, V.G); full.lo = B.lo.slice(); full.hi = B.hi.slice();
-      var coarse = B2 ? uploadMesh(B2, V.G) : null;
-      var r = 0; for (var a = 0; a < 3; a++) r = Math.max(r, Math.abs(full.lo[a]), Math.abs(full.hi[a]));
-      V.G.sets[L[k][0]] = { full: full, coarse: coarse, far: d.far || 900, r: r, cy: (full.lo[1] + full.hi[1]) / 2 };
-    }
-    V.setB = null;
-    return true;
-  }
-  /* the world's GL objects and its cells' freed (a reset or a lost context; the programs stay) */
-  function freeVisit(V) {
-    if (!V) return;
-    if (V.cells) { V.cells.forEach(function (C) { freeCell(C); }); V.cells = null; V.cellList = null; }
-    var G = V.G;
-    if (G && !LOST) {
-      G.bufs.forEach(function (b) { glFree('Buffer', b); });   // (deleted among the next frame's GPU jobs)
-      G.vaos.forEach(function (v) { glFree('VertexArray', v); });
-      G.texs.forEach(function (t) { glFree('Texture', t); });
-    }
-    V.G = null; V.st = 0; V.parts = null; V.ribbons = null; V.flocksEv = null; V.scB = null; V.setB = null;
-    V.pois = null; V.oq = null; V.rng = null; V.rng2 = null; V.evRng = null; V.ready = false; V.field = null;
-  }
-  function forgetVisit(V) {   // (after a lost context the objects are gone already)
-    if (V.cells) V.cells.forEach(function (C) { C.gone = true; }); V.cells = null; V.cellList = null;
-    V.G = null; V.st = 0; V.parts = null; V.ribbons = null; V.ready = false; V.scB = null; V.setB = null;
-  }
-  /* a particle set as the realm gives it: { kind: 'grain' | 'mote' | 'mote2' (about the camera's height) | 'rain' |
-     'drift' | 'drift2' (about the camera's height) (or hop[3]: 0-5), count, box (m), height (m), streak (s), width
-     (px), wind [x, y, z] (m/s), color [r, g, b, opacity], hop [m, rate, lift m, kind] (grains), lift (m over the
-     ground); rain: fall (m/s), splash (s), gusts (0-1); drifting: rise (m/s; < 0 sinks), life (s), wander (m/s),
-     tumble (Hz), colors [[r, g, b, share], [r, g, b, share]] (a second and third colour), blink (the share of a cycle
-     lit), flicker (0-1); areas: [names] (drawn in proportion to those areas' shares), rainScale (by the light's
-     rain) } */
-  var PKIND = { grain: 0, mote: 1, mote2: 2, rain: 3, drift: 4, drift2: 5 };
-  function partPrep(o) {
-    var q = {}, k;
-    for (k in o) if (k !== 'colors' && k !== 'areas' && k !== 'kind') q[k] = o[k];
-    var pa = particleSet(q, { hop: [0, 0, 0.2, 0] });
-    if (o.kind !== undefined) pa.hop[3] = typeof o.kind === 'number' ? o.kind : PKIND[o.kind];
-    if (o.lift !== undefined) pa.hop[2] = o.lift;
-    var kd = pa.hop[3];
-    pa.ud = new Float32Array(kd === 3 ? [o.fall || 8.5, o.splash || 0.25, o.gusts || 0, 0] : [o.rise || 0, o.life || 8, o.wander === undefined ? 0.3 : o.wander, o.tumble || 0]);
-    pa.ue = new Float32Array(o.colors && o.colors[0] || [0, 0, 0, 0]); pa.uf = new Float32Array(o.colors && o.colors[1] || [0, 0, 0, 0]);
-    pa.ug = new Float32Array([o.blink || 0, o.flicker || 0, 1, 0]);
-    pa.areas = o.areas || null; pa.rainScale = !!o.rainScale;
-    if (pa.streak === undefined) pa.streak = kd === 3 ? 0.06 : 0;
-    if (pa.width === undefined) pa.width = 1.2;
-    if (pa.height === undefined) pa.height = 20;
-    if (!pa.wind) pa.wind = new Float32Array([0, 0, 0]);
-    return pa;
-  }
-  function particleSet(o, def) {
-    if (!o) return null;
-    var r = {}, k;
-    for (k in o) r[k] = (o[k] && o[k].length !== undefined && typeof o[k] !== 'string') ? new Float32Array(o[k]) : o[k];
-    for (k in def) if (!r[k]) r[k] = new Float32Array(def[k]);
-    return r;
-  }
-  function uploadMesh(B, G) {
-    var M = { n: B.count(), vao: null, vb: null };
-    if (!M.n) return M;
-    M.vao = pTake('mesh'); if (G) G.vaos.push(M.vao);   // (from the pools)
-    M.vb = pTake('buf'); if (G) G.bufs.push(M.vb);
-    gl.bindVertexArray(M.vao); gl.bindBuffer(gl.ARRAY_BUFFER, M.vb); gl.bufferData(gl.ARRAY_BUFFER, B.bytes(), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, VSTRIDE, 0);
-    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.BYTE, true, VSTRIDE, 12);
-    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, VSTRIDE, 16);
-    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, VSTRIDE, 20);
-    gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.UNSIGNED_BYTE, true, VSTRIDE, 15);   // (its emission)
-    gl.bindVertexArray(null);
-    return M;
-  }
-  /* a mesh's attributes (0-4) on a VAO of its own, with an instance buffer's (from location `at`, `n` vec4s each,
-     stride n x 16 bytes, from byte `off`) */
-  function meshAttribs(M) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, M.vb);
-    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, VSTRIDE, 0);
-    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.BYTE, true, VSTRIDE, 12);
-    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, VSTRIDE, 16);
-    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, VSTRIDE, 20);
-    gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.UNSIGNED_BYTE, true, VSTRIDE, 15);
-  }
-  function instAttribs(buf, at, n, off) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    for (var i = 0; i < n; i++) { gl.enableVertexAttribArray(at + i); gl.vertexAttribPointer(at + i, 4, gl.FLOAT, false, n * 16, off + i * 16); gl.vertexAttribDivisor(at + i, 1); }
-  }
-

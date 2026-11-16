@@ -1,0 +1,174 @@
+name: Stills
+
+# The openings' stills (the world's first frames, baked on the PC's RTX 4090 by tools/gpu/bake-stills.js) for every
+# served build, so live never ships without them (docs/deploy.md, "The stills").
+# After each green Gate run (workflow_run):
+#   on main: the release stills-<key> (key: tools/stills.mjs worldKey of the gate's served/head, the plain build) is
+#     looked up; if it is not up, served/head's settled twin is baked (cached on the PC by key: a world baked before
+#     costs seconds) and put up (tools/stills-release.mjs). Either way the commit's status `stills`
+#     says so, and the merge bot's deploy gate moves live to a tip that has the bake only once it is success
+#     (merge-bot.mjs, bot-rules.mjs stillsReady). A failure here never turns main red: live waits, the status says why.
+#   on a claude/* branch: nothing (2026-11-14). A branch's warm bake (filling the PC's cache before its landing) cost
+#     six 13-minute GPU jobs for every visible PR's gate, against T2's 1.3 minutes, and T2s queued behind them for
+#     hours; main bakes a world once, after it lands, and a wave of landings once, at its end (below).
+# The PC's one gpu-4090 runner is T2's too (2026-11-14: main's gate waited 65 minutes behind a full bake of a tip main
+# had already passed), so:
+#   - the bake is six jobs, a sky each (about 13 minutes), one at a time: between two, a T2 queued meanwhile takes the
+#     runner, so a gate never waits a whole bake;
+#   - the newest run wins on main as on a branch (cancel-in-progress): a newer main tip's run cancels a stale tip's
+#     bake. Nothing is lost: the cache is a folder per key and bake-stills.js records each batch of 32 as it is
+#     encoded, so a run for the same key goes on where the cancelled one stopped. Live waits for the newest tip's
+#     status (the deploy gate reads only the tip it moves to), so a wave of world changes bakes once, at its end.
+#   - the look-up runs on the PC's Linux runners (pc-wsl), never holding the GPU's.
+# Before the bake exists (tools/gpu/bake-stills.js: #197) every run ends at its first step, and nothing waits.
+# main's copy of this file and of tools/ runs, never a branch's (workflow_run); a branch's served build is rendered,
+# as T2 renders it, never built or run here.
+on:
+  workflow_run:
+    workflows: [Gate]
+    types: [completed]
+
+permissions:
+  contents: write   # (the release)
+  statuses: write   # (the commit status `stills`)
+  actions: read     # (the Gate run's `served` artifact)
+
+concurrency:
+  # one group for main, one for every claude/* branch together (2026-11-14: a group a branch let seven branches' warm
+  # bakes, 38 GPU jobs, queue ahead of T2): the newest run in each cancels the older, queued or running
+  # (a branch's run does nothing now, but keeps its own group: in main's, it would cancel main's bake; and so does a
+  # re-run of a main gate (run_attempt over 1): GitHub cancels a group's older run when the newer is queued, before
+  # any step of it could see that its commit is no longer main's tip, so a re-run of an old gate's run, in main's group,
+  # cancelled the tip's bake (2026-11-14). Its own group cancels nothing, and its need step bakes only main's tip.)
+  group: stills-${{ github.event.workflow_run.head_branch != 'main' && 'branches' || (github.event.workflow_run.run_attempt == 1 && 'main' || format('main-{0}', github.event.workflow_run.head_sha)) }}
+  cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
+
+env:
+  PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0), as gpu.yml
+  SHA: ${{ github.event.workflow_run.head_sha }}
+  REF: ${{ github.event.workflow_run.head_sha }}   # (main's tip: only main's runs do anything)
+
+jobs:
+  # Is there a bake, and is this world's set up already? (seconds, on Linux)
+  need:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: [self-hosted, linux, pc-wsl]
+    timeout-minutes: 10
+    outputs:
+      bake: ${{ steps.need.outputs.bake }}
+      key: ${{ steps.need.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ env.REF }}', persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Is there a bake?
+        id: has
+        run: |
+          if [ -f tools/gpu/bake-stills.js ]; then echo "bake=true" >> "$GITHUB_OUTPUT"; else echo "no tools/gpu/bake-stills.js: nothing to bake, nothing waits"; fi
+      - name: The two builds
+        if: steps.has.outputs.bake == 'true'
+        uses: actions/download-artifact@v4
+        with: { name: served, path: served, run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: Is its set up already?
+        id: need
+        if: steps.has.outputs.bake == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # only main's tip bakes (2026-11-14: a re-run of an older tip's gate started this workflow for that tip, and
+          # in main's group it cancelled the newest tip's bake; live only ever moves to the tip, so an older one's set
+          # is never wanted)
+          tip=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H 'Accept: application/vnd.github.sha' "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/main" || true)
+          if [ -n "$tip" ] && [ "$tip" != "$SHA" ]; then echo "$SHA is not main's tip ($tip): the tip's own run bakes"; exit 0; fi
+          k=$(node -e "import('./tools/stills.mjs').then((m) => console.log(m.worldKey('served/head')))")
+          echo "key=$k" >> "$GITHUB_OUTPUT"
+          # the answer is what stills-release prints: up only with "is up" and its status posted (--status);
+          # anything else is not up, and the bake runs (all hits when the PC's cache has the key)
+          said=$(node tools/stills-release.mjs --site served/head --have --status "$SHA" || true)
+          echo "$said"
+          if grep -q ' is up$' <<<"$said" && grep -q 'status stills success' <<<"$said"; then echo "up already: nothing to bake"; exit 0; fi
+          echo "bake=true" >> "$GITHUB_OUTPUT"
+
+  # The bake, a sky a job, one at a time on the GPU runner (T2 takes the runner between two)
+  bake:
+    needs: need
+    if: needs.need.outputs.bake == 'true'
+    runs-on: [self-hosted, windows, gpu-4090]
+    timeout-minutes: 40   # (a sky never baked: about 13 minutes for its 384 stills)
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+      matrix:
+        sky: [dawn, day, rain, sunset, dusk, night]
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ env.REF }}', persist-credentials: false }
+      - name: The two builds
+        uses: actions/download-artifact@v4
+        with: { name: served, path: served, run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: playwright-core
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, as gpu.yml)
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'pw'
+          npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
+          "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV
+          exit 0
+      - name: Bake ${{ matrix.sky }} (the PC's cache, by key)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        run: |
+          # The cache: one folder a key under the runner's root, kept between runs (the newest 8); a key baked before (on
+          # its branch, or by a cancelled run) is all hits. The settled twin is what the bake renders (served.sh made it:
+          # tools/gpu/twin.js).
+          $root = Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_stills'
+          $out = Join-Path $root '${{ needs.need.outputs.key }}'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          if (-not (Test-Path served/head-twin)) { 'no settled twin of served/head (served.sh makes it with tools/gpu/twin.js)'; exit 1 }
+          # the still's preload back in the page the bake renders (the build takes it out of a build with no stills)
+          node tools/stills-twin.mjs site/index.html served/head-twin
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $srv = Start-Process -PassThru -NoNewWindow node -ArgumentList 'tools/gpu/cfserve.js', 'served/head-twin', '9690' -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP 'cfserve.log')
+          try {
+            Start-Sleep -Seconds 1
+            node tools/gpu/bake-stills.js --url http://127.0.0.1:9690/ --twin served/head-twin --out $out --skies ${{ matrix.sky }}
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          } finally { Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue }
+          Get-ChildItem $root -Directory | Sort-Object LastWriteTime -Descending | Select-Object -Skip 8 | Remove-Item -Recurse -Force
+          exit 0   # (Windows PowerShell's -Command exits 1 when the script ends with a native command's nonzero $LASTEXITCODE)
+
+  # Up (main): the whole set, from the cache the six jobs filled, as the release; then the status
+  up:
+    needs: [need, bake]
+    if: always() && !cancelled() && github.event.workflow_run.head_branch == 'main' && (needs.need.outputs.bake == 'true' || needs.need.result == 'failure')
+    runs-on: [self-hosted, windows, gpu-4090]   # (the cache is on the PC)
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ env.REF }}', persist-credentials: false }
+      - name: The two builds
+        if: needs.bake.result == 'success'
+        uses: actions/download-artifact@v4
+        with: { name: served, path: served, run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: Up
+        if: needs.bake.result == 'success'
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
+          STILLS_DEPLOY_HOOK: ${{ secrets.STILLS_DEPLOY_HOOK }}
+        run: |
+          # (done when it says its status is posted, whatever the exit code)
+          $out = Join-Path (Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_stills') '${{ needs.need.outputs.key }}'
+          $said = node tools/stills-release.mjs --site served/head --bake $out --status $env:SHA | Out-String
+          "$said (exit $LASTEXITCODE)"
+          if ($said -notmatch 'status stills success') { exit 1 }
+          exit 0
+      - name: Say so
+        if: failure() || needs.bake.result != 'success'
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node tools/stills-release.mjs --fail $env:SHA --why "the stills job failed, live waits (run $env:GITHUB_RUN_ID)"
+          exit 0

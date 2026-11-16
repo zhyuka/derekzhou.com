@@ -25,6 +25,9 @@ import * as H from './harness.mjs';
 
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const SHARD = +(A.shard || 0), SHARDS = +(A.shards || 1), OUT = A.out || 't1-out';
+// --dom-only 1 (gate.yml, when T2 compares the same builds' canvas on the 4090): a world case compares the DOM alone
+// (T2 owns the frames); the still cases (no world: the page as CSS draws it) compare in full as always
+const DOM_ONLY = A['dom-only'] === '1';
 fs.mkdirSync(OUT, { recursive: true });
 const T = (iso) => Date.parse(iso);
 
@@ -54,7 +57,7 @@ const recs = { base: { v: REC_V, cases: {} }, head: { v: REC_V, cases: {} } };  
 
 const t0 = Date.now();
 const S = { base: await serve(A.base), head: await serve(A.head) };
-const res = { shard: SHARD, shards: SHARDS, cases: [], frames_identical: true, null_ok: true, problems: [], cache: { mode: MODE, base_rec: !!baseRec } };
+const res = { shard: SHARD, shards: SHARDS, dom_only: DOM_ONLY, cases: [], frames_identical: true, null_ok: true, problems: [], cache: { mode: MODE, base_rec: !!baseRec } };
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const save = (name, dataUrl) => fs.writeFileSync(path.join(OUT, name), Buffer.from(dataUrl.split(',')[1], 'base64'));
 
@@ -81,9 +84,9 @@ async function worldCase(c, withNull) {
       await Promise.all(live.map((a) => H.step(a, a.shownAt + K - a.frames)));
       const cap = Object.fromEntries(await Promise.all(live.map(async (a) => [a.name, await H.capture(a)])));
       const s = { k: K, frame: { base: cap.base.frame, head: cap.head.frame }, dom: { base: cap.base.dom, head: cap.head.dom }, mean: { base: cap.base.mean, head: cap.head.mean } };
-      s.same = cap.base.frame === cap.head.frame && cap.base.dom === cap.head.dom;
+      s.same = (DOM_ONLY || cap.base.frame === cap.head.frame) && cap.base.dom === cap.head.dom;
       for (const n of ['base', 'head']) rec[n].samples[K] = { frame: cap[n].frame, dom: cap[n].dom, mean: cap[n].mean };
-      if (cap.null) { s.null_same = cap.null.frame === cap.base.frame && cap.null.dom === cap.base.dom; if (!s.null_same) res.null_ok = false; }
+      if (cap.null) { s.null_same = (DOM_ONLY || cap.null.frame === cap.base.frame) && cap.null.dom === cap.base.dom; if (!s.null_same) res.null_ok = false; }
       if (!s.same) {
         res.frames_identical = false;
         const base = arms.find((a) => a.name === 'base'), head = arms.find((a) => a.name === 'head');
@@ -117,7 +120,7 @@ async function cachedWorldCase(c, b) {
     await H.step(head, head.shownAt + K - head.frames);
     const cap = await H.capture(head), bs = b.samples && b.samples[K];
     hrec.samples[K] = { frame: cap.frame, dom: cap.dom, mean: cap.mean };
-    if (!bs || bs.frame !== cap.frame || bs.dom !== cap.dom) { ok = false; break; }
+    if (!bs || (!DOM_ONLY && bs.frame !== cap.frame) || bs.dom !== cap.dom) { ok = false; break; }
     out.samples.push({ k: K, frame: { base: bs.frame, head: cap.frame }, dom: { base: bs.dom, head: cap.dom }, mean: { base: bs.mean, head: cap.mean }, same: true });
   }
   out.base_csp = b.csp || []; out.head_csp = (await head.page.evaluate(() => window.__ci.csp)).concat(head.logs.filter((l) => /Content Security Policy/.test(l)));

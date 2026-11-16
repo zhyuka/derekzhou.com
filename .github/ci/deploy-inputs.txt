@@ -10,6 +10,7 @@ tools/minify.mjs
 tools/parts.mjs
 tools/glslmin.mjs
 tools/plan.mjs
+tools/stills.mjs
 package.json
 package-lock.json
 .gitattributes

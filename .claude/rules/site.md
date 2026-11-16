@@ -7,7 +7,7 @@ paths:
 
 Read docs/security.md and docs/caching.md first; docs/content.md and docs/css.md for the page itself.
 
-- Never commit a built file to site/ (world.js, the realms, inkbirds.js, plan.js): their
+- Never commit a built file to site/ (world.js, the realms, inkbirds.js, sound.js, score.js, plan.js): their
   sources are in src/ (built-files-uncommitted).
 - The page says exactly its words (page-words); the lettered name is a drawing, never redrawn here (lettered-name).
 - No keyframes and no transitions in style.css (no-fades); the words' colours are fixed (light-words-only).

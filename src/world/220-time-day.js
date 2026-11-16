@@ -17,12 +17,12 @@
      light's own (every sky's words are light, so no change passes a twilight waypoint and none hurries its light across
      the inks' band). Nothing here reads the words (rule 7, W7). Design: tod/design/design.md. */
   var WSKY = {
-    afterglow: { g:'sunset', w:'light', ph:1, land:['sunset','rain'], hold:70, near:['bluehour','milkyway','moonlit','firstlight'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
-    bluehour: { g:'dusk', w:'light', ph:1, land:['dusk'], hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], skyEl:-7, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
-    moonlit: { g:'night', w:'light', ph:1, land:['night'], hold:190, near:['milkyway','aurora','firstlight','bluehour'], sky:[[0.3,0.12,264],[0.48,0.07,254],[0.43,0.1,257],[0.35,0.12,261],[0.28,0.12,264],[0.22,0.09,265]], skyW:[0.36,0.08,255], glowC:[0.42,0.04,250], hazeC:[0.33,0.045,262], hazeW:[0.38,0.035,252], fogB:[0.26,0.11,264], ambU:[0.34,0.09,262], ambD:[0.26,0.06,262], clLit:[0.7,0.06,258], clShade:[0.52,0.07,262], clDeep:[0.44,0.08,264], clRim:[0.74,0.04,250], skyK:[0.2,8,0.05], key:[0.84,0.03,245,0.55], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.9, paint:{lit:[0.37,0.6,258,0.8],shade:[0.28,0.7,262,0.8],deep:[0.24,0.75,262,0.8],pale:[0.48,0.4,250,0.5]}, post:{bloomK:0.3,shafts:0,sat:1,stars:0.6,hi:0.1,hiC:[0.36,0.08,262]}, fx:{moon:{r:1.8,L:[0.62,0.03,250],glow:[0.44,0.05,250],corona:1}}, ceil:0.525 },
-    milkyway: { g:'night', w:'light', ph:2, land:['night'], hold:95, near:['aurora','moonlit','firstlight'], sky:[[0.25,0.09,264],[0.3,0.1,262],[0.29,0.1,263],[0.26,0.1,264],[0.22,0.09,265],[0.18,0.075,266]], skyW:[0.3,0.06,262], glowC:[0.3,0.03,260], hazeC:[0.28,0.09,264], hazeW:[0.31,0.08,260], fogB:[0.22,0.08,265], ambU:[0.26,0.07,264], ambD:[0.2,0.05,264], clLit:[0.38,0.1,266], clShade:[0.28,0.09,266], clDeep:[0.25,0.085,266], clRim:[0.42,0.06,255], skyK:[0.1,8,0], key:[0.6,0.02,250,0.15], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.44,0.6,262,0.8],shade:[0.42,0.7,264,0.8],deep:[0.4,0.75,264,0.8],pale:[0.44,0.8,262,0.7]}, post:{bloomK:0.3,shafts:0,sat:1,stars:1,hi:0,hiC:[0.28,0.09,264]}, fx:{galaxy:1}, ceil:0.525 },
-    aurora: { g:'night', w:'light', ph:2, land:['night'], hold:100, near:['milkyway','moonlit','firstlight','bluehour'], sky:[[0.27,0.06,250],[0.33,0.06,225],[0.32,0.065,235],[0.29,0.08,250],[0.25,0.08,262],[0.21,0.07,266]], skyW:[0.34,0.06,175], glowC:[0.36,0.06,165], hazeC:[0.31,0.05,215], hazeW:[0.36,0.065,175], fogB:[0.24,0.065,250], ambU:[0.34,0.055,172], ambD:[0.24,0.05,240], clLit:[0.44,0.08,170], clShade:[0.32,0.07,240], clDeep:[0.28,0.07,250], clRim:[0.48,0.09,160], skyK:[0.15,10,0], key:[0.72,0.09,152,0.38], skyEl:null, sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.46,0.6,175,0.35],shade:[0.43,0.6,250,0.7],deep:[0.41,0.6,255,0.7],pale:[0.46,0.8,175,0.4]}, post:{bloomK:0.35,shafts:0,sat:1.02,stars:0.75,hi:0,hiC:[0.31,0.05,215]}, fx:{aurora:1}, ceil:0.525 },
-    firstlight: { g:'dawn', w:'light', ph:1, land:['dawn','day'], hold:70, near:['moonlit','bluehour','afterglow'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], skyEl:-3, sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
+    afterglow: { g:'sunset', w:'light', ph:1, land:['sunset','rain'], hold:70, near:['bluehour','milkyway','moonlit','firstlight'], sky:[[0.3,0.05,265],[0.52,0.075,40],[0.47,0.07,25],[0.41,0.07,330],[0.375,0.08,292],[0.34,0.08,284]], skyW:[0.53,0.09,40], glowC:[0.53,0.1,45], hazeC:[0.42,0.06,290], hazeW:[0.5,0.08,35], fogB:[0.3,0.06,272], ambU:[0.42,0.07,290], ambD:[0.32,0.05,300], clLit:[0.78,0.12,5], clShade:[0.52,0.08,345], clDeep:[0.45,0.07,320], clRim:[0.78,0.1,25], skyK:[0.5,6,0.15], key:[0.78,0.12,40,0.7], sunVis:0, fogK:1, hazeK:1, seaLit:0.75, paint:{lit:[0.5,0.7,300,0.6],shade:[0.43,0.6,285,0.6],deep:[0.4,0.6,275,0.6],pale:[0.5,0.8,300,0.5]}, post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,hi:0.15,hiC:[0.48,0.08,10]}, fx:{belt:0.6}, ceil:0.525 },
+    bluehour: { g:'dusk', w:'light', ph:1, land:['dusk'], hold:70, near:['moonlit','milkyway','aurora','afterglow','firstlight'], sky:[[0.27,0.05,268],[0.5,0.06,40],[0.45,0.065,325],[0.41,0.085,295],[0.36,0.09,285],[0.3,0.09,272]], skyW:[0.48,0.07,35], glowC:[0.48,0.07,40], hazeC:[0.38,0.07,275], hazeW:[0.46,0.06,35], fogB:[0.27,0.07,270], ambU:[0.38,0.08,272], ambD:[0.28,0.05,275], clLit:[0.62,0.07,285], clShade:[0.47,0.07,280], clDeep:[0.4,0.07,275], clRim:[0.66,0.06,300], skyK:[0.4,5,0.12], key:[0.6,0.08,58,0.4], sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.53,0.8,320,0.8],shade:[0.46,0.75,305,0.7],deep:[0.4,0.7,290,0.7],pale:[0.5,0.7,300,0.6]}, post:{bloomK:0.35,shafts:0,sat:1.05,stars:0.35,hi:0.1,hiC:[0.42,0.06,280]}, fx:{belt:0.4,nlc:1}, ceil:0.525 },
+    moonlit: { g:'night', w:'light', ph:1, land:['night'], hold:190, near:['milkyway','aurora','firstlight','bluehour'], sky:[[0.3,0.12,264],[0.48,0.07,254],[0.43,0.1,257],[0.35,0.12,261],[0.28,0.12,264],[0.22,0.09,265]], skyW:[0.36,0.08,255], glowC:[0.42,0.04,250], hazeC:[0.33,0.045,262], hazeW:[0.38,0.035,252], fogB:[0.26,0.11,264], ambU:[0.34,0.09,262], ambD:[0.26,0.06,262], clLit:[0.7,0.06,258], clShade:[0.52,0.07,262], clDeep:[0.44,0.08,264], clRim:[0.74,0.04,250], skyK:[0.2,8,0.05], key:[0.84,0.03,245,0.55], sunVis:0, fogK:1, hazeK:1, seaLit:0.9, paint:{lit:[0.37,0.6,258,0.8],shade:[0.28,0.7,262,0.8],deep:[0.24,0.75,262,0.8],pale:[0.48,0.4,250,0.5]}, post:{bloomK:0.3,shafts:0,sat:1,stars:0.6,hi:0.1,hiC:[0.36,0.08,262]}, fx:{moon:{r:1.8,L:[0.62,0.03,250],glow:[0.44,0.05,250],corona:1}}, ceil:0.525 },
+    milkyway: { g:'night', w:'light', ph:2, land:['night'], hold:95, near:['aurora','moonlit','firstlight'], sky:[[0.25,0.09,264],[0.3,0.1,262],[0.29,0.1,263],[0.26,0.1,264],[0.22,0.09,265],[0.18,0.075,266]], skyW:[0.3,0.06,262], glowC:[0.3,0.03,260], hazeC:[0.28,0.09,264], hazeW:[0.31,0.08,260], fogB:[0.22,0.08,265], ambU:[0.26,0.07,264], ambD:[0.2,0.05,264], clLit:[0.38,0.1,266], clShade:[0.28,0.09,266], clDeep:[0.25,0.085,266], clRim:[0.42,0.06,255], skyK:[0.1,8,0], key:[0.6,0.02,250,0.15], sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.44,0.6,262,0.8],shade:[0.42,0.7,264,0.8],deep:[0.4,0.75,264,0.8],pale:[0.44,0.8,262,0.7]}, post:{bloomK:0.3,shafts:0,sat:1,stars:1,hi:0,hiC:[0.28,0.09,264]}, fx:{galaxy:1}, ceil:0.525 },
+    aurora: { g:'night', w:'light', ph:2, land:['night'], hold:100, near:['milkyway','moonlit','firstlight','bluehour'], sky:[[0.27,0.06,250],[0.33,0.06,225],[0.32,0.065,235],[0.29,0.08,250],[0.25,0.08,262],[0.21,0.07,266]], skyW:[0.34,0.06,175], glowC:[0.36,0.06,165], hazeC:[0.31,0.05,215], hazeW:[0.36,0.065,175], fogB:[0.24,0.065,250], ambU:[0.34,0.055,172], ambD:[0.24,0.05,240], clLit:[0.44,0.08,170], clShade:[0.32,0.07,240], clDeep:[0.28,0.07,250], clRim:[0.48,0.09,160], skyK:[0.15,10,0], key:[0.72,0.09,152,0.38], sunVis:0, fogK:1, hazeK:1, seaLit:0.85, paint:{lit:[0.46,0.6,175,0.35],shade:[0.43,0.6,250,0.7],deep:[0.41,0.6,255,0.7],pale:[0.46,0.8,175,0.4]}, post:{bloomK:0.35,shafts:0,sat:1.02,stars:0.75,hi:0,hiC:[0.31,0.05,215]}, fx:{aurora:1}, ceil:0.525 },
+    firstlight: { g:'dawn', w:'light', ph:1, land:['dawn','day'], hold:70, near:['moonlit','bluehour','afterglow'], sky:[[0.28,0.06,262],[0.52,0.095,38],[0.45,0.085,15],[0.37,0.075,265],[0.33,0.09,252],[0.29,0.09,255]], skyW:[0.5,0.09,45], glowC:[0.52,0.09,50], hazeC:[0.34,0.07,264], hazeW:[0.48,0.08,45], fogB:[0.27,0.07,255], ambU:[0.36,0.07,270], ambD:[0.26,0.05,268], clLit:[0.78,0.15,45], clShade:[0.46,0.07,292], clDeep:[0.4,0.07,286], clRim:[0.8,0.12,50], skyK:[0.5,6,0.12], key:[0.82,0.1,50,0.6], sunVis:0, fogK:1, hazeK:1, seaLit:0.8, paint:{lit:[0.42,0.65,245,0.9],shade:[0.38,0.65,248,0.9],deep:[0.35,0.65,250,0.9],pale:[0.5,0.5,250,0.5]}, post:{bloomK:0.35,shafts:0,sat:1.04,stars:0.3,hi:0.1,hiC:[0.4,0.06,252]}, fx:{belt:0.4}, ceil:0.525 }
   };
   /* the landings: each hour on the kept sky nearest it in the day's own order: dawn and the morning (day, 08-13)
      on the light before sunrise (its tops lit first, the sky warming low toward the sun), the afternoon (rain, 13-16) and
@@ -93,97 +93,4 @@
       for (j = 0; j < SKY_CLOUDK.length; j++) { cf[j][0] = mf + 0.6 * (cf[j][0] - mf); L[SKY_CLOUDK[j]] = linA(cf[j]); }
     }
     return L;
-  }
-  /* a prepared set's OKLab (as worldLights' are), and its sky's mean light (stops 0-58 deg) */
-  function skyLabSet(A) {
-    var o = {}, i; LKC.forEach(function (k) { o[k] = lin2lab(A[k]); });
-    o.skyFlat = new Float32Array(18); o.mL = 0;
-    for (i = 0; i < 6; i++) { var c = lin2lab([A.skyFlat[i * 3], A.skyFlat[i * 3 + 1], A.skyFlat[i * 3 + 2]]); o.skyFlat[i * 3] = c[0]; o.skyFlat[i * 3 + 1] = c[1]; o.skyFlat[i * 3 + 2] = c[2]; if (i > 0) o.mL += c[0] / 5; }
-    o.fogB = lin2lab([A.fogBf[0], A.fogBf[1], A.fogBf[2]]);
-    o.fam = {}; for (var f in SKY_FAM) { var m = 0; for (i = 0; i < SKY_FAM[f].length; i++) m += o[SKY_FAM[f][i]][0] / SKY_FAM[f].length; o.fam[f] = m; }
-    return o;
-  }
-  /* the colour families whose contrast is structure: the cloud's lit, shade, deep and rim (a tower behind the name),
-     the haze toward the light and away, the ambient from above and below: each family's mean light rides the light
-     clock with the sky's, each colour's offset from it the structure clock (no change crosses the inks' band, and the
-     two clocks are one) */
-  var SKY_FAM = { cl: ['clLit', 'clShade', 'clDeep', 'clRim'], hz: ['hazeC', 'hazeW'], amb: ['ambU', 'ambD'] }, SKY_FAMOF = { clLit: 'cl', clShade: 'cl', clDeep: 'cl', clRim: 'cl', hazeC: 'hz', hazeW: 'hz', ambU: 'amb', ambD: 'amb' };
-  /* the paint: a role's transform of an OKLab colour (L x kL, capped or floored; C x kC; the hue pulled toward h) */
-  function trRole(p, l, out) {
-    if (p[0] === 1 && p[1] === 1 && p[3] === 0 && p.length < 5) { out[0] = l[0]; out[1] = l[1]; out[2] = l[2]; return out; }
-    var L = l[0] * p[0], C = Math.hypot(l[1], l[2]) * p[1], h = Math.atan2(l[2], l[1]) / DEG;
-    if (p.length > 4) L = Math.max(Math.min(L, p[4]), p[5]);
-    h += p[3] * angd(p[2], h);
-    out[0] = L; out[1] = C * Math.cos(h * DEG); out[2] = C * Math.sin(h * DEG);
-    return out;
-  }
-  var TRS = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
-  /* a creature's colour (a flock's lit or shade) or a particle's through a sky: creatures keep their own light but the
-     night's (x crK, at most crCap: the white birds pale and moonlit, the dunes' birds silhouettes), the lit role's
-     chroma and hue; particles take the lit role whole. A waypoint: the two skies' midpoint */
-  function trCr(O, l, out, part) {
-    if (O.wA) {
-      var a = trCr(O.wA, l, TRS[0], part), b = trCr(O.wB, l, TRS[1], part);
-      out[0] = (a[0] + b[0]) / 2; out[1] = (a[1] + b[1]) / 2; out[2] = (a[2] + b[2]) / 2;
-      return out;
-    }
-    var p = O.sky.paint.lit;
-    if (part) return trRole(p, l, out);
-    trRole([1, p[1], p[2], p[3]], l, out); out[0] = Math.min(l[0] * O.crK, O.crCap);
-    return out;
-  }
-  function skyFinish(O) {
-    O.d = prepOne(cpRaw(O.rawD)); O.a = prepOne(cpRaw(O.rawA)); O.dl = skyLabSet(O.d); O.al = skyLabSet(O.a);
-    O.mD = O.dl.mL; O.mA = O.al.mL; O.mR = (O.mD + O.mA) / 2;
-  }
-  /* a sky's own: its two kits' sets, its paint (OKLab per slot, and the whole uP array as drawn in its hold), its amounts */
-  function skyObj(id) {
-    if (SKY.sets[id]) return SKY.sets[id];
-    var S = WSKY[id], V = SKY.V, O = { id: id, w: S.w, sky: S, g: S.g }, s, j, o = [0, 0, 0];
-    O.rawD = skyRaw(S, V.lightRaw, V.light.sunDir); O.rawA = skyRaw(S, V.lightRawB, V.light.sunDir);
-    skyFinish(O);
-    O.pLab = new Float32Array(72); O.pLin = new Float32Array(V.paramsBase);
-    for (s = 0; s < 18; s++) {
-      var r = ROLE_SLOT[s], B = SKY.baseLab[s];
-      if (!r) continue;
-      if (r === 'sea') { O.pLab[s * 3] = S.seaLit === undefined ? 1 : S.seaLit; O.pLin[s * 4] = O.pLin[s * 4 + 1] = O.pLin[s * 4 + 2] = O.pLab[s * 3]; continue; }
-      if (r === 'sheen') {   // (the sheen: lit's transform of its colour before its own x0.3, then the x0.3 again)
-        var sb = SKY.sheenLab; trRole(S.paint.lit, sb, o); var sl = lab2linA(o[0], o[1], o[2]), sv = labA(scl(sl, 0.3));
-        O.pLab[s * 3] = sv[0]; O.pLab[s * 3 + 1] = sv[1]; O.pLab[s * 3 + 2] = sv[2];
-      } else { trRole(S.paint[r], B, o); O.pLab[s * 3] = o[0]; O.pLab[s * 3 + 1] = o[1]; O.pLab[s * 3 + 2] = o[2]; }
-      if (S.kit) continue;   // ('fair': the kits' own paint, bit for bit)
-      labTo(O.pLin, s * 4, O.pLab[s * 3], O.pLab[s * 3 + 1], O.pLab[s * 3 + 2]);
-    }
-    O.crK = 0.5; O.crCap = 0.5;   // (a creature's light under the night's: x0.5, at most 0.5; every sky's words are light)
-    O.ceil = S.ceil; O.seaLit = S.seaLit === undefined ? 1 : S.seaLit; O.sunVis = S.kit ? 1 : S.sunVis;
-    O.skyEl = S.kit ? null : S.skyEl;
-    O.motes = S.post && S.post.motes !== undefined ? S.post.motes : 0;
-    O.grainK = 0.45; O.ribK = 0.5;   // (the sand's grains and veils at night, every sky's: x0.45 and x0.5 of the paint's colour, so a speck near the eye is no lamp against the night sky)
-    var fx = S.fx || {};
-    O.fx = [fx.belt || 0, fx.nlc || 0, fx.galaxy || 0, fx.aurora || 0, fx.moon ? 1 : 0, fx.curtain || 0, 0, 0];
-    O.dir = O.skyEl === null ? Array.prototype.slice.call(V.light.sunDir) : dirAzEl(V.light.sunAz, O.skyEl);
-    SKY.sets[id] = O;
-    return O;
-  }
-  /* a change's waypoint (the live's way(A, B, far)): the two skies' midpoint, every event at a quarter;
-     through the mist where the two are not neighbours */
-  function skyWay(a, b, far) {
-    var key = a + '>' + b + (far ? '*' : '');
-    if (SKY.sets[key]) return SKY.sets[key];
-    var A = skyObj(a), B = skyObj(b), V = SKY.V, O = { id: key, w: null, wA: A, wB: B, far: far, g: A.g }, s, j;
-    O.rawD = wayRaw(A.rawD, B.rawD, far); O.rawA = wayRaw(A.rawA, B.rawA, far);
-    skyFinish(O);
-    O.pLab = new Float32Array(72); O.pLin = new Float32Array(V.paramsBase);
-    for (s = 0; s < 18; s++) { var r = ROLE_SLOT[s]; if (!r) continue; for (j = 0; j < 3; j++) O.pLab[s * 3 + j] = (A.pLab[s * 3 + j] + B.pLab[s * 3 + j]) / 2; }
-    for (s = 0; s < 18; s++) {
-      var r2 = ROLE_SLOT[s]; if (!r2) continue;
-      if (r2 === 'sea') { O.pLin[s * 4] = O.pLin[s * 4 + 1] = O.pLin[s * 4 + 2] = O.pLab[s * 3]; continue; }
-      labTo(O.pLin, s * 4, O.pLab[s * 3], O.pLab[s * 3 + 1], O.pLab[s * 3 + 2]);
-    }
-    O.ceil = (A.ceil + B.ceil) / 2; O.seaLit = (A.seaLit + B.seaLit) / 2; O.sunVis = 0; O.skyEl = null;
-    O.motes = (A.motes + B.motes) / 2; O.grainK = (A.grainK + B.grainK) / 2; O.ribK = (A.ribK + B.ribK) / 2;
-    O.fx = []; for (j = 0; j < 8; j++) O.fx.push((A.fx[j] + B.fx[j]) / 2 * 0.25);
-    O.dir = A.dir;
-    SKY.sets[key] = O;
-    return O;
   }

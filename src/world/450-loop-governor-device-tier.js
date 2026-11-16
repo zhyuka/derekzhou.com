@@ -67,6 +67,21 @@
      HALPHA: the ink birds' own clock while held (fixed steps, as the flight's) */
   var HELD = false, HDRAW = false, HACC = 0, HALPHA = 1;
   function hold(why) { if (!HELD) { HELD = true; HDRAW = true; HACC = 0; BOOT.held = why; bootMark('held: ' + why); recMark('held: ' + why); } }
+  /* (held, its memory) once the held frame is drawn and the frame lives in TG.win (the world under the canvas's size: not
+     DIRECT; every phone of the held tier), the targets that neither represent's blit nor the ink birds read are freed:
+     the scene's samples and colours, the clouds' accumulation but the one shown (CLT), the land's half-resolution
+     colour, the bloom's chain but its first, the shafts'. Kept: TG.win, the scene's depth, the clouds', the bloom's
+     first and the half-resolution depth (HOST.bindTextures). A resize or a restore makes them all again (allocTargets) */
+  function heldFree() {
+    if (DIRECT || !TG || TG.held) return;
+    TG.held = true;
+    freeMS(TG.ms); TG.ms = null;
+    gl.deleteTexture(TG.scene.t); if (TG.sceneH) gl.deleteTexture(TG.sceneH.t);
+    TG.ch.forEach(function (T) { if (T !== CLT) freeTarget(T); });
+    gl.deleteTexture(TG.lind.t); TG.bd.forEach(freeTarget); TG.bu.forEach(function (T, i) { if (i) freeTarget(T); }); freeTarget(TG.sb);
+    bootMark('held: targets freed');
+  }
+  function heldDraw() { if (TG && TG.held) allocTargets(); if (render()) heldFree(); }   // (drawn whole: never on freed targets)
   function giveUp() { if (shown && !LOST) { RUNG = 0; hold('the governor gave up'); return; } DEAD = true; GAVEUP = true; stop(); shown = false; canvas.classList.remove('on'); markStill(); clearWords(); recMark('gave up'); }
   /* the boot declines (a first frame doubted twice, a broken engine program; stage G's floor now holds): the canvas never
      shows; the hour's still sky stays */
@@ -81,10 +96,9 @@
     drawFrame(V, ur);
     SKYMARK = SKYI.group || V.def.still;   // (the current sky's time of day, the world's still sky for it, marked only when the canvas hides: markStill)
     skyTheme(false);   // (the browser's bars follow the drawn sky)
-    if (!shown) { shown = true; canvas.classList.add('on'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); if (self.PROBE) { self.PROBE('shown', BOOT.shownAt, probeInfo()); self.PROBE.gov = function () { return { rung: RUNG, n: RUNGS.length, scale: RUNGS[RUNG], pace: GOVN[13], p50: GOVN[2], dead: DEAD, running: running }; }; } }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
+    if (!shown) { shown = true; canvas.classList.add('on'); root.style.setProperty('--still', 'none'); SHOWNT = SIM.t; recShown(); BOOT.shownAt = clockNow(); if (self.PROBE) { self.PROBE('shown', BOOT.shownAt, probeInfo()); self.PROBE.gov = function () { return { rung: RUNG, n: RUNGS.length, scale: RUNGS[RUNG], pace: GOVN[13], p50: GOVN[2], dead: DEAD, running: running }; }; } }   // (no fades: the canvas shows at once, a cut, this frame drawn whole)
     return true;
   }
   /* at the start the engine, the first visit and its cells about the origin are built a step a frame while the
      stylesheet's still sky shows; the journey's clock starts with the first frame drawn */
-  function heading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
 

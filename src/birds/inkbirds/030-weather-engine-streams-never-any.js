@@ -20,6 +20,9 @@
     visitSeed = Math.floor(HOST.rng(0xB1D5)() * 4294967296) >>> 0;
     var r = vstream(1), i; for (i = 0; i < NOISE_N; i++) noise[i] = r() * 2 - 1;
   }
+  /* (the cut) the host's own read for all after it: the visit seed mixed with it, the population's stream drawn again;
+     the noise table and the flocks on show keep theirs */
+  function afterCut(s) { visitSeed = (visitSeed ^ s) >>> 0; POP.r = vstream(8800); }
   function nz(i) { return noise[(i | 0) & (NOISE_N - 1)]; }
   /* a slow wave in [-1, 1]: two sines, the second 0.618 as fast, their phases from the table (never a jolt) */
   function wave(key, x) { return 0.6 * Math.sin(TAU * x + Math.PI * nz(key)) + 0.4 * Math.sin(TAU * 0.618 * x + Math.PI * nz(key + 1)); }

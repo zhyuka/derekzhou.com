@@ -9,7 +9,7 @@
      scrolls, and everything the browser's while it is zoomed in). The phone: its turn and tilt from where it was when
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
-  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0 };
+  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, relAny: false, qx: 0, qy: 0 };   // (fx, fy: the drag drawn since the last step; relAny: a release the next step counts as input; qx, qy: a dev script's drag)
   var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
@@ -46,14 +46,15 @@
       if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
       DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (data-steer and the selection cleared in the next frame)
       if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
-      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0;   // (the first 8 px are taken too: the scene catches the finger up)
+      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0; REL.n = 0;   // (the first 8 px are taken too: the scene catches the finger up, drawn whole; the samples start at the place it caught up to, so the catch-up is no speed)
     }
-    INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y;
+    INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y; relAdd(x, y, e.timeStamp);   // (the first: the place the start caught up to)
     if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (the record: the oldest move not yet drawn, for the input's latency)
   }
   function onUp(e) {
     if (e.pointerId !== DRAG.id) return;
     var was = DRAG.on;
+    if (was) { REL.tl = e.timeStamp; if (REL.n) relAdd(DRAG.x, DRAG.y, REL.t[(REL.i + REL_N - 1) % REL_N]); }   // (the lift: its time apart, for the rest; its place, the last drawn, at the last move's time: a lift comes a digitizer frame (4-17 ms) after the last move, and sampled at its own time the fit saw the finger stop: a steady flick coasted at 0.41-0.84 x its speed)
     var held = DRAG.type === 'touch' && e.timeStamp - DRAG.ts >= HOLD_S * 1000;   // (a touch held for the birds is no tap)
     if (!was && !held && !onLink(e.target) && !FCOL.on && CLICKQ.length < 16) CLICKQ.push(e.clientX, e.clientY);   // (each click spawns a bird)
     endDrag(true);
@@ -109,31 +110,91 @@
   }
   /* each step: the drag's motion and the phone's into the flight's state */
   var IDLE_K = 0;
-  function applyInput(dt, t, V) {
-    // (dev: a scripted input replayed at its own times)
-    while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
-    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.dx, dy = INP.dy, any = false;
-    INP.dx = 0; INP.dy = 0;
-    if (dx || dy) any = true;
-    if (INP.down) {
-      CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
-      CS.ring[CS.ri] = dx * G; CS.ringP[CS.ri] = dy * G; CS.ri = (CS.ri + 1) % 12;   // (the last 0.2 s: the release's speed)
-      CS.om = 0; CS.omP = 0; CS.since = 0;
+  /* each frame, before its steps (simAdvance, the frame's time fdt s): the view's own motion, in frame time on both
+     states the camera is drawn between, so the frame that reads it draws it exactly, on any display and at any phase of
+     the steps (drawn through the steps, a frame's drag turned 0, 1 or 2 frames' worth a frame, and the release's coast
+     doubled a frame or held still up to 12 ms):
+     - the drag moved since the last frame turns the view by exactly the finger's move (a release still draws its last
+       moves; a cancelled drag draws none);
+     - let go, the release's speed is taken (from the drag's own samples, below) and the coast
+       runs on from the next frame: the turn's speed x 0.3 s (at most 14 deg), the tilt's x 0.2 s (at most 5.7 deg).
+       (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
+       18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
+       realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s
+       after it the tilt's own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at
+       most 1.5 deg/s).
+     Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it, drawn whole in the first
+     frame after it (its samples are the finger's own: its release's speed is the finger's, never the catch-up's); a
+     released one is dropped, as the steps dropped it */
+  /* the release's speed: the drag's own samples (each move's place and time, and the lift's), never the frames': a
+     finger that rested before it lifted has none, else the slope at the lift of a least-squares fit through the last
+     REL_H ms of them (exact for a steady drag, on any display and any rate of moves). (Before: the mean of the last
+     0.2 s of steps: a glance that stopped and was let go 2 frames later ran on 6-14 deg by itself, and a long rest 2-11
+     deg.) A drag shorter than RING_T s coasts by its share of it, as a 0.2 s ring of steps did; 0 against the drag (a
+     fit's overshoot as the finger slows) */
+  var RING_T = 0.18, REL_H = 100, REL_STOP = 24, REL_N = 128;   // (ms: the fit's reach, and at least 3 times: a long frame leaves one move a frame; the rest within 1 px that is a stop, 25 ms on any display)
+  var REL = { x: new Float64Array(REL_N), y: new Float64Array(REL_N), t: new Float64Array(REL_N), i: 0, n: 0, t0: 0, tl: -1e9, px: 0, py: 0, vx: 0, vy: 0 };
+  function relAdd(x, y, t) {
+    if (!REL.n) REL.t0 = t;
+    REL.x[REL.i] = x; REL.y[REL.i] = y; REL.t[REL.i] = t; REL.i = (REL.i + 1) % REL_N; if (REL.n < REL_N) REL.n++;
+  }
+  function relFit(A, j0, m, tU) {   // the slope at the lift (px/ms) of a fit through the newest m samples of A
+    var s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, q0 = 0, q1 = 0, q2 = 0, k, j, u, q, u2;
+    for (k = 0; k < m; k++) { j = (j0 - k + REL_N) % REL_N; u = (REL.t[j] - tU) / REL_H; q = A[j] - A[j0]; u2 = u * u; s0++; s1 += u; s2 += u2; s3 += u2 * u; s4 += u2 * u2; q0 += q; q1 += q * u; q2 += q * u2; }
+    var b, det = m > 2 ? s0 * (s2 * s4 - s3 * s3) - s1 * (s1 * s4 - s3 * s2) + s2 * (s1 * s3 - s2 * s2) : 0;
+    if (Math.abs(det) > 1e-9) b = (s0 * (q1 * s4 - s3 * q2) - q0 * (s1 * s4 - s3 * s2) + s2 * (s1 * q2 - q1 * s2)) / det;
+    else { var d = s0 * s2 - s1 * s1; b = Math.abs(d) > 1e-12 ? (s0 * q1 - s1 * q0) / d : 0; }
+    j = (j0 - m + 1 + REL_N) % REL_N;
+    b /= REL_H;
+    return b * (A[j0] - A[j]) > 0 ? b : 0;
+  }
+  function relSpeed() {
+    REL.vx = 0; REL.vy = 0;
+    if (REL.n < 2) return;
+    var j0 = (REL.i - 1 + REL_N) % REL_N, tU = REL.t[j0], tS = tU, m = 1, k, j, ex, ey, nt;
+    for (k = 1; k < REL.n; k++) { j = (j0 - k + REL_N) % REL_N; ex = REL.x[j] - REL.x[j0]; ey = REL.y[j] - REL.y[j0]; if (ex * ex + ey * ey > 1) break; tS = REL.t[j]; }   // (since tS within 1 px of where it lifted)
+    if (Math.max(REL.tl, tU) - tS >= REL_STOP) return;   // (it rested before it lifted, moves or none, up to the lift's own time: no speed)
+    for (k = 1, nt = 1; k < REL.n; k++) { j = (j0 - k + REL_N) % REL_N; if (tU - REL.t[j] > REL_H && nt >= 3) break; if (REL.t[j] !== REL.t[(j + 1) % REL_N]) nt++; m++; }
+    if (m < 2) return;
+    var share = Math.min(1, (tU - REL.t0) / (RING_T * 1000));
+    REL.vx = relFit(REL.x, j0, m, tU) * share; REL.vy = relFit(REL.y, j0, m, tU) * share;
+  }
+  function inputFrame(dt) {
+    var fdt = Math.min(dt, DTMAX);
+    if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } return; }
+    if (!INP.down && !INP.rel && (CS.om || CS.omP)) {
+      var cy = CS.om * fdt, cp = CS.omP * fdt;
+      CS.yawV += cy; CSP.yawV += cy;
+      CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);
+      CS.om *= Math.exp(-fdt / 0.3); CS.omP *= Math.exp(-fdt / 0.2);
+    }
+    if (INP.dx || INP.dy) {
+      var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
+      INP.dx = 0; INP.dy = 0;
+      if (INP.down || INP.rel) {
+        CS.yawV += ax; CSP.yawV += ax;
+        CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);
+        INP.fx += ax; INP.fy += ay;
+      }
     }
     if (INP.rel) {
-      INP.rel = false; any = true;
-      var sx = 0, sy = 0; for (var i = 0; i < 12; i++) { sx += CS.ring[i]; sy += CS.ringP[i]; CS.ring[i] = 0; CS.ringP[i] = 0; }
-      CS.om = clamp(sx / (12 * dt), -0.8, 0.8); CS.omP = clamp(sy / (12 * dt), -0.5, 0.5);   // (the coast: the speed x 0.3 s, at most 14 deg; the tilt's x 0.2 s, at most 5.7 deg)
+      INP.rel = false; INP.relAny = true;
+      relSpeed();
+      var GR = 1000 * (PI / 2) / Math.max(OUT.cssW || 800, 240);   // (px/ms to rad/s)
+      CS.om = clamp(REL.vx * GR, -0.8, 0.8); CS.omP = clamp(REL.vy * GR, -0.5, 0.5);
     }
-    if (!INP.down) {
-      CS.yawV += CS.om * dt; CS.om *= Math.exp(-dt / 0.3);
-      // (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
-      // 18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
-      // realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s after it the tilt's
-      // own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at most 1.5 deg/s)
-      CS.thU = clamp(CS.thU + CS.omP * dt, -TH_MAX, TH_MAX); CS.omP *= Math.exp(-dt / 0.2);
-      CS.since += dt;
-    }
+  }
+  function applyInput(dt, t, V) {
+    // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given; its release is taken
+    // in the next frame)
+    while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
+    var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.qx, dy = INP.qy, fx = INP.fx, fy = INP.fy, any = INP.relAny;
+    INP.qx = 0; INP.qy = 0; INP.fx = 0; INP.fy = 0; INP.relAny = false;
+    if (dx || dy || fx || fy) any = true;
+    if (INP.down) {
+      CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
+      CS.om = 0; CS.omP = 0; CS.since = 0;
+    } else CS.since += dt;
     // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg
     if (MOTION.on && MOTION.has) {
       var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1);
@@ -145,16 +206,16 @@
     }
     if (any) {
       CS.lastIn = t; CS.auto = 0;
-      IDLE_K++; CS.idleAfter = 6 + 4 * hfl(ihash((IDLE_K * 2654435761 + J.seed) >>> 0));   // (6-10 s before the clearance eases back to the cruise height)
-      if (DEVMODE) INPLOG.push([+t.toFixed(4), +dx.toFixed(2), +dy.toFixed(2), INP.down ? 1 : 0, MOTION.has ? +(MOTION.yaw / DEG).toFixed(3) : null, MOTION.has ? +(MOTION.pitch / DEG).toFixed(3) : null]);
+      IDLE_K++; CS.idleAfter = 6 + 4 * hfl(ihash((IDLE_K * 2654435761 + (shown ? SEEDR : J.seed)) >>> 0));   // (6-10 s before the clearance eases back to the cruise height)
+      if (DEVMODE) INPLOG.push([+t.toFixed(4), +(dx + fx / G).toFixed(2), +(dy + fy / G).toFixed(2), INP.down ? 1 : 0, MOTION.has ? +(MOTION.yaw / DEG).toFixed(3) : null, MOTION.has ? +(MOTION.pitch / DEG).toFixed(3) : null]);
     }
   }
   /* dev: an input injected at a step's time ({ t, drag: [dx, dy] } moves a held drag; { t, down } / { t, up } press and
      release; { t, orient: [alpha, beta, gamma] } the phone; { t, motion: true } motion enabled) */
   function devInput(ev) {
-    if (ev.down) { INP.down = true; }
-    if (ev.drag) { INP.dx += ev.drag[0]; INP.dy += ev.drag[1]; }
-    if (ev.up) { INP.down = false; INP.rel = true; }
+    if (ev.down) { INP.down = true; REL.n = 0; REL.px = 0; REL.py = 0; relAdd(0, 0, ev.t * 1000); }
+    if (ev.drag) { INP.qx += ev.drag[0]; INP.qy += ev.drag[1]; REL.px += ev.drag[0]; REL.py += ev.drag[1]; relAdd(REL.px, REL.py, ev.t * 1000); }
+    if (ev.up) { INP.down = false; INP.rel = true; REL.tl = ev.t * 1000; }
     if (ev.motion) { MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; }
     if (ev.orient) orientAt(ev.orient[0], ev.orient[1], ev.orient[2]);
   }
