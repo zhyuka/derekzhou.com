@@ -47,6 +47,7 @@ jobs:
       site_changed: ${{ steps.areas.outputs.site_changed }}
       run_t1: ${{ steps.areas.outputs.run_t1 }}
       dom_changed: ${{ steps.areas.outputs.dom_changed }}   # (the page outside the canvas changed: T1 compares the DOM beside T2)
+      served_sha: ${{ steps.handoff.outputs.sha }}   # (the hand-off's manifest, sha256: T1 and T2 read the builds pinned to it)
       gpu_js: ${{ steps.areas.outputs.gpu_js }}
       t2_self: ${{ steps.areas.outputs.t2_self }}
       input_changed: ${{ steps.areas.outputs.input_changed }}
@@ -120,6 +121,7 @@ jobs:
       # (and attempt), a sha256 manifest every reader checks, swept after 24 h. Its own check is proved on every gate: a
       # byte changed in a copy of the hand-off must be caught.
       - name: The two builds, handed to T1, T2 and the Stills job (the PC's disk)
+        id: handoff   # (outputs.sha: the manifest's sha256, which every reader pins)
         run: |
           node .github/ci/handoff.mjs sweep --hours 24
           node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
@@ -152,14 +154,10 @@ jobs:
           R="https://api.github.com/repos/$GITHUB_REPOSITORY"; K="${KEY%-stall*}"
           shas="$GITHUB_SHA $(api "$R/commits/$GITHUB_SHA/pulls" | jq -r '.[] | select(.merged_at != null) | .head.sha' | tr '\n' ' ')"
           ids=$(for s in $shas; do api "$R/actions/workflows/gate.yml/runs?head_sha=$s&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'; done | sort -u)
-          HR=$(node -e "import('./.github/ci/handoff.mjs').then((m) => console.log(m.root()))")
-          for id in $ids; do
-            v=""; for f in "$HR/verdict/$id-"*.json; do [ -f "$f" ] && v="$f"; done   # (the PC's copy first: the last attempt's)
-            if [ -n "$v" ]; then rm -rf "$D"; mkdir -p "$D"; cp "$v" "$D/verdict.json"; else
+          for id in $ids; do   # (the gate-verdict artifact, never the PC's copy: any run's code can write that folder)
             a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '[.artifacts[] | select(.name == "gate-verdict" and (.expired | not))] | sort_by(.created_at) | last | .archive_download_url // empty')   # (a re-run's newest, as the bot reads it)
             [ -n "$a" ] || continue
             rm -rf "$D"; mkdir -p "$D"; api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
-            fi
             if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" --arg k "$K" '((.t2_key // "" | sub("-stall(yes|no)$"; "")) == $k or (.sha == $s and .base == $b)) and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
               jq -c '.t2 | {frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok} | map_values(if . == null then "" else tostring end)' "$D/verdict.json" > "$D/t2.json"
               echo "the PR's gate (run $id) compared these builds: $(cat "$D/t2.json")"; echo "hit=true" >> "$GITHUB_OUTPUT"; exit 0
@@ -223,6 +221,8 @@ jobs:
     if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.has_pr != 'false' && ((needs.plan.outputs.t2_run != 'true' && needs.plan.outputs.t2_cached == '') || needs.plan.outputs.dom_changed == 'true')
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 12
+    outputs:
+      shards_sha: ${{ steps.shards.outputs.sha }}
     env:
       T1_CACHE: ${{ inputs.t1_cache || 'use' }}
       DOM_ONLY: ${{ (needs.plan.outputs.t2_run == 'true' || needs.plan.outputs.t2_cached != '') && '1' || '0' }}
@@ -235,8 +235,10 @@ jobs:
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
-      - name: The two builds (the plan's hand-off, checked against its manifest)
-        run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served"
+      - name: The two builds (the plan's hand-off, checked against its manifest, pinned to the plan's output)
+        env:
+          HANDOFF_SHA: ${{ needs.plan.outputs.served_sha }}
+        run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served" --pinned
       - name: The records' key
         id: rk
         run: echo "pre=t1rec-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-x4" >> "$GITHUB_OUTPUT"
@@ -286,6 +288,7 @@ jobs:
           path: ${{ runner.temp }}/t1rec
           key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.head_build }}
       - name: T1's shards, handed to the verdict (the PC's disk)
+        id: shards   # (outputs.sha: their manifest's sha256, which the verdict pins)
         if: always()
         run: if [ -d "$RUNNER_TEMP/t1" ]; then node .github/ci/handoff.mjs put "$RUNNER_TEMP/t1" t1; fi
 
@@ -306,6 +309,7 @@ jobs:
     uses: ./.github/workflows/gpu.yml
     with:
       base: ${{ needs.plan.outputs.base }}
+      served_sha: ${{ needs.plan.outputs.served_sha }}   # (T2 reads the plan's hand-off pinned to it)
       stall: ${{ github.ref == 'refs/heads/main' && 'yes' || 'no' }}   # (the stall visits: main's gate only; the deploy gate reads them)
       frames: ${{ needs.plan.outputs.t2_frames == 'no' && 'no' || 'yes' }}   # (no: the PR's gate already compared these builds' frames)
 
@@ -323,7 +327,9 @@ jobs:
         with:
           sparse-checkout: .github/ci
       - name: T1's shards (the hand-off, checked; none when T1 did not run)
-        run: if node .github/ci/handoff.mjs has t1; then node .github/ci/handoff.mjs get t1 "$RUNNER_TEMP/t1"; else mkdir -p "$RUNNER_TEMP/t1"; echo "no T1 shards handed off"; fi
+        env:
+          HANDOFF_SHA: ${{ needs.t1.outputs.shards_sha }}
+        run: if [ -n "$HANDOFF_SHA" ]; then node .github/ci/handoff.mjs get t1 "$RUNNER_TEMP/t1" --pinned; else mkdir -p "$RUNNER_TEMP/t1"; echo "no T1 shards handed off"; fi
       - name: Verdict
         id: v
         env:

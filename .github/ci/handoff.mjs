@@ -2,18 +2,27 @@
 // the repository's artifact storage quota was hit and every gate's plan job failed uploading its two builds). Every
 // job of the gate runs on the PC: the Linux runners in WSL and the Windows GPU runner see one folder,
 // HANDOFF_ROOT (default /mnt/c/ci-handoff in WSL, C:\ci-handoff on Windows: the same folder).
-//   node .github/ci/handoff.mjs put SRC NAME [--run R]   copy the folder SRC to ROOT/gate/R/NAME, with a sha256 manifest
+//   node .github/ci/handoff.mjs put SRC NAME [--run R]   copy the folder SRC to ROOT/gate/R/NAME, with a sha256 manifest;
+//                                                        the manifest's own sha256 goes to the step's outputs (sha=...)
 //   node .github/ci/handoff.mjs get NAME DEST [--run R]  copy ROOT/gate/R/NAME to DEST (R's newest attempt that has it),
 //                                                        every file checked against its manifest: a missing folder, file
-//                                                        or byte fails, loudly
+//                                                        or byte fails, loudly. --pinned: HANDOFF_SHA (the putting job's
+//                                                        output) must be the manifest's sha256 (below)
 //   node .github/ci/handoff.mjs has NAME [--run R]       exit 0 when ROOT/gate/R/NAME is there (an optional hand-off)
 //   node .github/ci/handoff.mjs drop [--run R]           delete every attempt of R's run (a green verdict, off main: a
 //                                                        red one keeps its builds for a re-run, swept after 24 h)
 //   node .github/ci/handoff.mjs sweep [--hours 24]       delete every ROOT/gate/* older than that (each gate's start)
 //   node .github/ci/handoff.mjs selftest NAME [--run R]  the check proved on the real hand-off: a copy with one byte
 //                                                        changed must be caught (every gate's plan job runs it)
-//   node .github/ci/handoff.mjs verdict-put FILE         keep FILE as ROOT/verdict/<run id>-<attempt>.json (30 days: the
-//                                                        merge bot reads a run's verdict here before its artifact)
+//   node .github/ci/handoff.mjs verdict-put FILE         keep FILE as ROOT/verdict/<run id>-<attempt>.json (30 days): a
+//                                                        record for people, which nothing reads or trusts (below)
+// The trust line (the hub's review, 2026-11-16): the folder is shared by every job on the PC, and a PR's own build code
+// runs in its plan job with it writable, so it could rewrite any run's files there, the manifest too. A GitHub artifact
+// was scoped to its run; this folder is not. So what decides anything is never read from it alone: a reader of the
+// builds or of T1's shards pins the manifest's sha256 to the putting job's output (GitHub keeps job outputs per run,
+// out of reach of another run's code), and the verdict the merge bot and T2's probe trust is the gate-verdict artifact,
+// never the PC's copy. (The Stills job, after a main gate, reads without a pin: a workflow_run cannot see the gate's job
+// outputs. docs/deploy.md, "The hand-off".)
 // R: <run id>-<attempt>, from GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. A job writes its own attempt's folder; a reader takes
 // the newest attempt at or below its own that has the name (a re-run of failed jobs keeps the earlier attempt's plan).
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto'; import { fileURLToPath } from 'node:url';
@@ -62,9 +71,14 @@ export function check(dir, m) {
   for (const f of have) if (!(f in m)) bad.push('not in the manifest ' + f);
   return bad;
 }
-export function get(name, dest, base) {
+export const manifestSha = (mf) => sha(mf);
+export function get(name, dest, base, pin) {
   const src = path.join(base, name), mf = src + '.manifest.json';
   if (!fs.existsSync(src) || !fs.existsSync(mf)) throw new Error(`handoff get: ${src} is not there (its run's job did not hand it off, or it was swept)`);
+  if (pin !== undefined) {
+    if (!/^[0-9a-f]{64}$/.test(pin || '')) throw new Error(`handoff get: ${name} is pinned, but HANDOFF_SHA is not a sha256 ("${pin || ''}": the putting job's output is missing)`);
+    if (sha(mf) !== pin) throw new Error(`handoff get: ${name}'s manifest is not the one its job handed off (sha256 ${sha(mf).slice(0, 12)}, the job's output ${pin.slice(0, 12)}): another run's code rewrote it`);
+  }
   const m = JSON.parse(fs.readFileSync(mf, 'utf8'));
   fs.rmSync(dest, { recursive: true, force: true }); fs.mkdirSync(path.dirname(path.resolve(dest)), { recursive: true });
   copy(src, dest);
@@ -82,6 +96,7 @@ export function sweep(r, hours, now = Date.now()) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const a = process.argv.slice(2), opt = (k) => { const i = a.indexOf(k); return i >= 0 ? a.splice(i, 2)[1] : null; };
+  const pinned = a.includes('--pinned'); if (pinned) a.splice(a.indexOf('--pinned'), 1);
   const run = opt('--run'), hours = +(opt('--hours') || 24), [cmd, x, y] = a, r = root();
   const base = () => path.join(r, 'gate', run || runKey());
   // a reader takes the newest attempt of this run that handed NAME off: a re-run of only the failed jobs (attempt 2)
@@ -92,8 +107,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     return base();
   };
   try {
-    if (cmd === 'put') console.log(`handoff: ${put(x, y, base())} files of ${x} handed off as ${path.join(base(), y)}`);
-    else if (cmd === 'get') console.log(`handoff: ${get(x, y, from(x))} files of ${x} checked against their manifest, in ${y}`);
+    if (cmd === 'put') {
+      const n = put(x, y, base()), h = sha(path.join(base(), y + '.manifest.json'));
+      if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `sha=${h}\n`);
+      console.log(`handoff: ${n} files of ${x} handed off as ${path.join(base(), y)} (manifest sha256 ${h})`);
+    }
+    else if (cmd === 'get') console.log(`handoff: ${get(x, y, from(x), pinned ? (process.env.HANDOFF_SHA || '') : undefined)} files of ${x} checked against their manifest${pinned ? ', pinned to its job\'s output' : ''}, in ${y}`);
     else if (cmd === 'has') process.exitCode = fs.existsSync(path.join(from(x), x + '.manifest.json')) ? 0 : 1;
     else if (cmd === 'drop') {   // (every attempt of the run)
       const id = (run || runKey()).split('-')[0], g = path.join(r, 'gate'); let n = 0;

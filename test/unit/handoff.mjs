@@ -1,6 +1,7 @@
 // test/unit/handoff.mjs: the gate's hand-off on the PC's disk (.github/ci/handoff.mjs): what a job puts, the next gets
 // byte for byte or fails loudly; a re-run reads its run's newest attempt; drop and the sweep clear it.
 import { test, assert, fs, os, path, execFileSync, ROOT } from '../unit-lib.mjs';
+import crypto from 'node:crypto';
 
 const H = path.join(ROOT, '.github/ci/handoff.mjs');
 const cli = (env, ...a) => { try { return { ok: true, out: execFileSync(process.execPath, [H, ...a], { env: { ...process.env, ...env }, encoding: 'utf8' }) }; } catch (e) { return { ok: false, out: String(e.stdout || '') }; } };
@@ -30,6 +31,20 @@ test('handoff: put, then get, byte for byte; a changed, missing or extra byte fa
     fs.writeFileSync(path.join(h, 'index.html'), '<!doctype html>'); fs.writeFileSync(path.join(h, 'extra'), 'x');
     assert.match(cli(env, 'get', 'served', path.join(t, 'out4')).out, /not in the manifest extra/);
     assert.match(cli({ ...env, GITHUB_RUN_ID: '12' }, 'get', 'served', path.join(t, 'out5')).out, /::error::handoff get: .* is not there/, 'another run\'s folder: never a silent stale read');
+    fs.rmSync(path.join(h, 'extra'));
+    // the pin: put's output is the manifest's sha256; a reader pinned to it fails when the files AND the manifest were
+    // rewritten together (another run's code, the folder being shared), and when the pin is missing
+    const o = path.join(t, 'gh-out'); fs.writeFileSync(o, '');
+    assert.ok(cli({ ...env, GITHUB_OUTPUT: o }, 'put', path.join(t, 'src'), 'served').ok);
+    const pin = /^sha=([0-9a-f]{64})$/m.exec(fs.readFileSync(o, 'utf8'))?.[1];
+    assert.ok(pin, 'put writes sha=<manifest sha256> to the step outputs');
+    assert.ok(cli({ ...env, HANDOFF_SHA: pin }, 'get', 'served', path.join(t, 'p1'), '--pinned').ok);
+    fs.writeFileSync(path.join(h, 'assets/a.bin'), Buffer.from([9]));
+    const mf = path.join(t, 'root/gate/11-1/served.manifest.json'), m = JSON.parse(fs.readFileSync(mf, 'utf8'));
+    m['assets/a.bin'] = crypto.createHash('sha256').update(Buffer.from([9])).digest('hex'); fs.writeFileSync(mf, JSON.stringify(m));
+    assert.ok(cli(env, 'get', 'served', path.join(t, 'p2')).ok, 'unpinned, a rewritten pair passes: why every gate reader pins');
+    assert.match(cli({ ...env, HANDOFF_SHA: pin }, 'get', 'served', path.join(t, 'p3'), '--pinned').out, /::error::handoff get: served's manifest is not the one its job handed off/);
+    assert.match(cli({ ...env, HANDOFF_SHA: '' }, 'get', 'served', path.join(t, 'p4'), '--pinned').out, /::error::handoff get: served is pinned, but HANDOFF_SHA is not a sha256/);
   } finally { fs.rmSync(t, { recursive: true, force: true }); }
 });
 
@@ -67,6 +82,14 @@ test('handoff: the gate, T2, the Stills job and the merge bot use it, not artifa
   assert.match(gate, /continue-on-error: true   # \(the artifact quota: the verdict stands on the PC's copy\)/, 'the one artifact left never fails the verdict');
   for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu]]) for (const step of y.split(/\n\s+- /).filter((t) => t.includes('actions/upload-artifact'))) assert.match(step, /continue-on-error: true/, f + ': every artifact left is non-fatal (the quota)');
   assert.ok(!/fs\.(cpSync|copyFileSync)\(/.test(rd('.github/ci/handoff.mjs')), 'handoff.mjs copies by bytes: cpSync and copyFileSync carry modes over, and the PC\'s /mnt/c refuses them (EPERM)');
-  assert.match(bot, /const lv = localVerdict\(run\);\n  if \(lv\) return lv;/, 'the bot reads the PC\'s verdict first');
+  // what decides is never read from the shared folder alone (the hub's review of #321): the bot and T2's probe read the
+  // gate-verdict artifact only, and every gate reader of the builds and T1's shards is pinned to its putting job's output
+  assert.ok(!/handoff\.mjs|ci-handoff|localVerdict/.test(bot), 'the merge bot never reads the PC\'s verdict copy: any run\'s code can write it');
+  assert.ok(!/\/verdict\/|handoff\.mjs.*root\(\)/.test(gate), 'T2\'s probe never takes a cached answer from the PC\'s verdict copy');
+  for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu]]) for (const l of y.split('\n').filter((x) => /handoff\.mjs get |\$h get /.test(x))) assert.match(l, /--pinned/, f + ': every reader pinned: ' + l.trim());
+  assert.match(gate, /served_sha: \$\{\{ steps\.handoff\.outputs\.sha \}\}/); assert.match(gate, /shards_sha: \$\{\{ steps\.shards\.outputs\.sha \}\}/);
+  assert.match(gpu, /HANDOFF_SHA: \$\{\{ inputs\.served_sha \|\| needs\.served\.outputs\.sha \}\}/);
 });
+// plant: {"file": ".github/ci/merge-bot.mjs", "find": "async function verdict(run) {", "with": "async function verdict(run) { try { return JSON.parse(fs.readFileSync(path.join('/mnt/c/ci-handoff/verdict', run.id + '-1.json'), 'utf8')); } catch {}", "why": "the bot trusting a verdict file on the PC's shared disk before the artifact"}
+// plant: {"file": ".github/ci/handoff.mjs", "find": "if (sha(mf) !== pin)", "with": "if (false)", "why": "the pin on the manifest dropped"}
 // plant: {"file": ".github/ci/handoff.mjs", "find": "if (!have.has(f)) bad.push('missing ' + f); else if (sha(path.join(dir, f)) !== h) bad.push('changed ' + f);", "with": "if (!have.has(f)) bad.push('missing ' + f);", "why": "the hand-off's byte check dropped"}

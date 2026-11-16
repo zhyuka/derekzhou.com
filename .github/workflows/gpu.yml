@@ -36,6 +36,10 @@ on:
         description: "'no' leaves out T2's frames and forced colours (main after a fast-forward: the PR's gate compared these builds); the stall visits still run"
         type: string
         default: 'yes'
+      served_sha:
+        description: "the plan's hand-off of the two builds, its manifest's sha256 (the gate's plan job output): T2 reads them pinned to it"
+        type: string
+        default: ''
       stall:
         description: "'no' leaves out the stall visits (a PR's gate: they run on main's gate, which the deploy gate reads)"
         type: string
@@ -61,6 +65,8 @@ jobs:
     if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf')
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 8
+    outputs:
+      sha: ${{ steps.handoff.outputs.sha }}   # (the hand-off's manifest, sha256: T2 and T3 pin it)
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # (credentials kept, as the gate's plan job: served.sh fetches the base's objects)
@@ -70,6 +76,7 @@ jobs:
       - name: Base and head, built
         run: bash .github/ci/served.sh '${{ github.event.pull_request.base.sha || github.sha }}' "$RUNNER_TEMP/served"
       - name: The two builds, handed to T2 and T3 (the PC's disk, .github/ci/handoff.mjs, as the gate's plan job)
+        id: handoff
         run: |
           node .github/ci/handoff.mjs sweep --hours 24
           node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
@@ -100,9 +107,11 @@ jobs:
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
       - name: the two builds (the hand-off on the PC's disk, checked against its manifest; the gate's plan job, or this run's served job)
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          HANDOFF_SHA: ${{ inputs.served_sha || needs.served.outputs.sha }}   # (pinned: the putting job's output, the gate's plan or this run's served)
         run: |
           $h = if (Test-Path base/.github/ci/handoff.mjs) { 'base/.github/ci/handoff.mjs' } else { 'head/.github/ci/handoff.mjs' }   # (the base's reader, as the checks: a PR cannot loosen its own manifest check)
-          node $h get served served
+          node $h get served served --pinned
           if ($LASTEXITCODE -ne 0) { exit 1 }
           exit 0
       - name: T2
@@ -172,9 +181,11 @@ jobs:
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
       - name: the two builds (the hand-off on the PC's disk, checked against its manifest; the gate's plan job, or this run's served job)
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          HANDOFF_SHA: ${{ inputs.served_sha || needs.served.outputs.sha }}   # (pinned: the putting job's output, the gate's plan or this run's served)
         run: |
           $h = if (Test-Path base/.github/ci/handoff.mjs) { 'base/.github/ci/handoff.mjs' } else { 'head/.github/ci/handoff.mjs' }   # (the base's reader, as the checks: a PR cannot loosen its own manifest check)
-          node $h get served served
+          node $h get served served --pinned
           if ($LASTEXITCODE -ne 0) { exit 1 }
           exit 0
       - name: T3
