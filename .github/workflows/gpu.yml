@@ -17,7 +17,7 @@
 # for the merge bot: frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok.
 # The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
 # that brings tools/gpu for the first time runs its own. What they render is base's and head's builds (site/ holds only
-# sources): the gate's `served` artifact when the gate calls this, else the `served` job's here (GitHub's Ubuntu
+# sources): the gate's plan job's hand-off on the PC's disk (.github/ci/handoff.mjs) when the gate calls this, else the `served` job's here (the PC's Linux
 # runner, .github/ci/served.sh). The PC never runs a PR's build.
 name: gpu
 on:
@@ -36,6 +36,10 @@ on:
         description: "'no' leaves out T2's frames and forced colours (main after a fast-forward: the PR's gate compared these builds); the stall visits still run"
         type: string
         default: 'yes'
+      served_sha:
+        description: "the plan's hand-off of the two builds, its manifest's sha256 (the gate's plan job output): T2 reads them pinned to it"
+        type: string
+        default: ''
       stall:
         description: "'no' leaves out the stall visits (a PR's gate: they run on main's gate, which the deploy gate reads)"
         type: string
@@ -61,6 +65,8 @@ jobs:
     if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf')
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 8
+    outputs:
+      sha: ${{ steps.handoff.outputs.sha }}   # (the hand-off's manifest, sha256: T2 and T3 pin it)
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # (credentials kept, as the gate's plan job: served.sh fetches the base's objects)
@@ -69,8 +75,11 @@ jobs:
           node-version: '22'
       - name: Base and head, built
         run: bash .github/ci/served.sh '${{ github.event.pull_request.base.sha || github.sha }}' "$RUNNER_TEMP/served"
-      - uses: actions/upload-artifact@v4
-        with: { name: served, path: '${{ runner.temp }}/served', include-hidden-files: true, retention-days: 7 }
+      - name: The two builds, handed to T2 and T3 (the PC's disk, .github/ci/handoff.mjs, as the gate's plan job)
+        id: handoff
+        run: |
+          node .github/ci/handoff.mjs sweep --hours 24
+          node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
   t2:
     needs: served
     if: always() && !cancelled() && needs.served.result != 'failure' && github.event.action != 'labeled'   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
@@ -96,9 +105,15 @@ jobs:
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
-      - name: the two builds
-        uses: actions/download-artifact@v4
-        with: { name: served, path: served }
+      - name: the two builds (the hand-off on the PC's disk, checked against its manifest; the gate's plan job, or this run's served job)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          HANDOFF_SHA: ${{ inputs.served_sha || needs.served.outputs.sha }}   # (pinned: the putting job's output, the gate's plan or this run's served)
+        run: |
+          $h = if (Test-Path base/.github/ci/handoff.mjs) { 'base/.github/ci/handoff.mjs' } else { 'head/.github/ci/handoff.mjs' }   # (the base's reader, as the checks: a PR cannot loosen its own manifest check)
+          node $h get served served --pinned
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          exit 0
       - name: T2
         id: t2
         if: inputs.frames != 'no'
@@ -140,10 +155,12 @@ jobs:
           exit $rc
       - name: report
         if: always()
+        continue-on-error: true   # (a report for people, read by nothing: the artifact quota never fails T2)
         uses: actions/upload-artifact@v4
         with: { name: t2, path: '${{ runner.temp }}/t2/*.*', retention-days: 14, if-no-files-found: ignore }
       - name: forced-off report
         if: always()
+        continue-on-error: true   # (a report for people, read by nothing: the artifact quota never fails T2)
         uses: actions/upload-artifact@v4
         with: { name: forced-off, path: '${{ runner.temp }}/forced-off', retention-days: 14, if-no-files-found: ignore }
   t3:
@@ -162,14 +179,21 @@ jobs:
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
-      - name: the two builds
-        uses: actions/download-artifact@v4
-        with: { name: served, path: served }
+      - name: the two builds (the hand-off on the PC's disk, checked against its manifest; the gate's plan job, or this run's served job)
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          HANDOFF_SHA: ${{ inputs.served_sha || needs.served.outputs.sha }}   # (pinned: the putting job's output, the gate's plan or this run's served)
+        run: |
+          $h = if (Test-Path base/.github/ci/handoff.mjs) { 'base/.github/ci/handoff.mjs' } else { 'head/.github/ci/handoff.mjs' }   # (the base's reader, as the checks: a PR cannot loosen its own manifest check)
+          node $h get served served --pinned
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          exit 0
       - name: T3
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"   # (Windows PowerShell 5.1, which every Windows machine has; pwsh is not on the PC. Bypass for this step's process only: the account's policy stays)
         run: |
           $tools = if (Test-Path base/tools/gpu/t3.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           node "$tools/t3.js" --base served/base --head served/head --out "$env:RUNNER_TEMP/t3" --runs 5 --cases d11,n23
       - if: always()
+        continue-on-error: true   # (a report for people, read by nothing: the artifact quota never fails T2)
         uses: actions/upload-artifact@v4
         with: { name: t3, path: '${{ runner.temp }}/t3/*.*', retention-days: 30, if-no-files-found: ignore }
