@@ -40,7 +40,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || 'main' }}
-          sparse-checkout: .github/ci
+          sparse-checkout: |
+            .github/ci
+            .claude/hooks
       - name: One tick of the merge train
         env:
           GITHUB_TOKEN: ${{ github.token }}

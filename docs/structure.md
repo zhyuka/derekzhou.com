@@ -71,6 +71,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/where.mjs (tools/where.mjs)
 test/fakepage.cjs            The one fake browser the static checks and the shader census share (devices, the page's scripts)
 test/sims/boot.mjs           The boot on the fake page, each device profile once (tools/checks/39-boot-frames.sh)
+test/birds-motion.mjs        The ink birds' drawn motion, frame by frame in the headless sim: no snap, flicker or jump
 test/ground.mjs              The land's real ground for the sims, from test/golden/ground/<seed>.bin (recorded on the 4090)
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844

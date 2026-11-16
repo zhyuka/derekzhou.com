@@ -64,3 +64,22 @@ test('merge bot: a tip with the bake goes live only with its stills release up (
   assert.equal(stillsReady(true, [{ context: 'stills', state: 'failure' }, { context: 'stills', state: 'success' }]).ok, false);
   assert.match(stillsReady(true, [{ context: 'stills', state: 'pending' }]).why, /pending/);
 });
+
+test('merge bot: the PR\'s title and body are checked for a banned name right before it lands (guard.py --text)', async () => {
+  const { textAnswer } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  assert.equal(textAnswer({ status: 0, stdout: '' }).land, true);
+  const hit = textAnswer({ status: 1, stdout: '::error::text: a banned name (names.json 1a2b3c...)' });
+  assert.equal(hit.land, false); assert.equal(hit.comment, true, 'a name found: the PR\'s to fix, so a comment');
+  assert.match(hit.why, /RULES\.json naming/);
+  for (const r of [{ status: 1, stdout: '::error::.claude/hooks/names.json cannot be read (FileNotFoundError)' }, { status: 2, stdout: '' }, { error: { code: 'ENOENT' } }]) {
+    const a = textAnswer(r); assert.equal(a.land, false, JSON.stringify(r) + ' holds (fails closed)'); assert.ok(!a.comment, 'not the PR\'s fault: no comment');
+  }
+  const none = textAnswer(null); assert.equal(none.land, true); assert.match(none.note, /no --text yet/, 'before #325: said, not silent');
+  // the bot runs it before both ways of landing, on the title and body as they are this tick, and can read guard.py
+  const fs = await import('node:fs'), bot = fs.readFileSync(new URL('../../.github/ci/merge-bot.mjs', import.meta.url), 'utf8');
+  const at = bot.indexOf("spawnSync('python3', [GUARD, '--text']"), ff = bot.lastIndexOf("gh('PATCH', '/git/refs/heads/main'"), mg = bot.lastIndexOf("gh('PUT', `/pulls/${n}/merge`");
+  assert.ok(at > 0 && at < ff && at < mg, 'the check comes before the fast-forward and the merge');
+  assert.match(bot, /input: \(pr\.title \|\| ''\) \+ '\\n' \+ \(pr\.body \|\| ''\)/);
+  assert.match(fs.readFileSync(new URL('../../.github/workflows/merge.yml', import.meta.url), 'utf8'), /sparse-checkout: \|\n\s+\.github\/ci\n\s+\.claude\/hooks/, 'the bot\'s checkout has guard.py and names.json');
+});
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "if (r.status === 0) return { land: true };", "with": "if (r.status === 0 || r.status === 1) return { land: true };", "why": "a banned name in the PR's text lands anyway"}
