@@ -76,7 +76,6 @@ test/ground.mjs              The land's real ground for the sims, from test/gold
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
 test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
-test/birds-motion.mjs        The ink birds' drawn motion, frame by frame on the sim: forms and bodies bounded in their second difference
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
