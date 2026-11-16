@@ -3,6 +3,7 @@
 // plant: {"file": "src/world/180-world-definition-two-kits-by.js", "find": "Math.round((o.x - (ox || 0)) * 8)", "with": "Math.round(o.x * 8)", "why": "an air cell's keep hashed at its stored place: the layout's frame flips it"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c,", "with": "var pc = o.c0 || o.c,", "why": "a drifting body's distance fade read where it was laid out: it comes out of the haze where it no longer is"}
 // plant: {"file": "src/realm-dunes.js", "find": "dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180,", "with": "dir: dAirDir(C.V) + R.r(45, 75) * PI / 180,", "why": "the ranges at 60 deg to the wind, not along it"}
+// plant: {"file": "src/realm-above.js", "find": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;", "with": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d; if (s.kind === 0) aTower(C, R, s.x, s.z, 300, 400, 1, false);", "why": "the open sea's tower back in the world cell: a free cumulus standing still"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
@@ -130,4 +131,33 @@ test('drift: a range lies along the low layer\'s wind, within 15 deg of it', asy
     assert.ok(Math.abs(d) <= 15 + 1e-9, `a range at ${d.toFixed(1)} deg from the low layer's wind (az ${az}, U10 ${u10})`);
   }
   assert.ok(worst > 14.9, `the ranges' spread reaches only ${worst.toFixed(1)} deg: the test does not see their span`);
+});
+
+// every free cumulus is carried (the hub's round-3 review): ABOVE's own realm run on a stub kit with the world's
+// streams, its world cells (cell:) over a census of sites lay out no cumulus at all (the canyon's walls are the cloud
+// sea's, held), and its air cells (air:) lay out every tower; a tower put back in cell: would stand still
+test('drift: ABOVE\'s world cells lay out no cumulus; its air cells lay out the towers', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT, STREAMS } = await import('../unit-lib.mjs');
+  const ABOVE = fs.readFileSync(path.join(ROOT, 'src/realm-above.js'), 'utf8');
+  const S = vm.runInThisContext('(function () { var PI = Math.PI, SIM = { V: null }, J = { seed: 1 };\n' + STREAMS + ' return { RNG: RNG, cellHash: cellHash, hk: hk, hfl: hfl, ihash: ihash }; })')();
+  let def = null;
+  const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, ihash: S.ihash, RNG: S.RNG };
+  vm.runInThisContext('(function (window) {\n' + ABOVE + '\n})')({ WORLD: { kit, forms: {}, air: {}, realm: (d) => { def = d; } } });
+  assert.ok(def && def.cell && def.air, 'ABOVE did not register');
+  const kinds = { cell: {}, air: {} };
+  const cellOf = (ix, iz, salt) => {
+    const out = [], C = { ix, iz, salt, hash: S.cellHash(ix, iz, salt), x0: ix * 1200, z0: iz * 1200, size: 1200, V: { wind: [0, 1], u10: 5, light: { sunEl: 8, sunAz: 120 } } };
+    C.cloud = (cl) => { out.push(cl); return cl; }; C.add = () => {}; C.poi = () => {}; C.flock = () => {}; C.inside = () => true;
+    return [C, out];
+  };
+  for (const salt of [1, 77, 4099]) for (let iz = -12; iz < 12; iz++) for (let ix = -12; ix < 12; ix++) {
+    for (const way of ['cell', 'air']) {
+      const [C, out] = cellOf(ix, iz, salt);
+      def[way](C, S.RNG(S.hk(C.hash, way === 'air' ? 47 : 1)));
+      for (const cl of out) kinds[way][cl.kind] = (kinds[way][cl.kind] || 0) + 1;
+    }
+  }
+  assert.ok(!kinds.cell.cumulus, `ABOVE's world cells lay out ${kinds.cell.cumulus} cumulus: free clouds standing still (${JSON.stringify(kinds.cell)})`);
+  assert.ok(kinds.cell.wall > 0, 'the census met no canyon: it proves nothing about the world cells');
+  assert.ok(kinds.air.cumulus > 50, `ABOVE's air cells lay out only ${kinds.air.cumulus || 0} cumulus: the towers are gone`);
 });
