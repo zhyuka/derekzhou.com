@@ -152,20 +152,24 @@ void main() {
   if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS);   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS);   // (phase 2)
 #endif
-  if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
+  if (uMoon.w > 0.0) {   // the moon: a near-neutral disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
        the horizon the sea and the land, drawn before the sky, hide it by place); only its faint broad light on the whole
        sky (the 0.08 tail) follows its depth (uMoon.w, gone 16 deg down); it takes the haze of the sky where it stands */
     vec3 c0 = c;
     float ma = degrees(acos(clamp(dot(rd, uMoon.xyz), -1.0, 1.0))), mr = 1.8, mpx = 2.0 * degrees(atan(uProj.y)) / uRes.y;
     float out1 = max(ma - mr, 0.0);
-    /* (tod fix round, the judges' defect 4) a cool silver (the moonlit sky's table: L 0.62, C 0.03, h 250, the ceiling's
-       shoulder bringing it to about 0.51 as shown), its limb soft over a fifth of its radius (was a pale khaki 0.52, C 0.02,
-       h 95, edged at a pixel: a flat olive coin on the ultramarine) and a wider glare carrying its light */
-    c = mix(c, max(c, uMoonG), clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0));
+    /* (the hub's round-3 look at #303) the moonlit sky's table now L 0.62, C 0.01, h 250 (was a cool silver, C 0.03 h 250,
+       a grey-blue coin): at the ceiling's L it cannot be lighter, and on the C 0.08 ultramarine any warm or neutral grey
+       reads khaki by contrast (C 0.012 h 85 and C 0 both did, measured at 1440x900), so it is a hair cool of neutral,
+       which reads white-grey; its limb crisp */
+    /* (the hub's round-3 look at #303) the glow adds light of its own low-chroma colour (scaled to luminance 1), up to its
+       luminance and never past it: no per-channel max of a blue sky and a warm glow (that read olive) */
+    float gk = clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0), gy = dot(uMoonG, LUMA);
+    c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;
     if (ma < 7.0) c += uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);
-    c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
+    c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma));   // (a crisp limb: about a pixel either side, the hub's round-3 look)
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)

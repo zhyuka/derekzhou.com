@@ -24,10 +24,36 @@
     return { psi: (CS.yawV + CS.phi) / DEG, pN: basePitchT(V) / DEG, pL: (basePitchT(V) + CS.thU + CS.thP) / DEG, tanX: FRT.tanX, tanY: FRT.tanY, W: OUT.w, H: OUT.h, boxes: boxes, keepPx: MOON_KEEP * OUT.dpr,
       coarse: coarse, noRoom: TOUCHMODE === 'scroll', keyAz: V.light.sunAz, side: SKY.moonSide || 1, sigma: SKY.moonDir || 1, lift: lift, t0: mt[0], t1: mt[1], t2: mt[2], t3: mt[3], land: E && E.landT !== undefined ? E.landT : null, landX: E && E.landX, landUp: E && E.landUp };
   }
+  /* (the hub's round-3 review: the opening against the still's own shape) the opening's plans (its moon, 226; its evening
+     star, 227) are made as the still was baked (tools/gpu/bake-stills.js: the window the hour's script named it by): the
+     still's own CSS size and frustum (frustumFor at its aspect), its own framing and tilt (TALLK, WIDEK as svInit takes
+     them: so its pitch), the keep in its CSS px, coarse as its tier and shape baked it, and the words' boxes the bake
+     itself had (STILL_WORDS: scaling this window's boxes is not enough, the words do not scale with the window). So the plan at the cut is the still's, whatever
+     this window's size or density: no hop at the cut. Not under reduced motion (the world opens at the window's own view) */
+  /* the words' boxes as each still was baked with them (CSS px of the bake's window: hi at the shape's own size, lo at 393
+     on its short side; the lettered name's outline, the line, the credit, the two links), measured in Chromium by
+     tools/still-words.mjs; tools/checks/43-still-words.sh measures them again on the build and fails if the stylesheet
+     has moved them (then: node tools/still-words.mjs --write) */
+  var STILL_WORDS = {"hi-393x861":[[25.1,261.2,367.9,341.8],[24,374.9,369,453.9],[24,485.9,369,505.4],[20,820,55.2,841],[79.2,820,133.5,841]],"hi-393x817":[[25.1,240.1,367.9,320.6],[24,353.7,369,432.8],[24,464.8,369,484.3],[20,776,55.2,797],[79.2,776,133.5,797]],"hi-393x770":[[25.1,217.5,367.9,298.1],[24,331.2,369,410.2],[24,442.2,369,461.7],[20,729,55.2,750],[79.2,729,133.5,750]],"hi-393x724":[[25.1,195.5,367.9,276],[24,309.1,369,388.1],[24,420.1,369,439.6],[20,683,55.2,704],[79.2,683,133.5,704]],"hi-393x676":[[25.1,172.4,367.9,253],[24,286.1,369,365.1],[24,397.1,369,416.6],[20,635,55.2,656],[79.2,635,133.5,656]],"hi-393x629":[[25.1,149.9,367.9,230.4],[24,263.5,369,342.5],[24,374.5,369,394],[20,588,55.2,609],[79.2,588,133.5,609]],"hi-393x524":[[25.1,99.5,367.9,180],[24,213.1,369,292.1],[24,324.1,369,343.6],[20,483,55.2,504],[79.2,483,133.5,504]],"hi-1080x1080":[[339.2,347,740.7,441.4],[338,474.6,720.5,553.7],[338,585.7,742,605.2],[32.4,1026.6,67.6,1047.6],[91.6,1026.6,145.9,1047.6]],"hi-1350x1080":[[474.2,339.4,875.7,433.8],[473,467,855.5,546.1],[473,578.1,877,597.6],[40,1019,75.2,1040],[99.2,1019,153.5,1040]],"hi-1728x1080":[[663.2,339.4,1064.7,433.8],[662,467,1044.5,546.1],[662,578.1,1066,597.6],[40,1019,75.2,1040],[99.2,1019,153.5,1040]],"hi-1920x1080":[[759.2,339.4,1160.7,433.8],[758,467,1140.5,546.1],[758,578.1,1162,597.6],[40,1019,75.2,1040],[99.2,1019,153.5,1040]],"hi-2268x1080":[[933.2,339.4,1334.7,433.8],[932,467,1314.5,546.1],[932,578.1,1336,597.6],[40,1019,75.2,1040],[99.2,1019,153.5,1040]],"lo-393x861":[[25.1,261.2,367.9,341.8],[24,374.9,369,453.9],[24,485.9,369,505.4],[20,820,55.2,841],[79.2,820,133.5,841]],"lo-393x817":[[25.1,240.1,367.9,320.6],[24,353.7,369,432.8],[24,464.8,369,484.3],[20,776,55.2,797],[79.2,776,133.5,797]],"lo-393x770":[[25.1,217.5,367.9,298.1],[24,331.2,369,410.2],[24,442.2,369,461.7],[20,729,55.2,750],[79.2,729,133.5,750]],"lo-393x724":[[25.1,195.5,367.9,276],[24,309.1,369,388.1],[24,420.1,369,439.6],[20,683,55.2,704],[79.2,683,133.5,704]],"lo-393x676":[[25.1,172.4,367.9,253],[24,286.1,369,365.1],[24,397.1,369,416.6],[20,635,55.2,656],[79.2,635,133.5,656]],"lo-393x629":[[25.1,149.9,367.9,230.4],[24,263.5,369,342.5],[24,374.5,369,394],[20,588,55.2,609],[79.2,588,133.5,609]],"lo-393x524":[[25.1,99.5,367.9,180],[24,213.1,369,292.1],[24,324.1,369,343.6],[20,483,55.2,504],[79.2,483,133.5,504]],"lo-1080x1080":[[25.1,65,367.9,145.5],[24,162.4,369,241.4],[24,257.1,369,276.6],[20,356.3,55.2,377.3],[79.2,356.3,133.5,377.3]],"lo-1350x1080":[[44.7,58.1,446.2,152.4],[43.5,169.4,426,248.5],[43.5,264.2,447.5,283.7],[20,356.3,55.2,377.3],[79.2,356.3,133.5,377.3]],"lo-1728x1080":[[113.7,58.1,515.2,152.4],[112.5,169.4,495,248.5],[112.5,264.2,516.5,283.7],[20,356.3,55.2,377.3],[79.2,356.3,133.5,377.3]],"lo-1920x1080":[[148.7,58.1,550.2,152.4],[147.5,169.4,530,248.5],[147.5,264.2,551.5,283.7],[21,356.3,56.2,377.3],[80.2,356.3,134.5,377.3]],"lo-2268x1080":[[211.7,58.1,613.2,152.4],[210.5,169.4,593,248.5],[210.5,264.2,614.5,283.7],[24.8,356.3,60,377.3],[84,356.3,138.3,377.3]]};
+  function stillInputs(I) {
+    if (!I || reduced()) return I;
+    var m = null; try { m = /-(lo|hi)-(\d+)x(\d+)\.avif/.exec(getComputedStyle(root).getPropertyValue('--still') || ''); } catch (e) { m = null; }
+    if (!m) return I;
+    var nw = +m[2], nh = +m[3], lo = m[1] === 'lo', sc = lo ? 393 / Math.min(nw, nh) : 1, bw = Math.round(nw * sc), bh = Math.round(nh * sc), WB = STILL_WORDS[m[1] + '-' + nw + 'x' + nh];   // (the bake's own window, as tools/gpu/bake-stills.js sizes it)
+    var ar = bw / bh, fr = frustumFor(ar, {}), tk = smooth(0.95, 1.75, bh / bw), wk = ar >= 1.2 ? 1 : 0, f0 = SIM.V.def.frame || [0.4, 0.6];
+    var pN = (Math.atan((2 * lerp(f0[0], f0[1], tk) - 1) * fr.tanY) + CAMUP * DEG * wk) / DEG;
+    var c = Math.max(I.W / bw, I.H / bh), ox = (I.W - bw * c) / 2, oy = (I.H - bh * c) / 2, S = {}, k;
+    for (k in I) S[k] = I[k];
+    S.W = bw; S.H = bh; S.tanX = fr.tanX; S.tanY = fr.tanY; S.pN = pN; S.pL = pN; S.keepPx = MOON_KEEP; S.coarse = lo || bh > bw;
+    S.boxes = WB ? WB.map(function (B) { return B.slice(); }) : I.boxes.map(function (B) { return [(B[0] - ox) / c, (B[1] - oy) / c, (B[2] - ox) / c, (B[3] - oy) / c]; });   // (the bake's own boxes; a shape not in the table: this window's, mapped as cover crops it)
+    S.lift = 0;
+    S.still = m[0];
+    return S;
+  }
   function moonStep(t) {
     var E = moonStay(t); MOON.E = E;
     if (E && !E.moon && E === SKY.seq[0] && E.landT === undefined) E.landT = t;   // (the opening's own moonlit stay: its moon in frame at the cut, the plan timed to it: 225's P.land)
-    if (E && !E.moon) { var I = moonInputs(E); if (I) { E.moon = I.land !== null ? moonClear(E, I) : moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
+    if (E && !E.moon) { var I = moonInputs(E); if (I && I.land !== null) { I = stillInputs(I); MOON.still = I.still || ''; } if (I) { E.moon = I.land !== null ? moonClear(E, I) : moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
   }
   /* (the opening's moon, the hub's reviews of #303) its place at the cut kept off the cloud bodies, a pure function of
      the seed: moonLobes lays out, as their own cells lay them out, every cell of each scale within that scale's streaming
@@ -41,17 +67,27 @@
   var MOON_VEIL = 5, MOON_VEIL_D = 9000, MOON_VEIL_AZ = 60, MOON_UPS = [null, 0.35, 1], MOON_XS = [1 / 3];
   (function () { for (var i = 1; i <= 9; i++) { MOON_XS.push(1 / 3 - 0.025 * i); if (1 / 3 + 0.025 * i <= 0.6) MOON_XS.push(1 / 3 + 0.025 * i); } })();
   function moonLobes(V, psi, ex, ez) {   // [x, y, z, r] lobes and their bodies' bounds [x, y, z, r, i0, i1], laid out from the seed
-    var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k;
+    var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k, CL = [];
     for (sc = 0; sc < scs.length; sc++) {
       var L = scs[sc], n = Math.ceil(L.radius / L.size) + 1, cx = Math.floor(ex / L.size), cz = Math.floor(ez / L.size);
       for (ix = cx - n; ix <= cx + n; ix++) for (iz = cz - n; iz <= cz + n; iz++) {
         var C = new Cell(V, sc, ix, iz), dx = C.cx - ex, dz = C.cz - ez, dd = Math.sqrt(dx * dx + dz * dz);
         if (dd > L.radius + L.size || (dd > 1.5 * L.size && Math.abs(angd(Math.atan2(dx, dz) / DEG, psi)) > MOON_VEIL_AZ)) continue;
         var api = cellApi(C); V.def.cell(api, RNG(api.hash), KITAPI);
-        for (i = 0; i < C.clouds.length; i++) {
-          var cl = C.clouds[i], PF = new Puffs(), gr = groundAt(V, cl.x, cl.z, false, true), bi;
+        for (i = 0; i < C.clouds.length; i++) CL.push([C, i]);
+      }
+    }
+    /* (the hub's round-3 nit) each cloud's ground at its own place, as its cell's probe reads it (one synchronous probe of
+       every cloud's centre, probeJob's own: the camera's 640 m grid clamped at its edge put them 17-35 m off) */
+    var pts = [], h = null, q;
+    for (q = 0; q < CL.length; q++) { var c0 = CL[q][0].clouds[CL[q][1]]; pts.push(c0.x, c0.z); }
+    if (CL.length) h = probeJob(V, pts, Math.min(CL.length, PROBE_CAP), 0, true).h;
+    for (q = 0; q < CL.length; q++) {
+      var Cq = CL[q][0]; i = CL[q][1];
+      {
+          var cl = Cq.clouds[i], PF = new Puffs(), gr = h && q < h.length ? h[q] : groundAt(V, cl.x, cl.z, false, true), bi;
           cl.base = cl.y !== undefined ? cl.y : gr + (cl.dy || 0);
-          V.def.cloud(cl, PF, RNG(cl.seed || (C.key + i * 7919) >>> 0), KITAPI);
+          V.def.cloud(cl, PF, RNG(cl.seed || (Cq.key + i * 7919) >>> 0), KITAPI);
           for (bi = 0; bi < PF.bodies.length; bi++) {   // (each body as resolve leaves it: lifted whole over the flight band, cellResolve's bandTopAt)
             var j0 = PF.bodies[bi].i0, j1 = bi + 1 < PF.bodies.length ? PF.bodies[bi + 1].i0 : PF.count(), b0 = lob.length, lowB = 1e9, cxB = 0, czB = 0, j;
             if (j0 >= j1) continue;
@@ -60,7 +96,6 @@
             for (j = j0; j < j1; j++) { k = j * 12; lob.push(PF.a[k], PF.a[k + 1] + dB, PF.a[k + 2], PF.a[k + 3]); for (var a3 = 0; a3 < 3; a3++) { var cc = PF.a[k + a3] + (a3 === 1 ? dB : 0); lo[a3] = Math.min(lo[a3], cc - PF.a[k + 3]); hi[a3] = Math.max(hi[a3], cc + PF.a[k + 3]); } }
             bnd.push((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2, Math.sqrt((hi[0] - lo[0]) * (hi[0] - lo[0]) + (hi[1] - lo[1]) * (hi[1] - lo[1]) + (hi[2] - lo[2]) * (hi[2] - lo[2])) / 2, b0, lob.length);
           }
-        }
       }
     }
     return { lob: lob, bnd: bnd };
