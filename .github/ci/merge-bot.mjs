@@ -54,6 +54,8 @@ async function gateRun(sha) {
   const r = (await gh('GET', `/actions/workflows/gate.yml/runs?head_sha=${sha}&per_page=1`)).json;
   return r?.workflow_runs?.[0] || null;
 }
+// The gate-verdict artifact only, never the PC's copy (the hand-off's verdict-put): any PR's build code can write that
+// folder, and GitHub scopes an artifact to its run (the hub's review of #321, 2026-11-16).
 async function verdict(run) {
   const a = newestArtifact((await gh('GET', `/actions/runs/${run.id}/artifacts?name=gate-verdict&per_page=100`)).json?.artifacts);   // (a re-run's own, not its first attempt's)
   if (!a) return null;
