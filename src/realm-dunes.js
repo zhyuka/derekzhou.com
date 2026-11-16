@@ -133,22 +133,30 @@
   var HELD_V = 7.7, HELD_H = 100, HELD_SQ = 0.5, HELD_N = 0.01;   // m/s over the crest (the ridge-top flow, 100 m up); the wind within 30 deg of square (|cos| to the crest at most 0.5); the stable troposphere's buoyancy frequency (1/s)
   function dHeld(C) {
     var V = C.V; if (!V || !V.wind) return;
-    var ix = Math.floor((C.x0 + C.size / 2) / RS), iz = Math.floor((C.z0 + C.size / 2) / RS), h = K.ihash(K.cellHash(ix, iz, C.salt) ^ 0x51ed27);
-    if ((K.hk(h, 2) >>> 24) >= 115) return;   // (the ridge's own keep, as ridges())
-    var cx = (ix + 0.25 + 0.5 * K.hfl(h)) * RS, cz = (iz + 0.25 + 0.5 * K.hfl(K.hk(h, 1))) * RS;
-    if (!C.inside(cx, cz)) return;
-    var half = 900 + 700 * K.hfl(K.hk(h, 3)), ang = K.hfl(K.hk(h, 5)) * PI, ax = Math.cos(ang), az = Math.sin(ang);   // (the crest along (cos, sin) in (x, z), as massif()'s l.x)
-    var w = A.windAt(0, 0, HELD_H, 0, V), sp = Math.sqrt(w.x * w.x + w.z * w.z);
-    if (sp < HELD_V || Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) return;
-    // the lens at the lee wave's first crest, half a wavelength downwind of the ridge: lambda = 2 pi U / N, U the wind
-    // across the crest at the lens's height, N the stable troposphere's buoyancy frequency (HELD_N); at U 8-10 m/s the
-    // crest stands 2.5-3.1 km downwind (a lens right behind the ridge would be a cap cloud)
-    var ux = w.x / sp, uz = w.z / sp, dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.windAt(0, 0, dy, 0, V), nx = -az, nz = ax;   // (n: the crest's normal in (x, z))
-    var U = Math.abs(hw.x * nx + hw.z * nz), off = PI * U / HELD_N, x = cx + ux * off, z = cz + uz * off;
-    if (C.weights(x, z)[1] > 0.5) return;   // (the dunes kit's where the lens stands: none over the cloud sea)
-    var T = 45 + 30 * K.hfl(K.hk(h, 23)), n = 1 + (K.hk(h, 24) >>> 30 > 1 ? 2 : (K.hk(h, 24) >>> 30));
-    C.cloud({ kind: 'lens', x: x, z: z, foot: 0, dy: dy, dir: Math.atan2(ax, az), len: half * (1.0 + 0.4 * K.hfl(K.hk(h, 25))), w: 380 + 320 * K.hfl(K.hk(h, 26)), t: T, n: Math.min(n, 3), flow: [hw.x, 0, hw.z], seed: K.hk(h, 27) });
+    var w0 = A.windAt(0, 0, HELD_H, 0, V), w = { x: w0.x, z: w0.z }, sp = Math.sqrt(w.x * w.x + w.z * w.z);   // (a copy: windAt returns its one object, which the lens height's read below overwrites)
+    if (sp < HELD_V) return;
+    // a lens is laid out by the cell it stands in (so it fades with its own distance, as every cloud does: laid out with
+    // its ridge's cell, 2-3 km off, it stood past that cell's reach and was never drawn): the ridges of the 3 x 3 ridge
+    // cells about this one, each lens kept by the one cell it falls in (its offset, pi U / N, under 4.5 km: RS)
+    var ix0 = Math.floor((C.x0 + C.size / 2) / RS), iz0 = Math.floor((C.z0 + C.size / 2) / RS);
+    for (var jz = iz0 - 1; jz <= iz0 + 1; jz++) for (var jx = ix0 - 1; jx <= ix0 + 1; jx++) {
+      var h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);
+      if ((K.hk(h, 2) >>> 24) >= 115) continue;   // (the ridge's own keep, as ridges())
+      var cx = (jx + 0.25 + 0.5 * K.hfl(h)) * RS, cz = (jz + 0.25 + 0.5 * K.hfl(K.hk(h, 1))) * RS;
+      var half = 900 + 700 * K.hfl(K.hk(h, 3)), ang = K.hfl(K.hk(h, 5)) * PI, ax = Math.cos(ang), az = Math.sin(ang);   // (the crest along (cos, sin) in (x, z), as massif()'s l.x)
+      if (Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) continue;
+      // the lens at the lee wave's first crest, half a wavelength downwind of the ridge: lambda = 2 pi U / N, U the wind
+      // across the crest at the lens's height, N the stable troposphere's buoyancy frequency (HELD_N); at U 8-10 m/s
+      // the crest stands 2.5-3.1 km downwind (a lens right behind the ridge would be a cap cloud)
+      var ux = w.x / sp, uz = w.z / sp, dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.windAt(0, 0, dy, 0, V), nx = -az, nz = ax;   // (n: the crest's normal in (x, z))
+      var U = Math.abs(hw.x * nx + hw.z * nz), off = Math.min(PI * U / HELD_N, RS), x = cx + ux * off, z = cz + uz * off;
+      if (!C.inside(x, z)) continue;
+      if (C.weights(x, z)[1] > 0.5) continue;   // (the dunes kit's where the lens stands: none over the cloud sea)
+      var T = 45 + 30 * K.hfl(K.hk(h, 23)), n = 1 + (K.hk(h, 24) >>> 30 > 1 ? 2 : (K.hk(h, 24) >>> 30));
+      C.cloud({ kind: 'lens', x: x, z: z, foot: 0, dy: dy, dir: Math.atan2(ax, az), len: half * (1.0 + 0.4 * K.hfl(K.hk(h, 25))), w: 380 + 320 * K.hfl(K.hk(h, 26)), t: T, n: Math.min(n, 3), flow: [hw.x, 0, hw.z], crest: [cx, cz], seed: K.hk(h, 27) });
+    }
   }
+
   /* a small cell of open dunes: a few stones of its own */
   function dSmall(C, R) {
     var f = R.f(), x = C.x0 + R.r(0.1, 0.9) * C.size, z = C.z0 + R.r(0.1, 0.9) * C.size, k, n;

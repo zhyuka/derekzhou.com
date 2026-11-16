@@ -4,17 +4,19 @@
 // ridge the land raises (dunes-glsl's ridges(): the same hashes); its envelope is held (a world cell's: its place a
 // constant of t) and only its billows flow, at the wind at its height (410's offset, within 5%). A census of the lenses
 // within the dunes' cloud reach of a 20 min flight, a minute at a time, on windy and calm visits.
-// plant: {"file": "src/realm-dunes.js", "find": "if (sp < HELD_V || Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) return;", "with": "if (Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) return;", "why": "lenses on calm visits"}
-// plant: {"file": "src/realm-dunes.js", "find": "h = K.ihash(K.cellHash(ix, iz, C.salt) ^ 0x51ed27);", "with": "h = K.ihash(K.cellHash(ix, iz, C.salt) ^ 0x51ed28);", "why": "the lenses over ridges the land never raised"}
+// plant: {"file": "src/realm-dunes.js", "find": "    if (sp < HELD_V) return;", "with": "    if (sp < 0) return;", "why": "lenses on calm visits"}
+// plant: {"file": "src/realm-dunes.js", "find": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);", "with": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed28);", "why": "the lenses over ridges the land never raised"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS;", "with": "var q3 = (c0[k3] + (fl ? fl[k3] * tf : 0)) / nS;", "why": "the billows flow upwind through the lens"}
 // plant: {"file": "src/realm-dunes.js", "find": "    air: function (C, R) { dAir(C, R); },", "with": "    air: function (C, R) { dAir(C, R); dHeld(C); },", "why": "lenses laid out in air cells: the air carries them off their ridges"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.5; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
 // plant: {"file": "src/realm-dunes.js", "find": "flow: [hw.x, 0, hw.z]", "with": "flow: [hw.z, 0, hw.x]", "why": "the flow's components swapped: the billows cross the lens at the wrong way"}
 // plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
-// plant: {"file": "src/realm-dunes.js", "find": "off = PI * U / HELD_N,", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
-// plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) return;", "with": "if (C.weights(cx, cz)[1] > 0.5) return;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
+// plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HELD_N, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
+// plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) continue;", "with": "if (C.weights(cx, cz)[1] > 0.5) continue;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "T * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08)", "with": "T * 3 * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08)", "why": "the plates rounder: lobes three times the plate"}
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
+// plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from windAt's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
+// plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -45,8 +47,8 @@ test('lenticular: the far ridges are the land\'s own (dunes-glsl\'s ridges(), th
   assert.match(r, /vec2 ctr = \(vec2\(c\) \+ 0\.25 \+ 0\.5 \* vec2\(hf\(h\), hf\(ih\(h \+ 1u\)\)\)\) \* RS;/);
   assert.match(r, /vec4 m = vec4\(ctr, 900\.0 \+ 700\.0 \* hf\(ih\(h \+ 3u\)\), /); assert.match(r, /vec4 b = vec4\(hf\(ih\(h \+ 5u\)\) \* PI, /);
   assert.match(DGLSL, /vec2 l = vec2\(ca \* d\.x \+ sa \* d\.y, -sa \* d\.x \+ ca \* d\.y\) \/ m\.z;/, 'the crest is not along (cos, sin)');
-  assert.match(HELD, /h = K\.ihash\(K\.cellHash\(ix, iz, C\.salt\) \^ 0x51ed27\);/); assert.match(HELD, /if \(\(K\.hk\(h, 2\) >>> 24\) >= 115\) return;/);
-  assert.match(HELD, /var cx = \(ix \+ 0\.25 \+ 0\.5 \* K\.hfl\(h\)\) \* RS, cz = \(iz \+ 0\.25 \+ 0\.5 \* K\.hfl\(K\.hk\(h, 1\)\)\) \* RS;/);
+  assert.match(HELD, /h = K\.ihash\(K\.cellHash\(jx, jz, C\.salt\) \^ 0x51ed27\);/); assert.match(HELD, /if \(\(K\.hk\(h, 2\) >>> 24\) >= 115\) continue;/);
+  assert.match(HELD, /var cx = \(jx \+ 0\.25 \+ 0\.5 \* K\.hfl\(h\)\) \* RS, cz = \(jz \+ 0\.25 \+ 0\.5 \* K\.hfl\(K\.hk\(h, 1\)\)\) \* RS;/);
   assert.match(HELD, /var half = 900 \+ 700 \* K\.hfl\(K\.hk\(h, 3\)\), ang = K\.hfl\(K\.hk\(h, 5\)\) \* PI, ax = Math\.cos\(ang\), az = Math\.sin\(ang\);/);
   assert.equal(RSV, +/const float DS = 1500\.0, RS = ([\d.]+);/.exec(DGLSL)[1], 'the ridges\' cell is not the land\'s');
 });
@@ -156,8 +158,10 @@ test('lenticular: half a lee wavelength downwind of its crest (pi U / N); none w
     const salt = (seed * 40503) >>> 0, V = visitV(seed, 7.2);
     for (let iz = -5; iz < 5; iz++) for (let ix = -5; ix < 5; ix++) for (const cl of cell(ix, iz, salt, V)) {
       // the crest the lens was laid out for: the ridge's own hashes, as dunes-glsl's ridges()
-      const RS = RSV, jx = Math.floor((ix * 1500 + 750) / RS), jz = Math.floor((iz * 1500 + 750) / RS), h = H.ihash(H.cellHash(jx, jz, salt) ^ 0x51ed27);
-      const cx = (jx + 0.25 + 0.5 * H.hfl(h)) * RS, cz = (jz + 0.25 + 0.5 * H.hfl(H.hk(h, 1))) * RS, ang = H.hfl(H.hk(h, 5)) * Math.PI;
+      const RS = RSV, [cx, cz] = cl.crest, jx = Math.floor(cx / RS), jz = Math.floor(cz / RS), h = H.ihash(H.cellHash(jx, jz, salt) ^ 0x51ed27);
+      assert.ok((H.hk(h, 2) >>> 24) < 115 && Math.abs((jx + 0.25 + 0.5 * H.hfl(h)) * RS - cx) < 1e-6 && Math.abs((jz + 0.25 + 0.5 * H.hfl(H.hk(h, 1))) * RS - cz) < 1e-6, 'a lens for a crest the land never raised');
+      assert.ok(cl.x >= ix * 1500 && cl.x < ix * 1500 + 1500 && cl.z >= iz * 1500 && cl.z < iz * 1500 + 1500, 'a lens laid out by a cell it does not stand in (it fades with its own distance only in its own cell)');
+      const ang = H.hfl(H.hk(h, 5)) * Math.PI;
       const w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, hw = { ...H.windAt(0, 0, cl.dy, 0, V) }, sp = Math.hypot(w.x, w.z);
       const U = Math.abs(-hw.x * Math.sin(ang) + hw.z * Math.cos(ang)), want = Math.PI * U / H.HELD_N;
       const along = ((cl.x - cx) * w.x + (cl.z - cz) * w.z) / sp, across = Math.abs(((cl.x - cx) * w.z - (cl.z - cz) * w.x) / sp);
@@ -168,14 +172,13 @@ test('lenticular: half a lee wavelength downwind of its crest (pi U / N); none w
   assert.ok(n > 20, `only ${n} lenses`);
   console.log(`lenticular: ${n} lenses, ${lo.toFixed(0)}-${hi.toFixed(0)} m downwind of their crests`);
   assert.ok(lo > 1500, `a lens ${lo.toFixed(0)} m behind its ridge: a cap cloud, not a lee-wave lens`);
-  // the gate where the lens stands: the cloud sea everywhere but within 1 km of the crests' own cells' centres
+  // the gate where the lens stands: the dunes within 1 km of every crest, the cloud sea everywhere else
   let atCrest = 0, gated = 0;
   for (let seed = 1; seed <= 300; seed++) {
     const salt = (seed * 40503) >>> 0, V = visitV(seed, 7.2);
     for (let iz = -5; iz < 5; iz++) for (let ix = -5; ix < 5; ix++) {
-      atCrest += cell(ix, iz, salt, V).length;
-      const C0 = { x: ix * 1500 + 750, z: iz * 1500 + 750 };
-      gated += cell(ix, iz, salt, V, (x, z) => (Math.hypot(x - C0.x, z - C0.z) < 1000 ? 0.1 : 0.9)).length;
+      const open = cell(ix, iz, salt, V); atCrest += open.length;
+      gated += cell(ix, iz, salt, V, (x, z) => (open.some((cl) => Math.hypot(x - cl.crest[0], z - cl.crest[1]) < 1000) ? 0.1 : 0.9)).length;
     }
   }
   assert.ok(atCrest > 20 && gated === 0, `${gated} of ${atCrest} lenses laid out over the cloud sea where they stand (the gate read at the crest)`);
