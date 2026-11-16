@@ -546,15 +546,19 @@ shader). It holds:
   the visit's own U10 and the sky (no new draw). mist (m deep): radiation
   mist on a still clear night, thickest before sunrise; each sky's depth
   set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour
-  1, the afterglow 0), whole while the sky's surface wind is under 3.6
-  m/s, mixed out by 5 (set by eye), and scaled by the land's own
-  moisture (moist, 0-1): radiation fog needs air near saturation as well
+  1, the afterglow 0) scaled by the visit's own moisture (moist, 0-1),
+  which carries the wind's mixing too (a visit moist enough for mist has
+  a surface wind under 3 m/s on every sky with mist): radiation fog needs air near saturation as well
   as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog),
-  and the dunes' air is dry but where a cloud sea lies (a stratus layer,
-  moist air below it), so the moisture is the cloud sea's mean weight
-  within 3 km of the flight's start (kitAt, 400 points, once a visit),
-  eased over 0.5-0.7 (AIR_MOIST). Mist lands on 5 of the 16 lands (about
-  1 visit in 3), none at all on 8: a find, not a fixture. AIRAPI.MIST()
+  and a coastal fog desert's is mostly advective: marine boundary-layer
+  air from over the cool upwelling coast, carried inland, at its most in
+  the early morning and gone soon after sunrise
+  (https://acp.copernicus.org/articles/20/3415/2020/). So the moisture
+  is the visit's air, not the land in view: whole on a calm synoptic day
+  (U10 under 3.6 m/s), none past 4.2 (AIR_MOIST, set by eye; the visit's
+  own U10, no new draw). First light gets 1 m of mist or more on 6 of the
+  16 openings (k 1, 4, 5, 11, 12, 15) and on 3 of the 10 with dunes in
+  view, and on 28% of visits over the winds' own spread. AIRAPI.MIST()
   hands a reader a copy of the depths. Through a change its level moves
   toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
   never a jump, never a race). oro (0-1): the orographic gate, the

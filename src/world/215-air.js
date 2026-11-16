@@ -105,14 +105,16 @@
      the air, for each reader to read (LAND's mist, CLOUDS' lenticulars and banners, the haze): wx(t) = { mist, oro,
      ridge, vis, dust }.
      - mist (m deep): radiation mist pooled on the sand on a still clear night, thickest before sunrise. Each sky's
-       depth is set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0, thinned
-       by the sky's surface wind, U10 x its share: whole to 3.6 m/s, where light wind still thickens radiation fog,
-       mixed out by 5 m/s, set by eye), and by the land's own moisture: radiation fog needs air near saturation as well
-       as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog), and the dunes' air is dry but where a
-       cloud sea lies (a stratus layer: moist air below it). The moisture is the cloud sea's mean weight within 3 km of
-       the flight's start (kitAt's wC at 400 points, once a visit: the land is the opening's for the whole visit),
-       eased over 0.5-0.7 (AIR_MOIST, set by eye so mist lands on 5 of the 16 lands, about 1 visit in 3: a find, not
-       a fixture). Through a change the level moves toward the next sky's at AIR_MIST_RATE
+       depth (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0) is scaled by the visit's own
+       moisture (moist, 0..1), which carries the wind's mixing too (a visit moist enough for mist is calm enough to
+       keep it: its surface wind is under 3 m/s on every sky with mist). Radiation fog needs air near
+       saturation as well as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog), and a coastal fog
+       desert's is mostly advective: marine boundary-layer air from over the cool upwelling coast, carried inland, its fog
+       and low cloud at their most in the early morning and gone soon after sunrise
+       (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
+       the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
+       mixed out (U10 under 3.6 m/s whole, none past 4.2: AIR_MOIST, set by eye for about 1 visit in 3; no new draw,
+       the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
        (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
        never jumps and never races;
      - oro (0..1): the orographic gate, the visit's own (U10 alone, the whole visit): the ridge-top wind is the log
@@ -122,28 +124,27 @@
        threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
        never fades in place */
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
-  var AIR_MIST_RATE = 0.18, AIR_WXK = { mist: [3.6, 5], ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
+  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
   var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
-  var AIR_MOIST = [0.5, 0.7, 3000, 400];   // (the moisture: the ease's from and to, of the cloud sea's mean weight; the radius about the flight's start, m; the samples)
-  function airMoistBy(at) { var s = 0, n = AIR_MOIST[3], i, a, r; for (i = 0; i < n; i++) { a = i * 2.399963; r = AIR_MOIST[2] * Math.sqrt(i / n); s += at(r * Math.cos(a), r * Math.sin(a)).wC; } return airEase(AIR_MOIST[0], AIR_MOIST[1], s / n); }   // 0..1: the land's moisture from a weight sampler (the world's kitAt)
-  function airMoist(V) { V = V || SIM.V || {}; if (V.moist === undefined) { if (typeof MAPS === 'object' && !MAPS.w) return 0; V.moist = airMoistBy(kitAt); } return V.moist; }   // (once a visit, on it; 0 before the land's maps are made, when there is no land to lie on)
-  function airMistOf(id, u, q) { var d = AIR_MIST[id], sh = AIR_BYSKY[id]; return d === undefined ? 0 : q * d * (1 - airEase(AIR_WXK.mist[0], AIR_WXK.mist[1], u * (sh ? sh[0] : 1))); }   // a sky's mist depth on this visit, m (q its land's moisture)
-  function airMistAt(t, u, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
+  var AIR_MOIST = [3.6, 4.2];   // (the moisture: whole under this U10, none past this, m/s)
+  function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }   // 0..1: the visit's low-level moisture (its marine layer in)
+  function airMistOf(id, q) { var d = AIR_MIST[id]; return d === undefined ? 0 : q * d; }   // a sky's mist depth on this visit, m (q its moisture)
+  function airMistAt(t, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
     var seq = SKY.seq; if (!seq.length) return 0;
     var tS = t + (SKY.dt || 0), i = airIdx(seq, tS), j, e, a, b, t0, r;
     for (j = i; j >= Math.max(0, i - 1); j--) {   // (the change under way, else the last one whose ramp may still run)
       e = seq[j]; if (!seq[j + 1]) continue;
       t0 = e.at + e.hold; if (tS < t0) continue;
-      a = airMistOf(e.id, u, q); b = airMistOf(seq[j + 1].id, u, q); r = AIR_MIST_RATE * (tS - t0);
+      a = airMistOf(e.id, q); b = airMistOf(seq[j + 1].id, q); r = AIR_MIST_RATE * (tS - t0);
       if (r < Math.abs(b - a)) return a + (b > a ? r : -r);
       if (j === i) return b;
     }
-    return airMistOf(seq[i].id, u, q);
+    return airMistOf(seq[i].id, q);
   }
   function airWx(t, V) {   // the weather the wind makes at the flight's t (the one object, reused)
     t = t === undefined ? SIM.t : t;
     var u = u10Of(V), K = AIR_WXK, o = AIR_WXO;
-    o.moist = airMoist(V); o.mist = airMistAt(t, u, o.moist);
+    o.moist = airMoist(V); o.mist = airMistAt(t, o.moist);
     o.ridge = K.ridge * u; o.oro = airEase(K.oro[0], K.oro[1], o.ridge);
     o.dust = airEase(K.dust[0], K.dust[1], u); o.vis = K.vis[0] + (K.vis[1] - K.vis[0]) * o.dust;
     return o;
