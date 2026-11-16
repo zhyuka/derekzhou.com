@@ -376,6 +376,9 @@ def messages(root='.', base=None, event=None):
     if base is None:
         r = g('merge-base', 'HEAD', 'origin/main')
         base = r.stdout.strip() if r.returncode == 0 else ''
+        if not base and os.environ.get('GITHUB_ACTIONS'):   # (CI fails closed: no range is no check)
+            print('::error::messages: no merge base with origin/main (the checkout needs fetch-depth 0 and origin/main)')
+            return 1
     texts = []
     if base:
         log = g('log', '--format=%H%x00%B%x01', f'{base}..HEAD').stdout
@@ -384,8 +387,11 @@ def messages(root='.', base=None, event=None):
             texts.append((f'commit {sha[:10]}\'s message', body))
     ev = event if event is not None else os.environ.get('GITHUB_EVENT_PATH')
     if ev and os.path.isfile(ev):
-        pr = (json.load(open(ev, encoding='utf-8')) or {}).get('pull_request') or {}
-        texts += [(f'the PR\'s {k}', pr.get(k) or '') for k in ('title', 'body')]
+        pr = (json.load(open(ev, encoding='utf-8')) or {}).get('pull_request')
+        if pr:
+            texts += [(f'the PR\'s {k}', pr.get(k)) for k in ('title', 'body') if pr.get(k)]
+        else:   # (the gate runs on push: no PR in its payload; the merge bot checks the PR's text before it lands, guard.py --text)
+            print('messages: no pull_request in this event (a push): the PR\'s title and body are the merge bot\'s to check, with guard.py --text')
     bad = 0
     for where, text in texts:
         h = banned_in(text)
@@ -396,6 +402,23 @@ def messages(root='.', base=None, event=None):
     print(f'messages: {len(texts)} checked ({"from " + base[:10] if base else "no range"}), '
           + ('banned names found' if bad else 'no banned name'))
     return bad
+
+
+def text_check(stream=None):
+    """guard.py --text: the text on stdin (a PR's title and body, say) checked for a banned name. Exit 1 on one, or on
+    a names.json it cannot read (the merge bot runs it right before it lands a PR, so an edit after the gate counts)."""
+    try:
+        salt, hashes, _ = names()
+        assert isinstance(salt, str) and salt
+    except Exception as e:
+        print(f'::error::.claude/hooks/names.json cannot be read ({type(e).__name__}: {e})')
+        return 1
+    h = banned_in((stream or sys.stdin).read())
+    if h:
+        print(f'::error::a banned name (names.json {h}...) in the text. RULES.json "naming"')
+        return 1
+    print('text: no banned name')
+    return 0
 
 
 def selftest_messages():
@@ -418,7 +441,19 @@ def selftest_messages():
         def planted():
             open(os.path.join(d, 'a'), 'w').write('c'); g('commit', '-qam', 'after Zqplanted\'s idea')
             return messages(d, base, event())
-        cases += [('the PR title', 1, lambda: messages(d, base, event(title='Zqplanted\'s law'))),
+        def push_event():
+            json.dump({'ref': 'refs/heads/claude/x', 'head_commit': {'message': 'a clean change'}}, open(ev, 'w'))
+            return ev
+        def no_range():
+            os.environ['GITHUB_ACTIONS'] = 'true'
+            try: return messages(d, None, event())   # (the throwaway repository has no origin/main)
+            finally: os.environ.pop('GITHUB_ACTIONS', None)
+        import io as _io
+        cases += [('a push payload, a clean range', 0, lambda: messages(d, base, push_event())),
+                  ('no merge base under GitHub Actions', 1, no_range),
+                  ('--text, a clean title', 0, lambda: text_check(_io.StringIO('a clean title\na body'))),
+                  ('--text, a planted title', 1, lambda: text_check(_io.StringIO('Zqplanted\'s law\n'))),
+                  ('the PR title', 1, lambda: messages(d, base, event(title='Zqplanted\'s law'))),
                   ('the PR body', 1, lambda: messages(d, base, event(body='see ZQPLANTED, 1901'))),
                   ('a commit message', 1, planted)]
         import contextlib, io
@@ -428,7 +463,7 @@ def selftest_messages():
             if got != want: fails.append(f'{what}: exit {got}, want {want}')
     _names = keep
     for f in fails: print('::error::--selftest-messages: ' + f)
-    print('selftest: ' + ('FAILED' if fails else 'a planted name is caught in a commit message, the PR title and its body; a clean range passes'))
+    print('selftest: ' + ('FAILED' if fails else 'a planted name is caught in a commit message, the PR title and body and --text; a clean range and a push payload pass; no range fails under Actions'))
     return 1 if fails else 0
 
 
@@ -439,4 +474,6 @@ if __name__ == '__main__':
         sys.exit(selftest_messages())
     if '--messages' in sys.argv:
         sys.exit(messages())
+    if '--text' in sys.argv:
+        sys.exit(text_check())
     main()
