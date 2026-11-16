@@ -1,6 +1,6 @@
 // still-words.mjs: the words' boxes each opening's still was baked with (226's STILL_WORDS), measured again.
 //   node tools/still-words.mjs [SITE]           print the table measured on SITE (default build/site)
-//   node tools/still-words.mjs [SITE] --check   exit 1 when the table in src/world/226-moonlit-stay.js differs by over 0.6 px
+//   node tools/still-words.mjs [SITE] --check   exit 1 when the table in src/world/226-moonlit-stay.js differs by over 2 px
 //   node tools/still-words.mjs [SITE] --write   write the measured table into src/world/226-moonlit-stay.js
 // The opening's plans (its moon and its evening star) are made against the still's own shape, the words' boxes as the
 // bake had them (the night lane, the hub's round-3 review of #303 and #301): a window's own boxes, scaled, are not the
@@ -16,6 +16,9 @@ import * as H from '../.github/ci/harness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2), SITE = path.resolve(args.find((a) => !a.startsWith('--')) || path.join(ROOT, 'build', 'site'));
+// (the tolerance: Chromium builds shape the links' text up to 1.5 px apart (CI's playwright-core 1.49.1 against a newer one:
+// the second link's right edge), well inside the plan's 12 px keep; the live plan reads this same table, so it never hops)
+const TOL = 2;
 const SRC = path.join(ROOT, 'src', 'world', '226-moonlit-stay.js');
 const SHAPES = ['393x861', '393x817', '393x770', '393x724', '393x676', '393x629', '393x524', '1080x1080', '1350x1080', '1728x1080', '1920x1080', '2268x1080'];
 
@@ -44,7 +47,7 @@ if (!m) { console.error('still-words: no "var STILL_WORDS = {...};" in ' + path.
 if (args.includes('--write')) { fs.writeFileSync(SRC, src.replace(RE, 'var STILL_WORDS = ' + JSON.stringify(T) + ';')); console.log('still-words: the table written (' + Object.keys(T).length + ' bake windows)'); }
 else if (args.includes('--check')) {
   const have = JSON.parse(m[1]), bad = [];
-  for (const k of Object.keys(T)) for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) { const a = have[k] && have[k][i] ? have[k][i][j] : NaN; if (!(Math.abs(a - T[k][i][j]) <= 0.6)) bad.push(`${k} box ${i}[${j}]: ${a} in the table, ${T[k][i][j]} measured`); }
+  for (const k of Object.keys(T)) for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) { const a = have[k] && have[k][i] ? have[k][i][j] : NaN; if (!(Math.abs(a - T[k][i][j]) <= TOL)) bad.push(`${k} box ${i}[${j}]: ${a} in the table, ${T[k][i][j]} measured`); }
   if (bad.length) { console.error('still-words: ' + bad.length + ' values off the table, the stylesheet has moved the words (node tools/still-words.mjs --write):\n  ' + bad.slice(0, 12).join('\n  ')); process.exit(1); }
-  console.log('still-words: ' + Object.keys(T).length + ' bake windows, every box within 0.6 px of the table');
+  console.log('still-words: ' + Object.keys(T).length + ' bake windows, every box within ' + TOL + ' px of the table');
 } else console.log(JSON.stringify(T));
