@@ -148,8 +148,8 @@
       // the lens at the lee wave's first crest, half a wavelength downwind of the ridge: lambda = 2 pi U / N, U the wind
       // across the crest at the lens's height, N the stable troposphere's buoyancy frequency (HELD_N); at U 8-10 m/s
       // the crest stands 2.5-3.1 km downwind (a lens right behind the ridge would be a cap cloud)
-      var ux = w.x / sp, uz = w.z / sp, dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.windAt(0, 0, dy, 0, V), nx = -az, nz = ax;   // (n: the crest's normal in (x, z))
-      var U = Math.abs(hw.x * nx + hw.z * nz), off = Math.min(PI * U / HELD_N, RS), x = cx + ux * off, z = cz + uz * off;
+      var dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.windAt(0, 0, dy, 0, V), nx = -az, nz = ax, sg = w.x * nx + w.z * nz < 0 ? -1 : 1;   // (n: the crest's normal in (x, z), turned downwind)
+      var U = Math.abs(hw.x * nx + hw.z * nz), off = Math.min(PI * U / HELD_N, RS), x = cx + sg * nx * off, z = cz + sg * nz * off;   // (the wave train runs across the crest: the lens on its normal, half a wavelength out)
       if (!C.inside(x, z)) continue;
       if (C.weights(x, z)[1] > 0.5) continue;   // (the dunes kit's where the lens stands: none over the cloud sea)
       var T = 45 + 30 * K.hfl(K.hk(h, 23)), n = 1 + (K.hk(h, 24) >>> 30 > 1 ? 2 : (K.hk(h, 24) >>> 30));

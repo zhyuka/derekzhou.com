@@ -17,6 +17,8 @@
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from windAt's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
 // plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
+// plant: {"file": "src/realm-dunes.js", "find": "x = cx + sg * nx * off, z = cz + sg * nz * off;", "with": "x = cx + w.x / sp * off, z = cz + w.z / sp * off;", "why": "the lens along the 100 m wind, not the crest's normal: short of half a wavelength and slid along the crest"}
+// plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": " if (o.flow) return cellDistFade(C);", "with": "", "why": "a lens faded by its own distance: in view when its cell is made (a pop)"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -164,8 +166,11 @@ test('lenticular: half a lee wavelength downwind of its crest (pi U / N); none w
       const ang = H.hfl(H.hk(h, 5)) * Math.PI;
       const w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, hw = { ...H.windAt(0, 0, cl.dy, 0, V) }, sp = Math.hypot(w.x, w.z);
       const U = Math.abs(-hw.x * Math.sin(ang) + hw.z * Math.cos(ang)), want = Math.PI * U / H.HELD_N;
-      const along = ((cl.x - cx) * w.x + (cl.z - cz) * w.z) / sp, across = Math.abs(((cl.x - cx) * w.z - (cl.z - cz) * w.x) / sp);
-      assert.ok(Math.abs(along - want) < 1e-6 && across < 1e-6, `a lens ${along.toFixed(1)} m downwind (want ${want.toFixed(1)}: pi U / N), ${across.toFixed(1)} m across`);
+      // (on the crest's normal, downwind: the wave train runs across the crest)
+      const nx = -Math.sin(ang), nz = Math.cos(ang), sg = w.x * nx + w.z * nz < 0 ? -1 : 1;
+      const along = ((cl.x - cx) * nx + (cl.z - cz) * nz) * sg, across = Math.abs((cl.x - cx) * Math.cos(ang) + (cl.z - cz) * Math.sin(ang));
+      assert.ok(Math.abs(along - want) < 1e-6 && across < 1e-6, `a lens ${along.toFixed(1)} m out on the crest's normal (want ${want.toFixed(1)}: pi U / N), ${across.toFixed(1)} m along the crest`);
+      assert.ok(((cl.x - cx) * w.x + (cl.z - cz) * w.z) > 0, 'a lens upwind of its crest');
       lo = Math.min(lo, along); hi = Math.max(hi, along); n++;
     }
   }
@@ -205,4 +210,30 @@ test('lenticular: the plates are long thin lenses, each smaller than the one bel
       assert.ok(up.length && dn.length && span(up) < span(dn), `plate ${k + 1} not smaller than the one below`);
     }
   }
+});
+
+// no pop (the hub's round-4 review): a lens is as large as 790 m about, so faded by its own distance it stood in view
+// when its cell was made (the camera 5950 m from the cell's centre: the reach plus half a cell). The world's own fades
+// (236) run in Node: from every bearing, at the cell's birth and at its freeing, every lens's fade is 0
+test('lenticular: no lens shows when its cell is made or freed, from any bearing', () => {
+  const FADE = cut(WORLD, '  function fadeZ(V, sc) {', '  function lateBorn(');
+  const NEAR = cut(WORLD, '  function nearDist(C, x, z) {', '\n', true);
+  const make3 = vm.runInThisContext('(function (CAM) { function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function airD() { return null; } function cloudT() { return 0; } function cloudPos(o) { return o.c; }\n' + NEAR + FADE + ' return { volDistFade: volDistFade }; })');
+  const L = { radius: 5200, size: 1500 }, birth = L.radius + L.size * 0.5, freed = L.radius * 1.3 + L.size * 0.5;
+  assert.match(WORLD, /if \(d > R \+ L\.size \* 0\.5\) continue;/, 'a cell is not made at its reach plus half a cell');
+  assert.match(WORLD, /> streamR\(Lf, V\) \* 1\.3 \+ Lf\.size \* 0\.5\)/, 'a cell is not freed at 1.3 its reach plus half a cell');
+  let n = 0, worst = 0;
+  for (let seed = 1; seed <= 120; seed++) {
+    const salt = (seed * 40503) >>> 0, V = visitV(seed, 7.2);
+    for (let iz = -5; iz < 5; iz++) for (let ix = -5; ix < 5; ix++) for (const cl of cell(ix, iz, salt, V)) {
+      const C = { V: { def: { layout: { scales: [L] } } }, sc: 0, cx: ix * 1500 + 750, cz: iz * 1500 + 750, size: 1500, air: false };
+      const r = Math.hypot(cl.len / 2, cl.w / 2), o = { cell: C, c: [cl.x, cl.dy, cl.z], r, flow: cl.flow };
+      for (const D of [birth, freed]) for (let a = 0; a < 360; a += 5) {
+        const CAM = { pos: [C.cx + D * Math.sin(a * Math.PI / 180), 0, C.cz + D * Math.cos(a * Math.PI / 180)] };
+        const f = make3(CAM).volDistFade(o); worst = Math.max(worst, f); n++;
+        assert.equal(f, 0, `a lens ${r.toFixed(0)} m about at fade ${f.toFixed(3)} when its cell is ${D === birth ? 'made' : 'freed'} (bearing ${a} deg): a pop`);
+      }
+    }
+  }
+  assert.ok(n > 1000, `only ${n} cases`);
 });

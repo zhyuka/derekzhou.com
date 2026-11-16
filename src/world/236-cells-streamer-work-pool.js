@@ -67,7 +67,8 @@
   var CDF = new Float64Array(2);
   function cellDistFade(C) { var a = C.air ? airD(C.V, cloudT(), CDF) : null; return distFadeAt(C.V, C.sc, nearDist(C, a ? CAM.pos[0] - a[0] : CAM.pos[0], a ? CAM.pos[2] - a[1] : CAM.pos[2])); }   // (an air cell's grid is the air's: the eye taken there)
   var VDF = new Float64Array(3);   // (a drifting body where the air has carried it by the draw's moment)
-  function volDistFade(o) { var C = o.cell; if (!C) return 1; var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2]; return distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0)); }
+  function volDistFade(o) { var C = o.cell; if (!C) return 1; if (o.flow) return cellDistFade(C);   // (a held body, a lens, by its cell's nearest distance: as large as 790 m about, it stood in view when its cell was made (a pop); its cell's distance is past the fade's far end at the cell's birth from every bearing)
+    var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2]; return distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0)); }
   function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once)
   /* kind 'cpu' (the slice after the frame's flush): layouts, resolves and builds, no GL call;
      kind 'gpu' (the jobs at the start of the next drawn frame): uploads and bakes; sync or no kind: everything */
