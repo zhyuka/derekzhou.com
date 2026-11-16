@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + SKY.dt).sun);", "why": "the land lit by the frame's sun (a light under the horizon 70% of a night)"}
 // plant: {"file": "src/world/215-air.js", "find": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS,", "with": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS * (1 + 0.5 * Math.sin(tS / 40)),", "why": "the sky turning at a pace of its own (faster, slower, back)"}
 // plant: {"file": "src/world/215-air.js", "find": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, o === 'firstlight', S.dec) + S.ra;", "with": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, false, S.dec) + S.ra;", "why": "a first-light opening's sun in the evening"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_LAT = 64, AIR_OBL = 23.4393,", "with": "var AIR_LAT = 64, AIR_OBL = 0,", "why": "the ecliptic laid on the equator"}
@@ -13,7 +14,7 @@
 // plant: {"file": "src/world/215-air.js", "find": "AIR_Z0 = 0.003,", "with": "AIR_Z0 = 0.03,", "why": "the sand ten times rougher (the profile's shares off)"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec3 prev = grain(id, uT - uMBdt, e2);", "with": "vec3 prev = head;", "why": "the motes' streak the camera's motion only (a windy mote a dot that jumps)"}
 // plant: {"file": "src/world/210-cloud-volumes-baking.js", "find": "var sd = keyAt(V), cy", "with": "var sd = dirAzEl(V.light.sunAz, 9), cy", "why": "the clouds baked along a sun of their own"}
-import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
+import { test, assert, fs, path, vm, ROOT, TMP, execFileSync, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
 
 const AIR = cut(WORLD, '  /* ---------------------------------------------------------------- the air: the world\'s one state', '  /* ---------------------------------------------------------------- the time of day */');
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
@@ -214,4 +215,8 @@ test('air: the sky\'s frame (one celestial sphere: the pole at the latitude, the
   G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'firstlight', at: -20, hold: 80, move: 55 }); const W = { seed: 9, light: { sunAz: 40 } };
   const m = G.skySphere(0, W).sun; assert.ok(Math.abs(el(m) - -3) < 1e-3 && adiff(az(m), 40) > 30, 'a first-light opening: its sun 3 deg down, in the morning');
   G.SIM.V = null; assert.deepEqual(Array.from(G.skyFrame(0)), Array.from(G.skyFrame(0)), 'before a visit: the frame unchanged');
+  // no reader lights by the frame's sun: no world section but the air's calls skySphere, and no realm, bird or sound file reads its .sun
+  for (const f of fs.readdirSync(path.join(ROOT, 'src/world')).filter((n) => n.endsWith('.js') && n !== '215-air.js')) assert.ok(!/skySphere\s*\(/.test(fs.readFileSync(path.join(ROOT, 'src/world', f), 'utf8')), `${f} reads skySphere: the frame's sun is never a light (keyAt and uSkyS are)`);
+  const READERS = execFileSync('git', ['ls-files', 'src/*.js', 'src/birds/*.js', 'src/birds/**/*.js'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && !f.startsWith('src/world/') && !f.startsWith('src/dev/'));
+  for (const f of READERS) assert.ok(!/skySphere\s*\([^)]*\)\s*\.\s*sun\b/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')), `${f} lights by skySphere().sun`);
 });
