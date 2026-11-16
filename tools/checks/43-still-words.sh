@@ -4,4 +4,8 @@
 # (the night lane, the hub's round-3 review of #303 and #301) the opening's moon and evening star are planned against
 # the still's own shape, its words' boxes from a table measured in each bake window; this measures them again on the
 # build in Chromium and fails when a stylesheet change has moved them (fix: node tools/still-words.mjs --write)
+if [ -z "${PW_CORE:-}" ] && ! node -e "require.resolve('playwright')" 2>/dev/null; then
+  npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1 >/dev/null
+  export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
+fi
 node tools/still-words.mjs build/site --check
