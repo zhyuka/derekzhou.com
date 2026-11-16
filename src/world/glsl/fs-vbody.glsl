@@ -59,7 +59,7 @@ void main() {
   vec3 sunL = vec3(uVY.x * uSun.x - uVY.y * uSun.z, uSun.y, uVY.y * uSun.x + uVY.x * uSun.z), nrm = vec3(0.0, 1.0, 0.0);
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
-  float sP = 0.0, sBP = 0.0, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
+  float sP = 0.0, sBP = 0.0, ybP = -1e5, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
   vec3 nOff = fract(uVC / uVR.z); float texel = uVR.z / 32.0;
   for (int i = 0; i < 96; i++) {
     if (t > tf || last || taken >= uVR.y) break;
@@ -74,7 +74,7 @@ void main() {
       leaps += 1.0;
       vec3 fqL = (uVH - abs(p)) / uVH; float fzL = smoothstep(0.0, 0.07, min(min(fqL.x, fqL.y), fqL.z));
       if (uVS.w > 0.0) fzL *= smoothstep(uVS.w * 0.2, uVS.w, t);
-      sP = s; sBP = s; tP = t; gP = v.g; bP = v.b; dP = 0.0; fP = fzL;
+      sP = s; sBP = s; ybP = yb; tP = t; gP = v.g; bP = v.b; dP = 0.0; fP = fzL;
       t += sl > band ? max(sl * 0.9, dE) : max((s - amp) * 0.6, dE); continue;
     }
     taken += 1.0;
@@ -108,7 +108,7 @@ void main() {
       float dsum = 0.0, sa = sP;
       for (int k = 1; k < 48; k++) {
         if (float(k) >= K) break;
-        float u = float(k) / K, sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;
+        float u = float(k) / K, sk = max(mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0, mix(ybP, yb, u));   // (each piece floored at its own flat base: yb is linear along the ray)
         dsum += segRamp(sa, sk, bE); sa = sk;
       }
       dsum += segRamp(sa, s, bE);
@@ -128,7 +128,7 @@ void main() {
         if (T < 0.015) { T = 0.0; break; }   // (opaque: nothing behind it prints through)
       }
     }
-    sP = s; sBP = sB; tP = t; gP = v.g; bP = v.b; dP = clamp(-s / bE, 0.0, 1.0) * fz; fP = fz;
+    sP = s; sBP = sB; ybP = yb; tP = t; gP = v.g; bP = v.b; dP = clamp(-s / bE, 0.0, 1.0) * fz; fP = fz;
     t = min(t + dt, tf);   // (a step past the ray's end stops at it, so the last segment is never dropped)
   }
   if (T > 0.996) discard;

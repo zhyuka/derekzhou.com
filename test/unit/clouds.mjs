@@ -4,6 +4,7 @@
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "max((s - amp) * 0.6, dE); continue;", "with": "max((s - amp) * 0.6, dE); taken++; continue;", "why": "a leap counted as a band step in another spelling: every leap cuts the band's steps"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0] * (CRISP ? 4 : 1);", "with": "B.u4a[2] = (V.L || V.light).clDetail[0] * (CRISP ? 4 : 1);", "why": "the billows' scale blended per frame by the place's weight again"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "    s = max(s - (dn - 0.5) * amp * 2.0, yb);", "with": "    s = s - (dn - 0.5) * amp * 2.0;", "why": "the flat base before the billows: billows hang under it (the underside's specks)"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "* amp * 2.0, mix(ybP, yb, u));", "with": "* amp * 2.0, -1e5);", "why": "the cut pieces unfloored: the billows hang under the flat base between two samples"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // (the owner's wiggle, 2026-11-14: clDetail, blended each frame by the place's weight between ABOVE's [80, 5] and the
@@ -85,7 +86,7 @@ test('clouds: the edge band is cut into pieces in the shader, at most 48, the ca
   assert.match(VBODY, /for \(int k = 1; k < 48; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 48, broken at K) is not in fs-vbody');
   // (the shader's own cutting, as the model below does it: a mutation of any of these passed before, the hub's review)
   assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;'), 'the pieces\' count is not the two-sided test and a sixteenth (crisp) to half a texel at the LOD, capped by uVK');
-  assert.ok(VBODY.includes('sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;'), 'a cut does not read the billows again at its own place');
+  assert.ok(VBODY.includes('sk = max(mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0, mix(ybP, yb, u));'), 'a cut does not read the billows again at its own place, floored at its own flat base');
   assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
   assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
@@ -226,6 +227,19 @@ test('clouds: nothing hangs under a body\'s flat base, whatever the billows', ()
     else if (r === s - (dn - 0.5) * amp * 2) above++;
   }
   assert.ok(above > 500, 'above the base the billows are not the billows');
+  // and every cut piece between two samples floored at its own base (yb is linear along the ray: the last sample's and
+  // this one's, mixed): the cut loop's own line run in Node with the noise's texture a random draw
+  const cutL = /\n\s*(float u = float\(k\) \/ K, sk = [^\n;]*;)/.exec(VBODY);
+  assert.ok(cutL && /max\(mix\(sBP, sB, u\) - /.test(cutL[1]), 'the cut pieces are not floored at the flat base');
+  const pieceJs = cutL[1].replace(/^float /, 'let ').replace(/float\(k\)/g, 'k').replace(/\/\/.*$/, '');
+  const piece = vm.runInThisContext(`(function (k, K, sBP, sB, ybP, yb, tP, t, amp, g) { const max = Math.max, mix = (a, b, u) => a + (b - a) * u,
+    textureLod = () => ({ g }), uN3 = 0, ro = 0, rl = 0, uVR = { z: 1 }, nOff = 0, lod = 0; ${pieceJs} return sk; })`);
+  for (let k2 = 0; k2 < 3000; k2++) {
+    const K = 2 + Math.floor(46 * Math.random()), k = 1 + Math.floor((K - 1) * Math.random()), u = k / K;
+    const ybP = 30 * Math.random() - 5, yb = 30 * Math.random() - 5, sBP = 60 * Math.random() - 30, sB = 60 * Math.random() - 30;
+    const sk = piece(k, K, sBP, sB, ybP, yb, 0, 1, 25 * Math.random(), Math.random()), base = ybP + (yb - ybP) * u;
+    if (base > 0) assert.ok(sk >= base - 1e-9 && sk > 0, `a cut piece ${base.toFixed(2)} m under the flat base: inside (${sk})`);
+  }
   // (and the line runs after the noise is read, before the step is chosen from it)
   const iN = VBODY.indexOf('float dn = textureLod(uN3'), iS = VBODY.indexOf(line[1]), iD = VBODY.indexOf('float dt = max(s > 0.0');
   assert.ok(iN < iS && iS < iD, 'the flat base is not applied between the billows\' noise and the step it sets');
