@@ -22,6 +22,12 @@ says so on the PR (merge-bot.mjs, step 1b; its message ends "Reverts-main-tip: <
 step over the pair). The owner's own merges are never reverted by the bot. MERGE_TOKEN needs Actions write for the
 re-run.
 
+A cancelled main gate (a newer push superseded it) is no result: its tip is judged by its own PR's gate (for the bot's
+own merge commit, "Merge #N: ...", the gate on the PR's head, its second parent) or the owner's merge. When nothing
+proves it, the bot re-runs that tip's gate itself, once (2026-11-15: live waited 4 hours at 7ab73d1 on #258's
+cancelled merge for "a later gate" that never runs on that tip); cancelled again, the deploy gate says so and the
+owner looks (.github/ci/deploy-walk.mjs, its test in test/unit/verdict.mjs).
+
 The owner's "land it when green" is GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
 it once its gate's `verdict` check is green. A new push does not undo it: GitHub merges the head whose checks pass.

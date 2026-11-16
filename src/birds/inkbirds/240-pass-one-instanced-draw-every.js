@@ -71,8 +71,12 @@
     gl.deleteTexture(BT); makePts();
   }
   /* a bird posed, projected and lit for this frame (a held speck only carried on: holdMove); false: not drawn */
+  /* the frame's own time (TD, behind the last step by the loop's alpha), a bird's age then (AD) and its share back
+     toward its previous step (QB: 0 for one not stepped this step): every posed thing reads these, never the step's clock */
+  var TD = 0, AD = 0, QB = 0;
   function poseDrawn(b, s, C, N, moving, bb) {
     if (s.hold) return holdMove(b, s, C, bb);
+    AD = b.age - bb; QB = b.stT === t && !b.cs && STEP_DT > 0 ? clamp(bb / STEP_DT, 0, 1) : 0;   // (a coarse step (a speck's, a far or unseen flock's) is drawn carried on along its way, never lerped a step's share of several)
     var ok = b.st === 'perch' ? posePerch(b, C, s) : poseFly(b, C, s, !moving, bb);
     if (!ok || !projectBird(s, C, N)) return false;
     bodyAt(s, C, s.HB);
@@ -121,7 +125,7 @@
      world's own air (in the pass): no fade in
      time, at an edge, near or far */
   function drawPaper() {
-    var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0;
+    var C = camDrawn(), al = HOST.alpha(), moving = !HOST.reduced(), back = moving ? (1 - al) * STEP_DT : 0, i, b, s, nB = 0; TD = t - back;
     measureIf();
     var L = FORCED ? null : HOST.light(), N = FORCED ? 0 : (HOST.night ? HOST.night() : 0), fcss = (W / 2) / VW.tanX;
     lightFrame(L);
@@ -129,8 +133,8 @@
     var nq = 0; DF++;   // (DRAWQ filled in place: emptying it would make it a new store each frame)
     for (i = 0; i < BIRDS.length; i++) {
       b = BIRDS[i];
-      var bb = b.stT === t ? back : back - (t - b.stT), px = b.p[0] - b.v[0] * bb, py = b.p[1] - b.v[1] * bb, pz = b.p[2] - b.v[2] * bb;   // (bb: back to the frame's time from its own last step)
-      projReal(px, py, pz, C, tmp3);
+      var bb = b.stT === t ? back : back - (t - b.stT), qb = b.stT === t && !b.cs && STEP_DT > 0 ? clamp(back / STEP_DT, 0, 1) : 0;   // (bb: back to the frame's time from its own last step)
+      drawnAt(b, qb, bb, DP); projReal(DP[0], DP[1], DP[2], C, tmp3);
       if (!(tmp3.z > 1)) continue;
       var rpx = 0.75 * b.sz * fcss / Math.max(tmp3.z, 1) + 8;
       if (tmp3.z > 1 && !inView(tmp3.x, tmp3.y, rpx, rpx)) continue;
@@ -143,13 +147,12 @@
       if (!b.s) b.s = drawRec(b);
       s = b.s;
       var was = s.seenF === DF - 1;
-      if (!was) { s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
+      if (!was) { s.xKey = -1; s.xT0 = -1; s.st = b.st; s.eOk = false; s.bT0 = -1; s.bFrom = null; s.spanPx = 0; s.ldt = 0; }   // (back in view: its tone and attitude begin afresh)
       /* (the owner, 2026-11-13: yes) a speck (under SPECK device px, flying) poses its wings and lights itself one frame
          in four, its own (by its number): between, its form and tone are held and only its place and attitude move */
       s.hold = was && b.st === 'fly' && s.st === 'fly' && !b.burst && s.eOk && s.spanPx > 0 && s.spanPx < SPECK && ((DF + b.id) & 3) !== 0;
       s.seenF = DF; s.kind = FP.kinds[b.kind] && KMD[b.kind] ? b.kind : 'gull';
       s.d.span = b.sz / MODEL_K / MPU; s.d.model = b.sz / MPU;
-      if (b.st === 'land') restProbe(b, C, s);
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
       s.ldt += fdt;
       if (!poseDrawn(b, s, C, N, moving, b.stT === t ? back : back - (t - b.stT))) continue;
