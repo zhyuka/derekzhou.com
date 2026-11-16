@@ -42,15 +42,15 @@
   /* (first-paint preview) the hold: the page's first paint waits for the world's first frame (the link rel=expect in
      the head). Where the odds are low it is taken out here, before the body, so the words paint as soon as they can:
      reduced motion (one still frame, today's path), forced colours, no WebGL2, 4 or fewer cores, under 8 GB where the
-     browser says (deviceMemory), a hidden tab, and by the browser: Firefox (no parallel compiles), Safari and every
-     WebKit (links one at a time; its deadline waits on a real Mac's film), every Android (its GPUs, Mali and Adreno,
-     take 2-10 s) and iOS/iPadOS. The world checks the rest once it has its context, and holds only where it foretells
-     the world within about a second (the owner's rule). */
+     browser says (deviceMemory), a hidden tab, and by the browser: Firefox, every Android, iOS/iPadOS (an iPad as a
+     Mac by its touch points) and every WebKit but Safari on a Mac (its film: docs/world.md). The world checks the
+     rest once it has its context, and holds only where it foretells the world within about a second (the owner's
+     rule). */
   var hold = document.querySelector('link[rel="expect"][blocking="render"]');
   if (hold) {
     var nav = navigator, ua = nav.userAgent || '', mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
     if (mq('(prefers-reduced-motion: reduce)') || mq('(forced-colors: active)') || typeof WebGL2RenderingContext === 'undefined' ||
       (nav.hardwareConcurrency || 0) <= 4 || (nav.deviceMemory && nav.deviceMemory < 8) || document.visibilityState === 'hidden' ||
-      /Firefox\/|Android|iPhone|iPad|iPod/.test(ua) || (/AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua))) hold.remove();
+      /Firefox\/|Android|iPhone|iPad|iPod/.test(ua) || (/AppleWebKit/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua) && !(/Macintosh/.test(ua) && (nav.maxTouchPoints || 0) <= 1))) hold.remove();
   }
 })();

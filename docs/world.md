@@ -184,8 +184,8 @@ and the plan is made on the main thread beside the compiles (the
 worker's answer cannot arrive; it is stopped after the first hold frame).
 No hold (hour.js takes the link out before the body): reduced motion,
 forced colours, no WebGL2, 4 or fewer cores, under 8 GB (deviceMemory),
-a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
-sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
+a hidden tab, Firefox, every WebKit but Safari on a Mac (an iPad behind a
+Mac user agent counts as iOS, by its touch points), Android, iOS/iPadOS; and (the world, after stage A)
 no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
 to show the world later than HOLD_WORLD (1000 ms from the navigation's
 start): from stage A (38 x A - 150 ms; only a clearly slow A, over
@@ -193,7 +193,11 @@ start): from stage A (38 x A - 150 ms; only a clearly slow A, over
 and from the first hold frame (26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
 1x-6x. Where a hold may run, world.js makes the canvas's context as its script
 ends, so the GPU process starts while the kits come, not inside stage A.
-The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+The deadline (2 s from the hold's start, 1.5 s on 5-7 cores; 1 s in Safari on a Mac, HOLD_WK:
+the Apple bench's film, 2026-11-16, Safari 26.6 on an M-series Mac with the gates lifted, saw the hold
+shown after 298-399 ms and the words and the world together at 0.4-0.6 s, where today's path shows the
+world at 1.9 s; a build's first visit compiles the Metal pipelines afresh, about twice the time, and
+past the 1 s the page takes the path below) is the last net: past it
 the link is taken out and the path below goes on. T2 shows the world's
 first frame byte for byte the one without the hold (frame 0: gstep
 counts a world shown in the page's own load as shown at frame 0). The

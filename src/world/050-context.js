@@ -22,6 +22,7 @@
        links and first draws are synchronous: there the one-at-a-time path (the white build's), not all at once */
     var wkUA = navigator.userAgent || '', wkIs = /iPhone|iPad|iPod/.test(wkUA) || (/Macintosh/.test(wkUA) && navigator.maxTouchPoints > 1) || (/AppleWebKit/.test(wkUA) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(wkUA));
     EXT.parAll = EXT.par && !wkIs ? EXT.par : null;
+    EXT.wkMac = wkIs && /Macintosh/.test(wkUA) && !(navigator.maxTouchPoints > 1);   // (load-perf, 2026-11-16: Safari on a Mac, not an iPad behind its user agent: the first-paint hold's one WebKit, 520's holdMs)
     /* (lane D, Android item 1) no KHR_parallel_shader_compile and not WebKit (Android's ANGLE-Vulkan, older drivers):
        every program issued in one frame and flushed, so the GPU process links them while the page goes on; their
        statuses read one a frame from the next frame on (each read waits only for what is left of its own link).

@@ -128,15 +128,20 @@
   function holdLink() { return document.querySelector('link[rel="expect"][blocking="render"]'); }
   function holdOff(why) { HOLD.why = why; var l = holdLink(); if (l) l.remove(); bootMark('hold: off (' + why + ')'); }
   /* the deadline by device, the last net (0: no hold). Chromium blanks a tab after about 4 s with no new frame, so
-     never near that; no hold without parallel compiles (WebKit's links one at a time included: Safari keeps today's
-     path until a real Mac's film sets its deadline), on a phone's GPU by name, or on 4 or fewer cores (hour.js has
-     taken out the rest: reduced motion, forced colours, low memory, Firefox, Safari, Android, iOS) */
+     never near that; no hold without parallel compiles, on a phone's GPU by name, or on 4 or fewer cores (hour.js has
+     taken out the rest: reduced motion, forced colours, low memory, Firefox, Android, iOS, every WebKit but Safari on
+     a Mac). WebKit links one at a time; of it only Safari on a Mac holds (load-perf, 2026-11-16, the Apple bench's
+     film: Safari 26.6, an M-series Mac, the gates lifted: shown after 298-399 ms, the words and the world together at
+     0.4-0.6 s, where today's path shows the world at 1.9 s), with HOLD_WK: a build's first visit compiles the Metal
+     pipelines afresh (about twice the time: 3.6 s live), and past HOLD_WK it takes today's path, the words at once */
+  var HOLD_WK = 1000;
   function holdMs() {
     var cores = navigator.hardwareConcurrency || 0;
     if (!EXT.par) { HOLD.why = 'no parallel compiles'; return 0; }
     if (/Mali|Adreno|PowerVR|Immortalis|Xclipse|Apple GPU/.test(EXT.renderer) && !/Macintosh/.test(navigator.userAgent || '')) { HOLD.why = 'a phone GPU'; return 0; }
     if (cores <= 4) { HOLD.why = cores + ' cores'; return 0; }
-    if (!EXT.parAll) { HOLD.why = 'links one at a time'; return 0; }
+    if (!EXT.parAll && !EXT.wkMac) { HOLD.why = 'links one at a time'; return 0; }
+    if (EXT.wkMac) return HOLD_WK;
     return cores >= 8 ? 2000 : 1500;
   }
   function holdRun() {
