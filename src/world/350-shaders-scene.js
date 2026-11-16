@@ -13,12 +13,13 @@ float zcode() {
 }
 float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
 `;
-  /* (physics: sand/S2, a crisp brink) the main dunes' phase to the land's fragments: 7 floats (the phase unwrapped, its
-     gradient, the height with the sites' share; the slip face's share, the slope the vertex took from them). The
+  /* (physics: sand/S2, a crisp brink) the main dunes' phase to the land's fragments: 11 floats (the phase unwrapped, its
+     gradient, the height with the sites' share; the slip face's share, the slope the vertex took from them; dH and the
+     faces' d(H / fl)). The
      fragment rebuilds the slope at its own phase (s1Slope) and puts it in place of the vertices' (FS_TERRAIN) */
   var S1_OUT = `
-centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec2 vS1d; centroid out vec2 vMB;
-void s1Out(vec4 s, float fl, float sw, vec2 dH) {
+centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec4 vS1d; centroid out vec2 vMB;
+void s1Out(vec4 s, float fl, float sw, vec4 dH) {
   vS1 = vec4(s.xyz, s.w * sw); vS1d = dH * sw;
   vS1g = vec3(fl, s1Slope(fract(s.x), s.yz, vS1.w, fl, s1Rb(vS1.w, length(s.yz), fl), max(0.15 * vS1.w, 0.05), vS1d));
 }`;
@@ -61,7 +62,7 @@ void main() {
   var HP_GRIDW = `@glsl hp-gridw`;
   var HP_MAIN = {
     kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',
-    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), gS1.x); o1 = vec4(gS1.yzw, gS1F); o2 = vec4(gS1D, 0.0, 0.0); }',   // (physics: sand/S2: the phase and the rest to P2.w, P5 and P6)
+    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), gS1.x); o1 = vec4(gS1.yzw, gS1F); o2 = gS1D; }',   // (physics: sand/S2: the phase and the rest to P2.w, P5 and P6)
     sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), gS1W); o1 = vec4(gMS, 0.0, 0.0); }',   // (delight-weather 1: the basins' change to the mist pools' floor, to P7)
     ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
     /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses
@@ -103,7 +104,7 @@ void main() {
   vec3 hd = (s.xyz + r.xyz) - k1.xyz;
   vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
-  vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0).xy);
+  vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0));
   vec4 p7 = texelFetch(uHP7, q, 0); vMB = vec2(swell(w) * p7.x + p7.y - k1.x, k0.x);   // (delight-weather 1: the mist pools' floor and reach, as Hd sets gMB)
   gl_Position = uVP * vec4(vW - uCam, 1.0);
 }`;
@@ -113,7 +114,7 @@ void main() {
      across the cell, they smeared the brink over it): the rounding max(2 m, 1.5 px) at the brink and the toe, and the
      whole put in only as far as the dunes are resolved (B, by the cycles of phase a pixel spans: the spec's band-limit) */
   var S1_IN = `
-centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec2 vS1d; centroid in vec2 vMB;`;
+centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in vec2 vMB;`;
   var S1_FS = `
   if (vS1.w > 0.01) {
     vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
