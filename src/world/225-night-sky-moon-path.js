@@ -1,7 +1,9 @@
   /* ---- the night's sky (SKY_BODY): the moon (a pale flat disc held under the ceiling, standing above the words where
      the window has room at the default pitch, else above the top edge, its light the key's), the belt, the wisps, the
      stars' twinkle (held under reduced motion) and their top */
-  var CEIL_KNEE = 0.08, STAR_TOP_Y = 0.0911, MOON_R = 1.8, MOON_FOOT = 4.5, MOON_KEEP = 12;
+  // (night contrast A) the light ceiling's knee narrowed, 0.08 -> 0.04: what stands under ceiling - knee passes as it
+  // is, so a night's highlights keep their contrast; the ceiling itself, and so the words' worst contrast, unchanged
+  var CEIL_KNEE = 0.04, STAR_TOP_Y = 0.0911, MOON_R = 1.8, MOON_FOOT = 4.5, MOON_KEEP = 12;
   var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4) };
   // MOON-ROUTE-BEGIN
   /* (the sun and moon: the owner's "Drift all night" and "Slower moon") the moon never fades, stops or
