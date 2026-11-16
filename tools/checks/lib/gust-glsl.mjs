@@ -19,18 +19,18 @@ const WORLD = fs.readFileSync(path.join(OUT, 'src/world.js'), 'utf8');
 const cut = (a, b) => { const i = WORLD.indexOf(a), j = WORLD.indexOf(b, i + a.length); if (i < 0 || j < 0) throw new Error('no anchor: ' + a.slice(0, 60)); return WORLD.slice(i, j); };
 const STREAMS = cut('  /* ---------------------------------------------------------------- streams */', '  /* ----------------------------------------------------------------');
 const AIR = cut("  /* ---------------------------------------------------------------- the air: the world's one state", '  var AIRAPI');
-const G = vm.runInThisContext('(function () {\n  \'use strict\';\n  var PI = Math.PI, DEG = PI / 180, SIM = { V: null, t: 0 }, J = { seed: 0 }, SKY = { seq: [{ id: \'afterglow\', at: -30, hold: 90, move: 58 }, { id: \'bluehour\', at: 118, hold: 80, move: 56 }, { id: \'milkyway\', at: 254, hold: 120, move: 60 }, { id: \'firstlight\', at: 434, hold: 200, move: 55 }], dt: 0 };   // (a sky order: the day, a change into the night, its slide)\n  function dirAzEl(az, el) { var a = az * DEG, e = el * DEG; return [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)]; }\n  function moonShown(t, o) { return o; }\n' + STREAMS + AIR +
+const G = vm.runInThisContext('(function () {\n  \'use strict\';\n  var PI = Math.PI, DEG = PI / 180, SIM = { V: null, t: 0 }, J = { seed: 0 }, SKY = { seq: [{ id: \'afterglow\', at: -30, hold: 90, move: 58 }, { id: \'bluehour\', at: 118, hold: 80, move: 56 }, { id: \'milkyway\', at: 254, hold: 120, move: 60 }, { id: \'firstlight\', at: 434, hold: 200, move: 55 }], dt: 0 };   // (a sky order: the day, a change into the night, the night)\n  function dirAzEl(az, el) { var a = az * DEG, e = el * DEG; return [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)]; }\n  function moonShown(t, o) { return o; }\n' + STREAMS + AIR +
   '  return { airDraw: airDraw, gustAt: gustAt, airSpeed: airSpeed, airShare: airShare, weather: weather, airClock: airClock, airGustGlsl: airGustGlsl, subseed: subseed, RNG: RNG };\n})')();
 const lib = fs.readFileSync(path.join(ROOT, 'src/world/glsl/lib.glsl'), 'utf8').split('\n').filter((l) => /^(uint ih\(|uint ih2\(|float hf\()/.test(l)).join('\n');
 const FS = '#version 300 es\nprecision highp float; precision highp int; precision highp sampler2D;\nuniform uint uSalt; uniform sampler2D uIn, uIn2; uniform vec2 uW; uniform float uU; out vec4 o;\n' + lib + '\n' + G.airGustGlsl() +
-  'void main() { ivec2 q = ivec2(gl_FragCoord.xy); vec4 a = texelFetch(uIn, q, 0), b = texelFetch(uIn2, q, 0); o = vec4(airGust(a.xy, uW, uU, b.x, a.z, a.w), 0.0, 0.0, 1.0); }   // (a: x, z, the surface\'s clock, the slide\'s; b.x: the gust\'s wind there and then)\n';
+  'void main() { ivec2 q = ivec2(gl_FragCoord.xy); vec4 a = texelFetch(uIn, q, 0), b = texelFetch(uIn2, q, 0); o = vec4(airGust(a.xy, uW, uU, b.x, a.z), 0.0, 0.0, 1.0); }   // (a: x, z, the surface\'s clock; b.x: the gust\'s wind there and then)\n';
 const N = 64, Y = 5, visits = [];
 for (const seed of [7, 1234567, 0x9e3779b9, 31337]) {
   const V = { seed, salt: G.subseed(seed, 7) >>> 0 }; G.airDraw(G.RNG(G.subseed(seed, 5)), V);
   const inp = new Float32Array(N * N * 4), inp2 = new Float32Array(N * N * 4), want = new Float64Array(N * N), R = G.RNG(G.subseed(seed, 99));
   for (let i = 0; i < N * N; i++) {
     const x = Math.fround(R.r(-20000, 20000)), z = Math.fround(R.r(-20000, 20000)), t = R.r(0, 600), T = G.airClock(t);
-    inp.set([x, z, T[0], T[3]], i * 4); inp2.set([G.airSpeed(Y, V) * G.airShare(Y, t) * G.weather(t)[2], 0, 0, 0], i * 4);
+    inp.set([x, z, T[0], 0], i * 4); inp2.set([G.airSpeed(Y, V) * G.airShare(Y, t) * G.weather(t)[2], 0, 0, 0], i * 4);
     want[i] = G.gustAt(x, z, Y, t, V);
   }
   visits.push({ seed, salt: V.salt, w: V.wind, U: V.u10, inp: Array.from(inp), inp2: Array.from(inp2), want: Array.from(want), sigma: 0.26 * G.airSpeed(Y, V) });
