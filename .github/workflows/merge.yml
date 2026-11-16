@@ -9,7 +9,7 @@ name: Merge bot
 # bot is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
 on:
   workflow_run:
-    workflows: [Gate]
+    workflows: [Gate, Stills]   # (Stills: the PC's stills job set a main tip's `stills` status, which the deploy gate reads)
     types: [completed]
   pull_request_target:
     types: [opened, reopened, ready_for_review, labeled, unlabeled]
@@ -20,6 +20,7 @@ permissions:
   actions: read
   pull-requests: write
   issues: write
+  statuses: read   # (the deploy gate reads a main tip's `stills` status)
 
 # One tick at a time. A tick queued behind another replaces any older queued one, which loses nothing: every tick
 # looks at main and every open PR afresh.

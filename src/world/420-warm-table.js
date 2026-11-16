@@ -131,7 +131,7 @@
       return WARM.done;
     }
     while (WARM.i < L.length && (sync || EXT.parAll || (n < WARM_N && clockNow() < deadline))) {
-      var e = L[WARM.i], alone = !sync && !EXT.parAll && !e.rs && warmHeavy(e.p);   // (speed E4: with the parallel compile (Chrome, Firefox: draws are queued, never waited on) the table in one frame)
+      var e = L[WARM.i], alone = !sync && !EXT.parAll && !e.rs && warmHeavy(e.p);   // (speed E4: with the parallel compile (Chrome, Edge; not Firefox, which lacks it: draws are queued, never waited on) the table in one frame)
       if (alone && n > 0) break;   // (alone: the next frame's first)
       WARM.i++;
       if (warmDraw(e, T)) n++;

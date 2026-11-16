@@ -15,6 +15,7 @@
       drawPaper();
     },
     visit: function () { clearAll(); },
+    after: function (s) { afterCut(s >>> 0); },   // (the host, the frame after the cut: the visit's own read)
     lost: function () { PROG = null; VAO = null; VBO = null; RING = null; BT = null; BROKEN = false; SAMPLERS = false; makeProgram(); },
     boot: function () { makeProgram(); bootRing(); prebuild(); }   // the boot's stage B: the instance ring, its warm entry, the tables a landing needs
   };

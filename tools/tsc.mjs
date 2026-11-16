@@ -1,7 +1,8 @@
 // tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), with
 // tools/types/world.d.ts for what TypeScript's DOM types lack. Not a build step and not a dependency (the owner's
 // no-frameworks rule: terser alone to build): it runs a pinned TypeScript through npx, into npm's cache.
-//   node tools/tsc.mjs           print each error as section:line, and the count; exit 1 if there is any
+//   node tools/tsc.mjs           print each error as section:line (the world) or file:line (src/realm-*.js), and the
+//                                counts; exit 1 if there is any
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -38,5 +39,17 @@ for (const l of (r.stdout || '').split('\n')) {
 }
 if (r.status !== 0 && !n) { process.stderr.write(r.stderr || r.stdout || 'tsc did not run\n'); process.exit(2); }
 console.log(`tsc --checkJs: ${n} error(s) in the assembled world`);
+// the realm scripts, checked as written (their GLSL is a `@glsl NAME` string until the build inlines it, so each line is
+// the source's own): what they read of window.WORLD is world.d.ts's WorldApi
+const realms = fs.readdirSync(path.join(ROOT, 'src')).filter((f) => /^realm-.*\.js$/.test(f)).map((f) => path.join(ROOT, 'src', f));
+const r2 = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
+  ...realms, path.join(ROOT, 'tools/types/world.d.ts')], { encoding: 'utf8' });
+let n2 = 0;
+for (const l of (r2.stdout || '').split('\n')) {
+  const m = /(realm-[^/\\]*\.js)\((\d+),\d+\): (error TS\d+: .*)/.exec(l); if (!m) continue;
+  console.log(`src/${m[1]}:${m[2]}  ${m[3]}`); n2++;
+}
+if (r2.status !== 0 && !n2) { process.stderr.write(r2.stderr || r2.stdout || 'tsc did not run\n'); process.exit(2); }
+console.log(`tsc --checkJs: ${n2} error(s) in the realm scripts`);
 fs.rmSync(out, { recursive: true, force: true });
-process.exit(n ? 1 : 0);
+process.exit(n || n2 ? 1 : 0);

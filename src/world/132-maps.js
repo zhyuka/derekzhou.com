@@ -42,7 +42,6 @@
     return f;
   }
 
-  function gsum(g, n) { var s = 0, a = 1; for (var k = 0; k < n; k++) { s += a; a *= g; } return s; }
   function World(seed, K, fields, inj) {   // (fast500 F: inj, a plan made in the worker: its gradient maxima, w.mg)
     seed = seed >>> 0;
     var w = this;
@@ -89,14 +88,6 @@
       // (world6) the basin channel: the low ground the cloud sea fills, at the place's scale (warped: organic shores)
       fbm(x, z, KK.lamBw, 2, 0.5, sBw, o3); var bw = KK.aBw * o3[0];
       fbm(x + bw, z - 0.7 * bw, KK.lamB, KK.octB, 0.5, sBn, o3); o.Bn = o3[0];
-      return o;
-    };
-    // ---- what the LIGHT reads: the climate's first octave only (90 and 80 km) and the hour. The sky, the sun, the haze,
-    // the cloud cover and type and the exposure read this and nothing else (spec 3.8; v2's light rate limit, test L1)
-    w.lightIn = function (x, z, o) {
-      fbm(x, z, M.lamT, 1, M.gT, sT, o3); o.T = M.T0 + w.aT * o3[0] / gsum(M.gT, M.octT);
-      fbm(x, z, M.lamP, 1, M.gP, sP, o3); o.lnP = M.lnP0 + w.aP * o3[0] / gsum(M.gP, M.octP);
-      fbm(x, z, 100000, 2, 0.5, sH, o3); o.HA = w.HA0 + w.aH * o3[0];
       return o;
     };
 
@@ -179,7 +170,6 @@
       return o;
     };
     var wt = {};
-    w.duneK = function (mc, pc) { return w.weights(mc, pc, wt).Kd; };
     // ---- (world6) the two kits' weights, smooth functions of the maps (logistic shaping curves; no switch, no integer
     // from a map value): wD, the sand province (dry, hot, sandy, plus the director's dune offset kd); wC, the cloud sea
     // (the land falls away under a sea of cloud: the basin channel's low ground, plus the director's kx, filled the

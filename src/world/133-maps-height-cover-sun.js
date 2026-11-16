@@ -86,16 +86,6 @@
       if (o) { o.hs = hs; o.rho = rho; o.env = hs + rho; }
       return hs + rho;
     };
-    // the fog sea's top (cloud sea in basins): the inversion level plus 2-8 m domes; far under the land where none
-    w.fogTop = function (x, z) {
-      w.macro(x, z, mc);
-      var basin = L(-mc.C, 0.30, 0.12);
-      fbm(x, z, 40000, 2, 0.5, sFog, o3);
-      var inv = -20 + 30 * o3[0];
-      fbm(x, z, 140, 2, 0.5, sFog ^ 7, o3);
-      var top = inv + 5 + 3 * o3[0];
-      return top - (1 - basin) * 300;
-    };
 
     // ---- local climate and cover (spec 3.5, v2: thresholds shift with heat; plant forms by climate)
     w.cover = function (x, z, h, gx, gz, o) {

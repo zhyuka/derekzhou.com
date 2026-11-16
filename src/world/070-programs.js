@@ -39,7 +39,7 @@
     if (EXT.parAll || EXT.parWK) {   // (speed E2: all at once, the heaviest first: the probe and the land's first surface; WebKit too)
       var h = [], r = [], all = a.concat(b, c);
       for (i = 0; i < all.length; i++) (/\.(probe|surface0|hp\.\w+)$/.test(all[i].name) ? h : r).push(all[i]);
-      h.sort(function (x, y) { return /probe$/.test(y.name) - /probe$/.test(x.name); });
+      h.sort(function (x, y) { return /** @type {any} */ (/probe$/.test(y.name)) - /** @type {any} */ (/probe$/.test(x.name)); });
       return h.concat(r);
     }
     return a.concat(b, c);
@@ -110,6 +110,24 @@
     if (self.PROBE) self.PROBE('link: ' + P.name, clockNow());   // (PREVIEW ONLY)
     return r;
   }
+  /* (load-perf, the audit's boot-fence-gated-poll, 2026-11-14) a fence behind the batch, and no status asked of any
+     program until it signals. A program's first status read (COMPLETION_STATUS_KHR, or LINK_STATUS without the
+     extension) waits in the renderer for the GPU process to have run the batch; where a driver compiles the batch
+     serially, that is the whole batch (the lab's phones: the main thread frozen 2.4-2.7 s in one read, no frame, no
+     tap). The fence's status is the GPU process's answer, read without waiting, so the frames go on while the batch
+     compiles and the first read comes once there is nothing left to wait for. Not under the hold (its frames run in one
+     task, where no fence can signal: bootFence's rule), nor past PFENCE_MAX frames (a fence that never answers never
+     holds the boot) */
+  var PFENCE = null, PFENCE_F = 0, PFENCE_G = -1, PFENCE_MAX = 600;   // (PFENCE_G: the context it was made in; a restored context's boot never reads the lost one's)
+  /* (the hub's review, 2026-11-14) every later issue (a program unheld after the batch, the late ink birds') puts a new
+     fence behind it in place of one still pending, and every status read waits for it: the late birds' too (birdsLate) */
+  function progFence() { if (HOLD.on) return; if (PFENCE && PFENCE_G === MEMN.restored) gl.deleteSync(PFENCE); PFENCE = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); PFENCE_F = FRAMEN; PFENCE_G = MEMN.restored; }
+  function progFenced() {
+    if (PFENCE && PFENCE_G !== MEMN.restored) PFENCE = null;
+    if (!PFENCE) return true;
+    if (gl.getSyncParameter(PFENCE, gl.SYNC_STATUS) !== gl.SIGNALED && FRAMEN - PFENCE_F < PFENCE_MAX) return false;
+    gl.deleteSync(PFENCE); PFENCE = null; return true;
+  }
   function progStep(sync, deadline) {
     var i, P;
     if (gl.isContextLost()) return LOSTP;
@@ -128,7 +146,8 @@
     if (EXT.parAll) {
       var issued = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0 && !lateHeld(PORDER[i])) { progIssue(PORDER[i]); issued = true; }
-      if (issued) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      if (issued) { progFence(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }   // (fast500 F0)
+      if (!progFenced()) return false;
       var all = true; lateDecide();   // (fast500 step 9)
       for (i = 0; i < PORDER.length; i++) {
         P = PORDER[i]; if (P.st === 3) continue;
@@ -144,7 +163,8 @@
     if (EXT.issueAll) {   // (lane D, Android item 1: EXT.issueAll) all issued in one frame, then one status read a frame
       var iss = false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 0) { progIssue(PORDER[i]); iss = true; }
-      if (iss) { gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (iss) { progFence(); gl.flush(); if (!BOOT.issuedM) { BOOT.issuedM = true; bootMark('start: issued (' + PROGS.length + ' programs)'); } return false; }
+      if (!progFenced()) return false;
       for (i = 0; i < PORDER.length; i++) if (PORDER[i].st === 2) return progDone(PORDER[i]) === LOSTP ? LOSTP : false;
       return progsDone();
     }
@@ -202,168 +222,4 @@
     return all;
   }
   function progsDone() { for (var i = 0; i < PROGS.length; i++) if (PROGS[i].st !== 3) return false; return true; }
-
-  /* (fast500 step 9, the owner's "Finish code after show": only programs for things not in view; e9.py) S1 becomes:
-     every program registered and issued before the world shows, the late ones' completion polled after it. Only with
-     the parallel compile (EXT.parAll), never in the stills, forced colours or a restored context. The late set: the ink
-     birds' (birds:ink), always (no ink bird is in view at the show, and their clock now waits for them: lateBirds); the world's particles and ribbons where the realm draws them by the sand under the
-     camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
-     is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
-  var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
-  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper', 'engine.creature', 'engine.glow', 'engine.beam'];   // (world-perf lane: the creatures, the glow sprites and the beams too: measured, none drawn in the first 20 s of 24 visits, desktop and phone, any hour; each draw guarded below)   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
-  function lateCan() { return !!EXT.parAll && !STILLMODE && !FRUN && !BOOT.restore; }
-  function lateSand(V) {   // the most sand anywhere within LATE_R of the landing (sandAt's weight, on kwAt)
-    var R = 1.5 * Math.max(V.speed, 32) * LATE_T + 2 * KSTEP, st = KSTEP / 2, m = 0, x, z, k, s;
-    LATEP.R = R;
-    for (z = -R; z <= R; z += st) for (x = -R; x <= R; x += st) {
-      if (x * x + z * z > R * R) continue;
-      k = kwAt(x, z); s = clamp(k[0], 0, 1) * (1 - smooth(0.2, 0.6, k[3])); if (s > m) m = s;
-    }
-    return m;
-  }
-  function lateDecide() {
-    var i, P, n, V = J.V;
-    if (!lateCan()) { if (LATEP.on) for (i = 0; i < PROGS.length; i++) PROGS[i].late = false; LATEP.on = false; return; }
-    if (!LATEP.on) { LATEP.on = true; }
-    if (!LATEP.decided && V && V.def && V.speed) {
-      if (!V.def.sandFx) { LATEP.sand = 1; LATEP.decided = true; }   // (drawn whatever the ground: never late)
-      else if (KW.ok) { LATEP.sand = lateSand(V); LATEP.decided = true; }
-    }
-    for (i = 0; i < PROGS.length; i++) {
-      P = PROGS[i]; n = P.name;
-      if (P.late) continue;
-      if (LATE_ALWAYS.indexOf(n) >= 0 || (LATEP.decided && LATEP.sand <= LATE_SAND && (n === V.def.id + '.particle' || n === V.def.id + '.ribbon'))) { P.late = true; LATEP.names.push(n); }
-    }
-  }
-  function lateCore() {   // every program not finished is a late one (progStep's parallel path: the show may go on)
-    var n = [];
-    for (var i = 0; i < PROGS.length; i++) if (PROGS[i].st !== 3) { if (!PROGS[i].late) return false; n.push(PROGS[i].name); }
-    if (!LATEP.ready || LATEP.ready < 0) { LATEP.ready = FRAMEN; bootMark('C show-ready (' + n.length + ' late pending' + (n.length ? ': ' + n.join(', ') : '') + ')'); }
-    return true;
-  }
-  function lateReady(P) { return !P || !P.late || (P.st === 3 && P.ok && (!!P.warmed || !WARM.list)); }
-  function lateMissIf(P, would) {   // false always: the draw is passed over; counted where it was needed
-    if (!would) return false;
-    LATEP.miss++; if (LATEP.misses.length < 20) LATEP.misses.push([P.name, FRAMEN, +SIM.t.toFixed(3)]);
-    if (LATEP.miss === 1) fail('late program ' + P.name + ' needed before it was ready (step 9)');
-    return false;
-  }
-  function latePartsWould(V) {   // would any of the particles' sets draw this frame (drawFrame's own test)
-    var LL = V.L || V.light, sk = V.def.sandFx ? sandAt() : 1;
-    for (var pi = 0; pi < V.parts.length; pi++) {
-      var pa = V.parts[pi], share = 1, kd = pa.hop[3];
-      if (pa.areas && V.LA) { share = 0; for (var ai = 0; ai < pa.areas.length; ai++) { var ax = V.areaIx[pa.areas[ai]]; if (ax !== undefined) share += V.aw[ax]; } }
-      if (pa.rainScale) share *= LL.rain;
-      if (share * sk <= 0.002) continue;
-      if ((kd < 2.5 ? Math.round(pa.count * TIER * share) : Math.round(pa.count * TIER)) > 0) return true;
-    }
-    return false;
-  }
-  /* (world-perf lane) the late programs nothing draws before the world shows (LATE_HELD: the creatures, the glow sprites,
-     the beams) are not even issued before it, where programs are late at all (lateCan): their compiles leave the boot's
-     threads to the show's own; issued in the first frame after it (lateStep), finished and warmed as the late ones are */
-  var LATE_HELD = ['engine.creature', 'engine.glow', 'engine.beam'];
-  function lateSeen(n) { return LATE_HELD.indexOf(n) >= 0 && !!LATEK[n.slice(7)]; }   // (one of its kind laid out: it is needed)
-  function lateHeld(P) { return !shown && LATE_HELD.indexOf(P.name) >= 0 && lateCan() && !lateSeen(P.name); }
-  function lateSeenReady() {   // the show's own: every held program one of whose kind is laid out, finished and warmed
-    for (var i = 0; i < PROGS.length; i++) { var P = PROGS[i]; if (lateSeen(P.name) && !lateReady(P)) { lateStep(); lateWarmProgs(); return false; } }   // (the frame loop runs these only once shown: before the show the gate drives them)
-    return true;
-  }
-  function lateStep() {   // the late ones' completion, once a frame after C (never waits)
-    if (!LATEP.on || !BOOT.cDone || gl.isContextLost()) return;
-    { var iss = false; for (var h = 0; h < PROGS.length; h++) { var Q = PROGS[h]; if (Q.st === 0 && Q.late && (shown || lateSeen(Q.name))) { var c0 = PROGX.compiled, l0 = PROGX.linked; progIssue(Q); PROGX.compiled = c0; PROGX.linked = l0; iss = true; } } if (iss) gl.flush(); }   // (the held ones, issued now)
-    for (var i = 0; i < PROGS.length; i++) {
-      var P = PROGS[i]; if (!P.late || P.st !== 2) continue;
-      var tq = clockNow(), dn = gl.getProgramParameter(P.p, EXT.par.COMPLETION_STATUS_KHR);
-      P.polls++; P.qms = +(P.qms + clockNow() - tq).toFixed(2);
-      if (gl.isContextLost()) return;
-      if (!dn) continue;
-      if (progDone(P) === LOSTP) return;
-      LATEP.done.push([P.name, P.doneAt, FRAMEN, shown ? 1 : 0]); bootMark('late: ' + P.name + (P.ok ? ' done' : ' broken'));
-      if (!P.ok) fail('late program ' + P.name + ' will not link (step 9: never drawn)');
-    }
-  }
-  function lateWarmProgs() {   // (lane D: was lateWarm, the same name as the birds host's own, declared later in the same scope, which replaced this one: no late program was ever warmed, so none could draw) the late ones' warm entries, offscreen, before their first real draw (never in stage G's trials)
-    if (!LATEP.on || !WARM.done || !WARM.list || TRIAL || gl.isContextLost()) return;
-    var L = WARM.list, T = WARM.tg, any = false, q, x, i, P;
-    for (q = 0; q < L.length; q++) {
-      x = L[q]; if (x.done || !x.p || !x.p.late || x.p.st !== 3) continue;
-      x.done = true; if (!x.p.ok) continue;
-      if (!any) { any = true; gl.activeTexture(gl.TEXTURE0); }
-      warmDraw(x, T);
-    }
-    if (any) warmReset();
-    for (i = 0; i < PROGS.length; i++) {
-      P = PROGS[i]; if (!P.late || P.st !== 3 || !P.ok || P.lateW) continue;
-      if (!P.warmed) { for (q = 0; q < L.length; q++) if (L[q].p === P && !L[q].done) break; if (q < L.length) continue; P.warmed = true; }   // (no entry of its own left: its first draw is the real one)
-      P.lateW = true; LATEP.warmed.push([P.name, FRAMEN, shown ? 1 : 0]); bootMark('late: ' + P.name + ' warmed');
-    }
-  }
-  function lateBirds() {   // the ink birds' clock starts only once their programs can draw (none of them is in view before it)
-    if (LATEP.birdsAt >= 0 || !LATEP.on) return true;
-    var ok = true;
-    for (var i = 0; ok && i < BIRDPL.length; i++) { var P = BIRDPL[i]; if (P.late && !lateReady(P) && !(P.st === 3 && !P.ok)) ok = false; }
-    if (!ok) { LATEP.birdWait++; return false; }
-    LATEP.birdsAt = SIM.t; return true;
-  }
-  /* (fast500 lane E, the folds: ef.py) a uniform, or one component of it, whose value is fixed for the page is written
-     into the program's text at its issue as the literal it always has, so the compiler folds the branch it selects.
-     Declarations are never touched (their lines start "uniform"): a location stays, or goes inactive where nothing reads
-     it, and every set of such a uniform is guarded. Class A (EF1): uDbg 0 where the defines say no dev use (CLA.dev).
-     Class B (EFB, the parallel compile only): the composite's per-device modes, with the general composite late beside
-     it (foldPick). A token a program does not hold is passed over (FOLDX.absent) */
-  var FOLDX = { on: false, fixed: null, prog: {}, absent: {}, live: null, miss: 0, misses: [], used: 0, B: false };
-  function foldFixed() {
-    if (FOLDX.fixed) return FOLDX.fixed;
-    defsA();
-    var f = [];
-    if (!CLA.dev) f.push(['uDbg', '0']);
-    FOLDX.fixed = f; FOLDX.on = true;
-    return f;
-  }
-  function foldTok(s, tok, lit) {   // every use of tok outside a declaration line, as lit
-    var n = 0;
-    if (tok.charAt(0) === '=') { var parts = s.split(tok.slice(1)); n = parts.length - 1; return { s: n ? parts.join(lit) : s, n: n }; }
-    if (s.indexOf(tok) < 0) return { s: s, n: 0 };
-    var re = new RegExp('\\b' + tok.replace('.', '\\.') + '(?![\\w.])', 'g');
-    var out = s.replace(re, function (m, off) { var ls = s.lastIndexOf('\n', off) + 1; if (/^\s*uniform\b/.test(s.slice(ls, ls + 24))) return m; n++; return lit; });
-    return { s: out, n: n };
-  }
-  function foldIssue(P) {   // (progIssue) the folds into P.vs and P.fs before they are given
-    if (P.vs === null) return;
-    var vs = P.vs, fs = P.fs, got = [], abs = [];
-    function one(list) {
-      var kept = [];
-      for (var i = 0; i < list.length; i++) {
-        var a = foldTok(vs, list[i][0], list[i][1]), b = foldTok(fs, list[i][0], list[i][1]);
-        if (a.n + b.n) { vs = a.s; fs = b.s; got.push(list[i][0].replace(/^=/, '') + ' = ' + list[i][1]); kept.push(list[i]); } else abs.push(list[i][0].replace(/^=/, ''));
-      }
-      return kept;
-    }
-    one(foldFixed());
-    P.vs = vs; P.fs = fs;
-    if (got.length) FOLDX.prog[P.name] = got;
-    if (abs.length && DEVMODE) FOLDX.absent[P.name] = abs;
-  }
-  var UNITS = { uN3: 0, uKW: 1, uDepth: 2, uScene: 3, uCloud: 4, uBloom: 5, uShaft: 6, uTex: 7, uTex2: 8, uTex3: 8, uLinD: 9, uVol: 10, uGround: 11, uWin: 13, uPts: 7, uHist: 14, uSceneH: 15, uHP0: 16, uHP1: 17, uHP2: 18, uHP3: 19, uHP4: 20 };
-  function finish(P) {   // true: linked; false: broken; LOSTP: the context was lost (asked again after the restore)
-    if (P.st === 3) return P.ok;
-    if (P.st !== 2) return false;
-    if (gl.isContextLost()) return LOSTP;
-    var st = gl.getProgramParameter(P.p, gl.LINK_STATUS);
-    if (st === null || gl.isContextLost()) return LOSTP;
-    if (!st) {
-      var log = P.name + ': ' + (gl.getShaderInfoLog(P.v) || '') + ' / ' + (gl.getShaderInfoLog(P.f) || '') + ' / ' + (gl.getProgramInfoLog(P.p) || '');
-      if (gl.isContextLost()) return LOSTP;
-      fail(log); P.u = {}; P.ok = false; P.st = 3; return false;
-    }
-    var u = {}, n = gl.getProgramParameter(P.p, gl.ACTIVE_UNIFORMS);
-    for (var i = 0; i < n; i++) { var a = gl.getActiveUniform(P.p, i); if (a) u[a.name.replace(/\[0\]$/, '')] = gl.getUniformLocation(P.p, a.name); }
-    P.u = u; P.ok = true; P.st = 3;
-    if (REC) recLink(P, true);   // (E0: each link's completion, for the boot's timeline)
-    gl.useProgram(P.p);
-    for (var k in UNITS) if (u[k]) gl.uniform1i(u[k], UNITS[k]);
-    gl.deleteShader(P.v); gl.deleteShader(P.f); P.v = P.f = null;
-    return true;
-  }
 

@@ -41,4 +41,7 @@ no inline style): `.name svg` (display block, width min(25.25rem, 100vw
 less main's padding), height auto, aspect-ratio 1310 / 314) and
 `.visually-hidden` (the clip pattern); print sets the drawing 16rem wide.
 `.words` is the words' role for a paragraph (the line under the name, the
-404's line).
+404's line). `.sound` is the sound icon (docs/sound.md): an unstyled button, a 44 px
+target given back by its margin, its SVG stroked in currentColor (1.4 units, round
+ends), shown once sound.js lifts `hidden`; `.sound[aria-pressed]` hides one of its two
+drawings, at once (no transition).

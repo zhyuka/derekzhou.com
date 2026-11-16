@@ -12,12 +12,15 @@ names a file that loads another by name after the one it loads (the world
 after the plan's worker), and rewrites every
 reference (index.html, 404.html, \_headers' Link preloads and cache blocks,
 the plan worker's URL). So their names in site/ and src/ are plain
-(style.css, hour.js, world.js, realm-kit.js, realm-dunes.js, realm-above.js,
+(style.css, hour.js, sound.js, score.js, world.js, realm-kit.js, realm-dunes.js, realm-above.js,
 inkbirds.js, plan.js, and the wing model's six in
 src/birds/model/) and never change for an edit; renaming one is a refactor
 (git mv, then every reference). validate.yml's reverse check
 fails on any script or stylesheet in the build that no page loads (the
 plan's worker aside: the world starts it, by name), so git mv rather than copy.
+The sound icon's sheet of notes (site/assets/sound/notes-N.mp3, fetched by sound.js only at
+the press) is an asset: /assets/*'s immutable block covers it, and tools/sound/sheet.py writes it
+under a new name when its bytes change, SHEET in src/sound.js with it (docs/sound.md).
 
 The build also stores every content-named script and the stylesheet
 Brotli-compressed at quality 11, its \_headers block saying

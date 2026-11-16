@@ -1,5 +1,5 @@
-# The world's CI rules, on the site's folder: run from the repository's root by .github/workflows/validate.yml ("The
-# world's rules"), or locally: python3 .github/workflows/world_rules.py [the site's folder: site] [the scripts as written: src].
+# The world's CI rules, on the site's folder: run from the repository's root by tools/checks/25-world-rules.sh ("The
+# world's rules"), or locally: python3 tools/checks/lib/world_rules.py [the site's folder: site] [the scripts as written: src].
 # Exit 1 on any failure. (The world's scripts are served minified: rules 2, 4, 7 and 7b read them as written, in the
 # second folder, whose build validate.yml checks site/'s are; the pages, _headers and a worker file are site/'s.)
 # Each rule prints OK or the files and lines that break it.
@@ -9,7 +9,8 @@
 #      immutable cache block in _headers (the world starts none today).
 #   3  Production blind: every home-scope CSP block in _headers (/, /index.html, /404.html) and 404.html's meta CSP
 #      say exactly script-src 'self' https://static.cloudflareinsights.com and connect-src
-#      https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum (Cloudflare Web Analytics, injected by
+#      https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum (the home blocks / and /index.html: connect-src
+#      'self' first, for the sound icon's one recording, fetched only at the press, 2026-11-07) (Cloudflare Web Analytics, injected by
 #      Cloudflare, reporting to the zone's own /cdn-cgi/rum, that one path; nothing else loads or is reached), and the site carries none of the world's development pages (its diagnostics, control and lab
 #      pages: diag.js, control.*, lab80.*, never shipped).
 #   4  The world's absences: in world*.v*.js, realm-kit.v*.js, realm-*.v*.js, the ink birds' wing model (facetform,
@@ -93,12 +94,14 @@ if nw > 1: fail('2 worker-targets', f'world*.v*.js: {nw} new Worker( (at most on
 
 # 3 production blind (the one exception: Cloudflare Web Analytics, exactly its two origins)
 CSP_EXACT = {'script-src': "'self' https://static.cloudflareinsights.com", 'connect-src': 'https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum'}
-def csp_bad(policy):
+# (2026-11-07) the home page alone also reaches 'self': the sound icon's one recording, fetched only at the press
+CSP_HOME = dict(CSP_EXACT, **{'connect-src': "'self' https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum"})
+def csp_bad(policy, want_of=CSP_EXACT):
     d = {}
     for part in policy.split(';'):
         w = part.split()
         if w: d.setdefault(w[0], []).append(' '.join(w[1:]))
-    return [f'{k} {d.get(k)!r} (want exactly {want!r})' for k, want in CSP_EXACT.items() if d.get(k) != [want]]
+    return [f'{k} {d.get(k)!r} (want exactly {want!r})' for k, want in want_of.items() if d.get(k) != [want]]
 blocks = {}
 cur = None
 for line in headers.splitlines():
@@ -108,7 +111,7 @@ for path in ('/', '/index.html', '/404.html'):
     csp = [l for l in blocks.get(path, []) if l.startswith('Content-Security-Policy:')]
     if not csp: fail('3 production-blind', f'_headers {path}: no Content-Security-Policy'); continue
     for l in csp:
-        for b in csp_bad(l.split(':', 1)[1]): fail('3 production-blind', f'_headers {path}: CSP {b}')
+        for b in csp_bad(l.split(':', 1)[1], CSP_EXACT if path == '/404.html' else CSP_HOME): fail('3 production-blind', f'_headers {path}: CSP {b}')
 if '/*' in blocks and any(l.startswith('Content-Security-Policy') for l in blocks['/*']): fail('3 production-blind', '_headers: a CSP on /* (it would combine with every page\'s)')
 meta = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html.get('404.html') or '')
 if not meta: fail('3 production-blind', '404.html: no meta CSP')
@@ -120,22 +123,11 @@ for p in tuple(f for f in files if re.fullmatch(r'(diag\.v\d+\.js|diag\.js|contr
 # 2b the plan's worker (fast500 step 11; the owner's OK: "Background worker"): the world starts at most one worker,
 #    plan.vN.js by its literal name; the worker's own block in _headers is exactly its immutable cache and
 #    `default-src 'none'` (a worker's policy is its own response's); the home blocks that start it carry worker-src
-#    exactly 'self' (and no other block names another); the worker's code is the world's own: the four spans
-#    tools/plan.mjs copies (the angle constants; the maps and the director; MAPS, mapsInit, kitAt; the weights' grids) appear in it verbatim, and
-#    its stamp (PLANV) is the world's PW_V. (2026-11-06) The build ships the worker minified as
-#    the world is (tools/plan.mjs buildPlan): there the spans cannot appear verbatim, so the stamp, the one quoted 12-hex
-#    string in it, must be their md5's and the world's PW_V, and test/unit/maps.mjs runs that worker against the page's own plan,
-#    hash for hash (the same code, minified).
-import hashlib
-PSP = [('  var PI = Math.PI, DEG = Math.PI / 180;', '\n', True), ('  var CW = (function () {\n', '\n  })();\n', True), ('  var MAPS = {', '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', True), ('  var KN = 256, KSTEP = 64,', '  var KFROWS = FN * FN / KN;', False)]
-def plan_spans(s):
-    out = []
-    for a, e, inc in PSP:
-        if s.count(a) != 1: return None
-        i = s.index(a); j = s.find(e, i)
-        if j < 0: return None
-        out.append(s[i:j + (len(e) if inc else 0)])
-    return out
+#    exactly 'self' (and no other block names another); the worker's stamp (PLANV; minified, the one quoted 12-hex
+#    string in it) is the world's PW_V. The worker's code is the world's own spans: tools/plan.mjs alone knows their
+#    anchors (makePlan copies them and stamps their md5; tools/parts.mjs assemble writes that stamp into the world's
+#    PW_V), and test/unit/maps.mjs runs the shipped worker against the page's own plan, hash for hash. (2026-11-15:
+#    this rule's own copy of the anchors is gone, and the source holds no stamp to forget.)
 def csp_dirs(policy):
     d = {}
     for part in policy.split(';'):
@@ -160,9 +152,6 @@ for p in gen:
     if mini: pv = re.findall(r'[\'"]([0-9a-f]{12})[\'"]', ps)   # (minified: PLANV renamed; its value the one 12-hex string)
     if len(pv) != 1: fail('2b plan-worker', f'{p}: PLANV (or, minified, its 12-hex value) found {len(pv)} times'); continue
     for f in world:
-        sp = plan_spans(src[f] or '')
-        if sp is None: fail('2b plan-worker', f'{f}: the plan\'s spans not found (tools/plan.mjs\'s anchors; a minified world needs its own check)'); continue
-        if not mini and any(x not in ps for x in sp): fail('2b plan-worker', f'{p}: not the world\'s plan code verbatim (tools/build.mjs makes it from {f}; after a change to the spans: node tools/plan.mjs --stamp)')
         wv = re.findall(r"var PW_V = '([0-9a-f]*)';", src[f] or '')
         if wv != [pv[0]]: fail('2b plan-worker', f'{p}: stamp {pv[0]}, {f}\'s PW_V {wv} (the same; the stamp itself, the spans\' code token by token, is tools/plan.mjs\'s: the build and test/unit/maps.mjs check it)')
     if p not in started: fail('2b plan-worker', f'{p}: in the site but started by no world file')
@@ -181,17 +170,14 @@ for f in world + kit + realms + wing + ink:
                       (r'\bimport\(|\bBlob\(|\bfetch\(|XMLHttpRequest', 'a module, blob or network call'),
                       (r'Math\.random|\bDate\b|randomUUID', 'Math.random or a clock (Date)')]:
         for ln, t in lines(c, pat): fail('4 absences', f'{f}:{ln} {what}: {t}')
-    if f not in world and 'getRandomValues' in c: fail('4 absences', f'{f}: entropy outside world*.v*.js')
+    if 'getRandomValues' in c: fail('4 absences', f'{f}: entropy (the one draw of the visit is in hour.js, the opening; the world reads data-seed)')
     if f not in world:
         for ln, t in lines(c, r'performance\.now\('): fail('4 absences', f'{f}:{ln} performance.now( outside world*.v*.js')
         for ln, t in lines(c, r'addEventListener\('): fail('4 absences', f'{f}:{ln} a listener outside world*.v*.js')
-gr = sum(strip_comments(src[f]).count('getRandomValues(') for f in world)
-if world and gr != 1: fail('4 absences', f'world*.v*.js: getRandomValues( {gr} times (exactly once)')
 for f in world:
     s = src[f] or ''; c = strip_comments(s)
     m = re.search(r'---- INIT-END:', s)
     if not m: fail('4 absences', f'{f}: INIT-END marker missing')
-    elif 'getRandomValues(' in strip_comments(s[m.end():]): fail('4 absences', f'{f}: entropy below INIT-END')
     pn = c.count('performance.now(')
     if pn != 1: fail('4 absences', f'{f}: performance.now( {pn} times (exactly once, in clockNow)')
     elif not re.search(r'function clockNow\(\)\s*\{\s*return performance\.now\(\);\s*\}', c): fail('4 absences', f'{f}: performance.now( is not inside function clockNow')

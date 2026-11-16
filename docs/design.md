@@ -31,8 +31,8 @@ first brief's light ground gives way, at the owner's choice, to a world
 that is dark at dusk and at night. Then, asked to use Unreal Engine, and
 shown the research's answer (the page cannot run Unreal: no web export;
 streaming costs a GPU server per visitor and fails in iOS in-app
-browsers), the owner chose no Unreal (and an opt-in generative score and
-a studio behind Cloudflare Access, neither built yet), and a world drawn
+browsers), the owner chose no Unreal (and an opt-in generative score (2026-10-02: "Opt-in
+generative score") and a studio behind Cloudflare Access, neither built then), and a world drawn
 in the page itself, seamless ("keep iterating through literally every possible
 method/frameworks/etc until it's seamless"); of the plan's flat palette
 strips: "All those mocks look so plain wtf. It should be a lot more
@@ -93,7 +93,16 @@ leaves goes into the world: see Birds). So: the name is
 lettering (docs/type.md); nothing on the page darkens the world or lifts it
 for the words; the words are always light, and the world draws only skies
 they read on (docs/world.md); and the birds are the ink birds alone, flying in
-the world (docs/birds.md).
+the world (docs/birds.md). Then (2026-11-07), of the score built as a listening page on
+2026-10-04 and left out since: "bring it back, opt-in. using an icon that fits with
+the rest of the design" (2026-11-07); and of what it plays: "music and faint ambiance"
+(2026-11-07) (see docs/sound.md: one icon in the footer, silent until pressed). And of the
+score that follows the sky as it changes and never repeats: "Yup ship it" (2026-11-12).
+Then (2026-11-12), shown the world's first frame baked at build time and cut into by the live
+world (the resume sketch A2, against the page without it): "Yes A2 is right"; and of what that
+asks of two rules, the page's only pictures its own first frames and the openings a set of 96
+(the hour's six skies by 16 seeds, the one read picking the seed): "Yes to both, go with 96"
+(see docs/world.md, ## THE OPENINGS).
 
 The words' colours are one set, always (docs/world.md, ## THE WORDS), and the
 world is never changed for them: text #fdfcf7 (the lettered name, the
@@ -106,7 +115,8 @@ cream ground, #f9f8f1, which that gradient always covered, went in
 the deep sweep), and print is on white. color-scheme stays light
 (no form controls, no scrollbars). Type is matte: no text-shadow, no
 glow. Links are plain underlined words (1px, dimmed underline, .18em
-offset); nothing on the page reacts to hover but the birds (docs/birds.md:
+offset); the sound icon is a speaker drawn in the words' ink at their weight, its two
+states swapped at once (docs/sound.md); nothing on the page reacts to hover but the birds (docs/birds.md:
 THE POINTER); OS cursors only. The name and the type
 are present at first paint in their final place (the drawing's box is
 reserved by the stylesheet) and in their final colours. Print hides the

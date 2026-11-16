@@ -1,7 +1,8 @@
 // verdict.mjs: the gate's one answer, for merge.yml and the run's summary. Reads the jobs' results (NEEDS, the
 // workflow's toJSON(needs)) and the T1 shards' result.json files, writes verdict.json:
 //   gate_ok           every gate job green (a skipped T1 or T2 counts as green: it was not needed)
-//   (T1 is skipped when T2 runs for the same head: then T2's frames decide)
+//   (when T2 runs for the same head, T1 runs only if the page outside the canvas changed, and then compares the DOM
+//   and the stills alone: --dom-only; T2's frames decide the canvas)
 //   frames_identical  nothing a visitor sees changed (and no input handling did: the gates render with no pointer): the
 //                     head's build byte for byte the base's (identical by construction; areas.mjs compares the builds),
 //                     or every T1 shard's frames, DOM and stills the base's (and T2's, when it ran)
@@ -25,7 +26,7 @@ const v = {
   t2_key: c.t2_key || null,   // (both served builds' hashes and the T2 code: main reuses a PR's answer when they match)
   areas: c.areas || '', site_changed: c.site_changed === 'true', glsl_changed: c.glsl_changed === 'true', gpu_js: c.gpu_js === 'true',
   jobs: Object.fromEntries(Object.keys(needs).map((k) => [k, needs[k].result])),
-  t1: { ran: result('t1') !== 'skipped', shards: shards.length, frames_identical: shards.length > 0 && shards.every((s) => s.frames_identical), null_ok: shards.every((s) => s.null_ok) },
+  t1: { ran: result('t1') !== 'skipped', shards: shards.length, dom_only: shards.length > 0 && shards.every((s) => s.dom_only), frames_identical: shards.length > 0 && shards.every((s) => s.frames_identical), null_ok: shards.every((s) => s.null_ok) },
   t2: { required: false, ran: false, frames_identical: null },
 };
 // T2's read-backs: only a DIFFER stops a merge (the owner, 2026-11-06: "frames decide"). A shader that was not read back
@@ -46,13 +47,16 @@ if (needs.t2) {
 v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!c.base;
 const expectShards = +(process.env.T1_SHARDS || 4);
 v.input_changed = c.input_changed === 'true';
-if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
+v.has_pr = c.has_pr !== 'false';
+if (!v.has_pr) { v.frames_identical = false; v.reason = 'the branch had no open PR when it was pushed (a preview): T1 and T2 did not compare it; push again once its PR is open'; }
+else if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
 else if (!v.site_changed) { v.frames_identical = true; v.reason = 'the build (what is served) is byte for byte the base\'s'; }
 else if (!v.t1.ran && v.t2.ran) { v.frames_identical = !!(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || !v.t2.bits_differ)); v.reason = v.frames_identical ? 'T2 (the RTX 4090; T1 skipped while T2 runs): every frame the base\'s' : 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
 else if (!v.t1.ran || v.t1.shards !== expectShards) { v.frames_identical = false; v.reason = `T1 did not report (${v.t1.shards} of ${expectShards} shards)`; }
-else if (!v.t1.frames_identical) { v.frames_identical = false; v.reason = 'T1: frames, DOM or a still changed'; }
+else if (!v.t1.frames_identical) { v.frames_identical = false; v.reason = v.t1.dom_only ? 'T1 (the DOM, beside T2): the page outside the canvas changed' : 'T1: frames, DOM or a still changed'; }
+else if (v.t1.dom_only && !v.t2.ran) { v.frames_identical = false; v.reason = 'T1 compared the DOM only, and T2 did not report the frames'; }
 else if (v.t2.ran && !(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || !v.t2.bits_differ))) { v.frames_identical = false; v.reason = 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
-else { v.frames_identical = true; v.reason = 'T1' + (v.t2.ran ? ' and T2' : '') + ': every frame, DOM and still the base\'s'; }
+else { v.frames_identical = true; v.reason = v.t1.dom_only ? 'T2 (every frame) and T1 (the DOM and the stills): the base\'s' : 'T1' + (v.t2.ran ? ' and T2' : '') + ': every frame, DOM and still the base\'s'; }
 
 fs.writeFileSync(outFile || 'verdict.json', JSON.stringify(v, null, 1));
 const md = [`## Gate: ${v.gate_ok ? 'green' : '**red**'}, frames ${v.frames_identical ? 'identical' : '**changed**'}`, '',

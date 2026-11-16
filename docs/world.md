@@ -3,7 +3,9 @@
 <!-- Moved word for word from CLAUDE.md's section "World (world.js, realm-kit.js, realm-dunes.js, realm-above.js)" (restructure step 7, 2026-11-06). -->
 
 The window is a camera flying through one endless world drawn in WebGL2,
-generated in code from the visit's seed (no picture, no model file). Each
+generated in code from the visit's seed (no model file; its only pictures
+are its own first frames, the openings' stills, made by the same code at
+build time and shown until the live world cuts in: ## THE OPENINGS). Each
 file's header comment (src/'s copy: the served one is minified) is its
 full design as of the build it came from (stage 2's changes are tagged
 inline: stage2, speed, quality; fast500's: fast500; where a header and
@@ -21,7 +23,12 @@ Places come a minute or two apart at the flight's 12 m/s. Cells (landmarks, clou
 world cell from the seed and the cell's coordinates, streamed in about
 the camera within a budget a frame and freed behind it. Each frame: the
 scene in HDR (4 samples a pixel where the device allows), the land as a
-GPU clipmap raised by the kits' height functions, the cloud bodies baked
+GPU clipmap raised by the kits' height functions (its rings placed from a
+whole-cell lattice, (cell + aG) x cell size in one fp32 product, so the rings'
+seams meet to the bit however far the flight has gone: origin metres + aG x
+cell size parted them by 1.6 cm at 100 km and 12.5 cm at 681 km, the owner's
+one-pixel lines (2026-11-14); test/unit/clipmap.mjs replays it in fp32 and
+lints the old form, tools/gpu/seams.js reads both land programs on a GPU), the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
 up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
 between: sharp in the distance, never a ring), bloom, and the composite
@@ -39,8 +46,9 @@ A drag anywhere (touch, pen, or a mouse with its main button held; it
 starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
-view and the flight climbs or dives; let go, the turn runs on a little and
-eases out. The steering reads a pointer's moves only while it is pressed;
+view and the flight climbs or dives; let go moving, the turn runs on a
+little at the finger's speed as it lifts and eases out; let go after it
+rested (24 ms or more), it stays where it is. The steering reads a pointer's moves only while it is pressed;
 the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
@@ -110,7 +118,7 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The sun stays below the sea in every sky: through a change into a
+phone). The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow climbs and
@@ -198,14 +206,14 @@ hold, the page paints at once with the hour's still sky (the stylesheet's, per t
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The kits, the wing model
 and the ink birds only define at their top level (each hands itself
-to the world, WORLD.forms, WORLD.realm or WORLD.birds, or puts its one
+to the world, WORLD.forms, WORLD.realm or WORLD.birds (WORLD.sky is the score's read-only feed: docs/sound.md), or puts its one
 global on self); the world's also sets the browser's bar to the top
 of the hour's still sky, draws the visit's seed and starts the plan's
 worker. The boot starts in the first animation frame after the realms
 have registered, once the page has painted (without the hold: the browser's paint
 record, observed, at most PAINT_WAIT = 1 s; a page that painted already boots at once.
 The owner, 2026-11-12: "make the world boot after the first paint"; on a return visit
-the scripts come from cache and the boot used to run before any paint) (the world, the kit and the realms are fetched first,
+the scripts come from cache and the boot used to run before any paint; then, on a page with the opening's still, the programs' batch (its issue and its one flush) waits until the still is on screen too, while the context and the objects (stages A and B) do not (load-perf, the lab's runs 21 and 22: waiting with the whole boot cost the A15 about 2 s): its file in, STILL_SHOW = 150 ms for its decode and two frames, or its largest-contentful-paint entry, at most STILL_WAIT = 1 s more (load-perf, 2026-11-14: the boot's one flush holds a phone's GPU process 2.6-2.7 s, and a still not yet uploaded waited behind it, to 5.75 s on the lab's Nord; test/sims/boot.mjs holds the first program after the still)) (the world, the kit and the realms are fetched first,
 at high priority and Early-Hinted, the ink birds' wing model and the ink
 birds after them, at low: the boot waits for neither those scripts nor
 the page's load), and is staged a step a frame, the context first. The
@@ -222,7 +230,7 @@ the landing and no grid made yet: the plan is the same doubles either
 way. Anything else (no Worker, an error, an answer for another seed or
 world, 8 s gone) and the page makes the plan itself, as before. Where
 the browser has KHR_parallel_shader_compile and is not WebKit (Chrome,
-Edge, Firefox): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
+Edge): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
 draw made as soon as its own program is done, beside the links still
 compiling; the programs for what no first frame can show (the ink birds',
 and the sand's particles and ribbons where the flight cannot reach sand
@@ -230,9 +238,15 @@ in the 30 s after the show) issued with the rest but finished after the
 show. On WebKit (Safari on the Mac, every browser on iOS and iPadOS,
 told by the user agent: it has the extension, but its links and first
 draws are synchronous, and a batch of programs linked at once froze the
-owner's iPhone for 20 s before) and where the extension is missing: the
-old path, one program at a time, the warm-up after the links and never
-in the frame the noise is finished in. On every browser the noise is
+owner's iPhone for 20 s before): the old path, one program at a time, the
+warm-up after the links and never in the frame the noise is finished in.
+Where the extension is missing and the browser is not WebKit (Firefox,
+Android's ANGLE-Vulkan, older drivers: EXT.issueAll): every program issued
+in one frame and flushed, then one status read a frame, the warm-up after
+the links as on the old path. Firefox has no KHR_parallel_shader_compile
+(Firefox 160, measured on the RTX 4090, 2026-11-12): its first status read
+waits for the whole batch, so a boot frame there holds the page for the
+whole serial compile (3-5 s on that PC, cold or return). On every browser the noise is
 baked on the CPU, byte for byte the volume the GPU drew (every voxel the
 exact double-precision one; its mips made by generateMipmap, as before):
 a layer of 1,024 voxels a boot frame from the frame after B, beside C
@@ -363,7 +377,11 @@ leaving the still sky. It is drawn whole once at the tier's top, however
 slow, shown as a cut, then put up again every frame (represent: the
 composite or its copy) with the ink birds flying over it on their own fixed
 steps. Nothing else moves: no flight, no sky cycle, a drag steers nothing;
-the governor does not run. A resize draws it whole again. Reduced motion
+the governor does not run. Once held, where the frame lives in TG.win
+(the world under the canvas's size: every phone of that tier), the targets
+neither that copy nor the ink birds read are freed (heldFree: 14.8 to 7.9 MB
+of textures at a 4 GB Android's tier on a 393x852 phone). A resize draws it
+whole again, its targets made again first. Reduced motion
 keeps its own still (the birds still too).
 
 ## FALLBACKS
@@ -386,14 +404,129 @@ takes up its change, and that list then fires no event: the world did not
 come back when they ended while the ink birds moved), and the world back
 when they end, on at load too; print: none of it.
 
+## THE OPENINGS
+
+A visit opens on one of a set: the hour's sky (hour.js's six times of day)
+by N seeds (N 16 in hour.js: 96 openings; the owner, 2026-11-12: "Yes to
+both, go with 96"). hour.js's one entropy read, written whole as
+data-seed, picks the seed, k = read mod N (opening k's seed: (11 + k *
+0x9e3779b9) mod 2^32, the world's OPENN and SEED0), before the first
+paint, and asks for that opening's still: the world's
+first frame for it, baked on the 4090 for the window's shape (twelve
+shapes: the frustum's bands; portrait below h/w 1.893 the shorter still,
+above it the taller, landscape the narrower) and the memory tier (lo: the
+phones the world gives its least memory, Android under 8 GB; hi: the
+rest) by tools/gpu/bake-stills.js, named <sky>-<k>-<tier>-<W>x<H>.avif.
+The build copies the stills from an input folder (STILLS_DIR, or stills/,
+never committed) into assets/still/, and only the bake's own: each named
+in the folder's bake.json with its bytes' sha256 (anything else stops
+the build), or from the release for its world (tools/stills.mjs). A build
+with no stills takes the still's preload out of the page (before the world
+key is read, so the key is the same with or without a set; put back where
+a set is placed), and hour.js asks for a still only where the preload is. The stylesheet shows the still as
+the body's ::before, the canvas's box, cropped as the canvas is; the world
+opens at the still's own view (its frustum and pose, cropped as cover
+crops it) and settles to the window's own in about a second (SVTAU 0.35
+s); reduced motion has no settle. The world cuts in over the still in the
+frame it shows and clears it (--still none) for good; without WebGL2 the
+still stays. How far through its time of day the visit is (data-sky-at)
+moves the first frame by at most one level (the moon's path), so it is
+not baked. The land is the opening seed's for the whole visit, one of 16 whatever
+the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
+over it is the read's own (## THE WEATHER).
+
+## THE AIR
+
+The owner (2026-11-15): "they should follow real physics, clouds moving
+(when/how they move), same w auroras, sand, etc. ... make sure there are
+0 disconnects." The world keeps one state of its air and light in one
+section, src/world/215-air.js, and every other system reads it there
+(RULES.json one-world-state; test/unit/air.mjs by value, 16 seeds by six
+skies; tools/checks/42-one-air.sh: the air's names written only there, no
+wind or sun literal in any other section, the realms or the billows'
+shader). It holds:
+
+- The wind: one direction a visit (airDraw, the dunes' field stream's
+  first draw, as before), blowing toward V.windAz, and its speed by height,
+  windAt(x, z, y, t), y over the ground. U10, the speed 10 m up, is the
+  visit's own (V.u10), drawn once from its own stream (subseed(V.seed,
+  61)): a Rayleigh distribution of mean 5 m/s mapped by its CDF into
+  3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays
+  under about 8.8 m/s, under every bird kind's airspeed, so no bird flying
+  upwind goes backward; truncated, so nothing piles at the ends). Whether
+  the sand moves at a given speed (its threshold, about 6.2 m/s at 10 m,
+  the crests' speed-up 1.5x) is the sand's to decide. Under 100 m the
+  log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0) with z0 = 0.003 m
+  (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
+  the surface's direction; from 100 to 300 m it eases to the low cloud
+  layer's 1.3 U10, veered 20 deg, held to 1500 m; from 1500 to 3000 m to
+  the deck's 2 U10, veered 40 deg (the wind turns clockwise with height
+  toward the free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
+  https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf).
+  Each reader has a declared height (AIR_H); at a U10 of 6.5 m/s: the
+  grains 0.8 m (4.5 m/s, times AIR_GRAIN_K, the sand's own share), the
+  veils 5 m (5.9), the motes 13 m (6.7), the birds their own height
+  (HOST.wind(o, y); 40 m by default, 7.6). Before physics: air/wind-profile
+  the readers kept their own speeds (6.5, 5.5, 1.6, 6.5: the motes slower
+  than the grains under them, the reverse of real air). The dunes' crests,
+  the grains, the motes, the veils, the birds and the water's ripples read
+  it.
+- The readers still apart (AIR_APART, each with the change that joins
+  it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
+  0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
+  (AIR_CIRRUS: along world x), the maps' own wind field (mc.wind: the
+  director's cover and the plan's dunes read it, so it is not dead: taking
+  it out moves the plan's anchors), the wing gusts' private 25 s timers
+  (birdwing.js) and the score's own gusts (score.js). The test fails when
+  a listed reader is joined and still listed.
+- The key light, keyAt(V): one direction for every sky, 5-14 deg up within
+  55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
+  (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
+  birds' HOST.light), the sky's sets, the sun's change and the cells read
+  it; the cloud sea's kit has no sun of its own. At night it is the moon's
+  light from the same place.
+- The sky's own sun, airSkySun: the twilights' sun under the sea
+  (AIR_SUN_EL: the afterglow and first light 3 deg, the blue hour 7), on
+  the key's azimuth; a night's is the key's place; through a change into a
+  night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
+  the land and the sky's own sun are two lights on purpose: the land is lit
+  by a low key, the sky's glow stands where the sun is under the sea.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
+  frame (skyFrame: the turn the stars and the galaxy take; today none) and
+  the weather (weather(sky): today one wind for every sky; physics:
+  air/wind-by-sky).
+- The landing's heading, airHeading0 (drawn once from its own stream: the
+  flight, the first plan, the galaxy's lie and the boot read it), and the
+  flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
+  cloud sea).
+
+THE CLOCK. Physical motion (the wind, the clouds, the birds, the
+particles, the aurora's own motion) runs at 1x real time, the flight's
+SIM.t. The sky's light (sun, moon, stars, galaxy) runs at one declared
+rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
+70-90x real through a change into a night, the moon crosses at 70-120x
+and the stars and galaxy stand still; test/unit/air.mjs's clock test is
+marked todo until the sky's lane brings them to SKY_RATE.
+
 ## THE WEATHER (=rand())
 
-One crypto.getRandomValues above world.js's
-INIT-END marker, split into splitmix32 streams and integer hashes (the
-same in JS and GLSL, bit for bit): the land, the cells, the sky order, the
-ink birds. The realm and kit files, the wing model, the ink birds and the
+One crypto.getRandomValues, in hour.js, written whole as data-seed: it
+picks the visit's opening (## THE OPENINGS) and seeds all that follows.
+The opening's seed (SEED0) is the world's for all that is on screen at the
+cut: the land and its cells (the land's field and the cells' hashes hang
+on it for the whole visit), the opening sky, its light, the moon's side,
+the galaxy's lie, the first heading, the ink birds' noise and the flocks
+on show. The frame after the show (afterCut) the read itself (SEEDR)
+takes over the rest: the sky order after the skies on show, the events on
+the way, the ink birds' later flocks and the population's stream, the
+score's seed and the idle's ease. Both are split into splitmix32 streams
+and integer hashes (the same in JS and GLSL, bit for bit). So the land
+along a visit's flight is one of 16 (the opening's seed; the sky is the
+hour's), and what happens over it is the visit's own. The owner's pick,
+of land seeded past the cut's far plane or a seam: "Keep 16 lands"
+(2026-11-13). The world, the realm and kit files, the wing model, the ink birds and the
 plan's worker draw nothing of their own (the worker is
-handed the visit's seed): the world's is the page's one entropy read. The
+handed the visit's seed): the hour's is the page's one entropy read. The
 world's one clock is clockNow() (performance.now, above INIT-END), read
 for budgets only, never for what is drawn; time is requestAnimationFrame's
 own.

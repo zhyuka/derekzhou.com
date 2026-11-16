@@ -1,4 +1,4 @@
-// bot-rules.mjs: small decisions of the merge bot (merge-bot.mjs), apart so they are unit-tested (test/unit.mjs).
+// bot-rules.mjs: small decisions of the merge bot (merge-bot.mjs), apart so they are unit-tested (test/unit/merge-bot.mjs).
 // An update from main GitHub refuses because the branch conflicts (422; 409 from the merge API) is the branch's own
 // session's to fix, never the owner's: it gets one comment a head and no label, and the bot tries again every tick,
 // so the PR lands as soon as its session merges main and the gate is green. Any other refusal (403: the token's
@@ -25,4 +25,48 @@ export function botLanded(message, prs, sha) {
 export function revertMessage(n, tip, base, url) {
   return `Revert #${n}: main went red after it landed\n\nMain's gate failed twice at ${tip.slice(0, 10)} (${url}). The merge bot restores the tree of ${base.slice(0, 10)}, ` +
     `the green main tip before it, so live and every PR's base are again what passed. #${n}'s session fixes it in a new PR.\n\n${revertTrailer(tip)}`;
+}
+
+// A gate run's verdict artifact: a re-run attempt uploads its own gate-verdict next to the earlier attempt's, and the
+// artifacts list gives the older first. The newest unexpired one is the run's answer (#189 was read as its failed first
+// attempt, Nov 12). By created_at, then id.
+export function newestArtifact(list) {
+  const live = (list || []).filter((a) => a && !a.expired);
+  live.sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0) || (b.id || 0) - (a.id || 0));
+  return live[0] || null;
+}
+
+// THE STILLS (docs/deploy.md, "The stills"). Once a tip has the bake (tools/gpu/bake-stills.js: #197 onward), the
+// Cloudflare build of it fetches the release for its world's key, so live moves there only once the PC's stills job
+// (stills.yml) has put that release up and said so: the commit status `stills`, success. Before the bake nothing waits.
+// statuses: GET /commits/{sha}/statuses, newest first (a re-run's status after the first's): the newest `stills` wins.
+export function stillsReady(hasBake, statuses) {
+  if (!hasBake) return { ok: true, why: 'no bake at this tip' };
+  const s = (statuses || []).find((x) => x && x.context === 'stills');
+  if (!s) return { ok: false, why: 'its stills release is not up yet (no stills status)' };
+  return s.state === 'success' ? { ok: true, why: s.description || 'stills up' } : { ok: false, why: `its stills status is ${s.state}${s.description ? ' (' + s.description + ')' : ''}` };
+}
+
+// The PR's tested head of a merge commit the bot made ("Merge #N: ...": its first parent main, its second the PR's head,
+// whose gate the bot read before it merged); null for any other commit (the owner's "Merge pull request #N", a plain one).
+export function botMergeHead(message, parents) {
+  return /^Merge #\d+: /.test(message || '') && (parents || []).length === 2 ? parents[1] : null;
+}
+
+// What the deploy gate does about a cancelled main tip nothing proves (its run r, among main's runs since live, the
+// tip's own synthetic entry included): 'wait' while any of them has not completed (main's gate group keeps one run and
+// one pending: a re-run asked now would be the pending one, cancelled by the next landing, or would cancel a landed
+// tip's pending gate: the hub's review of #289); 'again' when r is a re-run already (once only: the owner looks); else
+// 'rerun'.
+export function rerunAnswer(r, runs) {
+  if ((runs || []).some((x) => x.status !== 'completed')) return 'wait';
+  return (r.run_attempt || 1) > 1 ? 'again' : 'rerun';
+}
+
+// The commits whose own branch gate proves a main tip's frames: the tip itself, and for the bot's own merge commit its
+// PR's tested head (botMergeHead). The proof is the PR's diff on its own base, the trust the bot gave it when it merged;
+// the merged tree is checked by main's own gate only when that runs.
+export function proofHeads(sha, message, parents) {
+  const h = botMergeHead(message, parents);
+  return h ? [sha, h] : [sha];
 }

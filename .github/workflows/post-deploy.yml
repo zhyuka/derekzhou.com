@@ -53,6 +53,15 @@ jobs:
       - name: Wait for the live site to serve this commit, then smoke it
         id: smoke
         run: node .github/ci/smoke.mjs --url https://derekzhou.com --site "$RUNNER_TEMP/dist" --sha "${{ steps.live.outputs.ok }}" --timeout 600 --out "$RUNNER_TEMP/smoke.json"
+      - name: Live serves its own world's stills (once the bake exists)
+        # (tools/gpu/bake-stills.js at the live commit, #197 onward: the deploy gate moved live only once the release of
+        # its world was up, so the Cloudflare build fetched it; one still of it is fetched from the live site and compared)
+        run: |
+          if ! git cat-file -e "${{ steps.live.outputs.built }}:tools/gpu/bake-stills.js" 2>/dev/null; then echo "no bake at the live commit: no stills to check"; exit 0; fi
+          env -u STILLS_TOKEN node tools/build.mjs --plain "$RUNNER_TEMP/plain"
+          node .github/ci/stills-live.mjs --plain "$RUNNER_TEMP/plain" --url https://derekzhou.com --timeout 300
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Open an issue
         if: failure()
         env:

@@ -7,6 +7,7 @@
     return t;
   }
   var FBOK = {};   // (the kinds of target whose completeness has been asked)
+  /** @returns {RT} */
   function target(w, h, kind, depthTex) {
     var T = { w: w, h: h, f: gl.createFramebuffer() };
     if (kind === 'hdr') T.t = tex2d(w, h, FLOAT_RT ? gl.RGBA16F : gl.RGBA8, gl.RGBA, HALF, gl.LINEAR);

@@ -1,5 +1,5 @@
   /* ---------------------------------------------------------------- the context */
-  var gl = null, EXT = {}, FLOAT_RT = false, FLOAT32_RT = false, HALF = 0, LOST = false, DEFS = '', AAS = 0, AASUP = [];   // (AAS, E1 Fix 3: the scene's samples a pixel; AASUP, E1.1: the counts the context offers, up to the switch aa)
+  var gl = null, EXT = /** @type {Ext} */ ({}), FLOAT_RT = false, FLOAT32_RT = false, HALF = 0, LOST = false, DEFS = '', AAS = 0, AASUP = [];   // (AAS, E1 Fix 3: the scene's samples a pixel; AASUP, E1.1: the counts the context offers, up to the switch aa)
   var STILLMODE = false;                                    // (the shipped page: no harness drives the time)
   var DEVMODE = false;                                      // (and no dev hooks)
   function getGL() {
