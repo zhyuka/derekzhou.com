@@ -82,27 +82,40 @@
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  /* ONE LIGHT AT NIGHT (physics: air/night-light): the moon is the night's light, so the live key every reader
-     shades by (the shaders' uSun: the land, the veils' and motes' glows, the wings' backlit edges) stands on the moon's
-     disc as drawn (airMoonDir: the very moment and route of uMoon), by the moon's own weight on show and the sky's
-     night share (1 through a night's hold, eased through a change with the light). With no moon up, or out of the
-     night, it is the visit's key (keyAt, which the clouds stay baked along); the sky's own sun (uSkyS) stays on the
-     key. airLightDir(L): the direction, the one array, filled in place */
-  var AIR_LD = new Float32Array(3);
-  function airNightShare(tS) {   // the sky's night share at sky time tS: 1 a night's hold, 0 a twilight's, eased with the light through a change
+  /* ONE LIGHT AT NIGHT (physics: air/night-light): the moon is the moonlit sky's light, so on that sky the live key
+     the land, the veils, the motes and the wings shade by (the shaders' uSun) stands on the moon's disc as drawn
+     (airMoonDir: the very moment and route of uMoon), its elevation held to AIR_KEY_EL[0] (5 deg) or more, so the land
+     is never lit from under the horizon. Its weight is the sky's moonlit share (1 through the moonlit sea's hold, 0
+     on every other sky, eased with the light through a change: airMoonShare), and the key moves to it along the great
+     circle (a slerp): both ends stand 5 deg up or more, a cap smaller than the hemisphere, so every direction between
+     does too, and the turn is the change's own ease (at most about 1.5 x the arc over the change, 4.7 deg/s for the
+     widest arc over the shortest change) plus the disc's own path. Off the moonlit sky it is the visit's key (keyAt).
+     The clouds stay on the baked key (fs-vbody's uKey: their light depths are baked along it, so their phase, rim and
+     wrap read the same direction); the sky's own sun (uSkyS) stays on the key. airLightDir(L): the direction, the one
+     array, filled in place once a frame (the drawn moment's) */
+  var AIR_LD = new Float32Array(3), AIR_LDM = { t: NaN, L: null, V: null }, AIR_LDT = [0, 0, 0];
+  function airMoonShare(tS) {   // the sky's moonlit share at sky time tS: 1 the moonlit sea's hold, 0 another sky's, eased with the light through a change
     var seq = SKY.seq; if (!seq.length) return 0;
     var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--;
-    var e = seq[i], a = airSunEl(e.id) === null ? 1 : 0, b = seq[i + 1] ? (airSunEl(seq[i + 1].id) === null ? 1 : 0) : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
+    var e = seq[i], a = e.id === 'moonlit' ? 1 : 0, b = seq[i + 1] ? (seq[i + 1].id === 'moonlit' ? 1 : 0) : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
     return a + (b - a) * k * k * (3 - 2 * k);
   }
+  function airSlerp(a, b, f, o) {   // the direction f of the way from a to b along the great circle (unit a, b; o filled; a and b opposite: over the zenith)
+    var d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2], c, px = b[0] - d * a[0], py = b[1] - d * a[1], pz = b[2] - d * a[2], n = Math.sqrt(px * px + py * py + pz * pz);
+    if (n < 1e-9) { if (d > 0) { for (c = 0; c < 3; c++) o[c] = a[c]; return o; } px = -a[1] * a[0]; py = 1 - a[1] * a[1]; pz = -a[1] * a[2]; n = Math.sqrt(px * px + py * py + pz * pz); }
+    var th = Math.atan2(n, d) * f, cs = Math.cos(th), sn = Math.sin(th) / n;
+    o[0] = a[0] * cs + px * sn; o[1] = a[1] * cs + py * sn; o[2] = a[2] * cs + pz * sn; return o;
+  }
   function airLightDir(L) {   // the live key at the drawn moment (uSun)
-    var k = L.sunDir, V = SIM.V, c;
+    var V = SIM.V, k = L.sunDir, c, tD = SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt;
+    if (AIR_LDM.t === tD && AIR_LDM.L === L && AIR_LDM.V === V) return AIR_LD;
+    AIR_LDM.t = tD; AIR_LDM.L = L; AIR_LDM.V = V;
     for (c = 0; c < 3; c++) AIR_LD[c] = k[c];
     if (!V) return AIR_LD;
-    var m = airMoonDir(); if (!m.up) return AIR_LD;
-    var f = m.w * airNightShare(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt); if (!(f > 0)) return AIR_LD;
-    var x = k[0] + (m.d[0] - k[0]) * f, y = k[1] + (m.d[1] - k[1]) * f, z = k[2] + (m.d[2] - k[2]) * f, n = Math.sqrt(x * x + y * y + z * z);
-    if (n < 1e-6) return AIR_LD;   // (the key and the disc opposite: none between; the key stays)
-    AIR_LD[0] = x / n; AIR_LD[1] = y / n; AIR_LD[2] = z / n; return AIR_LD;
+    var f = airMoonShare(tD); if (!(f > 0)) return AIR_LD;
+    var m = airMoonDir(), d = m.d, h = Math.sqrt(d[0] * d[0] + d[2] * d[2]), e = Math.max(Math.asin(Math.max(-1, Math.min(1, d[1]))), AIR_KEY_EL[0] * DEG);
+    if (h < 1e-9) return AIR_LD;   // (the disc at the zenith or the nadir: no azimuth; the key stays)
+    AIR_LDT[0] = d[0] / h * Math.cos(e); AIR_LDT[1] = Math.sin(e); AIR_LDT[2] = d[2] / h * Math.cos(e);   // (the disc, held 5 deg up or more)
+    return airSlerp(k, AIR_LDT, f, AIR_LD);
   }
   var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

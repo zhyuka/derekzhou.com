@@ -2,6 +2,7 @@
 uniform sampler3D uVol; uniform sampler2D uLinD; uniform vec3 uVC, uVH; uniform vec2 uVY;   // centre, half size, yaw (cos, sin)
 uniform vec4 uVR;   // extinction (1/m), most steps, the fine billows' scale (m), their depth (m)
 uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the ceiling a forming cloud rises under (world y), a passage cloud's near reach (m)
+uniform vec3 uKey;  // the key the clouds' light depths are baked along (their phase, rim and wrap read it too: one light in a cloud)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
 in vec3 vW; out vec4 oC;
 void main() {
@@ -12,7 +13,7 @@ void main() {
   float zs = linFetch(uLinD, ivec2(gl_FragCoord.xy)) / max(dot(rd, uCamF), 1e-3);
   tf = min(tf, zs);
   if (tf <= tn) discard;
-  float cs = dot(rd, uSun), g = uClK.z;
+  float cs = dot(rd, uKey), g = uClK.z;
   float P0 = mix(hgN(cs, g), hgN(cs, -0.25), 0.22), P1 = hgN(cs, g * 0.6), P2 = hgN(cs, g * 0.36);
   float vox = max(uVH.x, max(uVH.y, uVH.z)) / 26.0, band = uVS.y, amp = uVR.w;
   float dIn = max(vox * 0.75, band * 1.2), dEdge = max(band * 0.6, 1.0);
@@ -40,7 +41,7 @@ void main() {
   // The same samples and texture reads as plain point sampling; a few more instructions a step.
   float t = tn, pxA = 2.0 * uProj.y / uRes.y;   // (pxA: a half-resolution pixel's angle; its footprint is t x pxA)
   vec3 acc = vec3(0.0); float T = 1.0, taken = 0.0;
-  vec3 sunL = vec3(uVY.x * uSun.x - uVY.y * uSun.z, uSun.y, uVY.y * uSun.x + uVY.x * uSun.z), nrm = vec3(0.0, 1.0, 0.0);
+  vec3 sunL = vec3(uVY.x * uKey.x - uVY.y * uKey.z, uKey.y, uVY.y * uKey.x + uVY.x * uKey.z), nrm = vec3(0.0, 1.0, 0.0);
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
   float sP = 0.0, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;

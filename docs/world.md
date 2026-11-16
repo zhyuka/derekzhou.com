@@ -490,14 +490,21 @@ shader). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
-- One light at night (physics: air/night-light): the moon is the night's
-  light, so the live key every reader shades by (the shaders' uSun: the
-  land, the veils' backlight, the motes' forward glow, the wings'
-  backlit edges) stands on the moon's disc as drawn (moonDir), by the
-  moon's weight on show and the sky's night share (1 through a night's
-  hold, eased through a change with the light). With no moon up, or out
-  of the night, it is the visit's key. The clouds stay baked along the
-  key (keyAt) and the sky's own sun (uSkyS) stays on it.
+- One light at night (physics: air/night-light): the moon is the
+  moonlit sky's light, so on that sky the live key the land, the veils
+  and the wings shade by (the shaders' uSun) stands on the moon's disc
+  as drawn (moonDir), its elevation held to 5 deg or more, so nothing is
+  lit from under the horizon. Its weight is the sky's moonlit share (1
+  through the moonlit sea's hold, 0 on every other sky, eased with the
+  light through a change), and the key moves to it along the great
+  circle: both ends stand 5 deg up or more, so every direction between
+  does too. On the real route (225's moonPlan, 400 stays into and out of
+  the moonlit sea, the band ahead and behind) the live key stays 5.04
+  deg up or more and turns at most 4.57 deg/s. Off the moonlit sky it is
+  the visit's key (keyAt), computed once a frame. The clouds stay on the
+  baked key: their light depths are baked along keyAt, and fs-vbody's
+  phase, rim and wrap read the same direction (uKey). The sky's own sun
+  (uSkyS) and the birds' HOST.light().sunDir stay on the key.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's
