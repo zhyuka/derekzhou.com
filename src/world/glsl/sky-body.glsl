@@ -215,17 +215,17 @@ void main() {
   if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS) * hzT;   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
 #endif
-  if (uMoon.w > 0.0) {   // the moon: a near-neutral disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
+  if (uMoon.w > 0.0) {   // the moon: a neutral to faintly warm disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
        the horizon the sea and the land, drawn before the sky, hide it by place); only its faint broad light on the whole
        sky (the 0.08 tail) follows its depth (uMoon.w, gone 16 deg down); it takes the haze of the sky where it stands */
     vec3 c0 = c;
     float ma = degrees(acos(clamp(dot(rd, uMoon.xyz), -1.0, 1.0))), mr = 1.8, mpx = 2.0 * degrees(atan(uProj.y)) / uRes.y;
     float out1 = max(ma - mr, 0.0);
-    /* (the hub's round-3 look at #303) the moonlit sky's table now L 0.62, C 0.01, h 250 (was a cool silver, C 0.03 h 250,
-       a grey-blue coin): at the ceiling's L it cannot be lighter, and on the C 0.08 ultramarine any warm or neutral grey
-       reads khaki by contrast (C 0.012 h 85 and C 0 both did, measured at 1440x900), so it is a hair cool of neutral,
-       which reads white-grey; its limb crisp */
+    /* (the hub's round-3 ruling, 04:19) the moonlit sky's table L 0.62, C 0.01, h 80 (was a cool silver, C 0.03 h 250, a
+       grey-blue coin): it stands at the ceiling's L (the clouds are never darkened to make room: a brightly moonlit cloud
+       top may reach it too), so it parts from the blue clouds by hue (neutral to faintly warm, 170 deg from theirs), its
+       crisp edge and by standing behind them; test/unit/sky.mjs pins it */
     /* (the hub's round-3 look at #303) the glow adds light of its own low-chroma colour (scaled to luminance 1), up to its
        luminance and never past it: no per-channel max of a blue sky and a warm glow (that read olive) */
     float gk = clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0), gy = dot(uMoonG, LUMA);
