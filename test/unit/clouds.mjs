@@ -5,6 +5,8 @@
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0] * (CRISP ? 4 : 1);", "with": "B.u4a[2] = (V.L || V.light).clDetail[0] * (CRISP ? 4 : 1);", "why": "the billows' scale blended per frame by the place's weight again"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "    s = max(s - (dn - 0.5) * amp * 2.0, yb);", "with": "    s = s - (dn - 0.5) * amp * 2.0;", "why": "the flat base before the billows: billows hang under it (the underside's specks)"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "* amp * 2.0, mix(ybP, yb, u));", "with": "* amp * 2.0, -1e5);", "why": "the cut pieces unfloored: the billows hang under the flat base between two samples"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "sP = s; sBP = sB; ybP = yb; tP = t;", "with": "sP = s; sBP = sB; tP = t;", "why": "the band step's update leaves ybP stale: the pieces after it hang under the base"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "sP = s; sBP = s; ybP = yb; tP = t;", "with": "sP = s; sBP = s; tP = t;", "why": "the leap's update leaves ybP stale"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // (the owner's wiggle, 2026-11-14: clDetail, blended each frame by the place's weight between ABOVE's [80, 5] and the
@@ -247,6 +249,11 @@ test('clouds: nothing hangs under a body\'s flat base, whatever the billows', ()
     const sk = piece(k, K, sBP, sB, ybP, yb, 0, 1, 25 * Math.random(), Math.random()), base = ybP + (yb - ybP) * u;
     if (base > 0) assert.ok(sk >= base - 1e-9 && sk > 0, `a cut piece ${base.toFixed(2)} m under the flat base: inside (${sk})`);
   }
+  // and the last sample's base carried by both of the march's state updates (the leap's and the band step's): left out
+  // of either, ybP is a stale base and the pieces after it hang under the real one (the hub's round-4 review)
+  const ups = [...VBODY.matchAll(/\n\s*sP = s; sBP = [^\n]*/g)].map((m) => m[0]);
+  assert.equal(ups.length, 2, `the march's state updates are not the leap's and the band step's (${ups.length})`);
+  for (const u of ups) assert.match(u, /\bybP = yb;/, `a state update leaves the last sample's base behind: ${u.trim().slice(0, 80)}`);
   // (and the line runs after the noise is read, before the step is chosen from it)
   const iN = VBODY.indexOf('float dn = textureLod(uN3'), iS = VBODY.indexOf(line[1]), iD = VBODY.indexOf('float dt = max(s > 0.0');
   assert.ok(iN < iS && iS < iD, 'the flat base is not applied between the billows\' noise and the step it sets');

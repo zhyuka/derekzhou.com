@@ -2,8 +2,10 @@
 // node tools/clouds/edge-specks.mjs FRAME.png x0 y0 x1 y1 [FRAME2.png ...]
 // The frame's luma (Rec. 709 on the stored codes) in the box, each pixel against the median of its 3 x 3: the mean
 // absolute residual (the box's high-frequency content: a comb or stair-stepped edge raises it) and the specks (pixels
-// more than 6 levels off their median: holes and loose pixels). The hub's stair-stepped edge on main (seed 11, first
-// light, 1440x900, the small cumulus at 150,415-345,550): main 18 specks, 0.31; the cloud stack 4, 0.27.
+// more than 6 levels off their median: holes and loose pixels). The hub's stair-stepped edge on main, measured by PC
+// GPU on the 4090 (seed 11, first light, 1440x900, the small cumulus at 150,415-345,550; specks at k400/k1120/k1840,
+// the 144 Hz step: workspace .work/hub/reviews/1115/gpu/254/ and 240/): main 290e989 23/38/34; the merge-base 50dd3d1
+// 11/23/21; #240 e8b8141 3/5/1; #254 e86455f 4/5/1.
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
