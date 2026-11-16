@@ -30,13 +30,20 @@
    the bass kept out of it, the harp and piano nearer; drier over the open dunes, softer and darker over the cloud. The
    deep end the tuba's own low notes, felt, with a quiet trace of their partials a phone can play. A faint wind under
    it all, in gusts on the sky's own breeze, never repeating. The ear's sensitive band eased; about -23 LUFS (the owner, 2026-11-15: "yes make it louder, -23"); no
-   compression. */
+   compression.
+
+   The night's quiet (the owner, 2026-11-16, of quieter nights: "yes go"): each sky its own level inside the -23,
+   afterglow and first light fuller, the night skies about 3 dB under them, made by thinning (the voices resting
+   longer, the colour coming less often and never brought in to fill a hole, never a third voice over two, a note
+   alone lifted less) and the strings softer under the night's colours, never by the whole level, so the deep end
+   keeps its weight; and in the Milky Way, now and then, a breath: the notes let go and for a few seconds only the
+   air plays, a soft gust through it. */
 (function () {
   'use strict';
 
   var NOTES = [[0,36,0.5,7.0,1,0.46557],[0,40,7.65,7.0,1,0.23934],[0,43,14.8,6.3689,1,0.19256],[0,47,21.3189,7.0,1,0.1464],[0,50,28.4689,7.0,1,0.34301],[0,53,35.6189,6.4613,1,0.25132],[1,55,42.2302,5.761,1,0.57709],[1,59,48.1412,7.0,1,0.36313],[1,62,55.2912,7.0,1,0.39555],[2,62,62.4412,7.0,1,0.57005],[2,66,69.5913,7.0,1,0.33263],[2,69,76.7413,7.0,1,0.56562],[2,72,83.8913,7.0,1,0.26029],[2,76,91.0413,7.0,1,0.48496],[3,58,98.1913,7.0,1,0.13254],[3,62,105.3413,7.0,1,0.1517],[3,65,112.4913,7.0,1,0.12627],[3,70,119.6413,7.0,1,0.08717],[3,74,126.7913,7.0,1,0.15534],[3,77,133.9413,7.0,1,0.15711],[4,43,141.0913,7.0,1,0.14411],[4,46,148.2413,7.0,1,0.26131],[4,50,155.3913,7.0,1,0.12751],[4,53,162.5413,7.0,1,0.11478],[4,57,169.6913,7.0,1,0.13412],[4,60,176.8413,7.0,1,0.12649],[4,74,183.9913,6.3918,1,0.15312],[5,28,190.5331,7.0,1,0.26297],[5,30,197.6831,7.0,1,0.20173],[5,31,204.8331,7.0,1,0.14179],[5,34,211.9831,7.0,1,0.17723],[6,29,219.1331,2.1785,1,0.32956],[6,34,221.4616,6.2299,1,0.22956],[7,41,227.8415,4.5,0,0.30143],[7,45,232.4915,4.5,0,0.41798],[7,48,237.1415,4.5,0,0.34491],[7,52,241.7915,4.5,0,0.61155],[7,55,246.4415,4.5,0,0.30623],[7,59,251.0915,4.5,0,0.4214],[7,62,255.7415,4.5,0,0.82007],[7,65,260.3915,4.5,0,0.4825],[7,69,265.0415,4.5,0,2.02154],[7,72,269.6915,4.5,0,0.9619],[7,76,274.3415,4.5,0,0.71059],[7,79,278.9915,4.5,0,1.541],[7,83,283.6415,4.416,0,1.66104],[7,86,288.2075,3.8974,0,3.25535],[8,36,292.2548,6.0,0,0.46885],[8,40,298.4048,6.0,0,0.35249],[8,44,304.5548,6.0,0,0.47431],[8,48,310.7048,6.0,0,0.51277],[8,52,316.8548,6.0,0,0.37797],[8,56,323.0048,6.0,0,0.37927],[8,60,329.1548,6.0,0,0.65936],[8,64,335.3048,6.0,0,0.92017],[8,68,341.4548,6.0,0,0.6044],[8,72,347.6048,6.0,0,0.89631],[8,76,353.7548,6.0,0,0.5836],[8,80,359.9048,6.0,0,1.30549],[8,84,366.0548,6.0,0,1.38963]], MARK = 0.2;   // (tools/sound/sheet.py writes this line: [instrument, midi, start s, length s, loops, gain])
   var INST = ['cello', 'viola', 'violin', 'clar', 'horn', 'cbass', 'tuba', 'harp', 'piano'];
-  var H = 10, OUT = 1.27;   // (s: how far ahead it plans; the output level: about -23 LUFS, true peak under -1.5 dBFS, measured with tools/sound/render.mjs)
+  var H = 10, OUT = 1.28;   // (s: how far ahead it plans; the output level: about -23 LUFS, true peak under -1.5 dBFS, measured with tools/sound/render.mjs)
   var V9 = [0, 7, 16, 23, 26], V69 = [0, 7, 16, 21, 26], VM9 = [0, 7, 15, 22, 26], LIFT = [0, 7, 18, 21, 26];
   var MAJ = [0, 2, 4, 5, 7, 9, 11], LYD = [0, 2, 4, 6, 7, 9, 11], DOR = [0, 2, 3, 5, 7, 9, 10];
   var FMAJ = [[0, V9], [5, V69], [9, VM9], [0, LIFT], [2, VM9], [0, V69]], FLYD = [[0, V9], [0, LIFT], [2, V69], [9, VM9], [4, VM9]];
@@ -48,7 +55,20 @@
     aurora: { key: 10, sc: LYD, field: FLYD, sur: [5, VM9], col: 'harp' },
     firstlight: { key: 7, sc: MAJ, field: FMAJ, sur: [5, VM9], col: 'strings' }
   };
-  var LIFTS = { horn: -3, harp: -3, piano: -1.5, clar: -1.5, strings: -1, mist: -6 };   // (dB: the strings under each colour)
+  var LIFTS = { horn: 0, harp: -3, piano: -1.5, clar: -3, strings: 0, mist: -6 };   // (dB: the strings under each colour: afterglow's horns and first light's violins over them in full, the night's harp and clarinet over them softer; the deep end the same under all)
+  /* the night's quiet (delight wave one, its seventh: each sky its own level inside the -23 frame, the night skies
+     about 3 dB under afterglow and first light, made by thinning, never by turning the level down, which at a quiet
+     level takes the bass first): each sky how long its voices rest, how often its colour comes, how much a note alone
+     is lifted, and its passages (open, warm, air, still, rich) */
+  var FULL = {
+    afterglow: { rest: 0.7, col: 0.75, lone: 1, kinds: [0.26, 0.2, 0.14, 0.08, 0.32], most: 9 },
+    firstlight: { rest: 0.75, col: 0.8, lone: 1, kinds: [0.28, 0.18, 0.16, 0.08, 0.3], most: 9 },
+    bluehour: { rest: 1, col: 1, lone: 1, kinds: [0.28, 0.2, 0.18, 0.14, 0.2], most: 9 },
+    moonlit: { rest: 1.25, col: 1.35, lone: 0.5, kinds: [0.24, 0.22, 0.2, 0.24, 0.1], most: 2 },
+    aurora: { rest: 1.3, col: 1.5, lone: 0.5, kinds: [0.24, 0.2, 0.22, 0.24, 0.1], most: 2 },
+    milkyway: { rest: 1.4, col: 1.7, lone: 0.4, kinds: [0.22, 0.2, 0.22, 0.28, 0.08], most: 2 }
+  };
+  function fillOf(id) { return FULL[id] || FULL.bluehour; }
 
   function db(x) { return Math.pow(10, x / 20); }
   function curve(f, k) { k = k || 32; var a = new Float32Array(k + 1); for (var i = 0; i <= k; i++) a[i] = f(i / k); return a; }
@@ -176,7 +196,7 @@
     /* a faint air, a wind: two noises (a low billow, 70-520 Hz; a higher stream, 450-1500 Hz), each two independent
        channels, 13.7 and 17.9 s long, looped with no seam (white noise has none to mark: no fade, nothing periodic to
        give the loop away), moved by one wind (wind(), below), each drifting slowly across the field */
-    var air = [], airPan = [];
+    var air = [], airPan = [], airIn = ctx.createGain(); airIn.connect(tail);   // (airIn: the air's own level, which the Milky Way's breath lifts, below)
     (function () {
       [[70, 520, 13.7], [450, 1500, 17.9]].forEach(function (p) {
         var n = Math.floor(p[2] * ctx.sampleRate), b = ctx.createBuffer(2, n, ctx.sampleRate);
@@ -189,7 +209,7 @@
         });
         jobs.push(function () {
           var s = ctx.createBufferSource(), g = ctx.createGain(), pn = ctx.createStereoPanner(); s.buffer = b; s.loop = true; g.gain.value = 0;
-          chain([s, biquad('highpass', p[0], 0.7), biquad('lowpass', p[1], 0.7), biquad('lowpass', 1200, 0.7), g, pn, tail]);
+          chain([s, biquad('highpass', p[0], 0.7), biquad('lowpass', p[1], 0.7), biquad('lowpass', 1200, 0.7), g, pn, airIn]);
           var off = R.r(0, p[2] - 1); starts.push(function (t) { s.start(t, off); }); air.push(g); airPan.push(pn);
           return true;
         });
@@ -203,7 +223,7 @@
         if (jobs.length) setTimeout(run, 0); else { begin(); ok(); }
       })();
     }) : Promise.resolve();
-    var AIR = 0.0044;   // (the air, about 18 dB under the music in its gusts' middle)
+    var AIR = 0.0044, BREATH = 18;   // (the air, about 18 dB under the music in its gusts' middle; dB: the gust through the Milky Way's breath)
 
     /* a held note brightens as it swells and darkens as it dies away, as a bowed string, a horn or a clarinet does (soft,
        its upper partials fall away far faster than its fundamental): a gentle low-pass on each, its corner following the
@@ -253,7 +273,7 @@
        open, no cello; the colour and one voice; all, closer together), never the same twice running, the strings'
        level rising to a peak and falling again over each */
     var PASS = { open: { on: 'lmhc', k: 1 }, warm: { on: 'lmc', k: 0.9 }, air: { on: 'mhc', k: 1 }, still: { on: 'mc', k: 1.25 }, rich: { on: 'lmhc', k: 0.75 } };
-    var KINDS = [['open', 0.28], ['warm', 0.2], ['air', 0.18], ['still', 0.14], ['rich', 0.2]];
+    var KINDS = ['open', 'warm', 'air', 'still', 'rich'];   // (how often each comes: the sky's own, FULL)
 
     function colourAt(t) { var c = SKIES[S.swaps.length ? S.swaps[0][1] : 'bluehour'].col, j; for (j = 0; j < S.swaps.length; j++) if (S.swaps[j][0] <= t) c = S.swaps[j][2]; return c; }
     function regionAt(t) { for (var j = S.R.length - 1; j > 0; j--) if (S.R[j].a <= t) return S.R[j]; return S.R[0]; }
@@ -299,9 +319,9 @@
       for (var j = 0; j < iv.length; j++) { if (iv[j].h0 > cur + 0.6) break; cur = Math.max(cur, iv[j].h1); }
       return cur;
     }
-    function balance(t0, t1) {   // (as a player balances: alone, a little louder; with two or more others, softer)
+    function balance(t0, t1) {   // (as a player balances: alone, a little louder (at night less: the quiet is the night's); with two or more others, softer)
       var n = 0; S.N.forEach(function (e) { if (e.h1 > t0 && e.h0 < t1) n++; });
-      return n === 0 ? 2.5 : n === 1 ? 1 : n === 2 ? 0 : -1.5;
+      return n === 0 ? 2.5 * fillOf(skyAt(t0)).lone : n === 1 ? fillOf(skyAt(t0)).lone : n === 2 ? 0 : -1.5;
     }
     function lone(from) {   // (where, from then on, fewer than two notes planned would be heard for more than 3 s: one held note alone reads as a tone, a siren)
       var x, run = 0, n, iv = S.N.filter(function (e) { return e.h1 > from && e.k !== 'deep'; });
@@ -392,7 +412,7 @@
       var left = peak - 10 - a, kind, d = R.r(40, 80), x, k;
       if (left < 14) { S.pass.until = a + left; return; }   // (too near the swell for one of its own: this one runs on)
       if (S.pass.kind === 'start') kind = 'open';   // (the first: all the voices, as the press brings them in)
-      else do { x = R.f(); for (k = 0; k < KINDS.length - 1 && x >= KINDS[k][1]; k++) x -= KINDS[k][1]; kind = KINDS[k][0]; } while (kind === S.pass.kind);
+      else do { x = R.f(); for (k = 0; k < KINDS.length - 1 && x >= fillOf(S.sky).kinds[k]; k++) x -= fillOf(S.sky).kinds[k]; kind = KINDS[k]; } while (kind === S.pass.kind);
       d = Math.min(d, left - 4); S.pass = { kind: kind, a: a, until: a + d }; S.P.push(S.pass); while (S.P.length > 8) S.P.shift();
       var lo = db(R.r(-3, -1)), pk = R.r(0.35, 0.65), v0 = S.arcV, t0 = Math.max(a, S.arcEnd, ctx.currentTime + 0.05), dd = a + d - t0;
       if (dd > 4) { curveAt(sbus.gain, curve(function (u) { var e = u < pk ? Math.pow(Math.sin(Math.PI / 2 * u / pk), 2) : Math.pow(Math.cos(Math.PI / 2 * (u - pk) / (1 - pk)), 2); return u < pk ? v0 + (1 - v0) * e : lo + (1 - lo) * e; }), t0, dd); S.arcV = lo; S.arcEnd = t0 + dd + 0.01; }
@@ -408,7 +428,7 @@
     var TUBA = 12;   // (dB: the tuba's own low notes against the half-speed one they replace, by their fundamental)
     function deepNote(m, t, hold, gm) {
       var att = R.r(4, 5), rel = R.r(5.5, 7), rs = t + att + hold, g = TUBA - 2 * S.wc + (gm || 0) + (m <= 27 ? 7 : m <= 30 ? 3 : 0), ct;
-      if (!fits(m, t, rs + rel * 0.6, true)) return false;
+      if (!fits(m, t, rs + rel * 0.6, true) || (S.br && t < S.br[1] && rs + rel * 0.6 > S.br[0] - 1)) return false;   // (none under the breath)
       ct = tuneOf('tuba', m, t);
       release(voice('tuba', m, t, g + R.r(-0.5, 0.5), att, 0, false, fund, ct), rs, rel);
       if (m >= 28) release(voice('cbass', m, t + 0.3, -12 - TUBA + g + R.r(-0.5, 0.5), att, -0.1, false, deepIn, ct), rs + 0.3, rel);
@@ -458,6 +478,7 @@
 
     /* the voices: each in turn, the one due soonest; where every note would be gone before it comes, it comes early */
     function lead(v) { return v.k === 'col' ? 0 : 1.7; }   // (from a note's start to when it is heard)
+    function pull(v, g) { return v.k === 'col' && fillOf(skyAt(g)).col > 1.2 ? 12 : 0; }   // (at night a hole is filled by a voice, not by the colour, which keeps to its own few notes)
     function plan(now) {
       var guard = 0, v, t, g, u;
       while (guard++ < 40) {
@@ -465,8 +486,10 @@
         t = Math.max(v.next, S.front + 1.2);   // (never two notes begun within 1.2 s: no beat, no chord struck)
         if (!on(v.k, t)) { v.next = t + R.r(3, 6); continue; }
         g = Math.min(hole(S.hf), LONE ? lone(S.hf) + 2 : 1e9);
+        if (S.br && g > S.br[0] - 6 && g < S.br[1]) g = S.br[1];   // (the breath left open: the next voice at its end)
+        else if (t + lead(v) > g + 0.3 && g === hole(S.hf) && breath(g)) continue;
         if (t + lead(v) > g + 0.3) {   // (a hole before it: the voice best placed to fill it comes in early, not one that found nothing a moment ago)
-          u = null; LAYERS.forEach(function (k) { var x = S.V[k]; if (on(k, g) && (x.wait || 0) <= g && (!u || x.next < u.next)) u = x; });
+          u = null; LAYERS.forEach(function (k) { var x = S.V[k]; if (on(k, g) && (x.wait || 0) <= g && (!u || x.next + pull(x, g) < u.next + pull(u, g))) u = x; });
           if (u) { v = u; t = Math.max(S.front + 1.2, now + 0.1, g - 0.3 - lead(v)); }
         }
         if (t > now + H) break;
@@ -475,13 +498,29 @@
         if (S.N.length > n0) { S.front = t; S.hf = Math.max(S.hf, S.N[n0].h0); }
       }
     }
+    /* the Milky Way's breath: now and then, where every note has died away, the hole left open, 4-6 s of the air alone
+       (the owner, of the silences: "i didnt say never silent"). Only in the Milky Way, the stillest sky, well inside
+       it (no change, swell or chord near), a minute into the listening at least, no deep note under it, once a minute
+       and a half at most */
+    function breath(g) {
+      var len = R.r(4, 6), e = g + len, j, in0 = -1e9;
+      for (j = 0; j < S.swaps.length; j++) if (S.swaps[j][0] <= g) in0 = S.swaps[j][0];
+      if (skyAt(g) !== 'milkyway' || colourAt(g) !== 'harp' || colourAt(e + 4) !== 'harp' || g - in0 < 20 || g < S.a0 + 60 || g < (S.brAt || -1e9) + 90) return false;
+      if ((S.next && S.next.at < e + 15) || g < S.swellEnd + 2 || blockAt(g - 6, e + 6) || S.N.some(function (x) { return x.k === 'deep' && x.t1 > g - 1 && x.t0 < e; })) return false;
+      S.br = [g, e]; S.brAt = g;
+      var t0 = Math.max(g - 3, ctx.currentTime + 0.05), d = e + 3 - t0;   // (and through it a soft gust, the air swelling as the last notes die and settling as the next comes in: the breath is the air's, never a silence)
+      curveAt(airIn.gain, curve(function (u) { var x = u * d, k = x < 3.5 ? Math.pow(Math.sin(Math.PI / 2 * x / 3.5), 2) : x > d - 3.5 ? Math.pow(Math.cos(Math.PI / 2 * (x - d + 3.5) / 3.5), 2) : 1; return db(BREATH * k); }), t0, d);
+      LAYERS.forEach(function (k) { var x = S.V[k]; x.next = Math.max(x.next, e - 0.3 - lead(x)); });
+      return true;
+    }
     function sing(v, t) {   // (one note: from the chord of the moment, near its last, sweet with the notes it meets)
       var r = regionAt(t), col = colourAt(t), L = LAYER[v.k], k = v.k, ms = r.tag === 'mist' || col === 'mist', lo = ms ? 50 : L.lo, hi = ms ? 77 : L.hi;
       var len = R.r(L.len[0], L.len[1]), att = R.r(2.6, 4.4) * (ms ? 1.3 : 1), rel = R.r(4, 6.5) * (ms ? 1.2 : 1), hold, rs, t1, B, cand = [], m, w, d, pc, r2, inst, g;
       B = blockAt(t, t + len);
       if (B) { if (B[0] + 1.5 - t >= 5) len = B[0] + 1.5 - t; else { v.next = v.wait = B[1] + R.r(0.5, 4); return true; } }
       hold = Math.max(0.3, len - att - rel * 0.6); rs = t + att + hold; t1 = rs + rel * 0.6; r2 = regionAt(rs);
-      if (k === 'low' && !ms && !S.N.some(function (e) { return e.k !== 'deep' && e.k !== 'low' && e.h0 <= t + att && e.h1 >= t + att + 3; })) return false;   // (the low voice only under a note already sounding: a low string alone reads as a tone, not a cello)
+      if (k === 'low' && !ms && !S.N.some(function (e) { return e.k !== 'deep' && e.k !== 'low' && e.h0 <= t + att && e.h1 >= t + att + 3; })) return false;
+      if (S.N.filter(function (e) { return e.k !== 'deep' && e.h1 > t + att && e.h0 < rs; }).length >= fillOf(skyAt(t)).most) return false;   // (at night never a third voice over two)   // (the low voice only under a note already sounding: a low string alone reads as a tone, not a cello)
       for (m = lo; m <= hi; m++) {
         pc = m % 12;
         if (r.sc.indexOf(pc) < 0 && !(ms && r2 !== r && r2.pc.indexOf(pc) >= 0)) continue;   // (a note out of the mist into the chord after it may be one of that chord's)
@@ -498,7 +537,7 @@
       g = L.g + (LIFTS[col] || 0) + (m < 50 ? -3 * S.wc : 0) + (k === 'low' ? Math.min(0, balance(t + att, rs)) : balance(t + att, rs)) + R.r(-1.5, 1);
       release(voice(inst, m, t, g, att, side(m), false, sbus), rs, rel);
       add(m, t, t1, t + att * 0.5, rs + rel * (m < 50 ? 0.3 : 0.5), k);   // (a low note's dying away counts for less: a phone plays little of it)
-      v.last = m; v.next = rs + rel * 0.5 + R.r(L.rest[0], L.rest[1]) * PASS[kindAt(t)].k * REST;
+      v.last = m; v.next = rs + rel * 0.5 + R.r(L.rest[0], L.rest[1]) * PASS[kindAt(t)].k * REST * fillOf(skyAt(t)).rest;
       return true;
     }
     /* the colour: the harp or the piano a few notes of the chord, ringing (one, two a third or more apart, three up or
@@ -527,7 +566,7 @@
           else voice('piano', m, tt, -9 - 0.6 * j + hi + bal + R.r(-1, 0.5), 0, -0.2 + 0.4 * R.f(), false, near);
           add(m, tt, tt + 3.5, tt, tt + 1.8, 'col'); tt += gap * R.r(0.85, 1.2);
         });
-        v.next = t + R.r(7, 13) * P.k * REST; return true;
+        v.next = t + R.r(7, 13) * P.k * REST * fillOf(skyAt(t)).col; return true;
       }
       var lo = col === 'horn' ? 50 : col === 'clar' ? 60 : 64, hi = col === 'horn' ? 62 : 72, inst =   // (the clarinet and the violins to C5: above it, swelling, they read as a bell or an alarm)
         col === 'horn' ? 'horn' : col === 'clar' ? 'clar' : 'violin';
@@ -548,7 +587,7 @@
           add(m, tc, tc + dd + (lastN ? 1 : 0.2), tc + 0.3, tc + dd + (lastN ? 0.6 : 0), 'col'); tc += dd;
         });
       }
-      v.next = t + R.r(13, 21) * P.k * REST; return true;
+      v.next = t + R.r(13, 21) * P.k * REST * fillOf(skyAt(t)).col; return true;
     }
 
     /* the wind: four random walks, each to a new value every 1.2, 2, 6.5 and 21 s or so (half to one and a half times

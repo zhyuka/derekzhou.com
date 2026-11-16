@@ -25,6 +25,9 @@ site/index.html or `.sound` in site/style.css.
 - "yes make it louder, -23. and i pick the refined sound" (2026-11-15): so about -23 LUFS (it was -26, 6 dB under
   the floor recommended for streams heard on phones), with no compression; the harp's attacks 2 dB lower, so its
   peaks keep clear.
+- "yes go" (2026-11-16), of quieter nights: each sky its own level inside the -23, the night skies quieter by thinning
+  the voices, not by turning the level down, and in the Milky Way now and then a breath where only the air plays (the
+  night's quiet, below).
 
 The music itself was chosen by ear over seventeen rounds of sketches (2026-11-07 to 2026-11-12). His words
 along the way set what it must and must not be:
@@ -97,19 +100,20 @@ seventeen, the owner's pick):
   that chord's key.
 - **The colour on top**, its own layer: the harp or the piano one note, two a third to a sixth apart, or three up or
   down, ringing, every 7 to 13 s, and now and then the note a voice just sang, higher; the horns, the clarinet or the
-  violins one note swelling, or two or three legato (a sigh), every 13 to 21 s. Never a tune.
-- **Passages**: 40 to 80 s each, never the same twice running, which voices sing and how long they rest (all 0.28;
-  warm, no violins 0.2; air, no cello 0.18; still, the colour and one voice 0.14; rich, all, closer together 0.2),
-  the voices' level rising to a peak and falling 1 to 3 dB over each.
+  violins one note swelling, or two or three legato (a sigh), every 13 to 21 s (each sky its own: at night less
+  often, by day more, below). Never a tune.
+- **Passages**: 40 to 80 s each, never the same twice running, which voices sing and how long they rest (all;
+  warm, no violins; air, no cello; still, the colour and one voice; rich, all, closer together: how often each comes
+  is the sky's own, below), the voices' level rising to a peak and falling 1 to 3 dB over each.
 - **Balance**, as a player keeps it: a note that comes in alone is 2.5 dB louder, beside one other 1 dB, beside three
-  or more 1.5 dB softer.
+  or more 1.5 dB softer (at night alone 1-1.25 dB, beside one other 0.4-0.5 dB).
 - **Never a hole, never a note alone**: where fewer than two notes planned would be heard for more than 3 s (or none
   at all), the voice best placed comes in early, so it is heard just before the other fades; one that found no note a
   moment ago waits. Alone, a held note (a viola, a cello, the clarinet as a voice, the stretched contrabass) is heard by an
   ear model (YAMNet, below) as a siren, a tuner or a foghorn, so the music moves in pairs of notes, a third, a sixth or
   a tenth apart, a third now and then. The low voice comes in only under a note already sounding. Never two notes
   begun within 1.2 s (no beat, no chord struck). Over two hours, nothing sounding for 2.5 s or more never (round
-  twenty's: 13 times); one held note alone at most 6.5 s.
+  twenty's: 13 times), but the Milky Way's breaths (below); one held note alone at most 6.5 s.
 - **The deep end, a tide**: at the start of a chord, most chords, the root two octaves down (the tuba's own low notes,
   F1 and B-flat 1, at their own pitch, kept to the fundamental, about 33-62 Hz, felt, with a contrabass; and a quiet
   trace of the tuba's own partials from 150 to 500 Hz, 22 dB down, which a phone and a quiet ear can follow when the
@@ -132,6 +136,27 @@ seventeen, the owner's pick):
   If the world is already changing when the score looks (a late press), it catches up, sooner and shorter.
 - **Never a clash**: no two notes closer than a minor third at once, and none a minor ninth (or more octaves) apart;
   low down (below C3) nothing closer than a fifth.
+- **The night's quiet** (2026-11-16): each sky its own level inside the -23, afterglow and first light fuller, the
+  night skies (the moonlit sea, aurora, the Milky Way) about 3 dB under them, blue hour between. Made by thinning:
+
+  | sky | the voices' rests | the colour's | alone, lifted | passages (all, warm, air, still, rich) | voices at once |
+  |---|---|---|---|---|---|
+  | afterglow | x0.7 | x0.75 | 2.5 dB | 0.26, 0.2, 0.14, 0.08, 0.32 | any |
+  | first light | x0.75 | x0.8 | 2.5 dB | 0.28, 0.18, 0.16, 0.08, 0.3 | any |
+  | blue hour | x1 | x1 | 2.5 dB | 0.28, 0.2, 0.18, 0.14, 0.2 | any |
+  | the moonlit sea | x1.25 | x1.35 | 1.25 dB | 0.24, 0.22, 0.2, 0.24, 0.1 | two |
+  | aurora | x1.3 | x1.5 | 1.25 dB | 0.24, 0.2, 0.22, 0.24, 0.1 | two |
+  | the Milky Way | x1.4 | x1.7 | 1 dB | 0.22, 0.2, 0.22, 0.28, 0.08 | two |
+
+  At night a hole is filled by a voice, never by the colour, which keeps to its own few notes (the harp had been
+  brought in to fill most holes: 18 notes a minute; now about 7), and no third voice comes in over two. The strings
+  under each colour: in full under afterglow's horns and first light's violins (they were 3 and 1 dB under), 1.5 dB
+  under blue hour's piano, 3 dB under the night's harp and clarinet (the clarinet's were 1.5). Never the whole level:
+  the deep end keeps its weight in every sky (at a quiet level the ear loses the bass first, ISO 226). In the Milky
+  Way, the stillest sky, a breath now and then: where every note has died away, the hole is left open for 4-6 s and
+  the air plays alone, a soft gust (18 dB) swelling through it, so it is the air's and never a silence; well inside
+  the sky (20 s in, no change within 15 s, no swell or chord near), a minute into the listening at least, no deep
+  note under it, a minute and a half apart at least.
 How it sounds (sketch round twenty-two):
 
 - **Tuning**: a held note that comes in against others is tuned pure (5-limit) to the lowest of them, as players tune
@@ -246,6 +271,21 @@ Louder (2026-11-15, OUT 1.27): over three flights (seeds 1501-1503) -23.1, -23.3
 -2.0 and -3.2 dBFS, loudness range 9.0-9.7 LU. At the old level the peaks were the harp's attacks in the Milky Way
 (they would have reached -0.2 dBFS at -23), so the harp came down first.
 
+The night's quiet (2026-11-16, OUT 1.28; 1.27 before): over 40 minutes of the unit test's two-hour flight, ordered as
+the world orders its skies (seed 11, half the view cloud), -23.0 LUFS against the score before it on the same
+(-23.0), true peak -3.6 dBFS (-2.0: the harp, its attacks the peaks, comes less often), loudness range 9.2 LU (8.1).
+Each sky's own stretches in it (20 s in, to 10 s before its change), before and after: afterglow -25.1 to -21.9, first
+light -22.5 to -21.5, blue hour -23.5 to -22.9, the moonlit sea -23.7 to -24.8, aurora -24.3 to -25.5, the Milky Way
+-24.2 to -24.4 (the swells at the changes are still the loudest moments, short-term -14.4 LUFS in both; afterglow's
+loudest now -16.4). Measured alone (each sky held 300 s, three seeds), before the strings' levels were set: thinning
+moved the night skies 0.5-1.1 dB, afterglow 0.3, since the floor (never a hole, never a note alone) keeps about two
+notes sounding; the strings under the colour set the rest. Through a phone speaker, modelled (little under 350 Hz),
+the night skies sit at -28.1 to -28.2 LUFS and afterglow -23.9 (before: -26.7 to -26.9, and -26.7). The breath, the
+Milky Way held 300 s: the momentary loudness through it -41 to -47 LUFS (without the gust it fell to -61 to -65,
+silence); YAMNet hears in it "Music", "Silence", "Outside, rural or natural" and "Wind". YAMNet over the 40 minutes:
+synthetic median 0.005 (before 0.006), windows over 0.05 14 (21), orchestral median 0.30 (0.30). render.mjs's flight,
+which opens on afterglow and has little night, now reads -22.7 LUFS (true peak -3.3 dBFS, loudness range 7.8 LU).
+
 Change OUT only with a measurement.
 
 ## What it costs
@@ -253,7 +293,7 @@ Change OUT only with a measurement.
 | what | bytes | when |
 |---|---|---|
 | sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 23,457 minified, 8,793 as sent | every visit, deferred, low priority (36-load-budget: 9 KB) |
+| score.js | 24,985 minified, 9,259 as sent | every visit, deferred, low priority (36-load-budget: 9.5 KB) |
 | the sheet | about 4.5 MB (4,467,501 B) | only at the first press |
 
 Round twenty-two (2026-11-13), the same machine and flight: the audio thread 4.2% of real time (0.23 ms of each
@@ -319,8 +359,11 @@ major chord, and thin to a mist of three notes or more; and two hours of a fligh
 keep them, with as many notes in the second hour as in the first; and over those two hours no chord may be held under
 it (three or more held notes at once under 20% of the time and never past 20 s at a stretch; a whole triad under 20%:
 round twenty's score had them 66% and 52%, one stretch of 86 s), no note held past 18 s (the deep end 20 s: it held
-one 103 s), and never a hole (nothing sounding for more than 3.5 s, and 2.5 s or more four times at most), and never one held note alone
-for more than 8 s (alone, a held string or clarinet note reads as a tone, a siren: an ear model, YAMNet, said so); and the room and the air filled sliced, each step
+one 103 s), and never a hole (nothing sounding for more than 3.5 s, and 2.5 s or more four times at most) but the
+Milky Way's breaths, and never one held note alone for more than 8 s (alone, a held string or clarinet note reads as
+a tone, a siren: an ear model, YAMNet, said so); over those two hours the night's quiet: the Milky Way and aurora begin
+fewer than 0.8 of blue hour's notes a minute, three voices at once there under 15% of the time, and three breaths or
+more, each inside a Milky Way, 6.5 s at most, no deep note under it, 85 s apart at least; and the room and the air filled sliced, each step
 run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
 filled at once, in 20 steps or more. About 25 s. Its plant lets a note in a step from one it meets.
 
