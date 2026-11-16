@@ -146,10 +146,12 @@ jobs:
           exit $rc
       - name: report
         if: always()
+        continue-on-error: true   # (a report for people, read by nothing: the artifact quota never fails T2)
         uses: actions/upload-artifact@v4
         with: { name: t2, path: '${{ runner.temp }}/t2/*.*', retention-days: 14, if-no-files-found: ignore }
       - name: forced-off report
         if: always()
+        continue-on-error: true   # (a report for people, read by nothing: the artifact quota never fails T2)
         uses: actions/upload-artifact@v4
         with: { name: forced-off, path: '${{ runner.temp }}/forced-off', retention-days: 14, if-no-files-found: ignore }
   t3:
@@ -181,5 +183,6 @@ jobs:
           $tools = if (Test-Path base/tools/gpu/t3.js) { 'base/tools/gpu' } else { 'head/tools/gpu' }
           node "$tools/t3.js" --base served/base --head served/head --out "$env:RUNNER_TEMP/t3" --runs 5 --cases d11,n23
       - if: always()
+        continue-on-error: true   # (a report for people, read by nothing: the artifact quota never fails T2)
         uses: actions/upload-artifact@v4
         with: { name: t3, path: '${{ runner.temp }}/t3/*.*', retention-days: 30, if-no-files-found: ignore }
