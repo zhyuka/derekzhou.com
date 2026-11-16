@@ -69,6 +69,19 @@ little (its low point 61 % of the way in, 3.2 % of the way below) and
 up into it, its closing at a constant tau-dot (0.72), its wings braking
 in the flare, its feet out at the end; from the touch its feet are the
 perch's, solved every frame from where the perch is drawn (no easing).
+Its rest over the perch is solved in the step, once, at the start of the
+last leg (the touch pose on the perched attitude it will stand in, its
+yaw decided then), never from what was drawn; over the flare its attitude
+eases into that perched one, and the flare's pose passes into the touch's.
+A change of what the wings do (a burst, the approach's beats and glide,
+the flare, the perch, the leap) carries the last drawn pose over and eases
+into the new one over 0.22 s (the owner, 2026-11-14: "the birds sometimes
+feel choppy at times (esp when they land/takeoff ...)"); test/birds-motion.mjs
+bounds the drawn motion frame by frame. Everything posed reads the frame's
+own time (between the last two steps), never the step's clock: the wings,
+the flare, the attitude, the perched life, the crouch; a bird stepped this
+step is drawn between where it was and is (at 144 Hz the wings move on every
+frame, not on the 42 % with a step). Getting up to leave, its rest is held.
 If the perch gets away it goes round once, far out, then flies on. At
 most 6 on the letters, one coming down at a time. On the perch it faces
 into the wind (a row turning bird by bird as the wind shifts), turns by
@@ -118,7 +131,10 @@ What it pins: a landing comes in by a gate in view (wide of the perch, beyond it
 by a closed-loop tau-dot law (the closing a constant tau-dot gives at the range left), takes out its drift across
 the line, and ends on a curve to rest in the perch's frame (its place and motion at both ends: no jump, no
 overshoot); a bird ahead lets the perch come to it (never flying against the camera's way); feet fixed on the
-perch (the pointer read before the birds step); turns only by bank; births and removals unseen; no object made in a
+perch (the pointer read before the birds step); standing on its feet, the wings' root, on a letter and on the pointer
+alike, its perched poses (touch, settling, folded, wings raised) keeping its wings at or above them, so it stands on
+top of the ink and no drawn point hangs below it (the hub's re-review 3, option c: within 5 px, the feet's own sink
+included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
 
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
