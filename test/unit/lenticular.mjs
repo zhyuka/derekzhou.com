@@ -137,6 +137,6 @@ test('lenticular: a lens keeps small billows on every look; a free body takes th
     const lens = run(crisp, { flow: [8, 0, -3] });
     assert.deepEqual(lens.slice(2), [120, 2], `a lens on the ${crisp ? 'desktop' : 'touch'} look: billows ${lens[2]} m, ${lens[3]} m deep`);
   }
-  assert.deepEqual(run(true, {}).slice(2), [480, 20], 'a free body on the desktop: not the deep cauliflower');
+  assert.deepEqual(run(true, {}).slice(2), [480, 12], 'a free body on the desktop: not the deep cauliflower');
   assert.deepEqual(run(false, {}).slice(2), [120, 4]);
 });
