@@ -64,23 +64,25 @@
      speeds past its day's speed (the nocturnal jet); first light is the stillest at the ground (the night's coldest,
      most stable air). AIR_BYSKY gives each sky its shares: s the surface's (to 20 m) of the visit's day wind, j the
      jet's (100-300 m), g its gustiness (the gusts' share of their day's intensity: a stable night's are weaker; set
-     by eye within row 6's band, no source gives it by sky), m the gusts' slide across the wind (the field's frame
-     drifting sideways on a calm sky, as the weak night air meanders: sqrt(0.7^2 - s^2), so the field passes a point
-     at 0.7 U10 and a gust's e-fold stays within row 6's 10-30 s at night; 0 where the surface share is 0.7 or more). Up
+     by eye within row 6's band, no source gives it by sky). The gusts' field is carried at the mean wind on every sky
+     (row 6: frozen and carried downwind, https://glossary.ametsoc.org/wiki/Frozen_turbulence), so a point dx downwind
+     meets each gust dx / U10 later; on a calm sky it passes a point at the surface's share of U10, and a gust's e-fold
+     there is longer than the day's (the eddies' scale, 22 U10, is the day's: no source found gives a stable night's
+     shorter scale in this form, so the longer e-fold is taken, the hub's ruling). Up
      the profile the share eases from s to j (20-100 m, in log height) and from j to the free air's 1 (300-1500 m).
      Over a hold the sky's shares hold; through a change they ease into the next sky's with its light (ss01 of the
      change). The score's breeze is the same table (512's feed). Whatever the wind carries is carried by its integral,
      a clock of each share (airClock: closed form over the sky's order), so a change never jumps a grain, a gust or a
      veil: the shaders read the surface's as uAir.x */
-  var AIR_BYSKY = { afterglow: [1, 1, 1, 0], bluehour: [0.7, 1.2, 0.65, 0], firstlight: [0.35, 1.3, 0.5, 0.606], moonlit: [0.5, 1.4, 0.6, 0.49], milkyway: [0.4, 1.5, 0.5, 0.574], aurora: [0.45, 1.4, 0.55, 0.536] };
-  var AIR_NC = 4, AIR_ONE = [1, 1, 1, 0], AIR_SL = [20, 100, 300, 1500], AIR_WX = [1, 1, 1, 0], AIR_IA = [0, 0, 0, 0], AIR_IB = [0, 0, 0, 0], AIR_TC = [0, 0, 0, 0], AIR_ABC = [1, 0, 0];
+  var AIR_BYSKY = { afterglow: [1, 1, 1], bluehour: [0.7, 1.2, 0.65], firstlight: [0.35, 1.3, 0.5], moonlit: [0.5, 1.4, 0.6], milkyway: [0.4, 1.5, 0.5], aurora: [0.45, 1.4, 0.55] };
+  var AIR_NC = 3, AIR_ONE = [1, 1, 1], AIR_SL = [20, 100, 300, 1500], AIR_WX = [1, 1, 1], AIR_IA = [0, 0, 0], AIR_IB = [0, 0, 0], AIR_TC = [0, 0, 0], AIR_ABC = [1, 0, 0];
   function airTable() { var o = {}, k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
   function airSh(e) { return (e && AIR_BYSKY[e.id]) || AIR_ONE; }
   function airIdx(seq, tS) { var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--; return i; }
   function airPre(seq, i) {   // the shares' integral from the order's start to seq[i].at (cached on each entry: an entry's never changes)
     var j = i; while (j > 0 && !seq[j].aI) j--;
-    if (!seq[j].aI) seq[j].aI = [0, 0, 0, 0];
-    for (; j < i; j++) { var e = seq[j], A = airSh(e), B = airSh(seq[j + 1]), o = [0, 0, 0, 0]; for (var c = 0; c < AIR_NC; c++) o[c] = e.aI[c] + e.hold * A[c] + e.move * (A[c] + B[c]) / 2; seq[j + 1].aI = o; }
+    if (!seq[j].aI) seq[j].aI = [0, 0, 0];
+    for (; j < i; j++) { var e = seq[j], A = airSh(e), B = airSh(seq[j + 1]), o = [0, 0, 0]; for (var c = 0; c < AIR_NC; c++) o[c] = e.aI[c] + e.hold * A[c] + e.move * (A[c] + B[c]) / 2; seq[j + 1].aI = o; }
     return seq[i].aI;
   }
   function airInt(tS, out) {   // the shares' integral from the order's start to sky time tS (s x share)
@@ -146,8 +148,7 @@
   function airShare(y, t) { var w = weather(t), m = airABC(y); return m[0] * w[0] + m[1] * w[1] + m[2]; }   // the sky's share of the day's wind at y m up, at t
   function airCarried(y, t) { var T = airClock(t), m = airABC(y); return m[0] * T[0] + m[1] * T[1] + m[2] * t; }   // s: the wind's integral at y m up over its day speed (what it has carried a thing, over that speed)
   var UAIR = new Float32Array([0, 1, 1, 0]);   // (the shaders' uAir: the surface's clock, on the flight's footing (as gustAt's: no lead), its share, the gustiness, the clock a frame back (the motes' streak))
-  var UAIRM = new Float32Array(1);   // (the shaders' uAirM: the meander's clock, the gusts' slide across the wind)
-  function airFrameU(u, dt) { var w = weather(u); UAIR[1] = w[0]; UAIR[2] = w[2]; UAIR[0] = airClock(u)[0]; UAIRM[0] = AIR_TC[3]; UAIR[3] = airClock(u - (dt || 0))[0]; }
+  function airFrameU(u, dt) { var w = weather(u); UAIR[1] = w[0]; UAIR[2] = w[2]; UAIR[0] = airClock(u)[0]; UAIR[3] = airClock(u - (dt || 0))[0]; }
   function airBase(x, z, y, V) {   // the day's wind at y m up (the sky's share 1): { x, z } m/s, the one object, reused
     var w = (V || SIM.V || {}).wind, p = airProfile(y), s = u10Of(V) * p.s, v = p.veer * PI / 180, c = Math.cos(v), n = Math.sin(v);
     AIR_W.x = w ? (w[0] * c + w[1] * n) * s : 0; AIR_W.z = w ? (w[1] * c - w[0] * n) * s : 0;
@@ -188,18 +189,18 @@
   function gustAt(x, z, y, t, V) {   // the gust's excess along the wind at (x, z), y m up, at the flight's t: m/s, signed (0 in still air)
     var f = airFrame(V), U = f.W; if (!(U > 0)) return 0; t = t === undefined ? SIM.t : t;
     var L = AIR_GUST[1] * U, sl = ((V || SIM.V || {}).salt || 0) >>> 0, ox = (aih(sl) >>> 8) / 16777216 * 4096, oz = (aih((sl + 1) >>> 0) >>> 8) / 16777216 * 4096;   // (the visit's own slice of the field: its salt, as uSalt)
-    var T = airClock(t), xi = (x * f.x + z * f.z - U * T[0]) / L + ox, eta = (z * f.x - x * f.z - U * T[3]) / L + oz;   // (and slid across it by the sky's meander clock)   // (carried at U10 on the surface's clock, at every height: the day's field, frozen, at the sky's pace)
+    var T = airClock(t), xi = (x * f.x + z * f.z - U * T[0]) / L + ox, eta = (z * f.x - x * f.z) / L + oz;   // (carried at U10 on the surface's clock, at every height: the day's field, frozen, at the sky's pace)
     return AIR_GUST[0] * weather(t)[2] * airSpeed(y, V) * airShare(y, t) * gustN(xi, eta);
   }
   function gustSigma(y, V, t) { t = t === undefined ? SIM.t : t; return airFrame(V).W > 0 ? AIR_GUST[0] * weather(t)[2] * airSpeed(y, V) * airShare(y, t) : 0; }   // the gust's standard deviation at y m up, m/s (0 in still air)
   function gustPhase(x, z, y, t, V) { var f = airFrame(V); t = t === undefined ? SIM.t : t; return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN; }   // s: the field's own clock here (the surface's clock, less the way along the wind over U10; NaN in still air; the same at every height)
   function airGlsl() { return '#define AIR_DRIFT(t) vec3(t * ' + airF(AIR_DRIFT[0]) + ', 0.0, t * ' + airF(AIR_DRIFT[1]) + ')\n'; }
-  function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau, tm): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x), tm the meander's (uAirM))
+  function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
     var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n#define AIR_UT0 ' + airF(AIR_UT0) + '\n';
     s += 'float airLat(int i, int j, uint s) { return hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0; }\n';
     s += 'float airVn(vec2 p, uint s) { vec2 c = floor(p), f = p - c, u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); ivec2 i = ivec2(c); float a = airLat(i.x, i.y, s), b = airLat(i.x + 1, i.y, s), cc = airLat(i.x, i.y + 1, s), d = airLat(i.x + 1, i.y + 1, s); return a + (b - a) * u.x + (cc - a) * u.y + (a - b - cc + d) * u.x * u.y; }\n';
     s += 'float airGustN(vec2 q) { return (' + o.map(function (k) { return airF(k[1]) + ' * airVn(q * ' + airF(k[0]) + ', ' + k[2] + 'u)'; }).join(' + ') + ') * ' + airF(AIR_GUST[2]) + '; }\n';
-    s += 'float airGust(vec2 xz, vec2 w, float U, float W, float t, float tm) { if (U <= 0.0) return 0.0; float L = AIR_GUST_T * U; return AIR_GUST_I * W * airGustN(vec2(dot(xz, w) - U * t, xz.y * w.x - xz.x * w.y - U * tm) / L + vec2(hf(ih(uSalt)), hf(ih(uSalt + 1u))) * 4096.0); }\n';
+    s += 'float airGust(vec2 xz, vec2 w, float U, float W, float t) { if (U <= 0.0) return 0.0; float L = AIR_GUST_T * U; return AIR_GUST_I * W * airGustN(vec2(dot(xz, w) - U * t, xz.y * w.x - xz.x * w.y) / L + vec2(hf(ih(uSalt)), hf(ih(uSalt + 1u))) * 4096.0); }\n';
     return s;
   }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
