@@ -11,6 +11,10 @@
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.5; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
 // plant: {"file": "src/realm-dunes.js", "find": "flow: [hw.x, 0, hw.z]", "with": "flow: [hw.z, 0, hw.x]", "why": "the flow's components swapped: the billows cross the lens at the wrong way"}
 // plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
+// plant: {"file": "src/realm-dunes.js", "find": "off = PI * U / HELD_N,", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
+// plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) return;", "with": "if (C.weights(cx, cz)[1] > 0.5) return;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "T * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08)", "with": "T * 3 * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08)", "why": "the plates rounder: lobes three times the plate"}
+// plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -20,12 +24,12 @@ const AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR
 const HELD = cut(DUNES, '  var HELD_V = ', '  /* a small cell of open dunes');
 const RSV = +/var DS = 1500, RS = (\d+)/.exec(DUNES)[1];
 const make = vm.runInThisContext('(function () { var PI = Math.PI, SIM = { V: null }, RS = ' + RSV + ';\n' + STREAMS + AIRSRC +
-  ' var K = { cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl }, A = { windAt: windAt };\n' + HELD + ' return { dHeld: dHeld, windAt: windAt, cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl, HELD_V: HELD_V, HELD_H: HELD_H }; })');
+  ' var K = { cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl }, A = { windAt: windAt };\n' + HELD + ' return { dHeld: dHeld, windAt: windAt, cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl, HELD_V: HELD_V, HELD_H: HELD_H, HELD_N: HELD_N }; })');
 const H = make();
 function cell(ix, iz, salt, V, wc = 0.1) {   // a stub 1500 m cell: its clouds
   const C = { ix, iz, x0: ix * 1500, z0: iz * 1500, size: 1500, salt, V, clouds: [] };
   C.inside = (x, z) => x >= C.x0 && x < C.x0 + C.size && z >= C.z0 && z < C.z0 + C.size;
-  C.weights = () => [1 - wc, wc]; C.cloud = (cl) => { C.clouds.push(cl); return cl; };
+  C.weights = (x, z) => { const w = typeof wc === 'function' ? wc(x, z) : wc; return [1 - w, w]; }; C.cloud = (cl) => { C.clouds.push(cl); return cl; };
   H.dHeld(C); return C.clouds;
 }
 const visitV = (seed, u10) => { const a = ((seed * 2654435761) >>> 0) / 4294967296 * 2 * Math.PI; return { wind: [Math.sin(a), Math.cos(a)], u10 }; };
@@ -58,7 +62,7 @@ test('lenticular: only on windy visits (the crest\'s wind >= 7.7 m/s, within 30 
         assert.ok(sp >= H.HELD_V, `a lens at ${sp.toFixed(2)} m/s over the crest (U10 ${u10})`);
         const ax = Math.sin(cl.dir), az = Math.cos(cl.dir);
         assert.ok(Math.abs((w.x * ax + w.z * az) / sp) <= 0.5 + 1e-12, 'a lens with the wind along its ridge');
-        assert.ok(cl.dy >= 1100 && cl.dy <= 1700 && cl.n >= 1 && cl.n <= 3, `a lens ${cl.dy} m up, ${cl.n} plates`);
+        assert.ok(cl.dy >= 1100 && cl.dy <= 1700 && cl.n >= 1 && cl.n <= 3 && cl.t >= 45 && cl.t <= 75 && cl.len >= 12 * cl.t, `a lens ${cl.dy} m up, ${cl.n} plates ${cl.t} m thick, ${cl.len} m long`);
         const wf = { ...H.windAt(0, 0, cl.dy, 0, V) };   // (the wind at its height, as a vector: x, y, z)
         assert.ok(cl.flow && Math.abs(cl.flow[0] - wf.x) < 1e-9 && cl.flow[1] === 0 && Math.abs(cl.flow[2] - wf.z) < 1e-9, `the flow ${cl.flow} is not the wind at its height (${wf.x}, ${wf.z})`);
         if (u10 >= 6.2) windy++; else calm++;
@@ -139,4 +143,63 @@ test('lenticular: a lens keeps small billows on every look; a free body takes th
   }
   assert.deepEqual(run(true, {}).slice(2), [480, 12], 'a free body on the desktop: not the deep cauliflower');
   assert.deepEqual(run(false, {}).slice(2), [120, 4]);
+});
+
+// the lens at the lee wave's first crest (the hub's round-3 review): half a wavelength downwind of its ridge,
+// lambda = 2 pi U / N, U the wind across the crest at the lens's height, N 0.01/s (a stable troposphere's buoyancy
+// frequency: https://www.eoas.ubc.ca/books/Practical_Meteorology/, mountain waves); and the cloud sea's gate read
+// where the lens stands, not at the crest
+test('lenticular: half a lee wavelength downwind of its crest (pi U / N); none where the lens would stand over the cloud sea', () => {
+  assert.equal(H.HELD_N, 0.01);
+  let n = 0, lo = Infinity, hi = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const salt = (seed * 40503) >>> 0, V = visitV(seed, 7.2);
+    for (let iz = -5; iz < 5; iz++) for (let ix = -5; ix < 5; ix++) for (const cl of cell(ix, iz, salt, V)) {
+      // the crest the lens was laid out for: the ridge's own hashes, as dunes-glsl's ridges()
+      const RS = RSV, jx = Math.floor((ix * 1500 + 750) / RS), jz = Math.floor((iz * 1500 + 750) / RS), h = H.ihash(H.cellHash(jx, jz, salt) ^ 0x51ed27);
+      const cx = (jx + 0.25 + 0.5 * H.hfl(h)) * RS, cz = (jz + 0.25 + 0.5 * H.hfl(H.hk(h, 1))) * RS, ang = H.hfl(H.hk(h, 5)) * Math.PI;
+      const w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, hw = { ...H.windAt(0, 0, cl.dy, 0, V) }, sp = Math.hypot(w.x, w.z);
+      const U = Math.abs(-hw.x * Math.sin(ang) + hw.z * Math.cos(ang)), want = Math.PI * U / H.HELD_N;
+      const along = ((cl.x - cx) * w.x + (cl.z - cz) * w.z) / sp, across = Math.abs(((cl.x - cx) * w.z - (cl.z - cz) * w.x) / sp);
+      assert.ok(Math.abs(along - want) < 1e-6 && across < 1e-6, `a lens ${along.toFixed(1)} m downwind (want ${want.toFixed(1)}: pi U / N), ${across.toFixed(1)} m across`);
+      lo = Math.min(lo, along); hi = Math.max(hi, along); n++;
+    }
+  }
+  assert.ok(n > 20, `only ${n} lenses`);
+  console.log(`lenticular: ${n} lenses, ${lo.toFixed(0)}-${hi.toFixed(0)} m downwind of their crests`);
+  assert.ok(lo > 1500, `a lens ${lo.toFixed(0)} m behind its ridge: a cap cloud, not a lee-wave lens`);
+  // the gate where the lens stands: the cloud sea everywhere but within 1 km of the crests' own cells' centres
+  let atCrest = 0, gated = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const salt = (seed * 40503) >>> 0, V = visitV(seed, 7.2);
+    for (let iz = -5; iz < 5; iz++) for (let ix = -5; ix < 5; ix++) {
+      atCrest += cell(ix, iz, salt, V).length;
+      const C0 = { x: ix * 1500 + 750, z: iz * 1500 + 750 };
+      gated += cell(ix, iz, salt, V, (x, z) => (Math.hypot(x - C0.x, z - C0.z) < 1000 ? 0.1 : 0.9)).length;
+    }
+  }
+  assert.ok(atCrest > 20 && gated === 0, `${gated} of ${atCrest} lenses laid out over the cloud sea where they stand (the gate read at the crest)`);
+});
+
+// the lens's shape (the spec: smooth plates, long and thin): 120's own lens() on a recording PF, a plate's lobes no
+// thicker than the plate's T and the stack long along its crest, many times its thickness, each plate smaller than
+// the one below; plates made thicker or rounder fail
+test('lenticular: the plates are long thin lenses, each smaller than the one below', () => {
+  const LENS = cut(WORLD, '  function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {', '\n    return b;\n  }\n', true);
+  const make2 = vm.runInThisContext('(function () { function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n' + LENS + ' return lens; })')();
+  for (const [len, W, T, n] of [[1800, 450, 45, 1], [2600, 700, 75, 3], [2200, 520, 60, 2]]) {
+    const L = [], PF = { body: () => ({ i0: 0 }), add: (x, y, z, r) => L.push([x, y, z, r]), count: () => L.length };
+    let s = 1; const rng = { f: () => ((s = (s * 16807) % 2147483647) / 2147483647), r: (a, b) => a + (b - a) * rng.f() };
+    make2(PF, rng, 0, 1400, 0, 0.3, len, W, T, n);
+    const ys = L.map((p) => p[1]), rs = L.map((p) => p[3]), x = L.map((p) => p[0]), z = L.map((p) => p[2]);
+    const extH = Math.hypot(Math.max(...x) - Math.min(...x), Math.max(...z) - Math.min(...z)), extV = Math.max(...ys) - Math.min(...ys) + 2 * Math.max(...rs) * 0.45;
+    assert.ok(Math.max(...rs) <= 1.15 * T * 1.08 + 1e-9, `a lobe ${Math.max(...rs).toFixed(1)} m across a ${T} m plate: a round cloud, not a plate`);
+    assert.ok(extH / extV >= 6, `the lens ${extH.toFixed(0)} m long and ${extV.toFixed(0)} m thick: too round (${(extH / extV).toFixed(1)})`);
+    for (let k = 1; k < n; k++) {
+      const yk = 1400 + T * 0.5 + k * T * 1.6, y0 = yk - T * 1.6;
+      const up = L.filter((p) => Math.abs(p[1] - yk) < 0.2 * T), dn = L.filter((p) => Math.abs(p[1] - y0) < 0.2 * T);
+      const span = (q) => Math.max(...q.map((p) => p[0] * Math.sin(0.3) + p[2] * Math.cos(0.3))) - Math.min(...q.map((p) => p[0] * Math.sin(0.3) + p[2] * Math.cos(0.3)));
+      assert.ok(up.length && dn.length && span(up) < span(dn), `plate ${k + 1} not smaller than the one below`);
+    }
+  }
 });

@@ -39,8 +39,10 @@ sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
 Terrain-held clouds (delight-weather 3): on a windy visit (the wind over
 a far ridge's crest, 100 m up, at least 7.7 m/s and within 30 deg of
-square to it) a lenticular stands in the ridge's lee wave, 300-600 m
-downwind of the crest and 1100-1700 m up: one to three smooth lens plates
+square to it) a lenticular stands at the ridge's lee wave's first crest, half a
+wavelength downwind (pi U / N: U the wind across the crest at the lens's height, N 0.01/s, a stable
+troposphere's buoyancy frequency; 1.9-3.0 km on windy visits; https://www.eoas.ubc.ca/books/Practical_Meteorology/)
+and 1100-1700 m up: one to three smooth lens plates
 (120's lens), laid out with the 1500 m cell its ridge's centre falls in,
 from the ridge's own hashes (dunes-glsl's ridges(): the land raises the
 same ridges), never over the cloud sea. Its envelope is held (a world
