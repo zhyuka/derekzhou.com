@@ -5,15 +5,15 @@
 // the T1 harness's generic persona. The pool's top is that floor + D x the sand weight (D the sky's depth: AIR_MIST, airWx).
 // Prints, per opening and in all, at the deepest sky: the share of the ground under the mist (its depth over 0.75 m:
 // half opaque), the share of the crests clear (local highs over 50 m), the share where the pool's top would stand over
-// the camera's lowest (its ground + clear[0], 7 m: in the flight band) without the camera's ground reading the pools,
+// the camera's lowest (its ground + the least, max(7 m, the depth + 6 m): leastAt, 280),
 // and the rim's speed (the level's rate over the slope at the rim) at the rate the level may move.
-//   node tools/physics/mist-sim.mjs [ROOT] [--seeds 0-15] [--radius 1000] [--cell 10] [--depth 10] [--rate 0.085]
+//   node tools/physics/mist-sim.mjs [ROOT] [--seeds 0-15] [--radius 1000] [--cell 10] [--depth 10] [--rate 0.18 (AIR_MIST_RATE)]
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path'; import url from 'node:url';
 import { execFileSync } from 'node:child_process';
 const HERE = path.dirname(url.fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), root = args[0] && !args[0].startsWith('--') ? path.resolve(args[0]) : path.resolve(HERE, '../..');
 const A = {}; for (let i = 0; i < args.length; i++) if (args[i].startsWith('--')) A[args[i].slice(2)] = args[i + 1];
-const R = +(A.radius || 1000), CELL = +(A.cell || 10), D = +(A.depth || 10), RATE = +(A.rate || 0.085), CLEAR0 = 7;
+const R = +(A.radius || 1000), CELL = +(A.cell || 10), D = +(A.depth || 10), RATE = +(A.rate || 0.18), CLEAR0 = Math.max(7, D + 1 + 5);   // (the least clearance, over the pools too: leastAt, 280)
 const SEEDS = (A.seeds || '0-15').split(',').flatMap((s) => { const [a, b] = s.split('-').map(Number); return b === undefined ? [a] : Array.from({ length: b - a + 1 }, (_, i) => a + i); });
 const { HOOK } = await import(url.pathToFileURL(path.join(HERE, '../ground-site.mjs')).href);
 // the hook: the probe's mode from the page's call; the floor's points asked with x + 1e6, the sand weight's with x + 2e6
@@ -68,7 +68,7 @@ try {
       if (cam[k] > Math.max(land[k], c[2] > 0 ? floor[k] + c[2] * wt[k] : -1e4) + 0.5) continue;   // (under the cloud sea: not land; the camera's ground over the live pools' top too)
       const top = floor[k] + D * wt[k], depth = top - land[k];
       s.pts++; if (depth > 0.75) s.under++;
-      if (top > Math.max(land[k], cam[k] > land[k] + 0.5 && c[2] <= 0 ? cam[k] : land[k]) + CLEAR0 - 1) s.band++;   // (the camera's lowest over the land, had its ground not read the pools)
+      if (top > Math.max(land[k], cam[k] > land[k] + 0.5 && c[2] <= 0 ? cam[k] : land[k]) + CLEAR0 - 1) s.band++;   // (the camera's lowest over the land, the least risen with the pools: leastAt)
       let hi = true; for (let b = -5; b <= 5 && hi; b++) for (let a = -5; a <= 5; a++) { const q = (j + b) * n + i + a; if (q >= 0 && q < n * n && land[q] > land[k]) { hi = false; break; } }
       if (hi && i > 5 && j > 5 && i < n - 6 && j < n - 6) { s.crests++; if (depth < 0.75) s.clear++; }
       if (Math.abs(depth - 0.75) < 0.75) { const gx = (land[k + 1] - land[k - 1]) / (2 * CELL), gz = (land[k + n] - land[k - n]) / (2 * CELL); s.rims.push(RATE / Math.max(Math.hypot(gx, gz), 1e-3)); }

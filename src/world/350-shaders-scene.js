@@ -68,7 +68,7 @@ void main() {
     /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses
        its arithmetic as it does when only .x is written; the land's passes (every channel live, as the land VS) differ
        from it by an ulp at 0.4% of points. Written .x only, the probe's passes read back bit-identical to it */
-    sitesX: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz).x, 0.0, 0.0, 0.0); o1 = vec4(gMS, 0.0, 0.0); }',
+    sitesX: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz).x, 0.0, 0.0, 0.0); o1 = vec4(0.0); }',   // (the probe reads no pools: P7 unwritten, as #285's)
     ridgesX: 'void main() { gridW(); o0 = vec4(ridges(gw).x, 0.0, 0.0, A_Hd(gw).x); o1 = vec4(0.0); }'
   };
   /* HP_LAND: the land VS read the passes too. Off: its slopes (the normals) cannot come out bit-identical through any

@@ -34,13 +34,21 @@
      time in the band on seed 11's recorded ground, p90 35 m; now 97%, p90 31.5 m, with no push of the hard rule and
      fewer nods (3.7 turns of the climb a km against 5.2: test/unit/height.mjs) */
   var HT_W = 6, HT_LEAST = 2;
+  /* (delight-weather 1: the hub's round 3 on #302) the least clearance over the mist pools: their depth, the hard rule's
+     1 m over it and MIST_OVER more, so a held dive over a calm first light's 10 m eases onto it by the height's own spring
+     and the hard rule (the pools' depth + 1 m, 270-flight.js) stays a net that never acts in flight. The depth moves at
+     AIR's rate (0.18 m/s): the least follows it slower than the spring can. MIST_OVER 5: the spring's lag at a crest still
+     brings the camera to within about 2 m of the pools' top (3 m: 1.2 m, a hand over the net). With no pools, the least
+     as it was (test/unit/mist.mjs) */
+  var MIST_OVER = 5;
+  function leastAt(V, cl) { return Math.max(cl[0], ((V.L && V.L.mist) || 0) + 1 + MIST_OVER); }
   function heightTarget(V, t) {
     var v = V.speed, cl = V.clear, hx = Math.sin(CS.psi), hz = Math.cos(CS.psi), T = HT_T, i, s, sw = 0, sy = 0;
-    var g0 = groundAt(V, CS.x, CS.z, true);
+    var g0 = groundAt(V, CS.x, CS.z, true), lc = leastAt(V, cl);
     for (i = 0; i <= 16; i++) { s = v * HT_W * i / 16; var wi = 1 - i / 20; sw += wi; sy += wi * groundAt(V, CS.x + hx * s, CS.z + hz * s, true); }
     var yT = sy / sw + CS.c;
     for (i = 0; i <= 16; i++) {
-      s = v * T * i / 16; var ye = groundAt(V, CS.x + hx * s, CS.z + hz * s, true) + cl[0] * HT_LEAST - s * TAN_CLIMB;
+      s = v * T * i / 16; var ye = groundAt(V, CS.x + hx * s, CS.z + hz * s, true) + Math.max(cl[0] * HT_LEAST, lc) - s * TAN_CLIMB;
       if (ye > yT) yT = ye;
     }
     // on the slip's planned way (between the line now and the line it is going to: e), and with a lead of CLIMB_LEAD s:
@@ -67,7 +75,7 @@
       var ye4 = obstTop(q) + m + 4 - Math.max(s4 - q.r - lead, 0) * TAN_CLIMB;
       if (ye4 > yT) yT = ye4;
     }
-    return Math.max(yT, g0 + cl[0]);
+    return Math.max(yT, g0 + lc);
   }
   /* can the camera climb over a solid (its top with the margin, `top`, s m ahead on the heading)? Only under the
      ceiling the camera will have: simStep's is the ground under the camera + clear[2] + CEIL_OVER. The top against the ground

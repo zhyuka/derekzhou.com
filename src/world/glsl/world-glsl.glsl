@@ -31,7 +31,7 @@ vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   return c;
 }
 /* (delight-weather 1) the mist pools' top over a point: its floor (the ground the dunes stand on) and the sky's depth
-   by the sand weight (227-mist-pools.js) */
+   by the sand weight (229-mist-pools.js) */
 float mistTop(vec2 mb) { return uMist.x > 0.0 ? mb.x + uMist.x * mb.y : -1e4; }   // (none at depth 0: the land never under its own floor, so nothing changes as the depth leaves 0)
 /* the same at a point, from the weights (the landmarks and the scatter, per vertex: no varying of the land's to read) */
 float mistTopAt(vec2 p) {
@@ -59,10 +59,9 @@ float HdCam(vec2 p) { return max(Hd(p).x, HdSea(p).x); }
    operations in the same order: kitW4 reads none of the globals Hd sets, A_Hd none but gLodD */
 float HdProbe(vec2 p, bool cam) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
-  gKD = wD; gLV = lv; gWC = wC; gSK = sk; gMS = vec2(1.0, 0.0);
+  gKD = wD; gLV = lv; gWC = wC; gSK = sk;
   vec3 h = D_Hd(p) - sk;
   gKD = vec3(1.0, 0.0, 0.0); gSK = vec3(0.0);
-  gMB.x = gMB.x * gMS.x + gMS.y - sk.x;   // (delight-weather 1: the mist pools' floor, the basins and the sink in)
   if (!cam) return h.x;
   vec3 amp = vec3(0.4, 0.0, 0.0) + 0.6 * wC;
   return max(h.x, (lv + dMul(A_Hd(p), amp)).x);

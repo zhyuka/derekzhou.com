@@ -574,7 +574,7 @@ marked todo until the sky's lane brings them to SKY_RATE.
 
 ## THE MIST POOLS
 
-delight-weather 1 (src/world/227-mist-pools.js). Mist lies in the dunes'
+delight-weather 1 (src/world/229-mist-pools.js). Mist lies in the dunes'
 troughs and about the mesas' feet. The pool's top is the ground the
 dunes stand on (the swell, sunk with the basins and toward the cloud
 sea) plus a depth, times the sand weight. The depth is the weather's
@@ -596,9 +596,13 @@ vertices carry, vMB) and over the stones and the landmarks
 the basins' change to the floor in P7. The camera's ground never reads
 the pools (HdCam, HdProbe, the split's probe): it is the same under
 every sky (the recorded ground, the flight's grid, the birds'). The
-flight keeps over the pools by its hard rule's floor, the land and the
-pools' depth and 1 m (270-flight.js), which holds since the land never
-lies under the pools' floor. At depth 0 there is no pool at all.
+flight keeps over the pools: its least clearance rises with them
+(leastAt, 280: the depth, 1 m and MIST_OVER 5 m), so a held dive eases
+onto it by the height's own spring, and the hard rule's floor, the land
+and the pools' depth and 1 m (270-flight.js), stays a net that never
+acts in flight. Both hold since the land never lies under the pools'
+floor (the basins scale and sink the floor as they do the land, the
+plateaux and the ridges only raise it). At depth 0 there is no pool at all.
 
 Measured by tools/physics/mist-sim.mjs (the page's own probe, the 16
 openings' land within 1 km of the landing, at first light): see its PR
