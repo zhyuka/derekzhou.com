@@ -66,6 +66,7 @@ test('handoff: the gate, T2, the Stills job and the merge bot use it, not artifa
   assert.match(gate, /handoff\.mjs put "\$RUNNER_TEMP\/served" served\n\s+node \.github\/ci\/handoff\.mjs selftest served/);
   assert.match(gate, /continue-on-error: true   # \(the artifact quota: the verdict stands on the PC's copy\)/, 'the one artifact left never fails the verdict');
   for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu]]) for (const step of y.split(/\n\s+- /).filter((t) => t.includes('actions/upload-artifact'))) assert.match(step, /continue-on-error: true/, f + ': every artifact left is non-fatal (the quota)');
+  assert.ok(!/fs\.(cpSync|copyFileSync)\(/.test(rd('.github/ci/handoff.mjs')), 'handoff.mjs copies by bytes: cpSync and copyFileSync carry modes over, and the PC\'s /mnt/c refuses them (EPERM)');
   assert.match(bot, /const lv = localVerdict\(run\);\n  if \(lv\) return lv;/, 'the bot reads the PC\'s verdict first');
 });
 // plant: {"file": ".github/ci/handoff.mjs", "find": "if (!have.has(f)) bad.push('missing ' + f); else if (sha(path.join(dir, f)) !== h) bad.push('changed ' + f);", "with": "if (!have.has(f)) bad.push('missing ' + f);", "why": "the hand-off's byte check dropped"}

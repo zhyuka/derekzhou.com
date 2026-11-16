@@ -33,7 +33,7 @@ function walk(dir, rel = '', out = []) {
   }
   return out;
 }
-// a plain copy, a folder and its files' bytes: Node's fs.cpSync (native since 22) carries modes over, and on the PC's
+// a plain copy, a folder and its files' bytes: Node's fs.cpSync (native since 22) and fs.copyFileSync carry modes over, and on the PC's
 // /mnt/c (drvfs) that failed with EPERM on the first folder (2026-11-16, #321's first gate)
 export function copy(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
@@ -114,7 +114,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
         console.log(`handoff selftest: one byte changed in ${x}/${f} is caught ("${bad[0]}"); the untouched copy passes`);
       } finally { fs.rmSync(t, { recursive: true, force: true }); }
     }
-    else if (cmd === 'verdict-put') { const d = path.join(r, 'verdict'); fs.mkdirSync(d, { recursive: true }); fs.copyFileSync(x, path.join(d, (run || runKey()) + '.json')); console.log('handoff: verdict kept as ' + path.join(d, (run || runKey()) + '.json')); }
+    else if (cmd === 'verdict-put') { const d = path.join(r, 'verdict'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, (run || runKey()) + '.json'), fs.readFileSync(x)); console.log('handoff: verdict kept as ' + path.join(d, (run || runKey()) + '.json')); }
     else { console.error('usage: handoff.mjs put|get|has|drop|sweep|verdict-put ...'); process.exitCode = 2; }
   } catch (e) { console.log('::error::' + e.message); process.exitCode = 1; }
 }
