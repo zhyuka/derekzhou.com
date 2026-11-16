@@ -31,7 +31,7 @@ change it. The standing rules are data in RULES.json, checked in CI.
   (absence-*).
 - The sound is opt-in: silent until the icon is pressed; then one sheet of notes
   from /assets/sound/ is fetched, once, and the score plays it live, following the
-  sky (read only), about -26 LUFS, never steering the world (sound-opt-in:
+  sky (read only), about -23 LUFS, never steering the world (sound-opt-in:
   docs/sound.md).
 - The page says exactly its words (page-words, lettered-name).
 - Licences: MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 only (licences).

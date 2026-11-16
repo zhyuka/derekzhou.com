@@ -6,15 +6,17 @@
     PW.appr = b; PERCHED.push(b);
   }
   /* the perch's place in the world now (its body's rest point: over its foot by its standing height) and its motion */
-  var PQ = [0, 0, 0], PF2 = [0, 0];
+  var PQ = [0, 0, 0], PF2 = [0, 0], PFQ = [0, 0, 0];
   function perchWorld(b, C, dt) {
     var P = b.P; perchFoot(P, PF2);
     if (!(PF2[0] === PF2[0])) return false;
     var up = P.rest ? P.rest : 0.42 * perchSpan(b, P.k);   // (CSS px from its foot to its body: the rest rule's, once it is known)
-    rayAt(C, PF2[0], PF2[1] - up, P.D, PQ);
+    rayAt(C, PF2[0], PF2[1], P.D, PFQ);   // (the perch's motion is its foot's: the body's rest over it changing (a crouch, a turn) is not the perch moving)
     var et = t - (P.tAt === undefined ? t - dt : P.tAt); P.tAt = t;   // (the time since it was last placed: a step missed counts)
-    if (P.ok && et > 1e-4) { var k = Math.min(1, et / 0.12); for (var i = 0; i < 3; i++) P.v[i] += ((PQ[i] - P.at[i]) / et - P.v[i]) * k; }
+    if (P.ok && et > 1e-4) { var k = Math.min(1, et / 0.12); for (var i = 0; i < 3; i++) P.v[i] += ((PFQ[i] - P.af[i]) / et - P.v[i]) * k; }
     else { P.v[0] = LVC.vx; P.v[1] = LVC.vy; P.v[2] = LVC.vz; }
+    P.af[0] = PFQ[0]; P.af[1] = PFQ[1]; P.af[2] = PFQ[2];
+    rayAt(C, PF2[0], PF2[1] - up, P.D, PQ);
     P.at[0] = PQ[0]; P.at[1] = PQ[1]; P.at[2] = PQ[2]; P.ok = true; P.foot[0] = PF2[0]; P.foot[1] = PF2[1];
     return true;
   }
@@ -87,9 +89,9 @@
   function approachStep(b, dt, C) {
     var P = b.P;
     if (t < P.t0) { var wv = b.F ? goalVel(b.F, b, dt) : [b.v[0], b.v[1], b.v[2]]; flyTo(b, dt, wv[0], wv[1], wv[2]); return; }
-    if (!perchWorld(b, C, dt)) { giveUp(b); return; }
+    if (!perchWorld(b, C, dt)) { giveUp(b); coast(b, dt); return; }
     var rx = b.p[0] - P.at[0], ry = b.p[1] - P.at[1], rz = b.p[2] - P.at[2], d = Math.sqrt(rx * rx + ry * ry + rz * rz);
-    if (!canHold(b, P.v)) { goRound(b, 'fast'); return; }   // (the perch, through the wind, outruns it or is too slow for it)
+    if (!canHold(b, P.v)) { goRound(b, 'fast'); coast(b, dt); return; }   // (the perch, through the wind, outruns it or is too slow for it)
     /* first into the view: to a gate beyond the perch and to its side (on the window, PGATE m deeper), unless it is in
        view already, beyond it and near; from there the last leg is a line between two points in view, so in view all
        its way (the view is convex) */
@@ -101,7 +103,7 @@
       if ((gd < 8 || (d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; }
       else {
         if (!P.gT) P.gT = Math.max(14, 6 + d / 8);   // (its time to the gate, by how far it began)
-        if (t - P.t0 > P.gT) { goRound(b, 'away'); return; }
+        if (t - P.t0 > P.gT) { goRound(b, 'away'); coast(b, dt); return; }
         var gk = Math.min(14, 0.5 * gd, 0.35 * d + 2) / gd;   // (never so quick near the perch that the last leg cannot stop it)
         AV[0] = P.v[0] + gx * gk; AV[1] = P.v[1] + gy * gk; AV[2] = P.v[2] + gz * gk;
         /* never against the perch's way: a bird ahead lets the perch come to it (flying on its way, slower), so it has
@@ -119,10 +121,14 @@
        v0 (d/d0)^(1 - tau-dot), so a bird slower than it asks only takes longer, never falls behind a clock) */
     var vc = (P.d0 / P.tau0) * Math.pow(Math.min(d / P.d0, 1.2), 1 - PTAU), tau = d / vc;
     /* carried away from it (past it, or blown off): planned again from here, three times at most, then round */
-    if (d > P.d0 * 1.25 + 10) { if (++P.go > 3) { goRound(b, 'away'); return; } P.d0 = 0; if (!onWindow(b, C)) { P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; } return; }   // (out of view, by the gate again: never in at it unseen)
+    if (d > P.d0 * 1.25 + 10) { if (++P.go > 3) { goRound(b, 'away'); coast(b, dt); return; } P.d0 = 0; if (!onWindow(b, C)) { P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; } coast(b, dt); return; }   // (out of view, by the gate again: never in at it unseen)
     if (tau <= PLAND[0] || d <= PLAND[1]) {   /* the last of it: down a curve to rest on the perch, from where it is and how it moves */
+      P.yaw = touchYaw(b, C); P.landYaw = true; landRest(b, C);   // (its yaw on the perch decided now, its rest solved once for it: fixed through the landing)
+      perchFoot(P, PF2); rayAt(C, PF2[0], PF2[1] - P.rest, P.D, P.at);
+      rx = b.p[0] - P.at[0] + P.v[0] * dt; ry = b.p[1] - P.at[1] + P.v[1] * dt; rz = b.p[2] - P.at[2] + P.v[2] * dt; d = Math.sqrt(rx * rx + ry * ry + rz * rz);   // (from the perch a step ago: where the bird is, before this step)
       var wx = b.v[0] - P.v[0], wy = b.v[1] - P.v[1], wz = b.v[2] - P.v[2], wc = -(rx * wx + ry * wy + rz * wz) / (d || 1);
-      b.st = 'land'; P.tl = t; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
+      b.st = 'land'; b.flareU = 0; P.tl = t - dt; P.r0 = [rx, ry, rz]; P.u0 = [wx, wy, wz]; P.T = clamp(2 * d / Math.max(wc, 2), 0.8, 2.6);
+      landCurve(b, dt);   // (the curve begun a step back and flown now: the step it switches in is not lost)
       return;
     }
     /* matched to the perch's motion, then closing: aimed at the dipped way's point, at the closing tau asks */
@@ -142,16 +148,24 @@
   /* the last of the landing, in the perch's frame: a curve from where it is, at the speed it has, to rest on the perch
      (a cubic: its place and its motion at both ends, so no jump and no overshoot; head-on, an even braking), the flare
      its last PFLARE s: its body pitched up to near upright, its wings forward and spread as brakes, its feet out */
+  /* the side it will stand facing: toward the side it comes moving across the view (seen from behind, a perched gull is a
+     thin tent), or by the perch's side of the window */
+  function touchYaw(b, C) { var P = b.P, fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2], fr = fx * C.r[0] + fz * C.r[2]; return (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw; }
   function landStep(b, dt, C) {
     var P = b.P;
-    if (!perchWorld(b, C, dt)) { giveUp(b); return; }
-    var T = P.T, s = clamp((t - P.tl) / T, 0, 1), s2 = s * s, s3 = s2 * s, h0 = 2 * s3 - 3 * s2 + 1, h1 = (s3 - 2 * s2 + s) * T;
+    if (!perchWorld(b, C, dt)) { giveUp(b); coast(b, dt); return; }
+    if (landCurve(b, dt)) touchDown(b, C);
+  }
+  function landCurve(b, dt) {
+    var P = b.P, T = P.T, s = clamp((t - P.tl) / T, 0, 1), s2 = s * s, s3 = s2 * s, h0 = 2 * s3 - 3 * s2 + 1, h1 = (s3 - 2 * s2 + s) * T;
     var px = b.p[0], py = b.p[1], pz = b.p[2];
     for (var i = 0; i < 3; i++) b.p[i] = P.at[i] + P.r0[i] * h0 + P.u0[i] * h1;
     b.v[0] = (b.p[0] - px) / dt; b.v[1] = (b.p[1] - py) / dt; b.v[2] = (b.p[2] - pz) / dt;
     var tf = Math.min(PFLARE, T); b.flareU = clamp((s * T - (T - tf)) / tf, 0, 1);
-    if (s >= 1) touchDown(b, C);
+    return s >= 1;
   }
+  /* a step that switches what it does without flying: carried on along its way, so no step of its motion is lost */
+  function coast(b, dt) { b.p[0] += b.v[0] * dt; b.p[1] += b.v[1] * dt; b.p[2] += b.v[2] * dt; }
   function goRound(b, why) {
     var P = b.P; P.tries++;
     if (P.tries > 1 || why === 'fast') { giveUp(b); return; }
@@ -176,10 +190,7 @@
   function touchDown(b, C) {
     var P = b.P;
     b.st = 'perch'; P.tt = t; if (PW.appr === b) PW.appr = null;
-    /* its attitude on the perch from its attitude now (the flare's): its heading about the camera's up, as it came */
-    var fx = b.v[0] - WINDV[0], fz = b.v[2] - WINDV[2];   // (its way through the air: as its body lay)
-    var fr = fx * C.r[0] + fz * C.r[2], ff = fx * C.f[0] + fz * C.f[2];
-    P.yaw = (Math.abs(fr) > 0.05 ? (fr > 0 ? 1 : -1) : (P.foot[0] < W / 2 ? -1 : 1)) * PERCH.yaw;   // (it stands in profile, toward the side it came moving: seen from behind, the perched form is a thin tent)
+    if (!P.landYaw) P.yaw = touchYaw(b, C);   // (its attitude on the perch: in profile, toward the side it came moving; decided at the last leg's start when it flew one)
     P.yaw0 = P.yaw; P.yawT = t; P.yawTo = P.yaw; P.pitch = PERCH.pitch; P.face = P.yaw >= 0 ? 1 : -1;
     P.stay = t + pick(b.r, PSTAY); P.nextAct = t + pick(b.r, [1.2, 2.5]); P.act = null; P.walk = null; P.swing = 0; P.swingV = 0;
     b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2];
