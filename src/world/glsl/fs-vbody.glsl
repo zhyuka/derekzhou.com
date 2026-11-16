@@ -60,7 +60,7 @@ void main() {
   vec3 sunL = vec3(uVY.x * uSun.x - uVY.y * uSun.z, uSun.y, uVY.y * uSun.x + uVY.x * uSun.z), nrm = vec3(0.0, 1.0, 0.0);
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
-  float sP = 0.0, sBP = 0.0, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
+  float sP = 0.0, sBP = 0.0, ybP = -1e5, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
   vec3 nOff = uVO; float texel = uVR.z / 32.0;
   for (int i = 0; i < 96; i++) {
     if (t > tf || last || taken >= uVR.y) break;
@@ -75,7 +75,7 @@ void main() {
       leaps += 1.0;
       vec3 fqL = (uVH - abs(p)) / uVH; float fzL = smoothstep(0.0, 0.07, min(min(fqL.x, fqL.y), fqL.z));
       if (uVS.w > 0.0) fzL *= smoothstep(uVS.w * 0.2, uVS.w, t);
-      sP = s; sBP = s; tP = t; gP = v.g; bP = v.b; dP = 0.0; fP = fzL;
+      sP = s; sBP = s; ybP = yb; tP = t; gP = v.g; bP = v.b; dP = 0.0; fP = fzL;
       t += sl > band ? max(sl * 0.9, dE) : max((s - amp) * 0.6, dE); continue;
     }
     taken += 1.0;
@@ -109,7 +109,7 @@ void main() {
       float dsum = 0.0, sa = sP;
       for (int k = 1; k < 48; k++) {
         if (float(k) >= K) break;
-        float u = float(k) / K, sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;
+        float u = float(k) / K, sk = max(mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0, mix(ybP, yb, u));   // (each piece floored at its own flat base: yb is linear along the ray)
         dsum += segRamp(sa, sk, bE); sa = sk;
       }
       dsum += segRamp(sa, s, bE);
@@ -129,21 +129,24 @@ void main() {
         if (T < 0.015) { T = 0.0; break; }   // (opaque: nothing behind it prints through)
       }
     }
-    sP = s; sBP = sB; tP = t; gP = v.g; bP = v.b; dP = clamp(-s / bE, 0.0, 1.0) * fz; fP = fz;
+    sP = s; sBP = sB; ybP = yb; tP = t; gP = v.g; bP = v.b; dP = clamp(-s / bE, 0.0, 1.0) * fz; fP = fz;
     t = min(t + dt, tf);   // (a step past the ray's end stops at it, so the last segment is never dropped)
   }
   if (T > 0.996) discard;
   float al = 1.0 - T;
   // the land's own aerial perspective (atmos, the curve the hills take) at the body's real range (a quarter of the way
   // through it: where its light mostly comes from), and never darker than the land would be at that same range: its
-  // colour floored at the land's own paint (the dunes' sand, its shade and lit paint halved: dunes-glsl's SAND_SHADE
+  // lightness floored at the land's own paint (the dunes' sand, its shade and lit paint halved: dunes-glsl's SAND_SHADE
   // and SAND_LIT, uP[2] and uP[0], as the sky paints them) taken through the same haze along the level ray (the land
   // lies at the horizon, under the bank). So a far bank is never a dark shape in front of the hazed hills behind it,
   // and ends at the stream's edge already near the land's hazed colour (the hub's ruling on #240, round 2). Light
-  // added to the cloud's own, a floor, never a darkening: nothing here reads the words
+  // added to the cloud's own, a floor, never a darkening: nothing here reads the words. Over the cloud sea (ABOVE's kit)
+  // the land behind a bank is the sea's tops, lit as cloud and lighter than the sand's paint: the sand's floor is a
+  // lower bound there too, lifting only a bank darker than the sand would be, never one toward the sea's own light
   float tB = tn + (tf - tn) * 0.25;
   vec3 c0 = acc / al, fl = atmos(0.5 * (uP[2].rgb + uP[0].rgb), normalize(vec3(rd.x, min(rd.y, 0.0), rd.z)), tB);
-  vec3 col = max(atmos(c0, rd, tB), fl);
+  vec3 col = atmos(c0, rd, tB); float lC = dot(col, vec3(0.2126, 0.7152, 0.0722)), lF = dot(fl, vec3(0.2126, 0.7152, 0.0722));
+  col *= max(lF / max(lC, 1e-5), 1.0);   // (the floor by lightness: a darker body brought up to the land's luminance in its own hue; one already lighter, untouched)
   // a far body keeps its own colour (atmos above has taken it into the haze by its distance) and stays opaque
   // until the last quarter of its distance's weight (uVR2.y: 1 near, 0 at the cells' reach), then fades by its opacity
   // into the sky the sky pass drew behind it: faded by its opacity over the whole weight, a far bank let the stars and

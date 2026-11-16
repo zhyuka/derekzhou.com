@@ -1,9 +1,10 @@
 // test/unit/clouds.mjs: the cloud bodies' fine billows: one scale and depth a body, set once
-// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 col = max(atmos(c0, rd, tB), fl);", "with": "vec3 col = atmos(c0, rd, tB);", "why": "no floor: a far bank darker than the land would be at its own range"}
-// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 col = max(atmos(c0, rd, tB), fl);", "with": "vec3 col = max(atmos(c0, rd, 1.0e5), fl);", "why": "the bank hazed as if at the end of the view, not at its own range"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "col *= max(lF / max(lC, 1e-5), 1.0);", "with": "col *= 1.0;", "why": "no floor: a far bank darker than the land would be at its own range"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 col = atmos(c0, rd, tB);", "with": "vec3 col = atmos(c0, rd, 1.0e5);", "why": "the bank hazed as if at the end of the view, not at its own range"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "max((s - amp) * 0.6, dE); continue;", "with": "max((s - amp) * 0.6, dE); taken++; continue;", "why": "a leap counted as a band step in another spelling: every leap cuts the band's steps"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0] * (CRISP ? 4 : 1);", "with": "B.u4a[2] = (V.L || V.light).clDetail[0] * (CRISP ? 4 : 1);", "why": "the billows' scale blended per frame by the place's weight again"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "    s = max(s - (dn - 0.5) * amp * 2.0, yb);", "with": "    s = s - (dn - 0.5) * amp * 2.0;", "why": "the flat base before the billows: billows hang under it (the underside's specks)"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "* amp * 2.0, mix(ybP, yb, u));", "with": "* amp * 2.0, -1e5);", "why": "the cut pieces unfloored: the billows hang under the flat base between two samples"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // (the owner's wiggle, 2026-11-14: clDetail, blended each frame by the place's weight between ABOVE's [80, 5] and the
@@ -88,7 +89,7 @@ test('clouds: the edge band is cut into pieces in the shader, at most 48, the ca
   assert.match(VBODY, /for \(int k = 1; k < 48; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 48, broken at K) is not in fs-vbody');
   // (the shader's own cutting, as the model below does it: a mutation of any of these passed before, the hub's review)
   assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;'), 'the pieces\' count is not the two-sided test and a sixteenth (crisp) to half a texel at the LOD, capped by uVK');
-  assert.ok(VBODY.includes('sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;'), 'a cut does not read the billows again at its own place');
+  assert.ok(VBODY.includes('sk = max(mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0, mix(ybP, yb, u));'), 'a cut does not read the billows again at its own place, floored at its own flat base');
   assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
   assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
@@ -166,30 +167,37 @@ test('clouds: a far bank keeps its colour and stays opaque to the last quarter o
   const op = (w) => Math.min(Math.max(w / 0.25, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max(w / 0.25, 0), 1));
   for (const w of [0.25, 0.5, 0.9]) assert.equal(op(w), 1, `at weight ${w} the bank is opaque`);
   assert.equal(op(0), 0, 'at weight 0 the bank is gone: the sky behind it');
-  // the night's far banks (the hub's ruling on #240, round 2): the bank hazed at its own range by the land's curve
-  // (atmos), its colour floored at the land's own paint hazed to that same range along the level ray. The shader's own
-  // lines run in Node a channel at a time (every vec3 in them a constructor, a sum or a scalar product), atmos taken as
-  // the land's curve in miniature: a colour toward a haze colour by a share that grows with the range
-  const SRC = cut(VBODY, '  float tB = ', '  // a far body keeps its own colour');
-  const run = (ch, c0, P0, P2, haze, tn, tf) => {
-    let b = SRC.replace(/\/\/[^\n]*/g, '').replace(/normalize\(vec3\(rd\.x, min\(rd\.y, 0\.0\), rd\.z\)\)/g, 'RDL').replace(/uP\[(\d+)\]\.rgb/g, 'uP$1')
-      .replace(/acc \/ al/, 'C0');
-    b = b.replace(/\b(float|vec3)\s+/g, 'let ');
-    const atmos = (x, rd, t) => { const f = 1 - Math.exp(-t / 9000); return x * (1 - f) + haze[ch] * f; };
-    return vm.runInThisContext(`(function (atmos, max, C0, uP0, uP2, tn, tf, RDL, rd) { ${b} return [col, fl, tB]; })`)(atmos, Math.max, c0[ch], P0[ch], P2[ch], tn, tf, 0, 0);
+  // the night's far banks (the hub's ruling on #240, rounds 2 and 3): the bank hazed at its own range by the land's curve
+  // (atmos), its lightness floored at the land's own paint hazed to that same range along the level ray: a darker bank
+  // scaled up to the floor's luminance in its own hue, a lighter one untouched (a per-channel floor re-tinted near
+  // clouds already lighter than it: the hub's round 3). The shader's own lines run in Node: those per channel (every
+  // vec3 in them a constructor, a sum or a scalar product) a channel at a time, the lightness's on the three together,
+  // atmos taken as the land's curve in miniature: a colour toward a haze colour by a share that grows with the range
+  const SRC = cut(VBODY, '  float tB = ', '  // a far body keeps its own colour').replace(/\/\/[^\n]*/g, '');
+  const PER = SRC.slice(0, SRC.indexOf(' float lC = ')), LIT = SRC.slice(SRC.indexOf(' float lC = '));
+  const run = (c0, P0, P2, haze, tn, tf) => {
+    const ch3 = [0, 1, 2].map((ch) => {
+      let b = PER.replace(/normalize\(vec3\(rd\.x, min\(rd\.y, 0\.0\), rd\.z\)\)/g, 'RDL').replace(/uP\[(\d+)\]\.rgb/g, 'uP$1').replace(/acc \/ al/, 'C0').replace(/\b(float|vec3)\s+/g, 'let ');
+      const atmos = (x, rd, t) => { const f = 1 - Math.exp(-t / 9000); return x * (1 - f) + haze[ch] * f; };
+      return vm.runInThisContext(`(function (atmos, C0, uP0, uP2, tn, tf, RDL, rd) { ${b} return [col, fl, tB]; })`)(atmos, c0[ch], P0[ch], P2[ch], tn, tf, 0, 0);
+    });
+    const lit = LIT.replace(/dot\((\w+), vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\)/g, '($2 * $1[0] + $3 * $1[1] + $4 * $1[2])').replace(/\bfloat\s+/g, 'let ').replace(/col \*= ([^;]+);/, 'col = col.map((v) => v * ($1));');
+    return vm.runInThisContext(`(function (col, fl, max) { ${lit} return col; })`)(ch3.map((x) => x[0]), ch3.map((x) => x[1]), Math.max).concat([ch3.map((x) => x[1]), ch3[0][2]]);
   };
+  const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   let floored = 0;
   for (let k = 0; k < 400; k++) {
     const r = (a, b2) => a + (b2 - a) * Math.random(), c0 = [r(0, 0.3), r(0, 0.3), r(0, 0.3)], P0 = [r(0.2, 0.8), r(0.2, 0.8), r(0.2, 0.8)], P2 = [r(0.1, 0.6), r(0.1, 0.6), r(0.1, 0.6)];
     const haze = [r(0.05, 0.5), r(0.05, 0.5), r(0.05, 0.5)], tn = r(500, 30000), tf = tn + r(50, 3000);
-    for (let ch = 0; ch < 3; ch++) {
-      const [col, fl, tB] = run(ch, c0, P0, P2, haze, tn, tf), f = 1 - Math.exp(-tB / 9000);
-      assert.ok(Math.abs(tB - (tn + 0.25 * (tf - tn))) < 1e-9, 'the bank is not hazed at its own range');
-      const own = c0[ch] * (1 - f) + haze[ch] * f, land = 0.5 * (P0[ch] + P2[ch]) * (1 - f) + haze[ch] * f;
-      assert.ok(Math.abs(fl - land) < 1e-9, `the floor is not the land's paint hazed at the bank's range (${fl} against ${land})`);
-      assert.ok(Math.abs(col - Math.max(own, land)) < 1e-9, `the bank's colour ${col} is not its own hazed at its range (${own}) floored at the land's (${land})`);
-      assert.ok(col >= land - 1e-12, 'a bank darker than the land at its own range');
-      if (land > own) floored++;
+    const out = run(c0, P0, P2, haze, tn, tf), col = out.slice(0, 3), fl = out[3], tB = out[4], f = 1 - Math.exp(-tB / 9000);
+    assert.ok(Math.abs(tB - (tn + 0.25 * (tf - tn))) < 1e-9, 'the bank is not hazed at its own range');
+    const own = c0.map((v, i) => v * (1 - f) + haze[i] * f), land = P0.map((v, i) => 0.5 * (v + P2[i]) * (1 - f) + haze[i] * f);
+    fl.forEach((v, i) => assert.ok(Math.abs(v - land[i]) < 1e-9, 'the floor is not the land\'s paint hazed at the bank\'s range'));
+    if (lum(own) >= lum(land)) col.forEach((v, i) => assert.ok(Math.abs(v - own[i]) < 1e-9, `a bank lighter than the floor is changed (${col} against its own ${own}): a re-tint`));
+    else {
+      floored++;
+      assert.ok(Math.abs(lum(col) - lum(land)) < 1e-9, `a darker bank's lightness ${lum(col)} is not the floor's ${lum(land)}`);
+      const s = col[0] / own[0]; col.forEach((v, i) => assert.ok(Math.abs(v / own[i] - s) < 1e-9, 'a darker bank lifted off its own hue'));
     }
   }
   assert.ok(floored > 50, 'the floor never binds in the sample: the test proves nothing');
@@ -232,6 +240,19 @@ test('clouds: nothing hangs under a body\'s flat base, whatever the billows', ()
     else if (r === s - (dn - 0.5) * amp * 2) above++;
   }
   assert.ok(above > 500, 'above the base the billows are not the billows');
+  // and every cut piece between two samples floored at its own base (yb is linear along the ray: the last sample's and
+  // this one's, mixed): the cut loop's own line run in Node with the noise's texture a random draw
+  const cutL = /\n\s*(float u = float\(k\) \/ K, sk = [^\n;]*;)/.exec(VBODY);
+  assert.ok(cutL && /max\(mix\(sBP, sB, u\) - /.test(cutL[1]), 'the cut pieces are not floored at the flat base');
+  const pieceJs = cutL[1].replace(/^float /, 'let ').replace(/float\(k\)/g, 'k').replace(/\/\/.*$/, '');
+  const piece = vm.runInThisContext(`(function (k, K, sBP, sB, ybP, yb, tP, t, amp, g) { const max = Math.max, mix = (a, b, u) => a + (b - a) * u,
+    textureLod = () => ({ g }), uN3 = 0, ro = 0, rl = 0, uVR = { z: 1 }, nOff = 0, lod = 0; ${pieceJs} return sk; })`);
+  for (let k2 = 0; k2 < 3000; k2++) {
+    const K = 2 + Math.floor(46 * Math.random()), k = 1 + Math.floor((K - 1) * Math.random()), u = k / K;
+    const ybP = 30 * Math.random() - 5, yb = 30 * Math.random() - 5, sBP = 60 * Math.random() - 30, sB = 60 * Math.random() - 30;
+    const sk = piece(k, K, sBP, sB, ybP, yb, 0, 1, 25 * Math.random(), Math.random()), base = ybP + (yb - ybP) * u;
+    if (base > 0) assert.ok(sk >= base - 1e-9 && sk > 0, `a cut piece ${base.toFixed(2)} m under the flat base: inside (${sk})`);
+  }
   // (and the line runs after the noise is read, before the step is chosen from it)
   const iN = VBODY.indexOf('float dn = textureLod(uN3'), iS = VBODY.indexOf(line[1]), iD = VBODY.indexOf('float dt = max(s > 0.0');
   assert.ok(iN < iS && iS < iD, 'the flat base is not applied between the billows\' noise and the step it sets');
