@@ -61,6 +61,15 @@ gcloud firebase test android run --type instrumentation \
 
   It takes a screenshot every 250 ms for the first 20 s, so pages without a readout (the live site) can be timed from
   them.
+- A sixth field, `rec=START-SECS[-WxH]`, adds a screen recording to a visit: it starts START seconds after the launch
+  intent and runs for SECS seconds (FLAGS may be left empty: `chromium~URL~cold~30~~rec=8.5-4`). The recording is
+  `TAG-rec.mp4` beside the screenshots, and `plan.txt` logs when it started. screenrecord writes a frame only when the
+  screen changes, so each frame is a real change, which is how a still's cut to the live world is measured. On the
+  Nord CE 3 Lite it writes empty files, at the panel's 1080x2400 and at 720x1600 alike, so use `png=` there. The encoder
+  adds its own small differences (on the A15, about 3.7% of pixels by 2–8 levels between a recording's first frame
+  and the next, the same on every visit), so measure small differences from PNGs instead.
+- `png=FROM-TO` keeps the screenshots taken between those seconds as lossless PNG. Each takes longer than a JPEG, so
+  fewer are taken in that window. Options go together, separated by commas: `~~rec=8.5-4,png=9-12`.
 - For a current browser, install Chromium's Android snapshot with
   `--additional-apks ChromePublic.apk` (`org.chromium.chrome`). It comes from
   `chromium-browser-snapshots/Android_Arm64/<rev>/chrome-android.zip` (BSD) and is never committed. Chromium 159

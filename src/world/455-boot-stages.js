@@ -55,7 +55,7 @@
     if (BOOT.st === 'B') {   // (Fix 3: and the first program issued in this frame: no frame of the boot is idle)
       bootMark('B objects'); bootObjects(); if (BIRDS && BIRDS.boot) BIRDS.boot();
       BOOT.st = 'C'; bootMark('C programs');
-      var r0 = progStep(false, dl); if (r0 === LOSTP) return;
+      var r0 = STILLHOLD ? false : progStep(false, dl); if (r0 === LOSTP) return;   // (the programs' batch waits for the opening's still on screen: STILLHOLD, 520-start)
       bootSlice(t0, 'B C' + (PROGX.cur ? ':' + PROGX.cur.name : '')); return;
     }
     // (Fix 2) the read-back only from stage E: no synchronous call while a link is outstanding (Fix 3: from the frame after C's last)
@@ -63,7 +63,7 @@
     if (afterC && !wkWait) { rbPoll(); if (RB.lagged) BOOT.bake = Math.max(6, BOOT.bake >> 1); else if (BOOT.dBaked >= BOOT.bake) BOOT.bake = Math.min(BOOT_BAKE_MAX, BOOT.bake * 2); BOOT.dBaked = 0; }   // (fast500 step 10: a slow start, doubled after a frame that spent it)
     // C: the programs
     if (!BOOT.cDone && !wkWait) {
-      var pd = PROGX.cur, r = progStep(false, dl);
+      var pd = PROGX.cur, r = STILLHOLD ? false : progStep(false, dl);
       label += r === true ? ' C-done' + (pd ? '<' + pd.name : '') : (PROGX.cur && PROGX.cur !== pd ? ' C:' + PROGX.cur.name : PROGX.cur ? ' C?' + PROGX.cur.name : pd ? ' C<' + pd.name : ' C');   // (Fix 3: C:x issued, C?x asked, C<x read: one of them a frame)
       if (r === LOSTP) return;
       if (!BOOT.coreM) { var cn = 0, cm = 0; for (var ci = 0; ci < PROGS.length; ci++) { if (CORE_LATE.indexOf(PROGS[ci].name) >= 0) continue; cm++; if (PROGS[ci].st === 3) cn++; } if (cm && cn === cm) { BOOT.coreM = true; bootMark('C core done (' + cm + ' of ' + PROGS.length + ' programs)'); } }   // (fast500 F0: the first frame's programs: all but CORE_LATE)
@@ -99,7 +99,7 @@
          uploads and bakes once every probe is read (no read waits on a bake); laid out beside C once the visit is planned */
       var dlD = gpuFree ? t0 + BOOT_D_MS : dl, rd = 0, ready = false, flew = false, idle = gpuFree && bootIdle();
       budgets(true); BAKE.left = BUD.bake; WDL = dlD;
-      var h = SIM.V ? CS.psi : heading0(), cx = SIM.V ? CS.x : 0, cz = SIM.V ? CS.z : 0;
+      var h = SIM.V ? CS.psi : airHeading0(), cx = SIM.V ? CS.x : 0, cz = SIM.V ? CS.z : 0;
       do {
         WORK.verts = WORK.layers = WORK.layouts = WORK.uploads = WORK.resolves = 0;
         var p0 = bootSig(V);

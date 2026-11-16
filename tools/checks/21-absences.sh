@@ -25,7 +25,8 @@ WORLD=../src/world.js; INK=../src/inkbirds.js
 REALMS=$(ls ../src/realm-*.js | tr '\n' ' '); HOUR=hour.js; CSS=style.css
 WING=$(ls facetform.js facetpose.js wingmodel.js model.js labbird.js birdwing.js | tr '\n' ' ')   # (the ink birds' wing model, round 3: served as written, not minified)
 PLANW=$(ls plan.js 2>/dev/null | head -1)   # (fast500 step 11: the plan's worker, held to the same absences)
-JS="site.js $HOUR $WORLD $REALMS $WING $INK $PLANW"
+SND="../src/sound.js ../src/score.js"   # (2026-11-07: the sound icon's switch; 2026-11-12: the score it plays; as written)
+JS="site.js $HOUR $WORLD $REALMS $WING $INK $PLANW $SND"
 echo "checking $JS and $CSS"
 # The page has none of the internet's body language, and CI fails
 # (rather than remembers) if any of it comes back. Scoped to the
@@ -39,7 +40,7 @@ fi
 # (2) behaviour: no exit, idle, hover-position, key or title handlers, no storage; the one exception the
 # birds' pointer play (the owner, 2026-11-05: "the birds should be more interactive with the mouse"): the
 # world's onHoverOut, a pointerout added and removed in hoverSync only (checked below)
-if grep -nE 'beforeunload|[^a-z]unload|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS | grep -vE "addEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)|removeEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)"; then
+if grep -nE 'beforeunload|[^a-z]unload|visibilitychange|pagehide|mouseleave|mouseout|mouseover|mouseenter|pointerover|pointerenter|pointerleave|pointerout|onblur|\bblur\(|document\.title|rel="icon"|mousemove|keydown|keyup|keypress|IdleDetector|sessionStorage|localStorage|indexedDB|document\.cookie' $JS | grep -vE "addEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)|removeEventListener\('pointerout', onHoverOut, \{ capture: true, passive: true \}\)"; then
   echo "::error::a needy behaviour (exit/idle/title/pointer handler or storage) was introduced"
   fail=1
 fi
@@ -71,14 +72,14 @@ if grep -nE 'createElement|innerHTML|outerHTML|insertAdjacentHTML|appendChild|in
   echo "::error::DOM built in script — the canvas and every element live in index.html"
   fail=1
 fi
-# (4) the weather (=rand()): ONE entropy read, in the world, above
-# INIT-END; no clock but the hour's one read and the world's
-# one clockNow (performance.now, for budgets: above INIT-END); never
-# Math.random. The realms and the ink birds draw from the world's streams
-# and read no clock at all.
+# (4) the weather (=rand()): ONE entropy read, in the hour's script (the openings as a set: it picks the opening
+# before the first paint, so the page can show that opening's still; the world takes the opening's seed from
+# data-seed); no clock but the hour's one read and the world's one clockNow (performance.now, for budgets: above
+# INIT-END); never Math.random. The world, the realms and the ink birds draw from the world's streams; the realms
+# and the ink birds read no clock at all.
 for f in $WORLD; do
-  if [ "$(grep -o 'getRandomValues(' $f | wc -l)" != "1" ]; then
-    echo "::error::$f must draw entropy exactly once (getRandomValues( count != 1)"
+  if grep -n 'getRandomValues(' $f; then
+    echo "::error::$f draws entropy: the visit's one draw is the hour's (data-seed)"
     fail=1
   fi
   if grep -nE 'Math\.random|\bDate\b|randomUUID' $f; then
@@ -100,18 +101,34 @@ if [ "$(grep -o 'performance\.now()' $WORLD | wc -l)" != "1" ]; then
   echo "::error::$WORLD must call performance.now() exactly once (its clockNow)"
   fail=1
 fi
-if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW; then
-  echo "::error::the realms, the wing model and the ink birds draw no entropy and read no clock"
+if grep -nE 'getRandomValues|Math\.random|Date|randomUUID|performance\.now' $REALMS $WING $INK $PLANW $SND; then
+  echo "::error::the realms, the wing model, the ink birds, and the sound icon's switch and score draw no entropy and read no clock (their clock is the audio context's own time; the score's seed is the world's, from WORLD.sky)"
   fail=1
 fi
-# the hour reads the clock exactly once, and draws no entropy
-if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|getRandomValues|randomUUID|performance\.now' $HOUR; then
-  echo "::error::$HOUR must read the clock exactly once (new Date) and nothing else"
+# the hour reads the clock exactly once and draws entropy exactly once (the opening), and nothing else
+if [ "$(grep -o 'new Date(' $HOUR | wc -l)" != "1" ] || [ "$(grep -oE '\bDate\b' $HOUR | wc -l)" != "1" ] || [ "$(grep -o 'getRandomValues(' $HOUR | wc -l)" != "1" ] || grep -nE 'Math\.random|randomUUID|performance\.now' $HOUR; then
+  echo "::error::$HOUR must read the clock exactly once (new Date), draw entropy exactly once (getRandomValues) and nothing else"
   fail=1
 fi
-# (5) no URL hook, no sound, no network, no custom cursor
-if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams|new Audio\(|AudioContext|<audio|speechSynthesis' $JS index.html 404.html; then
-  echo "::error::a URL hook or sound was introduced"
+# the openings' count is one number: the hour picks k = read % N for the still, the world k = read % OPENN for its seed
+HN=$(grep -oE 'var N = [0-9]+,' $HOUR | grep -oE '[0-9]+' || true); WN=$(grep -oE 'OPENN = [0-9]+,' $WORLD | grep -oE '[0-9]+' || true)
+if [ -z "$HN" ] || [ "$HN" != "$WN" ]; then
+  echo "::error::the openings' count: $HOUR's N ($HN) and the world's OPENN ($WN) must be one number"
+  fail=1
+fi
+# (5) no URL hook, no sound until the visitor presses the sound icon, no network, no custom cursor: sound only in the
+# switch (the owner, 2026-11-07: "bring it back, opt-in"), the one audio context made by it alone, inside its click
+# handler (38-sound proves it is made at the press and never before); the score (score.js, 2026-11-12) only builds on
+# the context and the sheet the switch hands it: it makes no context and fetches nothing
+NOSND=$(echo "$JS" | tr ' ' '\n' | grep -vxF -e ../src/sound.js | tr '\n' ' ')
+if grep -nE '\blocation\.|document\.URL|document\.referrer|URLSearchParams' $JS index.html 404.html \
+  || grep -nE 'new Audio\(|AudioContext|<audio|speechSynthesis' $NOSND index.html 404.html \
+  || grep -nE 'new Audio\(|<audio|speechSynthesis|webkitAudioContext|OfflineAudioContext|AudioWorklet|audioWorklet|MediaElementAudioSource|getUserMedia' $SND; then
+  echo "::error::a URL hook or sound was introduced (sound lives in sound.js only)"
+  fail=1
+fi
+if [ "$(grep -o 'new AudioContext(' ../src/sound.js | wc -l)" != "1" ]; then
+  echo "::error::the one audio context is the switch's (sound.js, once)"
   fail=1
 fi
 # (fast500 step 11) the one worker: the plan's, started by the world by its literal name (world_rules.py rule 2b)
@@ -120,8 +137,13 @@ if [ "$NW" != "$NP" ] || [ "$NP" -gt 1 ]; then
   echo "::error::a worker other than the plan's (the world starts plan.js by name, once)"
   fail=1
 fi
-if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $JS; then
-  echo "::error::the scripts fetch nothing and run no code but their own"
+# the one fetch: the switch's, of its one sheet of notes, a literal path under /assets/sound/ on this site, made inside
+# the press (2026-11-07; 38-sound proves nothing is requested before it)
+if grep -nE 'fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $NOSND \
+  || grep -nE 'XMLHttpRequest|WebSocket|sendBeacon|EventSource|importScripts|\beval\(|new Function' $SND \
+  || [ "$(grep -o 'fetch(' ../src/sound.js | wc -l)" != "1" ] || [ "$(grep -o 'fetch(SHEET)' ../src/sound.js | wc -l)" != "1" ] \
+  || [ "$(grep -cE "^  var SHEET = '/assets/sound/[a-z0-9-]+\.mp3';" ../src/sound.js)" != "1" ]; then
+  echo "::error::the scripts fetch nothing and run no code but their own (but the switch's one fetch, of its literal /assets/sound/ file)"
   fail=1
 fi
 if grep -nE 'cursor *:' $CSS; then
@@ -130,14 +152,14 @@ if grep -nE 'cursor *:' $CSS; then
 fi
 # (6) no dev or record hooks (the development harness stays out): nothing put
 # on or read from window.__*, no console, and of the attributes on <html>
-# the scripts read only the hour's data-sky and data-sky-at
+# the scripts read only the hour's data-sky, data-sky-at and data-seed
 if grep -nE 'window\.__|window\.claude|\bconsole\.' $JS; then
   echo "::error::a dev hook, a record or a console call in the shipped scripts"
   fail=1
 fi
 python3 - $JS <<'PY' || fail=1
 import re, sys
-ok = {'data-sky', 'data-sky-at', 'src'}
+ok = {'data-sky', 'data-sky-at', 'data-seed', 'src'}
 bad = 0
 for f in sys.argv[1:]:
     s = open(f, encoding='utf-8').read()

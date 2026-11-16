@@ -27,7 +27,7 @@
 # 550 ms in half the visits); requested from the page they come after.
 /
   Cache-Control: max-age=0, must-revalidate
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
   Link: </style.css>; rel=preload; as=style
   Link: </assets/fonts/Geist-400-500.sub3.woff2>; rel=preload; as=font; crossorigin
   Link: </assets/fonts/GeistMono-Regular.sub3.woff2>; rel=preload; as=font; crossorigin
@@ -35,7 +35,7 @@
 
 /index.html
   Cache-Control: max-age=0, must-revalidate
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; worker-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests
 
 /404.html
   Cache-Control: max-age=0, must-revalidate
@@ -49,6 +49,12 @@
   Cache-Control: public, max-age=31536000, immutable
 
 /site.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/sound.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/score.js
   Cache-Control: public, max-age=31536000, immutable
 
 /hour.js
@@ -93,5 +99,7 @@
 /inkbirds.js
   Cache-Control: public, max-age=31536000, immutable
 
+# (2026-11-07) This covers the sound icon's one recording too (/assets/sound/score-N.mp3, fetched by sound.js only
+# at the press, the one reason the home pages' connect-src names 'self'; renamed by hand when its bytes change).
 /assets/*
   Cache-Control: public, max-age=31536000, immutable

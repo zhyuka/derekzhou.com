@@ -40,6 +40,10 @@ const BUDGET = {
   '/style.css': 3 * K,             // 2,151 (served comment-free since #135; 4,995 with its notes)
   '/hour.js': 2 * K,               // 1,262
   '/site.js': 1 * K,               // 134
+  '/sound.js': 1.5 * K,            // 614 (1,388 before Brotli) (the sound icon's switch, 2026-11-07). Its sheet of notes,
+                                   // /assets/sound/notes-N.mp3, has no line on purpose: it is fetched only at the press, so a cold visit
+                                   // that loads it fails here
+  '/score.js': 9 * K,              // 8,793 (23,457 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day)
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
   '/world.js': 113 * K,            // 102,463
@@ -53,14 +57,29 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 26.5 * K,        // 24,040
+  '/inkbirds.js': 27.5 * K,        // 28,111 at the top of the wave-1 stack (2026-11-15: the five motion fixes, #225-#231, and their reviews 1-3: +1,884 B over main's 26,227; 49 B left)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
+  // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
+  // largest of each shape in the bake of 2026-11-12: 2,304 stills, 57.1 MB). It does not hold the first paint (an image)
+  '/assets/still/393x861': 56 * K,     // 53,718
+  '/assets/still/393x817': 55 * K,     // 52,317
+  '/assets/still/393x770': 53 * K,     // 50,527
+  '/assets/still/393x724': 50 * K,     // 47,265
+  '/assets/still/393x676': 48 * K,     // 46,058
+  '/assets/still/393x629': 47 * K,     // 44,647
+  '/assets/still/393x524': 40 * K,     // 38,501
+  '/assets/still/1080x1080': 54 * K,   // 51,567
+  '/assets/still/1350x1080': 59 * K,   // 56,762
+  '/assets/still/1728x1080': 67 * K,   // 64,770
+  '/assets/still/1920x1080': 72 * K,   // 69,489
+  '/assets/still/2268x1080': 80 * K,   // 77,334
 };
 const FIRST = 20 * K;   // 18,117 (31,269 before #135's stylesheet and #150's fonts): the document, the stylesheet, the hour and both fonts (the first paint waits for them)
-const TOTAL = 235 * K;  // 211,968: everything, cold
+const TOTAL = 315 * K;  // 211,968: everything, cold; + the opening's still, its largest budget (80 K, 2026-11-12)
 const PAINT = 1200;     // ms, the first paint's median
-const key = (p) => p.startsWith('/assets/fonts/') ? Object.keys(BUDGET).find((k) => k.startsWith('/assets/fonts/') && p.startsWith(k)) : p;
+const key = (p) => p.startsWith('/assets/fonts/') ? Object.keys(BUDGET).find((k) => k.startsWith('/assets/fonts/') && p.startsWith(k))
+  : p.startsWith('/assets/still/') ? p.replace(/^\/assets\/still\/[a-z]+-\d+-(hi|lo)-(\d+x\d+)\.avif$/, '/assets/still/$2') : p;
 let fail = 0, first = m.doc.encoded, total = m.doc.encoded;
 const err = (s) => { console.log('::error::' + s); fail = 1; };
 const row = (p, b, lim) => console.log(`${p.padEnd(44)} ${String(b).padStart(7)} B  budget ${String(Math.round(lim)).padStart(7)} B`);

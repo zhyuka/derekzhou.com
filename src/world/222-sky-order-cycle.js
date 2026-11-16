@@ -19,7 +19,7 @@
     SKY.moonDir = RNG(subseed(J.seed, 79)).sign();   // (the visit's own way the moon crosses the window, one way, from its own stream: the other draws stay as they are)
     /* (phase 2) the visit's own: the galaxy's lie (the live's: of 24 poles drawn, the one whose band crosses most of the
        landing's view low, its core the lowest point of the band there), the aurora's phase and base */
-    var h0 = RNG(subseed(J.seed, 77)).r(0, 2 * PI), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
+    var h0 = airHeading0(), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
     for (i = 0; i < 24; i++) {
       var P = dirAzEl(SKY.rV.r(-180, 180), SKY.rV.r(15, 60)), U = norm(cross(P, [0, 1, 0])), W = cross(P, U), nn = 0, lo = 99, core = null;
       for (j = 0; j < 90; j++) { var a = j / 90 * 2 * PI, g = /** @type {any} */ ([U[0] * Math.cos(a) + W[0] * Math.sin(a), U[1] * Math.cos(a) + W[1] * Math.sin(a), U[2] * Math.cos(a) + W[2] * Math.sin(a)]), e = Math.asin(clamp(g[1], -1, 1)) / DEG;
@@ -33,6 +33,14 @@
     var S = WSKY[id], seq = SKY.seq, prev = seq[seq.length - 1], r = SKY.rO;
     SKY.visits[id] = (SKY.visits[id] || 0) + 1;
     seq.push({ id: id, at: prev ? prev.at + prev.hold + prev.move : 0, hold: S.hold * (0.9 + 0.25 * r.f()), move: 55 + 5 * r.f(), far: false, n: seq.length });
+  }
+  /* (the cut) the order after the skies on screen drawn again from the visit's own read: the one on show and, in a
+     change, the one it changes into are kept; the rest are taken back and drawn again from the new stream */
+  function skyReseed(seed) {
+    var seq = SKY.seq, keep = Math.max(1, SKY.i + (SKY.k > 0 ? 2 : 1)), j;
+    SKY.rO = RNG(subseed(seed, 41));
+    for (j = seq.length - 1; j >= keep; j--) { SKY.visits[seq[j].id]--; seq.pop(); }
+    seq[seq.length - 1].way = null; seq[seq.length - 1].far = false;
   }
   function skyNext() {
     var seq = SKY.seq, last = seq[seq.length - 1], r = SKY.rO, recent = [], c = [], w = [], sum = 0, i, x, id;

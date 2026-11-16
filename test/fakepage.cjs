@@ -1,7 +1,7 @@
 // test/fakepage.cjs: the one fake browser the static checks share (moved out of glsl_guard.js, 2026-11-07): the devices the
 // world is visited on, the page's scripts as index.html loads them, and run(V, page, O), one visit in a small fake browser
-// (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion). Used by
-// .github/workflows/glsl_guard.js (the shaders' guard and --reduced) and the sims on it. Plain node 22.8+, no dependency.
+// (WebGL2 recorded, not drawn; the visit's own clock, seed and window; O.reduced: prefers-reduced-motion; O.still: the page has the opening's still, its file in at that frame; O.fenceLag: fences signal that many frames on; O.lateScript: [name, frame], that script run at that frame). Used by
+// tools/checks/lib/glsl_guard.js (the shaders' guard and --reduced) and the sims on it. Plain node 22.8+, no dependency.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
@@ -49,7 +49,7 @@ function loadScripts(site, scripts) {
 // ------------------------------------------------------------------ one visit in a small fake browser
 function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
   return new Promise((resolve) => {
-    const R = { shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
+    const R = { lateF: -1, lateStatusF: -1, lateFlushF: -1, statusF: -1, ctxF: -1, flushF: -1, firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
     let clock = V.t0;
     const now = () => (clock += 0.02);   // (each read moves the clock on a little, so a loop that works to a deadline ends)
     function guard(f, where) { try { f(); } catch (e) { R.errors.push(where + ': ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).map((x) => x.trim()).join(' | ') : String(e))); } }
@@ -79,7 +79,7 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
         get offsetWidth() { return this.getBoundingClientRect().width; }, get offsetHeight() { return this.getBoundingClientRect().height; },
         querySelector() { return null; }, querySelectorAll() { return []; }, closest() { return null; }, contains() { return false; },
         setPointerCapture() {}, releasePointerCapture() {}, hasPointerCapture() { return false; }, focus() {}, blur() {},
-        getContext(type) { return tag === 'canvas' && type === 'webgl2' ? gl : null; }
+        getContext(type) { if (tag === 'canvas' && type === 'webgl2' && R.ctxF < 0) R.ctxF = R.frames; return tag === 'canvas' && type === 'webgl2' ? gl : null; }
       };
       return e;
     }
@@ -111,16 +111,16 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       getShaderPrecisionFormat() { return { rangeMin: 127, rangeMax: 127, precision: 23 }; },
       getInternalformatParameter() { return V.dev.samples ? Int32Array.of(V.dev.samples, 2) : new Int32Array(0); },
       createShader(type) { return { __kind: 'shader', type: NAME(type), src: null }; },
-      shaderSource(s, src) { s.src = String(src); R.shaders.push(s.type + '\n' + s.src); },
+      shaderSource(s, src) { s.src = String(src); if (R.firstShaderF < 0) R.firstShaderF = R.frames; R.shaders.push(s.type + '\n' + s.src); },
       getShaderSource(s) { return s.src; }, getShaderParameter() { return true; }, getShaderInfoLog() { return ''; },
       createProgram() { return { __kind: 'program', sh: [] }; },
       attachShader(p, s) { p.sh.push(s); },
       linkProgram(p) { const v = p.sh.find((s) => s.type === 'VERTEX_SHADER'), f = p.sh.find((s) => s.type === 'FRAGMENT_SHADER'); R.programs.push({ vs: v ? v.src : '', fs: f ? f.src : '' }); },
-      getProgramParameter(p, x) { const n = NAME(x); if (/STATUS/.test(n)) return true; if (n === 'ATTACHED_SHADERS') return p.sh.length; return 0; },
+      getProgramParameter(p, x) { const n = NAME(x); if (n === 'COMPLETION_STATUS_KHR' && R.statusF < 0) R.statusF = R.frames; if (n === 'COMPLETION_STATUS_KHR' && R.frames > R.lateF && R.lateF >= 0 && R.lateStatusF < 0) R.lateStatusF = R.frames; if (/STATUS/.test(n)) return true; if (n === 'ATTACHED_SHADERS') return p.sh.length; return 0; },
       getProgramInfoLog() { return ''; }, getUniformLocation() { return {}; }, getAttribLocation() { return 0; }, getUniformBlockIndex() { return 0; },
       getActiveUniform() { return null; }, getActiveAttrib() { return null; }, getFragDataLocation() { return 0; },
       checkFramebufferStatus() { return C('FRAMEBUFFER_COMPLETE'); },
-      fenceSync() { return obj('sync'); }, clientWaitSync() { return C('ALREADY_SIGNALED'); }, getSyncParameter(s, x) { return NAME(x) === 'SYNC_STATUS' ? C('SIGNALED') : 0; },
+      fenceSync() { const f = obj('sync'); f.f = R.frames; return f; }, clientWaitSync() { return C('ALREADY_SIGNALED'); }, getSyncParameter(s, x) { return NAME(x) === 'SYNC_STATUS' ? (!O.fenceLag || R.frames >= s.f + O.fenceLag ? C('SIGNALED') : C('UNSIGNALED')) : 0; },   // (getSyncParameter, O.fenceLag: a fence signals that many frames on: a GPU process busy with a serial compile)
       getQueryParameter(q, x) { return NAME(x) === 'QUERY_RESULT_AVAILABLE' ? true : 0; },
       readPixels(x, y, w, h, f, t, dst) { fillRead(dst); }, getBufferSubData(tg, off, dst) { fillRead(dst); },
       isProgram() { return true; }, isShader() { return true; }, isTexture() { return true; }, isBuffer() { return true; }, isFramebuffer() { return true; }
@@ -131,16 +131,23 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       if (/^[A-Z0-9_]+$/.test(p)) return C(p);
       if (/^create[A-Z]/.test(p)) return () => obj(p.slice(6));
       if (/^(draw|blitFramebuffer$|clear$)/.test(p)) return () => { R.lastDrawF = R.frames; };   // (--reduced: when the page last drew)
+      if (p === 'flush') return () => { if (R.flushF < 0) R.flushF = R.frames; if (R.lateF >= 0 && R.lateFlushF < 0 && R.frames > R.lateF) R.lateFlushF = R.frames; };   // (the programs' batch ends in the boot's first flush: the still waits for nothing else)
       return () => undefined;
     } });
     // --- the document: today's index.html in outline
-    const root = el('html', { lang: 'en' }), meta = el('meta', { name: 'theme-color', content: '#173a63' }), body = el('body');
+    // (the hour's script is not run here: its one draw of entropy, the opening's seed, given as data-seed, the value the
+    // crypto below would have drawn first, so every visit keeps its own seed)
+    const seed0 = (() => { const a = new Uint32Array(1); let s = (V.seed + 0x9e3779b9) >>> 0, t = s ^ (s >>> 16); t = Math.imul(t, 0x21f0aaad); t ^= t >>> 15; t = Math.imul(t, 0x735a2d97); a[0] = (t ^ (t >>> 15)) >>> 0; return a[0]; })();
+    const root = el('html', { lang: 'en', 'data-seed': String(seed0) }), meta = el('meta', { name: 'theme-color', content: '#173a63' }), body = el('body');
     const main = el('main', {}, () => [16, 0, V.w - 32, V.h]);
     const stack = el('div', { class: 'stack' }, () => [Math.round(V.w * 0.1), Math.round(V.h * 0.32), Math.round(V.w * 0.6), 160]);
     const name = el('h1', { class: 'name' }, () => [Math.round(V.w * 0.1), Math.round(V.h * 0.32), Math.min(404, V.w - 32), 97]);
     const footer = el('footer', {}, () => [16, V.h - 64, V.w - 32, 48]);
     const links = [el('a', { href: '#', id: 'email-link' }, () => [16, V.h - 48, 40, 22]), el('a', { href: '#second', rel: 'me' }, () => [72, V.h - 48, 62, 22])];
+    // (O.still: the page has the opening's still, its file in at frame O.still: its resource entry, told to resource observers)
+    const still = el('link', { rel: 'preload', as: 'image', class: 'still' }); let stillIn = false; const resObs = [];
     const SEL = { 'canvas.sky': canvas, canvas, 'meta[name="theme-color"]': meta, main, footer, '.stack': stack, h1: name, '.name': name, 'h1.name': name, body, html: root };
+    if (O.still) SEL['link.still'] = still;
     const document = {
       __id: 'doc', documentElement: root, body, head: el('head'), readyState: 'loading', hidden: false, visibilityState: 'visible', referrer: '',
       fonts: { ready: Promise.resolve(), status: 'loaded', addEventListener() {}, check() { return true; } },
@@ -177,13 +184,13 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       requestAnimationFrame(f) { raf.push([++rafN, f]); return rafN; }, cancelAnimationFrame(i) { raf = raf.filter((x) => x[0] !== i); },
       setTimeout(f, ms) { timers.push([++timerN, clock + (+ms || 0), f, 0]); return timerN; }, clearTimeout(i) { timers = timers.filter((x) => x[0] !== i); },
       setInterval(f, ms) { const p = Math.max(4, +ms || 0); timers.push([++timerN, clock + p, f, p]); return timerN; }, clearInterval(i) { timers = timers.filter((x) => x[0] !== i); },
-      performance: { now, mark() {}, measure() {}, getEntriesByName() { return []; }, getEntriesByType(t) { return t === 'paint' && painted ? [PAINT] : []; }, timeOrigin: 1.7e12 + V.t0 },
+      performance: { now, mark() {}, measure() {}, getEntriesByName(n) { return stillIn && n && n === still.href ? [{ name: n, entryType: 'resource' }] : []; }, getEntriesByType(t) { return t === 'paint' && painted ? [PAINT] : []; }, timeOrigin: 1.7e12 + V.t0 },
       crypto: { getRandomValues(a) { let s = V.seed; for (let i = 0; i < a.length; i++) { s = (s + 0x9e3779b9) >>> 0; let t = s ^ (s >>> 16); t = Math.imul(t, 0x21f0aaad); t ^= t >>> 15; t = Math.imul(t, 0x735a2d97); a[i] = (t ^ (t >>> 15)) >>> 0; } return a; } },
       addEventListener(t, f) { on(win, t, f); }, removeEventListener(t, f) { off(win, t, f); }, dispatchEvent() { return true; },
       ResizeObserver: Obs, IntersectionObserver: Obs, MutationObserver: Obs, PerformanceObserver: class extends Obs {
-        static get supportedEntryTypes() { return ['paint']; }
-        observe(o) { if (o && (o.type === 'paint' || (o.entryTypes || []).includes('paint')) && !paintObs.includes(this)) paintObs.push(this); }
-        disconnect() { const i = paintObs.indexOf(this); if (i >= 0) paintObs.splice(i, 1); }
+        static get supportedEntryTypes() { return ['paint', 'resource']; }
+        observe(o) { const t = (o && (o.type ? [o.type] : o.entryTypes)) || []; if (t.includes('paint') && !paintObs.includes(this)) paintObs.push(this); if (t.includes('resource') && !resObs.includes(this)) resObs.push(this); }
+        disconnect() { for (const a of [paintObs, resObs]) { const i = a.indexOf(this); if (i >= 0) a.splice(i, 1); } }
       },
       WebGL2RenderingContext: function WebGL2RenderingContext() {}, HTMLCanvasElement: function HTMLCanvasElement() {},
       location: { href: 'https://site.invalid/', origin: 'https://site.invalid', protocol: 'https:', host: 'site.invalid', hostname: 'site.invalid', pathname: '/', search: '', hash: '' },
@@ -200,7 +207,11 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
     const hourMs = new Date(2026, 10, 4, Math.floor(V.hour), Math.round((V.hour % 1) * 60)).getTime();
     vm.runInContext('(function (T) { var D = Date; function F() { if (!(this instanceof F)) return new D(T).toString(); return arguments.length ? new (Function.prototype.bind.apply(D, [null].concat([].slice.call(arguments))))() : new D(T); }' +
       ' F.prototype = D.prototype; F.now = function () { return T; }; F.UTC = D.UTC; F.parse = D.parse; Date = F; })(' + hourMs + ');', ctx);
-    for (const { s, c, missing } of page.code) {
+    // (O.lateScript: [name, frame]: that script arrives at that frame, after the boot has begun: a deferred, low-priority file on a slow link)
+    const lateS = O.lateScript ? page.code.find((x) => x.s === O.lateScript[0]) : null;
+    for (const x of page.code) {
+      const { s, c, missing } = x;
+      if (x === lateS) continue;
       if (missing) { R.errors.push('index.html loads /' + s + ', which the site does not have'); continue; }
       guard(() => vm.runInContext(c, ctx, { filename: s }), s);
     }
@@ -214,10 +225,13 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
         R.frames++;
         clock = Math.max(clock, V.t0 + R.frames * dt);
         for (const t of timers.filter((x) => x[1] <= clock).sort((a, b) => a[1] - b[1])) { if (t[3]) t[1] += t[3]; else timers = timers.filter((x) => x !== t); guard(t[2], 'timer'); }
+        if (lateS && R.frames === O.lateScript[1]) R.lateF = R.frames;
+        if (lateS && R.frames === O.lateScript[1]) guard(() => vm.runInContext(lateS.c, ctx, { filename: lateS.s }), lateS.s);
         const q = raf, ts = clock; raf = [];
         if (q.length) R.lastRafF = R.frames;
         for (const [, f] of q) guard(() => f(ts), 'frame ' + R.frames);
         if (!painted) { painted = true; PAINT.startTime = clock; for (const o of paintObs.slice()) timers.push([++timerN, clock, () => o.f({ getEntries: () => [PAINT] }, o), 0]); }
+        if (O.still && !stillIn && R.frames >= O.still && still.href) { stillIn = true; R.stillF = R.frames; const E = { name: still.href, entryType: 'resource' }; for (const o of resObs.slice()) timers.push([++timerN, clock, () => o.f({ getEntries: () => [E] }, o), 0]); }
         if (canvas.classList.contains('on') && !R.shown) { R.shown = true; R.shownF = R.frames; }
         if (O.reduced && R.shown && R.frames === R.shownF + 60) {   // (--reduced: a press, a drag across and a release on the page: under reduced motion, inert)
           const P = { pointerId: 7, pointerType: 'mouse', button: 0, buttons: 1, clientX: V.w / 2, clientY: V.h / 2, timeStamp: clock };

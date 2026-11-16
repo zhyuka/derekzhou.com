@@ -35,3 +35,32 @@ test('deploy gate: a tip whose PR\'s gate passed the same tree on the same base,
   assert.equal((await walk(S('0'), runs, d(true))).to, S('b'), "proved by its PR's gate: live goes on");
   assert.equal((await walk(S('0'), runs, d(false))).to, S('a'), 'not proved: live waits for main\'s gate');
 });
+
+test('merge bot: a re-run gate is read by its newest verdict artifact, not its first attempt\'s (#189)', async () => {
+  const { newestArtifact } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  // run 43169055363: the list gives attempt 1 (plan failed, gate_ok false) before attempt 2 (green)
+  const a1 = { id: 13921053188, created_at: '2026-11-12T06:36:48Z', expired: false };
+  const a2 = { id: 13920454821, created_at: '2026-11-12T06:37:28Z', expired: false };
+  assert.equal(newestArtifact([a1, a2]), a2, 'the newer attempt, whatever the order or the ids');
+  assert.equal(newestArtifact([a2, a1]), a2);
+  assert.equal(newestArtifact([a1, { ...a2, expired: true }]), a1, 'an expired one cannot be read: the newest readable');
+  assert.equal(newestArtifact([a1]), a1, 'one attempt: as before');
+  assert.equal(newestArtifact([]), null);
+  assert.equal(newestArtifact(undefined), null);
+  const same = { id: 5, created_at: a1.created_at };
+  assert.equal(newestArtifact([a1, same]).id, 13921053188, 'the same second: the higher id');
+});
+
+test('merge bot: a tip with the bake goes live only with its stills release up (stills.yml\'s status)', async () => {
+  const { stillsReady } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  assert.equal(stillsReady(false, []).ok, true, 'before the bake (#197) nothing waits');
+  assert.equal(stillsReady(false, undefined).ok, true);
+  assert.equal(stillsReady(true, []).ok, false, 'the bake, no status yet: live waits');
+  assert.equal(stillsReady(true, [{ context: 'verdict', state: 'success' }]).ok, false, 'another context is not the stills');
+  assert.equal(stillsReady(true, [{ context: 'stills', state: 'success', description: 'up' }]).ok, true);
+  assert.equal(stillsReady(true, [{ context: 'stills', state: 'failure' }]).ok, false, 'a failed stills job: live waits');
+  // newest first (GitHub's order): a re-run's success after a failure wins, and a later failure after a success too
+  assert.equal(stillsReady(true, [{ context: 'stills', state: 'success' }, { context: 'stills', state: 'failure' }]).ok, true);
+  assert.equal(stillsReady(true, [{ context: 'stills', state: 'failure' }, { context: 'stills', state: 'success' }]).ok, false);
+  assert.match(stillsReady(true, [{ context: 'stills', state: 'pending' }]).why, /pending/);
+});

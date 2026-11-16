@@ -94,6 +94,11 @@ const INIT = `(() => {
   const REALNAME = ${A.realname ? 'true' : 'false'};
   const GPUNAME = ${A.gpuname && A.gpuname !== true ? JSON.stringify(A.gpuname) : 'null'};   // (tools/gpu --gpuname: another maker's GPU name, so the page takes that maker's paths on this GPU)
   ${SETTLE ? 'window.__SETTLE = ' + JSON.stringify(SETTLE) + ';' : ''}
+  // (--settle) the first-paint hold taken out as the parser inserts its link, before any script reads it: the hold runs
+  // frames in one task until the world shows or its deadline passes, both read from the clock this harness freezes
+  // between steps, and a settled twin never shows inside it (it waits for SETTLE.t of page time), so the hold spun to its
+  // cap of 1e6 frames on every T2 visit (~110 s of each one's ~120 s) and then went on as the page without it does
+  ${SETTLE ? "new MutationObserver((m, ob) => { const l = document.querySelector('link[rel=\"expect\"][blocking=\"render\"]'); if (l) { l.remove(); ob.disconnect(); } }).observe(document, { childList: true, subtree: true });" : ''}
   let NOW = 0, FR = 0; const Q = []; let QID = 0, CALLS = 0;
   crypto.getRandomValues = function (a) { const s = SEEDS[CALLS % SEEDS.length] >>> 0; CALLS++; for (let i = 0; i < a.length; i++) a[i] = (s + i * 0x9e3779b9) >>> 0; return a; };
   const RD = Date;

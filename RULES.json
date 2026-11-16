@@ -1,5 +1,5 @@
 {
-  "_": "Every standing rule of derekzhou.com as data. Each rule: id (kebab-case, unique), area, rule (what holds), source (the owner's words and date where known, the record it is kept in), enforced_by (kind ci-step: a step name in .github/workflows/*.yml; world-rule: a rule id world_rules.py fails under; absence: a numbered (N) block of the step 'Absences are enforced'; hook: a .claude/hooks file that cites the rule's id; permission-deny: an entry of .claude/settings.json's permissions.deny; prose: written down only, checked by people). CI ('The rules are data, and the hooks hold', rules_check.py) proves every reference exists.",
+  "_": "Every standing rule of derekzhou.com as data. Each rule: id (kebab-case, unique), area, rule (what holds), source (the owner's words and date where known, the record it is kept in), enforced_by (kind ci-step: a step name in .github/workflows/*.yml or a check's `# check:` name in tools/checks/; world-rule: a rule id tools/checks/lib/world_rules.py fails under; absence: a numbered (N) block of the step 'Absences are enforced'; hook: a .claude/hooks file that cites the rule's id; permission-deny: an entry of .claude/settings.json's permissions.deny; prose: written down only, checked by people). CI ('The rules are data, and the hooks hold', tools/checks/lib/rules_check.py) proves every reference exists.",
   "version": 1,
   "rules": [
     {
@@ -15,9 +15,18 @@
           "quote": "remove that white background behind the text. it's fine failing accesibility",
           "date": "2026-10-21",
           "doc": "docs/design.md"
+        },
+        {
+          "quote": "No, natural light is fine",
+          "date": "2026-11-15",
+          "via": "the hub, relaying the owner, asked whether the world's own natural shading counts"
         }
       ],
       "enforced_by": [
+        {
+          "kind": "prose",
+          "note": "Scope (the owner, 2026-11-15, asked whether the world's own natural shading counts: 'No, natural light is fine'): nothing is ever darkened for the words; the world's own physical light and shadow (cast shadows, a softer twilight key, views into the sun) are free under the light ceiling. W7 is unchanged."
+        },
         {
           "kind": "world-rule",
           "id": "7 never-darker"
@@ -85,7 +94,7 @@
     {
       "id": "no-fades",
       "area": "motion",
-      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance).",
+      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance); the sound icon's two states swap at once. The score's level rising over 4 s and falling over 1.5 s, and its notes swelling in and out, are sound, not fades: nothing seen fades.",
       "source": [
         {
           "quote": "There shouldn't be any fade-ins/outs at all",
@@ -94,6 +103,11 @@
         {
           "quote": "yep this. same w sun.",
           "doc": "docs/world.md: THE TIME OF DAY"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": []
@@ -117,7 +131,7 @@
     {
       "id": "reduced-motion-still",
       "area": "motion",
-      "rule": "Under prefers-reduced-motion the world is one still frame (drawn again when the words move, live both ways), the steering is inert and no click starts a gull. It is the page's stop for its motion (the owner chose no pause control).",
+      "rule": "Under prefers-reduced-motion the world is one still frame (drawn again when the words move, live both ways), the steering is inert and no click starts a gull. It is the page's stop for its motion (the owner chose no pause control). The score is sound, not motion: pressed, it still plays (a world held still holds it in its sky).",
       "source": [
         {
           "doc": "docs/world.md: FALLBACKS; THE FLIGHT AND THE CAMERA; docs/birds.md"
@@ -149,11 +163,26 @@
     {
       "id": "one-entropy-one-clock",
       "area": "weather",
-      "rule": "The world's one crypto.getRandomValues, above its INIT-END marker, is the page's one entropy read; its one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds and plan's worker draw no entropy and read no clock; hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
+      "rule": "hour.js's one crypto.getRandomValues is the page's one entropy read: written whole as data-seed, it picks the visit's opening, one of a set (the hour's sky by 16 seeds: 96 openings; the seed is read mod 16), and seeds everything after the opening (the frame after the cut the world draws the sky order after the skies on show, the events, the ink birds' later flocks and the score from the read itself); what is on screen at the cut, the land among it, is the opening seed's. The world draws no entropy of its own. The world's one clock is clockNow() (performance.now), read for budgets only. The kits, wing model, ink birds, plan's worker and the sound icon's switch and score draw no entropy and read no clock of the page's (they time the sound by the audio context's own time, ctx.currentTime, which times the sound alone; the score's randomness is a stream on a seed the world derives from its one read and hands over, read only, in WORLD.sky). hour.js reads the clock once (new Date). No Math.random, no Date in the world.",
       "source": [
         {
           "quote": "should b rand",
           "doc": "docs/world.md: THE WEATHER; docs/security.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
+        },
+        {
+          "quote": "Yes to both, go with 96",
+          "date": "2026-11-12",
+          "doc": "docs/world.md: THE WEATHER; .work/hub/RESUME.md (the bake: the openings as a set, their stills)"
+        },
+        {
+          "quote": "Keep 16 lands",
+          "date": "2026-11-13",
+          "doc": "docs/world.md: THE OPENINGS, THE WEATHER (the land is the opening seed's, one of 16)"
         }
       ],
       "enforced_by": [
@@ -189,6 +218,24 @@
       ]
     },
     {
+      "id": "one-world-state",
+      "area": "weather",
+      "rule": "The world has one air: src/world/215-air.js holds the visit's one wind (its direction, drawn once, and its speed by height, windAt), the one key light (keyAt: the clouds' bake, the land and the birds are lit along it), each sky's own sun (AIR_SUN_EL), the moon on show, the sky's frame, the clock rates (physical motion at 1x real; the sky's light at one rate, SKY_RATE), the weather, the landing's heading and the flight's cruise band. Every other system reads them there and keeps no wind, sun or clock rate of its own: a reader still apart is listed in AIR_APART with the change that joins it, and taken off the list when it is joined.",
+      "source": [
+        {
+          "quote": "they should follow real physics, clouds moving (when/how they move), same w auroras, sand, etc. ... make sure there are 0 disconnects.",
+          "date": "2026-11-15",
+          "doc": "docs/world.md: THE AIR"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The world's pure code, unit-tested"
+        }
+      ]
+    },
+    {
       "id": "absence-chrome",
       "area": "absences",
       "rule": "The HTML has none of the internet's body language: no arrows, cookie or analytics vocabulary, Loading states or navigation roles.",
@@ -207,10 +254,15 @@
     {
       "id": "absence-behaviour",
       "area": "absences",
-      "rule": "No exit, idle, hover-position, key, blur, title, favicon-swap or storage handler in the JS; a pointer's moves are read only by the world's drag (its one pointermove listener added in onDown, removed in endDrag).",
+      "rule": "No exit, idle, hover-position, key, blur, visibility, title, favicon-swap or storage handler in the JS; a pointer's moves are read only by the world's drag (its one pointermove listener added in onDown, removed in endDrag) and the birds' two passive listeners in hoverSync; the sound icon has one handler, its click (sound.js).",
       "source": [
         {
           "doc": "docs/security.md (Absences are enforced)"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": [
@@ -227,7 +279,7 @@
     {
       "id": "absence-no-dom",
       "area": "absences",
-      "rule": "No innerHTML and no JS-generated DOM: the canvas, the stack, the footer and the lettered name are all in index.html.",
+      "rule": "No innerHTML and no JS-generated DOM: the canvas, the stack, the footer (the sound icon in it) and the lettered name are all in index.html; the sound icon plays its score through Web Audio, never an audio element (none is made, and none is in the page).",
       "source": [
         {
           "doc": "docs/security.md"
@@ -243,12 +295,17 @@
     {
       "id": "absence-network-sound-cursor",
       "area": "absences",
-      "rule": "No URL hook (location., URLSearchParams), sound, network call or eval; no worker but the plan's, started by its literal name; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
+      "rule": "No URL hook (location., URLSearchParams), network call or eval, but one: no sound until the visitor presses the sound icon, and then sound.js alone makes the one audio context, inside that press, and fetches the one sheet of notes (a literal path under /assets/sound/, from 'self'), once, for the score (score.js) to play; the score makes no context and fetches nothing; nothing of it is fetched or made before. No worker but the plan's, started by its literal name; no module or audio worklet; no cursor: rule (OS cursors only). The site's own code is blind: no telemetry, beacon or store (Cloudflare Web Analytics, injected by Cloudflare, is the one exception).",
       "source": [
         {
           "quote": "yes we need analytics",
           "date": "2026-11-03",
           "doc": "docs/security.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": [
@@ -263,13 +320,17 @@
         {
           "kind": "world-rule",
           "id": "3 production-blind"
+        },
+        {
+          "kind": "ci-step",
+          "name": "The sound is opt-in, a live score"
         }
       ]
     },
     {
       "id": "absence-dev-hooks",
       "area": "absences",
-      "rule": "The shipped scripts carry no development harness: no window.__*, window.claude or console call, and no attribute read on <html> but the hour's data-sky and data-sky-at.",
+      "rule": "The shipped scripts carry no development harness: no window.__*, window.claude or console call, and no attribute read on <html> but the hour's data-sky, data-sky-at and data-seed.",
       "source": [
         {
           "doc": "docs/security.md; docs/structure.md"
@@ -285,7 +346,7 @@
     {
       "id": "csp-scoping",
       "area": "security",
-      "rule": "CSP is set per HTML path with no overlapping rules (Cloudflare Pages combines same-named headers, and browsers enforce the intersection); never a Content-Security-Policy on /*. 404.html carries the same policy in a meta tag, kept in sync. Every home-scope CSP has exactly script-src 'self' https://static.cloudflareinsights.com and connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum. No inline style, script or handler on a CSP'd page.",
+      "rule": "CSP is set per HTML path with no overlapping rules (Cloudflare Pages combines same-named headers, and browsers enforce the intersection); never a Content-Security-Policy on /*. 404.html carries the same policy in a meta tag, kept in sync. Every home-scope CSP has exactly script-src 'self' https://static.cloudflareinsights.com and connect-src https://cloudflareinsights.com https://derekzhou.com/cdn-cgi/rum, and the home page's (/ and /index.html) connect-src names 'self' first, for the sound icon's one sheet of notes (fetched only at the press; 2026-11-07); 404.html's does not. No inline style, script or handler on a CSP'd page.",
       "source": [
         {
           "doc": "docs/security.md"
@@ -301,7 +362,7 @@
     {
       "id": "script-order",
       "area": "security",
-      "rule": "The scripts load in their order (hour, site.js, the world, the kits, the wing model, the ink birds), each tagged data-cfasync=\"false\" for Rocket Loader; no script is async; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model and the ink birds deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
+      "rule": "The scripts load in their order (hour, site.js, the sound icon's switch, the world, the kits, the wing model, the ink birds, the sound icon's score), each tagged data-cfasync=\"false\" for Rocket Loader; no script is async; the world, the kit and the realms are parser-blocking after the footer (the first-paint hold), the wing model, the ink birds and the score deferred; the head holds one link rel=expect href=#world-end blocking=render, and the body one empty, hidden <div id=\"world-end\"> right after the last realm's script (the render block ends there).",
       "source": [
         {
           "doc": "docs/js.md"
@@ -361,7 +422,7 @@
     {
       "id": "page-words",
       "area": "content",
-      "rule": "The page says exactly its words: the lettered name, the one line, the credit row (Team Lead · Accenture Song · 2022 – Now) and the two links; the share and search text match.",
+      "rule": "The page says exactly its words: the lettered name, the one line, the credit row (Team Lead · Accenture Song · 2022 – Now), the two links and the sound icon, whose accessible name is Sound (a button, its state in aria-pressed; no visible word); the share and search text match.",
       "source": [
         {
           "quote": "change back to Team Lead title",
@@ -372,9 +433,52 @@
           "quote": "match the share text too",
           "date": "2026-10-21",
           "doc": "docs/content.md"
+        },
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
         }
       ],
       "enforced_by": []
+    },
+    {
+      "id": "sound-opt-in",
+      "area": "sound",
+      "rule": "The sound is opt-in: every visit is silent until the visitor presses the sound icon (a button in the footer, in the words' light ink, its state in aria-pressed, which is always the truth: a failed fetch or decode, or a device that will not start, shows it off). The press sets the audio session to playback (heard with the iOS ringer off, as a video is; the visitor's own music pauses), makes one audio context, fetches one sheet of notes from this site (/assets/sound/: real recordings, CC0) and decodes it once, and hands both to the score (score.js), which plays music and faint ambiance live, following the sky (each sky its key and its colour, its changes planned with the world's, never a loop), its level rising over about 4 s; a second press takes it down over about 1.5 s and suspends the context, a third resumes it. A visit that never presses loads the switch and the score's code (about 0.6 and 8.8 KB as sent, the score deferred) and no audio. The score sits at about -23 LUFS, its true peak under -1 dBFS, with no compression; it reads the sky (WORLD.sky, a copy) and never steers the world.",
+      "source": [
+        {
+          "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
+        },
+        {
+          "quote": "music and faint ambiance",
+          "date": "2026-11-07",
+          "doc": "docs/design.md; docs/sound.md"
+        },
+        {
+          "quote": "Yup ship it",
+          "date": "2026-11-12",
+          "doc": "docs/sound.md"
+        },
+        {
+          "quote": "yes switch it to playback",
+          "date": "2026-11-12",
+          "doc": "docs/sound.md"
+        },
+        {
+          "quote": "yes make it louder, -23",
+          "date": "2026-11-15",
+          "doc": "docs/sound.md"
+        }
+      ],
+      "enforced_by": [
+        {
+          "kind": "ci-step",
+          "name": "The sound is opt-in, a live score"
+        }
+      ]
     },
     {
       "id": "lettered-name",
@@ -416,6 +520,11 @@
         {
           "date": "2026-11-06",
           "via": "the hub, relaying the owner"
+        },
+        {
+          "quote": "credit another way",
+          "date": "2026-11-15",
+          "via": "the hub, relaying the owner, asked whether the rule may exempt the CC BY credit line of src/birds/model/model.js: no. Credits become DOI/URL links, never a person's name"
         }
       ],
       "enforced_by": [
@@ -490,11 +599,16 @@
     {
       "id": "no-frameworks",
       "area": "build",
-      "rule": "Pure HTML, CSS and JS, no frameworks; no Unreal or streamed engine: the world is drawn in the page itself, in WebGL2, generated in code (no picture, no model file).",
+      "rule": "Pure HTML, CSS and JS, no frameworks; no Unreal or streamed engine: the world is drawn in the page itself, in WebGL2, generated in code (no model file); its only pictures are its own first frames, made by the same code at build time and shown until the live world cuts in.",
       "source": [
         {
           "quote": "keep iterating through literally every possible method/frameworks/etc until it's seamless",
           "doc": "CLAUDE.md (top); docs/design.md"
+        },
+        {
+          "quote": "Yes to both, go with 96",
+          "date": "2026-11-12",
+          "doc": "docs/world.md: THE WEATHER; .work/hub/RESUME.md (the bake: the openings as a set, their stills)"
         }
       ],
       "enforced_by": []

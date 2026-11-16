@@ -39,8 +39,10 @@
 //
 // The manifest: one line per file, "<sha256>  <path>", paths relative to the folder with '/' separators, sorted by
 // path in code-unit order; build.txt is left out (it changes with every commit).
-// build.txt: the commit the build was made from, one 40-hex line (the post-deploy check reads /build.txt to know the
-// live site serves this build). The commit is CF_PAGES_COMMIT_SHA (Cloudflare Pages' build), else GITHUB_SHA (CI),
+// build.txt: the commit the build was made from, a 40-hex first line (the post-deploy check reads /build.txt to know the
+// live site serves this build), then "stills: <why>", what the stills fetch did (no STILLS_TOKEN, no set for this world,
+// the answer it got, or N stills placed), so the live site says it without Cloudflare's build log. The why never holds
+// the token or a header: printable ASCII only, the token's value cut out if it were ever there, 160 characters at most. The commit is CF_PAGES_COMMIT_SHA (Cloudflare Pages' build), else GITHUB_SHA (CI),
 // else `git rev-parse HEAD`; anything but 40 hex characters is an error.
 // Node built-ins only (terser, pinned in package.json, is loaded by tools/minify.mjs). Deterministic: no time, no
 // absolute paths in any output byte.
@@ -52,11 +54,20 @@ import zlib from 'zlib';
 import { spawn, execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { buildPlan, workerName } from './plan.mjs';
+import { worldKey, fetchSet, place, PRELOAD } from './stills.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src'), SITE = path.join(ROOT, 'site'), WING = path.join(SRC, 'birds', 'model');
 const PARTS = path.join(ROOT, 'tools', 'parts.mjs'), MINIFY = path.join(ROOT, 'tools', 'minify.mjs');
 const STAMP = 'build.txt';
+let stillsWhy = '';   // (build(): what the stills fetch did, for build.txt's second line)
+function stampText(stamp) {   // build.txt: the commit, then the stills' why (see the top), safe to serve
+  const tok = process.env.STILLS_TOKEN;
+  let w = String(stillsWhy || 'none');
+  if (tok) w = w.split(tok).join('[token]');
+  w = w.replace(/[^ -~]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+  return stamp + '\n' + 'stills: ' + w + '\n';
+}
 const NAMED = /^[a-z0-9-]+(\.v\d+)?\.(js|css)$/, HASHED = /^[a-z0-9-]+\.[0-9a-f]{8}\.(js|css)$/;
 const REWRITTEN = ['index.html', '404.html', '_headers', '_routes.json'];
 
@@ -127,6 +138,23 @@ async function build(out, stamp) {   // the plain build
   if (path.resolve(out) === SITE || path.resolve(out) === SRC) die('the output folder cannot be site/ or src/');
   fs.rmSync(out, { recursive: true, force: true });
   fs.cpSync(SITE, out, { recursive: true });
+  // the openings' stills (the world's first frames, baked on the 4090 by tools/gpu/bake-stills.js): an input folder,
+  // STILLS_DIR or stills/ (never committed: whatever puts them there), its stills copied to assets/still/. Without
+  // it the page asks for stills that are not there and shows the hour's still sky until the world. Only the bake's
+  // own output is copied: each still listed in the folder's bake.json by the bake's name, its bytes' sha256 the one the
+  // bake recorded; anything else in the folder (but bake.json and the bake's .png/) stops the build
+  const stills = process.env.STILLS_DIR ? path.resolve(process.env.STILLS_DIR) : path.join(ROOT, 'stills');
+  if (fs.existsSync(stills)) {
+    const mp = path.join(stills, 'bake.json');
+    if (!fs.existsSync(mp)) die(stills + ' has no bake.json: the stills are the output of tools/gpu/bake-stills.js, nothing else');
+    const man = JSON.parse(fs.readFileSync(mp, 'utf8')), sd = path.join(out, 'assets', 'still'); fs.mkdirSync(sd, { recursive: true });
+    for (const n of fs.readdirSync(stills).sort()) {
+      if (n === 'bake.json' || n === '.png') continue;
+      const e = man[n], b = /^(dawn|day|rain|sunset|dusk|night)-\d+-(hi|lo)-\d+x\d+\.avif$/.test(n) && e && e.sha ? fs.readFileSync(path.join(stills, n)) : null;
+      if (!b || crypto.createHash('sha256').update(b).digest('hex') !== e.sha) die(path.join(stills, n) + ': not a still of the bake (its name and bytes are not in bake.json)');
+      fs.writeFileSync(path.join(sd, n), b);
+    }
+  }
   for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.css')).sort()) fs.writeFileSync(path.join(out, n), cssMin(fs.readFileSync(path.join(out, n), 'utf8'), n));
   // the ink birds' wing model, served as written: src/birds/model/'s scripts copied whole (two of them generated, by
   // tools/birds/: CI makes them again and compares)
@@ -147,7 +175,27 @@ async function build(out, stamp) {   // the plain build
   const written = fs.readdirSync(ship).filter((n) => /\.js$/.test(n) && fs.statSync(path.join(ship, n)).isFile()).concat(wing);
   if (pn) written.push(pn);
   fs.rmSync(parts, { recursive: true, force: true });
-  if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
+  // the openings' stills for this world (docs/deploy.md, "The stills"): with STILLS_TOKEN set (Cloudflare's build), the set
+  // baked for this build's world key, from its release; else, or when anything fails, none (today's first paint). A
+  // local bake folder (STILLS_DIR or stills/) is the bake's own and wins. Never fails the build.
+  // A page with no stills asks for none: without a bake folder the still's preload (hour.js's cue) is taken out
+  // BEFORE the world key is read, so the key is the same on the PC's served/head and here, and put back only where a
+  // set is placed
+  const ix = path.join(out, 'index.html'), withPre = fs.existsSync(ix) ? fs.readFileSync(ix, 'utf8') : null, sd0 = path.join(out, 'assets', 'still');
+  if (withPre !== null && !fs.existsSync(sd0)) {
+    const noPre = withPre.replace(PRELOAD, '');   // (tools/stills.mjs: the stills job puts it back in the twin it bakes)
+    if (noPre === withPre) die('index.html: the still\'s preload (and its comment) not found to take out');
+    fs.writeFileSync(ix, noPre);
+  }
+  stillsWhy = fs.existsSync(sd0) ? 'from the local bake folder' : 'no STILLS_TOKEN: built without stills';
+  if (process.env.STILLS_TOKEN && !process.env.STILLS_DIR && !fs.existsSync(path.join(ROOT, 'stills'))) {
+    try {
+      const key = worldKey(out), r = await fetchSet({ key, token: process.env.STILLS_TOKEN, repo: process.env.STILLS_REPO || undefined, api: process.env.STILLS_API || undefined });   // (STILLS_API: a stand-in, for the check)
+      if (r.stills) { place(out, r.stills); fs.writeFileSync(ix, withPre); }
+      stillsWhy = r.why; console.error('build: stills: ' + r.why);
+    } catch (e) { fs.rmSync(path.join(out, 'assets', 'still'), { recursive: true, force: true }); stillsWhy = 'none (' + e.message + ')'; console.error('build: stills: ' + stillsWhy); }
+  }
+  if (stamp) fs.writeFileSync(path.join(out, STAMP), stampText(stamp));
   return written.sort();
 }
 
@@ -248,7 +296,7 @@ async function deploy(out, stamp) {   // the plain build, named by content, chec
   const map = contentNames(out), err = verify(out, map);
   if (err.length) die('the deploy build fails its checks:\n  ' + err.join('\n  '));
   precompress(out);
-  if (stamp) fs.writeFileSync(path.join(out, STAMP), stamp + '\n');
+  if (stamp) fs.writeFileSync(path.join(out, STAMP), stampText(stamp));
   return map;
 }
 

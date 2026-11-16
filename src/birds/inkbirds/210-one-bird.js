@@ -76,11 +76,11 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
-    b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
+    b.v[0] = b.V * ch * Math.sin(psi) + WINDV[0]; b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi) + WINDV[2];   // (over the ground: its way through the air and the wind, as every step makes it; air alone drew a seeded flock up to 33 deg off on its first frame, the hub's review 3)
     BIRDS.push(b);
     return b;
   }
@@ -92,12 +92,12 @@
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
   function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, acc: 0 }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */
   function endPlace(F) { var n = F.m.length; return [n * 1.9, (n % 2 ? 1 : -1) * Math.ceil(n / 2) * 1.2, 0]; }
-  function dropFlock(F) { while (F.m.length) dropBird(F.m[F.m.length - 1]); var i = FLOCKS.indexOf(F); if (i >= 0) FLOCKS.splice(i, 1); }
+  function dropFlock(F) { while (F.m.length) dropBird(F.m[F.m.length - 1]); var i = FLOCKS.indexOf(F); if (i >= 0) FLOCKS.splice(i, 1); F.out = true; }   // (out: no longer in FLOCKS, read in place of a search of it)
   /* a flock's leader gone (landed, left, taken out): the bird foremost in it leads, every place then measured from it */
   function relead(F) {
     if (!F.m.length) return;
@@ -134,7 +134,17 @@
   /* its own pace: +-8-12 % about its kind's, slowly */
   function paceOf(b) { return b.vJ * (1 + 0.06 * wave(b.vK, b.age / 9)); }
   /* the measured wing's state at the bird's age, worked out once an age (the step's, read again by the draw) */
-  function wingState(b) { if (b.wsT !== b.age) { BW.state(b.w.wing, b.age, b.WS); b.wsT = b.age; } return b.WS; }
+  function wingState(b) { if (b.wOff) wingOn(b); if (b.wsT !== b.age) { BW.state(b.w.wing, b.age, b.WS); b.wsT = b.age; } return b.WS; }
+  /* a bird no one could see (offView, far, a speck holding its glide) works out no wing: it flies as if beating (a
+     glide cannot climb), its wing paused (wP: its age then). Back where its beat might be seen, the wing goes on from
+     where it paused (its clock moved on by the time skipped: nothing to work out, nothing made); a bird that slept has
+     a wing of its own made anew, begun from its age (out of sight still: no beat seen to jump) */
+  function wingOff(b) { if (!b.wOff) { b.wOff = true; b.wP = b.age; } }
+  function wingOn(b) {
+    if (b.w) { var g = b.w.wing, d = Math.round((b.age - b.wP) / g.dt) * g.dt; if (d > 0) BW.skip(g, d); }
+    else { b.w = placeWing(b.kind, b.r, b.age); b.wtT = 0; }
+    b.wOff = false; b.wsT = -1;
+  }
   /* its wing's history kept to the last seconds (else it grows all its life) */
   function wingTrim(b) { if (b.age > b.wtT) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 30; } }
   /* ... flapping 1, gliding 0: the integrator reads it */
@@ -171,7 +181,7 @@
   /* a near pass flown: the next not before PASS_GAP */
   function passTaken(r) { POP.passT = t + pick(r, PASS_GAP); }
   function newGoal(F, kind, r, cls) {
-    var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false };
+    var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false, leave: false };
     var eye = LVC.y, gr = lvGround(x, z), top = Math.max(hideTop(x, z), gr);
     if (kind === 'commute') {
       g.psi = r() < 0.6 ? POP.line + (r() < 0.65 ? 0 : Math.PI) + (r() - 0.5) * 0.9 : TAU * r();
