@@ -10,6 +10,7 @@
 // plant: {"file": "src/realm-dunes.js", "find": "    air: function (C, R) { dAir(C, R); },", "with": "    air: function (C, R) { dAir(C, R); dHeld(C); },", "why": "lenses laid out in air cells: the air carries them off their ridges"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.5; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
 // plant: {"file": "src/realm-dunes.js", "find": "flow: [hw.x, 0, hw.z]", "with": "flow: [hw.z, 0, hw.x]", "why": "the flow's components swapped: the billows cross the lens at the wrong way"}
+// plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -90,6 +91,11 @@ test('lenticular: the envelope is held (its place a constant of t); its billows 
   const res = (air) => vm.runInThisContext('(function (C, PF, bi, vb, V) { function airW() { return [3, 4]; }\n' + RES + ' return vb.out; })')(
     { air, dL: [100, 200] }, { bodies: [{ flow: [7, 0, -2] }] }, 0, { out: { c: [5000, 1400, -900] } }, {});
   const hw = res(false), ha = res(true);
+  // and no flat base: resolve's own line, a lens's lobes and a free body's
+  const BASE = cut(WORLD, '        var ycB = 1e9;', '\n', true);
+  const base = (flow) => vm.runInThisContext('(function (PF, bi, bj0, bj1) { var j;' + BASE + ' return PF.bodies[bi].base; })')({ a: Float32Array.from([0, 1400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1395, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), bodies: [{ flow }] }, 0, 0, 2);
+  assert.equal(base([7, 0, -2]), undefined, 'a lens is given a flat base at its lowest lobes\' centres: the lower half of its plates cut away');
+  assert.equal(base(undefined), 1395, 'a free body\'s flat base is not at its lowest lobe\'s centre');
   assert.ok(hw.w === null && Array.from(hw.c0).join() === '5000,1400,-900' && hw.flow && hw.flow.join() === '7,0,-2', 'a world cell\'s lens is not held with its flow');
   assert.ok(ha.w && !ha.flow, 'an air cell\'s body is given a flow, or is not carried');
   const o = { c0: Float64Array.from([4321.5, 1400, -987.25]) };
