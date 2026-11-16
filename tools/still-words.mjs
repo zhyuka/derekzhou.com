@@ -49,6 +49,11 @@ async function boxes(b, url, w, h, dpr, mobile) {
   return out;
 }
 
+function union(key, A, S, min) {   // box by box, the bake window's and the smallest window's mapped into the still's frame as cover crops it
+  const [tier, sh] = key.split('-'), [w, h] = sh.split('x').map(Number), s = tier === 'lo' ? 393 / Math.min(w, h) : 1, bw = Math.round(w * s), bh = Math.round(h * s), [sw, sh2] = min;
+  const c = Math.max(sw / bw, sh2 / bh), ox = (sw - bw * c) / 2, oy = (sh2 - bh * c) / 2;
+  return A.map((B, i) => { const q = S[i], M = [(q[0] - ox) / c, (q[1] - oy) / c, (q[2] - ox) / c, (q[3] - oy) / c]; return [Math.min(B[0], M[0]), Math.min(B[1], M[1]), Math.max(B[2], M[2]), Math.max(B[3], M[3])].map(r1); });
+}
 const SHAPES = ['393x861', '393x817', '393x770', '393x724', '393x676', '393x629', '393x524', '1080x1080', '1350x1080', '1728x1080', '1920x1080', '2268x1080'];
 const srv = await serve(SITE), b = await loadPlaywright().chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), T = {}, G = {};
 try {
@@ -57,9 +62,8 @@ try {
     const key = tier + '-' + sh, [w, h] = sh.split('x').map(Number), s = tier === 'lo' ? 393 / Math.min(w, h) : 1, mob = tier === 'lo' || h > w, dpr = mob ? 3 : 1;
     const bw = Math.round(w * s), bh = Math.round(h * s), [sw, sh2] = MIN[key];
     const A = await boxes(b, srv.url, bw, bh, dpr, mob), S = await boxes(b, srv.url, sw, sh2, dpr, mob);
-    const c = Math.max(sw / bw, sh2 / bh), ox = (sw - bw * c) / 2, oy = (sh2 - bh * c) / 2;   // (the small window shows the still as cover crops it)
-    T[key] = A.map((B, i) => { const q = S[i], M = [(q[0] - ox) / c, (q[1] - oy) / c, (q[2] - ox) / c, (q[3] - oy) / c]; return [Math.min(B[0], M[0]), Math.min(B[1], M[1]), Math.max(B[2], M[2]), Math.max(B[3], M[3])].map(r1); });
     G[key] = { min: [sw, sh2], bake: A.map((B) => B.map(r1)), small: S.map((B) => B.map(r1)) };
+    T[key] = union(key, G[key].bake, G[key].small, G[key].min);
   });
   for (let i = 0; i < jobs.length; i += 6) await Promise.all(jobs.slice(i, i + 6).map((f) => f()));
 } finally { await b.close(); await srv.close(); }
@@ -71,9 +75,16 @@ if (args.includes('--write')) {
   fs.writeFileSync(GOLD, JSON.stringify(GG, null, 1) + '\n');
   console.log('still-words: the table and ' + path.relative(ROOT, GOLD) + ' written (' + Object.keys(TT).length + ' bake windows)');
 } else if (args.includes('--check')) {
+  // (each window's boxes against the golden file in that window's own CSS px, within TOL: a small window's values are
+  // scaled up by the cover mapping in the union, which would scale a browser's 1.5 px shaping by up to 1.7; then 226's
+  // table must be exactly the union the golden file makes)
   const have = JSON.parse(m[1]), gold = fs.existsSync(GOLD) ? JSON.parse(fs.readFileSync(GOLD, 'utf8')) : {}, bad = [];
-  const cmp = (name, a, z) => { for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) { const x = a && a[i] ? a[i][j] : NaN; if (!(Math.abs(x - z[i][j]) <= TOL)) bad.push(`${name} box ${i}[${j}]: ${x} kept, ${z[i][j]} measured`); } };
-  for (const k of Object.keys(TT)) { cmp(k, have[k], TT[k]); cmp(k + ' (golden, smallest window)', gold[k] && gold[k].small, GG[k].small); }
+  const cmp = (name, a, z, tol) => { for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) { const x = a && a[i] ? a[i][j] : NaN; if (!(Math.abs(x - z[i][j]) <= tol)) bad.push(`${name} box ${i}[${j}]: ${x} kept, ${z[i][j]} measured`); } };
+  for (const k of Object.keys(TT)) {
+    const g = gold[k] || {};
+    cmp(k + ' (bake window)', g.bake, GG[k].bake, TOL); cmp(k + ' (smallest window ' + GG[k].min.join('x') + ')', g.small, GG[k].small, TOL);
+    if (g.bake && g.small && g.min) cmp(k + ' (226: the union of the golden file)', have[k], union(k, g.bake, g.small, g.min), 0.051);
+  }
   if (bad.length) { console.error('still-words: ' + bad.length + ' values off, the stylesheet has moved the words (node tools/still-words.mjs --write):\n  ' + bad.slice(0, 12).join('\n  ')); process.exit(1); }
-  console.log('still-words: ' + Object.keys(TT).length + ' bake windows and their smallest, every box within ' + TOL + ' px of the table');
+  console.log('still-words: ' + Object.keys(TT).length + ' bake windows and their smallest, every box within ' + TOL + ' px of the golden file, 226\'s table its union');
 } else console.log(JSON.stringify(TT));
