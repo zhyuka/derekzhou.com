@@ -57,7 +57,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 26.5 * K,        // 24,040
+  '/inkbirds.js': 27.5 * K,        // 28,111 at the top of the wave-1 stack (2026-11-15: the five motion fixes, #225-#231, and their reviews 1-3: +1,884 B over main's 26,227; 49 B left)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's

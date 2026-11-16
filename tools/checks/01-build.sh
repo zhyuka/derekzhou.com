@@ -5,6 +5,6 @@
 # site/ holds only sources: the pages, _headers, the hand-written scripts, the fonts. The files the build
 # writes (the five minified scripts from build/ship/, the plan's worker from build/src/) are
 # never committed. build/site/ is the plain build (tools/build.mjs --plain: the vN names), byte for byte
-# what Cloudflare Pages serves before it names each script by its content. terser as package.json pins it.
-npm ci --no-audit --no-fund --ignore-scripts
+# what Cloudflare Pages serves before it names each script by its content. terser as package.json pins it
+# (installed by 00-assemble's npm ci).
 node tools/build.mjs --plain build/site > /dev/null
