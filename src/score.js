@@ -29,14 +29,14 @@
    each allows. A room of 3.4 s, smooth and even (its highs dying first, its lows one in both ears, its highs apart),
    the bass kept out of it, the harp and piano nearer; drier over the open dunes, softer and darker over the cloud. The
    deep end the tuba's own low notes, felt, with a quiet trace of their partials a phone can play. A faint wind under
-   it all, in gusts on the sky's own breeze, never repeating. The ear's sensitive band eased; about -26 LUFS; no
+   it all, in gusts on the sky's own breeze, never repeating. The ear's sensitive band eased; about -23 LUFS (the owner, 2026-11-15: "yes make it louder, -23"); no
    compression. */
 (function () {
   'use strict';
 
   var NOTES = [[0,36,0.5,7.0,1,0.46557],[0,40,7.65,7.0,1,0.23934],[0,43,14.8,6.3689,1,0.19256],[0,47,21.3189,7.0,1,0.1464],[0,50,28.4689,7.0,1,0.34301],[0,53,35.6189,6.4613,1,0.25132],[1,55,42.2302,5.761,1,0.57709],[1,59,48.1412,7.0,1,0.36313],[1,62,55.2912,7.0,1,0.39555],[2,62,62.4412,7.0,1,0.57005],[2,66,69.5913,7.0,1,0.33263],[2,69,76.7413,7.0,1,0.56562],[2,72,83.8913,7.0,1,0.26029],[2,76,91.0413,7.0,1,0.48496],[3,58,98.1913,7.0,1,0.13254],[3,62,105.3413,7.0,1,0.1517],[3,65,112.4913,7.0,1,0.12627],[3,70,119.6413,7.0,1,0.08717],[3,74,126.7913,7.0,1,0.15534],[3,77,133.9413,7.0,1,0.15711],[4,43,141.0913,7.0,1,0.14411],[4,46,148.2413,7.0,1,0.26131],[4,50,155.3913,7.0,1,0.12751],[4,53,162.5413,7.0,1,0.11478],[4,57,169.6913,7.0,1,0.13412],[4,60,176.8413,7.0,1,0.12649],[4,74,183.9913,6.3918,1,0.15312],[5,28,190.5331,7.0,1,0.26297],[5,30,197.6831,7.0,1,0.20173],[5,31,204.8331,7.0,1,0.14179],[5,34,211.9831,7.0,1,0.17723],[6,29,219.1331,2.1785,1,0.32956],[6,34,221.4616,6.2299,1,0.22956],[7,41,227.8415,4.5,0,0.30143],[7,45,232.4915,4.5,0,0.41798],[7,48,237.1415,4.5,0,0.34491],[7,52,241.7915,4.5,0,0.61155],[7,55,246.4415,4.5,0,0.30623],[7,59,251.0915,4.5,0,0.4214],[7,62,255.7415,4.5,0,0.82007],[7,65,260.3915,4.5,0,0.4825],[7,69,265.0415,4.5,0,2.02154],[7,72,269.6915,4.5,0,0.9619],[7,76,274.3415,4.5,0,0.71059],[7,79,278.9915,4.5,0,1.541],[7,83,283.6415,4.416,0,1.66104],[7,86,288.2075,3.8974,0,3.25535],[8,36,292.2548,6.0,0,0.46885],[8,40,298.4048,6.0,0,0.35249],[8,44,304.5548,6.0,0,0.47431],[8,48,310.7048,6.0,0,0.51277],[8,52,316.8548,6.0,0,0.37797],[8,56,323.0048,6.0,0,0.37927],[8,60,329.1548,6.0,0,0.65936],[8,64,335.3048,6.0,0,0.92017],[8,68,341.4548,6.0,0,0.6044],[8,72,347.6048,6.0,0,0.89631],[8,76,353.7548,6.0,0,0.5836],[8,80,359.9048,6.0,0,1.30549],[8,84,366.0548,6.0,0,1.38963]], MARK = 0.2;   // (tools/sound/sheet.py writes this line: [instrument, midi, start s, length s, loops, gain])
   var INST = ['cello', 'viola', 'violin', 'clar', 'horn', 'cbass', 'tuba', 'harp', 'piano'];
-  var H = 10, OUT = 0.85;   // (s: how far ahead it plans; the output level: about -26 LUFS, measured with tools/sound/render.mjs)
+  var H = 10, OUT = 1.27;   // (s: how far ahead it plans; the output level: about -23 LUFS, true peak under -1.5 dBFS, measured with tools/sound/render.mjs)
   var V9 = [0, 7, 16, 23, 26], V69 = [0, 7, 16, 21, 26], VM9 = [0, 7, 15, 22, 26], LIFT = [0, 7, 18, 21, 26];
   var MAJ = [0, 2, 4, 5, 7, 9, 11], LYD = [0, 2, 4, 6, 7, 9, 11], DOR = [0, 2, 3, 5, 7, 9, 10];
   var FMAJ = [[0, V9], [5, V69], [9, VM9], [0, LIFT], [2, VM9], [0, V69]], FLYD = [[0, V9], [0, LIFT], [2, V69], [9, VM9], [4, VM9]];
@@ -436,7 +436,7 @@
         add(m, t, rs + rel * 0.6, t + att * 0.5, rs + rel * 0.5, 'bloom');
       }
       col = colourAt(p + 0.6);
-      if (col === 'harp') spread(r.n).forEach(function (m, j) { var t = p + 0.6 + 0.95 * j; if (fits(m, t, t + 3.5, true)) { voice('harp', m, t, -11 - 0.6 * j + R.r(-0.6, 0.2), 0, -0.3 + 0.1 * j, false, near); add(m, t, t + 3.5, t, t + 3, 'col'); } });
+      if (col === 'harp') spread(r.n).forEach(function (m, j) { var t = p + 0.6 + 0.95 * j; if (fits(m, t, t + 3.5, true)) { voice('harp', m, t, -12.5 - 0.6 * j + R.r(-0.6, 0.2), 0, -0.3 + 0.1 * j, false, near); add(m, t, t + 3.5, t, t + 3, 'col'); } });
       else if (col === 'piano') r.n.slice(1).forEach(function (m, j) { var t = p + 0.6 + 0.22 * j; if (fits(m + 12, t, t + 4, true)) { voice('piano', m + 12, t, (j ? -13 : -10.5) + R.r(-0.8, 0.2), 0, -0.3 + 0.15 * j, false, near); add(m + 12, t, t + 4, t, t + 3, 'col'); } });
       S.root = null;
     }
@@ -523,7 +523,7 @@
         seq.forEach(function (m, j) {
           if (!fits(m, tt, tt + 3.5)) return;
           var hi = m > 74 ? -1.5 : 0;   // (the harp and the piano to G5, the top softer: higher, ringing, they read as a bell, an alarm)
-          if (col === 'harp') voice('harp', m, tt, -8 - 0.7 * j + hi + bal + R.r(-1, 0.5), 0, -0.2 + 0.4 * R.f(), false, near);
+          if (col === 'harp') voice('harp', m, tt, -10 - 0.7 * j + hi + Math.min(1, bal) + R.r(-1, 0.5), 0, -0.2 + 0.4 * R.f(), false, near);   // (a pluck's attack peaks far above its loudness: the harp 2 dB under the piano, lifted alone 1 dB at most, so at -23 LUFS its peaks keep 1 dB clear)
           else voice('piano', m, tt, -9 - 0.6 * j + hi + bal + R.r(-1, 0.5), 0, -0.2 + 0.4 * R.f(), false, near);
           add(m, tt, tt + 3.5, tt, tt + 1.8, 'col'); tt += gap * R.r(0.85, 1.2);
         });
