@@ -4,7 +4,7 @@
      14 deg of crab can give, and the hard rule pushes the camera along their faces for seconds (6 of 11 seeds, 81-1091
      pushes); a solid climbed only once heightTarget sees it, HT_T s off, is met too late if tall; and clouds' visible
      bodies have to be seen too.
-     So every SLIP_PLAN = 0.25 s (and at once when the heading has turned) slipPlan looks SLIP_T = 90 s of flight
+     So every SLIP_PLAN = 0.25 s (and at once once the heading has turned SLIP_REPSI, 2 deg, since the last) slipPlan looks SLIP_T = 90 s of flight
      ahead (at least SLIP_REACH = 1,200 m; the cells hold their solids 3.8-5.2 km out) and chooses the line to fly: an
      offset from the present line and a speed of slip, among a few dozen offsets (the line in hand, the slip stopped
      where it is, each edge of the 30 solids met soonest, a ladder) and seven speeds (SLIP_SPD x the realm's speed:
