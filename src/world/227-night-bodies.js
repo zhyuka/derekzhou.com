@@ -79,9 +79,8 @@
     var q = mrProj(mrCam(I.psi, I.pN), I, d);
     return d[1] > 0.02 && q[2] > 0 && Math.abs(q[0]) < 0.92 && Math.abs(q[1]) < 0.92;
   }
-  function venusPlan(V) {   // once a visit, at its first frame with a window: its side (a morning star on a visit that opens on first light) and, of VEN_TRY elongations drawn, the first whose path down keeps clear of the words and that stands in view at the cut (the hub's review of the 4090 frames: seen, not only possible), else the first clear one over the horizon at the cut; none clear: no Venus this visit
-    if (NIGHTB.seed === J.seed) return true;
-    var I = moonInputs(null); if (!I) return false;
+  function venusPlan(V, I) {   // its side (a morning star on a visit that opens on first light) and, of VEN_TRY elongations drawn (the same every plan of a visit), the first whose path down keeps clear of the words in the window I and that stands in view at the cut (the hub's review of the 4090 frames: seen, not only possible), else the first clear one over the horizon at the cut; none clear: no Venus this visit
+    if (!V || !V.light || !I) return false;
     var morning = !!(SKY.landing && SKY.landing.sky === 'firstlight'), R = RNG(subseed(J.seed, 84));
     var el0 = SKY.landing ? airSunEl(SKY.landing.sky) : null, D0 = -(el0 === null ? AIR_SUN_NIGHT : el0), F = venusFrame(V, morning, D0), seen = -1, up = -1, k, d = [0, 0, 0];
     NIGHTB.side = morning ? -1 : 1; NIGHTB.morning = morning;
@@ -96,11 +95,22 @@
     NIGHTB.fails = NIGHTB.none ? 1 : 0;
     return true;
   }
+  /* (the hub's round-3 review of #301) planned in the sky's step (226's moonStep), never in the draw: once a visit at its
+     first step with a window, the opening against the still's own window and words (226's stillInputs, as its moon), so
+     the still and the live first frame agree; a new window plans it again with the live one (moonResized), the phone's
+     bar shown or hidden only when its path now crosses a word */
+  function venusStep() { if (NIGHTB.seed !== J.seed) venusPlan(SIM.V, stillInputs(moonInputs(null))); }
+  function venusResized(heightOnly) {
+    if (NIGHTB.seed !== J.seed) return;
+    var I = moonInputs(null); if (!I) return;
+    if (heightOnly && (NIGHTB.none || !venusFails(I, venusFrame(SIM.V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, NIGHTB.D0))) return;
+    venusPlan(SIM.V, I);
+  }
   function nightBodiesUniforms(u) {
     var V = SIM.V, D = skyDepth();
     NIGHTB.m[0] = starLim(D); NIGHTB.m[1] = V && V.L && V.L.skyFlat ? zenithY(V.L) : 0.016; NIGHTB.m[2] = VEN_TOP_Y; NIGHTB.m[3] = 0;
     NIGHTB.v[3] = 0;
-    if (V && V.light && venusPlan(V) && !NIGHTB.none) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, D, NIGHTB.D0, NIGHTB.d); NIGHTB.v[0] = NIGHTB.d[0]; NIGHTB.v[1] = NIGHTB.d[1]; NIGHTB.v[2] = NIGHTB.d[2]; NIGHTB.v[3] = 1; }
+    if (V && V.light && NIGHTB.seed === J.seed && !NIGHTB.none) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, D, NIGHTB.D0, NIGHTB.d); NIGHTB.v[0] = NIGHTB.d[0]; NIGHTB.v[1] = NIGHTB.d[1]; NIGHTB.v[2] = NIGHTB.d[2]; NIGHTB.v[3] = 1; }
     if (u.uStarM) gl.uniform4fv(u.uStarM, NIGHTB.m);
     if (u.uVen) gl.uniform4fv(u.uVen, NIGHTB.v);
   }
