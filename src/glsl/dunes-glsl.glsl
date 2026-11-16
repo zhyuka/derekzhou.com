@@ -85,10 +85,11 @@ vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
    slip face a plane from the brink, its own slope m chosen so the surface's steepest descent there is 32 deg with the
    swell and the crest's change in height (G) included: m = G.g + sqrt(tan^2 32 - |G across g|^2); its share of the
    wavelength fl = H k / m. The brink a smooth min over 2 m across, the toe a smooth max over 0.15 of the face. H = min(the
-   dune's height, 0.13 of the local wavelength). Census (tools/physics/dune-census.mjs, 2.25 M points): lee mode 31,
-   p99 32.0, none over 34 deg (the steepest 32.0), stoss p50 9.1, p90 13.6 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
+   dune's height, 0.13 of the local wavelength). The face's slope carries (1 - f) d(H / fl): the surface's.
+   Census (tools/physics/dune-census.mjs, four winds): lee mode 31-32, p99 33.1, 0.01-0.04% over 34 deg (by
+   differences 0.013-0.030%, the steepest 35-36); stoss p50 9, p90 13.5 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
    (none on the slip face, eased over 0.06 of the phase at both ends) */
-vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw, out vec4 s1o) {
+vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, vec3 Hs, vec2 dph, out vec3 nw, out vec4 s1o, out vec2 s1q) {
   float k = length(ph.yz); vec2 g = ph.yz / k;
   vec3 H = dSmin(Hm, vec3(0.13 / k, 0.0, 0.0), 2.0);   // (a smooth cap: a hard one switched H's slope, and with it m and fl: a 1 m step)
   // (the face's height H (1 - f) / fl is m (1 - f) / k: H drops out of it, so its slope holds no dH, and m is solved for
@@ -96,15 +97,22 @@ vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw, out vec4 s1o) {
   // and where fl changed fast across the wind the brink turned along it in walls of 48-62 deg: the hub's review)
   vec2 G0 = swell.yz;
   float m = dot(G0, g) + sqrt(max(0.39046 - pow(-G0.x * g.y + G0.y * g.x, 2.0), 0.04));   // (tan^2 32 = 0.39046)
-  float fl = clamp(H.x * k / max(m, 0.2), 0.04, 0.6), L = 1.0 - fl, f = fract(ph.x);
+  float flr = H.x * k / max(m, 0.2), fl = clamp(flr, 0.04, 0.6), L = 1.0 - fl, f = fract(ph.x);
+  // (the face's height H (1 - f) / fl: its slope carries (1 - f) d(H / fl). Unclamped H / fl = m / k: it changes with
+  // the phase's direction (dph: d/ds of its gradient, s across the wind) and the swell's slope (Hs, its curvature xx xy
+  // yy); clamped, dH / fl)
+  float dk = dot(g, dph); vec2 dg = (dph - g * dk) / k;
+  float c = -G0.x * g.y + G0.y * g.x, rad = 0.39046 - c * c, q = rad > 0.04 ? -c / sqrt(rad) : 0.0;
+  vec2 v = g + q * vec2(-g.y, g.x), pp = vec2(-WINDDIR.y, WINDDIR.x);   // (dm / dG0)
+  vec2 dQ = flr < 0.04 || flr > 0.6 ? H.yz / fl : (m > 0.2 ? (pp * dot(v, dg) + mat2(Hs.xy, Hs.yz) * v) / k : vec2(0.0)) - pp * (max(m, 0.2) * dk / (k * k));
   float a = f / L, n = (f - 1.0) / L;
   vec3 A = dMul(vec3(0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a), ph.yz * ((0.5 + 3.0 * a * (1.0 - a)) / L)), H);
-  vec3 F = vec3(H.x * (1.0 - f) / fl, ph.yz * (-H.x / fl));   // (no dH: see m)
+  vec3 F = vec3(H.x * (1.0 - f) / fl, ph.yz * (-H.x / fl) + (1.0 - f) * dQ);
   vec3 N = dMul(vec3(0.5 * n, ph.yz * (0.5 / L)), H);   // (the next stoss's plane below its toe: the cubic turned up behind it, a 1.9 m step at f 0.5)
-  vec3 P = vec3(-H.x * f / fl, ph.yz * (-H.x / fl));
+  vec3 P = vec3(-H.x * f / fl, ph.yz * (-H.x / fl) - f * dQ);
   vec3 top = dSmin(A, F, max(H.x * k * (0.5 / L + 1.0 / fl), 0.05)), h = dSmax(top, f > 0.5 ? N : P, max(0.15 * H.x, 0.05));   // (the brink rounded over 2 m across: a smooth min over the height the two slopes part by in 1 m each side)
   vec3 e1 = dSstep(L - 0.06, L, vec3(f, ph.yz)), e2 = dSstep(0.0, 0.06, vec3(f, ph.yz));
-  nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2); s1o = vec4(H.x, fl, H.yz);
+  nw = dMul(vec3(1.0, 0.0, 0.0) - e1, e2); s1o = vec4(H.x, fl, H.yz); s1q = dQ;
   return h;
 }
 /* (physics: sand/S2, a crisp brink) the main dune's slope rebuilt from its phase: f = fract(phase), g its gradient
@@ -113,13 +121,13 @@ vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, out vec3 nw, out vec4 s1o) {
    brink's and the toe's rounding (height, m). The land's fragments take this whole at their own phase in place of the
    vertices' whole (FS_TERRAIN): nothing of the main dune that turns at the brink is left to the triangles (the hub's
    review of #285: the dH part, kept per vertex, made the brink a sawtooth that crawled), so its lit and shaded sides
-   meet on the brink to the pixel */
-vec2 s1Slope(float f, vec2 g, float H, float fl, float rb, float rt, vec2 dH) {
+   meet on the brink to the pixel. dH.zw: the faces' d(H / fl) (duneS1's dQ), carried (1 - f) on the face, -f before it */
+vec2 s1Slope(float f, vec2 g, float H, float fl, float rb, float rt, vec4 dH) {
   float L = 1.0 - fl, a = f / L, n = (f - 1.0) / L, sa = 0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a);
-  vec3 A = vec3(H * sa, g * (H * (0.5 + 3.0 * a * (1.0 - a)) / L) + sa * dH);
-  vec3 F = vec3(H * (1.0 - f) / fl, g * (-H / fl));
-  vec3 N = vec3(H * 0.5 * n, g * (H * 0.5 / L) + 0.5 * n * dH);
-  vec3 P = vec3(-H * f / fl, g * (-H / fl));
+  vec3 A = vec3(H * sa, g * (H * (0.5 + 3.0 * a * (1.0 - a)) / L) + sa * dH.xy);
+  vec3 F = vec3(H * (1.0 - f) / fl, g * (-H / fl) + (1.0 - f) * dH.zw);
+  vec3 N = vec3(H * 0.5 * n, g * (H * 0.5 / L) + 0.5 * n * dH.xy);
+  vec3 P = vec3(-H * f / fl, g * (-H / fl) - f * dH.zw);
   return dSmax(dSmin(A, F, rb), f > 0.5 ? N : P, rt).yz;
 }
 /* the brink's rounding as duneS1's (2 m across) */
@@ -129,26 +137,43 @@ float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0
 const vec2 D_TO[7] = vec2[7](vec2(0.0), vec2(311.0, -97.0), vec2(0.0), vec2(71.0), vec2(400.0), vec2(9.0), vec2(900.0));
 const float D_TS[7] = float[7](1.0 / 760.0, 0.0, 1.0 / 340.0, 1.0 / 95.0, 0.0, 1.0 / 80.0, 1.0 / 160.0);
 const mat2 D_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0);
+/* gnd with its second derivatives (hs: xx, xy, yy), for the slip face's slope (duneS1) */
+vec3 gndH(vec2 p, out vec3 hs) {
+  vec2 i = floor(p), f = p - i; ivec2 ii = ivec2(i);
+  vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0), du = 30.0 * f * f * (f * (f - 2.0) + 1.0), ddu = 60.0 * f * (f * (2.0 * f - 3.0) + 1.0);
+  vec2 ga = g2(ii), gb = g2(ii + ivec2(1, 0)), gc = g2(ii + ivec2(0, 1)), gd = g2(ii + ivec2(1, 1));
+  float va = dot(ga, f), vb = dot(gb, f - vec2(1.0, 0.0)), vc = dot(gc, f - vec2(0.0, 1.0)), vd = dot(gd, f - vec2(1.0, 1.0));
+  float k = va - vb - vc + vd; vec2 gk = ga - gb - gc + gd;
+  hs = vec3(2.0 * du.x * (gb.x - ga.x + u.y * gk.x) + ddu.x * (u.y * k + vb - va),
+            du.y * (gc.x - ga.x + u.x * gk.x) + du.x * (gb.y - ga.y + u.y * gk.y) + du.x * du.y * k,
+            2.0 * du.y * (gc.y - ga.y + u.x * gk.y) + ddu.y * (u.x * k + vc - va));
+  return vec3(va + u.x * (vb - va) + u.y * (vc - va) + u.x * u.y * k,
+              ga + u.x * (gb - ga) + u.y * (gc - ga) + u.x * u.y * gk + du * (u.yx * k + vec2(vb - va, vc - va)));
+}
 vec3 dunes(vec2 p) {
   vec2 w = WINDDIR, pp = vec2(-w.y, w.x);
   mat2 Ma = mat2(w.x / 420.0, pp.x / 190.0, w.y / 420.0, pp.y / 190.0);
   float wSmall = 1.0 - smoothstep(900.0, 1300.0, gLodD);
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd, not seven), each tap's own multiply
      as before and its gradient turn after (dNg, its matrix a constant as before): the same operations on the same values */
-  vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
+  vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0, q0 = g0, q1 = g0, q2 = g0, q3 = g0;
   for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
-    vec3 g;
-    if (o == 1 || o == 4) g = gnd((o == 1 ? D_M1 : Ma) * (p + D_TO[o]));
-    else if (o == 2 || o == 3) g = gnd(vec2(dot(p, pp) * D_TS[o], o == 2 ? 3.7 : 11.3));   // (physics: sand/S1: the crests' wander, a slice in the across-wind coordinate)
-    else g = gnd(mat2(D_TS[o]) * (p + D_TO[o]));
-    if (o == 0) g0 = g; else if (o == 1) g1 = g; else if (o == 2) g2 = g; else if (o == 3) g3 = g; else if (o == 4) g4 = g; else if (o == 5) g5 = g; else g6 = g;
+    vec3 g, q;
+    if (o == 1 || o == 4) g = gndH((o == 1 ? D_M1 : Ma) * (p + D_TO[o]), q);
+    else if (o == 2 || o == 3) g = gndH(vec2(dot(p, pp) * D_TS[o], o == 2 ? 3.7 : 11.3), q);   // (physics: sand/S1: the crests' wander, a slice in the across-wind coordinate)
+    else g = gndH(mat2(D_TS[o]) * (p + D_TO[o]), q);
+    if (o == 0) { g0 = g; q0 = q; } else if (o == 1) { g1 = g; q1 = q; } else if (o == 2) { g2 = g; q2 = q; } else if (o == 3) { g3 = g; q3 = q; } else if (o == 4) g4 = g; else if (o == 5) g5 = g; else g6 = g;
   }
+  // (the swell's curvature, M^T Hn M a tap, and d/ds of the phase's gradient from the slices' own second derivatives: duneS1)
+  mat2 Q1 = transpose(D_M1) * mat2(q1.xy, q1.yz) * D_M1;
+  vec3 Hs = (40.0 / (760.0 * 760.0)) * q0 + 15.0 * vec3(Q1[0][0], Q1[0][1], Q1[1][1]);
+  vec2 dph = (0.42 * q2.x / (340.0 * 340.0) + 0.13 * q3.x / (95.0 * 95.0)) * pp;
   vec3 h = 40.0 * dNg(g0, mat2(1.0 / 760.0)) + 15.0 * dNg(g1, D_M1);
   gMB = vec2(h.x, gKD.x);   // (delight-weather 1: the mist pools' floor before the basins and the sink (the swell the dunes stand on), and their reach, the sand)
   vec3 amp = dSstep(-0.42, 0.3, dNg(g4, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
-  vec3 nw, ph = s1Phase(p, w, pp, 205.0, g2, g3); vec4 s1o;
-  vec3 s1 = duneS1(ph, 32.0 * dMul(amp, gKD), h - gSK, nw, s1o);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
-  h += s1; gS1 = vec4(ph, s1o.x); gS1F = s1o.y; gS1D = s1o.zw; gS1W = 1.0;   // (physics: sand/S2: for the land's fragments)
+  vec3 nw, ph = s1Phase(p, w, pp, 205.0, g2, g3); vec4 s1o; vec2 s1q;
+  vec3 s1 = duneS1(ph, 32.0 * dMul(amp, gKD), h - gSK, Hs, dph, nw, s1o, s1q);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
+  h += s1; gS1 = vec4(ph, s1o.x); gS1F = s1o.y; gS1D = vec4(s1o.zw, s1q); gS1W = 1.0;   // (physics: sand/S2: for the land's fragments)
   if (wSmall > 0.0) {
     vec2 w2 = normalize(w + 1.3 * pp);
     vec3 s2 = duneWave(p + 37.0, w2, 64.0, 0.7, 0.25 * dNg(g5, mat2(1.0 / 80.0)));
