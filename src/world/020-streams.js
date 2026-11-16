@@ -14,7 +14,7 @@
       pick: function (a) { return a[Math.floor(f() * a.length)]; },
       n: function () { var u = Math.max(f(), 1e-9), v = f(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2831853 * v); },
       sign: function () { return f() < 0.5 ? -1 : 1; },
-      seed: function () { return Math.floor(f() * 4294967296) >>> 0; }
+      seed: function () { return (f() * 4294967296) >>> 0; }
     };
   }
   /* integer hashes, the same in JS and GLSL bit for bit (the layout of a realm's areas is read on both sides: the
