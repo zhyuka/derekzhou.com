@@ -65,10 +65,11 @@
      most stable air). AIR_BYSKY gives each sky its shares: s the surface's (to 20 m) of the visit's day wind, j the
      jet's (100-300 m), g its gustiness (the gusts' share of their day's intensity: a stable night's are weaker; set
      by eye within row 6's band, no source gives it by sky). The gusts' field is carried at the mean wind on every sky
-     (row 6: frozen and carried downwind, https://glossary.ametsoc.org/wiki/Frozen_turbulence), so a point dx downwind
-     meets each gust dx / U10 later; on a calm sky it passes a point at the surface's share of U10, and a gust's e-fold
-     there is longer than the day's (the eddies' scale, 22 U10, is the day's: no source found gives a stable night's
-     shorter scale in this form, so the longer e-fold is taken, the hub's ruling). Up
+     (row 6: frozen and carried downwind, https://glossary.ametsoc.org/wiki/Frozen_turbulence), carried on the
+     surface's clock (airClock), so it passes a point at s U10: a point dx downwind meets each gust dx / (s U10) later
+     in flight time (dx / U10 on the surface's clock), and a gust's e-fold is the day's 10-23 s over s (the eddies'
+     scale, 22 U10, is the day's: no source found gives a stable night's shorter scale in this form, so the longer
+     e-fold is taken, the hub's ruling). Up
      the profile the share eases from s to j (20-100 m, in log height) and from j to the free air's 1 (300-1500 m).
      Over a hold the sky's shares hold; through a change they ease into the next sky's with its light (ss01 of the
      change). The score's breeze is the same table (512's feed). Whatever the wind carries is carried by its integral,
@@ -128,15 +129,18 @@
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
-     frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence), so a point dx downwind meets
-     each gust dx / U10 later and nothing steps it in time. Its value is value noise (the shaders' own hash: lib.glsl's
-     ih, ih2, hf; three octaves, quintic, normalised to unit variance) in the visit's wind frame, xi = x.w - U10 t along
+     frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
+     (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust
+     dx / U10 later on that clock, dx / (s U10) later in flight time, and nothing steps it in time. Its value is value
+     noise (the shaders' own hash: lib.glsl's ih, ih2, hf; three octaves, quintic, normalised to unit variance) in the
+     visit's wind frame, xi = x.w - U10 T along
      and eta = x.p across, both over L = AIR_GUST[1] U10: one reference speed (the visit's U10) carries and scales the
      field at every height, so a bird over a veil feels the veil's gust; the height sets only its size, AIR_GUST[0]
      W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), on the flight's clock (the shaders' uT
-     less AIR_UT0): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median 13.6), the
-     lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
-     (test/unit/air.mjs: 16 visits of 10 min). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
+     less AIR_UT0). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
+     13.6), the lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
+     (test/unit/air.mjs: 16 visits of 10 min); on a sky of surface share s, the e-fold and the lag are the day's over s
+     (the moonlit sea's e-fold median 28.5 s, first light's 40.7 s). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
      birds read it as HOST.gust, HOST.gustPhase and HOST.gustSigma */
   var AIR_UT0 = 40;   // (the shaders' clock's lead over the flight's: 413's UT[0] = u + AIR_UT0)
   var AIR_GUST = [0.26, 22, 1.92946], AIR_GOCT = [[1, 1, 0x27d4eb2d], [2.03, 0.5, 0x165667b1], [4.11, 0.25, 0x61c88647]];   // (intensity, time scale s, the noise's unit-variance gain; the octaves: frequency, amplitude, salt)
