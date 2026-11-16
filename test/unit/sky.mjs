@@ -8,6 +8,7 @@
 // plant: {"file": "src/world/227-night-bodies.js", "find": "{ n++; break; }", "with": "{ break; }", "why": "venusFails never counts a place on a word: the evening star planned across the words, and on a window all words"}
 // plant: {"file": "src/world/220-time-day.js", "find": "L:[0.62,0.01,80],glow:[0.44,0.01,80]", "with": "L:[0.62,0.01,250],glow:[0.44,0.01,250]", "why": "a blue-tinted disc merges with the blue moonlit clouds"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-2268x1080\":[[800.7,222.3,1467.2,433.8]", "with": "\"hi-2268x1080\":[[933.2,339.4,1334.7,433.8]", "why": "the still's own name box alone: on its band's smallest window the words stand bigger, and the moon's footprint falls on them"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-1080x1080\":[[269,300.6,810.9,441.4]", "with": "\"hi-1080x1080\":[[339.2,347,740.7,441.4]", "why": "the square still's own name box alone: on 800x720 the evening star's path falls on the bigger name"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -327,7 +328,7 @@ test('night: the evening star never glitters as it slides between pixels (its li
 
 // the stars out in order (delight-night §4, the hub's review of #301): over a change from the blue hour into a night
 // (the sun from 7 to 24 deg down on the change's own ease, 58 s), each star's first frame of light against its
-// brightness ranks them brightest first (Spearman's rho >= 0.9, the sky's light by place included: brighter toward the
+// brightness ranks them brightest first (rank correlation >= 0.9, the sky's light by place included: brighter toward the
 // glow), and no star's share changes by more than 2% in a frame at 60 Hz; no Venus on a visit with no clear path
 test('night: the stars come out brightest first (rank correlation >= 0.9) and never change more than 2% a frame', () => {
   const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
@@ -350,11 +351,11 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   const ra = rank(out.map((st) => st.first)), rb = rank(out.map((st) => -st.b)), n = out.length;
   let d2 = 0; for (let i = 0; i < n; i++) d2 += (ra[i] - rb[i]) ** 2;
   const rho = 1 - 6 * d2 / (n * (n * n - 1));
-  assert.ok(rho >= 0.9, `Spearman's rho ${rho.toFixed(3)} (at least 0.9)`);
+  assert.ok(rho >= 0.9, `the rank correlation ${rho.toFixed(3)} (at least 0.9)`);
   assert.ok(worst <= 0.02, `a star's share changes ${(100 * worst).toFixed(2)}% in a frame (at most 2%)`);
   const N = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
   assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0)) continue;') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
-  console.log(`# stars out in order: rho ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
+  console.log(`# stars out in order: rank correlation ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
 });
 // the evening star's plan on the still's own window (the hub's round-3 review of #301): 227's venusPlan and venusFails
 // and 225's camera run here as the page runs them, on the lo phone still's window and its words' boxes (226's
@@ -390,6 +391,39 @@ test('night: the evening star\'s plan on the lo still\'s window keeps its whole 
   }
   assert.ok(planned > 60, `${planned} of 240 visits with an evening star (the test is not empty)`);
   assert.equal(onWords, 0, `${onWords} planned paths cross the words`);
+});
+// the evening star on each band's smallest window (the hub's round-4 review: on 1024x768 under the 1350x1080 still it
+// stood on the name): planned as the page plans it, in the still's own window against 226's STILL_WORDS (the union of
+// the bake's boxes and the smallest window's), then its whole path down walked in the smallest window's own view (226's
+// stillView) against that window's own boxes (test/golden/still-words.json): none of it on a word
+test('night: the evening star\'s path keeps off the words on each band\'s smallest window, in that window\'s own view', () => {
+  const SV = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] +
+    '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  function stillView(', '  function stillInputs(') + ' return stillView; })')();
+  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+  let planned = 0, onWords = 0, near = 0; const where = [];
+  for (const key of Object.keys(SW)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), sc = tier === 'lo' ? 393 / Math.min(w0, h0) : 1, bw = Math.round(w0 * sc), bh = Math.round(h0 * sc);
+    const [sw, shh] = G[key].min, vS = SV(bw, bh, [0.4, 0.6], {}), vL = SV(sw, shh, [0.4, 0.6], {}), small = G[key].small;
+    for (let s = 1; s <= 6; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (const off of [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50]) {   // (headings across the glow: the evening star anywhere over the words)
+      const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky }), psi = keyAz + (sky === 'firstlight' ? 1 : -1) * 30 + off;
+      const I = { W: bw, H: bh, tanX: vS.tanX, tanY: vS.tanY, pN: vS.pN, pL: vS.pN, keepPx: 12, boxes: SW[key].map((b) => b.slice()), psi };
+      assert.ok(K.venusPlan(K.V, I));
+      if (K.NIGHTB.none) continue;
+      planned++;
+      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0), L = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY }, C = K.mrCam(psi, vL.pN);
+      for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
+        const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+        const q = K.mrProj(C, L, d); if (q[2] <= 0 || Math.abs(q[0]) > 1 || Math.abs(q[1]) > 1) continue;
+        const x = (q[0] + 1) / 2 * sw, y = (1 - q[1]) / 2 * shh;
+        if (small.some((B) => x > B[0] && x < B[2] && y > B[1] && y < B[3])) { onWords++; where.push(`${key} at ${sw}x${shh} seed ${s} ${sky} D ${D}`); break; }
+        if (small.some((B) => x > B[0] - 12 && x < B[2] + 12 && y > B[1] - 12 && y < B[3] + 12)) near++;
+      }
+    }
+  }
+  assert.ok(planned > 150, `${planned} evening stars planned (the test is not empty)`);
+  assert.equal(onWords, 0, `paths on the words in the smallest windows: ${where.slice(0, 6).join('; ')}`);
+  console.log(`# evening star on the bands' smallest windows: ${planned} planned, none on a word, ${near} places within the 12 px keep`);
 });
 // ------------------------------------------------------------------ the sky's lights behind its haze (aurora-haze)
 // the galaxy and the aurora are behind the haze, as the moon is: each term scaled by what the haze lets through
