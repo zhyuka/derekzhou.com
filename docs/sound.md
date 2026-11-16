@@ -22,6 +22,9 @@ site/index.html or `.sound` in site/style.css.
 - "now final refinement and cleanup of sounds/acoustics as per your research. are you sure you researched literally
   everything out there? u need to think bigger" (2026-11-13): so how it sounds (sketch round twenty-two, below), from
   research into rooms and outdoor acoustics, intonation and sampled realism, phones and quiet listening, and wind.
+- "yes make it louder, -23. and i pick the refined sound" (2026-11-15): so about -23 LUFS (it was -26, 6 dB under
+  the floor recommended for streams heard on phones), with no compression; the harp's attacks 2 dB lower, so its
+  peaks keep clear.
 
 The music itself was chosen by ear over seventeen rounds of sketches (2026-11-07 to 2026-11-12). His words
 along the way set what it must and must not be:
@@ -160,7 +163,8 @@ How it sounds (sketch round twenty-two):
   About 18 dB under the music.
 - **The ear**: the band the ear is most sensitive to eased (a -3 dB bell at 3.2 kHz, the strings' resonances at
   2-4 kHz cut 1-4 dB), a gentle 3 dB dip at 160 Hz (80-200 Hz is all the bass a laptop has), nothing below 27 Hz; no
-  compression. About -26 LUFS.
+  compression. About -23 LUFS (the owner's, 2026-11-15; -26 before), its true peak under -1 dBFS: a pluck's attack
+  peaks far above its loudness, so the harp sits 2 dB under the piano and is lifted alone 1 dB at most.
 
 Under reduced motion the world is one still frame and its clock holds, so the score stays in that sky. With no
 world (no WebGL2), the score plays blue hour and never changes.
@@ -237,6 +241,10 @@ Through a phone speaker, modelled (little under 350 Hz), the music loses a media
 round twenty's 4.8) and is more than 10 dB under its median for 7 s of the 7:36, 2 s at most (round twenty's 20 s, up
 to 8 s). Tried and dropped: swells even in decibels (YAMNet heard a horn rising so as an alarm, and on sin² as a horn);
 the harp, the piano and the violins at their tops, brighter (bells, alarms: so to G5 and D5).
+
+Louder (2026-11-15, OUT 1.27): over three flights (seeds 1501-1503) -23.1, -23.3 and -22.9 LUFS, true peak -2.0,
+-2.0 and -3.2 dBFS, loudness range 9.0-9.7 LU. At the old level the peaks were the harp's attacks in the Milky Way
+(they would have reached -0.2 dBFS at -23), so the harp came down first.
 
 Change OUT only with a measurement.
 
