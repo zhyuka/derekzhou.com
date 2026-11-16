@@ -101,7 +101,8 @@ tools/tsc.mjs                tsc --checkJs over the assembled world and src/real
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD): each error as
                              section:line or file:line
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
-tools/still-words.mjs        The words' boxes in each bake window, measured in Chromium against a build: 226's STILL_WORDS
+tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
+                             build (a layout only): 226's STILL_WORDS (their union) and test/golden/still-words.json
                              (--check, tools/checks/43-still-words.sh; --write after a stylesheet change)
 tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
 tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand
