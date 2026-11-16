@@ -162,7 +162,11 @@ it keeps its elongation, stands by the glow and sets by moving, never
 fading; steady, a point of the stars' kind with a small glare, its peak
 under OKLab L 0.49; its elongation the first of 12 drawn (SEED0's stream)
 whose path down keeps clear of the words' boxes at the view's own heading
-and pitch (moonInputs). It slips against the stars, which turn on their own
+and pitch, planned in the sky's step (moonStep), never the draw: at the
+opening against the still's own window and words (stillInputs, as the
+opening's moon), so the still and the live first frame agree; a new window
+plans it again (moonResized; the phone's bar only when its path now crosses
+a word). It slips against the stars, which turn on their own
 clock, until that forward clock lands (delight-visit §5.5).
 
 ## THE WORDS

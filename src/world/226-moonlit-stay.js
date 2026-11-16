@@ -51,6 +51,7 @@
     return S;
   }
   function moonStep(t) {
+    venusStep();   // (227: the evening star's plan, once a visit, against the still's window at the opening)
     var E = moonStay(t); MOON.E = E;
     if (E && !E.moon && E === SKY.seq[0] && E.landT === undefined) E.landT = t;   // (the opening's own moonlit stay: its moon in frame at the cut, the plan timed to it: 225's P.land)
     if (E && !E.moon) { var I = moonInputs(E); if (I && I.land !== null) { I = stillInputs(I); MOON.still = I.still || ''; } if (I) { E.moon = I.land !== null ? moonClear(E, I) : moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
@@ -151,6 +152,7 @@
     return P.ec >= Pn.lo - 1e-9 && P.ec <= Pn.hi + 1e-9 && mrTopOK(P.band, I, I.pN) && mrTopOK(P.band, I, I.pL);
   }
   function moonResized(heightOnly) {
+    venusResized(heightOnly);   // (227: the evening star planned again for the new window)
     var E = MOON.E, P = E && E.moon; if (!P) return;
     var I = moonInputs(E); if (!I) return;
     var Pn = moonPlan(I, { psi: P.psi, Hc: P.Hc, caseA: P.caseA, sigma: P.sigma });
