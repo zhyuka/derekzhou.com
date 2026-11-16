@@ -519,13 +519,15 @@ shader). It holds:
   speed (the nocturnal jet); first light is the stillest at the ground.
   AIR_BYSKY gives each sky its shares of the visit's day wind: the
   surface's (to 20 m), the jet's (100-300 m), the gusts' intensity (set
-  by eye within row 6's band) and the gusts' slide across the wind (on a
-  calm sky the field's frame drifts sideways, as weak night air
-  meanders, so a gust's e-fold stays within row 6's 10-30 s): the
-  afterglow 1, 1, 1, 0; the blue hour 0.7, 1.2, 0.65, 0; the moonlit sea
-  0.5, 1.4, 0.6, 0.49; the aurora 0.45, 1.4, 0.55, 0.54; the Milky Way
-  0.4, 1.5, 0.5, 0.57; first light 0.35, 1.3, 0.5, 0.61 (the e-fold's
-  median 14-25 s in every sky). Up the profile the share
+  by eye within row 6's band): the afterglow 1, 1, 1; the blue hour 0.7,
+  1.2, 0.65; the moonlit sea 0.5, 1.4, 0.6; the aurora 0.45, 1.4, 0.55;
+  the Milky Way 0.4, 1.5, 0.5; first light 0.35, 1.3, 0.5. The gust
+  field is carried at the mean wind on every sky (row 6), never slid
+  across it: on a calm sky it passes a point at the surface's share of
+  U10, so a gust's e-fold there is the day's over that share (the day's
+  median 14 s; the moonlit sea's 28 s, first light's 41 s). No source
+  found gives a stable night's shorter eddy scale in this form, so the
+  longer e-fold stands (the hub's ruling). Up the profile the share
   eases from the surface's to the jet's (20-100 m, in log height) and from
   the jet's to the free air's 1 (300-1500 m); the particles, all at 20 m
   or under, take the surface's, the birds at 40 m a blend. Over a hold a
