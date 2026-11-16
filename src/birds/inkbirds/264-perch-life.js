@@ -15,6 +15,14 @@
   }
   /* a step turn kept a profile, on the side it faces (from in front or behind the perched form is a thin tent) */
   function profile(y, was) { return (was >= 0 ? 1 : -1) * clamp(Math.abs(y), 65, 120); }
+  /* a walk's foot and hop at time T (the step's, or the frame's own): a hop of a step, then a pause; o[2] 1 once done */
+  var WKA = [0, 0, 0];
+  function walkAt(P, T, o) {
+    var wk = P.walk, k = Math.floor((T - wk.t0) / 0.45), f = ((T - wk.t0) % 0.45) / 0.22;
+    if (k >= wk.n) { o[0] = wk.x0 + wk.dir * wk.step * wk.n; o[1] = 0; o[2] = 1; }
+    else { o[0] = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); o[1] = f < 1 ? Math.sin(Math.PI * f) : 0; o[2] = 0; }
+    return o;
+  }
   function perchedStep(b, dt, C) {
     var P = b.P, r = b.r;
     if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast, steers, goes or nears the edge */
@@ -24,9 +32,7 @@
       if (PTR.gone || PTR.steer || sp > PJ.jerk || PTR.x < 20 || PTR.y < 20 || PTR.x > W - 20 || PTR.y > H - 20) { leave(b, 'tip'); return; }
     }
     if (P.walk && t >= P.walk.t0) {   /* a side-step (or a walk along the stroke): a hop of a step, pausing between */
-      var wk = P.walk, k = Math.floor((t - wk.t0) / 0.45), f = ((t - wk.t0) % 0.45) / 0.22;
-      if (k >= wk.n) { P.x = wk.x0 + wk.dir * wk.step * wk.n; P.walk = null; }
-      else { P.x = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); P.hop = f < 1 ? Math.sin(Math.PI * f) : 0; }
+      walkAt(P, t, WKA); P.x = WKA[0]; P.hop = WKA[1]; if (WKA[2]) P.walk = null;
       var Lg = ledges()[P.li]; if (Lg && (P.x < Lg.pts[0][0] || P.x > Lg.pts[Lg.pts.length - 1][0])) { var L2 = nearLedge(P.x, P.fy, P.li); if (L2 >= 0) P.li = L2; else { P.x = clamp(P.x, Lg.pts[0][0], Lg.pts[Lg.pts.length - 1][0]); P.walk = null; } }
     } else P.hop = 0;
     /* its body over its feet where they are this step (after any step it takes) */
@@ -66,7 +72,9 @@
   function leave(b, why, J) {
     var P = b.P; if (!P || P.leaving) return;
     if (b.st !== 'perch') { toAir(b, J); return; }
-    P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]) };
+    var h0 = P.hop || 0; if (P.walk && t >= P.walk.t0) { walkAt(P, t, WKA); P.x = WKA[0]; h0 = WKA[1]; }   // (a walk ends where it is: the take-off from there)
+    P.walk = null; P.hop = 0;
+    P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
   }
   function leavingStep(b, dt, C) {
     var P = b.P, L = P.leaving, u = t - L.t0;
@@ -89,7 +97,7 @@
     b.burst = leapt ? { t0: t, n: 3 + Math.floor(b.r() * 3) } : null;
     if (J && J.lead) {   /* to the flock: a place at its end, flown into */
       if (b.F && b.F !== J) { var F0 = leaveFlock(b); if (!F0.m.length) dropFlock(F0); }
-      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b);
+      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b); J.off = false; J.acc = 0;   // (a bird joining: the flock is judged again with it, from this frame)
     } else {
       if (!b.F) soloFlock(b);
       var r = b.r, g = weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
@@ -103,6 +111,7 @@
   var CLKQ = [];
   function pointerStep(dt, C) {
     var was = !PTR.gone, ox = PTR.x, oy = PTR.y;
+    PW.qx = PTR.x; PW.qy = PTR.y;   // (the pointer as the last step read it: a bird riding it is posed at the frame's time, between the two)
     if (HOST.pointer) HOST.pointer(PTR); else PTR.gone = true;
     if (PTR.gone || !was) { PW.pvx = PW.pvy = PW.pax = PW.pay = 0; PW.ptrStill = 0; }
     else {
