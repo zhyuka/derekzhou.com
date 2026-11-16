@@ -135,14 +135,17 @@ void main() {
   float al = 1.0 - T;
   // the land's own aerial perspective (atmos, the curve the hills take) at the body's real range (a quarter of the way
   // through it: where its light mostly comes from), and never darker than the land would be at that same range: its
-  // colour floored at the land's own paint (the dunes' sand, its shade and lit paint halved: dunes-glsl's SAND_SHADE
+  // lightness floored at the land's own paint (the dunes' sand, its shade and lit paint halved: dunes-glsl's SAND_SHADE
   // and SAND_LIT, uP[2] and uP[0], as the sky paints them) taken through the same haze along the level ray (the land
   // lies at the horizon, under the bank). So a far bank is never a dark shape in front of the hazed hills behind it,
   // and ends at the stream's edge already near the land's hazed colour (the hub's ruling on #240, round 2). Light
-  // added to the cloud's own, a floor, never a darkening: nothing here reads the words
+  // added to the cloud's own, a floor, never a darkening: nothing here reads the words. Over the cloud sea (ABOVE's kit)
+  // the land behind a bank is the sea's tops, lit as cloud and lighter than the sand's paint: the sand's floor is a
+  // lower bound there too, lifting only a bank darker than the sand would be, never one toward the sea's own light
   float tB = tn + (tf - tn) * 0.25;
   vec3 c0 = acc / al, fl = atmos(0.5 * (uP[2].rgb + uP[0].rgb), normalize(vec3(rd.x, min(rd.y, 0.0), rd.z)), tB);
-  vec3 col = max(atmos(c0, rd, tB), fl);
+  vec3 col = atmos(c0, rd, tB); float lC = dot(col, vec3(0.2126, 0.7152, 0.0722)), lF = dot(fl, vec3(0.2126, 0.7152, 0.0722));
+  col *= max(lF / max(lC, 1e-5), 1.0);   // (the floor by lightness: a darker body brought up to the land's luminance in its own hue; one already lighter, untouched)
   // a far body keeps its own colour (atmos above has taken it into the haze by its distance) and stays opaque
   // until the last quarter of its distance's weight (uVR2.y: 1 near, 0 at the cells' reach), then fades by its opacity
   // into the sky the sky pass drew behind it: faded by its opacity over the whole weight, a far bank let the stars and
