@@ -131,6 +131,12 @@ moon stands, with less of the 12 px keep beyond the footprint and then less of
 the 1 deg under the top edge if it must, the footprint itself always clear;
 where no row over the words fits at all (the lo tier's 2:1 windows) it
 stands beside the words on its leaving side and leaves through the side edge.
+It is planned in the still's own window (stillInputs: its size, frustum and
+pitch), so the live first frame and the still agree; against the words' boxes
+there, the union of the bake window's and its band's smallest window's (the
+words keep their CSS size, so a smaller window shows them bigger): clear on
+every window of the band from that one up, and a smaller window plans against
+its own words (STILL_MIN, STILL_WORDS; tools/still-words.mjs measures both).
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
