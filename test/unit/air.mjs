@@ -5,6 +5,7 @@
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
 // plant: {"file": "src/world/215-air.js", "find": "return d === undefined ? 0 : q * d; }", "with": "return d === undefined ? 0 : d; }", "why": "the mist on every visit again (no moisture)"}
+// plant: {"file": "src/world/215-air.js", "find": " BYSKY: airTable,", "with": " BYSKY: function () { return AIR_BYSKY; },", "why": "BYSKY handing readers the live table"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_MIST_RATE = 0.18,", "with": "var AIR_MIST_RATE = 0.5,", "why": "the mist racing through a change"}
 // plant: {"file": "src/world/215-air.js", "find": "o.dust = airEase(K.dust[0], K.dust[1], u);", "with": "o.dust = airEase(K.dust[0], K.dust[1], u * weather(t)[0]);", "why": "the haze changing with the sky (the far land fading in place)"}
 // plant: {"file": "src/world/glsl/fs-ribbon.glsl", "find": "(dot(vW.xz, w) - uAir.x * length(uWind.xz)) * 0.035", "with": "dot(vW.xz, w) * 0.035 - uT * 0.22", "why": "the veils' streaks at a pace of their own"}
@@ -371,6 +372,7 @@ test('air: the mist by the visit\'s moisture (its marine layer in on a calm day)
   assert.equal(G.airWx(5, { seed: 1, u10: 4.5 }).mist, 0, 'a breezy first light: no mist (the marine layer mixed out)');
   for (const id of Object.keys(G.WSKY)) { G.SKY.seq.length = 0; G.SKY.seq.push({ id, at: 0, hold: 1e6, move: 60 }); assert.equal(G.airWx(5, { seed: 1, u10: 3.9 }).moist, G.airWx(5, { seed: 1, u10: 3.9 }).moist, 'the same in every sky'); }
   const M1 = G.AIRAPI.MIST(); M1.firstlight = 99; assert.equal(G.AIR_MIST.firstlight, 10, 'MIST hands a reader a copy, never the table');
+  const B1 = G.AIRAPI.BYSKY(); B1.afterglow[0] = 99; assert.equal(G.AIR_BYSKY.afterglow[0], 1, 'BYSKY hands a reader a copy, never the table');
 });
 
 test('air: the gusts by sky: carried at the mean wind in every sky (row 6), the streaks on the veils\' own wind', () => {

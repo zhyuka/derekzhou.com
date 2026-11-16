@@ -562,7 +562,8 @@ shader). It holds:
   own U10, no new draw). First light gets 1 m of mist or more on 6 of the
   16 openings (k 1, 4, 5, 11, 12, 15) and on 3 of the 10 with dunes in
   view, and on 28% of visits over the winds' own spread. AIRAPI.MIST()
-  hands a reader a copy of the depths. Through a change its level moves
+  hands a reader a copy of the depths, as AIRAPI.BYSKY() does of the
+  wind by sky. Through a change its level moves
   toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
   never a jump, never a race). oro (0-1): the orographic gate, the
   visit's own from U10 alone: the ridge-top wind is the log law's 100 m
