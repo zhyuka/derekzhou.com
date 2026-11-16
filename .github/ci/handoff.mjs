@@ -33,6 +33,15 @@ function walk(dir, rel = '', out = []) {
   }
   return out;
 }
+// a plain copy, a folder and its files' bytes: Node's fs.cpSync (native since 22) carries modes over, and on the PC's
+// /mnt/c (drvfs) that failed with EPERM on the first folder (2026-11-16, #321's first gate)
+export function copy(src, dst) {
+  fs.mkdirSync(dst, { recursive: true });
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, e.name), d = path.join(dst, e.name);
+    if (e.isDirectory()) copy(s, d); else if (e.isFile()) fs.writeFileSync(d, fs.readFileSync(s));
+  }
+}
 export function manifest(dir) { const m = {}; for (const f of walk(dir)) m[f] = sha(path.join(dir, f)); return m; }
 
 export function put(src, name, base) {
@@ -40,7 +49,7 @@ export function put(src, name, base) {
   const dst = path.join(base, name), tmp = dst + '.part';
   fs.rmSync(tmp, { recursive: true, force: true }); fs.rmSync(dst, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(dst), { recursive: true });
-  fs.cpSync(src, tmp, { recursive: true });
+  copy(src, tmp);
   const m = manifest(tmp);
   fs.writeFileSync(tmp + '.manifest.json', JSON.stringify(m));
   fs.renameSync(tmp, dst); fs.renameSync(tmp + '.manifest.json', dst + '.manifest.json');   // (a reader never sees half a hand-off)
@@ -58,7 +67,7 @@ export function get(name, dest, base) {
   if (!fs.existsSync(src) || !fs.existsSync(mf)) throw new Error(`handoff get: ${src} is not there (its run's job did not hand it off, or it was swept)`);
   const m = JSON.parse(fs.readFileSync(mf, 'utf8'));
   fs.rmSync(dest, { recursive: true, force: true }); fs.mkdirSync(path.dirname(path.resolve(dest)), { recursive: true });
-  fs.cpSync(src, dest, { recursive: true });
+  copy(src, dest);
   const bad = check(dest, m);
   if (bad.length) throw new Error(`handoff get: ${name} is not the bytes handed off (${bad.length}: ${bad.slice(0, 5).join('; ')})`);
   return Object.keys(m).length;
@@ -97,7 +106,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
       if (!f) throw new Error('handoff selftest: ' + x + ' is empty');
       const t = fs.mkdtempSync(path.join(path.dirname(src), '.selftest-')), c = path.join(t, x);
       try {
-        fs.cpSync(src, c, { recursive: true });
+        copy(src, c);
         if (check(c, m).length) throw new Error('handoff selftest: the untouched copy failed its manifest');
         const b = fs.readFileSync(path.join(c, f)), d = b.length ? Buffer.from(b) : Buffer.alloc(1); d[0] ^= 1; fs.writeFileSync(path.join(c, f), d);
         const bad = check(c, m);
