@@ -29,7 +29,7 @@ function fly(drag = testDrag, { bank = true } = {}) {
     '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { return a - b; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
     INPUT + '\n  var out = [], px = 0, was = false, V = { speed: 12 }, v = V.speed;\n' +
     '  for (var k = 0; k <= ' + STEPS + '; k++) {\n    var t = k / 60, dt = 1 / 60, s = drag(t);\n' +
-    '    if (s.down) { INP.down = true; INP.dx += s.x - px; } else if (was) { INP.down = false; INP.rel = true; }\n' +
+    '    if (s.down) { if (!was && typeof REL !== "undefined") REL.n = 0; INP.down = true; INP.dx += s.x - px; if (typeof relAdd === "function") relAdd(s.x, 0, t * 1000); } else if (was) { INP.down = false; INP.rel = true; if (typeof relAdd === "function") { REL.tl = t * 1000; relAdd(px, 0, REL.t[(REL.i + REL_N - 1) % REL_N]); } }\n' +   // (the drag's samples and its lift, as onMove and onUp take them)
     '    px = s.x; was = s.down;\n' +
     '    if (typeof inputFrame === "function") inputFrame(dt);\n' +   // (the drag and its coast drawn in frame time, before the step, a frame a step here: #222)
     '    applyInput(dt, t, V);\n' +
