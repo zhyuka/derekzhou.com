@@ -496,15 +496,21 @@ shader). It holds:
   as drawn (moonDir), its elevation held to 5 deg or more, so nothing is
   lit from under the horizon. Its weight is the sky's moonlit share (1
   through the moonlit sea's hold, 0 on every other sky, eased with the
-  light through a change), and the key moves to it along the great
-  circle: both ends stand 5 deg up or more, so every direction between
-  does too. On the real route (225's moonPlan, 400 stays into and out of
-  the moonlit sea, the band ahead and behind) the live key stays 5.04
-  deg up or more and turns at most 4.57 deg/s. Off the moonlit sky it is
+  light through a change), and the key moves to it low across the sky,
+  never through it: its azimuth turns about the vertical (the way round
+  taken once a change, toward the disc at the moonlit hold's edge) and
+  its elevation eases between the two ends', so the light never stands
+  higher than both (a great circle between a key and a disc 150-160 deg
+  apart runs overhead). On the real route (225's moonPlan, 400 stays
+  into and out of the moonlit sea, the band ahead and behind) the live
+  key stays 5.00 deg up or more, never higher than both ends, and turns
+  within each stay's own bound (1.5 x its arc over the change, plus the
+  disc's own rate): at most 4.92 deg/s, 0.08 deg a frame. Off the moonlit sky it is
   the visit's key (keyAt), computed once a frame. The clouds stay on the
   baked key: their light depths are baked along keyAt, and fs-vbody's
   phase, rim and wrap read the same direction (uKey). The sky's own sun
-  (uSkyS) and the birds' HOST.light().sunDir stay on the key.
+  (uSkyS) and the birds' HOST.light().sunDir stay on the key. The cloud
+  sea (realm-above's shading) reads uSun, so it is lit by the moon too.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's

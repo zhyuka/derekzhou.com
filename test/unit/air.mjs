@@ -6,7 +6,8 @@
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
 // plant: {"file": "src/world/215-air.js", "find": "e = Math.max(Math.asin(Math.max(-1, Math.min(1, d[1]))), AIR_KEY_EL[0] * DEG);", "with": "e = Math.asin(Math.max(-1, Math.min(1, d[1])));", "why": "the land lit from a moon under the horizon"}
 // plant: {"file": "src/world/215-air.js", "find": "var e = seq[i], a = e.id === 'moonlit' ? 1 : 0, b = seq[i + 1] ? (seq[i + 1].id === 'moonlit' ? 1 : 0) : a,", "with": "var e = seq[i], a = airSunEl(e.id) === null ? 1 : 0, b = seq[i + 1] ? (airSunEl(seq[i + 1].id) === null ? 1 : 0) : a,", "why": "every night lit by the moon (the moonlit sky's light only)"}
-// plant: {"file": "src/world/215-air.js", "find": "return airSlerp(k, AIR_LDT, f, AIR_LD);", "with": "for (c = 0; c < 3; c++) AIR_LD[c] = k[c] + (AIR_LDT[c] - k[c]) * f; return AIR_LD;", "why": "the key cutting across the sphere (a lerp, not the great circle)"}
+// plant: {"file": "src/world/215-air.js", "find": "return airTurnLow(k, AIR_LDT, rz, f, AIR_LD);", "with": "for (c = 0; c < 3; c++) AIR_LD[c] = k[c] + (AIR_LDT[c] - k[c]) * f; return AIR_LD;", "why": "the key cutting through the sky (a great circle overhead, not low across)"}
+// plant: {"file": "src/world/215-air.js", "find": "dz = dr + w(zb - za - dr);", "with": "dz = w(zb - za);", "why": "the way round flipping as the disc passes opposite the key (a jump)"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "float cs = dot(rd, uKey), g = uClK.z;", "with": "float cs = dot(rd, uSun), g = uClK.z;", "why": "a cloud's silver edge on the live key, its self-shadow on the baked one"}
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "gl.uniform3fv(u.uSun, airLightDir(L));", "with": "gl.uniform3fv(u.uSun, L.sunDir);", "why": "the night lit by the key, 36 deg off the moon"}
 // plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.el; o.el = m.az; o.up = m.w > 0;", "why": "the moon's az and el swapped"}
@@ -206,7 +207,7 @@ test('air: one moon direction (the disc as drawn: a glory, a fogbow or a moonlit
 const ROUTE = vm.runInThisContext('(function () {\n' + cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END') + '\n  return { moonPlan: moonPlan, moonAt: moonAt };\n})')();
 function stays(n) {   // moonlit stays on the real route (225's moonPlan): a sky before and after, the heading, the key, the moon's side and way, the pitch
   const R = RNG0(0x5eed), pick = (a) => a[Math.floor(R() * a.length)], out = [], tan = Math.tan(36 * Math.PI / 180);
-  const fixed = [{ before: 'milkyway', psi: 30, keyAz: -40, keyEl: 9, side: -1, sigma: -1, p: -5 }, { before: 'afterglow', psi: 0, keyAz: 40, keyEl: 9, side: 1, sigma: 1, p: -4 }];   // (the hub's round-3 cases)
+  const fixed = [{ before: 'milkyway', psi: 30, keyAz: -40, keyEl: 9, side: -1, sigma: -1, p: -5 }, { before: 'afterglow', psi: 0, keyAz: 40, keyEl: 9, side: 1, sigma: 1, p: -4 }, { before: 'milkyway', after: 'aurora', psi: 69.5, keyAz: 26.9, keyEl: 5.4, side: -1, sigma: 1, p: -4.98 }];   // (the hub's round-3 cases, and round 4's fastest stay)
   for (let i = 0; i < n; i++) {
     const c = fixed[i] || { before: pick(['afterglow', 'bluehour', 'firstlight', 'milkyway', 'aurora']), psi: R() * 360 - 180, keyAz: R() * 360 - 180, keyEl: 5 + 9 * R(), side: R() < 0.5 ? -1 : 1, sigma: R() < 0.5 ? -1 : 1, p: -6 + 4 * R() };
     c.after = c.after || pick(['afterglow', 'bluehour', 'firstlight', 'milkyway', 'aurora']);
@@ -220,7 +221,7 @@ function stays(n) {   // moonlit stays on the real route (225's moonPlan): a sky
 }
 function RNG0(s) { return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-test('air: one light at night (on the moonlit sky the live key stands on the moon\'s disc, held 5 deg up, moved along the great circle; the clouds stay on the baked key)', () => {
+test('air: one light at night (on the moonlit sky the live key stands on the moon\'s disc, held 5 deg up, moved low across the sky; the clouds stay on the baked key)', () => {
   const G = page(), D = 180 / Math.PI, dirAE = (az, el) => [Math.sin(az / D) * Math.cos(el / D), Math.sin(el / D), Math.cos(az / D) * Math.cos(el / D)];
   const ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * D, sin5 = Math.sin(G.AIR_KEY_EL[0] / D);
   G.SIM.V = { seed: 1 }; G.SIM.alpha = 1; G.SKY.dt = 0;
@@ -233,27 +234,40 @@ test('air: one light at night (on the moonlit sky the live key stands on the moo
   G.SIM.t = 600; assert.ok(ang(G.airLightDir(L), K) < 0.05, 'another night\'s hold, the moon still up: the key (the moonlit sky\'s light only)');
   G.SIM.t = 200; G.stub({ d: dirAE(-60, -12), w: 0.3, az: -60, el: -12 }); const lo = Array.from(G.airLightDir(L));
   assert.ok(Math.abs(Math.asin(lo[1]) * D - 5) < 1e-4 && ang(lo, dirAE(-60, 5)) < 0.05, 'a disc under the horizon: its azimuth, 5 deg up (never lit from under)');
-  G.stub({ d: moon, w: 1, az: -60, el: 37 }); G.SIM.t = 147; const mid = Array.from(G.airLightDir(L));
-  assert.ok(Math.abs(ang(K, mid) + ang(mid, moon) - ang(K, moon)) < 0.05, 'through a change: on the great circle from the key to the disc');
+  G.stub({ d: moon, w: 1, az: -60, el: 37 }); G.SIM.t = 89; const mid = Array.from(G.airLightDir(L)), azd = (v) => Math.atan2(v[0], v[2]) * D, eld = (v) => Math.asin(v[1]) * D;
+  assert.ok(azd(mid) < 40 && azd(mid) > -60 && eld(mid) > 9 && eld(mid) < 37, 'through a change: its azimuth between the ends\' (the shorter way), its elevation between theirs');
+  const far = dirAE(150, 6); G.stub({ d: far, w: 1, az: 150, el: 6 }); let top = 0; for (let t = 50; t <= 120; t += 0.5) { G.SIM.t = t; top = Math.max(top, G.airLightDir(L)[1]); }
+  assert.ok(top <= Math.max(K[1], far[1]) + 1e-6, `a disc 110 deg round from the key: the light never higher than both ends (${(Math.asin(top) * D).toFixed(2)} deg up at most)`);
   G.SIM.t = 147.0001; const a1 = G.airLightDir(L), a2 = G.airLightDir(L); assert.strictEqual(a1, a2, 'filled in place, once a frame');
   // the real route (225's moonPlan, 400 stays: twilight and night into the moonlit sea and out, the band ahead and behind, the hub's two cases first)
-  const S = stays(400), dt = 1 / 60; let worstY = 1, worstTurn = 0, at = null, ahead = 0, behind = 0;
+  const S = stays(400), dt = 1 / 60, overBound = []; let worstY = 1, worstTurn = 0, worstOver = -1, worstB = 0, at = null, ahead = 0, behind = 0;
   for (const c of S) {
     G.SKY.seq.length = 0; G.SKY.seq.push(...c.seq.map((e) => Object.assign({}, e)));
     const o = { d: [0, 0, 0] }; G.stub((t, out) => { ROUTE.moonAt(c.P, t, o); out.d = o.d.slice(); out.w = o.w; out.az = o.az; out.el = o.el; return out; });
     if (c.P.caseA) ahead++; else behind++;
-    const Kc = dirAE(c.keyAz, c.keyEl), Lc = { sunDir: Kc }; let prev = null;
+    const Kc = dirAE(c.keyAz, c.keyEl), Lc = { sunDir: Kc }; let prev = null, pT = null, turn = 0, bound = 0, discR = 0;
+    const tgt = (t) => { ROUTE.moonAt(c.P, t, o); const az = Math.atan2(o.d[0], o.d[2]) * D, el = Math.max(Math.asin(Math.max(-1, Math.min(1, o.d[1]))) * D, G.AIR_KEY_EL[0]); return [az, el]; };
+    const mv = Math.min(c.seq[0].move, c.seq[1].move);
     for (let t = c.t[0] - 2; t <= c.t[1] + 2; t += dt) {
-      G.SIM.t = t; const d = Array.from(G.airLightDir(Lc));
+      G.SIM.t = t; const d = Array.from(G.airLightDir(Lc)), T = tgt(t), Tv = dirAE(T[0], T[1]);
       if (d[1] < worstY) worstY = d[1];
-      if (prev) { const r = ang(prev, d) / dt; if (r > worstTurn) { worstTurn = r; at = { before: c.before, psi: c.psi.toFixed(1), keyAz: c.keyAz.toFixed(1), t: t.toFixed(2) }; } }
-      prev = d;
+      const over = d[1] - Math.max(Kc[1], Tv[1]); if (over > worstOver) worstOver = over;   // (never higher than both ends)
+      let dA = Math.abs(T[0] - c.keyAz) % 360; if (dA > 180) dA = 360 - dA;
+      if (pT && t > c.t[0] + dt && t < c.t[1] - dt) { let za = Math.abs(T[0] - pT[0]) % 360; if (za > 180) za = 360 - za; discR = Math.max(discR, (za + Math.abs(T[1] - pT[1])) / dt); }   // (the disc's own rate, on its route: never across its ends, where it stands at the nadir)
+      bound = Math.max(bound, 1.5 * (dA + Math.abs(T[1] - c.keyEl)) / mv);
+      if (prev) turn = Math.max(turn, ang(prev, d) / dt);
+      prev = d; pT = T;
     }
+    const B = bound + discR + 0.05;   // (the stay's own bound: the change's ease over its arc, plus the disc's own rate)
+    if (turn > B) overBound.push({ before: c.before, psi: c.psi.toFixed(1), turn: turn.toFixed(2), bound: B.toFixed(2) });
+    worstB = Math.max(worstB, B); if (turn > worstTurn) { worstTurn = turn; at = { before: c.before, psi: c.psi.toFixed(1), keyAz: c.keyAz.toFixed(1), bound: B.toFixed(2) }; }
   }
-  if (process.env.NL) console.log(JSON.stringify({ worstEl: Math.asin(worstY) * D, worstTurn, at, ahead, behind }));
+  if (process.env.NL) console.log(JSON.stringify({ worstEl: Math.asin(worstY) * D, worstTurn, worstOver, worstB, at, ahead, behind, overBound: overBound.length }));
   assert.ok(ahead > 50 && behind > 50, `the band culminating ahead (${ahead}) and behind (${behind})`);
   assert.ok(worstY >= sin5 - 1e-6, `the live key never under 5 deg up on the real route (lowest ${(Math.asin(worstY) * D).toFixed(3)} deg)`);
-  assert.ok(worstTurn <= 4.7, `the live key turns at most ${worstTurn.toFixed(2)} deg/s (${JSON.stringify(at)}): never a jump`);
+  assert.ok(worstOver <= 0.01, `mid-change the light never stands higher than both ends (by ${worstOver.toFixed(4)} at most)`);
+  assert.equal(overBound.length, 0, `every stay turns within its own bound (the change's ease over its arc, plus the disc's rate): ${JSON.stringify(overBound.slice(0, 3))}`);
+  assert.ok(worstTurn <= 5.5, `the live key turns at most ${worstTurn.toFixed(2)} deg/s (${JSON.stringify(at)}): 0.09 deg a frame at most, never a jump`);
   assert.match(WORLD, /if \(u\.uSun\) gl\.uniform3fv\(u\.uSun, airLightDir\(L\)\);/, 'every program\'s uSun is the live key');
   assert.match(WORLD, /if \(u\.uKey\) gl\.uniform3fv\(u\.uKey, L\.sunDir\);/, 'the clouds are given the baked key');
   const vb = GLSL('fs-vbody.glsl'); assert.ok(!/\buSun\b/.test(vb) && /dot\(rd, uKey\)/.test(vb) && /uKey\.y/.test(vb), 'the clouds\' phase, rim and wrap read the baked key their light depths are baked along');
