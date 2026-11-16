@@ -9,14 +9,14 @@ uniform vec4 uPd;    // rain: fall (m/s), the splash's life (s), gusts (0 .. 1),
 uniform vec4 uPe;    // a second colour (rgb), its share
 uniform vec4 uPf;    // a third colour (rgb), its share
 uniform vec4 uPg;    // blink (the share of a cycle lit; 0: none), flicker (0 .. 1), the share drawn (0 .. 1: the rain's amount, an area's), -
-uniform mat4 uPVP2; uniform vec3 uPCam2; uniform float uMB;   // the last frame's view and camera; the share of its motion a mote is drawn along (0: none)
+uniform mat4 uPVP2; uniform vec3 uPCam2; uniform float uMB, uMBdt; uniform vec4 uAir;   // the last frame's view and camera; the share of its motion a mote is drawn along (0: none); the time since the last frame (s, the shaders' clock)
 out vec4 vCol; out vec2 vQ; flat out float vKind;
-vec3 grain(int id, float t, out float edge) {
+vec3 grain(int id, float t, float tau, out float edge) {   // (tau: the air's clock, its integral over the day's speed: uAir)
   uint h = ih(uint(id) * 2654435761u + 977u);
   float r1 = hf(h), r2 = hf(ih(h + 1u)), r3 = hf(ih(h + 2u)), r4 = hf(ih(h + 3u));
   vec3 vel = uWind * (0.65 + 0.7 * r1);
   vec2 p0 = vec2(r2, r3) * uPa.x;
-  vec2 pos = p0 + vel.xz * t + vec2(gn(vec2(t * 0.3 + r4 * 10.0, r1 * 7.0)), gn(vec2(r2 * 9.0, t * 0.3))) * 3.0;
+  vec2 pos = p0 + vel.xz * tau + vec2(gn(vec2(t * 0.3 + r4 * 10.0, r1 * 7.0)), gn(vec2(r2 * 9.0, t * 0.3))) * 3.0;
   vec2 rel = mod(pos - uCam.xz + 0.5 * uPa.x, uPa.x) - 0.5 * uPa.x;
   edge = 1.0 - smoothstep(0.36 * uPa.x, 0.5 * uPa.x, max(abs(rel.x), abs(rel.y)));
   vec2 xz = uCam.xz + rel;
@@ -100,7 +100,7 @@ void main() {
   if (uPb.w > 3.5) { drifter(gl_InstanceID); return; }
 #endif
   float edge, e2; int id = gl_InstanceID;
-  vec3 head = grain(id, uT, edge), tail = uPb.w > 0.5 ? head : grain(id, uT - uPa.z, e2);
+  vec3 head = grain(id, uT, uAir.x, edge), tail = uPb.w > 0.5 ? head : grain(id, uT - uPa.z, uAir.x - uAir.y * uPa.z, e2);
   vec4 ch = uVP * vec4(head - uCam, 1.0), ct = uVP * vec4(tail - uCam, 1.0);
   vKind = uPb.w;
   if (ch.w < 0.5 || ct.w < 0.5 || length(head - tail) > uPa.x * 0.25) { gl_Position = vec4(0.0, 0.0, -2.0, 1.0); vCol = vec4(0.0); vQ = aQ; return; }
@@ -108,9 +108,11 @@ void main() {
      camera was), its light spread over that stretch: a near mote crosses the window by several pixels a frame, and
      as a 1.6 px dot each pixel it passes is lit for one frame and dark the next (the cloud-edge film's blinks,
      1.2-2.0 a frame against the 4x reference's 0); a moving point of light is a short streak to the eye, with the
-     same light in all */
+     same light in all. Its whole motion: where the mote was a frame ago (its own wind carried it: up to 20 px a frame
+     at 10 m on a windy visit), seen from where the camera was, not only the camera's motion (the hub's review of #266) */
   if (uPb.w > 0.5 && uMB > 0.0) {
-    vec4 cp = uPVP2 * vec4(head - uPCam2, 1.0);
+    vec3 prev = grain(id, uT - uMBdt, uAir.w, e2); if (length(prev - head) > uPa.x * 0.25) prev = head;   // (a mote wrapped round its box in the frame: no streak across it)
+    vec4 cp = uPVP2 * vec4(prev - uPCam2, 1.0);
     if (cp.w > 0.5) ct = vec4(mix(ch.xy / ch.w, cp.xy / cp.w, uMB) * ch.w, ch.z, ch.w);
   }
   vec2 sh = ch.xy / ch.w * uRes * 0.5, st = ct.xy / ct.w * uRes * 0.5, d = sh - st;

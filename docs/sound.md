@@ -153,9 +153,10 @@ How it sounds (sketch round twenty-two):
 - **The wind**: two noises (a low billow, 70-520 Hz; a higher stream, 450-1500 Hz), each two independent channels,
   13.7 and 17.9 s, looped with no seam (round twenty's faded at the seam, a dip every 16 s that gave the loop away),
   moved by one wind: four random walks (a new value every 1.2, 2, 6.5 and 21 s or so, glided to over half that,
-  weighted 0.3, 0.45, 0.67, 1: the slower, the larger, as gusts are) on the sky's own breeze (the Milky Way stillest,
-  aurora and blue hour calm, the moonlit sea and first light a breeze, afterglow the breeziest), easing to the next
-  sky's over about 15 s; the billow with the wind, the stream with its square, 0.4 s behind (calm air near silent,
+  weighted 0.3, 0.45, 0.67, 1: the slower, the larger, as gusts are) on the sky's own breeze, the world's wind by
+  sky (its feed's `air`: each sky's share of the day's wind, 0.35 at the afterglow's 1, and its gustiness; the
+  afterglow the breeziest, the blue hour calmer, the nights calm, first light the stillest; with no world, the air at
+  its floor), easing to the next sky's over about 15 s; the billow with the wind, the stream with its square, 0.4 s behind (calm air near silent,
   a gust bringing it); each drifting slowly across the field. Over the cloud the billow eases and the stream rises.
   About 18 dB under the music.
 - **The ear**: the band the ear is most sensitive to eased (a -3 dB bell at 3.2 kHz, the strings' resonances at
@@ -163,13 +164,14 @@ How it sounds (sketch round twenty-two):
   compression. About -26 LUFS.
 
 Under reduced motion the world is one still frame and its clock holds, so the score stays in that sky. With no
-world (no WebGL2), the score plays blue hour and never changes.
+world (no WebGL2), the score plays blue hour and never changes, and its air holds at its floor (no world, no wind by
+sky: the breeze's least, 0.05).
 
 ## The feed (src/world/512-score-feed.js)
 
 `WORLD.sky()` returns a fresh copy, or null before the sky's order exists: `t` (the sky's clock), `seq` (from the
 sky on show onward: id, at, hold, move, far), `wc` (how much of the view is the cloud sea, 0 to 1, from the maps at
-the camera), `still` (reduced motion, or the harness's still mode), `seed` (the visit's one entropy read through
+the camera), `air` (the world's wind by sky, AIR_BYSKY in src/world/215-air.js, a copy: each sky's shares of the day's wind at the surface and aloft, and its gustiness; docs/world.md, THE AIR), `still` (reduced motion, or the harness's still mode), `seed` (the visit's one entropy read through
 subseed, salt 97). The world never reads it back; nothing it draws depends on it.
 
 ## The sheet (site/assets/sound/notes-N.mp3)
