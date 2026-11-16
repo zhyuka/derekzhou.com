@@ -96,14 +96,14 @@ test('clouds: the edge band is cut into pieces in the shader, at most 48, the ca
 // (each kit's billows as the realms give them: the scale and depth fs-vbody reads, uVR.z and uVR.w)
 const KITS = Object.fromEntries(['above', 'dunes'].map((k) => { const m = /clDetail: \[(\d+), (\d+)\]/.exec(fs.readFileSync(path.join(ROOT, `src/realm-${k}.js`), 'utf8')); return [k, { scale: +m[1], amp: +m[2] }]; }));
 const DM = /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? (\d+) : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? (\d+) : 1\);/.exec(WORLD);
-test('clouds: crisp cauliflower on the desktop (lumps 4x the size, 5x the depth, the edge 1.25 px near), and it boils under 0.02 at 20, 40, 60, 80, 150 and 300 m in both kits; touch devices keep today\'s soft clouds in one piece', () => {
+test('clouds: crisp cauliflower on the desktop (lumps 4x the size, 3x the depth, the edge 1.25 px near), and it boils under 0.02 at 20, 40, 60, 80, 150 and 300 m in both kits; touch devices keep today\'s soft clouds in one piece', () => {
   assert.equal(CAP.rest, 1, 'off the desktop look the band is not cut (4 pieces bound every segment on a phone for no gain)');
   assert.ok(VBODY.includes('float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.0625 : 0.5;') && VBODY.includes('float bE = max(band * cw, mix(1.25, 2.0, cw) * t * pxA);'), 'the edge is not crisp near (1.25 px to 150 m, the soft band by 350 m) where uVK.y asks');
   assert.ok(DM, '410 does not deepen the desktop\'s billows');
   // no puffs cut free of the tops (the hub's review of #254: twice the size at five times the depth, 2.5 times as steep
   // as the kit's own, left 10-30 px blobs over the cloud tops): the billows' steepness (depth over size) on the desktop
-  // within 1.25 of the kit's own, the steepness at which the kits' clouds have none
-  for (const [kit, K] of Object.entries(KITS)) assert.ok((K.amp * +DM[2]) / (K.scale * +DM[1]) <= 1.25 * K.amp / K.scale + 1e-12, `${kit}: the desktop's billows ${(+DM[2] / +DM[1]).toFixed(2)} times as steep as the kit's own: puffs cut free of the tops`);
+  // no more than the kit's own, at which the kits' clouds have none (1.25 times it still left a few on the 4090)
+  for (const [kit, K] of Object.entries(KITS)) assert.ok((K.amp * +DM[2]) / (K.scale * +DM[1]) <= K.amp / K.scale + 1e-12, `${kit}: the desktop's billows ${(+DM[2] / +DM[1]).toFixed(2)} times as steep as the kit's own: puffs cut free of the tops`);
   const rows = [];
   for (const [kit, K] of Object.entries(KITS)) for (const dist of [20, 40, 60, 80, 150, 300]) for (const v of [0.25, 0.5]) {
     const D = { scale: K.scale * +DM[1], amp: K.amp * +DM[2] }, d = boil({ dist, v, Kmax: CAP.desktop, crisp: true, ...D }), r = boil({ dist, v, Kmax: CAP.rest, ...K }), soft = boil({ dist, v, Kmax: 12, ...K });
