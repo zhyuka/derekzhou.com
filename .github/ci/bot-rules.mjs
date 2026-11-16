@@ -1,4 +1,4 @@
-// bot-rules.mjs: small decisions of the merge bot (merge-bot.mjs), apart so they are unit-tested (test/unit.mjs).
+// bot-rules.mjs: small decisions of the merge bot (merge-bot.mjs), apart so they are unit-tested (test/unit/merge-bot.mjs).
 // An update from main GitHub refuses because the branch conflicts (422; 409 from the merge API) is the branch's own
 // session's to fix, never the owner's: it gets one comment a head and no label, and the bot tries again every tick,
 // so the PR lands as soon as its session merges main and the gate is green. Any other refusal (403: the token's
@@ -45,4 +45,28 @@ export function stillsReady(hasBake, statuses) {
   const s = (statuses || []).find((x) => x && x.context === 'stills');
   if (!s) return { ok: false, why: 'its stills release is not up yet (no stills status)' };
   return s.state === 'success' ? { ok: true, why: s.description || 'stills up' } : { ok: false, why: `its stills status is ${s.state}${s.description ? ' (' + s.description + ')' : ''}` };
+}
+
+// The PR's tested head of a merge commit the bot made ("Merge #N: ...": its first parent main, its second the PR's head,
+// whose gate the bot read before it merged); null for any other commit (the owner's "Merge pull request #N", a plain one).
+export function botMergeHead(message, parents) {
+  return /^Merge #\d+: /.test(message || '') && (parents || []).length === 2 ? parents[1] : null;
+}
+
+// What the deploy gate does about a cancelled main tip nothing proves (its run r, among main's runs since live, the
+// tip's own synthetic entry included): 'wait' while any of them has not completed (main's gate group keeps one run and
+// one pending: a re-run asked now would be the pending one, cancelled by the next landing, or would cancel a landed
+// tip's pending gate: the hub's review of #289); 'again' when r is a re-run already (once only: the owner looks); else
+// 'rerun'.
+export function rerunAnswer(r, runs) {
+  if ((runs || []).some((x) => x.status !== 'completed')) return 'wait';
+  return (r.run_attempt || 1) > 1 ? 'again' : 'rerun';
+}
+
+// The commits whose own branch gate proves a main tip's frames: the tip itself, and for the bot's own merge commit its
+// PR's tested head (botMergeHead). The proof is the PR's diff on its own base, the trust the bot gave it when it merged;
+// the merged tree is checked by main's own gate only when that runs.
+export function proofHeads(sha, message, parents) {
+  const h = botMergeHead(message, parents);
+  return h ? [sha, h] : [sha];
 }

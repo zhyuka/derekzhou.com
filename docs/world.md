@@ -23,7 +23,12 @@ Places come a minute or two apart at the flight's 12 m/s. Cells (landmarks, clou
 world cell from the seed and the cell's coordinates, streamed in about
 the camera within a budget a frame and freed behind it. Each frame: the
 scene in HDR (4 samples a pixel where the device allows), the land as a
-GPU clipmap raised by the kits' height functions, the cloud bodies baked
+GPU clipmap raised by the kits' height functions (its rings placed from a
+whole-cell lattice, (cell + aG) x cell size in one fp32 product, so the rings'
+seams meet to the bit however far the flight has gone: origin metres + aG x
+cell size parted them by 1.6 cm at 100 km and 12.5 cm at 681 km, the owner's
+one-pixel lines (2026-11-14); test/unit/clipmap.mjs replays it in fp32 and
+lints the old form, tools/gpu/seams.js reads both land programs on a GPU), the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
 up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
 between: sharp in the distance, never a ring), bloom, and the composite
@@ -41,8 +46,9 @@ A drag anywhere (touch, pen, or a mouse with its main button held; it
 starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
 window's width, the scene following the finger; up and down it tilts the
-view and the flight climbs or dives; let go, the turn runs on a little and
-eases out. The steering reads a pointer's moves only while it is pressed;
+view and the flight climbs or dives; let go moving, the turn runs on a
+little at the finger's speed as it lifts and eases out; let go after it
+rested (24 ms or more), it stays where it is. The steering reads a pointer's moves only while it is pressed;
 the birds' play reads a hovering one (docs/birds.md: THE POINTER); no key is read, nothing is stored. Two fingers are never steering
 (pinch-zoom stays the page's). On iOS the phone's own turn steers too once
 Safari has asked, inside a tap or a drag on the page (never on a link,
@@ -112,7 +118,7 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The sun stays below the sea in every sky: through a change into a
+phone). The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow climbs and
@@ -428,6 +434,79 @@ moves the first frame by at most one level (the moon's path), so it is
 not baked. The land is the opening seed's for the whole visit, one of 16 whatever
 the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
 over it is the read's own (## THE WEATHER).
+
+## THE AIR
+
+The owner (2026-11-15): "they should follow real physics, clouds moving
+(when/how they move), same w auroras, sand, etc. ... make sure there are
+0 disconnects." The world keeps one state of its air and light in one
+section, src/world/215-air.js, and every other system reads it there
+(RULES.json one-world-state; test/unit/air.mjs by value, 16 seeds by six
+skies; tools/checks/42-one-air.sh: the air's names written only there, no
+wind or sun literal in any other section, the realms or the billows'
+shader). It holds:
+
+- The wind: one direction a visit (airDraw, the dunes' field stream's
+  first draw, as before), blowing toward V.windAz, and its speed by height,
+  windAt(x, z, y, t), y over the ground. U10, the speed 10 m up, is the
+  visit's own (V.u10), drawn once from its own stream (subseed(V.seed,
+  61)): a Rayleigh distribution of mean 5 m/s mapped by its CDF into
+  3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays
+  under about 8.8 m/s, under every bird kind's airspeed, so no bird flying
+  upwind goes backward; truncated, so nothing piles at the ends). Whether
+  the sand moves at a given speed (its threshold, about 6.2 m/s at 10 m,
+  the crests' speed-up 1.5x) is the sand's to decide. Under 100 m the
+  log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0) with z0 = 0.003 m
+  (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
+  the surface's direction; from 100 to 300 m it eases to the low cloud
+  layer's 1.3 U10, veered 20 deg, held to 1500 m; from 1500 to 3000 m to
+  the deck's 2 U10, veered 40 deg (the wind turns clockwise with height
+  toward the free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
+  https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf).
+  Each reader has a declared height (AIR_H); at a U10 of 6.5 m/s: the
+  grains 0.8 m (4.5 m/s, times AIR_GRAIN_K, the sand's own share), the
+  veils 5 m (5.9), the motes 13 m (6.7), the birds their own height
+  (HOST.wind(o, y); 40 m by default, 7.6). Before physics: air/wind-profile
+  the readers kept their own speeds (6.5, 5.5, 1.6, 6.5: the motes slower
+  than the grains under them, the reverse of real air). The dunes' crests,
+  the grains, the motes, the veils, the birds and the water's ripples read
+  it.
+- The readers still apart (AIR_APART, each with the change that joins
+  it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
+  0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
+  (AIR_CIRRUS: along world x), the maps' own wind field (mc.wind: the
+  director's cover and the plan's dunes read it, so it is not dead: taking
+  it out moves the plan's anchors), the wing gusts' private 25 s timers
+  (birdwing.js) and the score's own gusts (score.js). The test fails when
+  a listed reader is joined and still listed.
+- The key light, keyAt(V): one direction for every sky, 5-14 deg up within
+  55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
+  (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
+  birds' HOST.light), the sky's sets, the sun's change and the cells read
+  it; the cloud sea's kit has no sun of its own. At night it is the moon's
+  light from the same place.
+- The sky's own sun, airSkySun: the twilights' sun under the sea
+  (AIR_SUN_EL: the afterglow and first light 3 deg, the blue hour 7), on
+  the key's azimuth; a night's is the key's place; through a change into a
+  night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
+  the land and the sky's own sun are two lights on purpose: the land is lit
+  by a low key, the sky's glow stands where the sun is under the sea.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
+  frame (skyFrame: the turn the stars and the galaxy take; today none) and
+  the weather (weather(sky): today one wind for every sky; physics:
+  air/wind-by-sky).
+- The landing's heading, airHeading0 (drawn once from its own stream: the
+  flight, the first plan, the galaxy's lie and the boot read it), and the
+  flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
+  cloud sea).
+
+THE CLOCK. Physical motion (the wind, the clouds, the birds, the
+particles, the aurora's own motion) runs at 1x real time, the flight's
+SIM.t. The sky's light (sun, moon, stars, galaxy) runs at one declared
+rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
+70-90x real through a change into a night, the moon crosses at 70-120x
+and the stars and galaxy stand still; test/unit/air.mjs's clock test is
+marked todo until the sky's lane brings them to SKY_RATE.
 
 ## THE WEATHER (=rand())
 

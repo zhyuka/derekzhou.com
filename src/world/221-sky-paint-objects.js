@@ -45,7 +45,7 @@
   function skyObj(id) {
     if (SKY.sets[id]) return SKY.sets[id];
     var S = WSKY[id], V = SKY.V, O = { id: id, w: S.w, sky: S, g: S.g }, s, j, o = [0, 0, 0];
-    O.rawD = skyRaw(S, V.lightRaw, V.light.sunDir); O.rawA = skyRaw(S, V.lightRawB, V.light.sunDir);
+    O.rawD = skyRaw(S, V.lightRaw, keyAt(V)); O.rawA = skyRaw(S, V.lightRawB, keyAt(V));
     skyFinish(O);
     O.pLab = new Float32Array(72); O.pLin = new Float32Array(V.paramsBase);
     for (s = 0; s < 18; s++) {
@@ -61,12 +61,12 @@
     }
     O.crK = 0.5; O.crCap = 0.5;   // (a creature's light under the night's: x0.5, at most 0.5; every sky's words are light)
     O.ceil = S.ceil; O.seaLit = S.seaLit === undefined ? 1 : S.seaLit; O.sunVis = S.kit ? 1 : S.sunVis;
-    O.skyEl = S.kit ? null : S.skyEl;
+    O.skyEl = S.kit ? null : airSunEl(id);
     O.motes = S.post && S.post.motes !== undefined ? S.post.motes : 0;
     O.grainK = 0.45; O.ribK = 0.5;   // (the sand's grains and veils at night, every sky's: x0.45 and x0.5 of the paint's colour, so a speck near the eye is no lamp against the night sky)
     var fx = S.fx || {};
     O.fx = [fx.belt || 0, fx.nlc || 0, fx.galaxy || 0, fx.aurora || 0, fx.moon ? 1 : 0, fx.curtain || 0, 0, 0];
-    O.dir = O.skyEl === null ? Array.prototype.slice.call(V.light.sunDir) : dirAzEl(V.light.sunAz, O.skyEl);
+    O.dir = airSkySun(V, O.skyEl);
     SKY.sets[id] = O;
     return O;
   }

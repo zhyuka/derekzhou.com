@@ -31,7 +31,7 @@ change it. The standing rules are data in RULES.json, checked in CI.
   (absence-*).
 - The sound is opt-in: silent until the icon is pressed; then one sheet of notes
   from /assets/sound/ is fetched, once, and the score plays it live, following the
-  sky (read only), about -26 LUFS, never steering the world (sound-opt-in:
+  sky (read only), about -23 LUFS, never steering the world (sound-opt-in:
   docs/sound.md).
 - The page says exactly its words (page-words, lettered-name).
 - Licences: MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 only (licences).
@@ -86,7 +86,7 @@ one is committed to site/ (built-files-uncommitted).
      a deliberate change to what one pins, `node test/unit/<area>.mjs --write`.
    - A shader changed: nothing derived to commit; the gate's census and
      T2 compare the base's build with the head's.
-   - The plan's spans changed: `node tools/plan.mjs --stamp`.
+   - The plan's spans changed: nothing to do; every assembly writes their stamp into PW_V.
    - `node tools/build.mjs --check`: two builds the same bytes.
    - `npm run check`: every static check CI runs (tools/check.mjs: the
      build once, then tools/checks/*.sh in parallel; about a minute).
