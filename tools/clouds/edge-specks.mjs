@@ -6,6 +6,7 @@
 // light, 1440x900, the small cumulus at 150,415-345,550): main 18 specks, 0.31; the cloud stack 4, 0.27.
 import fs from 'node:fs';
 import zlib from 'node:zlib';
+import { pathToFileURL } from 'node:url';
 
 export function readPng(file) {   // 8-bit RGB or RGBA, not interlaced (what the harness's captures are)
   const b = fs.readFileSync(file); let p = 8, w = 0, h = 0, ct = 0; const idat = [];
@@ -35,7 +36,7 @@ export function edgeSpecks(img, x0, y0, x1, y1, thr = 6) {
   }
   return { residual: sum / n, specks };
 }
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {   // (pathToFileURL: file:///C:/... on Windows)
   const a = process.argv.slice(2), box = a.filter((s) => /^\d+$/.test(s)).map(Number), files = a.filter((s) => !/^\d+$/.test(s));
   if (box.length !== 4 || !files.length) { console.error('node tools/clouds/edge-specks.mjs FRAME.png x0 y0 x1 y1 [FRAME2.png ...]'); process.exit(2); }
   for (const f of files) { const r = edgeSpecks(readPng(f), ...box); console.log(`${f}: specks ${r.specks}, residual ${r.residual.toFixed(3)}`); }
