@@ -136,7 +136,6 @@
     if (!EXT.par) { HOLD.why = 'no parallel compiles'; return 0; }
     if (/Mali|Adreno|PowerVR|Immortalis|Xclipse|Apple GPU/.test(EXT.renderer) && !/Macintosh/.test(navigator.userAgent || '')) { HOLD.why = 'a phone GPU'; return 0; }
     if (cores <= 4) { HOLD.why = cores + ' cores'; return 0; }
-    if (EXT.parWK) { HOLD.why = 'WebKit (no Mac film yet)'; return 0; }   // (WebKit boot: its own path, all at once, but no hold until a real Mac's film sets its deadline)
     if (!EXT.parAll) { HOLD.why = 'links one at a time'; return 0; }
     return cores >= 8 ? 2000 : 1500;
   }
