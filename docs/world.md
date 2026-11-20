@@ -30,7 +30,7 @@ cell size parted them by 1.6 cm at 100 km and 12.5 cm at 681 km, the owner's
 one-pixel lines (2026-11-14); test/unit/clipmap.mjs replays it in fp32 and
 lints the old form, tools/gpu/seams.js reads both land programs on a GPU), the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
-up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
+up by a cubic interpolating spline clamped to the range of the 2x2 texels it lies
 between: sharp in the distance, never a ring), bloom, and the composite
 (a shoulder that keeps hue, the grade, one fixed 8-bit dither: no bands,
 nothing that fizzes). The light shafts' pass is still in the code, but no
@@ -450,7 +450,7 @@ shader). It holds:
   first draw, as before), blowing toward V.windAz, and its speed by height,
   windAt(x, z, y, t), y over the ground. U10, the speed 10 m up, is the
   visit's own (V.u10), drawn once from its own stream (subseed(V.seed,
-  61)): a Rayleigh distribution of mean 5 m/s mapped by its CDF into
+  61)): the speed distribution of a 2D normal wind (chi, two degrees of freedom) of mean 5 m/s mapped by its CDF into
   3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays
   under about 8.8 m/s, under every bird kind's airspeed, so no bird flying
   upwind goes backward; truncated, so nothing piles at the ends). Whether
