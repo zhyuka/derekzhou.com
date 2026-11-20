@@ -7,5 +7,8 @@
 # the whole readable scripts under their served names: what every step below reads. Never committed.
 # (step 2) build/ship/ is the shipped build: the dev-only parts (src/dev/: the record, the harness) left out
 # by file, each stub in its place. minify.mjs minifies that.
+# (2026-11-15) assemble writes the plan's stamp into the world (tools/plan.mjs fillStamp, acorn's tokens): terser and
+# acorn as package.json pins them, so npm ci comes first, here (01-build used to run it).
+npm ci --no-audit --no-fund --ignore-scripts
 node tools/parts.mjs assemble src build/src
 node tools/parts.mjs assemble --ship src build/ship

@@ -68,7 +68,7 @@ void main() {
       nrm = normalize(-gg / (2.0 * uVH) + vec3(0.0, 1e-6, 0.0));
       wrapL = clamp((dot(nrm, sunL) + 0.35) / 1.35, 0.0, 1.0); facing = 0.5 + 0.5 * nrm.y;
     }
-    float dn = textureLod(uN3, (p + uVC) / uVR.z + vec3(uT * 0.004, 0.0, uT * 0.003), clamp(log2(max(max(2.0 * t * pxA, 0.5 * dE) * 32.0 / uVR.z, 1e-4)), 0.0, 5.0)).g;
+    float dn = textureLod(uN3, (p + uVC) / uVR.z + AIR_DRIFT(uT), clamp(log2(max(max(2.0 * t * pxA, 0.5 * dE) * 32.0 / uVR.z, 1e-4)), 0.0, 5.0)).g;
     s -= (dn - 0.5) * amp * 2.0;
     float dt = max(s > 0.0 ? max(dE, s * 0.5) : (s > -band ? dE : max(dIn, dE)), mS);
     // (no face of the box can draw an edge: the density thins over its outer few per cent)
