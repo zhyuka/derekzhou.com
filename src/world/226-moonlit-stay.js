@@ -45,18 +45,30 @@
     out.tanX = fr.tanX; out.tanY = fr.tanY; out.pN = (Math.atan((2 * lerp(f0[0], f0[1], tk) - 1) * fr.tanY) + CAMUP * DEG * wk) / DEG;
     return out;
   }
+  /* (the hub's round-5 review) each still's band of window shapes (width / height), as hour.js picks the still by its
+     SHAPES (the first band from a 20:9 phone's 0.44, the last to a 21:9 screen's 2.4): every window of the band shows the
+     still as cover crops it, a wider one losing its top and bottom, a narrower its sides, so the opening is planned in
+     the part every one of them shows (a disc in it is whole on each), and its keep (the 12 px and the evening star's glow
+     beyond it) is the band's smallest window's, scaled into the still's pixels (1 / its cover scale) */
+  var STILL_BAND = {"393x861":[0.44,0.4808],"393x817":[0.4807,0.5103],"393x770":[0.5102,0.5283],"393x724":[0.5282,0.5435],"393x676":[0.5434,0.5814],"393x629":[0.5813,0.625],"393x524":[0.625,0.7502],"1080x1080":[0.7501,1.249],"1350x1080":[1.249,1.599],"1728x1080":[1.599,1.777],"1920x1080":[1.777,2.099],"2268x1080":[2.099,2.4]};
+  function stillFrame(tier, nw, nh, f0) {   // the still's planning window (CSS px of its bake): the part of it every window of its band shows, its view and keep, the words' boxes in it; null for a shape not in the tables
+    var key = tier + '-' + nw + 'x' + nh, WB = STILL_WORDS[key], MN = STILL_MIN[key], BD = STILL_BAND[nw + 'x' + nh];
+    if (!WB || !MN || !BD) return null;
+    var sc = tier === 'lo' ? 393 / Math.min(nw, nh) : 1, bw = Math.round(nw * sc), bh = Math.round(nh * sc), vw = stillView(bw, bh, f0, {});
+    var cw = Math.min(bw, bh * BD[0]), ch = Math.min(bh, bw / BD[1]), dx = (bw - cw) / 2, dy = (bh - ch) / 2, cm = Math.max(MN[0] / bw, MN[1] / bh);
+    return { W: cw, H: ch, tanX: vw.tanX * cw / bw, tanY: vw.tanY * ch / bh, pN: vw.pN, keepPx: MOON_KEEP / Math.min(cm, 1), coarse: tier === 'lo' || bh > bw, bw: bw, bh: bh, dx: dx, dy: dy,
+      boxes: WB.map(function (B) { return [B[0] - dx, B[1] - dy, B[2] - dx, B[3] - dy]; }) };
+  }
   function stillInputs(I) {
     if (!I || reduced()) return I;
     var m = null; try { m = /-(lo|hi)-(\d+)x(\d+)\.avif/.exec(getComputedStyle(root).getPropertyValue('--still') || ''); } catch (e) { m = null; }
     if (!m) return I;
     var MN = STILL_MIN[m[1] + '-' + m[2] + 'x' + m[3]];
     if (MN && (OUT.cssW < MN[0] - 0.5 || OUT.cssH < MN[1] - 0.5)) return I;   // (a window smaller than the table covers: its own words)
-    var nw = +m[2], nh = +m[3], lo = m[1] === 'lo', sc = lo ? 393 / Math.min(nw, nh) : 1, bw = Math.round(nw * sc), bh = Math.round(nh * sc), WB = STILL_WORDS[m[1] + '-' + nw + 'x' + nh];   // (the bake's own window, as tools/gpu/bake-stills.js sizes it)
-    var vw = stillView(bw, bh, SIM.V.def.frame || [0.4, 0.6], {}), pN = vw.pN;
-    var c = Math.max(I.W / bw, I.H / bh), ox = (I.W - bw * c) / 2, oy = (I.H - bh * c) / 2, S = {}, k;
+    var F = stillFrame(m[1], +m[2], +m[3], SIM.V.def.frame || [0.4, 0.6]), S = {}, k;
+    if (!F) return I;   // (a shape not in the tables: the window's own)
     for (k in I) S[k] = I[k];
-    S.W = bw; S.H = bh; S.tanX = vw.tanX; S.tanY = vw.tanY; S.pN = pN; S.pL = pN; S.keepPx = MOON_KEEP; S.coarse = lo || bh > bw;
-    S.boxes = WB ? WB.map(function (B) { return B.slice(); }) : I.boxes.map(function (B) { return [(B[0] - ox) / c, (B[1] - oy) / c, (B[2] - ox) / c, (B[3] - oy) / c]; });   // (the bake's own boxes; a shape not in the table: this window's, mapped as cover crops it)
+    S.W = F.W; S.H = F.H; S.tanX = F.tanX; S.tanY = F.tanY; S.pN = F.pN; S.pL = F.pN; S.keepPx = F.keepPx; S.coarse = F.coarse; S.boxes = F.boxes;
     S.lift = 0;
     S.still = m[0];
     return S;
@@ -128,6 +140,11 @@
     out[0] = -rx * Math.cos(H) + c[2] * Math.sin(H); out[1] = c[1]; out[2] = rx * Math.sin(H) + c[2] * Math.cos(H);
     return out;
   }
+  function moonPlaceS(P, I, x) {   // the band's s where moonClear tries the moon at x of the way across (beside the words: the plan's own)
+    if (P.landSide) return P.landS;
+    var sT = Math.min(mrSAt(P.band, I, I.pN, x, P.thetaE), mrSAt(P.band, I, I.pL, x, P.thetaE));
+    return Math.min(Math.max(sT, P.wv * (I.land - P.tm0)), P.tauV * P.wv);
+  }
   function moonClear(E, I, LB, eye) {   // LB, eye: the lobes and the eye (226's own when not given: moonLobes about the flight's place)
     eye = eye || [CS.x, CS.y, CS.z];
     var t0 = clockNow(); LB = LB || moonLobes(SIM.V, I.psi, eye[0], eye[2]); MOON.lobeMs = clockNow() - t0; MOON.lobes = LB.lob.length / 4;   // (its cost, recorded only: never read for what is drawn)
@@ -137,10 +154,7 @@
       if (!(P.room || P.landRoom)) continue;
       var xs = P.landSide ? [P.landX] : MOON_XS;
       for (k = 0; k < xs.length; k++) {
-        var s;
-        if (P.landSide) s = P.landS;
-        else { var sT = Math.min(mrSAt(P.band, I, I.pN, xs[k], P.thetaE), mrSAt(P.band, I, I.pL, xs[k], P.thetaE)); s = Math.min(Math.max(sT, P.wv * (I.land - P.tm0)), P.tauV * P.wv); }
-        var v = moonVeil(LB, moonBandDir(P, s, d), MRK.R, eye[0], eye[1], eye[2]);
+        var v = moonVeil(LB, moonBandDir(P, moonPlaceS(P, I, xs[k]), d), MRK.R, eye[0], eye[1], eye[2]);
         if (v < bv) { bv = v; bx = xs[k]; bu = MOON_UPS[u]; }
         if (v < MOON_VEIL) { done = true; break; }
       }

@@ -137,6 +137,10 @@ there, the union of the bake window's and its band's smallest window's (the
 words keep their CSS size, so a smaller window shows them bigger): clear on
 every window of the band from that one up, and a smaller window plans against
 its own words (STILL_MIN, STILL_WORDS; tools/still-words.mjs measures both).
+The plan is made in the part of the still every window of its band shows
+(STILL_BAND: a wider window loses the still's top and bottom, a narrower its
+sides), so the disc is whole on each, and its keep is the band's smallest
+window's 12 px scaled into the still's pixels (stillFrame).
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening

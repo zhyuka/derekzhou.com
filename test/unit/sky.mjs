@@ -6,6 +6,8 @@
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 // plant: {"file": "src/world/220-time-day.js", "find": "L:[0.62,0.01,80],glow:[0.44,0.01,80]", "with": "L:[0.62,0.01,250],glow:[0.44,0.01,250]", "why": "a blue-tinted disc merges with the blue moonlit clouds"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-2268x1080\":[[800.6,222.2,1467.2,433.8]", "with": "\"hi-2268x1080\":[[933.2,339.4,1334.7,433.8]", "why": "the still's own name box alone: on its band's smallest window the words stand bigger, and the moon's footprint falls on them"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "var cw = Math.min(bw, bh * BD[0]), ch = Math.min(bh, bw / BD[1])", "with": "var cw = bw, ch = bh", "why": "the opening planned in the whole still: a disc near its top edge falls off a wider window of its band"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "    LATEK.creature = lk[0]; LATEK.glow = lk[1]; LATEK.beam = lk[2];\n", "with": "", "why": "the opening's cloud layout leaves a late program's flag set: it starts compiling at the opening"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -133,34 +135,61 @@ test('night: an opening\'s moon stands in frame at the cut, clear of the words, 
   }  console.log('# opening moon [top margin past the disc, keep share, margin, beside, x]: ' + JSON.stringify(MARG));
 });
 
-// the opening's moon on each band's smallest window (the hub's round-4 review): planned as the page plans it, in the
-// still's own window against 226's STILL_WORDS (the union of the bake's boxes and the smallest window's), then walked in
-// the smallest window's own view (226's stillView: its frustum and pitch) against that window's own boxes
-// (test/golden/still-words.json, measured by tools/still-words.mjs): the footprint clear of every box wherever the moon
-// stands in that window at the cut
-test('night: the opening moon is clear of the words on each band\'s smallest window, in that window\'s own view', () => {
+// the opening's moon on each band's smallest window (the hub's round-4 and round-5 reviews): planned as the page plans
+// it, in the part of the still every window of its band shows (226's stillFrame) against 226's STILL_WORDS (the union
+// of the bake's boxes and the smallest window's); every place moonClear may choose (each height of MOON_UPS, each
+// x of MOON_XS: 226's moonPlaceS) is then walked in the smallest window, as the still is shown there at the cut (cover)
+// and in that window's own view (226's stillView: its frustum and pitch), against that window's own boxes
+// (test/golden/still-words.json): the disc whole in the window and its footprint clear of every box, or the test fails
+test('night: every place the opening moon may take is whole and clear of the words on each band\'s smallest window', () => {
   const R = cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END');
-  const M = vm.runInThisContext('(function () {' + R + ' return { moonPlan, moonAt, mrCam, mrProj, mrPix, mrAng, MRK }; })')();
-  const SV = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] +
+  const M = vm.runInThisContext('(function () { var PI = Math.PI, DEG = PI / 180, MOON = {}; function clockNow() { return 0; }\n' + R + cut(WORLD, '  var MOON_VEIL = 5,', '  function moonShown(t, out) {') +
+    ' return { moonPlan, moonAt, mrCam, mrProj, mrPix, mrRay, mrAng, MRK, moonBandDir, moonPlaceS, MOON_XS, MOON_UPS }; })')();
+  const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
     '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
-    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  function stillView(', '  function stillInputs(') + ' return stillView; })')();
-  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
   const foot = (C, I, d, boxes) => { let f = 180; for (const B of boxes) for (let i = 0; i <= 40; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 40, B[1]], [B[0] + (B[2] - B[0]) * i / 40, B[3]], [B[0], B[1] + (B[3] - B[1]) * i / 40], [B[2], B[1] + (B[3] - B[1]) * i / 40]]) f = Math.min(f, M.mrAng(d, M.mrPix(C, I, px, py))); return f; };
-  let n = 0, least = 180;
-  for (const key of Object.keys(SW)) {
-    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), sc = tier === 'lo' ? 393 / Math.min(w0, h0) : 1, bw = Math.round(w0 * sc), bh = Math.round(h0 * sc);
-    const [sw, shh] = G[key].min, f0 = [0.4, 0.6], vS = SV(bw, bh, f0, {}), vL = SV(sw, shh, f0, {});
-    for (const sigma of [1, -1]) for (const psi of [37, 151]) {
-      const I = { psi, pN: vS.pN, pL: vS.pN, tanX: vS.tanX, tanY: vS.tanY, W: bw, H: bh, boxes: SW[key].map((b) => b.slice()), keepPx: 12, coarse: tier === 'lo' || bh > bw, noRoom: false, keyAz: psi + 160, side: 1, sigma, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0 };
-      const P = M.moonPlan(I), o = { d: [0, 0, 0] }; M.moonAt(P, 0, o);
-      const L = { tanX: vL.tanX, tanY: vL.tanY, W: sw, H: shh }, CL = M.mrCam(psi, vL.pN), q = M.mrProj(CL, L, o.d);
-      if (!(q[2] > 0 && Math.abs(q[0]) < 1 && Math.abs(q[1]) < 1)) continue;   // (out of that window's frame: nothing on its words)
-      const f = foot(CL, L, o.d, G[key].small); n++; least = Math.min(least, f);
-      assert.ok(f >= M.MRK.FOOT - 1e-9, `${key} at ${sw}x${shh} (sigma ${sigma}, heading ${psi}): the footprint ${f.toFixed(2)} deg from a word box in that window's own view (4.5)`);
+  const whole = (C, I, d) => { const q = M.mrProj(C, I, d); if (!(q[2] > 0 && Math.abs(q[0]) < 1 && Math.abs(q[1]) < 1)) return -1; return Math.min(M.mrAng(d, M.mrRay(C, I, q[0], 1)), M.mrAng(d, M.mrRay(C, I, q[0], -1)), M.mrAng(d, M.mrRay(C, I, 1, q[1])), M.mrAng(d, M.mrRay(C, I, -1, q[1]))) - M.MRK.R; };
+  let n = 0, least = 180, edge = 180;
+  for (const key of Object.keys(G)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), F = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min;
+    assert.ok(F, key + ': in the tables');
+    const c = Math.max(sw / F.bw, shh / F.bh);   // (the still as cover shows it in that window)
+    const vS = SF.stillView(F.bw, F.bh, [0.4, 0.6], {}), cv = { W: sw, H: shh, tanX: vS.tanX * (sw / c) / F.bw, tanY: vS.tanY * (shh / c) / F.bh }, vL = SF.stillView(sw, shh, [0.4, 0.6], {}), own = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY };
+    for (const sigma of [1, -1]) for (const psi of [37, 151]) for (const up of M.MOON_UPS) {
+      const I = { psi, pN: F.pN, pL: F.pN, tanX: F.tanX, tanY: F.tanY, W: F.W, H: F.H, boxes: F.boxes, keepPx: F.keepPx, coarse: F.coarse, noRoom: false, keyAz: psi + 160, side: 1, sigma, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0, landX: M.MRK.LANDX, landUp: up };
+      const P = M.moonPlan(I);
+      if (!(P.room || P.landRoom)) continue;
+      for (const x of P.landSide ? [P.landX] : M.MOON_XS) {
+        const d = M.moonBandDir(P, M.moonPlaceS(P, I, x), [0, 0, 0]);
+        for (const [view, V, pN] of [['at the cut', cv, F.pN], ['in its own view', own, vL.pN]]) {
+          const C = M.mrCam(psi, pN), e = whole(C, V, d), f = foot(C, V, d, G[key].small); n++; least = Math.min(least, f); edge = Math.min(edge, e);
+          assert.ok(e >= -1e-6, `${key} at ${sw}x${shh} ${view} (sigma ${sigma}, heading ${psi}, height ${up}, x ${x.toFixed(3)}): the disc not whole in the window (${e.toFixed(2)} deg)`);
+          assert.ok(f >= M.MRK.FOOT - 1e-9, `${key} at ${sw}x${shh} ${view} (sigma ${sigma}, heading ${psi}, height ${up}, x ${x.toFixed(3)}): the footprint ${f.toFixed(2)} deg from a word box (4.5)`);
+        }
+      }
     }
   }
-  assert.ok(n >= 60, `${n} moons in the smallest windows' frames (the test is not empty)`);
-  console.log(`# opening moon on the bands' smallest windows: ${n} in frame, the nearest box ${least.toFixed(2)} deg`);
+  assert.ok(n >= 1000, `${n} places walked (the test is not empty)`);
+  console.log(`# opening moon on the bands' smallest windows: ${n} places, the nearest box ${least.toFixed(2)} deg, the disc ${edge.toFixed(2)} deg inside the edge at least`);
+});
+
+// moonLobes lays out cells the streamer has not reached (the hub's round-4 nit): a layout only, so the late programs'
+// flags it may set through the cell's own api (230's flock, glows, beam) are put back as they were: none starts compiling
+// at the opening. 226's own moonLobes runs here on a stub cell whose layout sets every flag; the flags come out as they went in
+test('night: laying out the opening\'s cloud lobes leaves the late programs\' flags as they were', () => {
+  const F = cut(WORLD, '  function moonLobes(', '  function moonVeil(');
+  for (const before of [[0, 0, 0], [1, 0, 1]]) {
+    const K = vm.runInThisContext('(function (B) { var DEG = Math.PI / 180, KITAPI = {}, LATEK = { creature: B[0], glow: B[1], beam: B[2] }, MOON_VEIL_AZ = 60, laid = 0;\n' +
+      'function angd(a, b) { var d = ((a - b) % 360 + 540) % 360 - 180; return d; } function RNG() { return {}; }\n' +
+      'function Cell(V, sc, ix, iz) { this.cx = ix * 100; this.cz = iz * 100; this.clouds = []; }\n' +
+      'function cellApi(C) { return { hash: 1, flock: function () { LATEK.creature = 1; }, glows: function () { LATEK.glow = 1; }, beam: function () { LATEK.beam = 1; } }; }\n' + F +
+      ' var V = { def: { layout: { scales: [{ radius: 200, size: 100 }] }, cell: function (api) { laid++; api.flock({}); api.glows({ n: 1 }); api.beam({}); } } };\n' +
+      ' var out = moonLobes(V, 0, 0, 0); return { L: [LATEK.creature, LATEK.glow, LATEK.beam], laid: laid, out: out }; })')(before);
+    assert.ok(K.laid > 0, 'the stub laid out some cells');
+    assert.deepEqual(K.L, before, `the late programs' flags after the layout (${K.L}; before ${before})`);
+  }
 });
 
 // 226's moonClear (the opening moon's place off the clouds) on the route's own plan and synthetic lobes: with no cloud
