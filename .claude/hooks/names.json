@@ -1,6 +1,34 @@
 {
   "_": "Names that never go into this repository, its commits or its PRs (RULES.json: naming). Stored as sha256(salt + the name lowercased, its words joined by one space), so this file names nothing. Add names with: python3 .claude/hooks/add_names.py < a file of names, one a line (keep that file outside the repository). guard.py reads this.",
   "salt": "b07858cbf096290ac2ec1cd8afc9a355",
-  "max_words": 1,
-  "hashes": []
+  "max_words": 3,
+  "hashes": [
+    "055d4241271229cb5a2cd3b113a661851863496e6269d3bd55e9abdb35f9bea1",
+    "061a76554891e325017ce0a4e77a3e302320821de4e4b296d8f21cfd9b5e9abd",
+    "181c9741b501d9b75a78817842df007db2c7b8855fda5dc55bf81a95bdf5ebf8",
+    "273f6214b5d3b63ffc2cc984c3d4094d9a41420d89f35f9b8812b9510a896cab",
+    "33a79c79d113991b79898ea330029c583b469fc0736707366e4372fbc815ef9a",
+    "384876f8ed875a02b125096e6f3e88925de247b4dae1cb915334d432f193b3e8",
+    "3929758fa9a0f739ec775559f4a6b7441d4ff90d2e02254d91c74b09fa8b7181",
+    "398dbb6758929ec89172acd55cef2777070e05bf7b6fae116a35e0e6411e149d",
+    "48076bd44f4b29f3f8fcd48481e8cb857b8faa4ffa3e93f2d7782b1ec498f496",
+    "4ddb2cee679e6c9583c7a5182d9fdabf04273cd1180c8c1ed6c73de81e012f26",
+    "62ef166844abdc7fc4b3dba45e8ea41376a71d9dc6421eb864afbf4b15bb51f9",
+    "67de3e7c55abb85aecdd3ddc8697201cacffee7466a0cce377e8531c881fd4d9",
+    "828389e7c4c7851c1ad1318f63e9edf4412d51cd533d65865b61dddacf862b39",
+    "8357f5a1a27becf108e736d67260670cab73058c00bdc9c8be88f924924d342f",
+    "97aa16458b7ad5a98977f050b87336da119e55c354f156ecfe9459630f092ec5",
+    "9bdec1a63179d16f742730cb8a97008cc282dcabc94f6042d53edb3f2e19b441",
+    "a0d4ac8389c3eba3da91b02f3d585b9af5c10f6c05c0b0fa59c6cba197e8f5e0",
+    "a625a9a3767b47b8df6bb91980129165d540fa8ad7d1b49b7de9c8717933ab10",
+    "adf7a72fd5d13ed7318f4cd170aa9add5a0e3e03ecedc00fddb69f7b247872ed",
+    "beff2896d78ca4e4fdb5347e1c008a241c07dbda82424de0b95b6eeb258fe35b",
+    "c72f823df41b1b4a5e59ec5cfb78b441d79a498d4a51e2cec1ccff199d597827",
+    "c8f8dadd608c96fb17a5d0a4eaabefb007652df39a251357b9596f6f97cea888",
+    "cc30bd87e3c1d5f5c49300be3a921c221b6b38b0ab4c9e17cefbbbe8fbfa3532",
+    "cf12c364406eea2e98a079c26ea39aa625da1909f2541fdce141b0875afc9959",
+    "d641786337507df1a37ab51c63fe7c18026d2769f356cd93dff5d4d6cdeff62d",
+    "d7f72c30b836fd2da6359728879999eb3ef27a4679fd84105fc5b0454a11b7a2",
+    "f76871fab239726128d3a507ebc6c49992debe2eecebbe927e901801dac3f7db"
+  ]
 }
