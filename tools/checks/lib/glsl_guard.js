@@ -1,4 +1,4 @@
-// glsl_guard.js (CI: validate.yml's step "Every visit compiles the same shaders"). A returning visitor's world is
+// glsl_guard.js (CI: tools/checks/26-glsl-guard.sh, "Every visit compiles the same shaders"). A returning visitor's world is
 // quick only when Chrome's shader cache answers for every program, and it answers only for a source it has seen byte
 // for byte. So this guard holds two rules:
 //  1. No per-visit, per-window or per-hour value in any GLSL source. The site's scripts (every script index.html
@@ -36,7 +36,7 @@ if (!vm.constants || vm.constants.DONT_CONTEXTIFY === undefined) { console.error
 const sha = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 24);
 
 // ------------------------------------------------------------------ the devices, the page and one visit: test/fakepage.cjs
-const FP = require('../../test/fakepage.cjs'), { UA, EXT, DEVICES, HOURS, scriptsOf, loadScripts } = FP;
+const FP = require('../../../test/fakepage.cjs'), { UA, EXT, DEVICES, HOURS, scriptsOf, loadScripts } = FP;
 const run = (V, page) => FP.run(V, page, { reduced: !!A.reduced });
 
 function visits() {
@@ -122,10 +122,10 @@ function judge(runs, labels, oldLabels) {
   return { errs, dev, ids, text, nprog: progs.length };
 }
 const HEADER = ['# glsl_manifest.txt: every program the world compiles on the reference device (a desktop Chrome with float targets), as',
-  '# .github/workflows/glsl_guard.js finds it: "program <label> vs <sha256/24> <bytes> fs <sha256/24> <bytes>"; then each device the',
+  '# tools/checks/lib/glsl_guard.js finds it: "program <label> vs <sha256/24> <bytes> fs <sha256/24> <bytes>"; then each device the',
   '# guard runs: "device <id> <programs> <vertex|fragment #defines>:<count> ...". CI fails when this is not what the site compiles.',
   '# A change to any program\'s text comes with its lines here, in the same commit. After a deliberate change, regenerate it:',
-  '#   node .github/workflows/glsl_guard.js site --write .github/workflows/glsl_manifest.txt'];
+  '#   node tools/checks/lib/glsl_guard.js site --write build/glsl_manifest.txt'];
 /* the manifest against the one committed: [] when they agree, else the problems (programs matched by their hashes) */
 function compare(old, text) {
   const lines = (s) => s.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
@@ -208,7 +208,7 @@ function selftest(runs, labels, oldLabels, text) {
   for (const e of fails) console.log('::error::' + e);
   if (J.errs.length) console.log(`glsl_guard: FAIL: ${J.errs.length} GLSL source(s) not the same on every visit of a device: each misses Chrome's shader cache on every return (${t()})`);
   else console.log(`glsl_guard: every visit of each device compiles the same sources (${runs.length} visits; ${J.ids.map((id) => J.dev[id].replace('device ', '')).join('; ')})`);
-  if (A.manifest && old !== null) console.log(fails.length > J.errs.length ? `glsl_guard: FAIL: the manifest is not what the site compiles: a change to a program's text comes with its manifest lines in the same commit (node .github/workflows/glsl_guard.js site --write ${A.manifest}) (${t()})`
+  if (A.manifest && old !== null) console.log(fails.length > J.errs.length ? `glsl_guard: FAIL: the manifest is not what the site compiles: a change to a program's text comes with its manifest lines in the same commit (node tools/checks/lib/glsl_guard.js site --write ${A.manifest}) (${t()})`
     : `glsl_guard: the manifest is what the site compiles (${J.nprog} programs, ${J.ids.length} devices) (${t()})`);
   if (A.write) {
     if (J.errs.length) { console.log(`glsl_guard: not written: fix the sources first (${A.write})`); process.exit(1); }

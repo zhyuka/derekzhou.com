@@ -1,5 +1,5 @@
-# rules_check.py: RULES.json is valid, and every enforcement it claims exists. Run by validate.yml ("The rules are data,
-# and the hooks hold") from the repository's root: python3 .github/workflows/rules_check.py
+# rules_check.py: RULES.json is valid, and every enforcement it claims exists. Run by tools/checks/13-rules-data.sh ("The rules are data,
+# and the hooks hold") from the repository's root: python3 tools/checks/lib/rules_check.py
 #   - each rule has a unique kebab-case id, an area, a rule, a source (a list of quote/date/via/doc, at least one of
 #     them) and enforced_by (a list, at least one entry)
 #   - ci-step: a `- name:` of exactly that text in some .github/workflows/*.yml, or a check of tools/checks/ (its
@@ -37,7 +37,7 @@ for c in glob.glob('tools/checks/*.sh'):   # (one-check: validate.yml runs these
     for rid in re.findall(r'^# enforces: (\S+)\s*$', t, re.M): headers.setdefault(rid, []).append(m.group(1))
     if m.group(1) == 'Absences are enforced':
         absences |= {int(n) for n in re.findall(r'^\s*#\s*\((\d+)\)', t, re.M)}
-wr = open('.github/workflows/world_rules.py', encoding='utf-8').read()
+wr = open('tools/checks/lib/world_rules.py', encoding='utf-8').read()
 world = set(re.findall(r"fail\('([^']+)'", wr))
 try:
     settings = open('.claude/settings.json', encoding='utf-8').read()

@@ -80,7 +80,7 @@
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
-    b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
+    b.v[0] = b.V * ch * Math.sin(psi) + WINDV[0]; b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi) + WINDV[2];   // (over the ground: its way through the air and the wind, as every step makes it; air alone drew a seeded flock up to 33 deg off on its first frame, the hub's review 3)
     BIRDS.push(b);
     return b;
   }
@@ -307,6 +307,7 @@
   function holdPlace(F, b) {
     var L = F.lead, sp = L.sz, q = b.slot, h = slotAt(F, b, q[0] * sp, q[1] * sp, q[2] * sp), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
     b.p[0] = TP[0]; b.p[1] = TP[1]; b.p[2] = TP[2];
-    b.v[0] = V * Math.sin(h); b.v[1] = L.v[1]; b.v[2] = V * Math.cos(h); b.psi = h; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
+    var g = h + (V > 1e-6 ? angDiff(Math.atan2(L.v[0], L.v[2]), L.psi) : 0);   // (its way over the ground: along its leader's track, its heading crabbed as its leader's is; along the heading alone a side wind of 5 m/s turned it 25 deg on its next fine step)
+    b.v[0] = V * Math.sin(g); b.v[1] = L.v[1]; b.v[2] = V * Math.cos(g); b.psi = h; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
   }
 

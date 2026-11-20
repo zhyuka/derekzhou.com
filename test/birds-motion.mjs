@@ -18,7 +18,7 @@ function run(cs, seed, hz, secs, each, size, all, sched) {
   let tm = 0;
   for (let k = 0; k < Math.round(secs * hz); k++) {
     const fd = sched ? sched(k) : 1 / hz; tm += fd;
-    const n = sim.frame(fd), DF = sim.B.DF();
+    const n = sim.frame(fd); if (!sim.B) continue; const DF = sim.B.DF();   // (no step yet in the first frames at a high rate)
     for (const b of all ? sim.B.BIRDS : tags) {
       if (b.st === 'perch') lp.set(b, k);
       if (b.st === 'land' && b.P && nl.get(b) !== b.P) { nl.set(b, b.P); nn.set(b, (nn.get(b) || 0) + 1); }
@@ -35,13 +35,13 @@ function d2(a, b, c) { let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a,
 /* the worst form and body second differences over the landing scenes, each over its bound (1: at the bound) */
 function jumps(hz, scenes, states, ledgeWalk) {
   const k60 = (60 / hz) ** 2; let worst = { f: 0 }, worstB = { b: 0 };
-  for (const cs of scenes) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24).values())
+  for (const cs of scenes) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= Math.max(SEEDS, 6); seed++) for (const F of run(cs, seed, hz, 24, null, size).values())   // (a phone too, the hub's review 3: a snap up after a landing there read 3.9x the bound; with the frame's own pose a landing onto the pointer there holds too)
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st) && !(b.st === 'fly' && states.includes('takeoff') && b.lv <= 2 * hz)) || (ledgeWalk && a.st === 'perch' && b.st === 'perch' && c.st === 'perch' && (a.li !== b.li || b.li !== c.li))) continue;   // ('takeoff': flying, within 2 s of its perch)   // (the first frames: the scene was set up on the step clock)
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
       const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));   // (at 144 Hz 0.03 span a frame: the hub review's 0.02-0.03)
-      if (f > worst.f) worst = { f, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
-      if (bb > worstB.b) worstB = { b: bb, at: `${cs} ${seed} frame ${b.k} ${b.st}` };
+      if (f > worst.f) worst = { f, at: `${cs} ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (bb > worstB.b) worstB = { b: bb, at: `${cs} ${size} ${seed} frame ${b.k} ${b.st}` };
     }
   return { worst, worstB };
 }
@@ -209,7 +209,7 @@ test('every landing starts its flare from none (a second landing keeps nothing o
   assert.equal(stale, 0, `${stale} landings began with the last landing's flare (${at})`);
 });
 
-test('no perched bird stands in the air above its own ink (over 1 px for no more than 0.15 s)', () => {
+test('no perched bird stands in the air above the ink (over 1 px for no more than 0.15 s)', () => {
   const FT = [0, 0]; let n = 0, over = 0, runMax = 0, runAt = '', max = -1e9, at = '', sinkMax = -1e9, sinkAt = '';
   for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
     const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
@@ -220,19 +220,17 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
         if (P.hop || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD)) continue;   // (a hop or a turn lifts it on purpose)
-        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), pts = B.ledges()[P.li].pts, x0 = pts[0][0], x1 = pts[pts.length - 1][0]; let air = 1e9, sink = -1e9;
-        for (let i = 0; i < NV; i++) {   // (the gap between the ink and the lowest of its points over the ink: its own glyph's tops)
+        B.perchFoot(P, FT); const sp = B.perchSpan(b, P.k), L = B.ledges(), own = L[P.li]; let air = 1e9, sink = -1e9;
+        /* the ink it may stand on: its own ledge and the neighbouring glyphs' on its row (the hub's review 3: a bird on a
+           narrow link top rests on the next letter's ink, never sinks into it); found here, not read from the bird */
+        const ink = L.filter((q) => q === own || (q.kind === own.kind && Math.abs(q.y - own.y) <= 0.6 * sp && Math.abs(q.x - own.x) <= 2.5 * sp)).map((q) => q.pts);
+        for (let i = 0; i < NV; i++) {   // (each point's gap to the ink straight under it, in the window, less the pen's half width)
           const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
           const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
-          if (Math.abs(sx - FT[0]) > 0.18 * sp) continue;   // (by its feet: the gap from its ink to its own glyph's top, in the window, less the pen's half width)
-          let g = 1e9;
-          for (let j = 0; j + 1 < pts.length; j++) {
-            const ax = pts[j][0], ay = pts[j][1], bx = pts[j + 1][0], by = pts[j + 1][1], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-            const u = L2 > 0 ? Math.max(0, Math.min(1, ((sx - ax) * dx + (sy - ay) * dy) / L2)) : 0, qx = ax + u * dx, qy = ay + u * dy;
-            g = Math.min(g, sy > qy ? 0 : Math.hypot(sx - qx, sy - qy));   // (a point at or below the top touches it)
-          }
-          air = Math.min(air, g - 0.5);
-          if (sx >= x0 && sx <= x1) { const top = B.surfY(pts, sx); if (top === top) sink = Math.max(sink, sy - top); }   // (how far into its own letter's ink)
+          if (i !== 0 && i !== 2 && i !== 3) continue;   // (its feet: the body's own bottom at its origin, what it stands on; its wings and tail may pass behind the letters, whose ink is drawn over them)
+          let top = NaN; for (const q of ink) { const n = q.length, xc = Math.max(q[0][0], Math.min(q[n - 1][0], sx)); if (Math.abs(sx - xc) > 2) continue; const y = B.surfY(q, xc); if (y === y && !(y >= top)) top = y; }   // (only ink under it, the pen's round end 2 px past a ledge's last point included: a point farther beside a ledge's end is not on it)
+          if (!(top === top)) continue;
+          air = Math.min(air, top - sy - 0.5); sink = Math.max(sink, sy - top);
         }
         if (sink > sinkMax) { sinkMax = sink; sinkAt = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}${P.act ? ' act ' + P.act.k : ''}`; }
         if (air > 1e8) continue;
@@ -245,21 +243,23 @@ test('no perched bird stands in the air above its own ink (over 1 px for no more
   console.log(`# perched frames: ${n}; over 1 px of air under the feet ${over}; most ${max.toFixed(2)} px (${at}); longest ${runMax} frames (${runAt}); into the ink at most ${sinkMax.toFixed(2)} px (${sinkAt})`);
   assert.ok(n > 1000, 'too few perched frames');
   // (a change of what holds it up settles over a few frames, the rest following critically damped: no bird stays in the air)
-  assert.ok(sinkMax <= 4, `a perched bird's ink sank ${sinkMax.toFixed(2)} px into its letter (${sinkAt})`);
+  assert.ok(sinkMax <= 4, `a perched bird's ink sank ${sinkMax.toFixed(2)} px into the letters (${sinkAt})`);
   assert.ok(runMax <= 9, `a perched bird stood over 1 px above its ink for ${runMax} frames (${runAt})`);
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
 
-/* (what it guards: a landing begun with the last one's flare, as when the draw reads the step's b.flareU and its reset
-   is gone: 1.92x on #225, 3.74x here) */
+/* (what it guards: a second landing drawn as smoothly as a first, at 144 Hz, where a snap of a few px is over its bound.
+   35-birds.sh's plant takes away the wings' crossfade at a change of what they do: 2.40x the form bound. A perched bird
+   now stands on its feet, so the first perch's rest kept at the second touch no longer shows, and the flare's reset is
+   made twice: neither can be planted here, the hub's review 3) */
 test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
-  const k60 = 1; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;
-  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 60, 80, null, size, true).values())
+  const k60 = (60 / 144) ** 2; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;   // (at 144 Hz: a snap of a few px reads at 60 Hz within a frame's bound)
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 144, 80, null, size, true).values())
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (b.nth < 2 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch')) continue;
       frames++;
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
-      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / 0.1;
+      const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));
       if (f > worst.f) worst = { f, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
       if (bb > worstB.b) worstB = { b: bb, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
     }
@@ -318,10 +318,10 @@ test('a standing bird\'s rest moves a little at a time (no support found or lost
       sim.step(); const B = sim.B;
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P;
-        if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.hop || s.seenF !== B.DF() || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.05) || sim.t - P.tt < 1) { was.delete(b); continue; }   // (from when its wings have folded after the touch)
+        if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.hop || s.seenF !== B.DF() || (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.05) || sim.t < P.tt) { was.delete(b); continue; }   // (from the touch: the hub's review 3 found a snap up 0.22 s after it)
         const r = P.rest, u = s.rU, w = was.get(b); was.set(b, [r, u]); if (w === undefined) continue;
         const d = Math.abs(r - w[0]), du = Math.abs(u - w[1]); n++;
-        if (!P.act) { if (d > 5) big++; if (d > max) { max = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; } }
+        if (!P.act && sim.t - P.tt >= 0.6) { if (d > 5) big++; if (d > max) { max = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; } }   // (the solved rest from 0.6 s, the wings folded from the touch pose (it follows that pose); the drawn rest from the touch)
         if (du > maxU) { maxU = du; atU = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}${P.act ? ' act ' + P.act.k : ''}`; }
       }
     }
@@ -330,4 +330,111 @@ test('a standing bird\'s rest moves a little at a time (no support found or lost
   assert.ok(n > 10000, 'too few standing steps');
   assert.ok(max <= 2, `a standing bird's solved rest changed ${max.toFixed(2)} px in one step (${at})`);
   assert.ok(maxU <= 4, `a standing bird's drawn rest moved ${maxU.toFixed(2)} px in one step (${atU})`);
+});
+
+/* (the hub's review 3) a seeded flock's first frame: its way over the ground already its way through the air and the
+   wind (air alone drew it up to 33 deg off its next step's way) */
+test('a seeded bird\'s first way over the ground is its next step\'s (the wind in it)', () => {
+  let n = 0, worst = 0, at = '';
+  for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.wind = [5 * Math.sin(seed), 5 * Math.cos(seed)];
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
+    sim.step(); const B = sim.B, first = new Map();
+    for (const b of B.BIRDS) if (b.st === 'fly') first.set(b, Math.atan2(b.v0[0], b.v0[2]));
+    sim.step();
+    for (const [b, a0] of first) { if (b.st !== 'fly') continue; const d = Math.abs(Math.atan2(Math.sin(Math.atan2(b.v[0], b.v[2]) - a0), Math.cos(Math.atan2(b.v[0], b.v[2]) - a0))) * 180 / Math.PI; n++; if (d > worst) { worst = d; at = `natural ${seed} bird ${b.id}`; } }
+  }
+  console.log(`# seeded birds: ${n}; their first way off the next step's by at most ${worst.toFixed(2)} deg (${at})`);
+  assert.ok(n > 20, 'too few seeded birds');
+  assert.ok(worst <= 5, `a seeded bird's first way was ${worst.toFixed(2)} deg off its next step's (${at})`);
+});
+
+/* (the hub's review 3, B) a bird that leaves mid-hop on a walk: the hop's lift eased out with the crouch, never dropped
+   (it fell 4.5 px in one 144 Hz frame: a body second difference 1.9 times the bound) */
+test('144 Hz: a bird leaving in the middle of a hop eases its hop down (no drop)', () => {
+  let n = 0, worst = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.perch(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let st = 0, left = -1; const hb = [];
+    for (let k = 0; k < 40 * 144; k++) {
+      sim.frame(1 / 144); const P = b.P, s = b.s, B = sim.B;
+      if (st === 0 && b.st === 'perch' && P && sim.t - P.tt > 2 && !P.act) { P.walk = { dir: 1, n: 2, step: 0.08 * B.perchSpan(b, P.k), t0: sim.t, x0: P.x }; st = 1; }   // (a walk made)
+      else if (st === 1 && P && P.walk && sim.t - P.walk.t0 > 0.11 && sim.t - P.walk.t0 < 0.13) { B.leave(b, 'own'); st = 2; left = k; }   // (left at the top of its first hop)
+      if (st === 2 && s && s.seenF === B.DF()) { hb.push([s.HB[0], s.HB[1], s.spanPx, k]); if (k - left > 0.4 * 144) break; }
+    }
+    if (st < 2) continue; n++;
+    for (let i = 1; i + 1 < hb.length; i++) {
+      const [a, c, d] = [hb[i - 1], hb[i], hb[i + 1]]; if (c[3] !== a[3] + 1 || d[3] !== c[3] + 1 || c[2] < 6) continue;
+      const bb = Math.hypot(a[0] - 2 * c[0] + d[0], a[1] - 2 * c[1] + d[1]) / c[2] / (0.1 * Math.max((60 / 144) ** 2, 0.25));
+      if (bb > worst) { worst = bb; at = `perch ${size} ${seed} frame ${c[3] - left} after the leave`; }
+    }
+  }
+  console.log(`# leaves mid-hop: ${n}; the worst body step ${worst.toFixed(2)} of its bound (${at})`);
+  assert.ok(n >= 6, `only ${n} leaves mid-hop`);
+  assert.ok(worst <= 1, `a leave mid-hop jumped ${worst.toFixed(2)} times the bound (${at})`);
+});
+
+/* (the hub's re-review 3, option c) a perched bird stands on top of its ink: its folded, settling, touching and raised
+   wings never hang below its feet, so no drawn point is ever far below the ink under it (the feet rule alone hung the
+   folded wings a median 28.9 px through the letters). The ink under a point: its own ledge's, or a neighbouring glyph's
+   on its row, or else its row's line. The feet themselves may sink into the ink by the sink bound (4 px) */
+test('a perched bird stands on top of its ink: no drawn point far below the ink under it', () => {
+  let n = 0, worst = -1e9, at = '', over = 0;
+  for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); sc.setup(sim);
+    for (let k = 0; k < 26 * 60; k++) {
+      sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX, L = B.ledges();
+      for (const b of B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || s.seenF !== B.DF()) continue;
+        const lg = L[P.li], sp = s.spanPx; let d = -1e9;
+        for (let i = 0; i < 46; i++) {
+          const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
+          const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
+          let y = B.surfY(lg.pts, sx);
+          if (!(y === y)) for (const q of L) { if (q.kind !== lg.kind || Math.abs(q.y - lg.y) > 0.6 * sp) continue; const v = B.surfY(q.pts, sx); if (v === v) { y = v; break; } }
+          if (!(y === y)) y = lg.y;
+          d = Math.max(d, sy - y);
+        }
+        n++; if (d > 2) over++;
+        if (d > worst) { worst = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}, ${(sim.t - P.tt).toFixed(2)} s after the touch${P.act ? ' (' + P.act.k + ')' : ''}`; }
+      }
+    }
+  }
+  console.log(`# perched frames: ${n}; the lowest drawn point below the ink under it at most ${worst.toFixed(2)} px (${at}); over 2 px on ${over}`);
+  assert.ok(n > 10000, 'too few perched frames');
+  assert.ok(worst <= 5, `a perched bird's drawn point hung ${worst.toFixed(2)} px below the ink under it (${at})`);
+  assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames had a drawn point over 2 px below the ink under it`);
+});
+
+/* (the hub's re-review 3, #227) a bird riding the pointer, the pointer round a 60 px circle at 200 px/s (the cursor
+   scene's own 28 px/s is too slow to show it), drawn at 144 Hz: posed at the frame's time, its body moves every frame
+   within the bound (posed from the step's pointer it stood still on 56 % of frames and jumped on the rest: 2.69x) */
+test('144 Hz: a bird riding a moving pointer moves smoothly with it (posed at the frame\'s time)', () => {
+  const hz = 144, V = 200, k60 = (60 / hz) ** 2; let worst = 0, at = '', frames = 0, rides = 0;
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 12; seed++) {
+    const sc = SCENES.cursor(seed, size), Z = size === '390x844' ? [390, 844] : [960, 600];
+    const slow = sc.opt.pointer; let t0 = -1, p0 = null;
+    sc.opt.pointer = (t) => {   // (slow until the bird is on it, then round a circle at V px/s, through where it is: no jump)
+      if (t0 < 0) return slow(t);
+      const R = 60, w = V / R, a0 = Math.atan2(p0.y - Z[1] / 2, p0.x - Z[0] / 2), a = a0 + (t - t0) * w, cx = p0.x - R * Math.cos(a0), cy = p0.y - R * Math.sin(a0);
+      return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+    };
+    sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let hist = [], rode = false;
+    for (let k = 0; k < 30 * hz; k++) {
+      sim.frame(1 / hz); const s = b.s, on = b.st === 'perch' && b.P && b.P.kind === 'pointer' && !b.P.leaving;
+      if (on && t0 < 0 && sim.t - b.P.tt > 1.5) { t0 = sim.t; p0 = { x: sim.PT.x, y: sim.PT.y }; }
+      if (!on || t0 < 0 || sim.t - t0 < 0.3 || !s || s.seenF !== sim.B.DF()) { hist = []; continue; }
+      if (!rode) { rode = true; rides++; }
+      hist.push({ x: s.HB[0], y: s.HB[1], span: s.spanPx, k });
+      if (hist.length < 3) continue;
+      const [a, c, d] = hist.slice(-3); if (c.k !== a.k + 1 || d.k !== c.k + 1 || c.span < 6) continue;
+      const bb = Math.hypot(a.x - 2 * c.x + d.x, a.y - 2 * c.y + d.y) / c.span / (0.1 * Math.max(k60, 0.3)); frames++;
+      if (bb > worst) { worst = bb; at = `cursor ${size} ${seed} frame ${c.k}`; }
+    }
+  }
+  console.log(`# pointer rides at ${V} px/s, ${hz} Hz: ${rides} rides, ${frames} frames; the worst body step ${worst.toFixed(2)} of its bound (${at})`);
+  assert.ok(rides >= 10 && frames > 1000, `too few rides (${rides}) or frames (${frames})`);
+  assert.ok(worst <= 1, `a bird on the moving pointer jumped ${worst.toFixed(2)}x its bound (${at})`);
 });

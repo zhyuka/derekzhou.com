@@ -3,7 +3,7 @@
 // not make (tools/gpu/bake-stills.js's shapes and tiers), the wrong tier, or a shape outside A2's rule (portrait under
 // h/w 1.893 the shorter still, above it the taller, the tallest past it; landscape and squat windows the narrower,
 // the square under it). The run-16 Nord (no still on a real phone) is why: this can't come back on another phone.
-import { test, assert, fs, path, vm, ROOT } from '../unit-lib.mjs';
+import { test, assert, fs, path, vm, ROOT, WORLD } from '../unit-lib.mjs';
 
 const HOUR = fs.readFileSync(path.join(ROOT, 'site', 'hour.js'), 'utf8');
 const BAKE = fs.readFileSync(path.join(ROOT, 'tools', 'gpu', 'bake-stills.js'), 'utf8');
@@ -96,4 +96,62 @@ test('still-pick: a page with no still preload (a build with no stills) asks for
   vm.runInNewContext(HOUR, ctx);
   assert.equal(props['--still'], undefined);
   assert.ok(at['data-seed'] !== undefined, 'the read is still made');
+});
+
+// (CI lane, 2026-11-15: the owner's "0 disconnects") the still a window gets was baked on the bake's own device for
+// its tier and shape (bake-stills.js win()): an iPhone's or a portrait desktop's still on the bake's phone, a
+// landscape one on its desktop. Where the world branches on the device's memory tier (memTier() === '<tier>': the
+// clouds' look), the bake's device must take the same branch as the visitor's, or the cut from the still to the live
+// world shows (a touch device in landscape got a still with the desktop's clouds). Table lookups by the tier (the
+// density, the boot's rung) are not a look's branch and are not compared.
+const MEMTIER = (() => { const m = /\n  function memTier\(\) \{[\s\S]*?\n  \}\n/.exec(WORLD); assert.ok(m, 'memTier() found in world.js'); return m[0]; })();
+const WIN = (() => { const m = /function win\(shape, tier\) \{[\s\S]*?\n\}/.exec(BAKE); assert.ok(m, 'win() found in bake-stills.js'); return vm.runInNewContext('(' + m[0] + ')'); })();
+function memTierOf(d) {   // the world's memTier() on a device: { ua, touch, mem, dpr, sw, sh, renderer }
+  const nav = { userAgent: d.ua, maxTouchPoints: d.touch ? 5 : 0, deviceMemory: d.mem };
+  const ctx = { SW: {}, EXT: { renderer: d.renderer }, navigator: nav, screen: { width: d.sw, height: d.sh },
+    window: { devicePixelRatio: d.dpr, matchMedia: (q) => ({ matches: q === '(pointer: coarse)' ? !!d.touch : false }) } };
+  return vm.runInNewContext(MEMTIER + 'memTier();', ctx);
+}
+function bakeDevice(tier, shape) {   // the bake's page for a still: Playwright's Chrome on Windows, mobile = isMobile + hasTouch
+  const [w, h, dpr, mobile, mem, gpu] = WIN(shape, tier);
+  return { ua: DESK, touch: mobile, mem, dpr, sw: w, sh: h, renderer: gpu || 'Harness GPU' };
+}
+const DPR = { 'Nord CE 3 Lite': 2.625, 'Galaxy A15': 2.8125, 'Pixel 8': 2.625, 'iPhone 16': 3, 'iPhone SE': 2, 'iPhone 16 Pro Max': 3, 'iPad Air': 2 };
+function windows() {   // every window of the test above, with its device: [who, the page's input to pick(), the device]
+  const out = [];
+  for (const [name, sw, sh, wins] of PHONES) {
+    const apple = /iPhone|iPad/.test(name), ua = /iPad/.test(name) ? IPAD : apple ? IOS : AND;
+    const all = wins.map(([w, h]) => [w, h, w > h ? [sh, sw] : [sw, sh]]).concat([[0, 0, [sw, sh]], [0, 0, [sh, sw]]]);
+    for (const [w, h, s] of all) for (const mem of apple ? [undefined] : [4, 8]) {
+      const o = { w, h, sw: s[0], sh: s[1], ua, mem, touch: true };
+      out.push([`${name} ${w ? w + 'x' + h : 'unsized ' + s.join('x')}${mem ? ' ' + mem + ' GB' : ''}`, o, { ua, touch: true, mem, dpr: DPR[name], sw: s[0], sh: s[1], renderer: apple ? 'Apple GPU' : 'Mali-G57 MC2' }]);
+    }
+  }
+  for (const [w, h] of DESKS) out.push([`desktop ${w}x${h}`, { w, h, sw: w, sh: h, ua: DESK, mem: 8, touch: false }, { ua: DESK, touch: false, mem: 8, dpr: 1, sw: w, sh: h, renderer: 'NVIDIA GeForce RTX 4090' }]);
+  return out;
+}
+function lookSplits(branches) {   // the windows whose still's bake device takes another look branch than the visitor's own
+  const bad = [];
+  for (const [who, o, dev] of windows()) {
+    const m = /-(hi|lo)-(\d+x\d+)\.avif$/.exec(pick(o).href), seen = memTierOf(dev), baked = memTierOf(bakeDevice(m[1], m[2]));
+    const diff = branches.filter((t) => (seen === t) !== (baked === t));
+    if (diff.length) bad.push(`${who}: the visitor's memTier ${seen}, the still (${m[1]}-${m[2]}) baked as ${baked}: memTier() === '${diff.join("', '")}' differs`);
+  }
+  return bad;
+}
+const BRANCHES = [...new Set([...WORLD.matchAll(/memTier\(\)\s*[!=]==?\s*'(\w+)'/g)].map((m) => m[1]))];
+
+test('still-pick: the bake\'s device takes the same look branches by memTier as every window\'s own device (the still-to-live cut)', () => {
+  assert.ok(windows().length >= 68, windows().length + ' windows');
+  const bad = lookSplits(BRANCHES);
+  assert.deepEqual(bad, [], `the world branches on memTier() === ${BRANCHES.map((t) => "'" + t + "'").join(', ') || '(none)'}, and ${bad.length} window(s) get a still baked on the other side:\n` + bad.join('\n') +
+    '\nKey the look off what the still was baked as (hour.js\'s tier and shape), or bake those stills on a device of the visitor\'s tier (bake-stills.js win()).');
+});
+
+test('still-pick: the look check bites: a desktop-only look splits every touch window in landscape (21 of them today)', () => {
+  const bad = lookSplits(['desktop']);
+  for (const w of ['iPhone 16 852x393', 'iPhone SE 667x375', 'Pixel 8 915x412 8 GB', 'iPad Air 1180x820']) assert.ok(bad.some((b) => b.startsWith(w + ':')), w + ' is split by a desktop-only look:\n' + bad.join('\n'));
+  assert.equal(bad.length, 21, bad.join('\n'));
+  assert.ok(!bad.some((b) => /^desktop /.test(b)), 'a desktop of any shape gets its own look');
+  assert.ok(!bad.some((b) => b.startsWith('iPhone 16 393x852:')), 'a portrait iPhone gets its own look');
 });

@@ -1,49 +1,35 @@
-// test/unit/ground.mjs: the recorded ground's freshness hash (test/ground.mjs landHash) is the land's text, not its
-// files: a byte-for-byte split of an input section keeps it (no re-record on the 4090), an edit to the code changes it.
+// test/unit/ground.mjs: the recorded ground's measure (tools/ground-site.mjs): the grid's points, the tolerance, and
+// that the recorder and the check read the same page.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
-import { landHash, INPUTS, ROOT } from '../ground.mjs';
+import fs from 'node:fs'; import path from 'node:path';
+import { points, measure, TOL, HOOK } from '../../tools/ground-site.mjs';
+import { ROOT } from '../ground.mjs';
 
-function copyInputs() {   // the land's inputs, copied to a scratch root (paths as in the repository)
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'landhash-'));
-  for (const p of INPUTS) fs.cpSync(path.join(ROOT, p), path.join(root, p), { recursive: true });
-  return root;
-}
-const FILE = 'src/world/160-weights-grids.js', GLSL = 'src/glsl/dunes-glsl.glsl';
+const meta = { n: 4, x0: -15, z0: -15, cell: 10 };
+const rec = () => { const a = new Float32Array(32); for (let i = 0; i < 16; i++) { a[i] = i - 5; a[16 + i] = i / 16; } return a; };
 
-test('ground: the hash of the copied inputs is the repository\'s', () => {
-  const root = copyInputs();
-  try { assert.equal(landHash(root), landHash()); } finally { fs.rmSync(root, { recursive: true, force: true }); }
+test('ground: every step-th point of the grid, row by row, with its place', () => {
+  const p = points(meta, 3);
+  assert.deepEqual(p.idx, [0, 3, 12, 15]);
+  assert.deepEqual(p.xz, [-15, -15, 15, -15, -15, 15, 15, 15]);
+  assert.equal(points(meta, 1).idx.length, 16);
 });
 
-test('ground: a section split byte for byte keeps the hash; a comment edit too', () => {
-  const root = copyInputs();
-  try {
-    const h0 = landHash(root), f = path.join(root, FILE), s = fs.readFileSync(f, 'utf8');
-    const lines = s.split('\n'), cut = lines.length >> 1, name = FILE.replace('160-weights-grids', '161-weights-grids-split');
-    fs.writeFileSync(f, lines.slice(0, cut).join('\n') + '\n');
-    fs.writeFileSync(path.join(root, name), lines.slice(cut).join('\n'));
-    const inputs = INPUTS.slice(); inputs.splice(inputs.indexOf(FILE) + 1, 0, name);
-    assert.equal(landHash(root, inputs), h0, 'the split: the same text in two files');
-    fs.appendFileSync(f, '  // a comment, nothing else\n');
-    assert.equal(landHash(root, inputs), h0, 'a comment added');
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+test('ground: within the tolerance passes; a height or a weight past it, or a NaN, fails, with the worst place', () => {
+  const all = rec(), { idx } = points(meta, 1), got = { h: idx.map((i) => all[i] + 0.003), w: idx.map((i) => all[16 + i] + 3e-8) };
+  assert.equal(measure(meta, all, idx, got).off, 0);
+  const h = got.h.slice(); h[5] += 2 * TOL.h; h[9] = all[9] + 47;
+  const m = measure(meta, all, idx, { h, w: got.w });
+  assert.equal(m.off, 2); assert.equal(m.worst.x, -15 + 10); assert.equal(m.worst.z, -15 + 20); assert.ok(m.worst.dh > 46);
+  const w = got.w.slice(); w[0] += 2 * TOL.w;
+  assert.equal(measure(meta, all, idx, { h: got.h, w }).off, 1);
+  const n = got.h.slice(); n[3] = NaN;
+  assert.equal(measure(meta, all, idx, { h: n, w: got.w }).off, 1);
 });
 
-test('ground: an edit to the land\'s code, a missing input or a reordering changes the hash', () => {
-  const root = copyInputs();
-  try {
-    const h0 = landHash(root), g = path.join(root, GLSL), s = fs.readFileSync(g, 'utf8');
-    assert.ok(s.includes('return 40.0 * '), 'the plant\'s constant is where 37-ground-fresh plants it');
-    fs.writeFileSync(g, s.replace('return 40.0 * ', 'return 41.0 * '));
-    assert.notEqual(landHash(root), h0, 'a land constant changed');
-    fs.writeFileSync(g, s);
-    assert.equal(landHash(root), h0, 'and put back');
-    assert.notEqual(landHash(root, INPUTS.concat(['src/world/999-not-there.js'])), h0, 'a missing input');
-    const f = path.join(root, FILE), t = fs.readFileSync(f, 'utf8');
-    fs.rmSync(f); fs.writeFileSync(path.join(root, 'src/world/001-weights-grids.js'), t);
-    const moved = INPUTS.map((p) => (p === FILE ? 'src/world/001-weights-grids.js' : p));
-    assert.notEqual(landHash(root, moved), h0, 'the same file moved to another place in the order');
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+test('ground: the recorder and the freshness check both read tools/ground-site.mjs\'s page, and the hook is the probe\'s', () => {
+  for (const f of ['tools/gpu/record-ground.mjs', 'tools/ground-fresh.mjs']) assert.match(fs.readFileSync(path.join(ROOT, f), 'utf8'), /hookedSite\(ROOT, tmp\)/, f);
+  assert.match(HOOK, /probeJob\(V, pts, m, 1, true\)/); assert.match(HOOK, /kitAt\(/);
+  assert.match(fs.readFileSync(path.join(ROOT, 'tools/checks/37-ground-fresh.sh'), 'utf8'), /node tools\/ground-fresh\.mjs/);
 });
