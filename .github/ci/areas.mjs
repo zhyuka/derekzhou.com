@@ -15,6 +15,10 @@ const { map } = JSON.parse(fs.readFileSync(path.join(here, 'areas.json'), 'utf8'
 const glob = (g) => new RegExp('^' + g.split('**').map((p) => p.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*')).join('.*') + '$');
 const RULES = map.map(([g, a]) => [glob(g), a]);
 
+// tools/gpu/ files T2 never runs (the 4090's other jobs: the ground's recorder, the stills' bake): a change to one
+// alone is not T2's own (2026-11-14: #237's recorder edit waited for T2 behind a stalled GPU queue)
+export const NOT_T2 = new Set(['tools/gpu/record-ground.mjs', 'tools/gpu/bake-stills.js']);
+
 export function areasOf(files) {
   const out = new Set(['static']); const unknown = [];
   for (const f of files) {
@@ -79,10 +83,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   // T2 when the world's, the realms' or the birds' served JS changed (the census adds a changed shader).
   const harness = files.some((f) => f.startsWith('.github/ci/') || f.startsWith('.github/actions/') || f === '.github/workflows/gate.yml');
   const gpuJs = changedServed.some((f) => areasOf(['site/' + f]).areas.includes('gpu'));   // (a served file, mapped as site/'s)
-  const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || f.startsWith('tools/gpu/'));   // (T2's own files: T2 runs on itself)
+  const t2Self = files.some((f) => f === '.github/workflows/gpu.yml' || (f.startsWith('tools/gpu/') && !NOT_T2.has(f)));   // (T2's own files: T2 runs on itself)
   const input = inputChanges(base, head, git);
   if (input.length) console.log(`input handling changed in: ${input.join(' ')}`);
-  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, gpu_js: gpuJs, t2_self: t2Self, input_changed: input.length > 0, input_files: input.join(' ').slice(0, 900), files: files.length };
+  // the page outside the canvas changed too (HTML, CSS, fonts, the page's own scripts: any served file T2 does not cover):
+  // when T2 runs, T1 still compares the DOM (gate.yml, --dom-only), else such a change landed as "frames identical"
+  const domChanged = changedServed.some((f) => !areasOf(['site/' + f]).areas.includes('gpu') && !f.startsWith('assets/still/'));
+  const o = { areas: areas.join(','), site_changed: siteChanged, run_t1: siteChanged || harness, dom_changed: domChanged, gpu_js: gpuJs, t2_self: t2Self, input_changed: input.length > 0, input_files: input.join(' ').slice(0, 900), files: files.length };
   console.log(`${files.length} files changed${unknown.length ? '; unmapped (ALL): ' + unknown.join(' ') : ''}`);
   console.log(`served: ${changedServed.length ? changedServed.length + ' files differ: ' + changedServed.join(' ') : 'byte for byte the base\'s (' + H.size + ' files)'}`);
   for (const [k, v] of Object.entries(o)) console.log(`${k}=${v}`);

@@ -80,7 +80,7 @@
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age);
     var ch = Math.cos(b.gam);
-    b.v[0] = b.V * ch * Math.sin(psi); b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi);
+    b.v[0] = b.V * ch * Math.sin(psi) + WINDV[0]; b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi) + WINDV[2];   // (over the ground: its way through the air and the wind, as every step makes it; air alone drew a seeded flock up to 33 deg off on its first frame, the hub's review 3)
     BIRDS.push(b);
     return b;
   }

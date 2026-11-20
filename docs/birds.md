@@ -119,7 +119,8 @@ speck birds pause their wing (BW.skip: it goes on from where it paused).
 
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
-+-1500 m about the landing; BIRDS_GROUND=stub for the old low hills): a camera flying its heading, the words' boxes as the served page lays
++-1500 m about the landing; tools/checks/37-ground-fresh.sh reads the same probe under SwiftShader and fails a
+recording off today's world by more than 5 cm; BIRDS_GROUND=stub for the old low hills): a camera flying its heading, the words' boxes as the served page lays
 them out at 960x600 and 390x844, a scripted pointer, clicks and drags, the 50 ms clock. test/birds.mjs measures it
 over random scenes against the research's numbers (CI: about 30 s; BIRDS_N=16 BIRDS_LONG=1 for the full run), and
 `node tools/birds/sim.mjs --case C --size S --seed N --svg F` replays one scene with its paths in the perch's frame.
@@ -130,7 +131,10 @@ What it pins: a landing comes in by a gate in view (wide of the perch, beyond it
 by a closed-loop tau-dot law (the closing a constant tau-dot gives at the range left), takes out its drift across
 the line, and ends on a curve to rest in the perch's frame (its place and motion at both ends: no jump, no
 overshoot); a bird ahead lets the perch come to it (never flying against the camera's way); feet fixed on the
-perch (the pointer read before the birds step); turns only by bank; births and removals unseen; no object made in a
+perch (the pointer read before the birds step); standing on its feet, the wings' root, on a letter and on the pointer
+alike, its perched poses (touch, settling, folded, wings raised) keeping its wings at or above them, so it stands on
+top of the ink and no drawn point hangs below it (the hub's re-review 3, option c: within 5 px, the feet's own sink
+included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
 
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
