@@ -9,6 +9,8 @@
 // plant: {"file": "src/world/220-time-day.js", "find": "L:[0.62,0.01,80],glow:[0.44,0.01,80]", "with": "L:[0.62,0.01,250],glow:[0.44,0.01,250]", "why": "a blue-tinted disc merges with the blue moonlit clouds"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-2268x1080\":[[800.6,222.2,1467.2,433.8]", "with": "\"hi-2268x1080\":[[933.2,339.4,1334.7,433.8]", "why": "the still's own name box alone: on its band's smallest window the words stand bigger, and the moon's footprint falls on them"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-1080x1080\":[[268.9,300.5,810.9,441.4]", "with": "\"hi-1080x1080\":[[339.2,347,740.7,441.4]", "why": "the square still's own name box alone: on 800x720 the evening star's path falls on the bigger name"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "var cw = Math.min(bw, bh * BD[0]), ch = Math.min(bh, bw / BD[1])", "with": "var cw = bw, ch = bh", "why": "the opening planned in the whole still: a disc near its top edge falls off a wider window of its band"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "    LATEK.creature = lk[0]; LATEK.glow = lk[1]; LATEK.beam = lk[2];\n", "with": "", "why": "the opening's cloud layout leaves a late program's flag set: it starts compiling at the opening"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -136,34 +138,61 @@ test('night: an opening\'s moon stands in frame at the cut, clear of the words, 
   }  console.log('# opening moon [top margin past the disc, keep share, margin, beside, x]: ' + JSON.stringify(MARG));
 });
 
-// the opening's moon on each band's smallest window (the hub's round-4 review): planned as the page plans it, in the
-// still's own window against 226's STILL_WORDS (the union of the bake's boxes and the smallest window's), then walked in
-// the smallest window's own view (226's stillView: its frustum and pitch) against that window's own boxes
-// (test/golden/still-words.json, measured by tools/still-words.mjs): the footprint clear of every box wherever the moon
-// stands in that window at the cut
-test('night: the opening moon is clear of the words on each band\'s smallest window, in that window\'s own view', () => {
+// the opening's moon on each band's smallest window (the hub's round-4 and round-5 reviews): planned as the page plans
+// it, in the part of the still every window of its band shows (226's stillFrame) against 226's STILL_WORDS (the union
+// of the bake's boxes and the smallest window's); every place moonClear may choose (each height of MOON_UPS, each
+// x of MOON_XS: 226's moonPlaceS) is then walked in the smallest window, as the still is shown there at the cut (cover)
+// and in that window's own view (226's stillView: its frustum and pitch), against that window's own boxes
+// (test/golden/still-words.json): the disc whole in the window and its footprint clear of every box, or the test fails
+test('night: every place the opening moon may take is whole and clear of the words on each band\'s smallest window', () => {
   const R = cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END');
-  const M = vm.runInThisContext('(function () {' + R + ' return { moonPlan, moonAt, mrCam, mrProj, mrPix, mrAng, MRK }; })')();
-  const SV = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] +
+  const M = vm.runInThisContext('(function () { var PI = Math.PI, DEG = PI / 180, MOON = {}; function clockNow() { return 0; }\n' + R + cut(WORLD, '  var MOON_VEIL = 5,', '  function moonShown(t, out) {') +
+    ' return { moonPlan, moonAt, mrCam, mrProj, mrPix, mrRay, mrAng, MRK, moonBandDir, moonPlaceS, MOON_XS, MOON_UPS }; })')();
+  const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
     '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
-    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  function stillView(', '  function stillInputs(') + ' return stillView; })')();
-  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
   const foot = (C, I, d, boxes) => { let f = 180; for (const B of boxes) for (let i = 0; i <= 40; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 40, B[1]], [B[0] + (B[2] - B[0]) * i / 40, B[3]], [B[0], B[1] + (B[3] - B[1]) * i / 40], [B[2], B[1] + (B[3] - B[1]) * i / 40]]) f = Math.min(f, M.mrAng(d, M.mrPix(C, I, px, py))); return f; };
-  let n = 0, least = 180;
-  for (const key of Object.keys(SW)) {
-    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), sc = tier === 'lo' ? 393 / Math.min(w0, h0) : 1, bw = Math.round(w0 * sc), bh = Math.round(h0 * sc);
-    const [sw, shh] = G[key].min, f0 = [0.4, 0.6], vS = SV(bw, bh, f0, {}), vL = SV(sw, shh, f0, {});
-    for (const sigma of [1, -1]) for (const psi of [37, 151]) {
-      const I = { psi, pN: vS.pN, pL: vS.pN, tanX: vS.tanX, tanY: vS.tanY, W: bw, H: bh, boxes: SW[key].map((b) => b.slice()), keepPx: 12, coarse: tier === 'lo' || bh > bw, noRoom: false, keyAz: psi + 160, side: 1, sigma, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0 };
-      const P = M.moonPlan(I), o = { d: [0, 0, 0] }; M.moonAt(P, 0, o);
-      const L = { tanX: vL.tanX, tanY: vL.tanY, W: sw, H: shh }, CL = M.mrCam(psi, vL.pN), q = M.mrProj(CL, L, o.d);
-      if (!(q[2] > 0 && Math.abs(q[0]) < 1 && Math.abs(q[1]) < 1)) continue;   // (out of that window's frame: nothing on its words)
-      const f = foot(CL, L, o.d, G[key].small); n++; least = Math.min(least, f);
-      assert.ok(f >= M.MRK.FOOT - 1e-9, `${key} at ${sw}x${shh} (sigma ${sigma}, heading ${psi}): the footprint ${f.toFixed(2)} deg from a word box in that window's own view (4.5)`);
+  const whole = (C, I, d) => { const q = M.mrProj(C, I, d); if (!(q[2] > 0 && Math.abs(q[0]) < 1 && Math.abs(q[1]) < 1)) return -1; return Math.min(M.mrAng(d, M.mrRay(C, I, q[0], 1)), M.mrAng(d, M.mrRay(C, I, q[0], -1)), M.mrAng(d, M.mrRay(C, I, 1, q[1])), M.mrAng(d, M.mrRay(C, I, -1, q[1]))) - M.MRK.R; };
+  let n = 0, least = 180, edge = 180;
+  for (const key of Object.keys(G)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), F = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min;
+    assert.ok(F, key + ': in the tables');
+    const c = Math.max(sw / F.bw, shh / F.bh);   // (the still as cover shows it in that window)
+    const vS = SF.stillView(F.bw, F.bh, [0.4, 0.6], {}), cv = { W: sw, H: shh, tanX: vS.tanX * (sw / c) / F.bw, tanY: vS.tanY * (shh / c) / F.bh }, vL = SF.stillView(sw, shh, [0.4, 0.6], {}), own = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY };
+    for (const sigma of [1, -1]) for (const psi of [37, 151]) for (const up of M.MOON_UPS) {
+      const I = { psi, pN: F.pN, pL: F.pN, tanX: F.tanX, tanY: F.tanY, W: F.W, H: F.H, boxes: F.boxes, keepPx: F.keepPx, coarse: F.coarse, noRoom: false, keyAz: psi + 160, side: 1, sigma, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0, landX: M.MRK.LANDX, landUp: up };
+      const P = M.moonPlan(I);
+      if (!(P.room || P.landRoom)) continue;
+      for (const x of P.landSide ? [P.landX] : M.MOON_XS) {
+        const d = M.moonBandDir(P, M.moonPlaceS(P, I, x), [0, 0, 0]);
+        for (const [view, V, pN] of [['at the cut', cv, F.pN], ['in its own view', own, vL.pN]]) {
+          const C = M.mrCam(psi, pN), e = whole(C, V, d), f = foot(C, V, d, G[key].small); n++; least = Math.min(least, f); edge = Math.min(edge, e);
+          assert.ok(e >= -1e-6, `${key} at ${sw}x${shh} ${view} (sigma ${sigma}, heading ${psi}, height ${up}, x ${x.toFixed(3)}): the disc not whole in the window (${e.toFixed(2)} deg)`);
+          assert.ok(f >= M.MRK.FOOT - 1e-9, `${key} at ${sw}x${shh} ${view} (sigma ${sigma}, heading ${psi}, height ${up}, x ${x.toFixed(3)}): the footprint ${f.toFixed(2)} deg from a word box (4.5)`);
+        }
+      }
     }
   }
-  assert.ok(n >= 60, `${n} moons in the smallest windows' frames (the test is not empty)`);
-  console.log(`# opening moon on the bands' smallest windows: ${n} in frame, the nearest box ${least.toFixed(2)} deg`);
+  assert.ok(n >= 1000, `${n} places walked (the test is not empty)`);
+  console.log(`# opening moon on the bands' smallest windows: ${n} places, the nearest box ${least.toFixed(2)} deg, the disc ${edge.toFixed(2)} deg inside the edge at least`);
+});
+
+// moonLobes lays out cells the streamer has not reached (the hub's round-4 nit): a layout only, so the late programs'
+// flags it may set through the cell's own api (230's flock, glows, beam) are put back as they were: none starts compiling
+// at the opening. 226's own moonLobes runs here on a stub cell whose layout sets every flag; the flags come out as they went in
+test('night: laying out the opening\'s cloud lobes leaves the late programs\' flags as they were', () => {
+  const F = cut(WORLD, '  function moonLobes(', '  function moonVeil(');
+  for (const before of [[0, 0, 0], [1, 0, 1]]) {
+    const K = vm.runInThisContext('(function (B) { var DEG = Math.PI / 180, KITAPI = {}, LATEK = { creature: B[0], glow: B[1], beam: B[2] }, MOON_VEIL_AZ = 60, laid = 0;\n' +
+      'function angd(a, b) { var d = ((a - b) % 360 + 540) % 360 - 180; return d; } function RNG() { return {}; }\n' +
+      'function Cell(V, sc, ix, iz) { this.cx = ix * 100; this.cz = iz * 100; this.clouds = []; }\n' +
+      'function cellApi(C) { return { hash: 1, flock: function () { LATEK.creature = 1; }, glows: function () { LATEK.glow = 1; }, beam: function () { LATEK.beam = 1; } }; }\n' + F +
+      ' var V = { def: { layout: { scales: [{ radius: 200, size: 100 }] }, cell: function (api) { laid++; api.flock({}); api.glows({ n: 1 }); api.beam({}); } } };\n' +
+      ' var out = moonLobes(V, 0, 0, 0); return { L: [LATEK.creature, LATEK.glow, LATEK.beam], laid: laid, out: out }; })')(before);
+    assert.ok(K.laid > 0, 'the stub laid out some cells');
+    assert.deepEqual(K.L, before, `the late programs' flags after the layout (${K.L}; before ${before})`);
+  }
 });
 
 // 226's moonClear (the opening moon's place off the clouds) on the route's own plan and synthetic lobes: with no cloud
@@ -354,7 +383,7 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   assert.ok(rho >= 0.9, `the rank correlation ${rho.toFixed(3)} (at least 0.9)`);
   assert.ok(worst <= 0.02, `a star's share changes ${(100 * worst).toFixed(2)}% in a frame (at most 2%)`);
   const N = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
-  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0)) continue;') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
+  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0) || (I2 && venusFails(I2, F, e, NIGHTB.side, D0))) continue;') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
   console.log(`# stars out in order: rank correlation ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
 });
 // the evening star's plan on the still's own window (the hub's round-3 review of #301): 227's venusPlan and venusFails
@@ -392,38 +421,45 @@ test('night: the evening star\'s plan on the lo still\'s window keeps its whole 
   assert.ok(planned > 60, `${planned} of 240 visits with an evening star (the test is not empty)`);
   assert.equal(onWords, 0, `${onWords} planned paths cross the words`);
 });
-// the evening star on each band's smallest window (the hub's round-4 review: on 1024x768 under the 1350x1080 still it
-// stood on the name): planned as the page plans it, in the still's own window against 226's STILL_WORDS (the union of
-// the bake's boxes and the smallest window's), then its whole path down walked in the smallest window's own view (226's
-// stillView) against that window's own boxes (test/golden/still-words.json): none of it on a word
-test('night: the evening star\'s path keeps off the words on each band\'s smallest window, in that window\'s own view', () => {
-  const SV = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] +
+// the evening star on each band's smallest window (the hub's round-4 and round-5 reviews: on 1024x768 under the
+// 1350x1080 still it stood on the name; at 1280x800@2 its glow touched the credit): planned as the page plans it, in
+// the part of the still every window of its band shows (226's stillFrame: its keep the smallest window's, scaled)
+// against 226's STILL_WORDS, then its whole path down walked in the smallest window, as the still is shown there at
+// the cut (cover) and in that window's own view (226's stillView), against that window's own boxes
+// (test/golden/still-words.json): no place of it within the keep and its glow (12 + VEN_GLOW px) of a word
+test('night: the evening star and its glow keep off the words on each band\'s smallest window', () => {
+  const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
     '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
-    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  function stillView(', '  function stillInputs(') + ' return stillView; })')();
-  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
-  let planned = 0, onWords = 0, near = 0; const where = [];
-  for (const key of Object.keys(SW)) {
-    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), sc = tier === 'lo' ? 393 / Math.min(w0, h0) : 1, bw = Math.round(w0 * sc), bh = Math.round(h0 * sc);
-    const [sw, shh] = G[key].min, vS = SV(bw, bh, [0.4, 0.6], {}), vL = SV(sw, shh, [0.4, 0.6], {}), small = G[key].small;
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+  let planned = 0, onWords = 0, nearest = Infinity; const where = [];
+  for (const key of Object.keys(G)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), Fr = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min, small = G[key].small;
+    const c = Math.max(sw / Fr.bw, shh / Fr.bh), vS = SF.stillView(Fr.bw, Fr.bh, [0.4, 0.6], {}), vL = SF.stillView(sw, shh, [0.4, 0.6], {});
+    const views = [['at the cut', { W: sw, H: shh, tanX: vS.tanX * (sw / c) / Fr.bw, tanY: vS.tanY * (shh / c) / Fr.bh }, Fr.pN], ['in its own view', { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY }, vL.pN]];
     for (let s = 1; s <= 6; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (const off of [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50]) {   // (headings across the glow: the evening star anywhere over the words)
-      const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky }), psi = keyAz + (sky === 'firstlight' ? 1 : -1) * 30 + off;
-      const I = { W: bw, H: bh, tanX: vS.tanX, tanY: vS.tanY, pN: vS.pN, pL: vS.pN, keepPx: 12, boxes: SW[key].map((b) => b.slice()), psi };
-      assert.ok(K.venusPlan(K.V, I));
+      const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky }), psi = keyAz + (sky === 'firstlight' ? 1 : -1) * 30 + off, grow = 12 + K.VEN_GLOW;
+      const I = { W: Fr.W, H: Fr.H, tanX: Fr.tanX, tanY: Fr.tanY, pN: Fr.pN, pL: Fr.pN, keepPx: Fr.keepPx, boxes: Fr.boxes.map((b) => b.slice()), psi };
+      const I2 = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY, pN: vL.pN, pL: vL.pN, keepPx: 12, boxes: small.map((b) => b.slice()), psi };   // (the live window's own view and words: the night after the cut)
+      assert.ok(K.venusPlan(K.V, I, I2));
       if (K.NIGHTB.none) continue;
       planned++;
-      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0), L = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY }, C = K.mrCam(psi, vL.pN);
-      for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
-        const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
-        const q = K.mrProj(C, L, d); if (q[2] <= 0 || Math.abs(q[0]) > 1 || Math.abs(q[1]) > 1) continue;
-        const x = (q[0] + 1) / 2 * sw, y = (1 - q[1]) / 2 * shh;
-        if (small.some((B) => x > B[0] && x < B[2] && y > B[1] && y < B[3])) { onWords++; where.push(`${key} at ${sw}x${shh} seed ${s} ${sky} D ${D}`); break; }
-        if (small.some((B) => x > B[0] - 12 && x < B[2] + 12 && y > B[1] - 12 && y < B[3] + 12)) near++;
+      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0);
+      for (const [view, Lw, pN] of views) {
+        const C = K.mrCam(psi, pN);
+        for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
+          const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+          const q = K.mrProj(C, Lw, d); if (q[2] <= 0 || Math.abs(q[0]) > 1 || Math.abs(q[1]) > 1) continue;
+          const x = (q[0] + 1) / 2 * sw, y = (1 - q[1]) / 2 * shh;
+          for (const B of small) nearest = Math.min(nearest, Math.hypot(Math.max(B[0] - x, 0, x - B[2]), Math.max(B[1] - y, 0, y - B[3])));
+          if (small.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; where.push(`${key} at ${sw}x${shh} ${view}, seed ${s} ${sky} heading ${psi}, D ${D}`); break; }
+        }
       }
     }
   }
   assert.ok(planned > 150, `${planned} evening stars planned (the test is not empty)`);
-  assert.equal(onWords, 0, `paths on the words in the smallest windows: ${where.slice(0, 6).join('; ')}`);
-  console.log(`# evening star on the bands' smallest windows: ${planned} planned, none on a word, ${near} places within the 12 px keep`);
+  assert.equal(onWords, 0, `paths within the keep and glow of the words in the smallest windows: ${where.slice(0, 6).join('; ')}`);
+  console.log(`# evening star on the bands' smallest windows: ${planned} planned, none within 12 + glow px of a word (the nearest ${nearest.toFixed(1)} px)`);
 });
 // ------------------------------------------------------------------ the sky's lights behind its haze (aurora-haze)
 // the galaxy and the aurora are behind the haze, as the moon is: each term scaled by what the haze lets through

@@ -69,7 +69,7 @@
       venusDir(F, eps, side, D, D0, d);
       if (d[1] <= 0) break;
       var q = mrProj(C, I, d);
-      if (q[2] <= 0 || Math.abs(q[0]) > 1.05 || Math.abs(q[1]) > 1.05) continue;
+      if (q[2] <= 0) continue;   // (every place in front, in the planning frame or not: a smaller window of the band shows more of the still than the part the plan keeps in frame)
       var x = (q[0] + 1) / 2 * I.W, y = (1 - q[1]) / 2 * I.H;
       for (b = 0; b < I.boxes.length; b++) { B = I.boxes[b]; if (B[2] - B[0] > 1 && B[3] - B[1] > 1 && x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow) { n++; break; } }
     }
@@ -79,14 +79,14 @@
     var q = mrProj(mrCam(I.psi, I.pN), I, d);
     return d[1] > 0.02 && q[2] > 0 && Math.abs(q[0]) < 0.92 && Math.abs(q[1]) < 0.92;
   }
-  function venusPlan(V, I) {   // its side (a morning star on a visit that opens on first light) and, of VEN_TRY elongations drawn (the same every plan of a visit), the first whose path down keeps clear of the words in the window I and that stands in view at the cut (the hub's review of the 4090 frames: seen, not only possible), else the first clear one over the horizon at the cut; none clear: no Venus this visit
+  function venusPlan(V, I, I2) {   // (I2: the live window's own view, where the night after the cut is seen; its path must keep off the words there too) its side (a morning star on a visit that opens on first light) and, of VEN_TRY elongations drawn (the same every plan of a visit), the first whose path down keeps clear of the words in the window I and that stands in view at the cut (the hub's review of the 4090 frames: seen, not only possible), else the first clear one over the horizon at the cut; none clear: no Venus this visit
     if (!V || !V.light || !I) return false;
     var morning = !!(SKY.landing && SKY.landing.sky === 'firstlight'), R = RNG(subseed(J.seed, 84));
     var el0 = SKY.landing ? airSunEl(SKY.landing.sky) : null, D0 = -(el0 === null ? AIR_SUN_NIGHT : el0), F = venusFrame(V, morning, D0), seen = -1, up = -1, k, d = [0, 0, 0];
     NIGHTB.side = morning ? -1 : 1; NIGHTB.morning = morning;
     for (k = 0; k < VEN_TRY && seen < 0; k++) {
       var e = R.r(VEN_EL[0], VEN_EL[1]);
-      if (venusFails(I, F, e, NIGHTB.side, D0)) continue;
+      if (venusFails(I, F, e, NIGHTB.side, D0) || (I2 && venusFails(I2, F, e, NIGHTB.side, D0))) continue;
       venusDir(F, e, NIGHTB.side, D0, D0, d);
       if (venusSeen(I, d)) seen = e; else if (up < 0 && d[1] > 0.02) up = e;
     }
@@ -99,7 +99,7 @@
      first step with a window, the opening against the still's own window and words (226's stillInputs, as its moon), so
      the still and the live first frame agree; a new window plans it again with the live one (moonResized), the phone's
      bar shown or hidden only when its path now crosses a word */
-  function venusStep() { if (NIGHTB.seed !== J.seed) venusPlan(SIM.V, stillInputs(moonInputs(null))); }
+  function venusStep() { if (NIGHTB.seed !== J.seed) { var I0 = moonInputs(null), IS = stillInputs(I0); venusPlan(SIM.V, IS, IS !== I0 ? I0 : null); } }   // (the cut in the still's frame; the night after it in the window's own view, the hub's round-5 review)
   function venusResized(heightOnly) {
     if (NIGHTB.seed !== J.seed) return;
     var I = moonInputs(null); if (!I) return;

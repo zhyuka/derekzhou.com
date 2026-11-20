@@ -137,6 +137,10 @@ there, the union of the bake window's and its band's smallest window's (the
 words keep their CSS size, so a smaller window shows them bigger): clear on
 every window of the band from that one up, and a smaller window plans against
 its own words (STILL_MIN, STILL_WORDS; tools/still-words.mjs measures both).
+The plan is made in the part of the still every window of its band shows
+(STILL_BAND: a wider window loses the still's top and bottom, a narrower its
+sides), so the disc is whole on each, and its keep is the band's smallest
+window's 12 px scaled into the still's pixels (stillFrame).
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
@@ -170,7 +174,8 @@ under OKLab L 0.49; its elongation the first of 12 drawn (SEED0's stream)
 whose path down keeps clear of the words' boxes at the view's own heading
 and pitch, planned in the sky's step (moonStep), never the draw: at the
 opening against the still's own window and words (stillInputs, as the
-opening's moon), so the still and the live first frame agree; a new window
+opening's moon), so the still and the live first frame agree, and in the
+window's own view and words (the night after the cut is seen there); a new window
 plans it again (moonResized; the phone's bar only when its path now crosses
 a word). It slips against the stars, which turn on their own
 clock, until that forward clock lands (delight-visit §5.5).
