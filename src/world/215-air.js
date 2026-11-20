@@ -65,10 +65,11 @@
      most stable air). AIR_BYSKY gives each sky its shares: s the surface's (to 20 m) of the visit's day wind, j the
      jet's (100-300 m), g its gustiness (the gusts' share of their day's intensity: a stable night's are weaker; set
      by eye within row 6's band, no source gives it by sky). The gusts' field is carried at the mean wind on every sky
-     (row 6: frozen and carried downwind, https://glossary.ametsoc.org/wiki/Frozen_turbulence), so a point dx downwind
-     meets each gust dx / U10 later; on a calm sky it passes a point at the surface's share of U10, and a gust's e-fold
-     there is longer than the day's (the eddies' scale, 22 U10, is the day's: no source found gives a stable night's
-     shorter scale in this form, so the longer e-fold is taken, the hub's ruling). Up
+     (row 6: frozen and carried downwind, https://glossary.ametsoc.org/wiki/Frozen_turbulence), carried on the
+     surface's clock (airClock), so it passes a point at s U10: a point dx downwind meets each gust dx / (s U10) later
+     in flight time (dx / U10 on the surface's clock), and a gust's e-fold is the day's 10-23 s over s (the eddies'
+     scale, 22 U10, is the day's: no source found gives a stable night's shorter scale in this form, so the longer
+     e-fold is taken, the hub's ruling). Up
      the profile the share eases from s to j (20-100 m, in log height) and from j to the free air's 1 (300-1500 m).
      Over a hold the sky's shares hold; through a change they ease into the next sky's with its light (ss01 of the
      change). The score's breeze is the same table (512's feed). Whatever the wind carries is carried by its integral,
@@ -105,14 +106,16 @@
      the air, for each reader to read (LAND's mist, CLOUDS' lenticulars and banners, the haze): wx(t) = { mist, oro,
      ridge, vis, dust }.
      - mist (m deep): radiation mist pooled on the sand on a still clear night, thickest before sunrise. Each sky's
-       depth is set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0, thinned
-       by the sky's surface wind, U10 x its share: whole to 3.6 m/s, where light wind still thickens radiation fog,
-       mixed out by 5 m/s, set by eye), and by the land's own moisture: radiation fog needs air near saturation as well
-       as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog), and the dunes' air is dry but where a
-       cloud sea lies (a stratus layer: moist air below it). The moisture is the cloud sea's mean weight within 3 km of
-       the flight's start (kitAt's wC at 400 points, once a visit: the land is the opening's for the whole visit),
-       eased over 0.5-0.7 (AIR_MOIST, set by eye so mist lands on 5 of the 16 lands, about 1 visit in 3: a find, not
-       a fixture). Through a change the level moves toward the next sky's at AIR_MIST_RATE
+       depth (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0) is scaled by the visit's own
+       moisture (moist, 0..1), which carries the wind's mixing too (a visit moist enough for mist is calm enough to
+       keep it: its surface wind is under 3 m/s on every sky with mist). Radiation fog needs air near
+       saturation as well as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog), and a coastal fog
+       desert's is mostly advective: marine boundary-layer air from over the cool upwelling coast, carried inland, its fog
+       and low cloud at their most in the early morning and gone soon after sunrise
+       (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
+       the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
+       mixed out (U10 under 3.6 m/s whole, none past 4.2: AIR_MOIST, set by eye for about 1 visit in 3; no new draw,
+       the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
        (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
        never jumps and never races;
      - oro (0..1): the orographic gate, the visit's own (U10 alone, the whole visit): the ridge-top wind is the log
@@ -122,28 +125,27 @@
        threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
        never fades in place */
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
-  var AIR_MIST_RATE = 0.18, AIR_WXK = { mist: [3.6, 5], ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
+  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
   var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
-  var AIR_MOIST = [0.5, 0.7, 3000, 400];   // (the moisture: the ease's from and to, of the cloud sea's mean weight; the radius about the flight's start, m; the samples)
-  function airMoistBy(at) { var s = 0, n = AIR_MOIST[3], i, a, r; for (i = 0; i < n; i++) { a = i * 2.399963; r = AIR_MOIST[2] * Math.sqrt(i / n); s += at(r * Math.cos(a), r * Math.sin(a)).wC; } return airEase(AIR_MOIST[0], AIR_MOIST[1], s / n); }   // 0..1: the land's moisture from a weight sampler (the world's kitAt)
-  function airMoist(V) { V = V || SIM.V || {}; if (V.moist === undefined) { if (typeof MAPS === 'object' && !MAPS.w) return 0; V.moist = airMoistBy(kitAt); } return V.moist; }   // (once a visit, on it; 0 before the land's maps are made, when there is no land to lie on)
-  function airMistOf(id, u, q) { var d = AIR_MIST[id], sh = AIR_BYSKY[id]; return d === undefined ? 0 : q * d * (1 - airEase(AIR_WXK.mist[0], AIR_WXK.mist[1], u * (sh ? sh[0] : 1))); }   // a sky's mist depth on this visit, m (q its land's moisture)
-  function airMistAt(t, u, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
+  var AIR_MOIST = [3.6, 4.2];   // (the moisture: whole under this U10, none past this, m/s)
+  function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }   // 0..1: the visit's low-level moisture (its marine layer in)
+  function airMistOf(id, q) { var d = AIR_MIST[id]; return d === undefined ? 0 : q * d; }   // a sky's mist depth on this visit, m (q its moisture)
+  function airMistAt(t, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
     var seq = SKY.seq; if (!seq.length) return 0;
     var tS = t + (SKY.dt || 0), i = airIdx(seq, tS), j, e, a, b, t0, r;
     for (j = i; j >= Math.max(0, i - 1); j--) {   // (the change under way, else the last one whose ramp may still run)
       e = seq[j]; if (!seq[j + 1]) continue;
       t0 = e.at + e.hold; if (tS < t0) continue;
-      a = airMistOf(e.id, u, q); b = airMistOf(seq[j + 1].id, u, q); r = AIR_MIST_RATE * (tS - t0);
+      a = airMistOf(e.id, q); b = airMistOf(seq[j + 1].id, q); r = AIR_MIST_RATE * (tS - t0);
       if (r < Math.abs(b - a)) return a + (b > a ? r : -r);
       if (j === i) return b;
     }
-    return airMistOf(seq[i].id, u, q);
+    return airMistOf(seq[i].id, q);
   }
   function airWx(t, V) {   // the weather the wind makes at the flight's t (the one object, reused)
     t = t === undefined ? SIM.t : t;
     var u = u10Of(V), K = AIR_WXK, o = AIR_WXO;
-    o.moist = airMoist(V); o.mist = airMistAt(t, u, o.moist);
+    o.moist = airMoist(V); o.mist = airMistAt(t, o.moist);
     o.ridge = K.ridge * u; o.oro = airEase(K.oro[0], K.oro[1], o.ridge);
     o.dust = airEase(K.dust[0], K.dust[1], u); o.vis = K.vis[0] + (K.vis[1] - K.vis[0]) * o.dust;
     return o;
@@ -175,15 +177,18 @@
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
-     frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence), so a point dx downwind meets
-     each gust dx / U10 later and nothing steps it in time. Its value is value noise (the shaders' own hash: lib.glsl's
-     ih, ih2, hf; three octaves, quintic, normalised to unit variance) in the visit's wind frame, xi = x.w - U10 t along
+     frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
+     (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust
+     dx / U10 later on that clock, dx / (s U10) later in flight time, and nothing steps it in time. Its value is value
+     noise (the shaders' own hash: lib.glsl's ih, ih2, hf; three octaves, quintic, normalised to unit variance) in the
+     visit's wind frame, xi = x.w - U10 T along
      and eta = x.p across, both over L = AIR_GUST[1] U10: one reference speed (the visit's U10) carries and scales the
      field at every height, so a bird over a veil feels the veil's gust; the height sets only its size, AIR_GUST[0]
      W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), on the flight's clock (the shaders' uT
-     less AIR_UT0): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median 13.6), the
-     lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
-     (test/unit/air.mjs: 16 visits of 10 min). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
+     less AIR_UT0). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
+     13.6), the lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
+     (test/unit/air.mjs: 16 visits of 10 min); on a sky of surface share s, the e-fold and the lag are the day's over s
+     (the moonlit sea's e-fold median 28.5 s, first light's 40.7 s). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
      birds read it as HOST.gust, HOST.gustPhase and HOST.gustSigma */
   var AIR_UT0 = 40;   // (the shaders' clock's lead over the flight's: 413's UT[0] = u + AIR_UT0)
   var AIR_GUST = [0.26, 22, 1.92946], AIR_GOCT = [[1, 1, 0x27d4eb2d], [2.03, 0.5, 0x165667b1], [4.11, 0.25, 0x61c88647]];   // (intensity, time scale s, the noise's unit-variance gain; the octaves: frequency, amplitude, salt)
@@ -212,4 +217,4 @@
     return s;
   }   // (the shaders' share: the billows' offset at t, fs-vbody)
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: AIR_BYSKY, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

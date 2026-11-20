@@ -54,7 +54,8 @@
        height) at (x, z), y m over the ground (AIR_H.birds when y is left out), on the flight's clock (the veils' own):
        gust, its excess along the wind, m/s, signed (0 in still air: the whole wind is HOST.wind's times 1 + gust / W);
        gustPhase, the surface's wind clock less (x . w) / U10, s, the same at every height (NaN in still air), so
-       neighbours downwind meet each gust dx / U10 later and a bird over a veil meets the veil's. Read only: nothing drawn changes */
+       neighbours downwind meet each gust dx / U10 later on that clock (dx / (s U10) in flight time, s the sky's surface
+       share) and a bird over a veil meets the veil's. Read only: nothing drawn changes */
     gust: function (x, z, y) { return gustAt(x, z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); },
     gustPhase: function (x, z, y) { return gustPhase(x, z, y === undefined ? AIR_H.birds : y, SIM.t, SIM.V); },
     gustSigma: function (y) { return gustSigma(y === undefined ? AIR_H.birds : y, SIM.V); },   // (sigma at y, m/s: the +-1 sigma trims without a division a bird)
