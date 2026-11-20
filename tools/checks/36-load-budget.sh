@@ -57,7 +57,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 28.5 * K,        // 29,047 with the turn, the phase lock and the glides (#259, #262, #263, the hub's flock physics spec: +936 B over main's 28,111; LOAD-PERF's OK up to 30 K once the cuts, #317, land)
+  '/inkbirds.js': 28.5 * K,        // 29,155 with the turn, the phase lock, the glides and leaving together (#259, #262, #263, #273, the hub's flock physics spec: +1,044 B over main's 28,111; LOAD-PERF's OK up to 30 K once the cuts, #317, land)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
