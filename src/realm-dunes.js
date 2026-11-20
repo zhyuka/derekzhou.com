@@ -124,9 +124,10 @@
      cloud is the one cloud that stands still while the air flows through it: a lens forms in the standing wave in the
      lee of a ridge when the wind over its crest is at least 7.7 m/s (about 15 kt) within 30 deg of square to it. The far
      ridges are the land's own (dunes-glsl's ridges(): a site per RS cell, about half kept, the same hashes here); a
-     lens is laid out with the 1500 m cell its ridge's centre falls in, out of view, from the ridge's own hashes (no draw
-     of the cell's stream moves), in the dunes kit (not under the cloud sea), at the lee wave's first crest (half a wavelength, pi U / N,
-     downwind of the ridge), 1100-1700 m up.
+     lens stands at the lee wave's first crest (half a wavelength, pi U / N, out on the crest's normal turned downwind)
+     and is laid out by the 1500 m cell it stands in, from its ridge's own hashes (no draw of the cell's stream moves),
+     where that cell's land is the dunes kit (not over the cloud sea), 1100-1700 m up; it fades with its cell (as the
+     cell's ground does), so it never shows when the cell is made or freed.
      Its envelope is held (a world cell's); the billows in it flow at the wind at its height (b.flow). Sources:
      https://cloudatlas.wmo.int/en/clouds-species-lenticularis.html (lenticularis);
      https://www.eoas.ubc.ca/books/Practical_Meteorology/ (mountain waves: the wavelength 2 pi M / N, N about 0.01/s) */
@@ -137,7 +138,8 @@
     if (sp < HELD_V) return;
     // a lens is laid out by the cell it stands in (so it fades with its own distance, as every cloud does: laid out with
     // its ridge's cell, 2-3 km off, it stood past that cell's reach and was never drawn): the ridges of the 3 x 3 ridge
-    // cells about this one, each lens kept by the one cell it falls in (its offset, pi U / N, under 4.5 km: RS)
+    // cells about this one, each lens kept by the one cell it falls in (its offset, pi U / N, at most 3.2 km at the
+    // visits' top U10, under RS's 4.5: the Math.min below never binds, a guard that keeps the 3 x 3 cells enough)
     var ix0 = Math.floor((C.x0 + C.size / 2) / RS), iz0 = Math.floor((C.z0 + C.size / 2) / RS);
     for (var jz = iz0 - 1; jz <= iz0 + 1; jz++) for (var jx = ix0 - 1; jx <= ix0 + 1; jx++) {
       var h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);

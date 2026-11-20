@@ -19,6 +19,7 @@
 // plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
 // plant: {"file": "src/realm-dunes.js", "find": "x = cx + sg * nx * off, z = cz + sg * nz * off;", "with": "x = cx + w.x / sp * off, z = cz + w.z / sp * off;", "why": "the lens along the 100 m wind, not the crest's normal: short of half a wavelength and slid along the crest"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": " if (o.flow) return cellDistFade(C);", "with": "", "why": "a lens faded by its own distance: in view when its cell is made (a pop)"}
+// plant: {"file": "src/realm-dunes.js", "find": "for (var jz = iz0 - 1; jz <= iz0 + 1; jz++) for (var jx = ix0 - 1; jx <= ix0 + 1; jx++) {", "with": "for (var jz = iz0; jz <= iz0; jz++) for (var jx = ix0; jx <= ix0; jx++) {", "why": "the cell's loop over its own ridge cell alone: the lenses whose ridge stands in a neighbour are lost"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -187,6 +188,41 @@ test('lenticular: half a lee wavelength downwind of its crest (pi U / N); none w
     }
   }
   assert.ok(atCrest > 20 && gated === 0, `${gated} of ${atCrest} lenses laid out over the cloud sea where they stand (the gate read at the crest)`);
+});
+
+// every lens is found (the hub's round 5: the cell's loop cut to its own ridge cell lost 53% of them and every test
+// passed): each ridge the land raises, gated and offset here on its own, its lens at pi U / N on its normal, must be
+// laid out exactly once, by the 1500 m cell it stands in; and the offset never reaches RS (at the visits' top U10,
+// 7.5 m/s, it stays under 3.2 km of 4.5), so the 3 x 3 ridge cells about a cell hold every lens that can stand in it
+test('lenticular: a census, every ridge\'s lens laid out once, by the cell it stands in, whatever the wind', () => {
+  const RS = RSV;
+  let want = 0, top = 0;
+  for (let seed = 1; seed <= 200; seed++) for (const u10 of [6.2, 7.0, 7.5]) {
+    const salt = (seed * 40503) >>> 0, V = visitV(seed, u10), w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, sp = Math.hypot(w.x, w.z);
+    const found = new Map();
+    for (let iz = -6; iz < 6; iz++) for (let ix = -6; ix < 6; ix++) for (const cl of cell(ix, iz, salt, V)) {
+      const k = `${cl.x.toFixed(3)},${cl.z.toFixed(3)}`;
+      assert.ok(!found.has(k), 'a lens laid out twice'); found.set(k, cl);
+    }
+    const expect = new Set();
+    if (sp >= H.HELD_V) for (let jz = -4; jz < 4; jz++) for (let jx = -4; jx < 4; jx++) {
+      const h = H.ihash(H.cellHash(jx, jz, salt) ^ 0x51ed27);
+      if ((H.hk(h, 2) >>> 24) >= 115) continue;
+      const cx = (jx + 0.25 + 0.5 * H.hfl(h)) * RS, cz = (jz + 0.25 + 0.5 * H.hfl(H.hk(h, 1))) * RS, ang = H.hfl(H.hk(h, 5)) * Math.PI;
+      if (Math.abs((w.x * Math.cos(ang) + w.z * Math.sin(ang)) / sp) > 0.5) continue;
+      const dy = 1100 + 600 * H.hfl(H.hk(h, 22)), hw = { ...H.windAt(0, 0, dy, 0, V) }, nx = -Math.sin(ang), nz = Math.cos(ang), sg = w.x * nx + w.z * nz < 0 ? -1 : 1;
+      const off = Math.PI * Math.abs(hw.x * nx + hw.z * nz) / H.HELD_N, x = cx + sg * nx * off, z = cz + sg * nz * off;
+      top = Math.max(top, off);
+      if (x < -6 * 1500 || x >= 6 * 1500 || z < -6 * 1500 || z >= 6 * 1500) continue;   // (stands outside the cells laid out)
+      const k = `${x.toFixed(3)},${z.toFixed(3)}`; expect.add(k);
+      assert.ok(found.has(k), `the lens of the ridge at (${cx.toFixed(0)}, ${cz.toFixed(0)}) is never laid out: its cell's loop missed it`);
+    }
+    for (const k of found.keys()) assert.ok(expect.has(k), `a lens at ${k} that no ridge's wave puts there`);
+    want += expect.size;
+  }
+  assert.ok(want > 200, `only ${want} lenses in the census`);
+  assert.ok(top < RS, `a lens ${top.toFixed(0)} m from its crest: past RS, out of the 3 x 3 ridge cells (the cap would bind)`);
+  console.log(`lenticular: census ${want} lenses, every one laid out once; the farthest ${top.toFixed(0)} m from its crest (RS ${RS})`);
 });
 
 // the lens's shape (the spec: smooth plates, long and thin): 120's own lens() on a recording PF, a plate's lobes no
