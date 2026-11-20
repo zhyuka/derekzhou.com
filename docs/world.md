@@ -118,7 +118,19 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
+phone). The meteors (delight-night §2; src/world/229-meteors.js), on the night skies
+only (the Milky Way and the aurora; on the moonlit sea the bright ones only),
+each a stay's own from the seed, at 1x real time: about one long grazer a stay,
+from a radiant just under the horizon, running low and slow (3-5 deg/s) from
+under 2 deg up or out of the view to out of it again, its wake a rigid 2 deg
+and its light constant, so it shows by crossing the window; and 1-3 short ones
+(the owner, 2026-11-15: "Allow short ones too"), 0.3-1 s at 3-25 deg/s anywhere
+in view, their light rising and falling softly over that moment, the one
+exception RULES.json's no-fades names. Each is planned when its time comes,
+against the view as it is then; none under reduced motion or in a still; drawn
+by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
+head, no pixel past OKLab L 0.50.
+The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow climbs and
