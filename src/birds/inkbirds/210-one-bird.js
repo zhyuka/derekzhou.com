@@ -307,6 +307,7 @@
   function holdPlace(F, b) {
     var L = F.lead, sp = L.sz, q = b.slot, h = slotAt(F, b, q[0] * sp, q[1] * sp, q[2] * sp), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
     b.p[0] = TP[0]; b.p[1] = TP[1]; b.p[2] = TP[2];
-    b.v[0] = V * Math.sin(h); b.v[1] = L.v[1]; b.v[2] = V * Math.cos(h); b.psi = h; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
+    var g = h + (V > 1e-6 ? angDiff(Math.atan2(L.v[0], L.v[2]), L.psi) : 0);   // (its way over the ground: along its leader's track, its heading crabbed as its leader's is; along the heading alone a side wind of 5 m/s turned it 25 deg on its next fine step)
+    b.v[0] = V * Math.sin(g); b.v[1] = L.v[1]; b.v[2] = V * Math.cos(g); b.psi = h; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
   }
 
