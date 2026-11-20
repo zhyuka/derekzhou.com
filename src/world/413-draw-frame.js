@@ -5,7 +5,7 @@
   function useTarget(T, w, h) { gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.f : null); gl.viewport(0, 0, w, h); }
   var CACC = { i: 0, ok: false, w: 0, h: 0, u: -1e9, t: -1e9, ca: 1, tx: 0, ty: 0, turn: 0, mid: 0, pb: new Float64Array(9), m: new Float32Array(9) }, CLT = null;   // (the clouds' accumulation; CLT the cloud target the frame reads; the last view's basis pb and the reprojection m)
   var PVP2 = new Float32Array(16), PCAM2 = new Float32Array(3), PVK = -1, PU2 = 0, PVOK = false, MBK = 0;   // (the last frame's view, for the motes)
-  var MBS = { u: -1e9, k: -1, vp: new Float32Array(16), cam: new Float32Array(3), mbk: 0 };   // (the motes' last view and share as a moment's first drawing used them)
+  var MBS = { u: -1e9, k: -1, vp: new Float32Array(16), cam: new Float32Array(3), mbk: 0, dt: 0 };   // (the motes' last view and share as a moment's first drawing used them)
   /* the last frame's scene (TG.sceneH) and its view: its colour and its samples' depth codes, read by the composite
      at an outline in front of a cloud, where it is reprojected by the near depth and mixed in at half; a
      frame drawn again at the same moment reads what the frame first drawn then read */
@@ -31,7 +31,7 @@
     else {
       var dU = u - PU2, dC = Math.hypot(CAM.pos[0] - PCAM2[0], CAM.pos[1] - PCAM2[1], CAM.pos[2] - PCAM2[2]);
       MBK = PVOK && PVK === V.k && dU > 1e-4 && dC < Math.max(4, V.speed * 0.2) ? Math.min(1, (1 / 30) / dU) : 0;
-      MBS.u = u; MBS.k = V.k; MBS.vp.set(PVP2); MBS.cam.set(PCAM2); MBS.mbk = MBK;
+      MBS.u = u; MBS.k = V.k; MBS.vp.set(PVP2); MBS.cam.set(PCAM2); MBS.mbk = MBK; MBS.dt = dU > 0 ? dU : 0;
     }
     UT[0] = u + 40;
     if (SW.frz) { if (FRZT === null) FRZT = UT[0]; UT[0] = FRZT; } else FRZT = null;   // (dev: nothing animated: the shaders' clock held)

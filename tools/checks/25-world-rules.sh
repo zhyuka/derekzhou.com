@@ -15,4 +15,4 @@
 # are named nowhere, nothing is drawn onto the canvas after it but what
 # is named.
 # plant: {"file": "build/src/world.js", "find": "  function clockNow() { return performance.now(); }", "with": "  function clockNow() { document.createElement('i'); return performance.now(); }", "why": "DOM built in the world"}
-python3 .github/workflows/world_rules.py build/site build/src
+python3 tools/checks/lib/world_rules.py build/site build/src

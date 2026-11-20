@@ -13,6 +13,7 @@ jobs:
     runs-on: [self-hosted, linux, pc-wsl]
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # (main's history too: the plants a change can break are found against its merge base)
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -26,3 +27,14 @@ jobs:
 
       - name: Every check (tools/check.mjs)
         run: node tools/check.mjs
+
+      # (CI lane, 2026-11-15, the audit's safety nets) every check's planted failures still fail it: on a branch, the
+      # plants the change can break (tools/check.mjs --prove --changed: those in a changed file, and every plant of a
+      # check whose script or lib changed; a new check without a plant fails here); the whole set weekly (scheduled.yml)
+      - name: The planted failures a change can break (tools/check.mjs --prove --changed)
+        if: github.ref != 'refs/heads/main'
+        run: |
+          git fetch -q --no-tags origin main
+          base=$(git merge-base FETCH_HEAD HEAD)
+          git diff --name-only "$base" HEAD > "$RUNNER_TEMP/changed.txt"
+          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt"

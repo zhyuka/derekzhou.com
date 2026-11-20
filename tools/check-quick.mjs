@@ -71,7 +71,7 @@ try {
   (function walk(d) { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + '/' + e.name; if (e.isDirectory()) walk(p); else if (e.name === 'parts.json') jsons.push(p); } })('src');
   for (const j of jsons) { const p = path.join(ROOT, j); if (!fs.existsSync(p)) continue; try { JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { fail(j + ' does not parse: ' + e.message); } }
   ok(jsons.length + ' JSON files parse');
-  const py = spawnSync(process.platform === 'win32' ? 'python' : 'python3', [path.join('.github', 'workflows', 'rules_check.py')], { cwd: ROOT, encoding: 'utf8' });
+  const py = spawnSync(process.platform === 'win32' ? 'python' : 'python3', [path.join('tools', 'checks', 'lib', 'rules_check.py')], { cwd: ROOT, encoding: 'utf8' });
   if (py.error) ok('rules_check.py skipped (no python)');
   else if (py.status !== 0) fail('RULES.json: ' + (py.stdout + py.stderr).trim().split('\n').filter((l) => /error|fail/i.test(l)).slice(0, 5).join(' | '));
   else ok((py.stdout.trim().split('\n').pop() || 'RULES.json checked'));

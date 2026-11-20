@@ -73,8 +73,9 @@
   function leave(b, why, J) {
     var P = b.P; if (!P || P.leaving) return;
     if (b.st !== 'perch') { toAir(b, J); return; }
-    P.walk = null; P.hop = 0;   // (a walk ends where it is: the take-off from there)
-    P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]) };
+    var h0 = P.hop || 0; if (P.walk && t >= P.walk.t0) { walkAt(P, t, WKA); P.x = WKA[0]; h0 = WKA[1]; }   // (a walk ends where it is: the take-off from there)
+    P.walk = null; P.hop = 0;
+    P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
   }
   function leavingStep(b, dt, C) {
     var P = b.P, L = P.leaving, u = t - L.t0;
@@ -111,6 +112,7 @@
   var CLKQ = [];
   function pointerStep(dt, C) {
     var was = !PTR.gone, ox = PTR.x, oy = PTR.y;
+    PW.qx = PTR.x; PW.qy = PTR.y;   // (the pointer as the last step read it: a bird riding it is posed at the frame's time, between the two)
     if (HOST.pointer) HOST.pointer(PTR); else PTR.gone = true;
     if (PTR.gone || !was) { PW.pvx = PW.pvy = PW.pax = PW.pay = 0; PW.ptrStill = 0; }
     else {
