@@ -78,8 +78,12 @@
      the afterglow's depth stands on the sky's own sun's azimuth (V.light.sunAz). The clock: the sphere turns forward
      only, at SKY_RATE times the sidereal rate (AIR_SIDEREAL s a turn), never stopping and never turning back; at sky
      time 0 its hour is the opening sky's (its sun's depth, first light in the morning, the others in the evening), so
-     the frame's sun stands at the opening's drawn sun. The drawn sky's sun keeps its depth by sky (the night's true
-     order is the next change); the planets are placed by the drawn sun (the night's lane). The ecliptic leans AIR_OBL
+     the frame's sun stands at the opening sky's own depth on its evening or morning side. That puts it at the drawn sun
+     only for the afterglow: the drawn sky keeps its sun's depth and azimuth by sky (the night's true order is the next
+     change), so the blue hour's drawn sun is 8-12 deg off the frame's and first light's 105-174 deg. The frame's sun is
+     the sphere's own reference, never a light: no reader may light anything by skySphere().sun (through a night's
+     hold it stands above the horizon 29.7% of the time); the land and the clouds are lit by keyAt, the sky by its own
+     drawn sun (uSkyS). The planets are placed by the drawn sun (the night's lane). The ecliptic leans AIR_OBL
      to the equator; the galactic pole and centre are J2000's (AIR_GAL: the pole 60.2 deg from the ecliptic's, the
      centre 5.5 deg south of the ecliptic). skyFrame(tS, V): the frame as the night sky's shader reads it (226's uSkyF),
      row-major, frame to world: a direction s in equatorial axes (right ascension 0, 90 deg, the pole) stands at F s in
