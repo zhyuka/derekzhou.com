@@ -519,8 +519,8 @@
       B = blockAt(t, t + len);
       if (B) { if (B[0] + 1.5 - t >= 5) len = B[0] + 1.5 - t; else { v.next = v.wait = B[1] + R.r(0.5, 4); return true; } }
       hold = Math.max(0.3, len - att - rel * 0.6); rs = t + att + hold; t1 = rs + rel * 0.6; r2 = regionAt(rs);
-      if (k === 'low' && !ms && !S.N.some(function (e) { return e.k !== 'deep' && e.k !== 'low' && e.h0 <= t + att && e.h1 >= t + att + 3; })) return false;
-      if (S.N.filter(function (e) { return e.k !== 'deep' && e.h1 > t + att && e.h0 < rs; }).length >= fillOf(skyAt(t)).most) return false;   // (at night never a third voice over two)   // (the low voice only under a note already sounding: a low string alone reads as a tone, not a cello)
+      if (k === 'low' && !ms && !S.N.some(function (e) { return e.k !== 'deep' && e.k !== 'low' && e.h0 <= t + att && e.h1 >= t + att + 3; })) return false;   // (the low voice only under a note already sounding: a low string alone reads as a tone, not a cello)
+      if (S.N.filter(function (e) { return e.k !== 'deep' && e.h1 > t + att && e.h0 < rs; }).length >= fillOf(skyAt(t)).most) return false;   // (at night never a third voice over two)
       for (m = lo; m <= hi; m++) {
         pc = m % 12;
         if (r.sc.indexOf(pc) < 0 && !(ms && r2 !== r && r2.pc.indexOf(pc) >= 0)) continue;   // (a note out of the mist into the chord after it may be one of that chord's)

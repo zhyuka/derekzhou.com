@@ -362,7 +362,8 @@ round twenty's score had them 66% and 52%, one stretch of 86 s), no note held pa
 one 103 s), and never a hole (nothing sounding for more than 3.5 s, and 2.5 s or more four times at most) but the
 Milky Way's breaths, and never one held note alone for more than 8 s (alone, a held string or clarinet note reads as
 a tone, a siren: an ear model, YAMNet, said so); over those two hours the night's quiet: the Milky Way and aurora begin
-fewer than 0.8 of blue hour's notes a minute, three voices at once there under 15% of the time, and three breaths or
+fewer than 0.8 of blue hour's notes a minute, three voices at once there under 15% of the time, the strings under afterglow's horns 2.5 dB or
+more over those under the Milky Way's harp, the notes' energy a minute by day 1 dB or more over the night's, and three breaths or
 more, each inside a Milky Way, 6.5 s at most, no deep note under it, 85 s apart at least; and the room and the air filled sliced, each step
 run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
 filled at once, in 20 steps or more. About 25 s. Its plant lets a note in a step from one it meets.
