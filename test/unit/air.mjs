@@ -5,6 +5,7 @@
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + SKY.dt).sun);", "why": "the land lit by the frame's sun (a light under the horizon 70% of a night)"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + (SKY.dt || 0), V).sun);", "why": "the land lit by the frame's sun through a nested call (#333's call shape)"}
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSkyS) gl.uniform3fv(u.uSkyS,", "with": "var FS = skySphere(SIM.t + SKY.dt, V); if (u.uSun) gl.uniform3fv(u.uSun, FS.sun); if (u.uSkyS) gl.uniform3fv(u.uSkyS,", "why": "the land lit by the frame's sun through a name"}
 // plant: {"file": "src/world/215-air.js", "find": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS,", "with": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS * (1 + 0.5 * Math.sin(tS / 40)),", "why": "the sky turning at a pace of its own (faster, slower, back)"}
 // plant: {"file": "src/world/215-air.js", "find": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, o === 'firstlight', S.dec) + S.ra;", "with": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, false, S.dec) + S.ra;", "why": "a first-light opening's sun in the evening"}
@@ -218,9 +219,9 @@ test('air: the sky\'s frame (one celestial sphere: the pole at the latitude, the
   G.SIM.V = null; assert.deepEqual(Array.from(G.skyFrame(0)), Array.from(G.skyFrame(0)), 'before a visit: the frame unchanged');
   // no reader lights by the frame's sun: no world section (but the air's own) or realm, bird or sound file reads skySphere's .sun, inline or through a name it is
   // assigned to (its other fields, sunDec, the pole, the ecliptic, are the sphere's to read: NIGHT's planets)
-  const sunRead = (t) => { if (/skySphere\s*\([^)]*\)\s*\.\s*sun\b/.test(t)) return true; for (const m of t.matchAll(/\b([A-Za-z_$][\w$]*)\s*=\s*(?:[\w$.]+\.)?skySphere\s*\(/g)) if (new RegExp('\\b' + m[1].replace(/\$/g, '\\$') + '\\s*\\.\\s*sun\\b').test(t)) return true; return false; };
+  const sunRead = (t) => { if (/skySphere\s*\((?:[^()]|\([^()]*\))*\)\s*\.\s*sun\b/.test(t)) return true; for (const m of t.matchAll(/\b([A-Za-z_$][\w$]*)\s*=\s*(?:[\w$.]+\.)?skySphere\s*\(/g)) if (new RegExp('\\b' + m[1].replace(/\$/g, '\\$') + '\\s*\\.\\s*sun\\b').test(t)) return true; return false; };
   const SECS = fs.readdirSync(path.join(ROOT, 'src/world')).filter((n) => n.endsWith('.js') && n !== '215-air.js').map((n) => 'src/world/' + n);
   const READERS = execFileSync('git', ['ls-files', 'src/*.js', 'src/birds/*.js', 'src/birds/**/*.js'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && !f.startsWith('src/world/') && !f.startsWith('src/dev/'));
   for (const f of SECS.concat(READERS)) assert.ok(!sunRead(fs.readFileSync(path.join(ROOT, f), 'utf8')), `${f} lights by skySphere().sun: the frame's sun is never a light (keyAt and uSkyS are)`);
-  assert.ok(sunRead('var F = A.skySphere(0, V); x = F.sun;') && sunRead('a = skySphere(t).sun') && !sunRead('var F = skySphere(t, V); d = F.sunDec;'), 'the guard: an inline or assigned .sun caught, .sunDec allowed');
+  assert.ok(sunRead('var F = A.skySphere(0, V); x = F.sun;') && sunRead('a = skySphere(t).sun') && sunRead('d = skySphere(SIM.t + (SKY.dt || 0), V).sun') && !sunRead('var F = skySphere(t, V); d = F.sunDec;') && !sunRead('d = skySphere(SIM.t + (SKY.dt || 0), V).sunDec'), 'the guard: an inline (nested call too) or assigned .sun caught, .sunDec allowed');
 });
