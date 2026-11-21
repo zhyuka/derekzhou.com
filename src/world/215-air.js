@@ -114,7 +114,7 @@
        and low cloud at their most in the early morning and gone soon after sunrise
        (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
        the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
-       mixed out (U10 under 3.6 m/s whole, none past 4.2: AIR_MOIST, set by eye for about 1 visit in 3; no new draw,
+       mixed out (U10 under 3.9 m/s whole, none past 4.3: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune lands, the hub's ruling; no new draw,
        the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
        (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
        never jumps and never races;
@@ -127,7 +127,7 @@
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
   var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
   var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
-  var AIR_MOIST = [3.6, 4.2];   // (the moisture: whole under this U10, none past this, m/s)
+  var AIR_MOIST = [3.9, 4.3];   // (the moisture: whole under this U10, none past this, m/s)
   function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }   // 0..1: the visit's low-level moisture (its marine layer in)
   function airMistOf(id, q) { var d = AIR_MIST[id]; return d === undefined ? 0 : q * d; }   // a sky's mist depth on this visit, m (q its moisture)
   function airMistAt(t, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)

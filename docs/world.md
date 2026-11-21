@@ -559,10 +559,12 @@ shader). It holds:
   the early morning and gone soon after sunrise
   (https://acp.copernicus.org/articles/20/3415/2020/). So the moisture
   is the visit's air, not the land in view: whole on a calm synoptic day
-  (U10 under 3.6 m/s), none past 4.2 (AIR_MOIST, set by eye; the visit's
-  own U10, no new draw). First light gets 1 m of mist or more on 6 of the
-  16 openings (k 1, 4, 5, 11, 12, 15) and on 3 of the 10 with dunes in
-  view, and on 28% of visits over the winds' own spread. AIRAPI.MIST()
+  (U10 under 3.9 m/s), none past 4.3 (AIR_MOIST, set with LAND for pools
+  at the cut on 3 of the 10 dune lands, the hub's ruling; the visit's own
+  U10, no new draw). First light gets 5 m of mist or more, deep enough for
+  pools, on dune lands 4, 11 and 12 (10, 10 and 6.0 m), the other dune
+  lands under 2 m; 1 m or more on 6 of the 16 openings, and on 31% of
+  visits over the winds' own spread. AIRAPI.MIST()
   hands a reader a copy of the depths, as AIRAPI.BYSKY() does of the
   wind by sky. Through a change its level moves
   toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
