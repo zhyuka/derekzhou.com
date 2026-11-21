@@ -13,11 +13,21 @@ float zcode() {
 }
 float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
 `;
+  /* (physics: sand/S2, a crisp brink) the main dunes' phase to the land's fragments: 11 floats (the phase unwrapped, its
+     gradient, the height with the sites' share; the slip face's share, the slope the vertex took from them; dH and the
+     faces' d(H / fl)). The
+     fragment rebuilds the slope at its own phase (s1Slope) and puts it in place of the vertices' (FS_TERRAIN) */
+  var S1_OUT = `
+centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec4 vS1d;
+void s1Out(vec4 s, float fl, float sw, vec4 dH) {
+  vS1 = vec4(s.xyz, s.w * sw); vS1d = dH * sw;
+  vS1g = vec3(fl, s1Slope(fract(s.x), s.yz, vS1.w, fl, s1Rb(vS1.w, length(s.yz), fl), max(0.15 * vS1.w, 0.05), vS1d));
+}`;
   function VS_TERRAIN(H, G) {   // (G, a surface's gap function: its height over another surface, passed to its shading as gTX)
     return `
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
-centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;
+centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;${H === 'Hd' ? S1_OUT : ''}
 void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
@@ -26,7 +36,7 @@ void main() {
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
-  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D);' : ''}
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
@@ -52,8 +62,8 @@ void main() {
   var HP_GRIDW = `@glsl hp-gridw`;
   var HP_MAIN = {
     kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',
-    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; o0 = vec4(dunes(gw), 0.0); o1 = vec4(0.0); }',
-    sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), 0.0); o1 = vec4(0.0); }',
+    dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), gS1.x); o1 = vec4(gS1.yzw, gS1F); o2 = gS1D; }',   // (physics: sand/S2: the phase and the rest to P2.w, P5 and P6)
+    sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), gS1W); o1 = vec4(0.0); }',
     ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
     /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses
        its arithmetic as it does when only .x is written; the land's passes (every channel live, as the land VS) differ
@@ -82,8 +92,8 @@ void main() {
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
 uniform int uLvl;    // the level: its rows in the passes' texels
-uniform highp sampler2D uHP0, uHP1, uHP3, uHP4;   // kit (wD, lv), kit (sk, wC), the sites' h, the ridges (+ A_Hd)
-centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;
+uniform highp sampler2D uHP0, uHP1, uHP2, uHP3, uHP4, uHP5, uHP6;   // kit (wD, lv), kit (sk, wC), the dunes' h (+ their phase), the sites' h (+ their share), the ridges (+ A_Hd), the dunes' phase's gradient, height and slip face, their height's change
+centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;${S1_OUT}
 void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
@@ -94,21 +104,40 @@ void main() {
   vec3 hd = (s.xyz + r.xyz) - k1.xyz;
   vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
+  vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0));
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
   var FS_PROBE_SPLIT = `@glsl fs-probe-split`;
+  /* (physics: sand/S2) the main dune's slope at this fragment's own phase, in place of the vertices' (interpolated
+     across the cell, they smeared the brink over it): the rounding max(2 m, 1.5 px) at the brink and the toe, and the
+     whole put in only as far as the dunes are resolved (B, by the cycles of phase a pixel spans: the spec's band-limit) */
+  var S1_IN = `
+centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d;`;
+  var S1_FS = `
+  if (vS1.w > 0.01) {
+    vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
+    vec2 rh = normalize(rd.xz + vec2(1e-6, 0.0));
+    float cp = fp * length(vec2(dot(g, rh) / max(abs(dot(n, rd)), 0.02), dot(g, vec2(-rh.y, rh.x))));
+    float B = 1.0 - smoothstep(0.25, 0.5, cp);
+    if (B > 0.0) {
+      float wpx = 1.5 * cp / k, sB = H * k * (0.5 / L + 1.0 / fl);   // (1.5 px in metres along the wind; the slopes' sum either side)
+      vec2 s = s1Slope(fract(vS1.x), g, H, fl, max(1.0, 0.5 * wpx) * sB, max(max(0.15 * H, 0.05), 0.5 * wpx * sB), vS1d);
+      vec2 dg = B * (s - vS1g.yz);
+      n = normalize(vN - vec3(dg.x, 0.0, dg.y));
+    }
+  }`;
   function FS_TERRAIN(H, S) {
     return ZCODE + `
-centroid in vec3 vW; centroid in vec3 vN; centroid in float vX; out vec4 oC;
+centroid in vec3 vW; centroid in vec3 vN; centroid in float vX; out vec4 oC;${H === 'Hd' ? S1_IN : ''}
 void main() {
-  vec3 n = normalize(vN);
 #ifdef HAS_GTX
   gTX = vX;
 #endif
   vec3 v = vW - uCam;
   float t = length(v); vec3 rd = v / t;
   float fp = t * 2.0 * uProj.y / uRes.y;
+  vec3 n = normalize(vN);${H === 'Hd' ? S1_FS : ''}
   vec3 c = ${S}(vW, n, rd, t, fp);
   if (uDbg == 2) { oC = vec4(vec3(clamp(dot(n, uSun), 0.0, 1.0)), 1.0); return; }
   if (uDbg == 3) { oC = vec4(n * 0.5 + 0.5, 1.0); return; }
