@@ -48,7 +48,7 @@ const BUDGET = {
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
   '/world.js': 113 * K,            // 102,463
   '/realm-kit.js': 5 * K,          // 4,114
-  '/realm-dunes.js': 12 * K,       // 11,115 (9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
+  '/realm-dunes.js': 12.5 * K,     // 12,338 (main 12,266, 22 B under 12 K; +72 B here for the air cells' ranges, laid along the low layer's wind: physics: clouds/drift, 2026-11-21; 9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
   '/realm-above.js': 4.5 * K,      // 3,406
   '/plan.js': 15 * K,              // 13,268
   '/facetform.js': 3.5 * K,        // 2,301
