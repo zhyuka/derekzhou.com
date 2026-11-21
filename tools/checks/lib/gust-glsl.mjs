@@ -1,4 +1,4 @@
-// gust-glsl.mjs (tools/checks/43-gust-glsl.sh): the shaders' gust is the JS's, by value (RULES.json one-world-state).
+// gust-glsl.mjs (tools/checks/44-gust-glsl.sh): the shaders' gust is the JS's, by value (RULES.json one-world-state).
 // The air's GLSL (airGustGlsl(): airGust and its noise, with lib.glsl's hash) is rendered in headless Chrome (WebGL2,
 // SwiftShader) at 4096 points (x, z, t) a visit for four visits, each read back as a float and held to gustAt at the
 // same point, height and visit: a field carried the other way, a slice of its own, an axis flipped or a constant apart
