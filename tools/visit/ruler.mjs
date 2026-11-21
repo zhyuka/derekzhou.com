@@ -18,7 +18,7 @@ import { WORLD, STREAMS, VEC, cut, TMP } from '../../test/unit-lib.mjs';
 import fs from 'node:fs'; import path from 'node:path'; import vm from 'node:vm'; import { pathToFileURL } from 'node:url';
 
 export const HOURS = ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'];
-export const V_MS = 12, NEAR = 150, SIGHT = 600, FLOCK = 400, REF_STRETCH = [63, 98, 179];
+export const NEAR = 150, SIGHT = 600, FLOCK = 400, REF_STRETCH = [63, 98, 179];
 
 // ------------------------------------------------------------------ the world's code, cut
 const A1 = '  var CW = (function () {\n', A2 = '  var MAPS = {', A3 = '  var KN = 256, KSTEP = 64,';
@@ -31,9 +31,17 @@ const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true);
 const SEED0OF = /var SEED0 = (\(11 \+ \(SEEDR % OPENN\) \* 0x9e3779b9\) >>> 0)/.exec(WORLD), OPENN = /var OPENN = (\d+)/.exec(WORLD);   // (010: SEED0 from the read)
 const VSEED = /var r = (RNG\(subseed\(J\.seed, \d+\)\));\n\s*J\.V = \{ k: 0, id: 'world', def: def, seed: r\.seed\(\)/.exec(WORLD);   // (170: the visit's seed, the cells' salt's parent)
 const VSALT = /V\.salt = (subseed\(V\.seed, \d+\) >>> 0);/.exec(WORLD);   // (200: the cells' salt)
+// (180) what a cell keeps: the kits' densities by the raw maps and the pieces' own hash, as the world has them, and the
+// salt each kit's pieces are picked with (kitApi's keep); the layout's order (the ABOVE kit's scale after the dunes')
+const DENS = cut(WORLD, '  function densD(x, z)', '  /* (world6 fix, the judges\' defect 4)');
+const PICK = cut(WORLD, '  function pickOf(o, salt)', '\n', true);
+const KSALT = /function keep\(o\) \{ return pickOf\(o, kit === 'above' \? (0x[0-9a-f]+) : (0x[0-9a-f]+)\) < dens\(o\.x, o\.z\); \}/.exec(WORLD);
+const LAYOUT = /layout: \{ scales: \[KD\.layout\.scales\[0\], KD\.layout\.scales\[1\], KA\.layout\.scales\[0\]\]/.test(WORLD);
+const SPEED0 = /speed: KD\.speed \|\| (\d+(?:\.\d+)?),/.exec(WORLD);   // (worldDef: the world's one speed)
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
 const ABOVE = fs.readFileSync(path.join(TMP, 'src', 'realm-above.js'), 'utf8');
 if (!SEED0OF || !OPENN || !VSEED || !VSALT) throw new Error('ruler: the visit\'s seed or the cells\' salt not found in world.js');
+if (!KSALT || !LAYOUT || !SPEED0) throw new Error('ruler: the kits\' keep salts, the layout\'s order or the world\'s speed not found in world.js (180)');
 
 // the land of an opening k: its seed, the maps and the director about its landing, its heading, its cells' salt
 function landOf(k) {
@@ -41,10 +49,10 @@ function landOf(k) {
     '  var PI = Math.PI, DEG = Math.PI / 180, FRT = { tanX: Math.tan(36 * DEG), tanY: 1 }; function bootMark() {}\n' +
     '  function angDiff(a, b) { var d = a - b; d -= Math.floor((d + Math.PI) / (2 * Math.PI)) * 2 * Math.PI; return d; }\n' +
     '  var document = { documentElement: { getAttribute: function (n) { return n === \'data-seed\' ? String(READ) : null; } } };\n' +
-    STREAMS + '  var OPENN = ' + OPENN[1] + ', SEEDR = READ >>> 0, SEED0 = ' + SEED0OF[1] + ';\n' + PLAN +
-    '  var J = { seed: SEED0 };\n' + HEAD0 +
+    STREAMS + VEC + '  var OPENN = ' + OPENN[1] + ', SEEDR = READ >>> 0, SEED0 = ' + SEED0OF[1] + ';\n' + PLAN +
+    '  var J = { seed: SEED0 };\n' + HEAD0 + DENS + PICK +
     '  var V = {}; V.seed = ' + VSEED[1] + '.seed(); V.salt = ' + VSALT[1] + ';\n' +
-    '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0();\n' +
+    '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf;\n' +
     '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, RNG: RNG, subseed: subseed };\n})');
   const g = {}, CS = { x: 0, z: 0 }; G(g, CS, k); g.CS = CS;
   g.mapsInit(g.SEED0);
@@ -63,15 +71,11 @@ const KITS = (() => {
   };
   return (S) => ({ dunes: reg(DUNES, S), above: reg(ABOVE, S) });
 })();
-function pickOf(o, salt, S) { return S.hfl(ihashOf(S)(((Math.round(o.x * 8) * 0x9e3779b1) ^ (Math.round(o.z * 8) * 0x85ebca6b) ^ salt) >>> 0)); }
-function ihashOf(S) { return (h) => S.hk((h - 0) >>> 0, 0); }   // (ihash(h) = hk(h, 0))
 function cellPlaces(L, kits, kind, ix, iz, size) {
-  const S = L.STREAMS, out = { pois: [], flocks: [] }, dens = kind === 'above'
-    ? (x, z) => { const w = L.kitAt(x, z).wC; return w <= 0.6 ? 0 : w >= 0.9 ? 1 : ((w - 0.6) / 0.3) ** 2 * (3 - 2 * (w - 0.6) / 0.3); }
-    : (x, z) => { const w = L.kitAt(x, z).wC; const t = Math.min(1, Math.max(0, (w - 0.6) / 0.35)); return 1 - t * t * (3 - 2 * t); };
-  const salt = kind === 'above' ? 0x5bd1e995 : 0x27d4eb2d, keep = (o) => pickOf(o, salt, S) < dens(o.x, o.z);
+  const S = L.STREAMS, out = { pois: [], flocks: [] }, dens = kind === 'above' ? L.densA : L.densD;
+  const salt = +(kind === 'above' ? KSALT[1] : KSALT[2]), keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);
   const C = {
-    scale: kind === 'above' ? 2 : 0, ix, iz, x0: ix * size, z0: iz * size, size, salt: L.salt, V: { light: { sunEl: 5 } },
+    scale: kind === 'above' ? kits.dunes.layout.scales.length : 0, ix, iz, x0: ix * size, z0: iz * size, size, salt: L.salt, V: { light: { sunEl: 5 } },
     inside: (x, z) => x >= ix * size && x < (ix + 1) * size && z >= iz * size && z < (iz + 1) * size,
     add: (it) => { if (!keep(it)) it._drop = true; return it; },
     cloud: (cl) => { if (!keep(cl)) cl._drop = true; return cl; },
@@ -111,7 +115,7 @@ const q = (a, p) => { if (!a.length) return NaN; const s = [...a].sort((x, y) =>
 
 // one land: the flight's ray for secs, the director replayed along it; the places and flocks beside it
 export function flyLand(k, secs = 7200, heading = null) {   // (heading: another first heading than the land's own, rad)
-  const L = landOf(k), kits = KITS(L.STREAMS), psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
+  const L = landOf(k), kits = KITS(L.STREAMS), V_MS = kits.dunes.speed || +SPEED0[1], psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
   const looks = [], sea = [];
   for (let t = 0, i = 0; t <= secs; t += 0.5, i++) {   // (the director's tick, 0.5 s; its look every 5 s)
     L.CS.x = hx * V_MS * t; L.CS.z = hz * V_MS * t; L.directorStep(t);
@@ -122,7 +126,7 @@ export function flyLand(k, secs = 7200, heading = null) {   // (heading: another
   }
   // the cells within reach of the way (1.6 km aside: a place is passed within SIGHT, a cell's site up to 0.8 of it off)
   const pois = [], flocks = [], seen = new Set(), reach = 1600;
-  for (const [kind, size] of [['dunes', 1500], ['above', 1200]]) {
+  for (const [kind, size] of [['dunes', kits.dunes.layout.scales[0].size], ['above', kits.above.layout.scales[0].size]]) {
     for (let s = -reach; s <= len + reach; s += size / 2) for (let l = -reach; l <= reach; l += size / 2) {
       const x = hx * s - hz * l, z = hz * s + hx * l, ix = Math.floor(x / size), iz = Math.floor(z / size), key = kind + ix + ',' + iz;
       if (seen.has(key)) continue; seen.add(key);
@@ -134,7 +138,7 @@ export function flyLand(k, secs = 7200, heading = null) {   // (heading: another
   const pass = (o) => { const sx = o.x * hx + o.z * hz, d = Math.abs(-o.x * hz + o.z * hx); return { t: sx / V_MS, d }; };
   const P = pois.map((p) => ({ ...p, ...pass(p) })).filter((p) => p.t >= 0 && p.t <= secs).sort((a, b) => a.t - b.t);
   const F = flocks.map((f) => pass(f)).filter((f) => f.t >= 0 && f.t <= secs && f.d <= FLOCK).sort((a, b) => a.t - b.t);
-  return { k, seed0: L.SEED0, heading: psi, looks, sea, places: P, flocks: F };
+  return { k, seed0: L.SEED0, heading: psi, speed: V_MS, looks, sea, places: P, flocks: F };
 }
 
 // an opening's measures: its land's places with its sky's order
