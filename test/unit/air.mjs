@@ -364,6 +364,9 @@ test('air: the mist by the visit\'s moisture (its marine layer in on a calm day)
   const misty = rows.filter((r) => r.mist >= 1), dunes = rows.filter((r) => r.dunes), dm = dunes.filter((r) => r.mist >= 1);
   assert.ok(misty.length >= 4 && misty.length <= 6, `first-light mist of 1 m or more on ${misty.length} of the 16 openings, not about 1 in 3`);
   assert.ok(dm.length >= 2 && dm.length <= 3, `on ${dm.length} of the ${dunes.length} openings with dunes in view, not about 1 in 4`);
+  const deep = dunes.filter((r) => r.mist >= 5), shallow = dunes.filter((r) => r.mist < 5);
+  assert.equal(deep.length, 3, `pools at the cut need about 5 m: ${deep.length} of the ${dunes.length} dune openings get it, not 3 (the hub's ruling, with LAND)`);
+  assert.ok(shallow.every((r) => r.mist < 2), 'the other dune openings stay under 2 m (no pools), never in the useless middle');
   // over the visits (the speeds' own distribution): about 1 in 3 to 1 in 4 moist
   let n = 0; const N = 20000; for (let i = 0; i < N; i++) { const V = { seed: (i * 2654435761 + 7) >>> 0 }; V.u10 = G.airU10(V.seed); n += G.airWx(5, V).moist > 0.1; }
   assert.ok(n / N > 0.22 && n / N < 0.36, `moist on ${(100 * n / N).toFixed(1)}% of visits, not about 1 in 3 to 1 in 4`);
