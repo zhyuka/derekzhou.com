@@ -141,6 +141,7 @@
      a wing of its own made anew, begun from its age (out of sight still: no beat seen to jump) */
   function wingOff(b) { if (!b.wOff) { b.wOff = true; b.wP = b.age; } }
   function wingOn(b) {
+    if (b.w && b.w.V !== inV(b.F) && b.kind === 'ibis') b.w = null;   // (an ibis that joined a V, or left one, while unseen: a wing of the other schedule, made where no beat is seen to change; the round-6 review)
     if (b.w) { var g = b.w.wing, d = Math.round((b.age - b.wP) / g.dt) * g.dt; if (d > 0) BW.skip(g, d); }
     else { b.w = placeWing(b.kind, b.r, b.age, inV(b.F)); b.wtT = 0; if (b.F) b.F.lk = true; }
     b.wOff = false; b.wsT = -1;
