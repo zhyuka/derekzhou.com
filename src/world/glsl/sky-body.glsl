@@ -34,7 +34,7 @@ vec3 anvilAt(vec3 rd) {
   float D = uAnv.y, phi = atan(rd.x, rd.z) - uAnv.x;
   phi = atan(sin(phi), cos(phi));
   if (abs(phi) > 0.7 || rd.y < -0.01) return vec3(0.0);
-  float x = D * tan(phi), z = D * rd.y / max(sqrt(1.0 - rd.y * rd.y), 1e-3) + D * D / 12742.0;
+  float x = D * tan(phi), z = D * rd.y / max(sqrt(1.0 - rd.y * rd.y), 1e-3) + D * D / 14866.0;   // (the Earth's curve with standard refraction: R 7/6 x 6371 km, 0.17 deg less drop at 150 km)
   float lump = (textureLod(uN3, vec3(z / 36.0, x / 68.0, 0.43), 0.0).a - 0.5) * 2.4;
   float wc = 3.2 + 0.18 * z + lump, col = (1.0 - smoothstep(wc - 0.7, wc + 0.7, abs(x - 0.35 * z))) * smoothstep(0.5, 1.5, z) * (1.0 - smoothstep(10.2, 11.2, z));
   /* the anvil's underside flares fast (its half-width grows up to 26 km a km): its edge faded over 1.2 km measured
@@ -143,6 +143,22 @@ void main() {
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
   }
+  /* (physics: weather/far-anvil) the far storm, drawn before everything nearer than it (the 3 km veil and its streaks,
+     the Earth's shadow and the Belt, the wisps: laid over it), and hiding everything farther (the galaxy, the aurora,
+     the moon, the stars: what they add is taken back over its cover, anvCov, after the stars) */
+  float anvCov = 0.0;
+  if (uAnv.y > 0.0) {   // its body in the air's colour at its range, its lit top, its flicker
+    vec3 aM = anvilAt(rd);
+    anvCov = aM.x;
+    if (aM.x > 0.0) {
+      c = mix(c, atmos(uClShade, rd, 1000.0 * uAnv.y / max(length(rd.xz), 1e-3)), aM.x);
+      /* its lit top and its flicker through the haze, held under L 0.50 over whatever stands behind it (a soft cap on what it adds, by
+         the room left under Y 0.118; where that stands at 0.50 it gives way) */
+      vec3 aA = (vec3(1.0, 0.6, 0.46) * aM.y * ANV_K + vec3(0.85, 0.9, 1.0) * aM.z * ANV_FK) * (1.0 - hazeSky(rd));
+      float yA = dot(aA, LUMA), room = max(0.118 - dot(c, LUMA), 0.0);
+      c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
+    }
+  }
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on
        the deck (from the camera's own place), so the sky is a function of where the camera is (and its cover, uHi.x,
@@ -197,6 +213,7 @@ void main() {
     float n = textureLod(uN3, vec3(q.x, q.y * 4.0, 0.21) * 0.25, 0.0).a * 0.55 + textureLod(uN3, vec3(q.x * 3.0, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
   }
+  vec3 cBA = c;   // (physics: weather/far-anvil) the sky as it stands before what lies beyond the far storm
 #ifdef SKY_PH2
   /* (aurora-haze) both behind the haze, as the moon is: what the haze over them lets through (1 - hazeSky), a little
      redder where it is thick (low), never added over it at full strength */
@@ -204,17 +221,6 @@ void main() {
   if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS) * hzT;   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
 #endif
-  if (uAnv.y > 0.0) {   // (physics: weather/far-anvil: the far storm: its body in the air's colour at its range, its lit top)
-    vec3 aM = anvilAt(rd);
-    if (aM.x > 0.0) {
-      c = mix(c, atmos(uClShade, rd, 1000.0 * uAnv.y / max(length(rd.xz), 1e-3)), aM.x);
-      /* its lit top and its flicker through the haze, held under L 0.50 over whatever stands behind it (a soft cap on what it adds, by
-         the room left under Y 0.118; where that stands at 0.50 it gives way) */
-      vec3 aA = (vec3(1.0, 0.6, 0.46) * aM.y * ANV_K + vec3(0.85, 0.9, 1.0) * aM.z * ANV_FK) * (1.0 - hazeSky(rd));
-      float yA = dot(aA, LUMA), room = max(0.118 - dot(c, LUMA), 0.0);
-      c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
-    }
-  }
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
        the horizon the sea and the land, drawn before the sky, hide it by place); only its faint broad light on the whole
@@ -238,6 +244,7 @@ void main() {
     for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, head / max(sk, 1e-5), dj, di); }
     c += vec3(0.92, 0.94, 1.0) / 0.94 * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap
   }
+  if (anvCov > 0.0) c = mix(c, cBA, anvCov);   // (physics: weather/far-anvil) the galaxy, the aurora, the moon and the stars behind the storm's body
 #ifdef SKY_HOOK
   c = skyHook(rd, c);
 #endif
