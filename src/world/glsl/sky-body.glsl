@@ -34,7 +34,7 @@ vec3 haloAt(vec3 rd) {
   da = atan(sin(da), cos(da));
   float off = abs(da) - dp, dog = smoothstep(-radians(0.5), radians(0.15), off) * exp(-max(off, 0.0) / radians(1.6)) * exp(-pow((ea - me) / radians(0.9), 2.0));
   vec3 warm = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(r0, r0 + 1.4, th));
-  vec3 warmD = mix(vec3(1.0, 0.76, 0.6), vec3(1.0), smoothstep(-radians(0.2), radians(1.2), off));
+  vec3 warmD = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(-radians(0.2), radians(1.2), off));   // (as colourless as the ring: by moonlight the eye sees both near white)
   return (warm * ring + warmD * dog * 1.6) * uHalo.y;
 }
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its

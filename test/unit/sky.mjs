@@ -151,6 +151,9 @@ test('physics: weather/moon-halo: the 22 deg ring and the moon dogs, only adding
   // with the moon's depth and under the haze: the line in the moon block, before the haze is laid over the moon's lights
   const mb = g.indexOf('if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;'), hz = g.indexOf('c = c0 + (c - c0) * (1.0 - hazeSky(rd));', mb);
   assert.ok(mb > 0 && hz > mb && hz - mb < 200, 'the halo is not added with the moon\'s depth (uMoon.w) just before the haze is laid over the moon\'s lights');
+  // by moonlight the eye sees the ring and the dogs near colourless: the dogs' tint the ring's own, never warmer
+  const tint = (name) => (g.match(new RegExp('vec3 ' + name + ' = mix\\(vec3\\(([^)]*)\\)')) || [])[1];
+  assert.ok(tint('warm') && tint('warm') === tint('warmD'), `the dogs' tint (${tint('warmD')}) is not the ring's (${tint('warm')})`);
   // the veil is the stay's: about one moonlit stay in three, across the 16 openings and after the cut; the opening's stay by
   // the opening's seed (its baked still), a stay kept at the cut keeps its veil, and the uniform reads the moon's own stay
   assert.ok(WORLD.includes('gl.uniform4f(u.uHalo, MOON.E ? MOON.E.veil : 0, HALO_K, 0, 0);'), 'the halo\'s uniform does not read the veil of the stay whose moon is up');
