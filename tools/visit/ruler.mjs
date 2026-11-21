@@ -10,6 +10,8 @@
 //   - the sky's order (the opening's, then the read's from the cut): its changes and the time to the first;
 //   - the look runs (the director's own look every 5 s, its land read as one of a few kinds);
 //   - the longest stretch with no reward (a place passed, a flock passed, a sky's change).
+//   - the land at the cut (the director's look within 250 m of the landing): the cloud weight wC, the sand province's
+//     weight wD (the dunes' height is the dunes kit's by wD: 140), the dune landform Kd and the sand's share of cover.
 //   node tools/visit/ruler.mjs [--reads N] [--secs S] [--k 0,1] [--hours dawn,day] [--json FILE]
 // What it cannot see (no GPU): the ground's height (the places' seats, the ABOVE kit's gate on the land under it,
 // aboveKeep: approximated by its density alone) and the cloud sea's drawn weight (kwAt: the raw maps' kitAt instead).
@@ -116,12 +118,13 @@ const q = (a, p) => { if (!a.length) return NaN; const s = [...a].sort((x, y) =>
 // one land: the flight's ray for secs, the director replayed along it; the places and flocks beside it
 export function flyLand(k, secs = 7200, heading = null) {   // (heading: another first heading than the land's own, rad)
   const L = landOf(k), kits = KITS(L.STREAMS), V_MS = kits.dunes.speed || +SPEED0[1], psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
-  const looks = [], sea = [];
+  const looks = [], sea = []; let cut0 = null;   // (cut0: the land at the cut, the director's look within 250 m of the landing)
   for (let t = 0, i = 0; t <= secs; t += 0.5, i++) {   // (the director's tick, 0.5 s; its look every 5 s)
     L.CS.x = hx * V_MS * t; L.CS.z = hz * V_MS * t; L.directorStep(t);
     if (i % 10 === 0) {
       const D = L.MAPS.D, s = D.seen[D.seen.length - 1], w = L.kitAt(L.CS.x, L.CS.z).wC;
       sea.push({ t, wC: w }); if (s) looks.push({ t, kind: lookKind(s.look, w) });
+      if (t === 0 && s) cut0 = { wC: +w.toFixed(3), wD: +L.kitAt(0, 0).wD.toFixed(3), dunes: +s.look[7].toFixed(3), sand: +s.look[6].toFixed(3), kind: lookKind(s.look, w) };
     }
   }
   // the cells within reach of the way (1.6 km aside: a place is passed within SIGHT, a cell's site up to 0.8 of it off)
@@ -138,7 +141,7 @@ export function flyLand(k, secs = 7200, heading = null) {   // (heading: another
   const pass = (o) => { const sx = o.x * hx + o.z * hz, d = Math.abs(-o.x * hz + o.z * hx); return { t: sx / V_MS, d }; };
   const P = pois.map((p) => ({ ...p, ...pass(p) })).filter((p) => p.t >= 0 && p.t <= secs).sort((a, b) => a.t - b.t);
   const F = flocks.map((f) => pass(f)).filter((f) => f.t >= 0 && f.t <= secs && f.d <= FLOCK).sort((a, b) => a.t - b.t);
-  return { k, seed0: L.SEED0, heading: psi, speed: V_MS, looks, sea, places: P, flocks: F };
+  return { k, seed0: L.SEED0, heading: psi, speed: V_MS, cut: cut0, looks, sea, places: P, flocks: F };
 }
 
 // an opening's measures: its land's places with its sky's order
@@ -159,7 +162,7 @@ export function measure(land, hour, read, at, secs = 7200) {
   const rewards = [0, ...sites.map((p) => p.t), ...land.flocks.map((f) => f.t), ...changes, secs].filter((t) => t >= 0 && t <= secs).sort((a, b) => a - b);
   let gap = 0, gapAt = 0; for (let i = 1; i < rewards.length; i++) if (rewards[i] - rewards[i - 1] > gap) { gap = rewards[i] - rewards[i - 1]; gapAt = rewards[i - 1]; }
   return {
-    k: land.k, heading: land.heading, hour, read, sky0: sky[0].name, firstChange: changes[0] ?? null, skyChanges: changes.length,
+    k: land.k, heading: land.heading, hour, read, cut: land.cut, sky0: sky[0].name, firstChange: changes[0] ?? null, skyChanges: changes.length,
     firstNear: near ? +near.t.toFixed(1) : null, firstNearKind: near ? near.kind : null, firstSight: passed.length ? +passed[0].t.toFixed(1) : null,
     places: sites.length, placesPerHour: +(sites.length / (secs / 3600)).toFixed(1), stretch: stretch.length ? [q(stretch, 0.1), q(stretch, 0.5), q(stretch, 0.9)].map((x) => +x.toFixed(0)) : null,
     flocks: land.flocks.length, crossings: cross.length, firstCrossing: cross[0] ?? null,

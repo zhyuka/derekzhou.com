@@ -14,6 +14,7 @@ test('ruler: a 10-minute visit on two lands, measured, the same twice', () => {
     assert.ok(a.looks.length >= 100 && a.looks.length <= 121, `k${k}: ${a.looks.length} looks in 600 s (one every 5 s)`);
     assert.ok(a.places.length > 0, `k${k}: no place beside the way in 600 s`);
     assert.ok(a.heading >= 0 && a.heading < 2 * Math.PI, `k${k}: the heading ${a.heading}`);
+    assert.ok(a.cut && a.cut.wD >= 0 && a.cut.wD <= 1 && a.cut.wC >= 0 && a.cut.wC <= 1, `k${k}: the land at the cut ${JSON.stringify(a.cut)}`);
     assert.deepEqual(JSON.stringify(a), JSON.stringify(b), `k${k}: the ruler is not the same twice`);
     for (const hour of HOURS) {
       const m = measure(a, hour, k + 16, 0.5, 600);
