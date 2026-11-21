@@ -1,8 +1,8 @@
 
 uniform int uHsrc;   // 0 the clipmap's vertices (uLevA), 1 the probe's points (uTex), 2 the probe's grid (uGCw)
 uniform vec4 uLevA[10]; uniform vec4 uGCw; uniform highp sampler2D uTex;
-uniform highp sampler2D uHP0, uHP2;
-layout(location = 0) out vec4 o0; layout(location = 1) out vec4 o1;
+uniform highp sampler2D uHP0, uHP1, uHP2;
+layout(location = 0) out vec4 o0; layout(location = 1) out vec4 o1; layout(location = 2) out vec4 o2;
 ivec2 gq; vec2 gw;
 void gridW() {
   gq = ivec2(gl_FragCoord.xy);
