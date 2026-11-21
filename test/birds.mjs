@@ -191,18 +191,23 @@ test('a perched bird turns, hops round and preens at the research\'s rates', () 
   assert.equal(edgeOn, 0, 'a perched bird seen from in front or behind');
 });
 /* the step and the draw make no objects in steady state (no array, object, closure or store a frame): the world flown
-   and drawn on the sim's GL stub for 100 s, then 30 s with V8's sampling heap profiler, the collected objects counted
+   and drawn on the sim's GL stub for 300 s, then 30 s with V8's sampling heap profiler, the collected objects counted
    too. What a birth, a goal, a landing or a perched bird's act makes is the event's, not a frame's, and is left out;
-   V8's boxed numbers (16 B or less each) are reported, not barred. And no bird's wing history grows without end */
+   V8's boxed numbers (16 B or less each) are reported, not barred. The count is the mean of three runs (seeds 2, 3 and 4):
+   the profiler samples, so one run of the same code reads 0.45-0.52 against a 0.5 bar (the hub, 2026-11-21: a single
+   run that flaps across its bar is a flaky test). The 300 s are V8's to settle: after 100 s its compiler is still
+   re-optimizing (code and feedback it makes, counted against whatever bird code runs then), and that churn read
+   0.40-0.57, growing with the code, where the birds' own read 0.10-0.15 once it has settled (2026-11-21). And no bird's
+   wing history grows without end */
 const EVENT = /^(newBird|newFlock|newGoal|nextGoal|drawRec|make|startApproach|touchDown|leave|toAir|clickBird|recruit|addFar|splitOff|soloFlock|endPlace|pickLedge|perchRec|gateFor|relead|grow|drawBeats|slotsOf|perchWhat|flockWhat|placeWing|makeRoom|jab|goRound|giveUp|leavingStep|notice|noticePointer|touchGeom|gmean|nameLedges|ledges|bootRing|seed|dropBird|dropFlock|homeStep|joinStep|perchedStep)$/;
 test('the step and the draw make no objects a frame; wing histories stay short', async () => {
   const { Session } = await import('node:inspector/promises');
   const s = new Session(); s.connect();
   let objs = 0, objB = 0, nums = 0, steps = 0, worstWing = 0;
   const where = new Map();
-  for (const [name, size] of [['life', '960x600'], ['natural', '390x844']]) {
-    const sc = SCENES[name](2, size); sc.opt.draw = {}; const sim = makeSim(sc.opt); sc.setup(sim);
-    sim.run(100);
+  for (const seed of [2, 3, 4]) for (const [name, size] of [['life', '960x600'], ['natural', '390x844']]) {
+    const sc = SCENES[name](seed, size); sc.opt.draw = {}; const sim = makeSim(sc.opt); sc.setup(sim);
+    sim.run(300);
     await s.post('HeapProfiler.startSampling', { samplingInterval: 8, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
     sim.run(30); steps += Math.round(30 / DT);
     const { profile } = await s.post('HeapProfiler.stopSampling'), info = new Map();
@@ -219,7 +224,7 @@ test('the step and the draw make no objects a frame; wing histories stay short',
   }
   s.disconnect();
   const per = objs / steps, top = [...where].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${v} ${k}`).join('; ');
-  console.log(`# allocation: ${per.toFixed(2)} objects a step (${(objB / steps).toFixed(0)} B; bar 0.5), ${(nums / steps).toFixed(0)} boxed numbers a step; the longest wing history ${(100 * worstWing).toFixed(0)} % of its bar` + (top ? `\n#   most: ${top}` : ''));
+  console.log(`# allocation: ${per.toFixed(2)} objects a step (the mean of 3 runs) (${(objB / steps).toFixed(0)} B; bar 0.5), ${(nums / steps).toFixed(0)} boxed numbers a step; the longest wing history ${(100 * worstWing).toFixed(0)} % of its bar` + (top ? `\n#   most: ${top}` : ''));
   assert.ok(per < 0.5, `${per.toFixed(2)} objects made a step: ${top}`);
   assert.ok(worstWing <= 1, 'a wing history grew past its bar');
 });
