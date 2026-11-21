@@ -309,8 +309,10 @@
     var dl = 0.18 * sp * wave(b.vK + 11, b.age / 6.5), da = 0.3 * sp * wave(b.vK + 53, b.age / 8.3), du = 0.22 * sp * wave(b.vK + 97, b.age / 7.1);
     var back = q[0] * sp + dl, side = q[1] * sp + da, up = q[2] * sp + du, h = slotAt(F, b, back, side, up), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
     var ex = TP[0] - b.p[0], ey = TP[1] - b.p[1], ez = TP[2] - b.p[2], k = 0.45, cap = 0.1 * b.K.v;
-    var cx = clamp(k * ex, -cap, cap), cy = clamp(k * ey, -cap, cap), cz = clamp(k * ez, -cap, cap);
-    MV[0] = V * Math.sin(h) + cx; MV[1] = L.v[1] + cy; MV[2] = V * Math.cos(h) + cz;
+    var cx = k * ex, cy = k * ey, cz = k * ez, cn = Math.sqrt(cx * cx + cy * cy + cz * cz), cs = cn > cap ? cap / cn : 1;   // (the pull to its place, at most a tenth of its speed however it points: clamped by axis it reached 0.17)
+    cx *= cs; cy *= cs; cz *= cs;
+    var g = h + (V > 1e-6 ? angDiff(Math.atan2(L.v[0], L.v[2]), L.psi) : 0);   // (along its leader's track over the ground, as holdPlace: along the heading through the air a side wind slid each member upwind at V sin(crab), the round-6 review)
+    MV[0] = V * Math.sin(g) + cx; MV[1] = L.v[1] + cy; MV[2] = V * Math.cos(g) + cz;
     if (!(F.goal && F.goal.k === 'sink' && seaAt(b.p[0], b.p[2]).w > 0.85)) MV[1] = floorUp(b, MV[1], b.K.v, Infinity);   // (its place never under the land: as its leader's)
     return MV;
   }
