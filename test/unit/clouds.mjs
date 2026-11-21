@@ -181,22 +181,25 @@ test('clouds: a far bank keeps its colour and stays opaque to the last quarter o
     return vm.runInThisContext(`(function (col, fl, max) { ${lit} return col; })`)(ch3.map((x) => x[0]), ch3.map((x) => x[1]), Math.max).concat([ch3.map((x) => x[1]), ch3[0][2]]);
   };
   const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-  let floored = 0;
+  // half the banks drawn darker than the land, half lighter (the land's paint times 1 to 2 a channel): both branches
+  // run on every run (the hub's round 5: drawn from 0-0.3 alone, the lighter branch ran 0.9 times a run)
+  let floored = 0, kept = 0;
   for (let k = 0; k < 400; k++) {
-    const r = (a, b2) => a + (b2 - a) * Math.random(), c0 = [r(0, 0.3), r(0, 0.3), r(0, 0.3)], P0 = [r(0.2, 0.8), r(0.2, 0.8), r(0.2, 0.8)], P2 = [r(0.1, 0.6), r(0.1, 0.6), r(0.1, 0.6)];
+    const r = (a, b2) => a + (b2 - a) * Math.random(), P0 = [r(0.2, 0.8), r(0.2, 0.8), r(0.2, 0.8)], P2 = [r(0.1, 0.6), r(0.1, 0.6), r(0.1, 0.6)];
+    const c0 = k % 2 ? P0.map((v, i) => 0.5 * (v + P2[i]) * r(1, 2)) : [r(0, 0.3), r(0, 0.3), r(0, 0.3)];
     const haze = [r(0.05, 0.5), r(0.05, 0.5), r(0.05, 0.5)], tn = r(500, 30000), tf = tn + r(50, 3000);
     const out = run(c0, P0, P2, haze, tn, tf), col = out.slice(0, 3), fl = out[3], tB = out[4], f = 1 - Math.exp(-tB / 9000);
     assert.ok(Math.abs(tB - (tn + 0.25 * (tf - tn))) < 1e-9, 'the bank is not hazed at its own range');
     const own = c0.map((v, i) => v * (1 - f) + haze[i] * f), land = P0.map((v, i) => 0.5 * (v + P2[i]) * (1 - f) + haze[i] * f);
     fl.forEach((v, i) => assert.ok(Math.abs(v - land[i]) < 1e-9, 'the floor is not the land\'s paint hazed at the bank\'s range'));
-    if (lum(own) >= lum(land)) col.forEach((v, i) => assert.ok(Math.abs(v - own[i]) < 1e-9, `a bank lighter than the floor is changed (${col} against its own ${own}): a re-tint`));
+    if (lum(own) >= lum(land)) kept++, col.forEach((v, i) => assert.ok(Math.abs(v - own[i]) < 1e-9, `a bank lighter than the floor is changed (${col} against its own ${own}): a re-tint`));
     else {
       floored++;
       assert.ok(Math.abs(lum(col) - lum(land)) < 1e-9, `a darker bank's lightness ${lum(col)} is not the floor's ${lum(land)}`);
       const s = col[0] / own[0]; col.forEach((v, i) => assert.ok(Math.abs(v / own[i] - s) < 1e-9, 'a darker bank lifted off its own hue'));
     }
   }
-  assert.ok(floored > 50, 'the floor never binds in the sample: the test proves nothing');
+  assert.ok(floored >= 50 && kept >= 50, `a branch runs too seldom to prove anything: ${floored} floored, ${kept} kept`);
 });
 
 // ------------------------------------------------------------------ one cloud field on every tier (the hub's review of #238)
