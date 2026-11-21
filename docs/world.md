@@ -484,7 +484,7 @@ shader). It holds:
   and carried downwind at the mean wind (the frozen-turbulence
   hypothesis, https://glossary.ametsoc.org/wiki/Frozen_turbulence;
   gustAt, the shaders' airGust: the same hash and constants, held equal
-  by value at 4096 points a visit, tools/checks/43-gust-glsl.sh), so a
+  by value at 4096 points a visit, tools/checks/44-gust-glsl.sh), so a
   point 100 m downwind meets each gust 100 / U10 later on the surface's
   clock (airClock), 100 / (s U10) later in flight time (s the sky's
   surface share: 1 by day); each visit on its
