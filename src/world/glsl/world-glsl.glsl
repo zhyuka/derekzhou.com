@@ -6,9 +6,9 @@
    the coast is cloud lapping the sand (softened by the fringe below), never a cliff */
 vec3 Hd(vec2 p) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
-  gKD = wD; gLV = lv; gWC = wC;
+  gKD = wD; gLV = lv; gWC = wC; gSK = sk;
   vec3 h = D_Hd(p) - sk;
-  gKD = vec3(1.0, 0.0, 0.0);
+  gKD = vec3(1.0, 0.0, 0.0); gSK = vec3(0.0);
   return h;
 }
 /* the cloud sea's top: its level (rising with the cloud weight out of the low ground, far under the land where the
@@ -36,9 +36,9 @@ float HdCam(vec2 p) { return max(Hd(p).x, HdSea(p).x); }
    operations in the same order: kitW4 reads none of the globals Hd sets, A_Hd none but gLodD */
 float HdProbe(vec2 p, bool cam) {
   vec3 wD, wC, lv, sk; kitW4(p, wD, wC, lv, sk);
-  gKD = wD; gLV = lv; gWC = wC;
+  gKD = wD; gLV = lv; gWC = wC; gSK = sk;
   vec3 h = D_Hd(p) - sk;
-  gKD = vec3(1.0, 0.0, 0.0);
+  gKD = vec3(1.0, 0.0, 0.0); gSK = vec3(0.0);
   if (!cam) return h.x;
   vec3 amp = vec3(0.4, 0.0, 0.0) + 0.6 * wC;
   return max(h.x, (lv + dMul(A_Hd(p), amp)).x);
