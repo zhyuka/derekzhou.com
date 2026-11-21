@@ -43,12 +43,15 @@ export async function serveBuild(dir, brq) {
     const up = http.request({ host: '127.0.0.1', port, path: req.url, method: req.method, headers: req.headers }, (u) => {
       res.writeHead(u.statusCode, u.headers); u.pipe(res);
     });
+    // (a request still open when the run ends meets cfserve gone: ECONNRESET, unheard, threw and took the whole check
+    // down with it under a busy machine's parallel checks; that one response is dropped instead)
+    up.on('error', () => res.destroy()); req.on('error', () => up.destroy());
     // the 103: only the root document carries Link headers (site/_headers), so ask for them on any navigation
     if (req.method === 'GET' && (req.headers.accept || '').includes('text/html')) {
       const h = http.request({ host: '127.0.0.1', port, path: req.url, method: 'HEAD', headers: req.headers }, (hr) => {
         hr.resume(); if (hr.headers.link) res.writeEarlyHints({ link: hr.headers.link.split(/,\s*(?=<)/) });
         req.pipe(up);
-      }); h.end();
+      }); h.on('error', () => { up.destroy(); res.destroy(); }); h.end();
     } else req.pipe(up);
   });
   const fport = port + 1; await new Promise((r) => front.listen(fport, '127.0.0.1', r));
