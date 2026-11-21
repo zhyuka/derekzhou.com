@@ -60,7 +60,7 @@
       var a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 6;
       var gx = clamp(P.foot[0] + Math.cos(a) * L, 0.1 * W, 0.9 * W), gy = clamp(P.foot[1] + Math.sin(a) * L, 0.08 * H, 0.9 * H);
       for (dz = 4; dz < 60; dz += 2) { rayAt(C, gx, gy, P.D + dz, GQ); if (dist3(GQ, GA) >= PGATE) break; }
-      var sc = dz + 2 * Math.ceil(k / 2) + 60 * Math.max(0, gy - P.foot[1]) / H + 5 * Math.max(0, -Math.cos(a) * wr);   // (from under it costs: it would climb at its slowest)   // (and from upwind: the last leg runs into the wind, physics: birds/wind; landings on ledges fail in wind from behind, doi:10.7554/eLife.43842)
+      var sc = dz + 2 * Math.ceil(k / 2) + 60 * Math.max(0, gy - P.foot[1]) / H + (Math.abs(wr) > 1 && Math.cos(a) * Math.sign(wr) < 0.5 ? 100 : 0);   // (from under it costs: it would climb at its slowest)   // (and in a side wind, from any but the downwind side, the gate's way well out along the wind, not over or under the perch: the last leg runs into the wind, physics: birds/wind; landings on ledges fail in wind from behind, doi:10.7554/eLife.43842)
       if (sc < bs) { bs = sc; best = [gx, gy, P.D + dz]; }
     }
     return best;
@@ -100,7 +100,7 @@
       rayAt(C, P.gate[0], P.gate[1], P.gate[2], GQ);
       var gx = GQ[0] - b.p[0], gy = GQ[1] - b.p[1], gz = GQ[2] - b.p[2], gd = Math.sqrt(gx * gx + gy * gy + gz * gz);
       var ux = b.v[0] - P.v[0], uy = b.v[1] - P.v[1], uz = b.v[2] - P.v[2], cn = -(rx * ux + ry * uy + rz * uz) / (d || 1);   // (closing now)
-      var wr = WINDV[0] * C.r[0] + WINDV[2] * C.r[2], dw = P.kind === 'pointer' || Math.abs(wr) <= 1 || (rx * C.r[0] + rz * C.r[2]) * wr > 0;   // (in a side wind, only from its downwind side straight in: the last leg into the wind; to the pointer's moving tip, however it can)
+      var wr = WINDV[0] * C.r[0] + WINDV[2] * C.r[2], dw = P.kind === 'pointer' || Math.abs(wr) <= 1 || (rx * C.r[0] + rz * C.r[2]) * Math.sign(wr) > 4;   // (in a side wind, straight in only from 4 m or more to its downwind side: the last leg into the wind (from in line, the wind's drift alone takes it over the ground with the wind); to the pointer's moving tip, however it can)
       if ((gd < 8 || (dw && d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; }
       else {
         if (!P.gT) { P.gT = Math.max(14, 6 + d / 8); P.gb = gd; P.gbT = t; }   // (its time to the gate, by how far it began)
