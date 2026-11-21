@@ -11,8 +11,6 @@
 // plant: {"file": "src/world/215-air.js", "find": "xi = (x * f.x + z * f.z - U * T[0]) / L + ox,", "with": "xi = (x * f.x + z * f.z - U * airCarried(y, t)) / L + ox,", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
 // plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "float a = uPc.a * 0.55 *", "with": "float a = uPc.a * 0.55 * mix(0.15, 1.0, gust) *", "why": "the veils fading with the gust again"}
 
-// plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv, uT - AIR_UT0)", "with": "airGust(sp.xy, w, uAirU, Wv, uT)", "why": "the veils read the field 40 s ahead of the birds"}
-// plant: {"file": "src/world/215-air.js", "find": "return AIR_GUST[0] * airSpeed(y, V) * gustN(xi, eta);", "with": "return AIR_GUST[0] * airSpeed(y, V) * gustN(xi * AIR_GUST[1] * U / (AIR_GUST[1] * airSpeed(y, V)), eta);", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 nOff = fract(uVC / uVR.z);", "with": "vec3 nOff = fract(uVC / uVR.z) + vec3(uT * 0.004, 0.0, uT * 0.003);", "why": "the cloud billows slide by a clock of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
