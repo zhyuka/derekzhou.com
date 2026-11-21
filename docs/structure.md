@@ -57,7 +57,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
-                             test/unit/clouds.mjs (the cloud bodies' billows), test/unit/coast.mjs (the land's
+                             test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
+                             the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
@@ -96,6 +97,8 @@ tools/stills-release.mjs     A bake's stills up as the release the Cloudflare bu
 tools/stills-twin.mjs        The still's preload put back in the twin the PC bakes (stills.yml)
 tools/gpu/                   The owner's PC's RTX 4090 jobs: T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
+tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
+                             (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
 tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
@@ -125,15 +128,17 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/36-load-budget.sh, tools/checks/37-ground-fresh.sh, tools/checks/38-sound.sh,
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
-                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own),
-                             tools/checks/43-citations.sh (no author-style citation: a credit is its DOI or URL)
+                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
+                             tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
+                             the sand spec's bounds, physics: sand/S1),
+                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
                              tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh),
-                             tools/checks/lib/citations.mjs (no author-style citation in a tracked file, for 43-citations.sh)
+                             tools/checks/lib/citations.mjs (no author-style citation in a tracked file, for 45-citations.sh)
 
 Seven scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js, inkbirds.js, sound.js and score.js
