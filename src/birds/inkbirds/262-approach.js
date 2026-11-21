@@ -103,8 +103,9 @@
       var wr = WINDV[0] * C.r[0] + WINDV[2] * C.r[2], dw = P.kind === 'pointer' || Math.abs(wr) <= 1 || (rx * C.r[0] + rz * C.r[2]) * wr > 0;   // (in a side wind, only from its downwind side straight in: the last leg into the wind; to the pointer's moving tip, however it can)
       if ((gd < 8 || (dw && d < PGATE + 8 && inCone(b, P, C, d < PGATE - 4))) && cn <= 1.25 * closeMax(b, P.v, rx / (d || 1), ry / (d || 1), rz / (d || 1), d) + 1) { P.gated = true; P.d0 = 0; }
       else {
-        if (!P.gT) P.gT = Math.max(14, 6 + d / 8);   // (its time to the gate, by how far it began)
-        if (t - P.t0 > P.gT) { goRound(b, 'away'); coast(b, dt); return; }
+        if (!P.gT) { P.gT = Math.max(14, 6 + d / 8); P.gb = gd; P.gbT = t; }   // (its time to the gate, by how far it began)
+        if (gd < P.gb - 1) { P.gb = gd; P.gbT = t; }   // (the nearest it has come to the gate, and when)
+        if (t - P.t0 > P.gT && (t - P.gbT > 4 || t - P.t0 > 3 * P.gT)) { goRound(b, 'away'); coast(b, dt); return; }   // (past its time, round only once it has stopped gaining on the gate: on a quick eye, through the wind, a bird with little air speed to spare over the perch's closes slowly, never not at all)
         var gk = Math.min(14, 0.5 * gd, 0.35 * d + 2) / gd;   // (never so quick near the perch that the last leg cannot stop it)
         AV[0] = P.v[0] + gx * gk; AV[1] = P.v[1] + gy * gk; AV[2] = P.v[2] + gz * gk;
         /* never against the perch's way: a bird ahead lets the perch come to it (flying on its way, slower), so it has
