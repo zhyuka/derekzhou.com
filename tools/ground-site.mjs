@@ -10,11 +10,11 @@
 // (CI lane, 2026-11-14) the recording's freshness is measured, not hashed: a hash of the land's source files never
 // knew every input (main's recording of 2026-11-11 was 47 m off a fresh one while its hash still matched: what seed
 // 11 opens on had moved, in files no list held), and it made every sky edit wait for a re-record. The probe under
-// SwiftShader reads the 4090's ground to 3 mm (measured on a fresh recording, every 10th point: max 0.0030 m, the
-// weights 3e-8), and a stale one is metres off.
+// SwiftShader reads the 4090's ground to a few cm (measured on fresh recordings, every 10th point: max 0.0030 m before
+// the S1 dunes, 0.041 m on them at seed 3, their slip faces steep; the weights 3e-8), and a stale one is metres off.
 import fs from 'node:fs'; import path from 'node:path'; import { execFileSync } from 'node:child_process';
 
-export const TOL = { h: 0.05, w: 1e-5 };   // (metres, and the sea weight: the two devices differ by 3 mm and 3e-8)
+export const TOL = { h: 0.05, w: 1e-5 };   // (metres, and the sea weight: the two devices differ by up to 4.1 cm (seed 3, on the S1 slip faces) and 3e-8)
 
 export const HOOK = `
   /* (tools/ground-site.mjs, this copy only, never served) the camera's ground at points, by the world's probe, and the sea's weight */
