@@ -112,8 +112,9 @@
            no turn about to make at the end */
         var pv = Math.sqrt(P.v[0] * P.v[0] + P.v[2] * P.v[2]);
         if (pv > 1) { var al = (AV[0] * P.v[0] + AV[2] * P.v[2]) / pv, lack = 0.4 * pv - al; if (lack > 0) { AV[0] += lack * P.v[0] / pv; AV[2] += lack * P.v[2] / pv; } }
-        /* out of view, it keeps off the perch until the gate (else it would come at it unseen, from beside the window) */
-        if (d < PGATE && !onWindow(b, C)) { var kr = 1.5 * (PGATE - d) / (d || 1); AV[0] += rx * kr; AV[1] += ry * kr; AV[2] += rz * kr; }
+        /* out of view, it keeps off the perch until the gate (else it would come at it unseen, from beside the window), by
+           a little more than the gate's depth (on its way round to a gate on the wind's side it passes the perch) */
+        if (d < PGATE + 4 && !onWindow(b, C)) { var kr = 2 * (PGATE + 4 - d) / (d || 1); AV[0] += rx * kr; AV[1] += ry * kr; AV[2] += rz * kr; }
         clearOfEye(b, AV); AV[1] = floorUp(b, AV[1], b.K.v, P.at[1]); flyTo(b, dt, AV[0], AV[1], AV[2]);
         return;
       }
