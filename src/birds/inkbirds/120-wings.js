@@ -4,7 +4,7 @@
      from the measured schedules, its beat's period, its stroke and each bout's rate varying as measured, its rate its
      own. Its clock is the bird's own age: begun a second before the age it is made at (no history to replay), drawing
      from a stream of its own (seeded once from the bird's: when its wing is worked out changes no other draw) */
-  function placeWing(kind, r, age, V) { var g = BW.make(sm32(Math.floor(r() * 4294967296) >>> 0), BW.LB.P.kinds[kind] ? kind : 'gull', { rate: RATE_MODE, sched: SCHED_MODE, from: age - 1, V: !!V }); return { wing: g, f: g.f }; }   // (V: in a skein or a line; an ibis then flies the ibis-in-a-V schedule)
+  function placeWing(kind, r, age, V) { var g = BW.make(sm32(Math.floor(r() * 4294967296) >>> 0), BW.LB.P.kinds[kind] ? kind : 'gull', { rate: RATE_MODE, sched: SCHED_MODE, from: age - 1, V: !!V }); return { wing: g, f: g.f, V: !!V }; }   // (V: in a skein or a line; an ibis then flies the ibis-in-a-V schedule)
   /* (physics: birds/phase) who beats with whom, measured: an ibis or a goose in a skein locks to the bird ahead on its own leg,
      at the spatial phase (f d / U - 0.18 cycle), and in a line to the bird directly ahead (lateral under half a span) in
      antiphase (+0.46), each in wake bouts (the lab's LOCK: 32 % of the time, median 2 s); gulls, loose flocks, pairs and
