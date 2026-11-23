@@ -2,7 +2,11 @@
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "col *= max(lF / max(lC, 1e-5), 1.0);", "with": "col *= 1.0;", "why": "no floor: a far bank darker than the land would be at its own range"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 col = atmos(c0, rd, tB);", "with": "vec3 col = atmos(c0, rd, 1.0e5);", "why": "the bank hazed as if at the end of the view, not at its own range"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "max((s - amp) * 0.6, dE); continue;", "with": "max((s - amp) * 0.6, dE); taken++; continue;", "why": "a leap counted as a band step in another spelling: every leap cuts the band's steps"}
-// plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];", "with": "B.u4a[2] = (V.L || V.light).clDetail[0]; B.u4a[3] = B.det[1];", "why": "the billows' scale blended per frame by the place's weight again"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[2] = B.det[0] * (CRISP ? 4 : 1);", "with": "B.u4a[2] = (V.L || V.light).clDetail[0] * (CRISP ? 4 : 1);", "why": "the billows' scale blended per frame by the place's weight again"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "    s = max(s - (dn - 0.5) * amp * 2.0, yb);", "with": "    s = s - (dn - 0.5) * amp * 2.0;", "why": "the flat base before the billows: billows hang under it (the underside's specks)"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "* amp * 2.0, mix(ybP, yb, u));", "with": "* amp * 2.0, -1e5);", "why": "the cut pieces unfloored: the billows hang under the flat base between two samples"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "sP = s; sBP = sB; ybP = yb; tP = t;", "with": "sP = s; sBP = sB; tP = t;", "why": "the band step's update leaves ybP stale: the pieces after it hang under the base"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "sP = s; sBP = s; ybP = yb; tP = t;", "with": "sP = s; sBP = s; tP = t;", "why": "the leap's update leaves ybP stale"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // (the owner's wiggle, 2026-11-14: clDetail, blended each frame by the place's weight between ABOVE's [80, 5] and the
@@ -13,7 +17,7 @@ const DET = cut(WORLD, '  function volDetail(V) {', '  function volPrep(');
 
 test('clouds: the volume draw reads no light for the billows; each body brings its own', () => {
   assert.ok(!/clDetail/.test(DRAW), 'the draw loop reads clDetail: the billows\' scale changes per frame with the place');
-  assert.match(DRAW, /B\.u4a\[2\] = B\.det\[0\]; B\.u4a\[3\] = B\.det\[1\];/, 'the billows\' scale and depth are not the body\'s own');
+  assert.match(DRAW, /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? \d+ : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? \d+ : 1\);/, 'the billows\' scale and depth are not the body\'s own (the desktop\'s deepened by the device\'s kind alone)');
 });
 test('clouds: a body\'s billows are set once, from the kits\' own blended by the light\'s weight about the camera, and never follow it', () => {
   assert.ok(DET, 'volDetail not found in world.js');
@@ -39,15 +43,17 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
 // The pieces' cap is the world's own (410's uVK for the desktop and the rest; none on main: one piece), and the cut loop
 // must be in the shader; desktop under 0.02 everywhere; the rest take one piece (no cutting: CAP.rest is 1).
 const VBODY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8');
-const VK = /gl\.uniform1f\(P\.u\.uVK, LOOKD \? (\d+) : (\d+)\)/.exec(WORLD);
+const VK = /var CRISP = LOOKD;[^\n]*\s*gl\.uniform2f\(P\.u\.uVK, CRISP \? (\d+) : (\d+), CRISP \? 1 : 0\)/.exec(WORLD);
 const CAP = VK ? { desktop: +VK[1], rest: +VK[2] } : { desktop: 1, rest: 1 };
 function hash(i, L) { let x = Math.imul(i ^ Math.imul(L + 1, 0x9e3779b1), 0x85ebca6b) ^ 0x1234567; x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; }
 function row(x, L) { const i = Math.floor(x), f = x - i; return hash(i, L) * (1 - f) + hash(i + 1, L) * f; }   // (a row of texels, filtered linearly)
 function billow(t, texel, lod) { const l0 = Math.floor(lod), fr = lod - l0; return row(t / (texel * 2 ** l0), l0) * (1 - fr) + row(t / (texel * 2 ** (l0 + 1)), l0 + 1) * fr; }
 function G(x, bE) { return x >= 0 ? 0 : x > -bE ? x * x / (2 * bE) : -x - 0.5 * bE; }
 function ramp(s0, s1, bE) { const ds = s1 - s0; return Math.abs(ds) < 1e-3 * bE ? Math.min(Math.max(-0.5 * (s0 + s1) / bE, 0), 1) : (G(s0, bE) - G(s1, bE)) / ds; }   // (segRamp)
-function boil({ dist, v, Kmax, scale = 80, amp = 5, band = 4, R = 60, frames = 48, px = 96, pxA = 0.0019, sig = 0.19 }) {
-  const texel = scale / 32, dE = Math.max(Math.max(band * 0.6, 1), dist * 0.012), bE = Math.max(band, 2 * dist * pxA);
+const ss = (a, b, x) => { const q = Math.min(Math.max((x - a) / (b - a), 0), 1); return q * q * (3 - 2 * q); };
+function boil({ dist, v, Kmax, crisp = false, scale = 80, amp = 5, band = 4, R = 60, frames = 48, px = 96, pxA = 0.0019, sig = 0.19 }) {
+  const cw = crisp ? ss(150, 350, dist) : 1, pf = crisp ? 0.0625 : 0.5;   // (fs-vbody's crisp edge: cw 0 near, 1 from 350 m; its cuts an eighth of a texel throughout)
+  const texel = scale / 32, dE = Math.max(Math.max(band * 0.6, 1), dist * 0.012), bE = Math.max(band * cw, (1.25 + 0.75 * cw) * dist * pxA);
   const lod = Math.min(Math.max(Math.log2(Math.max(Math.max(2 * dist * pxA, 0.5 * dE) * 32 / scale, 1e-4)), 0), 5), step = Math.max(dE, dist / 25);
   const out = [];
   for (let k = 0; k < px; k++) {
@@ -58,9 +64,11 @@ function boil({ dist, v, Kmax, scale = 80, amp = 5, band = 4, R = 60, frames = 4
     const cs = [];
     for (let f = 0; f < frames; f++) {
       let tP = t0, sBP = sB(t0), sP = sBP, T = 1, t = t0 + (step - ((t0 + f * v) % step));   // (a leap's start, then the band's samples on the march's lattice, moved by the camera)
-      while (t < t1) {
+      let last = false;
+      while (!last) {
+        if (t >= t1) { t = t1; last = true; }   // (the ray's end is a sample, as in the shader)
         const b = sB(t), s = sF(t);
-        const K = Math.min(sBP, b) - amp < 0.5 * bE && Math.max(sBP, b) + amp > -bE ? Math.min(Math.max(Math.ceil((t - tP) / (0.5 * texel * 2 ** lod)), 1), Kmax) : 1;
+        const K = Math.min(sBP, b) - amp < 0.5 * bE && Math.max(sBP, b) + amp > -bE ? Math.min(Math.max(Math.ceil((t - tP) / (pf * texel * 2 ** lod)), 1), Kmax) : 1;
         let sum = 0, sa = sP;
         for (let j = 1; j < K; j++) { const u = j / K, sk = sBP + (b - sBP) * u - (billow(tP + (t - tP) * u + off, texel, lod) - 0.5) * amp * 2; sum += ramp(sa, sk, bE); sa = sk; }
         sum += ramp(sa, s, bE);
@@ -75,26 +83,35 @@ function boil({ dist, v, Kmax, scale = 80, amp = 5, band = 4, R = 60, frames = 4
   out.sort((a, b) => a - b);
   return out[Math.floor(out.length * 0.95)];
 }
-test('clouds: the edge band is cut into pieces in the shader, at most 12, the cap a uniform the world sets per tier', () => {
-  assert.match(VBODY, /uniform float uVK;/, 'fs-vbody has no uVK: one piece a segment');
-  assert.match(VBODY, /for \(int k = 1; k < 12; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 12, broken at K) is not in fs-vbody');
+test('clouds: the edge band is cut into pieces in the shader, at most 48, the cap a uniform the world sets per tier', () => {
+  assert.match(VBODY, /uniform vec2 uVK;/, 'fs-vbody has no uVK: one piece a segment');
+  assert.match(VBODY, /for \(int k = 1; k < 48; k\+\+\) \{\n\s*if \(float\(k\) >= K\) break;/, 'the cut loop (k < 48, broken at K) is not in fs-vbody');
   // (the shader's own cutting, as the model below does it: a mutation of any of these passed before, the hub's review)
-  assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (0.5 * texel * exp2(lod))), 1.0, uVK) : 1.0;'), 'the pieces\' count is not the two-sided test and half a texel at the LOD, capped by uVK');
-  assert.ok(VBODY.includes('sk = mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0;'), 'a cut does not read the billows again at its own place');
+  assert.ok(VBODY.includes('float K = min(sBP, sB) - amp < 0.5 * bE && max(sBP, sB) + amp > -bE ? clamp(ceil((t - tP) / (pf * texel * exp2(lod))), 1.0, uVK.x) : 1.0;'), 'the pieces\' count is not the two-sided test and a sixteenth (crisp) to half a texel at the LOD, capped by uVK');
+  assert.ok(VBODY.includes('sk = max(mix(sBP, sB, u) - (textureLod(uN3, (ro + rl * mix(tP, t, u)) / uVR.z + nOff, lod).g - 0.5) * amp * 2.0, mix(ybP, yb, u));'), 'a cut does not read the billows again at its own place, floored at its own flat base');
   assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
   assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
   assert.ok(VBODY.includes('vec3 nOff = fract(uVC / uVR.z)') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
   assert.ok(VK, '410 sets no uVK for the tiers');
-  assert.ok(CAP.desktop <= 12 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 12`);
+  assert.ok(CAP.desktop <= 48 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 48`);
 });
-test('clouds: the edge band boils under 0.02 on the desktop at 80, 150 and 300 m; the rest take one piece', () => {
+// (each kit's billows as the realms give them: the scale and depth fs-vbody reads, uVR.z and uVR.w)
+const KITS = Object.fromEntries(['above', 'dunes'].map((k) => { const m = /clDetail: \[(\d+), (\d+)\]/.exec(fs.readFileSync(path.join(ROOT, `src/realm-${k}.js`), 'utf8')); return [k, { scale: +m[1], amp: +m[2] }]; }));
+const DM = /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? (\d+) : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? (\d+) : 1\);/.exec(WORLD);
+test('clouds: crisp cauliflower on the desktop (lumps 4x the size, 3x the depth, the edge 1.25 px near), and it boils under 0.02 at 20, 40, 60, 80, 150 and 300 m in both kits; touch devices keep today\'s soft clouds in one piece', () => {
   assert.equal(CAP.rest, 1, 'off the desktop look the band is not cut (4 pieces bound every segment on a phone for no gain)');
+  assert.ok(VBODY.includes('float cw = uVK.y > 0.5 ? smoothstep(150.0, 350.0, t) : 1.0, pf = uVK.y > 0.5 ? 0.0625 : 0.5;') && VBODY.includes('float bE = max(band * cw, mix(1.25, 2.0, cw) * t * pxA);'), 'the edge is not crisp near (1.25 px to 150 m, the soft band by 350 m) where uVK.y asks');
+  assert.ok(DM, '410 does not deepen the desktop\'s billows');
+  // no puffs cut free of the tops (the hub's review of #254: twice the size at five times the depth, 2.5 times as steep
+  // as the kit's own, left 10-30 px blobs over the cloud tops): the billows' steepness (depth over size) on the desktop
+  // no more than the kit's own, at which the kits' clouds have none (1.25 times it still left a few on the 4090)
+  for (const [kit, K] of Object.entries(KITS)) assert.ok((K.amp * +DM[2]) / (K.scale * +DM[1]) <= K.amp / K.scale + 1e-12, `${kit}: the desktop's billows ${(+DM[2] / +DM[1]).toFixed(2)} times as steep as the kit's own: puffs cut free of the tops`);
   const rows = [];
-  for (const dist of [80, 150, 300]) for (const v of [0.25, 0.5]) {
-    const one = boil({ dist, v, Kmax: 1 }), d = boil({ dist, v, Kmax: CAP.desktop }), r = boil({ dist, v, Kmax: CAP.rest });
-    rows.push(`${dist} m at ${v} m/frame: one piece ${one.toFixed(3)}, desktop ${d.toFixed(3)}, the rest ${r.toFixed(3)}`);
-    assert.ok(d < 0.02, `the desktop's edge boils: ${rows.at(-1)}`);
+  for (const [kit, K] of Object.entries(KITS)) for (const dist of [20, 40, 60, 80, 150, 300]) for (const v of [0.25, 0.5]) {
+    const D = { scale: K.scale * +DM[1], amp: K.amp * +DM[2] }, d = boil({ dist, v, Kmax: CAP.desktop, crisp: true, ...D }), r = boil({ dist, v, Kmax: CAP.rest, ...K }), soft = boil({ dist, v, Kmax: 12, ...K });
+    rows.push(`${kit} ${dist} m at ${v} m/frame: desktop crisp ${d.toFixed(3)} (today's soft desktop ${soft.toFixed(3)}), the rest (soft, one piece) ${r.toFixed(3)}`);
+    assert.ok(d < 0.02, `the desktop's crisp edge boils: ${rows.at(-1)}`);
   }
   if (process.env.CLOUDS_SAY) console.log(rows.join('\n'));
 });
@@ -205,4 +222,42 @@ test('clouds: a body bakes the same field on the desktop and on a touch tier, on
   }
   assert.ok(d.vox < t.vox && d.dims[0] > t.dims[0], 'the desktop is not baked finer than a touch tier');
   assert.match(WORLD, /gl\.uniform4f\(P\.u\.uVK, B\.seed, B\.erode, vb\.tile, vb\.Rm \* B\.blend\);/, 'the bake does not use volPrep\'s tile');
+});
+
+// ------------------------------------------------------------------ the flat base after the billows (the hub's review of #254)
+// Under a body's flat base nothing: the base applied before the billows let billows five times deeper hang under it,
+// the underside's specks. The shader's own line run in Node: under the base (yb > 0) the cloud's distance stays outside
+// whatever the billows' noise; above it the billows as they were
+test('clouds: nothing hangs under a body\'s flat base, whatever the billows', () => {
+  const line = /\n    (s = max\(s - \(dn - 0\.5\) \* amp \* 2\.0, yb\);)/.exec(VBODY);
+  assert.ok(line, 'the billows are not taken before the flat base');
+  const f = vm.runInThisContext(`(function (s, dn, amp, yb) { const max = Math.max; ${line[1]} return s; })`);
+  let above = 0;
+  for (let k = 0; k < 2000; k++) {
+    const s = (Math.random() - 0.5) * 80, dn = Math.random(), amp = 25 * Math.random(), yb = (Math.random() - 0.5) * 60, r = f(s, dn, amp, yb);
+    if (yb > 0) assert.ok(r >= yb && r > 0, `under the flat base (${yb.toFixed(2)} m) a billow reaches in: ${r}`);
+    else if (r === s - (dn - 0.5) * amp * 2) above++;
+  }
+  assert.ok(above > 500, 'above the base the billows are not the billows');
+  // and every cut piece between two samples floored at its own base (yb is linear along the ray: the last sample's and
+  // this one's, mixed): the cut loop's own line run in Node with the noise's texture a random draw
+  const cutL = /\n\s*(float u = float\(k\) \/ K, sk = [^\n;]*;)/.exec(VBODY);
+  assert.ok(cutL && /max\(mix\(sBP, sB, u\) - /.test(cutL[1]), 'the cut pieces are not floored at the flat base');
+  const pieceJs = cutL[1].replace(/^float /, 'let ').replace(/float\(k\)/g, 'k').replace(/\/\/.*$/, '');
+  const piece = vm.runInThisContext(`(function (k, K, sBP, sB, ybP, yb, tP, t, amp, g) { const max = Math.max, mix = (a, b, u) => a + (b - a) * u,
+    textureLod = () => ({ g }), uN3 = 0, ro = 0, rl = 0, uVR = { z: 1 }, nOff = 0, lod = 0; ${pieceJs} return sk; })`);
+  for (let k2 = 0; k2 < 3000; k2++) {
+    const K = 2 + Math.floor(46 * Math.random()), k = 1 + Math.floor((K - 1) * Math.random()), u = k / K;
+    const ybP = 30 * Math.random() - 5, yb = 30 * Math.random() - 5, sBP = 60 * Math.random() - 30, sB = 60 * Math.random() - 30;
+    const sk = piece(k, K, sBP, sB, ybP, yb, 0, 1, 25 * Math.random(), Math.random()), base = ybP + (yb - ybP) * u;
+    if (base > 0) assert.ok(sk >= base - 1e-9 && sk > 0, `a cut piece ${base.toFixed(2)} m under the flat base: inside (${sk})`);
+  }
+  // and the last sample's base carried by both of the march's state updates (the leap's and the band step's): left out
+  // of either, ybP is a stale base and the pieces after it hang under the real one (the hub's round-4 review)
+  const ups = [...VBODY.matchAll(/\n\s*sP = s; sBP = [^\n]*/g)].map((m) => m[0]);
+  assert.equal(ups.length, 2, `the march's state updates are not the leap's and the band step's (${ups.length})`);
+  for (const u of ups) assert.match(u, /\bybP = yb;/, `a state update leaves the last sample's base behind: ${u.trim().slice(0, 80)}`);
+  // (and the line runs after the noise is read, before the step is chosen from it)
+  const iN = VBODY.indexOf('float dn = textureLod(uN3'), iS = VBODY.indexOf(line[1]), iD = VBODY.indexOf('float dt = max(s > 0.0');
+  assert.ok(iN < iS && iS < iD, 'the flat base is not applied between the billows\' noise and the step it sets');
 });

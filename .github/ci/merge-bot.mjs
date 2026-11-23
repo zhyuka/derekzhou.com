@@ -209,7 +209,10 @@ for (const pr of prs) {
     if (!mainFiles || !prFiles) { note('too many files to compare'); await updateBranch(pr, sha, 'main moved and the change is too large to compare', run, files); continue; }
     const shared = [...areaSet(prFiles)].filter((a) => areaSet(mainFiles).has(a));
     const same = prFiles.filter((f) => mainFiles.includes(f));
-    if (shared.length || same.length) { note(`main moved (${mainFiles.length} file(s)) and shares ${shared.length ? 'area ' + shared.join(', ') : 'files ' + same.slice(0, 5).join(', ')} with it: re-gated`); await updateBranch(pr, sha, `main moved and touched ${shared.length ? 'the ' + shared.join(', ') + ' area' : 'the same files'}`, run, files); continue; }
+    // (a PR the hub reviewed merges onto main at once, whatever main changed since its gate: main's own gate tests the
+    // merge after it lands, and the bot reverts its own landing if main goes red twice. Re-gating each reviewed PR after
+    // every landing serialised them, 10-15 minutes each: the owner, 2026-11-23: "wtf is taking so long?!")
+    if ((shared.length || same.length) && !approved) { note(`main moved (${mainFiles.length} file(s)) and shares ${shared.length ? 'area ' + shared.join(', ') : 'files ' + same.slice(0, 5).join(', ')} with it: re-gated`); await updateBranch(pr, sha, `main moved and touched ${shared.length ? 'the ' + shared.join(', ') + ' area' : 'the same files'}`, run, files); continue; }
     how = 'merge';
   }
   note(`green on ${sha.slice(0, 10)}, ${approved ? 'the hub reviewed it' : `frames identical (${v.reason})`}: ${how === 'ff' ? 'lands as that exact commit' : 'merges onto main (main changed only other areas)'}`);
