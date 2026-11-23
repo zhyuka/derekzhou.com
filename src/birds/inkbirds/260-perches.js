@@ -43,8 +43,8 @@
     return NAME_INK;
   }
   function inkTops(c) { var I = nameInk()[c], o = []; if (!I) return o; for (var i = 0; i < I.length; i++) if (I[i][1] < PERCH_INK.h && I[i][1] - I[i][0] >= PERCH_INK.room) o.push(I[i][1] - 1); return o; }
-  /* head-room: no ledge under a stroke. A perched bird stands about 0.45 of its span tall and its body about 0.17 of it
-     to each side (a gull's span ~270-300 of the name's units on every window), and the letters are drawn over the birds:
+  /* head-room: no ledge under a stroke. A perched bird stands up to 0.63 of its span tall (measured; its body, the most
+     of it, nearer 0.45) and its body about 0.17 of it to each side (a gull's span ~270-300 of the name's units on every window), and the letters are drawn over the birds:
      so a ledge is cut where, within 48 units each side of its middle, ink overhangs it nearer than 120 units
      (the inside of a closed counter or under a crossbar: a bird there read as standing inside the letter, the PC's #314
      frames). Sky that runs up to the name's top is open */

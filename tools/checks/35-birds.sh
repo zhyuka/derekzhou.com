@@ -6,7 +6,8 @@
 # plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "if (s.xKey >= 0 && k !== s.xKey", "with": "if (false && s.xKey >= 0 && k !== s.xKey", "why": "the wings snapped at a change of what they do, a landing's among them (the second-landing test at 144 Hz: 2.40x the form bound)"}
 # plant: {"file": "src/birds/inkbirds/260-perches.js", "find": "fold: side([0, 78,", "with": "fold: side([0, -78,", "why": "the folded wings swept back and down, hanging below the feet through the letters (the hub's re-review 3)"}
 # plant: {"file": "src/birds/inkbirds/260-perches.js", "find": "if (ok && headroom(c, T[i])) out.push(U);", "with": "if (ok) out.push(U);", "why": "every name ledge kept, those under a stroke too: a bird inside a closed counter (the PC's #314 frames, a crow inside the Z)"}
-# plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "n = Math.min(n, Math.floor(Math.abs(x - P.x) / step));", "with": "n = n;", "why": "a walk not planned to the stroke: it stops past the stroke's end, on the shoulder where the ink curves away, 5.2 px into the letters (drop 960x600 4)"}
+# plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "n = Math.min(n, Math.floor(Math.max(0, (x - P.x) * dir) / step));", "with": "n = n;", "why": "a walk not planned to the stroke: it stops past the stroke's end, on the shoulder where the ink curves away, 5.2 px into the letters (drop 960x600 4)"}
+# plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "if (P.yawTo !== undefined && t - P.yawT < P.yawD && t >= P.yawT) {", "with": "if (false) {", "why": "a leave in the middle of a turn: the turn drawn on, the crouch and the lift coming in at once at its end (1.89x the 144 Hz bound, the hub's round 8)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 pids=(); i=0; total=0; clock=()

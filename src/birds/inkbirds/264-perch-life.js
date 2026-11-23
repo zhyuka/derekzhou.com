@@ -32,7 +32,7 @@
       if (g && (e - x) * dir <= 0) break;   // (a ledge that takes it no farther: the stroke ends here)
       x = e; li = nearLedge(x + dir / 2, P.fy, li);
     }
-    n = Math.min(n, Math.floor(Math.abs(x - P.x) / step));
+    n = Math.min(n, Math.floor(Math.max(0, (x - P.x) * dir) / step));
     return n > 0 ? { dir: dir, n: n, step: step, t0: t0, x0: P.x } : null;
   }
   function perchedStep(b, dt, C) {
@@ -86,6 +86,12 @@
     if (b.st !== 'perch') { toAir(b, J); return; }
     var h0 = P.hop || 0; if (P.walk && t >= P.walk.t0) { walkAt(P, t, WKA); P.x = WKA[0]; h0 = WKA[1]; }   // (a walk ends where it is: the take-off from there)
     P.walk = null; P.hop = 0;
+    if (P.yawTo !== undefined && t - P.yawT < P.yawD && t >= P.yawT) {   /* a turn it left in: held where it is, its hop's lift and its rest handed to the leave (the turn's pose ignores the crouch: at its end the crouch and lift came in at once, 2.6 px in a 144 Hz frame) */
+      var tu = (t - P.yawT) / P.yawD;
+      h0 = Math.max(h0, (P.hopTurn ? 3.2 : 0.7) * Math.sin(Math.PI * tu));   // (the turn's lift, 0.16 or 0.035 of the span, as a hop's share of 0.05)
+      if (P.rT === P.yawT) P.rest = P.rA + (P.rB - P.rA) * ease(tu);
+      P.yaw = P.yaw0 + (P.yawTo - P.yaw0) * ease(tu); P.yawD = 0;
+    }
     P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
   }
   function leavingStep(b, dt, C) {

@@ -384,10 +384,12 @@ test('a seeded bird\'s first way over the ground is its next step\'s (the wind i
 });
 
 /* (the hub's review 3, B) a bird that leaves mid-hop on a walk: the hop's lift eased out with the crouch, never dropped
-   (it fell 4.5 px in one 144 Hz frame: a body second difference 1.9 times the bound) */
+   (it fell 4.5 px in one 144 Hz frame: a body second difference 1.9 times the bound). 10 seeds a size, not 6: at 10 a
+   leave in the middle of a turn showed (the turn's pose ignored the crouch, and at the turn's end the crouch and lift came
+   in at once: 1.89x, perch 390x844 seed 8, frame 13), on main too; 35-birds.sh's plant takes the turn's handover away */
 test('144 Hz: a bird leaving in the middle of a hop eases its hop down (no drop)', () => {
   let n = 0, worst = 0, at = '';
-  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 10; seed++) {
     const sc = SCENES.perch(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let st = 0, left = -1; const hb = [];
     for (let k = 0; k < 40 * 144; k++) {
