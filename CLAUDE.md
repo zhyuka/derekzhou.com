@@ -59,11 +59,11 @@ tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
                sound/sheet.py and sound/render.mjs (the score's notes, measured),
                plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
-               one scope), gpu/ (the PC's T2/T3), birds/ (generators)
+               one scope), gpu/ (GPU checks run by hand), birds/ (generators)
 test/          unit/<area>.mjs (pure code, one file an area), shaders.mjs (every shader compiles),
                golden/
 docs/          the full record, one file per area (below)
-.github/       validate.yml (every static check), gate.yml (T0/T1/T2 and the
+.github/       validate.yml (every static check), gate.yml (T0/T1 and the
                verdict), merge.yml (the merge bot), post-deploy.yml, ci/
 RULES.json     the standing rules as data; .claude/ the hooks and path rules
 ```
@@ -87,7 +87,7 @@ one is committed to site/ (built-files-uncommitted).
    - `node --test 'test/unit/*.mjs'` (a few seconds, a process an area); after
      a deliberate change to what one pins, `node test/unit/<area>.mjs --write`.
    - A shader changed: nothing derived to commit; the gate's census and
-     T2 compare the base's build with the head's.
+     T1 compare the base's build with the head's.
    - The plan's spans changed: nothing to do; every assembly writes their stamp into PW_V.
    - `node tools/build.mjs --check`: two builds the same bytes.
    - `npm run check`: every static check CI runs (tools/check.mjs: the
@@ -106,11 +106,10 @@ bumps a version for a change; fonts and images are renamed by hand
 - Branch `claude/<topic>`; open a PR against main (not a draft once ready).
 - The gate (gate.yml): validate.yml's checks; the plan job builds base and
   head and compares them; the shader census; T1 (software frames, base
-  against head); T2 on the owner's RTX 4090 when the world's code or a
-  shader changed. Read the gate's verdict, not one job's.
+  against head), all on GitHub's runners. Read the gate's verdict, not one job's.
 - The merge bot (merge.yml, .github/ci/merge-bot.mjs) merges a ready
   claude/* PR when its own gate is green and frames are identical (the served
-  build byte for byte the base's, or every T1/T2 frame the same, and no
+  build byte for byte the base's, or every T1 frame the same, and no
   input handling changed), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
   overlaps; never one that touches the bot itself or is labelled needs-owner
