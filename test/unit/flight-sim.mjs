@@ -1,5 +1,7 @@
 // test/unit/flight-sim.mjs: the flight flown whole: its controllers under random drags among solids
 // plant: {"file": "src/world/286-hard-rule.js", "find": "(SIM.t - S.pt >= SLIP_REGAP && !(Math.abs(angDiff(S.psi, S.ppsi)) < SLIP_REPSI))", "with": "!(Math.abs(angDiff(S.psi, S.ppsi)) < 0.004)", "why": "the slip re-planned at every step of a turn"}
+// plant: {"file": "src/world/231-cells-resolve.js", "find": "if (dB > 0) { for", "with": "if (dB > 1e9) { for", "why": "the cloud bodies no longer lifted over the flight band: the cores' heights the sim assumes are gone"}
+// plant: {"file": "src/world/180-world-definition-two-kits-by.js", "find": "FORM_ALLOW * fd) + FLY_TOP + BAND_M;", "with": "FORM_ALLOW * fd) + BAND_M;", "why": "the band's top without the camera's reach over the land: the cores sit lower than the sim puts them"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "(SIM.t - S.pt >= SLIP_REGAP && !(", "with": "((true) && !(", "why": "the slip re-planned at every 2 deg of a fast turn: no floor between plans"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "    if (Math.abs(S.latT - S.lat) < 0.05 && Math.abs(S.sv) < 0.02) S.sv = 0;\n", "with": "", "why": "the slip not held at rest on its line: it chatters"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "var k = Math.max(Math.min(R, d + ds), o.r + HARD_IN) / Math.max(d, 1e-3);", "with": "var k = R / Math.max(d, 1e-3);", "why": "the hard rule's push out of a landmark a jump"}
@@ -21,7 +23,7 @@ import { loadGround } from '../ground.mjs';
 //   - the slip's sign flips under once in 2 s (its controller chattered about its line: 2.1-8 times a second);
 //   - the height's acceleration changes at most 2 m/s3 (VY_J), the hard rules included;
 //   - the ground's rule never acts, and no step leaves the camera nearer a solid's face (its side, top or foot) than
-//     HARD_IN (1.25 m: past the near plane's farthest corner in any window), measured every step.
+//     HARD_IN (1.25 m: past the near plane's farthest corner in any settled window), measured every step.
 // A drag can turn the way straight at a landmark 20 m off, nearer than any slip can clear (1.05 m/s2): the hard rule
 // then eases the camera out along its face, as on main, so pushes under drags are not counted here; left alone among
 // the same solids the flight needs no push of any rule (6 headings a seed, 120 s each).
@@ -45,12 +47,22 @@ const MAKE = vm.runInThisContext('(function (G, OBST) {\n  \'use strict\';\n' +
   '    drag: function (dx, dy, up) { INP.down = !up; INP.rel = !!up; INP.dx += dx; INP.dy += dy; px += dx; py += dy; if (typeof relAdd === "function") { if (!pd) REL.n = 0; relAdd(px, py, SIM.t * 1000); } pd = !up; },\n' +   // (onMove's and onUp's samples, where the release reads them)
   '    step: function () { if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
-function solids(seed) {
+// (#288 follow-up) where the world puts a cloud's core: 231 lifts every body whole until its lowest lobe's billows
+// (its centre less 1.3 radii) clear the flight band's top, at least the land's own height + FLY_TOP + BAND_M (180's
+// bandTopAt; the cloud sea's level and the formations' allowance only raise it), and 210 keeps a core 0.9 of its lobe
+// less 29 m at least (the erosion's inward and 29 m): its foot 29 m over the band's top at least. The drag tests fly
+// both: the stress set (cores 20-60 m over the ground, in the band, nearer than the world ever puts one) and the
+// world's own (cores at the lowest the world can put them).
+const FLY_TOP = +/FLY_TOP = ([\d.]+)/.exec(WORLD)[1], BAND_M = +/BAND_M = ([\d.]+)/.exec(WORLD)[1];
+const INWARD = /Rm \* 0\.42 \+ (\d+) \+ (\d+), cores/.exec(WORLD), LIFTED = /- 1\.3 \* PF\.a\[j \* 12 \+ 3\]\);[^]{0,600}?if \(dB > 0\) \{ for/.test(WORLD) && /FORM_ALLOW \* fd\) \+ FLY_TOP \+ BAND_M;/.test(WORLD);
+const CORE_FOOT = FLY_TOP + BAND_M + +INWARD[1] + +INWARD[2];   // (a core's foot over the land under it, m: the least the world gives)
+function solids(seed, real) {
   const r = lcg(seed), L = [];
   for (let i = -8; i <= 8; i++) for (let j = -8; j <= 8; j++) {
     if (!i && !j) continue;
     const cx = i * 400 + (r() - 0.5) * 300, cz = j * 400 + (r() - 0.5) * 300, g = G.groundAt(cx, cz);
     const o = r() < 0.5 ? { c: true, x: cx, z: cz, r: 20 + 80 * r(), y0: g - 5, y1: g + 30 + 250 * r() } : { c: false, cloud: true, x: cx, z: cz, y: g + 20 + 40 * r(), r: 15 + 40 * r() };
+    if (real && o.cloud) o.y = g + CORE_FOOT + o.r + (o.y - g - 20);   // (the same core, its foot at the world's least and up to 40 m over it)
     L.push({ st: 2, obst: [o], bound: [cx, 0, cz, 120], softB: null });
   }
   return L;
@@ -67,9 +79,10 @@ function face(L, x, y, z) {   // how near the camera is to the nearest solid's f
   }
   return m;
 }
-function dragged(seed, secs) {
-  const L = solids(seed), F = MAKE(G, L), { SIM, CS, INP } = F, r = lcg(seed * 2654435761);
-  let drag = null, turnSteps = 0, turnPlans = 0, flips = 0, lastSv = 0, jerk = 0, lastAy = 0, near = 1e9;
+function dragged(seed, secs, real) {
+  const L = solids(seed, real), F = MAKE(G, L), { SIM, CS, INP } = F, r = lcg(seed * 2654435761);
+  const CL = L.map((C) => ({ obst: C.obst.filter((o) => o.cloud) }));
+  let drag = null, turnSteps = 0, turnPlans = 0, flips = 0, lastSv = 0, jerk = 0, lastAy = 0, near = 1e9, nearCl = 1e9;
   for (let k = 0; k < secs * 60; k++) {
     if (!drag && r() < 1 / 240) drag = { left: Math.round((0.3 + 1.7 * r()) * 60), vx: (r() - 0.5) * 1800 / 60, vy: (r() - 0.5) * 300 / 60 };
     if (drag) { const up = --drag.left <= 0; F.drag(drag.vx, drag.vy, false); if (up) { drag = null; F.drag(0, 0, true); } }
@@ -79,10 +92,11 @@ function dragged(seed, secs) {
       if (lastSv && CS.sv && Math.sign(CS.sv) !== Math.sign(lastSv)) flips++;
       jerk = Math.max(jerk, Math.abs(CS.ay - lastAy) * 60);
       near = Math.min(near, face(L, CS.x, CS.y, CS.z));   // (every step)
+      nearCl = Math.min(nearCl, face(CL, CS.x, CS.y, CS.z));
     }
     lastSv = CS.sv; lastAy = CS.ay;
   }
-  return { plans: turnPlans / (turnSteps / 60), flips: flips / secs, jerk, near, fixG: SIM.fixG };
+  return { plans: turnPlans / (turnSteps / 60), flips: flips / secs, jerk, near, nearCl, fixG: SIM.fixG };
 }
 test('flight-sim: under random drags the slip plans at most 10 times a second while turning and does not chatter; the height stays smooth', () => {
   for (const seed of [1, 2, 3, 4]) {
@@ -92,6 +106,14 @@ test('flight-sim: under random drags the slip plans at most 10 times a second wh
     assert.ok(r.jerk <= 2 + 1e-6, `seed ${seed}: the height's acceleration changed at ${f(r.jerk)} m/s3 (want 2 at most)`);
     assert.equal(r.fixG, 0, `seed ${seed}: the ground's rule pushed the camera up ${r.fixG} times`);
     assert.ok(r.near >= HARD_IN - 1e-6, `seed ${seed}: the camera came ${f(r.near)} m from a solid's face (want ${HARD_IN} m at least: HARD_IN)`);
+  }
+});
+test('flight-sim: among cores where the world puts them, the drags keep the same bounds, and no core comes within BAND_M of the camera', () => {
+  assert.ok(LIFTED, 'the world lifts every cloud body whole until its lowest lobe clears the band\'s top (231), at least the land + FLY_TOP + BAND_M (180\'s bandTopAt): the cores\' heights here assume both');
+  for (const seed of [1, 2, 3, 4]) {
+    const r = dragged(seed, 240, true), f = (x) => x.toFixed(2);
+    assert.ok(r.plans <= 10 && r.flips < 0.5 && r.jerk <= 2 + 1e-6 && r.fixG === 0 && r.near >= HARD_IN - 1e-6, `seed ${seed}: plans ${f(r.plans)}/s, flips ${f(r.flips)}/s, jerk ${f(r.jerk)} m/s3, ground pushes ${r.fixG}, nearest face ${f(r.near)} m`);
+    assert.ok(r.nearCl >= BAND_M, `seed ${seed}: a cloud's core came ${f(r.nearCl)} m from the camera (want ${BAND_M} m at least: BAND_M, the mist's reach; 142-189 m today)`);
   }
 });
 test('flight-sim: left alone among the same solids, no rule pushes the camera: the ground, the solids, the ceiling', () => {
@@ -122,8 +144,8 @@ test('flight-sim: the hard rules ease the camera out at the climb\'s own travel,
 
 // ------------------------------------------------------------------ HARD_IN clears the near plane's corners
 // (follow-up) the near plane's corners lie NEAR sqrt(1 + tanX^2 + tanY^2) from the eye; HARD_IN keeps the camera farther
-// than that from a solid's face in any window's shape (frustumFor, cut from 386, with 370's NEAR and FOV_LONG)
-test('flight-sim: HARD_IN is past the near plane\'s farthest corner, in any window', () => {
+// than that from a solid's face in any settled window's shape (frustumFor, cut from 386, with 370's NEAR and FOV_LONG)
+test('flight-sim: HARD_IN is past the near plane\'s farthest corner, in any settled window', () => {
   const NEAR = +/NEAR = ([\d.]+), FAR/.exec(WORLD)[1], FOV = +/var FOV_LONG = ([\d.]+);/.exec(WORLD)[1];
   const frustumFor = vm.runInThisContext('(function (FOV_LONG) { var DEG = Math.PI / 180;\n' + cut(WORLD, '  function frustumFor(aspect, out) {', '\n  }\n', true) + '\n  return frustumFor; })')(FOV);
   let worst = 0, at = 0;
