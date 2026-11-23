@@ -55,7 +55,7 @@ const BUDGET = {
   '/score.js': 9.5 * K,            // 9,259 (24,985 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day; the night's quiet, 2026-11-16)
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
-  '/world.js': 113 * K,            // 102,463
+  '/world.js': 116 * K,            // 102,463; 116 K for the night lane's five (#303 the opening moon +3,355 B, #333 Venus and the stars +1,639, #335 the meteors +1,537, #352 the moon's phase +211, #353 the Milky Way +270: 118,064 B with all five on main's 111,052, 2026-11-23), the hub to accept or refuse
   '/realm-kit.js': 5 * K,          // 4,114
   '/realm-dunes.js': 12 * K,       // 11,115 (9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
   '/realm-above.js': 4.5 * K,      // 3,406
