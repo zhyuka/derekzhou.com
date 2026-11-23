@@ -40,6 +40,7 @@
     return out;
   }
   function anvElOf(O) { var e = O && O.skyEl; return typeof e === "number" ? e : AIR_SUN_NIGHT; }   // (a sky's own sun, or a night's)
+  var HALO_K = 0.011;   // (physics: weather/moon-halo) the halo's strength: about +0.03-0.06 in L at its brightest over the moonlit sky (test/unit/sky.mjs)
   var SKYN = { moon: new Float32Array(4), moonC: new Float32Array(3), moonG: new Float32Array(3), night: new Float32Array(4) };
   // MOON-ROUTE-BEGIN
   /* (the sun and moon: the owner's "Drift all night" and "Slower moon") the moon never fades, stops or

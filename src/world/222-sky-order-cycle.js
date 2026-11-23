@@ -1,7 +1,7 @@
   /* ---- the order (the live's pushSky and nextSky, on the world's streams) */
   function skyInit(V) {
     SKY.V = V; SKY.seed = J.seed; SKY.hour = HOUR; SKY.sets = {}; SKY.seq = []; SKY.visits = {}; SKY.i = -1; SKY.pair = ''; SKY.e = null; SKY.X = null; SKY.Y = null;
-    SKY.rO = RNG(subseed(J.seed, 41)); SKY.rV = RNG(subseed(J.seed, 42));
+    SKY.rO = RNG(subseed(J.seed, 41)); SKY.rV = RNG(subseed(J.seed, 42)); SKY.vS = subseed(J.seed, 85);
     SKY.dt = DEVMODE && OPT.skyDt !== null && isFinite(+OPT.skyDt) ? +OPT.skyDt : 0;   // (dev: the cycle's clock this far ahead of the flight's)
     SKY.ids = Object.keys(WSKY).filter(function (id) { return WSKY[id].ph <= SKY_PHASE; });
     SKY.land = {};
@@ -29,7 +29,7 @@
     SKY.gal = best; SKY.aur = { ph: SKY.rV.f() * 6.2832, base: 5 + 3 * SKY.rV.f() };
     /* (physics: weather/far-anvil) a far storm, from its own stream (the other draws stay as they are): in about 3
        visits of 16 (the opening's seed: so its baked first frame has it), 80-110 deg either side of the sun's bearing
-       (lit from the side, against the sky away from the sun), 100-150 km away (its top 5-7 deg up) */
+       (lit from the side, against the sky away from the sun), 100-150 km away (its top 4.0-7.4 deg up) */
     var rA = RNG(subseed(J.seed, 83)), anv = rA.f() < 3 / 16, side = rA.sign(), off = rA.r(80, 110), dist = rA.r(100, 150);
     SKY.anv = anv && V.light ? { az: (V.light.sunAz + side * off) * DEG, d: dist } : null;
     SKY.gen++;
@@ -37,13 +37,14 @@
   function skyPush(id) {
     var S = WSKY[id], seq = SKY.seq, prev = seq[seq.length - 1], r = SKY.rO;
     SKY.visits[id] = (SKY.visits[id] || 0) + 1;
-    seq.push({ id: id, at: prev ? prev.at + prev.hold + prev.move : 0, hold: S.hold * (0.9 + 0.25 * r.f()), move: 55 + 5 * r.f(), far: false, n: seq.length });
+    seq.push({ id: id, at: prev ? prev.at + prev.hold + prev.move : 0, hold: S.hold * (0.9 + 0.25 * r.f()), move: 55 + 5 * r.f(), far: false, n: seq.length,
+      veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9)) / 4294967296 < 1 / 3 ? 1 : 0 });   // (physics: weather/moon-halo: the stay's own ice veil, about one in three: by its place in the order, from the opening's seed until the cut, the read's after it; no other draw moves)
   }
   /* (the cut) the order after the skies on screen drawn again from the visit's own read: the one on show and, in a
      change, the one it changes into are kept; the rest are taken back and drawn again from the new stream */
   function skyReseed(seed) {
     var seq = SKY.seq, keep = Math.max(1, SKY.i + (SKY.k > 0 ? 2 : 1)), j;
-    SKY.rO = RNG(subseed(seed, 41));
+    SKY.rO = RNG(subseed(seed, 41)); SKY.vS = subseed(seed, 85);   // (the stays after the cut: their veils from the read)
     for (j = seq.length - 1; j >= keep; j--) { SKY.visits[seq[j].id]--; seq.pop(); }
     seq[seq.length - 1].way = null; seq[seq.length - 1].far = false;
   }
