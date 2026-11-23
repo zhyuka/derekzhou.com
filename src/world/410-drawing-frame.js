@@ -89,7 +89,8 @@
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
     var VSTEPS = LOOKD ? 48 : 32;   // (the band's steps a ray: the desktop look's 48 (data-look, the still's, never the governor's tier), the rest 32)
-    gl.uniform1f(P.u.uVK, LOOKD ? 12 : 1);   // (the edge band's most pieces a segment: the desktop look's 12 (hour.js's data-look, the still's, never the governor's tier: nothing in the clouds' look changes within a visit); the rest 1, no cutting: on a phone 4 pieces bound every segment, +48% texture reads for a frame bit-identical to 12's (the hub's review))
+    var CRISP = LOOKD;   // (the still's look tier, hour.js's data-look, never memTier or the governor's tier: the clouds' character is the still's and never changes within a visit)
+    gl.uniform2f(P.u.uVK, CRISP ? 48 : 1, CRISP ? 1 : 0);   // (the edge band's most pieces a segment, and the crisp edge: the desktop's 48 (32 boiled at 0.025 at 20 and 60 m over the cloud sea), its lumps deep (below) and its edge hard; a touch device's one-piece band cannot hold either still, so it keeps today's soft clouds)
     // one pipeline state on both sides of a box's faces: its back faces, untested (the march itself starts where the
     // ray enters the box, or at the eye, and ends at the land's depth), so crossing a face changes nothing on the screen;
     // front faces tested outside and back faces inside would be a switch on the camera's position
@@ -98,13 +99,13 @@
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
       var steps = VSTEPS + (48 - VSTEPS) * (1 - smooth(B.r * 1.3, B.r * 1.7, d));   // (near a body 48 on every tier, as before; beyond, one budget a look, never cut by distance: a far tower's 24 steps forced its band 12 m apart; between 1.3 and 1.7 radii eased, a step at a time, never a switch in one frame)
-      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : B.fade, d, 1); wl('steps', B.wid, steps / 48, d, 1); }
+      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : smooth(0, 0.25, B.fade), d, 1);   /* (the drawn opacity, fs-vbody's smoothstep(0, 0.25, w)) */ wl('steps', B.wid, steps / 48, d, 1); }
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
       var mk = mistK(B); if (mk > MISTMAX) MISTMAX = mk;
       var ceil = 1e5;
-      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1];   // (the body's own, from volPrep)
+      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 4 : 1); B.u4a[3] = B.det[1] * (CRISP ? 3 : 1);   // (crisp cauliflower on the desktop: the kit's billows four times the size, three times the depth: less steep than the kit's own (twice the size at five times the depth, 2.5 times as steep, cut free puffs off the tops: the hub's review of #254; four times at five, 1.25 times, still left a few on the 4090))   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
