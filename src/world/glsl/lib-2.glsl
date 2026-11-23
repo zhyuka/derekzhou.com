@@ -1,5 +1,5 @@
 /* water: ripples running with the wind, rings where the rain falls (uWet.x), the sky and the sun's glint reflected by
-   Fresnel over the water's own body; it sets gWater (the share reflected), and the composite puts the nearby forms
+   reflectance by view angle over the water's own body; it sets gWater (the share reflected), and the composite puts the nearby forms
    seen in that reflection over the sky's (screen-space, cheap). Any shade function may call it: a surface of still
    water (a pool's level), a mesh's water (a moat), a puddle in the land's own shade. */
 vec2 rainRings(vec2 p, float t) {
