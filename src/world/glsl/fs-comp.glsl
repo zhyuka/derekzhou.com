@@ -146,7 +146,7 @@ void main() {
     vec2 tsz = vec2(textureSize(uCloud, 0)), b0 = (1.0 - f) * (1.0 - f) * (1.0 - f) / 6.0, b1 = (4.0 - 6.0 * f * f + 3.0 * f * f * f) / 6.0, b3 = f * f * f / 6.0, b2 = 1.0 - b0 - b1 - b3;
     vec2 g0 = b0 + b1, g1 = b2 + b3, o0 = (vec2(h0) + 0.5 - 1.0 + b1 / g0) / tsz, o1 = (vec2(h0) + 0.5 + 1.0 + b3 / g1) / tsz, lm = lim(uCloud, uClS.xy);
     vec4 tA = texture(uCloud, min(o0, lm)), tB = texture(uCloud, min(vec2(o1.x, o0.y), lm)), tC = texture(uCloud, min(vec2(o0.x, o1.y), lm)), tD = texture(uCloud, min(o1, lm));
-    /* brought up by a Catmull-Rom (interpolating: a detail a quarter of the half resolution's rate keeps its
+    /* brought up by a cubic spline (interpolating: a detail a quarter of the half resolution's rate keeps its
        contrast, which a B-spline cuts by about 40%), clamped to the range of the inner 2x2 it interpolates (no ring,
        no overshoot: never above the brightest texel there, never below the darkest; so never above the light ceiling
        either). The four reads above are only the gate's (the 4x4's reach) */
@@ -204,7 +204,7 @@ void main() {
         }
         if (wO > 1e-6) cW = sO / wO;
       }
-      cl = mix(cS, cW, smoothstep(0.05, 0.2, ev) * (1.0 - km));   // (the Catmull-Rom over an even surface, the depth-weighted 2x2 across the land's edges; and plainly where the cloud about the eye stands)
+      cl = mix(cS, cW, smoothstep(0.05, 0.2, ev) * (1.0 - km));   // (the cubic spline over an even surface, the depth-weighted 2x2 across the land's edges; and plainly where the cloud about the eye stands)
     }
     /* where the scene has its samples and a pixel's samples stand at two depths (its alpha, their depth codes
        averaged, unlike the code of its one resolved depth), the cloud is laid over each part apart: the share of near

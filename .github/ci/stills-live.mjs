@@ -3,7 +3,8 @@
 // PLAIN_BUILD is the live commit's plain build (tools/build.mjs --plain): its worldKey (tools/stills.mjs) names the
 // release stills-<key> the Cloudflare build fetched. The release's pack is read (GITHUB_TOKEN, contents: read) and one
 // still of it, the first by name, is fetched from the live site: 200 and the very bytes of the set (sha256), or this
-// fails, naming why (no release for live's world: live ships without its stills, the old first paint). The site may
+// fails, naming why. No release for live's world (CI bakes none): live must ship without stills cleanly, no still asked
+// for and build.txt saying so, or this fails. The site may
 // still be deploying: a 404 is tried again until --timeout seconds have passed.
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -22,7 +23,16 @@ const api = (process.env.STILLS_API || 'https://api.github.com') + '/repos/' + r
 
 const key = worldKey(path.resolve(A.plain));
 const rel = await fetch(api + '/releases/tags/' + TAG(key), { headers: { ...h, accept: 'application/vnd.github+json' } });
-if (rel.status === 404) { await rel.body?.cancel(); fail(`no release ${TAG(key)}: live's world has no stills (stills.yml puts it up; the deploy gate waits for it)`); }
+if (rel.status === 404) {   // (no set for live's world: CI bakes none since 2026-11-23, so live ships without stills; it must do so cleanly)
+  await rel.body?.cancel();
+  const base = A.url.replace(/\/$/, ''), get = (p) => fetch(base + p, { headers: { 'cache-control': 'no-cache', 'user-agent': 'derekzhou.com-post-deploy' } });
+  const page = await (await get('/')).text(), bt = await (await get('/build.txt')).text();
+  if (/class="still"|\/assets\/still\//.test(page)) fail(`no release ${TAG(key)}, yet live's page asks for a still (a stale still from another world)`);
+  const line = bt.split('\n').find((l) => l.startsWith('stills: ')) || '';
+  if (!/^stills: (no set baked for this world yet|no STILLS_TOKEN)/.test(line)) fail(`no release ${TAG(key)}, and live's /build.txt says "${line.replace(/[^ -~]/g, ' ').slice(0, 120)}", not that it shipped without stills`);
+  console.log(`stills-live: no set for live's world (${TAG(key).slice(0, 19)}): live ships without stills, cleanly (no still asked for; build.txt: "${line.slice(0, 80)}")`);
+  return 0;
+}
 if (!rel.ok) fail('the release lookup answered ' + rel.status);
 const a = ((await rel.json()).assets || []).find((x) => x.name === ASSET);
 if (!a) fail(TAG(key) + ' has no ' + ASSET);
