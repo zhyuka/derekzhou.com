@@ -571,6 +571,12 @@ physics: clouds/drift). It holds:
   it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
   the same with the pole, the ecliptic's pole, the galactic pole and
   centre and the frame's own sun.
+- One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
+  moon's disc as drawn this frame (its direction, its weight on show,
+  az and el), at the very moment and on the very route the night sky's
+  uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
+  disc. The key light (keyAt) is the moon's light on the land at night
+  from a low, fixed place (5-14 deg up); it is not where the disc is.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route) and
   the weather (weather(sky): today one wind for every sky; physics:
   air/wind-by-sky).
