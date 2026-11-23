@@ -6,6 +6,7 @@ uniform vec3 uHiC;
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
+uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
@@ -16,6 +17,7 @@ const float SKYTAU = 6.2831853;
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
    never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
 const float STC = 0.04;
+const float PURP_K = 0.03;   // (physics: sky/purple-light) its strength: Y about +0.02 at its centre before the cap (test/unit/sky.mjs)
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
@@ -110,6 +112,14 @@ void main() {
     vec3 dv = rd - uSkyS; float sx = dot(dv, uCamR), sy = dot(dv, uCamU);
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
+  }
+  if (uPurp.w > 0.0 && rd.y > -0.02) {   // (physics: sky/purple-light) the high haze's glow above the hidden sun, behind the 3 km veil
+    /* a soft pink-purple patch about 14 deg wide on the sun's side, through the ground haze; what it adds held under
+       L 0.50 over whatever sky stands behind it (the soft cap by the room left under Y 0.118: the credit keeps 4.5:1) */
+    float pa = degrees(acos(clamp(dot(rd, uPurp.xyz), -1.0, 1.0)));
+    vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));
+    float yP = dot(pA, LUMA), roomP = max(0.118 - dot(c, LUMA), 0.0);
+    c += pA * (yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0);
   }
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on
