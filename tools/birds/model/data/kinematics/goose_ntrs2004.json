@@ -6,7 +6,7 @@
   "source": "(2004) Avian wings. AIAA Paper 2004-2186 (24th AIAA Aerodynamic Measurement Technology and Ground Testing Conference), NASA NTRS 20040075526, section 6, Eqs (5), (6), (11) and Figs 47-61; journal version: doi:10.2514/1.16224 Avian wing geometry and kinematics. AIAA J 44:954-963",
   "licence": "public domain (US Government work, NASA NTRS); numbers usable with attribution",
   "conditions": "level cruising flight in the wild (speed unknown); documentary footage (\"Winged Migration\"), level flight, viewed from the front",
-  "method": "front-projected quarter-chord line traced by hand on video frames, fitted by a 2nd-order polynomial in span; two-jointed arm model with rod lengths assumed equal (r1 = r2 = 0.5); every quantity given by the authors as a 2-harmonic Fourier series (their fit; their raw points are not tabulated)",
+  "method": "front-projected quarter-chord line traced by hand on video frames, fitted by a 2nd-order polynomial in span; two-jointed arm model with rod lengths assumed equal (r1 = r2 = 0.5); every quantity given by the authors as a 2-harmonic cosine and sine series (their fit; their raw points are not tabulated)",
   "authors_phase_zero": "wt = 0 at the beginning of the downstroke (authors)",
   "phase_zero": "re-zeroed here at the maximum of psi1 (authors' phase of that maximum: 0.943 cycle)",
   "downstroke_fraction_from_psi1": 0.5446138465383653,
@@ -24,7 +24,7 @@
    "peak_to_peak": 43.40540327524081,
    "phase_of_max": 0.0,
    "phase_of_min": 0.5446138465383654,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -170,7 +170,7 @@
      ]
     }
    },
-   "fourier_by_authors": {
+   "harmonics_by_authors": {
     "C0": 12.2528,
     "C1_sin": -3.715,
     "B1_cos": 21.1873,
@@ -188,7 +188,7 @@
    "peak_to_peak": 43.622273056448,
    "phase_of_max": 0.7713071732066984,
    "phase_of_min": 0.14421394651337166,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -334,7 +334,7 @@
      ]
     }
    },
-   "fourier_by_authors": {
+   "harmonics_by_authors": {
     "C0": 20.0863,
     "C1_sin": -18.6807,
     "B1_cos": -7.3848,
@@ -352,7 +352,7 @@
    "peak_to_peak": 17.064667911251473,
    "phase_of_max": 0.7670582354411398,
    "phase_of_min": 0.5081229692576856,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -498,7 +498,7 @@
      ]
     }
    },
-   "fourier_by_authors": {
+   "harmonics_by_authors": {
     "C0": 13.5235,
     "C1_sin": -0.7494,
     "B1_cos": 1.2524,
@@ -516,7 +516,7 @@
    "peak_to_peak": 0.20711329118909616,
    "phase_of_max": 0.3841539615096226,
    "phase_of_min": 0.6943264183954012,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -662,7 +662,7 @@
      ]
     }
    },
-   "fourier_by_authors": {
+   "harmonics_by_authors": {
     "C0": 0.8999,
     "C1_sin": 0.0666,
     "B1_cos": 0.0126,
@@ -680,7 +680,7 @@
    "peak_to_peak": 0.031996477809824286,
    "phase_of_max": 0.5076230942264435,
    "phase_of_min": 0.7643089227693077,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -826,7 +826,7 @@
      ]
     }
    },
-   "fourier_by_authors": {
+   "harmonics_by_authors": {
     "C0": 0.9948,
     "C1_sin": 0.0013,
     "B1_cos": -0.0013,
