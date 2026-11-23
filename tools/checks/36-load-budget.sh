@@ -55,7 +55,7 @@ const BUDGET = {
   '/score.js': 9.5 * K,            // 9,259 (24,985 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day; the night's quiet, 2026-11-16)
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
-  '/world.js': 113 * K,            // 102,463
+  '/world.js': 115 * K,            // 117,059 (main 115,220, 492 B under 113 K; +1,839 B here for the clouds' drift: the air cells, cloudPos and every reader's carry, the band lift, the deck's offset, physics: clouds/drift, 2026-11-23)
   '/realm-kit.js': 5 * K,          // 4,114
   '/realm-dunes.js': 12.5 * K,     // 12,338 (main 12,266, 22 B under 12 K; +72 B here for the air cells' ranges, laid along the low layer's wind: physics: clouds/drift, 2026-11-21; 9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
   '/realm-above.js': 4.5 * K,      // 3,406
@@ -66,7 +66,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 29.5 * K,          // 29,456 with the turn, the phase lock, the glides, leaving together, the wind and the day (#259, #262, #263, #273, #275, #277, the hub's flock physics spec: +1,345 B over main's 28,111; LOAD-PERF's OK up to 30 K once the cuts, #317, land; 29 K to 29.5 K with #315's feed merged in, 2026-11-23, within LOAD-PERF's OK of up to 30 K once #317 landed)
+  '/inkbirds.js': 29.5 * K,          // 30,071 B with the roost on the name (#314, delight-life 1) merged onto #277's stack, 137 B left; 29,456 with the turn, the phase lock, the glides, leaving together, the wind and the day (#259, #262, #263, #273, #275, #277, the hub's flock physics spec: +1,345 B over main's 28,111; LOAD-PERF's OK up to 30 K once the cuts, #317, land; 29 K to 29.5 K with #315's feed merged in, 2026-11-23, within LOAD-PERF's OK of up to 30 K once #317 landed)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's

@@ -5,6 +5,14 @@
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
 // plant: {"file": "src/world/212-cloud-drift.js", "find": "var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V); o[0] = a.x; o[1] = a.z; return o;", "with": "o[0] = 6.5; o[1] = 0; return o;", "why": "the clouds' wind a literal of its own again"}
+// plant: {"file": "src/world/215-air.js", "find": "e = Math.max(Math.asin(Math.max(-1, Math.min(1, d[1]))), AIR_KEY_EL[0] * DEG);", "with": "e = Math.asin(Math.max(-1, Math.min(1, d[1])));", "why": "the land lit from a moon under the horizon"}
+// plant: {"file": "src/world/215-air.js", "find": "var e = seq[i], a = e.id === 'moonlit' ? 1 : 0, b = seq[i + 1] ? (seq[i + 1].id === 'moonlit' ? 1 : 0) : a,", "with": "var e = seq[i], a = airSunEl(e.id) === null ? 1 : 0, b = seq[i + 1] ? (airSunEl(seq[i + 1].id) === null ? 1 : 0) : a,", "why": "every night lit by the moon (the moonlit sky's light only)"}
+// plant: {"file": "src/world/215-air.js", "find": "return airTurnLow(k, AIR_LDT, rz, f, AIR_LD);", "with": "for (c = 0; c < 3; c++) AIR_LD[c] = k[c] + (AIR_LDT[c] - k[c]) * f; return AIR_LD;", "why": "the key cutting through the sky (a great circle overhead, not low across)"}
+// plant: {"file": "src/world/215-air.js", "find": "dz = dr + w(zb - za - dr);", "with": "dz = w(zb - za);", "why": "the way round flipping as the disc passes opposite the key (a jump)"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "float cs = dot(rd, uKey), g = uClK.z;", "with": "float cs = dot(rd, uSun), g = uClK.z;", "why": "a cloud's silver edge on the live key, its self-shadow on the baked one"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "gl.uniform3fv(u.uSun, airLightDir(L));", "with": "gl.uniform3fv(u.uSun, L.sunDir);", "why": "the night lit by the key, 36 deg off the moon"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + SKY.dt).sun);", "why": "the land lit by the frame's sun (a light under the horizon 70% of a night)"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + (SKY.dt || 0), V).sun);", "why": "the land lit by the frame's sun through a nested call (#333's call shape)"}
 // plant: {"file": "src/world/215-air.js", "find": "return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN;", "with": "return f.W > 0 ? t - (x * f.x + z * f.z) / f.W : NaN;", "why": "HOST.gustPhase on the flight's clock, not the field's"}
 // plant: {"file": "src/world/215-air.js", "find": " BYSKY: airTable,", "with": " BYSKY: function () { return AIR_BYSKY; },", "why": "BYSKY handing readers the live table"}
 // plant: {"file": "src/world/215-air.js", "find": "return { x: a.x, z: a.z }; }   // the day's wind", "with": "return a; }   // the day's wind", "why": "the day's wind handed out as the air's own reused object"}
@@ -14,8 +22,6 @@
 // plant: {"file": "src/world/413-draw-frame.js", "find": "airFrameU(UT[0] - AIR_UT0, MBS.dt);", "with": "airFrameU(UT[0], MBS.dt);", "why": "the veils and the grains carried 40 s ahead of the birds"}
 // plant: {"file": "src/world/215-air.js", "find": "xi = (x * f.x + z * f.z - U * T[0]) / L + ox,", "with": "xi = (x * f.x + z * f.z - U * airCarried(y, t)) / L + ox,", "why": "each height carried at its own speed (a bird over a veil feels another gust)"}
 // plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "float a = uPc.a * 0.55 *", "with": "float a = uPc.a * 0.55 * mix(0.15, 1.0, gust) *", "why": "the veils fading with the gust again"}
-// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + SKY.dt).sun);", "why": "the land lit by the frame's sun (a light under the horizon 70% of a night)"}
-// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + (SKY.dt || 0), V).sun);", "why": "the land lit by the frame's sun through a nested call (#333's call shape)"}
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSkyS) gl.uniform3fv(u.uSkyS,", "with": "var FS = skySphere(SIM.t + SKY.dt, V); if (u.uSun) gl.uniform3fv(u.uSun, FS.sun); if (u.uSkyS) gl.uniform3fv(u.uSkyS,", "why": "the land lit by the frame's sun through a name"}
 // plant: {"file": "src/world/215-air.js", "find": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS,", "with": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS * (1 + 0.5 * Math.sin(tS / 40)),", "why": "the sky turning at a pace of its own (faster, slower, back)"}
 // plant: {"file": "src/world/215-air.js", "find": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, o === 'firstlight', S.dec) + S.ra;", "with": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, false, S.dec) + S.ra;", "why": "a first-light opening's sun in the evening"}
@@ -47,13 +53,13 @@ const SEEDS = Array.from({ length: 16 }, (_, i) => (i * 2654435761 + 12345) >>> 
 
 function page() {   // the air on a fake page (no clock, no DOM), and the dunes' kit registered on it
   const G = vm.runInThisContext('(function (W) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, SIM_DT = 1 / 60, SIM = { V: null, t: 0, alpha: 1 }, CS = { x: 0, z: 0 }, J = { seed: 0 };\n' +
-    '  var MSTUB = null; function moonShown(t, o) { o.t = t; if (MSTUB) { o.d = MSTUB.d.slice(); o.w = MSTUB.w; o.az = MSTUB.az; o.el = MSTUB.el; } return o; }\n' + STREAMS + VEC + AIR + CLOUDW + SKYDEF + LDEF +
+    '  var MSTUB = null; function moonShown(t, o) { o.t = t; if (typeof MSTUB === \'function\') return MSTUB(t, o); if (MSTUB) { o.d = MSTUB.d.slice(); o.w = MSTUB.w; o.az = MSTUB.az; o.el = MSTUB.el; } return o; }\n' + STREAMS + VEC + AIR + CLOUDW + SKYDEF + LDEF +
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, cloudWind: cloudWind, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, AIR_GUST: AIR_GUST, AIR_GOCT: AIR_GOCT, airGustGlsl: airGustGlsl, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
     '    SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
+    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON, AIR_MOONS: AIR_MOONS, stub: function (m) { MSTUB = m; }, airLightDir: airLightDir, airMoonShare: airMoonShare, AIR_KEY_EL: AIR_KEY_EL,\n' +
     '    SKY: SKY, AIR_LAT: AIR_LAT, AIR_OBL: AIR_OBL, AIR_SIDEREAL: AIR_SIDEREAL, AIR_FRAME: AIR_FRAME, skySphere: skySphere, airSunEl: airSunEl,\n' +
-    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON, AIR_MOONS: AIR_MOONS, stub: function (m) { MSTUB = m; },\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -414,5 +420,76 @@ test('air: one moon direction (the disc as drawn: a glory, a fogbow or a moonlit
   G.stub({ d: [0, -1, 0], w: 0, az: 10, el: -30 }); assert.equal(G.airMoonDir().up, false, 'a moon of weight 0 is not up');
   G.stub({ d: [0.6, 0.48, 0.64], w: 0.8, az: 30, el: 20 }); const q = G.airMoonDir();
   assert.notStrictEqual(q.d, G.AIR_MOONS.d, 'its own array: a reader never writes the route');
+});
+
+const ROUTE = vm.runInThisContext('(function () {\n' + cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END') + '\n  return { moonPlan: moonPlan, moonAt: moonAt };\n})')();
+function stays(n) {   // moonlit stays on the real route (225's moonPlan): a sky before and after, the heading, the key, the moon's side and way, the pitch
+  const R = RNG0(0x5eed), pick = (a) => a[Math.floor(R() * a.length)], out = [], tan = Math.tan(36 * Math.PI / 180);
+  const fixed = [{ before: 'milkyway', psi: 30, keyAz: -40, keyEl: 9, side: -1, sigma: -1, p: -5 }, { before: 'afterglow', psi: 0, keyAz: 40, keyEl: 9, side: 1, sigma: 1, p: -4 }, { before: 'milkyway', after: 'aurora', psi: 69.5, keyAz: 26.9, keyEl: 5.4, side: -1, sigma: 1, p: -4.98 }];   // (the hub's round-3 cases, and round 4's fastest stay)
+  for (let i = 0; i < n; i++) {
+    const c = fixed[i] || { before: pick(['afterglow', 'bluehour', 'firstlight', 'milkyway', 'aurora']), psi: R() * 360 - 180, keyAz: R() * 360 - 180, keyEl: 5 + 9 * R(), side: R() < 0.5 ? -1 : 1, sigma: R() < 0.5 ? -1 : 1, p: -6 + 4 * R() };
+    c.after = c.after || pick(['afterglow', 'bluehour', 'firstlight', 'milkyway', 'aurora']);
+    const hold0 = 40 + 60 * R(), move0 = 55 + 5 * R(), hold = 150 + 60 * R(), move = 55 + 5 * R();
+    c.seq = [{ id: c.before, at: -20, hold: hold0, move: move0 }, { id: 'moonlit', at: -20 + hold0 + move0, hold, move }, { id: c.after, at: -20 + hold0 + move0 + hold + move, hold: 300, move: 60 }];
+    const t0 = -20 + hold0, t1 = t0 + move0, t2 = t1 + hold, t3 = t2 + move;
+    c.P = ROUTE.moonPlan({ psi: c.psi, pN: c.p, pL: c.p, tanX: tan, tanY: tan * 9 / 16, W: 1600, H: 900, boxes: [[600, 380, 1000, 440], [650, 450, 950, 480], [700, 490, 900, 510], [650, 800, 950, 830], [1500, 20, 1580, 60]], keepPx: 12, coarse: false, noRoom: false, keyAz: c.keyAz, side: c.side, sigma: c.sigma, lift: 0, t0, t1, t2, t3 });
+    c.t = [t0, t3]; out.push(c);
+  }
+  return out;
+}
+function RNG0(s) { return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+test('air: one light at night (on the moonlit sky the live key stands on the moon\'s disc, held 5 deg up, moved low across the sky; the clouds stay on the baked key)', () => {
+  const G = page(), D = 180 / Math.PI, dirAE = (az, el) => [Math.sin(az / D) * Math.cos(el / D), Math.sin(el / D), Math.cos(az / D) * Math.cos(el / D)];
+  const ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * D, sin5 = Math.sin(G.AIR_KEY_EL[0] / D);
+  G.SIM.V = { seed: 1 }; G.SIM.alpha = 1; G.SKY.dt = 0;
+  // the shape: the key off the moonlit sky, the disc on it, held 5 deg up
+  const K = dirAE(40, 9), L = { sunDir: K }, moon = dirAE(-60, 37);
+  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'afterglow', at: -20, hold: 80, move: 58 }, { id: 'moonlit', at: 118, hold: 190, move: 58 }, { id: 'milkyway', at: 366, hold: 300, move: 60 });
+  G.stub({ d: moon, w: 1, az: -60, el: 37 });
+  G.SIM.t = 30; assert.ok(ang(G.airLightDir(L), K) < 0.05, 'a twilight\'s hold: the key');
+  G.SIM.t = 200; assert.ok(ang(G.airLightDir(L), moon) < 0.05, 'the moonlit hold: the disc');
+  G.SIM.t = 600; assert.ok(ang(G.airLightDir(L), K) < 0.05, 'another night\'s hold, the moon still up: the key (the moonlit sky\'s light only)');
+  G.SIM.t = 200; G.stub({ d: dirAE(-60, -12), w: 0.3, az: -60, el: -12 }); const lo = Array.from(G.airLightDir(L));
+  assert.ok(Math.abs(Math.asin(lo[1]) * D - 5) < 1e-4 && ang(lo, dirAE(-60, 5)) < 0.05, 'a disc under the horizon: its azimuth, 5 deg up (never lit from under)');
+  G.stub({ d: moon, w: 1, az: -60, el: 37 }); G.SIM.t = 89; const mid = Array.from(G.airLightDir(L)), azd = (v) => Math.atan2(v[0], v[2]) * D, eld = (v) => Math.asin(v[1]) * D;
+  assert.ok(azd(mid) < 40 && azd(mid) > -60 && eld(mid) > 9 && eld(mid) < 37, 'through a change: its azimuth between the ends\' (the shorter way), its elevation between theirs');
+  const far = dirAE(150, 6); G.stub({ d: far, w: 1, az: 150, el: 6 }); let top = 0; for (let t = 50; t <= 120; t += 0.5) { G.SIM.t = t; top = Math.max(top, G.airLightDir(L)[1]); }
+  assert.ok(top <= Math.max(K[1], far[1]) + 1e-6, `a disc 110 deg round from the key: the light never higher than both ends (${(Math.asin(top) * D).toFixed(2)} deg up at most)`);
+  G.SIM.t = 147.0001; const a1 = G.airLightDir(L), a2 = G.airLightDir(L); assert.strictEqual(a1, a2, 'filled in place, once a frame');
+  // the real route (225's moonPlan, 400 stays: twilight and night into the moonlit sea and out, the band ahead and behind, the hub's two cases first)
+  const S = stays(400), dt = 1 / 60, overBound = []; let worstY = 1, worstTurn = 0, worstOver = -1, worstB = 0, at = null, ahead = 0, behind = 0;
+  for (const c of S) {
+    G.SKY.seq.length = 0; G.SKY.seq.push(...c.seq.map((e) => Object.assign({}, e)));
+    const o = { d: [0, 0, 0] }; G.stub((t, out) => { ROUTE.moonAt(c.P, t, o); out.d = o.d.slice(); out.w = o.w; out.az = o.az; out.el = o.el; return out; });
+    if (c.P.caseA) ahead++; else behind++;
+    const Kc = dirAE(c.keyAz, c.keyEl), Lc = { sunDir: Kc }; let prev = null, pT = null, turn = 0, bound = 0, discR = 0;
+    const tgt = (t) => { ROUTE.moonAt(c.P, t, o); const az = Math.atan2(o.d[0], o.d[2]) * D, el = Math.max(Math.asin(Math.max(-1, Math.min(1, o.d[1]))) * D, G.AIR_KEY_EL[0]); return [az, el]; };
+    const mv = Math.min(c.seq[0].move, c.seq[1].move);
+    for (let t = c.t[0] - 2; t <= c.t[1] + 2; t += dt) {
+      G.SIM.t = t; const d = Array.from(G.airLightDir(Lc)), T = tgt(t), Tv = dirAE(T[0], T[1]);
+      if (d[1] < worstY) worstY = d[1];
+      const over = d[1] - Math.max(Kc[1], Tv[1]); if (over > worstOver) worstOver = over;   // (never higher than both ends)
+      let dA = Math.abs(T[0] - c.keyAz) % 360; if (dA > 180) dA = 360 - dA;
+      if (pT && t > c.t[0] + dt && t < c.t[1] - dt) { let za = Math.abs(T[0] - pT[0]) % 360; if (za > 180) za = 360 - za; discR = Math.max(discR, (za + Math.abs(T[1] - pT[1])) / dt); }   // (the disc's own rate, on its route: never across its ends, where it stands at the nadir)
+      bound = Math.max(bound, 1.5 * (dA + Math.abs(T[1] - c.keyEl)) / mv);
+      if (prev) turn = Math.max(turn, ang(prev, d) / dt);
+      prev = d; pT = T;
+    }
+    const B = bound + discR + 0.05;   // (the stay's own bound: the change's ease over its arc, plus the disc's own rate)
+    if (turn > B) overBound.push({ before: c.before, psi: c.psi.toFixed(1), turn: turn.toFixed(2), bound: B.toFixed(2) });
+    worstB = Math.max(worstB, B); if (turn > worstTurn) { worstTurn = turn; at = { before: c.before, psi: c.psi.toFixed(1), keyAz: c.keyAz.toFixed(1), bound: B.toFixed(2) }; }
+  }
+  if (process.env.NL) console.log(JSON.stringify({ worstEl: Math.asin(worstY) * D, worstTurn, worstOver, worstB, at, ahead, behind, overBound: overBound.length }));
+  assert.ok(ahead > 50 && behind > 50, `the band culminating ahead (${ahead}) and behind (${behind})`);
+  assert.ok(worstY >= sin5 - 1e-6, `the live key never under 5 deg up on the real route (lowest ${(Math.asin(worstY) * D).toFixed(3)} deg)`);
+  assert.ok(worstOver <= 0.01, `mid-change the light never stands higher than both ends (by ${worstOver.toFixed(4)} at most)`);
+  assert.equal(overBound.length, 0, `every stay turns within its own bound (the change's ease over its arc, plus the disc's rate): ${JSON.stringify(overBound.slice(0, 3))}`);
+  assert.ok(worstTurn <= 5.5, `the live key turns at most ${worstTurn.toFixed(2)} deg/s (${JSON.stringify(at)}): 0.09 deg a frame at most, never a jump`);
+  assert.match(WORLD, /if \(u\.uSun\) gl\.uniform3fv\(u\.uSun, airLightDir\(L\)\);/, 'every program\'s uSun is the live key');
+  assert.match(WORLD, /if \(u\.uKey\) gl\.uniform3fv\(u\.uKey, L\.sunDir\);/, 'the clouds are given the baked key');
+  const vb = GLSL('fs-vbody.glsl'); assert.ok(!/\buSun\b/.test(vb) && /dot\(rd, uKey\)/.test(vb) && /uKey\.y/.test(vb), 'the clouds\' phase, rim and wrap read the baked key their light depths are baked along');
+  assert.match(WORLD, /if \(u\.uSkyS\) gl\.uniform3fv\(u\.uSkyS, L\.skyS \|\| L\.sunDir\);/, 'the sky\'s own sun stays on the key');
+  assert.match(WORLD, /var sd = keyAt\(V\)/, 'the clouds stay baked along the key');
 });
 

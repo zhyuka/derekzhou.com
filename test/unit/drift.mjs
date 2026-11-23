@@ -7,6 +7,7 @@
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "    return Math.min(f, cellDistFade(C));", "with": "    return f;", "why": "a body faded by its own distance alone: a cloud sea tower, or a canyon wall, at its cell's near side shows when its cell is made (a pop)"}
 // plant: {"file": "src/world/414-draw-scene.js", "find": "dO - Math.floor(dO / 768000) * 768000", "with": "dO - Math.floor(dO / 700000) * 700000", "why": "the deck's offset wrapped at no whole number of its tiles: a seam at every wrap"}
 // plant: {"file": "src/world/212-cloud-drift.js", "find": "var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V);", "with": "var a = windAt(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, SIM.t, V);", "why": "the clouds' drift the sky's wind: a Milky Way's drifts them 1.3x"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "        if (C.air) C.dL = airD(V, SIM.t);", "with": "", "why": "the opening moon's layout reads an air cell's carry before it has one: the page throws on a moonlit night"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(') + cut(WORLD, '  function airDay(', '\n', true);
@@ -30,6 +31,16 @@ test('drift: the clouds\' wind is the air\'s day wind (airBase, never the sky\'s
   assert.match(WORLD, /var AIRAPI = \{[^\n]*\bday: airDay,/, 'the air does not hand the realms its day wind (day)');
 });
 
+test('drift: every layout of a cell sets an air cell\'s carry (dL) first, as cellApi reads it', () => {
+  // (#303's opening moon lays out every scale's cells at the cut, the air scales among them: cellApi reads C.dL[0])
+  const calls = WORLD.split('\n').map((l, i) => [l, i]).filter(([l]) => /\bcellApi\(C\)/.test(l) && !/function cellApi/.test(l));
+  assert.ok(calls.length >= 2, `${calls.length} layouts of a cell found (the stream's and the opening moon's)`);
+  const W = WORLD.split('\n');
+  for (const [l, i] of calls) {
+    const before = W.slice(Math.max(0, i - 3), i + 1).join('\n');
+    assert.ok(/if \(C\.air\) \{? ?C\.dL = airD\(V, SIM\.t\)/.test(before), `a cell laid out without its air carry set: ${l.trim().slice(0, 100)}`);
+  }
+});
 test('drift: a body\'s place is a pure function of t, in doubles; its height never moves', () => {
   const o = { c0: Float64Array.from([1234.5, 812.25, -9876.125]), w: Float64Array.from([3.1, -7.9]) };
   const t = 3600 + 1 / 7, p = D.cloudPos(o, t);
