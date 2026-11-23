@@ -100,6 +100,8 @@ tools/gpu/                   The owner's PC's RTX 4090 jobs: T2 (t2.js), T3 (t3.
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
+tools/precision/             How fp32 world coordinates degrade far from the start in a long flight (far-origin.mjs:
+                             each GPU-read value's rounding in metres and laptop pixels), by hand
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
 tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
