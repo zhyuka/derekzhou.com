@@ -62,7 +62,7 @@ jobs:
   served:
     # (called by the gate, with a base: the gate's plan job made the `served` artifact already; a label other than
     # `perf`, such as the bot's needs-owner, runs nothing here)
-    if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf')
+    if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)   # (the fork guard: no fork's PR runs on the PC)
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 8
     outputs:
@@ -82,7 +82,7 @@ jobs:
           node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
   t2:
     needs: served
-    if: always() && !cancelled() && needs.served.result != 'failure' && github.event.action != 'labeled'   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
+    if: always() && !cancelled() && needs.served.result != 'failure' && github.event.action != 'labeled' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
     runs-on: [self-hosted, windows, gpu-4090]
     timeout-minutes: 20
     outputs:
@@ -165,7 +165,7 @@ jobs:
         with: { name: forced-off, path: '${{ runner.temp }}/forced-off', retention-days: 14, if-no-files-found: ignore }
   t3:
     needs: served
-    if: always() && !cancelled() && needs.served.result == 'success' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'perf')))
+    if: always() && !cancelled() && needs.served.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'perf')))
     runs-on: [self-hosted, windows, gpu-exclusive]
     timeout-minutes: 40
     steps:
