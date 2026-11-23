@@ -107,7 +107,7 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
 // tile's mean, 0.29 at uHi.x 0.2, is the drifted state its judge flagged: fx/py/veilmean.py), taken at n 0.12, as a
 // function of the climate's cover alone: no clock
 float veilMean(float x) { return smoothstep(0.55 - x, 0.95 - x, 0.692); }
-const float MET_TOP = 0.118;   // (229's METEOR.TOP_Y: the head's cap, OKLab L 0.49 with no sky under it)
+const float MET_TOP = 0.118;   // (219's METEOR.TOP_Y: the head's cap, OKLab L 0.49 with no sky under it)
 /* (delight-night §2) a meteor: its head and wake as a segment on the screen (both ends projected as starAt projects a
    star), its light integrated over the pixel across (the stars' starBox) and along (starErf at both ends), so it keeps
    its light as it slides between pixels; the wake brightens toward the head, the head a little brighter still; each

@@ -1,8 +1,10 @@
   /* ---------------------------------------------------------------- the meteors (delight-night §2)
      Two kinds, on the night skies only (the Milky Way and the aurora; the moonlit sky the bright ones only; none in a
-     twilight), each a stay's own from the seed (subseed(J.seed, 85) and the stay's place in the order), at 1x real time:
+     twilight), each a stay's own stream (subseed(seed, 1100 + its place in the order): the opening's seed for the opening stay, the visit's
+     own read, SEEDR, for every stay after the cut, as the halo's veils), at 1x real time:
      - the long grazers (the spec's strict form): from a radiant just under the horizon (1-4 deg down) a meteor runs low and
-       slow (3-5 deg/s) along the great circle through it, from under 2 deg up or out of the view to out of it again,
+       slow (3-5 deg/s) along the great circle through it, from under 2 deg up to under 2 deg again (it rises off the
+       horizon and sinks back to it, so no drag ever shows it ending in the open sky),
        its wake rigid (2 deg) and its light constant: it shows by crossing the window, never by fading (at real rates
        1-2% of the sporadics seen are grazers like it, 2-9 deg/s: https://www.imo.net/observations/methods/visual-observation/
        and the handoff's strict.mjs); about one a stay
@@ -12,18 +14,20 @@
      Each is planned when its time comes, against the view as it is then (its heading and pitch); none under reduced motion
      and none in a still (none in the opening stay's first METEOR.QUIET s). Drawn by sky-body.glsl's meteorAt: a head of the
      stars' pixel-integrated kind and its wake, its light capped so no pixel passes OKLab L 0.50, behind the haze. */
-  var METEOR = { LONG: [3, 5], SHORT_W: [3, 25], SHORT_D: [0.3, 1], WAKE: 2, QUIET: 8, GAP: 8, TOP_Y: 0.118, RAD: [1, 4], SPAN: 120,
+  var METEOR = { LONG: [3, 5], SHORT_W: [3, 25], SHORT_D: [0.3, 1], WAKE: 2, QUIET: 8, GAP: 8, TOP_Y: 0.118, RAD: [1, 4],
     SKIES: { milkyway: [1, 1], aurora: [1, 1], moonlit: [0.5, 0.5] }, BRIGHT: 0.09, Y: [0.06, 0.1], FAST: 15 };
   var METS = { E: null, h: new Float32Array(4), t: new Float32Array(4), c: new Float32Array(3), cW: null, cG: null };
   function meteorList(E, seed, t0, t1) {   // a night stay's meteors from its own stream: [{ at, long, ... }] in sky time, none before t0, all done by t1
     var S = METEOR.SKIES[E.id]; if (!S) return [];
-    var R = RNG(subseed(seed, 85 + 7 * (E.n || 0))), out = [], i, nL, nS, moonlit = E.id === 'moonlit';
-    var u = R.f(); nL = u < 0.25 * S[0] ? 0 : (u < 1 - 0.25 * S[0] ? 1 : 2); if (S[0] < 1 && R.f() > S[0]) nL = 0;   // (a mean of about one a stay; the moonlit sky's half as often)
+    var R = RNG(subseed(seed, 1100 + (E.n || 0))), out = [], i, nL, nS, moonlit = E.id === 'moonlit';
+    nL = R.f() < 0.08 ? 0 : 1; if (S[0] < 1 && R.f() > S[0]) nL = 0;   // (about one a stay: its 34-54 s run leaves no room in a stay for a second; the moonlit sky's half as often)
     nS = 1 + Math.floor(R.f() * 3); if (moonlit) nS = R.f() < 0.5 ? 1 : 0;   // (1-3; the moonlit sky's a bright one at most)
     for (i = 0; i < nL + nS; i++) {
-      var lg = i < nL, w = lg ? R.r(METEOR.LONG[0], METEOR.LONG[1]) : R.r(METEOR.SHORT_W[0], METEOR.SHORT_W[1]), dur = lg ? METEOR.SPAN / w : R.r(METEOR.SHORT_D[0], METEOR.SHORT_D[1]);
+      var lg = i < nL, w = lg ? R.r(METEOR.LONG[0], METEOR.LONG[1]) : R.r(METEOR.SHORT_W[0], METEOR.SHORT_W[1]), dur = lg ? 0 : R.r(METEOR.SHORT_D[0], METEOR.SHORT_D[1]);
       var y = moonlit ? R.r(METEOR.BRIGHT, METEOR.Y[1]) : R.r(METEOR.Y[0], METEOR.Y[1]);
-      out.push({ long: lg, w: w, dur: dur, y: y, u: [R.f(), R.f(), R.f(), R.f()], at: 0, plan: null });
+      var M = { long: lg, w: w, dur: dur, y: y, u: [R.f(), R.f(), R.f(), R.f()], at: 0, plan: null };
+      if (lg) { var P0 = meteorPlan(M, 0, 0, 1, 1); M.dur = (P0.th1 - P0.th0) / M.w; }   // (its run from 2 deg up to 2 deg again: the same at any heading, pitch or frustum, the path's shape is the radiant's and the point's alone)
+      out.push(M);
     }
     var room = t1 - t0, used = 0;   // (in turn, spread over the stay with at least GAP between them; what does not fit is dropped)
     for (i = 0; i < out.length; i++) used += out[i].dur + METEOR.GAP;
@@ -35,14 +39,16 @@
   function meteorAxis(A, B) { var n = [A[1] * B[2] - A[2] * B[1], A[2] * B[0] - A[0] * B[2], A[0] * B[1] - A[1] * B[0]], l = Math.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) || 1; return [n[0] / l, n[1] / l, n[2] / l]; }
   function meteorPlan(M, psi, pitch, tanX, tanY) {   // where it runs, against the view at its start: a great circle (from A, about axis n), the angles it runs between
     var u = M.u, P;
-    if (M.long) {   // (a grazer: a point low in the view, a radiant 40-60 deg to one side of it (so it runs on 60 deg and more past it, out of the view) just under the horizon; from under 2 deg up to SPAN on)
+    if (M.long) {   // (a grazer: a point low in the view, a radiant 40-60 deg to one side of it (so it runs on 60 deg and more past it, out of the view) just under the horizon; from where it rises over 2 deg to where it sinks under 2 deg again)
       var azP = psi + (u[0] * 2 - 1) * 0.6 * Math.atan(tanX) / DEG, elP = 6 + 14 * u[1], side = u[2] < 0.5 ? -1 : 1, azR = azP + side * (40 + 20 * u[3]), elR = -(METEOR.RAD[0] + (METEOR.RAD[1] - METEOR.RAD[0]) * u[1]);
       var R0 = dirAzEl(azR, elR); P = dirAzEl(azP, elP);
       var n = meteorAxis(R0, P), thP = Math.acos(Math.max(-1, Math.min(1, R0[0] * P[0] + R0[1] * P[1] + R0[2] * P[2]))) / DEG;
       var th0 = 0, k, lo = 0, s2 = Math.sin(2 * DEG); for (k = 0; k < 90; k++) { if (meteorAt3(R0, n, th0)[1] > s2) break; lo = th0; th0 += 1; }   // (from where it rises over 2 deg: found by the degree, then halved down to it)
       for (k = 0; k < 24 && th0 > 0; k++) { var mid = (lo + th0) / 2; if (meteorAt3(R0, n, mid)[1] > s2) th0 = mid; else lo = mid; }
       th0 = lo;
-      return { A: R0, n: n, th0: th0, th1: th0 + METEOR.SPAN, thP: thP };
+      var t1 = th0 + 90; for (k = 0; k < 180 && meteorAt3(R0, n, t1)[1] >= s2; k++) t1 += 1;   // (where it sinks back under 2 deg: by the degree past the top, then halved down to it)
+      var a1 = t1 - 1; for (k = 0; k < 24; k++) { var m1 = (a1 + t1) / 2; if (meteorAt3(R0, n, m1)[1] < s2) t1 = m1; else a1 = m1; }
+      return { A: R0, n: n, th0: th0, th1: t1, thP: thP };
     }
     var nx = (u[0] * 2 - 1) * 0.8, ny = -0.1 + 0.8 * u[1], cp = Math.cos(pitch * DEG), sp = Math.sin(pitch * DEG), a = psi * DEG;   // (a short one: in the view, mid-sky)
     var f = [Math.sin(a) * cp, sp, Math.cos(a) * cp], r = [Math.cos(a), 0, -Math.sin(a)], up = [-Math.sin(a) * sp, cp, -Math.cos(a) * sp];
@@ -61,9 +67,10 @@
     var y = M.long ? M.y : M.y * Math.sin(Math.PI * e / M.dur);   // (the short one's soft rise and fall: the owner's exception; a long one's light is constant)
     return { head: meteorAt3(p.A, p.n, th), tail: meteorAt3(p.A, p.n, tt), y: y, green: M.w > METEOR.FAST };
   }
+  function meteorFrom(E, t, first) { return Math.max(E.at, first ? t : E.at) + (first ? METEOR.QUIET : 4); }   // (when a stay's meteors may start: the opening stay's not before QUIET s after its first step (its still has none), another's 4 s in)
   function meteorStep(t) {   // (226's moonStep, the sky's step) the stay's list, planned once; a meteor's path when its time comes
     var E = SKY.seq[SKY.i]; if (!E || reduced() || !SIM.V) return;
-    if (E.met === undefined) { var first = E === SKY.seq[0]; E.met = meteorList(E, J.seed, Math.max(E.at, first ? t : E.at) + (first ? METEOR.QUIET : 4), E.at + E.hold); }
+    if (E.met === undefined) { var first = E === SKY.seq[0]; E.met = meteorList(E, AFTER && !first ? SEEDR : J.seed, meteorFrom(E, t, first), E.at + E.hold); }
     for (var i = 0; i < E.met.length; i++) { var M = E.met[i]; if (!M.plan && t >= M.at && t < M.at + M.dur) M.plan = meteorPlan(M, (CS.yawV + CS.phi) / DEG, basePitchT(SIM.V) / DEG, FRT.tanX, FRT.tanY); }
   }
   function meteorUniforms(u) {   // (226's skyNightUniforms) the one meteor on show at the drawn time: uMetH head and its light (Y), uMetT tail, uMetC its colour (luminance 1)

@@ -118,11 +118,13 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The meteors (delight-night §2; src/world/229-meteors.js), on the night skies
+phone). The meteors (delight-night §2; src/world/219-meteors.js), on the night skies
 only (the Milky Way and the aurora; on the moonlit sea the bright ones only),
-each a stay's own from the seed, at 1x real time: about one long grazer a stay,
+each a stay's own (the opening stay's from its seed, every later one's from the
+visit's own read, as the halo's veils), at 1x real time: about one long grazer a stay,
 from a radiant just under the horizon, running low and slow (3-5 deg/s) from
-under 2 deg up or out of the view to out of it again, its wake a rigid 2 deg
+under 2 deg up to under 2 deg again (151-173 deg along its path, 30-58 s), so
+no drag ever shows it ending in the open sky, its wake a rigid 2 deg
 and its light constant, so it shows by crossing the window; and 1-3 short ones
 (the owner, 2026-11-15: "Allow short ones too"), 0.3-1 s at 3-25 deg/s anywhere
 mid-sky (20-55 deg up), a few a night, their light rising and falling softly over that moment, the one
