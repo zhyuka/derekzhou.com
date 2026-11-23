@@ -149,6 +149,20 @@ The plan is made in the part of the still every window of its band shows
 (STILL_BAND: a wider window loses the still's top and bottom, a narrower its
 sides), so the disc is whole on each, and its keep is the band's smallest
 window's 12 px scaled into the still's pixels (stillFrame).
+The meteors (delight-night §2; src/world/219-meteors.js), on the night skies
+only (the Milky Way and the aurora; on the moonlit sea the bright ones only),
+each a stay's own (the opening stay's from its seed, every later one's from the
+visit's own read, as the halo's veils), at 1x real time: about one long grazer a stay,
+from a radiant just under the horizon, running low and slow (3-5 deg/s) from
+under 2 deg up to under 2 deg again (151-173 deg along its path, 30-58 s), so
+no drag ever shows it ending in the open sky, its wake a rigid 2 deg
+and its light constant, so it shows by crossing the window; and 1-3 short ones
+(the owner, 2026-11-15: "Allow short ones too"), 0.3-1 s at 3-25 deg/s anywhere
+mid-sky (20-55 deg up), a few a night, their light rising and falling softly over that moment, the one
+exception RULES.json's no-fades names. Each is planned when its time comes,
+against the view as it is then; none under reduced motion or in a still; drawn
+by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
+head, no pixel past OKLab L 0.50.
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
