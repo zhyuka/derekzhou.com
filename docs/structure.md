@@ -117,6 +117,9 @@ tools/tsc.mjs                tsc --checkJs over the assembled world and src/real
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD): each error as
                              section:line or file:line
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
+                             build (a layout only): 226's STILL_WORDS (their union) and test/golden/still-words.json
+                             (--check, tools/checks/70-still-words.sh; --write after a stylesheet change)
 tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
 tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (fillStamp writes PW_V at assembly), minified as the world is
@@ -140,7 +143,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/36-load-budget.sh, tools/checks/37-ground-fresh.sh, tools/checks/38-sound.sh,
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
-                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
+                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own),
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
                              the sand spec's bounds, physics: sand/S1),
                              tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
@@ -149,6 +152,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list),
                              tools/checks/47-first-paint.sh (with no stills, the words first, then the world as a cut,
                              no stale still: tools/first-paint.mjs)
+                             tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
