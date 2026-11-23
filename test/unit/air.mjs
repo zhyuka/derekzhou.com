@@ -4,6 +4,8 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "oro: [7.2, 8.2], oroU: 7.7, N: 0.01,", "with": "oro: [7.2, 8.2], oroU: 7.7, N: 0.02,", "why": "the lens's lee wave on a buoyancy frequency of the weather's own"}
+// plant: {"file": "src/world/215-air.js", "find": "var AIR_MOIST = [4.02, 4.1];", "with": "var AIR_MOIST = [3.9, 4.3];", "why": "the moisture band set on the page's seed, not the live visit's (pools at the cut on the wrong dune openings)"}
 // plant: {"file": "src/world/215-air.js", "find": "return d === undefined ? 0 : q * d; }", "with": "return d === undefined ? 0 : d; }", "why": "the mist on every visit again (no moisture)"}
 // plant: {"file": "src/world/215-air.js", "find": " BYSKY: airTable,", "with": " BYSKY: function () { return AIR_BYSKY; },", "why": "BYSKY handing readers the live table"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_MIST_RATE = 0.18,", "with": "var AIR_MIST_RATE = 0.5,", "why": "the mist racing through a change"}
@@ -44,7 +46,7 @@ function page() {   // the air on a fake page (no clock, no DOM), and the dunes'
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, AIR_GUST: AIR_GUST, AIR_GOCT: AIR_GOCT, airGustGlsl: airGustGlsl, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
-    '    airWx: airWx, AIR_MIST: AIR_MIST, AIR_MOIST: AIR_MOIST, SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
+    '    airWx: airWx, AIR_WXK: AIR_WXK, AIR_MIST: AIR_MIST, AIR_MOIST: AIR_MOIST, SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -350,17 +352,21 @@ test('air: the weather the wind makes (mist on still nights and before sunrise, 
   }
   assert.ok(worst <= 0.01 + 1e-12, `the mist's level moves ${worst.toFixed(4)} m in 50 ms (at most 0.01: 0.2 m/s)`);
   assert.equal(wv, 0, 'the gate and the haze never move through a change');
+  { const w = G.airWx(5, { seed: 1, u10: 6 }); assert.ok(w.N === 0.01 && w.oroU === 7.7, 'the lee wave\'s numbers in the one weather: N 0.01/s, the gate at 7.7 m/s over the ridge');
+    assert.ok(Math.abs((G.AIR_WXK.oro[0] + G.AIR_WXK.oro[1]) / 2 - w.oroU) < 1e-12, 'the gate eased about its own threshold');
+    const lo = G.airWx(5, { seed: 1, u10: (w.oroU - 0.3) / G.AIR_WXK.ridge }).oro, hi = G.airWx(5, { seed: 1, u10: (w.oroU + 0.3) / G.AIR_WXK.ridge }).oro; assert.ok(lo < 0.5 && hi > 0.5, 'the gate opens at oroU over the ridge'); }
 });
 
 test('air: the mist by the visit\'s moisture (its marine layer in on a calm day): a find on about 1 visit in 3, never a fixture; MIST a copy', () => {
   const G = page();
-  // the 16 openings (hour.js: seed k = 11 + k * 0x9e3779b9), each the visit's for the whole visit; dunes in view where the sand province is near the start (the world's own maps)
+  // the 16 openings (hour.js: the page's seed k = 11 + k * 0x9e3779b9; its one visit's seed RNG(subseed(seed, 1000)).seed(), as theWorld makes it, which airDraw and airU10 read), each the visit's for the whole visit; dunes in view where the sand province is near the start (the world's own maps, on the page's seed)
+  assert.match(WORLD, /var r = RNG\(subseed\(J\.seed, 1000\)\);/, 'the live visit\'s seed is the one this test gives each opening');
   const A1 = '  var CW = (function () {\n', A2 = '  var MAPS = {', A3 = '  var KN = 256, KSTEP = 64,';
   const E1 = '\n  })();\n', E2 = '    return w.kit(MAPS.mc, MAPS.pc, MAPS.kw);\n  }\n', E3 = '  var KFROWS = FN * FN / KN;';
   const mapsFn = vm.runInThisContext('(function (G) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180;\n' + cut(WORLD, A1, E1, true) + cut(WORLD, A2, E2, true) + cut(WORLD, A3, E3) + '\n  G.mapsInit = mapsInit; G.kitAt = kitAt;\n})');
   const rows = [];
   for (let k = 0; k < 16; k++) {
-    const seed = (11 + Math.imul(k, 0x9e3779b9)) >>> 0, V = { seed }; V.u10 = G.airU10(seed);
+    const seed = (11 + Math.imul(k, 0x9e3779b9)) >>> 0, V = { seed: G.RNG(G.subseed(seed, 1000)).seed() }; V.u10 = G.airU10(V.seed);   // (the live visit's seed: theWorld's, from J.seed; the maps stay on the page's seed)
     const M = {}; mapsFn(M); M.mapsInit(seed); let wD = 0; for (let j = 0; j < 100; j++) { const a = j * 2.4, r = 800 * Math.sqrt(j / 100); wD += M.kitAt(r * Math.cos(a), r * Math.sin(a)).wD / 100; }
     G.SKY.dt = 0; G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'firstlight', at: 0, hold: 1e6, move: 60 });
     rows.push({ k, u10: +V.u10.toFixed(2), moist: +G.airWx(5, V).moist.toFixed(3), mist: +G.airWx(5, V).mist.toFixed(2), dunes: wD > 0.1 });
@@ -374,6 +380,7 @@ test('air: the mist by the visit\'s moisture (its marine layer in on a calm day)
   assert.ok(shallow.every((r) => r.mist < 2), 'the other dune openings stay under 2 m (no pools), never in the useless middle');
   // over the visits (the speeds' own distribution): about 1 in 3 to 1 in 4 moist
   let n = 0; const N = 20000; for (let i = 0; i < N; i++) { const V = { seed: (i * 2654435761 + 7) >>> 0 }; V.u10 = G.airU10(V.seed); n += G.airWx(5, V).moist > 0.1; }
+  if (process.env.WX) console.log("moist share", n / N);
   assert.ok(n / N > 0.22 && n / N < 0.36, `moist on ${(100 * n / N).toFixed(1)}% of visits, not about 1 in 3 to 1 in 4`);
   // the visit's own: calmer is moister, none on a windy day, the same through every sky
   let last = 2; for (let u = 3; u <= 7.5; u += 0.1) { const m = G.airWx(5, { seed: 1, u10: u }).moist; assert.ok(m <= last + 1e-12, 'calmer is moister'); last = m; }

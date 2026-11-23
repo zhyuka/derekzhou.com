@@ -114,20 +114,22 @@
        and low cloud at their most in the early morning and gone soon after sunrise
        (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
        the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
-       mixed out (U10 under 3.9 m/s whole, none past 4.3: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune lands, the hub's ruling; no new draw,
+       mixed out (U10 under 4.02 m/s whole, none past 4.1: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune openings, 3, 10 and 14, by
+       the live visit's seed, the hub's ruling; about 28% of visits moist; no new draw,
        the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
        (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
        never jumps and never races;
      - oro (0..1): the orographic gate, the visit's own (U10 alone, the whole visit): the ridge-top wind is the log
-       law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (eased over 7.2-8.2: U10 about 6) the ridges
-       stand lee waves, lenticulars and banner clouds;
+       law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (oroU; eased over 7.2-8.2: U10 about 6) the ridges
+       stand lee waves, lenticulars and banner clouds; N (0.01/s, the stable troposphere's buoyancy frequency, the value
+       CLOUDS' lens takes) sets the lee wave's length, 2 pi U / N, so the lens reads one weather (wx(t).oroU, .N);
      - vis (km): the visit's own visibility, 10 km in clean air, 4 km in blown sand once U10 is past the sand's
        threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
        never fades in place */
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
-  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
-  var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
-  var AIR_MOIST = [3.9, 4.3];   // (the moisture: whole under this U10, none past this, m/s)
+  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], oroU: 7.7, N: 0.01, vis: [10, 4], dust: [5.8, 7] };   // (oroU: the ridge-top wind the gate opens at, the middle of oro's ease; N: the troposphere's buoyancy frequency, 1/s, the lee wave's: its wavelength 2 pi U / N)
+  var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, oroU: AIR_WXK.oroU, N: AIR_WXK.N, vis: AIR_WXK.vis[0], dust: 0 };
+  var AIR_MOIST = [4.02, 4.1];   // (the moisture: whole under this U10, none past this, m/s)
   function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }   // 0..1: the visit's low-level moisture (its marine layer in)
   function airMistOf(id, q) { var d = AIR_MIST[id]; return d === undefined ? 0 : q * d; }   // a sky's mist depth on this visit, m (q its moisture)
   function airMistAt(t, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
