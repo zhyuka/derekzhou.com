@@ -33,6 +33,11 @@
     /* (physics: aurora/phases) the stay's own, after the draws above (they stay as they are): a breakup in half the
        stays, its front 20-40 deg east of centre as it begins, a second arc in half, 150-300 km beyond the first */
     SKY.aur.bk = SKY.rV.f() < 0.5 ? 1 : 0; SKY.aur.f0 = SKY.rV.r(20, 40); SKY.aur.dD = SKY.rV.f() < 0.5 ? SKY.rV.r(150, 300) : 0; SKY.aur.rise = 0; SKY.aur.p = 0; SKY.aur.sf = 0;
+    /* (physics: weather/far-anvil) a far storm, from its own stream (the other draws stay as they are): in about 3
+       visits of 16 (the opening's seed: so its baked first frame has it), 80-110 deg either side of the sun's bearing
+       (lit from the side, against the sky away from the sun), 100-150 km away (its top 4.0-7.4 deg up) */
+    var rA = RNG(subseed(J.seed, 83)), anv = rA.f() < 3 / 16, side = rA.sign(), off = rA.r(80, 110), dist = rA.r(100, 150);
+    SKY.anv = anv && V.light ? { az: (V.light.sunAz + side * off) * DEG, d: dist } : null;
     SKY.gen++;
   }
   function skyPush(id) {
