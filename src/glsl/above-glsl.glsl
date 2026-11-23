@@ -16,7 +16,7 @@ vec3 A_Hd(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd per kind of multiply), each tap's
      own multiply as before and its gradient turn after: the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
-  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + uZ; o++) {
+  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + UZ; o++) {
     vec3 g;
     if (o == 1 || o == 3 || o == 5) g = gnd((o == 1 ? A_M1 : (o == 3 ? A_M3 : A_M5)) * (p + A_TO[o]));
     else g = gnd(mat2(A_TS[o]) * (p + A_TO[o]));
