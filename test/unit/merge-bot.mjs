@@ -61,13 +61,27 @@ test('merge bot: the hub\'s review of a PR\'s head lands it (the owner, 2026-11-
   assert.equal(reviewedIn(null, A), false);
   assert.equal(reviewedIn(`<!-- hub-review ${A} -->`, 'not-a-sha'), false);
   const bot = fs.readFileSync(path.join(ROOT, '.github/ci/merge-bot.mjs'), 'utf8');
-  assert.match(bot, /const approved = reviewedIn\(pr\.body, sha\);/, 'the bot reads the review of the head it would land');
+  assert.match(bot, /const approved = await hubReviewed\(pr, sha\);/, 'the bot reads the review of the head it would land');
   assert.match(bot, /if \(held\.length && !approved\)/, 'a needs-owner or visible label holds only an unreviewed PR');
   assert.match(bot, /if \(!approved && files\.some\(\(f\) => SELF\.includes\(f\)\)\)/, 'the bot\'s own files wait only for the review');
   assert.match(bot, /if \(!v\.frames_identical && !approved\)/, 'a visible change waits only for the review');
-  assert.match(bot, /if \(pulls\.some\(\(p\) => reviewedIn\(p\.body, p\.head\.sha\)\)\) return true;/, 'live follows a reviewed landing');
+  assert.match(bot, /if \(\(shared\.length \|\| same\.length\) && !approved\)/, 'a reviewed PR is not re-gated for every landing: it merges, and main\'s gate tests it');
+  assert.match(bot, /for \(const p of pulls\) if \(await hubReviewed\(p, p\.head\.sha\)\) return true;/, 'live follows a reviewed landing');
   const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/merge.yml'), 'utf8');
   assert.match(yml, /types: \[opened, reopened, ready_for_review, labeled, unlabeled, edited\]/, 'the review line starts a tick at once');
+});
+
+test('merge bot: a review holds through merges of main, not through a new commit of its own', async () => {
+  const { reviewedShas, reviewHolds } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  const A = 'a'.repeat(40), B = 'b'.repeat(40);
+  assert.deepEqual(reviewedShas(`x\n<!-- hub-review ${A} -->\ny <!-- hub-review ${B} -->`), [A, B], 'every reviewed head the body names');
+  assert.deepEqual(reviewedShas(`<!-- hub-review ${A.slice(0, 12)} -->`), [], 'a short sha names none');
+  assert.deepEqual(reviewedShas(null), []);
+  assert.equal(reviewHolds(['c1', 'c2'], ['c1', 'c2']), true, 'main merged in: its own commits are the reviewed ones');
+  assert.equal(reviewHolds(['c1'], ['c1', 'c2']), true, 'one of them reached main meanwhile: still nothing new');
+  assert.equal(reviewHolds(['c1', 'c2', 'c3'], ['c1', 'c2']), false, 'a commit of its own after the review: a new review');
+  assert.equal(reviewHolds(null, ['c1']), false, 'a compare that failed holds nothing');
+  assert.equal(reviewHolds(['c1'], null), false);
 });
 
 test('merge bot: a tip with the bake goes live only with its stills release up (stills.yml\'s status)', async () => {
