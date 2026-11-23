@@ -11,7 +11,7 @@
      in. */
   var NOISE = { t: null, z: 0, K: 0, done: false, fixed: 0, data: null, d64: null, vol: null, ax: null };   // (z: the layers baked; vol: the bytes, kept for a restore; K and fixed 0 for the record: no draw, no fix)
   var NOISE_N = 32;
-  /* round 3b's stream, in its order: the points of the Worley noise at 4, 8 and 16 cells across, then the value
+  /* round 3b's stream, in its order: the points of the cellular (nearest-point) noise at 4, 8 and 16 cells across, then the value
      noise's lattices (all of them float32, as round 3b's Float32Arrays held them) */
   function noiseData() {
     var r = RNG(0x5eed1234), a = new Float32Array(256 * 73);
@@ -27,7 +27,7 @@
     for (x = 0; x < N; x++) for (d = 0; d < 3; d++) { c[x * 3 + d] = ix[x] + d - 1; w[x * 3 + d] = (((ix[x] + d - 1) % n) + n) % n; }
     return { p: p, ix: ix, sm: sm, c: c, w: w };
   }
-  function noiseWorley(D, n, base, A, x, y, z) {   // (round 3b's worley)
+  function noiseCells(D, n, base, A, x, y, z) {   // (round 3b's cellular noise)
     var px = A.p[x], py = A.p[y], pz = A.p[z], C = A.c, W = A.w, best = 9, n2 = n * n, dz, dy, dx;
     for (dz = 0; dz < 3; dz++) {
       var cz = C[z * 3 + dz], wz = W[z * 3 + dz] * n2;
@@ -58,7 +58,7 @@
     var N = NOISE_N, D = NOISE.d64, A = NOISE.ax || (NOISE.ax = [noiseAxis(4), noiseAxis(8), noiseAxis(16)]), A4 = A[0], A8 = A[1], A16 = A[2], out = NOISE.vol, o = z * N * N * 4, x, y;
     for (y = 0; y < N; y++) for (x = 0; x < N; x++, o += 4) {
       var vn = noiseValue(D, 4, 14016, A4, x, y, z) * 0.55 + noiseValue(D, 8, 14080, A8, x, y, z) * 0.3 + noiseValue(D, 16, 14592, A16, x, y, z) * 0.15;
-      var w4 = 1 - noiseWorley(D, 4, 0, A4, x, y, z), w8 = 1 - noiseWorley(D, 8, 192, A8, x, y, z), w16 = 1 - noiseWorley(D, 16, 1728, A16, x, y, z);
+      var w4 = 1 - noiseCells(D, 4, 0, A4, x, y, z), w8 = 1 - noiseCells(D, 8, 192, A8, x, y, z), w16 = 1 - noiseCells(D, 16, 1728, A16, x, y, z);
       var pw = clamp(vn * 0.55 + (w4 * 0.625 + w8 * 0.25 + w16 * 0.125) * 0.6, 0, 1);
       out[o] = Math.round(pw * 255); out[o + 1] = Math.round(clamp(w8 * 0.7 + w16 * 0.3, 0, 1) * 255); out[o + 2] = Math.round(clamp(w16, 0, 1) * 255); out[o + 3] = Math.round(clamp(vn, 0, 1) * 255);
     }
