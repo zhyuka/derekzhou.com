@@ -557,7 +557,10 @@ physics: clouds/drift). It holds:
   streaks run at the veils' own wind on it, and the veils lift past the
   day's sigma, so in a night's weak air seldom. The score's
   breeze is the same table, handed it read only by its feed
-  (docs/sound.md).
+  (docs/sound.md); WORLD.air.BYSKY() hands any reader a copy. windAt's t
+  now counts: it is the hour's wind, the sky's share at t. A reader that
+  wants the day's wind whatever the sky (CLOUDS' drift and lens gate)
+  asks for WORLD.air.day(x, z, y, V), the sky's share 1.
 - The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
   the visit's own U10 and the sky (no new draw). mist (m deep): radiation
   mist on a still clear night, thickest before sunrise; each sky's depth
@@ -571,12 +574,13 @@ physics: clouds/drift). It holds:
   the early morning and gone soon after sunrise
   (https://acp.copernicus.org/articles/20/3415/2020/). So the moisture
   is the visit's air, not the land in view: whole on a calm synoptic day
-  (U10 under 3.9 m/s), none past 4.3 (AIR_MOIST, set with LAND for pools
+  (U10 under 4.02 m/s), none past 4.1 (AIR_MOIST, set with LAND for pools
   at the cut on 3 of the 10 dune lands, the hub's ruling; the visit's own
   U10, no new draw). First light gets 5 m of mist or more, deep enough for
-  pools, on dune lands 4, 11 and 12 (10, 10 and 6.0 m), the other dune
-  lands under 2 m; 1 m or more on 6 of the 16 openings, and on 31% of
-  visits over the winds' own spread. AIRAPI.MIST()
+  pools, on dune openings 3, 10 and 14 (10 m each, by the live visit's
+  seed, RNG(subseed(seed, 1000)).seed(), which airDraw and airU10 read),
+  the other dune openings under 2 m; 1 m or more on 6 of the 16 openings,
+  and on 28% of visits over the winds' own spread. AIRAPI.MIST()
   hands a reader a copy of the depths, as AIRAPI.BYSKY() does of the
   wind by sky. Through a change its level moves
   toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
@@ -587,8 +591,10 @@ physics: clouds/drift). It holds:
   visits). vis (km): the visit's own, 10 in clean air, 4 in blown sand
   once U10 is past the sand's threshold (5.8-7 m/s; about one visit in
   six). The gate and the haze never change with the sky, so the far land
-  never fades in place. LAND's mist and CLOUDS' lenticulars and banners
-  read it.
+  never fades in place. It carries the lee wave's numbers too: oroU (7.7
+  m/s over the ridge, where the gate opens) and N (0.01/s, the buoyancy
+  frequency CLOUDS' lens takes), so the lens reads one weather. LAND's
+  mist and CLOUDS' lenticulars and banners read it.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route) and the
   sky's frame (skyFrame: the turn the stars and the galaxy take; today
   none).
