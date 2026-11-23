@@ -17,7 +17,9 @@ change it. The standing rules are data in RULES.json, checked in CI.
 - Nothing masks a bird for the words; the ink birds are the only birds
   (no-masking-boxes, no-2d-birds).
 - No fades anywhere: no keyframes, no transitions, no fading sun, moon or
-  bird (no-fades). Nothing glitters (no-glitter).
+  bird (no-fades), but the owner's two exceptions: short shooting stars and
+  the far storm's soft flicker, both under the light ceiling. Nothing
+  glitters (no-glitter).
 - Reduced motion is one still frame; only a drag steers (reduced-motion-still,
   steer-only-by-drag).
 - One entropy read (hour.js's: it picks one of the openings), one clock; only the
