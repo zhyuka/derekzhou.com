@@ -23,6 +23,7 @@
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "var R = Math.max(0.8 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "with": "var R = Math.max(0.3 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "why": "the lobes a third of their spacing: a rim of loose round beads (PC GPU, 2026-11-23)"}
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.squash = 0.52 * T / Rc;", "with": "b.squash = 1.56 * T / Rc;", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "cl.n, { flow: cl.flow });", "with": "cl.n);", "why": "the lens's plates do not flow: their billows stand still with the envelope"}
+// plant: {"file": "src/realm-dunes.js", "find": "dGreat(C, s); dForms(C, s, R); dHeld(C); return;", "with": "dGreat(C, s); dHeld(C); dForms(C, s, R); return;", "why": "the lens laid out before the forms' clouds: their places in the cell, and so their fallback seeds, move"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -262,6 +263,21 @@ test('lenticular: the plates are long thin lenses, tapered to their rims, each s
     });
     for (let k = 1; k < n; k++) assert.ok(spans[k] < spans[k - 1], `plate ${k + 1} not smaller than the one below`);
   }
+});
+
+// a lens-only change (the hub, 2026-11-23: "a lens-only change must leave every other cloud bit for bit"): the lens is laid
+// out after every other draw of the cell's stream and takes none (dHeld has no stream), it is the cell's last cloud (so
+// no other cloud's index, its seed's fallback, moves), every other cloud resolves from its own seed, and each of the
+// lens's lines in the shared code acts only on a held body (flow, which only a lens's plates carry)
+test('lenticular: the lens moves no other cloud: no draw of the cell\'s stream, laid out last, the shared lines held to flow', () => {
+  assert.match(DUNES, /function dHeld\(C\) \{/, 'dHeld takes more than its cell');
+  const HB = cut(DUNES, '  function dHeld(C) {', '\n  }\n', true);
+  assert.ok(!/\bR\.(f|r|i|seed)\(/.test(HB), 'dHeld draws from the cell\'s stream: every later draw, every other cloud, moves');
+  assert.match(DUNES, /dGreat\(C, s\); dForms\(C, s, R\); dHeld\(C\); return; \}/, 'dHeld is not the scale-0 cell\'s last layout');
+  assert.match(WORLD, /V\.def\.cloud\(cl, PF, RNG\(cl\.seed \|\| \(C\.key \+ i \* 7919\) >>> 0\), KITAPI\)/, 'a cloud does not resolve from its own seed');
+  const flowLines = WORLD.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/\/\/.*$/, '')).filter((l) => /\.flow\b/.test(l));
+  for (const l of flowLines) assert.ok(/flow \?|flow\)|\.flow &&|if \(o\.flow\)|if \(B\.flow\)|fl \? |B\.flow, tf = fl|if \(o\.flow\) b\.flow = o\.flow|vb\.out\.flow = PF\.bodies\[bi\]\.flow/.test(l), `a shared line reads flow without holding to it: ${l.trim().slice(0, 140)}`);
+  assert.ok(flowLines.length >= 5, `only ${flowLines.length} of the lens's shared lines found`);
 });
 
 // one piece (the hub, 2026-11-23: "no connected lit component apart from the main body at the rim"): each plate's field as
