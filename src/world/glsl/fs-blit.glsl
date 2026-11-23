@@ -1,7 +1,7 @@
 
 uniform sampler2D uTex; uniform vec2 uOut, uSz;   // uSz: the part of uTex drawn (the composite's size; 0: all of it)
 out vec4 oC;
-/* the world put up to a larger canvas by a Catmull-Rom clamped to the inner 2x2's range (one sharp resample, no
+/* the world put up to a larger canvas by a cubic interpolating spline clamped to the inner 2x2's range (one sharp resample, no
    ring: never outside the four texels it lies between) */
 void main() {
   vec2 sz = uSz.x > 0.5 ? uSz : vec2(textureSize(uTex, 0)), hp = gl_FragCoord.xy / uOut * sz - 0.5, f = fract(hp); ivec2 h0 = ivec2(floor(hp)), qm = ivec2(sz) - 1;

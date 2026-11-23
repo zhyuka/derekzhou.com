@@ -3,20 +3,20 @@
   "title": "Wing skeleton, joints and feathers by kind",
   "units": "fractions of the semi-span (midline to wingtip at full extension) unless named; angles in degrees; elbow angle = interior angle humerus-forearm (180 straight), manus (wrist) angle = interior angle forearm-carpometacarpus (180 straight)",
   "sources": {
-   "baliga2019": "Baliga VB, Szabo I, Altshuler DL (2019) Range of motion in the avian wing is strongly associated with flight behavior and body mass. Sci. Adv. 5: eaaw6670. Data: figshare 10.6084/m9.figshare.8856161 (CC BY 4.0): AvianMorphology.xlsx (bones, wing length and area, primary and secondary counts) and the cadaver elbow/wrist range-of-motion recordings",
-   "harvey2022": "Harvey C, Baliga VB, Wong JCM, Altshuler DL, Inman DJ (2022) Birds can transition between stable and unstable states via wing morphing. Nature 603: 648-653. Data: figshare 10.6084/m9.figshare.c.5503989 (CC BY 4.0): bones, spans, per-feather lengths and vane widths, 3D wing markers through the elbow/wrist range",
-   "harvey2021": "Harvey C, Baliga VB, Goates CD, Hunsaker DF, Inman DJ (2021) Gull-inspired joint-driven wing morphing allows adaptive longitudinal flight control. J. R. Soc. Interface 18: 20210132. Data: figshare 10.6084/m9.figshare.c.5275490 (CC BY 4.0): the gull linkage trajectory (Lar_gla.linkage.ext.loess.csv)",
-   "harvey2019": "Harvey C, Baliga VB, Lavoie P, Altshuler DL (2019) Wing morphing allows gulls to modulate static pitch stability during gliding. J. R. Soc. Interface 16: 20180641 (text, section 3.1): in vivo gliding elbow 90-154 deg, manus 110-173 deg",
-   "matloff2020": "Matloff LY, Chang E, Feo TJ, Jeffries L, Stowers AK, Thomson C, Lentink D (2020) How flight feathers stick together to form a continuous morphing wing. Science 367: 293-297. Data: figshare 10.6084/m9.figshare.11369364 (CC BY 4.0): pigeon feather angles vs wrist angle, per-feather slopes",
-   "stowers2017": "Stowers AK, Matloff LY, Lentink D (2017) How pigeons couple three-dimensional elbow and wrist motion to morph their wings. J. R. Soc. Interface 14: 20170224 (text via PMC5582118)",
-   "baier2013": "Baier DB, Gatesy SM, Dial KP (2013) Three-dimensional, high-resolution skeletal kinematics of the avian wing and shoulder during ascending flapping flight and uphill flap-running. PLoS ONE 8: e63982 (CC BY): chukar XROMM, Table 2",
+   "sciadv2019": "doi:10.1126/sciadv.aaw6670 (2019) Range of motion in the avian wing is strongly associated with flight behavior and body mass. Sci. Adv. 5: eaaw6670. Data: figshare 10.6084/m9.figshare.8856161 (CC BY 4.0): AvianMorphology.xlsx (bones, wing length and area, primary and secondary counts) and the cadaver elbow/wrist range-of-motion recordings",
+   "nature2022": "doi:10.1038/s41586-022-04477-8 (2022) Birds can transition between stable and unstable states via wing morphing. Nature 603: 648-653. Data: figshare 10.6084/m9.figshare.c.5503989 (CC BY 4.0): bones, spans, per-feather lengths and vane widths, 3D wing markers through the elbow/wrist range",
+   "rsif2021": "doi:10.1098/rsif.2021.0132 (2021) Gull-inspired joint-driven wing morphing allows adaptive longitudinal flight control. J. R. Soc. Interface 18: 20210132. Data: figshare 10.6084/m9.figshare.c.5275490 (CC BY 4.0): the gull linkage trajectory (Lar_gla.linkage.ext.loess.csv)",
+   "rsif2019": "doi:10.1098/rsif.2018.0641 (2019) Wing morphing allows gulls to modulate static pitch stability during gliding. J. R. Soc. Interface 16: 20180641 (text, section 3.1): in vivo gliding elbow 90-154 deg, manus 110-173 deg",
+   "science2020": "doi:10.1126/science.aaz3358 (2020) How flight feathers stick together to form a continuous morphing wing. Science 367: 293-297. Data: figshare 10.6084/m9.figshare.11369364 (CC BY 4.0): pigeon feather angles vs wrist angle, per-feather slopes",
+   "rsif2017coupling": "doi:10.1098/rsif.2017.0224 (2017) How pigeons couple three-dimensional elbow and wrist motion to morph their wings. J. R. Soc. Interface 14: 20170224 (text via PMC5582118)",
+   "plosone2013": "doi:10.1371/journal.pone.0063982 (2013) Three-dimensional, high-resolution skeletal kinematics of the avian wing and shoulder during ascending flapping flight and uphill flap-running. PLoS ONE 8: e63982 (CC BY): chukar XROMM, Table 2",
    "featheratlas": "The Feather Atlas, U.S. Fish and Wildlife Service Forensics Laboratory (fws.gov/lab/featheratlas; US federal work): per-feather total and vane lengths (data/featheratlas.sqlite) and scans (outlines digitized here, tools/fa_profiles.py)",
-   "alerstam2007": "Alerstam T, Rosen M, Baeckman J, Ericson PGP, Hellgren O (2007) Flight speeds among bird species: allometric and phylogenetic effects. PLoS Biol 5: e197 (CC BY), Protocol S1: mass, span, area",
-   "wang2011": "Wang X, McGowan AJ, Dyke GJ (2011) Avian wing proportions and flight styles. PLoS ONE 6: e28672 (CC BY), Table S1: humerus and ulna (its manus, total-arm and mass columns are inconsistent and are not used)",
-   "liu2004": "Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA 2004-2186 (NASA Langley): a dried gull wing's twist; gull, goose and crane wing extension through the stroke from video"
+   "plosbiol2007": "doi:10.1371/journal.pbio.0050197 (2007) Flight speeds among bird species: allometric and phylogenetic effects. PLoS Biol 5: e197 (CC BY), Protocol S1: mass, span, area",
+   "plosone2011": "doi:10.1371/journal.pone.0028672 (2011) Avian wing proportions and flight styles. PLoS ONE 6: e28672 (CC BY), Table S1: humerus and ulna (its manus, total-arm and mass columns are inconsistent and are not used)",
+   "ntrs2004": "https://ntrs.nasa.gov/citations/20040075526 (2004) Avian wings. AIAA 2004-2186 (NASA Langley): a dried gull wing's twist; gull, goose and crane wing extension through the stroke from video"
   },
   "digits": {
-   "source": "derived (harvey2022 manus vs baliga2019 carpometacarpus)",
+   "source": "derived (nature2022 manus vs sciadv2019 carpometacarpus)",
    "ratio_digits_over_cmc_mean": 0.686,
    "by_species": {
     "gull": {
@@ -53,7 +53,7 @@
    "species": "Larus (glaucescens, argentatus, delawarensis)",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Larus argentatus",
      "mass_kg": 1.142,
      "span_m": 1.34,
@@ -64,7 +64,7 @@
    ],
    "skeleton": [
     {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Larus glaucescens",
      "specimen": "20_0341",
      "mass_kg": 1.063,
@@ -76,7 +76,7 @@
      "manus_as_given": 0.2074
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Larus glaucescens",
      "mass_g": 1349,
      "wing_length_mm": 632.8334193492823,
@@ -92,7 +92,7 @@
      "AR": 9.59
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Larus delawarensis",
      "mass_g": 465,
      "wing_length_mm": 429.57000000000005,
@@ -108,7 +108,7 @@
      "AR": 9.18
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Larus argentatus",
      "humerus_mm": 128.77,
      "ulna_mm": 144.26,
@@ -118,7 +118,7 @@
     }
    ],
    "planform_at_full_extension": {
-    "source": "harvey2022",
+    "source": "nature2022",
     "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
     "elbow_angle": 146.8,
     "manus_angle": 166.5,
@@ -178,7 +178,7 @@
    },
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 3,
      "elbow": [
       17,
@@ -204,7 +204,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       88,
@@ -232,8 +232,8 @@
       1.74
      ]
     },
-    "linkage_harvey2021": {
-     "source": "harvey2021",
+    "linkage_rsif2021": {
+     "source": "rsif2021",
      "curve_manus_by_elbow": {
       "90": 54.0,
       "95": 60.7,
@@ -256,7 +256,7 @@
      ]
     },
     "in_vivo_gliding": {
-     "source": "harvey2019",
+     "source": "rsif2019",
      "elbow": [
       90,
       154
@@ -270,7 +270,7 @@
    },
    "feathers": {
     "harvey": {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Larus glaucescens",
      "primaries": {
       "P1": {
@@ -635,7 +635,7 @@
    "species": "Branta canadensis, Anser anser",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Branta canadensis",
      "mass_kg": 3.628,
      "span_m": 1.69,
@@ -644,7 +644,7 @@
      "AR": 7.68
     },
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Anser anser",
      "mass_kg": 3.326,
      "span_m": 1.55,
@@ -655,7 +655,7 @@
    ],
    "skeleton": [
     {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Branta canadensis",
      "specimen": "21_0120",
      "mass_kg": 4.201,
@@ -667,7 +667,7 @@
      "manus_as_given": 0.2385
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Branta canadensis",
      "humerus_mm": 180.77,
      "ulna_mm": 161.33,
@@ -676,7 +676,7 @@
      "ulna": 0.1909
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Anser anser",
      "humerus_mm": 179.74,
      "ulna_mm": 171.11,
@@ -686,7 +686,7 @@
     }
    ],
    "planform_at_full_extension": {
-    "source": "harvey2022",
+    "source": "nature2022",
     "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
     "elbow_angle": 118.0,
     "manus_angle": 150.6,
@@ -746,7 +746,7 @@
    },
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 1,
      "elbow": [
       18,
@@ -764,7 +764,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       21,
@@ -793,9 +793,9 @@
       0.99
      ]
     },
-    "proxy": "Anas platyrhynchos (mallard, Anatidae): no goose in the range-of-motion set; the goose cadaver in harvey2022 reached elbow 124 deg at most",
+    "proxy": "Anas platyrhynchos (mallard, Anatidae): no goose in the range-of-motion set; the goose cadaver in nature2022 reached elbow 124 deg at most",
     "out_of_plane": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
      "bend_range_by_elbow": {
       "40": 48,
@@ -813,7 +813,7 @@
       "120": 44
      }
     },
-    "goose_cadaver_harvey2022": {
+    "goose_cadaver_nature2022": {
      "elbow": [
       19,
       124
@@ -826,7 +826,7 @@
    },
    "feathers": {
     "harvey": {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Branta canadensis",
      "primaries": {
       "P1": {
@@ -1105,7 +1105,7 @@
    "species": "Cygnus (olor, columbianus)",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Cygnus olor",
      "mass_kg": 10.597,
      "span_m": 2.3,
@@ -1114,7 +1114,7 @@
      "AR": 8.13
     },
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Cygnus columbianus",
      "mass_kg": 6.637,
      "span_m": 1.98,
@@ -1125,7 +1125,7 @@
    ],
    "skeleton": [
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Cygnus olor",
      "humerus_mm": 279.68,
      "ulna_mm": 254.68,
@@ -1265,7 +1265,7 @@
    "species": "Ciconia ciconia (bones, span), Mycteria americana (feathers)",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Ciconia ciconia",
      "mass_kg": 3.432,
      "span_m": 1.91,
@@ -1274,7 +1274,7 @@
      "AR": 6.85
     },
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Ciconia nigra",
      "mass_kg": 3.0,
      "span_m": 1.5,
@@ -1285,7 +1285,7 @@
    ],
    "skeleton": [
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Ciconia ciconia",
      "humerus_mm": 199.33,
      "ulna_mm": 229.92,
@@ -1294,7 +1294,7 @@
      "ulna": 0.2408
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Ciconia nigra",
      "humerus_mm": 196.0,
      "ulna_mm": 217.0,
@@ -1303,7 +1303,7 @@
      "ulna": 0.2893
     },
     {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Pelecanus erythrorhynchos",
      "specimen": "20_1124",
      "mass_kg": 5.828,
@@ -1313,11 +1313,11 @@
      "ulna": 0.309,
      "radius": 0.2978,
      "manus_as_given": 0.2238,
-     "proxy": "Pelecanus erythrorhynchos: a large soaring waterbird; no stork specimen in harvey2022"
+     "proxy": "Pelecanus erythrorhynchos: a large soaring waterbird; no stork specimen in nature2022"
     }
    ],
    "planform_at_full_extension": {
-    "source": "harvey2022",
+    "source": "nature2022",
     "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
     "elbow_angle": 145.8,
     "manus_angle": 153.8,
@@ -1378,7 +1378,7 @@
    },
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 3,
      "elbow": [
       24,
@@ -1404,7 +1404,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       23,
@@ -1435,7 +1435,7 @@
      ]
     },
     "proxy": "Cathartes aura (turkey vulture, a thermal soarer with a slotted hand): no stork in the range-of-motion set",
-    "pelican_cadaver_harvey2022": {
+    "pelican_cadaver_nature2022": {
      "elbow": [
       13,
       148
@@ -1579,7 +1579,7 @@
      }
     },
     "harvey_pelican": {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Pelecanus erythrorhynchos",
      "primaries": {
       "P1": {
@@ -1803,7 +1803,7 @@
    "species": "Ardea herodias, A. cinerea",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Ardea cinerea",
      "mass_kg": 1.439,
      "span_m": 1.73,
@@ -1814,7 +1814,7 @@
    ],
    "skeleton": [
     {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Ardea herodias",
      "specimen": "20_0284",
      "mass_kg": 1.931,
@@ -1824,10 +1824,10 @@
      "ulna": 0.2505,
      "radius": 0.244,
      "manus_as_given": 0.1265,
-     "note": "Harvey's heron \"cmc\" (0.117 m) is the carpometacarpus alone (Baliga's heron CMC 0.1025 m); the other kinds' include the major digit"
+     "note": "the heron \"cmc\" of doi:10.6084/m9.figshare.c.5503989 (0.117 m) is the carpometacarpus alone (doi:10.6084/m9.figshare.8856161: heron CMC 0.1025 m); the other kinds' include the major digit"
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Ardea herodias",
      "mass_g": 1940,
      "wing_length_mm": 633.7,
@@ -1843,7 +1843,7 @@
      "AR": 7.05
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Ardea cinerea",
      "humerus_mm": 170.73,
      "ulna_mm": 200.77,
@@ -1853,7 +1853,7 @@
     }
    ],
    "planform_at_full_extension": {
-    "source": "harvey2022",
+    "source": "nature2022",
     "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
     "elbow_angle": 151.3,
     "manus_angle": 172.1,
@@ -1913,7 +1913,7 @@
    },
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 1,
      "elbow": [
       7,
@@ -1931,7 +1931,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       11,
@@ -1960,7 +1960,7 @@
      ]
     },
     "out_of_plane": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
      "bend_range_by_elbow": {
       "40": 19,
@@ -1982,7 +1982,7 @@
    },
    "feathers": {
     "harvey": {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Ardea herodias",
      "primaries": {
       "P1": {
@@ -2256,7 +2256,7 @@
    "species": "Plegadis falcinellus (bones, span), Plegadis chihi and Eudocimus albus (feathers)",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Plegadis falcinellus",
      "mass_kg": 0.566,
      "span_m": 0.89,
@@ -2267,7 +2267,7 @@
    ],
    "skeleton": [
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Plegadis falcinellus",
      "humerus_mm": 93.3,
      "ulna_mm": 101.3,
@@ -2493,7 +2493,7 @@
    "species": "Corvus corax, C. caurinus, C. corone, C. brachyrhynchos",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Corvus corax",
      "mass_kg": 1.149,
      "span_m": 1.21,
@@ -2502,7 +2502,7 @@
      "AR": 5.92
     },
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Corvus corone",
      "mass_kg": 0.566,
      "span_m": 0.91,
@@ -2513,7 +2513,7 @@
    ],
    "skeleton": [
     {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Corvus corax",
      "specimen": "20_0908",
      "mass_kg": 0.778,
@@ -2525,7 +2525,7 @@
      "manus_as_given": 0.1881
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Corvus corax",
      "mass_g": 1251,
      "wing_length_mm": 486.74,
@@ -2541,7 +2541,7 @@
      "AR": 5.65
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Corvus caurinus",
      "mass_g": 600,
      "wing_length_mm": 354.71,
@@ -2557,7 +2557,7 @@
      "AR": 6.16
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Corvus corone",
      "humerus_mm": 66.26,
      "ulna_mm": 79.5,
@@ -2567,7 +2567,7 @@
     }
    ],
    "planform_at_full_extension": {
-    "source": "harvey2022",
+    "source": "nature2022",
     "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
     "elbow_angle": 153.3,
     "manus_angle": 176.2,
@@ -2627,7 +2627,7 @@
    },
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 2,
      "elbow": [
       21,
@@ -2649,7 +2649,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       22,
@@ -2678,7 +2678,7 @@
     },
     "raven": {
      "cadaver_range_deg": {
-      "source": "baliga2019",
+      "source": "sciadv2019",
       "n_specimens": 2,
       "elbow": [
        31,
@@ -2700,7 +2700,7 @@
       ]
      },
      "linkage": {
-      "source": "baliga2019",
+      "source": "sciadv2019",
       "note": "the elbow extended by hand, the wrist following through the forearm linkage",
       "elbow": [
        40,
@@ -2730,7 +2730,7 @@
      }
     },
     "out_of_plane": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
      "bend_range_by_elbow": {
       "40": 47,
@@ -2751,7 +2751,7 @@
    },
    "feathers": {
     "harvey": {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Corvus corax",
      "primaries": {
       "P1": {
@@ -3055,7 +3055,7 @@
    "species": "Hirundo rustica (and Tachycineta)",
    "span": [
     {
-     "source": "alerstam2007",
+     "source": "plosbiol2007",
      "species": "Hirundo rustica",
      "mass_kg": 0.016,
      "span_m": 0.32,
@@ -3066,7 +3066,7 @@
    ],
    "skeleton": [
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Hirundo rustica",
      "mass_g": 18.32,
      "wing_length_mm": 126.49,
@@ -3082,7 +3082,7 @@
      "AR": 6.94
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Tachycineta thalassina",
      "mass_g": 13.7,
      "wing_length_mm": 141.82,
@@ -3098,7 +3098,7 @@
      "AR": 7.84
     },
     {
-     "source": "wang2011",
+     "source": "plosone2011",
      "species": "Hirundo rustica",
      "humerus_mm": 14.98,
      "ulna_mm": 23.41,
@@ -3109,7 +3109,7 @@
    ],
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 2,
      "elbow": [
       27,
@@ -3131,7 +3131,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       26,
@@ -3271,7 +3271,7 @@
    "species": "Columba livia",
    "skeleton": [
     {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Columba livia",
      "specimen": "20_0281",
      "mass_kg": 0.337,
@@ -3283,7 +3283,7 @@
      "manus_as_given": 0.2054
     },
     {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "species": "Columba livia",
      "mass_g": 332,
      "wing_length_mm": 295.22,
@@ -3300,7 +3300,7 @@
     }
    ],
    "planform_at_full_extension": {
-    "source": "harvey2022",
+    "source": "nature2022",
     "note": "cadaver wing at its greatest elbow+manus extension, flattened into its own best-fit plane: [x forward, y out from the midline], fractions of the specimen's measured semi-span; pt8 = tip of P10 (the wingtip only where P10 is the longest primary or nearly: gull, duck); off-plane residuals show how far the cadaver wing departs from flat",
     "elbow_angle": 129.7,
     "manus_angle": 159.7,
@@ -3360,7 +3360,7 @@
    },
    "joints": {
     "cadaver_range_deg": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "n_specimens": 2,
      "elbow": [
       55,
@@ -3382,7 +3382,7 @@
      ]
     },
     "linkage": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "the elbow extended by hand, the wrist following through the forearm linkage",
      "elbow": [
       56,
@@ -3411,7 +3411,7 @@
      ]
     },
     "out_of_plane": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "note": "hand out of the arm's plane, cadaver: range (max - min, deg) of the carpometacarpus's elevation/depression (bend) and of the hand's pronation/supination (twist) by elbow angle (+-10 deg bins)",
      "bend_range_by_elbow": {
       "60": 42,
@@ -3429,7 +3429,7 @@
      }
     },
     "in_vivo_flight": {
-     "source": "baliga2019",
+     "source": "sciadv2019",
      "elbow": [
       69,
       110
@@ -3451,7 +3451,7 @@
    },
    "feathers": {
     "harvey": {
-     "source": "harvey2022",
+     "source": "nature2022",
      "species": "Columba livia",
      "primaries": {
       "P1": {
@@ -3601,7 +3601,7 @@
      3
     ]
    },
-   "from_": "harvey2022 (L. glaucescens), baliga2019 (L. glaucescens, L. delawarensis), wang2011+alerstam2007 (L. argentatus)",
+   "from_": "nature2022 (L. glaucescens), sciadv2019 (L. glaucescens, L. delawarensis), plosone2011+plosbiol2007 (L. argentatus)",
    "positions_at_full_extension": {
     "elbow_angle": 146.8,
     "manus_angle": 166.5,
@@ -3624,7 +3624,7 @@
     "semispan_basis": {
      "species": "Larus argentatus",
      "span_m": 1.34,
-     "source": "alerstam2007"
+     "source": "plosbiol2007"
     }
    }
   },
@@ -3646,7 +3646,7 @@
      3
     ]
    },
-   "from_": "harvey2022 (B. canadensis), wang2011+alerstam2007 (B. canadensis, A. anser); cmc/digits split by the derived ratio",
+   "from_": "nature2022 (B. canadensis), plosone2011+plosbiol2007 (B. canadensis, A. anser); cmc/digits split by the derived ratio",
    "positions_at_full_extension": {
     "elbow_angle": 118.0,
     "manus_angle": 150.6,
@@ -3670,7 +3670,7 @@
     "semispan_basis": {
      "species": "Branta canadensis",
      "span_m": 1.69,
-     "source": "alerstam2007"
+     "source": "plosbiol2007"
     }
    }
   },
@@ -3681,7 +3681,7 @@
    "cmc": 0.144,
    "digits": 0.099,
    "estimate": "shoulder offset taken from the goose (0.097); manus from the goose's manus/ulna (1.09)",
-   "from_": "wang2011+alerstam2007 (C. olor)",
+   "from_": "plosone2011+plosbiol2007 (C. olor)",
    "bones_sum_with_shoulder": 0.798,
    "primaries_beyond_bones": 0.202,
    "longest_primary": {
@@ -3692,7 +3692,7 @@
     "semispan_basis": {
      "species": "Cygnus columbianus",
      "span_m": 1.98,
-     "source": "alerstam2007"
+     "source": "plosbiol2007"
     }
    }
   },
@@ -3703,7 +3703,7 @@
    "cmc": 0.118,
    "digits": 0.081,
    "estimate": "CMC from the heron's CMC/ulna (0.489); shoulder offset between heron (0.030) and pelican (0.065)",
-   "from_": "wang2011+alerstam2007 (C. ciconia)",
+   "from_": "plosone2011+plosbiol2007 (C. ciconia)",
    "positions_proxy_pelican": {
     "elbow_angle": 145.8,
     "manus_angle": 153.8,
@@ -3726,7 +3726,7 @@
     "semispan_basis": {
      "species": "Ciconia ciconia (feathers: Mycteria americana)",
      "span_m": 1.91,
-     "source": "alerstam2007; species mismatch"
+     "source": "plosbiol2007; species mismatch"
     }
    }
   },
@@ -3748,7 +3748,7 @@
      2
     ]
    },
-   "from_": "harvey2022 (A. herodias; its \"cmc\" is the CMC alone), wang2011+alerstam2007 (A. cinerea); baliga2019's heron left out (its wing length, 0.63 m, is far short of the species' semi-span)",
+   "from_": "nature2022 (A. herodias; its \"cmc\" is the CMC alone), plosone2011+plosbiol2007 (A. cinerea); sciadv2019's heron left out (its wing length, 0.63 m, is far short of the species' semi-span)",
    "positions_at_full_extension": {
     "elbow_angle": 151.3,
     "manus_angle": 172.1,
@@ -3771,7 +3771,7 @@
     "semispan_basis": {
      "species": "Ardea herodias",
      "span_m": 1.844,
-     "source": "harvey2022 specimen span"
+     "source": "nature2022 specimen span"
     }
    }
   },
@@ -3782,7 +3782,7 @@
    "cmc": 0.111,
    "digits": 0.076,
    "estimate": "CMC from the heron's CMC/ulna; shoulder offset estimated",
-   "from_": "wang2011+alerstam2007 (P. falcinellus)",
+   "from_": "plosone2011+plosbiol2007 (P. falcinellus)",
    "bones_sum_with_shoulder": 0.664,
    "primaries_beyond_bones": 0.336,
    "longest_primary": {
@@ -3793,7 +3793,7 @@
     "semispan_basis": {
      "species": "Plegadis falcinellus (feathers: P. chihi)",
      "span_m": 0.89,
-     "source": "alerstam2007; congener"
+     "source": "plosbiol2007; congener"
     }
    }
   },
@@ -3815,7 +3815,7 @@
      2
     ]
    },
-   "from_": "baliga2019 (C. caurinus), wang2011+alerstam2007 (C. corone); shoulder offset from the raven (harvey2022)",
+   "from_": "sciadv2019 (C. caurinus), plosone2011+plosbiol2007 (C. corone); shoulder offset from the raven (nature2022)",
    "raven": {
     "humerus": 0.175,
     "ulna": 0.209,
@@ -3843,7 +3843,7 @@
     "semispan_basis": {
      "species": "Corvus corax",
      "span_m": 1.21,
-     "source": "alerstam2007"
+     "source": "plosbiol2007"
     }
    }
   },
@@ -3866,7 +3866,7 @@
     ]
    },
    "estimate": "shoulder offset estimated",
-   "from_": "baliga2019 (H. rustica), wang2011+alerstam2007 (H. rustica)",
+   "from_": "sciadv2019 (H. rustica), plosone2011+plosbiol2007 (H. rustica)",
    "bones_sum_with_shoulder": 0.424,
    "primaries_beyond_bones": 0.576,
    "longest_primary": {
@@ -3877,7 +3877,7 @@
     "semispan_basis": {
      "species": "Hirundo rustica",
      "span_m": 0.32,
-     "source": "alerstam2007"
+     "source": "plosbiol2007"
     }
    }
   }

@@ -94,7 +94,7 @@
     {
       "id": "no-fades",
       "area": "motion",
-      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance); the sound icon's two states swap at once. The score's level rising over 4 s and falling over 1.5 s, and its notes swelling in and out, are sound, not fades: nothing seen fades.",
+      "rule": "No fade-ins or fade-outs anywhere: no keyframes and no transitions in the stylesheet; the world's show is a cut, its frame drawn whole first; a sun or moon never fades where it stands; no bird fades in time (it shows by crossing the window's edge or out of the distance); the sound icon's two states swap at once. The score's level rising over 4 s and falling over 1.5 s, and its notes swelling in and out, are sound, not fades: nothing seen fades. Two exceptions, the owner's (2026-11-15), and only these: short shooting stars that appear and vanish mid-sky (\"Allow short ones too\": short, soft, under the light ceiling, a few a night), and a soft flicker inside the far storm cloud (\"Soft distant flicker\": dim and slow, under the light ceiling, under 3 flashes a second). Neither shows under reduced motion or in a still.",
       "source": [
         {
           "quote": "There shouldn't be any fade-ins/outs at all",
@@ -108,6 +108,16 @@
           "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
           "date": "2026-11-07",
           "doc": "docs/design.md; docs/sound.md"
+        },
+        {
+          "quote": "Allow short ones too",
+          "date": "2026-11-15",
+          "via": "the owner's answer to the hub on the meteors; written in at his word (\"yes\", 2026-11-23)"
+        },
+        {
+          "quote": "Soft distant flicker",
+          "date": "2026-11-15",
+          "via": "the owner's answer to the hub on the far storm's lightning; written in at his word (\"yes\", 2026-11-23)"
         }
       ],
       "enforced_by": []
@@ -445,7 +455,7 @@
     {
       "id": "sound-opt-in",
       "area": "sound",
-      "rule": "The sound is opt-in: every visit is silent until the visitor presses the sound icon (a button in the footer, in the words' light ink, its state in aria-pressed, which is always the truth: a failed fetch or decode, or a device that will not start, shows it off). The press sets the audio session to playback (heard with the iOS ringer off, as a video is; the visitor's own music pauses), makes one audio context, fetches one sheet of notes from this site (/assets/sound/: real recordings, CC0) and decodes it once, and hands both to the score (score.js), which plays music and faint ambiance live, following the sky (each sky its key and its colour, its changes planned with the world's, never a loop), its level rising over about 4 s; a second press takes it down over about 1.5 s and suspends the context, a third resumes it. A visit that never presses loads the switch and the score's code (about 0.6 and 8.8 KB as sent, the score deferred) and no audio. The score sits at about -23 LUFS, its true peak under -1 dBFS, with no compression; it reads the sky (WORLD.sky, a copy) and never steers the world.",
+      "rule": "The sound is opt-in: every visit is silent until the visitor presses the sound icon (a button in the footer, in the words' light ink, its state in aria-pressed, which is always the truth: a failed fetch or decode, or a device that will not start, shows it off). The press sets the audio session to playback (heard with the iOS ringer off, as a video is; the visitor's own music pauses), makes one audio context, fetches one sheet of notes from this site (/assets/sound/: real recordings, CC0) and decodes it once, and hands both to the score (score.js), which plays music and faint ambiance live, following the sky (each sky its key and its colour, its changes planned with the world's, never a loop), its level rising over about 4 s; a second press takes it down over about 1.5 s and suspends the context, a third resumes it. A visit that never presses loads the switch and the score's code (about 0.6 and 9.3 KB as sent, the score deferred) and no audio. The score sits at about -23 LUFS, its true peak under -1 dBFS, with no compression; it reads the sky (WORLD.sky, a copy) and never steers the world.",
       "source": [
         {
           "quote": "bring it back, opt-in. using an icon that fits with the rest of the design",
@@ -533,6 +543,10 @@
           "file": ".claude/hooks/guard.py"
         },
         {
+          "kind": "ci-step",
+          "name": "No author-style citation in a tracked file"
+        },
+        {
           "kind": "prose"
         }
       ]
@@ -540,7 +554,7 @@
     {
       "id": "merge-rights",
       "area": "process",
-      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot when nothing visible changes. An agent never merges, never enables auto-merge and never pushes to main.",
+      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot: when nothing visible changes, or, since 2026-11-23, when the hub has reviewed the PR's head commit (the line <!-- hub-review SHA --> in its body), visible changes and the bot's own files included. An agent never merges, never enables auto-merge and never pushes to main.",
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
@@ -549,6 +563,18 @@
         {
           "quote": "GitHub auto-merge (Recommended)",
           "date": "2026-11-06",
+          "doc": "docs/deploy.md"
+        },
+        {
+          "quote": "just auto push stuff and u do everything quickly",
+          "date": "2026-11-23",
+          "via": "the owner's message to the hub, then his choice \"Yes, everything (Recommended)\"",
+          "doc": ".github/workflows/merge.yml; docs/deploy.md"
+        },
+        {
+          "quote": "Full auto, I'll allow it",
+          "date": "2026-11-23",
+          "via": "the owner's answer to the hub: the hub marks its own reviews, and visible changes go live without a person looking first",
           "doc": "docs/deploy.md"
         }
       ],
@@ -643,11 +669,15 @@
     {
       "id": "load-budget",
       "area": "performance",
-      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile within 1,200 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
+      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile waiting for nothing but its own (only the stylesheet and the hour render-blocking, and the first-paint hold out on a phone) and within 4,000 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
       "source": [
         {
           "date": "2026-11-07",
           "via": "the hub's load-perf lane, from the owner's ask that the site load near-instantly with every barrier to shipping fast removed; the budget a check so regressions cannot come back"
+        },
+        {
+          "date": "2026-11-23",
+          "via": "the hub's load-perf lane: the first paint's wall-clock bar (1,200 ms) failed six bird PRs on busy runners that could not move the paint; the bar is now what the paint waits for, which a busy runner cannot change, with 4,000 ms as a net"
         }
       ],
       "enforced_by": []
