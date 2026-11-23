@@ -106,12 +106,13 @@
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
       var mk = mistK(B); if (mk > MISTMAX) MISTMAX = mk;
       var ceil = 1e5;
-      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 4 : 1); B.u4a[3] = B.det[1] * (CRISP ? 3 : 1);   // (crisp cauliflower on the desktop: the kit's billows four times the size, three times the depth: less steep than the kit's own (twice the size at five times the depth, 2.5 times as steep, cut free puffs off the tops: the hub's review of #254; four times at five, 1.25 times, still left a few on the 4090))   // (the body's own, from volPrep)
+      B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 4 : 1); B.u4a[3] = B.det[1] * (CRISP ? 3 : 1); if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.25; }   // (a held body, a lens: its billows the kit's size at a quarter of its depth on every look, never the desktop's deep cauliflower: plates 28-78 m thick stay smooth, and billows flowing through them at 8-10 m/s open no holes (the hub's review of #298))   // (crisp cauliflower on the desktop: the kit's billows four times the size, three times the depth: less steep than the kit's own (twice the size at five times the depth, 2.5 times as steep, cut free puffs off the tops: the hub's review of #254; four times at five, 1.25 times, still left a few on the 4090))   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
       var c0 = B.c0 || B.c, nS = B.u4a[2]; if (!B.nO) B.nO = new Float32Array(3);   // (the billows ride with the body: an offset from where it was laid out, in doubles, never the clock's)
-      for (var k3 = 0; k3 < 3; k3++) { var q3 = c0[k3] / nS; B.nO[k3] = q3 - Math.floor(q3); }
+      var fl = B.flow, tf = fl ? cloudT() : 0;   // (a held body (a lenticular): its envelope still, its billows flowing through it at the wind at its height, in doubles)
+      for (var k3 = 0; k3 < 3; k3++) { var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS; B.nO[k3] = q3 - Math.floor(q3); }
       gl.uniform3fv(P.u.uVO, B.nO);
       gl.activeTexture(gl.TEXTURE10); gl.bindTexture(gl.TEXTURE_3D, B.t); gl.activeTexture(gl.TEXTURE0);
       dc(gl.TRIANGLES, 36); m++;
