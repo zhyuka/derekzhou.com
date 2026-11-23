@@ -1,5 +1,5 @@
 /* solve.js (physics/model): solve the rig's angles on the faceted M so that the POSED form, measured the way the
-   source measured its birds, shows the measured observables at every phase; fit each rig angle with a Fourier series
+   source measured its birds, shows the measured observables at every phase; fit each rig angle with a harmonic (cosine and sine) series
    and write them into the model (kinds[k].rig).
      node solve.js <the wing model's folder: src/birds/model> <model.json in> <model.json out>   (tools/birds/model/make.py runs it)
 
@@ -9,7 +9,7 @@
        (wrist -> tip: -psi2), the front-projected arc length root-wrist-knuckle-tip over its greatest (the extension);
        and the arm section's and the outer (knuckle) section's chord pitch in the body frame (the barnacle goose's
        measure: cycle means kept, the oscillation the model's).
-       Unknowns: arm dih, hand dih, arm twi, hand twi by Newton; the hand's sweep nested (bisection on the back branch
+       Unknowns: arm dih, hand dih, arm twi, hand twi by the tangent (derivative) iteration; the hand's sweep nested (bisection on the back branch
        for the extension). Geese and swans: no extension (they do not fold): the sweep stays the lag channel's.
    'mocap' (crow, swallow, finch: the pigeon's motion-capture definitions, doi:10.3390/biomimetics9090555):
        the shoulder-wrist line's 3D elevation above the horizontal plane, the wrist-tip line's less it, and the tip's
