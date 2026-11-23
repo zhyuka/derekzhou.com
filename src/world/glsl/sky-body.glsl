@@ -38,6 +38,15 @@ vec3 haloAt(vec3 rd) {
   vec3 warmD = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(-radians(0.2), radians(1.2), off));   // (as colourless as the ring: by moonlight the eye sees both near white)
   return (warm * ring + warmD * dog * 1.6) * uHalo.y;
 }
+/* (physics: sky/purple-light, strictly additive) the composite's light ceiling (0.525, its knee 0.04: fs-comp) scales a
+   colour whole once its OKLab L passes 0.485, so light added past there takes a level from the colour's largest channel
+   (measured: 886 px a level lower in red at 3 deg down, 0 px with the ceiling off); what the purple light adds is held
+   under PURP_KC, the knee's start less the bloom and grade the composite lays on the sky there (up to L 0.035) */
+const float PURP_KC = 0.45;
+float purpL(vec3 c) {
+  vec3 m = pow(max(vec3(dot(c, vec3(0.4122214708, 0.5363325363, 0.0514459929)), dot(c, vec3(0.2119034982, 0.6806995451, 0.1073969566)), dot(c, vec3(0.0883024619, 0.2817188376, 0.6299787005))), vec3(0.0)), vec3(1.0 / 3.0));
+  return dot(m, vec3(0.2104542553, 0.7936177850, -0.0040720468));
+}
 const float PURP_K = 0.03;   // (physics: sky/purple-light) its strength: Y about +0.02 at its centre before the cap (test/unit/sky.mjs)
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
@@ -140,7 +149,13 @@ void main() {
     float pa = degrees(acos(clamp(dot(rd, uPurp.xyz), -1.0, 1.0)));
     vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));
     float yP = dot(pA, LUMA), roomP = max(0.118 - dot(c, LUMA), 0.0);
-    c += pA * (yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0);
+    pA *= yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0;
+    if (purpL(c + pA) > PURP_KC) {   // (strictly additive: never into the ceiling's knee, where the whole colour is scaled)
+      float lo = 0.0, hi = purpL(c) >= PURP_KC ? 0.0 : 1.0;
+      for (int i = 0; i < 10; i++) { float m = 0.5 * (lo + hi); if (purpL(c + pA * m) > PURP_KC) hi = m; else lo = m; }
+      pA *= lo;
+    }
+    c += pA;
   }
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on

@@ -4,6 +4,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return F * starBox(d.x, sg) * starBox(d.y, sg);", "with": "  return b * exp(-dot(d, d) / (2.0 * 0.1764));", "why": "a star sampled at the pixel's centre: it pulses as it slides across pixels"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += auroraAt(rd, eS) * hzT;", "with": "c += auroraAt(rd, eS);", "why": "the aurora added over the haze at full strength"}
 // plant: {"file": "src/world/223-sun.js", "find": "x = clamp((d + 6) / 2, 0, 1)", "with": "x = 1", "why": "the purple light at night: it shows with the sun 24 deg down"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float PURP_KC = 0.45;", "with": "const float PURP_KC = 0.6;", "why": "the purple light into the ceiling's knee: the old blend, a level taken from the red"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
@@ -267,7 +268,7 @@ test('physics: sky/purple-light: the purple light above the hidden sun, by its d
   for (let d = -1.6; d >= -6.9; d -= 0.1) { const e = Math.asin(at(d)[1]) * 180 / Math.PI; assert.ok(e <= prevE + 1e-9, `its centre climbs as the sun sinks (${d.toFixed(1)}: ${e.toFixed(1)} deg)`); prevE = e; }
   assert.ok(Math.abs(Math.asin(at(-3)[1]) * 180 / Math.PI - 28) < 1e-6 && Math.abs(Math.asin(at(-6)[1]) * 180 / Math.PI - 16) < 1e-6, 'its centre not 28 deg up at 3 down and 16 at 6');
   // the shader's lines: over the twilight's sky at its centre (the stops at their heights, the dunes' haze), it shows and stays under
-  assert.ok(g.includes('vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));') && g.includes('c += pA * (yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0);'), 'the purple light is not the lines this test models');
+  assert.ok(g.includes('vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));') && g.includes('pA *= yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0;') && g.includes('for (int i = 0; i < 10; i++) { float m = 0.5 * (lo + hi); if (purpL(c + pA * m) > PURP_KC) hi = m; else lo = m; }') && g.includes('c += pA;'), 'the purple light is not the lines this test models');
   const { WSKY } = skyWorld(1, 'night', 0.5), D2R = Math.PI / 180, Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   const o2l = (L, aa, bb) => { let l = L + 0.3963377774 * aa + 0.2158037573 * bb, m = L - 0.1055613458 * aa - 0.0638541728 * bb, s = L - 0.0894841775 * aa - 1.2914855480 * bb; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s].map((x) => Math.max(x, 0)); };
   const lc = (s) => o2l(s[0], s[1] * Math.cos(s[2] * D2R), s[1] * Math.sin(s[2] * D2R));
@@ -283,6 +284,26 @@ test('physics: sky/purple-light: the purple light above the hidden sun, by its d
     assert.ok((0.82 + 0.05) / (Y(c1) + 0.05) >= 4.5, `${id}: the credit over the purple light reads ${((0.82 + 0.05) / (Y(c1) + 0.05)).toFixed(2)}:1`);
     if (e === 28 && off === 0) shown = Math.min(shown, Lof(c1) - Lof(c0));
   }
+  // strictly additive (the owner's never-darken, per channel): through the composite's grade (its saturation) and its light
+  // ceiling (fs-comp's lines: 0.525 less its knee, colour scaled whole by the cube of the L ratio), no channel of the frame
+  // with the purple light is below the frame without it, the sun 1-7 deg down, over the afterglow and first light, low to high
+  for (const id of ['afterglow', 'firstlight', 'bluehour']) assert.equal(WSKY[id].ceil, 0.525, `${id}'s light ceiling is not the one this test models`);
+  const KC = +g.match(/const float PURP_KC = ([\d.]+);/)[1], CEIL = 0.525, KNEE = +WORLD.match(/CEIL_KNEE = ([\d.]+)/)[1];
+  const kneeCap = (c0, ad) => { if (Lof(c0.map((v, i) => v + ad[i])) <= KC) return ad; let lo = 0, hi = Lof(c0) >= KC ? 0 : 1; for (let i = 0; i < 10; i++) { const m = 0.5 * (lo + hi); if (Lof(c0.map((v, j) => v + ad[j] * m)) > KC) hi = m; else lo = m; } return ad.map((v) => v * lo); };
+  // (the frame: the sky as the composite gets it, its bloom and grade raising it by up to L 0.035 (measured), the same
+  // for both arms; then its saturation and the ceiling)
+  const frame = (c, sat, up) => { c = c.map((v) => v * up); const y0 = Y(c); c = c.map((v) => Math.max(y0 + (v - y0) * sat, 0)); const Lk = Lof(c), Kc = CEIL - KNEE; return Lk > Kc ? c.map((v) => v * ((Kc + KNEE * (1 - Math.exp(-(Lk - Kc) / KNEE))) / Lk) ** 3) : c; };
+  let worst = 0;
+  // (the sky behind it: the stops at their heights, and toward the sun its warm side (skyW) and glow (glowC), the brightest
+  // and reddest the patch ever stands on)
+  for (const id of ['afterglow', 'firstlight']) for (let d = -1; d >= -7; d -= 0.5) for (const hz of [0.45, 0.85]) for (let e = 1; e <= 60; e += 1) for (const off of [0, 12, 25]) for (const [wc, f] of [['skyW', 0], ['skyW', 0.3], ['skyW', 0.6], ['skyW', 1], ['glowC', 0.5], ['glowC', 1]]) {
+    const w = at(d)[3], ce = Math.asin(at(d)[1]) / D2R; if (!(w > 0)) continue;
+    const h = 1 - Math.exp(-1e-3 * hz * Math.exp(-24 / 30) * 30 / Math.sin(e * D2R)), cw = lc(WSKY[id][wc]), c0 = skyAt(WSKY[id], e).map((v, i) => v + (cw[i] - v) * f), sat = WSKY[id].post.sat;
+    const ad = kneeCap(c0, cap(c0, [1.0, 0.56, 0.92].map((v) => v * K * w * Math.exp(-(off * off + (e - ce) ** 2) / 392) * (1 - h))));
+    const up = ((Lof(c0) + 0.035) / Lof(c0)) ** 3, f0 = frame(c0, sat, up), f1 = frame(c0.map((v, i) => v + ad[i]), sat, up);
+    for (let i = 0; i < 3; i++) worst = Math.min(worst, f1[i] - f0[i]);
+  }
+  assert.ok(worst >= -1e-9, `the purple light takes ${(-worst * 255).toFixed(3)} of a level from a channel of the frame (it only adds light, channel by channel)`);
   assert.ok(shown >= 0.01, `the purple light adds only L ${shown.toFixed(4)} at its centre over the twilight's sky (it would not show: at least 0.01)`);
   // its depth the sun's true one, one way through a change (the change's two skies, never a waypoint), drawn behind the 3 km veil
   assert.ok(WORLD.includes('return a + (b - a) * ss01(SKY.k || 0);') && WORLD.includes('if (SUNU.on) return SUNU.es;'), 'the purple light does not read the sun\'s true depth, one way through a change');
