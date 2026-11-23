@@ -4,6 +4,8 @@
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c,", "with": "var pc = o.c0 || o.c,", "why": "a drifting body's distance fade read where it was laid out: it comes out of the haze where it no longer is"}
 // plant: {"file": "src/realm-dunes.js", "find": "dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180,", "with": "dir: dAirDir(C.V) + R.r(45, 75) * PI / 180,", "why": "the ranges at 60 deg to the wind, not along it"}
 // plant: {"file": "src/realm-above.js", "find": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;", "with": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d; if (s.kind === 0) aTower(C, R, s.x, s.z, 300, 400, 1, false);", "why": "the open sea's tower back in the world cell: a free cumulus standing still"}
+// plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "    return C.air ? Math.min(f, cellDistFade(C)) : f;", "with": "    return f;", "why": "an air cell's body faded by its own distance alone: a cloud sea tower at its cell's near side shows when its cell is made (a pop)"}
+// plant: {"file": "src/world/414-draw-scene.js", "find": "dO - Math.floor(dO / 768000) * 768000", "with": "dO - Math.floor(dO / 700000) * 700000", "why": "the deck's offset wrapped at no whole number of its tiles: a seam at every wrap"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
@@ -160,4 +162,83 @@ test('drift: ABOVE\'s world cells lay out no cumulus; its air cells lay out the 
   assert.ok(!kinds.cell.cumulus, `ABOVE's world cells lay out ${kinds.cell.cumulus} cumulus: free clouds standing still (${JSON.stringify(kinds.cell)})`);
   assert.ok(kinds.cell.wall > 0, 'the census met no canyon: it proves nothing about the world cells');
   assert.ok(kinds.air.cumulus > 50, `ABOVE's air cells lay out only ${kinds.air.cumulus || 0} cumulus: the towers are gone`);
+});
+
+// no pops in the air (physics: clouds/drift, the spec's "no pops" proof): both kits' air cells, laid out by the realms
+// themselves (their air(), their cloud(), 120's builders and volPrep's boxes) and streamed by the world's own radii
+// (streamR: made at it and half a cell, freed at 1.3 of it and half a cell), on 20 min flights of random turns, every
+// way and strength of wind; each body's weight the world's own volDistFade at the draw's moment. No body may weigh
+// more than 0.001 when its cell is made, nor for 10 s after (the cell's build and bake), nor when it is freed
+test('drift: no air cell\'s body shows when its cell is made or freed, on 20 min flights in every wind', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT, STREAMS } = await import('../unit-lib.mjs');
+  const DUNES = fs.readFileSync(path.join(ROOT, 'src/realm-dunes.js'), 'utf8'), ABOVE = fs.readFileSync(path.join(ROOT, 'src/realm-above.js'), 'utf8');
+  const AIR2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+  const W = vm.runInThisContext(`(function () { var PI = Math.PI, SIM = { V: null, t: 0, alpha: 1 }, SIM_DT = 1 / 60, shown = true, DEVMODE = false, SW = {}, VOL16 = false, LOOKD = false, J = { seed: 1 }, CAM = { pos: [0, 0, 0] };
+    function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+    function memTier() { return 'desktop'; } function volDetail() { return new Float32Array([96, 4.6]); } function cellLift() { return 0; }
+    ${STREAMS}${AIR2}${SRC}${cut(WORLD, '  function Puffs() {', '  function mound(')}${cut(WORLD, '  function volPrep(', '  /* up to budget units')}
+    ${cut(WORLD, '  function nearDist(C, x, z) {', '\n', true)}${cut(WORLD, '  function streamR(L, V) {', '\n', true)}${cut(WORLD, '  function fadeZ(V, sc) {', '  function lateBorn(')}
+    return { SIM: SIM, CAM: CAM, RNG: RNG, cellHash: cellHash, subseed: subseed, hk: hk, hfl: hfl, ihash: ihash, windAt: windAt, AIR_H: AIR_H, airW: airW, streamR: streamR, volDistFade: volDistFade, Puffs: Puffs, volPrep: volPrep, cumulus: cumulus, range: range, wall: wall };
+  })()`);
+  const defs = {};
+  for (const [name, src] of [['dunes', DUNES], ['above', ABOVE]]) {
+    const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: W.cellHash, hk: W.hk, hfl: W.hfl, ihash: W.ihash, RNG: W.RNG, cumulus: W.cumulus, range: W.range, wall: W.wall, box: () => {}, prism: () => {}, lathe: () => {}, rock: () => {} };
+    vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air: { windAt: W.windAt, H: W.AIR_H }, realm: (d) => { defs[name] = d; } } });
+  }
+  const KITS = { dunes: { sc: 3, L: { size: 1500, radius: 5200, air: 'dunes' } }, above: { sc: 4, L: { size: 1200, radius: 3800, air: 'above' } } };
+  assert.match(WORLD, /\{ size: KD\.layout\.scales\[0\]\.size, radius: KD\.layout\.scales\[0\]\.radius, air: 'dunes' \}, \{ size: KA\.layout\.scales\[0\]\.size, radius: KA\.layout\.scales\[0\]\.radius, air: 'above' \}/, 'the air scales are not the 4th and 5th, at the kits\' sizes');
+  assert.match(DUNES, /scales: \[\{ size: DS, radius: 5200 \}/); assert.match(DUNES, /var DS = 1500,/); assert.match(ABOVE, /scales: \[\{ size: AS, radius: 3800 \}\]/); assert.match(ABOVE, /var AS = 1200,/);
+  let s0 = 12345; const rnd = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
+  const tot = { dunes: { n: 0, lead: Infinity, free: 0 }, above: { n: 0, lead: Infinity, free: 0 } };
+  for (const kit of ['dunes', 'above']) for (const u10 of [3, 5, 7.5]) for (let az = 0; az < 360; az += 45) for (const seed of [11, 707]) {
+    const { sc, L } = KITS[kit], a = az * Math.PI / 180, scales = []; scales[sc] = L;
+    const V = { wind: [Math.sin(a), Math.cos(a)], u10, seed: seed + az, salt: seed * 31, speed: 12, light: { sunEl: 8, sunAz: 120 }, def: { layout: { scales } } };
+    const w = W.airW(V), Rs = W.streamR(L, V), make = Rs + L.size / 2, free = Rs * 1.3 + L.size / 2, cells = new Map(), pend = [], T = tot[kit];
+    const cellOf = (ix, iz) => {   // (an air cell laid out where the air stood at t 0: its bodies' c0 in the air frame, carried at w)
+      const out = [], hash = W.cellHash(ix, iz, ((W.subseed(V.seed, 47)) ^ (sc * 0x9e3779b9)) >>> 0), C = { V, sc, air: true, cx: (ix + 0.5) * L.size, cz: (iz + 0.5) * L.size, size: L.size };
+      defs[kit].air({ V, ix, iz, salt: V.salt, hash, x0: ix * L.size, z0: iz * L.size, size: L.size, air: true, cloud: (cl) => { out.push(cl); return cl; }, add: () => {}, poi: () => {}, flock: () => {}, inside: () => true, weights: () => [1, 0] }, W.RNG(hash));
+      const B = [];
+      for (let i = 0; i < out.length; i++) { const cl = out[i]; cl.base = 600; const PF = new W.Puffs(); defs[kit].cloud(cl, PF, W.RNG(cl.seed || (i * 7919) >>> 0)); for (let bi = 0; bi < PF.bodies.length; bi++) { const o = W.volPrep(PF, bi, null, 44, V).out; o.c0 = Float64Array.from(o.c); o.w = w; o.cell = C; B.push(o); } }
+      return { ix, iz, C, B };
+    };
+    let x = 0, z = 0, hd = rnd() * 6.283, turn = 0;
+    for (let s = 0; s < 2400; s++) {
+      const t = s * 0.5; if (s % 10 === 0) turn = (rnd() - 0.5) * 0.6; hd += turn * 0.5; x += 12 * Math.sin(hd) * 0.5; z += 12 * Math.cos(hd) * 0.5;
+      W.SIM.t = t; W.CAM.pos[0] = x; W.CAM.pos[2] = z;
+      const ax = x - w[0] * t, az2 = z - w[1] * t, n = Math.ceil(Rs / L.size) + 1, bx = Math.floor(ax / L.size), bz = Math.floor(az2 / L.size);
+      for (let jz = -n; jz <= n; jz++) for (let jx = -n; jx <= n; jx++) {
+        const ix = bx + jx, iz = bz + jz, k = ix + ',' + iz;
+        if (cells.has(k) || Math.hypot((ix + 0.5) * L.size - ax, (iz + 0.5) * L.size - az2) > make) continue;
+        const c = cellOf(ix, iz); cells.set(k, c); if (s > 0) for (const o of c.B) { T.n++; pend.push([o, t]); }
+      }
+      for (let i = pend.length - 1; i >= 0; i--) if (W.volDistFade(pend[i][0]) > 0.001) { T.lead = Math.min(T.lead, t - pend[i][1]); pend.splice(i, 1); }
+      for (const [k, c] of cells) if (Math.hypot((c.ix + 0.5) * L.size - ax, (c.iz + 0.5) * L.size - az2) > free) { for (const o of c.B) T.free = Math.max(T.free, W.volDistFade(o)); cells.delete(k); }
+    }
+  }
+  for (const kit of ['dunes', 'above']) {
+    const T = tot[kit];
+    assert.ok(T.n > 300, `only ${T.n} ${kit} bodies made in flight: the census proves nothing`);
+    assert.ok(T.lead >= 10, `a ${kit} air cell's body weighs over 0.001 ${T.lead} s after its cell is made: it pops in as it is baked`);
+    assert.ok(T.free <= 0.001, `a ${kit} air cell is freed with a body at weight ${T.free.toFixed(3)}: it pops out`);
+  }
+  if (process.env.DRIFT_SAY) console.log(JSON.stringify(tot));
+});
+
+// the high deck carried by its wind (physics: clouds/drift 7): 414 computes its offset in doubles from the draw's moment
+// and wraps it to a whole number of the deck's noise tiles (sky-body.glsl: 153.6 km along the wind) before it goes to
+// the GPU as a float, so after a day's flight it still moves by whole float steps of under 0.1 m, and the wrap is seamless
+test('drift: the high deck\'s offset is carried in doubles and wrapped to whole noise tiles', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT } = await import('../unit-lib.mjs');
+  const SKY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/sky-body.glsl'), 'utf8');
+  const L = /var dW = cloudWind\(V, 'deck', DECKW\), dS = [^;]+, dO = dS \* cloudT\(\);/.exec(WORLD), U = /gl\.uniform4f\(P\.u\.uDeck, [^;]*?, dO - Math\.floor\(dO \/ (\d+)\) \* \1, 0\);/.exec(WORLD);
+  assert.ok(L, 'the deck\'s offset is not its wind\'s speed times the draw\'s moment (cloudT, in doubles)');
+  assert.ok(U, 'the deck\'s offset is not wrapped before it goes to the GPU');
+  const tile = +/vec2\(1\.0 \/ (\d+)\.0, 1\.0 \/ \d+\.0\)/.exec(SKY)[1], wrap = +U[1];
+  assert.equal(wrap % tile, 0, `the wrap ${wrap} m is not a whole number of the deck's ${tile} m tile: a seam at every wrap`);
+  for (const t of [0, 1, 3600, 86400, 864000]) for (const dS of [2, 9.5, 19]) {
+    const dO = dS * t, z = dO - Math.floor(dO / wrap) * wrap, z1 = Math.fround(z), dz = dS / 60, z2 = Math.fround(z + dz);
+    assert.ok(z >= 0 && z < wrap, `the wrapped offset ${z} is outside [0, ${wrap})`);
+    assert.ok(Math.abs(z1 - z) < 0.05, `at t ${t} s the float offset is ${Math.abs(z1 - z).toFixed(3)} m off`);
+    if (z + dz < wrap) assert.ok(Math.abs((z2 - z1) - dz) < 0.1, `at t ${t} s a frame's move of ${dz.toFixed(3)} m is ${(z2 - z1).toFixed(3)} m as a float`);
+  }
 });

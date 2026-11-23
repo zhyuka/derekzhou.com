@@ -67,7 +67,14 @@
   var CDF = new Float64Array(2);
   function cellDistFade(C) { var a = C.air ? airD(C.V, cloudT(), CDF) : null; return distFadeAt(C.V, C.sc, nearDist(C, a ? CAM.pos[0] - a[0] : CAM.pos[0], a ? CAM.pos[2] - a[1] : CAM.pos[2])); }   // (an air cell's grid is the air's: the eye taken there)
   var VDF = new Float64Array(3);   // (a drifting body where the air has carried it by the draw's moment)
-  function volDistFade(o) { var C = o.cell; if (!C) return 1; var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2]; return distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0)); }
+  /* (physics: clouds/drift) an air cell's body by the nearer of its own distance and its cell's: a cloud sea tower's
+     box is as large as 1500 m about, so by its own distance alone one at its cell's near side stood in the fade band
+     when its cell was made (to 0.79 weight: drawn at once when baked, a pop); the cell's nearest distance is past the
+     band then (made at the scale's radius and half a cell, its near edge 0.7 of a cell nearer) */
+  function volDistFade(o) {
+    var C = o.cell; if (!C) return 1; var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2], f = distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0));
+    return C.air ? Math.min(f, cellDistFade(C)) : f;
+  }
   function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once)
   /* kind 'cpu' (the slice after the frame's flush): layouts, resolves and builds, no GL call;
      kind 'gpu' (the jobs at the start of the next drawn frame): uploads and bakes; sync or no kind: everything */
