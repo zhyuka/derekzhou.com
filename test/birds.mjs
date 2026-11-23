@@ -323,3 +323,29 @@ test('a roost on the name: dusk in, night held, first light out as one', () => {
   assert.ok(onAtDawn >= 20, `only ${onAtDawn} crows on the name at first light over 12 nights`);
   assert.ok(mornings >= 6 && quick >= mornings - 1, `${quick} of ${mornings} mornings left as one`);
 });
+
+/* (delight 2) the score's read of the birds: WORLD.birds.feed(o) fills the caller's arrays, the nearest flocks first
+   and the nearest birds' wings, and changes nothing in the world: two runs, one read every step, end the same */
+test('the score\'s bird feed: nearest first, finite, and read only', () => {
+  const run = (read) => {
+    const sc = SCENES.natural(3, '960x600'); sc.opt.dt = DT; sc.opt.draw = null; sc.opt.sky = 'afterglow';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
+    const o = { f: new Float32Array(48), w: new Float32Array(24) }; let reads = 0, flocks = 0, wings = 0;
+    for (let k = 0; k < 90 / DT; k++) {
+      sim.step(); if (!read || !sim.B) continue;
+      sim.feed(o); reads++; flocks += o.n; wings += o.m;
+      assert.ok(o.n <= 8 && o.m <= 4 && o.kinds.length > 4, 'the feed\'s counts');
+      for (let i = 0; i < o.n; i++) {
+        const q = 6 * i; assert.ok(o.f.slice(q, q + 6).every(Number.isFinite), 'a flock slot not finite');
+        assert.ok(o.f[q] >= 0 && o.f[q] < o.kinds.length && o.f[q + 5] >= 1, 'a flock\'s kind or count');
+        if (i) assert.ok(o.f[q + 1] >= o.f[q - 5] - 1e-3, 'flocks not nearest first');
+      }
+      for (let i = 0; i < o.m; i++) { const q = 6 * i; assert.ok(o.w.slice(q, q + 6).every(Number.isFinite) && o.w[q] >= 0 && o.w[q] <= 4 && o.w[q + 2] >= 0 && o.w[q + 2] < 1, 'a wing slot'); }
+    }
+    return { reads, flocks, wings, end: sim.B.BIRDS.map((b) => b.p.join(',')).join(';') };
+  };
+  const a = run(true), b = run(false);
+  console.log(`# feed: ${a.reads} reads, ${(a.flocks / a.reads).toFixed(1)} flocks and ${(a.wings / a.reads).toFixed(1)} wings a read`);
+  assert.ok(a.reads > 1000 && a.flocks > a.reads, 'too few reads or flocks');
+  assert.equal(a.end, b.end, 'reading the feed changed the world');
+});
