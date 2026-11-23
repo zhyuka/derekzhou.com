@@ -45,10 +45,10 @@
      mist's waypoint: no night in the middle of a twilight change) */
   function sunDepthNow() {
     if (SUNU.on) return SUNU.es;
-    var a = SKY.A && SKY.A.skyEl !== null && SKY.A.skyEl !== undefined ? SKY.A.skyEl : AIR_SUN_NIGHT;
-    var b = SKY.B && SKY.B.skyEl !== null && SKY.B.skyEl !== undefined ? SKY.B.skyEl : AIR_SUN_NIGHT;
+    var a = sunElOf(SKY.A), b = sunElOf(SKY.B);
     return a + (b - a) * ss01(SKY.k || 0);
   }
+  function sunElOf(O) { var e = O && O.skyEl; return typeof e === "number" ? e : AIR_SUN_NIGHT; }   // (a sky's own sun, or a night's)
   /* (physics: sky/purple-light) the purple light: the high (about 20 km) haze's glow lit by the sun from below the
      horizon, seen 2-6 deg after sunset and before sunrise: its amount whole from 3 to 5 deg down, none above 1.5 or below
      7; its centre on the sun's bearing, 28 deg up with the sun 3 down, sinking with it (16 deg at 6 down). Into out:
