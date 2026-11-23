@@ -152,6 +152,16 @@ top of the ink and no drawn point hangs below it (the hub's re-review 3, option 
 included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
 
+THE SCORE'S READ (delight 2, 266-feed.js). WORLD.birds.feed(o) fills the
+caller's own arrays and changes nothing in the world (test/birds.mjs: two runs,
+one reading every step, end the same): o.f, 8 x 6 floats, the nearest flocks
+nearest first (kind as o.kinds' index, range m, bearing rad + right of the eye's
+way, elevation rad, radial speed m/s + away, count), o.n of them; o.w, 4 x 6,
+the nearest birds (state 0 flying 1 coming in 2 landing 3 perched 4 leaving,
+beat Hz 0 when gliding or its wing unseen, phase 0 at the downstroke's start,
+bearing, range, span px), o.m of them. The score may call it as often as it
+likes; it allocates nothing.
+
 THE POINTER (the owner, 2026-11-05: "the birds should be more interactive
 with the mouse"; and, 2026-11-06: "why is the bird flying away when i
 just get near it instead of actually going on top of it?"). Friendly and

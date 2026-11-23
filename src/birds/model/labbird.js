@@ -114,9 +114,9 @@
     function fr(x) { return x - Math.floor(x); }
     function ss(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }
     function rng(seed) { var s = (seed >>> 0) || 1; return function () { s = (s + 0x9e3779b9) | 0; var z = s; z = Math.imul(z ^ (z >>> 16), 0x85ebca6b); z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35); return ((z ^ (z >>> 16)) >>> 0) / 4294967296; }; }
-    function gauss(r) { var u = 0; for (var i = 0; i < 6; i++) u += r(); return (u - 3) * Math.SQRT2; }   // (sd 1, bounded at +-4.2)
+    function stdNormal(r) { var u = 0; for (var i = 0; i < 6; i++) u += r(); return (u - 3) * Math.SQRT2; }   // (sd 1, bounded at +-4.2)
     function clip(x, a) { return x < -a ? -a : x > a ? a : x; }
-    function logn(r, m) { var x = m[0] * Math.exp(m[1] * gauss(r)); return Math.min(m[3], Math.max(m[2], x)); }
+    function logn(r, m) { var x = m[0] * Math.exp(m[1] * stdNormal(r)); return Math.min(m[3], Math.max(m[2], x)); }
     function rate(kind, mode) { var m = KM[kind]; return mode === 'real' ? m.real.f : mode === 'class' && RATE_CLASS[kind] ? RATE_CLASS[kind] : W.rate(kind, m.world_span_m || m.real.b); }
 
     /* ---- the skeleton (MODEL.md 3.1, 3.3): the bird's bones scaled to the form's arm ---- */
@@ -170,11 +170,11 @@
       /* per beat (by its absolute index from the bird's first beat): period share, amplitude, pause */
       var NB = Math.ceil((to - from) * f0 * 1.4) + 64, EPS = new Float32Array(NB), KK = new Float32Array(NB), PAU = new Float32Array(NB), pz = 0, pzrun = 0;
       for (var j = 0; j < NB; j++) {
-        EPS[j] = clip(VAR.PERIOD_CV * gauss(r), 0.08); KK[j] = 1 + clip(VAR.AMP_SD * gauss(r), 0.12);
-        if (sc.pause) {   // a Markov chain: the share of beats paused, the mean run, the longest run
+        EPS[j] = clip(VAR.PERIOD_CV * stdNormal(r), 0.08); KK[j] = 1 + clip(VAR.AMP_SD * stdNormal(r), 0.12);
+        if (sc.pause) {   // a two-state chain (each beat paused or not by the last beat alone): the share of beats paused, the mean run, the longest run
           var pi = sc.pause[0], p11 = 1 - 1 / sc.pause[1], p01 = pi * (1 - p11) / (1 - pi);
           pz = pzrun >= sc.pause[2] ? 0 : (r() < (pz ? p11 : p01) ? 1 : 0); pzrun = pz ? pzrun + 1 : 0;
-          PAU[j] = pz ? Math.min(sc.pause[5], Math.max(sc.pause[4], sc.pause[3] * Math.exp(0.45 * gauss(r)))) : 0;
+          PAU[j] = pz ? Math.min(sc.pause[5], Math.max(sc.pause[4], sc.pause[3] * Math.exp(0.45 * stdNormal(r)))) : 0;
         }
       }
       b.EPS = EPS; b.KK = KK; b.PAU = PAU;
@@ -186,18 +186,18 @@
       var flap = !!sc.cont || r() < 0.6, left = 0, boutF = f0, Psi = 0, inBout = false, s0 = 0, nb = 0, glideLeft = 0, hold = 0, beatPaused = -1;
       function newBout() {
         nb = sc.cont ? 1e9 : sc.calm ? sc.calm[0][0] + Math.floor((sc.calm[0][1] - sc.calm[0][0] + 1) * r()) : Math.max(2, Math.round(logn(r, sc.flap)));
-        boutF = f0 * (sc.cont ? 1 : 1 + clip(VAR.BOUT_SD * gauss(r), 0.12)); s0 = Math.round(Psi); Psi = s0; inBout = true;
+        boutF = f0 * (sc.cont ? 1 : 1 + clip(VAR.BOUT_SD * stdNormal(r), 0.12)); s0 = Math.round(Psi); Psi = s0; inBout = true;
       }
       function newGlide() { glideLeft = sc.calm ? sc.calm[1][0] + (sc.calm[1][1] - sc.calm[1][0]) * r() : logn(r, sc.glide) / f0; }
       if (flap) { newBout(); var pre = sc.cont ? 0 : Math.floor(r() * Math.max(0, nb - 2));   /* (FIX: anywhere in the bout) */ nb = Math.max(nb, pre + 2); Psi = pre + r(); }   // (mid-bout at the start)
       else { newGlide(); glideLeft *= r(); Psi = r(); }
-      /* tucks (storks, gliding): a Poisson stream */
+      /* tucks (storks, gliding): a stream of independent random arrivals (exponential gaps) */
       var tucks = [];
       if (sc.tucks) { var sz = Math.sqrt((m.world_span_m || m.real.b) / m.real.b), tt = from; while (tt < to) { tt += -Math.log(1 - r()) * 60 / sc.tucks[0]; tucks.push(tt, sc.tucks[1] * sz); } }
       b.tucks = tucks;
       /* the lock (an ibis behind another in a V): wake bouts and free bouts, lognormal */
       var lockOn = [], lt = from - r() * 4, lon = r() < 0.32;
-      if (b.lead && b.lock) { while (lt < to) { var dur = Math.exp(Math.log(lon ? LOCK.HOLD[0] : LOCK.FREE[0]) + (lon ? LOCK.HOLD[1] : LOCK.FREE[1]) * gauss(r) * 0.7); if (lon) lockOn.push(lt, lt + dur); lt += dur; lon = !lon; } }
+      if (b.lead && b.lock) { while (lt < to) { var dur = Math.exp(Math.log(lon ? LOCK.HOLD[0] : LOCK.FREE[0]) + (lon ? LOCK.HOLD[1] : LOCK.FREE[1]) * stdNormal(r) * 0.7); if (lon) lockOn.push(lt, lt + dur); lt += dur; lon = !lon; } }
       b.lockOn = lockOn;
       var delta = b.lead && b.lock ? f0 * b.lock.d / b.lock.U + LOCK.PHASE : 0; b.delta = delta;
       var lockW = 0, abs0 = 0;   // abs0: the absolute clock (beats since the bird's first), Psi within it
