@@ -77,7 +77,7 @@
            accumulation's) */
         ca = CACC.ca; src = TG.ch[CACC.i ^ 1]; dst = TG.ch[CACC.i];
       } else {
-        ca = CACC.ok && CACC.w === w2 && CACC.h === h2 && dA > 1e-4 && dA < 0.25 && CACC.tx === FR.tanX && CACC.ty === FR.tanY ? Math.min(1, SW.cacc) : 1;   // (a frame of the next moment, within a quarter second; across a junction too, where the cloud about the eye is continuous)
+        ca = CACC.ok && CACC.w === w2 && CACC.h === h2 && dA > 1e-4 && dA < 0.25 && CACC.tx === FR.tanX && CACC.ty === FR.tanY ? 1 - Math.pow(1 - Math.min(1, SW.cacc), dA * 60) : 1;   // (a frame of the next moment, within a quarter second; across a junction too, where the cloud about the eye is continuous. (time-based-constants) SW.cacc is the share a 60th of a second: the history's weight (1 - SW.cacc) to the power of the frames' time in 60ths, so it holds the same time of cloud at any rate (a share a frame held 2.4 x less at 144 Hz))
         src = TG.ch[CACC.i]; dst = TG.ch[CACC.i ^ 1];
         // this frame's rays into the last frame's view: d = x tanX R + y tanY U + F, then (d.R' / tanX,
         // d.U' / tanY, d.F') (column-major: the coefficients of x, of y, of 1)
@@ -93,10 +93,14 @@
            drag shows each frame's own clouds and never a resampled history (the drag film, 69 deg/s: reprojected and
            accumulated, its flicker p99 0.277 against 0.269 alone, every other reading lower); held still, or turning
            slowly, the history reprojected */
-        var mid = M[8] > 1e-4 ? Math.hypot(M[6] / M[8] * 0.5 * w2, M[7] / M[8] * 0.5 * h2) : 1e3;
-        CACC.mid = Math.max(mid, CACC.mid * 0.7);   // (held through a frame in which a drag's events left the view still: the drag film's every third frame)
+        // (time-based-constants) in 60ths of a second, not frames: the window's middle's move a 60th of a second (the same
+        // turn trips it at any rate: a move a frame came 2.4 x short at 144 Hz), its hold 0.7 and the ease out of a turn a
+        // quarter, each a 60th of a second (it held 2.4 x less time)
+        var k60 = ca < 1 ? dA * 60 : 1;
+        var mid = M[8] > 1e-4 ? Math.hypot(M[6] / M[8] * 0.5 * w2, M[7] / M[8] * 0.5 * h2) / k60 : 1e3;
+        CACC.mid = Math.max(mid, CACC.mid * Math.pow(0.7, k60));   // (held through a frame in which a drag's events left the view still: the drag film's every third frame)
         var tgt = ca < 1 ? smooth(1, 3, CACC.mid) : CACC.turn;
-        CACC.turn = tgt > CACC.turn ? tgt : Math.max(tgt, CACC.turn - 0.25);   // (into a turn at once: no frame of a stale history; out of it over four frames)
+        CACC.turn = tgt > CACC.turn ? tgt : Math.max(tgt, CACC.turn - 0.25 * k60);   // (into a turn at once: no frame of a stale history; out of it over a fifteenth of a second)
         if (ca < 1) ca = ca + (1 - ca) * CACC.turn;
         pb[0] = R0[0]; pb[1] = R0[1]; pb[2] = R0[2]; pb[3] = U0[0]; pb[4] = U0[1]; pb[5] = U0[2]; pb[6] = F0[0]; pb[7] = F0[1]; pb[8] = F0[2];
         CACC.tx = tx; CACC.ty = ty;

@@ -57,7 +57,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
                              test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
-                             test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
+                             test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
@@ -67,7 +67,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off on the PC's disk), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
-                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/ripples.mjs (the sand
+                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
@@ -103,6 +103,8 @@ tools/gpu/                   The owner's PC's RTX 4090 jobs: T2 (t2.js), T3 (t3.
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
+tools/precision/             How fp32 world coordinates degrade far from the start in a long flight (far-origin.mjs:
+                             each GPU-read value's rounding in metres and laptop pixels), by hand
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
 tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
@@ -134,15 +136,17 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
                              tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
-                             the sand spec's bounds, physics: sand/S1)
-                             tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs)
+                             the sand spec's bounds, physics: sand/S1),
+                             tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
+                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
-                             tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh)
-                             tools/checks/lib/gust-glsl.mjs (the shaders' gust rendered and held to the JS's, for 44-gust-glsl.sh)
+                             tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh),
+                             tools/checks/lib/gust-glsl.mjs (the shaders' gust rendered and held to the JS's, for 44-gust-glsl.sh),
+                             tools/checks/lib/citations.mjs (no author-style citation in a tracked file, for 45-citations.sh)
 
 Seven scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js, inkbirds.js, sound.js and score.js

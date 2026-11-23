@@ -41,33 +41,33 @@
   var TAU = Math.PI * 2, DEG = Math.PI / 180;
   /* MODEL.md 3.9 (sources in CHECKS.md): flap bouts (beats) and glides (beat-lengths) as lognormal medians and sigmas */
   var SCHED = {
-    goose:   { cont: true, src: 'continuous flapping, never gliding even in steep descents (Bishop et al. 2015, facts)' },
-    heron:   { cont: true, src: 'continuous flapping (Pennycuick 2001, facts)' },
-    swan:    { cont: true, src: 'continuous flapping (Pennycuick 2001, facts)' },
-    ibis:    { flap: [8, 0.35, 5, 12], glide: [2, 0.3, 1.5, 3], was: 'flap [13.6, 1.2, 3, 140], glide [3.2, 0.76, 1, 14] at 4 Hz (round 3, kinds: the same seconds, tighter, at the 2.5 Hz class)', src: 'flap bouts median 3.2-3.6 s (quartiles 1.6-8.3) at 3.9-4.1 Hz, glides 0.7-0.9 s (0.5-1.4): Wehner et al. 2022 (CC BY), in beats' },
-    ibisV:   { flap: [95, 1.2, 20, 900], glide: [3.2, 0.76, 1, 14], src: 'in a V, 97% flapping (Portugal et al. 2014, facts); glides as Wehner 2022' },
+    goose:   { cont: true, src: 'continuous flapping, never gliding even in steep descents (doi:10.1126/science.1258732, facts)' },
+    heron:   { cont: true, src: 'continuous flapping (doi:10.1242/jeb.204.19.3283, facts)' },
+    swan:    { cont: true, src: 'continuous flapping (doi:10.1242/jeb.204.19.3283, facts)' },
+    ibis:    { flap: [8, 0.35, 5, 12], glide: [2, 0.3, 1.5, 3], was: 'flap [13.6, 1.2, 3, 140], glide [3.2, 0.76, 1, 14] at 4 Hz (round 3, kinds: the same seconds, tighter, at the 2.5 Hz class)', src: 'flap bouts median 3.2-3.6 s (quartiles 1.6-8.3) at 3.9-4.1 Hz, glides 0.7-0.9 s (0.5-1.4): doi:10.1007/s10336-022-01978-1 (CC BY), in beats' },
+    ibisV:   { flap: [95, 1.2, 20, 900], glide: [3.2, 0.76, 1, 14], src: 'in a V, 97% flapping (doi:10.1038/nature12939, facts); glides as doi:10.1007/s10336-022-01978-1' },
     /* FIX ROUND: the gull's and the stork's bouts FITTED to the CC0 tags' 3-s windows as the bio judge segmented them
        (pure flap / mixed / pure glide: gull 0.586 / 0.164 / 0.250, n 20,832; white stork 0.031 / 0.154 / 0.815, n 14,532),
        by the judge's renewal model on a finer grid (tools/boutfit2.py -> work/fix/boutfit2.txt); the stork's wing tucks
-       removed (they were a steppe eagle's: Reynolds et al. 2014); the crow flaps on (Pennycuick 2001's hooded crows);
-       the swallow flaps on with Park's measured pauses (no bout data; the '18%' was not in the cited paper) */
-    gull:    { flap: [30, 0.9, 3, 400], glide: [15, 0.9, 1, 200], src: 'bouts fitted to the CC0 lesser black-backed gull tags (Shamoun-Baranes et al. 2016, Zenodo 4963689): flap median 30 beats, glides 15 beat-lengths, lognormal sigma 0.9 -> windows 0.574 / 0.180 / 0.246 against 0.586 / 0.164 / 0.250; flapping share 0.67' },
-    stork:   { flap: [6, 0.9, 2, 80], glide: [50, 0.9, 6, 600], src: 'bouts fitted to the CC0 white stork tags (Flack et al. 2016): flap median 6 beats, glides 50 beat-lengths, sigma 0.9 -> windows 0.040 / 0.152 / 0.808 against 0.031 / 0.154 / 0.815; flapping share 0.11' },
-    crow:    { cont: true, src: 'continuous flapping (hooded crow, Pennycuick 2001 Table 2: facts)' },
-    swallow: { cont: true, pause: [0.5, 1.8, 6, 0.14, 0.06, 0.40], src: 'continuous flapping with upstroke pauses of 8-56 ms (about 20 at 10 m/s) in up to 61-69% of beats, runs of 1-3 (at most 6), wings held at mid-upstroke (Park et al. 2001, wind tunnel: facts); no measured flap-glide bouts' },
+       removed (they were a steppe eagle's: doi:10.1098/rsif.2014.0645); the crow flaps on (doi:10.1242/jeb.204.19.3283 hooded crows);
+       the swallow flaps on with the measured pauses (doi:10.1242/jeb.204.15.2741) (no bout data; the '18%' was not in the cited paper) */
+    gull:    { flap: [30, 0.9, 3, 400], glide: [15, 0.9, 1, 200], src: 'bouts fitted to the CC0 lesser black-backed gull tags (doi:10.5281/zenodo.4963689): flap median 30 beats, glides 15 beat-lengths, lognormal sigma 0.9 -> windows 0.574 / 0.180 / 0.246 against 0.586 / 0.164 / 0.250; flapping share 0.67' },
+    stork:   { flap: [6, 0.9, 2, 80], glide: [50, 0.9, 6, 600], src: 'bouts fitted to the CC0 white stork tags (doi:10.5441/001/1.78152p3q): flap median 6 beats, glides 50 beat-lengths, sigma 0.9 -> windows 0.040 / 0.152 / 0.808 against 0.031 / 0.154 / 0.815; flapping share 0.11' },
+    crow:    { cont: true, src: 'continuous flapping (hooded crow, doi:10.1242/jeb.204.19.3283 Table 2: facts)' },
+    swallow: { cont: true, pause: [0.5, 1.8, 6, 0.14, 0.06, 0.40], src: 'continuous flapping with upstroke pauses of 8-56 ms (about 20 at 10 m/s) in up to 61-69% of beats, runs of 1-3 (at most 6), wings held at mid-upstroke (doi:10.1242/jeb.204.15.2741, wind tunnel: facts); no measured flap-glide bouts' },
     finch:   { flap: [3, 0.3, 2, 5], glide: [2.4, 0.3, 1.5, 4], src: 'bounding (not a target kind: the last round\'s numbers)' }
   };
   /* the last round's glides (majestic/motion birdmotion.js KINDS: beats a burst, glide s): the 'calm' dial (MODEL.md 0, decision 2) */
   var CALM = { gull: [[2, 4], [3, 6.5]], goose: [[3, 6], [2.5, 5]], ibis: [[3, 6], [2.5, 6]], heron: [[3, 6], [2.5, 5.5]], crow: [[4, 8], [2, 4.5]], swallow: [[2, 4], [1.2, 3]], finch: [[2, 4], [0.28, 0.5]], stork: [[2, 3], [8, 16]] };
   var VAR = {
-    PERIOD_CV: 0.03,   // beat to beat: gull 3% (5.8% raw less a 4.7% floor; CC0); all of it in the upstroke (Taylor et al. 2019)
+    PERIOD_CV: 0.03,   // beat to beat: gull 3% (5.8% raw less a 4.7% floor; CC0); all of it in the upstroke (doi:10.1371/journal.pbio.3000299)
     AMP_SD: 0.04,      // beat to beat amplitude: o.k +-5% (MODEL.md 3.11; heave p-p CV 10.7% an upper bound)
     BOUT_SD: 0.05,     // bout to bout, same bird: gull 7.5%, stork 4% (CC0)
-    WANDER: 0.035,     // a continuous flapper's slow rate wander: sequence SD 2.4% (herring gull, Pennycuick 2001), CV of 10-beat means 0.04-0.10 (Krishnan et al. 2022)
+    WANDER: 0.035,     // a continuous flapper's slow rate wander: sequence SD 2.4% (herring gull, doi:10.1242/jeb.204.19.3283), CV of 10-beat means 0.04-0.10 (doi:10.1098/rsif.2022.0168)
     SPREAD: 0.03       // bird to bird (FIX): gull 2.4% (between-bird SD of 16 birds' means, CC0, judge-bio), stork 2.4% (4 birds, CC0): a flight's birds spread evenly over +-3%, an SD of 2.0-2.2% for 5-7 birds, with each bout's own rate (BOUT_SD) about 2.4%
   };
   var RAMP = { A_IN: 0.4, A_OUT: 0.6, E_IN: 0.45, E_OUT: 0.75 };   // cycles: glide <-> flap (not measured: MODEL.md 3.9 keeps the last round's envelopes)
-  var LOCK = { HOLD: [2, 1.03], FREE: [4.25, 1.03], GAIN: 0.6, MAXF: 0.15, PHASE: -0.18 };   // ibis V: in a wake 32% of the time, bouts median 2 s (IQR 1-4) (Voelkl et al. 2015); spatial phase -0.18 (Portugal 2014)
+  var LOCK = { HOLD: [2, 1.03], FREE: [4.25, 1.03], GAIN: 0.6, MAXF: 0.15, PHASE: -0.18 };   // ibis V: in a wake 32% of the time, bouts median 2 s (IQR 1-4) (doi:10.1073/pnas.1413589112); spatial phase -0.18 (doi:10.1038/nature12939)
   var PRIMW = {   // MODEL.md 4.4.1: the pleats' shares of the curl and washout
     one: [1, 0.95, 0.9], slot: [1, 0.8, 0.6], deep: [1, 0.7, 0.45]
   };
@@ -77,15 +77,16 @@
      to the tip, bent as a cantilever under a distributed load (deflection w(u) = theta_tip L u^2 (6 - 4u + u^2) / 4: the
      tapered shaft below: the inner chord flatter, the outer steeper, the tip's deflection the rig's own), so the hand
      arcs along its length; the tip's slope peaks at CURL_TIP 17 deg under the downstroke's load, -1/2.2 of it in the
-     upstroke (the strain ratio of flying pigeons' primaries, Corning & Biewener 1998), derived from that strain
+     upstroke (the strain ratio of flying pigeons' primaries, doi:10.1242/jeb.201.22.3057), derived from that strain
      (judge-bio's beam check 7-25 deg): derived, with an assumed taper and depth; no in-flight measurement of these
      kinds exists. Where the kind's primaries are emarginated
      (Feather Atlas, ../structure 5.3: goose P10-P9 at 0.55-0.66, heron 0.66-0.68, ibis 0.71, crow 0.34-0.54, stork
      0.37-0.54) the mid row sits at the notch and each pleat's outer segment is its own finger: the fingers part into
-     slots as their curl, washout and fan differ (Tucker 1993; KleinHeerenbrink et al. 2017); gull and swallow (no notch)
+     slots as their curl, washout and fan differ (doi:10.1242/jeb.180.1.285; doi:10.1098/rsif.2017.0099); gull and swallow (no notch)
      stay one surface. THE GLIDE carries the bird's weight, so its primaries hold the beat's mean load (tip_load a0 of
-     the peak), and it TRIMS: the arm's dihedral and the bank wander as measured in a gull's level glide (Matos 4K
-     footage, CC BY, study only: footage/data/gull_front_glide_matos.json frames 50-120: bank SD 3.2 deg (range 12.7),
+     the peak), and it TRIMS: the arm's dihedral and the bank wander as measured in a gull's level glide (stock
+     footage "4K Free Stock Footage: Seagulls", https://archive.org/search?query=%224K+Free+Stock+Footage%3A+Seagulls%22, CC BY, study only: the research record's gull front-glide
+     file, frames 50-120: bank SD 3.2 deg (range 12.7),
      the arms' front-view angle SD 5.6 deg (range 22, detrended), its power at 0.35-1.4 Hz of video time, left-right
      2.0 deg (the noise floor); the clip's time base 25 fps assumed real time), in beat time (x f_real / f). */
   /* [the mid row along the pleat (the notch), slotted, the open slot beyond the notch: the inner vane's notch depth plus
@@ -95,7 +96,7 @@
   var FLEXK = { gull: [0.5, 0, 0], swallow: [0.5, 0, 0], goose: [0.6, 1, 0.45], heron: [0.67, 1, 0.23], ibis: [0.7, 1, 0.4], finch: [0.5, 0, 0], crow: [0.45, 1, 0.45], stork: [0.45, 1, 0.5] };
   /* the feather as a TAPERED cantilever under an even load: the rachis' depth falling linearly to TAPER of its base's, its
      stiffness as the depth cubed (a hollow shaft), the moment (L - x)^2 / 2: curvature k(u) = k0 (1-u)^2 / (1-(1-TAPER)u)^3.
-     The base strain measured in flying pigeons' primaries, peak -0.0033 at 2 cm from the calamus (Corning & Biewener 1998,
+     The base strain measured in flying pigeons' primaries, peak -0.0033 at 2 cm from the calamus (doi:10.1242/jeb.201.22.3057,
      abstract), on an 18 cm primary of half-depth 1.5 mm there (../structure 6: 1-2 mm) gives the tip a slope of 17 deg
      (a uniform shaft 7.6, a taper to 0.5 12.4: tools/feather.py); the bend gathers toward the tip */
   var TAPER = 0.3, CURL_TIP = 17;
@@ -127,8 +128,8 @@
       var k = (A - s.shoulder * 0.5) / (0.5 * d0);   // semi-span shares -> spans, the shoulder-wrist line made the form's arm
       return (SK[kind] = { sh: 0.5 * s.shoulder, h: 0.5 * s.humerus * k, u: 0.5 * s.ulna * k, d0: 0.5 * d0 * k, Es: Es, A: A });
     }
-    /* the gull's own fold, measured: the wrist's reach against the wrist angle on gull wings (Harvey et al. 2022 markers
-       on the Harvey et al. 2021 coupled path, data CC BY 4.0; model scripts/linkage.py GULL_FOLD), which the bones'
+    /* the gull's own fold, measured: the wrist's reach against the wrist angle on gull wings (doi:10.6084/m9.figshare.c.5503989 markers
+       on the doi:10.6084/m9.figshare.c.5275490 coupled path, data CC BY 4.0; model scripts/linkage.py GULL_FOLD), which the bones'
        triangle reproduces to 0.011 (MODEL.md 3.3) */
     var GF_W = [54.3, 60.5, 68.3, 74.9, 84.8, 93.3, 104.9, 113.3, 122.1, 131.5, 142.4, 151.4, 158.3, 165.9];
     var GF_R = [0.224, 0.233, 0.240, 0.251, 0.257, 0.265, 0.272, 0.279, 0.287, 0.293, 0.299, 0.302, 0.305, 0.304];
