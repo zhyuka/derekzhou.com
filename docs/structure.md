@@ -65,7 +65,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off on the PC's disk), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
                              test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/mist.mjs (the mist pools:
-                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
+                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
