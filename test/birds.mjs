@@ -297,6 +297,48 @@ test('a flock beyond sight sleeps, and wakes the same birds when the eye comes t
   assert.ok(slept >= 0, 'it never slept'); assert.ok(woke > slept, 'it never woke'); assert.ok(d > 3000, 'it woke within 3 km');
 });
 
+/* (the round-6 review) a formation holds together in a side wind: a goose skein, an ibis skein and a crow flock flown
+   25 s straight across a 6.5 m/s wind (the dunes' own), each member's distance from its place (its slot on its leader's
+   way, the drift about it left out) in spans. A member's wanted way over the ground is its leader's track, not its
+   heading through the air: along the heading each member slid upwind at V sin(crab), the goose skein's median 6.9-11.6
+   spans */
+test('a formation keeps its places in a side wind (median within 1.5 spans)', () => {
+  const E = [], by = [];
+  for (const [pat, kind, n] of [['skein', 'goose', 9], ['skein', 'ibis', 7], ['loose', 'crow', 8]]) for (let seed = 1; seed <= 3; seed++) {
+    const sc = SCENES.perch(seed, '960x600'), WV = [0, 0]; sc.opt.speed = 0; sc.opt.yaw = 0; sc.opt.wind = WV;
+    const sim = makeSim(sc.opt); WV[0] = 6.5 * sim.C.r[0]; WV[1] = 6.5 * sim.C.r[2];
+    sim.run(0.5);
+    const F = sim.flock(sim.ahead(400, 0.1, 60), pat, kind, n, sim.heading()), B = sim.B, e = [];
+    const g = B.newGoal(F, 'commute', F.r, B.skyCls()); g.psi = sim.heading(); g.T = 999; g.y = F.lead.p[1];
+    sim.run(25, () => {
+      if (sim.t < 8 || !B.FLOCKS.includes(F)) return;   // (from 7.5 s in: formed)
+      for (const b of F.m) { if (b === F.lead || !b.slot) continue; const sp = F.lead.sz; B.slotAt(F, b, b.slot[0] * sp, b.slot[1] * sp, b.slot[2] * sp);
+        e.push(Math.hypot(b.p[0] - B.TP[0], b.p[1] - B.TP[1], b.p[2] - B.TP[2]) / (sp / B.MODEL_K)); }
+    });
+    e.sort((a, b) => a - b); const med = e[Math.floor(e.length / 2)]; E.push(...e); by.push(`${kind} ${pat} ${seed}: ${med.toFixed(2)}`);
+  }
+  E.sort((a, b) => a - b); const med = E[Math.floor(E.length / 2)], p90 = E[Math.floor(0.9 * E.length)];
+  console.log(`# side wind 6.5 m/s: ${E.length} member samples, place error median ${med.toFixed(2)} spans, p90 ${p90.toFixed(2)} (${by.join('; ')})`);
+  assert.ok(E.length > 1000, 'too few samples');
+  assert.ok(med <= 1.5, `place error median ${med.toFixed(2)} spans in a side wind`);
+  /* and the pull to its place is at most a tenth of its speed however the place lies (by its length: clamped by axis
+     it reached 0.1 x sqrt 3, the round-6 review): a member put 50 m off its place on all three axes at once */
+  const sc = SCENES.perch(1, '960x600'); sc.opt.speed = 0; sc.opt.yaw = 0; sc.opt.wind = [0, 0];
+  const sim = makeSim(sc.opt); sim.run(0.5);
+  const F = sim.flock(sim.ahead(400, 0.1, 60), 'skein', 'goose', 5, sim.heading()), B = sim.B; sim.run(5);
+  let worst = 0;
+  for (const b of F.m) {
+    if (b === F.lead) continue;
+    const L = F.lead, p0 = [...b.p], sp = L.sz, h = B.slotAt(F, b, b.slot[0] * sp, b.slot[1] * sp, b.slot[2] * sp), V = Math.hypot(L.v[0], L.v[2]);
+    const g = h + Math.atan2(Math.sin(Math.atan2(L.v[0], L.v[2]) - L.psi), Math.cos(Math.atan2(L.v[0], L.v[2]) - L.psi));
+    b.p[0] = B.TP[0] + 50; b.p[1] = B.TP[1] - 50; b.p[2] = B.TP[2] + 50;   // (far off on every axis: the pull at its clamp)
+    const v = B.placeVel(F, b); worst = Math.max(worst, Math.hypot(v[0] - V * Math.sin(g), v[1] - L.v[1], v[2] - V * Math.cos(g)) / b.K.v);
+    b.p[0] = p0[0]; b.p[1] = p0[1]; b.p[2] = p0[2];
+  }
+  console.log(`# the pull to a place 50 m off on every axis: ${worst.toFixed(3)} of the bird's speed (a tenth, its drifting place's heading a little off the nominal one; by axis 0.176)`);
+  assert.ok(worst > 0.09 && worst <= 0.11, `a member pulled to its place at ${worst.toFixed(3)} of its speed`);
+});
+
 /* (delight 2) the score's read of the birds: WORLD.birds.feed(o) fills the caller's arrays, the nearest flocks first
    and the nearest birds' wings, and changes nothing in the world: two runs, one read every step, end the same */
 test('the score\'s bird feed: nearest first, finite, and read only', () => {
