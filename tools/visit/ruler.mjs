@@ -11,7 +11,9 @@
 //   - the look runs (the director's own look every 5 s, its land read as one of a few kinds);
 //   - the longest stretch with no reward (a place passed, a flock passed, a sky's change).
 //   - the land at the cut (the director's look within 250 m of the landing): the cloud weight wC, the sand province's
-//     weight wD (the dunes' height is the dunes kit's by wD: 140), the dune landform Kd and the sand's share of cover.
+//     weight wD (the dunes' height is the dunes kit's by wD: 140), the dune landform Kd and the sand's share of cover;
+//     the main dunes' most height there (duneH) and whether the land opens over dunes (onDunes: DUNE_MIN); the opening
+//     sky's mist depth at full moisture (mistAtCut, once AIR's weather is in the world).
 //   node tools/visit/ruler.mjs [--reads N] [--secs S] [--k 0,1] [--hours dawn,day] [--json FILE]
 // What it cannot see (no GPU): the ground's height (the places' seats, the ABOVE kit's gate on the land under it,
 // aboveKeep: approximated by its density alone) and the cloud sea's drawn weight (kwAt: the raw maps' kitAt instead).
@@ -40,10 +42,20 @@ const PICK = cut(WORLD, '  function pickOf(o, salt)', '\n', true);
 const KSALT = /function keep\(o\) \{ return pickOf\(o, kit === 'above' \? (0x[0-9a-f]+) : (0x[0-9a-f]+)\) < dens\(o\.x, o\.z\); \}/.exec(WORLD);
 const LAYOUT = /layout: \{ scales: \[KD\.layout\.scales\[0\], KD\.layout\.scales\[1\], KA\.layout\.scales\[0\]\]/.test(WORLD);
 const SPEED0 = /speed: KD\.speed \|\| (\d+(?:\.\d+)?),/.exec(WORLD);   // (worldDef: the world's one speed)
+// the main dunes' height at full sand weight (dunes-glsl: the S1 dune's height, by amp and the sand weight wD), and AIR's
+// mist depth by sky (215, once AIR's weather lands: null before)
+const DUNE_GLSL = fs.readFileSync(new URL('../../src/glsl/dunes-glsl.glsl', import.meta.url), 'utf8');
+const DUNE_H = /duneS1\(ph, ([\d.]+) \* dMul\(amp, gKD\)/.exec(DUNE_GLSL);
+const MIST = /var AIR_MIST = (\{[^}]*\});/.exec(WORLD);
+export const MIST_BY_SKY = MIST ? Function('return ' + MIST[1])() : null;
+// (the decision, FLIGHT for the hub, Nov 23) a land opens over dunes when the cloud sea is not over the landing (wC under
+// 0.5) and its main dunes can stand DUNE_MIN m or more there (their full height by the sand weight: the dunes' own amp,
+// 0.25-1 by a noise the ruler cannot draw without the wind, is left out, so this is the most they can stand)
+export const DUNE_MIN = 8;
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
 const ABOVE = fs.readFileSync(path.join(TMP, 'src', 'realm-above.js'), 'utf8');
 if (!SEED0OF || !OPENN || !VSEED || !VSALT) throw new Error('ruler: the visit\'s seed or the cells\' salt not found in world.js');
-if (!KSALT || !LAYOUT || !SPEED0) throw new Error('ruler: the kits\' keep salts, the layout\'s order or the world\'s speed not found in world.js (180)');
+if (!KSALT || !LAYOUT || !SPEED0 || !DUNE_H) throw new Error('ruler: the kits\' keep salts, the layout\'s order or the world\'s speed (180), or the dunes\' height (dunes-glsl) not found');
 
 // the land of an opening k: its seed, the maps and the director about its landing, its heading, its cells' salt
 function landOf(k) {
@@ -125,6 +137,7 @@ export function flyLand(k, secs = 7200, heading = null) {   // (heading: another
       const D = L.MAPS.D, s = D.seen[D.seen.length - 1], w = L.kitAt(L.CS.x, L.CS.z).wC;
       sea.push({ t, wC: w }); if (s) looks.push({ t, kind: lookKind(s.look, w) });
       if (t === 0 && s) cut0 = { wC: +w.toFixed(3), wD: +L.kitAt(0, 0).wD.toFixed(3), dunes: +s.look[7].toFixed(3), sand: +s.look[6].toFixed(3), kind: lookKind(s.look, w) };
+      if (cut0) { cut0.duneH = +(+DUNE_H[1] * cut0.wD).toFixed(1); cut0.onDunes = cut0.wC < 0.5 && cut0.duneH >= DUNE_MIN; }
     }
   }
   // the cells within reach of the way (1.6 km aside: a place is passed within SIGHT, a cell's site up to 0.8 of it off)
@@ -162,7 +175,8 @@ export function measure(land, hour, read, at, secs = 7200) {
   const rewards = [0, ...sites.map((p) => p.t), ...land.flocks.map((f) => f.t), ...changes, secs].filter((t) => t >= 0 && t <= secs).sort((a, b) => a - b);
   let gap = 0, gapAt = 0; for (let i = 1; i < rewards.length; i++) if (rewards[i] - rewards[i - 1] > gap) { gap = rewards[i] - rewards[i - 1]; gapAt = rewards[i - 1]; }
   return {
-    k: land.k, heading: land.heading, hour, read, cut: land.cut, sky0: sky[0].name, firstChange: changes[0] ?? null, skyChanges: changes.length,
+    k: land.k, heading: land.heading, hour, read, cut: land.cut, sky0: sky[0].name,
+    mistAtCut: MIST_BY_SKY ? (MIST_BY_SKY[sky[0].name] ?? 0) : null,   // (the opening sky's mist depth at full moisture, m: the most it pools) firstChange: changes[0] ?? null, skyChanges: changes.length,
     firstNear: near ? +near.t.toFixed(1) : null, firstNearKind: near ? near.kind : null, firstSight: passed.length ? +passed[0].t.toFixed(1) : null,
     places: sites.length, placesPerHour: +(sites.length / (secs / 3600)).toFixed(1), stretch: stretch.length ? [q(stretch, 0.1), q(stretch, 0.5), q(stretch, 0.9)].map((x) => +x.toFixed(0)) : null,
     flocks: land.flocks.length, crossings: cross.length, firstCrossing: cross[0] ?? null,
@@ -187,7 +201,8 @@ export function report(rows, secs = 7200) {
   const st = lands.filter((r) => r.stretch).map((r) => r.stretch[1]);
   L.push('', `bars: a near pass (within ${NEAR} m) by ${BARS.firstNear} s on ${nearOk} of ${lands.length} lands (the first near pass's median ${f(q(lands.map((r) => r.firstNear ?? Infinity), 0.5))} s);`,
     `      the longest stretch with no reward under ${BARS.maxGap} s on ${gapOk} of ${rows.length} visits;`,
-    `      the place stretch: the lands' medians' median ${f(q(st, 0.5))} s (the reference: p10/50/90 ${REF_STRETCH.join('/')} s)`);
+    `      the place stretch: the lands' medians' median ${f(q(st, 0.5))} s (the reference: p10/50/90 ${REF_STRETCH.join('/')} s)`,
+    `the cut: ${lands.filter((r) => r.cut && r.cut.onDunes).length} of ${lands.length} lands open over dunes (main dunes ${DUNE_MIN} m or more, no cloud sea): ${lands.filter((r) => r.cut && r.cut.onDunes).map((r) => 'k' + r.k + ' ' + r.cut.duneH + ' m').join(', ') || 'none'}`);
   return L.join('\n');
 }
 
