@@ -8,7 +8,7 @@
 // plant: {"file": "src/realm-dunes.js", "find": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);", "with": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed28);", "why": "the lenses over ridges the land never raised"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS;", "with": "var q3 = (c0[k3] + (fl ? fl[k3] * tf : 0)) / nS;", "why": "the billows flow upwind through the lens"}
 // plant: {"file": "src/realm-dunes.js", "find": "    air: function (C, R) { dAir(C, R); },", "with": "    air: function (C, R) { dAir(C, R); dHeld(C); },", "why": "lenses laid out in air cells: the air carries them off their ridges"}
-// plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.5; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.25; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
 // plant: {"file": "src/realm-dunes.js", "find": "flow: [hw.x, 0, hw.z]", "with": "flow: [hw.z, 0, hw.x]", "why": "the flow's components swapped: the billows cross the lens at the wrong way"}
 // plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
 // plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HELD_N, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
@@ -24,6 +24,8 @@
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.squash = 0.52 * T / Rc;", "with": "b.squash = 1.56 * T / Rc;", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "cl.n, { flow: cl.flow });", "with": "cl.n);", "why": "the lens's plates do not flow: their billows stand still with the envelope"}
 // plant: {"file": "src/realm-dunes.js", "find": "dGreat(C, s); dForms(C, s, R); dHeld(C); return;", "with": "dGreat(C, s); dHeld(C); dForms(C, s, R); return;", "why": "the lens laid out before the forms' clouds: their places in the cell, and so their fallback seeds, move"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.erode = 0.15; b.billow = 0.35; b.squash = 0.52 * T / Rc;", "with": "b.erode = 0.3; b.billow = 0.35; b.squash = 0.52 * T / Rc;", "why": "the lens eroded as before: the top plate's edge scalloped (the hub, 2026-11-23)"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[3] = B.det[1] * 0.25; }", "with": "B.u4a[3] = B.det[1] * 0.5; }", "why": "the lens's flowing billows at half the kit's depth: its rim scalloped"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -148,7 +150,7 @@ test('lenticular: a lens keeps small billows on every look; a free body takes th
   const run = (CRISP, B) => vm.runInThisContext('(function (CRISP, B, VSIGMA, steps) {' + L410 + ' return Array.from(B.u4a); })')(CRISP, { u4a: [0, 0, 0, 0], det: [120, 4], ...B }, 7, 48);
   for (const crisp of [true, false]) {
     const lens = run(crisp, { flow: [8, 0, -3] });
-    assert.deepEqual(lens.slice(2), [120, 2], `a lens on the ${crisp ? 'desktop' : 'touch'} look: billows ${lens[2]} m, ${lens[3]} m deep`);
+    assert.deepEqual(lens.slice(2), [120, 1], `a lens on the ${crisp ? 'desktop' : 'touch'} look: billows ${lens[2]} m, ${lens[3]} m deep`);
   }
   assert.deepEqual(run(true, {}).slice(2), [480, 12], 'a free body on the desktop: not the deep cauliflower');
   assert.deepEqual(run(false, {}).slice(2), [120, 4]);
@@ -244,6 +246,7 @@ test('lenticular: the plates are long thin lenses, tapered to their rims, each s
     B.forEach((b, k) => {
       const P = L.filter((p) => p[4] === k), sq = b.squash, sk = 1 - 0.24 * k, half = len * sk / 2;
       assert.ok(b.flow === flow, `plate ${k + 1} does not flow`);
+      assert.ok(b.erode <= 0.15, `plate ${k + 1} eroded at ${b.erode}: its edge scalloped by the bake's noise (the hub, 2026-11-23)`);
       assert.ok(P.length <= 96, `plate ${k + 1} has ${P.length} lobes: past a body's 96`);
       const along = (p) => p[0] * ax[0] + p[2] * ax[1], across = (p) => p[0] * ac[0] + p[2] * ac[1];
       const mid = P.filter((p) => Math.abs(along(p)) < 0.3 * half), end = P.filter((p) => Math.abs(along(p)) > 0.8 * half);

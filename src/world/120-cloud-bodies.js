@@ -90,7 +90,8 @@
      the plate and across each row, the rows as wide as the plate's ellipse there, so the spacing shrinks toward the rim
      with the plate's half-width; each lobe 0.8 of its own spacing, so it overlaps its neighbours, smaller toward the
      rim; squashed so the plate is T * 0.52 high at its centre, and so thinner toward its rim, as a lens; a light blend,
-     so the union does not swell the plate */
+     so the union does not swell the plate; and only low-frequency texture on it (the hub, 2026-11-23: the top plate's edge
+     scalloped at about 5 m): the bake's erosion half a cumulus's (0.15), and 410's flowing billows a quarter of the kit's depth */
   function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {
     o = o || {};
     var dx = Math.sin(dir), dz = Math.cos(dir), px = dz, pz = -dx, b0 = null, k, i, j;
@@ -99,7 +100,7 @@
       var nu = Math.max(6, Math.min(24, Math.round(Math.sqrt(96 * L * 0.5 / (Wk * 0.45))))), nv = Math.max(2, Math.min(8, Math.floor(96 / nu)));
       var sa = L * 0.5 * Math.PI / nu, sc = Wk * 0.45 * Math.PI / nv, Rc = 0.8 * Math.max(sa, sc);   // (the spacing at the plate's centre, along and across; the centre's lobe)
       var b = PF.body(); b.vol = true; b.seed = rng.f() * 10; b.yaw = dir; if (o.flow) b.flow = o.flow;
-      b.erode = 0.3; b.billow = 0.35; b.squash = 0.52 * T / Rc; b.blend = 0.3; b.band = 0.035; b.noise = 6;
+      b.erode = 0.15; b.billow = 0.35; b.squash = 0.52 * T / Rc; b.blend = 0.3; b.band = 0.035; b.noise = 6;
       b.cx = x; b.cz = z; b.y0 = yk - T * 0.5; b.y1 = yk + T * 0.5; b.cy = yk;
       if (!b0) b0 = b;
       for (i = 0; i < nu; i++) {
