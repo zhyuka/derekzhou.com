@@ -12,6 +12,7 @@
     if (HOST.reduced()) return;
     t += dt;
     pointerStep(dt, C);   // (the pointer read first: a bird on its tip stands where the tip is this frame, no lag)
+    roostWake();   // (the sky's change read before any bird steps: a roost wakes as one)
     birdsStep(C, dt);
     perchesStep(C, dt);
   }
