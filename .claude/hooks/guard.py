@@ -9,7 +9,7 @@
 #     GitHub tool posts
 # CI runs it as `python3 .claude/hooks/guard.py --scan`: every tracked file (names.json aside) checked for a banned
 # name; exit 1 on one, and on a names.json it cannot read (CI fails closed; the hook fails open).
-# CI also runs `python3 .claude/hooks/guard.py --messages` (tools/checks/44-names-in-messages.sh): every commit message
+# CI also runs `python3 .claude/hooks/guard.py --messages` (tools/checks/46-names-in-messages.sh): every commit message
 # from main to HEAD, and the PR's title and body (from the Actions event file), checked against the same list, so a
 # named commit is caught before the merge bot can fast-forward it onto main. --selftest-messages proves it first.
 # It fails open: any error of its own (a parse it cannot make, git missing, a timeout) lets the call through, so a broken
