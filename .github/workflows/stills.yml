@@ -15,10 +15,11 @@ name: Stills
 # had already passed), so:
 #   - the bake is six jobs, a sky each (about 13 minutes), one at a time: between two, a T2 queued meanwhile takes the
 #     runner, so a gate never waits a whole bake;
-#   - the newest run wins on main as on a branch (cancel-in-progress): a newer main tip's run cancels a stale tip's
-#     bake. Nothing is lost: the cache is a folder per key and bake-stills.js records each batch of 32 as it is
-#     encoded, so a run for the same key goes on where the cancelled one stopped. Live waits for the newest tip's
-#     status (the deploy gate reads only the tip it moves to), so a wave of world changes bakes once, at its end.
+#   - on main a running bake finishes (2026-11-23; it was cancelled by each newer tip until then, and with an hour a
+#     bake and a tip every 20-30 minutes none ever finished): GitHub keeps one pending run, the newest, which bakes
+#     next. The cache is a folder per key and bake-stills.js records each batch of 32 as it is encoded, so a key baked
+#     before costs seconds. Live moves to the newest walked tip with its stills up meanwhile (deploy-walk.mjs
+#     liveTarget), and to the tip once its bake is done.
 #   - the look-up runs on the PC's Linux runners (pc-wsl), never holding the GPU's.
 # Before the bake exists (tools/gpu/bake-stills.js: #197) every run ends at its first step, and nothing waits.
 # main's copy of this file and of tools/ runs, never a branch's (workflow_run); a branch's served build is rendered,
@@ -41,7 +42,12 @@ concurrency:
   # any step of it could see that its commit is no longer main's tip, so a re-run of an old gate's run, in main's group,
   # cancelled the tip's bake (2026-11-14). Its own group cancels nothing, and its need step bakes only main's tip.)
   group: stills-${{ github.event.workflow_run.head_branch != 'main' && 'branches' || (github.event.workflow_run.run_attempt == 1 && 'main' || format('main-{0}', github.event.workflow_run.head_sha)) }}
-  cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
+  # (2026-11-23) a running bake on main is never cancelled: it takes about an hour (six skies) and main moves every 20-30
+  # minutes, so cancelling it meant no bake ever finished and live stayed at a1c4136 from Nov 15. GitHub keeps one
+  # pending run a group (the newest replaces an older pending one), so the tip after the running bake is the next baked,
+  # and the merge bot moves live to the newest walked tip with its stills up meanwhile (deploy-walk.mjs liveTarget).
+  # A branch's run still cancels (it does nothing). A re-run's group is its own commit's (above): it cancels nothing.
+  cancel-in-progress: ${{ github.event.workflow_run.head_branch != 'main' }}
 
 env:
   PW_VERSION: '1.64.1'   # playwright-core (Apache-2.0), as gpu.yml

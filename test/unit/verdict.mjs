@@ -146,3 +146,34 @@ test('areas: the tools/gpu files T2 is not run on for (NOT_T2) are run by nothin
     for (const g of t2) assert.ok(!fs.readFileSync(path.join(ROOT, g), 'utf8').includes(base), `${g} names ${base}: T2 runs it, so it is T2's own`);
   }
 });
+
+test('deploy gate: live moves to the newest walked tip with its stills up when the target has none (2026-11-23)', async () => {
+  const { walk, liveTarget } = await import(new URL('../../.github/ci/deploy-walk.mjs', import.meta.url));
+  const S = (c) => c.repeat(40);
+  const run = (c, conclusion, status = 'completed') => ({ head_sha: S(c), status, conclusion, html_url: 'u' + c });
+  const V = {}; for (const c of 'abcde') V[S(c)] = { gate_ok: true, frames_identical: true, base: S('0') };
+  const d = { verdict: async (r) => V[r.head_sha], ownerMerge: async () => false, branchIdentical: async () => true, laterStallOk: async () => -1, say: () => {} };
+  const ready = (baked) => async (sha) => (baked.includes(sha) ? { ok: true, why: 'stills up' } : { ok: false, why: 'its stills release is not up yet (no stills status)' });
+  // all green: the walk reaches c, which has no release yet; a was baked
+  const w = await walk(S('0'), [run('a', 'success'), run('b', 'success'), run('c', 'success')], d);
+  assert.deepEqual(w.steps, [S('a'), S('b'), S('c')], 'the walk records every tip it passed');
+  assert.equal((await liveTarget(S('0'), w.to, w.steps, ready([S('c')]))).to, S('c'), 'the target baked: live moves there');
+  const t = await liveTarget(S('0'), w.to, w.steps, ready([S('a')]));
+  assert.equal(t.to, S('a'), 'the target unbaked, an earlier walked tip baked: live moves to that one');
+  assert.match(t.why, /newest walked tip with its stills up/);
+  assert.equal((await liveTarget(S('0'), w.to, w.steps, ready([S('a'), S('b')]))).to, S('b'), 'the newest baked one, not the oldest');
+  const none = await liveTarget(S('0'), w.to, w.steps, ready([]));
+  assert.equal(none.to, S('0'), 'none baked: live stays'); assert.match(none.why, /live stays/);
+  // a stop: b red with unproved frames; c beyond it is baked but never chosen
+  const dr = { ...d, branchIdentical: async () => false };
+  const ws = await walk(S('0'), [run('a', 'success'), run('b', 'failure'), run('c', 'success')], dr);
+  assert.equal(ws.to, S('a')); assert.deepEqual(ws.steps, [S('a')], 'only the tips up to the stop');
+  assert.equal((await liveTarget(S('0'), ws.to, ws.steps, ready([S('c')]))).to, S('0'), 'a baked tip past a stop is never chosen');
+  // failed stall visits cap the walk at the safe tip: the steps past it go too
+  const dv = { ...d, branchIdentical: async () => false, verdict: async (r) => (r.head_sha === S('b') ? { ...V[S('b')], t2: { stall_ok: false } } : V[r.head_sha]), laterStallOk: async () => 3 };
+  const wc = await walk(S('0'), [run('a', 'success'), run('b', 'success'), run('c', 'failure'), run('d', 'success')], dv);
+  assert.equal(wc.to, S('a')); assert.deepEqual(wc.steps, [S('a')], 'capped at the safe tip: nothing past it');
+  assert.equal((await liveTarget(S('0'), wc.to, wc.steps, ready([S('c')]))).to, S('0'));
+  assert.deepEqual(await liveTarget(S('0'), S('0'), [], ready([])), { to: S('0'), why: '' }, 'nothing to move');
+});
+// plant: {"file": ".github/ci/deploy-walk.mjs", "find": "return { to, why, steps: k >= 0 ? steps.slice(0, k + 1) : [] };", "with": "return { to, why, steps };", "why": "the fallback may choose a tip past the walk's stop"}
