@@ -1,226 +1,226 @@
 {
- "pennycuick2001": {
-  "cite": "Pennycuick CJ (2001) Speeds and wingbeat frequencies of migrating birds compared with calculated benchmarks. J Exp Biol 204:3283-3294",
+ "jeb2001benchmarks": {
+  "cite": "doi:10.1242/jeb.204.19.3283 (2001) Speeds and wingbeat frequencies of migrating birds compared with calculated benchmarks. J Exp Biol 204:3283-3294",
   "doi": "10.1242/jeb.204.19.3283",
   "licence": "rights reserved (Company of Biologists)",
   "use": "study only",
   "file": "birds3d/majestic/motion/dl/p2001/p2001.pdf (earlier round)"
  },
- "krishnan2022": {
-  "cite": "Krishnan K, Garde B, Bennison A, Cole NC, Cole EL, Darby J, Elliott KH, Fell A, Gomez-Laich A, de Grissac S, Jessopp M, Lempidakis E, Mizutani Y, Prudor A, Quetting M, Quintana F, Robotka H, Roulin A, Ryan PG, Schalcher K, Schoombie S, Tatayah V, Tremblay F, Weimerskirch H, Whelan S, Wikelski M, Yoda K, Hedenstrom A, Shepard ELC (2022) The role of wingbeat frequency and amplitude in flight power. J R Soc Interface 19:20220168",
+ "rsif2022": {
+  "cite": "doi:10.1098/rsif.2022.0168 (2022) The role of wingbeat frequency and amplitude in flight power. J R Soc Interface 19:20220168",
   "doi": "10.1098/rsif.2022.0168",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/krishnan2022/krishnan2022.pdf"
+  "file": "dl/rsif2022/rsif2022.pdf"
  },
- "alerstam2007": {
-  "cite": "Alerstam T, Rosen M, Backman J, Ericson PGP, Hellgren O (2007) Flight speeds among bird species: allometric and phylogenetic effects. PLoS Biol 5:e197 (Protocol S1)",
+ "plosbiol2007": {
+  "cite": "doi:10.1371/journal.pbio.0050197 (2007) Flight speeds among bird species: allometric and phylogenetic effects. PLoS Biol 5:e197 (Protocol S1)",
   "doi": "10.1371/journal.pbio.0050197",
   "licence": "CC BY",
   "use": "usable with attribution",
-  "file": "../structure/dl/alerstam2007/sd001 (sibling download)"
+  "file": "../structure/dl/plosbiol2007/sd001 (sibling download)"
  },
- "shamoun2016data": {
-  "cite": "Shamoun-Baranes J, Bouten W, van Loon EE, Meijer C, Camphuysen CJ (2016) Flap or soar? How a flight generalist responds to its aerial environment. Phil Trans R Soc B 371:20150395; data: Zenodo 4963689 (lesser black-backed gull GPS + 20 Hz acceleration, UvA-BiTS)",
+ "zenodo4963689": {
+  "cite": "doi:10.5281/zenodo.4963689 (2016) Flap or soar? How a flight generalist responds to its aerial environment. Phil Trans R Soc B 371:20150395; data: Zenodo 4963689 (lesser black-backed gull GPS + 20 Hz acceleration, UvA-BiTS)",
   "doi": "10.5281/zenodo.4963689",
   "licence": "CC0 1.0 (data)",
   "use": "usable (cite)",
   "file": "dl/shamoun2016/ (raw acc deleted after analysis; README, gps, mor, ela kept)"
  },
- "flack2016data": {
-  "cite": "Flack A, Fiedler W, Blas J, Pokrovsky I, Kaatz M, Mitropolsky M, Aghababyan K, Fakriadis I, Makrigianni E, Jerzak L, Azafzaf H, Feltrup-Azafzaf C, Rotics S, Mokotjomela TM, Nathan R, Wikelski M (2016) Costs of migratory decisions: a comparison across eight white stork populations. Sci Adv 2:e1500931; data: Movebank Data Repository doi:10.5441/001/1.78152p3q (acceleration part 4 of 4, GPS)",
+ "movebank2016": {
+  "cite": "(2016) Costs of migratory decisions: a comparison across eight white stork populations. Sci Adv 2:e1500931; data: Movebank Data Repository doi:10.5441/001/1.78152p3q (acceleration part 4 of 4, GPS)",
   "doi": "10.5441/001/1.78152p3q",
   "licence": "CC0 1.0 (data)",
   "use": "usable (cite)",
   "file": "dl/flack2016/"
  },
- "taylor2019": {
-  "cite": "Taylor LA, Taylor GK, Lambert B, Walker JA, Biro D, Portugal SJ (2019) Birds invest wingbeats to keep a steady head and reap the ultimate benefits of flying together. PLoS Biol 17:e3000299",
+ "plosbiol2019": {
+  "cite": "doi:10.1371/journal.pbio.3000299 (2019) Birds invest wingbeats to keep a steady head and reap the ultimate benefits of flying together. PLoS Biol 17:e3000299",
   "doi": "10.1371/journal.pbio.3000299",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/taylor2019/"
+  "file": "dl/plosbiol2019/"
  },
- "usherwood2011": {
-  "cite": "Usherwood JR, Stavrou M, Lowe JC, Roskilly K, Wilson AM (2011) Flying in a flock comes at a cost in pigeons. Nature 474:494-497 (author manuscript, Europe PMC PMC3162477)",
+ "nature2011": {
+  "cite": "doi:10.1038/nature10164 (2011) Flying in a flock comes at a cost in pigeons. Nature 474:494-497 (author manuscript, Europe PMC PMC3162477)",
   "doi": "10.1038/nature10164",
   "licence": "author manuscript under Nature terms (academic research use)",
   "use": "study only",
-  "file": "dl/usherwood2011/"
+  "file": "dl/nature2011/"
  },
- "portugal2014": {
-  "cite": "Portugal SJ, Hubel TY, Fritz J, Heese S, Trobe D, Voelkl B, Hailes S, Wilson AM, Usherwood JR (2014) Upwash exploitation and downwash avoidance by flap phasing in ibis formation flight. Nature 505:399-402 (accepted manuscript, Royal Holloway repository)",
+ "nature2014": {
+  "cite": "doi:10.1038/nature12939 (2014) Upwash exploitation and downwash avoidance by flap phasing in ibis formation flight. Nature 505:399-402 (accepted manuscript, Royal Holloway repository)",
   "doi": "10.1038/nature12939",
   "licence": "accepted manuscript, rights reserved",
   "use": "study only",
-  "file": "dl/portugal2014/rhul.pdf"
+  "file": "dl/nature2014/rhul.pdf"
  },
- "voelkl2015": {
-  "cite": "Voelkl B, Portugal SJ, Unsold M, Usherwood JR, Wilson AM, Fritz J (2015) Matching times of leading and following suggest cooperation through direct reciprocity during V-formation flight in ibis. PNAS 112:2115-2120",
+ "pnas2015": {
+  "cite": "doi:10.1073/pnas.1413589112 (2015) Matching times of leading and following suggest cooperation through direct reciprocity during V-formation flight in ibis. PNAS 112:2115-2120",
   "doi": "10.1073/pnas.1413589112",
   "licence": "PNAS (free in PMC, rights reserved)",
   "use": "study only",
   "file": "read via web fetch of PMC4343164"
  },
- "wehner2022": {
-  "cite": "Wehner H, Fritz J, Voelkl B (2022) Soaring and intermittent flap-gliding during migratory flights of Northern Bald Ibis. J Ornithol 163:671-681",
+ "jornithol2022": {
+  "cite": "doi:10.1007/s10336-022-01978-1 (2022) Soaring and intermittent flap-gliding during migratory flights of Northern Bald Ibis. J Ornithol 163:671-681",
   "doi": "10.1007/s10336-022-01978-1",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/wehner2022/wehner2022.pdf"
+  "file": "dl/jornithol2022/jornithol2022.pdf"
  },
- "mizrahy2022": {
-  "cite": "Mizrahy-Rewald O, Perinot E, Fritz J, Vyssotski AL, Fusani L, Voelkl B, Ruf T (2022) Empirical evidence for energy efficiency using intermittent gliding flight in Northern Bald Ibises. Front Ecol Evol 10:891079",
+ "fevo2022": {
+  "cite": "doi:10.3389/fevo.2022.891079 (2022) Empirical evidence for energy efficiency using intermittent gliding flight in Northern Bald Ibises. Front Ecol Evol 10:891079",
   "doi": "10.3389/fevo.2022.891079",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/mizrahy2022/m.pdf"
+  "file": "dl/fevo2022/m.pdf"
  },
- "corcoran2019": {
-  "cite": "Corcoran AJ, Hedrick TL (2019) Compound-V formations in shorebird flocks. eLife 8:e45071 (and Table 3 source data)",
+ "elife2019flocks": {
+  "cite": "doi:10.7554/eLife.45071 (2019) Compound-V formations in shorebird flocks. eLife 8:e45071 (and Table 3 source data)",
   "doi": "10.7554/eLife.45071",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/corcoran2019/"
+  "file": "dl/elife2019flocks/"
  },
- "tobalske1996": {
-  "cite": "Tobalske BW, Dial KP (1996) Flight kinematics of black-billed magpies and pigeons over a wide range of speeds. J Exp Biol 199:263-280",
+ "jeb1996": {
+  "cite": "doi:10.1242/jeb.199.2.263 (1996) Flight kinematics of black-billed magpies and pigeons over a wide range of speeds. J Exp Biol 199:263-280",
   "doi": "10.1242/jeb.199.2.263",
   "licence": "rights reserved (Company of Biologists)",
   "use": "study only",
-  "file": "../kinematics/dl/tobalske1996/t1996.pdf (sibling download)"
+  "file": "../kinematics/dl/jeb1996/t1996.pdf (sibling download)"
  },
- "rosen2001": {
-  "cite": "Rosen M, Hedenstrom A (2001) Gliding flight in a jackdaw: a wind tunnel study. J Exp Biol 204:1153-1166 (Lund University repository copy)",
+ "jeb2001jackdaw": {
+  "cite": "doi:10.1242/jeb.204.6.1153 (2001) Gliding flight in a jackdaw: a wind tunnel study. J Exp Biol 204:1153-1166 (Lund University repository copy)",
   "doi": "10.1242/jeb.204.6.1153",
   "licence": "rights reserved; repository copy for private study",
   "use": "study only",
-  "file": "dl/rosen2001/rosen2001.pdf"
+  "file": "dl/jeb2001jackdaw/jeb2001jackdaw.pdf"
  },
- "kh2017data": {
-  "cite": "KleinHeerenbrink M, Johansson LC, Hedenstrom A (2017) Multi-cored vortices support function of slotted wing tips of birds in gliding and flapping flight / Wake analysis of drag components in gliding flight of a jackdaw (Corvus monedula) during moult. Interface Focus 7:20160081; dataset figshare doi:10.6084/m9.figshare.4236305.v2",
+ "figshare4236305": {
+  "cite": "(2017) Multi-cored vortices support function of slotted wing tips of birds in gliding and flapping flight / Wake analysis of drag components in gliding flight of a jackdaw (Corvus monedula) during moult. Interface Focus 7:20160081; dataset figshare doi:10.6084/m9.figshare.4236305.v2",
   "doi": "10.6084/m9.figshare.4236305.v2",
   "licence": "CC BY 4.0 (dataset)",
   "use": "usable with attribution",
   "file": "dl/kh2017fig/rsfs20160081_si_001.csv"
  },
- "harvey2019": {
-  "cite": "Harvey C, Baliga VB, Lavoie P, Altshuler DL (2019) Wing morphing allows gulls to modulate static pitch stability during gliding. J R Soc Interface 16:20180641",
+ "rsif2019": {
+  "cite": "doi:10.1098/rsif.2018.0641 (2019) Wing morphing allows gulls to modulate static pitch stability during gliding. J R Soc Interface 16:20180641",
   "doi": "10.1098/rsif.2018.0641",
   "licence": "rights reserved (read from the sibling task's escholarship copy)",
   "use": "study only",
-  "file": "../structure/dl/harvey2019/paper.pdf"
+  "file": "../structure/dl/rsif2019/paper.pdf"
  },
- "park2001": {
-  "cite": "Park KJ, Rosen M, Hedenstrom A (2001) Flight kinematics of the barn swallow (Hirundo rustica) over a wide range of speeds in a wind tunnel. J Exp Biol 204:2741-2750",
+ "jeb2001swallow": {
+  "cite": "doi:10.1242/jeb.204.15.2741 (2001) Flight kinematics of the barn swallow (Hirundo rustica) over a wide range of speeds in a wind tunnel. J Exp Biol 204:2741-2750",
   "doi": "10.1242/jeb.204.15.2741",
   "licence": "rights reserved; repository copy",
   "use": "study only",
-  "file": "../kinematics/dl/park2001/park2001.pdf"
+  "file": "../kinematics/dl/jeb2001swallow/jeb2001swallow.pdf"
  },
- "chizhikova2025": {
-  "cite": "Chizhikova S, Mendez LX, Hedrick TL (2025) Behavior and biomechanics: flapping frequency during tandem and solo flights of cliff swallows. J Exp Biol 228:jeb249393",
+ "jeb2025": {
+  "cite": "doi:10.1242/jeb.249393 (2025) Behavior and biomechanics: flapping frequency during tandem and solo flights of cliff swallows. J Exp Biol 228:jeb249393",
   "doi": "10.1242/jeb.249393",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/chizhikova2025/"
+  "file": "dl/jeb2025/"
  },
- "ling2018": {
-  "cite": "Ling H, McIvor GE, Nagy G, MohaimenianPour S, Vaughan RT, Thornton A, Ouellette NT (2018) Simultaneous measurements of three-dimensional trajectories and wingbeat frequencies of birds in the field. J R Soc Interface 15:20180653",
+ "rsif2018": {
+  "cite": "doi:10.1098/rsif.2018.0653 (2018) Simultaneous measurements of three-dimensional trajectories and wingbeat frequencies of birds in the field. J R Soc Interface 15:20180653",
   "doi": "10.1098/rsif.2018.0653",
   "licence": "rights reserved (Royal Society); read via web fetch of PMC6228479",
   "use": "study only",
   "file": "(not downloaded)"
  },
- "bishop2015": {
-  "cite": "Bishop CM, Spivey RJ, Hawkes LA, Batbayar N, Chua B, Frappell PB, Milsom WK, Natsagdorj T, Newman SH, Scott GR, Takekawa JY, Wikelski M, Butler PJ (2015) The roller coaster flight strategy of bar-headed geese conserves energy during Himalayan migrations. Science 347:250-254 (University of Konstanz repository copy)",
+ "science2015": {
+  "cite": "doi:10.1126/science.1258732 (2015) The roller coaster flight strategy of bar-headed geese conserves energy during Himalayan migrations. Science 347:250-254 (University of Konstanz repository copy)",
   "doi": "10.1126/science.1258732",
   "licence": "rights reserved",
   "use": "study only",
-  "file": "dl/bishop2015/bishop2015.pdf"
+  "file": "dl/science2015/science2015.pdf"
  },
- "meir2019": {
-  "cite": "Meir JU, York JM, Chua BA, Jardine W, Hawkes LA, Milsom WK (2019) Reduced metabolism supports hypoxic flight in the high-flying bar-headed goose (Anser indicus). eLife 8:e44986 (Supplementary file 4)",
+ "elife2019goose": {
+  "cite": "doi:10.7554/eLife.44986 (2019) Reduced metabolism supports hypoxic flight in the high-flying bar-headed goose (Anser indicus). eLife 8:e44986 (Supplementary file 4)",
   "doi": "10.7554/eLife.44986",
   "licence": "CC0 1.0",
   "use": "usable",
-  "file": "../kinematics/dl/meir2019 (sibling download)"
+  "file": "../kinematics/dl/elife2019goose (sibling download)"
  },
- "dimitriadis2015": {
-  "cite": "Dimitriadis G, Gardiner J, Tickle P, Codd J, Nudds R (2015) Experimental and numerical study of the flight of geese. Aeronaut J 119:1-30 (curves from the first author's 2015 talk, read by the sibling kinematics task)",
+ "aeroj2015": {
+  "cite": "doi:10.1017/S0001924000010939 (2015) Experimental and numerical study of the flight of geese. Aeronaut J 119:1-30 (curves from the first author's 2015 talk, read by the sibling kinematics task)",
   "doi": "10.1017/S0001924000010939",
   "licence": "rights reserved",
   "use": "study only",
   "file": "../kinematics/data/goose_barnacle_dimitriadis2015_*.json"
  },
- "liu2004": {
-  "cite": "Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA Paper 2004-2186 (NASA NTRS 20040075526)",
+ "ntrs2004": {
+  "cite": "(2004) Avian wings. AIAA Paper 2004-2186 (NASA NTRS 20040075526)",
   "doi": "NTRS 20040075526",
   "licence": "US Government work (public domain in the US)",
   "use": "usable (cite)",
-  "file": "../kinematics/dl/liu2004/"
+  "file": "../kinematics/dl/ntrs2004/"
  },
- "ros2011": {
-  "cite": "Ros IG, Bassman LC, Badger MA, Pierson AN, Biewener AA (2011) Pigeons steer like helicopters and generate down- and upstroke lift during low speed turns. PNAS 108:19990-19995",
+ "pnas2011": {
+  "cite": "doi:10.1073/pnas.1107519108 (2011) Pigeons steer like helicopters and generate down- and upstroke lift during low speed turns. PNAS 108:19990-19995",
   "doi": "10.1073/pnas.1107519108",
   "licence": "PNAS (free in PMC, rights reserved); read via web fetch of PMC3250151",
   "use": "study only",
   "file": "(not downloaded)"
  },
- "ros2015": {
-  "cite": "Ros IG, Badger MA, Pierson AN, Bassman LC, Biewener AA (2015) Pigeons produce aerodynamic torques through changes in wing trajectory during low speed aerial turns. J Exp Biol 218:480-490 (abstract)",
+ "jeb2015": {
+  "cite": "doi:10.1242/jeb.104141 (2015) Pigeons produce aerodynamic torques through changes in wing trajectory during low speed aerial turns. J Exp Biol 218:480-490 (abstract)",
   "doi": "10.1242/jeb.104141",
   "licence": "abstract only",
   "use": "study only",
   "file": "(abstract via Europe PMC)"
  },
- "hedrick2007": {
-  "cite": "Hedrick TL, Usherwood JR, Biewener AA (2007) Low speed maneuvering flight of the rose-breasted cockatoo (Eolophus roseicapillus). II. Inertial and aerodynamic reorientation. J Exp Biol 210:1912-1924 (abstract)",
+ "jeb2007": {
+  "cite": "doi:10.1242/jeb.002063 (2007) Low speed maneuvering flight of the rose-breasted cockatoo (Eolophus roseicapillus). II. Inertial and aerodynamic reorientation. J Exp Biol 210:1912-1924 (abstract)",
   "doi": "10.1242/jeb.002063",
   "licence": "abstract only",
   "use": "study only",
   "file": "(abstract via Europe PMC)"
  },
- "hedrick2009": {
-  "cite": "Hedrick TL, Cheng B, Deng X (2009) Wingbeat time and the scaling of passive rotational damping in flapping flight. Science 324:252-255 (abstract)",
+ "science2009": {
+  "cite": "doi:10.1126/science.1168431 (2009) Wingbeat time and the scaling of passive rotational damping in flapping flight. Science 324:252-255 (abstract)",
   "doi": "10.1126/science.1168431",
   "licence": "abstract only",
   "use": "study only",
   "file": "(abstract via Europe PMC)"
  },
- "weinzierl2016": {
-  "cite": "Weinzierl R, Bohrer G, Kranstauber B, Fiedler W, Wikelski M, Flack A (2016) Wind estimation based on thermal soaring of birds. Ecol Evol 6:8706-8718",
+ "ecolevol2016": {
+  "cite": "doi:10.1002/ece3.2585 (2016) Wind estimation based on thermal soaring of birds. Ecol Evol 6:8706-8718",
   "doi": "10.1002/ece3.2585",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/weinzierl2016/"
+  "file": "dl/ecolevol2016/"
  },
- "williams2018": {
-  "cite": "Williams HJ, Duriez O, Holton MD, Dell'Omo G, Wilson RP, Shepard ELC (2018) Vultures respond to challenges of near-ground thermal soaring by varying bank angle. J Exp Biol 221:jeb174995 (abstract)",
+ "jeb2018": {
+  "cite": "doi:10.1242/jeb.174995 (2018) Vultures respond to challenges of near-ground thermal soaring by varying bank angle. J Exp Biol 221:jeb174995 (abstract)",
   "doi": "10.1242/jeb.174995",
   "licence": "abstract only",
   "use": "study only",
   "file": "(abstract via Europe PMC)"
  },
- "reynolds2014": {
-  "cite": "Reynolds KV, Thomas ALR, Taylor GK (2014) Wing tucks are a response to atmospheric turbulence in the soaring flight of the steppe eagle Aquila nipalensis. J R Soc Interface 11:20140645",
+ "rsif2014": {
+  "cite": "doi:10.1098/rsif.2014.0645 (2014) Wing tucks are a response to atmospheric turbulence in the soaring flight of the steppe eagle Aquila nipalensis. J R Soc Interface 11:20140645",
   "doi": "10.1098/rsif.2014.0645",
   "licence": "CC BY 4.0",
   "use": "usable with attribution",
-  "file": "dl/reynolds2014/"
+  "file": "dl/rsif2014/"
  },
- "sato2009": {
-  "cite": "Sato K, Sakamoto KQ, Watanuki Y, Takahashi A, Katsumata N, Bost C-A, Weimerskirch H (2009) Scaling of soaring seabirds and implications for flight abilities of giant pterosaurs. PLoS ONE 4:e5400",
+ "plosone2009": {
+  "cite": "doi:10.1371/journal.pone.0005400 (2009) Scaling of soaring seabirds and implications for flight abilities of giant pterosaurs. PLoS ONE 4:e5400",
   "doi": "10.1371/journal.pone.0005400",
   "licence": "CC BY",
   "use": "usable with attribution",
-  "file": "dl/sato2009/"
+  "file": "dl/plosone2009/"
  },
- "trenchard2016": {
-  "cite": "Trenchard H, Perc M (2016) Energy saving mechanisms, collective behavior and the variation range hypothesis in biological systems: a review. BioSystems 147:40-66 (arXiv:1606.08969) - SECONDARY, quoting Hainsworth 1987 J Exp Biol 128:445 and Cutts & Speakman 1994 J Exp Biol 189:251",
+ "biosystems2016": {
+  "cite": "doi:10.1016/j.biosystems.2016.05.010 (2016) Energy saving mechanisms, collective behavior and the variation range hypothesis in biological systems: a review. BioSystems 147:40-66 (arXiv:1606.08969) - SECONDARY, quoting doi:10.1242/jeb.128.1.445 J Exp Biol 128:445 and doi:10.1242/jeb.189.1.251 J Exp Biol 189:251",
   "doi": "10.1016/j.biosystems.2016.05.010",
   "licence": "arXiv preprint (non-exclusive distribution)",
   "use": "study only; secondary",
-  "file": "dl/trenchard2016/t.txt"
+  "file": "dl/biosystems2016/t.txt"
  }
 }

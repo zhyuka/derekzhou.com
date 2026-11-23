@@ -1,9 +1,9 @@
 {
- "id": "pigeon_shen2024",
+ "id": "pigeon_biomimetics2024",
  "meta": {
   "species": "Columba livia (domestic pigeon)",
   "group": "stand-in (pigeon)",
-  "source": "Shen Y, Zhang S, Huang W, Shang C, Sun T, Shi Q (2024) Characterization of wing kinematics by decoupling joint movement in the pigeon. Biomimetics 9(9): 555, doi:10.3390/biomimetics9090555; Supplementary Data.zip (marker_data1-3.csv), via Europe PMC",
+  "source": "(2024) Characterization of wing kinematics by decoupling joint movement in the pigeon. Biomimetics 9(9): 555, doi:10.3390/biomimetics9090555; Supplementary Data.zip (marker_data1-3.csv), via Europe PMC",
   "licence": "CC BY 4.0 (data usable with attribution)",
   "conditions": "free flight in a 16 x 5 x 3 m arena, continuous flapping in level flight between perches (about 6 m/s), wingbeats 6-7 after take-off; body angles within 5 deg of level",
   "method": "30-camera infrared motion capture at 240 Hz (OptiTrack Prime 13; ~0.5 mm), markers on shoulder, elbow, wrist, carpometacarpus, P9 tip, S1, S10, body; three supplementary single beats x two wings; angles computed here from the marker positions (skin-marker error about +-5 mm on segment lengths); each wing fitted with 6 harmonics over its own period; means over the 4 wings of files 1 and 3",
