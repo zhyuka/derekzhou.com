@@ -56,7 +56,7 @@ test/shaders.mjs             Every program the page issues, compiled and linked 
 test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/24-unit.sh runs them, a process each), sharing
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
-                             test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
+                             test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit far out: an fp32 replay),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
@@ -134,15 +134,17 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
                              tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
-                             the sand spec's bounds, physics: sand/S1)
-                             tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs)
+                             the sand spec's bounds, physics: sand/S1),
+                             tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
+                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
-                             tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh)
-                             tools/checks/lib/gust-glsl.mjs (the shaders' gust rendered and held to the JS's, for 44-gust-glsl.sh)
+                             tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh),
+                             tools/checks/lib/gust-glsl.mjs (the shaders' gust rendered and held to the JS's, for 44-gust-glsl.sh),
+                             tools/checks/lib/citations.mjs (no author-style citation in a tracked file, for 45-citations.sh)
 
 Seven scripts are served minified: world.js, realm-kit.js,
 realm-dunes.js, realm-above.js, inkbirds.js, sound.js and score.js
