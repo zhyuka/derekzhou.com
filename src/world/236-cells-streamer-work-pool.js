@@ -73,7 +73,7 @@
      walls in the world's: drawn at once when baked, a pop); the cell's nearest distance is past the band then (made at
      the scale's radius and half a cell, its near edge 0.7 of a cell nearer) */
   function volDistFade(o) {
-    var C = o.cell; if (!C) return 1; if (o.flow) return cellDistFade(C);   // (a held body, a lens, by its cell's nearest distance: as large as 790 m about, it stood in view when its cell was made (a pop); its cell's distance is past the fade's far end at the cell's birth from every bearing)
+    var C = o.cell; if (!C) return 1;
     var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2], f = distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0));
     return Math.min(f, cellDistFade(C));
   }
