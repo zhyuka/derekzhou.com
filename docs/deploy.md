@@ -61,6 +61,14 @@ job. The Stills job (after main's gate, a workflow_run) cannot see the gate's jo
 
 ## The stills
 
+Live and the bake (2026-11-23): a bake takes about an hour on the 4090 (six skies) and main moved every 20-30 minutes, and
+each newer tip's Stills run cancelled the running bake, so none finished and live stayed at a1c4136 from Nov 15 though
+the walk reached main's tip green. Now a running bake on main is never cancelled (stills.yml: cancel-in-progress only
+off main; GitHub keeps the newest pending run, which bakes next), and when the walk's target has no `stills` status
+yet, the bot moves live to the newest tip the walk passed whose `stills` status is success (deploy-walk.mjs
+liveTarget; never a tip past the walk's stop). A tip whose world key has a release up already (a tests or docs
+landing after a finished bake) gets its status from the look-up at once, with no bake.
+
 The openings' stills (the world's first frames, baked on the PC's RTX 4090 by tools/gpu/bake-stills.js, #197) are not
 in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
 key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt.
