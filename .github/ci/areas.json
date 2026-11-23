@@ -19,7 +19,6 @@
     [".github/ci/**", ["harness"]],
     [".github/actions/**", ["harness"]],
     [".github/workflows/gate.yml", ["harness"]],
-    [".github/workflows/gpu.yml", ["harness"]],
     [".github/workflows/*", ["static"]],
     ["RULES.json", ["static"]],
     [".claude/**", ["static"]],
