@@ -11,7 +11,7 @@
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.25; }", "with": "", "why": "lenses take the desktop's deep cauliflower: holes flowing through smooth plates"}
 // plant: {"file": "src/realm-dunes.js", "find": "flow: [hw.x, 0, hw.z]", "with": "flow: [hw.z, 0, hw.x]", "why": "the flow's components swapped: the billows cross the lens at the wrong way"}
 // plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
-// plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HELD_N, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
+// plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HN, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
 // plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) continue;", "with": "if (C.weights(cx, cz)[1] > 0.5) continue;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from base's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
@@ -30,13 +30,13 @@ import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../u
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
 const DGLSL = fs.readFileSync(path.join(ROOT, 'src', 'glsl', 'dunes-glsl.glsl'), 'utf8');
 const AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') +
-  cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
+  cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(') + cut(WORLD, '  function airDay(', '\n', true);
 const HELD = cut(DUNES, '  var HELD_H = ', '  /* a small cell of open dunes');
 // (AIR's orographic gate, its own lines: wx's mist inputs stubbed, the gate reads U10 alone)
 const WXSRC = cut(WORLD, '  function airEase(', '\n', true) + cut(WORLD, '  var AIR_MIST_RATE = ', '\n', true) + cut(WORLD, '  var AIR_WXO = ', '\n', true) + cut(WORLD, '  function airWx(', '  function airClock(') + '  function airMoist() { return 0; } function airMistAt() { return 0; }\n';
 const RSV = +/var DS = 1500, RS = (\d+)/.exec(DUNES)[1];
 const make = vm.runInThisContext('(function () { var PI = Math.PI, SIM = { V: null }, RS = ' + RSV + ';\n' + STREAMS + AIRSRC +
-  WXSRC + ' var K = { cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl }, A = { base: airBase, wx: airWx };\n' + HELD + ' return { dHeld: dHeld, airBase: airBase, wx: airWx, cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl, HELD_H: HELD_H, HELD_N: HELD_N }; })');
+  WXSRC + ' var K = { cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl }, A = { day: airDay, wx: airWx };\n' + HELD + ' return { dHeld: dHeld, airBase: airBase, wx: airWx, cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl, HELD_H: HELD_H, HELD_N: AIR_WXK.N }; })');
 const H = make();
 function cell(ix, iz, salt, V, wc = 0.1) {   // a stub 1500 m cell: its clouds
   const C = { ix, iz, x0: ix * 1500, z0: iz * 1500, size: 1500, salt, V, clouds: [] };
