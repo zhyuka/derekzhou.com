@@ -543,6 +543,10 @@
           "file": ".claude/hooks/guard.py"
         },
         {
+          "kind": "ci-step",
+          "name": "No author-style citation in a tracked file"
+        },
+        {
           "kind": "prose"
         }
       ]
@@ -653,11 +657,15 @@
     {
       "id": "load-budget",
       "area": "performance",
-      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile within 1,200 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
+      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile waiting for nothing but its own (only the stylesheet and the hour render-blocking, and the first-paint hold out on a phone) and within 4,000 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
       "source": [
         {
           "date": "2026-11-07",
           "via": "the hub's load-perf lane, from the owner's ask that the site load near-instantly with every barrier to shipping fast removed; the budget a check so regressions cannot come back"
+        },
+        {
+          "date": "2026-11-23",
+          "via": "the hub's load-perf lane: the first paint's wall-clock bar (1,200 ms) failed six bird PRs on busy runners that could not move the paint; the bar is now what the paint waits for, which a busy runner cannot change, with 4,000 ms as a net"
         }
       ],
       "enforced_by": []
