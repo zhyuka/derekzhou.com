@@ -10,6 +10,9 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9))", "with": "veil: mix32(SKY.vS)", "why": "the veil the visit's, not the stay's: every moonlit stay of a visit veiled, or none"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "dot(c, LUMA) * vec3(0.861, 1.04, 1.68)", "with": "dot(c, LUMA) * vec3(1.2, 0.85, 0.95)", "why": "the Earth's shadow pink again"}
+// plant: {"file": "src/world/220-time-day.js", "find": "fx:{belt:0,nlc:1}", "with": "fx:{belt:0.4,nlc:1}", "why": "the belt drawn in the blue hour (the sun too low for it)"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;", "with": "SKYN.night[2] = reduced() ? 0 : 1;", "why": "the still twinkles: a hashed brightness frozen into its one frame"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -370,4 +373,35 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
+});
+
+test('physics: twilight (B6, B7, B9): the Earth\'s shadow blue-grey at the sky\'s lightness, no belt in the blue hour, the twinkle held in reduced motion and the still', () => {
+  const { WSKY } = skyWorld(1, 'night', 0.5);
+  const o2l = (L, a, b) => { let l = L + 0.3963377774 * a + 0.2158037573 * b, m = L - 0.1055613458 * a - 0.0638541728 * b, s = L - 0.0894841775 * a - 1.2914855480 * b; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]; };
+  const l2o = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); const o = [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; return [o[0], Math.hypot(o[1], o[2]), (Math.atan2(o[2], o[1]) * 180 / Math.PI + 360) % 360]; };
+  const lch = (L, C, h) => o2l(L, C * Math.cos(h * Math.PI / 180), C * Math.sin(h * Math.PI / 180)).map((x) => Math.max(x, 0));
+  // B6: sky-body.glsl's own shadow line, its core over every belted sky's low stops: h 260-280, L within 0.005 (equal: never a darkening)
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const SH = g.match(/c = mix\(c, dot\(c, LUMA\) \* vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), sh \* sideS \* min\(uNight\.x \/ ([\d.]+), 1\.0\)\);/);
+  assert.ok(SH, 'the Earth\'s shadow line (c = mix(c, dot(c, LUMA) * vec3(...), sh * sideS * min(uNight.x / a, 1.0))) not found');
+  assert.ok(!/c \* vec3\(0\.72, 0\.78, 0\.95\)/.test(g), 'the Earth\'s shadow still multiplies the sky (a pink darkening)');
+  const T = SH.slice(1, 4).map(Number), full = +SH[4];
+  let belted = 0;
+  for (const id of Object.keys(WSKY)) {
+    const S = WSKY[id], belt = (S.fx && S.fx.belt) || 0;
+    if (!belt) continue;
+    belted++;
+    assert.ok(belt >= full, `${id}'s belt ${belt} is under ${full}: its shadow's core would be a partial mix (mauve)`);
+    for (const st of S.sky.slice(0, 4)) {
+      const c = lch(...st), y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], d = T.map((t) => y * t), [L0] = l2o(c), [L1, C1, h1] = l2o(d);
+      assert.ok(h1 >= 260 && h1 <= 280 && C1 >= 0.015, `${id}: the shadow over [${st}] is h ${h1.toFixed(0)}, C ${C1.toFixed(3)} (blue-grey: 260-280)`);
+      assert.ok(Math.abs(L1 - L0) <= 0.005, `${id}: the shadow over [${st}] moves L ${(L1 - L0).toFixed(4)} (equal: within 0.005)`);
+    }
+  }
+  assert.ok(belted >= 2, 'no sky draws the belt');
+  // B7: no belt (the shadow and the Belt of Venus) in the blue hour: the sun too low for it
+  assert.equal((WSKY.bluehour.fx || {}).belt || 0, 0, 'the blue hour draws the belt');
+  // B9: the twinkle held at 0 in reduced motion and in the still (226: uNight.z)
+  assert.ok(WORLD.includes('SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;'), 'the stars twinkle in reduced motion or in the still (uNight.z not held at 0 there)');
+  assert.ok(g.includes('b *= 1.0 + 0.15 * uNight.z * sin('), 'the twinkle is not uNight.z\'s alone');
 });
