@@ -42,22 +42,22 @@
     RING = [];
     for (var k = 0; k < 3; k++) {
       var vao = gl.createVertexArray(), vbo = gl.createBuffer();
-      gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, vbo); gl.bufferData(gl.ARRAY_BUFFER, INST.byteLength, gl.DYNAMIC_DRAW);
-      for (var i = 0; i < 7; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, 4, gl.FLOAT, false, NF * 4, i * 16); gl.vertexAttribDivisor(i, 1); }
+      gl.bindVertexArray(vao); gl.bindBuffer(GL_ARRAY_BUFFER, vbo); gl.bufferData(GL_ARRAY_BUFFER, INST.byteLength, GL_DYNAMIC_DRAW);
+      for (var i = 0; i < 7; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, 4, GL_FLOAT, false, NF * 4, i * 16); gl.vertexAttribDivisor(i, 1); }
       RING.push([vao, vbo]);
     }
-    gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null); gl.bindBuffer(GL_ARRAY_BUFFER, null);
     makePts();
     VAO = RING[0][0]; VBO = RING[0][1]; RI = 0;
-    if (HOST.warm && PROG) HOST.warm({ n: 'birds.paper', p: PROG, vao: VAO, mode: gl.TRIANGLE_STRIP, cnt: 4, inst: 1, bl: [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE] });
+    if (HOST.warm && PROG) HOST.warm({ n: 'birds.paper', p: PROG, vao: VAO, mode: GL_TRIANGLE_STRIP, cnt: 4, inst: 1, bl: [GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE] });
   }
   /* the points' texture: a row a bird (46 points: device px, 1/depth; 30 facets' light), RGBA32F, read by
      texelFetch only (no filtering) */
   function makePts() {
-    BT = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, PTW, CAP); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+    BT = gl.createTexture(); gl.activeTexture(GL_TEXTURE0 + PTS_UNIT); gl.bindTexture(GL_TEXTURE_2D, BT);
+    gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl.texStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, PTW, CAP); gl.bindTexture(GL_TEXTURE_2D, null); gl.activeTexture(GL_TEXTURE0);
   }
   /* more birds in view than the stores hold (none is left undrawn: every bird the window can show is drawn): the
      stores twice as large, the ring's buffers and the points' texture made again at that size. Rare (a few times a
@@ -66,8 +66,8 @@
     while (CAP < n) CAP *= 2;
     BTX = new Float32Array(CAP * PTW * 4); INST = new Float32Array(CAP * NF);
     if (!RING) return;
-    for (var k = 0; k < RING.length; k++) { gl.bindBuffer(gl.ARRAY_BUFFER, RING[k][1]); gl.bufferData(gl.ARRAY_BUFFER, INST.byteLength, gl.DYNAMIC_DRAW); }
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    for (var k = 0; k < RING.length; k++) { gl.bindBuffer(GL_ARRAY_BUFFER, RING[k][1]); gl.bufferData(GL_ARRAY_BUFFER, INST.byteLength, GL_DYNAMIC_DRAW); }
+    gl.bindBuffer(GL_ARRAY_BUFFER, null);
     gl.deleteTexture(BT); makePts();
   }
   /* a bird posed, projected and lit for this frame (a held speck only carried on: holdMove); false: not drawn */
@@ -169,8 +169,8 @@
     HOST.target();
     gl.useProgram(P.p); if (!FORCED) HOST.frameUniforms(P);
     RI = (RI + 1) % RING.length; VAO = RING[RI][0]; VBO = RING[RI][1];
-    gl.bindVertexArray(VAO); gl.bindBuffer(gl.ARRAY_BUFFER, VBO); gl.bufferSubData(gl.ARRAY_BUFFER, 0, INST, 0, nB * NF);
-    gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, BT); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, PTW, nB, gl.RGBA, gl.FLOAT, BTX, 0); gl.activeTexture(gl.TEXTURE0);   // (the drawn birds' rows)
+    gl.bindVertexArray(VAO); gl.bindBuffer(GL_ARRAY_BUFFER, VBO); gl.bufferSubData(GL_ARRAY_BUFFER, 0, INST, 0, nB * NF);
+    gl.activeTexture(GL_TEXTURE0 + PTS_UNIT); gl.bindTexture(GL_TEXTURE_2D, BT); gl.texSubImage2D(GL_TEXTURE_2D, 0, 0, 0, PTW, nB, GL_RGBA, GL_FLOAT, BTX, 0); gl.activeTexture(GL_TEXTURE0);   // (the drawn birds' rows)
     UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = FX.air ? 1 : 0;
     USC[0] = VW.sUx; USC[1] = VW.sUy; USC[2] = VW.hUx; USC[3] = VW.hUy;
     UCL[0] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UCL[1] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
@@ -185,13 +185,13 @@
     gl.uniform3fv(u.uLift, E ? E.lift : LIFT0); gl.uniform3fv(u.uGain, E ? E.gain : GAIN0);
     gl.uniform4fv(u.uSc, USC); gl.uniform2fv(u.uCl, UCL); gl.uniform3fv(u.uLand, ULAND);
     gl.uniform4fv(u.uBl, UBL); gl.uniform4fv(u.uGl, UGL); gl.uniform4fv(u.uMode, UMODE); gl.uniform3fv(u.uInkF, UINKF);
-    gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.depthMask(false);
-    gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
-    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, nB);
-    gl.disable(gl.BLEND); gl.depthMask(true);
+    gl.disable(GL_DEPTH_TEST); gl.disable(GL_CULL_FACE); gl.depthMask(false);
+    gl.enable(GL_BLEND); gl.blendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
+    gl.drawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, nB);
+    gl.disable(GL_BLEND); gl.depthMask(true);
     gl.bindVertexArray(null);
-    if (tex) { gl.activeTexture(gl.TEXTURE14); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0); }   // (TG.hz off unit 14 again: the clouds' accumulation binds its own there)
-    gl.activeTexture(gl.TEXTURE0 + PTS_UNIT); gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+    if (tex) { gl.activeTexture(GL_TEXTURE14); gl.bindTexture(GL_TEXTURE_2D, null); gl.activeTexture(GL_TEXTURE0); }   // (TG.hz off unit 14 again: the clouds' accumulation binds its own there)
+    gl.activeTexture(GL_TEXTURE0 + PTS_UNIT); gl.bindTexture(GL_TEXTURE_2D, null); gl.activeTexture(GL_TEXTURE0);
     HOST.count(1, nB);
   }
   /* one bird's instance (7 vec4) and its row of the points' texture (its 46 points, device px and 1/depth;
