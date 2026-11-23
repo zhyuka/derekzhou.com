@@ -122,7 +122,30 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The meteors (delight-night §2; src/world/219-meteors.js), on the night skies
+phone), and on every visit that opens on the moonlit sea (the hub's ask,
+2026-11-15: the stills of the moonlit openings showed no moon). There the
+opening's own stay is planned ahead, culminating at the view's own heading
+whatever the key's azimuth, and timed so that at the cut the moon stands a
+third of the window in from the edge it is heading for (never before its
+culmination, so it still sets behind the sea before the stay ends; its
+rising, before the cut, is never drawn): placed before the first frame, never
+moved or faded to get there. Where the window has no room under its top edge
+(the lo tier's wide windows, the words high), the room is taken where the
+moon stands, with less of the 12 px keep beyond the footprint and then less of
+the 1 deg under the top edge if it must, the footprint itself always clear;
+where no row over the words fits at all (the lo tier's 2:1 windows) it
+stands beside the words on its leaving side and leaves through the side edge.
+It is planned in the still's own window (stillInputs: its size, frustum and
+pitch), so the live first frame and the still agree; against the words' boxes
+there, the union of the bake window's and its band's smallest window's (the
+words keep their CSS size, so a smaller window shows them bigger): clear on
+every window of the band from that one up, and a smaller window plans against
+its own words (STILL_MIN, STILL_WORDS; tools/still-words.mjs measures both).
+The plan is made in the part of the still every window of its band shows
+(STILL_BAND: a wider window loses the still's top and bottom, a narrower its
+sides), so the disc is whole on each, and its keep is the band's smallest
+window's 12 px scaled into the still's pixels (stillFrame).
+The meteors (delight-night §2; src/world/219-meteors.js), on the night skies
 only (the Milky Way and the aurora; on the moonlit sea the bright ones only),
 each a stay's own (the opening stay's from its seed, every later one's from the
 visit's own read, as the halo's veils), at 1x real time: about one long grazer a stay,
@@ -378,7 +401,7 @@ with 8 GB or more) 2 and 1.4 Mpx (a 393x852 phone's 786x1704, it was
 491x1065), a smaller iPhone or an iPad 1.5 and 1.6 Mpx, any other
 Android 1.25 and 1.3 Mpx (every device's before); the canvas at the
 device's own px (at most 2 a CSS px and 2.5 Mpx, or the world's own size
-where that is larger), the world put up to it by one Catmull-Rom clamped
+where that is larger), the world put up to it by one cubic interpolating spline clamped
 to the range of the 2x2 texels it lies between (it was bilinear). Every
 frame's time in a two-second ring, each second the median; three slow
 seconds (a median over 1.08 of the pace: under about 55 fps; the owner,
