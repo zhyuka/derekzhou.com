@@ -10,7 +10,7 @@ on:
 
 jobs:
   validate:
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # (main's history too: the plants a change can break are found against its merge base)
@@ -24,6 +24,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+
+      # (2026-11-23) the checks' pinned playwright-core (1.49.1: tools/checks/*.sh) launches its own headless shell,
+      # which the PC's WSL runner kept in ~/.cache/ms-playwright from earlier runs; a fresh hosted runner has none.
+      # Installed here only, the browser alone: PW_CORE is left unset, so each check installs and picks its pin as before.
+      - name: Chromium's headless shell for the checks' playwright-core
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pwshell" playwright-core@1.49.1 >/dev/null
+          node "$RUNNER_TEMP/pwshell/node_modules/playwright-core/cli.js" install --only-shell chromium
 
       - name: Every check (tools/check.mjs)
         run: node tools/check.mjs

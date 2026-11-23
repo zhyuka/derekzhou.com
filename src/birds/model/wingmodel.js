@@ -3,7 +3,7 @@
 /* wingmodel.js (physics/model): the measured wingbeat (MODEL.md) driving the faceted M's rig (facetpose.js).
    No DOM, no clock, no entropy; allocation-free per call.
 
-     var W = WINGMODEL(MODEL, FACETPOSE(FACETFORM));     MODEL: data/model.json (the per-kind Fourier channels)
+     var W = WINGMODEL(MODEL, FACETPOSE(FACETFORM));     MODEL: data/model.json (the per-kind harmonic channels)
      W.anatomy(kind, ph, o, A)     the anatomical channels at phase ph (A: Float64Array(W.NA), indices W.IX)
      W.flap(kind, ph, o, pose, body)  the rig's 22 floats (symmetric) and the body's offset (body[0] surge, body[2]
                                    heave, spans) at phase ph; o: { k: the beat's amplitude (1), D: this beat's downstroke
@@ -15,7 +15,7 @@
 
    PHASE ph in cycles: 0 = the top of the arm's stroke (its elevation's maximum), the downstroke the first D.
    TWO PATHS to the rig's 22 floats (MODEL.md 4):
-   (1) the SOLVED rig (gull, goose, stork, heron, ibis: model.kinds[k].rig): each of the 11 per-side angles a Fourier
+   (1) the SOLVED rig (gull, goose, stork, heron, ibis: model.kinds[k].rig): each of the 11 per-side angles a harmonic (cosine and sine)
        series solved on that kind's faceted form (tools/solve.js) so the posed bird, measured as the source measured
        its birds, shows the measured curves: the arm's and the hand's front-view angles, the wing's front-projected
        extension, the arm's and the outer section's pitch. The fast path: 11 series, about 30 cos/sin a bird.
