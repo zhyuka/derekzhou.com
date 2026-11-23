@@ -108,7 +108,7 @@
   }
   function nightBodiesUniforms(u) {
     var V = SIM.V, D = skyDepth();
-    NIGHTB.m[0] = starLim(D); NIGHTB.m[1] = V && V.L && V.L.skyFlat ? zenithY(V.L) : 0.016; NIGHTB.m[2] = VEN_TOP_Y; NIGHTB.m[3] = 0;
+    NIGHTB.m[0] = starLim(D); NIGHTB.m[1] = V && V.L && V.L.skyFlat ? zenithY(V.L) : 0.016; NIGHTB.m[2] = VEN_TOP_Y; NIGHTB.m[3] = 1 - smooth(15, 18, D);   // (the sky's light holds the stars back in a twilight only: nightLim)
     NIGHTB.v[3] = 0;
     if (V && V.light && NIGHTB.seed === J.seed && !NIGHTB.none) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, D, NIGHTB.D0, NIGHTB.d); NIGHTB.v[0] = NIGHTB.d[0]; NIGHTB.v[1] = NIGHTB.d[1]; NIGHTB.v[2] = NIGHTB.d[2]; NIGHTB.v[3] = 1; }
     if (u.uStarM) gl.uniform4fv(u.uStarM, NIGHTB.m);

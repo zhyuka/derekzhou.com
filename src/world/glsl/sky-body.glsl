@@ -12,7 +12,7 @@ uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venu
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
 uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
-uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), -
+uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), the sky light's weight in nightLim (1 in a twilight, 0 from 18 deg down)
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
 out vec4 oC;
 const float SKYTAU = 6.2831853;
@@ -75,13 +75,32 @@ vec3 haloAt(vec3 rd) {
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
 #ifdef SKY_PH2
+/* (physics: night/milky-way, delight-night section 3) its structure, in galactic longitude ld (deg from the core, + toward
+   cross(pole, core)) and latitude bd (deg): one shape a line, so test/unit/sky.mjs runs these very lines.
+   - the band: 6 deg wide (sigma) at the core, 3 at the anticentre; along it the bright star clouds at ld -80..0 and a fall
+     toward ld 180 (a quarter there), its peak about the old band's (1.02)
+   - the bulge: the old core glow, cut by a mid-plane lane (1.2 deg)
+   - the Great Rift: one dark lane down the band from ld -50 to +80 (Centaurus to Cygnus), 2.2 deg wide (sigma), wandering
+     1.8 deg and by the old lanes' noise 1.5 deg more, broken by that noise too; it replaces the noise lanes
+   - the Coalsack: a dark ellipse 7 x 5 deg at (302.8, 0.4); the Clouds, soft glows of two bells each, LMC (280.5,
+     -32.9) 10.75 x 9.2 deg with its bar, SMC (302.8, -44.3) 5.3 x 3.1; M31 (121.2, -21.6) a 3.2 x 1 deg smudge
+   (galactic positions converted from RA and Dec: the handoff's delight-night.md; all in uGal's frame, no new draw) */
+float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27 * exp(-pow((ld + 40.0) / 35.0, 2.0)); }
+float galBand(float ld, float bd) { float w = 4.5 + 1.5 * cos(radians(ld)); return exp(-bd * bd / (2.0 * w * w)) * galAlong(ld); }
+float galCore(float ld, float bd) { return exp(-ld * ld / 1181.0) * exp(-bd * bd / 164.0) * (1.0 - 0.75 * exp(-bd * bd / 2.88)); }
+float galRift(float ld, float bd) { return smoothstep(-55.0, -45.0, ld) * (1.0 - smoothstep(75.0, 85.0, ld)) * exp(-pow((bd - 1.2 * sin(radians(ld * 2.5)) - 0.6 * sin(radians(ld * 6.1) + 1.0)) / 2.2, 2.0)); }
+float galCoal(float ld, float bd) { return exp(-pow((ld + 57.2) / 3.5, 2.0) - pow((bd - 0.4) / 2.5, 2.0)); }
+float galLMC(float ld, float bd) { float x = (ld + 79.5) * 0.8396, y = bd + 32.9; return 0.3 * exp(-0.5 * (x * x / 7.29 + y * y / 5.29)) + 0.2 * exp(-0.5 * (x * x / 9.0 + y * y / 0.81)); }
+float galSMC(float ld, float bd) { float x = (ld + 57.2) * 0.7157, y = bd + 44.3; return 0.18 * exp(-0.5 * (x * x / 1.69 + y * y / 0.64)) + 0.08 * exp(-0.5 * (x * x / 4.84 + y * y / 1.96)); }
+float galM31(float ld, float bd) { float x = (ld - 121.2) * 0.9298, y = bd + 21.6; return 0.2 * exp(-0.5 * (x * x / 0.64 + y * y / 0.0625)); }
 vec3 galaxyAt(vec3 rd, float e) {
   vec3 P = uGal.xyz, C = uGalC.xyz;
-  float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU;
-  float band = exp(-b * b / 0.0225), core = exp(-l * l / 0.36) * exp(-b * b / 0.05);
+  float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU, ld = degrees(l), bd = degrees(asin(clamp(b, -1.0, 1.0)));
   float n = n3v(vec3(u * 7.0, b * 3.15, 0.13)).b * 0.45 + n3v(vec3(u * 21.0, b * 9.9, 0.71)).a * 0.35 + n3v(vec3(u * 62.0, b * 29.7, 0.29)).a * 0.2;
-  float lanes = smoothstep(0.4, 0.64, n3v(vec3(u * 4.0, b * 5.6 * 0.33 + 0.1 * n3v(vec3(u * 13.0, 0.4, 0.61)).b, 0.37)).b) * exp(-pow(b - 0.02 * sin(l * 5.0), 2.0) / 0.003);
-  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
+  vec4 nr = n3v(vec3(u * 13.0, b * 5.6, 0.37)), nw = n3v(vec3(u * 31.0, b * 14.0, 0.61));
+  float brk = 0.45 + 0.55 * smoothstep(0.3, 0.7, nr.b * 0.6 + nw.a * 0.4), bo = 3.0 * (nr.a - 0.5) + 1.2 * (nw.b - 0.5);   // (the rift broken and made to wander by the old lanes' noise: its depth, and its centre +-1.5 deg)
+  float dark = (1.0 - 0.8 * galRift(ld, bd - bo) * brk) * (1.0 - 0.85 * galCoal(ld, bd)), clouds = (galLMC(ld, bd) + galSMC(ld, bd) + galM31(ld, bd)) * (0.7 + 0.6 * n);
+  return (vec3(0.9, 0.86, 0.8) * (galBand(ld, bd) * (0.25 + 1.1 * n * n) + clouds) + vec3(1.0, 0.85, 0.65) * galCore(ld, bd) * 1.3) * dark * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
 }
 vec3 auroraAt(vec3 rd, float e) {
   float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
@@ -118,8 +137,12 @@ float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }
    than at the zenith (uStarM.y: the hub's review, the sky's own light near the glow holds the stars back longer, so they
    come out overhead and away from the sun first), and no fainter than a dark night's sky allows (7.9 at Y 0.016, so
    every night's sky above the horizon's glow, to Y 0.045, keeps the whole field); nightShow, a thing of magnitude m's share shown there, coming
-   in over its first 0.5 magnitude of margin (delight-night §4: a soft threshold over about 0.5 mag) */
-float nightLim(vec3 c) { float y = max(dot(c, LUMA), 1e-4); return min(uStarM.x - 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - 2.5 * log(y / 0.016) / log(10.0)); }
+   in over its first 0.5 magnitude of margin (delight-night §4: a soft threshold over about 0.5 mag). The sky's light
+   holds them back only in a twilight: both its terms weighted by the sun's depth (uStarM.w, 1 to 15 deg down, 0 from 18),
+   so a night keeps every star of its field (the limit uStarM.x, 7, over the field's faintest 6.2) wherever it stands, and
+   c is the sky before the galaxy is added (the hub's round-9 review: a Milky Way night lost half its stars, the band's
+   own light and the sky low down cutting the faint ones) */
+float nightLim(vec3 c) { float y = max(dot(c, LUMA), 1e-4); return min(uStarM.x - uStarM.w * 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - uStarM.w * 2.5 * log(max(y / 0.016, 1.0)) / log(10.0)); }
 float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }
 vec3 starTint(float b, float u) {
   vec3 t = u < 0.36 ? vec3(0.868, 1.0161, 1.2295) : (u < 0.62 ? vec3(1.0552, 1.0025, 0.8129) : (u < 0.9 ? vec3(1.2240, 0.9621, 0.7145) : vec3(1.3002, 0.9344, 0.7663)));
@@ -279,11 +302,12 @@ void main() {
     float n = textureLod(uN3, vec3(q.x, q.y * 4.0, 0.21) * 0.25, 0.0).a * 0.55 + textureLod(uN3, vec3(q.x * 3.0, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
   }
+  vec3 gL = vec3(0.0);   // (night) the galaxy's own light here, kept out of nightLim's sky
 #ifdef SKY_PH2
   /* (aurora-haze) both behind the haze, as the moon is: what the haze over them lets through (1 - hazeSky), a little
      redder where it is thick (low), never added over it at full strength */
   float hzS = 1.0 - hazeSky(rd); vec3 hzT = hzS * mix(vec3(1.0, 0.84, 0.68), vec3(1.0), hzS);
-  if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS) * hzT;   // (phase 2)
+  if (uGal.w > 0.0 && eS > 0.0) { gL = galaxyAt(rd, eS) * hzT; c += gL; }   // (phase 2; gL held apart for nightLim)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a neutral to faintly warm disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
@@ -310,7 +334,7 @@ void main() {
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
     float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float head = max(uNight.w - dot(c, LUMA), 0.0), sk = uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
-    float ml = nightLim(c);   // (night) the faintest magnitude that shows here: the stars out overhead and away from the sun first
+    float ml = nightLim(c - gL);   // (night) the faintest magnitude that shows here: the stars out overhead and away from the sun first
     float s = 0.0; vec3 sc = vec3(0.0), tc;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
     for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rd, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
     c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)

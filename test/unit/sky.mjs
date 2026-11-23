@@ -1,5 +1,7 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27", "with": "float galAlong(float ld) { return 0.75 + 0.0 * (1.0 + cos(radians(ld))) + 0.27", "why": "a band as bright at the anticentre as at the core"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "smoothstep(-55.0, -45.0, ld) * (1.0 - smoothstep(75.0, 85.0, ld))", "with": "1.0", "why": "the rift all round the band"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "var CEIL_KNEE = 0.04,", "with": "var CEIL_KNEE = 0.08,", "why": "the ceiling's knee wide again: a night's highlights flattened under it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return F * starBox(d.x, sg) * starBox(d.y, sg);", "with": "  return b * exp(-dot(d, d) / (2.0 * 0.1764));", "why": "a star sampled at the pixel's centre: it pulses as it slides across pixels"}
 // plant: {"file": "src/world/220-time-day.js", "find": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:1,", "with": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,", "why": "the stars' amount blended between skies again (the afterglow's 0.05): the no-fades gap"}
@@ -519,7 +521,7 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   assert.ok(g.includes('float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }'), 'starMag');
   const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07);
   assert.ok(mag(1.02) < mag(0.3) && mag(0.3) < mag(0.07), 'brightest first');
-  assert.ok(g.includes('float bk = nightShow(starMag(b), ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
+  assert.ok(g.includes('float bk = nightShow(starMag(b), ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
   assert.ok(!/uSunD\.z \* \(/.test(g) && /, sk = uSunD\.z \* smoothstep/.test(g), 'the amount is only the stars\' on/off');
   const stars = [...WORLD.matchAll(/post:\{[^}]*stars:([\d.]+)/g)].map((m) => +m[1]);
   assert.equal(stars.length, 6); assert.ok(stars.every((x) => x === 1), `every sky's stars' amount is 1 (no blend between skies): ${stars}`);
@@ -559,8 +561,11 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const NL = g.match(/^float nightLim\(vec3 c\) \{ float y = max\(dot\(c, LUMA\), 1e-4\); return (.*); \}$/m);
   assert.ok(NL, 'nightLim as measured here');
-  const nightLim = (y, zx, zy) => Math.min(zx - 2.5 * Math.log10(Math.max(y / Math.max(zy, 1e-4), 1)), 7.9 - 2.5 * Math.log10(y / 0.016));
-  assert.ok(NL[1] === 'min(uStarM.x - 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - 2.5 * log(y / 0.016) / log(10.0))', 'nightLim\'s own line: ' + NL[1]);
+  const nightLim = (y, zx, zy, w) => Math.min(zx - w * 2.5 * Math.log10(Math.max(y / Math.max(zy, 1e-4), 1)), 7.9 - w * 2.5 * Math.log10(Math.max(y / 0.016, 1)));
+  assert.ok(NL[1] === 'min(uStarM.x - uStarM.w * 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - uStarM.w * 2.5 * log(max(y / 0.016, 1.0)) / log(10.0))', 'nightLim\'s own line: ' + NL[1]);
+  const N0 = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
+  assert.ok(N0.includes('NIGHTB.m[3] = 1 - smooth(15, 18, D);'), 'the sky light\'s weight: 1 in a twilight, 0 from 18 deg down');
+  const wD = (D) => { const t = Math.min(Math.max((D - 15) / 3, 0), 1); return 1 - t * t * (3 - 2 * t); };
   const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07), show = (m, ml) => Math.min(Math.max((ml - m) / 0.5, 0), 1);
   let seed = 11; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
   const stars = []; for (let i = 0; i < 400; i++) { const b = Math.pow(rnd(), 6) * 0.95 + 0.07, glow = rnd(); stars.push({ b, glow, first: Infinity }); }   // (glow: 0 the zenith's light, 1 three times it near the glow)
@@ -568,10 +573,19 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   const prev = stars.map(() => 0);
   for (let f = 0; f <= 58 * 60; f++) {
     const D = 7 + 17 * ss(f / (58 * 60)), zx = K.starLim(D);
-    stars.forEach((st, i) => { const v = show(mag(st.b), nightLim(zy * (1 + 2 * st.glow), zx, zy)); if (v > 0 && st.first === Infinity) st.first = f; worst = Math.max(worst, Math.abs(v - prev[i])); prev[i] = v; });
+    stars.forEach((st, i) => { const v = show(mag(st.b), nightLim(zy * (1 + 2 * st.glow), zx, zy, wD(D))); if (v > 0 && st.first === Infinity) st.first = f; worst = Math.max(worst, Math.abs(v - prev[i])); prev[i] = v; });
   }
   const out = stars.filter((st) => st.first < Infinity);
-  assert.ok(out.length > 300, `${out.length} stars out by the night`);
+  assert.equal(out.length, stars.length, `${out.length} of ${stars.length} stars out by the night`);
+  // (the hub's round-9 review of #333: a Milky Way night lost 150 of its 272 star points) at the night's 24 deg every star of
+  // the field (to mag 6.2) shows whole wherever it stands: on a sky up to 3x the zenith's light, on the band (the galaxy's
+  // light is not nightLim's sky: c - gL), whatever the zenith's own light
+  assert.ok(g.includes('{ gL = galaxyAt(rd, eS) * hzT; c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
+  for (const zy0 of [0.002, 0.008, 0.02, 0.05]) for (const k of [1, 1.5, 2, 3]) for (const b of [0.07, 0.1, 0.3, 1]) {
+    const v = show(mag(b), nightLim(zy0 * k, K.starLim(24), zy0, wD(24)));
+    assert.equal(v, 1, `at D 24, a mag ${mag(b).toFixed(2)} star on a sky ${k}x a zenith of Y ${zy0}: shown ${v.toFixed(2)}, not whole`);
+  }
+  assert.ok(wD(12) === 1 && wD(15) === 1 && wD(18) === 0 && wD(24) === 0, 'the weight: whole in a twilight, gone at night');
   const rank = (a) => { const o = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]), r = new Array(a.length); o.forEach(([, i], k) => { r[i] = k; }); return r; };
   const ra = rank(out.map((st) => st.first)), rb = rank(out.map((st) => -st.b)), n = out.length;
   let d2 = 0; for (let i = 0; i < n; i++) d2 += (ra[i] - rb[i]) ** 2;
@@ -664,7 +678,7 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
   const m = g.match(/float (\w+) = 1\.0 - hazeSky\(rd\);\s*vec3 (\w+) = \1 \*/);
   assert.ok(m, 'the haze\'s transmittance (1.0 - hazeSky(rd)) and its tint are not worked out before the galaxy and the aurora');
   for (const f of ['galaxyAt', 'auroraAt']) {
-    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '('));
+    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '(') || l.includes('= ' + f + '(rd'));   // (the galaxy by way of gL, its light held apart for nightLim)
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
@@ -687,4 +701,36 @@ test('night: the moon\'s disc stands at the ceiling, by hue apart from the moonl
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   assert.ok(g.includes('c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;') && !g.includes('max(c, uMoonG)'), 'the glow adds its own light up to its luminance, never a per-channel max');
   assert.ok(g.includes('smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma)'), 'the disc\'s edge crisp: about a pixel either side');
+});
+
+// ------------------------------------------------------------------ the Milky Way's structure (delight-night section 3)
+// sky-body.glsl's own shape lines (galAlong, galBand, galCore, galRift, galCoal, galLMC, galSMC, galM31), run here as JS
+// over galactic longitude and latitude: the rift's dark lane only inside ld -55..85; the core at least 3x the anticentre;
+// each object's peak within 0.5 deg of its place; the band's peak within 5% of the old band's (1)
+test('night: the Milky Way\'s structure, the rift, the bulge\'s lane, the fall to the anticentre, the Coalsack, the Clouds and M31 at their places', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const names = ['galAlong', 'galBand', 'galCore', 'galRift', 'galCoal', 'galLMC', 'galSMC', 'galM31'];
+  const src = names.map((nm) => { const m = g.match(new RegExp('^float ' + nm + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm')); assert.ok(m, nm + ' is one line in sky-body.glsl'); return 'function ' + nm + '(' + m[1].replace(/float /g, '') + ') {' + m[2].replace(/\bfloat\s+/g, 'let ') + '}'; }).join('\n');
+  const K = new Function('const { exp, cos, sin, pow, sqrt, abs, max, min } = Math, radians = (d) => d * Math.PI / 180, smoothstep = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };\n' + src + '\nreturn { ' + names.join(', ') + ' };')();
+  assert.ok(g.includes('float dark = (1.0 - 0.8 * galRift(ld, bd - bo) * brk) * (1.0 - 0.85 * galCoal(ld, bd))') && !g.includes('float lanes ='), 'the rift and the Coalsack darken the band; the old noise lanes are gone');
+  for (let ld = -180; ld <= 180; ld += 1) for (let bd = -10; bd <= 10; bd += 0.25) {
+    const r = K.galRift(ld, bd); if (ld < -55 || ld > 85) assert.ok(r < 1e-9, `no rift at ld ${ld}`);
+  }
+  for (let ld = -45; ld <= 75; ld += 5) { let mx = 0; for (let bd = -4; bd <= 4; bd += 0.05) mx = Math.max(mx, K.galRift(ld, bd)); assert.ok(mx > 0.95, `the rift whole at ld ${ld} (${mx.toFixed(2)})`); }
+  const peak = (f, ld) => { let mx = 0; for (let bd = -15; bd <= 15; bd += 0.05) mx = Math.max(mx, f(ld, bd)); return mx; };
+  const whole = (ld, bd) => K.galBand(ld, bd) * 0.525 + 1.3 * K.galCore(ld, bd);   // (the band at its noise's mean, (0.25 + 1.1 n^2) at n 0.5)
+  const core = peak(whole, 0), anti = peak(whole, 180);
+  assert.ok(core >= 3 * anti, `the core ${core.toFixed(3)} at least 3x the anticentre ${anti.toFixed(3)}`);
+  const fall = K.galAlong(180) / K.galAlong(0); assert.ok(fall <= 0.35, `the band at the anticentre ${fall.toFixed(2)} of its brightness at the core (about 0.3)`);
+  let amax = 0; for (let ld = -180; ld <= 180; ld += 0.5) amax = Math.max(amax, K.galAlong(ld)); assert.ok(amax <= 1.05, `the band's peak ${amax.toFixed(3)} within 5% of the old band's (1)`);
+  let bright = -999, bv = 0; for (let ld = -180; ld <= 180; ld += 1) { const v = peak(K.galBand, ld); if (v > bv) { bv = v; bright = ld; } } assert.ok(bright >= -80 && bright <= 0, `the brightest band at ld ${bright} (the star clouds, -80..0)`);
+  assert.ok(K.galCore(0, 0) < 0.3 * K.galCore(0, 4), 'the bulge cut by its mid-plane lane');
+  const at = (f, l0, b0) => { let best = 0, L = 0, B = 0; for (let ld = l0 - 8; ld <= l0 + 8; ld += 0.05) for (let bd = b0 - 6; bd <= b0 + 6; bd += 0.05) { const v = f(ld, bd); if (v > best) { best = v; L = ld; B = bd; } } return [L, B, best]; };
+  for (const [nm, f, l0, b0] of [['Coalsack', K.galCoal, 302.8 - 360, 0.4], ['LMC', K.galLMC, 280.5 - 360, -32.9], ['SMC', K.galSMC, 302.8 - 360, -44.3], ['M31', K.galM31, 121.2, -21.6]]) {
+    const [L, B, v] = at(f, l0, b0);
+    assert.ok(Math.hypot((L - l0) * Math.cos(b0 * Math.PI / 180), B - b0) <= 0.5 && v > 0, `${nm} peaks at (${L.toFixed(2)}, ${B.toFixed(2)}), its place (${l0.toFixed(1)}, ${b0})`);
+  }
+  const lmcW = (() => { let w = 0; for (let x = 0; x < 15; x += 0.05) if (K.galLMC(-79.5 + x / Math.cos(32.9 * Math.PI / 180), -32.9) > 0.5 * K.galLMC(-79.5, -32.9)) w = x; return 2 * w; })();
+  assert.ok(lmcW > 4 && lmcW < 12, `the LMC ${lmcW.toFixed(1)} deg across at half its peak (10.75 x 9.2 deg in all)`);
+  console.log(`# milky way: core ${core.toFixed(3)} / anticentre ${anti.toFixed(3)} = ${(core / anti).toFixed(1)}x, brightest band at ld ${bright}, its peak ${amax.toFixed(3)}`);
 });
