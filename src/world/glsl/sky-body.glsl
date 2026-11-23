@@ -12,6 +12,8 @@ uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venu
 uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
+uniform vec4 uMetH, uMetT;   // (delight-night §2) the meteor on show: its head's direction and light (Y; 0: none), its tail's direction and its width (px)
+uniform vec3 uMetC;          // its colour, at luminance 1
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
 out vec4 oC;
 const float SKYTAU = 6.2831853;
@@ -168,6 +170,24 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
 // tile's mean, 0.29 at uHi.x 0.2, is the drifted state its judge flagged: fx/py/veilmean.py), taken at n 0.12, as a
 // function of the climate's cover alone: no clock
 float veilMean(float x) { return smoothstep(0.55 - x, 0.95 - x, 0.692); }
+const float MET_TOP = 0.118;   // (219's METEOR.TOP_Y: the head's cap, OKLab L 0.49 with no sky under it)
+/* (delight-night §2) a meteor: its head and wake as a segment on the screen (both ends projected as starAt projects a
+   star), its light integrated over the pixel across (the stars' starBox) and along (starErf at both ends), so it keeps
+   its light as it slides between pixels; the wake brightens toward the head, the head a little brighter still; each
+   pixel capped at the head (the stars' kind: no pixel past OKLab L 0.50 with the sky's light under it) */
+vec3 meteorAt(vec3 c) {
+  float zh = dot(uMetH.xyz, uCamF), zt = dot(uMetT.xyz, uCamF);
+  if (zh <= 1e-3 && zt <= 1e-3) return vec3(0.0);
+  vec3 th = zt > 1e-3 ? uMetT.xyz : uMetH.xyz, hh = zh > 1e-3 ? uMetH.xyz : uMetT.xyz;
+  vec2 A = (vec2(dot(th, uCamR) / (max(dot(th, uCamF), 1e-3) * uProj.x), dot(th, uCamU) / (max(dot(th, uCamF), 1e-3) * uProj.y)) * 0.5 + 0.5) * uRes;
+  vec2 B = (vec2(dot(hh, uCamR) / (max(dot(hh, uCamF), 1e-3) * uProj.x), dot(hh, uCamU) / (max(dot(hh, uCamF), 1e-3) * uProj.y)) * 0.5 + 0.5) * uRes;
+  vec2 ab = B - A; float L = max(length(ab), 1e-3); vec2 ax = ab / L, f = gl_FragCoord.xy - A;
+  float s = dot(f, ax), d = abs(f.x * ax.y - f.y * ax.x), sg = uMetT.w, k = 0.70710678 / sg;
+  float along = 0.5 * (starErf(s * k) - starErf((s - L) * k)), tap = mix(0.2, 1.0, clamp(s / L, 0.0, 1.0));
+  vec2 dh = gl_FragCoord.xy - B;
+  float v = uMetH.w * (starBox(d, sg) * along * tap + SKYTAU * sg * sg * starBox(dh.x, sg) * starBox(dh.y, sg));   // (the wake about half its light along its line, the head about its whole light at its centre)
+  return uMetC * min(v, max(MET_TOP - dot(c, LUMA), 0.0));
+}
 void main() {
   vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
   vec3 rd = normalize(uCamF + uCamR * ndc.x * uProj.x + uCamU * ndc.y * uProj.y);
@@ -318,6 +338,7 @@ void main() {
     if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;   // (physics: weather/moon-halo: by the stay's veil, with the moon's depth)
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
+  if (uMetH.w > 0.0) c += meteorAt(c) * (1.0 - hazeSky(rd));   // (delight-night §2) behind the haze, as the moon is
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
     float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float head = max(uNight.w - dot(c, LUMA), 0.0), sk = uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
