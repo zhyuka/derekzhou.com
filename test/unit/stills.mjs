@@ -144,13 +144,8 @@ test('stills: the twin the PC bakes gets the still\'s preload back (the build ta
   assert.throws(() => S.withPreload('<p>no block</p>', stripped), /no still preload/);
 });
 
-test('stills: the PC\'s bake renders a twin with the still\'s preload (stills.yml puts it back before bake-stills.js)', async () => {
+test('stills: the twin a bake renders gets the still\'s preload back (tools/stills-twin.mjs)', async () => {
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
-  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
-  const fix = y.indexOf('node tools/stills-twin.mjs site/index.html served/head-twin'), bake = y.indexOf('node tools/gpu/bake-stills.js');
-  assert.ok(fix > 0, 'stills.yml puts the preload back in served/head-twin (run 43409850998: without it the page asks for no still)');
-  assert.ok(bake > fix, 'and does it before the bake renders the twin');
-  assert.ok(/--twin served\/head-twin/.test(y.slice(bake, y.indexOf('\n', bake))), 'the bake renders that same twin');
   // the twin as the PC gets it: a plain build with no stills (the preload taken out), the preload then put back
   const src = fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8'), d = tmp();
   fs.writeFileSync(path.join(d, 'index.html'), src.replace(S.PRELOAD, ''));
@@ -159,7 +154,6 @@ test('stills: the PC\'s bake renders a twin with the still\'s preload (stills.ym
   assert.match(r.stdout, /put back/);
   assert.match(fs.readFileSync(path.join(d, 'index.html'), 'utf8'), /<link rel="preload" as="image" class="still"/, 'the twin asks for its still');
   assert.notEqual(S.worldKey(d), k, '(the twin is not what the key is read from: stills.yml keys served/head)');
-  assert.ok(!/served\/head-twin/.test(y.slice(y.indexOf('worldKey'), y.indexOf('worldKey') + 120)), 'the key is read from served/head, never the twin');
   fs.rmSync(d, { recursive: true, force: true });
 });
 
@@ -178,15 +172,12 @@ test('stills: build.txt says what the stills fetch did, on its second line, and 
   } finally { srv.close(); fs.rmSync(out, { recursive: true, force: true }); }
 });
 
-test('stills: the bake never holds the GPU runner for a whole set, and the newest tip wins (stills.yml)', async () => {
+test('stills: only main\'s tip is looked up, on a hosted runner, and the newest tip wins (stills.yml)', async () => {
   const { fileURLToPath } = await import('node:url'), ROOT = fileURLToPath(new URL('../..', import.meta.url));
   const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
   assert.match(y, /cancel-in-progress: true\b/, 'a newer run cancels a stale one, on main too');
   assert.match(y, /group: stills-\$\{\{ github\.event\.workflow_run\.head_branch != 'main' && 'branches' \|\| \(github\.event\.workflow_run\.run_attempt == 1 && 'main' \|\| format\('main-\{0\}', github\.event\.workflow_run\.head_sha\)\) \}\}/, 'only a main gate\'s first run is in main\'s group: a branch\'s or a re-run\'s never cancels the tip\'s bake');
-  assert.match(y, /need:\n\s+if: >-\n\s+github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.head_branch == 'main'\n\s+&& github\.event\.workflow_run\.head_repository\.full_name == github\.repository\n/, 'only main bakes: no branch warm bake holds the GPU runner ahead of T2');
+  assert.match(y, /need:\n\s+if: >-\n\s+github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.head_branch == 'main'\n\s+&& github\.event\.workflow_run\.head_repository\.full_name == github\.repository\n/, 'only main\'s own tips: never a branch, never a fork');
   assert.match(y, /if \[ -n "\$tip" \] && \[ "\$tip" != "\$SHA" \]; then echo .*; exit 0; fi\n\s+k=\$\(node/, 'a run for a commit that is no longer main\'s tip bakes nothing (so a re-run of an old gate never takes the tip\'s bake\'s place)');
-  assert.match(y, /max-parallel: 1/, 'the sky jobs run one at a time');
-  assert.match(y, /sky: \[dawn, day, rain, sunset, dusk, night\]/, 'a job a sky (T2 takes the runner between two)');
-  assert.match(y, /--skies \$\{\{ matrix\.sky \}\}/, 'each job bakes only its sky');
-  assert.match(y, /need:\n(?:.*\n)*?\s+runs-on: ubuntu-latest\n/, 'the look-up never holds the GPU runner');
+  assert.match(y, /need:\n(?:.*\n)*?\s+runs-on: ubuntu-latest\n/, 'the look-up runs on a hosted runner');
 });

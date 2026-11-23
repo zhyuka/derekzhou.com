@@ -95,7 +95,7 @@ tools/ground-fresh.mjs       Whether every recorded ground is today's world's, u
 tools/stills.mjs             The openings' baked stills between the PC that bakes them and the Cloudflare build (docs/deploy.md)
 tools/stills-release.mjs     A bake's stills up as the release the Cloudflare build fetches (stills.yml)
 tools/stills-twin.mjs        The still's preload put back in the twin the PC bakes (stills.yml)
-tools/gpu/                   The owner's PC's RTX 4090 jobs: T2 (t2.js), T3 (t3.js), the ground's recorder
+tools/gpu/                   GPU checks run by hand on a real GPU (no CI job runs them): T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
@@ -165,7 +165,7 @@ written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
 by its text). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
-census and T2 compare the base's build with the head's.
+census and T1 compare the base's build with the head's.
 tools/minify.mjs makes the served seven from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
 as its default; the ink birds read no dev flag: checked), then terser

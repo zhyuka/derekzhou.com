@@ -145,18 +145,18 @@ deliberate change to those lists. robots.txt blocks: GPTBot, ClaudeBot,
 CCBot, Google-Extended, ChatGPT-User, Bytespider, anthropic-ai, cohere-ai,
 FacebookBot.
 
-## The PC's runners and a public repository (2026-11-23)
+## CI and a public repository (2026-11-23)
 
-The repository is public. Its Linux jobs run on GitHub-hosted runners, and only the real-GPU jobs (gpu.yml T2/T3,
-stills.yml bake/up) run on the owner's PC (docs/deploy.md, "Where CI runs"). The gate (gate.yml) runs on push and on
-dispatch only, so a fork never starts it. What a fork's pull request can start is guarded: every job on the PC that a
-`pull_request` can start, and every job a `pull_request_target` or `workflow_run` event can start (those run main's
-copy with a write token, on any runner), runs only when the head repository is this one (`github.event.pull_request.head.repo.full_name == github.repository`, or
-`github.event.workflow_run.head_repository.full_name` for a run another workflow finished). That covers gpu.yml's
-`perf` label path, merge.yml's ticks, and stills.yml, which a fork's own run of a workflow named Gate could otherwise
-start. test/unit/fork-guard.mjs reads every workflow file and fails on a job without the guard.
+The repository is public, and every CI job runs on GitHub-hosted runners: none on the owner's PC (the owner,
+2026-11-23: "None on my PC"; test/unit/fork-guard.mjs fails on a self-hosted job). The gate (gate.yml) runs on push
+and on dispatch only, so a fork never starts it. Every job a `pull_request_target` or `workflow_run` event can start
+(those run main's copy with a write token) runs only when the head repository is this one
+(`github.event.pull_request.head.repo.full_name == github.repository`, or
+`github.event.workflow_run.head_repository.full_name` for a run another workflow finished). That covers merge.yml's
+ticks, and stills.yml, which a fork's own run of a workflow named Gate could otherwise start. fork-guard.mjs reads
+every workflow file and fails on a job without the guard.
 
 The guard cannot stop a fork's pull request that adds or edits a workflow with a `pull_request` trigger: GitHub
-runs the PR's copy of that file, guard removed. Only the repository's setting Settings > Actions > General >
+runs the PR's copy of that file, guard removed (on GitHub's runners, with a read-only token and no secrets). Only the repository's setting Settings > Actions > General >
 "Require approval for all external contributors" (or "for first-time contributors" at least) stops that, and it is
 the owner's to set. `pull_request_target` and `workflow_run` run main's copy, so their guards hold.

@@ -70,10 +70,10 @@ test('handoff: a re-run of failed jobs reads its run\'s newest attempt; drop cle
   } finally { fs.rmSync(t, { recursive: true, force: true }); }
 });
 
-test('handoff: the gate, T2 and the Stills job pass the builds and T1\'s shards as run artifacts, every reader checked and pinned', () => {
+test('handoff: the gate and the Stills job pass the builds and T1\'s shards as run artifacts, every reader checked and pinned', () => {
   const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
-  const gate = rd('.github/workflows/gate.yml'), gpu = rd('.github/workflows/gpu.yml'), stills = rd('.github/workflows/stills.yml'), bot = rd('.github/ci/merge-bot.mjs');
-  for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu], ['stills.yml', stills]]) {
+  const gate = rd('.github/workflows/gate.yml'), stills = rd('.github/workflows/stills.yml'), bot = rd('.github/ci/merge-bot.mjs');
+  for (const [f, y] of [['gate.yml', gate], ['stills.yml', stills]]) {
     assert.match(y, /(handoff\.mjs|\$h) get served /, f + ' reads the builds through the hand-off\'s manifest check');
     assert.ok(!/ci-handoff|handoff\.mjs (sweep|drop|verdict-put)/.test(y), f + ': nothing on the PC\'s shared disk');
     for (const l of y.split('\n').filter((x) => /handoff\.mjs get |\$h get /.test(x))) assert.match(l, /--pinned/, f + ': every reader pinned: ' + l.trim());
@@ -83,10 +83,8 @@ test('handoff: the gate, T2 and the Stills job pass the builds and T1\'s shards 
       assert.ok(!/continue-on-error/.test(step), f + ': a hand-off that did not upload fails its job');
     }
   }
-  assert.match(gpu, /\$h = if \(Test-Path base\/\.github\/ci\/handoff\.mjs\)/, 'T2 reads with the base\'s handoff.mjs: a PR cannot loosen its own check');
   assert.match(gate, /handoff\.mjs put "\$RUNNER_TEMP\/served" served\n\s+node \.github\/ci\/handoff\.mjs selftest served/);
   assert.match(stills, /HANDOFF_SHA: \$\{\{ steps\.pin\.outputs\.served_sha \}\}/, 'the Stills look-up pins the builds to the Gate run\'s verdict');
-  assert.equal((stills.match(/HANDOFF_SHA: \$\{\{ needs\.need\.outputs\.served_sha \}\}/g) || []).length, 2, 'the bake and up jobs pin them too');
   assert.match(rd('.github/ci/verdict.mjs'), /served_sha: c\.served_sha/, 'the verdict carries the pin');
   assert.ok(!/fs\.(cpSync|copyFileSync)\(/.test(rd('.github/ci/handoff.mjs')), 'handoff.mjs copies by bytes: cpSync and copyFileSync carry modes over, and the PC\'s /mnt/c refuses them (EPERM)');
   // what decides is never read from the shared folder alone (the hub's review of #321): the bot and T2's probe read the
@@ -94,7 +92,6 @@ test('handoff: the gate, T2 and the Stills job pass the builds and T1\'s shards 
   assert.ok(!/handoff\.mjs|ci-handoff|localVerdict/.test(bot), 'the merge bot never reads the PC\'s verdict copy: any run\'s code can write it');
   assert.ok(!/\/verdict\/|handoff\.mjs.*root\(\)/.test(gate), 'T2\'s probe never takes a cached answer from the PC\'s verdict copy');
   assert.match(gate, /served_sha: \$\{\{ steps\.handoff\.outputs\.sha \}\}/); assert.match(gate, /shards_sha: \$\{\{ steps\.shards\.outputs\.sha \}\}/);
-  assert.match(gpu, /HANDOFF_SHA: \$\{\{ inputs\.served_sha \|\| needs\.served\.outputs\.sha \}\}/);
 });
 // plant: {"file": ".github/ci/merge-bot.mjs", "find": "async function verdict(run) {", "with": "async function verdict(run) { try { return JSON.parse(fs.readFileSync(path.join('/mnt/c/ci-handoff/verdict', run.id + '-1.json'), 'utf8')); } catch {}", "why": "the bot trusting a verdict file on the PC's shared disk before the artifact"}
 // plant: {"file": ".github/ci/handoff.mjs", "find": "if (sha(mf) !== pin)", "with": "if (false)", "why": "the pin on the manifest dropped"}

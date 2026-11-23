@@ -29,6 +29,12 @@ export function parse(src) {
   return { on, jobs };
 }
 
+test('no CI job runs on the owner\'s PC (2026-11-23, the owner: "None on my PC")', () => {
+  for (const f of fs.readdirSync(DIR).filter((x) => /\.ya?ml$/.test(x))) {
+    for (const j of parse(fs.readFileSync(path.join(DIR, f), 'utf8')).jobs) assert.ok(!/self-hosted|pc-wsl|gpu-4090|gpu-exclusive/.test(j.runsOn), `${f}: job ${j.name} runs on a self-hosted runner (${j.runsOn})`);
+  }
+});
+
 test('fork guard: every PC job a fork could start runs only for this repository', () => {
   let checked = 0;
   for (const f of fs.readdirSync(DIR).filter((x) => /\.ya?ml$/.test(x))) {
@@ -41,7 +47,7 @@ test('fork guard: every PC job a fork could start runs only for this repository'
       for (const e of risky.filter((x) => pc || x !== 'pull_request')) { assert.match(j.if, GUARD[e], `${f}: job ${j.name} can start on ${e}: no fork guard`); checked++; }
     }
   }
-  assert.ok(checked >= 7, 'gpu.yml (t2, t3), merge.yml (2 events) and stills.yml (3 jobs) are read: ' + checked);
+  assert.ok(checked >= 3, 'merge.yml (2 events) and stills.yml (its look-up at least) are read: ' + checked);
 });
 
 test('fork guard: the parser reads a workflow\'s triggers, jobs and folded ifs', () => {
@@ -51,4 +57,3 @@ test('fork guard: the parser reads a workflow\'s triggers, jobs and folded ifs',
 });
 // plant: {"file": ".github/workflows/merge.yml", "find": "startsWith(github.event.pull_request.head.ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository ||", "with": "startsWith(github.event.pull_request.head.ref, 'claude/') ||", "why": "a fork's PR wakes the merge bot with MERGE_TOKEN"}
 // plant: {"file": ".github/workflows/stills.yml", "find": "      && github.event.workflow_run.head_repository.full_name == github.repository", "with": "      && true", "why": "a fork's own Gate run starts the Stills look-up with a write token"}
-// plant: {"file": ".github/workflows/stills.yml", "find": "    if: needs.need.outputs.bake == 'true' && github.event.workflow_run.head_repository.full_name == github.repository", "with": "    if: needs.need.outputs.bake == 'true'", "why": "a fork's own Gate run bakes on the PC's GPU"}
