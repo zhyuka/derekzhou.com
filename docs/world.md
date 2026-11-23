@@ -508,7 +508,13 @@ physics: clouds/drift). It holds:
   (SEEDR's stream): none before the cut and none within 6 km of the
   landing, so the opening's frames never show them. A site says only
   where and what; its reader (LAND, BIRDS) decides when it shows, by the
-  air (WORLD.air.wx) and the sky. test/unit/events.mjs.
+  air (WORLD.air.wx) and the sky. A fog pool is the visit's mist drained
+  into one hollow: its site carries its basin's radius (500-900 m), and
+  the mist over a ring twice that radius, gathered in, stands four times
+  as deep there as on the flats, up to 145 m (WORLD.events.poolDepth(site,
+  mist)). It has no clock of its own: no mist, no pool. LAND fills the
+  lowest ground within the radius to that depth, under the basin's rim.
+  test/unit/events.mjs.
 - The landing's heading, airHeading0 (drawn once from its own stream: the
   flight, the first plan, the galaxy's lie and the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the

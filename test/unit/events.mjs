@@ -4,13 +4,16 @@
 // near the landing, a tier's share of the ground in reach as its spacing says.
 // plant: {"file": "src/world/216-events.js", "find": "if (ti === 0 || !evYields(seed, all[i])) out.push(all[i]);", "with": "out.push(all[i]);", "why": "two rare sites in reach at once"}
 // plant: {"file": "src/world/216-events.js", "find": "var EV_JIT = 0.24,", "with": "var EV_JIT = 0.45,", "why": "a tier's sites jittered close enough to meet"}
+// plant: {"file": "src/world/216-events.js", "find": "mist > 0 ? Math.min(EV_POOL.top, mist * EV_POOL.catch * EV_POOL.catch) : 0;", "with": "true ? 30 : 0;", "why": "a fog pool on a clock of its own (standing with no mist)"}
+// plant: {"file": "src/world/216-events.js", "find": "Math.min(EV_POOL.top, mist * EV_POOL.catch * EV_POOL.catch)", "with": "mist * EV_POOL.catch * EV_POOL.catch * 40", "why": "a fog pool deeper than any basin holds"}
+// plant: {"file": "src/world/216-events.js", "find": "s.r = EV_POOL.r[0] + (EV_POOL.r[1] - EV_POOL.r[0]) * hfl(ihash(h + 3));", "with": "s.r = EV_POOL.r[0] + (EV_POOL.r[1] - EV_POOL.r[0]) * Math.random();", "why": "a fog pool's basin a new size each time it is asked for"}
 // plant: {"file": "src/world/216-events.js", "find": "function evSeed() { return AFTER ?", "with": "function evSeed() { return true ?", "why": "sites before the cut (the opening's frames would show the read's own sights)"}
 import { test, assert, vm, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const EV = cut(WORLD, '  /* ---------------------------------------------------------------- the events: rare sights, placed */', '  /* ---------------------------------------------------------------- ');
 function page(read, after = true) {
   return vm.runInThisContext('(function () {\n  \'use strict\';\n  var PI = Math.PI, SEEDR = ' + (read >>> 0) + ', AFTER = ' + after + ';\n' + STREAMS + EV +
-    '  return { eventsNear: eventsNear, EVAPI: EVAPI, EV_TIERS: EV_TIERS, EV_JIT: EV_JIT, EV_REACH: EV_REACH, EV_CLEAR: EV_CLEAR, evTier: evTier, evSeed: evSeed };\n})')();
+    '  return { eventsNear: eventsNear, evPoolDepth: evPoolDepth, EV_POOL: EV_POOL, EVAPI: EVAPI, EV_TIERS: EV_TIERS, EV_JIT: EV_JIT, EV_REACH: EV_REACH, EV_CLEAR: EV_CLEAR, evTier: evTier, evSeed: evSeed };\n})')();
 }
 const READS = [1, 77, 0xdeadbeef, 123456789];
 
@@ -67,4 +70,25 @@ test('events: each tier\'s sites apart, at most one rare site in reach anywhere,
   for (const s of H.evTier(H.evSeed(), 1, 200000, 200000, 200000, [])) if (H.evTier(H.evSeed(), 2, s.x, s.z, 2 * R, []).length) yielded++;
   assert.ok(yielded > 0, 'some uncommon sites stand near a rare one (so yielding is tried)');
   assert.equal(both, 0, 'at most one rare site in reach, with the rarest tier filled');
+});
+
+test('events: a fog pool is the visit\'s mist drained into its basin (no mist, no pool; deeper than the flats; never past the top)', () => {
+  for (const r of READS) {
+    const G = page(r), P = G.EV_POOL, pools = G.eventsNear(60000, 40000, 30000).filter((s) => s.kind === 'fogpool');
+    assert.ok(pools.length > 5, 'fog pools in reach of a wide look');
+    const again = new Map(page(r).eventsNear(65000, 35000, 40000).map((s) => [s.id, s]));
+    for (const s of pools) {
+      assert.ok(s.r >= P.r[0] && s.r <= P.r[1], `basin ${s.r.toFixed(0)} m within ${P.r[0]}-${P.r[1]} m`);
+      const t = again.get(s.id); if (t) assert.equal(t.r, s.r, 'the same basin asked for from elsewhere');
+      assert.equal(G.evPoolDepth(s, 0), 0, 'no mist: no pool');
+      let last = 0;
+      for (const m of [0.5, 1, 3.5, 10]) {
+        const d = G.evPoolDepth(s, m); assert.ok(d > m && d >= last, `mist ${m} m: the pool ${d} m, deeper than the flats and with the mist`);
+        assert.ok(Math.abs(d - Math.min(P.top, m * P.catch * P.catch)) < 1e-9, 'the ring\'s mist gathered into the basin'); last = d;
+      }
+      assert.ok(G.evPoolDepth(s, 1e3) <= P.top, `never past ${P.top} m`);
+    }
+    assert.equal(G.evPoolDepth(G.eventsNear(60000, 40000, 30000).find((s) => s.kind !== 'fogpool') || null, 10), 0, 'only a fog pool pools');
+  }
+  assert.deepEqual(page(1).EVAPI.POOL, { r: [500, 900], catch: 2, top: 145 }, 'its reader\'s copy of the numbers');
 });
