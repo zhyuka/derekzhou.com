@@ -62,6 +62,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
+                             test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
                              test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
@@ -81,6 +82,7 @@ test/ground.mjs              The land's real ground for the sims, from test/gold
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
 test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
+test/birds-motion.mjs        The ink birds' drawn motion frame by frame on the headless sim (their form and place on the window bounded in their second difference)
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
@@ -115,6 +117,9 @@ tools/tsc.mjs                tsc --checkJs over the assembled world and src/real
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD): each error as
                              section:line or file:line
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
+                             build (a layout only): 226's STILL_WORDS (their union) and test/golden/still-words.json
+                             (--check, tools/checks/70-still-words.sh; --write after a stylesheet change)
 tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
 tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (fillStamp writes PW_V at assembly), minified as the world is
@@ -138,11 +143,14 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/36-load-budget.sh, tools/checks/37-ground-fresh.sh, tools/checks/38-sound.sh,
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
-                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
+                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own),
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
                              the sand spec's bounds, physics: sand/S1),
                              tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
-                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL)
+                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL),
+                             tools/checks/46-names-in-messages.sh (no banned name in a commit message from main to HEAD,
+                             the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list),
+                             tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:

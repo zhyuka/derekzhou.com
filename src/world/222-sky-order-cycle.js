@@ -12,6 +12,7 @@
     if (!(at >= 0 && at <= 1)) at = 0.5;
     var open = DEVMODE && OPT.skyScene && WSKY[OPT.skyScene] && SKY.ids.indexOf(OPT.skyScene) >= 0 ? OPT.skyScene : null;
     if (!open) open = SKY.land[g][Math.floor(SKY.rO.f() * SKY.land[g].length)];
+    if (open === 'moonlit') at = Math.min(at, 0.6);   // (the hub's review of #303: a moonlit opening never past 0.6 of its hold, so its moon at the cut stands where the opening's still has it whatever the hour)
     skyPush(open);
     SKY.seq[0].at = -SKY.seq[0].hold * at * 0.9;
     SKY.landing = { hour: HOUR, group: g, at: at, sky: open };
