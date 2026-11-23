@@ -197,12 +197,13 @@
     o.d[0] = m.d[0]; o.d[1] = m.d[1]; o.d[2] = m.d[2]; o.w = m.w; o.az = m.az; o.el = m.el; o.up = m.w > 0; return o;
   }
   /* the landing's heading (the flight, the first plan, the galaxy's lie and the boot read it). (curated openings, step 2:
-     delight-visit 5.2) each of the 16 lands' own, chosen by the visit ruler (tools/visit/headings.mjs) for a near pass
-     soonest (within 150 m: by 40 s on 9 lands, where its own came at 18-1137 s) and the least longest stretch with no
-     reward; null, the land's own draw from its stream where that was already the best (k6, k10). Chosen once, before
-     anything is drawn, as the landing is; nothing turns the view. A land k is the one whose seed is 010's (11 + k x
-     0x9e3779b9) */
-  function airHeading0() { var T = [170, 160, 50, 210, 235, 225, null, 65, 245, 50, null, 110, 210, 310, 205, 230], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
+     delight-visit 5.2) each of the 16 lands' own, chosen by tools/visit/headings.mjs from the visit ruler's candidates
+     and the frames' look (tools/visit/looks.mjs, measured in T1's SwiftShader frames: looks.json): never more than
+     look-rule.mjs's share of the words' boxes under cloud, then a near pass soonest, the fewest 180 s stretches with no
+     reward, the night's Milky Way and the low sun in frame and clear, the top band clearest; null, the land's own draw
+     from its stream where that was already the best (k6). Chosen once, before anything is drawn, as the landing is;
+     nothing turns the view. A land k is the one whose seed is 010's (11 + k x 0x9e3779b9) */
+  function airHeading0() { var T = [90, 140, 40, 230, 265, 210, null, 70, 245, 140, 60, 305, 270, 295, 230, 235], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
      frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
      (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust

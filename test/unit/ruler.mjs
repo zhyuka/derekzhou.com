@@ -1,7 +1,8 @@
 // test/unit/ruler.mjs: the visit ruler (tools/visit/ruler.mjs) runs on the world as it ships
 // plant: {"file": "tools/visit/ruler.mjs", "find": "export const DUNE_MIN = 8;", "with": "export const DUNE_MIN = 0;", "why": "every land opens over dunes"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);", "with": "keep = () => true;", "why": "a cell keeps every piece, whatever its density"}
-import { test, assert, golden } from '../unit-lib.mjs';
+// plant: {"file": "src/world/215-air.js", "find": "305, 270, 295", "with": "20, 270, 295", "why": "k11's first heading back to 20 deg: 47% of the words' boxes under cloud (looks.json)"}
+import { test, assert, golden, WORLD } from '../unit-lib.mjs';
 const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN } = await import('../../tools/visit/ruler.mjs');
 
 // ------------------------------------------------------------------ the ruler's cuts still hold, and it measures
@@ -51,4 +52,23 @@ test('ruler: the mist at the cut is by the visit\'s moisture (AIR\'s weather, wh
   assert.equal(k3.sky0, 'firstlight');
   assert.ok(Math.abs(k3.mistAtCut - 9.17) < 0.05, `k3 at dawn: ${k3.mistAtCut} m of mist (want 9.17: first light's 10 m by its moisture 0.917)`);
   assert.equal(k4.mistAtCut, 0, `k4 at dawn: ${k4.mistAtCut} m (want 0: a dry visit)`);
+});
+
+// ------------------------------------------------------------------ the first headings keep the words clear of cloud
+// (the hub's review of #312, Nov 23) each land's first heading in airHeading0's table (null: the land's own draw) was
+// measured in its first frames by tools/visit/looks.mjs (tools/visit/looks.json), and none puts more than look-rule.mjs's
+// WORD_CAP of the words' boxes under cloud in any of its three frames (laptop night, laptop sunset, phone dawn). A table
+// entry never measured fails too: run looks.mjs on it (then headings.mjs) before it ships
+test('ruler: each land\'s first heading keeps the words\' boxes clear of cloud (looks.json, WORD_CAP)', async () => {
+  const fs = await import('node:fs');
+  const { WORD_CAP, lookKey } = await import('../../tools/visit/look-rule.mjs');
+  const T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(WORLD);
+  assert.ok(T, 'airHeading0\'s table not found in world.js');
+  const table = JSON.parse(T[1]), looks = JSON.parse(fs.readFileSync(new URL('../../tools/visit/looks.json', import.meta.url), 'utf8')).lands;
+  assert.equal(table.length, 16, 'the table has one heading for each of the 16 lands');
+  for (let k = 0; k < 16; k++) {
+    const l = (looks[k] || {})[lookKey(table[k])];
+    assert.ok(l, `k${k}: heading ${lookKey(table[k])} was never measured (node tools/visit/looks.mjs, then headings.mjs)`);
+    assert.ok(l.wordCloud <= WORD_CAP, `k${k}: heading ${lookKey(table[k])} puts ${(l.wordCloud * 100).toFixed(1)}% of the words' boxes under cloud (want ${WORD_CAP * 100}% at most)`);
+  }
 });
