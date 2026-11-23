@@ -16,7 +16,8 @@ import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD,
 // ------------------------------------------------------------------ the sky order
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
 const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the cycle at t');
-const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true);   // (the landing's heading: the air's, 215)
+const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true)   // (the landing's heading: the air's, 215; and the frame's equatorial axes and the galactic pole and centre, the galaxy's place)
+  + cut(WORLD, '  var AIR_LAT = ', '\n', true) + cut(WORLD, '  function airEq(', '\n', true);
 function skyWorld(seed, hour, at) {   // skyInit, skyPush and skyNext as the page runs them, a fake page under them (the colours unread)
   return vm.runInThisContext('(function (SEED, HOURV, AT) {\n  \'use strict\';\n' +
     '  var DEVMODE = false, OPT = { skyScene: null, skyNext: null, skyDt: null }, HOUR = HOURV, J = { seed: SEED };\n' +
@@ -164,34 +165,21 @@ test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 
   assert.ok(/gl\.uniform4f\(u\.uAur, SKY\.aur\.rise,/.test(WORLD), 'the aurora\'s rise is not passed to the sky (uAur.x, its own: skyAur)');
 });
 
-test('physics: night/sky-turn: the stars and the galaxy turn together about the sky\'s pole at SKY_RATE (no edge of the galaxy\'s own)', () => {
-  // 215's own skyFrame, run here: a rotation (orthonormal, det 1), the identity at t 0, about the pole AIR_POLE_EL up toward
-  // the key's azimuth, at SKY_RATE x the sidereal rate (15 deg an hour x SKY_RATE: within 10%); and the shader reads the
-  // stars and the galaxy both through it, so the angle between the galaxy and any star never changes over a stay
-  const AIR = cut(WORLD, '  var AIR_POLE_EL = ', '\n    return F;\n  }\n', true), RATE = +WORLD.match(/var SKY_RATE = ([\d.]+);/)[1];
-  const key = [Math.sin(1.1) * Math.cos(0.2), Math.sin(0.2), Math.cos(1.1) * Math.cos(0.2)];
-  const skyFrame = new Function('SKY_RATE', 'PI', 'keyAt', 'AIR_FRAME', AIR + '\nreturn skyFrame;')(RATE, Math.PI, () => key, new Array(9).fill(0));
-  const F0 = skyFrame(0, {}).slice();
-  F0.forEach((v, i) => assert.ok(Math.abs(v - (i % 4 === 0 ? 1 : 0)) < 1e-12, `skyFrame(0) is not the identity (the landing's sky as laid): ${F0}`));
-  const mul = (F, v) => [F[0] * v[0] + F[1] * v[1] + F[2] * v[2], F[3] * v[0] + F[4] * v[1] + F[5] * v[2], F[6] * v[0] + F[7] * v[1] + F[8] * v[2]];
-  for (const t of [7.3, 100, 1234]) {
-    const F = skyFrame(t, {}).slice(), c = [0, 1, 2].map((i) => [F[i * 3], F[i * 3 + 1], F[i * 3 + 2]]);
-    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) assert.ok(Math.abs(c[i][0] * c[j][0] + c[i][1] * c[j][1] + c[i][2] * c[j][2] - (i === j ? 1 : 0)) < 1e-9, `skyFrame(${t}) is not a rotation`);
-    // the pole stays put, and a direction 90 deg from it turns at the rate
-    const pole = [Math.sin(1.1) * Math.cos(Math.PI / 3), Math.sin(Math.PI / 3), Math.cos(1.1) * Math.cos(Math.PI / 3)], pp = mul(F, pole);
-    assert.ok(Math.hypot(pp[0] - pole[0], pp[1] - pole[1], pp[2] - pole[2]) < 1e-9, 'the sky\'s pole moves');
-    const q0 = [Math.cos(1.1), 0, -Math.sin(1.1)], q1 = mul(F, q0), ang = Math.acos(Math.min(1, q0[0] * q1[0] + q0[1] * q1[1] + q0[2] * q1[2])) * 180 / Math.PI;
-    const want = RATE * 15 / 3600 * t;
-    if (want < 170) assert.ok(Math.abs(ang / want - 1) <= 0.1, `at t ${t} the sky has turned ${ang.toFixed(2)} deg (SKY_RATE ${RATE}x: ${want.toFixed(2)})`);
-  }
-  // under the pixel limit: 0.25 px a frame at 60 Hz on a phone's 0.0376 deg/px, for the stars (points of 1-2 px)
-  const degS = RATE * 15 / 3600;
-  assert.ok(degS / 60 / 0.0376 <= 0.25, `the stars move ${(degS / 60 / 0.0376).toFixed(3)} px a frame (at most 0.25)`);
+test('physics: night/sky-turn: the stars and the galaxy turn together on the air\'s frame (no edge of the galaxy\'s own)', () => {
+  // the frame is the air's (215 skyFrame / skySphere, physics: air/sky-frame: test/unit/air.mjs); here: the galaxy stands in it
+  // by J2000's galactic pole and centre (so the frame turns it with the stars), the shader reads both through it, and the
+  // stars fill the whole sphere (a turn never brings up a starless sky)
+  assert.ok(WORLD.includes('SKY.gal = { pole: airEq(AIR_GAL.pole[0], AIR_GAL.pole[1]), core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best };'), 'the galaxy is not placed by the galactic pole and centre in the air\'s frame');
+  const GAL = WORLD.match(/AIR_GAL = \{ pole: \[([\d.]+), ([\d.]+)\], centre: \[([\d.]+), (-?[\d.]+)\] \}/).slice(1).map(Number), D = Math.PI / 180;
+  const eq = (ra, dec) => [Math.cos(dec * D) * Math.cos(ra * D), Math.cos(dec * D) * Math.sin(ra * D), Math.sin(dec * D)], P = eq(GAL[0], GAL[1]), C = eq(GAL[2], GAL[3]);
+  assert.ok(Math.abs(P[0] * C[0] + P[1] * C[1] + P[2] * C[2]) < 1e-3, 'the galactic centre does not lie on the galactic equator (its pole and centre 90 deg apart)');
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   assert.ok(g.includes('c += galaxyAt(uSkyF * rd, eS) * hzT;') && g.includes('vec3 rs = uSkyF * rd;') && g.includes('s += starAt(rs, el, az, pa, head / max(sk, 1e-5), dj, di);'), 'the galaxy and the stars are not both read through the sky\'s frame (uSkyF): one would slide against the other');
   assert.ok(!/galEdge/.test(g), 'the galaxy keeps an edge of its own (it comes and goes by the sky\'s turn)');
   assert.ok(g.includes('if (abs(elc) > 1.56) return 0.0;'), 'the stars fill only one of the frame\'s hemispheres: a turn would bring up a starless sky');
   assert.ok(/gl\.uniformMatrix3fv\(u\.uSkyF, false, skyFrame\(SIM\.t - \(1 - SIM\.alpha\) \* SIM_DT \+ SKY\.dt, V\)\)/.test(WORLD), '226 does not pass the sky\'s frame at the sky clock\'s time');
+  const RATE = +WORLD.match(/var SKY_RATE = ([\d.]+);/)[1], degS = RATE * 15 / 3600;   // under the pixel limit: 0.25 px a frame at 60 Hz on a phone's 0.0376 deg/px
+  assert.ok(degS / 60 / 0.0376 <= 0.25, `the stars move ${(degS / 60 / 0.0376).toFixed(3)} px a frame (at most 0.25)`);
 });
 
 test('physics: weather/moon-halo: the 22 deg ring and the moon dogs, only adding light, under the ceiling, never glittering', () => {

@@ -26,7 +26,10 @@
         if (dot(g, fw) > 0.85 && e > 4 && e < 34) { nn++; if (e < lo) { lo = e; core = g; } } }
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
-    SKY.gal = best; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(keyAt(V)[0], keyAt(V)[2]) : 0), fp: 5 + 3 * SKY.rV.f() };   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
+    /* (physics: night/sky-turn, on the air's frame: physics: air/sky-frame) the galaxy stands where the sky says: its pole and
+       centre J2000's (AIR_GAL) in the frame's own equatorial axes, so it turns with the stars and the moon; the lie drawn
+       above is kept only for its draws (the aurora's and the stays' after it stay as they are) */
+    SKY.gal = { pole: airEq(AIR_GAL.pole[0], AIR_GAL.pole[1]), core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best }; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(keyAt(V)[0], keyAt(V)[2]) : 0), fp: 5 + 3 * SKY.rV.f() };   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
     /* (physics: aurora/phases) the stay's own, after the draws above (they stay as they are): a breakup in half the
        stays, its front 20-40 deg east of centre as it begins, a second arc in half, 150-300 km beyond the first */
     SKY.aur.bk = SKY.rV.f() < 0.5 ? 1 : 0; SKY.aur.f0 = SKY.rV.r(20, 40); SKY.aur.dD = SKY.rV.f() < 0.5 ? SKY.rV.r(150, 300) : 0; SKY.aur.rise = 0; SKY.aur.p = 0; SKY.aur.sf = 0;
