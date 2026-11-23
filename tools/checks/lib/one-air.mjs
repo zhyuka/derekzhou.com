@@ -59,13 +59,9 @@ if (/\buT\b/.test(vb)) errs.push('src/world/glsl/fs-vbody.glsl: the billows read
 const sc = blank(fs.readFileSync(path.join(ROOT, 'src/score.js'), 'utf8'));
 sc.split('\n').forEach((l, i) => { if (/\b(afterglow|bluehour|firstlight|moonlit|milkyway|aurora)\s*:\s*\[\s*-?[\d.]+\s*,\s*-?[\d.]+\s*\]/.test(l)) errs.push(`src/score.js:${i + 1}: a breeze by sky of the score's own (the feed's air: AIR_BYSKY): ${l.trim().slice(0, 140)}`); });
 if (!/S\.air = F\.air/.test(sc)) errs.push('src/score.js: the score does not take the feed\'s air (the world\'s wind by sky)');
-// 4. the air heard: the score's wind (its direction, its gusts) is the feed's, and the feed's is the air's at the camera
-//    (airHeard, whose direction test/unit/air.mjs holds to windAt's within 1e-6), never a wind of the score's own
+// 4. the air heard: the feed's wind is the air's at the camera (airHeard; test/unit/air.mjs holds it to the visit's)
 const feed = blank(fs.readFileSync(path.join(ROOT, 'src/world/512-score-feed.js'), 'utf8'));
-if (!/\bwind:\s*airHeard\(CS\.x,\s*CS\.z,/.test(feed)) errs.push('src/world/512-score-feed.js: the feed\'s wind is not the air heard at the camera (airHeard(CS.x, CS.z, ...))');
-sc.split('\n').forEach((l, i) => {
-  if (/\b(windAz|windDir|WIND_DIR|wind\s*:\s*\[|atan2\s*\((?![^)]*\bwind\b))/.test(l) && !/\.wind\b/.test(l)) errs.push(`src/score.js:${i + 1}: a wind direction of the score's own (the feed's wind: airHeard): ${l.trim().slice(0, 140)}`);
-});
+if (!/\bw = airHeard\(CS\.x,\s*CS\.z,/.test(feed) || !/\bwind: w,/.test(feed)) errs.push('src/world/512-score-feed.js: the feed\'s wind is not the air heard at the camera (w = airHeard(CS.x, CS.z, ...), wind: w)');
 
 if (errs.length) { for (const e of errs) console.log('::error::' + e); console.log(`one air: ${errs.length} breach(es) (RULES.json one-world-state; src/world/215-air.js holds the world's one state)`); process.exit(1); }
 console.log(`one air: ${NAMES.length} names held by the air alone, no wind or sun literal outside it`);

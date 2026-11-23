@@ -548,9 +548,11 @@ physics: clouds/drift). It holds:
 - The air heard (physics: air/heard; airHeard, WORLD.air.heard): the one
   air where the listener is, for the score: windAt's wind there, the gust
   arriving (gustAt), its sigma and the field's clock (gustPhase), a fresh
-  object. The score's feed carries it at the camera, at its height over
-  the ground (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds its
-  direction to windAt's within 1e-6; 42-one-air holds the score to it.
+  object, and carry, the speed the gusts pass at (U10 x the sky's surface
+  share). The score's feed carries it at the camera, at its height over
+  the ground, with the wind's bearing from the eye's way and the apparent
+  wind (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds it to a
+  hand-computed wind for a fixed visit, and its gusts to carry.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's

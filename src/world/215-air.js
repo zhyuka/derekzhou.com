@@ -231,11 +231,13 @@
   function gustPhase(x, z, y, t, V) { var f = airFrame(V); t = t === undefined ? SIM.t : t; return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN; }   // s: the field's own clock here (the surface's clock, less the way along the wind over U10; NaN in still air; the same at every height)
   /* THE AIR HEARD (physics: air/heard): the one air where the listener is, for the score (the sound icon's): the wind
      there (windAt, m/s along x and z), the gust's excess along it (gustAt, m/s, signed), the gust's sigma at that
-     height (gustSigma) and the field's own clock there (gustPhase: when the gust now arriving left the visit's frame),
-     and the height asked for. A fresh object each time, so the score may keep it; read only, it steers nothing */
+     height (gustSigma), the field's own clock there (gustPhase: when the gust now arriving left the visit's frame),
+     carry, the speed the gusts pass at (U10 x the sky's surface share: a gust reaches a point dx downwind dx / carry
+     later in flight time, not dx / the wind heard), and the height asked for. A fresh object each time, so the score
+     may keep it; read only, it steers nothing */
   function airHeard(x, z, y, t, V) {
     var w = windAt(x, z, y, t, V), wx = w.x, wz = w.z;
-    return { x: wx, z: wz, gust: gustAt(x, z, y, t, V), sigma: gustSigma(y, V), phase: gustPhase(x, z, y, t, V), y: y };
+    return { x: wx, z: wz, gust: gustAt(x, z, y, t, V), sigma: gustSigma(y, V, t), phase: gustPhase(x, z, y, t, V), carry: u10Of(V) * weather(t === undefined ? SIM.t : t)[0], y: y };
   }
   function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
     var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n';
