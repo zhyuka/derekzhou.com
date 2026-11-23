@@ -528,6 +528,23 @@ physics: clouds/drift). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
+- The sky's frame (physics: air/sky-frame): one celestial sphere for the
+  sun, the moon, the planets, the stars and the galaxy. The place is 64
+  deg north (the aurora is one of the skies), so the celestial pole
+  stands 64 deg up in the north; the season, from the visit's own stream,
+  puts the sun on the ecliptic in the dark half of the year; north is set
+  once a visit so that the evening sun stands on the sky's own sun's
+  azimuth. The sphere turns forward only, at SKY_RATE times the sidereal
+  rate, never stopping and never turning back; at sky time 0 its hour is
+  the opening sky's, so the frame's sun stands at the opening's drawn sun.
+  The drawn sky's sun keeps its depth by sky until the night's true order
+  lands; the planets are placed by the drawn sun. The ecliptic leans
+  23.44 deg to the equator; the galactic pole and centre are J2000's (the
+  pole 60.2 deg from the ecliptic's, the centre 5.5 deg south of the
+  ecliptic). skyFrame(tS, V) is the frame as the night sky's shader reads
+  it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
+  the same with the pole, the ecliptic's pole, the galactic pole and
+  centre and the frame's own sun.
 - The air heard (physics: air/heard; airHeard, WORLD.air.heard): the one
   air where the listener is, for the score: windAt's wind there, the gust
   arriving (gustAt), its sigma and the field's clock (gustPhase), a fresh
@@ -573,9 +590,7 @@ physics: clouds/drift). It holds:
   now counts: it is the hour's wind, the sky's share at t. A reader that
   wants the day's wind whatever the sky (CLOUDS' drift and lens gate)
   asks for WORLD.air.day(x, z, y, V), the sky's share 1.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and the
-  sky's frame (skyFrame: the turn the stars and the galaxy take; today
-  none).
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route).
 - The landing's heading, airHeading0 (drawn once from its own stream: the
   flight, the first plan, the galaxy's lie and the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
