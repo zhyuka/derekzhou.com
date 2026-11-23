@@ -145,6 +145,20 @@ The plan is made in the part of the still every window of its band shows
 (STILL_BAND: a wider window loses the still's top and bottom, a narrower its
 sides), so the disc is whole on each, and its keep is the band's smallest
 window's 12 px scaled into the still's pixels (stillFrame).
+The meteors (delight-night §2; src/world/219-meteors.js), on the night skies
+only (the Milky Way and the aurora; on the moonlit sea the bright ones only),
+each a stay's own (the opening stay's from its seed, every later one's from the
+visit's own read, as the halo's veils), at 1x real time: about one long grazer a stay,
+from a radiant just under the horizon, running low and slow (3-5 deg/s) from
+under 2 deg up to under 2 deg again (151-173 deg along its path, 30-58 s), so
+no drag ever shows it ending in the open sky, its wake a rigid 2 deg
+and its light constant, so it shows by crossing the window; and 1-3 short ones
+(the owner, 2026-11-15: "Allow short ones too"), 0.3-1 s at 3-25 deg/s anywhere
+mid-sky (20-55 deg up), a few a night, their light rising and falling softly over that moment, the one
+exception RULES.json's no-fades names. Each is planned when its time comes,
+against the view as it is then; none under reduced motion or in a still; drawn
+by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
+head, no pixel past OKLab L 0.50.
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
@@ -648,6 +662,40 @@ physics: clouds/drift). It holds:
   now counts: it is the hour's wind, the sky's share at t. A reader that
   wants the day's wind whatever the sky (CLOUDS' drift and lens gate)
   asks for WORLD.air.day(x, z, y, V), the sky's share 1.
+- The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
+  the visit's own U10 and the sky (no new draw). mist (m deep): radiation
+  mist on a still clear night, thickest before sunrise; each sky's depth
+  set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour
+  1, the afterglow 0) scaled by the visit's own moisture (moist, 0-1),
+  which carries the wind's mixing too (a visit moist enough for mist has
+  a surface wind under 3 m/s on every sky with mist): radiation fog needs air near saturation as well
+  as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog),
+  and a coastal fog desert's is mostly advective: marine boundary-layer
+  air from over the cool upwelling coast, carried inland, at its most in
+  the early morning and gone soon after sunrise
+  (https://acp.copernicus.org/articles/20/3415/2020/). So the moisture
+  is the visit's air, not the land in view: whole on a calm synoptic day
+  (U10 under 4.02 m/s), none past 4.1 (AIR_MOIST, set with LAND for pools
+  at the cut on 3 of the 10 dune lands, the hub's ruling; the visit's own
+  U10, no new draw). First light gets 5 m of mist or more, deep enough for
+  pools, on dune openings 3, 10 and 14 (10 m each, by the live visit's
+  seed, RNG(subseed(seed, 1000)).seed(), which airDraw and airU10 read),
+  the other dune openings under 2 m; 1 m or more on 6 of the 16 openings,
+  and on 28% of visits over the winds' own spread. AIRAPI.MIST()
+  hands a reader a copy of the depths, as AIRAPI.BYSKY() does of the
+  wind by sky. Through a change its level moves
+  toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
+  never a jump, never a race). oro (0-1): the orographic gate, the
+  visit's own from U10 alone: the ridge-top wind is the log law's 100 m
+  share of U10 (1.28), and past 7.7 m/s there (U10 about 6) the ridges
+  stand lee waves, lenticulars and banner clouds (about a quarter of
+  visits). vis (km): the visit's own, 10 in clean air, 4 in blown sand
+  once U10 is past the sand's threshold (5.8-7 m/s; about one visit in
+  six). The gate and the haze never change with the sky, so the far land
+  never fades in place. It carries the lee wave's numbers too: oroU (7.7
+  m/s over the ridge, where the gate opens) and N (0.01/s, the buoyancy
+  frequency CLOUDS' lens takes), so the lens reads one weather. LAND's
+  mist and CLOUDS' lenticulars and banners read it.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route).
 - The events (physics: air/events; src/world/216-events.js, WORLD.events):
   the rare sights a visit may come on, each a site on the ground placed
