@@ -228,7 +228,7 @@
       }
     },
     cloud: function (cl, PF, R) {
-      if (cl.kind === 'lens') { var bl = K.lens(PF, R, cl.x, cl.base, cl.z, cl.dir, cl.len, cl.w, cl.t, cl.n); bl.flow = cl.flow; return; }
+      if (cl.kind === 'lens') { K.lens(PF, R, cl.x, cl.base, cl.z, cl.dir, cl.len, cl.w, cl.t, cl.n, { flow: cl.flow }); return; }
       if (cl.kind === 'range') K.range(PF, R, cl.x - Math.sin(cl.dir) * cl.len / 2, cl.base, cl.z - Math.cos(cl.dir) * cl.len / 2, cl.dir, cl.len, cl.w, cl.h);
     },
     // the scatter: pebbles near, shards of dark stone farther, dark boulders half sunk in the middle distance

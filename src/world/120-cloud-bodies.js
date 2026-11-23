@@ -82,39 +82,36 @@
   }
   /* a bank: a heap of lobes over a round footprint (the cloud a passage goes through): a flat base, mounds on top */
   /* a lenticular (delight-weather 3, terrain-held clouds): smooth lens plates stacked one to three over a ridge's lee
-     wave, their long axis along the crest (dir), each a flat ellipse of squashed lobes, thinner toward its rim, each
-     plate over the one below smaller; edges smooth and crisp (little erosion, small billows, a narrow band). Its
-     envelope stands still (a world cell's: held); only the billows in it flow, at the wind at its height (b.flow:
-     410 moves their offset, the shader reads no clock) */
+     wave, their long axis along the crest (dir), each plate over the one below smaller; edges smooth and crisp (little
+     erosion, small billows, a narrow band). Its envelope stands still (a world cell's: held); only the billows in it
+     flow, at the wind at its height (o.flow on every plate: 410 moves their offset, the shader reads no clock).
+     Each plate is a body of its own, a grid of up to 96 lobes (PC GPU, 2026-11-23: 48 lobes 100-210 m apart left a rim
+     of loose beads, and lobes widened to the spacing a flat slab with square ends): the lobes at Chebyshev nodes along
+     the plate and across each row, the rows as wide as the plate's ellipse there, so the spacing shrinks toward the rim
+     with the plate's half-width; each lobe 0.8 of its own spacing, so it overlaps its neighbours, smaller toward the
+     rim; squashed so the plate is T * 0.52 high at its centre, and so thinner toward its rim, as a lens; a light blend,
+     so the union does not swell the plate */
   function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {
     o = o || {};
-    var b = PF.body(); b.vol = true; b.seed = rng.f() * 10; b.yaw = dir;
-    b.erode = 0.3; b.billow = 0.35; b.squash = 0.45; b.blend = 0.8; b.band = 0.035; b.noise = 6;
-    var dx = Math.sin(dir), dz = Math.cos(dir), px = dz, pz = -dx;
-    b.cx = x; b.cz = z; b.y0 = y0; b.y1 = y0 + T * (1 + 1.6 * (n - 1)); b.cy = y0 + T * 0.5;
-    // the lobes wide enough to overlap their neighbours (PC GPU, 2026-11-23: at the plate's spacing, 100-210 m between
-    // lobes about 60 m wide, the rim was a ring of loose round blobs): every lobe at least the plate's widest
-    // spacing across, and squashed by as much, so the plate keeps its thickness (a lobe T * 0.52 high at the centre,
-    // thinning to 0.7 of that at the rim)
-    var sp = T * 1.6, k, i, j;
-    for (k = 0; k < n; k++) {
-      var L0 = len * (1 - 0.24 * k), W0 = W * (1 - 0.24 * k), nu0 = Math.round(clamp(L0 / (T * 1.6), 6, 12));
-      sp = Math.max(sp, L0 / nu0);
-      for (i = 0; i < nu0; i++) { var u0 = ((i + 0.5) / nu0) * 2 - 1, h0 = Math.sqrt(Math.max(1 - u0 * u0, 0.04)), nv0 = Math.min(4, Math.max(1, Math.round(h0 * W0 / (T * 1.6)))); if (nv0 > 1) sp = Math.max(sp, h0 * W0 * 0.9 / (nv0 - 1)); }
-    }
-    var R0 = Math.max(1.15 * T, sp); b.squash = 0.45 * 1.15 * T / R0;
+    var dx = Math.sin(dir), dz = Math.cos(dir), px = dz, pz = -dx, b0 = null, k, i, j;
     for (k = 0; k < n; k++) {
       var sk = 1 - 0.24 * k, yk = y0 + T * 0.5 + k * T * 1.6, L = len * sk, Wk = W * sk;
-      var nu = Math.round(clamp(L / (T * 1.6), 6, 12));
+      var nu = Math.max(6, Math.min(24, Math.round(Math.sqrt(96 * L * 0.5 / (Wk * 0.45))))), nv = Math.max(2, Math.min(8, Math.floor(96 / nu)));
+      var sa = L * 0.5 * Math.PI / nu, sc = Wk * 0.45 * Math.PI / nv, Rc = 0.8 * Math.max(sa, sc);   // (the spacing at the plate's centre, along and across; the centre's lobe)
+      var b = PF.body(); b.vol = true; b.seed = rng.f() * 10; b.yaw = dir; if (o.flow) b.flow = o.flow;
+      b.erode = 0.3; b.billow = 0.35; b.squash = 0.52 * T / Rc; b.blend = 0.3; b.band = 0.035; b.noise = 6;
+      b.cx = x; b.cz = z; b.y0 = yk - T * 0.5; b.y1 = yk + T * 0.5; b.cy = yk;
+      if (!b0) b0 = b;
       for (i = 0; i < nu; i++) {
-        var u = ((i + 0.5) / nu) * 2 - 1, half = Math.sqrt(Math.max(1 - u * u, 0.04)), nv = Math.min(4, Math.max(1, Math.round(half * Wk / (T * 1.6))));
-        for (j = 0; j < nv && PF.count() - b.i0 < 96; j++) {   // (at most a great wall's 96 lobes)
-          var v = nv > 1 ? (j / (nv - 1)) * 2 - 1 : 0, rim = Math.sqrt(u * u + v * v * half * half);
-          PF.add(x + dx * u * L * 0.5 + px * v * half * Wk * 0.45, yk + rng.r(-0.06, 0.06) * T, z + dz * u * L * 0.5 + pz * v * half * Wk * 0.45, R0 * (1 - 0.3 * rim) * rng.r(0.92, 1.08), rng.f(), 1);
+        var u = -Math.cos(Math.PI * (i + 0.5) / nu), hu = Math.sqrt(1 - u * u);
+        for (j = 0; j < nv; j++) {
+          var v = -Math.cos(Math.PI * (j + 0.5) / nv), hv = Math.sqrt(1 - v * v);
+          var R = Math.max(0.8 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);
+          PF.add(x + dx * u * L * 0.5 + px * v * hu * Wk * 0.45, yk + rng.r(-0.04, 0.04) * T, z + dz * u * L * 0.5 + pz * v * hu * Wk * 0.45, R, rng.f(), 1);
         }
       }
     }
-    return b;
+    return b0;
   }
   function mound(PF, rng, x, y0, z, W, H, o) {
     o = o || {};

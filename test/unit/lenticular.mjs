@@ -13,14 +13,16 @@
 // plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
 // plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HELD_N, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
 // plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) continue;", "with": "if (C.weights(cx, cz)[1] > 0.5) continue;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
-// plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.squash = 0.45 * 1.15 * T / R0;", "with": "b.squash = 0.45 * 1.15 * T / R0 * 3;", "why": "the plates rounder: lobes three times the plate's height"}
-// plant: {"file": "src/world/120-cloud-bodies.js", "find": "var R0 = Math.max(1.15 * T, sp);", "with": "var R0 = 1.15 * T;", "why": "the lobes as wide as the plate is thick: a rim of loose round beads (PC GPU, 2026-11-23)"}
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from windAt's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
 // plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
 // plant: {"file": "src/realm-dunes.js", "find": "x = cx + sg * nx * off, z = cz + sg * nz * off;", "with": "x = cx + w.x / sp * off, z = cz + w.z / sp * off;", "why": "the lens along the 100 m wind, not the crest's normal: short of half a wavelength and slid along the crest"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": " if (o.flow) return cellDistFade(C);", "with": "", "why": "a lens faded by its own distance: in view when its cell is made (a pop)"}
 // plant: {"file": "src/realm-dunes.js", "find": "for (var jz = iz0 - 1; jz <= iz0 + 1; jz++) for (var jx = ix0 - 1; jx <= ix0 + 1; jx++) {", "with": "for (var jz = iz0; jz <= iz0; jz++) for (var jx = ix0; jx <= ix0; jx++) {", "why": "the cell's loop over its own ridge cell alone: the lenses whose ridge stands in a neighbour are lost"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "var R = Math.max(0.8 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "with": "var R = Rc * rng.r(0.95, 1.05);", "why": "every lobe the centre's: a flat slab with square ends (PC GPU, 2026-11-23)"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "var R = Math.max(0.8 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "with": "var R = Math.max(0.3 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "why": "the lobes a third of their spacing: a rim of loose round beads (PC GPU, 2026-11-23)"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.squash = 0.52 * T / Rc;", "with": "b.squash = 1.56 * T / Rc;", "why": "the plates three times thicker"}
+// plant: {"file": "src/realm-dunes.js", "find": "cl.n, { flow: cl.flow });", "with": "cl.n);", "why": "the lens's plates do not flow: their billows stand still with the envelope"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -118,7 +120,7 @@ test('lenticular: the envelope is held (its place a constant of t); its billows 
   assert.ok(Math.abs(vx - w.x) <= 0.05 * Math.hypot(w.x, w.z) && Math.abs(vz - w.z) <= 0.05 * Math.hypot(w.x, w.z), `the billows flow at ${vx.toFixed(3)}, ${vz.toFixed(3)} m/s, the wind ${w.x.toFixed(3)}, ${w.z.toFixed(3)}`);
   assert.equal(unwrap(b[1] - a[1]), 0, 'the billows rise or sink');
   assert.match(WORLD, /if \(PF\.bodies\[bi\]\.flow && !C\.air\) vb\.out\.flow = PF\.bodies\[bi\]\.flow;/, 'resolve does not hand a held body its flow');
-  assert.match(DUNES, /if \(cl\.kind === 'lens'\) \{ var bl = K\.lens\([^)]*\); bl\.flow = cl\.flow; return; \}/);
+  assert.match(DUNES, /if \(cl\.kind === 'lens'\) \{ K\.lens\(PF, R, cl\.x, cl\.base, cl\.z, cl\.dir, cl\.len, cl\.w, cl\.t, cl\.n, \{ flow: cl\.flow \}\); return; \}/, 'the lens\'s plates are not handed the flow');
 });
 
 test('lenticular: a census, the lenses within the dunes\' cloud reach (5.2 km) of a 20 min flight at 30 m/s, a minute at a time', () => {
@@ -229,29 +231,36 @@ test('lenticular: a census, every ridge\'s lens laid out once, by the cell it st
 // the lens's shape (the spec: smooth plates, long and thin): 120's own lens() on a recording PF, a plate's lobes no
 // thicker than the plate's T and the stack long along its crest, many times its thickness, each plate smaller than
 // the one below; plates made thicker or rounder fail
-test('lenticular: the plates are long thin lenses, each smaller than the one below', () => {
-  const LENS = cut(WORLD, '  function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {', '\n    return b;\n  }\n', true);
+test('lenticular: the plates are long thin lenses, tapered to their rims, each smaller than the one below', () => {
+  const LENS = cut(WORLD, '  function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {', '\n    return b0;\n  }\n', true);
   const make2 = vm.runInThisContext('(function () { function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n' + LENS + ' return lens; })')();
-  for (const [len, W, T, n] of [[1800, 450, 45, 1], [2600, 700, 75, 3], [2200, 520, 60, 2]]) {
-    const L = [], PF = { body: () => ({ i0: 0 }), add: (x, y, z, r) => L.push([x, y, z, r]), count: () => L.length };
+  for (const [len, W, T, n] of [[1800, 450, 45, 1], [2600, 700, 75, 3], [2200, 520, 60, 2], [900, 380, 70, 3], [2240, 700, 45, 3]]) {
+    const L = [], B = [], PF = { body: () => { const b = { i0: L.length }; B.push(b); return b; }, add: (x, y, z, r) => L.push([x, y, z, r, B.length - 1]), count: () => L.length };
     let s = 1; const rng = { f: () => ((s = (s * 16807) % 2147483647) / 2147483647), r: (a, b) => a + (b - a) * rng.f() };
-    const b = make2(PF, rng, 0, 1400, 0, 0.3, len, W, T, n), sq = b.squash;
-    const ys = L.map((p) => p[1]), rs = L.map((p) => p[3]), x = L.map((p) => p[0]), z = L.map((p) => p[2]);
-    const extH = Math.hypot(Math.max(...x) - Math.min(...x), Math.max(...z) - Math.min(...z)), extV = Math.max(...ys) - Math.min(...ys) + 2 * Math.max(...rs) * sq;
-    assert.ok(Math.max(...rs) * sq <= 1.15 * T * 0.45 * 1.08 + 1e-9, `a lobe ${(Math.max(...rs) * sq).toFixed(1)} m high in a ${T} m plate: a round cloud, not a plate`);
-    // (PC GPU, 2026-11-23: the rim a ring of loose round blobs) every lobe overlaps its nearest neighbour in its plate
-    for (const p of L) {
-      let best = Infinity, rq = 0;
-      for (const q of L) if (q !== p && Math.abs(q[1] - p[1]) < 0.5 * T) { const d = Math.hypot(q[0] - p[0], q[2] - p[2]); if (d < best) { best = d; rq = q[3]; } }
-      assert.ok(best < 0.9 * (p[3] + rq), `a lobe ${best.toFixed(0)} m from its nearest neighbour, radii ${p[3].toFixed(0)} and ${rq.toFixed(0)} m: a loose bead on the rim`);
-    }
-    assert.ok(extH / extV >= 6, `the lens ${extH.toFixed(0)} m long and ${extV.toFixed(0)} m thick: too round (${(extH / extV).toFixed(1)})`);
-    for (let k = 1; k < n; k++) {
-      const yk = 1400 + T * 0.5 + k * T * 1.6, y0 = yk - T * 1.6;
-      const up = L.filter((p) => Math.abs(p[1] - yk) < 0.2 * T), dn = L.filter((p) => Math.abs(p[1] - y0) < 0.2 * T);
-      const span = (q) => Math.max(...q.map((p) => p[0] * Math.sin(0.3) + p[2] * Math.cos(0.3))) - Math.min(...q.map((p) => p[0] * Math.sin(0.3) + p[2] * Math.cos(0.3)));
-      assert.ok(up.length && dn.length && span(up) < span(dn), `plate ${k + 1} not smaller than the one below`);
-    }
+    const flow = [6, 0, -3], b0 = make2(PF, rng, 0, 1400, 0, 0.3, len, W, T, n, { flow });
+    assert.equal(B.length, n, `${n} plates in ${B.length} bodies`); assert.equal(b0, B[0]);
+    const ax = [Math.sin(0.3), Math.cos(0.3)], ac = [Math.cos(0.3), -Math.sin(0.3)], spans = [];
+    B.forEach((b, k) => {
+      const P = L.filter((p) => p[4] === k), sq = b.squash, sk = 1 - 0.24 * k, half = len * sk / 2;
+      assert.ok(b.flow === flow, `plate ${k + 1} does not flow`);
+      assert.ok(P.length <= 96, `plate ${k + 1} has ${P.length} lobes: past a body's 96`);
+      const along = (p) => p[0] * ax[0] + p[2] * ax[1], across = (p) => p[0] * ac[0] + p[2] * ac[1];
+      const mid = P.filter((p) => Math.abs(along(p)) < 0.3 * half), end = P.filter((p) => Math.abs(along(p)) > 0.8 * half);
+      const thick = (q) => 2 * Math.max(...q.map((p) => p[3] * sq)), wide = (q) => Math.max(...q.map((p) => Math.abs(across(p)) + p[3]));
+      assert.ok(thick(mid) <= 0.6 * 2 * T * 1.05 && thick(mid) >= 0.45 * 2 * T, `plate ${k + 1} is ${thick(mid).toFixed(0)} m thick at its centre, for a ${T} m plate`);
+      assert.ok(thick(end) <= 0.6 * thick(mid), `plate ${k + 1} is ${thick(end).toFixed(0)} m thick near its ends against ${thick(mid).toFixed(0)} m at its centre: a slab, not a lens`);
+      assert.ok(wide(end) <= 0.6 * wide(mid), `plate ${k + 1} is ${wide(end).toFixed(0)} m wide near its ends against ${wide(mid).toFixed(0)} m at its centre: square ends`);
+      const len2 = Math.max(...P.map((p) => along(p) + p[3])) - Math.min(...P.map((p) => along(p) - p[3]));
+      assert.ok(len2 / thick(mid) >= 6, `plate ${k + 1} ${len2.toFixed(0)} m long and ${thick(mid).toFixed(0)} m thick: too round`);
+      // (PC GPU, 2026-11-23: the rim a ring of loose round blobs) every lobe overlaps its nearest neighbour in its plate
+      for (const p of P) {
+        let best = Infinity, rq = 0;
+        for (const q of P) if (q !== p) { const d = Math.hypot(q[0] - p[0], q[2] - p[2]); if (d < best) { best = d; rq = q[3]; } }
+        assert.ok(best < 0.9 * (p[3] + rq), `a lobe ${best.toFixed(0)} m from its nearest neighbour, radii ${p[3].toFixed(0)} and ${rq.toFixed(0)} m: a loose bead on the rim`);
+      }
+      spans.push(len2);
+    });
+    for (let k = 1; k < n; k++) assert.ok(spans[k] < spans[k - 1], `plate ${k + 1} not smaller than the one below`);
   }
 });
 
