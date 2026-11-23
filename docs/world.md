@@ -545,7 +545,10 @@ physics: clouds/drift). It holds:
   streaks run at the veils' own wind on it, and the veils lift past the
   day's sigma, so in a night's weak air seldom. The score's
   breeze is the same table, handed it read only by its feed
-  (docs/sound.md).
+  (docs/sound.md); WORLD.air.BYSKY() hands any reader a copy. windAt's t
+  now counts: it is the hour's wind, the sky's share at t. A reader that
+  wants the day's wind whatever the sky (CLOUDS' drift and lens gate)
+  asks for WORLD.air.day(x, z, y, V), the sky's share 1.
 - The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
   the visit's own U10 and the sky (no new draw). mist (m deep): radiation
   mist on a still clear night, thickest before sunrise; each sky's depth

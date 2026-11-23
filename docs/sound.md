@@ -153,7 +153,7 @@ seventeen, the owner's pick):
   under each colour: in full under afterglow's horns and first light's violins (they were 3 and 1 dB under), 1.5 dB
   under blue hour's piano, 3 dB under the night's harp and clarinet (the clarinet's were 1.5). Never the whole level:
   the deep end keeps its weight in every sky (at a quiet level the ear loses the bass first, ISO 226). In the Milky
-  Way, the stillest sky, a breath now and then: where every note has died away, the hole is left open for 4-6 s and
+  Way, the quietest sky, a breath now and then: where every note has died away, the hole is left open for 4-6 s and
   the air plays alone, a soft gust (18 dB) swelling through it, so it is the air's and never a silence; well inside
   the sky (20 s in, no change within 15 s, no swell or chord near), a minute into the listening at least, no deep
   note under it, a minute and a half apart at least.
