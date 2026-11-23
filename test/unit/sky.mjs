@@ -7,6 +7,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9))", "with": "veil: mix32(SKY.vS)", "why": "the veil the visit's, not the stay's: every moonlit stay of a visit veiled, or none"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * (", "with": "if (ma < 7.0) c += uMoonG * 0.15 * (", "why": "the corona on a clear night: rings with no cloud to make them"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -249,4 +250,15 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
+});
+
+test('physics: weather/moon-corona: the corona\'s rings only where thin cloud stands in front of the moon', () => {
+  // sky-body's own lines: the rings are times hiCv, the 3 km veil's cover in the pixel's direction (0 with no veil: a clear
+  // night has none), set in both of the veil's blocks (a hold's and a change into a night's), by place, never a clock
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('  float hiCv = 0.0;'), 'the corona\'s cloud does not start at none (a clear sky would ring)');
+  assert.ok(g.includes('if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * ('), 'the corona\'s rings are not by the cloud in front of the moon');
+  for (const w of ['uHi.y', 'uSunB.y']) assert.ok(g.includes(`hiCv = max(hiCv, clamp(vm * vk * smoothstep(0.01, 0.12, rd.y) + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, ${w}));`), `the veil's block by ${w} does not give the corona its cloud`);
+  assert.ok(g.indexOf('float hiCv = 0.0;') < g.indexOf('if (uHi.x > 0.0 && rd.y > 0.01) {') && g.indexOf('hiCv > 0.0) c += hiCv') > g.indexOf('if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {'), 'the corona reads its cloud before the veil has set it');
+  assert.ok(!/hiCv[^;]*(uT|clockNow|uTime)/.test(g), 'the corona follows a clock (it may only come and go with its cloud, by place)');
 });

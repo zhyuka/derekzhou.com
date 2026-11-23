@@ -132,6 +132,7 @@ void main() {
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
   }
+  float hiCv = 0.0;   // (physics: weather/moon-corona) how much of the 3 km veil stands in this direction (0 clear .. 1), the corona's cloud
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on
        the deck (from the camera's own place), so the sky is a function of where the camera is (and its cover, uHi.x,
@@ -154,6 +155,7 @@ void main() {
     float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
     c = mix(c, hc, vm * uHi.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uHi.y * vk);
+    hiCv = max(hiCv, clamp(vm * vk * smoothstep(0.01, 0.12, rd.y) + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));
   }
   if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {   // (fast500 no-fades) the veil in a change between a twilight sky and a night (above, its strength 0): the same, its brightening toward the sun sinking with it and weakening with its depth, the night's coming in at the key
     vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
@@ -164,6 +166,7 @@ void main() {
     float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
     c = mix(c, hc, vm * uSunB.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uSunB.y * vk);
+    hiCv = max(hiCv, clamp(vm * vk * smoothstep(0.01, 0.12, rd.y) + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uSunB.y));
   }
   // (tod) the sky's night: each its amount times its shape, 0 at amount 0
   float eS = degrees(asin(clamp(rd.y, -1.0, 1.0)));
@@ -204,7 +207,10 @@ void main() {
        shoulder bringing it to about 0.51 as shown), its limb soft over a fifth of its radius (was a pale khaki 0.52, C 0.02,
        h 95, edged at a pixel: a flat olive coin on the ultramarine) and a wider glare carrying its light */
     c = mix(c, max(c, uMoonG), clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0));
-    if (ma < 7.0) c += uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
+    /* (physics: weather/moon-corona) the corona: light diffracted by a thin cloud's droplets in front of the moon, its
+       rings (red outermost of each order) only where such cloud stands; on a clear night none. Here the 3 km veil and
+       its streaks (hiCv), so the rings are as patchy as the cloud and come and go with it by place, never by a clock */
+    if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);
     c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
     if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;   // (physics: weather/moon-halo: by the stay's veil, with the moon's depth)
