@@ -6,23 +6,28 @@
 // plant: {"file": "src/realm-above.js", "find": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;", "with": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d; if (s.kind === 0) aTower(C, R, s.x, s.z, 300, 400, 1, false);", "why": "the open sea's tower back in the world cell: a free cumulus standing still"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "    return Math.min(f, cellDistFade(C));", "with": "    return f;", "why": "a body faded by its own distance alone: a cloud sea tower, or a canyon wall, at its cell's near side shows when its cell is made (a pop)"}
 // plant: {"file": "src/world/414-draw-scene.js", "find": "dO - Math.floor(dO / 768000) * 768000", "with": "dO - Math.floor(dO / 700000) * 700000", "why": "the deck's offset wrapped at no whole number of its tiles: a seam at every wrap"}
+// plant: {"file": "src/world/212-cloud-drift.js", "find": "var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V);", "with": "var a = windAt(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, SIM.t, V);", "why": "the clouds' drift the sky's wind: a Milky Way's drifts them 1.3x"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
-const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(') + cut(WORLD, '  function airDay(', '\n', true);
 const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
 const D = make();
 
-test('drift: the clouds\' wind is the air\'s: windAt at the low layer\'s height, and the deck\'s; the cloud sea held', () => {
-  const W = vm.runInThisContext('(function (SIM) { var PI = Math.PI;' + AIRSRC + ' return { windAt: windAt, AIR_H: AIR_H }; })')({ V: null, t: 0 });
+test('drift: the clouds\' wind is the air\'s day wind (airBase, never the sky\'s share) at the low layer\'s height, and the deck\'s; the cloud sea held', () => {
+  const W = vm.runInThisContext('(function (SIM) { var PI = Math.PI;' + AIRSRC + ' return { airBase: airBase, airDay: airDay, AIR_H: AIR_H }; })')({ V: null, t: 0 });
   for (const az of [0, 37, 200, 333]) {
     const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10: 3 + az / 90 };
     const lo = D.cloudWind(V, 'low'), dk = D.cloudWind(V, 'deck'), sea = D.cloudWind(V, 'sea');
-    const wl = { ...W.windAt(0, 0, W.AIR_H.clouds, 0, V) }, wd = { ...W.windAt(0, 0, W.AIR_H.deck, 0, V) };   // (copies: windAt returns its one object)
-    assert.ok(Math.abs(lo[0] - wl.x) < 1e-12 && Math.abs(lo[1] - wl.z) < 1e-12, `low ${Array.from(lo)} is not windAt's ${wl.x}, ${wl.z}`);
-    assert.ok(Math.abs(dk[0] - wd.x) < 1e-12 && Math.abs(dk[1] - wd.z) < 1e-12, 'the deck is not windAt\'s');
+    const wl = { ...W.airBase(0, 0, W.AIR_H.clouds, V) }, wd = { ...W.airBase(0, 0, W.AIR_H.deck, V) };   // (copies: airBase returns its one object)
+    assert.ok(Math.abs(lo[0] - wl.x) < 1e-12 && Math.abs(lo[1] - wl.z) < 1e-12, `low ${Array.from(lo)} is not airBase's ${wl.x}, ${wl.z}`);
+    assert.ok(Math.abs(dk[0] - wd.x) < 1e-12 && Math.abs(dk[1] - wd.z) < 1e-12, 'the deck is not airBase\'s');
     assert.deepEqual(Array.from(sea), [0, 0], 'the cloud sea is held');
   }
   assert.deepEqual(Array.from(D.cloudWind({}, 'low')), [0, 0], 'a visit with no wind: no drift');
+  // (the hub, 2026-11-23: windAt's t now carries the sky's share; a Milky Way's 1.5 aloft would drift the clouds 1.3x: they read the day's wind)
+  const D212 = cut(WORLD, '  function cloudWind(', '  /* ----').replace(/\/\/[^\n]*/g, '');
+  assert.ok(!/\bwindAt\(/.test(D212), 'the clouds read windAt: their drift changes with the sky (its share), and a place is no longer a pure function of t');
+  assert.match(WORLD, /var AIRAPI = \{[^\n]*\bday: airDay,/, 'the air does not hand the realms its day wind (day)');
 });
 
 test('drift: a body\'s place is a pure function of t, in doubles; its height never moves', () => {
@@ -113,17 +118,17 @@ test('drift: an air cell keeps the same pieces whatever frame its layout ran in 
 });
 
 // the ranges lie along the low layer's own way, +- 15 deg (a cloud street; physics: clouds/drift, the spec's ranges row):
-// the dunes' own dAir run in Node with the air's windAt, its draws recorded, over winds from every way
+// the dunes' own dAir run in Node with the air's day wind (airBase), its draws recorded, over winds from every way
 test('drift: a range lies along the low layer\'s wind, within 15 deg of it', async () => {
   const fs = await import('node:fs'), path = await import('node:path'), { ROOT } = await import('../unit-lib.mjs');
   const DUNES = fs.readFileSync(path.join(ROOT, 'src/realm-dunes.js'), 'utf8');
-  const AIRSRC2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+  const AIRSRC2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
   const DAIR = cut(DUNES, '  function dAirDir(V) {', '\n', true) + cut(DUNES, '  function dAir(C, R) {', '\n  }\n', true);
-  const run = vm.runInThisContext('(function (SIM, C, R) { var PI = Math.PI;' + AIRSRC2 + ' var A = { windAt: windAt, H: AIR_H };\n' + DAIR + ' dAir(C, R); })');
+  const run = vm.runInThisContext('(function (SIM, C, R) { var PI = Math.PI;' + AIRSRC2 + ' var A = { day: airDay, H: AIR_H };\n' + DAIR + ' dAir(C, R); })');
   let n = 0, worst = 0;
   for (let az = 0; az < 360; az += 7.5) for (const u10 of [3, 5.5, 7.5]) for (const ex of [-1, -0.4, 0, 0.4, 1]) {
     const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10 }, out = [];
-    const W = vm.runInThisContext('(function (SIM, V) { var PI = Math.PI;' + AIRSRC2 + ' var w = windAt(0, 0, AIR_H.clouds, 0, V); return Math.atan2(w.x, w.z); })')({ V: null, t: 0 }, V);
+    const W = vm.runInThisContext('(function (SIM, V) { var PI = Math.PI;' + AIRSRC2 + ' var w = airBase(0, 0, AIR_H.clouds, V); return Math.atan2(w.x, w.z); })')({ V: null, t: 0 }, V);
     // (R: its first draw admits the range; its uniform draws at the ends of their spans (ex -1, 1) and between)
     const R = { f: () => 0, r: (lo, hi) => lo + (hi - lo) * (0.5 + 0.5 * ex), seed: () => 1 };
     run({ V: null, t: 0 }, { V, x0: 0, z0: 0, size: 3000, cloud: (o) => out.push(o) }, R);
@@ -172,18 +177,18 @@ test('drift: ABOVE\'s world cells lay out no cumulus; its air cells lay out the 
 test('drift: no cloud body shows when its cell is made or freed, air cells and world cells, on 20 min flights in every wind', async () => {
   const fs = await import('node:fs'), path = await import('node:path'), { ROOT, STREAMS } = await import('../unit-lib.mjs');
   const DUNES = fs.readFileSync(path.join(ROOT, 'src/realm-dunes.js'), 'utf8'), ABOVE = fs.readFileSync(path.join(ROOT, 'src/realm-above.js'), 'utf8');
-  const AIR2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
+  const AIR2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
   const W = vm.runInThisContext(`(function () { var PI = Math.PI, SIM = { V: null, t: 0, alpha: 1 }, SIM_DT = 1 / 60, shown = true, DEVMODE = false, SW = {}, VOL16 = false, LOOKD = false, J = { seed: 1 }, CAM = { pos: [0, 0, 0] };
     function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
     function memTier() { return 'desktop'; } function volDetail() { return new Float32Array([96, 4.6]); } function cellLift() { return 0; }
     ${STREAMS}${AIR2}${SRC}${cut(WORLD, '  function Puffs() {', '  function mound(')}${cut(WORLD, '  function volPrep(', '  /* up to budget units')}
     ${cut(WORLD, '  function nearDist(C, x, z) {', '\n', true)}${cut(WORLD, '  function streamR(L, V) {', '\n', true)}${cut(WORLD, '  function fadeZ(V, sc) {', '  function lateBorn(')}
-    return { SIM: SIM, CAM: CAM, RNG: RNG, cellHash: cellHash, subseed: subseed, hk: hk, hfl: hfl, ihash: ihash, windAt: windAt, AIR_H: AIR_H, airW: airW, streamR: streamR, volDistFade: volDistFade, Puffs: Puffs, volPrep: volPrep, cumulus: cumulus, range: range, wall: wall };
+    return { SIM: SIM, CAM: CAM, RNG: RNG, cellHash: cellHash, subseed: subseed, hk: hk, hfl: hfl, ihash: ihash, airBase: airBase, airDay: airDay, AIR_H: AIR_H, airW: airW, streamR: streamR, volDistFade: volDistFade, Puffs: Puffs, volPrep: volPrep, cumulus: cumulus, range: range, wall: wall };
   })()`);
   const defs = {};
   for (const [name, src] of [['dunes', DUNES], ['above', ABOVE]]) {
     const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: W.cellHash, hk: W.hk, hfl: W.hfl, ihash: W.ihash, RNG: W.RNG, cumulus: W.cumulus, range: W.range, wall: W.wall, box: () => {}, prism: () => {}, lathe: () => {}, rock: () => {} };
-    vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air: { windAt: W.windAt, H: W.AIR_H }, realm: (d) => { defs[name] = d; } } });
+    vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air: { day: W.airDay, H: W.AIR_H }, realm: (d) => { defs[name] = d; } } });
   }
   const KITS = { dunes: { sc: 3, L: { size: 1500, radius: 5200, air: 'dunes' } }, above: { sc: 4, L: { size: 1200, radius: 3800, air: 'above' } }, aboveWorld: { sc: 2, L: { size: 1200, radius: 3800 }, world: true, def: 'above' } };
   assert.match(WORLD, /\{ size: KD\.layout\.scales\[0\]\.size, radius: KD\.layout\.scales\[0\]\.radius, air: 'dunes' \}, \{ size: KA\.layout\.scales\[0\]\.size, radius: KA\.layout\.scales\[0\]\.radius, air: 'above' \}/, 'the air scales are not the 4th and 5th, at the kits\' sizes');

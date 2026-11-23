@@ -116,7 +116,7 @@
   /* an air cell (physics: clouds/drift): the low layer's ranges, drifting with the wind and lying along it (the low
      layer's own way, cloudWind's, +- 15 deg: a cloud street); laid out where the air has carried the cell, their
      seats read there */
-  function dAirDir(V) { var w = A.windAt(0, 0, A.H.clouds, 0, V); return w.x || w.z ? Math.atan2(w.x, w.z) : Math.atan2(V.wind[0], V.wind[1]); }   // (the low layer's own way, the air's at its height (cloudWind's): its veer, never a copy of it)
+  function dAirDir(V) { var w = A.day(0, 0, A.H.clouds, V); return w.x || w.z ? Math.atan2(w.x, w.z) : Math.atan2(V.wind[0], V.wind[1]); }   // (the low layer's own way, the air's at its height (cloudWind's): its veer, never a copy of it)
   function dAir(C, R) {
     if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180, len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
   }
@@ -205,6 +205,6 @@
         { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: A.vec3(V, A.H.motes, 0.1), color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
       ];
     },
-    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
+    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
   });
 })();
