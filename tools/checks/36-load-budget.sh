@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # check: The page loads within its budget
 # enforces: load-budget
+# alone: it times the first paint
 # (load-perf, 2026-11-07) The plain build (build/site) served on 127.0.0.1 as Cloudflare Pages serves it, the text
 # compressed at Brotli 11 as the deploy build stores it, with the 103 Early Hints (tools/loadperf.mjs), loaded cold
 # 3 times in headless Chrome under Lighthouse's mobile profile (150 ms RTT, 1.6 Mbps, CPU 4x). It fails when:
@@ -65,7 +66,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 27.5 * K,        // 27,718 (2026-11-15: the wave-1 fixes' 28,111, less 393 B: the name's perch table as differences, the GL constants as numbers, LOAD-PERF's review; 442 B left)
+  '/inkbirds.js': 28 * K,          // 28,563 with the score's bird feed (2026-11-15, delight 2: +452 B over the wave-1 stack's 28,111; raised from 27.5 K with LOAD-PERF's OK, asked)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
