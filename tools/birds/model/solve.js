@@ -4,14 +4,14 @@
      node solve.js <the wing model's folder: src/birds/model> <model.json in> <model.json out>   (tools/birds/model/make.py runs it)
 
    Two observable sets, as the sources defined them:
-   'liu' (gull, geese, swan, stork, heron, ibis; Liu et al. 2004 traced birds filmed head-on):
+   'front' (gull, geese, swan, stork, heron, ibis; NTRS 20040075526 traced birds filmed head-on):
        the arm's front-view angle (root -> wrist line, y-z plane: psi1), the hand's front-view angle less the arm's
        (wrist -> tip: -psi2), the front-projected arc length root-wrist-knuckle-tip over its greatest (the extension);
        and the arm section's and the outer (knuckle) section's chord pitch in the body frame (the barnacle goose's
        measure: cycle means kept, the oscillation the model's).
        Unknowns: arm dih, hand dih, arm twi, hand twi by the tangent (derivative) iteration; the hand's sweep nested (bisection on the back branch
        for the extension). Geese and swans: no extension (they do not fold): the sweep stays the lag channel's.
-   'shen' (crow, swallow, finch: the pigeon's motion-capture definitions, Shen et al. 2024):
+   'mocap' (crow, swallow, finch: the pigeon's motion-capture definitions, doi:10.3390/biomimetics9090555):
        the shoulder-wrist line's 3D elevation above the horizontal plane, the wrist-tip line's less it, and the tip's
        lateral reach (|y|) over its greatest; the reach's shape the pigeon's measured semi-span, its depth solved so the
        tip's reach at mid-upstroke over mid-downstroke is the kind's measured span ratio. Pitch: the plain mapping. */
@@ -28,7 +28,7 @@ var P = FACETPOSE(self.FACETFORM), W = WINGMODEL(MODEL, P);
 var TAU = Math.PI * 2, R2D = 180 / Math.PI, NPH = 180;
 function ser(c, p) { var y = c.a0; for (var k = 0; k < c.a.length; k++) y += c.a[k] * Math.cos(TAU * (k + 1) * p) + c.b[k] * Math.sin(TAU * (k + 1) * p); return y; }
 var V = new Float64Array(192), BN = new Float64Array(156);
-function obsLiu(kind, pose, out) {
+function obsFront(kind, pose, out) {
   P.verts(kind, pose, V); P.bones(kind, pose, BN);
   var psi1 = Math.atan2(V[14] - V[2], V[13] - V[1]) * R2D, psih = Math.atan2(V[50] - V[14], V[49] - V[13]) * R2D;
   out[0] = psi1; out[1] = psih - psi1;
@@ -38,7 +38,7 @@ function obsLiu(kind, pose, out) {
   return out;
 }
 function elev(dx, dy, dz) { return Math.atan2(dz, Math.hypot(dx, dy)) * R2D; }
-function obsShen(kind, pose, out) {
+function obsMocap(kind, pose, out) {
   P.verts(kind, pose, V);
   var a = elev(V[12] - V[0], V[13] - V[1], V[14] - V[2]), h = elev(V[48] - V[12], V[49] - V[13], V[50] - V[14]);
   out[0] = a; out[1] = h - a; out[2] = Math.abs(V[49]); out[3] = 0; out[4] = 0;
@@ -61,9 +61,9 @@ var RIGN = W.RIGN;
 Object.keys(MODEL.kinds).forEach(function (kind) {
   if (!P.kinds[kind]) return;
   var mk = MODEL.kinds[kind], ch = mk.channels, NP = P.NP, F = P.kinds[kind], G5 = F.glide[5];
-  var shen = false, deepen = !!(mk.meta && mk.meta.span_ratio_target), obs = obsLiu;
+  var mocap = false, deepen = !!(mk.meta && mk.meta.span_ratio_target), obs = obsFront;
   var pose = P.pose(), o = new Float64Array(5), o2 = new Float64Array(5), i, j, EK = 1;
-  function spanRatio(rows) {   // the tip's lateral reach at mid-upstroke over mid-downstroke (as Tobalske & Dial, Park et al. measured)
+  function spanRatio(rows) {   // the tip's lateral reach at mid-upstroke over mid-downstroke (as doi:10.1242/jeb.199.2.263 and doi:10.1242/jeb.204.15.2741 measured)
     var D = mk.D, iu = Math.round((D + (1 - D) / 2) * NPH) % NPH, id = Math.round(D / 2 * NPH) % NPH, q = P.pose();
     function reach(r) { for (var t = 0; t < NP; t++) { q[t] = r[t]; q[NP + t] = r[t]; } P.verts(kind, q, V); return Math.abs(V[49]); }
     return reach(rows[iu]) / reach(rows[id]);
@@ -91,8 +91,8 @@ Object.keys(MODEL.kinds).forEach(function (kind) {
     console.log(kind, 'plain mapping; arm shortening at the deepest', mk.meta.fold_ext, '-> wrist span', rw.toFixed(3), '(', tW, '); hand sweep at the deepest', mk.meta.fold_sweep_deg, '-> span', rs.toFixed(3), '(', tS, ')');
     return;
   }
-  var extT = shen ? ch.semispan_target : ch.ext_target, solveSwp = !!extT;
-  var UA = shen ? [0, 4] : [0, 4, 2, 6], TI = shen ? [0, 1] : [0, 1, 3, 4];
+  var extT = mocap ? ch.semispan_target : ch.ext_target, solveSwp = !!extT;
+  var UA = mocap ? [0, 4] : [0, 4, 2, 6], TI = mocap ? [0, 1] : [0, 1, 3, 4];
   var mA = 0, mH = 0;
   for (i = 0; i < NPH; i++) { W.flap(kind, i / NPH, null, pose, null); obs(kind, pose, o); mA += o[3] / NPH; mH += o[4] / NPH; }
   function setSwp(v) { pose[5] = v; pose[NP + 5] = v; }
@@ -154,7 +154,7 @@ Object.keys(MODEL.kinds).forEach(function (kind) {
     } else { rows = []; worst = pass(Lmax, 1, rows, null); }
   }
   var UN = solveSwp ? UA.slice(0, 2).concat([5], UA.slice(2)) : UA;
-  var rig = { about: 'the rig\'s left-side angles (the right mirrors them) solved on this kind\'s faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout', observables: shen ? 'shen (3D elevations, tip lateral reach)' : 'liu (front-view angles, front-projected extension) + section pitch',
+  var rig = { about: 'the rig\'s left-side angles (the right mirrors them) solved on this kind\'s faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout', observables: mocap ? 'mocap (3D elevations, tip lateral reach)' : 'front (front-view angles, front-projected extension) + section pitch',
               solved: UN.map(function (u) { return RIGN[u]; }), worst_residual: +worst.toFixed(4), fold_depth: EK, channels: {} };
   for (j = 0; j < NP; j++) rig.channels[RIGN[j]] = fitF(rows.map(function (r) { return r[j]; }), 12, j === 3 ? 0.001 : 0.15);
   mk.rig = rig;

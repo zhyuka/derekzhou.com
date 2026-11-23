@@ -1,9 +1,9 @@
 {
- "id": "crane_liu2004",
+ "id": "crane_ntrs2004",
  "meta": {
   "species": "Grus sp. (\"crane\"; species not given)",
   "group": "storks/herons stand-in (crane)",
-  "source": "Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA Paper 2004-2186 (24th AIAA Aerodynamic Measurement Technology and Ground Testing Conference), NASA NTRS 20040075526, section 6, Eqs (5), (6), (11) and Figs 47-61; journal version: Liu et al. (2006) Avian wing geometry and kinematics. AIAA J 44:954-963",
+  "source": "(2004) Avian wings. AIAA Paper 2004-2186 (24th AIAA Aerodynamic Measurement Technology and Ground Testing Conference), NASA NTRS 20040075526, section 6, Eqs (5), (6), (11) and Figs 47-61; journal version: doi:10.2514/1.16224 Avian wing geometry and kinematics. AIAA J 44:954-963",
   "licence": "public domain (US Government work, NASA NTRS); numbers usable with attribution",
   "conditions": "level cruising flight in the wild (speed unknown); documentary footage (\"The Life of Birds\", BBC), level flight, viewed from the front",
   "method": "front-projected quarter-chord line traced by hand on video frames, fitted by a 2nd-order polynomial in span; two-jointed arm model with rod lengths assumed equal (r1 = r2 = 0.5); every quantity given by the authors as a 2-harmonic cosine and sine series (their fit; their raw points are not tabulated)",
