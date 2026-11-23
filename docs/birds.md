@@ -117,6 +117,40 @@ in four, its points carried with its body between; a flock of specks steps one
 frame in four, the draw carrying each bird on along its way; far, off-view and
 speck birds pause their wing (BW.skip: it goes on from where it paused).
 
+FLYING TOGETHER (the hub's flock physics spec, 2026-11-15: .work/hub/physics/birds.md; the owner: "some types of birds/flocks
+flap their wings mostly in sync too sometimes, right?"). Real flocks almost never beat in lockstep. An ibis or a goose in
+a skein beats with the bird ahead on its own leg in wake bouts, about a third of the time, median 2 s, at the spatial phase
+(f d / U - 0.18 cycle); in a line, directly behind, in antiphase (+0.46); everywhere else free, each at its own rate (+-3 %),
+so neighbours' offsets hold for seconds and drift. BW.relock (birdwing.js) points a wing at the wing ahead, worked out
+whenever a flock's birds change (flockLocks, 120): only the nudge's target, never a phase. An ibis in a skein or a line
+flies the ibis-in-a-V schedule (gliding about 3 %). A formation turns where its leader turned: each member flies its
+leader's heading from back / c ago (c 1.5 V in a skein or a line, 2.5 V in a loose flock), on a ring of the leader's way
+(210). test/birds-flock.mjs measures both.
+LEAVING TOGETHER (physics: birds/leaving together). A take-off's strong beats (a burst: 3-5 beats a fifth quicker than
+the level beat, the first the biggest) end on the beat; the bird's own schedule is then skipped on (BW.skip) so its phase
+continues the burst's, within 0.02 cycle, and only the beat's size eases from the burst's into the schedule's over XF_T
+(0.22 s): no half-beat, no frozen pose (before: up to half a cycle off, median 0.33, eased over by the last pose held).
+A row startled off together keeps its 120-250 ms ripple and then drifts at its birds' own rates (test/birds-flock.mjs).
+IN WIND (physics: birds/wind; the dunes realm's wind only, still air elsewhere). A goal asks for a speed through the air,
+0.2 m/s more a m/s of headwind (gulls 0.16: doi:10.3354/meps14431), along its track over the ground, crabbed against the
+side wind (goalVel, 210): into the wind a flock or a commuting kind slows over the ground, never held to its still-air
+pace (before: air speed rose 0.82 m/s a m/s of headwind). A lone bird that perches, or one with a landing in hand or
+begun in the last 30 s, works the view and keeps its pace over the ground. The body is drawn along its way through the air (230), so it crabs. In a side wind
+over 1 m/s a landing on the letters comes in against it (to the pointer's moving tip, however it can): its gate on the perch's downwind side (gateFor), straight in only from that
+side (approachStep); it touches facing into the wind (touchYaw, as wantYaw will want it) and never hops round of its own
+in its first 2 s down (264). test/birds-wind.mjs: 93 % of landings against the wind (before 54 %), none turned round within
+2 s of the touch (before 4 of 13).
+THE SKY'S DAY (physics: birds/day; this world keeps only white-word skies, no day: afterglow, blue hour, night, first
+light, each 70-190 s, in no day's order). At afterglow and in the blue hour commuters fly toward the roost's bearing
+(POP.line, drawn afresh at each change of sky): 90 % and 75 % of commutes (roost flights peak 15-30 min after sunset);
+at first light 90 % fly away from it. The way down to roost (sink) is 12 % of goals at afterglow, 25 % in the blue hour,
+10 % at night, none at first light; a wheel never climbs on a timer (no thermal at dusk or night). At night only geese,
+gulls and herons fly, about 4 flocks (LIVE_N); a crow, swallow or finch still up goes down to roost (or away) at its next
+goal, off the words too, and is never sent across the eye. In the blue hour no crow wheels; at first light crows leave in
+loose flocks. A change of sky takes effect only at each flock's next goal (the one clock, no shared timer).
+test/birds-flock.mjs: afterglow 90 % of commutes within 30 deg of the roost's bearing (before 38 %), first light 92 %
+away (before 19 %), night 4.1 flocks (before 5.0).
+
 THE SIM (2026-11-06, the owner: "stop relying on films that take forever to test"). tools/birds/sim.mjs runs the
 real module headless in Node on a stub host, over the world's recorded ground (test/golden/ground/, world seed 11,
 +-1500 m about the landing; tools/checks/37-ground-fresh.sh reads the same probe under SwiftShader and fails a
@@ -136,6 +170,22 @@ alike, its perched poses (touch, settling, folded, wings raised) keeping its win
 top of the ink and no drawn point hangs below it (the hub's re-review 3, option c: within 5 px, the feet's own sink
 included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
+
+THE ROOST ON THE NAME (delight-life 1). Crows come in to roost on the letters
+at dusk and leave as one at first light, on the sky's state, never a timer:
+- afterglow and blue hour: a crow flock passing is much likelier to send
+  1-3 down (the letters look every 3-8 s, from up to 40 s away; one landing
+  at a time; 6 at most); more crows commute at blue hour;
+- afterglow, blue hour and night: a crow on the name never leaves of its own
+  wish nor to a passing flock; it stays folded, the end birds facing out,
+  with a rare rouse (every 12-30 s at most, no walks);
+- first light after the night: the crouch runs down the row (left to right)
+  within 0.25-0.7 s and they leave as one loose flock (each joining the
+  first up); one bold bird now and then stays on; some mornings they leave
+  in pairs over 10-30 s instead.
+test/birds.mjs scripts afterglow, blue hour, night and first light at both
+sizes (12 nights) and pins: no own-wish leave from dusk to dawn, no group
+over 3, the crows on the name at dawn, and each morning's departure as one.
 
 THE SCORE'S READ (delight 2, 266-feed.js). WORLD.birds.feed(o) fills the
 caller's own arrays and changes nothing in the world (test/birds.mjs: two runs,

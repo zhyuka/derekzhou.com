@@ -8,11 +8,9 @@
     return out;
   }
   function setFrustum(snap) {
-    var aspect = OUT.w / Math.max(OUT.h, 1), tl = Math.tan(FOV_LONG * DEG / 2);
     TALLK = smooth(0.95, 1.75, OUT.h / Math.max(OUT.w, 1));
     WIDEKT = wideWin() ? 1 : 0;   // (the tilt, basePitch: the stylesheet's wide windows)
-    if (aspect >= 1) { FRT.tanX = tl; FRT.tanY = tl / aspect; }
-    else { FRT.tanX = Math.max(tl * aspect, Math.tan(21 * DEG)); FRT.tanY = Math.min(FRT.tanX / aspect, Math.tan(40 * DEG)); FRT.tanX = FRT.tanY * aspect; }
+    frustumFor(OUT.w / Math.max(OUT.h, 1), FRT);
     if (snap) { FR.tanX = FRT.tanX; FR.tanY = FRT.tanY; WIDEK = WIDEKT; }
   }
   /* (the openings' stills, sketch A2's) the still's view: the page shows a still baked at one of a few window shapes
