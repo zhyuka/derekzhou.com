@@ -40,13 +40,18 @@
       var h = [], r = [], all = a.concat(b, c);
       for (i = 0; i < all.length; i++) (/\.(probe|surface0|hp\.\w+)$/.test(all[i].name) ? h : r).push(all[i]);
       h.sort(function (x, y) { return /** @type {any} */ (/probe$/.test(y.name)) - /** @type {any} */ (/probe$/.test(x.name)); });
-      return h.concat(r);
+      /* (load-perf, 2026-11-15) the programs the show never waits for (LATE_ALWAYS: 073) last: a GPU that compiles the
+         batch one program after another (the lab's phones) has the show's done that much sooner */
+      var lt = [], rr = [];
+      for (i = 0; i < r.length; i++) (LATE_ALWAYS.indexOf(r[i].name) >= 0 ? lt : rr).push(r[i]);
+      return h.concat(rr, lt);
     }
     return a.concat(b, c);
   }
   function progIssue(P) {
     var tc = clockNow();
     foldIssue(P);   // (fast500 lane E: the folds, before the text is given)
+    var dx = DEFS + defsA(); P.vs = glslPrune(P.vs, dx); P.fs = glslPrune(P.fs, dx);   // (load-perf: the functions main never reaches left out: 071)
     P.kb = Math.round((P.vs.length + P.fs.length) / 1024);
     P.p = gl.createProgram();
     P.v = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(P.v, P.vs.replace('#version 300 es\n', '#version 300 es\n' + DEFS + defsA())); gl.compileShader(P.v);
