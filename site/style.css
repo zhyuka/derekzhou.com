@@ -538,5 +538,5 @@ footer a, .back-link {
   h1 { font-size: 2rem; color: #000; }
   .name svg { width: 16rem; }
   .words { color: #000; }   /* (line2) black like the name: the light ink never reaches print */
-  .credit { color: #555; }
+  .credit { color: #556; }
 }
