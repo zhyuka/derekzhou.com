@@ -512,8 +512,33 @@ physics: clouds/drift). It holds:
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
   it out moves the plan's anchors), the wing gusts' private 25 s timers
-  (birdwing.js) and the score's own gusts (score.js). The test fails when
-  a listed reader is joined and still listed.
+  (birdwing.js) and the score's own gusts (score.js: its breeze by sky
+  is the air's table, its gusts its own until it reads the field). The
+  test fails when a listed reader is joined and still listed.
+- The gusts (physics: air/gust-field): one field of turbulence, frozen
+  and carried downwind at the mean wind (the frozen-turbulence
+  hypothesis, https://glossary.ametsoc.org/wiki/Frozen_turbulence;
+  gustAt, the shaders' airGust: the same hash and constants, held equal
+  by value at 4096 points a visit, tools/checks/44-gust-glsl.sh), so a
+  point 100 m downwind meets each gust 100 / U10 later on the surface's
+  clock (airClock), 100 / (s U10) later in flight time (s the sky's
+  surface share: 1 by day); each visit on its
+  own slice (its salt). One reference speed, the visit's U10, carries the
+  field and sets its scale (22 U10 m) at every height, so a bird over a
+  veil feels the veil's gust; the height sets only its size, 0.26 of the
+  wind there times unit noise. The 3-s gust over the 10-min mean
+  1.43-1.68 (median 1.54), its e-fold by day 10-23 s (on a sky of
+  surface share s, the day's over s), nothing faster than 0.11
+  W a second; none in still air. Every reader carries it on one clock,
+  the surface's wind clock (airClock; the shaders' uAir.x), and by the
+  wind by sky its size is the sky's share times its gustiness. The sand veils rise with it: as a gust
+  passes over a brink its sheet lifts and streams out, and as the air
+  calms it settles flat onto the sand (the saltation layer collapsing);
+  its opacity is the visit's alone (its U10), so a veil never fades in
+  place (their private 5.6-8.4 s cycles are gone). The birds read
+  HOST.gust (the excess along the wind, m/s), HOST.gustPhase (the
+  field's own clock there, the same at every height) and HOST.gustSigma.
+  The grains' speed, the perched lean and the score are not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
@@ -549,9 +574,74 @@ physics: clouds/drift). It holds:
   uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
   disc. The key light (keyAt) is the moon's light on the land at night
   from a low, fixed place (5-14 deg up); it is not where the disc is.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and
-  the weather (weather(sky): today one wind for every sky; physics:
-  air/wind-by-sky).
+- The wind by sky (physics: air/wind-by-sky): the sky is the time of
+  day, and the wind follows the day as the boundary layer does. By day
+  the surface's wind is mixed down from aloft; at dusk the mixing dies,
+  the ground's air slows and the air 100-300 m up speeds past its day's
+  speed (the nocturnal jet); first light is the stillest at the ground.
+  AIR_BYSKY gives each sky its shares of the visit's day wind: the
+  surface's (to 20 m), the jet's (100-300 m), the gusts' intensity (set
+  by eye within row 6's band): the afterglow 1, 1, 1; the blue hour 0.7,
+  1.2, 0.65; the moonlit sea 0.5, 1.4, 0.6; the aurora 0.45, 1.4, 0.55;
+  the Milky Way 0.4, 1.5, 0.5; first light 0.35, 1.3, 0.5. The gust
+  field is carried at the mean wind on every sky (row 6), never slid
+  across it: on a calm sky it passes a point at the surface's share of
+  U10, so a gust's e-fold there is the day's over that share (the day's
+  median 14 s; the moonlit sea's 28 s, first light's 41 s). No source
+  found gives a stable night's shorter eddy scale in this form, so the
+  longer e-fold stands (the hub's ruling). Up the profile the share
+  eases from the surface's to the jet's (20-100 m, in log height) and from
+  the jet's to the free air's 1 (300-1500 m); the particles, all at 20 m
+  or under, take the surface's, the birds at 40 m a blend. Over a hold a
+  sky's shares hold; through a change they ease into the next sky's with
+  its light (weather(t)). Whatever the wind carries is carried by its
+  integral, a clock of each share in closed form over the sky's order
+  (airClock; the shaders' uAir: the surface's clock, its share, the
+  gustiness, the clock a frame back), so a change of sky never jumps a
+  grain, a mote, a veil or a gust: the grains drift by the day's wind
+  times the clock, the gust field is carried by it, the veils' sand
+  streaks run at the veils' own wind on it, and the veils lift past the
+  day's sigma, so in a night's weak air seldom. The score's
+  breeze is the same table, handed it read only by its feed
+  (docs/sound.md); WORLD.air.BYSKY() hands any reader a copy. windAt's t
+  now counts: it is the hour's wind, the sky's share at t. A reader that
+  wants the day's wind whatever the sky (CLOUDS' drift and lens gate)
+  asks for WORLD.air.day(x, z, y, V), the sky's share 1.
+- The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
+  the visit's own U10 and the sky (no new draw). mist (m deep): radiation
+  mist on a still clear night, thickest before sunrise; each sky's depth
+  set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour
+  1, the afterglow 0) scaled by the visit's own moisture (moist, 0-1),
+  which carries the wind's mixing too (a visit moist enough for mist has
+  a surface wind under 3 m/s on every sky with mist): radiation fog needs air near saturation as well
+  as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog),
+  and a coastal fog desert's is mostly advective: marine boundary-layer
+  air from over the cool upwelling coast, carried inland, at its most in
+  the early morning and gone soon after sunrise
+  (https://acp.copernicus.org/articles/20/3415/2020/). So the moisture
+  is the visit's air, not the land in view: whole on a calm synoptic day
+  (U10 under 4.02 m/s), none past 4.1 (AIR_MOIST, set with LAND for pools
+  at the cut on 3 of the 10 dune lands, the hub's ruling; the visit's own
+  U10, no new draw). First light gets 5 m of mist or more, deep enough for
+  pools, on dune openings 3, 10 and 14 (10 m each, by the live visit's
+  seed, RNG(subseed(seed, 1000)).seed(), which airDraw and airU10 read),
+  the other dune openings under 2 m; 1 m or more on 6 of the 16 openings,
+  and on 28% of visits over the winds' own spread. AIRAPI.MIST()
+  hands a reader a copy of the depths, as AIRAPI.BYSKY() does of the
+  wind by sky. Through a change its level moves
+  toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
+  never a jump, never a race). oro (0-1): the orographic gate, the
+  visit's own from U10 alone: the ridge-top wind is the log law's 100 m
+  share of U10 (1.28), and past 7.7 m/s there (U10 about 6) the ridges
+  stand lee waves, lenticulars and banner clouds (about a quarter of
+  visits). vis (km): the visit's own, 10 in clean air, 4 in blown sand
+  once U10 is past the sand's threshold (5.8-7 m/s; about one visit in
+  six). The gate and the haze never change with the sky, so the far land
+  never fades in place. It carries the lee wave's numbers too: oroU (7.7
+  m/s over the ridge, where the gate opens) and N (0.01/s, the buoyancy
+  frequency CLOUDS' lens takes), so the lens reads one weather. LAND's
+  mist and CLOUDS' lenticulars and banners read it.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route).
 - The events (physics: air/events; src/world/216-events.js, WORLD.events):
   the rare sights a visit may come on, each a site on the ground placed
   by where it is, never by when or by the way flown (path-independent).
