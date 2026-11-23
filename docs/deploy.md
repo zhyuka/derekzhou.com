@@ -76,18 +76,21 @@ The openings' stills (the world's first frames, baked on a real GPU by tools/gpu
 in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
 key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt.
 The Cloudflare build fetches its own key's set with STILLS_TOKEN (a Pages secret) and ships without it on any failure.
-The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and live never
-goes without its set:
+The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and a set is
+only ever its own world's:
 - stills.yml, after every green Gate run on main: is the set for the tip's key up (one request)? Then the tip's commit
-  status `stills` is success. Not up: failure, saying no stills exist for this world yet (never a red main).
+  status `stills` is success. Not up: success too, saying the world ships without stills (never a red main).
 - The deploy gate (merge-bot.mjs): live moves to a tip that has tools/gpu/bake-stills.js only once its `stills` status
   is success (bot-rules.mjs stillsReady). merge.yml ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
   its sha256 (.github/ci/stills-live.mjs).
 The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23.
-CI no longer bakes: a served change that makes a new key holds live (its status failure) until a replacement lands.
-What replaces it is open (the hub decides, for the owner): narrowing the key to what the canvas reads, so a change
-the canvas never sees reuses the set it has; a bake by hand on a Mac for a world change; or shipping without.
+CI no longer bakes, so a served change that makes a new key ships without stills: the first paint the words over the
+hour's still sky, then the world's first frame drawn whole as the cut, no fade and no still from another key
+(tools/checks/44-first-paint.sh proves it on every gate, on a phone and a laptop; post-deploy's stills-live.mjs checks
+live asks for no still and says so in build.txt). Live never waits for a bake. Later: a key of what the canvas reads
+(sound and the site's metadata are outside it; CSS, fonts and the words reach it), so a change it never sees keeps its
+set; and a measured SwiftShader bake on hosted runners.
 
 The owner's steps (once; until they are done the build ships without stills, as before):
 1. A token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.

@@ -37,8 +37,9 @@ export function newestArtifact(list) {
 }
 
 // THE STILLS (docs/deploy.md, "The stills"). Once a tip has the bake (tools/gpu/bake-stills.js: #197 onward), the
-// Cloudflare build of it fetches the release for its world's key, so live moves there only once the PC's stills job
-// (stills.yml) has put that release up and said so: the commit status `stills`, success. Before the bake nothing waits.
+// Cloudflare build of it fetches the release for its world's key, so live moves there only once the stills job
+// (stills.yml) has looked and said so: the commit status `stills`, success, whether the set is up or the world has
+// none and ships without stills (CI bakes none). Before the bake nothing waits.
 // statuses: GET /commits/{sha}/statuses, newest first (a re-run's status after the first's): the newest `stills` wins.
 export function stillsReady(hasBake, statuses) {
   if (!hasBake) return { ok: true, why: 'no bake at this tip' };

@@ -83,6 +83,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the seven minified scripts from build/ship/; CI checks the build
 tools/glslmin.mjs            A shader's text without comments and spare space, token for token the same (the build's)
+tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
 tools/check.mjs              Every static check from one command (npm run check; CI's validate job): the build once, then
                              tools/checks/*.sh in parallel; --fast, --only, --list, --prove (each check's planted failures)
 tools/check-quick.mjs        The checks that take seconds (npm run check:quick; the Stop hook)

@@ -1,14 +1,14 @@
 name: Stills
 
 # The openings' stills (the world's first frames, baked by tools/gpu/bake-stills.js on a real GPU) for every served
-# build, so live never ships without them (docs/deploy.md, "The stills").
+# build that has a set (docs/deploy.md, "The stills").
 # After each green Gate run on main (workflow_run), the release stills-<key> (key: tools/stills.mjs worldKey of the
 # gate's served/head, the plain build) is looked up, and the commit's status `stills` says whether it is up. The merge
 # bot's deploy gate moves live to a tip that has the bake only once that status is success (merge-bot.mjs,
 # bot-rules.mjs stillsReady). A failure here never turns main red: live waits, the status says why.
 # (2026-11-23, the owner: "None on my PC") the bake itself no longer runs in CI: it ran on the PC's RTX 4090, six jobs
-# a sky each, and no self-hosted runner takes jobs now. Until a replacement lands, a tip whose key has no release gets
-# a failure status saying so, and live waits for it. On a claude/* branch: nothing (2026-11-14).
+# a sky each, and no self-hosted runner takes jobs now. A tip whose key has no release ships without stills: its
+# status is success, saying so (the first paint without stills: tools/checks/44-first-paint.sh). On a claude/* branch: nothing (2026-11-14).
 # The builds are the Gate run's gate-served artifact (read with actions: read), checked against their manifest and
 # pinned to the served_sha in that run's gate-verdict artifact: both are scoped to the Gate run, so no other run's code
 # can rewrite them. main's copy of this file and of tools/ runs, never a branch's (workflow_run).
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      bake: ${{ steps.need.outputs.bake }}   # (true: this world's stills are not up, and the status says so)
+      bake: ${{ steps.need.outputs.bake }}   # (true: this world has no set: it ships without stills)
       key: ${{ steps.need.outputs.key }}
     steps:
       - uses: actions/checkout@v4
@@ -89,11 +89,13 @@ jobs:
           k=$(node -e "import('./tools/stills.mjs').then((m) => console.log(m.worldKey('served/head')))")
           echo "key=$k" >> "$GITHUB_OUTPUT"
           # the answer is what stills-release prints: up only with "is up" and its status posted (--status);
-          # anything else is not up, and the bake runs (all hits when the PC's cache has the key)
+          # anything else is not up
           said=$(node tools/stills-release.mjs --site served/head --have --status "$SHA" || true)
           echo "$said"
           if grep -q ' is up$' <<<"$said" && grep -q 'status stills success' <<<"$said"; then echo "up already: nothing to bake"; exit 0; fi
-          # (2026-11-23, the owner: "None on my PC") no GPU bake runs in CI any more: the status says so, and live waits
-          # for this world's stills (the deploy gate, bot-rules.mjs stillsReady) until a replacement lands
+          # No set for this world (CI bakes no stills: no GPU since 2026-11-23): the tip ships without them, the first
+          # paint the words and then the world as a cut (tools/checks/44-first-paint.sh proves it on every gate), so
+          # the status is success, saying so: live never waits for a bake (the hub, for the owner, 2026-11-23).
           echo "bake=true" >> "$GITHUB_OUTPUT"
-          node tools/stills-release.mjs --fail "$SHA" --why "no stills for this world yet: CI no longer bakes on the PC's GPU (2026-11-23); live waits (run $GITHUB_RUN_ID)" || true
+          curl -fsS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$SHA" -d "{\"state\":\"success\",\"context\":\"stills\",\"description\":\"no stills for this world: it ships without them (no bake in CI)\",\"target_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" >/dev/null
+          echo "no set for $k: status stills success (ships without stills)"
