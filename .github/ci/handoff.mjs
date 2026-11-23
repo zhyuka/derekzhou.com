@@ -20,9 +20,9 @@
 // runs in its plan job with it writable, so it could rewrite any run's files there, the manifest too. A GitHub artifact
 // was scoped to its run; this folder is not. So what decides anything is never read from it alone: a reader of the
 // builds or of T1's shards pins the manifest's sha256 to the putting job's output (GitHub keeps job outputs per run,
-// out of reach of another run's code), and the verdict the merge bot and T2's probe trust is the gate-verdict artifact,
-// never the PC's copy. (The Stills job, after a main gate, reads without a pin: a workflow_run cannot see the gate's job
-// outputs. docs/deploy.md, "The hand-off".)
+// out of reach of another run's code), and the verdict the merge bot and T2's probe trust is the gate-verdict artifact
+// or the verdict job's notice (bot-rules.mjs verdictNotice), never the PC's copy. (The Stills job, after a main gate,
+// reads without a pin: a workflow_run cannot see the gate's job outputs. docs/deploy.md, "The hand-off".)
 // R: <run id>-<attempt>, from GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. A job writes its own attempt's folder; a reader takes
 // the newest attempt at or below its own that has the name (a re-run of failed jobs keeps the earlier attempt's plan).
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto'; import { fileURLToPath } from 'node:url';

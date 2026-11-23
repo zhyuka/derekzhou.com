@@ -1,5 +1,5 @@
 // test/unit/merge-bot.mjs: the merge bot's small rules (.github/ci/bot-rules.mjs)
-import { test, assert } from '../unit-lib.mjs';
+import { test, assert, fs, os, path, execFileSync, ROOT, fileURLToPath } from '../unit-lib.mjs';
 
 test('merge bot: a conflict is its session\'s, never the owner\'s (no label that holds the PR)', async () => {
   const { updateRefused, HOLD } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
@@ -49,6 +49,45 @@ test('merge bot: a re-run gate is read by its newest verdict artifact, not its f
   assert.equal(newestArtifact(undefined), null);
   const same = { id: 5, created_at: a1.created_at };
   assert.equal(newestArtifact([a1, same]).id, 13921053188, 'the same second: the higher id');
+});
+
+test('merge bot: the verdict job\'s notice is read when no artifact is (the artifact storage, full from Nov 15)', async () => {
+  const { verdictNotice, verdictFromAnnotations, NOTICE_TITLE } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  // the runner's side of a workflow command: "::notice title=T::MESSAGE", MESSAGE unescaped (%25 %0D %0A)
+  const runner = (line) => { const m = /^::notice title=([^:]+)::(.*)$/.exec(line); return m && { title: m[1], annotation_level: 'notice', message: m[2].replace(/%0D/g, '\r').replace(/%0A/g, '\n').replace(/%25/g, '%') }; };
+  const v = { sha: 'a'.repeat(40), base: 'b'.repeat(40), gate_ok: true, frames_identical: false, reason: '100% of it, %25 and %0A as written: T2 (the RTX 4090): frames\nchanged', t2_key: 'k-stallno', t2: { required: true, ran: true, frames_identical: false, stall_ok: null }, areas: 'world', jobs: { t1: 'success' } };
+  const n = verdictNotice(v);
+  assert.ok(!/[\r\n]/.test(n), 'one line');
+  const got = verdictFromAnnotations([runner(n)]);
+  for (const k of ['sha', 'base', 'gate_ok', 'frames_identical', 'reason', 't2_key']) assert.deepEqual(got[k], v[k], k);
+  assert.deepEqual(got.t2, v.t2, 't2, as the deploy walk and T2\'s probe read it');
+  const red = { ...v, gate_ok: false, sha: 'c'.repeat(40) };
+  assert.equal(verdictFromAnnotations([runner(n), runner(verdictNotice(red))]).sha, red.sha, 'the last notice (the job prints one)');
+  assert.equal(verdictFromAnnotations([runner(n), { title: NOTICE_TITLE, annotation_level: 'notice', message: '{not json' }]).sha, v.sha, 'one that does not parse is passed over');
+  assert.equal(verdictFromAnnotations([{ ...runner(n), title: 'other' }]), null, 'another title is not the verdict');
+  assert.equal(verdictFromAnnotations([{ ...runner(n), annotation_level: 'warning' }]), null, 'a warning is not the verdict');
+  assert.equal(verdictFromAnnotations([]), null);
+  assert.equal(verdictFromAnnotations(undefined), null);
+  // verdict.mjs itself prints it, the same answer it writes to verdict.json
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notice-')), out = path.join(dir, 'v.json');
+  const needs = { static: { result: 'success' }, plan: { result: 'success', outputs: { base: 'b'.repeat(40), site_changed: 'false' } }, t1: { result: 'skipped' }, t2: { result: 'skipped' } };
+  const stdout = execFileSync(process.execPath, [fileURLToPath(new URL('../../.github/ci/verdict.mjs', import.meta.url)), dir, out],
+    { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), GITHUB_ACTIONS: 'true', GITHUB_SHA: 'd'.repeat(40), GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), encoding: 'utf8' });
+  const line = stdout.split('\n').find((l) => l.startsWith('::notice title=' + NOTICE_TITLE + '::'));
+  assert.ok(line, 'verdict.mjs prints the notice');
+  const file = JSON.parse(fs.readFileSync(out, 'utf8')), read = verdictFromAnnotations([runner(line)]);
+  assert.equal(read.sha, 'd'.repeat(40));
+  for (const k of ['sha', 'base', 'gate_ok', 'frames_identical', 'reason', 't2_key', 't2']) assert.deepEqual(read[k], file[k], 'the notice says what verdict.json says: ' + k);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('merge bot: no workflow can write another run\'s annotations (no checks: write), so the notice is the run\'s own', () => {
+  const dir = path.join(ROOT, '.github/workflows');
+  for (const f of fs.readdirSync(dir).filter((x) => /\.ya?ml$/.test(x))) {
+    const y = fs.readFileSync(path.join(dir, f), 'utf8');
+    assert.ok(!/^\s*checks:\s*write\b/m.test(y), f + ' grants checks: write');
+    assert.ok(!/^\s*permissions:\s*write-all\b/m.test(y), f + ' grants write-all');
+  }
 });
 
 test('merge bot: a tip with the bake goes live only with its stills release up (stills.yml\'s status)', async () => {

@@ -10,6 +10,7 @@
 //   NEEDS='{...}' node .github/ci/verdict.mjs T1_RESULTS_DIR verdict.json
 import fs from 'node:fs';
 import path from 'node:path';
+import { verdictNotice } from './bot-rules.mjs';
 
 const needs = JSON.parse(process.env.NEEDS || '{}');
 const [dir, outFile] = process.argv.slice(2);
@@ -65,5 +66,7 @@ const md = [`## Gate: ${v.gate_ok ? 'green' : '**red**'}, frames ${v.frames_iden
   `- T2: ${v.t2.ran ? JSON.stringify(v.t2) : 'not run'}`];
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
 console.log(md.join('\n'));
+// (the verdict as the job's notice, kept with the run and read by the merge bot: bot-rules.mjs verdictNotice)
+if (process.env.GITHUB_ACTIONS) console.log(verdictNotice(v));
 if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `gate_ok=${v.gate_ok}\nframes_identical=${v.frames_identical}\n`);
 process.exit(v.gate_ok ? 0 : 1);

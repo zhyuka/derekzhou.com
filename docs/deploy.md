@@ -55,9 +55,18 @@ is kept for the Stills job; every gate's start sweeps anything older than 24 hou
 shared, and a PR's own build code runs in its plan job with it writable, so nothing that decides is read from it alone.
 put writes its manifest's sha256 to its job's outputs (GitHub keeps them per run), and T1, T2, T3 and the verdict read
 pinned to it (--pinned, HANDOFF_SHA): files and manifest rewritten together still fail. The verdict the merge bot and
-T2's probe trust is the gate-verdict artifact, never the PC's copy (verdict/<run id>-<attempt>.json, kept 30 days as a
-record only). That artifact and T2's and T3's reports are the artifacts left, small, and their uploads never fail a
-job. The Stills job (after main's gate, a workflow_run) cannot see the gate's job outputs and reads unpinned.
+T2's probe trust is the gate-verdict artifact, else the verdict job's gate-verdict notice, never the PC's copy
+(verdict/<run id>-<attempt>.json, kept 30 days as a record only). That artifact and T2's and T3's reports are the
+artifacts left, small, and their uploads never fail a job.
+
+The notice (2026-11-23): from Nov 15 the account's artifact storage was full, so no gate-verdict artifact uploaded,
+and every gate was green with no verdict the bot could read. Nothing landed, and live stayed at a1c4136 while the
+owner merged #321, #328, #330 and #238. GitHub counts artifact storage over the month, so deleting artifacts did not
+free it. verdict.mjs now also prints the verdict as a notice on its own job (`::notice title=gate-verdict::` and one
+line of JSON: bot-rules.mjs verdictNotice). GitHub keeps a job's annotations with its run, outside artifact storage.
+The bot and main's T2 probe read the run's latest verdict job's annotations when there is no artifact. The trust line
+holds: no workflow grants `checks: write`, so no run's code can write another run's annotations
+(test/unit/merge-bot.mjs checks every workflow file). The Stills job (after main's gate, a workflow_run) cannot see the gate's job outputs and reads unpinned.
 
 ## The stills
 

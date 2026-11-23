@@ -36,6 +36,7 @@ jobs:
     permissions:
       contents: read
       actions: read   # (the PR's gate-verdict artifact, in T2's probe)
+      checks: read   # (else its verdict job's gate-verdict notice)
       pull-requests: read   # (whether the branch has an open PR)
     outputs:
       has_pr: ${{ steps.haspr.outputs.has_pr }}
@@ -154,10 +155,16 @@ jobs:
           R="https://api.github.com/repos/$GITHUB_REPOSITORY"; K="${KEY%-stall*}"
           shas="$GITHUB_SHA $(api "$R/commits/$GITHUB_SHA/pulls" | jq -r '.[] | select(.merged_at != null) | .head.sha' | tr '\n' ' ')"
           ids=$(for s in $shas; do api "$R/actions/workflows/gate.yml/runs?head_sha=$s&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'; done | sort -u)
-          for id in $ids; do   # (the gate-verdict artifact, never the PC's copy: any run's code can write that folder)
+          for id in $ids; do   # (the gate-verdict artifact, else the verdict job's notice; never the PC's copy: any run's code can write that folder)
             a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '[.artifacts[] | select(.name == "gate-verdict" and (.expired | not))] | sort_by(.created_at) | last | .archive_download_url // empty')   # (a re-run's newest, as the bot reads it)
-            [ -n "$a" ] || continue
-            rm -rf "$D"; mkdir -p "$D"; api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
+            rm -rf "$D"; mkdir -p "$D"
+            if [ -n "$a" ]; then api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
+            else   # (bot-rules.mjs verdictNotice: the artifact storage was full from Nov 15)
+              cr=$(api "$R/actions/runs/$id/jobs?filter=latest&per_page=100" | jq -r '[.jobs[] | select(.name == "verdict" and .status == "completed")][0].check_run_url // empty')
+              [ -n "$cr" ] || continue
+              api "$cr/annotations?per_page=100" | jq -c '[.[] | select(.title == "gate-verdict" and .annotation_level == "notice") | .message | fromjson? | select(type == "object")] | last // empty' > "$D/verdict.json" || continue
+              [ -s "$D/verdict.json" ] || continue
+            fi
             if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" --arg k "$K" '((.t2_key // "" | sub("-stall(yes|no)$"; "")) == $k or (.sha == $s and .base == $b)) and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
               jq -c '.t2 | {frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok} | map_values(if . == null then "" else tostring end)' "$D/verdict.json" > "$D/t2.json"
               echo "the PR's gate (run $id) compared these builds: $(cat "$D/t2.json")"; echo "hit=true" >> "$GITHUB_OUTPUT"; exit 0
@@ -351,14 +358,15 @@ jobs:
         with:
           path: ${{ runner.temp }}/t2c/t2.json
           key: ${{ needs.plan.outputs.t2_key }}
-      # the verdict: kept on the PC (the merge bot reads it there first) and as the small gate-verdict artifact (the
-      # bot's fallback, and the PR's answer for main's T2 probe); the artifact is never what fails the verdict
+      # the verdict: the gate-verdict notice verdict.mjs prints (on the run; what the merge bot and main's T2 probe read when
+      # there is no artifact), the small gate-verdict artifact (read first), and the PC's copy (a record only, never
+      # trusted); the artifact is never what fails the verdict
       - name: The verdict, kept on the PC
         if: always()
         run: if [ -f "$RUNNER_TEMP/verdict.json" ]; then node .github/ci/handoff.mjs verdict-put "$RUNNER_TEMP/verdict.json"; fi
       - uses: actions/upload-artifact@v4
         if: always()
-        continue-on-error: true   # (the artifact quota: the verdict stands on the PC's copy)
+        continue-on-error: true   # (the artifact quota: the verdict stands on the job's notice)
         with:
           name: gate-verdict
           path: ${{ runner.temp }}/verdict.json

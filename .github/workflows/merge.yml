@@ -21,6 +21,7 @@ permissions:
   pull-requests: write
   issues: write
   statuses: read   # (the deploy gate reads a main tip's `stills` status)
+  checks: read   # (the verdict job's gate-verdict notice: bot-rules.mjs verdictNotice)
 
 # One tick at a time. A tick queued behind another replaces any older queued one, which loses nothing: every tick
 # looks at main and every open PR afresh.

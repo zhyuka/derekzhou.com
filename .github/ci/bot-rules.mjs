@@ -36,6 +36,24 @@ export function newestArtifact(list) {
   return live[0] || null;
 }
 
+// The verdict as a notice on the gate's verdict job (2026-11-23). From Nov 15 the account's artifact storage was full,
+// so no gate-verdict artifact uploaded (the upload never fails a job) and the bot read every green gate as "no
+// verdict": nothing landed, and live stayed at a1c4136 while the owner merged #321, #328, #330 and #238. GitHub keeps a
+// job's annotations with its run, outside artifact storage, and no job here can write another run's (no workflow grants
+// checks: write; test/unit/merge-bot.mjs holds that), so the notice meets the artifact's trust line, and the PC's copy
+// still decides nothing. It carries what the bot, the deploy walk and T2's probe read, on one line.
+export const NOTICE_TITLE = 'gate-verdict';
+export function verdictNotice(v) {
+  const keep = { sha: v.sha, base: v.base, gate_ok: v.gate_ok, frames_identical: v.frames_identical, reason: v.reason, t2_key: v.t2_key, t2: v.t2 };
+  return `::notice title=${NOTICE_TITLE}::` + JSON.stringify(keep).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+}
+// A check run's annotations (GET /check-runs/{id}/annotations): the last gate-verdict notice that parses, or null.
+export function verdictFromAnnotations(list) {
+  const a = (list || []).filter((x) => x && x.title === NOTICE_TITLE && x.annotation_level === 'notice');
+  for (let i = a.length - 1; i >= 0; i--) { try { const v = JSON.parse(a[i].message); if (v && typeof v === 'object' && typeof v.sha === 'string') return v; } catch { /* not ours */ } }
+  return null;
+}
+
 // THE STILLS (docs/deploy.md, "The stills"). Once a tip has the bake (tools/gpu/bake-stills.js: #197 onward), the
 // Cloudflare build of it fetches the release for its world's key, so live moves there only once the PC's stills job
 // (stills.yml) has put that release up and said so: the commit status `stills`, success. Before the bake nothing waits.
