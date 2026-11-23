@@ -19,8 +19,8 @@ execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', 
 const AIRF = 'src/world/215-air.js', errs = [];
 
 // 1. the air's names: declared in the air, written only there
-const NAMES = ['SKY_RATE', 'AIR_DIR', 'AIR_H', 'AIR_CIRRUS', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_FRAME', 'AIRAPI',
-  'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'airMoonDir', 'AIR_MOOND', 'AIR_MOONS', 'skyFrame', 'weather', 'airHeading0', 'AIR_UT0',
+const NAMES = ['SKY_RATE', 'AIR_DIR', 'AIR_H', 'AIR_CIRRUS', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_LAT', 'AIR_OBL', 'AIR_GAL', 'AIR_SKYF', 'AIR_FRAME', 'AIR_SIDEREAL', 'AIRAPI',
+  'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'airMoonDir', 'AIR_MOOND', 'AIR_MOONS', 'skyFrame', 'skySphere', 'weather', 'airHeading0', 'AIR_UT0',
   'AIR_BYSKY', 'AIR_MIST', 'AIR_WXK', 'AIR_WXO', 'airWx', 'airMistOf', 'airMistAt', 'AIR_MIST_RATE', 'AIR_MOIST', 'airMoist', 'airShare', 'airCarried', 'airClock', 'airBase', 'airTable', 'UAIR', 'AIR_NC', 'airFrameU'];
 for (const n of NAMES) {
   let w; try { w = await where(n, 'world'); } catch (e) { errs.push(`${n}: not a name of the world (${e.message})`); continue; }
