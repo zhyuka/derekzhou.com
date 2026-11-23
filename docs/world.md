@@ -534,6 +534,12 @@ physics: clouds/drift). It holds:
   object. The score's feed carries it at the camera, at its height over
   the ground (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds its
   direction to windAt's within 1e-6; 42-one-air holds the score to it.
+- One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
+  moon's disc as drawn this frame (its direction, its weight on show,
+  az and el), at the very moment and on the very route the night sky's
+  uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
+  disc. The key light (keyAt) is the moon's light on the land at night
+  from a low, fixed place (5-14 deg up); it is not where the disc is.
 - The wind by sky (physics: air/wind-by-sky): the sky is the time of
   day, and the wind follows the day as the boundary layer does. By day
   the surface's wind is mixed down from aloft; at dusk the mixing dies,
