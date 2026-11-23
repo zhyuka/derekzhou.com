@@ -5,7 +5,7 @@
 // extrapolated gap falls far under COAST_H and the pixel takes the sea's colour, one pixel at a time along the
 // triangles' edges (the crawling specks on the plateaux, moonlit, seed 3: 29-33 a frame in the plateau's rows, 0-1
 // with vX centroid). Every varying of VS_TERRAIN, VS_TERRAIN_SPLIT and FS_TERRAIN must be centroid, and the FS must
-// read each as the VSs write it.
+// read each as the VSs write it (the parts they put in, S1_OUT and S1_IN, counted where they land).
 // plant: {"file": "src/world/350-shaders-scene.js", "find": "centroid in vec3 vN; centroid in float vX; out vec4 oC;", "with": "centroid in vec3 vN; in float vX; out vec4 oC;", "why": "the coast's gap read at the pixel's centre again"}
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,7 +19,8 @@ function fnSrc(name) {
   const a = SCN.indexOf('function ' + name + '('); assert.ok(a >= 0, name + ' found');
   let i = SCN.indexOf('{', a), n = 0;
   for (; i < SCN.length; i++) { if (SCN[i] === '{') n++; else if (SCN[i] === '}' && --n === 0) break; }
-  return SCN.slice(a, i + 1);
+  // (a shared part a function puts in, \${... S1_OUT ...}: its text, so its varyings are counted where they land)
+  return SCN.slice(a, i + 1).replace(/\$\{[^{}]*\b(S1_[A-Z]+)\b[^{}]*\}/g, (m, v) => { const r = new RegExp('var ' + v + ' = `([^`]*)`').exec(SCN); assert.ok(r, v + ' found'); return r[1]; });
 }
 // [qualifiers, type, name] of each `in` or `out` varying declared at a shader's top level
 function varyings(src, dir) {

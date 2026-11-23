@@ -43,12 +43,12 @@ const BUDGET = {
   '/sound.js': 1.5 * K,            // 614 (1,388 before Brotli) (the sound icon's switch, 2026-11-07). Its sheet of notes,
                                    // /assets/sound/notes-N.mp3, has no line on purpose: it is fetched only at the press, so a cold visit
                                    // that loads it fails here
-  '/score.js': 9 * K,              // 8,793 (23,457 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day)
+  '/score.js': 9.5 * K,            // 9,259 (24,985 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day; the night's quiet, 2026-11-16)
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
   '/world.js': 113 * K,            // 102,463
   '/realm-kit.js': 5 * K,          // 4,114
-  '/realm-dunes.js': 10.5 * K,     // 9,190
+  '/realm-dunes.js': 12 * K,       // 11,115 (9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
   '/realm-above.js': 4.5 * K,      // 3,406
   '/plan.js': 15 * K,              // 13,268
   '/facetform.js': 3.5 * K,        // 2,301
