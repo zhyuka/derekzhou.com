@@ -1,5 +1,5 @@
 {
- "about": "physics/model: a measured kinematic and structural model of the flapping wing, per kind (MODEL.md). Phase p: 0 = the top of the arm stroke. Fourier: f(p) = a0 + sum a_k cos 2 pi k p + b_k sin 2 pi k p. Angles deg; elevations + up, sweeps + forward, pitch/twist + leading edge up; the hand relative to the arm (+ above its line).",
+ "about": "physics/model: a measured kinematic and structural model of the flapping wing, per kind (MODEL.md). Phase p: 0 = the top of the arm stroke. Harmonics: f(p) = a0 + sum a_k cos 2 pi k p + b_k sin 2 pi k p. Angles deg; elevations + up, sweeps + forward, pitch/twist + leading edge up; the hand relative to the arm (+ above its line).",
  "kinds": {
   "gull": {
    "D": 0.604,
@@ -7,9 +7,9 @@
     "f": 3.19,
     "b": 1.34,
     "U": 12,
-    "f_src": "lesser black-backed gull 3.188 +- 0.241 Hz, 18 wild birds, 7,316 bursts (Shamoun-Baranes et al. 2016 data, CC0; analysed in ../dynamics); Larus 2.91-3.27 Hz (Pennycuick 2001 Table 2, study only)",
-    "b_src": "herring gull 1.34 m (Alerstam et al. 2007, CC BY)",
-    "U_src": "LBBG median airspeed 11.8 m/s (../dynamics, CC0); Alerstam 2007 13.1 m/s"
+    "f_src": "lesser black-backed gull 3.188 +- 0.241 Hz, 18 wild birds, 7,316 bursts (doi:10.5281/zenodo.4963689, CC0; analysed in ../dynamics); Larus 2.91-3.27 Hz (doi:10.1242/jeb.204.19.3283 Table 2, study only)",
+    "b_src": "herring gull 1.34 m (doi:10.1371/journal.pbio.0050197, CC BY)",
+    "U_src": "LBBG median airspeed 11.8 m/s (../dynamics, CC0); doi:10.1371/journal.pbio.0050197 13.1 m/s"
    },
    "world_span_m": 3.68,
    "skeleton": {
@@ -24,10 +24,10 @@
    "wrist_spread_measured": [
     0.37,
     0.43,
-    "Harvey 2022 markers / bones (../structure 2)"
+    "doi:10.6084/m9.figshare.c.5503989 markers / bones (../structure 2)"
    ],
    "linkage": {
-    "coupling": "Harvey et al. 2021 gull curve (data CC BY 4.0)",
+    "coupling": "doi:10.6084/m9.figshare.c.5275490 gull curve (data CC BY 4.0)",
     "coupling_table": {
      "90": 54,
      "95": 60.7,
@@ -65,7 +65,7 @@
       -7.2889
      ],
      "unit": "deg",
-     "source": "gull (Larus sp.), wild, front-view film: Liu et al. 2004 Eq. 11 psi1 (two harmonics as published), its oscillation x1.550 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 62.5 deg and St 0.21 at this species' f, U, b = 72.2 deg (Nudds et al. 2004))",
+     "source": "gull (Larus sp.), wild, front-view film: NTRS 20040075526 Eq. 11 psi1 (two harmonics as published), its oscillation x1.550 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 62.5 deg and St 0.21 at this species' f, U, b = 72.2 deg (doi:10.1098/rspb.2004.2838))",
      "basis": "data",
      "licence": "NASA work (US public domain; AIAA conference paper: the published coefficients cited as facts)"
     },
@@ -80,7 +80,7 @@
       5.0774
      ],
      "unit": "deg",
-     "source": "gull: -psi2 of Liu 2004 (the hand below the arm line in the front view)",
+     "source": "gull: -psi2 of NTRS 20040075526 (the hand below the arm line in the front view)",
      "basis": "data",
      "licence": "as above"
     },
@@ -97,7 +97,7 @@
      "N": 2,
      "rms_fit": 0,
      "unit": "share (front-projected arc length / its maximum)",
-     "source": "the measured extension (gull, crane: Liu 2004) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
+     "source": "the measured extension (gull, crane: NTRS 20040075526) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
      "basis": "data",
      "licence": "as its source"
     },
@@ -116,7 +116,7 @@
      "N": 3,
      "rms_fit": 0.3242,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: gull extension (Liu 2004 arc length, 0.71-1.00) through the gull fold table (Harvey 2022 markers on the Harvey 2021 coupled path, data CC BY 4.0)",
+     "source": "derived: gull extension (NTRS 20040075526 arc length, 0.71-1.00) through the gull fold table (doi:10.6084/m9.figshare.c.5503989 markers on the doi:10.6084/m9.figshare.c.5275490 coupled path, data CC BY 4.0)",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -136,7 +136,7 @@
      "N": 3,
      "rms_fit": 0.7213,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: gull extension (Liu 2004 arc length, 0.71-1.00) through the gull fold table (Harvey 2022 markers on the Harvey 2021 coupled path, data CC BY 4.0)",
+     "source": "derived: gull extension (NTRS 20040075526 arc length, 0.71-1.00) through the gull fold table (doi:10.6084/m9.figshare.c.5503989 markers on the doi:10.6084/m9.figshare.c.5275490 coupled path, data CC BY 4.0)",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -195,7 +195,7 @@
      "N": 4,
      "rms_fit": 0.48333,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -212,7 +212,7 @@
      "N": 2,
      "rms_fit": 0.0266,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -229,7 +229,7 @@
      "N": 2,
      "rms_fit": 0.20421,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.19), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.19), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 10.75, \"scale\": 1.193, \"pmin\": 0.418, \"pmax\": 0.764, \"pp\": 11.54}"
@@ -247,7 +247,7 @@
      "N": 2,
      "rms_fit": 0.19313,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.18)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.18)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 23.9, \"scale\": 1.176, \"pmin\": 0.26, \"pmax\": 0.668, \"pp\": 28.24}"
@@ -265,7 +265,7 @@
      "N": 2,
      "rms_fit": 0.02735,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 6.19, \"up_over_down\": 0.455, \"peak_at\": 0.475, \"trough_at\": 0.795}"
@@ -283,7 +283,7 @@
      "N": 2,
      "rms_fit": 0.00003,
      "unit": "span (+ up)",
-     "source": "lesser black-backed gull 39.2 mm p-p = 2.93 % of span (../dynamics, CC0); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.30 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "lesser black-backed gull 39.2 mm p-p = 2.93 % of span (../dynamics, CC0); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.30 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "data",
      "licence": "CC0 / CC BY"
     },
@@ -307,7 +307,7 @@
    "meta": {
     "stroke_scale": 1.5503136283282486,
     "stroke_target_deg": 67.4,
-    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 62.5 deg and St 0.21 at this species' f, U, b = 72.2 deg (Nudds et al. 2004)"
+    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 62.5 deg and St 0.21 at this species' f, U, b = 72.2 deg (doi:10.1098/rspb.2004.2838)"
    },
    "extension_measured_minmax": [
     0.708,
@@ -321,7 +321,7 @@
    },
    "rig": {
     "about": "the rig's left-side angles (the right mirrors them) solved on this kind's faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout",
-    "observables": "liu (front-view angles, front-projected extension) + section pitch",
+    "observables": "front (front-view angles, front-projected extension) + section pitch",
     "solved": [
      "arm_dih",
      "hand_dih",
@@ -524,9 +524,9 @@
     "f": 3.95,
     "b": 1.69,
     "U": 16.7,
-    "f_src": "Canada goose benchmark 3.95 Hz (Pennycuick 2001 eq. 2 on Alerstam 2007 morphology, CC BY); wild bar-headed goose 3.94 Hz below 2300 m (Bishop et al. 2015, study only); tunnel 4.97 Hz (Meir et al. 2019, CC0)",
-    "b_src": "Canada goose 1.69 m (Alerstam 2007)",
-    "U_src": "Canada goose 16.7 m/s (Alerstam 2007)"
+    "f_src": "Canada goose benchmark 3.95 Hz (doi:10.1242/jeb.204.19.3283 eq. 2 on doi:10.1371/journal.pbio.0050197 morphology, CC BY); wild bar-headed goose 3.94 Hz below 2300 m (doi:10.1126/science.1258732, study only); tunnel 4.97 Hz (doi:10.7554/eLife.44986, CC0)",
+    "b_src": "Canada goose 1.69 m (doi:10.1371/journal.pbio.0050197)",
+    "U_src": "Canada goose 16.7 m/s (doi:10.1371/journal.pbio.0050197)"
    },
    "world_span_m": 3.2,
    "skeleton": {
@@ -541,10 +541,10 @@
    "wrist_spread_measured": [
     0.465,
     0.5,
-    "Harvey 2022 (not fully spread) / bones"
+    "doi:10.6084/m9.figshare.c.5503989 (not fully spread) / bones"
    ],
    "linkage": {
-    "coupling": "mallard (Baliga et al. 2019 data, CC BY 4.0): the goose and swan proxy",
+    "coupling": "mallard (doi:10.6084/m9.figshare.8856161 data, CC BY 4.0): the goose and swan proxy",
     "coupling_table": {
      "40": 77,
      "50": 85,
@@ -579,9 +579,9 @@
       -2.632
      ],
      "unit": "deg",
-     "source": "bar-headed goose (Anser indicus), wild, front-view film: Liu 2004 psi1",
+     "source": "bar-headed goose (Anser indicus), wild, front-view film: NTRS 20040075526 psi1",
      "basis": "data",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_bend": {
      "a0": -20.0863,
@@ -594,9 +594,9 @@
       4.0085
      ],
      "unit": "deg",
-     "source": "bar-headed goose (Anser indicus), wild, front-view film: Liu 2004 -psi2",
+     "source": "bar-headed goose (Anser indicus), wild, front-view film: NTRS 20040075526 -psi2",
      "basis": "data",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_lag": {
      "a0": 0,
@@ -611,10 +611,10 @@
      "N": 2,
      "rms_fit": 0.03631,
      "unit": "deg",
-     "source": "barnacle goose (Dimitriadis et al. 2015, wind tunnel 18 m/s): the outer wing's lag, 15.1 deg p-p, most forward at 0.29, most back at 0.87 of its stroke, carried onto this stroke (forward 0.402, back 0.853)",
+     "source": "barnacle goose (doi:10.1017/S0001924000010939, wind tunnel 18 m/s): the outer wing's lag, 15.1 deg p-p, most forward at 0.29, most back at 0.87 of its stroke, carried onto this stroke (forward 0.402, back 0.853)",
      "basis": "facts",
      "licence": "study only (rights reserved): ranges and phases only",
-     "note": "checked against the bar-headed goose film (Meir et al. 2019 Video 2, CC BY): the tip moves forward early in the downstroke and back from mid-downstroke"
+     "note": "checked against the bar-headed goose film (doi:10.7554/eLife.44986 Video 2, CC BY): the tip moves forward early in the downstroke and back from mid-downstroke"
     },
     "elbow": {
      "a0": 134,
@@ -629,7 +629,7 @@
      "N": 2,
      "rms_fit": 0,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: none: the goose wing does not extend and fold much (Liu 2004 arc length 0.98-1.01); held spread",
+     "source": "derived: none: the goose wing does not extend and fold much (NTRS 20040075526 arc length 0.98-1.01); held spread",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -647,7 +647,7 @@
      "N": 2,
      "rms_fit": 0,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: none: the goose wing does not extend and fold much (Liu 2004 arc length 0.98-1.01); held spread",
+     "source": "derived: none: the goose wing does not extend and fold much (NTRS 20040075526 arc length 0.98-1.01); held spread",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -692,7 +692,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -707,7 +707,7 @@
      "N": 1,
      "rms_fit": 0.05035,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -724,7 +724,7 @@
      "N": 2,
      "rms_fit": 0.09411,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.18), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.18), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 10.6, \"scale\": 1.176, \"pmin\": 0.329, \"pmax\": 0.727, \"pp\": 11.38}"
@@ -742,7 +742,7 @@
      "N": 2,
      "rms_fit": 0.17398,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.16)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.16)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 23.6, \"scale\": 1.162, \"pmin\": 0.205, \"pmax\": 0.618, \"pp\": 27.88}"
@@ -760,7 +760,7 @@
      "N": 2,
      "rms_fit": 0.02101,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 5.53, \"up_over_down\": 0.454, \"peak_at\": 0.412, \"trough_at\": 0.77}"
@@ -778,7 +778,7 @@
      "N": 2,
      "rms_fit": 0.00002,
      "unit": "span (+ up)",
-     "source": "barnacle goose shoulder 15-31 mm = 1-2 % (Dimitriadis 2015, study: facts; noisy) -> 2 %; shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "barnacle goose shoulder 15-31 mm = 1-2 % (doi:10.1017/S0001924000010939, study: facts; noisy) -> 2 %; shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "facts",
      "licence": "CC0 / CC BY"
     },
@@ -802,7 +802,7 @@
    "meta": {
     "stroke_scale": 1.3115384615384615,
     "stroke_target_deg": 68.2,
-    "stroke_why": "bar-headed goose stroke-plane amplitude 73.4 +- 5.2 deg (Meir et al. 2019 Suppl. file 4, CC0): its -1 SD (Liu 2004's wild bird 51, the relation 59, St 0.21: 63)"
+    "stroke_why": "bar-headed goose stroke-plane amplitude 73.4 +- 5.2 deg (doi:10.7554/eLife.44986 Suppl. file 4, CC0): its -1 SD (NTRS 20040075526's wild bird 51, the relation 59, St 0.21: 63)"
    },
    "extension_measured_minmax": [
     0.979,
@@ -816,7 +816,7 @@
    },
    "rig": {
     "about": "the rig's left-side angles (the right mirrors them) solved on this kind's faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout",
-    "observables": "liu (front-view angles, front-projected extension) + section pitch",
+    "observables": "front (front-view angles, front-projected extension) + section pitch",
     "solved": [
      "arm_dih",
      "hand_dih",
@@ -974,9 +974,9 @@
     "f": 3.38,
     "b": 2.3,
     "U": 16.2,
-    "f_src": "mute swan 3.38 +- 0.09 Hz (Pennycuick 2001, study only) = its benchmark 3.37 Hz (Alerstam 2007 morphology, CC BY)",
-    "b_src": "mute swan 2.30 m (Alerstam 2007)",
-    "U_src": "mute swan 16.2 m/s (Alerstam 2007)"
+    "f_src": "mute swan 3.38 +- 0.09 Hz (doi:10.1242/jeb.204.19.3283, study only) = its benchmark 3.37 Hz (doi:10.1371/journal.pbio.0050197 morphology, CC BY)",
+    "b_src": "mute swan 2.30 m (doi:10.1371/journal.pbio.0050197)",
+    "U_src": "mute swan 16.2 m/s (doi:10.1371/journal.pbio.0050197)"
    },
    "world_span_m": null,
    "skeleton": {
@@ -994,7 +994,7 @@
     "bones"
    ],
    "linkage": {
-    "coupling": "mallard (Baliga et al. 2019 data, CC BY 4.0): the goose and swan proxy",
+    "coupling": "mallard (doi:10.6084/m9.figshare.8856161 data, CC BY 4.0): the goose and swan proxy",
     "coupling_table": {
      "40": 77,
      "50": 85,
@@ -1029,9 +1029,9 @@
       -2.0068
      ],
      "unit": "deg",
-     "source": "bar-headed goose (Anser indicus), wild, front-view film: Liu 2004 (STAND-IN for the swan: Anatidae, continuous flappers; no swan kinematics found) psi1",
+     "source": "bar-headed goose (Anser indicus), wild, front-view film: NTRS 20040075526 (STAND-IN for the swan: Anatidae, continuous flappers; no swan kinematics found) psi1",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_bend": {
      "a0": -20.0863,
@@ -1044,9 +1044,9 @@
       3.0564
      ],
      "unit": "deg",
-     "source": "bar-headed goose (Anser indicus), wild, front-view film: Liu 2004 (STAND-IN for the swan: Anatidae, continuous flappers; no swan kinematics found) -psi2",
+     "source": "bar-headed goose (Anser indicus), wild, front-view film: NTRS 20040075526 (STAND-IN for the swan: Anatidae, continuous flappers; no swan kinematics found) -psi2",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_lag": {
      "a0": 0,
@@ -1061,10 +1061,10 @@
      "N": 2,
      "rms_fit": 0.03631,
      "unit": "deg",
-     "source": "barnacle goose (Dimitriadis et al. 2015, wind tunnel 18 m/s): the outer wing's lag, 15.1 deg p-p, most forward at 0.29, most back at 0.87 of its stroke, carried onto this stroke (forward 0.402, back 0.853)",
+     "source": "barnacle goose (doi:10.1017/S0001924000010939, wind tunnel 18 m/s): the outer wing's lag, 15.1 deg p-p, most forward at 0.29, most back at 0.87 of its stroke, carried onto this stroke (forward 0.402, back 0.853)",
      "basis": "facts",
      "licence": "study only (rights reserved): ranges and phases only",
-     "note": "checked against the bar-headed goose film (Meir et al. 2019 Video 2, CC BY): the tip moves forward early in the downstroke and back from mid-downstroke"
+     "note": "checked against the bar-headed goose film (doi:10.7554/eLife.44986 Video 2, CC BY): the tip moves forward early in the downstroke and back from mid-downstroke"
     },
     "elbow": {
      "a0": 134,
@@ -1079,7 +1079,7 @@
      "N": 2,
      "rms_fit": 0,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: none: the goose wing does not extend and fold much (Liu 2004 arc length 0.98-1.01); held spread",
+     "source": "derived: none: the goose wing does not extend and fold much (NTRS 20040075526 arc length 0.98-1.01); held spread",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -1097,7 +1097,7 @@
      "N": 2,
      "rms_fit": 0,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: none: the goose wing does not extend and fold much (Liu 2004 arc length 0.98-1.01); held spread",
+     "source": "derived: none: the goose wing does not extend and fold much (NTRS 20040075526 arc length 0.98-1.01); held spread",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -1142,7 +1142,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -1157,7 +1157,7 @@
      "N": 1,
      "rms_fit": 0.05035,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -1174,7 +1174,7 @@
      "N": 2,
      "rms_fit": 0.0863,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.08), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.08), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 9.72, \"scale\": 1.079, \"pmin\": 0.329, \"pmax\": 0.727, \"pp\": 10.43}"
@@ -1192,7 +1192,7 @@
      "N": 2,
      "rms_fit": 0.16069,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.07)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.07)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 21.79, \"scale\": 1.073, \"pmin\": 0.205, \"pmax\": 0.618, \"pp\": 25.75}"
@@ -1210,7 +1210,7 @@
      "N": 2,
      "rms_fit": 0.01452,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 5.01, \"up_over_down\": 0.455, \"peak_at\": 0.417, \"trough_at\": 0.772}"
@@ -1228,7 +1228,7 @@
      "N": 2,
      "rms_fit": 0.00002,
      "unit": "span (+ up)",
-     "source": "the goose's 2 % (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "the goose's 2 % (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "stand-in",
      "licence": "CC0 / CC BY"
     },
@@ -1265,9 +1265,9 @@
     "f": 3.09,
     "b": 1.91,
     "U": 16,
-    "f_src": "white stork 3.090 +- 0.139 Hz, 1,883 wild flapping bursts (Flack et al. 2016 data, CC0; ../dynamics)",
-    "b_src": "white stork 1.91 m (Alerstam 2007)",
-    "U_src": "white stork 16.0 m/s (Alerstam 2007, radar subset); 9.4 m/s circling (Weinzierl et al. 2016, CC BY)"
+    "f_src": "white stork 3.090 +- 0.139 Hz, 1,883 wild flapping bursts (doi:10.5441/001/1.78152p3q, CC0; ../dynamics)",
+    "b_src": "white stork 1.91 m (doi:10.1371/journal.pbio.0050197)",
+    "U_src": "white stork 16.0 m/s (doi:10.1371/journal.pbio.0050197, radar subset); 9.4 m/s circling (doi:10.1002/ece3.2585, CC BY)"
    },
    "world_span_m": 4,
    "skeleton": {
@@ -1285,7 +1285,7 @@
     "bones / pelican proxy"
    ],
    "linkage": {
-    "coupling": "turkey vulture (Baliga 2019 data): the stork proxy",
+    "coupling": "turkey vulture (doi:10.6084/m9.figshare.8856161 data): the stork proxy",
     "coupling_table": {
      "40": 68,
      "50": 72,
@@ -1321,9 +1321,9 @@
       -2.0454
      ],
      "unit": "deg",
-     "source": "crane (Grus sp.), wild, front-view film: Liu 2004 (STAND-IN for the stork: a long-winged, slow-beating wild bird; no stork kinematics found); its oscillation x1.130 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 57.4 deg and St 0.21 at this species' f, U, b = 69.4 deg (Nudds et al. 2004)) psi1",
+     "source": "crane (Grus sp.), wild, front-view film: NTRS 20040075526 (STAND-IN for the stork: a long-winged, slow-beating wild bird; no stork kinematics found); its oscillation x1.130 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 57.4 deg and St 0.21 at this species' f, U, b = 69.4 deg (doi:10.1098/rspb.2004.2838)) psi1",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_bend": {
      "a0": -17.0661,
@@ -1336,9 +1336,9 @@
       6.3826
      ],
      "unit": "deg",
-     "source": "crane (Grus sp.), wild, front-view film: Liu 2004 (STAND-IN for the stork: a long-winged, slow-beating wild bird; no stork kinematics found); its oscillation x1.130 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 57.4 deg and St 0.21 at this species' f, U, b = 69.4 deg (Nudds et al. 2004)) -psi2",
+     "source": "crane (Grus sp.), wild, front-view film: NTRS 20040075526 (STAND-IN for the stork: a long-winged, slow-beating wild bird; no stork kinematics found); its oscillation x1.130 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 57.4 deg and St 0.21 at this species' f, U, b = 69.4 deg (doi:10.1098/rspb.2004.2838)) -psi2",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "ext_target": {
      "a0": 0.9612,
@@ -1351,7 +1351,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "share (front-projected arc length / its maximum)",
-     "source": "the measured extension (gull, crane: Liu 2004) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
+     "source": "the measured extension (gull, crane: NTRS 20040075526) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
      "basis": "derived",
      "licence": "as its source"
     },
@@ -1372,7 +1372,7 @@
      "N": 4,
      "rms_fit": 0.81708,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: crane extension (Liu 2004 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: turkey vulture (Baliga 2019 data): the stork proxy)",
+     "source": "derived: crane extension (NTRS 20040075526 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: turkey vulture (doi:10.6084/m9.figshare.8856161 data): the stork proxy)",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -1390,7 +1390,7 @@
      "N": 2,
      "rms_fit": 0.14295,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: crane extension (Liu 2004 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: turkey vulture (Baliga 2019 data): the stork proxy)",
+     "source": "derived: crane extension (NTRS 20040075526 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: turkey vulture (doi:10.6084/m9.figshare.8856161 data): the stork proxy)",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -1453,7 +1453,7 @@
      "N": 4,
      "rms_fit": 0.06147,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -1468,7 +1468,7 @@
      "N": 1,
      "rms_fit": 0.00054,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -1485,7 +1485,7 @@
      "N": 2,
      "rms_fit": 0.00018,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.12), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.12), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 10.13, \"scale\": 1.124, \"pmin\": 0.251, \"pmax\": 0.752, \"pp\": 10.87}"
@@ -1503,7 +1503,7 @@
      "N": 2,
      "rms_fit": 0.03068,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.11)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.11)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 22.63, \"scale\": 1.114, \"pmin\": 0.156, \"pmax\": 0.627, \"pp\": 26.74}"
@@ -1521,7 +1521,7 @@
      "N": 2,
      "rms_fit": 0.02537,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 6.96, \"up_over_down\": 0.455, \"peak_at\": 0.405, \"trough_at\": 0.807}"
@@ -1539,7 +1539,7 @@
      "N": 2,
      "rms_fit": 0.00002,
      "unit": "span (+ up)",
-     "source": "white stork 41.0 mm p-p median (IQR 37.5-43.8) = 2.14 % of a 1.91 m span, 440 pure-flap bursts (Flack et al. 2016 data, CC0; analysed by judge-bio, storkan.py); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "white stork 41.0 mm p-p median (IQR 37.5-43.8) = 2.14 % of a 1.91 m span, 440 pure-flap bursts (doi:10.5441/001/1.78152p3q, CC0; analysed by judge-bio, storkan.py); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "data",
      "licence": "CC0 / CC BY"
     },
@@ -1563,7 +1563,7 @@
    "meta": {
     "stroke_scale": 1.1301247771836007,
     "stroke_target_deg": 63.4,
-    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 57.4 deg and St 0.21 at this species' f, U, b = 69.4 deg (Nudds et al. 2004)"
+    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 57.4 deg and St 0.21 at this species' f, U, b = 69.4 deg (doi:10.1098/rspb.2004.2838)"
    },
    "extension_measured_minmax": [
     0.922,
@@ -1577,7 +1577,7 @@
    },
    "rig": {
     "about": "the rig's left-side angles (the right mirrors them) solved on this kind's faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout",
-    "observables": "liu (front-view angles, front-projected extension) + section pitch",
+    "observables": "front (front-view angles, front-projected extension) + section pitch",
     "solved": [
      "arm_dih",
      "hand_dih",
@@ -1766,9 +1766,9 @@
     "f": 2.9,
     "b": 1.73,
     "U": 12.5,
-    "f_src": "grey heron 2.90 +- 0.04 Hz (Pennycuick 2001, study only; benchmark 2.79 Hz); great egret 1.74-1.81 Hz (Berg et al. 2019 Appendix I and ESM M5, CC BY; flight while calling)",
-    "b_src": "grey heron 1.73 m (Alerstam 2007)",
-    "U_src": "grey heron 12.5 m/s (Alerstam 2007)"
+    "f_src": "grey heron 2.90 +- 0.04 Hz (doi:10.1242/jeb.204.19.3283, study only; benchmark 2.79 Hz); great egret 1.74-1.81 Hz (doi:10.1098/rspb.2019.1083 Appendix I and ESM M5, CC BY; flight while calling)",
+    "b_src": "grey heron 1.73 m (doi:10.1371/journal.pbio.0050197)",
+    "U_src": "grey heron 12.5 m/s (doi:10.1371/journal.pbio.0050197)"
    },
    "world_span_m": 4.32,
    "skeleton": {
@@ -1783,10 +1783,10 @@
    "wrist_spread_measured": [
     0.47,
     0.47,
-    "Harvey 2022 markers"
+    "doi:10.6084/m9.figshare.c.5503989 markers"
    ],
    "linkage": {
-    "coupling": "great blue heron (Baliga 2019 data)",
+    "coupling": "great blue heron (doi:10.6084/m9.figshare.8856161 data)",
     "coupling_table": {
      "40": 102,
      "50": 112,
@@ -1820,9 +1820,9 @@
       -7.6882
      ],
      "unit": "deg",
-     "source": "crane (Grus sp.), wild, front-view film: Liu 2004 (STAND-IN for the heron: a long-winged, slow-beating wild bird; no heron kinematics found); carried onto the heron's downstroke share 0.61 (great egret film, Berg et al. 2019 ESM M5, CC BY: tip reversals) by a smooth phase warp; its stroke x1.900, the hand's swing x1.500 and lag 0.000 cycle fitted to the great egret film (silhouettes through the fitted camera) psi1",
+     "source": "crane (Grus sp.), wild, front-view film: NTRS 20040075526 (STAND-IN for the heron: a long-winged, slow-beating wild bird; no heron kinematics found); carried onto the heron's downstroke share 0.61 (great egret film, doi:10.1098/rspb.2019.1083 ESM M5, CC BY: tip reversals) by a smooth phase warp; its stroke x1.900, the hand's swing x1.500 and lag 0.000 cycle fitted to the great egret film (silhouettes through the fitted camera) psi1",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_bend": {
      "a0": -15.0979,
@@ -1837,9 +1837,9 @@
       0.4445
      ],
      "unit": "deg",
-     "source": "crane (Grus sp.), wild, front-view film: Liu 2004 (STAND-IN for the heron: a long-winged, slow-beating wild bird; no heron kinematics found); carried onto the heron's downstroke share 0.61 (great egret film, Berg et al. 2019 ESM M5, CC BY: tip reversals) by a smooth phase warp; its stroke x1.900, the hand's swing x1.500 and lag 0.000 cycle fitted to the great egret film (silhouettes through the fitted camera) -psi2",
+     "source": "crane (Grus sp.), wild, front-view film: NTRS 20040075526 (STAND-IN for the heron: a long-winged, slow-beating wild bird; no heron kinematics found); carried onto the heron's downstroke share 0.61 (great egret film, doi:10.1098/rspb.2019.1083 ESM M5, CC BY: tip reversals) by a smooth phase warp; its stroke x1.900, the hand's swing x1.500 and lag 0.000 cycle fitted to the great egret film (silhouettes through the fitted camera) -psi2",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "ext_target": {
      "a0": 0.9693,
@@ -1852,7 +1852,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "share (front-projected arc length / its maximum)",
-     "source": "the measured extension (gull, crane: Liu 2004) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
+     "source": "the measured extension (gull, crane: NTRS 20040075526) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
      "basis": "derived",
      "licence": "as its source"
     },
@@ -1873,7 +1873,7 @@
      "N": 4,
      "rms_fit": 0.7045,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: crane extension (Liu 2004 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (Baliga 2019 data))",
+     "source": "derived: crane extension (NTRS 20040075526 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (doi:10.6084/m9.figshare.8856161 data))",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -1891,7 +1891,7 @@
      "N": 2,
      "rms_fit": 0.04974,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: crane extension (Liu 2004 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (Baliga 2019 data))",
+     "source": "derived: crane extension (NTRS 20040075526 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (doi:10.6084/m9.figshare.8856161 data))",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -1948,7 +1948,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -1965,7 +1965,7 @@
      "N": 2,
      "rms_fit": 0.02088,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -1982,7 +1982,7 @@
      "N": 2,
      "rms_fit": 0.25952,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x2.03), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x2.03), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 18.32, \"scale\": 2.033, \"pmin\": 0.411, \"pmax\": 0.78, \"pp\": 19.66}"
@@ -2000,7 +2000,7 @@
      "N": 2,
      "rms_fit": 0.26436,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.86)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.86)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 37.7, \"scale\": 1.856, \"pmin\": 0.258, \"pmax\": 0.673, \"pp\": 44.54}"
@@ -2022,7 +2022,7 @@
      "N": 4,
      "rms_fit": 0.01894,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 14.64, \"up_over_down\": 0.455, \"peak_at\": 0.47, \"trough_at\": 0.807}"
@@ -2040,7 +2040,7 @@
      "N": 2,
      "rms_fit": 0.00002,
      "unit": "span (+ up)",
-     "source": "ESTIMATE 2.5 %: the measured 2-3 % of span (gull 2.9, pigeon 3.2, goose 1-2) for an unmeasured kind; shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.30 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "ESTIMATE 2.5 %: the measured 2-3 % of span (gull 2.9, pigeon 3.2, goose 1-2) for an unmeasured kind; shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.30 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "estimate",
      "licence": "CC0 / CC BY"
     },
@@ -2068,7 +2068,7 @@
      "h": 1.5,
      "lag": 0
     },
-    "stroke_why": "fitted to the great egret film (Berg et al. 2019 ESM M5, CC BY): silhouette overlap through the fitted camera (tools/heronfit.py)"
+    "stroke_why": "fitted to the great egret film (doi:10.1098/rspb.2019.1083 ESM M5, CC BY): silhouette overlap through the fitted camera (tools/heronfit.py)"
    },
    "extension_measured_minmax": [
     0.939,
@@ -2082,7 +2082,7 @@
    },
    "rig": {
     "about": "the rig's left-side angles (the right mirrors them) solved on this kind's faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout",
-    "observables": "liu (front-view angles, front-projected extension) + section pitch",
+    "observables": "front (front-view angles, front-projected extension) + section pitch",
     "solved": [
      "arm_dih",
      "hand_dih",
@@ -2273,9 +2273,9 @@
     "f": 4,
     "b": 1.3,
     "U": 11.7,
-    "f_src": "northern bald ibis 3.9-4.1 Hz in straight flight (Wehner et al. 2022 Table 3, CC BY)",
+    "f_src": "northern bald ibis 3.9-4.1 Hz in straight flight (doi:10.1007/s10336-022-01978-1 Table 3, CC BY)",
     "b_src": "ESTIMATE 1.3 m for the bald ibis (no span in the research folders)",
-    "U_src": "bald ibis ground speed 11.7 m/s (Wehner 2022)"
+    "U_src": "bald ibis ground speed 11.7 m/s (doi:10.1007/s10336-022-01978-1)"
    },
    "world_span_m": 3.2,
    "skeleton": {
@@ -2293,7 +2293,7 @@
     "bones"
    ],
    "linkage": {
-    "coupling": "great blue heron (Baliga 2019 data)",
+    "coupling": "great blue heron (doi:10.6084/m9.figshare.8856161 data)",
     "coupling_table": {
      "40": 102,
      "50": 112,
@@ -2327,9 +2327,9 @@
       -1.9329
      ],
      "unit": "deg",
-     "source": "crane (Grus sp.), wild, front-view film: Liu 2004 (STAND-IN for the ibis: a long-winged, slow-beating wild bird; no ibis kinematics found); its oscillation x1.068 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 62.9 deg and St 0.21 at this species' f, U, b = 56.4 deg (Nudds et al. 2004)) psi1",
+     "source": "crane (Grus sp.), wild, front-view film: NTRS 20040075526 (STAND-IN for the ibis: a long-winged, slow-beating wild bird; no ibis kinematics found); its oscillation x1.068 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 62.9 deg and St 0.21 at this species' f, U, b = 56.4 deg (doi:10.1098/rspb.2004.2838)) psi1",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "hand_bend": {
      "a0": -17.0661,
@@ -2342,9 +2342,9 @@
       6.0316
      ],
      "unit": "deg",
-     "source": "crane (Grus sp.), wild, front-view film: Liu 2004 (STAND-IN for the ibis: a long-winged, slow-beating wild bird; no ibis kinematics found); its oscillation x1.068 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 62.9 deg and St 0.21 at this species' f, U, b = 56.4 deg (Nudds et al. 2004)) -psi2",
+     "source": "crane (Grus sp.), wild, front-view film: NTRS 20040075526 (STAND-IN for the ibis: a long-winged, slow-beating wild bird; no ibis kinematics found); its oscillation x1.068 for the measured stroke size (midway between the 60-species relation 67 b^-0.24 = 62.9 deg and St 0.21 at this species' f, U, b = 56.4 deg (doi:10.1098/rspb.2004.2838)) -psi2",
      "basis": "stand-in",
-     "licence": "as Liu 2004"
+     "licence": "as NTRS 20040075526"
     },
     "ext_target": {
      "a0": 0.9612,
@@ -2357,7 +2357,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "share (front-projected arc length / its maximum)",
-     "source": "the measured extension (gull, crane: Liu 2004) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
+     "source": "the measured extension (gull, crane: NTRS 20040075526) or this kind's linkage reach (crow, swallow): the observable the solve matches on the form",
      "basis": "derived",
      "licence": "as its source"
     },
@@ -2378,7 +2378,7 @@
      "N": 4,
      "rms_fit": 0.80891,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: crane extension (Liu 2004 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (Baliga 2019 data))",
+     "source": "derived: crane extension (NTRS 20040075526 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (doi:10.6084/m9.figshare.8856161 data))",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -2396,7 +2396,7 @@
      "N": 2,
      "rms_fit": 0.10233,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: crane extension (Liu 2004 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (Baliga 2019 data))",
+     "source": "derived: crane extension (NTRS 20040075526 arc length; its FUNDAMENTAL only, 0.93 +- 0.04: the second harmonic, larger than the first, is read as a front-view artefact) through this kind's linkage (its bones, ../structure; coupling: great blue heron (doi:10.6084/m9.figshare.8856161 data))",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -2453,7 +2453,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -2468,7 +2468,7 @@
      "N": 1,
      "rms_fit": 0.00054,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -2485,7 +2485,7 @@
      "N": 2,
      "rms_fit": 0.0002,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.27), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.27), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 11.5, \"scale\": 1.275, \"pmin\": 0.251, \"pmax\": 0.752, \"pp\": 12.34}"
@@ -2503,7 +2503,7 @@
      "N": 2,
      "rms_fit": 0.03443,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.25)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.25)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 25.39, \"scale\": 1.25, \"pmin\": 0.156, \"pmax\": 0.627, \"pp\": 30.0}"
@@ -2521,7 +2521,7 @@
      "N": 2,
      "rms_fit": 0.02377,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 8.02, \"up_over_down\": 0.454, \"peak_at\": 0.405, \"trough_at\": 0.81}"
@@ -2539,7 +2539,7 @@
      "N": 2,
      "rms_fit": 0.00002,
      "unit": "span (+ up)",
-     "source": "ESTIMATE 2.5 %: the measured 2-3 % of span (gull 2.9, pigeon 3.2, goose 1-2) for an unmeasured kind; shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "ESTIMATE 2.5 %: the measured 2-3 % of span (gull 2.9, pigeon 3.2, goose 1-2) for an unmeasured kind; shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.27 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "estimate",
      "licence": "CC0 / CC BY"
     },
@@ -2563,7 +2563,7 @@
    "meta": {
     "stroke_scale": 1.0679785330948122,
     "stroke_target_deg": 59.7,
-    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 62.9 deg and St 0.21 at this species' f, U, b = 56.4 deg (Nudds et al. 2004)"
+    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 62.9 deg and St 0.21 at this species' f, U, b = 56.4 deg (doi:10.1098/rspb.2004.2838)"
    },
    "extension_measured_minmax": [
     0.922,
@@ -2577,7 +2577,7 @@
    },
    "rig": {
     "about": "the rig's left-side angles (the right mirrors them) solved on this kind's faceted form so the posed bird shows the measured observables (tools/solve.js); facetpose pose layout",
-    "observables": "liu (front-view angles, front-projected extension) + section pitch",
+    "observables": "front (front-view angles, front-projected extension) + section pitch",
     "solved": [
      "arm_dih",
      "hand_dih",
@@ -2770,9 +2770,9 @@
     "f": 3.84,
     "b": 0.91,
     "U": 10.5,
-    "f_src": "hooded crow 3.84 +- 0.05 Hz (Pennycuick 2001, study only); jackdaw 4.00, rook 2.91 Hz alone (Ling et al. 2018, study only)",
-    "b_src": "carrion/hooded crow 0.91 m (Alerstam 2007)",
-    "U_src": "hooded crow 10.5 m/s (Pennycuick 2001); carrion crow 13.5 m/s (Alerstam 2007)"
+    "f_src": "hooded crow 3.84 +- 0.05 Hz (doi:10.1242/jeb.204.19.3283, study only); jackdaw 4.00, rook 2.91 Hz alone (doi:10.1098/rsif.2018.0653, study only)",
+    "b_src": "carrion/hooded crow 0.91 m (doi:10.1371/journal.pbio.0050197)",
+    "U_src": "hooded crow 10.5 m/s (doi:10.1242/jeb.204.19.3283); carrion crow 13.5 m/s (doi:10.1371/journal.pbio.0050197)"
    },
    "world_span_m": 2.88,
    "skeleton": {
@@ -2787,10 +2787,10 @@
    "wrist_spread_measured": [
     0.395,
     0.4,
-    "raven, Harvey 2022 markers"
+    "raven, doi:10.6084/m9.figshare.c.5503989 markers"
    ],
    "linkage": {
-    "coupling": "northwestern crow (Baliga 2019 data)",
+    "coupling": "northwestern crow (doi:10.6084/m9.figshare.8856161 data)",
     "coupling_table": {
      "40": 94,
      "50": 105,
@@ -2825,9 +2825,9 @@
      "N": 2,
      "rms_fit": 0.88044,
      "unit": "deg",
-     "source": "the gull's cruise (Liu 2004) (STAND-IN for the crow's curves: no Corvus kinematics) on the crow's measured scalars: downstroke 0.55 (magpie 0.50-0.59, Tobalske & Dial 1996, study only); the stroke midway between the 60-species relation 67 b^-0.24 = 68.5 deg and St 0.21 at this species' f, U, b = 78.2 deg (Nudds et al. 2004): psi1",
+     "source": "the gull's cruise (NTRS 20040075526) (STAND-IN for the crow's curves: no Corvus kinematics) on the crow's measured scalars: downstroke 0.55 (magpie 0.50-0.59, doi:10.1242/jeb.199.2.263, study only); the stroke midway between the 60-species relation 67 b^-0.24 = 68.5 deg and St 0.21 at this species' f, U, b = 78.2 deg (doi:10.1098/rspb.2004.2838): psi1",
      "basis": "stand-in",
-     "licence": "Liu 2004 (facts) scaled"
+     "licence": "NTRS 20040075526 (facts) scaled"
     },
     "hand_bend": {
      "a0": -18.5943,
@@ -2842,7 +2842,7 @@
      "N": 2,
      "rms_fit": 0.38316,
      "unit": "deg",
-     "source": "the gull's cruise (Liu 2004) (STAND-IN for the crow's curves: no Corvus kinematics) on the crow's measured scalars: downstroke 0.55 (magpie 0.50-0.59, Tobalske & Dial 1996, study only); the stroke midway between the 60-species relation 67 b^-0.24 = 68.5 deg and St 0.21 at this species' f, U, b = 78.2 deg (Nudds et al. 2004): -psi2",
+     "source": "the gull's cruise (NTRS 20040075526) (STAND-IN for the crow's curves: no Corvus kinematics) on the crow's measured scalars: downstroke 0.55 (magpie 0.50-0.59, doi:10.1242/jeb.199.2.263, study only); the stroke midway between the 60-species relation 67 b^-0.24 = 68.5 deg and St 0.21 at this species' f, U, b = 78.2 deg (doi:10.1098/rspb.2004.2838): -psi2",
      "basis": "stand-in",
      "licence": "as above"
     },
@@ -2861,7 +2861,7 @@
      "N": 3,
      "rms_fit": 0.01768,
      "unit": "share (0 spread, 1 most folded)",
-     "source": "the fold's timing: the pigeon's measured tip reach (Shen 2024 markers, CC BY: 0.08-0.264 m), re-zeroed at its arm's top, on this kind's downstroke share",
+     "source": "the fold's timing: the pigeon's measured tip reach (doi:10.3390/biomimetics9090555 markers, CC BY: 0.08-0.264 m), re-zeroed at its arm's top, on this kind's downstroke share",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -2880,7 +2880,7 @@
      "N": 3,
      "rms_fit": 0.01768,
      "unit": "share (0 spread, 1 most folded)",
-     "source": "the fold's timing: the pigeon's measured wrist reach (Shen 2024 markers, CC BY: 0.037-0.103 m), re-zeroed at its arm's top, on this kind's downstroke share",
+     "source": "the fold's timing: the pigeon's measured wrist reach (doi:10.3390/biomimetics9090555 markers, CC BY: 0.037-0.103 m), re-zeroed at its arm's top, on this kind's downstroke share",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -2899,7 +2899,7 @@
      "N": 3,
      "rms_fit": 0.27721,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: the fold's timing from the pigeon's measured reach (Shen 2024), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, Tobalske & Dial 1996 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, Park 2001 Fig. 4: study-only facts)",
+     "source": "derived: the fold's timing from the pigeon's measured reach (doi:10.3390/biomimetics9090555), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, doi:10.1242/jeb.199.2.263 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, doi:10.1242/jeb.204.15.2741 Fig. 4: study-only facts)",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -2921,7 +2921,7 @@
      "N": 4,
      "rms_fit": 0.65314,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: the fold's timing from the pigeon's measured reach (Shen 2024), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, Tobalske & Dial 1996 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, Park 2001 Fig. 4: study-only facts)",
+     "source": "derived: the fold's timing from the pigeon's measured reach (doi:10.3390/biomimetics9090555), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, doi:10.1242/jeb.199.2.263 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, doi:10.1242/jeb.204.15.2741 Fig. 4: study-only facts)",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -2976,7 +2976,7 @@
      "N": 1,
      "rms_fit": 0,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -2993,7 +2993,7 @@
      "N": 2,
      "rms_fit": 0.00998,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -3010,7 +3010,7 @@
      "N": 2,
      "rms_fit": 0.14929,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.17), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.17), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 10.55, \"scale\": 1.171, \"pmin\": 0.36, \"pmax\": 0.728, \"pp\": 11.33}"
@@ -3028,7 +3028,7 @@
      "N": 2,
      "rms_fit": 0.21625,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.16)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.16)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 23.5, \"scale\": 1.157, \"pmin\": 0.226, \"pmax\": 0.627, \"pp\": 27.77}"
@@ -3046,7 +3046,7 @@
      "N": 2,
      "rms_fit": 0.0266,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 4.04, \"up_over_down\": 0.455, \"peak_at\": 0.422, \"trough_at\": 0.775}"
@@ -3064,7 +3064,7 @@
      "N": 2,
      "rms_fit": 0.00003,
      "unit": "span (+ up)",
-     "source": "pigeon 20.7 mm = 3.2 % (Taylor et al. 2019, CC BY) (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.28 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "pigeon 20.7 mm = 3.2 % (doi:10.1371/journal.pbio.3000299, CC BY) (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.28 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "stand-in",
      "licence": "CC0 / CC BY"
     },
@@ -3088,10 +3088,10 @@
    "meta": {
     "stroke_target_deg": 73.4,
     "tip_stroke_note": "the arm sets the stroke; the hand's bend the gull's",
-    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 68.5 deg and St 0.21 at this species' f, U, b = 78.2 deg (Nudds et al. 2004)",
+    "stroke_why": "midway between the 60-species relation 67 b^-0.24 = 68.5 deg and St 0.21 at this species' f, U, b = 78.2 deg (doi:10.1098/rspb.2004.2838)",
     "arm_scale": 1.66,
     "hand_swing_scale": 1,
-    "fold_rule": "raised cosine over the upstroke, deepest at mid-upstroke (Tobalske & Dial 1996; Park et al. 2001: facts)",
+    "fold_rule": "raised cosine over the upstroke, deepest at mid-upstroke (doi:10.1242/jeb.199.2.263; doi:10.1242/jeb.204.15.2741: facts)",
     "span_ratio_target": [
      0.16,
      0.2,
@@ -3121,9 +3121,9 @@
     "f": 7.1,
     "b": 0.32,
     "U": 10,
-    "f_src": "barn swallow 6.9-7.3 Hz at 9-10 m/s, minimum 7.04 Hz at 8.9 m/s (Park et al. 2001, wind tunnel, study only); benchmark 7.67 Hz",
-    "b_src": "barn swallow 0.32 m (Alerstam 2007)",
-    "U_src": "barn swallow 10.0-11.3 m/s (Alerstam 2007)"
+    "f_src": "barn swallow 6.9-7.3 Hz at 9-10 m/s, minimum 7.04 Hz at 8.9 m/s (doi:10.1242/jeb.204.15.2741, wind tunnel, study only); benchmark 7.67 Hz",
+    "b_src": "barn swallow 0.32 m (doi:10.1371/journal.pbio.0050197)",
+    "U_src": "barn swallow 10.0-11.3 m/s (doi:10.1371/journal.pbio.0050197)"
    },
    "world_span_m": 2.4,
    "skeleton": {
@@ -3141,7 +3141,7 @@
     "bones"
    ],
    "linkage": {
-    "coupling": "barn swallow (Baliga 2019 data)",
+    "coupling": "barn swallow (doi:10.6084/m9.figshare.8856161 data)",
     "coupling_table": {
      "40": 61,
      "50": 69,
@@ -3180,9 +3180,9 @@
      "N": 3,
      "rms_fit": 0.97359,
      "unit": "deg",
-     "source": "the gull's cruise (Liu 2004) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (Park et al. 2001, wind tunnel, study only: facts): psi1",
+     "source": "the gull's cruise (NTRS 20040075526) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (doi:10.1242/jeb.204.15.2741, wind tunnel, study only: facts): psi1",
      "basis": "stand-in",
-     "licence": "Liu 2004 (facts) scaled"
+     "licence": "NTRS 20040075526 (facts) scaled"
     },
     "hand_bend": {
      "a0": -21.285,
@@ -3199,7 +3199,7 @@
      "N": 3,
      "rms_fit": 0.28316,
      "unit": "deg",
-     "source": "the gull's cruise (Liu 2004) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (Park et al. 2001, wind tunnel, study only: facts): -psi2",
+     "source": "the gull's cruise (NTRS 20040075526) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (doi:10.1242/jeb.204.15.2741, wind tunnel, study only: facts): -psi2",
      "basis": "stand-in",
      "licence": "as above"
     },
@@ -3218,7 +3218,7 @@
      "N": 3,
      "rms_fit": 0.01101,
      "unit": "share (0 spread, 1 most folded)",
-     "source": "the fold's timing: the pigeon's measured tip reach (Shen 2024 markers, CC BY: 0.08-0.264 m), re-zeroed at its arm's top, on this kind's downstroke share",
+     "source": "the fold's timing: the pigeon's measured tip reach (doi:10.3390/biomimetics9090555 markers, CC BY: 0.08-0.264 m), re-zeroed at its arm's top, on this kind's downstroke share",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -3237,7 +3237,7 @@
      "N": 3,
      "rms_fit": 0.01101,
      "unit": "share (0 spread, 1 most folded)",
-     "source": "the fold's timing: the pigeon's measured wrist reach (Shen 2024 markers, CC BY: 0.037-0.103 m), re-zeroed at its arm's top, on this kind's downstroke share",
+     "source": "the fold's timing: the pigeon's measured wrist reach (doi:10.3390/biomimetics9090555 markers, CC BY: 0.037-0.103 m), re-zeroed at its arm's top, on this kind's downstroke share",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -3256,7 +3256,7 @@
      "N": 3,
      "rms_fit": 0.15384,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: the fold's timing from the pigeon's measured reach (Shen 2024), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, Tobalske & Dial 1996 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, Park 2001 Fig. 4: study-only facts)",
+     "source": "derived: the fold's timing from the pigeon's measured reach (doi:10.3390/biomimetics9090555), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, doi:10.1242/jeb.199.2.263 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, doi:10.1242/jeb.204.15.2741 Fig. 4: study-only facts)",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -3278,7 +3278,7 @@
      "N": 4,
      "rms_fit": 1.19611,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: the fold's timing from the pigeon's measured reach (Shen 2024), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, Tobalske & Dial 1996 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, Park 2001 Fig. 4: study-only facts)",
+     "source": "derived: the fold's timing from the pigeon's measured reach (doi:10.3390/biomimetics9090555), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, doi:10.1242/jeb.199.2.263 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, doi:10.1242/jeb.204.15.2741 Fig. 4: study-only facts)",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -3339,7 +3339,7 @@
      "N": 4,
      "rms_fit": 0.66911,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -3354,7 +3354,7 @@
      "N": 1,
      "rms_fit": 0.03919,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -3373,7 +3373,7 @@
      "N": 3,
      "rms_fit": 0.16572,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.14), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.14), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 10.27, \"scale\": 1.139, \"pmin\": 0.29, \"pmax\": 0.554, \"pp\": 11.02}"
@@ -3393,7 +3393,7 @@
      "N": 3,
      "rms_fit": 0.17141,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.13)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.13)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 22.91, \"scale\": 1.128, \"pmin\": 0.174, \"pmax\": 0.49, \"pp\": 27.08}"
@@ -3415,7 +3415,7 @@
      "N": 4,
      "rms_fit": 0.03336,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 0.0, \"up_over_down\": 0.337, \"peak_at\": 0.323, \"trough_at\": 0.865}"
@@ -3433,7 +3433,7 @@
      "N": 2,
      "rms_fit": 0.00003,
      "unit": "span (+ up)",
-     "source": "pigeon 3.2 % (Taylor 2019) (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.22 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "pigeon 3.2 % (doi:10.1371/journal.pbio.3000299) (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.22 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "stand-in",
      "licence": "CC0 / CC BY"
     },
@@ -3457,10 +3457,10 @@
    "meta": {
     "stroke_target_deg": 108,
     "tip_stroke_note": "the arm sets the stroke; the hand's bend the gull's",
-    "stroke_why": "Park et al. 2001: shoulder-wrist 98 deg at 10 m/s (bird 1: 48.0 + 5.03 V), the tip about 10 deg more",
+    "stroke_why": "doi:10.1242/jeb.204.15.2741: shoulder-wrist 98 deg at 10 m/s (bird 1: 48.0 + 5.03 V), the tip about 10 deg more",
     "arm_scale": 2.344,
     "hand_swing_scale": 1,
-    "fold_rule": "raised cosine over the upstroke, deepest at mid-upstroke (Tobalske & Dial 1996; Park et al. 2001: facts)",
+    "fold_rule": "raised cosine over the upstroke, deepest at mid-upstroke (doi:10.1242/jeb.199.2.263; doi:10.1242/jeb.204.15.2741: facts)",
     "span_ratio_target": [
      0.17,
      0.21,
@@ -3506,7 +3506,7 @@
    },
    "wrist_spread_measured": null,
    "linkage": {
-    "coupling": "barn swallow (Baliga 2019 data)",
+    "coupling": "barn swallow (doi:10.6084/m9.figshare.8856161 data)",
     "coupling_table": {
      "40": 61,
      "50": 69,
@@ -3545,9 +3545,9 @@
      "N": 3,
      "rms_fit": 0.97359,
      "unit": "deg",
-     "source": "the gull's cruise (Liu 2004) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (Park et al. 2001, wind tunnel, study only: facts) (the FINCH: no data; the swallow stands in): psi1",
+     "source": "the gull's cruise (NTRS 20040075526) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (doi:10.1242/jeb.204.15.2741, wind tunnel, study only: facts) (the FINCH: no data; the swallow stands in): psi1",
      "basis": "stand-in",
-     "licence": "Liu 2004 (facts) scaled"
+     "licence": "NTRS 20040075526 (facts) scaled"
     },
     "hand_bend": {
      "a0": -21.285,
@@ -3564,7 +3564,7 @@
      "N": 3,
      "rms_fit": 0.28316,
      "unit": "deg",
-     "source": "the gull's cruise (Liu 2004) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (Park et al. 2001, wind tunnel, study only: facts) (the FINCH: no data; the swallow stands in): -psi2",
+     "source": "the gull's cruise (NTRS 20040075526) (STAND-IN for the barn swallow's curves) on the swallow's measured cruise: shoulder-wrist stroke 98 deg p-p at 10 m/s (bird 1: 48.0 + 5.03 V), shoulder-tip about 10 deg more (108), downstroke 0.44 (0.42-0.46) (doi:10.1242/jeb.204.15.2741, wind tunnel, study only: facts) (the FINCH: no data; the swallow stands in): -psi2",
      "basis": "stand-in",
      "licence": "as above"
     },
@@ -3583,7 +3583,7 @@
      "N": 3,
      "rms_fit": 0.01101,
      "unit": "share (0 spread, 1 most folded)",
-     "source": "the fold's timing: the pigeon's measured tip reach (Shen 2024 markers, CC BY: 0.08-0.264 m), re-zeroed at its arm's top, on this kind's downstroke share",
+     "source": "the fold's timing: the pigeon's measured tip reach (doi:10.3390/biomimetics9090555 markers, CC BY: 0.08-0.264 m), re-zeroed at its arm's top, on this kind's downstroke share",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -3602,7 +3602,7 @@
      "N": 3,
      "rms_fit": 0.01101,
      "unit": "share (0 spread, 1 most folded)",
-     "source": "the fold's timing: the pigeon's measured wrist reach (Shen 2024 markers, CC BY: 0.037-0.103 m), re-zeroed at its arm's top, on this kind's downstroke share",
+     "source": "the fold's timing: the pigeon's measured wrist reach (doi:10.3390/biomimetics9090555 markers, CC BY: 0.037-0.103 m), re-zeroed at its arm's top, on this kind's downstroke share",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -3621,7 +3621,7 @@
      "N": 3,
      "rms_fit": 0.15384,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: the fold's timing from the pigeon's measured reach (Shen 2024), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, Tobalske & Dial 1996 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, Park 2001 Fig. 4: study-only facts)",
+     "source": "derived: the fold's timing from the pigeon's measured reach (doi:10.3390/biomimetics9090555), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, doi:10.1242/jeb.199.2.263 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, doi:10.1242/jeb.204.15.2741 Fig. 4: study-only facts)",
      "basis": "derived",
      "licence": "CC BY inputs",
      "note": "reported for the checks (elbow-wrist coupling); the rig uses the wrist channel"
@@ -3643,7 +3643,7 @@
      "N": 4,
      "rms_fit": 1.19611,
      "unit": "deg (interior, 180 straight)",
-     "source": "derived: the fold's timing from the pigeon's measured reach (Shen 2024), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, Tobalske & Dial 1996 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, Park 2001 Fig. 4: study-only facts)",
+     "source": "derived: the fold's timing from the pigeon's measured reach (doi:10.3390/biomimetics9090555), its depth solved on the form for the kind's measured span ratios (crow: magpie span 0.16-0.20 and wrist span 0.36-0.38 at 8-10 m/s, doi:10.1242/jeb.199.2.263 Fig. 9; swallow: span 0.17-0.25 at 9-10 m/s, doi:10.1242/jeb.204.15.2741 Fig. 4: study-only facts)",
      "basis": "derived",
      "licence": "CC BY inputs"
     },
@@ -3704,7 +3704,7 @@
      "N": 4,
      "rms_fit": 0.66911,
      "unit": "deg (the primaries' fan P10-P1 less its spread value; - closed)",
-     "source": "pigeon feather angles vs wrist (Matloff et al. 2020 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
+     "source": "pigeon feather angles vs wrist (doi:10.6084/m9.figshare.11369364 data, CC BY 4.0): 10 deg at wrist 60 to 56 deg at 135",
      "basis": "stand-in",
      "licence": "CC BY 4.0"
     },
@@ -3719,7 +3719,7 @@
      "N": 1,
      "rms_fit": 0.03919,
      "unit": "deg (+ forward, about the glide's set)",
-     "source": "barnacle goose wrist fore-aft (Dimitriadis 2015 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
+     "source": "barnacle goose wrist fore-aft (doi:10.1017/S0001924000010939 slide 18, 16 m/s; study only: range and phases), carried onto this stroke",
      "basis": "facts",
      "licence": "study only: facts"
     },
@@ -3738,7 +3738,7 @@
      "N": 3,
      "rms_fit": 0.16572,
      "unit": "deg (+ LE up, about the glide's set)",
-     "source": "barnacle goose shoulder-section pitch (Dimitriadis 2015, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.14), carried onto its stroke",
+     "source": "barnacle goose shoulder-section pitch (doi:10.1017/S0001924000010939, 18 m/s: 9.7 deg p-p) scaled by this bird's inflow at 0.3 semi-span (x1.14), carried onto its stroke",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 9.01, \"this_inflow_deg\": 10.27, \"scale\": 1.139, \"pmin\": 0.29, \"pmax\": 0.554, \"pp\": 11.02}"
@@ -3758,7 +3758,7 @@
      "N": 3,
      "rms_fit": 0.17141,
      "unit": "deg (+ LE up, absolute section pitch at the outer wing, about its mean)",
-     "source": "barnacle goose outer-wing pitch (Dimitriadis 2015: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.13)",
+     "source": "barnacle goose outer-wing pitch (doi:10.1017/S0001924000010939: 24.0 deg p-p, nose-down early in the downstroke, nose-up early in the upstroke) scaled by this bird's inflow at 0.7 semi-span (x1.13)",
      "basis": "facts",
      "licence": "study only: facts",
      "note": "{\"goose_inflow_deg\": 20.31, \"this_inflow_deg\": 22.91, \"scale\": 1.128, \"pmin\": 0.174, \"pmax\": 0.49, \"pp\": 27.08}"
@@ -3780,7 +3780,7 @@
      "N": 4,
      "rms_fit": 0.03336,
      "unit": "share (+1 the downstroke peak; - the upstroke's downward load)",
-     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, Corning & Biewener 1998)",
+     "source": "quasi-steady load at 0.7 semi-span (flapping inflow less the twist) x dynamic pressure x the wing's extension; the mean incidence set so the upstroke peak is 1/2.2 of the downstroke's (in-vivo primary strain ratio, pigeon, doi:10.1242/jeb.201.22.3057)",
      "basis": "derived",
      "licence": "derived",
      "note": "{\"mean_incidence_deg\": 0.0, \"up_over_down\": 0.337, \"peak_at\": 0.323, \"trough_at\": 0.865}"
@@ -3798,7 +3798,7 @@
      "N": 2,
      "rms_fit": 0.00003,
      "unit": "span (+ up)",
-     "source": "pigeon 3.2 % (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.22 of the cycle (mid-downstroke: Krishnan et al. 2022 Fig. 2, CC BY)",
+     "source": "pigeon 3.2 % (stand-in); shape: the gull's measured heave (fundamental + 2nd harmonic, ../dynamics body_path_template), lowest at 0.22 of the cycle (mid-downstroke: doi:10.1098/rsif.2022.0168 Fig. 2, CC BY)",
      "basis": "stand-in",
      "licence": "CC0 / CC BY"
     },
@@ -3822,10 +3822,10 @@
    "meta": {
     "stroke_target_deg": 108,
     "tip_stroke_note": "the arm sets the stroke; the hand's bend the gull's",
-    "stroke_why": "Park et al. 2001: shoulder-wrist 98 deg at 10 m/s (bird 1: 48.0 + 5.03 V), the tip about 10 deg more",
+    "stroke_why": "doi:10.1242/jeb.204.15.2741: shoulder-wrist 98 deg at 10 m/s (bird 1: 48.0 + 5.03 V), the tip about 10 deg more",
     "arm_scale": 2.344,
     "hand_swing_scale": 1,
-    "fold_rule": "raised cosine over the upstroke, deepest at mid-upstroke (Tobalske & Dial 1996; Park et al. 2001: facts)",
+    "fold_rule": "raised cosine over the upstroke, deepest at mid-upstroke (doi:10.1242/jeb.199.2.263; doi:10.1242/jeb.204.15.2741: facts)",
     "span_ratio_target": [
      0.17,
      0.21,
@@ -3857,7 +3857,7 @@
   "sweep_max_deg": 4.60816326437881,
   "reach_rms": 0.018386069229458145,
   "reach_max": 0.05055827837152216,
-  "note": "the planar linkage (bones, the Harvey 2021 coupling, a hand stick turning with the carpometacarpus) against the measured gull fold (Harvey 2022 markers): wrist reach, the hand's sweep, the tip's lateral reach"
+  "note": "the planar linkage (bones, the doi:10.6084/m9.figshare.c.5275490 coupling, a hand stick turning with the carpometacarpus) against the measured gull fold (doi:10.6084/m9.figshare.c.5503989 markers): wrist reach, the hand's sweep, the tip's lateral reach"
  },
  "basis": {
   "data": "data: the source curve itself (open licence)",

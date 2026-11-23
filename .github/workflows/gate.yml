@@ -29,35 +29,31 @@ jobs:
   # T0, the plan: which files changed and what they touch (areas.json), whether what is served is byte for byte the
   # base's, and so which gates run. site/ holds only sources: what a visitor gets is the build, so base and head are
   # built here (served.sh: each commit's tools/build.mjs --plain) and compared file by file. The two builds go to the
-  # later jobs on the PC's disk (.github/ci/handoff.mjs): the census, T1 and T2 render exactly these, and nothing builds a PR's code anywhere else.
+  # later jobs as this run's artifact gate-served (.github/ci/handoff.mjs's sha256 manifest, pinned by every reader):
+  # the census and T1 render exactly these, and nothing builds a PR's code anywhere else (never on the PC).
   plan:
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
-      actions: read   # (the PR's gate-verdict artifact, in T2's probe)
       pull-requests: read   # (whether the branch has an open PR)
     outputs:
       has_pr: ${{ steps.haspr.outputs.has_pr }}
-      t2_run: ${{ steps.p.outputs.run }}
-      t2_cached: ${{ steps.p.outputs.cached }}
-      t2_frames: ${{ steps.p.outputs.frames }}
       base: ${{ steps.base.outputs.base }}
       areas: ${{ steps.areas.outputs.areas }}
       site_changed: ${{ steps.areas.outputs.site_changed }}
       run_t1: ${{ steps.areas.outputs.run_t1 }}
-      dom_changed: ${{ steps.areas.outputs.dom_changed }}   # (the page outside the canvas changed: T1 compares the DOM beside T2)
-      served_sha: ${{ steps.handoff.outputs.sha }}   # (the hand-off's manifest, sha256: T1 and T2 read the builds pinned to it)
+      dom_changed: ${{ steps.areas.outputs.dom_changed }}   # (the page outside the canvas changed)
+      served_sha: ${{ steps.handoff.outputs.sha }}   # (the hand-off's manifest, sha256: T1 and the Stills job read the builds pinned to it)
       gpu_js: ${{ steps.areas.outputs.gpu_js }}
       t2_self: ${{ steps.areas.outputs.t2_self }}
       input_changed: ${{ steps.areas.outputs.input_changed }}
       input_files: ${{ steps.areas.outputs.input_files }}
       base_build: ${{ steps.builds.outputs.base }}
       head_build: ${{ steps.builds.outputs.head }}
-      t2_key: ${{ steps.t2key.outputs.key }}
       glsl_changed: ${{ steps.glsl.outputs.glsl_changed }}
     steps:
-      # A branch with no open PR (a Cloudflare preview, a probe) is not compared: T1 and T2 skip and the verdict says it
+      # A branch with no open PR (a Cloudflare preview, a probe) is not compared: T1 skips and the verdict says it
       # was not compared, so nothing lands on it. On the night of Nov 11 such pushes held the 4090 while six PRs' T2s
       # waited. A session opens its PR seconds after its push, so this asks for up to 45 s. Main and a run by hand are
       # always compared; a PR opened later is compared on its next push (the merge bot's update of the branch is one).
@@ -74,7 +70,7 @@ jobs:
             if [ "$n" -gt 0 ]; then echo "an open PR: compared"; echo "has_pr=true" >> "$GITHUB_OUTPUT"; exit 0; fi
             [ $i -lt 4 ] && sleep 15
           done
-          echo "::notice::$BRANCH has no open PR: T1 and T2 skip (a preview); push again once its PR is open to compare it"; echo "has_pr=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::$BRANCH has no open PR: T1 skips (a preview); push again once its PR is open to compare it"; echo "has_pr=false" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -100,104 +96,36 @@ jobs:
           h() { (cd "$1" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c1-24); }
           echo "base=$(h "$RUNNER_TEMP/served/base")" >> "$GITHUB_OUTPUT"; echo "head=$(h "$RUNNER_TEMP/served/head")" >> "$GITHUB_OUTPUT"
       # T0, the shader census: whether any shader's text changed, base against head, read from each build in
-      # glsl_guard's fake browser (node, five GPUs: .github/ci/glsl-changed.mjs; about 15 s, no Chrome). glsl_changed
-      # asks for T2, which reads the changed programs back on the 4090.
+      # glsl_guard's fake browser (node, five GPUs: .github/ci/glsl-changed.mjs; about 15 s, no Chrome): a report in the
+      # verdict (T2, which read the changed programs back on the 4090, is gone with the PC's runners: 2026-11-23).
       - name: The shader census (base against head)
         id: glsl
         run: |
           if [ "${{ steps.builds.outputs.base }}" = "${{ steps.builds.outputs.head }}" ]; then echo "glsl_changed=false (the two builds are byte for byte the same)"; echo "glsl_changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           node .github/ci/glsl-changed.mjs "$RUNNER_TEMP/served/base" "$RUNNER_TEMP/served/head"
-      - name: T2's cache key (its answer is a function of both builds, the T2 code that runs and the stall mode)
-        id: t2key
-        run: |
-          b=${{ steps.base.outputs.base }}; t() { git rev-parse "$1" 2>/dev/null || echo none; }
-          s=$([ "$GITHUB_REF" = "refs/heads/main" ] && echo yes || echo no)
-          echo "key=t2-v1-${{ steps.builds.outputs.base }}-${{ steps.builds.outputs.head }}-$(t $b:tools/gpu)-$(t HEAD:tools/gpu)-$(t HEAD:.github/workflows/gpu.yml)-stall$s" >> "$GITHUB_OUTPUT"
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"
-      # (2026-11-16) the two builds go to the later jobs on the PC's own disk, never as an artifact: the repository's
-      # artifact storage quota was hit on 2026-11-15 and every gate failed here. .github/ci/handoff.mjs: a folder a run
-      # (and attempt), a sha256 manifest every reader checks, swept after 24 h. Its own check is proved on every gate: a
-      # byte changed in a copy of the hand-off must be caught.
-      - name: The two builds, handed to T1, T2 and the Stills job (the PC's disk)
+      # (2026-11-23) the two builds go to the later jobs as this run's artifact gate-served, kept a day. The repository
+      # is public, so Actions storage is not metered (the 2026-11-15 quota, which moved the hand-off onto the PC's disk,
+      # was the private repository's). An artifact is scoped to its run: another run's code cannot rewrite it, as it
+      # could the PC's shared folder. .github/ci/handoff.mjs still writes the folder (a run and attempt) with its sha256
+      # manifest, which every reader checks and pins to this job's output. Its own check is proved on every gate: a byte
+      # changed in a copy of the hand-off must be caught.
+      - name: The two builds, handed to T1 and the Stills job (the run's artifact gate-served)
         id: handoff   # (outputs.sha: the manifest's sha256, which every reader pins)
+        env:
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: |
-          node .github/ci/handoff.mjs sweep --hours 24
           node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
           node .github/ci/handoff.mjs selftest served
-      # T2's probe (once its own job: one queue hop less on every gate)
-      # T2's answer for these two builds and this T2 code, if a run of this branch (or of main) already has it: then the
-      # 4090 is not asked again (a re-gate after main moved elsewhere, a re-run). Saved by the verdict job.
-      - name: T2's answer, if these builds were compared before
-        id: cache
-        if: steps.glsl.outputs.glsl_changed == 'true' || steps.areas.outputs.gpu_js == 'true' || steps.areas.outputs.t2_self == 'true'
-        uses: actions/cache/restore@v4
+      - uses: actions/upload-artifact@v4
         with:
-          path: ${{ runner.temp }}/t2c/t2.json
-          key: ${{ steps.t2key.outputs.key }}
-      # On main: a PR's gate that compared the same two served builds with the same T2 code (its t2_key, the stall
-      # mode aside) answered for main too, whatever the commits (a fast-forward, or the owner's merge of a PR whose
-      # neighbour served nothing new). Read from its verdict (a branch's cache is not main's to read): the PRs of this
-      # commit, and this commit's own branch runs. The 4090 then runs only main's stall visits.
-      - name: The PR's T2 answer, on main (the same served builds)
-        id: pr
-        if: github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true' && steps.cache.conclusion == 'success'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BASE: ${{ steps.base.outputs.base }}
-          KEY: ${{ steps.t2key.outputs.key }}
-          D: ${{ runner.temp }}/t2pr
-        run: |
-          api() { curl -fsSL --max-time 30 --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$@"; }
-          R="https://api.github.com/repos/$GITHUB_REPOSITORY"; K="${KEY%-stall*}"
-          shas="$GITHUB_SHA $(api "$R/commits/$GITHUB_SHA/pulls" | jq -r '.[] | select(.merged_at != null) | .head.sha' | tr '\n' ' ')"
-          ids=$(for s in $shas; do api "$R/actions/workflows/gate.yml/runs?head_sha=$s&status=success&per_page=20" | jq -r '.workflow_runs[] | select(.head_branch != "main") | .id'; done | sort -u)
-          for id in $ids; do   # (the gate-verdict artifact, never the PC's copy: any run's code can write that folder)
-            a=$(api "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" | jq -r '[.artifacts[] | select(.name == "gate-verdict" and (.expired | not))] | sort_by(.created_at) | last | .archive_download_url // empty')   # (a re-run's newest, as the bot reads it)
-            [ -n "$a" ] || continue
-            rm -rf "$D"; mkdir -p "$D"; api -o "$D/v.zip" "$a" && unzip -qo "$D/v.zip" -d "$D" || continue
-            if jq -e --arg s "$GITHUB_SHA" --arg b "$BASE" --arg k "$K" '((.t2_key // "" | sub("-stall(yes|no)$"; "")) == $k or (.sha == $s and .base == $b)) and .t2.ran == true and (.t2.frames_identical | type) == "boolean"' "$D/verdict.json" >/dev/null; then
-              jq -c '.t2 | {frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok} | map_values(if . == null then "" else tostring end)' "$D/verdict.json" > "$D/t2.json"
-              echo "the PR's gate (run $id) compared these builds: $(cat "$D/t2.json")"; echo "hit=true" >> "$GITHUB_OUTPUT"; exit 0
-            fi
-          done
-          echo "no PR gate compared these served builds: T2 runs in full"
-      - id: p
-        env:
-          HIT: ${{ steps.cache.outputs.cache-hit }}
-          PRHIT: ${{ steps.pr.outputs.hit }}
-          PRC: ${{ runner.temp }}/t2pr/t2.json
-          C: ${{ runner.temp }}/t2c/t2.json
-          WANTED: ${{ steps.glsl.outputs.glsl_changed == 'true' || steps.areas.outputs.gpu_js == 'true' || steps.areas.outputs.t2_self == 'true' }}
-          HAS_PR: ${{ steps.haspr.outputs.has_pr }}
-          TOKEN: ${{ secrets.MERGE_TOKEN }}
-          T2_RUNNER: ${{ vars.T2_RUNNER }}
-        run: |
-          if [ "$HAS_PR" = "false" ]; then echo "no open PR: T2 skips"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if [ "$WANTED" != "true" ]; then echo "T2 not wanted (no shader, world/realm/bird JS or T2 change)"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if [ "$HIT" = "true" ] && jq -e '.frames_identical != null and .frames_identical != ""' "$C" >/dev/null 2>&1; then
-            echo "T2's answer for these builds is cached: $(jq -c . "$C")"; echo "run=false" >> "$GITHUB_OUTPUT"; echo "cached=$(jq -c . "$C")" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if [ "$PRHIT" = "true" ]; then echo "cached=$(jq -c . "$PRC")" >> "$GITHUB_OUTPUT"; echo "frames=no" >> "$GITHUB_OUTPUT"; fi
-          online=false
-          if [ "$T2_RUNNER" = "off" ]; then
-            how="the variable T2_RUNNER is off"
-          elif [ -z "$TOKEN" ]; then
-            how="no MERGE_TOKEN to ask GitHub with"
-          elif r=$(curl -fsS --max-time 20 -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
-                   "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
-            echo "$r" | jq -r '.runners[] | "runner \(.name): \(.status)\(if .busy then ", busy" else "" end) [\([.labels[].name] | join(","))]"'
-            n=$(echo "$r" | jq '[.runners[] | select(.status == "online") | select(any(.labels[]; .name == "gpu-4090"))] | length')
-            [ "${n:-0}" -gt 0 ] && online=true
-            how="$n online runner(s) labelled gpu-4090"
-          else
-            how="the runners query failed (MERGE_TOKEN needs Administration: read)"
-          fi
-          echo "T2 wanted; runner online: $online ($how)"
-          if [ "$online" != "true" ]; then echo "::notice::T2 would run for this change, but it is skipped: $how. The verdict rests on T0 and T1."; fi
-          echo "run=$online" >> "$GITHUB_OUTPUT"
+          name: gate-served
+          path: ${{ runner.temp }}/handoff/gate
+          retention-days: 1
+          include-hidden-files: true   # (.well-known/ is served: the manifest would fail its readers without it)
+          if-no-files-found: error
 
   # T1, the software A/B: base and head served side by side and rendered in the same job (SwiftShader, the clock
   # paused and stepped, frames hashed in the page), a null test (base against base) in every shard. Stills and short
@@ -206,26 +134,25 @@ jobs:
   # the harness changed: with the builds byte for byte the same, what a visitor is served is identical by construction.
   # The base is rendered once per build: each shard's record of a build (its frames', DOM's and stills' hashes, errors
   # and CSP reports) is cached by the plain build's content hash (no build.txt in it, so only bytes a visitor gets),
-  # the runner's OS and CPU architecture and the harness's files (Chromium and SwiftShader are the pinned Playwright's;
-  # not an image's version, which differs runner to runner: a record that no longer matches is re-rendered). A shard whose base has a record renders the head alone against it; any
+  # the runner's OS, CPU architecture and image (ImageOS: a WSL record is never a hosted runner's) and the harness's
+  # files (Chromium and SwiftShader are the pinned Playwright's; not an image's version, which differs runner to
+  # runner: a record that no longer matches is re-rendered). A shard whose base has a record renders the head alone against it; any
   # difference renders that case fresh (base, head, null test), and the fresh render decides (t1.mjs). Records are
   # saved on a miss (on a branch, for that branch's next push; on main, for every branch) and, on main, the head's, so
   # a branch cut from main's tip finds its base already rendered. Run the gate by hand with t1_cache = verify to prove
   # the records byte for byte a fresh render's.
-  # When T2 runs (or its answer is cached) for the same head, the 4090 owns the canvas: T1 runs then only if the page
-  # outside the canvas changed too (dom_changed: HTML, CSS, fonts, the page's own scripts), and compares the DOM and the
-  # stills alone (t1.mjs --dom-only), so a world change that also changes the page can no longer land as "frames
-  # identical" on T2's canvas alone (the audit of 2026-11-14, ci-dom-changed). (T2 offline or not wanted: T1 in full.)
+  # T1 runs in full, the canvas too (2026-11-23: T2 on the PC's 4090 is gone, the owner's "None on my PC"; this was
+  # already the gate whenever the 4090 was offline). t1.mjs --dom-only stays for a GPU check that may come back.
   t1:
     needs: plan
-    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.has_pr != 'false' && ((needs.plan.outputs.t2_run != 'true' && needs.plan.outputs.t2_cached == '') || needs.plan.outputs.dom_changed == 'true')
-    runs-on: [self-hosted, linux, pc-wsl]
+    if: always() && needs.plan.outputs.run_t1 == 'true' && needs.plan.outputs.has_pr != 'false'
+    runs-on: ubuntu-latest
     timeout-minutes: 12
     outputs:
       shards_sha: ${{ steps.shards.outputs.sha }}
     env:
       T1_CACHE: ${{ inputs.t1_cache || 'use' }}
-      DOM_ONLY: ${{ (needs.plan.outputs.t2_run == 'true' || needs.plan.outputs.t2_cached != '') && '1' || '0' }}
+      DOM_ONLY: '0'   # (no T2: T1 owns the canvas)
     # One job, its four shards as four processes side by side: the PC's runners share one CPU, so four jobs rendered
     # no faster than four processes do, and each job waited for a runner of its own (80 s on #157's gate) and set up
     # again (about 13 s). The records stay one per shard, kept together in one cache entry.
@@ -235,13 +162,18 @@ jobs:
         with:
           node-version: '22'
       - uses: ./.github/actions/playwright
+      - uses: actions/download-artifact@v4
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate' }
       - name: The two builds (the plan's hand-off, checked against its manifest, pinned to the plan's output)
         env:
           HANDOFF_SHA: ${{ needs.plan.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served" --pinned
       - name: The records' key
         id: rk
-        run: echo "pre=t1rec-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-x4" >> "$GITHUB_OUTPUT"
+        # (the runner's image too, ImageOS: ubuntu24 on GitHub's runners, unset on a self-hosted one, so a record
+        # rendered in the PC's WSL is never compared with a hosted runner's frames)
+        run: echo "pre=t1rec-v2-${{ runner.os }}-${{ runner.arch }}-${ImageOS:-selfhosted}-${{ hashFiles('.github/ci/t1.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml') }}-x4" >> "$GITHUB_OUTPUT"
       - name: The base's records, if its build was rendered before
         id: restore
         if: env.T1_CACHE != 'off'
@@ -287,37 +219,26 @@ jobs:
         with:
           path: ${{ runner.temp }}/t1rec
           key: ${{ steps.rk.outputs.pre }}-${{ needs.plan.outputs.head_build }}
-      - name: T1's shards, handed to the verdict (the PC's disk)
+      - name: T1's shards, handed to the verdict (the run's artifact gate-t1)
         id: shards   # (outputs.sha: their manifest's sha256, which the verdict pins)
         if: always()
+        env:
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff-t1   # (its own folder: the builds downloaded above stay out of the artifact)
         run: if [ -d "$RUNNER_TEMP/t1" ]; then node .github/ci/handoff.mjs put "$RUNNER_TEMP/t1" t1; fi
-
-  # T2, the RTX 4090 (gpu.yml, on the PC's self-hosted runner): base against head on Direct3D 11, the changed
-  # programs read back bit for bit. Wanted when a shader's text or the world's, the realms' or the birds' served JS
-  # changed, or T2's own files did (so a change to T2 is tested on its own push). A queued job for a self-hosted runner
-  # waits up to a day and cannot be timed out, so the plan job's T2 probe asks GitHub first, in seconds, whether a runner labelled
-  # gpu-4090 is online (GET .../actions/runners with MERGE_TOKEN, which has Administration: read). Online: T2 runs and
-  # the verdict requires it. Offline, or the query fails: a notice, and the verdict rests on T0 and T1, so T2 never
-  # holds a merge for a runner that is not there. The repository variable T2_RUNNER = off skips T2 always (an override).
-  # T2 renders the plan's two builds (the plan's hand-off on the PC's disk): the PC never runs a PR's build.
-  # Only after the static checks passed: the 4090 is one runner that every gate's T2 queues for, and a gate whose
-  # static checks failed is red whatever T2 says (565 s of its time went to such gates on the night of Nov 11, with 830 s
-  # more queued). Static and plan run side by side and take about as long, so T2 starts a few seconds later at most.
-  t2:
-    needs: [static, plan]
-    if: always() && needs.plan.outputs.t2_run == 'true' && needs.static.result == 'success'
-    uses: ./.github/workflows/gpu.yml
-    with:
-      base: ${{ needs.plan.outputs.base }}
-      served_sha: ${{ needs.plan.outputs.served_sha }}   # (T2 reads the plan's hand-off pinned to it)
-      stall: ${{ github.ref == 'refs/heads/main' && 'yes' || 'no' }}   # (the stall visits: main's gate only; the deploy gate reads them)
-      frames: ${{ needs.plan.outputs.t2_frames == 'no' && 'no' || 'yes' }}   # (no: the PR's gate already compared these builds' frames)
+      - if: always() && steps.shards.outputs.sha != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-t1
+          path: ${{ runner.temp }}/handoff-t1/gate
+          retention-days: 1
+          include-hidden-files: true
+          if-no-files-found: error
 
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
-    needs: [static, plan, t1, t2]
+    needs: [static, plan, t1]
     if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       gate_ok: ${{ steps.v.outputs.gate_ok }}
@@ -326,43 +247,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: .github/ci
+      - if: needs.t1.outputs.shards_sha != ''
+        uses: actions/download-artifact@v4
+        with: { name: gate-t1, path: '${{ runner.temp }}/handoff/gate' }
       - name: T1's shards (the hand-off, checked; none when T1 did not run)
         env:
           HANDOFF_SHA: ${{ needs.t1.outputs.shards_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: if [ -n "$HANDOFF_SHA" ]; then node .github/ci/handoff.mjs get t1 "$RUNNER_TEMP/t1" --pinned; else mkdir -p "$RUNNER_TEMP/t1"; echo "no T1 shards handed off"; fi
       - name: Verdict
         id: v
         env:
           NEEDS: ${{ toJSON(needs) }}
-          T2_CACHED: ${{ needs.plan.outputs.t2_cached }}
           T1_SHARDS: '4'
         run: node .github/ci/verdict.mjs "$RUNNER_TEMP/t1" "$RUNNER_TEMP/verdict.json"
-      - name: T2's answer, kept for the next gate of these builds
-        id: t2keep
-        if: needs.t2.result == 'success'
-        env:
-          OUT: ${{ toJSON(needs.t2.outputs) }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/t2c"; echo "$OUT" | jq -c . > "$RUNNER_TEMP/t2c/t2.json"
-          jq -e '.frames_identical == "true" or .frames_identical == "false"' "$RUNNER_TEMP/t2c/t2.json" >/dev/null && echo "ok=true" >> "$GITHUB_OUTPUT" || true
-      - if: steps.t2keep.outputs.ok == 'true'
-        uses: actions/cache/save@v4
-        continue-on-error: true   # (already saved by an earlier run: nothing lost)
-        with:
-          path: ${{ runner.temp }}/t2c/t2.json
-          key: ${{ needs.plan.outputs.t2_key }}
-      # the verdict: kept on the PC (the merge bot reads it there first) and as the small gate-verdict artifact (the
-      # bot's fallback, and the PR's answer for main's T2 probe); the artifact is never what fails the verdict
-      - name: The verdict, kept on the PC
-        if: always()
-        run: if [ -f "$RUNNER_TEMP/verdict.json" ]; then node .github/ci/handoff.mjs verdict-put "$RUNNER_TEMP/verdict.json"; fi
+      # the verdict: the small gate-verdict artifact, what the merge bot and the Stills job (its served_sha
+      # pins the builds) read. Its upload fails the job: without it nothing can trust this run's answer.
       - uses: actions/upload-artifact@v4
         if: always()
-        continue-on-error: true   # (the artifact quota: the verdict stands on the PC's copy)
         with:
           name: gate-verdict
           path: ${{ runner.temp }}/verdict.json
           retention-days: 30
-      - name: The run's hand-off dropped (green, off main; main's stays for the Stills job and a red run's for a re-run, both swept after 24 h)
-        if: always() && github.ref != 'refs/heads/main' && steps.v.outputs.gate_ok == 'true'
-        run: node .github/ci/handoff.mjs drop
