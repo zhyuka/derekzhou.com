@@ -2,7 +2,7 @@
 // 5.2, curated openings' step 2). For each of the 16 lands: every 5 deg of heading flown SHORT s (the first near pass);
 // the headings with a near pass by NEAR_BY s (on a land with none, the earliest by FALL_BY s), nearest 30 s first, up
 // to TOP of them at least SPREAD deg apart (so the look has headings that differ to choose from), and the land's own,
-// are the candidates (--cands FILE writes them for looks.mjs). Each is flown the whole 2 h for every hour and READS
+// are the candidates (--cands FILE writes them for looks.mjs), with any other heading looks.json has measured. Each is flown the whole 2 h for every hour and READS
 // reads (the longest stretch with no reward). The pick (the hub's review of #312: the look is the score's, not a hand
 // pick's), among the candidates looks.mjs measured (tools/visit/looks.json):
 //   1. never a heading that puts more than WORD_CAP of the words' boxes under cloud (look-rule.mjs);
@@ -38,7 +38,9 @@ for (const k of K) {
   cands[k] = [null, ...spread];
   if (candsOut) { console.log(`k${k}: ${JSON.stringify(cands[k])}`); continue; }
   const own = streamHeading(k);
-  const rows = cands[k].map((d) => ({ deg: d, look: (LOOKS[k] || {})[lookKey(d)] || null, ...whole(k, d === null ? own : d * DEG) })).filter((r) => r.look);
+  // (and any other heading looks.json measured on this land: a wider sweep where none of the ruler's keeps the words clear)
+  const more = Object.keys(LOOKS[k] || {}).filter((x) => x !== 'own').map(Number).filter((d) => !cands[k].includes(d));
+  const rows = [...cands[k], ...more].map((d) => ({ deg: d, look: (LOOKS[k] || {})[lookKey(d)] || null, ...whole(k, d === null ? own : d * DEG) })).filter((r) => r.look);
   const near = (r) => r.firstNear !== null && r.firstNear <= (fall ? FALL_BY : NEAR_BY);
   const clear = rows.filter((r) => r.look.wordCloud <= WORD_CAP), nearClear = clear.filter(near);
   const rank = (x, y) => (y.gapOk + lookScore(y.look)) - (x.gapOk + lookScore(x.look)) || x.gapP50 - y.gapP50;
