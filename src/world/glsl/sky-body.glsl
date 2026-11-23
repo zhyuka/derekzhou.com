@@ -4,6 +4,7 @@ uniform int uZs;   // (fast500 D T1) never set: 0 at link; the star loop's bound
 uniform vec4 uHi;     // high cloud: cover, brightness, scale, drift
 uniform vec3 uHiC;
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
+uniform vec4 uHalo;   // (physics: weather/moon-halo) the ice veil over the moonlit sky: 1 on (about one moonlit stay in three), 0 none; its strength
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
@@ -18,6 +19,26 @@ const float SKYTAU = 6.2831853;
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
    never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
 const float STC = 0.04;
+/* (physics: weather/moon-halo) the 22 deg halo and the moon dogs, under an ice veil: light refracted through ice crystals'
+   60 deg prisms (n 1.31) at their minimum deviation, 21.84 deg; the ring's inner edge sharp and faintly warm (red is
+   bent least), its light falling away outward; nothing inside it brightened. The dogs: plates lying flat, at the moon's
+   own height, their offset in azimuth the same minimum deviation through the plate's index for a slanted ray,
+   n' = sqrt(n^2 - sin^2 e) / cos e (so they stand farther out as the moon climbs). Only adds light; held under the
+   ceiling by its small strength (uHalo.y) and the moon's depth (uMoon.w) */
+const float HALO_N = 1.31;
+float haloDev(float n) { return degrees(2.0 * asin(clamp(n * 0.5, -1.0, 1.0))) - 60.0; }
+vec3 haloAt(vec3 rd) {
+  float th = degrees(acos(clamp(dot(rd, uMoon.xyz), -1.0, 1.0))), r0 = haloDev(HALO_N);
+  if (th > 40.0) return vec3(0.0);   // (past the farthest dog's tail: the dog at most 29.7 deg out at a 45 deg moon, its light 1e-5 by 40)
+  float ring = smoothstep(r0 - 0.35, r0 + 0.25, th) * exp(-max(th - r0 - 0.25, 0.0) / 2.6);
+  float me = asin(clamp(uMoon.y, -1.0, 1.0)), se = sin(me), np = sqrt(HALO_N * HALO_N - se * se) / max(cos(me), 0.2), dp = radians(haloDev(np));
+  float ea = asin(clamp(rd.y, -1.0, 1.0)), da = atan(rd.x, rd.z) - atan(uMoon.x, uMoon.z);
+  da = atan(sin(da), cos(da));
+  float off = abs(da) - dp, dog = smoothstep(-radians(0.5), radians(0.15), off) * exp(-max(off, 0.0) / radians(1.6)) * exp(-pow((ea - me) / radians(0.9), 2.0));
+  vec3 warm = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(r0, r0 + 1.4, th));
+  vec3 warmD = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(-radians(0.2), radians(1.2), off));   // (as colourless as the ring: by moonlight the eye sees both near white)
+  return (warm * ring + warmD * dog * 1.6) * uHalo.y;
+}
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
@@ -206,6 +227,7 @@ void main() {
     if (ma < 7.0) c += uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);
     c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
+    if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;   // (physics: weather/moon-halo: by the stay's veil, with the moon's depth)
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
   if (uMetH.w > 0.0) c += meteorAt(c) * (1.0 - hazeSky(rd));   // (delight-night §2) behind the haze, as the moon is

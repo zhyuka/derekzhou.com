@@ -7,7 +7,7 @@
        1-2% of the sporadics seen are grazers like it, 2-9 deg/s: https://www.imo.net/observations/methods/visual-observation/
        and the handoff's strict.mjs); about one a stay
      - the short ones (the owner's ruling, 2026-11-15: "Allow short ones too"): 0.3-1 s at 3-25 deg/s mid-sky (20-55 deg up), a few a night,
-       a soft rise and fall of their light over that time (the one exception in no-fades, RULES.json), the stroke drawn
+       a soft rise and fall of their light over that time (one of the owner's two exceptions in no-fades, RULES.json), the stroke drawn
        over each frame's own path; 1-3 a stay
      Each is planned when its time comes, against the view as it is then (its heading and pitch); none under reduced motion
      and none in a still (none in the opening stay's first METEOR.QUIET s). Drawn by sky-body.glsl's meteorAt: a head of the
