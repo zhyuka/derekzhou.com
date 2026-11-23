@@ -8,7 +8,7 @@
 // plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.el; o.el = m.az; o.up = m.w > 0;", "why": "the moon's az and el swapped"}
 // plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.az; o.el = m.el; o.up = m.w >= 0;", "why": "a moon of no weight counted up"}
 // plant: {"file": "src/world/215-air.js", "find": "var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);", "with": "var m = moonShown(SIM.t, AIR_MOONS);", "why": "the moon's direction a step behind the drawn disc"}
-// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 nOff = fract(uVC / uVR.z);", "with": "vec3 nOff = fract(uVC / uVR.z) + vec3(uT * 0.004, 0.0, uT * 0.003);", "why": "the cloud billows slide by a clock of their own again"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 nOff = uVO;", "with": "vec3 nOff = uVO + vec3(uT * 0.004, 0.0, uT * 0.003);", "why": "the cloud billows slide by a clock of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
 // plant: {"file": "src/world/215-air.js", "find": "AIR_Z0 = 0.003,", "with": "AIR_Z0 = 0.03,", "why": "the sand ten times rougher (the profile's shares off)"}
