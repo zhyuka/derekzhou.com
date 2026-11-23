@@ -1,7 +1,8 @@
-// handoff.mjs: the gate's jobs hand each other their files on the PC's own disk, not as GitHub artifacts (2026-11-15:
-// the repository's artifact storage quota was hit and every gate's plan job failed uploading its two builds). Every
-// job of the gate runs on the PC: the Linux runners in WSL and the Windows GPU runner see one folder,
-// HANDOFF_ROOT (default /mnt/c/ci-handoff in WSL, C:\ci-handoff on Windows: the same folder).
+// handoff.mjs: the gate's jobs hand each other their files as a folder with a sha256 manifest under HANDOFF_ROOT, which
+// the workflows carry between jobs as the run's own artifacts (gate-served, gate-t1: 2026-11-23, once the repository was
+// public and its jobs moved to GitHub-hosted runners). From 2026-11-16 to then the folder was the PC's own disk (the
+// private repository's artifact quota was hit on 2026-11-15), shared by the WSL runners and the Windows GPU runner;
+// HANDOFF_ROOT still defaults to it (/mnt/c/ci-handoff in WSL, C:\ci-handoff on Windows), and every job now sets its own.
 //   node .github/ci/handoff.mjs put SRC NAME [--run R]   copy the folder SRC to ROOT/gate/R/NAME, with a sha256 manifest;
 //                                                        the manifest's own sha256 goes to the step's outputs (sha=...)
 //   node .github/ci/handoff.mjs get NAME DEST [--run R]  copy ROOT/gate/R/NAME to DEST (R's newest attempt that has it),
@@ -16,13 +17,11 @@
 //                                                        changed must be caught (every gate's plan job runs it)
 //   node .github/ci/handoff.mjs verdict-put FILE         keep FILE as ROOT/verdict/<run id>-<attempt>.json (30 days): a
 //                                                        record for people, which nothing reads or trusts (below)
-// The trust line (the hub's review, 2026-11-16): the folder is shared by every job on the PC, and a PR's own build code
-// runs in its plan job with it writable, so it could rewrite any run's files there, the manifest too. A GitHub artifact
-// was scoped to its run; this folder is not. So what decides anything is never read from it alone: a reader of the
-// builds or of T1's shards pins the manifest's sha256 to the putting job's output (GitHub keeps job outputs per run,
-// out of reach of another run's code), and the verdict the merge bot and T2's probe trust is the gate-verdict artifact,
-// never the PC's copy. (The Stills job, after a main gate, reads without a pin: a workflow_run cannot see the gate's job
-// outputs. docs/deploy.md, "The hand-off".)
+// The trust line: a reader of the builds or of T1's shards pins the manifest's sha256 to the putting job's output (GitHub
+// keeps job outputs per run), so files and manifest rewritten together still fail. The Stills job, a workflow_run that
+// cannot see the gate's job outputs, pins to the served_sha in the Gate run's gate-verdict artifact. The verdict the merge
+// bot and T2's probe trust is that artifact. (sweep, drop and verdict-put served the PC's shared folder; no workflow
+// runs them now.)
 // R: <run id>-<attempt>, from GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. A job writes its own attempt's folder; a reader takes
 // the newest attempt at or below its own that has the name (a re-run of failed jobs keeps the earlier attempt's plan).
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto'; import { fileURLToPath } from 'node:url';
