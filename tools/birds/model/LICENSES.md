@@ -20,7 +20,7 @@ The served file keeps the numbers and one credits comment; each number's `source
 
 | source | used for | licence |
 |---|---|---|
-| Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA Paper 2004-2186 (NASA Langley; NTRS 20040075526) | the gull's, bar-headed goose's and crane's published Fourier coefficients (arm, hand, extension) | NASA work; the kinematics task recorded it as US public domain, the structure task as "facts only (cite)" (AIAA republication). Cited as facts; the PDF is not redistributed |
+| Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA Paper 2004-2186 (NASA Langley; NTRS 20040075526) | the gull's, bar-headed goose's and crane's published harmonic coefficients (arm, hand, extension) | NASA work; the kinematics task recorded it as US public domain, the structure task as "facts only (cite)" (AIAA republication). Cited as facts; the PDF is not redistributed |
 | Harvey C, Baliga VB, Wong JCM, Altshuler DL, Inman DJ (2022) Nature 603: 648; data figshare 10.6084/m9.figshare.c.5503989 | the gull's fold table (markers), bones, the spread wrist places | data CC BY 4.0 |
 | Harvey C, Baliga VB, Goates CD, Hunsaker DF, Inman DJ (2021) J R Soc Interface 18: 20210132; data figshare 10.6084/m9.figshare.c.5275490 | the gull's elbow-wrist coupling | data CC BY 4.0 |
 | Baliga VB, Szabo I, Altshuler DL (2019) Sci Adv 5: eaaw6670; data figshare 10.6084/m9.figshare.8856161 | the couplings of heron, crow, mallard, turkey vulture, swallow, pigeon; bones | data CC BY 4.0 |

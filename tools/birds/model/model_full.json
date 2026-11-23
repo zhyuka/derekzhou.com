@@ -1,5 +1,5 @@
 {
- "about": "physics/model: a measured kinematic and structural model of the flapping wing, per kind (MODEL.md). Phase p: 0 = the top of the arm stroke. Fourier: f(p) = a0 + sum a_k cos 2 pi k p + b_k sin 2 pi k p. Angles deg; elevations + up, sweeps + forward, pitch/twist + leading edge up; the hand relative to the arm (+ above its line).",
+ "about": "physics/model: a measured kinematic and structural model of the flapping wing, per kind (MODEL.md). Phase p: 0 = the top of the arm stroke. Harmonics: f(p) = a0 + sum a_k cos 2 pi k p + b_k sin 2 pi k p. Angles deg; elevations + up, sweeps + forward, pitch/twist + leading edge up; the hand relative to the arm (+ above its line).",
  "kinds": {
   "gull": {
    "D": 0.604,

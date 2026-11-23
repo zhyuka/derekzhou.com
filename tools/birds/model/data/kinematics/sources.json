@@ -16,8 +16,8 @@
   "read": "NASA NTRS PDF (scanned, OCR checked against page images)",
   "species": "seagull (Larus sp.), crane (Grus sp.), bar-headed goose (Anser indicus)",
   "conditions": "wild birds in level flight, stock and documentary footage, front view; speed unknown",
-  "method": "front-projected quarter-chord line traced on video frames; 2-joint (two-rod) arm model with equal rod lengths; 2-harmonic Fourier series of psi1 (arm flap), psi2 (hand bend), phi2 (hand fold), projected semi-span and arc length",
-  "used": "all Fourier coefficients (Eqs 5, 6, 11)",
+  "method": "front-projected quarter-chord line traced on video frames; 2-joint (two-rod) arm model with equal rod lengths; 2-harmonic cosine and sine series of psi1 (arm flap), psi2 (hand bend), phi2 (hand fold), projected semi-span and arc length",
+  "used": "all harmonic coefficients (Eqs 5, 6, 11)",
   "extraction": "typed from the page images, verified twice",
   "licence": "public domain (US Government work)"
  },

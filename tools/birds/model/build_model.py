@@ -6,7 +6,7 @@
 # Build data/model.json: one kinematic and structural wing model per kind, from the sibling research folders' data.
 # Run: python3 -I build_model.py <data folder> <out json>   (tools/birds/model/make.py runs it, on tools/birds/model/data)
 # Reads only the derived data in data/ (kinematics/, structure/, dynamics/: each folder's LICENSES.md names its sources).
-# Every channel is a Fourier series in the beat's phase p (0 = the top of the arm's stroke, 1 = the next top):
+# Every channel is a harmonic (cosine and sine) series in the beat's phase p (0 = the top of the arm's stroke, 1 = the next top):
 #   f(p) = a0 + sum_k a_k cos(2 pi k p) + b_k sin(2 pi k p)
 import json, sys, os
 import numpy as np
@@ -104,7 +104,7 @@ body = J('dynamics/body_motion.json')
 
 
 def coef(m, key='coef_recommended'):
-    c = m['fourier'][key]; return {'a0': c['a0'], 'a': list(c['a']), 'b': list(c['b'])}
+    c = m['harmonics'][key]; return {'a0': c['a0'], 'a': list(c['a']), 'b': list(c['b'])}
 
 
 # barnacle goose facts (study only: ranges and phases as stated; the digitised curves are not kept). The facts file holds
@@ -145,7 +145,7 @@ REAL = {
 # own measured stroke where one exists (bar-headed goose: Meir et al. 2019 Suppl. file 4, CC0, stroke-plane amplitude
 # 73.4 +- 5.2 deg: its -1 SD; barn swallow: Park et al. 2001, shoulder-wrist 48.0 + 5.03 V = 98 deg at 10 m/s, the tip
 # about 10 deg more); elsewhere midway between two measured regularities over 60 species (Nudds, Taylor & Thomas 2004,
-# Proc R Soc B 271: 2071, abstract): the stroke angle 67 b^-0.24, and the cruising Strouhal number 0.21 of direct fliers
+# Proc R Soc B 271: 2071, abstract): the stroke angle 67 b^-0.24, and the cruising ratio f A / U (frequency times stroke amplitude over speed) of 0.21 of direct fliers
 # at the species' own f, U, b (theta = 2 asin(0.21 U / (f b))). The curves' SHAPE stays the source's (Liu 2004); their
 # oscillation about the mean is scaled by STROKE_SCALE (iterated on the posed form: tools/strokeiter.py).
 import math
@@ -203,7 +203,7 @@ WRIST_MEASURED = {'gull': [0.37, 0.43, 'Harvey 2022 markers / bones (../structur
                   'stork': [0.47, 0.57, 'bones / pelican proxy'], 'swan': [0.50, 0.52, 'bones'], 'ibis': [0.44, 0.46, 'bones'], 'swallow': [0.27, 0.30, 'bones']}
 
 # ------------------------------------------------------------------------------------------------------ the channels
-model = {'about': 'physics/model: a measured kinematic and structural model of the flapping wing, per kind (MODEL.md). Phase p: 0 = the top of the arm stroke. Fourier: f(p) = a0 + sum a_k cos 2 pi k p + b_k sin 2 pi k p. Angles deg; elevations + up, sweeps + forward, pitch/twist + leading edge up; the hand relative to the arm (+ above its line).',
+model = {'about': 'physics/model: a measured kinematic and structural model of the flapping wing, per kind (MODEL.md). Phase p: 0 = the top of the arm stroke. Harmonics: f(p) = a0 + sum a_k cos 2 pi k p + b_k sin 2 pi k p. Angles deg; elevations + up, sweeps + forward, pitch/twist + leading edge up; the hand relative to the arm (+ above its line).',
          'kinds': {}, 'checks_targets': {}}
 
 
