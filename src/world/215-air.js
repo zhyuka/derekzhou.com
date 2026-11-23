@@ -27,6 +27,7 @@
      them, and test/unit/air.mjs holds every other reader to AIR_DIR within 1e-6 */
   var SKY_RATE = 100;   // the sky's light runs this many times real time (declared: sun, moon, stars and galaxy together)
   var AIR_DIR = [0, 1];   // the visit's wind, unit (x, z), blowing toward (airDraw sets it; the water's ripples read it through LDEF)
+  var AIR_HEARD_Y = 2;   // (the air heard: never asked lower than this over the ground, m: the camera's own floor is higher)
   var AIR_H = { grains: 0.8, veils: 5, motes: 13, birds: 40 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own)
   var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]];   // (the profile: the visits' U10: the Rayleigh's mean, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg)
   var AIR_GRAIN_K = 1;   // the grains' speed, a share of the air's at their height (the sand's own spec sets it)
@@ -158,6 +159,14 @@
   }
   function gustSigma(y, V, t) { t = t === undefined ? SIM.t : t; return airFrame(V).W > 0 ? AIR_GUST[0] * weather(t)[2] * airSpeed(y, V) * airShare(y, t) : 0; }   // the gust's standard deviation at y m up, m/s (0 in still air)
   function gustPhase(x, z, y, t, V) { var f = airFrame(V); t = t === undefined ? SIM.t : t; return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN; }   // s: the field's own clock here (the surface's clock, less the way along the wind over U10; NaN in still air; the same at every height)
+  /* THE AIR HEARD (physics: air/heard): the one air where the listener is, for the score (the sound icon's): the wind
+     there (windAt, m/s along x and z), the gust's excess along it (gustAt, m/s, signed), the gust's sigma at that
+     height (gustSigma) and the field's own clock there (gustPhase: when the gust now arriving left the visit's frame),
+     and the height asked for. A fresh object each time, so the score may keep it; read only, it steers nothing */
+  function airHeard(x, z, y, t, V) {
+    var w = windAt(x, z, y, t, V), wx = w.x, wz = w.z;
+    return { x: wx, z: wz, gust: gustAt(x, z, y, t, V), sigma: gustSigma(y, V), phase: gustPhase(x, z, y, t, V), y: y };
+  }
   function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
     var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n#define AIR_UT0 ' + airF(AIR_UT0) + '\n';
     s += 'float airLat(int i, int j, uint s) { return hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0; }\n';
@@ -167,4 +176,4 @@
     return s;
   }
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, share: airShare, carried: airCarried, clock: airClock, BYSKY: AIR_BYSKY, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, share: airShare, carried: airCarried, clock: airClock, BYSKY: AIR_BYSKY, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

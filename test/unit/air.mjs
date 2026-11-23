@@ -18,6 +18,7 @@
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_GUST = [0.26, 22,", "with": "var AIR_GUST = [0.12, 22,", "why": "gusts too weak (the 3-s gust under 1.4 of the mean)"}
 // plant: {"file": "src/world/glsl/vs-ribbon.glsl", "find": "airGust(sp.xy, w, uAirU, Wv * uAir.y * uAir.z, uAir.x)", "with": "Wv * AIR_GUST_I * sin(uT * 0.9 + r1 * 7.0)", "why": "the veils on a private cycle again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec2 pos = p0 + vel.xz * tau +", "with": "vec2 pos = p0 + vel.xz * t +", "why": "the grains carried by the wind times the time (a change of sky jumps them)"}
+// plant: {"file": "src/world/215-air.js", "find": "var w = windAt(x, z, y, t, V), wx = w.x, wz = w.z;", "with": "var w = windAt(x, z, y, t, V), wx = w.x + 0.02 * w.z, wz = w.z - 0.02 * w.x;", "why": "the air heard turned off the wind (the score's air from another way than the world's)"}
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
 // plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec3 prev = grain(id, uT - uMBdt, uAir.w, e2);", "with": "vec3 prev = head;", "why": "the motes' streak the camera's motion only (a windy mote a dot that jumps)"}
@@ -37,7 +38,7 @@ function page() {   // the air on a fake page (no clock, no DOM), and the dunes'
     '  function moonShown(t, o) { o.t = t; return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
     '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
-    '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, AIR_GUST: AIR_GUST, AIR_GOCT: AIR_GOCT, airGustGlsl: airGustGlsl, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
+    '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, AIR_GUST: AIR_GUST, AIR_GOCT: AIR_GOCT, airGustGlsl: airGustGlsl, airSpeed: airSpeed, windAt: windAt, airHeard: airHeard, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
     '    SKY: SKY, weather: weather, airClock: airClock, airShare: airShare, airCarried: airCarried, AIR_BYSKY: AIR_BYSKY, airTable: airTable, airFrameU: airFrameU, UAIR: UAIR,\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
@@ -200,6 +201,16 @@ test('air: one gust field, frozen and carried downwind (16 visits x 10 min at 10
   assert.ok(fastest < 0.3, `the gust changes by ${fastest.toFixed(3)} W a second: no flicker`);
   // still air: no gust, no phase
   const Vs = { seed: 1, wind: [0, 1], u10: 0 }; assert.equal(G.gustAt(5, 7, 40, 3, Vs), 0); assert.ok(Number.isNaN(G.gustPhase(5, 7, 40, 3, Vs)));
+  // the air heard (the score's, at the camera): the wind's direction windAt's within 1e-6, its gust, sigma and clock the field's
+  { const Vh = G.SIM.V; let worst = 0;
+    for (let i = 0; i < 200; i++) {
+      const x = 900 * Math.sin(i * 1.7), z = 700 * Math.cos(i * 0.9), y = 2 + (i % 9) * 15, t = i * 3.1, h = G.airHeard(x, z, y, t, Vh), w = G.windAt(x, z, y, t, Vh);
+      const da = Math.atan2(h.x, h.z) - Math.atan2(w.x, w.z); worst = Math.max(worst, Math.abs(Math.atan2(Math.sin(da), Math.cos(da))), Math.abs(Math.hypot(h.x, h.z) - Math.hypot(w.x, w.z)));
+      assert.equal(h.gust, G.gustAt(x, z, y, t, Vh)); assert.equal(h.sigma, G.gustSigma(y, Vh)); assert.equal(h.phase, G.gustPhase(x, z, y, t, Vh)); assert.equal(h.y, y);
+    }
+    assert.ok(worst < 1e-6, `the air heard is windAt's: direction and speed within 1e-6 (worst ${worst.toExponential(2)})`);
+    const a = G.airHeard(10, 20, 30, 40, Vh), b = G.airHeard(10, 20, 30, 40, Vh); assert.notEqual(a, b, 'a fresh object each time (the score may keep it)'); assert.deepEqual(a, b);
+    const hs = G.airHeard(5, 7, 40, 3, Vs); assert.ok(hs.x === 0 && hs.z === 0 && hs.gust === 0 && Number.isNaN(hs.phase), 'still air: none heard'); }
   // HOST: the birds' gust and phase at the default height and their own
   G.SIM.t = 12.5; const V = G.SIM.V, f = G.windAt(0, 0, 40, 0, V), Wb = Math.hypot(f.x, f.z);
   assert.equal(G.HOST.gust(30, -20), G.gustAt(30, -20, 40, 12.5, V)); assert.equal(G.HOST.gust(30, -20, 200), G.gustAt(30, -20, 200, 12.5, V));
@@ -291,7 +302,7 @@ test('air: the wind by sky (one table: the world and the score), eased with the 
   assert.ok(/vec2 pos = p0 \+ vel\.xz \* tau \+/.test(vp) && !/vel\.xz \* t \+/.test(vp), 'the grains carried by the air\'s clock, never the wind times the time');
   // the score: the world's own table, read only, by its feed
   const SC = fs.readFileSync(path.join(ROOT, 'src', 'score.js'), 'utf8');
-  assert.match(WORLD, /air: airTable\(\), still:/, 'the feed hands the score the table');
+  assert.match(WORLD, /air: airTable\(\), wind: airHeard\(/, 'the feed hands the score the table');
   const c = G.airTable(); c.afterglow[0] = 9; assert.equal(T.afterglow[0], 1, 'a copy: the score never writes the world\'s');
   assert.ok(/function breeze\(id\) \{ var a = S\.air && S\.air\[id\];/.test(SC) && /S\.air = F\.air/.test(SC), 'the score\'s breeze is the feed\'s table');
   assert.ok(!/\b(afterglow|bluehour|firstlight|moonlit|milkyway|aurora)\s*:\s*\[\s*0?\.\d+\s*,\s*0?\.\d+\s*\]/.test(SC), 'no breeze of the score\'s own by sky');

@@ -516,6 +516,12 @@ physics: clouds/drift). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
+- The air heard (physics: air/heard; airHeard, WORLD.air.heard): the one
+  air where the listener is, for the score: windAt's wind there, the gust
+  arriving (gustAt), its sigma and the field's clock (gustPhase), a fresh
+  object. The score's feed carries it at the camera, at its height over
+  the ground (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds its
+  direction to windAt's within 1e-6; 42-one-air holds the score to it.
 - The wind by sky (physics: air/wind-by-sky): the sky is the time of
   day, and the wind follows the day as the boundary layer does. By day
   the surface's wind is mixed down from aloft; at dusk the mixing dies,

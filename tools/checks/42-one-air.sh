@@ -10,4 +10,6 @@
 # plant: {"file": "src/world/320-camera-drawn-between-last-two.js", "find": "CW_V = 0.011, CRUISE_IN = 2;", "with": "CW_V = 0.011, CRUISE_IN = 2, CRUISE = [14, 32];", "why": "a second cruise band"}
 # plant: {"file": "src/score.js", "find": "var WK = [[1.2, 0.3], [2, 0.45], [6.5, 0.67], [21, 1]], WIND_DAY = 0.35;", "with": "var WK = [[1.2, 0.3], [2, 0.45], [6.5, 0.67], [21, 1]], WIND_DAY = 0.35, WS = { milkyway: [0.18, 0.5], afterglow: [0.35, 1] };", "why": "the score with a breeze by sky of its own"}
 # plant: {"file": "src/world/490-birds-host.js", "find": "  var HOST = {", "with": "  AIR_DIR[0] = 1;\n  var HOST = {", "why": "a section that writes the air's wind"}
+# plant: {"file": "src/world/512-score-feed.js", "find": "wind: airHeard(CS.x, CS.z,", "with": "wind: airHeard(0, 0,", "why": "the score hearing the air somewhere other than the camera"}
+# plant: {"file": "src/score.js", "find": "var WK = [[1.2, 0.3],", "with": "var windAz = 0.7; var WK = [[1.2, 0.3],", "why": "a wind direction of the score's own"}
 node tools/checks/lib/one-air.mjs "$RUNNER_TEMP"
