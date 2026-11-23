@@ -152,14 +152,14 @@ if grep -nE 'cursor *:' $CSS; then
 fi
 # (6) no dev or record hooks (the development harness stays out): nothing put
 # on or read from window.__*, no console, and of the attributes on <html>
-# the scripts read only the hour's data-sky, data-sky-at and data-seed
+# the scripts read only the hour's data-sky, data-sky-at, data-seed and data-look (the still's look tier)
 if grep -nE 'window\.__|window\.claude|\bconsole\.' $JS; then
   echo "::error::a dev hook, a record or a console call in the shipped scripts"
   fail=1
 fi
 python3 - $JS <<'PY' || fail=1
 import re, sys
-ok = {'data-sky', 'data-sky-at', 'data-seed', 'src'}
+ok = {'data-sky', 'data-sky-at', 'data-seed', 'data-look', 'src'}
 bad = 0
 for f in sys.argv[1:]:
     s = open(f, encoding='utf-8').read()

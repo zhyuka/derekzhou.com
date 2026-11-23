@@ -4,13 +4,22 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
-// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "AIR_DRIFT(uT)", "with": "vec3(uT * 0.004, 0.0, uT * 0.003)", "why": "the cloud billows' drift a literal of their own again"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + SKY.dt).sun);", "why": "the land lit by the frame's sun (a light under the horizon 70% of a night)"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);", "with": "if (u.uSun) gl.uniform3fv(u.uSun, skySphere(SIM.t + (SKY.dt || 0), V).sun);", "why": "the land lit by the frame's sun through a nested call (#333's call shape)"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "if (u.uSkyS) gl.uniform3fv(u.uSkyS,", "with": "var FS = skySphere(SIM.t + SKY.dt, V); if (u.uSun) gl.uniform3fv(u.uSun, FS.sun); if (u.uSkyS) gl.uniform3fv(u.uSkyS,", "why": "the land lit by the frame's sun through a name"}
+// plant: {"file": "src/world/215-air.js", "find": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS,", "with": "var lst = S.lst0 + SKY_RATE * 2 * PI / AIR_SIDEREAL * tS * (1 + 0.5 * Math.sin(tS / 40)),", "why": "the sky turning at a pace of its own (faster, slower, back)"}
+// plant: {"file": "src/world/215-air.js", "find": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, o === 'firstlight', S.dec) + S.ra;", "with": "S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, false, S.dec) + S.ra;", "why": "a first-light opening's sun in the evening"}
+// plant: {"file": "src/world/215-air.js", "find": "var AIR_LAT = 64, AIR_OBL = 23.4393,", "with": "var AIR_LAT = 64, AIR_OBL = 0,", "why": "the ecliptic laid on the equator"}
+// plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.el; o.el = m.az; o.up = m.w > 0;", "why": "the moon's az and el swapped"}
+// plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.az; o.el = m.el; o.up = m.w >= 0;", "why": "a moon of no weight counted up"}
+// plant: {"file": "src/world/215-air.js", "find": "var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);", "with": "var m = moonShown(SIM.t, AIR_MOONS);", "why": "the moon's direction a step behind the drawn disc"}
+// plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 nOff = fract(uVC / uVR.z);", "with": "vec3 nOff = fract(uVC / uVR.z) + vec3(uT * 0.004, 0.0, uT * 0.003);", "why": "the cloud billows slide by a clock of their own again"}
 // plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
 // plant: {"file": "src/world/215-air.js", "find": "AIR_Z0 = 0.003,", "with": "AIR_Z0 = 0.03,", "why": "the sand ten times rougher (the profile's shares off)"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "vec3 prev = grain(id, uT - uMBdt, e2);", "with": "vec3 prev = head;", "why": "the motes' streak the camera's motion only (a windy mote a dot that jumps)"}
 // plant: {"file": "src/world/210-cloud-volumes-baking.js", "find": "var sd = keyAt(V), cy", "with": "var sd = dirAzEl(V.light.sunAz, 9), cy", "why": "the clouds baked along a sun of their own"}
-import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
+import { test, assert, fs, path, vm, ROOT, TMP, execFileSync, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
 
 const AIR = cut(WORLD, '  /* ---------------------------------------------------------------- the air: the world\'s one state', '  /* ---------------------------------------------------------------- the time of day */');
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
@@ -21,11 +30,13 @@ const GLSL = (f) => fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', f), 
 const SEEDS = Array.from({ length: 16 }, (_, i) => (i * 2654435761 + 12345) >>> 0);
 
 function page() {   // the air on a fake page (no clock, no DOM), and the dunes' kit registered on it
-  const G = vm.runInThisContext('(function (W) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, SIM = { V: null, t: 0 }, CS = { x: 0, z: 0 }, J = { seed: 0 };\n' +
-    '  function moonShown(t, o) { o.t = t; return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
+  const G = vm.runInThisContext('(function (W) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, SIM_DT = 1 / 60, SIM = { V: null, t: 0, alpha: 1 }, CS = { x: 0, z: 0 }, J = { seed: 0 };\n' +
+    '  var MSTUB = null; function moonShown(t, o) { o.t = t; if (MSTUB) { o.d = MSTUB.d.slice(); o.w = MSTUB.w; o.az = MSTUB.az; o.el = MSTUB.el; } return o; }\n' + STREAMS + VEC + AIR + SKYDEF + LDEF +
     '  var HOST = {\n' + HOSTWIND + '  };\n' +
-    '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_DRIFT: AIR_DRIFT, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
+    '  return { SIM: SIM, J: J, RNG: RNG, subseed: subseed, AIRAPI: AIRAPI, AIR_DIR: AIR_DIR, AIR_H: AIR_H, AIR_CIRRUS: AIR_CIRRUS, AIR_APART: AIR_APART, AIR_SUN_EL: AIR_SUN_EL,\n' +
     '    AIR_KEY_EL: AIR_KEY_EL, AIR_KEY_AZ: AIR_KEY_AZ, SKY_RATE: SKY_RATE, AIR_GRAIN_K: AIR_GRAIN_K, airProfile: airProfile, airU10: airU10, airSpeed: airSpeed, windAt: windAt, airKeySet: airKeySet, keyAt: keyAt, airSunEl: airSunEl, airSkySun: airSkySun, skyFrame: skyFrame, airHeading0: airHeading0,\n' +
+    '    SKY: SKY, AIR_LAT: AIR_LAT, AIR_OBL: AIR_OBL, AIR_SIDEREAL: AIR_SIDEREAL, AIR_FRAME: AIR_FRAME, skySphere: skySphere, airSunEl: airSunEl,\n' +
+    '    SKY: SKY, airMoonDir: airMoonDir, AIR_MOON: AIR_MOON, AIR_MOONS: AIR_MOONS, stub: function (m) { MSTUB = m; },\n' +
     '    WSKY: WSKY, LDEF: LDEF, HOST: HOST };\n})')();
   let def = null;
   const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: () => 0, hk: () => 0, hfl: () => 0.5, RNG: G.RNG, range: () => {}, rock: () => {} };
@@ -62,7 +73,6 @@ test('air: every wind reader blows the visit\'s way, at the profile\'s speed at 
         veils: [[V.ribbons.wind[0], V.ribbons.wind[2]], G.AIR_H.veils],
         birds: [(() => { const o = G.HOST.wind([9, 9, 9]); assert.equal(o[1], 0); return [o[0], o[2]]; })(), G.AIR_H.birds],
         water: [G.LDEF.windDir, null],
-        drift: [[-G.AIR_DRIFT[0], -G.AIR_DRIFT[1]], null],   // (the billows move against their noise's offset)
         cirrus: [G.AIR_CIRRUS, 'axis'],
       };
       for (const [name, [v, h]] of Object.entries(readers)) {
@@ -78,16 +88,12 @@ test('air: every wind reader blows the visit\'s way, at the profile\'s speed at 
       }
     }
   }
-  for (const name of ['drift', 'cirrus']) assert.ok(apart[name], `${name} is joined to the air: take it off AIR_APART (215-air.js)`);
+  for (const name of ['cirrus']) assert.ok(apart[name], `${name} is joined to the air: take it off AIR_APART (215-air.js)`);
 });
 
-test('air: the billows\' drift and the high streaks\' axis are the air\'s (the shaders hold no literal of their own)', () => {
-  const vb = GLSL('fs-vbody.glsl'), sb = GLSL('sky-body.glsl');
-  assert.equal(vb.split('AIR_DRIFT(uT)').length - 1, 1, 'fs-vbody offsets its billows by AIR_DRIFT(uT), once');
-  assert.ok(!/uT\s*\*\s*[0-9.]+/.test(vb), 'fs-vbody: no clock times a literal (a drift of its own)');
-  assert.match(WORLD, /var FS_VBODY = HEAD \+ airGlsl\(\) \+/, 'the billows\' program is given the air\'s define');
-  const G = page(), def = vm.runInThisContext('(function () { var AIR_DRIFT = ' + JSON.stringify(G.AIR_DRIFT) + ';\n' + cut(WORLD, '  function airGlsl()', '\n', true) + cut(WORLD, '  function airF(', '\n', true) + 'return airGlsl(); })')();
-  assert.equal(def, '#define AIR_DRIFT(t) vec3(t * 0.004, 0.0, t * 0.003)\n', 'the define expands to today\'s offset, token for token');
+test('air: the billows read no clock (they ride with their body, physics: clouds/drift); the high streaks\' axis is the air\'s', () => {
+  const vb = GLSL('fs-vbody.glsl').replace(/\/\/[^\n]*/g, ''), sb = GLSL('sky-body.glsl'), G = page();
+  assert.ok(!/\buT\b/.test(vb), 'fs-vbody reads the clock: its billows slide through their body');
   assert.match(sb, /vec2 qs = P \* vec2\(1\.0 \/ 153600\.0, 1\.0 \/ 38400\.0\);/, 'the streaks are long along world x (AIR_CIRRUS [1, 0])');
   assert.deepEqual(G.AIR_CIRRUS, [1, 0]);
 });
@@ -131,7 +137,7 @@ test('air: the landing\'s heading is drawn once, by the air; one cruise band', (
 test('air: the clock (the sky\'s light at one rate, SKY_RATE)', { todo: 'the SKY lane: the sun about 70-90x, the moon 70-120x, the stars and the galaxy 0x today' }, () => {
   const G = page(), rates = {}, move = 57.5;   // (a change's move: 55-60 s; the real sun 15 deg an hour)
   for (const [sky, el] of Object.entries(G.AIR_SUN_EL)) rates['sun:' + sky] = (el - -24) / move / (15 / 3600);
-  const f = G.skyFrame(0); rates.stars = f.every((x, i) => x === [1, 0, 0, 0, 1, 0, 0, 0, 1][i]) ? 0 : NaN;
+  G.SIM.V = { seed: 3, light: { sunAz: 10 } }; rates.stars = (G.skySphere(1).lst - G.skySphere(0).lst) / (2 * Math.PI / G.AIR_SIDEREAL);   // (the frame: SKY_RATE x sidereal, always)
   for (const [k, r] of Object.entries(rates)) assert.ok(Math.abs(r / G.SKY_RATE - 1) <= 0.1, `${k}: ${r.toFixed(1)}x, SKY_RATE ${G.SKY_RATE}x`);
 });
 
@@ -140,7 +146,7 @@ test('air: the wind profile (the log law over sand under 100 m, veering aloft to
   for (const [y, lo, hi] of [[0.1, 0.39, 0.5], [0.87, 0.68, 0.72], [2.5, 0.82, 0.88], [10, 1, 1], [26, 1.09, 1.13], [60, 1.18, 1.24]])
     assert.ok(share(y) >= lo - 1e-12 && share(y) <= hi + 1e-12, `${y} m: ${share(y).toFixed(3)} of U10, not ${lo}-${hi}`);
   assert.equal(G.airSpeed(10), 0, 'still air before a visit\'s wind');
-  let sum = 0, lo = 99, hi = 0; const N = 20000, bins = new Array(9).fill(0);   // the visits' U10: the Rayleigh of mean 5 mapped into 3.0-7.5 (the hub's ruling), nothing piled at the ends
+  let sum = 0, lo = 99, hi = 0; const N = 20000, bins = new Array(9).fill(0);   // the visits' U10: the speed distribution of a two-dimensional normal wind vector, of mean 5 mapped into 3.0-7.5 (the hub's ruling), nothing piled at the ends
   for (let i = 0; i < N; i++) { const u = G.airU10((i * 2654435761 + 7) >>> 0); sum += u; lo = Math.min(lo, u); hi = Math.max(hi, u); bins[Math.min(8, Math.floor((u - 3) / 0.5))]++; }
   assert.ok(lo >= 3 && hi <= 7.5, `U10 within 3.0-7.5 m/s (${lo.toFixed(3)}-${hi.toFixed(3)})`);
   assert.ok(lo < 3.05 && hi > 7.45, 'the whole range is reached');
@@ -174,3 +180,67 @@ test('air: a mote is drawn along its whole motion on the window (its own wind an
   assert.match(WORLD, /if \(P\.u\.uMBdt\) gl\.uniform1f\(P\.u\.uMBdt, MBS\.dt\);/, 'the frame\'s own time since the last');
   assert.match(WORLD, /MBS\.dt = dU > 0 \? dU : 0;/, 'kept with the moment\'s first drawing (W7\'s pair draws it the same)');
 });
+
+test('air: the sky\'s frame (one celestial sphere: the pole at the latitude, the ecliptic and the galaxy where J2000 puts them, turning forward at SKY_RATE)', () => {
+  const G = page(), D = 180 / Math.PI, dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, dot(a, b)))) * D;
+  const el = (v) => Math.asin(v[1]) * D, az = (v) => Math.atan2(v[0], v[2]) * D, adiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+  const order = [{ id: 'afterglow', at: -30, hold: 80, move: 58 }, { id: 'milkyway', at: 108, hold: 90, move: 56 }, { id: 'firstlight', at: 254, hold: 100, move: 60 }, { id: 'bluehour', at: 414, hold: 80, move: 55 }, { id: 'moonlit', at: 549, hold: 190, move: 58 }];
+  const decs = [], rate = G.SKY_RATE * 360 / G.AIR_SIDEREAL;   // (deg/s)
+  for (const seed of SEEDS) {
+    G.SKY.seq.length = 0; G.SKY.seq.push(...order.map((e) => Object.assign({}, e))); G.SKY.dt = 0;
+    const V = { seed, light: { sunAz: (seed % 360) - 180 } }; G.SIM.V = V;
+    const F = G.skySphere(30, V), M = F.M, col = (i) => [M[3 * i], M[3 * i + 1], M[3 * i + 2]];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) assert.ok(Math.abs(dot(col(i), col(j)) - (i === j ? 1 : 0)) < 1e-6, 'the frame is orthonormal');
+    const X = col(0), Y = col(1), Z = col(2), c = [X[1] * Y[2] - X[2] * Y[1], X[2] * Y[0] - X[0] * Y[2], X[0] * Y[1] - X[1] * Y[0]];
+    assert.ok(dot(c, Z) > 1 - 1e-6, 'right-handed: right ascension 0 x 90 is the pole');
+    const R = G.skyFrame(30, V); for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) assert.equal(R[r * 3 + k], M[k * 3 + r], 'skyFrame: the same frame, row-major (226\'s uSkyF)');
+    assert.strictEqual(R, G.AIR_FRAME, 'filled in place');
+    assert.ok(Math.abs(el(F.pole) - G.AIR_LAT) < 1e-6, 'the pole stands at the latitude');
+    assert.ok(Math.abs(ang(F.pole, F.ecl) - G.AIR_OBL) < 1e-4, 'the ecliptic leans the obliquity to the equator');
+    assert.ok(Math.abs(ang(F.ecl, F.galPole) - 60.19) < 0.05, `the galactic pole ${ang(F.ecl, F.galPole).toFixed(2)} deg from the ecliptic's`);
+    assert.ok(Math.abs(Math.asin(dot(F.galCentre, F.ecl)) * D + 5.54) < 0.1, 'the galactic centre 5.5 deg south of the ecliptic');
+    assert.ok(Math.abs(dot(F.sun, F.ecl)) < 1e-5, 'the sun on the ecliptic');
+    assert.ok(F.sunDec <= 1e-9 && F.sunDec >= -G.AIR_OBL - 1e-9, 'the dark half of the year'); decs.push(F.sunDec);
+    const s0 = G.skySphere(0, V).sun; assert.ok(Math.abs(el(s0) - -3) < 1e-3 && adiff(az(s0), V.light.sunAz) < 1e-3, 'at sky time 0, the opening\'s (the afterglow\'s) sun: 3 deg down, on the drawn sun\'s azimuth');
+    // the clock: forward only, at SKY_RATE x sidereal, never stopping, never turning back, through every hold and change
+    let p = G.skySphere(-30, V).lst, lo = Infinity, hi = -Infinity;
+    for (let i = 1; i <= 16600; i++) { const S2 = G.skySphere(-30 + i * 0.05, V), r = (S2.lst - p) * D / 0.05; lo = Math.min(lo, r); hi = Math.max(hi, r); p = S2.lst; }
+    assert.ok(Math.abs(lo / rate - 1) < 1e-6 && Math.abs(hi / rate - 1) < 1e-6, `the sky turns at ${lo.toFixed(4)}-${hi.toFixed(4)} deg/s through every hold and change: SKY_RATE x sidereal is ${rate.toFixed(4)}, always (never still, never back)`);
+    // a star rising in the east climbs (the turn is east to west)
+    const C = JSON.parse(JSON.stringify({ M: Array.from(G.skySphere(100, V).M), lst: G.skySphere(100, V).lst })), ra = C.lst + Math.PI / 2, v = [Math.cos(ra), Math.sin(ra), 0], w2 = (S2) => [S2.M[0] * v[0] + S2.M[3] * v[1] + S2.M[6] * v[2], S2.M[1] * v[0] + S2.M[4] * v[1] + S2.M[7] * v[2], S2.M[2] * v[0] + S2.M[5] * v[1] + S2.M[8] * v[2]];
+    assert.ok(Math.abs(el(w2(C))) < 1e-4, 'an equator star at hour angle -90 deg is on the horizon');
+    assert.ok(w2(G.skySphere(101, V))[1] > w2(C)[1], 'a star rising in the east climbs as the night goes on (the sky turns east to west)');
+  }
+  assert.ok(Math.min(...decs) < -15 && Math.max(...decs) > -8, 'the visits\' seasons spread over the dark half');
+  // a first-light opening: its sun in the morning, on the other side
+  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'firstlight', at: -20, hold: 80, move: 55 }); const W = { seed: 9, light: { sunAz: 40 } };
+  const m = G.skySphere(0, W).sun; assert.ok(Math.abs(el(m) - -3) < 1e-3 && adiff(az(m), 40) > 30, 'a first-light opening: its sun 3 deg down, in the morning');
+  G.SIM.V = null; assert.deepEqual(Array.from(G.skyFrame(0)), Array.from(G.skyFrame(0)), 'before a visit: the frame unchanged');
+  // no reader lights by the frame's sun: no world section (but the air's own) or realm, bird or sound file reads skySphere's .sun, inline or through a name it is
+  // assigned to (its other fields, sunDec, the pole, the ecliptic, are the sphere's to read: NIGHT's planets)
+  const sunRead = (t) => { if (/skySphere\s*\((?:[^()]|\([^()]*\))*\)\s*\.\s*sun\b/.test(t)) return true; for (const m of t.matchAll(/\b([A-Za-z_$][\w$]*)\s*=\s*(?:[\w$.]+\.)?skySphere\s*\(/g)) if (new RegExp('\\b' + m[1].replace(/\$/g, '\\$') + '\\s*\\.\\s*sun\\b').test(t)) return true; return false; };
+  const SECS = fs.readdirSync(path.join(ROOT, 'src/world')).filter((n) => n.endsWith('.js') && n !== '215-air.js').map((n) => 'src/world/' + n);
+  const READERS = execFileSync('git', ['ls-files', 'src/*.js', 'src/birds/*.js', 'src/birds/**/*.js'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && !f.startsWith('src/world/') && !f.startsWith('src/dev/'));
+  for (const f of SECS.concat(READERS)) assert.ok(!sunRead(fs.readFileSync(path.join(ROOT, f), 'utf8')), `${f} lights by skySphere().sun: the frame's sun is never a light (keyAt and uSkyS are)`);
+  assert.ok(sunRead('var F = A.skySphere(0, V); x = F.sun;') && sunRead('a = skySphere(t).sun') && sunRead('d = skySphere(SIM.t + (SKY.dt || 0), V).sun') && !sunRead('var F = skySphere(t, V); d = F.sunDec;') && !sunRead('d = skySphere(SIM.t + (SKY.dt || 0), V).sunDec'), 'the guard: an inline (nested call too) or assigned .sun caught, .sunDec allowed');
+});
+
+test('air: one moon direction (the disc as drawn: a glory, a fogbow or a moonlit edge stands on it, never on the key)', () => {
+  const G = page();
+  // the night sky's uMoon and the air's moonDir: the same route at the same drawn moment
+  const drawn = WORLD.match(/moonShown\((SIM\.t - \(1 - SIM\.alpha\) \* SIM_DT \+ SKY\.dt), MOON\.s\); SKYN\.moon\[0\] = MOON\.s\.d\[0\]/);
+  assert.ok(drawn, 'the night sky draws the disc at the frame\'s own moment');
+  assert.ok(WORLD.includes('var m = moonShown(' + drawn[1] + ', AIR_MOONS);'), 'moonDir reads the route at that same moment, on its own scratch (never moonAt\'s AIR_MOON)');
+  assert.match(WORLD, /moonDir: airMoonDir,/, 'the realms and the kits read it as WORLD.air.moonDir');
+  assert.equal(G.airMoonDir().up, false, 'before a visit: none');
+  G.SIM.V = { seed: 1 }; G.SIM.t = 100; G.SIM.alpha = 0.25; G.SKY.dt = 7;
+  G.airMoonDir(); assert.ok(Math.abs(G.AIR_MOONS.t - (100 - 0.75 / 60 + 7)) < 1e-12, 'asked at the drawn moment (the step\'s interpolation and the cycle\'s offset)');
+  assert.equal(G.AIR_MOON.t, undefined, 'moonAt\'s scratch untouched');
+  G.stub({ d: [0.6, 0.48, 0.64], w: 0.8, az: 30, el: 20 }); const p = G.airMoonDir();
+  assert.deepEqual(p.d, [0.6, 0.48, 0.64]); assert.equal(p.w, 0.8); assert.equal(p.up, true);
+  assert.ok(p.az === 30 && p.el === 20, 'az and el each its own (never swapped)');
+  G.stub({ d: [0, -1, 0], w: 0, az: 10, el: -30 }); assert.equal(G.airMoonDir().up, false, 'a moon of weight 0 is not up');
+  G.stub({ d: [0.6, 0.48, 0.64], w: 0.8, az: 30, el: 20 }); const q = G.airMoonDir();
+  assert.notStrictEqual(q.d, G.AIR_MOONS.d, 'its own array: a reader never writes the route');
+});
+
