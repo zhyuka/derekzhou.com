@@ -146,7 +146,9 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
                              tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL),
                              tools/checks/46-names-in-messages.sh (no banned name in a commit message from main to HEAD,
-                             the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list)
+                             the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list),
+                             tools/checks/47-first-paint.sh (with no stills, the words first, then the world as a cut,
+                             no stale still: tools/first-paint.mjs)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:

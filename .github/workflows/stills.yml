@@ -8,7 +8,7 @@ name: Stills
 # bot-rules.mjs stillsReady). A failure here never turns main red: live waits, the status says why.
 # (2026-11-23, the owner: "None on my PC") the bake itself no longer runs in CI: it ran on the PC's RTX 4090, six jobs
 # a sky each, and no self-hosted runner takes jobs now. A tip whose key has no release ships without stills: its
-# status is success, saying so (the first paint without stills: tools/checks/44-first-paint.sh). On a claude/* branch: nothing (2026-11-14).
+# status is success, saying so (the first paint without stills: tools/checks/47-first-paint.sh). On a claude/* branch: nothing (2026-11-14).
 # The builds are the Gate run's gate-served artifact (read with actions: read), checked against their manifest and
 # pinned to the served_sha in that run's gate-verdict artifact: both are scoped to the Gate run, so no other run's code
 # can rewrite them. main's copy of this file and of tools/ runs, never a branch's (workflow_run).
@@ -94,7 +94,7 @@ jobs:
           echo "$said"
           if grep -q ' is up$' <<<"$said" && grep -q 'status stills success' <<<"$said"; then echo "up already: nothing to bake"; exit 0; fi
           # No set for this world (CI bakes no stills: no GPU since 2026-11-23): the tip ships without them, the first
-          # paint the words and then the world as a cut (tools/checks/44-first-paint.sh proves it on every gate), so
+          # paint the words and then the world as a cut (tools/checks/47-first-paint.sh proves it on every gate), so
           # the status is success, saying so: live never waits for a bake (the hub, for the owner, 2026-11-23).
           echo "bake=true" >> "$GITHUB_OUTPUT"
           curl -fsS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$SHA" -d "{\"state\":\"success\",\"context\":\"stills\",\"description\":\"no stills for this world: it ships without them (no bake in CI)\",\"target_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" >/dev/null

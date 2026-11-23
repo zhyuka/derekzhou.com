@@ -95,14 +95,16 @@ The key is the whole served build, so any served change (a sound, a stylesheet, 
 only ever its own world's:
 - stills.yml, after every green Gate run on main: is the set for the tip's key up (one request)? Then the tip's commit
   status `stills` is success. Not up: success too, saying the world ships without stills (never a red main).
-- The deploy gate (merge-bot.mjs): live moves to a tip that has tools/gpu/bake-stills.js only once its `stills` status
-  is success (bot-rules.mjs stillsReady). merge.yml ticks when stills.yml completes.
+- The deploy gate (merge-bot.mjs): a tip that has tools/gpu/bake-stills.js waits only while its `stills` status is
+  failed or pending (bot-rules.mjs stillsReady). No status passes: stills.yml posts none once its commit is no longer
+  main's tip, nor where main's gate was cancelled, and the build fetches its key's set or ships without. merge.yml
+  ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
-  its sha256 (.github/ci/stills-live.mjs).
+  its sha256; with no set, live must ship without stills cleanly (.github/ci/stills-live.mjs).
 The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23.
 CI no longer bakes, so a served change that makes a new key ships without stills: the first paint the words over the
 hour's still sky, then the world's first frame drawn whole as the cut, no fade and no still from another key
-(tools/checks/44-first-paint.sh proves it on every gate, on a phone and a laptop; post-deploy's stills-live.mjs checks
+(tools/checks/47-first-paint.sh proves it on every gate, on a phone and a laptop; post-deploy's stills-live.mjs checks
 live asks for no still and says so in build.txt). Live never waits for a bake. Later: a key of what the canvas reads
 (sound and the site's metadata are outside it; CSS, fonts and the words reach it), so a change it never sees keeps its
 set; and a measured SwiftShader bake on hosted runners.

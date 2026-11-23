@@ -1,6 +1,6 @@
 // first-paint.mjs: the page's first paint with no stills, the build a served change ships when no set exists for its
 // world's key (docs/deploy.md, "The stills"; docs/world.md, the first paint and THE OPENINGS).
-//   node tools/first-paint.mjs build/site
+//   node tools/first-paint.mjs build/site     (tools/checks/47-first-paint.sh, on every gate)
 // The plain build served as Pages would (.github/ci/serve.mjs) and opened in headless Chromium under SwiftShader on the
 // gates' paused, stepped clock (.github/ci/harness.mjs), on a phone and a laptop. It fails unless:
 //   - no stale still: the build has no assets/still/, no still preload and no --still, and the page fetches nothing
