@@ -4,7 +4,7 @@
   python3 -I tools/birds/model/make.py           write src/birds/model/model.js and tools/birds/model/model_full.json
   python3 -I tools/birds/model/make.py --check   write nothing; exit 1 unless both files are what this makes, byte for byte
 
-Three steps: build_model.py turns the measured data into a per-kind model (Fourier channels, with the settings in
+Three steps: build_model.py turns the measured data into a per-kind model (harmonic channels, with the settings in
 settings.json); solve.js solves the rig's angles on the faceted M (src/birds/model/facetform.js, facetpose.js and
 wingmodel.js) so the posed form shows the measured observables; then the served copy is written.
 
