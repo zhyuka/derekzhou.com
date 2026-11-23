@@ -12,7 +12,13 @@
 //   - over those two hours no chord is held under it (three or more held notes at once under 20% of the time, never
 //     past 20 s at a stretch; a whole triad sounding under 20% of it), no note is held long (18 s at most, the deep
 //     end 20 s), never one held note alone for long (8 s at most; past 4 s 30 times at most: alone, a held note reads
-//     as a tone, a siren), and there is never a hole (nothing sounding for 3.5 s at most, 2.5 s or more four times at most);
+//     as a tone, a siren), and there is never a hole (nothing sounding for 3.5 s at most, 2.5 s or more four times at most),
+//     but the Milky Way's breaths;
+//   - the night's quiet: over those two hours the night skies thinner (the Milky Way and aurora begin fewer notes a
+//     minute than blue hour, three voices at once rarer), each sky its own level (the strings under afterglow's horns
+//     2.5 dB or more over those under the Milky Way's harp; the notes' energy a minute by day 1 dB or more over the
+//     night's), and the Milky Way's breaths (only there, well inside it, 4-6 s of nothing but the air, no deep note
+//     under one, a minute and a half apart at least);
 //   - the room and the air filled a slice at a time (as the switch has it) play exactly what they play filled at once.
 // plant: {"file": "src/score.js", "find": "if (d < 3 || d % 12 === 1 ||", "with": "if (d < 1 || d % 12 === 1 ||", "why": "a note let in a step from one it meets"}
 import { test, assert, fs, path, vm, ROOT } from '../unit-lib.mjs';
@@ -46,9 +52,9 @@ function play(seed, flight = FLIGHT, len = T, sliced = false) {
   for (now = 0; now < len; now += 0.5) score.tick(now);
   const notes = srcs.filter((s) => s.buffer === sheet).map((s) => {
     const e = NOTES.find((n) => s.off >= n[2] - 1e-6 && s.off <= n[2] + n[3] + 1e-6), rate = s.playbackRate.value, m = Math.round(e[1] + 12 * Math.log2(rate));
-    const g = s.out[0].gain.calls, up = g.find((c) => c[0] === 'curve' && c[3] < c[4]), down = g.find((c) => c[0] === 'curve' && c[3] > c[4]);
+    const g = s.out[0].gain.calls, up = g.find((c) => c[0] === 'curve' && c[3] < c[4]), down = g.find((c) => c[0] === 'curve' && c[3] > c[4]), set = g.find((c) => c[0] === 'set' && c[2] > 0);
     const a = e[4] ? s.when + (up ? up[2] : 0) * 0.5 : s.when, b = e[4] ? (down ? down[1] + down[2] * 0.45 : Infinity) : s.when + Math.min(3, e[3] / rate);
-    return { inst: INST[e[0]], m, when: s.when, a, b };
+    return { inst: INST[e[0]], m, when: s.when, a, b, A: up ? up[4] : set ? set[2] : 0 };   // (A: the note's level, its gain at full)
   });
   notes.tasks = tasks; notes.fills = [...convs.map((c) => c.buffer), ...srcs.filter((s) => s.buffer && s.buffer !== sheet).map((s) => s.buffer)].map((b) => [0, 1].map((c) => b.getChannelData(c)));
   notes.airStarts = srcs.filter((s) => s.buffer && s.buffer !== sheet).map((s) => [s.when, s.off]);
@@ -133,13 +139,14 @@ test('sound: two hours of a flight ordered as the world orders it: the rules hol
 test('sound: no chord under it: over two hours the notes come and go, none held long, none alone long, and never a hole', () => {
   const n = long().n, HELD = ['cello', 'viola', 'violin', 'clar', 'horn'], s = n.filter((v) => v.m >= 36).sort((x, y) => x.a - y.a), on = new Set();
   let i = 0, three = 0, run = 0, longest = 0, triad = 0, total = 0, quiet = 0, gaps = 0, worst = 0, lone = 0, lonest = 0, lones = 0;
+  const F = long().F, milky = (t) => F.some((e) => e.id === 'milkyway' && t >= e.at - 30 && t <= e.at + e.hold);   // (the breaths: holes inside a Milky Way, below)
   for (let t = 15; t < 7180; t += 0.25) {   // (every quarter second: the held notes sounding, the pitch classes, a hole; the deep end is felt, not heard, so it fills none)
     while (i < s.length && s[i].a <= t) on.add(s[i++]);
     for (const v of on) if (v.b < t) on.delete(v);
     const held = new Set([...on].filter((v) => HELD.includes(v.inst)).map((v) => v.m)), pcs = new Set([...on].map((v) => v.m % 12)); total++;
     if (held.size >= 3) { three++; run += 0.25; longest = Math.max(longest, run); } else run = 0;
     if ([...pcs].some((r) => (pcs.has((r + 3) % 12) || pcs.has((r + 4) % 12)) && pcs.has((r + 7) % 12))) triad++;
-    if (!on.size) quiet += 0.25; else { if (quiet >= 2.5) gaps++; worst = Math.max(worst, quiet); quiet = 0; }
+    if (!on.size) quiet += 0.25; else { if (!(quiet >= 2.5 && milky(t - quiet))) { if (quiet >= 2.5) gaps++; worst = Math.max(worst, quiet); } quiet = 0; }
     if (on.size === 1 && HELD.includes([...on][0].inst)) { lone += 0.25; lonest = Math.max(lonest, lone); } else { if (lone > 4) lones++; lone = 0; }
   }
   const len = (v) => v.b - v.a, held = n.filter((v) => HELD.includes(v.inst) && isFinite(v.b)).map(len), deep = n.filter((v) => v.m < 36 && isFinite(v.b)).map(len);
@@ -148,7 +155,40 @@ test('sound: no chord under it: over two hours the notes come and go, none held 
   assert.ok(triad / total < 0.2, `a whole triad sounding ${Math.round(100 * triad / total)}% of the time (want under 20%)`);
   assert.ok(Math.max(...held) <= 18 && Math.max(...deep) <= 20, `a note held ${Math.max(...held).toFixed(1)} s, a deep one ${Math.max(...deep).toFixed(1)} s (want 18 s, 20 s at most)`);
   assert.ok(lonest <= 8 && lones <= 30, `one held note alone for ${lonest} s; ${lones} times past 4 s (want 8 s at most, 30 times at most)`);
-  assert.ok(worst <= 3.5 && gaps <= 4, `nothing sounding for ${worst} s; ${gaps} holes of 2.5 s or more (want 3.5 s at most, four at most)`);
+  assert.ok(worst <= 3.5 && gaps <= 4, `nothing sounding for ${worst} s; ${gaps} holes of 2.5 s or more outside the Milky Way's breaths (want 3.5 s at most, four at most)`);
+});
+test('sound: the night\'s quiet: the night skies thinner, and in the Milky Way now and then a breath of the air alone', () => {
+  const { F, n } = long(), skyAt = (t) => { let e = F[0]; for (const x of F) if (x.at <= t) e = x; return e; };
+  const per = {}; for (const e of F) { const a = e.at + 20, b = e.at + e.hold - 10, p = per[e.id] || (per[e.id] = { s: 0, min: 0, three: 0, n: 0 }); if (b <= a || b > 7180) continue;
+    p.s += n.filter((v) => v.m >= 36 && v.when >= a && v.when < b).length; p.min += (b - a) / 60;
+    for (let t = a; t < b; t += 0.5) { const k = n.filter((v) => v.m >= 36 && v.a <= t && t <= v.b).length; p.n++; if (k >= 3) p.three++; } }
+  const rate = (id) => per[id].s / per[id].min, thr = (id) => per[id].three / per[id].n;
+  /* each sky its own level: the strings in full under afterglow's horns, softer under the Milky Way's harp; and the
+     notes' energy (level squared, for as long as each is heard) a minute, afterglow and first light over the night skies */
+  const dB = (x) => 10 * Math.log10(x), STR = ['cello', 'viola', 'violin'], lv = {}, en = {};
+  for (const e of F) { const a = e.at + 20, b = e.at + e.hold - 10; if (b <= a || b > 7180) continue; const L = lv[e.id] || (lv[e.id] = []), E = en[e.id] || (en[e.id] = { e: 0, d: 0 });
+    for (const v of n) { if (v.m < 36 || v.when < a || v.when >= b) continue; if (STR.includes(v.inst)) L.push(v.A * v.A); E.e += v.A * v.A * Math.max(0, Math.min(v.b, b) - Math.max(v.a, a)); }
+    E.d += b - a; }
+  const mean = (id) => dB(lv[id].reduce((x, y) => x + y, 0) / lv[id].length), rateE = (ids) => dB(ids.reduce((x, id) => x + en[id].e, 0) / ids.reduce((x, id) => x + en[id].d, 0));
+  const under = mean('afterglow') - mean('milkyway'), gap = rateE(['afterglow', 'firstlight']) - rateE(['moonlit', 'aurora', 'milkyway']);
+  console.log(`# levels: the strings under the horns ${under.toFixed(1)} dB over those under the harp; day ${gap.toFixed(1)} dB over night`);
+  assert.ok(under >= 2.5, `the strings under afterglow's horns ${under.toFixed(1)} dB over those under the Milky Way's harp (want 2.5 dB or more)`);
+  assert.ok(gap >= 1, `the notes' energy by day ${gap.toFixed(1)} dB over the night's (want 1 dB or more: a proxy; rendered, the night is about 3 dB under)`);
+  for (const id of ['milkyway', 'aurora']) {
+    assert.ok(rate(id) < 0.8 * rate('bluehour'), `${id} begins ${rate(id).toFixed(1)} notes a minute, blue hour ${rate('bluehour').toFixed(1)} (want under 0.8 of it)`);
+    assert.ok(thr(id) < 0.15, `${id}: three voices at once ${Math.round(100 * thr(id))}% of the time (want under 15%)`);
+  }
+  const s = n.filter((v) => v.m >= 36), deep = n.filter((v) => v.m < 36), holes = [];
+  for (let t = 15, q = 0; t < 7180; t += 0.25) { if (!s.some((v) => v.a <= t && t <= v.b)) q += 0.25; else { if (q >= 2.5) holes.push([t - q, q]); q = 0; } }
+  const breaths = holes.filter(([t]) => skyAt(t).id === 'milkyway' || skyAt(t + 30).id === 'milkyway');
+  assert.ok(breaths.length >= 3, `${breaths.length} breaths in two hours (want three or more)`);
+  for (const [t, q] of breaths) {
+    const e = F.find((x) => x.id === 'milkyway' && t >= x.at - 30 && t <= x.at + x.hold);
+    assert.ok(e, `a breath at ${t.toFixed(1)} s outside the Milky Way`);
+    assert.ok(q <= 6.5, `a breath of ${q} s at ${t.toFixed(1)} s (want 6.5 s at most)`);
+    assert.ok(!deep.some((v) => v.a < t + q && v.b > t), `a deep note under the breath at ${t.toFixed(1)} s`);
+  }
+  for (let j = 1; j < breaths.length; j++) assert.ok(breaths[j][0] - breaths[j - 1][0] >= 85, `breaths ${(breaths[j][0] - breaths[j - 1][0]).toFixed(0)} s apart (want 85 s at least)`);
 });
 test('sound: the room and the air filled a slice at a time, as the switch has it, play exactly what they play filled at once', () => {
   const a = play(1501), b = play(1501, FLIGHT, T, true), key = (L) => L.map((n) => n.inst + n.m + '@' + n.when + ':' + n.a + '-' + n.b).join(' ');

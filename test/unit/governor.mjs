@@ -1,6 +1,6 @@
 // test/unit/governor.mjs: the render scale's governor on synthetic frame clocks
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
-// plant: {"file": "src/world/450-loop-governor-device-tier.js", "find": "    if (p50 > PER * 1.35) {", "with": "    if (p50 > PER * 3) {", "why": "the governor slow to step down"}
+// plant: {"file": "src/world/450-loop-governor-device-tier.js", "find": "    if (p50 > PER * 1.08) {", "with": "    if (p50 > PER * 3) {", "why": "the governor slow to step down"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the governor, on synthetic frame clocks
@@ -50,3 +50,47 @@ test('governor: a 144 Hz display is never asked to beat 60 Hz', () => {
   const G = governed(); play(G, 60, () => 1000 / 144);
   assert.equal(G.rung(), 0); assert.ok(Math.abs(G.pace() - 1000 / 60) < 1e-9);
 });
+// (the owner, 2026-11-15: "Smooth, >=60 fps") a display over 60 Hz quantises a frame to its own period, so the multiple
+// after one 60 Hz frame can land under the old 1.35 periods: a 90 Hz phone sat at 45 fps, a 144 Hz monitor at 48, never
+// stepping down. Frames here are a pixel-bound cost (the scale squared) put on the display's next sync
+function synced(hz, costMs, fixed = false) {   // fixed: a cost the scale cannot touch (the CPU, the driver)
+  const V = 1000 / hz, sc = [1, 0.85, 0.72, 0.6, 0.5]; let seed = 1;
+  return (r) => { seed = (seed * 16807) % 2147483647; const c = costMs * (fixed ? 1 : sc[r] * sc[r]) * (0.9 + 0.2 * seed / 2147483647); return Math.max(1, Math.ceil(c / V - 1e-9)) * V; };
+}
+function fpsAfter(G, seconds, f, settle) {   // play `settle` s, then the mean fps over the rest
+  let t = 0, n = 0, tm = 0; while (t < seconds * 1000) { const d = f(G.rung(), t); G.step(d); t += d; if (t > settle * 1000) { n++; tm += d; } }
+  return 1000 * n / tm;
+}
+for (const [hz, cost, lo] of [[90, 20, 60], [100, 15, 60], [144, 20, 60], [165, 15, 60], [75, 26, 60]]) {
+  test(`governor: a ${hz} Hz display at ${cost} ms a frame steps down to 60 fps or more`, () => {
+    const G = governed(), fps = fpsAfter(G, 180, synced(hz, cost), 90);
+    assert.ok(fps >= lo, `${fps.toFixed(1)} fps at rung ${G.rung()}`); assert.ok(G.rung() > 0); assert.equal(G.gave(), 0);
+  });
+}
+test('governor: 60 and 120 Hz displays keep their rungs (cheap: the top; 20 ms: one down)', () => {
+  for (const hz of [60, 120]) {
+    const A = governed(); fpsAfter(A, 120, synced(hz, 12), 60); assert.equal(A.rung(), 0, `${hz} Hz, 12 ms`);
+    const B = governed(), fps = fpsAfter(B, 180, synced(hz, 20), 90); assert.equal(B.rung(), 1, `${hz} Hz, 20 ms`); assert.ok(fps >= 58, `${hz} Hz ${fps}`);
+  }
+});
+// (review of #282) a cost the scale cannot touch gets main's two trials, not the third: a 30 fps cap (Low Power Mode,
+// Energy Saver), a CPU-bound phone on a 60 or 120 Hz display, a 48-55 Hz display under its own frame. The boot's detour
+// stays at three rung changes, never below rung 2, and the cost is learnt as the pace
+function detour(f, seconds = 60) {
+  const G = governed(); let t = 0, prev = 0, changes = 0, deepest = 0;
+  while (t < seconds * 1000) { const d = f(G.rung(), t); G.step(d); t += d; const r = G.rung(); if (r !== prev) { changes++; prev = r; } deepest = Math.max(deepest, r); }
+  return { G, changes, deepest };
+}
+for (const [name, f] of [
+  ['a 30 fps cap', () => 1000 / 30],
+  ['a CPU-bound phone on 60 Hz (20 ms at every rung)', synced(60, 20, true)],
+  ['a CPU-bound phone on 120 Hz (20 ms at every rung)', synced(120, 20, true)],
+  ['a 50 Hz display', () => 20],
+  ['a 48 Hz display', () => 1000 / 48],
+]) {
+  test(`governor: ${name} keeps main's two trials (no third rung)`, () => {
+    const { G, changes, deepest } = detour(f);
+    assert.ok(deepest <= 2, `deepest rung ${deepest}`); assert.ok(changes <= 3, `${changes} rung changes`);
+    assert.equal(G.rung(), 0); assert.equal(G.gave(), 0);
+  });
+}
