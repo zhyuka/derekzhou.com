@@ -23,6 +23,18 @@
     else { o[0] = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); o[1] = f < 1 ? Math.sin(Math.PI * f) : 0; o[2] = 0; }
     return o;
   }
+  /* a walk planned to stay on the stroke: no more steps than the flat ledge middles reach that way (the ledges along
+     the stroke, each handing on to the next), so it never stops past a stroke's end and snaps back; none if no room */
+  function newWalk(P, dir, n, step, t0) {
+    var L = ledges(), li = P.li, x = P.x, g, e, m;
+    for (g = 0; li >= 0 && g < 64; g++) {   // (each ledge's flat middle: the point either side of its own; a link's, its ends)
+      m = L[li].pts; e = m[m.length > 2 ? (m.length >> 1) + dir : dir > 0 ? 1 : 0][0];
+      if (g && (e - x) * dir <= 0) break;   // (a ledge that takes it no farther: the stroke ends here)
+      x = e; li = nearLedge(x + dir / 2, P.fy, li);
+    }
+    n = Math.min(n, Math.floor(Math.abs(x - P.x) / step));
+    return n > 0 ? { dir: dir, n: n, step: step, t0: t0, x0: P.x } : null;
+  }
   function perchedStep(b, dt, C) {
     var P = b.P, r = b.r;
     if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast, steers, goes or nears the edge */
@@ -47,7 +59,7 @@
       if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30)) { var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
       else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
-      else if (u < 0.82 && P.kind === 'name') { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
+      else if (u < 0.82 && P.kind === 'name') { P.walk = newWalk(P, r() < 0.5 ? -1 : 1, 1 + Math.floor(r() * 3), 0.08 * perchSpan(b, P.k), t); }
       else if (u < 0.94 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
       P.nextAct = t + pick(r, [4, 12]);
     }

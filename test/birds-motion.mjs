@@ -248,6 +248,40 @@ test('no perched bird stands in the air above the ink (over 1 px for no more tha
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
 
+/* (what it guards: no bird perched on the name stands under a stroke, its body inside a closed counter or under a
+   crossbar, where the letters drawn over it read as a bird inside the letter: the PC's #314 frames, a crow inside the
+   Z. Before the head-room cut, 5.9% of the name's perched frames had points of the bird inside the ink above its
+   ledge. 35-birds.sh's plant lets every ledge through) */
+test('no bird perched on the name stands under a stroke (no point of it inside the ink above its ledge)', () => {
+  let n = 0, bad = 0, at = '';
+  for (const cs of ['drop', 'perch']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 4; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
+    for (let k = 0; k < 26 * 60; k++) {
+      if (sc.each) sc.each(sim, tags);
+      sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX, nm = B.nameMap(); if (!nm) continue;
+      const I = B.nameInk(), PI = B.PERCH_INK, L = B.ledges();
+      for (const b of B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
+        const own = L[P.li]; if (!own || own.kind !== 'name') continue;
+        n++; let inside = 0;
+        for (let i = 0; i < NV; i++) {   // (each point above its ledge, on the window, read in the name's own ink: the runs of sky down each column)
+          const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
+          const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
+          if (sy > own.y - 2) continue;   // (its feet and what stands on the ledge's own stroke)
+          const ux = (sx - nm[0]) / nm[2], uy = (sy - nm[1]) / nm[2], c = Math.floor(ux / PI.col);
+          if (c < 0 || c >= I.length || uy < 0 || uy >= PI.h) continue;
+          if (!I[c].some((r) => uy >= r[0] && uy < r[1])) inside++;
+        }
+        if (inside) { bad++; if (!at) at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)} ledge ${P.li}: ${inside} points`; }
+      }
+    }
+  }
+  console.log(`# frames perched on the name: ${n}; with a point inside the ink above the ledge ${bad} (first: ${at || 'none'})`);
+  assert.ok(n > 1000, 'too few frames perched on the name');
+  assert.equal(bad, 0, `${bad} of ${n} frames perched on the name had points inside the ink above the ledge (${at})`);
+});
+
 /* (what it guards: a second landing drawn as smoothly as a first, at 144 Hz, where a snap of a few px is over its bound.
    35-birds.sh's plant takes away the wings' crossfade at a change of what they do: 2.40x the form bound. A perched bird
    now stands on its feet, so the first perch's rest kept at the second touch no longer shows, and the flare's reset is

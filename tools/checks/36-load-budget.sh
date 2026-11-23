@@ -57,7 +57,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 27.5 * K,        // 28,111 at the top of the wave-1 stack (2026-11-15: the five motion fixes, #225-#231, and their reviews 1-3: +1,884 B over main's 26,227; 49 B left)
+  '/inkbirds.js': 28 * K,          // 28,320 with the perch head-room (2026-11-23: +210 B over main's 28,110; raised from 27.5 K as #314 raises it, LOAD-PERF's OK of 2026-11-15 22:14; with #314's roost too about 28,710, over 28 K: whichever lands second asks for 28.25 K)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
