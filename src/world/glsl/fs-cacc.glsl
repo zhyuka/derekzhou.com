@@ -3,7 +3,7 @@ uniform sampler2D uCloud, uHist, uLinD; uniform vec4 uCA;
 uniform mat3 uRM;    // this frame's rays (ndc, 1) into the last frame's view: x/z, y/z its ndc
 uniform vec2 uHS;    // the history texture's size (texels)
 out vec4 oC;
-// the history read by a Catmull-Rom spline (five bilinear reads, the corners dropped; the coordinates held to the
+// the history read by a cubic interpolating spline (five bilinear reads, the corners dropped; the coordinates held to the
 // drawn part): a bilinear read blurs by how far the ray falls between texels, which changes from frame to frame in a
 // turn and flickers (the drag film's flicker p99 0.292 against 0.269 without the accumulation); on a texel's centre
 // (held still) it is that texel exactly
@@ -32,7 +32,7 @@ void main() {
     vec4 q = texelFetch(uCloud, pq, 0); lo = min(lo, q); hi = max(hi, q);
   }
   // the last accumulation read where this pixel's ray stood in the last frame's view (the view's turn
-  // taken out; the camera's travel in a frame is within the clamp at a cloud's distance), by a Catmull-Rom spline; where
+  // taken out; the camera's travel in a frame is within the clamp at a cloud's distance), by a cubic interpolating spline; where
   // that falls off the last view (the edge a turn brings in) this frame's own
   vec3 r = uRM * vec3(gl_FragCoord.xy / uCA.zw * 2.0 - 1.0, 1.0);
   vec4 h = c; float w = uCA.x;
