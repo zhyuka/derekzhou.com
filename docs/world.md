@@ -551,6 +551,12 @@ physics: clouds/drift). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
+- One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
+  moon's disc as drawn this frame (its direction, its weight on show,
+  az and el), at the very moment and on the very route the night sky's
+  uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
+  disc. The key light (keyAt) is the moon's light on the land at night
+  from a low, fixed place (5-14 deg up); it is not where the disc is.
 - The wind by sky (physics: air/wind-by-sky): the sky is the time of
   day, and the wind follows the day as the boundary layer does. By day
   the surface's wind is mixed down from aloft; at dusk the mixing dies,
