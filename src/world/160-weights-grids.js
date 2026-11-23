@@ -3,7 +3,7 @@
      (toroidal) about the camera. KF, the far field: FN x FN texels of FSTEP m, the same way, in the texture's rows under
      KW's. Four channels each: wD and wC (raw, from the maps) and two derived from wC by construction: the cloud sea's
      level (its raw SEA_LO + RISE wC, taken from below) and the land's sink (its raw SINK wC, taken from above), each the
-     L1 Lipschitz envelope of its raw values with KLIP m per m along each axis (a min-plus, or max-minus, of the texels
+     L1 slope-bounded envelope of its raw values with KLIP m per m along each axis (a min-plus, or max-minus, of the texels
      within KAR of it, worked as two passes, along x then z), so neither the sea's level nor the land's sink can rise
      faster than KLIP along an axis, KLIP x sqrt 2 = 0.354 m/m (19.5 deg) in any direction, on any seed (the cubic
      B-spline of samples so bounded keeps the bound). (The step's level, raw, rose at up to 0.66 m/m: the judges' defect
