@@ -70,7 +70,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
-                             test/unit/where.mjs (tools/where.mjs)
+                             test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
 test/fakepage.cjs            The one fake browser the static checks and the shader census share (devices, the page's scripts)
 test/sims/boot.mjs           The boot on the fake page, each device profile once (tools/checks/39-boot-frames.sh)
 test/birds-motion.mjs        The ink birds' drawn motion, frame by frame in the headless sim: no snap, flicker or jump
@@ -89,6 +89,9 @@ tools/check.mjs              Every static check from one command (npm run check;
 tools/check-quick.mjs        The checks that take seconds (npm run check:quick; the Stop hook)
 tools/dup-names.mjs          No name declared twice in one scope of a served script
 tools/where.mjs              Where a world name is declared, and which sections read, assign and write it
+tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, headless, in about a minute (places passed,
+                             the first near pass, flocks, crossings, the sky's changes, look runs, the longest gap)
+tools/visit/headings.mjs     Each land's first heading chosen by the ruler: a near pass by 40 s, the least longest gap
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
 tools/clouds/edge-specks.mjs A cloud edge's specks and high-frequency residual on a frame, by hand (node tools/clouds/edge-specks.mjs FRAME.png x0 y0 x1 y1)
