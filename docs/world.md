@@ -122,7 +122,30 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
+phone), and on every visit that opens on the moonlit sea (the hub's ask,
+2026-11-15: the stills of the moonlit openings showed no moon). There the
+opening's own stay is planned ahead, culminating at the view's own heading
+whatever the key's azimuth, and timed so that at the cut the moon stands a
+third of the window in from the edge it is heading for (never before its
+culmination, so it still sets behind the sea before the stay ends; its
+rising, before the cut, is never drawn): placed before the first frame, never
+moved or faded to get there. Where the window has no room under its top edge
+(the lo tier's wide windows, the words high), the room is taken where the
+moon stands, with less of the 12 px keep beyond the footprint and then less of
+the 1 deg under the top edge if it must, the footprint itself always clear;
+where no row over the words fits at all (the lo tier's 2:1 windows) it
+stands beside the words on its leaving side and leaves through the side edge.
+It is planned in the still's own window (stillInputs: its size, frustum and
+pitch), so the live first frame and the still agree; against the words' boxes
+there, the union of the bake window's and its band's smallest window's (the
+words keep their CSS size, so a smaller window shows them bigger): clear on
+every window of the band from that one up, and a smaller window plans against
+its own words (STILL_MIN, STILL_WORDS; tools/still-words.mjs measures both).
+The plan is made in the part of the still every window of its band shows
+(STILL_BAND: a wider window loses the still's top and bottom, a narrower its
+sides), so the disc is whole on each, and its keep is the band's smallest
+window's 12 px scaled into the still's pixels (stillFrame).
+The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow climbs and
