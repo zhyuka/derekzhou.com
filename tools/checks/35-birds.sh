@@ -5,6 +5,7 @@
 # plant: {"file": "src/birds/inkbirds/262-approach.js", "find": "function airLo(b) { return 0.45 * b.K.v; }", "with": "function airLo(b) { return 2.5 * b.K.v; }", "why": "a landing that can never happen (#89's own plant)"}
 # plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "if (s.xKey >= 0 && k !== s.xKey", "with": "if (false && s.xKey >= 0 && k !== s.xKey", "why": "the wings snapped at a change of what they do, a landing's among them (the second-landing test at 144 Hz: 2.40x the form bound)"}
 # plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "MV[0] = V * Math.sin(g) + cx; MV[1] = L.v[1] + cy; MV[2] = V * Math.cos(g) + cz;", "with": "MV[0] = V * Math.sin(h) + cx; MV[1] = L.v[1] + cy; MV[2] = V * Math.cos(h) + cz;", "why": "a member flown along its leader's heading through the air, not its track: a formation slides apart in a side wind (the side-wind places test: median 18.79 spans)"}
+# plant: {"file": "src/birds/inkbirds/260-perches.js", "find": "foldHalf: side([48, 65, 30,", "with": "foldHalf: side([40, 65, 30,", "why": "the half-folded wing's arm let down to 40 deg: its wrist hangs below the feet over a taller neighbouring glyph just after a touch (the stands-on-top test: 5.06 px)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 pids=(); i=0; total=0; clock=()
