@@ -75,7 +75,7 @@
     if (MOTIONASK.drag || (e.changedTouches && e.changedTouches.length === 1 && !onLink(e.target) && !DRAG.on)) askMotion();
     MOTIONASK.drag = false;
   }
-  /* the phone's turn: yaw and pitch of the direction its back looks (the view's), from the device's own Euler angles
+  /* the phone's turn: yaw and pitch of the direction its back looks (the view's), from the device's own orientation angles (alpha, beta, gamma)
      (alpha about z, beta about x, gamma about y, in that order); the screen's rotation turns the picture about that
      direction and changes neither */
   var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0 };

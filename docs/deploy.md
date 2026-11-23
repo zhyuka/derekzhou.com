@@ -22,6 +22,13 @@ says so on the PR (merge-bot.mjs, step 1b; its message ends "Reverts-main-tip: <
 step over the pair). The owner's own merges are never reverted by the bot. MERGE_TOKEN needs Actions write for the
 re-run.
 
+The PR's own words (2026-11-16): right before it lands a PR, by either way, the bot pipes the PR's title and body as
+they are that tick to `python3 .claude/hooks/guard.py --text` (merge.yml checks out .claude/hooks beside .github/ci).
+A banned name (RULES.json "naming", names.json) holds the PR with one comment, never repeating the name; the gate runs
+on push and never sees them, and the bot would write "Merge #N: <title>" onto main. Anything else but a clean exit
+(no python3, an unreadable names.json) holds it too, without a comment. Before guard.py has --text, the tick says it
+did not check (bot-rules.mjs textAnswer, test/unit/merge-bot.mjs).
+
 A cancelled main gate (a newer push superseded it) is no result: its tip is judged by its own PR's gate (for the bot's
 own merge commit, "Merge #N: ...", the gate on the PR's head, its second parent) or the owner's merge. When nothing
 proves it, the bot re-runs that tip's gate itself, once (2026-11-15: live waited 4 hours at 7ab73d1 on #258's

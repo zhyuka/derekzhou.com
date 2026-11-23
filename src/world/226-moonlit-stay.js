@@ -32,7 +32,7 @@
      this window's size or density: no hop at the cut. Not under reduced motion (the world opens at the window's own view) */
   /* the words' boxes as each still was baked with them (CSS px of the bake's window: hi at the shape's own size, lo at 393
      on its short side; the lettered name's outline, the line, the credit, the two links), measured in Chromium by
-     tools/still-words.mjs; tools/checks/46-still-words.sh measures them again on the build and fails if the stylesheet
+     tools/still-words.mjs; tools/checks/70-still-words.sh measures them again on the build and fails if the stylesheet
      has moved them (then: node tools/still-words.mjs --write) */
   /* (the hub's round-4 review) each still's band's smallest window (CSS px; lo: at 393's density, its short side 360):
      STILL_WORDS holds the union of the bake's boxes and this window's, mapped into the still's frame as cover crops it,
