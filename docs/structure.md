@@ -64,7 +64,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off on the PC's disk), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
-                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/ripples.mjs (the sand
+                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
@@ -99,6 +99,8 @@ tools/gpu/                   The owner's PC's RTX 4090 jobs: T2 (t2.js), T3 (t3.
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
+tools/precision/             How fp32 world coordinates degrade far from the start in a long flight (far-origin.mjs:
+                             each GPU-read value's rounding in metres and laptop pixels), by hand
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
 tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
