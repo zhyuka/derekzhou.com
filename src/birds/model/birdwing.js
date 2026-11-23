@@ -35,12 +35,12 @@
   var TAU = Math.PI * 2;
   var PSI_TOL = 5e-5;   // cycles: the phase's polyline is within this of every 1/240 s step the loop takes
   /* THE OWNER'S WORD (2026-11-03 ~16:45 UTC: "the birds should glide too sometimes"): every kind glides between its
-     bouts, the measured beat kept. The lab's 'continuous' kinds (goose, heron, swan, crow: Bishop 2015, Pennycuick 2001;
-     the swallow: Park 2001, its upstroke pauses kept within its bouts) get flap bouts and glides as the gull's and the
+     bouts, the measured beat kept. The lab's 'continuous' kinds (goose, heron, swan, crow: doi:10.1126/science.1258732, doi:10.1242/jeb.204.19.3283;
+     the swallow: doi:10.1242/jeb.204.15.2741, its upstroke pauses kept within its bouts) get flap bouts and glides as the gull's and the
      stork's are written (beats; beat-lengths: median, lognormal sigma, min, max). THESE NUMBERS ARE CHOSEN, NOT
      MEASURED (no bout data for these kinds in the lab's sources): long bouts and short glides, flapping shares about
      0.87 goose, 0.92 swan, 0.80 heron, 0.76 crow, 0.71 swallow (the means of the lognormals). The gull, the stork and the
-     ibis keep their measured schedules (CC0 tags; Wehner 2022), the ibis in a V its 97% (Portugal 2014). Written into
+     ibis keep their measured schedules (CC0 tags; doi:10.1007/s10336-022-01978-1), the ibis in a V its 97% (doi:10.1038/nature12939). Written into
      LB.SCHED itself, so LB.bird (the lab) and this file's loop fly the same table (tools/wingcheck.js). */
   /* (life, DESIGN 3.2) every kind glides as its kind really glides: the between-bout share kept short for the
      continuous flappers (their real glides are the event glides the path asks: set to descend, rolling into a turn),
