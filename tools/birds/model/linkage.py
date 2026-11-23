@@ -1,5 +1,5 @@
 # The wing's planar linkage (structure model): shoulder, humerus, elbow, ulna/radius, wrist, hand stick.
-# Used by build_model.py. Validated on the gull against the Harvey 2022 marker fold table (see check_gull()).
+# Used by build_model.py. Validated on the gull against the doi:10.6084/m9.figshare.c.5503989 marker fold table (see check_gull()).
 # Units: fractions of the semi-span (midline to wingtip, wing spread). Angles in degrees.
 import numpy as np
 
@@ -14,9 +14,9 @@ def interp_table(x, xs, ys):
 
 class Linkage:
     """h, u: humerus and ulna (semi-span fractions); s0: the shoulder's offset from the midline;
-    coupling: {elbow: wrist} (interior angles, 180 = straight; Baliga 2019 / Harvey 2021 data);
+    coupling: {elbow: wrist} (interior angles, 180 = straight; doi:10.6084/m9.figshare.8856161 / doi:10.6084/m9.figshare.c.5275490 data);
     Ef: the elbow at full spread; tau_f: the hand stick's sweep back of the shoulder-wrist line at full spread
-    (gull measured 22.2 deg, Harvey 2022 markers); the hand stick (wrist -> tip) turns with the carpometacarpus
+    (gull measured 22.2 deg, doi:10.6084/m9.figshare.c.5503989 markers); the hand stick (wrist -> tip) turns with the carpometacarpus
     (gull: within 3 deg over the fold, check_gull)."""
 
     def __init__(self, h, u, s0, coupling, Ef, tau_f=22.2):
@@ -61,7 +61,7 @@ class Linkage:
         return np.interp(r, R[o], Es[o])
 
 
-# The gull's fold table (Harvey 2022 markers, L. glaucescens 20_0341, on the Harvey 2021 coupled path): E, W, tip
+# The gull's fold table (doi:10.6084/m9.figshare.c.5503989 markers, L. glaucescens 20_0341, on the doi:10.6084/m9.figshare.c.5275490 coupled path): E, W, tip
 # reach fraction (lateral), wrist reach (m), hand stick swept back of the shoulder-wrist line (deg)
 GULL_FOLD = np.array([[90.9, 54.3, 0.158, 0.224, 103.7], [95.4, 60.5, 0.198, 0.233, 101.1], [100.1, 68.3, 0.292, 0.240, 93.5],
                       [105.6, 74.9, 0.345, 0.251, 90.0], [109.2, 84.8, 0.451, 0.257, 81.4], [114.7, 93.3, 0.517, 0.265, 76.5],
