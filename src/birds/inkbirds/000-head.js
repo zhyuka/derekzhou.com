@@ -26,6 +26,9 @@
   if (!window.FACETFORM || !window.FACETPOSE || !window.WINGMODEL || !window.WINGMODEL_DATA || !window.LABBIRD || !window.BIRDWING) return;   // (the faceted M and the measured wing: src/birds/model/, loaded before this file)
   window.WORLD.birds(function (HOST) {
   var gl = HOST.gl;
+  /* the WebGL constants the birds use, as numbers (fixed by the spec): gl.TEXTURE_2D and its kind cost bytes the minifier cannot
+     shorten (LOAD-PERF's review, 2026-11-15) */
+  var GL_ARRAY_BUFFER = 34962, GL_BLEND = 3042, GL_CLAMP_TO_EDGE = 33071, GL_CULL_FACE = 2884, GL_DEPTH_TEST = 2929, GL_DYNAMIC_DRAW = 35048, GL_FLOAT = 5126, GL_NEAREST = 9728, GL_ONE = 1, GL_ONE_MINUS_SRC_ALPHA = 771, GL_RGBA = 6408, GL_RGBA32F = 34836, GL_TEXTURE0 = 33984, GL_TEXTURE14 = 33998, GL_TEXTURE_2D = 3553, GL_TEXTURE_MAG_FILTER = 10240, GL_TEXTURE_MIN_FILTER = 10241, GL_TEXTURE_WRAP_S = 10242, GL_TEXTURE_WRAP_T = 10243, GL_TRIANGLE_STRIP = 5, GL_ZERO = 0;
 
   var DEG = Math.PI / 180, TAU = 2 * Math.PI;
 
