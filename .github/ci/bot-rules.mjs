@@ -7,13 +7,12 @@ export const conflictStatus = (status) => status === 422 || status === 409 || st
 export const HOLD = ['needs-owner', 'visible'];   // (the labels that keep the bot off a PR: never set for a conflict)
 
 // The hub's review (the owner, 2026-11-23: "just auto push stuff and u do everything quickly", choosing "Yes,
-// everything"): a commit status `hub-review` = success on a PR's head commit lands it, visible or not, the bot's own
-// files included, and counts as the owner's own merge for the deploy walk. GitHub lists a commit's statuses newest
-// first, so the newest for the context decides; a push after the review carries none, so it waits for a new one.
-export const REVIEW = 'hub-review';
-export function reviewedIn(statuses) {
-  const s = (Array.isArray(statuses) ? statuses : []).find((x) => x && x.context === REVIEW);
-  return !!s && s.state === 'success';
+// everything", then "Full auto, I'll allow it"): the line <!-- hub-review SHA --> in a PR's body, SHA its full head
+// commit, lands it, visible or not, the bot's own files included, and counts as the owner's own merge for the deploy
+// walk. A push after the review changes the head, so the line no longer matches and the PR waits for a new review.
+// (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.)
+export function reviewedIn(body, sha) {
+  return typeof body === 'string' && typeof sha === 'string' && /^[0-9a-f]{40}$/.test(sha) && body.includes(`<!-- hub-review ${sha} -->`);
 }
 export function updateRefused(status) {
   return conflictStatus(status) ? { owner: false, label: null } : { owner: true, label: 'needs-owner' };

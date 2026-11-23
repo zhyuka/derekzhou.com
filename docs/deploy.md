@@ -29,11 +29,11 @@ cancelled merge for "a later gate" that never runs on that tip); cancelled again
 owner looks (.github/ci/deploy-walk.mjs, its test in test/unit/verdict.mjs).
 
 **The hub's review lands it (the owner, 2026-11-23: "just auto push stuff and u do everything quickly", choosing "Yes,
-everything").** The owner no longer merges each visible PR. Once the hub's review passes, the hub sets the commit status
-`hub-review` = success on the PR's head commit (`gh api -X POST repos/OWNER/REPO/statuses/SHA -f state=success -f
-context=hub-review -f description=...`). The status event starts a tick, and the bot lands the PR on its green gate,
-visible or not, labelled needs-owner or not, the bot's own files included. A push after the review carries no status,
-so it waits for a new one. The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
+everything").** The owner no longer merges each visible PR. Once the hub's review passes, the hub writes the line
+`<!-- hub-review SHA -->` into the PR's body, SHA its full head commit. The body edit starts a tick (merge.yml's
+pull_request_target `edited`), and the bot lands the PR on its green gate, visible or not, labelled needs-owner or not,
+the bot's own files included. A push after the review moves the head, so the line no longer matches: it waits for a
+new one. (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.) The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
 its stills are up. The hub sends the owner a daily note of what went live, and "undo X" lands a revert the same way.
 
 Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
