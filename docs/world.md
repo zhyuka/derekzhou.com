@@ -125,7 +125,7 @@ from a radiant just under the horizon, running low and slow (3-5 deg/s) from
 under 2 deg up or out of the view to out of it again, its wake a rigid 2 deg
 and its light constant, so it shows by crossing the window; and 1-3 short ones
 (the owner, 2026-11-15: "Allow short ones too"), 0.3-1 s at 3-25 deg/s anywhere
-in view, their light rising and falling softly over that moment, the one
+mid-sky (20-55 deg up), a few a night, their light rising and falling softly over that moment, the one
 exception RULES.json's no-fades names. Each is planned when its time comes,
 against the view as it is then; none under reduced motion or in a still; drawn
 by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green

@@ -6,7 +6,7 @@
        its wake rigid (2 deg) and its light constant: it shows by crossing the window, never by fading (at real rates
        1-2% of the sporadics seen are grazers like it, 2-9 deg/s: https://www.imo.net/observations/methods/visual-observation/
        and the handoff's strict.mjs); about one a stay
-     - the short ones (the owner's ruling, 2026-11-15: "Allow short ones too"): 0.3-1 s at 3-25 deg/s anywhere in view,
+     - the short ones (the owner's ruling, 2026-11-15: "Allow short ones too"): 0.3-1 s at 3-25 deg/s mid-sky (20-55 deg up), a few a night,
        a soft rise and fall of their light over that time (the one exception in no-fades, RULES.json), the stroke drawn
        over each frame's own path; 1-3 a stay
      Each is planned when its time comes, against the view as it is then (its heading and pitch); none under reduced motion
@@ -44,10 +44,10 @@
       th0 = lo;
       return { A: R0, n: n, th0: th0, th1: th0 + METEOR.SPAN, thP: thP };
     }
-    var nx = (u[0] * 2 - 1) * 0.8, ny = -0.1 + 0.8 * u[1], cp = Math.cos(pitch * DEG), sp = Math.sin(pitch * DEG), a = psi * DEG;   // (a short one: anywhere in the view, over the horizon)
+    var nx = (u[0] * 2 - 1) * 0.8, ny = -0.1 + 0.8 * u[1], cp = Math.cos(pitch * DEG), sp = Math.sin(pitch * DEG), a = psi * DEG;   // (a short one: in the view, mid-sky)
     var f = [Math.sin(a) * cp, sp, Math.cos(a) * cp], r = [Math.cos(a), 0, -Math.sin(a)], up = [-Math.sin(a) * sp, cp, -Math.cos(a) * sp];
     var S = [f[0] + r[0] * nx * tanX + up[0] * ny * tanY, f[1] + r[1] * nx * tanX + up[1] * ny * tanY, f[2] + r[2] * nx * tanX + up[2] * ny * tanY], l = Math.sqrt(S[0] * S[0] + S[1] * S[1] + S[2] * S[2]);
-    S = [S[0] / l, Math.max(S[1] / l, 0.15), S[2] / l]; l = Math.sqrt(S[0] * S[0] + S[1] * S[1] + S[2] * S[2]); S = [S[0] / l, S[1] / l, S[2] / l];
+    S = [S[0] / l, Math.min(Math.max(S[1] / l, Math.sin(20 * DEG)), Math.sin(55 * DEG)), S[2] / l];   // (mid-sky, the owner's: 20-55 deg up) l = Math.sqrt(S[0] * S[0] + S[1] * S[1] + S[2] * S[2]); S = [S[0] / l, S[1] / l, S[2] / l];
     var Rd = dirAzEl(psi + 360 * u[2], 20 + 50 * u[3]), n2 = meteorAxis(Rd, S);   // (it runs away from its radiant, 20-70 deg up somewhere round the sky)
     return { A: S, n: n2, th0: 0, th1: M.w * M.dur, thP: 0 };
   }
