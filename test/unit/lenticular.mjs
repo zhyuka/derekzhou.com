@@ -4,7 +4,7 @@
 // ridge the land raises (dunes-glsl's ridges(): the same hashes); its envelope is held (a world cell's: its place a
 // constant of t) and only its billows flow, at the wind at its height (410's offset, within 5%). A census of the lenses
 // within the dunes' cloud reach of a 20 min flight, a minute at a time, on windy and calm visits.
-// plant: {"file": "src/realm-dunes.js", "find": "    if (sp < HELD_V) return;", "with": "    if (sp < 0) return;", "why": "lenses on calm visits"}
+// plant: {"file": "src/realm-dunes.js", "find": "    if (A.wx(0, V).oro < 0.5) return;", "with": "    if (A.wx(0, V).oro < 0) return;", "why": "lenses on calm visits"}
 // plant: {"file": "src/realm-dunes.js", "find": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);", "with": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed28);", "why": "the lenses over ridges the land never raised"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS;", "with": "var q3 = (c0[k3] + (fl ? fl[k3] * tf : 0)) / nS;", "why": "the billows flow upwind through the lens"}
 // plant: {"file": "src/realm-dunes.js", "find": "    air: function (C, R) { dAir(C, R); },", "with": "    air: function (C, R) { dAir(C, R); dHeld(C); },", "why": "lenses laid out in air cells: the air carries them off their ridges"}
@@ -14,7 +14,7 @@
 // plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HELD_N, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
 // plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) continue;", "with": "if (C.weights(cx, cz)[1] > 0.5) continue;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
-// plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from windAt's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
+// plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from base's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
 // plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
 // plant: {"file": "src/realm-dunes.js", "find": "x = cx + sg * nx * off, z = cz + sg * nz * off;", "with": "x = cx + w.x / sp * off, z = cz + w.z / sp * off;", "why": "the lens along the 100 m wind, not the crest's normal: short of half a wavelength and slid along the crest"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": " if (o.flow) return cellDistFade(C);", "with": "", "why": "a lens faded by its own distance: in view when its cell is made (a pop)"}
@@ -31,11 +31,13 @@ import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../u
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
 const DGLSL = fs.readFileSync(path.join(ROOT, 'src', 'glsl', 'dunes-glsl.glsl'), 'utf8');
 const AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') +
-  cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function windAt(', '  function airVec3(');
-const HELD = cut(DUNES, '  var HELD_V = ', '  /* a small cell of open dunes');
+  cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
+const HELD = cut(DUNES, '  var HELD_H = ', '  /* a small cell of open dunes');
+// (AIR's orographic gate, its own lines: wx's mist inputs stubbed, the gate reads U10 alone)
+const WXSRC = cut(WORLD, '  function airEase(', '\n', true) + cut(WORLD, '  var AIR_MIST_RATE = ', '\n', true) + cut(WORLD, '  var AIR_WXO = ', '\n', true) + cut(WORLD, '  function airWx(', '  function airClock(') + '  function airMoist() { return 0; } function airMistAt() { return 0; }\n';
 const RSV = +/var DS = 1500, RS = (\d+)/.exec(DUNES)[1];
 const make = vm.runInThisContext('(function () { var PI = Math.PI, SIM = { V: null }, RS = ' + RSV + ';\n' + STREAMS + AIRSRC +
-  ' var K = { cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl }, A = { windAt: windAt };\n' + HELD + ' return { dHeld: dHeld, windAt: windAt, cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl, HELD_V: HELD_V, HELD_H: HELD_H, HELD_N: HELD_N }; })');
+  WXSRC + ' var K = { cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl }, A = { base: airBase, wx: airWx };\n' + HELD + ' return { dHeld: dHeld, airBase: airBase, wx: airWx, cellHash: cellHash, ihash: ihash, hk: hk, hfl: hfl, HELD_H: HELD_H, HELD_N: HELD_N }; })');
 const H = make();
 function cell(ix, iz, salt, V, wc = 0.1) {   // a stub 1500 m cell: its clouds
   const C = { ix, iz, x0: ix * 1500, z0: iz * 1500, size: 1500, salt, V, clouds: [] };
@@ -62,19 +64,29 @@ test('lenticular: the far ridges are the land\'s own (dunes-glsl\'s ridges(), th
   assert.equal(RSV, +/const float DS = 1500\.0, RS = ([\d.]+);/.exec(DGLSL)[1], 'the ridges\' cell is not the land\'s');
 });
 
+// AIR's orographic gate is the crest's own wind (the hub, 2026-11-23: gate on wx().oro): its ridge-top wind (1.28 U10) is
+// the day's wind 100 m up within 1%, so the gate opens where the crest's wind passes 7.7 m/s (eased over 7.2-8.2)
+test('lenticular: AIR\'s orographic gate reads the crest\'s own wind (the day\'s, 100 m up, within 1%)', () => {
+  for (const u10 of [3, 5, 6, 7.5]) {
+    const V = { wind: [0.6, 0.8], u10 }, a = { ...H.airBase(0, 0, H.HELD_H, V) }, r = H.wx(0, V).ridge;
+    assert.ok(Math.abs(Math.hypot(a.x, a.z) - r) <= 0.01 * r, `the crest's wind ${Math.hypot(a.x, a.z).toFixed(3)} m/s, AIR's ridge ${r.toFixed(3)}`);
+  }
+  assert.ok(H.wx(0, { wind: [0, 1], u10: 5 }).oro < 0.5 && H.wx(0, { wind: [0, 1], u10: 6.5 }).oro >= 0.5, 'the gate does not open between U10 5 and 6.5');
+});
+
 test('lenticular: only on windy visits (the crest\'s wind >= 7.7 m/s, within 30 deg of square), over the dunes, downwind of the crest, 1100-1700 m up', () => {
   let windy = 0, calm = 0, checked = 0;
   for (let seed = 1; seed <= 400; seed++) {
     const salt = (seed * 40503) >>> 0;
     for (const u10 of [3.2, 5.0, 6.2, 7.4]) {
-      const V = visitV(seed, u10), w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, sp = Math.hypot(w.x, w.z);   // (a copy: windAt returns its one object)
+      const V = visitV(seed, u10), w = { ...H.airBase(0, 0, H.HELD_H, V) }, sp = Math.hypot(w.x, w.z);   // (a copy: airBase returns its one object)
       for (let iz = -6; iz < 6; iz++) for (let ix = -6; ix < 6; ix++) for (const cl of cell(ix, iz, salt, V)) {
         checked++;
-        assert.ok(sp >= H.HELD_V, `a lens at ${sp.toFixed(2)} m/s over the crest (U10 ${u10})`);
+        assert.ok(H.wx(0, V).oro >= 0.5, `a lens with AIR's orographic gate shut (${sp.toFixed(2)} m/s over the crest, U10 ${u10})`);
         const ax = Math.sin(cl.dir), az = Math.cos(cl.dir);
         assert.ok(Math.abs((w.x * ax + w.z * az) / sp) <= 0.5 + 1e-12, 'a lens with the wind along its ridge');
         assert.ok(cl.dy >= 1100 && cl.dy <= 1700 && cl.n >= 1 && cl.n <= 3 && cl.t >= 45 && cl.t <= 75 && cl.len >= 12 * cl.t, `a lens ${cl.dy} m up, ${cl.n} plates ${cl.t} m thick, ${cl.len} m long`);
-        const wf = { ...H.windAt(0, 0, cl.dy, 0, V) };   // (the wind at its height, as a vector: x, y, z)
+        const wf = { ...H.airBase(0, 0, cl.dy, V) };   // (the wind at its height, as a vector: x, y, z)
         assert.ok(cl.flow && Math.abs(cl.flow[0] - wf.x) < 1e-9 && cl.flow[1] === 0 && Math.abs(cl.flow[2] - wf.z) < 1e-9, `the flow ${cl.flow} is not the wind at its height (${wf.x}, ${wf.z})`);
         if (u10 >= 6.2) windy++; else calm++;
       }
@@ -117,7 +129,7 @@ test('lenticular: the envelope is held (its place a constant of t); its billows 
   // 410's offset, run at two moments: the billows' offset moves by the flow over the noise's scale
   const SRC = cut(WORLD, '      var fl = B.flow, tf = fl ? cloudT() : 0;', '      gl.uniform3fv(P.u.uVO, B.nO);');
   const nO = (t, B) => vm.runInThisContext('(function (B, c0, nS, cloudT) {' + SRC + ' return Array.from(B.nO); })')(B, B.c0, 120, () => t);
-  const V = visitV(7, 6.8), w = { ...H.windAt(0, 0, 1400, 0, V) }, B = { c0: o.c0, nO: new Float32Array(3), flow: [w.x, 0, w.z] };
+  const V = visitV(7, 6.8), w = { ...H.airBase(0, 0, 1400, V) }, B = { c0: o.c0, nO: new Float32Array(3), flow: [w.x, 0, w.z] };
   const a = nO(1000, B), b = nO(1000.5, B), unwrap = (d) => d - Math.round(d);
   const vx = -unwrap(b[0] - a[0]) * 120 / 0.5, vz = -unwrap(b[2] - a[2]) * 120 / 0.5;
   assert.ok(Math.abs(vx - w.x) <= 0.05 * Math.hypot(w.x, w.z) && Math.abs(vz - w.z) <= 0.05 * Math.hypot(w.x, w.z), `the billows flow at ${vx.toFixed(3)}, ${vz.toFixed(3)} m/s, the wind ${w.x.toFixed(3)}, ${w.z.toFixed(3)}`);
@@ -171,7 +183,7 @@ test('lenticular: half a lee wavelength downwind of its crest (pi U / N); none w
       assert.ok((H.hk(h, 2) >>> 24) < 115 && Math.abs((jx + 0.25 + 0.5 * H.hfl(h)) * RS - cx) < 1e-6 && Math.abs((jz + 0.25 + 0.5 * H.hfl(H.hk(h, 1))) * RS - cz) < 1e-6, 'a lens for a crest the land never raised');
       assert.ok(cl.x >= ix * 1500 && cl.x < ix * 1500 + 1500 && cl.z >= iz * 1500 && cl.z < iz * 1500 + 1500, 'a lens laid out by a cell it does not stand in (it fades with its own distance only in its own cell)');
       const ang = H.hfl(H.hk(h, 5)) * Math.PI;
-      const w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, hw = { ...H.windAt(0, 0, cl.dy, 0, V) }, sp = Math.hypot(w.x, w.z);
+      const w = { ...H.airBase(0, 0, H.HELD_H, V) }, hw = { ...H.airBase(0, 0, cl.dy, V) }, sp = Math.hypot(w.x, w.z);
       const U = Math.abs(-hw.x * Math.sin(ang) + hw.z * Math.cos(ang)), want = Math.PI * U / H.HELD_N;
       // (on the crest's normal, downwind: the wave train runs across the crest)
       const nx = -Math.sin(ang), nz = Math.cos(ang), sg = w.x * nx + w.z * nz < 0 ? -1 : 1;
@@ -204,19 +216,19 @@ test('lenticular: a census, every ridge\'s lens laid out once, by the cell it st
   const RS = RSV;
   let want = 0, top = 0;
   for (let seed = 1; seed <= 200; seed++) for (const u10 of [6.2, 7.0, 7.5]) {
-    const salt = (seed * 40503) >>> 0, V = visitV(seed, u10), w = { ...H.windAt(0, 0, H.HELD_H, 0, V) }, sp = Math.hypot(w.x, w.z);
+    const salt = (seed * 40503) >>> 0, V = visitV(seed, u10), w = { ...H.airBase(0, 0, H.HELD_H, V) }, sp = Math.hypot(w.x, w.z);
     const found = new Map();
     for (let iz = -6; iz < 6; iz++) for (let ix = -6; ix < 6; ix++) for (const cl of cell(ix, iz, salt, V)) {
       const k = `${cl.x.toFixed(3)},${cl.z.toFixed(3)}`;
       assert.ok(!found.has(k), 'a lens laid out twice'); found.set(k, cl);
     }
     const expect = new Set();
-    if (sp >= H.HELD_V) for (let jz = -4; jz < 4; jz++) for (let jx = -4; jx < 4; jx++) {
+    if (H.wx(0, V).oro >= 0.5) for (let jz = -4; jz < 4; jz++) for (let jx = -4; jx < 4; jx++) {
       const h = H.ihash(H.cellHash(jx, jz, salt) ^ 0x51ed27);
       if ((H.hk(h, 2) >>> 24) >= 115) continue;
       const cx = (jx + 0.25 + 0.5 * H.hfl(h)) * RS, cz = (jz + 0.25 + 0.5 * H.hfl(H.hk(h, 1))) * RS, ang = H.hfl(H.hk(h, 5)) * Math.PI;
       if (Math.abs((w.x * Math.cos(ang) + w.z * Math.sin(ang)) / sp) > 0.5) continue;
-      const dy = 1100 + 600 * H.hfl(H.hk(h, 22)), hw = { ...H.windAt(0, 0, dy, 0, V) }, nx = -Math.sin(ang), nz = Math.cos(ang), sg = w.x * nx + w.z * nz < 0 ? -1 : 1;
+      const dy = 1100 + 600 * H.hfl(H.hk(h, 22)), hw = { ...H.airBase(0, 0, dy, V) }, nx = -Math.sin(ang), nz = Math.cos(ang), sg = w.x * nx + w.z * nz < 0 ? -1 : 1;
       const off = Math.PI * Math.abs(hw.x * nx + hw.z * nz) / H.HELD_N, x = cx + sg * nx * off, z = cz + sg * nz * off;
       top = Math.max(top, off);
       if (x < -6 * 1500 || x >= 6 * 1500 || z < -6 * 1500 || z >= 6 * 1500) continue;   // (stands outside the cells laid out)
