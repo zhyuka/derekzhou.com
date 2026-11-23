@@ -23,6 +23,18 @@
     else { o[0] = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); o[1] = f < 1 ? Math.sin(Math.PI * f) : 0; o[2] = 0; }
     return o;
   }
+  /* a walk planned to stay on the stroke: no more steps than the flat ledge middles reach that way (the ledges along
+     the stroke, each handing on to the next), so it never stops past a stroke's end and snaps back; none if no room */
+  function newWalk(P, dir, n, step, t0) {
+    var L = ledges(), li = P.li, x = P.x, g, e, m;
+    for (g = 0; li >= 0 && g < 64; g++) {   // (each ledge's flat middle: the point either side of its own; a link's, its ends)
+      m = L[li].pts; e = m[m.length > 2 ? (m.length >> 1) + dir : dir > 0 ? 1 : 0][0];
+      if (g && (e - x) * dir <= 0) break;   // (a ledge that takes it no farther: the stroke ends here)
+      x = e; li = nearLedge(x + dir / 2, P.fy, li);
+    }
+    n = Math.min(n, Math.floor(Math.max(0, (x - P.x) * dir) / step));
+    return n > 0 ? { dir: dir, n: n, step: step, t0: t0, x0: P.x } : null;
+  }
   function perchedStep(b, dt, C) {
     var P = b.P, r = b.r, cl = skyCls(), roost = b.kind === 'crow' && P.kind !== 'pointer' && (cl === 'moon' || cl === 'glow' || cl === 'blue');   // (a crow on the name from dusk to dawn roosts: it stays, tucked, still but for a rare rouse; the end birds face out, wantYaw)
     if (P.wake && t >= P.wake) { P.wake = 0; if (P.wakeNew) RO.F = null; leave(b, 'roost'); return; }   // (a new group: its first up leads it)
@@ -49,7 +61,7 @@
         var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
       else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
-      else if (u < 0.82 && P.kind === 'name' && !roost) { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
+      else if (u < 0.82 && P.kind === 'name' && !roost) { P.walk = newWalk(P, r() < 0.5 ? -1 : 1, 1 + Math.floor(r() * 3), 0.08 * perchSpan(b, P.k), t); }
       else if (u < 0.94 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
       P.nextAct = t + pick(r, roost ? [12, 30] : [4, 12]);
     }
@@ -77,6 +89,12 @@
     if (b.st !== 'perch') { toAir(b, J); return; }
     var h0 = P.hop || 0; if (P.walk && t >= P.walk.t0) { walkAt(P, t, WKA); P.x = WKA[0]; h0 = WKA[1]; }   // (a walk ends where it is: the take-off from there)
     P.walk = null; P.hop = 0;
+    if (P.yawTo !== undefined && t - P.yawT < P.yawD && t >= P.yawT) {   /* a turn it left in: held where it is, its hop's lift and its rest handed to the leave (the turn's pose ignores the crouch: at its end the crouch and lift came in at once, 2.6 px in a 144 Hz frame) */
+      var tu = (t - P.yawT) / P.yawD;
+      h0 = Math.max(h0, (P.hopTurn ? 3.2 : 0.7) * Math.sin(Math.PI * tu));   // (the turn's lift, 0.16 or 0.035 of the span, as a hop's share of 0.05)
+      if (P.rT === P.yawT) P.rest = P.rA + (P.rB - P.rA) * ease(tu);
+      P.yaw = P.yaw0 + (P.yawTo - P.yaw0) * ease(tu); P.yawD = 0;
+    }
     P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
   }
   function leavingStep(b, dt, C) {
