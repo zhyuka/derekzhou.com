@@ -136,7 +136,7 @@ void main() {
     // no glint: a grain's facet spun through the sun at pow 60, a flash a turn (sparkle by design). Each
     // grain that glinted is lit steadily at its flash's mean over the turn: the facet's normal on a cone about the
     // vertical (cos 0.768, sin 0.640), so dot(n, h) = A + B cos(turn), and the mean of its 60th power over a turn is
-    // (A + B)^60 sqrt((A + B) / (2 pi 60 B)) (Laplace; never more than the peak): the same light on average, no flash
+    // (A + B)^60 sqrt((A + B) / (2 pi 60 B)) (the saddle-point approximation; never more than the peak): the same light on average, no flash
     vec3 hg = normalize(uSun - rd); float gA = 0.7682 * hg.y, gB = 0.6402 * length(hg.xz), gm = max(gA + gB, 0.0);
     float gli = step(0.55, r2) * pow(gm, 60.0) * min(1.0, sqrt(gm / (376.99 * max(gB, 1e-3))));
     col = uPc.rgb * 0.5 + uSunC * gli * 4.0;
