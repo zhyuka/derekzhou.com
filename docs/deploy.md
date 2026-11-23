@@ -45,8 +45,13 @@ job (the gate's static, plan, T1 and verdict; merge, post-deploy, scheduled, val
 and the Stills bake and up jobs, on the Windows runner labelled gpu-4090 / gpu-exclusive. (From 2026-11-06, while the
 repository was private and its included minutes had run out, every job ran on the PC, Linux ones in WSL2 labelled
 pc-wsl: the owner's "All on my PC, free". On 2026-11-23 he chose to move the Linux jobs off the PC now that the
-repository is public.) A fork's PR never reaches the PC: gpu.yml skips a pull_request whose head repository is not
-this one, and the merge bot runs only for this repository's own branches. T1's base records are cached by the
+repository is public.) Forks: every job a `pull_request` can start on the PC, and every `pull_request_target` or
+`workflow_run` job, skips unless the head repository is this one (test/unit/fork-guard.mjs reads every workflow).
+So the merge bot runs only for this repository's own branches, and stills.yml only after this repository's own Gate
+runs (a fork's own workflow named Gate could otherwise start it, with main's write token). That guard cannot stop a
+fork's PR that adds or edits a `pull_request` workflow, because GitHub runs the PR's copy of it. Only the setting
+"Require approval for all external contributors" (Settings > Actions > General) stops that (docs/security.md).
+T1's base records are cached by the
 runner's image (ImageOS) as well as its OS and architecture, so a record rendered in WSL is never compared with a
 hosted runner's frames.
 
