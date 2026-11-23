@@ -11,7 +11,8 @@
     if (!seq.length || i < 0) return null;
     for (k = i; k < seq.length; k++) out.push({ id: seq[k].id, at: seq[k].at, hold: seq[k].hold, move: seq[k].move, far: !!seq[k].far });
     var st = reduced() || STILLMODE, w = airHeard(CS.x, CS.z, Math.max(AIR_HEARD_Y, CS.y - groundAt(SIM.V, CS.x, CS.z)), SIM.t, SIM.V), v = st ? 0 : SIM.V.speed, s = Math.sin(CS.psi), c = Math.cos(CS.psi);
-    w.bear = Math.atan2(w.x * CAM.r[0] + w.z * CAM.r[2], w.x * CAM.f[0] + w.z * CAM.f[2]);   // rad, the way it blows from the eye's way, + to the right (the birds' wr, wf)
+    var fx = CAM.f[0], fz = CAM.f[2];   // (the eye's way on the ground: f's horizontal part, its right (-fz, fx) as 320's unrolled r; atan2 takes no length, so neither pitch nor roll bends the bearing)
+    w.bear = Math.atan2(w.z * fx - w.x * fz, w.x * fx + w.z * fz);   // rad, the way it blows from the eye's way, + to the right
     w.ax = w.x - (st ? 0 : s * v - c * CS.sv); w.az = w.z - (st ? 0 : c * v + s * CS.sv);   // the apparent wind, m/s: the camera's velocity as the flight moves it (270: on the heading, and the slip to its right)
     return { t: SIM.t + SKY.dt, seq: out, wc: MAPS.w ? kitAt(CS.x, CS.z).wC : 0, air: airTable(), wind: w, still: st, seed: subseed(shown ? SEEDR : J.seed, 97) >>> 0 };   // (the score plays after the cut: the visit's own read)
   }

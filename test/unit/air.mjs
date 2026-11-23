@@ -4,6 +4,8 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/512-score-feed.js", "find": "w.bear = Math.atan2(w.z * fx - w.x * fz,", "with": "w.bear = Math.atan2(w.x * fz - w.z * fx,", "why": "the wind's bearing on the wrong side of the eye"}
+// plant: {"file": "src/world/512-score-feed.js", "find": "w.ax = w.x - (st ? 0 : s * v - c * CS.sv);", "with": "w.ax = w.x + (st ? 0 : s * v - c * CS.sv);", "why": "the apparent wind with the camera's motion added, not taken off"}
 // plant: {"file": "src/world/215-air.js", "find": "return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN;", "with": "return f.W > 0 ? t - (x * f.x + z * f.z) / f.W : NaN;", "why": "HOST.gustPhase on the flight's clock, not the field's"}
 // plant: {"file": "src/world/215-air.js", "find": " BYSKY: airTable,", "with": " BYSKY: function () { return AIR_BYSKY; },", "why": "BYSKY handing readers the live table"}
 // plant: {"file": "src/world/215-air.js", "find": "return { x: a.x, z: a.z }; }   // the day's wind", "with": "return a; }   // the day's wind", "why": "the day's wind handed out as the air's own reused object"}
@@ -433,3 +435,23 @@ test('air: one moon direction (the disc as drawn: a glory, a fogbow or a moonlit
   assert.notStrictEqual(q.d, G.AIR_MOONS.d, 'its own array: a reader never writes the route');
 });
 
+
+test('air: the score\'s feed at the camera: the wind\'s bearing from the eye\'s way and the apparent wind (512 on a stub camera)', () => {
+  const FEED = cut(WORLD, '  function skyFeed() {', '\n  }\n', true);
+  const run = (o) => vm.runInThisContext('(function (o) {\n' +
+    '  var SKY = { seq: [{ id: "afterglow", at: 0, hold: 60, move: 20 }], i: 0, dt: 0 }, SIM = { t: 5, V: { speed: o.v } }, MAPS = { w: null }, AIR_HEARD_Y = 2, STILLMODE = false, shown = false, SEEDR = 0, J = { seed: 1 };\n' +
+    '  var CS = { x: 0, z: 0, y: 30, psi: o.psi, sv: o.sv }, CAM = { f: o.f, r: [9, 9, 9] };\n' +
+    '  function reduced() { return o.still; } function groundAt() { return 0; } function kitAt() { return { wC: 0 }; } function airTable() { return {}; } function subseed() { return 7; }\n' +
+    '  function airHeard() { return { x: o.w[0], z: o.w[1] }; }\n' + FEED + '\n  return skyFeed().wind;\n})')(o);
+  const PI = Math.PI;
+  for (const psi of [0, 0.7, -2.1, 3]) for (const pitch of [0, 25 * PI / 180, -40 * PI / 180]) {
+    const cp = Math.cos(pitch), f = [Math.sin(psi) * cp, Math.sin(pitch), Math.cos(psi) * cp], fwd = [Math.sin(psi), Math.cos(psi)], right = [-Math.cos(psi), Math.sin(psi)];
+    const base = { psi, f, v: 0, sv: 0, still: false };
+    let b = run({ ...base, w: [3 * right[0], 3 * right[1]] }).bear; assert.ok(Math.abs(b - PI / 2) < 1e-9, `a wind along the camera's right: bear ${b} (want +pi/2)`);
+    b = run({ ...base, w: [3 * fwd[0], 3 * fwd[1]] }).bear; assert.ok(Math.abs(b) < 1e-9, `a wind along the eye's way: bear ${b} (want 0; pitch ${pitch.toFixed(2)})`);
+    b = run({ ...base, w: [-3 * right[0], -3 * right[1]] }).bear; assert.ok(Math.abs(b + PI / 2) < 1e-9, 'a wind to the left: -pi/2');
+    const o = { psi, f, v: 9, sv: 1.5, still: false, w: [2, -1] }, a = run(o), s = Math.sin(psi), c = Math.cos(psi);
+    assert.ok(Math.abs(a.ax - (2 - (s * 9 - c * 1.5))) < 1e-12 && Math.abs(a.az - (-1 - (c * 9 + s * 1.5))) < 1e-12, 'the apparent wind is the wind less the camera\'s velocity (on the heading, and the slip)');
+    const q = run({ ...o, still: true }); assert.ok(q.ax === 2 && q.az === -1, 'still: the apparent wind is the wind itself');
+  }
+});
