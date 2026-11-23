@@ -3,7 +3,7 @@
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "var CEIL_KNEE = 0.04,", "with": "var CEIL_KNEE = 0.08,", "why": "the ceiling's knee wide again: a night's highlights flattened under it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return F * starBox(d.x, sg) * starBox(d.y, sg);", "with": "  return b * exp(-dot(d, d) / (2.0 * 0.1764));", "why": "a star sampled at the pixel's centre: it pulses as it slides across pixels"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += auroraAt(rd, eS) * hzT;", "with": "c += auroraAt(rd, eS);", "why": "the aurora added over the haze at full strength"}
-// plant: {"file": "src/world/223-sun.js", "find": "x = clamp((d + 7) / 2, 0, 1)", "with": "x = 1", "why": "the purple light at night: it shows with the sun 24 deg down"}
+// plant: {"file": "src/world/223-sun.js", "find": "x = clamp((d + 6) / 2, 0, 1)", "with": "x = 1", "why": "the purple light at night: it shows with the sun 24 deg down"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
@@ -253,7 +253,7 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
 });
 
 // ------------------------------------------------------------------ the purple light (physics: sky/purple-light)
-// 223's own purpleAt, run here: the high haze's glow above the hidden sun, whole 3-5 deg down, none above 1.5 or below 7,
+// 223's own purpleAt, run here: the high haze's glow above the hidden sun, whole 3-4 deg down, none above 1.5 or below 6,
 // its centre sinking with the sun; composited over the twilights' skies where it stands (the shader's own lines): it
 // shows, under L 0.50, the credit 4.5:1; and its depth is the sun's true one, one way through a change
 test('physics: sky/purple-light: the purple light above the hidden sun, by its depth, under the ceiling', () => {
@@ -261,8 +261,8 @@ test('physics: sky/purple-light: the purple light above the hidden sun, by its d
   const K = +g.match(/const float PURP_K = ([\d.]+);/)[1];
   const P = new Function('DEG', 'clamp', cut(WORLD, '  var PURP = new Float32Array(4);', '  function skyThemeWarm(') + '\nreturn purpleAt;')(Math.PI / 180, (x, a, b) => Math.min(Math.max(x, a), b));
   const at = (d) => Array.from(P(d, 0.7));
-  for (const d of [5, 0, -1.5, -7, -8, -24]) assert.ok(at(d)[3] === 0, `the purple light shows with the sun ${d} deg (only 1.5-7 deg down)`);
-  for (const d of [-3, -4, -5]) assert.ok(Math.abs(at(d)[3] - 1) < 1e-9, `the purple light not whole with the sun ${d} deg down`);
+  for (const d of [5, 0, -1.5, -6, -7, -8, -24]) assert.ok(at(d)[3] === 0, `the purple light shows with the sun ${d} deg (only 1.5-6 deg down)`);
+  for (const d of [-3, -4]) assert.ok(Math.abs(at(d)[3] - 1) < 1e-9, `the purple light not whole with the sun ${d} deg down`);
   let prevE = 99;
   for (let d = -1.6; d >= -6.9; d -= 0.1) { const e = Math.asin(at(d)[1]) * 180 / Math.PI; assert.ok(e <= prevE + 1e-9, `its centre climbs as the sun sinks (${d.toFixed(1)}: ${e.toFixed(1)} deg)`); prevE = e; }
   assert.ok(Math.abs(Math.asin(at(-3)[1]) * 180 / Math.PI - 28) < 1e-6 && Math.abs(Math.asin(at(-6)[1]) * 180 / Math.PI - 16) < 1e-6, 'its centre not 28 deg up at 3 down and 16 at 6');

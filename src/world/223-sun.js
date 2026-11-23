@@ -50,12 +50,12 @@
   }
   function sunElOf(O) { var e = O && O.skyEl; return typeof e === "number" ? e : AIR_SUN_NIGHT; }   // (a sky's own sun, or a night's)
   /* (physics: sky/purple-light) the purple light: the high (about 20 km) haze's glow lit by the sun from below the
-     horizon, seen 2-6 deg after sunset and before sunrise: its amount whole from 3 to 5 deg down, none above 1.5 or below
-     7; its centre on the sun's bearing, 28 deg up with the sun 3 down, sinking with it (16 deg at 6 down). Into out:
+     horizon, seen 2-6 deg after sunset and before sunrise: its amount whole from 3 to 4 deg down (the most at 3-4, WMO), none above 1.5 or below
+     6; its centre on the sun's bearing, 28 deg up with the sun 3 down, sinking with it (16 deg at 6 down). Into out:
      its centre (xyz) and its amount (w) */
   var PURP = new Float32Array(4);
   function purpleAt(d, az) {
-    var w = clamp((-1.5 - d) / 1.5, 0, 1), x = clamp((d + 7) / 2, 0, 1), e = clamp(24 + 4 * (d + 4), 4, 40) * DEG;
+    var w = clamp((-1.5 - d) / 1.5, 0, 1), x = clamp((d + 6) / 2, 0, 1), e = clamp(24 + 4 * (d + 4), 4, 40) * DEG;
     w = w * w * (3 - 2 * w) * x * x * (3 - 2 * x);
     PURP[0] = Math.sin(az) * Math.cos(e); PURP[1] = Math.sin(e); PURP[2] = Math.cos(az) * Math.cos(e); PURP[3] = w;
     return PURP;
