@@ -13,7 +13,7 @@
 
      THE WIND (physics: air/wind-profile): one direction a visit at the surface (AIR_DIR, drawn by airDraw from the
      dunes' field stream), blowing toward azimuth V.windAz at V.u10 m/s 10 m up: the visit's own wind speed, drawn once from its own stream
-     (subseed(V.seed, 61)): a Rayleigh distribution of mean 5 m/s (a site's winds over a year) mapped by its CDF into
+     (subseed(V.seed, 61)): the speed distribution of a two-dimensional normal wind vector of mean 5 m/s (a site's winds over a year) mapped by its CDF into
      3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays under about 8.8 m/s, under every bird kind's own
      airspeed, so no bird flying upwind goes backward over the ground; truncated, not clamped, so nothing piles at the
      ends). The sand's own threshold (about 6.2 m/s at 10 m, the crests' speed-up 1.5x) is the sand's to apply. Its speed and its turn by height
@@ -28,7 +28,7 @@
   var SKY_RATE = 100;   // the sky's light runs this many times real time (declared: sun, moon, stars and galaxy together)
   var AIR_DIR = [0, 1];   // the visit's wind, unit (x, z), blowing toward (airDraw sets it; the water's ripples read it through LDEF)
   var AIR_H = { grains: 0.8, veils: 5, motes: 13, birds: 40 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own)
-  var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]];   // (the profile: the visits' U10: the Rayleigh's mean, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg)
+  var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]];   // (the profile: the visits' U10: the mean of the speed distribution of a two-dimensional normal wind vector, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg)
   var AIR_GRAIN_K = 1;   // the grains' speed, a share of the air's at their height (the sand's own spec sets it)
   var AIR_CIRRUS = [1, 0];   // the high streaks' long axis on their deck (sky-body.glsl: along world x)
   var AIR_KEY_EL = [5, 14], AIR_KEY_AZ = 55;   // the key light: 5-14 deg up, within 55 deg of upwind (the dunes' windward slopes lit)
@@ -50,7 +50,7 @@
     AIR_P.s = lg0 + (L0[2] - lg0) * k0 + (L1[2] - L0[2]) * k1; AIR_P.veer = L0[3] * k0 + (L1[3] - L0[3]) * k1;
     return AIR_P;
   }
-  function airU10(seed) {   // a visit's wind speed 10 m up, m/s: the Rayleigh of mean AIR_U10[0] (sigma = mean / sqrt(pi / 2)) truncated to [AIR_U10[1], AIR_U10[2]] by its CDF
+  function airU10(seed) {   // a visit's wind speed 10 m up, m/s: the speed distribution of a two-dimensional normal wind vector, of mean AIR_U10[0] (sigma = mean / sqrt(pi / 2)) truncated to [AIR_U10[1], AIR_U10[2]] by its CDF
     var u = RNG(subseed(seed, 61)).f(), s2 = 2 * Math.pow(AIR_U10[0] / Math.sqrt(PI / 2), 2), F = function (r) { return 1 - Math.exp(-r * r / s2); };
     var a = F(AIR_U10[1]), b = F(AIR_U10[2]);
     return Math.sqrt(-s2 * Math.log(1 - (a + (b - a) * u)));
@@ -69,6 +69,13 @@
   function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }   // a sky's own sun, deg (null: a night's, the key's own place)
   function airSkySun(V, el) { return el === null ? Array.prototype.slice.call(keyAt(V)) : dirAzEl(V.light.sunAz, el); }   // the sky's own sun (uSkyS at a hold)
   function airMoon(t) { return moonShown(t, AIR_MOON); }   // the moon on show at sky time t (226: its route)
+  var AIR_MOOND = { d: [0, -1, 0], w: 0, az: 0, el: -90, up: false }, AIR_MOONS = { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 };   // (the answer, and its own scratch for the route: never moonAt's)
+  function airMoonDir() {   // (physics: air/moon-dir) the moon's disc as drawn this frame: d its direction (unit, toward it), w its weight on show (0 none .. 1), az and el deg, up whether any of it shows; the very moment and route the night sky's uMoon is drawn at (226's skyNightUniforms), so a glory, a fogbow or a moonlit edge stands on the disc, never on the key
+    var V = SIM.V, o = AIR_MOOND;
+    if (!V) { o.d[0] = 0; o.d[1] = -1; o.d[2] = 0; o.w = 0; o.az = 0; o.el = -90; o.up = false; return o; }
+    var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);
+    o.d[0] = m.d[0]; o.d[1] = m.d[1]; o.d[2] = m.d[2]; o.w = m.w; o.az = m.az; o.el = m.el; o.up = m.w > 0; return o;
+  }
   function skyFrame() { return AIR_FRAME; }   // the turn the stars and the galaxy take (today none: see THE CLOCK)
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
   /* the landing's heading (the flight, the first plan, the galaxy's lie and the boot read it). (curated openings, step 2:
@@ -78,4 +85,4 @@
      anything is drawn, as the landing is; nothing turns the view. A land k is the one whose seed is 010's (11 + k x
      0x9e3779b9) */
   function airHeading0() { var T = [170, 160, 50, 210, 235, 225, null, 65, 245, 50, null, 110, 210, 310, 205, 230], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
-  var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
