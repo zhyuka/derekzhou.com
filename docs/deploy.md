@@ -90,11 +90,14 @@ artifact (30 days), whose upload fails the verdict job if it fails.
 post-deploy.yml's smoke (.github/ci/smoke.mjs) runs from a GitHub runner, whose datacenter IP Cloudflare's bot
 protection sometimes challenges (b4615db and a72acc9, 2026-11-23: / answered 403 with Cloudflare's challenge page,
 while elsewhere it answered 200 with the site's CSP). A challenge (.github/ci/cf-challenge.mjs: `cf-mitigated:
-challenge`, or a 403 from `server: cloudflare` without _headers' CSP) is not the site's answer. / is asked again 3
-times, 15, 30 and 60 s apart. If it is still challenged, the smoke warns "challenged by Cloudflare: can't tell" and
-skips the checks of / and of the files / references. A warning fails nothing, so no issue opens. Every other answer, and
-every other check, stays strict. A skip rule in Cloudflare's WAF would let the smoke see the site every time. It would
-need something a visitor can't send: a secret header, not the smoke's user agent, which anyone can copy.
+challenge`, or a 403 from `server: cloudflare` without _headers' CSP whose body is Cloudflare's challenge page) is not
+the site's answer. A WAF block, an Access denial or an edge error is: a visitor meets it too, and the smoke fails on it.
+/ is asked again 3 times, 15, 30 and 60 s apart. If it is still challenged, the smoke warns "challenged by Cloudflare:
+can't tell" and skips the checks of / and of the files / references. A challenged private path or unknown path is
+"can't tell" too, never "behind Access" or the 404 page. A warning fails nothing, so no issue opens, and the run's
+summary reads "passed, N can't tell". Every other answer, and every other check, stays strict. A skip rule in
+Cloudflare's WAF would let the smoke see the site every time. It would need something a visitor can't send: a secret
+header, not the smoke's user agent, which anyone can copy.
 
 ## The stills
 

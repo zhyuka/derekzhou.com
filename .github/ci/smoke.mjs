@@ -75,7 +75,7 @@ const notFound = await get('/no-such-page-' + Date.now());
 // and the check is a warning, not a failure. Any other answer is the site's, and is held to the 404 page.
 const why = (x) => [x.headers.get('cf-mitigated') && 'cf-mitigated: ' + x.headers.get('cf-mitigated'), x.headers.get('server') && 'server: ' + x.headers.get('server'), x.headers.get('cf-ray') && 'cf-ray: ' + x.headers.get('cf-ray'), JSON.stringify(x.body.toString().slice(0, 100))].filter(Boolean).join(', ');
 if (notFound.status === 404 && notFound.body.toString().includes('404')) ok.push('an unknown path is the 404 page with status 404');
-else if (notFound.headers.get('cf-mitigated')) warn.push(`an unknown path was answered by Cloudflare's bot protection, not the site (${notFound.status}; ${why(notFound)})`);
+else if (challenged(notFound)) warn.push(`an unknown path challenged by Cloudflare: can't tell (${notFound.status}; ${why(notFound)})`);
 else fail.push(`an unknown path is the 404 page with status ${notFound.status} (${why(notFound)})`);
 const refs = new Set([...(homeChallenged ? [] : refsOf(home.body.toString())), ...refsOf((await get('/404.html')).body.toString())]);
 for (const r of refs) {
@@ -88,10 +88,11 @@ for (const r of refs) {
 for (const p of NOT_SERVED) { const x = await get(p), loc = x.headers.get('location') || ''; check(x.status === 404 || (x.status === 301 && loc === '/'), `${p} not served (${x.status}${loc ? ' -> ' + loc : ''})`); }
 for (const p of PRIVATE) {
   const x = await get(p), loc = x.headers.get('location') || '';
+  if (challenged(x)) { warn.push(`${p} challenged by Cloudflare: can't tell whether it is behind Access (${x.status}; ${said(x)})`); continue; }   // (a challenge's 403 is not Access's)
   check((x.status === 302 && /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com\//.test(loc)) || [401, 403].includes(x.status), `${p} behind Access (${x.status}${loc ? ' -> ' + loc.split('?')[0] : ''})`);
 }
 const report = { url: URL0, sha: SHA, served: how, ok, warn, fail };
 if (A.out) fs.writeFileSync(A.out, JSON.stringify(report, null, 1));
 for (const m of ok) console.log('ok   ' + m); for (const m of warn) console.log('WARN ' + m + (process.env.GITHUB_ACTIONS ? '\n::warning::live smoke: ' + m : '')); for (const m of fail) console.log('FAIL ' + m);
-if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Live smoke: ${fail.length ? '**failed**' : 'passed'}\n\n` + fail.map((m) => `- **${m}**\n`).join('') + warn.map((m) => `- warning: ${m}\n`).join('') + ok.map((m) => `- ${m}\n`).join(''));
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Live smoke: ${fail.length ? '**failed**' : warn.length ? `passed, **${warn.length} can't tell**` : 'passed'}\n\n` + fail.map((m) => `- **${m}**\n`).join('') + warn.map((m) => `- warning: ${m}\n`).join('') + ok.map((m) => `- ${m}\n`).join(''));
 process.exit(fail.length ? 1 : 0);
