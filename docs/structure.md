@@ -138,6 +138,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
                              the sand spec's bounds, physics: sand/S1),
+                             tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
                              tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
@@ -145,6 +146,7 @@ tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.p
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
                              tools/checks/lib/one-air.mjs (the air's names and literals, for 42-one-air.sh),
+                             tools/checks/lib/gust-glsl.mjs (the shaders' gust rendered and held to the JS's, for 44-gust-glsl.sh),
                              tools/checks/lib/citations.mjs (no author-style citation in a tracked file, for 45-citations.sh)
 
 Seven scripts are served minified: world.js, realm-kit.js,
