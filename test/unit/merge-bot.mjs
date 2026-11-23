@@ -1,5 +1,5 @@
 // test/unit/merge-bot.mjs: the merge bot's small rules (.github/ci/bot-rules.mjs)
-import { test, assert } from '../unit-lib.mjs';
+import { test, assert, fs, path, ROOT } from '../unit-lib.mjs';
 
 test('merge bot: a conflict is its session\'s, never the owner\'s (no label that holds the PR)', async () => {
   const { updateRefused, HOLD } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
@@ -49,6 +49,27 @@ test('merge bot: a re-run gate is read by its newest verdict artifact, not its f
   assert.equal(newestArtifact(undefined), null);
   const same = { id: 5, created_at: a1.created_at };
   assert.equal(newestArtifact([a1, same]).id, 13921053188, 'the same second: the higher id');
+});
+
+test('merge bot: the hub\'s review on a PR\'s head lands it (the owner, 2026-11-23: "just auto push stuff")', async () => {
+  const { reviewedIn, REVIEW } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  assert.equal(REVIEW, 'hub-review');
+  assert.equal(reviewedIn([{ context: 'hub-review', state: 'success' }]), true, 'reviewed');
+  assert.equal(reviewedIn([{ context: 'hub-review', state: 'failure' }, { context: 'hub-review', state: 'success' }]), false, 'the newest status for the context decides (GitHub lists them newest first)');
+  assert.equal(reviewedIn([{ context: 'stills', state: 'success' }]), false, 'another context is not the review');
+  assert.equal(reviewedIn([{ context: 'hub-review', state: 'pending' }]), false, 'pending is not reviewed');
+  assert.equal(reviewedIn([]), false, 'a push after the review carries no status: it waits');
+  assert.equal(reviewedIn(undefined), false);
+  assert.equal(reviewedIn({ message: 'Not Found' }), false, 'an API error is not a review');
+  // the bot uses it where it once left a PR for the owner, and the deploy walk counts it as the owner's merge
+  const bot = fs.readFileSync(path.join(ROOT, '.github/ci/merge-bot.mjs'), 'utf8');
+  assert.match(bot, /if \(held\.length && !approved\)/, 'a needs-owner or visible label holds only an unreviewed PR');
+  assert.match(bot, /if \(!approved && files\.some\(\(f\) => SELF\.includes\(f\)\)\)/, 'the bot\'s own files wait only for the review');
+  assert.match(bot, /if \(!v\.frames_identical && !approved\)/, 'a visible change waits only for the review');
+  assert.match(bot, /for \(const p of pulls\) if \(await hubReviewed\(p\.head\.sha\)\) return true;/, 'live follows a reviewed landing');
+  const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/merge.yml'), 'utf8');
+  assert.match(yml, /^\s+status:/m, 'a review starts a tick at once');
+  assert.match(yml, /github\.event_name == 'status' && github\.event\.context == 'hub-review' && github\.event\.state == 'success'/);
 });
 
 test('merge bot: a tip with the bake goes live only with its stills release up (stills.yml\'s status)', async () => {
