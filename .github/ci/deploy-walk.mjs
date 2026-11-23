@@ -68,9 +68,9 @@ export async function walk(live, runs, d) {
 }
 
 // Where live moves (2026-11-23): the walk's target when its stills are up, else the newest tip the walk passed whose
-// stills are (ready(sha): bot-rules.mjs stillsReady's answer for that tip). A bake takes about an hour and main moves
-// every 20-30 minutes, so the newest tip's release is rarely up when the walk reaches it: live went nowhere from Nov 15.
-// Live moves to the last baked tip meanwhile, and on to the target once its bake is done. Never past the walk's stop:
+// stills are (ready(sha): bot-rules.mjs stillsReady's answer for that tip). Until then one tip without its release
+// held live where it was (a1c4136 from Nov 15). Live moves to the newest walked tip with its stills up meanwhile, and on
+// to the target once its release is up. Never past the walk's stop:
 // steps holds only the tips the walk passed, up to its target.
 export async function liveTarget(live, to, steps, ready) {
   if (to === live) return { to: live, why: '' };

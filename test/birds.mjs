@@ -191,18 +191,23 @@ test('a perched bird turns, hops round and preens at the research\'s rates', () 
   assert.equal(edgeOn, 0, 'a perched bird seen from in front or behind');
 });
 /* the step and the draw make no objects in steady state (no array, object, closure or store a frame): the world flown
-   and drawn on the sim's GL stub for 100 s, then 30 s with V8's sampling heap profiler, the collected objects counted
+   and drawn on the sim's GL stub for 300 s, then 30 s with V8's sampling heap profiler, the collected objects counted
    too. What a birth, a goal, a landing or a perched bird's act makes is the event's, not a frame's, and is left out;
-   V8's boxed numbers (16 B or less each) are reported, not barred. And no bird's wing history grows without end */
+   V8's boxed numbers (16 B or less each) are reported, not barred. The count is the mean of three runs (seeds 2, 3 and 4):
+   the profiler samples, so one run of the same code reads 0.45-0.52 against a 0.5 bar (the hub, 2026-11-21: a single
+   run that flaps across its bar is a flaky test). The 300 s are V8's to settle: after 100 s its compiler is still
+   re-optimizing (code and feedback it makes, counted against whatever bird code runs then), and that churn read
+   0.40-0.57, growing with the code, where the birds' own read 0.10-0.15 once it has settled (2026-11-21). And no bird's
+   wing history grows without end */
 const EVENT = /^(newBird|newFlock|newGoal|nextGoal|drawRec|make|startApproach|touchDown|leave|toAir|clickBird|recruit|addFar|splitOff|soloFlock|endPlace|pickLedge|perchRec|gateFor|relead|grow|drawBeats|slotsOf|perchWhat|flockWhat|placeWing|makeRoom|jab|goRound|giveUp|leavingStep|notice|noticePointer|touchGeom|gmean|nameLedges|ledges|bootRing|seed|dropBird|dropFlock|homeStep|joinStep|perchedStep)$/;
 test('the step and the draw make no objects a frame; wing histories stay short', async () => {
   const { Session } = await import('node:inspector/promises');
   const s = new Session(); s.connect();
   let objs = 0, objB = 0, nums = 0, steps = 0, worstWing = 0;
   const where = new Map();
-  for (const [name, size] of [['life', '960x600'], ['natural', '390x844']]) {
-    const sc = SCENES[name](2, size); sc.opt.draw = {}; const sim = makeSim(sc.opt); sc.setup(sim);
-    sim.run(100);
+  for (const seed of [2, 3, 4]) for (const [name, size] of [['life', '960x600'], ['natural', '390x844']]) {
+    const sc = SCENES[name](seed, size); sc.opt.draw = {}; const sim = makeSim(sc.opt); sc.setup(sim);
+    sim.run(300);
     await s.post('HeapProfiler.startSampling', { samplingInterval: 8, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
     sim.run(30); steps += Math.round(30 / DT);
     const { profile } = await s.post('HeapProfiler.stopSampling'), info = new Map();
@@ -219,7 +224,7 @@ test('the step and the draw make no objects a frame; wing histories stay short',
   }
   s.disconnect();
   const per = objs / steps, top = [...where].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${v} ${k}`).join('; ');
-  console.log(`# allocation: ${per.toFixed(2)} objects a step (${(objB / steps).toFixed(0)} B; bar 0.5), ${(nums / steps).toFixed(0)} boxed numbers a step; the longest wing history ${(100 * worstWing).toFixed(0)} % of its bar` + (top ? `\n#   most: ${top}` : ''));
+  console.log(`# allocation: ${per.toFixed(2)} objects a step (the mean of 3 runs) (${(objB / steps).toFixed(0)} B; bar 0.5), ${(nums / steps).toFixed(0)} boxed numbers a step; the longest wing history ${(100 * worstWing).toFixed(0)} % of its bar` + (top ? `\n#   most: ${top}` : ''));
   assert.ok(per < 0.5, `${per.toFixed(2)} objects made a step: ${top}`);
   assert.ok(worstWing <= 1, 'a wing history grew past its bar');
 });
@@ -290,4 +295,30 @@ test('a flock beyond sight sleeps, and wakes the same birds when the eye comes t
   const d = Math.hypot(b.p[0] - C.pos[0], b.p[2] - C.pos[2]);
   console.log(`# sleep: asleep at ${slept.toFixed(1)} s, awake at ${woke.toFixed(1)} s, ${(d / 1000).toFixed(1)} km off`);
   assert.ok(slept >= 0, 'it never slept'); assert.ok(woke > slept, 'it never woke'); assert.ok(d > 3000, 'it woke within 3 km');
+});
+
+/* (delight 2) the score's read of the birds: WORLD.birds.feed(o) fills the caller's arrays, the nearest flocks first
+   and the nearest birds' wings, and changes nothing in the world: two runs, one read every step, end the same */
+test('the score\'s bird feed: nearest first, finite, and read only', () => {
+  const run = (read) => {
+    const sc = SCENES.natural(3, '960x600'); sc.opt.dt = DT; sc.opt.draw = null; sc.opt.sky = 'afterglow';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim);
+    const o = { f: new Float32Array(48), w: new Float32Array(24) }; let reads = 0, flocks = 0, wings = 0;
+    for (let k = 0; k < 90 / DT; k++) {
+      sim.step(); if (!read || !sim.B) continue;
+      sim.feed(o); reads++; flocks += o.n; wings += o.m;
+      assert.ok(o.n <= 8 && o.m <= 4 && o.kinds.length > 4, 'the feed\'s counts');
+      for (let i = 0; i < o.n; i++) {
+        const q = 6 * i; assert.ok(o.f.slice(q, q + 6).every(Number.isFinite), 'a flock slot not finite');
+        assert.ok(o.f[q] >= 0 && o.f[q] < o.kinds.length && o.f[q + 5] >= 1, 'a flock\'s kind or count');
+        if (i) assert.ok(o.f[q + 1] >= o.f[q - 5] - 1e-3, 'flocks not nearest first');
+      }
+      for (let i = 0; i < o.m; i++) { const q = 6 * i; assert.ok(o.w.slice(q, q + 6).every(Number.isFinite) && o.w[q] >= 0 && o.w[q] <= 4 && o.w[q + 2] >= 0 && o.w[q + 2] < 1, 'a wing slot'); }
+    }
+    return { reads, flocks, wings, end: sim.B.BIRDS.map((b) => b.p.join(',')).join(';') };
+  };
+  const a = run(true), b = run(false);
+  console.log(`# feed: ${a.reads} reads, ${(a.flocks / a.reads).toFixed(1)} flocks and ${(a.wings / a.reads).toFixed(1)} wings a read`);
+  assert.ok(a.reads > 1000 && a.flocks > a.reads, 'too few reads or flocks');
+  assert.equal(a.end, b.end, 'reading the feed changed the world');
 });

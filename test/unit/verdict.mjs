@@ -139,7 +139,7 @@ test('verdict: a world change that also changes the page is not "frames identica
 
 test('areas: the tools/gpu files T2 is not run on for (NOT_T2) are run by nothing T2 runs', async () => {
   const { NOT_T2 } = await import('../../.github/ci/areas.mjs');
-  const t2 = ['.github/workflows/gpu.yml'].concat(fs.readdirSync(path.join(ROOT, 'tools/gpu')).map((n) => 'tools/gpu/' + n).filter((p) => /\.m?js$/.test(p) && !NOT_T2.has(p)));
+  const t2 = ['.github/workflows/gpu.yml'].filter((p) => fs.existsSync(path.join(ROOT, p))).concat(fs.readdirSync(path.join(ROOT, 'tools/gpu')).map((n) => 'tools/gpu/' + n).filter((p) => /\.m?js$/.test(p) && !NOT_T2.has(p)));
   for (const f of NOT_T2) {
     assert.ok(fs.existsSync(path.join(ROOT, f)), f + ' exists');
     const base = path.basename(f);
