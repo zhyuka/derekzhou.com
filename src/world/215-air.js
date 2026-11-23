@@ -69,12 +69,20 @@
   function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }   // a sky's own sun, deg (null: a night's, the key's own place)
   function airSkySun(V, el) { return el === null ? Array.prototype.slice.call(keyAt(V)) : dirAzEl(V.light.sunAz, el); }   // the sky's own sun (uSkyS at a hold)
   function airMoon(t) { return moonShown(t, AIR_MOON); }   // the moon on show at sky time t (226: its route)
+  var AIR_MOOND = { d: [0, -1, 0], w: 0, az: 0, el: -90, up: false }, AIR_MOONS = { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 };   // (the answer, and its own scratch for the route: never moonAt's)
+  function airMoonDir() {   // (physics: air/moon-dir) the moon's disc as drawn this frame: d its direction (unit, toward it), w its weight on show (0 none .. 1), az and el deg, up whether any of it shows; the very moment and route the night sky's uMoon is drawn at (226's skyNightUniforms), so a glory, a fogbow or a moonlit edge stands on the disc, never on the key
+    var V = SIM.V, o = AIR_MOOND;
+    if (!V) { o.d[0] = 0; o.d[1] = -1; o.d[2] = 0; o.w = 0; o.az = 0; o.el = -90; o.up = false; return o; }
+    var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);
+    o.d[0] = m.d[0]; o.d[1] = m.d[1]; o.d[2] = m.d[2]; o.w = m.w; o.az = m.az; o.el = m.el; o.up = m.w > 0; return o;
+  }
   /* (physics: night/sky-turn) the sky's frame at sky time t: the stars and the galaxy turn together about the sky's pole,
      AIR_POLE_EL deg up toward the key's azimuth (the aurora's poleward side), at SKY_RATE times the sidereal rate; the
      identity at t 0 (the landing's sky as it was laid). Row-major, frame to world: a star at s in the frame stands at
      F s in the world */
   var AIR_POLE_EL = 60, AIR_SIDEREAL = 86164.1;
   function skyFrame(t, V) {
+    if (!V || !t) { for (var i = 0; i < 9; i++) AIR_FRAME[i] = i % 4 ? 0 : 1; return AIR_FRAME; }   // (the identity at t 0, and with no visit yet)
     var k = keyAt(V), az = Math.atan2(k[0], k[2]), e = AIR_POLE_EL * PI / 180, p = [Math.sin(az) * Math.cos(e), Math.sin(e), Math.cos(az) * Math.cos(e)];
     var a = SKY_RATE * 2 * PI / AIR_SIDEREAL * (t || 0), c = Math.cos(a), s = Math.sin(a), C = 1 - c, F = AIR_FRAME;
     F[0] = c + p[0] * p[0] * C; F[1] = p[0] * p[1] * C - p[2] * s; F[2] = p[0] * p[2] * C + p[1] * s;
@@ -84,4 +92,5 @@
   }
   function weather() { return { surface: 1, aloft: 1 }; }   // the wind's share of airSpeed by sky (today one wind for every sky: physics: air/wind-by-sky)
   function airHeading0() { return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }   // the landing's heading, from its own stream (the flight, the first plan, the galaxy's lie and the boot read it)
-  var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
+  var AIRAPI = { draw: airDraw, windAt: windAt, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
