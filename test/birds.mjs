@@ -321,4 +321,20 @@ test('a formation keeps its places in a side wind (median within 1.5 spans)', ()
   console.log(`# side wind 6.5 m/s: ${E.length} member samples, place error median ${med.toFixed(2)} spans, p90 ${p90.toFixed(2)} (${by.join('; ')})`);
   assert.ok(E.length > 1000, 'too few samples');
   assert.ok(med <= 1.5, `place error median ${med.toFixed(2)} spans in a side wind`);
+  /* and the pull to its place is at most a tenth of its speed however the place lies (by its length: clamped by axis
+     it reached 0.1 x sqrt 3, the round-6 review): a member put 50 m off its place on all three axes at once */
+  const sc = SCENES.perch(1, '960x600'); sc.opt.speed = 0; sc.opt.yaw = 0; sc.opt.wind = [0, 0];
+  const sim = makeSim(sc.opt); sim.run(0.5);
+  const F = sim.flock(sim.ahead(400, 0.1, 60), 'skein', 'goose', 5, sim.heading()), B = sim.B; sim.run(5);
+  let worst = 0;
+  for (const b of F.m) {
+    if (b === F.lead) continue;
+    const L = F.lead, p0 = [...b.p], sp = L.sz, h = B.slotAt(F, b, b.slot[0] * sp, b.slot[1] * sp, b.slot[2] * sp), V = Math.hypot(L.v[0], L.v[2]);
+    const g = h + Math.atan2(Math.sin(Math.atan2(L.v[0], L.v[2]) - L.psi), Math.cos(Math.atan2(L.v[0], L.v[2]) - L.psi));
+    b.p[0] = B.TP[0] + 50; b.p[1] = B.TP[1] - 50; b.p[2] = B.TP[2] + 50;   // (far off on every axis: the pull at its clamp)
+    const v = B.placeVel(F, b); worst = Math.max(worst, Math.hypot(v[0] - V * Math.sin(g), v[1] - L.v[1], v[2] - V * Math.cos(g)) / b.K.v);
+    b.p[0] = p0[0]; b.p[1] = p0[1]; b.p[2] = p0[2];
+  }
+  console.log(`# the pull to a place 50 m off on every axis: ${worst.toFixed(3)} of the bird's speed (a tenth, its drifting place's heading a little off the nominal one; by axis 0.176)`);
+  assert.ok(worst > 0.09 && worst <= 0.11, `a member pulled to its place at ${worst.toFixed(3)} of its speed`);
 });
