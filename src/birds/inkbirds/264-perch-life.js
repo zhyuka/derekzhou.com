@@ -3,7 +3,7 @@
      side nearer the wind's (it faces into the wind), the end bird of a row looking out */
   function wantYaw(b) {
     var P = b.P, wr = WINDV[0] * LVC_R[0] + WINDV[2] * LVC_R[2], wf = WINDV[0] * LVC_F[0] + WINDV[2] * LVC_F[2], ws = Math.sqrt(wr * wr + wf * wf);
-    var side = ws > 1 ? (wr > 0 ? -1 : 1) : P.face;   // (the wind blowing toward its right comes from its left: it faces left, into it)
+    var side = Math.abs(wr) > 1 ? (wr > 0 ? -1 : 1) : P.face;   // (the wind blowing toward its right comes from its left: it faces left, into it)
     var edge = edgeOf(b); if (edge) side = edge;
     return side * PERCH.yaw;
   }
@@ -45,7 +45,8 @@
       var want = wantYaw(b), u = r(), off = angDiff(want * DEG, P.yaw * DEG) / DEG;
       /* a hop-turn: round to face the other way (to its wanted side when it faces from it, else now and then of its own);
          off its wanted side by less than a hop, a step toward it */
-      if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30)) { var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
+      if (Math.abs(off) >= 90 || (u < 0.15 && Math.abs(off) <= 30 && t - P.tt > 2)) {   // (of its own now and then, never in its first 2 s down: it touched facing the way it wants)
+        var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
       else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.82 && P.kind === 'name' && !roost) { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
@@ -101,11 +102,12 @@
     b.burst = leapt ? { t0: t, n: 3 + Math.floor(b.r() * 3) } : null;
     if (J && J.lead) {   /* to the flock: a place at its end, flown into */
       if (b.F && b.F !== J) { var F0 = leaveFlock(b); if (!F0.m.length) dropFlock(F0); }
-      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b); J.off = false; J.acc = 0;   // (a bird joining: the flock is judged again with it, from this frame)
+      var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b); J.off = false; J.acc = 0; J.lk = true;   // (a bird joining: the flock is judged again with it, from this frame)
     } else {
       if (!b.F) soloFlock(b);
       var r = b.r, g = ro ? 'commute' : weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
       if (g === 'pass' && t < POP.passT) g = 'commute';
+      if (!NIGHT_K[b.kind] && skyCls() === 'moon') g = 'sink';   // (night: a crow, swallow or finch off the words goes down to roost, physics: birds/day)
       if (g === 'pass') passTaken(r);
       newGoal(b.F, g, r, skyCls());
       if (ro) RO.F = b.F;
@@ -163,6 +165,7 @@
   function clickBird(x, y, C) {
     if (HOST.reduced() || FORCED) return;
     var r = vstream(8000 + (++PW.k)), kind = weighted(r, [['gull', 70], ['crow', 20], ['swallow', 10]]);
+    if (skyCls() === 'moon') kind = 'gull';   // (at night a gull: crows and swallows roost, physics: birds/day; drawn first all the same, the click's stream unchanged)
     var b0 = { S: SORTS[kind], sz: B_SPAN * SORTS[kind].size * MODEL_K }, D = perchDepth(b0, 0.55);   // (a little beyond the perches: its span about 2.3 a mid bird's there, so it can come down soon)
     rayAt(C, x, y, D, CQ);
     var F = newFlock(CQ[0], CQ[1], CQ[2], Math.atan2(C.f[0], C.f[2]) + (x < W / 2 ? -0.9 : 0.9), skyCls(), ['single', kind, 1]), b = F.lead;

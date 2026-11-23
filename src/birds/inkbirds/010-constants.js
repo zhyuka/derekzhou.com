@@ -27,8 +27,8 @@
     blue:  { pat: [['skein', 32], ['line', 15], ['pair', 15], ['single', 27], ['loose', 18]],   // (crows still commuting in to roost: delight-life 1)
              kinds: { skein: [['goose', 80], ['ibis', 20]], line: [['goose', 35], ['ibis', 30], ['gull', 35]], pair: [['gull', 35], ['crow', 40], ['goose', 25]],
                       single: [['gull', 40], ['heron', 35], ['crow', 25]], loose: [['crow', 75], ['gull', 25]] } },
-    first: { pat: [['skein', 27], ['line', 10], ['pair', 15], ['single', 50]],
-             kinds: { skein: [['goose', 1]], line: [['goose', 50], ['gull', 50]], pair: [['gull', 60], ['goose', 40]], single: [['gull', 50], ['heron', 50]] } },
+    first: { pat: [['skein', 25], ['line', 10], ['pair', 13], ['single', 37], ['loose', 15]],
+             kinds: { skein: [['goose', 1]], line: [['goose', 50], ['gull', 50]], pair: [['gull', 60], ['goose', 40]], single: [['gull', 50], ['heron', 50]], loose: [['crow', 1]] } },   // (first light: crows leave the roost in loose flocks together, before sunrise: https://doi.org/10.1016/j.cub.2022.04.032, https://doi.org/10.25225/fozo.v66.i4.a3.2017; physics: birds/day)
     moon:  { pat: [['skein', 20], ['pair', 15], ['single', 60]],
              kinds: { skein: [['goose', 1]], pair: [['gull', 60], ['goose', 40]], single: [['gull', 50], ['heron', 50]] } }
   };

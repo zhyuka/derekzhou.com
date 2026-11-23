@@ -66,7 +66,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 28.5 * K,          // 28,498 with the roost on the name (2026-11-15, delight-life 1: +387 B over the wave-1 stack's 28,111; 174 B left; raised from 27.5 K with LOAD-PERF's OK, 2026-11-15 22:14; 28 K to 28.5 K with #315's feed merged in, 2026-11-23, within LOAD-PERF's OK of up to 30 K once #317 landed)
+  '/inkbirds.js': 29.5 * K,          // 30,071 B with the roost on the name (#314, delight-life 1) merged onto #277's stack, 137 B left; 29,456 with the turn, the phase lock, the glides, leaving together, the wind and the day (#259, #262, #263, #273, #275, #277, the hub's flock physics spec: +1,345 B over main's 28,111; LOAD-PERF's OK up to 30 K once the cuts, #317, land; 29 K to 29.5 K with #315's feed merged in, 2026-11-23, within LOAD-PERF's OK of up to 30 K once #317 landed)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
