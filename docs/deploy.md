@@ -22,13 +22,28 @@ says so on the PR (merge-bot.mjs, step 1b; its message ends "Reverts-main-tip: <
 step over the pair). The owner's own merges are never reverted by the bot. MERGE_TOKEN needs Actions write for the
 re-run.
 
+The PR's own words (2026-11-16): right before it lands a PR, by either way, the bot pipes the PR's title and body as
+they are that tick to `python3 .claude/hooks/guard.py --text` (merge.yml checks out .claude/hooks beside .github/ci).
+A banned name (RULES.json "naming", names.json) holds the PR with one comment, never repeating the name; the gate runs
+on push and never sees them, and the bot would write "Merge #N: <title>" onto main. Anything else but a clean exit
+(no python3, an unreadable names.json) holds it too, without a comment. Before guard.py has --text, the tick says it
+did not check (bot-rules.mjs textAnswer, test/unit/merge-bot.mjs).
+
 A cancelled main gate (a newer push superseded it) is no result: its tip is judged by its own PR's gate (for the bot's
 own merge commit, "Merge #N: ...", the gate on the PR's head, its second parent) or the owner's merge. When nothing
 proves it, the bot re-runs that tip's gate itself, once (2026-11-15: live waited 4 hours at 7ab73d1 on #258's
 cancelled merge for "a later gate" that never runs on that tip); cancelled again, the deploy gate says so and the
 owner looks (.github/ci/deploy-walk.mjs, its test in test/unit/verdict.mjs).
 
-The owner's "land it when green" is GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
+**The hub's review lands it (the owner, 2026-11-23: "just auto push stuff and u do everything quickly", choosing "Yes,
+everything").** The owner no longer merges each visible PR. Once the hub's review passes, the hub writes the line
+`<!-- hub-review SHA -->` into the PR's body, SHA its full head commit. The body edit starts a tick (merge.yml's
+pull_request_target `edited`), and the bot lands the PR on its green gate, visible or not, labelled needs-owner or not,
+the bot's own files included. A push after the review moves the head, so the line no longer matches: it waits for a
+new one. (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.) The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
+its stills are up. The hub sends the owner a daily note of what went live, and "undo X" lands a revert the same way.
+
+Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
 it once its gate's `verdict` check is green. A new push does not undo it: GitHub merges the head whose checks pass.
 His approval cannot be a review, because the agents open every PR as his account and GitHub refuses an author's

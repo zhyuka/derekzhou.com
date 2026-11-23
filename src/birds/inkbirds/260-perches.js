@@ -13,7 +13,7 @@
   var PERCH = (function () {   /* the perched shape: the owner's chosen one: its poses. Pitched up 70 deg, each keeps its wings swept forward (up) or raised, never hanging below the wings' root: the feet it stands on (230 restSolve), so it stands on top of the ink (the hub's re-review 3, option c) */
     function side(a) { var p = FP.pose(); for (var i = 0; i < 11; i++) { p[i] = a[i]; p[11 + i] = a[i]; } return p; }
     var P = { flare: side([55, 26, 26, 1, -16, 6, 10, 14, 0, 0, 12]), touch: side([62, 65, 12, 0.95, -10, 0, 4, 6, 0, 0, 8]),
-      fold: side([0, 78, 88, 0.48, 0, 14, 0, 0, 6, 0, 0]), foldHalf: side([40, 65, 30, 0.8, -10, 25, 0, 0, 5, 0, 6]),
+      fold: side([0, 78, 88, 0.48, 0, 14, 0, 0, 6, 0, 0]), foldHalf: side([48, 65, 30, 0.8, -10, 25, 0, 0, 5, 0, 6]),
       foldLoose: side([20, 72, 70, 0.6, -6, 10, 0, 0, 4, 0, 2]), open: side([40, 65, 6, 0.9, -5, 10, 4, 0, -4, 0, 6]) };
     return { poses: P, scale: 4.2, el: 4, pitch: 70, yaw: 95 };
   })();
@@ -38,7 +38,10 @@
 
   /* ---------------- the ledges (the words' ink, on this window) ---------------- */
   var NAME_INK = null;
-  function nameInk() { if (!NAME_INK) NAME_INK = PERCH_INK.name.split('|').map(function (c) { return c ? c.split(';').map(function (q) { var a = q.split(','); return [+a[0], +a[1]]; }) : []; }); return NAME_INK; }
+  function nameInk() {   // (each column's numbers are differences from the column before's, an empty one the same: 255, make.mjs)
+    if (!NAME_INK) { var p = []; NAME_INK = PERCH_INK.name.split('|').map(function (c) { if (c) p = c.split(',').map(function (d, i) { return (p[i] || 0) + +d; }); var o = []; for (var i = 0; i < p.length; i += 2) o.push([p[i], p[i + 1]]); return o; }); }
+    return NAME_INK;
+  }
   function inkTops(c) { var I = nameInk()[c], o = []; if (!I) return o; for (var i = 0; i < I.length; i++) if (I[i][1] < PERCH_INK.h && I[i][1] - I[i][0] >= PERCH_INK.room) o.push(I[i][1] - 1); return o; }
   /* the name's ledges in its own units (x, y pairs along each), made once: a relayout only maps them */
   var NAME_LEDGES = null;
@@ -124,8 +127,8 @@
   /* a perch: a ledge's place (kind, its index, x and its foot's y, CSS px) or the tip's, and every field a landing and
      a perched life set (one shape for every perch, so their steps stay optimised) */
   function perchRec(kind, li, x, fy, k) {
-    return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: [0, 0], at: [0, 0, 0], af: [0, 0, 0], v: [0, 0, 0], ok: false,
-      t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
+    return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: new Float64Array(2), at: new Float64Array(3), af: new Float64Array(3), v: new Float64Array(3), ok: false,
+      t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, gb: 0, gbT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
       tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, nextAct: 0, act: null, walk: null,
       swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined, landYaw: false, rA: 0, rB: 0, rT: -1, nb: new Int32Array(24), nbN: 0, nbI: -1, nbL: null };
   }

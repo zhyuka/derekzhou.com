@@ -35,12 +35,12 @@
   var TAU = Math.PI * 2;
   var PSI_TOL = 5e-5;   // cycles: the phase's polyline is within this of every 1/240 s step the loop takes
   /* THE OWNER'S WORD (2026-11-03 ~16:45 UTC: "the birds should glide too sometimes"): every kind glides between its
-     bouts, the measured beat kept. The lab's 'continuous' kinds (goose, heron, swan, crow: Bishop 2015, Pennycuick 2001;
-     the swallow: Park 2001, its upstroke pauses kept within its bouts) get flap bouts and glides as the gull's and the
+     bouts, the measured beat kept. The lab's 'continuous' kinds (goose, heron, swan, crow: doi:10.1126/science.1258732, doi:10.1242/jeb.204.19.3283;
+     the swallow: doi:10.1242/jeb.204.15.2741, its upstroke pauses kept within its bouts) get flap bouts and glides as the gull's and the
      stork's are written (beats; beat-lengths: median, lognormal sigma, min, max). THESE NUMBERS ARE CHOSEN, NOT
      MEASURED (no bout data for these kinds in the lab's sources): long bouts and short glides, flapping shares about
      0.87 goose, 0.92 swan, 0.80 heron, 0.76 crow, 0.71 swallow (the means of the lognormals). The gull, the stork and the
-     ibis keep their measured schedules (CC0 tags; Wehner 2022), the ibis in a V its 97% (Portugal 2014). Written into
+     ibis keep their measured schedules (CC0 tags; doi:10.1007/s10336-022-01978-1), the ibis in a V its 97% (doi:10.1038/nature12939). Written into
      LB.SCHED itself, so LB.bird (the lab) and this file's loop fly the same table (tools/wingcheck.js). */
   /* (life, DESIGN 3.2) every kind glides as its kind really glides: the between-bout share kept short for the
      continuous flappers (their real glides are the event glides the path asks: set to descend, rolling into a turn),
@@ -68,9 +68,9 @@
     /* the lab's own helpers (labbird.js), copied: the same numbers */
     function fr(x) { return x - Math.floor(x); }
     function ss(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }
-    function gauss(r) { var u = 0; for (var i = 0; i < 6; i++) u += r(); return (u - 3) * Math.SQRT2; }
+    function stdNormal(r) { var u = 0; for (var i = 0; i < 6; i++) u += r(); return (u - 3) * Math.SQRT2; }
     function clip(x, a) { return x < -a ? -a : x > a ? a : x; }
-    function logn(r, m) { var x = m[0] * Math.exp(m[1] * gauss(r)); return Math.min(m[3], Math.max(m[2], x)); }
+    function logn(r, m) { var x = m[0] * Math.exp(m[1] * stdNormal(r)); return Math.min(m[3], Math.max(m[2], x)); }
     function rng(seed) { var s = (seed >>> 0) || 1; return function () { s = (s + 0x9e3779b9) | 0; var z = s; z = Math.imul(z ^ (z >>> 16), 0x85ebca6b); z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35); return ((z ^ (z >>> 16)) >>> 0) / 4294967296; }; }
     /* the glide's load curl: labbird's CURL_R (the tapered cantilever's rigid-equivalent tip slope), the same sum */
     var CURL_R = (function () { var TAPER = 0.3, n = 2000, th = 0, w = [0], k, u, du = 1 / n; for (var i = 0; i < n; i++) { u = (i + 0.5) * du; k = (1 - u) * (1 - u) / Math.pow(1 - (1 - TAPER) * u, 3); var t1 = th + k * du; w.push(w[i] + 0.5 * (th + t1) * du); th = t1; } return LB.CURL_TIP * w[n] / th; })();
@@ -82,7 +82,7 @@
       var m = KM[kind], f0 = (o.f || LB.rate(kind, o.rate)) * (1 + VAR.SPREAD * (o.spread === undefined ? 2 * r() - 1 : o.spread));
       var sc = o.sched === 'continuous' ? { cont: true } : o.sched === 'calm' ? { calm: CALM[kind] } : SCHED[o.V && kind === 'ibis' ? 'ibisV' : kind] || { cont: true };
       var from = o.from === undefined ? -5 : o.from, dt = 1 / 240;
-      var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null,
+      var b = { kind: kind, f: f0, D: m.D, from: from, dt: dt, sched: o.sched || 'measured', sc: sc, lead: o.lead || null, lock: o.lock || null, loff: 0, gq: 0,
         EPS: new Float32Array(64), KK: new Float32Array(64), PAU: new Float32Array(64), nbt: 0, pz: 0, pzrun: 0,
         KI: new Float64Array(64), KP: new Float64Array(64), nk: 0, cone: [0, 0, 0, 0, 0, 0],   // the phase's knots: step, psi; the open segment's cone
         BO: [], PA: [], i: -1, pre: !!o.pre, boff: 0 };   // boff: the first beat the per-beat draws still hold
@@ -114,11 +114,11 @@
       var sc = b.sc, r = b.rb;
       if (b.EPS.length < n) { b.EPS = grow(b.EPS, n, Float32Array); b.KK = grow(b.KK, n, Float32Array); b.PAU = grow(b.PAU, n, Float32Array); }
       for (var j = b.nbt; j < n; j++) {
-        b.EPS[j] = clip(VAR.PERIOD_CV * gauss(r), 0.08); b.KK[j] = 1 + clip(VAR.AMP_SD * gauss(r), 0.12);
+        b.EPS[j] = clip(VAR.PERIOD_CV * stdNormal(r), 0.08); b.KK[j] = 1 + clip(VAR.AMP_SD * stdNormal(r), 0.12);
         if (sc.pause) {
           var pi = sc.pause[0], p11 = 1 - 1 / sc.pause[1], p01 = pi * (1 - p11) / (1 - pi);
           b.pz = b.pzrun >= sc.pause[2] ? 0 : (r() < (b.pz ? p11 : p01) ? 1 : 0); b.pzrun = b.pz ? b.pzrun + 1 : 0;
-          b.PAU[j] = b.pz ? Math.min(sc.pause[5], Math.max(sc.pause[4], sc.pause[3] * Math.exp(0.45 * gauss(r)))) : 0;
+          b.PAU[j] = b.pz ? Math.min(sc.pause[5], Math.max(sc.pause[4], sc.pause[3] * Math.exp(0.45 * stdNormal(r)))) : 0;
         } else b.PAU[j] = 0;
       }
       if (n > b.nbt) b.nbt = n;
@@ -128,14 +128,31 @@
     function newBout(b) {
       var L = b.L, sc = b.sc, r = b.r;
       L.nb = sc.cont ? 1e9 : sc.calm ? sc.calm[0][0] + Math.floor((sc.calm[0][1] - sc.calm[0][0] + 1) * r()) : Math.max(2, Math.round(logn(r, sc.flap)));
-      L.boutF = b.f * (sc.cont ? 1 : 1 + clip(VAR.BOUT_SD * gauss(r), 0.12)); L.s0 = Math.round(L.Psi); L.Psi = L.s0; L.inBout = true;
+      L.boutF = b.f * (sc.cont ? 1 : 1 + clip(VAR.BOUT_SD * stdNormal(r), 0.12)); L.s0 = Math.round(L.Psi); L.Psi = L.s0; L.inBout = true;
     }
     function newGlide(b) { var L = b.L, sc = b.sc; L.glideLeft = sc.calm ? sc.calm[1][0] + (sc.calm[1][1] - sc.calm[1][0]) * b.r() : logn(b.r, sc.glide) / b.f; }
     function extendLock(b, to) {
       var r = b.lockR;
-      while (b.lt < to) { var dur = Math.exp(Math.log(b.lon ? LOCK.HOLD[0] : LOCK.FREE[0]) + (b.lon ? LOCK.HOLD[1] : LOCK.FREE[1]) * gauss(r) * 0.7); if (b.lon) b.lockOn.push(b.lt, b.lt + dur); b.lt += dur; b.lon = !b.lon; }
+      while (b.lt < to) { var dur = Math.exp(Math.log(b.lon ? LOCK.HOLD[0] : LOCK.FREE[0]) + (b.lon ? LOCK.HOLD[1] : LOCK.FREE[1]) * stdNormal(r) * 0.7); if (b.lon) b.lockOn.push(b.lt, b.lt + dur); b.lt += dur; b.lon = !b.lon; }
     }
     function wander(b, t) { var wq = b.wq, f0 = b.f; return VAR.WANDER * Math.SQRT2 * (0.6 * Math.sin(TAU * t * f0 / wq[3] + wq[0]) + 0.6 * Math.sin(TAU * t * f0 / wq[4] + wq[1]) + 0.53 * Math.sin(TAU * t * f0 / wq[5] + wq[2])) / 1.0; }
+    /* (physics: birds/phase) the bird ahead changed (a flock made, joined, split, re-led): the lock's target only, never
+       a phase (the nudge, clipped to LOCK.MAXF, carries it there): lead null frees it. d the distance to the bird ahead (m), U
+       the speed, off the lead's clock ahead of this one's (its age less this bird's), phase the cycle's offset (LOCK.PHASE
+       behind a side position, 0.46 directly behind) */
+    /* (physics: birds/glides) a glide asked for (a descent, a turn, a leader's glide followed): the open bout ends at the end
+       of the beat it is in (its ramp out, RAMP.E_OUT, as any bout's), then a glide of dur s; already gliding, its glide goes on
+       at least that long. Any kind, a continuous flier's too */
+    function glide(b, t, dur) {
+      ensure(b, t); var L = b.L;
+      if (L.inBout) { b.gq = dur; var nb = Math.floor(L.Psi - L.s0) + 1; if (nb < L.nb) { L.nb = nb; if (b.BO.length >= 5) b.BO[b.BO.length - 2] = nb; } }
+      else L.glideLeft = Math.max(L.glideLeft, dur);
+    }
+    function relock(b, lead, d, U, off, phase) {
+      if (!lead || lead === b) { b.lead = null; return; }
+      b.lead = lead; if (!b.lock) b.lock = { d: 0, U: 1 }; b.lock.d = d; b.lock.U = U; b.loff = off || 0;
+      b.delta = b.f * d / U + (phase === undefined ? LOCK.PHASE : phase);
+    }
     function lockW(b, t) {
       var lk = 0, q, L = b.lockOn;
       if (!(b.lead && b.lock)) return 0;
@@ -175,7 +192,7 @@
         var fi = fb / (1 + b.EPS[jj]);
         var lk = b.lead && b.lock ? lockW(b, t) : 0;
         if (lk > 0 && b.lead) {
-          var ld = b.lead, li = Math.max(0, Math.round((t - ld.from) / ld.dt));
+          var ld = b.lead, li = Math.max(0, Math.round((t + (b.loff || 0) - ld.from) / ld.dt));   // (the lead's own clock: its age, loff ahead of this bird's)
           ensure(ld, ld.from + (li + 1) * ld.dt);
           if (flAtStep(ld, li) && L.inBout) { var err = (psiAtI(ld, li) - b.delta) - L.Psi; err = err - Math.round(err); fi += clip(LOCK.GAIN * f0 * err, LOCK.MAXF * f0) * lk; }
         }
@@ -191,7 +208,7 @@
         if (paused) { if (PA.length && PA[PA.length - 1] === i - 1) PA[PA.length - 1] = i; else PA.push(i, i); }
         var x = L.Psi - L.s0;
         if (L.inBout) {
-          if (!sc.cont && x >= L.nb + 0.1 + RAMP.E_OUT) { L.inBout = false; b.BO[b.BO.length - 4] = i; newGlide(b); }   // (this step's a, e still the bout's: AE[i], EE[i] as the lab stores them)
+          if ((!sc.cont || b.gq > 0) && x >= L.nb + 0.1 + RAMP.E_OUT) { L.inBout = false; b.BO[b.BO.length - 4] = i; if (b.gq > 0) { L.glideLeft = b.gq; b.gq = 0; } else newGlide(b); }   // (a glide asked for: this long)   // (this step's a, e still the bout's: AE[i], EE[i] as the lab stores them)
         } else {
           L.glideLeft -= dt;
           if (L.glideLeft <= 0 && fr(L.Psi) > 0.97) { newBout(b); b.BO.push(i, -1, L.s0, L.nb, 0); }   // (this step's a, e 0, its flag 1: as the lab's)
@@ -341,7 +358,7 @@
     /* the bird's day moved on by d s (a whole number of its steps) without working it out: every read after reads the
        wing as it was d s before (a bird out of sight paused its beat, and goes on from there) */
     function skip(b, d) { b.from += d; }
-    return { make: make, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
+    return { make: make, relock: relock, glide: glide, skip: skip, state: state, pose: pose, poseS: poseS, bouts: bouts, around: around, boutsTo: boutsTo, ensure: ensure, trim: trim, psiAt: function (b, t) { ensure(b, t + b.dt); return psiAtI(b, (t - b.from) / b.dt); },
              knots: function (b) { return b.nk; }, CURL_R: CURL_R, PSI_TOL: PSI_TOL, LB: LB };
   }
   root.BIRDWING = BIRDWING;

@@ -1,29 +1,29 @@
 [
  {
-  "key": "dimitriadis2015",
-  "cite": "Dimitriadis G, Gardiner J, Tickle P, Codd J, Nudds R (2015) Experimental and numerical study of the flight of geese. Aeronautical Journal 119(1217):1-30. doi:10.1017/S0001924000010939",
+  "key": "aeroj2015",
+  "cite": "(2015) Experimental and numerical study of the flight of geese. Aeronautical Journal 119(1217):1-30. doi:10.1017/S0001924000010939",
   "read": "curves from the first author's talk \"Flapping around in a wind tunnel\" (Manchester Organismal Biology Symposium, 17 Mar 2015; ORBi handle 2268/179479); journal full text not open (ORBi \"request a copy\")",
   "species": "Branta leucopsis (barnacle goose), 3 trained birds",
-  "conditions": "Goldstein wind tunnel, Manchester, 2007; 14, 16, 18 m/s; level flapping",
+  "conditions": "the University of Manchester wind tunnel, 2007; 14, 16, 18 m/s; level flapping",
   "method": "side-view video 100 fps, 5 points per wing tracked (Tracker 3.10) for 5 beats per video; planform photographs for the 3rd dimension; two-rigid-section wing model (flap, bend, lag, pitch)",
   "used": "vertical/horizontal displacement of tip, wrist, shoulder, root, bend at 16 m/s (slide 18); flap, bend, lag and shoulder/wrist pitch at 18 m/s, videos 1 and 5 (slides 21, 25); wingtip up/downstroke periods per beat",
   "extraction": "exact vector paths from the PDF (pymupdf); axis calibration residual < 0.05 pt",
   "licence": "study only (rights reserved)"
  },
  {
-  "key": "liu2004",
-  "cite": "Liu T, Kuykendoll K, Rhew R, Jones S (2004) Avian wings. AIAA Paper 2004-2186; NASA NTRS 20040075526. Journal version: Liu T, Kuykendoll K, Rhew R, Jones S (2006) Avian wing geometry and kinematics. AIAA Journal 44(5):954-963",
+  "key": "ntrs2004",
+  "cite": "(2004) Avian wings. AIAA Paper 2004-2186; NASA NTRS 20040075526. Journal version: doi:10.2514/1.16224 (2006) Avian wing geometry and kinematics. AIAA Journal 44(5):954-963",
   "read": "NASA NTRS PDF (scanned, OCR checked against page images)",
   "species": "seagull (Larus sp.), crane (Grus sp.), bar-headed goose (Anser indicus)",
   "conditions": "wild birds in level flight, stock and documentary footage, front view; speed unknown",
-  "method": "front-projected quarter-chord line traced on video frames; 2-joint (two-rod) arm model with equal rod lengths; 2-harmonic Fourier series of psi1 (arm flap), psi2 (hand bend), phi2 (hand fold), projected semi-span and arc length",
-  "used": "all Fourier coefficients (Eqs 5, 6, 11)",
+  "method": "front-projected quarter-chord line traced on video frames; 2-joint (two-rod) arm model with equal rod lengths; 2-harmonic cosine and sine series of psi1 (arm flap), psi2 (hand bend), phi2 (hand fold), projected semi-span and arc length",
+  "used": "all harmonic coefficients (Eqs 5, 6, 11)",
   "extraction": "typed from the page images, verified twice",
   "licence": "public domain (US Government work)"
  },
  {
-  "key": "baier2013",
-  "cite": "Baier DB, Gatesy SM, Dial KP (2013) Three-dimensional, high-resolution skeletal kinematics of the avian wing and shoulder during ascending flapping flight and uphill flap-running. PLoS ONE 8(5):e63982. doi:10.1371/journal.pone.0063982",
+  "key": "plosone2013",
+  "cite": "(2013) Three-dimensional, high-resolution skeletal kinematics of the avian wing and shoulder during ascending flapping flight and uphill flap-running. PLoS ONE 8(5):e63982. doi:10.1371/journal.pone.0063982",
   "read": "full text (Europe PMC XML) and original-resolution figures (PLoS)",
   "species": "Alectoris chukar (chukar partridge)",
   "conditions": "ascending flight from a ramp (AF, n = 4) and wing-assisted incline running (WAIR, n = 4)",
@@ -33,8 +33,8 @@
   "licence": "CC BY 3.0"
  },
  {
-  "key": "shen2024",
-  "cite": "Shen Y, Zhang S, Huang W, Shang C, Sun T, Shi Q (2024) Characterization of wing kinematics by decoupling joint movement in the pigeon. Biomimetics 9(9):555. doi:10.3390/biomimetics9090555",
+  "key": "biomimetics2024",
+  "cite": "(2024) Characterization of wing kinematics by decoupling joint movement in the pigeon. Biomimetics 9(9):555. doi:10.3390/biomimetics9090555",
   "read": "full text (PMC12068018 via WebFetch) and Supplementary Materials (Europe PMC supplementaryFiles: Data.zip, Supplementary Materials.pdf, Movie S1)",
   "species": "Columba livia, 5 birds (the 3 supplementary beats are labelled 3_1-3_3: apparently one bird, three trials)",
   "conditions": "free flight in a 16 x 5 x 3 m arena, continuous flapping in level flight (~6 m/s); wingbeats 6-7 after take-off; body angles within 5 deg",
@@ -44,8 +44,8 @@
   "licence": "CC BY 4.0"
  },
  {
-  "key": "rosen2007",
-  "cite": "Rosen M, Spedding GR, Hedenstrom A (2007) Wake structure and wingbeat kinematics of a house-martin Delichon urbica. J R Soc Interface 4:659-668. doi:10.1098/rsif.2007.0215",
+  "key": "rsif2007",
+  "cite": "(2007) Wake structure and wingbeat kinematics of a house-martin Delichon urbica. J R Soc Interface 4:659-668. doi:10.1098/rsif.2007.0215",
   "read": "journal PDF hosted by a co-author's laboratory site",
   "species": "Delichon urbica (house martin), 1 bird",
   "conditions": "Lund wind tunnel, 4, 6, 8, 10 m/s",
@@ -55,8 +55,8 @@
   "licence": "study only"
  },
  {
-  "key": "park2001",
-  "cite": "Park KJ, Rosen M, Hedenstrom A (2001) Flight kinematics of the barn swallow (Hirundo rustica) over a wide range of speeds in a wind tunnel. J Exp Biol 204:2741-2750",
+  "key": "jeb2001swallow",
+  "cite": "(2001) Flight kinematics of the barn swallow (Hirundo rustica) over a wide range of speeds in a wind tunnel. J Exp Biol 204:2741-2750. doi:10.1242/jeb.204.15.2741",
   "read": "Lund University repository copy",
   "species": "Hirundo rustica, 2 birds",
   "conditions": "Lund wind tunnel, 4-14 m/s (1 m/s steps), steady flapping",
@@ -66,8 +66,8 @@
   "licence": "study only"
  },
  {
-  "key": "tobalske1996",
-  "cite": "Tobalske BW, Dial KP (1996) Flight kinematics of black-billed magpies and pigeons over a wide range of speeds. J Exp Biol 199:263-280",
+  "key": "jeb1996",
+  "cite": "(1996) Flight kinematics of black-billed magpies and pigeons over a wide range of speeds. J Exp Biol 199:263-280. doi:10.1242/jeb.199.2.263",
   "read": "full PDF (open copy indexed by an academic search service)",
   "species": "Pica hudsonia (3 magpies), Columba livia (3 pigeons)",
   "conditions": "variable-speed wind tunnel, magpies 4-14 m/s, pigeons 6-20 m/s",
@@ -77,8 +77,8 @@
   "licence": "study only"
  },
  {
-  "key": "meir2019",
-  "cite": "Meir JU, York JM, Chua BA, Jardine W, Hawkes LA, Milsom WK (2019) Reduced metabolism supports hypoxic flight in the high-flying bar-headed goose (Anser indicus). eLife 8:e44986. doi:10.7554/eLife.44986",
+  "key": "elife2019goose",
+  "cite": "(2019) Reduced metabolism supports hypoxic flight in the high-flying bar-headed goose (Anser indicus). eLife 8:e44986. doi:10.7554/eLife.44986",
   "read": "full text (Europe PMC XML) and Supplementary file 4 (docx)",
   "species": "Anser indicus, 4 birds (kinematics)",
   "conditions": "wind tunnel 12.5-15 m/s, normoxia and hypoxia",
@@ -88,8 +88,8 @@
   "licence": "CC0 1.0"
  },
  {
-  "key": "pennycuick2001",
-  "cite": "Pennycuick CJ (2001) Speeds and wingbeat frequencies of migrating birds compared with calculated benchmarks. J Exp Biol 204:3283-3294",
+  "key": "jeb2001benchmarks",
+  "cite": "(2001) Speeds and wingbeat frequencies of migrating birds compared with calculated benchmarks. J Exp Biol 204:3283-3294. doi:10.1242/jeb.204.19.3283",
   "read": "full PDF (copy already in birds3d/majestic/motion/dl/p2001)",
   "species": "16 species incl. 4 Larus gulls, grey heron, mute swan, hooded crow, wood pigeon",
   "conditions": "wild migrants at Falsterbo, Sweden",
@@ -99,8 +99,8 @@
   "licence": "study only"
  },
  {
-  "key": "krishnan2022",
-  "cite": "Krishnan K, Garde B, Bennison A, et al., Shepard ELC (2022) The role of wingbeat frequency and amplitude in flight power. J R Soc Interface 19:20220168. doi:10.1098/rsif.2022.0168",
+  "key": "rsif2022",
+  "cite": "(2022) The role of wingbeat frequency and amplitude in flight power. J R Soc Interface 19:20220168. doi:10.1098/rsif.2022.0168",
   "read": "full text (PMC9403799 via WebFetch)",
   "species": "14 wild species incl. black-legged kittiwake; pigeons in a wind tunnel",
   "conditions": "wild, back-mounted accelerometers",
@@ -110,8 +110,8 @@
   "licence": "CC BY 4.0"
  },
  {
-  "key": "wehner2022",
-  "cite": "Wehner H, Fritz J, Voelkl B (2022) Soaring and intermittent flap-gliding during migratory flights of Northern Bald Ibis. J Ornithol 163:671-681. doi:10.1007/s10336-022-01978-1",
+  "key": "jornithol2022",
+  "cite": "(2022) Soaring and intermittent flap-gliding during migratory flights of Northern Bald Ibis. J Ornithol 163:671-681. doi:10.1007/s10336-022-01978-1",
   "read": "abstract only (Crossref; the publisher page needs a login)",
   "species": "Geronticus eremita, 2 birds",
   "conditions": "human-led migration across the Alps",
@@ -121,8 +121,8 @@
   "licence": "CC BY 4.0"
  },
  {
-  "key": "portugal2014",
-  "cite": "Portugal SJ, Hubel TY, Fritz J, Heese S, Trobe D, Voelkl B, Hailes S, Wilson AM, Usherwood JR (2014) Upwash exploitation and downwash avoidance by flap phasing in ibis formation flight. Nature 505:399-402. doi:10.1038/nature12939",
+  "key": "nature2014",
+  "cite": "(2014) Upwash exploitation and downwash avoidance by flap phasing in ibis formation flight. Nature 505:399-402. doi:10.1038/nature12939",
   "read": "abstract and secondary summaries only (full text and SI behind a login)",
   "species": "Geronticus eremita, 14 birds",
   "conditions": "migratory flight, 43 min",
@@ -132,8 +132,8 @@
   "licence": "not open"
  },
  {
-  "key": "leontiuk2026",
-  "cite": "Leontiuk V, Kastalskiy I, Khalid W, Kazantsev VB (2026) Stroke asymmetry in bird wing dynamics during flight from video data. Biomimetics 11(3):212. doi:10.3390/biomimetics11030212",
+  "key": "biomimetics2026",
+  "cite": "(2026) Stroke asymmetry in bird wing dynamics during flight from video data. Biomimetics 11(3):212. doi:10.3390/biomimetics11030212",
   "read": "full text (PMC13024343 via WebFetch)",
   "species": "Branta canadensis (3 birds, one stock clip); Fregata ariel",
   "conditions": "free flight, stock footage",
@@ -143,8 +143,8 @@
   "licence": "CC BY 4.0"
  },
  {
-  "key": "kleinheerenbrink2017",
-  "cite": "KleinHeerenbrink M, Johansson LC, Hedenstrom A (2017) Multi-cored vortices support function of slotted wing tips of birds in gliding and flapping flight. J R Soc Interface 14:20170099",
+  "key": "rsif2017slots",
+  "cite": "(2017) Multi-cored vortices support function of slotted wing tips of birds in gliding and flapping flight. J R Soc Interface 14:20170099. doi:10.1098/rsif.2017.0099",
   "read": "full text (PMC5454299 via WebFetch)",
   "species": "Corvus monedula (jackdaw)",
   "conditions": "wind tunnel 8-8.5 m/s",

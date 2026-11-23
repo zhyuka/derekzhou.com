@@ -48,7 +48,7 @@ function scripts() {
   src = src.replace(at, at + '    if (!self.__SIM) self.__SIM = { BIRDS: BIRDS, FLOCKS: FLOCKS, PERCHED: PERCHED, PW: PW, PTR: PTR, LVC: LVC,\n' +
     '      t: function () { return t; }, W: function () { return [W, H]; }, MODEL_K: MODEL_K, FDEV_MAX: FDEV_MAX, WINDV: WINDV,\n' +
     '      hidden: hidden, hideTop: hideTop, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
-    '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach, SLEEP: SLEEP, DF: function () { return DF; }, leave: leave, STEP_DT: function () { return STEP_DT; }, LB: LB, VW: VW, ledges: ledges, surfY: surfY };\n');
+    '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach, SLEEP: SLEEP, DF: function () { return DF; }, leave: leave, STEP_DT: function () { return STEP_DT; }, LB: LB, VW: VW, ledges: ledges, surfY: surfY, BW: BW, TD: function () { return TD; }, AD: function () { return AD; }, POP: POP, liveCount: liveCount, slotAt: slotAt, TP: TP, placeVel: placeVel };\n');
   const model = ['facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing'].map((f) => new vm.Script(fs.readFileSync(path.join(ROOT, 'src/birds/model', f + '.js'), 'utf8'), { filename: f + '.js' }));
   SCRIPTS = { model, birds: new vm.Script(src, { filename: 'inkbirds.js' }) };
   return SCRIPTS;
@@ -75,7 +75,7 @@ export function makeSim(o = {}) {
     view: (v) => { v.cssW = W; v.cssH = H; v.outW = W; v.outH = H; v.dpr = 1; v.bdpr = 1; v.ddpr = 1; v.tanX = TANX; v.tanY = TANX * H / W; v.sUx = v.sUy = v.hUx = v.hUy = 1; return v; },
     camera: () => (o.frames ? CD : C), cameraStep: () => C, wind: (v) => { v[0] = o.wind ? o.wind[0] : 0; v[1] = 0; v[2] = o.wind ? o.wind[1] : 0; return v; },
     flight: (v) => { v.ok = true; v.x = C.pos[0]; v.y = C.pos[1]; v.z = C.pos[2]; v.psi = psi; v.view = 0; v.speed = SPEED; v.vy = 0; v.ground = -60; return v; },
-    sky: () => 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => (o.frames ? ALPHA : 1), forced: () => FORCED,
+    sky: () => o.sky || 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => (o.frames ? ALPHA : 1), forced: () => FORCED,
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
     grade: () => null, light: () => LIGHT, words: () => WORDS,
     bindTextures: () => !!o.draw, target() {}, cloudBetween3: (ax, ay, az, P, v) => { v[0] = v[1] = v[2] = 0; return v; }, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
@@ -109,6 +109,7 @@ export function makeSim(o = {}) {
   const sim = {
     W, H, C, PT, get t() { return t; }, get clicks() { return fed; },   // clicks: how many the sim has fed the page
     get B() { return ctx.__SIM; },
+    get feed() { return ctx.WORLD.birds.feed; },   // (the score's read of the birds, 266)
     step() { advance(); if (o.draw) M.draw(); t += SDT; },
     /* (o.frames) one display frame of fdt s, as the page's loop runs it: the fixed steps of SDT it covers, then the
        draw with the camera and the birds between the last two steps (alpha) */

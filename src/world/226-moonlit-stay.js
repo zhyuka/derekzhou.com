@@ -53,6 +53,19 @@
     if (sh.w > 0 || MOON.a.w > 0) { MOON.off[0] = angd(az0, MOON.a.az); MOON.off[1] = el0 - MOON.a.el; } else MOON.off[0] = MOON.off[1] = 0;
   }
   function moonEase(dt) { if (!MOON.off[0] && !MOON.off[1]) return; var k = Math.exp(-dt / MOON_EASE); MOON.off[0] *= k; MOON.off[1] *= k; if (Math.abs(MOON.off[0]) < 1e-7 / DEG) MOON.off[0] = 0; if (Math.abs(MOON.off[1]) < 1e-7 / DEG) MOON.off[1] = 0; }
+  /* (delight-weather 4) the glory's uniform: the moon's own direction (the air's airMoon, at the drawn sky time, as the
+     sky draws it) and the amount, the moon's own (w: nought on any sky but the moonlit) while it stands over the sea's
+     top (its first 3 degrees up: the point opposite it under the horizon) */
+  var GLORYU = new Float32Array(4), GLORYT = NaN, GLORYP = -1;
+  function gloryUniform() {
+    var tD = SIM.V ? SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt : NaN;
+    if (tD === GLORYT && MOON.plans === GLORYP) return GLORYU;   // (and the moon's plan: a resize re-plans it at the same moment (reduced motion's still), and the glory follows it)
+    GLORYT = tD; GLORYP = MOON.plans; GLORYU[3] = 0;
+    if (!SIM.V) { GLORYU[0] = 0; GLORYU[1] = 1; GLORYU[2] = 0; return GLORYU; }
+    var m = airMoon(tD); GLORYU[0] = m.d[0]; GLORYU[1] = m.d[1]; GLORYU[2] = m.d[2];
+    GLORYU[3] = DEVMODE && MOONF.moonOff ? 0 : m.w * mrSmooth(0, 3, m.el);
+    return GLORYU;
+  }
   function skyNightUniforms(P) {
     var V = SIM.V, fx = SKY.fx, u = P.u;
     if (!u.uMoon) return;
@@ -61,6 +74,8 @@
     else { SKYN.moon[0] = 0; SKYN.moon[1] = 1; SKYN.moon[2] = 0; SKYN.moon[3] = 0; }
     SKYN.night[0] = fx[0]; SKYN.night[1] = SUNU.on ? 0 : fx[1]; SKYN.night[2] = reduced() ? 0 : 1; SKYN.night[3] = STAR_TOP_Y;
     if (u.uSunB) { SUNU.sb[0] = SUNU.on ? fx[1] : 0; SUNU.sb[1] = SUNU.on && V && V.L ? V.L.hi[1] : 0; gl.uniform4fv(u.uSunB, SUNU.sb); }   // (in a change between a twilight sky and a night the wisps and the veil drawn by their own blocks)
+    if (u.uAnv) { var AN = SKY.anv; gl.uniform4f(u.uAnv, AN ? AN.az : 0, AN ? AN.d : 0, anvSunEl(), V && V.light ? V.light.sunAz * DEG : 0); }   // (physics: weather/far-anvil)
+    if (u.uAnvF) gl.uniform4fv(u.uAnvF, anvFlashAt(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt));   // (the owner's "Soft distant flicker": the storm's lightning at the drawn time)
     if (u.uHalo) gl.uniform4f(u.uHalo, MOON.E ? MOON.E.veil : 0, HALO_K, 0, 0);   // (physics: weather/moon-halo: the veil of the moonlit stay whose moon is up)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
     if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], 0); gl.uniform4f(u.uAur, 0, SKY.aur.ph, SKY.aur.base, fx[3]); }

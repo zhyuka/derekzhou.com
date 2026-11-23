@@ -59,6 +59,11 @@
       var ub = Math.max(0, TD - bu.t0), nb = ub * f * 1.2;
       if (nb < bu.n) { gbeat(kind, nb, 1.3 - 0.18 * Math.min(1, nb / bu.n), s.P22); s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = 1; return; }
       b.burst = null;
+      if (w0 && w0.wing && !b.wOff && b.st === 'fly') {   // (the schedule takes the burst's phase on, BW.skip: no half-beat at the handover, only the beat's size eased over XF_T)
+        var pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.floor(pg)) / f);
+        pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.round(pg)) / f);   // (once more at the schedule's own rate)
+        s.buE = TD;
+      }
     }
     if (b.st === 'appr' && b.flapA !== undefined && !rest) {   // (down into the approach with strong beats, up into the perch gliding)
       if (b.flapA > 0) { gbeat(kind, AD * f * 1.1, 1.15, s.P22); s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = 1; return; }
@@ -71,7 +76,10 @@
       for (var j = 0; j < 22; j++) s.P22[j] = GT1[j] + wb * (GP22[j] - M[j]);
       s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = wb; return;
     }
-    if (w0 && w0.wing && !b.wOff) { WS0 = BW.state(w0.wing, AD, s.WSD); BW.poseS(w0.wing, WS0, AD, s.P22, s.B3, WO); }   // (the wing as it is at the frame's own time)   // (a speck that works out no wing holds its glide)
+    if (w0 && w0.wing && !b.wOff) { WS0 = BW.state(w0.wing, AD, s.WSD); BW.poseS(w0.wing, WS0, AD, s.P22, s.B3, WO);
+      if (s.buE >= 0) { var ux = (TD - s.buE) / XF_T; if (ux >= 1) s.buE = -1; else {   // (out of a burst: the burst's beat at the schedule's own phase, eased into the schedule's)
+        var wx = ease(ux); gbeat(kind, WS0.ph, 1.12, GT1); for (var q = 0; q < 22; q++) s.P22[q] = GT1[q] + wx * (s.P22[q] - GT1[q]); for (q = 0; q < 3; q++) s.B3[q] *= wx;
+        s.flapW = 1 + wx * (WS0.e * swing - 1); return; } } }   // (the wing as it is at the frame's own time)   // (a speck that works out no wing holds its glide)
     else { glide22(kind, s.P22); s.B3[0] = s.B3[1] = s.B3[2] = 0; }
     s.flapW = WS0 ? WS0.e * swing : 0;
   }
@@ -81,7 +89,7 @@
   function wingKey(b) { var k = b.st === 'fly' ? 1 : b.st === 'appr' ? 2 : b.st === 'round' ? 3 : b.st === 'land' ? 4 : 5; k = k * 8 + (b.burst ? 4 : 0) + (b.st === 'appr' ? (b.flapA === 1 ? 2 : b.flapA === 0 ? 1 : 0) : 0); return k; }   // (not the leave: perchPose eases into its opening itself)
   function wingXF(b, s) {
     var k = wingKey(b), i;
-    if (s.xKey >= 0 && k !== s.xKey) { for (i = 0; i < 22; i++) { s.XF22[i] = s.LP22[i]; s.XV22[i] = s.LV22[i]; } for (i = 0; i < 3; i++) s.XB3[i] = s.LB3[i]; s.xFW = s.lFW; s.xT0 = TD; s.xT1 = s.lT; }
+    if (s.xKey >= 0 && k !== s.xKey && s.buE !== TD) { for (i = 0; i < 22; i++) { s.XF22[i] = s.LP22[i]; s.XV22[i] = s.LV22[i]; } for (i = 0; i < 3; i++) s.XB3[i] = s.LB3[i]; s.xFW = s.lFW; s.xT0 = TD; s.xT1 = s.lT; }
     s.xKey = k;
     if (s.xT0 >= 0) { var u = Math.max(0, TD - s.xT0) / XF_T; if (u >= 1) s.xT0 = -1; else { var w = ease(u), g = XF_V * (1 - Math.exp(-Math.max(0, TD - s.xT1) / XF_V)); for (i = 0; i < 22; i++) { var o = s.XF22[i] + s.XV22[i] * g; s.P22[i] = o + (s.P22[i] - o) * w; } for (i = 0; i < 3; i++) s.B3[i] = s.XB3[i] + (s.B3[i] - s.XB3[i]) * w; s.flapW = s.xFW + ((s.flapW || 0) - s.xFW) * w; } }   // (the pose, the glide's bank and the wings' angle of attack, all three)   // (from the old pose still moving as it was, its speed dying away over XF_V s: no stop at the change)
     var dl = TD - s.lT; for (i = 0; i < 22; i++) { s.LV22[i] = dl > 0 && dl < 0.1 ? (s.P22[i] - s.LP22[i]) / dl : 0; s.LP22[i] = s.P22[i]; } s.lT = TD; for (i = 0; i < 3; i++) s.LB3[i] = s.B3[i]; s.lFW = s.flapW || 0;
