@@ -7,7 +7,11 @@ Unlicense or CC0, and (the owner, 2026-11-06: "Allow CC BY with credit")
 CC BY for research data, credited where it is used: the wing model's
 data (tools/birds/model/data/, its LICENSES.md files) carries each
 source's licence, and the served model.js one credits comment naming the
-CC BY sources (the owner: "Strip notes, keep 1 credit line"). Facts that
+CC BY sources (the owner: "Strip notes, keep 1 credit line"). Every
+credit names its source by the licence and a DOI or a stable URL, never
+by a person's name (CC BY 4.0 section 3(a)(2) allows the attribution to
+be a URI to a resource that carries it; the owner: no person is named in
+the repository, credit lines included). Facts that
 a study-only (rights-reserved) source states are cited, never its files
 or digitised curves: the barnacle goose's are kept as facts alone
 (data/kinematics/goose_barnacle_facts.json). The fonts: OFL (docs/type.md).

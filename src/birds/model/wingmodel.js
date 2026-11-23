@@ -10,7 +10,7 @@
                                    share (the kind's measured D), curl: deg (CURL), twt: deg (TWT) } or null
      W.mean(kind, pose)            the flapping pose's mean over a beat (what a burst swings about)
      W.rate(kind, spanM)           the beat frequency (Hz) of this kind drawn at spanM metres (dynamic similarity:
-                                   f = f_real (b_real / b)^(1/2), Pennycuick 2001 eq. 2 at constant shape)
+                                   f = f_real (b_real / b)^(1/2), doi:10.1242/jeb.204.19.3283 eq. 2 at constant shape)
      W.kinds                       the model's kinds
 
    PHASE ph in cycles: 0 = the top of the arm's stroke (its elevation's maximum), the downstroke the first D.
@@ -58,7 +58,7 @@
     }
     function fr(x) { return x - Math.floor(x); }
     /* the phase of this beat in the source's phase: a smooth, monotone warp that moves the bottom from D to the
-       kind's measured share (frequency changes are made in the upstroke: Taylor et al. 2019) */
+       kind's measured share (frequency changes are made in the upstroke: doi:10.1371/journal.pbio.3000299) */
     function warp(ph, D, Ds) {
       ph = fr(ph); if (!D || Math.abs(D - Ds) < 1e-6) return ph;
       var s = Math.sin(Math.PI * D), w = Math.sin(Math.PI * ph);
