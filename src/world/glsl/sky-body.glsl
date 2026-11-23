@@ -44,11 +44,11 @@ vec3 haloAt(vec3 rd) {
 /* (physics: night/milky-way, delight-night section 3) its structure, in galactic longitude ld (deg from the core, + toward
    cross(pole, core)) and latitude bd (deg): one shape a line, so test/unit/sky.mjs runs these very lines.
    - the band: 6 deg wide (sigma) at the core, 3 at the anticentre; along it the bright star clouds at ld -80..0 and a fall
-     toward ld 180 (a quarter there), its peak no brighter than the old band's
+     toward ld 180 (a quarter there), its peak about the old band's (1.02)
    - the bulge: the old core glow, cut by a mid-plane lane (1.2 deg)
    - the Great Rift: one dark lane down the band from ld -50 to +80 (Centaurus to Cygnus), 2.2 deg wide (sigma), wandering
      1.8 deg and by the old lanes' noise 1.5 deg more, broken by that noise too; it replaces the noise lanes
-   - the Coalsack: a dark ellipse 7 x 5 deg at (302.8, 0.4); the Clouds, soft glows of two Gaussians each, LMC (280.5,
+   - the Coalsack: a dark ellipse 7 x 5 deg at (302.8, 0.4); the Clouds, soft glows of two bells each, LMC (280.5,
      -32.9) 10.75 x 9.2 deg with its bar, SMC (302.8, -44.3) 5.3 x 3.1; M31 (121.2, -21.6) a 3.2 x 1 deg smudge
    (galactic positions converted from RA and Dec: the handoff's delight-night.md; all in uGal's frame, no new draw) */
 float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27 * exp(-pow((ld + 40.0) / 35.0, 2.0)); }

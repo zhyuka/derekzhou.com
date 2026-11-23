@@ -256,7 +256,7 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
 // ------------------------------------------------------------------ the Milky Way's structure (delight-night section 3)
 // sky-body.glsl's own shape lines (galAlong, galBand, galCore, galRift, galCoal, galLMC, galSMC, galM31), run here as JS
 // over galactic longitude and latitude: the rift's dark lane only inside ld -55..85; the core at least 3x the anticentre;
-// each object's peak within 0.5 deg of its place; the band's peak no brighter than the old band's (1)
+// each object's peak within 0.5 deg of its place; the band's peak within 5% of the old band's (1)
 test('night: the Milky Way\'s structure, the rift, the bulge\'s lane, the fall to the anticentre, the Coalsack, the Clouds and M31 at their places', () => {
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const names = ['galAlong', 'galBand', 'galCore', 'galRift', 'galCoal', 'galLMC', 'galSMC', 'galM31'];
@@ -272,7 +272,7 @@ test('night: the Milky Way\'s structure, the rift, the bulge\'s lane, the fall t
   const core = peak(whole, 0), anti = peak(whole, 180);
   assert.ok(core >= 3 * anti, `the core ${core.toFixed(3)} at least 3x the anticentre ${anti.toFixed(3)}`);
   const fall = K.galAlong(180) / K.galAlong(0); assert.ok(fall <= 0.35, `the band at the anticentre ${fall.toFixed(2)} of its brightness at the core (about 0.3)`);
-  let amax = 0; for (let ld = -180; ld <= 180; ld += 0.5) amax = Math.max(amax, K.galAlong(ld)); assert.ok(amax <= 1.05, `the band's peak ${amax.toFixed(3)} no brighter than the old band's`);
+  let amax = 0; for (let ld = -180; ld <= 180; ld += 0.5) amax = Math.max(amax, K.galAlong(ld)); assert.ok(amax <= 1.05, `the band's peak ${amax.toFixed(3)} within 5% of the old band's (1)`);
   let bright = -999, bv = 0; for (let ld = -180; ld <= 180; ld += 1) { const v = peak(K.galBand, ld); if (v > bv) { bv = v; bright = ld; } } assert.ok(bright >= -80 && bright <= 0, `the brightest band at ld ${bright} (the star clouds, -80..0)`);
   assert.ok(K.galCore(0, 0) < 0.3 * K.galCore(0, 4), 'the bulge cut by its mid-plane lane');
   const at = (f, l0, b0) => { let best = 0, L = 0, B = 0; for (let ld = l0 - 8; ld <= l0 + 8; ld += 0.05) for (let bd = b0 - 6; bd <= b0 + 6; bd += 0.05) { const v = f(ld, bd); if (v > best) { best = v; L = ld; B = bd; } } return [L, B, best]; };
