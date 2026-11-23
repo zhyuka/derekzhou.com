@@ -92,6 +92,7 @@
   function toAir(b, J, leapt) {
     var P = b.P, ro = P && P.leaving && P.leaving.why === 'roost';
     if (ro && RO.F && RO.F.lead && FLOCKS.indexOf(RO.F) >= 0) J = RO.F;   // (the morning's departure: one loose flock, each joining the first up)
+    if (ro) b.offT = t + 120;   // (off to feed: not down on the words again for two minutes; PC GPU's dusk-to-dawn frames: one came back 2.8 s after the roost left)
     if (PW.appr === b) PW.appr = null;
     var i = PERCHED.indexOf(b); if (i >= 0) PERCHED.splice(i, 1);
     b.P = null; b.st = 'fly'; b.vLo = b.vHi = 0;

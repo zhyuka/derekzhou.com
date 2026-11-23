@@ -151,7 +151,7 @@
     for (i = 0; i < FLOCKS.length; i++) {
       var F = FLOCKS[i]; if (F.far || !KINDS[F.kind].perch) continue;
       for (j = 0; j < F.m.length; j++) {
-        var b = F.m[j]; if (b.st !== 'fly') continue;
+        var b = F.m[j]; if (b.st !== 'fly' || b.offT > t) continue;
         var T = reachT(b, C, dusk && F.kind === 'crow' ? 400 : 200);
         var ro = dusk && F.kind === 'crow';
         if (T > (ro ? 2 * PREACH : PREACH)) continue;   // (a crow coming in to roost comes from farther)
