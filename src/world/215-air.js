@@ -77,6 +77,7 @@
      veil: the shaders read the surface's as uAir.x */
   var AIR_BYSKY = { afterglow: [1, 1, 1], bluehour: [0.7, 1.2, 0.65], firstlight: [0.35, 1.3, 0.5], moonlit: [0.5, 1.4, 0.6], milkyway: [0.4, 1.5, 0.5], aurora: [0.45, 1.4, 0.55] };
   var AIR_NC = 3, AIR_ONE = [1, 1, 1], AIR_SL = [20, 100, 300, 1500], AIR_WX = [1, 1, 1], AIR_IA = [0, 0, 0], AIR_IB = [0, 0, 0], AIR_TC = [0, 0, 0], AIR_ABC = [1, 0, 0];
+  function airDay(x, z, y, V) { var a = airBase(x, z, y, V); return { x: a.x, z: a.z }; }   // the day's wind at y m up, m/s (the sky's share 1, whatever the sky: a reader that wants the day's wind, not the hour's; a fresh object)
   function airTable() { var o = {}, k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
   function airSh(e) { return (e && AIR_BYSKY[e.id]) || AIR_ONE; }
   function airIdx(seq, tS) { var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--; return i; }
@@ -136,8 +137,8 @@
      visit's wind frame, xi = x.w - U10 T along
      and eta = x.p across, both over L = AIR_GUST[1] U10: one reference speed (the visit's U10) carries and scales the
      field at every height, so a bird over a veil feels the veil's gust; the height sets only its size, AIR_GUST[0]
-     W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), on the flight's clock (the shaders' uT
-     less AIR_UT0). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
+     W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), carried on the surface's wind clock
+     (airClock(t)[0]; the shaders' uAir.x). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
      13.6), the lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
      (test/unit/air.mjs: 16 visits of 10 min); on a sky of surface share s, the e-fold and the lag are the day's over s
      (the moonlit sea's e-fold median 28.5 s, first light's 40.7 s). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
@@ -168,7 +169,7 @@
     return { x: wx, z: wz, gust: gustAt(x, z, y, t, V), sigma: gustSigma(y, V), phase: gustPhase(x, z, y, t, V), y: y };
   }
   function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
-    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n#define AIR_UT0 ' + airF(AIR_UT0) + '\n';
+    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n';
     s += 'float airLat(int i, int j, uint s) { return hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0; }\n';
     s += 'float airVn(vec2 p, uint s) { vec2 c = floor(p), f = p - c, u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); ivec2 i = ivec2(c); float a = airLat(i.x, i.y, s), b = airLat(i.x + 1, i.y, s), cc = airLat(i.x, i.y + 1, s), d = airLat(i.x + 1, i.y + 1, s); return a + (b - a) * u.x + (cc - a) * u.y + (a - b - cc + d) * u.x * u.y; }\n';
     s += 'float airGustN(vec2 q) { return (' + o.map(function (k) { return airF(k[1]) + ' * airVn(q * ' + airF(k[0]) + ', ' + k[2] + 'u)'; }).join(' + ') + ') * ' + airF(AIR_GUST[2]) + '; }\n';
@@ -176,4 +177,4 @@
     return s;
   }
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, share: airShare, carried: airCarried, clock: airClock, BYSKY: AIR_BYSKY, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

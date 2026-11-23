@@ -4,6 +4,9 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN;", "with": "return f.W > 0 ? t - (x * f.x + z * f.z) / f.W : NaN;", "why": "HOST.gustPhase on the flight's clock, not the field's"}
+// plant: {"file": "src/world/215-air.js", "find": " BYSKY: airTable,", "with": " BYSKY: function () { return AIR_BYSKY; },", "why": "BYSKY handing readers the live table"}
+// plant: {"file": "src/world/215-air.js", "find": "return { x: a.x, z: a.z }; }   // the day's wind", "with": "return a; }   // the day's wind", "why": "the day's wind handed out as the air's own reused object"}
 // plant: {"file": "src/world/glsl/fs-ribbon.glsl", "find": "(dot(vW.xz, w) - uAir.x * length(uWind.xz)) * 0.035", "with": "dot(vW.xz, w) * 0.035 - uT * 0.22", "why": "the veils' streaks at a pace of their own"}
 // plant: {"file": "src/world/215-air.js", "find": "eta = (z * f.x - x * f.z) / L + oz;", "with": "eta = (z * f.x - x * f.z - U * 0.6 * T[1]) / L + oz;", "why": "the gusts slid across the wind (row 6: carried at the mean wind)"}
 // plant: {"file": "src/world/215-air.js", "find": "if (tS <= seq[0].at) { var A0 = airSh(seq[0]); for (c = 0; c < AIR_NC; c++) out[c] = (tS - seq[0].at) * A0[c]; return out; }", "with": "if (tS <= 0) { var A0 = airSh(seq[0]); for (c = 0; c < AIR_NC; c++) out[c] = tS * A0[c]; return out; }", "why": "the wind's clock jumps at the flight's start (the opening part way through its hold)"}
@@ -302,6 +305,13 @@ test('air: the wind by sky (one table: the world and the score), eased with the 
   assert.ok(/vec2 pos = p0 \+ vel\.xz \* tau \+/.test(vp) && !/vel\.xz \* t \+/.test(vp), 'the grains carried by the air\'s clock, never the wind times the time');
   // the score: the world's own table, read only, by its feed
   const SC = fs.readFileSync(path.join(ROOT, 'src', 'score.js'), 'utf8');
+  const B1 = G.AIRAPI.BYSKY(); B1.afterglow[0] = 99; assert.equal(G.AIR_BYSKY.afterglow[0], 1, 'BYSKY hands a reader a copy, never the table');
+  { G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'milkyway', at: -10, hold: 1e6, move: 60 }); const V = visit(G, SEEDS[3]);   // the day's wind: the sky's share 1 on any sky (CLOUDS' drift and lens gate read it, not the hour's)
+    let off = 0;
+    for (const y of [5, 40, 300, 2000]) { const d = G.AIRAPI.day(10, 20, y, V), w = G.windAt(10, 20, y, 500, V), k = G.airShare(y, 500); if (Math.abs(k - 1) > 0.05) off++;
+      assert.ok(Math.abs(d.x * k - w.x) < 1e-9 && Math.abs(d.z * k - w.z) < 1e-9, `${y} m: the day's wind is windAt's over the sky's share (${k.toFixed(3)})`); }
+    assert.ok(off >= 2, 'the night\'s shares are not the day\'s (so the day\'s wind is asked for, not the hour\'s)');
+    const a = G.AIRAPI.day(0, 0, 40, V), b = G.AIRAPI.day(0, 0, 40, V); assert.ok(a !== b && a.x === b.x, 'a fresh object each time'); }
   assert.match(WORLD, /air: airTable\(\), wind: airHeard\(/, 'the feed hands the score the table');
   const c = G.airTable(); c.afterglow[0] = 9; assert.equal(T.afterglow[0], 1, 'a copy: the score never writes the world\'s');
   assert.ok(/function breeze\(id\) \{ var a = S\.air && S\.air\[id\];/.test(SC) && /S\.air = F\.air/.test(SC), 'the score\'s breeze is the feed\'s table');
@@ -333,6 +343,7 @@ test('air: the gusts by sky: carried at the mean wind in every sky (row 6), the 
   }
   assert.ok(out.afterglow >= 10 && out.afterglow <= 30, `the day's e-fold median ${out.afterglow.toFixed(1)} s, not row 6's 10-30 s`);
   if (process.env.EF) console.log(JSON.stringify({ efold: out, lag }));
+  { G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'milkyway', at: -10, hold: 1e6, move: 60 }); const V = visit(G, SEEDS[2]), t = 200, x = 30, z = -20; assert.ok(Math.abs(G.gustPhase(x, z, 5, t, V) - (G.airClock(t)[0] - (x * V.wind[0] + z * V.wind[1]) / V.u10)) < 1e-9 && G.gustPhase(x, z, 200, t, V) === G.gustPhase(x, z, 5, t, V), 'HOST.gustPhase: the surface clock less x.w / U10, the same at every height'); }
   const fr = GLSL('fs-ribbon.glsl');
   assert.ok(/\(dot\(vW\.xz, w\) - uAir\.x \* length\(uWind\.xz\)\) \* 0\.035/.test(fr) && !/\buT\b/.test(fr), 'the sand\'s streaks carried at the veils\' own wind on the air\'s clock, never a pace of their own');
   assert.ok(!/uAirM|UAIRM/.test(WORLD + GLSL('vs-ribbon.glsl')), 'no meander clock: the field is carried along the wind only');
