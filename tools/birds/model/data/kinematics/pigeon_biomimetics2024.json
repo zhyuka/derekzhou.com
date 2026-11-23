@@ -25,7 +25,7 @@
    "peak_to_peak": 100.10830078096731,
    "phase_of_max": 0.93376655836041,
    "phase_of_min": 0.43114221444638845,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -174,7 +174,7 @@
    "peak_to_peak": 114.28233523966668,
    "phase_of_max": 0.021244688827793054,
    "phase_of_min": 0.638340414896276,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -335,7 +335,7 @@
    "peak_to_peak": 95.25116786964894,
    "phase_of_max": 0.1567108222944264,
    "phase_of_min": 0.7048237940514872,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -500,7 +500,7 @@
    "peak_to_peak": 109.43112367374647,
    "phase_of_max": 0.0004998750312421895,
    "phase_of_min": 0.5426143464133967,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -657,7 +657,7 @@
    "peak_to_peak": 44.755148073683486,
    "phase_of_max": 0.03849037740564859,
    "phase_of_min": 0.6230942264433892,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -822,7 +822,7 @@
    "peak_to_peak": 64.41033147189181,
    "phase_of_max": 0.30617345663584106,
    "phase_of_min": 0.7243189202699326,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -979,7 +979,7 @@
    "peak_to_peak": 67.43051999083414,
    "phase_of_max": 0.0034991252186953262,
    "phase_of_min": 0.43064233941514624,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -1136,7 +1136,7 @@
    "peak_to_peak": 42.64601100777375,
    "phase_of_max": 0.28767808047988,
    "phase_of_min": 0.9357660584853787,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -1289,7 +1289,7 @@
    "peak_to_peak": 50.744590797931146,
    "phase_of_max": 0.466883279180205,
    "phase_of_min": 0.9710072481879531,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -1454,7 +1454,7 @@
    "peak_to_peak": 141.63997665089275,
    "phase_of_max": 0.5476130967258186,
    "phase_of_min": 0.965508622844289,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -1615,7 +1615,7 @@
    "peak_to_peak": 0.18432004914869426,
    "phase_of_max": 0.2371907023244189,
    "phase_of_min": 0.5546113471632093,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -1772,7 +1772,7 @@
    "peak_to_peak": 0.06607644529963776,
    "phase_of_max": 0.2644338915271182,
    "phase_of_min": 0.9140214946263435,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -1925,7 +1925,7 @@
    "peak_to_peak": 0.41847222239349424,
    "phase_of_max": 0.9965008747813048,
    "phase_of_min": 0.5033741564608848,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -2078,7 +2078,7 @@
    "peak_to_peak": 0.2412570353184713,
    "phase_of_max": 0.49362659335166215,
    "phase_of_min": 0.9450137465633592,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -2235,7 +2235,7 @@
    "peak_to_peak": 0.11451804064961935,
    "phase_of_max": 0.9620094976255937,
    "phase_of_min": 0.41689577605598604,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
@@ -2388,7 +2388,7 @@
    "peak_to_peak": 0.03824883866504362,
    "phase_of_max": 0.4518870282429393,
    "phase_of_min": 0.9792551862034492,
-   "fourier": {
+   "harmonics": {
     "table": [
      {
       "N": 0,
