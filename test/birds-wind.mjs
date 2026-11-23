@@ -34,8 +34,8 @@ test('into a headwind a bird flies faster through the air, about 0.2 m/s a m/s (
 });
 
 /* a perched gull's landing in a side wind on the window (w m/s along the camera's right) */
-function sideWind(each) {
-  for (const w of [6.5, -6.5, 3, -3]) for (let seed = 1; seed <= 8; seed++) {
+function sideWind(each, winds = [6.5, -6.5, 3, -3], seeds = 8) {
+  for (const w of winds) for (let seed = 1; seed <= seeds; seed++) {
     const sc = SCENES.perch(seed, '960x600'); const WV = [0, 0]; sc.opt.speed = 0; sc.opt.yaw = 0; sc.opt.wind = WV; sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); WV[0] = w * sim.C.r[0]; WV[1] = w * sim.C.r[2];
     const [b] = sc.setup(sim);
@@ -70,7 +70,7 @@ test('in a side wind a landing comes in against it (at least 90 %) and never tur
       if (st0 === 'land' && b.st === 'perch' && tT < 0) { tT = sim.t; n++; yaw0 = b.P.yaw; if (rel < 0) up++; else bad.push(`w ${w} seed ${seed}`); }
       if (tT > 0 && b.st === 'perch' && sim.t - tT < 2 && b.P.hopTurn && b.P.yawTo !== yaw0) { turned++; bad.push(`turned: w ${w} seed ${seed}`); tT = -2; }
     }
-  });
+  }, [6.5, -6.5], 32);   // (the round-7 review: on 8 seeds a wind the test passed with the fix reverted, 13 of 14; the 3 m/s winds never land, the camera still)
   console.log(`# ${n} landings in a side wind: ${up} against it (${(100 * up / n).toFixed(0)} %), ${turned} turned round within 2 s (${bad.join('; ')})`);
   assert.ok(n >= 10, `only ${n} landings`);
   assert.ok(up >= 0.9 * n, `only ${up} of ${n} landings came in against the wind`);
