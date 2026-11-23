@@ -109,6 +109,7 @@ export function makeSim(o = {}) {
   const sim = {
     W, H, C, PT, get t() { return t; }, get clicks() { return fed; },   // clicks: how many the sim has fed the page
     get B() { return ctx.__SIM; },
+    get feed() { return ctx.WORLD.birds.feed; },   // (the score's read of the birds, 266)
     step() { advance(); if (o.draw) M.draw(); t += SDT; },
     /* (o.frames) one display frame of fdt s, as the page's loop runs it: the fixed steps of SDT it covers, then the
        draw with the camera and the birds between the last two steps (alpha) */
