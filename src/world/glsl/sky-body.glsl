@@ -4,6 +4,8 @@ uniform int uZs;   // (fast500 D T1) never set: 0 at link; the star loop's bound
 uniform vec4 uHi;     // high cloud: cover, brightness, scale, drift
 uniform vec3 uHiC;
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
+uniform vec4 uAnvF;   // (physics: weather/far-anvil, the owner's "Soft distant flicker") lightning inside the far storm: its envelope now (0-1), its place in the storm (x, z km) and its reach (km)
+uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth (rad), its distance (km, 0: none), the sun's height (deg), the sun's azimuth (rad)
 uniform vec4 uHalo;   // (physics: weather/moon-halo) the ice veil over the moonlit sky: 1 on (about one moonlit stay in three), 0 none; its strength
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
@@ -19,6 +21,36 @@ const float SKYTAU = 6.2831853;
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
    never blinks it), twinkling slowly (+-15% at 0.6-1.8 rad/s); the cell and its four neighbours read */
 const float STC = 0.04;
+const float ANV_FK = 0.02 / 0.8966;   // (the flicker's peak: Y +0.02 at most before the cap, its colour's luminance 0.8966: far under a flash's 10%)
+const float ANV_K = 0.05;   // (physics: weather/far-anvil) its lit top's strength (composited at most L 0.50: test/unit/sky.mjs)
+/* (physics: weather/far-anvil) a far storm, uAnv.y km away (100-150) at uAnv.x, 80-110 deg off the sun's bearing (lit
+   from the side, against the darker sky away from the sun), drawn by direction (no parallax at that distance): its
+   tower and its anvil in km across (x) and up (z, the Earth's curve added), its edges lumped by the noise at 2-4 km and
+   faded over 1.2 km (5 px or more: softer than the far land's). It returns (its cover, its lit part): its body is a
+   cloud, so it hides the sky behind it as the mesas and the floating islands do, in the air's own colour at its range
+   (the far land's distance haze, atmos; under the Earth's shadow up to ~3% Y darker, a natural shadow); the low sun lights it wherever it still
+   reaches the cloud above the Earth's shadow at the storm's place, R (1 / cos d - 1) with d the sun's depression there.
+   With the sun 3 deg down only the anvil's top is lit; as the sun sinks the shadow climbs it and the light goes up and
+   off its top (a boundary moving with the sun, never a fade). No rays. Its third part is the flicker's: lightning lighting
+   the cloud from inside, a soft blob of it (uAnvF's place and reach) on the cover only (the owner's narrow exception, 2026-11-15) */
+vec3 anvilAt(vec3 rd) {
+  float D = uAnv.y, phi = atan(rd.x, rd.z) - uAnv.x;
+  phi = atan(sin(phi), cos(phi));
+  if (abs(phi) > 0.7 || rd.y < -0.01) return vec3(0.0);
+  float x = D * tan(phi), z = D * rd.y / max(sqrt(1.0 - rd.y * rd.y), 1e-3) + D * D / 14866.0;   // (the Earth's curve with standard refraction: R 7/6 x 6371 km: at 150 km its foot sinks 0.578 deg, not 0.674)
+  float lump = (textureLod(uN3, vec3(z / 36.0, x / 68.0, 0.43), 0.0).a - 0.5) * 2.4;
+  float wc = 3.2 + 0.18 * z + lump, col = (1.0 - smoothstep(wc - 0.7, wc + 0.7, abs(x - 0.35 * z))) * smoothstep(0.5, 1.5, z) * (1.0 - smoothstep(10.2, 11.2, z));
+  /* the anvil's underside flares fast (its half-width grows up to 26 km a km): its edge faded over 1.2 km measured
+     across the edge itself (the distance outside it over sqrt(1 + slope^2)), so however flat the edge lies it stays
+     5 px or more thick */
+  float ta = clamp((z - 9.4) / 2.6, 0.0, 1.0), sa = ta * ta * (3.0 - 2.0 * ta), sl = 26.0 * 6.0 * ta * (1.0 - ta) / 2.6;
+  float wa = 5.0 + 19.0 * sa + lump, anv = (1.0 - smoothstep(-0.6, 0.6, (abs(x - 4.0 - 7.0 * sa) - wa) / sqrt(1.0 + sl * sl))) * smoothstep(9.2, 10.2, z) * (1.0 - smoothstep(12.0, 12.7, z - 0.9 * exp(-pow((x - 3.5) / 4.0, 2.0))));
+  float m = max(col, anv);
+  float ps = uAnv.x - uAnv.w, dc = radians(-uAnv.z) - D / 6371.0 * cos(ps), hs = dc > 0.0 ? 6371.0 * (1.0 / cos(dc) - 1.0) : 0.0;
+  float lit = smoothstep(hs - 0.5, hs + 0.5, z);
+  float fl = uAnvF.x > 0.0 ? exp(-((x - uAnvF.y) * (x - uAnvF.y) + (z - uAnvF.z) * (z - uAnvF.z)) / (uAnvF.w * uAnvF.w)) * uAnvF.x : 0.0;
+  return vec3(m, m * lit, m * fl);
+}
 /* (physics: weather/moon-halo) the 22 deg halo and the moon dogs, under an ice veil: light refracted through ice crystals'
    60 deg prisms (n 1.31) at their minimum deviation, 21.84 deg; the ring's inner edge sharp and faintly warm (red is
    bent least), its light falling away outward; nothing inside it brightened. The dogs: plates lying flat, at the moon's
@@ -152,6 +184,23 @@ void main() {
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
   }
+  /* (physics: weather/far-anvil) the far storm, drawn before everything nearer than it (the 3 km veil and its streaks,
+     the Earth's shadow and the Belt: laid over it), and hiding everything farther (the wisps 83 km up, 500-700 km away
+     on its rays; the galaxy, the aurora, the moon, the stars: what they add is taken back over its cover, anvCov, after
+     the stars) */
+  float anvCov = 0.0;
+  if (uAnv.y > 0.0) {   // its body in the air's colour at its range, its lit top, its flicker
+    vec3 aM = anvilAt(rd);
+    anvCov = aM.x;
+    if (aM.x > 0.0) {
+      c = mix(c, atmos(uClShade, rd, 1000.0 * uAnv.y / max(length(rd.xz), 1e-3)), aM.x);
+      /* its lit top and its flicker through the haze, held under L 0.50 over whatever stands behind it (a soft cap on what it adds, by
+         the room left under Y 0.118; where that stands at 0.50 it gives way) */
+      vec3 aA = (vec3(1.0, 0.6, 0.46) * aM.y * ANV_K + vec3(0.85, 0.9, 1.0) * aM.z * ANV_FK) * (1.0 - hazeSky(rd));
+      float yA = dot(aA, LUMA), room = max(0.118 - dot(c, LUMA), 0.0);
+      c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
+    }
+  }
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on
        the deck (from the camera's own place), so the sky is a function of where the camera is (and its cover, uHi.x,
@@ -194,6 +243,7 @@ void main() {
     c = mix(c, c * vec3(0.72, 0.78, 0.95), sh * side * 0.55);
     c += vec3(0.95, 0.6, 0.66) * bl * side * dot(c, LUMA) * 0.35;
   }
+  vec3 cBA = c;   // (physics: weather/far-anvil) the sky as it stands before what lies beyond the far storm (the wisps, 83 km up: 500-700 km away on its rays)
   if (uNight.y > 0.0 && eS > 0.5 && eS < 18.0) {   // noctilucent wisps, fine and blue, low on the side the sun set (the live's nlc; the noise seamless round the sky)
     float side = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(uSkyS.xz + 1e-5)), 0.0, 1.0), 1.5);
     vec2 q = vec2(atan(rd.x, rd.z) / SKYTAU * 14.0, eS * 0.09);
@@ -238,6 +288,7 @@ void main() {
     for (int c = 0; c < 5 + uZs; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); s += starAt(rd, el, az, pa, head / max(sk, 1e-5), dj, di); }
     c += vec3(0.92, 0.94, 1.0) / 0.94 * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap
   }
+  if (anvCov > 0.0) c = mix(c, cBA, anvCov);   // (physics: weather/far-anvil) the galaxy, the aurora, the moon and the stars behind the storm's body
 #ifdef SKY_HOOK
   c = skyHook(rd, c);
 #endif

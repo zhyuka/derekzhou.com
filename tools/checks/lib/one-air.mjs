@@ -7,18 +7,21 @@
 //   node tools/checks/lib/one-air.mjs OUT_DIR   (src/ assembled into OUT_DIR/src; exit 1 on a breach)
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import * as acorn from 'acorn';
 import { where } from '../../where.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
-const OUT = process.argv[2] || fs.mkdtempSync('/tmp/one-air-');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');   // (fileURLToPath: a URL's pathname doubles the drive on Windows, C:\C:\)
+const OUT = process.argv[2] || fs.mkdtempSync(path.join(os.tmpdir(), 'one-air-'));
 execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', path.join(ROOT, 'src'), path.join(OUT, 'src')], { stdio: 'ignore' });
 const AIRF = 'src/world/215-air.js', errs = [];
 
 // 1. the air's names: declared in the air, written only there
 const NAMES = ['SKY_RATE', 'AIR_DIR', 'AIR_H', 'AIR_CIRRUS', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_LAT', 'AIR_OBL', 'AIR_GAL', 'AIR_SKYF', 'AIR_FRAME', 'AIR_SIDEREAL', 'AIRAPI',
-  'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'airMoonDir', 'AIR_MOOND', 'AIR_MOONS', 'skyFrame', 'skySphere', 'weather', 'airHeading0'];
+  'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'airMoonDir', 'AIR_MOOND', 'AIR_MOONS', 'skyFrame', 'skySphere', 'weather', 'airHeading0', 'AIR_UT0',
+  'AIR_BYSKY', 'airShare', 'airCarried', 'airClock', 'airBase', 'airTable', 'UAIR', 'AIR_NC', 'airFrameU'];
 for (const n of NAMES) {
   let w; try { w = await where(n, 'world'); } catch (e) { errs.push(`${n}: not a name of the world (${e.message})`); continue; }
   if (!w || !w.decl || w.decl.file !== AIRF) { errs.push(`${n} is declared in ${w && w.decl ? w.decl.file : 'no section'}, not the air (${AIRF})`); continue; }
@@ -51,6 +54,11 @@ const APART = [/\bmc\.wind\b/];   // (AIR_APART.maps: the maps' own wind field, 
 for (const [f, s] of Object.entries(texts)) s.split('\n').forEach((l, i) => { if (APART.some((re) => re.test(l))) return; for (const [re, why] of BAN) if (re.test(l)) errs.push(`${f}:${i + 1}: ${why}: ${l.trim().slice(0, 140)}`); });
 const vb = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
 if (/\buT\b/.test(vb)) errs.push('src/world/glsl/fs-vbody.glsl: the billows read the clock (they ride with their body, physics: clouds/drift)');
+
+// 3. the score's breeze is the world's wind by sky (its feed's air), never a table of its own
+const sc = blank(fs.readFileSync(path.join(ROOT, 'src/score.js'), 'utf8'));
+sc.split('\n').forEach((l, i) => { if (/\b(afterglow|bluehour|firstlight|moonlit|milkyway|aurora)\s*:\s*\[\s*-?[\d.]+\s*,\s*-?[\d.]+\s*\]/.test(l)) errs.push(`src/score.js:${i + 1}: a breeze by sky of the score's own (the feed's air: AIR_BYSKY): ${l.trim().slice(0, 140)}`); });
+if (!/S\.air = F\.air/.test(sc)) errs.push('src/score.js: the score does not take the feed\'s air (the world\'s wind by sky)');
 
 if (errs.length) { for (const e of errs) console.log('::error::' + e); console.log(`one air: ${errs.length} breach(es) (RULES.json one-world-state; src/world/215-air.js holds the world's one state)`); process.exit(1); }
 console.log(`one air: ${NAMES.length} names held by the air alone, no wind or sun literal outside it`);
