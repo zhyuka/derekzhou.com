@@ -452,3 +452,54 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]) || l.includes(f + '(uSkyF * rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
 });
+
+test('physics: night/sky-turn: the stars stand where the sky\'s frame puts them (projected by their world direction)', () => {
+  // starAt places a star at sd in the sky's frame; the screen needs its world direction: sw = sd * uSkyF (uSkyF world to
+  // frame, so its transpose back). Under a frame turned well away from the identity, a star set at the frame direction
+  // of a pixel's own ray must land on that pixel (0 px off); read through sd itself it would land elsewhere
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('vec3 sw = sd * uSkyF;') && g.includes('float zf = max(dot(sw, uCamF), 1e-4);') && g.includes('vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y))'), 'the star is projected by its frame direction, not its world one');
+  const rot = (ax, a) => { const [x, y, z] = ax, c = Math.cos(a), s = Math.sin(a), C = 1 - c; return [c + x * x * C, x * y * C - z * s, x * z * C + y * s, y * x * C + z * s, c + y * y * C, y * z * C - x * s, z * x * C - y * s, z * y * C + x * s, c + z * z * C]; };
+  const n = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); };
+  const M = rot(n([0.3, 0.8, -0.5]), 1.9);   // world to frame, row-major: frame = M w
+  const mul = (A, v) => [A[0] * v[0] + A[1] * v[1] + A[2] * v[2], A[3] * v[0] + A[4] * v[1] + A[5] * v[2], A[6] * v[0] + A[7] * v[1] + A[8] * v[2]];
+  const rowMul = (v, A) => [v[0] * A[0] + v[1] * A[3] + v[2] * A[6], v[0] * A[1] + v[1] * A[4] + v[2] * A[7], v[0] * A[2] + v[1] * A[5] + v[2] * A[8]];   // GLSL v * m
+  const F = [0, 0, 1], R = [1, 0, 0], U = [0, 1, 0], P = [Math.tan(0.6), Math.tan(0.4)], W = [1440, 900];
+  const px = (w) => { const z = w[0] * F[0] + w[1] * F[1] + w[2] * F[2]; return [((w[0] / (z * P[0])) * 0.5 + 0.5) * W[0], ((w[1] / (z * P[1])) * 0.5 + 0.5) * W[1]]; };
+  for (const w of [n([0.1, 0.3, 1]), n([-0.4, 0.2, 1]), n([0.2, -0.1, 1])]) {
+    const sd = mul(M, w), sw = rowMul(sd, M), a = px(w), b = px(sw), bad = px(sd);
+    assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-6, `a star at the pixel's own sky direction lands ${Math.hypot(a[0] - b[0], a[1] - b[1]).toFixed(3)} px off`);
+    assert.ok(Math.hypot(a[0] - bad[0], a[1] - bad[1]) > 50 || sd[2] <= 0, 'the test frame is too near the identity to tell the two apart');
+  }
+});
+
+test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 deg/s, nothing while its rise is 0 (no fades)', () => {
+  // 222's own skyGal over a stay (its hold and changes at their shortest and longest), run here: the rise 0 outside the
+  // stay, 1 at the hold's middle, straight; the shader's edge (2 x GAL_E deg over the rise) never faster than 0.3 deg/s;
+  // and the shader draws nothing at rise 0 (galVis 0, the galaxy's draw and the stars' crowding both gated on it)
+  const fn = cut(WORLD, '  var GAL_IN = ', '\n  }\n', true), clamp = (x, a, b) => Math.min(Math.max(x, a), b);
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8'), E = +g.match(/const float GAL_E = ([\d.]+);/)[1];
+  const WS = { moonlit: { fx: {} }, milkyway: { fx: { galaxy: 1 } }, aurora: { fx: { aurora: 1 } } };
+  for (const [hold, move] of [[85.5, 55], [115, 60]]) {
+    const seq = [{ id: 'moonlit', at: 0, hold: 190, move: 57 }, { id: 'milkyway', at: 247, hold, move }, { id: 'aurora', at: 247 + hold + move, hold: 100, move: 55 }, { id: 'moonlit', at: 1e4, hold: 190, move: 57 }];
+    const SKY = { seq, i: 0, galRise: 0 };
+    const skyGal = new Function('SKY', 'WSKY', 'clamp', fn + '\nreturn skyGal;')(SKY, WS, clamp);
+    const t0 = 190, t1 = 247 + hold + move; let last = null, top = 0;
+    for (let t = 150; t <= t1 + 40; t += 0.25) {
+      SKY.i = t < 247 ? 0 : t < t1 ? 1 : 2; skyGal(t);
+      const r = SKY.galRise, e = E * (2 * r - 1);
+      assert.ok(r >= 0 && r <= 1, `t ${t}: rise ${r}`);
+      if (t <= t0 || t >= t1) assert.equal(r, 0, `t ${t}: the galaxy stands (rise ${r}) outside its stay`);
+      if (last !== null && r > 0 && last.r > 0) assert.ok(Math.abs(e - last.e) / 0.25 <= 0.3 + 1e-9, `hold ${hold}: at t ${t} the galaxy's edge moves ${(Math.abs(e - last.e) / 0.25).toFixed(3)} deg/s (at most 0.3)`);
+      top = Math.max(top, r); last = { r, e };
+    }
+    assert.equal(top, 1, `hold ${hold}: the galaxy never comes in whole (its rise peaks at ${top})`);
+  }
+  // the hold case: a sky with no galaxy keeps its rise at 0, and at 0 the shader draws nothing
+  { const SKY = { seq: [{ id: 'moonlit', at: 0, hold: 190, move: 57 }, { id: 'moonlit', at: 247, hold: 190, move: 57 }], i: 0, galRise: 1 };
+    new Function('SKY', 'WSKY', 'clamp', fn + '\nreturn skyGal;')(SKY, WS, clamp)(100); assert.equal(SKY.galRise, 0, 'a stay with no galaxy keeps a rise'); }
+  assert.ok(g.includes('if (uGalC.w <= 0.0) return 0.0;'), 'galVis is not 0 at rise 0');
+  assert.ok(g.includes('if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) c += galaxyAt(uSkyF * rd, eS) * hzT;') && g.includes('* smoothstep(1.0, 12.0, e) * galVis(rd);'), 'the galaxy is drawn without its edge, or at rise 0');
+  assert.ok(g.includes('uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * galVis(sd0(jb, ib, n))'), 'the stars crowd into the band before the galaxy comes in (a pop)');
+  assert.ok(WORLD.includes('gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], SKY.galRise || 0);') && WORLD.includes('skyAur(t); skyGal(t);'), 'the galaxy\'s rise is not its own clock\'s');
+});

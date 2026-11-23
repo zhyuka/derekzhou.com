@@ -75,6 +75,15 @@ vec3 haloAt(vec3 rd) {
    climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (one sheet low over the key's horizon, its colour by altitude: physics: aurora) */
+/* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: an edge in galactic latitude (deg) sweeps from
+   -GAL_E to +GAL_E as its own rise (uGalC.w, 222 skyGal) goes 0 to 1, and back; south of it the galaxy is drawn, north
+   of it not, 1.5 deg soft; at rise 0 nothing at all. The band (sigma 6 deg) is under 5% beyond 15 deg */
+const float GAL_E = 13.5;
+float galVis(vec3 d) {
+  if (uGalC.w <= 0.0) return 0.0;
+  float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);
+  return 1.0 - smoothstep(e - 1.5, e + 1.5, lat);
+}
 #ifdef SKY_PH2
 vec3 galaxyAt(vec3 rd, float e) {
   vec3 P = uGal.xyz, C = uGalC.xyz;
@@ -82,7 +91,7 @@ vec3 galaxyAt(vec3 rd, float e) {
   float band = exp(-b * b / 0.0225), core = exp(-l * l / 0.36) * exp(-b * b / 0.05);
   float n = n3v(vec3(u * 7.0, b * 3.15, 0.13)).b * 0.45 + n3v(vec3(u * 21.0, b * 9.9, 0.71)).a * 0.35 + n3v(vec3(u * 62.0, b * 29.7, 0.29)).a * 0.2;
   float lanes = smoothstep(0.4, 0.64, n3v(vec3(u * 4.0, b * 5.6 * 0.33 + 0.1 * n3v(vec3(u * 13.0, 0.4, 0.61)).b, 0.37)).b) * exp(-pow(b - 0.02 * sin(l * 5.0), 2.0) / 0.003);
-  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
+  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e) * galVis(rd);
 }
 /* (physics: aurora/phases) one sheet D km away toward the key's azimuth, seen from the ground: phi from its centre,
    the folds' phase f0, and how deep into a breakup it is (bk: 0 none; the section east of the front, s > uAurB.y) */
@@ -168,7 +177,7 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
   ib = mod(ib, n);
   uint h = ih(ih(uint(int(jb) + 4096) * 0x9e3779b1u) ^ uint(int(ib)) * 0x85ebca6bu);
   float hx = hf(h), hy = hf(ih(h + 1u)), hz = hf(ih(h + 2u)), hw = hf(ih(h + 3u));
-  float dens = 1.0 + (uGal.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) : 0.0);   // (the stars crowd in the galaxy's band)
+  float dens = 1.0 + (uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * galVis(sd0(jb, ib, n)) * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) : 0.0);   // (the stars crowd in the galaxy's band)
   if (hx > 0.42 * dens) return 0.0;
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
@@ -183,8 +192,9 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, int dj, int di) {
   /* the star's place on the screen in pixels (the inverse of main's rd: ndc = (r, u) / (f x uProj)), so the box is the
      pixel's own footprint at any place in any window (the review: the chord over the centre's angle was 1.2 pixels a
      step at the centre of a tall window and 0.7 px became 1.1-1.4 at its sides) */
-  float zf = max(dot(sd, uCamF), 1e-4);
-  vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
+  vec3 sw = sd * uSkyF;   // (the star's world direction: sd is in the sky's frame, uSkyF world to frame, so its transpose back)
+  float zf = max(dot(sw, uCamF), 1e-4);
+  vec2 d = gl_FragCoord.xy - (vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   return F * starBox(d.x, sg) * starBox(d.y, sg);
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
@@ -295,7 +305,7 @@ void main() {
   /* (aurora-haze) both behind the haze, as the moon is: what the haze over them lets through (1 - hazeSky), a little
      redder where it is thick (low), never added over it at full strength */
   float hzS = 1.0 - hazeSky(rd); vec3 hzT = hzS * mix(vec3(1.0, 0.84, 0.68), vec3(1.0), hzS);
-  if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(uSkyF * rd, eS) * hzT;   // (by the sky's turn: physics: night/sky-turn)   // (phase 2)
+  if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) c += galaxyAt(uSkyF * rd, eS) * hzT;   // (by the sky's turn: physics: night/sky-turn)   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings

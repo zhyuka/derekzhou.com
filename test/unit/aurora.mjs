@@ -168,7 +168,7 @@ test('physics: aurora/phases: it comes in, holds, drifts and goes by its own clo
   // the stay's draws: after skyInit's others; a breakup and a second arc in half the stays (0 or 1, 0 or 150-300 km)
   const dr = WORLD.match(/SKY\.aur\.bk = SKY\.rV\.f\(\) < 0\.5 \? 1 : 0; SKY\.aur\.f0 = SKY\.rV\.r\(20, 40\); SKY\.aur\.dD = SKY\.rV\.f\(\) < 0\.5 \? SKY\.rV\.r\(150, 300\) : 0;/);
   assert.ok(dr, 'the stay\'s draws (a breakup, its front, a second arc) are not 222\'s as tested');
-  assert.ok(WORLD.indexOf(dr[0]) > WORLD.indexOf('SKY.gal = best; SKY.aur = {'), 'the stay\'s draws come before skyInit\'s others: they would move them');
+  assert.ok(WORLD.indexOf(dr[0]) > WORLD.indexOf('lie: best }; SKY.aur = {'), 'the stay\'s draws come before skyInit\'s others: they would move them');
   assert.ok(AUR.includes('if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z, uAur.z + 0.37, 0.0, 0.0, pa);'), 'the second arc is not 0.6 of the first, uAurB.z km beyond it');
 });
 
@@ -250,7 +250,7 @@ test('physics: aurora/sampling: auroraAt at 1x within 3 codes of 2x2, quiet and 
 test('physics: aurora/rays: they never nearly repeat along the sheet (autocorrelation at most 0.6 for lags 10-1100 km)', () => {
   // the rays' own field along the sheet, as auroraSheet reads it from the world's noise volume (its u, v and w all drifting
   // with s), in 300 km windows: no lag from 10 to 1100 km (two places 1-90 deg apart at D 650, inside any view) finds
-  // the pattern again (Pearson r at most 0.6), at three fold phases and two moments
+  // the pattern again (a correlation r at most 0.6), at three fold phases and two moments
   const ry = (s, uT, f0) => ss(0.45, 0.9, n3a(s / rP + uT / rP2, 0.5 + s / rV, 0.19 + f0 + s / rW));
   let worst = { r: -1 };
   for (const f0 of [5.0, 6.2, 7.9]) for (const uT of [0, 523.7]) for (const s0 of [-1500, -300, 900]) {

@@ -33,7 +33,8 @@ const PLAN = cut(WORLD, A1, E1, true) + cut(WORLD, A2, E2, true) + cut(WORLD, A3
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
 const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the cycle at t');
 const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true)   // (and the air's equatorial axes and galactic pole and centre: the sky order places the galaxy by them)
-  + cut(WORLD, '  var AIR_LAT = ', '\n', true) + cut(WORLD, '  function airEq(', '\n', true);
+  + cut(WORLD, '  var AIR_LAT = ', '\n', true) + cut(WORLD, '  function airEq(', '\n', true)
+  + '  function keyAt(V) { return [0, 0.5, 0.866]; }\n';   // (a stub: the aurora's sheet faces the key; the ruler reads no light)
 const SEED0OF = /var SEED0 = (\(11 \+ \(SEEDR % OPENN\) \* 0x9e3779b9\) >>> 0)/.exec(WORLD), OPENN = /var OPENN = (\d+)/.exec(WORLD);   // (010: SEED0 from the read)
 const VSEED = /var r = (RNG\(subseed\(J\.seed, \d+\)\));\n\s*J\.V = \{ k: 0, id: 'world', def: def, seed: r\.seed\(\)/.exec(WORLD);   // (170: the visit's seed, the cells' salt's parent)
 const VSALT = /V\.salt = (subseed\(V\.seed, \d+\) >>> 0);/.exec(WORLD);   // (200: the cells' salt)

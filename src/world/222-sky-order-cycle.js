@@ -88,7 +88,7 @@
     SKY.q = q;
     SKYI.id = e.n; SKYI.k = k;
     SKYI.words = k < 0.5 ? A.w : B.w; SKYI.sky = A.id; SKYI.next = B.id; SKYI.group = (k < 0.5 ? A : B).g;
-    skyAur(t);
+    skyAur(t); skyGal(t);
   }
   /* (physics: aurora/phases, no fades: what shows changes only because the sheet moves) the aurora's own clock over its
      stay, from the change that brings it to the end of the one that takes it (its amount 1 throughout, through the
@@ -107,6 +107,18 @@
     var ta = j > 0 ? t0 + AUR_IN : e.at, tb = t1 - AUR_OUT;
     A.p = clamp((t - ta) / Math.max(tb - ta, 1), 0, 1);
     A.sf = 650 * Math.tan(A.f0 * DEG) - AUR_FRONT * (t - tf);
+  }
+  /* (aurora-enter-by-place, no fades, at most 0.3 deg/s) the galaxy's own clock over its stay, as the aurora's: from the
+     change that brings it to the end of the one that takes it (its amount 1 throughout). Its rise goes 0 to 1 over GAL_IN
+     s from that change's start and back over GAL_OUT s to that change's end, straight (the shader's edge, galVis, sweeps
+     2 x GAL_E = 27 deg in 95 s: 0.28 deg/s, never faster; the shortest stay, 197.5 s, holds both); a landing on it opens with it whole */
+  var GAL_IN = 95, GAL_OUT = 95;
+  function skyGal(t) {
+    var seq = SKY.seq, i = SKY.i, ga = function (n) { var f = seq[n] && WSKY[seq[n].id].fx; return !!(f && f.galaxy > 0); };
+    var j = ga(i) ? i : ga(i + 1) ? i + 1 : -1;
+    if (j < 0) { SKY.galRise = 0; return; }
+    var e = seq[j], t0 = j > 0 ? seq[j - 1].at + seq[j - 1].hold : -1e9, t1 = e.at + e.hold + e.move;
+    SKY.galRise = Math.min(clamp((t - t0) / GAL_IN, 0, 1), clamp((t1 - t) / GAL_OUT, 0, 1));
   }
   /* from one direction to another (the live's arc: over the top where they face apart) */
   function skyArc(a, b, k, out) {
