@@ -288,14 +288,21 @@ test('no bird perched on the name stands under a stroke (no point of it inside t
    made twice: neither can be planted here, the hub's review 3) */
 test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
   const k60 = (60 / 144) ** 2; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;   // (at 144 Hz: a snap of a few px reads at 60 Hz within a frame's bound)
-  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 144, 80, null, size, true).values())
+  /* (each landed bird made to land again: off its perch after 3 s, back to a ledge 4 s after its take-off, so a second
+     landing is always scored whatever the scene's own timing: since the glides the natural scene's birds seldom land twice) */
+  const again = (sim, tags) => { const B = sim.B; for (const b of tags) { const m = b.__again || (b.__again = { st: 'wait', t: 0 });
+    if (m.st === 'wait' && b.st === 'perch' && b.P) { m.st = 'perched'; m.t = sim.t; }
+    else if (m.st === 'perched' && sim.t - m.t > 3 && b.st === 'perch') { B.leave(b, 'own'); m.st = 'left'; }
+    else if (m.st === 'left' && b.st === 'fly') { m.st = 'flying'; m.t = sim.t; }
+    else if (m.st === 'flying' && sim.t - m.t > 4 && b.st === 'fly') { const P = B.pickLedge(b, b.r); if (P) { B.startApproach(b, P, 0); m.st = 'again'; } } } };
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('perch', seed, 144, 40, again, size).values())
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (b.nth < 2 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch')) continue;
       frames++;
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
       const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));
-      if (f > worst.f) worst = { f, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
-      if (bb > worstB.b) worstB = { b: bb, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (f > worst.f) worst = { f, at: `perch ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (bb > worstB.b) worstB = { b: bb, at: `perch ${size} ${seed} frame ${b.k} ${b.st}` };
     }
   console.log(`# second landings: ${frames} frames; worst form ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(frames > 100, 'too few frames of a second landing');

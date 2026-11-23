@@ -26,7 +26,7 @@
     P.pr = C(VS_FULL, pre + (HSH ? '\n#ifdef HPSPLIT\n' + FS_PROBE_SPLIT + '\n#else\n' + FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null) + '\n#endif\n' : FS_PROBE(surfs[0].height, def.camGround || null, def.probeHgt || null)), 'probe');   // (one source on every device: the body chosen by DEFS)
     P.sc = LMSC ? P.lm : def.scatter && def.scatter.length ? C(preG + VS_SCATTER, pre + FS_LANDMARK(def.scatterShade || def.landmarkShade || 'shadeStone'), 'scatter') : null;
     P.pt = def.particles ? C(HEAD + hk + FRAME_U + LIB + GROUND_LIB + VS_PARTICLE, HEAD + hk + FRAME_U + LIB + FS_PARTICLE, 'particle') : null;   // (fast500 step 8: without the realm's GLSL, which the particles never call)
-    P.rb = def.ribbons ? C(preG + VS_RIBBON, preG + FS_RIBBON, 'ribbon') : null;
+    P.rb = def.ribbons ? C(preG + airGustGlsl() + VS_RIBBON, preG + FS_RIBBON, 'ribbon') : null;
     P.sky = /SKY_HOOK/.test(hk) ? C(VS_FAR, pre + SKY_BODY, 'sky') : null;
     P.lmi = def.sets ? C(pre + VS_LANDMARK_INST, pre + FS_LANDMARK(def.landmarkShade || 'shadeStone'), 'landmarkInst') : null;
     def.P = P;
