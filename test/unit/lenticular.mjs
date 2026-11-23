@@ -264,6 +264,42 @@ test('lenticular: the plates are long thin lenses, tapered to their rims, each s
   }
 });
 
+// one piece (the hub, 2026-11-23: "no connected lit component apart from the main body at the rim"): each plate's field as
+// the bake makes it, fs-vdens's own smooth union of its lobes (pinned below, line for line) with volPrep's blend (the
+// median lobe times b.blend), sampled on a grid a sixth of the plate thick across its box: the solid (s < 0) is one
+// connected piece, never a ring of beads or a bead apart at the rim
+test('lenticular: each plate bakes as one connected piece, no bead apart', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT } = await import('../unit-lib.mjs');
+  const VD = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vdens.glsl'), 'utf8');
+  assert.ok(VD.includes('vec4 L = uLobe[i]; vec3 d = p - L.xyz; d.y /= sq;') && VD.includes('float si = (length(d) - L.w) * min(sq, 1.0);') && VD.includes('float h = max(k - abs(s - si), 0.0) / k;') && VD.includes('s = min(s, si) - h * h * k * 0.25;'), 'fs-vdens\'s smooth union is not the one this test runs');
+  assert.match(WORLD, /gl\.uniform4f\(P\.u\.uVK, B\.seed, B\.erode, vb\.tile, vb\.Rm \* B\.blend\);/, 'the bake\'s blend is not the median lobe times b.blend');
+  const LENS = cut(WORLD, '  function lens(PF, rng, x, y0, z, dir, len, W, T, n, o) {', '\n    return b0;\n  }\n', true);
+  const make2 = vm.runInThisContext('(function () { function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n' + LENS + ' return lens; })')();
+  for (const [len, W, T, n] of [[1800, 450, 45, 1], [2600, 700, 75, 3], [900, 380, 70, 2], [2240, 700, 45, 3]]) {
+    const L = [], B = [], PF = { body: () => { const b = { i0: L.length }; B.push(b); return b; }, add: (x, y, z, r) => L.push([x, y, z, r, B.length - 1]), count: () => L.length };
+    let s = 7; const rng = { f: () => ((s = (s * 16807) % 2147483647) / 2147483647), r: (a, b) => a + (b - a) * rng.f() };
+    make2(PF, rng, 0, 1400, 0, 0, len, W, T, n, {});
+    B.forEach((b, k) => {
+      const P = L.filter((p) => p[4] === k), sq = b.squash, rs = P.map((p) => p[3]).sort((a, c) => a - c), kb = rs[rs.length >> 1] * b.blend;
+      const field = (x, y, z) => { let f = 1e5; for (const q of P) { const dx = x - q[0], dy = (y - q[1]) / sq, dz = z - q[2], si = (Math.hypot(dx, dy, dz) - q[3]) * Math.min(sq, 1), h = Math.max(kb - Math.abs(f - si), 0) / kb; f = Math.min(f, si) - h * h * kb * 0.25; } return f; };
+      const lo = [0, 1, 2].map((a) => Math.min(...P.map((q) => q[a] - q[3]))), hi = [0, 1, 2].map((a) => Math.max(...P.map((q) => q[a] + q[3])));
+      const st = T / 6, nx = Math.ceil((hi[0] - lo[0]) / (st * 2)), ny = Math.ceil((hi[1] - lo[1]) / st), nz = Math.ceil((hi[2] - lo[2]) / (st * 2));
+      const solid = new Uint8Array(nx * ny * nz), id = (i, j, l) => (l * ny + j) * nx + i;
+      for (let l = 0; l < nz; l++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) solid[id(i, j, l)] = field(lo[0] + (i + 0.5) * st * 2, lo[1] + (j + 0.5) * st, lo[2] + (l + 0.5) * st * 2) < 0 ? 1 : 0;
+      let parts = 0, cells = 0; const seen = new Uint8Array(solid.length), stack = [];
+      for (let c = 0; c < solid.length; c++) {
+        if (!solid[c] || seen[c]) continue; parts++; seen[c] = 1; stack.push(c);
+        while (stack.length) {
+          const q = stack.pop(); cells++; const i = q % nx, j = ((q / nx) | 0) % ny, l = (q / (nx * ny)) | 0;
+          for (const [di, dj, dl] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) { const a = i + di, b2 = j + dj, e = l + dl; if (a < 0 || b2 < 0 || e < 0 || a >= nx || b2 >= ny || e >= nz) continue; const w = id(a, b2, e); if (solid[w] && !seen[w]) { seen[w] = 1; stack.push(w); } }
+        }
+      }
+      assert.ok(cells > 50, `plate ${k + 1} of a ${len} m lens bakes almost nothing (${cells} cells)`);
+      assert.equal(parts, 1, `plate ${k + 1} of a ${len} m lens bakes as ${parts} pieces: beads apart at the rim`);
+    });
+  }
+});
+
 // no pop (the hub's round-4 review): a lens is as large as 790 m about, so faded by its own distance it stood in view
 // when its cell was made (the camera 5950 m from the cell's centre: the reach plus half a cell). The world's own fades
 // (236) run in Node: from every bearing, at the cell's birth and at its freeing, every lens's fade is 0
