@@ -3,12 +3,19 @@
   var STILLTS = -1;   // (the rAF time the reduced motion's still was first drawn; it is drawn again for a tenth of a second: WebKit's unpreserved buffer)
   var SHOWNT = -1;
   var TIER = 1, CLK = new Float64Array([0, -1]), running = false, rafId = 0, shown = false, NEEDSIZE = false, SKYMARK = null, DEAD = false, GAVEUP = false, READY = false, FRAMEN = 0;
-  /* the governor: every frame's time in a ring (two seconds); each second, the median. Never asked to beat 60 Hz.
-     Three slow seconds in a row (median over 1.35 frames of the period) step the render scale down a rung; three
-     seconds later, if the step did not help, one more rung is tried (a cost quantised by the display's sync needs two
-     steps to show its knee); if neither helped, both are undone and the frame time they could not beat is learnt as
-     the period (a 30 fps cap is then simply the pace). No step is taken while one is on trial. Twenty seconds at ease
-     step back up. The floor: ten seconds at under half the pace at the last rung, or under 15 fps with the period
+  /* the governor: every frame's time in a ring (two seconds); each second, the median. Never asked to beat 60 Hz,
+     never content under it (the owner, 2026-11-15: "Smooth, >=60 fps"): three slow seconds in a row (median over 1.08
+     frames of the period: under about 55 fps) step the render scale down a rung. 1.08, not the 1.35 a 60 Hz display
+     alone would allow: a display's sync quantises a frame to its own period, and over 60 Hz the multiple after one 60 Hz
+     frame lands under 1.35 of it (90 Hz: 22.2 ms, 45 fps; 100 Hz: 20, 50; 144 Hz: 20.8, 48; 165 Hz: 18.2, 55), so a
+     governor at 1.35 kept those at 45-55 fps at the top rung; at 1.08 it steps down until they run at their next
+     multiple over 60 (90, 100, 72, 82 fps). Three seconds later, if the step did not help, one more rung is tried, and
+     then one more (a cost quantised by the display's sync needs steps to show its knee: two at 60 Hz, three at 75 Hz,
+     whose 26.7 ms two rungs could not cross: the third only when the quickest tenth of the frames already beat the old
+     median by 15%, the sign of a cost near a sync's knee; a cost the scale cannot touch, a 30 fps cap, a CPU-bound
+     phone, a 50 Hz display, sees two trials as before); if none helped, all are undone and the frame time they could not beat is
+     learnt as the period (a 30 fps cap is then simply the pace). No step is taken while one is on trial. Twenty seconds at ease
+     (median under 1.04 periods) step back up. The floor: ten seconds at under half the pace at the last rung, or under 15 fps with the period
      learnt at its 50 ms ceiling (a cost the scale cannot touch: vertex work, the CPU, the driver) at any rung, give
      up: the world is held (hold, giveUp). */
   var GOVD = new Float32Array(120), GOVS = new Float32Array(120), GOVN = new Float64Array(18), FRAME60 = 1000 / 60;
@@ -36,13 +43,13 @@
     if (GOVN[9] === 1 && GOVN[8] >= 3) {
       GOVN[9] = 0;
       if (p50 > GOVN[7] * 0.85 && RUNG > 0) {
-        if (GOVN[16] === 0 && RUNG < RUNGS.length - 1) { GOVN[16] = 1; RUNG++; GOVN[3] = 0; GOVN[8] = 0; GOVN[9] = 1; GOVN[0] = 0; return; }
+        if ((GOVN[16] < 1 || (GOVN[16] < 2 && p10 < GOVN[7] * 0.85)) && RUNG < RUNGS.length - 1) { GOVN[16] += 1; RUNG++; GOVN[3] = 0; GOVN[8] = 0; GOVN[9] = 1; GOVN[0] = 0; return; }
         RUNG = Math.max(RUNG - 1 - GOVN[16], 0); GOVN[16] = 0;
         GOVN[6] = GOVN[10]; GOVN[10] = Math.min(GOVN[10] * 2, 960); GOVN[13] = clamp(Math.max(GOVN[7], p50), FRAME60, 50); GOVN[0] = 0; return;
       }
       GOVN[16] = 0; GOVN[10] = 60;
     }
-    if (p50 > PER * 1.35) {
+    if (p50 > PER * 1.08) {
       GOVN[3] += 1; GOVN[4] = 0;
       if (GOVN[3] >= 3 && GOVN[6] <= 0 && GOVN[9] === 0 && RUNG < RUNGS.length - 1) {   // (never while a step is on trial)
         if (GOVN[12] < 10) GOVN[11] = Math.min(GOVN[11] * 2, 160);
@@ -50,7 +57,7 @@
       }
     } else {
       GOVN[3] = 0;
-      if (p50 < PER * 1.12) { GOVN[4] += 1; if (GOVN[4] >= (QUP[1] && QUP[0] <= QUP_S ? QUP_EASE : GOVN[11]) && RUNG > 0 && GOVN[6] <= 0) { RUNG--; GOVN[4] = 0; GOVN[0] = 0; GOVN[12] = 0; } } else GOVN[4] = 0;
+      if (p50 < PER * 1.04) { GOVN[4] += 1; if (GOVN[4] >= (QUP[1] && QUP[0] <= QUP_S ? QUP_EASE : GOVN[11]) && RUNG > 0 && GOVN[6] <= 0) { RUNG--; GOVN[4] = 0; GOVN[0] = 0; GOVN[12] = 0; } } else GOVN[4] = 0;
     }
   }
   /* too slow even so: the world steps aside for the stylesheet's still sky (the words to its colours) */
