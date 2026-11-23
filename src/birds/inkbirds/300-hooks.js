@@ -1,6 +1,7 @@
   /* ---------------- the hooks ---------------- */
 
   weather();
+  window.WORLD.birds.feed = feed;   // (the score's read of the birds: 266, read only)
   makeProgram();   // (asked for now: the engine links it while its still sky shows)
   return {
     step: step,
