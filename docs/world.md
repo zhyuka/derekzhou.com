@@ -30,7 +30,7 @@ cell size parted them by 1.6 cm at 100 km and 12.5 cm at 681 km, the owner's
 one-pixel lines (2026-11-14); test/unit/clipmap.mjs replays it in fp32 and
 lints the old form, tools/gpu/seams.js reads both land programs on a GPU), the cloud bodies baked
 once each into small 3D textures and marched at half resolution (brought
-up by a Catmull-Rom clamped to the range of the 2x2 texels it lies
+up by a cubic interpolating spline clamped to the range of the 2x2 texels it lies
 between: sharp in the distance, never a ring), bloom, and the composite
 (a shoulder that keeps hue, the grade, one fixed 8-bit dither: no bands,
 nothing that fizzes). The light shafts' pass is still in the code, but no
@@ -478,7 +478,7 @@ physics: clouds/drift). It holds:
   first draw, as before), blowing toward V.windAz, and its speed by height,
   windAt(x, z, y, t), y over the ground. U10, the speed 10 m up, is the
   visit's own (V.u10), drawn once from its own stream (subseed(V.seed,
-  61)): a Rayleigh distribution of mean 5 m/s mapped by its CDF into
+  61)): the speed distribution of a two-dimensional normal wind vector of mean 5 m/s mapped by its CDF into
   3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays
   under about 8.8 m/s, under every bird kind's airspeed, so no bird flying
   upwind goes backward; truncated, so nothing piles at the ends). Whether
@@ -518,10 +518,52 @@ physics: clouds/drift). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
-  frame (skyFrame: the turn the stars and the galaxy take; today none) and
+- The sky's frame (physics: air/sky-frame): one celestial sphere for the
+  sun, the moon, the planets, the stars and the galaxy. The place is 64
+  deg north (the aurora is one of the skies), so the celestial pole
+  stands 64 deg up in the north; the season, from the visit's own stream,
+  puts the sun on the ecliptic in the dark half of the year; north is set
+  once a visit so that the evening sun stands on the sky's own sun's
+  azimuth. The sphere turns forward only, at SKY_RATE times the sidereal
+  rate, never stopping and never turning back; at sky time 0 its hour is
+  the opening sky's, so the frame's sun stands at the opening's drawn sun.
+  The drawn sky's sun keeps its depth by sky until the night's true order
+  lands; the planets are placed by the drawn sun. The ecliptic leans
+  23.44 deg to the equator; the galactic pole and centre are J2000's (the
+  pole 60.2 deg from the ecliptic's, the centre 5.5 deg south of the
+  ecliptic). skyFrame(tS, V) is the frame as the night sky's shader reads
+  it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
+  the same with the pole, the ecliptic's pole, the galactic pole and
+  centre and the frame's own sun.
+- One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
+  moon's disc as drawn this frame (its direction, its weight on show,
+  az and el), at the very moment and on the very route the night sky's
+  uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
+  disc. The key light (keyAt) is the moon's light on the land at night
+  from a low, fixed place (5-14 deg up); it is not where the disc is.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and
   the weather (weather(sky): today one wind for every sky; physics:
   air/wind-by-sky).
+- The events (physics: air/events; src/world/216-events.js, WORLD.events):
+  the rare sights a visit may come on, each a site on the ground placed
+  by where it is, never by when or by the way flown (path-independent).
+  Each tier of rarity is a hex lattice of its own, one site a cell
+  jittered within 0.24 of the spacing: common 8 km (fog pools in hollows),
+  uncommon 19 km (a dusk murmuration), rare 43 km (no kind yet). At most
+  one rare site is in reach (4 km) anywhere: a tier's sites stay over
+  twice the reach apart and a rare site yields to a rarer one within
+  twice the reach. A common site is in reach over about 82% of the
+  ground, an uncommon one over 16%. The sites are the read's own
+  (SEEDR's stream): none before the cut and none within 6 km of the
+  landing, so the opening's frames never show them. A site says only
+  where and what; its reader (LAND, BIRDS) decides when it shows, by the
+  air (WORLD.air.wx) and the sky. A fog pool is the visit's mist drained
+  into one hollow: its site carries its basin's radius (500-900 m), and
+  the mist over a ring twice that radius, gathered in, stands four times
+  as deep there as on the flats, up to 145 m (WORLD.events.poolDepth(site,
+  mist)). It has no clock of its own: no mist, no pool. LAND fills the
+  lowest ground within the radius to that depth, under the basin's rim.
+  test/unit/events.mjs.
 - The landing's heading, airHeading0 (drawn once from its own stream: the
   flight, the first plan, the galaxy's lie and the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the

@@ -54,8 +54,13 @@ Early Hints) and loaded cold three times under Lighthouse's mobile profile
 (150 ms RTT, 1.6 Mbps, CPU 4x). Each file the page loads has a byte budget
 as sent, about a tenth over its size that day; so do the bytes the first
 paint waits for (the document, the stylesheet, the hour, both fonts) and
-the whole; the first paint's median must be within 1,200 ms (about 630 ms
-that day). The sound icon's switch (sound.js, 614 B as sent) and its score (score.js, 5,983 B,
+the whole; the first paint may wait for nothing but its own (only the
+stylesheet and the hour render-blocking, and the first-paint hold's link out of
+the head on the phone profile: both read what the page is, never a clock), and
+its median must be within 4,000 ms, a net for a gross regression (about 580 ms
+here, up to 2,400 ms on a busy runner, on 2026-11-23; the
+old bar, 1,200 ms of wall clock, failed six PRs on busy runners that could not
+move the paint). The sound icon's switch (sound.js, 614 B as sent) and its score (score.js, 5,983 B,
 deferred) have lines; its sheet of notes (site/assets/sound/) has none on purpose, as it loads only
 at the visitor's press
 (docs/sound.md). A new file needs a budget line; a deliberate growth raises its
