@@ -9,7 +9,7 @@ name: Merge bot
 # bot is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
 on:
   workflow_run:
-    workflows: [Gate, Stills]   # (Stills: the PC's stills job set a main tip's `stills` status, which the deploy gate reads)
+    workflows: [Gate, Stills]   # (Stills: the stills job sets a main tip's `stills` status, which the deploy gate reads)
     types: [completed]
   pull_request_target:
     types: [opened, reopened, ready_for_review, labeled, unlabeled]
@@ -36,7 +36,7 @@ jobs:
     concurrency:
       group: merge-train${{ github.event_name == 'workflow_dispatch' && '-dry' || '' }}
       cancel-in-progress: false
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4

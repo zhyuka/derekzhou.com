@@ -188,5 +188,5 @@ test('stills: the bake never holds the GPU runner for a whole set, and the newes
   assert.match(y, /max-parallel: 1/, 'the sky jobs run one at a time');
   assert.match(y, /sky: \[dawn, day, rain, sunset, dusk, night\]/, 'a job a sky (T2 takes the runner between two)');
   assert.match(y, /--skies \$\{\{ matrix\.sky \}\}/, 'each job bakes only its sky');
-  assert.match(y, /need:\n(?:.*\n)*?\s+runs-on: \[self-hosted, linux, pc-wsl\]/, 'the look-up never holds the GPU runner');
+  assert.match(y, /need:\n(?:.*\n)*?\s+runs-on: ubuntu-latest\n/, 'the look-up never holds the GPU runner');
 });

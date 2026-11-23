@@ -37,27 +37,32 @@ the GitHub tools, `gh pr merge` (--auto too) or GraphQL. GitHub's merge commit (
 owner's own merge to the deploy gate, as the button's is. It needs, once: the repository's Settings > General >
 Allow auto-merge; and a ruleset on main (Settings > Rules) requiring the status check `verdict`, with Repository
 admin as a bypass actor so the merge bot's own landings (MERGE_TOKEN is the owner's) are not held. Rulesets on a
-private repository need a paid plan (GitHub Pro). The repository is private, so CI uses the
-account's included Actions minutes (2,000 a month on GitHub Free) until they ran out
-on 2026-11-06; since then every job runs on the owner's PC (the owner: "All on my PC,
-free"): Linux jobs on a self-hosted runner in WSL2 labelled pc-wsl, T2 on the Windows
-gpu-4090 runner. One job at a time, so T1 is skipped when T2 runs for the same head.
+private repository need a paid plan (GitHub Pro).
 
-The hand-off (2026-11-16): the gate's jobs pass each other their files on the PC's own disk, not as GitHub artifacts
-(2026-11-15: the repository's artifact storage quota was hit and every gate's plan job failed uploading its two
-builds). Every job runs on the PC, and the WSL runners and the Windows gpu-4090 runner see one folder, HANDOFF_ROOT
-(default /mnt/c/ci-handoff, C:\ci-handoff on Windows). .github/ci/handoff.mjs puts a folder under
-gate/<run id>-<attempt>/ with a sha256 manifest; each reader (T1, T2, T3, the verdict, the Stills job) gets it checked
-against the manifest and fails loudly on a missing, changed or extra file, never falling back to anything else. The
-plan job proves the check on the real builds each run (selftest: one byte flipped must be caught). A re-run of failed
-jobs reads its run's newest attempt that has the name. The verdict job drops a green off-main run's hand-off; main's
-is kept for the Stills job; every gate's start sweeps anything older than 24 hours. The trust line: the folder is
-shared, and a PR's own build code runs in its plan job with it writable, so nothing that decides is read from it alone.
-put writes its manifest's sha256 to its job's outputs (GitHub keeps them per run), and T1, T2, T3 and the verdict read
-pinned to it (--pinned, HANDOFF_SHA): files and manifest rewritten together still fail. The verdict the merge bot and
-T2's probe trust is the gate-verdict artifact, never the PC's copy (verdict/<run id>-<attempt>.json, kept 30 days as a
-record only). That artifact and T2's and T3's reports are the artifacts left, small, and their uploads never fail a
-job. The Stills job (after main's gate, a workflow_run) cannot see the gate's job outputs and reads unpinned.
+Where CI runs (2026-11-23): the repository is public, so GitHub's standard hosted runners are free, and every Linux
+job (the gate's static, plan, T1 and verdict; merge, post-deploy, scheduled, validate; the Stills look-up; gpu.yml's
+`served`) runs on `ubuntu-latest`. Only the jobs that need the real GPU stay on the owner's PC: gpu.yml's T2 and T3
+and the Stills bake and up jobs, on the Windows runner labelled gpu-4090 / gpu-exclusive. (From 2026-11-06, while the
+repository was private and its included minutes had run out, every job ran on the PC, Linux ones in WSL2 labelled
+pc-wsl: the owner's "All on my PC, free". On 2026-11-23 he chose to move the Linux jobs off the PC now that the
+repository is public.) A fork's PR never reaches the PC: gpu.yml skips a pull_request whose head repository is not
+this one, and the merge bot runs only for this repository's own branches. T1's base records are cached by the
+runner's image (ImageOS) as well as its OS and architecture, so a record rendered in WSL is never compared with a
+hosted runner's frames.
+
+The hand-off (2026-11-23): the gate's jobs pass each other the two builds and T1's shards as the run's own artifacts,
+gate-served and gate-t1, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
+storage is metered for private repositories only; the 2026-11-15 quota that moved the hand-off onto the PC's disk
+was the private repository's. .github/ci/handoff.mjs still lays the folder out (gate/<run id>-<attempt>/NAME with a
+sha256 manifest, under HANDOFF_ROOT, which every job sets to its own runner.temp/handoff); each reader (T1, T2, T3,
+the verdict, the Stills jobs) downloads the artifact and gets it checked against the manifest, failing loudly on a
+missing, changed or extra file. The plan job proves the check on the real builds each run (selftest: one byte flipped
+must be caught). put writes its manifest's sha256 to its job's outputs, and every reader is pinned to it (--pinned,
+HANDOFF_SHA). An artifact is scoped to its run, so no other run's code can rewrite it. The Stills job, a
+workflow_run that cannot see the gate's job outputs, fetches the Gate run's gate-verdict and gate-served artifacts
+(actions: read) and pins the builds to the verdict's served_sha. The verdict the merge bot and T2's probe trust is the
+gate-verdict artifact (30 days), whose upload fails the verdict job if it fails. T2's and T3's reports are the other
+artifacts, and their uploads never fail a job.
 
 ## The stills
 

@@ -10,7 +10,7 @@ on:
 
 jobs:
   validate:
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # (main's history too: the plants a change can break are found against its merge base)

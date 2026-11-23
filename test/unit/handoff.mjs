@@ -70,23 +70,29 @@ test('handoff: a re-run of failed jobs reads its run\'s newest attempt; drop cle
   } finally { fs.rmSync(t, { recursive: true, force: true }); }
 });
 
-test('handoff: the gate, T2, the Stills job and the merge bot use it, not artifacts, for the builds and T1\'s shards', () => {
-  const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
+test('handoff: the gate, T2 and the Stills job pass the builds and T1\'s shards as run artifacts, every reader checked and pinned', () => {
+  const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
   const gate = rd('.github/workflows/gate.yml'), gpu = rd('.github/workflows/gpu.yml'), stills = rd('.github/workflows/stills.yml'), bot = rd('.github/ci/merge-bot.mjs');
   for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu], ['stills.yml', stills]]) {
-    assert.ok(!/name: served/.test(y) && !/t1-shard/.test(y), f + ': no served or t1-shard artifact');
-    assert.match(y, /(handoff\.mjs|\$h) get served /, f + ' reads the builds from the hand-off');
+    assert.match(y, /(handoff\.mjs|\$h) get served /, f + ' reads the builds through the hand-off\'s manifest check');
+    assert.ok(!/ci-handoff|handoff\.mjs (sweep|drop|verdict-put)/.test(y), f + ': nothing on the PC\'s shared disk');
+    for (const l of y.split('\n').filter((x) => /handoff\.mjs get |\$h get /.test(x))) assert.match(l, /--pinned/, f + ': every reader pinned: ' + l.trim());
+    for (const step of y.split(/\n\s+- /).filter((t) => /name: gate-(served|t1)\b/.test(t) && t.includes('actions/upload-artifact'))) {
+      assert.match(step, /retention-days: 1\b/, f + ': a hand-off artifact is kept a day');
+      assert.match(step, /include-hidden-files: true/, f + ': the build\'s .well-known/ travels too');
+      assert.ok(!/continue-on-error/.test(step), f + ': a hand-off that did not upload fails its job');
+    }
   }
   assert.match(gpu, /\$h = if \(Test-Path base\/\.github\/ci\/handoff\.mjs\)/, 'T2 reads with the base\'s handoff.mjs: a PR cannot loosen its own check');
   assert.match(gate, /handoff\.mjs put "\$RUNNER_TEMP\/served" served\n\s+node \.github\/ci\/handoff\.mjs selftest served/);
-  assert.match(gate, /continue-on-error: true   # \(the artifact quota: the verdict stands on the PC's copy\)/, 'the one artifact left never fails the verdict');
-  for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu]]) for (const step of y.split(/\n\s+- /).filter((t) => t.includes('actions/upload-artifact'))) assert.match(step, /continue-on-error: true/, f + ': every artifact left is non-fatal (the quota)');
+  assert.match(stills, /HANDOFF_SHA: \$\{\{ steps\.pin\.outputs\.served_sha \}\}/, 'the Stills look-up pins the builds to the Gate run\'s verdict');
+  assert.equal((stills.match(/HANDOFF_SHA: \$\{\{ needs\.need\.outputs\.served_sha \}\}/g) || []).length, 2, 'the bake and up jobs pin them too');
+  assert.match(rd('.github/ci/verdict.mjs'), /served_sha: c\.served_sha/, 'the verdict carries the pin');
   assert.ok(!/fs\.(cpSync|copyFileSync)\(/.test(rd('.github/ci/handoff.mjs')), 'handoff.mjs copies by bytes: cpSync and copyFileSync carry modes over, and the PC\'s /mnt/c refuses them (EPERM)');
   // what decides is never read from the shared folder alone (the hub's review of #321): the bot and T2's probe read the
   // gate-verdict artifact only, and every gate reader of the builds and T1's shards is pinned to its putting job's output
   assert.ok(!/handoff\.mjs|ci-handoff|localVerdict/.test(bot), 'the merge bot never reads the PC\'s verdict copy: any run\'s code can write it');
   assert.ok(!/\/verdict\/|handoff\.mjs.*root\(\)/.test(gate), 'T2\'s probe never takes a cached answer from the PC\'s verdict copy');
-  for (const [f, y] of [['gate.yml', gate], ['gpu.yml', gpu]]) for (const l of y.split('\n').filter((x) => /handoff\.mjs get |\$h get /.test(x))) assert.match(l, /--pinned/, f + ': every reader pinned: ' + l.trim());
   assert.match(gate, /served_sha: \$\{\{ steps\.handoff\.outputs\.sha \}\}/); assert.match(gate, /shards_sha: \$\{\{ steps\.shards\.outputs\.sha \}\}/);
   assert.match(gpu, /HANDOFF_SHA: \$\{\{ inputs\.served_sha \|\| needs\.served\.outputs\.sha \}\}/);
 });

@@ -19,7 +19,10 @@ name: Stills
 #     bake. Nothing is lost: the cache is a folder per key and bake-stills.js records each batch of 32 as it is
 #     encoded, so a run for the same key goes on where the cancelled one stopped. Live waits for the newest tip's
 #     status (the deploy gate reads only the tip it moves to), so a wave of world changes bakes once, at its end.
-#   - the look-up runs on the PC's Linux runners (pc-wsl), never holding the GPU's.
+#   - the look-up runs on a GitHub-hosted runner, never holding the GPU's.
+# The builds are the Gate run's gate-served artifact (read with actions: read), checked against their manifest and
+# pinned to the served_sha in that run's gate-verdict artifact: both are scoped to the Gate run, so no other run's code
+# can rewrite them (the PC's shared hand-off folder, read here unpinned before 2026-11-23, could be).
 # Before the bake exists (tools/gpu/bake-stills.js: #197) every run ends at its first step, and nothing waits.
 # main's copy of this file and of tools/ runs, never a branch's (workflow_run); a branch's served build is rendered,
 # as T2 renders it, never built or run here.
@@ -53,11 +56,12 @@ jobs:
   need:
     if: >-
       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       bake: ${{ steps.need.outputs.bake }}
       key: ${{ steps.need.outputs.key }}
+      served_sha: ${{ steps.pin.outputs.served_sha }}   # (the bake and up jobs pin the builds to it)
     steps:
       - uses: actions/checkout@v4
         with: { ref: '${{ env.REF }}', persist-credentials: false }
@@ -67,9 +71,25 @@ jobs:
         id: has
         run: |
           if [ -f tools/gpu/bake-stills.js ]; then echo "bake=true" >> "$GITHUB_OUTPUT"; else echo "no tools/gpu/bake-stills.js: nothing to bake, nothing waits"; fi
-      - name: The two builds (the Gate run's hand-off on the PC's disk, checked against its manifest)
+      - if: steps.has.outputs.bake == 'true'
+        uses: actions/download-artifact@v4   # (the Gate run's verdict: its served_sha is the pin)
+        with: { name: gate-verdict, path: '${{ runner.temp }}/verdict', run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: The pin (the Gate run's verdict's served_sha)
+        id: pin
         if: steps.has.outputs.bake == 'true'
-        run: node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}'
+        run: |
+          s=$(jq -r '.served_sha // empty' "$RUNNER_TEMP/verdict/verdict.json")
+          [[ "$s" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::the Gate run's verdict has no served_sha to pin the builds to"; exit 1; }
+          echo "served_sha=$s" >> "$GITHUB_OUTPUT"
+      - if: steps.has.outputs.bake == 'true'
+        uses: actions/download-artifact@v4   # (the Gate run's own artifact: actions: read)
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: The two builds (the Gate run's gate-served artifact, checked against its manifest, pinned)
+        if: steps.has.outputs.bake == 'true'
+        env:
+          HANDOFF_SHA: ${{ steps.pin.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
+        run: node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}' --pinned
       - name: Is its set up already?
         id: need
         if: steps.has.outputs.bake == 'true'
@@ -104,10 +124,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: '${{ env.REF }}', persist-credentials: false }
-      - name: The two builds (the Gate run's hand-off on the PC's disk, checked against its manifest)
+      - uses: actions/download-artifact@v4   # (the Gate run's own artifact: actions: read)
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: The two builds (the Gate run's gate-served artifact, checked against its manifest, pinned)
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          HANDOFF_SHA: ${{ needs.need.outputs.served_sha }}   # (the Gate run's verdict's served_sha, read by the need job)
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: |
-          node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}'
+          node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}' --pinned
           if ($LASTEXITCODE -ne 0) { exit 1 }
           exit 0
       - name: playwright-core
@@ -148,11 +173,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: '${{ env.REF }}', persist-credentials: false }
-      - name: The two builds (the Gate run's hand-off on the PC's disk, checked against its manifest)
+      - if: needs.bake.result == 'success'
+        uses: actions/download-artifact@v4   # (the Gate run's own artifact: actions: read)
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+      - name: The two builds (the Gate run's gate-served artifact, checked against its manifest, pinned)
         if: needs.bake.result == 'success'
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+        env:
+          HANDOFF_SHA: ${{ needs.need.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: |
-          node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}'
+          node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}' --pinned
           if ($LASTEXITCODE -ne 0) { exit 1 }
           exit 0
       - name: Up

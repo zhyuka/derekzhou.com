@@ -17,8 +17,9 @@
 # for the merge bot: frames_identical, glsl_changed, bits_identical, bits_differ, csp_ok.
 # The checks run main's copy of tools/gpu (the base's), never the PR's own, so a PR cannot change its own gate; a PR
 # that brings tools/gpu for the first time runs its own. What they render is base's and head's builds (site/ holds only
-# sources): the gate's plan job's hand-off on the PC's disk (.github/ci/handoff.mjs) when the gate calls this, else the `served` job's here (the PC's Linux
-# runner, .github/ci/served.sh). The PC never runs a PR's build.
+# sources): the run's gate-served artifact (.github/ci/handoff.mjs's manifest, pinned), made by the gate's plan job when
+# the gate calls this, else by the `served` job here (a GitHub-hosted runner, .github/ci/served.sh). The PC never runs a
+# PR's build.
 name: gpu
 on:
   pull_request:
@@ -64,7 +65,7 @@ jobs:
     # `perf`, such as the bot's needs-owner, runs nothing here)
     # (and never a fork's PR: its code would run on the PC)
     if: inputs.base == '' && (github.event.action != 'labeled' || github.event.label.name == 'perf') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     timeout-minutes: 8
     outputs:
       sha: ${{ steps.handoff.outputs.sha }}   # (the hand-off's manifest, sha256: T2 and T3 pin it)
@@ -76,11 +77,18 @@ jobs:
           node-version: '22'
       - name: Base and head, built
         run: bash .github/ci/served.sh '${{ github.event.pull_request.base.sha || github.sha }}' "$RUNNER_TEMP/served"
-      - name: The two builds, handed to T2 and T3 (the PC's disk, .github/ci/handoff.mjs, as the gate's plan job)
+      - name: The two builds, handed to T2 and T3 (the run's artifact gate-served, .github/ci/handoff.mjs, as the gate's plan job)
         id: handoff
-        run: |
-          node .github/ci/handoff.mjs sweep --hours 24
-          node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
+        env:
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
+        run: node .github/ci/handoff.mjs put "$RUNNER_TEMP/served" served
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-served
+          path: ${{ runner.temp }}/handoff/gate
+          retention-days: 1
+          include-hidden-files: true   # (.well-known/ is served: the manifest would fail its readers without it)
+          if-no-files-found: error
   t2:
     needs: served
     if: always() && !cancelled() && needs.served.result != 'failure' && github.event.action != 'labeled' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)   # (drafts too: a PC session's draft gets its answer; a label added runs only T3)
@@ -106,10 +114,13 @@ jobs:
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
-      - name: the two builds (the hand-off on the PC's disk, checked against its manifest; the gate's plan job, or this run's served job)
+      - uses: actions/download-artifact@v4
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate' }
+      - name: the two builds (the run's gate-served artifact, checked against its manifest; the gate's plan job, or this run's served job)
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
         env:
           HANDOFF_SHA: ${{ inputs.served_sha || needs.served.outputs.sha }}   # (pinned: the putting job's output, the gate's plan or this run's served)
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: |
           $h = if (Test-Path base/.github/ci/handoff.mjs) { 'base/.github/ci/handoff.mjs' } else { 'head/.github/ci/handoff.mjs' }   # (the base's reader, as the checks: a PR cannot loosen its own manifest check)
           node $h get served served --pinned
@@ -180,10 +191,13 @@ jobs:
           $d = Join-Path $env:RUNNER_TEMP 'pw'
           npm install --no-save --no-audit --no-fund --prefix $d "playwright-core@$env:PW_VERSION" | Out-Null
           "PW_CORE=$(Join-Path $d 'node_modules\playwright-core')" | Add-Content -Encoding ascii $env:GITHUB_ENV   # (ascii: PowerShell 5.1's utf8 writes a BOM GitHub would read as part of the name)
-      - name: the two builds (the hand-off on the PC's disk, checked against its manifest; the gate's plan job, or this run's served job)
+      - uses: actions/download-artifact@v4
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate' }
+      - name: the two builds (the run's gate-served artifact, checked against its manifest; the gate's plan job, or this run's served job)
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
         env:
           HANDOFF_SHA: ${{ inputs.served_sha || needs.served.outputs.sha }}   # (pinned: the putting job's output, the gate's plan or this run's served)
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: |
           $h = if (Test-Path base/.github/ci/handoff.mjs) { 'base/.github/ci/handoff.mjs' } else { 'head/.github/ci/handoff.mjs' }   # (the base's reader, as the checks: a PR cannot loosen its own manifest check)
           node $h get served served --pinned

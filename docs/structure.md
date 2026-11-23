@@ -62,7 +62,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
-                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off on the PC's disk), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
+                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
                              test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
@@ -112,7 +112,7 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks: runs tools/check.mjs, every check a file of tools/checks/
 .github/ci/areas.json        Which gates a changed path needs (areas.mjs); every pattern matches a tracked or served file
-.github/ci/handoff.mjs       The gate's jobs hand each other the two builds, T1's shards and the verdict on the PC's disk
+.github/ci/handoff.mjs       The gate's jobs hand each other the two builds and T1's shards (run artifacts, sha256 manifest, pinned)
                              (HANDOFF_ROOT), every file checked against a sha256 manifest; no artifact (docs/deploy.md)
 tools/checks/NN-slug.sh      One static check each, its `# check:` line its name (numbers unique; they run in parallel):
                              tools/checks/00-assemble.sh, tools/checks/01-build.sh (the build every check reads),

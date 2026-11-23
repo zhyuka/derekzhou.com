@@ -10,7 +10,7 @@ on:
 
 jobs:
   scheduled:
-    runs-on: [self-hosted, linux, pc-wsl]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node
