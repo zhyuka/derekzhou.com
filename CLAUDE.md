@@ -17,7 +17,9 @@ change it. The standing rules are data in RULES.json, checked in CI.
 - Nothing masks a bird for the words; the ink birds are the only birds
   (no-masking-boxes, no-2d-birds).
 - No fades anywhere: no keyframes, no transitions, no fading sun, moon or
-  bird (no-fades). Nothing glitters (no-glitter).
+  bird (no-fades), but the owner's two exceptions: short shooting stars and
+  the far storm's soft flicker, both under the light ceiling. Nothing
+  glitters (no-glitter).
 - Reduced motion is one still frame; only a drag steers (reduced-motion-still,
   steer-only-by-drag).
 - One entropy read (hour.js's: it picks one of the openings), one clock; only the
@@ -38,8 +40,10 @@ change it. The standing rules are data in RULES.json, checked in CI.
 - Never name, in the repository, a commit or a PR, the reference game, its
   studio, a painter or any person but the owner (naming; hooks enforce it).
 - Never push to main, never force-push, never delete a remote branch, never
-  merge: the owner merges, or the merge bot when nothing visible changes
-  (merge-rights, git-safety; hooks enforce it).
+  merge: the merge bot lands a PR when nothing visible changes, or when the
+  hub has reviewed its head (<!-- hub-review SHA --> in its body), visible or not; the owner
+  may still merge (merge-rights, git-safety; hooks enforce it). The owner,
+  2026-11-23: "just auto push stuff and u do everything quickly".
 
 ## Layout
 
@@ -57,11 +61,11 @@ tools/         build.mjs (the build), parts.mjs (assemble src/), minify.mjs,
                sound/sheet.py and sound/render.mjs (the score's notes, measured),
                plan.mjs (the plan's worker),
                check-quick.mjs, dup-names.mjs (no name declared twice in
-               one scope), gpu/ (the PC's T2/T3), birds/ (generators)
+               one scope), gpu/ (GPU checks run by hand), birds/ (generators)
 test/          unit/<area>.mjs (pure code, one file an area), shaders.mjs (every shader compiles),
                golden/
 docs/          the full record, one file per area (below)
-.github/       validate.yml (every static check), gate.yml (T0/T1/T2 and the
+.github/       validate.yml (every static check), gate.yml (T0/T1 and the
                verdict), merge.yml (the merge bot), post-deploy.yml, ci/
 RULES.json     the standing rules as data; .claude/ the hooks and path rules
 ```
@@ -85,7 +89,7 @@ one is committed to site/ (built-files-uncommitted).
    - `node --test 'test/unit/*.mjs'` (a few seconds, a process an area); after
      a deliberate change to what one pins, `node test/unit/<area>.mjs --write`.
    - A shader changed: nothing derived to commit; the gate's census and
-     T2 compare the base's build with the head's.
+     T1 compare the base's build with the head's.
    - The plan's spans changed: nothing to do; every assembly writes their stamp into PW_V.
    - `node tools/build.mjs --check`: two builds the same bytes.
    - `npm run check`: every static check CI runs (tools/check.mjs: the
@@ -104,18 +108,18 @@ bumps a version for a change; fonts and images are renamed by hand
 - Branch `claude/<topic>`; open a PR against main (not a draft once ready).
 - The gate (gate.yml): validate.yml's checks; the plan job builds base and
   head and compares them; the shader census; T1 (software frames, base
-  against head); T2 on the owner's RTX 4090 when the world's code or a
-  shader changed. Read the gate's verdict, not one job's.
+  against head), all on GitHub's runners. Read the gate's verdict, not one job's.
 - The merge bot (merge.yml, .github/ci/merge-bot.mjs) merges a ready
   claude/* PR when its own gate is green and frames are identical (the served
-  build byte for byte the base's, or every T1/T2 frame the same, and no
+  build byte for byte the base's, or every T1 frame the same, and no
   input handling changed), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
-  overlaps; never one that touches the bot itself or is labelled needs-owner
-  or visible. Anything visible waits for the owner: he lands it by GitHub's
-  auto-merge, once, or its button (docs/deploy.md). Main's gate tests every
-  merge after it lands; the bot then fast-forwards `live` to the newest main
-  tip whose gate is green (and frames identical, or the owner's own merge).
+  overlaps. A PR that is visible, labelled needs-owner or touches the bot
+  lands too once the hub has reviewed its head commit (the line
+  <!-- hub-review SHA --> in its body; a later push needs a new review). Main's gate tests
+  every merge after it lands; the bot then fast-forwards `live` to the newest
+  main tip whose gate is green and whose stills are up (frames identical, a
+  reviewed PR, or the owner's own merge).
 - Cloudflare Pages builds `live` (`npm ci --no-audit --no-fund
   --ignore-scripts && node tools/build.mjs dist`, output `dist`, Node 22);
   post-deploy.yml then smokes the live site (/build.txt names the newest

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # check: The sound is opt-in, a live score
 # enforces: sound-opt-in
+# alone: it times the score's first notes (want 3 or more by 4 s)
 # (2026-11-07, the owner: "bring it back, opt-in. using an icon that fits with the rest of the design"; 2026-11-12,
 # "ship it", of the live score that follows the sky) The build (build/site) served on 127.0.0.1 with its own
 # Permissions-Policy and opened in headless Chromium, the autoplay policy a visitor's (tools/sound/page.mjs, about
