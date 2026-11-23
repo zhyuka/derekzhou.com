@@ -34,6 +34,7 @@ const NEAR = {}, HOLD = {};
 for (const m of WSRC.matchAll(/^\s+(\w+): \{ g:'\w+', w:'\w+', ph:\d, land:\[[^\]]*\], hold:(\d+), near:\[([^\]]*)\]/gm)) { HOLD[m[1]] = +m[2]; NEAR[m[1]] = m[3].replace(/'/g, '').split(',').filter(Boolean); }
 const STRINGS = ['cello', 'viola', 'violin', 'clar'];
 
+const AIRT = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/world/215-air.js'), 'utf8').match(/var AIR_BYSKY = (\{[^;]*\});/)[1].replace(/(\w+):/g, '"$1":'));   // (the world's wind by sky, as its feed hands it to the score)
 function play(seed, flight = FLIGHT, len = T, sliced = false) {
   const param = (v) => ({ value: v, calls: [], setValueAtTime(x, t) { this.calls.push(['set', t, x]); }, setValueCurveAtTime(c, t, d) { this.calls.push(['curve', t, d, c[0], c[c.length - 1]]); }, setTargetAtTime() {}, linearRampToValueAtTime() {} });
   const node = (x) => Object.assign({ out: [], connect(n) { this.out.push(n); return n; } }, x);
@@ -45,7 +46,7 @@ function play(seed, flight = FLIGHT, len = T, sliced = false) {
     createBufferSource() { const s = node({ buffer: null, loop: false, playbackRate: param(1), start(w, o) { this.when = w; this.off = o; }, stop(t) { this.stopAt = t; } }); srcs.push(s); return s; } };
   const mark = new Float32Array(24000); mark[4800] = 0.9;   // (the sheet's click at 0.2 s)
   const sheet = { getChannelData: () => mark, sampleRate: 24000 };
-  let now = 0; const win = { WORLD: { sky() { let i = 0; while (i < flight.length - 1 && flight[i + 1].at <= now) i++; const x = Math.min(1, Math.max(0, (now - 150) / 40)); return { t: now, seq: flight.slice(i), wc: x * x * (3 - 2 * x), still: false, seed }; } } };
+  let now = 0; const win = { WORLD: { sky() { let i = 0; while (i < flight.length - 1 && flight[i + 1].at <= now) i++; const x = Math.min(1, Math.max(0, (now - 150) / 40)); return { t: now, seq: flight.slice(i), wc: x * x * (3 - 2 * x), air: AIRT, still: false, seed }; } } };
   vm.runInNewContext(SRC, { window: win, setTimeout: (f) => queue.push(f), Promise });
   const score = win.SCORE.play(ctx, node({}), sheet, sliced);
   let tasks = 0; while (queue.length) { queue.shift()(); tasks++; }   // (sliced: each step its own task, run here in order)

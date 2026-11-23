@@ -198,6 +198,6 @@
         { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: A.vec3(V, A.H.motes, 0.1), color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
       ];
     },
-    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, gust: 7, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
+    ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
   });
 })();
