@@ -53,6 +53,7 @@ jobs:
   need:
     if: >-
       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: [self-hosted, linux, pc-wsl]
     timeout-minutes: 10
     outputs:
@@ -93,7 +94,7 @@ jobs:
   # The bake, a sky a job, one at a time on the GPU runner (T2 takes the runner between two)
   bake:
     needs: need
-    if: needs.need.outputs.bake == 'true'
+    if: needs.need.outputs.bake == 'true' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: [self-hosted, windows, gpu-4090]
     timeout-minutes: 40   # (a sky never baked: about 13 minutes for its 384 stills)
     strategy:
@@ -142,7 +143,7 @@ jobs:
   # Up (main): the whole set, from the cache the six jobs filled, as the release; then the status
   up:
     needs: [need, bake]
-    if: always() && !cancelled() && github.event.workflow_run.head_branch == 'main' && (needs.need.outputs.bake == 'true' || needs.need.result == 'failure')
+    if: always() && !cancelled() && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && (needs.need.outputs.bake == 'true' || needs.need.result == 'failure')
     runs-on: [self-hosted, windows, gpu-4090]   # (the cache is on the PC)
     timeout-minutes: 15
     steps:
