@@ -384,9 +384,10 @@ test('144 Hz: a bird leaving in the middle of a hop eases its hop down (no drop)
 /* (the hub's re-review 3, option c) a perched bird stands on top of its ink: its folded, settling, touching and raised
    wings never hang below its feet, so no drawn point is ever far below the ink under it (the feet rule alone hung the
    folded wings a median 28.9 px through the letters). The ink under a point: its own ledge's, or a neighbouring glyph's
-   on its row, or else its row's line. The feet themselves may sink into the ink by the sink bound (4 px) */
+   on its row, or else its row's line. The feet themselves may sink into the ink by the sink bound (4 px, the air test's,
+   kept separate); the wings and tail never more than 2 px below the feet on any perched frame (the hub's round 2) */
 test('a perched bird stands on top of its ink: no drawn point far below the ink under it', () => {
-  let n = 0, worst = -1e9, at = '', over = 0;
+  let n = 0, worst = -1e9, at = '', over = 0, worstW = -1e9, atW = '';
   for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
     const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); sc.setup(sim);
@@ -394,7 +395,7 @@ test('a perched bird stands on top of its ink: no drawn point far below the ink 
       sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX, L = B.ledges();
       for (const b of B.PERCHED) {
         const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || s.seenF !== B.DF()) continue;
-        const lg = L[P.li], sp = s.spanPx; let d = -1e9;
+        const lg = L[P.li], sp = s.spanPx; let d = -1e9, feet = -1e9, wing = -1e9;
         for (let i = 0; i < 46; i++) {
           const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
           const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
@@ -402,16 +403,19 @@ test('a perched bird stands on top of its ink: no drawn point far below the ink 
           if (!(y === y)) for (const q of L) { if (q.kind !== lg.kind || Math.abs(q.y - lg.y) > 0.6 * sp) continue; const v = B.surfY(q.pts, sx); if (v === v) { y = v; break; } }
           if (!(y === y)) y = lg.y;
           d = Math.max(d, sy - y);
+          if (i === 0 || i === 2 || i === 3) feet = Math.max(feet, sy); else wing = Math.max(wing, sy);
         }
         n++; if (d > 2) over++;
+        if (wing - feet > worstW) { worstW = wing - feet; atW = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}, ${(sim.t - P.tt).toFixed(2)} s after the touch${P.act ? ' (' + P.act.k + ')' : ''}`; }
         if (d > worst) { worst = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}, ${(sim.t - P.tt).toFixed(2)} s after the touch${P.act ? ' (' + P.act.k + ')' : ''}`; }
       }
     }
   }
-  console.log(`# perched frames: ${n}; the lowest drawn point below the ink under it at most ${worst.toFixed(2)} px (${at}); over 2 px on ${over}`);
+  console.log(`# perched frames: ${n}; the lowest drawn point below the ink under it at most ${worst.toFixed(2)} px (${at}); over 2 px on ${over}; the wings and tail below the feet at most ${worstW.toFixed(2)} px (${atW})`);
   assert.ok(n > 10000, 'too few perched frames');
   assert.ok(worst <= 5, `a perched bird's drawn point hung ${worst.toFixed(2)} px below the ink under it (${at})`);
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames had a drawn point over 2 px below the ink under it`);
+  assert.ok(worstW <= 2, `a perched bird's wings or tail hung ${worstW.toFixed(2)} px below its feet (${atW})`);
 });
 
 /* (the hub's re-review 3, #227) a bird riding the pointer, the pointer round a 60 px circle at 200 px/s (the cursor
