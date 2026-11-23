@@ -62,9 +62,9 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
-                             test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
+                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
-                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off on the PC's disk), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
+                             governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
                              test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/sky.mjs (the order of the
@@ -97,7 +97,7 @@ tools/ground-fresh.mjs       Whether every recorded ground is today's world's, u
 tools/stills.mjs             The openings' baked stills between the PC that bakes them and the Cloudflare build (docs/deploy.md)
 tools/stills-release.mjs     A bake's stills up as the release the Cloudflare build fetches (stills.yml)
 tools/stills-twin.mjs        The still's preload put back in the twin the PC bakes (stills.yml)
-tools/gpu/                   The owner's PC's RTX 4090 jobs: T2 (t2.js), T3 (t3.js), the ground's recorder
+tools/gpu/                   GPU checks run by hand on a real GPU (no CI job runs them): T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
@@ -116,8 +116,8 @@ package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; n
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
 .github/workflows/validate.yml  CI checks: runs tools/check.mjs, every check a file of tools/checks/
 .github/ci/areas.json        Which gates a changed path needs (areas.mjs); every pattern matches a tracked or served file
-.github/ci/handoff.mjs       The gate's jobs hand each other the two builds, T1's shards and the verdict on the PC's disk
-                             (HANDOFF_ROOT), every file checked against a sha256 manifest; no artifact (docs/deploy.md)
+.github/ci/handoff.mjs       The gate's jobs hand each other the two builds and T1's shards (run artifacts, sha256 manifest, pinned)
+                             (HANDOFF_ROOT), every file checked against a sha256 manifest (docs/deploy.md)
 tools/checks/NN-slug.sh      One static check each, its `# check:` line its name (numbers unique; they run in parallel):
                              tools/checks/00-assemble.sh, tools/checks/01-build.sh (the build every check reads),
                              tools/checks/10-dup-names.sh, tools/checks/11-required-files.sh, tools/checks/12-secrets.sh,
@@ -171,7 +171,7 @@ written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
 by its text). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
-census and T2 compare the base's build with the head's.
+census and T1 compare the base's build with the head's.
 tools/minify.mjs makes the served seven from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
 as its default; the ink birds read no dev flag: checked), then terser

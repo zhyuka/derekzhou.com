@@ -554,7 +554,7 @@
     {
       "id": "merge-rights",
       "area": "process",
-      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot when nothing visible changes. An agent never merges, never enables auto-merge and never pushes to main.",
+      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot: when nothing visible changes, or, since 2026-11-23, when the hub has reviewed the PR's head commit (the line <!-- hub-review SHA --> in its body), visible changes and the bot's own files included. An agent never merges, never enables auto-merge and never pushes to main.",
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
@@ -563,6 +563,18 @@
         {
           "quote": "GitHub auto-merge (Recommended)",
           "date": "2026-11-06",
+          "doc": "docs/deploy.md"
+        },
+        {
+          "quote": "just auto push stuff and u do everything quickly",
+          "date": "2026-11-23",
+          "via": "the owner's message to the hub, then his choice \"Yes, everything (Recommended)\"",
+          "doc": ".github/workflows/merge.yml; docs/deploy.md"
+        },
+        {
+          "quote": "Full auto, I'll allow it",
+          "date": "2026-11-23",
+          "via": "the owner's answer to the hub: the hub marks its own reviews, and visible changes go live without a person looking first",
           "doc": "docs/deploy.md"
         }
       ],
