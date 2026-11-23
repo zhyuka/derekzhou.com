@@ -17,8 +17,8 @@ execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', 
 const AIRF = 'src/world/215-air.js', errs = [];
 
 // 1. the air's names: declared in the air, written only there
-const NAMES = ['SKY_RATE', 'AIR_DIR', 'AIR_H', 'AIR_DRIFT', 'AIR_CIRRUS', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_FRAME', 'AIRAPI',
-  'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'skyFrame', 'weather', 'airHeading0', 'airGlsl'];
+const NAMES = ['SKY_RATE', 'AIR_DIR', 'AIR_H', 'AIR_CIRRUS', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_FRAME', 'AIRAPI',
+  'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'skyFrame', 'weather', 'airHeading0'];
 for (const n of NAMES) {
   let w; try { w = await where(n, 'world'); } catch (e) { errs.push(`${n}: not a name of the world (${e.message})`); continue; }
   if (!w || !w.decl || w.decl.file !== AIRF) { errs.push(`${n} is declared in ${w && w.decl ? w.decl.file : 'no section'}, not the air (${AIRF})`); continue; }
@@ -50,8 +50,7 @@ const BAN = [
 const APART = [/\bmc\.wind\b/];   // (AIR_APART.maps: the maps' own wind field, read by the director's cover and the plan's dunes; physics: air/wind-profile joins it)
 for (const [f, s] of Object.entries(texts)) s.split('\n').forEach((l, i) => { if (APART.some((re) => re.test(l))) return; for (const [re, why] of BAN) if (re.test(l)) errs.push(`${f}:${i + 1}: ${why}: ${l.trim().slice(0, 140)}`); });
 const vb = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
-if (/\buT\s*\*\s*[\d.]/.test(vb)) errs.push('src/world/glsl/fs-vbody.glsl: the clock times a number (a drift of its own: AIR_DRIFT(uT))');
-if (!/AIR_DRIFT\(uT\)/.test(vb)) errs.push('src/world/glsl/fs-vbody.glsl: the billows do not drift by AIR_DRIFT(uT)');
+if (/\buT\b/.test(vb)) errs.push('src/world/glsl/fs-vbody.glsl: the billows read the clock (they ride with their body, physics: clouds/drift)');
 
 if (errs.length) { for (const e of errs) console.log('::error::' + e); console.log(`one air: ${errs.length} breach(es) (RULES.json one-world-state; src/world/215-air.js holds the world's one state)`); process.exit(1); }
 console.log(`one air: ${NAMES.length} names held by the air alone, no wind or sun literal outside it`);
