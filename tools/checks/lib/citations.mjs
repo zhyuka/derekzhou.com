@@ -5,13 +5,15 @@
 //   Name & Name YEAR, Name and Name YEAR           (Smith & Jones 2020)
 //   Name, Name YEAR                                (Smith, Jones 2020)
 //   Name YEAR before a doi                         (Smith 2020, doi:10.1/x; Smith (2020) https://doi.org/...)
-// A match whose capitalised words are all ALLOW (the physics' and the curves' names, the fonts') passes.
+// A match whose capitalised words are all ALLOW (the fonts', the months', the journals') passes.
 //   node tools/checks/lib/citations.mjs [ROOT]     exit 1 on a citation, naming each file and line
 import fs from 'node:fs'; import path from 'node:path'; import { execFileSync } from 'node:child_process'; import { fileURLToPath } from 'node:url';
 
-export const ALLOW = new Set(['Rayleigh', 'Mie', 'Ekman', 'Strouhal', 'Taylor', 'Catmull', 'Rom', 'Catmull-Rom', 'Reynolds', 'Froude',
-  'Beaufort', 'Kelvin', 'Fresnel', 'Lambert', 'Henyey', 'Greenstein', 'Perlin', 'Bayer', 'Gaussian', 'Gauss', 'Fourier', 'Bezier',
-  'Hermite', 'Euler', 'Newton', 'Planck', 'Wien', 'Kolmogorov', 'Karman', 'Geist', 'Mono', 'Inter', 'Unicode', 'October', 'November']);
+// ALLOW holds no person's name (the naming rule binds this file too): the fonts', the months', and the journals' own
+// abbreviations a credit by its DOI is printed after (PLoS Biol 2007, doi:...; J R Soc Interface 2019, doi:...).
+export const ALLOW = new Set(['Geist', 'Mono', 'Inter', 'Unicode', 'October', 'November',
+  'ONE', 'Biol', 'Interface', 'Sci', 'Rep', 'Rev', 'Res', 'Lett', 'Nat', 'Proc', 'Commun', 'Phys', 'Ecol', 'Evol', 'Zool', 'Exp', 'Soc',
+  'Bioinspir', 'Biomim', 'Biomimetics', 'eLife', 'Nature', 'Science', 'Paper']);
 const Y = String.raw`\(?(?:1[6-9]|20)\d\d[a-z]?\)?`, N = String.raw`[A-Z][a-zA-Z'\-]+`;
 export const PATTERNS = [
   ['et al', /\bet al\b/g],
@@ -34,7 +36,7 @@ export function citations(text) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const root = path.resolve(process.argv[2] || '.');
   const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean)
-    .filter((f) => f !== 'tools/checks/lib/citations.mjs' && f !== 'test/unit/citations.mjs');   // (the patterns' own examples)
+    .filter((f) => !['tools/checks/lib/citations.mjs', 'test/unit/citations.mjs', 'tools/checks/45-citations.sh'].includes(f));   // (the patterns' own examples and plants)
   const bad = [];
   for (const f of files) {
     let b; try { b = fs.readFileSync(path.join(root, f)); } catch { continue; }
