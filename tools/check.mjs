@@ -14,14 +14,16 @@
 //                                     tools/checks/lib/ file it names, changed. The whole set: weekly (scheduled.yml), ~8 min.
 // Each check is tools/checks/NN-slug.sh, run from the repository's root in bash -eo pipefail, with RUNNER_TEMP its own
 // folder (build/.check/<slug>), so checks that run side by side never share a scratch file. A check's output is shown
-// whole when it fails, its last line when it passes.
+// whole when it fails, its last line when it passes. A check marked `# alone: <why>` (it measures time: a sound's start,
+// a first paint) runs after the others, one at a time, so the checks beside it never slow what it measures (2026-11-23:
+// on a 4-core hosted runner 38-sound started 0 notes by 4 s with 34 checks beside it, and 6 on the PC).
 import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'; import { spawn, spawnSync } from 'node:child_process'; import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(ROOT, 'tools/checks'), TMP = path.join(ROOT, 'build/.check');
 const argv = process.argv.slice(2), has = (f) => argv.includes(f), val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const all = fs.readdirSync(DIR).filter((f) => /^\d\d-[\w-]+\.sh$/.test(f)).sort().map((f) => {
   const src = fs.readFileSync(path.join(DIR, f), 'utf8');
-  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '' };
+  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src) };
 });
 const build = all.filter((c) => c.kind === 'build'), rest = all.filter((c) => c.kind !== 'build' && c.kind !== 'schedule'), sched = all.filter((c) => c.kind === 'schedule');
 
@@ -110,7 +112,11 @@ if (has('--fast')) {
   results.push(fq, ...fr);
 } else {
   if (!has('--no-build')) for (const c of build) { const r = await run(c); report(r); results.push(r); if (!r.ok) break; }
-  if (results.every((r) => r.ok)) results.push(...await pool(val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest, N));
+  if (results.every((r) => r.ok)) {
+    const list = val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest;
+    results.push(...await pool(list.filter((c) => !c.alone), N));
+    results.push(...await pool(list.filter((c) => c.alone), 1));   // (after the others, one at a time: they measure time)
+  }
 }
 const failed = results.filter((r) => !r.ok);
 console.log((failed.length ? failed.length + ' of ' + results.length + ' checks failed: ' + failed.map((r) => r.c.slug).join(', ') : 'all ' + results.length + ' checks pass') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');

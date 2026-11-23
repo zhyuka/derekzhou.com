@@ -543,6 +543,10 @@
           "file": ".claude/hooks/guard.py"
         },
         {
+          "kind": "ci-step",
+          "name": "No author-style citation in a tracked file"
+        },
+        {
           "kind": "prose"
         }
       ]
@@ -550,7 +554,7 @@
     {
       "id": "merge-rights",
       "area": "process",
-      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot when nothing visible changes. An agent never merges, never enables auto-merge and never pushes to main.",
+      "rule": "Changes reach main only through a pull request, merged by the owner (GitHub's button or his auto-merge), or by the merge bot: when nothing visible changes, or, since 2026-11-23, when the hub has reviewed the PR's head commit (the line <!-- hub-review SHA --> in its body), visible changes and the bot's own files included. An agent never merges, never enables auto-merge and never pushes to main.",
       "source": [
         {
           "quote": "Only if nothing visible changes (Recommended)",
@@ -559,6 +563,18 @@
         {
           "quote": "GitHub auto-merge (Recommended)",
           "date": "2026-11-06",
+          "doc": "docs/deploy.md"
+        },
+        {
+          "quote": "just auto push stuff and u do everything quickly",
+          "date": "2026-11-23",
+          "via": "the owner's message to the hub, then his choice \"Yes, everything (Recommended)\"",
+          "doc": ".github/workflows/merge.yml; docs/deploy.md"
+        },
+        {
+          "quote": "Full auto, I'll allow it",
+          "date": "2026-11-23",
+          "via": "the owner's answer to the hub: the hub marks its own reviews, and visible changes go live without a person looking first",
           "doc": "docs/deploy.md"
         }
       ],
@@ -653,11 +669,15 @@
     {
       "id": "load-budget",
       "area": "performance",
-      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile within 1,200 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
+      "rule": "The page loads near-instantly and stays so: each file it loads within its byte budget as sent, the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) and the total within theirs, nothing loaded without a budget or from another origin, and the first paint under Lighthouse's mobile profile waiting for nothing but its own (only the stylesheet and the hour render-blocking, and the first-paint hold out on a phone) and within 4,000 ms of a cold load (tools/checks/36-load-budget.sh holds the budgets: a deliberate growth raises its line in the PR that grows it, with the reason).",
       "source": [
         {
           "date": "2026-11-07",
           "via": "the hub's load-perf lane, from the owner's ask that the site load near-instantly with every barrier to shipping fast removed; the budget a check so regressions cannot come back"
+        },
+        {
+          "date": "2026-11-23",
+          "via": "the hub's load-perf lane: the first paint's wall-clock bar (1,200 ms) failed six bird PRs on busy runners that could not move the paint; the bar is now what the paint waits for, which a busy runner cannot change, with 4,000 ms as a net"
         }
       ],
       "enforced_by": []
