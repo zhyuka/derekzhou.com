@@ -73,13 +73,32 @@ vec3 haloAt(vec3 rd) {
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
 #ifdef SKY_PH2
+/* (physics: night/milky-way, delight-night section 3) its structure, in galactic longitude ld (deg from the core, + toward
+   cross(pole, core)) and latitude bd (deg): one shape a line, so test/unit/sky.mjs runs these very lines.
+   - the band: 6 deg wide (sigma) at the core, 3 at the anticentre; along it the bright star clouds at ld -80..0 and a fall
+     toward ld 180 (a quarter there), its peak about the old band's (1.02)
+   - the bulge: the old core glow, cut by a mid-plane lane (1.2 deg)
+   - the Great Rift: one dark lane down the band from ld -50 to +80 (Centaurus to Cygnus), 2.2 deg wide (sigma), wandering
+     1.8 deg and by the old lanes' noise 1.5 deg more, broken by that noise too; it replaces the noise lanes
+   - the Coalsack: a dark ellipse 7 x 5 deg at (302.8, 0.4); the Clouds, soft glows of two bells each, LMC (280.5,
+     -32.9) 10.75 x 9.2 deg with its bar, SMC (302.8, -44.3) 5.3 x 3.1; M31 (121.2, -21.6) a 3.2 x 1 deg smudge
+   (galactic positions converted from RA and Dec: the handoff's delight-night.md; all in uGal's frame, no new draw) */
+float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27 * exp(-pow((ld + 40.0) / 35.0, 2.0)); }
+float galBand(float ld, float bd) { float w = 4.5 + 1.5 * cos(radians(ld)); return exp(-bd * bd / (2.0 * w * w)) * galAlong(ld); }
+float galCore(float ld, float bd) { return exp(-ld * ld / 1181.0) * exp(-bd * bd / 164.0) * (1.0 - 0.75 * exp(-bd * bd / 2.88)); }
+float galRift(float ld, float bd) { return smoothstep(-55.0, -45.0, ld) * (1.0 - smoothstep(75.0, 85.0, ld)) * exp(-pow((bd - 1.2 * sin(radians(ld * 2.5)) - 0.6 * sin(radians(ld * 6.1) + 1.0)) / 2.2, 2.0)); }
+float galCoal(float ld, float bd) { return exp(-pow((ld + 57.2) / 3.5, 2.0) - pow((bd - 0.4) / 2.5, 2.0)); }
+float galLMC(float ld, float bd) { float x = (ld + 79.5) * 0.8396, y = bd + 32.9; return 0.3 * exp(-0.5 * (x * x / 7.29 + y * y / 5.29)) + 0.2 * exp(-0.5 * (x * x / 9.0 + y * y / 0.81)); }
+float galSMC(float ld, float bd) { float x = (ld + 57.2) * 0.7157, y = bd + 44.3; return 0.18 * exp(-0.5 * (x * x / 1.69 + y * y / 0.64)) + 0.08 * exp(-0.5 * (x * x / 4.84 + y * y / 1.96)); }
+float galM31(float ld, float bd) { float x = (ld - 121.2) * 0.9298, y = bd + 21.6; return 0.2 * exp(-0.5 * (x * x / 0.64 + y * y / 0.0625)); }
 vec3 galaxyAt(vec3 rd, float e) {
   vec3 P = uGal.xyz, C = uGalC.xyz;
-  float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU;
-  float band = exp(-b * b / 0.0225), core = exp(-l * l / 0.36) * exp(-b * b / 0.05);
+  float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU, ld = degrees(l), bd = degrees(asin(clamp(b, -1.0, 1.0)));
   float n = n3v(vec3(u * 7.0, b * 3.15, 0.13)).b * 0.45 + n3v(vec3(u * 21.0, b * 9.9, 0.71)).a * 0.35 + n3v(vec3(u * 62.0, b * 29.7, 0.29)).a * 0.2;
-  float lanes = smoothstep(0.4, 0.64, n3v(vec3(u * 4.0, b * 5.6 * 0.33 + 0.1 * n3v(vec3(u * 13.0, 0.4, 0.61)).b, 0.37)).b) * exp(-pow(b - 0.02 * sin(l * 5.0), 2.0) / 0.003);
-  return (vec3(0.9, 0.86, 0.8) * band * (0.25 + 1.1 * n * n) + vec3(1.0, 0.85, 0.65) * core * 1.3) * (1.0 - 0.8 * lanes) * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
+  vec4 nr = n3v(vec3(u * 13.0, b * 5.6, 0.37)), nw = n3v(vec3(u * 31.0, b * 14.0, 0.61));
+  float brk = 0.45 + 0.55 * smoothstep(0.3, 0.7, nr.b * 0.6 + nw.a * 0.4), bo = 3.0 * (nr.a - 0.5) + 1.2 * (nw.b - 0.5);   // (the rift broken and made to wander by the old lanes' noise: its depth, and its centre +-1.5 deg)
+  float dark = (1.0 - 0.8 * galRift(ld, bd - bo) * brk) * (1.0 - 0.85 * galCoal(ld, bd)), clouds = (galLMC(ld, bd) + galSMC(ld, bd) + galM31(ld, bd)) * (0.7 + 0.6 * n);
+  return (vec3(0.9, 0.86, 0.8) * (galBand(ld, bd) * (0.25 + 1.1 * n * n) + clouds) + vec3(1.0, 0.85, 0.65) * galCore(ld, bd) * 1.3) * dark * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
 }
 vec3 auroraAt(vec3 rd, float e) {
   float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
@@ -181,7 +200,7 @@ void main() {
       c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
     }
   }
-  float hiCv = 0.0;   // (physics: weather/moon-corona) how much of the 3 km veil stands in this direction (0 clear .. 1), the corona's cloud
+  float hiCv = 0.0;   // (physics: weather/moon-corona) how much of the 3 km veil's streaks stand in this direction beyond its even mean (0 clear .. 1), the corona's cloud
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on
        the deck (from the camera's own place), so the sky is a function of where the camera is (and its cover, uHi.x,
@@ -204,7 +223,7 @@ void main() {
     float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
     c = mix(c, hc, vm * uHi.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uHi.y * vk);
-    hiCv = max(hiCv, clamp(vm * vk * smoothstep(0.01, 0.12, rd.y) + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));
+    hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));
   }
   if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {   // (fast500 no-fades) the veil in a change between a twilight sky and a night (above, its strength 0): the same, its brightening toward the sun sinking with it and weakening with its depth, the night's coming in at the key
     vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
@@ -215,7 +234,7 @@ void main() {
     float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
     c = mix(c, hc, vm * uSunB.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uSunB.y * vk);
-    hiCv = max(hiCv, clamp(vm * vk * smoothstep(0.01, 0.12, rd.y) + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uSunB.y));
+    hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uSunB.y));
   }
   // (tod) the sky's night: each its amount times its shape, 0 at amount 0
   float eS = degrees(asin(clamp(rd.y, -1.0, 1.0)));
@@ -246,23 +265,27 @@ void main() {
   if (uGal.w > 0.0 && eS > 0.0) c += galaxyAt(rd, eS) * hzT;   // (phase 2)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
 #endif
-  if (uMoon.w > 0.0) {   // the moon: a cool silver disc held under the light ceiling, its limb soft, a glare that never lightens the sky past its own colour, the corona's rings
+  if (uMoon.w > 0.0) {   // the moon: a neutral to faintly warm disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
        the horizon the sea and the land, drawn before the sky, hide it by place); only its faint broad light on the whole
        sky (the 0.08 tail) follows its depth (uMoon.w, gone 16 deg down); it takes the haze of the sky where it stands */
     vec3 c0 = c;
     float ma = degrees(acos(clamp(dot(rd, uMoon.xyz), -1.0, 1.0))), mr = 1.8, mpx = 2.0 * degrees(atan(uProj.y)) / uRes.y;
     float out1 = max(ma - mr, 0.0);
-    /* (tod fix round, the judges' defect 4) a cool silver (the moonlit sky's table: L 0.62, C 0.03, h 250, the ceiling's
-       shoulder bringing it to about 0.51 as shown), its limb soft over a fifth of its radius (was a pale khaki 0.52, C 0.02,
-       h 95, edged at a pixel: a flat olive coin on the ultramarine) and a wider glare carrying its light */
-    c = mix(c, max(c, uMoonG), clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0));
+    /* (the hub's round-3 ruling, 04:19) the moonlit sky's table L 0.62, C 0.01, h 80 (was a cool silver, C 0.03 h 250, a
+       grey-blue coin): it stands at the ceiling's L (the clouds are never darkened to make room: a brightly moonlit cloud
+       top may reach it too), so it parts from the blue clouds by hue (neutral to faintly warm, 170 deg from theirs), its
+       crisp edge and by standing behind them; test/unit/sky.mjs pins it */
+    /* (the hub's round-3 look at #303) the glow adds light of its own low-chroma colour (scaled to luminance 1), up to its
+       luminance and never past it: no per-channel max of a blue sky and a warm glow (that read olive) */
+    float gk = clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0), gy = dot(uMoonG, LUMA);
+    c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;
     /* (physics: weather/moon-corona) the corona: light diffracted by a thin cloud's droplets in front of the moon, its
-       rings (red outermost of each order) only where such cloud stands; on a clear night none. Here the 3 km veil and
-       its streaks (hiCv), so the rings are as patchy as the cloud and come and go with it by place, never by a clock */
+       rings (red outermost of each order) only where such cloud stands; on a clear night none. Here the 3 km veil's
+       streaks where they stand beyond its even mean (hiCv), so the rings are as patchy as the cloud and come and go with it by place, never by a clock */
     if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);
-    c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 1.2, 0.3), mr + max(mpx * 1.2, 0.12), ma));
+    c = mix(c, uMoonC, 1.0 - smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma));   // (a crisp limb: about a pixel either side, the hub's round-3 look)
     if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;   // (physics: weather/moon-halo: by the stay's veil, with the moon's depth)
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
