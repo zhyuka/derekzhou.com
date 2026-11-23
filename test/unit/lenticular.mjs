@@ -4,7 +4,7 @@
 // ridge the land raises (dunes-glsl's ridges(): the same hashes); its envelope is held (a world cell's: its place a
 // constant of t) and only its billows flow, at the wind at its height (410's offset, within 5%). A census of the lenses
 // within the dunes' cloud reach of a 20 min flight, a minute at a time, on windy and calm visits.
-// plant: {"file": "src/realm-dunes.js", "find": "    if (A.wx(0, V).oro < 0.5) return;", "with": "    if (A.wx(0, V).oro < 0) return;", "why": "lenses on calm visits"}
+// plant: {"file": "src/realm-dunes.js", "find": "var wx = A.wx(0, V); if (wx.oro < 0.5) return;", "with": "var wx = A.wx(0, V); if (wx.oro < 0) return;", "why": "lenses on calm visits"}
 // plant: {"file": "src/realm-dunes.js", "find": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);", "with": "h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed28);", "why": "the lenses over ridges the land never raised"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS;", "with": "var q3 = (c0[k3] + (fl ? fl[k3] * tf : 0)) / nS;", "why": "the billows flow upwind through the lens"}
 // plant: {"file": "src/realm-dunes.js", "find": "    air: function (C, R) { dAir(C, R); },", "with": "    air: function (C, R) { dAir(C, R); dHeld(C); },", "why": "lenses laid out in air cells: the air carries them off their ridges"}
@@ -14,7 +14,6 @@
 // plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HN, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
 // plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) continue;", "with": "if (C.weights(cx, cz)[1] > 0.5) continue;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
-// plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from base's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
 // plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
 // plant: {"file": "src/realm-dunes.js", "find": "x = cx + sg * nx * off, z = cz + sg * nz * off;", "with": "x = cx + w.x / sp * off, z = cz + w.z / sp * off;", "why": "the lens along the 100 m wind, not the crest's normal: short of half a wavelength and slid along the crest"}
 // plant: {"file": "src/realm-dunes.js", "find": "for (var jz = iz0 - 1; jz <= iz0 + 1; jz++) for (var jx = ix0 - 1; jx <= ix0 + 1; jx++) {", "with": "for (var jz = iz0; jz <= iz0; jz++) for (var jx = ix0; jx <= ix0; jx++) {", "why": "the cell's loop over its own ridge cell alone: the lenses whose ridge stands in a neighbour are lost"}
