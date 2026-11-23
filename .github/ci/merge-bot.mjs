@@ -49,8 +49,6 @@ const label = async (n, name, color, description) => act(`label #${n} ${name}`, 
   await gh('POST', `/issues/${n}/labels`, { labels: [name] });
 });
 
-// The hub's review of a commit: its `hub-review` status (bot-rules.mjs reviewedIn).
-async function hubReviewed(sha) { return reviewedIn((await gh('GET', `/commits/${sha}/statuses?per_page=100`)).json); }
 // The latest Gate run of a commit (any state), and its verdict artifact.
 async function gateRun(sha) {
   const r = (await gh('GET', `/actions/workflows/gate.yml/runs?head_sha=${sha}&per_page=1`)).json;
@@ -167,7 +165,7 @@ const dryLanded = [];   // (dry: the files of the PRs it would have merged, as i
 for (const pr of prs) {
   const n = pr.number, sha = pr.head.sha, names = (pr.labels || []).map((l) => l.name);
   const note = (m) => { plan.push(`#${n}: ${m}`); say(`#${n}: ${m}`); };
-  const approved = await hubReviewed(sha);   // (the hub's review on this very head: it lands visible or not, bot.mjs included)
+  const approved = reviewedIn(pr.body, sha);   // (the hub's review of this very head: it lands visible or not, the bot's files included)
   const held = names.filter((x) => HOLD.includes(x));
   if (held.length && !approved) { note(`labelled ${held.join(', ')}: waits for the hub's review`); continue; }
   const files = [];
@@ -225,7 +223,7 @@ for (const pr of prs) {
 async function ownerMerge(sha) {
   const pulls = ((await gh('GET', `/commits/${sha}/pulls`)).json || []).filter((p) => p.merged_at);
   if (pulls.some((p) => (p.labels || []).some((l) => ['needs-owner', 'visible'].includes(l.name)))) return true;
-  for (const p of pulls) if (await hubReviewed(p.head.sha)) return true;   // (a PR the hub reviewed: the owner's rule of 2026-11-23)
+  if (pulls.some((p) => reviewedIn(p.body, p.head.sha))) return true;   // (a PR the hub reviewed: the owner's rule of 2026-11-23)
   const c = (await gh('GET', `/commits/${sha}`)).json;
   return /^Merge pull request #\d+ /.test(c?.commit?.message || '') && (c?.parents || []).length === 2;
 }

@@ -41,7 +41,7 @@ change it. The standing rules are data in RULES.json, checked in CI.
   studio, a painter or any person but the owner (naming; hooks enforce it).
 - Never push to main, never force-push, never delete a remote branch, never
   merge: the merge bot lands a PR when nothing visible changes, or when the
-  hub has reviewed its head (status hub-review), visible or not; the owner
+  hub has reviewed its head (<!-- hub-review SHA --> in its body), visible or not; the owner
   may still merge (merge-rights, git-safety; hooks enforce it). The owner,
   2026-11-23: "just auto push stuff and u do everything quickly".
 
@@ -115,8 +115,8 @@ bumps a version for a change; fonts and images are renamed by hand
   input handling changed), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
   overlaps. A PR that is visible, labelled needs-owner or touches the bot
-  lands too once the hub has reviewed its head commit (the commit status
-  hub-review = success; a later push needs a new review). Main's gate tests
+  lands too once the hub has reviewed its head commit (the line
+  <!-- hub-review SHA --> in its body; a later push needs a new review). Main's gate tests
   every merge after it lands; the bot then fast-forwards `live` to the newest
   main tip whose gate is green and whose stills are up (frames identical, a
   reviewed PR, or the owner's own merge).
