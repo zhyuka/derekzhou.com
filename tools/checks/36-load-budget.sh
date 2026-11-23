@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # check: The page loads within its budget
 # enforces: load-budget
+# alone: it times the first paint
 # (load-perf, 2026-11-07) The plain build (build/site) served on 127.0.0.1 as Cloudflare Pages serves it, the text
 # compressed at Brotli 11 as the deploy build stores it, with the 103 Early Hints (tools/loadperf.mjs), loaded cold
 # 3 times in headless Chrome under Lighthouse's mobile profile (150 ms RTT, 1.6 Mbps, CPU 4x). It fails when:
