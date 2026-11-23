@@ -29,8 +29,11 @@
   /* the hard rule: out of any solid (a landmark's cylinder, a cloud's core), pushed out by the shortest way.
      (flight-controllers-smooth) Within its margin (mh) eased out at the climb's own travel in a step (PUSH_V), as the
      ground's rule is: a push was a jump of up to the whole margin in one step; never nearer the solid itself than
-     HARD_IN (the near plane is 0.8 m) */
-  var HARD_IN = 1;
+     HARD_IN. (follow-up) Not the near plane's distance (0.8 m) but its corners': at 0.8 m along the view they lie
+     0.8 sqrt(1 + tanX^2 + tanY^2) from the eye, 1.15 m in a square window (tanX = tanY = tan 36 deg, the frustum's
+     widest corner: 386), so at 1 m a corner cut a face met obliquely. 1.25 m clears every window's corner by 0.1 m
+     (test/unit/flight-sim.mjs works it from NEAR, FOV_LONG and frustumFor) */
+  var HARD_IN = 1.25;
   function pushOut(V) {
     var O = nearObstacles(V, 80), mh = 3.5, ds = PUSH_V * SIM_DT;
     for (var i = 0; i < O.length; i++) {
