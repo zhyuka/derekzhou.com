@@ -5,6 +5,7 @@
 //   - the plan's worker is made: its spans found and the world's PW_V their stamp (tools/plan.mjs)
 //   - site/ holds none of the files the build writes (built-files-uncommitted)
 //   - no name declared twice in one scope of a served script (tools/dup-names.mjs: no-duplicate-names)
+//   - no author-style citation in a tracked file (tools/checks/lib/citations.mjs: naming)
 //   - RULES.json, .claude/settings.json and every parts.json parse; RULES.json's references exist (rules_check.py,
 //     when python3 is there)
 //   node tools/check-quick.mjs           run; exit 1 on a failure
@@ -64,6 +65,13 @@ try {
     const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'dup-names.mjs')], { cwd: ROOT, encoding: 'utf8' });
     const out = (r.stdout || '') + (r.stderr || '');
     if (r.status !== 0) fail('a name declared twice in one scope (tools/dup-names.mjs): ' + out.split('\n').filter((l) => /::error::/.test(l)).map((l) => l.replace('::error::', '')).slice(0, 5).join(' | '));
+    else ok(out.trim().split('\n').pop());
+  }
+  // no author-style citation in a tracked file (tools/checks/lib/citations.mjs: naming)
+  {
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'checks', 'lib', 'citations.mjs'), ROOT], { cwd: ROOT, encoding: 'utf8' });
+    const out = (r.stdout || '') + (r.stderr || '');
+    if (r.status !== 0) fail('author-style citations (tools/checks/lib/citations.mjs): ' + out.split('\n').filter((l) => /::error::/.test(l)).map((l) => l.replace('::error::', '')).slice(0, 5).join(' | ') + ' (' + out.trim().split('\n').pop() + ')');
     else ok(out.trim().split('\n').pop());
   }
   // the data
