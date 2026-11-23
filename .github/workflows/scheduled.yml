@@ -17,6 +17,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # (2026-11-23) the checks' pinned playwright-core (1.49.1: tools/checks/*.sh) launches its own headless shell,
+      # which the PC's WSL runner kept in ~/.cache/ms-playwright from earlier runs; a fresh hosted runner has none.
+      # Installed here only, the browser alone: PW_CORE is left unset, so each check installs and picks its pin as before.
+      - name: Chromium's headless shell for the checks' playwright-core
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pwshell" playwright-core@1.49.1 >/dev/null
+          node "$RUNNER_TEMP/pwshell/node_modules/playwright-core/cli.js" install --only-shell chromium
+
       - name: The scheduled checks (tools/check.mjs --scheduled)
         run: node tools/check.mjs --scheduled
       # (CI lane, 2026-11-15) every check's planted failures, all 45 (about 8 minutes): a gate proves only those its
