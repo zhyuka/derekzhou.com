@@ -1,6 +1,6 @@
 
 uniform vec4 uLobe[96]; uniform int uLobeN; uniform vec3 uHalf, uDims; uniform float uLayer;
-uniform vec4 uVK;    // seed, erosion, noise scale (m), blend (m)
+uniform vec4 uVK;    // seed, erosion, the noise's tile (m: at least 24 voxels), blend (m)
 uniform vec4 uVK2;   // -, squash (the lobes' height over their width), the distance's range (m), the billows' depth (m)
 out vec4 oC;
 void main() {
@@ -14,8 +14,11 @@ void main() {
     float h = max(k - abs(s - si), 0.0) / k;
     s = min(s, si) - h * h * k * 0.25;
   }
+  // (the bake's detail, 2026-11-14) the noise at its own LOD 0: a full-screen pass's implicit LOD, its derivatives the
+  // layer's voxel over the tile, took a coarse mip and kept 22-37% of the billows' depth; the tile at least 24 voxels,
+  // so a texel (32 to a tile) is never under three quarters of a voxel, and no finer octave
   vec3 q = p / uVK.z + uVK.x;
-  float n = texture(uN3, q).g * 0.8 + texture(uN3, q * 2.7 + 0.4).b * 0.2;
+  float n = textureLod(uN3, q, 0.0).g;
   float s0 = s;
   s -= (n - 0.5) * uVK.y * uVK2.w;
   oC = vec4(clamp(0.5 - s / uVK2.z, 0.0, 1.0), clamp(0.5 - s0 / (uVK2.z * 2.0), 0.0, 1.0), 0.0, 1.0);

@@ -213,7 +213,13 @@ ink birds stay deferred and join after the show.
 
 ## BOOT
 
-(The owner: "should load instantly make it 10x faster"): without the
+(The programs' text, load-perf 2026-11-15: each shader is handed to WebGL
+without the functions its main never reaches (src/world/071-glsl-prune.js:
+whole top-level definitions only, the rest byte for byte; about a third of
+the batch's text), and with the parallel compile the programs the show never
+waits for (LATE_ALWAYS) are issued last: the lab's phones compile the batch
+one program after another, 4.1-4.5 s on the A15, and every GPU job waits
+behind it.) (The owner: "should load instantly make it 10x faster"): without the
 hold, the page paints at once with the hour's still sky (the stylesheet's, per time of
 day, :has(canvas.sky)) and the words, and nothing else is drawn until
 the world's first frame: the ink birds fly in the world. The kits, the wing model
@@ -354,12 +360,18 @@ device's own px (at most 2 a CSS px and 2.5 Mpx, or the world's own size
 where that is larger), the world put up to it by one Catmull-Rom clamped
 to the range of the 2x2 texels it lies between (it was bilinear). Every
 frame's time in a two-second ring, each second the median; three slow
-seconds step the render scale down a rung (the
+seconds (a median over 1.08 of the pace: under about 55 fps; the owner,
+2026-11-15, "Smooth, >=60 fps": at the old 1.35 a 90, 100, 144 or 165 Hz
+display, whose sync puts a frame on its own period, sat at 45-55 fps at
+the top rung) step the render scale down a rung (the
 ladder: the tier's top and its 0.85, 0.72 and 0.6 where they stand 8% or
 more above the old size, then the old five, 1, 0.85, 0.72, 0.6 and 0.5
-of it), a second rung tried if the first did not help, both undone and
-the frame time learnt as the pace if neither did (a 30 fps cap is simply
-the pace); twenty seconds at ease step back up (three, in the first
+of it), a second and then a third rung tried if the first did not help
+(75 Hz's 26.7 ms needs three; the third only when the quickest tenth
+of the frames already beat the old median by 15%, so a 30 fps cap, a
+CPU-bound phone or a 50 Hz display sees two, as before), all undone and the frame time learnt as
+the pace if none did (a 30 fps cap is simply the pace); twenty seconds at
+ease (a median under 1.04 of the pace) step back up (three, in the first
 twenty seconds shown and until the first step down: every boot
 starts at the tier's top now, so only a resize that lands below
 it climbs that fast; never while an undone step's cool-down runs);
@@ -456,7 +468,8 @@ section, src/world/215-air.js, and every other system reads it there
 (RULES.json one-world-state; test/unit/air.mjs by value, 16 seeds by six
 skies; tools/checks/42-one-air.sh: the air's names written only there, no
 wind or sun literal in any other section, the realms or the billows'
-shader). It holds:
+shader; the billows read no clock at all: they ride with their body,
+physics: clouds/drift). It holds:
 
 - The wind: one direction a visit (airDraw, the dunes' field stream's
   first draw, as before), blowing toward V.windAz, and its speed by height,
@@ -484,8 +497,7 @@ shader). It holds:
   the grains, the motes, the veils, the birds and the water's ripples read
   it.
 - The readers still apart (AIR_APART, each with the change that joins
-  it): the cloud billows' drift (AIR_DRIFT, fs-vbody's AIR_DRIFT(uT):
-  0.4-0.6 m/s toward 233 deg on every visit), the high streaks' axis
+  it): the high streaks' axis
   (AIR_CIRRUS: along world x), the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
   it out moves the plan's anchors), the wing gusts' private 25 s timers
