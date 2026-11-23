@@ -660,8 +660,8 @@ dunes stand on (the swell, sunk with the basins and toward the cloud
 sea) plus a depth, times the sand weight. The depth is the weather's
 one model, AIR's airWx(t).mist (## THE WEATHER BY WIND): 10 m at first
 light, so the crests stand out as islands; 3.5 m at night; 1 m in the
-blue hour; none in the afterglow (AIR_MIST), thinned by the visit's
-surface wind, and through a change moved toward the next sky's at
+blue hour; none in the afterglow (AIR_MIST), times the visit's
+moisture, and through a change moved toward the next sky's at
 AIR_MIST_RATE. The pools keep no table or rate of their own. The depth
 is a pure function of the sky's time, so the rim is a moving
 shoreline, never a fade (the hub's ruling 1).

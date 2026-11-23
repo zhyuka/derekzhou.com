@@ -1,5 +1,5 @@
 // test/unit/mist.mjs: the mist pools (delight-weather 1; src/world/229-mist-pools.js). The pools' depth is the weather's
-// one model, AIR's (airWx(t).mist, 215-air.js: its table, the wind's thinning and the rate are held by test/unit/air.mjs):
+// one model, AIR's (airWx(t).mist, 215-air.js: its table, the visit's moisture and the rate are held by test/unit/air.mjs):
 // the pools read it at the flight's clock and keep no table or rate of their own. AIR's table is the hub's (first light 10,
 // the nights 3-4, the afterglow 0). Their top is opaque within
 // MIST_OPAQUE of depth whatever the depth (nothing thickens in place), drawn over the land and over the stones and the
