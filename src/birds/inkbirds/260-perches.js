@@ -38,7 +38,10 @@
 
   /* ---------------- the ledges (the words' ink, on this window) ---------------- */
   var NAME_INK = null;
-  function nameInk() { if (!NAME_INK) NAME_INK = PERCH_INK.name.split('|').map(function (c) { return c ? c.split(';').map(function (q) { var a = q.split(','); return [+a[0], +a[1]]; }) : []; }); return NAME_INK; }
+  function nameInk() {   // (each column's numbers are differences from the column before's, an empty one the same: 255, make.mjs)
+    if (!NAME_INK) { var p = []; NAME_INK = PERCH_INK.name.split('|').map(function (c) { if (c) p = c.split(',').map(function (d, i) { return (p[i] || 0) + +d; }); var o = []; for (var i = 0; i < p.length; i += 2) o.push([p[i], p[i + 1]]); return o; }); }
+    return NAME_INK;
+  }
   function inkTops(c) { var I = nameInk()[c], o = []; if (!I) return o; for (var i = 0; i < I.length; i++) if (I[i][1] < PERCH_INK.h && I[i][1] - I[i][0] >= PERCH_INK.room) o.push(I[i][1] - 1); return o; }
   /* head-room: no ledge under a stroke. A perched bird stands about 0.45 of its span tall and its body about 0.17 of it
      to each side (a gull's span ~270-300 of the name's units on every window), and the letters are drawn over the birds:

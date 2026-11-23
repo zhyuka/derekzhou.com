@@ -8,17 +8,25 @@
 #     the page loads a file that has no budget (give it one here), or anything from another origin;
 #   - the bytes the first paint waits for (the document, the stylesheet, the hour, both fonts) are over theirs;
 #   - every byte the page loads is over the total's;
-#   - the first paint (the words and the lettered name; medians of the 3) is later than 1,200 ms (it was ~630 ms
-#     here on 2026-11-07: twice that, so a busy runner does not make it flake). The profile loads as an Android phone
-#     (tools/loadperf.mjs), so hour.js takes the first-paint hold out as on a phone, on any machine: on a CI runner
-#     (more than 4 cores, 8 GB) the hold stayed, and the first paint waited for the world's scripts (1,580 ms, main's
-#     gate at cd5df2e). Over the budget, it is measured once more and the earlier median kept.
+#   - the first paint waits for anything but its own: a file the browser marks render-blocking other than the
+#     stylesheet and the hour (Resource Timing's renderBlockingStatus), or, in any run, the first-paint hold's link
+#     (rel=expect, blocking=render) still in the head when the body begins. The profile loads as an Android phone (tools/loadperf.mjs), so
+#     hour.js takes the hold out as on a phone, on any machine: on a CI runner (more than 4 cores, 8 GB) the hold once
+#     stayed, and the first paint waited for the world's scripts (1,580 ms, main's gate at cd5df2e). Both rules read
+#     what the page is, never a clock, so a busy runner cannot move them (load-perf, 2026-11-23: the old wall-clock
+#     bar, 1,200 ms, failed six bird PRs that could not move the paint, 1,224-1,968 ms with five gates on one runner,
+#     each green on a re-run; and a busy runner paints after the world's scripts arrive, 2,092-2,396 ms against
+#     1,482-1,824, since the paint is CPU and the arrival is the link's: so no rule here compares the two);
+#   - the first paint (medians of the 3) is later than 4,000 ms: a net for a gross regression only (~580 ms here, up
+#     to 2,400 ms on a busy runner, 2026-11-23). Over it, it is measured once more and the earlier median kept.
 # Budgets: today's bytes and about a tenth more (at least 1 KB), so ordinary work fits and a regression does not
 # (2026-11-07: the stylesheet's 8 KB of notes coming back, a full font, a new unbudgeted script). A deliberate
 # growth raises its line here, in the PR that grows it, with the reason. Measure a change in under a minute:
 #   node tools/build.mjs --plain build/site && node tools/loadperf.mjs build/site --profiles mobile --runs 3 --cold-only --br 11
 # The runner's Chrome, driven by playwright-core (pinned as W7's; PW_CORE and CHROME_PATH name others where set).
 # plant: {"file": "build/site/style.css", "find": "Geist-400-500.sub3.woff2", "with": "Geist-Variable.woff2", "why": "the full 69 KB font loaded for the words"}
+# plant: {"file": "build/site/index.html", "find": "<script data-cfasync=\"false\" src=\"/hour.js\"></script>", "with": "<script data-cfasync=\"false\" src=\"/hour.js\"></script><script data-cfasync=\"false\" src=\"/world.js\"></script>", "why": "the world's script in the head: the first paint waits for it"}
+# plant: {"file": "build/site/hour.js", "find": "hold.remove()", "with": "void 0", "why": "the first-paint hold left on for the phone profile"}
 if [ -z "${PW_CORE:-}" ]; then
   npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1 >/dev/null
   export PW_CORE="$RUNNER_TEMP/w7/node_modules/playwright-core"
@@ -26,13 +34,13 @@ fi
 node tools/loadperf.mjs build/site --profiles mobile --runs 3 --cold-only --br 11 --json "$RUNNER_TEMP/load.json"
 # (a first paint over its budget is measured once more, and the earlier of the two medians kept: a runner busy for a
 # moment with the checks beside this one slows a run, it never speeds one)
-if node -e "process.exit(require('$RUNNER_TEMP/load.json')['mobile cold'].fcp > 1200 ? 0 : 1)"; then
+if node -e "process.exit(require('$RUNNER_TEMP/load.json')['mobile cold'].fcp > 4000 ? 0 : 1)"; then
   node tools/loadperf.mjs build/site --profiles mobile --runs 3 --cold-only --br 11 --json "$RUNNER_TEMP/load2.json"
 fi
 node - "$RUNNER_TEMP/load.json" "$RUNNER_TEMP/load2.json" <<'JS'
 const fs = require('fs');
 const m = require(process.argv[2])['mobile cold'];
-if (fs.existsSync(process.argv[3])) { const m2 = require(process.argv[3])['mobile cold']; if (m2.fcp < m.fcp) { m.fcp = m2.fcp; m.fcpAll = m2.fcpAll; } }
+if (fs.existsSync(process.argv[3])) { const m2 = require(process.argv[3])['mobile cold']; if (m2.fcp < m.fcp) { m.fcp = m2.fcp; m.fcpAll = m2.fcpAll; m.holdAll = m2.holdAll; } }
 const K = 1024;
 // each file the page loads: its budget in bytes, as sent (by its plain name: the deploy build adds the content hash)
 const BUDGET = {
@@ -57,7 +65,7 @@ const BUDGET = {
   '/model.js': 6.5 * K,            // 5,502
   '/labbird.js': 13 * K,           // 11,938
   '/birdwing.js': 10.5 * K,        // 9,257
-  '/inkbirds.js': 28 * K,          // 28,320 with the perch head-room (2026-11-23: +210 B over main's 28,110; raised from 27.5 K as #314 raises it, LOAD-PERF's OK of 2026-11-15 22:14; with #314's roost too about 28,710, over 28 K: whichever lands second asks for 28.25 K)
+  '/inkbirds.js': 27.5 * K,        // 27,718 (2026-11-15: the wave-1 fixes' 28,111, less 393 B: the name's perch table as differences, the GL constants as numbers, LOAD-PERF's review; 442 B left)
   '/assets/favicon.png': 1 * K,    // 390
   '/assets/favicon.svg': 1 * K,    // 156
   // the opening's still (one per visit, by the window's shape; any sky, opening and tier: tools/gpu/bake-stills.js's
@@ -77,7 +85,7 @@ const BUDGET = {
 };
 const FIRST = 20 * K;   // 18,117 (31,269 before #135's stylesheet and #150's fonts): the document, the stylesheet, the hour and both fonts (the first paint waits for them)
 const TOTAL = 315 * K;  // 211,968: everything, cold; + the opening's still, its largest budget (80 K, 2026-11-12)
-const PAINT = 1200;     // ms, the first paint's median
+const PAINT = 4000;     // ms, the first paint's median
 const key = (p) => p.startsWith('/assets/fonts/') ? Object.keys(BUDGET).find((k) => k.startsWith('/assets/fonts/') && p.startsWith(k))
   : p.startsWith('/assets/still/') ? p.replace(/^\/assets\/still\/[a-z]+-\d+-(hi|lo)-(\d+x\d+)\.avif$/, '/assets/still/$2') : p;
 let fail = 0, first = m.doc.encoded, total = m.doc.encoded;
@@ -97,6 +105,10 @@ for (const r of m.res) {
 console.log(`the first paint's bytes ${first} B (budget ${FIRST}), all ${total} B (budget ${TOTAL}), first paint ${Math.round(m.fcp)} ms (runs ${m.fcpAll.join(', ')}; budget ${PAINT})`);
 if (first > FIRST) err(`the first paint waits for ${first} B, over its ${FIRST} B`);
 if (total > TOTAL) err(`the page loads ${total} B, over its ${TOTAL} B`);
+const PAINT_BLOCK = ['/style.css', '/hour.js'];   // what the first paint may wait for (the document aside)
+for (const r of m.res) if (r.blocking === 'blocking' && !PAINT_BLOCK.includes(r.name)) err(`${r.name} blocks the first paint (render-blocking; only ${PAINT_BLOCK.join(' and ')} may)`);
+(m.holdAll || []).forEach((h, i) => { if (h !== false) err(`run ${i + 1}: the first-paint hold's link (rel=expect, blocking=render) still in the head when the body begins, on the phone profile (or not read: ${h}): the paint waits for the world`); });
+if (!m.holdAll || m.holdAll.length !== m.runs) err('the load measure did not report the hold\'s link for every run');
 if (!(m.fcp <= PAINT)) err(`the first paint at ${Math.round(m.fcp)} ms, later than ${PAINT} ms (Lighthouse's mobile profile, cold, the median of 3)`);
 if (!fail) console.log(`load budget: ${m.res.length + 1} files, ${(total / K).toFixed(1)} KB of ${TOTAL / K}, the first paint's ${(first / K).toFixed(1)} KB of ${FIRST / K}, painted at ${Math.round(m.fcp)} ms of ${PAINT}`);
 process.exit(fail);
