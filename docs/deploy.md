@@ -85,6 +85,17 @@ workflow_run that cannot see the gate's job outputs, fetches the Gate run's gate
 (actions: read) and pins the builds to the verdict's served_sha. The verdict the merge bot trusts is the gate-verdict
 artifact (30 days), whose upload fails the verdict job if it fails.
 
+## The smoke and Cloudflare's bot challenge
+
+post-deploy.yml's smoke (.github/ci/smoke.mjs) runs from a GitHub runner, whose datacenter IP Cloudflare's bot
+protection sometimes challenges (b4615db and a72acc9, 2026-11-23: / answered 403 with Cloudflare's challenge page,
+while elsewhere it answered 200 with the site's CSP). A challenge (.github/ci/cf-challenge.mjs: `cf-mitigated:
+challenge`, or a 403 from `server: cloudflare` without _headers' CSP) is not the site's answer. / is asked again 3
+times, 15, 30 and 60 s apart. If it is still challenged, the smoke warns "challenged by Cloudflare: can't tell" and
+skips the checks of / and of the files / references. A warning fails nothing, so no issue opens. Every other answer, and
+every other check, stays strict. A skip rule in Cloudflare's WAF would let the smoke see the site every time. It would
+need something a visitor can't send: a secret header, not the smoke's user agent, which anyone can copy.
+
 ## The stills
 
 The openings' stills (the world's first frames, baked on a real GPU by tools/gpu/bake-stills.js, #197) are not
