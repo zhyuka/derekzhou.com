@@ -504,14 +504,30 @@ physics: clouds/drift). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
+- The sky's frame (physics: air/sky-frame): one celestial sphere for the
+  sun, the moon, the planets, the stars and the galaxy. The place is 64
+  deg north (the aurora is one of the skies), so the celestial pole
+  stands 64 deg up in the north; the season, from the visit's own stream,
+  puts the sun on the ecliptic in the dark half of the year; north is set
+  once a visit so that the evening sun stands on the sky's own sun's
+  azimuth. The sphere turns forward only, at SKY_RATE times the sidereal
+  rate, never stopping and never turning back; at sky time 0 its hour is
+  the opening sky's, so the frame's sun stands at the opening's drawn sun.
+  The drawn sky's sun keeps its depth by sky until the night's true order
+  lands; the planets are placed by the drawn sun. The ecliptic leans
+  23.44 deg to the equator; the galactic pole and centre are J2000's (the
+  pole 60.2 deg from the ecliptic's, the centre 5.5 deg south of the
+  ecliptic). skyFrame(tS, V) is the frame as the night sky's shader reads
+  it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
+  the same with the pole, the ecliptic's pole, the galactic pole and
+  centre and the frame's own sun.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's
   uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
   disc. The key light (keyAt) is the moon's light on the land at night
   from a low, fixed place (5-14 deg up); it is not where the disc is.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route), the sky's
-  frame (skyFrame: the turn the stars and the galaxy take; today none) and
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and
   the weather (weather(sky): today one wind for every sky; physics:
   air/wind-by-sky).
 - The landing's heading, airHeading0 (drawn once from its own stream: the
