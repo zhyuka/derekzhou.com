@@ -92,14 +92,25 @@
     b.erode = 0.3; b.billow = 0.35; b.squash = 0.45; b.blend = 0.8; b.band = 0.035; b.noise = 6;
     var dx = Math.sin(dir), dz = Math.cos(dir), px = dz, pz = -dx;
     b.cx = x; b.cz = z; b.y0 = y0; b.y1 = y0 + T * (1 + 1.6 * (n - 1)); b.cy = y0 + T * 0.5;
-    for (var k = 0; k < n; k++) {
+    // the lobes wide enough to overlap their neighbours (PC GPU, 2026-11-23: at the plate's spacing, 100-210 m between
+    // lobes about 60 m wide, the rim was a ring of loose round blobs): every lobe at least the plate's widest
+    // spacing across, and squashed by as much, so the plate keeps its thickness (a lobe T * 0.52 high at the centre,
+    // thinning to 0.7 of that at the rim)
+    var sp = T * 1.6, k, i, j;
+    for (k = 0; k < n; k++) {
+      var L0 = len * (1 - 0.24 * k), W0 = W * (1 - 0.24 * k), nu0 = Math.round(clamp(L0 / (T * 1.6), 6, 12));
+      sp = Math.max(sp, L0 / nu0);
+      for (i = 0; i < nu0; i++) { var u0 = ((i + 0.5) / nu0) * 2 - 1, h0 = Math.sqrt(Math.max(1 - u0 * u0, 0.04)), nv0 = Math.min(4, Math.max(1, Math.round(h0 * W0 / (T * 1.6)))); if (nv0 > 1) sp = Math.max(sp, h0 * W0 * 0.9 / (nv0 - 1)); }
+    }
+    var R0 = Math.max(1.15 * T, sp); b.squash = 0.45 * 1.15 * T / R0;
+    for (k = 0; k < n; k++) {
       var sk = 1 - 0.24 * k, yk = y0 + T * 0.5 + k * T * 1.6, L = len * sk, Wk = W * sk;
-      var nu = Math.round(clamp(L / (T * 1.6), 6, 12)), i, j;
+      var nu = Math.round(clamp(L / (T * 1.6), 6, 12));
       for (i = 0; i < nu; i++) {
         var u = ((i + 0.5) / nu) * 2 - 1, half = Math.sqrt(Math.max(1 - u * u, 0.04)), nv = Math.min(4, Math.max(1, Math.round(half * Wk / (T * 1.6))));
         for (j = 0; j < nv && PF.count() - b.i0 < 96; j++) {   // (at most a great wall's 96 lobes)
           var v = nv > 1 ? (j / (nv - 1)) * 2 - 1 : 0, rim = Math.sqrt(u * u + v * v * half * half);
-          PF.add(x + dx * u * L * 0.5 + px * v * half * Wk * 0.45, yk + rng.r(-0.06, 0.06) * T, z + dz * u * L * 0.5 + pz * v * half * Wk * 0.45, T * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08), rng.f(), 1);
+          PF.add(x + dx * u * L * 0.5 + px * v * half * Wk * 0.45, yk + rng.r(-0.06, 0.06) * T, z + dz * u * L * 0.5 + pz * v * half * Wk * 0.45, R0 * (1 - 0.3 * rim) * rng.r(0.92, 1.08), rng.f(), 1);
         }
       }
     }

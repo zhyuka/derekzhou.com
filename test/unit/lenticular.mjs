@@ -13,7 +13,8 @@
 // plant: {"file": "src/world/231-cells-resolve.js", "find": "PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;", "with": "PF.bodies[bi].base = ycB;", "why": "a lens given a flat base: its plates cut in half, and with the base after the billows nothing of a thin lens is left"}
 // plant: {"file": "src/realm-dunes.js", "find": "off = Math.min(PI * U / HELD_N, RS),", "with": "off = 300 + 300 * K.hfl(K.hk(h, 21)),", "why": "the lens right behind the ridge (a cap cloud), not at the lee wave's first crest"}
 // plant: {"file": "src/realm-dunes.js", "find": "if (C.weights(x, z)[1] > 0.5) continue;", "with": "if (C.weights(cx, cz)[1] > 0.5) continue;", "why": "the cloud sea's gate read at the crest, not where the lens stands"}
-// plant: {"file": "src/world/120-cloud-bodies.js", "find": "T * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08)", "with": "T * 3 * (1.15 - 0.45 * rim) * rng.r(0.92, 1.08)", "why": "the plates rounder: lobes three times the plate"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.squash = 0.45 * 1.15 * T / R0;", "with": "b.squash = 0.45 * 1.15 * T / R0 * 3;", "why": "the plates rounder: lobes three times the plate's height"}
+// plant: {"file": "src/world/120-cloud-bodies.js", "find": "var R0 = Math.max(1.15 * T, sp);", "with": "var R0 = 1.15 * T;", "why": "the lobes as wide as the plate is thick: a rim of loose round beads (PC GPU, 2026-11-23)"}
 // plant: {"file": "src/realm-dunes.js", "find": "var T = 45 + 30 * K.hfl(K.hk(h, 23)),", "with": "var T = 145 + 30 * K.hfl(K.hk(h, 23)),", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "w = { x: w0.x, z: w0.z },", "with": "w = w0,", "why": "the crest's wind read from windAt's one object, which the lens height's read overwrites: later ridges gated on the wrong wind"}
 // plant: {"file": "src/realm-dunes.js", "find": "      if (!C.inside(x, z)) continue;", "with": "      if (!C.inside(cx, cz)) continue;", "why": "a lens laid out by its ridge's cell, 2-3 km off: past that cell's reach, never drawn"}
@@ -234,10 +235,16 @@ test('lenticular: the plates are long thin lenses, each smaller than the one bel
   for (const [len, W, T, n] of [[1800, 450, 45, 1], [2600, 700, 75, 3], [2200, 520, 60, 2]]) {
     const L = [], PF = { body: () => ({ i0: 0 }), add: (x, y, z, r) => L.push([x, y, z, r]), count: () => L.length };
     let s = 1; const rng = { f: () => ((s = (s * 16807) % 2147483647) / 2147483647), r: (a, b) => a + (b - a) * rng.f() };
-    make2(PF, rng, 0, 1400, 0, 0.3, len, W, T, n);
+    const b = make2(PF, rng, 0, 1400, 0, 0.3, len, W, T, n), sq = b.squash;
     const ys = L.map((p) => p[1]), rs = L.map((p) => p[3]), x = L.map((p) => p[0]), z = L.map((p) => p[2]);
-    const extH = Math.hypot(Math.max(...x) - Math.min(...x), Math.max(...z) - Math.min(...z)), extV = Math.max(...ys) - Math.min(...ys) + 2 * Math.max(...rs) * 0.45;
-    assert.ok(Math.max(...rs) <= 1.15 * T * 1.08 + 1e-9, `a lobe ${Math.max(...rs).toFixed(1)} m across a ${T} m plate: a round cloud, not a plate`);
+    const extH = Math.hypot(Math.max(...x) - Math.min(...x), Math.max(...z) - Math.min(...z)), extV = Math.max(...ys) - Math.min(...ys) + 2 * Math.max(...rs) * sq;
+    assert.ok(Math.max(...rs) * sq <= 1.15 * T * 0.45 * 1.08 + 1e-9, `a lobe ${(Math.max(...rs) * sq).toFixed(1)} m high in a ${T} m plate: a round cloud, not a plate`);
+    // (PC GPU, 2026-11-23: the rim a ring of loose round blobs) every lobe overlaps its nearest neighbour in its plate
+    for (const p of L) {
+      let best = Infinity, rq = 0;
+      for (const q of L) if (q !== p && Math.abs(q[1] - p[1]) < 0.5 * T) { const d = Math.hypot(q[0] - p[0], q[2] - p[2]); if (d < best) { best = d; rq = q[3]; } }
+      assert.ok(best < 0.9 * (p[3] + rq), `a lobe ${best.toFixed(0)} m from its nearest neighbour, radii ${p[3].toFixed(0)} and ${rq.toFixed(0)} m: a loose bead on the rim`);
+    }
     assert.ok(extH / extV >= 6, `the lens ${extH.toFixed(0)} m long and ${extV.toFixed(0)} m thick: too round (${(extH / extV).toFixed(1)})`);
     for (let k = 1; k < n; k++) {
       const yk = 1400 + T * 0.5 + k * T * 1.6, y0 = yk - T * 1.6;
