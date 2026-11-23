@@ -1,6 +1,6 @@
 {
  "meta": {
-  "licence": "facts only: ranges and phases a study-only source states (Dimitriadis G, Gardiner J, Tickle P, Codd J, Nudds R (2015) Aeronaut J 119: 1-30, via the first author's 2015 talk); no digitised curve is kept here",
+  "licence": "facts only: ranges and phases a study-only source states (doi:10.1017/S0001924000010939, Aeronaut J 2015, via the first author's 2015 talk); no digitised curve is kept here",
   "what": "the barnacle goose facts the model build uses: per measure the mean of the 1 and 5 degree runs at 18 m/s (peak to peak, mean, phase of max and min); the stroke's marks (phases of its top, bottom, fastest down and up); the wrist marker's fore-aft range and phases (16 m/s)"
  },
  "facts": {

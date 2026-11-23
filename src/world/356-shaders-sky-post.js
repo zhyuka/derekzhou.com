@@ -16,7 +16,7 @@
   var FS_GLOW = HEAD + `@glsl fs-glow`;
   /* beams: soft shafts of light as geometry (a lantern's beam to a crystal, light falling through a hole in a canopy,
      a tower's beam into the fog): a cone from A (radius rA) to B (rB), its light gathered along each pixel's ray inside
-     it (eight samples: a Gaussian across it, a white core, its far end faded, dust drifting along it, a shimmer), cut
+     it (eight samples: a bell-curve falloff across it, a white core, its far end faded, dust drifting along it, a shimmer), cut
      by the scene's depth (the half-resolution linear depth: no beam through a wall), taken by the air, added to the
      HDR scene; a beam drawn on from A (woken when the camera first comes near: a light event) */
   var VS_BEAM = HEAD + FRAME_U + `@glsl vs-beam`;
@@ -29,7 +29,7 @@
   var VS_OCC = HEAD + FRAME_U + `@glsl vs-occ`;
   var FS_OCC = HEAD + `@glsl fs-occ`;
   var VS_VBODY = HEAD + FRAME_U + `@glsl vs-vbody`;
-  var FS_VBODY = HEAD + airGlsl() + FRAME_U + LIB + LIB_LIND + `@glsl fs-vbody`;
+  var FS_VBODY = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-vbody`;
   /* bloom (dual filter): the first pass composes scene and cloud and keeps what is bright; every tap clamped to the
      part of its target this frame drew (a lower rung draws only part of each) */
   var FS_PRE = HEAD + FRAME_U + `@glsl fs-pre`;
@@ -48,7 +48,7 @@
      texels a frame) leaves the clamp holding a smear of the last frames (the drag film's moving, blur-matched and
      flicker readings 1.5-2.6x those without the accumulation). Each pixel's ray is put into the last frame's view (uRM, the two views' rotations; the clouds stand 100 m and more off, so the camera's own travel in a
      frame, under a metre, is a fraction of a texel there and inside the clamp) and the history read there by a
-     Catmull-Rom spline; where it falls outside the last view this frame stands alone. Held still, the ray lands on its own texel's centre
+     cubic interpolating spline; where it falls outside the last view this frame stands alone. Held still, the ray lands on its own texel's centre
      and the read is the texel itself: steady flight reads the same pixel */
   var FS_CACC = HEAD + LIB_LIND + `@glsl fs-cacc`;
   var FS_BLIT = HEAD + `@glsl fs-blit`;
