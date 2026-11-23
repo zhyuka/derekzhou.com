@@ -14,6 +14,19 @@ export const HOLD = ['needs-owner', 'visible'];   // (the labels that keep the b
 export function reviewedIn(body, sha) {
   return typeof body === 'string' && typeof sha === 'string' && /^[0-9a-f]{40}$/.test(sha) && body.includes(`<!-- hub-review ${sha} -->`);
 }
+// Every head the hub reviewed, as its body names them.
+export function reviewedShas(body) {
+  return typeof body === 'string' ? [...body.matchAll(/<!-- hub-review ([0-9a-f]{40}) -->/g)].map((m) => m[1]) : [];
+}
+// A review still holds when the head adds to the reviewed commit only merges (main brought in, by its session or by
+// the bot's update-branch): every commit of its own that main lacks (non-merge, GitHub's compare main...head) was
+// already in the reviewed commit. A new commit of its own needs a new review (2026-11-23: the lanes' merges of main
+// moved every reviewed head, and nothing landed).
+export function reviewHolds(ownNow, ownThen) {
+  if (!Array.isArray(ownNow) || !Array.isArray(ownThen)) return false;
+  const seen = new Set(ownThen);
+  return ownNow.every((c) => seen.has(c));
+}
 export function updateRefused(status) {
   return conflictStatus(status) ? { owner: false, label: null } : { owner: true, label: 'needs-owner' };
 }
