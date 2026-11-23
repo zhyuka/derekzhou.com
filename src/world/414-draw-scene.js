@@ -122,7 +122,7 @@
         if (cnt <= 0) continue;
         skyPart(pa, PCOL); PCOL[3] *= sk;   // (tod: the grains and veils through the sky's paint, the motes by the sky's own amount)
         gl.uniform4f(P.u.uPa, pa.box, pa.height, pa.streak, pa.width); gl.uniform3fv(P.u.uWind, pa.wind); gl.uniform4fv(P.u.uPc, PCOL); gl.uniform4fv(P.u.uPb, pa.hop);
-        wrapU(P, pa.box, pa.wind, kd > 2.5 && kd < 3.5 ? pa.ud[0] : 0, pa.height);   // (large world: the box's wrap in doubles)
+        wrapU(P, pa.box, pa.wind, kd > 2.5 && kd < 3.5 ? pa.ud[0] : 0, pa.height, kd < 2.5);   // (large world: the box's wrap in doubles; the grains' on the air's clock)
         if (kd > 2.5) { pa.ug[2] = Math.min(share, 1); gl.uniform4fv(P.u.uPd, pa.ud); gl.uniform4fv(P.u.uPe, pa.ue); gl.uniform4fv(P.u.uPf, pa.uf); gl.uniform4fv(P.u.uPg, pa.ug); }
         dc(gl.TRIANGLE_STRIP, 4, cnt);
       }
@@ -131,7 +131,7 @@
     if (V.ribbons && V.ribbons.count && DP.rb && !SW.noanim && skR > 0.002 && (lateReady(DP.rb) || lateMissIf(DP.rb, true))) {
       var rb = V.ribbons; P = DP.rb; gl.useProgram(P.p); setFrameUniforms(P, V);
       skyPart(rb, PCOL, true); PCOL[3] *= skR;
-      gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); if (P.u.uPm) gl.uniform4f(P.u.uPm, wmod(CAM.pos[0], rb.box), wmod(CAM.pos[2], rb.box), Math.floor(CAM.pos[0] / rb.box), Math.floor(CAM.pos[2] / rb.box)); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL); gl.uniform4f(P.u.uRb, rb.gust || 9, 0, 0, 0);
+      gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); if (P.u.uPm) gl.uniform4f(P.u.uPm, wmod(CAM.pos[0], rb.box), wmod(CAM.pos[2], rb.box), Math.floor(CAM.pos[0] / rb.box), Math.floor(CAM.pos[2] / rb.box)); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL); if (P.u.uAirU) gl.uniform1f(P.u.uAirU, u10Of(V));   // (the gust field's reference speed, U10)
       gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n, rb.count);
     }
     gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);

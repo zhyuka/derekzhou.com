@@ -14,6 +14,19 @@ export const HOLD = ['needs-owner', 'visible'];   // (the labels that keep the b
 export function reviewedIn(body, sha) {
   return typeof body === 'string' && typeof sha === 'string' && /^[0-9a-f]{40}$/.test(sha) && body.includes(`<!-- hub-review ${sha} -->`);
 }
+// Every head the hub reviewed, as its body names them.
+export function reviewedShas(body) {
+  return typeof body === 'string' ? [...body.matchAll(/<!-- hub-review ([0-9a-f]{40}) -->/g)].map((m) => m[1]) : [];
+}
+// A review still holds when the head adds to the reviewed commit only merges (main brought in, by its session or by
+// the bot's update-branch): every commit of its own that main lacks (non-merge, GitHub's compare main...head) was
+// already in the reviewed commit. A new commit of its own needs a new review (2026-11-23: the lanes' merges of main
+// moved every reviewed head, and nothing landed).
+export function reviewHolds(ownNow, ownThen) {
+  if (!Array.isArray(ownNow) || !Array.isArray(ownThen)) return false;
+  const seen = new Set(ownThen);
+  return ownNow.every((c) => seen.has(c));
+}
 export function updateRefused(status) {
   return conflictStatus(status) ? { owner: false, label: null } : { owner: true, label: 'needs-owner' };
 }
@@ -78,4 +91,17 @@ export function rerunAnswer(r, runs) {
 export function proofHeads(sha, message, parents) {
   const h = botMergeHead(message, parents);
   return h ? [sha, h] : [sha];
+}
+// The PR's own words, checked right before it lands (RULES.json "naming"; HYGIENE, 2026-11-16): the gate runs on push,
+// so its static job never sees the PR's title or body, and the bot writes "Merge #N: <title>" onto main. guard.py --text
+// (from #325) reads them on stdin and exits 1 on a banned name (names.json, the list the hook and --scan read). r is
+// spawnSync's answer, null when main's guard.py has no --text yet (before #325: then nothing is checked, and the tick
+// says so). Anything but a clean exit 0 holds the PR; only a name found is the PR's to fix, so only then a comment
+// (which never repeats the name: guard.py prints a hash's first characters, the bot prints nothing of it).
+export function textAnswer(r) {
+  if (r === null) return { land: true, note: "guard.py has no --text yet (#325): the PR's title and body are not checked" };
+  if (r.error) return { land: false, why: `python3 could not run guard.py --text (${r.error.code || r.error.message}): held, the tick after decides` };
+  if (r.status === 0) return { land: true };
+  if (r.status === 1 && !/cannot be read/.test(r.stdout || '')) return { land: false, comment: true, why: "the PR's title or body holds a banned name (RULES.json naming)" };
+  return { land: false, why: `guard.py --text could not check it (exit ${r.status}${/cannot be read/.test(r.stdout || '') ? ', names.json unreadable' : ''}): held` };
 }

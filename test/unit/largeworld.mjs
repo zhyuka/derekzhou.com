@@ -25,7 +25,7 @@ test('large world: every vertex stage\'s clip position goes through eyeRel; the 
   assert.match(p, /float kDrift\(uint q, float n, float f\) \{ return fract\(float\(\(q \* uint\(n\)\) & 255u\) \/ 256\.0 \+ float\(q\) \/ 256\.0 \* f\); \}/, 'a share of the drift modulo 1, exactly');
   assert.doesNotMatch(p.replace(/\/\*[\s\S]*?\*\//g, ''), /- uCam\.xz \+ 0\.5 \* uPa\.x/, 'no wrap about the camera\'s fp32');
   const W = fs.readFileSync(path.join(ROOT, 'src/world/413-draw-frame.js'), 'utf8');
-  assert.match(W, /function wrapU\(P, box, wind, fall, H\) \{/, 'the wrap\'s terms from the JS\'s doubles');
+  assert.match(W, /function wrapU\(P, box, wind, fall, H, air\) \{/, 'the wrap\'s terms from the JS\'s doubles');
 });
 
 test('large world: 86 km out, a vertex\'s place before the eye to a tenth of a millimetre (was 4 mm)', () => {
