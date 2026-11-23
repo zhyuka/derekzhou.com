@@ -387,7 +387,7 @@ with 8 GB or more) 2 and 1.4 Mpx (a 393x852 phone's 786x1704, it was
 491x1065), a smaller iPhone or an iPad 1.5 and 1.6 Mpx, any other
 Android 1.25 and 1.3 Mpx (every device's before); the canvas at the
 device's own px (at most 2 a CSS px and 2.5 Mpx, or the world's own size
-where that is larger), the world put up to it by one Catmull-Rom clamped
+where that is larger), the world put up to it by one cubic interpolating spline clamped
 to the range of the 2x2 texels it lies between (it was bilinear). Every
 frame's time in a two-second ring, each second the median; three slow
 seconds (a median over 1.08 of the pace: under about 55 fps; the owner,
