@@ -65,6 +65,7 @@ test('merge bot: the hub\'s review of a PR\'s head lands it (the owner, 2026-11-
   assert.match(bot, /if \(held\.length && !approved\)/, 'a needs-owner or visible label holds only an unreviewed PR');
   assert.match(bot, /if \(!approved && files\.some\(\(f\) => SELF\.includes\(f\)\)\)/, 'the bot\'s own files wait only for the review');
   assert.match(bot, /if \(!v\.frames_identical && !approved\)/, 'a visible change waits only for the review');
+  assert.match(bot, /if \(\(shared\.length \|\| same\.length\) && !approved\)/, 'a reviewed PR is not re-gated for every landing: it merges, and main\'s gate tests it');
   assert.match(bot, /for \(const p of pulls\) if \(await hubReviewed\(p, p\.head\.sha\)\) return true;/, 'live follows a reviewed landing');
   const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/merge.yml'), 'utf8');
   assert.match(yml, /types: \[opened, reopened, ready_for_review, labeled, unlabeled, edited\]/, 'the review line starts a tick at once');
