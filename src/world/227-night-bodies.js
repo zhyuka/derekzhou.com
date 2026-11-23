@@ -43,7 +43,7 @@
     var A = Math.acos(clamp((Math.sin(d) - Math.sin(f) * Math.sin(h)) / (Math.cos(f) * Math.cos(h)), -1, 1)), bs = morning ? A : 2 * PI - A;   // (the drawn sun's compass bearing, from north through east)
     var S0 = airSkySun(V, -D0), kn = Math.sqrt(S0[0] * S0[0] + S0[2] * S0[2]) || 1, K = [S0[0] / kn, 0, S0[2] / kn], Rk = [-K[2], 0, K[0]];   // (its level direction, and that direction's right: cross(K, up))
     var N = [Math.cos(bs) * K[0] - Math.sin(bs) * Rk[0], 0, Math.cos(bs) * K[2] - Math.sin(bs) * Rk[2]];   // (north: the sun's level direction turned left by its bearing)
-    F.P = [N[0] * Math.cos(f), Math.sin(f), N[2] * Math.cos(f)]; F.sg = RNG(subseed(J.seed, 85)).f() < 0.5 ? -1 : 1;
+    F.P = [N[0] * Math.cos(f), Math.sin(f), N[2] * Math.cos(f)]; F.sg = RNG(subseed(J.seed, 1200)).f() < 0.5 ? -1 : 1;
     F.seed = J.seed; F.morning = morning; F.D0 = D0; F.az = V.light.sunAz;
     return F;
   }
