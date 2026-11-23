@@ -8,11 +8,13 @@
 // HTML is not compared byte for byte). Then: every file the pages reference answers 200 (immutable, but the HTML);
 // the home page's CSP is _headers' own, with HSTS; an unknown path is the 404 page with status 404; the repository's
 // own files are not served (/CLAUDE.md, /%43LAUDE.md, /.github/..., the font scripts); the private paths go to the
-// Access sign-in (302 to *.cloudflareaccess.com, or 401/403), never 200. Exit 1 on any failure.
+// Access sign-in (302 to *.cloudflareaccess.com, or 401/403), never 200. Exit 1 on any failure. A / that Cloudflare's
+// bot protection still challenges after 3 tries (cf-challenge.mjs) is a warning, "can't tell", not a failure.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { parseHeaders, headersFor } from './serve.mjs';
+import { challenged, said } from './cf-challenge.mjs';
 
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const URL0 = (A.url || 'https://derekzhou.com').replace(/\/$/, ''), SITE = A.site || 'site', SHA = A.sha || '', TIMEOUT = +(A.timeout || 600), SHAS = SHA.split(',').filter(Boolean);
@@ -49,20 +51,33 @@ check(!!how, how ? `this commit is served (${how}, after ${((Date.now() - t0) / 
 
 const rules = parseHeaders(fs.readFileSync(path.join(SITE, '_headers'), 'utf8'));
 const want = (p, name) => headersFor(rules, p).filter(([k]) => k.toLowerCase() === name.toLowerCase()).map(([, v]) => v);
-const home = await get('/');
-check(home.status === 200, `/ answers ${home.status}`);
-const csp = home.headers.get('content-security-policy') || '';
-check(csp && csp === want('/', 'Content-Security-Policy').join(', '), `/'s CSP is _headers' own${csp ? '' : ' (none served)'}`);
-check(/max-age=\d+/.test(home.headers.get('strict-transport-security') || ''), `/ has HSTS`);
-check(!/\/start[.-][\w.-]*\.js/.test(home.body.toString() + ' ' + (home.headers.get('link') || '')), `/ loads no start file (deleted 2026-11-07), by tag or preload`);
+// / challenged by Cloudflare (cf-challenge.mjs: the runner's IP, not the site): asked again 3 times, 15, 30 and 60 s
+// apart. Still challenged: a warning that the smoke can't tell, its checks of / and of what / references skipped (the
+// challenge page is not the site's), no failure and so no issue. Every other answer of / is held to its checks.
+const homeCsp = want('/', 'Content-Security-Policy').join(', ');
+let home = await get('/');
+for (const s of [15, 30, 60]) {
+  if (!challenged(home, homeCsp)) break;
+  console.log(`/ challenged by Cloudflare (${home.status}; ${said(home)}): asked again in ${s} s`); await new Promise((r) => setTimeout(r, s * 1000));
+  home = await get('/');
+}
+const homeChallenged = challenged(home, homeCsp);
+if (homeChallenged) warn.push(`/ challenged by Cloudflare: can't tell (${home.status}; ${said(home)}; still so after 3 tries over 105 s): / answering 200 with _headers' CSP and HSTS, no start file, and the files / references were not checked`);
+else {
+  check(home.status === 200, `/ answers ${home.status}`);
+  const csp = home.headers.get('content-security-policy') || '';
+  check(csp && csp === homeCsp, `/'s CSP is _headers' own${csp ? '' : ' (none served)'}`);
+  check(/max-age=\d+/.test(home.headers.get('strict-transport-security') || ''), `/ has HSTS`);
+  check(!/\/start[.-][\w.-]*\.js/.test(home.body.toString() + ' ' + (home.headers.get('link') || '')), `/ loads no start file (deleted 2026-11-07), by tag or preload`);
+}
 const notFound = await get('/no-such-page-' + Date.now());
 // Cloudflare's own bot protection may answer a datacenter's request itself (cf-mitigated): then the site was not asked,
 // and the check is a warning, not a failure. Any other answer is the site's, and is held to the 404 page.
 const why = (x) => [x.headers.get('cf-mitigated') && 'cf-mitigated: ' + x.headers.get('cf-mitigated'), x.headers.get('server') && 'server: ' + x.headers.get('server'), x.headers.get('cf-ray') && 'cf-ray: ' + x.headers.get('cf-ray'), JSON.stringify(x.body.toString().slice(0, 100))].filter(Boolean).join(', ');
 if (notFound.status === 404 && notFound.body.toString().includes('404')) ok.push('an unknown path is the 404 page with status 404');
-else if (notFound.headers.get('cf-mitigated')) warn.push(`an unknown path was answered by Cloudflare's bot protection, not the site (${notFound.status}; ${why(notFound)})`);
+else if (challenged(notFound)) warn.push(`an unknown path challenged by Cloudflare: can't tell (${notFound.status}; ${why(notFound)})`);
 else fail.push(`an unknown path is the 404 page with status ${notFound.status} (${why(notFound)})`);
-const refs = new Set([...refsOf(home.body.toString()), ...refsOf((await get('/404.html')).body.toString())]);
+const refs = new Set([...(homeChallenged ? [] : refsOf(home.body.toString())), ...refsOf((await get('/404.html')).body.toString())]);
 for (const r of refs) {
   const x = await get(r);
   const imm = /immutable/.test(x.headers.get('cache-control') || '');
@@ -73,10 +88,11 @@ for (const r of refs) {
 for (const p of NOT_SERVED) { const x = await get(p), loc = x.headers.get('location') || ''; check(x.status === 404 || (x.status === 301 && loc === '/'), `${p} not served (${x.status}${loc ? ' -> ' + loc : ''})`); }
 for (const p of PRIVATE) {
   const x = await get(p), loc = x.headers.get('location') || '';
+  if (challenged(x)) { warn.push(`${p} challenged by Cloudflare: can't tell whether it is behind Access (${x.status}; ${said(x)})`); continue; }   // (a challenge's 403 is not Access's)
   check((x.status === 302 && /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com\//.test(loc)) || [401, 403].includes(x.status), `${p} behind Access (${x.status}${loc ? ' -> ' + loc.split('?')[0] : ''})`);
 }
 const report = { url: URL0, sha: SHA, served: how, ok, warn, fail };
 if (A.out) fs.writeFileSync(A.out, JSON.stringify(report, null, 1));
-for (const m of ok) console.log('ok   ' + m); for (const m of warn) console.log('WARN ' + m); for (const m of fail) console.log('FAIL ' + m);
-if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Live smoke: ${fail.length ? '**failed**' : 'passed'}\n\n` + fail.map((m) => `- **${m}**\n`).join('') + warn.map((m) => `- warning: ${m}\n`).join('') + ok.map((m) => `- ${m}\n`).join(''));
+for (const m of ok) console.log('ok   ' + m); for (const m of warn) console.log('WARN ' + m + (process.env.GITHUB_ACTIONS ? '\n::warning::live smoke: ' + m : '')); for (const m of fail) console.log('FAIL ' + m);
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Live smoke: ${fail.length ? '**failed**' : warn.length ? `passed, **${warn.length} can't tell**` : 'passed'}\n\n` + fail.map((m) => `- **${m}**\n`).join('') + warn.map((m) => `- warning: ${m}\n`).join('') + ok.map((m) => `- ${m}\n`).join(''));
 process.exit(fail.length ? 1 : 0);

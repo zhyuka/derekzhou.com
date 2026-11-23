@@ -4,9 +4,9 @@
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the camera's framing, per window shape
-// (dev-speed item 5b) setFrustum and basePitchT cut from the world as it ships; the field of view, the frame and the
+// (dev-speed item 5b) frustumFor, setFrustum and basePitchT cut from the world as it ships; the field of view, the frame and the
 // wide windows' tilt read from the world too (FOV_LONG, CAMUP, the world's frame: [wide, tall])
-const FRUSTUM = cut(WORLD, '  function setFrustum(snap) {', '  function easeFrustum(');
+const FRUSTUM = cut(WORLD, '  function frustumFor(aspect, out) {', '  function easeFrustum(');
 const PITCH = cut(WORLD, '  function basePitchT(V) {', '\n', true);
 const num = (re) => { const m = re.exec(WORLD); assert.ok(m, 'not found in world.js: ' + re); return m.slice(1).map(Number); };
 const [FOV] = num(/var FOV_LONG = (\d+(?:\.\d+)?);/), [UP] = num(/var CAMUP = (\d+(?:\.\d+)?);/), FRAME = num(/frame: \[([\d.]+), ([\d.]+)\]/);

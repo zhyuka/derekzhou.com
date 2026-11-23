@@ -11,6 +11,7 @@
     ["tools/gpu/**", ["harness"]],
     ["tools/checks/lib/glsl_guard.js", ["harness"]],
     ["tools/checks/**", ["static"]],
+    ["tools/still-words.mjs", ["static"]],
     ["tools/**", ["frames", "gpu"]],
     ["site/**", ["frames"]],
     ["package.json", ["frames"]],

@@ -12,6 +12,7 @@
     if (!(at >= 0 && at <= 1)) at = 0.5;
     var open = DEVMODE && OPT.skyScene && WSKY[OPT.skyScene] && SKY.ids.indexOf(OPT.skyScene) >= 0 ? OPT.skyScene : null;
     if (!open) open = SKY.land[g][Math.floor(SKY.rO.f() * SKY.land[g].length)];
+    if (open === 'moonlit') at = Math.min(at, 0.6);   // (the hub's review of #303: a moonlit opening never past 0.6 of its hold, so its moon at the cut stands where the opening's still has it whatever the hour)
     skyPush(open);
     SKY.seq[0].at = -SKY.seq[0].hold * at * 0.9;
     SKY.landing = { hour: HOUR, group: g, at: at, sky: open };
@@ -27,6 +28,11 @@
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
     SKY.gal = best; SKY.aur = { ph: SKY.rV.f() * 6.2832, base: 5 + 3 * SKY.rV.f() };
+    /* (physics: weather/far-anvil) a far storm, from its own stream (the other draws stay as they are): in about 3
+       visits of 16 (the opening's seed: so its baked first frame has it), 80-110 deg either side of the sun's bearing
+       (lit from the side, against the sky away from the sun), 100-150 km away (its top 4.0-7.4 deg up) */
+    var rA = RNG(subseed(J.seed, 83)), anv = rA.f() < 3 / 16, side = rA.sign(), off = rA.r(80, 110), dist = rA.r(100, 150);
+    SKY.anv = anv && V.light ? { az: (V.light.sunAz + side * off) * DEG, d: dist } : null;
     SKY.gen++;
   }
   function skyPush(id) {

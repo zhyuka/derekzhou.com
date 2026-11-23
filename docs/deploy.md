@@ -22,6 +22,13 @@ says so on the PR (merge-bot.mjs, step 1b; its message ends "Reverts-main-tip: <
 step over the pair). The owner's own merges are never reverted by the bot. MERGE_TOKEN needs Actions write for the
 re-run.
 
+The PR's own words (2026-11-16): right before it lands a PR, by either way, the bot pipes the PR's title and body as
+they are that tick to `python3 .claude/hooks/guard.py --text` (merge.yml checks out .claude/hooks beside .github/ci).
+A banned name (RULES.json "naming", names.json) holds the PR with one comment, never repeating the name; the gate runs
+on push and never sees them, and the bot would write "Merge #N: <title>" onto main. Anything else but a clean exit
+(no python3, an unreadable names.json) holds it too, without a comment. Before guard.py has --text, the tick says it
+did not check (bot-rules.mjs textAnswer, test/unit/merge-bot.mjs).
+
 A cancelled main gate (a newer push superseded it) is no result: its tip is judged by its own PR's gate (for the bot's
 own merge commit, "Merge #N: ...", the gate on the PR's head, its second parent) or the owner's merge. When nothing
 proves it, the bot re-runs that tip's gate itself, once (2026-11-15: live waited 4 hours at 7ab73d1 on #258's
@@ -78,24 +85,43 @@ workflow_run that cannot see the gate's job outputs, fetches the Gate run's gate
 (actions: read) and pins the builds to the verdict's served_sha. The verdict the merge bot trusts is the gate-verdict
 artifact (30 days), whose upload fails the verdict job if it fails.
 
+## The smoke and Cloudflare's bot challenge
+
+post-deploy.yml's smoke (.github/ci/smoke.mjs) runs from a GitHub runner, whose datacenter IP Cloudflare's bot
+protection sometimes challenges (b4615db and a72acc9, 2026-11-23: / answered 403 with Cloudflare's challenge page,
+while elsewhere it answered 200 with the site's CSP). A challenge (.github/ci/cf-challenge.mjs: `cf-mitigated:
+challenge`, or a 403 from `server: cloudflare` without _headers' CSP whose body is Cloudflare's challenge page) is not
+the site's answer. A WAF block, an Access denial or an edge error is: a visitor meets it too, and the smoke fails on it.
+/ is asked again 3 times, 15, 30 and 60 s apart. If it is still challenged, the smoke warns "challenged by Cloudflare:
+can't tell" and skips the checks of / and of the files / references. A challenged private path or unknown path is
+"can't tell" too, never "behind Access" or the 404 page. A warning fails nothing, so no issue opens, and the run's
+summary reads "passed, N can't tell". Every other answer, and every other check, stays strict. A skip rule in
+Cloudflare's WAF would let the smoke see the site every time. It would need something a visitor can't send: a secret
+header, not the smoke's user agent, which anyone can copy.
+
 ## The stills
 
 The openings' stills (the world's first frames, baked on a real GPU by tools/gpu/bake-stills.js, #197) are not
 in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
 key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt.
 The Cloudflare build fetches its own key's set with STILLS_TOKEN (a Pages secret) and ships without it on any failure.
-The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and live never
-goes without its set:
+The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and a set is
+only ever its own world's:
 - stills.yml, after every green Gate run on main: is the set for the tip's key up (one request)? Then the tip's commit
-  status `stills` is success. Not up: failure, saying no stills exist for this world yet (never a red main).
-- The deploy gate (merge-bot.mjs): live moves to a tip that has tools/gpu/bake-stills.js only once its `stills` status
-  is success (bot-rules.mjs stillsReady). merge.yml ticks when stills.yml completes.
+  status `stills` is success. Not up: success too, saying the world ships without stills (never a red main).
+- The deploy gate (merge-bot.mjs): a tip that has tools/gpu/bake-stills.js waits only while its `stills` status is
+  failed or pending (bot-rules.mjs stillsReady). No status passes: stills.yml posts none once its commit is no longer
+  main's tip, nor where main's gate was cancelled, and the build fetches its key's set or ships without. merge.yml
+  ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
-  its sha256 (.github/ci/stills-live.mjs).
+  its sha256; with no set, live must ship without stills cleanly (.github/ci/stills-live.mjs).
 The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23.
-CI no longer bakes: a served change that makes a new key holds live (its status failure) until a replacement lands.
-What replaces it is open (the hub decides, for the owner): narrowing the key to what the canvas reads, so a change
-the canvas never sees reuses the set it has; a bake by hand on a Mac for a world change; or shipping without.
+CI no longer bakes, so a served change that makes a new key ships without stills: the first paint the words over the
+hour's still sky, then the world's first frame drawn whole as the cut, no fade and no still from another key
+(tools/checks/47-first-paint.sh proves it on every gate, on a phone and a laptop; post-deploy's stills-live.mjs checks
+live asks for no still and says so in build.txt). Live never waits for a bake. Later: a key of what the canvas reads
+(sound and the site's metadata are outside it; CSS, fonts and the words reach it), so a change it never sees keeps its
+set; and a measured SwiftShader bake on hosted runners.
 
 The owner's steps (once; until they are done the build ships without stills, as before):
 1. A token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.

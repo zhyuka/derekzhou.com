@@ -18,7 +18,10 @@
     if (u.uDbg) gl.uniform1i(u.uDbg, DBG);
     if (u.uPxK) gl.uniform1f(u.uPxK, Math.max(1, OUT.dpr * SS / 1.25));   // (the world's pixels a pixel of the display's: 1 but in a supersampled reference)
     if (u.uSalt) gl.uniform1ui(u.uSalt, V.salt);
-    if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);
+    if (u.uAir) gl.uniform4fv(u.uAir, UAIR);
+    if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));   // (the live key: on the moonlit sky, the moon's disc as drawn: physics: air/night-light)
+    if (u.uKey) gl.uniform3fv(u.uKey, L.sunDir);   // (the baked key: the clouds' light, along their light depths)
+    if (u.uGlory) gl.uniform4fv(u.uGlory, gloryUniform());   // (the cloud sea's glory: the moon's direction and amount)
     if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (the sky's own light)
     if (u.uSunC) gl.uniform3fv(u.uSunC, L.sunC);
     if (u.uSky) gl.uniform3fv(u.uSky, L.skyFlat);
