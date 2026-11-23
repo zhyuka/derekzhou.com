@@ -74,6 +74,7 @@
     return S;
   }
   function moonStep(t) {
+    meteorStep(t);   // (219: the night stay's meteors, planned as their time comes)
     var E = moonStay(t); MOON.E = E;
     if (E && !E.moon && E === SKY.seq[0] && E.landT === undefined) E.landT = t;   // (the opening's own moonlit stay: its moon in frame at the cut, the plan timed to it: 225's P.land)
     if (E && !E.moon) { var I = moonInputs(E); if (I && I.land !== null) { I = stillInputs(I); MOON.still = I.still || ''; } if (I) { E.moon = I.land !== null ? moonClear(E, I) : moonPlan(I); E.moonPlans = 1; MOON.plans++; MOON.off[0] = MOON.off[1] = 0; } }
@@ -214,5 +215,6 @@
     if (u.uHalo) gl.uniform4f(u.uHalo, MOON.E ? MOON.E.veil : 0, HALO_K, 0, 0);   // (physics: weather/moon-halo: the veil of the moonlit stay whose moon is up)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
     if (u.uSkyF && V) gl.uniformMatrix3fv(u.uSkyF, false, skyFrame(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, V));   // (row-major frame to world, read as columns: world to frame, the stars' and the galaxy's lookup)
+    meteorUniforms(u);   // (219: the meteor on show)
     if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], SKY.galRise || 0); gl.uniform4f(u.uAur, SKY.aur.rise, SKY.aur.ph, SKY.aur.fp, fx[3]); if (u.uAurB) gl.uniform4f(u.uAurB, SKY.aur.p, SKY.aur.sf, SKY.aur.dD, SKY.aur.bk); }   // (aurora-enter-by-place: their amounts 0 or 1, how far each has come in; the aurora's by its own clock, physics: aurora/phases)
   }
