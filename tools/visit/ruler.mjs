@@ -19,6 +19,7 @@
 // aboveKeep: approximated by its density alone) and the cloud sea's drawn weight (kwAt: the raw maps' kitAt instead).
 // The ink birds' flocks after the cut follow the read and are not measured; the sites' flocks are the land's.
 import { WORLD, STREAMS, VEC, cut, TMP } from '../../test/unit-lib.mjs';
+import { mainAt } from '../physics/dune-census.mjs';
 import fs from 'node:fs'; import path from 'node:path'; import vm from 'node:vm'; import { pathToFileURL } from 'node:url';
 
 export const HOURS = ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'];
@@ -48,14 +49,20 @@ const DUNE_GLSL = fs.readFileSync(new URL('../../src/glsl/dunes-glsl.glsl', impo
 const DUNE_H = /duneS1\(ph, ([\d.]+) \* dMul\(amp, gKD\)/.exec(DUNE_GLSL);
 const MIST = /var AIR_MIST = (\{[^}]*\});/.exec(WORLD);
 export const MIST_BY_SKY = MIST ? Function('return ' + MIST[1])() : null;
+// (215, with AIR's weather) the visit's moisture: its U10 (airU10, from the visit's seed) through airMoist, cut as written
+const MOIST = MIST ? cut(WORLD, '  var AIR_U10 = ', '\n', true) + cut(WORLD, '  function airEase(a, b, y) {', '\n', true) +
+  cut(WORLD, '  function airU10(seed) {', '\n  }\n', true) + cut(WORLD, '  function u10Of(V) {', '\n', true) +
+  cut(WORLD, '  var AIR_MOIST = ', '\n', true) + cut(WORLD, '  function airMoist(V) {', '\n', true) : '';
+// (200) the visit's own stream, whose first draw is the wind's direction (215 airDraw, as the dunes kit draws it)
+const VRNG = /V\.rng = (RNG\(subseed\(V\.seed, \d+\)\));/.exec(WORLD);
 // (the decision, FLIGHT for the hub, Nov 23) a land opens over dunes when the cloud sea is not over the landing (wC under
-// 0.5) and its main dunes can stand DUNE_MIN m or more there (their full height by the sand weight: the dunes' own amp,
-// 0.25-1 by a noise the ruler cannot draw without the wind, is left out, so this is the most they can stand)
+// 0.5) and its main dunes stand DUNE_MIN m or more there: the S1 dune's height as dunes() draws it (32 m by amp, 0.25-1,
+// by the visit's wind: dune-census's mainAt, the same model in JS) by the sand weight wD
 export const DUNE_MIN = 8;
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
 const ABOVE = fs.readFileSync(path.join(TMP, 'src', 'realm-above.js'), 'utf8');
 if (!SEED0OF || !OPENN || !VSEED || !VSALT) throw new Error('ruler: the visit\'s seed or the cells\' salt not found in world.js');
-if (!KSALT || !LAYOUT || !SPEED0 || !DUNE_H) throw new Error('ruler: the kits\' keep salts, the layout\'s order or the world\'s speed (180), or the dunes\' height (dunes-glsl) not found');
+if (!KSALT || !LAYOUT || !SPEED0 || !DUNE_H || !VRNG) throw new Error('ruler: the kits\' keep salts, the layout\'s order or the world\'s speed (180), or the dunes\' height (dunes-glsl) not found');
 
 // the land of an opening k: its seed, the maps and the director about its landing, its heading, its cells' salt
 function landOf(k) {
@@ -66,6 +73,7 @@ function landOf(k) {
     STREAMS + VEC + '  var OPENN = ' + OPENN[1] + ', SEEDR = READ >>> 0, SEED0 = ' + SEED0OF[1] + ';\n' + PLAN +
     '  var J = { seed: SEED0 };\n' + HEAD0 + DENS + PICK +
     '  var V = {}; V.seed = ' + VSEED[1] + '.seed(); V.salt = ' + VSALT[1] + ';\n' +
+    '  var SIM = {};\n' + MOIST + '  G.mistQ = ' + (MIST ? 'airMoist({ u10: airU10(V.seed) })' : 'null') + '; G.windAz = ' + VRNG[1].replace('V.seed', 'V.seed') + '.r(0, 2 * PI);\n' +
     '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf;\n' +
     '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, RNG: RNG, subseed: subseed };\n})');
   const g = {}, CS = { x: 0, z: 0 }; G(g, CS, k); g.CS = CS;
@@ -118,10 +126,10 @@ function skyOrder(seed0, hour, at, read, secs) {
 }
 
 // the director's look, read as a kind: the cloud sea, or the land's strongest (dunes, mesa, forest, meadow, scrub, bare)
-function lookKind(lk, wC) {
+function lookKind(lk, wC, duneH) {   // (duneH: the main dunes' drawn height there, m; 'dunes' by the same rule as the cut's)
   if (wC > 0.5) return 'sea';
+  if (duneH >= DUNE_MIN) return 'dunes';   // (before the mesa: a land on dunes by the cut's rule is read as dunes)
   if (lk[10] > 0.5) return 'mesa';
-  if (lk[7] > 0.5) return 'dunes';
   const c = [['forest', lk[3]], ['meadow', lk[4]], ['scrub', lk[5]], ['bare', lk[6]]];
   return c.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
 }
@@ -131,13 +139,15 @@ const q = (a, p) => { if (!a.length) return NaN; const s = [...a].sort((x, y) =>
 export function flyLand(k, secs = 7200, heading = null) {   // (heading: another first heading than the land's own, rad)
   const L = landOf(k), kits = KITS(L.STREAMS), V_MS = kits.dunes.speed || +SPEED0[1], psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
   const looks = [], sea = []; let cut0 = null;   // (cut0: the land at the cut, the director's look within 250 m of the landing)
+  const az = Math.atan2(Math.cos(L.windAz), Math.sin(L.windAz));   // (the wind toward (sin, cos) in (x, z), as mainAt's (cos a, sin a))
+  const duneHAt = (x, z, wD) => mainAt(x, z, az).H / 32 * +DUNE_H[1] * wD;   // (the S1 dune's height, 32 amp, by the sand weight)
   for (let t = 0, i = 0; t <= secs; t += 0.5, i++) {   // (the director's tick, 0.5 s; its look every 5 s)
     L.CS.x = hx * V_MS * t; L.CS.z = hz * V_MS * t; L.directorStep(t);
     if (i % 10 === 0) {
       const D = L.MAPS.D, s = D.seen[D.seen.length - 1], w = L.kitAt(L.CS.x, L.CS.z).wC;
-      sea.push({ t, wC: w }); if (s) looks.push({ t, kind: lookKind(s.look, w) });
-      if (t === 0 && s) cut0 = { wC: +w.toFixed(3), wD: +L.kitAt(0, 0).wD.toFixed(3), dunes: +s.look[7].toFixed(3), sand: +s.look[6].toFixed(3), kind: lookKind(s.look, w) };
-      if (cut0) { cut0.duneH = +(+DUNE_H[1] * cut0.wD).toFixed(1); cut0.onDunes = cut0.wC < 0.5 && cut0.duneH >= DUNE_MIN; }
+      sea.push({ t, wC: w }); if (s) looks.push({ t, kind: lookKind(s.look, w, duneHAt(L.CS.x, L.CS.z, L.kitAt(L.CS.x, L.CS.z).wD)) });
+      const wD = L.kitAt(L.CS.x, L.CS.z).wD, dH = duneHAt(L.CS.x, L.CS.z, wD);
+      if (t === 0 && s) cut0 = { wC: +w.toFixed(3), wD: +wD.toFixed(3), Kd: +s.look[7].toFixed(3), sandRock: +s.look[6].toFixed(3), duneH: +dH.toFixed(1), onDunes: w < 0.5 && dH >= DUNE_MIN, kind: lookKind(s.look, w, dH), mistQ: L.mistQ === null ? null : +L.mistQ.toFixed(3) };
     }
   }
   // the cells within reach of the way (1.6 km aside: a place is passed within SIGHT, a cell's site up to 0.8 of it off)
@@ -176,7 +186,7 @@ export function measure(land, hour, read, at, secs = 7200) {
   let gap = 0, gapAt = 0; for (let i = 1; i < rewards.length; i++) if (rewards[i] - rewards[i - 1] > gap) { gap = rewards[i] - rewards[i - 1]; gapAt = rewards[i - 1]; }
   return {
     k: land.k, heading: land.heading, hour, read, cut: land.cut, sky0: sky[0].name,
-    mistAtCut: MIST_BY_SKY ? (MIST_BY_SKY[sky[0].name] ?? 0) : null, /* (the opening sky's mist depth at full moisture, m: the most it pools) */ firstChange: changes[0] ?? null, skyChanges: changes.length,
+    mistAtCut: land.cut && land.cut.mistQ !== null && MIST_BY_SKY ? +(land.cut.mistQ * (MIST_BY_SKY[sky[0].name] ?? 0)).toFixed(2) : null, /* (the opening sky's mist depth on this visit, m: its depth by sky times the visit's moisture, 215) */ firstChange: changes[0] ?? null, skyChanges: changes.length,
     firstNear: near ? +near.t.toFixed(1) : null, firstNearKind: near ? near.kind : null, firstSight: passed.length ? +passed[0].t.toFixed(1) : null,
     places: sites.length, placesPerHour: +(sites.length / (secs / 3600)).toFixed(1), stretch: stretch.length ? [q(stretch, 0.1), q(stretch, 0.5), q(stretch, 0.9)].map((x) => +x.toFixed(0)) : null,
     flocks: land.flocks.length, crossings: cross.length, firstCrossing: cross[0] ?? null,
