@@ -141,9 +141,11 @@ export async function launch(remote, via) {
   return PW.chromium.launch(Object.assign({ args }, proxy, process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : core ? { channel: 'chrome' } : {}));
 }
 
-// the harness's own observer (never the page's): when the canvas first carries "on", and the paint entries
-const OBSERVE = `(() => { const W = window.__lp = { shown: null };
-  new MutationObserver(() => { const c = document.querySelector('canvas.on'); if (c && W.shown == null) W.shown = performance.now(); })
+// the harness's own observer (never the page's): when the canvas first carries "on"; whether the first-paint hold's
+// link is still in the head when the body begins (hour.js, in the head, takes it out where there is no hold); the paint entries
+const OBSERVE = `(() => { const W = window.__lp = { shown: null, holdAtBody: null };
+  new MutationObserver(() => { const c = document.querySelector('canvas.on'); if (c && W.shown == null) W.shown = performance.now();
+    if (W.holdAtBody == null && document.body) W.holdAtBody = !!document.querySelector('link[rel="expect"][blocking="render"]'); })
     .observe(document, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true }); })();`;
 
 async function one(browser, url, prof, warm, tp) {
@@ -166,7 +168,7 @@ async function one(browser, url, prof, warm, tp) {
       const res = performance.getEntriesByType('resource').map((e) => ({ name: new URL(e.name).origin === location.origin ? new URL(e.name).pathname : e.name, type: e.initiatorType, start: e.startTime, first: e.responseStart, end: e.responseEnd, transfer: e.transferSize, encoded: e.encodedBodySize, decoded: e.decodedBodySize, blocking: e.renderBlockingStatus }));
       const fonts = [...document.fonts].map((f) => ({ family: f.family, status: f.status }));
       const worldIn = Math.max(...res.filter((x) => /^\/(world|realm-)/.test(x.name)).map((x) => x.end));
-      return { fcp, shown: window.__lp.shown, worldIn: isFinite(worldIn) ? worldIn : null, load: nav.loadEventEnd, dcl: nav.domContentLoadedEventEnd, ttfb: nav.responseStart,
+      return { fcp, holdLink: window.__lp.holdAtBody, shown: window.__lp.shown, worldIn: isFinite(worldIn) ? worldIn : null, load: nav.loadEventEnd, dcl: nav.domContentLoadedEventEnd, ttfb: nav.responseStart,
         doc: { transfer: nav.transferSize, encoded: nav.encodedBodySize, decoded: nav.decodedBodySize }, res, fonts };
     });
   };
@@ -196,7 +198,7 @@ export async function measure(url, names, runs, opts = {}) {
         transfer: med(rs.map((r) => r.total.transfer)), decoded: med(rs.map((r) => r.total.decoded)), doc: rs[0].doc,
         res: Object.entries(byName).map(([name, xs]) => ({ name, type: xs[0].type, blocking: xs[0].blocking, transfer: med(xs.map((x) => x.transfer)), encoded: med(xs.map((x) => x.encoded)), decoded: med(xs.map((x) => x.decoded)), start: med(xs.map((x) => x.start)), first: med(xs.map((x) => x.first)), end: med(xs.map((x) => x.end)) })).sort((a, b) => a.start - b.start),
         fcpAll: rs.map((r) => r.fcp == null ? null : +r.fcp.toFixed(0)),
-        worldInAll: rs.map((r) => r.worldIn == null ? null : +r.worldIn.toFixed(0)),
+        holdAll: rs.map((r) => r.holdLink),
       };
     }
   } finally { await browser.close(); if (tp) tp.close(); }

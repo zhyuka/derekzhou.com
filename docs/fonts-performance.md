@@ -55,9 +55,10 @@ Early Hints) and loaded cold three times under Lighthouse's mobile profile
 as sent, about a tenth over its size that day; so do the bytes the first
 paint waits for (the document, the stylesheet, the hour, both fonts) and
 the whole; the first paint may wait for nothing but its own (only the
-stylesheet and the hour render-blocking, the paint before the world's scripts
-arrive in every run: a busy runner slows both alike), and its median must be
-within 2,500 ms, a net for a gross regression (about 580 ms on 2026-11-23; the
+stylesheet and the hour render-blocking, and the first-paint hold's link out of
+the head on the phone profile: both read what the page is, never a clock), and
+its median must be within 4,000 ms, a net for a gross regression (about 580 ms
+here, up to 2,400 ms on a busy runner, on 2026-11-23; the
 old bar, 1,200 ms of wall clock, failed six PRs on busy runners that could not
 move the paint). The sound icon's switch (sound.js, 614 B as sent) and its score (score.js, 5,983 B,
 deferred) have lines; its sheet of notes (site/assets/sound/) has none on purpose, as it loads only
