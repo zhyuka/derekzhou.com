@@ -176,7 +176,7 @@ export function measure(land, hour, read, at, secs = 7200) {
   let gap = 0, gapAt = 0; for (let i = 1; i < rewards.length; i++) if (rewards[i] - rewards[i - 1] > gap) { gap = rewards[i] - rewards[i - 1]; gapAt = rewards[i - 1]; }
   return {
     k: land.k, heading: land.heading, hour, read, cut: land.cut, sky0: sky[0].name,
-    mistAtCut: MIST_BY_SKY ? (MIST_BY_SKY[sky[0].name] ?? 0) : null,   // (the opening sky's mist depth at full moisture, m: the most it pools) firstChange: changes[0] ?? null, skyChanges: changes.length,
+    mistAtCut: MIST_BY_SKY ? (MIST_BY_SKY[sky[0].name] ?? 0) : null, /* (the opening sky's mist depth at full moisture, m: the most it pools) */ firstChange: changes[0] ?? null, skyChanges: changes.length,
     firstNear: near ? +near.t.toFixed(1) : null, firstNearKind: near ? near.kind : null, firstSight: passed.length ? +passed[0].t.toFixed(1) : null,
     places: sites.length, placesPerHour: +(sites.length / (secs / 3600)).toFixed(1), stretch: stretch.length ? [q(stretch, 0.1), q(stretch, 0.5), q(stretch, 0.9)].map((x) => +x.toFixed(0)) : null,
     flocks: land.flocks.length, crossings: cross.length, firstCrossing: cross[0] ?? null,
