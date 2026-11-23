@@ -74,6 +74,7 @@
      veil: the shaders read the surface's as uAir.x */
   var AIR_BYSKY = { afterglow: [1, 1, 1], bluehour: [0.7, 1.2, 0.65], firstlight: [0.35, 1.3, 0.5], moonlit: [0.5, 1.4, 0.6], milkyway: [0.4, 1.5, 0.5], aurora: [0.45, 1.4, 0.55] };
   var AIR_NC = 3, AIR_ONE = [1, 1, 1], AIR_SL = [20, 100, 300, 1500], AIR_WX = [1, 1, 1], AIR_IA = [0, 0, 0], AIR_IB = [0, 0, 0], AIR_TC = [0, 0, 0], AIR_ABC = [1, 0, 0];
+  function airDay(x, z, y, V) { var a = airBase(x, z, y, V); return { x: a.x, z: a.z }; }   // the day's wind at y m up, m/s (the sky's share 1, whatever the sky: a reader that wants the day's wind, not the hour's; a fresh object)
   function airTable() { var o = {}, k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
   function airSh(e) { return (e && AIR_BYSKY[e.id]) || AIR_ONE; }
   function airIdx(seq, tS) { var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--; return i; }
@@ -111,20 +112,22 @@
        and low cloud at their most in the early morning and gone soon after sunrise
        (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
        the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
-       mixed out (U10 under 3.9 m/s whole, none past 4.3: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune lands, the hub's ruling; no new draw,
+       mixed out (U10 under 4.02 m/s whole, none past 4.1: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune openings, 3, 10 and 14, by
+       the live visit's seed, the hub's ruling; about 28% of visits moist; no new draw,
        the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
        (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
        never jumps and never races;
      - oro (0..1): the orographic gate, the visit's own (U10 alone, the whole visit): the ridge-top wind is the log
-       law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (eased over 7.2-8.2: U10 about 6) the ridges
-       stand lee waves, lenticulars and banner clouds;
+       law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (oroU; eased over 7.2-8.2: U10 about 6) the ridges
+       stand lee waves, lenticulars and banner clouds; N (0.01/s, the stable troposphere's buoyancy frequency, the value
+       CLOUDS' lens takes) sets the lee wave's length, 2 pi U / N, so the lens reads one weather (wx(t).oroU, .N);
      - vis (km): the visit's own visibility, 10 km in clean air, 4 km in blown sand once U10 is past the sand's
        threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
        never fades in place */
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
-  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], vis: [10, 4], dust: [5.8, 7] };
-  var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, vis: AIR_WXK.vis[0], dust: 0 };
-  var AIR_MOIST = [3.9, 4.3];   // (the moisture: whole under this U10, none past this, m/s)
+  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], oroU: 7.7, N: 0.01, vis: [10, 4], dust: [5.8, 7] };   // (oroU: the ridge-top wind the gate opens at, the middle of oro's ease; N: the troposphere's buoyancy frequency, 1/s, the lee wave's: its wavelength 2 pi U / N)
+  var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, oroU: AIR_WXK.oroU, N: AIR_WXK.N, vis: AIR_WXK.vis[0], dust: 0 };
+  var AIR_MOIST = [4.02, 4.1];   // (the moisture: whole under this U10, none past this, m/s)
   function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }   // 0..1: the visit's low-level moisture (its marine layer in)
   function airMistOf(id, q) { var d = AIR_MIST[id]; return d === undefined ? 0 : q * d; }   // a sky's mist depth on this visit, m (q its moisture)
   function airMistAt(t, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
@@ -181,8 +184,8 @@
      visit's wind frame, xi = x.w - U10 T along
      and eta = x.p across, both over L = AIR_GUST[1] U10: one reference speed (the visit's U10) carries and scales the
      field at every height, so a bird over a veil feels the veil's gust; the height sets only its size, AIR_GUST[0]
-     W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), on the flight's clock (the shaders' uT
-     less AIR_UT0). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
+     W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), carried on the surface's wind clock
+     (airClock(t)[0]; the shaders' uAir.x). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
      13.6), the lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
      (test/unit/air.mjs: 16 visits of 10 min); on a sky of surface share s, the e-fold and the lag are the day's over s
      (the moonlit sea's e-fold median 28.5 s, first light's 40.7 s). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
@@ -205,7 +208,7 @@
   function gustSigma(y, V, t) { t = t === undefined ? SIM.t : t; return airFrame(V).W > 0 ? AIR_GUST[0] * weather(t)[2] * airSpeed(y, V) * airShare(y, t) : 0; }   // the gust's standard deviation at y m up, m/s (0 in still air)
   function gustPhase(x, z, y, t, V) { var f = airFrame(V); t = t === undefined ? SIM.t : t; return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN; }   // s: the field's own clock here (the surface's clock, less the way along the wind over U10; NaN in still air; the same at every height)
   function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
-    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n#define AIR_UT0 ' + airF(AIR_UT0) + '\n';
+    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n';
     s += 'float airLat(int i, int j, uint s) { return hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0; }\n';
     s += 'float airVn(vec2 p, uint s) { vec2 c = floor(p), f = p - c, u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); ivec2 i = ivec2(c); float a = airLat(i.x, i.y, s), b = airLat(i.x + 1, i.y, s), cc = airLat(i.x, i.y + 1, s), d = airLat(i.x + 1, i.y + 1, s); return a + (b - a) * u.x + (cc - a) * u.y + (a - b - cc + d) * u.x * u.y; }\n';
     s += 'float airGustN(vec2 q) { return (' + o.map(function (k) { return airF(k[1]) + ' * airVn(q * ' + airF(k[0]) + ', ' + k[2] + 'u)'; }).join(' + ') + ') * ' + airF(AIR_GUST[2]) + '; }\n';
@@ -213,4 +216,4 @@
     return s;
   }
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, base: airBase, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
