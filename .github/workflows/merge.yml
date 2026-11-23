@@ -5,14 +5,17 @@ name: Merge bot
 # main has not touched since its gate's base (main's own gate tests every merge after it lands), re-gates only the PRs
 # that overlap, and fast-forwards `live` (the branch Cloudflare serves) to the newest main tip whose gate is green.
 # Gate runs, PR events and pushes run main's copy of this file and of the bot, never a PR's. By hand (workflow_dispatch)
-# it runs the chosen branch's bot in dry mode only: it logs what it would do, with no MERGE_TOKEN. A PR that changes the
-# bot is always left to the owner. Without the MERGE_TOKEN secret the bot does nothing.
+# it runs the chosen branch's bot in dry mode only: it logs what it would do, with no MERGE_TOKEN. Without the MERGE_TOKEN
+# secret the bot does nothing. Since 2026-11-23 (the owner: "just auto push stuff and u do everything quickly", choosing
+# "Yes, everything", then "Full auto, I'll allow it"): a PR whose body carries the hub's review of its head
+# (<!-- hub-review SHA -->) lands too, visible or not, the bot's own files included, and live follows it as it follows
+# the owner's own merges.
 on:
   workflow_run:
     workflows: [Gate, Stills]   # (Stills: the stills job sets a main tip's `stills` status, which the deploy gate reads)
     types: [completed]
   pull_request_target:
-    types: [opened, reopened, ready_for_review, labeled, unlabeled]
+    types: [opened, reopened, ready_for_review, labeled, unlabeled, edited]   # (edited: the hub's review line in a body lands it at once)
   workflow_dispatch:   # (a dry run of the chosen branch's bot: it changes nothing)
 
 permissions:
