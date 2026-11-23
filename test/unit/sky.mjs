@@ -11,6 +11,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9))", "with": "veil: mix32(SKY.vS)", "why": "the veil the visit's, not the stay's: every moonlit stay of a visit veiled, or none"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -384,5 +385,31 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
     const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '('));
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
+  }
+});
+
+test('physics: night/moon-phase: a near-full moon, lit by its hidden sun opposite (lit fraction over 0.97), its dark sliver the sky', () => {
+  // sky-body.glsl's own moon lines, made JS (their vectors by hand): over the disc, at every height the moon stands
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const PH = +g.match(/const float MOON_PHASE = ([\d.]+);/)[1];
+  assert.ok(g.includes('float mlit = smoothstep(-0.06, 0.06, dot(mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz, msun));') && g.includes('vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);'), 'the moon\'s phase lines are not the ones this test models');
+  assert.ok(g.includes('c = mix(c, mix(c, uMoonC, mlit), 1.0 - smoothstep('), 'the moon\'s unlit part is not the sky behind it (it would be painted darker)');
+  const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const norm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); }, cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  for (const e of [0, 5, 15, 30, 60]) for (const az of [0, 2.1]) {
+    const m = [Math.sin(az) * Math.cos(e * Math.PI / 180), Math.sin(e * Math.PI / 180), Math.cos(az) * Math.cos(e * Math.PI / 180)];
+    const t1 = norm(cross([0, 1, 0], m).map((x, i) => x + (i === 0 ? 1e-5 : 0))), t2 = cross(m, t1);
+    const se = -Math.asin(m[1]) - PH * Math.PI / 180, h = norm([-m[0] + 1e-5, 0, -m[2]]), sun = [h[0] * Math.cos(se), Math.sin(se), h[2] * Math.cos(se)];
+    const sunAz = Math.atan2(sun[0], sun[2]), moonAz = Math.atan2(m[0], m[2]), dAz = Math.abs(((sunAz - moonAz) * 180 / Math.PI + 540) % 360 - 180);
+    assert.ok(Math.abs(dAz - 180) < 0.01 && sun[1] < 0, `moon at ${e} deg: its sun stands at ${dAz.toFixed(2)} deg of azimuth from it, ${(Math.asin(sun[1]) * 180 / Math.PI).toFixed(1)} up (opposite, under the horizon)`);
+    let lit = 0, n = 0, top = 0, nt = 0;
+    for (let y = -1; y <= 1; y += 0.02) for (let x = -1; x <= 1; x += 0.02) {
+      if (x * x + y * y > 1) continue;
+      const z = Math.sqrt(Math.max(1 - x * x - y * y, 0)), nrm = [0, 1, 2].map((i) => x * t1[i] + y * t2[i] - z * m[i]), l = ss(-0.06, 0.06, dot(nrm, sun));
+      lit += l; n++; if (y > 0.9) { top += l; nt++; }
+    }
+    const f = lit / n;
+    assert.ok(f > 0.97 && f < 0.995, `moon at ${e} deg: lit ${(100 * f).toFixed(1)}% of its disc (a near-full moon: over 97%, not a flat coin)`);
+    assert.ok(top / nt < f, `moon at ${e} deg: its dark sliver is not on the limb away from its sun (the top)`);
   }
 });
