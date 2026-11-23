@@ -196,6 +196,7 @@ export async function measure(url, names, runs, opts = {}) {
         transfer: med(rs.map((r) => r.total.transfer)), decoded: med(rs.map((r) => r.total.decoded)), doc: rs[0].doc,
         res: Object.entries(byName).map(([name, xs]) => ({ name, type: xs[0].type, blocking: xs[0].blocking, transfer: med(xs.map((x) => x.transfer)), encoded: med(xs.map((x) => x.encoded)), decoded: med(xs.map((x) => x.decoded)), start: med(xs.map((x) => x.start)), first: med(xs.map((x) => x.first)), end: med(xs.map((x) => x.end)) })).sort((a, b) => a.start - b.start),
         fcpAll: rs.map((r) => r.fcp == null ? null : +r.fcp.toFixed(0)),
+        worldInAll: rs.map((r) => r.worldIn == null ? null : +r.worldIn.toFixed(0)),
       };
     }
   } finally { await browser.close(); if (tp) tp.close(); }
