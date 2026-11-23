@@ -105,7 +105,11 @@ so that no vertex shader's text changes: T2 reads none back).
 The skies keep all their own light under a ceiling (uCeil, OKLab L 0.53
 with a soft knee, the same everywhere on the window: the world's own
 light, never a function of where the words are); the moon is a pale flat
-disc held under it too. A sun or moon never fades where it stands (the
+disc held under it too. Opposite the moon, the moonlit cloud sea holds a glory (a bright
+centre and pastel rings, the first red ring at 3.9 deg: the corona's 6 um
+droplets) and a broad white fogbow at 37 deg: more of the sea's own light,
+a function of the view's angle alone, on the sea's surface only (above-glsl's
+A_glory, the moon's direction from the air's airMoon; test/unit/glory.mjs). A sun or moon never fades where it stands (the
 owner: "yep this. same w sun."), and on a moonlit night the moon drifts
 all night (the owner's choice, over a moon still between the changes): it
 rises out of view as the night arrives, comes in through a side edge late
