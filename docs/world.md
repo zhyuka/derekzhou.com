@@ -129,6 +129,21 @@ chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
 and first light's 0.15 are 0; the three nights' were 0 already). The cycle
 runs on the flight's own clock, its draws from the visit's own streams.
 
+The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
+sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
+100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
+degrees up. Its body hides the sky behind it in the air's own colour at its
+range (the far land's distance haze); the low sun lights its top above the
+Earth's shadow there, under the light ceiling; nearer layers (the 3 km veil,
+the Earth's shadow and the Belt) lie over it, farther ones (the wisps, the
+galaxy, the aurora, the moon, the stars) are hidden behind it. Its lightning
+is the owner's one exception to no-fades ("Soft distant flicker",
+2026-11-15; RULES.json no-fades): dim (its light Y +0.02 at most, under the
+ceiling), slow (each flash rises and falls over 130 ms or more, at most 2 in
+any second, its groups 10-40 s apart from the visit's own read), inside the
+storm's cloud only, whole inside a hold with the sun 5 degrees or more down,
+never in reduced motion or before the cut (test/unit/sky.mjs).
+
 ## THE WORDS
 
 (The owner: "Don't darken the background anywhere ever",
