@@ -1,5 +1,5 @@
 // test/unit/merge-bot.mjs: the merge bot's small rules (.github/ci/bot-rules.mjs)
-import { test, assert } from '../unit-lib.mjs';
+import { test, assert, fs, path, ROOT } from '../unit-lib.mjs';
 
 test('merge bot: a conflict is its session\'s, never the owner\'s (no label that holds the PR)', async () => {
   const { updateRefused, HOLD } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
@@ -49,6 +49,25 @@ test('merge bot: a re-run gate is read by its newest verdict artifact, not its f
   assert.equal(newestArtifact(undefined), null);
   const same = { id: 5, created_at: a1.created_at };
   assert.equal(newestArtifact([a1, same]).id, 13921053188, 'the same second: the higher id');
+});
+
+test('merge bot: the hub\'s review of a PR\'s head lands it (the owner, 2026-11-23: "just auto push stuff")', async () => {
+  const { reviewedIn } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  const A = 'a'.repeat(40), B = 'b'.repeat(40);
+  assert.equal(reviewedIn(`text\n<!-- hub-review ${A} -->\n`, A), true, 'reviewed at this head');
+  assert.equal(reviewedIn(`<!-- hub-review ${A} -->`, B), false, 'a push after the review: the head moved, it waits');
+  assert.equal(reviewedIn(`<!-- hub-review ${A.slice(0, 12)} -->`, A), false, 'a short sha is no review');
+  assert.equal(reviewedIn('hub-review ' + A, A), false, 'only the exact hidden line');
+  assert.equal(reviewedIn(null, A), false);
+  assert.equal(reviewedIn(`<!-- hub-review ${A} -->`, 'not-a-sha'), false);
+  const bot = fs.readFileSync(path.join(ROOT, '.github/ci/merge-bot.mjs'), 'utf8');
+  assert.match(bot, /const approved = reviewedIn\(pr\.body, sha\);/, 'the bot reads the review of the head it would land');
+  assert.match(bot, /if \(held\.length && !approved\)/, 'a needs-owner or visible label holds only an unreviewed PR');
+  assert.match(bot, /if \(!approved && files\.some\(\(f\) => SELF\.includes\(f\)\)\)/, 'the bot\'s own files wait only for the review');
+  assert.match(bot, /if \(!v\.frames_identical && !approved\)/, 'a visible change waits only for the review');
+  assert.match(bot, /if \(pulls\.some\(\(p\) => reviewedIn\(p\.body, p\.head\.sha\)\)\) return true;/, 'live follows a reviewed landing');
+  const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/merge.yml'), 'utf8');
+  assert.match(yml, /types: \[opened, reopened, ready_for_review, labeled, unlabeled, edited\]/, 'the review line starts a tick at once');
 });
 
 test('merge bot: a tip with the bake goes live only with its stills release up (stills.yml\'s status)', async () => {
