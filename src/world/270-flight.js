@@ -36,7 +36,6 @@
     if (DEVMODE && POSE && (CS.x || CS.z)) groundCache(V, CS.x, CS.z, true);   // (world6 step B fix, dev: a pose's own ground before its first height: it read the landing's, and the hard rule lifted the camera 46 times in the film's first 3 s)
     CS.y = (V.g0max !== undefined && !CS.x && !CS.z ? V.g0max : groundAt(V, CS.x, CS.z, true)) + CS.c;
     CS.yawV = CS.psi - CS.phi;
-    V.evNext = 6 + V.evRng.r(0, 6); V.flocksEv = [];
     if (BIRDS) BIRDS.visit(V.k);
     climateLight(V);
     copyState(CS, CSP);   // (the arrival is the previous step too, its heading and tilt included: the first frame, drawn between the two, was turned 4-5 deg toward the fresh state's heading and snapped on the next)
@@ -72,7 +71,7 @@
     }
     SIM.t = t; SIM.u = j.u; SIM.steps++;
     var dt = SIM_DT, u = j.u, cl = V.clear, v = V.speed;
-    if (DEVMODE && SW.camhold) { CS.vy = 0; CS.yawRate = 0; events(V, t, u); return true; }   // (dev, Fix 2: the camera held where it is while the clock runs: G0's frozen-scene film, where any change from frame to frame is the world's own animation)
+    if (DEVMODE && SW.camhold) { CS.vy = 0; CS.yawRate = 0; return true; }   // (dev, Fix 2: the camera held where it is while the clock runs: G0's frozen-scene film, where any change from frame to frame is the world's own animation)
     applyInput(dt, t, V);
     // (hotfix H1, design-v5 Revision 3: "should keep flying same-ish direction unless user drags") left alone, the view
     // holds the heading the visitor last set (at the landing, the landing's own): no autopilot, no aim at places or
@@ -125,7 +124,6 @@
     // 0.42 x the turn rate, eased over 0.6 s, and was still rolling when the next drag began)
     var rl = clamp(-Math.atan(v * CS.yawRate / 9.81), -BANK_MAX, BANK_MAX);
     CS.roll += (rl - CS.roll) * (1 - Math.exp(-dt / BANK_T));
-    events(V, t, u);
     directorStep(t);   // (world6: the director composes what lies ahead, out of sight; it never steers)
     climateLight(V);   // (world6 fix: every step: a pure function of where the camera is; at every sixth it stepped at 10 Hz)
     if (SIM.steps % 6 === 0) beamWake(V, u);

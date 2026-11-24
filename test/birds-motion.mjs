@@ -33,11 +33,11 @@ function run(cs, seed, hz, secs, each, size, all, sched) {
 const sh = (f, i) => [f.D[2 * i] - f.hb[0], f.D[2 * i + 1] - f.hb[1]];
 function d2(a, b, c) { let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a, i), q = sh(b, i), r = sh(c, i); m = Math.max(m, Math.hypot(p[0] - 2 * q[0] + r[0], p[1] - 2 * q[1] + r[1])); } return m; }
 /* the worst form and body second differences over the landing scenes, each over its bound (1: at the bound) */
-function jumps(hz, scenes, states, ledgeWalk) {
+function jumps(hz, scenes, states) {
   const k60 = (60 / hz) ** 2; let worst = { f: 0 }, worstB = { b: 0 };
   for (const cs of scenes) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= Math.max(SEEDS, 6); seed++) for (const F of run(cs, seed, hz, 24, null, size).values())   // (a phone too, the hub's review 3: a snap up after a landing there read 3.9x the bound; with the frame's own pose a landing onto the pointer there holds too)
     for (let n = 1; n < F.length - 1; n++) {
-      const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st) && !(b.st === 'fly' && states.includes('takeoff') && b.lv <= 2 * hz)) || (ledgeWalk && a.st === 'perch' && b.st === 'perch' && c.st === 'perch' && (a.li !== b.li || b.li !== c.li))) continue;   // ('takeoff': flying, within 2 s of its perch)   // (the first frames: the scene was set up on the step clock)
+      const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (states && !states.includes(b.st) && !(b.st === 'fly' && states.includes('takeoff') && b.lv <= 2 * hz))) continue;   // ('takeoff': flying, within 2 s of its perch)   // (the first frames: the scene was set up on the step clock)
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
       const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));   // (at 144 Hz 0.03 span a frame: the hub review's 0.02-0.03)
       if (f > worst.f) worst = { f, at: `${cs} ${size} ${seed} frame ${b.k} ${b.st}` };
@@ -161,9 +161,9 @@ test('no bird drawn in the window is stepped as unseen', () => {
 
 /* (with bird-lost-steps: the landing's switch to its last leg loses no step) the 144 Hz bound on landing and perched birds */
 function highHz(hz) {   // (the displays a visitor has: 144, 165 and 240 Hz; each a test of its own below)
-  // (not the frames where a perched bird walks from one stroke onto the next: its support changes ledge there, a snap of
-  // its own (BACKLOG: bird-walk-across-strokes, on main too); every other perched frame is bounded)
-  const { worst, worstB } = jumps(hz, ['perch', 'drop', 'click', 'cursor'], ['appr', 'land', 'perch', 'takeoff'], true);
+  // (every perched frame, those where a walk hands on from one ledge to the next too: the test below meets those on
+  // purpose)
+  const { worst, worstB } = jumps(hz, ['perch', 'drop', 'click', 'cursor'], ['appr', 'land', 'perch', 'takeoff']);
   console.log(`# ${hz} Hz: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
@@ -171,6 +171,77 @@ function highHz(hz) {   // (the displays a visitor has: 144, 165 and 240 Hz; eac
 test('144 Hz: no landing or perched bird\'s drawn form or body jumps', () => highHz(144));
 test('165 Hz: no landing or perched bird\'s drawn form or body jumps', () => highHz(165));
 test('240 Hz: no landing or perched bird\'s drawn form or body jumps', () => highHz(240));
+
+/* (BACKLOG: bird-walk-across-strokes) a perched bird walking from one ledge of a stroke onto the next stands on the ink
+   under its foot all the way: its support hands on with no snap. Once its body dropped 2.5 px in one frame there (drop 3,
+   144 Hz), and the 144 Hz bound set those frames aside; the ledges along a stroke now meet at one height and the bound
+   holds there too. The scenes' own walks cross a ledge on a few frames, so here every bird on the name is sent walking,
+   each way in turn, over the life scenes' minute, drawn at 144 Hz: its body's second difference on every frame its
+   ledge changes, within the 144 Hz body bound (measured: 993 frames, worst 0.26x; the support 2.5 px off between
+   neighbouring ledges, 2.39x) */
+test('144 Hz: a bird walking from one ledge onto the next along the name does not snap', () => {
+  const hz = 144, k60 = (60 / hz) ** 2; let walks = 0, cross = 0, worst = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.life(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [], H = new Map(); let dir = 1;
+    for (let k = 0; k < 60 * hz; k++) {
+      if (sc.each) sc.each(sim, tags);
+      if (sim.B) for (const b of sim.B.PERCHED) {   // (on the name, not walking: sent off along the stroke, the longest walk it plans)
+        const P = b.P; if (b.st !== 'perch' || !P || P.kind !== 'name' || P.walk || P.leaving) continue;
+        const w = sim.B.newWalk(P, dir, 3, 0.22 * sim.B.perchSpan(b, P.k), sim.t); dir = -dir; if (w) { P.walk = w; walks++; }
+      }
+      sim.frame(1 / hz); if (!sim.B) continue; const DF = sim.B.DF();
+      for (const b of sim.B.PERCHED) {
+        const s = b.s; if (!s || s.seenF !== DF || b.st !== 'perch' || !b.P || b.P.kind === 'pointer' || b.P.leaving) { H.delete(b); continue; }
+        let h = H.get(b); if (!h) H.set(b, h = []); h.push({ k, x: s.HB[0], y: s.HB[1], sp: s.spanPx, li: b.P.li }); if (h.length > 3) h.shift();
+        if (h.length < 3 || h[2].k !== h[0].k + 2 || h[1].sp < 6 || (h[0].li === h[1].li && h[1].li === h[2].li)) continue;
+        cross++; const bb = Math.hypot(h[0].x - 2 * h[1].x + h[2].x, h[0].y - 2 * h[1].y + h[2].y) / h[1].sp / (0.1 * Math.max(k60, 0.3));
+        if (bb > worst) { worst = bb; at = `${size} ${seed} frame ${k}`; }
+      }
+    }
+  }
+  console.log(`# walks sent along the name ${walks}; frames handing on from one ledge to the next ${cross}; body worst ${worst.toFixed(2)} of the 144 Hz bound (${at})`);
+  assert.ok(walks > 100 && cross > 300, `too few walks across a ledge (${walks} walks, ${cross} frames)`);
+  assert.ok(worst <= 1, `a walk handing on to the next ledge snapped ${worst.toFixed(2)}x the 144 Hz body bound (${at})`);
+});
+
+/* (BACKLOG: narrow-glyph hop-turns at 144 Hz) a hop-turn is a hop from one rest to the next: its rest eased from the one
+   it stood at to the one it will stand at, its lift along the hop's arc. Once, on a 6 px glyph, its rest kinked 1.12x the
+   144 Hz body bound (drop 2 frame 2384). The scenes' own turns are few and land where the draws put them, so here every
+   perched bird is turned round (each way in turn, as its own hop-turn does, its next act put off past it) every 1.5 s
+   from 2.2 s after its touch, over the life scenes' minute, drawn at 144 Hz; most stand on ledges of 10 px or less. Its
+   body's second difference on every frame of a turn, within the 144 Hz body bound (measured: 493 turns, 45,147 frames,
+   worst 0.58x on a 4.8 px ledge; the hop's lift in at once, not along its arc, 5.38x) */
+test('144 Hz: a hop-turn on a narrow glyph does not kink (every perched bird turned round)', () => {
+  const hz = 144, k60 = (60 / hz) ** 2; let turns = 0, frames = 0, narrow = 0, worst = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.life(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [], H = new Map(), next = new Map();
+    for (let k = 0; k < 60 * hz; k++) {
+      if (sc.each) sc.each(sim, tags);
+      if (sim.B) for (const b of sim.B.PERCHED) {   // (standing, settled, not mid-turn: turned round, a hop-turn's own fields)
+        const P = b.P; if (b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.act || sim.t - P.tt < 2.2) continue;
+        if (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.3) continue;
+        if ((next.get(b) || 0) > sim.t) continue; next.set(b, sim.t + 1.5);
+        const y = P.yaw || 0, to = (y >= 0 ? -1 : 1) * Math.max(60, Math.abs(y));
+        P.yaw0 = y; P.yawTo = to; P.yawT = sim.t; P.yawD = 0.2 + 0.2 * ((turns * 7919) % 100) / 100; P.hopTurn = true; P.face = to >= 0 ? 1 : -1;
+        P.nextAct = sim.t + P.yawD + 1; turns++;   // (as its own hop-turn puts off its next act: no other turn starts inside this one)
+      }
+      sim.frame(1 / hz); if (!sim.B) continue; const DF = sim.B.DF(), L = sim.B.ledges();
+      for (const b of sim.B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || s.seenF !== DF || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving) { H.delete(b); continue; }
+        let h = H.get(b); if (!h) H.set(b, h = []); h.push({ k, x: s.HB[0], y: s.HB[1], sp: s.spanPx, turning: P.hopTurn && sim.t - P.yawT < P.yawD + 0.05 }); if (h.length > 3) h.shift();
+        if (h.length < 3 || h[2].k !== h[0].k + 2 || h[1].sp < 6 || !h[1].turning) continue;
+        const Lg = L[P.li], w = Lg ? Lg.pts[Lg.pts.length - 1][0] - Lg.pts[0][0] : Infinity; frames++; if (w <= 10) narrow++;
+        const bb = Math.hypot(h[0].x - 2 * h[1].x + h[2].x, h[0].y - 2 * h[1].y + h[2].y) / h[1].sp / (0.1 * Math.max(k60, 0.3));
+        if (bb > worst) { worst = bb; at = `${size} ${seed} frame ${k}, a ${w.toFixed(1)} px ledge`; }
+      }
+    }
+  }
+  console.log(`# hop-turns ${turns}; frames turning ${frames} (on ledges of 10 px or less ${narrow}); body worst ${worst.toFixed(2)} of the 144 Hz bound (${at})`);
+  assert.ok(turns > 300 && narrow > 20000, `too few turns (${turns}) or frames on narrow ledges (${narrow})`);
+  assert.ok(worst <= 1, `a hop-turn kinked ${worst.toFixed(2)}x the 144 Hz body bound (${at})`);
+});
 
 /* (the audit's bird-lost-steps) a state switch flies the step it switches in: no bird in the air stands still for a
    step while it moves (main: every landing's switch to its last leg, and each replan, go-round and give-up, lost one
@@ -333,7 +404,6 @@ function uneven(hz) {   // (each a test of its own below: tools/checks/35-birds.
   for (const cs of ['perch', 'drop', 'cursor']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run(cs, seed, hz, 24, null, '960x600', false, jitter(hz, seed)).values())
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (a.k < 10 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch' && b.st !== 'appr')) continue;
-      if (b.st === 'perch' && (a.li !== b.li || b.li !== c.li) && a.st === 'perch' && c.st === 'perch') continue;
       const h1 = b.tm - a.tm, h2 = c.tm - b.tm, g = 2 / (h1 * h2 * (h1 + h2)) / 3600;   // (to 60 Hz's frame: the second difference a 1/60 s step would show)
       let m = 0; for (let i = 0; i < NV; i++) { const p = sh(a, i), q = sh(b, i), r = sh(c, i); m = Math.max(m, Math.hypot(h2 * p[0] - (h1 + h2) * q[0] + h1 * r[0], h2 * p[1] - (h1 + h2) * q[1] + h1 * r[1]) * g); }
       const bb = Math.hypot(h2 * a.hb[0] - (h1 + h2) * b.hb[0] + h1 * c.hb[0], h2 * a.hb[1] - (h1 + h2) * b.hb[1] + h1 * c.hb[1]) * g;

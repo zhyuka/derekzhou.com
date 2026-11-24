@@ -1,5 +1,5 @@
   /* the streamer: which cells a visit wants about a point (heading hx, hz), made in order of need, freed far behind */
-  var SCAN = new Float64Array(4), SCANA = new Float64Array(2);
+  var SCANA = new Float64Array(2);
   /* (physics: clouds/drift) how far out a scale's cells are made: its radius; an air cell's further, by the air's
      closing speed (the camera's and the low layer's against it: |W| / v more than the land's), so it has the land's time
      between being wanted and coming out of the haze (that lead, 0.1 R + 100 m and half a cell, made 1 + |W| / v times as
@@ -73,7 +73,8 @@
      walls in the world's: drawn at once when baked, a pop); the cell's nearest distance is past the band then (made at
      the scale's radius and half a cell, its near edge 0.7 of a cell nearer) */
   function volDistFade(o) {
-    var C = o.cell; if (!C) return 1; var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2], f = distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0));
+    var C = o.cell; if (!C) return 1;
+    var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2], f = distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0));
     return Math.min(f, cellDistFade(C));
   }
   function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once)

@@ -40,6 +40,17 @@
     SKY.fx[0] = T.fx[0] * band * E; SKY.fx[1] = T.fx[1] * E;   // (the belt's height already follows es through uSkyS; in a change through the mist, the waypoint's events at a quarter)
     SUNU.es = es; SUNU.band = band; SUNU.QN = QN; SUNU.E = E; SUNU.D = D;
   }
+  /* (physics: sky/purple-light) the purple light: the high (about 20 km) haze's glow lit by the sun from below the
+     horizon, seen 2-6 deg after sunset and before sunrise: its amount whole from 3 to 4 deg down (the most at 3-4, WMO), none above 1.5 or below
+     6; its centre on the sun's bearing, 28 deg up with the sun 3 down, sinking with it (16 deg at 6 down). Into out:
+     its centre (xyz) and its amount (w) */
+  var PURP = new Float32Array(4);
+  function purpleAt(d, az) {
+    var w = clamp((-1.5 - d) / 1.5, 0, 1), x = clamp((d + 6) / 2, 0, 1), e = clamp(24 + 4 * (d + 4), 4, 40) * DEG;
+    w = w * w * (3 - 2 * w) * x * x * (3 - 2 * x);
+    PURP[0] = Math.sin(az) * Math.cos(e); PURP[1] = Math.sin(e); PURP[2] = Math.cos(az) * Math.cos(e); PURP[3] = w;
+    return PURP;
+  }
   function skyThemeWarm(c, e, side) {   // skyWarmN's, on the CPU (theme-color)
     var lt = Math.exp(-Math.max(e + SUNU.D, 0) / SUNU.kT[1]) * SUNU.band, ln = Math.exp(-Math.max(e, 0) / SUNU.kN[1]) * SUNU.QN, j;
     for (j = 0; j < 3; j++) { c[j] += (SUNU.wT[j] - c[j]) * SUNU.kT[0] * side * side * lt; c[j] *= 1 - SUNU.kT[2] * (1 - side) * lt; c[j] += (SUNU.wN[j] - c[j]) * SUNU.kN[0] * side * side * ln; c[j] *= 1 - SUNU.kN[2] * (1 - side) * ln; }

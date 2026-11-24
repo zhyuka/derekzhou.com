@@ -19,9 +19,9 @@ execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', 
 const AIRF = 'src/world/215-air.js', errs = [];
 
 // 1. the air's names: declared in the air, written only there
-const NAMES = ['SKY_RATE', 'AIR_DIR', 'AIR_H', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_LAT', 'AIR_OBL', 'AIR_GAL', 'AIR_SKYF', 'AIR_FRAME', 'AIR_SIDEREAL', 'AIRAPI',
+const NAMES = ['SKY_RATE', 'AIR_HOP', 'AIR_DIR', 'AIR_H', 'AIR_KEY_EL', 'AIR_KEY_AZ', 'AIR_SUN_EL', 'AIR_SUN_NIGHT', 'AIR_CRUISE', 'AIR_APART', 'AIR_W', 'AIR_MOON', 'AIR_LAT', 'AIR_OBL', 'AIR_GAL', 'AIR_SKYF', 'AIR_FRAME', 'AIR_SIDEREAL', 'AIRAPI',
   'airDraw', 'airSpeed', 'windAt', 'airVec3', 'airUpwind', 'airKeySet', 'keyAt', 'airSunEl', 'airSkySun', 'airMoon', 'airMoonDir', 'AIR_MOOND', 'AIR_MOONS', 'AIR_LD', 'AIR_LDM', 'AIR_LDT', 'airMoonShare', 'airMoonRef', 'AIR_MOONR', 'airTurnLow', 'airLightDir', 'skyFrame', 'skySphere', 'weather', 'airHeading0', 'AIR_UT0',
-  'AIR_BYSKY', 'AIR_MIST', 'AIR_WXK', 'AIR_WXO', 'airWx', 'airMistOf', 'airMistAt', 'AIR_MIST_RATE', 'AIR_MOIST', 'airMoist', 'airShare', 'airCarried', 'airClock', 'airBase', 'airTable', 'UAIR', 'AIR_NC', 'airFrameU'];
+  'AIR_BYSKY', 'AIR_MIST', 'AIR_WXK', 'AIR_WXO', 'airWx', 'airMistOf', 'airMistAt', 'AIR_MIST_RATE', 'AIR_MOIST', 'airMoist', 'airShare', 'airCarried', 'airClock', 'airBase', 'airTable', 'UAIR', 'AIR_NC', 'airFrameU', 'airHeard', 'AIR_HEARD_Y'];
 for (const n of NAMES) {
   let w; try { w = await where(n, 'world'); } catch (e) { errs.push(`${n}: not a name of the world (${e.message})`); continue; }
   if (!w || !w.decl || w.decl.file !== AIRF) { errs.push(`${n} is declared in ${w && w.decl ? w.decl.file : 'no section'}, not the air (${AIRF})`); continue; }
@@ -60,6 +60,9 @@ if (/\buT\b/.test(vb) || !/vec3 nOff = uVO;/.test(vb)) errs.push('src/world/glsl
 const sc = blank(fs.readFileSync(path.join(ROOT, 'src/score.js'), 'utf8'));
 sc.split('\n').forEach((l, i) => { if (/\b(afterglow|bluehour|firstlight|moonlit|milkyway|aurora)\s*:\s*\[\s*-?[\d.]+\s*,\s*-?[\d.]+\s*\]/.test(l)) errs.push(`src/score.js:${i + 1}: a breeze by sky of the score's own (the feed's air: AIR_BYSKY): ${l.trim().slice(0, 140)}`); });
 if (!/S\.air = F\.air/.test(sc)) errs.push('src/score.js: the score does not take the feed\'s air (the world\'s wind by sky)');
+// 4. the air heard: the feed's wind is the air's at the camera (airHeard; test/unit/air.mjs holds it to the visit's)
+const feed = blank(fs.readFileSync(path.join(ROOT, 'src/world/512-score-feed.js'), 'utf8'));
+if (!/\bw = airHeard\(CS\.x,\s*CS\.z,/.test(feed) || !/\bwind: w,/.test(feed)) errs.push('src/world/512-score-feed.js: the feed\'s wind is not the air heard at the camera (w = airHeard(CS.x, CS.z, ...), wind: w)');
 
 if (errs.length) { for (const e of errs) console.log('::error::' + e); console.log(`one air: ${errs.length} breach(es) (RULES.json one-world-state; src/world/215-air.js holds the world's one state)`); process.exit(1); }
 console.log(`one air: ${NAMES.length} names held by the air alone, no wind or sun literal outside it`);

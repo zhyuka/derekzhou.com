@@ -64,7 +64,7 @@ test('merge bot: the hub\'s review of a PR\'s head lands it (the owner, 2026-11-
   assert.match(bot, /const approved = await hubReviewed\(pr, sha\);/, 'the bot reads the review of the head it would land');
   assert.match(bot, /if \(held\.length && !approved\)/, 'a needs-owner or visible label holds only an unreviewed PR');
   assert.match(bot, /if \(!approved && files\.some\(\(f\) => SELF\.includes\(f\)\)\)/, 'the bot\'s own files wait only for the review');
-  assert.match(bot, /if \(!v\.frames_identical && !approved\)/, 'a visible change waits only for the review');
+  assert.match(bot, /if \(!lone\.ok && !approved\)/, 'a visible change waits only for the review');
   assert.match(bot, /if \(\(shared\.length \|\| same\.length\) && !approved\)/, 'a reviewed PR is not re-gated for every landing: it merges, and main\'s gate tests it');
   assert.match(bot, /for \(const p of pulls\) if \(await hubReviewed\(p, p\.head\.sha\)\) return true;/, 'live follows a reviewed landing');
   const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/merge.yml'), 'utf8');
@@ -117,3 +117,18 @@ test('merge bot: the PR\'s title and body are checked for a banned name right be
   assert.match(fs.readFileSync(new URL('../../.github/workflows/merge.yml', import.meta.url), 'utf8'), /sparse-checkout: \|\n\s+\.github\/ci\n\s+\.claude\/hooks/, 'the bot\'s checkout has guard.py and names.json');
 });
 // plant: {"file": ".github/ci/bot-rules.mjs", "find": "if (r.status === 0) return { land: true };", "with": "if (r.status === 0 || r.status === 1) return { land: true };", "why": "a banned name in the PR's text lands anyway"}
+
+test('merge bot: a served build that differs waits for the hub\'s review, even with every T1 frame the base\'s (the hub, 2026-11-24)', async () => {
+  const { unreviewedLands } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  assert.equal(unreviewedLands({ site_changed: false, frames_identical: true, reason: 'byte for byte' }).ok, true, 'docs, tests, CI: the build the base\'s, lands');
+  const blind = unreviewedLands({ site_changed: true, frames_identical: true, reason: 'T1: every frame, DOM and still the base\'s' });
+  assert.equal(blind.ok, false, '#373: a planet no T1 case looks at, every frame the base\'s, still waits');
+  assert.match(blind.why, /served build differs/);
+  assert.equal(unreviewedLands({ site_changed: true, frames_identical: false, reason: 'T1: frames changed' }).ok, false);
+  assert.equal(unreviewedLands({ frames_identical: true, reason: 'an old verdict' }).ok, false, 'a verdict that does not say: counts as changed');
+  assert.equal(unreviewedLands(null).ok, false);
+  const bot = fs.readFileSync(path.join(ROOT, '.github/ci/merge-bot.mjs'), 'utf8');
+  assert.match(bot, /const lone = unreviewedLands\(v\);[^\n]*\n\s+if \(!lone\.ok && !approved\) \{ note\(lone\.why\); continue; \}/, 'the PR loop asks the rule, and only a review passes it');
+});
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "if (v.site_changed !== false) return", "with": "if (false) return", "why": "a served build that differs, every T1 frame the base's, lands with no review (#373's planet)"}
+// plant: {"file": ".github/ci/merge-bot.mjs", "find": "if (!lone.ok && !approved) { note(lone.why); continue; }", "with": "if (!v.frames_identical && !approved) { note(lone.why); continue; }", "why": "the bot back on frames identical alone"}

@@ -2,7 +2,7 @@
   /* The sound icon's score (score.js, played only once the visitor presses the icon) follows the sky: its key, its
      changes, the cloud under the view. It asks here about once a second and gets a fresh copy: the sky's clock, the
      order from the sky on show onward (each sky's id, start, hold, change length, and whether its change is far,
-     through the mist), how much of the view is the cloud sea (0 the dunes, 1 the cloud), the air's wind by sky (AIR_BYSKY: each sky's share of the day's wind and its gustiness, the breeze it plays), whether the world is held to
+     through the mist), how much of the view is the cloud sea (0 the dunes, 1 the cloud), the air's wind by sky (AIR_BYSKY: each sky's share of the day's wind and its gustiness, the breeze it plays), the one air heard where the camera flies (airHeard at its height over the ground: the wind, the gust arriving, its sigma, its clock and the speed gusts pass at; and the wind's bearing from the eye's way, + to the right, and the apparent wind, the wind less the camera's own motion), whether the world is held to
      one still frame, and a seed of its own from the visit's one entropy read. It writes nothing here and nothing here
      waits on it: it never steers the world. Before the sky's order exists (no WebGL2, a world not yet made) the
      answer is null. */
@@ -10,5 +10,9 @@
     var seq = SKY.seq, i = SKY.i, out = [], k;
     if (!seq.length || i < 0) return null;
     for (k = i; k < seq.length; k++) out.push({ id: seq[k].id, at: seq[k].at, hold: seq[k].hold, move: seq[k].move, far: !!seq[k].far });
-    return { t: SIM.t + SKY.dt, seq: out, wc: MAPS.w ? kitAt(CS.x, CS.z).wC : 0, air: airTable(), still: reduced() || STILLMODE, seed: subseed(shown ? SEEDR : J.seed, 97) >>> 0 };   // (the score plays after the cut: the visit's own read)
+    var st = reduced() || STILLMODE, w = airHeard(CS.x, CS.z, Math.max(AIR_HEARD_Y, CS.y - groundAt(SIM.V, CS.x, CS.z)), SIM.t, SIM.V), v = st ? 0 : SIM.V.speed, s = Math.sin(CS.psi), c = Math.cos(CS.psi);
+    var fx = CAM.f[0], fz = CAM.f[2];   // (the eye's way on the ground: f's horizontal part, its right (-fz, fx) as 320's unrolled r; atan2 takes no length, so neither pitch nor roll bends the bearing)
+    w.bear = Math.atan2(w.z * fx - w.x * fz, w.x * fx + w.z * fz);   // rad, the way it blows from the eye's way, + to the right
+    w.ax = w.x - (st ? 0 : s * v - c * CS.sv); w.az = w.z - (st ? 0 : c * v + s * CS.sv);   // the apparent wind, m/s: the camera's velocity as the flight moves it (270: on the heading, and the slip to its right)
+    return { t: SIM.t + SKY.dt, seq: out, wc: MAPS.w ? kitAt(CS.x, CS.z).wC : 0, air: airTable(), wind: w, still: st, seed: subseed(shown ? SEEDR : J.seed, 97) >>> 0 };   // (the score plays after the cut: the visit's own read)
   }

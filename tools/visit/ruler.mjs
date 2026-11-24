@@ -32,7 +32,9 @@ const DS0 = '  var DIR_DT = 0.5, DIR_SEE = 5,', DE0 = '  /* --------------------
 const PLAN = cut(WORLD, A1, E1, true) + cut(WORLD, A2, E2, true) + cut(WORLD, A3, E3) + cut(WORLD, DS0, DE0);
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
 const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the cycle at t');
-const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true);
+const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true)   // (and the air's equatorial axes and galactic pole and centre: the sky order places the galaxy by them)
+  + cut(WORLD, '  var AIR_LAT = ', '\n', true) + cut(WORLD, '  function airEq(', '\n', true)
+  + '  function keyAt(V) { return [0, 0.5, 0.866]; }\n';   // (a stub: the aurora's sheet faces the key; the ruler reads no light)
 const SEED0OF = /var SEED0 = (\(11 \+ \(SEEDR % OPENN\) \* 0x9e3779b9\) >>> 0)/.exec(WORLD), OPENN = /var OPENN = (\d+)/.exec(WORLD);   // (010: SEED0 from the read)
 const VSEED = /var r = (RNG\(subseed\(J\.seed, \d+\)\));\n\s*J\.V = \{ k: 0, id: 'world', def: def, seed: r\.seed\(\)/.exec(WORLD);   // (170: the visit's seed, the cells' salt's parent)
 const VSALT = /V\.salt = (subseed\(V\.seed, \d+\) >>> 0);/.exec(WORLD);   // (200: the cells' salt)
@@ -75,7 +77,7 @@ function landOf(k) {
     '  var V = {}; V.seed = ' + VSEED[1] + '.seed(); V.salt = ' + VSALT[1] + ';\n' +
     '  var SIM = {};\n' + MOIST + '  G.mistQ = ' + (MIST ? 'airMoist({ u10: airU10(V.seed) })' : 'null') + '; G.windAz = ' + VRNG[1].replace('V.seed', 'V.seed') + '.r(0, 2 * PI);\n' +
     '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf; G.seed = V.seed;\n' +
-    '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, RNG: RNG, subseed: subseed };\n})');
+    '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, ihash: ihash, RNG: RNG, subseed: subseed };\n})');
   const g = {}, CS = { x: 0, z: 0 }; G(g, CS, k); g.CS = CS;
   g.mapsInit(g.SEED0);
   return g;
@@ -86,7 +88,7 @@ const KITS = (() => {
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const reg = (src, S) => {
     let def = null;
-    const kit = { lch: (l, c, h, kk) => [l, c, h, kk === undefined ? 1 : kk], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, RNG: S.RNG, smooth, range: () => {}, rock: () => {} };
+    const kit = { lch: (l, c, h, kk) => [l, c, h, kk === undefined ? 1 : kk], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, ihash: S.ihash, RNG: S.RNG, smooth, range: () => {}, rock: () => {} };
     const air = new Proxy({}, { get: (_, k) => k === 'H' ? { clouds: 800, deck: 3000 } : k === 'windAt' ? () => ({ x: 0, y: 0, z: 0 }) : () => [0, 0, 0] });   // (an air cell's kit reads the wind's way: still here, so V.wind's)
     vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air, realm: (d) => { def = d; } } });
     return def;
@@ -116,7 +118,6 @@ function cellPlaces(L, kits, kind, ix, iz, size, air) {
 function cellPlacesBoth(L, kits, kind, ix, iz, size) {
   const a = cellPlaces(L, kits, kind, ix, iz, size), b = cellPlaces(L, kits, kind, ix, iz, size, true);
   return { pois: a.pois.concat(b.pois), flocks: a.flocks.concat(b.flocks) };
-  return out;
 }
 
 // the sky's order for an opening and a read: the opening's sky and hold, the read's order from the cut on
@@ -144,6 +145,9 @@ function lookKind(lk, wC, duneH) {   // (duneH: the main dunes' drawn height the
 const q = (a, p) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
 
 // one land: the flight's ray for secs, the director replayed along it; the places and flocks beside it
+// the land's own first heading, its stream's draw (airHeading0's, where the curated table leaves it null), rad
+const HEAD_SALT = /RNG\(subseed\(J\.seed, (\d+)\)\)\.r\(0, 2 \* PI\)/.exec(HEAD0);
+export function streamHeading(k) { const L = landOf(k); return L.STREAMS.RNG(L.STREAMS.subseed(L.SEED0, +HEAD_SALT[1])).r(0, 2 * Math.PI); }
 export function flyLand(k, secs = 7200, heading = null) {   // (heading: another first heading than the land's own, rad)
   const L = landOf(k), kits = KITS(L.STREAMS), V_MS = kits.dunes.speed || +SPEED0[1], psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
   const looks = [], sea = []; let cut0 = null;   // (cut0: the land at the cut, the director's look within 250 m of the landing)

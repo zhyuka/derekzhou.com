@@ -1,7 +1,12 @@
 // test/unit/ruler.mjs: the visit ruler (tools/visit/ruler.mjs) runs on the world as it ships
 // plant: {"file": "tools/visit/ruler.mjs", "find": "export const DUNE_MIN = 8;", "with": "export const DUNE_MIN = 0;", "why": "every land opens over dunes"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);", "with": "keep = () => true;", "why": "a cell keeps every piece, whatever its density"}
-import { test, assert, golden } from '../unit-lib.mjs';
+// plant: {"file": "src/world/215-air.js", "find": "305, 60, null", "with": "20, 60, null", "why": "k11's first heading back to 20 deg: 30% of the words' boxes under cloud (looks.json)"}
+// plant: {"file": "src/realm-above.js", "find": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0)", "with": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-31, 0)", "why": "a cumulus moved: looks.json was measured on another world"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float hgt = 7.0 + 9.0 * sc", "with": "float hgt = 8.0 + 9.0 * sc", "expect": "pass", "why": "a star moved: the sky is not in looks.json's key, the record holds"}
+// plant: {"file": "tools/visit/look-rule.mjs", "find": "GLOW_KEEP = 0.5,", "with": "GLOW_KEEP = 0,", "why": "the glow the land's own heading shows may be lost"}
+// plant: {"file": "tools/visit/look-rule.mjs", "find": "NAME_CAP = 0.02,", "with": "NAME_CAP = 1,", "why": "the name's cap loosened past 2%"}
+import { test, assert, golden, WORLD } from '../unit-lib.mjs';
 const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN } = await import('../../tools/visit/ruler.mjs');
 
 // ------------------------------------------------------------------ the ruler's cuts still hold, and it measures
@@ -53,4 +58,34 @@ test('ruler: the mist at the cut is by the visit\'s moisture (AIR\'s weather, wh
   assert.ok(q3 > 0.5, `k3: moisture ${q3} (want a moist visit: the live seed's U10 3.97 m/s)`);
   assert.ok(Math.abs(k3.mistAtCut - want) < 0.05, `k3 at dawn: ${k3.mistAtCut} m of mist (want ${want}: first light's ${MIST_BY_SKY.firstlight} m by its moisture ${q3})`);
   assert.equal(k4.mistAtCut, 0, `k4 at dawn: ${k4.mistAtCut} m (want 0: a dry visit)`);
+});
+
+// ------------------------------------------------------------------ the first headings keep the words clear of cloud
+// (the hub's reviews of #312, Nov 23 and 24) each land's first heading in airHeading0's table (null: the land's own draw)
+// was measured in its first frames by tools/visit/looks.mjs (tools/visit/looks.json), on this very world: the record
+// keeps look-rule.mjs's worldKey (the code of what lays out the clouds, the opening's view and the words' boxes:
+// KEY_INPUTS), and a record of another world fails ("re-run looks.mjs --table"); the sky, the land's surface and the
+// birds are not in it. No
+// heading puts more than WORD_CAP (10% at most) of the words' boxes, or NAME_CAP (2% at most) of the name's, under cloud
+// in any of its three frames (laptop night, laptop sunset, phone dawn), nor loses the low sun's disc or glow the land's
+// own heading shows (keepsDiscs: GLOW_KEEP of its light in frame at least; waived only on a land where no measured heading keeps
+// both, glowWaived); a table entry never measured fails too
+test('ruler: each land\'s first heading keeps the words and the name clear of cloud, measured on this world (looks.json)', async () => {
+  const fs = await import('node:fs');
+  const { WORD_CAP, NAME_CAP, GLOW_KEEP, lookKey, worldKey, keepsDiscs, glowWaived } = await import('../../tools/visit/look-rule.mjs');
+  assert.ok(WORD_CAP <= 0.1 && NAME_CAP <= 0.02, `the caps: words ${WORD_CAP} (want 0.1 at most), the name ${NAME_CAP} (want 0.02 at most)`);
+  const T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(WORLD);
+  assert.ok(T, 'airHeading0\'s table not found in world.js');
+  const table = JSON.parse(T[1]), rec = JSON.parse(fs.readFileSync(new URL('../../tools/visit/looks.json', import.meta.url), 'utf8'));
+  assert.equal(rec.world, await worldKey(), 'looks.json was measured on another world (a cloud, the opening view or the words moved: look-rule.mjs KEY_INPUTS): node tools/build.mjs --plain build/site && node tools/visit/looks.mjs --build build/site --table (about 30 minutes), then node tools/visit/headings.mjs if a heading now fails');
+  assert.equal(table.length, 16, 'the table has one heading for each of the 16 lands');
+  for (let k = 0; k < 16; k++) {
+    const l = (rec.lands[k] || {})[lookKey(table[k])];
+    assert.ok(l, `k${k}: heading ${lookKey(table[k])} was never measured (node tools/visit/looks.mjs, then headings.mjs)`);
+    assert.ok(l.wordCloud <= WORD_CAP, `k${k}: heading ${lookKey(table[k])} puts ${(l.wordCloud * 100).toFixed(1)}% of the words' boxes under cloud (want ${WORD_CAP * 100}% at most)`);
+    assert.ok(l.nameCloud <= NAME_CAP, `k${k}: heading ${lookKey(table[k])} puts ${(l.nameCloud * 100).toFixed(1)}% of the name's box under cloud (want ${NAME_CAP * 100}% at most)`);
+    const own = rec.lands[k].own;
+    assert.ok(own, `k${k}: the land's own heading was never measured`);
+    assert.ok(GLOW_KEEP >= 0.5 && (keepsDiscs(l, own) || glowWaived(rec.lands[k], own)), `k${k}: heading ${lookKey(table[k])} keeps sun light ${l.sunIn} against the own heading's ${own.sunIn} (want ${GLOW_KEEP} of it) or loses its disc`);
+  }
 });

@@ -9,8 +9,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  # (CI lane, 2026-11-24) five runners side by side, each the build and its share of the checks (tools/check.mjs --shard,
+  # split by tools/checks/costs.json): on one 4-core runner the 40 checks took 7.6 minutes, each slowed by the others.
+  # A shard's failure fails the job (needs.static.result in gate.yml's verdict); the others still finish (fail-fast off).
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    name: validate (${{ matrix.shard }}/5)
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # (main's history too: the plants a change can break are found against its merge base)
@@ -33,8 +41,8 @@ jobs:
           npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pwshell" playwright-core@1.49.1 >/dev/null
           node "$RUNNER_TEMP/pwshell/node_modules/playwright-core/cli.js" install --only-shell chromium
 
-      - name: Every check (tools/check.mjs)
-        run: node tools/check.mjs
+      - name: This shard's checks (tools/check.mjs --shard)
+        run: node tools/check.mjs --shard ${{ matrix.shard }}/5
 
       # (CI lane, 2026-11-15, the audit's safety nets) every check's planted failures still fail it: on a branch, the
       # plants the change can break (tools/check.mjs --prove --changed: those in a changed file, and every plant of a
@@ -45,4 +53,4 @@ jobs:
           git fetch -q --no-tags origin main
           base=$(git merge-base FETCH_HEAD HEAD)
           git diff --name-only "$base" HEAD > "$RUNNER_TEMP/changed.txt"
-          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt"
+          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt" --base "$base" --shard ${{ matrix.shard }}/5
