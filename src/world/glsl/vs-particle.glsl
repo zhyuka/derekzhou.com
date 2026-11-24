@@ -49,10 +49,11 @@ void rain(int id) {
   vec3 vel = vec3(uWind.x, -uPd.x * float(qf) / 256.0, uWind.z);
   vec2 rel = mod(vec2(r2, r3) * uPa.x + uPa.x * uPm.zw - uPm.xy + 0.5 * uPa.x, uPa.x) - 0.5 * uPa.x;
   vec2 xz = uCam.xz + rel;
-  /* (physics: air/rain-gust) the rain's gusts are the air's one field: heavier in a band where a gust is passing, the
-     band carried along the wind on the surface's clock (uAir.x), in the field's own sigmas (no private cycle of the
-     screen's: the whole rain never pulses at once) */
-  float gust = 1.0 + uPd.z * 0.5 * smoothstep(0.2, 1.2, airGust(xz, normalize(uWind.xz), uAirU, 1.0, uAir.x) / AIR_GUST_I);
+  /* (physics: air/rain-gust) the rain's gusts are the air's one field, carried along the wind on the surface's clock
+     (uAir.x), in the day's sigmas times the sky's gustiness (uAir.z, as the grains'); the field is coherent over 22 U10 m,
+     so in view the rain mostly thickens together as a gust passes, never on a private cycle of the screen's */
+  vec2 wd = dot(uWind.xz, uWind.xz) > 1e-6 ? normalize(uWind.xz) : vec2(1.0, 0.0);   // (a windless rain: never normalize a zero vector, NaN where a GPU passes it through)
+  float gust = 1.0 + uPd.z * 0.5 * smoothstep(0.2, 1.2, airGust(xz, wd, uAirU, uAir.z, uAir.x) / AIR_GUST_I);
   if (r4 > uPg.z * gust * 0.67) { hide(); return; }
   float H = uPa.y, y = H * 0.5 - H * fract(kDrift(qf, uPn.w, uPn.z) + r1) - uCamL.y, g = groundH(xz) - uCam.y - uCamL.y;   // (the eye's heights)
   float edge = 1.0 - smoothstep(0.36 * uPa.x, 0.5 * uPa.x, max(abs(rel.x), abs(rel.y)));

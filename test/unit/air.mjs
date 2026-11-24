@@ -49,7 +49,8 @@
 // plant: {"file": "src/world/215-air.js", "find": "var a = airBase(x, z, y, V), k = airShare(", "with": "var a = airBase(x, z, y * 1.01, V), k = airShare(", "why": "windAt off the hand-computed wind (the profile at another height)"}
 // plant: {"file": "src/world/215-air.js", "find": "return clamp((1.0 + e) * (1.0 + e), ", "with": "return clamp((1.0 + e), ", "why": "the grains' hop linear in the gust, not as the friction speed squared"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, tau)", "with": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, uT)", "why": "the grains' gust on the frame's clock, not the air's"}
-// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, 1.0, uAir.x) / AIR_GUST_I);", "with": "gn(vec2(uT * 0.045, 3.7)) + 0.5);", "why": "the rain's gusts a pulse of the whole screen's again"}
+// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "dot(uWind.xz, uWind.xz) > 1e-6 ? normalize(uWind.xz) : vec2(1.0, 0.0);", "with": "normalize(uWind.xz);", "why": "a windless rain normalizing a zero vector (NaN)"}
+// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, wd, uAirU, uAir.z, uAir.x) / AIR_GUST_I);", "with": "gn(vec2(uT * 0.045, 3.7)) + 0.5);", "why": "the rain's gusts a pulse of the whole screen's again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "k * uWind.xz * (uAir.x - tau)", "with": "k * uWind.xz * (uT - t)", "why": "the grains carried by the wind times the time (a change of sky jumps them)"}
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
 // plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
@@ -315,7 +316,8 @@ test('air: the grains hop with the gust (physics: air/grain-hop): (1 + e)^2 of t
 
 test('air: the rain\'s gusts are the air\'s one field (physics: air/rain-gust), never a cycle of the whole screen\'s', () => {
   const vp = GLSL('vs-particle.glsl'), rain = vp.split('void rain(int id) {')[1].split('\nvoid ')[0];
-  assert.ok(/float gust = 1\.0 \+ uPd\.z \* 0\.5 \* smoothstep\(0\.2, 1\.2, airGust\(xz, normalize\(uWind\.xz\), uAirU, 1\.0, uAir\.x\) \/ AIR_GUST_I\);/.test(rain), 'a drop\'s gust the field\'s at the drop, in its sigmas, on the surface\'s clock');
+  assert.ok(/vec2 wd = dot\(uWind\.xz, uWind\.xz\) > 1e-6 \? normalize\(uWind\.xz\) : vec2\(1\.0, 0\.0\);/.test(rain), 'a windless rain never normalizes a zero vector (NaN: every drop shown)');
+  assert.ok(/float gust = 1\.0 \+ uPd\.z \* 0\.5 \* smoothstep\(0\.2, 1\.2, airGust\(xz, wd, uAirU, uAir\.z, uAir\.x\) \/ AIR_GUST_I\);/.test(rain), 'a drop\'s gust the field\'s at the drop, in the day\'s sigmas times the sky\'s gustiness, on the surface\'s clock');
   assert.ok(rain.indexOf('vec2 xz = uCam.xz + rel;') < rain.indexOf('float gust ='), 'read where the drop is');
   assert.ok(!/gn\(vec2\(t \*|\buT\b/.test(rain.split('float gust =')[1].split(';')[0]) && !/\bt = uT\b/.test(rain), 'no private clock: the whole rain never pulses at once');
 });
