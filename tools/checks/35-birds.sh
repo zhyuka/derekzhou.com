@@ -18,10 +18,10 @@
 # plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "hopL = turning ? (P.hopTurn ? 0.16 : 0.035) * Math.sin(Math.PI * clamp((TD - P.yawT) / P.yawD, 0, 1)) : wh * 0.05;", "with": "hopL = turning ? (P.hopTurn ? 0.16 : 0.035) : wh * 0.05;", "why": "a hop-turn's lift in at once, not along its arc: the body kinks at the turn's start and end (the narrow hop-turn test: 5.38x the 144 Hz bound)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
-# (CI lane, 2026-11-24) `# parts: 2`: tools/check.mjs runs this as two checks on a push, CHECK_PART=0/2 and 1/2, each
-# the tests whose place in the list (over all four files) falls to it, so two shards take them side by side (177 s on
+# (CI lane, 2026-11-24) `# parts: 3`: tools/check.mjs runs this as three checks on a push, CHECK_PART=0/3 .. 2/3, each
+# the tests whose place in the list (over all four files) falls to it, so three shards take them side by side (177 s on
 # one runner: the gate's long pole). The clock test is part 0's. Unset (plants, --only, a run by hand): every test.
-# parts: 2
+# parts: 3
 part=0; parts=1
 if [[ "${CHECK_PART:-}" =~ ^([0-9]+)/([0-9]+)$ ]]; then part=${BASH_REMATCH[1]}; parts=${BASH_REMATCH[2]}; fi
 pids=(); i=0; total=0; clock=(); k=0

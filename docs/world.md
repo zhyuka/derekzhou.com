@@ -235,6 +235,14 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
+The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
+a steady band low over the horizon on the night skies, brightest about 6 deg
+up and falling away overhead, behind the haze; it comes in by the stars' own
+weight (uStarM.w: none until the sun is 15 deg down, whole from 18), its peak
+Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
+frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
+a tenth of a dark night's own sky low down; pale green at luminance 1, with no
+structure and no clock.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -649,7 +657,10 @@ physics: clouds/drift). It holds:
   the friction speed squared. It reads the field on the grain's own clock
   (tau, so its streak's tail is the same grain a moment back); its drift
   stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. The score hears the field through the feed (the air
+  nothing jumps. The rain's gusts are the field too (physics:
+  air/rain-gust): heavier in a band where a gust is passing, carried
+  along the wind on the surface's clock, never a pulse of the whole
+  screen's (no realm has rain today). The score hears the field through the feed (the air
   heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit

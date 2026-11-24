@@ -49,6 +49,7 @@
 // plant: {"file": "src/world/215-air.js", "find": "var a = airBase(x, z, y, V), k = airShare(", "with": "var a = airBase(x, z, y * 1.01, V), k = airShare(", "why": "windAt off the hand-computed wind (the profile at another height)"}
 // plant: {"file": "src/world/215-air.js", "find": "return clamp((1.0 + e) * (1.0 + e), ", "with": "return clamp((1.0 + e), ", "why": "the grains' hop linear in the gust, not as the friction speed squared"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, tau)", "with": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, uT)", "why": "the grains' gust on the frame's clock, not the air's"}
+// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, 1.0, uAir.x) / AIR_GUST_I);", "with": "gn(vec2(uT * 0.045, 3.7)) + 0.5);", "why": "the rain's gusts a pulse of the whole screen's again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "k * uWind.xz * (uAir.x - tau)", "with": "k * uWind.xz * (uT - t)", "why": "the grains carried by the wind times the time (a change of sky jumps them)"}
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
 // plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
@@ -310,6 +311,13 @@ test('air: the grains hop with the gust (physics: air/grain-hop): (1 + e)^2 of t
   assert.ok(/float hop = uPb\.x \* airHop\(e\) \* abs\(sin\(/.test(vp), 'the hop\'s height x airHop(e)');
   assert.ok(/vec2 pos = p0 \+ dr \+/.test(vp) && !/dr[^;]*airGust|pos[^;]*airGust/.test(vp), 'the drift stays the mean wind\'s closed form (a gust never moves a grain: nothing jumps)');
   assert.match(WORLD, /P = DP\.pt; gl\.useProgram\(P\.p\); setFrameUniforms\(P, V\);/, 'the grains carry the field at the visit\'s U10, as the veils (the frame\'s uniforms)');
+});
+
+test('air: the rain\'s gusts are the air\'s one field (physics: air/rain-gust), never a cycle of the whole screen\'s', () => {
+  const vp = GLSL('vs-particle.glsl'), rain = vp.split('void rain(int id) {')[1].split('\nvoid ')[0];
+  assert.ok(/float gust = 1\.0 \+ uPd\.z \* 0\.5 \* smoothstep\(0\.2, 1\.2, airGust\(xz, normalize\(uWind\.xz\), uAirU, 1\.0, uAir\.x\) \/ AIR_GUST_I\);/.test(rain), 'a drop\'s gust the field\'s at the drop, in its sigmas, on the surface\'s clock');
+  assert.ok(rain.indexOf('vec2 xz = uCam.xz + rel;') < rain.indexOf('float gust ='), 'read where the drop is');
+  assert.ok(!/gn\(vec2\(t \*|\buT\b/.test(rain.split('float gust =')[1].split(';')[0]) && !/\bt = uT\b/.test(rain), 'no private clock: the whole rain never pulses at once');
 });
 
 test('air: a mote is drawn along its whole motion on the window (its own wind and the camera\'s), never a jumping dot', () => {

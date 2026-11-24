@@ -26,6 +26,7 @@ uniform vec3 uMetC;          // its colour, at luminance 1
 uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
 out vec4 oC;
 const float SKYTAU = 6.2831853;
+const float AIRGLOW_Y = 0.004;   // (night) the airglow's peak light (Y): a tenth to a quarter of a dark night's own sky low down
 /* (tod) the stars: world-anchored (a cell of the sphere by the direction: elevation bands STC rad deep, each cut into
    cells about STC rad wide), a star in a share of the cells at a hashed place well inside its own, a bell at least
    FWHM 1 px by the pixel's own angle with its energy held (its peak the same at any resolution: a turn slides it and
@@ -371,6 +372,11 @@ void main() {
   float hzS = 1.0 - hazeSky(rd); vec3 hzT = hzS * mix(vec3(1.0, 0.84, 0.68), vec3(1.0), hzS);
   if (uGal.w > 0.0 && eS > 0.0) { gL = galaxyAt(rd, eS) * hzT; c += gL; }   // (phase 2; gL held apart for nightLim)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
+  /* (night) the airglow: the upper air's own faint green light (the oxygen line at 557.7 nm), a steady band low over
+     the horizon, brightest about 6-10 deg up (the long path through the glowing layer) and falling away overhead; only
+     once the sun is past 15-18 deg down (the stars' own weight, uStarM.w), behind the haze; at most Y AIRGLOW_Y, steady
+     (no structure, no clock) */
+  if (uSunD.z > 0.0 && eS > 0.0) c += vec3(0.795, 1.0835, 0.775) * (AIRGLOW_Y * (1.0 - uStarM.w) * smoothstep(0.0, 6.0, eS) * exp(-eS / 14.0)) * hzT;
 #endif
   if (uMoon.w > 0.0) {   // the moon: a neutral to faintly warm disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
