@@ -4,7 +4,7 @@
 // the floor and rim are read once a site, from the probe, asynchronously; the shaders draw it with the mist pools'
 // shading (fogTopAt beside mistTop) and the flight keeps over its top (270's hard rule, 280's height, the ceiling).
 // plant: {"file": "src/world/234-fog-pools.js", "find": "Math.min(FOG.lo + evPoolDepth(s, L.mist), FOG.rim - FOG_SPILL)", "with": "FOG.lo + evPoolDepth(s, L.mist)", "why": "the fog pool over its basin's rim: it spills and shows an edge at r"}
-// plant: {"file": "src/world/234-fog-pools.js", "find": "if (!(L.mist > 0)) return;", "with": "", "why": "a fog pool with no mist"}
+// plant: {"file": "src/world/234-fog-pools.js", "find": "FOG.lo + evPoolDepth(s, L.mist)", "with": "FOG.lo + evPoolDepth(s, 10)", "why": "a fog pool deep whatever the mist (none with no mist, none moving with it)"}
 // plant: {"file": "src/world/280-ground-what-stands-ahead.js", "find": "return Math.max(yT, g0 + lc, fogTopAt(V, CS.x, CS.z) + 1 + MIST_OVER);", "with": "return Math.max(yT, g0 + lc);", "why": "the camera aimed down into a fog pool"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
@@ -34,6 +34,8 @@ test('fog: the pool fills the basin\'s lowest land to AIR\'s depth, held under t
   assert.ok(f && Math.abs(f[3] - (40 + 40)) < 0.6, `the top at the floor + AIR's 40 m (got ${f && f[3]})`);
   assert.deepEqual([f[0], f[1], f[2]], [SITE.x, SITE.z, SITE.r], 'at the site, its radius');
   P.step(V, 10); assert.equal(P.jobs.length, 1, 'read once, not again');
+  const g = P.step(V, 5);
+  assert.ok(g && Math.abs(g[3] - (40 + 20)) < 0.6, `the level moves with the mist: AIR's 20 m at 5 m of mist (got ${g && g[3]})`);
 });
 
 test('fog: under the rim (never spilled), none with no mist, and only within the radius', () => {
