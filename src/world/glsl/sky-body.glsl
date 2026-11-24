@@ -403,10 +403,13 @@ void main() {
   // (tod) the sky's night: each its amount times its shape, 0 at amount 0
   float eS = degrees(asin(clamp(rd.y, -1.0, 1.0)));
   if (uNight.x > 0.0 && eS > -1.0) {   // the Earth's shadow rising opposite the sky's own light, and the Belt of Venus over it (the live's belt)
-    float se = degrees(asin(clamp(uSkyS.y, -1.0, 1.0))), side = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(-uSkyS.xz + 1e-5)), 0.0, 1.0), 2.0) * uNight.x * smoothstep(-1.0, 0.0, eS);
+    float se = degrees(asin(clamp(uSkyS.y, -1.0, 1.0))), sideS = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(-uSkyS.xz + 1e-5)), 0.0, 1.0), 2.0) * smoothstep(-1.0, 0.0, eS), side = sideS * uNight.x;
     float hs = 1.0 + max(-se, 0.0) * 1.1;
     float sh = 1.0 - smoothstep(hs - 0.8, hs + 1.2, eS), bl = smoothstep(hs - 0.4, hs + 2.0, eS) * (1.0 - smoothstep(hs + 5.0, hs + 13.0, eS));
-    c = mix(c, c * vec3(0.72, 0.78, 0.95), sh * side * 0.55);
+    /* (physics: twilight/shadow) the Earth's shadow blue-grey, h 270, at the sky's own lightness (OKLab L within 0.005
+       either way: the tint's luma 1.05, which OKLab's L reads as equal; never a darkening), whole at its core in any
+       sky that has a belt (a partial mix passes through mauve) */
+    c = mix(c, dot(c, LUMA) * vec3(0.861, 1.04, 1.68), sh * sideS * min(uNight.x / 0.4, 1.0));
     c += vec3(0.95, 0.6, 0.66) * bl * side * dot(c, LUMA) * 0.35;
   }
   vec3 cBA = c;   // (physics: weather/far-anvil) the sky as it stands before what lies beyond the far storm (the wisps, 83 km up: 500-700 km away on its rays)
