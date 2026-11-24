@@ -30,7 +30,8 @@
     RES[0] = W; RES[1] = H;
     ST.px.scene = W * H; ST.px.half = w2 * h2; ST.px.quarter = Math.ceil(W / 4) * Math.ceil(H / 4); ST.px.out = FULL.w * FULL.h;
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE3);
-    gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, GCT ? GCT.t : null); gl.activeTexture(gl.TEXTURE0);
+    cshPass(V);   // (physics: light/cloud-shadow: the clouds' shadows on the plane, before the land reads them)
+    gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, GCT ? GCT.t : null); gl.activeTexture(gl.TEXTURE12); gl.bindTexture(gl.TEXTURE_2D, CSH.ok ? CSH.T.t : null); gl.activeTexture(gl.TEXTURE0);
     prof('start');
     DFR.W = W; DFR.H = H; DFR.w2 = w2; DFR.h2 = h2; DFR.L = L; DFR.DP = DP;
     drawScene(V, u); drawHalfDepth(V, u); drawBeams(V, u); drawClouds(V, u); drawBloom(V, u); drawComposite(V, u);

@@ -58,6 +58,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
                              test/unit/aurora.mjs (the aurora by its physics: its sheet, colour, motion and the night's phases),
                              test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
+                             test/unit/cloudshadow.mjs (the clouds' shadows on the land: the chord, the ellipse, the wiring),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit
                              far out: an fp32 replay), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at

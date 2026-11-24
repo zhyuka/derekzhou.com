@@ -255,7 +255,7 @@ for f in world:
     elif 'FS_COMP' in (src[f] or ''): fail('7 never-darker', f'{f}: FS_COMP not found as one template (rule 7 cannot read it)')
 
 # 7b nothing drawn onto the canvas after the composite but what is named
-PROGRAMS = {'sky', 'depth', 'pre', 'down', 'up', 'smask', 'sblur', 'comp', 'blit', 'vdens', 'vlight', 'vbody', 'occ', 'creature', 'glow', 'beam', 'cacc'}
+PROGRAMS = {'sky', 'depth', 'pre', 'down', 'up', 'smask', 'sblur', 'comp', 'blit', 'vdens', 'vlight', 'vbody', 'occ', 'creature', 'glow', 'beam', 'cacc', 'cshadow'}
 DRAWS = r'\b(dc|drawArrays|drawElements|drawArraysInstanced|drawElementsInstanced|drawRangeElements|blitFramebuffer)\s*\('
 for f in world:
     c = strip_comments(src[f]); L = c.split('\n')

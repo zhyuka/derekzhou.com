@@ -676,6 +676,39 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The clouds' shadows on the land (physics: light/cloud-shadow;
+  src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
+  2026-11-15: "No, natural light is fine": the world's own cast shadows
+  are free under the light ceiling, and nothing is darkened for the words
+  (RULES.json no-darkening). Every cloud body's lobes (its cells' soft
+  spheres, where its layer's wind has carried them: cellOff on the clouds'
+  own clock) cast the key's light off the land along the live key (uSun:
+  the sun, or on the moonlit sky the moon's disc, the land's own light).
+  One pass a frame draws each lobe as the ellipse a sphere throws on one
+  level plane (the ground under the camera): R across the key's way,
+  R / sin(elevation) along it. Its light there is exp(-k chord), k 0.05/m
+  (the clouds' march extinction, 0.19, over the lobes' eroded fill, about a
+  quarter). The chord is the cut the key's ray makes through the lobe, its
+  edge softened over the key's own disc (0.53 deg: the penumbra, the ray's
+  length times 0.0046). The lobes are multiplied together (the exp of their
+  summed depth, stored over 32 so 8 bits hold a cloud's) into a 1024 x
+  1024 map 40 km across, about the camera (past the land the eye sees, so
+  its easing-off lies under the far haze). The sand, the stones and the
+  rock read it where their own point, carried along the same key, meets
+  that plane (so any height of land lines up with its cloud). They lose
+  only the key's direct share of their light, n.l / (n.l + q), with q the
+  sky's diffuse light over the beam's from the clear-sky model
+  (https://www.nrel.gov/docs/legosti/old/761.pdf, SERI/TR-642-761: the
+  beam is 47 to 67 % of the light on level sand under the 5 to 14 deg
+  key). They get part of it back, scattered through the cloud: the
+  two-stream diffuse transmission 1 / (1 + 3/4 (1 - g) tau), g 0.85
+  (https://doi.org/10.1119/1.15109). So at a low key a shadow is weak (level sand keeps 0.55 to 0.7 of its light under a
+  mean cloud, tau 20), and a face turned from the key loses nothing. The
+  soft edge is the key's disc: the penumbra's width across the key's way,
+  stretched by 1 / sin(elevation) along it, so a low key's far and near
+  edges are long and soft. The map eases off over its last quarter (a
+  place's distance, never the clock's). Nothing under a key at the horizon.
+  The composite takes no input from it (no-darkening, W7).
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
