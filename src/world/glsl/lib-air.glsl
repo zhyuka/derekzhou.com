@@ -42,7 +42,7 @@ vec3 skyCol(vec3 rd) {
 /* aerial perspective, physical (physics: Looks): the air between the eye and a point takes its light away by
    extinction and gives the sky's back by in-scatter, L = c T + Linf (1 - T), per channel, T = exp(-od). Two kinds of
    scatterer: the gas, by wavelength (as the inverse fourth power: BR, its sea-level scattering at 680, 550 and 440 nm,
-   https://doi.org/10.1364/AO.34.002765, thinning with an 8 km scale height), and the aerosol, grey (the sky's own
+   https://doi.org/10.1364/AO.34.002765, thinning with an 8 km scale height along the path: gasPath), and the aerosol, grey (the sky's own
    height fog, density a at y0 falling off by b, and its even distance term, uFog; times uAer.x, the visit's dust and
    moisture by AIR's weather, 370). Linf, what a path long enough gives back, is the sky's own colour toward the
    horizon (fogCol: the sky drawn there), so far ridges dissolve into the sky behind them; and since blue is taken and
@@ -57,7 +57,10 @@ float fogOD(vec3 rd, float t) {   // the aerosol's optical depth along rd to t
   float f = abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k;
   return (uFog.x * exp(-b * (uCam.y - uFog.z)) * t * f + uFog.w * t) * uAer.x;
 }
-float fogAmt(vec3 rd, float t) { return 1.0 - exp(-fogOD(rd, t) - BR.g * t * exp(-uCam.y / 8000.0)); }   // (one share for a light's own glow: the green's)
+/* the gas's path, m of sea-level air: along rd to t through air thinning with its 8 km scale height from the eye's,
+   the slant integral of exp(-y / H) (a cloud 7 km up is seen through the thin air it stands in, not the eye's) */
+float gasPath(vec3 rd, float t) { float k = rd.y * t / 8000.0; return t * exp(-uCam.y / 8000.0) * (abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }
+float fogAmt(vec3 rd, float t) { return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t)); }   // (one share for a light's own glow: the green's)
 /* the ground haze: a shallow layer over the land (its base a fixed depth under the eye, so it reads the same on a
    swell and in a trough), thick along the ground and thin above: far land and the feet of far things dissolve into a
    bright band while their tops keep their colour; lavender, warmer toward the sun */
@@ -82,7 +85,7 @@ vec3 hazeCol(vec3 rd) {
 }
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float m = fogOD(rd, t), g = uAer.y, cs = dot(rd, uSun);
-  vec3 T = exp(-(m + BR * (t * exp(-uCam.y / 8000.0)))), fq = fogCol(rd);
+  vec3 T = exp(-(m + BR * gasPath(rd, t))), fq = fogCol(rd);
   c = c * T + fq * (1.0 - T) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-m)));
   c = mix(c, hazeCol(rd), hazeAmt(rd, t));
   /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen

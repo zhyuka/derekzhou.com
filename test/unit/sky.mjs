@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HI_H = 7000.0, HIF_W = 12000.0;", "with": "const float HI_H = 3000.0, HIF_W = 12000.0;", "why": "the cirrus back at 3 km, under real cirrus heights"}
@@ -1227,4 +1228,19 @@ test('sky: the cirrus stands 7 km up on the air\'s wind there, and a change brin
       prev = row;
     }
   }
+});
+
+test('physics: Looks: the gas\'s path is the slant integral of air thinning with its 8 km scale height (gasPath)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src/world/glsl/lib-air.glsl'), 'utf8');
+  const m = g.match(/float gasPath\(vec3 rd, float t\) \{([^\n]*)\}\n/);
+  assert.ok(m, 'lib-air.glsl has no gasPath');
+  const js = m[1].replace(/\bfloat\b/g, 'let').replace(/\bexp\(/g, 'Math.exp(').replace(/\babs\(/g, 'Math.abs(');
+  const gasPath = vm.runInThisContext('(function (rd, t, uCam) {' + js + '})');
+  for (const [y0, ry, t] of [[0, 0, 30000], [40, 0.1, 30000], [200, 0.23, 30000], [20, -0.01, 5000], [500, 0.5, 14000]]) {
+    let n = 0; const N = 20000; for (let i = 0; i < N; i++) { const s = (i + 0.5) * t / N; n += Math.exp(-(y0 + ry * s) / 8000) * t / N; }
+    const v = gasPath({ y: ry }, t, { y: y0 });
+    assert.ok(Math.abs(v - n) / n < 1e-4, 'gasPath at eye ' + y0 + ' m, rd.y ' + ry + ', ' + t + ' m: ' + v.toFixed(1) + ' against the integral ' + n.toFixed(1));
+  }
+  assert.ok(g.includes('vec3 T = exp(-(m + BR * gasPath(rd, t)))'), 'atmos does not take the gas along its path');
+  assert.ok(g.includes('return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t));'), 'fogAmt does not take the gas along its path');
 });
