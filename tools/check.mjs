@@ -116,7 +116,8 @@ if (has('--prove')) {
     const f = path.join(ROOT, p.file || p.create), keep = p.create ? null : fs.readFileSync(f);
     if (keep && !keep.toString('utf8').includes(p.find)) { console.log('FAIL   ' + c.slug.padEnd(20) + ' the plant\'s text is not in ' + p.file); bad = 1; continue; }
     fs.writeFileSync(f, keep ? keep.toString('utf8').replace(p.find, p.with) : 'planted\n');
-    let r; try { if (p.rebuild) for (const b of build) await run(b); r = await run(c); } finally { if (keep) fs.writeFileSync(f, keep); else fs.rmSync(f); }
+    // (CHECK_PLANT_AT: the file the plant is written in; 24-unit.sh then runs only that area file)
+    let r; try { if (p.rebuild) for (const b of build) await run(b); r = await run(c, { CHECK_PLANT_AT: p.at }); } finally { if (keep) fs.writeFileSync(f, keep); else fs.rmSync(f); }
     if (p.rebuild) for (const b of build) await run(b);   // (a source plant: the build made from it, then made again from the source put back)
     if (r.ok && /skipped here/.test(r.out)) { console.log('skip   ' + c.slug.padEnd(20) + ' ' + p.why + ' (the check does not run on this machine)'); continue; }
     const want = p.expect === 'pass', ok = r.ok === want;
