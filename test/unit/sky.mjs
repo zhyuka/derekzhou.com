@@ -4,15 +4,18 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "smoothstep(-55.0, -45.0, ld) * (1.0 - smoothstep(75.0, 85.0, ld))", "with": "1.0", "why": "the rift all round the band"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "var CEIL_KNEE = 0.04,", "with": "var CEIL_KNEE = 0.08,", "why": "the ceiling's knee wide again: a night's highlights flattened under it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return F * starBox(d.x, sg) * starBox(d.y, sg);", "with": "  return b * exp(-dot(d, d) / (2.0 * 0.1764));", "why": "a star sampled at the pixel's centre: it pulses as it slides across pixels"}
+// plant: {"file": "src/world/220-time-day.js", "find": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:1,", "with": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,", "why": "the stars' amount blended between skies again (the afterglow's 0.05): the no-fades gap"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += auroraAt(rd, eS) * hzT;", "with": "c += auroraAt(rd, eS);", "why": "the aurora added over the haze at full strength"}
 // plant: {"file": "src/world/223-sun.js", "find": "x = clamp((d + 6) / 2, 0, 1)", "with": "x = 1", "why": "the purple light at night: it shows with the sun 24 deg down"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float PURP_KC = 0.45;", "with": "const float PURP_KC = 0.6;", "why": "the purple light into the ceiling's knee: the old blend, a level taken from the red"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "{ n++; break; }", "with": "{ break; }", "why": "venusFails never counts a place on a word: the evening star planned across the words, and on a window all words"}
 // plant: {"file": "src/world/219-meteors.js", "find": "var y = M.long ? M.y : M.y * Math.sin(Math.PI * e / M.dur);", "with": "var y = M.y;", "why": "a short meteor that pops on and off at full light"}
 // plant: {"file": "src/world/219-meteors.js", "find": "QUIET: 8,", "with": "QUIET: 0,", "why": "a meteor in the opening stay's first seconds: in its still"}
 // plant: {"file": "src/world/219-meteors.js", "find": "      return { A: R0, n: n, th0: th0, th1: t1, thP: thP };", "with": "      return { A: R0, n: n, th0: th0, th1: th0 + 120, thP: thP };", "why": "a long one ending 120 deg on, up in the sky: a drag brings its end into view, where it vanishes at full light"}
 // plant: {"file": "src/world/220-time-day.js", "find": "L:[0.62,0.01,80],glow:[0.44,0.01,80]", "with": "L:[0.62,0.01,250],glow:[0.44,0.01,250]", "why": "a blue-tinted disc merges with the blue moonlit clouds"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-2268x1080\":[[800.6,222.2,1467.2,433.8]", "with": "\"hi-2268x1080\":[[933.2,339.4,1334.7,433.8]", "why": "the still's own name box alone: on its band's smallest window the words stand bigger, and the moon's footprint falls on them"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-1080x1080\":[[268.9,300.5,810.9,441.4]", "with": "\"hi-1080x1080\":[[339.2,347,740.7,441.4]", "why": "the square still's own name box alone: on 800x720 the evening star's path falls on the bigger name"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "var cw = Math.min(bw, bh * BD[0]), ch = Math.min(bh, bw / BD[1])", "with": "var cw = bw, ch = bh", "why": "the opening planned in the whole still: a disc near its top edge falls off a wider window of its band"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "    LATEK.creature = lk[0]; LATEK.glow = lk[1]; LATEK.beam = lk[2];\n", "with": "", "why": "the opening's cloud layout leaves a late program's flag set: it starts compiling at the opening"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lit = smoothstep(hs - 0.5, hs + 0.5, z);", "with": "float lit = 1.0;", "why": "the far storm lit whole whatever the sun's depth: lit in the blue hour and at night"}
@@ -227,25 +230,6 @@ test('night: the opening moon\'s place is kept off a cloud body, from the lobes 
   assert.ok(q[2] > 0 && x > 0 && x < 1920 && y > 0 && y < 1080, 'in frame');
   for (const B of boxes) { assert.ok(!(x >= B[0] && x <= B[2] && y >= B[1] && y <= B[3]), 'not in a word box'); for (let i = 0; i <= 20; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 20, B[1]], [B[0] + (B[2] - B[0]) * i / 20, B[3]]]) assert.ok(M.mrAng(o.d, M.mrPix(C, mk(), px, py)) >= M.MRK.FOOT, 'its footprint clear'); }
   const E2 = {}; M.moonClear(E2, mk(), cloud, eye); assert.deepEqual([E2.landX, E2.landUp], [E1.landX, E1.landUp], 'the same lobes, the same place');
-});
-
-// the moon's disc against the moonlit clouds (the hub's round-3 ruling, 2026-11-16 04:19): the clouds are never darkened
-// to make room, so the disc stands at the ceiling's L (its table L through fs-comp's shoulder, CEIL_KNEE), parts from the
-// clouds by hue (at least 60 deg from their lit colour's) with low chroma (neutral to faintly warm, C <= 0.015), and
-// its glow adds its own light up to its luminance (no per-channel max of a blue sky and a warm glow, which read olive)
-test('night: the moon\'s disc stands at the ceiling, by hue apart from the moonlit clouds, low in chroma; its glow never olive', () => {
-  const m = /moonlit: \{[^\n]*?clLit:\[([\d.]+),([\d.]+),([\d.]+)\][^\n]*?fx:\{moon:\{r:[\d.]+,L:\[([\d.]+),([\d.]+),([\d.]+)\],glow:\[([\d.]+),([\d.]+),([\d.]+)\][^\n]*?ceil:([\d.]+)/.exec(WORLD);
-  assert.ok(m, 'the moonlit sky\'s clLit, fx.moon and ceil');
-  const [cl, disc, glow, ceil] = [m.slice(1, 4), m.slice(4, 7), m.slice(7, 10), [m[10]]].map((a) => a.map(Number)), k = +/var CEIL_KNEE = ([\d.]+)/.exec(WORLD)[1];
-  const shown = (L) => { const Kc = ceil[0] - k; return L > Kc ? Kc + k * (1 - Math.exp(-(L - Kc) / k)) : L; };
-  assert.ok(Math.abs(shown(disc[0]) - ceil[0]) <= 0.01, `the disc shown at L ${shown(disc[0]).toFixed(3)}, the ceiling ${ceil[0]}`);
-  const dh = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
-  assert.ok(dh(disc[2], cl[2]) >= 60, `the disc's hue ${disc[2]} within 60 deg of the clouds' ${cl[2]}`);
-  assert.ok(disc[1] <= 0.015 && glow[1] <= 0.015, `the disc's chroma ${disc[1]}, its glow's ${glow[1]} (at most 0.015)`);
-  assert.ok(dh(glow[2], cl[2]) >= 60, 'the glow\'s hue apart from the clouds\' too');
-  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
-  assert.ok(g.includes('c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;') && !g.includes('max(c, uMoonG)'), 'the glow adds its own light up to its luminance, never a per-channel max');
-  assert.ok(g.includes('smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma)'), 'the disc\'s edge crisp: about a pixel either side');
 });
 
 test('physics: weather/far-anvil: the far storm hides the sky in the air\'s colour, its top lit above the Earth\'s shadow, its lightning a soft, slow flicker', () => {
@@ -503,6 +487,196 @@ test('sky: a star\'s light on the screen is the same wherever it stands between 
   }
 });
 
+// ------------------------------------------------------------------ the night's bodies (delight-night §1 and §4)
+// 215's skySphere (AIR's sphere: its season) and 227's starLim and venusDir run here as the page runs them, a fake order under them;
+// the shader's own tint and Venus constants read from sky-body.glsl
+const NIGHT = cut(WORLD, '  function airSunEl(id)', '\n', true) + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + cut(WORLD, '  var STAR_LIM =', '  function venusFails(');
+function nightWorld(seed, keyAz, seq) {
+  return vm.runInThisContext('(function (SEED, KEYAZ, SEQ) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: SEQ, dt: 0 }, SKY_RATE = 100;\n' +
+    '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n' + STREAMS + VEC + NIGHT +
+    '  return { skySphere: skySphere, starLim: starLim, venusDir: venusDir, venusFrame: venusFrame, venusEcl: venusEcl, V: SIM.V, VEN_EL: VEN_EL, VEN_TOP_Y: VEN_TOP_Y };\n})')(seed, keyAz, seq);
+}
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const angD = (a, b) => Math.atan2(Math.hypot(...cross3(a, b)), dot3(a, b)) * 180 / Math.PI;
+test('night: the evening star stands by the drawn sun (its elongation, on the ecliptic through it, east in the evening, west in the morning) and sets with it', () => {
+  for (let s = 1; s <= 60; s++) for (const [morning, D0] of [[false, 3], [false, 7], [true, 3], [false, 24]]) {
+    const keyAz = (s * 71) % 360, K = nightWorld(s * 2654435761 >>> 0, keyAz, []), F = K.venusFrame(K.V, morning, D0), side = morning ? -1 : 1, eps = K.VEN_EL[0] + (K.VEN_EL[1] - K.VEN_EL[0]) * ((s * 0.618) % 1);
+    assert.ok(K.VEN_EL[1] <= 47 && K.VEN_EL[0] > 0, 'within 47 deg of the sun');
+    const sun = (D) => [Math.sin(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180), Math.sin(-D * Math.PI / 180), Math.cos(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180)];
+    assert.ok(Math.abs(Math.asin(F.P[1]) * 180 / Math.PI - 64) < 1e-9, 'the pole at AIR\'s latitude');
+    const N = [F.P[0], 0, F.P[2]], E = cross3(N, [0, 1, 0]), S0 = sun(D0);
+    assert.ok(side * dot3(S0, E) < 0, `seed ${s}: the drawn sun in the ${morning ? 'east' : 'west'}`);
+    let prev = null;
+    for (let D = Math.min(D0, 3); D <= 24; D += 0.5) {
+      const v = K.venusDir(F, eps, side, D, D0, [0, 0, 0]), S = sun(D);
+      assert.ok(Math.abs(angD(v, S) - eps) < 1e-6, `elongation ${angD(v, S)} (${eps})`);
+      if (D === D0) {
+        assert.ok(Math.abs(dot3(v, K.venusEcl(F, S0, [0, 0, 0]))) < 1e-9, 'on the ecliptic through the drawn sun at the opening\'s depth');
+        assert.ok(side * dot3(v, cross3(F.P, S0)) > 0, `seed ${s}: ${morning ? 'west' : 'east'} of the sun on the sky`);
+      }
+      if (D0 <= 7 && D <= 7) assert.ok(v[1] > S[1], `seed ${s}: above the sun in its own twilight`);
+      if (prev && v[1] > -0.3 && D > D0) { assert.ok(v[1] < prev[1] + 1e-12, `seed ${s}: it sinks as the sun does (D ${D})`); assert.ok(angD(v, prev) < 0.5 + 1e-9, `seed ${s}: no jump`); }
+      prev = v;
+    }
+  }
+});
+test('night: the stars come out by the sun\'s depth, brightest first; their colours never move their light; Venus under L 0.50', () => {
+  const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (let D = 0; D < 30; D += 0.25) assert.ok(K.starLim(D + 0.25) >= K.starLim(D), 'the limit only deepens with the sun');
+  assert.ok(K.starLim(3) < 1.5 && K.starLim(6) >= 0.9 && K.starLim(6) <= 1.5 && Math.abs(K.starLim(12) - 4.5) < 1e-9 && K.starLim(18) >= 6, 'civil, nautical, astronomical');
+  assert.ok(g.includes('float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }'), 'starMag');
+  const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07);
+  assert.ok(mag(1.02) < mag(0.3) && mag(0.3) < mag(0.07), 'brightest first');
+  assert.ok(g.includes('float bk = nightShow(starMag(b), ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
+  assert.ok(!/uSunD\.z \* \(/.test(g) && /, sk = uSunD\.z \* smoothstep/.test(g), 'the amount is only the stars\' on/off');
+  const stars = [...WORLD.matchAll(/post:\{[^}]*stars:([\d.]+)/g)].map((m) => +m[1]);
+  assert.equal(stars.length, 6); assert.ok(stars.every((x) => x === 1), `every sky's stars' amount is 1 (no blend between skies): ${stars}`);
+  const lab = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; };
+  const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], W = [0.92 / 0.94, 1, 1 / 0.94];
+  const T = g.match(/^vec3 starTint[\s\S]*?^}/m)[0], cols = [...T.matchAll(/vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]).filter((c) => c[0] !== 0.92);
+  assert.equal(cols.length, 4);
+  for (const c of cols) { const L = lab(c); assert.ok(Math.abs(Y(c) - Y(W)) < 2e-3, `tint ${c}: Y ${Y(c)}`); assert.ok(Math.abs(L[0] - lab(W)[0]) < 5e-3, `tint ${c}: L ${L[0]}`); assert.ok(Math.hypot(L[1], L[2]) <= 0.0505, `tint ${c}: pastel (C ${Math.hypot(L[1], L[2]).toFixed(4)}, at most 0.05: delight-night §4)`); }
+  const vc = g.match(/return vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* min\(v, hv\)/); assert.ok(vc, 'Venus\'s colour, capped at its head');
+  const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
+  for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }
+});
+test('night: the evening star never glitters as it slides between pixels (its light the same within 2%)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const fn = (name) => g.match(new RegExp('^float ' + name + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm'));
+  const js = (src) => src.replace(/\bfloat\s+/g, 'let ').replace(/\b(sign|sqrt|exp)\(/g, 'Math.$1(').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const E = fn('starErf'), B = fn('starBox'), starErf = new Function(E[1].replace(/float /g, ''), js(E[2])), starBox = new Function('starErf', B[1].replace(/float /g, ''), js(B[2])).bind(null, starErf);
+  const V = g.match(/^vec3 venusAt[\s\S]*?^}/m)[0];
+  assert.ok(V.includes('sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;') && V.includes('float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);') && V.includes('min(v, hv)') && !/uT\b/.test(V), 'venusAt: its core, glow and cap as measured here, and no clock (steady)');
+  let seed = 3; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  for (const hv of [0.02, 0.05, 0.1]) {
+    let lo = Infinity, hi = 0;
+    for (let k = 0; k < 64; k++) {
+      const ox = rnd() - 0.5, oy = rnd() - 0.5, F = 1.1 * 2 * Math.PI * hv * 0.7225; let sum = 0, peak = 0;
+      for (let y = -20; y <= 20; y++) for (let x = -20; x <= 20; x++) { const dx = x - ox, dy = y - oy; if (dx * dx + dy * dy > 400) continue; const v = Math.min(F * starBox(dx, 0.85) * starBox(dy, 0.85) + 0.13 * hv * Math.exp(-Math.hypot(dx, dy) / 3.6), hv); sum += v; peak = Math.max(peak, v); }
+      lo = Math.min(lo, sum); hi = Math.max(hi, sum); assert.ok(peak <= hv + 1e-12);
+    }
+    assert.ok((hi - lo) / hi < 0.02, `head ${hv}: its light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides`);
+  }
+});
+
+// the stars out in order (delight-night §4, the hub's review of #301): over a change from the blue hour into a night
+// (the sun from 7 to 24 deg down on the change's own ease, 58 s), each star's first frame of light against its
+// brightness ranks them brightest first (rank correlation >= 0.9, the sky's light by place included: brighter toward the
+// glow), and no star's share changes by more than 2% in a frame at 60 Hz; no Venus on a visit with no clear path
+test('night: the stars come out brightest first (rank correlation >= 0.9) and never change more than 2% a frame', () => {
+  const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const NL = g.match(/^float nightLim\(vec3 c\) \{ float y = max\(dot\(c, LUMA\), 1e-4\); return (.*); \}$/m);
+  assert.ok(NL, 'nightLim as measured here');
+  const nightLim = (y, zx, zy, w) => Math.min(zx - w * 2.5 * Math.log10(Math.max(y / Math.max(zy, 1e-4), 1)), 7.9 - w * 2.5 * Math.log10(Math.max(y / 0.016, 1)));
+  assert.ok(NL[1] === 'min(uStarM.x - uStarM.w * 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - uStarM.w * 2.5 * log(max(y / 0.016, 1.0)) / log(10.0))', 'nightLim\'s own line: ' + NL[1]);
+  const N0 = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
+  assert.ok(N0.includes('NIGHTB.m[3] = 1 - smooth(15, 18, D);'), 'the sky light\'s weight: 1 in a twilight, 0 from 18 deg down');
+  const wD = (D) => { const t = Math.min(Math.max((D - 15) / 3, 0), 1); return 1 - t * t * (3 - 2 * t); };
+  const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07), show = (m, ml) => Math.min(Math.max((ml - m) / 0.5, 0), 1);
+  let seed = 11; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  const stars = []; for (let i = 0; i < 400; i++) { const b = Math.pow(rnd(), 6) * 0.95 + 0.07, glow = rnd(); stars.push({ b, glow, first: Infinity }); }   // (glow: 0 the zenith's light, 1 three times it near the glow)
+  const ss = (x) => x * x * (3 - 2 * x), zy = 0.02; let worst = 0;
+  const prev = stars.map(() => 0);
+  for (let f = 0; f <= 58 * 60; f++) {
+    const D = 7 + 17 * ss(f / (58 * 60)), zx = K.starLim(D);
+    stars.forEach((st, i) => { const v = show(mag(st.b), nightLim(zy * (1 + 2 * st.glow), zx, zy, wD(D))); if (v > 0 && st.first === Infinity) st.first = f; worst = Math.max(worst, Math.abs(v - prev[i])); prev[i] = v; });
+  }
+  const out = stars.filter((st) => st.first < Infinity);
+  assert.equal(out.length, stars.length, `${out.length} of ${stars.length} stars out by the night`);
+  // (the hub's round-9 review of #333: a Milky Way night lost 150 of its 272 star points) at the night's 24 deg every star of
+  // the field (to mag 6.2) shows whole wherever it stands: on a sky up to 3x the zenith's light, on the band (the galaxy's
+  // light is not nightLim's sky: c - gL), whatever the zenith's own light
+  assert.ok(g.includes('{ gL = galaxyAt(rd, eS) * hzT; c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
+  for (const zy0 of [0.002, 0.008, 0.02, 0.05]) for (const k of [1, 1.5, 2, 3]) for (const b of [0.07, 0.1, 0.3, 1]) {
+    const v = show(mag(b), nightLim(zy0 * k, K.starLim(24), zy0, wD(24)));
+    assert.equal(v, 1, `at D 24, a mag ${mag(b).toFixed(2)} star on a sky ${k}x a zenith of Y ${zy0}: shown ${v.toFixed(2)}, not whole`);
+  }
+  assert.ok(wD(12) === 1 && wD(15) === 1 && wD(18) === 0 && wD(24) === 0, 'the weight: whole in a twilight, gone at night');
+  const rank = (a) => { const o = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]), r = new Array(a.length); o.forEach(([, i], k) => { r[i] = k; }); return r; };
+  const ra = rank(out.map((st) => st.first)), rb = rank(out.map((st) => -st.b)), n = out.length;
+  let d2 = 0; for (let i = 0; i < n; i++) d2 += (ra[i] - rb[i]) ** 2;
+  const rho = 1 - 6 * d2 / (n * (n * n - 1));
+  assert.ok(rho >= 0.9, `the rank correlation ${rho.toFixed(3)} (at least 0.9)`);
+  assert.ok(worst <= 0.02, `a star's share changes ${(100 * worst).toFixed(2)}% in a frame (at most 2%)`);
+  const N = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
+  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0) || (I2 && venusFails(I2, F, e, NIGHTB.side, D0))) continue;') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
+  console.log(`# stars out in order: rank correlation ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
+});
+// the evening star's plan on the still's own window (the hub's round-3 review of #301): 227's venusPlan and venusFails
+// and 225's camera run here as the page runs them, on the lo phone still's window and its words' boxes (226's
+// STILL_WORDS); the path the plan keeps is walked again here, apart from venusFails: nothing of it on a box (grown by
+// the keep and its glow); a window all words has no Venus
+const VPLAN = cut(WORLD, '  var MRD = Math.PI', '  function mrSamples(') + cut(WORLD, '  var STAR_LIM =', "  /* (the hub's round-3 review of #301) planned");
+function venusWorld(seed, keyAz, landing) {
+  return vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
+    '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n  function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }\n' + STREAMS + VEC + cut(WORLD, '  function airSunEl(id)', '\n', true).replace(/function airSunEl\(id\)/, 'function airSunEl0(id)') + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + VPLAN +
+    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})')(seed, keyAz, landing);
+}
+test('night: the evening star\'s plan on the lo still\'s window keeps its whole path down off the words; a window all words has none', () => {
+  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), boxes = SW['lo-393x861'];
+  assert.ok(boxes && boxes.length === 5, 'the lo phone still\'s boxes');
+  const tanY = Math.tan(32 * Math.PI / 180), win = (bx) => ({ W: 393, H: 861, tanY, tanX: tanY * 393 / 861, pN: 8, pL: 8, keepPx: 12, boxes: bx });
+  let planned = 0, onWords = 0;
+  for (let s = 1; s <= 80; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) {
+    const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky });
+    const I = Object.assign(win(boxes), { psi: keyAz + (sky === 'firstlight' ? 1 : -1) * (10 + (s * 7) % 40) });
+    assert.ok(K.venusPlan(K.V, I));
+    if (K.NIGHTB.none) continue;
+    planned++;
+    const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0), C = K.mrCam(I.psi, I.pN), grow = 12 + K.VEN_GLOW;
+    for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
+      const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+      const q = K.mrProj(C, I, d); if (q[2] <= 0 || Math.abs(q[0]) > 1.05 || Math.abs(q[1]) > 1.05) continue;
+      const x = (q[0] + 1) / 2 * I.W, y = (1 - q[1]) / 2 * I.H;
+      if (boxes.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; break; }
+    }
+    const A = venusWorld(s * 2654435761 >>> 0, keyAz, { sky });
+    const T80 = Math.tan(80 * Math.PI / 180);   // (a window toward the sun wide enough to hold every place of every try: each one's path crosses the words)
+    assert.ok(A.venusPlan(A.V, Object.assign(win([[-1000, -1000, 2000, 2000]]), { psi: keyAz, pN: 0, tanX: T80, tanY: T80 })) && A.NIGHTB.none, `seed ${s} ${sky}: a window all words still has an evening star`);
+  }
+  assert.ok(planned > 60, `${planned} of 240 visits with an evening star (the test is not empty)`);
+  assert.equal(onWords, 0, `${onWords} planned paths cross the words`);
+});
+// the evening star on each band's smallest window (the hub's round-4 and round-5 reviews: on 1024x768 under the
+// 1350x1080 still it stood on the name; at 1280x800@2 its glow touched the credit): planned as the page plans it, in
+// the part of the still every window of its band shows (226's stillFrame: its keep the smallest window's, scaled)
+// against 226's STILL_WORDS, then its whole path down walked in the smallest window, as the still is shown there at
+// the cut (cover) and in that window's own view (226's stillView), against that window's own boxes
+// (test/golden/still-words.json): no place of it within the keep and its glow (12 + VEN_GLOW px) of a word
+test('night: the evening star and its glow keep off the words on each band\'s smallest window', () => {
+  const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
+    '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+  let planned = 0, onWords = 0, nearest = Infinity; const where = [];
+  for (const key of Object.keys(G)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), Fr = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min, small = G[key].small;
+    const c = Math.max(sw / Fr.bw, shh / Fr.bh), vS = SF.stillView(Fr.bw, Fr.bh, [0.4, 0.6], {}), vL = SF.stillView(sw, shh, [0.4, 0.6], {});
+    const views = [['at the cut', { W: sw, H: shh, tanX: vS.tanX * (sw / c) / Fr.bw, tanY: vS.tanY * (shh / c) / Fr.bh }, Fr.pN], ['in its own view', { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY }, vL.pN]];
+    for (let s = 1; s <= 6; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (const off of [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50]) {   // (headings across the glow: the evening star anywhere over the words)
+      const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky }), psi = keyAz + (sky === 'firstlight' ? 1 : -1) * 30 + off, grow = 12 + K.VEN_GLOW;
+      const I = { W: Fr.W, H: Fr.H, tanX: Fr.tanX, tanY: Fr.tanY, pN: Fr.pN, pL: Fr.pN, keepPx: Fr.keepPx, boxes: Fr.boxes.map((b) => b.slice()), psi };
+      const I2 = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY, pN: vL.pN, pL: vL.pN, keepPx: 12, boxes: small.map((b) => b.slice()), psi };   // (the live window's own view and words: the night after the cut)
+      assert.ok(K.venusPlan(K.V, I, I2));
+      if (K.NIGHTB.none) continue;
+      planned++;
+      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0);
+      for (const [view, Lw, pN] of views) {
+        const C = K.mrCam(psi, pN);
+        for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
+          const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+          const q = K.mrProj(C, Lw, d); if (q[2] <= 0 || Math.abs(q[0]) > 1 || Math.abs(q[1]) > 1) continue;
+          const x = (q[0] + 1) / 2 * sw, y = (1 - q[1]) / 2 * shh;
+          for (const B of small) nearest = Math.min(nearest, Math.hypot(Math.max(B[0] - x, 0, x - B[2]), Math.max(B[1] - y, 0, y - B[3])));
+          if (small.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; where.push(`${key} at ${sw}x${shh} ${view}, seed ${s} ${sky} heading ${psi}, D ${D}`); break; }
+        }
+      }
+    }
+  }
+  assert.ok(planned > 150, `${planned} evening stars planned (the test is not empty)`);
+  assert.equal(onWords, 0, `paths within the keep and glow of the words in the smallest windows: ${where.slice(0, 6).join('; ')}`);
+  console.log(`# evening star on the bands' smallest windows: ${planned} planned, none within 12 + glow px of a word (the nearest ${nearest.toFixed(1)} px)`);
+});
 // ------------------------------------------------------------------ the sky's lights behind its haze (aurora-haze)
 // the galaxy and the aurora are behind the haze, as the moon is: each term scaled by what the haze lets through
 test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), never over it', () => {
@@ -510,7 +684,7 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
   const m = g.match(/float (\w+) = 1\.0 - hazeSky\(rd\);\s*vec3 (\w+) = \1 \*/);
   assert.ok(m, 'the haze\'s transmittance (1.0 - hazeSky(rd)) and its tint are not worked out before the galaxy and the aurora');
   for (const f of ['galaxyAt', 'auroraAt']) {
-    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '('));
+    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '(') || l.includes('= ' + f + '(rd'));   // (the galaxy by way of gL, its light held apart for nightLim)
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
@@ -569,9 +743,28 @@ test('physics: sky/purple-light: the purple light above the hidden sun, by its d
   assert.ok(worst >= -1e-9, `the purple light takes ${(-worst * 255).toFixed(3)} of a level from a channel of the frame (it only adds light, channel by channel)`);
   assert.ok(shown >= 0.01, `the purple light adds only L ${shown.toFixed(4)} at its centre over the twilight's sky (it would not show: at least 0.01)`);
   // its depth the sun's true one, one way through a change (the change's two skies, never a waypoint), drawn behind the 3 km veil
-  assert.ok(WORLD.includes('return a + (b - a) * ss01(SKY.k || 0);') && WORLD.includes('if (SUNU.on) return SUNU.es;'), 'the purple light does not read the sun\'s true depth, one way through a change');
-  assert.ok(WORLD.includes('if (u.uPurp) gl.uniform4fv(u.uPurp, purpleAt(sunDepthNow(),'), 'the purple light is not uploaded from the sun\'s true depth');
+  assert.ok(WORLD.includes('if (SUNU.on) return -SUNU.es;') && !WORLD.includes('function sunDepthNow('), 'the purple light does not read the sky\'s one sun depth (227\'s skyDepth), one way through a change');
+  assert.ok(WORLD.includes('if (u.uPurp) gl.uniform4fv(u.uPurp, purpleAt(-skyDepth(),'), 'the purple light is not uploaded from the sun\'s true depth');
   assert.ok(g.indexOf('if (uPurp.w > 0.0') < g.indexOf('if (uHi.x > 0.0 && rd.y > 0.01)'), 'the purple light is drawn over the 3 km veil (it stands behind it, at 20 km)');
+});
+
+// the moon's disc against the moonlit clouds (the hub's round-3 ruling, 2026-11-16 04:19): the clouds are never darkened
+// to make room, so the disc stands at the ceiling's L (its table L through fs-comp's shoulder, CEIL_KNEE), parts from the
+// clouds by hue (at least 60 deg from their lit colour's) with low chroma (neutral to faintly warm, C <= 0.015), and
+// its glow adds its own light up to its luminance (no per-channel max of a blue sky and a warm glow, which read olive)
+test('night: the moon\'s disc stands at the ceiling, by hue apart from the moonlit clouds, low in chroma; its glow never olive', () => {
+  const m = /moonlit: \{[^\n]*?clLit:\[([\d.]+),([\d.]+),([\d.]+)\][^\n]*?fx:\{moon:\{r:[\d.]+,L:\[([\d.]+),([\d.]+),([\d.]+)\],glow:\[([\d.]+),([\d.]+),([\d.]+)\][^\n]*?ceil:([\d.]+)/.exec(WORLD);
+  assert.ok(m, 'the moonlit sky\'s clLit, fx.moon and ceil');
+  const [cl, disc, glow, ceil] = [m.slice(1, 4), m.slice(4, 7), m.slice(7, 10), [m[10]]].map((a) => a.map(Number)), k = +/var CEIL_KNEE = ([\d.]+)/.exec(WORLD)[1];
+  const shown = (L) => { const Kc = ceil[0] - k; return L > Kc ? Kc + k * (1 - Math.exp(-(L - Kc) / k)) : L; };
+  assert.ok(Math.abs(shown(disc[0]) - ceil[0]) <= 0.01, `the disc shown at L ${shown(disc[0]).toFixed(3)}, the ceiling ${ceil[0]}`);
+  const dh = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  assert.ok(dh(disc[2], cl[2]) >= 60, `the disc's hue ${disc[2]} within 60 deg of the clouds' ${cl[2]}`);
+  assert.ok(disc[1] <= 0.015 && glow[1] <= 0.015, `the disc's chroma ${disc[1]}, its glow's ${glow[1]} (at most 0.015)`);
+  assert.ok(dh(glow[2], cl[2]) >= 60, 'the glow\'s hue apart from the clouds\' too');
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;') && !g.includes('max(c, uMoonG)'), 'the glow adds its own light up to its luminance, never a per-channel max');
+  assert.ok(g.includes('smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma)'), 'the disc\'s edge crisp: about a pixel either side');
 });
 
 // ------------------------------------------------------------------ the meteors (delight-night §2)

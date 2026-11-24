@@ -1,5 +1,5 @@
 
-uniform vec3 uCam; uniform vec3 uCamR, uCamU, uCamF; uniform vec4 uProj; uniform mat4 uVP;
+uniform vec3 uCam; uniform vec3 uCamL; uniform vec3 uCamR, uCamU, uCamF; uniform vec4 uProj; uniform mat4 uVP;   // (uCamL: what fp32 drops of the camera's position: uCam + uCamL is the camera to the double; eyeRel)
 uniform vec2 uRes; uniform float uT; uniform int uDbg;
 uniform vec3 uSun; uniform vec3 uSunC;
 uniform vec4 uTwM;    // the twilight's low mist as the light crosses the inks' band: its amount (0: none), its half-height and feather about the horizon (sines of elevation)
@@ -17,3 +17,7 @@ uniform sampler3D uN3;
 uniform highp sampler2D uGround; uniform vec4 uGC;   // the ground's height cached around the camera: origin x, z; cell (m); texels across
 uniform float uSunVis;  // how much of the sun the sky shows (its disc, glare, halo, streak, glint): 0 where there is none (an interior, an overcast)
 uniform vec4 uWet;      // water: the rain's rings (0 .. 1), the ripples' strength, the wind's direction (x, z)
+/* (large world) a world point relative to the eye, as the double camera stands: w - uCam is exact (two fp32 values
+   near one another), then what fp32 dropped of the camera (uCamL) comes off. Every vertex stage's clip position goes
+   through it, so the camera's own rounding (4 mm 86 km out: a 1.3 px judder at 3 m) never reaches the screen */
+vec3 eyeRel(vec3 w) { return (w - uCam) - uCamL; }

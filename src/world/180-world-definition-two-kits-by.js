@@ -1,6 +1,11 @@
   /* ---------------------------------------------------------------- the world's definition: the two kits, by weight */
   var WORLD_GLSL_HEAD = `
 uniform int uZ;   // (fast500 D) never set: GL makes it 0 at link. Added to a loop's bound, FXC (ANGLE's D3D11 compiler) cannot count the loop, so it keeps it rolled: one copy of its body
+#ifdef PLAIN_LOOPS
+#define UZ 0   // (WebKit boot) on WebKit (Metal) a bound it cannot prove puts a volatile in the loop: there the bound is plain
+#else
+#define UZ uZ
+#endif
 vec3 dNg(vec3 n, mat2 M) { return vec3(n.x, transpose(M) * n.yz); }   // (fast500 D) dN's gradient turn alone: dN(p, M) = dNg(gnd(M * p), M), the same operations
 uniform highp sampler2D uKW; uniform vec4 uKWc, uKFc;   // the weights' grids: KW (its window's centre x, z; texel m; texels across) and the far field KF (the same; in the rows under KW's)
 vec3 gKD = vec3(1.0, 0.0, 0.0);   // the sand weight (value, d/dx, d/dz) while the dunes kit's land is raised (set by Hd)
@@ -81,8 +86,8 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
     for (var i = 0; i < BQ.length; i++) fd = Math.max(fd, densD(x + BQ[i][0], z + BQ[i][1]));
     return Math.max(SEA_LO + RISE * wc + HEAP_MAX * (0.4 + 0.6 * wc), (land === undefined || land !== land ? -1e9 : land) + FORM_ALLOW * fd) + FLY_TOP + BAND_M;
   }
-  function aboveKeep(o) {
-    var wc = kitAt(o.x, o.z).wC, d = smooth(-10, 25, SEA_LO + RISE * wc + 18 * (0.4 + 0.6 * wc) - o.landMax) * densA(o.x, o.z), k = pickOf(o, 0x5bd1e995) < d;   // (fix, defect 14: the raw level, which bounds the drawn one from above)   // (world6 step B: against the sea's mean top, which now lies near the land's height)
+  function aboveKeep(o, ox, oz) {   // (ox, oz: an air cell's dL, as keep's)
+    ox = ox || 0; oz = oz || 0; var wc = kitAt(o.x - ox, o.z - oz).wC, d = smooth(-10, 25, SEA_LO + RISE * wc + 18 * (0.4 + 0.6 * wc) - o.landMax) * densA(o.x - ox, o.z - oz), k = pickOf(o, 0x5bd1e995, ox, oz) < d;   // (fix, defect 14: the raw level, which bounds the drawn one from above)   // (world6 step B: against the sea's mean top, which now lies near the land's height)
     if (k) GATE.kept++; else GATE.dropped++;
     return k;
   }
@@ -93,11 +98,12 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
      only birds, one language (judge-eye1: a dark ray with a tail line shared the sky with them). The moths, jellies and
      caps stay. Their draws are made as before; only what they would add is dropped. true: as the world was */
   var WORLD_FLYERS = false;
-  function pickOf(o, salt) { return hfl(ihash(((Math.round(o.x * 8) * 0x9e3779b1) ^ (Math.round(o.z * 8) * 0x85ebca6b) ^ salt) >>> 0)); }
+  function pickOf(o, salt, ox, oz) { return hfl(ihash(((Math.round((o.x - (ox || 0)) * 8) * 0x9e3779b1) ^ (Math.round((o.z - (oz || 0)) * 8) * 0x85ebca6b) ^ salt) >>> 0)); }   // (ox, oz: an air cell's carry when it was laid out, dL: the pick is the air frame's, whenever the layout ran)
   function kitApi(C, kit, dens, lift) {
     var A = {}, k;
     for (k in C) A[k] = C[k];
-    function keep(o) { return pickOf(o, kit === 'above' ? 0x5bd1e995 : 0x27d4eb2d) < dens(o.x, o.z); }
+    var ox = C.dL ? C.dL[0] : 0, oz = C.dL ? C.dL[1] : 0;   // (physics: clouds/drift: an air cell's keep, its hash and its kit's density, read in the air frame (x - dL), so no frame in which the layout runs moves it)
+    function keep(o) { return pickOf(o, kit === 'above' ? 0x5bd1e995 : 0x27d4eb2d, ox, oz) < dens(o.x - ox, o.z - oz); }
     function seat(o) { if (lift && o.y !== undefined) o.y += seaBaseAt(o.x, o.z); }   // (the ABOVE kit's heights are over its sea)
     A.add = function (it) { it.kit = kit; if (!keep(it)) { it._drop = true; return it; } seat(it); if (lift) it.landQ = it.r || 50; return C.add(it); };
     A.cloud = function (cl) { cl.kit = kit; if (!keep(cl)) { cl._drop = true; return cl; } seat(cl); if (lift) cl.landQ = (cl.w || cl.thick || 300) * 0.5; return C.cloud(cl); };   // (world6 fix: the land under its footprint probed: aboveKeep)
@@ -139,7 +145,9 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       glsl: WORLD_GLSL_HEAD + (KD.glsl || '') + (KA.glsl || '') + WORLD_GLSL,
       surfaces: [{ height: 'Hd', shade: 'shadeLand', gap: 'HdGap', g0: 0.35, levels: 10, split: true, yb: YB.land }, { height: 'HdSea', shade: 'shadeSea', g0: 2, levels: 10, yb: YB.sea }],
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
-      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0]], volRes: 44 },
+      // (physics: clouds/drift) and the air cells, the free clouds' (the low layer's: its ranges and towers, with their
+      // points of interest), each kit's at its own grid and reach, streamed about the camera's place in the air
+      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0], { size: KD.layout.scales[0].size, radius: KD.layout.scales[0].radius, air: 'dunes' }, { size: KA.layout.scales[0].size, radius: KA.layout.scales[0].radius, air: 'above' }], volRes: 44 },
       field: function (R, V) {
         var fd = KD.field(R, V), fa = KA.field(RNG(subseed(V.seed, 23)), V), P = fd.params.slice(0, 12);
         while (P.length < 12) P.push([0, 0, 0, 0]);
@@ -148,7 +156,9 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       light: function (R, V) { return KD.light(R, V); },
       lightB: function (R, V) { return KA.light(R, V); },
       cell: function (C, R, K2) {
-        if (C.scale < 2) KD.cell(kitApi(C, 'dunes', densD, false), R, K2);
+        if (C.scale === 3) { if (KD.air) KD.air(kitApi(C, 'dunes', densD, false), R, K2); }
+        else if (C.scale === 4) { if (KA.air) KA.air(kitApi(C, 'above', densA, true), R, K2); }
+        else if (C.scale < 2) KD.cell(kitApi(C, 'dunes', densD, false), R, K2);
         else KA.cell(kitApi(C, 'above', densA, true), R, K2);
       },
       build: function (it, B, R, K2) { return (it.kit === 'above' ? KA : KD).build(it, B, R, K2); },

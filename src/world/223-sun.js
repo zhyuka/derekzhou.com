@@ -40,15 +40,6 @@
     SKY.fx[0] = T.fx[0] * band * E; SKY.fx[1] = T.fx[1] * E;   // (the belt's height already follows es through uSkyS; in a change through the mist, the waypoint's events at a quarter)
     SUNU.es = es; SUNU.band = band; SUNU.QN = QN; SUNU.E = E; SUNU.D = D;
   }
-  /* (physics: sky/purple-light) the sun's true depth now, deg: in a change through the sun's band the one it is drawn at
-     (SUNU.es); otherwise the change's two skies' own (a night's AIR_SUN_NIGHT) on its clock, one way through it (never a
-     mist's waypoint: no night in the middle of a twilight change) */
-  function sunDepthNow() {
-    if (SUNU.on) return SUNU.es;
-    var a = sunElOf(SKY.A), b = sunElOf(SKY.B);
-    return a + (b - a) * ss01(SKY.k || 0);
-  }
-  function sunElOf(O) { var e = O && O.skyEl; return typeof e === "number" ? e : AIR_SUN_NIGHT; }   // (a sky's own sun, or a night's)
   /* (physics: sky/purple-light) the purple light: the high (about 20 km) haze's glow lit by the sun from below the
      horizon, seen 2-6 deg after sunset and before sunrise: its amount whole from 3 to 4 deg down (the most at 3-4, WMO), none above 1.5 or below
      6; its centre on the sun's bearing, 28 deg up with the sun 3 down, sinking with it (16 deg at 6 down). Into out:

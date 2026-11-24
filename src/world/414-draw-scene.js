@@ -1,4 +1,5 @@
   /* (drawFrame's pass) the scene: the surfaces, the landmarks, the sets, the scatter, the creatures, the sky, the glows, the particles */
+  var DECKW = new Float64Array(2);
   function drawScene(V, u) {
     var W = DFR.W, H = DFR.H, DP = DFR.DP, L = DFR.L;
     // -------- the scene (into its samples where it has them, cleared whole so a tile GPU loads nothing)
@@ -86,7 +87,9 @@
     prof('creatures');
     // the sky, where nothing stands (its triangle on the far plane, tested against the land's depth)
     P = DP.sky || EP.sky; gl.useProgram(P.p); setFrameUniforms(P, V);
-    gl.uniform4fv(P.u.uSunD, L.discK); gl.uniform4fv(P.u.uHi, SUNU.on && L === SUNU.L ? skyHi0(L) : L.hi); gl.uniform3fv(P.u.uHiC, L.hiC);   // (in a change between a twilight sky and a night, the veil at strength 0, drawn by its own block)
+    gl.uniform4fv(P.u.uSunD, L.discK); gl.uniform4fv(P.u.uHi, SUNU.on && L === SUNU.L ? skyHi0(L) : L.hi); gl.uniform3fv(P.u.uHiC, L.hiC);
+    var dW = cloudWind(V, 'deck', DECKW), dS = Math.sqrt(dW[0] * dW[0] + dW[1] * dW[1]), dO = dS * cloudT();   // (physics: clouds/drift: the deck carried by its wind, in doubles, wrapped at 5 tiles)
+    gl.uniform4f(P.u.uDeck, dS > 0 ? dW[0] / dS : 0, dS > 0 ? dW[1] / dS : 0, dO - Math.floor(dO / 768000) * 768000, 0);   // (in a change between a twilight sky and a night, the veil at strength 0, drawn by its own block)
     skyNightUniforms(P);   // (tod: the moon, the belt, the wisps, the stars' twinkle and top)
     gl.depthMask(false); gl.bindVertexArray(FULLVAO); dc(gl.TRIANGLES, 3); gl.depthMask(true);
     prof('sky');
@@ -109,7 +112,7 @@
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
     if (V.parts && V.parts.length && DP.pt && !SW.noanim && (lateReady(DP.pt) || lateMissIf(DP.pt, latePartsWould(V)))) {
       P = DP.pt; gl.useProgram(P.p); setFrameUniforms(P, V); gl.bindVertexArray(STRIP.vaoP);
-      if (P.u.uPVP2) { gl.uniformMatrix4fv(P.u.uPVP2, false, MBS.vp); gl.uniform3fv(P.u.uPCam2, MBS.cam); gl.uniform1f(P.u.uMB, MBK); if (P.u.uMBdt) gl.uniform1f(P.u.uMBdt, MBS.dt); }   // (the motes along their motion)
+      if (P.u.uPVP2) { gl.uniformMatrix4fv(P.u.uPVP2, false, MBS.vp); gl.uniform3fv(P.u.uPCam2, MBS.cam); if (P.u.uPCamD) gl.uniform3f(P.u.uPCamD, CAM.pos[0] - MBS.camd[0], CAM.pos[1] - MBS.camd[1], CAM.pos[2] - MBS.camd[2]); gl.uniform1f(P.u.uMB, MBK); if (P.u.uMBdt) gl.uniform1f(P.u.uMBdt, MBS.dt); }   // (the motes along their motion)
       var LL = V.L || V.light;
       for (var pi = 0; pi < V.parts.length; pi++) {
         var pa = V.parts[pi], share = 1, kd = pa.hop[3];
@@ -122,6 +125,7 @@
         if (cnt <= 0) continue;
         skyPart(pa, PCOL); PCOL[3] *= sk;   // (tod: the grains and veils through the sky's paint, the motes by the sky's own amount)
         gl.uniform4f(P.u.uPa, pa.box, pa.height, pa.streak, pa.width); gl.uniform3fv(P.u.uWind, pa.wind); gl.uniform4fv(P.u.uPc, PCOL); gl.uniform4fv(P.u.uPb, pa.hop);
+        wrapU(P, pa.box, pa.wind, kd > 2.5 && kd < 3.5 ? pa.ud[0] : 0, pa.height, kd < 2.5);   // (large world: the box's wrap in doubles; the grains' on the air's clock)
         if (kd > 2.5) { pa.ug[2] = Math.min(share, 1); gl.uniform4fv(P.u.uPd, pa.ud); gl.uniform4fv(P.u.uPe, pa.ue); gl.uniform4fv(P.u.uPf, pa.uf); gl.uniform4fv(P.u.uPg, pa.ug); }
         dc(gl.TRIANGLE_STRIP, 4, cnt);
       }
@@ -130,11 +134,11 @@
     if (V.ribbons && V.ribbons.count && DP.rb && !SW.noanim && skR > 0.002 && (lateReady(DP.rb) || lateMissIf(DP.rb, true))) {
       var rb = V.ribbons; P = DP.rb; gl.useProgram(P.p); setFrameUniforms(P, V);
       skyPart(rb, PCOL, true); PCOL[3] *= skR;
-      gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL); if (P.u.uAirU) gl.uniform1f(P.u.uAirU, u10Of(V));   // (the gust field's reference speed, U10)
+      gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); if (P.u.uPm) gl.uniform4f(P.u.uPm, wmod(CAM.pos[0], rb.box), wmod(CAM.pos[2], rb.box), Math.floor(CAM.pos[0] / rb.box), Math.floor(CAM.pos[2] / rb.box)); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL); if (P.u.uAirU) gl.uniform1f(P.u.uAirU, u10Of(V));   // (the gust field's reference speed, U10)
       gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n, rb.count);
     }
     gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
-    PVP2.set(VP); PCAM2[0] = CAM.pos[0]; PCAM2[1] = CAM.pos[1]; PCAM2[2] = CAM.pos[2]; PVK = V.k; PU2 = u; PVOK = true;   // (this frame's view, the next one's motes' last)
+    PVP2.set(VP); PCAM2[0] = CAM.pos[0]; PCAM2[1] = CAM.pos[1]; PCAM2[2] = CAM.pos[2]; PCAMD[0] = CAM.pos[0]; PCAMD[1] = CAM.pos[1]; PCAMD[2] = CAM.pos[2]; PVK = V.k; PU2 = u; PVOK = true;   // (this frame's view, the next one's motes' last)
     prof('particles');
     if (MS) { resolveMS(MS, TG.scene, W, H); prof('resolve'); }   // (the samples into the scene's texture and depth)
     DFR.MS = MS; DFR.CL = CL;
