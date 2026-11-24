@@ -110,7 +110,8 @@ tools/visit/headings.mjs     Each land's first heading chosen by the ruler and t
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
                              in the words' boxes and the top band, the Milky Way and the low sun left clear (looks.json);
-                             --table re-measures only the table's headings and each land's own (about 30 minutes)
+                             --table re-measures only the table's headings and each land's own (about 30 minutes);
+                             each entry keeps its own world key too, so two records merged line by line fail the ruler
 tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, and
                              worldKey: the key of what looks.json was measured on (KEY_INPUTS: the cloud layout, the
                              opening's view, the words' layout; not the sky, the land's surface or the birds)
