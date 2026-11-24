@@ -39,15 +39,25 @@ vec3 skyCol(vec3 rd) {
   }
   return c;
 }
-/* aerial perspective: height fog (density a at y0 falling off by b) and a distance haze, in-scattering the sky's
-   own colour toward the view at the horizon (so distance dissolves into the sky), brighter toward the sun */
+/* aerial perspective, physical (physics: Looks): the air between the eye and a point takes its light away by
+   extinction and gives the sky's back by in-scatter, L = c T + Linf (1 - T), per channel, T = exp(-od). Two kinds of
+   scatterer: the gas, by wavelength (as the inverse fourth power: BR, its sea-level scattering at 680, 550 and 440 nm,
+   https://doi.org/10.1364/AO.34.002765, thinning with an 8 km scale height), and the aerosol, grey (the sky's own
+   height fog, density a at y0 falling off by b, and its even distance term, uFog; times uAer.x, the visit's dust and
+   moisture by AIR's weather, 370). Linf, what a path long enough gives back, is the sky's own colour toward the
+   horizon (fogCol: the sky drawn there), so far ridges dissolve into the sky behind them; and since blue is taken and
+   given first, a thin air is blue and a thick one the horizon's colour (no tint of its own). The aerosol's forward
+   peak toward the light (the one-parameter phase of https://doi.org/10.1086/144246, its asymmetry uAer.y) only adds
+   light: its share over an even scatter, which the sky's colour already holds. In-scatter never veils with grey:
+   Linf is the sky's own light */
+const vec3 BR = vec3(5.8e-6, 13.5e-6, 33.1e-6);   // (1/m)
 vec3 fogCol(vec3 rd) { return skyCol(normalize(vec3(rd.x, max(rd.y, 0.0) * uFog2.x + uFog2.y, rd.z))); }
-float fogAmt(vec3 rd, float t) {
+float fogOD(vec3 rd, float t) {   // the aerosol's optical depth along rd to t
   float b = uFog.y, k = b * rd.y * t;
   float f = abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k;
-  float od = uFog.x * exp(-b * (uCam.y - uFog.z)) * t * f + uFog.w * t;
-  return 1.0 - exp(-od);
+  return (uFog.x * exp(-b * (uCam.y - uFog.z)) * t * f + uFog.w * t) * uAer.x;
 }
+float fogAmt(vec3 rd, float t) { return 1.0 - exp(-fogOD(rd, t) - BR.g * t * exp(-uCam.y / 8000.0)); }   // (one share for a light's own glow: the green's)
 /* the ground haze: a shallow layer over the land (its base a fixed depth under the eye, so it reads the same on a
    swell and in a trough), thick along the ground and thin above: far land and the feet of far things dissolve into a
    bright band while their tops keep their colour; lavender, warmer toward the sun */
@@ -71,11 +81,9 @@ vec3 hazeCol(vec3 rd) {
   return uHazeC + cs * cs * cs * (uHzT * st + uHzN * uSunK.z);
 }
 vec3 atmos(vec3 c, vec3 rd, float t) {
-  float f = fogAmt(rd, t);
-  // the air's colour: blue first (dark forms far off turn blue), the horizon's own colour as it thickens
-  // (fogCol once: FXC compiles each of its three calls apart)
-  vec3 fq = fogCol(rd), fc = mix(mix(fq, uFogB.rgb, uFogB.a), fq, smoothstep(0.25, 0.95, f));
-  c = mix(c, fc, f);
+  float m = fogOD(rd, t), g = uAer.y, cs = dot(rd, uSun);
+  vec3 T = exp(-(m + BR * (t * exp(-uCam.y / 8000.0)))), fq = fogCol(rd);
+  c = c * T + fq * (1.0 - T) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-m)));
   c = mix(c, hazeCol(rd), hazeAmt(rd, t));
   /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen
      within a few degrees of the horizon (the far land, a mesa, a dune's crest, the feet of the towers) lies in a mist of the horizon's own colour, so the ground about the words is even, while the land nearer
