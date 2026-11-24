@@ -5,6 +5,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "galaxyAt(uSkyF * rd, eS)", "with": "galaxyAt(rd, eS)", "why": "the galaxy left out of the sky's turn: it slides against its stars"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best };", "with": "core: airEq(AIR_GAL.centre[0] + 90, AIR_GAL.centre[1]), lie: best };", "why": "the galaxy's core off its band: placed by no sky"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float AIRGLOW_Y = 0.004;", "with": "const float AIRGLOW_Y = 0.04;", "why": "the airglow ten times brighter: a green band that lifts the night sky"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "JUP_TOP_Y = 0.104;", "with": "JUP_TOP_Y = 0.2;", "why": "the outer planet past the light ceiling, brighter than Venus"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0];", "with": "JUPB.eps = RJ.r(JUP_EL[0], JUP_EL[1]);", "why": "the outer planet placed with no clear path: on the words"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27", "with": "float galAlong(float ld) { return 0.75 + 0.0 * (1.0 + cos(radians(ld))) + 0.27", "why": "a band as bright at the anticentre as at the core"}
@@ -1100,4 +1101,26 @@ test('night: the Milky Way\'s structure, the rift, the bulge\'s lane, the fall t
   const lmcW = (() => { let w = 0; for (let x = 0; x < 15; x += 0.05) if (K.galLMC(-79.5 + x / Math.cos(32.9 * Math.PI / 180), -32.9) > 0.5 * K.galLMC(-79.5, -32.9)) w = x; return 2 * w; })();
   assert.ok(lmcW > 4 && lmcW < 12, `the LMC ${lmcW.toFixed(1)} deg across at half its peak (10.75 x 9.2 deg in all)`);
   console.log(`# milky way: core ${core.toFixed(3)} / anticentre ${anti.toFixed(3)} = ${(core / anti).toFixed(1)}x, brightest band at ld ${bright}, its peak ${amax.toFixed(3)}`);
+});
+
+// the airglow (NIGHT): a steady faint green band low over the horizon on the night skies only, behind the haze; its peak
+// at most Y 0.0045 (a tenth to a quarter of a dark night's own sky low down), its colour at luminance 1 and low in chroma
+test('night: the airglow, a faint steady green band low over the horizon, only once the sun is 15-18 deg down', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const A = +g.match(/const float AIRGLOW_Y = ([\d.]+);/)[1];
+  const L = g.match(/^  if \(uSunD\.z > 0\.0 && eS > 0\.0\) c \+= vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* \(AIRGLOW_Y \* \(1\.0 - uStarM\.w\) \* smoothstep\(0\.0, 6\.0, eS\) \* exp\(-eS \/ 14\.0\)\) \* hzT;$/m);
+  assert.ok(L, 'the airglow\'s line: by the stars\' weight (none in a twilight), rising over 6 deg, falling over 14, behind the haze (hzT)');
+  const ph2 = g.slice(g.lastIndexOf('#ifdef SKY_PH2', L.index), L.index);
+  assert.ok(!ph2.includes('#endif'), 'drawn in the night sky\'s program (SKY_PH2), with the galaxy and the aurora');
+  const C = [+L[1], +L[2], +L[3]], Y = 0.2126 * C[0] + 0.7152 * C[1] + 0.0722 * C[2];
+  const l = Math.cbrt(0.4122214708 * C[0] + 0.5363325363 * C[1] + 0.0514459929 * C[2]), m = Math.cbrt(0.2119034982 * C[0] + 0.6806995451 * C[1] + 0.1073969566 * C[2]), q = Math.cbrt(0.0883024619 * C[0] + 0.2817188376 * C[1] + 0.6299787005 * C[2]);
+  const a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * q, b = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * q;
+  assert.ok(Math.abs(Y - 1) < 2e-3, `its colour at luminance 1 (${Y.toFixed(4)})`);
+  assert.ok(Math.hypot(a, b) <= 0.08 && a < 0, `pale green (a ${a.toFixed(3)}, C ${Math.hypot(a, b).toFixed(3)}, at most 0.08)`);
+  const ss = (e0, e1, x) => { const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1); return t * t * (3 - 2 * t); };
+  let peak = 0, at = 0; for (let e = 0; e <= 90; e += 0.1) { const v = A * ss(0, 6, e) * Math.exp(-e / 14); if (v > peak) { peak = v; at = e; } }
+  assert.ok(peak * Math.max(...C) <= 0.0045, `its brightest channel at most Y 0.0045 (${(peak * Math.max(...C)).toFixed(5)})`);
+  assert.ok(at >= 4 && at <= 10, `brightest ${at.toFixed(1)} deg up (low over the horizon)`);
+  assert.ok(A * ss(0, 6, 90) * Math.exp(-90 / 14) < 0.01 * peak, 'all but gone overhead');
+  console.log(`# airglow: peak Y ${peak.toFixed(5)} at ${at.toFixed(1)} deg, colour C ${Math.hypot(a, b).toFixed(3)}`);
 });
