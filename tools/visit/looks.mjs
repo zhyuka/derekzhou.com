@@ -19,6 +19,7 @@
 // Local only (a plain build: node tools/build.mjs --plain build/site); the record it writes is what headings.mjs
 // reads and test/unit/ruler.mjs checks the table against.
 //   node tools/visit/looks.mjs --build build/site --cands FILE.json [--out tools/visit/looks.json] [--jobs 2]
+//   node tools/visit/looks.mjs --build build/site --table   (the table's headings and each land's own only)
 // FILE.json: { "<k>": [deg, ...] } (null: the land's own draw from its stream)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -29,7 +30,11 @@ import { worldKey } from './look-rule.mjs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const BUILD = path.resolve(arg('--build', 'build/site')), OUT = arg('--out', 'tools/visit/looks.json'), JOBS = +arg('--jobs', 2);
-const CANDS = JSON.parse(fs.readFileSync(arg('--cands'), 'utf8'));
+// --table: only the table's 16 headings and each land's own (no sweep): the record re-measured after the world moved
+// (test/unit/ruler.mjs's "re-run looks.mjs --table"; about 30 minutes at --jobs 2, a heading's six frames a minute)
+const TABLE_T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(fs.readFileSync(new URL('../../src/world/215-air.js', import.meta.url), 'utf8'));
+const CANDS = process.argv.includes('--table') ? Object.fromEntries(JSON.parse(TABLE_T[1]).map((d, k) => [k, d === null ? [null] : [d, null]]))
+  : JSON.parse(fs.readFileSync(arg('--cands'), 'utf8'));
 // T1's skies and windows (its cases laptop-night, phone-dawn and laptop-sunset-split), the laptop at T1's 1440x900
 export const VIEWS = [
   { name: 'laptop-night', vp: [1440, 900, 1], at: '2026-11-05T22:30:00Z', feature: 'galaxy' },

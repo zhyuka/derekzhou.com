@@ -21,7 +21,7 @@ import { lookScore, lookKey, keeps, worldKey } from './look-rule.mjs';
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const K = arg('--k', null) ? arg('--k').split(',').map(Number) : [...Array(16).keys()], TOP = +arg('--top', 5), READS = +arg('--reads', 2), out = arg('--json', null), candsOut = arg('--cands', null);
 const LOOKREC = candsOut ? null : JSON.parse(fs.readFileSync(arg('--looks', 'tools/visit/looks.json'), 'utf8'));
-if (LOOKREC && LOOKREC.world !== await worldKey()) throw new Error('headings: looks.json was measured on another world: re-run looks.mjs');
+if (LOOKREC && LOOKREC.world !== await worldKey()) throw new Error('headings: looks.json was measured on another world: re-run looks.mjs (--table: the table and each land\'s own, about 30 minutes)');
 const LOOKS = LOOKREC && LOOKREC.lands;
 const SHORT = 120, NEAR_BY = 40, FALL_BY = 120, STEP = 5, SPREAD = 20, DEG = Math.PI / 180, t0 = Date.now(), table = [], cands = {};
 const q50 = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];

@@ -251,8 +251,9 @@
      look-rule.mjs's share of the words' boxes (or the name's) under cloud, nor less of the low sun's glow than half the
      land's own draw shows (k0 alone, where no heading keeps both, keeps the words), then a near pass soonest, the fewest
      180 s stretches with no reward, the night's Milky Way and the low sun in frame and clear, the top band clearest;
-     null, the land's own draw from its stream where that was already the best (k6, k13). looks.json keeps the world it
-     was measured on: any change to the world fails test/unit/ruler.mjs until looks.mjs and headings.mjs are re-run. Chosen once, before anything is drawn, as the landing is;
+     null, the land's own draw from its stream where that was already the best (k6, k13). looks.json keeps the key of what
+     it was measured on (the cloud layout, this opening's view, the words: look-rule.mjs's KEY_INPUTS); a change to any of
+     them fails test/unit/ruler.mjs until looks.mjs --table (and headings.mjs, if a heading fails) is re-run. Chosen once, before anything is drawn, as the landing is;
      nothing turns the view. A land k is the one whose seed is 010's (11 + k x 0x9e3779b9) */
   function airHeading0() { var T = [90, 329, 300, 120, 35, 230, null, 70, 245, 140, 240, 305, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
