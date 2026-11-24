@@ -1,5 +1,10 @@
   /* ---- each step: the cycle, the four-way blend (two kits by place, two skies by time), the sky's own amounts, the paint */
   var SKW = { c: new Float64Array(4), s: new Float64Array(4), cb: new Float64Array([-1, -1, -1, -1]), sb: new Float64Array([-1, -1, -1, -1]), gen: -1 };
+  /* (physics: sky/cirrus) a change's cover by place: the cirrus cover each sky has (its kits by place, w), and the
+     front between them carried along the deck's wind from HIF_R upwind of the camera to HIF_R downwind as the change
+     goes (q, the structure's clock: the veil's own), so the new cover arrives over the upwind horizon and sweeps
+     across; in a hold, or where the two skies' covers agree, off (uHi.x everywhere, as before) */
+  var HIP = new Float32Array(4), HIF_R = 120000;
   var LKN_ST = { skyK: 1, glow: 1, haze: 1, fog: 1, hi: 1, bloom: 1, discK: 1 };   // (structure: on the structure clock)
   function skyStep(V, w) {
     if (SKY.seed !== J.seed || SKY.hour !== HOUR || SKY.V !== V) skyInit(V);
@@ -9,6 +14,8 @@
     s[0] = (1 - w) * (1 - q); s[1] = w * (1 - q); s[2] = (1 - w) * q; s[3] = w * q;   // (the structure's weights: on the light's clock; the two clocks are one)
     if (V.LA[0] !== X.d || V.LA[2] !== Y.d) { V.LA = [X.d, X.a, Y.d, Y.a]; V.LAlab = [X.dl, X.al, Y.dl, Y.al]; }
     blendSky(V);
+    var xa = (1 - w) * X.d.hi[0] + w * X.a.hi[0], xb = (1 - w) * Y.d.hi[0] + w * Y.a.hi[0];
+    HIP[0] = xa; HIP[1] = xb; HIP[2] = HIF_R * (2 * q - 1); HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;
     var L = V.L, A = SKY.A, B = SKY.B, k = SKY.k, j;
     mistStep(L);   // (delight-weather 1: the mist pools' depth by the sky)
     fogStep(V, L);   // (and the fog pool in a basin near, AIR's site: 234)
