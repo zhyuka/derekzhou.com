@@ -4,8 +4,21 @@
   function sandAt() { if (!KW.ok) return 1; var k = kwAt(CAM.pos[0], CAM.pos[2]); return clamp(k[0], 0, 1) * (1 - smooth(0.2, 0.6, k[3])); }
   function useTarget(T, w, h) { gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.f : null); gl.viewport(0, 0, w, h); }
   var CACC = { i: 0, ok: false, w: 0, h: 0, u: -1e9, t: -1e9, ca: 1, tx: 0, ty: 0, turn: 0, mid: 0, pb: new Float64Array(9), m: new Float32Array(9) }, CLT = null;   // (the clouds' accumulation; CLT the cloud target the frame reads; the last view's basis pb and the reprojection m)
-  var PVP2 = new Float32Array(16), PCAM2 = new Float32Array(3), PVK = -1, PU2 = 0, PVOK = false, MBK = 0;   // (the last frame's view, for the motes)
-  var MBS = { u: -1e9, k: -1, vp: new Float32Array(16), cam: new Float32Array(3), mbk: 0, dt: 0 };   // (the motes' last view and share as a moment's first drawing used them)
+  var PVP2 = new Float32Array(16), PCAM2 = new Float32Array(3), PCAMD = new Float64Array(3), PVK = -1, PU2 = 0, PVOK = false, MBK = 0;   // (the last frame's view, for the motes)
+  /* (large world) the particles' wrap in the JS's doubles (vs-particle: uPm, uPn): the camera modulo the box, the wind's
+     drift since the start in boxes, its fraction and its whole boxes modulo 256 (the grains' and motes' on the air's
+     clock, uAir.x, the double it is rounded from (#324); the rain's on the shaders' clock, uT), and the rain's fall
+     since the start in columns, the same */
+  var WRU = new Float32Array(8);
+  function wmod(x, m) { return x - Math.floor(x / m) * m; }
+  function wrapU(P, box, wind, fall, H, air) {
+    if (!P.u.uPm) return;
+    var t = air ? airClock(UT[0] - AIR_UT0)[0] : UT[0], dx = wind[0] * t / box, dz = wind[2] * t / box, df = fall * UT[0] / Math.max(H, 1e-3);
+    WRU[0] = wmod(CAM.pos[0], box); WRU[1] = wmod(CAM.pos[2], box); WRU[2] = dx - Math.floor(dx); WRU[3] = dz - Math.floor(dz);
+    WRU[4] = wmod(Math.floor(dx), 256); WRU[5] = wmod(Math.floor(dz), 256); WRU[6] = df - Math.floor(df); WRU[7] = wmod(Math.floor(df), 256);
+    gl.uniform4fv(P.u.uPm, WRU.subarray(0, 4)); gl.uniform4fv(P.u.uPn, WRU.subarray(4, 8));
+  }
+  var MBS = { u: -1e9, k: -1, vp: new Float32Array(16), cam: new Float32Array(3), camd: new Float64Array(3), mbk: 0, dt: 0 };   // (the motes' last view and share as a moment's first drawing used them)
   /* the last frame's scene (TG.sceneH) and its view: its colour and its samples' depth codes, read by the composite
      at an outline in front of a cloud, where it is reprojected by the near depth and mixed in at half; a
      frame drawn again at the same moment reads what the frame first drawn then read */
@@ -31,10 +44,11 @@
     else {
       var dU = u - PU2, dC = Math.hypot(CAM.pos[0] - PCAM2[0], CAM.pos[1] - PCAM2[1], CAM.pos[2] - PCAM2[2]);
       MBK = PVOK && PVK === V.k && dU > 1e-4 && dC < Math.max(4, V.speed * 0.2) ? Math.min(1, (1 / 30) / dU) : 0;
-      MBS.u = u; MBS.k = V.k; MBS.vp.set(PVP2); MBS.cam.set(PCAM2); MBS.mbk = MBK; MBS.dt = dU > 0 ? dU : 0;
+      MBS.u = u; MBS.k = V.k; MBS.vp.set(PVP2); MBS.cam.set(PCAM2); MBS.camd.set(PCAMD); MBS.mbk = MBK; MBS.dt = dU > 0 ? dU : 0;
     }
-    UT[0] = u + 40;
+    UT[0] = u + AIR_UT0;
     if (SW.frz) { if (FRZT === null) FRZT = UT[0]; UT[0] = FRZT; } else FRZT = null;   // (dev: nothing animated: the shaders' clock held)
+    airFrameU(UT[0] - AIR_UT0, MBS.dt);   // (the air's clocks for the shaders: uAir)
     if (WLOG) { WLOG.cur = WLOG.pend || []; WLOG.pend = null; wl('rung', 0, RUNGS[RUNG], 0, 1); }
     var sc = TRIALSC > 0 ? TRIALSC : RUNGS[RUNG], W = Math.max(1, Math.round(TG.W * sc)), H = Math.max(1, Math.round(TG.H * sc));   // (stage G's trials draw at their own scale)
     var w2 = Math.max(1, Math.ceil(W / 2)), h2 = Math.max(1, Math.ceil(H / 2));

@@ -127,7 +127,11 @@ so that no vertex shader's text changes: T2 reads none back).
 The skies keep all their own light under a ceiling (uCeil, OKLab L 0.53
 with a soft knee, the same everywhere on the window: the world's own
 light, never a function of where the words are); the moon is a pale flat
-disc held under it too. A sun or moon never fades where it stands (the
+disc held under it too. Opposite the moon, the moonlit cloud sea holds a glory (a bright
+centre and pastel rings, the first red ring at 3.9 deg: the corona's 6 um
+droplets) and a broad white fogbow at 37 deg: more of the sea's own light,
+a function of the view's angle alone, on the sea's surface only (above-glsl's
+A_glory, the moon's direction from the air's airMoon; test/unit/glory.mjs). A sun or moon never fades where it stands (the
 owner: "yep this. same w sun."), and on a moonlit night the moon drifts
 all night (the owner's choice, over a moon still between the changes): it
 rises out of view as the night arrives, comes in through a side edge late
@@ -140,7 +144,44 @@ its glow passes along the edge. The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
-phone). The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
+phone), and on every visit that opens on the moonlit sea (the hub's ask,
+2026-11-15: the stills of the moonlit openings showed no moon). There the
+opening's own stay is planned ahead, culminating at the view's own heading
+whatever the key's azimuth, and timed so that at the cut the moon stands a
+third of the window in from the edge it is heading for (never before its
+culmination, so it still sets behind the sea before the stay ends; its
+rising, before the cut, is never drawn): placed before the first frame, never
+moved or faded to get there. Where the window has no room under its top edge
+(the lo tier's wide windows, the words high), the room is taken where the
+moon stands, with less of the 12 px keep beyond the footprint and then less of
+the 1 deg under the top edge if it must, the footprint itself always clear;
+where no row over the words fits at all (the lo tier's 2:1 windows) it
+stands beside the words on its leaving side and leaves through the side edge.
+It is planned in the still's own window (stillInputs: its size, frustum and
+pitch), so the live first frame and the still agree; against the words' boxes
+there, the union of the bake window's and its band's smallest window's (the
+words keep their CSS size, so a smaller window shows them bigger): clear on
+every window of the band from that one up, and a smaller window plans against
+its own words (STILL_MIN, STILL_WORDS; tools/still-words.mjs measures both).
+The plan is made in the part of the still every window of its band shows
+(STILL_BAND: a wider window loses the still's top and bottom, a narrower its
+sides), so the disc is whole on each, and its keep is the band's smallest
+window's 12 px scaled into the still's pixels (stillFrame).
+The meteors (delight-night §2; src/world/219-meteors.js), on the night skies
+only (the Milky Way and the aurora; on the moonlit sea the bright ones only),
+each a stay's own (the opening stay's from its seed, every later one's from the
+visit's own read, as the halo's veils), at 1x real time: about one long grazer a stay,
+from a radiant just under the horizon, running low and slow (3-5 deg/s) from
+under 2 deg up to under 2 deg again (151-173 deg along its path, 30-58 s), so
+no drag ever shows it ending in the open sky, its wake a rigid 2 deg
+and its light constant, so it shows by crossing the window; and 1-3 short ones
+(the owner, 2026-11-15: "Allow short ones too"), 0.3-1 s at 3-25 deg/s anywhere
+mid-sky (20-55 deg up), a few a night, their light rising and falling softly over that moment, the one
+exception RULES.json's no-fades names. Each is planned when its time comes,
+against the view as it is then; none under reduced motion or in a still; drawn
+by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
+head, no pixel past OKLab L 0.50.
+The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow climbs and
@@ -150,6 +191,49 @@ or the blue hour it runs backwards. No sky draws light rays now (the owner
 chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
 and first light's 0.15 are 0; the three nights' were 0 already). The cycle
 runs on the flight's own clock, its draws from the visit's own streams.
+
+The night's bodies (delight-night §1 and §4; src/world/227-night-bodies.js). The
+stars' amount no longer blends between skies (every sky's post.stars is 1):
+each star comes out by itself, brightest first, once the faintest magnitude
+the sky lets through where it stands passes its own (the zenith's limit by the
+sky's own sun's depth, -1 at 3 deg, about 1 at the end of civil twilight, 4.5
+at nautical's, 7 at the night's 24 deg; lowered further where the sky's own
+light is brighter), its light coming in over its first 0.5 magnitude of margin
+as the sun's depth moves (a hold holds it). So the twilights show only Venus
+and, in the blue hour, the brightest stars; a dark night keeps the whole field.
+The bright stars (b over 0.35) take pastel colours by spectral kind, each at
+the white's own luminance. The evening (or morning, on a visit that opens on
+first light) star stands by the drawn sky's sun, its glow (the hub's ruling,
+2026-11-15: until one forward clock drives the sun, the stars and the planet
+together): on the ecliptic through that sun at the opening's depth, in a
+local frame at AIR's latitude and season, 24-46 deg east (or west) of it,
+then turned with the sun as it sinks, rigid in the sun's vertical plane, so
+it keeps its elongation, stands by the glow and sets by moving, never
+fading; steady, a point of the stars' kind with a small glare, its peak
+under OKLab L 0.49; its elongation the first of 12 drawn (SEED0's stream)
+whose path down keeps clear of the words' boxes at the view's own heading
+and pitch, planned in the sky's step (moonStep), never the draw: at the
+opening against the still's own window and words (stillInputs, as the
+opening's moon), so the still and the live first frame agree, and in the
+window's own view and words (the night after the cut is seen there); a new window
+plans it again (moonResized; the phone's bar only when its path now crosses
+a word). It slips against the stars, which turn on their own
+clock, until that forward clock lands (delight-visit §5.5).
+
+The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
+sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
+100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
+degrees up. Its body hides the sky behind it in the air's own colour at its
+range (the far land's distance haze); the low sun lights its top above the
+Earth's shadow there, under the light ceiling; nearer layers (the 3 km veil,
+the Earth's shadow and the Belt) lie over it, farther ones (the wisps, the
+galaxy, the aurora, the moon, the stars) are hidden behind it. Its lightning
+is the owner's one exception to no-fades ("Soft distant flicker",
+2026-11-15; RULES.json no-fades): dim (its light Y +0.02 at most, under the
+ceiling), slow (each flash rises and falls over 130 ms or more, at most 2 in
+any second, its groups 10-40 s apart from the visit's own read), inside the
+storm's cloud only, whole inside a hold with the sun 5 degrees or more down,
+never in reduced motion or before the cut (test/unit/sky.mjs).
 
 ## THE WORDS
 
@@ -206,8 +290,8 @@ and the plan is made on the main thread beside the compiles (the
 worker's answer cannot arrive; it is stopped after the first hold frame).
 No hold (hour.js takes the link out before the body): reduced motion,
 forced colours, no WebGL2, 4 or fewer cores, under 8 GB (deviceMemory),
-a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
-sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
+a hidden tab, Firefox, every WebKit but Safari on a Mac (an iPad behind a
+Mac user agent counts as iOS, by its touch points), Android, iOS/iPadOS; and (the world, after stage A)
 no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
 to show the world later than HOLD_WORLD (1000 ms from the navigation's
 start): from stage A (38 x A - 150 ms; only a clearly slow A, over
@@ -215,7 +299,11 @@ start): from stage A (38 x A - 150 ms; only a clearly slow A, over
 and from the first hold frame (26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
 1x-6x. Where a hold may run, world.js makes the canvas's context as its script
 ends, so the GPU process starts while the kits come, not inside stage A.
-The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+The deadline (2 s from the hold's start, 1.5 s on 5-7 cores; 1 s in Safari on a Mac, HOLD_WK:
+the Apple bench's film, 2026-11-16, Safari 26.6 on an M-series Mac with the gates lifted, saw the hold
+shown after 298-399 ms and the words and the world together at 0.4-0.6 s, where today's path shows the
+world at 1.9 s; a build's first visit compiles the Metal pipelines afresh, about twice the time, and
+past the 1 s the page takes the path below) is the last net: past it
 the link is taken out and the path below goes on. T2 shows the world's
 first frame byte for byte the one without the hold (frame 0: gstep
 counts a world shown in the page's own load as shown at frame 0). The
@@ -367,7 +455,7 @@ with 8 GB or more) 2 and 1.4 Mpx (a 393x852 phone's 786x1704, it was
 491x1065), a smaller iPhone or an iPad 1.5 and 1.6 Mpx, any other
 Android 1.25 and 1.3 Mpx (every device's before); the canvas at the
 device's own px (at most 2 a CSS px and 2.5 Mpx, or the world's own size
-where that is larger), the world put up to it by one Catmull-Rom clamped
+where that is larger), the world put up to it by one cubic interpolating spline clamped
 to the range of the 2x2 texels it lies between (it was bilinear). Every
 frame's time in a two-second ring, each second the median; three slow
 seconds (a median over 1.08 of the pace: under about 55 fps; the owner,
@@ -512,8 +600,33 @@ physics: clouds/drift). It holds:
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
   it out moves the plan's anchors), the wing gusts' private 25 s timers
-  (birdwing.js) and the score's own gusts (score.js). The test fails when
-  a listed reader is joined and still listed.
+  (birdwing.js) and the score's own gusts (score.js: its breeze by sky
+  is the air's table, its gusts its own until it reads the field). The
+  test fails when a listed reader is joined and still listed.
+- The gusts (physics: air/gust-field): one field of turbulence, frozen
+  and carried downwind at the mean wind (the frozen-turbulence
+  hypothesis, https://glossary.ametsoc.org/wiki/Frozen_turbulence;
+  gustAt, the shaders' airGust: the same hash and constants, held equal
+  by value at 4096 points a visit, tools/checks/44-gust-glsl.sh), so a
+  point 100 m downwind meets each gust 100 / U10 later on the surface's
+  clock (airClock), 100 / (s U10) later in flight time (s the sky's
+  surface share: 1 by day); each visit on its
+  own slice (its salt). One reference speed, the visit's U10, carries the
+  field and sets its scale (22 U10 m) at every height, so a bird over a
+  veil feels the veil's gust; the height sets only its size, 0.26 of the
+  wind there times unit noise. The 3-s gust over the 10-min mean
+  1.43-1.68 (median 1.54), its e-fold by day 10-23 s (on a sky of
+  surface share s, the day's over s), nothing faster than 0.11
+  W a second; none in still air. Every reader carries it on one clock,
+  the surface's wind clock (airClock; the shaders' uAir.x), and by the
+  wind by sky its size is the sky's share times its gustiness. The sand veils rise with it: as a gust
+  passes over a brink its sheet lifts and streams out, and as the air
+  calms it settles flat onto the sand (the saltation layer collapsing);
+  its opacity is the visit's alone (its U10), so a veil never fades in
+  place (their private 5.6-8.4 s cycles are gone). The birds read
+  HOST.gust (the excess along the wind, m/s), HOST.gustPhase (the
+  field's own clock there, the same at every height) and HOST.gustSigma.
+  The grains' speed, the perched lean and the score are not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
@@ -526,6 +639,27 @@ physics: clouds/drift). It holds:
   night it sinks to AIR_SUN_NIGHT, 24 deg (THE TIME OF DAY). The key over
   the land and the sky's own sun are two lights on purpose: the land is lit
   by a low key, the sky's glow stands where the sun is under the sea.
+- One light at night (physics: air/night-light): the moon is the
+  moonlit sky's light, so on that sky the live key the land, the veils
+  and the wings shade by (the shaders' uSun) stands on the moon's disc
+  as drawn (moonDir), its elevation held to 5 deg or more, so nothing is
+  lit from under the horizon. Its weight is the sky's moonlit share (1
+  through the moonlit sea's hold, 0 on every other sky, eased with the
+  light through a change), and the key moves to it low across the sky,
+  never through it: its azimuth turns about the vertical (the way round
+  taken once a change, toward the disc at the moonlit hold's edge) and
+  its elevation eases between the two ends', so the light never stands
+  higher than both (a great circle between a key and a disc 150-160 deg
+  apart runs overhead). On the real route (225's moonPlan, 400 stays
+  into and out of the moonlit sea, the band ahead and behind) the live
+  key stays 5.00 deg up or more, never higher than both ends, and turns
+  within each stay's own bound (1.5 x its arc over the change, plus the
+  disc's own rate): at most 4.92 deg/s, 0.08 deg a frame. Off the moonlit sky it is
+  the visit's key (keyAt), computed once a frame. The clouds stay on the
+  baked key: their light depths are baked along keyAt, and fs-vbody's
+  phase, rim and wrap read the same direction (uKey). The sky's own sun
+  (uSkyS) and the birds' HOST.light().sunDir stay on the key. The cloud
+  sea (realm-above's shading) reads uSun, so it is lit by the moon too.
 - The sky's frame (physics: air/sky-frame): one celestial sphere for the
   sun, the moon, the planets, the stars and the galaxy. The place is 64
   deg north (the aurora is one of the skies), so the celestial pole
@@ -549,9 +683,74 @@ physics: clouds/drift). It holds:
   uMoon is drawn at, so a glory, a fogbow or a moonlit edge stands on the
   disc. The key light (keyAt) is the moon's light on the land at night
   from a low, fixed place (5-14 deg up); it is not where the disc is.
-- The moon on show (AIRAPI.moonAt: the moonlit stay's route) and
-  the weather (weather(sky): today one wind for every sky; physics:
-  air/wind-by-sky).
+- The wind by sky (physics: air/wind-by-sky): the sky is the time of
+  day, and the wind follows the day as the boundary layer does. By day
+  the surface's wind is mixed down from aloft; at dusk the mixing dies,
+  the ground's air slows and the air 100-300 m up speeds past its day's
+  speed (the nocturnal jet); first light is the stillest at the ground.
+  AIR_BYSKY gives each sky its shares of the visit's day wind: the
+  surface's (to 20 m), the jet's (100-300 m), the gusts' intensity (set
+  by eye within row 6's band): the afterglow 1, 1, 1; the blue hour 0.7,
+  1.2, 0.65; the moonlit sea 0.5, 1.4, 0.6; the aurora 0.45, 1.4, 0.55;
+  the Milky Way 0.4, 1.5, 0.5; first light 0.35, 1.3, 0.5. The gust
+  field is carried at the mean wind on every sky (row 6), never slid
+  across it: on a calm sky it passes a point at the surface's share of
+  U10, so a gust's e-fold there is the day's over that share (the day's
+  median 14 s; the moonlit sea's 28 s, first light's 41 s). No source
+  found gives a stable night's shorter eddy scale in this form, so the
+  longer e-fold stands (the hub's ruling). Up the profile the share
+  eases from the surface's to the jet's (20-100 m, in log height) and from
+  the jet's to the free air's 1 (300-1500 m); the particles, all at 20 m
+  or under, take the surface's, the birds at 40 m a blend. Over a hold a
+  sky's shares hold; through a change they ease into the next sky's with
+  its light (weather(t)). Whatever the wind carries is carried by its
+  integral, a clock of each share in closed form over the sky's order
+  (airClock; the shaders' uAir: the surface's clock, its share, the
+  gustiness, the clock a frame back), so a change of sky never jumps a
+  grain, a mote, a veil or a gust: the grains drift by the day's wind
+  times the clock, the gust field is carried by it, the veils' sand
+  streaks run at the veils' own wind on it, and the veils lift past the
+  day's sigma, so in a night's weak air seldom. The score's
+  breeze is the same table, handed it read only by its feed
+  (docs/sound.md); WORLD.air.BYSKY() hands any reader a copy. windAt's t
+  now counts: it is the hour's wind, the sky's share at t. A reader that
+  wants the day's wind whatever the sky (CLOUDS' drift and lens gate)
+  asks for WORLD.air.day(x, z, y, V), the sky's share 1.
+- The weather the wind makes (physics: air/weather), AIRAPI.wx(t): from
+  the visit's own U10 and the sky (no new draw). mist (m deep): radiation
+  mist on a still clear night, thickest before sunrise; each sky's depth
+  set once a visit (AIR_MIST: first light 10, a night 3.5, the blue hour
+  1, the afterglow 0) scaled by the visit's own moisture (moist, 0-1),
+  which carries the wind's mixing too (a visit moist enough for mist has
+  a surface wind under 3 m/s on every sky with mist): radiation fog needs air near saturation as well
+  as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog),
+  and a coastal fog desert's is mostly advective: marine boundary-layer
+  air from over the cool upwelling coast, carried inland, at its most in
+  the early morning and gone soon after sunrise
+  (https://acp.copernicus.org/articles/20/3415/2020/). So the moisture
+  is the visit's air, not the land in view: whole on a calm synoptic day
+  (U10 under 4.02 m/s), none past 4.1 (AIR_MOIST, set with LAND for pools
+  at the cut on 3 of the 10 dune lands, the hub's ruling; the visit's own
+  U10, no new draw). First light gets 5 m of mist or more, deep enough for
+  pools, on dune openings 3, 10 and 14 (10 m each, by the live visit's
+  seed, RNG(subseed(seed, 1000)).seed(), which airDraw and airU10 read),
+  the other dune openings under 2 m; 1 m or more on 6 of the 16 openings,
+  and on 28% of visits over the winds' own spread. AIRAPI.MIST()
+  hands a reader a copy of the depths, as AIRAPI.BYSKY() does of the
+  wind by sky. Through a change its level moves
+  toward the next sky's at 0.18 m/s (a closed form of the sky's clock:
+  never a jump, never a race). oro (0-1): the orographic gate, the
+  visit's own from U10 alone: the ridge-top wind is the log law's 100 m
+  share of U10 (1.28), and past 7.7 m/s there (U10 about 6) the ridges
+  stand lee waves, lenticulars and banner clouds (about a quarter of
+  visits). vis (km): the visit's own, 10 in clean air, 4 in blown sand
+  once U10 is past the sand's threshold (5.8-7 m/s; about one visit in
+  six). The gate and the haze never change with the sky, so the far land
+  never fades in place. It carries the lee wave's numbers too: oroU (7.7
+  m/s over the ridge, where the gate opens) and N (0.01/s, the buoyancy
+  frequency CLOUDS' lens takes), so the lens reads one weather. LAND's
+  mist and CLOUDS' lenticulars and banners read it.
+- The moon on show (AIRAPI.moonAt: the moonlit stay's route).
 - The events (physics: air/events; src/world/216-events.js, WORLD.events):
   the rare sights a visit may come on, each a site on the ground placed
   by where it is, never by when or by the way flown (path-independent).
@@ -584,6 +783,22 @@ rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
 70-90x real through a change into a night, the moon crosses at 70-120x
 and the stars and galaxy stand still; test/unit/air.mjs's clock test is
 marked todo until the sky's lane brings them to SKY_RATE.
+
+## THE LARGE WORLD
+
+A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
+to 8 mm. Every vertex stage's clip position goes through eyeRel
+(frame-u.glsl): the exact difference from the camera's fp32 (uCam), less
+what fp32 dropped of it (uCamL, from the JS's doubles). So the camera's
+own rounding never reaches the screen; it was a 1.3 px judder at 3 m. The
+particles wrap their box from terms the JS works in doubles (wrapU, 413:
+the camera modulo the box, the wind's drift in boxes), with a mote's share
+of the wind in 256ths so its drift modulo the box is exact (kDrift). Their
+positions stay the eye's from there (motion blur: uPCamD, the two cameras'
+difference). The ribbons' anchor is whole boxes plus the rest, the same
+while the camera moves. Noise domains are left in world coordinates: 86 km
+out they are off by under a centimetre (tools/precision/far-origin.mjs).
+test/unit/largeworld.mjs replays the arithmetic in fp32.
 
 ## THE WEATHER (=rand())
 

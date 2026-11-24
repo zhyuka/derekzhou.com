@@ -24,7 +24,7 @@
   };
   var G = 9.81;
   var LIVE_R = 2600;           // m: the visitor's sky (the flocks within it counted) ...
-  var LIVE_N = { glow: 7, blue: 7, first: 6, moon: 5, day: 8 };   // ... this many flocks in it, by the sky
+  var LIVE_N = { glow: 7, blue: 6, first: 6, moon: 4, day: 8 };   // ... this many flocks in it, by the sky
   var HOME_R = 1.25 * LIVE_R;   // m: past this a bird turns home (homeStep)
   var NEAR_R = 3000;           // m: a flock nearer than this flies every bird of it each step; farther, its leader a coarse step and the rest held in their places
   var COARSE = 0.5;            // s: the far flocks' step
@@ -76,9 +76,9 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
-    b.w = placeWing(kind, r, b.age);
+    b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
     b.v[0] = b.V * ch * Math.sin(psi) + WINDV[0]; b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi) + WINDV[2];   // (over the ground: its way through the air and the wind, as every step makes it; air alone drew a seeded flock up to 33 deg off on its first frame, the hub's review 3)
     BIRDS.push(b);
@@ -90,9 +90,9 @@
     if (b.F) { var F = leaveFlock(b); if (!F.m.length) dropFlock(F); }
   }
   /* a bird out of its flock (its leader gone: another leads); the flock it left */
-  function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; if (F.lead === b) relead(F); return F; }
+  function leaveFlock(b) { var F = b.F, j = F.m.indexOf(b); if (j >= 0) F.m.splice(j, 1); b.F = null; F.lk = true; if (b.w) BW.relock(b.w.wing, null); if (F.lead === b) relead(F); return F; }
   /* a flock record, empty */
-  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false }; }
+  function flockRec(id, kind, pat, r) { return { id: id, kind: kind, pat: pat, r: r, m: [], lead: null, goal: null, t0: t, far: false, off: false, spk: false, acc: 0, out: false, tr: new Float64Array(4 * TR_N), trI: 0, trN: 0, trT: -1, lk: true, gD: 0 }; }
   /* a bird on its own: a flock of one */
   function soloFlock(b) { var F = flockRec(++POP.k, b.kind, 'single', b.r); F.m.push(b); F.lead = b; b.F = F; FLOCKS.push(F); return F; }
   /* a place at the end of a flock's pattern (spans: back, aside, up) */
@@ -105,7 +105,7 @@
     for (i = 1; i < F.m.length; i++) if (F.m[i].slot[0] < best.slot[0]) best = F.m[i];
     var s0 = best.slot.slice();
     for (i = 0; i < F.m.length; i++) { var q = F.m[i].slot; q[0] -= s0[0]; q[1] -= s0[1]; q[2] -= s0[2]; }
-    F.lead = best; if (!best.goal) best.goal = F.goal;
+    F.lead = best; if (!best.goal) best.goal = F.goal; F.trN = 0; F.lk = true;   // (a new leader: its own way from here)
     if (F.m.length === 1) F.pat = 'single'; else if (F.m.length === 2) F.pat = 'pair';
   }
 
@@ -141,8 +141,9 @@
      a wing of its own made anew, begun from its age (out of sight still: no beat seen to jump) */
   function wingOff(b) { if (!b.wOff) { b.wOff = true; b.wP = b.age; } }
   function wingOn(b) {
+    if (b.w && b.w.V !== inV(b.F) && b.kind === 'ibis') b.w = null;   // (an ibis that joined a V, or left one, while unseen: a wing of the other schedule, made where no beat is seen to change; the round-6 review)
     if (b.w) { var g = b.w.wing, d = Math.round((b.age - b.wP) / g.dt) * g.dt; if (d > 0) BW.skip(g, d); }
-    else { b.w = placeWing(b.kind, b.r, b.age); b.wtT = 0; }
+    else { b.w = placeWing(b.kind, b.r, b.age, inV(b.F)); b.wtT = 0; if (b.F) b.F.lk = true; }
     b.wOff = false; b.wsT = -1;
   }
   /* its wing's history kept to the last seconds (else it grows all its life) */
@@ -173,9 +174,14 @@
      downwind and climbing a little; loiter: about a home; sink: down into the sea of cloud; out: climbing away into
      the distance; pass: by the eye, near (rare). Each ends in another, drawn from the bird's own stream */
   var GOALS = {
-    glow: [['commute', 50], ['wheel', 14], ['loiter', 20], ['sink', 8], ['out', 8]], blue: [['commute', 55], ['wheel', 12], ['loiter', 18], ['sink', 8], ['out', 7]],
-    first: [['commute', 55], ['wheel', 12], ['loiter', 20], ['sink', 8], ['out', 5]], moon: [['commute', 60], ['loiter', 20], ['sink', 10], ['out', 10]],
+    glow: [['commute', 50], ['wheel', 14], ['loiter', 16], ['sink', 12], ['out', 8]], blue: [['commute', 45], ['wheel', 10], ['loiter', 13], ['sink', 25], ['out', 7]],
+    first: [['commute', 60], ['loiter', 20], ['out', 20]], moon: [['commute', 60], ['loiter', 20], ['sink', 10], ['out', 10]],
     day: [['commute', 40], ['wheel', 20], ['loiter', 22], ['sink', 10], ['out', 8]] };
+  /* (physics: birds/day) the sky's part in a commute: the share flown toward the roost's bearing (POP.line, +0) or away
+     from it (+pi). Roost flights peak 15-30 min after sunset, the last arrivals in the blue hour; at first light the
+     roost empties (https://seafwa.org/journal/1979/analysis-wood-duck-roost-counts-northwest-south-carolina) */
+  var ROOST_B = { glow: [0.9, 0], blue: [0.75, 0], first: [0.9, Math.PI] };   // (the spec's 85 %, a little over: a commute begun as a pass or brought home flies its own way)
+  var NIGHT_K = { goose: 1, gull: 1, heron: 1 };   // the kinds that fly at night; crows, swallows and finches roost
   var PASS_GAP = [120, 300], PASS_D = [30, 70];   // s between the near passes (at most one, and rare); m beside the eye
   var PLQ = [];
   /* a near pass flown: the next not before PASS_GAP */
@@ -184,7 +190,8 @@
     var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false, leave: false };
     var eye = LVC.y, gr = lvGround(x, z), top = Math.max(hideTop(x, z), gr);
     if (kind === 'commute') {
-      g.psi = r() < 0.6 ? POP.line + (r() < 0.65 ? 0 : Math.PI) + (r() - 0.5) * 0.9 : TAU * r();
+      var rb = ROOST_B[cls];   // (physics: birds/day: at dusk toward the roost's bearing, POP.line; at first light away from it)
+      g.psi = rb ? (r() < rb[0] ? POP.line + rb[1] + (r() - 0.5) * 0.9 : TAU * r()) : r() < 0.6 ? POP.line + (r() < 0.65 ? 0 : Math.PI) + (r() - 0.5) * 0.9 : TAU * r();
       g.y = Math.max(top + 25, eye + mix(r(), -40, 90)); g.T = pick(r, [40, 120]);
     } else if (kind === 'wheel') {
       HOST.places && HOST.places(1500, PLQ);
@@ -196,7 +203,7 @@
     else if (kind === 'sink') {
       var s = seaAt(x, z);
       g.y = Math.min(hideTop(x, z), s.lv - 60) - SEA_DEEP - 2 * Lb.sz - 10; g.T = 90;   // (under both the near top and the far margin: hidden as it drifts either side of the ground grid)
-      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.p[1] - g.y, Lb.psi)) return newGoal(F, 'commute', r, cls);   // (no sea of cloud under it, or too little for the way down: on)
+      if (s.w < 0.85 || !sinkWay(g, x, z, Lb.p[1] - g.y, Lb.psi)) return newGoal(F, cls === 'moon' && !NIGHT_K[F.kind] ? 'out' : 'commute', r, cls);   // (no sea of cloud under it, or too little for the way down: on)
     } else if (kind === 'out') { g.psi = TAU * r(); g.y = eye + mix(r(), 120, 300); g.T = 600; }
     else if (kind === 'pass') { g.T = 40; g.d = pick(r, PASS_D) * (r() < 0.5 ? 1 : -1); g.y = eye + mix(r(), 10, 28); }   // (over the eye a little: seen from below its M shows; at the eye's height it is a line)
     F.goal = g; Lb.goal = g;
@@ -204,7 +211,8 @@
   }
   function nextGoal(F) {
     var r = F.r, cls = skyCls(), k = weighted(r, GOALS[cls] || GOALS.day);
-    if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || F.kind === 'crow')) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';
+    if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || (F.kind === 'crow' && cls !== 'blue'))) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';   // (in the blue hour the crows have roosted: no crow wheels)
+    if (cls === 'moon' && !NIGHT_K[F.kind]) k = 'sink';   // (night: a crow, swallow or finch still up goes down to roost, under the sea of cloud, or else away)
     if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
     return newGoal(F, k, r, cls);
   }
@@ -229,14 +237,14 @@
     var x = b.p[0], z = b.p[2], fl = Math.min(Math.max(lvGround(x, z), lvGround(x + b.v[0] * 2, z + b.v[2] * 2)) + CLEAR + b.sz, top);
     return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
-  /* the leader's wanted velocity for its goal (m/s over the ground, before the wind) */
+  /* the leader's wanted velocity for its goal (m/s over the ground, the wind in it) */
   var WV = [0, 0, 0];
   function goalVel(F, b, dt) {
     var g = F.goal || nextGoal(F), r = F.r, v = b.K.v * paceOf(b), x = b.p[0], z = b.p[2], h = g.psi;
     g.eh += -g.eh * dt / 8 + 9 * DEG * Math.sqrt(2 * dt / 8) * lvG(r);
     g.ec += -g.ec * dt / 6 + 2 * DEG * Math.sqrt(2 * dt / 6) * lvG(r);
     if (g.k === 'wheel') {
-      g.cx += WINDV[0] * dt * 0.7; g.cz += WINDV[2] * dt * 0.7; g.y += 0.4 * dt;
+      g.cx += WINDV[0] * dt * 0.7; g.cz += WINDV[2] * dt * 0.7;   // (no climb on a timer: a thermal never forms at dusk or night; physics: birds/day)
       var rx = x - g.cx, rz = z - g.cz, rr = Math.sqrt(rx * rx + rz * rz) || 1, ph = Math.atan2(rx, rz);
       h = ph + g.sense * Math.PI / 2 - g.sense * clamp(1.2 * (rr - g.R) / g.R, -0.7, 0.7);
     } else if (g.k === 'loiter') {
@@ -258,27 +266,62 @@
     }
     /* never under the land below it and 15 m (the land here and 2 s on): only into the sea of cloud, going down into it */
     if (!(g.k === 'sink' && seaAt(x, z).w > 0.85)) dy = floorUp(b, dy, v, Infinity);
-    WV[0] = v * sh; WV[1] = dy; WV[2] = v * ch;
+    /* (physics: birds/wind) v is its speed through the air, a little more into a headwind (0.2 m/s a m/s; gulls 0.16,
+       doi:10.3354/meps14431), a little less with it behind; over the ground along its track, crabbed against the side
+       wind: so a headwind slows it over the ground, never held to its still-air pace (still air everywhere but the dunes) */
+    var wa = WINDV[0] * sh + WINDV[2] * ch, wp = WINDV[0] * ch - WINDV[2] * sh, va = v * clamp(1 - 0.2 * wa / v, 0.85, 1.35), gs = b.P || t - b.hT < 30 || (b.K.perch && F.m.length < 2) ? v : wa + Math.sqrt(Math.max(0, va * va - wp * wp));   // (a lone bird that perches, or one with a landing in hand or begun in the last 30 s, works the view: it holds its pace over the ground; flocks and the commuting kinds fly the air speed)
+    WV[0] = gs * sh; WV[1] = dy; WV[2] = gs * ch;
     if (t - g.t0 > g.T && g.k !== 'out' && g.k !== 'sink') nextGoal(F);   // (a sink is never given up: under the cloud it is only ever taken out)
     return WV;
   }
-  /* a member's wanted velocity: its leader's, and on toward its place (behind, aside, up: in spans), drifting about it */
+  /* the leader's way (physics: birds/turning; a turn's wave, equal-radius turns): a ring of where it was and its heading,
+     every TR_DT s for TR_N of them (8 s). A member's place is on that way a lag behind (the turn reaching it at c, 1.5
+     times its speed in a skein or a line, 2.5 in a loose flock), then back along the way and aside by its place: so it
+     turns where its leader turned, on the same radius, never swung round the leader as a rigid frame */
+  var TR_DT = 0.1, TR_N = 80, TP = [0, 0, 0, 0];
+  function trailPush(F) {
+    var L = F.lead; if (F.trN && t - F.trT < TR_DT - 1e-9) return;
+    var o = 4 * F.trI; F.tr[o] = L.p[0]; F.tr[o + 1] = L.p[1]; F.tr[o + 2] = L.p[2]; F.tr[o + 3] = L.psi;
+    F.trI = (F.trI + 1) % TR_N; if (F.trN < TR_N) F.trN++; F.trT = t;
+  }
+  /* where the leader was tau s ago (x, y, z, heading), between the ring's samples and where it is now; false past the ring */
+  function trailAt(F, tau, o) {
+    var L = F.lead, d0 = t - F.trT, a, f, i0, i1, k;
+    if (!F.trN || tau <= 0) { o[0] = L.p[0]; o[1] = L.p[1]; o[2] = L.p[2]; o[3] = L.psi; return true; }
+    if (tau <= d0) { f = d0 > 0 ? tau / d0 : 0; i1 = 4 * ((F.trI + TR_N - 1) % TR_N); for (k = 0; k < 3; k++) o[k] = L.p[k] + (F.tr[i1 + k] - L.p[k]) * f; o[3] = L.psi + angDiff(F.tr[i1 + 3], L.psi) * f; return true; }
+    a = (tau - d0) / TR_DT; var j = Math.floor(a); f = a - j; if (j + 1 >= F.trN) return false;
+    i0 = 4 * ((F.trI + TR_N - 1 - j) % TR_N); i1 = 4 * ((F.trI + TR_N - 2 - j) % TR_N);
+    for (k = 0; k < 3; k++) o[k] = F.tr[i0 + k] + (F.tr[i1 + k] - F.tr[i0 + k]) * f;
+    o[3] = F.tr[i0 + 3] + angDiff(F.tr[i1 + 3], F.tr[i0 + 3]) * f; return true;
+  }
+  /* a member's place now (x, y, z, heading, in TP and its heading's sin and cos): on its leader's way, or (no way that far
+     back yet) in its leader's frame */
+  function slotAt(F, b, back, side, up) {
+    var L = F.lead, c = (F.pat === 'skein' || F.pat === 'line' ? 1.5 : 2.5) * b.K.v, tau = back > 0 ? back / c : 0, V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
+    if (!(tau < TR_N * TR_DT - 0.2 && trailAt(F, tau, TP))) { TP[0] = L.p[0]; TP[1] = L.p[1]; TP[2] = L.p[2]; TP[3] = L.psi; tau = 0; }
+    var h = TP[3], ch = Math.cos(h), sh = Math.sin(h), rem = back - V * tau;
+    TP[0] += -rem * sh + side * ch; TP[2] += -rem * ch - side * sh; TP[1] += up; return h;
+  }
+  /* a member's wanted velocity: its leader's, as it was where its place is, and on toward its place (behind, aside, up: in
+     spans), drifting about it */
   var MV = [0, 0, 0];
   function placeVel(F, b) {
-    var L = F.lead, h = L.psi, ch = Math.cos(h), sh = Math.sin(h), sp = L.sz, q = b.slot;
+    var L = F.lead, sp = L.sz, q = b.slot;
     var dl = 0.18 * sp * wave(b.vK + 11, b.age / 6.5), da = 0.3 * sp * wave(b.vK + 53, b.age / 8.3), du = 0.22 * sp * wave(b.vK + 97, b.age / 7.1);
-    var back = q[0] * sp + dl, side = q[1] * sp + da, up = q[2] * sp + du;
-    var tx = L.p[0] - back * sh + side * ch, tz = L.p[2] - back * ch - side * sh, ty = L.p[1] + up;
-    var ex = tx - b.p[0], ey = ty - b.p[1], ez = tz - b.p[2], k = 0.45, cap = 0.35 * b.K.v;
-    var cx = clamp(k * ex, -cap, cap), cy = clamp(k * ey, -cap, cap), cz = clamp(k * ez, -cap, cap);
-    MV[0] = L.v[0] + cx; MV[1] = L.v[1] + cy; MV[2] = L.v[2] + cz;
+    var back = q[0] * sp + dl, side = q[1] * sp + da, up = q[2] * sp + du, h = slotAt(F, b, back, side, up), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
+    var ex = TP[0] - b.p[0], ey = TP[1] - b.p[1], ez = TP[2] - b.p[2], k = 0.45, cap = 0.1 * b.K.v;
+    var cx = k * ex, cy = k * ey, cz = k * ez, cn = Math.sqrt(cx * cx + cy * cy + cz * cz), cs = cn > cap ? cap / cn : 1;   // (the pull to its place, at most a tenth of its speed however it points: clamped by axis it reached 0.17)
+    cx *= cs; cy *= cs; cz *= cs;
+    var g = h + (V > 1e-6 ? angDiff(Math.atan2(L.v[0], L.v[2]), L.psi) : 0);   // (along its leader's track over the ground, as holdPlace: along the heading through the air a side wind slid each member upwind at V sin(crab), the round-6 review)
+    MV[0] = V * Math.sin(g) + cx; MV[1] = L.v[1] + cy; MV[2] = V * Math.cos(g) + cz;
     if (!(F.goal && F.goal.k === 'sink' && seaAt(b.p[0], b.p[2]).w > 0.85)) MV[1] = floorUp(b, MV[1], b.K.v, Infinity);   // (its place never under the land: as its leader's)
     return MV;
   }
   /* held in its place (a far flock's coarse step): exactly where its place is, at its leader's motion */
   function holdPlace(F, b) {
-    var L = F.lead, h = L.psi, ch = Math.cos(h), sh = Math.sin(h), sp = L.sz, q = b.slot;
-    b.p[0] = L.p[0] - q[0] * sp * sh + q[1] * sp * ch; b.p[2] = L.p[2] - q[0] * sp * ch - q[1] * sp * sh; b.p[1] = L.p[1] + q[2] * sp;
-    b.v[0] = L.v[0]; b.v[1] = L.v[1]; b.v[2] = L.v[2]; b.psi = L.psi; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
+    var L = F.lead, sp = L.sz, q = b.slot, h = slotAt(F, b, q[0] * sp, q[1] * sp, q[2] * sp), V = Math.sqrt(L.v[0] * L.v[0] + L.v[2] * L.v[2]);
+    b.p[0] = TP[0]; b.p[1] = TP[1]; b.p[2] = TP[2];
+    var g = h + (V > 1e-6 ? angDiff(Math.atan2(L.v[0], L.v[2]), L.psi) : 0);   // (its way over the ground: along its leader's track, its heading crabbed as its leader's is; along the heading alone a side wind of 5 m/s turned it 25 deg on its next fine step)
+    b.v[0] = V * Math.sin(g); b.v[1] = L.v[1]; b.v[2] = V * Math.cos(g); b.psi = h; b.gam = L.gam; b.V = L.V; b.phi = L.phi;
   }
 

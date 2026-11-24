@@ -41,5 +41,5 @@ void main() {
   vW = vec3(pos.x, gy - uSc2.z * s, pos.y) + lp;
   vN = R * (aN / max(sc, vec3(1e-4)));
   vC = vec4(aC.rgb * 2.0, floor(aC.a * 255.0 + 0.5)); vY = lp.y - uSc2.z * s; vE = vec2(aE * 15.9375, r7);
-  gl_Position = s > 1e-4 ? uVP * vec4(vW - uCam, 1.0) : vec4(0.0, 0.0, -2.0, 1.0);
+  gl_Position = s > 1e-4 ? uVP * vec4(eyeRel(vW), 1.0) : vec4(0.0, 0.0, -2.0, 1.0);
 }

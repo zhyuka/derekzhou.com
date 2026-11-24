@@ -2,16 +2,17 @@
   /* Free clouds move with the wind at their level; only terrain-held cloud (the cloud sea, cap and lee clouds) stays
      put. A body's place is a pure function of the one clock: cloudPos(o, t) = o.c0 + W(layer) x t, in doubles, so the
      baked opening still matches the cut and reduced motion (SIM.t held) holds every cloud still.
-     The wind at a cloud's level is the air's (215-air.js): windAt at the layer's declared height (AIR_H.clouds, the low
+     The wind at a cloud's level is the air's (215-air.js): the day's wind (airBase: the sky's share 1, so a cloud's drift
+     never changes with the sky over a visit, its place a pure function of t) at the layer's declared height (AIR_H.clouds, the low
      layer's free clouds; AIR_H.deck, the 3000 m deck); the cloud sea is held. The profile is the air's to give
      (physics: air/wind-profile); nothing here holds a wind of its own. */
   function cloudWind(V, layer, out) {
     var o = out || new Float64Array(2);
     if (layer === 'sea' || !V || !V.wind) { o[0] = 0; o[1] = 0; return o; }
-    var a = windAt(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, 0, V); o[0] = a.x; o[1] = a.z; return o;
+    var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V); o[0] = a.x; o[1] = a.z; return o;
   }
   /* the wind at h m over the surface: the air's */
-  function cloudWindAt(V, h, out) { var o = out || new Float64Array(2), a = windAt(0, 0, h, 0, V); o[0] = a.x; o[1] = a.z; return o; }
+  function cloudWindAt(V, h, out) { var o = out || new Float64Array(2), a = airBase(0, 0, h, V); o[0] = a.x; o[1] = a.z; return o; }
   /* a tower's lean downwind (physics: clouds/drift): the shear across it, du = W(top) - W(base), over twice its updraft
      (w, about 1.5 m/s), at most 0.15 (m across a metre up); [x, z] */
   var CLOUD_UP = 1.5, CLOUD_LEAN = 0.15, LEANA = new Float64Array(2), LEANB = new Float64Array(2);

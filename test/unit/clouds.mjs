@@ -44,7 +44,7 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
 // pixels whose rays graze a 60 m lobe at 80, 150 and 300 m, the steps forced to the box's rest over the steps left (mS),
 // as the camera moves 0.25 and 0.5 m a frame. The boil: each pixel's coverage, frame to frame, off its own mean (p95).
 // The pieces' cap is the world's own (410's uVK for the desktop and the rest; none on main: one piece), and the cut loop
-// must be in the shader; desktop under 0.02 everywhere, the rest at least 4 times calmer than one piece.
+// must be in the shader; desktop under 0.02 everywhere; the rest take one piece (no cutting: CAP.rest is 1).
 const VBODY = fs.readFileSync(path.join(ROOT, 'src/world/glsl/fs-vbody.glsl'), 'utf8');
 const VK = /var CRISP = LOOKD;[^\n]*\s*gl\.uniform2f\(P\.u\.uVK, CRISP \? (\d+) : (\d+), CRISP \? 1 : 0\)/.exec(WORLD);
 const CAP = VK ? { desktop: +VK[1], rest: +VK[2] } : { desktop: 1, rest: 1 };

@@ -75,7 +75,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
   const run = promisify(execFile), ROOT = fileURLToPath(new URL('../..', import.meta.url));   // (fileURLToPath: on Windows a URL's pathname is /C:/...)
   const site = tmp(); fs.writeFileSync(path.join(site, 'index.html'), '<p>w</p>');
   const key = S.worldKey(site), bk = tmp(); bake(bk, SET);
-  const st = { releases: {}, assets: {}, statuses: [], served: null, uploads: 0 };
+  const st = { releases: {}, assets: {}, statuses: [], served: null, uploads: 0, page: '<p>w</p>' };
   const srv = http.createServer((q, r) => {
     const body = []; q.on('data', (c) => body.push(c)); q.on('end', () => {
       const b = Buffer.concat(body), u = q.url.split('?')[0], J = (s, o) => { r.writeHead(s, { 'content-type': 'application/json' }); r.end(JSON.stringify(o)); };
@@ -85,6 +85,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
       if ((m = /^\/up\/(.+)$/.exec(u))) { st.uploads++; st.assets[9] = b; st.releases[m[1]].assets.push({ id: 9, name: 'stills.pack' }); return J(201, {}); }
       if (/\/releases\/assets\/9$/.test(u)) { r.writeHead(200); return r.end(st.assets[9]); }
       if ((m = /\/statuses\/(\w+)$/.exec(u))) { st.statuses.push({ sha: m[1], ...JSON.parse(b) }); return J(201, {}); }
+      if (u === '/') { r.writeHead(200); return r.end(st.page); }
       if (u === '/build.txt') { r.writeHead(200); return r.end('c'.repeat(40) + '\nstills: no STILLS_TOKEN: built without stills\n'); }
       if (u.startsWith('/assets/still/')) { const n = u.slice(14); if (!st.served || !st.served[n]) { r.writeHead(404); return r.end(); } r.writeHead(200); return r.end(st.served[n]); }
       J(500, { u });
@@ -98,7 +99,11 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
     assert.equal((await node([REL, '--site', site, '--have', '--status', SHA])).code, 3, 'no release yet: 3, and no status');
     assert.equal(st.statuses.length, 0);
     let x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
-    assert.equal(x.code, 1, 'no release for live\'s world: the live check fails'); assert.match(x.out, /no release/);
+    assert.equal(x.code, 0, 'no release for live\'s world, and live asks for no still: it ships without stills, cleanly'); assert.match(x.out, /ships without stills, cleanly/);
+    st.page = '<link rel="preload" as="image" class="still" href="/assets/still/day-1-hi-393x852.avif"><p>w</p>';
+    x = await node([LIVE, '--plain', site, '--url', base, '--timeout', '0']);
+    assert.equal(x.code, 1, 'no release, yet live asks for a still: fails'); assert.match(x.out, /stale still/);
+    st.page = '<p>w</p>';
     assert.equal((await node([REL, '--site', site, '--bake', bk, '--status', SHA])).code, 0);
     assert.equal(st.uploads, 1); assert.deepEqual(st.statuses.map((s) => [s.sha, s.context, s.state]), [[SHA, 'stills', 'success']]);
     assert.equal((await node([REL, '--site', site, '--bake', bk])).code, 0, 'up already: left as it is');

@@ -1,0 +1,128 @@
+{
+ "ruler.cut": {
+  "k0": {
+   "wC": 1,
+   "wD": 0,
+   "duneH": 0,
+   "onDunes": false,
+   "kind": "sea"
+  },
+  "k1": {
+   "wC": 0.279,
+   "wD": 0.003,
+   "duneH": 0.1,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k2": {
+   "wC": 0.007,
+   "wD": 0.001,
+   "duneH": 0,
+   "onDunes": false,
+   "kind": "forest"
+  },
+  "k3": {
+   "wC": 0.403,
+   "wD": 0.375,
+   "duneH": 9.6,
+   "onDunes": true,
+   "kind": "dunes"
+  },
+  "k4": {
+   "wC": 0.406,
+   "wD": 0.262,
+   "duneH": 2.1,
+   "onDunes": false,
+   "kind": "bare"
+  },
+  "k5": {
+   "wC": 0.325,
+   "wD": 0.018,
+   "duneH": 0.5,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k6": {
+   "wC": 0.011,
+   "wD": 0.933,
+   "duneH": 23.6,
+   "onDunes": true,
+   "kind": "dunes"
+  },
+  "k7": {
+   "wC": 0.298,
+   "wD": 0.303,
+   "duneH": 6.3,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k8": {
+   "wC": 0.002,
+   "wD": 0.018,
+   "duneH": 0.4,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k9": {
+   "wC": 0.405,
+   "wD": 0.118,
+   "duneH": 2.1,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k10": {
+   "wC": 0.097,
+   "wD": 0.199,
+   "duneH": 5,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k11": {
+   "wC": 0.884,
+   "wD": 0.36,
+   "duneH": 6.6,
+   "onDunes": false,
+   "kind": "sea"
+  },
+  "k12": {
+   "wC": 0.878,
+   "wD": 0.207,
+   "duneH": 4.8,
+   "onDunes": false,
+   "kind": "sea"
+  },
+  "k13": {
+   "wC": 0.075,
+   "wD": 0.236,
+   "duneH": 5.3,
+   "onDunes": false,
+   "kind": "meadow"
+  },
+  "k14": {
+   "wC": 0.935,
+   "wD": 0.438,
+   "duneH": 5.9,
+   "onDunes": false,
+   "kind": "sea"
+  },
+  "k15": {
+   "wC": 0.998,
+   "wD": 0.001,
+   "duneH": 0,
+   "onDunes": false,
+   "kind": "sea"
+  }
+ },
+ "ruler.places": {
+  "k0": {
+   "places": 43,
+   "near": 3,
+   "flocks": 4
+  },
+  "k9": {
+   "places": 25,
+   "near": 2,
+   "flocks": 0
+  }
+ }
+}

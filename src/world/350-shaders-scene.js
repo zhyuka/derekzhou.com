@@ -37,7 +37,7 @@ void main() {
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D);' : ''}
-  gl_Position = uVP * vec4(vW - uCam, 1.0);
+  gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
   /* the split height: the land's height (Hd, HdGap's A_Hd) evaluated by four small fragment passes,
@@ -105,7 +105,7 @@ void main() {
   vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
   vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0));
-  gl_Position = uVP * vec4(vW - uCam, 1.0);
+  gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
   var FS_PROBE_SPLIT = `@glsl fs-probe-split`;

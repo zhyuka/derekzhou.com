@@ -248,20 +248,61 @@ test('no perched bird stands in the air above the ink (over 1 px for no more tha
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames over 1 px above the ink (most ${max.toFixed(2)} px, ${at})`);
 });
 
+/* (what it guards: no bird perched on the name stands under a stroke, its body inside a closed counter or under a
+   crossbar, where the letters drawn over it read as a bird inside the letter: the PC's #314 frames, a crow inside the
+   Z. Before the head-room cut, 5.9% of the name's perched frames had points of the bird inside the ink above its
+   ledge. 35-birds.sh's plant lets every ledge through) */
+test('no bird perched on the name stands under a stroke (no point of it inside the ink above its ledge)', () => {
+  let n = 0, bad = 0, at = '';
+  for (const cs of ['drop', 'perch']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 4; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
+    for (let k = 0; k < 26 * 60; k++) {
+      if (sc.each) sc.each(sim, tags);
+      sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX, nm = B.nameMap(); if (!nm) continue;
+      const I = B.nameInk(), PI = B.PERCH_INK, L = B.ledges();
+      for (const b of B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || s.seenF !== B.DF()) continue;
+        const own = L[P.li]; if (!own || own.kind !== 'name') continue;
+        n++; let inside = 0;
+        for (let i = 0; i < NV; i++) {   // (each point above its ledge, on the window, read in the name's own ink: the runs of sky down each column)
+          const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
+          const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
+          if (sy > own.y - 2) continue;   // (its feet and what stands on the ledge's own stroke)
+          const ux = (sx - nm[0]) / nm[2], uy = (sy - nm[1]) / nm[2], c = Math.floor(ux / PI.col);
+          if (c < 0 || c >= I.length || uy < 0 || uy >= PI.h) continue;
+          if (!I[c].some((r) => uy >= r[0] && uy < r[1])) inside++;
+        }
+        if (inside) { bad++; if (!at) at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)} ledge ${P.li}: ${inside} points`; }
+      }
+    }
+  }
+  console.log(`# frames perched on the name: ${n}; with a point inside the ink above the ledge ${bad} (first: ${at || 'none'})`);
+  assert.ok(n > 1000, 'too few frames perched on the name');
+  assert.equal(bad, 0, `${bad} of ${n} frames perched on the name had points inside the ink above the ledge (${at})`);
+});
+
 /* (what it guards: a second landing drawn as smoothly as a first, at 144 Hz, where a snap of a few px is over its bound.
    35-birds.sh's plant takes away the wings' crossfade at a change of what they do: 2.40x the form bound. A perched bird
    now stands on its feet, so the first perch's rest kept at the second touch no longer shows, and the flare's reset is
    made twice: neither can be planted here, the hub's review 3) */
 test('a bird\'s second landing is as smooth as its first (land, leave, land: every frame bounded)', () => {
   const k60 = (60 / 144) ** 2; let worst = { f: 0 }, worstB = { b: 0 }, frames = 0;   // (at 144 Hz: a snap of a few px reads at 60 Hz within a frame's bound)
-  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('natural', seed, 144, 80, null, size, true).values())
+  /* (each landed bird made to land again: off its perch after 3 s, back to a ledge 4 s after its take-off, so a second
+     landing is always scored whatever the scene's own timing: since the glides the natural scene's birds seldom land twice) */
+  const again = (sim, tags) => { const B = sim.B; for (const b of tags) { const m = b.__again || (b.__again = { st: 'wait', t: 0 });
+    if (m.st === 'wait' && b.st === 'perch' && b.P) { m.st = 'perched'; m.t = sim.t; }
+    else if (m.st === 'perched' && sim.t - m.t > 3 && b.st === 'perch') { B.leave(b, 'own'); m.st = 'left'; }
+    else if (m.st === 'left' && b.st === 'fly') { m.st = 'flying'; m.t = sim.t; }
+    else if (m.st === 'flying' && sim.t - m.t > 4 && b.st === 'fly') { const P = B.pickLedge(b, b.r); if (P) { B.startApproach(b, P, 0); m.st = 'again'; } } } };
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= SEEDS; seed++) for (const F of run('perch', seed, 144, 40, again, size).values())
     for (let n = 1; n < F.length - 1; n++) {
       const a = F[n - 1], b = F[n], c = F[n + 1]; if (b.nth < 2 || b.k !== a.k + 1 || c.k !== b.k + 1 || b.span < 6 || (b.st !== 'land' && b.st !== 'perch')) continue;
       frames++;
       const lim = 0.25 * k60 * Math.max(1, ((RATE[b.kind] || 2) / 1.95) ** 2) * 1.2, f = d2(a, b, c) / b.span / lim;
       const bb = Math.hypot(a.hb[0] - 2 * b.hb[0] + c.hb[0], a.hb[1] - 2 * b.hb[1] + c.hb[1]) / b.span / (0.1 * Math.max(k60, 0.3));
-      if (f > worst.f) worst = { f, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
-      if (bb > worstB.b) worstB = { b: bb, at: `natural ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (f > worst.f) worst = { f, at: `perch ${size} ${seed} frame ${b.k} ${b.st}` };
+      if (bb > worstB.b) worstB = { b: bb, at: `perch ${size} ${seed} frame ${b.k} ${b.st}` };
     }
   console.log(`# second landings: ${frames} frames; worst form ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(frames > 100, 'too few frames of a second landing');
@@ -350,10 +391,12 @@ test('a seeded bird\'s first way over the ground is its next step\'s (the wind i
 });
 
 /* (the hub's review 3, B) a bird that leaves mid-hop on a walk: the hop's lift eased out with the crouch, never dropped
-   (it fell 4.5 px in one 144 Hz frame: a body second difference 1.9 times the bound) */
+   (it fell 4.5 px in one 144 Hz frame: a body second difference 1.9 times the bound). 10 seeds a size, not 6: at 10 a
+   leave in the middle of a turn showed (the turn's pose ignored the crouch, and at the turn's end the crouch and lift came
+   in at once: 1.89x, perch 390x844 seed 8, frame 13), on main too; 35-birds.sh's plant takes the turn's handover away */
 test('144 Hz: a bird leaving in the middle of a hop eases its hop down (no drop)', () => {
   let n = 0, worst = 0, at = '';
-  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 10; seed++) {
     const sc = SCENES.perch(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let st = 0, left = -1; const hb = [];
     for (let k = 0; k < 40 * 144; k++) {
@@ -409,6 +452,71 @@ test('a perched bird stands on top of its ink: no drawn point far below the ink 
   assert.ok(worst <= 5, `a perched bird's drawn point hung ${worst.toFixed(2)} px below the ink under it (${at})`);
   assert.ok(over <= 0.01 * n, `${over} of ${n} perched frames had a drawn point over 2 px below the ink under it`);
   assert.ok(worstW <= 2, `a perched bird's wings or tail hung ${worstW.toFixed(2)} px below its feet (${atW})`);
+});
+
+/* (the stands-on-top test's bar, its riskiest pose held) the half-folded wing is drawn only for the quarter second
+   after a touch, so which touches meet a taller neighbouring glyph is left to the scenes' draws: the arm let down
+   from 48 to 40 deg hung a wrist 5.06 px below the ink once in 36 scenes, and after a merge moved the draws, on none.
+   Here every perched bird is held at the half fold (its touch kept 0.25 s back) on every frame, so every ledge it
+   stands on meets it: the lowest drawn point at most 5 px below the ink under it, the stands-on-top test's bar
+   (measured: 4.55 px over 31,795 frames; the arm at 40 deg 5.08) */
+test('a perched bird held half-folded stands on top of its ink (the half fold met on every ledge)', () => {
+  let n = 0, worst = -1e9, at = '';
+  for (const cs of ['drop', 'perch', 'click']) for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES[cs](seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); sc.setup(sim);
+    for (let k = 0; k < 26 * 60; k++) {
+      for (const b of sim.B.PERCHED) if (b.st === 'perch' && b.P && b.P.kind !== 'pointer' && !b.P.leaving && sim.t - b.P.tt > 0.25) b.P.tt = sim.t - 0.25 + 1 / 60;
+      sim.step(); const B = sim.B, C = sim.C, W = sim.W, H = sim.H, k2 = (W / 2) / B.VW.tanX, L = B.ledges();
+      for (const b of B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || b.st !== 'perch' || !P || P.kind === 'pointer' || P.act || s.seenF !== B.DF()) continue;
+        const lg = L[P.li], sp = s.spanPx; let d = -1e9;
+        for (let i = 0; i < NV; i++) {
+          const X = s.X46[3 * i], Y = s.X46[3 * i + 1], Z = s.X46[3 * i + 2], zc = X * C.f[0] + Y * C.f[1] + Z * C.f[2];
+          const sx = W / 2 + (X * C.r[0] + Y * C.r[1] + Z * C.r[2]) / zc * k2, sy = H / 2 - (X * C.u[0] + Y * C.u[1] + Z * C.u[2]) / zc / B.VW.tanY * (H / 2);
+          let y = B.surfY(lg.pts, sx);
+          if (!(y === y)) for (const q of L) { if (q.kind !== lg.kind || Math.abs(q.y - lg.y) > 0.6 * sp) continue; const v = B.surfY(q.pts, sx); if (v === v) { y = v; break; } }
+          if (!(y === y)) y = lg.y;
+          d = Math.max(d, sy - y);
+        }
+        n++; if (d > worst) { worst = d; at = `${cs} ${size} ${seed} t ${sim.t.toFixed(2)}`; }
+      }
+    }
+  }
+  console.log(`# frames held at the half fold: ${n}; the lowest drawn point below the ink under it at most ${worst.toFixed(2)} px (${at})`);
+  assert.ok(n > 10000, 'too few perched frames');
+  assert.ok(worst <= 5, `a bird held half-folded hung a point ${worst.toFixed(2)} px below the ink under it (${at})`);
+});
+
+/* (#351) a walk along the name is planned to its stroke: it ends where there is ink at its own height. The walks the
+   scenes draw are few and fall where the draws put them (an unplanned one stopped past a stroke's end, 5.2 px into
+   the letters, on one seed, then on none after a merge), so here every bird on the name is asked, every half second,
+   for the longest walk each way at both step sizes (its own side-step's and the make-room hop's): each must end over
+   ink of the name within 2 px of where it stands (measured: 0 of 412; unplanned, 2,029 of 2,216 end past the ink) */
+test('every walk planned along the name ends on its stroke (ink at its own height under its last step)', () => {
+  let asked = 0, walks = 0, off = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.life(seed, size); sc.opt.dt = 1 / 20; sc.opt.draw = null;
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [];
+    for (let k = 0; k < 60 * 20; k++) {
+      if (sc.each) sc.each(sim, tags);
+      sim.step(); const B = sim.B, L = B.ledges();
+      if (k % 10) continue;
+      for (const b of B.PERCHED) {
+        const P = b.P; if (b.st !== 'perch' || !P || P.kind !== 'name' || P.leaving || P.walk) continue;
+        asked++;
+        for (const dir of [-1, 1]) for (const f of [0.08, 0.22]) {
+          const w = B.newWalk(P, dir, 3, f * B.perchSpan(b, P.k), sim.t); if (!w) continue;
+          walks++; const ex = P.x + dir * w.n * w.step; let best = Infinity;
+          for (const q of L) { if (q.kind !== 'name') continue; const y = B.surfY(q.pts, ex); if (y === y) best = Math.min(best, Math.abs(y - P.fy)); }
+          if (best > 2) { off++; if (!at) at = `${size} ${seed} t ${sim.t.toFixed(1)} ledge ${P.li} dir ${dir}: ${best === Infinity ? 'no ink' : best.toFixed(1) + ' px'}`; }
+        }
+      }
+    }
+  }
+  console.log(`# birds on the name asked: ${asked}; walks planned ${walks}; ending off the stroke ${off} (first: ${at || 'none'})`);
+  assert.ok(asked > 300 && walks > 200, `too few walks asked (${asked} birds, ${walks} walks)`);
+  assert.equal(off, 0, `${off} of ${walks} planned walks ended off the name's stroke (${at})`);
 });
 
 /* (the hub's re-review 3, #227) a bird riding the pointer, the pointer round a 60 px circle at 200 px/s (the cursor
