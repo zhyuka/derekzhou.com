@@ -64,7 +64,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
-                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
+                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
@@ -96,6 +96,8 @@ tools/glslmin.mjs            A shader's text without comments and spare space, t
 tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
 tools/check.mjs              Every static check from one command (npm run check; CI's validate job): the build once, then
                              tools/checks/*.sh in parallel; --fast, --only, --list, --prove (each check's planted failures)
+                             --shard i/n: the build and one shard's checks (CI runs 5 side by side; --shards n prints the split)
+tools/checks/costs.json      Each check's seconds on a hosted runner: check.mjs --shard splits the checks by them
 tools/check-quick.mjs        The checks that take seconds (npm run check:quick; the Stop hook)
 tools/dup-names.mjs          No name declared twice in one scope of a served script
 tools/where.mjs              Where a world name is declared, and which sections read, assign and write it
@@ -131,7 +133,7 @@ tools/sound/render.mjs       Renders the score offline against a scripted flight
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (fillStamp writes PW_V at assembly), minified as the world is
 package.json, package-lock.json  terser, pinned, for tools/minify.mjs (npm ci; node_modules/ after it)
 .gitattributes               src/ and site/ never converted to CRLF (minify.mjs refuses a CR)
-.github/workflows/validate.yml  CI checks: runs tools/check.mjs, every check a file of tools/checks/
+.github/workflows/validate.yml  CI checks: tools/check.mjs on five runners (--shard i/5), every check a file of tools/checks/
 .github/ci/areas.json        Which gates a changed path needs (areas.mjs); every pattern matches a tracked or served file
 .github/ci/handoff.mjs       The gate's jobs hand each other the two builds and T1's shards (run artifacts, sha256 manifest, pinned)
                              (HANDOFF_ROOT), every file checked against a sha256 manifest (docs/deploy.md)
