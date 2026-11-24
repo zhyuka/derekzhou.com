@@ -56,18 +56,23 @@ test/shaders.mjs             Every program the page issues, compiled and linked 
 test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/24-unit.sh runs them, a process each), sharing
                              test/unit-lib.mjs; --write updates test/golden/unit/<area>.json:
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
+                             test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit
                              far out: an fp32 replay), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
+                             test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
+                             test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
                              test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
-                             test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
-                             ripples' warp read C1), test/unit/sky.mjs (the order of the
-                             skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still),
+                             test/unit/largeworld.mjs (a long visit's far-out
+                             frames held still: eyeRel and the particles' wrap, an fp32 replay), test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
+                             ripples' warp read C1), test/unit/smoke.mjs (the post-deploy smoke tells Cloudflare's bot challenge
+                             from the site's answer: .github/ci/cf-challenge.mjs), test/unit/sky.mjs (the order of the
+                             skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
                              test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
@@ -80,12 +85,14 @@ test/ground.mjs              The land's real ground for the sims, from test/gold
 test/golden/                 What the tests compare against: the unit areas' values, the boot's frames, the recorded ground
 tools/birds/sim.mjs          The ink birds headless in Node: the real module on a stub host (no GL, 50 ms steps), 960x600 and 390x844
 test/birds.mjs               The birds' behaviour on the sim over random scenes (test/birds-scenes.mjs), against the research's numbers
+test/birds-motion.mjs        The ink birds' drawn motion frame by frame on the headless sim (their form and place on the window bounded in their second difference)
 tools/build.mjs              The build in one command (node tools/build.mjs dist: what Cloudflare deploys once
                              set to): site/ + the built scripts, each script and stylesheet named by its content
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the seven minified scripts from build/ship/; CI checks the build
 tools/glslmin.mjs            A shader's text without comments and spare space, token for token the same (the build's)
+tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
 tools/check.mjs              Every static check from one command (npm run check; CI's validate job): the build once, then
                              tools/checks/*.sh in parallel; --fast, --only, --list, --prove (each check's planted failures)
 tools/check-quick.mjs        The checks that take seconds (npm run check:quick; the Stop hook)
@@ -110,14 +117,17 @@ tools/gpu/                   GPU checks run by hand on a real GPU (no CI job run
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
-tools/precision/             How fp32 world coordinates degrade far from the start in a long flight (far-origin.mjs:
-                             each GPU-read value's rounding in metres and laptop pixels), by hand
+tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
+                             the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
 tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD): each error as
                              section:line or file:line
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
+                             build (a layout only): 226's STILL_WORDS (their union) and test/golden/still-words.json
+                             (--check, tools/checks/70-still-words.sh; --write after a stylesheet change)
 tools/sound/sheet.py         Makes the score's sheet of notes from the two CC0 libraries, by hand (docs/sound.md)
 tools/sound/render.mjs       Renders the score offline against a scripted flight and prints its loudness, by hand
 tools/plan.mjs               Makes the plan's worker from the world's plan spans, stamped (fillStamp writes PW_V at assembly), minified as the world is
@@ -141,11 +151,16 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/36-load-budget.sh, tools/checks/37-ground-fresh.sh, tools/checks/38-sound.sh,
                              tools/checks/39-boot-frames.sh, tools/checks/40-font-glyphs.sh,
                              tools/checks/41-docs-drift.sh (this list, and areas.json's patterns, true to the files),
-                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own)
+                             tools/checks/42-one-air.sh (the world's one air: no wind or sun of a section's own),
                              tools/checks/43-dune-census.sh (the shipped dunes' slopes, from the page's own probe:
                              the sand spec's bounds, physics: sand/S1),
                              tools/checks/44-gust-glsl.sh (the shaders' gust is the JS's, by value: lib/gust-glsl.mjs),
-                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL)
+                             tools/checks/45-citations.sh (no author-style citation: a credit is its DOI or URL),
+                             tools/checks/46-names-in-messages.sh (no banned name in a commit message from main to HEAD,
+                             the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list),
+                             tools/checks/47-first-paint.sh (with no stills, the words first, then the world as a cut,
+                             no stale still: tools/first-paint.mjs)
+                             tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:

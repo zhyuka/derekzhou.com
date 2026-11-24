@@ -27,6 +27,7 @@
   var PLAND = [1.2, 10];       // the last of a landing (a curve to rest: landStep) from this tau (s) or this range (m)
   var PFLARE = 0.6;            // s of tau: the flare (the feet out from 0.15)
   var PNOTICE = [16, 34];      // s between the letters' turns to have a bird (one at a time) ...
+  var PROOST = [3, 8];          // ... at afterglow and blue hour, when crows come in to roost on the name (delight-life 1: roost flights peak 15-30 min after sunset)
   var PSEEK = 20;              // ... each turn looking this long (every PLOOK s) for a bird that can be there soon (PREACH s): the perch moves
   var PLOOK = 0.5, PREACH = 20;   // with the camera, so only a bird near it or beside its way can come down in a believable time
   var PDWELL = 8;              // s down before a passing flock may take it (just landed, it settles first)
@@ -43,6 +44,15 @@
     return NAME_INK;
   }
   function inkTops(c) { var I = nameInk()[c], o = []; if (!I) return o; for (var i = 0; i < I.length; i++) if (I[i][1] < PERCH_INK.h && I[i][1] - I[i][0] >= PERCH_INK.room) o.push(I[i][1] - 1); return o; }
+  /* head-room: no ledge under a stroke. A perched bird stands up to 0.63 of its span tall (measured; its body, the most
+     of it, nearer 0.45) and its body about 0.17 of it to each side (a gull's span ~270-300 of the name's units on every window), and the letters are drawn over the birds:
+     so a ledge is cut where, within 48 units each side of its middle, ink overhangs it nearer than 120 units
+     (the inside of a closed counter or under a crossbar: a bird there read as standing inside the letter, the PC's #314
+     frames). Sky that runs up to the name's top is open */
+  function headroom(c, y) {   // (120 units up, 8 columns of 6 each side)
+    for (var I = nameInk(), cc = c - 8, j, q; cc <= c + 8; cc++) for (j = 0; j < (I[cc] || []).length; j++) { q = I[cc][j]; if (y >= q[0] && y < q[1] && q[0] > 0 && y - q[0] < 120) return false; }
+    return true;
+  }
   /* the name's ledges in its own units (x, y pairs along each), made once: a relayout only maps them */
   var NAME_LEDGES = null;
   function nameLedges() {
@@ -54,7 +64,7 @@
       for (i = 0; i < T.length; i++) {
         var U = [], ok = true;
         for (k = -sp; k <= sp && ok; k++) { var y = k ? nearTop(TOPS[c + k], T[i]) : T[i]; if (!(y === y)) ok = false; else U.push((c + k) * PERCH_INK.col + PERCH_INK.col / 2, y); }
-        if (ok) out.push(U);
+        if (ok && headroom(c, T[i])) out.push(U);
       }
     }
     return (NAME_LEDGES = out);
@@ -129,7 +139,7 @@
   function perchRec(kind, li, x, fy, k) {
     return { kind: kind, lk: kind, li: li, x: x, fy: fy, k: k, foot: new Float64Array(2), at: new Float64Array(3), af: new Float64Array(3), v: new Float64Array(3), ok: false,
       t0: 0, tries: 0, d0: 0, tau0: 0, ts: 0, go: 0, D: 0, rest: null, gate: null, gated: false, gT: 0, gb: 0, gbT: 0, rT: 0, tAt: undefined, tl: 0, r0: null, u0: null, T: 0,
-      tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, nextAct: 0, act: null, walk: null,
+      tt: 0, yaw: 0, yaw0: 0, yawT: 0, yawTo: undefined, yawD: 0, hopTurn: false, pitch: 0, face: 0, stay: 0, wake: 0, wakeNew: false, nextAct: 0, act: null, walk: null,
       swing: 0, swingV: 0, hop: 0, crouch: 0, leaving: null, lastComfort: 0, startleT: undefined, landYaw: false, rA: 0, rB: 0, rT: -1, nb: new Int32Array(24), nbN: 0, nbI: -1, nbL: null };
   }
   function perchCount() { var n = 0; for (var i = 0; i < PERCHED.length; i++) if (PERCHED[i].P && PERCHED[i].P.kind !== 'pointer') n++; return n; }
@@ -147,20 +157,22 @@
     if (PW.appr || t < PW.nextT || perchCount() >= PMAX || HOST.reduced()) return;
     if (!(PW.seekEnd > t)) PW.seekEnd = t + PSEEK;   // (this turn's look begins)
     PW.nextT = t + PLOOK;
-    if (t >= PW.seekEnd) { PW.seekEnd = 0; PW.nextT = t + pick(POP.r, PNOTICE); return; }
+    var cl = skyCls(), dusk = cl === 'glow' || cl === 'blue';
+    if (t >= PW.seekEnd) { PW.seekEnd = 0; PW.nextT = t + pick(POP.r, dusk ? PROOST : PNOTICE); return; }
     var best = null, bs = 0, i, j;
     for (i = 0; i < FLOCKS.length; i++) {
       var F = FLOCKS[i]; if (F.far || !KINDS[F.kind].perch) continue;
       for (j = 0; j < F.m.length; j++) {
-        var b = F.m[j]; if (b.st !== 'fly') continue;
-        var T = reachT(b, C, 200);
-        if (T > PREACH) continue;
-        var sc = (0.5 + POP.r()) / T;
+        var b = F.m[j]; if (b.st !== 'fly' || b.offT > t) continue;
+        var T = reachT(b, C, dusk && F.kind === 'crow' ? 400 : 200);
+        var ro = dusk && F.kind === 'crow';
+        if (T > (ro ? 2 * PREACH : PREACH)) continue;   // (a crow coming in to roost comes from farther)
+        var sc = (0.5 + POP.r()) / T * (ro ? 20 : 1);   // (at dusk the crows come to roost)
         if (sc > bs) { bs = sc; best = b; }
       }
     }
     if (!best) return;
-    PW.seekEnd = 0; PW.nextT = t + pick(POP.r, PNOTICE);
+    PW.seekEnd = 0; PW.nextT = t + pick(POP.r, dusk ? PROOST : PNOTICE);
     /* from a flock: one to three of it come down, the rest fly on */
     var F0 = best.F, nd = F0.m.length > 2 ? 1 + Math.floor(POP.r() * Math.min(3, F0.m.length - 1)) : 1, list = [best];
     for (j = 0; j < F0.m.length && list.length < nd; j++) if (F0.m[j] !== best && F0.m[j].st === 'fly') list.push(F0.m[j]);

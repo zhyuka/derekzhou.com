@@ -16,7 +16,7 @@ vec3 A_Hd(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd per kind of multiply), each tap's
      own multiply as before and its gradient turn after: the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0;
-  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + uZ; o++) {
+  for (int o = 0; o < 5 + (k1 > 0.0 ? 1 : 0) + (k2 > 0.0 ? 1 : 0) + UZ; o++) {
     vec3 g;
     if (o == 1 || o == 3 || o == 5) g = gnd((o == 1 ? A_M1 : (o == 3 ? A_M3 : A_M5)) * (p + A_TO[o]));
     else g = gnd(mat2(A_TS[o]) * (p + A_TO[o]));
@@ -44,6 +44,34 @@ vec3 A_bump(vec2 q, float fp) {
   if (k2 > 0.002) { vec3 c = gnd(mat2(0.8, 0.6, -0.6, 0.8) * q / 2.6 + vec2(11.3, 5.9)); float s = c.x / sqrt(c.x * c.x + 0.0064); g += k2 * 0.7 * s * c.yz / 2.6; }
   return vec3(g.x, 0.0, g.y);
 }
+/* (delight-weather 4) the glory and the fogbow on the moonlit cloud sea: rings about the point opposite the moon
+   (uGlory.xyz: the moon's own direction, the air's airMoon; w its amount, nought but on a moonlit sky with the moon over
+   the sea), a function of the view's angle alone, times the sea's own light, so it moves only with the view and the
+   moon (its brightness: the rings take their own colours, not the sea's blue). The glory's first red ring at GLORY_R (the corona's 2.6 deg ring is droplets of about 6 um; a glory's ring
+   goes as 1/r, 2.4 deg at 10 um: 3.9 deg), two fainter rings outside it and a bright centre; the fogbow broad and
+   white at BOW_R, faintly red outside and blue inside, with a faint supernumerary BOW_SUP inside it. Only the cloud
+   sea's surface takes it (A_shadeSea); no sky program reads it. Sources: the WMO Cloud Atlas (glory, fogbow);
+   https://www.eoas.ubc.ca/books/Practical_Meteorology/ */
+uniform vec4 uGlory;
+const float GLORY_R = 3.9, GLORY_W = 0.35, BOW_R = 37.0, BOW_W = 2.6, BOW_SUP = 8.0;
+vec3 A_glory(vec3 rd) {
+  if (uGlory.w <= 0.0) return vec3(0.0);
+  float a = degrees(acos(clamp(-dot(rd, uGlory.xyz), -1.0, 1.0)));
+  if (a > BOW_R + 4.0 * BOW_W) return vec3(0.0);
+  vec3 g = vec3(0.0);
+  if (a < 3.0 * GLORY_R) {
+    g += vec3(0.9, 0.92, 1.0) * 0.9 * exp(-pow(a / (0.45 * GLORY_R), 2.0));   // the bright centre
+    for (int k = 0; k < 3; k++) {   // each ring red outside, green, then blue inside; each fainter
+      float r = GLORY_R * (1.0 + 0.72 * float(k)), s = 1.0 / (1.0 + 1.2 * float(k));
+      g += s * (vec3(1.0, 0.55, 0.45) * 0.6 * exp(-pow((a - r) / GLORY_W, 2.0)) + vec3(0.5, 0.95, 0.6) * 0.3 * exp(-pow((a - r + 0.55) / GLORY_W, 2.0))
+        + vec3(0.45, 0.6, 1.0) * 0.45 * exp(-pow((a - r + 1.0) / GLORY_W, 2.0)));
+    }
+  }
+  float b = (a - BOW_R) / BOW_W;
+  g += 0.3 * (vec3(1.0) * exp(-b * b) + vec3(0.25, 0.05, 0.0) * exp(-2.0 * (b - 1.1) * (b - 1.1)) + vec3(0.0, 0.04, 0.12) * exp(-2.0 * (b + 1.1) * (b + 1.1)))
+    + vec3(0.08) * exp(-pow((a - BOW_R + BOW_SUP) / 1.5, 2.0));
+  return g * uGlory.w;
+}
 vec3 A_shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   n = normalize(n - A_bump(p.xz, fp));
   // the sea's own heaps: their tops catch the low sun (pink), the creases between sink into the sky's blue
@@ -63,6 +91,7 @@ vec3 A_shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   float top = smoothstep(0.84, 0.985, n.y) * smoothstep(0.2, 0.75, hgt) * smoothstep(-0.2, 0.4, crease - 0.3);
   c = mix(c, uClLit * vec3(1.04, 1.03, 1.05) * A_SEALIT, 0.78 * top);
   c = mix(c, uClDeep, 0.35 * smoothstep(0.93, 0.7, n.y) * (1.0 - hgt * 0.5));   // (the flanks turned from the sky: its blue)
+  c += dot(c, vec3(0.2126, 0.7152, 0.0722)) * A_glory(rd);   // (the glory and the fogbow: more of the sea's own light opposite the moon, in the moonlight's own colours)
   return c;
 }
 vec3 A_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbove) {

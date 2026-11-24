@@ -50,7 +50,9 @@ test('ruler: the mist at the cut is by the visit\'s moisture (AIR\'s weather, wh
   const at = (k) => measure(flyLand(k, 5), 'dawn', k + 16, 0.5, 600);
   const k3 = at(3), k4 = at(4);
   assert.equal(k3.sky0, 'firstlight');
-  assert.ok(Math.abs(k3.mistAtCut - 9.17) < 0.05, `k3 at dawn: ${k3.mistAtCut} m of mist (want 9.17: first light's 10 m by its moisture 0.917)`);
+  const q3 = flyLand(3, 5).cut.mistQ, want = +(q3 * MIST_BY_SKY.firstlight).toFixed(2);   // (the band is AIR's: read it, never pin it)
+  assert.ok(q3 > 0.5, `k3: moisture ${q3} (want a moist visit: the live seed's U10 3.97 m/s)`);
+  assert.ok(Math.abs(k3.mistAtCut - want) < 0.05, `k3 at dawn: ${k3.mistAtCut} m of mist (want ${want}: first light's ${MIST_BY_SKY.firstlight} m by its moisture ${q3})`);
   assert.equal(k4.mistAtCut, 0, `k4 at dawn: ${k4.mistAtCut} m (want 0: a dry visit)`);
 });
 

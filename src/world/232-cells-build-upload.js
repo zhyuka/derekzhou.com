@@ -64,7 +64,7 @@
       if (C.beamB && C.beamB.buf) { glFree('Buffer', C.beamB.buf); glFree('VertexArray', C.beamB.vao); }
     }
     if (C.job) C.job.cancel = true;
-    C.mesh = null; C.occ = null; C.vols = []; C.items = []; C.clouds = []; C.flocks = []; C.pois = []; C.obst = []; C.B = null; C.RB = null; C.gen = null; C.rgen = null; C.pts = null; C.soft = null; C.softB = null;
+    C.mesh = null; C.occ = null; C.lift = null; C.liftN = null; C.liftT = undefined; C.vols = []; C.items = []; C.clouds = []; C.flocks = []; C.pois = []; C.obst = []; C.B = null; C.RB = null; C.gen = null; C.rgen = null; C.pts = null; C.soft = null; C.softB = null;
     C.places = []; C.glowG = []; C.beamL = []; C.inst = null; C.glowB = null; C.beamB = null;
     if (C.V) C.V.poiGen = (C.V.poiGen || 0) + 1;
   }

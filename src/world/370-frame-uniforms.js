@@ -4,10 +4,11 @@
   var CPOS = CAMV.subarray(0, 3), CR = CAMV.subarray(3, 6), CU = CAMV.subarray(6, 9), CF = CAMV.subarray(9, 12);
   var FOV_LONG = 72;
   var FR = { tanX: 1, tanY: 1, t: 0 }, FRT = { tanX: 1, tanY: 1 };
-  var HZU = new Float32Array(4);
+  var HZU = new Float32Array(4), CAML = new Float32Array(3);
   function setFrameUniforms(P, V) {
     var u = P.u, L = V.L || V.light;
     if (u.uCam) gl.uniform3fv(u.uCam, CPOS);
+    if (u.uCamL) gl.uniform3fv(u.uCamL, CAML);
     if (u.uCamR) gl.uniform3fv(u.uCamR, CR);
     if (u.uCamU) gl.uniform3fv(u.uCamU, CU);
     if (u.uCamF) gl.uniform3fv(u.uCamF, CF);
@@ -19,7 +20,9 @@
     if (u.uPxK) gl.uniform1f(u.uPxK, Math.max(1, OUT.dpr * SS / 1.25));   // (the world's pixels a pixel of the display's: 1 but in a supersampled reference)
     if (u.uSalt) gl.uniform1ui(u.uSalt, V.salt);
     if (u.uAir) gl.uniform4fv(u.uAir, UAIR);
-    if (u.uSun) gl.uniform3fv(u.uSun, L.sunDir);
+    if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));   // (the live key: on the moonlit sky, the moon's disc as drawn: physics: air/night-light)
+    if (u.uKey) gl.uniform3fv(u.uKey, L.sunDir);   // (the baked key: the clouds' light, along their light depths)
+    if (u.uGlory) gl.uniform4fv(u.uGlory, gloryUniform());   // (the cloud sea's glory: the moon's direction and amount)
     if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (the sky's own light)
     if (u.uSunC) gl.uniform3fv(u.uSunC, L.sunC);
     if (u.uSky) gl.uniform3fv(u.uSky, L.skyFlat);

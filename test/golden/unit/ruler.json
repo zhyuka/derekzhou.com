@@ -115,12 +115,12 @@
  },
  "ruler.places": {
   "k0": {
-   "places": 42,
-   "near": 0,
+   "places": 46,
+   "near": 1,
    "flocks": 1
   },
   "k9": {
-   "places": 30,
+   "places": 32,
    "near": 3,
    "flocks": 0
   }

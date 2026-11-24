@@ -1,12 +1,28 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27", "with": "float galAlong(float ld) { return 0.75 + 0.0 * (1.0 + cos(radians(ld))) + 0.27", "why": "a band as bright at the anticentre as at the core"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "smoothstep(-55.0, -45.0, ld) * (1.0 - smoothstep(75.0, 85.0, ld))", "with": "1.0", "why": "the rift all round the band"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "var CEIL_KNEE = 0.04,", "with": "var CEIL_KNEE = 0.08,", "why": "the ceiling's knee wide again: a night's highlights flattened under it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return F * starBox(d.x, sg) * starBox(d.y, sg);", "with": "  return b * exp(-dot(d, d) / (2.0 * 0.1764));", "why": "a star sampled at the pixel's centre: it pulses as it slides across pixels"}
+// plant: {"file": "src/world/220-time-day.js", "find": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:1,", "with": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,", "why": "the stars' amount blended between skies again (the afterglow's 0.05): the no-fades gap"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += auroraAt(rd, eS) * hzT;", "with": "c += auroraAt(rd, eS);", "why": "the aurora added over the haze at full strength"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "{ n++; break; }", "with": "{ break; }", "why": "venusFails never counts a place on a word: the evening star planned across the words, and on a window all words"}
+// plant: {"file": "src/world/219-meteors.js", "find": "var y = M.long ? M.y : M.y * Math.sin(Math.PI * e / M.dur);", "with": "var y = M.y;", "why": "a short meteor that pops on and off at full light"}
+// plant: {"file": "src/world/219-meteors.js", "find": "QUIET: 8,", "with": "QUIET: 0,", "why": "a meteor in the opening stay's first seconds: in its still"}
+// plant: {"file": "src/world/219-meteors.js", "find": "      return { A: R0, n: n, th0: th0, th1: t1, thP: thP };", "with": "      return { A: R0, n: n, th0: th0, th1: th0 + 120, thP: thP };", "why": "a long one ending 120 deg on, up in the sky: a drag brings its end into view, where it vanishes at full light"}
+// plant: {"file": "src/world/220-time-day.js", "find": "L:[0.62,0.01,80],glow:[0.44,0.01,80]", "with": "L:[0.62,0.01,250],glow:[0.44,0.01,250]", "why": "a blue-tinted disc merges with the blue moonlit clouds"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-2268x1080\":[[800.6,222.2,1467.2,433.8]", "with": "\"hi-2268x1080\":[[933.2,339.4,1334.7,433.8]", "why": "the still's own name box alone: on its band's smallest window the words stand bigger, and the moon's footprint falls on them"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-1080x1080\":[[268.9,300.5,810.9,441.4]", "with": "\"hi-1080x1080\":[[339.2,347,740.7,441.4]", "why": "the square still's own name box alone: on 800x720 the evening star's path falls on the bigger name"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "var cw = Math.min(bw, bh * BD[0]), ch = Math.min(bh, bw / BD[1])", "with": "var cw = bw, ch = bh", "why": "the opening planned in the whole still: a disc near its top edge falls off a wider window of its band"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "    LATEK.creature = lk[0]; LATEK.glow = lk[1]; LATEK.beam = lk[2];\n", "with": "", "why": "the opening's cloud layout leaves a late program's flag set: it starts compiling at the opening"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lit = smoothstep(hs - 0.5, hs + 0.5, z);", "with": "float lit = 1.0;", "why": "the far storm lit whole whatever the sun's depth: lit in the blue hour and at night"}
+// plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "FL_SEP = 0.6,", "with": "FL_SEP = 0.36,", "why": "the flicker's flashes 0.38 s apart: three peaks inside a second (the owner's \"under 3\")"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float ANV_FK = 0.02 / 0.8966;", "with": "const float ANV_FK = 0.2 / 0.8966;", "why": "the flicker ten times brighter: a flash"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9))", "with": "veil: mix32(SKY.vS)", "why": "the veil the visit's, not the stay's: every moonlit stay of a visit veiled, or none"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -94,11 +110,242 @@ test('sky timing: holds 0.9-1.15 of their sky\'s, changes 55-60 s, each sky as t
 });
 test('sky timing: the visit opens as far through its first hold as data-sky-at says', () => {
   for (const at of [0, 0.25, 0.5, 0.999, 1]) {
-    const { SKY } = skyWorld(7, 'night', at), s = SKY.seq[0];
-    assert.ok(Math.abs(s.at + s.hold * at * 0.9) < 1e-9, `at ${at}: the first sky starts ${s.at} (hold ${s.hold})`);
-    assert.equal(SKY.landing.at, at);
+    const { SKY } = skyWorld(7, 'night', at), s = SKY.seq[0], a = s.id === 'moonlit' ? Math.min(at, 0.6) : at;   // (a moonlit opening never past 0.6 of its hold: its moon at the cut where its still has it, the hub's review of #303)
+    assert.ok(Math.abs(s.at + s.hold * a * 0.9) < 1e-9, `at ${at}: the first sky (${s.id}) starts ${s.at} (hold ${s.hold})`);
+    assert.equal(SKY.landing.at, a);
   }
-  for (const bad of ['x', -1, 2]) { const { SKY } = skyWorld(7, 'night', bad); assert.equal(SKY.landing.at, 0.5, `data-sky-at ${bad}: opens halfway`); }
+  for (const bad of ['x', -1, 2]) { const { SKY } = skyWorld(7, 'night', bad); assert.equal(SKY.landing.at, 0.5, `data-sky-at ${bad}: opens halfway`); }  let ml = 0; for (let sd = 1; sd < 400 && ml < 3; sd++) { const { SKY } = skyWorld(sd * 2654435761 >>> 0, 'night', 0.999); if (SKY.seq[0].id === 'moonlit') { ml++; assert.equal(SKY.landing.at, 0.6, 'a moonlit opening never past 0.6 of its hold'); } }
+  assert.equal(ml, 3, 'three moonlit openings found');
+});
+
+// ------------------------------------------------------------------ the opening's moon in frame (the hub's ask, NIGHT lane)
+// 225's moon route (MOON-ROUTE, pure functions) planned as the page plans an opening's moonlit stay (I.land, the cut's
+// sky time), on the windows the stills are baked at, the words' boxes as the page lays them out there (measured in
+// Chromium, CSS px x the device's): at the cut the moon is ahead, in frame, its whole disc under the top edge, its
+// footprint (4.5 deg) clear of every box's outline; after it, it only moves on and is set behind the sea before its stay ends
+const MARG = {};
+test('night: an opening\'s moon stands in frame at the cut, clear of the words, on every baked window shape', () => {
+  const R = cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END');
+  const M = vm.runInThisContext('(function () {' + R + ' return { moonPlan, moonAt, mrCam, mrProj, mrPix, mrRay, mrAng, MRK }; })')();
+  const WIN = [   // [name, css w, css h, dpr, tanY, pitch, boxes (css px)], measured at 01:00 on opening 1
+    ['lo-1080x1080', 393, 393, 3, 0.727, 4.2, [[24, 64, 369, 147], [24, 162, 369, 241], [24, 257, 369, 277], [20, 356, 55, 377], [79, 356, 134, 377]]],
+    ['lo-1350x1080', 491, 393, 3, 0.582, 12.3, [[44, 57, 448, 154], [44, 169, 426, 248], [44, 264, 448, 284], [20, 356, 55, 377], [79, 356, 134, 377]]],
+    ['lo-1920x1080', 699, 393, 3, 0.408, 11.3, [[148, 57, 552, 154], [148, 169, 530, 248], [148, 264, 552, 284], [21, 356, 56, 377], [80, 356, 134, 377]]],
+  ];
+  for (const [name, w, h, d, tanY, p, boxes] of WIN) for (const sigma of [1, -1]) {
+    const W = w * d, H = h * d, I = { psi: 37, pN: p, pL: p, tanX: 0.727, tanY, W, H, boxes: boxes.map((b) => b.map((v) => v * d)), keepPx: 12 * d, coarse: true, noRoom: false, keyAz: 37 + 160, side: 1, sigma, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0 };
+    const P = M.moonPlan(I), C = M.mrCam(I.psi, p), o = { d: [0, 0, 0] };
+    assert.ok(P.caseA && P.Hc === I.psi, `${name}: ahead`);
+    M.moonAt(P, 0, o);
+    const q = M.mrProj(C, I, o.d), x = (q[0] + 1) / 2, y = (1 - q[1]) / 2;
+    assert.ok(q[2] > 0 && x > 0 && x < 1 && y > 0 && y < 1, `${name} sigma ${sigma}: in frame at the cut (${x.toFixed(3)}, ${y.toFixed(3)})`);
+    const top = M.mrRay(C, I, Math.max(-1, Math.min(1, q[0])), 1);
+    assert.ok(M.mrAng(o.d, top) >= M.MRK.R, `${name}: its whole disc under the top edge (${M.mrAng(o.d, top).toFixed(2)} deg from it; keep x${P.landKeep}, margin ${P.landMg}${P.landSide ? ', beside the words' : ''})`); MARG[name + sigma] = [+(M.mrAng(o.d, top) - M.MRK.R).toFixed(2), P.landKeep, P.landMg, !!P.landSide, +x.toFixed(3)];
+    let foot = 180; for (const B of I.boxes) for (let i = 0; i <= 40; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 40, B[1]], [B[0] + (B[2] - B[0]) * i / 40, B[3]], [B[0], B[1] + (B[3] - B[1]) * i / 40], [B[2], B[1] + (B[3] - B[1]) * i / 40]]) foot = Math.min(foot, M.mrAng(o.d, M.mrPix(C, I, px, py)));
+    assert.ok(foot >= M.MRK.FOOT, `${name} sigma ${sigma}: the footprint ${foot.toFixed(2)} deg from a word box (4.5)`);
+    for (const B of I.boxes) assert.ok(!(x * W >= B[0] && x * W <= B[2] && y * H >= B[1] && y * H <= B[3]), `${name}: the moon's centre inside a word box`);
+    let px0 = q[0];
+    for (let t = 1; t < 162.5; t += 1) { M.moonAt(P, t, o); const qq = M.mrProj(C, I, o.d); if (qq[2] > 0 && Math.abs(qq[0]) < 1.5 && o.el > 0) { assert.ok((qq[0] - px0) * Math.sign(q[0] || 1) >= -1e-9, `${name}: it only moves on, out (t ${t})`); px0 = qq[0]; } }
+    M.moonAt(P, 162.4, o); assert.ok(o.el < -M.MRK.R, `${name}: set before the stay ends (${o.el.toFixed(1)} deg)`);
+  }  console.log('# opening moon [top margin past the disc, keep share, margin, beside, x]: ' + JSON.stringify(MARG));
+});
+
+// the opening's moon on each band's smallest window (the hub's round-4 and round-5 reviews): planned as the page plans
+// it, in the part of the still every window of its band shows (226's stillFrame) against 226's STILL_WORDS (the union
+// of the bake's boxes and the smallest window's); every place moonClear may choose (each height of MOON_UPS, each
+// x of MOON_XS: 226's moonPlaceS) is then walked in the smallest window, as the still is shown there at the cut (cover)
+// and in that window's own view (226's stillView: its frustum and pitch), against that window's own boxes
+// (test/golden/still-words.json): the disc whole in the window and its footprint clear of every box, or the test fails
+test('night: every place the opening moon may take is whole and clear of the words on each band\'s smallest window', () => {
+  const R = cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END');
+  const M = vm.runInThisContext('(function () { var PI = Math.PI, DEG = PI / 180, MOON = {}; function clockNow() { return 0; }\n' + R + cut(WORLD, '  var MOON_VEIL = 5,', '  function moonShown(t, out) {') +
+    ' return { moonPlan, moonAt, mrCam, mrProj, mrPix, mrRay, mrAng, MRK, moonBandDir, moonPlaceS, MOON_XS, MOON_UPS }; })')();
+  const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
+    '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+  const foot = (C, I, d, boxes) => { let f = 180; for (const B of boxes) for (let i = 0; i <= 40; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 40, B[1]], [B[0] + (B[2] - B[0]) * i / 40, B[3]], [B[0], B[1] + (B[3] - B[1]) * i / 40], [B[2], B[1] + (B[3] - B[1]) * i / 40]]) f = Math.min(f, M.mrAng(d, M.mrPix(C, I, px, py))); return f; };
+  const whole = (C, I, d) => { const q = M.mrProj(C, I, d); if (!(q[2] > 0 && Math.abs(q[0]) < 1 && Math.abs(q[1]) < 1)) return -1; return Math.min(M.mrAng(d, M.mrRay(C, I, q[0], 1)), M.mrAng(d, M.mrRay(C, I, q[0], -1)), M.mrAng(d, M.mrRay(C, I, 1, q[1])), M.mrAng(d, M.mrRay(C, I, -1, q[1]))) - M.MRK.R; };
+  let n = 0, least = 180, edge = 180;
+  for (const key of Object.keys(G)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), F = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min;
+    assert.ok(F, key + ': in the tables');
+    const c = Math.max(sw / F.bw, shh / F.bh);   // (the still as cover shows it in that window)
+    const vS = SF.stillView(F.bw, F.bh, [0.4, 0.6], {}), cv = { W: sw, H: shh, tanX: vS.tanX * (sw / c) / F.bw, tanY: vS.tanY * (shh / c) / F.bh }, vL = SF.stillView(sw, shh, [0.4, 0.6], {}), own = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY };
+    for (const sigma of [1, -1]) for (const psi of [37, 151]) for (const up of M.MOON_UPS) {
+      const I = { psi, pN: F.pN, pL: F.pN, tanX: F.tanX, tanY: F.tanY, W: F.W, H: F.H, boxes: F.boxes, keepPx: F.keepPx, coarse: F.coarse, noRoom: false, keyAz: psi + 160, side: 1, sigma, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0, landX: M.MRK.LANDX, landUp: up };
+      const P = M.moonPlan(I);
+      if (!(P.room || P.landRoom)) continue;
+      for (const x of P.landSide ? [P.landX] : M.MOON_XS) {
+        const d = M.moonBandDir(P, M.moonPlaceS(P, I, x), [0, 0, 0]);
+        for (const [view, V, pN] of [['at the cut', cv, F.pN], ['in its own view', own, vL.pN]]) {
+          const C = M.mrCam(psi, pN), e = whole(C, V, d), f = foot(C, V, d, G[key].small); n++; least = Math.min(least, f); edge = Math.min(edge, e);
+          assert.ok(e >= -1e-6, `${key} at ${sw}x${shh} ${view} (sigma ${sigma}, heading ${psi}, height ${up}, x ${x.toFixed(3)}): the disc not whole in the window (${e.toFixed(2)} deg)`);
+          assert.ok(f >= M.MRK.FOOT - 1e-9, `${key} at ${sw}x${shh} ${view} (sigma ${sigma}, heading ${psi}, height ${up}, x ${x.toFixed(3)}): the footprint ${f.toFixed(2)} deg from a word box (4.5)`);
+        }
+      }
+    }
+  }
+  assert.ok(n >= 1000, `${n} places walked (the test is not empty)`);
+  console.log(`# opening moon on the bands' smallest windows: ${n} places, the nearest box ${least.toFixed(2)} deg, the disc ${edge.toFixed(2)} deg inside the edge at least`);
+});
+
+// moonLobes lays out cells the streamer has not reached (the hub's round-4 nit): a layout only, so the late programs'
+// flags it may set through the cell's own api (230's flock, glows, beam) are put back as they were: none starts compiling
+// at the opening. 226's own moonLobes runs here on a stub cell whose layout sets every flag; the flags come out as they went in
+test('night: laying out the opening\'s cloud lobes leaves the late programs\' flags as they were', () => {
+  const F = cut(WORLD, '  function moonLobes(', '  function moonVeil(');
+  for (const before of [[0, 0, 0], [1, 0, 1]]) {
+    const K = vm.runInThisContext('(function (B) { var DEG = Math.PI / 180, KITAPI = {}, LATEK = { creature: B[0], glow: B[1], beam: B[2] }, MOON_VEIL_AZ = 60, laid = 0;\n' +
+      'function angd(a, b) { var d = ((a - b) % 360 + 540) % 360 - 180; return d; } function RNG() { return {}; }\n' +
+      'function Cell(V, sc, ix, iz) { this.cx = ix * 100; this.cz = iz * 100; this.clouds = []; }\n' +
+      'function cellApi(C) { return { hash: 1, flock: function () { LATEK.creature = 1; }, glows: function () { LATEK.glow = 1; }, beam: function () { LATEK.beam = 1; } }; }\n' + F +
+      ' var V = { def: { layout: { scales: [{ radius: 200, size: 100 }] }, cell: function (api) { laid++; api.flock({}); api.glows({ n: 1 }); api.beam({}); } } };\n' +
+      ' var out = moonLobes(V, 0, 0, 0); return { L: [LATEK.creature, LATEK.glow, LATEK.beam], laid: laid, out: out }; })')(before);
+    assert.ok(K.laid > 0, 'the stub laid out some cells');
+    assert.deepEqual(K.L, before, `the late programs' flags after the layout (${K.L}; before ${before})`);
+  }
+});
+
+// 226's moonClear (the opening moon's place off the clouds) on the route's own plan and synthetic lobes: with no cloud
+// it keeps LANDX at the plan's own height in 2 plans; with a cloud body over that place it takes another whose disc is
+// clear, still in frame and clear of the words, in at most 4 plans; the same lobes, the same place (no device in it)
+test('night: the opening moon\'s place is kept off a cloud body, from the lobes alone, in at most 4 plans', () => {
+  const R = cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END') + cut(WORLD, '  var CBS = new Float64Array(7)', '  var BIRDF = null;') + cut(WORLD, '  var MOON_VEIL = 5,', '  function moonShown(t, out) {');
+  const M = vm.runInThisContext('(function () { var PI = Math.PI, DEG = PI / 180, MOON = {}; function clockNow() { return 0; }\n' + R + ' return { moonPlan, moonAt, moonClear, moonVeil, moonBandDir, mrCam, mrProj, mrPix, mrAng, MRK, MOON }; })')();
+  const d = 1, boxes = [[758, 340, 1160, 435], [758, 468, 1090, 545], [758, 578, 1062, 597], [40, 1018, 75, 1040], [99, 1018, 153, 1040]];
+  const mk = () => ({ psi: 0, pN: 6, pL: 6, tanX: 0.7265, tanY: 0.4087, W: 1920, H: 1080, boxes, keepPx: 12, coarse: false, noRoom: false, keyAz: 160, side: 1, sigma: 1, lift: 0, t0: -143, t1: -85.5, t2: 104.5, t3: 162.5, land: 0 });
+  const eye = [0, 20, 0], E0 = {}, P0 = M.moonClear(E0, mk(), { lob: [], bnd: [] }, eye);
+  assert.equal(E0.landX, 1 / 3); assert.equal(E0.landUp, null); assert.ok(M.MOON.landPlans <= 2, `no cloud: ${M.MOON.landPlans} plans`);
+  const o = { d: [0, 0, 0] }; M.moonAt(P0, 0, o);
+  const at = [eye[0] + o.d[0] * 2500, eye[1] + o.d[1] * 2500, eye[2] + o.d[2] * 2500], cloud = { lob: [at[0], at[1], at[2], 180], bnd: [at[0], at[1], at[2], 180, 0, 4] };
+  assert.ok(M.moonVeil(cloud, o.d, M.MRK.R, ...eye) > 100, 'the cloud stands over the plain place');
+  const E1 = {}, P1 = M.moonClear(E1, mk(), cloud, eye);
+  assert.ok(M.MOON.landPlans <= 4, `${M.MOON.landPlans} plans`);
+  M.moonAt(P1, 0, o);
+  assert.ok(M.MOON.veil < 5 && M.moonVeil(cloud, o.d, M.MRK.R, ...eye) < 5, `the disc clear of the cloud (${M.MOON.veil})`);
+  const C = M.mrCam(0, 6), q = M.mrProj(C, mk(), o.d), x = (q[0] + 1) / 2 * 1920, y = (1 - q[1]) / 2 * 1080;
+  assert.ok(q[2] > 0 && x > 0 && x < 1920 && y > 0 && y < 1080, 'in frame');
+  for (const B of boxes) { assert.ok(!(x >= B[0] && x <= B[2] && y >= B[1] && y <= B[3]), 'not in a word box'); for (let i = 0; i <= 20; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 20, B[1]], [B[0] + (B[2] - B[0]) * i / 20, B[3]]]) assert.ok(M.mrAng(o.d, M.mrPix(C, mk(), px, py)) >= M.MRK.FOOT, 'its footprint clear'); }
+  const E2 = {}; M.moonClear(E2, mk(), cloud, eye); assert.deepEqual([E2.landX, E2.landUp], [E1.landX, E1.landUp], 'the same lobes, the same place');
+});
+
+test('physics: weather/far-anvil: the far storm hides the sky in the air\'s colour, its top lit above the Earth\'s shadow, its lightning a soft, slow flicker', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const K = +g.match(/const float ANV_K = ([\d.]+);/)[1], FK = 0.02 / 0.8966;
+  assert.ok(g.includes('const float ANV_FK = 0.02 / 0.8966;'), 'the flicker\'s peak is not Y +0.02 (ANV_FK)');
+  const FC = [0.85, 0.9, 1.0], Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  assert.ok(Math.abs(Y(FC) - 0.8966) < 1e-4, `the flicker colour's luminance ${Y(FC).toFixed(4)} (ANV_FK's 0.8966)`);
+  const NZ = cut(WORLD, '  var NOISE = { t: null', '  /* stage B: the texture');
+  const VOL = new Function(STREAMS + VEC + NZ + '\n NOISE.data = noiseData(); NOISE.d64 = new Float64Array(NOISE.data); NOISE.vol = new Uint8Array(NOISE_N * NOISE_N * NOISE_N * 4); for (var z = 0; z < NOISE_N; z++) noiseLayer(z); return NOISE.vol;')();
+  const w3 = (i) => ((i % 32) + 32) % 32, na = (x, y, z) => { const X = x * 32 - 0.5, Y2 = y * 32 - 0.5, Z = z * 32 - 0.5, x0 = Math.floor(X), y0 = Math.floor(Y2), z0 = Math.floor(Z), fx = X - x0, fy = Y2 - y0, fz = Z - z0; let v = 0; for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) v += (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz) * VOL[((w3(z0 + dz) * 32 + w3(y0 + dy)) * 32 + w3(x0 + dx)) * 4 + 3]; return v / 255; };
+  // anvilAt's own lines: (its cover, its lit part, its flicker), a part at a time
+  const a = g.indexOf('vec3 anvilAt('), b = g.indexOf('\n}\n', a);
+  let body = g.slice(g.indexOf('{', a) + 1, b).replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(!/flash|ray/i.test(body), 'the storm throws rays or flashes (its lightning is the flicker\'s soft glow)');
+  body = body.replace(/\bfloat\s+/g, 'let ').replace(/textureLod\(uN3, vec3\(([^;]*?)\), 0\.0\)\.a/g, (m, x) => 'NA(' + x + ')').replace(/\bvec3\(/g, 'V3(');
+  const AN = new Function('rd', 'uAnv', 'uAnvF', 'CH', 'NA', 'const V3 = (p, q, r) => (q === undefined ? p : [p, q, r][CH]), { abs, sqrt, exp, sin, cos, tan, max, min, pow } = Math, clamp = (x, a, b) => Math.min(Math.max(x, a), b), atan = (y, x) => Math.atan2(y, x), radians = (x) => x * Math.PI / 180, smoothstep = (e0, e1, x) => { const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1); return t * t * (3 - 2 * t); };' + body);
+  const D2R = Math.PI / 180, A = 0.9, OFF = 95, sunAz = A - OFF * D2R, D = 120;
+  const anv = (phi, e, sunEl, F) => { const rd = { x: Math.sin(A + phi) * Math.cos(e), y: Math.sin(e), z: Math.cos(A + phi) * Math.cos(e) }, U = { x: A, y: D, z: sunEl, w: sunAz }, UF = F || { x: 0, y: 0, z: 0, w: 1 }; return [0, 1, 2].map((ch) => AN(rd, U, UF, ch, na)); };
+  // where it is lit, the sun 3 deg down: only over the Earth's shadow at the storm, R (1 / cos d - 1); its cover whole, its parts within it
+  const dc = 3 * D2R - D / 6371 * Math.cos(OFF * D2R), hs = 6371 * (1 / Math.cos(dc) - 1), F1 = { x: 1, y: 3, z: 9, w: 6 };
+  let lowLit = 99, cov = 0, fpk = 0;
+  for (let phi = -0.6; phi <= 0.6; phi += 0.005) for (let e = -0.004; e <= 0.12; e += 0.0005) {
+    const c = anv(phi, e, -3, F1);
+    assert.ok(c[0] >= 0 && c[0] <= 1 + 1e-9 && c[1] >= 0 && c[1] <= c[0] + 1e-9 && c[2] >= 0 && c[2] <= c[0] + 1e-9, 'the storm\'s lit part or flicker outside its cover');
+    cov = Math.max(cov, c[0]); fpk = Math.max(fpk, c[2]);
+    if (c[1] > 1e-5) lowLit = Math.min(lowLit, D * Math.tan(e) + D * D / 14866);
+  }
+  assert.ok(cov > 0.99 && fpk > 0.5, 'the storm has no whole cover, or its flicker no light');
+  assert.ok(Math.abs(lowLit - hs) < 0.8, `its lit part begins ${lowLit.toFixed(2)} km up (the Earth's shadow there: ${hs.toFixed(2)} km)`);
+  for (const se of [-7, -24]) for (let phi = -0.6; phi <= 0.6; phi += 0.02) for (let e = 0; e <= 0.12; e += 0.002) assert.ok(anv(phi, e, se)[1] === 0, `the storm is lit with the sun ${se} deg down`);
+  for (let phi = -0.6; phi <= 0.6; phi += 0.02) for (let e = 0; e <= 0.12; e += 0.002) assert.ok(anv(phi, e, -24)[2] === 0, 'the storm flickers with no flash on');
+  // its body is the far land's own colour at its range (atmos), and at 100 km that air is whole in every realm's kit
+  assert.ok(g.includes('c = mix(c, atmos(uClShade, rd, 1000.0 * uAnv.y / max(length(rd.xz), 1e-3)), aM.x);'), 'the storm\'s body is not the air at its range (atmos: the far land\'s distance haze)');
+  for (const f of ['realm-dunes.js', 'realm-above.js']) { const m = fs.readFileSync(path.join(ROOT, 'src', f), 'utf8').match(/fog: \[([\d.e-]+), [^,]+, [^,]+, ([\d.e-]+)\]/); assert.ok(m && +m[2] * 1e5 >= 5, `${f}: the air at 100 km is not whole (its depth ${m && (+m[2] * 1e5).toFixed(1)})`); }
+  // the sky behind it as the page draws it: the twilight's stops at their heights, darker away from the sun, under the ground haze
+  // (the dunes' at 0.45-0.85), its body the air's colour from a little lower (fogCol), its lit top through the haze and the cap
+  const { WSKY } = skyWorld(1, 'night', 0.5);
+  const o2l = (L, aa, bb) => { let l = L + 0.3963377774 * aa + 0.2158037573 * bb, m = L - 0.1055613458 * aa - 0.0638541728 * bb, s = L - 0.0894841775 * aa - 1.2914855480 * bb; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s].map((x) => Math.max(x, 0)); };
+  const lc = (s) => o2l(s[0], s[1] * Math.cos(s[2] * D2R), s[1] * Math.sin(s[2] * D2R));
+  const Lof = (c) => 0.2104542553 * Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]) + 0.7936177850 * Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]) - 0.0040720468 * Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]);
+  assert.ok(g.includes('float yA = dot(aA, LUMA), room = max(0.118 - dot(c, LUMA), 0.0);') && g.includes('c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);'), 'the storm\'s light is not held by the room under its cap (the lines this test models)');
+  assert.ok(g.includes('vec3 aA = (vec3(1.0, 0.6, 0.46) * aM.y * ANV_K + vec3(0.85, 0.9, 1.0) * aM.z * ANV_FK) * (1.0 - hazeSky(rd));'), 'the storm\'s light is not its lit top and its flicker through the haze (the line this test models)');
+  const capAdd = (c0, ad) => { const yA = Y(ad), room = Math.max(0.118 - Y(c0), 0); return ad.map((v) => v * (yA > 1e-6 ? room * (1 - Math.exp(-yA / Math.max(room, 1e-6))) / yA : 1)); };
+  const E = [0, 3, 10, 26, 58];
+  const skyAt = (S, e) => { const st = S.sky.map(lc); let c = st[4]; for (let i = 0; i < 4; i++) if (e <= E[i + 1]) { const t = (e - E[i]) / (E[i + 1] - E[i]); c = st[i].map((v, j) => v + (st[i + 1][j] - v) * t); break; } return c.map((v) => v * (1 - S.skyK[2] * Math.exp(-e / S.skyK[1]))); };
+  const scene = (S, e, hz) => { const h = 1 - Math.exp(-1e-3 * hz * Math.exp(-24 / 30) * 30 / Math.sin(e * D2R)), hc = lc(S.hazeC), haze = (c) => c.map((v, i) => v + (hc[i] - v) * h), ep = Math.asin(Math.sin(e * D2R) * 0.45 + 0.02) / D2R; return { h, sky: haze(skyAt(S, e)), body: haze(skyAt(S, ep)) }; };
+  let showMin = 9, showMax = -9;
+  for (const id of ['afterglow', 'firstlight']) for (const hz of [0.45, 0.85]) for (const e of [4, 5.5, 7]) {
+    const S = WSKY[id], sc = scene(S, e, hz), ad = capAdd(sc.body, [1, 0.6, 0.46].map((v) => v * K * (1 - sc.h))), c1 = sc.body.map((v, i) => v + ad[i]);
+    assert.ok(Lof(c1) <= Math.max(0.50, Lof(sc.sky)) + 1e-9, `${id}: the storm's lit top at ${e} deg reaches L ${Lof(c1).toFixed(3)} (at most 0.50, or the sky's own behind it)`);
+    assert.ok((0.82 + 0.05) / (Y(c1) + 0.05) >= 4.5, `${id}: the credit over the storm's lit top reads ${((0.82 + 0.05) / (Y(c1) + 0.05)).toFixed(2)}:1`);
+    showMin = Math.min(showMin, Lof(c1) - Lof(sc.sky)); showMax = Math.max(showMax, Lof(c1) - Lof(sc.sky));
+  }
+  assert.ok(showMax - showMin < 0.1, `the storm over the twilight's sky: L ${showMin.toFixed(3)} to ${showMax.toFixed(3)} (the air at its range is the horizon's own colour)`);
+  // its flicker over the nights' and the blue hour's skies where it stands: Y +0.02 at most, under the cap, the credit kept
+  for (const id of ['bluehour', 'moonlit', 'milkyway', 'aurora']) for (const hz of [0.45, 0.85]) for (const e of [3, 6]) {
+    const S = WSKY[id]; if (!S) continue;
+    const sc = scene(S, e, hz), ad = capAdd(sc.body, FC.map((v) => v * FK * (1 - sc.h))), c1 = sc.body.map((v, i) => v + ad[i]);
+    assert.ok(Y(ad) <= 0.02 + 1e-9, `${id}: the flicker adds Y ${Y(ad).toFixed(4)} (at most 0.02: far under a flash's 10%)`);
+    assert.ok(Lof(c1) <= Math.max(0.50, Lof(sc.body)) + 1e-9 && (0.82 + 0.05) / (Y(c1) + 0.05) >= 4.5, `${id}: the flicker at ${e} deg passes L 0.50 or the credit's 4.5:1`);
+  }
+  // the flicker's clock: 225's own lines, over an hour in 32 visits: every flash rises and falls over 100 ms or more, never two at
+  // once, never more than 3 in any second, its groups 10-40 s apart; from the read (SEEDR) only after the cut, with the sun 5 deg
+  // or more down, never in reduced motion
+  const FL = new Function(STREAMS + cut(WORLD, '  var FL_GAP = ', '  function anvFlashAt(') + '\nreturn { RNG, subseed, anvGroup, anvEnv, FL_GAP, FL_SUN };')();
+  assert.ok(FL.FL_SUN <= -5, `the flicker plays with the sun ${FL.FL_SUN} deg down (the storm unlit: 5 or more)`);
+  assert.ok(WORLD.includes('if (!SKY.anv || !AFTER || reduced()) return out;') && WORLD.includes('F.r = RNG(subseed(SEEDR, 86));') && WORLD.includes('F.g.on = anvSunEl() <= FL_SUN && anvInHold(F.g);') && WORLD.includes('return !!e && !(SKY.k > 0) && f.s + f.d <= e.at + e.hold;'), 'the flicker is not held to the storm, the read after the cut, motion, a hold and the storm unlit');
+  // the sun's depth at the storm one way through a change: the change's two skies on its own clock, never a mist's waypoint (a night)
+  assert.ok(WORLD.includes('var ea = anvElOf(SKY.A), eb = anvElOf(SKY.B);') && WORLD.includes('return ea + (eb - ea) * ss01(SKY.k || 0);'), 'the storm reads the sun\'s depth from the waypoint (its top goes dark and comes back between afterglow and first light)');
+  // drawn in its place: before what is nearer (the 3 km veil over it), hiding what is farther (the galaxy, the aurora, the moon, the stars)
+  { const iS = g.indexOf('vec3 aM = anvilAt(rd);'), iV = g.indexOf('if (uHi.x > 0.0 && rd.y > 0.01)'), iB = g.indexOf('vec3 cBA = c;'), iG = g.indexOf('#ifdef SKY_PH2\n  /* (aurora-haze)'), iT = g.indexOf('c += vec3(0.92, 0.94, 1.0) / 0.94 * min(s * sk, head);'), iR = g.indexOf('if (anvCov > 0.0) c = mix(c, cBA, anvCov);');
+    assert.ok(iS > 0 && iS < iV, 'the storm is drawn after the 3 km veil (it wipes out the veil in front of it)');
+    assert.ok(iB > iV && iB < iG && iB < g.indexOf('if (uNight.y > 0.0 && eS > 0.5') && iR > iT, 'the wisps, the galaxy, the aurora, the moon or the stars print over the storm\'s body'); }
+  assert.ok(g.includes('D * D / 14866.0;'), 'the storm\'s place without standard refraction (R 7/6)');
+  assert.ok(WORLD.includes('if (u.uAnvF) gl.uniform4fv(u.uAnvF, anvFlashAt(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt));'), 'the flicker is not uploaded at the drawn time');
+  let nfl = 0, minRise = 9, maxIn1 = 0, minGap = 99, maxGap = 0, peaks = [];
+  for (let k = 0; k < 32; k++) {
+    const r = FL.RNG(FL.subseed((k * 2654435761 + 7) >>> 0, 86)); let t = r.r(10, 40), lastEnd = -1e9; peaks = [];
+    while (t < 3600) {
+      const G = FL.anvGroup(r, t), f = G.fl;
+      if (lastEnd > -1e9) { minGap = Math.min(minGap, f[0].s - lastEnd); maxGap = Math.max(maxGap, f[0].s - lastEnd); }
+      for (let i = 0; i < f.length; i++) {
+        nfl++;
+        let pk = 0, tp = f[i].s; for (let u = 0; u <= 1; u += 0.001) { const v = FL.anvEnv(f[i], f[i].s + u * f[i].d); if (v > pk) { pk = v; tp = f[i].s + u * f[i].d; } }
+        assert.ok(pk <= 1 && FL.anvEnv(f[i], f[i].s) < 1e-9 && FL.anvEnv(f[i], f[i].s + f[i].d) < 1e-9, 'a flash past its peak, or not from nothing to nothing');
+        minRise = Math.min(minRise, tp - f[i].s, f[i].s + f[i].d - tp); peaks.push(tp);
+        if (i > 0) assert.ok(f[i].s >= f[i - 1].s + f[i - 1].d, 'two flashes at once');
+        if (i > 0) assert.ok(f[i].s - f[i - 1].s >= 0.6, `two flashes ${(f[i].s - f[i - 1].s).toFixed(3)} s apart (0.6 s at least)`);
+      }
+      lastEnd = f[f.length - 1].s + f[f.length - 1].d; t = G.next;
+    }
+    for (let i = 0, j = 0; i < peaks.length; i++) { while (peaks[i] - peaks[j] >= 1) j++; maxIn1 = Math.max(maxIn1, i - j + 1); }   // (this visit's peaks, in time order)
+  }
+  assert.ok(minRise >= 0.13, `a flash rises or falls in ${(1000 * minRise).toFixed(0)} ms (at least 130)`);
+  assert.ok(maxIn1 <= 2, `${maxIn1} flash peaks inside one second (the owner's "under 3": at most 2)`);
+  assert.ok(minGap >= 10 && maxGap <= 41, `the flicker's groups ${minGap.toFixed(1)}-${maxGap.toFixed(1)} s apart (10-40)`);
+  assert.ok(nfl > 32 * 3600 / 50, `only ${nfl} flashes in 32 hours`);
+  // in about 3 of the 16 openings (their seeds: the bake's), 80-110 deg off the sun's bearing, 100-150 km away
+  const { RNG, subseed } = new Function(STREAMS + '\nreturn { RNG, subseed };')();
+  let n = 0;
+  for (let k = 0; k < 16; k++) { const r = RNG(subseed((11 + k * 0x9e3779b9) >>> 0, 83)); if (r.f() < 3 / 16) n++; r.sign(); const off = r.r(80, 110), d = r.r(100, 150); assert.ok(off >= 80 && off <= 110 && d >= 100 && d <= 150, 'the storm stands outside 80-110 deg off the sun, or 100-150 km'); }
+  assert.ok(n >= 2 && n <= 4, `the far storm stands in ${n} of the 16 openings (about 3)`);
+  assert.ok(/var rA = RNG\(subseed\(J\.seed, 83\)\), anv = rA\.f\(\) < 3 \/ 16, side = rA\.sign\(\), off = rA\.r\(80, 110\), dist = rA\.r\(100, 150\);/.test(WORLD), 'the storm\'s draw is not the one this test models');
+  // never glittering: 1x against 2x2 at a laptop's pixel across it, in display codes as shown, its lit top over the afterglow
+  // and its flicker at its peak over the moonlit sky, each through the cap over the sky where it stands
+  const code = (x) => { x = Math.min(Math.max(x, 0), 1); return 255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055); };
+  const px = 0.0578 * D2R, Ff = { x: 1, y: 3, z: 9, w: 4 };
+  let worst = 0;
+  for (const [id, se, F, pick] of [['afterglow', -3, null, (c) => [1, 0.6, 0.46].map((v) => v * K * c[1])], ['moonlit', -24, Ff, (c) => FC.map((v) => v * FK * c[2])]]) {
+    const bg = scene(WSKY[id], 5, 0.45).body;
+    for (let phi = -0.5; phi <= 0.5; phi += 0.0029) for (let e = 0; e <= 0.11; e += 0.0013) {
+      const one = capAdd(bg, pick(anv(phi, e, se, F))), ref = [0, 0, 0];
+      for (const [ox, oy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) capAdd(bg, pick(anv(phi + ox * px / 4, e + oy * px / 4, se, F))).forEach((v, i) => { ref[i] += v / 4; });
+      worst = Math.max(worst, ...[0, 1, 2].map((i) => Math.abs(code(bg[i] + one[i]) - code(bg[i] + ref[i]))));
+    }
+  }
+  assert.ok(worst <= 3, `the storm at 1x is ${worst.toFixed(1)} codes from 2x2 (at most 3)`);
 });
 
 test('physics: weather/moon-halo: the 22 deg ring and the moon dogs, only adding light, under the ceiling, never glittering', () => {
@@ -238,6 +485,196 @@ test('sky: a star\'s light on the screen is the same wherever it stands between 
   }
 });
 
+// ------------------------------------------------------------------ the night's bodies (delight-night §1 and §4)
+// 215's skySphere (AIR's sphere: its season) and 227's starLim and venusDir run here as the page runs them, a fake order under them;
+// the shader's own tint and Venus constants read from sky-body.glsl
+const NIGHT = cut(WORLD, '  function airSunEl(id)', '\n', true) + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + cut(WORLD, '  var STAR_LIM =', '  function venusFails(');
+function nightWorld(seed, keyAz, seq) {
+  return vm.runInThisContext('(function (SEED, KEYAZ, SEQ) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: SEQ, dt: 0 }, SKY_RATE = 100;\n' +
+    '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n' + STREAMS + VEC + NIGHT +
+    '  return { skySphere: skySphere, starLim: starLim, venusDir: venusDir, venusFrame: venusFrame, venusEcl: venusEcl, V: SIM.V, VEN_EL: VEN_EL, VEN_TOP_Y: VEN_TOP_Y };\n})')(seed, keyAz, seq);
+}
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const angD = (a, b) => Math.atan2(Math.hypot(...cross3(a, b)), dot3(a, b)) * 180 / Math.PI;
+test('night: the evening star stands by the drawn sun (its elongation, on the ecliptic through it, east in the evening, west in the morning) and sets with it', () => {
+  for (let s = 1; s <= 60; s++) for (const [morning, D0] of [[false, 3], [false, 7], [true, 3], [false, 24]]) {
+    const keyAz = (s * 71) % 360, K = nightWorld(s * 2654435761 >>> 0, keyAz, []), F = K.venusFrame(K.V, morning, D0), side = morning ? -1 : 1, eps = K.VEN_EL[0] + (K.VEN_EL[1] - K.VEN_EL[0]) * ((s * 0.618) % 1);
+    assert.ok(K.VEN_EL[1] <= 47 && K.VEN_EL[0] > 0, 'within 47 deg of the sun');
+    const sun = (D) => [Math.sin(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180), Math.sin(-D * Math.PI / 180), Math.cos(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180)];
+    assert.ok(Math.abs(Math.asin(F.P[1]) * 180 / Math.PI - 64) < 1e-9, 'the pole at AIR\'s latitude');
+    const N = [F.P[0], 0, F.P[2]], E = cross3(N, [0, 1, 0]), S0 = sun(D0);
+    assert.ok(side * dot3(S0, E) < 0, `seed ${s}: the drawn sun in the ${morning ? 'east' : 'west'}`);
+    let prev = null;
+    for (let D = Math.min(D0, 3); D <= 24; D += 0.5) {
+      const v = K.venusDir(F, eps, side, D, D0, [0, 0, 0]), S = sun(D);
+      assert.ok(Math.abs(angD(v, S) - eps) < 1e-6, `elongation ${angD(v, S)} (${eps})`);
+      if (D === D0) {
+        assert.ok(Math.abs(dot3(v, K.venusEcl(F, S0, [0, 0, 0]))) < 1e-9, 'on the ecliptic through the drawn sun at the opening\'s depth');
+        assert.ok(side * dot3(v, cross3(F.P, S0)) > 0, `seed ${s}: ${morning ? 'west' : 'east'} of the sun on the sky`);
+      }
+      if (D0 <= 7 && D <= 7) assert.ok(v[1] > S[1], `seed ${s}: above the sun in its own twilight`);
+      if (prev && v[1] > -0.3 && D > D0) { assert.ok(v[1] < prev[1] + 1e-12, `seed ${s}: it sinks as the sun does (D ${D})`); assert.ok(angD(v, prev) < 0.5 + 1e-9, `seed ${s}: no jump`); }
+      prev = v;
+    }
+  }
+});
+test('night: the stars come out by the sun\'s depth, brightest first; their colours never move their light; Venus under L 0.50', () => {
+  const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (let D = 0; D < 30; D += 0.25) assert.ok(K.starLim(D + 0.25) >= K.starLim(D), 'the limit only deepens with the sun');
+  assert.ok(K.starLim(3) < 1.5 && K.starLim(6) >= 0.9 && K.starLim(6) <= 1.5 && Math.abs(K.starLim(12) - 4.5) < 1e-9 && K.starLim(18) >= 6, 'civil, nautical, astronomical');
+  assert.ok(g.includes('float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }'), 'starMag');
+  const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07);
+  assert.ok(mag(1.02) < mag(0.3) && mag(0.3) < mag(0.07), 'brightest first');
+  assert.ok(g.includes('float bk = nightShow(starMag(b), ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
+  assert.ok(!/uSunD\.z \* \(/.test(g) && /, sk = uSunD\.z \* smoothstep/.test(g), 'the amount is only the stars\' on/off');
+  const stars = [...WORLD.matchAll(/post:\{[^}]*stars:([\d.]+)/g)].map((m) => +m[1]);
+  assert.equal(stars.length, 6); assert.ok(stars.every((x) => x === 1), `every sky's stars' amount is 1 (no blend between skies): ${stars}`);
+  const lab = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; };
+  const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], W = [0.92 / 0.94, 1, 1 / 0.94];
+  const T = g.match(/^vec3 starTint[\s\S]*?^}/m)[0], cols = [...T.matchAll(/vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]).filter((c) => c[0] !== 0.92);
+  assert.equal(cols.length, 4);
+  for (const c of cols) { const L = lab(c); assert.ok(Math.abs(Y(c) - Y(W)) < 2e-3, `tint ${c}: Y ${Y(c)}`); assert.ok(Math.abs(L[0] - lab(W)[0]) < 5e-3, `tint ${c}: L ${L[0]}`); assert.ok(Math.hypot(L[1], L[2]) <= 0.0505, `tint ${c}: pastel (C ${Math.hypot(L[1], L[2]).toFixed(4)}, at most 0.05: delight-night §4)`); }
+  const vc = g.match(/return vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* min\(v, hv\)/); assert.ok(vc, 'Venus\'s colour, capped at its head');
+  const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
+  for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }
+});
+test('night: the evening star never glitters as it slides between pixels (its light the same within 2%)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const fn = (name) => g.match(new RegExp('^float ' + name + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm'));
+  const js = (src) => src.replace(/\bfloat\s+/g, 'let ').replace(/\b(sign|sqrt|exp)\(/g, 'Math.$1(').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const E = fn('starErf'), B = fn('starBox'), starErf = new Function(E[1].replace(/float /g, ''), js(E[2])), starBox = new Function('starErf', B[1].replace(/float /g, ''), js(B[2])).bind(null, starErf);
+  const V = g.match(/^vec3 venusAt[\s\S]*?^}/m)[0];
+  assert.ok(V.includes('sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;') && V.includes('float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);') && V.includes('min(v, hv)') && !/uT\b/.test(V), 'venusAt: its core, glow and cap as measured here, and no clock (steady)');
+  let seed = 3; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  for (const hv of [0.02, 0.05, 0.1]) {
+    let lo = Infinity, hi = 0;
+    for (let k = 0; k < 64; k++) {
+      const ox = rnd() - 0.5, oy = rnd() - 0.5, F = 1.1 * 2 * Math.PI * hv * 0.7225; let sum = 0, peak = 0;
+      for (let y = -20; y <= 20; y++) for (let x = -20; x <= 20; x++) { const dx = x - ox, dy = y - oy; if (dx * dx + dy * dy > 400) continue; const v = Math.min(F * starBox(dx, 0.85) * starBox(dy, 0.85) + 0.13 * hv * Math.exp(-Math.hypot(dx, dy) / 3.6), hv); sum += v; peak = Math.max(peak, v); }
+      lo = Math.min(lo, sum); hi = Math.max(hi, sum); assert.ok(peak <= hv + 1e-12);
+    }
+    assert.ok((hi - lo) / hi < 0.02, `head ${hv}: its light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides`);
+  }
+});
+
+// the stars out in order (delight-night §4, the hub's review of #301): over a change from the blue hour into a night
+// (the sun from 7 to 24 deg down on the change's own ease, 58 s), each star's first frame of light against its
+// brightness ranks them brightest first (rank correlation >= 0.9, the sky's light by place included: brighter toward the
+// glow), and no star's share changes by more than 2% in a frame at 60 Hz; no Venus on a visit with no clear path
+test('night: the stars come out brightest first (rank correlation >= 0.9) and never change more than 2% a frame', () => {
+  const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const NL = g.match(/^float nightLim\(vec3 c\) \{ float y = max\(dot\(c, LUMA\), 1e-4\); return (.*); \}$/m);
+  assert.ok(NL, 'nightLim as measured here');
+  const nightLim = (y, zx, zy, w) => Math.min(zx - w * 2.5 * Math.log10(Math.max(y / Math.max(zy, 1e-4), 1)), 7.9 - w * 2.5 * Math.log10(Math.max(y / 0.016, 1)));
+  assert.ok(NL[1] === 'min(uStarM.x - uStarM.w * 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - uStarM.w * 2.5 * log(max(y / 0.016, 1.0)) / log(10.0))', 'nightLim\'s own line: ' + NL[1]);
+  const N0 = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
+  assert.ok(N0.includes('NIGHTB.m[3] = 1 - smooth(15, 18, D);'), 'the sky light\'s weight: 1 in a twilight, 0 from 18 deg down');
+  const wD = (D) => { const t = Math.min(Math.max((D - 15) / 3, 0), 1); return 1 - t * t * (3 - 2 * t); };
+  const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07), show = (m, ml) => Math.min(Math.max((ml - m) / 0.5, 0), 1);
+  let seed = 11; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  const stars = []; for (let i = 0; i < 400; i++) { const b = Math.pow(rnd(), 6) * 0.95 + 0.07, glow = rnd(); stars.push({ b, glow, first: Infinity }); }   // (glow: 0 the zenith's light, 1 three times it near the glow)
+  const ss = (x) => x * x * (3 - 2 * x), zy = 0.02; let worst = 0;
+  const prev = stars.map(() => 0);
+  for (let f = 0; f <= 58 * 60; f++) {
+    const D = 7 + 17 * ss(f / (58 * 60)), zx = K.starLim(D);
+    stars.forEach((st, i) => { const v = show(mag(st.b), nightLim(zy * (1 + 2 * st.glow), zx, zy, wD(D))); if (v > 0 && st.first === Infinity) st.first = f; worst = Math.max(worst, Math.abs(v - prev[i])); prev[i] = v; });
+  }
+  const out = stars.filter((st) => st.first < Infinity);
+  assert.equal(out.length, stars.length, `${out.length} of ${stars.length} stars out by the night`);
+  // (the hub's round-9 review of #333: a Milky Way night lost 150 of its 272 star points) at the night's 24 deg every star of
+  // the field (to mag 6.2) shows whole wherever it stands: on a sky up to 3x the zenith's light, on the band (the galaxy's
+  // light is not nightLim's sky: c - gL), whatever the zenith's own light
+  assert.ok(g.includes('{ gL = galaxyAt(rd, eS) * hzT; c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
+  for (const zy0 of [0.002, 0.008, 0.02, 0.05]) for (const k of [1, 1.5, 2, 3]) for (const b of [0.07, 0.1, 0.3, 1]) {
+    const v = show(mag(b), nightLim(zy0 * k, K.starLim(24), zy0, wD(24)));
+    assert.equal(v, 1, `at D 24, a mag ${mag(b).toFixed(2)} star on a sky ${k}x a zenith of Y ${zy0}: shown ${v.toFixed(2)}, not whole`);
+  }
+  assert.ok(wD(12) === 1 && wD(15) === 1 && wD(18) === 0 && wD(24) === 0, 'the weight: whole in a twilight, gone at night');
+  const rank = (a) => { const o = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]), r = new Array(a.length); o.forEach(([, i], k) => { r[i] = k; }); return r; };
+  const ra = rank(out.map((st) => st.first)), rb = rank(out.map((st) => -st.b)), n = out.length;
+  let d2 = 0; for (let i = 0; i < n; i++) d2 += (ra[i] - rb[i]) ** 2;
+  const rho = 1 - 6 * d2 / (n * (n * n - 1));
+  assert.ok(rho >= 0.9, `the rank correlation ${rho.toFixed(3)} (at least 0.9)`);
+  assert.ok(worst <= 0.02, `a star's share changes ${(100 * worst).toFixed(2)}% in a frame (at most 2%)`);
+  const N = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
+  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0) || (I2 && venusFails(I2, F, e, NIGHTB.side, D0))) continue;') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
+  console.log(`# stars out in order: rank correlation ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
+});
+// the evening star's plan on the still's own window (the hub's round-3 review of #301): 227's venusPlan and venusFails
+// and 225's camera run here as the page runs them, on the lo phone still's window and its words' boxes (226's
+// STILL_WORDS); the path the plan keeps is walked again here, apart from venusFails: nothing of it on a box (grown by
+// the keep and its glow); a window all words has no Venus
+const VPLAN = cut(WORLD, '  var MRD = Math.PI', '  function mrSamples(') + cut(WORLD, '  var STAR_LIM =', "  /* (the hub's round-3 review of #301) planned");
+function venusWorld(seed, keyAz, landing) {
+  return vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
+    '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n  function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }\n' + STREAMS + VEC + cut(WORLD, '  function airSunEl(id)', '\n', true).replace(/function airSunEl\(id\)/, 'function airSunEl0(id)') + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + VPLAN +
+    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})')(seed, keyAz, landing);
+}
+test('night: the evening star\'s plan on the lo still\'s window keeps its whole path down off the words; a window all words has none', () => {
+  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), boxes = SW['lo-393x861'];
+  assert.ok(boxes && boxes.length === 5, 'the lo phone still\'s boxes');
+  const tanY = Math.tan(32 * Math.PI / 180), win = (bx) => ({ W: 393, H: 861, tanY, tanX: tanY * 393 / 861, pN: 8, pL: 8, keepPx: 12, boxes: bx });
+  let planned = 0, onWords = 0;
+  for (let s = 1; s <= 80; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) {
+    const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky });
+    const I = Object.assign(win(boxes), { psi: keyAz + (sky === 'firstlight' ? 1 : -1) * (10 + (s * 7) % 40) });
+    assert.ok(K.venusPlan(K.V, I));
+    if (K.NIGHTB.none) continue;
+    planned++;
+    const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0), C = K.mrCam(I.psi, I.pN), grow = 12 + K.VEN_GLOW;
+    for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
+      const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+      const q = K.mrProj(C, I, d); if (q[2] <= 0 || Math.abs(q[0]) > 1.05 || Math.abs(q[1]) > 1.05) continue;
+      const x = (q[0] + 1) / 2 * I.W, y = (1 - q[1]) / 2 * I.H;
+      if (boxes.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; break; }
+    }
+    const A = venusWorld(s * 2654435761 >>> 0, keyAz, { sky });
+    const T80 = Math.tan(80 * Math.PI / 180);   // (a window toward the sun wide enough to hold every place of every try: each one's path crosses the words)
+    assert.ok(A.venusPlan(A.V, Object.assign(win([[-1000, -1000, 2000, 2000]]), { psi: keyAz, pN: 0, tanX: T80, tanY: T80 })) && A.NIGHTB.none, `seed ${s} ${sky}: a window all words still has an evening star`);
+  }
+  assert.ok(planned > 60, `${planned} of 240 visits with an evening star (the test is not empty)`);
+  assert.equal(onWords, 0, `${onWords} planned paths cross the words`);
+});
+// the evening star on each band's smallest window (the hub's round-4 and round-5 reviews: on 1024x768 under the
+// 1350x1080 still it stood on the name; at 1280x800@2 its glow touched the credit): planned as the page plans it, in
+// the part of the still every window of its band shows (226's stillFrame: its keep the smallest window's, scaled)
+// against 226's STILL_WORDS, then its whole path down walked in the smallest window, as the still is shown there at
+// the cut (cover) and in that window's own view (226's stillView), against that window's own boxes
+// (test/golden/still-words.json): no place of it within the keep and its glow (12 + VEN_GLOW px) of a word
+test('night: the evening star and its glow keep off the words on each band\'s smallest window', () => {
+  const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
+    '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
+    cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
+  let planned = 0, onWords = 0, nearest = Infinity; const where = [];
+  for (const key of Object.keys(G)) {
+    const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), Fr = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min, small = G[key].small;
+    const c = Math.max(sw / Fr.bw, shh / Fr.bh), vS = SF.stillView(Fr.bw, Fr.bh, [0.4, 0.6], {}), vL = SF.stillView(sw, shh, [0.4, 0.6], {});
+    const views = [['at the cut', { W: sw, H: shh, tanX: vS.tanX * (sw / c) / Fr.bw, tanY: vS.tanY * (shh / c) / Fr.bh }, Fr.pN], ['in its own view', { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY }, vL.pN]];
+    for (let s = 1; s <= 6; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (const off of [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50]) {   // (headings across the glow: the evening star anywhere over the words)
+      const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky }), psi = keyAz + (sky === 'firstlight' ? 1 : -1) * 30 + off, grow = 12 + K.VEN_GLOW;
+      const I = { W: Fr.W, H: Fr.H, tanX: Fr.tanX, tanY: Fr.tanY, pN: Fr.pN, pL: Fr.pN, keepPx: Fr.keepPx, boxes: Fr.boxes.map((b) => b.slice()), psi };
+      const I2 = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY, pN: vL.pN, pL: vL.pN, keepPx: 12, boxes: small.map((b) => b.slice()), psi };   // (the live window's own view and words: the night after the cut)
+      assert.ok(K.venusPlan(K.V, I, I2));
+      if (K.NIGHTB.none) continue;
+      planned++;
+      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0);
+      for (const [view, Lw, pN] of views) {
+        const C = K.mrCam(psi, pN);
+        for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
+          const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+          const q = K.mrProj(C, Lw, d); if (q[2] <= 0 || Math.abs(q[0]) > 1 || Math.abs(q[1]) > 1) continue;
+          const x = (q[0] + 1) / 2 * sw, y = (1 - q[1]) / 2 * shh;
+          for (const B of small) nearest = Math.min(nearest, Math.hypot(Math.max(B[0] - x, 0, x - B[2]), Math.max(B[1] - y, 0, y - B[3])));
+          if (small.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; where.push(`${key} at ${sw}x${shh} ${view}, seed ${s} ${sky} heading ${psi}, D ${D}`); break; }
+        }
+      }
+    }
+  }
+  assert.ok(planned > 150, `${planned} evening stars planned (the test is not empty)`);
+  assert.equal(onWords, 0, `paths within the keep and glow of the words in the smallest windows: ${where.slice(0, 6).join('; ')}`);
+  console.log(`# evening star on the bands' smallest windows: ${planned} planned, none within 12 + glow px of a word (the nearest ${nearest.toFixed(1)} px)`);
+});
 // ------------------------------------------------------------------ the sky's lights behind its haze (aurora-haze)
 // the galaxy and the aurora are behind the haze, as the moon is: each term scaled by what the haze lets through
 test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), never over it', () => {
@@ -245,8 +682,153 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
   const m = g.match(/float (\w+) = 1\.0 - hazeSky\(rd\);\s*vec3 (\w+) = \1 \*/);
   assert.ok(m, 'the haze\'s transmittance (1.0 - hazeSky(rd)) and its tint are not worked out before the galaxy and the aurora');
   for (const f of ['galaxyAt', 'auroraAt']) {
-    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '('));
+    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '(') || l.includes('= ' + f + '(rd'));   // (the galaxy by way of gL, its light held apart for nightLim)
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
     for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
+});
+
+// the moon's disc against the moonlit clouds (the hub's round-3 ruling, 2026-11-16 04:19): the clouds are never darkened
+// to make room, so the disc stands at the ceiling's L (its table L through fs-comp's shoulder, CEIL_KNEE), parts from the
+// clouds by hue (at least 60 deg from their lit colour's) with low chroma (neutral to faintly warm, C <= 0.015), and
+// its glow adds its own light up to its luminance (no per-channel max of a blue sky and a warm glow, which read olive)
+test('night: the moon\'s disc stands at the ceiling, by hue apart from the moonlit clouds, low in chroma; its glow never olive', () => {
+  const m = /moonlit: \{[^\n]*?clLit:\[([\d.]+),([\d.]+),([\d.]+)\][^\n]*?fx:\{moon:\{r:[\d.]+,L:\[([\d.]+),([\d.]+),([\d.]+)\],glow:\[([\d.]+),([\d.]+),([\d.]+)\][^\n]*?ceil:([\d.]+)/.exec(WORLD);
+  assert.ok(m, 'the moonlit sky\'s clLit, fx.moon and ceil');
+  const [cl, disc, glow, ceil] = [m.slice(1, 4), m.slice(4, 7), m.slice(7, 10), [m[10]]].map((a) => a.map(Number)), k = +/var CEIL_KNEE = ([\d.]+)/.exec(WORLD)[1];
+  const shown = (L) => { const Kc = ceil[0] - k; return L > Kc ? Kc + k * (1 - Math.exp(-(L - Kc) / k)) : L; };
+  assert.ok(Math.abs(shown(disc[0]) - ceil[0]) <= 0.01, `the disc shown at L ${shown(disc[0]).toFixed(3)}, the ceiling ${ceil[0]}`);
+  const dh = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  assert.ok(dh(disc[2], cl[2]) >= 60, `the disc's hue ${disc[2]} within 60 deg of the clouds' ${cl[2]}`);
+  assert.ok(disc[1] <= 0.015 && glow[1] <= 0.015, `the disc's chroma ${disc[1]}, its glow's ${glow[1]} (at most 0.015)`);
+  assert.ok(dh(glow[2], cl[2]) >= 60, 'the glow\'s hue apart from the clouds\' too');
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;') && !g.includes('max(c, uMoonG)'), 'the glow adds its own light up to its luminance, never a per-channel max');
+  assert.ok(g.includes('smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma)'), 'the disc\'s edge crisp: about a pixel either side');
+});
+
+// ------------------------------------------------------------------ the meteors (delight-night §2)
+// 219's own plan and stroke run here (meteorList, meteorPlan, meteorShape): the counts a stay over 10^4 stays; a long one
+// from under 2 deg up or out of the view to out of it, its wake rigid, its light constant, at most 2.7 px a frame at 60 Hz
+// on a laptop; a short one 0.3-1 s at 3-25 deg/s, its light rising and falling softly (one of the owner's two exceptions to
+// no-fades, quoted in RULES.json), its stroke over each frame's own path; none in a twilight; none under reduced motion;
+// sky-body.glsl's meteorAt keeps its light within 2% as it slides between pixels
+const METEORS = cut(WORLD, '  var METEOR = {', '  function meteorStep(');
+const metWorld = () => vm.runInThisContext('(function () { var PI = Math.PI, DEG = PI / 180;\n' + STREAMS + VEC + METEORS + ' return { meteorList, meteorPlan, meteorShape, meteorAt3, meteorFrom, METEOR }; })')();
+test('night: meteors, long grazers crossing the view and short soft ones, on the night skies only', () => {
+  const K = metWorld(), ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * 180 / Math.PI;
+  const tanX = Math.tan(36 * Math.PI / 180), tanY = tanX / 1.6, pxDeg = 900 / (2 * Math.atan(tanY) * 180 / Math.PI);   // (1440x900)
+  const inView = (d, psi, pitch) => { const a = psi * Math.PI / 180, b = pitch * Math.PI / 180, f = [Math.sin(a) * Math.cos(b), Math.sin(b), Math.cos(a) * Math.cos(b)], r = [Math.cos(a), 0, -Math.sin(a)], u = [-Math.sin(a) * Math.sin(b), Math.cos(b), -Math.cos(a) * Math.sin(b)], z = d[0] * f[0] + d[1] * f[1] + d[2] * f[2]; if (z <= 0) return false; return Math.abs((d[0] * r[0] + d[2] * r[2]) / z / tanX) < 1 && Math.abs((d[0] * u[0] + d[1] * u[1] + d[2] * u[2]) / z / tanY) < 1; };
+  for (const id of ['afterglow', 'bluehour', 'firstlight']) assert.equal(K.meteorList({ id, n: 3, at: 0, hold: 100 }, 7, 4, 100).length, 0, id + ': no meteor in a twilight');
+  const N = 10000, cnt = { milkyway: [0, 0], aurora: [0, 0], moonlit: [0, 0] };
+  for (const id of Object.keys(cnt)) for (let s = 1; s <= N; s++) {
+    const L = K.meteorList({ id, n: s % 9, at: 0, hold: id === 'moonlit' ? 190 : 100 }, s * 2654435761 >>> 0, 4, id === 'moonlit' ? 190 : 100);
+    let t = -Infinity;
+    for (const M of L) {
+      cnt[id][M.long ? 0 : 1]++;
+      assert.ok(M.at >= 4 && M.at + M.dur <= (id === 'moonlit' ? 190 : 100) + 1e-9 && M.at >= t, `${id}: in its stay, in turn, apart`); t = M.at + M.dur + K.METEOR.GAP - 1e-9;
+      if (id === 'moonlit') assert.ok(M.y >= K.METEOR.BRIGHT, 'the moonlit sky: bright ones only');
+      if (!M.long) assert.ok(M.dur >= 0.3 && M.dur <= 1 && M.w >= 3 && M.w <= 25, 'a short one: 0.3-1 s at 3-25 deg/s');
+    }
+  }
+  const mean = (id, k) => cnt[id][k] / N;
+  assert.ok(mean('milkyway', 0) > 0.85 && mean('milkyway', 0) < 1.15, `about one long one a stay (${mean('milkyway', 0).toFixed(2)})`);
+  assert.ok(mean('aurora', 1) > 1.5 && mean('aurora', 1) <= 3, `1-3 short ones a stay (${mean('aurora', 1).toFixed(2)})`);
+  assert.ok(mean('moonlit', 0) < 0.6 && mean('moonlit', 1) <= 0.6, `the moonlit sky's fewer (${mean('moonlit', 0).toFixed(2)}, ${mean('moonlit', 1).toFixed(2)})`);
+  let worst = 0; const spans = [];
+  for (let s = 1; s <= 400; s++) for (const long of [true, false]) {
+    const R = ((x) => () => ((x = (x * 1103515245 + 12345) >>> 0) / 2 ** 32))(s), w = long ? 3 + 2 * R() : 3 + 22 * R(), M = { long, w, dur: long ? 0 : 0.3 + 0.7 * R(), y: 0.08, u: [R(), R(), R(), R()], at: 0, plan: null };
+    if (long) { const P0 = K.meteorPlan(M, 0, 0, 1, 1); M.dur = (P0.th1 - P0.th0) / w; spans.push(P0.th1 - P0.th0); }
+    const psi = 360 * R(), pitch = 6; M.plan = K.meteorPlan(M, psi, pitch, tanX, tanY);
+    const a = K.meteorShape(M, 0, 1 / 60), b = K.meteorShape(M, M.dur - 1e-6, 1 / 60);
+    if (long) {
+      assert.ok(a.head[1] <= Math.sin(2.05 * Math.PI / 180) || !inView(a.head, psi, pitch), `seed ${s}: a long one starts under 2 deg up or out of the view`);
+      assert.ok(b.head[1] <= Math.sin(2.05 * Math.PI / 180), `seed ${s}: and ends under 2 deg up again (${(Math.asin(b.head[1]) * 180 / Math.PI).toFixed(2)}), so no drag shows it ending in the open sky`);
+      for (let t = 1; t < M.dur - 1; t += 0.7) { const p = K.meteorShape(M, t, 1 / 60), q = K.meteorShape(M, t + 1 / 60, 1 / 60); assert.ok(Math.abs(ang(p.head, p.tail) - K.METEOR.WAKE) < 1e-6 && p.y === M.y, 'rigid, its light constant'); worst = Math.max(worst, ang(p.head, q.head) * pxDeg); }
+    } else {
+      assert.ok(a.y < 1e-4 && b.y < 1e-3, 'a short one rises from nothing and falls to nothing');
+      const m = K.meteorShape(M, M.dur / 2, 1 / 60); assert.ok(Math.abs(m.y - M.y) < 1e-9, 'its light at its height mid-way');
+      const p = K.meteorShape(M, 0.2, 1 / 60), q = K.meteorShape(M, 0.2 + 1 / 60, 1 / 60); if (p && q) assert.ok(ang(q.head, q.tail) >= ang(p.head, q.head) - 1e-9, 'its stroke covers the frame\'s own path');
+      const el0 = Math.asin(a.head[1]) * 180 / Math.PI; assert.ok(el0 >= 20 - 1e-6 && el0 <= 55 + 1e-6, `a short one starts mid-sky (${el0.toFixed(1)} deg up)`);
+    }
+  }
+  assert.ok(worst <= 2.7, `a long one moves ${worst.toFixed(2)} px a frame at 60 Hz (1440x900; at most 2.7)`);
+  const S = fs.readFileSync(path.join(ROOT, 'src', 'world', '219-meteors.js'), 'utf8');
+  assert.ok(S.includes('var E = SKY.seq[SKY.i]; if (!E || reduced() || !SIM.V) return;') && S.includes("if (E && E.met && !reduced())"), 'none under reduced motion');
+  for (const [at, t] of [[0, 0], [0, 3.5], [-20, 1], [5, 2]]) { assert.ok(K.meteorFrom({ at }, t, true) >= t + 8, `the opening stay's none before 8 s after its first step (${at}, ${t})`); assert.ok(K.meteorFrom({ at }, t, false) >= at + 4, 'another stay\'s none in its first 4 s'); }
+  assert.ok(S.includes('E.met = meteorList(E, AFTER && !first ? SEEDR : J.seed, meteorFrom(E, t, first), E.at + E.hold);'), 'the opening stay\'s from its seed, every later one from the visit\'s own read (as the halo\'s veils)');
+  const RJ = JSON.parse(fs.readFileSync(path.join(ROOT, 'RULES.json'), 'utf8')), NF = (RJ.rules || RJ).find((r) => r.id === 'no-fades');
+  assert.ok(NF.rule.includes('short shooting stars') && NF.source.some((q) => q.quote === 'Allow short ones too' && q.date === '2026-11-15'), 'no-fades names the short meteors\' exception, quoting the owner');
+  console.log(`# meteors a stay: milky way ${mean('milkyway', 0).toFixed(2)} long + ${mean('milkyway', 1).toFixed(2)} short, moonlit ${mean('moonlit', 0).toFixed(2)} + ${mean('moonlit', 1).toFixed(2)}; a long one ${worst.toFixed(2)} px a frame, its path ${Math.min(...spans).toFixed(0)}-${Math.max(...spans).toFixed(0)} deg`);
+});
+test('night: a meteor\'s stroke keeps its light as it slides between pixels (no glitter)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const fn = (name) => g.match(new RegExp('^float ' + name + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm'));
+  const js = (src) => src.replace(/\bfloat\s+/g, 'let ').replace(/\b(sign|sqrt|exp)\(/g, 'Math.$1(').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const E = fn('starErf'), B = fn('starBox'), starErf = new Function(E[1].replace(/float /g, ''), js(E[2])), starBox = new Function('starErf', B[1].replace(/float /g, ''), js(B[2])).bind(null, starErf);
+  assert.ok(g.includes('float v = uMetH.w * (starBox(d, sg) * along * tap + SKYTAU * sg * sg * starBox(dh.x, sg) * starBox(dh.y, sg));'), 'meteorAt\'s light as measured here');
+  const shown = (Ax, Ay, Bx, By, sg) => { const L = Math.hypot(Bx - Ax, By - Ay), ax = (Bx - Ax) / L, ay = (By - Ay) / L, k = 0.70710678 / sg; let sum = 0;
+    for (let y = -40; y <= 40; y++) for (let x = -60; x <= 60; x++) { const fx = x - Ax, fy = y - Ay, s = fx * ax + fy * ay, d = Math.abs(fx * ay - fy * ax), along = 0.5 * (starErf(s * k) - starErf((s - L) * k)), tap = 0.2 + 0.8 * Math.min(Math.max(s / L, 0), 1);
+      sum += starBox(d, sg) * along * tap + 2 * Math.PI * sg * sg * starBox(x - Bx, sg) * starBox(y - By, sg); } return sum; };
+  let lo = Infinity, hi = 0, seed = 5; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  for (let k = 0; k < 48; k++) { const ox = rnd() - 0.5, oy = rnd() - 0.5, v = shown(-20 + ox, -6 + oy, 20 + ox, 6 + oy, 0.75); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  assert.ok((hi - lo) / hi < 0.02, `its light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides (at most 2%)`);
+});
+
+test('physics: night/moon-phase: a near-full moon, lit by its hidden sun opposite (lit fraction over 0.97), its dark sliver the sky', () => {
+  // sky-body.glsl's own moon lines, made JS (their vectors by hand): over the disc, at every height the moon stands
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const PH = +g.match(/const float MOON_PHASE = ([\d.]+);/)[1];
+  assert.ok(g.includes('float mlit = smoothstep(-0.06, 0.06, dot(mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz, msun));') && g.includes('vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);'), 'the moon\'s phase lines are not the ones this test models');
+  assert.ok(g.includes('c = mix(c, mix(c, uMoonC, mlit), 1.0 - smoothstep('), 'the moon\'s unlit part is not the sky behind it (it would be painted darker)');
+  const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const norm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); }, cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  for (const e of [0, 5, 15, 30, 60]) for (const az of [0, 2.1]) {
+    const m = [Math.sin(az) * Math.cos(e * Math.PI / 180), Math.sin(e * Math.PI / 180), Math.cos(az) * Math.cos(e * Math.PI / 180)];
+    const t1 = norm(cross([0, 1, 0], m).map((x, i) => x + (i === 0 ? 1e-5 : 0))), t2 = cross(m, t1);
+    const se = -Math.asin(m[1]) - PH * Math.PI / 180, h = norm([-m[0] + 1e-5, 0, -m[2]]), sun = [h[0] * Math.cos(se), Math.sin(se), h[2] * Math.cos(se)];
+    const sunAz = Math.atan2(sun[0], sun[2]), moonAz = Math.atan2(m[0], m[2]), dAz = Math.abs(((sunAz - moonAz) * 180 / Math.PI + 540) % 360 - 180);
+    assert.ok(Math.abs(dAz - 180) < 0.01 && sun[1] < 0, `moon at ${e} deg: its sun stands at ${dAz.toFixed(2)} deg of azimuth from it, ${(Math.asin(sun[1]) * 180 / Math.PI).toFixed(1)} up (opposite, under the horizon)`);
+    let lit = 0, n = 0, top = 0, nt = 0;
+    for (let y = -1; y <= 1; y += 0.02) for (let x = -1; x <= 1; x += 0.02) {
+      if (x * x + y * y > 1) continue;
+      const z = Math.sqrt(Math.max(1 - x * x - y * y, 0)), nrm = [0, 1, 2].map((i) => x * t1[i] + y * t2[i] - z * m[i]), l = ss(-0.06, 0.06, dot(nrm, sun));
+      lit += l; n++; if (y > 0.9) { top += l; nt++; }
+    }
+    const f = lit / n;
+    assert.ok(f > 0.97 && f < 0.995, `moon at ${e} deg: lit ${(100 * f).toFixed(1)}% of its disc (a near-full moon: over 97%, not a flat coin)`);
+    assert.ok(top / nt < f, `moon at ${e} deg: its dark sliver is not on the limb away from its sun (the top)`);
+  }
+});
+
+// ------------------------------------------------------------------ the Milky Way's structure (delight-night section 3)
+// sky-body.glsl's own shape lines (galAlong, galBand, galCore, galRift, galCoal, galLMC, galSMC, galM31), run here as JS
+// over galactic longitude and latitude: the rift's dark lane only inside ld -55..85; the core at least 3x the anticentre;
+// each object's peak within 0.5 deg of its place; the band's peak within 5% of the old band's (1)
+test('night: the Milky Way\'s structure, the rift, the bulge\'s lane, the fall to the anticentre, the Coalsack, the Clouds and M31 at their places', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const names = ['galAlong', 'galBand', 'galCore', 'galRift', 'galCoal', 'galLMC', 'galSMC', 'galM31'];
+  const src = names.map((nm) => { const m = g.match(new RegExp('^float ' + nm + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm')); assert.ok(m, nm + ' is one line in sky-body.glsl'); return 'function ' + nm + '(' + m[1].replace(/float /g, '') + ') {' + m[2].replace(/\bfloat\s+/g, 'let ') + '}'; }).join('\n');
+  const K = new Function('const { exp, cos, sin, pow, sqrt, abs, max, min } = Math, radians = (d) => d * Math.PI / 180, smoothstep = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };\n' + src + '\nreturn { ' + names.join(', ') + ' };')();
+  assert.ok(g.includes('float dark = (1.0 - 0.8 * galRift(ld, bd - bo) * brk) * (1.0 - 0.85 * galCoal(ld, bd))') && !g.includes('float lanes ='), 'the rift and the Coalsack darken the band; the old noise lanes are gone');
+  for (let ld = -180; ld <= 180; ld += 1) for (let bd = -10; bd <= 10; bd += 0.25) {
+    const r = K.galRift(ld, bd); if (ld < -55 || ld > 85) assert.ok(r < 1e-9, `no rift at ld ${ld}`);
+  }
+  for (let ld = -45; ld <= 75; ld += 5) { let mx = 0; for (let bd = -4; bd <= 4; bd += 0.05) mx = Math.max(mx, K.galRift(ld, bd)); assert.ok(mx > 0.95, `the rift whole at ld ${ld} (${mx.toFixed(2)})`); }
+  const peak = (f, ld) => { let mx = 0; for (let bd = -15; bd <= 15; bd += 0.05) mx = Math.max(mx, f(ld, bd)); return mx; };
+  const whole = (ld, bd) => K.galBand(ld, bd) * 0.525 + 1.3 * K.galCore(ld, bd);   // (the band at its noise's mean, (0.25 + 1.1 n^2) at n 0.5)
+  const core = peak(whole, 0), anti = peak(whole, 180);
+  assert.ok(core >= 3 * anti, `the core ${core.toFixed(3)} at least 3x the anticentre ${anti.toFixed(3)}`);
+  const fall = K.galAlong(180) / K.galAlong(0); assert.ok(fall <= 0.35, `the band at the anticentre ${fall.toFixed(2)} of its brightness at the core (about 0.3)`);
+  let amax = 0; for (let ld = -180; ld <= 180; ld += 0.5) amax = Math.max(amax, K.galAlong(ld)); assert.ok(amax <= 1.05, `the band's peak ${amax.toFixed(3)} within 5% of the old band's (1)`);
+  let bright = -999, bv = 0; for (let ld = -180; ld <= 180; ld += 1) { const v = peak(K.galBand, ld); if (v > bv) { bv = v; bright = ld; } } assert.ok(bright >= -80 && bright <= 0, `the brightest band at ld ${bright} (the star clouds, -80..0)`);
+  assert.ok(K.galCore(0, 0) < 0.3 * K.galCore(0, 4), 'the bulge cut by its mid-plane lane');
+  const at = (f, l0, b0) => { let best = 0, L = 0, B = 0; for (let ld = l0 - 8; ld <= l0 + 8; ld += 0.05) for (let bd = b0 - 6; bd <= b0 + 6; bd += 0.05) { const v = f(ld, bd); if (v > best) { best = v; L = ld; B = bd; } } return [L, B, best]; };
+  for (const [nm, f, l0, b0] of [['Coalsack', K.galCoal, 302.8 - 360, 0.4], ['LMC', K.galLMC, 280.5 - 360, -32.9], ['SMC', K.galSMC, 302.8 - 360, -44.3], ['M31', K.galM31, 121.2, -21.6]]) {
+    const [L, B, v] = at(f, l0, b0);
+    assert.ok(Math.hypot((L - l0) * Math.cos(b0 * Math.PI / 180), B - b0) <= 0.5 && v > 0, `${nm} peaks at (${L.toFixed(2)}, ${B.toFixed(2)}), its place (${l0.toFixed(1)}, ${b0})`);
+  }
+  const lmcW = (() => { let w = 0; for (let x = 0; x < 15; x += 0.05) if (K.galLMC(-79.5 + x / Math.cos(32.9 * Math.PI / 180), -32.9) > 0.5 * K.galLMC(-79.5, -32.9)) w = x; return 2 * w; })();
+  assert.ok(lmcW > 4 && lmcW < 12, `the LMC ${lmcW.toFixed(1)} deg across at half its peak (10.75 x 9.2 deg in all)`);
+  console.log(`# milky way: core ${core.toFixed(3)} / anticentre ${anti.toFixed(3)} = ${(core / anti).toFixed(1)}x, brightest band at ld ${bright}, its peak ${amax.toFixed(3)}`);
 });

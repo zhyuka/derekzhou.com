@@ -23,8 +23,21 @@
     else { o[0] = wk.x0 + wk.dir * wk.step * (k + ease(Math.min(1, f))); o[1] = f < 1 ? Math.sin(Math.PI * f) : 0; o[2] = 0; }
     return o;
   }
+  /* a walk planned to stay on the stroke: no more steps than the flat ledge middles reach that way (the ledges along
+     the stroke, each handing on to the next), so it never stops past a stroke's end and snaps back; none if no room */
+  function newWalk(P, dir, n, step, t0) {
+    var L = ledges(), li = P.li, x = P.x, g, e, m;
+    for (g = 0; li >= 0 && g < 64; g++) {   // (each ledge's flat middle: the point either side of its own; a link's, its ends)
+      m = L[li].pts; e = m[m.length > 2 ? (m.length >> 1) + dir : dir > 0 ? 1 : 0][0];
+      if (g && (e - x) * dir <= 0) break;   // (a ledge that takes it no farther: the stroke ends here)
+      x = e; li = nearLedge(x + dir / 2, P.fy, li);
+    }
+    n = Math.min(n, Math.floor(Math.max(0, (x - P.x) * dir) / step));
+    return n > 0 ? { dir: dir, n: n, step: step, t0: t0, x0: P.x } : null;
+  }
   function perchedStep(b, dt, C) {
-    var P = b.P, r = b.r;
+    var P = b.P, r = b.r, cl = skyCls(), roost = b.kind === 'crow' && P.kind !== 'pointer' && (cl === 'moon' || cl === 'glow' || cl === 'blue');   // (a crow on the name from dusk to dawn roosts: it stays, tucked, still but for a rare rouse; the end birds face out, wantYaw)
+    if (P.wake && t >= P.wake) { P.wake = 0; if (P.wakeNew) RO.F = null; leave(b, 'roost'); return; }   // (a new group: its first up leads it)
     if (P.kind === 'pointer') {   /* on the tip: the feet the tip's, the body a pendulum to its motion; off when it moves fast, steers, goes or nears the edge */
       var ax = PW.pax, ay = PW.pay, w0 = TAU * 2.5;
       P.swingV += (-w0 * w0 * P.swing - 2 * 0.35 * w0 * P.swingV - 0.002 * ax) * dt; P.swing += P.swingV * dt; P.swing = clamp(P.swing, -0.6, 0.6);
@@ -48,19 +61,20 @@
         var to = Math.abs(off) >= 90 ? want : (P.yaw >= 0 ? -1 : 1) * PERCH.yaw; P.yaw0 = P.yaw; P.yawTo = to; P.yawT = t; P.yawD = pick(r, [0.2, 0.4]); P.hopTurn = true; P.face = to >= 0 ? 1 : -1; }
       else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
-      else if (u < 0.82 && P.kind === 'name') { P.walk = { dir: r() < 0.5 ? -1 : 1, n: 1 + Math.floor(r() * 3), step: 0.08 * perchSpan(b, P.k), t0: t, x0: P.x }; }
+      else if (u < 0.82 && P.kind === 'name' && !roost) { P.walk = newWalk(P, r() < 0.5 ? -1 : 1, 1 + Math.floor(r() * 3), 0.08 * perchSpan(b, P.k), t); }
       else if (u < 0.94 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
-      P.nextAct = t + pick(r, [4, 12]);
+      P.nextAct = t + pick(r, roost ? [12, 30] : [4, 12]);
     }
     if (P.act && t - P.act.t0 > P.act.T) P.act = null;
     /* it leaves: by its own wish, or to a flock of its kind passing */
+    if (roost || P.wake) return;   // (a roosting crow, or one waiting its turn in the morning's departure)
     if (t >= P.stay) { leave(b, 'wish'); return; }
     if (P.kind !== 'pointer' && t - P.tt > PDWELL && STEPS % 20 === b.id % 20) { var J = passingFlock(b, C); if (J) { leave(b, 'join', J); return; } }
   }
   function nearLedge(x, y, not) { var L = ledges(), best = -1, bd = 12; for (var i = 0; i < L.length; i++) { if (i === not) continue; var Lg = L[i]; if (x < Lg.pts[0][0] || x > Lg.pts[Lg.pts.length - 1][0]) continue; var d = Math.abs(surfY(Lg.pts, x) - y); if (d < bd) { bd = d; best = i; } } return best; }
   function passingFlock(b, C) {
     for (var i = 0; i < FLOCKS.length; i++) {
-      var F = FLOCKS[i]; if (F.far || F.kind !== b.kind || !F.lead || F.lead.st !== 'fly' || F === b.F || F.m.length < 2) continue;
+      var F = FLOCKS[i]; if (F.far || F.kind !== b.kind || !F.lead || F.lead.st !== 'fly' || F === b.F || F === RO.F || F.m.length < 2) continue;   // (a bold one stays: it never follows the morning's flock)
       var dx = F.lead.p[0] - b.p[0], dy = F.lead.p[1] - b.p[1], dz = F.lead.p[2] - b.p[2];
       if (dx * dx + dy * dy + dz * dz < 200 * 200) return F;
     }
@@ -75,6 +89,12 @@
     if (b.st !== 'perch') { toAir(b, J); return; }
     var h0 = P.hop || 0; if (P.walk && t >= P.walk.t0) { walkAt(P, t, WKA); P.x = WKA[0]; h0 = WKA[1]; }   // (a walk ends where it is: the take-off from there)
     P.walk = null; P.hop = 0;
+    if (P.yawTo !== undefined && t - P.yawT < P.yawD && t >= P.yawT) {   /* a turn it left in: held where it is, its hop's lift and its rest handed to the leave (the turn's pose ignores the crouch: at its end the crouch and lift came in at once, 2.6 px in a 144 Hz frame) */
+      var tu = (t - P.yawT) / P.yawD;
+      h0 = Math.max(h0, (P.hopTurn ? 3.2 : 0.7) * Math.sin(Math.PI * tu));   // (the turn's lift, 0.16 or 0.035 of the span, as a hop's share of 0.05)
+      if (P.rT === P.yawT) P.rest = P.rA + (P.rB - P.rA) * ease(tu);
+      P.yaw = P.yaw0 + (P.yawTo - P.yaw0) * ease(tu); P.yawD = 0;
+    }
     P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
   }
   function leavingStep(b, dt, C) {
@@ -89,7 +109,9 @@
   }
   /* back in the air: its flight state from its motion now; a few strong beats; a goal */
   function toAir(b, J, leapt) {
-    var P = b.P;
+    var P = b.P, ro = P && P.leaving && P.leaving.why === 'roost';
+    if (ro && RO.F && RO.F.lead && FLOCKS.indexOf(RO.F) >= 0) J = RO.F;   // (the morning's departure: one loose flock, each joining the first up)
+    if (ro) b.offT = t + 120;   // (off to feed: not down on the words again for two minutes; PC GPU's dusk-to-dawn frames: one came back 2.8 s after the roost left)
     if (PW.appr === b) PW.appr = null;
     var i = PERCHED.indexOf(b); if (i >= 0) PERCHED.splice(i, 1);
     b.P = null; b.st = 'fly'; b.vLo = b.vHi = 0;
@@ -101,12 +123,29 @@
       var q = endPlace(J); q[2] = 0.3; b.F = J; b.slot = q; J.m.push(b); J.off = false; J.acc = 0; J.lk = true;   // (a bird joining: the flock is judged again with it, from this frame)
     } else {
       if (!b.F) soloFlock(b);
-      var r = b.r, g = weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
+      var r = b.r, g = ro ? 'commute' : weighted(r, [['out', 30], ['commute', 35], ['sink', 15], ['pass', 20]]);
       if (g === 'pass' && t < POP.passT) g = 'commute';
       if (!NIGHT_K[b.kind] && skyCls() === 'moon') g = 'sink';   // (night: a crow, swallow or finch off the words goes down to roost, physics: birds/day)
       if (g === 'pass') passTaken(r);
       newGoal(b.F, g, r, skyCls());
+      if (ro) RO.F = b.F;
     }
+  }
+  /* first light after the night: the roost on the name leaves as one, the crouch running down the row in 0.25-0.7 s
+     (jackdaws' mass departures last seconds; a startled rook flock is up in 0.7 s: delight-life 1), one bold bird now
+     and then staying; some mornings in pairs over 10-30 s instead. On the sky's state, never a timer */
+  var RO = { cls: '', F: null, row: [] };
+  function byX(a, c) { return a.P.x - c.P.x; }
+  function roostWake() {
+    var c = skyCls(), was = RO.cls, row = RO.row, i, r = POP.r; RO.cls = c;
+    if (c !== 'first' || was !== 'moon') return;
+    row.length = 0;
+    for (i = 0; i < PERCHED.length; i++) { var o = PERCHED[i]; if (o.st === 'perch' && o.kind === 'crow' && o.P.kind !== 'pointer' && !o.P.leaving) row.push(o); }
+    var n = row.length; if (!n) return;
+    row.sort(byX); RO.F = null;
+    var pairs = n > 3 && r() < 0.25, T = pick(r, pairs ? [10, 30] : [0.25, 0.7]), bold = n > 2 && r() < 0.3 ? Math.floor(r() * n) : -1, k = 0, m = pairs ? Math.ceil(n / 2) : n;
+    if (bold >= 0) row[bold].P.stay = t + pick(r, PSTAY);   // (the bold one stays on a while)
+    for (i = 0; i < n; i++) { if (i === bold) continue; var g = pairs ? k >> 1 : k; row[i].P.wake = t + 0.02 + g * T / Math.max(1, m - 1); row[i].P.wakeNew = pairs ? !(k & 1) : !k; k++; }
   }
 
   /* ---------------- the pointer, a jab, a click ---------------- */

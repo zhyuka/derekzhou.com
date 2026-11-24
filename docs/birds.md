@@ -61,7 +61,11 @@ and the pointer move. The ledges come from what is served
 drawing in site/index.html and the link words and the credit in the
 served fonts; CI makes it again): every column's stroke tops of the
 name, curves and slopes included, every glyph top of the links and the
-credit, never an underline. Every 16-34 s a bird of a perching kind
+credit, never an underline. No ledge of the name lies under a stroke:
+one with ink overhanging it within a perched bird's height (120 of the
+name's units, 48 to each side) is cut, the inside of a closed counter or
+under a crossbar, where the letters drawn over a bird would show it inside
+the letter. Every 16-34 s a bird of a perching kind
 (gull, crow, swallow, finch) in front of the camera may notice the
 letters: a lone bird, or one to three of a passing flock while the rest
 fly on. It first matches the perch's motion, then closes on it, down a
@@ -86,7 +90,8 @@ If the perch gets away it goes round once, far out, then flies on. At
 most 6 on the letters, one coming down at a time. On the perch it faces
 into the wind (a row turning bird by bird as the wind shifts), turns by
 steps and now and then hops round, raises its wings or rouses (a tenth
-of its time at most, at gaps of its own), walks a stroke, steps aside
+of its time at most, at gaps of its own), walks a stroke (planned to stay on
+its flat middle, never onto the shoulder where it ends), steps aside
 for a newcomer; the end bird of a row looks out. It leaves by its own
 wish, to a flock of its kind passing (it joins it), or startled: a crouch
 and a lean, a leap, a few strong beats, then on in the world on any
@@ -170,6 +175,22 @@ alike, its perched poses (touch, settling, folded, wings raised) keeping its win
 top of the ink and no drawn point hangs below it (the hub's re-review 3, option c: within 5 px, the feet's own sink
 included); turns only by bank; births and removals unseen; no object made in a
 frame's step or draw, and no wing history growing without end.
+
+THE ROOST ON THE NAME (delight-life 1). Crows come in to roost on the letters
+at dusk and leave as one at first light, on the sky's state, never a timer:
+- afterglow and blue hour: a crow flock passing is much likelier to send
+  1-3 down (the letters look every 3-8 s, from up to 40 s away; one landing
+  at a time; 6 at most); more crows commute at blue hour;
+- afterglow, blue hour and night: a crow on the name never leaves of its own
+  wish nor to a passing flock; it stays folded, the end birds facing out,
+  with a rare rouse (every 12-30 s at most, no walks);
+- first light after the night: the crouch runs down the row (left to right)
+  within 0.25-0.7 s and they leave as one loose flock (each joining the
+  first up); one bold bird now and then stays on; some mornings they leave
+  in pairs over 10-30 s instead.
+test/birds.mjs scripts afterglow, blue hour, night and first light at both
+sizes (12 nights) and pins: no own-wish leave from dusk to dawn, no group
+over 3, the crows on the name at dawn, and each morning's departure as one.
 
 THE SCORE'S READ (delight 2, 266-feed.js). WORLD.birds.feed(o) fills the
 caller's own arrays and changes nothing in the world (test/birds.mjs: two runs,
