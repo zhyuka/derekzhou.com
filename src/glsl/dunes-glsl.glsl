@@ -267,7 +267,7 @@ uniform sampler2D uCSh; uniform vec4 uCShP;
 float gSh = 1.0;
 float cloudShadow(vec3 p) {
   if (uCShP.z <= 0.0 || uSun.y <= 0.02) return 1.0;
-  vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.05) - uCShP.xy) / uCShP.z;   // (-1 .. 1 over the map)
+  vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.02) - uCShP.xy) / uCShP.z;   // (-1 .. 1 over the map)
   float e = max(abs(q.x), abs(q.y));
   if (e >= 1.0) return 1.0;
   return mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, e));

@@ -6,6 +6,7 @@
 // lobes were cast on.
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  float dif = smoothstep(-0.08, 0.26, ndl) * gSh;", "with": "  float dif = smoothstep(-0.08, 0.26, ndl);", "why": "the sand's direct light never under the clouds' shadow"}
 // plant: {"file": "src/world/262-cloud-shadow.js", "find": "var off = cellOff(C, t, CSHO), S = C.soft;", "with": "var off = cellOff(C, 0, CSHO), S = C.soft;", "why": "the shadows left where the clouds were laid out, not where the wind has carried them"}
+// plant: {"file": "src/world/glsl/vs-cshadow.glsl", "find": "float sy = max(uSun.y, 0.02);", "with": "float sy = max(uSun.y, 0.05);", "why": "a low key's shadows drawn short and cut off square (a straight edge across the land at sunset)"}
 // plant: {"file": "src/world/glsl/fs-cshadow.glsl", "find": "  float tc = dot(d, uSun);", "with": "  float tc = dot(d, vec3(0.0, 1.0, 0.0));", "why": "the shadows cast straight down, not along the key"}
 // plant: {"file": "src/world/262-cloud-shadow.js", "find": "gl.blendFuncSeparate(gl.DST_COLOR, gl.ZERO, gl.ZERO, gl.ONE);", "with": "gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE);", "why": "the lobes' light added, not multiplied (overlapping lobes would lighten)"}
 import { test, assert, fs, path, ROOT, WORLD } from '../unit-lib.mjs';
@@ -54,12 +55,16 @@ test('cloud shadow: a lobe\'s shadow along the key: the full chord under it, non
 
 test('cloud shadow: the vertex stage\'s ellipse holds the whole shadow (no lobe\'s shadow cut by its own quad)', () => {
   assert.match(VS, /vec2 c = aL\.xz - uSun\.xz \* aL\.y \/ sy;/, 'the centre carried down the key to the plane');
-  assert.match(VS, /float pen = \(aL\.y \+ aL\.w\) \/ sy \* uCShK\.y, tx = 2\.0 \* uCShP\.z \/ 512\.0;/, 'the penumbra at the longest ray, a texel\'s margin');
+  assert.match(VS, /float pen = uCShK\.y \* \(aL\.y \+ aL\.w\) \/ \(sy - uCShK\.y\), tx = 2\.0 \* uCShP\.z \/ 512\.0;/, 'the penumbra at the far end\'s ray (its length grows with it), a texel\'s margin');
   assert.match(VS, /float a = \(aL\.w \+ pen\) \/ sy \+ tx, b = aL\.w \+ pen \+ tx;/, 'its half axes: (R + penumbra) / s.y along the key\'s way, R + penumbra across');
-  for (const el of [6, 20, 70]) {
-    const e = el * Math.PI / 180, s = unit([0.6 * Math.cos(e), Math.sin(e), 0.8 * Math.cos(e)]), sy = Math.max(s[1], 0.05);
+  // the elevation's floor is the pass's own cut (0.02): a higher floor would draw a low key's shadows short, cut off
+  // square across the key's way (a straight edge across the land at sunset and dawn)
+  const FLOOR = num(/float sy = max\(uSun\.y, ([\d.]+)\);/, VS);
+  assert.equal(FLOOR, 0.02); assert.match(JS, /if \(!\(s\[1\] > 0\.02\)\) return;/); assert.match(JS, /var sy = Math\.max\(s\[1\], 0\.02\)/);
+  for (const el of [1.5, 3, 6, 20, 70]) {
+    const e = el * Math.PI / 180, s = unit([0.6 * Math.cos(e), Math.sin(e), 0.8 * Math.cos(e)]), sy = Math.max(s[1], FLOOR);
     const L = [0, 700, 0, 120], c = [-s[0] * L[1] / sy, -s[2] * L[1] / sy], u = unit([s[0], s[2]]), v = [-u[1], u[0]];
-    const pen = (L[1] + L[3]) / sy * SUNR, tx = 2 * 6000 / 512, a = (L[3] + pen) / sy + tx, b = L[3] + pen + tx;
+    const pen = SUNR * (L[1] + L[3]) / (sy - SUNR), tx = 2 * 6000 / 512, a = (L[3] + pen) / sy + tx, b = L[3] + pen + tx;
     let worst = 1;
     for (let i = 0; i <= 400; i++) {   // the quad's border, a hair outside: no shadow there
       const t = i / 200 - 1;
@@ -70,7 +75,7 @@ test('cloud shadow: the vertex stage\'s ellipse holds the whole shadow (no lobe\
 });
 
 test('cloud shadow: the land takes it off the key\'s direct light alone, read where its point meets the plane', () => {
-  assert.match(DG, /vec2 q = \(p\.xz \+ uSun\.xz \* \(uCShP\.w - p\.y\) \/ max\(uSun\.y, 0\.05\) - uCShP\.xy\) \/ uCShP\.z;/, 'the land\'s point carried along the key to the plane (any height of land: the same line as the lobes\')');
+  assert.match(DG, /vec2 q = \(p\.xz \+ uSun\.xz \* \(uCShP\.w - p\.y\) \/ max\(uSun\.y, 0\.02\) - uCShP\.xy\) \/ uCShP\.z;/, 'the land\'s point carried along the key to the plane (any height of land: the same line as the lobes\')');
   assert.match(DG, /if \(uCShP\.z <= 0\.0 \|\| uSun\.y <= 0\.02\) return 1\.0;/, 'none without a map this frame, nor with the key at the horizon');
   assert.match(DG, /return mix\(texture\(uCSh, q \* 0\.5 \+ 0\.5\)\.r, 1\.0, smoothstep\(0\.75, 1\.0, e\)\);/, 'eased off over the map\'s last quarter (a place\'s distance, never the clock\'s)');
   const sand = DG.split('vec3 shadeSand(')[1].split('\nvec3 D_shadeStone(')[0], stone = DG.split('vec3 D_shadeStone(')[1].split('\n}\n')[0];

@@ -23,7 +23,7 @@
   /* the lobes about the camera, relative to the map's origin, their height over the plane: [x, y, z, R] */
   function cshLobes(V, s) {
     var L = V.cellList, n = 0, a = CSH.a, t = cloudT(), ox = CSHU[0], oz = CSHU[1], E = CSH_E, yg = CSHU[3], i, j;
-    var sy = Math.max(s[1], 0.05), kx = s[0] / sy, kz = s[2] / sy;   // (a lobe's shadow on the plane: its centre less s.xz y / s.y)
+    var sy = Math.max(s[1], 0.02), kx = s[0] / sy, kz = s[2] / sy;   // (a lobe's shadow on the plane: its centre less s.xz y / s.y)
     if (L) for (i = 0; i < L.length && n < CSH_MAX; i++) {
       var C = L[i]; if (C.st < 3 || !C.soft || !C.softB) continue;
       var off = cellOff(C, t, CSHO), S = C.soft;
