@@ -3,6 +3,7 @@
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HI_H = 7000.0, HIF_W = 12000.0;", "with": "const float HI_H = 3000.0, HIF_W = 12000.0;", "why": "the cirrus back at 3 km, under real cirrus heights"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "    if (SUNU.on) return -SUNU.es;\n", "with": "", "why": "Venus placed by the sky it left through a change into the night: off its elongation from the sinking sun, then a jump"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "P.w0 = 2 * P.thetaE / P.Dvis;", "with": "P.w0 = 3 * P.thetaE / P.Dvis;", "why": "the moon crossing half again faster: past the sky's declared rate"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": " gL += aG; c += aG; }", "with": " c += aG; }", "why": "the airglow counted as nightLim's sky: in the 15-18 deg window it holds back a star at the edge of showing"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);", "with": "float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);", "why": "the galaxy's edge one-sided again: all south of it at once as the rise leaves 0 (M31 pops)"}
@@ -614,6 +615,40 @@ test('night: the evening star stands by the drawn sun (its elongation, on the ec
       prev = v;
     }
   }
+});
+// (the hub's ruling, Nov 24 20:28: Venus by the glow) the page's own walk through holds and changes: 222's skyArc and
+// 223's skySun move the drawn sun as the page moves it (uSkyS), 227's skyDepth reads its depth, venusDir places Venus;
+// its angle from the drawn sun (the glow's: uSkyS in a twilight, the sun sunk on the key's azimuth at night) stays its
+// elongation in every hold and through every change, and it never jumps
+const SUNWALK = cut(WORLD, '  function skyArc(', '\n  }\n', true) + cut(WORLD, '  var SUN_BAND = ', '  function skyEndCol(') + cut(WORLD, '  function skySun(V, w, L) {', '\n  }\n', true);
+test('night: Venus keeps its elongation from the drawn sun through every hold and change (by the glow)', () => {
+  const src = '(function (SEED, KEYAZ) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SKY_RATE = 100, DEVMODE = false, MOONF = { sunOff: false };\n' +
+    '  var SKY = { seq: [], dt: 0, skyS: new Float32Array(3), fx: new Float32Array(8), far: false, half: 0, q: 0, A: null, B: null, k: 0 };\n' +
+    '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } }, KEY = [0.3, 0.8, 0.52];\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function ss01(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }\n' +
+    '  function keyAt() { return KEY; }\n  function skyEndCol(O, k, w, out) { return out; }\n  function skyEndNum(O, k, w, out) { return out; }\n  function airSkySun(V, el) { return el === null ? KEY.slice() : dirAzEl(V.light.sunAz, el); }\n' +
+    STREAMS + VEC + NIGHT + SUNWALK +
+    '  function sky(el) { return { skyEl: el, dir: airSkySun(SIM.V, el), fx: [0, 0] }; }\n' +
+    '  function at(A, B, k) { SKY.A = A; SKY.B = B; SKY.k = k; var L = {}; if (B) skyArc(A.dir, B.dir, k, SKY.skyS); else for (var i = 0; i < 3; i++) SKY.skyS[i] = A.dir[i]; skySun(SIM.V, 0, L); return skyDepth(); }\n' +
+    '  return { at: at, sky: sky, SKY: SKY, SUNU: SUNU, venusDir: venusDir, venusFrame: venusFrame, V: SIM.V, VEN_EL: VEN_EL };\n})';
+  const orders = [[-3, -7, null, null], [-7, null, null], [-3, null], [null, null, -7]];   // (afterglow, blue hour, the nights; a night into the blue hour: the sun rising back, the reverse change)
+  let n = 0;
+  for (let s = 1; s <= 24; s++) for (const ord of orders) {
+    const keyAz = (s * 53) % 360, K = vm.runInThisContext(src)(s * 2654435761 >>> 0, keyAz), skies = ord.map((e) => K.sky(e));
+    const D0 = ord[0] === null ? 24 : -ord[0], F = K.venusFrame(K.V, false, D0), eps = K.VEN_EL[0] + (K.VEN_EL[1] - K.VEN_EL[0]) * ((s * 0.618) % 1);
+    const drawn = (D) => (K.SKY.A.skyEl === null && (!K.SKY.B || K.SKY.B.skyEl === null)) ? [Math.sin(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180), Math.sin(-D * Math.PI / 180), Math.cos(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180)] : Array.from(K.SKY.skyS);   // (a night's own uSkyS is the key, not a sun: the sun sunk to its depth)
+    let prev = null;
+    const step = (A, B, k) => {
+      const D = K.at(A, B, k), v = K.venusDir(F, eps, 1, D, D0, [0, 0, 0]), S = drawn(D);
+      assert.ok(Math.abs(angD(v, S) - eps) < 0.1, `seed ${s}, order ${ord}, k ${k}: ${angD(v, S).toFixed(3)} deg from the drawn sun (its elongation ${eps.toFixed(3)})`);
+      if (prev) assert.ok(angD(v, prev) < 0.6, `seed ${s}, order ${ord}, k ${k}: Venus jumps ${angD(v, prev).toFixed(2)} deg`);
+      prev = v; n++;
+    };
+    for (let i = 0; i < skies.length; i++) {
+      for (let h = 0; h < 4; h++) step(skies[i], null, 0);   // (a hold: it stands still)
+      if (i + 1 < skies.length) for (let k = 0.005; k < 1; k += 0.005) step(skies[i], skies[i + 1], k);
+    }
+  }
+  assert.ok(n > 5000, `${n} steps`);
 });
 test('night: the stars come out by the sun\'s depth, brightest first; their colours never move their light; Venus under L 0.50', () => {
   const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
