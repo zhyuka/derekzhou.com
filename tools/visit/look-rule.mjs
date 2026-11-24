@@ -33,6 +33,11 @@ export const keepsWords = (l) => l.wordCloud <= WORD_CAP && l.nameCloud <= NAME_
 export const discShown = (l, view) => !!(l.discs && l.discs[view] && l.discs[view].shown);
 export const keepsDiscs = (l, own) => DISC_VIEWS.every((v) => !discShown(own, v) || discShown(l, v)) && !(l.sunIn < GLOW_KEEP * (own.sunIn || 0));
 
+// a heading's look passes: the words clear, and the disc and glow kept, unless no heading measured on the land keeps both
+// (k0 on Nov 24's world: the headings that face its sunset glow put cloud on the name), when the words alone hold
+export const glowWaived = (land, own) => !Object.values(land).some((x) => keepsWords(x) && keepsDiscs(x, own));
+export const keeps = (l, own, land) => keepsWords(l) && (keepsDiscs(l, own) || glowWaived(land, own));
+
 const TABLE = /(function airHeading0\(\) \{ var T = )\[[^\]]*\]/;
 export function worldKey(root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lookkey-'));

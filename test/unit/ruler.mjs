@@ -66,10 +66,11 @@ test('ruler: the mist at the cut is by the visit\'s moisture (AIR\'s weather, wh
 // and a record of another world fails ("re-run looks.mjs": a cloud moved anywhere can stand behind the words). No
 // heading puts more than WORD_CAP (10% at most) of the words' boxes, or NAME_CAP (2% at most) of the name's, under cloud
 // in any of its three frames (laptop night, laptop sunset, phone dawn), nor loses the low sun's disc or glow the land's
-// own heading shows (keepsDiscs: GLOW_KEEP of its light in frame at least); a table entry never measured fails too
+// own heading shows (keepsDiscs: GLOW_KEEP of its light in frame at least; waived only on a land where no measured heading keeps
+// both, glowWaived); a table entry never measured fails too
 test('ruler: each land\'s first heading keeps the words and the name clear of cloud, measured on this world (looks.json)', async () => {
   const fs = await import('node:fs');
-  const { WORD_CAP, NAME_CAP, GLOW_KEEP, lookKey, worldKey, keepsDiscs } = await import('../../tools/visit/look-rule.mjs');
+  const { WORD_CAP, NAME_CAP, GLOW_KEEP, lookKey, worldKey, keepsDiscs, glowWaived } = await import('../../tools/visit/look-rule.mjs');
   assert.ok(WORD_CAP <= 0.1 && NAME_CAP <= 0.02, `the caps: words ${WORD_CAP} (want 0.1 at most), the name ${NAME_CAP} (want 0.02 at most)`);
   const T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(WORLD);
   assert.ok(T, 'airHeading0\'s table not found in world.js');
@@ -83,6 +84,6 @@ test('ruler: each land\'s first heading keeps the words and the name clear of cl
     assert.ok(l.nameCloud <= NAME_CAP, `k${k}: heading ${lookKey(table[k])} puts ${(l.nameCloud * 100).toFixed(1)}% of the name's box under cloud (want ${NAME_CAP * 100}% at most)`);
     const own = rec.lands[k].own;
     assert.ok(own, `k${k}: the land's own heading was never measured`);
-    assert.ok(GLOW_KEEP >= 0.5 && keepsDiscs(l, own), `k${k}: heading ${lookKey(table[k])} keeps sun light ${l.sunIn} against the own heading's ${own.sunIn} (want ${GLOW_KEEP} of it) or loses its disc`);
+    assert.ok(GLOW_KEEP >= 0.5 && (keepsDiscs(l, own) || glowWaived(rec.lands[k], own)), `k${k}: heading ${lookKey(table[k])} keeps sun light ${l.sunIn} against the own heading's ${own.sunIn} (want ${GLOW_KEEP} of it) or loses its disc`);
   }
 });

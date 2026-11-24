@@ -6,7 +6,8 @@
 // reads (the longest stretch with no reward). The pick (the hub's review of #312: the look is the score's, not a hand
 // pick's), among the candidates looks.mjs measured (tools/visit/looks.json):
 //   1. never a heading that puts more than WORD_CAP of the words' boxes, or NAME_CAP of the name's, under cloud, nor one
-//      that loses the low sun's disc or GLOW_KEEP of the glow the land's own heading shows at dawn or sunset (look-rule.mjs);
+//      that loses the low sun's disc or GLOW_KEEP of the glow the land's own heading shows at dawn or sunset, unless no
+//      heading measured on the land keeps both (look-rule.mjs's keeps);
 //   2. a first near pass by NEAR_BY s if any candidate left has one;
 //   3. the most visits free of a 180 s stretch with no reward, plus lookScore (the opening's feature in frame against
 //      the land's best and clear, less the top band under cloud), then the least longest gap.
@@ -15,7 +16,7 @@
 //   node tools/visit/headings.mjs [--k 0,1] [--top 5] [--reads 2] [--looks tools/visit/looks.json] [--json FILE] [--cands FILE]
 import fs from 'node:fs';
 import { flyLand, measure, HOURS, streamHeading } from './ruler.mjs';
-import { lookScore, lookKey, keepsWords, keepsDiscs, worldKey } from './look-rule.mjs';
+import { lookScore, lookKey, keeps, worldKey } from './look-rule.mjs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const K = arg('--k', null) ? arg('--k').split(',').map(Number) : [...Array(16).keys()], TOP = +arg('--top', 5), READS = +arg('--reads', 2), out = arg('--json', null), candsOut = arg('--cands', null);
@@ -47,7 +48,7 @@ for (const k of K) {
   const rows = [...cands[k], ...more].map((d) => ({ deg: d, look: (LOOKS[k] || {})[lookKey(d)] || null, ...whole(k, d === null ? own : d * DEG) })).filter((r) => r.look);
   const near = (r) => r.firstNear !== null && r.firstNear <= (fall ? FALL_BY : NEAR_BY);
   const ownLook = (rows.find((r) => r.deg === null) || {}).look || {}, bestIn = { galaxyIn: Math.max(...rows.map((r) => r.look.galaxyIn)), sunIn: Math.max(...rows.map((r) => r.look.sunIn)) };
-  const clear = rows.filter((r) => keepsWords(r.look) && keepsDiscs(r.look, ownLook)), nearClear = clear.filter(near);
+  const clear = rows.filter((r) => keeps(r.look, ownLook, LOOKS[k])), nearClear = clear.filter(near);
   const rank = (x, y) => (y.gapOk + lookScore(y.look, bestIn)) - (x.gapOk + lookScore(x.look, bestIn)) || x.gapP50 - y.gapP50;
   const best = (nearClear.length ? nearClear : clear).sort(rank)[0] || rows.sort((x, y) => x.look.wordCloud - y.look.wordCloud)[0] || null;
   table.push({ k, own: +(own / DEG).toFixed(1), fallback: fall, rows: rows.map(({ psi, ...r }) => r), best: best && { deg: best.deg, firstNear: best.firstNear, gapOk: best.gapOk, gapP50: best.gapP50, look: best.look } });
