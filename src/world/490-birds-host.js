@@ -84,6 +84,9 @@
     /* the grade the composite used this frame (exposure, saturation, lift, gain), and the light (sun, haze) */
     grade: function () { return LASTE; },
     light: function () { var V = SIM.V; return V ? (V.L || V.light) : null; },
+    /* the key light at the drawn moment: the land's own (airLightDir, uSun; on the moonlit sky the moon's disc as drawn),
+       so the birds are lit by the one key the land and the sea are (physics map, disconnect 3) */
+    key: function () { var V = SIM.V, L = V ? (V.L || V.light) : null; return L && L.sunDir ? airLightDir(L) : null; },
     /* the words: their boxes (name, bio, credit, link, link: x0, y0, x1, y1 in canvas px) and their colours in effect */
     words: function () { HW.kind = INK;   /* (stage2: the words' ink, always light: the ink birds' light path) */ HW.text = WORDSETS[HW.kind].text; return HW; },
     /* the scene's depth and the clouds (premultiplied, half resolution), bound on the units the engine's programs use

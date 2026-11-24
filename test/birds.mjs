@@ -396,3 +396,38 @@ test('the score\'s bird feed: nearest first, finite, and read only', () => {
   assert.ok(a.reads > 1000 && a.flocks > a.reads, 'too few reads or flocks');
   assert.equal(a.end, b.end, 'reading the feed changed the world');
 });
+
+/* (physics map, disconnect 3) the birds are lit by the key the land is, in every sky: the sky's sunVis (how much of the
+   sun's disc it draws: none, in all six, 224) never puts it out. Each sky's own light (220's table, through the world's
+   own colours, 030), sunVis 0 as 224 sets it, the key 10 deg up; the ink's tone (oneTone, the bird's one tone) of a
+   facet facing the key, one facing away and the mean over every way a facet faces. Shaped: the lit side at least 1.8x
+   the far side (measured 2.0-2.85x; sunVis-gated, 1.1x). Never glowing: the lit side darker than the clouds' lit colour
+   in the same sky, as an ink-dark paper is under the one key (measured 0.16-0.61x, the aurora's dim clouds the
+   nearest). Ink: the mean tone at most 0.07 (measured 0.008-0.058; the white paper, 0.03-0.19) */
+test('the birds are lit by the key in every sky: shaped, never glowing, ink', async () => {
+  const fs = await import('node:fs');
+  const col = fs.readFileSync(new URL('../src/world/030-colour.js', import.meta.url), 'utf8');
+  const lch = new Function(col.replace(/^\(function[^\n]*\n|\}\)\(\);?\s*$/g, '') + '\nreturn lch;')();
+  const td = fs.readFileSync(new URL('../src/world/220-time-day.js', import.meta.url), 'utf8');
+  const sim = makeSim(SCENES.perch(1, '960x600').opt); sim.run(0.2); const B = sim.B;
+  const Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], el = 10 * Math.PI / 180;
+  const N = new Float64Array(3 * 30), A = new Float64Array(30), eye = [0, 0, 1];
+  const tone = (n) => { N[0] = n[0]; N[1] = n[1]; N[2] = n[2]; A.fill(0); A[0] = 1; eye[0] = n[0]; eye[1] = n[1]; eye[2] = n[2]; return Y(B.oneTone(N, eye, B.LZ, A)); };
+  const rows = [];
+  for (const id of ['afterglow', 'bluehour', 'moonlit', 'milkyway', 'aurora', 'firstlight']) {
+    const line = td.split('\n').find((l) => l.trim().startsWith(id + ':')), g = (k) => JSON.parse(line.match(new RegExp('\\b' + k + ':(\\[[^\\]]*\\])'))[1]);
+    const key = g('key'), cl = lch(...g('clLit'));
+    const L = { sunDir: [Math.cos(el), Math.sin(el), 0], sunVis: 0, sunC: lch(key[0], key[1], key[2], key[3]), ambU: lch(...g('ambU')), ambD: lch(...g('ambD')), clLit: cl };   // (world axes, y up)
+    B.lightFrame(L);
+    const s = [Math.cos(el), 0, Math.sin(el)], lit = tone(s), away = tone([-s[0], 0, -s[2]]);   // (facetpose's axes, z up)
+    let mean = 0; for (let i = 0; i < 400; i++) { const z = -1 + 2 * (i + 0.5) / 400, r = Math.sqrt(1 - z * z), ph = i * 2.399963; mean += tone([r * Math.cos(ph), r * Math.sin(ph), z]) / 400; }
+    rows.push({ id, shaped: lit / away, glow: lit / Y(cl), mean });
+  }
+  console.log('# the key on the ink: ' + rows.map((r) => `${r.id} lit/far ${r.shaped.toFixed(2)}, lit/cloud ${r.glow.toFixed(2)}, mean ${r.mean.toFixed(3)}`).join('; '));
+  for (const r of rows) {
+    assert.ok(r.shaped >= 1.8, `${r.id}: the lit side only ${r.shaped.toFixed(2)}x the far side (the key put out)`);
+    assert.ok(r.glow < 1, `${r.id}: the lit side ${r.glow.toFixed(2)}x the clouds' lit colour (brighter than a cloud: glowing)`);
+    assert.ok(r.mean <= 0.07, `${r.id}: the mean tone ${r.mean.toFixed(3)} (not ink)`);
+  }
+});
+

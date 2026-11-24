@@ -334,13 +334,22 @@
      window: the bright white the true-size outline is tuned on), eased (TONE_T). The world is y up, facetpose z up: every vector handed to it has y and z swapped (a reflection:
      dot products kept; the normals' sign it turns toward the eye itself) */
   var SUNC0 = [1, 1, 1], AMBU0 = [0.3, 0.35, 0.45], AMBD0 = [0.25, 0.25, 0.3], CLLIT0 = [0.7, 0.65, 0.7];
-  var LZ = { sunDir: [0, 0, 1], sunVis: 0, sunC: SUNC0, ambU: AMBU0, ambD: AMBD0, clLit: CLLIT0, seaLit: 0 }, EYEZ = [0, 0, 1];
+  /* (physics map, disconnect 3) the birds are ink: an ink-dark paper, its albedo INK_A of the paper's own, so the key
+     that lights the land lights them too and shapes them (their lit side 2.0-2.85x their far side in the six skies, from
+     1.1x with no key) while their mean tone stays about what it was with no key (0.58-1.76x by sky) and their lit side
+     stays darker than the clouds' lit side in the same sky (0.16-0.61x): shaped, never glowing */
+  var INK_A = 0.3;
+  var LZ = { sunDir: [0, 0, 1], sunVis: 0, sunC: [0, 0, 0], ambU: [0, 0, 0], ambD: [0, 0, 0], clLit: [0, 0, 0], seaLit: 0 }, EYEZ = [0, 0, 1];
+  function inkOf(c, o) { o[0] = INK_A * c[0]; o[1] = INK_A * c[1]; o[2] = INK_A * c[2]; }
   /* the frame's light, in facetpose's axes, once a frame (the same for every bird) */
+  /* the paper is lit by the key light the land is (the world's uSun and uSunC), the same in every sky: never by sunVis,
+     which says only how much of the sun's disc the sky draws (none, in all six), so it put the birds' key out in every
+     sky while the land and the clouds had it (physics map, disconnect 3) */
   function lightFrame(L) {
-    var sd = L && L.sunDir;
+    var sd = L && ((HOST.key && HOST.key()) || L.sunDir);
     if (sd) { LZ.sunDir[0] = sd[0]; LZ.sunDir[1] = sd[2]; LZ.sunDir[2] = sd[1]; } else { LZ.sunDir[0] = 0; LZ.sunDir[1] = 0; LZ.sunDir[2] = 1; }
-    LZ.sunVis = L ? (L.sunVis === undefined ? 1 : L.sunVis) : 0;
-    LZ.sunC = L && L.sunC ? L.sunC : SUNC0; LZ.ambU = L && L.ambU ? L.ambU : AMBU0; LZ.ambD = L && L.ambD ? L.ambD : AMBD0; LZ.clLit = L && L.clLit ? L.clLit : CLLIT0;
+    LZ.sunVis = L ? 1 : 0;
+    inkOf(L && L.sunC ? L.sunC : SUNC0, LZ.sunC); inkOf(L && L.ambU ? L.ambU : AMBU0, LZ.ambU); inkOf(L && L.ambD ? L.ambD : AMBD0, LZ.ambD); inkOf(L && L.clLit ? L.clLit : CLLIT0, LZ.clLit);
     var ad = LZ.ambD, cl = LZ.clLit;
     LZ.seaLit = Math.min(1, Math.max(0, (0.2126 * ad[0] + 0.7152 * ad[1] + 0.0722 * ad[2]) / Math.max(1e-4, 0.2126 * cl[0] + 0.7152 * cl[1] + 0.0722 * cl[2])));
   }
