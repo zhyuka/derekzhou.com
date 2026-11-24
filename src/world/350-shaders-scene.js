@@ -50,7 +50,6 @@ void main() {
      land VS against this, by transform feedback, bit-identical heights, positions and gaps). The point: the compile.
      One program holding all of Hd takes 2.3 s (land VS) and 1.6 s (probe FS) on ANGLE-D3D11; the parts compile in
      parallel */
-  var HP_PARTS = ['kit', 'dunes', 'sites', 'ridges'];
   /* where the split is made: every ANGLE Direct3D11 device, the Windows GPUs (the owner, 2026-11-06: "Yes, if it saves
      100 ms+"). FXC is the same compiler on all of them, so the split's saving is the same everywhere there: the land VS
      (701 ms of FXC) and the probe (486 ms) become passes of at most ~137 ms, the compile wall 701 -> 426 ms
@@ -131,7 +130,7 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
   /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
      vertices carry (vMB) */
   var MIST_FS = `
-  c = mistOver(c, mistTop(vMB) - vW.y, n, rd, fp);`;
+  c = mistOver(c, max(mistTop(vMB), fogTopAt(vW.xz)) - vW.y, n, rd, fp);`;
   function FS_TERRAIN(H, S) {
     return ZCODE + `
 centroid in vec3 vW; centroid in vec3 vN; centroid in float vX; out vec4 oC;${H === 'Hd' ? S1_IN : ''}

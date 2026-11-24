@@ -44,13 +44,17 @@ void rain(int id) {
   // a drop: wrapped in a box about the camera (across) and in a column about its height; its streak the way it falls;
   // under the ground, it has landed: a splash there for its first moments, then nothing until it wraps round
   uint h = ih(uint(id) * 2654435761u + 4111u);
-  float r1 = hf(h), r2 = hf(ih(h + 1u)), r3 = hf(ih(h + 2u)), r4 = hf(ih(h + 3u)), t = uT;
-  float gust = 1.0 + uPd.z * 0.5 * smoothstep(0.55, 0.9, gn(vec2(t * 0.045, 3.7)) + 0.5);
-  if (r4 > uPg.z * gust * 0.67) { hide(); return; }
+  float r1 = hf(h), r2 = hf(ih(h + 1u)), r3 = hf(ih(h + 2u)), r4 = hf(ih(h + 3u));
   uint qf = 230u + uint(r1 * 51.0);   // (its fall, 0.9-1.1 of the rain's, in 256ths: kDrift exact)
   vec3 vel = vec3(uWind.x, -uPd.x * float(qf) / 256.0, uWind.z);
   vec2 rel = mod(vec2(r2, r3) * uPa.x + uPa.x * uPm.zw - uPm.xy + 0.5 * uPa.x, uPa.x) - 0.5 * uPa.x;
   vec2 xz = uCam.xz + rel;
+  /* (physics: air/rain-gust) the rain's gusts are the air's one field, carried along the wind on the surface's clock
+     (uAir.x), in the day's sigmas times the sky's gustiness (uAir.z, as the grains'); the field is coherent over 22 U10 m,
+     so in view the rain mostly thickens together as a gust passes, never on a private cycle of the screen's */
+  vec2 wd = dot(uWind.xz, uWind.xz) > 1e-6 ? normalize(uWind.xz) : vec2(1.0, 0.0);   // (a windless rain: never normalize a zero vector, NaN where a GPU passes it through)
+  float gust = 1.0 + uPd.z * 0.5 * smoothstep(0.2, 1.2, airGust(xz, wd, uAirU, uAir.z, uAir.x) / AIR_GUST_I);
+  if (r4 > uPg.z * gust * 0.67) { hide(); return; }
   float H = uPa.y, y = H * 0.5 - H * fract(kDrift(qf, uPn.w, uPn.z) + r1) - uCamL.y, g = groundH(xz) - uCam.y - uCamL.y;   // (the eye's heights)
   float edge = 1.0 - smoothstep(0.36 * uPa.x, 0.5 * uPa.x, max(abs(rel.x), abs(rel.y)));
   vec3 head = vec3(rel.x, y, rel.y), tail = head - vel * uPa.z;

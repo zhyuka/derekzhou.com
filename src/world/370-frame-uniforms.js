@@ -44,6 +44,7 @@
     if (u.uHaze) { HZU[0] = L.haze[0]; HZU[1] = L.haze[1]; HZU[2] = L.haze[2] + Math.max(0, (V.clear ? V.clear[1] : 14) - 14) * 1.6; HZU[3] = L.haze[3]; gl.uniform4fv(u.uHaze, HZU); }
     if (u.uHazeC) gl.uniform3fv(u.uHazeC, L.hazeC);
     if (u.uMist) mistU(u, L);   // (delight-weather 1: the mist pools)
+    if (u.uFogP) fogU(u, L);   // (and the fog pool in a basin: 234)
     if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
     if (u.uAmbU) gl.uniform3fv(u.uAmbU, L.ambU);
     if (u.uAmbD) gl.uniform3fv(u.uAmbD, L.ambD);
@@ -95,7 +96,6 @@
     return new Float32Array([0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]);
   }
   function lab2linA(L, a, b) { var c = oklab2lin(L, a, b); return [Math.max(c[0], 0), Math.max(c[1], 0), Math.max(c[2], 0)]; }
-  var LABT = new Float32Array(3);
   function labTo(out, o, L, a, b) {   // OKLab into out[o..o+2], linear (no allocation)
     var l = L + 0.3963377774 * a + 0.2158037573 * b, m = L - 0.1055613458 * a - 0.0638541728 * b, s = L - 0.0894841775 * a - 1.2914855480 * b;
     l = l * l * l; m = m * m * m; s = s * s * s;

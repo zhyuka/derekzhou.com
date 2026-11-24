@@ -235,6 +235,14 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
+The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
+a steady band low over the horizon on the night skies, brightest about 6 deg
+up and falling away overhead, behind the haze; it comes in by the stars' own
+weight (uStarM.w: none until the sun is 15 deg down, whole from 18), its peak
+Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
+frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
+a tenth of a dark night's own sky low down; pale green at luminance 1, with no
+structure and no clock.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -649,7 +657,17 @@ physics: clouds/drift). It holds:
   the friction speed squared. It reads the field on the grain's own clock
   (tau, so its streak's tail is the same grain a moment back); its drift
   stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. The score hears the field through the feed (the air
+  nothing jumps. No realm draws grains or motes today (physics:
+  air/particles-seen): the camera cruises about 14 m up, pitched about
+  11.6 deg up, so its nearest ground in frame is about 59 m ahead, past the
+  grains' box (within 45 m, faded from 32 m). On T1's three views and ten
+  dune openings an occlusion query and a pixel compare put both sets at
+  no more than one level on 19 pixels, so the dunes dropped them. The rain's gusts are the field too (physics:
+  air/rain-gust): carried along the wind on the surface's clock, in the
+  day's sigmas times the sky's gustiness, as the grains'. The field is
+  coherent over 22 U10 m, so in view the rain mostly thickens together
+  as a gust passes; it never pulses on a cycle of its own (no realm has
+  rain today). The score hears the field through the feed (the air
   heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
@@ -692,7 +710,18 @@ physics: clouds/drift). It holds:
   once a visit so that the evening sun stands on the sky's own sun's
   azimuth. The sphere turns forward only, at SKY_RATE times the sidereal
   rate, never stopping and never turning back; at sky time 0 its hour is
-  the opening sky's, so the frame's sun stands at the opening's drawn sun.
+  the opening sky's, so the frame's sun stands at the opening's drawn sun;
+  on a milkyway opening the hour is chosen instead so that the band
+  arches across the opening's view, flat and well above the horizon in
+  frame, with its brightest stretch that rises here in view (the Cygnus
+  star cloud and its rift, galactic longitude 60-90; the core never rises
+  at 64 deg north) (airGalLst, on a 16:10 desktop and a phone at the
+  opening's heading; a level band crosses 37 deg up or more, above a
+  desktop's top, so it leans: a median of 37 deg, 83 before; Cygnus in
+  frame on about half the openings, the rest the heading's;
+  test/unit/air.mjs). The band's brightness follows a dark site: the
+  Cygnus stretch about 1 mag/arcsec2 over the natural sky beside it (21.0
+  against 22.0), about 36% contrast in OKLab L, 37% measured in T1's night.
   The drawn sky's sun keeps its depth by sky until the night's true order
   lands; the planets are placed by the drawn sun. The ecliptic leans
   23.44 deg to the equator; the galactic pole and centre are J2000's (the
@@ -804,17 +833,22 @@ physics: clouds/drift). It holds:
   lowest ground within the radius to that depth, under the basin's rim.
   test/unit/events.mjs.
 - The landing's heading, airHeading0 (drawn once from its own stream: the
-  flight, the first plan, the galaxy's lie and the boot read it), and the
+  flight, the first plan, the galaxy's lie, a milkyway opening's hour and
+  the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
   cloud sea).
 
 THE CLOCK. Physical motion (the wind, the clouds, the birds, the
 particles, the aurora's own motion) runs at 1x real time, the flight's
 SIM.t. The sky's light (sun, moon, stars, galaxy) runs at one declared
-rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
-70-90x real through a change into a night, the moon crosses at 70-120x
-and the stars and galaxy stand still; test/unit/air.mjs's clock test is
-marked todo until the sky's lane brings them to SKY_RATE.
+rate together, SKY_RATE, 100x. The stars and the galaxy turn with the
+sky's frame at exactly SKY_RATE times the sidereal rate. The sun does
+not yet: it sinks about 88x real through a change into a night, and
+test/unit/air.mjs's clock test is marked todo for it. The moon crosses
+at 78-96x real (0.33-0.40 deg/s, its median 87x, over 400 planned stays;
+its pace is fitted to its stay, 225's STEP 7), at most at SKY_RATE: over
+4000 plans its median is 0.86 of it and its fastest 1.002, where the
+setting leg's bounds quicken it; test/unit/sky.mjs holds it within 1%.
 
 ## THE MIST POOLS
 
@@ -853,6 +887,36 @@ openings' land within 1 km of the landing, at first light): see its PR
 for the numbers. test/unit/mist.mjs holds that the pools read AIR's level, the
 opacity's ramp and the camera's ground; test/unit/air.mjs holds the
 level's rate.
+
+## THE FOG POOLS
+
+src/world/234-fog-pools.js, the reader of AIR's fog-pool sites
+(216-events.js, ## THE EVENTS). A site is placed by AIR about 8 km from the
+next, with its basin's radius (500-900 m), the ring it drains (twice the
+radius) and its depth for the mist now (evPoolDepth: four times the flats'
+mist, at most 145 m; none with no mist). AIR places it without the land's
+height, so at the site itself the land rarely holds a pool
+(tools/physics/fog-sim.mjs, lands 3 and 10: the rim held every pool, a
+median 3.5 m deep over 0.9% of the basin). So the pool takes the hollow the
+site drains: of 9 x 9 centres over the drained ring, over land (the cloud
+sea's weight under 0.5), the one whose rim (the lowest land on its circle
+at the radius) stands highest over its floor (the lowest centre within the
+radius). The pool's top is that floor plus AIR's depth, held 0.5 m under the
+rim, so it never spills and no edge shows at the radius: the shoreline is
+the ground's own. No hollow over land, no pool. Read once a site by the
+realm's probe (1,377 points), asynchronously, as the surface drawn (mode 1:
+the land, or the cloud sea's top where it covers the land; the land under
+the sea, mode 0, put a basin's pool under the sea's top, never seen: posed
+in one, base and head frames were the same bytes). Measured on the 16
+openings' sites within 12 km, at 10 m of mist: 91 of 96 hold a pool, a
+median 6.7 m deep (to 21 m) over 17% of the basin; the rim holds every one
+under AIR's 40 m. It is drawn by
+the mist pools' shading (fogTopAt beside mistTop, world-glsl), over the land
+and the stones, and it moves with the one mist, a moving shoreline, never
+a fade. The camera's ground never reads it; the flight keeps over its top
+as it does the mist pools' (280's height climbs onto it as onto a rise, by
+MIST_OVER; 270's hard rule 1 m over it; the ceiling over its least).
+test/unit/fog.mjs.
 
 ## THE LARGE WORLD
 

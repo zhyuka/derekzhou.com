@@ -18,7 +18,7 @@
 //   node glsl_guard.js SITE_DIR --reduced          the reference device's first visit under prefers-reduced-motion: the
 //                                                    world one still frame (RULES.json reduced-motion-still): after its
 //                                                    0.1 s redraw nothing more is drawn or asked for, a drag included
-//   node glsl_guard.js SITE_DIR --first --dump DIR   only the reference device's first visit (its seed, hour and window as in a
+//   node glsl_guard.js SITE_DIR --first --dump DIR [--device ID]   only the reference device's (or ID's) first visit (its seed, hour and window as in a
 //                                                    full run), dumped, nothing judged: test/shaders.mjs reads just that visit
 //   --manifest FILE  compare with that manifest (CI); --write FILE  write it (after a deliberate change, then commit it);
 //   --selftest  the guard's own proof: the same visits with a planted per-visit literal, a per-window literal and one
@@ -41,7 +41,8 @@ const run = (V, page) => FP.run(V, page, { reduced: !!A.reduced });
 
 function visits() {
   const out = []; let k = 0;
-  for (const d of (A.first ? [DEVICES[0]] : DEVICES)) {
+  for (const d of (A.first ? [A.device ? DEVICES.find((x) => x.id === A.device) : DEVICES[0]] : DEVICES)) {   // (--device ID: --first's one visit on that device, e.g. webkit; shaders.mjs --device)
+    if (!d) { console.error('glsl_guard: no device ' + A.device); process.exit(2); }
     const n = A.first ? 1 : d === DEVICES[0] ? Math.max(3, +(A.visits || 5)) : Math.max(2, Math.min(+(A.visits || 5), d.wins.length));
     for (let i = 0; i < n; i++, k++) {
       const w = d.wins[i % d.wins.length];

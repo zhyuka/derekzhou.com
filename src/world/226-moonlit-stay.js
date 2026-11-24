@@ -92,7 +92,7 @@
   var MOON_VEIL = 5, MOON_VEIL_D = 9000, MOON_VEIL_AZ = 60, MOON_UPS = [null, 0.35, 1], MOON_XS = [1 / 3];
   (function () { for (var i = 1; i <= 9; i++) { MOON_XS.push(1 / 3 - 0.025 * i); if (1 / 3 + 0.025 * i <= 0.6) MOON_XS.push(1 / 3 + 0.025 * i); } })();
   function moonLobes(V, psi, ex, ez) {   // [x, y, z, r] lobes and their bodies' bounds [x, y, z, r, i0, i1], laid out from the seed
-    var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k, CL = [];
+    var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k, CL = /** @type {[Cell, number][]} */ ([]);   // (each cloud as [its cell, its index there])
     var lk = [LATEK.creature, LATEK.glow, LATEK.beam];   // (the hub's round-4 nit: a layout only, so the late programs' flags (230's flock, glows, beam) are put back as they were: none starts compiling at the opening for a cell the streamer has not reached)
     for (sc = 0; sc < scs.length; sc++) {
       var L = scs[sc], n = Math.ceil(L.radius / L.size) + 1, cx = Math.floor(ex / L.size), cz = Math.floor(ez / L.size);
@@ -219,6 +219,7 @@
     if (u.uHalo) gl.uniform4f(u.uHalo, MOON.E ? MOON.E.veil : 0, HALO_K, 0, 0);   // (physics: weather/moon-halo: the veil of the moonlit stay whose moon is up)
     if (u.uPurp) gl.uniform4fv(u.uPurp, purpleAt(-skyDepth(), V && V.light ? V.light.sunAz * DEG : 0));   // (physics: sky/purple-light: 227's skyDepth, the sky's own sun's depth, one way through a change)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
+    if (u.uSkyF && V) gl.uniformMatrix3fv(u.uSkyF, false, skyFrame(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, V));   // (row-major frame to world, read as columns: world to frame, the stars' and the galaxy's lookup)
     meteorUniforms(u);   // (219: the meteor on show)
-    if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], 0); gl.uniform4f(u.uAur, 0, SKY.aur.ph, SKY.aur.base, fx[3]); }
+    if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], SKY.galRise || 0); gl.uniform4f(u.uAur, SKY.aur.rise, SKY.aur.ph, SKY.aur.fp, fx[3]); if (u.uAurB) gl.uniform4f(u.uAurB, SKY.aur.p, SKY.aur.sf, SKY.aur.dD, SKY.aur.bk); }   // (aurora-enter-by-place: their amounts 0 or 1, how far each has come in; the aurora's by its own clock, physics: aurora/phases)
   }

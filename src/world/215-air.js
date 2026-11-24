@@ -76,7 +76,7 @@
   var AIR_BYSKY = { afterglow: [1, 1, 1], bluehour: [0.7, 1.2, 0.65], firstlight: [0.35, 1.3, 0.5], moonlit: [0.5, 1.4, 0.6], milkyway: [0.4, 1.5, 0.5], aurora: [0.45, 1.4, 0.55] };
   var AIR_NC = 3, AIR_ONE = [1, 1, 1], AIR_SL = [20, 100, 300, 1500], AIR_WX = [1, 1, 1], AIR_IA = [0, 0, 0], AIR_IB = [0, 0, 0], AIR_TC = [0, 0, 0], AIR_ABC = [1, 0, 0];
   function airDay(x, z, y, V) { var a = airBase(x, z, y, V); return { x: a.x, z: a.z }; }   // the day's wind at y m up, m/s (the sky's share 1, whatever the sky: a reader that wants the day's wind, not the hour's; a fresh object)
-  function airTable() { var o = {}, k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
+  function airTable() { var o = /** @type {{ [sky: string]: number[] }} */ ({}), k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
   function airSh(e) { return (e && AIR_BYSKY[e.id]) || AIR_ONE; }
   function airIdx(seq, tS) { var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--; return i; }
   function airPre(seq, i) {   // the shares' integral from the order's start to seq[i].at (cached on each entry: an entry's never changes)
@@ -218,8 +218,51 @@
     }
     if (S.n < 0 && seq.length) {   // (the opening's hour: its sun's depth, on its side)
       var o = seq[0].id, el = airSunEl(o); S.lst0 = airSunH(el === null ? AIR_SUN_NIGHT : el, o === 'firstlight', S.dec) + S.ra; S.n = 0;
+      if (o === 'milkyway') S.lst0 = airGalLst(S, V);   // (the galaxy's opening: its band across the view, the hub's round 11)
     } else if (S.n < 0) S.lst0 = airSunH(airSunEl('afterglow'), false, S.dec) + S.ra;
     return S;
+  }
+  /* (the hub's round 11: a milkyway opening must look majestic) on a milkyway opening the sky's hour is chosen, once a
+     visit, so that the band arches across the opening's view, high and near level, never hanging near-upright from the
+     top and with its brightest stretch in view (the galactic centre never rises at 64 deg north: the Cygnus star cloud and
+     its rift, longitude 60-90, before the faint anticentre): of all the sphere's hours (its sun is its own reference, never a light: it already stands up for 29.7% of a
+     night's hold), the one whose band, a straight line on the screen
+     (a great circle through the eye), lies flattest across the reference windows' views while standing well above
+     their horizon and inside their top (a 16:10 desktop and a 393x852 phone, at the opening's heading and each one's
+     framing pitch: 386's frustum, 320's basePitch). At 64 deg north the band can never cross the view level and in
+     frame (its pole stands at most 53 deg up, so a level band crosses at 37 deg up or more, above a desktop's top at
+     28): the pick is the flattest that keeps it in frame. test/unit/air.mjs measures each opening's tilt and height */
+  var AIR_GALV = [[Math.tan(36 * DEG), Math.tan(36 * DEG) / 1.6, 0, 1 / 1.6, 9], [Math.tan(21 * DEG), Math.min(Math.tan(21 * DEG) * 852 / 393, Math.tan(40 * DEG)), 1, 852 / 393, 0]];   // (tanX, tanY, the frame's tall share, H/W, CAMUP)
+  function airGalBand(gp, yaw, fr, W, gc) {   // the band's screen line in one reference view, sampled across it: { tilt (deg), n (its share standing high and in frame), br (the brightest such point's weight), l (its galactic longitude) }
+    var tX = W[0], tY = W[1], p = Math.atan((2 * (fr[0] + (fr[1] - fr[0]) * W[2]) - 1) * tY) + W[4] * DEG, cp = Math.cos(p), sp = Math.sin(p), i, k;
+    var f = [Math.sin(yaw) * cp, sp, Math.cos(yaw) * cp], r = [Math.cos(yaw), 0, -Math.sin(yaw)], u = [-Math.sin(yaw) * sp, cp, -Math.cos(yaw) * sp];
+    var dt = function (x, y) { return x[0] * y[0] + x[1] * y[1] + x[2] * y[2]; }, ug = dt(u, gp), o = { tilt: 90, n: 0, br: 0, l: 0 };
+    if (Math.abs(ug) < 1e-6) return o;
+    var a = -dt(f, gp) / (tY * ug), m = -tX * dt(r, gp) / (tY * ug), hz = -sp / (tY * cp), lo = hz + 0.35 * (1 - hz), q = [gp[1] * gc[2] - gp[2] * gc[1], gp[2] * gc[0] - gp[0] * gc[2], gp[0] * gc[1] - gp[1] * gc[0]];
+    o.tilt = Math.atan(Math.abs(m) * W[3]) / DEG;
+    for (i = -9; i <= 9; i++) {
+      var x = i / 10, y = a + m * x, d = [0, 0, 0];
+      if (y < lo || y > 0.7) continue;   // (high, and the band's half-width inside the top)
+      for (k = 0; k < 3; k++) d[k] = f[k] + x * tX * r[k] + y * tY * u[k];
+      var l = Math.atan2(dt(d, q), dt(d, gc)) / DEG, w = 0.25 + 0.28 * (1 + Math.cos(l * DEG)) + 0.8 * Math.exp(-Math.pow((l - 75) / 20, 2));   // (sky-body's galAlong, and the Cygnus star cloud and its rift, l 60-90: the brightest stretch that rises at 64 deg north)
+      o.n += 1 / 19; if (y < 0.6 && w > o.br) { o.br = w; o.l = l; }   // (the brightest stretch below the top band, clear of the big cloud's lower edge: no lanes hanging from it)
+    }
+    return o;
+  }
+  function airGalScore(gp, gc, yaw, fr) {   // lower is better: the flattest band, mostly high and in frame, with the brightest stretch in it, in both views
+    var s = 0;
+    for (var w = 0; w < AIR_GALV.length; w++) { var b = airGalBand(gp, yaw, fr, AIR_GALV[w], gc); s += b.tilt - 400 * b.br + (b.n < 0.4 ? 2000 * (0.4 - b.n) : 0); }   // (400 a unit of weight: Cygnus in frame on about half the openings, the rest the heading's: FLIGHT)
+    return s;
+  }
+  function airGalLst(S, V) {   // the night's hour that best frames the band (rad), from the hour the night's depth gives
+    var yaw = airHeading0(), fr = (V.def && V.def.frame) || [0.4, 0.6], best = Infinity, bl = S.lst0, k, c, gp = [0, 0, 0], gc = [0, 0, 0];
+    for (k = 0; k < 720; k++) {
+      var lst = S.lst0 + k * PI / 360, cl = Math.cos(lst), sl = Math.sin(lst);
+      for (c = 0; c < 3; c++) { var m0 = cl * S.Q[c] - sl * S.E[c], m1 = sl * S.Q[c] + cl * S.E[c]; gp[c] = m0 * S.eq.gp[0] + m1 * S.eq.gp[1] + S.P[c] * S.eq.gp[2]; gc[c] = m0 * S.eq.gc[0] + m1 * S.eq.gc[1] + S.P[c] * S.eq.gc[2]; }
+      var sc = airGalScore(gp, gc, yaw, fr);
+      if (sc < best - 1e-9) { best = sc; bl = lst; }
+    }
+    return bl;
   }
   function airSphereW(v, o) { var M = AIR_SKYF.M; for (var j = 0; j < 3; j++) o[j] = M[j] * v[0] + M[3 + j] * v[1] + M[6 + j] * v[2]; return o; }
   function skySphere(tS, V) {   // the celestial sphere in world axes at sky time tS (the one object, filled in place)
@@ -245,7 +288,7 @@
     var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);
     o.d[0] = m.d[0]; o.d[1] = m.d[1]; o.d[2] = m.d[2]; o.w = m.w; o.az = m.az; o.el = m.el; o.up = m.w > 0; return o;
   }
-  /* the landing's heading (the flight, the first plan, the galaxy's lie and the boot read it). (curated openings, step 2:
+  /* the landing's heading (the flight, the first plan, the galaxy's lie, a milkyway opening's hour and the boot read it). (curated openings, step 2:
      delight-visit 5.2) each of the 16 lands' own, chosen by tools/visit/headings.mjs from the visit ruler's candidates
      and the frames' look (tools/visit/looks.mjs, measured in T1's SwiftShader frames: looks.json): never more than
      look-rule.mjs's share of the words' boxes (or the name's) under cloud, nor less of the low sun's glow than half the
@@ -356,4 +399,4 @@
     if (f < 1 && tR === tR) { var q = moonShown(tR, AIR_MOONR).d; if (q[0] * q[0] + q[2] * q[2] > 1e-18) rz = Math.atan2(q[0], q[2]); }   // (the way round: to the disc at the hold's edge)
     return airTurnLow(k, AIR_LDT, rz, f, AIR_LD);
   }
-  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, wx: airWx, MIST: function () { var o = /** @type {{ [sky: string]: number }} */ ({}), k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

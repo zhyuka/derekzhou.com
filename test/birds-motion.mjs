@@ -205,6 +205,44 @@ test('144 Hz: a bird walking from one ledge onto the next along the name does no
   assert.ok(worst <= 1, `a walk handing on to the next ledge snapped ${worst.toFixed(2)}x the 144 Hz body bound (${at})`);
 });
 
+/* (BACKLOG: narrow-glyph hop-turns at 144 Hz) a hop-turn is a hop from one rest to the next: its rest eased from the one
+   it stood at to the one it will stand at, its lift along the hop's arc. Once, on a 6 px glyph, its rest kinked 1.12x the
+   144 Hz body bound (drop 2 frame 2384). The scenes' own turns are few and land where the draws put them, so here every
+   perched bird is turned round (each way in turn, as its own hop-turn does, its next act put off past it) every 1.5 s
+   from 2.2 s after its touch, over the life scenes' minute, drawn at 144 Hz; most stand on ledges of 10 px or less. Its
+   body's second difference on every frame of a turn, within the 144 Hz body bound (measured: 493 turns, 45,147 frames,
+   worst 0.58x on a 4.8 px ledge; the hop's lift in at once, not along its arc, 5.38x) */
+test('144 Hz: a hop-turn on a narrow glyph does not kink (every perched bird turned round)', () => {
+  const hz = 144, k60 = (60 / hz) ** 2; let turns = 0, frames = 0, narrow = 0, worst = 0, at = '';
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.life(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+    const sim = makeSim(sc.opt); const tags = sc.setup(sim) || [], H = new Map(), next = new Map();
+    for (let k = 0; k < 60 * hz; k++) {
+      if (sc.each) sc.each(sim, tags);
+      if (sim.B) for (const b of sim.B.PERCHED) {   // (standing, settled, not mid-turn: turned round, a hop-turn's own fields)
+        const P = b.P; if (b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving || P.walk || P.act || sim.t - P.tt < 2.2) continue;
+        if (P.yawTo !== undefined && sim.t - P.yawT < P.yawD + 0.3) continue;
+        if ((next.get(b) || 0) > sim.t) continue; next.set(b, sim.t + 1.5);
+        const y = P.yaw || 0, to = (y >= 0 ? -1 : 1) * Math.max(60, Math.abs(y));
+        P.yaw0 = y; P.yawTo = to; P.yawT = sim.t; P.yawD = 0.2 + 0.2 * ((turns * 7919) % 100) / 100; P.hopTurn = true; P.face = to >= 0 ? 1 : -1;
+        P.nextAct = sim.t + P.yawD + 1; turns++;   // (as its own hop-turn puts off its next act: no other turn starts inside this one)
+      }
+      sim.frame(1 / hz); if (!sim.B) continue; const DF = sim.B.DF(), L = sim.B.ledges();
+      for (const b of sim.B.PERCHED) {
+        const s = b.s, P = b.P; if (!s || s.seenF !== DF || b.st !== 'perch' || !P || P.kind === 'pointer' || P.leaving) { H.delete(b); continue; }
+        let h = H.get(b); if (!h) H.set(b, h = []); h.push({ k, x: s.HB[0], y: s.HB[1], sp: s.spanPx, turning: P.hopTurn && sim.t - P.yawT < P.yawD + 0.05 }); if (h.length > 3) h.shift();
+        if (h.length < 3 || h[2].k !== h[0].k + 2 || h[1].sp < 6 || !h[1].turning) continue;
+        const Lg = L[P.li], w = Lg ? Lg.pts[Lg.pts.length - 1][0] - Lg.pts[0][0] : Infinity; frames++; if (w <= 10) narrow++;
+        const bb = Math.hypot(h[0].x - 2 * h[1].x + h[2].x, h[0].y - 2 * h[1].y + h[2].y) / h[1].sp / (0.1 * Math.max(k60, 0.3));
+        if (bb > worst) { worst = bb; at = `${size} ${seed} frame ${k}, a ${w.toFixed(1)} px ledge`; }
+      }
+    }
+  }
+  console.log(`# hop-turns ${turns}; frames turning ${frames} (on ledges of 10 px or less ${narrow}); body worst ${worst.toFixed(2)} of the 144 Hz bound (${at})`);
+  assert.ok(turns > 300 && narrow > 20000, `too few turns (${turns}) or frames on narrow ledges (${narrow})`);
+  assert.ok(worst <= 1, `a hop-turn kinked ${worst.toFixed(2)}x the 144 Hz body bound (${at})`);
+});
+
 /* (the audit's bird-lost-steps) a state switch flies the step it switches in: no bird in the air stands still for a
    step while it moves (main: every landing's switch to its last leg, and each replan, go-round and give-up, lost one
    step: a reversal of 1-4 px on the window) */
