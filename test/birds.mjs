@@ -396,3 +396,37 @@ test('the score\'s bird feed: nearest first, finite, and read only', () => {
   assert.ok(a.reads > 1000 && a.flocks > a.reads, 'too few reads or flocks');
   assert.equal(a.end, b.end, 'reading the feed changed the world');
 });
+
+/* (delight-life 2) the night passage: a goose skein of 9-25 birds 300-600 m over the land on a straight way across the
+   eye's sky; with the moon on the window its way is chosen at its birth to cross the moon's disc (1.8 deg, 225's
+   MOON_R) where the eye will be, so with no drag it does (moon-watching counts migrants crossing the moon). The moon set
+   18 deg up ahead, a little aside by seed; each passage seeded as at a night opening's cut. Measured: 19 of 20 cross
+   (one scene's own turn makes it miss, as a drag does); the eye's way read from its measured velocity, still none at a
+   cut, 1 of 20. A passage born after the cut starts beyond sight (sightD) */
+test('the night passage: a high goose skein crosses the moon where the eye will be', () => {
+  const R = 1.8 * Math.PI / 180; let born = 0, crossed = 0, far = 0, farOk = 0; const ns = [], hs = [], miss = [];
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 10; seed++) {
+    const sc = SCENES.natural(seed, size); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = 'moonlit'; sc.opt.yaw = 0;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2);
+    const C = sim.C, el = 18 * Math.PI / 180, az = (seed % 3 - 1) * 0.25, h = Math.hypot(C.f[0], C.f[2]), ca = Math.cos(az), sa = Math.sin(az);
+    const dx = (C.f[0] * ca + C.f[2] * sa) / h, dz = (C.f[2] * ca - C.f[0] * sa) / h, m = sc.opt.moon = [dx * Math.cos(el), Math.sin(el), dz * Math.cos(el)];
+    const B = sim.B; let q = seed * 0.37 % 1; const r = () => (q = (q * 9301 + 0.49297) % 1);
+    const F = B.passage(sim.C, 'moon', r, true); if (!F || F.passage !== 2) continue;
+    born++; ns.push(F.m.length); hs.push(F.lead.p[1] - groundAt(F.lead.p[0], F.lead.p[2]));
+    let best = 9;
+    for (let k = 0; k < 240 * 20; k++) {
+      sim.step();
+      for (const b of F.m) { const ex = b.p[0] - sim.C.pos[0], ey = b.p[1] - sim.C.pos[1], ez = b.p[2] - sim.C.pos[2]; best = Math.min(best, Math.acos(Math.min(1, (ex * m[0] + ey * m[1] + ez * m[2]) / Math.hypot(ex, ey, ez)))); }
+    }
+    if (best < R) crossed++; else miss.push(`${size} ${seed} ${(best * 180 / Math.PI).toFixed(1)} deg`);
+    const G = B.passage(sim.C, 'moon', r, false);   // (after the cut: born beyond sight)
+    if (G) { far++; const L = G.lead, d = Math.hypot(L.p[0] - B.LVC.x, L.p[2] - B.LVC.z); if (d >= B.sightD('goose', L.p[1])) farOk++; }
+  }
+  console.log(`# night passages aimed at the moon ${born}: crossed its disc ${crossed} (missed: ${miss.join('; ') || 'none'}); birds ${Math.min(...ns)}-${Math.max(...ns)}, height over the land ${Math.min(...hs).toFixed(0)}-${Math.max(...hs).toFixed(0)} m; born after the cut ${far}, beyond sight ${farOk}`);
+  assert.ok(born >= 16, `only ${born} passages aimed at the moon`);
+  assert.ok(crossed >= 0.8 * born, `${crossed} of ${born} passages crossed the moon's disc`);
+  assert.ok(Math.min(...ns) >= 9 && Math.max(...ns) <= 25, 'a passage of fewer than 9 or more than 25 geese');
+  assert.ok(Math.min(...hs) >= 250 && Math.max(...hs) <= 650, `a passage at ${Math.min(...hs).toFixed(0)}-${Math.max(...hs).toFixed(0)} m over the land`);
+  assert.equal(farOk, far, `${far - farOk} of ${far} passages born after the cut within sight`);
+});
+

@@ -48,7 +48,7 @@ function scripts() {
   src = src.replace(at, at + '    if (!self.__SIM) self.__SIM = { BIRDS: BIRDS, FLOCKS: FLOCKS, PERCHED: PERCHED, PW: PW, PTR: PTR, LVC: LVC,\n' +
     '      t: function () { return t; }, W: function () { return [W, H]; }, MODEL_K: MODEL_K, FDEV_MAX: FDEV_MAX, WINDV: WINDV,\n' +
     '      hidden: hidden, hideTop: hideTop, airT: airT, perchFoot: perchFoot, perchSpan: perchSpan, projReal: projReal, skyCls: skyCls,\n' +
-    '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach, SLEEP: SLEEP, DF: function () { return DF; }, leave: leave, STEP_DT: function () { return STEP_DT; }, LB: LB, VW: VW, ledges: ledges, surfY: surfY, nameInk: nameInk, nameMap: nameMap, PERCH_INK: PERCH_INK, newWalk: newWalk, perchSpan: perchSpan, BW: BW, TD: function () { return TD; }, AD: function () { return AD; }, POP: POP, liveCount: liveCount, slotAt: slotAt, TP: TP, placeVel: placeVel };\n');
+    '      newFlock: newFlock, newGoal: newGoal, pickLedge: pickLedge, startApproach: startApproach, SLEEP: SLEEP, DF: function () { return DF; }, leave: leave, STEP_DT: function () { return STEP_DT; }, LB: LB, VW: VW, ledges: ledges, surfY: surfY, nameInk: nameInk, nameMap: nameMap, PERCH_INK: PERCH_INK, passage: passage, passWay: passWay, PASSW: PASSW, sightD: sightD, newWalk: newWalk, perchSpan: perchSpan, BW: BW, TD: function () { return TD; }, AD: function () { return AD; }, POP: POP, liveCount: liveCount, slotAt: slotAt, TP: TP, placeVel: placeVel };\n');
   const model = ['facetform', 'facetpose', 'wingmodel', 'model', 'labbird', 'birdwing'].map((f) => new vm.Script(fs.readFileSync(path.join(ROOT, 'src/birds/model', f + '.js'), 'utf8'), { filename: f + '.js' }));
   SCRIPTS = { model, birds: new vm.Script(src, { filename: 'inkbirds.js' }) };
   return SCRIPTS;
@@ -77,7 +77,7 @@ export function makeSim(o = {}) {
     flight: (v) => { v.ok = true; v.x = C.pos[0]; v.y = C.pos[1]; v.z = C.pos[2]; v.psi = psi; v.view = 0; v.speed = SPEED; v.vy = 0; v.ground = -60; return v; },
     sky: () => o.sky || 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => (o.frames ? ALPHA : 1), forced: () => FORCED,
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
-    grade: () => null, light: () => LIGHT, words: () => WORDS,
+    grade: () => null, light: () => LIGHT, words: () => WORDS, moon: () => (o.moon ? { d: o.moon, up: true, w: 1 } : null),
     bindTextures: () => !!o.draw, target() {}, cloudBetween3: (ax, ay, az, P, v) => { v[0] = v[1] = v[2] = 0; return v; }, cover: () => 0, ground: (x, z) => groundAt(x, z), groundReach: () => 300,
     seaAt: (x, z, v) => { v.w = seaW(x, z); v.lv = seaLv(x, z); return v; }, places: (r, v) => { v.length = 0; return v; }, night: () => 1, pois: (r, v) => { v.length = 0; return v; },
     rng: (salt) => { let a = (seed ^ salt) >>> 0; return () => { a = (a + 0x9e3779b9) | 0; let q = a ^ (a >>> 16); q = Math.imul(q, 0x21f0aaad); q ^= q >>> 15; q = Math.imul(q, 0x735a2d97); return ((q ^ (q >>> 15)) >>> 0) / 4294967296; }; },

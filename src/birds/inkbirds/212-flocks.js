@@ -112,6 +112,8 @@
         break;
       }
     }
+    if (cls === 'moon' && !FORCED && r() < PASS_P) passage(C, cls, r, true);   // (a night opening's passage, on its way at the cut)
+    POP.nightT = Infinity;   // (the opening's sky drawn here)
     for (i = 0; i < BIRDS.length; i++) { var q = BIRDS[i]; for (k = 0; k < 3; k++) { q.pp[k] = q.p[k]; q.v0[k] = q.v[k]; } q.phi0 = q.phi; }   // (seeded where they are: no step behind them to draw between)
     POP.seeded = true; POP.nextT = t + 2;
   }
@@ -169,10 +171,57 @@
     for (var i = 0; i < F.m.length; i++) if (!outOfView(F.m[i], C)) { dropFlock(F); return null; }
     return F;
   }
+  /* THE NIGHT PASSAGE (delight-life 2; geese migrate at night, calling, mostly 300-400 m up on marine radar, and
+     moon-watching counts them as silhouettes crossing the moon). Once a night sky, by the visit's stream (PASS_P), a
+     goose skein of 9-25 birds flies a straight way 300-600 m over the land across the eye's sky; it takes a flock's
+     place in the count. On a night opening it is seeded at the visit's cut (nothing seen yet), on its way, its crossing
+     30-90 s off; a sky that turns to night bears it beyond sight (at that height a goose shows to about 9 km: a long way
+     in). When the moon is on the window, its way is chosen at its birth to cross the moon's disc where it will be, as
+     seen from where the eye will be (the flight's own heading and speed); it then flies straight at that crossing, a
+     fixed place (goalVel), and on. A drag makes it miss: nothing corrects for it, nothing follows the view (the same kind
+     of choice as a pass by the eye). passWay fills PASSW (x, y, z, heading, the crossing's x, z) and says whether it
+     aims at the moon (2) or a place ahead (1), or 0 */
+  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSD = [0, 0, 0], PASSA = [0, 0, 0], PASSW = new Float64Array(6), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
+  function dirOnWindow(d, C) {
+    var zc = d[0] * C.f[0] + d[1] * C.f[1] + d[2] * C.f[2]; if (zc < 0.1) return false;
+    return Math.abs((d[0] * C.r[0] + d[1] * C.r[1] + d[2] * C.r[2]) / zc) < VW.tanX && Math.abs((d[0] * C.u[0] + d[1] * C.u[1] + d[2] * C.u[2]) / zc) < VW.tanY;
+  }
+  function passWay(C, h, Tc, side, near, u, v, V) {   // (u, v: the place ahead it crosses with no moon, as fractions of the window's half widths; V its airspeed)
+    var d = PASSD, k, q, aim = 0, fl = HOST.flight ? HOST.flight(PASSF) : null, vx = LVC.vx, vz = LVC.vz; u *= VW.tanX; v *= VW.tanY;
+    if (fl && fl.ok) { vx = fl.speed * Math.sin(fl.psi); vz = fl.speed * Math.cos(fl.psi); }   // (the eye's way: the flight's own heading and speed; the eye's measured velocity is still none at a visit's cut)
+    for (k = 0; k < 24; k++, Tc += 30) {   // (later, farther, till its start is beyond sight)
+      var m = HOST.moon ? HOST.moon(Tc) : null;
+      if (m && m.up && m.d[1] > 0.03 && dirOnWindow(m.d, C)) { aim = 2; for (q = 0; q < 3; q++) d[q] = m.d[q]; }   // (the moon on the window where it will be)
+      else { aim = 1; for (q = 0; q < 3; q++) d[q] = C.f[q] + u * C.r[q] + v * C.u[q]; }   // (else a place in the upper sky ahead)
+      var dl = Math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]); d[0] /= dl; d[1] /= dl; d[2] /= dl;
+      var ex = LVC.x + vx * Tc, ez = LVC.z + vz * Tc, ey = LVC.y, gy = lvGround(ex, ez) + h;   // (where the eye will be, and the skein's height there)
+      if (d[1] < 0.03 || gy <= ey) continue;
+      var s = (gy - ey) / d[1]; if (s > 20000) continue;
+      var px = ex + d[0] * s, pz = ez + d[2] * s, tr = Math.atan2(d[0], d[2]) + side * Math.PI / 2, tx = Math.sin(tr), tz = Math.cos(tr);   // (the crossing, and its way over the ground: across the line of sight)
+      HOST.wind(PASSA, h); var wl = PASSA[0] * tx + PASSA[2] * tz, wp = PASSA[0] * tz - PASSA[2] * tx, va = V * clamp(1 - 0.2 * wl / V, 0.85, 1.35);   // (the wind at its height, along its way and across it: its ground speed as goalVel flies it)
+      var gs = wl + Math.sqrt(Math.max(0, va * va - wp * wp)); if (gs < 0.5 * V) return 0;
+      var sx = px - tx * gs * Tc, sz = pz - tz * gs * Tc, dx = sx - LVC.x, dz = sz - LVC.z;
+      if (!near && Math.sqrt(dx * dx + dz * dz) < sightD('goose', gy) * 1.05) continue;
+      if (lvGround(sx, sz) + 30 > gy) continue;
+      PASSW[0] = sx; PASSW[1] = gy; PASSW[2] = sz; PASSW[3] = tr; PASSW[4] = px; PASSW[5] = pz; return aim;
+    }
+    return 0;
+  }
+  function passage(C, cls, r, near) {
+    var n = Math.round(pick(r, PASS_N)), h = pick(r, PASS_H), Tc = pick(r, PASS_TC), side = r() < 0.5 ? 1 : -1, u = (r() - 0.5) * 1.4, v = mix(r(), 0.2, 0.9);
+    if (!passWay(C, h, Tc, side, near, u, v, KINDS.goose.v)) return null;
+    var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]), L = F.lead, i, k, aim = passWay(C, h, Tc, side, near, u, v, L.K.v * L.vJ);   // (again at the lead's own pace)
+    if (!aim) { dropFlock(F); return null; }
+    var dx = PASSW[0] - L.p[0], dz = PASSW[2] - L.p[2];
+    for (i = 0; i < F.m.length; i++) { var b = F.m[i]; b.p[0] += dx; b.p[2] += dz; for (k = 0; k < 3; k++) b.pp[k] = b.p[k]; b.psi = PASSW[3]; }
+    F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = PASSW[3]; g.y = PASSW[1]; g.T = 900; g.home = true; g.px = PASSW[4]; g.pz = PASSW[5];
+    F.passage = aim; POP.passF = F;
+    return F;
+  }
   function popStep(C) {
     if (!POP.r) POP.r = vstream(8800);
     var cls = skyCls();
-    if (cls !== POP.cls) { POP.cls = cls; POP.line = TAU * POP.r(); }
+    if (cls !== POP.cls) { POP.cls = cls; POP.line = TAU * POP.r(); POP.nightT = cls === 'moon' && POP.r() < PASS_P ? t + pick(POP.r, [4, 40]) : Infinity; }   // (a night's passage: drawn once, as the sky turns)
     if (!POP.seeded) { seed(C); return; }
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
       var F = FLOCKS[i];
@@ -184,6 +233,7 @@
     if (t >= POP.nextT) {
       POP.nextT = t + 1.5;
       if (!FORCED) disperse(cls);
+      if (t >= POP.nightT && !FORCED) { POP.nightT = Infinity; passage(C, cls, POP.r, false); }   // (it takes a flock's place: the count's own pace evens it)
       if (liveCount() < (LIVE_N[cls] || 6)) addFar(C, cls, POP.r);
       if (t >= (POP.comeT || PFIRST)) { recruit(); POP.comeT = t + pick(POP.r, COME_GAP); }
     }
@@ -213,7 +263,7 @@
       var dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
       if (dd >= r2 && !(F.goal && F.goal.home)) continue;
       stay++;
-      if (F.goal && (F.goal.k === 'sink' || F.goal.come || F.goal.k === 'pass')) continue;
+      if (F.passage || (F.goal && (F.goal.k === 'sink' || F.goal.come || F.goal.k === 'pass'))) continue;   // (never the night's passage on its way)
       var fly = true; for (j = 0; j < F.m.length && fly; j++) fly = F.m[j].st === 'fly';
       if (!fly) continue;
       if (n === DSI.length) { var I2 = new Int32Array(2 * n), D2 = new Float64Array(2 * n); I2.set(DSI); D2.set(DSD); DSI = I2; DSD = D2; DSO = new Int32Array(2 * n); }
