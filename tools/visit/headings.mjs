@@ -5,19 +5,23 @@
 // are the candidates (--cands FILE writes them for looks.mjs), with any other heading looks.json has measured. Each is flown the whole 2 h for every hour and READS
 // reads (the longest stretch with no reward). The pick (the hub's review of #312: the look is the score's, not a hand
 // pick's), among the candidates looks.mjs measured (tools/visit/looks.json):
-//   1. never a heading that puts more than WORD_CAP of the words' boxes under cloud (look-rule.mjs);
+//   1. never a heading that puts more than WORD_CAP of the words' boxes, or NAME_CAP of the name's, under cloud, nor one
+//      that loses the low sun's disc the land's own heading shows at dawn or sunset (look-rule.mjs);
 //   2. a first near pass by NEAR_BY s if any candidate left has one;
-//   3. the most visits free of a 180 s stretch with no reward, plus lookScore (the opening's feature in frame and
-//      clear, less the top band under cloud), then the least longest gap.
+//   3. the most visits free of a 180 s stretch with no reward, plus lookScore (the opening's feature in frame against
+//      the land's best and clear, less the top band under cloud), then the least longest gap.
 // A land none of whose candidates keeps the words clear keeps the one that keeps them clearest.
+// LOOKS must be of this world (looks.json's world: look-rule.mjs's worldKey); another world's record is refused.
 //   node tools/visit/headings.mjs [--k 0,1] [--top 5] [--reads 2] [--looks tools/visit/looks.json] [--json FILE] [--cands FILE]
 import fs from 'node:fs';
 import { flyLand, measure, HOURS, streamHeading } from './ruler.mjs';
-import { WORD_CAP, lookScore, lookKey } from './look-rule.mjs';
+import { lookScore, lookKey, keepsWords, keepsDiscs, worldKey } from './look-rule.mjs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const K = arg('--k', null) ? arg('--k').split(',').map(Number) : [...Array(16).keys()], TOP = +arg('--top', 5), READS = +arg('--reads', 2), out = arg('--json', null), candsOut = arg('--cands', null);
-const LOOKS = candsOut ? null : JSON.parse(fs.readFileSync(arg('--looks', 'tools/visit/looks.json'), 'utf8')).lands;
+const LOOKREC = candsOut ? null : JSON.parse(fs.readFileSync(arg('--looks', 'tools/visit/looks.json'), 'utf8'));
+if (LOOKREC && LOOKREC.world !== worldKey()) throw new Error('headings: looks.json was measured on another world: re-run looks.mjs');
+const LOOKS = LOOKREC && LOOKREC.lands;
 const SHORT = 120, NEAR_BY = 40, FALL_BY = 120, STEP = 5, SPREAD = 20, DEG = Math.PI / 180, t0 = Date.now(), table = [], cands = {};
 const q50 = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 const apart = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
@@ -42,11 +46,12 @@ for (const k of K) {
   const more = Object.keys(LOOKS[k] || {}).filter((x) => x !== 'own').map(Number).filter((d) => !cands[k].includes(d));
   const rows = [...cands[k], ...more].map((d) => ({ deg: d, look: (LOOKS[k] || {})[lookKey(d)] || null, ...whole(k, d === null ? own : d * DEG) })).filter((r) => r.look);
   const near = (r) => r.firstNear !== null && r.firstNear <= (fall ? FALL_BY : NEAR_BY);
-  const clear = rows.filter((r) => r.look.wordCloud <= WORD_CAP), nearClear = clear.filter(near);
-  const rank = (x, y) => (y.gapOk + lookScore(y.look)) - (x.gapOk + lookScore(x.look)) || x.gapP50 - y.gapP50;
+  const ownLook = (rows.find((r) => r.deg === null) || {}).look || {}, bestIn = { galaxyIn: Math.max(...rows.map((r) => r.look.galaxyIn)), sunIn: Math.max(...rows.map((r) => r.look.sunIn)) };
+  const clear = rows.filter((r) => keepsWords(r.look) && keepsDiscs(r.look, ownLook)), nearClear = clear.filter(near);
+  const rank = (x, y) => (y.gapOk + lookScore(y.look, bestIn)) - (x.gapOk + lookScore(x.look, bestIn)) || x.gapP50 - y.gapP50;
   const best = (nearClear.length ? nearClear : clear).sort(rank)[0] || rows.sort((x, y) => x.look.wordCloud - y.look.wordCloud)[0] || null;
   table.push({ k, own: +(own / DEG).toFixed(1), fallback: fall, rows: rows.map(({ psi, ...r }) => r), best: best && { deg: best.deg, firstNear: best.firstNear, gapOk: best.gapOk, gapP50: best.gapP50, look: best.look } });
-  const f = (x) => (x === null || x === undefined ? '-' : x), L = (r) => `words ${r.look.wordCloud} top ${r.look.topCloud} galaxy ${r.look.galaxy} sun ${r.look.sun}`;
+  const f = (x) => (x === null || x === undefined ? '-' : x), L = (r) => `words ${r.look.wordCloud} name ${r.look.nameCloud} top ${r.look.topCloud} galaxy ${r.look.galaxy} sun ${r.look.sun}`;
   console.log(`k${String(k).padEnd(2)} own ${String(+(own / DEG).toFixed(0)).padStart(3)} deg | ` + rows.map((r) => `${lookKey(r.deg)}: near ${f(r.firstNear)} s, under 180 s ${(r.gapOk * 100).toFixed(0)}%, ${L(r)}`).join(' | ') +
     (best ? ` || pick ${lookKey(best.deg)}` : ' || no pick') + ` (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
 }
