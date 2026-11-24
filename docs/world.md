@@ -235,6 +235,14 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
+The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
+a steady band low over the horizon on the night skies, brightest about 6 deg
+up and falling away overhead, behind the haze; it comes in by the stars' own
+weight (uStarM.w: none until the sun is 15 deg down, whole from 18), its peak
+Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
+frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
+a tenth of a dark night's own sky low down; pale green at luminance 1, with no
+structure and no clock.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -649,7 +657,10 @@ physics: clouds/drift). It holds:
   the friction speed squared. It reads the field on the grain's own clock
   (tau, so its streak's tail is the same grain a moment back); its drift
   stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. The score hears the field through the feed (the air
+  nothing jumps. The rain's gusts are the field too (physics:
+  air/rain-gust): heavier in a band where a gust is passing, carried
+  along the wind on the surface's clock, never a pulse of the whole
+  screen's (no realm has rain today). The score hears the field through the feed (the air
   heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
@@ -692,7 +703,18 @@ physics: clouds/drift). It holds:
   once a visit so that the evening sun stands on the sky's own sun's
   azimuth. The sphere turns forward only, at SKY_RATE times the sidereal
   rate, never stopping and never turning back; at sky time 0 its hour is
-  the opening sky's, so the frame's sun stands at the opening's drawn sun.
+  the opening sky's, so the frame's sun stands at the opening's drawn sun;
+  on a milkyway opening the hour is chosen instead so that the band
+  arches across the opening's view, flat and well above the horizon in
+  frame, with its brightest stretch that rises here in view (the Cygnus
+  star cloud and its rift, galactic longitude 60-90; the core never rises
+  at 64 deg north) (airGalLst, on a 16:10 desktop and a phone at the
+  opening's heading; a level band crosses 37 deg up or more, above a
+  desktop's top, so it leans: a median of 37 deg, 83 before; Cygnus in
+  frame on about half the openings, the rest the heading's;
+  test/unit/air.mjs). The band's brightness follows a dark site: the
+  Cygnus stretch about 1 mag/arcsec2 over the natural sky beside it (21.0
+  against 22.0), about 36% contrast in OKLab L, 37% measured in T1's night.
   The drawn sky's sun keeps its depth by sky until the night's true order
   lands; the planets are placed by the drawn sun. The ecliptic leans
   23.44 deg to the equator; the galactic pole and centre are J2000's (the
@@ -804,7 +826,8 @@ physics: clouds/drift). It holds:
   lowest ground within the radius to that depth, under the basin's rim.
   test/unit/events.mjs.
 - The landing's heading, airHeading0 (drawn once from its own stream: the
-  flight, the first plan, the galaxy's lie and the boot read it), and the
+  flight, the first plan, the galaxy's lie, a milkyway opening's hour and
+  the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
   cloud sea).
 

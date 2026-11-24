@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/215-air.js", "find": "      if (o === 'milkyway') S.lst0 = airGalLst(S, V);", "with": "", "why": "a milkyway opening at the night's depth's hour: its band hangs near-upright or out of frame"}
 // plant: {"file": "src/world/512-score-feed.js", "find": "w.bear = Math.atan2(w.z * fx - w.x * fz,", "with": "w.bear = Math.atan2(w.x * fz - w.z * fx,", "why": "the wind's bearing on the wrong side of the eye"}
 // plant: {"file": "src/world/512-score-feed.js", "find": "w.ax = w.x - (st ? 0 : s * v - c * CS.sv);", "with": "w.ax = w.x + (st ? 0 : s * v - c * CS.sv);", "why": "the apparent wind with the camera's motion added, not taken off"}
 // plant: {"file": "src/world/212-cloud-drift.js", "find": "var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V); o[0] = a.x; o[1] = a.z; return o;", "with": "o[0] = 6.5; o[1] = 0; return o;", "why": "the clouds' wind a literal of its own again"}
@@ -49,6 +50,7 @@
 // plant: {"file": "src/world/215-air.js", "find": "var a = airBase(x, z, y, V), k = airShare(", "with": "var a = airBase(x, z, y * 1.01, V), k = airShare(", "why": "windAt off the hand-computed wind (the profile at another height)"}
 // plant: {"file": "src/world/215-air.js", "find": "return clamp((1.0 + e) * (1.0 + e), ", "with": "return clamp((1.0 + e), ", "why": "the grains' hop linear in the gust, not as the friction speed squared"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, tau)", "with": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, uT)", "why": "the grains' gust on the frame's clock, not the air's"}
+// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, 1.0, uAir.x) / AIR_GUST_I);", "with": "gn(vec2(uT * 0.045, 3.7)) + 0.5);", "why": "the rain's gusts a pulse of the whole screen's again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "k * uWind.xz * (uAir.x - tau)", "with": "k * uWind.xz * (uT - t)", "why": "the grains carried by the wind times the time (a change of sky jumps them)"}
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
 // plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
@@ -168,7 +170,7 @@ test('air: one key for every sky; the clouds\' bake, the land and the birds read
 test('air: the landing\'s heading is drawn once, by the air; one cruise band', () => {
   const outside = WORLD.replace(AIR, '');
   assert.ok(!/subseed\(J\.seed, 77\)/.test(outside), 'no section but the air draws the landing\'s heading');
-  assert.equal(WORLD.split('airHeading0()').length - 1, 5, 'its four readers (the first plan, the galaxy\'s lie, the flight, the boot) and its one definition');
+  assert.equal(WORLD.split('airHeading0()').length - 1, 6, 'its five readers (the first plan, the galaxy\'s lie, the flight, the boot, a milkyway opening\'s hour) and its one definition');
   assert.match(WORLD, /cruise: AIR_CRUISE,/); assert.match(WORLD, /V\.def\.cruise \|\| AIR_CRUISE,/);
   assert.ok(!/\[14, 32\]/.test(outside), 'no second cruise band');
   const G = page(); G.J.seed = 11; const a = G.airHeading0(); assert.equal(a, G.airHeading0()); assert.ok(a >= 0 && a < 2 * Math.PI);
@@ -310,6 +312,13 @@ test('air: the grains hop with the gust (physics: air/grain-hop): (1 + e)^2 of t
   assert.ok(/float hop = uPb\.x \* airHop\(e\) \* abs\(sin\(/.test(vp), 'the hop\'s height x airHop(e)');
   assert.ok(/vec2 pos = p0 \+ dr \+/.test(vp) && !/dr[^;]*airGust|pos[^;]*airGust/.test(vp), 'the drift stays the mean wind\'s closed form (a gust never moves a grain: nothing jumps)');
   assert.match(WORLD, /P = DP\.pt; gl\.useProgram\(P\.p\); setFrameUniforms\(P, V\);/, 'the grains carry the field at the visit\'s U10, as the veils (the frame\'s uniforms)');
+});
+
+test('air: the rain\'s gusts are the air\'s one field (physics: air/rain-gust), never a cycle of the whole screen\'s', () => {
+  const vp = GLSL('vs-particle.glsl'), rain = vp.split('void rain(int id) {')[1].split('\nvoid ')[0];
+  assert.ok(/float gust = 1\.0 \+ uPd\.z \* 0\.5 \* smoothstep\(0\.2, 1\.2, airGust\(xz, normalize\(uWind\.xz\), uAirU, 1\.0, uAir\.x\) \/ AIR_GUST_I\);/.test(rain), 'a drop\'s gust the field\'s at the drop, in its sigmas, on the surface\'s clock');
+  assert.ok(rain.indexOf('vec2 xz = uCam.xz + rel;') < rain.indexOf('float gust ='), 'read where the drop is');
+  assert.ok(!/gn\(vec2\(t \*|\buT\b/.test(rain.split('float gust =')[1].split(';')[0]) && !/\bt = uT\b/.test(rain), 'no private clock: the whole rain never pulses at once');
 });
 
 test('air: a mote is drawn along its whole motion on the window (its own wind and the camera\'s), never a jumping dot', () => {
@@ -642,3 +651,42 @@ test('air: one light at night (on the moonlit sky the live key stands on the moo
   assert.match(WORLD, /var sd = keyAt\(V\)/, 'the clouds stay baked along the key');
 });
 
+test('air: a milkyway opening frames its band (the hub\'s round 11): across the view, flat and high, never upright', () => {
+  // the galactic pole at sky time 0 of a milkyway opening, the band a straight screen line through the eye, measured
+  // here on its own: in both reference views (a 16:10 desktop and a 393x852 phone at the opening's heading and framing),
+  // its height at the view's centre column well above the horizon and inside the top, and its tilt no more than TILT
+  const G = page(), D = 180 / Math.PI, TILT = 70;   // (at 64 deg north a level band crosses 37 deg up or more, above a desktop's top: the flattest in frame)
+  const views = [{ tX: Math.tan(36 / D), tY: Math.tan(36 / D) / 1.6, fr: 0, hw: 1 / 1.6, up: 9 }, { tX: Math.tan(21 / D), tY: Math.min(Math.tan(21 / D) * 852 / 393, Math.tan(40 / D)), fr: 1, hw: 852 / 393, up: 0 }];
+  const band = (gp, yaw, v, gc) => {   // sampled across the view: its tilt, its share high and in frame, the brightest such point's weight and longitude
+    const p = Math.atan((2 * (0.4 + 0.2 * v.fr) - 1) * v.tY) + v.up / D, f = [Math.sin(yaw) * Math.cos(p), Math.sin(p), Math.cos(yaw) * Math.cos(p)];
+    const r = [Math.cos(yaw), 0, -Math.sin(yaw)], u0 = [f[1] * r[2] - f[2] * r[1], f[2] * r[0] - f[0] * r[2], f[0] * r[1] - f[1] * r[0]], u = u0[1] < 0 ? u0.map((x) => -x) : u0;
+    const dot = (x, y) => x[0] * y[0] + x[1] * y[1] + x[2] * y[2], ug = dot(u, gp), a = -dot(f, gp) / (v.tY * ug), m = -v.tX * dot(r, gp) / (v.tY * ug), hz = -f[1] / (v.tY * u[1]);
+    const q = [gp[1] * gc[2] - gp[2] * gc[1], gp[2] * gc[0] - gp[0] * gc[2], gp[0] * gc[1] - gp[1] * gc[0]], o = { tilt: Math.atan(Math.abs(m) * v.hw) * D, n: 0, br: 0, l: 0 };
+    for (let i = -9; i <= 9; i++) {
+      const x = i / 10, y = a + m * x; if (y < hz + 0.35 * (1 - hz) || y > 0.7) continue;
+      const d = [0, 1, 2].map((k) => f[k] + x * v.tX * r[k] + y * v.tY * u[k]), l = Math.atan2(dot(d, q), dot(d, gc)) * D;
+      const w = 0.25 + 0.28 * (1 + Math.cos(l / D)) + 0.8 * Math.exp(-(((l - 75) / 20) ** 2)); o.n += 1 / 19; if (y < 0.6 && w > o.br) { o.br = w; o.l = l; }
+    }
+    return o;
+  };
+  const rows = [];
+  for (let i = 0; i < 64; i++) {
+    const seed = (i * 2654435761 + 977) >>> 0; G.J.seed = seed;
+    G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'milkyway', at: -10, hold: 95, move: 56 }, { id: 'aurora', at: 141, hold: 100, move: 55 }); G.SKY.dt = 0;
+    const V = { seed, light: { sunAz: ((seed >>> 3) % 360) - 180 } }; G.SIM.V = V;
+    const F = G.skySphere(0, V), gp = F.galPole.slice(), gc = F.galCentre.slice(), yaw = G.RNG(G.subseed(seed, 77)).r(0, 2 * Math.PI);
+    for (const v of views) {
+      const b = band(gp, yaw, v, gc); rows.push([seed, v.fr, b.n, b.tilt, b.l, b.br]);
+      assert.ok(b.n >= 0.1 - 1e-9, `seed ${seed} (${v.fr ? 'phone' : 'desktop'}): only ${(100 * b.n).toFixed(0)}% of the band high and in frame (at least 10%: some headings allow no more)`);
+      assert.ok(b.tilt <= TILT, `seed ${seed} (${v.fr ? 'phone' : 'desktop'}): the band tilts ${b.tilt.toFixed(1)} deg (at most ${TILT})`);
+    }
+  }
+  for (const w of [0, 1]) {   // (without the pick: a median tilt of 83 deg on a desktop, the band out of frame on most)
+    const t = rows.filter((x) => x[1] === w).map((x) => x[3]).sort((p, q) => p - q);
+    assert.ok(t[t.length >> 1] <= 40, `${w ? 'phone' : 'desktop'}: the band's median tilt ${t[t.length >> 1].toFixed(1)} deg (at most 40)`);
+    const br = rows.filter((x) => x[1] === w).map((x) => x[5]).sort((p, q) => p - q);
+    const cyg = rows.filter((x) => x[1] === w && x[4] >= 55 && x[4] <= 95).length / rows.filter((x) => x[1] === w).length;
+    assert.ok(cyg >= (w ? 0.5 : 0.4), `${w ? 'phone' : 'desktop'}: the Cygnus star cloud (l 55-95) in frame on ${(100 * cyg).toFixed(0)}% of the openings (at least ${w ? 50 : 40}%; the rest is the heading's: FLIGHT)`);
+    if (process.env.GALBAND) console.log(w ? 'phone' : 'desktop', 'tilt median', t[t.length >> 1].toFixed(1), 'max', t[t.length - 1].toFixed(1), 'cygnus in frame', (100 * cyg).toFixed(0) + '%');
+  }
+});

@@ -16,28 +16,29 @@ import path from 'path';
 import { execFileSync } from 'child_process';
 import { createRequire } from 'module';
 
-const argv = process.argv.slice(2), SITE = argv.find((a) => !a.startsWith('--'));
+const argv = process.argv.slice(2), SITE = argv.find((a, i) => !a.startsWith('--') && argv[i - 1] !== '--device');
 const COMPILE = argv.includes('--compile');
+const DI = argv.indexOf('--device'), DEV = DI >= 0 ? argv[DI + 1] : 'desktop';   // (--device ID: that device's programs as it issues them, its DEFS included: webkit's PLAIN_LOOPS)
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
 const GUARD = path.join(ROOT, 'tools', 'checks', 'lib', 'glsl_guard.js');
-if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node test/shaders.mjs SITE [--compile]'); process.exit(2); }
+if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node test/shaders.mjs SITE [--compile] [--device ID]'); process.exit(2); }
 
 // ------------------------------------------------------------------ the programs as issued (glsl_guard's fake browser)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'shaders-'));
-try { execFileSync(process.execPath, [GUARD, SITE, '--first', '--dump', tmp], { stdio: ['ignore', 'ignore', 'inherit'] }); }
+try { execFileSync(process.execPath, [GUARD, SITE, '--first', '--dump', tmp, '--device', DEV], { stdio: ['ignore', 'ignore', 'inherit'] }); }
 catch (e) { console.error('shaders: glsl_guard could not run the page (exit ' + e.status + ')'); process.exit(1); }
 const now = new Map();
 for (let j = 0; ; j++) {
-  const b = path.join(tmp, 'desktop0_' + String(j).padStart(2, '0') + '_');
+  const b = path.join(tmp, DEV + '0_' + String(j).padStart(2, '0') + '_');
   const f = fs.readdirSync(tmp).find((n) => path.join(tmp, n).startsWith(b) && n.endsWith('.vert'));
   if (!f) break;
   const vs = fs.readFileSync(path.join(tmp, f), 'utf8'), fsrc = fs.readFileSync(path.join(tmp, f.replace(/\.vert$/, '.frag')), 'utf8');
-  now.set(f.replace(/^desktop0_/, '').replace(/\.vert$/, ''), { vs, fs: fsrc });
+  now.set(f.replace(DEV + '0_', '').replace(/\.vert$/, ''), { vs, fs: fsrc });
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 if (!now.size) { console.error('shaders: the page issued no program'); process.exit(1); }
 
-console.log(`shaders: the page issues ${now.size} programs`);
+console.log(`shaders: the page issues ${now.size} programs (${DEV})`);
 
 // ------------------------------------------------------------------ each one compiled and linked by Chrome
 if (COMPILE) {
@@ -65,5 +66,5 @@ if (COMPILE) {
   if (r.err) { console.error('shaders: ' + r.err); process.exit(2); }
   for (const f of r.fails) console.error('::error::shaders: does not compile: ' + f);
   if (r.fails.length) process.exit(1);
-  console.log(`shaders: all ${r.n} programs compile and link (${r.renderer})`);
+  console.log(`shaders: all ${r.n} ${DEV} programs compile and link (${r.renderer})`);
 }
