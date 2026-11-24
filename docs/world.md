@@ -645,7 +645,10 @@ physics: clouds/drift). It holds:
   the friction speed squared. It reads the field on the grain's own clock
   (tau, so its streak's tail is the same grain a moment back); its drift
   stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. The score hears the field through the feed (the air
+  nothing jumps. The rain's gusts are the field too (physics:
+  air/rain-gust): heavier in a band where a gust is passing, carried
+  along the wind on the surface's clock, never a pulse of the whole
+  screen's (no realm has rain today). The score hears the field through the feed (the air
   heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
