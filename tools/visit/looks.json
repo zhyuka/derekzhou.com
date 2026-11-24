@@ -1,5 +1,5 @@
 {
- "world": "d471ce6859641de8",
+ "world": "75ee92269a41fb98",
  "lands": {
   "0": {
    "90": {
@@ -8,8 +8,8 @@
     "wordCloud": 0.019,
     "nameCloud": 0,
     "topCloud": 0.126,
-    "galaxy": 0.895,
-    "galaxyIn": 10.801,
+    "galaxy": 0.892,
+    "galaxyIn": 10.979,
     "sun": 0.693,
     "sunIn": 3.493,
     "discs": {
@@ -21,9 +21,9 @@
       "view": "laptop-night",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.069,
-      "vis": 0.895,
-      "in": 10.801
+      "topCloud": 0.061,
+      "vis": 0.892,
+      "in": 10.979
      },
      {
       "view": "laptop-sunset",
@@ -49,8 +49,8 @@
     "wordCloud": 0.712,
     "nameCloud": 0.963,
     "topCloud": 0.88,
-    "galaxy": 0.693,
-    "galaxyIn": 6.184,
+    "galaxy": 0.703,
+    "galaxyIn": 6.731,
     "sun": 0.584,
     "sunIn": 7.588,
     "discs": {
@@ -60,11 +60,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.231,
-      "nameCloud": 0.367,
-      "topCloud": 0.595,
-      "vis": 0.693,
-      "in": 6.184
+      "wordCloud": 0.162,
+      "nameCloud": 0.246,
+      "topCloud": 0.535,
+      "vis": 0.703,
+      "in": 6.731
      },
      {
       "view": "laptop-sunset",
@@ -92,8 +92,8 @@
     "wordCloud": 0.093,
     "nameCloud": 0,
     "topCloud": 0.026,
-    "galaxy": 0.77,
-    "galaxyIn": 11.341,
+    "galaxy": 0.766,
+    "galaxyIn": 11.534,
     "sun": 0.795,
     "sunIn": 8.911,
     "discs": {
@@ -106,8 +106,8 @@
       "wordCloud": 0.085,
       "nameCloud": 0,
       "topCloud": 0.026,
-      "vis": 0.77,
-      "in": 11.341
+      "vis": 0.766,
+      "in": 11.534
      },
      {
       "view": "laptop-sunset",
@@ -130,11 +130,11 @@
    "own": {
     "k": 1,
     "deg": null,
-    "wordCloud": 0.455,
+    "wordCloud": 0.454,
     "nameCloud": 0.437,
     "topCloud": 0.14,
-    "galaxy": 0.722,
-    "galaxyIn": 7.026,
+    "galaxy": 0.72,
+    "galaxyIn": 7.128,
     "sun": 0.671,
     "sunIn": 2.86,
     "discs": {
@@ -144,11 +144,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.455,
+      "wordCloud": 0.452,
       "nameCloud": 0.437,
       "topCloud": 0.14,
-      "vis": 0.722,
-      "in": 7.026
+      "vis": 0.72,
+      "in": 7.128
      },
      {
       "view": "laptop-sunset",
@@ -176,8 +176,8 @@
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.185,
-    "galaxy": 0.95,
-    "galaxyIn": 5.974,
+    "galaxy": 0.947,
+    "galaxyIn": 6.293,
     "sun": 0.918,
     "sunIn": 2.937,
     "discs": {
@@ -190,8 +190,8 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.08,
-      "vis": 0.95,
-      "in": 5.974
+      "vis": 0.947,
+      "in": 6.293
      },
      {
       "view": "laptop-sunset",
@@ -217,8 +217,8 @@
     "wordCloud": 0.298,
     "nameCloud": 0.157,
     "topCloud": 0.143,
-    "galaxy": 0.714,
-    "galaxyIn": 5.787,
+    "galaxy": 0.711,
+    "galaxyIn": 6.081,
     "sun": 0.659,
     "sunIn": 3.122,
     "discs": {
@@ -228,11 +228,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.211,
-      "nameCloud": 0.062,
-      "topCloud": 0.134,
-      "vis": 0.714,
-      "in": 5.787
+      "wordCloud": 0.213,
+      "nameCloud": 0.07,
+      "topCloud": 0.133,
+      "vis": 0.711,
+      "in": 6.081
      },
      {
       "view": "laptop-sunset",
@@ -261,7 +261,7 @@
     "nameCloud": 0.009,
     "topCloud": 0,
     "galaxy": 0.909,
-    "galaxyIn": 11.223,
+    "galaxyIn": 11.408,
     "sun": 0.922,
     "sunIn": 9.354,
     "discs": {
@@ -275,7 +275,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 0.909,
-      "in": 11.223
+      "in": 11.408
      },
      {
       "view": "laptop-sunset",
@@ -301,8 +301,8 @@
     "wordCloud": 0.006,
     "nameCloud": 0,
     "topCloud": 0,
-    "galaxy": 0.934,
-    "galaxyIn": 8.27,
+    "galaxy": 0.933,
+    "galaxyIn": 8.46,
     "sun": 0.919,
     "sunIn": 5.027,
     "discs": {
@@ -312,11 +312,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.001,
+      "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.934,
-      "in": 8.27
+      "vis": 0.933,
+      "in": 8.46
      },
      {
       "view": "laptop-sunset",
@@ -344,8 +344,8 @@
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.056,
-    "galaxy": 0.85,
-    "galaxyIn": 10.747,
+    "galaxy": 0.852,
+    "galaxyIn": 10.965,
     "sun": 0.835,
     "sunIn": 8.12,
     "discs": {
@@ -358,8 +358,8 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.056,
-      "vis": 0.85,
-      "in": 10.747
+      "vis": 0.852,
+      "in": 10.965
      },
      {
       "view": "laptop-sunset",
@@ -385,8 +385,8 @@
     "wordCloud": 0.269,
     "nameCloud": 0.437,
     "topCloud": 0,
-    "galaxy": 0.941,
-    "galaxyIn": 6.575,
+    "galaxy": 0.94,
+    "galaxyIn": 7.117,
     "sun": 0.921,
     "sunIn": 2.811,
     "discs": {
@@ -399,8 +399,8 @@
       "wordCloud": 0.269,
       "nameCloud": 0.437,
       "topCloud": 0,
-      "vis": 0.941,
-      "in": 6.575
+      "vis": 0.94,
+      "in": 7.117
      },
      {
       "view": "laptop-sunset",
@@ -428,8 +428,8 @@
     "wordCloud": 0.073,
     "nameCloud": 0,
     "topCloud": 0,
-    "galaxy": 0.951,
-    "galaxyIn": 5.913,
+    "galaxy": 0.954,
+    "galaxyIn": 6.248,
     "sun": 0.923,
     "sunIn": 2.905,
     "discs": {
@@ -442,8 +442,8 @@
       "wordCloud": 0.01,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.951,
-      "in": 5.913
+      "vis": 0.954,
+      "in": 6.248
      },
      {
       "view": "laptop-sunset",
@@ -469,8 +469,8 @@
     "wordCloud": 0.312,
     "nameCloud": 0.481,
     "topCloud": 0.302,
-    "galaxy": 0.705,
-    "galaxyIn": 7.929,
+    "galaxy": 0.708,
+    "galaxyIn": 8.256,
     "sun": 0.657,
     "sunIn": 5.314,
     "discs": {
@@ -481,10 +481,10 @@
      {
       "view": "laptop-night",
       "wordCloud": 0.292,
-      "nameCloud": 0.467,
-      "topCloud": 0.289,
-      "vis": 0.705,
-      "in": 7.929
+      "nameCloud": 0.466,
+      "topCloud": 0.293,
+      "vis": 0.708,
+      "in": 8.256
      },
      {
       "view": "laptop-sunset",
@@ -512,8 +512,8 @@
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.14,
-    "galaxy": 0.891,
-    "galaxyIn": 9.293,
+    "galaxy": 0.895,
+    "galaxyIn": 9.499,
     "sun": 0.867,
     "sunIn": 5.598,
     "discs": {
@@ -526,8 +526,8 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.14,
-      "vis": 0.891,
-      "in": 9.293
+      "vis": 0.895,
+      "in": 9.499
      },
      {
       "view": "laptop-sunset",
@@ -555,8 +555,8 @@
     "wordCloud": 0.022,
     "nameCloud": 0,
     "topCloud": 0.001,
-    "galaxy": 0.993,
-    "galaxyIn": 7.291,
+    "galaxy": 0.996,
+    "galaxyIn": 7.564,
     "sun": 0.971,
     "sunIn": 7.006,
     "discs": {
@@ -566,11 +566,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.006,
+      "wordCloud": 0.003,
       "nameCloud": 0,
       "topCloud": 0.001,
-      "vis": 0.993,
-      "in": 7.291
+      "vis": 0.996,
+      "in": 7.564
      },
      {
       "view": "laptop-sunset",
@@ -597,7 +597,7 @@
     "nameCloud": 0,
     "topCloud": 0,
     "galaxy": 1,
-    "galaxyIn": 8.144,
+    "galaxyIn": 8.322,
     "sun": 1,
     "sunIn": 3.286,
     "discs": {
@@ -611,7 +611,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 1,
-      "in": 8.144
+      "in": 8.322
      },
      {
       "view": "laptop-sunset",
@@ -640,7 +640,7 @@
     "nameCloud": 0,
     "topCloud": 0.001,
     "galaxy": 1,
-    "galaxyIn": 9.301,
+    "galaxyIn": 9.49,
     "sun": 1,
     "sunIn": 8.09,
     "discs": {
@@ -654,7 +654,7 @@
       "nameCloud": 0,
       "topCloud": 0.001,
       "vis": 1,
-      "in": 9.301
+      "in": 9.49
      },
      {
       "view": "laptop-sunset",
@@ -680,8 +680,8 @@
     "wordCloud": 0.09,
     "nameCloud": 0.01,
     "topCloud": 0.049,
-    "galaxy": 0.836,
-    "galaxyIn": 6.614,
+    "galaxy": 0.835,
+    "galaxyIn": 7.166,
     "sun": 0.774,
     "sunIn": 3.343,
     "discs": {
@@ -691,11 +691,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.073,
+      "wordCloud": 0.072,
       "nameCloud": 0.003,
       "topCloud": 0,
-      "vis": 0.836,
-      "in": 6.614
+      "vis": 0.835,
+      "in": 7.166
      },
      {
       "view": "laptop-sunset",
@@ -723,8 +723,8 @@
     "wordCloud": 0.06,
     "nameCloud": 0.007,
     "topCloud": 0.413,
-    "galaxy": 0.958,
-    "galaxyIn": 7.317,
+    "galaxy": 0.957,
+    "galaxyIn": 7.515,
     "sun": 0.937,
     "sunIn": 4.234,
     "discs": {
@@ -737,8 +737,8 @@
       "wordCloud": 0.022,
       "nameCloud": 0,
       "topCloud": 0.18,
-      "vis": 0.958,
-      "in": 7.317
+      "vis": 0.957,
+      "in": 7.515
      },
      {
       "view": "laptop-sunset",
@@ -764,8 +764,8 @@
     "wordCloud": 0.273,
     "nameCloud": 0.404,
     "topCloud": 0.069,
-    "galaxy": 0.864,
-    "galaxyIn": 5.873,
+    "galaxy": 0.866,
+    "galaxyIn": 6.305,
     "sun": 0.857,
     "sunIn": 2.855,
     "discs": {
@@ -775,11 +775,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.228,
-      "nameCloud": 0.351,
+      "wordCloud": 0.225,
+      "nameCloud": 0.354,
       "topCloud": 0.069,
-      "vis": 0.864,
-      "in": 5.873
+      "vis": 0.866,
+      "in": 6.305
      },
      {
       "view": "laptop-sunset",
@@ -807,8 +807,8 @@
     "wordCloud": 0.069,
     "nameCloud": 0,
     "topCloud": 0.034,
-    "galaxy": 0.903,
-    "galaxyIn": 5.934,
+    "galaxy": 0.899,
+    "galaxyIn": 6.168,
     "sun": 0.814,
     "sunIn": 2.932,
     "discs": {
@@ -818,11 +818,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.059,
+      "wordCloud": 0.061,
       "nameCloud": 0,
       "topCloud": 0.034,
-      "vis": 0.903,
-      "in": 5.934
+      "vis": 0.899,
+      "in": 6.168
      },
      {
       "view": "laptop-sunset",
@@ -848,8 +848,8 @@
     "wordCloud": 0.495,
     "nameCloud": 0.423,
     "topCloud": 0.186,
-    "galaxy": 0.722,
-    "galaxyIn": 5.895,
+    "galaxy": 0.727,
+    "galaxyIn": 6.139,
     "sun": 0.641,
     "sunIn": 3.312,
     "discs": {
@@ -859,11 +859,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.404,
-      "nameCloud": 0.368,
-      "topCloud": 0.183,
-      "vis": 0.722,
-      "in": 5.895
+      "wordCloud": 0.409,
+      "nameCloud": 0.359,
+      "topCloud": 0.181,
+      "vis": 0.727,
+      "in": 6.139
      },
      {
       "view": "laptop-sunset",
@@ -891,8 +891,8 @@
     "wordCloud": 0.076,
     "nameCloud": 0,
     "topCloud": 0.232,
-    "galaxy": 0.933,
-    "galaxyIn": 8.457,
+    "galaxy": 0.939,
+    "galaxyIn": 8.791,
     "sun": 0.851,
     "sunIn": 3.241,
     "discs": {
@@ -902,11 +902,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.013,
+      "wordCloud": 0.002,
       "nameCloud": 0,
-      "topCloud": 0.121,
-      "vis": 0.933,
-      "in": 8.457
+      "topCloud": 0.119,
+      "vis": 0.939,
+      "in": 8.791
      },
      {
       "view": "laptop-sunset",
@@ -932,8 +932,8 @@
     "wordCloud": 0.105,
     "nameCloud": 0.001,
     "topCloud": 0.716,
-    "galaxy": 0.868,
-    "galaxyIn": 8.526,
+    "galaxy": 0.884,
+    "galaxyIn": 8.966,
     "sun": 0.802,
     "sunIn": 3.129,
     "discs": {
@@ -943,11 +943,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.047,
+      "wordCloud": 0.015,
       "nameCloud": 0,
-      "topCloud": 0.205,
-      "vis": 0.868,
-      "in": 8.526
+      "topCloud": 0.204,
+      "vis": 0.884,
+      "in": 8.966
      },
      {
       "view": "laptop-sunset",
@@ -975,8 +975,8 @@
     "wordCloud": 0.077,
     "nameCloud": 0,
     "topCloud": 0.001,
-    "galaxy": 0.941,
-    "galaxyIn": 5.844,
+    "galaxy": 0.929,
+    "galaxyIn": 6.293,
     "sun": 0.882,
     "sunIn": 3.159,
     "discs": {
@@ -986,11 +986,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0,
+      "wordCloud": 0.001,
       "nameCloud": 0,
       "topCloud": 0.001,
-      "vis": 0.941,
-      "in": 5.844
+      "vis": 0.929,
+      "in": 6.293
      },
      {
       "view": "laptop-sunset",
@@ -1016,8 +1016,8 @@
     "wordCloud": 0.304,
     "nameCloud": 0.446,
     "topCloud": 0.074,
-    "galaxy": 0.837,
-    "galaxyIn": 5.725,
+    "galaxy": 0.846,
+    "galaxyIn": 6.183,
     "sun": 0.824,
     "sunIn": 3.6,
     "discs": {
@@ -1027,11 +1027,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.272,
-      "nameCloud": 0.433,
+      "wordCloud": 0.267,
+      "nameCloud": 0.424,
       "topCloud": 0.073,
-      "vis": 0.837,
-      "in": 5.725
+      "vis": 0.846,
+      "in": 6.183
      },
      {
       "view": "laptop-sunset",
@@ -1058,9 +1058,9 @@
     "deg": null,
     "wordCloud": 0.005,
     "nameCloud": 0,
-    "topCloud": 0.059,
-    "galaxy": 0.725,
-    "galaxyIn": 10.877,
+    "topCloud": 0.058,
+    "galaxy": 0.727,
+    "galaxyIn": 11.052,
     "sun": 0.745,
     "sunIn": 8.889,
     "discs": {
@@ -1072,9 +1072,9 @@
       "view": "laptop-night",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.059,
-      "vis": 0.725,
-      "in": 10.877
+      "topCloud": 0.058,
+      "vis": 0.727,
+      "in": 11.052
      },
      {
       "view": "laptop-sunset",
@@ -1101,9 +1101,9 @@
     "deg": 250,
     "wordCloud": 0.042,
     "nameCloud": 0.017,
-    "topCloud": 0.43,
-    "galaxy": 0.921,
-    "galaxyIn": 6.453,
+    "topCloud": 0.429,
+    "galaxy": 0.923,
+    "galaxyIn": 6.774,
     "sun": 0.904,
     "sunIn": 3.225,
     "discs": {
@@ -1115,9 +1115,9 @@
       "view": "laptop-night",
       "wordCloud": 0.015,
       "nameCloud": 0,
-      "topCloud": 0.43,
-      "vis": 0.921,
-      "in": 6.453
+      "topCloud": 0.429,
+      "vis": 0.923,
+      "in": 6.774
      },
      {
       "view": "laptop-sunset",
@@ -1143,8 +1143,8 @@
     "wordCloud": 0.287,
     "nameCloud": 0.203,
     "topCloud": 0.119,
-    "galaxy": 0.812,
-    "galaxyIn": 6.831,
+    "galaxy": 0.802,
+    "galaxyIn": 7.057,
     "sun": 0.818,
     "sunIn": 3.56,
     "discs": {
@@ -1154,11 +1154,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.22,
-      "nameCloud": 0.175,
+      "wordCloud": 0.229,
+      "nameCloud": 0.176,
       "topCloud": 0.116,
-      "vis": 0.812,
-      "in": 6.831
+      "vis": 0.802,
+      "in": 7.057
      },
      {
       "view": "laptop-sunset",
@@ -1186,8 +1186,8 @@
     "wordCloud": 0.1,
     "nameCloud": 0.002,
     "topCloud": 0,
-    "galaxy": 0.925,
-    "galaxyIn": 5.612,
+    "galaxy": 0.929,
+    "galaxyIn": 6.16,
     "sun": 0.822,
     "sunIn": 3.065,
     "discs": {
@@ -1197,11 +1197,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.019,
+      "wordCloud": 0.007,
       "nameCloud": 0.002,
       "topCloud": 0,
-      "vis": 0.925,
-      "in": 5.612
+      "vis": 0.929,
+      "in": 6.16
      },
      {
       "view": "laptop-sunset",
@@ -1227,8 +1227,8 @@
     "wordCloud": 0.601,
     "nameCloud": 0.419,
     "topCloud": 0.019,
-    "galaxy": 0.612,
-    "galaxyIn": 12.165,
+    "galaxy": 0.608,
+    "galaxyIn": 12.4,
     "sun": 0.523,
     "sunIn": 3.165,
     "discs": {
@@ -1238,11 +1238,11 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.358,
-      "nameCloud": 0.287,
+      "wordCloud": 0.406,
+      "nameCloud": 0.295,
       "topCloud": 0.017,
-      "vis": 0.612,
-      "in": 12.165
+      "vis": 0.608,
+      "in": 12.4
      },
      {
       "view": "laptop-sunset",
