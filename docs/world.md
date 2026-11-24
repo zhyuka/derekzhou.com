@@ -834,10 +834,14 @@ physics: clouds/drift). It holds:
 THE CLOCK. Physical motion (the wind, the clouds, the birds, the
 particles, the aurora's own motion) runs at 1x real time, the flight's
 SIM.t. The sky's light (sun, moon, stars, galaxy) runs at one declared
-rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
-70-90x real through a change into a night, the moon crosses at 70-120x
-and the stars and galaxy stand still; test/unit/air.mjs's clock test is
-marked todo until the sky's lane brings them to SKY_RATE.
+rate together, SKY_RATE, 100x. The stars and the galaxy turn with the
+sky's frame at exactly SKY_RATE times the sidereal rate. The sun does
+not yet: it sinks about 88x real through a change into a night, and
+test/unit/air.mjs's clock test is marked todo for it. The moon crosses
+at 78-96x real (0.33-0.40 deg/s, its median 87x, over 400 planned stays;
+its pace is fitted to its stay, 225's STEP 7), at most at SKY_RATE: over
+4000 plans its median is 0.86 of it and its fastest 1.002, where the
+setting leg's bounds quicken it; test/unit/sky.mjs holds it within 1%.
 
 ## THE MIST POOLS
 

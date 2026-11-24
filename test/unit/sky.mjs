@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "P.w0 = 2 * P.thetaE / P.Dvis;", "with": "P.w0 = 3 * P.thetaE / P.Dvis;", "why": "the moon crossing half again faster: past the sky's declared rate"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": " gL += aG; c += aG; }", "with": " c += aG; }", "why": "the airglow counted as nightLim's sky: in the 15-18 deg window it holds back a star at the edge of showing"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);", "with": "float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);", "why": "the galaxy's edge one-sided again: all south of it at once as the rise leaves 0 (M31 pops)"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float eb = radians(mix(-5.735, mix(6.17, 9.51, uAurB.x), uAur.x));", "with": "float eb = radians(mix(6.17, mix(6.17, 9.51, uAurB.x), uAur.x));", "why": "the aurora's sheet ignores its rise: it would show whole the moment a change began"}
@@ -1124,4 +1125,33 @@ test('night: the airglow, a faint steady green band low over the horizon, only o
   assert.ok(at >= 4 && at <= 10, `brightest ${at.toFixed(1)} deg up (low over the horizon)`);
   assert.ok(A * ss(0, 6, 90) * Math.exp(-90 / 14) < 0.01 * peak, 'all but gone overhead');
   console.log(`# airglow: peak Y ${peak.toFixed(5)} at ${at.toFixed(1)} deg, colour C ${Math.hypot(a, b).toFixed(3)}`);
+});
+
+// the moon's pace against the sky's one clock (the hub's physics map, the Moon row; the owner's briefs: "Drift all night",
+// "Slower moon"): 225's moonPlan fits the crossing to its stay (STEP 7); over 400 planned stays on the real route its
+// speed through the hold is at most SKY_RATE times the sidereal rate (0.418 deg/s), within 1% (over 4000 plans: its
+// median 0.86 of it, the fastest 1.002: the legs' bounds, STEP 7's quickening; today 78-96x real)
+test('night: the moon crosses no faster than the sky\'s declared rate (SKY_RATE x sidereal), within 1%', () => {
+  const ROUTE = vm.runInThisContext('(function () {\n' + cut(WORLD, '  // MOON-ROUTE-BEGIN', '  // MOON-ROUTE-END') + '\n  return { moonPlan: moonPlan, moonAt: moonAt };\n})')();
+  const SR = +WORLD.match(/var SKY_RATE = (\d+);/)[1], SID = +WORLD.match(/AIR_SIDEREAL = ([\d.]+)/)[1], rate = SR * 360 / SID;
+  let s = 0x5eed; const R = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const tan = Math.tan(36 * Math.PI / 180), boxes = [[600, 380, 1000, 440], [650, 450, 950, 480], [700, 490, 900, 510], [650, 800, 950, 830], [1500, 20, 1580, 60]], speeds = [];
+  for (let i = 0; i < 400; i++) {
+    const psi = R() * 360 - 180, keyAz = R() * 360 - 180, side = R() < 0.5 ? -1 : 1, sigma = R() < 0.5 ? -1 : 1, p = -6 + 4 * R();
+    const hold0 = 40 + 60 * R(), move0 = 55 + 5 * R(), hold = 150 + 60 * R(), move = 55 + 5 * R(), t0 = -20 + hold0, t1 = t0 + move0, t2 = t1 + hold, t3 = t2 + move;
+    const P = ROUTE.moonPlan({ psi, pN: p, pL: p, tanX: tan, tanY: tan * 9 / 16, W: 1600, H: 900, boxes, keepPx: 12, coarse: false, noRoom: false, keyAz, side, sigma, lift: 0, t0, t1, t2, t3 });
+    if (!P || P.fail) continue;
+    let prev = null, worst = 0;
+    for (let t = t1; t <= t2; t += 0.5) {
+      const o = { d: [0, 0, 0] }; ROUTE.moonAt(P, t, o);
+      if (prev) { const c = Math.max(-1, Math.min(1, o.d[0] * prev[0] + o.d[1] * prev[1] + o.d[2] * prev[2])); worst = Math.max(worst, Math.acos(c) * 180 / Math.PI / 0.5); }
+      prev = o.d.slice();
+    }
+    speeds.push(worst);
+  }
+  assert.ok(speeds.length > 350, `${speeds.length} of 400 stays planned (the test is not empty)`);
+  const fastest = Math.max(...speeds);
+  assert.ok(fastest <= rate * 1.01, `the moon crossed at ${fastest.toFixed(4)} deg/s in its hold, past SKY_RATE x sidereal (${rate.toFixed(4)} deg/s) by over 1%`);
+  const med = [...speeds].sort((a, b) => a - b)[speeds.length >> 1];
+  console.log(`# the moon's pace: median ${med.toFixed(3)} deg/s (${(100 * med / rate * SR / 100).toFixed(0)}x real), fastest ${fastest.toFixed(3)} (${(SR * fastest / rate).toFixed(0)}x), SKY_RATE ${SR}x`);
 });
