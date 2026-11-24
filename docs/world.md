@@ -683,8 +683,10 @@ physics: clouds/drift). It holds:
   edge softened over the key's own disc (0.53 deg: the penumbra, the ray's
   length times 0.0046). The lobes are multiplied together (the exp of their
   summed depth) into a 1024 x 1024 map 40 km across, about the camera (past
-  the land the eye sees: at a 12 km map the easing-off drew a straight
-  edge across the near land at a low sun, 2026-11-24). The
+  the land the eye sees, so its easing-off lies under the far haze). Under
+  a low key behind the camera a flat cloud base's shadow ends in a near
+  straight line across the land: the key runs almost along the view, so
+  the shadow shows the base's own outline (measured 2026-11-24). The
   sand, the stones and the rock read it where their own point, carried
   along the same key, meets that plane (so any height of land lines up
   with its cloud), and take it off the key's direct light alone: the land's
