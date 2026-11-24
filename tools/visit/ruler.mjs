@@ -116,7 +116,6 @@ function cellPlaces(L, kits, kind, ix, iz, size, air) {
 function cellPlacesBoth(L, kits, kind, ix, iz, size) {
   const a = cellPlaces(L, kits, kind, ix, iz, size), b = cellPlaces(L, kits, kind, ix, iz, size, true);
   return { pois: a.pois.concat(b.pois), flocks: a.flocks.concat(b.flocks) };
-  return out;
 }
 
 // the sky's order for an opening and a read: the opening's sky and hold, the read's order from the cut on
