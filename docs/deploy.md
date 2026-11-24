@@ -54,6 +54,13 @@ Allow auto-merge; and a ruleset on main (Settings > Rules) requiring the status 
 admin as a bypass actor so the merge bot's own landings (MERGE_TOKEN is the owner's) are not held. Rulesets on a
 private repository need a paid plan (GitHub Pro).
 
+The static checks on five runners (2026-11-24): on one 4-core hosted runner validate's 40 checks took about 7.6
+minutes, each slowed by the others beside it. validate.yml is a matrix of five shards; each builds once and runs its
+share (tools/check.mjs --shard i/5), split by tools/checks/costs.json's seconds, longest first to the least-loaded
+shard, so every shard computes the same split (test/unit/check-shards.mjs: each check on exactly one shard, the matrix
+the command's n). A check not in costs.json counts 10 s; refresh the table from a validate log when the split drifts.
+The ruleset requires `verdict`, never a job's name, so the shards' names (validate (0/5) ...) need no setting.
+
 Where CI runs (2026-11-23): nowhere on the owner's PC (the owner: "None on my PC", 2026-11-23). The repository is
 public, so GitHub's standard hosted runners are free, and every job runs on `ubuntu-latest`: the gate's static, plan,
 T1 and verdict; merge, post-deploy, scheduled, validate; the Stills look-up. test/unit/fork-guard.mjs fails on any
