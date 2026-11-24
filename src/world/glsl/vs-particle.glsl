@@ -16,6 +16,7 @@ uniform mat4 uPVP2; uniform vec3 uPCam2; uniform float uMB, uMBdt; uniform vec4 
    z), the rain's fall since the start in columns, its fraction and its whole columns modulo 256; uPCamD this camera
    less the last frame's (m). Positions here are the eye's (eyeRel's): head, tail and prev */
 uniform vec4 uPm, uPn; uniform vec3 uPCamD;
+uniform float uAirU;   // the gust field's reference speed, the visit's U10 (as the veils')
 /* a share k = q / 256 of a drift whose boxes are D = n + f (n modulo 256 and f, from the JS): k D modulo 1, exactly */
 float kDrift(uint q, float n, float f) { return fract(float((q * uint(n)) & 255u) / 256.0 + float(q) / 256.0 * f); }
 out vec4 vCol; out vec2 vQ; flat out float vKind;
@@ -28,7 +29,12 @@ vec3 grain(int id, float t, float tau, out float edge) {   // (tau: the air's cl
   vec2 rel = mod(pos - uPm.xy + 0.5 * uPa.x, uPa.x) - 0.5 * uPa.x;
   edge = 1.0 - smoothstep(0.36 * uPa.x, 0.5 * uPa.x, max(abs(rel.x), abs(rel.y)));
   vec2 xz = uCam.xz + rel;
-  float hop = uPb.x * abs(sin(t * uPb.y * (0.7 + 0.6 * r4) + r1 * 6.28));
+  /* (physics: air/grain-hop) a grain's hop as high as the gust passing it makes it: the hop scales as the friction
+     speed squared, so as (1 + e)^2, e the gust's excess over the wind there (the air's one field, on its clock tau: in
+     the day's wind it is the gust's intensity x the gustiness x the field's unit noise, whatever the wind's size).
+     Its drift stays the mean wind's (a closed form: nothing jumps); only the sand's grains (kind 0) */
+  float e = uPb.w < 0.5 ? airGust(xz, normalize(uWind.xz), uAirU, uAir.z, tau) : 0.0;   // (W the gustiness alone: e is the excess over the wind)
+  float hop = uPb.x * airHop(e) * abs(sin(t * uPb.y * (0.7 + 0.6 * r4) + r1 * 6.28));
   float y = (uPb.w > 1.5 ? -uPa.y * 0.5 : groundH(xz) - uCam.y) + uPb.z + uPa.y * r4 * r4 + hop + (uPb.w > 0.5 ? 1.5 * sin(t * 0.4 + r3 * 6.28) : 0.0);
   return vec3(rel.x, y - uCamL.y, rel.y);   // (the eye's)
 }
