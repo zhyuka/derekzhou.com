@@ -67,6 +67,11 @@ async function pool(list, n, extraEnv, quiet) {
   return out;
 }
 const pick = (names) => names.split(',').map((n) => { const c = all.find((x) => x.slug === n || x.slug.replace(/^\d\d-/, '') === n); if (!c) { console.error('no check ' + n); process.exit(2); } return c; });
+// (2026-11-24) a write to a pipe that does not fit at once is queued, and process.exit() drops the queue: on a busy runner
+// Linux gives a new pipe one 4 KB page (pipe-user-pages-soft), so main's gate 45405600566, twice, got check-shards.mjs's
+// --prove --dry list without its end (24 KB; the birds plants, about line 220, never arrived). Every exit after output
+// waits for stdout and stderr to drain first.
+const done = async (code) => { await new Promise((r) => process.stdout.write('', r)); await new Promise((r) => process.stderr.write('', r)); process.exit(code); };
 const N = Math.max(2, Math.min(os.cpus().length, 8));
 // the shards (CI's validate matrix): a fixed split by recorded cost, so each runner takes its share and no other
 function split(list, n) {
@@ -82,11 +87,11 @@ function split(list, n) {
 const SH = val('--shard') ? val('--shard').split('/').map(Number) : null;
 if (SH && !(SH.length === 2 && Number.isInteger(SH[0]) && Number.isInteger(SH[1]) && SH[1] >= 1 && SH[0] >= 0 && SH[0] < SH[1])) { console.error('--shard i/n: 0 <= i < n'); process.exit(2); }
 const inShard = (slug) => !SH || split(rest, SH[1]).at.get(slug) === SH[0];
-if (has('--list')) { for (const c of (SH ? rest.filter((c) => inShard(c.slug)) : [...build, ...rest, ...sched])) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }   // (with --shard: that shard's checks)
+if (has('--list')) { for (const c of (SH ? rest.filter((c) => inShard(c.slug)) : [...build, ...rest, ...sched])) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); await done(0); }   // (with --shard: that shard's checks)
 if (val('--shards')) {
   const n = Number(val('--shards')), { at, load } = split(rest, n);
   for (let k = 0; k < n; k++) console.log(`shard ${k}/${n}  ${load[k].toFixed(0).padStart(4)} s  ` + rest.filter((c) => at.get(c.slug) === k).map((c) => c.slug).join(' '));
-  process.exit(0);
+  await done(0);
 }
 const t0 = Date.now();
 let results = [];
@@ -132,7 +137,7 @@ if (has('--prove')) {
   // are dealt out in turn, each to one shard, whatever its check: 2026-11-24, a branch changing test/unit/sky.mjs ran its
   // 31 plants, 25 s each, on the one shard of 24-unit for 13 minutes while the other four sat idle)
   if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);
-  if (has('--dry')) { for (const p of todo) console.log('would  ' + p.check.padEnd(20) + ' ' + p.why); process.exit(bad); }   // (the plants it would run, none run)
+  if (has('--dry')) { for (const p of todo) console.log('would  ' + p.check.padEnd(20) + ' ' + p.why); await done(bad); }   // (the plants it would run, none run)
   if (todo.length) for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
   for (const p of todo) {
     const c = pick(p.check)[0];
@@ -150,7 +155,7 @@ if (has('--prove')) {
   }
   const unproved = SH && SH[0] !== 0 ? [] : rest.concat(sched).filter((c) => !P.some((p) => p.check === (c.base || c.slug))).map((c) => c.base || c.slug).filter((x, i, a) => a.indexOf(x) === i);   // (sharded: shard 0 says it, once)   // (every check, --changed or not: a new check without a plant fails its own PR)
   if (unproved.length) { console.log('no plant: ' + unproved.join(', ')); bad = 1; }
-  process.exit(bad);
+  await done(bad);
 }
 if (has('--fast')) {
   results.push(...await pool([build.find((c) => /assemble/.test(c.slug))], 1));
@@ -171,4 +176,4 @@ if (has('--fast')) {
 }
 const failed = results.filter((r) => !r.ok);
 console.log((failed.length ? failed.length + ' of ' + results.length + ' checks failed: ' + failed.map((r) => r.c.slug).join(', ') : 'all ' + results.length + ' checks pass') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
-process.exit(failed.length ? 1 : 0);
+await done(failed.length ? 1 : 0);

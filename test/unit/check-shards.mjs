@@ -47,7 +47,17 @@ test('check-shards: every plant a change selects runs on exactly one shard, deal
   const n = Number(y.match(/--shard \$\{\{ matrix\.shard \}\}\/(\d+)/)[1]);
   const os = require('node:os'), f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'plants-')), 'changed.txt');
   fs.writeFileSync(f, fs.readdirSync(path.join(ROOT, 'tools/checks')).filter((x) => /^\d\d-.*\.sh$/.test(x)).map((x) => 'tools/checks/' + x).join('\n') + '\n');
-  const dry = (...a) => { const r = spawnSync(process.execPath, [CHECK, '--prove', '--changed', f, '--dry', ...a], { cwd: ROOT, encoding: 'utf8' }); return r.stdout.split('\n').filter((l) => l.startsWith('would  ')); };
+  const dry = (...a) => {
+    const r = spawnSync(process.execPath, [CHECK, '--prove', '--changed', f, '--dry', ...a], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 << 20 });
+    // (main's gate 45405600566 once got this list without its end, the birds plants missing, and passed every run since:
+    // whatever it was, a list that is not whole says how it ended instead of failing on a missing line)
+    const out = (r.stdout || '').split('\n'), tail = `status ${r.status}, signal ${r.signal}, ${(r.stdout || '').length} bytes out${r.error ? ', ' + r.error.code : ''}; stderr: ${(r.stderr || '').slice(-400)}`;
+    assert.ok(r.status === 0 && !r.error, 'check.mjs --prove --dry ' + a.join(' ') + ' ran: ' + tail);
+    const head = out.find((l) => l.startsWith('--changed: ')), w = out.filter((l) => l.startsWith('would  '));
+    assert.ok(head, 'its --changed line: ' + tail);
+    if (!a.length) assert.equal(w.length, +head.match(/; (\d+) of \d+ plants/)[1], 'every plant it selected listed (none lost): ' + tail);
+    return w;
+  };
   const all = dry(), got = [];
   for (let i = 0; i < n; i++) got.push(...dry('--shard', `${i}/${n}`));
   assert.ok(all.some((l) => /^would  35-birds /.test(l)), 'the birds check has plants (a parted check)');

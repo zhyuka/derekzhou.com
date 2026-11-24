@@ -31,6 +31,8 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HALO_N = 1.31;", "with": "const float HALO_N = 1.5;", "why": "the halo from glass, not ice: a 38-deg ring"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += haloAt(rd) * uMoon.w;", "with": "c += haloAt(rd);", "why": "the halo whole whatever the moon's depth: it stays as the moon sinks"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9))", "with": "veil: mix32(SKY.vS)", "why": "the veil the visit's, not the stay's: every moonlit stay of a visit veiled, or none"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * (", "with": "if (ma < 7.0) c += uMoonG * 0.15 * (", "why": "the corona on a clear night: rings with no cloud to make them"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));", "with": "hiCv = max(hiCv, clamp(vm * vk + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));", "why": "the corona on every veiled night: the veil's even mean counted as cloud"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "dot(c, LUMA) * vec3(0.861, 1.04, 1.68)", "with": "dot(c, LUMA) * vec3(1.2, 0.85, 0.95)", "why": "the Earth's shadow pink again"}
 // plant: {"file": "src/world/220-time-day.js", "find": "fx:{belt:0,nlc:1}", "with": "fx:{belt:0.4,nlc:1}", "why": "the belt drawn in the blue hour (the sun too low for it)"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;", "with": "SKYN.night[2] = reduced() ? 0 : 1;", "why": "the still twinkles: a hashed brightness frozen into its one frame"}
@@ -838,6 +840,32 @@ test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 d
   assert.ok(g.includes('if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }') && g.includes('* smoothstep(1.0, 12.0, e) * galVis(rd);'), 'the galaxy is drawn without its edge, or at rise 0');
   assert.ok(g.includes('uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * galVis(sd0(jb, ib, n))'), 'the stars crowd into the band before the galaxy comes in (a pop)');
   assert.ok(WORLD.includes('gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], SKY.galRise || 0);') && WORLD.includes('skyAur(t); skyGal(t);'), 'the galaxy\'s rise is not its own clock\'s');
+});
+
+test('physics: weather/moon-corona: the corona\'s rings only where thin cloud stands in front of the moon', () => {
+  // sky-body's own lines: the rings are times hiCv, the 3 km veil's cover in the pixel's direction (0 with no veil: a clear
+  // night has none), set in both of the veil's blocks (a hold's and a change into a night's), by place, never a clock
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('  float hiCv = 0.0;'), 'the corona\'s cloud does not start at none (a clear sky would ring)');
+  assert.ok(g.includes('if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * ('), 'the corona\'s rings are not by the cloud in front of the moon');
+  for (const w of ['uHi.y', 'uSunB.y']) assert.ok(g.includes(`hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, ${w}));`), `the veil's block by ${w} does not give the corona its cloud`);
+  // the shader's own lines at the moonlit sky's real veil (uHi.x is its post.hi cover, 220's L.hi; the strength uHi.y
+  // only gates, 1 from 0.05): a clear patch (the streaks no thicker than the veil's even mean) gives 0 (no rings), a
+  // full streak gives 1; the streaks' noise n spans -0.5..0.5 (two value noises less 0.5)
+  const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const { WSKY } = skyWorld(1, 'night', 0.5), x = WSKY.moonlit.post.hi;
+  assert.ok(x > 0.05, `the moonlit sky's veil cover is ${x}: no veil to give a corona`);
+  {
+    const vm = ss(0.55 - x, 0.95 - x, 0.692), vk = ss(0, 0.05, x);
+    assert.ok(vm < 0.95, `the moonlit veil's even mean is ${vm.toFixed(3)}: no streak can stand beyond it`);
+    const hiCv = (n, y) => { const cov = ss(0.55 - x, 0.95 - x, n * 1.6 + 0.5) * ss(0.06, 0.25, y); return Math.min(Math.max(Math.max(cov - vm, 0) / Math.max(1 - vm, 0.05) * vk, 0), 1) * ss(0, 0.05, 1); };
+    let lo = 9, hi = -9;
+    for (let n = -0.5; n <= 0.5; n += 0.01) { const v = hiCv(n, 0.5); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    assert.equal(lo, 0, `cover ${x}: no clear patch (the corona never switches off: lowest ${lo.toFixed(3)})`);
+    assert.ok(Math.abs(hi - 1) < 1e-9, `cover ${x}: no full streak (the corona never whole: highest ${hi.toFixed(3)})`);
+  }
+  assert.ok(g.indexOf('float hiCv = 0.0;') < g.indexOf('if (uHi.x > 0.0 && rd.y > 0.01) {') && g.indexOf('hiCv > 0.0) c += hiCv') > g.indexOf('if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {'), 'the corona reads its cloud before the veil has set it');
+  assert.ok(!/hiCv[^;]*(uT|clockNow|uTime)/.test(g), 'the corona follows a clock (it may only come and go with its cloud, by place)');
 });
 
 test('physics: twilight (B6, B7, B9): the Earth\'s shadow blue-grey at the sky\'s lightness, no belt in the blue hour, the twinkle held in reduced motion and the still', () => {

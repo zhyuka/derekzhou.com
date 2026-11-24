@@ -140,7 +140,11 @@ nearly level path, leaves through the other side early in the change out
 and sets behind the sea, never stopping or turning back (a visitor who
 turns that way sees it rise or set; only its faint broad light on the sky
 follows its depth); where the window has no room under its top edge, only
-its glow passes along the edge. The moonlit night is about twice as long
+its glow passes along the edge. Its corona's coloured rings show only where
+the 3 km veil's streaks stand thicker in front of it than the veil's even
+mean, as patchy as those streaks; a clear patch or a clear night has none
+(physics: weather/moon-corona).
+The moonlit night is about twice as long
 as before (the owner chose a slower moon), so the moon drifts 6-10 px a
 second on a laptop and 2-3 on a phone; it shows on the visits that face
 the side its light comes from (about 1 in 5 on a laptop, 1 in 9 on a
