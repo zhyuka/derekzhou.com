@@ -6,6 +6,7 @@
     VP[2] = -A * c.f[0]; VP[6] = -A * c.f[1]; VP[10] = -A * c.f[2]; VP[14] = Bq;
     VP[3] = c.f[0]; VP[7] = c.f[1]; VP[11] = c.f[2]; VP[15] = 0;
     CPOS[0] = c.pos[0]; CPOS[1] = c.pos[1]; CPOS[2] = c.pos[2];
+    CAML[0] = c.pos[0] - CPOS[0]; CAML[1] = c.pos[1] - CPOS[1]; CAML[2] = c.pos[2] - CPOS[2];   // (large world: what fp32 drops of the camera, uCamL)
     CR[0] = c.r[0]; CR[1] = c.r[1]; CR[2] = c.r[2]; CU[0] = c.u[0]; CU[1] = c.u[1]; CU[2] = c.u[2]; CF[0] = c.f[0]; CF[1] = c.f[1]; CF[2] = c.f[2];
     PROJ[0] = FR.tanX; PROJ[1] = FR.tanY; PROJ[2] = NEAR; PROJ[3] = FAR;
   }
@@ -66,7 +67,7 @@
     var tgt = WLOG.cur || WLOG.pend || (WLOG.pend = []);
     if (tgt.length < 30000) tgt.push([kind, id, +w.toFixed(4), Math.round(d), vis ? 1 : 0]);
   }
-  var VOLS = [], VKEY = new Float32Array(512), VORD = new Int32Array(512), FLK = [], UF = new Float32Array(1);
+  var VPOS = new Float64Array(3), VOLS = [], VKEY = new Float32Array(512), VORD = new Int32Array(512), FLK = [], UF = new Float32Array(1);
   function pushVol(B) {
     var n = VOLS.length; if (n >= 512) return;
     var dx = B.c[0] - CAM.pos[0], dy = B.c[1] - CAM.pos[1], dz = B.c[2] - CAM.pos[2], d = dx * dx + dy * dy + dz * dz;
@@ -84,7 +85,8 @@
        out from 0.93 would, coming out, be left out 0.25 s after the first holes open */
     var push = pushVol;
     var L = V.cellList;
-    if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 3) continue; for (j = 0; j < C.vols.length; j++) { var o = C.vols[j].out; if (o.ready) { o.fade = volDistFade(o) * fadeOf(o.born); if (o.fade > 0) push(o); } } }
+    var tv = cloudT();   // (physics: clouds/drift: each body where its layer's wind has carried it by the draw's moment)
+    if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 3) continue; for (j = 0; j < C.vols.length; j++) { var o = C.vols[j].out; if (o.w) { cloudPos(o, tv, VPOS); o.c[0] = VPOS[0]; o.c[1] = VPOS[1]; o.c[2] = VPOS[2]; } if (o.ready) { o.fade = volDistFade(o) * fadeOf(o.born); if (o.fade > 0) push(o); } } }
     n = VOLS.length;
     for (i = 1; i < n; i++) { var vv = VORD[i], kv = VKEY[vv]; j = i - 1; while (j >= 0 && VKEY[VORD[j]] < kv) { VORD[j + 1] = VORD[j]; j--; } VORD[j + 1] = vv; }
     var P = EP.vbody; gl.useProgram(P.p); setFrameUniforms(P, V);
@@ -109,16 +111,19 @@
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
       gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
+      var c0 = B.c0 || B.c, nS = B.u4a[2]; if (!B.nO) B.nO = new Float32Array(3);   // (the billows ride with the body: an offset from where it was laid out, in doubles, never the clock's)
+      for (var k3 = 0; k3 < 3; k3++) { var q3 = c0[k3] / nS; B.nO[k3] = q3 - Math.floor(q3); }
+      gl.uniform3fv(P.u.uVO, B.nO);
       gl.activeTexture(gl.TEXTURE10); gl.bindTexture(gl.TEXTURE_3D, B.t); gl.activeTexture(gl.TEXTURE0);
       dc(gl.TRIANGLES, 36); m++;
     }
     gl.disable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.disable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
     ST.vols = m;
   }
-  var MIST_IN = 20, MIST_OUT = 80, MISTMAX = 0;   // (dev: the most mist about the eye drawn since the last state read)
+  var MIST_IN = 20, MIST_OUT = 80, MISTMAX = 0, MISTO = new Float64Array(3);   // (dev: the most mist about the eye drawn since the last state read)
   function mistK(B) {   // 1 - smoothstep(20, 80, the eye's distance to the surface of the body's nearest lobe)
     var sb = B.soft; if (!sb || !B.cell || !B.cell.soft) return 0;
-    var S = B.cell.soft, x = CAM.pos[0], y = CAM.pos[1], z = CAM.pos[2];
+    var off = cellOff(B.cell, cloudT(), MISTO), S = B.cell.soft, x = CAM.pos[0] - off[0], y = CAM.pos[1] - off[2], z = CAM.pos[2] - off[1];   // (the eye in the cell's frame: an air cell's lobes are where it was laid out)
     var bx = sb[0] - x, by = sb[1] - y, bz = sb[2] - z;
     if (Math.sqrt(bx * bx + by * by + bz * bz) - sb[3] > MIST_OUT) return 0;   // (the body's bound: no lobe within reach)
     var dm = 1e9;
@@ -132,7 +137,6 @@
     FLK.length = 0;
     var L = V.cellList, i, k, n = 0;
     if (L) for (i = 0; i < L.length; i++) { var C = L[i]; if (C.st < 2) continue; for (k = 0; k < C.flocks.length; k++) { var f = C.flocks[k].set; if (f.kind === 1 && (!WORLD_FLYERS || inkAside(f))) continue; var dx = f.a[0] - CAM.pos[0], dz = f.a[2] - CAM.pos[2], d2 = dx * dx + dz * dz; if (d2 < FLK_FAR * FLK_FAR && inView(f.a[0], f.a[1], f.a[2], f.b[2] + 60)) { f.fd = 1 - smooth(FLK_IN, FLK_FAR, Math.sqrt(d2)); FLK.push(f); } } }
-    if (V.flocksEv) for (i = 0; i < V.flocksEv.length; i++) if (!(V.flocksEv[i].kind === 1 && inkAside(V.flocksEv[i]))) FLK.push(V.flocksEv[i]);   // (the ink birds stand for the realms' birds)
     ST.flocks = FLK.length;
     if (!FLK.length) return;
     n = Math.min(FLK.length, 64);

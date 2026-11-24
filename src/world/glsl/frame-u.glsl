@@ -1,5 +1,5 @@
 
-uniform vec3 uCam; uniform vec3 uCamR, uCamU, uCamF; uniform vec4 uProj; uniform mat4 uVP;
+uniform vec3 uCam; uniform vec3 uCamL; uniform vec3 uCamR, uCamU, uCamF; uniform vec4 uProj; uniform mat4 uVP;   // (uCamL: what fp32 drops of the camera's position: uCam + uCamL is the camera to the double; eyeRel)
 uniform vec2 uRes; uniform float uT; uniform int uDbg;
 uniform vec3 uSun; uniform vec3 uSunC;
 uniform vec4 uTwM;    // the twilight's low mist as the light crosses the inks' band: its amount (0: none), its half-height and feather about the horizon (sines of elevation)
@@ -10,6 +10,7 @@ uniform vec4 uSkyN;   // (the sun and moon) w 1 only in a change between a twili
 uniform vec3 uGlowN, uSkyWT, uSkyWN, uHzT, uHzN; uniform vec4 uSkyKT, uSkyKN, uSunK;   // (with it) the night's glow about the key; the twilight's and the night's warm colours and amounts; the haze's warm side at each end (toward the light less away); the sun's depth under the twilight's own (deg), its share (band), the night's (QN), the wisps' shadow line (deg)
 uniform vec4 uHaze; uniform vec3 uHazeC, uHazeW;   // the ground haze: density at its base (1/m), scale height (m), its base below the eye (m), -; colour, toward the sun
 uniform vec3 uAmbU, uAmbD;
+uniform vec4 uMist;   // (delight-weather 1) the mist pools: their depth over the dunes' floor (m), the depth they turn opaque within (m)
 uniform vec3 uClLit, uClShade, uClDeep, uClRim; uniform vec4 uClK, uClK2;
 uniform vec4 uP[24];   // the realm's parameters for this visit
 uniform uint uSalt;    // the visit's salt for the layout's hashes (cellHash)
@@ -17,3 +18,7 @@ uniform sampler3D uN3;
 uniform highp sampler2D uGround; uniform vec4 uGC;   // the ground's height cached around the camera: origin x, z; cell (m); texels across
 uniform float uSunVis;  // how much of the sun the sky shows (its disc, glare, halo, streak, glint): 0 where there is none (an interior, an overcast)
 uniform vec4 uWet;      // water: the rain's rings (0 .. 1), the ripples' strength, the wind's direction (x, z)
+/* (large world) a world point relative to the eye, as the double camera stands: w - uCam is exact (two fp32 values
+   near one another), then what fp32 dropped of the camera (uCamL) comes off. Every vertex stage's clip position goes
+   through it, so the camera's own rounding (4 mm 86 km out: a 1.3 px judder at 3 m) never reaches the screen */
+vec3 eyeRel(vec3 w) { return (w - uCam) - uCamL; }

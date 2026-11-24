@@ -1,6 +1,6 @@
   /* the length of the segment (CBS: its start, its direction, its length) within a sphere (no closure a call); CBH the
      bodies a bird's segments may meet (cell, body) */
-  var CBS = new Float64Array(7), CBH = new Int32Array(256);
+  var CBS = new Float64Array(7), CBH = new Int32Array(256), CBO = new Float64Array(3), CBP = new Float64Array(3), CBZ = new Float64Array(3);   // (CBO, CBP: an air cell's carry; CBZ: none)
   function cbSet(ax, ay, az, bx, by, bz) {
     var dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
     CBS[0] = ax; CBS[1] = ay; CBS[2] = az; CBS[3] = dx / len; CBS[4] = dy / len; CBS[5] = dz / len; CBS[6] = len;

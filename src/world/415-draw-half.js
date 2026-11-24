@@ -36,6 +36,7 @@
     }
   }
   /* (drawFrame's pass) the clouds at half resolution, and their accumulation over frames */
+  var OCCO = new Float64Array(3);   // (an air cell's carry, for its cores)
   function drawClouds(V, u) {
     var w2 = DFR.w2, h2 = DFR.h2, CL = DFR.CL, P;
     // -------- the clouds at half resolution
@@ -45,8 +46,10 @@
       P = EP.occ; var occOn = false;
       for (var oi = 0; oi < CL.length; oi++) {
         var Co = CL[oi]; if (!Co.occ || Co.st < 4 || fadeCell(Co, Co.born) < 0.999) continue;
-        if (!inView(Co.bound[0], Co.bound[1], Co.bound[2], Co.bound[3])) continue;
+        var oo = cellOff(Co, cloudT(), OCCO);
+        if (!inView(Co.bound[0] + oo[0], Co.bound[1] + oo[2], Co.bound[2] + oo[1], Co.bound[3])) continue;
         if (!occOn) { gl.useProgram(P.p); setFrameUniforms(P, V); gl.colorMask(false, false, false, false); gl.disable(gl.CULL_FACE); occOn = true; }
+        gl.uniform3f(P.u.uOccOff, oo[0], oo[2], oo[1]);
         gl.bindVertexArray(Co.occ.vao); dc(gl.TRIANGLES, 60, Co.occ.n);
       }
       if (occOn) gl.colorMask(true, true, true, true);

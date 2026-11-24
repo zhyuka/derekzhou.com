@@ -5,6 +5,11 @@
 //   node tools/check.mjs --no-build   skip the build (build/site and build/src are already made)
 //   node tools/check.mjs --scheduled  build once, then only the checks marked "kind: schedule" (weekly: scheduled.yml)
 //   node tools/check.mjs --list       the checks and their kinds
+//   node tools/check.mjs --shard i/n  the build, then only shard i's share of the checks (0 <= i < n; CI's validate job
+//                                     runs n of these side by side, one a runner). The share: tools/checks/costs.json's
+//                                     seconds a check (a hosted run's; a check it lacks counts 10 s), longest first, each
+//                                     to the shard with the least so far, so every shard computes the same split.
+//                                     With --prove, only the plants of the shard's checks. --shards n: the split, printed.
 //   node tools/check.mjs --prove [--changed FILE]
 //                                     each check with a failure planted must fail: a check's plants are its own `# plant: {json}`
 //                                     lines, and the `// plant: {json}` lines of the files its `# plants-also: dir/*.ext` names
@@ -59,9 +64,29 @@ async function pool(list, n, extraEnv, quiet) {
 }
 const pick = (names) => names.split(',').map((n) => { const c = all.find((x) => x.slug === n || x.slug.replace(/^\d\d-/, '') === n); if (!c) { console.error('no check ' + n); process.exit(2); } return c; });
 const N = Math.max(2, Math.min(os.cpus().length, 8));
+// the shards (CI's validate matrix): a fixed split by recorded cost, so each runner takes its share and no other
+function split(list, n) {
+  let cost = {}; try { cost = JSON.parse(fs.readFileSync(path.join(DIR, 'costs.json'), 'utf8')); } catch (e) { /* every check 10 s */ }
+  const of = (c) => (typeof cost[c.slug] === 'number' ? cost[c.slug] : 10);
+  const load = Array(n).fill(0), at = new Map();
+  for (const c of [...list].sort((a, b) => of(b) - of(a) || (a.slug < b.slug ? -1 : 1))) {
+    let k = 0; for (let j = 1; j < n; j++) if (load[j] < load[k]) k = j;
+    load[k] += of(c); at.set(c.slug, k);
+  }
+  return { at, load };
+}
+const SH = val('--shard') ? val('--shard').split('/').map(Number) : null;
+if (SH && !(SH.length === 2 && Number.isInteger(SH[0]) && Number.isInteger(SH[1]) && SH[1] >= 1 && SH[0] >= 0 && SH[0] < SH[1])) { console.error('--shard i/n: 0 <= i < n'); process.exit(2); }
+const inShard = (slug) => !SH || split(rest, SH[1]).at.get(slug) === SH[0];
+if (has('--list')) { for (const c of all.filter((c) => !SH || (rest.includes(c) && inShard(c.slug)))) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }   // (with --shard: that shard's checks)
+if (val('--shards')) {
+  const n = Number(val('--shards')), { at, load } = split(rest, n);
+  for (let k = 0; k < n; k++) console.log(`shard ${k}/${n}  ${load[k].toFixed(0).padStart(4)} s  ` + rest.filter((c) => at.get(c.slug) === k).map((c) => c.slug).join(' '));
+  process.exit(0);
+}
 const t0 = Date.now();
 let results = [];
-if (has('--list')) { for (const c of all) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }
+
 if (has('--prove')) {
   // each plant: one file changed (or made) for one check's run, then put back; the check must fail (or, expect "pass",
   // must pass). A check marked self has its own planted failures in its own run
@@ -83,6 +108,7 @@ if (has('--prove')) {
     todo = P.filter((p) => ch.has(p.at) || whole.has(p.check));
     console.log(`--changed: ${ch.size} path(s); ${todo.length} of ${P.length} plants a change there can break` + (whole.size ? ` (every plant of ${[...whole].join(', ')})` : ''));
   }
+  if (SH) todo = todo.filter((p) => inShard(p.check));   // (sharded: the plants of this shard's checks)
   if (todo.length) for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
   for (const p of todo) {
     const c = pick(p.check)[0];
@@ -97,7 +123,7 @@ if (has('--prove')) {
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
   }
-  const unproved = rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);   // (every check, --changed or not: a new check without a plant fails its own PR)
+  const unproved = SH && SH[0] !== 0 ? [] : rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);   // (sharded: shard 0 says it, once)   // (every check, --changed or not: a new check without a plant fails its own PR)
   if (unproved.length) { console.log('no plant: ' + unproved.join(', ')); bad = 1; }
   process.exit(bad);
 }
@@ -113,7 +139,7 @@ if (has('--fast')) {
 } else {
   if (!has('--no-build')) for (const c of build) { const r = await run(c); report(r); results.push(r); if (!r.ok) break; }
   if (results.every((r) => r.ok)) {
-    const list = val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest;
+    const list = val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest.filter((c) => inShard(c.slug));
     results.push(...await pool(list.filter((c) => !c.alone), N));
     results.push(...await pool(list.filter((c) => c.alone), 1));   // (after the others, one at a time: they measure time)
   }

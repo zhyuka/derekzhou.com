@@ -205,7 +205,7 @@
     var P = b.P, w = 0.35 * perchSpan(b, P.k) + 4;
     for (var i = 0; i < PERCHED.length; i++) {
       var o = PERCHED[i]; if (o === b || o.st !== 'perch' || !o.P || o.P.kind !== P.kind || o.P.li < 0) continue;
-      var dx = o.P.x - P.x; if (Math.abs(dx) < 1.6 * w && Math.abs(o.P.fy - P.fy) < 2 * w) { o.P.walk = { dir: dx >= 0 ? 1 : -1, n: 1 + Math.floor(o.r() * 3), step: 0.22 * w, t0: t + o.lat, x0: o.P.x }; }
+      var dx = o.P.x - P.x; if (Math.abs(dx) < 1.6 * w && Math.abs(o.P.fy - P.fy) < 2 * w) { o.P.walk = newWalk(o.P, dx >= 0 ? 1 : -1, 1 + Math.floor(o.r() * 3), 0.22 * w, t + o.lat); }
     }
   }
 

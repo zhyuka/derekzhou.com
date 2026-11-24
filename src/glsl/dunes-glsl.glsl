@@ -33,7 +33,7 @@ vec3 massif(vec2 p, vec4 m, vec4 b, float seed) {
   vec2 dlx = vec2(ca, sa) / m.z, dly = vec2(-sa, ca) / m.z;
   /* (fast500 D) the four taps' noise in one loop (one copy of gnd for FXC), each tap's multiply and gradient turn as before */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0;
-  for (int t = 0; t < 4 + uZ; t++) {
+  for (int t = 0; t < 4 + UZ; t++) {
     vec2 o = t == 0 ? vec2(seed * 57.0) : (t == 1 ? vec2(0.0) : (t == 2 ? vec2(13.0) : vec2(29.0)));
     float kk = t == 0 ? 1.1 : (t == 1 ? 2.4 : 2.2);
     vec3 g = gnd(mat2(kk / m.z) * (p + o));
@@ -85,11 +85,9 @@ vec3 s1Phase(vec2 p, vec2 w, vec2 pp, float lam, vec3 d1, vec3 d2) {
    slip face a plane from the brink, its own slope m chosen so the surface's steepest descent there is 32 deg with the
    swell and the crest's change in height (G) included: m = G.g + sqrt(tan^2 32 - |G across g|^2); its share of the
    wavelength fl = H k / m. The brink a smooth min over 2 m across, the toe a smooth max over 0.15 of the face. H = min(the
-   dune's height, 0.13 of the local wavelength). The face's slope carries (1 - f) d(H / fl), so the slope carried is
-   the surface's (p99 0.0004 off its differences; was 0.074). Census (tools/physics/dune-census.mjs, 2.25 M points, four
-   winds): lee mode 31-32, p99 33.0-33.2, 0.01-0.04% over 34 deg; the surface by differences (1 m grid) 0.013-0.030%,
-   the steepest 35-36; the shipped GLSL on the GPU (seed 3, 800 m) none over 34, the steepest 33.1; stoss p50 8.8-9.0, p90
-   13.3-13.6 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
+   dune's height, 0.13 of the local wavelength). The face's slope carries (1 - f) d(H / fl): the surface's.
+   Census (tools/physics/dune-census.mjs, four winds): lee mode 31-32, p99 33.1, 0.01-0.04% over 34 deg (by
+   differences 0.013-0.030%, the steepest 35-36); stoss p50 9, p90 13.5 (was 17, 41.8, 2.7%, 51.5, 10.9, 18.3). nw: the near family's share
    (none on the slip face, eased over 0.06 of the phase at both ends) */
 vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, vec3 Hs, vec2 dph, out vec3 nw, out vec4 s1o, out vec2 s1q) {
   float k = length(ph.yz); vec2 g = ph.yz / k;
@@ -159,7 +157,7 @@ vec3 dunes(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd, not seven), each tap's own multiply
      as before and its gradient turn after (dNg, its matrix a constant as before): the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0, q0 = g0, q1 = g0, q2 = g0, q3 = g0;
-  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
+  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + UZ; o++) {
     vec3 g, q;
     if (o == 1 || o == 4) g = gndH((o == 1 ? D_M1 : Ma) * (p + D_TO[o]), q);
     else if (o == 2 || o == 3) g = gndH(vec2(dot(p, pp) * D_TS[o], o == 2 ? 3.7 : 11.3), q);   // (physics: sand/S1: the crests' wander, a slice in the across-wind coordinate)
@@ -171,6 +169,7 @@ vec3 dunes(vec2 p) {
   vec3 Hs = (40.0 / (760.0 * 760.0)) * q0 + 15.0 * vec3(Q1[0][0], Q1[0][1], Q1[1][1]);
   vec2 dph = (0.42 * q2.x / (340.0 * 340.0) + 0.13 * q3.x / (95.0 * 95.0)) * pp;
   vec3 h = 40.0 * dNg(g0, mat2(1.0 / 760.0)) + 15.0 * dNg(g1, D_M1);
+  gMB = vec2(h.x, gKD.x);   // (delight-weather 1: the mist pools' floor before the basins and the sink (the swell the dunes stand on), and their reach, the sand)
   vec3 amp = dSstep(-0.42, 0.3, dNg(g4, Ma)) * 0.75 + vec3(0.25, 0.0, 0.0);
   vec3 nw, ph = s1Phase(p, w, pp, 205.0, g2, g3); vec4 s1o; vec2 s1q;
   vec3 s1 = duneS1(ph, 32.0 * dMul(amp, gKD), h - gSK, Hs, dph, nw, s1o, s1q);   // (the ground under the dunes: the swell, less the sink)   // (world6: the main dunes by the maps' sand weight)
@@ -196,6 +195,7 @@ vec3 basinOf(vec2 p, vec3 h, Site s) {
   if (d >= R) return h;
   vec3 w = dSstep(R, R * 0.25, vec3(d, dp / max(d, 1e-3)));
   gS1W *= 1.0 - fl * w.x;   // (physics: sand/S2: the main dunes' share of the slope, calmed)
+  gMS = vec2(gMS.x * (1.0 - fl * w.x), gMS.y * (1.0 - fl * w.x) - depth * w.x);   // (delight-weather 1: the mist pools' floor sinks with the basin)
   return dMul(h, vec3(1.0, 0.0, 0.0) - fl * w) - depth * w;
 }
 /* a plateau: an oval of flat top, its sides in terraces (a riser, then a ledge), a stair's way cut down its -x face */
@@ -230,9 +230,9 @@ vec3 D_Hd(vec2 p) {
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
   vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);   // (fast500 D) the plateaux' vertex-only taps, once
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }
 /* (world6) the bays' sea of cloud and its shading are gone: the cloud sea is the world's (HdSea, shadeSea) */
@@ -274,7 +274,7 @@ vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
    x * s as before (the same values; the landmarks keep rockCol: lanes/D/RESULT.md) */
 vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
   float y = 0.0, b1 = 0.0, b2 = 0.0, g40 = 0.0;
-  for (int o = 0; o < 4 + uZ; o++) {
+  for (int o = 0; o < 4 + UZ; o++) {
     vec2 x = o < 2 ? p.xz : vec2(y, o == 2 ? 1.7 : 4.1);
     vec2 s = o == 0 ? vec2(1.0 / 260.0) : (o == 1 ? vec2(1.0 / 40.0) : vec2(o == 2 ? 1.0 / 38.0 : 1.0 / 11.0, 1.0));
     float g = gn(x * s);

@@ -4,10 +4,11 @@
   var CPOS = CAMV.subarray(0, 3), CR = CAMV.subarray(3, 6), CU = CAMV.subarray(6, 9), CF = CAMV.subarray(9, 12);
   var FOV_LONG = 72;
   var FR = { tanX: 1, tanY: 1, t: 0 }, FRT = { tanX: 1, tanY: 1 };
-  var HZU = new Float32Array(4);
+  var HZU = new Float32Array(4), CAML = new Float32Array(3);
   function setFrameUniforms(P, V) {
     var u = P.u, L = V.L || V.light;
     if (u.uCam) gl.uniform3fv(u.uCam, CPOS);
+    if (u.uCamL) gl.uniform3fv(u.uCamL, CAML);
     if (u.uCamR) gl.uniform3fv(u.uCamR, CR);
     if (u.uCamU) gl.uniform3fv(u.uCamU, CU);
     if (u.uCamF) gl.uniform3fv(u.uCamF, CF);
@@ -41,6 +42,7 @@
     // the horizon shows as a bright line)
     if (u.uHaze) { HZU[0] = L.haze[0]; HZU[1] = L.haze[1]; HZU[2] = L.haze[2] + Math.max(0, (V.clear ? V.clear[1] : 14) - 14) * 1.6; HZU[3] = L.haze[3]; gl.uniform4fv(u.uHaze, HZU); }
     if (u.uHazeC) gl.uniform3fv(u.uHazeC, L.hazeC);
+    if (u.uMist) mistU(u, L);   // (delight-weather 1: the mist pools)
     if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
     if (u.uAmbU) gl.uniform3fv(u.uAmbU, L.ambU);
     if (u.uAmbD) gl.uniform3fv(u.uAmbD, L.ambD);

@@ -12,7 +12,7 @@ void main() {
   if (gD.x > 0.0) p += gD.x * vec3(sin(t * (0.21 + 0.07 * gC.w) + ph), 0.5 * sin(t * (0.17 + 0.05 * gC.w) + ph * 1.7), cos(t * (0.19 + 0.06 * gC.w) + ph * 2.3));
   else if (gD.x < 0.0) { float f = fract(t * gC.z / -gD.x + gC.w); p.y += gD.x * f; p.xz += 0.4 * sin(t * 0.9 + ph) * vec2(1.0, 0.7); fall = smoothstep(0.0, 0.1, f) * (1.0 - smoothstep(0.7, 1.0, f)); }
   if (gD.y > 0.0) p.y += gD.y * sin(t * (1.1 + 0.5 * gC.w) + ph);
-  vec3 v = p - uCam; float dist = length(v), far = gD.w > 0.0 ? gD.w : 3000.0;
+  vec3 v = eyeRel(p); float dist = length(v), far = gD.w > 0.0 ? gD.w : 3000.0;
   vec4 c = uVP * vec4(v, 1.0);
   vQ = aQ;
   if (c.w < 0.3 || dist > far) { gl_Position = vec4(0.0, 0.0, -2.0, 1.0); vCol = vec3(0.0); return; }

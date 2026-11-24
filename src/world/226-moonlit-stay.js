@@ -74,6 +74,7 @@
     return S;
   }
   function moonStep(t) {
+    venusStep();   // (227: the evening star's plan, once a visit, against the still's window at the opening)
     meteorStep(t);   // (219: the night stay's meteors, planned as their time comes)
     var E = moonStay(t); MOON.E = E;
     if (E && !E.moon && E === SKY.seq[0] && E.landT === undefined) E.landT = t;   // (the opening's own moonlit stay: its moon in frame at the cut, the plan timed to it: 225's P.land)
@@ -98,6 +99,7 @@
       for (ix = cx - n; ix <= cx + n; ix++) for (iz = cz - n; iz <= cz + n; iz++) {
         var C = new Cell(V, sc, ix, iz), dx = C.cx - ex, dz = C.cz - ez, dd = Math.sqrt(dx * dx + dz * dz);
         if (dd > L.radius + L.size || (dd > 1.5 * L.size && Math.abs(angd(Math.atan2(dx, dz) / DEG, psi)) > MOON_VEIL_AZ)) continue;
+        if (C.air) C.dL = airD(V, SIM.t);   // (an air cell laid out where the air has carried it by now, as 230's cellLayout lays it out)
         var api = cellApi(C); V.def.cell(api, RNG(api.hash), KITAPI);
         for (i = 0; i < C.clouds.length; i++) CL.push([C, i]);
       }
@@ -179,6 +181,7 @@
     return P.ec >= Pn.lo - 1e-9 && P.ec <= Pn.hi + 1e-9 && mrTopOK(P.band, I, I.pN) && mrTopOK(P.band, I, I.pL);
   }
   function moonResized(heightOnly) {
+    venusResized(heightOnly);   // (227: the evening star planned again for the new window)
     var E = MOON.E, P = E && E.moon; if (!P) return;
     var I = moonInputs(E); if (!I) return;
     var Pn = moonPlan(I, { psi: P.psi, Hc: P.Hc, caseA: P.caseA, sigma: P.sigma });
@@ -210,9 +213,11 @@
     else { SKYN.moon[0] = 0; SKYN.moon[1] = 1; SKYN.moon[2] = 0; SKYN.moon[3] = 0; }
     SKYN.night[0] = fx[0]; SKYN.night[1] = SUNU.on ? 0 : fx[1]; SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;   /* (physics: night/stars) the twinkle held at 0 in reduced motion and in the still (one frame: a twinkle's phase would be a hashed brightness frozen into it) */ SKYN.night[3] = STAR_TOP_Y;
     if (u.uSunB) { SUNU.sb[0] = SUNU.on ? fx[1] : 0; SUNU.sb[1] = SUNU.on && V && V.L ? V.L.hi[1] : 0; gl.uniform4fv(u.uSunB, SUNU.sb); }   // (in a change between a twilight sky and a night the wisps and the veil drawn by their own blocks)
+    nightBodiesUniforms(u);   // (227: the stars' limit and the evening star)
     if (u.uAnv) { var AN = SKY.anv; gl.uniform4f(u.uAnv, AN ? AN.az : 0, AN ? AN.d : 0, anvSunEl(), V && V.light ? V.light.sunAz * DEG : 0); }   // (physics: weather/far-anvil)
     if (u.uAnvF) gl.uniform4fv(u.uAnvF, anvFlashAt(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt));   // (the owner's "Soft distant flicker": the storm's lightning at the drawn time)
     if (u.uHalo) gl.uniform4f(u.uHalo, MOON.E ? MOON.E.veil : 0, HALO_K, 0, 0);   // (physics: weather/moon-halo: the veil of the moonlit stay whose moon is up)
+    if (u.uPurp) gl.uniform4fv(u.uPurp, purpleAt(-skyDepth(), V && V.light ? V.light.sunAz * DEG : 0));   // (physics: sky/purple-light: 227's skyDepth, the sky's own sun's depth, one way through a change)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
     meteorUniforms(u);   // (219: the meteor on show)
     if (u.uGal) { var G = SKY.gal; gl.uniform4f(u.uGal, G.pole[0], G.pole[1], G.pole[2], fx[2]); gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], 0); gl.uniform4f(u.uAur, 0, SKY.aur.ph, SKY.aur.base, fx[3]); }

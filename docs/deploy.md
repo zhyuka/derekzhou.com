@@ -54,6 +54,13 @@ Allow auto-merge; and a ruleset on main (Settings > Rules) requiring the status 
 admin as a bypass actor so the merge bot's own landings (MERGE_TOKEN is the owner's) are not held. Rulesets on a
 private repository need a paid plan (GitHub Pro).
 
+The static checks on five runners (2026-11-24): on one 4-core hosted runner validate's 40 checks took about 7.6
+minutes, each slowed by the others beside it. validate.yml is a matrix of five shards; each builds once and runs its
+share (tools/check.mjs --shard i/5), split by tools/checks/costs.json's seconds, longest first to the least-loaded
+shard, so every shard computes the same split (test/unit/check-shards.mjs: each check on exactly one shard, the matrix
+the command's n). A check not in costs.json counts 10 s; refresh the table from a validate log when the split drifts.
+The ruleset requires `verdict`, never a job's name, so the shards' names (validate (0/5) ...) need no setting.
+
 Where CI runs (2026-11-23): nowhere on the owner's PC (the owner: "None on my PC", 2026-11-23). The repository is
 public, so GitHub's standard hosted runners are free, and every job runs on `ubuntu-latest`: the gate's static, plan,
 T1 and verdict; merge, post-deploy, scheduled, validate; the Stills look-up. test/unit/fork-guard.mjs fails on any
@@ -72,8 +79,15 @@ T1's base records are cached by the
 runner's image (ImageOS) as well as its OS and architecture, so a record rendered in WSL is never compared with a
 hosted runner's frames.
 
+T1 on four runners (2026-11-24): T1's four shards ran as four processes on one 4-core hosted runner, 400-435 s each,
+the gate's longest job once validate was sharded. They are a matrix now, a shard a runner (gate.yml's t1, `t1 (N/4)`):
+each restores and saves its own record (the cache key ends -s<N>), hands off its own artifact gate-t1-s<N>, and writes
+its manifest's sha256 as its own job output sha_<N> (handoff.mjs put --as sha_<N>); a leg sets only its own, so the
+verdict gets all four and reads each shard pinned to its own. A shard that did not hand off is missing from the
+verdict's count, which then says T1 did not report (T1_SHARDS).
+
 The hand-off (2026-11-23): the gate's jobs pass each other the two builds and T1's shards as the run's own artifacts,
-gate-served and gate-t1, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
+gate-served and, from each of T1's four runners, gate-t1-s<N>, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
 storage is metered for private repositories only; the 2026-11-15 quota that moved the hand-off onto the PC's disk
 was the private repository's. .github/ci/handoff.mjs still lays the folder out (gate/<run id>-<attempt>/NAME with a
 sha256 manifest, under HANDOFF_ROOT, which every job sets to its own runner.temp/handoff); each reader (T1,
@@ -85,24 +99,43 @@ workflow_run that cannot see the gate's job outputs, fetches the Gate run's gate
 (actions: read) and pins the builds to the verdict's served_sha. The verdict the merge bot trusts is the gate-verdict
 artifact (30 days), whose upload fails the verdict job if it fails.
 
+## The smoke and Cloudflare's bot challenge
+
+post-deploy.yml's smoke (.github/ci/smoke.mjs) runs from a GitHub runner, whose datacenter IP Cloudflare's bot
+protection sometimes challenges (b4615db and a72acc9, 2026-11-23: / answered 403 with Cloudflare's challenge page,
+while elsewhere it answered 200 with the site's CSP). A challenge (.github/ci/cf-challenge.mjs: `cf-mitigated:
+challenge`, or a 403 from `server: cloudflare` without _headers' CSP whose body is Cloudflare's challenge page) is not
+the site's answer. A WAF block, an Access denial or an edge error is: a visitor meets it too, and the smoke fails on it.
+/ is asked again 3 times, 15, 30 and 60 s apart. If it is still challenged, the smoke warns "challenged by Cloudflare:
+can't tell" and skips the checks of / and of the files / references. A challenged private path or unknown path is
+"can't tell" too, never "behind Access" or the 404 page. A warning fails nothing, so no issue opens, and the run's
+summary reads "passed, N can't tell". Every other answer, and every other check, stays strict. A skip rule in
+Cloudflare's WAF would let the smoke see the site every time. It would need something a visitor can't send: a secret
+header, not the smoke's user agent, which anyone can copy.
+
 ## The stills
 
 The openings' stills (the world's first frames, baked on a real GPU by tools/gpu/bake-stills.js, #197) are not
 in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
 key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt.
 The Cloudflare build fetches its own key's set with STILLS_TOKEN (a Pages secret) and ships without it on any failure.
-The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and live never
-goes without its set:
+The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and a set is
+only ever its own world's:
 - stills.yml, after every green Gate run on main: is the set for the tip's key up (one request)? Then the tip's commit
-  status `stills` is success. Not up: failure, saying no stills exist for this world yet (never a red main).
-- The deploy gate (merge-bot.mjs): live moves to a tip that has tools/gpu/bake-stills.js only once its `stills` status
-  is success (bot-rules.mjs stillsReady). merge.yml ticks when stills.yml completes.
+  status `stills` is success. Not up: success too, saying the world ships without stills (never a red main).
+- The deploy gate (merge-bot.mjs): a tip that has tools/gpu/bake-stills.js waits only while its `stills` status is
+  failed or pending (bot-rules.mjs stillsReady). No status passes: stills.yml posts none once its commit is no longer
+  main's tip, nor where main's gate was cancelled, and the build fetches its key's set or ships without. merge.yml
+  ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
-  its sha256 (.github/ci/stills-live.mjs).
+  its sha256; with no set, live must ship without stills cleanly (.github/ci/stills-live.mjs).
 The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23.
-CI no longer bakes: a served change that makes a new key holds live (its status failure) until a replacement lands.
-What replaces it is open (the hub decides, for the owner): narrowing the key to what the canvas reads, so a change
-the canvas never sees reuses the set it has; a bake by hand on a Mac for a world change; or shipping without.
+CI no longer bakes, so a served change that makes a new key ships without stills: the first paint the words over the
+hour's still sky, then the world's first frame drawn whole as the cut, no fade and no still from another key
+(tools/checks/47-first-paint.sh proves it on every gate, on a phone and a laptop; post-deploy's stills-live.mjs checks
+live asks for no still and says so in build.txt). Live never waits for a bake. Later: a key of what the canvas reads
+(sound and the site's metadata are outside it; CSS, fonts and the words reach it), so a change it never sees keeps its
+set; and a measured SwiftShader bake on hosted runners.
 
 The owner's steps (once; until they are done the build ships without stills, as before):
 1. A token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.

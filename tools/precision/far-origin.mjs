@@ -19,7 +19,7 @@ const rows = [
   ['dunes dN(p / 140), plateau terraces (140 m)', 140, 300, (R) => dom(R, 140)],
   ['cloud billows |P| / scale, scale drifting by 1e-4 (#221)', null, 300, (R) => R * 1e-4],
 ];
-for (const R of [131e3, 524e3]) {
+for (const R of [86e3, 131e3, 524e3]) {
   console.log(`\n${(R / 1e3).toFixed(0)} km from the start (fp32 ulp of R: ${ulp(R)} m)`);
   for (const [what, feat, dist, f] of rows) {
     const e = f(R), px = e / (dist * PXM);

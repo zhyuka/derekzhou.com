@@ -73,9 +73,11 @@
   /* bootNeed: a distance weight over 0 about (cx, cz), the cell's own or one of its cloud bodies' (known once it is
      resolved), m metres nearer. bootReady: the show's test: every cell of the wanted set resolved, every needed
      one (BOOT_M nearer: the pre-roll's step and rounding) whole, no full rebuild waiting */
+  var BOOTP = new Float64Array(3), BOOTO = new Float64Array(2);   // (scratch: a body's place, the air's carry)
   function bootNeed(V, C, cx, cz, m) {
-    if (distFadeAt(V, C.sc, Math.max(nearDist(C, cx, cz) - m, 0)) > 0) return true;
-    for (var k = 0; k < C.vols.length; k++) { var o = C.vols[k].out, dx = o.c[0] - cx, dz = o.c[2] - cz; if (distFadeAt(V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r - m, 0)) > 0) return true; }
+    var air = C.air ? airD(V, SIM.t, BOOTO) : null;   // (an air cell's bounds are in the air: the point taken there; its bodies where the air has carried them)
+    if (distFadeAt(V, C.sc, Math.max(nearDist(C, air ? cx - air[0] : cx, air ? cz - air[1] : cz) - m, 0)) > 0) return true;
+    for (var k = 0; k < C.vols.length; k++) { var o = C.vols[k].out, pc = o.c0 ? cloudPos(o, SIM.t, BOOTP) : o.c, dx = pc[0] - cx, dz = pc[2] - cz; if (distFadeAt(V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r - m, 0)) > 0) return true; }
     return false;
   }
   function bootReady(V, cx, cz) {
