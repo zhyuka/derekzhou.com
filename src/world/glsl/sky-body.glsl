@@ -19,6 +19,7 @@ uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centr
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
 uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
+uniform vec4 uJup;    // (night) the bright outer planet: its direction, its peak (Y; 0 while the visit has none)
 uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), the sky light's weight in nightLim (1 in a twilight, 0 from 18 deg down)
 uniform vec4 uMetH, uMetT;   // (delight-night §2) the meteor on show: its head's direction and light (Y; 0: none), its tail's direction and its width (px)
 uniform vec3 uMetC;          // its colour, at luminance 1
@@ -208,15 +209,14 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
    0.8-1.0 against the stars' 0.5-0.7), with a fixed soft glare about it (5 px across at 13%: §1's 4-6 px at 10-15%); its peak never past Y uStarM.z (OKLab L 0.49 in
    its warm white) whatever the sky under it, its light whole while the sky under it stays under that: it is seen
    wherever the sky is darker than it, and goes behind the sea and the land by place as the sun's depth takes it down */
-vec3 venusAt(vec3 rd, vec3 c) {
-  vec3 sd = uVen.xyz;
+vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, vec3 col) {   // (both planets: Venus at uStarM.z in its warm white, the outer one at uJup.w in its pale cream)
   float zf = dot(sd, uCamF);
   if (zf <= 0.01) return vec3(0.0);
   vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   if (dot(d, d) > 400.0) return vec3(0.0);
-  float hv = max(uStarM.z - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
+  float hv = max(top - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
   float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);
-  return vec3(1.0583, 0.9954, 0.8738) * min(v, hv) * (1.0 - hazeSky(rd));
+  return col * min(v, hv) * (1.0 - hazeSky(rd));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
@@ -408,7 +408,8 @@ void main() {
     for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rd, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
     c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)
   }
-  if (uVen.w > 0.0 && rd.y > 0.0) c += venusAt(rd, c);   // (night) the evening or morning star
+  if (uVen.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uVen.xyz, uStarM.z, vec3(1.0583, 0.9954, 0.8738));   // (night) the evening or morning star
+  if (uJup.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uJup.xyz, uJup.w, vec3(1.0409, 0.9959, 0.9208));   // (night) the bright outer planet
   if (anvCov > 0.0) c = mix(c, cBA, anvCov);   // (physics: weather/far-anvil) the galaxy, the aurora, the moon and the stars behind the storm's body
 #ifdef SKY_HOOK
   c = skyHook(rd, c);
