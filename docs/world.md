@@ -197,6 +197,16 @@ window's own view and words (the night after the cut is seen there); a new windo
 plans it again (moonResized; the phone's bar only when its path now crosses
 a word). It slips against the stars, which turn on their own
 clock, until that forward clock lands (delight-visit §5.5).
+The bright outer planet (src/world/227-night-bodies.js, JUP_*): a second
+planet of the same kind, Jupiter's (magnitude about -2.4), on the same ecliptic
+through the drawn sun, 90-180 deg from it on either side (an outer planet's
+elongation, up to opposition), so on a night it stands high in the dark half of
+the sky; steady, pale cream (at luminance 1, C under 0.05), its peak under OKLab
+L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
+(bodyPick: of 12 elongations from its own stream, 1201, its side from 1202, the
+first whose path keeps off the words in the still's window and the live one,
+in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
+point and glare, its own top and colour); no clear path, none this visit.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
