@@ -105,7 +105,14 @@ tools/dup-names.mjs          No name declared twice in one scope of a served scr
 tools/where.mjs              Where a world name is declared, and which sections read, assign and write it
 tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, headless, in about a minute (places passed,
                              the first near pass, flocks, crossings, the sky's changes, look runs, the longest gap)
-tools/visit/headings.mjs     Each land's first heading chosen by the ruler: a near pass by 40 s, the least longest gap
+tools/visit/headings.mjs     Each land's first heading chosen by the ruler and the frames' look: no more than look-rule.mjs's
+                             share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
+tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
+                             in the words' boxes and the top band, the Milky Way and the low sun left clear (looks.json);
+                             --table re-measures only the table's headings and each land's own (about 30 minutes)
+tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, and
+                             worldKey: the key of what looks.json was measured on (KEY_INPUTS: the cloud layout, the
+                             opening's view, the words' layout; not the sky, the land's surface or the birds)
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
 tools/clouds/edge-specks.mjs A cloud edge's specks and high-frequency residual on a frame, by hand (node tools/clouds/edge-specks.mjs FRAME.png x0 y0 x1 y1)
