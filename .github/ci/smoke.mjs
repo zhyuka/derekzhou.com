@@ -7,12 +7,15 @@
 // byte for byte and the home page references every file the commit's index.html does (Cloudflare rewrites HTML, so
 // HTML is not compared byte for byte). Then: every file the pages reference answers 200 (immutable, but the HTML);
 // the home page's CSP is _headers' own, with HSTS; an unknown path is the 404 page with status 404; the repository's
-// own files are not served (/CLAUDE.md, /%43LAUDE.md, /.github/..., the font scripts); the private paths go to the
+// own files are not served (/CLAUDE.md, /%43LAUDE.md, /.github/..., the font scripts); every file stored as Brotli comes
+// with Content-Encoding: br and the stored bytes, never re-encoded by the zone; the private paths go to the
 // Access sign-in (302 to *.cloudflareaccess.com, or 401/403), never 200. Exit 1 on any failure. A / that Cloudflare's
 // bot protection still challenges after 3 tries (cf-challenge.mjs) is a warning, "can't tell", not a failure.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import https from 'node:https';
+import http from 'node:http';
 import { parseHeaders, headersFor } from './serve.mjs';
 import { challenged, said } from './cf-challenge.mjs';
 
@@ -21,7 +24,14 @@ const URL0 = (A.url || 'https://derekzhou.com').replace(/\/$/, ''), SITE = A.sit
 const PRIVATE = (A.private || '/studio/,/studio').split(',');
 const NOT_SERVED = ['/CLAUDE.md', '/%43LAUDE.md', '/.gitignore', '/.github/workflows/validate.yml', '/subset-fonts.sh', '/download-fonts.sh', '/package.json', '/src/world.v8.js', '/tools/minify.mjs'];
 const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex');
-const get = async (p, opt = {}) => { const r = await fetch(URL0 + p, { redirect: 'manual', headers: { 'cache-control': 'no-cache', 'user-agent': 'derekzhou.com-post-deploy-smoke' }, ...opt }); return { status: r.status, headers: r.headers, body: Buffer.from(await r.arrayBuffer()) }; };
+// Every request offers br as a browser does, so a cache entry the smoke's request fills is never one a browser would not
+// get (2026-11-11: the zone re-encoded the stored Brotli for a client that did not offer it, 117,677 B for 101,460).
+const UA = 'derekzhou.com-post-deploy-smoke', ENC = 'br, gzip, deflate';
+const get = async (p, opt = {}) => { const r = await fetch(URL0 + p, { redirect: 'manual', headers: { 'cache-control': 'no-cache', 'accept-encoding': ENC, 'user-agent': UA }, ...opt }); return { status: r.status, headers: r.headers, body: Buffer.from(await r.arrayBuffer()) }; };
+// the body as it came over the wire, not decoded (fetch decodes Content-Encoding)
+const raw = (p) => new Promise((res, rej) => (URL0.startsWith('https:') ? https : http).get(URL0 + p, { headers: { 'cache-control': 'no-cache', 'accept-encoding': ENC, 'user-agent': UA } }, (r) => {
+  const c = []; r.on('data', (d) => c.push(d)); r.on('end', () => res({ status: r.statusCode, headers: r.headers, body: Buffer.concat(c) })); r.on('error', rej);
+}).on('error', rej));
 const refsOf = (html) => [...new Set([...html.matchAll(/(?:href|src)="(\/[^"#?]+)"/g)].map((m) => m[1]))];
 const files = fs.readdirSync(SITE, { recursive: true }).map(String).filter((f) => fs.statSync(path.join(SITE, f)).isFile() && !path.basename(f).startsWith('_'));
 
@@ -82,6 +92,18 @@ for (const r of refs) {
   const x = await get(r);
   const imm = /immutable/.test(x.headers.get('cache-control') || '');
   check(x.status === 200 && (r.endsWith('.html') || imm), `${r}: ${x.status}${imm ? ', immutable' : ', NOT immutable'}`);
+}
+// The stored Brotli is what is served: every file whose _headers block says Content-Encoding: br (tools/build.mjs
+// precompress: the content-named scripts and stylesheet, Brotli 11) comes over the wire with Content-Encoding: br and
+// the build's own bytes. Anything else means the zone decoded and re-encoded it (a lower quality, more bytes for every
+// cold visit: BACKLOG row 1, fixed 2026-11-11 by a cache rule; this is its live check).
+for (const f of files) {
+  const p = '/' + f.split(path.sep).join('/');
+  if (!want(p, 'Content-Encoding').some((v) => /^br$/i.test(v.trim()))) continue;
+  const x = await raw(p).catch((e) => ({ status: 0, headers: {}, body: Buffer.from(String(e)) })), mine = fs.readFileSync(path.join(SITE, f));
+  if (challenged(x)) { warn.push(`${p} challenged by Cloudflare: can't tell whether its stored Brotli is served (${x.status}; ${said(x)})`); continue; }
+  const enc = String(x.headers['content-encoding'] || 'none');
+  check(x.status === 200 && enc === 'br' && x.body.equals(mine), `${p}: the stored Brotli served as stored (${x.status}, ${enc}, ${x.body.length} B${x.body.equals(mine) ? '' : ' against ' + mine.length + ' B stored'})`);
 }
 // not served: 404, or site/_redirects sending the spelling home (a 301 to /: Pages' asset-preservation cache still holds
 // some of these from before the move into site/, and a redirect is checked before Pages falls back to it)
