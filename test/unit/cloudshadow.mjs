@@ -5,7 +5,7 @@
 // the key's direct share of its light (the clear-sky model, https://www.nrel.gov/docs/legosti/old/761.pdf) and gets
 // part back through the cloud (two-stream diffuse transmission, https://doi.org/10.1119/1.15109), read where its
 // point meets the plane the lobes were cast on.
-// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  return c * cloudShadow(p, ndl);   // (physics: light/cloud-shadow)", "with": "  return c;", "why": "the sand never under the clouds' shadow"}
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  return c * cloudShadow(p, ndl);", "with": "  return c;", "why": "the sand never under the clouds' shadow"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));", "with": "return 1.0 - f * (1.0 - exp(-tau));", "why": "no light scattered through the cloud: an opaque floor under a thick one"}
 // plant: {"file": "src/world/glsl/fs-cshadow.glsl", "find": "exp(-uCShK.x * ch / 32.0)", "with": "exp(-uCShK.x * ch)", "why": "the depth stored whole: 8 bits clip a cloud's past 5.5, and the land reads it 32 times over"}
 // plant: {"file": "src/world/262-cloud-shadow.js", "find": "var off = cellOff(C, t, CSHO), S = C.soft;", "with": "var off = cellOff(C, 0, CSHO), S = C.soft;", "why": "the shadows left where the clouds were laid out, not where the wind has carried them"}
