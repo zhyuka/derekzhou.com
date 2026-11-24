@@ -102,6 +102,56 @@
     for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;
     return AIR_WX;
   }
+  /* THE WEATHER BY WIND (physics: air/weather): what the visit's own wind (V.u10, no new draw) and the sky make of
+     the air, for each reader to read (LAND's mist, CLOUDS' lenticulars and banners, the haze): wx(t) = { mist, oro,
+     ridge, vis, dust }.
+     - mist (m deep): radiation mist pooled on the sand on a still clear night, thickest before sunrise. Each sky's
+       depth (AIR_MIST: first light 10, a night 3.5, the blue hour 1, the afterglow 0) is scaled by the visit's own
+       moisture (moist, 0..1), which carries the wind's mixing too (a visit moist enough for mist is calm enough to
+       keep it: its surface wind is under 3 m/s on every sky with mist). Radiation fog needs air near
+       saturation as well as a calm clear night (https://glossary.ametsoc.org/wiki/Radiation_fog), and a coastal fog
+       desert's is mostly advective: marine boundary-layer air from over the cool upwelling coast, carried inland, its fog
+       and low cloud at their most in the early morning and gone soon after sunrise
+       (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
+       the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
+       mixed out (U10 under 4.02 m/s whole, none past 4.1: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune openings, 3, 10 and 14, by
+       the live visit's seed, the hub's ruling; about 28% of visits moist; no new draw,
+       the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
+       (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
+       never jumps and never races;
+     - oro (0..1): the orographic gate, the visit's own (U10 alone, the whole visit): the ridge-top wind is the log
+       law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (oroU; eased over 7.2-8.2: U10 about 6) the ridges
+       stand lee waves, lenticulars and banner clouds; N (0.01/s, the stable troposphere's buoyancy frequency, the value
+       CLOUDS' lens takes) sets the lee wave's length, 2 pi U / N, so the lens reads one weather (wx(t).oroU, .N);
+     - vis (km): the visit's own visibility, 10 km in clean air, 4 km in blown sand once U10 is past the sand's
+       threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
+       never fades in place */
+  var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };
+  var AIR_MIST_RATE = 0.18, AIR_WXK = { ridge: 1.28, oro: [7.2, 8.2], oroU: 7.7, N: 0.01, vis: [10, 4], dust: [5.8, 7] };   // (oroU: the ridge-top wind the gate opens at, the middle of oro's ease; N: the troposphere's buoyancy frequency, 1/s, the lee wave's: its wavelength 2 pi U / N)
+  var AIR_WXO = { mist: 0, moist: 0, oro: 0, ridge: 0, oroU: AIR_WXK.oroU, N: AIR_WXK.N, vis: AIR_WXK.vis[0], dust: 0 };
+  var AIR_MOIST = [4.02, 4.1];   // (the moisture: whole under this U10, none past this, m/s)
+  function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }   // 0..1: the visit's low-level moisture (its marine layer in)
+  function airMistOf(id, q) { var d = AIR_MIST[id]; return d === undefined ? 0 : q * d; }   // a sky's mist depth on this visit, m (q its moisture)
+  function airMistAt(t, q) {   // the mist's level at the flight's t: each sky's depth, moved toward the next at AIR_MIST_RATE from its change's start (a closed form: a ramp that spills into the next hold if it must)
+    var seq = SKY.seq; if (!seq.length) return 0;
+    var tS = t + (SKY.dt || 0), i = airIdx(seq, tS), j, e, a, b, t0, r;
+    for (j = i; j >= Math.max(0, i - 1); j--) {   // (the change under way, else the last one whose ramp may still run)
+      e = seq[j]; if (!seq[j + 1]) continue;
+      t0 = e.at + e.hold; if (tS < t0) continue;
+      a = airMistOf(e.id, q); b = airMistOf(seq[j + 1].id, q); r = AIR_MIST_RATE * (tS - t0);
+      if (r < Math.abs(b - a)) return a + (b > a ? r : -r);
+      if (j === i) return b;
+    }
+    return airMistOf(seq[i].id, q);
+  }
+  function airWx(t, V) {   // the weather the wind makes at the flight's t (the one object, reused)
+    t = t === undefined ? SIM.t : t;
+    var u = u10Of(V), K = AIR_WXK, o = AIR_WXO;
+    o.moist = airMoist(V); o.mist = airMistAt(t, o.moist);
+    o.ridge = K.ridge * u; o.oro = airEase(K.oro[0], K.oro[1], o.ridge);
+    o.dust = airEase(K.dust[0], K.dust[1], u); o.vis = K.vis[0] + (K.vis[1] - K.vis[0]) * o.dust;
+    return o;
+  }
   function airClock(t) { var dt = SKY.dt || 0; airInt(t + dt, AIR_IA); airInt(dt, AIR_IB); for (var c = 0; c < AIR_NC; c++) AIR_TC[c] = AIR_IA[c] - AIR_IB[c]; return AIR_TC; }   // the shares' clocks from the flight's start: s x s
   function airABC(y) {   // the share at y m up as a s + b j + c 1 (the one array, reused)
     var e1 = y <= AIR_SL[0] ? 0 : airEase(0, 1, Math.log(y / AIR_SL[0]) / Math.log(AIR_SL[1] / AIR_SL[0])), e2 = airEase(AIR_SL[2], AIR_SL[3], y);
@@ -237,4 +287,52 @@
     return s;
   }
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
-  var AIRAPI = { draw: airDraw, windAt: windAt, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  /* ONE LIGHT AT NIGHT (physics: air/night-light): the moon is the moonlit sky's light, so on that sky the live key
+     the land, the veils, the motes and the wings shade by (the shaders' uSun) stands on the moon's disc as drawn
+     (airMoonDir: the very moment and route of uMoon), its elevation held to AIR_KEY_EL[0] (5 deg) or more, so the land
+     is never lit from under the horizon. Its weight is the sky's moonlit share (1 through the moonlit sea's hold, 0
+     on every other sky, eased with the light through a change: airMoonShare), and the key moves to it low across the
+     sky, never through it: its azimuth turns about the vertical the shorter way, and its elevation eases between the
+     two ends' (both 5 deg up or more), so the light never stands higher than both ends (a great circle between a key
+     and a disc 150-160 deg apart runs overhead: a light with no body there, the flat sand brighter mid-change than at
+     either end). The turn is the change's own ease (at most about 1.5 x the arc over the change) plus the disc's own
+     path. The way round is taken once a change, toward the disc at the moonlit hold's edge (airMoonRef), so a disc
+     passing opposite the key never flips it. Off the moonlit sky it is the visit's key (keyAt).
+     The clouds stay on the baked key (fs-vbody's uKey: their light depths are baked along it, so their phase, rim and
+     wrap read the same direction); the sky's own sun (uSkyS) stays on the key. airLightDir(L): the direction, the one
+     array, filled in place once a frame (the drawn moment's) */
+  var AIR_LD = new Float32Array(3), AIR_LDM = { t: NaN, L: null, V: null }, AIR_LDT = [0, 0, 0], AIR_MOONR = { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0 };   // (and the hold edge's disc: its own scratch, never the drawn moon's)
+  function airMoonShare(tS) {   // the sky's moonlit share at sky time tS: 1 the moonlit sea's hold, 0 another sky's, eased with the light through a change
+    var seq = SKY.seq; if (!seq.length) return 0;
+    var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--;
+    var e = seq[i], a = e.id === 'moonlit' ? 1 : 0, b = seq[i + 1] ? (seq[i + 1].id === 'moonlit' ? 1 : 0) : a, k = Math.max(0, Math.min(1, (tS - e.at - e.hold) / e.move));
+    return a + (b - a) * k * k * (3 - 2 * k);
+  }
+  function airMoonRef(tS) {   // the sky time of the moonlit hold's edge nearest a change at tS (its start through the change in, its end through the change out; NaN off the moonlit sky's changes)
+    var seq = SKY.seq; if (!seq.length) return NaN;
+    var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--;
+    var e = seq[i], nx = seq[i + 1];
+    if (e.id === 'moonlit') return e.at + e.hold;
+    return nx && nx.id === 'moonlit' ? nx.at : NaN;
+  }
+  function airTurnLow(a, b, r, f, o) {   // the direction f of the way from a to b: its azimuth turned about the vertical, its elevation eased between the ends' (unit a, b; o filled). The way round is the one to r (the disc at the hold's edge), kept through the whole change, so a disc passing opposite the key never flips it
+    var za = Math.atan2(a[0], a[2]), zb = Math.atan2(b[0], b[2]), ea = Math.asin(Math.max(-1, Math.min(1, a[1]))), eb = Math.asin(Math.max(-1, Math.min(1, b[1])));
+    var w = function (x) { return x - Math.round(x / (2 * PI)) * 2 * PI; }, dr = w(r - za), dz = dr + w(zb - za - dr);
+    var z = za + dz * f, el = ea + (eb - ea) * f, c = Math.cos(el);
+    o[0] = Math.sin(z) * c; o[1] = Math.sin(el); o[2] = Math.cos(z) * c; return o;
+  }
+  function airLightDir(L) {   // the live key at the drawn moment (uSun)
+    var V = SIM.V, k = L.sunDir, c, tD = SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt;
+    if (AIR_LDM.t === tD && AIR_LDM.L === L && AIR_LDM.V === V) return AIR_LD;
+    AIR_LDM.t = tD; AIR_LDM.L = L; AIR_LDM.V = V;
+    for (c = 0; c < 3; c++) AIR_LD[c] = k[c];
+    if (!V) return AIR_LD;
+    var f = airMoonShare(tD); if (!(f > 0)) return AIR_LD;
+    var m = airMoonDir(), d = m.d, h = Math.sqrt(d[0] * d[0] + d[2] * d[2]), e = Math.max(Math.asin(Math.max(-1, Math.min(1, d[1]))), AIR_KEY_EL[0] * DEG);
+    if (h < 1e-9) return AIR_LD;   // (the disc at the zenith or the nadir: no azimuth; the key stays)
+    AIR_LDT[0] = d[0] / h * Math.cos(e); AIR_LDT[1] = Math.sin(e); AIR_LDT[2] = d[2] / h * Math.cos(e);   // (the disc, held 5 deg up or more)
+    var tR = airMoonRef(tD), rz = Math.atan2(AIR_LDT[0], AIR_LDT[2]);
+    if (f < 1 && tR === tR) { var q = moonShown(tR, AIR_MOONR).d; if (q[0] * q[0] + q[2] * q[2] > 1e-18) rz = Math.atan2(q[0], q[2]); }   // (the way round: to the disc at the hold's edge)
+    return airTurnLow(k, AIR_LDT, rz, f, AIR_LD);
+  }
+  var AIRAPI = { draw: airDraw, windAt: windAt, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

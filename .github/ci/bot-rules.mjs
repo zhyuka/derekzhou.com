@@ -59,13 +59,15 @@ export function newestArtifact(list) {
 }
 
 // THE STILLS (docs/deploy.md, "The stills"). Once a tip has the bake (tools/gpu/bake-stills.js: #197 onward), the
-// Cloudflare build of it fetches the release for its world's key, so live moves there only once the PC's stills job
-// (stills.yml) has put that release up and said so: the commit status `stills`, success. Before the bake nothing waits.
+// Cloudflare build of it fetches the release for its world's key, so live moves there only once the stills job
+// (stills.yml) has looked and said so: the commit status `stills`, success, whether the set is up or the world has
+// none and ships without stills (CI bakes none). No stills status passes too: the build fetches its key's set or ships
+// without, so only a stills failure or pending holds live. Before the bake nothing waits.
 // statuses: GET /commits/{sha}/statuses, newest first (a re-run's status after the first's): the newest `stills` wins.
 export function stillsReady(hasBake, statuses) {
   if (!hasBake) return { ok: true, why: 'no bake at this tip' };
   const s = (statuses || []).find((x) => x && x.context === 'stills');
-  if (!s) return { ok: false, why: 'its stills release is not up yet (no stills status)' };
+  if (!s) return { ok: true, why: 'no stills status: CI bakes none; the build fetches its key\'s set or ships without' };   // (stills.yml posts none once its commit is not main's tip, nor where main's gate was cancelled: most tips, since #362)
   return s.state === 'success' ? { ok: true, why: s.description || 'stills up' } : { ok: false, why: `its stills status is ${s.state}${s.description ? ' (' + s.description + ')' : ''}` };
 }
 
