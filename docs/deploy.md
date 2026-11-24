@@ -43,6 +43,13 @@ the bot's own files included. A push after the review moves the head, so the lin
 new one. (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.) The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
 its stills are up. The hub sends the owner a daily note of what went live, and "undo X" lands a revert the same way.
 
+**Only a byte-for-byte build lands unreviewed (the hub, 2026-11-24).** Without the hub's line the bot lands a PR only
+when its served build is byte for byte the base's (docs, tests, CI, tools: bot-rules.mjs unreviewedLands). "Frames
+identical" alone no longer lands one: T1 looks only where its cases look, and #373 (a second bright planet) and #354
+(the moon's corona) changed what a visitor sees with every T1 frame the base's. Every PR whose served build differs
+waits for the hub's review, whatever T1 says; the review's carry-over through merges of main (#361) and the reviewed
+PR's landing without a re-gate (#362) are unchanged.
+
 Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
 it once its gate's `verdict` check is green. A new push does not undo it: GitHub merges the head whose checks pass.
