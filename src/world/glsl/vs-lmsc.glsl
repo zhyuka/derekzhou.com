@@ -5,6 +5,6 @@
 uniform int uScat;
 void main() {
   if (uScat == 1) { scMain(); return; }
-  vW = aP; vN = aN; vC = vec4(aC.rgb * 2.0, floor(aC.a * 255.0 + 0.5)); vY = aY; vE = vec2(aE * 15.9375, 0.0);
+  vW = aP; vN = aN; vC = vec4(aC.rgb * 2.0, floor(aC.a * 255.0 + 0.5)); vY = aY; vE = vec2(aE * 15.9375, 0.0); vMT = mistTopAt(vW.xz);
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }

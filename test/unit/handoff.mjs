@@ -38,6 +38,9 @@ test('handoff: put, then get, byte for byte; a changed, missing or extra byte fa
     assert.ok(cli({ ...env, GITHUB_OUTPUT: o }, 'put', path.join(t, 'src'), 'served').ok);
     const pin = /^sha=([0-9a-f]{64})$/m.exec(fs.readFileSync(o, 'utf8'))?.[1];
     assert.ok(pin, 'put writes sha=<manifest sha256> to the step outputs');
+    assert.ok(cli({ ...env, GITHUB_OUTPUT: o }, 'put', path.join(t, 'src'), 't1-s2', '--as', 'sha_2').ok);
+    assert.match(fs.readFileSync(o, 'utf8'), /^sha_2=[0-9a-f]{64}$/m, 'put --as KEY writes KEY=<sha256>: a matrix leg\'s own output');
+    assert.ok(!cli({ ...env, GITHUB_OUTPUT: o }, 'put', path.join(t, 'src'), 'x', '--as', 'a=b').ok, '--as takes a word only');
     assert.ok(cli({ ...env, HANDOFF_SHA: pin }, 'get', 'served', path.join(t, 'p1'), '--pinned').ok);
     fs.writeFileSync(path.join(h, 'assets/a.bin'), Buffer.from([9]));
     const mf = path.join(t, 'root/gate/11-1/served.manifest.json'), m = JSON.parse(fs.readFileSync(mf, 'utf8'));
@@ -91,7 +94,12 @@ test('handoff: the gate and the Stills job pass the builds and T1\'s shards as r
   // gate-verdict artifact only, and every gate reader of the builds and T1's shards is pinned to its putting job's output
   assert.ok(!/handoff\.mjs|ci-handoff|localVerdict/.test(bot), 'the merge bot never reads the PC\'s verdict copy: any run\'s code can write it');
   assert.ok(!/\/verdict\/|handoff\.mjs.*root\(\)/.test(gate), 'T2\'s probe never takes a cached answer from the PC\'s verdict copy');
-  assert.match(gate, /served_sha: \$\{\{ steps\.handoff\.outputs\.sha \}\}/); assert.match(gate, /shards_sha: \$\{\{ steps\.shards\.outputs\.sha \}\}/);
+  assert.match(gate, /served_sha: \$\{\{ steps\.handoff\.outputs\.sha \}\}/); for (let n = 0; n < 4; n++) {   // (T1 on four runners, 2026-11-24: each leg's own output, each read pinned to it)
+    assert.match(gate, new RegExp(`sha_${n}: \\$\\{\\{ steps\\.shards\\.outputs\\.sha_${n} \\}\\}`), `T1's job output sha_${n}`);
+    assert.match(gate, new RegExp(`SHA_${n}: \\$\\{\\{ needs\\.t1\\.outputs\\.sha_${n} \\}\\}`), `the verdict reads shard ${n}'s pin`);
+  }
+  assert.match(gate, /handoff\.mjs put "\$RUNNER_TEMP\/t1" "t1-s\$S" --as "sha_\$S"/, 'each shard hands off under its own name and output');
+  assert.match(gate, /HANDOFF_SHA="\$\{!v\}" node \.github\/ci\/handoff\.mjs get "t1-s\$n" "\$RUNNER_TEMP\/t1\/\$n" --pinned/, 'each shard read pinned to its own output');
 });
 // plant: {"file": ".github/ci/merge-bot.mjs", "find": "async function verdict(run) {", "with": "async function verdict(run) { try { return JSON.parse(fs.readFileSync(path.join('/mnt/c/ci-handoff/verdict', run.id + '-1.json'), 'utf8')); } catch {}", "why": "the bot trusting a verdict file on the PC's shared disk before the artifact"}
 // plant: {"file": ".github/ci/handoff.mjs", "find": "if (sha(mf) !== pin)", "with": "if (false)", "why": "the pin on the manifest dropped"}

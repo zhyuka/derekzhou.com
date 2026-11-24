@@ -217,6 +217,7 @@
     if (u.uAnv) { var AN = SKY.anv; gl.uniform4f(u.uAnv, AN ? AN.az : 0, AN ? AN.d : 0, anvSunEl(), V && V.light ? V.light.sunAz * DEG : 0); }   // (physics: weather/far-anvil)
     if (u.uAnvF) gl.uniform4fv(u.uAnvF, anvFlashAt(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt));   // (the owner's "Soft distant flicker": the storm's lightning at the drawn time)
     if (u.uHalo) gl.uniform4f(u.uHalo, MOON.E ? MOON.E.veil : 0, HALO_K, 0, 0);   // (physics: weather/moon-halo: the veil of the moonlit stay whose moon is up)
+    if (u.uPurp) gl.uniform4fv(u.uPurp, purpleAt(-skyDepth(), V && V.light ? V.light.sunAz * DEG : 0));   // (physics: sky/purple-light: 227's skyDepth, the sky's own sun's depth, one way through a change)
     gl.uniform4fv(u.uMoon, SKYN.moon); gl.uniform3fv(u.uMoonC, SKYN.moonC); gl.uniform3fv(u.uMoonG, SKYN.moonG); gl.uniform4fv(u.uNight, SKYN.night);
     if (u.uSkyF && V) gl.uniformMatrix3fv(u.uSkyF, false, skyFrame(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, V));   // (row-major frame to world, read as columns: world to frame, the stars' and the galaxy's lookup)
     meteorUniforms(u);   // (219: the meteor on show)

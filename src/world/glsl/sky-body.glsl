@@ -15,6 +15,7 @@ uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth
 uniform vec4 uHalo;   // (physics: weather/moon-halo) the ice veil over the moonlit sky: 1 on (about one moonlit stay in three), 0 none; its strength
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
+uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1), its core's direction, in the sky's frame
 uniform mat3 uSkyF;   // (physics: night/sky-turn) world to the sky's frame (215's skyFrame, transposed): the stars and the galaxy turn together, at SKY_RATE
@@ -82,8 +83,16 @@ vec3 haloAt(vec3 rd) {
   vec3 warmD = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(-radians(0.2), radians(1.2), off));   // (as colourless as the ring: by moonlight the eye sees both near white)
   return (warm * ring + warmD * dog * 1.6) * uHalo.y;
 }
-/* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: an edge (as the Earth's shadow over the wisps)
-   climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
+/* (physics: sky/purple-light, strictly additive) the composite's light ceiling (0.525, its knee 0.04: fs-comp) scales a
+   colour whole once its OKLab L passes 0.485, so light added past there takes a level from the colour's largest channel
+   (measured: 886 px a level lower in red at 3 deg down, 0 px with the ceiling off); what the purple light adds is held
+   under PURP_KC, the knee's start less the bloom and grade the composite lays on the sky there (up to L 0.035) */
+const float PURP_KC = 0.45;
+float purpL(vec3 c) {
+  vec3 m = pow(max(vec3(dot(c, vec3(0.4122214708, 0.5363325363, 0.0514459929)), dot(c, vec3(0.2119034982, 0.6806995451, 0.1073969566)), dot(c, vec3(0.0883024619, 0.2817188376, 0.6299787005))), vec3(0.0)), vec3(1.0 / 3.0));
+  return dot(m, vec3(0.2104542553, 0.7936177850, -0.0040720468));
+}
+const float PURP_K = 0.03;   // (physics: sky/purple-light) its strength: Y about +0.02 at its centre before the cap (test/unit/sky.mjs)
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (one sheet low over the key's horizon, its colour by altitude: physics: aurora) */
 /* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: the band opens from its midline outward, an
@@ -322,6 +331,20 @@ void main() {
     vec3 dv = rd - uSkyS; float sx = dot(dv, uCamR), sy = dot(dv, uCamU);
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
+  }
+  if (uPurp.w > 0.0 && rd.y > -0.02) {   // (physics: sky/purple-light) the high haze's glow above the hidden sun, behind the 3 km veil
+    /* a soft pink-purple patch about 14 deg wide on the sun's side, through the ground haze; what it adds held under
+       L 0.50 over whatever sky stands behind it (the soft cap by the room left under Y 0.118: the credit keeps 4.5:1) */
+    float pa = degrees(acos(clamp(dot(rd, uPurp.xyz), -1.0, 1.0)));
+    vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));
+    float yP = dot(pA, LUMA), roomP = max(0.118 - dot(c, LUMA), 0.0);
+    pA *= yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0;
+    if (purpL(c + pA) > PURP_KC) {   // (strictly additive: never into the ceiling's knee, where the whole colour is scaled)
+      float lo = 0.0, hi = purpL(c) >= PURP_KC ? 0.0 : 1.0;
+      for (int i = 0; i < 10; i++) { float m = 0.5 * (lo + hi); if (purpL(c + pA * m) > PURP_KC) hi = m; else lo = m; }
+      pA *= lo;
+    }
+    c += pA;
   }
   /* (physics: weather/far-anvil) the far storm, drawn before everything nearer than it (the 3 km veil and its streaks,
      the Earth's shadow and the Belt: laid over it), and hiding everything farther (the wisps 83 km up, 500-700 km away

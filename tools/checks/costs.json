@@ -1,0 +1,11 @@
+{
+  "_": "each check's seconds on a 4-core hosted runner, beside the others (main's gate 45354746204, 2026-11-24): tools/check.mjs --shard splits by these; a check not here counts 10 s. Refresh from a validate log when the split drifts.",
+  "10-dup-names": 1.3, "11-required-files": 0.0, "12-secrets": 0.1, "13-rules-data": 8.1, "14-deploy-inputs": 0.0,
+  "16-asset-refs": 0.1, "17-no-inline-code": 0.0, "18-lettered-name": 0.4, "19-page-words": 0.3, "20-script-order": 0.0,
+  "21-absences": 7.4, "22-build-check": 32.4, "23-wing-model": 17.2, "24-unit": 348.0, "25-world-rules": 1.2,
+  "26-glsl-guard": 24.6, "27-shaders": 18.4, "28-w7": 28.1, "29-still-skies": 0.1, "30-perch-ink": 50.4,
+  "31-no-fades": 0.6, "32-licences": 0.1, "33-no-frameworks": 0.7, "34-reduced-motion": 3.7, "35-birds": 265.0,
+  "36-load-budget": 11.5, "37-ground-fresh": 314.3, "38-sound": 22.0, "39-boot-frames": 185.5, "40-font-glyphs": 0.2,
+  "41-docs-drift": 0.3, "42-one-air": 73.7, "43-dune-census": 72.6, "44-gust-glsl": 4.9, "45-citations": 0.2,
+  "46-names-in-messages": 0.5, "47-first-paint": 36.1, "70-still-words": 7.3
+}

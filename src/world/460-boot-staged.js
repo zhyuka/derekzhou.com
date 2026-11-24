@@ -65,7 +65,6 @@
   function afterCut() {
     AFTER = true;
     if (SKY.seq && SKY.seq.length && SKY.i >= 0) skyReseed(SEEDR);
-    if (J.V && J.V.evRng) J.V.evRng = RNG(subseed(SEEDR, 5));
     if (BIRDS && BIRDS.after) BIRDS.after(subseed(SEEDR, 0xB1D5));
   }
   function frameBody(ts) {
