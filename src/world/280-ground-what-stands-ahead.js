@@ -59,6 +59,8 @@
     for (i = 0; i <= 16; i++) {
       s = v * T * i / 16; var ye = groundAt(V, CS.x + hx * s, CS.z + hz * s, true) + Math.max(cl[0] * HT_LEAST, lc) - s * TAN_CLIMB;
       if (ye > yT) yT = ye;
+      var yf = fogTopAt(V, CS.x + hx * s, CS.z + hz * s) + 1 + MIST_OVER - s * TAN_CLIMB;   // (and a fog pool's top ahead, climbed onto as a rise is: 234)
+      if (yf > yT) yT = yf;
     }
     // on the slip's planned way (between the line now and the line it is going to: e), and with a lead of CLIMB_LEAD s:
     // the height's spring lags a ramp at TAN_CLIMB by about 2 s of it (2 x its rate / 0.95), so a ramp aimed at the top's
@@ -84,7 +86,7 @@
       var ye4 = obstTop(q) + m + 4 - Math.max(s4 - q.r - lead, 0) * TAN_CLIMB;
       if (ye4 > yT) yT = ye4;
     }
-    return Math.max(yT, g0 + lc);
+    return Math.max(yT, g0 + lc, fogTopAt(V, CS.x, CS.z) + 1 + MIST_OVER);
   }
   /* can the camera climb over a solid (its top with the margin, `top`, s m ahead on the heading)? Only under the
      ceiling the camera will have: simStep's is the ground under the camera + clear[2] + CEIL_OVER. The top against the ground

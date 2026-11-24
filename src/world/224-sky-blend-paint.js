@@ -11,6 +11,7 @@
     blendSky(V);
     var L = V.L, A = SKY.A, B = SKY.B, k = SKY.k, j;
     mistStep(L);   // (delight-weather 1: the mist pools' depth by the sky)
+    fogStep(V, L);   // (and the fog pool in a basin near, AIR's site: 234)
     SKY.sunVis = 0; L.sunVis = 0;   // (no sky draws the sun's disc: sunVis 0 in all six)
     skyArc(A.dir, B.dir, k, SKY.skyS); L.skyS = SKY.skyS;
     SKY.ceil = X.ceil + (Y.ceil - X.ceil) * q; L.ceil = SKY.ceil;

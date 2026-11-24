@@ -130,7 +130,7 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
   /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
      vertices carry (vMB) */
   var MIST_FS = `
-  c = mistOver(c, mistTop(vMB) - vW.y, n, rd, fp);`;
+  c = mistOver(c, max(mistTop(vMB), fogTopAt(vW.xz)) - vW.y, n, rd, fp);`;
   function FS_TERRAIN(H, S) {
     return ZCODE + `
 centroid in vec3 vW; centroid in vec3 vN; centroid in float vX; out vec4 oC;${H === 'Hd' ? S1_IN : ''}
