@@ -893,9 +893,13 @@ at the radius) stands highest over its floor (the lowest centre within the
 radius). The pool's top is that floor plus AIR's depth, held 0.5 m under the
 rim, so it never spills and no edge shows at the radius: the shoreline is
 the ground's own. No hollow over land, no pool. Read once a site by the
-realm's probe (1,377 points), asynchronously. Measured on the same sites:
-10 of 12 hold a pool, a median 8.3 m deep (to 20 m) over 17% of the basin
-(to 47%); the rim still holds every one under AIR's 40 m. It is drawn by
+realm's probe (1,377 points), asynchronously, as the surface drawn (mode 1:
+the land, or the cloud sea's top where it covers the land; the land under
+the sea, mode 0, put a basin's pool under the sea's top, never seen: posed
+in one, base and head frames were the same bytes). Measured on the 16
+openings' sites within 12 km, at 10 m of mist: 91 of 96 hold a pool, a
+median 6.7 m deep (to 21 m) over 17% of the basin; the rim holds every one
+under AIR's 40 m. It is drawn by
 the mist pools' shading (fogTopAt beside mistTop, world-glsl), over the land
 and the stones, and it moves with the one mist, a moving shoreline, never
 a fade. The camera's ground never reads it; the flight keeps over its top
