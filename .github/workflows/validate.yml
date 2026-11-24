@@ -53,4 +53,4 @@ jobs:
           git fetch -q --no-tags origin main
           base=$(git merge-base FETCH_HEAD HEAD)
           git diff --name-only "$base" HEAD > "$RUNNER_TEMP/changed.txt"
-          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt" --shard ${{ matrix.shard }}/5
+          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt" --base "$base" --shard ${{ matrix.shard }}/5

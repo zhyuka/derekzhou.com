@@ -120,6 +120,46 @@
   function dAir(C, R) {
     if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180, len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
   }
+  /* (delight-weather 3) terrain-held clouds: a lenticular over a far ridge's lee wave on a windy visit. Orographic
+     cloud is the one cloud that stands still while the air flows through it: a lens forms in the standing wave in the
+     lee of a ridge when the wind over its crest is at least 7.7 m/s (about 15 kt: AIR's orographic gate, wx().oro) within
+     30 deg of square to it. The far
+     ridges are the land's own (dunes-glsl's ridges(): a site per RS cell, about half kept, the same hashes here); a
+     lens stands at the lee wave's first crest (half a wavelength, pi U / N, out on the crest's normal turned downwind)
+     and is laid out by the 1500 m cell it stands in, from its ridge's own hashes (no draw of the cell's stream moves),
+     where that cell's land is the dunes kit (not over the cloud sea), 1100-1700 m up; it fades with its cell (as the
+     cell's ground does), so it never shows when the cell is made or freed.
+     Its envelope is held (a world cell's); the billows in it flow at the wind at its height (b.flow). Sources:
+     https://cloudatlas.wmo.int/en/clouds-species-lenticularis.html (lenticularis);
+     https://www.eoas.ubc.ca/books/Practical_Meteorology/ (mountain waves: the wavelength 2 pi M / N, N about 0.01/s) */
+  var HELD_H = 100, HELD_SQ = 0.5;   // the crest's height for its wind (the ridge-top flow, 100 m up, m); the wind within 30 deg of square (|cos| to the crest at most 0.5)
+  function dHeld(C) {
+    var V = C.V; if (!V || !V.wind) return;
+    var wx = A.wx(0, V); if (wx.oro < 0.5) return;   // (AIR's orographic gate, the visit's own: the ridge-top wind past wx.oroU, 7.7 m/s, eased over 7.2-8.2)
+    var HN = wx.N, w = A.day(0, 0, HELD_H, V), sp = Math.sqrt(w.x * w.x + w.z * w.z);   // (the weather's buoyancy frequency, read before any other wx; the day's wind over the crest, a fresh object)
+    // a lens is laid out by the cell it stands in (so it fades with its own distance, as every cloud does: laid out with
+    // its ridge's cell, 2-3 km off, it stood past that cell's reach and was never drawn): the ridges of the 3 x 3 ridge
+    // cells about this one, each lens kept by the one cell it falls in (its offset, pi U / N, at most 3.2 km at the
+    // visits' top U10, under RS's 4.5: the Math.min below never binds, a guard that keeps the 3 x 3 cells enough)
+    var ix0 = Math.floor((C.x0 + C.size / 2) / RS), iz0 = Math.floor((C.z0 + C.size / 2) / RS);
+    for (var jz = iz0 - 1; jz <= iz0 + 1; jz++) for (var jx = ix0 - 1; jx <= ix0 + 1; jx++) {
+      var h = K.ihash(K.cellHash(jx, jz, C.salt) ^ 0x51ed27);
+      if ((K.hk(h, 2) >>> 24) >= 115) continue;   // (the ridge's own keep, as ridges())
+      var cx = (jx + 0.25 + 0.5 * K.hfl(h)) * RS, cz = (jz + 0.25 + 0.5 * K.hfl(K.hk(h, 1))) * RS;
+      var half = 900 + 700 * K.hfl(K.hk(h, 3)), ang = K.hfl(K.hk(h, 5)) * PI, ax = Math.cos(ang), az = Math.sin(ang);   // (the crest along (cos, sin) in (x, z), as massif()'s l.x)
+      if (Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) continue;
+      // the lens at the lee wave's first crest, half a wavelength downwind of the ridge: lambda = 2 pi U / N, U the wind
+      // across the crest at the lens's height, N the stable troposphere's buoyancy frequency (the weather's wx().N); at U 8-10 m/s
+      // the crest stands 2.5-3.1 km downwind (a lens right behind the ridge would be a cap cloud)
+      var dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.day(0, 0, dy, V), nx = -az, nz = ax, sg = w.x * nx + w.z * nz < 0 ? -1 : 1;   // (n: the crest's normal in (x, z), turned downwind)
+      var U = Math.abs(hw.x * nx + hw.z * nz), off = Math.min(PI * U / HN, RS), x = cx + sg * nx * off, z = cz + sg * nz * off;   // (the wave train runs across the crest: the lens on its normal, half a wavelength out)
+      if (!C.inside(x, z)) continue;
+      if (C.weights(x, z)[1] > 0.5) continue;   // (the dunes kit's where the lens stands: none over the cloud sea)
+      var T = 45 + 30 * K.hfl(K.hk(h, 23)), n = 1 + (K.hk(h, 24) >>> 30 > 1 ? 2 : (K.hk(h, 24) >>> 30));
+      C.cloud({ kind: 'lens', x: x, z: z, foot: 0, dy: dy, dir: Math.atan2(ax, az), len: half * (1.0 + 0.4 * K.hfl(K.hk(h, 25))), w: 380 + 320 * K.hfl(K.hk(h, 26)), t: T, n: Math.min(n, 3), flow: [hw.x, 0, hw.z], crest: [cx, cz], seed: K.hk(h, 27) });
+    }
+  }
+
   /* a small cell of open dunes: a few stones of its own */
   function dSmall(C, R) {
     var f = R.f(), x = C.x0 + R.r(0.1, 0.9) * C.size, z = C.z0 + R.r(0.1, 0.9) * C.size, k, n;
@@ -165,7 +205,7 @@
     },
     air: function (C, R) { dAir(C, R); },
     cell: function (C, R, K2) {
-      if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); return; }
+      if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); dHeld(C); return; }
       // a small cell: the details of the areas about it that fall in it, and its own stones
       var bx = Math.floor((C.x0 + C.size / 2) / DS), bz = Math.floor((C.z0 + C.size / 2) / DS), out = [], i, j, k;
       for (j = -1; j <= 1; j++) for (i = -1; i <= 1; i++) { var s2 = dSite(bx + i, bz + j, C.salt); if (s2.kind === 1 || s2.kind === 2) { out.length = 0; dDetails(s2, out); for (k = 0; k < out.length; k++) if (C.inside(out[k].x, out[k].z)) C.add(out[k]); } }
@@ -189,6 +229,7 @@
       }
     },
     cloud: function (cl, PF, R) {
+      if (cl.kind === 'lens') { K.lens(PF, R, cl.x, cl.base, cl.z, cl.dir, cl.len, cl.w, cl.t, cl.n, { flow: cl.flow }); return; }
       if (cl.kind === 'range') K.range(PF, R, cl.x - Math.sin(cl.dir) * cl.len / 2, cl.base, cl.z - Math.cos(cl.dir) * cl.len / 2, cl.dir, cl.len, cl.w, cl.h);
     },
     // the scatter: pebbles near, shards of dark stone farther, dark boulders half sunk in the middle distance

@@ -5,6 +5,8 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "galaxyAt(uSkyF * rd, eS)", "with": "galaxyAt(rd, eS)", "why": "the galaxy left out of the sky's turn: it slides against its stars"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best };", "with": "core: airEq(AIR_GAL.centre[0] + 90, AIR_GAL.centre[1]), lie: best };", "why": "the galaxy's core off its band: placed by no sky"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "JUP_TOP_Y = 0.104;", "with": "JUP_TOP_Y = 0.2;", "why": "the outer planet past the light ceiling, brighter than Venus"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0];", "with": "JUPB.eps = RJ.r(JUP_EL[0], JUP_EL[1]);", "why": "the outer planet placed with no clear path: on the words"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float galAlong(float ld) { return 0.25 + 0.28 * (1.0 + cos(radians(ld))) + 0.27", "with": "float galAlong(float ld) { return 0.75 + 0.0 * (1.0 + cos(radians(ld))) + 0.27", "why": "a band as bright at the anticentre as at the core"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "smoothstep(-55.0, -45.0, ld) * (1.0 - smoothstep(75.0, 85.0, ld))", "with": "1.0", "why": "the rift all round the band"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "var CEIL_KNEE = 0.04,", "with": "var CEIL_KNEE = 0.08,", "why": "the ceiling's knee wide again: a night's highlights flattened under it"}
@@ -621,16 +623,23 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   const T = g.match(/^vec3 starTint[\s\S]*?^}/m)[0], cols = [...T.matchAll(/vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]).filter((c) => c[0] !== 0.92);
   assert.equal(cols.length, 4);
   for (const c of cols) { const L = lab(c); assert.ok(Math.abs(Y(c) - Y(W)) < 2e-3, `tint ${c}: Y ${Y(c)}`); assert.ok(Math.abs(L[0] - lab(W)[0]) < 5e-3, `tint ${c}: L ${L[0]}`); assert.ok(Math.hypot(L[1], L[2]) <= 0.0505, `tint ${c}: pastel (C ${Math.hypot(L[1], L[2]).toFixed(4)}, at most 0.05: delight-night §4)`); }
-  const vc = g.match(/return vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* min\(v, hv\)/); assert.ok(vc, 'Venus\'s colour, capped at its head');
+  assert.ok(g.includes('  return col * min(v, hv) * (1.0 - hazeSky(rd));'), 'a planet\'s light capped at its head');
+  const vc = g.match(/planetAt\(rd, c, uVen\.xyz, uStarM\.z, vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\)/); assert.ok(vc, 'Venus\'s colour and top');
   const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
   for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }
+  // the bright outer planet: its own colour at Y 1, pastel; its peak under Venus's and under L 0.475 over any night sky
+  const jc = g.match(/planetAt\(rd, c, uJup\.xyz, uJup\.w, vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\)/); assert.ok(jc, 'the outer planet\'s colour, its top uJup.w');
+  const JC = [+jc[1], +jc[2], +jc[3]], JT = +WORLD.match(/JUP_TOP_Y = ([\d.]+);/)[1], jl = lab(JC);
+  assert.ok(Math.abs(Y(JC) - 1) < 2e-3 && Math.hypot(jl[1], jl[2]) <= 0.05, `the outer planet's colour at Y 1 (${Y(JC).toFixed(4)}), pastel (C ${Math.hypot(jl[1], jl[2]).toFixed(4)})`);
+  assert.ok(JT < K.VEN_TOP_Y, 'the outer planet under Venus');
+  for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(JT - Y(bg), 0), top = bg.map((x, i) => x + JC[i] * hv); assert.ok(lab(top)[0] <= 0.475, `the outer planet over ${bg}: L ${lab(top)[0]}`); }
 });
 test('night: the evening star never glitters as it slides between pixels (its light the same within 2%)', () => {
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const fn = (name) => g.match(new RegExp('^float ' + name + '\\(([^)]*)\\) \\{(.*)\\}\\s*$', 'm'));
   const js = (src) => src.replace(/\bfloat\s+/g, 'let ').replace(/\b(sign|sqrt|exp)\(/g, 'Math.$1(').replace(/(\d)\.(?!\d)/g, '$1.0');
   const E = fn('starErf'), B = fn('starBox'), starErf = new Function(E[1].replace(/float /g, ''), js(E[2])), starBox = new Function('starErf', B[1].replace(/float /g, ''), js(B[2])).bind(null, starErf);
-  const V = g.match(/^vec3 venusAt[\s\S]*?^}/m)[0];
+  const V = g.match(/^vec3 planetAt[\s\S]*?^}/m)[0];
   assert.ok(V.includes('sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;') && V.includes('float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);') && V.includes('min(v, hv)') && !/uT\b/.test(V), 'venusAt: its core, glow and cap as measured here, and no clock (steady)');
   let seed = 3; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
   for (const hv of [0.02, 0.05, 0.1]) {
@@ -684,7 +693,7 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   assert.ok(rho >= 0.9, `the rank correlation ${rho.toFixed(3)} (at least 0.9)`);
   assert.ok(worst <= 0.02, `a star's share changes ${(100 * worst).toFixed(2)}% in a frame (at most 2%)`);
   const N = fs.readFileSync(path.join(ROOT, 'src', 'world', '227-night-bodies.js'), 'utf8');
-  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, NIGHTB.side, D0) || (I2 && venusFails(I2, F, e, NIGHTB.side, D0))) continue;') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
+  assert.ok(N.includes('NIGHTB.none = NIGHTB.eps < 0;') && N.includes('if (venusFails(I, F, e, side, D0) || (I2 && venusFails(I2, F, e, side, D0))) continue;') && N.includes('JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0];') && N.includes('JUPB.seed === J.seed && JUPB.eps >= 0') && N.includes('NIGHTB.seed === J.seed && !NIGHTB.none'), 'no clear path down: no Venus');
   console.log(`# stars out in order: rank correlation ${rho.toFixed(3)}, the fastest change ${(100 * worst).toFixed(2)}% a frame`);
 });
 // the evening star's plan on the still's own window (the hub's round-3 review of #301): 227's venusPlan and venusFails
@@ -695,7 +704,7 @@ const VPLAN = cut(WORLD, '  var MRD = Math.PI', '  function mrSamples(') + cut(W
 function venusWorld(seed, keyAz, landing) {
   return vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
     '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n  function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }\n' + STREAMS + VEC + cut(WORLD, '  function airSunEl(id)', '\n', true).replace(/function airSunEl\(id\)/, 'function airSunEl0(id)') + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + VPLAN +
-    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})')(seed, keyAz, landing);
+    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})')(seed, keyAz, landing);
 }
 test('night: the evening star\'s plan on the lo still\'s window keeps its whole path down off the words; a window all words has none', () => {
   const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), boxes = SW['lo-393x861'];
@@ -728,39 +737,39 @@ test('night: the evening star\'s plan on the lo still\'s window keeps its whole 
 // against 226's STILL_WORDS, then its whole path down walked in the smallest window, as the still is shown there at
 // the cut (cover) and in that window's own view (226's stillView), against that window's own boxes
 // (test/golden/still-words.json): no place of it within the keep and its glow (12 + VEN_GLOW px) of a word
-test('night: the evening star and its glow keep off the words on each band\'s smallest window', () => {
+test('night: the evening star, the outer planet and their glow keep off the words on each band\'s smallest window', () => {
   const SF = vm.runInThisContext('(function () { var DEG = Math.PI / 180, CAMUP = ' + /var CAMUP = ([\d.]+);/.exec(WORLD)[1] + ', FOV_LONG = ' + /var FOV_LONG = ([\d.]+);/.exec(WORLD)[1] + ', MOON_KEEP = ' + /MOON_KEEP = ([\d.]+)/.exec(WORLD)[1] +
     '; function smooth(a, b, x) { var t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); } function lerp(a, b, t) { return a + (b - a) * t; }\n' +
     cut(WORLD, '  function frustumFor(', '  function setFrustum(') + cut(WORLD, '  var STILL_MIN = ', '  function stillInputs(') + ' return { stillFrame, stillView }; })')();
   const G = JSON.parse(fs.readFileSync(path.join(ROOT, 'test', 'golden', 'still-words.json'), 'utf8'));
-  let planned = 0, onWords = 0, nearest = Infinity; const where = [];
+  let planned = 0, plannedJ = 0, onWords = 0, nearest = Infinity; const where = [];
   for (const key of Object.keys(G)) {
     const [tier, sh] = key.split('-'), [w0, h0] = sh.split('x').map(Number), Fr = SF.stillFrame(tier, w0, h0, [0.4, 0.6]), [sw, shh] = G[key].min, small = G[key].small;
     const c = Math.max(sw / Fr.bw, shh / Fr.bh), vS = SF.stillView(Fr.bw, Fr.bh, [0.4, 0.6], {}), vL = SF.stillView(sw, shh, [0.4, 0.6], {});
     const views = [['at the cut', { W: sw, H: shh, tanX: vS.tanX * (sw / c) / Fr.bw, tanY: vS.tanY * (shh / c) / Fr.bh }, Fr.pN], ['in its own view', { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY }, vL.pN]];
-    for (let s = 1; s <= 6; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (const off of [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50]) {   // (headings across the glow: the evening star anywhere over the words)
+    for (let s = 1; s <= 6; s++) for (const sky of ['afterglow', 'bluehour', 'firstlight', 'night']) for (const off of [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 100, 150, 180]) {   // (headings across the glow: the evening star anywhere over the words; and away from it, the outer planet's half; a night opening: the sun at 24 deg)
       const keyAz = (s * 53) % 360, K = venusWorld(s * 2654435761 >>> 0, keyAz, { sky }), psi = keyAz + (sky === 'firstlight' ? 1 : -1) * 30 + off, grow = 12 + K.VEN_GLOW;
       const I = { W: Fr.W, H: Fr.H, tanX: Fr.tanX, tanY: Fr.tanY, pN: Fr.pN, pL: Fr.pN, keepPx: Fr.keepPx, boxes: Fr.boxes.map((b) => b.slice()), psi };
       const I2 = { W: sw, H: shh, tanX: vL.tanX, tanY: vL.tanY, pN: vL.pN, pL: vL.pN, keepPx: 12, boxes: small.map((b) => b.slice()), psi };   // (the live window's own view and words: the night after the cut)
       assert.ok(K.venusPlan(K.V, I, I2));
-      if (K.NIGHTB.none) continue;
-      planned++;
-      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0);
-      for (const [view, Lw, pN] of views) {
+      const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0), bodies = [];
+      if (!N.none) { bodies.push([N.eps, N.side, 'Venus']); planned++; }
+      if (K.JUPB.eps >= 0) { bodies.push([K.JUPB.eps, K.JUPB.side, 'the outer planet']); plannedJ++; }
+      for (const [eps, side, who] of bodies) for (const [view, Lw, pN] of views) {
         const C = K.mrCam(psi, pN);
         for (let D = N.D0; D <= 24 + 1e-9; D += 0.5) {
-          const d = K.venusDir(F, N.eps, N.side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
+          const d = K.venusDir(F, eps, side, D, N.D0, [0, 0, 0]); if (d[1] <= 0) break;
           const q = K.mrProj(C, Lw, d); if (q[2] <= 0 || Math.abs(q[0]) > 1 || Math.abs(q[1]) > 1) continue;
           const x = (q[0] + 1) / 2 * sw, y = (1 - q[1]) / 2 * shh;
           for (const B of small) nearest = Math.min(nearest, Math.hypot(Math.max(B[0] - x, 0, x - B[2]), Math.max(B[1] - y, 0, y - B[3])));
-          if (small.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; where.push(`${key} at ${sw}x${shh} ${view}, seed ${s} ${sky} heading ${psi}, D ${D}`); break; }
+          if (small.some((B) => x > B[0] - grow && x < B[2] + grow && y > B[1] - grow && y < B[3] + grow)) { onWords++; where.push(`${who}: ${key} at ${sw}x${shh} ${view}, seed ${s} ${sky} heading ${psi}, D ${D}`); break; }
         }
       }
     }
   }
-  assert.ok(planned > 150, `${planned} evening stars planned (the test is not empty)`);
+  assert.ok(planned > 150 && plannedJ > 300, `${planned} evening stars and ${plannedJ} outer planets planned (the test is not empty)`);
   assert.equal(onWords, 0, `paths within the keep and glow of the words in the smallest windows: ${where.slice(0, 6).join('; ')}`);
-  console.log(`# evening star on the bands' smallest windows: ${planned} planned, none within 12 + glow px of a word (the nearest ${nearest.toFixed(1)} px)`);
+  console.log(`# evening star and outer planet on the bands' smallest windows: ${planned} and ${plannedJ} planned, none within 12 + glow px of a word (the nearest ${nearest.toFixed(1)} px)`);
 });
 // ------------------------------------------------------------------ the sky's lights behind its haze (aurora-haze)
 // the galaxy and the aurora are behind the haze, as the moon is: each term scaled by what the haze lets through

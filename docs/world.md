@@ -36,6 +36,28 @@ between: sharp in the distance, never a ring), bloom, and the composite
 nothing that fizzes). The light shafts' pass is still in the code, but no
 sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
+
+Terrain-held clouds (delight-weather 3): on a windy visit (the wind over
+a far ridge's crest, 100 m up, at least 7.7 m/s and within 30 deg of
+square to it) a lenticular stands at the ridge's lee wave's first crest, half a
+wavelength out on the crest's normal, turned downwind (pi U / N: U the wind across the crest at the
+lens's height, N 0.01/s, a stable troposphere's buoyancy frequency; 1.9-3.0 km on windy visits, at most
+3.2 km at the visits' top U10; https://www.eoas.ubc.ca/books/Practical_Meteorology/)
+and 1100-1700 m up: one to three smooth lens plates
+(120's lens), laid out by the 1500 m cell the lens stands in (the cell scans
+the 3 x 3 ridge cells about it), from the ridge's own hashes (dunes-glsl's
+ridges(): the land raises the same ridges), never where it would stand over
+the cloud sea. It fades with its cell, not by its own distance, so it never
+pops in when the cell is made or out when it is freed. Its envelope is held (a world
+cell's); only its billows flow through it, at the wind at its height
+(410 moves their offset in doubles; the shader reads no clock).
+test/unit/lenticular.mjs: the gate, the ridges, the place on the crest's
+normal, the held envelope, the flow within 5% of windAt, the plates' shape,
+no pop at the cell's birth or freeing, a census of every ridge's lens (each
+laid out once, by its own cell), and a census of a flight (windy visits:
+about one lens in reach in half the minutes of a flight, at most three;
+calm: none).
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
@@ -199,6 +221,16 @@ window's own view and words (the night after the cut is seen there); a new windo
 plans it again (moonResized; the phone's bar only when its path now crosses
 a word). It slips against the stars, which turn on their own
 clock, until that forward clock lands (delight-visit §5.5).
+The bright outer planet (src/world/227-night-bodies.js, JUP_*): a second
+planet of the same kind, Jupiter's (magnitude about -2.4), on the same ecliptic
+through the drawn sun, 90-180 deg from it on either side (an outer planet's
+elongation, up to opposition), so on a night it stands high in the dark half of
+the sky; steady, pale cream (at luminance 1, C under 0.05), its peak under OKLab
+L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
+(bodyPick: of 12 elongations from its own stream, 1201, its side from 1202, the
+first whose path keeps off the words in the still's window and the live one,
+in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
+point and glare, its own top and colour); no clear path, none this visit.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -606,7 +638,15 @@ physics: clouds/drift). It holds:
   place (their private 5.6-8.4 s cycles are gone). The birds read
   HOST.gust (the excess along the wind, m/s), HOST.gustPhase (the
   field's own clock there, the same at every height) and HOST.gustSigma.
-  The grains' speed, the perched lean and the score are not on it yet.
+  The grains hop with it (physics: air/grain-hop; airHop, AIR_HOP): a
+  sand grain's hop is (1 + e)^2 of its calm one, e the gust's excess over
+  the wind at the grain (in the day's wind, the gust's intensity x the
+  gustiness x the field's unit noise), held to 0.3-2.5: the hop scales as
+  the friction speed squared. It reads the field on the grain's own clock
+  (tau, so its streak's tail is the same grain a moment back); its drift
+  stays the mean wind's closed form, so a gust never moves a grain and
+  nothing jumps. The score hears the field through the feed (the air
+  heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
@@ -663,6 +703,14 @@ physics: clouds/drift). It holds:
   it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
   the same with the pole, the ecliptic's pole, the galactic pole and
   centre and the frame's own sun.
+- The air heard (physics: air/heard; airHeard, WORLD.air.heard): the one
+  air where the listener is, for the score: windAt's wind there, the gust
+  arriving (gustAt), its sigma and the field's clock (gustPhase), a fresh
+  object, and carry, the speed the gusts pass at (U10 x the sky's surface
+  share). The score's feed carries it at the camera, at its height over
+  the ground, with the wind's bearing from the eye's way and the apparent
+  wind (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds it to a
+  hand-computed wind for a fixed visit, and its gusts to carry.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's
