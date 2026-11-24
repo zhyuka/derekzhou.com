@@ -63,3 +63,34 @@ test('fog: drawn by the mist pools\' shading over the land and the stones, and t
   assert.match(WORLD, /fogTopAt\(V, CS\.x, CS\.z\) \+ 1\);/, 'the hard rule\'s floor 1 m over it');
   assert.match(WORLD, /var ceil = Math\.max\(groundAt\(V, CS\.x, CS\.z, false\) \+ cl\[2\], fogTopAt\(V, CS\.x, CS\.z\) \+ 1 \+ MIST_OVER\) \+ CEIL_OVER;/, 'the ceiling over the pool\'s least');
 });
+
+// a dive held across a basin's fog pool (40 m deep over a 60 m hollow, its top 20 m under the flats): heightTarget,
+// its fog terms and the spring cut from the world as it ships; the hard rule's floor 1 m over the pool's top never acts,
+// the camera eases over the top by the least, and the height's change of speed stays within the spring's limits
+test('fog: a dive held across a 40 m fog pool never meets the hard rule; it eases over the top by the spring', () => {
+  const HT = cut(WORLD, '  var TAN_CLIMB = ', '  /* can the camera climb over a solid');
+  const SPRING = cut(WORLD, '    var yT = heightTarget(V, t), w = VY_W', '    CS.x += (Math.sin(CS.psi)');
+  const SPRINGK = WORLD.includes('  var VY_J = ') ? cut(WORLD, '  var VY_J = ', '\n', true) : '';
+  const fly = (fogAhead) => vm.runInThisContext('(function (fogAhead) {\n  \'use strict\';\n  var DEG = Math.PI / 180, CLIMB_LEAD = 2.2, SLIP_T = 90, SLIP_REACH = 1200;\n' +
+    '  var SX = 0, SZ = 1500, R = 700, TOP = -20;\n' +
+    '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
+    '  function groundAt(V, x, z) { var d = Math.hypot(x - SX, z - SZ) / R; return d < 1 ? -60 + 60 * d * d : 0; }\n' +
+    '  function inPool(x, z) { return Math.hypot(x - SX, z - SZ) < R; }\n' +
+    '  var held = false; function fogTopAt(V, x, z) { return (fogAhead || held) && inPool(x, z) ? TOP : -Infinity; }\n' +
+    '  function nearObstacles() { return []; }\n  function climbOK() { return true; }\n  var CS = {};\n' + HT + '\n' + SPRINGK +
+    '\n  var out = { push: 0, acc: 0, low: 1e9 }, V = { speed: 12, clear: [7, 14, 45], L: { mist: 10 }, def: { margin: 12 } }, cl = V.clear, dt = 1 / 60;\n' +
+    '  CS = { x: 0, z: 0, psi: 0, c: 14, vy: 0, ay: 0, latT: 0, lat: 0, climbs: null }; CS.y = groundAt(V, 0, 0) + CS.c;\n' +
+    '  for (var s = 0; s < 3000; s += V.speed * dt) {\n    CS.c += V.speed * Math.sin(-0.35) * dt * 0.9; CS.c = clamp(CS.c, leastAt(V, cl), cl[2]);\n' +
+    '    var t = 0, vy0 = CS.vy;\n' + SPRING +
+    '    if (s > 60) out.acc = Math.max(out.acc, Math.abs(CS.vy - vy0) / dt);\n' +
+    '    CS.z += V.speed * dt;\n' +
+    '    held = true; var gh = Math.max(groundAt(V, CS.x, CS.z) + Math.max(cl[0] * 0.6, V.L.mist + 1), fogTopAt(V, CS.x, CS.z) + 1); held = false;\n' +
+    '    if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; out.push++; }\n' +
+    '    if (inPool(CS.x, CS.z)) out.low = Math.min(out.low, CS.y - TOP);\n  }\n  return out;\n})')(fogAhead);
+  const r = fly(true);
+  assert.equal(r.push, 0, `the hard rule acted ${r.push} times across the pool`);
+  assert.ok(r.low >= 1.5, `the camera came within ${r.low.toFixed(2)} m of the pool's top (the hard rule's floor 1 m over it)`);
+  assert.ok(r.acc <= 1.0 + 1e-6, `the height's change of speed ${r.acc.toFixed(2)} m/s2 (the spring's own limits)`);
+  const blind = fly(false);
+  assert.ok(blind.push > 0 || blind.low < 1.5, `with the height blind to the pool, the dive meets its floor (${blind.push} pushes, ${blind.low.toFixed(2)} m): the test can tell`);
+});
