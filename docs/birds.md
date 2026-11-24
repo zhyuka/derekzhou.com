@@ -61,7 +61,11 @@ and the pointer move. The ledges come from what is served
 drawing in site/index.html and the link words and the credit in the
 served fonts; CI makes it again): every column's stroke tops of the
 name, curves and slopes included, every glyph top of the links and the
-credit, never an underline. Every 16-34 s a bird of a perching kind
+credit, never an underline. No ledge of the name lies under a stroke:
+one with ink overhanging it within a perched bird's height (120 of the
+name's units, 48 to each side) is cut, the inside of a closed counter or
+under a crossbar, where the letters drawn over a bird would show it inside
+the letter. Every 16-34 s a bird of a perching kind
 (gull, crow, swallow, finch) in front of the camera may notice the
 letters: a lone bird, or one to three of a passing flock while the rest
 fly on. It first matches the perch's motion, then closes on it, down a
@@ -86,7 +90,8 @@ If the perch gets away it goes round once, far out, then flies on. At
 most 6 on the letters, one coming down at a time. On the perch it faces
 into the wind (a row turning bird by bird as the wind shifts), turns by
 steps and now and then hops round, raises its wings or rouses (a tenth
-of its time at most, at gaps of its own), walks a stroke, steps aside
+of its time at most, at gaps of its own), walks a stroke (planned to stay on
+its flat middle, never onto the shoulder where it ends), steps aside
 for a newcomer; the end bird of a row looks out. It leaves by its own
 wish, to a flock of its kind passing (it joins it), or startled: a crouch
 and a lean, a leap, a few strong beats, then on in the world on any

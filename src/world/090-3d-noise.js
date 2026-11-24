@@ -78,11 +78,11 @@
   }
   /* stage E: a layer a call (sync: every layer left), and once every layer is baked, level 0 uploaded whole and the
      mipmaps made (generateMipmap, as before); true once done. No clock read: the boot calls it once a frame */
-  function noiseStep(sync) {
+  function noiseStep(sync, deadline) {   // (deadline, WebKit boot: after C, layers while the frame's slice lasts, not all at once)
     if (NOISE.done) return true;
     if (!NOISE.vol || !NOISE.t) return false;
     var N = NOISE_N;
-    while (NOISE.z < N) { noiseLayer(NOISE.z); NOISE.z++; if (!sync) break; }
+    while (NOISE.z < N) { noiseLayer(NOISE.z); NOISE.z++; if (!sync && !(deadline && clockNow() < deadline)) break; }
     if (NOISE.z < N) return false;
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_3D, NOISE.t);
     gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, N, N, N, gl.RGBA, gl.UNSIGNED_BYTE, NOISE.vol);
