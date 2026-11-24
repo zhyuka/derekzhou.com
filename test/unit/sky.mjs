@@ -797,7 +797,7 @@ test('physics: night/sky-turn: the stars stand where the sky\'s frame puts them 
 
 test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 deg/s, nothing while its rise is 0 (no fades)', () => {
   // 222's own skyGal over a stay (its hold and changes at their shortest and longest), run here: the rise 0 outside the
-  // stay, 1 at the hold's middle, straight; the shader's edge (2 x GAL_E deg over the rise) never faster than 0.3 deg/s;
+  // stay, 1 at the hold's middle, straight; the shader's edge (GAL_E + 1.5 deg over the rise) never faster than 0.3 deg/s;
   // and the shader draws nothing at rise 0 (galVis 0, the galaxy's draw and the stars' crowding both gated on it)
   const fn = cut(WORLD, '  var GAL_IN = ', '\n  }\n', true), clamp = (x, a, b) => Math.min(Math.max(x, a), b);
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8'), E = +g.match(/const float GAL_E = ([\d.]+);/)[1];
