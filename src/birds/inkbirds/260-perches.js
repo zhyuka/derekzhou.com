@@ -44,6 +44,15 @@
     return NAME_INK;
   }
   function inkTops(c) { var I = nameInk()[c], o = []; if (!I) return o; for (var i = 0; i < I.length; i++) if (I[i][1] < PERCH_INK.h && I[i][1] - I[i][0] >= PERCH_INK.room) o.push(I[i][1] - 1); return o; }
+  /* head-room: no ledge under a stroke. A perched bird stands up to 0.63 of its span tall (measured; its body, the most
+     of it, nearer 0.45) and its body about 0.17 of it to each side (a gull's span ~270-300 of the name's units on every window), and the letters are drawn over the birds:
+     so a ledge is cut where, within 48 units each side of its middle, ink overhangs it nearer than 120 units
+     (the inside of a closed counter or under a crossbar: a bird there read as standing inside the letter, the PC's #314
+     frames). Sky that runs up to the name's top is open */
+  function headroom(c, y) {   // (120 units up, 8 columns of 6 each side)
+    for (var I = nameInk(), cc = c - 8, j, q; cc <= c + 8; cc++) for (j = 0; j < (I[cc] || []).length; j++) { q = I[cc][j]; if (y >= q[0] && y < q[1] && q[0] > 0 && y - q[0] < 120) return false; }
+    return true;
+  }
   /* the name's ledges in its own units (x, y pairs along each), made once: a relayout only maps them */
   var NAME_LEDGES = null;
   function nameLedges() {
@@ -55,7 +64,7 @@
       for (i = 0; i < T.length; i++) {
         var U = [], ok = true;
         for (k = -sp; k <= sp && ok; k++) { var y = k ? nearTop(TOPS[c + k], T[i]) : T[i]; if (!(y === y)) ok = false; else U.push((c + k) * PERCH_INK.col + PERCH_INK.col / 2, y); }
-        if (ok) out.push(U);
+        if (ok && headroom(c, T[i])) out.push(U);
       }
     }
     return (NAME_LEDGES = out);

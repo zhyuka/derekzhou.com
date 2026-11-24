@@ -33,7 +33,7 @@ vec3 massif(vec2 p, vec4 m, vec4 b, float seed) {
   vec2 dlx = vec2(ca, sa) / m.z, dly = vec2(-sa, ca) / m.z;
   /* (fast500 D) the four taps' noise in one loop (one copy of gnd for FXC), each tap's multiply and gradient turn as before */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0;
-  for (int t = 0; t < 4 + uZ; t++) {
+  for (int t = 0; t < 4 + UZ; t++) {
     vec2 o = t == 0 ? vec2(seed * 57.0) : (t == 1 ? vec2(0.0) : (t == 2 ? vec2(13.0) : vec2(29.0)));
     float kk = t == 0 ? 1.1 : (t == 1 ? 2.4 : 2.2);
     vec3 g = gnd(mat2(kk / m.z) * (p + o));
@@ -157,7 +157,7 @@ vec3 dunes(vec2 p) {
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd, not seven), each tap's own multiply
      as before and its gradient turn after (dNg, its matrix a constant as before): the same operations on the same values */
   vec3 g0 = vec3(0.0), g1 = g0, g2 = g0, g3 = g0, g4 = g0, g5 = g0, g6 = g0, q0 = g0, q1 = g0, q2 = g0, q3 = g0;
-  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + uZ; o++) {
+  for (int o = 0; o < (wSmall > 0.0 ? 7 : 5) + UZ; o++) {
     vec3 g, q;
     if (o == 1 || o == 4) g = gndH((o == 1 ? D_M1 : Ma) * (p + D_TO[o]), q);
     else if (o == 2 || o == 3) g = gndH(vec2(dot(p, pp) * D_TS[o], o == 2 ? 3.7 : 11.3), q);   // (physics: sand/S1: the crests' wander, a slice in the across-wind coordinate)
@@ -230,9 +230,9 @@ vec3 D_Hd(vec2 p) {
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
   vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);   // (fast500 D) the plateaux' vertex-only taps, once
-  for (int k = 0; k < 9 + uZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }
 /* (world6) the bays' sea of cloud and its shading are gone: the cloud sea is the world's (HdSea, shadeSea) */
@@ -274,7 +274,7 @@ vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
    x * s as before (the same values; the landmarks keep rockCol: lanes/D/RESULT.md) */
 vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
   float y = 0.0, b1 = 0.0, b2 = 0.0, g40 = 0.0;
-  for (int o = 0; o < 4 + uZ; o++) {
+  for (int o = 0; o < 4 + UZ; o++) {
     vec2 x = o < 2 ? p.xz : vec2(y, o == 2 ? 1.7 : 4.1);
     vec2 s = o == 0 ? vec2(1.0 / 260.0) : (o == 1 ? vec2(1.0 / 40.0) : vec2(o == 2 ? 1.0 / 38.0 : 1.0 / 11.0, 1.0));
     float g = gn(x * s);
