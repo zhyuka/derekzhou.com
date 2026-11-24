@@ -15,9 +15,11 @@ uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth
 uniform vec4 uHalo;   // (physics: weather/moon-halo) the ice veil over the moonlit sky: 1 on (about one moonlit stay in three), 0 none; its strength
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
+uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
 uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
+uniform vec4 uJup;    // (night) the bright outer planet: its direction, its peak (Y; 0 while the visit has none)
 uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), the sky light's weight in nightLim (1 in a twilight, 0 from 18 deg down)
 uniform vec4 uMetH, uMetT;   // (delight-night §2) the meteor on show: its head's direction and light (Y; 0: none), its tail's direction and its width (px)
 uniform vec3 uMetC;          // its colour, at luminance 1
@@ -80,6 +82,16 @@ vec3 haloAt(vec3 rd) {
   vec3 warmD = mix(vec3(1.0, 0.8, 0.66), vec3(1.0), smoothstep(-radians(0.2), radians(1.2), off));   // (as colourless as the ring: by moonlight the eye sees both near white)
   return (warm * ring + warmD * dog * 1.6) * uHalo.y;
 }
+/* (physics: sky/purple-light, strictly additive) the composite's light ceiling (0.525, its knee 0.04: fs-comp) scales a
+   colour whole once its OKLab L passes 0.485, so light added past there takes a level from the colour's largest channel
+   (measured: 886 px a level lower in red at 3 deg down, 0 px with the ceiling off); what the purple light adds is held
+   under PURP_KC, the knee's start less the bloom and grade the composite lays on the sky there (up to L 0.035) */
+const float PURP_KC = 0.45;
+float purpL(vec3 c) {
+  vec3 m = pow(max(vec3(dot(c, vec3(0.4122214708, 0.5363325363, 0.0514459929)), dot(c, vec3(0.2119034982, 0.6806995451, 0.1073969566)), dot(c, vec3(0.0883024619, 0.2817188376, 0.6299787005))), vec3(0.0)), vec3(1.0 / 3.0));
+  return dot(m, vec3(0.2104542553, 0.7936177850, -0.0040720468));
+}
+const float PURP_K = 0.03;   // (physics: sky/purple-light) its strength: Y about +0.02 at its centre before the cap (test/unit/sky.mjs)
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
    fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
@@ -197,15 +209,14 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
    0.8-1.0 against the stars' 0.5-0.7), with a fixed soft glare about it (5 px across at 13%: §1's 4-6 px at 10-15%); its peak never past Y uStarM.z (OKLab L 0.49 in
    its warm white) whatever the sky under it, its light whole while the sky under it stays under that: it is seen
    wherever the sky is darker than it, and goes behind the sea and the land by place as the sun's depth takes it down */
-vec3 venusAt(vec3 rd, vec3 c) {
-  vec3 sd = uVen.xyz;
+vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, vec3 col) {   // (both planets: Venus at uStarM.z in its warm white, the outer one at uJup.w in its pale cream)
   float zf = dot(sd, uCamF);
   if (zf <= 0.01) return vec3(0.0);
   vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   if (dot(d, d) > 400.0) return vec3(0.0);
-  float hv = max(uStarM.z - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
+  float hv = max(top - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
   float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);
-  return vec3(1.0583, 0.9954, 0.8738) * min(v, hv) * (1.0 - hazeSky(rd));
+  return col * min(v, hv) * (1.0 - hazeSky(rd));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
@@ -256,6 +267,20 @@ void main() {
     vec3 dv = rd - uSkyS; float sx = dot(dv, uCamR), sy = dot(dv, uCamU);
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
+  }
+  if (uPurp.w > 0.0 && rd.y > -0.02) {   // (physics: sky/purple-light) the high haze's glow above the hidden sun, behind the 3 km veil
+    /* a soft pink-purple patch about 14 deg wide on the sun's side, through the ground haze; what it adds held under
+       L 0.50 over whatever sky stands behind it (the soft cap by the room left under Y 0.118: the credit keeps 4.5:1) */
+    float pa = degrees(acos(clamp(dot(rd, uPurp.xyz), -1.0, 1.0)));
+    vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));
+    float yP = dot(pA, LUMA), roomP = max(0.118 - dot(c, LUMA), 0.0);
+    pA *= yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0;
+    if (purpL(c + pA) > PURP_KC) {   // (strictly additive: never into the ceiling's knee, where the whole colour is scaled)
+      float lo = 0.0, hi = purpL(c) >= PURP_KC ? 0.0 : 1.0;
+      for (int i = 0; i < 10; i++) { float m = 0.5 * (lo + hi); if (purpL(c + pA * m) > PURP_KC) hi = m; else lo = m; }
+      pA *= lo;
+    }
+    c += pA;
   }
   /* (physics: weather/far-anvil) the far storm, drawn before everything nearer than it (the 3 km veil and its streaks,
      the Earth's shadow and the Belt: laid over it), and hiding everything farther (the wisps 83 km up, 500-700 km away
@@ -314,10 +339,13 @@ void main() {
   // (tod) the sky's night: each its amount times its shape, 0 at amount 0
   float eS = degrees(asin(clamp(rd.y, -1.0, 1.0)));
   if (uNight.x > 0.0 && eS > -1.0) {   // the Earth's shadow rising opposite the sky's own light, and the Belt of Venus over it (the live's belt)
-    float se = degrees(asin(clamp(uSkyS.y, -1.0, 1.0))), side = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(-uSkyS.xz + 1e-5)), 0.0, 1.0), 2.0) * uNight.x * smoothstep(-1.0, 0.0, eS);
+    float se = degrees(asin(clamp(uSkyS.y, -1.0, 1.0))), sideS = pow(clamp(0.5 + 0.5 * dot(normalize(rd.xz + 1e-5), normalize(-uSkyS.xz + 1e-5)), 0.0, 1.0), 2.0) * smoothstep(-1.0, 0.0, eS), side = sideS * uNight.x;
     float hs = 1.0 + max(-se, 0.0) * 1.1;
     float sh = 1.0 - smoothstep(hs - 0.8, hs + 1.2, eS), bl = smoothstep(hs - 0.4, hs + 2.0, eS) * (1.0 - smoothstep(hs + 5.0, hs + 13.0, eS));
-    c = mix(c, c * vec3(0.72, 0.78, 0.95), sh * side * 0.55);
+    /* (physics: twilight/shadow) the Earth's shadow blue-grey, h 270, at the sky's own lightness (OKLab L within 0.005
+       either way: the tint's luma 1.05, which OKLab's L reads as equal; never a darkening), whole at its core in any
+       sky that has a belt (a partial mix passes through mauve) */
+    c = mix(c, dot(c, LUMA) * vec3(0.861, 1.04, 1.68), sh * sideS * min(uNight.x / 0.4, 1.0));
     c += vec3(0.95, 0.6, 0.66) * bl * side * dot(c, LUMA) * 0.35;
   }
   vec3 cBA = c;   // (physics: weather/far-anvil) the sky as it stands before what lies beyond the far storm (the wisps, 83 km up: 500-700 km away on its rays)
@@ -380,7 +408,8 @@ void main() {
     for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rd, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
     c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)
   }
-  if (uVen.w > 0.0 && rd.y > 0.0) c += venusAt(rd, c);   // (night) the evening or morning star
+  if (uVen.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uVen.xyz, uStarM.z, vec3(1.0583, 0.9954, 0.8738));   // (night) the evening or morning star
+  if (uJup.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uJup.xyz, uJup.w, vec3(1.0409, 0.9959, 0.9208));   // (night) the bright outer planet
   if (anvCov > 0.0) c = mix(c, cBA, anvCov);   // (physics: weather/far-anvil) the galaxy, the aurora, the moon and the stars behind the storm's body
 #ifdef SKY_HOOK
   c = skyHook(rd, c);

@@ -107,3 +107,14 @@ export function textAnswer(r) {
   if (r.status === 1 && !/cannot be read/.test(r.stdout || '')) return { land: false, comment: true, why: "the PR's title or body holds a banned name (RULES.json naming)" };
   return { land: false, why: `guard.py --text could not check it (exit ${r.status}${/cannot be read/.test(r.stdout || '') ? ', names.json unreadable' : ''}): held` };
 }
+
+// The no-review path (the hub, 2026-11-24): only a served build byte for byte the base's lands without the hub's mark
+// (docs, tests, CI, tools). "Frames identical" alone is not enough once the build differs: T1 looks only where its
+// cases look, and #373 (a second bright planet) and #354 (the moon's corona) changed what a visitor sees with every T1
+// frame the base's. A verdict that does not say (site_changed missing) counts as changed.
+export function unreviewedLands(v) {
+  if (!v) return { ok: false, why: 'no verdict' };
+  if (v.site_changed !== false) return { ok: false, why: 'the served build differs from the base\'s (T1 sees only its own cases): waits for the hub\'s review' };
+  if (!v.frames_identical) return { ok: false, why: `frames may change (${v.reason}): waits for the hub's review` };
+  return { ok: true };
+}

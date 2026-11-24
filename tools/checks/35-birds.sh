@@ -14,6 +14,7 @@
 # plant: {"file": "src/birds/inkbirds/260-perches.js", "find": "if (ok && headroom(c, T[i])) out.push(U);", "with": "if (ok) out.push(U);", "why": "every name ledge kept, those under a stroke too: a bird inside a closed counter (the PC's #314 frames, a crow inside the Z)"}
 # plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "n = Math.min(n, Math.floor(Math.max(0, (x - P.x) * dir) / step));", "with": "n = n;", "why": "a walk not planned to the stroke: it stops past the stroke's end, on the shoulder where the ink curves away (the planned-walk test: 2,029 of 2,216 walks end past the ink)"}
 # plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "if (P.yawTo !== undefined && t - P.yawT < P.yawD && t >= P.yawT) {", "with": "if (false) {", "why": "a leave in the middle of a turn: the turn drawn on, the crouch and the lift coming in at once at its end (1.89x the 144 Hz bound, the hub's round 8)"}
+# plant: {"file": "src/birds/inkbirds/260-perches.js", "find": "var y = surfY(Lg.pts, P.x); o[0] = P.x; o[1] = y === y ? y : Lg.y;", "with": "var y = surfY(Lg.pts, P.x); o[0] = P.x; o[1] = (y === y ? y : Lg.y) + 2.5 * (P.li % 2);", "why": "a ledge's support 2.5 px off its neighbour's: a walk handing on from one to the next snaps its body (the walk-across-ledges test: 2.39x the 144 Hz bound)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 pids=(); i=0; total=0; clock=()

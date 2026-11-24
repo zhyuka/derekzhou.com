@@ -20,6 +20,7 @@
     if (u.uPxK) gl.uniform1f(u.uPxK, Math.max(1, OUT.dpr * SS / 1.25));   // (the world's pixels a pixel of the display's: 1 but in a supersampled reference)
     if (u.uSalt) gl.uniform1ui(u.uSalt, V.salt);
     if (u.uAir) gl.uniform4fv(u.uAir, UAIR);
+    if (u.uAirU) gl.uniform1f(u.uAirU, u10Of(V));   // (the gust field's reference speed, the visit's U10: the veils' lift and the grains' hop)
     if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));   // (the live key: on the moonlit sky, the moon's disc as drawn: physics: air/night-light)
     if (u.uKey) gl.uniform3fv(u.uKey, L.sunDir);   // (the baked key: the clouds' light, along their light depths)
     if (u.uGlory) gl.uniform4fv(u.uGlory, gloryUniform());   // (the cloud sea's glory: the moon's direction and amount)
@@ -42,6 +43,7 @@
     // the horizon shows as a bright line)
     if (u.uHaze) { HZU[0] = L.haze[0]; HZU[1] = L.haze[1]; HZU[2] = L.haze[2] + Math.max(0, (V.clear ? V.clear[1] : 14) - 14) * 1.6; HZU[3] = L.haze[3]; gl.uniform4fv(u.uHaze, HZU); }
     if (u.uHazeC) gl.uniform3fv(u.uHazeC, L.hazeC);
+    if (u.uMist) mistU(u, L);   // (delight-weather 1: the mist pools)
     if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
     if (u.uAmbU) gl.uniform3fv(u.uAmbU, L.ambU);
     if (u.uAmbD) gl.uniform3fv(u.uAmbD, L.ambD);

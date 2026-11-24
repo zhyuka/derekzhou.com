@@ -110,12 +110,12 @@ bumps a version for a change; fonts and images are renamed by hand
   head and compares them; the shader census; T1 (software frames, base
   against head), all on GitHub's runners. Read the gate's verdict, not one job's.
 - The merge bot (merge.yml, .github/ci/merge-bot.mjs) merges a ready
-  claude/* PR when its own gate is green and frames are identical (the served
-  build byte for byte the base's, or every T1 frame the same, and no
-  input handling changed), with no global lock: it lands every such PR whose
+  claude/* PR when its own gate is green and its served build is byte for
+  byte the base's (every T1 frame the same is not enough: T1 sees only its
+  cases), with no global lock: it lands every such PR whose
   areas main has not touched since its gate's base, and re-gates only one that
-  overlaps. A PR that is visible, labelled needs-owner or touches the bot
-  lands too once the hub has reviewed its head commit (the line
+  overlaps. A PR whose served build differs, is labelled needs-owner or
+  touches the bot lands once the hub has reviewed its head commit (the line
   <!-- hub-review SHA --> in its body; a later push needs a new review). Main's gate tests
   every merge after it lands; the bot then fast-forwards `live` to the newest
   main tip whose gate is green and whose stills are up (frames identical, a

@@ -9,6 +9,12 @@
      straight lines; the sky's own light where each star stands lowers it further (sky-body.glsl) */
   var STAR_LIM = [[0, -4], [3, -1], [6, 1], [9, 3], [12, 4.5], [15, 5.6], [18, 6.5], [24, 7]];   // (deeper than the eye's 6.5 at the night's 24 deg so the field's faintest, 6.2, shows whole with its 0.5 of margin: a night keeps every star it had)
   var VEN_EL = [24, 46], VEN_TRY = 12, VEN_TOP_Y = 0.118, VEN_GLOW = 10;   // (its elongation from the sun, deg, on the ecliptic: at most 47; the tries for a clear path; its peak, Y: OKLab L 0.49 in its warm white; its glow's reach, px)
+  /* (night) the bright outer planet (Jupiter's kind: magnitude about -2.4, a little under Venus): on the same ecliptic,
+     90-180 deg from the drawn sun (an outer planet's elongation, up to opposition), on either side, so on a night it stands
+     high in the dark half of the sky; steady and pale cream, its peak under OKLab L 0.47 (Y 0.104), under Venus's 0.49;
+     chosen once a visit, its path keeping off the words as Venus's does (bodyPick), from streams of its own (1201, 1202) */
+  var JUP_EL = [90, 180], JUP_TOP_Y = 0.104;
+  var JUPB = { v: new Float32Array(4), eps: -1, side: 1, seed: NaN, d: [0, 0, 0] };
   var NIGHTB = { m: new Float32Array(4), v: new Float32Array(4), seed: NaN, eps: 0, side: 1, morning: false, fails: -1, D0: 24, d: [0, 0, 0] };
   function starLim(D) {   // the zenith's faintest magnitude at the sun's depth D (deg under the horizon)
     var T = STAR_LIM, i;
@@ -79,18 +85,25 @@
     var q = mrProj(mrCam(I.psi, I.pN), I, d);
     return d[1] > 0.02 && q[2] > 0 && Math.abs(q[0]) < 0.92 && Math.abs(q[1]) < 0.92;
   }
+  function bodyPick(R, EL, side, F, D0, I, I2) {   // of VEN_TRY elongations drawn from R in EL (the same every plan of a visit), the first whose path down keeps clear of the words in the window I (and I2) and that stands in view at the cut, else the first clear one over the horizon at the cut, else -1: [eps, seen]
+    var seen = -1, up = -1, k, d = [0, 0, 0];
+    for (k = 0; k < VEN_TRY && seen < 0; k++) {
+      var e = R.r(EL[0], EL[1]);
+      if (venusFails(I, F, e, side, D0) || (I2 && venusFails(I2, F, e, side, D0))) continue;
+      venusDir(F, e, side, D0, D0, d);
+      if (venusSeen(I, d)) seen = e; else if (up < 0 && d[1] > 0.02) up = e;
+    }
+    return [seen >= 0 ? seen : up, seen >= 0];
+  }
   function venusPlan(V, I, I2) {   // (I2: the live window's own view, where the night after the cut is seen; its path must keep off the words there too) its side (a morning star on a visit that opens on first light) and, of VEN_TRY elongations drawn (the same every plan of a visit), the first whose path down keeps clear of the words in the window I and that stands in view at the cut (the hub's review of the 4090 frames: seen, not only possible), else the first clear one over the horizon at the cut; none clear: no Venus this visit
     if (!V || !V.light || !I) return false;
     var morning = !!(SKY.landing && SKY.landing.sky === 'firstlight'), R = RNG(subseed(J.seed, 84));
-    var el0 = SKY.landing ? airSunEl(SKY.landing.sky) : null, D0 = -(el0 === null ? AIR_SUN_NIGHT : el0), F = venusFrame(V, morning, D0), seen = -1, up = -1, k, d = [0, 0, 0];
+    var el0 = SKY.landing ? airSunEl(SKY.landing.sky) : null, D0 = -(el0 === null ? AIR_SUN_NIGHT : el0), F = venusFrame(V, morning, D0);
     NIGHTB.side = morning ? -1 : 1; NIGHTB.morning = morning;
-    for (k = 0; k < VEN_TRY && seen < 0; k++) {
-      var e = R.r(VEN_EL[0], VEN_EL[1]);
-      if (venusFails(I, F, e, NIGHTB.side, D0) || (I2 && venusFails(I2, F, e, NIGHTB.side, D0))) continue;
-      venusDir(F, e, NIGHTB.side, D0, D0, d);
-      if (venusSeen(I, d)) seen = e; else if (up < 0 && d[1] > 0.02) up = e;
-    }
-    NIGHTB.eps = seen >= 0 ? seen : up; NIGHTB.seen = seen >= 0; NIGHTB.D0 = D0; NIGHTB.seed = J.seed;
+    var P = bodyPick(R, VEN_EL, NIGHTB.side, F, D0, I, I2);
+    NIGHTB.eps = P[0]; NIGHTB.seen = P[1]; NIGHTB.D0 = D0; NIGHTB.seed = J.seed;
+    var RJ = RNG(subseed(J.seed, 1201)); JUPB.side = RNG(subseed(J.seed, 1202)).f() < 0.5 ? -1 : 1;
+    JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0]; JUPB.seed = J.seed;   // (no clear path: no outer planet this visit)
     NIGHTB.none = NIGHTB.eps < 0;   // (the hub's ruling: no clear path down, no Venus this visit, as its still has none)
     NIGHTB.fails = NIGHTB.none ? 1 : 0;
     return true;
@@ -103,7 +116,8 @@
   function venusResized(heightOnly) {
     if (NIGHTB.seed !== J.seed) return;
     var I = moonInputs(null); if (!I) return;
-    if (heightOnly && (NIGHTB.none || !venusFails(I, venusFrame(SIM.V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, NIGHTB.D0))) return;
+    var F = venusFrame(SIM.V, NIGHTB.morning, NIGHTB.D0);
+    if (heightOnly && (NIGHTB.none || !venusFails(I, F, NIGHTB.eps, NIGHTB.side, NIGHTB.D0)) && (JUPB.eps < 0 || !venusFails(I, F, JUPB.eps, JUPB.side, NIGHTB.D0))) return;
     venusPlan(SIM.V, I);
   }
   function nightBodiesUniforms(u) {
@@ -112,5 +126,8 @@
     NIGHTB.v[3] = 0;
     if (V && V.light && NIGHTB.seed === J.seed && !NIGHTB.none) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), NIGHTB.eps, NIGHTB.side, D, NIGHTB.D0, NIGHTB.d); NIGHTB.v[0] = NIGHTB.d[0]; NIGHTB.v[1] = NIGHTB.d[1]; NIGHTB.v[2] = NIGHTB.d[2]; NIGHTB.v[3] = 1; }
     if (u.uStarM) gl.uniform4fv(u.uStarM, NIGHTB.m);
+    JUPB.v[3] = 0;
+    if (V && V.light && JUPB.seed === J.seed && JUPB.eps >= 0) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), JUPB.eps, JUPB.side, D, NIGHTB.D0, JUPB.d); JUPB.v[0] = JUPB.d[0]; JUPB.v[1] = JUPB.d[1]; JUPB.v[2] = JUPB.d[2]; JUPB.v[3] = JUP_TOP_Y; }
     if (u.uVen) gl.uniform4fv(u.uVen, NIGHTB.v);
+    if (u.uJup) gl.uniform4fv(u.uJup, JUPB.v);
   }

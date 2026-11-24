@@ -5,7 +5,12 @@
 //   node tools/check.mjs --no-build   skip the build (build/site and build/src are already made)
 //   node tools/check.mjs --scheduled  build once, then only the checks marked "kind: schedule" (weekly: scheduled.yml)
 //   node tools/check.mjs --list       the checks and their kinds
-//   node tools/check.mjs --prove [--changed FILE]
+//   node tools/check.mjs --shard i/n  the build, then only shard i's share of the checks (0 <= i < n; CI's validate job
+//                                     runs n of these side by side, one a runner). The share: tools/checks/costs.json's
+//                                     seconds a check (a hosted run's; a check it lacks counts 10 s), longest first, each
+//                                     to the shard with the least so far, so every shard computes the same split.
+//                                     With --prove, only the plants of the shard's checks. --shards n: the split, printed.
+//   node tools/check.mjs --prove [--changed FILE [--base SHA]]
 //                                     each check with a failure planted must fail: a check's plants are its own `# plant: {json}`
 //                                     lines, and the `// plant: {json}` lines of the files its `# plants-also: dir/*.ext` names
 //                                     (the unit check: test/unit/*.mjs), so two PRs that add a check or a test never share a file.
@@ -59,9 +64,29 @@ async function pool(list, n, extraEnv, quiet) {
 }
 const pick = (names) => names.split(',').map((n) => { const c = all.find((x) => x.slug === n || x.slug.replace(/^\d\d-/, '') === n); if (!c) { console.error('no check ' + n); process.exit(2); } return c; });
 const N = Math.max(2, Math.min(os.cpus().length, 8));
+// the shards (CI's validate matrix): a fixed split by recorded cost, so each runner takes its share and no other
+function split(list, n) {
+  let cost = {}; try { cost = JSON.parse(fs.readFileSync(path.join(DIR, 'costs.json'), 'utf8')); } catch (e) { /* every check 10 s */ }
+  const of = (c) => (typeof cost[c.slug] === 'number' ? cost[c.slug] : 10);
+  const load = Array(n).fill(0), at = new Map();
+  for (const c of [...list].sort((a, b) => of(b) - of(a) || (a.slug < b.slug ? -1 : 1))) {
+    let k = 0; for (let j = 1; j < n; j++) if (load[j] < load[k]) k = j;
+    load[k] += of(c); at.set(c.slug, k);
+  }
+  return { at, load };
+}
+const SH = val('--shard') ? val('--shard').split('/').map(Number) : null;
+if (SH && !(SH.length === 2 && Number.isInteger(SH[0]) && Number.isInteger(SH[1]) && SH[1] >= 1 && SH[0] >= 0 && SH[0] < SH[1])) { console.error('--shard i/n: 0 <= i < n'); process.exit(2); }
+const inShard = (slug) => !SH || split(rest, SH[1]).at.get(slug) === SH[0];
+if (has('--list')) { for (const c of all.filter((c) => !SH || (rest.includes(c) && inShard(c.slug)))) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }   // (with --shard: that shard's checks)
+if (val('--shards')) {
+  const n = Number(val('--shards')), { at, load } = split(rest, n);
+  for (let k = 0; k < n; k++) console.log(`shard ${k}/${n}  ${load[k].toFixed(0).padStart(4)} s  ` + rest.filter((c) => at.get(c.slug) === k).map((c) => c.slug).join(' '));
+  process.exit(0);
+}
 const t0 = Date.now();
 let results = [];
-if (has('--list')) { for (const c of all) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }
+
 if (has('--prove')) {
   // each plant: one file changed (or made) for one check's run, then put back; the check must fail (or, expect "pass",
   // must pass). A check marked self has its own planted failures in its own run
@@ -72,17 +97,34 @@ if (has('--prove')) {
     const from = [[f, '# plant: ']];
     if (also) { const d = path.join(ROOT, path.dirname(also)), ext = path.extname(also); for (const g of fs.readdirSync(d).filter((x) => x.endsWith(ext)).sort()) from.push([path.join(d, g), '// plant: ']); }
     for (const [g, mark] of from) for (const j of lines(g, mark)) {
-      try { P.push(Object.assign(JSON.parse(j), { check: c.slug, at: path.relative(ROOT, g) })); } catch (e) { console.log('FAIL   ' + path.relative(ROOT, g) + ': a plant line that is not JSON: ' + j.slice(0, 80)); bad = 1; }
+      try { P.push(Object.assign(JSON.parse(j), { check: c.slug, at: path.relative(ROOT, g), line: j })); } catch (e) { console.log('FAIL   ' + path.relative(ROOT, g) + ': a plant line that is not JSON: ' + j.slice(0, 80)); bad = 1; }
     }
   }
   let todo = P;
   if (val('--changed')) {
     const ch = new Set(fs.readFileSync(val('--changed'), 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean));
     const libs = [...ch].filter((f) => f.startsWith('tools/checks/lib/')).map((f) => path.basename(f));
-    const whole = new Set(all.filter((c) => { const t = 'tools/checks/' + c.file; return ch.has(t) || libs.some((b) => fs.readFileSync(path.join(DIR, c.file), 'utf8').includes(b)); }).map((c) => c.slug));
-    todo = P.filter((p) => ch.has(p.at) || whole.has(p.check));
+    // --base SHA (the gate: the merge base): a changed file whose only change is to its plant lines (a PR adding a plant)
+    // runs only its new or changed plants, and a check whose script changed only so keeps its other plants unrun. Any
+    // other change to the file, every plant in it; to a check's script (or a lib it names), every plant of the check.
+    // (2026-11-24: a PR adding one plant to 35-birds.sh re-ran all 13, each the 55 bird tests: 49 minutes.)
+    const base = val('--base'), marks = { '.sh': '# plant: ', '.mjs': '// plant: ', '.js': '// plant: ' };
+    const fresh = new Map();   // rel -> the plant lines new at this head (only for a file whose other lines are the base's)
+    if (base && /^[0-9a-f]{7,40}$/.test(base)) for (const rel of ch) {
+      const mark = marks[path.extname(rel)]; if (!mark || !fs.existsSync(path.join(ROOT, rel))) continue;
+      let old; try { old = spawnSync('git', ['show', `${base}:${rel}`], { cwd: ROOT, encoding: 'utf8' }); } catch (e) { continue; }
+      if (old.status !== 0) continue;   // (a new file: every plant in it)
+      const now = fs.readFileSync(path.join(ROOT, rel), 'utf8'), rest = (t) => t.split(/\r?\n/).filter((l) => !l.startsWith(mark)).join('\n');
+      if (rest(old.stdout) !== rest(now)) continue;
+      const had = new Set(old.stdout.split(/\r?\n/).filter((l) => l.startsWith(mark)).map((l) => l.slice(mark.length)));
+      fresh.set(rel, new Set(now.split(/\r?\n/).filter((l) => l.startsWith(mark)).map((l) => l.slice(mark.length)).filter((l) => !had.has(l))));
+    }
+    const whole = new Set(all.filter((c) => { const t = 'tools/checks/' + c.file; return (ch.has(t) && !fresh.has(t)) || libs.some((b) => fs.readFileSync(path.join(DIR, c.file), 'utf8').includes(b)); }).map((c) => c.slug));
+    todo = P.filter((p) => whole.has(p.check) || (ch.has(p.at) && (!fresh.has(p.at) || fresh.get(p.at).has(p.line))));
+    if (fresh.size) console.log(`--base: ${fresh.size} changed file(s) changed only in their plant lines: their ${[...fresh.values()].reduce((n, x) => n + x.size, 0)} new plant(s) run, not the rest`);
     console.log(`--changed: ${ch.size} path(s); ${todo.length} of ${P.length} plants a change there can break` + (whole.size ? ` (every plant of ${[...whole].join(', ')})` : ''));
   }
+  if (SH) todo = todo.filter((p) => inShard(p.check));   // (sharded: the plants of this shard's checks)
   if (todo.length) for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
   for (const p of todo) {
     const c = pick(p.check)[0];
@@ -90,14 +132,15 @@ if (has('--prove')) {
     const f = path.join(ROOT, p.file || p.create), keep = p.create ? null : fs.readFileSync(f);
     if (keep && !keep.toString('utf8').includes(p.find)) { console.log('FAIL   ' + c.slug.padEnd(20) + ' the plant\'s text is not in ' + p.file); bad = 1; continue; }
     fs.writeFileSync(f, keep ? keep.toString('utf8').replace(p.find, p.with) : 'planted\n');
-    let r; try { if (p.rebuild) for (const b of build) await run(b); r = await run(c); } finally { if (keep) fs.writeFileSync(f, keep); else fs.rmSync(f); }
+    // (CHECK_PLANT_AT: the file the plant is written in; 24-unit.sh then runs only that area file)
+    let r; try { if (p.rebuild) for (const b of build) await run(b); r = await run(c, { CHECK_PLANT_AT: p.at }); } finally { if (keep) fs.writeFileSync(f, keep); else fs.rmSync(f); }
     if (p.rebuild) for (const b of build) await run(b);   // (a source plant: the build made from it, then made again from the source put back)
     if (r.ok && /skipped here/.test(r.out)) { console.log('skip   ' + c.slug.padEnd(20) + ' ' + p.why + ' (the check does not run on this machine)'); continue; }
     const want = p.expect === 'pass', ok = r.ok === want;
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
   }
-  const unproved = rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);   // (every check, --changed or not: a new check without a plant fails its own PR)
+  const unproved = SH && SH[0] !== 0 ? [] : rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);   // (sharded: shard 0 says it, once)   // (every check, --changed or not: a new check without a plant fails its own PR)
   if (unproved.length) { console.log('no plant: ' + unproved.join(', ')); bad = 1; }
   process.exit(bad);
 }
@@ -113,7 +156,7 @@ if (has('--fast')) {
 } else {
   if (!has('--no-build')) for (const c of build) { const r = await run(c); report(r); results.push(r); if (!r.ok) break; }
   if (results.every((r) => r.ok)) {
-    const list = val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest;
+    const list = val('--only') ? pick(val('--only')) : has('--scheduled') ? sched : rest.filter((c) => inShard(c.slug));
     results.push(...await pool(list.filter((c) => !c.alone), N));
     results.push(...await pool(list.filter((c) => c.alone), 1));   // (after the others, one at a time: they measure time)
   }
