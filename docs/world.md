@@ -162,8 +162,10 @@ head, no pixel past OKLab L 0.50.
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
-sink with it and weaken with its depth; the Earth's shadow climbs and
-dissolves, the noctilucent wisps go dark from below, and the night's own
+sink with it and weaken with its depth; the Earth's shadow (blue-grey at
+the sky's own lightness, drawn with the Belt only in the afterglow and first
+light, never the blue hour: physics: twilight/shadow) climbs and dissolves;
+the stars hold still in reduced motion and in the still (no twinkle there); the noctilucent wisps go dark from below, and the night's own
 glow comes in with the night's colours; out of a night into first light
 or the blue hour it runs backwards. No sky draws light rays now (the owner
 chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
@@ -655,6 +657,14 @@ physics: clouds/drift). It holds:
   it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
   the same with the pole, the ecliptic's pole, the galactic pole and
   centre and the frame's own sun.
+- The air heard (physics: air/heard; airHeard, WORLD.air.heard): the one
+  air where the listener is, for the score: windAt's wind there, the gust
+  arriving (gustAt), its sigma and the field's clock (gustPhase), a fresh
+  object, and carry, the speed the gusts pass at (U10 x the sky's surface
+  share). The score's feed carries it at the camera, at its height over
+  the ground, with the wind's bearing from the eye's way and the apparent
+  wind (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds it to a
+  hand-computed wind for a fixed visit, and its gusts to carry.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's

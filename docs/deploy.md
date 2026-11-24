@@ -81,8 +81,15 @@ T1's base records are cached by the
 runner's image (ImageOS) as well as its OS and architecture, so a record rendered in WSL is never compared with a
 hosted runner's frames.
 
+T1 on four runners (2026-11-24): T1's four shards ran as four processes on one 4-core hosted runner, 400-435 s each,
+the gate's longest job once validate was sharded. They are a matrix now, a shard a runner (gate.yml's t1, `t1 (N/4)`):
+each restores and saves its own record (the cache key ends -s<N>), hands off its own artifact gate-t1-s<N>, and writes
+its manifest's sha256 as its own job output sha_<N> (handoff.mjs put --as sha_<N>); a leg sets only its own, so the
+verdict gets all four and reads each shard pinned to its own. A shard that did not hand off is missing from the
+verdict's count, which then says T1 did not report (T1_SHARDS).
+
 The hand-off (2026-11-23): the gate's jobs pass each other the two builds and T1's shards as the run's own artifacts,
-gate-served and gate-t1, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
+gate-served and, from each of T1's four runners, gate-t1-s<N>, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
 storage is metered for private repositories only; the 2026-11-15 quota that moved the hand-off onto the PC's disk
 was the private repository's. .github/ci/handoff.mjs still lays the folder out (gate/<run id>-<attempt>/NAME with a
 sha256 manifest, under HANDOFF_ROOT, which every job sets to its own runner.temp/handoff); each reader (T1,
