@@ -806,7 +806,8 @@ physics: clouds/drift). It holds:
   never fades in place. It carries the lee wave's numbers too: oroU (7.7
   m/s over the ridge, where the gate opens) and N (0.01/s, the buoyancy
   frequency CLOUDS' lens takes), so the lens reads one weather. LAND's
-  mist and CLOUDS' lenticulars and banners read it.
+  mist, CLOUDS' lenticulars and banners and the aerial perspective's
+  aerosol (370's aerU, ## THE AERIAL PERSPECTIVE) read it.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route).
 - The events (physics: air/events; src/world/216-events.js, WORLD.events):
   the rare sights a visit may come on, each a site on the ground placed
@@ -913,6 +914,40 @@ a fade. The camera's ground never reads it; the flight keeps over its top
 as it does the mist pools' (280's height climbs onto it as onto a rise, by
 MIST_OVER; 270's hard rule 1 m over it; the ceiling over its least).
 test/unit/fog.mjs.
+
+## THE AERIAL PERSPECTIVE
+
+lib-air.glsl's atmos, the one function the land (350), the landmarks and
+stones (353), the cloud bodies (fs-vbody), the storm's anvil, the ribbons,
+the creatures and the ink birds' air take. The air between the eye and a
+point takes its light by extinction and gives the sky's back by in-scatter,
+per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
+
+- the gas, by wavelength (the inverse fourth power): its sea-level
+  scattering at 680, 550 and 440 nm, 5.8, 13.5 and 33.1 per 1,000 km
+  (https://doi.org/10.1364/AO.34.002765), thinning with an 8 km scale
+  height. At 20 km it takes half the blue and a tenth of the red: far
+  ridges turn blue on their own.
+- the aerosol, grey: the sky's own height fog and even distance term
+  (uFog, each realm's tuned look, now the aerosol in clean air), times
+  uAer.x, the visit's own by AIR's weather: the visual range's inverse
+  (extinction 3.912 over the range, https://glossary.ametsoc.org/wiki/Visibility;
+  AIR's 10 km in clean air is 1, 4 km in blown sand 2.5) times the
+  particles' growth with humidity, ((1 - RH) / (1 - 0.3))^-0.3
+  (https://doi.org/10.1016/S0065-2687(08)60142-9), RH 0.3 to 0.9 by the
+  visit's moisture (1.8 on the moistest). Neither changes with the sky, so
+  the far land never fades in place.
+
+Linf, what a path long enough gives back, is the sky's own colour toward
+the horizon (fogCol, the sky drawn there), so far ridges dissolve into the
+sky behind them. Since the gas takes and gives blue first, a thin air is
+blue and a thick one the horizon's colour: the old hand-set tint (uFogB) is
+gone. The aerosol's forward peak toward the key light (the one-parameter
+phase of https://doi.org/10.1086/144246, asymmetry 0.7 for desert dust,
+AER_SUN 0.05 of the light) only adds light, its share over an even
+scatter (the sky's colour holds the even part), so far land toward a low
+sun or the moon brightens. Nothing veils with grey: in-scatter is the
+sky's light. fogAmt, the share a light's own glow loses, is the green's.
 
 ## THE LARGE WORLD
 
