@@ -54,11 +54,9 @@
     FULLVAO = gl.createVertexArray();
     var tq = clockNow(); probeFilter(); BOOT.probe0 = clockNow() - tq;   // (before any volume is made; its link and read-back wait on the GPU process, timed apart for the hold's forecast)
     var sv = [], i; for (i = 0; i <= 32; i++) sv.push(i / 32, -1, i / 32, 1);
-    STRIP = { vb: gl.createBuffer(), vaoP: gl.createVertexArray(), vaoR: gl.createVertexArray(), n: 66 };
+    STRIP = { vb: gl.createBuffer(), vaoR: gl.createVertexArray(), n: 66 };
     gl.bindBuffer(gl.ARRAY_BUFFER, STRIP.vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sv), gl.STATIC_DRAW);
     gl.bindVertexArray(STRIP.vaoR); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    var qv = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, qv); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, -1, 1, -1, 0, 1, 1, 1]), gl.STATIC_DRAW);
-    gl.bindVertexArray(STRIP.vaoP); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
     // the unit cube a cloud volume is drawn as (36 corners), and the bake's scratch density (64 cubed)
     var cv = [], C = [[-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1], [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1]];

@@ -1,29 +1,6 @@
-  /* ---------------------------------------------------------------- the world's build: particles, meshes and their attributes */
-  /* a particle set as the realm gives it: { kind: 'grain' | 'mote' | 'mote2' (about the camera's height) | 'rain' |
-     'drift' | 'drift2' (about the camera's height) (or hop[3]: 0-5), count, box (m), height (m), streak (s), width
-     (px), wind [x, y, z] (m/s), color [r, g, b, opacity], hop [m, rate, lift m, kind] (grains), lift (m over the
-     ground); rain: fall (m/s), splash (s), gusts (0-1); drifting: rise (m/s; < 0 sinks), life (s), wander (m/s),
-     tumble (Hz), colors [[r, g, b, share], [r, g, b, share]] (a second and third colour), blink (the share of a cycle
-     lit), flicker (0-1); areas: [names] (drawn in proportion to those areas' shares), rainScale (by the light's
-     rain) } */
-  var PKIND = { grain: 0, mote: 1, mote2: 2, rain: 3, drift: 4, drift2: 5 };
-  function partPrep(o) {
-    var q = {}, k;
-    for (k in o) if (k !== 'colors' && k !== 'areas' && k !== 'kind') q[k] = o[k];
-    var pa = particleSet(q, { hop: [0, 0, 0.2, 0] });
-    if (o.kind !== undefined) pa.hop[3] = typeof o.kind === 'number' ? o.kind : PKIND[o.kind];
-    if (o.lift !== undefined) pa.hop[2] = o.lift;
-    var kd = pa.hop[3];
-    pa.ud = new Float32Array(kd === 3 ? [o.fall || 8.5, o.splash || 0.25, o.gusts || 0, 0] : [o.rise || 0, o.life || 8, o.wander === undefined ? 0.3 : o.wander, o.tumble || 0]);
-    pa.ue = new Float32Array(o.colors && o.colors[0] || [0, 0, 0, 0]); pa.uf = new Float32Array(o.colors && o.colors[1] || [0, 0, 0, 0]);
-    pa.ug = new Float32Array([o.blink || 0, o.flicker || 0, 1, 0]);
-    pa.areas = o.areas || null; pa.rainScale = !!o.rainScale;
-    if (pa.streak === undefined) pa.streak = kd === 3 ? 0.06 : 0;
-    if (pa.width === undefined) pa.width = 1.2;
-    if (pa.height === undefined) pa.height = 20;
-    if (!pa.wind) pa.wind = new Float32Array([0, 0, 0]);
-    return pa;
-  }
+  /* ---------------------------------------------------------------- the world's build: the veils' set, meshes and their attributes */
+  /* (physics: air/particles-seen) the particle sets are gone (no realm draws one: docs/world.md); particleSet
+     shapes the veils' set */
   function particleSet(o, def) {
     if (!o) return null;
     var r = {}, k;

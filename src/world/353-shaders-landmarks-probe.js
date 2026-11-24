@@ -1,4 +1,4 @@
-  /* ---------------------------------------------------------------- shaders: landmarks, scatter, particles, creatures, the probe */
+  /* ---------------------------------------------------------------- shaders: landmarks, scatter, creatures, the probe */
   /* landmarks: a cell's mesh, its vertices in the world already (seated); the colour's bytes hold half the value and
      the realm's material code, the spare byte its emission; a cell coming into being rises out of the haze (uFade) */
   var VS_LANDMARK = `@glsl vs-landmark`;
@@ -29,14 +29,6 @@ void main() {
   /* scatter: one instance per cell of a grid around the camera; the cell's hash decides if, where, how big */
   var VS_SCATTER = `@glsl vs-scatter`;
   var VS_LMSC = VS_SCATTER.replace(/void\s+main\s*\(\s*\)\s*\{/, 'void scMain() {') + `@glsl vs-lmsc`;   // (the landmarks and the scatter, one program)
-  /* particles in a volume that wraps around the camera (uPb.w, the kind): 0 grains blown across the ground (dim
-     streaks; now and then a grain's facet turns to the sun and it glints), 1 motes (soft points of light drifting in
-     the air, bright toward the sun; 2: about the camera's own height), 3 rain (streaks falling with the wind, each
-     drop ending in a splash on the ground under it; gusts), 4 drifting things (petals, seeds, embers, spores,
-     fireflies: carried by the wind, rising or sinking, wandering, tumbling or flickering, each its own life, in up to
-     three colours) */
-  var VS_PARTICLE = `@glsl vs-particle`;
-  var FS_PARTICLE = `@glsl fs-particle`;
   /* creatures: one instanced draw a flock. Kinds (uFb.w): 1 birds wheeling (each its own orbit about the flock's
      drifting centre, beating and gliding, banking into the turn), 2 rays gliding (a slow wave running back along the
      wings), 3 moths and butterflies (small orbits about a light, a flutter in bursts, bobbing; their own light), 4

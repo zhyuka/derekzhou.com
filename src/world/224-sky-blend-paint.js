@@ -125,12 +125,10 @@
     if (c.g !== SKY.pgen) { c.g = SKY.pgen; skyTint(F.lit, c.lit, false, true); skyTint(F.shade, c.shade, false, true); }
     return c;
   }
-  function skyPart(pa, out, rib) {   // a particle set's colour (rgb) and opacity: grains and veils through the paint (and the night's own factor), the motes by the sky's own amount
+  function skyPart(pa, out) {   // the veils' colour (rgb) and opacity: through the paint, times the sky's own veil factor (ribK)
     var c = pa._sky, X = SKY.X, Y = SKY.Y;
     if (!c) c = pa._sky = { g: -1, rgb: new Float32Array(3) };
-    if (c.g !== SKY.pgen) { c.g = SKY.pgen; skyTint(pa.color, c.rgb, true, false); var f = rib ? X.ribK + (Y.ribK - X.ribK) * SKY.q : X.grainK + (Y.grainK - X.grainK) * SKY.q; c.rgb[0] *= f; c.rgb[1] *= f; c.rgb[2] *= f; }
-    out[0] = c.rgb[0]; out[1] = c.rgb[1]; out[2] = c.rgb[2];
-    var kd = pa.hop ? pa.hop[3] : 0;
-    out[3] = pa.color[3] * (kd > 0.5 && kd < 2.5 ? SKY.fx[6] : 1);
+    if (c.g !== SKY.pgen) { c.g = SKY.pgen; skyTint(pa.color, c.rgb, true, false); var f = X.ribK + (Y.ribK - X.ribK) * SKY.q; c.rgb[0] *= f; c.rgb[1] *= f; c.rgb[2] *= f; }
+    out[0] = c.rgb[0]; out[1] = c.rgb[1]; out[2] = c.rgb[2]; out[3] = pa.color[3];
     return out;
   }

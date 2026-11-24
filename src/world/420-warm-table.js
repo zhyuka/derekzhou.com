@@ -69,7 +69,6 @@
       E(id + '.landmark', P.lm, A.mesh, T, 3, 0, false, SC, null, LE, true);
       E(id + '.landmarkInst', P.lmi, A.lmi, T, 3, 1, false, SC, null, LE, true);
       E(id + '.scatter', P.sc, A.mesh, T, 3, 1, false, SC, null, LE, true);
-      E(id + '.particle', P.pt, STRIP.vaoP, TS, 4, 1, false, SC, BL_OVER, LE, false);
       E(id + '.ribbon', P.rb, STRIP.vaoR, TS, 4, 1, false, SC, BL_OVER, LE, false);
       E(id + '.sky', P.sky, FULLVAO, T, 3, 0, false, SC, null, LE, false);
       E(id + '.probe', P.pr, FULLVAO, T, 3, 0, false, 'rgba8');

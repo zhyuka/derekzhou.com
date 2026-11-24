@@ -73,8 +73,6 @@
       var mb = new Builder(512); mb.place(0, 0, 0, 0, false); sc[i].mesh(mb, RNG(subseed(V.seed, 300 + i)), KITAPI);
       V.scB.push(mb);
     }
-    var pt = typeof V.def.particles === 'function' ? V.def.particles(V, RNG(subseed(V.seed, 9))) : (V.def.particles || []);
-    V.parts = pt.map(partPrep);
     var rb = typeof V.def.ribbons === 'function' ? V.def.ribbons(V) : V.def.ribbons;
     V.ribbons = rb ? particleSet(rb, { wobble: [2, 0.5, 0, 0] }) : null;
     return true;

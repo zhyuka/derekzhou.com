@@ -37,10 +37,10 @@
       G.vaos.forEach(function (v) { glFree('VertexArray', v); });
       G.texs.forEach(function (t) { glFree('Texture', t); });
     }
-    V.G = null; V.st = 0; V.parts = null; V.ribbons = null; V.scB = null; V.setB = null;
+    V.G = null; V.st = 0; V.ribbons = null; V.scB = null; V.setB = null;
     V.pois = null; V.oq = null; V.rng = null; V.rng2 = null; V.ready = false; V.field = null;
   }
   function forgetVisit(V) {   // (after a lost context the objects are gone already)
     if (V.cells) V.cells.forEach(function (C) { C.gone = true; }); V.cells = null; V.cellList = null;
-    V.G = null; V.st = 0; V.parts = null; V.ribbons = null; V.ready = false; V.scB = null; V.setB = null;
+    V.G = null; V.st = 0; V.ribbons = null; V.ready = false; V.scB = null; V.setB = null;
   }

@@ -63,7 +63,7 @@
     O.ceil = S.ceil; O.seaLit = S.seaLit === undefined ? 1 : S.seaLit; O.sunVis = S.kit ? 1 : S.sunVis;
     O.skyEl = S.kit ? null : airSunEl(id);
     O.motes = S.post && S.post.motes !== undefined ? S.post.motes : 0;
-    O.grainK = 0.45; O.ribK = 0.5;   // (the sand's grains and veils at night, every sky's: x0.45 and x0.5 of the paint's colour, so a speck near the eye is no lamp against the night sky)
+    O.ribK = 0.5;   // (the sand's veils at night, every sky's: x0.5 of the paint's colour, so a sheet near the eye is no lamp against the night sky)
     var fx = S.fx || {};
     O.fx = [fx.belt || 0, fx.nlc || 0, fx.galaxy || 0, fx.aurora || 0, fx.moon ? 1 : 0, fx.curtain || 0, 0, 0];
     O.dir = airSkySun(V, O.skyEl);
@@ -86,7 +86,7 @@
       labTo(O.pLin, s * 4, O.pLab[s * 3], O.pLab[s * 3 + 1], O.pLab[s * 3 + 2]);
     }
     O.ceil = (A.ceil + B.ceil) / 2; O.seaLit = (A.seaLit + B.seaLit) / 2; O.sunVis = 0; O.skyEl = null;
-    O.motes = (A.motes + B.motes) / 2; O.grainK = (A.grainK + B.grainK) / 2; O.ribK = (A.ribK + B.ribK) / 2;
+    O.motes = (A.motes + B.motes) / 2; O.ribK = (A.ribK + B.ribK) / 2;
     O.fx = []; for (j = 0; j < 8; j++) O.fx.push((A.fx[j] + B.fx[j]) / 2 * 0.25);
     O.dir = A.dir;
     SKY.sets[key] = O;

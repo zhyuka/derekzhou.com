@@ -373,7 +373,7 @@ the browser has KHR_parallel_shader_compile and is not WebKit (Chrome,
 Edge): every program issued at once, the probe and the land first, all polled once a frame; each warm-up
 draw made as soon as its own program is done, beside the links still
 compiling; the programs for what no first frame can show (the ink birds',
-and the sand's particles and ribbons where the flight cannot reach sand
+and the sand's ribbons where the flight cannot reach sand
 in the 30 s after the show) issued with the rest but finished after the
 show. On WebKit (Safari on the Mac, every browser on iOS and iPadOS,
 told by the user agent: it has the extension, but its links and first
@@ -611,12 +611,9 @@ physics: clouds/drift). It holds:
   toward the free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
   https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf).
   Each reader has a declared height (AIR_H); at a U10 of 6.5 m/s: the
-  grains 0.8 m (4.5 m/s, times AIR_GRAIN_K, the sand's own share), the
-  veils 5 m (5.9), the motes 13 m (6.7), the birds their own height
-  (HOST.wind(o, y); 40 m by default, 7.6). Before physics: air/wind-profile
-  the readers kept their own speeds (6.5, 5.5, 1.6, 6.5: the motes slower
-  than the grains under them, the reverse of real air). The dunes' crests,
-  the grains, the motes, the veils, the birds and the water's ripples read
+  veils 5 m (5.9), the birds their own height (HOST.wind(o, y); 40 m by
+  default, 7.6). Before physics: air/wind-profile the readers kept their
+  own speeds. The dunes' crests, the veils, the birds and the water's ripples read
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
   and AIR_H.deck 3000 m, the high streaks, which lie along it: cloudWind,
   physics: clouds/drift).
@@ -650,25 +647,26 @@ physics: clouds/drift). It holds:
   place (their private 5.6-8.4 s cycles are gone). The birds read
   HOST.gust (the excess along the wind, m/s), HOST.gustPhase (the
   field's own clock there, the same at every height) and HOST.gustSigma.
-  The grains hop with it (physics: air/grain-hop; airHop, AIR_HOP): a
-  sand grain's hop is (1 + e)^2 of its calm one, e the gust's excess over
-  the wind at the grain (in the day's wind, the gust's intensity x the
-  gustiness x the field's unit noise), held to 0.3-2.5: the hop scales as
-  the friction speed squared. It reads the field on the grain's own clock
-  (tau, so its streak's tail is the same grain a moment back); its drift
-  stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. No realm draws grains or motes today (physics:
-  air/particles-seen): the camera cruises about 14 m up, pitched about
-  11.6 deg up, so its nearest ground in frame is about 59 m ahead, past the
-  grains' box (within 45 m, faded from 32 m). On T1's three views and ten
-  dune openings an occlusion query and a pixel compare put both sets at
-  no more than one level on 19 pixels, so the dunes dropped them. The rain's gusts are the field too (physics:
-  air/rain-gust): carried along the wind on the surface's clock, in the
-  day's sigmas times the sky's gustiness, as the grains'. The field is
-  coherent over 22 U10 m, so in view the rain mostly thickens together
-  as a gust passes; it never pulses on a cycle of its own (no realm has
-  rain today). The score hears the field through the feed (the air
-  heard, below); the perched lean is not on it yet.
+  No particles are drawn (physics: air/particles-seen). The dunes' grains
+  and motes never reached the screen: the camera cruises about 14 m up,
+  pitched about 11.6 deg up, so its nearest ground in frame is about 59 m
+  ahead, past the grains' box (within 45 m, faded from 32 m); on T1's
+  three views and ten dune openings an occlusion query and a pixel compare
+  put both sets at no more than one level on 19 pixels. So the dunes
+  dropped them (#394), and the particle pipeline went with them (its
+  vs-particle and fs-particle, its draw, its late and warm programs, the
+  weather kinds and NO_PKWX, the grains' hop on the gust, airHop). For
+  when rain arrives: a realm's rain will need its own draw again. It
+  should read the gust field as the veils do (airGust on the surface's
+  clock, uAir.x, in the day's sigmas times the sky's gustiness, uAir.z;
+  the field is coherent over 22 U10 m, so in view the rain thickens
+  together as a gust passes, never on a cycle of its own), guard its wind
+  direction against a windless set (never normalize a zero vector), and
+  wrap its box from the JS's doubles as the veils do (uPm). The git
+  history keeps the old shader (vs-particle.glsl's rain(), before this
+  change).
+  The score hears the field through the feed (the air heard, below); the
+  perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
@@ -761,15 +759,14 @@ physics: clouds/drift). It holds:
   found gives a stable night's shorter eddy scale in this form, so the
   longer e-fold stands (the hub's ruling). Up the profile the share
   eases from the surface's to the jet's (20-100 m, in log height) and from
-  the jet's to the free air's 1 (300-1500 m); the particles, all at 20 m
-  or under, take the surface's, the birds at 40 m a blend. Over a hold a
+  the jet's to the free air's 1 (300-1500 m); the veils, at 5 m, take the
+  surface's, the birds at 40 m a blend. Over a hold a
   sky's shares hold; through a change they ease into the next sky's with
   its light (weather(t)). Whatever the wind carries is carried by its
   integral, a clock of each share in closed form over the sky's order
   (airClock; the shaders' uAir: the surface's clock, its share, the
-  gustiness, the clock a frame back), so a change of sky never jumps a
-  grain, a mote, a veil or a gust: the grains drift by the day's wind
-  times the clock, the gust field is carried by it, the veils' sand
+  gustiness), so a change of sky never jumps a veil or a gust: the gust
+  field is carried by it, the veils' sand
   streaks run at the veils' own wind on it, and the veils lift past the
   day's sigma, so in a night's weak air seldom. The score's
   breeze is the same table, handed it read only by its feed
@@ -895,11 +892,7 @@ to 8 mm. Every vertex stage's clip position goes through eyeRel
 (frame-u.glsl): the exact difference from the camera's fp32 (uCam), less
 what fp32 dropped of it (uCamL, from the JS's doubles). So the camera's
 own rounding never reaches the screen; it was a 1.3 px judder at 3 m. The
-particles wrap their box from terms the JS works in doubles (wrapU, 413:
-the camera modulo the box, the wind's drift in boxes), with a mote's share
-of the wind in 256ths so its drift modulo the box is exact (kDrift). Their
-positions stay the eye's from there (motion blur: uPCamD, the two cameras'
-difference). The ribbons' anchor is whole boxes plus the rest, the same
+ribbons' anchor is whole boxes plus the rest, the same
 while the camera moves. Noise domains are left in world coordinates: 86 km
 out they are off by under a centimetre (tools/precision/far-origin.mjs).
 test/unit/largeworld.mjs replays the arithmetic in fp32.

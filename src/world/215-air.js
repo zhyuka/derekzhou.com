@@ -27,9 +27,8 @@
   var SKY_RATE = 100;   // the sky's light runs this many times real time (declared: sun, moon, stars and galaxy together)
   var AIR_DIR = [0, 1];   // the visit's wind, unit (x, z), blowing toward (airDraw sets it; the water's ripples read it through LDEF)
   var AIR_HEARD_Y = 2;   // (the air heard: never asked lower than this over the ground, m: the camera's own floor is higher)
-  var AIR_H = { grains: 0.8, veils: 5, motes: 13, birds: 40, clouds: 800, deck: 3000 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own; clouds: the low layer's free clouds, physics: clouds/drift; deck: the high streaks)
+  var AIR_H = { veils: 5, birds: 40, clouds: 800, deck: 3000 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own; clouds: the low layer's free clouds, physics: clouds/drift; deck: the high streaks)
   var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]];   // (the profile: the visits' U10: the mean of the speed distribution of a two-dimensional normal wind vector, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg)
-  var AIR_GRAIN_K = 1;   // the grains' speed, a share of the air's at their height (the sand's own spec sets it)
   var AIR_KEY_EL = [5, 14], AIR_KEY_AZ = 55;   // the key light: 5-14 deg up, within 55 deg of upwind (the dunes' windward slopes lit)
   var AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, AIR_SUN_NIGHT = -24;   // the twilights' sun under the sea (deg); a night's, sunk to AIR_SUN_NIGHT through a change
   var AIR_CRUISE = [14, 32];   // the flight's clearance band, m: over the sand to over the cloud sea (flightParams, cruiseOf)
@@ -158,8 +157,8 @@
   }
   function airShare(y, t) { var w = weather(t), m = airABC(y); return m[0] * w[0] + m[1] * w[1] + m[2]; }   // the sky's share of the day's wind at y m up, at t
   function airCarried(y, t) { var T = airClock(t), m = airABC(y); return m[0] * T[0] + m[1] * T[1] + m[2] * t; }   // s: the wind's integral at y m up over its day speed (what it has carried a thing, over that speed)
-  var UAIR = new Float32Array([0, 1, 1, 0]);   // (the shaders' uAir: the surface's clock, on the flight's footing (as gustAt's: no lead), its share, the gustiness, the clock a frame back (the motes' streak))
-  function airFrameU(u, dt) { var w = weather(u); UAIR[1] = w[0]; UAIR[2] = w[2]; UAIR[0] = airClock(u)[0]; UAIR[3] = airClock(u - (dt || 0))[0]; }
+  var UAIR = new Float32Array([0, 1, 1, 0]);   // (the shaders' uAir: the surface's clock, on the flight's footing (as gustAt's: no lead), its share, the gustiness, - (0))
+  function airFrameU(u) { var w = weather(u); UAIR[1] = w[0]; UAIR[2] = w[2]; UAIR[0] = airClock(u)[0]; }
   function airBase(x, z, y, V) {   // the day's wind at y m up (the sky's share 1): { x, z } m/s, the one object, reused
     var w = (V || SIM.V || {}).wind, p = airProfile(y), s = u10Of(V) * p.s, v = p.veer * PI / 180, c = Math.cos(v), n = Math.sin(v);
     AIR_W.x = w ? (w[0] * c + w[1] * n) * s : 0; AIR_W.z = w ? (w[1] * c - w[0] * n) * s : 0;
@@ -314,7 +313,6 @@
      (the moonlit sea's e-fold median 28.5 s, first light's 40.7 s). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
      birds read it as HOST.gust, HOST.gustPhase and HOST.gustSigma */
   var AIR_UT0 = 40;   // (the shaders' clock's lead over the flight's: 413's UT[0] = u + AIR_UT0)
-  var AIR_HOP = [0.3, 2.5];   // (physics: air/grain-hop) a grain's hop over its calm one, (1 + e)^2 (the hop scales as the friction speed squared; e the gust's excess over the wind), held to this range
   var AIR_GUST = [0.26, 22, 1.92946], AIR_GOCT = [[1, 1, 0x27d4eb2d], [2.03, 0.5, 0x165667b1], [4.11, 0.25, 0x61c88647]];   // (intensity, time scale s, the noise's unit-variance gain; the octaves: frequency, amplitude, salt)
   function aih(x) { x >>>= 0; x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16; return x >>> 0; }   // (lib.glsl's ih)
   function aLat(i, j, s) { var h = aih((Math.imul(i >>> 0, 0x8da6b343) ^ aih(((j >>> 0) + 0x68e31da4) >>> 0)) >>> 0); return ((aih((h ^ s) >>> 0) >>> 8) / 16777216) * 2 - 1; }   // (lib.glsl's ih2, then the octave's salt, hf)
@@ -347,7 +345,6 @@
     s += 'float airVn(vec2 p, uint s) { vec2 c = floor(p), f = p - c, u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); ivec2 i = ivec2(c); float a = airLat(i.x, i.y, s), b = airLat(i.x + 1, i.y, s), cc = airLat(i.x, i.y + 1, s), d = airLat(i.x + 1, i.y + 1, s); return a + (b - a) * u.x + (cc - a) * u.y + (a - b - cc + d) * u.x * u.y; }\n';
     s += 'float airGustN(vec2 q) { return (' + o.map(function (k) { return airF(k[1]) + ' * airVn(q * ' + airF(k[0]) + ', ' + k[2] + 'u)'; }).join(' + ') + ') * ' + airF(AIR_GUST[2]) + '; }\n';
     s += 'float airGust(vec2 xz, vec2 w, float U, float W, float t) { if (U <= 0.0) return 0.0; float L = AIR_GUST_T * U; return AIR_GUST_I * W * airGustN(vec2(dot(xz, w) - U * t, xz.y * w.x - xz.x * w.y) / L + vec2(hf(ih(uSalt)), hf(ih(uSalt + 1u))) * 4096.0); }\n';
-    s += 'float airHop(float e) { return clamp((1.0 + e) * (1.0 + e), ' + airF(AIR_HOP[0]) + ', ' + airF(AIR_HOP[1]) + '); }\n';   // (the grains' hop: (1 + e)^2 held to AIR_HOP)
     return s;
   }
   function airF(v) { var s = String(v); return /[.e]/.test(s) ? s : s + '.0'; }
@@ -399,4 +396,4 @@
     if (f < 1 && tR === tR) { var q = moonShown(tR, AIR_MOONR).d; if (q[0] * q[0] + q[2] * q[2] > 1e-18) rz = Math.atan2(q[0], q[2]); }   // (the way round: to the disc at the hold's edge)
     return airTurnLow(k, AIR_LDT, rz, f, AIR_LD);
   }
-  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, wx: airWx, MIST: function () { var o = /** @type {{ [sky: string]: number }} */ ({}), k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, wx: airWx, MIST: function () { var o = /** @type {{ [sky: string]: number }} */ ({}), k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };

@@ -1,4 +1,4 @@
-  /* (drawFrame's pass) the scene: the surfaces, the landmarks, the sets, the scatter, the creatures, the sky, the glows, the particles */
+  /* (drawFrame's pass) the scene: the surfaces, the landmarks, the sets, the scatter, the creatures, the sky, the glows, the veils */
   var DECKW = new Float64Array(2);
   function drawScene(V, u) {
     var W = DFR.W, H = DFR.H, DP = DFR.DP, L = DFR.L;
@@ -108,38 +108,17 @@
       if (gOn) { gl.depthMask(true); gl.disable(gl.BLEND); }
       prof('glows');
     }
-    // the particles: grains, motes and veils of sand (blended, no depth written)
+    // the veils of sand (blended, no depth written)
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
-    if (V.parts && V.parts.length && DP.pt && !SW.noanim && (lateReady(DP.pt) || lateMissIf(DP.pt, latePartsWould(V)))) {
-      P = DP.pt; gl.useProgram(P.p); setFrameUniforms(P, V); gl.bindVertexArray(STRIP.vaoP);
-      if (P.u.uPVP2) { gl.uniformMatrix4fv(P.u.uPVP2, false, MBS.vp); gl.uniform3fv(P.u.uPCam2, MBS.cam); if (P.u.uPCamD) gl.uniform3f(P.u.uPCamD, CAM.pos[0] - MBS.camd[0], CAM.pos[1] - MBS.camd[1], CAM.pos[2] - MBS.camd[2]); gl.uniform1f(P.u.uMB, MBK); if (P.u.uMBdt) gl.uniform1f(P.u.uMBdt, MBS.dt); }   // (the motes along their motion)
-      var LL = V.L || V.light;
-      for (var pi = 0; pi < V.parts.length; pi++) {
-        var pa = V.parts[pi], share = 1, kd = pa.hop[3];
-        if (kd > 2.5 && CLA && !claWx(CLA)) { if (!V.wxF) { V.wxF = true; fail('a particle of kind ' + kd + ' that PKINDS lacks: its program has no weather kinds (NO_PKWX)'); } continue; }   // (the weather kinds are compiled only where a realm has one)
-        if (pa.areas && V.LA) { share = 0; for (var ai = 0; ai < pa.areas.length; ai++) { var ax = V.areaIx[pa.areas[ai]]; if (ax !== undefined) share += V.aw[ax]; } }
-        if (pa.rainScale) share *= LL.rain;
-        var sk = V.def.sandFx ? sandAt() : 1;   // (the sand's grains and motes as faint as the sand under the camera is thin: their opacity, never their count)
-        if (share * sk <= 0.002) continue;
-        var cnt = kd < 2.5 ? Math.round(pa.count * TIER * share) : Math.round(pa.count * TIER);
-        if (cnt <= 0) continue;
-        skyPart(pa, PCOL); PCOL[3] *= sk;   // (tod: the grains and veils through the sky's paint, the motes by the sky's own amount)
-        gl.uniform4f(P.u.uPa, pa.box, pa.height, pa.streak, pa.width); gl.uniform3fv(P.u.uWind, pa.wind); gl.uniform4fv(P.u.uPc, PCOL); gl.uniform4fv(P.u.uPb, pa.hop);
-        wrapU(P, pa.box, pa.wind, kd > 2.5 && kd < 3.5 ? pa.ud[0] : 0, pa.height, kd < 2.5);   // (large world: the box's wrap in doubles; the grains' on the air's clock)
-        if (kd > 2.5) { pa.ug[2] = Math.min(share, 1); gl.uniform4fv(P.u.uPd, pa.ud); gl.uniform4fv(P.u.uPe, pa.ue); gl.uniform4fv(P.u.uPf, pa.uf); gl.uniform4fv(P.u.uPg, pa.ug); }
-        dc(gl.TRIANGLE_STRIP, 4, cnt);
-      }
-    }
     var skR = V.def.sandFx ? sandAt() : 1;
     if (V.ribbons && V.ribbons.count && DP.rb && !SW.noanim && skR > 0.002 && (lateReady(DP.rb) || lateMissIf(DP.rb, true))) {
       var rb = V.ribbons; P = DP.rb; gl.useProgram(P.p); setFrameUniforms(P, V);
-      skyPart(rb, PCOL, true); PCOL[3] *= skR;
+      skyPart(rb, PCOL); PCOL[3] *= skR;
       gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); if (P.u.uPm) gl.uniform4f(P.u.uPm, wmod(CAM.pos[0], rb.box), wmod(CAM.pos[2], rb.box), Math.floor(CAM.pos[0] / rb.box), Math.floor(CAM.pos[2] / rb.box)); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL);   // (the gust field's reference speed, U10)
       gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n, rb.count);
     }
     gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
-    PVP2.set(VP); PCAM2[0] = CAM.pos[0]; PCAM2[1] = CAM.pos[1]; PCAM2[2] = CAM.pos[2]; PCAMD[0] = CAM.pos[0]; PCAMD[1] = CAM.pos[1]; PCAMD[2] = CAM.pos[2]; PVK = V.k; PU2 = u; PVOK = true;   // (this frame's view, the next one's motes' last)
-    prof('particles');
+    prof('veils');
     if (MS) { resolveMS(MS, TG.scene, W, H); prof('resolve'); }   // (the samples into the scene's texture and depth)
     DFR.MS = MS; DFR.CL = CL;
   }

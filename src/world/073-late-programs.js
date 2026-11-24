@@ -1,7 +1,7 @@
   /* (fast500 step 9, the owner's "Finish code after show": only programs for things not in view; e9.py) S1 becomes:
      every program registered and issued before the world shows, the late ones' completion polled after it. Only with
      the parallel compile (EXT.parAll), never in the stills, forced colours or a restored context. The late set: the ink
-     birds' (birds:ink), always (no ink bird is in view at the show, and their clock now waits for them: lateBirds); the world's particles and ribbons where the realm draws them by the sand under the
+     birds' (birds:ink), always (no ink bird is in view at the show, and their clock now waits for them: lateBirds); the world's ribbons where the realm draws them by the sand under the
      camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
      is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
   var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
@@ -27,7 +27,7 @@
     for (i = 0; i < PROGS.length; i++) {
       P = PROGS[i]; n = P.name;
       if (P.late) continue;
-      if (LATE_ALWAYS.indexOf(n) >= 0 || (LATEP.decided && LATEP.sand <= LATE_SAND && (n === V.def.id + '.particle' || n === V.def.id + '.ribbon'))) { P.late = true; LATEP.names.push(n); }
+      if (LATE_ALWAYS.indexOf(n) >= 0 || (LATEP.decided && LATEP.sand <= LATE_SAND && n === V.def.id + '.ribbon')) { P.late = true; LATEP.names.push(n); }
     }
   }
   function lateCore() {   // every program not finished is a late one (progStep's parallel path: the show may go on)
@@ -41,17 +41,6 @@
     if (!would) return false;
     LATEP.miss++; if (LATEP.misses.length < 20) LATEP.misses.push([P.name, FRAMEN, +SIM.t.toFixed(3)]);
     if (LATEP.miss === 1) fail('late program ' + P.name + ' needed before it was ready (step 9)');
-    return false;
-  }
-  function latePartsWould(V) {   // would any of the particles' sets draw this frame (drawFrame's own test)
-    var LL = V.L || V.light, sk = V.def.sandFx ? sandAt() : 1;
-    for (var pi = 0; pi < V.parts.length; pi++) {
-      var pa = V.parts[pi], share = 1, kd = pa.hop[3];
-      if (pa.areas && V.LA) { share = 0; for (var ai = 0; ai < pa.areas.length; ai++) { var ax = V.areaIx[pa.areas[ai]]; if (ax !== undefined) share += V.aw[ax]; } }
-      if (pa.rainScale) share *= LL.rain;
-      if (share * sk <= 0.002) continue;
-      if ((kd < 2.5 ? Math.round(pa.count * TIER * share) : Math.round(pa.count * TIER)) > 0) return true;
-    }
     return false;
   }
   /* (world-perf lane) the late programs nothing draws before the world shows (LATE_HELD: the creatures, the glow sprites,

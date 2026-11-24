@@ -65,8 +65,7 @@
      first issue and given after DEFS to every program the boot issues (never set by hand; negative, so a program
      compiled without them keeps today's text): NO_TWILIGHT (no two skies' words differ; every sky's words are light, so
      the twilight's low mist in lib-air.glsl, and uTwM, are compiled out: their text stays so that no vertex shader's
-     changes), NO_RAIN (no sky's post.rain, no kit's rain), NO_WATER (no realm's GLSL calls waterShade), NO_PKWX (no
-     realm's particle set is a weather kind). CLA.dev marks real dev use (DBG, SS > 1 or the dev switch dbg at load;
+     changes), NO_RAIN (no sky's post.rain, no kit's rain), NO_WATER (no realm's GLSL calls waterShade). CLA.dev marks real dev use (DBG, SS > 1 or the dev switch dbg at load;
      never DEVMODE alone, so the audits compile the shipped text): without it uDbg is folded to 0 (foldFixed).
      Restores reuse them (the same text) */
   var CLA = null;
@@ -82,29 +81,19 @@
     return false;
   }
   function claCompute() {
-    var c = { twilight: false, rain: false, water: false, pkinds: [], pkUnknown: false, dev: false }, id, ws = {}, nw = 0, st = { seen: [], n: 0 }, i, j;
+    var c = { twilight: false, rain: false, water: false, dev: false }, id, ws = {}, nw = 0, st = { seen: [], n: 0 }, i;
     for (id in WSKY) { var S = WSKY[id]; if (!ws[S.w]) { ws[S.w] = 1; nw++; } if (S.post && S.post.rain) c.rain = true; }
     c.twilight = nw > 1;
     for (id in KITS) if (!c.rain && claScan(KITS[id], 0, st)) c.rain = true;
     for (i = 0; i < ORDER.length; i++) {
       var d = REALMS[ORDER[i]]; if (!d) continue;
       if (/\bwaterShade\s*\(/.test(d.glsl || '')) c.water = true;
-      var p = d.particles, L = null;
-      if (typeof p === 'function') { try { L = p({ wind: [0, 0], seed: 0, def: d }, RNG(1)); } catch (e) { L = null; } } else L = p || [];
-      if (!L || typeof L.length !== 'number') { c.pkUnknown = true; continue; }
-      for (j = 0; j < L.length; j++) {
-        var o = L[j] || {}, k = o.kind !== undefined ? (typeof o.kind === 'number' ? o.kind : PKIND[o.kind]) : (o.hop && o.hop.length > 3 ? +o.hop[3] : 0);
-        if (!(k >= 0)) { c.pkUnknown = true; continue; }
-        if (c.pkinds.indexOf(k) < 0) c.pkinds.push(k);
-      }
     }
-    c.pkinds.sort(function (a, b) { return a - b; });
     c.dev = !!DEVMODE && (DBG !== 0 || SS > 1 || /(^|[\s,;])dbg(=|[\s,;]|$)/.test(String(OPT.sw || '')));
     return c;
   }
-  function claWx(c) { return c.pkUnknown || c.pkinds.some(function (k) { return k > 2.5; }); }
   function defsA() {
-    if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n') + (claWx(CLA) ? '' : '#define NO_PKWX\n'); }
+    if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n'); }
     return CLA.defs;
   }
   function progDone(P) {   // its status read (and its uniforms): true linked, false broken, LOSTP
