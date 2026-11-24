@@ -695,10 +695,13 @@ physics: clouds/drift). It holds:
   the opening sky's, so the frame's sun stands at the opening's drawn sun;
   on a milkyway opening the hour is chosen instead so that the band
   arches across the opening's view, flat and well above the horizon in
-  frame (airGalLst: the flattest band in frame on a 16:10 desktop and a
-  phone at the opening's heading; at 64 deg north a level band crosses 37
-  deg up or more, above a desktop's top, so it leans: a median of 35 deg,
-  83 before; test/unit/air.mjs).
+  frame, with its brightest stretch that rises here in view (the Cygnus
+  star cloud and its rift, galactic longitude 60-90; the core never rises
+  at 64 deg north) (airGalLst, on a 16:10 desktop and a phone at the
+  opening's heading; a level band crosses 37 deg up or more, above a
+  desktop's top, so it leans: a median of 37 deg, 83 before; Cygnus in
+  frame on about half the openings, the rest the heading's;
+  test/unit/air.mjs).
   The drawn sky's sun keeps its depth by sky until the night's true order
   lands; the planets are placed by the drawn sun. The ecliptic leans
   23.44 deg to the equator; the galactic pole and centre are J2000's (the

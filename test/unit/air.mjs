@@ -647,14 +647,19 @@ test('air: a milkyway opening frames its band (the hub\'s round 11): across the 
   // the galactic pole at sky time 0 of a milkyway opening, the band a straight screen line through the eye, measured
   // here on its own: in both reference views (a 16:10 desktop and a 393x852 phone at the opening's heading and framing),
   // its height at the view's centre column well above the horizon and inside the top, and its tilt no more than TILT
-  const G = page(), D = 180 / Math.PI, TILT = 90;   // (at 64 deg north a level band crosses 37 deg up or more, above a desktop's top: the flattest in frame)
+  const G = page(), D = 180 / Math.PI, TILT = 70;   // (at 64 deg north a level band crosses 37 deg up or more, above a desktop's top: the flattest in frame)
   const views = [{ tX: Math.tan(36 / D), tY: Math.tan(36 / D) / 1.6, fr: 0, hw: 1 / 1.6, up: 9 }, { tX: Math.tan(21 / D), tY: Math.min(Math.tan(21 / D) * 852 / 393, Math.tan(40 / D)), fr: 1, hw: 852 / 393, up: 0 }];
-  const band = (gp, yaw, v, gc) => {
+  const band = (gp, yaw, v, gc) => {   // sampled across the view: its tilt, its share high and in frame, the brightest such point's weight and longitude
     const p = Math.atan((2 * (0.4 + 0.2 * v.fr) - 1) * v.tY) + v.up / D, f = [Math.sin(yaw) * Math.cos(p), Math.sin(p), Math.cos(yaw) * Math.cos(p)];
-    const r = [Math.cos(yaw), 0, -Math.sin(yaw)], u = [f[1] * r[2] - f[2] * r[1], f[2] * r[0] - f[0] * r[2], f[0] * r[1] - f[1] * r[0]];
-    const s = u[1] < 0 ? -1 : 1, dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], ug = s * dot(u, gp);
-    const a = -dot(f, gp) / (v.tY * ug), d = [0, 1, 2].map((k) => f[k] + a * v.tY * s * u[k]), q = [gp[1] * gc[2] - gp[2] * gc[1], gp[2] * gc[0] - gp[0] * gc[2], gp[0] * gc[1] - gp[1] * gc[0]], l = Math.atan2(dot(d, q), dot(d, gc)) * D;
-    return { a, tilt: Math.atan(Math.abs(v.tX * dot(r, gp) / (v.tY * ug)) * v.hw) * D, hz: -f[1] / (v.tY * s * u[1]), br: 0.25 + 0.28 * (1 + Math.cos(l / D)) + 0.27 * Math.exp(-(((l + 40) / 35) ** 2)) };
+    const r = [Math.cos(yaw), 0, -Math.sin(yaw)], u0 = [f[1] * r[2] - f[2] * r[1], f[2] * r[0] - f[0] * r[2], f[0] * r[1] - f[1] * r[0]], u = u0[1] < 0 ? u0.map((x) => -x) : u0;
+    const dot = (x, y) => x[0] * y[0] + x[1] * y[1] + x[2] * y[2], ug = dot(u, gp), a = -dot(f, gp) / (v.tY * ug), m = -v.tX * dot(r, gp) / (v.tY * ug), hz = -f[1] / (v.tY * u[1]);
+    const q = [gp[1] * gc[2] - gp[2] * gc[1], gp[2] * gc[0] - gp[0] * gc[2], gp[0] * gc[1] - gp[1] * gc[0]], o = { tilt: Math.atan(Math.abs(m) * v.hw) * D, n: 0, br: 0, l: 0 };
+    for (let i = -9; i <= 9; i++) {
+      const x = i / 10, y = a + m * x; if (y < hz + 0.35 * (1 - hz) || y > 0.7) continue;
+      const d = [0, 1, 2].map((k) => f[k] + x * v.tX * r[k] + y * v.tY * u[k]), l = Math.atan2(dot(d, q), dot(d, gc)) * D;
+      const w = 0.25 + 0.28 * (1 + Math.cos(l / D)) + 0.8 * Math.exp(-(((l - 75) / 20) ** 2)); o.n += 1 / 19; if (w > o.br) { o.br = w; o.l = l; }
+    }
+    return o;
   };
   const rows = [];
   for (let i = 0; i < 64; i++) {
@@ -663,17 +668,16 @@ test('air: a milkyway opening frames its band (the hub\'s round 11): across the 
     const V = { seed, light: { sunAz: ((seed >>> 3) % 360) - 180 } }; G.SIM.V = V;
     const F = G.skySphere(0, V), gp = F.galPole.slice(), gc = F.galCentre.slice(), yaw = G.RNG(G.subseed(seed, 77)).r(0, 2 * Math.PI);
     for (const v of views) {
-      const b = band(gp, yaw, v, gc); rows.push([seed, v.fr, b.a, b.tilt, b.hz, b.br]);
-      {
-        assert.ok(b.a >= b.hz + 0.3 * (1 - b.hz) - 1e-6 && b.a <= 0.75, `seed ${seed} (${v.fr ? 'phone' : 'desktop'}): the band at the centre ${b.a.toFixed(2)} (the horizon ${b.hz.toFixed(2)}): not well above the horizon and in frame`);
-        assert.ok(b.tilt <= TILT, `seed ${seed} (${v.fr ? 'phone' : 'desktop'}): the band tilts ${b.tilt.toFixed(1)} deg (at most ${TILT}): it hangs, not arches`);
-      }
+      const b = band(gp, yaw, v, gc); rows.push([seed, v.fr, b.n, b.tilt, b.l, b.br]);
+      assert.ok(b.n >= 0.1 - 1e-9, `seed ${seed} (${v.fr ? 'phone' : 'desktop'}): only ${(100 * b.n).toFixed(0)}% of the band high and in frame (at least 10%: some headings allow no more)`);
+      assert.ok(b.tilt <= TILT, `seed ${seed} (${v.fr ? 'phone' : 'desktop'}): the band tilts ${b.tilt.toFixed(1)} deg (at most ${TILT})`);
     }
   }
   for (const w of [0, 1]) {   // (without the pick: a median tilt of 83 deg on a desktop, the band out of frame on most)
     const t = rows.filter((x) => x[1] === w).map((x) => x[3]).sort((p, q) => p - q);
     assert.ok(t[t.length >> 1] <= 40, `${w ? 'phone' : 'desktop'}: the band's median tilt ${t[t.length >> 1].toFixed(1)} deg (at most 40)`);
     const br = rows.filter((x) => x[1] === w).map((x) => x[5]).sort((p, q) => p - q);
-    if (process.env.GALBAND) console.log(w ? 'phone' : 'desktop', 'tilt median', t[t.length >> 1].toFixed(1), 'max', t[t.length - 1].toFixed(1), 'brightness median', br[br.length >> 1].toFixed(2), 'min', br[0].toFixed(2));
+    const cyg = rows.filter((x) => x[1] === w && x[4] >= 55 && x[4] <= 95).length / rows.filter((x) => x[1] === w).length;
+    assert.ok(cyg >= (w ? 0.5 : 0.4), `${w ? 'phone' : 'desktop'}: the Cygnus star cloud (l 55-95) in frame on ${(100 * cyg).toFixed(0)}% of the openings (at least ${w ? 50 : 40}%; the rest is the heading's: FLIGHT)`);
   }
 });

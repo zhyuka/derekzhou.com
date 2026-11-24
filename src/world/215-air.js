@@ -224,8 +224,8 @@
   }
   /* (the hub's round 11: a milkyway opening must look majestic) on a milkyway opening the sky's hour is chosen, once a
      visit, so that the band arches across the opening's view, high and near level, never hanging near-upright from the
-     top and as bright as it can be there (the galactic centre never rises at 64 deg north: the bright side that does,
-     longitude 20-90, before the faint anticentre): of all the sphere's hours (its sun is its own reference, never a light: it already stands up for 29.7% of a
+     top and with its brightest stretch in view (the galactic centre never rises at 64 deg north: the Cygnus star cloud and
+     its rift, longitude 60-90, before the faint anticentre): of all the sphere's hours (its sun is its own reference, never a light: it already stands up for 29.7% of a
      night's hold), the one whose band, a straight line on the screen
      (a great circle through the eye), lies flattest across the reference windows' views while standing well above
      their horizon and inside their top (a 16:10 desktop and a 393x852 phone, at the opening's heading and each one's
@@ -233,21 +233,25 @@
      frame (its pole stands at most 53 deg up, so a level band crosses at 37 deg up or more, above a desktop's top at
      28): the pick is the flattest that keeps it in frame. test/unit/air.mjs measures each opening's tilt and height */
   var AIR_GALV = [[Math.tan(36 * DEG), Math.tan(36 * DEG) / 1.6, 0, 1 / 1.6, 9], [Math.tan(21 * DEG), Math.min(Math.tan(21 * DEG) * 852 / 393, Math.tan(40 * DEG)), 1, 852 / 393, 0]];   // (tanX, tanY, the frame's tall share, H/W, CAMUP)
-  function airGalBand(gp, yaw, fr, W, gc) {   // the band's screen line in one reference view: { a (its NDC height at the centre), tilt (deg), hz (the horizon's NDC height), br (the band's brightness there, sky-body's galAlong) }
-    var tX = W[0], tY = W[1], p = Math.atan((2 * (fr[0] + (fr[1] - fr[0]) * W[2]) - 1) * tY) + W[4] * DEG, cp = Math.cos(p), sp = Math.sin(p);
+  function airGalBand(gp, yaw, fr, W, gc) {   // the band's screen line in one reference view, sampled across it: { tilt (deg), n (its share standing high and in frame), br (the brightest such point's weight), l (its galactic longitude) }
+    var tX = W[0], tY = W[1], p = Math.atan((2 * (fr[0] + (fr[1] - fr[0]) * W[2]) - 1) * tY) + W[4] * DEG, cp = Math.cos(p), sp = Math.sin(p), i, k;
     var f = [Math.sin(yaw) * cp, sp, Math.cos(yaw) * cp], r = [Math.cos(yaw), 0, -Math.sin(yaw)], u = [-Math.sin(yaw) * sp, cp, -Math.cos(yaw) * sp];
-    var fg = f[0] * gp[0] + f[1] * gp[1] + f[2] * gp[2], rg = r[0] * gp[0] + r[2] * gp[2], ug = u[0] * gp[0] + u[1] * gp[1] + u[2] * gp[2];
-    if (Math.abs(ug) < 1e-6) return { a: 9, tilt: 90, hz: -sp / (tY * cp), br: 0 };
-    var a = -fg / (tY * ug), d = [f[0] + a * tY * u[0], f[1] + a * tY * u[1], f[2] + a * tY * u[2]], q = [gp[1] * gc[2] - gp[2] * gc[1], gp[2] * gc[0] - gp[0] * gc[2], gp[0] * gc[1] - gp[1] * gc[0]];
-    var l = Math.atan2(d[0] * q[0] + d[1] * q[1] + d[2] * q[2], d[0] * gc[0] + d[1] * gc[1] + d[2] * gc[2]) / DEG;   // (its galactic longitude where it crosses the view's centre)
-    return { a: a, tilt: Math.atan(Math.abs(tX * rg / (tY * ug)) * W[3]) / DEG, hz: -sp / (tY * cp), br: 0.25 + 0.28 * (1 + Math.cos(l * DEG)) + 0.27 * Math.exp(-Math.pow((l + 40) / 35, 2)) };
-  }
-  function airGalScore(gp, gc, yaw, fr) {   // lower is better: the flattest, brightest band that stands well above the horizon and inside the top, in both views
-    var s = 0;
-    for (var w = 0; w < AIR_GALV.length; w++) {
-      var b = airGalBand(gp, yaw, fr, AIR_GALV[w], gc), lo = b.hz + 0.35 * (1 - b.hz), hi = 0.7;   // (hi: the band's own half-width, about 12 deg, inside the top)
-      s += b.tilt - 60 * b.br + (b.a < lo ? 2000 * (lo - b.a) : 0) + (b.a > hi ? 2000 * (b.a - hi) : 0);   // (60 a unit of galAlong: the bright side's 0.8 against the anticentre's 0.3 worth 30 deg of tilt)
+    var dt = function (x, y) { return x[0] * y[0] + x[1] * y[1] + x[2] * y[2]; }, ug = dt(u, gp), o = { tilt: 90, n: 0, br: 0, l: 0 };
+    if (Math.abs(ug) < 1e-6) return o;
+    var a = -dt(f, gp) / (tY * ug), m = -tX * dt(r, gp) / (tY * ug), hz = -sp / (tY * cp), lo = hz + 0.35 * (1 - hz), q = [gp[1] * gc[2] - gp[2] * gc[1], gp[2] * gc[0] - gp[0] * gc[2], gp[0] * gc[1] - gp[1] * gc[0]];
+    o.tilt = Math.atan(Math.abs(m) * W[3]) / DEG;
+    for (i = -9; i <= 9; i++) {
+      var x = i / 10, y = a + m * x, d = [0, 0, 0];
+      if (y < lo || y > 0.7) continue;   // (high, and the band's half-width inside the top)
+      for (k = 0; k < 3; k++) d[k] = f[k] + x * tX * r[k] + y * tY * u[k];
+      var l = Math.atan2(dt(d, q), dt(d, gc)) / DEG, w = 0.25 + 0.28 * (1 + Math.cos(l * DEG)) + 0.8 * Math.exp(-Math.pow((l - 75) / 20, 2));   // (sky-body's galAlong, and the Cygnus star cloud and its rift, l 60-90: the brightest stretch that rises at 64 deg north)
+      o.n += 1 / 19; if (w > o.br) { o.br = w; o.l = l; }
     }
+    return o;
+  }
+  function airGalScore(gp, gc, yaw, fr) {   // lower is better: the flattest band, mostly high and in frame, with the brightest stretch in it, in both views
+    var s = 0;
+    for (var w = 0; w < AIR_GALV.length; w++) { var b = airGalBand(gp, yaw, fr, AIR_GALV[w], gc); s += b.tilt - 400 * b.br + (b.n < 0.4 ? 2000 * (0.4 - b.n) : 0); }   // (400 a unit of weight: Cygnus in frame on about half the openings, the rest the heading's: FLIGHT)
     return s;
   }
   function airGalLst(S, V) {   // the night's hour that best frames the band (rad), from the hour the night's depth gives
