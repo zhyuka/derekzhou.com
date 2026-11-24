@@ -10,7 +10,7 @@
 //                                     seconds a check (a hosted run's; a check it lacks counts 10 s), longest first, each
 //                                     to the shard with the least so far, so every shard computes the same split.
 //                                     With --prove, only the plants of the shard's checks. --shards n: the split, printed.
-//   node tools/check.mjs --prove [--changed FILE [--base SHA]]
+//   node tools/check.mjs --prove [--changed FILE [--base SHA]] [--dry]   (--dry: the plants it would run, listed, none run)
 //                                     each check with a failure planted must fail: a check's plants are its own `# plant: {json}`
 //                                     lines, and the `// plant: {json}` lines of the files its `# plants-also: dir/*.ext` names
 //                                     (the unit check: test/unit/*.mjs), so two PRs that add a check or a test never share a file.
@@ -128,7 +128,11 @@ if (has('--prove')) {
     if (fresh.size) console.log(`--base: ${fresh.size} changed file(s) changed only in their plant lines: their ${[...fresh.values()].reduce((n, x) => n + x.size, 0)} new plant(s) run, not the rest`);
     console.log(`--changed: ${ch.size} path(s); ${todo.length} of ${P.length} plants a change there can break` + (whole.size ? ` (every plant of ${[...whole].join(', ')})` : ''));
   }
-  if (SH) todo = todo.filter((p) => inShard(p.check));   // (sharded: the plants of this shard's checks)
+  // (sharded: the plants of this shard's checks; a parted check's, the shard of its part 0, which runs it whole; a build
+  // or weekly check's, shard 0: none of these is in the split, so until 2026-11-24 their plants ran on no shard)
+  const plantAt = (slug) => (rest.some((c) => c.slug === slug) ? slug : rest.some((c) => c.slug === slug + '#0') ? slug + '#0' : null);
+  if (SH) todo = todo.filter((p) => (plantAt(p.check) ? inShard(plantAt(p.check)) : SH[0] === 0));
+  if (has('--dry')) { for (const p of todo) console.log('would  ' + p.check.padEnd(20) + ' ' + p.why); process.exit(bad); }   // (the plants it would run, none run)
   if (todo.length) for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
   for (const p of todo) {
     const c = pick(p.check)[0];
