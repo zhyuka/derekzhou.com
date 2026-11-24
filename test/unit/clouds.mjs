@@ -7,6 +7,7 @@
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "* amp * 2.0, mix(ybP, yb, u));", "with": "* amp * 2.0, -1e5);", "why": "the cut pieces unfloored: the billows hang under the flat base between two samples"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "sP = s; sBP = sB; ybP = yb; tP = t;", "with": "sP = s; sBP = sB; tP = t;", "why": "the band step's update leaves ybP stale: the pieces after it hang under the base"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "sP = s; sBP = s; ybP = yb; tP = t;", "with": "sP = s; sBP = s; tP = t;", "why": "the leap's update leaves ybP stale"}
+// plant: {"file": "tools/clouds/crops.mjs", "find": "export const TWIN_ANCHOR = /\\n([ \\t]*)window\\.WORLD = \\{ realm[^\\n]*\\n/;", "with": "export const TWIN_ANCHOR = /\\n([ \\t]*)window\\.WORLD = \\{ kit[^\\n]*\\n/;", "why": "the crops twin's anchor off the world's line: the tool fails on every ref"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 // (the owner's wiggle, 2026-11-14: clDetail, blended each frame by the place's weight between ABOVE's [80, 5] and the
@@ -266,4 +267,17 @@ test('clouds: nothing hangs under a body\'s flat base, whatever the billows', ()
   // (and the line runs after the noise is read, before the step is chosen from it)
   const iN = VBODY.indexOf('float dn = textureLod(uN3'), iS = VBODY.indexOf(line[1]), iD = VBODY.indexOf('float dt = max(s > 0.0');
   assert.ok(iN < iS && iS < iD, 'the flat base is not applied between the billows\' noise and the step it sets');
+});
+
+// ------------------------------------------------------------------ tools/clouds/crops.mjs's scratch twin
+// (the crops tool, 2026-11-24) its one edit, the camera handed to the harness after window.WORLD's line, finds that line
+// exactly once in the world as assembled, and adds only its own line; a script without the line throws
+test('clouds: the crops tool\'s twin edit finds window.WORLD\'s line once and adds only its own', async () => {
+  const { twinEdit, TWIN_LINE } = await import(path.join(ROOT, 'tools', 'clouds', 'crops.mjs'));
+  const out = twinEdit(WORLD), a = WORLD.split('\n'), b = out.split('\n');
+  assert.equal(b.length, a.length + 1, 'one line added');
+  const k = b.findIndex((l) => l.includes(TWIN_LINE));
+  assert.ok(k > 0 && /window\.WORLD = \{ realm/.test(b[k - 1]), 'the camera\'s line right after window.WORLD\'s');
+  assert.deepEqual(b.slice(0, k).concat(b.slice(k + 1)), a, 'nothing else changed');
+  assert.throws(() => twinEdit('var x = 1;\n'), /found 0 times/);
 });

@@ -115,6 +115,9 @@ tools/visit/look-rule.mjs    The look's caps on the words and the name under clo
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
 tools/clouds/edge-specks.mjs A cloud edge's specks and high-frequency residual on a frame, by hand (node tools/clouds/edge-specks.mjs FRAME.png x0 y0 x1 y1)
+tools/clouds/crops.mjs       Base|head crops in a cloud session, by hand: two refs built as scratch twins (the camera handed to the
+                             harness, never deployed), headless SwiftShader on T1's harness, the camera held or aimed at a
+                             cloud of a kind; base, head, crop and diff PNGs for a review branch (test/unit/clouds.mjs: its edit)
 tools/ground-site.mjs        The page the recorded ground is read from, and the measure of a recording against it
 tools/ground-fresh.mjs       Whether every recorded ground is today's world's, under SwiftShader (tools/checks/37-ground-fresh.sh)
 tools/stills.mjs             The openings' baked stills between the PC that bakes them and the Cloudflare build (docs/deploy.md)
