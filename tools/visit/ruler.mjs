@@ -143,6 +143,9 @@ function lookKind(lk, wC, duneH) {   // (duneH: the main dunes' drawn height the
 const q = (a, p) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
 
 // one land: the flight's ray for secs, the director replayed along it; the places and flocks beside it
+// the land's own first heading, its stream's draw (airHeading0's, where the curated table leaves it null), rad
+const HEAD_SALT = /RNG\(subseed\(J\.seed, (\d+)\)\)\.r\(0, 2 \* PI\)/.exec(HEAD0);
+export function streamHeading(k) { const L = landOf(k); return L.STREAMS.RNG(L.STREAMS.subseed(L.SEED0, +HEAD_SALT[1])).r(0, 2 * Math.PI); }
 export function flyLand(k, secs = 7200, heading = null) {   // (heading: another first heading than the land's own, rad)
   const L = landOf(k), kits = KITS(L.STREAMS), V_MS = kits.dunes.speed || +SPEED0[1], psi = heading === null ? L.heading : heading, hx = Math.sin(psi), hz = Math.cos(psi), len = V_MS * secs;
   const looks = [], sea = []; let cut0 = null;   // (cut0: the land at the cut, the director's look within 250 m of the landing)
