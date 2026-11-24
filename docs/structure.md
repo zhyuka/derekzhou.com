@@ -129,10 +129,10 @@ tools/physics/               The dunes' slope census against the sand's physics 
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
-tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js, by hand (npx typescript, pinned;
+tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
-                             shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD): each error as
-                             section:line or file:line
+                             shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
+                             events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
 tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
                              build (a layout only): 226's STILL_WORDS (their union) and test/golden/still-words.json
@@ -168,7 +168,8 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/46-names-in-messages.sh (no banned name in a commit message from main to HEAD,
                              the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list),
                              tools/checks/47-first-paint.sh (with no stills, the words first, then the world as a cut,
-                             no stale still: tools/first-paint.mjs)
+                             no stale still: tools/first-paint.mjs),
+                             tools/checks/48-tsc.sh (tsc --checkJs at zero: tools/tsc.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),

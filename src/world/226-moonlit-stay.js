@@ -92,7 +92,7 @@
   var MOON_VEIL = 5, MOON_VEIL_D = 9000, MOON_VEIL_AZ = 60, MOON_UPS = [null, 0.35, 1], MOON_XS = [1 / 3];
   (function () { for (var i = 1; i <= 9; i++) { MOON_XS.push(1 / 3 - 0.025 * i); if (1 / 3 + 0.025 * i <= 0.6) MOON_XS.push(1 / 3 + 0.025 * i); } })();
   function moonLobes(V, psi, ex, ez) {   // [x, y, z, r] lobes and their bodies' bounds [x, y, z, r, i0, i1], laid out from the seed
-    var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k, CL = [];
+    var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k, CL = /** @type {[Cell, number][]} */ ([]);   // (each cloud as [its cell, its index there])
     var lk = [LATEK.creature, LATEK.glow, LATEK.beam];   // (the hub's round-4 nit: a layout only, so the late programs' flags (230's flock, glows, beam) are put back as they were: none starts compiling at the opening for a cell the streamer has not reached)
     for (sc = 0; sc < scs.length; sc++) {
       var L = scs[sc], n = Math.ceil(L.radius / L.size) + 1, cx = Math.floor(ex / L.size), cz = Math.floor(ez / L.size);
