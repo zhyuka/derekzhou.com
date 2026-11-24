@@ -13,5 +13,5 @@ void main() {
   vW = iA.xyz + R * lp + vec3(0.0, iD.z * sin(uT * iD.w + iB.w * 6.2831853), 0.0);
   vN = R * (aN / iB.xyz);
   vC = vec4(aC.rgb * 2.0 * iC.rgb, floor(aC.a * 255.0 + 0.5)); vY = lp.y; vE = vec2(aE * 15.9375 * iC.w, iB.w);
-  gl_Position = uVP * vec4(vW - uCam, 1.0);
+  gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }

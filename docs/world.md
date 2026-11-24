@@ -240,8 +240,8 @@ and the plan is made on the main thread beside the compiles (the
 worker's answer cannot arrive; it is stopped after the first hold frame).
 No hold (hour.js takes the link out before the body): reduced motion,
 forced colours, no WebGL2, 4 or fewer cores, under 8 GB (deviceMemory),
-a hidden tab, Firefox, Safari and every WebKit (until a real Mac's film
-sets its deadline), Android, iOS/iPadOS; and (the world, after stage A)
+a hidden tab, Firefox, every WebKit but Safari on a Mac (an iPad behind a
+Mac user agent counts as iOS, by its touch points), Android, iOS/iPadOS; and (the world, after stage A)
 no KHR_parallel_shader_compile, a phone GPU by name, or a hold foretold
 to show the world later than HOLD_WORLD (1000 ms from the navigation's
 start): from stage A (38 x A - 150 ms; only a clearly slow A, over
@@ -249,7 +249,11 @@ start): from stage A (38 x A - 150 ms; only a clearly slow A, over
 and from the first hold frame (26 x f1 + 220 ms), measured on an RTX 4090 with Chrome's CPU throttled
 1x-6x. Where a hold may run, world.js makes the canvas's context as its script
 ends, so the GPU process starts while the kits come, not inside stage A.
-The deadline (2 s from the hold's start, 1.5 s on 5-7 cores) is the last net: past it
+The deadline (2 s from the hold's start, 1.5 s on 5-7 cores; 1 s in Safari on a Mac, HOLD_WK:
+the Apple bench's film, 2026-11-16, Safari 26.6 on an M-series Mac with the gates lifted, saw the hold
+shown after 298-399 ms and the words and the world together at 0.4-0.6 s, where today's path shows the
+world at 1.9 s; a build's first visit compiles the Metal pipelines afresh, about twice the time, and
+past the 1 s the page takes the path below) is the last net: past it
 the link is taken out and the path below goes on. T2 shows the world's
 first frame byte for byte the one without the hold (frame 0: gstep
 counts a world shown in the page's own load as shown at frame 0). The
@@ -729,6 +733,22 @@ rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
 70-90x real through a change into a night, the moon crosses at 70-120x
 and the stars and galaxy stand still; test/unit/air.mjs's clock test is
 marked todo until the sky's lane brings them to SKY_RATE.
+
+## THE LARGE WORLD
+
+A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
+to 8 mm. Every vertex stage's clip position goes through eyeRel
+(frame-u.glsl): the exact difference from the camera's fp32 (uCam), less
+what fp32 dropped of it (uCamL, from the JS's doubles). So the camera's
+own rounding never reaches the screen; it was a 1.3 px judder at 3 m. The
+particles wrap their box from terms the JS works in doubles (wrapU, 413:
+the camera modulo the box, the wind's drift in boxes), with a mote's share
+of the wind in 256ths so its drift modulo the box is exact (kDrift). Their
+positions stay the eye's from there (motion blur: uPCamD, the two cameras'
+difference). The ribbons' anchor is whole boxes plus the rest, the same
+while the camera moves. Noise domains are left in world coordinates: 86 km
+out they are off by under a centimetre (tools/precision/far-origin.mjs).
+test/unit/largeworld.mjs replays the arithmetic in fp32.
 
 ## THE WEATHER (=rand())
 

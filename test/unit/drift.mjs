@@ -105,7 +105,7 @@ test('drift: the march sees only the camera less the body (a body carried at W, 
   const fsUses = FS.match(/[^\n;]*\buVC\b[^\n;]*/g).filter((l) => !/uniform/.test(l));
   for (const l of fsUses) assert.ok(/uCam - uVC/.test(l) || /\buVC\.y\b/.test(l), `fs-vbody reads the body's place absolutely: ${l.trim()}`);
   assert.ok(!/\buVC\.(x|z|xz|xy)\b/.test(FS), 'fs-vbody reads the body\'s level place');
-  assert.match(VS, /w = uVC \+ vec3\(/); assert.match(VS, /vec4\(w - uCam, 1\.0\)/);
+  assert.match(VS, /w = uVC \+ vec3\(/); assert.match(VS, /vec4\(eyeRel\(w\), 1\.0\)/);   // (the eye-relative place, #309's large world)
   // the billows: the body's own offset, no clock, no world place
   assert.ok(/vec3 nOff = uVO;/.test(FS) && !/\buT\b/.test(FS), 'the billows read a clock or the world');
   assert.ok(!/\buCam\.(x|z|xz)\b/.test(FS), 'fs-vbody reads the camera\'s level place');

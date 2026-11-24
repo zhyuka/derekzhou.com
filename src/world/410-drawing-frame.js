@@ -6,6 +6,7 @@
     VP[2] = -A * c.f[0]; VP[6] = -A * c.f[1]; VP[10] = -A * c.f[2]; VP[14] = Bq;
     VP[3] = c.f[0]; VP[7] = c.f[1]; VP[11] = c.f[2]; VP[15] = 0;
     CPOS[0] = c.pos[0]; CPOS[1] = c.pos[1]; CPOS[2] = c.pos[2];
+    CAML[0] = c.pos[0] - CPOS[0]; CAML[1] = c.pos[1] - CPOS[1]; CAML[2] = c.pos[2] - CPOS[2];   // (large world: what fp32 drops of the camera, uCamL)
     CR[0] = c.r[0]; CR[1] = c.r[1]; CR[2] = c.r[2]; CU[0] = c.u[0]; CU[1] = c.u[1]; CU[2] = c.u[2]; CF[0] = c.f[0]; CF[1] = c.f[1]; CF[2] = c.f[2];
     PROJ[0] = FR.tanX; PROJ[1] = FR.tanY; PROJ[2] = NEAR; PROJ[3] = FAR;
   }
