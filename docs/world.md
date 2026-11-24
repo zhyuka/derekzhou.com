@@ -657,7 +657,12 @@ physics: clouds/drift). It holds:
   the friction speed squared. It reads the field on the grain's own clock
   (tau, so its streak's tail is the same grain a moment back); its drift
   stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. The rain's gusts are the field too (physics:
+  nothing jumps. No realm draws grains or motes today (physics:
+  air/particles-seen): the camera cruises about 14 m up, pitched about
+  11.6 deg up, so its nearest ground in frame is about 59 m ahead, past the
+  grains' box (within 45 m, faded from 32 m). On T1's three views and ten
+  dune openings an occlusion query and a pixel compare put both sets at
+  no more than one level on 19 pixels, so the dunes dropped them. The rain's gusts are the field too (physics:
   air/rain-gust): carried along the wind on the surface's clock, in the
   day's sigmas times the sky's gustiness, as the grains'. The field is
   coherent over 22 U10 m, so in view the rain mostly thickens together
