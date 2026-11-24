@@ -266,11 +266,9 @@ vec4 veilSpot(vec2 p) {
 uniform sampler2D uCSh; uniform vec4 uCShP;
 float gSh = 1.0;
 float cloudShadow(vec3 p) {
-  if (uCShP.z <= 0.0 || uSun.y <= 0.02) return 1.0;
+  if (uCShP.z <= 0.0) return 1.0;   // (no map: the pass made none, the key at or under 0.02 among the reasons)
   vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.02) - uCShP.xy) / uCShP.z;   // (-1 .. 1 over the map)
-  float e = max(abs(q.x), abs(q.y));
-  if (e >= 1.0) return 1.0;
-  return mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, e));
+  return mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, max(abs(q.x), abs(q.y))));   // (1 past the map's edge)
 }
 /* rock: blue stone in broad strata (each band its own tone, warmer in the sun, the lines wandering), streaked down by
    erosion, ledges of a lighter cap */

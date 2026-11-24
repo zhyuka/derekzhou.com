@@ -76,8 +76,8 @@ test('cloud shadow: the vertex stage\'s ellipse holds the whole shadow (no lobe\
 
 test('cloud shadow: the land takes it off the key\'s direct light alone, read where its point meets the plane', () => {
   assert.match(DG, /vec2 q = \(p\.xz \+ uSun\.xz \* \(uCShP\.w - p\.y\) \/ max\(uSun\.y, 0\.02\) - uCShP\.xy\) \/ uCShP\.z;/, 'the land\'s point carried along the key to the plane (any height of land: the same line as the lobes\')');
-  assert.match(DG, /if \(uCShP\.z <= 0\.0 \|\| uSun\.y <= 0\.02\) return 1\.0;/, 'none without a map this frame, nor with the key at the horizon');
-  assert.match(DG, /return mix\(texture\(uCSh, q \* 0\.5 \+ 0\.5\)\.r, 1\.0, smoothstep\(0\.75, 1\.0, e\)\);/, 'eased off over the map\'s last quarter (a place\'s distance, never the clock\'s)');
+  assert.match(DG, /if \(uCShP\.z <= 0\.0\) return 1\.0;/, 'none without a map this frame (the pass makes none with the key at or under 0.02)');
+  assert.match(DG, /return mix\(texture\(uCSh, q \* 0\.5 \+ 0\.5\)\.r, 1\.0, smoothstep\(0\.75, 1\.0, max\(abs\(q\.x\), abs\(q\.y\)\)\)\);/, 'eased off over the map\'s last quarter, 1 past its edge');
   const sand = DG.split('vec3 shadeSand(')[1].split('\nvec3 D_shadeStone(')[0], stone = DG.split('vec3 D_shadeStone(')[1].split('\n}\n')[0];
   assert.match(sand, /gSh = cloudShadow\(p\);/); assert.match(sand, /float dif = smoothstep\(-0\.08, 0\.26, ndl\) \* gSh;/, 'the sand\'s key term');
   assert.match(sand, /vec3 c = mix\(shd, lit, dif\);/, 'the sand\'s shade (shd) untouched: a shadow is never darker than the land\'s own shade');
