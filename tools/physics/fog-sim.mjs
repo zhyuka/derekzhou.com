@@ -28,7 +28,7 @@ const HOOK = `
       for (i = 0; i < N * N; i++) g.push(b[0] + s.r * (2 * (i % N + 0.5) / N - 1), b[1] + s.r * (2 * (((i / N) | 0) + 0.5) / N - 1));
       var G = probeJob(V, new Float32Array(g), N * N, 0, true);
       for (i = 0; i < N * N; i++) { dx = g[2 * i] - b[0]; dz = g[2 * i + 1] - b[1]; if (dx * dx + dz * dz <= s.r * s.r) { n++; lo = Math.min(lo, G.h[i]); if (G.h[i] < top) under++; } }
-      row.moved = Math.round(Math.hypot(b[0] - s.x, b[1] - s.z)); row.floor = +b[2].toFixed(1); row.fineFloor = +lo.toFixed(1); row.rim = +b[3].toFixed(1);
+      row.moved = Math.round(Math.hypot(b[0] - s.x, b[1] - s.z)); row.at = [Math.round(b[0]), Math.round(b[1])]; row.floor = +b[2].toFixed(1); row.fineFloor = +lo.toFixed(1); row.rim = +b[3].toFixed(1);
       row.hollow = +(b[3] - b[2]).toFixed(1); row.depth = +Math.max(0, top - b[2]).toFixed(1); row.heldByRim = b[2] + evPoolDepth(s, mist) > b[3] - FOG_SPILL; row.under_pct = +(100 * under / Math.max(1, n)).toFixed(1);
       out.push(row);
     });
