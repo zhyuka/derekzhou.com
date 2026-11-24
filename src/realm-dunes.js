@@ -122,7 +122,8 @@
   }
   /* (delight-weather 3) terrain-held clouds: a lenticular over a far ridge's lee wave on a windy visit. Orographic
      cloud is the one cloud that stands still while the air flows through it: a lens forms in the standing wave in the
-     lee of a ridge when the wind over its crest is at least 7.7 m/s (about 15 kt) within 30 deg of square to it. The far
+     lee of a ridge when the wind over its crest is at least 7.7 m/s (about 15 kt: AIR's orographic gate, wx().oro) within
+     30 deg of square to it. The far
      ridges are the land's own (dunes-glsl's ridges(): a site per RS cell, about half kept, the same hashes here); a
      lens stands at the lee wave's first crest (half a wavelength, pi U / N, out on the crest's normal turned downwind)
      and is laid out by the 1500 m cell it stands in, from its ridge's own hashes (no draw of the cell's stream moves),
@@ -131,11 +132,11 @@
      Its envelope is held (a world cell's); the billows in it flow at the wind at its height (b.flow). Sources:
      https://cloudatlas.wmo.int/en/clouds-species-lenticularis.html (lenticularis);
      https://www.eoas.ubc.ca/books/Practical_Meteorology/ (mountain waves: the wavelength 2 pi M / N, N about 0.01/s) */
-  var HELD_V = 7.7, HELD_H = 100, HELD_SQ = 0.5, HELD_N = 0.01;   // m/s over the crest (the ridge-top flow, 100 m up); the wind within 30 deg of square (|cos| to the crest at most 0.5); the stable troposphere's buoyancy frequency (1/s)
+  var HELD_H = 100, HELD_SQ = 0.5;   // the crest's height for its wind (the ridge-top flow, 100 m up, m); the wind within 30 deg of square (|cos| to the crest at most 0.5)
   function dHeld(C) {
     var V = C.V; if (!V || !V.wind) return;
-    var w0 = A.windAt(0, 0, HELD_H, 0, V), w = { x: w0.x, z: w0.z }, sp = Math.sqrt(w.x * w.x + w.z * w.z);   // (a copy: windAt returns its one object, which the lens height's read below overwrites)
-    if (sp < HELD_V) return;
+    var wx = A.wx(0, V); if (wx.oro < 0.5) return;   // (AIR's orographic gate, the visit's own: the ridge-top wind past wx.oroU, 7.7 m/s, eased over 7.2-8.2)
+    var HN = wx.N, w = A.day(0, 0, HELD_H, V), sp = Math.sqrt(w.x * w.x + w.z * w.z);   // (the weather's buoyancy frequency, read before any other wx; the day's wind over the crest, a fresh object)
     // a lens is laid out by the cell it stands in (so it fades with its own distance, as every cloud does: laid out with
     // its ridge's cell, 2-3 km off, it stood past that cell's reach and was never drawn): the ridges of the 3 x 3 ridge
     // cells about this one, each lens kept by the one cell it falls in (its offset, pi U / N, at most 3.2 km at the
@@ -148,10 +149,10 @@
       var half = 900 + 700 * K.hfl(K.hk(h, 3)), ang = K.hfl(K.hk(h, 5)) * PI, ax = Math.cos(ang), az = Math.sin(ang);   // (the crest along (cos, sin) in (x, z), as massif()'s l.x)
       if (Math.abs((w.x * ax + w.z * az) / sp) > HELD_SQ) continue;
       // the lens at the lee wave's first crest, half a wavelength downwind of the ridge: lambda = 2 pi U / N, U the wind
-      // across the crest at the lens's height, N the stable troposphere's buoyancy frequency (HELD_N); at U 8-10 m/s
+      // across the crest at the lens's height, N the stable troposphere's buoyancy frequency (the weather's wx().N); at U 8-10 m/s
       // the crest stands 2.5-3.1 km downwind (a lens right behind the ridge would be a cap cloud)
-      var dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.windAt(0, 0, dy, 0, V), nx = -az, nz = ax, sg = w.x * nx + w.z * nz < 0 ? -1 : 1;   // (n: the crest's normal in (x, z), turned downwind)
-      var U = Math.abs(hw.x * nx + hw.z * nz), off = Math.min(PI * U / HELD_N, RS), x = cx + sg * nx * off, z = cz + sg * nz * off;   // (the wave train runs across the crest: the lens on its normal, half a wavelength out)
+      var dy = 1100 + 600 * K.hfl(K.hk(h, 22)), hw = A.day(0, 0, dy, V), nx = -az, nz = ax, sg = w.x * nx + w.z * nz < 0 ? -1 : 1;   // (n: the crest's normal in (x, z), turned downwind)
+      var U = Math.abs(hw.x * nx + hw.z * nz), off = Math.min(PI * U / HN, RS), x = cx + sg * nx * off, z = cz + sg * nz * off;   // (the wave train runs across the crest: the lens on its normal, half a wavelength out)
       if (!C.inside(x, z)) continue;
       if (C.weights(x, z)[1] > 0.5) continue;   // (the dunes kit's where the lens stands: none over the cloud sea)
       var T = 45 + 30 * K.hfl(K.hk(h, 23)), n = 1 + (K.hk(h, 24) >>> 30 > 1 ? 2 : (K.hk(h, 24) >>> 30));

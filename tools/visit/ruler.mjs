@@ -75,7 +75,7 @@ function landOf(k) {
     '  var V = {}; V.seed = ' + VSEED[1] + '.seed(); V.salt = ' + VSALT[1] + ';\n' +
     '  var SIM = {};\n' + MOIST + '  G.mistQ = ' + (MIST ? 'airMoist({ u10: airU10(V.seed) })' : 'null') + '; G.windAz = ' + VRNG[1].replace('V.seed', 'V.seed') + '.r(0, 2 * PI);\n' +
     '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf; G.seed = V.seed;\n' +
-    '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, RNG: RNG, subseed: subseed };\n})');
+    '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, ihash: ihash, RNG: RNG, subseed: subseed };\n})');
   const g = {}, CS = { x: 0, z: 0 }; G(g, CS, k); g.CS = CS;
   g.mapsInit(g.SEED0);
   return g;
@@ -86,7 +86,7 @@ const KITS = (() => {
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const reg = (src, S) => {
     let def = null;
-    const kit = { lch: (l, c, h, kk) => [l, c, h, kk === undefined ? 1 : kk], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, RNG: S.RNG, smooth, range: () => {}, rock: () => {} };
+    const kit = { lch: (l, c, h, kk) => [l, c, h, kk === undefined ? 1 : kk], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, ihash: S.ihash, RNG: S.RNG, smooth, range: () => {}, rock: () => {} };
     const air = new Proxy({}, { get: (_, k) => k === 'H' ? { clouds: 800, deck: 3000 } : k === 'windAt' ? () => ({ x: 0, y: 0, z: 0 }) : () => [0, 0, 0] });   // (an air cell's kit reads the wind's way: still here, so V.wind's)
     vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air, realm: (d) => { def = d; } } });
     return def;
