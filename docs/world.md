@@ -969,8 +969,10 @@ per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
 - the gas, by wavelength (the inverse fourth power): its sea-level
   scattering at 680, 550 and 440 nm, 5.8, 13.5 and 33.1 per 1,000 km
   (https://doi.org/10.1364/AO.34.002765), thinning with an 8 km scale
-  height. At 20 km it takes half the blue and a tenth of the red: far
-  ridges turn blue on their own.
+  height along the path (gasPath: the slant integral from the eye's height,
+  so a cloud 3 km up at 30 km is seen through 17% less gas, the cirrus at
+  7 km through a third less). At 20 km level it takes half the blue and a
+  tenth of the red: far ridges turn blue on their own.
 - the aerosol, grey: the sky's own height fog and even distance term
   (uFog, each realm's tuned look, now the aerosol in clean air), times
   uAer.x, the visit's own by AIR's weather: the visual range's inverse
