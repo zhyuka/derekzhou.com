@@ -5,7 +5,9 @@
 //   NAME_CAP  the most of the name's own box under cloud: the name is the page's one picture of words
 //   discs     at dawn and sunset a heading must keep the low sun's disc in frame, clear of cloud and outside the words'
 //             boxes, wherever the land's own heading shows it (the disc is a few pixels: the feature's light alone
-//             cannot see it)
+//             cannot see it; on today's world no first frame shows one, so the glow below is what holds)
+//   GLOW_KEEP the least of the low sun's light in frame (sunIn) a heading may keep against the land's own heading's: the
+//             glow main shows at dawn and sunset stays
 //   lookScore the look's part of the pick: the opening's feature in frame (its light against the land's best candidate's)
 //             and left clear (the Milky Way at night, the low sun or its glow at dawn and sunset), less the top band
 //             under cloud
@@ -19,7 +21,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const WORD_CAP = 0.1, NAME_CAP = 0.02, FEATURE_W = 0.5, TOP_W = 0.25, DISC_VIEWS = ['laptop-sunset', 'phone-dawn'];
+export const WORD_CAP = 0.1, NAME_CAP = 0.02, FEATURE_W = 0.5, TOP_W = 0.25, GLOW_KEEP = 0.75, DISC_VIEWS = ['laptop-sunset', 'phone-dawn'];
 export const lookKey = (deg) => (deg === null ? 'own' : String(deg));
 // the feature: how much of its light is in frame against the land's best (bestIn), and how much of that is clear
 export function lookScore(l, best) {
@@ -28,7 +30,7 @@ export function lookScore(l, best) {
 }
 export const keepsWords = (l) => l.wordCloud <= WORD_CAP && l.nameCloud <= NAME_CAP;
 export const discShown = (l, view) => !!(l.discs && l.discs[view] && l.discs[view].shown);
-export const keepsDiscs = (l, own) => DISC_VIEWS.every((v) => !discShown(own, v) || discShown(l, v));
+export const keepsDiscs = (l, own) => DISC_VIEWS.every((v) => !discShown(own, v) || discShown(l, v)) && !(l.sunIn < GLOW_KEEP * (own.sunIn || 0));
 
 const TABLE = /(function airHeading0\(\) \{ var T = )\[[^\]]*\]/;
 export function worldKey(root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')) {

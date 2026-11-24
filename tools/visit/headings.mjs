@@ -6,7 +6,7 @@
 // reads (the longest stretch with no reward). The pick (the hub's review of #312: the look is the score's, not a hand
 // pick's), among the candidates looks.mjs measured (tools/visit/looks.json):
 //   1. never a heading that puts more than WORD_CAP of the words' boxes, or NAME_CAP of the name's, under cloud, nor one
-//      that loses the low sun's disc the land's own heading shows at dawn or sunset (look-rule.mjs);
+//      that loses the low sun's disc or GLOW_KEEP of the glow the land's own heading shows at dawn or sunset (look-rule.mjs);
 //   2. a first near pass by NEAR_BY s if any candidate left has one;
 //   3. the most visits free of a 180 s stretch with no reward, plus lookScore (the opening's feature in frame against
 //      the land's best and clear, less the top band under cloud), then the least longest gap.
