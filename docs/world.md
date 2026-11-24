@@ -803,21 +803,28 @@ level's rate.
 ## THE FOG POOLS
 
 src/world/234-fog-pools.js, the reader of AIR's fog-pool sites
-(216-events.js, ## THE EVENTS). A site is a hollow AIR has placed, about
-8 km apart, with its basin's radius (500-900 m) and its depth for the
-mist now (evPoolDepth: four times the flats' mist, at most 145 m; none
-with no mist). The nearest site within 4 km is read once: the realm's
-probe gives the land on a 24 x 24 grid over the basin and at 64 points on
-its circle. The floor is the lowest land within the radius; the rim is the
-lowest land on the circle, the pass the pool would spill through. The
-pool's top is the floor plus the depth, held 0.5 m under the rim, so it
-never spills and no edge shows at the radius: the shoreline is the
-ground's own. It is drawn by the mist pools' shading (fogTopAt beside
-mistTop, world-glsl), over the land and the stones, and it moves with the
-one mist, a moving shoreline, never a fade. The camera's ground never
-reads it; the flight keeps over its top as it does the mist pools'
-(280's height climbs onto it as onto a rise, by MIST_OVER; 270's hard rule
-1 m over it; the ceiling over its least). test/unit/fog.mjs.
+(216-events.js, ## THE EVENTS). A site is placed by AIR about 8 km from the
+next, with its basin's radius (500-900 m), the ring it drains (twice the
+radius) and its depth for the mist now (evPoolDepth: four times the flats'
+mist, at most 145 m; none with no mist). AIR places it without the land's
+height, so at the site itself the land rarely holds a pool
+(tools/physics/fog-sim.mjs, lands 3 and 10: the rim held every pool, a
+median 3.5 m deep over 0.9% of the basin). So the pool takes the hollow the
+site drains: of 9 x 9 centres over the drained ring, over land (the cloud
+sea's weight under 0.5), the one whose rim (the lowest land on its circle
+at the radius) stands highest over its floor (the lowest centre within the
+radius). The pool's top is that floor plus AIR's depth, held 0.5 m under the
+rim, so it never spills and no edge shows at the radius: the shoreline is
+the ground's own. No hollow over land, no pool. Read once a site by the
+realm's probe (1,377 points), asynchronously. Measured on the same sites:
+10 of 12 hold a pool, a median 8.3 m deep (to 20 m) over 17% of the basin
+(to 47%); the rim still holds every one under AIR's 40 m. It is drawn by
+the mist pools' shading (fogTopAt beside mistTop, world-glsl), over the land
+and the stones, and it moves with the one mist, a moving shoreline, never
+a fade. The camera's ground never reads it; the flight keeps over its top
+as it does the mist pools' (280's height climbs onto it as onto a rise, by
+MIST_OVER; 270's hard rule 1 m over it; the ceiling over its least).
+test/unit/fog.mjs.
 
 ## THE LARGE WORLD
 

@@ -1,9 +1,9 @@
 // fog-sim.mjs (tools/physics): the fog pools (src/world/234-fog-pools.js) against the land at AIR's fog sites
 // (216-events.js), from the page's own probe. For each opening: the fog sites within --reach m of the landing (after the
 // cut, when the read's sites exist), and for each the basin as 234 reads it (its own fogPts, the land's height, mode 0):
-// the floor (the lowest land within r), the rim (the lowest on the circle at r), the hollow's depth (rim - floor), the
-// pool's top at --mist m of the flats' mist (min(floor + AIR's depth, rim - spill)), the pool's depth over the floor,
-// whether the rim held it (the depth cut short), and the share of the basin's area under the top. Prints a JSON line a
+// the hollow 234 picks in the ring the site drains (fogPick: its distance from the site, floor, rim, the hollow's depth),
+// the pool's depth at --mist m of the flats' mist, whether the rim held it, and the share of the basin under its top
+// (a 32 x 32 grid within r: the fine floor beside 234's coarse one). Prints a JSON line a
 // site and a summary.
 //   node tools/physics/fog-sim.mjs [ROOT] [--seeds 0-15] [--reach 12000] [--mist 10]
 import fs from 'fs';
@@ -22,11 +22,15 @@ const HOOK = `
     var V = SIM.V; if (!V || !READY || !shown || !AFTER) return null;
     var S = eventsNear(x, z, reach).filter(function (s) { return s.kind === 'fogpool'; }), out = [];
     S.forEach(function (s) {
-      var p = fogPts(s), J = probeJob(V, new Float32Array(p), p.length / 2, 0, true), lo = 1e9, rim = 1e9, i, dx, dz, n = 0, under = 0, top;
-      for (i = 0; i < J.n; i++) { dx = p[2 * i] - s.x; dz = p[2 * i + 1] - s.z; if (i >= FOG_N * FOG_N) rim = Math.min(rim, J.h[i]); else if (dx * dx + dz * dz <= s.r * s.r) lo = Math.min(lo, J.h[i]); }
-      lo = Math.min(lo, rim); top = Math.min(lo + evPoolDepth(s, mist), rim - FOG_SPILL);
-      for (i = 0; i < FOG_N * FOG_N; i++) { dx = p[2 * i] - s.x; dz = p[2 * i + 1] - s.z; if (dx * dx + dz * dz <= s.r * s.r) { n++; if (J.h[i] < top) under++; } }
-      out.push({ id: s.id, d: Math.round(s.d), r: Math.round(s.r), sea: +kitAt(s.x, s.z).wC.toFixed(2), seaTop: +SEA_LO.toFixed(1), floor: +lo.toFixed(1), rim: +rim.toFixed(1), hollow: +(rim - lo).toFixed(1), want: evPoolDepth(s, mist), depth: +Math.max(0, top - lo).toFixed(1), heldByRim: lo + evPoolDepth(s, mist) > rim - FOG_SPILL, under_pct: +(100 * under / Math.max(1, n)).toFixed(1) });
+      var p = fogPts(s), J = probeJob(V, new Float32Array(p), p.length / 2, 0, true), b = fogPick(s, p, J.h), row = { id: s.id, d: Math.round(s.d), r: Math.round(s.r), sea: +kitAt(s.x, s.z).wC.toFixed(2), want: evPoolDepth(s, mist) };
+      if (!b) { row.hollow = 0; row.depth = 0; out.push(row); return; }
+      var top = Math.min(b[2] + evPoolDepth(s, mist), b[3] - FOG_SPILL), N = 32, g = [], i, n = 0, under = 0, lo = 1e9, dx, dz;
+      for (i = 0; i < N * N; i++) g.push(b[0] + s.r * (2 * (i % N + 0.5) / N - 1), b[1] + s.r * (2 * (((i / N) | 0) + 0.5) / N - 1));
+      var G = probeJob(V, new Float32Array(g), N * N, 0, true);
+      for (i = 0; i < N * N; i++) { dx = g[2 * i] - b[0]; dz = g[2 * i + 1] - b[1]; if (dx * dx + dz * dz <= s.r * s.r) { n++; lo = Math.min(lo, G.h[i]); if (G.h[i] < top) under++; } }
+      row.moved = Math.round(Math.hypot(b[0] - s.x, b[1] - s.z)); row.floor = +b[2].toFixed(1); row.fineFloor = +lo.toFixed(1); row.rim = +b[3].toFixed(1);
+      row.hollow = +(b[3] - b[2]).toFixed(1); row.depth = +Math.max(0, top - b[2]).toFixed(1); row.heldByRim = b[2] + evPoolDepth(s, mist) > b[3] - FOG_SPILL; row.under_pct = +(100 * under / Math.max(1, n)).toFixed(1);
+      out.push(row);
     });
     return out;
   };

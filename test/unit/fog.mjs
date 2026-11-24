@@ -1,53 +1,62 @@
 // test/unit/fog.mjs: the fog pools (src/world/234-fog-pools.js), the reader of AIR's fog-pool sites (216-events.js).
-// The pool fills the lowest land within the site's radius to AIR's depth for the mist now, held under the basin's rim
-// (the lowest land on the circle at r, less FOG_SPILL), so it never spills and no edge shows at r; no mist, no pool;
-// the floor and rim are read once a site, from the probe, asynchronously; the shaders draw it with the mist pools'
-// shading (fogTopAt beside mistTop) and the flight keeps over its top (270's hard rule, 280's height, the ceiling).
-// plant: {"file": "src/world/234-fog-pools.js", "find": "Math.min(FOG.lo + evPoolDepth(s, L.mist), FOG.rim - FOG_SPILL)", "with": "FOG.lo + evPoolDepth(s, L.mist)", "why": "the fog pool over its basin's rim: it spills and shows an edge at r"}
-// plant: {"file": "src/world/234-fog-pools.js", "find": "FOG.lo + evPoolDepth(s, L.mist)", "with": "FOG.lo + evPoolDepth(s, 10)", "why": "a fog pool deep whatever the mist (none with no mist, none moving with it)"}
+// The pool takes the hollow the site drains (of the centres over the drained ring, over land, the one whose rim stands
+// highest over its floor) and fills it to AIR's depth for the mist now, held under the rim (less FOG_SPILL), so it
+// never spills and no edge shows at r; no mist, no pool; no hollow over land, no pool; the centres and rims are read
+// once a site, from the probe, asynchronously; the shaders draw it with the mist pools' shading (fogTopAt beside
+// mistTop) and the flight keeps over its top (270's hard rule, 280's height, the ceiling).
+// plant: {"file": "src/world/234-fog-pools.js", "find": "Math.min(b[2] + evPoolDepth(s, L.mist), b[3] - FOG_SPILL)", "with": "b[2] + evPoolDepth(s, L.mist)", "why": "the fog pool over its basin's rim: it spills and shows an edge at r"}
+// plant: {"file": "src/world/234-fog-pools.js", "find": "b[2] + evPoolDepth(s, L.mist)", "with": "b[2] + evPoolDepth(s, 10)", "why": "a fog pool deep whatever the mist (none with no mist, none moving with it)"}
+// plant: {"file": "src/world/234-fog-pools.js", "find": " || kitAt(x, z).wC >= 0.5", "with": "", "why": "a fog pool over the cloud sea, where the land it fills is hidden"}
 // plant: {"file": "src/world/280-ground-what-stands-ahead.js", "find": "return Math.max(yT, g0 + lc, fogTopAt(V, CS.x, CS.z) + 1 + MIST_OVER);", "with": "return Math.max(yT, g0 + lc);", "why": "the camera aimed down into a fog pool"}
 import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 const FOGSEC = cut(WORLD, '  /* ---------------------------------------------------------------- the fog pools (delight-weather: AIR\'s events) */', '  function fogU(');
 const GLSL = (f) => fs.readFileSync(path.join(ROOT, 'src', f), 'utf8');
 
-// a fake page: one site, a probe that answers with a given land, AIR's depth (4x the mist, as evPoolDepth)
-function page(site, land) {
-  return vm.runInThisContext('(function (site, land) {\n  var PI = Math.PI, CAM = { pos: site ? [site.x + 100, 50, site.z] : [0, 50, 0] }, jobs = [];\n' +
-    '  function eventsNear() { return site ? [site] : []; }\n' +
+// a fake page: one site, a probe that answers with a given land, the cloud sea's weight, AIR's depth (4x the mist, as
+// evPoolDepth) and its drain ring (twice r)
+function page(site, land, sea) {
+  return vm.runInThisContext('(function (site, land, sea) {\n  var PI = Math.PI, CAM = { pos: site ? [site.x + 100, 50, site.z] : [0, 50, 0] }, jobs = [], EV_POOL = { catch: 2 };\n' +
+    '  function eventsNear() { return site ? [site] : []; }\n  function kitAt(x, z) { return { wC: sea ? sea(x, z) : 0 }; }\n' +
     '  function evPoolDepth(s, mist) { return mist > 0 ? Math.min(145, mist * 4) : 0; }\n' +
     '  function probeJob(V, pts, n, mode) { var j = { pts: pts, n: n, mode: mode, done: false, h: null }; jobs.push(j); return j; }\n' +
     '  function land_(j) { var h = new Float32Array(j.n); for (var i = 0; i < j.n; i++) h[i] = land(j.pts[2 * i], j.pts[2 * i + 1]); j.h = h; j.done = true; }\n' +
     FOGSEC +
-    '  return { step: function (V, mist) { V.L = V.L || {}; V.L.mist = mist; fogStep(V, V.L); return V.L.fogPool; }, land: function () { jobs.forEach(land_); }, jobs: jobs, top: fogTopAt, SPILL: FOG_SPILL };\n})')(site, land);
+    '  return { step: function (V, mist) { V.L = V.L || {}; V.L.mist = mist; fogStep(V, V.L); return V.L.fogPool; }, land: function () { jobs.forEach(land_); }, jobs: jobs, top: fogTopAt, SPILL: FOG_SPILL };\n})')(site, land, sea);
 }
 const SITE = { kind: 'fogpool', id: '0:1:2', x: 9000, z: -4000, r: 700, d: 100 };
-const bowl = (deep, rim) => (x, z) => { const d = Math.hypot(x - SITE.x, z - SITE.z) / SITE.r; return 100 - deep + (deep + rim) * d * d; };   // (floor 100-deep at the site, 100+rim at r)
+const HX = SITE.x + SITE.r, HZ = SITE.z;   // (the hollow: r east of the site, on the centres' grid)
+const bowl = (deep) => (x, z) => { const d = Math.min(Math.hypot(x - HX, z - HZ) / SITE.r, 1.6); return 100 - deep + deep * d * d; };   // (floor 100-deep, 100 at r, a plateau past 1.6 r)
 
-test('fog: the pool fills the basin\'s lowest land to AIR\'s depth, held under the rim; none until the probe lands', () => {
-  const P = page(SITE, bowl(60, 0)), V = {};
-  assert.equal(P.step(V, 10), null, 'no pool before the basin is read');
+test('fog: the pool takes the hollow the site drains and fills it to AIR\'s depth; none until the probe lands', () => {
+  const P = page(SITE, bowl(60)), V = {};
+  assert.equal(P.step(V, 10), null, 'no pool before the ring is read');
   assert.equal(P.jobs.length, 1, 'one probe a site');
   assert.equal(P.jobs[0].mode, 0, 'the land\'s own height (mode 0), not the camera\'s ground');
   P.land();
   const f = P.step(V, 10);
-  assert.ok(f && Math.abs(f[3] - (40 + 40)) < 0.6, `the top at the floor + AIR's 40 m (got ${f && f[3]})`);
-  assert.deepEqual([f[0], f[1], f[2]], [SITE.x, SITE.z, SITE.r], 'at the site, its radius');
+  assert.ok(f && f[0] === HX && f[1] === HZ, `in the hollow r from the site (got ${f && [f[0], f[1]]})`);
+  assert.ok(Math.abs(f[3] - (40 + 40)) < 1e-6, `the top at the floor + AIR's 40 m (got ${f[3]})`);
+  assert.equal(f[2], SITE.r, 'its radius the site\'s');
   P.step(V, 10); assert.equal(P.jobs.length, 1, 'read once, not again');
   const g = P.step(V, 5);
-  assert.ok(g && Math.abs(g[3] - (40 + 20)) < 0.6, `the level moves with the mist: AIR's 20 m at 5 m of mist (got ${g && g[3]})`);
+  assert.ok(g && Math.abs(g[3] - (40 + 20)) < 1e-6, `the level moves with the mist: AIR's 20 m at 5 m of mist (got ${g && g[3]})`);
 });
 
-test('fog: under the rim (never spilled), none with no mist, and only within the radius', () => {
-  const P = page(SITE, bowl(20, -5)), V = {};   // (a shallow bowl, its rim 5 m under the site's middle height: 95 m)
+test('fog: under the rim (never spilled), none with no mist, only within the radius, none without a hollow over land', () => {
+  const P = page(SITE, bowl(20)), V = {};   // (a shallow hollow: AIR's 40 m would spill over its rim at 100 m)
   P.step(V, 10); P.land();
   const f = P.step(V, 10);
-  assert.ok(f && f[3] <= 95 - P.SPILL + 1e-6, `held under the rim, less the spill margin (got ${f && f[3]}, rim 95)`);
+  assert.ok(f && Math.abs(f[3] - (100 - P.SPILL)) < 1e-6, `held under the rim, less the spill margin (got ${f && f[3]}, rim 100)`);
   assert.equal(P.step(V, 0), null, 'no mist, no pool');
   P.step(V, 10);
-  assert.equal(P.top(V, SITE.x + 10, SITE.z), V.L.fogPool[3], 'its top within the radius');
-  assert.equal(P.top(V, SITE.x + SITE.r + 1, SITE.z), -Infinity, 'none past it');
-  assert.equal(page(null, bowl(60, 0)).step({}, 10), null, 'no site in reach, no pool');
+  assert.equal(P.top(V, HX + 10, HZ), V.L.fogPool[3], 'its top within the radius');
+  assert.equal(P.top(V, HX + SITE.r + 1, HZ), -Infinity, 'none past it');
+  assert.equal(page(null, bowl(60)).step({}, 10), null, 'no site in reach, no pool');
+  const flat = page(SITE, () => 100), Vf = {}; flat.step(Vf, 10); flat.land();
+  assert.equal(flat.step(Vf, 10), null, 'no hollow, no pool');
+  const sea = page(SITE, bowl(60), () => 1), Vs = {}; sea.step(Vs, 10); sea.land();
+  assert.equal(sea.step(Vs, 10), null, 'none over the cloud sea, where the land it would fill is hidden');
 });
 
 test('fog: drawn by the mist pools\' shading over the land and the stones, and the flight keeps over it', () => {
