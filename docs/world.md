@@ -657,6 +657,14 @@ physics: clouds/drift). It holds:
   it (226's uSkyF: row-major, equatorial to world); skySphere(tS, V) is
   the same with the pole, the ecliptic's pole, the galactic pole and
   centre and the frame's own sun.
+- The air heard (physics: air/heard; airHeard, WORLD.air.heard): the one
+  air where the listener is, for the score: windAt's wind there, the gust
+  arriving (gustAt), its sigma and the field's clock (gustPhase), a fresh
+  object, and carry, the speed the gusts pass at (U10 x the sky's surface
+  share). The score's feed carries it at the camera, at its height over
+  the ground, with the wind's bearing from the eye's way and the apparent
+  wind (WORLD.sky().wind, docs/sound.md). test/unit/air.mjs holds it to a
+  hand-computed wind for a fixed visit, and its gusts to carry.
 - One moon direction (physics: air/moon-dir), AIRAPI.moonDir(): the
   moon's disc as drawn this frame (its direction, its weight on show,
   az and el), at the very moment and on the very route the night sky's
