@@ -61,7 +61,10 @@ shard, so every shard computes the same split (test/unit/check-shards.mjs: each 
 the command's n). A check not in costs.json counts 10 s; refresh the table from a validate log when the split drifts.
 A unit plant (a `// plant:` line in test/unit/<area>.mjs) runs that area file alone (check.mjs --prove sets
 CHECK_PLANT_AT, 24-unit.sh reads it): it re-ran all 40 files, about two minutes a plant on a hosted runner. All 162
-unit plants are still caught so (2026-11-24). The ruleset requires `verdict`, never a job's name, so the shards' names (validate (0/5) ...) need no setting.
+unit plants are still caught so (2026-11-24). A file whose only change is to its plant lines (a PR adding a plant) runs only its new or changed plants
+(--base, the merge base): a PR adding one plant to 35-birds.sh re-ran all 13, each the 55 bird tests, 49 minutes
+(2026-11-24). Any other change to the file runs every plant in it; to a check's script or a lib it names, every plant
+of the check. The ruleset requires `verdict`, never a job's name, so the shards' names (validate (0/5) ...) need no setting.
 
 Where CI runs (2026-11-23): nowhere on the owner's PC (the owner: "None on my PC", 2026-11-23). The repository is
 public, so GitHub's standard hosted runners are free, and every job runs on `ubuntu-latest`: the gate's static, plan,

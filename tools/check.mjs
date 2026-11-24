@@ -10,7 +10,7 @@
 //                                     seconds a check (a hosted run's; a check it lacks counts 10 s), longest first, each
 //                                     to the shard with the least so far, so every shard computes the same split.
 //                                     With --prove, only the plants of the shard's checks. --shards n: the split, printed.
-//   node tools/check.mjs --prove [--changed FILE]
+//   node tools/check.mjs --prove [--changed FILE [--base SHA]]
 //                                     each check with a failure planted must fail: a check's plants are its own `# plant: {json}`
 //                                     lines, and the `// plant: {json}` lines of the files its `# plants-also: dir/*.ext` names
 //                                     (the unit check: test/unit/*.mjs), so two PRs that add a check or a test never share a file.
@@ -97,15 +97,31 @@ if (has('--prove')) {
     const from = [[f, '# plant: ']];
     if (also) { const d = path.join(ROOT, path.dirname(also)), ext = path.extname(also); for (const g of fs.readdirSync(d).filter((x) => x.endsWith(ext)).sort()) from.push([path.join(d, g), '// plant: ']); }
     for (const [g, mark] of from) for (const j of lines(g, mark)) {
-      try { P.push(Object.assign(JSON.parse(j), { check: c.slug, at: path.relative(ROOT, g) })); } catch (e) { console.log('FAIL   ' + path.relative(ROOT, g) + ': a plant line that is not JSON: ' + j.slice(0, 80)); bad = 1; }
+      try { P.push(Object.assign(JSON.parse(j), { check: c.slug, at: path.relative(ROOT, g), line: j })); } catch (e) { console.log('FAIL   ' + path.relative(ROOT, g) + ': a plant line that is not JSON: ' + j.slice(0, 80)); bad = 1; }
     }
   }
   let todo = P;
   if (val('--changed')) {
     const ch = new Set(fs.readFileSync(val('--changed'), 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean));
     const libs = [...ch].filter((f) => f.startsWith('tools/checks/lib/')).map((f) => path.basename(f));
-    const whole = new Set(all.filter((c) => { const t = 'tools/checks/' + c.file; return ch.has(t) || libs.some((b) => fs.readFileSync(path.join(DIR, c.file), 'utf8').includes(b)); }).map((c) => c.slug));
-    todo = P.filter((p) => ch.has(p.at) || whole.has(p.check));
+    // --base SHA (the gate: the merge base): a changed file whose only change is to its plant lines (a PR adding a plant)
+    // runs only its new or changed plants, and a check whose script changed only so keeps its other plants unrun. Any
+    // other change to the file, every plant in it; to a check's script (or a lib it names), every plant of the check.
+    // (2026-11-24: a PR adding one plant to 35-birds.sh re-ran all 13, each the 55 bird tests: 49 minutes.)
+    const base = val('--base'), marks = { '.sh': '# plant: ', '.mjs': '// plant: ', '.js': '// plant: ' };
+    const fresh = new Map();   // rel -> the plant lines new at this head (only for a file whose other lines are the base's)
+    if (base && /^[0-9a-f]{7,40}$/.test(base)) for (const rel of ch) {
+      const mark = marks[path.extname(rel)]; if (!mark || !fs.existsSync(path.join(ROOT, rel))) continue;
+      let old; try { old = spawnSync('git', ['show', `${base}:${rel}`], { cwd: ROOT, encoding: 'utf8' }); } catch (e) { continue; }
+      if (old.status !== 0) continue;   // (a new file: every plant in it)
+      const now = fs.readFileSync(path.join(ROOT, rel), 'utf8'), rest = (t) => t.split(/\r?\n/).filter((l) => !l.startsWith(mark)).join('\n');
+      if (rest(old.stdout) !== rest(now)) continue;
+      const had = new Set(old.stdout.split(/\r?\n/).filter((l) => l.startsWith(mark)).map((l) => l.slice(mark.length)));
+      fresh.set(rel, new Set(now.split(/\r?\n/).filter((l) => l.startsWith(mark)).map((l) => l.slice(mark.length)).filter((l) => !had.has(l))));
+    }
+    const whole = new Set(all.filter((c) => { const t = 'tools/checks/' + c.file; return (ch.has(t) && !fresh.has(t)) || libs.some((b) => fs.readFileSync(path.join(DIR, c.file), 'utf8').includes(b)); }).map((c) => c.slug));
+    todo = P.filter((p) => whole.has(p.check) || (ch.has(p.at) && (!fresh.has(p.at) || fresh.get(p.at).has(p.line))));
+    if (fresh.size) console.log(`--base: ${fresh.size} changed file(s) changed only in their plant lines: their ${[...fresh.values()].reduce((n, x) => n + x.size, 0)} new plant(s) run, not the rest`);
     console.log(`--changed: ${ch.size} path(s); ${todo.length} of ${P.length} plants a change there can break` + (whole.size ? ` (every plant of ${[...whole].join(', ')})` : ''));
   }
   if (SH) todo = todo.filter((p) => inShard(p.check));   // (sharded: the plants of this shard's checks)
