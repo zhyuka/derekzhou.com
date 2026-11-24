@@ -56,7 +56,10 @@
     SPS[SPN] = sc; SPSH[SPN] = sh; SPL[SPN] = lc; SPLH[SPN] = lh; SPRI[SPN] = ri; SPU[SPN] = 0.3 + 3 * Math.exp(-t / SLIP_URG); SPUI[SPN] = 0.02 + Math.exp(-t / SLIP_URGI); SPN++;
   }
   /* what stands on the way (from S, out to wide m more to either side): SPN constraints in the heading's frame */
-  var SPOFF = 0;
+  var SPOFF = 0, SLIPO = new Float64Array(3);
+  /* (physics: clouds/drift) the time the way, at v along the heading, meets a thing s metres ahead that moves wh m/s
+     along it: t* = s / (v - wh); behind, or outrunning the way, its place now (t* = s / v) */
+  function slipMeet(s, v, wh) { var cl = v - wh; return s > 0 && cl > 0.5 ? s / cl : s / v; }
   function slipGather(V, S, wide) {
     var v = V.speed, cl = V.clear, m = V.margin || V.def.margin || 14, hx = Math.sin(S.psi), hz = Math.cos(S.psi), rx = -hz, rz = hx, i;
     var T = Math.max(SLIP_T, SLIP_REACH / v), Smax = v * T, Lmax = SLIP_SPD[SLIP_SPD.length - 1] * v * T * 0.75 + (wide || 0);
@@ -65,6 +68,7 @@
     var O = nearObstaclesAt(V, x0, z0, Smax + 320, SLIP_O);
     for (i = 0; i < O.length; i++) {
       var o = O[i], ox = o.x - x0, oz = o.z - z0, s = ox * hx + oz * hz, l = ox * rx + oz * rz, mm = m * (o.cloud ? 1.6 : 1);
+      if (o.w) { var mt = slipMeet(s, v, o.w[0] * hx + o.w[1] * hz); s = v * mt; l += (o.w[0] * rx + o.w[1] * rz) * mt; }   // (physics: clouds/drift: a drifting core planned where the way meets it)
       var rr = Math.max(obstR(o, S.y, mm), obstR(o, S.y + 20, mm), obstR(o, S.y - 20, mm));
       if (rr < 0 || s < -rr || s > Smax + rr || Math.abs(l) > Lmax + rr) continue;
       if (!o.cloud && (o.c || o.y <= S.y + 5) && climbOK(V, S, o, s, obstTop(o) + m)) { climbs.push(o); continue; }   // (a floating stone above the eye: passed under or beside, never climbed; climbable only under the ceiling the camera will have, climbOK)
@@ -75,13 +79,18 @@
     var L = V.cellList;
     for (var ci = 0; L && ci < L.length; ci++) {
       var C = L[ci]; if (C.st < 2 || !C.softB || !C.soft) continue;
+      // (physics: clouds/drift) an air cell's bodies where the air has carried them, each planned where the way meets it:
+      // the point taken back into the cell's frame, and the meeting's shift (along: the way's own; across: the air's)
+      var off = cellOff(C, SIM.t, SLIPO), wv = C.air ? airW(V) : null, wh = wv ? wv[0] * hx + wv[1] * hz : 0, wr = wv ? wv[0] * rx + wv[1] * rz : 0, xc = x0 - off[0], zc = z0 - off[1];
       for (var bj = 0; bj < C.softB.length; bj++) {
-        var sb = C.softB[bj], bx = sb[0] - x0, bz = sb[2] - z0, bs = bx * hx + bz * hz, bl = bx * rx + bz * rz, R = sb[3] + SLIP_SOFT;
-        if (bs < -R || bs > Smax + R || Math.abs(bl) > Lmax + R || Math.abs(sb[1] - S.y) > R) continue;
+        var sb = C.softB[bj], bx = sb[0] - xc, bz = sb[2] - zc, bs = bx * hx + bz * hz, bl = bx * rx + bz * rz, R = sb[3] + SLIP_SOFT;
+        if (wv) { var bt = slipMeet(bs, v, wh); bl += wr * bt; bs = v * bt; }
+        if (bs < -R || bs > Smax + R || Math.abs(bl) > Lmax + R || Math.abs(sb[1] + off[2] - S.y) > R) continue;
         var s0 = 1e9, s1 = -1e9, l0 = 1e9, l1 = -1e9, Sf = C.soft;
         for (var li = sb[4]; li < sb[5]; li += 4) {
-          var dy = S.y - Sf[li + 1], Rl = Sf[li + 3] + SLIP_SOFT; if (dy >= Rl || dy <= -Rl) continue;
-          var r2 = Math.sqrt(Rl * Rl - dy * dy), qx = Sf[li] - x0, qz = Sf[li + 2] - z0, qs = qx * hx + qz * hz, ql = qx * rx + qz * rz;
+          var dy = S.y - off[2] - Sf[li + 1], Rl = Sf[li + 3] + SLIP_SOFT; if (dy >= Rl || dy <= -Rl) continue;
+          var r2 = Math.sqrt(Rl * Rl - dy * dy), qx = Sf[li] - xc, qz = Sf[li + 2] - zc, qs = qx * hx + qz * hz, ql = qx * rx + qz * rz;
+          if (wv) { var qt = slipMeet(qs, v, wh); ql += wr * qt; qs = v * qt; }
           if (qs - r2 < s0) s0 = qs - r2; if (qs + r2 > s1) s1 = qs + r2; if (ql - r2 < l0) l0 = ql - r2; if (ql + r2 > l1) l1 = ql + r2;
         }
         if (s1 < 0 || s0 > Smax) continue;

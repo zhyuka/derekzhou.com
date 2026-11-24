@@ -36,6 +36,19 @@
     C.add({ kind: 'island', x: x, z: z, air: true, y: y, yaw: R.r(0, 360), r: r, depth: depth, stupa: R.f() < stupaP, seed: R.seed(), spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
     C.poi({ kind: 'island', x: x, z: z, y: y, pass: r + 70 });
   }
+  /* an air cell (physics: clouds/drift): the towering cumulus over the sea, free cloud carried by the low layer's wind,
+     as many as the open sea's sites had: a sea of towers (2-3), an islands' site (a tower at 0.4); the sites drawn from
+     the air cell's own stream, so none of the world's cells changes */
+  function aAir(C, R) {
+    var s = aSite(C.ix, C.iz, C.hash), k, a, d;
+    if (s.kind === 2) { var nt = 2 + R.i(2); for (k = 0; k < nt; k++) { a = R.r(0, 2 * PI); d = R.r(0, 460); var Wt = R.r(260, 480); aTower(C, R, C.x0 + (s.x - C.ix * AS) + Math.sin(a) * d, C.z0 + (s.z - C.iz * AS) + Math.cos(a) * d, Wt, Wt * R.r(1.1, 1.7), K.hk(s.h, 120 + k), true); } }
+    else if (s.kind === 3 && R.f() < 0.4) { var Wq = R.r(260, 420); aTower(C, R, C.x0 + C.size / 2 + R.r(-500, 500), C.z0 + C.size / 2 + R.r(-500, 500), Wq, Wq * R.r(1.1, 1.5), K.hk(s.h, 130), true); }
+    // the open sea's tower at its site, and now and then the skyline's great cumulus, as the world's cells had them (free
+    // cloud, carried at 1.3 U10 beside the other towers: clouds.md 3), each from a stream of its own
+    var sx = C.x0 + (s.x - C.ix * AS), sz = C.z0 + (s.z - C.iz * AS), Ro = K.RNG(K.hk(C.hash, 211)), Rf = K.RNG(K.hk(C.hash, 212));
+    if (s.kind === 0 && Ro.f() < 0.5) { var Wo = Ro.r(260, 460); aTower(C, Ro, sx, sz, Wo, Wo * Ro.r(1.1, 1.6), Ro.seed(), true); }
+    if (Rf.f() < 0.2) { var Wf = Rf.r(700, 1100), fx = C.x0 + Rf.r(0.15, 0.85) * C.size, fz = C.z0 + Rf.r(0.15, 0.85) * C.size, dd = Math.sqrt((fx - sx) * (fx - sx) + (fz - sz) * (fz - sz)); if (s.kind === 0 ? dd > 400 : dd > 900) aTower(C, Rf, fx, fz, Wf, Wf * Rf.r(0.8, 1.3), Rf.seed(), false); }
+  }
   W.realm({
     id: 'above', margin: 26,   // (what worldDef reads: world.js)
     glsl: ABOVE_GLSL,
@@ -60,6 +73,7 @@
         cl: [7.0, 0.13, 0.003, 1], inCloudK: 1.0
       };
     },
+    air: function (C, R) { aAir(C, R); },
     cell: function (C, R) {
       var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;
       if (s.kind === 1) {   // a canyon: walls of cloud on both sides of its axis, in runs, lower toward its mouths
@@ -81,12 +95,11 @@
         if (Rs.f() < 0.85) C.flock({ kind: 'bird', n: 20 + Rs.i(10), x: s.x, z: s.z, y: CRUISE + Rs.r(-10, 25), orbit: Rs.r(36, 60), wheel: Rs.sign() * Rs.r(0.18, 0.3), size: Rs.r(2.4, 3.1), flap: 2.6, spread: Rs.r(12, 20), lit: A_WL, shade: A_WS });
       } else if (s.kind === 2) {   // a sea of towering clouds
         Rs = aRng(s, 21); var nt = 2 + Rs.i(2);
-        for (k = 0; k < nt; k++) { a = Rs.r(0, 2 * PI); d = Rs.r(0, 460); var Wt = Rs.r(260, 480); aTower(C, Rs, s.x + Math.sin(a) * d, s.z + Math.cos(a) * d, Wt, Wt * Rs.r(1.1, 1.7), K.hk(s.h, 120 + k), true); }
+        // (its towers: free cloud, carried by the wind: drawn in the air cells, aAir)
       } else if (s.kind === 3) {   // small floating islands, a stupa on some; white birds about them
         Rs = aRng(s, 31); var ni = 2 + Rs.i(3);
         for (k = 0; k < ni; k++) { a = Rs.r(0, 2 * PI); d = Rs.r(0, 480); aIsland(C, Rs, s.x + Math.sin(a) * d, s.z + Math.cos(a) * d, Rs.r(170, 430), Rs.r(28, 60), 0.6); }
         if (Rs.f() < 0.6) C.flock({ kind: 'bird', n: 14 + Rs.i(10), x: s.x, z: s.z, y: Rs.r(200, 320), orbit: Rs.r(40, 70), wheel: Rs.sign() * Rs.r(0.15, 0.25), size: Rs.r(2.4, 3.2), flap: 2.5, spread: Rs.r(16, 30), lit: A_WL, shade: A_WS });
-        if (Rs.f() < 0.4) { var Wq = Rs.r(260, 420); aTower(C, Rs, s.x + Rs.r(-500, 500), s.z + Rs.r(-500, 500), Wq, Wq * Rs.r(1.1, 1.5), K.hk(s.h, 130), true); }
       } else if (s.kind === 4) {   // the island and its temple, the low sun behind them as seen from the side away from it
         Rs = aRng(s, 41);
         var sun = C.V.light, r = Rs.r(110, 140), D = 950, y = CRUISE + D * Math.tan(sun.sunEl * PI / 180) - r * 0.55, size = r * Rs.r(0.9, 1.1);
@@ -95,7 +108,7 @@
         C.flock({ kind: 'bird', n: 18 + Rs.i(9), x: s.x + Rs.r(-60, 60), z: s.z + Rs.r(-60, 60), y: y + r * Rs.r(0.1, 0.6), orbit: Rs.r(r * 0.9, r * 1.4), wheel: Rs.sign() * Rs.r(0.12, 0.2), size: Rs.r(2.6, 3.4), flap: 2.4, spread: Rs.r(30, 60), lit: A_WL, shade: A_WS });
         var nsm = 1 + Rs.i(2);
         for (k = 0; k < nsm; k++) { a = Rs.r(0, 2 * PI); d = Rs.r(320, 600); aIsland(C, Rs, s.x + Math.sin(a) * d, s.z + Math.cos(a) * d, Rs.r(170, 380), Rs.r(26, 50), 0.6); }
-      } else if (R.f() < 0.5) { var Wo = R.r(260, 460); aTower(C, R, s.x, s.z, Wo, Wo * R.r(1.1, 1.6), R.seed(), true); }
+      } else if (R.f() < 0.5) { R.r(260, 460); R.r(1.1, 1.6); R.seed(); R.r(-30, 0); }   // (the open sea's tower: free cloud, drawn in the air cells (aAir); its draws made as before, so the rays and the skyline after them keep theirs)
       // rays gliding over the open sea, world-anchored and scattered by density: each slowly circling its own place,
       // below the cruise
       for (k = 0; k < 2; k++) {
@@ -103,7 +116,7 @@
         if (rp < 0.45) C.flock({ kind: 'ray', n: rn, x: rx, y: ry, z: rz, orbit: ro, wheel: rw, size: rs, flap: 0.22, spread: 14, lit: lch(0.52, 0.07, 258), shade: lch(0.3, 0.07, 265) });
       }
       // the skyline: now and then a great cumulus
-      if (R.f() < 0.2) { var Wf = R.r(700, 1100), fx = C.x0 + R.r(0.15, 0.85) * C.size, fz = C.z0 + R.r(0.15, 0.85) * C.size, dd = Math.sqrt((fx - s.x) * (fx - s.x) + (fz - s.z) * (fz - s.z)); if (s.kind === 0 ? dd > 400 : dd > 900) aTower(C, R, fx, fz, Wf, Wf * R.r(0.8, 1.3), R.seed(), false); }
+      if (R.f() < 0.2) { var Wf = R.r(700, 1100), fx = C.x0 + R.r(0.15, 0.85) * C.size, fz = C.z0 + R.r(0.15, 0.85) * C.size, dd = Math.sqrt((fx - s.x) * (fx - s.x) + (fz - s.z) * (fz - s.z)); R.r(0.8, 1.3); R.seed(); void dd; }   // (the skyline's great cumulus: free cloud, drawn in the air cells (aAir); its draws made as before)
     },
     build: function (it, B, R) {
       if (it.kind === 'island') return (function* () { yield* floatIslandG(B, R, it.r, it.depth, A_ROCK, A_GRASS); if (it.stupa) { B.xf(0, it.r * 0.05, 0); stupa(B, R, it.r * R.r(0.6, 0.9), A_STONE, A_HI); } })();   // (a few rows at a time)
@@ -112,7 +125,7 @@
     cloud: function (cl, PF, R) {
       // (smaller, crisper billows than DUNES' far banks: cells about a quarter of a lobe, a harder edge)
       if (cl.kind === 'wall') K.wall(PF, R, cl.x, cl.base, cl.z, cl.dir, cl.len, cl.thick, cl.h, { face: cl.face, noise: 2.4, band: 0.05 });
-      else if (cl.kind === 'cumulus') K.cumulus(PF, R, cl.x, cl.base, cl.z, cl.w, cl.h, { puff: 1.25, noise: 2.2, band: 0.045 });
+      else if (cl.kind === 'cumulus') K.cumulus(PF, R, cl.x, cl.base, cl.z, cl.w, cl.h, { puff: 1.25, noise: 2.2, band: 0.045, lean: cl.lean });
     }
   });
 })();

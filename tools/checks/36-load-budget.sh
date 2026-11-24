@@ -55,9 +55,9 @@ const BUDGET = {
   '/score.js': 9.5 * K,            // 9,259 (24,985 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day; the night's quiet, 2026-11-16)
   '/assets/fonts/Geist-': 6.5 * K,  // 5,544 (Geist 400-500 cut to the pages' letters, .sub3; any .subN)
   '/assets/fonts/GeistMono-': 5.5 * K,    // 4,556 (the credit row's letters)
-  '/world.js': 120 * K,            // 111,129 on main, 2026-11-23 (102,463 at the first line). 113 K -> 120 K by the hub's ruling of 2026-11-23 for the queued night and sky set (#352 with #303 114,618 B, #335 112,589, #353 111,322, #340 111,404, #333 116,046; about 121.5 K together): trims in world.js follow as their own PRs
+  '/world.js': 120 * K,            // 111,129 on main, 2026-11-23 (102,463 at the first line). 113 K -> 120 K by the hub's ruling of 2026-11-23 for the queued night and sky set (#352 with #303 114,618 B, #335 112,589, #353 111,322, #340 111,404, #333 116,046; about 121.5 K together); the clouds' drift (#267, physics: clouds/drift) adds 1,839 B: trims in world.js follow as their own PRs
   '/realm-kit.js': 5 * K,          // 4,114
-  '/realm-dunes.js': 12 * K,       // 11,115 (9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
+  '/realm-dunes.js': 12.5 * K,     // 12,338 (main 12,266, 22 B under 12 K; +72 B here for the air cells' ranges, laid along the low layer's wind: physics: clouds/drift, 2026-11-21; 9,190 before the sand physics: the slip face, physics: sand/S1, and the brink rebuilt per fragment, S2, 2026-11-15)
   '/realm-above.js': 4.5 * K,      // 3,406
   '/plan.js': 15 * K,              // 13,268
   '/facetform.js': 3.5 * K,        // 2,301
