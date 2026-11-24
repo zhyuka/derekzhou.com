@@ -259,6 +259,16 @@ vec4 veilSpot(vec2 p) {
   return vec4(p, groundH(p), smoothstep(0.3, 0.8, amp));
 }
 #endif
+/* (physics: light/cloud-shadow) the land's light left under the clouds: the key's direct share lost, the cloud's
+   diffuse transmission given back (262-cloud-shadow.js says the physics and its sources) */
+uniform sampler2D uCSh; uniform vec4 uCShP;
+float cloudShadow(vec3 p, float ndl) {
+  if (uCShP.z <= 0.0 || ndl <= 0.0) return 1.0;
+  vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.02) - uCShP.xy) / uCShP.z;
+  float tau = -32.0 * log(max(mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, max(abs(q.x), abs(q.y)))), 0.002));
+  float sy = max(uSun.y, 0.02), f = ndl / (ndl + 0.13 * sy / (sy + 0.02));
+  return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));
+}
 /* rock: blue stone in broad strata (each band its own tone, warmer in the sun, the lines wandering), streaked down by
    erosion, ledges of a lighter cap */
 vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
@@ -330,7 +340,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   // (hotfix G0) no glints: one 0.22 m cell in fourteen flashed the sun at pow 140 as the view moved, a few pixels
   // each (sparkle by design). Their light on average was under 1e-4 of the sun's (7% of cells x the flash's mean over
   // the facets' spread x the spot's mean), under a hundredth of a code: nothing the sand loses
-  return c;
+  return c * cloudShadow(p, ndl);
 }
 /* the landmarks: col.a says what each is (1 dark stone, 2 rock: the great formations, 3 pale stone) */
 vec3 D_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbove) {
@@ -342,7 +352,7 @@ vec3 D_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yA
     vec3 sc = mix(mix(SAND_DEEP, SAND_SHADE, 0.6), SAND_LIT, smoothstep(-0.1, 0.24, ndl));
     c = mix(c, sc, clamp(sandy, 0.0, 1.0));
     c += SHEEN * 0.35 * rim * smoothstep(0.0, 0.5, ndl);
-    return c;
+    return c * cloudShadow(p, ndl);
   }
   float dif = smoothstep(-0.15, 0.8, ndl);
   if (mat > 2.5) c = (mix(STONE_SHADE * 1.7, PALE, dif) + PALE * 0.22 * max(n.y, 0.0)) * col.rgb;
@@ -350,5 +360,5 @@ vec3 D_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yA
   c += STONE_SHADE * 0.3 * max(n.y, 0.0);
   c *= mix(0.6, 1.0, smoothstep(0.0, 3.0, yAbove));
   c += SHEEN * 0.6 * rim * smoothstep(0.0, 0.5, ndl);
-  return c;
+  return c * cloudShadow(p, ndl);
 }
