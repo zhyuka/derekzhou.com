@@ -17,22 +17,29 @@
 # plant: {"file": "src/birds/inkbirds/260-perches.js", "find": "var y = surfY(Lg.pts, P.x); o[0] = P.x; o[1] = y === y ? y : Lg.y;", "with": "var y = surfY(Lg.pts, P.x); o[0] = P.x; o[1] = (y === y ? y : Lg.y) + 2.5 * (P.li % 2);", "why": "a ledge's support 2.5 px off its neighbour's: a walk handing on from one to the next snaps its body (the walk-across-ledges test: 2.39x the 144 Hz bound)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
-pids=(); i=0; total=0; clock=()
+# (CI lane, 2026-11-24) `# parts: 2`: tools/check.mjs runs this as two checks on a push, CHECK_PART=0/2 and 1/2, each
+# the tests whose place in the list (over all four files) falls to it, so two shards take them side by side (177 s on
+# one runner: the gate's long pole). The clock test is part 0's. Unset (plants, --only, a run by hand): every test.
+# parts: 2
+part=0; parts=1
+if [[ "${CHECK_PART:-}" =~ ^([0-9]+)/([0-9]+)$ ]]; then part=${BASH_REMATCH[1]}; parts=${BASH_REMATCH[2]}; fi
+pids=(); i=0; total=0; clock=(); k=0
 for f in test/birds.mjs test/birds-motion.mjs test/birds-flock.mjs test/birds-wind.mjs; do   # (birds-motion.mjs: the drawn motion, frame by frame, at the page's loop; birds-flock.mjs: how a flock flies together; birds-wind.mjs: in the dunes' wind)
   mapfile -t names < <(node -e "for (const m of require('fs').readFileSync(process.argv[1], 'utf8').matchAll(/^test\('((?:[^'\\\\]|\\\\.)*)'/gm)) console.log(m[1].replace(/\\\\(.)/g, '\$1'))" "$f")
   [ "${#names[@]}" -gt 0 ] || { echo "::error::no test found in $f"; exit 1; }
   ! grep -nE 'test\(`' "$f" || { echo "::error::$f: a test named by a template is never run here (give it a plain name)"; exit 1; }
   for n in "${names[@]}"; do
     pat=$(node -e "process.stdout.write('^' + process.argv[1].replace(/[.*+?^\${}()|[\]\\\\]/g, '\\\\$&') + '$')" "$n")
-    if [[ "$n" == *"slow phone"* ]]; then clock=("$pat" "$f"); continue; fi   # (the cost test reads the clock: run alone, after the rest)
+    if [[ "$n" == *"slow phone"* ]]; then [ "$part" -eq 0 ] && { clock=("$pat" "$f"); total=$((total + 1)); }; continue; fi   # (the cost test reads the clock: run alone, after the rest)
+    mine=$((k % parts)); k=$((k + 1)); [ "$mine" -eq "$part" ] || continue
+    total=$((total + 1))
     node --test --test-reporter=tap --test-name-pattern="$pat" "$f" > "$RUNNER_TEMP/b$i" 2>&1 & pids+=($!); i=$((i + 1))
   done
-  total=$((total + ${#names[@]}))
 done
 rc=0; for p in "${pids[@]}"; do wait "$p" || rc=1; done
 if [ "${#clock[@]}" -eq 2 ]; then node --test --test-reporter=tap --test-name-pattern="${clock[0]}" "${clock[1]}" > "$RUNNER_TEMP/b$i" 2>&1 || rc=1; fi
 cat "$RUNNER_TEMP"/b*
 ran=$(cat "$RUNNER_TEMP"/b* | grep -cE '^(ok|not ok) [0-9]+ - ' || true)
-echo "birds: $total tests in $total processes, $ran ran"
+echo "birds: $total tests in $total processes, $ran ran$([ "$parts" -gt 1 ] && echo " (part $((part + 1)) of $parts)")"
 [ "$ran" -eq "$total" ] || { echo "::error::birds: $ran of $total tests ran"; rc=1; }
 exit $rc

@@ -28,9 +28,13 @@ const DIR = path.join(ROOT, 'tools/checks'), TMP = path.join(ROOT, 'build/.check
 const argv = process.argv.slice(2), has = (f) => argv.includes(f), val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const all = fs.readdirSync(DIR).filter((f) => /^\d\d-[\w-]+\.sh$/.test(f)).sort().map((f) => {
   const src = fs.readFileSync(path.join(DIR, f), 'utf8');
-  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src) };
+  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src), parts: +((src.match(/^# parts: (\d+)$/m) || [])[1] || 1) };
 });
-const build = all.filter((c) => c.kind === 'build'), rest = all.filter((c) => c.kind !== 'build' && c.kind !== 'schedule'), sched = all.filter((c) => c.kind === 'schedule');
+// (2026-11-24) a check marked `# parts: N` runs on a push as N checks, slug#0 .. slug#N-1, each with CHECK_PART=i/N, so
+// the shards can take its parts side by side (35-birds: 177 s, the gate's long pole on a shard of its own). Its plants
+// (--prove) and --only run it whole.
+const expand = (list) => list.flatMap((c) => (c.parts > 1 ? Array.from({ length: c.parts }, (_, i) => Object.assign({}, c, { slug: c.slug + '#' + i, base: c.slug, part: i })) : [c]));
+const build = all.filter((c) => c.kind === 'build'), rest = expand(all.filter((c) => c.kind !== 'build' && c.kind !== 'schedule')), sched = all.filter((c) => c.kind === 'schedule');
 
 // bash and python3 as CI has them: on Windows, Git's bash (System32's is WSL's) and python3 as `python`
 let BASH = 'bash'; const env = Object.assign({}, process.env);
@@ -47,7 +51,7 @@ function run(c, extraEnv) {
   const tmp = path.join(TMP, c.slug); fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true });
   const t0 = Date.now();
   return new Promise((res) => {
-    const p = spawn(BASH, ['-eo', 'pipefail', path.join(DIR, c.file)], { cwd: ROOT, env: Object.assign({}, env, { RUNNER_TEMP: tmp }, extraEnv || {}) });
+    const p = spawn(BASH, ['-eo', 'pipefail', path.join(DIR, c.file)], { cwd: ROOT, env: Object.assign({}, env, { RUNNER_TEMP: tmp }, c.part !== undefined ? { CHECK_PART: `${c.part}/${c.parts}` } : {}, extraEnv || {}) });
     let out = ''; p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
     p.on('close', (code) => res({ c, ok: code === 0, code, out, s: (Date.now() - t0) / 1000 }));
   });
@@ -78,7 +82,7 @@ function split(list, n) {
 const SH = val('--shard') ? val('--shard').split('/').map(Number) : null;
 if (SH && !(SH.length === 2 && Number.isInteger(SH[0]) && Number.isInteger(SH[1]) && SH[1] >= 1 && SH[0] >= 0 && SH[0] < SH[1])) { console.error('--shard i/n: 0 <= i < n'); process.exit(2); }
 const inShard = (slug) => !SH || split(rest, SH[1]).at.get(slug) === SH[0];
-if (has('--list')) { for (const c of all.filter((c) => !SH || (rest.includes(c) && inShard(c.slug)))) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }   // (with --shard: that shard's checks)
+if (has('--list')) { for (const c of (SH ? rest.filter((c) => inShard(c.slug)) : [...build, ...rest, ...sched])) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); process.exit(0); }   // (with --shard: that shard's checks)
 if (val('--shards')) {
   const n = Number(val('--shards')), { at, load } = split(rest, n);
   for (let k = 0; k < n; k++) console.log(`shard ${k}/${n}  ${load[k].toFixed(0).padStart(4)} s  ` + rest.filter((c) => at.get(c.slug) === k).map((c) => c.slug).join(' '));
@@ -140,7 +144,7 @@ if (has('--prove')) {
     console.log((ok ? (want ? 'passes ' : 'caught ') : (want ? 'FAILED ' : 'MISSED ')) + c.slug.padEnd(20) + ' ' + p.why);
     if (!ok) { bad = 1; console.log(r.out.trim().split('\n').slice(-6).map((l) => '     | ' + l).join('\n')); }
   }
-  const unproved = SH && SH[0] !== 0 ? [] : rest.concat(sched).filter((c) => !P.some((p) => p.check === c.slug)).map((c) => c.slug);   // (sharded: shard 0 says it, once)   // (every check, --changed or not: a new check without a plant fails its own PR)
+  const unproved = SH && SH[0] !== 0 ? [] : rest.concat(sched).filter((c) => !P.some((p) => p.check === (c.base || c.slug))).map((c) => c.base || c.slug).filter((x, i, a) => a.indexOf(x) === i);   // (sharded: shard 0 says it, once)   // (every check, --changed or not: a new check without a plant fails its own PR)
   if (unproved.length) { console.log('no plant: ' + unproved.join(', ')); bad = 1; }
   process.exit(bad);
 }
