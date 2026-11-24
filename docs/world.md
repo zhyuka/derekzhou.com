@@ -657,10 +657,17 @@ physics: clouds/drift). It holds:
   the friction speed squared. It reads the field on the grain's own clock
   (tau, so its streak's tail is the same grain a moment back); its drift
   stays the mean wind's closed form, so a gust never moves a grain and
-  nothing jumps. The rain's gusts are the field too (physics:
-  air/rain-gust): heavier in a band where a gust is passing, carried
-  along the wind on the surface's clock, never a pulse of the whole
-  screen's (no realm has rain today). The score hears the field through the feed (the air
+  nothing jumps. No realm draws grains or motes today (physics:
+  air/particles-seen): the camera cruises about 14 m up, pitched about
+  11.6 deg up, so its nearest ground in frame is about 59 m ahead, past the
+  grains' box (within 45 m, faded from 32 m). On T1's three views and ten
+  dune openings an occlusion query and a pixel compare put both sets at
+  no more than one level on 19 pixels, so the dunes dropped them. The rain's gusts are the field too (physics:
+  air/rain-gust): carried along the wind on the surface's clock, in the
+  day's sigmas times the sky's gustiness, as the grains'. The field is
+  coherent over 22 U10 m, so in view the rain mostly thickens together
+  as a gust passes; it never pulses on a cycle of its own (no realm has
+  rain today). The score hears the field through the feed (the air
   heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit

@@ -238,14 +238,8 @@
       { mesh: function (mb, R) { shard(mb, R, 1, 0.35, [0.8, 0.78, 0.86, 1]); }, cell: 22, grid: 22, density: 0.09, size: [1.6, 5.5], sink: 0.1, tilt: 0.9, stretch: 1.6 },
       { mesh: function (mb, R) { K.rock(mb, R, 1, 0.7, [0.62, 0.6, 0.7, 1]); }, cell: 26, grid: 24, density: 0.2, size: [1.6, 4.6], sink: 0.32, tilt: 0.5, stretch: 1.2, salt: 7 }
     ],
-    // grains blowing over the sand (now and then one glints), motes in the low sun, veils of sand off the brinks
-    particles: function (V) {
-      var sand = lch(0.9, 0.04, 60), mote = lch(0.96, 0.05, 70, 1.4);
-      return [
-        { count: 700, box: 90, height: 1.6, streak: 0.05, width: 1.0, wind: A.vec3(V, A.H.grains, 0, A.GRAIN_K), color: [sand[0], sand[1], sand[2], 0.55], hop: [0.35, 2.6, 0.12, 0] },
-        { count: 160, box: 110, height: 26, streak: 0, width: 1.4, wind: A.vec3(V, A.H.motes, 0.1), color: [mote[0], mote[1], mote[2], 0.65], hop: [0, 0, 1.5, 1] }
-      ];
-    },
+    // the veils of sand off the brinks (the grains and the motes are gone: the camera, 14 m up and pitched up, never
+    // saw them; an occlusion and pixel measure on T1's three views put them at most one level on 19 pixels)
     ribbons: function (V) { var sand = lch(0.9, 0.04, 60); return { count: 20, box: 260, length: 70, width: 14, lift: 5, wind: A.vec3(V, A.H.veils, 0), color: [sand[0] * 0.95, sand[1] * 0.92, sand[2] * 0.95, 0.24] }; }
   });
 })();
