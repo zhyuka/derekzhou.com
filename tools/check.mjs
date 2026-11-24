@@ -128,10 +128,10 @@ if (has('--prove')) {
     if (fresh.size) console.log(`--base: ${fresh.size} changed file(s) changed only in their plant lines: their ${[...fresh.values()].reduce((n, x) => n + x.size, 0)} new plant(s) run, not the rest`);
     console.log(`--changed: ${ch.size} path(s); ${todo.length} of ${P.length} plants a change there can break` + (whole.size ? ` (every plant of ${[...whole].join(', ')})` : ''));
   }
-  // (sharded: the plants of this shard's checks; a parted check's, the shard of its part 0, which runs it whole; a build
-  // or weekly check's, shard 0: none of these is in the split, so until 2026-11-24 their plants ran on no shard)
-  const plantAt = (slug) => (rest.some((c) => c.slug === slug) ? slug : rest.some((c) => c.slug === slug + '#0') ? slug + '#0' : null);
-  if (SH) todo = todo.filter((p) => (plantAt(p.check) ? inShard(plantAt(p.check)) : SH[0] === 0));
+  // (sharded: every shard holds the whole checkout and builds the site before its plants, so the plants a change selects
+  // are dealt out in turn, each to one shard, whatever its check: 2026-11-24, a branch changing test/unit/sky.mjs ran its
+  // 31 plants, 25 s each, on the one shard of 24-unit for 13 minutes while the other four sat idle)
+  if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);
   if (has('--dry')) { for (const p of todo) console.log('would  ' + p.check.padEnd(20) + ' ' + p.why); process.exit(bad); }   // (the plants it would run, none run)
   if (todo.length) for (const c of build) { const r = await run(c); report(r); if (!r.ok) process.exit(1); }
   for (const p of todo) {

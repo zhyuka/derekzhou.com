@@ -68,7 +68,9 @@ shard, so every shard computes the same split (test/unit/check-shards.mjs: each 
 the command's n). A check not in costs.json counts 10 s; refresh the table from a validate log when the split drifts. (2026-11-24, from three sharded main gates: the table had the one-runner seconds, so 35-birds, 177 s with its 55 test processes, shared a shard with the wing model, 98 s beside it, and that shard took 3.5 minutes against the others' 1-2; now birds has a shard to itself.) A check marked `# parts: N` runs on a push as N checks, slug#0 .. slug#N-1, each with CHECK_PART=i/N, which the shards take side by side; its plants and --only run it whole. 35-birds is two parts (its 56 tests by their place in the list, the clock test in part 0), so no shard waits on all 177 s of it.
 A unit plant (a `// plant:` line in test/unit/<area>.mjs) runs that area file alone (check.mjs --prove sets
 CHECK_PLANT_AT, 24-unit.sh reads it): it re-ran all 40 files, about two minutes a plant on a hosted runner. All 162
-unit plants are still caught so (2026-11-24). A file whose only change is to its plant lines (a PR adding a plant) runs only its new or changed plants
+unit plants are still caught so (2026-11-24). The plants a change selects are dealt out in turn over the five shards, whatever their check (every shard holds the
+whole checkout and builds the site first): a branch that changed test/unit/sky.mjs ran its 31 plants, 25 s each, on
+24-unit's one shard for 13 minutes while the other four sat idle (2026-11-24); now 6 a shard. A file whose only change is to its plant lines (a PR adding a plant) runs only its new or changed plants
 (--base, the merge base): a PR adding one plant to 35-birds.sh re-ran all 13, each the 55 bird tests, 49 minutes
 (2026-11-24). Any other change to the file runs every plant in it; to a check's script or a lib it names, every plant
 of the check. The ruleset requires `verdict`, never a job's name, so the shards' names (validate (0/5) ...) need no setting.

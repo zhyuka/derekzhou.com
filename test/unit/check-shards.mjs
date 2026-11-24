@@ -42,7 +42,7 @@ test('check-shards: a bad --shard is refused', () => {
   }
 });
 
-test('check-shards: every plant a change selects runs on exactly one shard, a parted check\'s too (#382)', () => {
+test('check-shards: every plant a change selects runs on exactly one shard, dealt out evenly (a parted or weekly check\'s too)', () => {
   const y = fs.readFileSync(path.join(ROOT, '.github/workflows/validate.yml'), 'utf8');
   const n = Number(y.match(/--shard \$\{\{ matrix\.shard \}\}\/(\d+)/)[1]);
   const os = require('node:os'), f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'plants-')), 'changed.txt');
@@ -53,6 +53,8 @@ test('check-shards: every plant a change selects runs on exactly one shard, a pa
   assert.ok(all.some((l) => /^would  35-birds /.test(l)), 'the birds check has plants (a parted check)');
   assert.ok(all.some((l) => /^would  15-security-txt /.test(l)), 'a weekly check has plants (in no shard\'s split)');
   assert.deepEqual(got.sort(), all.sort(), 'each plant once over the shards');
+  const per = Array.from({ length: n }, (_, i) => dry('--shard', `${i}/${n}`).length), most = Math.ceil(all.length / n);
+  assert.ok(Math.max(...per) <= most, `the plants dealt out evenly, not by check: ${per.join(', ')} (at most ${most} a shard)`);
 });
-// plant: {"file": "tools/check.mjs", "find": ": rest.some((c) => c.slug === slug + '#0') ? slug + '#0' : null);", "with": ": slug);", "why": "a parted check's plants looked up by its whole name, in no shard's split (#382's first push: the 13 birds plants never ran)"}
-// plant: {"file": "tools/check.mjs", "find": ": SH[0] === 0));", "with": ": false));", "why": "a weekly check's plants on no shard (15-security-txt's, from #367 to 2026-11-24)"}
+// plant: {"file": "tools/check.mjs", "find": "if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);", "with": "if (SH) todo = todo.filter((p, i) => i % SH[1] === 0);", "why": "every shard runs the same share of the plants: some twice, the rest never"}
+// plant: {"file": "tools/check.mjs", "find": "if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);", "with": "if (SH) todo = todo.filter((p) => inShard(p.check) || (SH[0] === 0 && !rest.some((c) => c.slug === p.check)));", "why": "the plants back on their check's shard: one shard runs a test file's 31 plants alone"}
