@@ -32,7 +32,9 @@ vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
 }
 /* (delight-weather 1) the mist pools' top over a point: its floor (the ground the dunes stand on) and the sky's depth
    by the sand weight (229-mist-pools.js) */
-float mistTop(vec2 mb) { return uMist.x > 0.0 ? mb.x + uMist.x * mb.y : -1e4; }   // (none at depth 0: the land never under its own floor, so nothing changes as the depth leaves 0)
+float mistTop(vec2 mb) { return uMist.x > 0.0 ? mb.x + uMist.x * mb.y : -1e4; }
+/* (the fog pools) a basin's pool's top over p, within its radius (234-fog-pools.js: held under the rim, so no edge shows at r) */
+float fogTopAt(vec2 p) { vec2 d = p - uFogP.xy; return dot(d, d) < uFogP.z * uFogP.z ? uFogP.w : -1e4; }   // (none at depth 0: the land never under its own floor, so nothing changes as the depth leaves 0)
 /* the same at a point, from the weights (the landmarks and the scatter, per vertex: no varying of the land's to read) */
 float mistTopAt(vec2 p) {
   if (uMist.x <= 0.0) return -1e4;
@@ -40,7 +42,7 @@ float mistTopAt(vec2 p) {
   gMS = vec2(1.0, 0.0);
   ivec2 c0 = ivec2(floor(p / DS));   // (the basins about p, as D_Hd's: their change to the floor)
   for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) { Site S = siteOf(c0 + ivec2(i, j)); if (S.kind == 1 || S.kind == 2) basinOf(p, vec3(0.0), S); }
-  return mistTop(vec2(swell(p) * gMS.x + gMS.y - sk.x, wD.x));
+  return max(mistTop(vec2(swell(p) * gMS.x + gMS.y - sk.x, wD.x)), fogTopAt(p));
 }
 /* the mist over a surface d m under the pool's top: opaque within uMist.y of depth, the same at every depth (the level
    moves, nothing thickens in place); the rim's ramp at least two pixels' worth of the surface's depth (the far

@@ -44,6 +44,7 @@
     if (u.uHaze) { HZU[0] = L.haze[0]; HZU[1] = L.haze[1]; HZU[2] = L.haze[2] + Math.max(0, (V.clear ? V.clear[1] : 14) - 14) * 1.6; HZU[3] = L.haze[3]; gl.uniform4fv(u.uHaze, HZU); }
     if (u.uHazeC) gl.uniform3fv(u.uHazeC, L.hazeC);
     if (u.uMist) mistU(u, L);   // (delight-weather 1: the mist pools)
+    if (u.uFogP) fogU(u, L);   // (and the fog pool in a basin: 234)
     if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
     if (u.uAmbU) gl.uniform3fv(u.uAmbU, L.ambU);
     if (u.uAmbD) gl.uniform3fv(u.uAmbD, L.ambD);
