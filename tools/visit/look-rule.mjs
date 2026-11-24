@@ -6,7 +6,8 @@
 //   discs     at dawn and sunset a heading must keep the low sun's disc in frame, clear of cloud and outside the words'
 //             boxes, wherever the land's own heading shows it (the disc is a few pixels: the feature's light alone
 //             cannot see it; on today's world no first frame shows one, so the glow below is what holds)
-//   GLOW_KEEP the least of the low sun's light in frame (sunIn) a heading may keep against the land's own heading's: the
+//   GLOW_KEEP the least of the low sun's light in frame (sunIn) a heading may keep against the land's own heading's (half:
+//             at three quarters k0 and k5 had no heading under the caps, their own lit by the very clouds behind the words); the
 //             glow main shows at dawn and sunset stays
 //   lookScore the look's part of the pick: the opening's feature in frame (its light against the land's best candidate's)
 //             and left clear (the Milky Way at night, the low sun or its glow at dawn and sunset), less the top band
@@ -21,7 +22,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const WORD_CAP = 0.1, NAME_CAP = 0.02, FEATURE_W = 0.5, TOP_W = 0.25, GLOW_KEEP = 0.75, DISC_VIEWS = ['laptop-sunset', 'phone-dawn'];
+export const WORD_CAP = 0.1, NAME_CAP = 0.02, FEATURE_W = 0.5, TOP_W = 0.25, GLOW_KEEP = 0.5, DISC_VIEWS = ['laptop-sunset', 'phone-dawn'];
 export const lookKey = (deg) => (deg === null ? 'own' : String(deg));
 // the feature: how much of its light is in frame against the land's best (bestIn), and how much of that is clear
 export function lookScore(l, best) {
