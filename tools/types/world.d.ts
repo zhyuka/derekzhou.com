@@ -18,7 +18,7 @@ interface MSRT { w: number; h: number; n: number; f: WebGLFramebuffer; c: WebGLR
 interface Targets { W: number; H: number; scene: RT; lind: RT; cloud: RT; bd: RT[]; bu: RT[]; ms: MSRT | null; sceneH: RT | null;
   ch: RT[]; hz: WebGLTexture; sb: RT; win: RT; held?: boolean }
 interface Ext { cbf: EXT_color_buffer_float | null; cbh: EXT_color_buffer_half_float | null; par: KHR_parallel_shader_compile | null;
-  parAll: KHR_parallel_shader_compile | null; renderer: string; issueAll: boolean; hp: boolean }
+  parAll: KHR_parallel_shader_compile | null; renderer: string; issueAll: boolean; wkMac: boolean; hp: boolean }
 // the ink birds' module as the engine sees it (inkbirds.js's factory returns it; 490's header names the four hooks):
 // BIRDS, the boot's, and BIRDL, one made late (495)
 interface BirdsModule { step(dt: number): void; draw(): void; visit(k: number): void; lost(): void; boot?(): void; prepare?(): boolean;

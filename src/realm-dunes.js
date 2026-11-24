@@ -112,7 +112,13 @@
       else it = C.add({ kind: 'gshard', form: true, x: x, z: z, foot: 30, yaw: yaw, h: H, w: rad * 0.7, seed: seed, solid: [rad * 0.7 + 0.42 * H + 6, H] });
       C.poi({ kind: 'form', x: x, z: z, ref: it, dy: H * 0.5, pass: rad * 1.2 + 80 });
     }
-    if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: R.r(0, PI), len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
+  }
+  /* an air cell (physics: clouds/drift): the low layer's ranges, drifting with the wind and lying along it (the low
+     layer's own way, cloudWind's, +- 15 deg: a cloud street); laid out where the air has carried the cell, their
+     seats read there */
+  function dAirDir(V) { var w = A.day(0, 0, A.H.clouds, V); return w.x || w.z ? Math.atan2(w.x, w.z) : Math.atan2(V.wind[0], V.wind[1]); }   // (the low layer's own way, the air's at its height (cloudWind's): its veer, never a copy of it)
+  function dAir(C, R) {
+    if (R.f() < 0.28) C.cloud({ kind: 'range', x: C.x0 + R.r(0.2, 0.8) * C.size, z: C.z0 + R.r(0.2, 0.8) * C.size, foot: 0, dy: R.r(480, 680), dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180, len: R.r(1100, 1900), w: R.r(260, 420), h: R.r(150, 240), seed: R.seed() });
   }
   /* a small cell of open dunes: a few stones of its own */
   function dSmall(C, R) {
@@ -157,6 +163,7 @@
         cl: [7.0, 0.13, 0.0035, 1], inCloudK: 1.04
       };
     },
+    air: function (C, R) { dAir(C, R); },
     cell: function (C, R, K2) {
       if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); return; }
       // a small cell: the details of the areas about it that fall in it, and its own stones

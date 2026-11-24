@@ -1,14 +1,23 @@
   /* ---------------------------------------------------------------- the ground and what stands ahead */
   var NEAR_OBST = [];
   function nearObstacles(V, range) { return nearObstaclesAt(V, CS.x, CS.z, range, NEAR_OBST); }   // the obstacles of the cells about the camera
-  function nearObstaclesAt(V, x, z, range, out) {
+  /* (physics: clouds/drift) an air cell's obstacles (its clouds' cores) stand where the air has carried them by t (the
+     sim's moment unless given): copies, from the out list's own pool, each with the air's wind (w) for the slip's plan */
+  var OBO = new Float64Array(3);
+  function nearObstaclesAt(V, x, z, range, out, t) {
     out.length = 0;
     var L = V.cellList; if (!L) return out;
+    var tt = t === undefined ? SIM.t : t, pool = out.pool || (out.pool = []), np = 0;
     for (var i = 0; i < L.length; i++) {
       var C = L[i]; if (C.st < 2 || !C.obst.length) continue;
-      var dx = C.bound[0] - x, dz = C.bound[2] - z, R = range + C.bound[3];
+      var off = cellOff(C, tt, OBO), dx = C.bound[0] + off[0] - x, dz = C.bound[2] + off[1] - z, R = range + C.bound[3];
       if (dx * dx + dz * dz > R * R) continue;
-      for (var k = 0; k < C.obst.length; k++) out.push(C.obst[k]);
+      if (!C.air) { for (var k = 0; k < C.obst.length; k++) out.push(C.obst[k]); continue; }
+      for (var k2 = 0; k2 < C.obst.length; k2++) {
+        var o = C.obst[k2], q = pool[np] || (pool[np] = {}); np++;
+        q.c = o.c; q.x = o.x + off[0]; q.z = o.z + off[1]; q.y = o.y + off[2]; q.r = o.r; q.y0 = o.y0 + off[2]; q.y1 = o.y1 + off[2]; q.cloud = o.cloud; q.w = airW(V);
+        out.push(q);
+      }
     }
     return out;
   }

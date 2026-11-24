@@ -13,7 +13,7 @@
     // the cloud sea's pieces only where its sea is up about them (aboveKeep)
     // (what is kept is the place's, whatever line is flown: no corridor held about a line; the floating pieces raised
     // over the flight band)
-    if (C.items.length) C.items = C.items.filter(function (it) { if (it.form) return true; if (!it.lq) return true; return aboveKeep(it); });
+    if (C.items.length) C.items = C.items.filter(function (it) { if (it.form) return true; if (!it.lq) return true; return aboveKeep(it, C.air ? C.dL[0] : 0, C.air ? C.dL[1] : 0); });
     for (i = 0; i < C.items.length; i++) {
       var ia = C.items[i]; if (!ia.air || !ia.spheres) continue;
       var lowS = 1e9; for (j = 0; j < ia.spheres.length; j += 4) lowS = Math.min(lowS, ia.spheres[j + 1] - ia.spheres[j + 3]);
@@ -22,7 +22,7 @@
     }
     if (C.pois.length) C.pois = C.pois.filter(function (p) { return !(p.ref && p.ref._drop); });
     if (C.flocks.length) C.flocks = C.flocks.filter(function (f) { return !(f.ref && f.ref._drop); });
-    if (C.clouds.length) C.clouds = C.clouds.filter(function (cl) { return !cl.lq || aboveKeep(cl); });
+    if (C.clouds.length) C.clouds = C.clouds.filter(function (cl) { return !cl.lq || aboveKeep(cl, C.air ? C.dL[0] : 0, C.air ? C.dL[1] : 0); });
     // obstacles: each solid item a cylinder over its seat
     for (i = 0; i < C.items.length; i++) {
       var it = C.items[i]; it.seat = it.air ? it.y : yOf(it);
@@ -33,7 +33,7 @@
     // clouds: their lobes laid out on their seats, prepared for baking; their cores are obstacles
     if (C.clouds.length) {
       var PF = new Puffs(), bodyCl = [];
-      for (i = 0; i < C.clouds.length; i++) { var cl = C.clouds[i], nb0 = PF.bodies.length; cl.base = yOf(cl); V.def.cloud(cl, PF, RNG(cl.seed || (C.key + i * 7919) >>> 0), KITAPI); for (j = nb0; j < PF.bodies.length; j++) bodyCl[j] = cl; }
+      for (i = 0; i < C.clouds.length; i++) { var cl = C.clouds[i], nb0 = PF.bodies.length; cl.base = yOf(cl); if (C.air && cl.kind === 'cumulus') { var hS = cl.base - seaBaseAt(cl.x, cl.z); cl.lean = cloudLean(V, Math.max(hS, 1), Math.max(hS, 1) + cl.h); }   /* (physics: clouds/drift: a free tower leans downwind with the shear across it) */ V.def.cloud(cl, PF, RNG(cl.seed || (C.key + i * 7919) >>> 0), KITAPI); for (j = nb0; j < PF.bodies.length; j++) bodyCl[j] = cl; }
       // each body kept (not empty), its volume prepared and its cores obstacles; its
       // visible body (its lobes) kept for the slip (a cost) and the mist about the eye (mistK), in the volumes' order
       var soft = [], softB = [];
@@ -47,10 +47,18 @@
         cxB /= (bj1 - bj0); czB /= (bj1 - bj0);
         var btB = bandTopAt(cxB, czB, clb ? (clb.landMax !== undefined ? clb.landMax : clb.ground) : undefined), dB = btB - lowB;
         if (dB > 0) { for (j = bj0; j < bj1; j++) PF.a[j * 12 + 1] += dB; var Bb = PF.bodies[bi]; Bb.y0 += dB; Bb.y1 += dB; Bb.cy += dB; BAND.lifted++; BAND.liftM = Math.max(BAND.liftM, dB); }
+        // (physics: clouds/drift) an air cell's body: where it stands (the cell's stored frame), its lowest billow as laid out
+        // and the land it was seated over: the cell's lift as the air carries it over the band (212: cellLift)
+        // (a body over the most the band can reach over its land, anywhere, never needs one: left out)
+        var lnB = clb ? (clb.landMax !== undefined ? clb.landMax : clb.ground) : undefined;
+        if (C.air && lowB + Math.max(dB, 0) < bandTopMost(lnB) + LIFT_M) (C.lift || (C.lift = [])).push({ x: cxB, z: czB, low: lowB + Math.max(dB, 0), land: lnB });
         // its base flat at its lowest lobe's centre: seen from under it a cloud floats on its condensation level,
         // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
         var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = ycB;
         var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48, V); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
+        // (its centre in the air frame and the low layer's wind: cloudPos carries it, physics: clouds/drift; a world cell's
+        // clouds, a canyon's walls, are the cloud sea's: held)
+        vb.out.c0 = Float64Array.from(vb.out.c); if (C.air) { vb.out.c0[0] -= C.dL[0]; vb.out.c0[2] -= C.dL[1]; vb.out.w = airW(V); } else vb.out.w = null;
         var cores = vb.out.cores;
         for (j = 0; j < cores.length; j += 4) C.obst.push({ c: 0, x: cores[j], y: cores[j + 1], z: cores[j + 2], r: cores[j + 3], cloud: true });
         var s0 = soft.length, lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
@@ -70,6 +78,7 @@
     var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
     function grow(x, y, z, r) { lo[0] = Math.min(lo[0], x - r); lo[1] = Math.min(lo[1], y - r); lo[2] = Math.min(lo[2], z - r); hi[0] = Math.max(hi[0], x + r); hi[1] = Math.max(hi[1], y + r); hi[2] = Math.max(hi[2], z + r); }
     for (i = 0; i < C.items.length; i++) { var q = C.items[i], rr = Math.max(q.foot || 0, q.solid ? q.solid[0] : 0, q.reach || 0, 20); grow(q.x, q.seat + (q.solid ? q.solid[1] * 0.5 : 0), q.z, rr + (q.solid ? q.solid[1] * 0.6 : 30)); }
+    if (C.lift) cellLift(C, SIM.t);   // (the lift's samples about now made here, in the resolve's slice, not at a draw)
     for (i = 0; i < C.vols.length; i++) { var o2 = C.vols[i].out; grow(o2.c[0], o2.c[1], o2.c[2], o2.r); }
     for (i = 0; i < C.places.length; i++) { var pl = C.places[i]; grow(pl.x, pl.seat + pl.cy, pl.z, pl.r); }
     if (C.glowB) { var gb = C.glowB.bound; grow(gb[0], gb[1], gb[2], gb[3]); }

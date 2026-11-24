@@ -13,16 +13,17 @@ import { test, assert, fs, path, vm, ROOT, WORLD, cut } from '../unit-lib.mjs';
 // dunes' [120, 4], scaled noise looked up at world coordinates, so a few thousand metres from the origin the billows slid
 // through every body as the flight crossed realms)
 const DRAW = cut(WORLD, '    var push = pushVol;', '    ST.vols = m;');
-const DET = cut(WORLD, '  function volDetail(V) {', '  function volPrep(');
+const DET = cut(WORLD, '  function volDetail(V, x, z) {', '  function volPrep(');
 
 test('clouds: the volume draw reads no light for the billows; each body brings its own', () => {
   assert.ok(!/clDetail/.test(DRAW), 'the draw loop reads clDetail: the billows\' scale changes per frame with the place');
   assert.match(DRAW, /B\.u4a\[2\] = B\.det\[0\] \* \(CRISP \? \d+ : 1\); B\.u4a\[3\] = B\.det\[1\] \* \(CRISP \? \d+ : 1\);/, 'the billows\' scale and depth are not the body\'s own (the desktop\'s deepened by the device\'s kind alone)');
 });
-test('clouds: a body\'s billows are set once, from the kits\' own blended by the light\'s weight about the camera, and never follow it', () => {
+test('clouds: a body\'s billows are set once, from the kits\' own blended by the light\'s weight about its own place, and never follow it', () => {
   assert.ok(DET, 'volDetail not found in world.js');
-  // (the world's KW, CS and lightWeight stubbed: the camera at the landing, the light's weight there 0.6)
-  const make = (ok, w) => vm.runInThisContext('(function (KW, CS, lightWeight) {' + DET + ' return volDetail; })')({ ok }, { x: 0, z: 0 }, () => w);
+  // (the world's KW and lightWeight stubbed: the light's weight 0.6 at the body's place, 0.1 anywhere else (the camera's))
+  const at = [1234, -567];
+  const make = (ok, w) => { const f = vm.runInThisContext('(function (KW, CS, lightWeight) {' + DET + ' return volDetail; })')({ ok }, { x: 0, z: 0 }, (x, z) => (x === at[0] && z === at[1] ? w : 0.1)); return (V) => f(V, at[0], at[1]); };
   const kits = { lightRaw: { clDetail: [120, 4] }, lightRawB: { clDetail: [80, 5] } };
   // the boot: V.L the dunes kit's unblended copy, before the landing's first climateLight; the body takes the landing's light
   const boot = make(true, 0.6)(Object.assign({ L: { clDetail: new Float32Array([120, 4]) } }, kits));
@@ -33,6 +34,8 @@ test('clouds: a body\'s billows are set once, from the kits\' own blended by the
   assert.deepEqual(Array.from(make(false, 0)({})), [120, 4], 'no weights, no light yet: the default');
   // (the one call: without V every body would fall back to [120, 4] and the stubs above would still pass)
   assert.match(WORLD, /volPrep\(PF, bi, null, [^;]*, V\)/, 'cells-resolve calls volPrep without the visit: every body would take the default billows');
+  assert.match(WORLD, /det: volDetail\(V \|\| \{\}, c\[0\], c\[2\]\)/, 'a body\'s billows are not taken at its own centre');
+  assert.ok(!/lightWeight\(CS\.x, CS\.z\)/.test(DET), 'volDetail reads the camera\'s place');
 });
 
 // ------------------------------------------------------------------ the edge band's boil (cloud-edge-boil, 2026-11-14)
@@ -92,7 +95,10 @@ test('clouds: the edge band is cut into pieces in the shader, at most 48, the ca
   assert.ok(VBODY.includes('dsum += segRamp(sa, s, bE);') && VBODY.includes('float d = dsum / K * 0.5 * (fP + fz);'), 'the pieces\' ramps are not summed and averaged');
   assert.ok(VBODY.includes('float tl = (gP + v.g) * 12.0, sky = exp(-(bP + v.b) * 0.5 * 12.0 * 0.85), tM = 0.5 * (tP + t);'), 'a segment is not lit at its middle');
   assert.ok(VBODY.includes('vec3 uv0 = (ro + rl * tc) / (2.0 * uVH) + 0.5'), 'the first face\'s normal is not taken where the smooth form crosses into the band');
-  assert.ok(VBODY.includes('vec3 nOff = fract(uVC / uVR.z)') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
+  assert.ok(VBODY.includes('vec3 nOff = uVO;') && VBODY.includes('textureLod(uN3, p / uVR.z + nOff, lod)'), 'the billows are not read at body-relative coordinates');
+  // (physics: clouds/drift: the billows ride with the body: no clock in them, their offset from the laid-out centre)
+  assert.ok(!/\buT\b/.test(VBODY.replace(/\/\/[^\n]*/g, '')), 'fs-vbody reads the clock: the lumps slide through a body');
+  assert.match(WORLD, /var c0 = B\.c0 \|\| B\.c, nS = B\.u4a\[2\];/, 'the billows\' offset is not taken from the body\'s laid-out centre');
   assert.ok(VK, '410 sets no uVK for the tiers');
   assert.ok(CAP.desktop <= 48 && CAP.rest <= CAP.desktop, `caps ${JSON.stringify(CAP)}: the shader's loop cuts at most 48`);
 });

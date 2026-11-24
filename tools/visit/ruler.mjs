@@ -39,9 +39,9 @@ const VSALT = /V\.salt = (subseed\(V\.seed, \d+\) >>> 0);/.exec(WORLD);   // (20
 // (180) what a cell keeps: the kits' densities by the raw maps and the pieces' own hash, as the world has them, and the
 // salt each kit's pieces are picked with (kitApi's keep); the layout's order (the ABOVE kit's scale after the dunes')
 const DENS = cut(WORLD, '  function densD(x, z)', '  /* (world6 fix, the judges\' defect 4)');
-const PICK = cut(WORLD, '  function pickOf(o, salt)', '\n', true);
-const KSALT = /function keep\(o\) \{ return pickOf\(o, kit === 'above' \? (0x[0-9a-f]+) : (0x[0-9a-f]+)\) < dens\(o\.x, o\.z\); \}/.exec(WORLD);
-const LAYOUT = /layout: \{ scales: \[KD\.layout\.scales\[0\], KD\.layout\.scales\[1\], KA\.layout\.scales\[0\]\]/.test(WORLD);
+const PICK = cut(WORLD, '  function pickOf(o, salt', '\n', true);
+const KSALT = /function keep\(o\) \{ return pickOf\(o, kit === 'above' \? (0x[0-9a-f]+) : (0x[0-9a-f]+)(?:, ox, oz)?\) < dens\(o\.x(?: - ox)?, o\.z(?: - oz)?\); \}/.exec(WORLD);   // (an air cell's keep takes its carry, ox and oz: a world cell's is 0)
+const LAYOUT = /layout: \{ scales: \[KD\.layout\.scales\[0\], KD\.layout\.scales\[1\], KA\.layout\.scales\[0\][\],]/.test(WORLD);   // (the world cells' three first; the air cells' scales, if any, after)
 const SPEED0 = /speed: KD\.speed \|\| (\d+(?:\.\d+)?),/.exec(WORLD);   // (worldDef: the world's one speed)
 // the main dunes' height at full sand weight (dunes-glsl: the S1 dune's height, by amp and the sand weight wD), and AIR's
 // mist depth by sky (215, once AIR's weather lands: null before)
@@ -74,7 +74,7 @@ function landOf(k) {
     '  var J = { seed: SEED0 };\n' + HEAD0 + DENS + PICK +
     '  var V = {}; V.seed = ' + VSEED[1] + '.seed(); V.salt = ' + VSALT[1] + ';\n' +
     '  var SIM = {};\n' + MOIST + '  G.mistQ = ' + (MIST ? 'airMoist({ u10: airU10(V.seed) })' : 'null') + '; G.windAz = ' + VRNG[1].replace('V.seed', 'V.seed') + '.r(0, 2 * PI);\n' +
-    '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf;\n' +
+    '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf; G.seed = V.seed;\n' +
     '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, RNG: RNG, subseed: subseed };\n})');
   const g = {}, CS = { x: 0, z: 0 }; G(g, CS, k); g.CS = CS;
   g.mapsInit(g.SEED0);
@@ -87,17 +87,17 @@ const KITS = (() => {
   const reg = (src, S) => {
     let def = null;
     const kit = { lch: (l, c, h, kk) => [l, c, h, kk === undefined ? 1 : kk], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, RNG: S.RNG, smooth, range: () => {}, rock: () => {} };
-    const air = new Proxy({}, { get: () => () => [0, 0, 0] });
+    const air = new Proxy({}, { get: (_, k) => k === 'H' ? { clouds: 800, deck: 3000 } : k === 'windAt' ? () => ({ x: 0, y: 0, z: 0 }) : () => [0, 0, 0] });   // (an air cell's kit reads the wind's way: still here, so V.wind's)
     vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air, realm: (d) => { def = d; } } });
     return def;
   };
   return (S) => ({ dunes: reg(DUNES, S), above: reg(ABOVE, S) });
 })();
-function cellPlaces(L, kits, kind, ix, iz, size) {
+function cellPlaces(L, kits, kind, ix, iz, size, air) {
   const S = L.STREAMS, out = { pois: [], flocks: [] }, dens = kind === 'above' ? L.densA : L.densD;
   const salt = +(kind === 'above' ? KSALT[1] : KSALT[2]), keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);
   const C = {
-    scale: kind === 'above' ? kits.dunes.layout.scales.length : 0, ix, iz, x0: ix * size, z0: iz * size, size, salt: L.salt, V: { light: { sunEl: 5 } },
+    scale: air ? (kind === 'above' ? 4 : 3) : kind === 'above' ? kits.dunes.layout.scales.length : 0, air: !!air, dL: air ? [0, 0] : null, ix, iz, x0: ix * size, z0: iz * size, size, salt: L.salt, V: { light: { sunEl: 5 }, wind: [Math.sin(L.windAz), Math.cos(L.windAz)] },
     inside: (x, z) => x >= ix * size && x < (ix + 1) * size && z >= iz * size && z < (iz + 1) * size,
     add: (it) => { if (!keep(it)) it._drop = true; return it; },
     cloud: (cl) => { if (!keep(cl)) cl._drop = true; return cl; },
@@ -106,8 +106,16 @@ function cellPlaces(L, kits, kind, ix, iz, size) {
     place: (set, x, z, o) => o || {},
     weights: (x, z) => { const k = L.kitAt(x, z); return [k.wD, k.wC]; }
   };
-  const R = S.RNG(S.cellHash(ix, iz, (L.salt ^ (C.scale * 0x9e3779b9)) >>> 0));
-  (kind === 'above' ? kits.above : kits.dunes).cell(C, R, {});
+  const R = S.RNG(S.cellHash(ix, iz, ((air ? S.subseed(L.seed, 47) : L.salt) ^ (C.scale * 0x9e3779b9)) >>> 0)), K = kind === 'above' ? kits.above : kits.dunes;
+  if (!air) K.cell(C, R, {}); else if (K.air) K.air(C, R, {});
+  return out;
+}
+// (physics: clouds/drift) the free clouds' places are in air cells (230: their own stream, subseed 47; scales 3 and 4
+// in 180's layout), laid out here as they stand at the opening, carried 0. They drift with the low layer's wind (at most
+// a few km in a 10-minute visit), which the ruler does not follow: their passes are read where they were laid out
+function cellPlacesBoth(L, kits, kind, ix, iz, size) {
+  const a = cellPlaces(L, kits, kind, ix, iz, size), b = cellPlaces(L, kits, kind, ix, iz, size, true);
+  return { pois: a.pois.concat(b.pois), flocks: a.flocks.concat(b.flocks) };
   return out;
 }
 
@@ -156,7 +164,7 @@ export function flyLand(k, secs = 7200, heading = null) {   // (heading: another
     for (let s = -reach; s <= len + reach; s += size / 2) for (let l = -reach; l <= reach; l += size / 2) {
       const x = hx * s - hz * l, z = hz * s + hx * l, ix = Math.floor(x / size), iz = Math.floor(z / size), key = kind + ix + ',' + iz;
       if (seen.has(key)) continue; seen.add(key);
-      const c = cellPlaces(L, kits, kind, ix, iz, size);
+      const c = cellPlacesBoth(L, kits, kind, ix, iz, size);
       for (const p of c.pois) pois.push({ realm: kind, site: key, ...p });
       flocks.push(...c.flocks);
     }

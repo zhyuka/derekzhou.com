@@ -1,16 +1,25 @@
   /* the streamer: which cells a visit wants about a point (heading hx, hz), made in order of need, freed far behind */
-  var SCAN = new Float64Array(4);
+  var SCAN = new Float64Array(4), SCANA = new Float64Array(2);
+  /* (physics: clouds/drift) how far out a scale's cells are made: its radius; an air cell's further, by the air's
+     closing speed (the camera's and the low layer's against it: |W| / v more than the land's), so it has the land's time
+     between being wanted and coming out of the haze (that lead, 0.1 R + 100 m and half a cell, made 1 + |W| / v times as
+     long), from the show on; where it comes out of the haze is the radius's, as before */
+  function streamR(L, V) { if (!L.air || !shown) return L.radius; var w = airW(V); return L.radius + Math.sqrt(w[0] * w[0] + w[1] * w[1]) / Math.max(V.speed, 1) * (0.1 * L.radius + 100 + L.size * 0.5); }   // (from the show: the boot's own work as before, nothing yet carried)
   function streamCells(V, cx, cz, hx, hz, sync, focusOnly) {
     if (!V.cells) { V.cells = new Map(); V.cellList = []; V.scanAt = [1e9, 1e9]; }
     var sc, L, scales = V.def.layout.scales, i;
-    // the wanted set, scanned again when the point has moved 24 m (or at once when asked)
-    var dx = cx - V.scanAt[0], dz = cz - V.scanAt[1];
-    if (sync || dx * dx + dz * dz > 576) {
-      V.scanAt[0] = cx; V.scanAt[1] = cz;
+    // (physics: clouds/drift) the air cells about the point's place in the air: the point less how far the air has
+    // carried it (the air moves past a still point, so that place moves too)
+    var AD = airD(V, SIM.t, SCANA), ax = cx - AD[0], az = cz - AD[1];
+    if (!V.scanAtA) V.scanAtA = [1e9, 1e9];
+    // the wanted set, scanned again when the point has moved 24 m, or its place in the air (or at once when asked)
+    var dx = cx - V.scanAt[0], dz = cz - V.scanAt[1], dax = ax - V.scanAtA[0], daz = az - V.scanAtA[1];
+    if (sync || dx * dx + dz * dz > 576 || dax * dax + daz * daz > 576) {
+      V.scanAt[0] = cx; V.scanAt[1] = cz; V.scanAtA[0] = ax; V.scanAtA[1] = az;
       for (sc = 0; sc < scales.length; sc++) {
-        L = scales[sc]; var R = L.radius, n = Math.ceil(R / L.size) + 1, bx = Math.floor(cx / L.size), bz = Math.floor(cz / L.size);
+        L = scales[sc]; var px0 = L.air ? ax : cx, pz0 = L.air ? az : cz, R = streamR(L, V), n = Math.ceil(R / L.size) + 1, bx = Math.floor(px0 / L.size), bz = Math.floor(pz0 / L.size);
         for (var jz = -n; jz <= n; jz++) for (var jx = -n; jx <= n; jx++) {
-          var ix = bx + jx, iz = bz + jz, ccx = (ix + 0.5) * L.size - cx, ccz = (iz + 0.5) * L.size - cz, d = Math.sqrt(ccx * ccx + ccz * ccz);
+          var ix = bx + jx, iz = bz + jz, ccx = (ix + 0.5) * L.size - px0, ccz = (iz + 0.5) * L.size - pz0, d = Math.sqrt(ccx * ccx + ccz * ccz);
           if (d > R + L.size * 0.5) continue;
           var key = cellKey(sc, ix, iz);
           if (!V.cells.has(key)) { var C = new Cell(V, sc, ix, iz); V.cells.set(key, C); V.cellList.push(C); }
@@ -25,8 +34,8 @@
       }
       // free the cells far behind (past 1.3 radii)
       for (i = V.cellList.length - 1; i >= 0; i--) {
-        var Cf = V.cellList[i], Lf = scales[Cf.sc], fx = Cf.cx - cx, fz = Cf.cz - cz;
-        if (Math.sqrt(fx * fx + fz * fz) > Lf.radius * 1.3 + Lf.size * 0.5) {
+        var Cf = V.cellList[i], Lf = scales[Cf.sc], fx = Cf.cx - (Cf.air ? ax : cx), fz = Cf.cz - (Cf.air ? az : cz);
+        if (Math.sqrt(fx * fx + fz * fz) > streamR(Lf, V) * 1.3 + Lf.size * 0.5) {
           if (WLOG && Cf.mesh && V === SIM.V) wl('free', V.k + ':' + Cf.key, Cf.lastW || 0, nearDist(Cf, CAM.pos[0], CAM.pos[2]), Cf.lastVis);   // (dev: a drawn cell dropped)
           freeCell(Cf); V.cells.delete(Cf.key); V.cellList.splice(i, 1);
         }
@@ -35,7 +44,7 @@
     // priorities: nearer first, ahead before behind
     var list = V.cellList, hl = Math.sqrt(hx * hx + hz * hz) || 1;
     for (i = 0; i < list.length; i++) {
-      var Cp = list[i], px = Cp.cx - cx, pz = Cp.cz - cz, pd = Math.sqrt(px * px + pz * pz) || 1, ahead = (px * hx + pz * hz) / (pd * hl);
+      var Cp = list[i], px = Cp.cx - (Cp.air ? ax : cx), pz = Cp.cz - (Cp.air ? az : cz), pd = Math.sqrt(px * px + pz * pz) || 1, ahead = (px * hx + pz * hz) / (pd * hl);
       Cp.prio = pd * (1 - 0.35 * ahead) / scales[Cp.sc].radius;
       if (BOOTVF && !bootNeed(V, Cp, cx, cz, BOOT_M)) Cp.prio += 20;   // (the boot's order: what can be seen first, in the flight's own order; the cells out in the haze after)
     }
@@ -55,8 +64,18 @@
   var LATE = { n: 0, vols: 0, worst: 0 };
   function fadeZ(V, sc) { var R = V.def.layout.scales[sc].radius; return R - (0.1 * R + 100); }
   function distFadeAt(V, sc, d) { var R = V.def.layout.scales[sc].radius, z = fadeZ(V, sc); return 1 - smooth(z - 0.12 * R, z, d); }
-  function cellDistFade(C) { return distFadeAt(C.V, C.sc, nearDist(C, CAM.pos[0], CAM.pos[2])); }
-  function volDistFade(o) { var C = o.cell; if (!C) return 1; var dx = o.c[0] - CAM.pos[0], dz = o.c[2] - CAM.pos[2]; return distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0)); }
+  var CDF = new Float64Array(2);
+  function cellDistFade(C) { var a = C.air ? airD(C.V, cloudT(), CDF) : null; return distFadeAt(C.V, C.sc, nearDist(C, a ? CAM.pos[0] - a[0] : CAM.pos[0], a ? CAM.pos[2] - a[1] : CAM.pos[2])); }   // (an air cell's grid is the air's: the eye taken there)
+  var VDF = new Float64Array(3);   // (a drifting body where the air has carried it by the draw's moment)
+  /* (physics: clouds/drift) a body by the nearer of its own distance and its cell's: a body's box reaches past its
+     cell (a cloud sea tower's as large as 1500 m about, a canyon wall's 600 m), so by its own distance alone one at its
+     cell's near side stood in the fade band when its cell was made (to 0.79 weight in an air cell, 0.73 for the canyon's
+     walls in the world's: drawn at once when baked, a pop); the cell's nearest distance is past the band then (made at
+     the scale's radius and half a cell, its near edge 0.7 of a cell nearer) */
+  function volDistFade(o) {
+    var C = o.cell; if (!C) return 1; var pc = o.w ? cloudPos(o, cloudT(), VDF) : o.c, dx = pc[0] - CAM.pos[0], dz = pc[2] - CAM.pos[2], f = distFadeAt(C.V, C.sc, Math.max(Math.sqrt(dx * dx + dz * dz) - o.r, 0));
+    return Math.min(f, cellDistFade(C));
+  }
   function lateBorn(V, f) { var b = bornNow(V); if (b < -1e8 || f <= 0.001) return -1e9; LATE.n++; if (f > LATE.worst) LATE.worst = f; return b; }   // (ready while it should already show: counted, born its time, for the record; drawn at once)
   /* kind 'cpu' (the slice after the frame's flush): layouts, resolves and builds, no GL call;
      kind 'gpu' (the jobs at the start of the next drawn frame): uploads and bakes; sync or no kind: everything */

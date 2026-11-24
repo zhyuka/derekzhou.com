@@ -5,6 +5,7 @@ uniform vec4 uVS;   // the stored distance's range (m), the soft band (m), the c
 uniform vec3 uKey;  // the key the clouds' light depths are baked along (their phase, rim and wrap read it too: one light in a cloud)
 uniform vec4 uVR2;  // how far the billows reach out of the smooth form (m), its fade (0 .. 1), the camera inside it (1), its flat base (world y; -1e5 none)
 uniform float uVVox;   // the body's voxel (m)
+uniform vec3 uVO;   // the billows' offset (tiles): the body's own, from its laid-out centre, so its lumps ride with it as it drifts (physics: clouds/drift)
 uniform vec2 uVK;  // the most pieces a band segment is cut into, and 1 for the crisp edge, 0 the soft one (the look's tier,
                    // LOOKD from hour.js's data-look: 48 and 1 on the desktop look, 1 and 0 the rest)
 float segRamp(float s0, float s1, float bE) {   // the band's ramp clamp(-s / bE, 0, 1) over a piece, its mean with s linear between its ends
@@ -61,7 +62,7 @@ void main() {
   float wrapL = 1.0, facing = 1.0; bool hit = false;
   // the last sample (a band sample or a leap's start): its distance to the cloud, place, light depths, own density and fade (tP < 0: none yet)
   float sP = 0.0, sBP = 0.0, ybP = -1e5, tP = -1.0, gP = 0.0, bP = 0.0, dP = 0.0, fP = 1.0; bool last = false;   // (sBP: the last sample's distance without the billows)
-  vec3 nOff = fract(uVC / uVR.z); float texel = uVR.z / 32.0;
+  vec3 nOff = uVO; float texel = uVR.z / 32.0;
   for (int i = 0; i < 96; i++) {
     if (t > tf || last || taken >= uVR.y) break;
     if (t >= tf) { t = tf; last = true; }   // (the ray's end is a sample, so its last segment is counted)
