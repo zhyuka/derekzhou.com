@@ -682,7 +682,9 @@ physics: clouds/drift). It holds:
   quarter). The chord is the cut the key's ray makes through the lobe, its
   edge softened over the key's own disc (0.53 deg: the penumbra, the ray's
   length times 0.0046). The lobes are multiplied together (the exp of their
-  summed depth) into a 512 x 512 map 12 km across, about the camera. The
+  summed depth) into a 1024 x 1024 map 40 km across, about the camera (past
+  the land the eye sees: at a 12 km map the easing-off drew a straight
+  edge across the near land at a low sun, 2026-11-24). The
   sand, the stones and the rock read it where their own point, carried
   along the same key, meets that plane (so any height of land lines up
   with its cloud), and take it off the key's direct light alone: the land's

@@ -55,7 +55,7 @@ test('cloud shadow: a lobe\'s shadow along the key: the full chord under it, non
 
 test('cloud shadow: the vertex stage\'s ellipse holds the whole shadow (no lobe\'s shadow cut by its own quad)', () => {
   assert.match(VS, /vec2 c = aL\.xz - uSun\.xz \* aL\.y \/ sy;/, 'the centre carried down the key to the plane');
-  assert.match(VS, /float pen = uCShK\.y \* \(aL\.y \+ aL\.w\) \/ \(sy - uCShK\.y\), tx = 2\.0 \* uCShP\.z \/ 512\.0;/, 'the penumbra at the far end\'s ray (its length grows with it), a texel\'s margin');
+  assert.match(VS, /float pen = uCShK\.y \* \(aL\.y \+ aL\.w\) \/ \(sy - uCShK\.y\), tx = 2\.0 \* uCShP\.z \/ 1024\.0;/, 'the penumbra at the far end\'s ray (its length grows with it), a texel\'s margin');
   assert.match(VS, /float a = \(aL\.w \+ pen\) \/ sy \+ tx, b = aL\.w \+ pen \+ tx;/, 'its half axes: (R + penumbra) / s.y along the key\'s way, R + penumbra across');
   // the elevation's floor is the pass's own cut (0.02): a higher floor would draw a low key's shadows short, cut off
   // square across the key's way (a straight edge across the land at sunset and dawn)
@@ -64,7 +64,7 @@ test('cloud shadow: the vertex stage\'s ellipse holds the whole shadow (no lobe\
   for (const el of [1.5, 3, 6, 20, 70]) {
     const e = el * Math.PI / 180, s = unit([0.6 * Math.cos(e), Math.sin(e), 0.8 * Math.cos(e)]), sy = Math.max(s[1], FLOOR);
     const L = [0, 700, 0, 120], c = [-s[0] * L[1] / sy, -s[2] * L[1] / sy], u = unit([s[0], s[2]]), v = [-u[1], u[0]];
-    const pen = SUNR * (L[1] + L[3]) / (sy - SUNR), tx = 2 * 6000 / 512, a = (L[3] + pen) / sy + tx, b = L[3] + pen + tx;
+    const pen = SUNR * (L[1] + L[3]) / (sy - SUNR), tx = 2 * 20000 / 1024, a = (L[3] + pen) / sy + tx, b = L[3] + pen + tx;
     let worst = 1;
     for (let i = 0; i <= 400; i++) {   // the quad's border, a hair outside: no shadow there
       const t = i / 200 - 1;

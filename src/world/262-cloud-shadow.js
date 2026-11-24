@@ -9,7 +9,7 @@
      along the same key, meets that plane, and takes it off the key's direct light alone: a shadow is never darker than
      the land's own shade, the sky's light is untouched. CSH_E m about the camera (CSH_N texels); past 3/4 of it the
      shadow eases off with the distance (a place's, never the clock's) */
-  var CSH_N = 512, CSH_E = 6000, CSH_K = 0.05, CSH_SUN = 0.0046, CSH_MAX = 16384;   // (texels; the half extent, m; the lobes' extinction, 1/m: the march's VSIGMA 0.19 over the lobes' eroded fill, about a quarter; the key's angular radius, rad: the sun's 0.53 deg disc, the moon's alike; the most lobes)
+  var CSH_N = 1024, CSH_E = 20000, CSH_K = 0.05, CSH_SUN = 0.0046, CSH_MAX = 32768;   // (texels; the half extent, m: past the land the eye sees, so the shadow's easing-off falls under the far haze, never across the near land; the lobes' extinction, 1/m: the march's VSIGMA 0.19 over the lobes' eroded fill, about a quarter; the key's angular radius, rad: the sun's 0.53 deg disc, the moon's alike; the most lobes)
   var CSH = { T: null, vao: null, buf: null, a: new Float32Array(CSH_MAX * 4), n: 0, ok: false };
   var CSHU = new Float32Array(4), CSHO = new Float64Array(3);   // (uCShP: the map's origin x, z (texel-snapped, the JS's doubles), its half extent, the plane's height)
   var VS_CSH = `@glsl vs-cshadow`;
