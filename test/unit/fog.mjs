@@ -32,7 +32,7 @@ test('fog: the pool takes the hollow the site drains and fills it to AIR\'s dept
   const P = page(SITE, bowl(60)), V = {};
   assert.equal(P.step(V, 10), null, 'no pool before the ring is read');
   assert.equal(P.jobs.length, 1, 'one probe a site');
-  assert.equal(P.jobs[0].mode, 0, 'the land\'s own height (mode 0), not the camera\'s ground');
+  assert.equal(P.jobs[0].mode, 1, 'the surface drawn (mode 1: the land, or the cloud sea\'s top over it), not the land under the sea');
   P.land();
   const f = P.step(V, 10);
   assert.ok(f && f[0] === HX && f[1] === HZ, `in the hollow r from the site (got ${f && [f[0], f[1]]})`);

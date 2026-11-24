@@ -7,8 +7,9 @@
      over land: the cloud sea's weight under 0.5), the one whose rim (the lowest land on its circle at r) stands highest
      over its floor (the lowest centre within r of it). It fills that hollow to AIR's depth, held FOG_SPILL under the rim,
      so it never spills (the shoreline is the ground's own; no edge is drawn at r); no hollow over land, no pool. The
-     centres and their rims are read once a site from the realm's probe (the land's own height, probeJob mode 0),
-     asynchronously, as the cells read theirs. Still the site's (placed by where it is, never by the way flown). It comes
+     centres and their rims are read once a site from the realm's probe, asynchronously, as the cells read theirs: the
+     surface drawn there (probeJob mode 1: the land, or the cloud sea's top where it covers the land), so a hollow the
+     sea fills is flat and holds none (mode 0, the land under the sea, put pools under the sea's top: never seen). Still the site's (placed by where it is, never by the way flown). It comes
      and goes with the one mist (L.mist, 229-mist-pools.js): no mist, no pool, and the level moves at the mist's own rate
      times the drain's gain, a moving shoreline, never a fade. Drawn by the mist pools' own shading (mistOver,
      world-glsl: fogTopAt beside mistTop), so it looks as they do. The nearest fog site within FOG_REACH only: the lattice
@@ -43,7 +44,7 @@
     if (!s) return;
     if (FOG.id !== s.id || FOG.V !== V) {
       if (FOG.j) FOG.j.cancel = true;
-      FOG.id = s.id; FOG.V = V; FOG.h = null; p = fogPts(s); FOG.j = probeJob(V, p, p.length / 2, 0, false); FOG.j.p = p;
+      FOG.id = s.id; FOG.V = V; FOG.h = null; p = fogPts(s); FOG.j = probeJob(V, p, p.length / 2, 1, false); FOG.j.p = p;
     }
     J = FOG.j;
     if (J) { if (!J.done) return; FOG.h = fogPick(s, J.p, J.h); FOG.j = null; }
