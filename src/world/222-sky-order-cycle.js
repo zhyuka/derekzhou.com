@@ -19,7 +19,7 @@
     SKY.moonSide = SKY.rV.sign();   // (the visit's own: the moon's side of the key light)
     SKY.moonDir = RNG(subseed(J.seed, 79)).sign();   // (the visit's own way the moon crosses the window, one way, from its own stream: the other draws stay as they are)
     /* (phase 2) the visit's own: the galaxy's lie (the live's: of 24 poles drawn, the one whose band crosses most of the
-       landing's view low, its core the lowest point of the band there), the aurora's phase and base */
+       landing's view low, its core the lowest point of the band there), the aurora's arc's centre and base */
     var h0 = airHeading0(), fw = [Math.sin(h0), 0, Math.cos(h0)], best = null, bn = -1, i, j;
     for (i = 0; i < 24; i++) {
       var P = dirAzEl(SKY.rV.r(-180, 180), SKY.rV.r(15, 60)), U = norm(cross(P, [0, 1, 0])), W = cross(P, U), nn = 0, lo = 99, core = null;
@@ -27,7 +27,13 @@
         if (dot(g, fw) > 0.85 && e > 4 && e < 34) { nn++; if (e < lo) { lo = e; core = g; } } }
       if (nn > bn) { bn = nn; best = { pole: P, core: core || U }; }
     }
-    SKY.gal = best; SKY.aur = { ph: SKY.rV.f() * 6.2832, base: 5 + 3 * SKY.rV.f() };
+    /* (physics: night/sky-turn, on the air's frame: physics: air/sky-frame) the galaxy stands where the sky says: its pole and
+       centre J2000's (AIR_GAL) in the frame's own equatorial axes, so it turns with the stars and the moon; the lie drawn
+       above is kept only for its draws (the aurora's and the stays' after it stay as they are) */
+    SKY.gal = { pole: airEq(AIR_GAL.pole[0], AIR_GAL.pole[1]), core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best }; SKY.aur = { ph: (SKY.rV.f(), V.light ? Math.atan2(keyAt(V)[0], keyAt(V)[2]) : 0), fp: 5 + 3 * SKY.rV.f() };   // (physics: aurora/geometry: the sheet toward the aurora sky's key, so its light on the world comes from it; the same draws)
+    /* (physics: aurora/phases) the stay's own, after the draws above (they stay as they are): a breakup in half the
+       stays, its front 20-40 deg east of centre as it begins, a second arc in half, 150-300 km beyond the first */
+    SKY.aur.bk = SKY.rV.f() < 0.5 ? 1 : 0; SKY.aur.f0 = SKY.rV.r(20, 40); SKY.aur.dD = SKY.rV.f() < 0.5 ? SKY.rV.r(150, 300) : 0; SKY.aur.rise = 0; SKY.aur.p = 0; SKY.aur.sf = 0;
     /* (physics: weather/far-anvil) a far storm, from its own stream (the other draws stay as they are): in about 3
        visits of 16 (the opening's seed: so its baked first frame has it), 80-110 deg either side of the sun's bearing
        (lit from the side, against the sky away from the sun), 100-150 km away (its top 4.0-7.4 deg up) */
@@ -83,6 +89,37 @@
     SKY.q = q;
     SKYI.id = e.n; SKYI.k = k;
     SKYI.words = k < 0.5 ? A.w : B.w; SKYI.sky = A.id; SKYI.next = B.id; SKYI.group = (k < 0.5 ? A : B).g;
+    skyAur(t); skyGal(t);
+  }
+  /* (physics: aurora/phases, no fades: what shows changes only because the sheet moves) the aurora's own clock over its
+     stay, from the change that brings it to the end of the one that takes it (its amount 1 throughout, through the
+     mist too): it rises (D 1950 -> 650) over AUR_IN s from that change's start, drifts over the hold (D 650 -> 500)
+     and sinks (500 -> 1950) over AUR_OUT s to that change's end, each eased: 11.9 and 15.2 deg at 1.5 / AUR_IN and
+     1.5 / AUR_OUT a second at most, under 0.3 deg/s; the breakup's front (km along the sheet) from 20-40 deg east of
+     centre (at D 650) west at 2.2 km/s, from that change's start (a landing on the aurora: as if it came 60 s before
+     its hold) */
+  var AUR_IN = 64, AUR_OUT = 80, AUR_FRONT = 2.2;
+  function skyAur(t) {
+    var seq = SKY.seq, i = SKY.i, A = SKY.aur, au = function (n) { var f = WSKY[seq[n].id].fx; return !!(f && f.aurora > 0); };
+    var j = au(i) ? i : au(i + 1) ? i + 1 : -1;
+    if (j < 0) { A.rise = 0; A.p = 0; A.sf = 0; return; }
+    var e = seq[j], t0 = j > 0 ? seq[j - 1].at + seq[j - 1].hold : -1e9, t1 = e.at + e.hold + e.move, tf = j > 0 ? t0 : e.at - 60;
+    A.rise = Math.min(ss01(clamp((t - t0) / AUR_IN, 0, 1)), ss01(clamp((t1 - t) / AUR_OUT, 0, 1)));
+    var ta = j > 0 ? t0 + AUR_IN : e.at, tb = t1 - AUR_OUT;
+    A.p = clamp((t - ta) / Math.max(tb - ta, 1), 0, 1);
+    A.sf = 650 * Math.tan(A.f0 * DEG) - AUR_FRONT * (t - tf);
+  }
+  /* (aurora-enter-by-place, no fades, at most 0.3 deg/s) the galaxy's own clock over its stay, as the aurora's: from the
+     change that brings it to the end of the one that takes it (its amount 1 throughout). Its rise goes 0 to 1 over GAL_IN
+     s from that change's start and back over GAL_OUT s to that change's end, straight (the shader's edge, galVis, sweeps
+     from -1.5 to GAL_E, 25.5 deg in 95 s: 0.27 deg/s, never faster; the shortest stay, 197.5 s, holds both); a landing on it opens with it whole */
+  var GAL_IN = 95, GAL_OUT = 95;
+  function skyGal(t) {
+    var seq = SKY.seq, i = SKY.i, ga = function (n) { var f = seq[n] && WSKY[seq[n].id].fx; return !!(f && f.galaxy > 0); };
+    var j = ga(i) ? i : ga(i + 1) ? i + 1 : -1;
+    if (j < 0) { SKY.galRise = 0; return; }
+    var e = seq[j], t0 = j > 0 ? seq[j - 1].at + seq[j - 1].hold : -1e9, t1 = e.at + e.hold + e.move;
+    SKY.galRise = Math.min(clamp((t - t0) / GAL_IN, 0, 1), clamp((t1 - t) / GAL_OUT, 0, 1));
   }
   /* from one direction to another (the live's arc: over the top where they face apart) */
   function skyArc(a, b, k, out) {

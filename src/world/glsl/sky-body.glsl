@@ -17,13 +17,15 @@ uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, hel
 uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
 uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
-uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount; its core's direction
+uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1), its core's direction, in the sky's frame
+uniform mat3 uSkyF;   // (physics: night/sky-turn) world to the sky's frame (215's skyFrame, transposed): the stars and the galaxy turn together, at SKY_RATE
 uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
 uniform vec4 uJup;    // (night) the bright outer planet: its direction, its peak (Y; 0 while the visit has none)
 uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), the sky light's weight in nightLim (1 in a twilight, 0 from 18 deg down)
 uniform vec4 uMetH, uMetT;   // (delight-night §2) the meteor on show: its head's direction and light (Y; 0: none), its tail's direction and its width (px)
 uniform vec3 uMetC;          // its colour, at luminance 1
-uniform vec4 uAur;    // (tod, phase 2) the aurora: -, its phase, its base (deg), its amount
+uniform vec4 uAur;    // (tod, phase 2) the aurora: how far it has come in (1 whole), its centre's azimuth, its folds' phase, its amount (0 or 1)
+uniform vec4 uAurB;   // (physics: aurora/phases) how far through its hold, the breakup's front (km along the sheet, east +), the second arc's km farther (0 none), a breakup (0 or 1)
 out vec4 oC;
 const float SKYTAU = 6.2831853;
 const float AIRGLOW_Y = 0.004;   // (night) the airglow's peak light (Y): a tenth to a quarter of a dark night's own sky low down
@@ -94,8 +96,17 @@ float purpL(vec3 c) {
 }
 const float PURP_K = 0.03;   // (physics: sky/purple-light) its strength: Y about +0.02 at its centre before the cap (test/unit/sky.mjs)
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
-   period round the band so a turn never meets a seam) and the aurora (the live's three curtains, farther ones lower and
-   fainter, folding slowly, green below and red above, rayed; their waves whole numbers round the sky) */
+   period round the band so a turn never meets a seam) and the aurora (one sheet low over the key's horizon, its colour by altitude: physics: aurora) */
+/* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: the band opens from its midline outward, an
+   edge in |galactic latitude| (deg) sweeping from -1.5 to GAL_E as its own rise (uGalC.w, 222 skyGal) goes 0 to 1, and
+   back; inside it the galaxy is drawn, outside not, 1.5 deg soft; at rise 0 nothing at all, at rise 1 everything to
+   |b| 22.5 (M31 at -21.6, the band's crowding stars to 22; the Clouds, at -33 and -44, never rise at AIR_LAT) */
+const float GAL_E = 24.0;
+float galVis(vec3 d) {
+  if (uGalC.w <= 0.0) return 0.0;
+  float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);
+  return 1.0 - smoothstep(e - 1.5, e + 1.5, lat);
+}
 #ifdef SKY_PH2
 /* (physics: night/milky-way, delight-night section 3) its structure, in galactic longitude ld (deg from the core, + toward
    cross(pole, core)) and latitude bd (deg): one shape a line, so test/unit/sky.mjs runs these very lines.
@@ -115,6 +126,11 @@ float galCoal(float ld, float bd) { return exp(-pow((ld + 57.2) / 3.5, 2.0) - po
 float galLMC(float ld, float bd) { float x = (ld + 79.5) * 0.8396, y = bd + 32.9; return 0.3 * exp(-0.5 * (x * x / 7.29 + y * y / 5.29)) + 0.2 * exp(-0.5 * (x * x / 9.0 + y * y / 0.81)); }
 float galSMC(float ld, float bd) { float x = (ld + 57.2) * 0.7157, y = bd + 44.3; return 0.18 * exp(-0.5 * (x * x / 1.69 + y * y / 0.64)) + 0.08 * exp(-0.5 * (x * x / 4.84 + y * y / 1.96)); }
 float galM31(float ld, float bd) { float x = (ld - 121.2) * 0.9298, y = bd + 21.6; return 0.2 * exp(-0.5 * (x * x / 0.64 + y * y / 0.0625)); }
+/* (the hub's round 12: the band's brightness follows a dark site) its scale (0.075) set so the Cygnus stretch stands
+   about 1 mag/arcsec2 over the natural sky beside it, as from a dark site: the brightest northern Milky Way, Cygnus to
+   Perseus, about 21.0 (https://skyandtelescope.org/get-involved/rate-your-skyglow/), against the natural sky's 22.0
+   (https://www.nps.gov/subjects/nightskies/NSQmetrics.html): 2.5x its light, a linear contrast of 1.5, about 36% in
+   OKLab L; measured in T1's laptop-night frame (the galaxy's own light, drawn with and without it): 37% */
 vec3 galaxyAt(vec3 rd, float e) {
   vec3 P = uGal.xyz, C = uGalC.xyz;
   float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU, ld = degrees(l), bd = degrees(asin(clamp(b, -1.0, 1.0)));
@@ -122,22 +138,74 @@ vec3 galaxyAt(vec3 rd, float e) {
   vec4 nr = n3v(vec3(u * 13.0, b * 5.6, 0.37)), nw = n3v(vec3(u * 31.0, b * 14.0, 0.61));
   float brk = 0.45 + 0.55 * smoothstep(0.3, 0.7, nr.b * 0.6 + nw.a * 0.4), bo = 3.0 * (nr.a - 0.5) + 1.2 * (nw.b - 0.5);   // (the rift broken and made to wander by the old lanes' noise: its depth, and its centre +-1.5 deg)
   float dark = (1.0 - 0.8 * galRift(ld, bd - bo) * brk) * (1.0 - 0.85 * galCoal(ld, bd)), clouds = (galLMC(ld, bd) + galSMC(ld, bd) + galM31(ld, bd)) * (0.7 + 0.6 * n);
-  return (vec3(0.9, 0.86, 0.8) * (galBand(ld, bd) * (0.25 + 1.1 * n * n) + clouds) + vec3(1.0, 0.85, 0.65) * galCore(ld, bd) * 1.3) * dark * uGal.w * 0.04 * smoothstep(1.0, 12.0, e);
+  return (vec3(0.9, 0.86, 0.8) * (galBand(ld, bd) * (0.25 + 1.1 * n * n) + clouds) + vec3(1.0, 0.85, 0.65) * galCore(ld, bd) * 1.3) * dark * uGal.w * 0.075 * smoothstep(1.0, 12.0, e) * galVis(rd);
+}
+/* (physics: aurora/phases) one sheet D km away toward the key's azimuth, seen from the ground: phi from its centre,
+   the folds' phase f0, and how deep into a breakup it is (bk: 0 none; the section east of the front, s > uAurB.y) */
+vec3 auroraSheet(float el, float cp, float sp, float D, float f0, float bk, float rk, float pa) {
+  /* (physics: aurora/geometry) the ray's crossing with it (rho cos phi = D + y(rho sin phi), three fixed-point steps)
+     and the altitude there, h = R (cos e / cos(e + rho / R) - 1); at infinity (drawn by direction: no parallax in
+     flight), not tied to the stars */
+  /* (physics: aurora/motion) the sheet's line y(s): a swell (15 km, 500 km, 0.3 km/s: 0.0038 rad/s) and folds (3 km,
+     40 km, 1 km/s: 0.157 rad/s; 9 km inside a breakup), the folds gone where 40 km spans under 8 px as projected
+     (40 cos psi / rho pa: psi the sheet's swell-only angle to the view), and held shallow where the crossing's three
+     steps would not converge (slope x tan phi at most 0.5: seen along the sheet); nothing faster
+     (no curls, corona, pulsing or flicker: on screen they would glitter or fade) */
+  float rho = D / cp, y = 0.0, yd = 0.0, ys = 0.0, b = 0.0;
+  for (int i = 0; i < 3; i++) {
+    /* (the folds' spacing irregular, as real folds are: a fixed wobble of their phase over 170 km, so their edge-on
+       flanks never stand in a regular comb) */
+    float s = rho * sp, w = SKYTAU * s / 170.0 + f0 * 3.0;
+    b = bk * smoothstep(uAurB.y - 15.0, uAurB.y + 15.0, s);
+    float cw = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys), fa = min(mix(3.0, 9.0, b) * smoothstep(8.0, 16.0, 40.0 * cw / max(rho * pa, 1e-4)), 2.0 * cp / max(abs(sp), 1e-3));
+    float a1 = SKYTAU * s / 500.0 + 0.0038 * uT + f0 * 7.0, a2 = SKYTAU * s / 40.0 - 0.157 * uT + f0 * 13.0 + 1.3 * sin(w);
+    y = 15.0 * sin(a1) + fa * sin(a2);
+    ys = 15.0 * SKYTAU / 500.0 * cos(a1);
+    yd = ys + fa * (SKYTAU / 40.0 + 1.3 * SKYTAU / 170.0 * cos(w)) * cos(a2);
+    rho = (D + y) / cp;
+  }
+  float ee = el + rho / 6371.0;
+  if (ee >= 1.5) return vec3(0.0);
+  float h = 6371.0 * (cos(el) / cos(ee) - 1.0), s = rho * sp;
+  /* (physics: aurora/colour) by altitude: the green line's hem (557.7 nm) rising from h0 - 2 to h0 + 4 (h0 105 km),
+     then e-folding over 15 km (30-40 inside a ray); no stop in the saddle (150-190 km: the sky's own blue shows); the
+     red line's top (630 nm) rising from 180 to 230 km, e-folding over 60, a fifth of the green's column, unrayed. The
+     rays along the sheet only (functions of s: they meet at the zenith in perspective), the noise's 48 km period at
+     1 km/s, read at level 0 (no mip before the hard smoothstep) and drifting in v and w (113 and 271 km: their autocorrelation along the sheet at most 0.6 for lags of 10-1100 km),
+     eased to their own mean (the volume's, 0.12) wherever its 6 km octave spans under 3-6 px as projected (physics:
+     aurora/sampling: 1x within 3 codes of 2x2, test/unit/aurora.mjs).
+     (physics: aurora/phases) inside a breakup: brighter, the rays twice as tall, the pink fringe under the hem (the
+     nitrogen bands, 95-108 km, running into the hem), and the red brightened where the front passed 10 deg back (it trails it, east) */
+  float cps = abs(cos(el) * (cp - yd * sp)) / sqrt(1.0 + yd * yd), cpr = abs(cos(el) * (cp - ys * sp)) / sqrt(1.0 + ys * ys);
+  float ry = mix(0.12, smoothstep(0.45, 0.9, textureLod(uN3, vec3(s / 48.0 + uT / 48.0, 0.5 + s / 113.0, 0.19 + f0 + s / 271.0), 0.0).a), smoothstep(3.0, 6.0, 6.0 * cpr / max(rho * pa, 1e-4)));
+  float g = smoothstep(103.0, 109.0, h) * exp(-max(h - 109.0, 0.0) / mix(15.0, mix(35.0, 70.0, b), ry)) * (0.75 + 0.5 * ry) * (1.0 + 0.5 * b);
+  float r = rk * smoothstep(180.0, 230.0, h) * exp(-max(h - 230.0, 0.0) / 60.0) * 0.2 * (1.0 + 1.5 * bk * smoothstep(uAurB.y + 0.18 * D - 15.0, uAurB.y + 0.18 * D + 15.0, s));
+  float pk = b * smoothstep(95.0, 100.0, h) * (1.0 - smoothstep(104.0, 110.0, h)) * 0.7;
+  /* edge-on is brightest: the column along the ray through the sheet, 1 / |cos psi| (eased to 3 at most: a smooth
+     peak, never a pixel-thin flank); the red's by the
+     swell alone (it is blurred over 30 km and more: the folds' flanks never show in it) */
+  float eo = inversesqrt(cps * cps + 0.11);
+  return (vec3(0.225, 1.5, 0.18) * g * eo + vec3(0.9, 0.1, 0.06) * r * min(1.0 / max(cpr, 1e-3), 1.2) + vec3(0.9, 0.2, 0.45) * pk * eo) * 0.08;
 }
 vec3 auroraAt(vec3 rd, float e) {
-  float az = atan(rd.x, rd.z), u = az / SKYTAU; vec3 c = vec3(0.0);
-  for (int j = 0; j < 3; j++) {
-    float fj = float(j), sc = 1.0 - 0.22 * fj, ph = uT * (0.04 + 0.015 * fj) + uAur.y + fj * 2.1, f1 = 2.0 + fj, f2 = 5.0 + 2.0 * fj;
-    float base = uAur.z * sc + 2.0 * fj + sc * (3.5 * sin(az * f1 + ph) + 2.0 * sin(az * f2 - ph * 1.3) + 2.4 * (n3v(vec3(u * 4.0 + fj * 0.31, ph * 0.02, 0.83)).b - 0.5));
-    float slope = abs(3.5 * f1 * cos(az * f1 + ph) + 2.0 * f2 * cos(az * f2 - ph * 1.3)) * sc;
-    float fold = 0.65 + 0.7 / (1.0 + slope * 0.12);
-    float hgt = 7.0 + 9.0 * sc, x = e - base;
-    if (x < -1.5 || x > hgt * 2.5) continue;
-    float rays = 0.3 + 0.7 * pow(n3v(vec3(u * (100.0 + 31.0 * fj) + uT * 0.0005, 0.5 + fj * 0.2, 0.19)).a, 1.6) * (0.6 + 0.4 * n3v(vec3(u * 257.0 - uT * 0.0003, 0.27 + fj * 0.1, 0.47)).b);
-    vec3 col = mix(vec3(0.25, 1.0, 0.55), vec3(0.85, 0.25, 0.55), smoothstep(0.25, 1.2, x / hgt));
-    c += col * smoothstep(-0.6, 0.25, x) * (1.0 - smoothstep(hgt * 1.6, hgt * 2.5, x)) * (exp(-max(x, 0.0) / hgt) + 0.6 * exp(-max(x, 0.0) / (hgt * 0.15))) * rays * fold * (0.85 - 0.25 * fj);
-  }
-  return c * uAur.w * 0.09 * smoothstep(0.5, 6.0, e);
+  if (uAur.x <= 0.0) return vec3(0.0);   // (likewise)
+  /* (physics: aurora/phases) the night's: D from its lower border's elevation at its centre (h 105 km), which rises with
+     its own rise from 5.7 deg under the horizon (D 1950: nothing of it over, the red's 300 km first) to 6.2 deg over it
+     (D 650), drifts over the hold to 9.5 (D 500: uAurB.x), and sinks again (the green first, the red last); at most
+     0.3 deg/s (222's skyAur). In half the stays a second arc uAurB.z km farther at 0.6 */
+  float eb = radians(mix(-5.735, mix(6.17, 9.51, uAurB.x), uAur.x));
+  float D = 6371.0 * (acos(cos(eb) / (1.0 + 105.0 / 6371.0)) - eb);
+  float phi = atan(rd.x, rd.z) - uAur.y, cp = cos(phi), sp = sin(phi);
+  if (cp < 0.05) return vec3(0.0);
+  float el = asin(clamp(rd.y, -1.0, 1.0)), pa = 2.0 * atan(uProj.y) / uRes.y;
+  vec3 c = auroraSheet(el, cp, sp, D, uAur.z, uAurB.w, 1.0, pa);
+  if (uAurB.z > 0.0) c += 0.6 * auroraSheet(el, cp, sp, D + uAurB.z, uAur.z + 0.37, 0.0, 0.0, pa);   // (the far arc green only: its red top would stand in the near arc's saddle and grey the sky's blue)
+  /* its light held under the words' floor: the green's composited peak at most L 0.50 at every height it stands, in a
+     breakup and edge-on, under either ceiling knee (a soft cap on what it adds,
+     its hue kept: test/unit/aurora.mjs) */
+  float yl = dot(c, LUMA);
+  c *= yl > 1e-6 ? 0.10 * (1.0 - exp(-yl / 0.10)) / yl : 1.0;
+  return c * uAur.w * smoothstep(0.5, 2.5, e);
 }
 #endif
 /* (stars-flux, no glitter) a star's light integrated over the pixel's footprint (a box of the bell, by erf, each axis
@@ -173,13 +241,13 @@ vec3 starTint(float b, float u) {
 float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj, int di, out vec3 tc) {
   tc = vec3(0.0);
   float jb = floor(el / STC) + float(dj), elc = (jb + 0.5) * STC;
-  if (elc <= 0.0 || elc >= 1.5) return 0.0;
+  if (abs(elc) > 1.56) return 0.0;   // (both of the frame's hemispheres: the sky turns, its south rises)
   float n = max(1.0, floor(SKYTAU * cos(elc) / STC));
   float ib = floor((az + PI) / SKYTAU * n) + float(di);
   ib = mod(ib, n);
   uint h = ih(ih(uint(int(jb) + 4096) * 0x9e3779b1u) ^ uint(int(ib)) * 0x85ebca6bu);
   float hx = hf(h), hy = hf(ih(h + 1u)), hz = hf(ih(h + 2u)), hw = hf(ih(h + 3u));
-  float dens = 1.0 + (uGal.w > 0.0 ? 1.5 * uGal.w * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) : 0.0);   // (the stars crowd in the galaxy's band)
+  float dens = 1.0 + (uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * galVis(sd0(jb, ib, n)) * exp(-pow(dot(sd0(jb, ib, n), uGal.xyz), 2.0) / 0.03) : 0.0);   // (the stars crowd in the galaxy's band)
   if (hx > 0.42 * dens) return 0.0;
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
@@ -201,8 +269,9 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
   /* the star's place on the screen in pixels (the inverse of main's rd: ndc = (r, u) / (f x uProj)), so the box is the
      pixel's own footprint at any place in any window (the review: the chord over the centre's angle was 1.2 pixels a
      step at the centre of a tall window and 0.7 px became 1.1-1.4 at its sides) */
-  float zf = max(dot(sd, uCamF), 1e-4);
-  vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
+  vec3 sw = sd * uSkyF;   // (the star's world direction: sd is in the sky's frame, uSkyF world to frame, so its transpose back)
+  float zf = max(dot(sw, uCamF), 1e-4);
+  vec2 d = gl_FragCoord.xy - (vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   return F * starBox(d.x, sg) * starBox(d.y, sg);
 }
 /* (night, delight-night §1) the evening or morning star: steady (no twinkle: a planet's disc, not a point), a point of the
@@ -370,7 +439,7 @@ void main() {
   /* (aurora-haze) both behind the haze, as the moon is: what the haze over them lets through (1 - hazeSky), a little
      redder where it is thick (low), never added over it at full strength */
   float hzS = 1.0 - hazeSky(rd); vec3 hzT = hzS * mix(vec3(1.0, 0.84, 0.68), vec3(1.0), hzS);
-  if (uGal.w > 0.0 && eS > 0.0) { gL = galaxyAt(rd, eS) * hzT; c += gL; }   // (phase 2; gL held apart for nightLim)
+  if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }   // (by the sky's turn: physics: night/sky-turn; phase 2; gL held apart for nightLim)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
   /* (night) the airglow: the upper air's own faint green light (the oxygen line at 557.7 nm), a steady band low over
      the horizon, brightest about 6-10 deg up (the long path through the glowing layer) and falling away overhead; only
@@ -413,11 +482,12 @@ void main() {
   }
   if (uMetH.w > 0.0) c += meteorAt(c) * (1.0 - hazeSky(rd));   // (delight-night §2) behind the haze, as the moon is
   if (uSunD.z > 0.0 && rd.y > 0.0) {   // the stars, bounded at the source: with the sky's own light under it no star lifts a pixel past the stars' top (Y uNight.w, OKLab L 0.45)
-    float el = asin(clamp(rd.y, -1.0, 1.0)), az = atan(rd.x, rd.z), pa = 2.0 * atan(uProj.y) / uRes.y;
+    vec3 rs = uSkyF * rd;   // (the sky's frame: the stars turn with it, at SKY_RATE)
+    float el = asin(clamp(rs.y, -1.0, 1.0)), az = atan(rs.x, rs.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float head = max(uNight.w - dot(c, LUMA), 0.0), sk = uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
     float ml = nightLim(c - gL);   // (night) the faintest magnitude that shows here: the stars out overhead and away from the sun first
     float s = 0.0; vec3 sc = vec3(0.0), tc;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
-    for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rd, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
+    for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rs, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
     c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)
   }
   if (uVen.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uVen.xyz, uStarM.z, vec3(1.0583, 0.9954, 0.8738));   // (night) the evening or morning star
