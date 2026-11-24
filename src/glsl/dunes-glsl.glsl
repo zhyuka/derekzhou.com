@@ -259,13 +259,26 @@ vec4 veilSpot(vec2 p) {
   return vec4(p, groundH(p), smoothstep(0.3, 0.8, amp));
 }
 #endif
+/* (physics: light/cloud-shadow) the clouds' shadow: the key's direct light left at p (1: none), read where p, carried
+   along the key, meets the plane the clouds' lobes were cast on (262's map); it eases off over the map's last quarter
+   (a place's distance, never the clock's). gSh: the shading's own share of the key, set by the sand's and the stones'
+   shading for the rock they call */
+uniform sampler2D uCSh; uniform vec4 uCShP;
+float gSh = 1.0;
+float cloudShadow(vec3 p) {
+  if (uCShP.z <= 0.0 || uSun.y <= 0.02) return 1.0;
+  vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.05) - uCShP.xy) / uCShP.z;   // (-1 .. 1 over the map)
+  float e = max(abs(q.x), abs(q.y));
+  if (e >= 1.0) return 1.0;
+  return mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, e));
+}
 /* rock: blue stone in broad strata (each band its own tone, warmer in the sun, the lines wandering), streaked down by
    erosion, ledges of a lighter cap */
 vec3 rockCol(vec3 p, vec3 n, float ndl, float fp) {
   float y = p.y + 9.0 * gn(p.xz / 260.0);
   float b1 = gn(vec2(y / 38.0, 1.7)), b2 = gn(vec2(y / 11.0, 4.1)), st = b1 * 0.8 + b2 * 0.35;
   float streak = gn(vec2(dot(p.xz, vec2(0.6, 0.8)) / 7.0 + 2.0 * gn(p.xz / 40.0), p.y / 90.0)) * (1.0 - smoothstep(0.6, 3.0, fp));
-  float dif = smoothstep(-0.2, 0.7, ndl);
+  float dif = smoothstep(-0.2, 0.7, ndl) * gSh;
   vec3 shd = mix(ROCK_DEEP, ROCK_SHADE, 0.5 + 0.5 * n.y);
   vec3 lit = ROCK_LIT * mix(vec3(1.0), vec3(1.1, 0.98, 0.94), smoothstep(-0.2, 0.4, b1));
   return mix(shd, lit, dif) * (1.0 + 0.17 * st + 0.08 * streak);
@@ -282,7 +295,7 @@ vec3 rockColL(vec3 p, vec3 n, float ndl, float fp) {
   }
   float st = b1 * 0.8 + b2 * 0.35;
   float streak = gn(vec2(dot(p.xz, vec2(0.6, 0.8)) / 7.0 + 2.0 * g40, p.y / 90.0)) * (1.0 - smoothstep(0.6, 3.0, fp));
-  float dif = smoothstep(-0.2, 0.7, ndl);
+  float dif = smoothstep(-0.2, 0.7, ndl) * gSh;
   vec3 shd = mix(ROCK_DEEP, ROCK_SHADE, 0.5 + 0.5 * n.y);
   vec3 lit = ROCK_LIT * mix(vec3(1.0), vec3(1.1, 0.98, 0.94), smoothstep(-0.2, 0.4, b1));
   return mix(shd, lit, dif) * (1.0 + 0.17 * st + 0.08 * streak);
@@ -316,8 +329,9 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
     n = normalize(n - rk * rpatch * 0.06 * sl * vec3(wr.x, 0.0, wr.y));
   }
   float ndl = dot(n, uSun);
+  gSh = cloudShadow(p);   // (physics: light/cloud-shadow: the key's direct light under the clouds)
   // the low sun lights the level sand and the faces toward it; the faces turned from it fall into the sky's blue
-  float dif = smoothstep(-0.08, 0.26, ndl);
+  float dif = smoothstep(-0.08, 0.26, ndl) * gSh;
   float hb = smoothstep(-40.0, 50.0, p.y);
   vec3 lit = mix(SAND_LIT, SAND_LIT2, smoothstep(0.16, 0.62, ndl));
   vec3 shd = mix(SAND_DEEP, SAND_SHADE, hb);
@@ -326,7 +340,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   if (gk > 0.0) c *= 1.0 + gk * 0.07 * (h12(p.xz * 9.0) + h12(p.xz * 9.0 + 0.5) - 1.0);
   if (steep > 0.0) c = mix(c, rockColL(p, n0, dot(n0, uSun), fp), steep);   // (fast500 D R6)
   float vd = clamp(dot(n, -rd), 0.0, 1.0), gr = 1.0 - vd;
-  c += SHEEN * gr * gr * gr * gr * smoothstep(-0.05, 0.6, ndl) * (1.0 - steep);
+  c += SHEEN * gr * gr * gr * gr * smoothstep(-0.05, 0.6, ndl) * gSh * (1.0 - steep);
   // (hotfix G0) no glints: one 0.22 m cell in fourteen flashed the sun at pow 140 as the view moved, a few pixels
   // each (sparkle by design). Their light on average was under 1e-4 of the sun's (7% of cells x the flash's mean over
   // the facets' spread x the spot's mean), under a hundredth of a code: nothing the sand loses
@@ -335,20 +349,21 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
 /* the landmarks: col.a says what each is (1 dark stone, 2 rock: the great formations, 3 pale stone) */
 vec3 D_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbove) {
   float ndl = dot(n, uSun), mat = col.a, rr = 1.0 - clamp(dot(n, -rd), 0.0, 1.0), rim = rr * rr * rr;
+  gSh = cloudShadow(p);   // (physics: light/cloud-shadow)
   vec3 c;
   if (mat > 1.5 && mat < 2.5) {
     c = rockCol(p, n, ndl, fp);
     float sandy = smoothstep(0.72, 0.9, n.y) * 0.85 + (1.0 - smoothstep(2.0, 16.0, yAbove)) * 0.7;
-    vec3 sc = mix(mix(SAND_DEEP, SAND_SHADE, 0.6), SAND_LIT, smoothstep(-0.1, 0.24, ndl));
+    vec3 sc = mix(mix(SAND_DEEP, SAND_SHADE, 0.6), SAND_LIT, smoothstep(-0.1, 0.24, ndl) * gSh);
     c = mix(c, sc, clamp(sandy, 0.0, 1.0));
-    c += SHEEN * 0.35 * rim * smoothstep(0.0, 0.5, ndl);
+    c += SHEEN * 0.35 * rim * smoothstep(0.0, 0.5, ndl) * gSh;
     return c;
   }
-  float dif = smoothstep(-0.15, 0.8, ndl);
+  float dif = smoothstep(-0.15, 0.8, ndl) * gSh;
   if (mat > 2.5) c = (mix(STONE_SHADE * 1.7, PALE, dif) + PALE * 0.22 * max(n.y, 0.0)) * col.rgb;
   else c = mix(STONE_SHADE, STONE_LIT, dif) * col.rgb;
   c += STONE_SHADE * 0.3 * max(n.y, 0.0);
   c *= mix(0.6, 1.0, smoothstep(0.0, 3.0, yAbove));
-  c += SHEEN * 0.6 * rim * smoothstep(0.0, 0.5, ndl);
+  c += SHEEN * 0.6 * rim * smoothstep(0.0, 0.5, ndl) * gSh;
   return c;
 }

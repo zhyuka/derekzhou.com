@@ -165,7 +165,8 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       },
       build: function (it, B, R, K2) { return (it.kit === 'above' ? KA : KD).build(it, B, R, K2); },
       cloud: function (cl, PF, R, K2) { return (cl.kit === 'above' ? KA : KD).cloud(cl, PF, R, K2); },
-      scatter: KD.scatter, particles: KD.particles, ribbons: KD.ribbons, sandFx: true,   // (world6 fix: the sand's particles drawn as the sand weight at the camera says: sandAt)
+      scatter: KD.scatter, particles: KD.particles, ribbons: KD.ribbons, sandFx: true, cloudShadow: true,   // (cloudShadow: the clouds' shadows on the sand and the stones, 262)
+        // (world6 fix: the sand's particles drawn as the sand weight at the camera says: sandAt)
       // (world6 fix, the judges' defect 14) no events: nothing is spawned on a clock; the creatures are the cells' own,
       // world-anchored and scattered by density, coming in out of the haze (drawCreatures' distance fade)
     };

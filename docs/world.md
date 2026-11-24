@@ -667,6 +667,29 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The clouds' shadows on the land (physics: light/cloud-shadow;
+  src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
+  2026-11-15: "No, natural light is fine": the world's own cast shadows
+  are free under the light ceiling, and nothing is darkened for the words
+  (RULES.json no-darkening). Every cloud body's lobes (its cells' soft
+  spheres, where its layer's wind has carried them: cellOff on the clouds'
+  own clock) cast the key's light off the land along the live key (uSun:
+  the sun, or on the moonlit sky the moon's disc, the land's own light).
+  One pass a frame draws each lobe as the ellipse a sphere throws on one
+  level plane (the ground under the camera): R across the key's way,
+  R / sin(elevation) along it. Its light there is exp(-k chord), k 0.05/m
+  (the clouds' march extinction, 0.19, over the lobes' eroded fill, about a
+  quarter). The chord is the cut the key's ray makes through the lobe, its
+  edge softened over the key's own disc (0.53 deg: the penumbra, the ray's
+  length times 0.0046). The lobes are multiplied together (the exp of their
+  summed depth) into a 512 x 512 map 12 km across, about the camera. The
+  sand, the stones and the rock read it where their own point, carried
+  along the same key, meets that plane (so any height of land lines up
+  with its cloud), and take it off the key's direct light alone: the land's
+  shade and the sky's light are untouched, so a shadow is never darker than
+  the land's own shade side. The map eases off over its last quarter (a
+  place's distance, never the clock's). Nothing under a key at the horizon.
+  The composite takes no input from it (no-darkening, W7).
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
