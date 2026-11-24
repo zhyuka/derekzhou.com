@@ -25,8 +25,8 @@ interface AirApi {
   BYSKY(): { [sky: string]: number[] }; day(x: number, z: number, y: number, V: any): XZ;
   gustAt(x: number, z: number, y: number, t: number | undefined, V: any): number;
   gustPhase(x: number, z: number, y: number, t?: number, V?: any): number; gustSigma(y: number, V: any, t?: number): number;
-  u10(V?: any): number; GRAIN_K: number; vec3(V: any, y: number, lift: number, k?: number): V3; upwind(V: any): number;
-  H: { grains: number; veils: number; motes: number; birds: number; clouds: number; deck: number };
+  u10(V?: any): number; vec3(V: any, y: number, lift: number, k?: number): V3; upwind(V: any): number;
+  H: { veils: number; birds: number; clouds: number; deck: number };
   KEY_EL: number[]; KEY_AZ: number; keyAt(V: any): V3; skySun(V: any, el: number | null): V3;
   moonAt(t: number): object; moonDir(): AirMoon;   // (moonDir: reused)
   skyFrame(tS: number, V?: any): number[]; skySphere(tS: number, V?: any): SkySphere;   // (both reused)
