@@ -9,7 +9,8 @@ paths:
 
 Read docs/deploy.md and the comments at the top of each workflow first.
 
-- The merge bot merges when nothing visible changes, or when the hub has reviewed the PR's head commit (the line
+- The merge bot merges unreviewed only a PR whose served build is byte for byte the base's (frames identical is not
+  enough: T1 sees only its cases; 2026-11-24), else only when the hub has reviewed the PR's head commit (the line
   <!-- hub-review SHA --> in its body), visible changes and the bot's own files included (merge-rights; the owner, 2026-11-23).
 - The gate compares base's and head's builds (.github/ci/served.sh, areas.mjs); a check of a served file reads the
   build (build/site), never site/.
