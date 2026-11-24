@@ -657,7 +657,7 @@ test('air: a milkyway opening frames its band (the hub\'s round 11): across the 
     for (let i = -9; i <= 9; i++) {
       const x = i / 10, y = a + m * x; if (y < hz + 0.35 * (1 - hz) || y > 0.7) continue;
       const d = [0, 1, 2].map((k) => f[k] + x * v.tX * r[k] + y * v.tY * u[k]), l = Math.atan2(dot(d, q), dot(d, gc)) * D;
-      const w = 0.25 + 0.28 * (1 + Math.cos(l / D)) + 0.8 * Math.exp(-(((l - 75) / 20) ** 2)); o.n += 1 / 19; if (w > o.br) { o.br = w; o.l = l; }
+      const w = 0.25 + 0.28 * (1 + Math.cos(l / D)) + 0.8 * Math.exp(-(((l - 75) / 20) ** 2)); o.n += 1 / 19; if (y < 0.6 && w > o.br) { o.br = w; o.l = l; }
     }
     return o;
   };
@@ -679,5 +679,6 @@ test('air: a milkyway opening frames its band (the hub\'s round 11): across the 
     const br = rows.filter((x) => x[1] === w).map((x) => x[5]).sort((p, q) => p - q);
     const cyg = rows.filter((x) => x[1] === w && x[4] >= 55 && x[4] <= 95).length / rows.filter((x) => x[1] === w).length;
     assert.ok(cyg >= (w ? 0.5 : 0.4), `${w ? 'phone' : 'desktop'}: the Cygnus star cloud (l 55-95) in frame on ${(100 * cyg).toFixed(0)}% of the openings (at least ${w ? 50 : 40}%; the rest is the heading's: FLIGHT)`);
+    if (process.env.GALBAND) console.log(w ? 'phone' : 'desktop', 'tilt median', t[t.length >> 1].toFixed(1), 'max', t[t.length - 1].toFixed(1), 'cygnus in frame', (100 * cyg).toFixed(0) + '%');
   }
 });

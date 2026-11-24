@@ -701,7 +701,9 @@ physics: clouds/drift). It holds:
   opening's heading; a level band crosses 37 deg up or more, above a
   desktop's top, so it leans: a median of 37 deg, 83 before; Cygnus in
   frame on about half the openings, the rest the heading's;
-  test/unit/air.mjs).
+  test/unit/air.mjs). The band's brightness follows a dark site: the
+  Cygnus stretch about 1 mag/arcsec2 over the natural sky beside it (21.0
+  against 22.0), about 36% contrast in OKLab L, 37% measured in T1's night.
   The drawn sky's sun keeps its depth by sky until the night's true order
   lands; the planets are placed by the drawn sun. The ecliptic leans
   23.44 deg to the equator; the galactic pole and centre are J2000's (the

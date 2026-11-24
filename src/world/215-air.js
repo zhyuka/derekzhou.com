@@ -245,7 +245,7 @@
       if (y < lo || y > 0.7) continue;   // (high, and the band's half-width inside the top)
       for (k = 0; k < 3; k++) d[k] = f[k] + x * tX * r[k] + y * tY * u[k];
       var l = Math.atan2(dt(d, q), dt(d, gc)) / DEG, w = 0.25 + 0.28 * (1 + Math.cos(l * DEG)) + 0.8 * Math.exp(-Math.pow((l - 75) / 20, 2));   // (sky-body's galAlong, and the Cygnus star cloud and its rift, l 60-90: the brightest stretch that rises at 64 deg north)
-      o.n += 1 / 19; if (w > o.br) { o.br = w; o.l = l; }
+      o.n += 1 / 19; if (y < 0.6 && w > o.br) { o.br = w; o.l = l; }   // (the brightest stretch below the top band, clear of the big cloud's lower edge: no lanes hanging from it)
     }
     return o;
   }

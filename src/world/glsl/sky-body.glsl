@@ -125,6 +125,11 @@ float galCoal(float ld, float bd) { return exp(-pow((ld + 57.2) / 3.5, 2.0) - po
 float galLMC(float ld, float bd) { float x = (ld + 79.5) * 0.8396, y = bd + 32.9; return 0.3 * exp(-0.5 * (x * x / 7.29 + y * y / 5.29)) + 0.2 * exp(-0.5 * (x * x / 9.0 + y * y / 0.81)); }
 float galSMC(float ld, float bd) { float x = (ld + 57.2) * 0.7157, y = bd + 44.3; return 0.18 * exp(-0.5 * (x * x / 1.69 + y * y / 0.64)) + 0.08 * exp(-0.5 * (x * x / 4.84 + y * y / 1.96)); }
 float galM31(float ld, float bd) { float x = (ld - 121.2) * 0.9298, y = bd + 21.6; return 0.2 * exp(-0.5 * (x * x / 0.64 + y * y / 0.0625)); }
+/* (the hub's round 12: the band's brightness follows a dark site) its scale (0.075) set so the Cygnus stretch stands
+   about 1 mag/arcsec2 over the natural sky beside it, as from a dark site: the brightest northern Milky Way, Cygnus to
+   Perseus, about 21.0 (https://skyandtelescope.org/get-involved/rate-your-skyglow/), against the natural sky's 22.0
+   (https://www.nps.gov/subjects/nightskies/NSQmetrics.html): 2.5x its light, a linear contrast of 1.5, about 36% in
+   OKLab L; measured in T1's laptop-night frame (the galaxy's own light, drawn with and without it): 37% */
 vec3 galaxyAt(vec3 rd, float e) {
   vec3 P = uGal.xyz, C = uGalC.xyz;
   float b = dot(rd, P), l = atan(dot(rd, cross(P, C)), dot(rd, C)), u = l / SKYTAU, ld = degrees(l), bd = degrees(asin(clamp(b, -1.0, 1.0)));
@@ -132,7 +137,7 @@ vec3 galaxyAt(vec3 rd, float e) {
   vec4 nr = n3v(vec3(u * 13.0, b * 5.6, 0.37)), nw = n3v(vec3(u * 31.0, b * 14.0, 0.61));
   float brk = 0.45 + 0.55 * smoothstep(0.3, 0.7, nr.b * 0.6 + nw.a * 0.4), bo = 3.0 * (nr.a - 0.5) + 1.2 * (nw.b - 0.5);   // (the rift broken and made to wander by the old lanes' noise: its depth, and its centre +-1.5 deg)
   float dark = (1.0 - 0.8 * galRift(ld, bd - bo) * brk) * (1.0 - 0.85 * galCoal(ld, bd)), clouds = (galLMC(ld, bd) + galSMC(ld, bd) + galM31(ld, bd)) * (0.7 + 0.6 * n);
-  return (vec3(0.9, 0.86, 0.8) * (galBand(ld, bd) * (0.25 + 1.1 * n * n) + clouds) + vec3(1.0, 0.85, 0.65) * galCore(ld, bd) * 1.3) * dark * uGal.w * 0.04 * smoothstep(1.0, 12.0, e) * galVis(rd);
+  return (vec3(0.9, 0.86, 0.8) * (galBand(ld, bd) * (0.25 + 1.1 * n * n) + clouds) + vec3(1.0, 0.85, 0.65) * galCore(ld, bd) * 1.3) * dark * uGal.w * 0.075 * smoothstep(1.0, 12.0, e) * galVis(rd);
 }
 /* (physics: aurora/phases) one sheet D km away toward the key's azimuth, seen from the ground: phi from its centre,
    the folds' phase f0, and how deep into a breakup it is (bk: 0 none; the section east of the front, s > uAurB.y) */
