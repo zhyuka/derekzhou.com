@@ -1,5 +1,10 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);", "with": "float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);", "why": "the galaxy's edge one-sided again: all south of it at once as the rise leaves 0 (M31 pops)"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float eb = radians(mix(-5.735, mix(6.17, 9.51, uAurB.x), uAur.x));", "with": "float eb = radians(mix(6.17, mix(6.17, 9.51, uAurB.x), uAur.x));", "why": "the aurora's sheet ignores its rise: it would show whole the moment a change began"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "galaxyAt(uSkyF * rd, eS)", "with": "galaxyAt(rd, eS)", "why": "the galaxy left out of the sky's turn: it slides against its stars"}
+// plant: {"file": "src/world/222-sky-order-cycle.js", "find": "core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best };", "with": "core: airEq(AIR_GAL.centre[0] + 90, AIR_GAL.centre[1]), lie: best };", "why": "the galaxy's core off its band: placed by no sky"}
+// plant: {"file": "src/world/224-sky-blend-paint.js", "find": "    skyFxPlace(X.fx, Y.fx, q, SKY.fx, SKY.rise);\n", "with": "", "why": "the galaxy's and the aurora's amounts blended like colours: a fade"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float AIRGLOW_Y = 0.004;", "with": "const float AIRGLOW_Y = 0.04;", "why": "the airglow ten times brighter: a green band that lifts the night sky"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "JUP_TOP_Y = 0.104;", "with": "JUP_TOP_Y = 0.2;", "why": "the outer planet past the light ceiling, brighter than Venus"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0];", "with": "JUPB.eps = RJ.r(JUP_EL[0], JUP_EL[1]);", "why": "the outer planet placed with no clear path: on the words"}
@@ -38,7 +43,8 @@ import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD,
 // ------------------------------------------------------------------ the sky order
 const SKYDEF = cut(WORLD, '  var WSKY = {', '  /* ---- a sky\'s light on a kit');
 const SKYORD = cut(WORLD, '  /* ---- the order (the live\'s pushSky and nextSky, on the world\'s streams) */', '  /* ---- the cycle at t');
-const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true);   // (the landing's heading: the air's, 215)
+const HEAD0 = cut(WORLD, '  function airHeading0()', '\n', true)   // (the landing's heading: the air's, 215; and the frame's equatorial axes and the galactic pole and centre, the galaxy's place)
+  + cut(WORLD, '  var AIR_LAT = ', '\n', true) + cut(WORLD, '  function airEq(', '\n', true);
 function skyWorld(seed, hour, at) {   // skyInit, skyPush and skyNext as the page runs them, a fake page under them (the colours unread)
   return vm.runInThisContext('(function (SEED, HOURV, AT) {\n  \'use strict\';\n' +
     '  var DEVMODE = false, OPT = { skyScene: null, skyNext: null, skyDt: null }, HOUR = HOURV, J = { seed: SEED };\n' +
@@ -238,6 +244,82 @@ test('night: the opening moon\'s place is kept off a cloud body, from the lobes 
   assert.ok(q[2] > 0 && x > 0 && x < 1920 && y > 0 && y < 1080, 'in frame');
   for (const B of boxes) { assert.ok(!(x >= B[0] && x <= B[2] && y >= B[1] && y <= B[3]), 'not in a word box'); for (let i = 0; i <= 20; i++) for (const [px, py] of [[B[0] + (B[2] - B[0]) * i / 20, B[1]], [B[0] + (B[2] - B[0]) * i / 20, B[3]]]) assert.ok(M.mrAng(o.d, M.mrPix(C, mk(), px, py)) >= M.MRK.FOOT, 'its footprint clear'); }
   const E2 = {}; M.moonClear(E2, mk(), cloud, eye); assert.deepEqual([E2.landX, E2.landUp], [E1.landX, E1.landUp], 'the same lobes, the same place');
+});
+
+// ------------------------------------------------------------------ the galaxy and the aurora come and go by place (aurora-enter-by-place)
+// their amounts (fx 2, 3) are only ever 0 or 1 across every change in the order, through the mist's waypoints too;
+// what moves is how far each has come in (SKY.rise), 0 to 1 with the change, and whole wherever both ends have it
+const FXSTEP = cut(WORLD, '    for (j = 0; j < 8; j++) SKY.fx[j] = X.fx[j]', '    skySun(V, w, L);');
+const FXPLACE = cut(WORLD, '  function skyFxPlace(', '  /* two skies\' colours blended');
+const FXOF = cut(WORLD, '    var fx = S.fx || {};', '\n', true) + cut(WORLD, '    O.fx = [fx.belt', '\n', true);
+test('sky: across every change the galaxy\'s and the aurora\'s amounts are 0 or 1, never between (no fades)', () => {
+  const step = new Function('SKY', 'X', 'Y', 'q', 'L', 'V', 'w', 'var j; function skySun() {}\n' + FXPLACE + FXSTEP);
+  const fxOf = new Function('S', 'var O = {};\n' + FXOF + 'return O.fx;');
+  const way = (a, b) => a.map((x, j) => (x + b[j]) / 2 * 0.25);   // (221's waypoint: the two skies' midpoint at a quarter)
+  let changes = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const K = skyWorld(seed * 2246822519 >>> 0, ['dawn', 'day', 'rain', 'sunset', 'dusk', 'night'][seed % 6], 0.5);
+    for (let n = 0; n < 30; n++) K.skyNext();
+    const seq = K.SKY.seq;
+    for (let i = 1; i < seq.length; i++) {
+      const A = { fx: fxOf(K.WSKY[seq[i - 1].id]), motes: 0 }, B = { fx: fxOf(K.WSKY[seq[i].id]), motes: 0 };
+      const halves = seq[i].far || seq[i - 1].far ? [[A, { fx: way(A.fx, B.fx), motes: 0 }], [{ fx: way(A.fx, B.fx), motes: 0 }, B]] : [[A, B]];
+      let last = null;
+      for (const [X, Y] of halves) for (let k = 0; k <= 40; k++) {
+        const S = { fx: new Float32Array(8), rise: new Float32Array(2) }, q = k / 40;
+        step(S, X, Y, q, {}, null, 0);
+        for (const j of [2, 3]) {
+          assert.ok(S.fx[j] === 0 || S.fx[j] === 1, `seed ${seed}: ${seq[i - 1].id} -> ${seq[i].id} at q ${q}: fx ${j} is ${S.fx[j]} (only 0 or 1)`);
+          assert.ok(S.rise[j - 2] >= 0 && S.rise[j - 2] <= 1, `rise ${j - 2} out of [0, 1]`);
+          if (S.fx[j] && X.fx[j] > 0 && Y.fx[j] > 0) assert.equal(S.rise[j - 2], 1, 'whole while both ends have it');
+        }
+        if (last) for (const j of [0, 1]) assert.ok(Math.abs(S.rise[j] - last[j]) <= 1 / 40 + 1e-6, `seed ${seed}: the rise jumps (${last[j]} -> ${S.rise[j]})`);
+        last = [S.rise[0], S.rise[1]];
+      }
+      changes++;
+    }
+  }
+  assert.ok(changes > 500, `${changes} changes`);
+  // and the shader takes the aurora's rise (uAur.x) by place: its own auroraAt base lines, run here (the
+  // review: text matches alone let a shader that ignored the rise pass)
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const js = (t) => t.replace(/\bfloat\s+/g, 'let ').replace(/(\d)\.(?!\d)/g, '$1.0');
+  const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+  const EB = g.match(/^\s*float eb = radians\((mix\(-?[\d.]+, mix\(-?[\d.]+, -?[\d.]+, uAurB\.x\), uAur\.x\))\);/m), DL = g.match(/^\s*float D = (6371\.0 \* \(acos\(cos\(eb\) \/ \(1\.0 \+ [\d.]+ \/ 6371\.0\)\) - eb\));/m);
+  assert.ok(EB && DL, 'auroraAt\'s sheet (float eb = radians(mix(...)); float D = ...) not found');
+  const mixf = (a, b, t) => a + (b - a) * t;
+  const ebAt = (rise) => new Function('uAur', 'uAurB', 'mix', 'return ' + js(EB[1]) + ';')({ x: rise }, { x: 0 }, mixf);   // (as it comes in: its hold not begun)
+  const DAt = (rise) => { const eb = ebAt(rise) * Math.PI / 180; return new Function('eb', 'cos', 'acos', 'return ' + js(DL[1]) + ';')(eb, Math.cos, Math.acos); };
+  assert.ok(g.includes('float h = 6371.0 * (cos(el) / cos(ee) - 1.0)'), 'auroraAt\'s altitude is not the one this test models');
+  for (let r = 0; r < 1; r += 0.05) assert.ok(DAt(r + 0.05) < DAt(r), `the aurora's sheet does not come nearer with its rise (${r})`);
+  assert.ok(Math.abs(DAt(1) - 650) < 5, `the sheet, come in, is ${DAt(1).toFixed(0)} km away (650)`);
+  {   // as it begins to come in (D 1950), wherever it is drawn (from 0.5 deg up, eased in over 2) it is the red's thin
+    // top over 300 km, at most 2% of the green's peak (the red's is a fifth of it): nothing of it shows at once
+    const D0 = DAt(0.001);
+    for (let ed = 0.5; ed <= 3; ed += 0.1) {
+      const e = ed * Math.PI / 180, h = 6371 * (Math.cos(e) / Math.cos(e + D0 / 6371) - 1), k = 0.2 * Math.exp(-Math.max(h - 230, 0) / 60) * ss(0.5, 2.5, ed);
+      assert.ok(h > 300 && k <= 0.02, `as the aurora begins to come in, ${ed.toFixed(1)} deg up meets its sheet at ${h.toFixed(0)} km, ${(100 * k).toFixed(1)}% of the green's peak (it would show at once: over 300 km, at most 2%)`);
+    }
+  }
+  assert.ok(g.includes('vec3 auroraAt(vec3 rd, float e) {\n  if (uAur.x <= 0.0) return vec3(0.0);'), 'the galaxy and the aurora are read before they begin to come in');
+  assert.ok(/gl\.uniform4f\(u\.uAur, SKY\.aur\.rise,/.test(WORLD), 'the aurora\'s rise is not passed to the sky (uAur.x, its own: skyAur)');
+});
+
+test('physics: night/sky-turn: the stars and the galaxy turn together on the air\'s frame (no edge of the galaxy\'s own)', () => {
+  // the frame is the air's (215 skyFrame / skySphere, physics: air/sky-frame: test/unit/air.mjs); here: the galaxy stands in it
+  // by J2000's galactic pole and centre (so the frame turns it with the stars), the shader reads both through it, and the
+  // stars fill the whole sphere (a turn never brings up a starless sky)
+  assert.ok(WORLD.includes('SKY.gal = { pole: airEq(AIR_GAL.pole[0], AIR_GAL.pole[1]), core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best };'), 'the galaxy is not placed by the galactic pole and centre in the air\'s frame');
+  const GAL = WORLD.match(/AIR_GAL = \{ pole: \[([\d.]+), ([\d.]+)\], centre: \[([\d.]+), (-?[\d.]+)\] \}/).slice(1).map(Number), D = Math.PI / 180;
+  const eq = (ra, dec) => [Math.cos(dec * D) * Math.cos(ra * D), Math.cos(dec * D) * Math.sin(ra * D), Math.sin(dec * D)], P = eq(GAL[0], GAL[1]), C = eq(GAL[2], GAL[3]);
+  assert.ok(Math.abs(P[0] * C[0] + P[1] * C[1] + P[2] * C[2]) < 1e-3, 'the galactic centre does not lie on the galactic equator (its pole and centre 90 deg apart)');
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('gL = galaxyAt(uSkyF * rd, eS) * hzT;') && g.includes('vec3 rs = uSkyF * rd;') && g.includes('float v = starAt(rs, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc);'), 'the galaxy and the stars are not both read through the sky\'s frame (uSkyF): one would slide against the other');
+  assert.ok(!/galEdge/.test(g), 'the galaxy keeps an edge of its own (it comes and goes by the sky\'s turn)');
+  assert.ok(g.includes('if (abs(elc) > 1.56) return 0.0;'), 'the stars fill only one of the frame\'s hemispheres: a turn would bring up a starless sky');
+  assert.ok(/gl\.uniformMatrix3fv\(u\.uSkyF, false, skyFrame\(SIM\.t - \(1 - SIM\.alpha\) \* SIM_DT \+ SKY\.dt, V\)\)/.test(WORLD), '226 does not pass the sky\'s frame at the sky clock\'s time');
+  const RATE = +WORLD.match(/var SKY_RATE = ([\d.]+);/)[1], degS = RATE * 15 / 3600;   // under the pixel limit: 0.25 px a frame at 60 Hz on a phone's 0.0376 deg/px
+  assert.ok(degS / 60 / 0.0376 <= 0.25, `the stars move ${(degS / 60 / 0.0376).toFixed(3)} px a frame (at most 0.25)`);
 });
 
 test('physics: weather/far-anvil: the far storm hides the sky in the air\'s colour, its top lit above the Earth\'s shadow, its lightning a soft, slow flicker', () => {
@@ -601,7 +683,7 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   // (the hub's round-9 review of #333: a Milky Way night lost 150 of its 272 star points) at the night's 24 deg every star of
   // the field (to mag 6.2) shows whole wherever it stands: on a sky up to 3x the zenith's light, on the band (the galaxy's
   // light is not nightLim's sky: c - gL), whatever the zenith's own light
-  assert.ok(g.includes('{ gL = galaxyAt(rd, eS) * hzT; c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
+  assert.ok(g.includes('{ gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
   for (const zy0 of [0.002, 0.008, 0.02, 0.05]) for (const k of [1, 1.5, 2, 3]) for (const b of [0.07, 0.1, 0.3, 1]) {
     const v = show(mag(b), nightLim(zy0 * k, K.starLim(24), zy0, wD(24)));
     assert.equal(v, 1, `at D 24, a mag ${mag(b).toFixed(2)} star on a sky ${k}x a zenith of Y ${zy0}: shown ${v.toFixed(2)}, not whole`);
@@ -699,10 +781,66 @@ test('sky: the galaxy and the aurora are seen through the haze (1 - hazeSky), ne
   const m = g.match(/float (\w+) = 1\.0 - hazeSky\(rd\);\s*vec3 (\w+) = \1 \*/);
   assert.ok(m, 'the haze\'s transmittance (1.0 - hazeSky(rd)) and its tint are not worked out before the galaxy and the aurora');
   for (const f of ['galaxyAt', 'auroraAt']) {
-    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '(') || l.includes('= ' + f + '(rd'));   // (the galaxy by way of gL, its light held apart for nightLim)
+    const uses = g.split('\n').filter((l) => l.includes('c += ' + f + '(') || l.includes('= ' + f + '(rd') || l.includes('= ' + f + '(uSkyF * rd'));   // (the galaxy by way of gL, its light held apart for nightLim)
     assert.ok(uses.length >= 1, f + ' is not added to the sky');
-    for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
+    for (const l of uses) assert.ok(l.includes(f + '(rd, eS) * ' + m[2]) || l.includes(f + '(uSkyF * rd, eS) * ' + m[2]), f + ' is added without the haze over it: ' + l.trim());
   }
+});
+
+test('physics: night/sky-turn: the stars stand where the sky\'s frame puts them (projected by their world direction)', () => {
+  // starAt places a star at sd in the sky's frame; the screen needs its world direction: sw = sd * uSkyF (uSkyF world to
+  // frame, so its transpose back). Under a frame turned well away from the identity, a star set at the frame direction
+  // of a pixel's own ray must land on that pixel (0 px off); read through sd itself it would land elsewhere
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  assert.ok(g.includes('vec3 sw = sd * uSkyF;') && g.includes('float zf = max(dot(sw, uCamF), 1e-4);') && g.includes('vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y))'), 'the star is projected by its frame direction, not its world one');
+  const rot = (ax, a) => { const [x, y, z] = ax, c = Math.cos(a), s = Math.sin(a), C = 1 - c; return [c + x * x * C, x * y * C - z * s, x * z * C + y * s, y * x * C + z * s, c + y * y * C, y * z * C - x * s, z * x * C - y * s, z * y * C + x * s, c + z * z * C]; };
+  const n = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); };
+  const M = rot(n([0.3, 0.8, -0.5]), 1.9);   // world to frame, row-major: frame = M w
+  const mul = (A, v) => [A[0] * v[0] + A[1] * v[1] + A[2] * v[2], A[3] * v[0] + A[4] * v[1] + A[5] * v[2], A[6] * v[0] + A[7] * v[1] + A[8] * v[2]];
+  const rowMul = (v, A) => [v[0] * A[0] + v[1] * A[3] + v[2] * A[6], v[0] * A[1] + v[1] * A[4] + v[2] * A[7], v[0] * A[2] + v[1] * A[5] + v[2] * A[8]];   // GLSL v * m
+  const F = [0, 0, 1], R = [1, 0, 0], U = [0, 1, 0], P = [Math.tan(0.6), Math.tan(0.4)], W = [1440, 900];
+  const px = (w) => { const z = w[0] * F[0] + w[1] * F[1] + w[2] * F[2]; return [((w[0] / (z * P[0])) * 0.5 + 0.5) * W[0], ((w[1] / (z * P[1])) * 0.5 + 0.5) * W[1]]; };
+  for (const w of [n([0.1, 0.3, 1]), n([-0.4, 0.2, 1]), n([0.2, -0.1, 1])]) {
+    const sd = mul(M, w), sw = rowMul(sd, M), a = px(w), b = px(sw), bad = px(sd);
+    assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-6, `a star at the pixel's own sky direction lands ${Math.hypot(a[0] - b[0], a[1] - b[1]).toFixed(3)} px off`);
+    assert.ok(Math.hypot(a[0] - bad[0], a[1] - bad[1]) > 50 || sd[2] <= 0, 'the test frame is too near the identity to tell the two apart');
+  }
+});
+
+test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 deg/s, nothing while its rise is 0 (no fades)', () => {
+  // 222's own skyGal over a stay (its hold and changes at their shortest and longest), run here: the rise 0 outside the
+  // stay, 1 at the hold's middle, straight; the shader's edge (GAL_E + 1.5 deg over the rise) never faster than 0.3 deg/s;
+  // and the shader draws nothing at rise 0 (galVis 0, the galaxy's draw and the stars' crowding both gated on it)
+  const fn = cut(WORLD, '  var GAL_IN = ', '\n  }\n', true), clamp = (x, a, b) => Math.min(Math.max(x, a), b);
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8'), E = +g.match(/const float GAL_E = ([\d.]+);/)[1];
+  const WS = { moonlit: { fx: {} }, milkyway: { fx: { galaxy: 1 } }, aurora: { fx: { aurora: 1 } } };
+  for (const [hold, move] of [[85.5, 55], [115, 60]]) {
+    const seq = [{ id: 'moonlit', at: 0, hold: 190, move: 57 }, { id: 'milkyway', at: 247, hold, move }, { id: 'aurora', at: 247 + hold + move, hold: 100, move: 55 }, { id: 'moonlit', at: 1e4, hold: 190, move: 57 }];
+    const SKY = { seq, i: 0, galRise: 0 };
+    const skyGal = new Function('SKY', 'WSKY', 'clamp', fn + '\nreturn skyGal;')(SKY, WS, clamp);
+    const t0 = 190, t1 = 247 + hold + move; let last = null, top = 0;
+    for (let t = 150; t <= t1 + 40; t += 0.25) {
+      SKY.i = t < 247 ? 0 : t < t1 ? 1 : 2; skyGal(t);
+      const r = SKY.galRise, e = -1.5 + (E + 1.5) * r;
+      assert.ok(r >= 0 && r <= 1, `t ${t}: rise ${r}`);
+      if (t <= t0 || t >= t1) assert.equal(r, 0, `t ${t}: the galaxy stands (rise ${r}) outside its stay`);
+      if (last !== null && r > 0 && last.r > 0) assert.ok(Math.abs(e - last.e) / 0.25 <= 0.3 + 1e-9, `hold ${hold}: at t ${t} the galaxy's edge moves ${(Math.abs(e - last.e) / 0.25).toFixed(3)} deg/s (at most 0.3)`);
+      top = Math.max(top, r); last = { r, e };
+    }
+    assert.equal(top, 1, `hold ${hold}: the galaxy never comes in whole (its rise peaks at ${top})`);
+  }
+  // the edge opens from the midline: at rise 0 the drawn set is empty (e + 1.5 <= 0, the soft edge's far side at or under
+  // |b| 0), and at rise 1 M31 (|b| 21.6, 0.75 deg tall) and the band's crowding stars (to |b| 22) lie inside E - 1.5
+  { const e0 = -1.5 + (E + 1.5) * 0; assert.ok(e0 + 1.5 <= 0, `the galaxy is drawn out to |b| ${(e0 + 1.5).toFixed(2)} at rise 0 (a pop as the rise leaves 0)`); }
+  assert.ok(21.6 + 0.75 <= E - 1.5 && 22 <= E - 1.5, `at rise 1 the galaxy is not whole: M31 or the crowding beyond the edge (E ${E})`);
+  assert.ok(g.includes('float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);') && g.includes('return 1.0 - smoothstep(e - 1.5, e + 1.5, lat);'), 'the galaxy\'s edge does not open from its midline (|b|, from -1.5 to GAL_E)');
+  // the hold case: a sky with no galaxy keeps its rise at 0, and at 0 the shader draws nothing
+  { const SKY = { seq: [{ id: 'moonlit', at: 0, hold: 190, move: 57 }, { id: 'moonlit', at: 247, hold: 190, move: 57 }], i: 0, galRise: 1 };
+    new Function('SKY', 'WSKY', 'clamp', fn + '\nreturn skyGal;')(SKY, WS, clamp)(100); assert.equal(SKY.galRise, 0, 'a stay with no galaxy keeps a rise'); }
+  assert.ok(g.includes('if (uGalC.w <= 0.0) return 0.0;'), 'galVis is not 0 at rise 0');
+  assert.ok(g.includes('if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }') && g.includes('* smoothstep(1.0, 12.0, e) * galVis(rd);'), 'the galaxy is drawn without its edge, or at rise 0');
+  assert.ok(g.includes('uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * galVis(sd0(jb, ib, n))'), 'the stars crowd into the band before the galaxy comes in (a pop)');
+  assert.ok(WORLD.includes('gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], SKY.galRise || 0);') && WORLD.includes('skyAur(t); skyGal(t);'), 'the galaxy\'s rise is not its own clock\'s');
 });
 
 test('physics: weather/moon-corona: the corona\'s rings only where thin cloud stands in front of the moon', () => {

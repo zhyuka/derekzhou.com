@@ -703,7 +703,18 @@ physics: clouds/drift). It holds:
   once a visit so that the evening sun stands on the sky's own sun's
   azimuth. The sphere turns forward only, at SKY_RATE times the sidereal
   rate, never stopping and never turning back; at sky time 0 its hour is
-  the opening sky's, so the frame's sun stands at the opening's drawn sun.
+  the opening sky's, so the frame's sun stands at the opening's drawn sun;
+  on a milkyway opening the hour is chosen instead so that the band
+  arches across the opening's view, flat and well above the horizon in
+  frame, with its brightest stretch that rises here in view (the Cygnus
+  star cloud and its rift, galactic longitude 60-90; the core never rises
+  at 64 deg north) (airGalLst, on a 16:10 desktop and a phone at the
+  opening's heading; a level band crosses 37 deg up or more, above a
+  desktop's top, so it leans: a median of 37 deg, 83 before; Cygnus in
+  frame on about half the openings, the rest the heading's;
+  test/unit/air.mjs). The band's brightness follows a dark site: the
+  Cygnus stretch about 1 mag/arcsec2 over the natural sky beside it (21.0
+  against 22.0), about 36% contrast in OKLab L, 37% measured in T1's night.
   The drawn sky's sun keeps its depth by sky until the night's true order
   lands; the planets are placed by the drawn sun. The ecliptic leans
   23.44 deg to the equator; the galactic pole and centre are J2000's (the
@@ -815,7 +826,8 @@ physics: clouds/drift). It holds:
   lowest ground within the radius to that depth, under the basin's rim.
   test/unit/events.mjs.
 - The landing's heading, airHeading0 (drawn once from its own stream: the
-  flight, the first plan, the galaxy's lie and the boot read it), and the
+  flight, the first plan, the galaxy's lie, a milkyway opening's hour and
+  the boot read it), and the
   flight's cruise band, AIR_CRUISE (14 m over the sand to 32 m over the
   cloud sea).
 
