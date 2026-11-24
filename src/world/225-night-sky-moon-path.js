@@ -166,7 +166,7 @@
       for (mg = 1; mg >= 0 && !P.landRoom; mg -= 0.5) {   // (and, last, less of the margin under the top edge, to none: the disc still whole in the window)
         hT = Math.min(mrHiAt(I, I.pN, P.landX, mg), mrHiAt(I, I.pL, P.landX, mg));
         for (kf = 1; kf >= 0 && !P.landRoom; kf -= 0.5) {
-          I2 = {}; for (var kk in I) I2[kk] = I[kk]; I2.keepPx = I.keepPx * kf;
+          I2 = /** @type {any} */ ({}); for (var kk in I) I2[kk] = I[kk]; I2.keepPx = I.keepPx * kf;
           lo2 = Math.max(mrLo(I2, S, I.pN), mrLo(I2, S, I.pL));
           if (hT - lo2 >= (mg < 1 ? MRK.LANDROOM / 2 : MRK.LANDROOM)) { P.lo = lo2; P.ec = lo2 + upL * Math.min(hT - lo2, MRK.SPAN); P.landRoom = true; P.landKeep = kf; P.landMg = mg; }
         }

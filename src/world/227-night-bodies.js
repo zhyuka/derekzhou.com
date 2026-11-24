@@ -85,6 +85,7 @@
     var q = mrProj(mrCam(I.psi, I.pN), I, d);
     return d[1] > 0.02 && q[2] > 0 && Math.abs(q[0]) < 0.92 && Math.abs(q[1]) < 0.92;
   }
+  /** @returns {[number, boolean]} */
   function bodyPick(R, EL, side, F, D0, I, I2) {   // of VEN_TRY elongations drawn from R in EL (the same every plan of a visit), the first whose path down keeps clear of the words in the window I (and I2) and that stands in view at the cut, else the first clear one over the horizon at the cut, else -1: [eps, seen]
     var seen = -1, up = -1, k, d = [0, 0, 0];
     for (k = 0; k < VEN_TRY && seen < 0; k++) {

@@ -76,7 +76,7 @@
   var AIR_BYSKY = { afterglow: [1, 1, 1], bluehour: [0.7, 1.2, 0.65], firstlight: [0.35, 1.3, 0.5], moonlit: [0.5, 1.4, 0.6], milkyway: [0.4, 1.5, 0.5], aurora: [0.45, 1.4, 0.55] };
   var AIR_NC = 3, AIR_ONE = [1, 1, 1], AIR_SL = [20, 100, 300, 1500], AIR_WX = [1, 1, 1], AIR_IA = [0, 0, 0], AIR_IB = [0, 0, 0], AIR_TC = [0, 0, 0], AIR_ABC = [1, 0, 0];
   function airDay(x, z, y, V) { var a = airBase(x, z, y, V); return { x: a.x, z: a.z }; }   // the day's wind at y m up, m/s (the sky's share 1, whatever the sky: a reader that wants the day's wind, not the hour's; a fresh object)
-  function airTable() { var o = {}, k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
+  function airTable() { var o = /** @type {{ [sky: string]: number[] }} */ ({}), k; for (k in AIR_BYSKY) o[k] = AIR_BYSKY[k].slice(); return o; }   // (a fresh copy: the score's feed)
   function airSh(e) { return (e && AIR_BYSKY[e.id]) || AIR_ONE; }
   function airIdx(seq, tS) { var i = seq.length - 1; while (i > 0 && seq[i].at > tS) i--; return i; }
   function airPre(seq, i) {   // the shares' integral from the order's start to seq[i].at (cached on each entry: an entry's never changes)
@@ -399,4 +399,4 @@
     if (f < 1 && tR === tR) { var q = moonShown(tR, AIR_MOONR).d; if (q[0] * q[0] + q[2] * q[2] > 1e-18) rz = Math.atan2(q[0], q[2]); }   // (the way round: to the disc at the hold's edge)
     return airTurnLow(k, AIR_LDT, rz, f, AIR_LD);
   }
-  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, wx: airWx, MIST: function () { var o = {}, k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
+  var AIRAPI = { draw: airDraw, windAt: windAt, heard: airHeard, wx: airWx, MIST: function () { var o = /** @type {{ [sky: string]: number }} */ ({}), k; for (k in AIR_MIST) o[k] = AIR_MIST[k]; return o; }, share: airShare, carried: airCarried, clock: airClock, BYSKY: airTable, day: airDay, gustAt: gustAt, gustPhase: gustPhase, gustSigma: gustSigma, u10: u10Of, GRAIN_K: AIR_GRAIN_K, vec3: airVec3, upwind: airUpwind, H: AIR_H, KEY_EL: AIR_KEY_EL, KEY_AZ: AIR_KEY_AZ, keyAt: keyAt, skySun: airSkySun, moonAt: airMoon, moonDir: airMoonDir, skyFrame: skyFrame, skySphere: skySphere, weather: weather, SKY_RATE: SKY_RATE, APART: AIR_APART };
