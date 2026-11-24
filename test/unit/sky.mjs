@@ -1,5 +1,9 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HI_H = 7000.0, HIF_W = 12000.0;", "with": "const float HI_H = 3000.0, HIF_W = 12000.0;", "why": "the cirrus back at 3 km, under real cirrus heights"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "    if (SUNU.on) return -SUNU.es;\n", "with": "", "why": "Venus placed by the sky it left through a change into the night: off its elongation from the sinking sun, then a jump"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "P.w0 = 2 * P.thetaE / P.Dvis;", "with": "P.w0 = 3 * P.thetaE / P.Dvis;", "why": "the moon crossing half again faster: past the sky's declared rate"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": " gL += aG; c += aG; }", "with": " c += aG; }", "why": "the airglow counted as nightLim's sky: in the 15-18 deg window it holds back a star at the edge of showing"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);", "with": "float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);", "why": "the galaxy's edge one-sided again: all south of it at once as the rise leaves 0 (M31 pops)"}
@@ -612,6 +616,40 @@ test('night: the evening star stands by the drawn sun (its elongation, on the ec
     }
   }
 });
+// (the hub's ruling, Nov 24 20:28: Venus by the glow) the page's own walk through holds and changes: 222's skyArc and
+// 223's skySun move the drawn sun as the page moves it (uSkyS), 227's skyDepth reads its depth, venusDir places Venus;
+// its angle from the drawn sun (the glow's: uSkyS in a twilight, the sun sunk on the key's azimuth at night) stays its
+// elongation in every hold and through every change, and it never jumps
+const SUNWALK = cut(WORLD, '  function skyArc(', '\n  }\n', true) + cut(WORLD, '  var SUN_BAND = ', '  function skyEndCol(') + cut(WORLD, '  function skySun(V, w, L) {', '\n  }\n', true);
+test('night: Venus keeps its elongation from the drawn sun through every hold and change (by the glow)', () => {
+  const src = '(function (SEED, KEYAZ) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SKY_RATE = 100, DEVMODE = false, MOONF = { sunOff: false };\n' +
+    '  var SKY = { seq: [], dt: 0, skyS: new Float32Array(3), fx: new Float32Array(8), far: false, half: 0, q: 0, A: null, B: null, k: 0 };\n' +
+    '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } }, KEY = [0.3, 0.8, 0.52];\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function ss01(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }\n' +
+    '  function keyAt() { return KEY; }\n  function skyEndCol(O, k, w, out) { return out; }\n  function skyEndNum(O, k, w, out) { return out; }\n  function airSkySun(V, el) { return el === null ? KEY.slice() : dirAzEl(V.light.sunAz, el); }\n' +
+    STREAMS + VEC + NIGHT + SUNWALK +
+    '  function sky(el) { return { skyEl: el, dir: airSkySun(SIM.V, el), fx: [0, 0] }; }\n' +
+    '  function at(A, B, k) { SKY.A = A; SKY.B = B; SKY.k = k; var L = {}; if (B) skyArc(A.dir, B.dir, k, SKY.skyS); else for (var i = 0; i < 3; i++) SKY.skyS[i] = A.dir[i]; skySun(SIM.V, 0, L); return skyDepth(); }\n' +
+    '  return { at: at, sky: sky, SKY: SKY, SUNU: SUNU, venusDir: venusDir, venusFrame: venusFrame, V: SIM.V, VEN_EL: VEN_EL };\n})';
+  const orders = [[-3, -7, null, null], [-7, null, null], [-3, null], [null, null, -7]];   // (afterglow, blue hour, the nights; a night into the blue hour: the sun rising back, the reverse change)
+  let n = 0;
+  for (let s = 1; s <= 24; s++) for (const ord of orders) {
+    const keyAz = (s * 53) % 360, K = vm.runInThisContext(src)(s * 2654435761 >>> 0, keyAz), skies = ord.map((e) => K.sky(e));
+    const D0 = ord[0] === null ? 24 : -ord[0], F = K.venusFrame(K.V, false, D0), eps = K.VEN_EL[0] + (K.VEN_EL[1] - K.VEN_EL[0]) * ((s * 0.618) % 1);
+    const drawn = (D) => (K.SKY.A.skyEl === null && (!K.SKY.B || K.SKY.B.skyEl === null)) ? [Math.sin(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180), Math.sin(-D * Math.PI / 180), Math.cos(keyAz * Math.PI / 180) * Math.cos(-D * Math.PI / 180)] : Array.from(K.SKY.skyS);   // (a night's own uSkyS is the key, not a sun: the sun sunk to its depth)
+    let prev = null;
+    const step = (A, B, k) => {
+      const D = K.at(A, B, k), v = K.venusDir(F, eps, 1, D, D0, [0, 0, 0]), S = drawn(D);
+      assert.ok(Math.abs(angD(v, S) - eps) < 0.1, `seed ${s}, order ${ord}, k ${k}: ${angD(v, S).toFixed(3)} deg from the drawn sun (its elongation ${eps.toFixed(3)})`);
+      if (prev) assert.ok(angD(v, prev) < 0.6, `seed ${s}, order ${ord}, k ${k}: Venus jumps ${angD(v, prev).toFixed(2)} deg`);
+      prev = v; n++;
+    };
+    for (let i = 0; i < skies.length; i++) {
+      for (let h = 0; h < 4; h++) step(skies[i], null, 0);   // (a hold: it stands still)
+      if (i + 1 < skies.length) for (let k = 0.005; k < 1; k += 0.005) step(skies[i], skies[i + 1], k);
+    }
+  }
+  assert.ok(n > 5000, `${n} steps`);
+});
 test('night: the stars come out by the sun\'s depth, brightest first; their colours never move their light; Venus under L 0.50', () => {
   const K = nightWorld(1, 0, []), g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   for (let D = 0; D < 30; D += 0.25) assert.ok(K.starLim(D + 0.25) >= K.starLim(D), 'the limit only deepens with the sun');
@@ -1154,4 +1192,39 @@ test('night: the moon crosses no faster than the sky\'s declared rate (SKY_RATE 
   assert.ok(fastest <= rate * 1.01, `the moon crossed at ${fastest.toFixed(4)} deg/s in its hold, past SKY_RATE x sidereal (${rate.toFixed(4)} deg/s) by over 1%`);
   const med = [...speeds].sort((a, b) => a - b)[speeds.length >> 1];
   console.log(`# the moon's pace: median ${med.toFixed(3)} deg/s (${(100 * med / rate * SR / 100).toFixed(0)}x real), fastest ${fastest.toFixed(3)} (${(SR * fastest / rate).toFixed(0)}x), SKY_RATE ${SR}x`);
+});
+
+// (physics: sky/cirrus, the hub's physics map: "High veil (cirrus) ... Physics: Looks") the high veil is cirrus: 7 km up
+// (WMO: 5-13 km temperate, 3-8 km polar), its streaks along the air's wind at that height (215's AIR_H.deck), and a
+// change's cover comes in by place: a front carried along that wind from upwind, never a strength over the whole sky
+test('sky: the cirrus stands 7 km up on the air\'s wind there, and a change brings its cover by place, from upwind', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const H = +/const float HI_H = ([\d.]+), HIF_W = ([\d.]+);/.exec(g)[1], W = +/const float HI_H = [\d.]+, HIF_W = ([\d.]+);/.exec(g)[1];
+  assert.ok(H >= 6000 && H <= 8000, `the cirrus at ${H} m (real cirrus at 64 N: 6-8 km, inside both the temperate and the polar ranges)`);
+  assert.equal((g.match(/vec2 P = uCam\.xz \+ rd\.xz \/ rd\.y \* \(HI_H - uCam\.y\);/g) || []).length, 2, 'both veil blocks at HI_H');
+  assert.equal(+/var AIR_H = \{[^}]*deck: (\d+)/.exec(WORLD)[1], H, 'the air\'s declared deck height (its wind, the streaks\' lie and drift) is not the cirrus\'s');
+  assert.equal((g.match(/float hx = hiCov\(P, dD\);/g) || []).length, 2, 'both veil blocks read the cover by place');
+  assert.ok(!/smoothstep\(0\.55 - uHi\.x|veilMean\(uHi\.x\)|smoothstep\(0\.0, 0\.05, uHi\.x\)/.test(g), 'a veil block still reads the one cover over the whole sky');
+  // the shader's cover at the deck's point, and 224's front, run here
+  const cov = g.match(/float hiCov\(vec2 P, vec2 dD\) \{ return (uHiP\.w > 0\.0 \? mix\(uHiP\.x, uHiP\.y, clamp\(\(uHiP\.z - dot\(P - uCam\.xz, dD\)\) \/ HIF_W \+ 0\.5, 0\.0, 1\.0\)\) : uHi\.x); \}/);
+  assert.ok(cov, 'hiCov is not the front along the deck\'s wind');
+  const hiCov = (a, P4, hx) => P4[3] > 0 ? P4[0] + (P4[1] - P4[0]) * Math.min(1, Math.max(0, (P4[2] - a) / W + 0.5)) : hx;
+  const js = /var xa = \(1 - w\) \* X\.d\.hi\[0\] \+ w \* X\.a\.hi\[0\], xb = \(1 - w\) \* Y\.d\.hi\[0\] \+ w \* Y\.a\.hi\[0\];\n\s*HIP\[0\] = xa; HIP\[1\] = xb; HIP\[2\] = HIF_R \* \(2 \* q - 1\); HIP\[3\] = q > 0 && q < 1 && xa !== xb \? 1 : 0;/.exec(WORLD);
+  assert.ok(js, '224 does not set the front from the two skies\' covers and the change\'s q');
+  const R = +/var HIP = new Float32Array\(4\), HIF_R = (\d+);/.exec(WORLD)[1];
+  assert.ok(R >= (H - 1500) / 0.06, `the front starts ${R} m upwind: inside the visible deck (${Math.round((H - 1500) / 0.06)} m at the streaks' fade, from 1.5 km up)`);
+  const hip = (xa, xb, q) => [xa, xb, R * (2 * q - 1), q > 0 && q < 1 && xa !== xb ? 1 : 0];
+  for (const [xa, xb] of [[0, 0.15], [0.15, 0], [0.1, 0.15]]) {
+    let prev = null;
+    for (let q = 0; q <= 1.0001; q += 0.01) {
+      const P4 = hip(xa, xb, q), blend = xa + (xb - xa) * q;
+      if (q === 0) assert.equal(P4[3], 0, 'a hold draws as before');
+      const row = [-R * 1.2, -60000, -6000, 0, 6000, 60000, R * 1.2].map((a) => hiCov(a, P4, blend));
+      for (let i = 1; i < row.length; i++) assert.ok(Math.abs(row[i] - xb) >= Math.abs(row[i - 1] - xb) - 1e-12, `q ${q.toFixed(2)}: the new cover not reached first upwind (${row})`);
+      for (const v of row) assert.ok(Math.min(xa, xb) - 1e-12 <= v && v <= Math.max(xa, xb) + 1e-12, 'a cover between the two skies\'');
+      if (q > 0.02 && q < 0.98) { assert.ok(Math.abs(row[0] - xb) < 1e-12 && Math.abs(row[6] - xa) < 1e-12, `q ${q.toFixed(2)}: far upwind the new sky's cover, far downwind the old`); }
+      if (prev) for (let i = 0; i < row.length; i++) assert.ok(Math.abs(row[i] - xb) <= Math.abs(prev[i] - xb) + 1e-12, 'a place never goes back to the old cover');
+      prev = row;
+    }
+  }
 });

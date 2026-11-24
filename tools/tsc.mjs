@@ -1,7 +1,8 @@
-// tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), with
+// tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), src/realm-*.js
+// and the sound (src/sound.js, src/score.js), with
 // tools/types/world.d.ts for what TypeScript's DOM types lack. Not a build step and not a dependency (the owner's
 // no-frameworks rule: terser alone to build): it runs a pinned TypeScript through npx, into npm's cache.
-//   node tools/tsc.mjs           print each error as section:line (the world) or file:line (src/realm-*.js), and the
+//   node tools/tsc.mjs           print each error as section:line (the world) or file:line (the realms, the sound), and the
 //                                counts; exit 1 if there is any (tools/checks/48-tsc.sh: every gate)
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -51,5 +52,16 @@ for (const l of (r2.stdout || '').split('\n')) {
 }
 if (r2.status !== 0 && !n2) { process.stderr.write(r2.stderr || r2.stdout || 'tsc did not run\n'); process.exit(2); }
 console.log(`tsc --checkJs: ${n2} error(s) in the realm scripts`);
+// the sound: the icon's switch (src/sound.js) and the score it plays (src/score.js), checked as written, together (the
+// switch reads window.SCORE, world.d.ts's ScoreApi; the score reads window.WORLD.sky)
+const r3 = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
+  path.join(ROOT, 'src/sound.js'), path.join(ROOT, 'src/score.js'), path.join(ROOT, 'tools/types/world.d.ts')], { encoding: 'utf8' });
+let n3 = 0;
+for (const l of (r3.stdout || '').split('\n')) {
+  const m = /((?:sound|score)\.js)\((\d+),\d+\): (error TS\d+: .*)/.exec(l); if (!m) continue;
+  console.log(`src/${m[1]}:${m[2]}  ${m[3]}`); n3++;
+}
+if (r3.status !== 0 && !n3) { process.stderr.write(r3.stderr || r3.stdout || 'tsc did not run\n'); process.exit(2); }
+console.log(`tsc --checkJs: ${n3} error(s) in the sound scripts`);
 fs.rmSync(out, { recursive: true, force: true });
-process.exit(n || n2 ? 1 : 0);
+process.exit(n || n2 || n3 ? 1 : 0);

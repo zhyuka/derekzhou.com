@@ -141,7 +141,7 @@ and sets behind the sea, never stopping or turning back (a visitor who
 turns that way sees it rise or set; only its faint broad light on the sky
 follows its depth); where the window has no room under its top edge, only
 its glow passes along the edge. Its corona's coloured rings show only where
-the 3 km veil's streaks stand thicker in front of it than the veil's even
+the 7 km veil's streaks stand thicker in front of it than the veil's even
 mean, as patchy as those streaks; a clear patch or a clear night has none
 (physics: weather/moon-corona).
 The moonlit night is about twice as long
@@ -223,8 +223,7 @@ opening against the still's own window and words (stillInputs, as the
 opening's moon), so the still and the live first frame agree, and in the
 window's own view and words (the night after the cut is seen there); a new window
 plans it again (moonResized; the phone's bar only when its path now crosses
-a word). It slips against the stars, which turn on their own
-clock, until that forward clock lands (delight-visit §5.5).
+a word). Known gap (kept, 2026-11-24): the drawn sun holds through a hold while the stars turn, so Venus slips against them (the owner's cycle: "All. Cycle through.").
 The bright outer planet (src/world/227-night-bodies.js, JUP_*): a second
 planet of the same kind, Jupiter's (magnitude about -2.4), on the same ecliptic
 through the drawn sun, 90-180 deg from it on either side (an outer planet's
@@ -249,7 +248,7 @@ sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
 degrees up. Its body hides the sky behind it in the air's own colour at its
 range (the far land's distance haze); the low sun lights its top above the
-Earth's shadow there, under the light ceiling; nearer layers (the 3 km veil,
+Earth's shadow there, under the light ceiling; nearer layers (the 7 km veil,
 the Earth's shadow and the Belt) lie over it, farther ones (the wisps, the
 galaxy, the aurora, the moon, the stars) are hidden behind it. Its lightning
 is the owner's one exception to no-fades ("Soft distant flicker",
@@ -615,8 +614,18 @@ physics: clouds/drift). It holds:
   default, 7.6). Before physics: air/wind-profile the readers kept their
   own speeds. The dunes' crests, the veils, the birds and the water's ripples read
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
-  and AIR_H.deck 3000 m, the high streaks, which lie along it: cloudWind,
+  and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
+  7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
+  International Cloud Atlas), its streaks along the air's wind there (the
+  profile's 2 U10 veered 40 deg, held above 3 km) and drifting with it; a
+  noise tile 204.8 km along the wind and 51.2 km across (its texels 3.2 km by
+  800 m), faded out under rd.y 0.105-0.44 where its texels would come under a
+  pixel. A change's cover comes in by place: a front carried along that wind
+  from 120 km upwind of the camera to 120 km downwind as the change goes (224's
+  HIP, the shader's uHiP), 12 km wide, the new cover upwind of it; in a hold
+  the cover is uHi.x everywhere.
 - The readers still apart (AIR_APART, each with the change that joins
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
@@ -807,7 +816,8 @@ physics: clouds/drift). It holds:
   never fades in place. It carries the lee wave's numbers too: oroU (7.7
   m/s over the ridge, where the gate opens) and N (0.01/s, the buoyancy
   frequency CLOUDS' lens takes), so the lens reads one weather. LAND's
-  mist and CLOUDS' lenticulars and banners read it.
+  mist, CLOUDS' lenticulars and banners and the aerial perspective's
+  aerosol (370's aerU, ## THE AERIAL PERSPECTIVE) read it.
 - The moon on show (AIRAPI.moonAt: the moonlit stay's route).
 - The events (physics: air/events; src/world/216-events.js, WORLD.events):
   the rare sights a visit may come on, each a site on the ground placed
@@ -914,6 +924,40 @@ a fade. The camera's ground never reads it; the flight keeps over its top
 as it does the mist pools' (280's height climbs onto it as onto a rise, by
 MIST_OVER; 270's hard rule 1 m over it; the ceiling over its least).
 test/unit/fog.mjs.
+
+## THE AERIAL PERSPECTIVE
+
+lib-air.glsl's atmos, the one function the land (350), the landmarks and
+stones (353), the cloud bodies (fs-vbody), the storm's anvil, the ribbons,
+the creatures and the ink birds' air take. The air between the eye and a
+point takes its light by extinction and gives the sky's back by in-scatter,
+per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
+
+- the gas, by wavelength (the inverse fourth power): its sea-level
+  scattering at 680, 550 and 440 nm, 5.8, 13.5 and 33.1 per 1,000 km
+  (https://doi.org/10.1364/AO.34.002765), thinning with an 8 km scale
+  height. At 20 km it takes half the blue and a tenth of the red: far
+  ridges turn blue on their own.
+- the aerosol, grey: the sky's own height fog and even distance term
+  (uFog, each realm's tuned look, now the aerosol in clean air), times
+  uAer.x, the visit's own by AIR's weather: the visual range's inverse
+  (extinction 3.912 over the range, https://glossary.ametsoc.org/wiki/Visibility;
+  AIR's 10 km in clean air is 1, 4 km in blown sand 2.5) times the
+  particles' growth with humidity, ((1 - RH) / (1 - 0.3))^-0.3
+  (https://doi.org/10.1016/S0065-2687(08)60142-9), RH 0.3 to 0.9 by the
+  visit's moisture (1.8 on the moistest). Neither changes with the sky, so
+  the far land never fades in place.
+
+Linf, what a path long enough gives back, is the sky's own colour toward
+the horizon (fogCol, the sky drawn there), so far ridges dissolve into the
+sky behind them. Since the gas takes and gives blue first, a thin air is
+blue and a thick one the horizon's colour: the old hand-set tint (uFogB) is
+gone. The aerosol's forward peak toward the key light (the one-parameter
+phase of https://doi.org/10.1086/144246, asymmetry 0.7 for desert dust,
+AER_SUN 0.05 of the light) only adds light, its share over an even
+scatter (the sky's colour holds the even part), so far land toward a low
+sun or the moon brightens. Nothing veils with grey: in-scatter is the
+sky's light. fogAmt, the share a light's own glow loses, is the green's.
 
 ## THE LARGE WORLD
 

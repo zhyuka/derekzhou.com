@@ -5,6 +5,20 @@
   var FOV_LONG = 72;
   var FR = { tanX: 1, tanY: 1, t: 0 }, FRT = { tanX: 1, tanY: 1 };
   var HZU = new Float32Array(4), CAML = new Float32Array(3);
+  /* the aerosol (lib-air: atmos), the visit's own (AIR's weather: neither changes with the sky, so the far land never
+     fades in place): its optical depth as the sky's tuned haze in clean air (AIR's 10 km), times the visual range's
+     inverse (extinction is 3.912 over the range at a 2% contrast threshold, https://glossary.ametsoc.org/wiki/Visibility:
+     4 km in blown sand is 2.5 times the air), times the particles' growth with the humidity, ((1 - RH) / (1 - RH0))^-AER_GAM
+     (https://doi.org/10.1016/S0065-2687(08)60142-9), RH from AER_RH by the visit's moisture; desert dust's forward
+     asymmetry AER_G; AER_SUN the forward peak's share of the light (the sky's colour holds the even part) */
+  var AER_RH = [0.3, 0.9], AER_GAM = 0.3, AER_G = 0.7, AER_SUN = 0.05, AERU = new Float32Array([1, AER_G, AER_SUN, 0]), AERK = { V: null, t: NaN };
+  function aerU(u, V) {
+    if (AERK.V !== V || AERK.t !== SIM.t) {
+      var w = airWx(SIM.t, V), rh = AER_RH[0] + (AER_RH[1] - AER_RH[0]) * w.moist;
+      AERK.V = V; AERK.t = SIM.t; AERU[0] = AIR_WXK.vis[0] / w.vis * Math.pow((1 - rh) / (1 - AER_RH[0]), -AER_GAM);
+    }
+    gl.uniform4fv(u.uAer, AERU);
+  }
   function setFrameUniforms(P, V) {
     var u = P.u, L = V.L || V.light;
     if (u.uCam) gl.uniform3fv(u.uCam, CPOS);
@@ -37,7 +51,7 @@
     if (u.uSkyN) { gl.uniform4fv(u.uSkyN, snU ? SUNU.n : SUNU.z); if (snU) { if (u.uGlowN) gl.uniform3fv(u.uGlowN, SUNU.glowN); if (u.uSkyWT) gl.uniform3fv(u.uSkyWT, SUNU.wT); if (u.uSkyWN) gl.uniform3fv(u.uSkyWN, SUNU.wN); if (u.uSkyKT) gl.uniform4fv(u.uSkyKT, SUNU.kT); if (u.uSkyKN) gl.uniform4fv(u.uSkyKN, SUNU.kN); if (u.uSunK) gl.uniform4fv(u.uSunK, SUNU.sk); if (u.uHzT) gl.uniform3fv(u.uHzT, SUNU.hzT); if (u.uHzN) gl.uniform3fv(u.uHzN, SUNU.hzN); } }
     if (u.uFog) gl.uniform4fv(u.uFog, L.fog);
     if (u.uFog2) gl.uniform4fv(u.uFog2, L.fog2);
-    if (u.uFogB) gl.uniform4fv(u.uFogB, L.fogBf);
+    if (u.uAer) aerU(u, V);
     // the ground haze's base under the eye follows the cruise clearance (a slow function of the maps), so the surface
     // flown lies over the base and the far ground's haze meets the sky's at the horizon (a base fixed 24 m under the eye
     // lies above a cloud sea flown 30-40 m over: the far sea takes a fifth of the haze the sky takes just above it, and

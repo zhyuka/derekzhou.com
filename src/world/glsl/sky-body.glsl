@@ -8,7 +8,8 @@ uniform int uZs;   // (fast500 D T1) never set: 0 at link; the star loop's bound
 #endif
 uniform vec4 uHi;     // high cloud: cover, brightness, scale, drift
 uniform vec3 uHiC;
-uniform vec4 uDeck;   // (physics: clouds/drift) the 3000 m deck's wind: its direction (x, z: unit) and how far it has carried the streaks along it (m, wrapped at 5 of the noise's tiles, the octaves' common period); unset: the world's x, still
+uniform vec4 uHiP;    // (physics: sky/cirrus) a change's cover by place: the cover it leaves, the cover it brings, the front (m along the deck's wind from under the camera: upwind of it the new cover), 1 in such a change (else uHi.x everywhere)
+uniform vec4 uDeck;   // (physics: clouds/drift) the cirrus deck's wind (HI_H): its direction (x, z: unit) and how far it has carried the streaks along it (m, wrapped at 5 of the noise's tiles, the octaves' common period); unset: the world's x, still
 uniform vec4 uMoon;   // (tod) the moon: its direction, its amount (0: none)
 uniform vec4 uAnvF;   // (physics: weather/far-anvil, the owner's "Soft distant flicker") lightning inside the far storm: its envelope now (0-1), its place in the storm (x, z km) and its reach (km)
 uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth (rad), its distance (km, 0: none), the sun's height (deg), the sun's azimuth (rad)
@@ -28,6 +29,12 @@ uniform vec4 uAur;    // (tod, phase 2) the aurora: how far it has come in (1 wh
 uniform vec4 uAurB;   // (physics: aurora/phases) how far through its hold, the breakup's front (km along the sheet, east +), the second arc's km farther (0 none), a breakup (0 or 1)
 out vec4 oC;
 const float SKYTAU = 6.2831853;
+/* (physics: sky/cirrus) the high veil is cirrus: it stands 7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in
+   polar ones; 64 N lies between: WMO International Cloud Atlas, https://cloudatlas.wmo.int/en/cirrus-ci.html), lies
+   along the air's wind at that height and drifts with it (215's profile: 2 U10 veered 40 deg, held above 3 km); a
+   change's cover comes in by place, a front carried along that wind from upwind (HIF_W wide), never a strength
+   over the whole sky */
+const float HI_H = 7000.0, HIF_W = 12000.0;
 const float AIRGLOW_Y = 0.004;   // (night) the airglow's peak light (Y): a tenth to a quarter of a dark night's own sky low down
 /* (tod) the stars: world-anchored (a cell of the sphere by the direction: elevation bands STC rad deep, each cut into
    cells about STC rad wide), a star in a share of the cells at a hashed place well inside its own, a bell at least
@@ -293,6 +300,7 @@ vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, vec3 col) {   // (both planet
 // tile's mean, 0.29 at uHi.x 0.2, is the drifted state its judge flagged: fx/py/veilmean.py), taken at n 0.12, as a
 // function of the climate's cover alone: no clock
 float veilMean(float x) { return smoothstep(0.55 - x, 0.95 - x, 0.692); }
+float hiCov(vec2 P, vec2 dD) { return uHiP.w > 0.0 ? mix(uHiP.x, uHiP.y, clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)) : uHi.x; }   // (physics: sky/cirrus) the cover at the deck's point P
 const float MET_TOP = 0.118;   // (219's METEOR.TOP_Y: the head's cap, OKLab L 0.49 with no sky under it)
 /* (delight-night §2) a meteor: its head and wake as a segment on the screen (both ends projected as starAt projects a
    star), its light integrated over the pixel across (the stars' starBox) and along (starErf at both ends), so it keeps
@@ -338,7 +346,7 @@ void main() {
     cB += uSunC * 0.1 * exp(-abs(sy) / (RB * 0.35)) * exp(-abs(sx) / (RB * 16.0)) * step(0.0, cs) * uSunVis;
     c = mix(cB, cA, kd);
   }
-  if (uPurp.w > 0.0 && rd.y > -0.02) {   // (physics: sky/purple-light) the high haze's glow above the hidden sun, behind the 3 km veil
+  if (uPurp.w > 0.0 && rd.y > -0.02) {   // (physics: sky/purple-light) the high haze's glow above the hidden sun, behind the 7 km veil
     /* a soft pink-purple patch about 14 deg wide on the sun's side, through the ground haze; what it adds held under
        L 0.50 over whatever sky stands behind it (the soft cap by the room left under Y 0.118: the credit keeps 4.5:1) */
     float pa = degrees(acos(clamp(dot(rd, uPurp.xyz), -1.0, 1.0)));
@@ -352,7 +360,7 @@ void main() {
     }
     c += pA;
   }
-  /* (physics: weather/far-anvil) the far storm, drawn before everything nearer than it (the 3 km veil and its streaks,
+  /* (physics: weather/far-anvil) the far storm, drawn before everything nearer than it (the 7 km veil and its streaks,
      the Earth's shadow and the Belt: laid over it), and hiding everything farther (the wisps 83 km up, 500-700 km away
      on its rays; the galaxy, the aurora, the moon, the stars: what they add is taken back over its cover, anvCov, after
      the stars) */
@@ -369,20 +377,21 @@ void main() {
       c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
     }
   }
-  float hiCv = 0.0;   // (physics: weather/moon-corona) how much of the 3 km veil's streaks stand in this direction beyond its even mean (0 clear .. 1), the corona's cloud
+  float hiCv = 0.0;   // (physics: weather/moon-corona) how much of the 7 km veil's streaks stand in this direction beyond its even mean (0 clear .. 1), the corona's cloud
   if (uHi.x > 0.0 && rd.y > 0.01) {
     /* (world6 step B, the judges' defect 6) high streaks on a deck HI_H m up, anchored to the world: the ray's point on
        the deck (from the camera's own place), so the sky is a function of where the camera is (and its cover, uHi.x,
        the climate's about it); no clock and no camera-relative term (the step's q = rd.xz / rd.y x 0.0012 + uT x 0.003
-       was one coarse veil about the camera whose cover drifted with the flight's time). A texel of the noise 2.4 km
-       along the streaks and 600 m across (the second octave 1.8x finer), faded out low (where the deck's texels would
+       was one coarse veil about the camera whose cover drifted with the flight's time). A texel of the noise 3.2 km
+       along the streaks and 800 m across (the second octave 1.8x finer), faded out low (where the deck's texels would
        come under a pixel: never a glitter) */
-    vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
+    vec2 P = uCam.xz + rd.xz / rd.y * (HI_H - uCam.y);
     // (physics: clouds/drift) the streaks lie along the deck's wind and drift with it: the point in its frame, carried
     vec2 dD = dot(uDeck.xy, uDeck.xy) > 0.25 ? uDeck.xy : vec2(1.0, 0.0);
-    vec2 qs = (vec2(dot(P, dD), dot(P, vec2(-dD.y, dD.x))) - vec2(uDeck.z, 0.0)) * vec2(1.0 / 153600.0, 1.0 / 38400.0);
+    vec2 qs = (vec2(dot(P, dD), dot(P, vec2(-dD.y, dD.x))) - vec2(uDeck.z, 0.0)) * vec2(1.0 / 204800.0, 1.0 / 51200.0);
+    float hx = hiCov(P, dD);
     float n = n3v(vec3(qs, 0.37)).a * 0.66 + n3v(vec3(qs * 1.8 + 0.31, 0.71)).a * 0.34 - 0.5;
-    float cov = smoothstep(0.55 - uHi.x, 0.95 - uHi.x, n * 1.6 + 0.5) * smoothstep(0.06, 0.25, rd.y);
+    float cov = smoothstep(0.55 - hx, 0.95 - hx, n * 1.6 + 0.5) * smoothstep(0.105, 0.44, rd.y);
     vec3 hc = uHiC * (1.0 + 1.5 * pow(max(cs, 0.0), 6.0));
     /* (world6 step B fix, defect 4) the old sky's veil kept: the old block was one coarse cover about the camera whose
        value drifted with the clock; the cover the approved stills show (veilMean) for the climate's cover here (uHi.x,
@@ -391,20 +400,21 @@ void main() {
     /* (tod fix round, the judges' defect 10) the veil's strength taken to 0 with its cover (vk: 1 from cover 0.05, as
        every kit's is): veilMean(0+) is 0.29, not 0, and a waypoint or the mist takes the cover to exactly 0, so the
        veil (and its streaks) entered or left the whole sky in one frame */
-    float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
+    float vm = veilMean(hx), vk = smoothstep(0.0, 0.05, hx);
     c = mix(c, hc, vm * uHi.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uHi.y * vk);
     hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));
   }
   if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {   // (fast500 no-fades) the veil in a change between a twilight sky and a night (above, its strength 0): the same, its brightening toward the sun sinking with it and weakening with its depth, the night's coming in at the key
-    vec2 P = uCam.xz + rd.xz / rd.y * (3000.0 - uCam.y);
+    vec2 P = uCam.xz + rd.xz / rd.y * (HI_H - uCam.y);
     // (physics: clouds/drift) the streaks lie along the deck's wind and drift with it: the point in its frame, carried
     vec2 dD = dot(uDeck.xy, uDeck.xy) > 0.25 ? uDeck.xy : vec2(1.0, 0.0);
-    vec2 qs = (vec2(dot(P, dD), dot(P, vec2(-dD.y, dD.x))) - vec2(uDeck.z, 0.0)) * vec2(1.0 / 153600.0, 1.0 / 38400.0);
+    vec2 qs = (vec2(dot(P, dD), dot(P, vec2(-dD.y, dD.x))) - vec2(uDeck.z, 0.0)) * vec2(1.0 / 204800.0, 1.0 / 51200.0);
+    float hx = hiCov(P, dD);
     float n = n3v(vec3(qs, 0.37)).a * 0.66 + n3v(vec3(qs * 1.8 + 0.31, 0.71)).a * 0.34 - 0.5;
-    float cov = smoothstep(0.55 - uHi.x, 0.95 - uHi.x, n * 1.6 + 0.5) * smoothstep(0.06, 0.25, rd.y);
+    float cov = smoothstep(0.55 - hx, 0.95 - hx, n * 1.6 + 0.5) * smoothstep(0.105, 0.44, rd.y);
     vec3 hc = uHiC * (1.0 + 1.5 * (pow(max(cs, 0.0), 6.0) * uSunK.y + pow(max(dot(rd, uSkyN.xyz), 0.0), 6.0) * uSunK.z));
-    float vm = veilMean(uHi.x), vk = smoothstep(0.0, 0.05, uHi.x);
+    float vm = veilMean(hx), vk = smoothstep(0.0, 0.05, hx);
     c = mix(c, hc, vm * uSunB.y * vk * smoothstep(0.01, 0.12, rd.y));
     c = mix(c, hc, max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * uSunB.y * vk);
     hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uSunB.y));
@@ -463,7 +473,7 @@ void main() {
     float gk = clamp(exp(-out1 / 2.2) * 0.9 + 0.08 * exp(-ma / 14.0) * uMoon.w, 0.0, 1.0), gy = dot(uMoonG, LUMA);
     c += uMoonG / max(gy, 1e-5) * max(gy - dot(c, LUMA), 0.0) * gk;
     /* (physics: weather/moon-corona) the corona: light diffracted by a thin cloud's droplets in front of the moon, its
-       rings (red outermost of each order) only where such cloud stands; on a clear night none. Here the 3 km veil's
+       rings (red outermost of each order) only where such cloud stands; on a clear night none. Here the 7 km veil's
        streaks where they stand beyond its even mean (hiCv), so the rings are as patchy as the cloud and come and go with it by place, never by a clock */
     if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * (vec3(0.95, 0.62, 0.42) * exp(-pow((ma - 2.6) / 0.3, 2.0)) * 0.5 + vec3(0.4, 0.75, 1.0) * exp(-pow((ma - 3.4) / 0.35, 2.0)) * 0.3
       + vec3(0.5, 1.0, 0.6) * exp(-pow((ma - 4.1) / 0.4, 2.0)) * 0.2 + vec3(1.0, 0.55, 0.6) * exp(-pow((ma - 4.9) / 0.45, 2.0)) * 0.22);

@@ -122,6 +122,13 @@ in four, its points carried with its body between; a flock of specks steps one
 frame in four, the draw carrying each bird on along its way; far, off-view and
 speck birds pause their wing (BW.skip: it goes on from where it paused).
 
+THE KEY LIGHT (physics map, disconnect 3; #399, closed). The ink birds carry no key light, on purpose: their paper is lit
+by the sky's ambient and bounce only (230 lightFrame takes the sky's sunVis, 0 in every sky). To the birds every one of
+the six skies is night (HOST.night(): the zenith's luminance under 0.04), so each bird is drawn at the larger of its
+graded tone and the night floor (GLOW_ENC 0.72, as encoded): the floor stands above the brightest tone the key could give
+(white paper's lit side at afterglow, 0.37 linear), so the stroke's tone hides it and the key would change no pixel
+(#399's crops: base and head identical with gulls at 9 m and 40 m).
+
 FLYING TOGETHER (the hub's flock physics spec, 2026-11-15: .work/hub/physics/birds.md; the owner: "some types of birds/flocks
 flap their wings mostly in sync too sometimes, right?"). Real flocks almost never beat in lockstep. An ibis or a goose in
 a skein beats with the bird ahead on its own leg in wake bouts, about a third of the time, median 2 s, at the spatial phase
