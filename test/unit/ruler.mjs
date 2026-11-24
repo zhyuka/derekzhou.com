@@ -1,7 +1,7 @@
 // test/unit/ruler.mjs: the visit ruler (tools/visit/ruler.mjs) runs on the world as it ships
 // plant: {"file": "tools/visit/ruler.mjs", "find": "export const DUNE_MIN = 8;", "with": "export const DUNE_MIN = 0;", "why": "every land opens over dunes"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);", "with": "keep = () => true;", "why": "a cell keeps every piece, whatever its density"}
-// plant: {"file": "src/world/215-air.js", "find": "305, 270, 295", "with": "20, 270, 295", "why": "k11's first heading back to 20 deg: 47% of the words' boxes under cloud (looks.json)"}
+// plant: {"file": "src/world/215-air.js", "find": "305, 60, null", "with": "20, 60, null", "why": "k11's first heading back to 20 deg: 30% of the words' boxes under cloud (looks.json)"}
 // plant: {"file": "src/realm-above.js", "find": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0)", "with": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-31, 0)", "why": "a cumulus moved: looks.json was measured on another world"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "GLOW_KEEP = 0.5,", "with": "GLOW_KEEP = 0,", "why": "the glow the land's own heading shows may be lost"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "NAME_CAP = 0.02,", "with": "NAME_CAP = 1,", "why": "the name's cap loosened past 2%"}
@@ -75,7 +75,7 @@ test('ruler: each land\'s first heading keeps the words and the name clear of cl
   const T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(WORLD);
   assert.ok(T, 'airHeading0\'s table not found in world.js');
   const table = JSON.parse(T[1]), rec = JSON.parse(fs.readFileSync(new URL('../../tools/visit/looks.json', import.meta.url), 'utf8'));
-  assert.equal(rec.world, worldKey(), 'looks.json was measured on another world: re-run looks.mjs (then headings.mjs)');
+  assert.equal(rec.world, await worldKey(), 'looks.json was measured on another world: re-run looks.mjs (then headings.mjs)');
   assert.equal(table.length, 16, 'the table has one heading for each of the 16 lands');
   for (let k = 0; k < 16; k++) {
     const l = (rec.lands[k] || {})[lookKey(table[k])];

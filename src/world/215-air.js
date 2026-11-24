@@ -248,11 +248,13 @@
   /* the landing's heading (the flight, the first plan, the galaxy's lie and the boot read it). (curated openings, step 2:
      delight-visit 5.2) each of the 16 lands' own, chosen by tools/visit/headings.mjs from the visit ruler's candidates
      and the frames' look (tools/visit/looks.mjs, measured in T1's SwiftShader frames: looks.json): never more than
-     look-rule.mjs's share of the words' boxes under cloud, then a near pass soonest, the fewest 180 s stretches with no
-     reward, the night's Milky Way and the low sun in frame and clear, the top band clearest; null, the land's own draw
-     from its stream where that was already the best (k6). Chosen once, before anything is drawn, as the landing is;
+     look-rule.mjs's share of the words' boxes (or the name's) under cloud, nor less of the low sun's glow than half the
+     land's own draw shows (k0 alone, where no heading keeps both, keeps the words), then a near pass soonest, the fewest
+     180 s stretches with no reward, the night's Milky Way and the low sun in frame and clear, the top band clearest;
+     null, the land's own draw from its stream where that was already the best (k6, k13). looks.json keeps the world it
+     was measured on: any change to the world fails test/unit/ruler.mjs until looks.mjs and headings.mjs are re-run. Chosen once, before anything is drawn, as the landing is;
      nothing turns the view. A land k is the one whose seed is 010's (11 + k x 0x9e3779b9) */
-  function airHeading0() { var T = [90, 140, 40, 230, 265, 210, null, 70, 245, 140, 60, 305, 270, 295, 230, 235], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
+  function airHeading0() { var T = [90, 329, 300, 120, 35, 230, null, 70, 245, 140, 240, 305, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
      frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
      (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust

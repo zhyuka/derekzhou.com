@@ -130,7 +130,7 @@ async function score(k, deg) {
 }
 
 const jobs = []; for (const [k, list] of Object.entries(CANDS)) for (const d of list) jobs.push([+k, d]);
-const WORLD_KEY = worldKey(), old = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+const WORLD_KEY = await worldKey(), old = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 const prev = old && old.world === WORLD_KEY ? old : { world: WORLD_KEY, lands: {} };   // (a record of another world is dropped whole)
 const PNG = arg('--png', null); if (PNG) fs.mkdirSync(PNG, { recursive: true });
 let next = 0; const t0 = Date.now();

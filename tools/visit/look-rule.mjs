@@ -12,7 +12,7 @@
 //   lookScore the look's part of the pick: the opening's feature in frame (its light against the land's best candidate's)
 //             and left clear (the Milky Way at night, the low sun or its glow at dawn and sunset), less the top band
 //             under cloud
-// worldKey: what the looks were measured on, the assembled world script with airHeading0's table blanked and the two
+// worldKey: what the looks were measured on, the code (comments aside) of the assembled world script with airHeading0's table blanked and the two
 // realms that lay out the clouds; looks.json keeps it, and test/unit/ruler.mjs fails the record once the world moves
 // (any change to the world, the cloud layer's above all, can put a cloud behind the words: re-run looks.mjs)
 import fs from 'node:fs';
@@ -39,13 +39,15 @@ export const glowWaived = (land, own) => !Object.values(land).some((x) => keepsW
 export const keeps = (l, own, land) => keepsWords(l) && (keepsDiscs(l, own) || glowWaived(land, own));
 
 const TABLE = /(function airHeading0\(\) \{ var T = )\[[^\]]*\]/;
-export function worldKey(root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')) {
+export async function worldKey(root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'lookkey-'));
   try {
     execFileSync(process.execPath, [path.join(root, 'tools', 'parts.mjs'), 'assemble', path.join(root, 'src'), path.join(tmp, 'src')], { stdio: 'ignore' });
-    const h = crypto.createHash('sha256');
-    h.update(fs.readFileSync(path.join(tmp, 'src', 'world.js'), 'utf8').replace(TABLE, '$1[]'));
-    for (const r of ['realm-dunes.js', 'realm-above.js']) h.update(fs.readFileSync(path.join(tmp, 'src', r), 'utf8'));
+    const h = crypto.createHash('sha256'), { minify } = await import('terser');
+    // the code alone: its comments and white space taken out (terser, neither compressed nor mangled), so a comment moves no look
+    const code = async (src) => (await minify(src, { compress: false, mangle: false, format: { comments: false } })).code;
+    h.update(await code(fs.readFileSync(path.join(tmp, 'src', 'world.js'), 'utf8').replace(TABLE, '$1[]')));
+    for (const r of ['realm-dunes.js', 'realm-above.js']) h.update(await code(fs.readFileSync(path.join(tmp, 'src', r), 'utf8')));
     return h.digest('hex').slice(0, 16);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
