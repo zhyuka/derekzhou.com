@@ -115,7 +115,8 @@ tools/gpu/                   GPU checks run by hand on a real GPU (no CI job run
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand;
-                             mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand
+                             mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand;
+                             fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
