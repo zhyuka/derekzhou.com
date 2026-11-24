@@ -112,7 +112,7 @@
   /* (aurora-enter-by-place, no fades, at most 0.3 deg/s) the galaxy's own clock over its stay, as the aurora's: from the
      change that brings it to the end of the one that takes it (its amount 1 throughout). Its rise goes 0 to 1 over GAL_IN
      s from that change's start and back over GAL_OUT s to that change's end, straight (the shader's edge, galVis, sweeps
-     2 x GAL_E = 27 deg in 95 s: 0.28 deg/s, never faster; the shortest stay, 197.5 s, holds both); a landing on it opens with it whole */
+     from -1.5 to GAL_E, 25.5 deg in 95 s: 0.27 deg/s, never faster; the shortest stay, 197.5 s, holds both); a landing on it opens with it whole */
   var GAL_IN = 95, GAL_OUT = 95;
   function skyGal(t) {
     var seq = SKY.seq, i = SKY.i, ga = function (n) { var f = seq[n] && WSKY[seq[n].id].fx; return !!(f && f.galaxy > 0); };

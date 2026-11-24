@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);", "with": "float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);", "why": "the galaxy's edge one-sided again: all south of it at once as the rise leaves 0 (M31 pops)"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float eb = radians(mix(-5.735, mix(6.17, 9.51, uAurB.x), uAur.x));", "with": "float eb = radians(mix(6.17, mix(6.17, 9.51, uAurB.x), uAur.x));", "why": "the aurora's sheet ignores its rise: it would show whole the moment a change began"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "galaxyAt(uSkyF * rd, eS)", "with": "galaxyAt(rd, eS)", "why": "the galaxy left out of the sky's turn: it slides against its stars"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "core: airEq(AIR_GAL.centre[0], AIR_GAL.centre[1]), lie: best };", "with": "core: airEq(AIR_GAL.centre[0] + 90, AIR_GAL.centre[1]), lie: best };", "why": "the galaxy's core off its band: placed by no sky"}
@@ -803,7 +804,7 @@ test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 d
     const t0 = 190, t1 = 247 + hold + move; let last = null, top = 0;
     for (let t = 150; t <= t1 + 40; t += 0.25) {
       SKY.i = t < 247 ? 0 : t < t1 ? 1 : 2; skyGal(t);
-      const r = SKY.galRise, e = E * (2 * r - 1);
+      const r = SKY.galRise, e = -1.5 + (E + 1.5) * r;
       assert.ok(r >= 0 && r <= 1, `t ${t}: rise ${r}`);
       if (t <= t0 || t >= t1) assert.equal(r, 0, `t ${t}: the galaxy stands (rise ${r}) outside its stay`);
       if (last !== null && r > 0 && last.r > 0) assert.ok(Math.abs(e - last.e) / 0.25 <= 0.3 + 1e-9, `hold ${hold}: at t ${t} the galaxy's edge moves ${(Math.abs(e - last.e) / 0.25).toFixed(3)} deg/s (at most 0.3)`);
@@ -811,6 +812,11 @@ test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 d
     }
     assert.equal(top, 1, `hold ${hold}: the galaxy never comes in whole (its rise peaks at ${top})`);
   }
+  // the edge opens from the midline: at rise 0 the drawn set is empty (e + 1.5 <= 0, the soft edge's far side at or under
+  // |b| 0), and at rise 1 M31 (|b| 21.6, 0.75 deg tall) and the band's crowding stars (to |b| 22) lie inside E - 1.5
+  { const e0 = -1.5 + (E + 1.5) * 0; assert.ok(e0 + 1.5 <= 0, `the galaxy is drawn out to |b| ${(e0 + 1.5).toFixed(2)} at rise 0 (a pop as the rise leaves 0)`); }
+  assert.ok(21.6 + 0.75 <= E - 1.5 && 22 <= E - 1.5, `at rise 1 the galaxy is not whole: M31 or the crowding beyond the edge (E ${E})`);
+  assert.ok(g.includes('float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);') && g.includes('return 1.0 - smoothstep(e - 1.5, e + 1.5, lat);'), 'the galaxy\'s edge does not open from its midline (|b|, from -1.5 to GAL_E)');
   // the hold case: a sky with no galaxy keeps its rise at 0, and at 0 the shader draws nothing
   { const SKY = { seq: [{ id: 'moonlit', at: 0, hold: 190, move: 57 }, { id: 'moonlit', at: 247, hold: 190, move: 57 }], i: 0, galRise: 1 };
     new Function('SKY', 'WSKY', 'clamp', fn + '\nreturn skyGal;')(SKY, WS, clamp)(100); assert.equal(SKY.galRise, 0, 'a stay with no galaxy keeps a rise'); }

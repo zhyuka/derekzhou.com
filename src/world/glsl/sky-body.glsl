@@ -86,13 +86,14 @@ vec3 haloAt(vec3 rd) {
    climbs from under the horizon over it as it goes and sinks off it as it comes; under the edge it is not drawn */
 /* (tod, phase 2) the Milky Way (the live's band, bright core and dark lanes; its noise from uN3, a whole number of its
    period round the band so a turn never meets a seam) and the aurora (one sheet low over the key's horizon, its colour by altitude: physics: aurora) */
-/* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: an edge in galactic latitude (deg) sweeps from
-   -GAL_E to +GAL_E as its own rise (uGalC.w, 222 skyGal) goes 0 to 1, and back; south of it the galaxy is drawn, north
-   of it not, 1.5 deg soft; at rise 0 nothing at all. The band (sigma 6 deg) is under 5% beyond 15 deg */
-const float GAL_E = 13.5;
+/* (aurora-enter-by-place, no fades) the galaxy comes and goes by place: the band opens from its midline outward, an
+   edge in |galactic latitude| (deg) sweeping from -1.5 to GAL_E as its own rise (uGalC.w, 222 skyGal) goes 0 to 1, and
+   back; inside it the galaxy is drawn, outside not, 1.5 deg soft; at rise 0 nothing at all, at rise 1 everything to
+   |b| 22.5 (M31 at -21.6, the band's crowding stars to 22; the Clouds, at -33 and -44, never rise at AIR_LAT) */
+const float GAL_E = 24.0;
 float galVis(vec3 d) {
   if (uGalC.w <= 0.0) return 0.0;
-  float lat = degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0))), e = GAL_E * (2.0 * uGalC.w - 1.0);
+  float lat = abs(degrees(asin(clamp(dot(d, uGal.xyz), -1.0, 1.0)))), e = mix(-1.5, GAL_E, uGalC.w);
   return 1.0 - smoothstep(e - 1.5, e + 1.5, lat);
 }
 #ifdef SKY_PH2
