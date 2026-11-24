@@ -40,7 +40,6 @@
 // plant: {"file": "src/world/215-air.js", "find": "o.az = m.az; o.el = m.el; o.up = m.w > 0;", "with": "o.az = m.az; o.el = m.el; o.up = m.w >= 0;", "why": "a moon of no weight counted up"}
 // plant: {"file": "src/world/215-air.js", "find": "var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt, AIR_MOONS);", "with": "var m = moonShown(SIM.t, AIR_MOONS);", "why": "the moon's direction a step behind the drawn disc"}
 // plant: {"file": "src/world/glsl/fs-vbody.glsl", "find": "vec3 nOff = uVO;", "with": "vec3 nOff = uVO + vec3(uT * 0.004, 0.0, uT * 0.003);", "why": "the cloud billows slide by a clock of their own again"}
-// plant: {"file": "src/realm-dunes.js", "find": "wind: A.vec3(V, A.H.motes, 0.1)", "with": "wind: [V.wind[0] * 2, 0.1, V.wind[1] * 2]", "why": "the motes faster than the air at their height"}
 // plant: {"file": "src/world/490-birds-host.js", "find": "o[0] = a.x; o[1] = 0; o[2] = a.z;", "with": "o[0] = a.z; o[1] = 0; o[2] = a.x;", "why": "the birds' air across the sand's"}
 // plant: {"file": "src/world/215-air.js", "find": "AIR_Z0 = 0.003,", "with": "AIR_Z0 = 0.03,", "why": "the sand ten times rougher (the profile's shares off)"}
 // plant: {"file": "src/world/215-air.js", "find": "var AIR_GUST = [0.26, 22,", "with": "var AIR_GUST = [0.12, 22,", "why": "gusts too weak (the 3-s gust under 1.4 of the mean)"}
@@ -50,7 +49,8 @@
 // plant: {"file": "src/world/215-air.js", "find": "var a = airBase(x, z, y, V), k = airShare(", "with": "var a = airBase(x, z, y * 1.01, V), k = airShare(", "why": "windAt off the hand-computed wind (the profile at another height)"}
 // plant: {"file": "src/world/215-air.js", "find": "return clamp((1.0 + e) * (1.0 + e), ", "with": "return clamp((1.0 + e), ", "why": "the grains' hop linear in the gust, not as the friction speed squared"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, tau)", "with": "airGust(xz, normalize(uWind.xz), uAirU, uAir.z, uT)", "why": "the grains' gust on the frame's clock, not the air's"}
-// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, normalize(uWind.xz), uAirU, 1.0, uAir.x) / AIR_GUST_I);", "with": "gn(vec2(uT * 0.045, 3.7)) + 0.5);", "why": "the rain's gusts a pulse of the whole screen's again"}
+// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "dot(uWind.xz, uWind.xz) > 1e-6 ? normalize(uWind.xz) : vec2(1.0, 0.0);", "with": "normalize(uWind.xz);", "why": "a windless rain normalizing a zero vector (NaN)"}
+// plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "airGust(xz, wd, uAirU, uAir.z, uAir.x) / AIR_GUST_I);", "with": "gn(vec2(uT * 0.045, 3.7)) + 0.5);", "why": "the rain's gusts a pulse of the whole screen's again"}
 // plant: {"file": "src/world/glsl/vs-particle.glsl", "find": "k * uWind.xz * (uAir.x - tau)", "with": "k * uWind.xz * (uT - t)", "why": "the grains carried by the wind times the time (a change of sky jumps them)"}
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
 // plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
@@ -89,7 +89,7 @@ function visit(G, seed) {   // planVisit's order: the field (its stream 1), the 
   V.field = G.dunes.field(G.RNG(G.subseed(seed, 1)), V);
   V.light = G.dunes.light(G.RNG(G.subseed(seed, 2)), V);
   G.airKeySet(V.light);
-  V.parts = G.dunes.particles(V); V.ribbons = G.dunes.ribbons(V);
+  V.parts = []; V.ribbons = G.dunes.ribbons(V);   // (the grains and the motes are gone: the veils are the sand's one air set)
   G.SIM.V = V; G.J.seed = seed;
   return V;
 }
@@ -107,8 +107,6 @@ test('air: every wind reader blows the visit\'s way, at the profile\'s speed at 
     for (const sky of skies) {
       const readers = {   // name: [its velocity (x, z), its declared height, or null for a direction alone]
         dunes: [V.field.params[9].slice(0, 2), null],
-        grains: [[V.parts[0].wind[0], V.parts[0].wind[2]], G.AIR_H.grains],
-        motes: [[V.parts[1].wind[0], V.parts[1].wind[2]], G.AIR_H.motes],
         veils: [[V.ribbons.wind[0], V.ribbons.wind[2]], G.AIR_H.veils],
         birds: [(() => { const o = G.HOST.wind([9, 9, 9]); assert.equal(o[1], 0); return [o[0], o[2]]; })(), G.AIR_H.birds],
         water: [G.LDEF.windDir, null],
@@ -123,7 +121,7 @@ test('air: every wind reader blows the visit\'s way, at the profile\'s speed at 
         assert.ok(ok, `seed ${seed}, ${sky}: ${name} blows toward ${u.map((x) => x.toFixed(4))}, the air toward ${dh.map((x) => x.toFixed(4))}`);
         if (typeof h === 'number') {
           const s = G.airSpeed(h), w = G.windAt(0, 0, h, 0, V);
-          const k = name === 'grains' ? G.AIR_GRAIN_K : 1;
+          const k = 1;
           assert.ok(Math.abs(Math.hypot(v[0], v[1]) - s * k) < 1e-9, `${name}: ${Math.hypot(v[0], v[1])} m/s, the profile ${s} (x ${k}) at ${h} m`);
           assert.ok(near([w.x, w.z], [dh[0] * s, dh[1] * s], 1e-12), 'windAt is the direction (veered at its height) times the profile');
         }
@@ -210,8 +208,6 @@ test('air: the wind profile (the log law over sand under 100 m, veering aloft to
   assert.ok(share(0) === 0 && share(-3) === 0, 'no wind under the ground\'s own roughness');
   const V = visit(G, SEEDS[0]), d = V.wind, a = G.windAt(0, 0, 2000, 0, V), t = Math.atan2(d[0] * a.z - d[1] * a.x, d[0] * a.x + d[1] * a.z) * 180 / Math.PI;
   assert.ok(Math.abs(-t - veer(2000)) < 1e-9, `2000 m: the wind veered clockwise ${veer(2000).toFixed(2)} deg (${(-t).toFixed(2)})`);
-  const mo = V.parts[1].wind, gr = V.parts[0].wind;
-  assert.ok(Math.hypot(mo[0], mo[2]) > Math.hypot(gr[0], gr[2]), 'the motes faster than the grains under them');
   const o = [0, 0, 0]; G.HOST.wind(o, 300); assert.ok(Math.abs(Math.hypot(o[0], o[2]) - G.airSpeed(300)) < 1e-9, 'HOST.wind at a bird\'s own height');
 });
 
@@ -316,7 +312,8 @@ test('air: the grains hop with the gust (physics: air/grain-hop): (1 + e)^2 of t
 
 test('air: the rain\'s gusts are the air\'s one field (physics: air/rain-gust), never a cycle of the whole screen\'s', () => {
   const vp = GLSL('vs-particle.glsl'), rain = vp.split('void rain(int id) {')[1].split('\nvoid ')[0];
-  assert.ok(/float gust = 1\.0 \+ uPd\.z \* 0\.5 \* smoothstep\(0\.2, 1\.2, airGust\(xz, normalize\(uWind\.xz\), uAirU, 1\.0, uAir\.x\) \/ AIR_GUST_I\);/.test(rain), 'a drop\'s gust the field\'s at the drop, in its sigmas, on the surface\'s clock');
+  assert.ok(/vec2 wd = dot\(uWind\.xz, uWind\.xz\) > 1e-6 \? normalize\(uWind\.xz\) : vec2\(1\.0, 0\.0\);/.test(rain), 'a windless rain never normalizes a zero vector (NaN: every drop shown)');
+  assert.ok(/float gust = 1\.0 \+ uPd\.z \* 0\.5 \* smoothstep\(0\.2, 1\.2, airGust\(xz, wd, uAirU, uAir\.z, uAir\.x\) \/ AIR_GUST_I\);/.test(rain), 'a drop\'s gust the field\'s at the drop, in the day\'s sigmas times the sky\'s gustiness, on the surface\'s clock');
   assert.ok(rain.indexOf('vec2 xz = uCam.xz + rel;') < rain.indexOf('float gust ='), 'read where the drop is');
   assert.ok(!/gn\(vec2\(t \*|\buT\b/.test(rain.split('float gust =')[1].split(';')[0]) && !/\bt = uT\b/.test(rain), 'no private clock: the whole rain never pulses at once');
 });

@@ -2,7 +2,7 @@
 // tools/types/world.d.ts for what TypeScript's DOM types lack. Not a build step and not a dependency (the owner's
 // no-frameworks rule: terser alone to build): it runs a pinned TypeScript through npx, into npm's cache.
 //   node tools/tsc.mjs           print each error as section:line (the world) or file:line (src/realm-*.js), and the
-//                                counts; exit 1 if there is any
+//                                counts; exit 1 if there is any (tools/checks/48-tsc.sh: every gate)
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
