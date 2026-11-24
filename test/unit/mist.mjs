@@ -48,7 +48,7 @@ test('mist: the shaders: opaque within MIST_OPAQUE whatever the depth, the rim a
   assert.match(W, /return max\(h\.x, \(lv \+ dMul\(A_Hd\(p\), amp\)\)\.x\);/, 'nor the probe\'s');
   assert.doesNotMatch(strip(GLSL('world/glsl/fs-probe-split.glsl')), /mistTop|uMist/, 'nor the split\'s probe\'s');
   const SCN = fs.readFileSync(path.join(ROOT, 'src/world/350-shaders-scene.js'), 'utf8');
-  assert.match(SCN, /c = mistOver\(c, mistTop\(vMB\) - vW\.y, n, rd, fp\);/, 'over the land');
+  assert.match(SCN, /c = mistOver\(c, max\(mistTop\(vMB\), fogTopAt\(vW\.xz\)\) - vW\.y, n, rd, fp\);/, 'over the land (and a basin\'s fog pool: 234)');
   const LM = fs.readFileSync(path.join(ROOT, 'src/world/353-shaders-landmarks-probe.js'), 'utf8');
   assert.match(LM, /c = mistOver\(c, vMT - vW\.y, n, rd, fp\);/, 'over the stones and the landmarks');
   for (const f of ['vs-landmark', 'vs-lmsc', 'vs-landmark-inst', 'vs-scatter']) assert.match(GLSL('world/glsl/' + f + '.glsl'), /vMT = mistTopAt\(vW\.xz\);/, f + ' gives its vertices the pools\' top');
@@ -56,7 +56,7 @@ test('mist: the shaders: opaque within MIST_OPAQUE whatever the depth, the rim a
 
 test('mist: the flight over the pools by its own floor, which holds: the land never under the pools\' floor', async () => {
   const F = fs.readFileSync(path.join(ROOT, 'src/world/270-flight.js'), 'utf8');
-  assert.match(F, /var gh = groundAt\(V, CS\.x, CS\.z, true, true\) \+ Math\.max\(cl\[0\] \* 0\.6, \(\(V\.L && V\.L\.mist\) \|\| 0\) \+ 1\);/, 'the hard rule\'s floor: the land and the pools\' depth and 1 m');
+  assert.match(F, /var gh = Math\.max\(groundAt\(V, CS\.x, CS\.z, true, true\) \+ Math\.max\(cl\[0\] \* 0\.6, \(\(V\.L && V\.L\.mist\) \|\| 0\) \+ 1\), fogTopAt\(V, CS\.x, CS\.z\) \+ 1\);/, 'the hard rule\'s floor: the land and the pools\' depth and 1 m, and a fog pool\'s top and 1 m');
   // (the floor holds only if the pools' top stands at most their depth over the land: the main dunes never under the
   // ground they stand on. The JS port of the shipped duneS1, walked in four winds)
   const { mainAt, overSwell } = await import(new URL('../../tools/physics/dune-census.mjs', import.meta.url).href);
@@ -94,7 +94,7 @@ test('mist: a dive held over 10 m of pools never meets the hard rule; it eases o
   const fly = (mist, least) => vm.runInThisContext('(function (mist, least) {\n  \'use strict\';\n  var DEG = Math.PI / 180, CLIMB_LEAD = 2.2, SLIP_T = 90, SLIP_REACH = 1200;\n' +
     '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
     '  function groundAt(V, x, z) { var u = 0.6 * x + 0.8 * z; return 5 * Math.sin(u / 37) + 3 * Math.sin(u / 91 + 1) + 2 * Math.sin(x / 53); }\n' +
-    '  function nearObstacles() { return []; }\n  function climbOK() { return true; }\n  var CS = {};\n' + HT + '\n' + SPRINGK +
+    '  function nearObstacles() { return []; }\n  function climbOK() { return true; }\n  function fogTopAt() { return -Infinity; }\n  var CS = {};\n' + HT + '\n' + SPRINGK +
     '\n  var out = { push: 0, acc: 0, low: 1e9 };\n  for (var h = 0; h < 4; h++) {\n    var psi = h * Math.PI / 2 + 0.3, V = { speed: 12, clear: [7, 14, 45], L: { mist: mist }, def: { margin: 12 } }, cl = V.clear, dt = 1 / 60;\n' +
     '    CS = { x: 0, z: 0, psi: psi, c: 14, vy: 0, ay: 0, latT: 0, lat: 0, climbs: null };\n    CS.y = groundAt(V, 0, 0) + CS.c;\n' +
     '    for (var s = 0; s < 2000; s += V.speed * dt) {\n      CS.c += V.speed * Math.sin(-0.35) * dt * 0.9; CS.c = clamp(CS.c, least ? leastAt(V, cl) : cl[0], cl[2]);\n' +

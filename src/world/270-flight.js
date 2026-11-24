@@ -114,10 +114,10 @@
     // the hard rules: never in the ground, a landmark or a cloud's core
     // (world6 step B fix, defect 10) over the envelope (never under the ground), and rate-limited to the climb's own
     // travel in a step (PUSH_V): the hard rule, if it acts at all, is never a jump; every push is counted (a gate fails)
-    var gh = groundAt(V, CS.x, CS.z, true, true) + Math.max(cl[0] * 0.6, ((V.L && V.L.mist) || 0) + 1);   // (delight-weather 1: and over the mist pools, whose top stands at most their depth over the land: 229-mist-pools.js)   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
+    var gh = Math.max(groundAt(V, CS.x, CS.z, true, true) + Math.max(cl[0] * 0.6, ((V.L && V.L.mist) || 0) + 1), fogTopAt(V, CS.x, CS.z) + 1);   // (delight-weather 1: and over the mist pools, whose top stands at most their depth over the land: 229-mist-pools.js)   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
     if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; SIM.fixG++; }
     pushOut(V);
-    var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
+    var ceil = Math.max(groundAt(V, CS.x, CS.z, false) + cl[2], fogTopAt(V, CS.x, CS.z) + 1 + MIST_OVER) + CEIL_OVER;   // (over a fog pool: its least, 234)   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
     if (CS.y > ceil) { CS.y = Math.max(ceil, CS.y - PUSH_V * dt); if (CS.vy > 0) CS.vy = 0; if (CS.ay > 0) CS.ay = 0; SIM.fixC++; }   // (flight-controllers-smooth: eased down at the climb's own travel, as the ground's rule is, and counted)
     // a flyer's bank: atan(v x the way's turn rate / g), its lateral acceleration, at most BANK_MAX (a flyer at the
     // camera's 12 m/s would bank past 40 deg in a drag's turn), eased over BANK_T: it banks only while the way curves

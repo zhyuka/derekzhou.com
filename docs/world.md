@@ -800,6 +800,25 @@ for the numbers. test/unit/mist.mjs holds that the pools read AIR's level, the
 opacity's ramp and the camera's ground; test/unit/air.mjs holds the
 level's rate.
 
+## THE FOG POOLS
+
+src/world/234-fog-pools.js, the reader of AIR's fog-pool sites
+(216-events.js, ## THE EVENTS). A site is a hollow AIR has placed, about
+8 km apart, with its basin's radius (500-900 m) and its depth for the
+mist now (evPoolDepth: four times the flats' mist, at most 145 m; none
+with no mist). The nearest site within 4 km is read once: the realm's
+probe gives the land on a 24 x 24 grid over the basin and at 64 points on
+its circle. The floor is the lowest land within the radius; the rim is the
+lowest land on the circle, the pass the pool would spill through. The
+pool's top is the floor plus the depth, held 0.5 m under the rim, so it
+never spills and no edge shows at the radius: the shoreline is the
+ground's own. It is drawn by the mist pools' shading (fogTopAt beside
+mistTop, world-glsl), over the land and the stones, and it moves with the
+one mist, a moving shoreline, never a fade. The camera's ground never
+reads it; the flight keeps over its top as it does the mist pools'
+(280's height climbs onto it as onto a rise, by MIST_OVER; 270's hard rule
+1 m over it; the ceiling over its least). test/unit/fog.mjs.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate

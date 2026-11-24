@@ -43,7 +43,7 @@ const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
   '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
-  '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function airHeading0() { return 0.7; }\n' +
+  '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function fogTopAt() { return -Infinity; }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function airHeading0() { return 0.7; }\n' +
   '  function planVisit() {}\n  function kwFollow() {}\n  function kwUpload() {}\n  function groundCache() {}\n  function climateLight() {}\n  function events() {}\n  function directorStep() {}\n  function beamWake() {}\n  function envSolids() {}\n  function pitchLook() {}\n  function devTrace() {}\n' +
   '  var V = { k: 0, st: 0, speed: 12, clear: [7, 14, 45], def: { clear: [7, 14, 45], cruise: [14, 32], margin: 12, marginB: 26 }, margin: 12, evRng: { r: function (a) { return a; } }, cellList: OBST };\n' +
   '  function worldAt() { return { V: V, u: 0 }; }\n' +

@@ -18,7 +18,7 @@ const SPRINGK = WORLD.includes('  var VY_J = ') ? cut(WORLD, '  var VY_J = ', '\
 const CRUISE = cut(WORLD, '  var CW_S = [', '\n  function flightParams') + '\n' + cut(WORLD, '  function flightParams(V, cw) {', '\n  }\n', true);
 const MAKE = (G) => vm.runInThisContext('(function (G) {\n  \'use strict\';\n  var DEG = Math.PI / 180, CLIMB_LEAD = 2.2, SLIP_T = 90, SLIP_REACH = 1200;\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
-  '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function nearObstacles() { return []; }\n  function climbOK() { return true; }\n' +
+  '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function fogTopAt() { return -Infinity; }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function nearObstacles() { return []; }\n  function climbOK() { return true; }\n' +
   '  var CS = {};\n' + HT + '\n' + SPRINGK + CRUISE +
   '\n  return function (psi, len) {\n    var V = { speed: 12, def: { clear: [7, 14, 45], cruise: [14, 32], margin: 12, marginB: 26 } }, dt = 1 / 60;\n' +
   '    CS = { x: 0, z: 0, psi: psi, c: 14, cw: NaN, vy: 0, ay: 0, latT: 0, lat: 0, climbs: null, y: 0 };\n    cruiseStep(CS, 0); flightParams(V, CS.cw); CS.c = V.clear[1]; CS.y = groundAt(V, 0, 0) + CS.c;\n' +
