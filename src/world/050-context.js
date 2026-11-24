@@ -18,8 +18,8 @@
     HALF = FLOAT_RT ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
     var dbg = gl.getExtension('WEBGL_debug_renderer_info');
     EXT.renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) || '');
-    /* (speed E10) WebKit (every browser on iOS and iPadOS; Safari on the Mac) has KHR_parallel_shader_compile, but its
-       links and first draws are synchronous: there the one-at-a-time path (the white build's), not all at once */
+    /* (speed E10) WebKit (every browser on iOS and iPadOS; Safari on the Mac) has KHR_parallel_shader_compile, but a
+       query waits for what is queued before it and its first draws build their pipelines at once: its own path, below */
     var wkUA = navigator.userAgent || '', wkIs = /iPhone|iPad|iPod/.test(wkUA) || (/Macintosh/.test(wkUA) && navigator.maxTouchPoints > 1) || (/AppleWebKit/.test(wkUA) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(wkUA));
     EXT.parAll = EXT.par && !wkIs ? EXT.par : null;
     /* (lane D, Android item 1) no KHR_parallel_shader_compile and not WebKit (Android's ANGLE-Vulkan, older drivers):
@@ -27,8 +27,14 @@
        statuses read one a frame from the next frame on (each read waits only for what is left of its own link).
        ANGLE-Vulkan, phone viewport, CPU 4x, 11 runs: the world shown 1294 -> 1186 ms */
     EXT.issueAll = !EXT.par && !wkIs;
+    /* (WebKit boot) on WebKit the extension puts the compiles and links on a pool of threads, one a core, but a link is
+       touched (useProgram, a uniform's location, its status) only once its completion says done, and every first draw
+       builds its Metal pipeline at once on the GPU process's one thread: so there every program is issued at once and
+       polled (progStepWK), and the warm table's first draws go one a frame, after the frame's polls (warmStepWK) */
+    EXT.parWK = EXT.par && wkIs ? EXT.par : null;
     // without float targets the linear depth and the ground's height are packed into the bytes of an RGBA8 texel
     DEFS = (FLOAT_RT ? '' : '#define LIND_PACKED\n') + (FLOAT32_RT ? '' : '#define GC_PACKED\n');
+    if (wkIs) DEFS += '#define PLAIN_LOOPS\n';   // (WebKit boot: the loops' bounds without uZ, UZ; the start file never serves WebKit, so its tables are as before)
     EXT.hp = !!(EXT.cbf && EXT.parAll && HP_DEV(EXT.renderer)); if (EXT.hp) DEFS += '#define HPSPLIT\n';   // (fast500 lane G: the split height's devices)
     /* (round E1 Fix 3, G0) the scene drawn with 4 samples a pixel (MSAA) where the scene's colour format and its depth
        both allow it: the scene's hard edges (a floating rock, a standing stone, a dune's crest, a far mesa's outline)
