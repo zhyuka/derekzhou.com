@@ -63,6 +63,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
+                             test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
                              test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's

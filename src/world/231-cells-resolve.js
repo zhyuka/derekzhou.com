@@ -54,10 +54,11 @@
         if (C.air && lowB + Math.max(dB, 0) < bandTopMost(lnB) + LIFT_M) (C.lift || (C.lift = [])).push({ x: cxB, z: czB, low: lowB + Math.max(dB, 0), land: lnB });
         // its base flat at its lowest lobe's centre: seen from under it a cloud floats on its condensation level,
         // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
-        var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = ycB;
+        var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;   // (a held body, a lens, none: its plates are smooth lenses under and over, and a base at its lowest lobes' centres cut the lower half of a 45-75 m plate away; the billows reaching under it hid that until #254 put the base after them)
         var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48, V); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
         // (its centre in the air frame and the low layer's wind: cloudPos carries it, physics: clouds/drift; a world cell's
         // clouds, a canyon's walls, are the cloud sea's: held)
+        if (PF.bodies[bi].flow && !C.air) vb.out.flow = PF.bodies[bi].flow;   // (a held body's billows flow through it at the wind at its height: 410)
         vb.out.c0 = Float64Array.from(vb.out.c); if (C.air) { vb.out.c0[0] -= C.dL[0]; vb.out.c0[2] -= C.dL[1]; vb.out.w = airW(V); } else vb.out.w = null;
         var cores = vb.out.cores;
         for (j = 0; j < cores.length; j += 4) C.obst.push({ c: 0, x: cores[j], y: cores[j + 1], z: cores[j + 2], r: cores[j + 3], cloud: true });

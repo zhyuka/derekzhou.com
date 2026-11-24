@@ -36,6 +36,28 @@ between: sharp in the distance, never a ring), bloom, and the composite
 nothing that fizzes). The light shafts' pass is still in the code, but no
 sky draws it: the amount is 0 in all six skies (see THE TIME OF DAY).
 
+
+Terrain-held clouds (delight-weather 3): on a windy visit (the wind over
+a far ridge's crest, 100 m up, at least 7.7 m/s and within 30 deg of
+square to it) a lenticular stands at the ridge's lee wave's first crest, half a
+wavelength out on the crest's normal, turned downwind (pi U / N: U the wind across the crest at the
+lens's height, N 0.01/s, a stable troposphere's buoyancy frequency; 1.9-3.0 km on windy visits, at most
+3.2 km at the visits' top U10; https://www.eoas.ubc.ca/books/Practical_Meteorology/)
+and 1100-1700 m up: one to three smooth lens plates
+(120's lens), laid out by the 1500 m cell the lens stands in (the cell scans
+the 3 x 3 ridge cells about it), from the ridge's own hashes (dunes-glsl's
+ridges(): the land raises the same ridges), never where it would stand over
+the cloud sea. It fades with its cell, not by its own distance, so it never
+pops in when the cell is made or out when it is freed. Its envelope is held (a world
+cell's); only its billows flow through it, at the wind at its height
+(410 moves their offset in doubles; the shader reads no clock).
+test/unit/lenticular.mjs: the gate, the ridges, the place on the crest's
+normal, the held envelope, the flow within 5% of windAt, the plates' shape,
+no pop at the cell's birth or freeing, a census of every ridge's lens (each
+laid out once, by its own cell), and a census of a flight (windy visits:
+about one lens in reach in half the minutes of a flight, at most three;
+calm: none).
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
