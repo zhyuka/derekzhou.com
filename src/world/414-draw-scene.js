@@ -134,7 +134,7 @@
     if (V.ribbons && V.ribbons.count && DP.rb && !SW.noanim && skR > 0.002 && (lateReady(DP.rb) || lateMissIf(DP.rb, true))) {
       var rb = V.ribbons; P = DP.rb; gl.useProgram(P.p); setFrameUniforms(P, V);
       skyPart(rb, PCOL, true); PCOL[3] *= skR;
-      gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); if (P.u.uPm) gl.uniform4f(P.u.uPm, wmod(CAM.pos[0], rb.box), wmod(CAM.pos[2], rb.box), Math.floor(CAM.pos[0] / rb.box), Math.floor(CAM.pos[2] / rb.box)); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL); if (P.u.uAirU) gl.uniform1f(P.u.uAirU, u10Of(V));   // (the gust field's reference speed, U10)
+      gl.uniform4f(P.u.uRa, rb.box, rb.length, rb.width, rb.lift); if (P.u.uPm) gl.uniform4f(P.u.uPm, wmod(CAM.pos[0], rb.box), wmod(CAM.pos[2], rb.box), Math.floor(CAM.pos[0] / rb.box), Math.floor(CAM.pos[2] / rb.box)); gl.uniform3fv(P.u.uWind, rb.wind); gl.uniform4fv(P.u.uPc, PCOL);   // (the gust field's reference speed, U10)
       gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n, rb.count);
     }
     gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);

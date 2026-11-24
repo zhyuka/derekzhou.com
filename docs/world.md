@@ -616,7 +616,15 @@ physics: clouds/drift). It holds:
   place (their private 5.6-8.4 s cycles are gone). The birds read
   HOST.gust (the excess along the wind, m/s), HOST.gustPhase (the
   field's own clock there, the same at every height) and HOST.gustSigma.
-  The grains' speed, the perched lean and the score are not on it yet.
+  The grains hop with it (physics: air/grain-hop; airHop, AIR_HOP): a
+  sand grain's hop is (1 + e)^2 of its calm one, e the gust's excess over
+  the wind at the grain (in the day's wind, the gust's intensity x the
+  gustiness x the field's unit noise), held to 0.3-2.5: the hop scales as
+  the friction speed squared. It reads the field on the grain's own clock
+  (tau, so its streak's tail is the same grain a moment back); its drift
+  stays the mean wind's closed form, so a gust never moves a grain and
+  nothing jumps. The score hears the field through the feed (the air
+  heard, below); the perched lean is not on it yet.
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
