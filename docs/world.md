@@ -682,16 +682,22 @@ physics: clouds/drift). It holds:
   quarter). The chord is the cut the key's ray makes through the lobe, its
   edge softened over the key's own disc (0.53 deg: the penumbra, the ray's
   length times 0.0046). The lobes are multiplied together (the exp of their
-  summed depth) into a 1024 x 1024 map 40 km across, about the camera (past
-  the land the eye sees, so its easing-off lies under the far haze). Under
-  a low key behind the camera a flat cloud base's shadow ends in a near
-  straight line across the land: the key runs almost along the view, so
-  the shadow shows the base's own outline (measured 2026-11-24). The
-  sand, the stones and the rock read it where their own point, carried
-  along the same key, meets that plane (so any height of land lines up
-  with its cloud), and take it off the key's direct light alone: the land's
-  shade and the sky's light are untouched, so a shadow is never darker than
-  the land's own shade side. The map eases off over its last quarter (a
+  summed depth, stored over 32 so 8 bits hold a cloud's) into a 1024 x
+  1024 map 40 km across, about the camera (past the land the eye sees, so
+  its easing-off lies under the far haze). The sand, the stones and the
+  rock read it where their own point, carried along the same key, meets
+  that plane (so any height of land lines up with its cloud). They lose
+  only the key's direct share of their light, n.l / (n.l + q), with q the
+  sky's diffuse light over the beam's from the Bird & Hulstrom clear sky
+  (SERI/TR-642-761: the beam is 47 to 67 % of the light on level sand
+  under the 5 to 14 deg key). They get part of it back, scattered through
+  the cloud: the two-stream diffuse transmission 1 / (1 + 3/4 (1 - g)
+  tau), g 0.85 (Bohren 1987, https://doi.org/10.1119/1.15109). So at a low
+  key a shadow is weak (level sand keeps 0.55 to 0.7 of its light under a
+  mean cloud, tau 20), and a face turned from the key loses nothing. The
+  soft edge is the key's disc: the penumbra's width across the key's way,
+  stretched by 1 / sin(elevation) along it, so a low key's far and near
+  edges are long and soft. The map eases off over its last quarter (a
   place's distance, never the clock's). Nothing under a key at the horizon.
   The composite takes no input from it (no-darkening, W7).
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within

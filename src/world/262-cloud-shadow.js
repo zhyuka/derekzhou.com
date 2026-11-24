@@ -6,9 +6,15 @@
      ellipse it throws on one level plane (CSH_Y, the ground under the camera), its light's transmittance there
      exp(-k chord) (the chord the key's ray through the lobe cuts, softened over the key's own angular size: the
      penumbra), the lobes multiplied together (exp of the summed depth). The land reads it where its own point, carried
-     along the same key, meets that plane, and takes it off the key's direct light alone: a shadow is never darker than
-     the land's own shade, the sky's light is untouched. CSH_E m about the camera (CSH_N texels); past 3/4 of it the
-     shadow eases off with the distance (a place's, never the clock's) */
+     along the same key, meets that plane (dunes-glsl's cloudShadow; the map holds the depth over 32, exp(-tau / 32), so
+     8 bits hold a cloud's). The land loses only the key's direct share of its light, the sky's diffuse light untouched,
+     and gets part of it back, scattered through the cloud. The beam's share on a face of n.l is n.l / (n.l + q), q the
+     sky's diffuse over the beam's (horizontal over normal), fitted to the Bird & Hulstrom clear sky (SERI/TR-642-761,
+     https://www.nrel.gov/docs/legosti/old/761.pdf: q 0.098 at 5 deg, 0.117 at 10, 0.121 at 14, 0.139 at 90; the fit
+     0.13 s / (s + 0.02) within 0.01 over the key's 5 to 14 deg): on level sand under that key the beam is 47 to 67 % of
+     the light. Through the cloud, the two-stream diffuse transmission 1 / (1 + 3/4 (1 - g) tau), g 0.85 the droplets'
+     asymmetry (Bohren 1987, Am. J. Phys. 55, 524, https://doi.org/10.1119/1.15109). CSH_E m about the camera (CSH_N
+     texels); past 3/4 of it the shadow eases off with the distance (a place's, never the clock's) */
   var CSH_N = 1024, CSH_E = 20000, CSH_K = 0.05, CSH_SUN = 0.0046, CSH_MAX = 32768;   // (texels; the half extent, m: past the land the eye sees, so the shadow's easing-off falls under the far haze, never across the near land; the lobes' extinction, 1/m: the march's VSIGMA 0.19 over the lobes' eroded fill, about a quarter; the key's angular radius, rad: the sun's 0.53 deg disc, the moon's alike; the most lobes)
   var CSH = { T: null, vao: null, buf: null, a: new Float32Array(CSH_MAX * 4), n: 0, ok: false };
   var CSHU = new Float32Array(4), CSHO = new Float64Array(3);   // (uCShP: the map's origin x, z (texel-snapped, the JS's doubles), its half extent, the plane's height)
