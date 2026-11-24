@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": " gL += aG; c += aG; }", "with": " c += aG; }", "why": "the airglow counted as nightLim's sky: in the 15-18 deg window it holds back a star at the edge of showing"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float AIRGLOW_Y = 0.004;", "with": "const float AIRGLOW_Y = 0.04;", "why": "the airglow ten times brighter: a green band that lifts the night sky"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "JUP_TOP_Y = 0.104;", "with": "JUP_TOP_Y = 0.2;", "why": "the outer planet past the light ceiling, brighter than Venus"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0];", "with": "JUPB.eps = RJ.r(JUP_EL[0], JUP_EL[1]);", "why": "the outer planet placed with no clear path: on the words"}
@@ -970,8 +971,8 @@ test('night: the Milky Way\'s structure, the rift, the bulge\'s lane, the fall t
 test('night: the airglow, a faint steady green band low over the horizon, only once the sun is 15-18 deg down', () => {
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const A = +g.match(/const float AIRGLOW_Y = ([\d.]+);/)[1];
-  const L = g.match(/^  if \(uSunD\.z > 0\.0 && eS > 0\.0\) c \+= vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* \(AIRGLOW_Y \* \(1\.0 - uStarM\.w\) \* smoothstep\(0\.0, 6\.0, eS\) \* exp\(-eS \/ 14\.0\)\) \* hzT;$/m);
-  assert.ok(L, 'the airglow\'s line: by the stars\' weight (none in a twilight), rising over 6 deg, falling over 14, behind the haze (hzT)');
+  const L = g.match(/^  if \(uSunD\.z > 0\.0 && eS > 0\.0\) \{ vec3 aG = vec3\(([\d.]+), ([\d.]+), ([\d.]+)\) \* \(AIRGLOW_Y \* \(1\.0 - uStarM\.w\) \* smoothstep\(0\.0, 6\.0, eS\) \* exp\(-eS \/ 14\.0\)\) \* hzT; gL \+= aG; c \+= aG; \}/m);
+  assert.ok(L, 'the airglow\'s line: by the stars\' weight (none in a twilight), rising over 6 deg, falling over 14, behind the haze (hzT), its light held apart from nightLim\'s sky (gL)');
   const ph2 = g.slice(g.lastIndexOf('#ifdef SKY_PH2', L.index), L.index);
   assert.ok(!ph2.includes('#endif'), 'drawn in the night sky\'s program (SKY_PH2), with the galaxy and the aurora');
   const C = [+L[1], +L[2], +L[3]], Y = 0.2126 * C[0] + 0.7152 * C[1] + 0.0722 * C[2];

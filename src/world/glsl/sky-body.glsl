@@ -365,7 +365,7 @@ void main() {
     float n = textureLod(uN3, vec3(q.x, q.y * 4.0, 0.21) * 0.25, 0.0).a * 0.55 + textureLod(uN3, vec3(q.x * 3.0, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;
     c += vec3(0.55, 0.8, 1.0) * smoothstep(0.52, 0.78, n) * smoothstep(1.0, 4.0, eS) * (1.0 - smoothstep(9.0, 17.0, eS)) * side * uSunB.x * 0.05 * smoothstep(uSunK.w - 0.8, uSunK.w + 1.2, eS);
   }
-  vec3 gL = vec3(0.0);   // (night) the galaxy's own light here, kept out of nightLim's sky
+  vec3 gL = vec3(0.0);   // (night) the galaxy's and the airglow's own light here, kept out of nightLim's sky
 #ifdef SKY_PH2
   /* (aurora-haze) both behind the haze, as the moon is: what the haze over them lets through (1 - hazeSky), a little
      redder where it is thick (low), never added over it at full strength */
@@ -376,7 +376,7 @@ void main() {
      the horizon, brightest about 6-10 deg up (the long path through the glowing layer) and falling away overhead; only
      once the sun is past 15-18 deg down (the stars' own weight, uStarM.w), behind the haze; at most Y AIRGLOW_Y, steady
      (no structure, no clock) */
-  if (uSunD.z > 0.0 && eS > 0.0) c += vec3(0.795, 1.0835, 0.775) * (AIRGLOW_Y * (1.0 - uStarM.w) * smoothstep(0.0, 6.0, eS) * exp(-eS / 14.0)) * hzT;
+  if (uSunD.z > 0.0 && eS > 0.0) { vec3 aG = vec3(0.795, 1.0835, 0.775) * (AIRGLOW_Y * (1.0 - uStarM.w) * smoothstep(0.0, 6.0, eS) * exp(-eS / 14.0)) * hzT; gL += aG; c += aG; }   // (held apart for nightLim, as the galaxy's light is: the hub's review of #384)
 #endif
   if (uMoon.w > 0.0) {   // the moon: a neutral to faintly warm disc at the light ceiling (the hub's round-3 look: a grey-blue coin read dull), its limb crisp, a glare that never lightens the sky past its own light, the corona's rings
     /* (fast500 no-fades, the sun and moon) drawn whole wherever it stands on its route (it rises and sets by moving: below
