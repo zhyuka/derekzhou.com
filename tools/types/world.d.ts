@@ -41,7 +41,10 @@ interface EventsApi {
 }
 // WORLD.sky() (512): the score's read-only copy of the sky (docs/sound.md)
 interface SkyFeed { t: number; seq: { id: string; at: number; hold: number; move: number; far: boolean }[]; wc: number; still: boolean; seed: number }
-interface Window { WORLD: WorldApi }
+interface Window { WORLD: WorldApi; SCORE: ScoreApi }
+// window.SCORE (score.js): what the sound icon's switch (sound.js) plays; navigator.audioSession: WebKit's, not in the DOM types
+interface ScoreApi { play(ctx: AudioContext, out: AudioNode, buffer: AudioBuffer, sliced?: boolean): any }
+interface Navigator { audioSession?: { type: string } }
 // The world's shared objects (their members are set across sections, so tsc cannot infer them from one literal):
 // a render target (080's target(), 383's sceneTwin) and a multisampled one (383's targetMS); the window's targets,
 // TG (383's allocTargets; held: 450's free of them while the world is held); the context's extensions, EXT (050).
