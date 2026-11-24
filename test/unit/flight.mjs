@@ -12,7 +12,7 @@ import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
 const CONSTS = WORLD.includes('  var HEAD_T = ') ? cut(WORLD, '  var HEAD_T = ', '\n', true) : '';   // (main had its numbers inline)
 const FOLLOW = cut(WORLD, '    var want = CS.yawV + CS.phi, d = angDiff(want, CS.psi)', '    // (world6 step B) one framing');
-const BANK = cut(WORLD, '    var rl = clamp(', '    events(V, t, u);');
+const BANK = cut(WORLD, '    var rl = clamp(', '    directorStep(t);');
 const DEG = Math.PI / 180, STEPS = 300;
 function ease(a, b, x) { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); }
 function testDrag(t) {

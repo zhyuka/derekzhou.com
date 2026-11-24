@@ -166,8 +166,10 @@ head, no pixel past OKLab L 0.50.
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
-sink with it and weaken with its depth; the Earth's shadow climbs and
-dissolves, the noctilucent wisps go dark from below, and the night's own
+sink with it and weaken with its depth; the Earth's shadow (blue-grey at
+the sky's own lightness, drawn with the Belt only in the afterglow and first
+light, never the blue hour: physics: twilight/shadow) climbs and dissolves;
+the stars hold still in reduced motion and in the still (no twinkle there); the noctilucent wisps go dark from below, and the night's own
 glow comes in with the night's colours; out of a night into first light
 or the blue hour it runs backwards. No sky draws light rays now (the owner
 chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
@@ -765,6 +767,44 @@ rate together, SKY_RATE, 100x. Today it does not: the sun sinks about
 70-90x real through a change into a night, the moon crosses at 70-120x
 and the stars and galaxy stand still; test/unit/air.mjs's clock test is
 marked todo until the sky's lane brings them to SKY_RATE.
+
+## THE MIST POOLS
+
+delight-weather 1 (src/world/229-mist-pools.js). Mist lies in the dunes'
+troughs and about the mesas' feet. The pool's top is the ground the
+dunes stand on (the swell, sunk with the basins and toward the cloud
+sea) plus a depth, times the sand weight. The depth is the weather's
+one model, AIR's airWx(t).mist (## THE WEATHER BY WIND): 10 m at first
+light, so the crests stand out as islands; 3.5 m at night; 1 m in the
+blue hour; none in the afterglow (AIR_MIST), times the visit's
+moisture, and through a change moved toward the next sky's at
+AIR_MIST_RATE. The pools keep no table or rate of their own. The depth
+is a pure function of the sky's time, so the rim is a moving
+shoreline, never a fade (the hub's ruling 1).
+
+The top is opaque within 1.5 m of depth, the same at every depth, so
+nothing thickens in place (mistOver, world-glsl). The rim's ramp is
+widened to two pixels' worth of the surface's depth, so far shorelines
+never crawl. It is lit by the sky's own cloud light, as the cloud sea's
+flat tops are, and drawn over the land (FS_TERRAIN, from the floor its
+vertices carry, vMB) and over the stones and the landmarks
+(FS_LANDMARK, the top worked per vertex, vMT). The split path carries
+the basins' change to the floor in P7. The camera's ground never reads
+the pools (HdCam, HdProbe, the split's probe): it is the same under
+every sky (the recorded ground, the flight's grid, the birds'). The
+flight keeps over the pools: its least clearance rises with them
+(leastAt, 280: the depth, 1 m and MIST_OVER 5 m), so a held dive eases
+onto it by the height's own spring, and the hard rule's floor, the land
+and the pools' depth and 1 m (270-flight.js), stays a net that never
+acts in flight. Both hold since the land never lies under the pools'
+floor (the basins scale and sink the floor as they do the land, the
+plateaux and the ridges only raise it). At depth 0 there is no pool at all.
+
+Measured by tools/physics/mist-sim.mjs (the page's own probe, the 16
+openings' land within 1 km of the landing, at first light): see its PR
+for the numbers. test/unit/mist.mjs holds that the pools read AIR's level, the
+opacity's ramp and the camera's ground; test/unit/air.mjs holds the
+level's rate.
 
 ## THE LARGE WORLD
 

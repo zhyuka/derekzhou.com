@@ -18,7 +18,7 @@ float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
      faces' d(H / fl)). The
      fragment rebuilds the slope at its own phase (s1Slope) and puts it in place of the vertices' (FS_TERRAIN) */
   var S1_OUT = `
-centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec4 vS1d;
+centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec4 vS1d; centroid out vec2 vMB;
 void s1Out(vec4 s, float fl, float sw, vec4 dH) {
   vS1 = vec4(s.xyz, s.w * sw); vS1d = dH * sw;
   vS1g = vec3(fl, s1Slope(fract(s.x), s.yz, vS1.w, fl, s1Rb(vS1.w, length(s.yz), fl), max(0.15 * vS1.w, 0.05), vS1d));
@@ -36,7 +36,7 @@ void main() {
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
-  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D);' : ''}
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D); vMB = gMB;' : ''}
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
@@ -63,12 +63,12 @@ void main() {
   var HP_MAIN = {
     kit: 'void main() { gridW(); vec3 wD, wC, lv, sk; kitW4(gw, wD, wC, lv, sk); o0 = vec4(wD, lv.x); o1 = vec4(sk, wC.x); }',
     dunes: 'void main() { gridW(); gKD = texelFetch(uHP0, gq, 0).xyz; gSK = texelFetch(uHP1, gq, 0).xyz; o0 = vec4(dunes(gw), gS1.x); o1 = vec4(gS1.yzw, gS1F); o2 = gS1D; }',   // (physics: sand/S2: the phase and the rest to P2.w, P5 and P6)
-    sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), gS1W); o1 = vec4(0.0); }',
+    sites: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz), gS1W); o1 = vec4(gMS, 0.0, 0.0); }',   // (delight-weather 1: the basins' change to the mist pools' floor, to P7)
     ridges: 'void main() { gridW(); o0 = vec4(ridges(gw), A_Hd(gw).x); o1 = vec4(0.0); }',
     /* the probe's own two: the one-program probe keeps only the height live (h.x; its slopes are dead), so FXC fuses
        its arithmetic as it does when only .x is written; the land's passes (every channel live, as the land VS) differ
        from it by an ulp at 0.4% of points. Written .x only, the probe's passes read back bit-identical to it */
-    sitesX: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz).x, 0.0, 0.0, 0.0); o1 = vec4(0.0); }',
+    sitesX: 'void main() { gridW(); o0 = vec4(D_HdSites(gw, texelFetch(uHP2, gq, 0).xyz).x, 0.0, 0.0, 0.0); o1 = vec4(0.0); }',   // (the probe reads no pools: P7 unwritten, as #285's)
     ridgesX: 'void main() { gridW(); o0 = vec4(ridges(gw).x, 0.0, 0.0, A_Hd(gw).x); o1 = vec4(0.0); }'
   };
   /* HP_LAND: the land VS read the passes too. Off: its slopes (the normals) cannot come out bit-identical through any
@@ -92,7 +92,7 @@ void main() {
 layout(location = 0) in vec2 aG;
 uniform vec4 uLev;   // ring origin x, z in whole cells of this ring (integers); cell size; half the cells across
 uniform int uLvl;    // the level: its rows in the passes' texels
-uniform highp sampler2D uHP0, uHP1, uHP2, uHP3, uHP4, uHP5, uHP6;   // kit (wD, lv), kit (sk, wC), the dunes' h (+ their phase), the sites' h (+ their share), the ridges (+ A_Hd), the dunes' phase's gradient, height and slip face, their height's change
+uniform highp sampler2D uHP0, uHP1, uHP2, uHP3, uHP4, uHP5, uHP6, uHP7;   // kit (wD, lv), kit (sk, wC), the dunes' h (+ their phase), the sites' h (+ their share), the ridges (+ A_Hd), the dunes' phase's gradient, height and slip face, their height's change, the basins' change to the mist pools' floor
 centroid out vec3 vW; centroid out vec3 vN; centroid out float vX;${S1_OUT}
 void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
@@ -105,6 +105,7 @@ void main() {
   vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
   vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0));
+  vec4 p7 = texelFetch(uHP7, q, 0); vMB = vec2(swell(w) * p7.x + p7.y - k1.x, k0.x);   // (delight-weather 1: the mist pools' floor and reach, as Hd sets gMB)
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
@@ -113,7 +114,7 @@ void main() {
      across the cell, they smeared the brink over it): the rounding max(2 m, 1.5 px) at the brink and the toe, and the
      whole put in only as far as the dunes are resolved (B, by the cycles of phase a pixel spans: the spec's band-limit) */
   var S1_IN = `
-centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d;`;
+centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in vec2 vMB;`;
   var S1_FS = `
   if (vS1.w > 0.01) {
     vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
@@ -127,6 +128,10 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d;`;
       n = normalize(vN - vec3(dg.x, 0.0, dg.y));
     }
   }`;
+  /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
+     vertices carry (vMB) */
+  var MIST_FS = `
+  c = mistOver(c, mistTop(vMB) - vW.y, n, rd, fp);`;
   function FS_TERRAIN(H, S) {
     return ZCODE + `
 centroid in vec3 vW; centroid in vec3 vN; centroid in float vX; out vec4 oC;${H === 'Hd' ? S1_IN : ''}
@@ -138,7 +143,7 @@ void main() {
   float t = length(v); vec3 rd = v / t;
   float fp = t * 2.0 * uProj.y / uRes.y;
   vec3 n = normalize(vN);${H === 'Hd' ? S1_FS : ''}
-  vec3 c = ${S}(vW, n, rd, t, fp);
+  vec3 c = ${S}(vW, n, rd, t, fp);${H === 'Hd' ? MIST_FS : ''}
   if (uDbg == 2) { oC = vec4(vec3(clamp(dot(n, uSun), 0.0, 1.0)), 1.0); return; }
   if (uDbg == 3) { oC = vec4(n * 0.5 + 0.5, 1.0); return; }
   oC = vec4(uDbg == 1 ? c : atmos(c, rd, t), sceneA());   // (alpha: the depth's code, or water's reflected share under 0.5: E1.1)

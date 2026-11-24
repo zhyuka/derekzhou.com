@@ -40,3 +40,34 @@ test('smoke: a challenged / is asked again, then a warning, never a failure; its
   const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/post-deploy.yml'), 'utf8').replace(/\r\n/g, '\n');
   assert.match(yml, /- name: Open an issue\n\s+if: failure\(\)/, 'the issue opens on a failure only');
 });
+
+test('smoke: the stored Brotli is what is served, byte for byte, never re-encoded by the zone', async () => {
+  const os = await import('node:os'), zlib = await import('node:zlib'), { spawn } = await import('node:child_process');
+  const { serve } = await import(new URL('../../.github/ci/serve.mjs', import.meta.url));
+  const br = (s, q) => zlib.brotliCompressSync(Buffer.from(s), { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: q } });
+  const JS = 'var a = 1;\n'.repeat(400), SHA = 'a'.repeat(40);
+  const site = (dir, bytes) => {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, '_headers'), '/w.0123abcd.js\n  Cache-Control: public, max-age=31536000, immutable\n  Content-Encoding: br\n');
+    fs.writeFileSync(path.join(dir, 'build.txt'), SHA + '\n');
+    fs.writeFileSync(path.join(dir, 'index.html'), '<!doctype html><title>t</title><script src="/w.0123abcd.js"></script>');
+    fs.writeFileSync(path.join(dir, '404.html'), '<!doctype html><title>404</title><h1>404</h1>');
+    fs.writeFileSync(path.join(dir, 'w.0123abcd.js'), bytes);
+  };
+  const smoke = (url, dir) => new Promise((res) => {
+    const c = spawn(process.execPath, [path.join(ROOT, '.github/ci/smoke.mjs'), '--url', url, '--site', dir, '--sha', SHA, '--timeout', '1', '--private', '/x'], { env: { ...process.env, GITHUB_ACTIONS: '', GITHUB_STEP_SUMMARY: '' } });
+    let out = ''; c.stdout.on('data', (d) => (out += d)); c.on('close', () => res(out));
+  });
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'smoke-br-')), stored = path.join(tmp, 'stored'), live = path.join(tmp, 'live');
+  site(stored, br(JS, 11));
+  try {
+    site(live, br(JS, 11));   // served as stored
+    let s = await serve(live); let out = await smoke(s.url, stored); await s.close();
+    assert.match(out, /^ok {3}\/w\.0123abcd\.js: the stored Brotli served as stored \(200, br, \d+ B\)$/m, out);
+    site(live, br(JS, 1));   // the zone's re-encoding: the same text, other bytes
+    s = await serve(live); out = await smoke(s.url, stored); await s.close();
+    assert.match(out, /^FAIL \/w\.0123abcd\.js: the stored Brotli served as stored \(200, br, \d+ B against \d+ B stored\)$/m, out);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  const src = fs.readFileSync(path.join(ROOT, '.github/ci/smoke.mjs'), 'utf8');
+  assert.match(src, /'accept-encoding': ENC/, 'every request offers br, as a browser does');
+});

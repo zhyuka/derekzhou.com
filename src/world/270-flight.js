@@ -36,7 +36,6 @@
     if (DEVMODE && POSE && (CS.x || CS.z)) groundCache(V, CS.x, CS.z, true);   // (world6 step B fix, dev: a pose's own ground before its first height: it read the landing's, and the hard rule lifted the camera 46 times in the film's first 3 s)
     CS.y = (V.g0max !== undefined && !CS.x && !CS.z ? V.g0max : groundAt(V, CS.x, CS.z, true)) + CS.c;
     CS.yawV = CS.psi - CS.phi;
-    V.evNext = 6 + V.evRng.r(0, 6); V.flocksEv = [];
     if (BIRDS) BIRDS.visit(V.k);
     climateLight(V);
     copyState(CS, CSP);   // (the arrival is the previous step too, its heading and tilt included: the first frame, drawn between the two, was turned 4-5 deg toward the fresh state's heading and snapped on the next)
@@ -72,7 +71,7 @@
     }
     SIM.t = t; SIM.u = j.u; SIM.steps++;
     var dt = SIM_DT, u = j.u, cl = V.clear, v = V.speed;
-    if (DEVMODE && SW.camhold) { CS.vy = 0; CS.yawRate = 0; events(V, t, u); return true; }   // (dev, Fix 2: the camera held where it is while the clock runs: G0's frozen-scene film, where any change from frame to frame is the world's own animation)
+    if (DEVMODE && SW.camhold) { CS.vy = 0; CS.yawRate = 0; return true; }   // (dev, Fix 2: the camera held where it is while the clock runs: G0's frozen-scene film, where any change from frame to frame is the world's own animation)
     applyInput(dt, t, V);
     // (hotfix H1, design-v5 Revision 3: "should keep flying same-ish direction unless user drags") left alone, the view
     // holds the heading the visitor last set (at the landing, the landing's own): no autopilot, no aim at places or
@@ -98,7 +97,7 @@
     if (Math.abs(tilt) > 0.02) CS.c += v * Math.sin(tilt) * dt * 0.9;
     if (!INP.down && CS.thU < -0.02 && CS.c < keptFloor(cl)) CS.c = Math.min(keptFloor(cl), CS.c + KEEP_UP * dt);   // (E1.1 Fix 2: below the kept tilt's floor once the finger is up: back up to it)
     if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;
-    CS.c = clamp(CS.c, cl[0], cl[2]);
+    CS.c = clamp(CS.c, leastAt(V, cl), cl[2]);   // (and over the mist pools: leastAt, 280)
     // the height: the ground ahead in time and what stands on it, a spring toward it. (flight-controllers-smooth) Its
     // acceleration eases toward the spring's own at most VY_J m/s3, and the climb's and descent's limits are approached over
     // VY_TV s, never struck: the height is smooth to its acceleration (C2). It was smooth only to its speed (C1): the
@@ -114,7 +113,7 @@
     // the hard rules: never in the ground, a landmark or a cloud's core
     // (world6 step B fix, defect 10) over the envelope (never under the ground), and rate-limited to the climb's own
     // travel in a step (PUSH_V): the hard rule, if it acts at all, is never a jump; every push is counted (a gate fails)
-    var gh = groundAt(V, CS.x, CS.z, true, true) + cl[0] * 0.6;   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
+    var gh = groundAt(V, CS.x, CS.z, true, true) + Math.max(cl[0] * 0.6, ((V.L && V.L.mist) || 0) + 1);   // (delight-weather 1: and over the mist pools, whose top stands at most their depth over the land: 229-mist-pools.js)   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
     if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; SIM.fixG++; }
     pushOut(V);
     var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
@@ -125,7 +124,6 @@
     // 0.42 x the turn rate, eased over 0.6 s, and was still rolling when the next drag began)
     var rl = clamp(-Math.atan(v * CS.yawRate / 9.81), -BANK_MAX, BANK_MAX);
     CS.roll += (rl - CS.roll) * (1 - Math.exp(-dt / BANK_T));
-    events(V, t, u);
     directorStep(t);   // (world6: the director composes what lies ahead, out of sight; it never steers)
     climateLight(V);   // (world6 fix: every step: a pure function of where the camera is; at every sixth it stepped at 10 Hz)
     if (SIM.steps % 6 === 0) beamWake(V, u);

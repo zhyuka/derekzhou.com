@@ -6,6 +6,8 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return F * starBox(d.x, sg) * starBox(d.y, sg);", "with": "  return b * exp(-dot(d, d) / (2.0 * 0.1764));", "why": "a star sampled at the pixel's centre: it pulses as it slides across pixels"}
 // plant: {"file": "src/world/220-time-day.js", "find": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:1,", "with": "post:{bloomK:0.4,shafts:0,sat:1.05,stars:0.05,", "why": "the stars' amount blended between skies again (the afterglow's 0.05): the no-fades gap"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "c += auroraAt(rd, eS) * hzT;", "with": "c += auroraAt(rd, eS);", "why": "the aurora added over the haze at full strength"}
+// plant: {"file": "src/world/223-sun.js", "find": "x = clamp((d + 6) / 2, 0, 1)", "with": "x = 1", "why": "the purple light at night: it shows with the sun 24 deg down"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float PURP_KC = 0.45;", "with": "const float PURP_KC = 0.6;", "why": "the purple light into the ceiling's knee: the old blend, a level taken from the red"}
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "hold: S.hold * (0.9 + 0.25 * r.f())", "with": "hold: S.hold * (0.9 + 0.5 * r.f())", "why": "a sky held up to 1.4 of its hold"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "{ n++; break; }", "with": "{ break; }", "why": "venusFails never counts a place on a word: the evening star planned across the words, and on a window all words"}
 // plant: {"file": "src/world/219-meteors.js", "find": "var y = M.long ? M.y : M.y * Math.sin(Math.PI * e / M.dur);", "with": "var y = M.y;", "why": "a short meteor that pops on and off at full light"}
@@ -24,6 +26,9 @@
 // plant: {"file": "src/world/222-sky-order-cycle.js", "find": "veil: mix32(SKY.vS ^ Math.imul(seq.length + 1, 0x9e3779b9))", "with": "veil: mix32(SKY.vS)", "why": "the veil the visit's, not the stay's: every moonlit stay of a visit veiled, or none"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "if (ma < 7.0 && hiCv > 0.0) c += hiCv * uMoonG * 0.15 * (", "with": "if (ma < 7.0) c += uMoonG * 0.15 * (", "why": "the corona on a clear night: rings with no cloud to make them"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));", "with": "hiCv = max(hiCv, clamp(vm * vk + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));", "why": "the corona on every veiled night: the veil's even mean counted as cloud"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "dot(c, LUMA) * vec3(0.861, 1.04, 1.68)", "with": "dot(c, LUMA) * vec3(1.2, 0.85, 0.95)", "why": "the Earth's shadow pink again"}
+// plant: {"file": "src/world/220-time-day.js", "find": "fx:{belt:0,nlc:1}", "with": "fx:{belt:0.4,nlc:1}", "why": "the belt drawn in the blue hour (the sun too low for it)"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;", "with": "SKYN.night[2] = reduced() ? 0 : 1;", "why": "the still twinkles: a hashed brightness frozen into its one frame"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
@@ -714,6 +719,95 @@ test('physics: weather/moon-corona: the corona\'s rings only where thin cloud st
   }
   assert.ok(g.indexOf('float hiCv = 0.0;') < g.indexOf('if (uHi.x > 0.0 && rd.y > 0.01) {') && g.indexOf('hiCv > 0.0) c += hiCv') > g.indexOf('if (uSkyN.w > 0.0 && uHi.x > 0.0 && rd.y > 0.01) {'), 'the corona reads its cloud before the veil has set it');
   assert.ok(!/hiCv[^;]*(uT|clockNow|uTime)/.test(g), 'the corona follows a clock (it may only come and go with its cloud, by place)');
+});
+
+test('physics: twilight (B6, B7, B9): the Earth\'s shadow blue-grey at the sky\'s lightness, no belt in the blue hour, the twinkle held in reduced motion and the still', () => {
+  const { WSKY } = skyWorld(1, 'night', 0.5);
+  const o2l = (L, a, b) => { let l = L + 0.3963377774 * a + 0.2158037573 * b, m = L - 0.1055613458 * a - 0.0638541728 * b, s = L - 0.0894841775 * a - 1.2914855480 * b; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]; };
+  const l2o = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); const o = [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; return [o[0], Math.hypot(o[1], o[2]), (Math.atan2(o[2], o[1]) * 180 / Math.PI + 360) % 360]; };
+  const lch = (L, C, h) => o2l(L, C * Math.cos(h * Math.PI / 180), C * Math.sin(h * Math.PI / 180)).map((x) => Math.max(x, 0));
+  // B6: sky-body.glsl's own shadow line, its core over every belted sky's low stops: h 260-280, L within 0.005 (equal: never a darkening)
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const SH = g.match(/c = mix\(c, dot\(c, LUMA\) \* vec3\(([\d.]+), ([\d.]+), ([\d.]+)\), sh \* sideS \* min\(uNight\.x \/ ([\d.]+), 1\.0\)\);/);
+  assert.ok(SH, 'the Earth\'s shadow line (c = mix(c, dot(c, LUMA) * vec3(...), sh * sideS * min(uNight.x / a, 1.0))) not found');
+  assert.ok(!/c \* vec3\(0\.72, 0\.78, 0\.95\)/.test(g), 'the Earth\'s shadow still multiplies the sky (a pink darkening)');
+  const T = SH.slice(1, 4).map(Number), full = +SH[4];
+  let belted = 0;
+  for (const id of Object.keys(WSKY)) {
+    const S = WSKY[id], belt = (S.fx && S.fx.belt) || 0;
+    if (!belt) continue;
+    belted++;
+    assert.ok(belt >= full, `${id}'s belt ${belt} is under ${full}: its shadow's core would be a partial mix (mauve)`);
+    for (const st of S.sky.slice(0, 4)) {
+      const c = lch(...st), y = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], d = T.map((t) => y * t), [L0] = l2o(c), [L1, C1, h1] = l2o(d);
+      assert.ok(h1 >= 260 && h1 <= 280 && C1 >= 0.015, `${id}: the shadow over [${st}] is h ${h1.toFixed(0)}, C ${C1.toFixed(3)} (blue-grey: 260-280)`);
+      assert.ok(Math.abs(L1 - L0) <= 0.005, `${id}: the shadow over [${st}] moves L ${(L1 - L0).toFixed(4)} (equal: within 0.005)`);
+    }
+  }
+  assert.ok(belted >= 2, 'no sky draws the belt');
+  // B7: no belt (the shadow and the Belt of Venus) in the blue hour: the sun too low for it
+  assert.equal((WSKY.bluehour.fx || {}).belt || 0, 0, 'the blue hour draws the belt');
+  // B9: the twinkle held at 0 in reduced motion and in the still (226: uNight.z)
+  assert.ok(WORLD.includes('SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;'), 'the stars twinkle in reduced motion or in the still (uNight.z not held at 0 there)');
+  assert.ok(g.includes('b *= 1.0 + 0.15 * uNight.z * sin('), 'the twinkle is not uNight.z\'s alone');
+});
+
+// ------------------------------------------------------------------ the purple light (physics: sky/purple-light)
+// 223's own purpleAt, run here: the high haze's glow above the hidden sun, whole 3-4 deg down, none above 1.5 or below 6,
+// its centre sinking with the sun; composited over the twilights' skies where it stands (the shader's own lines): it
+// shows, under L 0.50, the credit 4.5:1; and its depth is the sun's true one, one way through a change
+test('physics: sky/purple-light: the purple light above the hidden sun, by its depth, under the ceiling', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const K = +g.match(/const float PURP_K = ([\d.]+);/)[1];
+  const P = new Function('DEG', 'clamp', cut(WORLD, '  var PURP = new Float32Array(4);', '  function skyThemeWarm(') + '\nreturn purpleAt;')(Math.PI / 180, (x, a, b) => Math.min(Math.max(x, a), b));
+  const at = (d) => Array.from(P(d, 0.7));
+  for (const d of [5, 0, -1.5, -6, -7, -8, -24]) assert.ok(at(d)[3] === 0, `the purple light shows with the sun ${d} deg (only 1.5-6 deg down)`);
+  for (const d of [-3, -4]) assert.ok(Math.abs(at(d)[3] - 1) < 1e-9, `the purple light not whole with the sun ${d} deg down`);
+  let prevE = 99;
+  for (let d = -1.6; d >= -6.9; d -= 0.1) { const e = Math.asin(at(d)[1]) * 180 / Math.PI; assert.ok(e <= prevE + 1e-9, `its centre climbs as the sun sinks (${d.toFixed(1)}: ${e.toFixed(1)} deg)`); prevE = e; }
+  assert.ok(Math.abs(Math.asin(at(-3)[1]) * 180 / Math.PI - 28) < 1e-6 && Math.abs(Math.asin(at(-6)[1]) * 180 / Math.PI - 16) < 1e-6, 'its centre not 28 deg up at 3 down and 16 at 6');
+  // the shader's lines: over the twilight's sky at its centre (the stops at their heights, the dunes' haze), it shows and stays under
+  assert.ok(g.includes('vec3 pA = vec3(1.0, 0.56, 0.92) * PURP_K * uPurp.w * exp(-pa * pa / 392.0) * (1.0 - hazeSky(rd));') && g.includes('pA *= yP > 1e-6 ? roomP * (1.0 - exp(-yP / max(roomP, 1e-6))) / yP : 1.0;') && g.includes('for (int i = 0; i < 10; i++) { float m = 0.5 * (lo + hi); if (purpL(c + pA * m) > PURP_KC) hi = m; else lo = m; }') && g.includes('c += pA;'), 'the purple light is not the lines this test models');
+  const { WSKY } = skyWorld(1, 'night', 0.5), D2R = Math.PI / 180, Y = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const o2l = (L, aa, bb) => { let l = L + 0.3963377774 * aa + 0.2158037573 * bb, m = L - 0.1055613458 * aa - 0.0638541728 * bb, s = L - 0.0894841775 * aa - 1.2914855480 * bb; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s].map((x) => Math.max(x, 0)); };
+  const lc = (s) => o2l(s[0], s[1] * Math.cos(s[2] * D2R), s[1] * Math.sin(s[2] * D2R));
+  const Lof = (c) => 0.2104542553 * Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]) + 0.7936177850 * Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]) - 0.0040720468 * Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]);
+  const E = [0, 3, 10, 26, 58], skyAt = (S, e) => { const st = S.sky.map(lc); for (let i = 0; i < 4; i++) if (e <= E[i + 1]) { const t = (e - E[i]) / (E[i + 1] - E[i]); return st[i].map((v, j) => v + (st[i + 1][j] - v) * t); } return st[4]; };
+  const cap = (c0, ad) => { const y = Y(ad), room = Math.max(0.118 - Y(c0), 0); return ad.map((v) => v * (y > 1e-6 ? room * (1 - Math.exp(-y / Math.max(room, 1e-6))) / y : 1)); };
+  let shown = 9;
+  for (const id of ['afterglow', 'firstlight']) for (const hz of [0.45, 0.85]) for (const [e, off] of [[28, 0], [28, 10], [20, 0], [36, 0]]) {
+    const h = 1 - Math.exp(-1e-3 * hz * Math.exp(-24 / 30) * 30 / Math.sin(e * D2R)), c0 = skyAt(WSKY[id], e);
+    const ad = cap(c0, [1.0, 0.56, 0.92].map((v) => v * K * Math.exp(-(off * off + (e - 28) ** 2) / 392) * (1 - h))), c1 = c0.map((v, i) => v + ad[i]);
+    assert.ok(ad.every((v) => v >= 0), 'the purple light takes light away');
+    assert.ok(Lof(c1) <= Math.max(0.50, Lof(c0)) + 1e-9, `${id}: the purple light at ${e} deg reaches L ${Lof(c1).toFixed(3)} (at most 0.50)`);
+    assert.ok((0.82 + 0.05) / (Y(c1) + 0.05) >= 4.5, `${id}: the credit over the purple light reads ${((0.82 + 0.05) / (Y(c1) + 0.05)).toFixed(2)}:1`);
+    if (e === 28 && off === 0) shown = Math.min(shown, Lof(c1) - Lof(c0));
+  }
+  // strictly additive (the owner's never-darken, per channel): through the composite's grade (its saturation) and its light
+  // ceiling (fs-comp's lines: 0.525 less its knee, colour scaled whole by the cube of the L ratio), no channel of the frame
+  // with the purple light is below the frame without it, the sun 1-7 deg down, over the afterglow and first light, low to high
+  for (const id of ['afterglow', 'firstlight', 'bluehour']) assert.equal(WSKY[id].ceil, 0.525, `${id}'s light ceiling is not the one this test models`);
+  const KC = +g.match(/const float PURP_KC = ([\d.]+);/)[1], CEIL = 0.525, KNEE = +WORLD.match(/CEIL_KNEE = ([\d.]+)/)[1];
+  const kneeCap = (c0, ad) => { if (Lof(c0.map((v, i) => v + ad[i])) <= KC) return ad; let lo = 0, hi = Lof(c0) >= KC ? 0 : 1; for (let i = 0; i < 10; i++) { const m = 0.5 * (lo + hi); if (Lof(c0.map((v, j) => v + ad[j] * m)) > KC) hi = m; else lo = m; } return ad.map((v) => v * lo); };
+  // (the frame: the sky as the composite gets it, its bloom and grade raising it by up to L 0.035 (measured), the same
+  // for both arms; then its saturation and the ceiling)
+  const frame = (c, sat, up) => { c = c.map((v) => v * up); const y0 = Y(c); c = c.map((v) => Math.max(y0 + (v - y0) * sat, 0)); const Lk = Lof(c), Kc = CEIL - KNEE; return Lk > Kc ? c.map((v) => v * ((Kc + KNEE * (1 - Math.exp(-(Lk - Kc) / KNEE))) / Lk) ** 3) : c; };
+  let worst = 0;
+  // (the sky behind it: the stops at their heights, and toward the sun its warm side (skyW) and glow (glowC), the brightest
+  // and reddest the patch ever stands on)
+  for (const id of ['afterglow', 'firstlight']) for (let d = -1; d >= -7; d -= 0.5) for (const hz of [0.45, 0.85]) for (let e = 1; e <= 60; e += 1) for (const off of [0, 12, 25]) for (const [wc, f] of [['skyW', 0], ['skyW', 0.3], ['skyW', 0.6], ['skyW', 1], ['glowC', 0.5], ['glowC', 1]]) {
+    const w = at(d)[3], ce = Math.asin(at(d)[1]) / D2R; if (!(w > 0)) continue;
+    const h = 1 - Math.exp(-1e-3 * hz * Math.exp(-24 / 30) * 30 / Math.sin(e * D2R)), cw = lc(WSKY[id][wc]), c0 = skyAt(WSKY[id], e).map((v, i) => v + (cw[i] - v) * f), sat = WSKY[id].post.sat;
+    const ad = kneeCap(c0, cap(c0, [1.0, 0.56, 0.92].map((v) => v * K * w * Math.exp(-(off * off + (e - ce) ** 2) / 392) * (1 - h))));
+    const up = ((Lof(c0) + 0.035) / Lof(c0)) ** 3, f0 = frame(c0, sat, up), f1 = frame(c0.map((v, i) => v + ad[i]), sat, up);
+    for (let i = 0; i < 3; i++) worst = Math.min(worst, f1[i] - f0[i]);
+  }
+  assert.ok(worst >= -1e-9, `the purple light takes ${(-worst * 255).toFixed(3)} of a level from a channel of the frame (it only adds light, channel by channel)`);
+  assert.ok(shown >= 0.01, `the purple light adds only L ${shown.toFixed(4)} at its centre over the twilight's sky (it would not show: at least 0.01)`);
+  // its depth the sun's true one, one way through a change (the change's two skies, never a waypoint), drawn behind the 3 km veil
+  assert.ok(WORLD.includes('if (SUNU.on) return -SUNU.es;') && !WORLD.includes('function sunDepthNow('), 'the purple light does not read the sky\'s one sun depth (227\'s skyDepth), one way through a change');
+  assert.ok(WORLD.includes('if (u.uPurp) gl.uniform4fv(u.uPurp, purpleAt(-skyDepth(),'), 'the purple light is not uploaded from the sun\'s true depth');
+  assert.ok(g.indexOf('if (uPurp.w > 0.0') < g.indexOf('if (uHi.x > 0.0 && rd.y > 0.01)'), 'the purple light is drawn over the 3 km veil (it stands behind it, at 20 km)');
 });
 
 // the moon's disc against the moonlit clouds (the hub's round-3 ruling, 2026-11-16 04:19): the clouds are never darkened
