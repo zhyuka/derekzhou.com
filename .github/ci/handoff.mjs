@@ -3,8 +3,10 @@
 // public and its jobs moved to GitHub-hosted runners). From 2026-11-16 to then the folder was the PC's own disk (the
 // private repository's artifact quota was hit on 2026-11-15), shared by the WSL runners and the Windows GPU runner;
 // HANDOFF_ROOT still defaults to it (/mnt/c/ci-handoff in WSL, C:\ci-handoff on Windows), and every job now sets its own.
-//   node .github/ci/handoff.mjs put SRC NAME [--run R]   copy the folder SRC to ROOT/gate/R/NAME, with a sha256 manifest;
-//                                                        the manifest's own sha256 goes to the step's outputs (sha=...)
+//   node .github/ci/handoff.mjs put SRC NAME [--run R] [--as KEY]
+//                                                        copy the folder SRC to ROOT/gate/R/NAME, with a sha256 manifest;
+//                                                        the manifest's own sha256 goes to the step's outputs (sha=..., or
+//                                                        KEY=...: a matrix leg's own output, T1's sha_<N>)
 //   node .github/ci/handoff.mjs get NAME DEST [--run R]  copy ROOT/gate/R/NAME to DEST (R's newest attempt that has it),
 //                                                        every file checked against its manifest: a missing folder, file
 //                                                        or byte fails, loudly. --pinned: HANDOFF_SHA (the putting job's
@@ -96,6 +98,7 @@ export function sweep(r, hours, now = Date.now()) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const a = process.argv.slice(2), opt = (k) => { const i = a.indexOf(k); return i >= 0 ? a.splice(i, 2)[1] : null; };
   const pinned = a.includes('--pinned'); if (pinned) a.splice(a.indexOf('--pinned'), 1);
+  const as = opt('--as') || 'sha';
   const run = opt('--run'), hours = +(opt('--hours') || 24), [cmd, x, y] = a, r = root();
   const base = () => path.join(r, 'gate', run || runKey());
   // a reader takes the newest attempt of this run that handed NAME off: a re-run of only the failed jobs (attempt 2)
@@ -107,8 +110,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   };
   try {
     if (cmd === 'put') {
+      if (!/^\w+$/.test(as)) throw new Error('handoff: --as KEY, a word');
       const n = put(x, y, base()), h = sha(path.join(base(), y + '.manifest.json'));
-      if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `sha=${h}\n`);
+      if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${as}=${h}\n`);
       console.log(`handoff: ${n} files of ${x} handed off as ${path.join(base(), y)} (manifest sha256 ${h})`);
     }
     else if (cmd === 'get') console.log(`handoff: ${get(x, y, from(x), pinned ? (process.env.HANDOFF_SHA || '') : undefined)} files of ${x} checked against their manifest${pinned ? ', pinned to its job\'s output' : ''}, in ${y}`);
