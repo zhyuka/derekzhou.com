@@ -3,8 +3,15 @@ float ed(vec2 q, vec2 a, vec2 b) { vec2 e = b - a; float l = length(e); return l
 float sdSeg(vec2 q, vec2 a, vec2 b) { vec2 pa = q - a, ba = b - a; float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-9), 0.0, 1.0); return length(pa - ba * h); }
 /* the points are read from the row where each is used, never held in a local array: 46 points indexed by the mesh's
    tables stood in memory on a tiler's GPU (a Mali spilled 432 bytes a fragment) and in FXC's indexable temporaries;
-   the same texel, so the same value. uZ (never set: 0) keeps FXC from unrolling the triangle and outline loops */
+   the same texel, so the same value. uZ (never set: 0) keeps FXC from unrolling the triangle and outline loops; on WebKit (PLAIN_LOOPS) the bounds are plain constants, as in the world's shaders (WebKit boot) */
 uniform int uZ;
+#ifndef UZ
+#ifdef PLAIN_LOOPS
+#define UZ 0
+#else
+#define UZ uZ
+#endif
+#endif
 vec2 ptXY(int i, int r) { return texelFetch(uPts, ivec2(i, r), 0).xy; }
 float ptZ(int i, int r) { return texelFetch(uPts, ivec2(i, r), 0).z; }
 /* one edge's share of a triangle's coverage: hard where the mesh goes on across it, else the box filter */
@@ -22,7 +29,7 @@ void main() {
   if (uBl.w > 0.5) g = smoothstep(uGl.x, uGl.y, dot(texture(uBloom, uv * uBl.xy).rgb, LUM) * uBl.z);
   float w = max(vK1.w * uLand.z, 0.5), cov = 0.0, fz = -1.0;
   int ff = -1, fc = -1;
-  for (int i = 0; i < NTRI + uZ; i++) {
+  for (int i = 0; i < NTRI + UZ; i++) {
     ivec4 T = sl ? TRI1[i] : TRI0[i];
     vec2 a = ptXY(T.x, row), b = ptXY(T.y, row), c = ptXY(T.z, row);
     float ar = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
@@ -73,8 +80,8 @@ void main() {
   float halo = 0.0;
   if (vZ.w > 0.0 && cov < 1.0) {
     float dt = 1e9;
-    if (sl) { for (int i = 0; i < NBE1 + uZ; i++) dt = min(dt, sdSeg(q, ptXY(BE1[i].x, row), ptXY(BE1[i].y, row))); }
-    else { for (int i = 0; i < NBE0 + uZ; i++) dt = min(dt, sdSeg(q, ptXY(BE0[i].x, row), ptXY(BE0[i].y, row))); }
+    if (sl) { for (int i = 0; i < NBE1 + UZ; i++) dt = min(dt, sdSeg(q, ptXY(BE1[i].x, row), ptXY(BE1[i].y, row))); }
+    else { for (int i = 0; i < NBE0 + UZ; i++) dt = min(dt, sdSeg(q, ptXY(BE0[i].x, row), ptXY(BE0[i].y, row))); }
     float e = max(vZ.z, 0.5), dd = max(min(dt, ds) - hw, 0.0);
     halo = vZ.w * exp(-dd / e) * (1.0 - smoothstep(2.5 * e, 4.0 * e, dd)) * (1.0 - cov);
     if (vW.z >= 0.0) halo *= max(gfill, 0.5 * clamp(vW.z / 0.7, 0.0, 1.0));
