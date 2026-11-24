@@ -1,5 +1,5 @@
   /* the streamer: which cells a visit wants about a point (heading hx, hz), made in order of need, freed far behind */
-  var SCAN = new Float64Array(4), SCANA = new Float64Array(2);
+  var SCANA = new Float64Array(2);
   /* (physics: clouds/drift) how far out a scale's cells are made: its radius; an air cell's further, by the air's
      closing speed (the camera's and the low layer's against it: |W| / v more than the land's), so it has the land's time
      between being wanted and coming out of the haze (that lead, 0.1 R + 100 m and half a cell, made 1 + |W| / v times as

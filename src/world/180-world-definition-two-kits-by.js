@@ -168,7 +168,6 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       scatter: KD.scatter, particles: KD.particles, ribbons: KD.ribbons, sandFx: true,   // (world6 fix: the sand's particles drawn as the sand weight at the camera says: sandAt)
       // (world6 fix, the judges' defect 14) no events: nothing is spawned on a clock; the creatures are the cells' own,
       // world-anchored and scattered by density, coming in out of the haze (drawCreatures' distance fade)
-      event: null
     };
   }
   /* the world's lights: the dunes kit's and the ABOVE kit's (one sun: the first's), blended by the cloud weight about

@@ -50,7 +50,6 @@ void main() {
      land VS against this, by transform feedback, bit-identical heights, positions and gaps). The point: the compile.
      One program holding all of Hd takes 2.3 s (land VS) and 1.6 s (probe FS) on ANGLE-D3D11; the parts compile in
      parallel */
-  var HP_PARTS = ['kit', 'dunes', 'sites', 'ridges'];
   /* where the split is made: every ANGLE Direct3D11 device, the Windows GPUs (the owner, 2026-11-06: "Yes, if it saves
      100 ms+"). FXC is the same compiler on all of them, so the split's saving is the same everywhere there: the land VS
      (701 ms of FXC) and the probe (486 ms) become passes of at most ~137 ms, the compile wall 701 -> 426 ms
