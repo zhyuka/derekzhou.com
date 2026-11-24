@@ -141,7 +141,7 @@ and sets behind the sea, never stopping or turning back (a visitor who
 turns that way sees it rise or set; only its faint broad light on the sky
 follows its depth); where the window has no room under its top edge, only
 its glow passes along the edge. Its corona's coloured rings show only where
-the 3 km veil's streaks stand thicker in front of it than the veil's even
+the 7 km veil's streaks stand thicker in front of it than the veil's even
 mean, as patchy as those streaks; a clear patch or a clear night has none
 (physics: weather/moon-corona).
 The moonlit night is about twice as long
@@ -249,7 +249,7 @@ sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
 degrees up. Its body hides the sky behind it in the air's own colour at its
 range (the far land's distance haze); the low sun lights its top above the
-Earth's shadow there, under the light ceiling; nearer layers (the 3 km veil,
+Earth's shadow there, under the light ceiling; nearer layers (the 7 km veil,
 the Earth's shadow and the Belt) lie over it, farther ones (the wisps, the
 galaxy, the aurora, the moon, the stars) are hidden behind it. Its lightning
 is the owner's one exception to no-fades ("Soft distant flicker",
@@ -615,8 +615,18 @@ physics: clouds/drift). It holds:
   default, 7.6). Before physics: air/wind-profile the readers kept their
   own speeds. The dunes' crests, the veils, the birds and the water's ripples read
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
-  and AIR_H.deck 3000 m, the high streaks, which lie along it: cloudWind,
+  and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
+  7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
+  International Cloud Atlas), its streaks along the air's wind there (the
+  profile's 2 U10 veered 40 deg, held above 3 km) and drifting with it; a
+  noise tile 204.8 km along the wind and 51.2 km across (its texels 3.2 km by
+  800 m), faded out under rd.y 0.105-0.44 where its texels would come under a
+  pixel. A change's cover comes in by place: a front carried along that wind
+  from 120 km upwind of the camera to 120 km downwind as the change goes (224's
+  HIP, the shader's uHiP), 12 km wide, the new cover upwind of it; in a hold
+  the cover is uHi.x everywhere.
 - The readers still apart (AIR_APART, each with the change that joins
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
