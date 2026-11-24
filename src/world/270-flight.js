@@ -98,7 +98,7 @@
     if (Math.abs(tilt) > 0.02) CS.c += v * Math.sin(tilt) * dt * 0.9;
     if (!INP.down && CS.thU < -0.02 && CS.c < keptFloor(cl)) CS.c = Math.min(keptFloor(cl), CS.c + KEEP_UP * dt);   // (E1.1 Fix 2: below the kept tilt's floor once the finger is up: back up to it)
     if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;
-    CS.c = clamp(CS.c, cl[0], cl[2]);
+    CS.c = clamp(CS.c, leastAt(V, cl), cl[2]);   // (and over the mist pools: leastAt, 280)
     // the height: the ground ahead in time and what stands on it, a spring toward it. (flight-controllers-smooth) Its
     // acceleration eases toward the spring's own at most VY_J m/s3, and the climb's and descent's limits are approached over
     // VY_TV s, never struck: the height is smooth to its acceleration (C2). It was smooth only to its speed (C1): the
@@ -114,7 +114,7 @@
     // the hard rules: never in the ground, a landmark or a cloud's core
     // (world6 step B fix, defect 10) over the envelope (never under the ground), and rate-limited to the climb's own
     // travel in a step (PUSH_V): the hard rule, if it acts at all, is never a jump; every push is counted (a gate fails)
-    var gh = groundAt(V, CS.x, CS.z, true, true) + cl[0] * 0.6;   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
+    var gh = groundAt(V, CS.x, CS.z, true, true) + Math.max(cl[0] * 0.6, ((V.L && V.L.mist) || 0) + 1);   // (delight-weather 1: and over the mist pools, whose top stands at most their depth over the land: 229-mist-pools.js)   // (the ground itself: the envelope is the cruise's, never a wall; a cone entering the 320 m grid steps it, f1: 9 pushes at 1451 s with the ground 26 m under the eye)
     if (CS.y < gh) { CS.y = Math.min(gh, CS.y + PUSH_V * dt); if (CS.vy < 0) CS.vy = 0; if (CS.ay < 0) CS.ay = 0; SIM.fixG++; }
     pushOut(V);
     var ceil = groundAt(V, CS.x, CS.z, false) + cl[2] + CEIL_OVER;   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)

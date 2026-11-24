@@ -133,6 +133,13 @@ export function mainAt(x, y, a = 0.6) {
   const amp = add(sc(sstep(-0.42, 0.3, dNm(x + 400, y + 400, Ma)), 0.75), [0.25, 0, 0]);
   return waveS1(x, y, 205, sc(amp, 32), swell, swellH(x, y));
 }
+/* the dunes' land over the swell they stand on at (x, y) in wind angle a: the main wave and the near family, as
+   dunes() makes them (the mist pools' floor is the swell: test/unit/mist.mjs) */
+export function overSwell(x, y, a = 0.6) {
+  w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];
+  const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
+  return dunes(x, y).h[0] - (40 * g0[0] + 15 * g1[0]);
+}
 function dunes(x, y) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   const swell = add(sc(g0, 40), sc(g1, 15));

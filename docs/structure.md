@@ -69,7 +69,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
                              test/unit/largeworld.mjs (a long visit's far-out
-                             frames held still: eyeRel and the particles' wrap, an fp32 replay), test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
+                             frames held still: eyeRel and the particles' wrap, an fp32 replay), test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/mist.mjs (the mist pools:
+                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/smoke.mjs (the post-deploy smoke tells Cloudflare's bot challenge
                              from the site's answer: .github/ci/cf-challenge.mjs), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser),
@@ -112,7 +113,8 @@ tools/stills-twin.mjs        The still's preload put back in the twin the PC bak
 tools/gpu/                   GPU checks run by hand on a real GPU (no CI job runs them): T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
-                             (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand
+                             (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand;
+                             mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
