@@ -9,7 +9,7 @@
 // twin is never deployed: it lives in the temporary folders only. Both twins are served as Pages serves them
 // (.github/ci/serve.mjs) and driven by T1's own harness (.github/ci/harness.mjs: openPage's paused clock and fakes, the
 // opening fixed by --seed through the one entropy read, stepToShow, step: one frame a 16 ms step).
-// The camera: --cam holds it at X, Z, heading PSI (radians); --aim KIND walks the HEAD's camera along the opening's
+// The camera: --cam holds it at X, Z, heading PSI (radians); base is held at the head's settled height too; --aim KIND walks the HEAD's camera along the opening's
 // heading, 3 km a hop (--walk hops at most), until a streamed cell holds a cloud of that kind (lens, range, tower,
 // cumulus, ...), then holds it --dist m (3000) short of that cloud, facing it. Base is held at the same place and heading.
 // Each arm then steps --frames frames (600) and its canvas is saved. Out: base.png, head.png, crop.png (base left, head
@@ -67,10 +67,11 @@ async function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'crops-')), tb = path.join(tmp, 'base'), th = path.join(tmp, 'head');
   fs.mkdirSync(tb); fs.mkdirSync(th);
   const B = twinOf(A.base, tb), H = twinOf(A.head, th);
-  const hold = (arm, x, z, psi) => arm.page.evaluate(([x, z, psi]) => {
-    const D = window.__D; D.hold = { x, z, psi };
-    if (!D.holding) { D.holding = true; const f = () => { const h = D.hold; for (const S of [D.CS, D.CSP]) { S.x = h.x; S.z = h.z; S.psi = h.psi; if ('yawV' in S) S.yawV = h.psi; } requestAnimationFrame(f); }; requestAnimationFrame(f); }
-  }, [x, z, psi]);
+  // (y: the height too, when given; base takes the head's, which its own flight had settled over the walk)
+  const hold = (arm, x, z, psi, y) => arm.page.evaluate(([x, z, psi, y]) => {
+    const D = window.__D; D.hold = { x, z, psi, y };
+    if (!D.holding) { D.holding = true; const f = () => { const h = D.hold; for (const S of [D.CS, D.CSP]) { S.x = h.x; S.z = h.z; S.psi = h.psi; if ('yawV' in S) S.yawV = h.psi; if (h.y !== null) S.y = h.y; } requestAnimationFrame(f); }; requestAnimationFrame(f); }
+  }, [x, z, psi, y === undefined ? null : y]);
   const find = (arm, kind) => arm.page.evaluate((kind) => {
     const V = window.__D.SIM.V, L = []; if (!V || !V.cellList) return L;
     for (const C of V.cellList) for (const cl of C.clouds || []) if (cl.kind === kind) L.push({ x: cl.x, z: cl.z, base: cl.base });
@@ -96,12 +97,12 @@ async function main() {
       const c = L[0], d0 = Math.hypot(c.x - x, c.z - z) || 1, ux = (c.x - x) / d0, uz = (c.z - z) / d0;
       cam = [c.x - ux * +A.dist, c.z - uz * +A.dist, Math.atan2(ux, uz)]; rec.aimed = { kind: A.aim, ...c, laidOut: L.length };
     } else cam = [st.x, st.z, st.psi];
-    rec.cam = cam;
-    await hold(h, ...cam); await step(h, +A.frames);
+    await hold(h, cam[0], cam[1], cam[2]); await step(h, +A.frames);
+    cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
     const hp = await png(h); rec.headErrors = h.logs; await h.ctx.close();
     const b = await openPage(browser, sb.url, { vp: VP, epoch: EPOCH, seeds: [seed] });
     if ((await stepToShow(b)) < 0) throw new Error('crops: the base never showed');
-    await hold(b, ...cam); await step(b, +A.frames);
+    await hold(b, cam[0], cam[1], cam[2], cam[3]); await step(b, +A.frames);
     const bp = await png(b); rec.baseErrors = b.logs; await b.ctx.close();
     // the crop and the diff, composed in a blank page (canvas 2D: no image library)
     const page = await (await browser.newContext()).newPage();
