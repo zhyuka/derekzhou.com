@@ -170,6 +170,34 @@ chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
 and first light's 0.15 are 0; the three nights' were 0 already). The cycle
 runs on the flight's own clock, its draws from the visit's own streams.
 
+The night's bodies (delight-night §1 and §4; src/world/227-night-bodies.js). The
+stars' amount no longer blends between skies (every sky's post.stars is 1):
+each star comes out by itself, brightest first, once the faintest magnitude
+the sky lets through where it stands passes its own (the zenith's limit by the
+sky's own sun's depth, -1 at 3 deg, about 1 at the end of civil twilight, 4.5
+at nautical's, 7 at the night's 24 deg; lowered further where the sky's own
+light is brighter), its light coming in over its first 0.5 magnitude of margin
+as the sun's depth moves (a hold holds it). So the twilights show only Venus
+and, in the blue hour, the brightest stars; a dark night keeps the whole field.
+The bright stars (b over 0.35) take pastel colours by spectral kind, each at
+the white's own luminance. The evening (or morning, on a visit that opens on
+first light) star stands by the drawn sky's sun, its glow (the hub's ruling,
+2026-11-15: until one forward clock drives the sun, the stars and the planet
+together): on the ecliptic through that sun at the opening's depth, in a
+local frame at AIR's latitude and season, 24-46 deg east (or west) of it,
+then turned with the sun as it sinks, rigid in the sun's vertical plane, so
+it keeps its elongation, stands by the glow and sets by moving, never
+fading; steady, a point of the stars' kind with a small glare, its peak
+under OKLab L 0.49; its elongation the first of 12 drawn (SEED0's stream)
+whose path down keeps clear of the words' boxes at the view's own heading
+and pitch, planned in the sky's step (moonStep), never the draw: at the
+opening against the still's own window and words (stillInputs, as the
+opening's moon), so the still and the live first frame agree, and in the
+window's own view and words (the night after the cut is seen there); a new window
+plans it again (moonResized; the phone's bar only when its path now crosses
+a word). It slips against the stars, which turn on their own
+clock, until that forward clock lands (delight-visit §5.5).
+
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
