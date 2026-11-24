@@ -223,8 +223,7 @@ opening against the still's own window and words (stillInputs, as the
 opening's moon), so the still and the live first frame agree, and in the
 window's own view and words (the night after the cut is seen there); a new window
 plans it again (moonResized; the phone's bar only when its path now crosses
-a word). It slips against the stars, which turn on their own
-clock, until that forward clock lands (delight-visit §5.5).
+a word). Known gap (kept, 2026-11-24): the drawn sun holds through a hold while the stars turn, so Venus slips against them (the owner's cycle: "All. Cycle through.").
 The bright outer planet (src/world/227-night-bodies.js, JUP_*): a second
 planet of the same kind, Jupiter's (magnitude about -2.4), on the same ecliptic
 through the drawn sun, 90-180 deg from it on either side (an outer planet's
