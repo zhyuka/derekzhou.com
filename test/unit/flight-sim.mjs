@@ -39,7 +39,7 @@ const CELLOFF = cut(WORLD, '  function cellOff(', '\n  }\n', true);
 const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n' +
   '  function airW() { return AW; }\n  function cellLift() { return 0; }\n' + CELLOFF + '\n' +
   '  var PI = Math.PI, DEG = PI / 180, DEVMODE = false, POSE = null, NOAUTO = false, shown = true, STILLMODE = false, SEEDR = 1, J = { seed: 1 }, VSTAGES = [], BIRDS = null, DTMAX = 0.1, SW = {};\n' +
-  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false;\n' +
+  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
   '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
@@ -50,7 +50,7 @@ const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n
   CRUISE + '\n' + FLIGHT + '\n' + INPUT +
   '\n  return { SIM: SIM, CS: CS, INP: INP, cellOff: cellOff, pushOut: function () { pushOut(V); }, ceil: function () { return groundAt(V, CS.x, CS.z) + V.clear[2] + CEIL_OVER; }, ds: PUSH_V * SIM_DT,\n' +
   '    drag: function (dx, dy, up) { INP.down = !up; INP.rel = !!up; INP.dx += dx; INP.dy += dy; px += dx; py += dy; if (typeof relAdd === "function") { if (!pd) REL.n = 0; relAdd(px, py, SIM.t * 1000); } pd = !up; },\n' +   // (onMove's and onUp's samples, where the release reads them)
-  '    step: function () { if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
+  '    step: function () { CLK[1] = SIM.t * 1000 + 0.4; if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const AWS = [[4.2, -2.1], [-6.3, 5.0], [0.8, 8.9], [-5.5, -3.9], [7.4, 1.2]];   // (the low layer's wind a seed, m/s: 4.7-8.9)
 // (#288 follow-up) where the world puts a cloud's core: 231 lifts every body whole until its lowest lobe's billows
