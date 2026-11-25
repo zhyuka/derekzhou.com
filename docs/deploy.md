@@ -42,6 +42,10 @@ pull_request_target `edited`), and the bot lands the PR on its green gate, visib
 the bot's own files included. A push after the review moves the head, so the line no longer matches: it waits for a
 new one. (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.) The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
 its stills are up. The hub sends the owner a daily note of what went live, and "undo X" lands a revert the same way.
+The bot's own files (bot-rules.mjs BOT_FILES) are its workflow, merge-bot.mjs and every module and data file it runs
+on: bot-rules.mjs, areas.mjs, areas.json, deploy-walk.mjs, and the names guard (.claude/hooks/guard.py, names.json).
+Until 2026-11-25 the list held merge.yml and merge-bot.mjs alone, and #435, which changed bot-rules.mjs with a served
+build the base's, landed with no review; test/unit/merge-bot.mjs now derives the list from the bot's imports.
 
 **Only a byte-for-byte build lands unreviewed (the hub, 2026-11-24).** Without the hub's line the bot lands a PR only
 when its served build is byte for byte the base's (docs, tests, CI, tools: bot-rules.mjs unreviewedLands). "Frames
