@@ -1322,6 +1322,15 @@ levels, and no point over the bound at either size.
 test/unit/clipmap.mjs flies both sizes; the plant (the kink sharp again)
 fails it.
 
+With the three in (#467, #470, #472), the whole land, swept
+(lod-pop.mjs --all: 1500 fixed points anywhere in the corridor, the
+fragment replay, the same 2 flights x 60 s at both sizes): 3.70 million
+steps, 5 over 2 levels (0.00014%), the worst 2.37. All 5 are one point,
+the toe of a main dune 600 m out at the range's far edge, drifting a
+steady 2.35-2.37 levels a frame for 5 frames: a smooth turn, not a pop.
+Phone: none over 2 (worst 1.92). Nothing else on the land turns more than
+2 levels in a frame.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
