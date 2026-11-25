@@ -116,17 +116,12 @@
   }
   /* the composite's inputs (the world's live light; there is no junction to ease across) */
   var EL = { bloom: new Float32Array(3), shaftC: new Float32Array(3), lift: new Float32Array(3), gain: new Float32Array(3), exposure: 1, sat: 1 };
-  var SIMNIGHT = false;   // (dev: __world.set({ simnight: 1 }); the paper birds' night look over a SIMULATED night)
   var CAMK = 1;   // (dev: __world.set({ camk: 0.4 }); the camera's pace scaled for a film of a staged wheel (a camera that lingers near a wheel is the world's open decision: SIMULATED); 1 = the world's own pace)
   function easedLight(V, u) {
     var L = V.L || V.light, P = null, w = 1, k;   // (no last realm to ease from)
     var Q = L;
     for (k = 0; k < 3; k++) { EL.bloom[k] = lerp(Q.bloom[k], L.bloom[k], w); EL.shaftC[k] = lerp(Q.shaftC[k], L.shaftC[k], w); EL.lift[k] = lerp(Q.lift[k], L.lift[k], w); EL.gain[k] = lerp(Q.gain[k], L.gain[k], w); }
     EL.exposure = lerp(Q.exposure, L.exposure, w); EL.sat = lerp(Q.sat, L.sat, w);
-    if (SIMNIGHT) {   // (dev only: SIMULATED night, the world having no night yet: the day's light graded down and toward blue; never in production)
-      EL.exposure *= 0.15; EL.sat *= 0.7;
-      for (k = 0; k < 3; k++) { EL.gain[k] *= [0.6, 0.74, 1.08][k]; EL.lift[k] += [0.0015, 0.0025, 0.007][k]; EL.bloom[k] *= k === 0 ? 0.6 : 1; }
-    }
     return EL;
   }
 
