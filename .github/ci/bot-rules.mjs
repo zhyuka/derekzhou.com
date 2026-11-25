@@ -125,7 +125,14 @@ export function unreviewedLands(v) {
 // tree (#405, reviewed: it and main's #411 both changed tools/visit/looks.json, the merge mixed two entry formats, and
 // main's gate went red on the ruler test). An area alone re-gates only an unreviewed PR: a reviewed one merges, and
 // main's gate tests it (#362: re-gating every reviewed PR after every landing serialised them).
-export function regateAnswer({ shared = [], same = [], approved = false }) {
+// A doc only people read is exempt (the hub, 03:01Z Nov 25: #427, reviewed, re-gated only because #414 had also edited
+// docs/world.md; nearly every PR edits a doc): a line-by-line merge of docs/*.md changes neither the served build (docs/
+// is never served) nor any check's result, but docs/structure.md, whose content docs-drift reads (a tool's line). The
+// checks that scan every tracked file (secrets, citations, the names) read a merged doc's lines, each of them one side's,
+// already checked on its own gate; main's gate checks the merge after it lands.
+export const mergeSafe = (f) => /^docs\/[^/]+\.md$/.test(f) && f !== 'docs/structure.md';
+export function regateAnswer({ shared = [], same: all = [], approved = false }) {
+  const same = all.filter((f) => !mergeSafe(f));
   if (same.length) return { regate: true, why: `main changed ${same.length} of its file(s) since its gate (${same.slice(0, 5).join(', ')}): re-gated${approved ? ', the review holds' : ''}` };
   if (shared.length && !approved) return { regate: true, why: `main touched the ${shared.join(', ')} area since its gate: re-gated` };
   return { regate: false };

@@ -56,6 +56,11 @@ main's #410-#416 had changed since its gate; the bot merged it with no new gate,
 line in two entry formats, and main's gate went red on the ruler test until the bot reverted it. Now (bot-rules.mjs
 regateAnswer) a PR sharing any file with main's commits since its gate's base is brought up to date and gated again,
 the review holding through that merge of main (#361); a reviewed PR sharing only an area still merges at once.
+A doc only people read is not such a file (the hub, 03:01Z Nov 25: #427, reviewed, was re-gated at 02:54Z only
+because #414 had also edited docs/world.md, and nearly every PR edits a doc): docs/*.md is never served, and no check
+reads one's content but docs-drift's docs/structure.md, which still re-gates (bot-rules.mjs mergeSafe). Of the 7
+landings on main from 18:00Z Nov 24 that shared a file with main's changes since their base, 3 shared docs/world.md
+alone and would not have been re-gated; 2 shared docs/structure.md and 2 shared code.
 
 Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges

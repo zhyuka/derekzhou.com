@@ -148,5 +148,27 @@ test('merge bot: a PR that shares a file with main\'s changes since its gate is 
   assert.equal(regateAnswer({ shared: ['frames'], same: [], approved: false }).regate, true, 'an unreviewed PR sharing an area is re-gated, as before');
   assert.equal(regateAnswer({ shared: [], same: [], approved: false }).regate, false, 'nothing shared: it merges');
 });
+
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "export const mergeSafe = (f) => /^docs\\/[^/]+\\.md$/.test(f) && f !== 'docs/structure.md';", "with": "export const mergeSafe = (f) => (/^docs\\/[^/]+\\.md$/.test(f) && f !== 'docs/structure.md') || f === 'tools/visit/looks.json';", "why": "the exemption widened to looks.json: #405's merge lands with no new gate"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "/^docs\\/[^/]+\\.md$/.test(f) && f !== 'docs/structure.md'", "with": "/^docs\\/[^/]+\\.md$/.test(f)", "why": "docs/structure.md exempt too: docs-drift reads a merge of it nothing tested"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "/^docs\\/[^/]+\\.md$/.test(f)", "with": "/\\.md$/.test(f)", "why": "any .md exempt, a folder's README or a skill's too"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "  const same = all.filter((f) => !mergeSafe(f));", "with": "  const same = all;", "why": "the exemption gone: every reviewed PR re-gated for a doc (#427)"}
+test('merge bot: a doc only people read, changed on both sides, re-gates nothing; docs/structure.md (docs-drift reads it) still does (2026-11-25)', async () => {
+  const { regateAnswer, mergeSafe } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  // #427, reviewed, re-gated at 02:54Z only because main's #414 had also edited docs/world.md
+  assert.equal(regateAnswer({ shared: ['docs'], same: ['docs/world.md'], approved: true }).regate, false, '#427: docs/world.md alone is no reason to re-gate a reviewed PR');
+  assert.equal(regateAnswer({ shared: [], same: ['docs/world.md', 'docs/deploy.md'], approved: true }).regate, false, 'two docs alone');
+  assert.equal(regateAnswer({ shared: [], same: ['docs/structure.md'], approved: true }).regate, true, 'docs/structure.md: docs-drift reads its lines');
+  const mixed = regateAnswer({ shared: [], same: ['docs/world.md', 'tools/visit/looks.json'], approved: true });
+  assert.ok(mixed.regate && /1 of its file\(s\).*looks\.json/.test(mixed.why) && !/world\.md/.test(mixed.why), 'a doc beside a code file: the code file re-gates, and the reason names it alone: ' + mixed.why);
+  for (const f of ['tools/visit/looks.json', 'docs/sub/x.md', 'docs/world.json', 'site/index.html', 'src/world/215-air.js', 'README.md', '.github/ci/areas.json']) assert.equal(mergeSafe(f), false, f + ' is not merge-safe');
+  for (const f of ['docs/world.md', 'docs/deploy.md', 'docs/verify.md']) assert.equal(mergeSafe(f), true, f + ' is merge-safe');
+  // every doc a check reads by its path stays out (the checks' and tests' sources, searched for docs/ paths in code)
+  const fs = await import('node:fs'), path = await import('node:path'), root = new URL('../../', import.meta.url).pathname;
+  const srcs = ['tools/checks', 'tools/checks/lib'].flatMap((d) => fs.readdirSync(path.join(root, d)).filter((f) => /\.(mjs|sh)$/.test(f)).map((f) => path.join(d, f)));
+  const read = new Set(); for (const f of srcs) for (const l of fs.readFileSync(path.join(root, f), 'utf8').split('\n')) { if (/^\s*(\/\/|#)/.test(l)) continue; for (const m of l.matchAll(/docs\/[a-z0-9-]+\.md/g)) read.add(m[0]); }
+  assert.ok(read.has('docs/structure.md'), 'docs-drift reads docs/structure.md');
+  for (const d of read) assert.equal(mergeSafe(d), false, `${d}: a check reads it, so a merge of it re-gates`);
+});
 // plant: {"file": ".github/ci/bot-rules.mjs", "find": "  if (same.length) return { regate: true,", "with": "  if (same.length && !approved) return { regate: true,", "why": "the old rule: a reviewed PR that shares files with main lands with no new gate (#405)"}
 // plant: {"file": ".github/ci/merge-bot.mjs", "find": "    if (rg.regate) {", "with": "    if (rg.regate && !approved) {", "why": "the bot skipping the re-gate for a reviewed PR whatever the rule says"}
