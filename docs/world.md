@@ -191,7 +191,7 @@ band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow (blue-grey at
 the sky's own lightness, drawn with the Belt only in the afterglow and first
 light, never the blue hour: physics: twilight/shadow) climbs and dissolves;
-the stars hold still in reduced motion and in the still (no twinkle there); the noctilucent wisps go dark from below, and the night's own
+the stars hold still, steady in every frame (no twinkle: the audit's rank 4; a slow swing of their light is no scintillation, and nothing on the window sparkles); the noctilucent wisps go dark from below, and the night's own
 glow comes in with the night's colours; out of a night into first light
 or the blue hour it runs backwards. No sky draws light rays now (the owner
 chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
