@@ -153,7 +153,7 @@ async function propsCtx(T, dir, files) {   // the names the ink birds' propertie
 }
 const OPTIONS = {
   ecma: 5, module: false, toplevel: false, safari10: true, ie8: false,
-  compress: { passes: 3, unsafe: false, drop_console: false, keep_fargs: true, keep_infinity: true },
+  compress: { passes: 2, unsafe: false, drop_console: false, keep_fargs: true, keep_infinity: true },
   mangle: { safari10: true, toplevel: false },
   format: { comments: keepComment, quote_style: 3, ascii_only: false, beautify: false, semicolons: true, preamble: null },
   sourceMap: false
@@ -231,6 +231,7 @@ async function build(T, name, input, cut = true, ctx = null) {   // (cut false: 
     const keep = new Set([...ctx.keep, ...literalWords(code)]);
     props = {};
     opts.mangle = Object.assign({}, OPTIONS.mangle, { properties: { reserved: [...keep].sort(), keep_quoted: 'strict', builtins: false } });
+    opts.compress = Object.assign({}, OPTIONS.compress, { passes: 3 });   // (a third pass: -41 B here; the world +6, the score +8 with it, so theirs stay two)
     opts.nameCache = { props: { props: {} } };
   }
   const r = await T.minify(code, opts);

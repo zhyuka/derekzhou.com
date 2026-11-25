@@ -246,7 +246,7 @@ census and T1 compare the base's build with the head's.
 tools/minify.mjs makes the served seven from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
 as its default; the ink birds read no dev flag: checked), then terser
-(pinned in package.json) compresses (three passes) and
+(pinned in package.json) compresses (the ink birds in three passes) and
 mangles (and in the ink birds their own properties too: every name another
 served file or a string of theirs has kept; tools/props.mjs checks the list), every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
