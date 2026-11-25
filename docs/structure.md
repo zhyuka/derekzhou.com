@@ -221,8 +221,10 @@ the script has `@glsl NAME` where it was, and assemble writes the text
 back exactly. The build (tools/build.mjs: assemble --min-glsl, for the
 shipped build and the dev build) writes it
 back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
-blank line, no spare space, every line of code still a line (the world's
-folds work by lines), a #define's spacing kept, the same tokens (checked;
+blank line, no spare space, each run of code lines one line but every
+preprocessor line and every uniform declaration a line of its own (the
+world's folds skip a use on a line that starts "uniform"; 2026-11-25: 317 B
+of Brotli off the four scripts with shaders), a #define's spacing kept, the same tokens (checked;
 the build fails otherwise); the part of a file a script reads at run time
 stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
 split finds by its text; the rest of the file is minified, 2026-11-25:

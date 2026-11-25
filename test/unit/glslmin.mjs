@@ -17,9 +17,18 @@ test('glslmin: the same program, token for token', async () => {
     ['uint u = 0x1Fu;', 'uint u=0x1Fu;'],
   ];
   for (const [src, want] of cases) { assert.equal(minGlsl(src), want, src); assert.equal(checkGlsl(src), null, src); }
-  // preprocessor lines keep their spacing, and their own lines; every code line stays a line
+  // preprocessor lines keep their spacing, and their own lines; a run of code lines between them is one line
   const pre = '#version 300 es\nprecision highp float;\n#define A (1.0)   // one\n#define F(x) ((x) * 2.0)\n\n// gone\nfloat f() {\n  return F(A);\n}\n';
-  assert.equal(minGlsl(pre), '#version 300 es\nprecision highp float;\n#define A (1.0)\n#define F(x) ((x) * 2.0)\nfloat f(){\nreturn F(A);\n}\n');
+  assert.equal(minGlsl(pre), '#version 300 es\nprecision highp float;\n#define A (1.0)\n#define F(x) ((x) * 2.0)\nfloat f(){return F(A);}\n');
+  assert.equal(minGlsl('float a;\nfloat b;\n'), 'float a;float b;\n');
+  // a uniform declaration stays a line of its own (the folds, 076-folds-finish, skip a use on a line that starts
+  // "uniform": joined, a use after it would not be folded, and a declaration after code would be)
+  const uni = 'float a;\nuniform int uDbg;\nint b = uDbg;\n', umin = minGlsl(uni);
+  assert.equal(umin, 'float a;\nuniform int uDbg;\nint b=uDbg;\n'); assert.equal(checkGlsl(uni, umin), null);
+  const FOLD = vm.runInThisContext('(function () {\n' + cut(WORLD, '  function foldTok(s, tok, lit) {', '  function foldIssue(P) {') + '  return foldTok;\n})()');
+  const fa = FOLD(uni, 'uDbg', '0'), fb = FOLD(umin, 'uDbg', '0');
+  assert.equal(fb.n, fa.n, 'the folds fold as many uses in the minified text as in the source');
+  assert.equal(fb.s, minGlsl(fa.s), 'and the same ones: folding the minified text is minifying the folded one');
   // a piece's own edges: what was apart stays apart
   assert.equal(minGlsl('\nvec3 a;\n'), '\nvec3 a;\n'); assert.equal(minGlsl(' vec3 a; '), ' vec3 a; ');
   // the tokenizer: numbers, words, the longest operator
@@ -30,6 +39,8 @@ test('glslmin: the same program, token for token', async () => {
   assert.equal(minGlslKeeping('// a\nfloat  x = 1.0;\nvec3 K(vec2 p) {\n  return  vec3(x);\n}\n// b\nfloat y;\n', [['vec3 K(vec2 p) {', '\n}']]),
     'float x=1.0;\nvec3 K(vec2 p) {\n  return  vec3(x);\n}\nfloat y;\n');
 });
+
+// plant: {"file": "tools/glslmin.mjs", "find": "const isUniform = (l) => /^\\s*uniform\\b/.test(l);", "with": "const isUniform = (l) => false;", "why": "a uniform declaration joined into the code around it: the folds would fold its name, and miss a use joined after it"}
 
 test('glslmin: dunes-glsl minified but for D_Hd, which the world\'s own land split still splits as it does the source', async () => {
   const { KEEP, minGlslKeeping, checkGlsl } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
