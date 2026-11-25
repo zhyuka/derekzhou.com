@@ -1173,6 +1173,32 @@ By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
 place; reduced motion draws none, as before. test/unit/air.mjs holds dust
 at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
 
+## THE SALTATION LAYER
+
+On a windy visit the sand is seen to move (world-glsl saltOver, from 350's
+dunes terrain, since 2026-11-25). The veils never read: on opening 8 (U10
+7.31, AIR's dust 1) switching them off changed no pixel at the landing
+and 8 at one level at a cruise pose (laptop @2).
+
+- Grains in hops are densest within about 10 cm of the bed and thin over
+  a few decimetres, gathered in gusts into streamers along the wind
+  (https://arxiv.org/pdf/1201.4353; https://doi.org/10.1029/2004JF000270).
+- From 14 m up the layer is a column of SALT_TAU (0.05) seen through 1 / g
+  of it at the grazing cosine g (floored at 0.1): the sand lifts toward its
+  own lit colour, the grains in the light over it, by SALT_K (0.35) of
+  that, at most 22% of the way (the densest streamer at the most grazing
+  ray). It never darkens: max(lit - c, 0).
+- AIR's dust times it, so none on a calm visit (11 of the 16 openings) and
+  whole past U10 7; none on the lee's steep faces (n.y under 0.85-0.95).
+- The streamers, 1.5 m apart across the wind and 12 m long, drift on the
+  air 10 cm up (AIR_H.salt, carried on the surface's clock, the veils'
+  own). Where their spacing spans under 5 px they are their mean, so they
+  never glitter.
+
+test/unit/air.mjs holds the calm return, the non-darkening lift, the
+faintness bound, the streamers' fade and the dust factor; two plants (the
+dust factor gone, the max gone) fail it.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate

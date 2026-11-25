@@ -4,6 +4,8 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "(uGrains.x * SALT_K * smoothstep", "with": "(SALT_K * smoothstep", "why": "the saltation layer on calm visits too (sand moves only past its threshold: AIR's dust)"}
+// plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "return c + max(lit - c, vec3(0.0)) *", "with": "return c + (lit - c) *", "why": "the saltation layer darkening sand brighter than its lit colour (the sheen): never darken"}
 // plant: {"file": "src/world/414-draw-scene.js", "find": "    var skR = (V.def.sandFx ? sandAt() : 1) * airWx(SIM.t, V).dust;", "with": "    var skR = V.def.sandFx ? sandAt() : 1;", "why": "the veils at a constant on every visit again, calm or not (sand moves only past its threshold)"}
 // plant: {"file": "src/world/215-air.js", "find": "U * Math.exp(-1.5 * Math.max(y, 0) / AIR_GUST[3]) * airShare(y, t) * gustN(xi, eta);", "with": "airSpeed(y, V) * airShare(y, t) * gustN(xi, eta);", "why": "the gusts sized by the mean wind at every height: 10 m/s of gust in the jet at 9 km, not the boundary layer's turbulence"}
 // plant: {"file": "src/world/215-air.js", "find": "      if (o === 'milkyway') S.lst0 = airGalLst(S, V);", "with": "", "why": "a milkyway opening at the night's depth's hour: its band hangs near-upright or out of frame"}
@@ -685,4 +687,20 @@ test('veils: none below the sand\'s threshold, rising past it, by the visit\'s U
   const D = fs.readFileSync(path.join(ROOT, 'src/world/414-draw-scene.js'), 'utf8');
   assert.ok(D.includes('var skR = (V.def.sandFx ? sandAt() : 1) * airWx(SIM.t, V).dust;'), 'the veils not scaled by the air\'s dust (the sand\'s threshold)');
   assert.ok(!/0\.4 \+ 0\.6 \* smoothstep\(3\.0, 7\.0, uAirU\)/.test(GLSL('vs-ribbon.glsl')), 'the veils\' floor of 0.4 on calm visits is back');
+});
+
+test('saltation: none on a calm visit, never darker, faint, its streamers their mean under 5 px (physics: sand/saltation)', () => {
+  const W = GLSL('world-glsl.glsl'), a = W.indexOf('vec3 saltOver('), b = W.indexOf('\n}\n', a), body = W.slice(a, b);
+  assert.ok(a >= 0, 'world-glsl has no saltOver');
+  assert.ok(/if \(uGrains\.x <= 0\.0\) return c;/.test(body), 'a calm visit (dust 0) not returned as it was');
+  const ret = body.match(/return c \+ max\(lit - c, vec3\(0\.0\)\) \* \(uGrains\.x \* SALT_K \* smoothstep\(([0-9.]+), ([0-9.]+), n\.y\) \* \(1\.0 - exp\(-SALT_TAU \* str \/ g\)\)\);/);
+  assert.ok(ret, 'the lift is not max(lit - c, 0) times dust x SALT_K x the slope x the column: it could darken, or blow on a calm visit');
+  const k = (n) => +W.match(new RegExp(n + ' = ([0-9.]+)'))[1], K = k('SALT_K'), TAU = k('SALT_TAU'), g0 = +body.match(/float g = max\(abs\(dot\(rd, n\)\), ([0-9.]+)\);/)[1];
+  const strMax = body.match(/mix\(([0-9.]+) \+ ([0-9.]+) \* smoothstep/).slice(1).map(Number).reduce((x, y) => x + y);
+  const most = K * (1 - Math.exp(-TAU * strMax / g0));   // (the densest streamer at the most grazing ray, dust 1)
+  assert.ok(most > 0.02 && most <= 0.25, `the most the layer lifts the sand toward its lit colour: ${(100 * most).toFixed(1)}% (faint: at most 25%, and reading at all)`);
+  assert.ok(/smoothstep\(0\.2, 0\.4, fw \/ SALT_W\)\)/.test(body), 'the streamers not their mean where their spacing spans under 5 px (a glitter at range)');
+  const S350 = fs.readFileSync(path.join(ROOT, 'src/world/350-shaders-scene.js'), 'utf8'), U = fs.readFileSync(path.join(ROOT, 'src/world/370-frame-uniforms.js'), 'utf8');
+  assert.ok(S350.includes('c = saltOver(c, vW, n, rd, fp, SAND_LIT);'), 'the dunes\' terrain does not take the layer');
+  assert.ok(/SALTU\[0\] = airWx\(SIM\.t, V\)\.dust;/.test(U), 'the layer not the air\'s dust (the sand\'s threshold)');
 });
