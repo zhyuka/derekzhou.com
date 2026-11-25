@@ -673,6 +673,17 @@ physics: clouds/drift). It holds:
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
   and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- No diurnal veer (the hub's ruling, 2026-11-25): the wind's direction does
+  not turn with the sky. Measured on main: a night veer would move the
+  clouds' drift 0 px in 60 s, under the one-pixel line. windAt
+  (215-air.js) is airBase scaled by airShare, one number, so the sky sets
+  the wind's speed and never its way. The clouds drift on airBase, the
+  day's wind (cloudWind, 212-cloud-drift.js), so each cloud's place stays
+  a function of the clock alone. The profile has no veer under 100 m, so
+  the veils (5 m) and the birds at their default 40 m would see nothing.
+  Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
+  night turn. Adding one would mean the clouds and those birds reading a
+  wind that depends on the sky, and a cited source for the turn by night.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
