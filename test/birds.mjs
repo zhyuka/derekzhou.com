@@ -514,3 +514,38 @@ test('at dusk and first light no bird wheels in a thermal (a wheel only round a 
   assert.ok(n > 200, 'too few goals drawn');
   assert.equal(air, 0, `${air} wheels in a thermal at dusk or first light`);
 });
+
+/* (Delight 3, the hub 2026-11-25) a crow in a rim's strong lift tumbles now and then: a drawn roll right over, eased, a
+   little drop. Only in the lift (a crow over a lee never tumbles); the roll never jumps a step (no pop: its end a whole
+   turn taken from the step's start too); its flight's own bank stays within its kind's limit */
+test('crows tumble only in a rim\'s strong lift, the roll eased, never a pop', () => {
+  const W = [6.5 * Math.SQRT1_2, 6.5 * Math.SQRT1_2], DTS = 1 / 20, MAXD = 1.5 * 2 * Math.PI * DTS / 1 + 1e-9;
+  let inLift = 0, tumbles = 0, outside = 0, leeT = 0, leeN = 0, jump = 0, bank = 0;
+  for (let seed = 1; seed <= 8; seed++) for (const over of ['face', 'lee']) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = DTS; sc.opt.draw = null; sc.opt.wind = W; sc.opt.speed = 0; sc.opt.yaw = 0;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2); const B = sim.B, a0 = Math.atan2(sim.C.f[0], sim.C.f[2]);
+    let at = null;
+    for (let k = 0; k < 4000 && !at; k++) {
+      const a = a0 + ((k * 0.618 + seed * 0.1) % 1 - 0.5) * 0.7, d = 300 + (k % 60) * 10, x = sim.C.pos[0] + d * Math.sin(a), z = sim.C.pos[2] + d * Math.cos(a), y = groundAt(x, z) + 25, w = B.slopeW(x, y, z);
+      if (over === 'face' ? w > 1.2 : w === 0 && B.slopeW(x, y + 200, z) === 0 && groundAt(x + 60, z + 60) < groundAt(x, z) - 3) at = { x, y, z };
+    }
+    if (!at) continue;
+    const F = B.newFlock(at.x, at.y, at.z, Math.atan2(W[0], W[1]) + Math.PI / 2, 'moon', ['single', 'crow', 1]), b = F.lead;
+    F.goal = null; const g = B.newGoal(F, 'loiter', F.r, 'blue'); g.cx = at.x; g.cz = at.z; g.R = 60; g.y = b.p[1]; g.T = 999;
+    let was = -1;
+    for (let k = 0; k < 90 * 20; k++) {
+      sim.step(); if (b.st !== 'fly') break;
+      if (over === 'face') inLift += b.lift > 0.8 || b.tumT >= 0 ? 1 : 0; else leeN++;
+      if (b.tumT >= 0 && was < 0) { if (over === 'lee') leeT++; else { tumbles++; if (!(B.slopeW(b.p[0], b.p[1], b.p[2]) > 0.6 || b.lift < 0)) outside++; } }
+      was = b.tumT;
+      jump = Math.max(jump, Math.abs(b.tum - b.tum0)); bank = Math.max(bank, Math.abs(b.phi));
+    }
+  }
+  console.log(`# crow tumbles: ${tumbles} over windward faces in ${(inLift / 20).toFixed(0)} s in strong lift, ${outside} begun outside it; over lee ground ${leeT} in ${(leeN / 20).toFixed(0)} s; the roll at most ${jump.toFixed(3)} rad a step (bound ${MAXD.toFixed(3)}); its flight's bank at most ${(bank * 180 / Math.PI).toFixed(0)} deg`);
+  assert.ok(inLift > 20 * 60 && tumbles >= 4, `${tumbles} tumbles in ${(inLift / 20).toFixed(0)} s of strong lift`);
+  assert.equal(outside, 0, `${outside} tumbles begun outside a rim's lift`);
+  assert.ok(leeN > 20 * 60, 'too little lee flight');
+  assert.equal(leeT, 0, `${leeT} tumbles over lee ground`);
+  assert.ok(jump <= MAXD, `the drawn roll jumped ${jump.toFixed(3)} rad in a step`);
+  assert.ok(bank <= 40 * Math.PI / 180 + 1e-6, `a crow's flight banked ${(bank * 180 / Math.PI).toFixed(0)} deg`);
+});

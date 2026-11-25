@@ -127,9 +127,9 @@
     var K = b.K, wx = WINDV[0], wz = WINDV[2];
     b.lift = b.st === 'fly' && !b.P ? slopeW(b.p[0], b.p[1], b.p[2]) : 0;
     /* (Delight 3) a crow in a rim's strong lift tumbles now and then: a roll right over, about a second, rolled out of its lift
-       and dropping a little as it goes (crows roll and tumble in strong wind over ridges and cliffs, for play:
-       https://www.audubon.org/news/do-birds-play). The roll is the drawn body's alone (tum): its flight never banks past its kind's limit */
-    if (b.tumT >= 0) { var tu = (t - b.tumT) / TUM_D; if (tu >= 1) { b.tumT = -1; b.tum0 -= TAU * b.tumS; b.tum = 0; }   // (a whole turn is none: taken from the step's start too, so the draw never spins it back) else { b.tum = TAU * tu * tu * (3 - 2 * tu) * b.tumS; b.lift = -1.5 * Math.sin(Math.PI * tu); } }
+       and dropping a little as it goes (corvids roll more in moderate and strong wind,
+       losing height as they roll: https://sora.unm.edu/sites/default/files/journals/auk/v101n03/p0620-p0621.pdf). The roll is the drawn body's alone (tum): its flight never banks past its kind's limit */
+    if (b.tumT >= 0) { var tu = (t - b.tumT) / TUM_D; if (tu >= 1) { b.tumT = -1; b.tum0 -= TAU * b.tumS; b.tum = 0; } else { b.tum = TAU * tu * tu * (3 - 2 * tu) * b.tumS; b.lift = -1.5 * Math.sin(Math.PI * tu); } }   // (a whole turn is none: taken from the step's start too, so the draw never spins it back)
     else if (b.kind === 'crow' && b.lift > TUM_W && b.r() < TUM_P * dt) { b.tumT = t; b.tumS = b.r() < 0.5 ? 1 : -1; }
     var ax = dx - wx, az = dz - wz, ay = dy, hz = Math.sqrt(ax * ax + az * az);
     var psiD = hz > 0.3 ? Math.atan2(ax, az) : b.psi, gamD = clamp(Math.atan2(ay, Math.max(hz, 0.5)), -K.dive * DEG, K.climb * DEG);
