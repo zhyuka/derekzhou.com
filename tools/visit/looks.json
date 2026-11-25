@@ -1,9 +1,9 @@
 {
- "world": "06d9d596f7f7a028",
+ "world": "2637a284b8665924",
  "lands": {
   "0": {
    "90": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 0,
     "deg": 90,
     "wordCloud": 0.019,
@@ -45,7 +45,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 0,
     "deg": null,
     "wordCloud": 0.589,
@@ -89,14 +89,14 @@
   },
   "1": {
    "329": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 1,
     "deg": 329,
     "wordCloud": 0.094,
     "nameCloud": 0,
     "topCloud": 0.025,
     "galaxy": 0.819,
-    "galaxyIn": 11.096,
+    "galaxyIn": 11.055,
     "sun": 0.841,
     "sunIn": 8.864,
     "discs": {
@@ -110,7 +110,7 @@
       "nameCloud": 0,
       "topCloud": 0.025,
       "vis": 0.819,
-      "in": 11.096
+      "in": 11.055
      },
      {
       "view": "laptop-sunset",
@@ -131,14 +131,14 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 1,
     "deg": null,
     "wordCloud": 0.455,
     "nameCloud": 0.437,
     "topCloud": 0.139,
-    "galaxy": 0.718,
-    "galaxyIn": 7.164,
+    "galaxy": 0.717,
+    "galaxyIn": 7.123,
     "sun": 0.777,
     "sunIn": 2.861,
     "discs": {
@@ -151,8 +151,8 @@
       "wordCloud": 0.455,
       "nameCloud": 0.437,
       "topCloud": 0.139,
-      "vis": 0.718,
-      "in": 7.164
+      "vis": 0.717,
+      "in": 7.123
      },
      {
       "view": "laptop-sunset",
@@ -175,7 +175,7 @@
   },
   "2": {
    "300": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 2,
     "deg": 300,
     "wordCloud": 0,
@@ -217,7 +217,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 2,
     "deg": null,
     "wordCloud": 0.298,
@@ -261,14 +261,14 @@
   },
   "3": {
    "120": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 3,
     "deg": 120,
     "wordCloud": 0.053,
     "nameCloud": 0.009,
     "topCloud": 0,
     "galaxy": 0.91,
-    "galaxyIn": 11.029,
+    "galaxyIn": 10.988,
     "sun": 0.936,
     "sunIn": 9.357,
     "discs": {
@@ -282,7 +282,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 0.91,
-      "in": 11.029
+      "in": 10.988
      },
      {
       "view": "laptop-sunset",
@@ -303,14 +303,14 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 3,
     "deg": null,
     "wordCloud": 0.006,
     "nameCloud": 0,
     "topCloud": 0,
     "galaxy": 0.936,
-    "galaxyIn": 8.354,
+    "galaxyIn": 8.313,
     "sun": 0.974,
     "sunIn": 5.032,
     "discs": {
@@ -324,7 +324,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 0.936,
-      "in": 8.354
+      "in": 8.313
      },
      {
       "view": "laptop-sunset",
@@ -347,14 +347,14 @@
   },
   "4": {
    "35": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 4,
     "deg": 35,
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.056,
-    "galaxy": 0.858,
-    "galaxyIn": 10.965,
+    "galaxy": 0.857,
+    "galaxyIn": 10.924,
     "sun": 0.855,
     "sunIn": 8.12,
     "discs": {
@@ -367,8 +367,8 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.056,
-      "vis": 0.858,
-      "in": 10.965
+      "vis": 0.857,
+      "in": 10.924
      },
      {
       "view": "laptop-sunset",
@@ -389,14 +389,14 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 4,
     "deg": null,
     "wordCloud": 0.269,
     "nameCloud": 0.437,
     "topCloud": 0,
     "galaxy": 0.94,
-    "galaxyIn": 7.117,
+    "galaxyIn": 7.076,
     "sun": 0.922,
     "sunIn": 2.811,
     "discs": {
@@ -410,7 +410,7 @@
       "nameCloud": 0.437,
       "topCloud": 0,
       "vis": 0.94,
-      "in": 7.117
+      "in": 7.076
      },
      {
       "view": "laptop-sunset",
@@ -433,7 +433,7 @@
   },
   "5": {
    "230": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 5,
     "deg": 230,
     "wordCloud": 0.078,
@@ -475,7 +475,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 5,
     "deg": null,
     "wordCloud": 0.31,
@@ -519,14 +519,14 @@
   },
   "6": {
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 6,
     "deg": null,
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.14,
-    "galaxy": 0.895,
-    "galaxyIn": 9.499,
+    "galaxy": 0.894,
+    "galaxyIn": 9.458,
     "sun": 0.877,
     "sunIn": 5.598,
     "discs": {
@@ -539,8 +539,8 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.14,
-      "vis": 0.895,
-      "in": 9.499
+      "vis": 0.894,
+      "in": 9.458
      },
      {
       "view": "laptop-sunset",
@@ -563,7 +563,7 @@
   },
   "7": {
    "70": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 7,
     "deg": 70,
     "wordCloud": 0.023,
@@ -605,7 +605,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 7,
     "deg": null,
     "wordCloud": 0,
@@ -649,14 +649,14 @@
   },
   "8": {
    "245": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 8,
     "deg": 245,
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.001,
     "galaxy": 1,
-    "galaxyIn": 9.49,
+    "galaxyIn": 9.448,
     "sun": 1,
     "sunIn": 8.09,
     "discs": {
@@ -670,7 +670,7 @@
       "nameCloud": 0,
       "topCloud": 0.001,
       "vis": 1,
-      "in": 9.49
+      "in": 9.448
      },
      {
       "view": "laptop-sunset",
@@ -691,14 +691,14 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 8,
     "deg": null,
     "wordCloud": 0.099,
     "nameCloud": 0.01,
     "topCloud": 0.049,
-    "galaxy": 0.835,
-    "galaxyIn": 7.166,
+    "galaxy": 0.834,
+    "galaxyIn": 7.124,
     "sun": 0.882,
     "sunIn": 3.343,
     "discs": {
@@ -711,8 +711,8 @@
       "wordCloud": 0.072,
       "nameCloud": 0.003,
       "topCloud": 0,
-      "vis": 0.835,
-      "in": 7.166
+      "vis": 0.834,
+      "in": 7.124
      },
      {
       "view": "laptop-sunset",
@@ -735,7 +735,7 @@
   },
   "9": {
    "140": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 9,
     "deg": 140,
     "wordCloud": 0.061,
@@ -777,7 +777,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 9,
     "deg": null,
     "wordCloud": 0.235,
@@ -821,7 +821,7 @@
   },
   "10": {
    "240": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 10,
     "deg": 240,
     "wordCloud": 0.071,
@@ -863,7 +863,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 10,
     "deg": null,
     "wordCloud": 0.374,
@@ -907,7 +907,7 @@
   },
   "11": {
    "305": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 11,
     "deg": 305,
     "wordCloud": 0.083,
@@ -949,7 +949,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 11,
     "deg": null,
     "wordCloud": 0.114,
@@ -993,7 +993,7 @@
   },
   "12": {
    "60": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 12,
     "deg": 60,
     "wordCloud": 0.09,
@@ -1035,7 +1035,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 12,
     "deg": null,
     "wordCloud": 0.29,
@@ -1079,7 +1079,7 @@
   },
   "13": {
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 13,
     "deg": null,
     "wordCloud": 0.007,
@@ -1123,7 +1123,7 @@
   },
   "14": {
    "250": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 14,
     "deg": 250,
     "wordCloud": 0.043,
@@ -1165,7 +1165,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 14,
     "deg": null,
     "wordCloud": 0.282,
@@ -1209,7 +1209,7 @@
   },
   "15": {
    "125": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 15,
     "deg": 125,
     "wordCloud": 0.074,
@@ -1251,7 +1251,7 @@
     ]
    },
    "own": {
-    "world": "06d9d596f7f7a028",
+    "world": "2637a284b8665924",
     "k": 15,
     "deg": null,
     "wordCloud": 0.568,
