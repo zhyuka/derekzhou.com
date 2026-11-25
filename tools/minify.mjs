@@ -42,6 +42,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { createRequire } from 'module';
 import { pathToFileURL, fileURLToPath } from 'url';
+import * as acorn from 'acorn';
 
 const TERSER_VERSION = '5.51.2';
 const STEMS = ['world', 'inkbirds', 'realm-kit', 'realm-dunes', 'realm-above', 'sound', 'score'];   // (sound: the sound icon's switch, 2026-11-07; score: the music it plays, 2026-11-12)
@@ -121,9 +122,38 @@ function keepComment(node, c) {   // (the INIT-END marker: only the one this scr
   const v = c.value;
   return c.c4cMarker === true || (!v.includes(MARK) && (v.startsWith(NOTE1) || v.startsWith(NOTE2) || /@license|@preserve|^!/.test(v)));
 }
+/* (the hub's bird bytes, PR B, 2026-11-25) the ink birds' own properties renamed (terser's mangle.properties): a name is
+   renamed only if no other file the page or the build serves has it as a word (the other scripts' code, comments out;
+   the pages, the stylesheet and the scripts served as written: site/, the wing model), no string or template literal of the ink birds
+   has it as a word (a key read by string, a JSON key, a kind's name), and it is not a DOM or built-in property (terser's
+   own list, builtins false). So every property that crosses a script boundary (HOST's, the engine's camera and sky, the
+   model's, the score's feed) keeps its name; tools/props.mjs checks the renamed list against what is served
+   (tools/checks/50-props.sh) */
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PROPS_STEM = 'inkbirds';
+const WORD = /[A-Za-z_$][\w$]*/g;
+function servedAsWritten() {   // the page's own files and the wing model: served as written, never minified here
+  const out = [];
+  for (const d of ['site', 'src/birds/model']) for (const f of fs.readdirSync(path.join(ROOT, d)).sort()) if (/\.(js|html|json|css)$/.test(f)) out.push(fs.readFileSync(path.join(ROOT, d, f), 'utf8'));
+  return out;
+}
+function literalWords(code) {
+  const w = new Set();
+  for (const tk of acorn.tokenizer(code, { ecmaVersion: 'latest' })) if (tk.type.label === 'string' || tk.type.label === 'template') for (const x of String(tk.value).match(WORD) || []) w.add(x);
+  return w;
+}
+async function propsCtx(T, dir, files) {   // the names the ink birds' properties must keep: every word of what else is served
+  const keep = new Set();
+  for (const n of files) {
+    if (n.match(NAME)[1] === PROPS_STEM) continue;
+    for (const x of (await globalsOf(T, read(path.join(dir, n)))).code.match(WORD) || []) keep.add(x);
+  }
+  for (const t of servedAsWritten()) for (const x of t.match(WORD) || []) keep.add(x);
+  return { keep };
+}
 const OPTIONS = {
   ecma: 5, module: false, toplevel: false, safari10: true, ie8: false,
-  compress: { passes: 2, unsafe: false, drop_console: false, keep_fargs: true, keep_infinity: true },
+  compress: { passes: 3, unsafe: false, drop_console: false, keep_fargs: true, keep_infinity: true },
   mangle: { safari10: true, toplevel: false },
   format: { comments: keepComment, quote_style: 3, ascii_only: false, beautify: false, semicolons: true, preamble: null },
   sourceMap: false
@@ -187,7 +217,7 @@ async function globalsOf(T, code) {
   return g;
 }
 const count = (s, re) => (s.match(re) || []).length;
-async function build(T, name, input, cut = true) {   // (cut false: --report's measure of 4c alone)
+async function build(T, name, input, cut = true, ctx = null) {   // (cut false: --report's measure of 4c alone; ctx: propsCtx's, for the ink birds)
   if (input.includes('\r')) die(name + ': a CR in the input (LF only: a CRLF checkout changes every template literal)');
   const stem = name.match(NAME)[1];
   let code = input, log = [];
@@ -195,6 +225,14 @@ async function build(T, name, input, cut = true) {   // (cut false: --report's m
   if (stem === 'inkbirds' && cut) ({ code, log } = cutInk(input));
   const opts = Object.assign({}, OPTIONS, { format: Object.assign({}, OPTIONS.format, { ast: true, code: false }) });
   if (stem === 'world' && cut) opts.compress = Object.assign({}, OPTIONS.compress, { global_defs: Object.assign({}, GLOBAL_DEFS, SWDEFS) });
+  let props = null;
+  if (stem === PROPS_STEM && cut) {
+    if (!ctx) die(name + ': its properties are renamed against the other scripts: build it with them (propsCtx)');
+    const keep = new Set([...ctx.keep, ...literalWords(code)]);
+    props = {};
+    opts.mangle = Object.assign({}, OPTIONS.mangle, { properties: { reserved: [...keep].sort(), keep_quoted: 'strict', builtins: false } });
+    opts.nameCache = { props: { props: {} } };
+  }
   const r = await T.minify(code, opts);
   const at = code.indexOf(MARK);
   if (at >= 0) {
@@ -204,6 +242,7 @@ async function build(T, name, input, cut = true) {   // (cut false: --report's m
     putMarker(name, r.ast, m, code.slice(m + 2, e));
   }
   const out = r.ast.print_to_string(FORMAT) + '\n';
+  if (props) for (const [k, v] of Object.entries(opts.nameCache.props.props)) props[k.slice(1)] = v;   // (terser keys its cache '$name')
   // the checks
   const g0 = await globalsOf(T, input), g1 = await globalsOf(T, out);
   const extra = [...g1].filter((x) => !g0.has(x)).sort();
@@ -225,7 +264,7 @@ async function build(T, name, input, cut = true) {   // (cut false: --report's m
   // the script's own function as strict as in the source (terser drops a nested "use strict": redundant inside it)
   const strictTop = (c) => /^[!(]*function\s*\([^)]*\)\s*\{\s*(['"])use strict\1/.test(c);
   if (strictTop(g1.code) !== strictTop(g0.code)) die(name + ': the script\'s function is ' + (strictTop(g0.code) ? '' : 'not ') + 'strict in the input, ' + (strictTop(g1.code) ? '' : 'not ') + 'in the output');
-  return { out, cut: code, log, gone };
+  return { out, cut: code, log, gone, props };
 }
 
 function scripts(dir) {
@@ -245,8 +284,9 @@ if (a[0] === '--check') {
   const [src, site] = a.slice(1);
   if (!src || !site) die('usage: minify.mjs --check SRC SITE');
   let bad = 0;
-  for (const n of scripts(src)) {
-    const { out } = await build(T, n, read(path.join(src, n)));
+  const F = scripts(src), ctx = await propsCtx(T, src, F);
+  for (const n of F) {
+    const { out } = await build(T, n, read(path.join(src, n)), true, ctx);
     const p = path.join(site, n);
     if (!fs.existsSync(p)) { console.error('minify: ' + p + ' is missing (the script makes it from ' + path.join(src, n) + ')'); bad = 1; continue; }
     if (fs.readFileSync(p).equals(Buffer.from(out, 'utf8'))) console.log('ok   ' + p + ' is what the script makes from ' + path.join(src, n));
@@ -256,24 +296,27 @@ if (a[0] === '--check') {
 } else if (a[0] === '--report') {
   const src = a[1]; if (!src) die('usage: minify.mjs --report SRC');
   const rows = [];
-  for (const n of scripts(src)) {
-    const input = read(path.join(src, n)), { out, cut, log, gone } = await build(T, n, input);
+  const F = scripts(src), ctx = await propsCtx(T, src, F);
+  for (const n of F) {
+    const input = read(path.join(src, n)), { out, cut, log, gone, props } = await build(T, n, input, true, ctx);
     const nocut = n.startsWith('world') ? sizes((await build(T, n, input, false)).out) : undefined;
-    rows.push({ file: n, before: sizes(input), cut: nocut && sizes(cut), minifiedWithoutTheCut: nocut, after: sizes(out), log, globalsOnlyTheCutUsed: gone.length ? gone : undefined });
+    rows.push({ file: n, before: sizes(input), cut: nocut && sizes(cut), minifiedWithoutTheCut: nocut, after: sizes(out), log, globalsOnlyTheCutUsed: gone.length ? gone : undefined, propsRenamed: props || undefined });
   }
   console.log(JSON.stringify(rows, null, 1));
 } else if (a[0] === '--build') {
   const [src, site] = a.slice(1);
   if (!src || !site) die('usage: minify.mjs --build SRC SITE');
-  for (const n of scripts(src)) {
-    const input = read(path.join(src, n)), { out } = await build(T, n, input);
+  const F = scripts(src), ctx = await propsCtx(T, src, F);
+  for (const n of F) {
+    const input = read(path.join(src, n)), { out } = await build(T, n, input, true, ctx);
     fs.writeFileSync(path.join(site, n), out);
     console.error('minify: ' + path.join(site, n) + ' made from ' + path.join(src, n) + ' (' + Buffer.byteLength(input) + ' -> ' + Buffer.byteLength(out) + ' bytes)');
   }
 } else if (a.length === 1 && !a[0].startsWith('--')) {
   const dir = a[0];
-  for (const n of scripts(dir)) {
-    const p = path.join(dir, n), input = read(p), { out, log } = await build(T, n, input);
+  const F = scripts(dir), ctx = await propsCtx(T, dir, F);   // (before any is rewritten: the inputs' words)
+  for (const n of F) {
+    const p = path.join(dir, n), input = read(p), { out, log } = await build(T, n, input, true, ctx);
     fs.writeFileSync(p, out);
     console.error('minify: ' + n + ' ' + Buffer.byteLength(input) + ' -> ' + Buffer.byteLength(out) + ' bytes' + (log.length ? ' (' + log.join('; ') + ')' : ''));
   }

@@ -99,6 +99,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the seven minified scripts from build/ship/; CI checks the build
+tools/props.mjs              The ink birds' renamed properties listed, none in another served file, a string of theirs or the DOM (50-props)
 tools/glslmin.mjs            A shader's text without comments and spare space, token for token the same (the build's)
 tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
 tools/paint-trend.mjs        The first paint, base against head (the gate's paint-loads runners, --samples, and its paint job, --judge): words and the world's first frame, cold, timed
@@ -193,6 +194,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/48-tsc.sh (tsc --checkJs at zero: tools/tsc.mjs),
                              tools/checks/49-sound-cpu.sh (the score's CPU under its bars, the world running:
                              tools/sound/cpu.mjs)
+                             tools/checks/50-props.sh (the ink birds' renamed properties cross no script boundary: tools/props.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/reads.mjs (every file a check with `# inputs:` reads, written down), tools/checks/lib/rules_check.py (RULES.json's references exist),
@@ -244,8 +246,9 @@ census and T1 compare the base's build with the head's.
 tools/minify.mjs makes the served seven from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
 as its default; the ink birds read no dev flag: checked), then terser
-(pinned in package.json) compresses and
-mangles, every string's value and every shader's text (as assemble gave it) the same, every
+(pinned in package.json) compresses (three passes) and
+mangles (and in the ink birds their own properties too: every name another
+served file or a string of theirs has kept; tools/props.mjs checks the list), every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker. None of what they make is committed: a change
 is made in src/ and committed alone, and the build makes the rest. The
