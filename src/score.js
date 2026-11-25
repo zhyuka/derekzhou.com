@@ -34,11 +34,14 @@
    compression.
 
    The night's quiet (the owner, 2026-11-16, of quieter nights: "yes go"): each sky its own level inside the -23,
-   afterglow and first light fuller, the night skies about 3 dB under them, made by thinning (the voices resting
-   longer, the colour coming less often and never brought in to fill a hole, never a third voice over two, a note
-   alone lifted less) and the strings softer under the night's colours, never by the whole level, so the deep end
-   keeps its weight; and in the Milky Way, now and then, a breath: the notes let go and for a few seconds only the
-   air plays, a soft gust through it. */
+   afterglow and first light fuller, the night skies about 3 dB under them, never by the whole level, so the deep end
+   keeps its weight. Most of it is the strings softer under the night's colours and a note alone lifted less; the
+   rest is meant as thinning (the voices resting longer, the colour coming less often and never brought in to fill a
+   hole, never a third voice over two), which moves little: the floor (never a hole, never one held note alone over
+   3 s) brings a voice in where one would rest, so the Milky Way and aurora begin as many notes a minute as afterglow
+   and keep as many sounding (measured 2026-11-25: docs/sound.md); letting the floor wait at night lets one note
+   sound alone 6-10 s, a siren. And in the Milky Way, now and then, a breath: the notes let go and for a few seconds
+   only the air plays, a soft gust through it. */
 (function () {
   'use strict';
 
@@ -58,9 +61,10 @@
   };
   var LIFTS = { horn: 0, harp: -3, piano: -1.5, clar: -3, strings: 0, mist: -6 };   // (dB: the strings under each colour: afterglow's horns and first light's violins over them in full, the night's harp and clarinet over them softer; the deep end the same under all)
   /* the night's quiet (delight wave one, its seventh: each sky its own level inside the -23 frame, the night skies
-     about 3 dB under afterglow and first light, made by thinning, never by turning the level down, which at a quiet
-     level takes the bass first): each sky how long its voices rest, how often its colour comes, how much a note alone
-     is lifted, and its passages (open, warm, air, still, rich) */
+     about 3 dB under afterglow and first light, never by turning the level down, which at a quiet level takes the
+     bass first; the strings under the colours, LIFTS above, do most of it, these little, the floor filling what they
+     open: docs/sound.md): each sky how long its voices rest, how often its colour comes, how much a note alone is
+     lifted, and its passages (open, warm, air, still, rich) */
   var FULL = {
     afterglow: { rest: 0.7, col: 0.75, lone: 1, kinds: [0.26, 0.2, 0.14, 0.08, 0.32], most: 9 },
     firstlight: { rest: 0.75, col: 0.8, lone: 1, kinds: [0.28, 0.18, 0.16, 0.08, 0.3], most: 9 },
