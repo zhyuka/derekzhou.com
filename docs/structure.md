@@ -60,7 +60,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
                              test/unit/cloudshadow.mjs (the clouds' shadows on the land: the chord, the ellipse, the wiring),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit
-                             far out: an fp32 replay), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
+                             far out: an fp32 replay), test/unit/destination.mjs (the horizon's destination: on the landing's
+                             heading 7-8 km out, the seed's alone, laid out by its own scale), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag), test/unit/motion.mjs (the phone's motion steering: held still, turned),
@@ -68,7 +69,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
                              test/unit/kit.mjs (WORLD.kit: exactly the helpers the realms call, pinned),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
-                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
+                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/check-cache.mjs (a check's declared inputs: its key, main's pass reused, no stray read), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
@@ -192,7 +193,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/sound/cpu.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
-tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
+tools/checks/lib/            What the checks run: tools/checks/lib/reads.mjs (every file a check with `# inputs:` reads, written down), tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),

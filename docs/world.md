@@ -703,6 +703,48 @@ not baked. The land is the opening seed's for the whole visit, one of 16 whateve
 the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
 over it is the read's own (## THE WEATHER).
 
+## THE DESTINATION
+
+Each land has one colossal form on the horizon ahead, on the landing's
+heading (airHeading0, SEED0's), 7-8 km out (217: destOf, { x, z, d,
+bearing }, the seed's alone). So it stands in the first frame, and the
+flight, held on its heading, meets it in 9.7-11.1 minutes at 12 m/s. It
+is never aimed at: a drag takes the flight anywhere, and the slip passes
+it as any form. It is an inselberg, a bornhardt (realm-dunes: bornG): a
+dome of bare rock 620-720 m tall and about 1.2 km across. Its flanks
+steepen to a sharp foot on the sand (a superellipse, exponent 1.5-1.9: a sugarloaf, its crown off centre so one flank is the steeper, its skyline uneven),
+its sides are fluted by the runoff, and its crown is smooth and a little
+off centre. It is outsized beside the land's formations (35-90 m), as
+the Namib's inselbergs (https://en.wikipedia.org/wiki/Spitzkoppe) stand
+over their plains. Far off, the cell's coarse build gives it 16 columns
+and 10 rows a dome, about 580 faces with a lower dome on its shoulder (a silhouette at 7 km); in full, 44 and 23 a dome. It is pale granite (D_PALE): its sunlit side lighter than the haze before it, its shaded side darker, two tones where the strata's rock read as one.
+An earlier volcanic neck on its shoulder read as a steeple and was
+dropped (hub, 2026-11-25). Its draws are its own, so each land's
+differs. Where the heading leads out
+over the cloud sea, it rises out of it, seated on the sunken land as the
+coast's formations are. Its kind (217: destKind, agreed with the cloud
+lane) is read once from the maps: 'isle' where the cloud sea's weight at
+the point is over 0.5 (5 of 16 lands on today's maps), else 'rock'. Scale
+5 hands an isle's cell to the above kit's dest once that kit has one, and
+otherwise to the dunes kit's rock.
+
+It is laid out by its own layout scale (the sixth: 16 km cells reaching
+12 km), which makes only the cell that holds it (one: true, 236's
+streamCells), kept whatever the density draws. The scale's other cells
+in reach (three, empty) changed which cloud bodies the boot baked before
+the show: +88 bake slices and +36k voxels on the phone, +138 ms to the
+world's first frame on the gate's paint (load-perf, 2026-11-25). With
+only the one cell, the boot bakes exactly what main does. The scale's fade starts at 9.3 km, so
+at 7-8 km it is whole and never pops in. 6 km cells reaching 14 km
+spent the boot's layout budget on about 17 empty cells and showed the
+phone's world a frame later. Through main's haze (green, eye 18 m) the
+form keeps 14-16% of the contrast at its foot and 30-40% at 400-700 m.
+Its rock against the horizon sky shows at about 17-25% at 7.5 km
+(tools/physics/destination.mjs). test/unit/destination.mjs checks the
+bearing, the distance and the minutes for all 16 openings, path
+independence, and the scale's dispatch. Every land's still shows it
+once the stills are baked again (tools/gpu/bake-stills.js).
+
 ## THE AIR
 
 The owner (2026-11-15): "they should follow real physics, clouds moving

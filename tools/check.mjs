@@ -22,13 +22,13 @@
 // whole when it fails, its last line when it passes. A check marked `# alone: <why>` (it measures time: a sound's start,
 // a first paint) runs after the others, one at a time, so the checks beside it never slow what it measures (2026-11-23:
 // on a 4-core hosted runner 38-sound started 0 notes by 4 s with 34 checks beside it, and 6 on the PC).
-import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'; import { spawn, spawnSync } from 'node:child_process'; import { fileURLToPath } from 'node:url';
+import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'; import { spawn, spawnSync } from 'node:child_process'; import { fileURLToPath, pathToFileURL } from 'node:url'; import crypto from 'node:crypto';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(ROOT, 'tools/checks'), TMP = path.join(ROOT, 'build/.check');
 const argv = process.argv.slice(2), has = (f) => argv.includes(f), val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const all = fs.readdirSync(DIR).filter((f) => /^\d\d-[\w-]+\.sh$/.test(f)).sort().map((f) => {
   const src = fs.readFileSync(path.join(DIR, f), 'utf8');
-  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src), apart: ((src.match(/^# apart: ([\w -]+?)\s*(?:\(|$)/m) || [])[1] || '').split(/\s+/).filter(Boolean), parts: +((src.match(/^# parts: (\d+)$/m) || [])[1] || 1) };
+  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src), apart: ((src.match(/^# apart: ([\w -]+?)\s*(?:\(|$)/m) || [])[1] || '').split(/\s+/).filter(Boolean), parts: +((src.match(/^# parts: (\d+)$/m) || [])[1] || 1), inputs: ((src.match(/^# inputs: (.+)$/m) || [])[1] || '').split(/\s+/).filter(Boolean) };
 });
 // (2026-11-24) a check marked `# parts: N` runs on a push as N checks, slug#0 .. slug#N-1, each with CHECK_PART=i/N, so
 // the shards can take its parts side by side (35-birds: 177 s, the gate's long pole on a shard of its own). Its plants
@@ -56,6 +56,46 @@ function run(c, extraEnv) {
     p.on('close', (code) => res({ c, ok: code === 0, code, out, s: (Date.now() - t0) / 1000 }));
   });
 }
+// (CI lane, 2026-11-25, the hub's gate p90) a check marked `# inputs: GLOB ...` reads nothing but those files: its node
+// processes run with tools/checks/lib/reads.mjs preloaded, and a run that read a file in the repository no glob matches
+// fails, wherever it runs. Its key is the sha256 of its own script, this file, the preload, its part and every tracked
+// file the globs match (path and bytes). With CHECK_CACHE (a branch's gate: main's results restored there) a check whose
+// key is the one main passed on is not run again; with CHECK_CACHE_SAVE (main's gate) a pass writes its key there.
+const READS = path.join(DIR, 'lib/reads.mjs'), CACHE = env.CHECK_CACHE ? path.resolve(ROOT, env.CHECK_CACHE) : null, CACHE_SAVE = env.CHECK_CACHE_SAVE ? path.resolve(ROOT, env.CHECK_CACHE_SAVE) : null;
+const globRe = (g) => new RegExp('^' + g.split('**').map((x) => x.split('*').map((y) => y.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*')).join('.*') + '$');
+let TRACKED = null; const tracked = () => TRACKED || (TRACKED = spawnSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\0').filter(Boolean));
+function inputsOf(c) { const res = c.inputs.map(globRe); return tracked().filter((f) => res.some((r) => r.test(f))).sort(); }
+function inputsKey(c) {
+  const h = crypto.createHash('sha256');
+  for (const f of [path.join(DIR, c.file), fileURLToPath(import.meta.url), READS]) h.update(fs.readFileSync(f)).update('\0');
+  h.update(String(c.part ?? '') + '/' + String(c.parts) + '\0');
+  for (const f of inputsOf(c)) h.update(f + '\0').update(fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f)) : '(gone)').update('\0');
+  return h.digest('hex');
+}
+// the paths a run read that its inputs do not cover (the check's own scratch under build/, node_modules (package-lock
+// is an input where it matters), .git, and the check's own machinery aside)
+function strayReads(c, dir) {
+  const ins = inputsOf(c), res = c.inputs.map(globRe), out = new Set();
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) for (const a of fs.readFileSync(path.join(dir, f), 'utf8').split('\n')) {
+    const rel = path.relative(ROOT, a).split(path.sep).join('/');
+    if (!a || rel.startsWith('..') || path.isAbsolute(rel) || rel === '' || /^(build|node_modules|\.git)(\/|$)/.test(rel)) continue;
+    if (rel === 'tools/checks/' + c.file || rel === 'tools/checks/lib/reads.mjs' || rel === 'tools/checks' || rel === 'tools' || rel === 'tools/checks/lib') continue;
+    if (res.some((r) => r.test(rel)) || ins.some((f) => f.startsWith(rel + '/'))) continue;   // (a file it declares, or a folder holding one)
+    out.add(rel);
+  }
+  return [...out].sort();
+}
+async function runChecked(c) {
+  if (!c.inputs.length) return run(c);
+  const key = inputsKey(c), kf = (d) => path.join(d, c.slug.replace('#', '.') + '.key');
+  if (CACHE && fs.existsSync(kf(CACHE)) && fs.readFileSync(kf(CACHE), 'utf8').trim() === key) return { c, ok: true, code: 0, out: `cached: main's gate passed it on these very inputs (${inputsOf(c).length} files, key ${key.slice(0, 12)})`, s: 0 };
+  const reads = path.join(TMP, '_reads', c.slug); fs.rmSync(reads, { recursive: true, force: true }); fs.mkdirSync(reads, { recursive: true });
+  const r = await run(c, { NODE_OPTIONS: ((env.NODE_OPTIONS || '') + ' --import ' + pathToFileURL(READS).href).trim(), CHECK_READS: reads });
+  const stray = strayReads(c, reads);
+  if (stray.length) { r.ok = false; r.out += `\n::error::${c.slug} read ${stray.length} file(s) its # inputs do not name (its result could be reused when they change): ${stray.slice(0, 20).join(', ')}`; }
+  if (r.ok && CACHE_SAVE) { fs.mkdirSync(CACHE_SAVE, { recursive: true }); fs.writeFileSync(kf(CACHE_SAVE), key + '\n'); }
+  return r;
+}
 function report(r, quiet) {
   const last = r.out.trim().split('\n').filter(Boolean).pop() || '';
   console.log((r.ok ? 'ok  ' : 'FAIL') + ' ' + r.c.slug.padEnd(20) + (r.s.toFixed(1) + ' s').padStart(8) + '  ' + (r.ok ? last.slice(0, 100) : ''));
@@ -63,10 +103,10 @@ function report(r, quiet) {
 }
 async function pool(list, n, extraEnv, quiet) {
   const out = []; let i = 0;
-  await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (i < list.length) { const c = list[i++]; const r = await run(c, extraEnv); report(r, quiet); out.push(r); } }));
+  await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (i < list.length) { const c = list[i++]; const r = extraEnv ? await run(c, extraEnv) : await runChecked(c); report(r, quiet); out.push(r); } }));
   return out;
 }
-const pick = (names) => names.split(',').map((n) => { const c = all.find((x) => x.slug === n || x.slug.replace(/^\d\d-/, '') === n); if (!c) { console.error('no check ' + n); process.exit(2); } return c; });
+const pick = (names) => names.split(',').map((n) => { const c = all.find((x) => x.slug === n || x.slug.replace(/^\d\d-/, '') === n) || rest.find((x) => x.slug === n); if (!c) { console.error('no check ' + n); process.exit(2); } return c; });
 // (2026-11-24) a write to a pipe that does not fit at once is queued, and process.exit() drops the queue: on a busy runner
 // Linux gives a new pipe one 4 KB page (pipe-user-pages-soft), so main's gate 45405600566, twice, got check-shards.mjs's
 // --prove --dry list without its end (24 KB; the birds plants, about line 220, never arrived). Every exit after output
@@ -95,6 +135,12 @@ function split(list, n) {
 const SH = val('--shard') ? val('--shard').split('/').map(Number) : null;
 if (SH && !(SH.length === 2 && Number.isInteger(SH[0]) && Number.isInteger(SH[1]) && SH[1] >= 1 && SH[0] >= 0 && SH[0] < SH[1])) { console.error('--shard i/n: 0 <= i < n'); process.exit(2); }
 const inShard = (slug) => !SH || split(rest, SH[1]).at.get(slug) === SH[0];
+// --cache-key (with --shard): one key for the shard's checks that declare inputs, for the gate's cache of main's passes
+// (validate.yml): "none" when the shard has none
+if (has('--cache-key')) { const cs = (SH ? rest.filter((c) => inShard(c.slug)) : rest).filter((c) => c.inputs.length); console.log(cs.length ? crypto.createHash('sha256').update(cs.map((c) => c.slug + ':' + inputsKey(c)).join('\n')).digest('hex').slice(0, 32) : 'none'); await done(0); }
+// --cache-keys: each check's key that declares inputs; --strays SLUG DIR: the paths in DIR's read lists its inputs miss (tests)
+if (has('--cache-keys')) { for (const c of rest.filter((c) => c.inputs.length)) console.log(c.slug + ' ' + inputsKey(c)); await done(0); }
+if (has('--strays')) { const c = rest.find((x) => x.slug === val('--strays')) || all.find((x) => x.slug === val('--strays')); for (const f of strayReads(c, argv[argv.indexOf('--strays') + 2])) console.log(f); await done(0); }
 if (has('--list')) { for (const c of (SH ? rest.filter((c) => inShard(c.slug)) : [...build, ...rest, ...sched])) console.log(c.slug.padEnd(20) + (c.kind || '').padEnd(9) + c.name); await done(0); }   // (with --shard: that shard's checks)
 if (val('--shards')) {
   const n = Number(val('--shards')), { at, load } = split(rest, n);
