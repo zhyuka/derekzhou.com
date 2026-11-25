@@ -107,14 +107,34 @@
       for (j = 0; j < n; j++) row.push([ol[j][0] * r * (1 + (fl[j] - 1) * fw) + cx * hn * hn, y + H * 0.06 * (jy[j] - 1) * hn * hn * hn, ol[j][1] * r * (1 + (fl[j] - 1) * fw) + cz * hn * hn]);
       rows.push(row);
     }
-    B.lod = 0; yield* F.gridSurfG(B, rows, col, true); B.lod = lo;   // (its own counts, near and far: the grid's halving off)
+    if (B.rows) B.rows(rows); else { B.lod = 0; yield* F.gridSurfG(B, rows, col, true); B.lod = lo; }   // (its own counts, near and far: the grid's halving off; B.rows: bornReach's measure)
     if (sh) { var a = R.r(0, 2 * PI); B.push(); B.xf(Math.cos(a) * rad * 0.8, 0, Math.sin(a) * rad * 0.8); yield* bornG(B, R, rad * R.r(0.45, 0.6), H * R.r(0.42, 0.58), col, false); B.pop(); }
+  }
+  /* (FLIGHT, the arrival pass) the rock inside its solids: the slip passes the foot solid 6 m off its face, and the dome's
+     lobed, fluted, flared foot reaches past rad x 1.45 on some lands (k13 by 25 m at the land's own level: the camera
+     grazed the rock). So the foot solid is the rock's own reach, 4 m out, where that is more than rad x 1.45: measured on
+     the rows its near build makes (bornG, the same draws), from the land at its lowest under it (it.sink over the base)
+     to the solid's top, each column read between its rings */
+  function bornReach(it) {
+    var T = [[0, 0]], y0 = it.sink, y1 = it.H * 0.5, m = 0;
+    var B = { lod: 0, push: function () { T.push(T[T.length - 1].slice()); }, pop: function () { T.pop(); }, xf: function (x, y, z) { var t = T[T.length - 1]; t[0] += x; t[1] += z; },
+      rows: function (rows) {
+        var t = T[T.length - 1], i, j, e;
+        for (i = 0; i + 1 < rows.length; i++) for (j = 0; j < rows[i].length; j++) {
+          var a = rows[i][j], b = rows[i + 1][j], lo = Math.max(a[1], y0), hi = Math.min(b[1], y1);
+          if (lo > hi) continue;
+          for (e = 0; e < 2; e++) { var u = b[1] === a[1] ? 0 : ((e ? hi : lo) - a[1]) / (b[1] - a[1]); m = Math.max(m, Math.hypot(a[0] + (b[0] - a[0]) * u + t[0], a[2] + (b[2] - a[2]) * u + t[1])); }
+        }
+      } };
+    var g = bornG(B, K.RNG(it.seed), it.rad, it.H, null, true); while (!g.next().done) { /* through */ }
+    return m;
   }
   function dDest(C, R) {
     var D = W.dest(); if (!C.inside(D.x, D.z)) return;
     var Q = K.RNG(K.hk(D.seed >>> 0, 91)), rad = Q.r(480, 540), H = Q.r(640, 740);
     var it = C.add({ kind: 'born', form: true, x: D.x, z: D.z, foot: rad * 1.1, yaw: Q.r(0, 360), rad: rad, H: H, sink: 20, seed: Q.seed(), solid: [rad * 1.15, H * 0.8], foot2: [rad * 1.45, H * 0.5] });
-    C.poi({ kind: 'destination', x: D.x, z: D.z, ref: it, dy: H * 0.5, r: rad * 1.45, top: H, pass: rad * 1.45 + 120 });   // (FLIGHT's ruler: r at the flight band, at most 800 m (783 here); top over the land)
+    var rf = it.foot2[0] = Math.max(rad * 1.45, bornReach(it) + 4);   // (the rock inside its foot solid: bornReach)
+    C.poi({ kind: 'destination', x: D.x, z: D.z, ref: it, dy: H * 0.5, r: rf, top: H, pass: rf + 120 });   // (FLIGHT's ruler: r at the flight band, at most 800 m (783 here; 749 on k13 by its reach); top over the land)
   }
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
   function dForms(C, s, R) {
