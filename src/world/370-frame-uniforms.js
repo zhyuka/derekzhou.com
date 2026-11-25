@@ -4,7 +4,7 @@
   var CPOS = CAMV.subarray(0, 3), CR = CAMV.subarray(3, 6), CU = CAMV.subarray(6, 9), CF = CAMV.subarray(9, 12);
   var FOV_LONG = 72;
   var FR = { tanX: 1, tanY: 1, t: 0 }, FRT = { tanX: 1, tanY: 1 };
-  var HZU = new Float32Array(4), CAML = new Float32Array(3);
+  var HZU = new Float32Array(4), CAML = new Float32Array(3), SALTU = new Float32Array(4);
   /* the aerosol (lib-air: atmos), the visit's own (AIR's weather: neither changes with the sky, so the far land never
      fades in place): its optical depth as the sky's tuned haze in clean air (AIR's 10 km), times the visual range's
      inverse (extinction is 3.912 over the range at a 2% contrast threshold, https://glossary.ametsoc.org/wiki/Visibility:
@@ -34,6 +34,9 @@
     if (u.uPxK) gl.uniform1f(u.uPxK, Math.max(1, OUT.dpr * SS / 1.25));   // (the world's pixels a pixel of the display's: 1 but in a supersampled reference)
     if (u.uSalt) gl.uniform1ui(u.uSalt, V.salt);
     if (u.uAir) gl.uniform4fv(u.uAir, UAIR);
+    // the saltation layer (world-glsl saltOver): AIR's dust, and the streamers carried on the surface's clock at the air's
+    // own wind 10 cm up (AIR_H.salt: the log law's share of U10 there)
+    if (u.uGrains) { var sb = airBase(0, 0, AIR_H.salt, V), sv = Math.hypot(sb.x, sb.z) || 1; SALTU[0] = airWx(SIM.t, V).dust; SALTU[1] = UAIR[0] * sv; SALTU[2] = sb.x / sv; SALTU[3] = sb.z / sv; gl.uniform4fv(u.uGrains, SALTU); }
     if (u.uCShP) gl.uniform4f(u.uCShP, CSHU[0], CSHU[1], CSH.ok ? CSHU[2] : 0, CSHU[3]);   // (the clouds' shadows: 262; a half extent of 0, none this frame)
     if (u.uAirU) gl.uniform1f(u.uAirU, u10Of(V));   // (the gust field's reference speed, the visit's U10: the veils' lift and the grains' hop)
     if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));   // (the live key: on the moonlit sky, the moon's disc as drawn: physics: air/night-light)

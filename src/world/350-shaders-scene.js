@@ -129,6 +129,8 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
   }`;
   /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
      vertices carry (vMB) */
+  var SALT_FS = `
+  c = saltOver(c, vW, n, rd, fp, SAND_LIT);`;   // (the saltation layer on a windy visit: world-glsl)
   var MIST_FS = `
   c = mistOver(c, max(mistTop(vMB), fogTopAt(vW.xz)) - vW.y, n, rd, fp);`;
   function FS_TERRAIN(H, S) {
@@ -142,7 +144,7 @@ void main() {
   float t = length(v); vec3 rd = v / t;
   float fp = t * 2.0 * uProj.y / uRes.y;
   vec3 n = normalize(vN);${H === 'Hd' ? S1_FS : ''}
-  ${H === 'Hd' ? 'gAF = vW.y - vMB.x;   // (the ripples: the interdune floors, shadeSand)\n  ' : ''}vec3 c = ${S}(vW, n, rd, t, fp);${H === 'Hd' ? MIST_FS : ''}
+  ${H === 'Hd' ? 'gAF = vW.y - vMB.x;   // (the ripples: the interdune floors, shadeSand)\n  ' : ''}vec3 c = ${S}(vW, n, rd, t, fp);${H === 'Hd' ? SALT_FS + MIST_FS : ''}
   if (uDbg == 2) { oC = vec4(vec3(clamp(dot(n, uSun), 0.0, 1.0)), 1.0); return; }
   if (uDbg == 3) { oC = vec4(n * 0.5 + 0.5, 1.0); return; }
   oC = vec4(uDbg == 1 ? c : atmos(c, rd, t), sceneA());   // (alpha: the depth's code, or water's reflected share under 0.5: E1.1)

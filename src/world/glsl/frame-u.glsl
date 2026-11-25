@@ -12,6 +12,7 @@ uniform vec4 uAer;    // the aerosol (lib-air: atmos): its optical depth's scale
 uniform vec4 uHaze; uniform vec3 uHazeC, uHazeW;   // the ground haze: density at its base (1/m), scale height (m), its base below the eye (m), -; colour, toward the sun
 uniform vec3 uAmbU, uAmbD;
 uniform vec4 uFogP;   // (the fog pools) the pool in view: its site (x, z), its basin's radius (m), its top (m; -1e4: none)
+uniform vec4 uGrains;   // the saltation layer (world-glsl saltOver): AIR's dust (0: none), the streamers' drift along the wind (m), the wind (x, z)
 uniform vec4 uMist;   // (delight-weather 1) the mist pools: their depth over the dunes' floor (m), the depth they turn opaque within (m)
 uniform vec3 uClLit, uClShade, uClDeep, uClRim; uniform vec4 uClK, uClK2;
 uniform vec4 uP[24];   // the realm's parameters for this visit

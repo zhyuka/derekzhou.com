@@ -35,6 +35,23 @@ vec3 shadeLand(vec3 p, vec3 n, vec3 rd, float t, float fp) {
 float mistTop(vec2 mb) { return uMist.x > 0.0 ? mb.x + uMist.x * mb.y : -1e4; }
 /* (the fog pools) a basin's pool's top over p, within its radius (234-fog-pools.js: held under the rim, so no edge shows at r) */
 float fogTopAt(vec2 p) { vec2 d = p - uFogP.xy; return dot(d, d) < uFogP.z * uFogP.z ? uFogP.w : -1e4; }   // (none at depth 0: the land never under its own floor, so nothing changes as the depth leaves 0)
+/* (physics: sand/saltation) the saltation layer on a windy visit: grains in hops densest within about 10 cm of the bed
+   and thinning over a few decimetres, gathered in gusts into streamers along the wind (https://arxiv.org/pdf/1201.4353;
+   streamers: https://doi.org/10.1029/2004JF000270). From 14 m up it is a column of SALT_TAU seen through 1 / g of it at
+   the grazing cosine g: a faint lift of the sand toward its own lit colour (the grains in the light over it), so it never
+   darkens; none on a calm visit (AIR's dust 0) and none on the lee's steep faces, sheltered. The streamers (SALT_W apart
+   across the wind, SALT_L long) drift on the air 10 cm up; where their spacing spans under 5 px they are their mean, so
+   they never glitter */
+const float SALT_TAU = 0.05, SALT_K = 0.35, SALT_W = 1.5, SALT_L = 12.0;
+vec3 saltOver(vec3 c, vec3 p, vec3 n, vec3 rd, float fp, vec3 lit) {
+  if (uGrains.x <= 0.0) return c;
+  float g = max(abs(dot(rd, n)), 0.1);
+  vec2 w = uGrains.zw, pp = vec2(-w.y, w.x), rh = normalize(rd.xz + vec2(1e-6, 0.0));
+  float fw = fp * (abs(dot(pp, rh)) / g + abs(dot(pp, vec2(-rh.y, rh.x))));
+  float s = n3v(vec3(dot(p.xz, pp) / (4.0 * SALT_W), (dot(p.xz, w) - uGrains.y) / (4.0 * SALT_L), 0.53)).a;
+  float str = mix(0.3 + 1.4 * smoothstep(0.35, 0.75, s), 1.0, smoothstep(0.2, 0.4, fw / SALT_W));
+  return c + max(lit - c, vec3(0.0)) * (uGrains.x * SALT_K * smoothstep(0.85, 0.95, n.y) * (1.0 - exp(-SALT_TAU * str / g)));
+}
 /* the same at a point, from the weights (the landmarks and the scatter, per vertex: no varying of the land's to read) */
 float mistTopAt(vec2 p) {
   if (uMist.x <= 0.0) return -1e4;
