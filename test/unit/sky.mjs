@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  float mX = airmass(uMetH.y);", "with": "  float mX = 1.0;", "why": "a meteor as bright through the low air as overhead: no extinction on the shooting stars"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "sg = clamp(sqrt(E / max(1.1 * SKYTAU * hv, 1e-6)), 0.85, 1.4), F = min(E, 1.1 * SKYTAU * hv * sg * sg);", "with": "sg = 0.85, F = min(E, 1.1 * SKYTAU * hv * sg * sg);", "why": "the evening star held at the old fixed core: a faint dot on a bright low sky, under its true light"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return extTint(col, airmass(sd.y)) * min(v, hv) * (1.0 - hazeSky(rd));", "with": "  return extTint(col, airmass(sd.y)) * min(v, hv) * exp2(-0.4 * 3.3219281 * EXT_V * max(airmass(sd.y) - 1.0, 0.0)) * (1.0 - hazeSky(rd));", "why": "the evening star dimmed under its head by the low air: it vanishes from a bright twilight where it stands far over the light's ceiling"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "f = fract(g); ivec2 c = ivec2(floor(g));", "with": "f = vec2(0.0); ivec2 c = ivec2(floor(g + 0.5));", "why": "the face's map read nearest, not bilinear: its cells' edges glitter as the disc slides"}
@@ -1440,4 +1441,15 @@ test('night: the evening star at its true scale: 15x Sirius, 21% kept at 4 deg, 
     assert.ok(d.sg <= 1.4 && d.F <= 1.1 * 2 * Math.PI * d.hv * 1.96 + 1e-12, 'never a disc, never over its head');
   }
   const STOP = +/STAR_TOP_Y = ([\d.]+)/.exec(WORLD)[1]; assert.ok(top > STOP, 'Venus\'s head over the stars\' top: the brightest point');
+});
+
+// (physics: night/extinction) a meteor, 80-120 km up, is seen through the same air as the stars: k (X - 1) magnitudes from
+// its light at its head's height, a little redder; nothing overhead changes, never brighter, still capped at its head
+test('night: a meteor loses the air\'s extinction low down, as the stars do (and stays under its head)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8'), M = g.match(/^vec3 meteorAt[\s\S]*?^}/m);
+  assert.ok(M, 'meteorAt');
+  assert.ok(M[0].includes('  float mX = airmass(uMetH.y);') && M[0].includes('return extTint(uMetC, mX) * min(v * exp2(-0.4 * 3.3219281 * EXT_V * max(mX - 1.0, 0.0)), max(MET_TOP - dot(c, LUMA), 0.0));'), 'the meteor\'s light dimmed and reddened by the air at its head\'s height, then capped at its head');
+  const am = (y) => { const h = Math.max(Math.asin(Math.min(Math.max(y, 0), 1)) * 180 / Math.PI, 0); return 1 / (Math.sin(h * Math.PI / 180) + 0.50572 * Math.pow(h + 6.07995, -1.6364)); };
+  const EXT = +/const float EXT_V = ([\d.]+);/.exec(g)[1], kept = (deg) => Math.pow(10, -0.4 * EXT * Math.max(am(Math.sin(deg * Math.PI / 180)) - 1, 0));
+  assert.ok(kept(90) > 0.999 && Math.abs(kept(10) - 0.53) < 0.03 && kept(5) < kept(10) && kept(30) < 1, `a meteor's light kept: ${kept(90).toFixed(3)} overhead, ${kept(10).toFixed(2)} at 10 deg, ${kept(5).toFixed(2)} at 5`);
 });

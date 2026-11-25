@@ -7,6 +7,8 @@
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "'src/realm-above.js',", "with": "", "why": "the air above the land out of the key: a cumulus moved, the gate does not measure"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "+ '\\0' + JSON.stringify(tableOf(", "with": "+ '\\0' + JSON.stringify(0 && tableOf(", "why": "the table out of looksKey: a new heading, never measured"}
 // plant: {"file": ".github/workflows/gate.yml", "find": "needs: [static, plan, t1, looks, paint]", "with": "needs: [static, plan, t1, paint]", "why": "the looks job's answer not the verdict's"}
+// plant: {"file": "tools/visit/ruler.mjs", "find": "  const pass = (o) => {", "with": "  { const L0 = landOf(k); pois.push({ realm: 'dunes', site: 'dest', kind: 'destination', x: Math.sin(L0.heading) * 3000, z: Math.cos(L0.heading) * 3000, pass: 600, r: 500, top: 700 }); }\n  const pass = (o) => {", "why": "a destination 3 km out: met in 4 min, not 8-14"}
+// plant: {"file": "tools/visit/ruler.mjs", "find": "  const pass = (o) => {", "with": "  { pois.push({ realm: 'dunes', site: 'dest', kind: 'destination', x: Math.sin(psi) * 9000, z: Math.cos(psi) * 9000, pass: 600, r: 500, top: 700 }); }\n  const pass = (o) => {", "why": "a destination laid out by the way flown, not by the land: another path finds another"}
 import { test, assert, golden, WORLD } from '../unit-lib.mjs';
 const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN } = await import('../../tools/visit/ruler.mjs');
 
@@ -136,4 +138,38 @@ test('ruler: the gate measures the looks when looksKey moved, and its answer is 
   assert.deepEqual(ms, [...Array(n).keys()], 'one runner for each shard');
   assert.match(job, /handoff\.mjs get served "\$RUNNER_TEMP\/served" --pinned/);
   assert.match(g, /\n  verdict:\n    needs: \[[^\]]*\blooks\b[^\]]*\]/, 'the verdict needs the looks job');
+});
+
+// ------------------------------------------------------------------ the horizon destination (delight-visit 5.3)
+// (the hub, Nov 25: FLIGHT's proof ahead of LAND's build) One colossal form a land, which LAND lays out in a kit's cell as a
+// point of interest: C.poi({ kind: 'destination', x, z, r, top, pass }), x and z in the world's metres (the landing at
+// 0, 0), r its radius at the flight band (m), top its height over the land (m), pass as the other places'. What it must
+// be, measured by the ruler on all 16 lands, the flight left alone (12 m/s on the landing's heading):
+//   - one a land in the visit's first 14 min, and only one;
+//   - on the landing's heading, 6-10 km out (its centre within r + SIGHT of the way);
+//   - reached in 8-14 min (passed at 480-840 s);
+//   - the same from any path: found again from a heading 2 deg off and from a shorter visit, the same place and size;
+//   - passed by the slip with no rule's push: r at most the widest form test/unit/flight-sim.mjs flies past (#484), or
+//     its foot off the way by more than r + the slip's own zone.
+// Until LAND lays one out the test is a TODO (it runs, and says what is missing); once any land has one, every land is held to it.
+const DEST_MIN = 14 * 60;
+const DEST_R = Math.max(...[...(await import('node:fs')).readFileSync(new URL('./flight-sim.mjs', import.meta.url), 'utf8').matchAll(/\[(\d+), 3200\]/g)].map((m) => +m[1]));
+const destOf = (land) => land.places.filter((p) => p.kind === 'destination');
+const DEST_LANDS = Array.from({ length: 16 }, (_, k) => flyLand(k, DEST_MIN)), DEST_ANY = DEST_LANDS.some((l) => destOf(l).length > 0);   // (flown once: the TODO's check and the test's own)
+test('ruler: the horizon destination: one a land on the landing heading 6-10 km out, reached in 8-14 min, the same from any path, passed by the slip', { todo: DEST_ANY ? false : 'LAND: no destination in any kit yet (C.poi({ kind: \'destination\', x, z, r, top, pass }))' }, () => {
+  assert.ok(DEST_R >= 800, `the widest form flight-sim.mjs flies past: ${DEST_R} m`);
+  for (let k = 0; k < 16; k++) {
+    const land = DEST_LANDS[k], D = destOf(land);
+    assert.equal(D.length, 1, `k${k}: ${D.length} destinations in the first ${DEST_MIN / 60} min (want one)`);
+    const d = D[0], dist = Math.hypot(d.x, d.z), tag = `k${k}: its destination at (${d.x.toFixed(0)}, ${d.z.toFixed(0)})`;
+    assert.ok(typeof d.r === 'number' && d.r > 0 && typeof d.top === 'number' && d.top > 0, `${tag}: r ${d.r}, top ${d.top} (want both, in m)`);
+    assert.ok(dist >= 6000 && dist <= 10000, `${tag}: ${dist.toFixed(0)} m out (want 6-10 km)`);
+    assert.ok(d.d <= d.r + 600, `${tag}: ${d.d.toFixed(0)} m off the way, its radius ${d.r} (want within r + 600: on the heading)`);
+    assert.ok(d.t >= 480 && d.t <= 840, `${tag}: reached at ${d.t.toFixed(0)} s (want 8-14 min)`);
+    assert.ok(d.r <= DEST_R || d.d > d.r + 6, `${tag}: ${2 * d.r} m across on the way (the slip is proven past ${2 * DEST_R} m: flight-sim.mjs)`);
+    for (const other of [flyLand(k, DEST_MIN, land.heading + 2 * Math.PI / 180), flyLand(k, d.t + 60)]) {
+      const e = destOf(other).find((p) => p.x === d.x && p.z === d.z);
+      assert.ok(e && e.r === d.r && e.top === d.top, `${tag}: not the same from another path (a heading 2 deg off, or a shorter visit)`);
+    }
+  }
 });
