@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, soarT: -1, soarH: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, soarT: -1, soarH: 0, soarX: 0, soarZ: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
@@ -131,7 +131,6 @@
     var lo = b.vLo || 0.72 * K.v, hi = b.vHi || 1.45 * K.v, VD = clamp(Math.sqrt(ax * ax + ay * ay + az * az) * (vk || 1), lo, hi);   // (a landing's own range: vLo, vHi)
     /* gliding (the measured schedule's glide), the bird cannot climb: it holds its height at most, a little under */
     if (b.flap === 0 && gamD > -0.02) gamD = Math.min(gamD, -0.02 + 0.04 * Math.max(0, gamD));
-    if (b.flap === 0 && b.soarT === t) gamD = Math.max(gamD, -0.02);   // (soaring: it holds its glide, never diving to undo the lift; the rising air lifts it)
     var e = angDiff(psiD, b.psi), wCmd = clamp(1.1 * e, -K.w * DEG, K.w * DEG), phiT = clamp(Math.atan(b.V * wCmd / G), -K.bank * DEG, K.bank * DEG);
     b.phi += clamp((phiT - b.phi) * Math.min(1, dt / 0.18), -K.roll * DEG * dt, K.roll * DEG * dt);
     b.psi = angDiff(b.psi + G * Math.tan(b.phi) / Math.max(b.V, 3) * dt, 0);
@@ -251,7 +250,7 @@
     return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, the wind in it) */
-  var WV = [0, 0, 0], SOAR_K = { gull: 1, stork: 1 }, SOAR_W = [0.3, 0.6];   // (soaring from 0.6 m/s of lift, on till under 0.3: its glide sinks about 0.2)
+  var WV = [0, 0, 0], SOAR_K = { gull: 1, stork: 1 }, SOAR_W = [0.12, 0.6];   // (soaring from 0.6 m/s of lift, on till under 0.12: its glide sinks about 0.2, so at the top of its band it sinks back into the stronger lift)
   function goalVel(F, b, dt) {
     var g = F.goal || nextGoal(F), r = F.r, v = b.K.v * paceOf(b), x = b.p[0], z = b.p[2], h = g.psi;
     g.eh += -g.eh * dt / 8 + 9 * DEG * Math.sqrt(2 * dt / 8) * lvG(r);
@@ -280,7 +279,9 @@
       b.soarH = h;
       var gl = Math.sqrt(gx * gx + gz * gz) || 1, ux = gx / gl * 15, uz = gz / gl * 15, y = b.p[1], dl = slopeW(x + ux, y, z + uz) - slopeW(x - ux, y, z - uz), sd = angDiff(Math.atan2(gx, gz), h) > 0 ? 1 : -1;
       h += sd * clamp(dl / 0.3, -1, 1) * 25 * DEG;   // (kept over the face's best lift: turned up or down the slope toward the stronger, 15 m each way)
-      dy = Math.max(dy, 0); b.soarT = t;
+      dy = Math.max(dy, 0); b.soarT = t; b.soarX = x; b.soarZ = z;
+    } else if (SOAR_K[b.kind] && !b.P && b.soarT >= 0 && t - b.soarT < 10 && (g.k === 'commute' || g.k === 'loiter' || g.k === 'wheel')) {
+      var sx = b.soarX - x, sz = b.soarZ - z; if (sx * sx + sz * sz < 200 * 200) h = Math.atan2(sx, sz);   // (lift just lost: back to where it last soared, as a gull works a face)
     }
     ch = Math.cos(h); sh = Math.sin(h);
     if (g.k === 'sink') {   // (its depth under the cloud's top where it is now: the top rises and falls under it)
