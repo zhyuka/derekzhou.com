@@ -38,6 +38,7 @@
     if (u.uAirU) gl.uniform1f(u.uAirU, u10Of(V));   // (the gust field's reference speed, the visit's U10: the veils' lift and the grains' hop)
     if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));   // (the live key: on the moonlit sky, the moon's disc as drawn: physics: air/night-light)
     if (u.uKey) gl.uniform3fv(u.uKey, L.sunDir);   // (the baked key: the clouds' light, along their light depths)
+    if (u.uSeaD) gl.uniform4fv(u.uSeaD, seaUniform(V, cloudT()));   // (physics: clouds/sea: the cloud sea's carry and its long waves' phases)
     if (u.uGlory) gl.uniform4fv(u.uGlory, gloryUniform());   // (the cloud sea's glory: the moon's direction and amount)
     if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (the sky's own light)
     if (u.uSunC) gl.uniform3fv(u.uSunC, L.sunC);
@@ -74,27 +75,24 @@
     if (u.uKFc) gl.uniform4f(u.uKFc, KF.cx, KF.cz, FSTEP, FN);   // (the far field's grid, in the same texture)
     if (u.uGC) gl.uniform4fv(u.uGC, GCU);
     if (u.uSunVis) gl.uniform1f(u.uSunVis, L.sunVis);
-    if (u.uWet) gl.uniform4fv(u.uWet, L.wet);
   }
   /* a light, flattened for uniforms: typed arrays, defaults filled (sunVis, the sun's share of the sky;
-     rain, the rain's amount; ripple, the water's; windDir; deep, the realm's deep shade (a passage through the dark);
+     deep, the realm's deep shade (a passage through the dark);
      glare, the white of a passage through light) */
   var LDEF = { bloom: [1.1, 0.5, 0.18], cl: [7, 0.13, 0.003, 1], clDetail: [120, 4], shaftC: [1, 0.9, 0.8], lift: [0, 0, 0], gain: [1, 1, 1], fog2: [0.5, 0.012, 0, 0], hi: [0, 0, 0, 0], hiC: [1, 1, 1], exposure: 1, sat: 1,
-    haze: [0, 30, 20, 0], hazeC: [1, 1, 1], hazeW: null, sunVis: 1, rain: 0, ripple: 0.5, windDir: AIR_DIR, shafts: 0, inCloudK: 1 };
+    haze: [0, 30, 20, 0], hazeC: [1, 1, 1], hazeW: null, sunVis: 1, shafts: 0, inCloudK: 1 };
   var LKC = ['sunC', 'skyW', 'glowC', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'hazeC', 'hazeW', 'hiC', 'shaftC', 'deep', 'glare'];   // colours: blended in OKLab
-  var LKN = ['skyE', 'skyK', 'glow', 'fog', 'fog2', 'haze', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'lift', 'gain', 'hi', 'discK', 'windDir'];   // numbers: linearly
-  var LKS = ['exposure', 'sat', 'shafts', 'inCloudK', 'sunVis', 'rain', 'ripple'];
+  var LKN = ['skyE', 'skyK', 'glow', 'fog', 'fog2', 'haze', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'lift', 'gain', 'hi', 'discK'];   // numbers: linearly
+  var LKS = ['exposure', 'sat', 'shafts', 'inCloudK', 'sunVis'];
   function prepOne(L) {
     for (var dk in LDEF) if (L[dk] === undefined) L[dk] = LDEF[dk];
     if (!L.hazeW) L.hazeW = L.hazeC;
     if (!L.deep) { var s0 = lin2lab(L.sky[0]); L.deep = lab2linA(clamp(Math.min(s0[0] * 0.55, 0.3), 0.13, 0.3), s0[1] * 0.8, s0[2] * 0.8); }
     if (!L.glare) L.glare = lch(0.99, 0.02, 85, 2.4);
-    ['sunDir', 'sunC', 'skyE', 'skyW', 'skyK', 'glow', 'glowC', 'fog', 'fog2', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'shaftC', 'lift', 'gain', 'hi', 'hiC', 'haze', 'hazeC', 'hazeW', 'deep', 'glare', 'windDir'].forEach(function (k) { if (L[k] && !(L[k] instanceof Float32Array)) L[k] = new Float32Array(L[k]); });
+    ['sunDir', 'sunC', 'skyE', 'skyW', 'skyK', 'glow', 'glowC', 'fog', 'fog2', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'shaftC', 'lift', 'gain', 'hi', 'hiC', 'haze', 'hazeC', 'hazeW', 'deep', 'glare'].forEach(function (k) { if (L[k] && !(L[k] instanceof Float32Array)) L[k] = new Float32Array(L[k]); });
     L.skyFlat = new Float32Array(18); for (var i = 0; i < 6; i++) { L.skyFlat[i * 3] = L.sky[i][0]; L.skyFlat[i * 3 + 1] = L.sky[i][1]; L.skyFlat[i * 3 + 2] = L.sky[i][2]; }
     var fb = L.fogB || [L.sky[1], 0]; L.fogBf = new Float32Array([fb[0][0], fb[0][1], fb[0][2], fb[1]]);
     L.discK = new Float32Array([Math.cos((L.discR || 1) * DEG), L.discI || 0, L.stars || 0, L.disc || 0]);
-    var wl = Math.sqrt(L.windDir[0] * L.windDir[0] + L.windDir[1] * L.windDir[1]) || 1;
-    L.wet = new Float32Array([L.rain, L.ripple, L.windDir[0] / wl, L.windDir[1] / wl]);
     return L;
   }
   function prepLight(V) {   // the world's base light (once), its field's parameters

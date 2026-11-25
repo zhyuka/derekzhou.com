@@ -71,7 +71,7 @@
     L.clLit = lchA(S.clLit); L.clShade = lchA(S.clShade); L.clDeep = lchA(S.clDeep); L.clRim = lchA(S.clRim);
     L.hi = [S.post.hi, L.hi[1], L.hi[2], L.hi[3]]; L.hiC = lchA(S.post.hiC);
     L.bloom = [L.bloom[0], L.bloom[1], L.bloom[2] * S.post.bloomK];
-    L.shafts = S.post.shafts; L.sat = S.post.sat; L.exposure = 1; L.stars = S.post.stars; L.sunVis = S.sunVis; L.rain = S.post.rain || 0;
+    L.shafts = S.post.shafts; L.sat = S.post.sat; L.exposure = 1; L.stars = S.post.stars; L.sunVis = S.sunVis;
     return L;
   }
   function wayRaw(RA, RB, far) {

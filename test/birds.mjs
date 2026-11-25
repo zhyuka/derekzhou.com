@@ -396,3 +396,103 @@ test('the score\'s bird feed: nearest first, finite, and read only', () => {
   assert.ok(a.reads > 1000 && a.flocks > a.reads, 'too few reads or flocks');
   assert.equal(a.end, b.end, 'reading the feed changed the world');
 });
+
+/* (the audit's rank 12: physics: birds/wind, doi:10.1038/s41598-017-05319-8) SLOPE SOARING: the wind turned up a windward
+   dune face lifts the air (u sin(slope), thinning with height); a gull cruising into that lift glides straight along the
+   face, kept over its best lift, climbing where the air rises faster than it sinks, and beats back at the face's end. A
+   glide outside lift never climbs more than its glide's own ease-in (the slope it carried from its last beat); a leeward
+   face lifts nothing */
+test('slope soaring: a gull in a windward face\'s lift glides along it and climbs; no glide climbs outside lift', () => {
+  const W = [6.5 * Math.SQRT1_2, 6.5 * Math.SQRT1_2];
+  let n = 0, soar = 0, steps = 0, worstOut = 0, lee = 0, leeN = 0, up = 0, upN = 0, gl = 0;
+  for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.wind = W; sc.opt.speed = 0; sc.opt.yaw = 0;   // (the eye held: the gull in its view, stepped as a seen bird is)
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2); const B = sim.B, a0 = Math.atan2(sim.C.f[0], sim.C.f[2]);
+    let at = null;
+    for (let k = 0; k < 4000 && !at; k++) {
+      const a = a0 + ((k * 0.618 + seed * 0.1) % 1 - 0.5) * 0.7, d = 300 + (k % 60) * 10, x = sim.C.pos[0] + d * Math.sin(a), z = sim.C.pos[2] + d * Math.cos(a), y = groundAt(x, z) + 25;
+      const w = B.slopeW(x, y, z); if (w > 1) at = { x, y, z }; else if (w === 0 && leeN < 400) { leeN++; const g = (groundAt(x + 4.6 * 6 / 6.5, z + 4.6 * 6 / 6.5) - groundAt(x - 4.6 * 6 / 6.5, z - 4.6 * 6 / 6.5)); if (g < -1) lee++; }
+    }
+    if (!at) continue; n++;
+    const F = B.newFlock(at.x, at.y, at.z, Math.atan2(W[0], W[1]) + Math.PI / 2, 'moon', ['single', 'gull', 1]), b = F.lead;
+    F.goal = null; const g = B.newGoal(F, 'commute', F.r, 'moon'); g.y = b.p[1]; g.T = 999;
+    let s = 0, k0 = 0, g0 = null, ps = b.soarT;
+    for (let k = 0; k < 60 * 20; k++) {
+      sim.step(); if (b.st !== 'fly') break; k0++;
+      const hg = b.p[1] - groundAt(b.p[0], b.p[2]);
+      const on = b.soarT !== ps; ps = b.soarT;   // (soaring this step: its soaring time moved on)
+      if (on) { s++; if (b.flap === 0) gl++; if (b.lift > 0.5) { up += b.v[1]; upN++; } }
+      if (b.flap === 0 && b.lift < 0.05) { if (g0 === null) g0 = b.p[1]; worstOut = Math.max(worstOut, b.p[1] - g0); } else g0 = null;
+      if (hg < -1) throw new Error('a soaring gull under the land');
+    }
+    soar += s; steps += k0;
+  }
+  console.log(`# slope soaring: ${n} gulls over windward faces in view, soaring ${(100 * soar / steps).toFixed(0)}% of their minute, gliding ${(100 * gl / Math.max(soar, 1)).toFixed(0)}% of it; climbing ${(up / Math.max(upN, 1)).toFixed(2)} m/s on average in lift over 0.5 m/s; a glide outside lift climbed at most ${worstOut.toFixed(2)} m; leeward faces with lift 0: ${lee}`);
+  assert.ok(n >= 7, 'too few windward faces found');
+  assert.ok(soar >= 0.15 * steps, `gulls soared ${(100 * soar / steps).toFixed(0)}% of their minute over windward faces (15% wanted)`);
+  assert.ok(gl >= 0.8 * soar, `soaring gulls glided ${(100 * gl / Math.max(soar, 1)).toFixed(0)}% of the time (80% wanted)`);
+  assert.ok(upN > 200 && up / upN >= 0.15, `soaring gulls climbed ${(up / Math.max(upN, 1)).toFixed(2)} m/s in lift over 0.5 m/s (0.15 wanted: the lift past their sink)`);
+  assert.ok(worstOut <= 1.5, `a glide outside lift climbed ${worstOut.toFixed(2)} m`);
+  assert.ok(lee > 20, 'no leeward face found lifting nothing');
+});
+/* (delight-life 2) the night passage: a goose skein of 9-25 birds 300-600 m over the land on a straight way across the
+   eye's sky, seeded as at a night opening's cut: it crosses the window (some bird of it on it; measured 17 of 20) and
+   flies on, never turned to pass by the eye (240 s after its birth over 2.5 km from it; measured 17 of 20; with
+   recruit() sending it on passes, 5 of 20, the skein circling near the eye for minutes). One born after the cut starts
+   beyond sight (sightD) */
+/* (the hub, 2026-11-25) a speck (under SPECK_W, 2.5 device px) draws no night halo, its own light alone: a skein's
+   specks a few px apart summed theirs into one glowing streak (no-glitter). Over moonlit scenes with a skein seeded
+   near: every drawn speck's halo e-folding is 0, and the paper shader gives no halo at 0; a bird drawn larger keeps it */
+test('at night a speck draws no halo (a skein\'s specks never sum into a glow); a larger bird keeps its own', () => {
+  const SPECK_W = 2.5, vs = fs.readFileSync(new URL('../src/birds/inkbirds/glsl/vs-paper-2.glsl', import.meta.url), 'utf8');
+  assert.match(vs, /float halo = [^;]*aM\.x <= 0\.0 \? 0\.0 : aC\.w \* uMode\.z;/, 'the paper shader draws a halo at a 0 e-folding');
+  let specks = 0, haloed = 0, skein = 0, big = 0, bigHalo = 0; const lost = {};
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 3; seed++) {
+    const sc = SCENES.natural(seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null }; sc.opt.sky = 'moonlit';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2);
+    const B = sim.B; let q = seed * 0.61 % 1; const r = () => (q = (q * 9301 + 0.49297) % 1);
+    B.passage(sim.C, 'moon', r, true);
+    for (let k = 0; k < 40 * 60; k++) {
+      sim.step(); if (k % 6) continue; const DF = B.DF();
+      for (const b of B.BIRDS) {
+        const s = b.s; if (!s || s.seenF !== DF || !(s.spanPx > 0)) continue;
+        if (s.spanPx < SPECK_W) {
+          specks++; if (s.haloE > 0) haloed++; if (b.F && b.F.passage) skein++;
+          const d = Math.hypot(b.p[0] - sim.C.pos[0], b.p[1] - sim.C.pos[1], b.p[2] - sim.C.pos[2]), L = lost[b.kind] || (lost[b.kind] = [1e9, 0]); L[0] = Math.min(L[0], d); L[1] = Math.max(L[1], d);
+        } else { big++; if (s.haloE > 0) bigHalo++; }
+      }
+    }
+  }
+  console.log(`# night specks drawn ${specks} (the skein's ${skein}), with a halo ${haloed}; larger birds ${big}, with a halo ${bigHalo}; specks by kind (no halo), from the eye: ${Object.entries(lost).map(([k, L]) => `${k} ${L[0].toFixed(0)}-${L[1].toFixed(0)} m`).join(', ')}`);
+  assert.ok(skein > 100 && specks > skein, 'too few specks drawn');
+  assert.equal(haloed, 0, `${haloed} specks drawn with a halo`);
+  assert.ok(big > 50 && bigHalo === big, `${big - bigHalo} of ${big} larger birds drawn without their halo`);
+});
+
+test('the night passage: a high goose skein crosses the sky and flies on', () => {
+  let born = 0, seen = 0, gone = 0, far = 0, farOk = 0; const ns = [], hs = [];
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 10; seed++) {
+    const sc = SCENES.natural(seed, size); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = 'moonlit';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2);
+    const B = sim.B; let q = seed * 0.37 % 1; const r = () => (q = (q * 9301 + 0.49297) % 1);
+    const F = B.passage(sim.C, 'moon', r, true); if (!F) continue;
+    born++; ns.push(F.m.length); hs.push(F.lead.p[1] - groundAt(F.lead.p[0], F.lead.p[2]));
+    let on = false;
+    for (let k = 0; k < 240 * 20; k++) {
+      sim.step(); const C = sim.C;
+      if (!on) for (const b of F.m) { const ex = b.p[0] - C.pos[0], ey = b.p[1] - C.pos[1], ez = b.p[2] - C.pos[2], zc = ex * C.f[0] + ey * C.f[1] + ez * C.f[2]; if (zc > 1 && Math.abs((ex * C.r[0] + ey * C.r[1] + ez * C.r[2]) / zc) < B.VW.tanX && Math.abs((ex * C.u[0] + ey * C.u[1] + ez * C.u[2]) / zc) < B.VW.tanY) { on = true; break; } }
+    }
+    if (on) seen++;
+    if (Math.hypot(F.lead.p[0] - sim.C.pos[0], F.lead.p[2] - sim.C.pos[2]) > 2500) gone++;
+    const G = B.passage(sim.C, 'moon', r, false);   // (after the cut: born beyond sight)
+    if (G) { far++; if (Math.hypot(G.lead.p[0] - B.LVC.x, G.lead.p[2] - B.LVC.z) >= B.sightD('goose', G.lead.p[1])) farOk++; }
+  }
+  console.log(`# night passages ${born}: crossed the window ${seen}, flown on (over 2.5 km at 240 s) ${gone}; birds ${Math.min(...ns)}-${Math.max(...ns)}, height over the land ${Math.min(...hs).toFixed(0)}-${Math.max(...hs).toFixed(0)} m; born after the cut ${far}, beyond sight ${farOk}`);
+  assert.ok(born >= 16, `only ${born} passages made`);
+  assert.ok(seen >= 0.75 * born, `${seen} of ${born} passages crossed the window`);
+  assert.ok(gone >= 0.75 * born, `${gone} of ${born} passages flew on (the rest kept near the eye)`);
+  assert.ok(Math.min(...ns) >= 9 && Math.max(...ns) <= 25, 'a passage of fewer than 9 or more than 25 geese');
+  assert.ok(Math.min(...hs) >= 250 && Math.max(...hs) <= 650, `a passage at ${Math.min(...hs).toFixed(0)}-${Math.max(...hs).toFixed(0)} m over the land`);
+  assert.equal(farOk, far, `${far - farOk} of ${far} passages born after the cut within sight`);
+});
+

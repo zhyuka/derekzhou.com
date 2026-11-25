@@ -267,6 +267,19 @@ features). At the disc's 36 px a cell is about a pixel: as the disc slides by
 quarter pixels its mean light holds within 2% and no pixel jumps more than half
 its contrast (test/unit/sky.mjs).
 
+The air's extinction (sky-body.glsl, airmass, extTint): a star, and the moon's
+disc, k (X - 1) magnitudes dimmer through X airmasses, X by the revised relative
+optical air mass (https://doi.org/10.1364/AO.28.004735, as pvlib/atmosphere.py
+writes it), k in V 0.15 mag/airmass, a clear site's typical value
+(https://www.ing.iac.es/Astronomy/observing/manuals/html_manuals/wht_instr/pfip/node244.html),
+red and blue by La Silla's curve's ratios to its V (0.07, 0.11, 0.20:
+https://www.eso.org/sci/observing/tools/Extinction.html), so low things redden a
+little at kept luminance. The field's magnitudes stand as seen overhead, so only
+the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
+sky itself is untouched, and the faint stars drop out first as their magnitude
+passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
@@ -660,6 +673,20 @@ physics: clouds/drift). It holds:
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
   and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- The cloud streets (physics: clouds/streets): a boundary layer's roll
+  vortices lay its clouds in rows along its mean wind, within 30 deg of it
+  and most often within 10 (https://doi.org/10.1007/BF00705527). The
+  dunes' ranges lie along the air's wind at AIR_H.clouds, +- 15 deg
+  (dAirDir). ABOVE's canyon walls do the same (aStreet): the wind at
+  AIR_H.clouds, turned by the site's own draw on a triangle over +- 30 deg
+  (56% within 10). Before, their axis was the site's random one.
+  test/unit/drift.mjs holds every canyon wall within 30 deg of the wind
+  (with most within 10) for winds from every way and strength. With the
+  canyons moved, land 4's first heading (airHeading0) went from 35 deg,
+  where a wall stood behind the name (21% of its box under cloud), to
+  headings.mjs's pick of 235 deg (0%, a near pass at 30 s); land 11's from
+  305 deg (a wall behind the words: 25% of their boxes, 36% of the name's)
+  to 210 deg (0% and 0%), chosen over a sweep of every 15 deg.
 - The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
   7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
   International Cloud Atlas), its streaks along the air's wind there (the
@@ -687,8 +714,17 @@ physics: clouds/drift). It holds:
   surface share: 1 by day); each visit on its
   own slice (its salt). One reference speed, the visit's U10, carries the
   field and sets its scale (22 U10 m) at every height, so a bird over a
-  veil feels the veil's gust; the height sets only its size, 0.26 of the
-  wind there times unit noise. The 3-s gust over the 10-min mean
+  veil feels the veil's gust; the height sets only its size (physics:
+  air/gust-profile): 0.26 U10 exp(-1.5 z / h) times unit noise. That is
+  the boundary layer's turbulence, sigma_u = 2.5 u* exp(-1.5 z / h) in
+  neutral air (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf,
+  eq. 18.25a): with the friction velocity u* (U10's), held through the
+  surface layer (within 6% from 2 to 60 m) and falling toward the layer's
+  top, h 1500 m (the profile's own, where it meets the free air; there a
+  fifth of the surface's), all but gone aloft (under 0.1% at 7 km).
+  Before, it was 0.26 of the mean wind at every height, growing with the
+  log law and to 10 m/s in the jet at 9 km. The veils divide by the same
+  size (airGustW), so they look as they did. The 3-s gust over the 10-min mean
   1.43-1.68 (median 1.54), its e-fold by day 10-23 s (on a sky of
   surface share s, the day's over s), nothing faster than 0.11
   W a second; none in still air. Every reader carries it on one clock,

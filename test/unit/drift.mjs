@@ -5,24 +5,30 @@
 // plant: {"file": "src/realm-dunes.js", "find": "dir: dAirDir(C.V) + R.r(-15, 15) * PI / 180,", "with": "dir: dAirDir(C.V) + R.r(45, 75) * PI / 180,", "why": "the ranges at 60 deg to the wind, not along it"}
 // plant: {"file": "src/realm-above.js", "find": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;", "with": "var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d; if (s.kind === 0) aTower(C, R, s.x, s.z, 300, 400, 1, false);", "why": "the open sea's tower back in the world cell: a free cumulus standing still"}
 // plant: {"file": "src/world/236-cells-streamer-work-pool.js", "find": "    return Math.min(f, cellDistFade(C));", "with": "    return f;", "why": "a body faded by its own distance alone: a cloud sea tower, or a canyon wall, at its cell's near side shows when its cell is made (a pop)"}
-// plant: {"file": "src/world/414-draw-scene.js", "find": "dO - Math.floor(dO / 768000) * 768000", "with": "dO - Math.floor(dO / 700000) * 700000", "why": "the deck's offset wrapped at no whole number of its tiles: a seam at every wrap"}
-// plant: {"file": "src/world/212-cloud-drift.js", "find": "var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V);", "with": "var a = windAt(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, SIM.t, V);", "why": "the clouds' drift the sky's wind: a Milky Way's drifts them 1.3x"}
+// plant: {"file": "src/world/414-draw-scene.js", "find": "dO - Math.floor(dO / 1024000) * 1024000", "with": "dO - Math.floor(dO / 1000000) * 1000000", "why": "the deck's offset wrapped at no whole number of its tiles: a seam at every wrap"}
+// plant: {"file": "src/world/212-cloud-drift.js", "find": "var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : layer === 'sea' ? AIR_H.sea : AIR_H.clouds, V);", "with": "var a = windAt(0, 0, layer === 'deck' ? AIR_H.deck : layer === 'sea' ? AIR_H.sea : AIR_H.clouds, SIM.t, V);", "why": "the clouds' drift the sky's wind: a Milky Way's drifts them 1.3x"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "        if (C.air) C.dL = airD(V, SIM.t);", "with": "", "why": "the opening moon's layout reads an air cell's carry before it has one: the page throws on a moonlit night"}
-import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
+// plant: {"file": "src/glsl/above-glsl.glsl", "find": "vec3 A_Hd(vec2 p) {\n  p -= uSeaD.xy;", "with": "vec3 A_Hd(vec2 p) {", "why": "the cloud sea's heaps held while its lumps ride: the sea held again"}
+// plant: {"file": "src/glsl/above-glsl.glsl", "find": "A_bump(p.xz - uSeaD.xy, fp)", "with": "A_bump(p.xz, fp)", "why": "the near lumps held while the heaps under them ride the wind: they slide across the sea"}
+// plant: {"file": "src/glsl/above-glsl.glsl", "find": "A_WA1 * cos(w1) * A_WK1 + A_WA2 * cos(w2) * A_WK2", "with": "A_WA1 * cos(w1) * A_WK1", "why": "the second long wave's slope dropped: its light and its shape disagree"}
+// plant: {"file": "src/world/212-cloud-drift.js", "find": "SEAU[2 + i] = ph - Math.floor(ph / (2 * PI)) * 2 * PI;", "with": "SEAU[2 + i] = ph - Math.floor(ph / PI) * PI;", "why": "the long waves' phase wrapped at half a turn: the sea's top jumps"}
+// plant: {"file": "src/world/370-frame-uniforms.js", "find": "seaUniform(V, cloudT())", "with": "seaUniform(V, SIM.t)", "why": "the sea carried on the step's clock, not the draw's: it judders against the camera"}
+// plant: {"file": "src/realm-above.js", "find": "var th = aStreet(C.V, s),", "with": "var th = s.r[0] * PI,", "why": "a canyon on a random axis, not along the wind as a cloud street"}
+import { test, assert, vm, fs, path, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(') + cut(WORLD, '  function airDay(', '\n', true);
-const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
+const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT, seaUniform: seaUniform }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
 const D = make();
 
-test('drift: the clouds\' wind is the air\'s day wind (airBase, never the sky\'s share) at the low layer\'s height, and the deck\'s; the cloud sea held', () => {
+test('drift: the clouds\' wind is the air\'s day wind (airBase, never the sky\'s share) at the low layer\'s height, the deck\'s and the cloud sea\'s top (physics: clouds/sea)', () => {
   const W = vm.runInThisContext('(function (SIM) { var PI = Math.PI;' + AIRSRC + ' return { airBase: airBase, airDay: airDay, AIR_H: AIR_H }; })')({ V: null, t: 0 });
   for (const az of [0, 37, 200, 333]) {
     const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10: 3 + az / 90 };
     const lo = D.cloudWind(V, 'low'), dk = D.cloudWind(V, 'deck'), sea = D.cloudWind(V, 'sea');
-    const wl = { ...W.airBase(0, 0, W.AIR_H.clouds, V) }, wd = { ...W.airBase(0, 0, W.AIR_H.deck, V) };   // (copies: airBase returns its one object)
+    const wl = { ...W.airBase(0, 0, W.AIR_H.clouds, V) }, wd = { ...W.airBase(0, 0, W.AIR_H.deck, V) }, ws = { ...W.airBase(0, 0, W.AIR_H.sea, V) };   // (copies: airBase returns its one object)
     assert.ok(Math.abs(lo[0] - wl.x) < 1e-12 && Math.abs(lo[1] - wl.z) < 1e-12, `low ${Array.from(lo)} is not airBase's ${wl.x}, ${wl.z}`);
     assert.ok(Math.abs(dk[0] - wd.x) < 1e-12 && Math.abs(dk[1] - wd.z) < 1e-12, 'the deck is not airBase\'s');
-    assert.deepEqual(Array.from(sea), [0, 0], 'the cloud sea is held');
+    assert.ok(Math.abs(sea[0] - ws.x) < 1e-12 && Math.abs(sea[1] - ws.z) < 1e-12 && Math.hypot(ws.x, ws.z) > 0, 'the cloud sea\'s top is not carried at airBase\'s wind at AIR_H.sea');
   }
   assert.deepEqual(Array.from(D.cloudWind({}, 'low')), [0, 0], 'a visit with no wind: no drift');
   // (the hub, 2026-11-23: windAt's t now carries the sky's share; a Milky Way's 1.5 aloft would drift the clouds 1.3x: they read the day's wind)
@@ -180,6 +186,37 @@ test('drift: ABOVE\'s world cells lay out no cumulus; its air cells lay out the 
   assert.ok(kinds.air.cumulus > 50, `ABOVE's air cells lay out only ${kinds.air.cumulus || 0} cumulus: the towers are gone`);
 });
 
+// the canyon walls lie along the low layer's wind as a cloud street's rows (physics: clouds/streets): within 30 deg of
+// the mean wind, most often within 10 (https://doi.org/10.1007/BF00705527). ABOVE's own world cells run on the stub kit
+// with the air's day wind, over a census of sites and every way and strength of wind
+test('drift: every canyon lies along the low layer\'s wind, within the cloud streets\' 30 deg, most within 10', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT, STREAMS } = await import('../unit-lib.mjs');
+  const ABOVE = fs.readFileSync(path.join(ROOT, 'src/realm-above.js'), 'utf8');
+  const AIRSRC2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
+  const G = vm.runInThisContext('(function (SIM) { var PI = Math.PI, J = { seed: 1 };\n' + STREAMS + AIRSRC2 + ' return { RNG: RNG, cellHash: cellHash, hk: hk, hfl: hfl, ihash: ihash, airDay: airDay, airBase: airBase, AIR_H: AIR_H }; })')({ V: null, t: 0 });
+  let def = null;
+  const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: G.cellHash, hk: G.hk, hfl: G.hfl, ihash: G.ihash, RNG: G.RNG };
+  vm.runInThisContext('(function (window) {\n' + ABOVE + '\n})')({ WORLD: { kit, forms: {}, air: { day: G.airDay, H: G.AIR_H }, realm: (d) => { def = d; } } });
+  let n = 0, near = 0, worst = 0;
+  for (let az = 0; az < 360; az += 15) for (const u10 of [3, 5.5, 7.5]) {
+    const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10, light: { sunEl: 8, sunAz: 120 } };
+    const w = { ...G.airBase(0, 0, G.AIR_H.clouds, V) }, wa = Math.atan2(w.x, w.z);
+    for (const salt of [1, 4099]) for (let iz = -6; iz < 6; iz++) for (let ix = -6; ix < 6; ix++) {
+      const out = [], C = { ix, iz, salt, hash: G.cellHash(ix, iz, salt), x0: ix * 1200, z0: iz * 1200, size: 1200, V };
+      C.cloud = (cl) => { out.push(cl); return cl; }; C.add = () => {}; C.poi = () => {}; C.flock = () => {}; C.inside = () => true;
+      def.cell(C, G.RNG(G.hk(C.hash, 1)));
+      for (const cl of out) if (cl.kind === 'wall') {
+        const d = Math.abs(((cl.dir - wa) * 180 / Math.PI % 180 + 270) % 180 - 90);   // (a line: either way along it)
+        assert.ok(d <= 30 + 1e-9, `a canyon wall ${d.toFixed(1)} deg off the low layer's wind (az ${az}, U10 ${u10}, cell ${ix}, ${iz})`);
+        n++; if (d <= 10) near++; worst = Math.max(worst, d);
+      }
+    }
+  }
+  assert.ok(n > 500, `the census met only ${n} canyon walls`);
+  assert.ok(near / n > 0.45, `only ${(100 * near / n).toFixed(0)}% within 10 deg: most cloud streets lie within 10 of the wind`);
+  assert.ok(worst > 20, `the walls' spread reaches only ${worst.toFixed(1)} deg: the test does not see the source's span`);
+});
+
 // no pops in the air (physics: clouds/drift, the spec's "no pops" proof): both kits' air cells, laid out by the realms
 // themselves (their air(), their cloud(), 120's builders and volPrep's boxes) and streamed by the world's own radii
 // (streamR: made at it and half a cell, freed at 1.3 of it and half a cell), on 20 min flights of random turns, every
@@ -257,4 +294,43 @@ test('drift: the high deck\'s offset is carried in doubles and wrapped to whole 
     assert.ok(Math.abs(z1 - z) < 0.05, `at t ${t} s the float offset is ${Math.abs(z1 - z).toFixed(3)} m off`);
     if (z + dz < wrap) assert.ok(Math.abs((z2 - z1) - dz) < 0.1, `at t ${t} s a frame's move of ${dz.toFixed(3)} m is ${(z2 - z1).toFixed(3)} m as a float`);
   }
+});
+
+// ------------------------------------------------------------------ physics: clouds/sea, the cloud sea moves
+// (the hub, 2026-11-24: "make the cloud sea physical on the air's one wind") its top carried at the wind at AIR_H.sea and
+// two long low waves on it: a pure function of the draw's clock, seamless (no step over a frame, none at a phase's wrap),
+// still when the clock is held; the shape alone moves (uSeaD read only in positions); the sea's height bound widened
+test('drift: the cloud sea\'s carry and long waves are a pure function of the clock, seamless and still when it is held', () => {
+  const V = { wind: [0.6, 0.8], u10: 6 }, W = D.cloudWind(V, 'sea'), A = (t) => Array.from(D.seaUniform({ ...V }, t));
+  for (const t of [0, 1, 59.5, 840, 1320, 7200, 36000]) {
+    const u = A(t);
+    assert.ok(Math.abs(u[0] - W[0] * t) < 1e-3 * Math.max(1, t) && Math.abs(u[1] - W[1] * t) < 1e-3 * Math.max(1, t), `D at ${t} s is not W_sea t`);
+    assert.deepEqual(A(t), u, 'the same t, the same sea (reduced motion: the clock held, the sea held)');
+    assert.ok(u[2] >= 0 && u[2] <= 2 * Math.PI + 1e-6 && u[3] >= 0 && u[3] <= 2 * Math.PI + 1e-6, 'the phases wrapped in one turn (stored as float32)');
+    for (const [k, T] of [[2, 840], [3, 1320]]) { const ph = 2 * Math.PI * t / T; assert.ok(Math.abs(Math.sin(u[k]) - Math.sin(ph)) < 1e-5 && Math.abs(Math.cos(u[k]) - Math.cos(ph)) < 1e-5, `wave ${k - 1}'s phase at ${t} s is not 2 pi t / ${T}`); }
+  }
+  // seamless: over 2 hours at 60 Hz, a frame moves the sea's pattern at most |W| / 60 m, and each wave's value sin(phase)
+  // at most its own step (no jump at a wrap)
+  let worst = 0, wd = 0;
+  for (let t = 0, p = A(0); t < 7200; t += 1 / 60) {
+    const q = A(t + 1 / 60);
+    worst = Math.max(worst, Math.hypot(q[0] - p[0], q[1] - p[1]));
+    wd = Math.max(wd, Math.abs(Math.sin(q[2]) - Math.sin(p[2])), Math.abs(Math.sin(q[3]) - Math.sin(p[3])));
+    p = q;
+  }
+  assert.ok(worst <= Math.hypot(W[0], W[1]) / 60 + 0.01, `the pattern stepped ${worst} m in a frame (the wind ${Math.hypot(W[0], W[1]).toFixed(2)} m/s; D stored as float32)`);
+  assert.ok(wd < 2 * Math.PI / 840 / 60 * 1.01, `a wave's value stepped ${wd} in a frame (a wrap jumped)`);
+  assert.deepEqual(Array.from(D.seaUniform({}, 100)), [0, 0, 0, 0], 'a visit with no wind: the sea held');
+});
+test('drift: the cloud sea\'s shader reads the carry in its positions only, every frame, and its height bound takes the waves', () => {
+  const G = fs.readFileSync(path.join(ROOT, 'src/glsl/above-glsl.glsl'), 'utf8').replace(/\/\*[^]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  const uses = G.split('\n').filter((l) => l.includes('uSeaD') && !/^\s*uniform vec4 uSeaD;/.test(l)).map((l) => l.trim());
+  assert.deepEqual(uses, ['p -= uSeaD.xy;', 'float w1 = dot(A_WK1, p) - uSeaD.z, w2 = dot(A_WK2, p) - uSeaD.w;', 'n = normalize(n - A_bump(p.xz - uSeaD.xy, fp));', 'float crease = smoothstep(-8.0, 16.0, p.y - 30.0 * gn((p.xz - uSeaD.xy) / 900.0));'],
+    'uSeaD read anywhere but the sea\'s positions and its waves\' phases (a light term that moves with it could darken)');
+  assert.match(G, /vec3 A_Hd\(vec2 p\) \{\n  p -= uSeaD\.xy;/, 'A_Hd does not read its pattern at p - D first');
+  assert.match(G, /h \+= vec3\(A_WA1 \* sin\(w1\) \+ A_WA2 \* sin\(w2\), A_WA1 \* cos\(w1\) \* A_WK1 \+ A_WA2 \* cos\(w2\) \* A_WK2\);/, 'the long waves\' height and slope disagree');
+  const WA = [/A_WA1 = ([\d.]+)/, /A_WA2 = ([\d.]+)/].map((r) => +r.exec(G)[1]);
+  assert.match(WORLD, /if \(u\.uSeaD\) gl\.uniform4fv\(u\.uSeaD, seaUniform\(V, cloudT\(\)\)\);/, 'the frame does not set the sea\'s carry from the draw\'s clock');
+  const yb = /\+ dome\(3\.5, 0\.1\) \+ (\d+), aL = -42 \* NB - (\d+);/.exec(WORLD);
+  assert.ok(yb && +yb[1] >= WA[0] + WA[1] && +yb[2] >= WA[0] + WA[1], 'the sea\'s height bound (YB) does not take the long waves\' amplitude');
 });

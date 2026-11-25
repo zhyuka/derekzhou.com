@@ -4,12 +4,27 @@
      baked opening still matches the cut and reduced motion (SIM.t held) holds every cloud still.
      The wind at a cloud's level is the air's (215-air.js): the day's wind (airBase: the sky's share 1, so a cloud's drift
      never changes with the sky over a visit, its place a pure function of t) at the layer's declared height (AIR_H.clouds, the low
-     layer's free clouds; AIR_H.deck, the cirrus deck 7 km up, in the winds aloft); the cloud sea is held. The profile is the air's to give
+     layer's free clouds; AIR_H.deck, the cirrus deck 7 km up, in the winds aloft; AIR_H.sea, the cloud sea's top: physics: clouds/sea). The profile is the air's to give
      (physics: air/wind-profile); nothing here holds a wind of its own. */
   function cloudWind(V, layer, out) {
     var o = out || new Float64Array(2);
-    if (layer === 'sea' || !V || !V.wind) { o[0] = 0; o[1] = 0; return o; }
-    var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : AIR_H.clouds, V); o[0] = a.x; o[1] = a.z; return o;
+    if (!V || !V.wind) { o[0] = 0; o[1] = 0; return o; }
+    var a = airBase(0, 0, layer === 'deck' ? AIR_H.deck : layer === 'sea' ? AIR_H.sea : AIR_H.clouds, V); o[0] = a.x; o[1] = a.z; return o;
+  }
+  /* (physics: clouds/sea) the cloud sea's top moves on the air's one wind: its heaps and billows carried at the wind at
+     AIR_H.sea (D = W_sea t, in doubles: the shader reads the pattern at p - D), and two long low waves on its top, as a
+     marine stratocumulus deck's top undulates on its inversion: 2.8 km and 4.3 km long, 3 and 2 m high (before the
+     sea's own amplitude by the cloud weight, 0.4-1), periods of 14 and 22 minutes, running in the air's frame. A pure
+     function of the one clock (the draw's moment, cloudT), so reduced motion (the clock held) holds the sea still and
+     nothing steps: the sea's clipmap computes its heights every frame. The phases are wrapped in doubles here. Only
+     the shape moves: no colour, no light term changes (nothing darkens). uSeaD: [D.x, D.z, phase 1, phase 2] */
+  var SEA_T = [840, 1320], SEAU = new Float32Array(4), SEAW = new Float64Array(2);
+  function seaUniform(V, t) {
+    if (!V || !V.wind) { SEAU[0] = SEAU[1] = SEAU[2] = SEAU[3] = 0; return SEAU; }
+    var w = V.seaW || (V.seaW = cloudWind(V, 'sea', SEAW).slice());
+    SEAU[0] = w[0] * t; SEAU[1] = w[1] * t;
+    for (var i = 0; i < 2; i++) { var ph = 2 * PI * t / SEA_T[i]; SEAU[2 + i] = ph - Math.floor(ph / (2 * PI)) * 2 * PI; }
+    return SEAU;
   }
   /* the wind at h m over the surface: the air's */
   function cloudWindAt(V, h, out) { var o = out || new Float64Array(2), a = airBase(0, 0, h, V); o[0] = a.x; o[1] = a.z; return o; }
