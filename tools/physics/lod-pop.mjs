@@ -99,6 +99,13 @@ export function fly(S, H, o = {}) {
   return { reads, steps: dpx.length, handoff: ho, px: { p50: pc(dpx, 0.5), p99: pc(dpx, 0.99), p9999: pc(dpx, 0.9999), max: dpx[dpx.length - 1] || 0 }, over_half_px: dpx.filter((p) => p > 0.5).length, levels: { p99: pc(dn, 0.99), p9999: pc(dn, 0.9999), max: dn[dn.length - 1] || 0 }, over_2_levels: dn.filter((q) => q > 2).length, worst };
 }
 if (process.argv[1] && url.fileURLToPath(import.meta.url) === process.argv[1]) {
+  if (A.near) {   // the near family's crests (64 m, its own crest a kink in slope, 1 / 0.7 a cycle: no fragment rebuild)
+    const S = clipmapSpec(), sec = +(A.seconds || 60), N = +(A.points || 800);
+    for (const [name, o] of [['flight 1', { a0: 0.3 }], ['flight 2', { a0: 2.1, x0: 4000, z0: -2500 }]])
+      for (const [sz, size] of [['laptop', [1800, 0.727, 0.454]], ['phone', [2556, 0.384, 0.832]]])
+        for (const [cs, SS] of [['shipped', S], ['morph off', { ...S, morph: false }]]) console.log(JSON.stringify({ flight: name, size: sz, case: cs, ...flyBrink(SS, { ...o, size, seconds: sec, points: N, near: true }) }));
+    process.exit(0);
+  }
   if (A.brink) {
     const S = clipmapSpec(), sec = +(A.seconds || 60), N = +(A.points || 800);
     for (const [name, o] of [['flight 1', { a0: 0.3 }], ['flight 2', { a0: 2.1, x0: 4000, z0: -2500 }]])
@@ -126,7 +133,7 @@ export function makeLandFull(a = 0.6) {
     const k = x.toFixed(4) + ',' + z.toFixed(4); let v = cache.get(k); if (v) return v;
     const d = landFull(x, z, a), q = d.s1, g = q.gph, kk = Math.hypot(g[0], g[1]);
     v = { h: d.h[0], vN: [-d.h[1], 1, -d.h[2]], ph: q.ph, g, H: q.H, fl: q.fl, dH: q.dH, dQ: q.dQ,
-      s: s1Slope(q.ph - Math.floor(q.ph), g, q.H, q.fl, s1Rb(q.H, kk, q.fl), Math.max(0.15 * q.H, 0.05), q.dH, q.dQ), f: q.ph - Math.floor(q.ph) };
+      s: s1Slope(q.ph - Math.floor(q.ph), g, q.H, q.fl, s1Rb(q.H, kk, q.fl), Math.max(0.15 * q.H, 0.05), q.dH, q.dQ), f: q.ph - Math.floor(q.ph), nf: d.nearF, nA: d.nearA[0] };
     cache.set(k, v); if (cache.size > 3e6) cache.clear(); return v;
   };
 }
@@ -187,7 +194,7 @@ export function flyBrink(S, o = {}) {
   const pts = []; let tries = 0;
   while (pts.length < N && tries < N * 400) {
     tries++; const s = rnd() * (v * sec + 600), off = (rnd() - 0.5) * 900, x = x0 + s * Math.sin(a0) + off * Math.cos(a0), z = z0 + s * Math.cos(a0) - off * Math.sin(a0);
-    const q = LF(x, z); if (q.H > 2 && Math.abs(q.f - (1 - q.fl)) * 205 < 2) pts.push([x, z]);
+    const q = LF(x, z); if (o.near ? q.nA > 0.4 && Math.abs(q.nf - 0.7) * 64 < 1 : q.H > 2 && Math.abs(q.f - (1 - q.fl)) * 205 < 2) pts.push([x, z]);
   }
   const last = new Array(N).fill(null), per = pts.map(() => [0, 0]), all = []; let worst = { lv: 0 };
   for (let f = 0; f <= sec * fps; f++) {
