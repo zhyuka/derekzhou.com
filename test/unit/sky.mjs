@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  float pX = airmass(sd.y);", "with": "  float pX = 1.0;", "why": "the evening star as bright through the low air as overhead: no extinction on the planets"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "f = fract(g); ivec2 c = ivec2(floor(g));", "with": "f = vec2(0.0); ivec2 c = ivec2(floor(g + 0.5));", "why": "the face's map read nearest, not bilinear: its cells' edges glitter as the disc slides"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
@@ -669,7 +670,12 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   const T = g.match(/^vec3 starTint[\s\S]*?^}/m)[0], cols = [...T.matchAll(/vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]).filter((c) => c[0] !== 0.92);
   assert.equal(cols.length, 4);
   for (const c of cols) { const L = lab(c); assert.ok(Math.abs(Y(c) - Y(W)) < 2e-3, `tint ${c}: Y ${Y(c)}`); assert.ok(Math.abs(L[0] - lab(W)[0]) < 5e-3, `tint ${c}: L ${L[0]}`); assert.ok(Math.hypot(L[1], L[2]) <= 0.0505, `tint ${c}: pastel (C ${Math.hypot(L[1], L[2]).toFixed(4)}, at most 0.05: delight-night §4)`); }
-  assert.ok(g.includes('  return col * min(v, hv) * (1.0 - hazeSky(rd));'), 'a planet\'s light capped at its head');
+  assert.ok(g.includes('  return extTint(col, pX) * (min(v, hv) * exp2(-0.4 * 3.3219281 * EXT_V * max(pX - 1.0, 0.0)) * (1.0 - hazeSky(rd)));') && g.includes('  float pX = airmass(sd.y);'), 'a planet\'s light capped at its head, then dimmed by the air it passes through as the stars are');
+  // (physics: night/extinction) the planets lose k (X - 1) magnitudes low down, as the stars do: nothing at the zenith,
+  // about 0.7 at 10 deg, about 1.4 at 5; the shader's airmass run here
+  const am = (y) => { const h = Math.max(Math.asin(Math.min(Math.max(y, 0), 1)) * 180 / Math.PI, 0); return 1 / (Math.sin(h * Math.PI / 180) + 0.50572 * Math.pow(h + 6.07995, -1.6364)); };
+  const EXT = +/const float EXT_V = ([\d.]+);/.exec(g)[1], lost = (deg) => EXT * Math.max(am(Math.sin(deg * Math.PI / 180)) - 1, 0);
+  assert.ok(lost(90) < 1e-3 && Math.abs(lost(10) - 0.69) < 0.05 && Math.abs(lost(5) - 1.35) < 0.08, `the planets' magnitudes lost: ${lost(90).toFixed(3)} overhead, ${lost(10).toFixed(2)} at 10 deg, ${lost(5).toFixed(2)} at 5`);
   const vc = g.match(/planetAt\(rd, c, uVen\.xyz, uStarM\.z, vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\)/); assert.ok(vc, 'Venus\'s colour and top');
   const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
   for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }

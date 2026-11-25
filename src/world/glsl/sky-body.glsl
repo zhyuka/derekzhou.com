@@ -321,7 +321,8 @@ vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, vec3 col) {   // (both planet
   if (dot(d, d) > 400.0) return vec3(0.0);
   float hv = max(top - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
   float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);
-  return col * min(v, hv) * (1.0 - hazeSky(rd));
+  float pX = airmass(sd.y);   // (physics: night/extinction, the planets as the stars: k (X - 1) magnitudes lost low down, a little redder; nothing at the zenith changes, nothing brighter)
+  return extTint(col, pX) * (min(v, hv) * exp2(-0.4 * 3.3219281 * EXT_V * max(pX - 1.0, 0.0)) * (1.0 - hazeSky(rd)));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
