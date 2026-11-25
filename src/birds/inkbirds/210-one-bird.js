@@ -36,7 +36,7 @@
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
-  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: 0, passT: 60, comeT: 0 };
+  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: 0, passT: 60, comeT: 0, passN: 0 };
   var SEAC = new Map();
   /* the cloud sea at a point (cached on a 64 m grid: the maps never change) */
   function seaAt(x, z) {
@@ -147,7 +147,7 @@
     b.wOff = false; b.wsT = -1;
   }
   /* its wing's history kept to the last seconds (else it grows all its life) */
-  function wingTrim(b) { if (b.age > b.wtT) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 30; } }
+  function wingTrim(b) { if (b.age > b.wtT || b.w.wing.nk > 200) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 5; } }   // (every 5 s, and at once when a catch-up after a pause has laid many knots: a skein's phase locks lay several a second)
   /* ... flapping 1, gliding 0: the integrator reads it */
   function wingNow(b) { b.flap = wingState(b).e > 0.5 ? 1 : 0; }
   /* (the owner, 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way

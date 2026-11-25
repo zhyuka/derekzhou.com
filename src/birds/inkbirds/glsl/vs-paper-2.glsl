@@ -1,6 +1,6 @@
 
 void main() {
-  float halo = uMode.x > 0.5 ? 0.0 : aC.w * uMode.z;
+  float halo = uMode.x > 0.5 || aM.x <= 0.0 ? 0.0 : aC.w * uMode.z;   // (none for a speck: its e-folding 0)
   float pad = aK1.z + 2.0 * aK1.w + 1.0 + (halo > 0.0 ? 4.0 * aM.x : 0.0) + (aM.z >= 0.0 ? 6.0 : 0.0);
   vec2 lo = aBox.xy - pad, hi = aBox.zw + pad;
   int c = gl_VertexID;
