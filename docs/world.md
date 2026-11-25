@@ -1261,6 +1261,35 @@ forward into a low sun, or a layer past its physical size, would be a
 look, not physics. The branch claude/land-saltation and the crops
 (claude/review-459-crops) keep the work.
 
+## THE LAND'S LEVEL OF DETAIL (no pop at a handoff)
+
+The land is 10 rings of 96 cells, 0.35 m doubling. Each vertex morphs
+toward the next ring's lattice over 37 to 45.5 cells from the camera
+(VS_TERRAIN, VS_TERRAIN_SPLIT, hp-gridw). Measured in cruise
+(tools/physics/lod-pop.mjs: the clipmap replayed in doubles over the
+dunes, 2 flights of 60 s at 12 m/s, 1500 fixed points 50-600 m ahead,
+laptop size 2880 x 1800), the rule before (each odd vertex to c - 1) did
+pop. Every step over 0.5 px came where a point passed from one ring to
+the next, up to 10.9 px of edge motion and 75 shading levels: 117 and 94
+steps over 0.5 px in the two minutes. Fully morphed, that rule laid the fine ring on
+one diagonal in every coarse cell, but the coarse ring alternates its
+diagonals, so half the cells changed shape at the handoff. Morph off
+was worse (up to 12 px).
+
+Now an odd vertex goes toward its coarse lattice's multiple of 4 cells
+(c + (c mod 2)((c mod 4) - 2)). Fully morphed, the fine ring is the
+coarse ring's own triangles, diagonals and all; an exhaustive search of
+the rules over a 4-cell period found this one depends on the vertex's
+own coordinate alone. The same two flights: 1665 handoffs, 0.00 px and
+0.00 levels at every one. The worst step anywhere is 0.19 px, a
+vertex's continuous slide inside its band. The vertex normals still
+turn fast where a sliding vertex crosses a slip face's brink (up to 13
+levels in a frame, 53 steps over 2 in 2.3 million). That is the morph's
+own motion, not a ring change, and the fragment rebuilds the main
+dunes' slope at its own phase there (s1Slope). test/unit/clipmap.mjs
+flies both paths for 4 s: no handoff over 0.5 px or 2 levels; the c - 1
+rule must pop, and the plant (morph off) fails it.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate

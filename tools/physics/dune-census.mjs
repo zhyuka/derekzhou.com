@@ -140,6 +140,8 @@ export function overSwell(x, y, a = 0.6) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   return dunes(x, y).h[0] - (40 * g0[0] + 15 * g1[0]);
 }
+/* the land's height at (x, y) in wind angle a, as dunes() makes it (tools/physics/lod-pop.mjs) */
+export function landAt(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; return dunes(x, y).h[0]; }
 function dunes(x, y) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   const swell = add(sc(g0, 40), sc(g1, 15));
