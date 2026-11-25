@@ -176,6 +176,7 @@ test('merge bot: a doc only people read, changed on both sides, re-gates nothing
 // plant: {"file": ".github/ci/bot-rules.mjs", "find": "'.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', ", "with": "'.github/ci/merge-bot.mjs', ", "why": "#435's gap: a PR changing bot-rules.mjs lands with no review"}
 // plant: {"file": ".github/ci/merge-bot.mjs", "find": "const SELF = BOT_FILES;", "with": "const SELF = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs'];", "why": "the bot back on its own two files"}
 // plant: {"file": ".github/ci/bot-rules.mjs", "find": " '.github/ci/areas.json',", "with": "", "why": "the areas map, which decides the re-gates, changed with no review"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": " '.github/ci/verdict.mjs',", "with": "", "why": "#510's gap: a change to the verdict the bot lands on lands with no review"}
 test('merge bot: every file the bot runs or decides by is its own, and waits for the review (#435, 2026-11-25)', async () => {
   const fs = await import('node:fs'), path = await import('node:path');
   const { BOT_FILES } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
@@ -192,6 +193,8 @@ test('merge bot: every file the bot runs or decides by is its own, and waits for
   }
   for (const f of want) assert.ok(BOT_FILES.includes(f), `${f}: the bot runs on it, so a change to it waits for the hub's review (BOT_FILES)`);
   for (const f of ['.github/ci/bot-rules.mjs', '.github/ci/areas.json', '.claude/hooks/guard.py']) assert.ok(want.has(f), `(the graph found ${f})`);
+  // the files that make its input: the verdict it lands on (#510 changed verdict.mjs and landed unreviewed) and the budget measure
+  for (const f of ['.github/ci/verdict.mjs', '.github/ci/budget-room.mjs']) assert.ok(BOT_FILES.includes(f), f + ' makes the verdict the bot lands on: its own file');
   for (const f of BOT_FILES) assert.ok(fs.existsSync(path.join(R, f)), f + ' exists');
 });
 

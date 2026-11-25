@@ -143,7 +143,9 @@ export function regateAnswer({ shared = [], same: all = [], approved = false }) 
 // deploy-walk.mjs, this file), and the data it decides by (areas.json, the names guard and its list). #435 (2026-11-25)
 // changed this file, the list then held only merge.yml and merge-bot.mjs, and it landed with no review;
 // test/unit/merge-bot.mjs derives the list from the bot's imports and reads, so a new module cannot fall out of it.
-export const BOT_FILES = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', '.github/ci/areas.mjs', '.github/ci/areas.json', '.github/ci/deploy-walk.mjs', '.github/ci/budget-room.mjs', '.claude/hooks/guard.py', '.claude/hooks/names.json'];
+// The gate's verdict (verdict.mjs) is the bot's input as much as its code: gate_ok and frames_identical decide what lands
+// unreviewed. #510 changed it, its served build the base's, and landed with no review (2026-11-25, 17:18Z).
+export const BOT_FILES = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', '.github/ci/areas.mjs', '.github/ci/areas.json', '.github/ci/deploy-walk.mjs', '.github/ci/budget-room.mjs', '.github/ci/verdict.mjs', '.claude/hooks/guard.py', '.claude/hooks/names.json'];
 
 // The load budget's sums (the hub, 03:50Z Nov 25): #427, #432 and #437 each fit world.js's line on their own gates,
 // edited different sections (no file shared), and landed together at 125,005 B, 77 B over it. builtOf maps a changed
