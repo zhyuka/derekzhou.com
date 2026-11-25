@@ -6,7 +6,7 @@
  "n": 301,
  "seaLo": -110,
  "rise": 90,
- "renderer": "SwiftShader (headless, 2026-11-24: the page and harness 37-ground-fresh reads with; the page sees the nvidia persona's name, so the split height's path is the 4090's)",
+ "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090 (0x00002684) Direct3D11 vs_5_0 ps_5_0, D3D11)",
  "heights": [
   -53.59,
   23.99
