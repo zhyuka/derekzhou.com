@@ -27,12 +27,3 @@ which ask for credit and get it here and in docs/sound.md:
 
 Only their recorded notes are used, shortened, filtered and mixed into one file by tools/sound/sheet.py. Their own
 organ set is not used: its notes file does not plainly state CC0.
-
-## The moon's face (2026-11-25)
-
-sky-body.glsl's MOONA, a 32 x 32 orthographic map of the moon's near side at 4 bits a cell, is resampled
-(tools/night/moonmap.py) from the 1k colour map of NASA's Scientific Visualization Studio CGI Moon Kit,
-https://svs.gsfc.nasa.gov/4720/ (the LROC WAC colour mosaic). The studio states its content is in the public domain unless
-otherwise noted, and asks for credit to NASA's Scientific Visualization Studio, given in the shader's comment and here.
-A US federal work in the public domain is no more restrictive than CC0. Only the derived 1,024 cells are kept; the map
-itself is not in the repository.

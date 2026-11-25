@@ -1,6 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "f = fract(g); ivec2 c = ivec2(floor(g));", "with": "f = vec2(0.0); ivec2 c = ivec2(floor(g + 0.5));", "why": "the face's map read nearest, not bilinear: its cells' edges glitter as the disc slides"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "rr = max(R * (k == 0 ? 1.0 : 0.6 + 0.25 * moonHash(h + 0.3)), 0.06);", "with": "rr = 0.01;", "why": "the maria's blobs shrunk to dots under a pixel: they glitter as the disc slides"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
@@ -1246,33 +1246,45 @@ test('physics: Looks: the gas\'s path is the slant integral of air thinning with
   assert.ok(g.includes('return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t));'), 'fogAmt does not take the gas along its path');
 });
 
-// the moon's face (NIGHT, the hub's review crops: a flat tan disc, then evenly toned spots): the near side's albedo from
-// NASA's Scientific Visualization Studio CGI Moon Kit (https://svs.gsfc.nasa.gov/4720/, public domain), resampled by
-// tools/night/moonmap.py to an orthographic 32 x 32 disc at 4 bits a cell; sky-body.glsl's moonFace run here as JS: the
-// maria where they stand (Imbrium, Serenitatis, Tranquillitatis, Crisium, Procellarum darker than the southern highlands),
-// the disc's mean light steady within 2% and no pixel jumping more than half its contrast as it slides by quarter pixels
-test('night: the moon\'s face, the near side\'s albedo read bilinear, the maria where they stand, no glitter', () => {
+// the moon's face (NIGHT, the hub's review crops: a flat tan disc, then evenly toned spots): procedural maria at the IAU/USGS
+// gazetteer's centres and sizes (https://planetarynames.wr.usgs.gov), each a soft core and four hashed lobes, bells
+// joined as 1 - prod(1 - w f); sky-body.glsl's moonFace run here as JS: the table is the gazetteer's; Imbrium, Serenitatis,
+// Tranquillitatis, Crisium and Procellarum darker than the southern highlands; no blob narrower than about a pixel; the
+// disc's mean light steady within 2% and no pixel jumping more than half its contrast as it slides by quarter pixels
+test('night: the moon\'s face, soft procedural maria at their published places, no glitter', () => {
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const MD = +g.match(/const float MOON_DARK = ([\d.]+), MOON_EW = (-?[\d.]+);/)[1], EW = +g.match(/MOON_EW = (-?[\d.]+);/)[1];
-  const W = [...g.match(/const uint MOONA\[128\] = uint\[128\]\(([\s\S]*?)\);/)[1].matchAll(/0x([0-9a-f]{8})u/g)].map((m) => parseInt(m[1], 16));
-  assert.equal(W.length, 128, 'the map: 128 words of 8 cells');
-  assert.ok(g.includes('vec2 g = vec2(dot(n, E) * 16.0 + 15.5, 15.5 - dot(n, N) * 16.0), f = fract(g); ivec2 c = ivec2(floor(g));') && g.includes('return mix(MOON_DARK, 1.0, a);') && g.includes('mix(mix(moonCell(c.x, c.y), moonCell(c.x + 1, c.y), f.x), mix(moonCell(c.x, c.y + 1), moonCell(c.x + 1, c.y + 1), f.x), f.y)'), 'moonFace\'s bilinear read and light, as run here');
-  const cell = (i, j) => { const k = Math.min(Math.max(j, 0), 31) * 32 + Math.min(Math.max(i, 0), 31); return ((W[k >> 3] >>> ((k & 7) * 4)) & 15) / 15; };
+  const T = [...g.match(/const vec3 MARIA\[12\] = vec3\[12\]\(([\s\S]*?)\);/)[1].matchAll(/vec3\((-?[\d.]+), (-?[\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]);
+  const GAZ = [[34.72, -14.91, 1145.53], [27.29, 18.36, 674.28], [8.35, 30.83, 875.75], [16.18, 59.10, 555.92], [-7.83, 53.67, 840.35], [-15.19, 34.60, 339.39],
+    [-20.59, -17.29, 714.50], [-24.48, -38.57, 419.67], [13.20, 4.09, 242.46], [-10.53, -22.31, 350.01], [7.79, -30.64, 511.93], [20.67, -56.68, 2592.24 * 0.75]];   // (Imbrium .. Insularum; Procellarum)
+  assert.equal(T.length, 12);
+  T.forEach((t, i) => assert.ok(t[0] === GAZ[i][0] && t[1] === GAZ[i][1] && Math.abs(t[2] - GAZ[i][2] / 2 / 1737.4) < 1e-4, `mare ${i}: ${t} against the gazetteer's ${GAZ[i]}`));
+  const L1 = 'float h = float(i * 5 + k), b = 6.2832 * moonHash(h + 0.1), s = k == 0 ? 0.0 : R * (0.4 + 0.3 * moonHash(h + 0.2)), rr = max(R * (k == 0 ? 1.0 : 0.6 + 0.25 * moonHash(h + 0.3)), 0.06);';
+  const L2 = 'keep *= 1.0 - dk * (k == 0 ? 1.0 : 0.6 + 0.4 * moonHash(h + 0.4)) * exp(-d * d / (rr * rr));';
+  assert.ok(g.includes(L1) && g.includes(L2) && g.includes('float R = MARIA[i].z, dk = 0.75 + 0.25 * moonHash(float(i) + 0.5);') && g.includes('return 1.0 - (1.0 - MOON_DARK) * (1.0 - keep);') && g.includes('float moonHash(float x) { return fract(sin(x * 12.9898) * 43758.5453); }'), 'moonFace\'s lobes, their floor of 0.06 rad and the light, as run here');
+  const hash = (x) => { const v = Math.fround(Math.sin(Math.fround(x * 12.9898)) * 43758.5453); return v - Math.floor(v); };
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); };
   const face = (n, m, pole) => {   // (moonFace, line for line)
-    const N = norm(pole.map((p, i) => p - dot(pole, m) * m[i] + (i === 1 ? 1e-5 : 0))), E = cross(m, N).map((x) => x * EW);
-    const gx = dot(n, E) * 16 + 15.5, gy = 15.5 - dot(n, N) * 16, fx = gx - Math.floor(gx), fy = gy - Math.floor(gy), cx = Math.floor(gx), cy = Math.floor(gy);
-    const a = (cell(cx, cy) * (1 - fx) + cell(cx + 1, cy) * fx) * (1 - fy) + (cell(cx, cy + 1) * (1 - fx) + cell(cx + 1, cy + 1) * fx) * fy;
-    return MD + (1 - MD) * a;
+    const N = norm(pole.map((p, i) => p - dot(pole, m) * m[i] + (i === 1 ? 1e-5 : 0))), E = cross(m, N).map((x) => x * EW), q = [-dot(n, m), dot(n, E), dot(n, N)];
+    let keep = 1;
+    T.forEach(([la, lo, R], i) => {
+      const La = la * Math.PI / 180, Lo = lo * Math.PI / 180, c = [Math.cos(La) * Math.cos(Lo), Math.cos(La) * Math.sin(Lo), Math.sin(La)], u = norm(cross([0, 0, 1], c).map((x, j) => x + (j === 1 ? 1e-5 : 0))), v = cross(c, u), dk = 0.75 + 0.25 * hash(i + 0.5);
+      for (let k = 0; k < 5; k++) {
+        const h = i * 5 + k, b = 6.2832 * hash(h + 0.1), s = k === 0 ? 0 : R * (0.4 + 0.3 * hash(h + 0.2)), rr = Math.max(R * (k === 0 ? 1 : 0.6 + 0.25 * hash(h + 0.3)), 0.06);
+        const cc = norm(c.map((x, j) => x + (u[j] * Math.cos(b) + v[j] * Math.sin(b)) * Math.tan(s))), d = Math.acos(Math.max(-1, Math.min(1, dot(q, cc))));
+        keep *= 1 - dk * (k === 0 ? 1 : 0.6 + 0.4 * hash(h + 0.4)) * Math.exp(-d * d / (rr * rr));
+      }
+    });
+    return 1 - (1 - MD) * (1 - keep);
   };
   const m = norm([0.3, 0.25, 1]), pole = norm([0, 0.9, -0.44]);   // (the moon low in the south, the pole 64 deg up in the north)
   const N = norm(pole.map((p, i) => p - dot(pole, m) * m[i])), E = cross(m, N).map((x) => x * EW);
   const at = (la, lo) => { const L = la * Math.PI / 180, O = lo * Math.PI / 180; return [0, 1, 2].map((i) => -m[i] * Math.cos(L) * Math.cos(O) + E[i] * Math.cos(L) * Math.sin(O) + N[i] * Math.sin(L)); };
-  const high = face(at(-45, 5), m, pole);   // (the southern highlands)
-  for (const [nm, la, lo] of [['Imbrium', 34.7, -14.9], ['Serenitatis', 27.3, 18.4], ['Tranquillitatis', 8.4, 30.8], ['Crisium', 16.2, 59.1], ['Procellarum', 20, -50]]) {   // (the gazetteer's centres: https://planetarynames.wr.usgs.gov)
-    const v = face(at(la, lo), m, pole); assert.ok(v < high - 0.2 * (1 - MD), `Mare ${nm} (${v.toFixed(3)}) not darker than the southern highlands (${high.toFixed(3)})`);
+  const high = face(at(-50, 10), m, pole);
+  for (const [nm, la, lo] of [['Imbrium', 34.7, -14.9], ['Serenitatis', 27.3, 18.4], ['Tranquillitatis', 8.4, 30.8], ['Crisium', 16.2, 59.1], ['Procellarum', 20.7, -56.7]]) {
+    const v = face(at(la, lo), m, pole); assert.ok(v < high - 0.4 * (1 - MD), `Mare ${nm} (${v.toFixed(3)}) not plainly darker than the southern highlands (${high.toFixed(3)})`);
   }
-  assert.ok(high > 0.85, `the southern highlands near the disc's own colour (${high.toFixed(3)})`);
+  assert.ok(high > 0.9, `the southern highlands near the disc's own colour (${high.toFixed(3)})`);
   const R = 18, means = [], img = {};
   for (const ox of [0, 0.25, 0.5, 0.75]) for (const oy of [0, 0.25, 0.5]) {
     let s = 0, n = 0; const px1 = img[ox + ',' + oy] = new Map();
@@ -1287,5 +1299,5 @@ test('night: the moon\'s face, the near side\'s albedo read bilinear, the maria 
   assert.ok(jump <= 0.5 * (1 - MD), `a pixel's light jumps ${jump.toFixed(3)} as the disc slides a quarter pixel (at most half the face's contrast, ${(0.5 * (1 - MD)).toFixed(3)}): it would glitter`);
   const lo = Math.min(...means), hi = Math.max(...means);
   assert.ok((hi - lo) / hi < 0.02, `the disc's mean light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides (at most 2%)`);
-  console.log(`# moon face: mean light ${lo.toFixed(3)}-${hi.toFixed(3)} of the disc's colour, the darkest at ${MD}, a pixel's largest jump a quarter pixel on ${jump.toFixed(3)}`);
+  console.log(`# moon face: mean light ${lo.toFixed(3)}-${hi.toFixed(3)} of the disc's colour, the deepest at ${MD}, a pixel's largest jump a quarter pixel on ${jump.toFixed(3)}`);
 });

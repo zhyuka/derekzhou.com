@@ -248,18 +248,21 @@ ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
 up (60 deg out: 21 deg; 90 deg: 40 deg), so only its faint outer part could
 show, low in the haze (the hub's ruling, 2026-11-25).
 
-The moon's face (sky-body.glsl, moonFace): the near side's albedo, from NASA's
-Scientific Visualization Studio CGI Moon Kit (https://svs.gsfc.nasa.gov/4720/,
-public domain; docs/licences.md), resampled by tools/night/moonmap.py to an
-orthographic 32 x 32 disc at 4 bits a cell (MOONA), read bilinear across the
-disc: the maria's true outlines and their varied darkness, Oceanus Procellarum
-with them; the map's darkest level at MOON_DARK (0.32) of the highlands' light,
-the highlands at the disc's own colour, so nothing passes the light ceiling;
-lunar north toward the celestial pole (the sky's frame), so the face turns with
-the pole's tilt at 64 deg north; lit by the phase (its terminator crosses the
-features). At the disc's 36 px a cell is about a pixel: as the disc slides by
-quarter pixels its mean light holds within 2% and no pixel jumps more than half
-its contrast (test/unit/sky.mjs).
+The moon's face (sky-body.glsl, moonFace), procedural until the owner rules on
+public-domain images: its maria at their published centres and sizes (the
+IAU/USGS Gazetteer of Planetary Nomenclature, https://planetarynames.wr.usgs.gov,
+its Mare and Oceanus feature types: 12 of them; Oceanus Procellarum at 0.75 of
+its extent; Mare Frigoris, a long thin band, and the small limb maria left
+out), each a soft core and four lobes about it (bearing, reach and weight
+hashed), bells joined as 1 - prod(1 - w f), so every mare has an uneven
+outline and tone and an edge that falls off over several pixels; each mare's
+darkness 0.75-1 of the deepest (hashed: no published per-mare albedo is used),
+the deepest at MOON_DARK (0.38) of the highlands' light, the highlands at the
+disc's own colour; lunar north toward the celestial pole (the sky's frame), so
+the face turns with the pole's tilt at 64 deg north; lit by the phase (its
+terminator crosses the features). At the disc's 36 px, as it slides by quarter
+pixels, its mean light holds within 2% and no pixel jumps more than half its
+contrast (test/unit/sky.mjs).
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands

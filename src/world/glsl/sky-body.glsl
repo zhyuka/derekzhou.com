@@ -281,20 +281,35 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
   vec2 d = gl_FragCoord.xy - (vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   return F * starBox(d.x, sg) * starBox(d.y, sg);
 }
-/* (night) the moon's face: its near side's albedo, from NASA's Scientific Visualization Studio CGI Moon Kit
-   (https://svs.gsfc.nasa.gov/4720/: the LROC WAC colour map, public domain, credit NASA's Scientific Visualization Studio),
-   resampled by tools/night/moonmap.py to an orthographic disc of 32 x 32 cells (lunar east to the right, north up; each
-   cell the mean of 8 x 8 samples), its light relative to the highlands (their 95th percentile), 4 bits a cell packed 8 to
-   a word (MOONA); read bilinear across the disc, the map's darkest level at MOON_DARK of the highlands' light, the
-   highlands at the disc's own colour; lunar north toward the celestial pole (the sky's frame), lunar east to its side */
-const float MOON_DARK = 0.32, MOON_EW = 1.0;
-const uint MOONA[128] = uint[128](0x8b755555u, 0xfffefddeu, 0xfffedeefu, 0x9999999au, 0x8b755555u, 0xdbbbdeeeu, 0xfffdbbccu, 0x9999999au, 0x8b755555u, 0x5656779bu, 0xefb76766u, 0x9999999au, 0x45755555u, 0x95757884u, 0xba556668u, 0xbbbbbbbbu, 0x43355555u, 0x53322368u, 0x98678788u, 0xbbbbba8au, 0x52125555u, 0x42211125u, 0x76568986u, 0xccccc999u, 0x32112888u, 0x42211112u, 0x44453675u, 0xdddaaaa9u, 0x22211333u, 0x42111112u, 0x75212246u, 0xccc9bab9u, 0x22311355u, 0x44221112u, 0x61211245u, 0xeecaacbbu, 0x12630144u, 0x54212212u, 0x41121045u, 0x9d8688a9u, 0x2222013bu, 0x62222223u, 0x31121136u, 0x99238975u, 0x23210029u, 0x55344454u, 0x11142322u, 0x6612c812u, 0x23210028u, 0x11356865u, 0x00033311u, 0x6814a400u, 0x3730013bu, 0x42245b64u, 0x00036225u, 0x87695200u, 0x3631005bu, 0x62023464u, 0x00148876u, 0x86844210u, 0x2210006bu, 0x32223643u, 0x1127bc96u, 0x65312223u, 0x2100006au, 0x57544322u, 0x269a9aa7u, 0x65211477u, 0x2100115au, 0x98935413u, 0x46ecaba8u, 0x76311587u, 0x2111149au, 0x68425214u, 0x69dbab98u, 0x898238a7u, 0x1232399au, 0x86343222u, 0x9fdca998u, 0x97645954u, 0x2454699bu, 0x96222252u, 0x9fc9ab99u, 0xa7557864u, 0x11678cbcu, 0x99212445u, 0xacaaa898u, 0xb9785765u, 0x1159efccu, 0x97212333u, 0xaea9bb9bu, 0x998aaa9au, 0x238bcbeeu, 0xda533545u, 0xcbcbacceu, 0xcc9dedaau, 0x67ca9bbbu, 0xffd9c646u, 0x9abdcbdfu, 0x999cffbcu, 0x679aadddu, 0xffffba78u, 0xaaabbdefu, 0x4449bfcbu, 0x879baaaau, 0xffffcaaau, 0xcabcdcffu, 0x444689bdu, 0x89acaaaau, 0xffffcaa8u, 0xedcbabffu, 0x4446789bu, 0x9abbaaaau, 0xfffeba87u, 0xaccbccefu, 0x4444447au, 0xb9999999u, 0xfffeccbcu, 0xbcccddeeu, 0x33333339u, 0xb9999999u, 0xfffefffeu, 0xddfeeeffu, 0x33333339u, 0xb9999999u, 0xffeefeeeu, 0xddeeefffu, 0x33333339u);
-float moonCell(int i, int j) { int k = clamp(j, 0, 31) * 32 + clamp(i, 0, 31); return float((MOONA[k >> 3] >> uint((k & 7) * 4)) & 15u) / 15.0; }
+/* (night) the moon's face, procedural (the owner's licence rule: no image source until he rules on public-domain works):
+   its maria at their published centres and sizes (the IAU/USGS Gazetteer of Planetary Nomenclature:
+   https://planetarynames.wr.usgs.gov, its Mare and Oceanus feature types; lat, lon east, radius = diameter / 2 / 1737.4
+   km, in rad; Oceanus Procellarum at 0.75 of its extent, its outline being irregular; Mare Frigoris, a long thin band, and
+   the small limb maria left out). Each is a soft core and four lobes about it (each lobe's bearing, reach and weight
+   hashed from the mare and the lobe), each a soft bell of its own radius (never under 0.06 rad: about a pixel at 36 px), joined as 1 - prod(1 - w f), so a mare has an
+   uneven outline and an uneven tone, its edge falling off over several pixels at the disc's 36 px; each mare's own
+   darkness 0.75-1 of the deepest (hashed: no published per-mare albedo is used). The deepest at MOON_DARK of the
+   highlands' light, the highlands at the disc's own colour; lunar north toward the celestial pole (the sky's frame) */
+const float MOON_DARK = 0.38, MOON_EW = 1.0;
+const vec3 MARIA[12] = vec3[12](vec3(34.72, -14.91, 0.3297), vec3(27.29, 18.36, 0.1940), vec3(8.35, 30.83, 0.2520), vec3(16.18, 59.10, 0.1600),
+  vec3(-7.83, 53.67, 0.2418), vec3(-15.19, 34.60, 0.0977), vec3(-20.59, -17.29, 0.2056), vec3(-24.48, -38.57, 0.1208), vec3(13.20, 4.09, 0.0698),
+  vec3(-10.53, -22.31, 0.1007), vec3(7.79, -30.64, 0.1473), vec3(20.67, -56.68, 0.5595));
+float moonHash(float x) { return fract(sin(x * 12.9898) * 43758.5453); }
 float moonFace(vec3 n, vec3 m) {   // n: the surface normal (world), m: toward the moon
   vec3 p = vec3(0.0, 0.0, 1.0) * uSkyF, N = normalize(p - dot(p, m) * m + vec3(0.0, 1e-5, 0.0)), E = cross(m, N) * MOON_EW;
-  vec2 g = vec2(dot(n, E) * 16.0 + 15.5, 15.5 - dot(n, N) * 16.0), f = fract(g); ivec2 c = ivec2(floor(g));
-  float a = mix(mix(moonCell(c.x, c.y), moonCell(c.x + 1, c.y), f.x), mix(moonCell(c.x, c.y + 1), moonCell(c.x + 1, c.y + 1), f.x), f.y);
-  return mix(MOON_DARK, 1.0, a);
+  vec3 q = vec3(-dot(n, m), dot(n, E), dot(n, N));
+  float keep = 1.0;
+  for (int i = 0; i < 12; i++) {
+    vec2 r = radians(MARIA[i].xy); vec3 c = vec3(cos(r.x) * cos(r.y), cos(r.x) * sin(r.y), sin(r.x)), u = normalize(cross(vec3(0.0, 0.0, 1.0), c) + vec3(0.0, 1e-5, 0.0)), v = cross(c, u);
+    float R = MARIA[i].z, dk = 0.75 + 0.25 * moonHash(float(i) + 0.5);
+    for (int k = 0; k < 5; k++) {
+      float h = float(i * 5 + k), b = 6.2832 * moonHash(h + 0.1), s = k == 0 ? 0.0 : R * (0.4 + 0.3 * moonHash(h + 0.2)), rr = max(R * (k == 0 ? 1.0 : 0.6 + 0.25 * moonHash(h + 0.3)), 0.06);
+      vec3 cc = normalize(c + (u * cos(b) + v * sin(b)) * tan(s));
+      float d = acos(clamp(dot(q, cc), -1.0, 1.0));
+      keep *= 1.0 - dk * (k == 0 ? 1.0 : 0.6 + 0.4 * moonHash(h + 0.4)) * exp(-d * d / (rr * rr));
+    }
+  }
+  return 1.0 - (1.0 - MOON_DARK) * (1.0 - keep);
 }
 /* (night, delight-night §1) the evening or morning star: steady (no twinkle: a planet's disc, not a point), a point of the
    stars' own kind (its light integrated over the pixel, never glittering as it slides), 0.85 px (delight-night §1:
