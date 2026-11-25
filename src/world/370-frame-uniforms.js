@@ -38,7 +38,6 @@
     if (u.uAirU) gl.uniform1f(u.uAirU, u10Of(V));   // (the gust field's reference speed, the visit's U10: the veils' lift and the grains' hop)
     if (u.uSun) gl.uniform3fv(u.uSun, airLightDir(L));   // (the live key: on the moonlit sky, the moon's disc as drawn: physics: air/night-light)
     if (u.uKey) gl.uniform3fv(u.uKey, L.sunDir);   // (the baked key: the clouds' light, along their light depths)
-    if (u.uSeaD) gl.uniform4fv(u.uSeaD, seaUniform(V, cloudT()));   // (physics: clouds/sea: the cloud sea's carry and its long waves' phases)
     if (u.uGlory) gl.uniform4fv(u.uGlory, gloryUniform());   // (the cloud sea's glory: the moon's direction and amount)
     if (u.uSkyS) gl.uniform3fv(u.uSkyS, L.skyS || L.sunDir);   // (the sky's own light)
     if (u.uSunC) gl.uniform3fv(u.uSunC, L.sunC);

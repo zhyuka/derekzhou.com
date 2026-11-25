@@ -11,15 +11,7 @@
 const vec2 A_TO[7] = vec2[7](vec2(0.0), vec2(77.0), vec2(13.0, 5.0), vec2(-41.0, 19.0), vec2(7.0, -3.0), vec2(-19.0, 31.0), vec2(5.0, 23.0));
 const float A_TS[7] = float[7](1.0 / 900.0, 0.0, 1.0 / 210.0, 0.0, 1.0 / 26.0, 0.0, 1.0 / 17.0);
 const mat2 A_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 380.0), A_M3 = mat2(0.6, 0.8, -0.8, 0.6) * (1.0 / 75.0), A_M5 = mat2(0.9, -0.44, 0.44, 0.9) * (1.0 / 48.0);
-/* (physics: clouds/sea) the sea's carry and its long waves (212's seaUniform: [D.x, D.z, phase 1, phase 2]): the heaps
-   and billows read at p - D, so the whole pattern rides the wind at the sea's top; two long low waves on it, running in
-   the air's frame (their directions fixed to the world, 0.94 and 0.36 rad apart). The shape alone: every light term is
-   the same function of it */
-uniform vec4 uSeaD;
-const vec2 A_WK1 = vec2(0.9397, 0.3420) * (6.2831853 / 2800.0), A_WK2 = vec2(-0.3746, 0.9272) * (6.2831853 / 4300.0);
-const float A_WA1 = 3.0, A_WA2 = 2.0;
 vec3 A_Hd(vec2 p) {
-  p -= uSeaD.xy;
   float k1 = 1.0 - smoothstep(350.0, 900.0, gLodD), k2 = 1.0 - smoothstep(120.0, 380.0, gLodD);
   /* (fast500 D) the seven taps' noise in one loop FXC keeps rolled (one copy of gnd per kind of multiply), each tap's
      own multiply as before and its gradient turn after: the same operations on the same values */
@@ -38,8 +30,6 @@ vec3 A_Hd(vec2 p) {
   // (gLodD: 0 in the probes, so the camera's ground keeps them) before the clipmap's spacing could alias them
   if (k1 > 0.0) h += (9.0 * k1) * dAbs(dNg(g5, A_M5), 0.08);
   if (k2 > 0.0) h += (3.5 * k2) * dAbs(dNg(g6, mat2(1.0 / 17.0)), 0.1);
-  float w1 = dot(A_WK1, p) - uSeaD.z, w2 = dot(A_WK2, p) - uSeaD.w;
-  h += vec3(A_WA1 * sin(w1) + A_WA2 * sin(w2), A_WA1 * cos(w1) * A_WK1 + A_WA2 * cos(w2) * A_WK2);
   return h;
 }
 /* (world6 step B) the sea's near billows, seen from 14-32 m now (step A's ABOVE was seen from 150 m, where its 26-75 m
@@ -83,10 +73,10 @@ vec3 A_glory(vec3 rd) {
   return g * uGlory.w;
 }
 vec3 A_shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
-  n = normalize(n - A_bump(p.xz - uSeaD.xy, fp));   // (the near lumps ride with the heaps: physics: clouds/sea)
+  n = normalize(n - A_bump(p.xz, fp));
   // the sea's own heaps: their tops catch the low sun (pink), the creases between sink into the sky's blue
   float hgt = smoothstep(-25.0, 55.0, p.y);
-  float crease = smoothstep(-8.0, 16.0, p.y - 30.0 * gn((p.xz - uSeaD.xy) / 900.0));
+  float crease = smoothstep(-8.0, 16.0, p.y - 30.0 * gn(p.xz / 900.0));
   float ndl = ndlK(n);
   float tauL = (1.0 - hgt) * 2.8 + max(0.0, -ndl) * 3.6 + 0.6;
   float rr = 1.0 - clamp(dot(n, -rd), 0.0, 1.0);
