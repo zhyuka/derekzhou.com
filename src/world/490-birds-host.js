@@ -10,7 +10,6 @@
   var BIRDB = { ms: 1.5, spent: 0, at: 0, prep: 6 };   // (round 3: the birds' planning budget a frame, ms; their steps' time this frame)
   var BIRDS = /** @type {BirdsModule} */ (null), LASTE = null, LASTU = 0, LASTBL = new Float32Array([0, 1, 1]), HW = { boxes: null, kind: 'light', text: '#fdfcf7' }, BIRDPL = [];
   var CAMP = { pos: [0, 0, 0], f: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0], roll: 0, pitch: 0, inCloud: 0, arrive: 0, cover: 0, pmode: 0, hold: -1, open: -1, expo: 1, yaw: 0 };
-  var BMOON = { d: [0, -1, 0], w: 0, s: 0, v: 0, leg: 0, el: -90, az: 0, up: false };   // (the night passage's moon: HOST.moon's own scratch)
   var HOST = {
     gl: null,   // (Fix 2: the context, from the boot's first frame; the module is made then, makeBirds)
     glsl: { HEAD: HEAD, FRAME_U: FRAME_U, LIB: LIB, AIR: LIB_AIR },
@@ -85,9 +84,6 @@
     /* the grade the composite used this frame (exposure, saturation, lift, gain), and the light (sun, haze) */
     grade: function () { return LASTE; },
     light: function () { var V = SIM.V; return V ? (V.L || V.light) : null; },
-    /* the moon's disc dt s from the drawn moment (moonShown on the drawn clock: d toward it, w its weight on show, up
-       whether any of it shows; the one object): the night passage's way may cross it */
-    moon: function (dt) { if (!SIM.V) return null; var m = moonShown(SIM.t - (1 - SIM.alpha) * SIM_DT + SKY.dt + (dt || 0), BMOON); m.up = m.w > 0; return m; },
     /* the words: their boxes (name, bio, credit, link, link: x0, y0, x1, y1 in canvas px) and their colours in effect */
     words: function () { HW.kind = INK;   /* (stage2: the words' ink, always light: the ink birds' light path) */ HW.text = WORDSETS[HW.kind].text; return HW; },
     /* the scene's depth and the clouds (premultiplied, half resolution), bound on the units the engine's programs use

@@ -187,7 +187,7 @@
   /* a near pass flown: the next not before PASS_GAP */
   function passTaken(r) { POP.passT = t + pick(r, PASS_GAP); }
   function newGoal(F, kind, r, cls) {
-    var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false, leave: false, px: NaN, pz: NaN };
+    var Lb = F.lead, x = Lb.p[0], z = Lb.p[2], g = { k: kind, t0: t, T: 0, psi: Lb.psi, y: Lb.p[1], cx: x, cz: z, R: 0, sense: r() < 0.5 ? 1 : -1, eh: 0, ec: 0, d: 0, place: false, home: false, come: false, leave: false };
     var eye = LVC.y, gr = lvGround(x, z), top = Math.max(hideTop(x, z), gr);
     if (kind === 'commute') {
       var rb = ROOST_B[cls];   // (physics: birds/day: at dusk toward the roost's bearing, POP.line; at first light away from it)
@@ -257,10 +257,6 @@
       ex += -LVC.vz / cs * g.d; ez += LVC.vx / cs * g.d;
       var qx = ex - x, qz = ez - z; h = Math.atan2(qx, qz);
       if (qx * qx + qz * qz < 30 * 30 || t - g.t0 > g.T) { g.k = 'commute'; g.psi = b.psi; g.T = 60; g.t0 = t; }
-    } else if (g.px === g.px) {
-      /* (the night passage, 212) straight at its crossing, a fixed place chosen at its birth, then on along its way */
-      var cx = g.px - x, cz = g.pz - z;
-      if (cx * Math.sin(g.psi) + cz * Math.cos(g.psi) > 20) h = Math.atan2(cx, cz); else { g.px = NaN; h = g.psi; }
     } else h = g.psi + g.eh;
     var ch = Math.cos(h), sh = Math.sin(h), dy = clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25) + v * g.ec;
     if (g.k === 'sink') {   // (its depth under the cloud's top where it is now: the top rises and falls under it)
