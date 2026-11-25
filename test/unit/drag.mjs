@@ -15,6 +15,8 @@
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (was) { REL.tl = e.timeStamp;", "with": "    if (was) { REL.tl = -1e9;", "why": "no lift time: a rest with no moves before the lift is not seen"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    REL.vx = relFit(REL.x, j0, m, tU) * share;", "with": "    REL.vx = relFit(REL.x, j0, m, tU);", "why": "a short drag coasts at its whole speed, not its share"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "if (tU - REL.t[j] > REL_H && nt >= 3) break;", "with": "if (tU - REL.t[j] > REL_H) break;", "why": "a long frame's one move: no speed"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (REL.rs && (INP.down || INP.rel) && REL.n) {", "with": "    if (false) {", "why": "the finger drawn where its newest move put it (main's): uneven touch judders, 60 Hz touch on a 120 Hz screen standing still every other frame"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "var RS_MAX = 24, RS_DECAY = 5;", "with": "var RS_MAX = 24, RS_DECAY = 200;", "why": "the latency eased down at once: it is never enough for the next late move"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the drag: where it starts, how far it turns
@@ -325,5 +327,38 @@ test('drag: let go, the view runs on at the finger\'s speed and settles with no 
     assert.ok(Math.abs(run - Math.min(0.3 * v0, 0.24)) < 1e-9, `${tag}: it ran on ${run} rad, want ${Math.min(0.3 * v0, 0.24)}`);
     const by1 = yaws[3 + Math.round(1 / P)] - yaws[3];
     assert.ok(by1 >= 0.99 * run, `${tag}: a second after the lift only ${(by1 / run * 100).toFixed(1)}% of the run-on was done (want 99%)`);
+  }
+});
+
+// ------------------------------------------------------------------ the drag on phones: no judder from uneven touch
+// (the hub's 01:40Z item, the drag's feel on phones) a phone's touch comes at 60-120 Hz, its moves stamped at the
+// digitizer's time and delivered up to a few ms late. A steady drag (0.6 px/ms) through the flight's own input and
+// frame loop at 60-144 Hz: each frame's turn against the finger's mean travel a frame. Once the drag has run 0.25 s
+// (the latency settled: REL.lat), at every pairing of touch 60/90/120 Hz and screen 60/90/120/144 Hz with delivery 0-4
+// ms late, three seeds each: the turn's spread (sd) at most 0.06 of the mean, under 2% of frames more than 25% off, the
+// mean the finger's. (Main: a spread of up to 1.18 and every frame off by 25% or more: 60 Hz touch on a 120 Hz screen
+// stood still every other frame; 90 Hz on 60 turned 0.67 and 1.33 by turns.) A desktop's moves, coalesced to come just
+// before each frame, still draw at once (the tests above: the view trails the finger only by the move's own lag)
+function lcgD(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function touchTurns(hzIn, hzOut, late, seed, V = 0.6) {
+  const F = flying(0.37), P = 1000 / hzOut, Q = 1000 / hzIn, r = lcgD(seed), turns = [], moves = [];
+  for (let t = 1000 + Q * r(); t < 4000; t += Q) moves.push([t, V * t, t + 1 + r() * 2 * late]);   // (stamped at t, delivered 1 to 1 + 2 late ms after)
+  let mi = 0, last = null;
+  for (let k = 0; k * P < 2800; k++) {
+    const fts = 1100 + k * P;
+    while (mi < moves.length && moves[mi][2] <= fts) { F.move(moves[mi][1], moves[mi][0]); mi++; }
+    const y = F.frame(fts);
+    if (last !== null && k * P > 250) turns.push((y - last) / (GAIN1000 * V * P));
+    last = y;
+  }
+  const mean = turns.reduce((a, b) => a + b, 0) / turns.length, sd = Math.sqrt(turns.reduce((a, b) => a + (b - mean) ** 2, 0) / turns.length);
+  return { mean, sd, off: turns.filter((x) => Math.abs(x - 1) > 0.25).length / turns.length };
+}
+test('drag: uneven touch (60-120 Hz, delivered up to 4 ms late) turns the view evenly a frame on 60-144 Hz screens', () => {
+  for (const hzIn of [60, 90, 120]) for (const hzOut of [60, 90, 120, 144]) for (const late of [0, 2, 4]) for (const seed of [1, 2, 3]) {
+    const r = touchTurns(hzIn, hzOut, late, seed), tag = `${hzIn} Hz touch on a ${hzOut} Hz screen, up to ${late} ms late, seed ${seed}`;
+    assert.ok(Math.abs(r.mean - 1) < 0.01, `${tag}: the view turned ${r.mean.toFixed(3)} x the finger a frame on average`);
+    assert.ok(r.sd <= 0.06, `${tag}: each frame's turn spread ${r.sd.toFixed(3)} of the finger's (want 0.06 at most: judder)`);
+    assert.ok(r.off < 0.02, `${tag}: ${(r.off * 100).toFixed(1)}% of frames turned more than 25% off the finger's travel (want under 2%)`);
   }
 });
