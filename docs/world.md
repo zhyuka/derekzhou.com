@@ -1117,6 +1117,26 @@ So the sand's albedo stays flat in gAF: no measured, consistent ramp to
 draw, and a darker floor would darken part of the land for no physics. A
 crust or damp floor with a measured reflectance would be a new item.
 
+## THE SAND VEILS
+
+The veils of sand off the brinks (vs-ribbon, realm-dunes' ribbons) blow on
+the air's own wind at their height (A.H.veils, 5 m) and lift with its
+gusts. Since 2026-11-25 they're there only when sand moves:
+
+- sand moves only past its threshold friction velocity, about 0.2-0.25 m/s
+  for fine dune sand, which the log law over a sand bed (z0 about 0.1 mm)
+  puts at U10 5.8-7.2 m/s (both: https://arxiv.org/pdf/1201.4353);
+- that is AIR's own dust (airWx(t).dust, eased over U10 5.8-7.0), and the
+  veils take it whole (414: the sand under the camera times dust). The old
+  opacity, 0.4 + 0.6 x smoothstep(3, 7, U10), never went below 0.4.
+
+By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
+6, 7, 10, 11, 13 and 14, at 3.5-5.7 m/s). Opening 4 keeps 0.31 (6.25 m/s),
+8 keeps 1 (7.31), 9 keeps 0.98 (6.89), 12 keeps 0.75 (6.61) and 15 keeps
+0.38 (6.30). It is the visit's own (U10 alone), so a veil never fades in
+place; reduced motion draws none, as before. test/unit/air.mjs holds dust
+at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate

@@ -25,6 +25,6 @@ void main() {
   gl_Position = uVP * vec4(ve, 1.0);
   float back = pow(max(dot(rd, uSun), 0.0), 3.0);
   float edge = 1.0 - smoothstep(0.38 * uRa.x, 0.5 * uRa.x, max(abs(rel0.x), abs(rel0.y)));
-  float a = uPc.a * 0.55 * (0.4 + 0.6 * smoothstep(3.0, 7.0, uAirU)) * sp.w * edge * smoothstep(6.0, 18.0, dist) * (1.0 - smoothstep(140.0, 230.0, dist));
+  float a = uPc.a * 0.55 * sp.w * edge * smoothstep(6.0, 18.0, dist) * (1.0 - smoothstep(140.0, 230.0, dist));
   vCol = vec4(atmos(uPc.rgb * (0.85 + 1.8 * back), rd, dist), a); vQ = aQ;
 }

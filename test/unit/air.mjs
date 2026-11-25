@@ -4,6 +4,7 @@
 // and the clouds' bake, the land and the birds read it; each sky's own sun stands where AIR_SUN_EL puts it, on the key's
 // azimuth. A fake page: the streams, the vector maths and the air from the dev build, realm-dunes.js run on a stub kit
 // (RULES.json one-world-state; tools/checks/42-one-air.sh keeps the literals out of the other sections).
+// plant: {"file": "src/world/414-draw-scene.js", "find": "    var skR = (V.def.sandFx ? sandAt() : 1) * airWx(SIM.t, V).dust;", "with": "    var skR = V.def.sandFx ? sandAt() : 1;", "why": "the veils at a constant on every visit again, calm or not (sand moves only past its threshold)"}
 // plant: {"file": "src/world/215-air.js", "find": "      if (o === 'milkyway') S.lst0 = airGalLst(S, V);", "with": "", "why": "a milkyway opening at the night's depth's hour: its band hangs near-upright or out of frame"}
 // plant: {"file": "src/world/512-score-feed.js", "find": "w.bear = Math.atan2(w.z * fx - w.x * fz,", "with": "w.bear = Math.atan2(w.x * fz - w.z * fx,", "why": "the wind's bearing on the wrong side of the eye"}
 // plant: {"file": "src/world/512-score-feed.js", "find": "w.ax = w.x - (st ? 0 : s * v - c * CS.sv);", "with": "w.ax = w.x + (st ? 0 : s * v - c * CS.sv);", "why": "the apparent wind with the camera's motion added, not taken off"}
@@ -653,4 +654,16 @@ test('air: a milkyway opening frames its band (the hub\'s round 11): across the 
     assert.ok(cyg >= (w ? 0.5 : 0.4), `${w ? 'phone' : 'desktop'}: the Cygnus star cloud (l 55-95) in frame on ${(100 * cyg).toFixed(0)}% of the openings (at least ${w ? 50 : 40}%; the rest is the heading's: FLIGHT)`);
     if (process.env.GALBAND) console.log(w ? 'phone' : 'desktop', 'tilt median', t[t.length >> 1].toFixed(1), 'max', t[t.length - 1].toFixed(1), 'cygnus in frame', (100 * cyg).toFixed(0) + '%');
   }
+});
+
+test('veils: none below the sand\'s threshold, rising past it, by the visit\'s U10 (physics: sand/threshold)', () => {
+  // sand moves only past its threshold friction velocity, 0.2-0.25 m/s for fine dune sand, U10 5.8-7.2 m/s by the log
+  // law over the sand (https://arxiv.org/pdf/1201.4353): AIR's dust, which the veils now take whole
+  const G = page(), at = (u) => G.airWx(100, { seed: 3, u10: u }).dust;
+  for (const u of [3, 3.5, 4, 5, 5.7, 5.8]) assert.equal(at(u), 0, `veils at U10 ${u} m/s, under the sand's threshold`);
+  let p = 0; for (let u = 5.85; u <= 7.0001; u += 0.05) { const d = at(u); assert.ok(d > p, `the veils not rising with the wind at ${u.toFixed(2)} m/s`); p = d; }
+  for (const u of [7.0, 7.2, 7.5]) assert.ok(at(u) > 0.999, `the veils not whole at U10 ${u} m/s, past the threshold`);
+  const D = fs.readFileSync(path.join(ROOT, 'src/world/414-draw-scene.js'), 'utf8');
+  assert.ok(D.includes('var skR = (V.def.sandFx ? sandAt() : 1) * airWx(SIM.t, V).dust;'), 'the veils not scaled by the air\'s dust (the sand\'s threshold)');
+  assert.ok(!/0\.4 \+ 0\.6 \* smoothstep\(3\.0, 7\.0, uAirU\)/.test(GLSL('vs-ribbon.glsl')), 'the veils\' floor of 0.4 on calm visits is back');
 });
