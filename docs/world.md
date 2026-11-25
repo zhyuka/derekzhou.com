@@ -247,6 +247,18 @@ half of the year, the cone's bright base (within 30 deg of the sun along the
 ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
 up (60 deg out: 21 deg; 90 deg: 40 deg), so only its faint outer part could
 show, low in the haze (the hub's ruling, 2026-11-25).
+The air's extinction (sky-body.glsl, airmass, extTint): a star, and the moon's
+disc, k (X - 1) magnitudes dimmer through X airmasses, X by the revised relative
+optical air mass (https://doi.org/10.1364/AO.28.004735, as pvlib/atmosphere.py
+writes it), k in V 0.15 mag/airmass, a clear site's typical value
+(https://www.ing.iac.es/Astronomy/observing/manuals/html_manuals/wht_instr/pfip/node244.html),
+red and blue by La Silla's curve's ratios to its V (0.07, 0.11, 0.20:
+https://www.eso.org/sci/observing/tools/Extinction.html), so low things redden a
+little at kept luminance. The field's magnitudes stand as seen overhead, so only
+the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
+sky itself is untouched, and the faint stars drop out first as their magnitude
+passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
 
 The moon's face (sky-body.glsl, moonFace): the near side's albedo, from NASA's
 Scientific Visualization Studio CGI Moon Kit (https://svs.gsfc.nasa.gov/4720/,

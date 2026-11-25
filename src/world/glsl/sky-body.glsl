@@ -228,6 +228,17 @@ vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 
    bright naked-eye stars (blue-white B/A, white-yellow F/G, orange K, red-orange M), each at the white's own luminance
    (Y 1: OKLab L within 0.002 of it), so a tint never moves a star's light */
 float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }
+/* (night, physics: night/extinction) the air's extinction by airmass: a star (and the moon) k X magnitudes dimmer
+   through X airmasses, X by the revised approximation for the relative optical air mass (https://doi.org/10.1364/AO.28.004735,
+   as pvlib implements it: https://github.com/pvlib/pvlib-python, pvlib/atmosphere.py), h the elevation in degrees; k in V
+   0.15 mag/airmass, a clear site's typical value (La Palma: https://www.ing.iac.es/Astronomy/observing/manuals/html_manuals/wht_instr/pfip/node244.html),
+   red and blue by La Silla's curve's ratios to its V (0.07, 0.11, 0.20 at 6400, 5500, 4400 A:
+   https://www.eso.org/sci/observing/tools/Extinction.html), so low things redden a little. The field's magnitudes are as
+   seen overhead (X 1; the formula's own 0.9997 there taken as 1), so only the excess k (X - 1) is taken: nothing at the zenith changes, nothing is ever brighter, and
+   the faint stars drop out first as their magnitude passes the limit (nightShow). The sky itself is not touched */
+const float EXT_V = 0.15; const vec3 EXT_K = EXT_V * vec3(0.07, 0.11, 0.20) / 0.11;
+float airmass(float y) { float h = max(degrees(asin(clamp(y, 0.0, 1.0))), 0.0); return 1.0 / (sin(radians(h)) + 0.50572 * pow(h + 6.07995, -1.6364)); }
+vec3 extTint(vec3 col, float X) { vec3 e = col * exp2(-0.4 * 3.3219281 * (EXT_K - EXT_V) * max(X - 1.0, 0.0)); return e * (dot(col, LUMA) / max(dot(e, LUMA), 1e-6)); }   // (the colour reddened, its luminance kept)
 /* (night) the shared rule for anything faint in the night sky (the stars; the galaxy's wings, SKY's: a surface's light
    as a magnitude, by the same rule): nightLim, the faintest magnitude that shows at a pixel whose sky light (before the
    faint thing) is c: the sun's depth's at the zenith (uStarM.x), less by 2.5 log10 of how much brighter the sky is there
@@ -259,12 +270,15 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
   float se = (jb + 0.2 + 0.6 * hy) * STC, sa = (ib + 0.2 + 0.6 * hz) / n * SKYTAU - PI;
   vec3 sd = vec3(sin(sa) * cos(se), sin(se), cos(sa) * cos(se));
   float b = pow(fract(hx * 7.31 + hy * 3.17), 6.0) * 0.95 + 0.07;
-  tc = starTint(b, fract(hw * 5.13 + hz * 2.71));
+  vec3 sw = sd * uSkyF;   // (the star's world direction: sd is in the sky's frame, uSkyF world to frame, so its transpose back)
+  float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);   // (extinction: its magnitudes lost low down)
+  tc = extTint(starTint(b, fract(hw * 5.13 + hz * 2.71)), sX);
   /* (night) out one by one, brightest first: a star shows once the faintest magnitude the sky lets through where it
      stands (ml) passes its own, its light coming in over its first 0.6 magnitude of margin (the sun's depth moving the
      limit, never a clock: a hold holds it) */
-  float bk = nightShow(starMag(b), ml);
+  float bk = nightShow(starMag(b) + sx, ml);
   if (bk <= 0.0) return 0.0;
+  b *= exp2(-0.4 * 3.3219281 * sx);
   b *= 1.0 + 0.15 * uNight.z * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);
   b *= bk;
   /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn a little wider (sigma by sqrt of
@@ -276,7 +290,6 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
   /* the star's place on the screen in pixels (the inverse of main's rd: ndc = (r, u) / (f x uProj)), so the box is the
      pixel's own footprint at any place in any window (the review: the chord over the centre's angle was 1.2 pixels a
      step at the centre of a tall window and 0.7 px became 1.1-1.4 at its sides) */
-  vec3 sw = sd * uSkyF;   // (the star's world direction: sd is in the sky's frame, uSkyF world to frame, so its transpose back)
   float zf = max(dot(sw, uCamF), 1e-4);
   vec2 d = gl_FragCoord.xy - (vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   return F * starBox(d.x, sg) * starBox(d.y, sg);
@@ -502,7 +515,8 @@ void main() {
     vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);
     vec3 mn = mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz;
     float mlit = smoothstep(-0.06, 0.06, dot(mn, msun));
-    c = mix(c, mix(c, uMoonC * (ma < mr + 0.1 ? moonFace(mn, uMoon.xyz) : 1.0), mlit), 1.0 - smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma));   // (the face: moonFace)   // (a crisp limb: about a pixel either side, the hub's round-3 look)
+    float mX = airmass(uMoon.y); vec3 mC = extTint(uMoonC, mX) * exp2(-0.4 * 3.3219281 * EXT_V * max(mX - 1.0, 0.0));   // (extinction: the disc dimmer and warmer low down)
+    c = mix(c, mix(c, mC * (ma < mr + 0.1 ? moonFace(mn, uMoon.xyz) : 1.0), mlit), 1.0 - smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma));   // (the face: moonFace)   // (a crisp limb: about a pixel either side, the hub's round-3 look)
     if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;   // (physics: weather/moon-halo: by the stay's veil, with the moon's depth)
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
