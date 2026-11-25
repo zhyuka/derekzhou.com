@@ -1,0 +1,22 @@
+laptop 1440x900 @2 (render 2880x1800)
+   t m | fp m/px | ripple drawn rk | px per wavelength, crests facing the view (along) / side-on (across) for 0.05, 0.10, 0.20, 0.90 m
+    59 | 0.0298 | 0.55 |  0.39/ 1.68  0.78/ 3.36  1.55/ 6.72  6.98/30.24
+    80 | 0.0404 | 0.16 |  0.21/ 1.24  0.43/ 2.48  0.85/ 4.96  3.84/22.30
+   100 | 0.0504 | 0.00 |  0.14/ 0.99  0.27/ 1.98  0.55/ 3.96  2.47/17.84
+   150 | 0.0757 | 0.00 |  0.06/ 0.66  0.12/ 1.32  0.25/ 2.64  1.11/11.89
+   250 | 0.1261 | 0.00 |  0.02/ 0.40  0.04/ 0.79  0.09/ 1.59  0.40/ 7.14
+   0.05 m wavelength: 2 px or more side-on within 50 m; facing the view within 25 m
+   0.10 m wavelength: 2 px or more side-on within 99 m; facing the view within 36 m
+   0.20 m wavelength: 2 px or more side-on within 198 m; facing the view within 52 m
+   0.90 m wavelength: 2 px or more side-on within 892 m; facing the view within 112 m
+phone 390x844 @3 (render 780x1688)
+   t m | fp m/px | ripple drawn rk | px per wavelength, crests facing the view (along) / side-on (across) for 0.05, 0.10, 0.20, 0.90 m
+    59 | 0.0581 | 0.00 |  0.20/ 0.86  0.40/ 1.72  0.79/ 3.44  3.58/15.49
+    80 | 0.0788 | 0.00 |  0.11/ 0.63  0.22/ 1.27  0.44/ 2.54  1.97/11.43
+   100 | 0.0985 | 0.00 |  0.07/ 0.51  0.14/ 1.02  0.28/ 2.03  1.27/ 9.14
+   150 | 0.1477 | 0.00 |  0.03/ 0.34  0.06/ 0.68  0.13/ 1.35  0.57/ 6.09
+   250 | 0.2461 | 0.00 |  0.01/ 0.20  0.02/ 0.41  0.05/ 0.81  0.20/ 3.66
+   0.05 m wavelength: 2 px or more side-on within 25 m; facing the view within 17 m
+   0.10 m wavelength: 2 px or more side-on within 51 m; facing the view within 25 m
+   0.20 m wavelength: 2 px or more side-on within 102 m; facing the view within 37 m
+   0.90 m wavelength: 2 px or more side-on within 457 m; facing the view within 80 m
