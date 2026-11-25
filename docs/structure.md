@@ -136,7 +136,8 @@ tools/physics/               The dunes' slope census against the sand's physics 
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
-tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*.js, src/sound.js and src/score.js (npx typescript, pinned;
+tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*.js, src/sound.js, src/score.js and
+                             site/*.js (copies, cast from the side: never a byte in site/), by npx typescript (pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
                              events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
