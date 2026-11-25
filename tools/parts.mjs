@@ -82,7 +82,56 @@ function expand(text, gdir, where) {
     return '`' + mt + '`';
   });
 }
-function readPart(f, gdir) { return expand(readText(f), gdir, f); }
+function readPart(f, gdir) { const t = readText(f); return expand(MIN ? minInline(t, f) : t, gdir, f); }   // (inline literals first: a .glsl file's text is minGlsl's or KEEP's own)
+/* (load-perf, 2026-11-25) a GLSL template literal still in a part (one with ${...} in it, the shaders the world
+   writes with its constants in, which no .glsl file can hold, or one that tests read where it stands) is minified too,
+   with --min-glsl: each run of text between the substitutions by
+   minGlsl, the substitutions as written. It is checked as one program: the text with each substitution standing as a
+   word (__SUBn__) must have the same tokens and preprocessor lines before and after (checkGlsl). A literal that fails
+   (a comment or a preprocessor line across a substitution, say) ships as written. GLSL by the same words as moveGlsl. */
+function inlineLiterals(s) {   // [[start, end, [[a, b], ...the substitutions' spans]], ...] of the template literals with ${}
+  const out = []; let i = 0, inS = null, inC = null;
+  while (i < s.length) {
+    const c = s[i], d = s[i + 1];
+    if (inC === '//') { if (c === '\n') inC = null; i++; continue; }
+    if (inC === '/*') { if (c === '*' && d === '/') { inC = null; i += 2; continue; } i++; continue; }
+    if (inS) { if (c === '\\') { i += 2; continue; } if (c === inS || c === '\n') inS = null; i++; continue; }
+    if (c === '/' && d === '/') { inC = '//'; i += 2; continue; }
+    if (c === '/' && d === '*') { inC = '/*'; i += 2; continue; }
+    if (c === '"' || c === "'") { inS = c; i++; continue; }
+    if (c === '`') {
+      let j = i + 1; const subs = [];
+      for (; j < s.length; j++) {
+        if (s[j] === '\\') { j++; continue; }
+        if (s[j] === '$' && s[j + 1] === '{') { const a = j; let depth = 1; j += 2; while (j < s.length && depth) { if (s[j] === '{') depth++; else if (s[j] === '}') depth--; else if (s[j] === '`') return null; j++; } subs.push([a, j]); j--; continue; }
+        if (s[j] === '`') break;
+      }
+      out.push([i, j + 1, subs]);
+      i = j + 1; continue;
+    }
+    i++;
+  }
+  return out;
+}
+const INLINE = { minified: 0, kept: 0 };
+function minInline(s, where) {
+  const lits = inlineLiterals(s);
+  if (!lits) return s;   // (a template inside a substitution: left alone)
+  let out = '', at = 0;
+  for (const [a, b, subs] of lits) {
+    const runs = [], exprs = []; let k = a + 1;
+    for (const [x, y] of subs) { runs.push(s.slice(k, x)); exprs.push(s.slice(x, y)); k = y; }
+    runs.push(s.slice(k, b - 1));
+    const whole = runs.join('');
+    if (whole.startsWith('@glsl ') || !/#version|void main|\bvec[234]\b|\buniform\b|\bfloat \w+\(\) \{/.test(whole) || !/;\n/.test(whole) || runs.some((r) => r.includes('\\'))) continue;
+    let mins; try { mins = runs.map((r) => minGlsl(r)); } catch (e) { INLINE.kept++; continue; }
+    const ph = (rs) => rs.map((r, n) => r + (n < exprs.length ? ' __SUB' + n + '__ ' : '')).join('');
+    if (checkGlsl(ph(runs), ph(mins))) { INLINE.kept++; continue; }
+    out += s.slice(at, a + 1) + mins.map((r, n) => r + (n < exprs.length ? exprs[n] : '')).join('');
+    at = b - 1; INLINE.minified++;
+  }
+  return out + s.slice(at);
+}
 const PART = /^(\d{3})-[a-z0-9-]+\.js$/, STUB = /^(\d{3})-[a-z0-9-]+\.ship\.js$/;
 function listParts(d, re) { return fs.existsSync(d) ? fs.readdirSync(d).filter((n) => re.test(n)) : []; }
 /* (restructure step 2) the dev-only parts: a part folder src/<rel> may have a twin src/dev/<rel> holding parts that are

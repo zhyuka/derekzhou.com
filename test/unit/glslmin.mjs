@@ -42,3 +42,22 @@ test('glslmin: dunes-glsl minified but for D_Hd, which the world\'s own land spl
   assert.equal(b, a, 'the sites\' part is the same text either way');
 });
 // plant: {"file": "tools/glslmin.mjs", "find": "export const KEEP = new Map([['dunes-glsl', [['vec3 D_Hd(vec2 p) {', '\\n}']]]]);", "with": "export const KEEP = new Map([['dunes-glsl', [['vec3 D_Hd(vec2 p) {', '\\n  vec3 h']]]]);", "why": "D_Hd's body minified: the land split no longer finds its shape"}
+
+test('glslmin: the shipped scripts carry no unminified GLSL (inline literals too), but for dunes-glsl\'s kept D_Hd', () => {
+  const out = path.join(TMP, 'glslmin-ship');
+  fs.rmSync(out, { recursive: true, force: true });
+  execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', '--ship', '--min-glsl', path.join(ROOT, 'src'), out], { stdio: 'pipe' });
+  const loose = [];
+  for (const n of fs.readdirSync(out).filter((x) => x.endsWith('.js'))) {
+    const s = fs.readFileSync(path.join(out, n), 'utf8');
+    for (const m of s.matchAll(/`[^`]*`/g)) {
+      const t = m[0].replace(/vec3 D_Hd\(vec2 p\) \{[\s\S]*?\n\}/, '');   // (KEEP: as written)
+      if (!/\bvec[234]\b|\buniform\b|void main/.test(t) || !/;\n/.test(t)) continue;
+      if (/\n[ \t]+\S|\n\s*\/\/|\/\*/.test(t)) loose.push(n + ': ' + JSON.stringify(t.slice(0, 60)));
+    }
+  }
+  assert.deepEqual(loose, [], 'every GLSL literal minified');
+  const dunes = fs.readFileSync(path.join(out, 'realm-dunes.js'), 'utf8');
+  assert.ok(dunes.includes('vec3 D_Hd(vec2 p) {\n  vec3 h = dunes(p);\n'), 'D_Hd as written');
+});
+// plant: {"file": "tools/parts.mjs", "find": "return expand(MIN ? minInline(t, f) : t, gdir, f);", "with": "return expand(t, gdir, f);", "why": "the inline GLSL literals ship as written again"}

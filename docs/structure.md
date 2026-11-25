@@ -78,7 +78,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/smoke.mjs (the post-deploy smoke tells Cloudflare's bot challenge
                              from the site's answer: .github/ci/cf-challenge.mjs), test/unit/sky.mjs (the order of the
-                             skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser),
+                             skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser), test/unit/paint.mjs (the paint trend's runners pooled and judged),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
                              test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
@@ -99,7 +99,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
 tools/minify.mjs             Builds the seven minified scripts from build/ship/; CI checks the build
 tools/glslmin.mjs            A shader's text without comments and spare space, token for token the same (the build's)
 tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
-tools/paint-trend.mjs        The first paint, base against head (the gate's paint job): words and the world's first frame, cold, timed
+tools/paint-trend.mjs        The first paint, base against head (the gate's paint-loads runners, --samples, and its paint job, --judge): words and the world's first frame, cold, timed
 tools/check.mjs              Every static check from one command (npm run check; CI's validate job): the build once, then
                              tools/checks/*.sh in parallel; --fast, --only, --list, --prove (each check's planted failures)
                              --shard i/n: the build and one shard's checks (CI runs 5 side by side; --shards n prints the split)
@@ -225,7 +225,11 @@ folds work by lines), a #define's spacing kept, the same tokens (checked;
 the build fails otherwise); the part of a file a script reads at run time
 stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
 split finds by its text; the rest of the file is minified, 2026-11-25:
-realm-dunes.js 13,299 -> 9,395 B). So the world issues and the browser
+realm-dunes.js 13,299 -> 9,395 B); and a GLSL template literal still in a
+part (one with ${...} in it, which no .glsl file can hold) has its text
+between the substitutions minified the same way, checked as one program
+with each substitution as a word, else shipped as written (tools/parts.mjs
+minInline, 2026-11-25: world.js -1,661 B). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
 census and T1 compare the base's build with the head's.
