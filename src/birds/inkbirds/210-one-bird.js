@@ -122,8 +122,9 @@
   }
   /* (physics #29) the air's own wind where a bird is: at its height over the ground (the log law) and in the one gust field,
      no wind of the birds' own; a bird landing keeps the step's one wind, its approach planned in it */
-  function ownWind(b) {
-    b.wx = WINDV[0]; b.wz = WINDV[2]; if (b.st !== 'fly' || b.P || !WIND_ON || FORCED || !HOST.gust) return;
+  function ownWind(b, dt) {
+    var k = Math.min(1, dt * 4 || 1); b.wx += (WINDV[0] - b.wx) * k; b.wz += (WINDV[2] - b.wz) * k;   // (a landing's wind eased over 1/4 s onto the step's one, which its approach is planned in: switched at once, a low bird's velocity stepped by the wind's rise to 40 m, 4 m/s in a gale)
+    if (b.st !== 'fly' || b.P || !WIND_ON || FORCED || !HOST.gust) return;
     var hg = Math.max(2, b.p[1] - lvGround(b.p[0], b.p[2])), w; HOST.wind(BWV, hg); w = Math.sqrt(BWV[0] * BWV[0] + BWV[2] * BWV[2]); w = w > 0 ? 1 + HOST.gust(b.p[0], b.p[2], hg) / w : 1; b.wx = BWV[0] * w; b.wz = BWV[2] * w;
   }
   /* ---------------- the flight: one integrator ---------------- */
@@ -131,7 +132,7 @@
      by its bank, its climb and its airspeed eased within its kind's limits; then the wind carries it */
   function flyTo(b, dt, dx, dy, dz, vk) {
     var K = b.K;
-    ownWind(b); var wx = b.wx, wz = b.wz;
+    ownWind(b, dt); var wx = b.wx, wz = b.wz;
     b.lift = b.st === 'fly' && !b.P ? slopeW(b.p[0], b.p[1], b.p[2]) : 0;
     /* (Delight 3) a crow in a rim's strong lift tumbles now and then: a roll right over, about a second, rolled out of its lift
        and dropping a little as it goes (corvids roll more in moderate and strong wind,
