@@ -6,7 +6,8 @@
 // part back through the cloud (two-stream diffuse transmission, https://doi.org/10.1119/1.15109), read where its
 // point meets the plane the lobes were cast on.
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  return c * cloudShadow(p, ndl);", "with": "  return c;", "why": "the sand never under the clouds' shadow"}
-// plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp) * cloudShadow(p, dot(n, uSun));", "with": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp);", "why": "the cloud sea's top never under the free clouds' shadow (lit as if no cumulus stood over it)"}
+// plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp) * cloudShadow(p, uSun.y);", "with": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp);", "why": "the cloud sea's top never under the free clouds' shadow (lit as if no cumulus stood over it)"}
+// plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "fp) * cloudShadow(p, uSun.y);", "with": "fp) * cloudShadow(p, dot(n, uSun));", "why": "the sea's shadow read by each bumped facet: creases turned from the key lit through it, thin bright lines that flicker as the camera moves"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));", "with": "return 1.0 - f * (1.0 - exp(-tau));", "why": "no light scattered through the cloud: an opaque floor under a thick one"}
 // plant: {"file": "src/world/glsl/fs-cshadow.glsl", "find": "exp(-uCShK.x * ch / 32.0)", "with": "exp(-uCShK.x * ch)", "why": "the depth stored whole: 8 bits clip a cloud's past 5.5, and the land reads it 32 times over"}
 // plant: {"file": "src/world/262-cloud-shadow.js", "find": "var off = cellOff(C, t, CSHO), S = C.soft;", "with": "var off = cellOff(C, 0, CSHO), S = C.soft;", "why": "the shadows left where the clouds were laid out, not where the wind has carried them"}
@@ -136,7 +137,7 @@ test('cloud shadow: one pass a frame, before the land, along the live key, where
 // (physics: light/cloud-shadow) the cloud sea's top under a cumulus: a cloud top is lit as the land is, by the key's beam
 // and the sky's light, and loses the same share (a deck's shadow seen from above: the beam's light gone, the sky's kept)
 test('cloud shadow: the cloud sea\'s top lies in the free clouds\' shadow, read as the land reads it', () => {
-  assert.match(WG, /return A_shadeSea\(vec3\(p\.x, p\.y - lv\.x, p\.z\), n, rd, t, fp\) \* cloudShadow\(p, dot\(n, uSun\)\);/, 'the sea\'s light times the shadow at its own point (world height) and face');
+  assert.match(WG, /return A_shadeSea\(vec3\(p\.x, p\.y - lv\.x, p\.z\), n, rd, t, fp\) \* cloudShadow\(p, uSun\.y\);/, 'the sea\'s light times the shadow at its own point (world height), read for the level top: the beam enters a cloud through its volume, so no facet turned from the key escapes it (the crease lines, flickering)');
   for (const el of [5, 14]) {
     const sy = Math.sin(el * Math.PI / 180), fd = sy / (sy + qFit(sy)), top = landShadow(Math.exp(-20 / 32), sy, sy);
     assert.ok(top > 1 - fd && top < 1, `${el} deg, a level top under tau 20: ${top.toFixed(3)}, between the sky's light alone and none lost`);
