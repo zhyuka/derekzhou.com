@@ -86,6 +86,7 @@
     E('occ', EP.occ, A.occ, T, 3, 1, false, 'cloud', null, gl.LESS, true, 0, 0);
     E('occ.nodepth', EP.occ, A.occ, T, 3, 1, false, 'cloud', null, 0, true, 0, 0);   // (after a frame's beams, which leave the depth test off)
     E('vbody', EP.vbody, VCUBE.vao, T, 3, 0, false, 'cloud', BL_PRE, LE, false, gl.BACK);
+    E('virga', EP.virga, STRIP.vaoR, TS, 4, 0, false, 'cloud', BL_PRE, 0, false);   // (physics: clouds/virga: in its body's turn, 410)
     E('vbody.inside', EP.vbody, VCUBE.vao, T, 3, 0, false, 'cloud', BL_PRE, 0, false, gl.FRONT);
     E('cacc', EP.cacc, FULLVAO, T, 3, 0, false, 'hdr');
     E('cshadow', EP.cshadow, CSH.vao, TS, 4, 1, false, 'rgba8', BL_MUL, 0, false);   // (the clouds' shadows: 262)   // (E1 Fix 3: the clouds' accumulation)

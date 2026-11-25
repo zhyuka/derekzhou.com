@@ -30,6 +30,8 @@
   var FS_OCC = HEAD + `@glsl fs-occ`;
   var VS_VBODY = HEAD + FRAME_U + `@glsl vs-vbody`;
   var FS_VBODY = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-vbody`;
+  var VS_VIRGA = HEAD + FRAME_U + `@glsl vs-virga`;   // (physics: clouds/virga: a strand under its body, 213)
+  var FS_VIRGA = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-virga`;
   /* bloom (dual filter): the first pass composes scene and cloud and keeps what is bright; every tap clamped to the
      part of its target this frame drew (a lower rung draws only part of each) */
   var FS_PRE = HEAD + FRAME_U + `@glsl fs-pre`;

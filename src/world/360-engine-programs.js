@@ -79,7 +79,7 @@
     var list = [
       ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN],
       ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
-      ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
+      ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['virga', VS_VIRGA, FS_VIRGA], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
       ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC],
       ['cshadow', HEAD + VS_CSH, HEAD + FS_CSH]   // (physics: light/cloud-shadow: 262)
     ];

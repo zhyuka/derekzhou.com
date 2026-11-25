@@ -26,3 +26,15 @@
     }
     return { p: P, w: W, end: end, w0: w0 };
   }
+  var VIRGA_HW = [30, 150], VIRGA_A = 0.5;   // (its half width, m: a third of its body's narrower half size, within these; its most alpha)
+  function virgaBody(V, seed, baseAG, dx, dy, dz, h) {   // the strand a body carries: its top (from the body's centre: at its base, under its lobes) and its path, for 410's draw
+    if (!(baseAG > 50)) return null;
+    var P = virgaPath(V, seed, baseAG);
+    return { dx: dx, dy: dy, dz: dz, p: new Float32Array(P.p), hw: Math.max(VIRGA_HW[0], Math.min(VIRGA_HW[1], Math.min(h[0], h[2]) / 3)), a: VIRGA_A };
+  }
+  function drawVirga(B, P, V) {   // a body's strand, in the body's own turn (far to near): the clouds' target, premultiplied over (410)
+    var g = B.vg;
+    gl.useProgram(P.p); setFrameUniforms(P, V);
+    gl.uniform3f(P.u.uGA, B.c[0] + g.dx, B.c[1] + g.dy, B.c[2] + g.dz);   // (where its body is drawn now: carried and lifted with it) gl.uniform3fv(P.u.uGP, g.p); gl.uniform2f(P.u.uGW, g.hw, g.a * B.fade);
+    gl.disable(gl.CULL_FACE); gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n);
+  }
