@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, soarT: -1, soarH: 0, soarX: 0, soarZ: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, tum: 0, tum0: 0, tumT: -1, tumS: 1, soarT: -1, soarH: 0, soarX: 0, soarZ: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
@@ -113,7 +113,7 @@
      along the wind (6.5 m/s on the dunes' ~13 deg windward faces: about 1.5 m/s), thinning with the height over the face
      (LIFT_H, about a dune's height: doi:10.1038/s41598-017-05319-8, gulls glide straight along faces in it). The air
      rises: it carries every flying bird as the wind does, and a glider climbs where it rises faster than it sinks */
-  var LIFT_H = 40, LIFT_D = 6;
+  var LIFT_H = 40, LIFT_D = 6, TUM_W = 0.8, TUM_P = 0.12, TUM_D = 1;   // (TUM: a crow tumbles from 0.8 m/s of lift, about once in 8 s of it, each roll 1 s)
   function slopeW(x, y, z) {
     var u = Math.sqrt(WINDV[0] * WINDV[0] + WINDV[2] * WINDV[2]); if (u < 0.5) return 0;
     var g0 = lvGround(x, z), hg = y - g0; if (!(hg < 3 * LIFT_H) || hg < 0) return 0;
@@ -126,6 +126,11 @@
   function flyTo(b, dt, dx, dy, dz, vk) {
     var K = b.K, wx = WINDV[0], wz = WINDV[2];
     b.lift = b.st === 'fly' && !b.P ? slopeW(b.p[0], b.p[1], b.p[2]) : 0;
+    /* (Delight 3) a crow in a rim's strong lift tumbles now and then: a roll right over, about a second, rolled out of its lift
+       and dropping a little as it goes (crows roll and tumble in strong wind over ridges and cliffs, for play:
+       https://www.audubon.org/news/do-birds-play). The roll is the drawn body's alone (tum): its flight never banks past its kind's limit */
+    if (b.tumT >= 0) { var tu = (t - b.tumT) / TUM_D; if (tu >= 1) { b.tumT = -1; b.tum0 -= TAU * b.tumS; b.tum = 0; }   // (a whole turn is none: taken from the step's start too, so the draw never spins it back) else { b.tum = TAU * tu * tu * (3 - 2 * tu) * b.tumS; b.lift = -1.5 * Math.sin(Math.PI * tu); } }
+    else if (b.kind === 'crow' && b.lift > TUM_W && b.r() < TUM_P * dt) { b.tumT = t; b.tumS = b.r() < 0.5 ? 1 : -1; }
     var ax = dx - wx, az = dz - wz, ay = dy, hz = Math.sqrt(ax * ax + az * az);
     var psiD = hz > 0.3 ? Math.atan2(ax, az) : b.psi, gamD = clamp(Math.atan2(ay, Math.max(hz, 0.5)), -K.dive * DEG, K.climb * DEG);
     var lo = b.vLo || 0.72 * K.v, hi = b.vHi || 1.45 * K.v, VD = clamp(Math.sqrt(ax * ax + ay * ay + az * az) * (vk || 1), lo, hi);   // (a landing's own range: vLo, vHi)
