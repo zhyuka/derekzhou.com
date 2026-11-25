@@ -16,8 +16,8 @@
   }
   /* what flies: a pattern, its kind, how many (the sky's tables) */
   function flockWhat(r, cls) {
-    var L = LIFE[cls], pat = L ? weighted(r, L.pat) : weighted(r, [['skein', 22], ['line', 18], ['pair', 28], ['single', 22], ['loose', 10]]);
-    var kind = L && L.kinds[pat] ? weighted(r, L.kinds[pat]) : weighted(r, SORT_OF[pat] || [['gull', 1]]);
+    var L = LIFE[cls] || LIFE.glow, pat = weighted(r, L.pat);   // (no sky is 'day': its tables and its stork's soar gone, the hub's bird bytes)
+    var kind = weighted(r, L.kinds[pat]);
     return [pat, kind, lvCount(r, pat)];
   }
   /* a flock of a kind that perches, where the sky has one (a few draws of its own mix) */
