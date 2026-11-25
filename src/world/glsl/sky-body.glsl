@@ -376,7 +376,8 @@ vec3 meteorAt(vec3 c) {
   float along = 0.5 * (starErf(s * k) - starErf((s - L) * k)), tap = mix(0.2, 1.0, clamp(s / L, 0.0, 1.0));
   vec2 dh = gl_FragCoord.xy - B;
   float v = uMetH.w * (starBox(d, sg) * along * tap + SKYTAU * sg * sg * starBox(dh.x, sg) * starBox(dh.y, sg));   // (the wake about half its light along its line, the head about its whole light at its centre)
-  return uMetC * min(v, max(MET_TOP - dot(c, LUMA), 0.0));
+  float mX = airmass(uMetH.y);   // (physics: night/extinction: a meteor, 80-120 km up, seen through the same air as the stars: k (X - 1) magnitudes from its light at the head's height, a little redder; nothing overhead changes, nothing brighter)
+  return extTint(uMetC, mX) * min(v * exp2(-0.4 * 3.3219281 * EXT_V * max(mX - 1.0, 0.0)), max(MET_TOP - dot(c, LUMA), 0.0));
 }
 void main() {
   vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
