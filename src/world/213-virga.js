@@ -30,7 +30,7 @@
     }
     return { p: P, w: W, end: end, w0: w0 };
   }
-  var VIRGA_HW = [30, 150], VIRGA_A = 0.5;   // (its half width, m: a third of its body's narrower half size, within these; its most alpha)
+  var VIRGA_HW = [30, 150], VIRGA_A = 0.62;   // (its half width, m: a third of its body's narrower half size, within these; its most alpha)
   function virgaBody(V, seed, baseAG, dx, dy, dz, h) {   // the strand a body carries: its top (from the body's centre: at its base, under its lobes) and its path, for 410's draw
     if (!(baseAG > 50)) return null;
     var P = virgaPath(V, seed, baseAG);
