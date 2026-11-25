@@ -15,7 +15,7 @@ import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 const ORIENT = cut(WORLD, '  function orientAt(', '  /* each step:');
 const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
-function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function normal(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
 const MAKE = () => vm.runInThisContext('(function () {\n  \'use strict\';\n' +
   '  var PI = Math.PI, DEG = PI / 180, SIM_DT = 1 / 60, DTMAX = 0.1, TH_MAX = 35 * DEG, DEVMODE = false, shown = true, SEEDR = 1, J = { seed: 1 }, CLK = new Float64Array([0, -1]);\n' +
   '  var SIM = { V: {} }, OUT = { cssW: 1000 }, INPQ = []; INPQ.i = 0; var REC = null;\n' +
@@ -28,8 +28,8 @@ const MAKE = () => vm.runInThisContext('(function () {\n  \'use strict\';\n' +
 function fly(alphaAt, secs, sigma, seed) {
   const M = MAKE(), r = lcg(seed), ev = []; let walk = 0;
   for (let t = 0; t < secs * 1000; t += 1000 / 60) {
-    walk += gauss(r) * 0.05 * Math.sqrt(1 / 60);
-    ev.push([t + 1 + r() * 4, 30 + alphaAt(t / 1000) + walk + sigma * gauss(r), 90 + sigma * gauss(r), sigma * gauss(r)]);
+    walk += normal(r) * 0.05 * Math.sqrt(1 / 60);
+    ev.push([t + 1 + r() * 4, 30 + alphaAt(t / 1000) + walk + sigma * normal(r), 90 + sigma * normal(r), sigma * normal(r)]);
   }
   ev.sort((p, q) => p[0] - q[0]);
   let ei = 0; const yaw = [], tilt = [];
