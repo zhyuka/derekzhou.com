@@ -667,6 +667,36 @@ not baked. The land is the opening seed's for the whole visit, one of 16 whateve
 the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
 over it is the read's own (## THE WEATHER).
 
+## THE DESTINATION
+
+Each land has one colossal form on the horizon ahead, on the landing's
+heading (airHeading0, SEED0's), 7-8 km out (217: destOf, { x, z, d,
+bearing }, the seed's alone). So it stands in the first frame, and the
+flight, held on its heading, meets it in 9.7-11.1 minutes at 12 m/s. It
+is never aimed at: a drag takes the flight anywhere, and the slip passes
+it as any form. It is an inselberg, a dome of bare rock in stratified
+walls, 600-720 m tall and about 1.1 km across, with a volcanic neck's
+spire on its shoulder 1.25-1.45 times its height. Both are outsized
+beside the land's formations (35-90 m), as the Namib's inselbergs
+(https://en.wikipedia.org/wiki/Spitzkoppe) and a 480 m neck
+(https://en.wikipedia.org/wiki/Shiprock) stand over their plains. Its
+draws are its own, so each land's differs. Where the heading leads out
+over the cloud sea, it rises out of it, seated on the sunken land as the
+coast's formations are.
+
+It is laid out by its own layout scale (the sixth: 16 km cells reaching
+12 km, at most about 4 laid out) and only by the cell that holds it,
+kept whatever the density draws. The scale's fade starts at 9.3 km, so
+at 7-8 km it is whole and never pops in. 6 km cells reaching 14 km
+spent the boot's layout budget on about 17 empty cells and showed the
+phone's world a frame later. Through main's haze (green, eye 18 m) the
+form keeps 14-16% of the contrast at its foot and 30-40% at 400-700 m.
+Its rock against the horizon sky shows at about 17-25% at 7.5 km
+(tools/physics/destination.mjs). test/unit/destination.mjs checks the
+bearing, the distance and the minutes for all 16 openings, path
+independence, and the scale's dispatch. Every land's still shows it
+once the stills are baked again (tools/gpu/bake-stills.js).
+
 ## THE AIR
 
 The owner (2026-11-15): "they should follow real physics, clouds moving
