@@ -1,6 +1,6 @@
 // test/unit/destination.mjs: the horizon's destination (src/world/217-destination.js; realm-dunes.js dDest): one form per
 // land, on the landing's heading (airHeading0, SEED0's), 7-8 km out, where the seed alone puts it (never the flight), laid
-// out by the one cell of its own layout scale (5, reaching 14 km) that holds it.
+// out by the one cell of its own layout scale (5, 16 km cells reaching 12 km) that holds it.
 // plant: {"file": "src/world/217-destination.js", "find": "var DEST_D = [7000, 8000], DEST = null;", "with": "var DEST_D = [2000, 3000], DEST = null;", "why": "the destination 2-3 km out: under the land's own forms, met in 3-4 minutes"}
 // plant: {"file": "src/world/217-destination.js", "find": "var a = airHeading0(),", "with": "var a = airHeading0() + 0.6,", "why": "the destination off the landing's heading: out of the first frame"}
 import { test, assert, vm, WORLD, cut, STREAMS } from '../unit-lib.mjs';
@@ -34,6 +34,6 @@ test('destination: the seed\'s alone (the same whenever asked; another seed, ano
 });
 
 test('destination: laid out by its own scale\'s one cell, the dunes kit\'s', () => {
-  assert.match(WORLD, /\{ size: 6000, radius: 14000 \}\]/, 'the destination\'s layout scale (6 km cells to 14 km) is gone');
+  assert.match(WORLD, /\{ size: 16000, radius: 12000 \}\]/, 'the destination\'s layout scale (16 km cells to 12 km: at most about 4 laid out, none delaying the boot) is gone');
   assert.match(WORLD, /if \(C\.scale === 5\) \{ var A5 = kitApi\(C, 'dunes', densD, false\); A5\.add = function \(it\) \{ it\.kit = 'dunes'; return C\.add\(it\); \}; A5\.poi = C\.poi; if \(KD\.dest\) KD\.dest\(A5, R, K2\); \}/, 'scale 5 is not handed to the dunes kit\'s dest, kept whatever the density');
 });
