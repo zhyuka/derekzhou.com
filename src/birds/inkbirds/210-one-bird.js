@@ -187,8 +187,7 @@
      the distance; pass: by the eye, near (rare). Each ends in another, drawn from the bird's own stream */
   var GOALS = {
     glow: [['commute', 50], ['wheel', 14], ['loiter', 16], ['sink', 12], ['out', 8]], blue: [['commute', 45], ['wheel', 10], ['loiter', 13], ['sink', 25], ['out', 7]],
-    first: [['commute', 60], ['loiter', 20], ['out', 20]], moon: [['commute', 60], ['loiter', 20], ['sink', 10], ['out', 10]],
-    day: [['commute', 40], ['wheel', 20], ['loiter', 22], ['sink', 10], ['out', 8]] };
+    first: [['commute', 60], ['loiter', 20], ['out', 20]], moon: [['commute', 60], ['loiter', 20], ['sink', 10], ['out', 10]] };   // (no sky is 'day': skyCls's fallback, with no sky from the host, reads glow's row)
   /* (physics: birds/day) the sky's part in a commute: the share flown toward the roost's bearing (POP.line, +0) or away
      from it (+pi). Roost flights peak 15-30 min after sunset, the last arrivals in the blue hour; at first light the
      roost empties (https://seafwa.org/journal/1979/analysis-wood-duck-roost-counts-northwest-south-carolina) */
@@ -209,8 +208,7 @@
       HOST.places && HOST.places(1500, PLQ);
       var pl = null, i; for (i = 0; i < PLQ.length; i++) { var q = PLQ[i], ddx = q.x - x, ddz = q.z - z; if (ddx * ddx + ddz * ddz < 1200 * 1200 && (!pl || r() < 0.5)) pl = q; }
       if (pl) { g.cx = pl.x; g.cz = pl.z; g.R = clamp(pl.orbit || 40, 22, 90); g.y = Math.max(pl.y + 20, top + 30); g.place = true; }
-      else if (cls !== 'day') return newGoal(F, 'commute', r, cls);   // (no thermal to circle in: thermals need a sun-heated surface, building through the morning, gone by evening; heavy soarers wait for them: https://academic.oup.com/condor/article/105/2/208/5563225. At dusk and first light a wheel is round a place only)
-      else { g.R = mix(r(), 30, 80); g.cx = x + g.R * Math.cos(Lb.psi) * g.sense; g.cz = z - g.R * Math.sin(Lb.psi) * g.sense; g.y = Math.max(top + 30, eye + mix(r(), -10, 70)); }
+      else return newGoal(F, 'commute', r, cls);   // (no thermal to circle in, in any of the world's skies: thermals need a sun-heated surface, building through the morning, gone by evening: https://academic.oup.com/condor/article/105/2/208/5563225. A wheel is round a place only)
       g.T = (TAU * g.R / Lb.K.v) * pick(r, [1.5, 3.5]);
     } else if (kind === 'loiter') { g.R = mix(r(), 120, 320); g.y = Math.max(top + 15, eye + mix(r(), -30, 40)); g.T = pick(r, [40, 90]); }
     else if (kind === 'sink') {
@@ -223,7 +221,7 @@
     return g;
   }
   function nextGoal(F) {
-    var r = F.r, cls = skyCls(), k = weighted(r, GOALS[cls] || GOALS.day);
+    var r = F.r, cls = skyCls(), k = weighted(r, GOALS[cls] || GOALS.glow);
     if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || (F.kind === 'crow' && cls !== 'blue'))) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';   // (in the blue hour the crows have roosted: no crow wheels)
     if (cls === 'moon' && !NIGHT_K[F.kind]) k = 'sink';   // (night: a crow, swallow or finch still up goes down to roost, under the sea of cloud, or else away)
     if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
