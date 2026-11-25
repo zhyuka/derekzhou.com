@@ -5,6 +5,10 @@
 // edge, both rings must put the shared vertex at the same fp32 bits: a seam a bit apart is the owner's one-pixel line
 // across the land, far from the start (a tab open for hours). And a lint: no source places a vertex as origin metres
 // plus aG cells (`uLev.xy + aG * uLev.z`, the form that cracked).
+// And the land's level of detail never pops (tools/physics/lod-pop.mjs, the clipmap replayed over the dunes in doubles):
+// in a flight at cruise, a point handed from one ring to the next keeps its drawn height (under 0.5 px of edge motion at
+// laptop size) and its shading (under 2 levels), because the morph lays the fine ring on the coarse ring's own triangles.
+// plant: {"file": "src/world/350-shaders-scene.js", "find": "w = (c + mod(c, 2.0) * (mod(c, 4.0) - 2.0) * m) * uLev.z;", "with": "w = c * uLev.z;", "why": "the morph off: each ring's vertices on their own lattice, the coarse ring's surface swapped in at the handoff"}
 // plant: {"file": "src/world/glsl/hp-gridw.glsl", "find": "vec2 c = L.xy + aG, w = c * L.z;", "with": "vec2 c = L.xy + aG, w = L.xy + aG * L.z;", "why": "the height passes placed from origin metres again"}
 // plant: {"file": "src/world/100-clipmap-grid.js", "find": "* 2 - GN / 2; }", "with": "* 2 - GN / 2 + (g > 100 ? 2 : 0); }", "why": "the outermost ring alone (level 9, 179 m cells) moved two cells: its seam with level 8 apart"}
 // plant: {"file": "src/world/414-draw-scene.js", "find": "gl.uniform4f(P.u.uLev, ringCell(g, 0), ringCell(g, 2), g, GN / 2);", "with": "gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2);", "why": "the rings' origin in metres again"}
@@ -159,4 +163,20 @@ test('clipmap: lint: no vertex placed as origin metres + aG cells', () => {
   const files = [...walk('src'), ...walk('tools/gpu')].filter((f) => /\.(js|glsl|mjs)$/.test(f));
   const hits = files.filter((f) => BAD.test(rd(f)));
   assert.deepEqual(hits, [], 'origin metres + aG g: place from the whole-cell lattice instead ((uLev.xy + aG) * uLev.z)');
+});
+
+// ---- the level of detail: no pop at a ring's handoff (tools/physics/lod-pop.mjs)
+test('clipmap: no LOD pop at cruise: a point handed to the next ring keeps its height (< 0.5 px) and shading (< 2 levels)', async () => {
+  const L = await import('../../tools/physics/lod-pop.mjs'), { landAt } = await import('../../tools/physics/dune-census.mjs');
+  const S = L.clipmapSpec(ROOT), H = (x, z) => landAt(x, z, 0.6);
+  assert.ok(S.morph, 'VS_TERRAIN morphs no vertex: the rings pop where they hand over (' + S.rule + ')');
+  for (const o of [{ a0: 0.3 }, { a0: 2.1, x0: 4000, z0: -2500 }]) {
+    const r = L.fly(S, H, { seconds: 4, points: 250, ...o });
+    assert.ok(r.handoff.n > 10, 'the flight crossed too few handoffs to say (' + r.handoff.n + ')');
+    assert.ok(r.handoff.px < 0.5 && r.px.max < 0.5, `a pop: ${r.handoff.px.toFixed(2)} px at a handoff, ${r.px.max.toFixed(2)} px worst step (${JSON.stringify(r.worst)})`);
+    assert.ok(r.handoff.levels < 2, `a shading pop at a handoff: ${r.handoff.levels.toFixed(2)} levels`);
+  }
+  // the rule before (each odd vertex to c - 1): the fine ring's diagonals crossed half the coarse cells', and popped
+  const b = L.fly({ ...S, rule: 'down', step: L.STEP.down }, H, { seconds: 4, points: 250, a0: 0.3 });
+  assert.ok(b.handoff.px > 0.5, 'the measure no longer sees the c - 1 rule\'s pops (' + b.handoff.px.toFixed(2) + ' px)');
 });
