@@ -13,6 +13,7 @@
 // plant: {"file": "src/glsl/above-glsl.glsl", "find": "A_WA1 * cos(w1) * A_WK1 + A_WA2 * cos(w2) * A_WK2", "with": "A_WA1 * cos(w1) * A_WK1", "why": "the second long wave's slope dropped: its light and its shape disagree"}
 // plant: {"file": "src/world/212-cloud-drift.js", "find": "SEAU[2 + i] = ph - Math.floor(ph / (2 * PI)) * 2 * PI;", "with": "SEAU[2 + i] = ph - Math.floor(ph / PI) * PI;", "why": "the long waves' phase wrapped at half a turn: the sea's top jumps"}
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "seaUniform(V, cloudT())", "with": "seaUniform(V, SIM.t)", "why": "the sea carried on the step's clock, not the draw's: it judders against the camera"}
+// plant: {"file": "src/realm-above.js", "find": "var th = aStreet(C.V, s),", "with": "var th = s.r[0] * PI,", "why": "a canyon on a random axis, not along the wind as a cloud street"}
 import { test, assert, vm, fs, path, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(') + cut(WORLD, '  function airDay(', '\n', true);
@@ -183,6 +184,37 @@ test('drift: ABOVE\'s world cells lay out no cumulus; its air cells lay out the 
   assert.ok(!kinds.cell.cumulus, `ABOVE's world cells lay out ${kinds.cell.cumulus} cumulus: free clouds standing still (${JSON.stringify(kinds.cell)})`);
   assert.ok(kinds.cell.wall > 0, 'the census met no canyon: it proves nothing about the world cells');
   assert.ok(kinds.air.cumulus > 50, `ABOVE's air cells lay out only ${kinds.air.cumulus || 0} cumulus: the towers are gone`);
+});
+
+// the canyon walls lie along the low layer's wind as a cloud street's rows (physics: clouds/streets): within 30 deg of
+// the mean wind, most often within 10 (https://doi.org/10.1007/BF00705527). ABOVE's own world cells run on the stub kit
+// with the air's day wind, over a census of sites and every way and strength of wind
+test('drift: every canyon lies along the low layer\'s wind, within the cloud streets\' 30 deg, most within 10', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), { ROOT, STREAMS } = await import('../unit-lib.mjs');
+  const ABOVE = fs.readFileSync(path.join(ROOT, 'src/realm-above.js'), 'utf8');
+  const AIRSRC2 = AIRSRC + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
+  const G = vm.runInThisContext('(function (SIM) { var PI = Math.PI, J = { seed: 1 };\n' + STREAMS + AIRSRC2 + ' return { RNG: RNG, cellHash: cellHash, hk: hk, hfl: hfl, ihash: ihash, airDay: airDay, airBase: airBase, AIR_H: AIR_H }; })')({ V: null, t: 0 });
+  let def = null;
+  const kit = { lch: (l, c, h, k) => [l, c, h, k === undefined ? 1 : k], cellHash: G.cellHash, hk: G.hk, hfl: G.hfl, ihash: G.ihash, RNG: G.RNG };
+  vm.runInThisContext('(function (window) {\n' + ABOVE + '\n})')({ WORLD: { kit, forms: {}, air: { day: G.airDay, H: G.AIR_H }, realm: (d) => { def = d; } } });
+  let n = 0, near = 0, worst = 0;
+  for (let az = 0; az < 360; az += 15) for (const u10 of [3, 5.5, 7.5]) {
+    const a = az * Math.PI / 180, V = { wind: [Math.sin(a), Math.cos(a)], u10, light: { sunEl: 8, sunAz: 120 } };
+    const w = { ...G.airBase(0, 0, G.AIR_H.clouds, V) }, wa = Math.atan2(w.x, w.z);
+    for (const salt of [1, 4099]) for (let iz = -6; iz < 6; iz++) for (let ix = -6; ix < 6; ix++) {
+      const out = [], C = { ix, iz, salt, hash: G.cellHash(ix, iz, salt), x0: ix * 1200, z0: iz * 1200, size: 1200, V };
+      C.cloud = (cl) => { out.push(cl); return cl; }; C.add = () => {}; C.poi = () => {}; C.flock = () => {}; C.inside = () => true;
+      def.cell(C, G.RNG(G.hk(C.hash, 1)));
+      for (const cl of out) if (cl.kind === 'wall') {
+        const d = Math.abs(((cl.dir - wa) * 180 / Math.PI % 180 + 270) % 180 - 90);   // (a line: either way along it)
+        assert.ok(d <= 30 + 1e-9, `a canyon wall ${d.toFixed(1)} deg off the low layer's wind (az ${az}, U10 ${u10}, cell ${ix}, ${iz})`);
+        n++; if (d <= 10) near++; worst = Math.max(worst, d);
+      }
+    }
+  }
+  assert.ok(n > 500, `the census met only ${n} canyon walls`);
+  assert.ok(near / n > 0.45, `only ${(100 * near / n).toFixed(0)}% within 10 deg: most cloud streets lie within 10 of the wind`);
+  assert.ok(worst > 20, `the walls' spread reaches only ${worst.toFixed(1)} deg: the test does not see the source's span`);
 });
 
 // no pops in the air (physics: clouds/drift, the spec's "no pops" proof): both kits' air cells, laid out by the realms

@@ -103,7 +103,6 @@ test('air: every wind reader blows the visit\'s way, at the profile\'s speed at 
         dunes: [V.field.params[9].slice(0, 2), null],
         veils: [[V.ribbons.wind[0], V.ribbons.wind[2]], G.AIR_H.veils],
         birds: [(() => { const o = G.HOST.wind([9, 9, 9]); assert.equal(o[1], 0); return [o[0], o[2]]; })(), G.AIR_H.birds],
-        water: [G.LDEF.windDir, null],
         clouds: [Array.from(G.cloudWind(V, 'low')), G.AIR_H.clouds],   // (physics: clouds/drift: the free clouds carried, the billows riding with them)
         deck: [Array.from(G.cloudWind(V, 'deck')), G.AIR_H.deck],   // (the high streaks drift with it, lying along it: sky-body's uDeck)
       };

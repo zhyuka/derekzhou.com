@@ -8,12 +8,12 @@
   if (window.WORLD && window.WORLD.stamp) window.WORLD.stamp('realm-above.js top');   // (the record bounds each script's evaluation)
   var W = window.WORLD;
   if (!W || !W.forms) return;
-  var K = W.kit, F = W.forms, lch = K.lch, PI = Math.PI;
+  var K = W.kit, F = W.forms, lch = K.lch, PI = Math.PI, A = W.air;
   var floatIslandG = F.floatIslandG, isleTemple = F.isleTemple, stupa = F.stupa;
 
   /* ------------------------------------------------------------------ ABOVE: the sunrise over the sea of cloud, endless */
   /* The sea of cloud is one field over the plane (broad swells and heaps of billows). Over it, the areas, a site per
-     1.2 km cell: open sea (a tower now and then), a canyon (two walls of cloud along an axis, a slot of sky between
+     1.2 km cell: open sea (a tower now and then), a canyon (two walls of cloud along an axis, the air's wind as a cloud street's, a slot of sky between
      them, a white flock wheeling down it), a sea of towering clouds, small floating islands (a stupa on some), and the
      island with its temple (the low sun behind it, seen from the side away from the sun). */
   var AS = 1200, CUT_A = [51, 107, 174, 225, 256];   // open, canyon, towers, islands, isle
@@ -27,6 +27,17 @@
   var A_STONE = [1, 1, 1, 5], A_HI = [1.25, 1.2, 1.3, 5], A_ROCK = [1, 1, 1, 6], A_GRASS = [1, 1, 1, 4];   // (material codes of its own)
   var A_WL = lch(0.99, 0.02, 60, 1.35), A_WS = lch(0.9, 0.035, 290), CRUISE = 150;
   function aRng(s, k) { return K.RNG(K.hk(s.h, k)); }
+  /* (physics: clouds/streets) a canyon's axis: a cloud street, the rows a boundary layer's roll vortices make, lies
+     along the layer's mean wind, within 30 deg of it and most often within 10 (https://doi.org/10.1007/BF00705527, the
+     rolls' review; the observed spread as summarised in https://par.nsf.gov/servlets/purl/10167646). The air's wind at
+     the low layer's height (A.day at A.H.clouds: its veer, never a copy of it), turned by the site's own draw: a
+     triangle over -30 .. 30 deg (56% within 10). A line, so either way along it */
+  var A_STREET = 30;   // (the spread, deg)
+  function aStreet(V, s) {
+    var w = A && A.day && V && V.wind ? A.day(0, 0, A.H.clouds, V) : null, Ra = aRng(s, 12);
+    var b = w && (w.x || w.z) ? Math.atan2(w.x, w.z) : V && V.wind ? Math.atan2(V.wind[0], V.wind[1]) : s.r[0] * PI;
+    return b + (Ra.f() + Ra.f() - 1) * A_STREET * PI / 180;
+  }
   function aTower(C, R, x, z, Wt, Ht, seed, poi) {
     C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0), w: Wt, h: Ht, seed: seed });
     if (poi) C.poi({ kind: 'tower', x: x, z: z, y: CRUISE, pass: Wt * 0.55 + 80 });
@@ -78,7 +89,7 @@
       var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;
       if (s.kind === 1) {   // a canyon: walls of cloud on both sides of its axis, in runs, lower toward its mouths
         Rs = aRng(s, 11);
-        var th = s.r[0] * PI, L = 900 + 400 * s.r[1], half = 175 + 60 * s.r[2], dx = Math.sin(th), dz = Math.cos(th), px = dz, pz = -dx;
+        var th = aStreet(C.V, s), L = 900 + 400 * s.r[1], half = 175 + 60 * s.r[2], dx = Math.sin(th), dz = Math.cos(th), px = dz, pz = -dx;
         for (var si = 0; si < 2; si++) {
           var sd = si ? 1 : -1, u = -L / 2 - Rs.r(0, 120), n = 0;
           while (u < L / 2 && n < 3) {
