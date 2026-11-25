@@ -85,6 +85,7 @@
     ];
     EP = {};
     noiseInit();   // (the noise's texture, and its bake's stream: no program)
+    list = list.filter(function (l) { return l[0] !== 'virga' || lateCan(); });   // (physics: clouds/virga: only where programs can be made after the show (073: late); where every program is made before it (no parallel compile: WebKit, the byte-target phones) none, so the boot never pays for it, and its bodies carry none: 410)
     list.forEach(function (l) { EP[l[0]] = compile(l[1], l[2], 'engine.' + l[0]); });
     BAKEFB = gl.createFramebuffer();
     makeCreatures();

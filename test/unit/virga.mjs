@@ -5,6 +5,11 @@
 // plant: {"file": "src/world/213-virga.js", "find": "var VIRGA_SHARE = { afterglow: 0.3, bluehour: 0.2 },", "with": "var VIRGA_SHARE = { afterglow: 0.3, bluehour: 0.2, firstlight: 0.2 },", "why": "virga on a sky that is not a dusk's"}
 // plant: {"file": "src/world/213-virga.js", "find": "VIRGA_END = [0.4, 0.7],", "with": "VIRGA_END = [0.2, 0.7],", "why": "strands hanging nearly to the ground"}
 // plant: {"file": "src/world/213-virga.js", "find": "return !!s && hfl(hk(seed >>> 0, 0x76a1)) < s;", "with": "return !!s && hfl(hk(seed >>> 0, 0x76a1)) < 2 * s;", "why": "twice the share of strands"}
+// plant: {"file": "src/world/231-cells-resolve.js", "find": "if (C.air && SHOWNT >= 0 && clb &&", "with": "if (C.air && clb &&", "why": "virga on the boot's bodies, in sight at the cut (the program is late: they gain it in view, a pop; the stills hold none)"}
+// plant: {"file": "src/world/231-cells-resolve.js", "find": "if (C.air && SHOWNT >= 0 && clb &&", "with": "if (SHOWNT >= 0 && clb &&", "why": "virga under the cloud sea's canyon walls"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "      if (B.vg && !(EP.virga && EP.virga.ok) && B.fade > 0) B.vg = null;", "with": "", "why": "a body in sight before the late program is made gains its strand in view (a pop)"}
+// plant: {"file": "src/world/073-late-programs.js", "find": "'engine.beam', 'engine.virga'];   // (virga: none before the show, 231)", "with": "'engine.beam'];", "why": "virga's program issued before the show (the boot's frames)"}
+// plant: {"file": "src/world/360-engine-programs.js", "find": "return l[0] !== 'virga' || lateCan();", "with": "return true;", "why": "virga's program made before the show where no program can be late (WebKit's and the byte phones' boots a frame or two longer)"}
 import { test, assert, vm, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') +
@@ -49,4 +54,17 @@ test('virga: each step leans off the vertical by atan(dU / w), dU the air there 
   }
   assert.ok(bent > 100, `only ${bent} steps bent: no shear met`);
   console.log(`# virga: the worst step ${worst.toFixed(2)} deg off atan(dU / w); ${bent} steps in shear`);
+});
+
+// (the hub, 2026-11-25: the program late, so the boot pays nothing: virga only on free clouds born after the world shows,
+// at the stream's front beyond sight; none at the cut, so the stills hold none; and a body in sight before the program is
+// made never gains its strand: no pop)
+test('virga: only on free clouds born after the show; never gained in sight; its program late and held to the show', () => {
+  assert.match(WORLD, /if \(C\.air && SHOWNT >= 0 && clb && !PF\.bodies\[bi\]\.flow && clb\.seed !== undefined && virgaOn\(clb\.seed, virgaSky\(V\)\)\) vb\.out\.vg = virgaBody\(/, 'virga chosen on a body that is not a free cloud born after the show');
+  const late = /LATE_ALWAYS = \[([^\]]*)\]/.exec(WORLD)[1], held = /LATE_HELD = \[([^\]]*)\]/.exec(WORLD)[1];
+  assert.ok(late.includes("'engine.virga'") && held.includes("'engine.virga'"), 'virga\'s program not late and held to the show');
+  const L = WORLD.split('\n'), drop = L.findIndex((l) => l.includes('if (B.vg && !(EP.virga && EP.virga.ok) && B.fade > 0) B.vg = null;')), draw = L.findIndex((l) => l.includes('if (B.vg && EP.virga && EP.virga.ok) { drawVirga(B, EP.virga, V);'));
+  assert.ok(drop >= 0 && draw === drop + 1, 'a body in sight without its program keeps its strand for later (a pop)');
+  assert.equal((WORLD.match(/drawVirga\(/g) || []).length, 2, 'virga drawn somewhere else');
+  assert.ok(WORLD.includes("list = list.filter(function (l) { return l[0] !== 'virga' || lateCan(); });"), 'virga\'s program made where it cannot be late (its boot pays for it)');
 });
