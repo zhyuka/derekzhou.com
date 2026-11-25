@@ -496,3 +496,21 @@ test('the night passage: a high goose skein crosses the sky and flies on', () =>
   assert.equal(farOk, far, `${far - farOk} of ${far} passages born after the cut within sight`);
 });
 
+
+/* (the audit's rank 12, its second half) no thermal at dusk or first light: a thermal needs a sun-heated surface (it builds
+   through the morning and is gone by evening; heavy soarers wait for it: https://academic.oup.com/condor/article/105/2/208/5563225).
+   In the twilight skies a wheel goal circles a place, never a drifting patch of air */
+test('at dusk and first light no bird wheels in a thermal (a wheel only round a place)', () => {
+  let wheels = 0, air = 0, n = 0;
+  for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = sky;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); const seen = new Set();
+    for (let k = 0; k < 180 * 20; k++) {
+      sim.step(); if (k % 20) continue;
+      for (const F of sim.B.FLOCKS) { const g = F.goal; if (!g || seen.has(g)) continue; seen.add(g); n++; if (g.k === 'wheel') { wheels++; if (!g.place) air++; } }
+    }
+  }
+  console.log(`# twilight goals ${n}: wheels ${wheels}, round a patch of air (a thermal) ${air}`);
+  assert.ok(n > 200, 'too few goals drawn');
+  assert.equal(air, 0, `${air} wheels in a thermal at dusk or first light`);
+});
