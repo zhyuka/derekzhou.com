@@ -283,7 +283,7 @@
   }
   /* the island's temple: a stepped plinth (three tiers), terraces with stupas at their corners and along their edges,
      a great bell in the middle under a tall spire, two spires beside it (a silhouette against the disc) */
-  function* isleTemple(B, R, size, col, hi) {   // (a generator: built a part at a time under the frame's budget)
+  function* isleTemple(B, R, size, col, hi, sw) {   // (sw: its spires' width, size * 0.035 unless given)   // (a generator: built a part at a time under the frame's budget)
     var w = size, y = 0, i, k, q, tiers = 3, SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     for (i = 0; i < tiers; i++) {
       var h = size * R.r(0.09, 0.12);
@@ -301,8 +301,8 @@
     }
     B.push(); B.xf(0, y, 0); stupa(B, R, size * R.r(0.62, 0.74), col, hi); B.pop();
     var sh = size * R.r(0.55, 0.7);
-    B.push(); B.xf(-w * 0.42, y, 0); spire(B, R, sh, size * 0.035, hi); B.pop();
-    B.push(); B.xf(w * 0.42, y, 0); spire(B, R, sh * R.r(0.88, 1.0), size * 0.035, hi); B.pop();
+    B.push(); B.xf(-w * 0.42, y, 0); spire(B, R, sh, sw || size * 0.035, hi); B.pop();
+    B.push(); B.xf(w * 0.42, y, 0); spire(B, R, sh * R.r(0.88, 1.0), sw || size * 0.035, hi); B.pop();
   }
 
   W.forms = {
