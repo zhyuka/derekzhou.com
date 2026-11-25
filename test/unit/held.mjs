@@ -1,6 +1,6 @@
 // test/unit/held.mjs: the held world (the owner, 2026-11-12: "a, the still world"): which slow devices hold the world
 // and which keep the still sky
-// plant: {"file": "src/world/455-boot-stages.js", "find": "hold('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); }", "with": "decline('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); return false; }", "why": "a boot that misses the 0.35 floor declining to the still sky again"}
+// plant: {"file": "src/world/457-boot-stage-g.js", "find": "hold('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); }", "with": "decline('stage G: the frame at scale 0.35 takes ' + GS.med[0] + ' ms (over 21.7)'); return false; }", "why": "a boot that misses the 0.35 floor declining to the still sky again"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 
 // hold, giveUp and decline (450) and stage G's floor (455), cut from the world as it ships and run on stubs
