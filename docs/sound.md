@@ -345,6 +345,23 @@ Change OUT only with a measurement.
 | score.js | 26,624 minified, 9,810 as sent | every visit, deferred, low priority (36-load-budget: 10 KB) |
 | the sheet | about 4.5 MB (4,467,501 B) | only at the first press; its first part (about 351 KB) is enough to begin |
 
+**With the world running** (2026-11-25, `node tools/sound/cpu.mjs SITE --cpu N`: the live page in headless Chromium,
+on SwiftShader under a phone GPU's name so the world runs, in a 180x390 window, its governor filling each frame; 10 s
+traced from 4 s after the press; the audio thread by its own CPU time in each render quantum, the score's ticks as the
+switch calls them):
+
+| the main thread | the audio thread (% of real time; ms a 5.33 ms quantum) | the score's ticks (ms a second; the longest) | the world |
+|---|---|---|---|
+| as is (1x) | 6.7%; 0.36 | 1.1 (0.11% of the thread); 1.9 ms | 34 frames a second, the thread 92% busy |
+| 4x slower (Lighthouse's mobile) | 7.0-8.5%; 0.37-0.50 | 2.6-6.1 (0.3-0.6%); 4-12 ms | 24-28 |
+| 6x slower (the slowest phone) | 7.2%; 0.38 | 7.6 (0.8%); 17 ms | 22 |
+
+CDP's throttle slows the main thread only: on a phone six times slower the audio thread is about six times these, about
+40-50% of real time (each 512-frame output callback, 1.5 ms here, about 9 ms of its 21). In a 390x844 window SwiftShader
+drawing the world's pixels took the machine (the world at 7-9 frames a second, the ticks two to three times dearer by
+contention), which a phone's GPU does not. tools/checks/49-sound-cpu.sh holds it: the audio thread at 15% of real time
+or less and the ticks at 15 ms a second or less, at 4x.
+
 Round twenty-two (2026-11-13), the same machine and flight: the audio thread 4.2% of real time (0.23 ms of each
 5.3 ms quantum; fewer notes at once and a shorter room more than pay for each held note's own filter), the main
 thread 0.30 ms a second of music, no tick over 4 ms (the longest 3.2 ms); six times slower, 95% of ticks under 5 ms,

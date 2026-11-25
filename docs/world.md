@@ -69,6 +69,25 @@ the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
 of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
 of 7.7 m/s, lenses on every sweep step past it.
 
+No cloud falls over the coast (the hub's ruling, 2026-11-25: delight-weather
+3's cascades dropped, measured). A cascade is the cloud sea pouring over a
+rim whose top it stands above. On the world's coast the land's rim stands
+over the sea's top everywhere measured: on the recorded grounds of seeds 3
+and 11 (15.5 km of coast, 200 m landward of the coastline) the rim is
+7-32 m over the sea's top (p10-p90, median 18-22 m), and the sea clears it
+at 1 coast cell of 1,550, by 0.7 m. The physics that would lift it there is
+an onshore wind piling the marine layer against the coast by U^2 / 2g'
+(g' = g dtheta / theta over an inversion of 5-10 K,
+https://doi.org/10.1175/MWR-D-11-00121.1; the reduced-gravity flow,
+https://www.eoas.ubc.ca/books/Practical_Meteorology/): 13-166 m at the
+visits' winds. But the coast's lee slopes are gentle (the steepest
+downhill within 1 km of it 0.18-0.22 m/m at the median), so a top raised
+that much floods 1.1-1.5 km inland instead of pouring: it moves the
+coastline, the camera's ground (HdCam), the flight band and every
+opening. A sheet laid over a rim the sea never reaches would not be the
+physics. So there are no cascades until a coast has a steep, high rim
+the sea's top can reach.
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
@@ -206,7 +225,8 @@ mid-sky (20-55 deg up), a few a night, their light rising and falling softly ove
 exception RULES.json's no-fades names. Each is planned when its time comes,
 against the view as it is then; none under reduced motion or in a still; drawn
 by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
-head, no pixel past OKLab L 0.50.
+head, no pixel past OKLab L 0.50; low down it loses the air's extinction as the stars do
+(k (X - 1) at its head's height, a little redder: about half its light at 10 deg up).
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening

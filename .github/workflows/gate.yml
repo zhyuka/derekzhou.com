@@ -311,11 +311,19 @@ jobs:
   # It fails when the head's median words (the first contentful paint) or world (the world's first shown frame) is
   # slower than the base's by more than max(50 ms, 3 x the noise it measures). Only when what is served changed: a
   # byte-identical build cannot be slower (skipped, which the verdict counts as green).
-  paint:
+  # (CI lane, 2026-11-25, the hub's gate p90) three runners, 3 loads an arm each, side by side (18 loads on one runner took
+  # 231-292 s, the gate's pole in 38% of its runs); `paint` pools them (paint-trend.mjs --judge: each runner's loads centred
+  # on its own median, so a faster runner moves both arms alike) and is the job the verdict reads.
+  paint-loads:
     needs: plan
     if: always() && needs.plan.result == 'success' && needs.plan.outputs.site_changed == 'true' && needs.plan.outputs.has_pr != 'false'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    name: paint-loads (${{ matrix.shard }}/3)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -329,8 +337,36 @@ jobs:
           HANDOFF_SHA: ${{ needs.plan.outputs.served_sha }}
           HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served" --pinned
-      - name: The first paint, base against head
-        run: node tools/paint-trend.mjs "$RUNNER_TEMP/served/base" "$RUNNER_TEMP/served/head" --runs 9 --json "$RUNNER_TEMP/paint.json"
+      - name: The first paint, base against head, this runner's loads
+        run: node tools/paint-trend.mjs "$RUNNER_TEMP/served/base" "$RUNNER_TEMP/served/head" --runs 3 --samples "$RUNNER_TEMP/paint/s${{ matrix.shard }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paint-s${{ matrix.shard }}
+          path: ${{ runner.temp }}/paint
+          retention-days: 1
+          if-no-files-found: error
+
+  paint:
+    needs: [plan, paint-loads]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.site_changed == 'true' && needs.plan.outputs.has_pr != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools
+            .github/ci
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'paint-s*', merge-multiple: true, path: '${{ runner.temp }}/paint' }
+      - name: The first paint, base against head (the three runners' loads pooled)
+        run: |
+          n=$(ls "$RUNNER_TEMP"/paint/s*.json 2>/dev/null | wc -l)
+          [ "$n" = 3 ] || { echo "::error::$n of 3 paint runners reported"; exit 1; }
+          node tools/paint-trend.mjs --judge "$RUNNER_TEMP"/paint/s*.json --json "$RUNNER_TEMP/paint.json"
 
   verdict:
     needs: [static, plan, t1, looks, paint]

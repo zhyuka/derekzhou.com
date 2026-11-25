@@ -3,6 +3,7 @@
 // on T1's harness, no one's own machine.
 //   node tools/clouds/shimmer.mjs --base REF --head REF --out DIR [--seeds 11,22] [--epoch ISO] [--vp 1440x900]
 //        [--pairs 30] [--every 60] [--start 600] [--stepvp 160x100] [--edge 3] [--gap 1]
+//        [--null REF [--bar 0.1]]
 // Each arm steps the clock at the small --stepvp (the frames between cost little) and, --every frames apart, --pairs
 // times, renders two frames --gap apart (1: consecutive at 60 fps, 2: at 30 fps) at --vp (once the world's canvas has taken --vp: its frames are checked to be). The flight is the same in both arms (shading never steers it), and both
 // arms count from the page's own first frame (--start: past both shows), so pair k of base and of head see the same
@@ -13,6 +14,11 @@
 // motion there), and the excess: head's step over base's own step there, scaled by head's brightness over base's
 // (a shadow multiplies the light, so it scales the world's own motion by as much), by over 2 levels: the step the
 // change itself adds, its shimmer. Out: DIR/shimmer.json.
+// That excess has a floor of its own: any change that dims a moving surface reads a few percent (8-bit rounding of a
+// dimmed image steps past the scaled base step by chance; measured 2.46% for the cloud sea times a constant 0.88,
+// #471). So pass --null REF: the same change as nothing that can crawl (a constant), flown as a third arm and
+// measured against base the same way. The verdict is head's excess over null's, in points of edge px: with --bar P,
+// exit 1 when it is over P ("within 0.1% of the null"). Without --null the absolute excess is printed and judges nothing.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -68,8 +74,9 @@ async function main() {
   fs.mkdirSync(A.out, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'shimmer-')), tb = path.join(tmp, 'base'), th = path.join(tmp, 'head');
   fs.mkdirSync(tb); fs.mkdirSync(th);
-  const B = siteOf(A.base, tb), H = siteOf(A.head, th);
-  const browser = await launch(), sb = await serve(B.site), sh = await serve(H.site);
+  const tn = path.join(tmp, 'null'); if (A.null) fs.mkdirSync(tn);
+  const B = siteOf(A.base, tb), H = siteOf(A.head, th), N = A.null ? siteOf(A.null, tn) : null;
+  const browser = await launch(), sb = await serve(B.site), sh = await serve(H.site), sn = N ? await serve(N.site) : null;
   const png = (arm) => arm.page.evaluate(() => document.querySelector('canvas.sky').toDataURL('image/png'));
   const size = (arm, wh) => arm.page.setViewportSize({ width: wh[0], height: wh[1] });
   // the world sizes its canvas on its own frames: step until the canvas holds the viewport, then 3 more frames
@@ -91,24 +98,35 @@ async function main() {
     }
     const errs = arm.logs; await arm.ctx.close(); say(`${tag} flown (${pairs} pairs)`); return { out, errs, shownAt: arm.shownAt };
   };
-  const rec = { base: A.base, head: A.head, vp: A.vp, epoch: A.epoch, pairs, every, gap: GAP, edge: E, flights: [] };
+  let worst = -Infinity;
+  const rec = { base: A.base, head: A.head, null: A.null || null, bar: A.bar === undefined ? null : +A.bar, vp: A.vp, epoch: A.epoch, pairs, every, gap: GAP, edge: E, flights: [] };
   try {
     const page = await (await browser.newContext()).newPage();
     for (const seed of seeds) {
-      const fb = await fly(sb.url, seed, `base seed ${seed}`), fh = await fly(sh.url, seed, `head seed ${seed}`);
+      const fb = await fly(sb.url, seed, `base seed ${seed}`), fh = await fly(sh.url, seed, `head seed ${seed}`), fn = sn ? await fly(sn.url, seed, `null seed ${seed}`) : null;
+      if (fn && fn.shownAt !== fb.shownAt) throw new Error(`shimmer: seed ${seed}: base showed at frame ${fb.shownAt}, null at ${fn.shownAt} (run alone, nothing else on the CPU)`);
       if (fb.shownAt !== fh.shownAt) throw new Error(`shimmer: seed ${seed}: base showed at frame ${fb.shownAt}, head at ${fh.shownAt}: the camera's flight starts at the show, so the arms would not see the same place (run alone, nothing else on the CPU)`);
       const per = [];
       for (let k = 0; k < pairs; k++) per.push(await page.evaluate(MEASURE, [fb.out[k][0], fb.out[k][1], fh.out[k][0], fh.out[k][1], E]));
       if (seed === seeds[0]) { const save = (u, f) => fs.writeFileSync(path.join(A.out, f), Buffer.from(u.split(',')[1], 'base64')); save(fb.out[0][0], 'base.0.png'); save(fh.out[0][0], 'head.0.png'); save(fh.out[0][1], 'head.0b.png'); }
       const tot = per.reduce((s, r) => ({ edge: s.edge + r.edge, headStep: s.headStep + r.headStep, baseStep: s.baseStep + r.baseStep, excess: s.excess + r.excess }), { edge: 0, headStep: 0, baseStep: 0, excess: 0 });
-      const over = per.filter((r) => r.edge && r.excess / r.edge > 0.001).length;
-      rec.flights.push({ seed, shownAt: [fb.shownAt, fh.shownAt], errors: [fb.errs, fh.errs], per, total: tot, pairsOverTenthPercent: over });
-      console.log(`seed ${seed}: edge px ${tot.edge}; stepping >2 levels: head ${(100 * tot.headStep / Math.max(tot.edge, 1)).toFixed(3)}%, base ${(100 * tot.baseStep / Math.max(tot.edge, 1)).toFixed(3)}%, excess ${(100 * tot.excess / Math.max(tot.edge, 1)).toFixed(3)}%; pairs with excess over 0.1% of their edge px: ${over} of ${pairs}`);
+      const over = per.filter((r) => r.edge && r.excess / r.edge > 0.001).length, pc = (t) => 100 * t.excess / Math.max(t.edge, 1);
+      const fl = { seed, shownAt: [fb.shownAt, fh.shownAt], errors: [fb.errs, fh.errs], per, total: tot, pairsOverTenthPercent: over };
+      let line = `seed ${seed}: edge px ${tot.edge}; stepping >2 levels: head ${(100 * tot.headStep / Math.max(tot.edge, 1)).toFixed(3)}%, base ${(100 * tot.baseStep / Math.max(tot.edge, 1)).toFixed(3)}%, excess ${pc(tot).toFixed(3)}%`;
+      if (fn) {
+        const pn = [];
+        for (let k = 0; k < pairs; k++) pn.push(await page.evaluate(MEASURE, [fb.out[k][0], fb.out[k][1], fn.out[k][0], fn.out[k][1], E]));
+        const tn = pn.reduce((s, r) => ({ edge: s.edge + r.edge, excess: s.excess + r.excess }), { edge: 0, excess: 0 }), d = pc(tot) - pc(tn);
+        Object.assign(fl, { nullPer: pn, nullTotal: tn, overNull: d }); worst = Math.max(worst, d);
+        line += `; null's excess ${pc(tn).toFixed(3)}%; head over null ${d >= 0 ? '+' : ''}${d.toFixed(3)} points`;
+      } else line += `; pairs with excess over 0.1% of their edge px: ${over} of ${pairs} (no --null: nothing judged)`;
+      rec.flights.push(fl); console.log(line);
     }
     fs.writeFileSync(path.join(A.out, 'shimmer.json'), JSON.stringify(rec, null, 1) + '\n');
+    if (N && A.bar !== undefined) { const ok = worst <= +A.bar; console.log(`shimmer: ${ok ? 'within' : 'over'} ${A.bar}% of the null (worst seed ${worst >= 0 ? '+' : ''}${worst.toFixed(3)} points)`); if (!ok) process.exitCode = 1; }
   } finally {
-    await sb.close(); await sh.close(); await browser.close();
-    for (const a of [B, H]) execFileSync('git', ['worktree', 'remove', '--force', a.wt], { cwd: ROOT, stdio: 'ignore' });
+    await sb.close(); await sh.close(); if (sn) await sn.close(); await browser.close();
+    for (const a of [B, H, N].filter(Boolean)) execFileSync('git', ['worktree', 'remove', '--force', a.wt], { cwd: ROOT, stdio: 'ignore' });
   }
 }
 
