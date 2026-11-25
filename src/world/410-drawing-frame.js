@@ -110,7 +110,8 @@
       B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 4 : 1); B.u4a[3] = B.det[1] * (CRISP ? 3 : 1); if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.25; }   // (a held body, a lens: its billows the kit's size at a quarter of its depth on every look, never the desktop's deep cauliflower: plates 28-78 m thick stay smooth, and billows flowing through them at 8-10 m/s open no holes (the hub's review of #298))   // (crisp cauliflower on the desktop: the kit's billows four times the size, three times the depth: less steep than the kit's own (twice the size at five times the depth, 2.5 times as steep, cut free puffs off the tops: the hub's review of #254; four times at five, 1.25 times, still left a few on the 4090))   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
-      gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
+      var bc = B.c, bh = B.h; if (B.life) { var ls = cloudLife(B, tv); LIFEC[0] = bc[0]; LIFEC[1] = bc[1] + bh[1] * (ls - 1); LIFEC[2] = bc[2]; LIFEH[0] = bh[0]; LIFEH[1] = bh[1] * ls; LIFEH[2] = bh[2]; bc = LIFEC; bh = LIFEH; }   // (physics: clouds/life: a free cumulus' tops swell and settle, its box's bottom where it was)
+      gl.uniform3fv(P.u.uVC, bc); gl.uniform3fv(P.u.uVH, bh); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
       var c0 = B.c0 || B.c, nS = B.u4a[2]; if (!B.nO) B.nO = new Float32Array(3);   // (the billows ride with the body: an offset from where it was laid out, in doubles, never the clock's)
       var fl = B.flow, tf = fl ? cloudT() : 0;   // (a held body (a lenticular): its envelope still, its billows flowing through it at the wind at its height, in doubles)
       for (var k3 = 0; k3 < 3; k3++) { var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS; B.nO[k3] = q3 - Math.floor(q3); }
@@ -121,6 +122,7 @@
     gl.disable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.disable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
     ST.vols = m;
   }
+  var LIFEC = new Float32Array(3), LIFEH = new Float32Array(3);
   var MIST_IN = 20, MIST_OUT = 80, MISTMAX = 0, MISTO = new Float64Array(3);   // (dev: the most mist about the eye drawn since the last state read)
   function mistK(B) {   // 1 - smoothstep(20, 80, the eye's distance to the surface of the body's nearest lobe)
     var sb = B.soft; if (!sb || !B.cell || !B.cell.soft) return 0;

@@ -1,7 +1,7 @@
 // tools/clouds/crops.mjs: base|head crops of the world in a cloud session (headless SwiftShader on T1's harness), for a
 // visible PR's review branch (claude/review-<N>-crops), with no GPU and no one's own machine.
 //   node tools/clouds/crops.mjs --base REF --head REF --out DIR [--seed N] [--aim KIND | --cam X,Z,PSI] [--dist M]
-//        [--vp 960x600] [--frames 600] [--epoch ISO] [--crop X0,Y0,X1,Y1] [--walk 16]
+//        [--vp 960x600] [--frames 600] [--epoch ISO] [--crop X0,Y0,X1,Y1] [--walk 16] [--shots 1 --every 1250]
 // Each REF (a commit, branch or tag) is checked out in a temporary worktree of this repository (node_modules linked from
 // here), built plain (tools/build.mjs --plain), and its world script remade as a SCRATCH TWIN: the shipped assembly
 // (tools/parts.mjs assemble --ship), one line after `window.WORLD = {...}` handing the harness the camera, the clock and
@@ -14,7 +14,8 @@
 // cumulus, ...), then holds it --dist m (3000) short of that cloud, facing it. Base is held at the same place and heading.
 // Each arm then steps --frames frames (600) and its canvas is saved. Out: base.png, head.png, crop.png (base left, head
 // right, --crop's box or the whole frame), diff.png (the largest channel difference x8) and crops.json (the camera, the
-// aimed cloud, the changed pixels by row band).
+// aimed cloud, the changed pixels by row band). --shots N saves N in time, --every F frames apart (1250: 20 s), each arm
+// held where it is: shot k > 0 as base.k.png, head.k.png, crop.k.png and diff.k.png.
 // The arms' page clocks differ by the head's walk, so a cloud the wind carries sits a little apart between them; the
 // diff says so by band. Slow on SwiftShader: minutes an arm at 960x600.
 import fs from 'node:fs';
@@ -97,16 +98,20 @@ async function main() {
       const c = L[0], d0 = Math.hypot(c.x - x, c.z - z) || 1, ux = (c.x - x) / d0, uz = (c.z - z) / d0;
       cam = [c.x - ux * +A.dist, c.z - uz * +A.dist, Math.atan2(ux, uz)]; rec.aimed = { kind: A.aim, ...c, laidOut: L.length };
     } else cam = [st.x, st.z, st.psi];
+    const shots = Math.max(1, +(A.shots || 1)), every = +(A.every || 1250), series = async (arm) => { const o = [await png(arm)]; for (let k = 1; k < shots; k++) { await step(arm, every); o.push(await png(arm)); } return o; };
     await hold(h, cam[0], cam[1], cam[2]); await step(h, +A.frames);
     cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
-    const hp = await png(h); rec.headErrors = h.logs; await h.ctx.close();
+    const HP = await series(h); rec.headErrors = h.logs; await h.ctx.close();
     const b = await openPage(browser, sb.url, { vp: VP, epoch: EPOCH, seeds: [seed] });
     if ((await stepToShow(b)) < 0) throw new Error('crops: the base never showed');
     await hold(b, cam[0], cam[1], cam[2], cam[3]); await step(b, +A.frames);
-    const bp = await png(b); rec.baseErrors = b.logs; await b.ctx.close();
+    const BP = await series(b); rec.baseErrors = b.logs; await b.ctx.close();
     // the crop and the diff, composed in a blank page (canvas 2D: no image library)
     const page = await (await browser.newContext()).newPage();
     const box = A.crop ? A.crop.split(',').map(Number) : [0, 0, vw, vh];
+    rec.shots = shots; rec.every = every; rec.changedByRowTenth = [];
+    for (let k = 0; k < shots; k++) {
+    const bp = BP[k], hp = HP[k], sfx = k ? `.${k}` : '';
     const r = await page.evaluate(async ([bp, hp, box]) => {
       const load = (u) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = u; });
       const [bi, hi] = await Promise.all([load(bp), load(hp)]), w = bi.width, h = bi.height;
@@ -124,10 +129,12 @@ async function main() {
       return { diff: await url(dc), crop: await url(cc), bands };
     }, [bp, hp, box]);
     const save = (name, u) => fs.writeFileSync(path.join(A.out, name), Buffer.from(u.split(',')[1], 'base64'));
-    save('base.png', bp); save('head.png', hp); save('crop.png', r.crop); save('diff.png', r.diff);
-    rec.changedByRowTenth = r.bands; rec.crop = box;
+    save(`base${sfx}.png`, bp); save(`head${sfx}.png`, hp); save(`crop${sfx}.png`, r.crop); save(`diff${sfx}.png`, r.diff);
+    rec.changedByRowTenth.push(r.bands);
+    }
+    rec.crop = box;
     fs.writeFileSync(path.join(A.out, 'crops.json'), JSON.stringify(rec, null, 1) + '\n');
-    console.log(`crops: ${A.out}: base.png head.png crop.png diff.png; changed px by tenth of the frame's height ${r.bands.join(' ')}`);
+    console.log(`crops: ${A.out}: ${shots} shot(s) of base, head, crop and diff; changed px by tenth of the frame's height ${rec.changedByRowTenth.map((b) => b.join(' ')).join(' | ')}`);
   } finally {
     await sb.close(); await sh.close(); await browser.close();
     for (const T of [B, H]) execFileSync('git', ['worktree', 'remove', '--force', T.wt], { cwd: ROOT, stdio: 'ignore' });
