@@ -76,9 +76,9 @@ function landing(tr, sim, kind) {
   return r;
 }
 
-function cases(name, check) {
+function cases(name, check, n = N) {
   const out = [];
-  for (const size of SIZES) for (let seed = 1; seed <= N; seed++) { const p = play(name, size, seed); out.push({ p, ...check(p) }); }
+  for (const size of SIZES) for (let seed = 1; seed <= n; seed++) { const p = play(name, size, seed); out.push({ p, ...check(p) }); }
   return out;
 }
 function report(title, rows, bar) {
@@ -101,7 +101,7 @@ const fmt = (x) => (x === Infinity ? 'never' : x.toFixed(1) + ' s');
 /* a scene's landings: each watched bird down by `by` s from its setup (the research's number: its share reported),
    in view, feet fixed; and the invariants. CI's guard, steady on a few scenes: every invariant, the median down by
    1.25 `by`, and 5 in 6 down by twice it */
-function landCase(name, by, kind) {
+function landCase(name, by, kind, n) {
   const downs = [];
   const rows = cases(name, (p) => {
     const w = invariants(p), hard = [];
@@ -112,13 +112,13 @@ function landCase(name, by, kind) {
       if (L.slide) hard.push(`bird ${i} feet slid ${L.slide} steps (worst ${L.slideWorst.toFixed(2)} px)`);
     });
     return { ok: !w.length && !hard.length, hard: invariants(p).length + hard.length, why: w.concat(hard).join('; ') };
-  });
+  }, n);
   downs.sort((a, b) => a - b);
   const med = downs[downs.length >> 1], late = downs.filter((d) => !(d <= 2 * by)).length / downs.length;
   return { rows, med, late, hard: rows.filter((r) => r.hard).length, by };
 }
-function landTest(title, name, by, kind, lateBar = 1 / 6) {
-  const R = landCase(name, by, kind);
+function landTest(title, name, by, kind, lateBar = 1 / 6, n) {
+  const R = landCase(name, by, kind, n);
   report(title, R.rows, 1);
   console.log(`#   median ${fmt(R.med)}, not down by ${2 * by} s: ${(100 * R.late).toFixed(0)} %, scenes breaking a rule: ${R.hard}`);
   assert.ok(R.med <= 1.25 * by, `median ${fmt(R.med)} over ${1.25 * by} s`);
@@ -130,7 +130,8 @@ test('a gull sent to a letter is down by 15 s', () => landTest('perch: down by 1
 // (a 6.5 m/s tail wind on a 12 m/s camera leaves a bird keeping pace near its slowest airspeed: some cannot)
 test('a gull lands in the page\'s wind along the camera\'s way (5586a97 landed none)', () => landTest('gale: down by 15 s, 6.5 m/s head or tail', 'gale', 15, undefined, 1 / 3));
 test('a flock\'s droppers are down by 20 s', () => landTest('drop: droppers down by 20 s', 'drop', 20));
-test('a gull rides the moving pointer by 10 s', () => landTest('cursor: on the moving tip by 10 s', 'cursor', 10, 'pointer'));
+// (12 seeds at least: on 4 the median sits on a coin's edge; the shared gusts add ~0.8 s, physical, the bar unchanged)
+test('a gull rides the moving pointer by 10 s', () => landTest('cursor: on the moving tip by 10 s', 'cursor', 10, 'pointer', undefined, Math.max(N, 12)));
 test('a gull comes to the moving pointer in the page\'s wind along the camera\'s way', () => landTest('gale cursor: on the tip by 10 s, 6.5 m/s head or tail', 'galeCursor', 10, 'pointer', 1 / 3));
 test('a flock sent down into the sea of cloud is hidden in it, then taken out', () => {
   const gone = [];
@@ -513,4 +514,75 @@ test('at dusk and first light no bird wheels in a thermal (a wheel only round a 
   console.log(`# twilight goals ${n}: wheels ${wheels}, round a patch of air (a thermal) ${air}`);
   assert.ok(n > 200, 'too few goals drawn');
   assert.equal(air, 0, `${air} wheels in a thermal at dusk or first light`);
+});
+
+/* (Delight 3, the hub 2026-11-25) a crow in a rim's strong lift tumbles now and then: a drawn roll right over, eased, a
+   little drop. Only in the lift (a crow over a lee never tumbles); the roll never jumps a step (no pop: its end a whole
+   turn taken from the step's start too); its flight's own bank stays within its kind's limit */
+test('crows tumble only in a rim\'s strong lift, the roll eased, never a pop', () => {
+  const W = [6.5 * Math.SQRT1_2, 6.5 * Math.SQRT1_2], DTS = 1 / 20, MAXD = 1.5 * 2 * Math.PI * DTS / 1 + 1e-9;
+  let inLift = 0, tumbles = 0, outside = 0, leeT = 0, leeN = 0, jump = 0, bank = 0;
+  for (let seed = 1; seed <= 8; seed++) for (const over of ['face', 'lee']) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = DTS; sc.opt.draw = null; sc.opt.wind = W; sc.opt.speed = 0; sc.opt.yaw = 0;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2); const B = sim.B, a0 = Math.atan2(sim.C.f[0], sim.C.f[2]);
+    let at = null;
+    for (let k = 0; k < 4000 && !at; k++) {
+      const a = a0 + ((k * 0.618 + seed * 0.1) % 1 - 0.5) * 0.7, d = 300 + (k % 60) * 10, x = sim.C.pos[0] + d * Math.sin(a), z = sim.C.pos[2] + d * Math.cos(a), y = groundAt(x, z) + 25, w = B.slopeW(x, y, z);
+      if (over === 'face' ? w > 1.2 : w === 0 && B.slopeW(x, y + 200, z) === 0 && groundAt(x + 60, z + 60) < groundAt(x, z) - 3) at = { x, y, z };
+    }
+    if (!at) continue;
+    const F = B.newFlock(at.x, at.y, at.z, Math.atan2(W[0], W[1]) + Math.PI / 2, 'moon', ['single', 'crow', 1]), b = F.lead;
+    F.goal = null; const g = B.newGoal(F, 'loiter', F.r, 'blue'); g.cx = at.x; g.cz = at.z; g.R = 60; g.y = b.p[1]; g.T = 999;
+    let was = -1;
+    for (let k = 0; k < 90 * 20; k++) {
+      sim.step(); if (b.st !== 'fly') break;
+      if (over === 'face') inLift += b.lift > 0.8 || b.tumT >= 0 ? 1 : 0; else leeN++;
+      if (b.tumT >= 0 && was < 0) { if (over === 'lee') leeT++; else { tumbles++; if (!(B.slopeW(b.p[0], b.p[1], b.p[2]) > 0.6 || b.lift < 0)) outside++; } }
+      was = b.tumT;
+      jump = Math.max(jump, Math.abs(b.tum - b.tum0)); bank = Math.max(bank, Math.abs(b.phi));
+    }
+  }
+  console.log(`# crow tumbles: ${tumbles} over windward faces in ${(inLift / 20).toFixed(0)} s in strong lift, ${outside} begun outside it; over lee ground ${leeT} in ${(leeN / 20).toFixed(0)} s; the roll at most ${jump.toFixed(3)} rad a step (bound ${MAXD.toFixed(3)}); its flight's bank at most ${(bank * 180 / Math.PI).toFixed(0)} deg`);
+  assert.ok(inLift > 20 * 60 && tumbles >= 4, `${tumbles} tumbles in ${(inLift / 20).toFixed(0)} s of strong lift`);
+  assert.equal(outside, 0, `${outside} tumbles begun outside a rim's lift`);
+  assert.ok(leeN > 20 * 60, 'too little lee flight');
+  assert.equal(leeT, 0, `${leeT} tumbles over lee ground`);
+  assert.ok(jump <= MAXD, `the drawn roll jumped ${jump.toFixed(3)} rad in a step`);
+  assert.ok(bank <= 40 * Math.PI / 180 + 1e-6, `a crow's flight banked ${(bank * 180 / Math.PI).toFixed(0)} deg`);
+});
+
+/* (physics #29, the hub 2026-11-25) one wind: a flying bird is carried by the air's own wind where it is, at its height over
+   the ground (the log law, as the host's wind at that height) and in the one gust field (as the host's gust at its place),
+   never a wind of the birds' own nor a per-bird jitter: two birds a few metres apart feel nearly the same gust, two far apart
+   don't. A landing bird keeps the step's one wind (its approach is planned in it) */
+test('one wind: a bird is carried by the air at its own height and place, gusts shared by near birds', () => {
+  const W = [5 * Math.SQRT1_2, 5 * Math.SQRT1_2];
+  let n = 0, worst = 0, landing = 0, landOff = 0; const near = [], far = [];
+  for (let seed = 1; seed <= 4; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.wind = W;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); const H = sim.host, ref = [0, 0, 0];
+    for (let k = 0; k < 60 * 20; k++) {
+      sim.step(); if (k % 10) continue;
+      const B = sim.B.BIRDS; let tNow = -1; for (const b of B) tNow = Math.max(tNow, b.stT);
+      for (const b of B) {
+        if (b.st !== 'fly' || b.stT !== tNow || b.cs) continue;   // (stepped this step, finely: a coarse flock's wind is read at its own steps)
+        if (b.P) { landing++; if (Math.hypot(b.wx - W[0], b.wz - W[1]) > 1e-9) landOff++; continue; }
+        const q = b.pp, hg = Math.max(2, q[1] - groundAt(q[0], q[2])); H.wind(ref, hg); const U = Math.hypot(ref[0], ref[2]), Uw = Math.hypot(W[0], W[1]), g = H.gust(q[0] + W[0] * (1 / 20), q[2] + W[1] * (1 / 20), hg), k2 = U > 0 ? 1 + g / U : 1;
+        worst = Math.max(worst, Math.hypot(b.wx - ref[0] * k2, b.wz - ref[2] * k2)); n++;
+      }
+      for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+        const a = B[i], c = B[j]; if (a.st !== 'fly' || c.st !== 'fly' || a.P || c.P) continue;
+        const d = Math.hypot(a.p[0] - c.p[0], a.p[2] - c.p[2]), dg = Math.hypot(a.wx - c.wx, a.wz - c.wz);
+        if (Math.abs(a.p[1] - c.p[1]) > 5) continue;
+        if (d < 8) near.push(dg); else if (d > 300) far.push(dg);
+      }
+    }
+  }
+  const med = (v) => { v.sort((x, y) => x - y); return v[v.length >> 1]; };
+  console.log(`# one wind: ${n} flying birds checked, off the air's own wind at their height and place by at most ${worst.toExponential(1)} m/s; ${landing} landing, ${landOff} off the step's wind; birds under 8 m apart differ by a median ${med(near).toFixed(3)} m/s (${near.length} pairs), over 300 m apart ${med(far).toFixed(3)} m/s (${far.length})`);
+  assert.ok(n > 2000, 'too few flying birds');
+  assert.ok(worst < 1e-6, `a bird carried off the air's own wind by ${worst.toExponential(1)} m/s`);   // (read where its step began and, the sim's clock being a step on, U dt downwind in the carried field)
+  assert.equal(landOff, 0, `${landOff} landing birds off the step's one wind`);
+  assert.ok(near.length > 200 && far.length > 60, "too few pairs");
+  assert.ok(med(near) < 0.3 * med(far), `near birds' winds differ by ${med(near).toFixed(3)} m/s, far ones' ${med(far).toFixed(3)}: a per-bird jitter, not one gust field`);
 });

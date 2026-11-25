@@ -141,7 +141,7 @@ it. The bot's re-gate of a PR on main's newer tip measures that merged tree, and
 that moved the key. Each shard's record is its artifact looks-s<N> (7 days), for headings.mjs (--looks).
 
 The first paint's trend (2026-11-25, the hub's ruling (b) on #428): gate.yml's paint job, when the served build changed,
-opens base and head (the plan's hand-off) cold in the gates' headless Chromium, 9 loads an arm, in turn, and times each
+opens base and head (the plan's hand-off) cold in the gates' headless Chromium, 9 loads an arm, in turn (since 2026-11-25, the hub's gate p90: on three runners, paint-loads (N/3), 3 an arm each side by side, and the paint job pools them with --judge, each runner's loads centred on its own median so a faster runner moves both arms alike; on one runner the 18 loads took 231-292 s, the gate's pole in 38% of its runs), and times each
 load's words (the first contentful paint), world (the world's first shown frame) and main (the main thread's own work up
 to it): tools/paint-trend.mjs. It fails when a head median is slower than max(50 ms, 3 x the measured noise, 1.4826 x
 the pooled median absolute deviation). What that catches, measured (4 cores, 7 loads an arm, base against itself): words

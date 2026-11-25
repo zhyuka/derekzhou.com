@@ -116,7 +116,7 @@
     var aoa = (AOA[0] + (AOA[1] - AOA[0]) * (s.flapW || 0) + flare) * DEG, ca = Math.cos(aoa), sa = Math.sin(aoa);
     var bxx = fx * ca + ux * sa, bxy = fy * ca + uy * sa, bxz = fz * ca + uz * sa;
     var bzx = ux * ca - fx * sa, bzy = uy * ca - fy * sa, bzz = uz * ca - fz * sa;
-    var rr = -(b.phi - (b.phi - b.phi0) * QB) * (1 - fu), cr = Math.cos(rr), sr = Math.sin(rr);
+    var rr = -(b.phi - (b.phi - b.phi0) * QB) * (1 - fu) - (b.tum - (b.tum - b.tum0) * QB), cr = Math.cos(rr), sr = Math.sin(rr);
     var byx = lx * cr + bzx * sr, byy = ly * cr + bzy * sr, byz = lz * cr + bzz * sr;
     var bzx2 = bzx * cr - lx * sr, bzy2 = bzy * cr - ly * sr, bzz2 = bzz * cr - lz * sr;
     if (b.st === 'land' && b.P && b.P.landYaw) {   // (the landing: its attitude eased over the flare into the perched one it will stand in, the touch's yaw decided at the last leg's start)

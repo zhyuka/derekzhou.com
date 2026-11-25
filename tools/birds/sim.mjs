@@ -75,7 +75,11 @@ export function makeSim(o = {}) {
   const PROG = { p: {}, u: {}, ok: true }, LIGHT = { fog: [1e-4, 1 / 260, 0, 1.1e-4] }, WORDS = { boxes: Z.boxes, nvb: Z.nvb, kind: 'light' }, FORCED = { on: false };
   const HOST = { gl: glStub, glsl: { HEAD: '', FRAME_U: '', LIB: '', AIR: '' }, program: () => PROG, linked: () => !!o.draw, warm() {}, frameUniforms() {},
     view: (v) => { v.cssW = W; v.cssH = H; v.outW = W; v.outH = H; v.dpr = 1; v.bdpr = 1; v.ddpr = 1; v.tanX = TANX; v.tanY = TANX * H / W; v.sUx = v.sUy = v.hUx = v.hUy = 1; return v; },
-    camera: () => (o.frames ? CD : C), cameraStep: () => C, wind: (v) => { v[0] = o.wind ? o.wind[0] : 0; v[1] = 0; v[2] = o.wind ? o.wind[1] : 0; return v; },
+    camera: () => (o.frames ? CD : C), cameraStep: () => C, wind: (v, y) => { const k = y === undefined ? 1 : Math.log(Math.max(y, 0.003) / 0.003) / Math.log(40 / 0.003); v[0] = o.wind ? o.wind[0] * k : 0; v[1] = 0; v[2] = o.wind ? o.wind[1] * k : 0; return v; },   // (the world's log law about AIR_H.birds, 40 m: z0 as 215's)
+    gust: o.gust === false ? undefined : (x, z, y) => {   // (215's one gust field, in kind: frozen, carried downwind at U, sigma 0.26 U falling over the 1.5 km layer; three octaves, unit variance)
+      const w = o.wind; if (!w) return 0; const U = Math.sqrt(w[0] * w[0] + w[1] * w[1]); if (!(U > 0)) return 0; const fx = w[0] / U, fz = w[1] / U, L = 22 * U, xi = (x * fx + z * fz - U * t) / L, eta = (z * fx - x * fz) / L;
+      const n = (Math.sin(6.28 * xi + 1.3) * Math.cos(6.28 * eta) + 0.5 * Math.sin(12.8 * xi + 4.1) * Math.cos(12.6 * eta + 0.7) + 0.25 * Math.sin(25.9 * xi + 2.2) * Math.cos(25.3 * eta + 1.9)) * 1.8;
+      return 0.26 * U * Math.exp(-1.5 * Math.max(y, 0) / 1500) * n; },
     flight: (v) => { v.ok = true; v.x = C.pos[0]; v.y = C.pos[1]; v.z = C.pos[2]; v.psi = psi; v.view = 0; v.speed = SPEED; v.vy = 0; v.ground = -60; return v; },
     sky: () => o.sky || 'moonlit', pointer: (v) => Object.assign(v, PT), alpha: () => (o.frames ? ALPHA : 1), forced: () => FORCED,
     clicks: (v) => { v.length = 0; while (clicks.length && clicks[0].t <= t) { const k = clicks.shift(); v.push(k.x, k.y); fed++; } return v; },
@@ -111,6 +115,7 @@ export function makeSim(o = {}) {
   const sim = {
     W, H, C, PT, get t() { return t; }, get clicks() { return fed; },   // clicks: how many the sim has fed the page
     get B() { return ctx.__SIM; },
+    host: HOST,
     get feed() { return ctx.WORLD.birds.feed; },   // (the score's read of the birds, 266)
     step() { advance(); if (o.draw) M.draw(); t += SDT; },
     /* (o.frames) one display frame of fdt s, as the page's loop runs it: the fixed steps of SDT it covers, then the
