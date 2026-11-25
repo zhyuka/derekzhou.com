@@ -20,6 +20,7 @@
 # plant: {"file": "src/birds/inkbirds/212-flocks.js", "find": "if (!L || L.st !== 'fly' || F.passage || (F.goal", "with": "if (!L || L.st !== 'fly' || (F.goal", "why": "the night passage sent on passes by the eye (recruit): it circles near the eye for minutes, 5 of 20 flown on (the night passage test, bar 75 %)"}
 # plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "s.haloE = s.spanPx < SPECK_W ? 0 : (W < 600", "with": "s.haloE = (W < 600", "why": "a night speck given its halo again: a skein's specks sum into one glowing streak (at night a speck draws no halo)"}
 # plant: {"file": "src/birds/inkbirds/glsl/vs-paper-2.glsl", "find": "uMode.x > 0.5 || aM.x <= 0.0 ? 0.0", "with": "uMode.x > 0.5 ? 0.0", "why": "the paper shader draws a halo at a 0 e-folding (at night a speck draws no halo)"}
+# plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "      else if (cls !== 'day') return newGoal(F, 'commute', r, cls);", "with": "      else if (false) return newGoal(F, 'commute', r, cls);", "why": "a wheel round a drifting patch of air at dusk and first light: a thermal with no sun-heated ground (no bird wheels in a thermal)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 # (CI lane, 2026-11-24) `# parts: 3`: tools/check.mjs runs this as three checks on a push, CHECK_PART=0/3 .. 2/3, each
