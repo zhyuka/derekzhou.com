@@ -760,10 +760,12 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
 // STILL_WORDS); the path the plan keeps is walked again here, apart from venusFails: nothing of it on a box (grown by
 // the keep and its glow); a window all words has no Venus
 const VPLAN = cut(WORLD, '  var MRD = Math.PI', '  function mrSamples(') + cut(WORLD, '  var STAR_LIM =', "  /* (the hub's round-3 review of #301) planned");
+let VENUS_FACTORY = null;   // (compiled once: each call still builds its own world, its state fresh)
 function venusWorld(seed, keyAz, landing) {
-  return vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
+  if (!VENUS_FACTORY) VENUS_FACTORY = vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
     '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n  function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }\n' + STREAMS + VEC + cut(WORLD, '  function airSunEl(id)', '\n', true).replace(/function airSunEl\(id\)/, 'function airSunEl0(id)') + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + VPLAN +
-    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})')(seed, keyAz, landing);
+    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})');
+  return VENUS_FACTORY(seed, keyAz, landing);
 }
 test('night: the evening star\'s plan on the lo still\'s window keeps its whole path down off the words; a window all words has none', () => {
   const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), boxes = SW['lo-393x861'];
