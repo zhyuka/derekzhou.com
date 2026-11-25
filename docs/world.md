@@ -1207,6 +1207,36 @@ By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
 place; reduced motion draws none, as before. test/unit/air.mjs holds dust
 at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
 
+## THE SALTATION LAYER (measured, not drawn)
+
+The question (2026-11-25): on a windy visit, can a visitor see blowing
+sand? The veils don't read. On opening 8 (U10 7.31, AIR's dust 1, laptop
+@2), switching them off changes no pixel at the landing and 8 at one
+level at a cruise pose 14 m up.
+
+A saltation layer sized by the physics was built and measured (#459,
+closed). Grains in hops are densest within about 10 cm of the bed and
+thin over decimetres; in gusts they gather into streamers
+(https://arxiv.org/pdf/1201.4353; https://doi.org/10.1029/2004JF000270).
+It was modelled as a column of optical depth 0.05, seen through 1/g of it
+at the grazing cosine g, that lifts the sand toward its lit colour.
+Opening 8 against main:
+
+| frames | pixels changed | most lift |
+|---|---|---|
+| laptop @2, cruise | 30,872 | 1.2 levels |
+| laptop @2, landing | 8,649 | 1.0 |
+| phone @3, cruise | 18,666 | 1.2 |
+| phone @3, landing | 14,866 | 1.0 |
+
+It is invisible at true size and at 2x. That is the physics' honest
+answer: saltation at U10 up to 7.5 m/s, seen from 14 m at 60 m and
+beyond, doesn't read. The hub's ruling (08:38Z): not drawn. It would cost
+shader work on every sand pixel for nothing a visitor sees. Scattering
+forward into a low sun, or a layer past its physical size, would be a
+look, not physics. The branch claude/land-saltation and the crops
+(claude/review-459-crops) keep the work.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
