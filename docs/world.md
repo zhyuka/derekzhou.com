@@ -75,6 +75,17 @@ Left alone the view holds its heading and flies
 straight and level but for the ground's rise; what stands ahead and
 cannot be climbed is passed by a slip sideways, planned from first sight
 (the owner: "should keep flying same-ish direction unless user drags").
+Where the low wind blows up the ground under the way, the camera rides
+the ridge's lift 2-15 m over its clearance and settles back in the lee
+(270's liftStep, delight-life 9): three first-order stages, all slow, so
+the rise holds nothing past 0.1 Hz (24 dB down there; the 0.2-0.4 Hz
+sway that sickens most, 39-57 dB), added over the height's spring, never through it; the
+heading, the pitch and the roll are untouched (test/unit/flight-sim.mjs).
+A form too wide for the usual look (500 m or more across, out to 4 km)
+stretches the slip's plan to its far side, sampled as often as the usual
+plan: left alone, the flight passes forms up to 1.6 km wide met 3.2 km off
+at a crab of 14 deg or less, with no push (283's slipGather; the
+destination on the horizon, delight-visit 5.3).
 A drag anywhere (touch, pen, or a mouse with its main button held; it
 starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
@@ -248,11 +259,15 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
-The air's extinction (physics: night/extinction) is taken from a planet's
-true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand
-far over the light's ceiling, so even 2.7 magnitudes at 2 deg up leave each
-drawn at its head, the brightest points in the sky (their tops over the
-stars'); what the low air shows is their colour, a little redder (extTint).
+The planets at their true scale (the hub's ruling, 2026-11-25): a planet's
+light on the stars' own energy scale (sky-body's planetE: a -1.46 star's,
+Sirius, times 10^(-0.4 (m + 1.46)), Venus -4.4 about 15x, the outer planet
+-2.4 about 2.4x), the air's k (X - 1) taken from it (physics:
+night/extinction: 21% kept at 4 deg up). It is drawn as a steady core at its
+head, as wide as that light asks, sigma 0.85-1.4 px (a point, never a disc);
+the true light fills sigma 1.4 at the head on every sky, so both planets are
+the brightest points in their sky at every height, held under the light's
+ceiling. The low air shows their colour, a little redder (extTint).
 The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
 a steady band low over the horizon on the night skies, brightest about 6 deg
 up and falling away overhead, behind the haze; it comes in by the stars' own
@@ -297,7 +312,23 @@ little at kept luminance. The field's magnitudes stand as seen overhead, so only
 the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
 sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
-test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own. The Milky Way's band takes no
+extinction factor: its brightness is the look as seen through the air, tuned by
+eye as it stands low in the frame, so an airmass factor would count the air twice
+(the hub's ruling, 2026-11-25, closing #490).
+
+Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
+scattered into the sky at each direction by the published moonlight model
+(https://doi.org/10.1086/132921, its equations as specsim/atmosphere.py writes
+them: the moon's magnitude by its phase, molecular and aerosol scattering by the angle
+from it, the air toward it and along the line of sight), over the dark sky (V
+21.8 mag/arcsec^2 at the zenith, brightening toward the horizon); the faintest
+star seen falls by 0.3834 of each magnitude the sky brightens
+(https://arxiv.org/abs/1405.4209, eq. 54), by the moon's amount, so a moonless
+night keeps its limit exactly. Under the near-full moon the limit falls about
+1.6 mag beside it and 1 mag a quarter of the sky away: about 0.40 of the field
+shows 5 deg from the moon, 0.58 at 90 deg (test/unit/sky.mjs). Only ever a loss;
+the sky itself is untouched.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -703,6 +734,21 @@ physics: clouds/drift). It holds:
   Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
   night turn. Adding one would mean the clouds and those birds reading a
   wind that depends on the sky, and a cited source for the turn by night.
+- No billows on the cloud sea's top (measured, 2026-11-25): a shear
+  layer rolls into billows only where Ri, the ratio of the air's
+  stability to its shear, N^2 / (dU/dz)^2, is under 1/4. Over the sea's
+  top the air gives too little shear for it. From the sea's own wind
+  (AIR_H.sea, 100 m) to the low layer's (300 m), the wind changes by
+  1.35 m/s at U10 3 and by 3.37 m/s at U10 7.5 (its 1.3 U10, veered 20
+  deg). With the weather's N of 0.01/s, Ri is 2.2 at U10 3 and 0.35 at
+  U10 7.5, never under 1/4. The 100-200 m and 200-300 m halves give the
+  same, 50-150 m gives 1.4 or more, and the change up to 1500 m is no
+  larger. Billows would need the sea's top to be a thin capping
+  inversion that carries that whole change, and whether they formed
+  would then turn on the inversion's temperature jump and thickness, two
+  numbers the world does not have (with a 5 K jump, a layer under about
+  17 m; with 8 K over 20 m, none on any visit). So the sea keeps its two
+  long low waves (physics: clouds/sea) and no rolls.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
@@ -1112,15 +1158,25 @@ per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
   so a cloud 3 km up at 30 km is seen through 17% less gas, the cirrus at
   7 km through a third less). At 20 km level it takes half the blue and a
   tenth of the red: far ridges turn blue on their own.
-- the aerosol, grey: the sky's own height fog and even distance term
-  (uFog, each realm's tuned look, now the aerosol in clean air), times
-  uAer.x, the visit's own by AIR's weather: the visual range's inverse
-  (extinction 3.912 over the range, https://glossary.ametsoc.org/wiki/Visibility;
-  AIR's 10 km in clean air is 1, 4 km in blown sand 2.5) times the
-  particles' growth with humidity, ((1 - RH) / (1 - 0.3))^-0.3
-  (https://doi.org/10.1016/S0065-2687(08)60142-9), RH 0.3 to 0.9 by the
-  visit's moisture (1.8 on the moistest). Neither changes with the sky, so
-  the far land never fades in place.
+- the aerosol: its amount the look's, its colour physics'. The amount is
+  the realm's tuned haze (uFog, the look the owner has seen: about 10-15
+  km of visual range at the eye on the day opening), times uAer.x, the
+  visit's own by AIR's weather: the look's baseline over the visit's vis
+  (AIR's 10 km is that baseline, not clean air's range: clean desert air
+  runs 100-250 km, https://vista.cira.colostate.edu/Improve/, so physics
+  would make it clearer, never hazier; 4 km in blown sand is 2.5 times
+  it), times the particles' growth with humidity, ((1 - RH) / (1 -
+  0.3))^-0.3 (https://doi.org/10.1016/S0065-2687(08)60142-9), RH 0.3 to
+  0.9 by the visit's moisture (1.8 on the moistest). By wavelength (the
+  particles' scattering) it goes as (lambda / 550 nm)^-alpha, green's
+  extinction the amount's, with the wavelength exponent alpha 1.3 for
+  dry fine aerosol, falling to 0.3 in blown dust and with the growth
+  (https://doi.org/10.1029/1999JD900923: continental 1.2-1.5, desert
+  dust 0-0.5). So a dry air's haze takes more blue than red, and a moist
+  or dusty one is even. It only adds the sky's light: each channel takes
+  the brighter of the coloured air and the grey air of the same amount,
+  so nothing goes darker than the grey air left it. Neither changes with
+  the sky, so the far land never fades in place.
 
 Linf, what a path long enough gives back, is the sky's own colour toward
 the horizon (fogCol, the sky drawn there), so far ridges dissolve into the
@@ -1247,6 +1303,87 @@ shader work on every sand pixel for nothing a visitor sees. Scattering
 forward into a low sun, or a layer past its physical size, would be a
 look, not physics. The branch claude/land-saltation and the crops
 (claude/review-459-crops) keep the work.
+
+## THE LAND'S LEVEL OF DETAIL (no pop at a handoff)
+
+The land is 10 rings of 96 cells, 0.35 m doubling. Each vertex morphs
+toward the next ring's lattice over 37 to 45.5 cells from the camera
+(VS_TERRAIN, VS_TERRAIN_SPLIT, hp-gridw). Measured in cruise
+(tools/physics/lod-pop.mjs: the clipmap replayed in doubles over the
+dunes, 2 flights of 60 s at 12 m/s, 1500 fixed points 50-600 m ahead,
+laptop size 2880 x 1800), the rule before (each odd vertex to c - 1) did
+pop. Every step over 0.5 px came where a point passed from one ring to
+the next, up to 10.9 px of edge motion and 75 shading levels: 117 and 94
+steps over 0.5 px in the two minutes. Fully morphed, that rule laid the fine ring on
+one diagonal in every coarse cell, but the coarse ring alternates its
+diagonals, so half the cells changed shape at the handoff. Morph off
+was worse (up to 12 px).
+
+Now an odd vertex goes toward its coarse lattice's multiple of 4 cells
+(c + (c mod 2)((c mod 4) - 2)). Fully morphed, the fine ring is the
+coarse ring's own triangles, diagonals and all; an exhaustive search of
+the rules over a 4-cell period found this one depends on the vertex's
+own coordinate alone. The same two flights: 1665 handoffs, 0.00 px and
+0.00 levels at every one. The worst step anywhere is 0.19 px, a
+vertex's continuous slide inside its band. The vertex normals still
+turn fast where a sliding vertex crosses a slip face's brink (up to 13
+levels in a frame, 53 steps over 2 in 2.3 million). That is the morph's
+own motion, not a ring change, and the fragment rebuilds the main
+dunes' slope at its own phase there (s1Slope). test/unit/clipmap.mjs
+flies both paths for 4 s: no handoff over 0.5 px or 2 levels; the c - 1
+rule must pop, and the plant (morph off) fails it.
+
+The brinks, shaded as FS_TERRAIN shades them (lod-pop.mjs --brink: 800
+fixed points within 2 m of a brink, the fragment's rebuild replayed line
+for line, the same 2 flights at laptop and phone size), did shimmer.
+The footprint cp, which sets the brink's rounding and B, divided by the
+grazing term |n.rd| of the vertices' interpolated normal. A morphing
+vertex's normal drifts about 0.004 a frame across a brink, so where the
+view grazes (|n.rd| near 0.03) the rounding swelled 15% a frame, and a
+point inside it stepped 8-11 levels. Before: 0.016-0.157% of brink steps
+over 2 levels, up to 7.8 levels; 1.7-5.4% of the worst point's frames;
+94 of 800 points over 0.1% of their frames (laptop, flight 1). Now cp
+reads the fragment's own slope at the vertices' rounding (one more
+s1Slope a land fragment): 1 step over 2 levels in 1.44 million (4.0
+levels), and no point over 0.1% of its frames on either size.
+test/unit/clipmap.mjs flies 5 s at both sizes; the plant (cp from the
+vertices' normal) fails it.
+
+The near dunes' crests (the 64 m family) shimmered the same way, and
+nothing in the fragment rebuilds them. Their profile (duneWave) kept a
+kink in slope at the crest (1/0.7 a cycle on the stoss, 0 on the lee),
+so a vertex morphing across one turned its normal by the whole jump in
+a frame. Measured with lod-pop.mjs --near (800 fixed points within 1 m
+of a crest, the same 2 flights at both sizes): 0.023-0.115% of steps
+over 2 levels, up to 12.2 levels, at 470-630 m (level 5, 11 m cells),
+with 10-202 of 800 points over 0.1% of their frames. Now the crest is a
+cubic over 2 m that matches both sides' height and slope (the main
+dunes' brink is rounded over 2 m too). The crest stands at most 1.4 cm
+lower. A vertex morphs about 0.024 m a frame, so the turn spreads over
+the frames it takes to cross: 0 steps over 2 levels, at most 0.66
+levels, and no point over the bound at either size.
+test/unit/clipmap.mjs flies both sizes; the plant (the kink sharp again)
+fails it.
+
+With the three in (#467, #470, #472), the whole land, swept
+(lod-pop.mjs --all: 1500 fixed points anywhere in the corridor, the
+fragment replay, the same 2 flights x 60 s at both sizes): 3.70 million
+steps, 5 over 2 levels (0.00014%), the worst 2.37. All 5 are one point,
+the toe of a main dune 600 m out at the range's far edge, drifting a
+steady 2.35-2.37 levels a frame for 5 frames: a smooth turn, not a pop.
+Phone: none over 2 (worst 1.92). Nothing else on the land turns more than
+2 levels in a frame.
+
+The land's far edge holds too. The outermost ring (179 m cells) ends
+8.2-8.9 km out (to 12.6 km on the diagonals) and moves in 358 m steps,
+so a strip of far land appears or goes at each. lod-pop.mjs --edge
+reads the horizon's land line in 48 columns over the drawn mesh, at the
+frames either side of every step, on the same 2 flights at both sizes.
+At 8 steps, 6 of 384 columns moved over 0.5 px, the worst 2.0 px at 9.8
+km (laptop) and 0.86 px at 10.7 km (phone). The camera's own steady
+motion moves the line up to 1.0 px a frame. At 8-11 km the haze leaves
+the land line 1-3 codes off the sky (2-8% of the contrast in green), so
+no step shows. Left as it is.
 
 ## THE LARGE WORLD
 

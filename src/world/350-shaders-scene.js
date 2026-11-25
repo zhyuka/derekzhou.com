@@ -32,7 +32,7 @@ void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
   float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
-  w = (c - mod(aG, 2.0) * m) * uLev.z;
+  w = (c + mod(c, 2.0) * (mod(c, 4.0) - 2.0) * m) * uLev.z;
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
@@ -97,7 +97,7 @@ void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
   float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
-  w = (c - mod(aG, 2.0) * m) * uLev.z;
+  w = (c + mod(c, 2.0) * (mod(c, 4.0) - 2.0) * m) * uLev.z;
   ivec2 q = ivec2(aG) + ivec2(0, uLvl * 97);
   vec4 k0 = texelFetch(uHP0, q, 0), k1 = texelFetch(uHP1, q, 0), s = texelFetch(uHP3, q, 0), r = texelFetch(uHP4, q, 0);
   vec3 hd = (s.xyz + r.xyz) - k1.xyz;
@@ -117,8 +117,9 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
   var S1_FS = `
   if (vS1.w > 0.01) {
     vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
-    vec2 rh = normalize(rd.xz + vec2(1e-6, 0.0));
-    float cp = fp * length(vec2(dot(g, rh) / max(abs(dot(n, rd)), 0.02), dot(g, vec2(-rh.y, rh.x))));
+    vec2 rh = normalize(rd.xz + vec2(1e-6, 0.0)), s0 = s1Slope(fract(vS1.x), g, H, fl, s1Rb(H, k, fl), max(0.15 * H, 0.05), vS1d);
+    vec3 nc = normalize(vN - vec3(s0.x - vS1g.y, 0.0, s0.y - vS1g.z));   // (the footprint's grazing term from the fragment's own slope: the vertices' drifts as they morph, lod-pop.mjs --brink)
+    float cp = fp * length(vec2(dot(g, rh) / max(abs(dot(nc, rd)), 0.02), dot(g, vec2(-rh.y, rh.x))));
     float B = 1.0 - smoothstep(0.25, 0.5, cp);
     if (B > 0.0) {
       float wpx = 1.5 * cp / k, sB = H * k * (0.5 / L + 1.0 / fl);   // (1.5 px in metres along the wind; the slopes' sum either side)

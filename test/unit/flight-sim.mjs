@@ -12,6 +12,10 @@
 // plant: {"file": "src/world/280-ground-what-stands-ahead.js", "find": "q.x = o.x + off[0]; q.z = o.z + off[1];", "with": "q.x = o.x; q.z = o.z;", "why": "an air cell's obstacles where its cell laid them out, not where the air carried them"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "    for (var p = 0, m = 1; p < 3 && m; p++) for (m = 0, i = 0; i < O.length; i++) if (hardFloor(O[i])) m = ++SIM.fixO;", "with": "", "why": "no floor passes: wedged between two solids, the second push moves the camera back inside the first's HARD_IN"}
 // plant: {"file": "src/world/270-flight.js", "find": "    if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;", "with": "    if (CS.auto > 0) { CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto; CS.yawV += 0.02 * dt * CS.auto; }", "why": "left alone the flight steers itself: the autopilot H1 took out, back"}
+// plant: {"file": "src/world/270-flight.js", "find": "var RIDGE_T = [6, 3.5, 2]", "with": "var RIDGE_T = [0.6, 0.35, 0.2]", "why": "the ridge's lift followed in under a second: its motion reaches 0.2-0.4 Hz"}
+// plant: {"file": "src/world/270-flight.js", "find": "s += w[0] * (groundAt", "with": "s -= w[0] * (groundAt", "why": "the lift read half from the lee: it rides where the air sinks"}
+// plant: {"file": "src/world/270-flight.js", "find": "CS.y -= CS.lift; liftStep", "with": "liftStep", "why": "the lift added again every step, never taken off: the camera climbs away"}
+// plant: {"file": "src/world/283-slip-plan.js", "find": "SLIP_WIDE = 250,", "with": "SLIP_WIDE = 1e9,", "why": "the look never stretched for a wide form: a 1.6 km mesa meets the hard rule 1,800 times"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 import { loadGround } from '../ground.mjs';
 
@@ -33,18 +37,18 @@ import { loadGround } from '../ground.mjs';
 const G = loadGround(11);
 const HARD_IN = +/var HARD_IN = ([\d.]+);/.exec(WORLD)[1];
 const FLIGHT = cut(WORLD, '  /* ---------------------------------------------------------------- the flight */', '  /* ---------------------------------------------------------------- the places, the look ahead */');
-const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
+const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* the page\'s touch: one finger steers');
 const CRUISE = cut(WORLD, '  var CW_S = [', '\n  function flightParams') + '\n' + cut(WORLD, '  function flightParams(V, cw) {', '\n  }\n', true);
 // (physics: clouds/drift) the clouds' cores ride in air cells: the world's own cellOff carries them by the low layer's
 // wind (airW: the test's), with no lift (the band's lift is band.mjs's); the landmarks stand in world cells
 const CELLOFF = cut(WORLD, '  function cellOff(', '\n  }\n', true);
-const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n' +
+const MAKE_SRC = ('(function (G, OBST, AW) {\n  \'use strict\';\n' +
   '  function airW() { return AW; }\n  function cellLift() { return 0; }\n' + CELLOFF + '\n' +
   '  var PI = Math.PI, DEG = PI / 180, DEVMODE = false, POSE = null, NOAUTO = false, shown = true, STILLMODE = false, SEEDR = 1, J = { seed: 1 }, VSTAGES = [], BIRDS = null, DTMAX = 0.1, SW = {};\n' +
-  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
+  '  var OUT = { cssW: 1000 }, MOTION = { on: false }; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
-  '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
+  '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n' +
   '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function fogTopAt() { return -Infinity; }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function airHeading0() { return 0.7; }\n' +
   '  function planVisit() {}\n  function kwFollow() {}\n  function kwUpload() {}\n  function groundCache() {}\n  function climateLight() {}\n  function directorStep() {}\n  function beamWake() {}\n  function envSolids() {}\n  function pitchLook() {}\n  function devTrace() {}\n' +
   '  var V = { k: 0, st: 0, speed: 12, clear: [7, 14, 45], def: { clear: [7, 14, 45], cruise: [14, 32], margin: 12, marginB: 26 }, margin: 12, cellList: OBST };\n' +
@@ -53,6 +57,7 @@ const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n
   '\n  return { SIM: SIM, CS: CS, INP: INP, cellOff: cellOff, pushOut: function () { pushOut(V); }, ceil: function () { return groundAt(V, CS.x, CS.z) + V.clear[2] + CEIL_OVER; }, ds: PUSH_V * SIM_DT,\n' +
   '    drag: function (dx, dy, up) { INP.down = !up; INP.rel = !!up; INP.dx += dx; INP.dy += dy; px += dx; py += dy; if (typeof relAdd === "function") { if (!pd) REL.n = 0; relAdd(px, py, SIM.t * 1000); } pd = !up; },\n' +   // (onMove's and onUp's samples, where the release reads them)
   '    step: function () { CLK[1] = SIM.t * 1000 + 0.4; if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
+const MAKE = vm.runInThisContext(MAKE_SRC);
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const AWS = [[4.2, -2.1], [-6.3, 5.0], [0.8, 8.9], [-5.5, -3.9], [7.4, 1.2]];   // (the low layer's wind a seed, m/s: 4.7-8.9)
 // (#288 follow-up) where the world puts a cloud's core: 231 lifts every body whole until its lowest lobe's billows
@@ -218,5 +223,93 @@ test('flight-sim: left alone the flight never turns itself, and its height cross
       const m = Math.max(...j.slice(i0, i1).map(Math.abs));
       assert.ok(m <= VYJ + 1e-6, `seed ${seed}: ${name}, the height's acceleration changed at ${m.toFixed(3)} m/s3 (want ${VYJ} at most)`);
     }
+  }
+});
+
+// ------------------------------------------------------------------ ridge lift (delight-life 9)
+// The flight flown left alone over seed 11's recorded ground, no solids, in each of the five winds (4.7-8.9 m/s) on
+// six headings for 240 s, twice: as it ships, and its twin with the lift taken out (RIDGE_M 0). The ways are the same
+// step for step, so the difference of the two heights is the lift's own motion. Over the ground where the wind blows
+// up the slope (w . grad h, measured here from the ground itself) the camera rides 2-15 m higher, and in the lee it
+// settles back to the twin's height; the lift's motion holds nothing past 0.1 Hz (its spectrum, under a raised-cosine window:
+// under 0.5% of its power past 0.1 Hz and no line over 1 cm at 0.2-0.4 Hz, where swaying sickens most); the heading,
+// the pitch and the roll are the twin's to the bit; and no rule ever pushes the camera: the ground's floor, the
+// solids', the ceiling's.
+const LIFT_S0 = +/RIDGE_S = \[([\d.]+),/.exec(WORLD)[1];
+const MAKE0 = vm.runInThisContext(MAKE_SRC.replace('RIDGE_M = [2, 15]', 'RIDGE_M = [0, 0]'));
+function liftFlights(fn) {
+  for (let a = 0; a < AWS.length; a++) for (let h = 0; h < 6; h++) {
+    const AW = AWS[a], F = MAKE(G, [], AW), F0 = MAKE0(G, [], AW), R = { a, h, dy: [], up: [], same: true, fix: 0 };
+    for (const f of [F, F0]) { f.step(); f.CS.psi = f.CS.yawV = h * Math.PI / 3 + 0.3; f.CS.fpsi = NaN; }
+    for (let k = 0; k < 240 * 60; k++) {
+      F.step(); F0.step();
+      const C = F.CS, C0 = F0.CS;
+      if (!['x', 'z', 'psi', 'yawV', 'pf', 'roll'].every((q) => Object.is(C[q], C0[q]))) R.same = false;
+      const d = 20, g = (x, z) => G.groundAt(x, z);
+      R.dy.push(C.y - C0.y); R.up.push((AW[0] * (g(C.x + d, C.z) - g(C.x - d, C.z)) + AW[1] * (g(C.x, C.z + d) - g(C.x, C.z - d))) / (2 * d));
+    }
+    R.fix = F.SIM.fixG + F.SIM.fixO + F.SIM.fixC;
+    fn(R);
+  }
+}
+function powerPast(x, hz, f0, f1) {   // the share of x's power (mean taken out, raised-cosine window) past f0 Hz, and its largest line's amplitude in [f0, f1)
+  const n = x.length, m = x.reduce((s, v) => s + v, 0) / n, w = x.map((v, i) => (v - m) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1))));
+  let tot = 0, past = 0, line = 0;
+  for (let k = 1; k < n / 2; k++) {
+    let re = 0, im = 0; const om = 2 * Math.PI * k / n;
+    for (let i = 0; i < n; i++) { re += w[i] * Math.cos(om * i); im -= w[i] * Math.sin(om * i); }
+    const p = re * re + im * im, f = k * hz / n; tot += p; if (f > f0) past += p;
+    if (f >= f1[0] && f < f1[1]) line = Math.max(line, 4 * Math.sqrt(p) / n);   // (a sine's amplitude under the raised-cosine window: 2|X|/(n/2))
+  }
+  return { share: tot ? past / tot : 0, line };
+}
+test('ridge lift: over windward slopes the camera rides 2-15 m higher, settles in the lee, nothing past 0.1 Hz, heading, pitch and roll untouched, no rule pushes', () => {
+  let rode = 0, wind = 0, lee = 0, worst = { share: 0, line: 0 };
+  liftFlights((R) => {
+    const tag = `wind ${R.a}, heading ${R.h}`, dy = R.dy;
+    assert.ok(R.same, `${tag}: the way, heading, pitch or roll differ from the twin without the lift`);
+    assert.equal(R.fix, 0, `${tag}: a rule pushed the camera ${R.fix} times (the ground's floor, the solids', the ceiling's)`);
+    const lo = Math.min(...dy), hi = Math.max(...dy);
+    assert.ok(lo > -0.05 && hi <= 15.05, `${tag}: the lift's rise ran ${lo.toFixed(2)} to ${hi.toFixed(2)} m (want 0 to 15: never under the clearance)`);
+    if (hi >= 2) rode++;
+    // windward: the wind blows up the ground under the camera all of 20 s (w . grad h over RIDGE_S[0], 0.3 m/s, throughout): risen
+    // 2 m by then; the lee: no windward ground under it for 40 s (w . grad h under 0 throughout): within 0.5 m of the
+    // twin by its end
+    const all = (i, n, f) => { for (let j = i; j < i + n; j++) if (!f(R.up[j])) return false; return true; };
+    for (let i = 0; i + 40 * 60 < dy.length; i += 60) {
+      if (all(i, 20 * 60, (u) => u > LIFT_S0)) { wind++; assert.ok(dy[i + 20 * 60] >= 2, `${tag}: 20 s up a windward slope from ${(i / 60).toFixed(0)} s, risen only ${dy[i + 20 * 60].toFixed(2)} m`); }
+      if (all(i, 40 * 60, (u) => u < 0)) { lee++; assert.ok(dy[i + 40 * 60] < 0.5, `${tag}: 40 s in the lee from ${(i / 60).toFixed(0)} s, still ${dy[i + 40 * 60].toFixed(2)} m up`); }
+    }
+    const ds = dy.filter((_, i) => i % 6 === 0), sp = powerPast(ds, 10, 0.1, [0.2, 0.4]);
+    if (hi > 0.5) { assert.ok(sp.share < 0.005 && sp.line < 0.01, `${tag}: ${(sp.share * 100).toFixed(2)}% of the lift's power past 0.1 Hz, its largest line at 0.2-0.4 Hz ${(sp.line * 100).toFixed(2)} cm (want under 0.5% and 1 cm)`); }
+    if (sp.share > worst.share) worst.share = sp.share; if (sp.line > worst.line) worst.line = sp.line;
+    if (process.env.LIFT_LOG) console.log(tag, lo.toFixed(2), hi.toFixed(2), (sp.share * 100).toFixed(3) + '%', (sp.line * 1000).toFixed(2) + 'mm');
+  });
+  if (process.env.LIFT_LOG) console.log({ rode, wind, lee, worst });
+  assert.ok(rode >= 10 && wind >= 10 && lee >= 10, `the camera rode 2 m or more on ${rode} of 30 flights; ${wind} windward stretches and ${lee} lee ones met (want 10 of each at least)`);
+});
+
+// ------------------------------------------------------------------ a wide form on the way (the destination row's risk)
+// (delight-visit 5.3: a colossal form per land on the landing heading; "the slip cannot pass a 400 m-wide mesa met after
+// a drag") A landmark R m in radius, 300 m tall (never climbed: over the ceiling), dead ahead and D m off its face, the
+// flight left alone: it is passed beside by the slip with no push of any rule, about SLIP_IN clear of its face, for
+// every width the world may stand on the way out to where the cells hold their solids (3.8 km): R 50-800 m from 3.2 km,
+// and the narrower ones from 800 m. (Main: R 500 needed 1.2 km and R 800 met the hard rule 1,800+ times from any range:
+// the plan looked 1.2 km ahead and reached at most 405 m across.)
+function mesaAhead(R, D) {
+  const o = { c: true, x: 1e6, z: 1e6, r: R, y0: 0, y1: 0 }, L = [{ st: 2, obst: [o], bound: [1e6, 0, 1e6, R + 100], softB: null }];
+  const F = MAKE(G, L, [0, 0]); F.step(); const C = F.CS, p0 = [F.SIM.fixG, F.SIM.fixO, F.SIM.fixC];
+  o.x = C.x + Math.sin(C.psi) * (D + R); o.z = C.z + Math.cos(C.psi) * (D + R); L[0].bound[0] = o.x; L[0].bound[2] = o.z;
+  const g = G.groundAt(o.x, o.z); o.y0 = g - 5; o.y1 = g + 300;
+  let near = 1e9, sv = 0;
+  for (let k = 0; k < Math.ceil((D + 2 * R + 400) / 12 * 60); k++) { F.step(); near = Math.min(near, face(L, C.x, C.y, C.z)); sv = Math.max(sv, Math.abs(C.sv)); }
+  return { pushes: F.SIM.fixG + F.SIM.fixO + F.SIM.fixC - p0[0] - p0[1] - p0[2], near, sv };
+}
+test('flight-sim: a form up to 1.6 km wide on the way is passed beside, left alone, with no push', () => {
+  const SLIP_IN = +/SLIP_IN = ([\d.]+)/.exec(WORLD)[1];
+  for (const [R, D] of [[50, 800], [200, 800], [300, 800], [300, 3200], [500, 3200], [650, 3200], [800, 3200]]) {
+    const r = mesaAhead(R, D);
+    if (process.env.MESA_LOG) console.log(R, D, r);
+    assert.ok(r.pushes === 0 && r.near >= 0.9 * SLIP_IN, `a form ${2 * R} m wide met ${D} m off: ${r.pushes} pushes, its face ${r.near.toFixed(1)} m off at the nearest (want none, and 0.9 of SLIP_IN ${SLIP_IN} m at least: the plan aims at SLIP_IN)`);
   }
 });

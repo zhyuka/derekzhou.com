@@ -68,3 +68,26 @@ test('check-shards: every plant a change selects runs on exactly one shard, deal
 });
 // plant: {"file": "tools/check.mjs", "find": "if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);", "with": "if (SH) todo = todo.filter((p, i) => i % SH[1] === 0);", "why": "every shard runs the same share of the plants: some twice, the rest never"}
 // plant: {"file": "tools/check.mjs", "find": "if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);", "with": "if (SH) todo = todo.filter((p) => inShard(p.check) || (SH[0] === 0 && !rest.some((c) => c.slug === p.check)));", "why": "the plants back on their check's shard: one shard runs a test file's 31 plants alone"}
+
+// plant: {"file": "tools/check.mjs", "find": "sort((a, b) => ties(b) - ties(a) || of(b) - of(a)", "with": "sort((a, b) => of(b) - of(a)", "why": "placed by cost alone: the ground sweeps take the shards free of birds before 24-unit's parts, and a part falls back beside 35-birds"}
+// plant: {"file": "tools/check.mjs", "find": "if (!on[j].some((d) => clash(c, d)) && (k < 0 || load[j] < load[k])) k = j;", "with": "if (k < 0 || load[j] < load[k]) k = j;", "why": "the apart header ignored: 24-unit's parts beside 35-birds' 20 processes again (119 s, not 22)"}
+test('check-shards: a check marked `# apart:` shares no shard with the checks it names, either way round, and a parted check\'s parts none with each other (24-unit, 35-birds, 13-rules-data)', () => {
+  const dir = path.join(ROOT, 'tools/checks'), apart = {};
+  for (const f of fs.readdirSync(dir).filter((x) => /^\d\d-[\w-]+\.sh$/.test(x))) {
+    const m = fs.readFileSync(path.join(dir, f), 'utf8').match(/^# apart: ([\w -]+?)\s*(?:\(|$)/m);
+    if (m) apart[f.replace(/\.sh$/, '')] = m[1].split(/\s+/).filter(Boolean);
+  }
+  assert.ok(apart['24-unit'] && apart['24-unit'].includes('35-birds'), '24-unit keeps apart from 35-birds');
+  assert.ok(apart['13-rules-data'] && apart['13-rules-data'].includes('35-birds'), '13-rules-data (it times a hook) keeps apart from 35-birds');
+  const r = spawnSync(process.execPath, [CHECK, '--shards', '5'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const base = (s) => s.replace(/#\d+$/, '');
+  for (const line of r.stdout.split('\n').filter(Boolean)) {
+    const raw = line.replace(/^shard \d+\/\d+\s+\d+ s\s+/, '').split(/\s+/), on = raw.map(base);
+    for (const p of raw.filter((x) => /#\d+$/.test(x))) assert.equal(on.filter((x) => x === base(p)).length, 1, `two parts of ${base(p)} share a shard: ${line}`);   // (a parted check's parts: one a shard)
+    for (const [c, names] of Object.entries(apart)) if (on.includes(c)) for (const d of names) {
+      if (d === c) assert.ok(on.filter((x) => x === c).length < 2, `two parts of ${c} share a shard: ${line}`);   // (a check naming itself: its parts apart)
+      else assert.ok(!on.includes(d), `${c} shares a shard with ${d}: ${line}`);
+    }
+  }
+});

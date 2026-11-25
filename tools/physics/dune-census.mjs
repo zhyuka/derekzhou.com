@@ -60,11 +60,18 @@ const M1 = [0.8 / 330, 0.6 / 330, -0.6 / 330, 0.8 / 330];
 let Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];   // (mat2(w.x/420, pp.x/190, w.y/420, pp.y/190), column-major)
 
 // today's duneWave: an asymmetric wave with its phase warped in 2D
-function waveOld(x, y, ww, lam, c, warp) {
+export let ROUND_NEAR = true;   // (tools/physics/lod-pop.mjs --near: false replays the crest unrounded, as before)
+export function setRoundNear(v) { ROUND_NEAR = v; }
+function waveOld(x, y, ww, lam, c, warp, round = false) {   // (round: the crest's kink rounded over 2 m, as dunes-glsl's duneWave: the near family)
   const ph = [(x * ww[0] + y * ww[1]) / lam + warp[0], ww[0] / lam + warp[1], ww[1] / lam + warp[2]];
-  const f = ph[0] - Math.floor(ph[0]); let s, ds;
-  if (f < c) { const t = f / c; s = t * t * (2 - t); ds = (4 * t - 3 * t * t) / c; } else { const t = (f - c) / (1 - c); s = 1 - t * t * (3 - 2 * t); ds = -6 * t * (1 - t) / (1 - c); }
-  return { h: [s, ph[1] * ds, ph[2] * ds], lee: ds < 0 };
+  const f = ph[0] - Math.floor(ph[0]), r = 1 / lam; let s, ds;
+  if (round && Math.abs(f - c) < r) {
+    const xa = 1 - r / c, yb = r / (1 - c), sa = xa * xa * (2 - xa), da = (4 * xa - 3 * xa * xa) / c, sb = 1 - yb * yb * (3 - 2 * yb), db = -6 * yb * (1 - yb) / (1 - c);
+    const h = 2 * r, u = (f - c + r) / h, u2 = u * u, u3 = u2 * u;
+    s = (2 * u3 - 3 * u2 + 1) * sa + (u3 - 2 * u2 + u) * h * da + (3 * u2 - 2 * u3) * sb + (u3 - u2) * h * db;
+    ds = ((6 * u2 - 6 * u) * (sa - sb) + (3 * u2 - 4 * u + 1) * h * da + (3 * u2 - 2 * u) * h * db) / h;
+  } else if (f < c) { const t = f / c; s = t * t * (2 - t); ds = (4 * t - 3 * t * t) / c; } else { const t = (f - c) / (1 - c); s = 1 - t * t * (3 - 2 * t); ds = -6 * t * (1 - t) / (1 - c); }
+  return { h: [s, ph[1] * ds, ph[2] * ds], lee: ds < 0, f };
 }
 // S1: the phase moved along the wind by a noise of the across-wind coordinate only; a stoss rise, a 32 deg slip
 // face from the brink (the swell's along-wind slope added back), the brink a smooth min over 2 m, the toe a smooth max
@@ -140,6 +147,11 @@ export function overSwell(x, y, a = 0.6) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   return dunes(x, y).h[0] - (40 * g0[0] + 15 * g1[0]);
 }
+/* the land's height at (x, y) in wind angle a, as dunes() makes it (tools/physics/lod-pop.mjs) */
+export function landAt(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; return dunes(x, y).h[0]; }
+/* the land at (x, y) whole, as the land's vertex stage takes it: the height and its slope (vN), and the main dune's
+   phase and pieces (S1_OUT's vS1, vS1d: the phase unwrapped, its gradient, H, fl, dH, dQ) for the fragment's rebuild */
+export function landFull(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; const d = dunes(x, y); return { h: d.h, s1: d.s1, nearF: d.nearF, nearA: d.nearA }; }
 function dunes(x, y) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   const swell = add(sc(g0, 40), sc(g1, 15));
@@ -149,15 +161,15 @@ function dunes(x, y) {
     const warp = add(sc(dNs(x, y, 1 / 340), 0.42), sc(dNs(x + 71, y + 71, 1 / 95), 0.13));
     const r = waveOld(x, y, w, 205, 0.68, warp); main = sc(mul(r.h, amp), 32); lee = r.lee;
   } else {
-    const r = waveS1(x, y, 205, sc(amp, 32), swell, swellH(x, y)); main = r.h; lee = r.lee; var nearW = r.nearW;
+    const r = waveS1(x, y, 205, sc(amp, 32), swell, swellH(x, y)); main = r.h; lee = r.lee; var nearW = r.nearW; var r1 = r;
   }
   // the near family (64 m), as today (x0.6 and kept off the slip face in S1)
   const w2 = (() => { const v = [w[0] + 1.3 * pp[0], w[1] + 1.3 * pp[1]], l = Math.hypot(v[0], v[1]); return [v[0] / l, v[1] / l]; })();
   const warp2 = sc(dNs(x + 37 + 9, y + 37 + 9, 1 / 80), 0.25);
-  const s2 = waveOld(x + 37, y + 37, w2, 64, 0.7, warp2).h;
+  const r2 = waveOld(x + 37, y + 37, w2, 64, 0.7, warp2, ROUND_NEAR), s2 = r2.h;
   let near = sc(mul(s2, sstep(-0.5, 0.4, dNs(x + 900, y + 900, 1 / 160))), 4);
   if (MODEL !== 'old') near = sc(mul(near, nearW), 0.6);
-  return { h: add(add(swell, main), near), mainGrad: main, lee };
+  return { h: add(add(swell, main), near), mainGrad: main, lee, s1: MODEL === 'old' ? null : r1, nearF: r2.f, nearA: near };
 }
 
 const E = 0.25;

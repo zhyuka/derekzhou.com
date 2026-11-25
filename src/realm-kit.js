@@ -11,9 +11,9 @@
 
    What a realm file may rely on:
    - window.WORLD, set by world.js: WORLD.realm(def) registers a realm kit (once per id; a second registration of the
-     same id is ignored), WORLD.kit the engine's kit (Builder, box, prism, lathe, rock, cumulus, range, wall, mound,
-     bank, lch, lab, hex, lum, dirAzEl, vector helpers, clamp, smooth, lerp, RNG, the integer hashes mirrored from the
-     GLSL: cellHash, ihash, hfl, hk; angDiff; glowBake). WORLD is undefined when the page
+     same id is ignored), WORLD.kit the engine's kit (box, prism, lathe, rock, cumulus, range, lens, wall; lch;
+     the vector helpers norm, cross, sub, mul; smooth; RNG; the integer hashes mirrored from the GLSL: cellHash, ihash,
+     hfl, hk: exactly what the realms call, test/unit/kit.mjs). WORLD is undefined when the page
      has no WebGL2 or no canvas.sky: a realm file then does nothing (the first lines of every file check it).
    - window.WORLD.forms, set here: the shared form builders below (rock in strata, great rocks, shards, stones, ruins,
      stupas, spires, temples, stairs, floating islands, an island's temple) and their generator forms (...G: built a

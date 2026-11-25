@@ -14,10 +14,14 @@
 // plant: {"file": "src/world/212-cloud-drift.js", "find": "SEAU[2 + i] = ph - Math.floor(ph / (2 * PI)) * 2 * PI;", "with": "SEAU[2 + i] = ph - Math.floor(ph / PI) * PI;", "why": "the long waves' phase wrapped at half a turn: the sea's top jumps"}
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "seaUniform(V, cloudT())", "with": "seaUniform(V, SIM.t)", "why": "the sea carried on the step's clock, not the draw's: it judders against the camera"}
 // plant: {"file": "src/realm-above.js", "find": "var th = aStreet(C.V, s),", "with": "var th = s.r[0] * PI,", "why": "a canyon on a random axis, not along the wind as a cloud street"}
+// plant: {"file": "src/world/410-drawing-frame.js", "find": "var ls = cloudLife(B, tv);", "with": "var ls = 1;", "why": "the free cumulus fixed shapes again: drawn as baked, only drifting"}
+// plant: {"file": "src/world/212-cloud-drift.js", "find": "return 1 + LIFE_A * (0.5 - 0.5 * Math.cos(", "with": "return 1 - LIFE_A * (0.5 - 0.5 * Math.cos(", "why": "a cumulus settling below its baked body: its distance field over-reads, and the march oversteps"}
+// plant: {"file": "src/world/212-cloud-drift.js", "find": "Math.cos(2 * PI * t / l[0] + l[1])", "with": "Math.cos(2 * PI * Math.floor(t) / l[0] + l[1])", "why": "the life on a whole-second clock: the tops step once a second"}
+// plant: {"file": "src/world/231-cells-resolve.js", "find": "if (C.air && clb && clb.kind === 'cumulus' && !PF.bodies[bi].flow) {", "with": "if (false) {", "why": "no cumulus given a life: every one a fixed shape"}
 import { test, assert, vm, fs, path, ROOT, WORLD, cut } from '../unit-lib.mjs';
 
 const SRC = cut(WORLD, '  function cloudWind(', '  /* ----'), AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') + cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airSpeed(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(') + cut(WORLD, '  function airDay(', '\n', true);
-const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT, seaUniform: seaUniform }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
+const make = (simT, alpha) => vm.runInThisContext('(function (SIM, SIM_DT) { var PI = Math.PI;' + AIRSRC + SRC + ' return { cloudWind: cloudWind, cloudPos: cloudPos, cloudT: cloudT, seaUniform: seaUniform, cloudLife: cloudLife, LIFE_A: LIFE_A, LIFE_T: LIFE_T }; })')(simT === undefined ? { t: 0, alpha: 1 } : { t: simT, alpha }, 1 / 60);
 const D = make();
 
 test('drift: the clouds\' wind is the air\'s day wind (airBase, never the sky\'s share) at the low layer\'s height, the deck\'s and the cloud sea\'s top (physics: clouds/sea)', () => {
@@ -229,7 +233,7 @@ test('drift: no cloud body shows when its cell is made or freed, air cells and w
   const W = vm.runInThisContext(`(function () { var PI = Math.PI, SIM = { V: null, t: 0, alpha: 1 }, SIM_DT = 1 / 60, shown = true, DEVMODE = false, SW = {}, VOL16 = false, LOOKD = false, J = { seed: 1 }, CAM = { pos: [0, 0, 0] };
     function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
     function memTier() { return 'desktop'; } function volDetail() { return new Float32Array([96, 4.6]); } function cellLift() { return 0; }
-    ${STREAMS}${AIR2}${SRC}${cut(WORLD, '  function Puffs() {', '  function mound(')}${cut(WORLD, '  function volPrep(', '  /* up to budget units')}
+    ${STREAMS}${AIR2}${SRC}${cut(WORLD, '  function Puffs() {', '  function bank(')}${cut(WORLD, '  function volPrep(', '  /* up to budget units')}
     ${cut(WORLD, '  function nearDist(C, x, z) {', '\n', true)}${cut(WORLD, '  function streamR(L, V) {', '\n', true)}${cut(WORLD, '  function fadeZ(V, sc) {', '  function lateBorn(')}
     return { SIM: SIM, CAM: CAM, RNG: RNG, cellHash: cellHash, subseed: subseed, hk: hk, hfl: hfl, ihash: ihash, airBase: airBase, airDay: airDay, AIR_H: AIR_H, airW: airW, streamR: streamR, volDistFade: volDistFade, Puffs: Puffs, volPrep: volPrep, cumulus: cumulus, range: range, wall: wall };
   })()`);
@@ -333,4 +337,31 @@ test('drift: the cloud sea\'s shader reads the carry in its positions only, ever
   assert.match(WORLD, /if \(u\.uSeaD\) gl\.uniform4fv\(u\.uSeaD, seaUniform\(V, cloudT\(\)\)\);/, 'the frame does not set the sea\'s carry from the draw\'s clock');
   const yb = /\+ dome\(3\.5, 0\.1\) \+ (\d+), aL = -42 \* NB - (\d+);/.exec(WORLD);
   assert.ok(yb && +yb[1] >= WA[0] + WA[1] && +yb[2] >= WA[0] + WA[1], 'the sea\'s height bound (YB) does not take the long waves\' amplitude');
+});
+
+test('drift: a free cumulus\' life (physics: clouds/life): tens of minutes, seamless, 1 .. 1 + LIFE_A of its baked height, never below', () => {
+  // the source: most fair-weather cumulus live on a time scale of tens of minutes (https://doi.org/10.1029/2021JD035577);
+  // the periods here 12-30 min, within 10-60 min
+  assert.ok(D.LIFE_T[0] >= 600 && D.LIFE_T[1] <= 3600 && D.LIFE_T[0] < D.LIFE_T[1], `the periods ${D.LIFE_T} s are not tens of minutes`);
+  assert.ok(D.LIFE_A > 0.05 && D.LIFE_A <= 0.25, `the swell ${D.LIFE_A} is not a visible, modest one`);
+  assert.equal(D.cloudLife({}, 1234), 1, 'a body with no life (a range, a lens, a world cell\'s) is drawn as baked');
+  const dt = 1 / 60, bound = D.LIFE_A * Math.PI / D.LIFE_T[0] * dt * 1.001;
+  for (const T of [D.LIFE_T[0], 1100, D.LIFE_T[1]]) for (const ph of [0, 1.3, 4.4]) {
+    const o = { life: [T, ph] }; let lo = 9, hi = -9, step = 0;
+    for (let t = 0; t < 2 * T; t += dt) { const a = D.cloudLife(o, t), b = D.cloudLife(o, t + dt); lo = Math.min(lo, a); hi = Math.max(hi, a); step = Math.max(step, Math.abs(b - a)); }
+    assert.ok(lo >= 1 - 1e-9, `T ${T}: settles to ${lo}, below the baked body`);
+    assert.ok(hi <= 1 + D.LIFE_A + 1e-9 && hi > 1 + D.LIFE_A * 0.99, `T ${T}: swells to ${hi}`);
+    assert.ok(step <= bound, `T ${T}: a step of ${step} between frames (most ${bound}): not seamless`);
+    assert.ok(Math.abs(D.cloudLife(o, 77) - D.cloudLife(o, 77 + T)) < 1e-9, `T ${T}: not its own period`);
+  }
+});
+test('drift: the free cumulus are drawn with their life, each its own period and phase; ranges, lenses and world cells as baked', () => {
+  assert.match(WORLD, /var ls = cloudLife\(B, tv\);[^\n]*LIFEH\[1\] = bh\[1\] \* ls;[^\n]*\n\s*gl\.uniform3fv\(P\.u\.uVC, bc\); gl\.uniform3fv\(P\.u\.uVH, bh\);/, 'the draw does not take the life');
+  assert.match(WORLD, /if \(C\.air && clb && clb\.kind === 'cumulus' && !PF\.bodies\[bi\]\.flow\) \{ var lh = [^\n]*vb\.out\.life = \[LIFE_T\[0\]/, 'the free cumulus are not given a life');
+  // the periods and phases from 231's hash spread over their range
+  const P = [], H = [];
+  for (let seed = 1; seed < 400; seed++) { const lh = Math.imul(seed >>> 0, 2654435761) >>> 0; P.push(D.LIFE_T[0] + (D.LIFE_T[1] - D.LIFE_T[0]) * (lh & 0xffff) / 0xffff); H.push(2 * Math.PI * (lh >>> 16) / 0xffff); }
+  P.sort((a, b) => a - b); H.sort((a, b) => a - b);
+  assert.ok(P[0] >= D.LIFE_T[0] && P[P.length - 1] <= D.LIFE_T[1] && P[P.length - 1] - P[0] > 0.8 * (D.LIFE_T[1] - D.LIFE_T[0]), 'the periods do not spread over their range');
+  assert.ok(H[H.length - 1] - H[0] > 5.5, 'the phases are not spread round the turn: the cumulus would breathe together');
 });

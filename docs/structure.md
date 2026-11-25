@@ -66,6 +66,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag), test/unit/motion.mjs (the phone's motion steering: held still, turned),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
+                             test/unit/kit.mjs (WORLD.kit: exactly the helpers the realms call, pinned),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
                              test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
@@ -217,9 +218,10 @@ shipped build and the dev build) writes it
 back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
 blank line, no spare space, every line of code still a line (the world's
 folds work by lines), a #define's spacing kept, the same tokens (checked;
-the build fails otherwise); a file a script reads at run time stays as
-written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
-by its text). So the world issues and the browser
+the build fails otherwise); the part of a file a script reads at run time
+stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
+split finds by its text; the rest of the file is minified, 2026-11-25:
+realm-dunes.js 13,299 -> 9,395 B). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
 census and T1 compare the base's build with the head's.

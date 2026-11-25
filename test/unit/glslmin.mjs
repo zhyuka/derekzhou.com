@@ -24,7 +24,21 @@ test('glslmin: the same program, token for token', async () => {
   assert.equal(minGlsl('\nvec3 a;\n'), '\nvec3 a;\n'); assert.equal(minGlsl(' vec3 a; '), ' vec3 a; ');
   // the tokenizer: numbers, words, the longest operator
   assert.deepEqual(tokens('a<<=1.5e+2u>>b'), ['a', '<<=', '1.5e+2u', '>>', 'b']);
-  // a file whose text a script reads at run time is not minified (the land split finds D_Hd by its text)
-  const { KEEP } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
-  assert.ok(KEEP.has('dunes-glsl') && WORLD.includes("g.indexOf('vec3 D_Hd(vec2 p) {')"), 'the land split still reads dunes-glsl\'s text: keep it in KEEP');
+  // a file whose text a script reads at run time keeps that part as written (the land split finds D_Hd by its text)
+  const { KEEP, minGlslKeeping } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
+  assert.ok(KEEP.has('dunes-glsl') && WORLD.includes("g.indexOf('vec3 D_Hd(vec2 p) {')"), 'the land split still reads dunes-glsl\'s text: keep D_Hd in KEEP');
+  assert.equal(minGlslKeeping('// a\nfloat  x = 1.0;\nvec3 K(vec2 p) {\n  return  vec3(x);\n}\n// b\nfloat y;\n', [['vec3 K(vec2 p) {', '\n}']]),
+    'float x=1.0;\nvec3 K(vec2 p) {\n  return  vec3(x);\n}\nfloat y;\n');
 });
+
+test('glslmin: dunes-glsl minified but for D_Hd, which the world\'s own land split still splits as it does the source', async () => {
+  const { KEEP, minGlslKeeping, checkGlsl } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
+  const src = fs.readFileSync(path.join(ROOT, 'src/glsl/dunes-glsl.glsl'), 'utf8'), min = minGlslKeeping(src, KEEP.get('dunes-glsl'));
+  assert.equal(checkGlsl(src, min), null, 'the same program, token for token');
+  assert.ok(min.length < src.length * 0.75, 'minified: ' + min.length + ' of ' + src.length + ' bytes');
+  const HP_SITES_FN = vm.runInThisContext('(function () {\n' + cut(WORLD, '  function HP_SITES_FN(g) {', '  function VS_TERRAIN_SPLIT(') + '  return HP_SITES_FN;\n})()');
+  const a = HP_SITES_FN(src), b = HP_SITES_FN(min);
+  assert.ok(a && b, 'D_Hd is of the split shape in the source and as shipped');
+  assert.equal(b, a, 'the sites\' part is the same text either way');
+});
+// plant: {"file": "tools/glslmin.mjs", "find": "export const KEEP = new Map([['dunes-glsl', [['vec3 D_Hd(vec2 p) {', '\\n}']]]]);", "with": "export const KEEP = new Map([['dunes-glsl', [['vec3 D_Hd(vec2 p) {', '\\n  vec3 h']]]]);", "why": "D_Hd's body minified: the land split no longer finds its shape"}

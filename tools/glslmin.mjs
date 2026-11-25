@@ -9,7 +9,9 @@
 //   - within any other line, a space stays only where two tokens would lex as one (two words, `a - -b`, `x / *p`);
 //   - the text's own leading and trailing whitespace become one newline or one space each (a .glsl file is a piece the
 //     scripts join to others: what was apart stays apart);
-//   - a file in KEEP (below: its text is read at run time) is put back as written.
+//   - a file in KEEP (below: a script reads part of its text at run time) keeps that part as written, from its first
+//     line's text to its last; the rest of the file is minified as any other (load-perf, 2026-11-25: dunes-glsl was kept
+//     whole, comments and all, for its D_Hd alone).
 // minGlsl(text) is checked by checkGlsl(text): the tokens of the result are the tokens of the text, in order, and every
 // preprocessor line is the same line. The build fails on any difference.
 //   node tools/glslmin.mjs FILE.glsl ...    print each file's size before and after (and check it)
@@ -60,9 +62,24 @@ export function minGlsl(text) {
   return s;
 }
 
-// The .glsl files kept as written, because a script reads their text at run time:
-//   dunes-glsl: the world's land split (HP_SITES_FN) finds D_Hd's body by its exact text, indentation and spaces included
-export const KEEP = new Set(['dunes-glsl']);
+// The .glsl files with a part kept as written, because a script reads that part's text at run time, each part [its
+// first text, its last] (the first found once in the file, the last the first after it):
+//   dunes-glsl: the world's land split (HP_SITES_FN) finds D_Hd's body by its exact text, indentation and spaces
+//   included: D_Hd is kept from its header to its closing brace
+export const KEEP = new Map([['dunes-glsl', [['vec3 D_Hd(vec2 p) {', '\n}']]]]);
+// minGlsl outside the kept parts, the parts as written (each starts a line and ends one: what is around it stays apart)
+export function minGlslKeeping(text, parts) {
+  let out = '', i = 0;
+  for (const [a, z] of parts) {
+    const s = text.indexOf(a, i);
+    if (s < 0 || text.indexOf(a, s + 1) >= 0) throw new Error('a kept part\'s first text is not in the file exactly once: ' + a);
+    const e = text.indexOf(z, s + a.length);
+    if (e < 0) throw new Error('a kept part has no end: ' + JSON.stringify(z) + ' after ' + a);
+    out += minGlsl(text.slice(i, s)) + text.slice(s, e + z.length);
+    i = e + z.length;
+  }
+  return out + minGlsl(text.slice(i));
+}
 
 // the same program: the same tokens in order (preprocessor lines compared whole, trimmed), the same lines' kinds
 function parts(text) {

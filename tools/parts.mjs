@@ -21,7 +21,7 @@
 // no time; the same SRC gives the same OUT on any OS.
 import fs from 'fs';
 import path from 'path';
-import { minGlsl, checkGlsl, KEEP } from './glslmin.mjs';
+import { minGlsl, minGlslKeeping, checkGlsl, KEEP } from './glslmin.mjs';
 import { fillStamp } from './plan.mjs';
 
 const DIVIDERS = {   // (the section dividers each long script already uses)
@@ -75,8 +75,9 @@ function expand(text, gdir, where) {
     if (t.includes('`') || t.includes('${')) die(f + ': a backtick or ${ in it (a .glsl file is a plain literal\'s text)');
     if (!USED.has(gdir)) USED.set(gdir, new Set());
     USED.get(gdir).add(name + '.glsl');
-    if (!MIN || KEEP.has(name)) return '`' + t + '`';
-    const mt = minGlsl(t), e = checkGlsl(t, mt);
+    if (!MIN) return '`' + t + '`';
+    let mt; try { mt = KEEP.has(name) ? minGlslKeeping(t, KEEP.get(name)) : minGlsl(t); } catch (x) { die(f + ': ' + x.message); }
+    const e = checkGlsl(t, mt);
     if (e) die(f + ': the minified text is not the same program (' + e + ')');
     return '`' + mt + '`';
   });

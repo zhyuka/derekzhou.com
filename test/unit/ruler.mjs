@@ -6,7 +6,7 @@
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "if (!(l.wordCloud <= WORD_CAP)) bad.push(", "with": "if (false) bad.push(", "why": "rule() never weighs the words: a cloud moved over them passes"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "'src/realm-above.js',", "with": "", "why": "the air above the land out of the key: a cumulus moved, the gate does not measure"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "+ '\\0' + JSON.stringify(tableOf(", "with": "+ '\\0' + JSON.stringify(0 && tableOf(", "why": "the table out of looksKey: a new heading, never measured"}
-// plant: {"file": ".github/workflows/gate.yml", "find": "needs: [static, plan, t1, looks]", "with": "needs: [static, plan, t1]", "why": "the looks job's answer not the verdict's"}
+// plant: {"file": ".github/workflows/gate.yml", "find": "needs: [static, plan, t1, looks, paint]", "with": "needs: [static, plan, t1, paint]", "why": "the looks job's answer not the verdict's"}
 import { test, assert, golden, WORLD } from '../unit-lib.mjs';
 const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN } = await import('../../tools/visit/ruler.mjs');
 
