@@ -103,7 +103,6 @@ test('air: every wind reader blows the visit\'s way, at the profile\'s speed at 
         dunes: [V.field.params[9].slice(0, 2), null],
         veils: [[V.ribbons.wind[0], V.ribbons.wind[2]], G.AIR_H.veils],
         birds: [(() => { const o = G.HOST.wind([9, 9, 9]); assert.equal(o[1], 0); return [o[0], o[2]]; })(), G.AIR_H.birds],
-        water: [G.LDEF.windDir, null],
         clouds: [Array.from(G.cloudWind(V, 'low')), G.AIR_H.clouds],   // (physics: clouds/drift: the free clouds carried, the billows riding with them)
         deck: [Array.from(G.cloudWind(V, 'deck')), G.AIR_H.deck],   // (the high streaks drift with it, lying along it: sky-body's uDeck)
       };
@@ -191,13 +190,24 @@ test('air: the wind profile (the log law over sand under 100 m, veering aloft to
   const V0 = visit(G, SEEDS[3]); assert.equal(V0.u10, G.airU10(SEEDS[3]), 'the visit\'s U10 is its own stream\'s, drawn once');
   assert.ok(Math.abs(G.airSpeed(10, V0) - V0.u10) < 1e-12, 'airSpeed at 10 m is the visit\'s U10');
   for (const y of [400, 1000, 1500]) { assert.ok(Math.abs(share(y) - 1.3) < 1e-12 && Math.abs(veer(y) - 20) < 1e-12, `${y} m: the low cloud layer, 1.3 U10 veered 20 deg`); }
-  for (const y of [3000, 6000]) { assert.ok(Math.abs(share(y) - 2) < 1e-12 && Math.abs(veer(y) - 40) < 1e-12, `${y} m: the deck, 2 U10 veered 40 deg`); }
-  let ps = 0, pv = 0;   // never slower or backing with height, and no step (0.05 m apart: within 1% of U10, 0.05 deg)
-  for (let y = 0.05; y < 4000; y += 0.05) {
-    const s = share(y), v = veer(y);
-    assert.ok(s >= ps - 1e-12 && v >= pv - 1e-12, `${y.toFixed(2)} m: the wind slower or backing with height`);
-    assert.ok(s - ps < 0.01 || y < 1, `${y.toFixed(2)} m: a step in the speed (${(s - ps).toFixed(4)})`); assert.ok(v - pv < 0.05, `${y.toFixed(2)} m: a step in the turn`);
-    ps = s; pv = v;
+  assert.ok(Math.abs(share(3000) - 2) < 1e-12 && G.airProfile(3000).add === 0 && Math.abs(veer(3000) - 40) < 1e-12, '3000 m: 2 U10 veered 40 deg');
+  // the winds aloft: a line from 3000 m's 2 U10 to the polar jet's 40 m/s at its core, 9 km up (the thermal wind; its
+  // 3-month average: https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet/Ch11-General.pdf), held above, veered 40 deg
+  const at = (y, u) => G.airSpeed(y, { wind: [0, 1], u10: u });
+  for (const [u, s7] of [[3, 28.667], [5, 30], [7.5, 31.667]]) {
+    assert.ok(Math.abs(at(7000, u) - s7) < 0.001, `7000 m (the cirrus), U10 ${u}: ${at(7000, u).toFixed(3)} m/s, the table's ${s7}`);
+    assert.ok(Math.abs(at(5000, u) - (2 * u * 2 / 3 + 40 / 3)) < 1e-9 && at(9000, u) === 40 && at(12000, u) === 40, `U10 ${u}: the line to the jet, held above its core`);
+    assert.ok(at(7000, u) > 20 && at(7000, u) < 33, 'the mid-latitude westerlies at 7 km: about 20-30 m/s');
+  }
+  for (const y of [6000, 9000, 12000]) assert.ok(Math.abs(veer(y) - 40) < 1e-12, `${y} m: veered 40 deg`);
+  for (const u of [3, 7.5]) {   // never slower or backing with height, and no step (0.05 m apart: within 1% of U10, 0.05 deg)
+    let ps = 0, pv = 0;
+    for (let y = 0.05; y < 10000; y += 0.05) {
+      const s = at(y, u) / u, v = veer(y);
+      assert.ok(s >= ps - 1e-12 && v >= pv - 1e-12, `U10 ${u}, ${y.toFixed(2)} m: the wind slower or backing with height`);
+      assert.ok(s - ps < 0.01 || y < 1, `U10 ${u}, ${y.toFixed(2)} m: a step in the speed (${(s - ps).toFixed(4)})`); assert.ok(v - pv < 0.05, `${y.toFixed(2)} m: a step in the turn`);
+      ps = s; pv = v;
+    }
   }
   assert.ok(share(0) === 0 && share(-3) === 0, 'no wind under the ground\'s own roughness');
   const V = visit(G, SEEDS[0]), d = V.wind, a = G.windAt(0, 0, 2000, 0, V), t = Math.atan2(d[0] * a.z - d[1] * a.x, d[0] * a.x + d[1] * a.z) * 180 / Math.PI;
@@ -231,12 +241,12 @@ test('air: one gust field, frozen and carried downwind (16 visits x 10 min at 10
   // still air: no gust, no phase
   const Vs = { seed: 1, wind: [0, 1], u10: 0 }; assert.equal(G.gustAt(5, 7, 40, 3, Vs), 0); assert.ok(Number.isNaN(G.gustPhase(5, 7, 40, 3, Vs)));
   // the air heard (the score's, at the camera): a hand-computed wind for a fixed visit (the log law at 10 m and under
-  // 100 m, no veer; 2 x U10 veered 40 deg clockwise from 3000 m), the sky's share its one scalar; its gust, sigma and
+  // 100 m, no veer; from 3000 m a line from 2 x U10 to the jet's 40 m/s at 9 km, veered 40 deg clockwise), the sky's share its one scalar; its gust, sigma and
   // clock the field's; carry the speed the gusts pass at (a gust met dx downwind dx / carry later, the same gust)
   { const Vf = { seed: 7, wind: [0.6, 0.8], u10: 5 }, c40 = Math.cos(40 * Math.PI / 180), s40 = Math.sin(40 * Math.PI / 180); let worst = 0;
     for (let i = 0; i < 200; i++) {
       const x = 900 * Math.sin(i * 1.7), z = 700 * Math.cos(i * 0.9), hi = i % 2, y = hi ? 3000 + (i % 7) * 400 : 2 + (i % 7) * 14, t = i * 3.1, h = G.airHeard(x, z, y, t, Vf), k = G.airShare(y, t);
-      const e = hi ? [(0.6 * c40 + 0.8 * s40) * 10 * k, (0.8 * c40 - 0.6 * s40) * 10 * k] : [0.6 * 5 * k * Math.log(y / 0.003) / Math.log(10 / 0.003), 0.8 * 5 * k * Math.log(y / 0.003) / Math.log(10 / 0.003)];
+      const sp = 10 + 30 * (y - 3000) / 6000, e = hi ? [(0.6 * c40 + 0.8 * s40) * sp * k, (0.8 * c40 - 0.6 * s40) * sp * k] : [0.6 * 5 * k * Math.log(y / 0.003) / Math.log(10 / 0.003), 0.8 * 5 * k * Math.log(y / 0.003) / Math.log(10 / 0.003)];
       worst = Math.max(worst, Math.abs(h.x - e[0]), Math.abs(h.z - e[1]));
       assert.equal(h.gust, G.gustAt(x, z, y, t, Vf)); assert.equal(h.sigma, G.gustSigma(y, Vf, t)); assert.equal(h.phase, G.gustPhase(x, z, y, t, Vf)); assert.equal(h.y, y);
       assert.ok(Math.abs(h.carry - 5 * G.weather(t)[0]) < 1e-12, 'carry: U10 x the sky\'s surface share');

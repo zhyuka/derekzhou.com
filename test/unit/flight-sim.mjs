@@ -10,6 +10,7 @@
 // plant: {"file": "src/world/270-flight.js", "find": "CS.y = Math.max(ceil, CS.y - PUSH_V * dt);", "with": "CS.y = ceil;", "why": "the ceiling a jump"}
 // plant: {"file": "src/world/270-flight.js", "find": " if (CS.ay > 0) CS.ay = 0; SIM.fixC++; }", "with": " if (CS.ay > 0) CS.ay = 0; }", "why": "the ceiling's clamps not counted"}
 // plant: {"file": "src/world/280-ground-what-stands-ahead.js", "find": "q.x = o.x + off[0]; q.z = o.z + off[1];", "with": "q.x = o.x; q.z = o.z;", "why": "an air cell's obstacles where its cell laid them out, not where the air carried them"}
+// plant: {"file": "src/world/286-hard-rule.js", "find": "    for (var p = 0, m = 1; p < 3 && m; p++) for (m = 0, i = 0; i < O.length; i++) if (hardFloor(O[i])) m = ++SIM.fixO;", "with": "", "why": "no floor passes: wedged between two solids, the second push moves the camera back inside the first's HARD_IN"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 import { loadGround } from '../ground.mjs';
 
@@ -39,7 +40,7 @@ const CELLOFF = cut(WORLD, '  function cellOff(', '\n  }\n', true);
 const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n' +
   '  function airW() { return AW; }\n  function cellLift() { return 0; }\n' + CELLOFF + '\n' +
   '  var PI = Math.PI, DEG = PI / 180, DEVMODE = false, POSE = null, NOAUTO = false, shown = true, STILLMODE = false, SEEDR = 1, J = { seed: 1 }, VSTAGES = [], BIRDS = null, DTMAX = 0.1, SW = {};\n' +
-  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false;\n' +
+  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
   '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
@@ -50,7 +51,7 @@ const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n
   CRUISE + '\n' + FLIGHT + '\n' + INPUT +
   '\n  return { SIM: SIM, CS: CS, INP: INP, cellOff: cellOff, pushOut: function () { pushOut(V); }, ceil: function () { return groundAt(V, CS.x, CS.z) + V.clear[2] + CEIL_OVER; }, ds: PUSH_V * SIM_DT,\n' +
   '    drag: function (dx, dy, up) { INP.down = !up; INP.rel = !!up; INP.dx += dx; INP.dy += dy; px += dx; py += dy; if (typeof relAdd === "function") { if (!pd) REL.n = 0; relAdd(px, py, SIM.t * 1000); } pd = !up; },\n' +   // (onMove's and onUp's samples, where the release reads them)
-  '    step: function () { if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
+  '    step: function () { CLK[1] = SIM.t * 1000 + 0.4; if (typeof inputFrame === "function" && SIM.V) inputFrame(SIM_DT); return simStep(); } };\n})');
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const AWS = [[4.2, -2.1], [-6.3, 5.0], [0.8, 8.9], [-5.5, -3.9], [7.4, 1.2]];   // (the low layer's wind a seed, m/s: 4.7-8.9)
 // (#288 follow-up) where the world puts a cloud's core: 231 lifts every body whole until its lowest lobe's billows
@@ -160,6 +161,17 @@ test('flight-sim: the hard rules ease the camera out at the climb\'s own travel,
     F.CS.x = 0; F.CS.z = 100 - 30 - gap; F.CS.y = 30;
     const n0 = F.SIM.fixO, before = face(Lc, F.CS.x, F.CS.y, F.CS.z, t, AW); F.pushOut(); const after = face(Lc, F.CS.x, F.CS.y, F.CS.z, t, AW);
     assert.ok(F.SIM.fixO === n0 + 1 && Math.abs(after - Math.max(Math.min(7, before + F.ds), HARD_IN)) < 1e-9, `a carried cloud's core ${gap} m from the camera: pushed to ${after.toFixed(3)} m, counted ${F.SIM.fixO - n0} (its obstacle not where the air carried it)`);
+  }
+  // (CLOUDS, #424) wedged between a landmark and a cloud's core whose faces are 2.9 m apart (room for HARD_IN from each),
+  // the camera 1 m from the landmark: each push keeps HARD_IN from its own solid, the second moves it back toward the
+  // first, and the floor passes hold both, in either order of the two
+  for (const order of [0, 1]) for (const near of [0.6, 1.0]) {
+    const cyl = { c: true, x: 0, z: 100, r: 40, y0: -50, y1: 400 }, core = { c: false, cloud: true, x: 0, y: 30, z: 60 - 2.9 - 30, r: 30 };
+    const cells = [{ st: 2, obst: [cyl], bound: [0, 0, 100, 120], softB: null }, { st: 2, obst: [core], bound: [0, 0, 30, 120], softB: null }];
+    const L = order ? cells.slice().reverse() : cells, Fw = MAKE(G, L, [0, 0]); Fw.step();
+    Fw.CS.x = 0; Fw.CS.z = 60 - near; Fw.CS.y = 30; Fw.pushOut();
+    const fc = face([cells[0]], Fw.CS.x, Fw.CS.y, Fw.CS.z), fo = face([cells[1]], Fw.CS.x, Fw.CS.y, Fw.CS.z);
+    assert.ok(fc >= HARD_IN - 1e-9 && fo >= HARD_IN - 1e-9, `wedged (order ${order}, ${near} m from the landmark): ${fc.toFixed(4)} m from the landmark's face, ${fo.toFixed(4)} m from the core's (want ${HARD_IN} m from each)`);
   }
   const F = MAKE(G, [], [0, 0]); F.step(); for (let k = 0; k < 30; k++) F.step();
   const c0 = F.ceil(); F.CS.y = c0 + 5; F.step();

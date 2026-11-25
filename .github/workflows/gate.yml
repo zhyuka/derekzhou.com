@@ -13,6 +13,11 @@ on:
         type: choice
         options: [use, verify, 'off']
         default: use
+      looks:
+        description: "The ruler's looks (gate.yml's looks job): measured when looksKey moved (the default), or always"
+        type: choice
+        options: [moved, always]
+        default: moved
 
 concurrency:
   group: gate-${{ github.ref }}
@@ -52,6 +57,8 @@ jobs:
       base_build: ${{ steps.builds.outputs.base }}
       head_build: ${{ steps.builds.outputs.head }}
       glsl_changed: ${{ steps.glsl.outputs.glsl_changed }}
+      looks_changed: ${{ steps.looks.outputs.looks_changed }}
+      budget: ${{ steps.budget.outputs.budget }}
     steps:
       # A branch with no open PR (a Cloudflare preview, a probe) is not compared: T1 skips and the verdict says it
       # was not compared, so nothing lands on it. On the night of Nov 11 such pushes held the 4090 while six PRs' T2s
@@ -103,6 +110,25 @@ jobs:
         run: |
           if [ "${{ steps.builds.outputs.base }}" = "${{ steps.builds.outputs.head }}" ]; then echo "glsl_changed=false (the two builds are byte for byte the same)"; echo "glsl_changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           node .github/ci/glsl-changed.mjs "$RUNNER_TEMP/served/base" "$RUNNER_TEMP/served/head"
+      # The ruler's key (tools/visit/look-rule.mjs looksKey: the code that lays out the clouds near the words, the opening's
+      # view, the words' boxes, the table of first headings and the code that measures them), base against head, each
+      # read by the head's look-rule.mjs: the looks job measures the head's frames only when it moved.
+      - name: Whether the ruler's looks moved (looksKey, base against head)
+        id: looks
+        env:
+          BASE: ${{ steps.base.outputs.base }}
+          FORCE: ${{ inputs.looks || 'moved' }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/looks-base" "$BASE" >/dev/null
+          k() { node -e "import('./tools/visit/look-rule.mjs').then(async (m) => console.log(await m.looksKey(process.argv[1])))" "$1"; }
+          b=$(k "$RUNNER_TEMP/looks-base"); h=$(k "$(pwd)"); git worktree remove --force "$RUNNER_TEMP/looks-base"
+          if [ "$b" != "$h" ] || [ "$FORCE" = always ]; then c=true; else c=false; fi
+          echo "looksKey: base $b, head $h ($FORCE): looks_changed=$c"; echo "looks_changed=$c" >> "$GITHUB_OUTPUT"
+      # Each built script's size against its load budget's line (Brotli 11, as the check weighs it), for the merge bot:
+      # a PR near a line is re-gated before it lands on a main that also grew that script (bot-rules.mjs budgetShared)
+      - name: The built scripts against their load budgets (for the merge bot)
+        id: budget
+        run: echo "budget=$(node .github/ci/budget-room.mjs "$RUNNER_TEMP/served/head" "$RUNNER_TEMP/served/base")" >> "$GITHUB_OUTPUT"
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"
@@ -239,9 +265,49 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+  # The ruler (the hub's ask, 02:09Z Nov 25): each land's first heading keeps the words and the name clear of cloud,
+  # measured live in the head's frames (tools/visit/looks.mjs --table --check: the table's headings and each land's own,
+  # three of T1's skies and windows, clouds on and off; look-rule.mjs's rule()). No stored record: nothing for another
+  # PR to invalidate, nothing to re-measure by hand. Only when the plan's looksKey moved (a cloud near the words, the
+  # opening's view, the words' boxes, the table, the measuring code); about 76 s a heading, 30 headings, so eight
+  # runners, every 8th land each.
+  looks:
+    needs: plan
+    if: always() && needs.plan.outputs.looks_changed == 'true' && needs.plan.outputs.has_pr != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    name: looks (${{ matrix.shard }}/8)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund --ignore-scripts   # (terser: the record's worldKey)
+      - uses: ./.github/actions/playwright
+      - uses: actions/download-artifact@v4
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate' }
+      - name: The two builds (the plan's hand-off, checked against its manifest, pinned to the plan's output)
+        env:
+          HANDOFF_SHA: ${{ needs.plan.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
+        run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served" --pinned
+      - name: The ruler, this shard's lands
+        run: node tools/visit/looks.mjs --build "$RUNNER_TEMP/served/head" --table --check --shard ${{ matrix.shard }}/8 --jobs 2 --out "$RUNNER_TEMP/looks/looks-s${{ matrix.shard }}.json"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: looks-s${{ matrix.shard }}   # (the record, for headings.mjs: never committed)
+          path: ${{ runner.temp }}/looks
+          retention-days: 7
+          if-no-files-found: ignore
+
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
   verdict:
-    needs: [static, plan, t1]
+    needs: [static, plan, t1, looks]
     if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
     runs-on: ubuntu-latest
     timeout-minutes: 5

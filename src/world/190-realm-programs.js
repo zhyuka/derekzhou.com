@@ -1,13 +1,11 @@
   /* ---------------------------------------------------------------- a realm's programs (kept for the page's life) */
   /* each realm's programs are compiled once, when it is first needed, and kept: a realm met again links nothing */
   /* the realm's GLSL hooks, found by name: its own sky (vec3 skyHook(vec3 rd, vec3 c)), its emission's flicker
-     (float emitMod(vec3 p, vec4 col, float e, float phase)), water (it calls waterShade: the composite then reflects
-     the nearby forms into it) */
+     (float emitMod(vec3 p, vec4 col, float e, float phase)) */
   function realmHooks(def) {
     var g = def.glsl || '', h = '';
     if (/\bskyHook\s*\(/.test(g)) h += '#define SKY_HOOK\n';
     if (/\bemitMod\s*\(/.test(g)) h += '#define EMIT_HOOK\n';
-    def.water = /\bwaterShade\s*\(/.test(g);
     return h;
   }
   function realmProgs(def) {

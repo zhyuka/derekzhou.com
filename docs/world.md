@@ -242,6 +242,30 @@ Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
 frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
 a tenth of a dark night's own sky low down; pale green at luminance 1, with no
 structure and no clock.
+No zodiacal light: at 64 deg north, with the sun 24 deg down in the dark
+half of the year, the cone's bright base (within 30 deg of the sun along the
+ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
+up (60 deg out: 21 deg; 90 deg: 40 deg), so only its faint outer part could
+show, low in the haze (the hub's ruling, 2026-11-25).
+No earthshine: every opening's moon is the same 98% gibbous (MOON_PHASE 15,
+the Earth seen from it a thin crescent), and the earthlit side is measured 8-12
+mag/arcsec^2 below the sunlit side even at Earth phase 30-140 deg
+(https://arxiv.org/abs/1306.1218, its section 2), at most 6e-4 of the disc's
+light: under 0.2 of one 8-bit level; crescent openings would change the moon's
+look (the hub's ruling, 2026-11-25).
+
+The moon's face (sky-body.glsl, moonFace): the near side's albedo, from NASA's
+Scientific Visualization Studio CGI Moon Kit (https://svs.gsfc.nasa.gov/4720/,
+public domain; docs/licences.md), resampled by tools/night/moonmap.py to an
+orthographic 32 x 32 disc at 4 bits a cell (MOONA), read bilinear across the
+disc: the maria's true outlines and their varied darkness, Oceanus Procellarum
+with them; the map's darkest level at MOON_DARK (0.32) of the highlands' light,
+the highlands at the disc's own colour, so nothing passes the light ceiling;
+lunar north toward the celestial pole (the sky's frame), so the face turns with
+the pole's tilt at 64 deg north; lit by the phase (its terminator crosses the
+features). At the disc's 36 px a cell is about a pixel: as the disc slides by
+quarter pixels its mean light holds within 2% and no pixel jumps more than half
+its contrast (test/unit/sky.mjs).
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -606,9 +630,29 @@ physics: clouds/drift). It holds:
   (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
   the surface's direction; from 100 to 300 m it eases to the low cloud
   layer's 1.3 U10, veered 20 deg, held to 1500 m; from 1500 to 3000 m to
-  the deck's 2 U10, veered 40 deg (the wind turns clockwise with height
-  toward the free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
+  2 U10, veered 40 deg (the wind turns clockwise with height toward the
+  free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
   https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf).
+  Above 3000 m, the winds aloft (AIR_ALOFT): over the boundary layer the
+  wind is nearly geostrophic and grows with height by the thermal wind
+  (the westerlies' shear from the pole's colder air) to the polar jet's
+  core, about 9 km up, its 3-month average about 40 m/s
+  (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet/Ch11-General.pdf).
+  The speed rises in a line from 2 U10 at 3000 m to 40 m/s at 9 km, held
+  above, still veered 40 deg. It is not a share of U10 (the jet is the
+  planet's, not the visit's surface wind), so the profile gives the speed
+  as U10 s + add. The table, m/s at U10 3 / 5 / 7.5:
+
+  | height | m/s |
+  |---|---|
+  | 10 m | 3 / 5 / 7.5 |
+  | 100 m | 3.8 / 6.4 / 9.6 |
+  | 300 to 1500 m | 3.9 / 6.5 / 9.8 |
+  | 3000 m | 6 / 10 / 15 |
+  | 5000 m | 17.3 / 20 / 23.3 |
+  | 7000 m (the cirrus) | 28.7 / 30 / 31.7 |
+  | 9000 m and up | 40 |
+
   Each reader has a declared height (AIR_H); at a U10 of 6.5 m/s: the
   veils 5 m (5.9), the birds their own height (HOST.wind(o, y); 40 m by
   default, 7.6). Before physics: air/wind-profile the readers kept their
@@ -619,7 +663,7 @@ physics: clouds/drift). It holds:
 - The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
   7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
   International Cloud Atlas), its streaks along the air's wind there (the
-  profile's 2 U10 veered 40 deg, held above 3 km) and drifting with it; a
+  winds aloft: 29 to 32 m/s, veered 40 deg) and drifting with it; a
   noise tile 204.8 km along the wind and 51.2 km across (its texels 3.2 km by
   800 m), faded out under rd.y 0.105-0.44 where its texels would come under a
   pixel. A change's cover comes in by place: a front carried along that wind
@@ -676,6 +720,20 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The twilight key stays direct (physics: light/twilight-key, the physics
+  audit's rank 8; tried in #422 and dropped by the hub's ruling of
+  2026-11-25). The land's key is a held, stylised low sun (5-14 deg up)
+  through the twilights, though the sky's own sun is 3-7 deg down. Measured:
+  the painted twilight sky is a horizon ring, at 3 deg up only about 30%
+  brighter on the sun's side than away from it (the zenith about a third of
+  the horizon), so its light reduced to an ambient part and one vector points
+  mostly up (its vertical part 0.73-0.91 of its length). Any diffuse share of
+  the key, the level face held at the key's height, flattens the near sand's
+  relief roughly as (1 - the share): in T1's frames, high-pass std of OKLab L
+  at a 12 px blur, x0.50 at first light and x0.48 in the blue hour, and still
+  x0.61 with a forced low arch at 4x the dome. A share small enough to keep
+  0.75x (about 0.25) would show nothing; a brighter painted arch would change
+  a sky's look. The land's relief at twilight is kept over the physics row.
 - The clouds' shadows on the land (physics: light/cloud-shadow;
   src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
   2026-11-15: "No, natural light is fine": the world's own cast shadows
@@ -993,6 +1051,71 @@ AER_SUN 0.05 of the light) only adds light, its share over an even
 scatter (the sky's colour holds the even part), so far land toward a low
 sun or the moon brightens. Nothing veils with grey: in-scatter is the
 sky's light. fogAmt, the share a light's own glow loses, is the green's.
+
+## THE SAND'S RIPPLES
+
+src/glsl/dunes-glsl.glsl, shadeSand; measured in #420
+(tools/physics/ripple-size.py, review/420 on its crops branch). Two classes by
+the sand:
+
+- impact ripples on all the loose sand, RIP_I 0.15 m apart (wind ripples
+  run about a thousand grain diameters: https://arxiv.org/html/2501.10643v1);
+- megaripples, RIP_M 0.9 m apart, only where the sand is poorly sorted,
+  coarse grains among the fine (https://arxiv.org/pdf/2208.00888): the
+  interdune floors, level ground (n0.y 0.97-0.99) within RIP_FLOOR (1.5 m,
+  out by 3) of the dunes' troughs' floor (gAF, the land's height over the
+  mist pools' floor, set by 350's terrain stage), in patches.
+
+Neither draws on a slip face: the ripples go between 22 and 25 deg of the
+surface's slope (the face as the fragment rebuilds it, sand/S2), since a
+slip face's avalanches wipe them; the stoss (median 9, 90th percentile 13.5
+deg) keeps them. The faces stand at sand's angle of repose, measured on
+barchans' slip faces as 32 deg at rest and 34 critical
+(https://doi.org/10.1002/2015JF003636); the census (tools/physics/dune-census.mjs,
+test/unit/dunes.mjs, and on the shipped GLSL check 43) puts the lee's mode at
+32. Each is faded by how many pixels its wavelength spans in its own direction
+(the wind's coordinate's change a pixel, from the footprint and the grazing angle: whole from 5 px a wavelength, gone under
+2.5), never by range: the old fade by footprint (0.012-0.05 m a pixel) lost
+the 0.9 m ripples where they resolve and never drew any on a phone. From the
+flight (14 m up, ground from 59 m) the impact ripples are a faint fine texture
+side-on near the bottom of a laptop frame and nothing facing or far. The
+megaripples read to about 112 m facing and much further side-on. Neither
+draws at the landing's range (its nearest ground 137-249 m). test/unit/ripples.mjs
+renders both classes on the laptop's and the phone's render targets and
+holds each, point-sampled with the shader's own fade, to the shading
+filtered at the pixel in motion: no more than half a level of flicker over it
+(from 4 and 2 px the impact ripples flickered 1.3).
+
+## THE SAND'S COLOUR (crest against interdune)
+
+Measured on main (2026-11-25), the page's own colours over its land grid
+(openings 4 and 3, a 10 m grid within 600 m of the landing, by the height
+over the troughs' floor, gAF):
+
+- the lit sand's luminance takes the light's angle alone (SAND_LIT to
+  SAND_LIT2, 0.028 to 0.035), with no term in place, height or gAF;
+- the shaded sand's (SAND_DEEP to SAND_SHADE by the absolute height,
+  -40 to 50 m) runs 0.0089 to 0.0093 from the interdune floors (gAF under
+  1.5 m) to 15 m up, within 4%: flat.
+
+The brief asked for darker interdunes and paler crests (coarser, damper
+floors; the finest, palest grains on the crests) if a measurement holds
+it. None found does:
+
+- across three dune fields the crest to interdune differences are minor
+  and broadband, and at one site the crests are a few percent darker than
+  the corridors (https://repository.si.edu/server/api/core/bitstreams/feec4ecd-aed7-4787-b0fa-1772258ca9f5/content);
+- at the gypsum dunes the interdunes are the finer grained and the crests
+  the coarser (https://www.usgs.gov/publications/modeling-grain-size-variations-aeolian-gypsum-deposits-white-sands-new-mexico-using);
+- crest contrast reverses through the dry season on stabilized dunes
+  (https://repository.si.edu/items/19aa41c6-f59a-4fe2-8817-7f4ed167a8a8);
+- the dune to interdune colour of a sand sea follows its grains' iron
+  coatings and provenance, not moisture
+  (https://www.sciencedirect.com/science/article/abs/pii/S0169555X06003990).
+
+So the sand's albedo stays flat in gAF: no measured, consistent ramp to
+draw, and a darker floor would darken part of the land for no physics. A
+crust or damp floor with a measured reflectance would be a new item.
 
 ## THE LARGE WORLD
 

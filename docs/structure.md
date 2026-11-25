@@ -63,7 +63,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              far out: an fp32 replay), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
-                             varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
+                             varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag), test/unit/motion.mjs (the phone's motion steering: held still, turned),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
@@ -110,12 +110,14 @@ tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, h
 tools/visit/headings.mjs     Each land's first heading chosen by the ruler and the frames' look: no more than look-rule.mjs's
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
-                             in the words' boxes and the top band, the Milky Way and the low sun left clear (looks.json);
-                             --table re-measures only the table's headings and each land's own (about 30 minutes);
-                             each entry keeps its own world key too, so two records merged line by line fail the ruler
-tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, and
-                             worldKey: the key of what looks.json was measured on (KEY_INPUTS: the cloud layout, the
-                             opening's view, the words' layout; not the sky, the land's surface or the birds)
+                             in the words' boxes and the top band, the Milky Way and the low sun left clear (its record,
+                             build/looks.json, never committed); --table --check is the ruler, the gate's looks job
+                             (eight runners, --shard i/8, every 8th land): the table's headings and each land's own,
+                             measured live and failed by look-rule.mjs's rule() (about 76 s a heading)
+tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, rule(),
+                             worldKey (KEY_INPUTS: the cloud layout, the opening's view, the words' layout; not the sky,
+                             the land's surface or the birds) and looksKey (worldKey, the table and the measuring code:
+                             the gate measures only when it moved, base against head)
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
 tools/clouds/edge-specks.mjs A cloud edge's specks and high-frequency residual on a frame, by hand (node tools/clouds/edge-specks.mjs FRAME.png x0 y0 x1 y1)
@@ -129,14 +131,19 @@ tools/stills-release.mjs     A bake's stills up as the release the Cloudflare bu
 tools/stills-twin.mjs        The still's preload put back in the twin the PC bakes (stills.yml)
 tools/gpu/                   GPU checks run by hand on a real GPU (no CI job runs them): T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
+tools/night/                 The moon's face (moonmap.py): the near side's albedo map resampled to sky-body.glsl's 32 x 32
+                             MOONA (its source, NASA's SVS CGI Moon Kit, kept out of the repository: docs/licences.md)
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand;
                              mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand;
-                             fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand
+                             fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand;
+                             ripple-size.py, the sand's ripples at true and drawn size from the flight, filtered at the
+                             pixel and not (point-sampled, today's fade, fwidth), by hand
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
-tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*.js, src/sound.js and src/score.js (npx typescript, pinned;
+tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*.js, src/sound.js, src/score.js and
+                             site/*.js (copies, cast from the side: never a byte in site/), by npx typescript (pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
                              events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)

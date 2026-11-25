@@ -118,3 +118,61 @@ export function unreviewedLands(v) {
   if (!v.frames_identical) return { ok: false, why: `frames may change (${v.reason}): waits for the hub's review` };
   return { ok: true };
 }
+
+// Whether main's changes since a PR's gate base mean it must be gated again before it lands (2026-11-25, the hub).
+// shared: the areas (areas.json) both touched; same: the files both changed; approved: the hub reviewed its head.
+// A file both changed is always re-gated, reviewed or not: git merges the two line by line, and nothing tested that
+// tree (#405, reviewed: it and main's #411 both changed tools/visit/looks.json, the merge mixed two entry formats, and
+// main's gate went red on the ruler test). An area alone re-gates only an unreviewed PR: a reviewed one merges, and
+// main's gate tests it (#362: re-gating every reviewed PR after every landing serialised them).
+// A doc only people read is exempt (the hub, 03:01Z Nov 25: #427, reviewed, re-gated only because #414 had also edited
+// docs/world.md; nearly every PR edits a doc): a line-by-line merge of docs/*.md changes neither the served build (docs/
+// is never served) nor any check's result, but docs/structure.md, whose content docs-drift reads (a tool's line). The
+// checks that scan every tracked file (secrets, citations, the names) read a merged doc's lines, each of them one side's,
+// already checked on its own gate; main's gate checks the merge after it lands.
+export const mergeSafe = (f) => /^docs\/[^/]+\.md$/.test(f) && f !== 'docs/structure.md';
+export function regateAnswer({ shared = [], same: all = [], approved = false }) {
+  const same = all.filter((f) => !mergeSafe(f));
+  if (same.length) return { regate: true, why: `main changed ${same.length} of its file(s) since its gate (${same.slice(0, 5).join(', ')}): re-gated${approved ? ', the review holds' : ''}` };
+  if (shared.length && !approved) return { regate: true, why: `main touched the ${shared.join(', ')} area since its gate: re-gated` };
+  return { regate: false };
+}
+
+// The bot's own files (merge-bot.mjs's SELF): a PR changing one waits for the hub's review, its served build the base's or
+// not, since the bot runs main's copy on the next tick. Its workflow, its code and every module it imports (areas.mjs,
+// deploy-walk.mjs, this file), and the data it decides by (areas.json, the names guard and its list). #435 (2026-11-25)
+// changed this file, the list then held only merge.yml and merge-bot.mjs, and it landed with no review;
+// test/unit/merge-bot.mjs derives the list from the bot's imports and reads, so a new module cannot fall out of it.
+export const BOT_FILES = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', '.github/ci/areas.mjs', '.github/ci/areas.json', '.github/ci/deploy-walk.mjs', '.github/ci/budget-room.mjs', '.claude/hooks/guard.py', '.claude/hooks/names.json'];
+
+// The load budget's sums (the hub, 03:50Z Nov 25): #427, #432 and #437 each fit world.js's line on their own gates,
+// edited different sections (no file shared), and landed together at 125,005 B, 77 B over it. builtOf maps a changed
+// path to the built scripts it goes into (src/<dir>/parts.json's out; a plain src/ or site/ script its own; the build's
+// tools and the minifier's lock every one, '*'); budgetShared names each built script that both the PR and main's
+// commits since its gate base go into, when the PR's own build of it is within NEAR of its line (the verdict's budget,
+// .github/ci/budget-room.mjs: Brotli 11 as 36-load-budget weighs it). Each is a "file" for regateAnswer: the merged tree
+// is gated, its load budget measured whole. A script far from its line never re-gates (ordinary work does not
+// serialise); a verdict without the measure (a gate from before it) re-gates on any shared script.
+// (Building the merged tree in the bot instead would run a PR's build tools in the job that holds the merge token.)
+export const NEAR = 0.02;
+export const BUILD_TOOLS = ['tools/build.mjs', 'tools/minify.mjs', 'tools/parts.mjs', 'tools/plan.mjs', 'package.json', 'package-lock.json'];
+export function builtOf(f) {
+  if (BUILD_TOOLS.includes(f)) return ['*'];
+  if (f.startsWith('src/dev/')) return [];
+  if (f.startsWith('src/world/')) return ['/world.js', '/plan.js'];   // (the plan's worker is cut from the world's spans)
+  if (f.startsWith('src/birds/inkbirds/')) return ['/inkbirds.js'];
+  let m = /^src\/birds\/model\/([\w.-]+\.js)$/.exec(f) || /^src\/([\w.-]+\.js)$/.exec(f) || /^site\/([\w.-]+\.js)$/.exec(f);
+  return m ? ['/' + m[1]] : [];
+}
+export function budgetShared({ prFiles = [], mainFiles = [], budget = null }) {
+  const outs = (fs) => { const s = new Set(); for (const f of fs) for (const o of builtOf(f)) s.add(o); return s; };
+  const pr = outs(prFiles), main = outs(mainFiles);
+  // (a script the PR's build leaves the base's size is not its growth: a comment in a section, #432's in 215)
+  if (budget) for (const o of [...pr]) if (budget[o] && typeof budget[o].base === 'number' && budget[o].base === budget[o].size) pr.delete(o);
+  if (!pr.size) return [];   // (the PR grows no built script: no sum of its)
+  const all = pr.has('*') || main.has('*');
+  const both = all ? [...new Set([...pr, ...main])].filter((o) => o !== '*') : [...pr].filter((o) => main.has(o));
+  if (all && budget) both.push(...Object.keys(budget).filter((o) => !both.includes(o)));
+  return both.filter((o) => !budget || (budget[o] && budget[o].size > budget[o].line * (1 - NEAR))).map((o) => 'build:' + o);   // (a measure without the script: it has no line)
+}
+

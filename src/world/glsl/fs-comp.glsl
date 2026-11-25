@@ -10,7 +10,6 @@ uniform vec4 uBlK;    // bloom amount, shafts amount, bloom uv scale x, y
 uniform vec4 uShK;    // shaft uv scale (x, y), exposure, saturation
 uniform vec3 uShC; uniform vec3 uLift, uGain;
 uniform vec2 uOut;        // (the composite takes nothing from the words)
-uniform vec4 uSSR;        // water in the realm (1: the nearby forms reflected), the reflection's reach (m), -, -
 uniform vec4 uCeil;       // the light ceiling (the world's own light on the skies with light words, the same everywhere, no words input): x the ceiling (OKLab L; 2: off), y its knee
 uniform vec4 uMi;         // the cloud about the eye coming out: x -1 (worked out per pixel; 0: none), y the cloud (uIn.x), z the way out (uIn.w); w the scene's samples a pixel where it has them (0: none; its alpha the depth's code)
 out vec4 oC;
@@ -49,42 +48,6 @@ void main() {
   bool lay = false; vec3 cLay = vec3(0.0);   // (the cloud laid over a pixel's near and far samples apart, below)
   float dz = texelFetch(uDepth, min(ivec2(floor(uv * uSc.xy * vec2(textureSize(uDepth, 0)))), textureSize(uDepth, 0) - 1), 0).r;
   float zl = dz >= 1.0 ? 6.0e4 : 2.0 * uProj.z * uProj.w / (uProj.w + uProj.z - (dz * 2.0 - 1.0) * (uProj.w - uProj.z));
-#ifndef NO_WATER
-  // water (the scene's alpha under 1: its reflected share): the nearby forms seen in its reflection, put over the sky
-  // the water shader reflected there (a short march of the reflected ray against the scene's depth, screen-space)
-  if (uSSR.x > 0.5 && zl < 5.0e4) {
-    vec2 dsz = vec2(textureSize(uDepth, 0));
-    float wa = texelFetch(uScene, min(ivec2(floor(uv * uSc.xy * dsz)), ivec2(dsz) - 1), 0).a;
-    if (wa < 0.495) {   // (water's alpha 0.49 (1 - F); every other fragment's the depth's code, 0.5 and over)
-      float F = clamp(1.0 - wa / 0.49, 0.0, 1.0);
-      vec2 ndc = px / uOut * 2.0 - 1.0;
-      vec3 rv = uCamF + uCamR * ndc.x * uProj.x + uCamU * ndc.y * uProj.y, P = uCam + rv * zl, rd = normalize(rv);
-      vec3 n = waterNormal(P, zl * 2.0 * uProj.y / uRes.y), r = reflect(rd, n); r.y = abs(r.y) + 1e-3;
-      float s = max(0.5, zl * 0.004), s0 = 0.0; bool hit = false; vec2 nq = vec2(0.0);
-      for (int i = 0; i < 22; i++) {
-        vec3 q = P + r * s; vec4 cq = uVP * vec4(q - uCam, 1.0);
-        if (cq.w < 0.2) break;
-        nq = cq.xy / cq.w; if (abs(nq.x) > 1.0 || abs(nq.y) > 1.0) break;
-        float dq = texelFetch(uDepth, min(ivec2((nq * 0.5 + 0.5) * uSc.xy * dsz), ivec2(dsz) - 1), 0).r;
-        float zs = dq >= 1.0 ? 6.0e4 : 2.0 * uProj.z * uProj.w / (uProj.w + uProj.z - (dq * 2.0 - 1.0) * (uProj.w - uProj.z)), zq = dot(q - uCam, uCamF);
-        if (zq > zs && zq - zs < max(1.5, s * 0.15)) { hit = true; break; }
-        if (s > uSSR.y) break;
-        s0 = s; s *= 1.3;
-      }
-      if (hit) {
-        for (int j = 0; j < 4; j++) {   // (refined between the last two steps)
-          float sm = (s0 + s) * 0.5; vec3 q = P + r * sm; vec4 cq = uVP * vec4(q - uCam, 1.0); vec2 nm = cq.xy / cq.w;
-          float dq = texelFetch(uDepth, min(ivec2((nm * 0.5 + 0.5) * uSc.xy * dsz), ivec2(dsz) - 1), 0).r;
-          float zs = dq >= 1.0 ? 6.0e4 : 2.0 * uProj.z * uProj.w / (uProj.w + uProj.z - (dq * 2.0 - 1.0) * (uProj.w - uProj.z));
-          if (dot(q - uCam, uCamF) > zs) { s = sm; nq = nm; } else s0 = sm;
-        }
-        vec3 hc = texture(uScene, (nq * 0.5 + 0.5) * uSc.xy).rgb;
-        float tw = zl * length(rv), fade = (1.0 - smoothstep(0.8, 1.0, max(abs(nq.x), abs(nq.y)))) * (1.0 - smoothstep(uSSR.y * 0.5, uSSR.y, s));
-        c = max(c + F * fade * (1.0 - fogAmt(rd, tw)) * (1.0 - hazeAmt(rd, tw)) * (min(hc, vec3(8.0)) - waterRefl(rd, n)), 0.0);
-      }
-    }
-  }
-#endif
   /* where the scene has its samples, the last frame's scene mixed in at half wherever it shows the same surface: each
      pixel's point (its resolved depth) seen from where the camera was, read there from the last frame's scene (the
      twin, uSceneH), taken only where that frame's depth code there is the point's own (within 0.008: a depth within
@@ -213,11 +176,7 @@ void main() {
        own colour from the 3 x 3 pixels most near and most far (their residual shared, so the pixel's own colour is
        kept). Taken as wholly near or wholly far by its one depth sample, such a pixel makes the floating rocks'
        outlines against a bright tower step and crawl (491 x 1065: the moving reading 1.179) */
-#ifndef NO_WATER
-    if (uLay > 0.5 && uMi.w > 0.5 && n <= 1 && uSSR.x < 0.5 && km < 0.001 && max(max(tA.a, tB.a), max(tC.a, tD.a)) > 0.002) {
-#else
     if (uLay > 0.5 && uMi.w > 0.5 && n <= 1 && km < 0.001 && max(max(tA.a, tB.a), max(tC.a, tD.a)) > 0.002) {
-#endif
       ivec2 ssz = textureSize(uScene, 0), ip = min(ivec2(floor(uv * uSc.xy * vec2(ssz))), ssz - 1);
       float A = texelFetch(uScene, ip, 0).a;
       if (A >= 0.5 && abs(A - zc(zl)) > 0.003) {
