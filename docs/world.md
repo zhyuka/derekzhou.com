@@ -267,6 +267,19 @@ features). At the disc's 36 px a cell is about a pixel: as the disc slides by
 quarter pixels its mean light holds within 2% and no pixel jumps more than half
 its contrast (test/unit/sky.mjs).
 
+The air's extinction (sky-body.glsl, airmass, extTint): a star, and the moon's
+disc, k (X - 1) magnitudes dimmer through X airmasses, X by the revised relative
+optical air mass (https://doi.org/10.1364/AO.28.004735, as pvlib/atmosphere.py
+writes it), k in V 0.15 mag/airmass, a clear site's typical value
+(https://www.ing.iac.es/Astronomy/observing/manuals/html_manuals/wht_instr/pfip/node244.html),
+red and blue by La Silla's curve's ratios to its V (0.07, 0.11, 0.20:
+https://www.eso.org/sci/observing/tools/Extinction.html), so low things redden a
+little at kept luminance. The field's magnitudes stand as seen overhead, so only
+the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
+sky itself is untouched, and the faint stars drop out first as their magnitude
+passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
