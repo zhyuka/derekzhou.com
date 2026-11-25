@@ -178,7 +178,7 @@
      by the flight's own heading and speed); a sky that turns to night bears it beyond sight (at that height a goose
      shows to about 9 km: a long way in). A drag makes it pass elsewhere: nothing follows the view. If it crosses the
      moon it is by chance (the hub, 2026-11-25). passWay fills PASSW (x, y, z, heading) or returns false */
-  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(4), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
+  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(5), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
   var PASSR = null;
   function passR() { if (!PASSR) PASSR = vstream(8801); return PASSR(); }   // (the passage's own stream: the sky's other flocks draw as they did)
   function passWay(C, h, Tc, side, near, u, v) {   // (u, v: the place ahead it crosses, as fractions of the window's half widths)
@@ -194,7 +194,7 @@
       HOST.wind(PASSA, h); var wl = PASSA[0] * tx + PASSA[2] * tz, wp = PASSA[0] * tz - PASSA[2] * tx, va = V * clamp(1 - 0.2 * wl / V, 0.85, 1.35), gs = wl + Math.sqrt(Math.max(0, va * va - wp * wp));   // (its ground speed as goalVel flies it in the wind at its height)
       var sx = px - tx * gs * Tc, sz = pz - tz * gs * Tc;
       if (gs < 0.5 * V || (!near && Math.hypot(sx - LVC.x, sz - LVC.z) < sightD('goose', gy) * 1.05) || lvGround(sx, sz) + 30 > gy) continue;
-      PASSW[0] = sx; PASSW[1] = gy; PASSW[2] = sz; PASSW[3] = tr; return true;
+      PASSW[0] = sx; PASSW[1] = gy; PASSW[2] = sz; PASSW[3] = tr; PASSW[4] = gs; return true;
     }
     return false;
   }
@@ -204,7 +204,8 @@
     var k0 = POP.k; POP.k = 50000 + POP.passN++;   // (its own flock keys: the sky's other flocks keep theirs)
     var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]), i; POP.k = k0;
     F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = PASSW[3]; g.y = PASSW[1]; g.T = 900; g.home = true;
-    for (i = 0; i < F.m.length; i++) F.m[i].psi = g.psi;
+    var L = F.lead; L.v[0] = PASSW[4] * Math.sin(g.psi); L.v[2] = PASSW[4] * Math.cos(g.psi);   // (on its way from birth: a still bird's first coarse step would jump)
+    for (i = 1; i < F.m.length; i++) holdPlace(F, F.m[i]);
     F.passage = 1; POP.passF = F;
     return F;
   }
@@ -349,7 +350,7 @@
       F = FQ[i]; if (!F.lead || F.out) continue;
       trailPush(F); if (F.lk) flockLocks(F);
       var L = F.lead, dx = L.p[0] - LVC.x, dz = L.p[2] - LVC.z, dd = dx * dx + dz * dz;
-      F.far = F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R;
+      F.far = !F.passage && (F.far ? dd > (0.92 * NEAR_R) * (0.92 * NEAR_R) : dd > NEAR_R * NEAR_R);   // (a passage is seen far off: it steps as specks do, never a far flock's coarse step, whose held places snap)
       var off = !F.far && !FORCED && offView(F, C);
       if (F.off && !off) { F.acc = 0; for (j = 0; j < F.m.length; j++) if (F.m[j].wOff) wingOn(F.m[j]); }
       F.off = off;
