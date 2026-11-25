@@ -58,3 +58,8 @@ Before a change to the world, its kits or the ink birds:
   day and a night hour, the still skies with no WebGL2 and no script; the
   home page served from the build (/build.txt names the commit), and /CLAUDE.md, /%43LAUDE.md,
   /.github/workflows/validate.yml and /subset-fonts.sh each answering 404.
+- Known noise (SKY, 2026-11-25): a view turned by hand in T1's harness
+  (setting the camera's heading over a few stepped frames) is not frame-exact:
+  main against itself, afterglow seed 77 at 1440x900, differs in about 1,100
+  px of the land, up to 12 codes. Compare such probes base against base
+  first; T1's own null test (base against base, every shard) is exact.

@@ -36,7 +36,7 @@ import { loadGround } from '../ground.mjs';
 const G = loadGround(11);
 const HARD_IN = +/var HARD_IN = ([\d.]+);/.exec(WORLD)[1];
 const FLIGHT = cut(WORLD, '  /* ---------------------------------------------------------------- the flight */', '  /* ---------------------------------------------------------------- the places, the look ahead */');
-const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
+const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* the page\'s touch: one finger steers');
 const CRUISE = cut(WORLD, '  var CW_S = [', '\n  function flightParams') + '\n' + cut(WORLD, '  function flightParams(V, cw) {', '\n  }\n', true);
 // (physics: clouds/drift) the clouds' cores ride in air cells: the world's own cellOff carries them by the low layer's
 // wind (airW: the test's), with no lift (the band's lift is band.mjs's); the landmarks stand in world cells
@@ -44,10 +44,10 @@ const CELLOFF = cut(WORLD, '  function cellOff(', '\n  }\n', true);
 const MAKE_SRC = ('(function (G, OBST, AW) {\n  \'use strict\';\n' +
   '  function airW() { return AW; }\n  function cellLift() { return 0; }\n' + CELLOFF + '\n' +
   '  var PI = Math.PI, DEG = PI / 180, DEVMODE = false, POSE = null, NOAUTO = false, shown = true, STILLMODE = false, SEEDR = 1, J = { seed: 1 }, VSTAGES = [], BIRDS = null, DTMAX = 0.1, SW = {};\n' +
-  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
+  '  var OUT = { cssW: 1000 }, MOTION = { on: false }; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
-  '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
+  '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n' +
   '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function fogTopAt() { return -Infinity; }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function airHeading0() { return 0.7; }\n' +
   '  function planVisit() {}\n  function kwFollow() {}\n  function kwUpload() {}\n  function groundCache() {}\n  function climateLight() {}\n  function directorStep() {}\n  function beamWake() {}\n  function envSolids() {}\n  function pitchLook() {}\n  function devTrace() {}\n' +
   '  var V = { k: 0, st: 0, speed: 12, clear: [7, 14, 45], def: { clear: [7, 14, 45], cruise: [14, 32], margin: 12, marginB: 26 }, margin: 12, cellList: OBST };\n' +

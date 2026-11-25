@@ -36,6 +36,13 @@
     if (du < 1e-9) return [0, 0];
     var k = Math.min(du / (2 * CLOUD_UP), CLOUD_LEAN) / du; return [dx * k, dz * k];
   }
+  /* a free cumulus' life (physics: clouds/life): fair-weather cumulus live on a time scale of tens of minutes (about
+     250,000 tracked trade-wind cumuli: https://doi.org/10.1029/2021JD035577), so each one's tops swell and settle on its
+     own period (LIFE_T, 12-30 min) and phase, a raised cosine of the one clock: seamless, held still when the clock is
+     held (reduced motion). Its height 1 .. 1 + LIFE_A of the baked body, never below it: no cloud forms or dissolves in
+     view (no-fades), and a stretched distance field only under-reads, so the march never oversteps. [scale] */
+  var LIFE_A = 0.2, LIFE_T = [720, 1800];
+  function cloudLife(o, t) { var l = o.life; if (!l) return 1; return 1 + LIFE_A * (0.5 - 0.5 * Math.cos(2 * PI * t / l[0] + l[1])); }
   /* the draw's own moment (between the last two steps, as the camera is drawn) */
   function cloudT() { return SIM.t - (1 - SIM.alpha) * SIM_DT; }
   /* a body's centre at t: its laid-out centre c0 carried by its layer's wind (o.w: [x, z] m/s, set when it is made) */

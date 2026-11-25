@@ -70,8 +70,14 @@ vec3 ridges(vec2 p) {
    face, a smooth trough), its phase warped so the crests wander and break */
 vec3 duneWave(vec2 p, vec2 w, float lam, float c, vec3 warp) {
   vec3 ph = vec3(dot(p, w) / lam, w / lam) + warp;
-  float f = fract(ph.x), s, ds;
-  if (f < c) { float x = f / c; s = x * x * (2.0 - x); ds = (4.0 * x - 3.0 * x * x) / c; }
+  float f = fract(ph.x), s, ds, r = 1.0 / lam;
+  if (abs(f - c) < r) {   // (the crest: its slope's kink rounded over 2 m, a cubic matching both sides' height and slope; a vertex morphing across it turned its normal 12 levels in a frame: lod-pop.mjs --near)
+    float x = 1.0 - r / c, y = r / (1.0 - c), sa = x * x * (2.0 - x), da = (4.0 * x - 3.0 * x * x) / c, sb = 1.0 - y * y * (3.0 - 2.0 * y), db = -6.0 * y * (1.0 - y) / (1.0 - c);
+    float h = 2.0 * r, u = (f - c + r) / h, u2 = u * u, u3 = u2 * u;
+    s = (2.0 * u3 - 3.0 * u2 + 1.0) * sa + (u3 - 2.0 * u2 + u) * h * da + (3.0 * u2 - 2.0 * u3) * sb + (u3 - u2) * h * db;
+    ds = ((6.0 * u2 - 6.0 * u) * (sa - sb) + (3.0 * u2 - 4.0 * u + 1.0) * h * da + (3.0 * u2 - 2.0 * u) * h * db) / h;
+  }
+  else if (f < c) { float x = f / c; s = x * x * (2.0 - x); ds = (4.0 * x - 3.0 * x * x) / c; }
   else { float y = (f - c) / (1.0 - c); s = 1.0 - y * y * (3.0 - 2.0 * y); ds = -6.0 * y * (1.0 - y) / (1.0 - c); }
   return vec3(s, ph.yz * ds);
 }

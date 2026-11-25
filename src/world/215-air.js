@@ -133,7 +133,8 @@
        law's 100 m share of U10 (1.28: ridge), and past 7.7 m/s there (oroU; eased over 7.2-8.2: U10 about 6) the ridges
        stand lee waves, lenticulars and banner clouds; N (0.01/s, the stable troposphere's buoyancy frequency, the value
        CLOUDS' lens takes) sets the lee wave's length, 2 pi U / N, so the lens reads one weather (wx(t).oroU, .N);
-     - vis (km): the visit's own visibility, 10 km in clean air, 4 km in blown sand once U10 is past the sand's
+     - vis (km): the visit's own visibility, 10 km the look's baseline (the realm's tuned haze, not clean air's range:
+       clean desert air runs 100-250 km, https://vista.cira.colostate.edu/Improve/), 4 km in blown sand once U10 is past the sand's
        threshold (eased over 5.8-7.0 m/s); dust (0..1) is how far past. Neither changes with the sky: the far land
        never fades in place */
   var AIR_MIST = { afterglow: 0, bluehour: 1, firstlight: 10, moonlit: 3.5, milkyway: 3.5, aurora: 3.5 };

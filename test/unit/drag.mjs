@@ -57,20 +57,20 @@ test('drag: across the window\'s width the view turns 90 degrees, on any width',
 // on every frame at 60 to 240 Hz and any phase of the steps: the turn a frame is the finger's move that frame, and the
 // time behind the finger is only the move's own lag. (Before: the first step of a frame took the frame's whole drag,
 // drawn between the steps, so a frame turned 0, 1 or 2 frames' worth and the view trailed the finger by 0-17 ms.)
-const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
+const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* the page\'s touch: one finger steers');
 const ADV = cut(WORLD, '  var TSCALE = 1;', '  /* the world, built');
 const MOVE2 = cut(WORLD, '  function onMove(e) {', '  function onClick(e) {');   // (onUp and endDrag too: the lift's sample)
 function flying(phase, boot = false) {   // boot: not yet landed (no frame before the pre-roll; arrive, its first step, sets the yaw and keeps the tilt)
   return vm.runInThisContext('(function (PHASE, BOOT) {\n  \'use strict\';\n' +
     '  var PI = Math.PI, DEG = PI / 180, SIM_DT = 1 / 60, DTMAX = 0.1, NMAX = Math.ceil(DTMAX / SIM_DT) + 2, TH_MAX = 35 * DEG, DEVMODE = false, shown = true, SEEDR = 1, J = { seed: 1 };\n' +
-    '  var CLK = new Float64Array([0, -1]), SIM = { acc: PHASE * SIM_DT, alpha: 0, t: 0, V: BOOT ? null : {} }, OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0;\n' +
+    '  var CLK = new Float64Array([0, -1]), SIM = { acc: PHASE * SIM_DT, alpha: 0, t: 0, V: BOOT ? null : {} }, OUT = { cssW: 1000 }, MOTION = { on: false };\n' +
     '  var INP = { dx: 0, dy: 0, down: true, rel: false, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 }, DRAG = { id: 1, x0: 0, y0: 0, x: 0, y: 0, on: true, type: \'mouse\' };\n' +
     '  var TOUCHMODE = \'none\', DOMQ = {}, running = true, REC = null, root = {}, coast = null, drawnTh = 0, HOLD_S = 0.5, FCOL = { on: false }, CLICKQ = [], SUPPRESS = false, SUPPRESS_F = 0, SUPPRESS_N = 0, FRAMEN = 0, MOTIONASK = {}, window = { removeEventListener: function () {} };\n' +
     '  function onLink() { return false; }\n' +
     '  function S() { return { yawV: 0, thU: 0, ring: new Float32Array(12), ringP: new Float32Array(12), ringT: new Float32Array(12), ri: 0, om: 0, omP: 0, since: 0, lastIn: 0, auto: 0, idleAfter: 0, phi: 0, thP: 0, thPraw: 0 }; }\n' +
     '  var CS = S(), CSP = S();\n' +
     '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { return a - b; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n' +
-    '  function domNext() {}\n  function devInput() {}\n' +
+    '  function domNext() {}\n' +
     '  function simStepOnce() {\n    if (!SIM.V) { SIM.V = {}; CS.yawV = CSP.yawV = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CSP.thU = CS.thU; }   // (arrive: the landing sets the yaw, keeps the tilt)\n' +
     '    CSP.yawV = CS.yawV; CSP.thU = CS.thU;\n    applyInput(SIM_DT, SIM.t, null); SIM.t += SIM_DT;\n    return true;\n  }\n' +
     INPUT + '\n' + MOVE2 + '\n' + ADV +

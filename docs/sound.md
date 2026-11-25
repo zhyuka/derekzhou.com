@@ -62,10 +62,16 @@ first paint. It has one handler, the button's click:
      switch to say why);
    - the one AudioContext (`latencyHint: 'playback'`, at 24 kHz where the browser takes it: nothing in the score is
      above about 4 kHz, so half the work and memory) and a level gain at 0;
-   - the one fetch, `SHEET` (a literal `/assets/sound/notes-N.mp3` from this site), decoded once;
-   - `SCORE.play(ctx, level, buffer, true)` (score.js): sliced, the score fills its room and its air a step at a
-     time and resolves `ready`; then a tick about twice a second on the context's own clock (the score plans ten
-     seconds ahead), and the level rises to 1 over 4 s.
+   - `SCORE.play(ctx, level, null, true)` (score.js) at once: sliced, the score fills its room and its air a step
+     at a time while the sheet comes, and resolves `ready`;
+   - the one fetch, `SHEET` (a literal `/assets/sound/notes-N.mp3` from this site), read as it arrives (2026-11-25):
+     the sheet opens with the notes the score needs first (the tuba's and the violas', then the other strings' and the
+     contrabass's: `SCORE.cuts`, the sheet's seconds to each, at 12,000 bytes a second, its 96 kbps), so at each cut
+     what has come is decoded and handed over (`more(buffer, upto)`), then the whole; every decode starts the same, so
+     each note's place is the same in each, and a voice whose notes have not come yet waits. With no stream to read,
+     or no score yet to name its cuts, the whole at once, as before;
+   - once the first part is decoded and the room and air are filled: a tick about twice a second on the context's
+     own clock (the score plans ten seconds ahead), and the level rises to 1 over 4 s.
 2. **A second press** ramps the level to 0 over 1.5 s, then suspends the context, which lets the audio device go.
    A suspended context's clock stops, so the score plans nothing while off.
 3. **A third press** resumes the context and ramps back up over 4 s. Nothing is fetched or decoded again.
@@ -223,7 +229,7 @@ subseed, salt 97). The world never reads it back; nothing it draws depends on it
 
 Every note the score plays, from real recordings (CC0: VS Chamber Orchestra: Community Edition, and the Versilian
 Community Sample Library's grand piano; docs/licences.md), in one stereo MP3: 60 notes, about 372 s, 24 kHz, 96 kbps,
-about 4.5 MB (notes-3; round twenty-two). tools/sound/sheet.py makes it, by hand, from checkouts of the two libraries (numpy and ffmpeg):
+about 4.5 MB (notes-4, 2026-11-25: notes-3's notes, byte for byte the same audio, in a new order). tools/sound/sheet.py makes it, by hand, from checkouts of the two libraries (numpy and ffmpeg):
 
 - each note at its own pitch (VSCO names its notes an octave under their sound, but not its harp);
 - low-passed at its instrument's cutoff (3.2-5.5 kHz; the deep end's contrabass and tuba 0.8-0.9 kHz), with a soft
@@ -236,9 +242,14 @@ about 4.5 MB (notes-3; round twenty-two). tools/sound/sheet.py makes it, by hand
   with its own decay;
 - the tuba's own low notes, F1 and B-flat 1 (round seventeen's deep end was its F2 played at half speed: every time
   constant doubled, a slowed tape);
-- a click at 0.2 s first, so the score finds where the decoder put time zero (MP3 decoders differ by a few ms).
+- a click at 0.2 s first, so the score finds where the decoder put time zero (MP3 decoders differ by a few ms);
+- in the order the score first needs its notes (WRITE, 2026-11-25): the tuba and the violas (the deep end and the first
+  voice: to 29.3 s, about 351 KB), then the violins, the cellos and the contrabass (to 135.4 s, about 1.6 MB), then the
+  clarinet, the horns, the harp and the piano; the index keeps the score's instrument numbers. A decode of the first
+  part alone matches the whole's sample for sample (measured in Chromium, 2026-11-25), so the switch can start the score
+  on it while the rest arrives.
 
-It writes the file under the next name (changed-bytes-new-name: notes-2 to notes-3 in round twenty-two, the old one removed), the SHEET
+It writes the file under the next name (changed-bytes-new-name: notes-2 to notes-3 in round twenty-two, notes-3 to notes-4 on 2026-11-25, the old one removed), the SHEET
 line in src/sound.js and the NOTES line (the index: instrument, pitch, start, length, loops, gain) in src/score.js.
 
 ## Measuring it (tools/sound/render.mjs)
@@ -330,9 +341,9 @@ Change OUT only with a measurement.
 
 | what | bytes | when |
 |---|---|---|
-| sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 26,026 minified, 9,619 as sent | every visit, deferred, low priority (36-load-budget: 9.5 KB) |
-| the sheet | about 4.5 MB (4,467,501 B) | only at the first press |
+| sound.js | 2,240 minified, 922 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
+| score.js | 26,624 minified, 9,810 as sent | every visit, deferred, low priority (36-load-budget: 10 KB) |
+| the sheet | about 4.5 MB (4,467,501 B) | only at the first press; its first part (about 351 KB) is enough to begin |
 
 Round twenty-two (2026-11-13), the same machine and flight: the audio thread 4.2% of real time (0.23 ms of each
 5.3 ms quantum; fewer notes at once and a shorter room more than pay for each held note's own filter), the main
@@ -353,6 +364,20 @@ The longest task left is Chrome preparing the room for convolution (3.4 s since 
 desktop core, 120-220 ms at x6, measured alone): the score cannot slice it, and only a shorter room would shorten it,
 which would be heard.
 
+**The press to the first sound** (2026-11-25, the sheet in parts against the whole before it; `node
+tools/sound/page.mjs SITE --net MBPS,RTT`, headless Chromium, 7 cold runs each, ms after the press, median / worst).
+The first note begins when its scheduled start comes; it is heard as it swells in under the level's 4 s rise:
+
+| network | the first note begins: before | after | over -60 dBFS: before | after | over -40 dBFS: before | after |
+|---|---|---|---|---|---|---|
+| 10 Mbps, 70 ms (the slow profile) | 4,862 / 5,012 | 768 / 779 | 5,567 / 5,719 | 1,596 / 1,609 | 7,103 / 7,255 | 2,727 / 2,781 |
+| Chrome's Slow 4G (1.44 Mbps, 562.5 ms) | 26,418 / 26,487 | 2,956 / 2,970 | 27,032 / 27,090 | 3,580 / 3,602 | 27,628 / 27,686 | 4,712 / 4,730 |
+| 50 Mbps, 20 ms | 1,798 / 1,956 | 538 / 549 | 2,579 / 2,729 | 1,362 / 1,369 | 4,051 / 4,201 | 2,493 / 2,497 |
+| localhost | 1,023 / 1,124 | 644 / 742 | 1,802 / 1,918 | 1,447 / 1,537 | 3,274 / 3,390 | 2,899 / 2,989 |
+
+On Slow 4G the first part itself (about 351 KB) takes about 2 s to come, and a round trip is half a second. Warm
+(the sheet from the HTTP cache) every network is as localhost.
+
 The sheet has no line in 36-load-budget on purpose: a cold visit never loads it, so if one ever did, it would fail
 that check as an unbudgeted file. Decoded at 24 kHz it holds about 71 MB of memory (57 MB before round twenty-two's
 longer loops); a browser that will not open the context at 24 kHz decodes it at its own rate (48 kHz: about 143 MB). While playing: about 25 buffer sources at
@@ -372,7 +397,10 @@ once, a convolver and a few filters.
 ## The check (tools/checks/38-sound.sh)
 
 tools/sound/page.mjs serves the build with its own Permissions-Policy, opens it in headless Chromium (autoplay
-needing a gesture) and takes about 25 s. It fails when:
+needing a gesture) and takes about 25 s. It prints the press to the first sound: when the first note begins (the
+earliest scheduled start of the notes the score starts) and when the output first passes -60 and -40 dBFS (an
+analyser on the way to the speakers). `--net MBPS,RTT` throttles the page's network with Chromium's own emulation
+(`--net 10,70` is the slow profile below; `--net 1.44,562.5` is Chrome's Slow 4G). It fails when:
 
 - **before the press (2 s):** an audio context is made or anything audio is requested, or the icon is hidden or
   pressed, or the score has not registered;
@@ -406,7 +434,9 @@ more, each inside a Milky Way, 6.5 s at most, no deep note under it, 85 s apart 
 at twice the wind four times as loud and the billow 1.4 times (0.6 + 1.6 w), all of it silent in a calm, a gust heard at
 the first tick it reaches the camera; the sand's hiss none at 0.99 of its threshold, on at 1.01, on down to 0.8 of it and
 off under it, none over the cloud (its plants: the sand hissing at half its threshold; the wind heard from the side it
-blows toward); and the room and the air filled sliced, each step
+blows toward); the sheet in parts: its cuts end after the tuba's and the violas' notes, then the strings' and the
+contrabass's, and on its first part alone the score plays only those, its first voice within 1.2 s, the rest joining
+when it comes (its plant: a voice played from a part not yet decoded); and the room and the air filled sliced, each step
 run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
 filled at once, in 20 steps or more (four sources on filled buffers: the room, the two airs and the hiss on the stream's). About 25 s. Its first plant lets a note in a step from one it meets.
 

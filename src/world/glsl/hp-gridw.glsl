@@ -11,7 +11,7 @@ void gridW() {
     vec2 c = L.xy + aG, w = c * L.z;
     float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
     float m = clamp((d - (L.w - 11.0) * L.z) / (8.5 * L.z), 0.0, 1.0);
-    w = (c - mod(aG, 2.0) * m) * L.z;
+    w = (c + mod(c, 2.0) * (mod(c, 4.0) - 2.0) * m) * L.z;
     gLodD = length(w - uCam.xz); gw = w;
   } else gw = uHsrc == 2 ? uGCw.xy + gl_FragCoord.xy * uGCw.z : texelFetch(uTex, gq, 0).xy;
 }

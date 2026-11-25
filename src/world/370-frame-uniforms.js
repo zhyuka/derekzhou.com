@@ -6,16 +6,21 @@
   var FR = { tanX: 1, tanY: 1, t: 0 }, FRT = { tanX: 1, tanY: 1 };
   var HZU = new Float32Array(4), CAML = new Float32Array(3);
   /* the aerosol (lib-air: atmos), the visit's own (AIR's weather: neither changes with the sky, so the far land never
-     fades in place): its optical depth as the sky's tuned haze in clean air (AIR's 10 km), times the visual range's
-     inverse (extinction is 3.912 over the range at a 2% contrast threshold, https://glossary.ametsoc.org/wiki/Visibility:
-     4 km in blown sand is 2.5 times the air), times the particles' growth with the humidity, ((1 - RH) / (1 - RH0))^-AER_GAM
-     (https://doi.org/10.1016/S0065-2687(08)60142-9), RH from AER_RH by the visit's moisture; desert dust's forward
-     asymmetry AER_G; AER_SUN the forward peak's share of the light (the sky's colour holds the even part) */
-  var AER_RH = [0.3, 0.9], AER_GAM = 0.3, AER_G = 0.7, AER_SUN = 0.05, AERU = new Float32Array([1, AER_G, AER_SUN, 0]), AERK = { V: null, t: NaN };
+     fades in place): its optical depth as the realm's tuned haze at the look's baseline (AIR's vis 10 km), times that
+     baseline over the visit's vis (4 km in blown sand is 2.5 times it), times the particles' growth with the humidity,
+     ((1 - RH) / (1 - RH0))^-AER_GAM (https://doi.org/10.1016/S0065-2687(08)60142-9), RH from AER_RH by the visit's
+     moisture. Its amount is the look's (clean desert air would be clearer still: 100-250 km standard visual range,
+     https://vista.cira.colostate.edu/Improve/); its colour is physics': by wavelength as (lambda / 550 nm)^-alpha, green's
+     extinction the amount's, the wavelength exponent AER_A[0] for dry fine aerosol, falling to AER_A[1] in blown dust and
+     with the growth (https://doi.org/10.1029/1999JD900923: continental 1.2-1.5, desert dust 0-0.5): a dry air's haze
+     takes more blue than red, a moist or dusty one is even. Desert dust's forward asymmetry AER_G; AER_SUN the forward
+     peak's share of the light (the sky's colour holds the even part) */
+  var AER_RH = [0.3, 0.9], AER_GAM = 0.3, AER_G = 0.7, AER_SUN = 0.05, AER_A = [1.3, 0.3], AERU = new Float32Array([1, AER_G, AER_SUN, AER_A[0]]), AERK = { V: null, t: NaN };
   function aerU(u, V) {
     if (AERK.V !== V || AERK.t !== SIM.t) {
-      var w = airWx(SIM.t, V), rh = AER_RH[0] + (AER_RH[1] - AER_RH[0]) * w.moist;
-      AERK.V = V; AERK.t = SIM.t; AERU[0] = AIR_WXK.vis[0] / w.vis * Math.pow((1 - rh) / (1 - AER_RH[0]), -AER_GAM);
+      var w = airWx(SIM.t, V), rh = AER_RH[0] + (AER_RH[1] - AER_RH[0]) * w.moist, gr = Math.pow((1 - rh) / (1 - AER_RH[0]), -AER_GAM);
+      AERK.V = V; AERK.t = SIM.t; AERU[0] = AIR_WXK.vis[0] / w.vis * gr;
+      AERU[3] = (AER_A[0] - (AER_A[0] - AER_A[1]) * w.dust) / gr;
     }
     gl.uniform4fv(u.uAer, AERU);
   }
@@ -116,17 +121,12 @@
   }
   /* the composite's inputs (the world's live light; there is no junction to ease across) */
   var EL = { bloom: new Float32Array(3), shaftC: new Float32Array(3), lift: new Float32Array(3), gain: new Float32Array(3), exposure: 1, sat: 1 };
-  var SIMNIGHT = false;   // (dev: __world.set({ simnight: 1 }); the paper birds' night look over a SIMULATED night)
   var CAMK = 1;   // (dev: __world.set({ camk: 0.4 }); the camera's pace scaled for a film of a staged wheel (a camera that lingers near a wheel is the world's open decision: SIMULATED); 1 = the world's own pace)
   function easedLight(V, u) {
     var L = V.L || V.light, P = null, w = 1, k;   // (no last realm to ease from)
     var Q = L;
     for (k = 0; k < 3; k++) { EL.bloom[k] = lerp(Q.bloom[k], L.bloom[k], w); EL.shaftC[k] = lerp(Q.shaftC[k], L.shaftC[k], w); EL.lift[k] = lerp(Q.lift[k], L.lift[k], w); EL.gain[k] = lerp(Q.gain[k], L.gain[k], w); }
     EL.exposure = lerp(Q.exposure, L.exposure, w); EL.sat = lerp(Q.sat, L.sat, w);
-    if (SIMNIGHT) {   // (dev only: SIMULATED night, the world having no night yet: the day's light graded down and toward blue; never in production)
-      EL.exposure *= 0.15; EL.sat *= 0.7;
-      for (k = 0; k < 3; k++) { EL.gain[k] *= [0.6, 0.74, 1.08][k]; EL.lift[k] += [0.0015, 0.0025, 0.007][k]; EL.bloom[k] *= k === 0 ? 0.6 : 1; }
-    }
     return EL;
   }
 
