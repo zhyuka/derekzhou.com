@@ -117,8 +117,9 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
   var S1_FS = `
   if (vS1.w > 0.01) {
     vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
-    vec2 rh = normalize(rd.xz + vec2(1e-6, 0.0));
-    float cp = fp * length(vec2(dot(g, rh) / max(abs(dot(n, rd)), 0.02), dot(g, vec2(-rh.y, rh.x))));
+    vec2 rh = normalize(rd.xz + vec2(1e-6, 0.0)), s0 = s1Slope(fract(vS1.x), g, H, fl, s1Rb(H, k, fl), max(0.15 * H, 0.05), vS1d);
+    vec3 nc = normalize(vN - vec3(s0.x - vS1g.y, 0.0, s0.y - vS1g.z));   // (the footprint's grazing term from the fragment's own slope: the vertices' drifts as they morph, lod-pop.mjs --brink)
+    float cp = fp * length(vec2(dot(g, rh) / max(abs(dot(nc, rd)), 0.02), dot(g, vec2(-rh.y, rh.x))));
     float B = 1.0 - smoothstep(0.25, 0.5, cp);
     if (B > 0.0) {
       float wpx = 1.5 * cp / k, sB = H * k * (0.5 / L + 1.0 / fl);   // (1.5 px in metres along the wind; the slopes' sum either side)

@@ -142,6 +142,9 @@ export function overSwell(x, y, a = 0.6) {
 }
 /* the land's height at (x, y) in wind angle a, as dunes() makes it (tools/physics/lod-pop.mjs) */
 export function landAt(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; return dunes(x, y).h[0]; }
+/* the land at (x, y) whole, as the land's vertex stage takes it: the height and its slope (vN), and the main dune's
+   phase and pieces (S1_OUT's vS1, vS1d: the phase unwrapped, its gradient, H, fl, dH, dQ) for the fragment's rebuild */
+export function landFull(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; const d = dunes(x, y); return { h: d.h, s1: d.s1 }; }
 function dunes(x, y) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   const swell = add(sc(g0, 40), sc(g1, 15));
@@ -151,7 +154,7 @@ function dunes(x, y) {
     const warp = add(sc(dNs(x, y, 1 / 340), 0.42), sc(dNs(x + 71, y + 71, 1 / 95), 0.13));
     const r = waveOld(x, y, w, 205, 0.68, warp); main = sc(mul(r.h, amp), 32); lee = r.lee;
   } else {
-    const r = waveS1(x, y, 205, sc(amp, 32), swell, swellH(x, y)); main = r.h; lee = r.lee; var nearW = r.nearW;
+    const r = waveS1(x, y, 205, sc(amp, 32), swell, swellH(x, y)); main = r.h; lee = r.lee; var nearW = r.nearW; var r1 = r;
   }
   // the near family (64 m), as today (x0.6 and kept off the slip face in S1)
   const w2 = (() => { const v = [w[0] + 1.3 * pp[0], w[1] + 1.3 * pp[1]], l = Math.hypot(v[0], v[1]); return [v[0] / l, v[1] / l]; })();
@@ -159,7 +162,7 @@ function dunes(x, y) {
   const s2 = waveOld(x + 37, y + 37, w2, 64, 0.7, warp2).h;
   let near = sc(mul(s2, sstep(-0.5, 0.4, dNs(x + 900, y + 900, 1 / 160))), 4);
   if (MODEL !== 'old') near = sc(mul(near, nearW), 0.6);
-  return { h: add(add(swell, main), near), mainGrad: main, lee };
+  return { h: add(add(swell, main), near), mainGrad: main, lee, s1: MODEL === 'old' ? null : r1 };
 }
 
 const E = 0.25;
