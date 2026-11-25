@@ -137,3 +137,10 @@ export function regateAnswer({ shared = [], same: all = [], approved = false }) 
   if (shared.length && !approved) return { regate: true, why: `main touched the ${shared.join(', ')} area since its gate: re-gated` };
   return { regate: false };
 }
+
+// The bot's own files (merge-bot.mjs's SELF): a PR changing one waits for the hub's review, its served build the base's or
+// not, since the bot runs main's copy on the next tick. Its workflow, its code and every module it imports (areas.mjs,
+// deploy-walk.mjs, this file), and the data it decides by (areas.json, the names guard and its list). #435 (2026-11-25)
+// changed this file, the list then held only merge.yml and merge-bot.mjs, and it landed with no review;
+// test/unit/merge-bot.mjs derives the list from the bot's imports and reads, so a new module cannot fall out of it.
+export const BOT_FILES = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', '.github/ci/areas.mjs', '.github/ci/areas.json', '.github/ci/deploy-walk.mjs', '.claude/hooks/guard.py', '.claude/hooks/names.json'];
