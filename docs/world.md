@@ -296,6 +296,22 @@ Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
 frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
 a tenth of a dark night's own sky low down; pale green at luminance 1, with no
 structure and no clock.
+The great comet (227 cometPlan, sky-body.glsl cometAt; delight-night item 6):
+in 2 of the 16 openings (COM_K 6 and 7, the two whose twilight views face the
+sun's side: measured on the page, as the evening star is seen there too), on the
+first visit only, on a twilight opening only (afterglow, the blue hour, first
+light). Placed as the evening star is, by the drawn sun and turned with it as it
+sinks (it sets with the sun's side): its head 14-50 deg from the sun and up to 35
+deg off the ecliptic, the first of 64 places whose head and tails keep off the
+words and whose head is in view at the cut. Its tails run along the great circle
+from the sun through its head, away from the sun (test/unit/sky.mjs: within 2
+deg at every depth; in fact on it): the ion tail straight, narrow and blue, the
+dust tail broader, white-yellow and curved to one side, 22 deg of each; a small
+soft head; every width at least 1.2 px (no glitter), no clock (it moves only as
+the sun sinks), its light under its peak over the sky's own (Y 0.12), behind the
+haze, dimmed by the air as the stars are. In a bright twilight near the horizon
+it is faint, as a comet there is.
+
 No zodiacal light: at 64 deg north, with the sun 24 deg down in the dark
 half of the year, the cone's bright base (within 30 deg of the sun along the
 ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
