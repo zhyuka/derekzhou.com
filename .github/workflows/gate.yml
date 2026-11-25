@@ -240,8 +240,34 @@ jobs:
           if-no-files-found: error
 
   # The gate's one answer (verdict.mjs -> the gate-verdict artifact merge.yml reads): gate_ok, frames_identical.
+  # The first paint, base against head (load-perf, 2026-11-25; the hub's trend check): the plan's two builds opened cold
+  # in the gates' headless Chromium on the real clock, base and head in turn, 9 loads an arm (tools/paint-trend.mjs).
+  # It fails when the head's median words (the first contentful paint) or world (the world's first shown frame) is
+  # slower than the base's by more than max(50 ms, 3 x the noise it measures). Only when what is served changed: a
+  # byte-identical build cannot be slower (skipped, which the verdict counts as green).
+  paint:
+    needs: plan
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.site_changed == 'true' && needs.plan.outputs.has_pr != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/playwright
+      - uses: actions/download-artifact@v4
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate' }
+      - name: The two builds (the plan's hand-off, checked against its manifest, pinned to the plan's output)
+        env:
+          HANDOFF_SHA: ${{ needs.plan.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
+        run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served" --pinned
+      - name: The first paint, base against head
+        run: node tools/paint-trend.mjs "$RUNNER_TEMP/served/base" "$RUNNER_TEMP/served/head" --runs 9 --json "$RUNNER_TEMP/paint.json"
+
   verdict:
-    needs: [static, plan, t1]
+    needs: [static, plan, t1, paint]
     if: ${{ !cancelled() }}   # (a run a newer push cancelled has no verdict: it is not red, it is superseded)
     runs-on: ubuntu-latest
     timeout-minutes: 5
