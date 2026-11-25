@@ -132,7 +132,10 @@
      cell's ground does), so it never shows when the cell is made or freed.
      Its envelope is held (a world cell's); the billows in it flow at the wind at its height (b.flow). Sources:
      https://cloudatlas.wmo.int/en/clouds-species-lenticularis.html (lenticularis);
-     https://www.eoas.ubc.ca/books/Practical_Meteorology/ (mountain waves: the wavelength 2 pi M / N, N about 0.01/s) */
+     https://www.eoas.ubc.ca/books/Practical_Meteorology/ (mountain waves: the wavelength 2 pi M / N, N about 0.01/s);
+     the gate: a flow of at least 25-40 km/h (6.9-11.1 m/s) as near square to the ridge as it can be, at its crest and
+     above (https://www.meteoswiss.admin.ch/weather/weather-and-climate-from-a-to-z/mountain-and-lee-waves.html): the
+     world's ridges are low, so the gate stands near that band's foot, 7.7 m/s (28 km/h; the hub's ruling, 2026-11-25) */
   var HELD_H = 100, HELD_SQ = 0.5;   // the crest's height for its wind (the ridge-top flow, 100 m up, m); the wind within 30 deg of square (|cos| to the crest at most 0.5)
   function dHeld(C) {
     var V = C.V; if (!V || !V.wind) return;

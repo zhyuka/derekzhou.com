@@ -58,6 +58,17 @@ laid out once, by its own cell), and a census of a flight (windy visits:
 about one lens in reach in half the minutes of a flight, at most three;
 calm: none).
 
+The gate's 7.7 m/s (the hub's ruling, 2026-11-25: main's gate kept): lee
+waves want a flow of at least 25-40 km/h (6.9-11.1 m/s), as near square
+to the ridge as it can be, at the crest and above
+(https://www.meteoswiss.admin.ch/weather/weather-and-climate-from-a-to-z/mountain-and-lee-waves.html).
+The figure often quoted for big ranges, about 10 m/s (20 kt) at the
+crest, would shut the gate on every visit: the crest's wind is at most
+9.6 m/s (U10 7.5). The world's ridges are low, so the gate stands near
+the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
+of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
+of 7.7 m/s, lenses on every sweep step past it.
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
