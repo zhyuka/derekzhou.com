@@ -49,7 +49,7 @@ function loadScripts(site, scripts) {
 // ------------------------------------------------------------------ one visit in a small fake browser
 function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
   return new Promise((resolve) => {
-    const R = { lateF: -1, lateStatusF: -1, lateFlushF: -1, statusF: -1, ctxF: -1, flushF: -1, firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
+    const R = { vox: 0, draws: 0, lateF: -1, lateStatusF: -1, lateFlushF: -1, statusF: -1, ctxF: -1, flushF: -1, firstShaderF: -1, stillF: -1, shaders: [], programs: [], reg: [], errors: [], shown: false, frames: 0, shownF: -1, lastRafF: -1, lastDrawF: -1 };
     let clock = V.t0;
     const now = () => (clock += 0.02);   // (each read moves the clock on a little, so a loop that works to a deadline ends)
     function guard(f, where) { try { f(); } catch (e) { R.errors.push(where + ': ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).map((x) => x.trim()).join(' | ') : String(e))); } }
@@ -130,7 +130,9 @@ function run(V, page, O = {}) {   // (O.reduced: prefers-reduced-motion matches)
       if (typeof p !== 'string') return undefined;
       if (/^[A-Z0-9_]+$/.test(p)) return C(p);
       if (/^create[A-Z]/.test(p)) return () => obj(p.slice(6));
-      if (/^(draw|blitFramebuffer$|clear$)/.test(p)) return () => { R.lastDrawF = R.frames; };   // (--reduced: when the page last drew)
+      if (/^draw/.test(p)) return () => { R.lastDrawF = R.frames; if (!R.shown) R.draws++; };   // (--reduced: when the page last drew; the boot's draws before the show, counted)
+      if (/^(blitFramebuffer$|clear$)/.test(p)) return () => { R.lastDrawF = R.frames; };
+      if (p === 'texImage3D') return (tg, lv, f, w, h, d) => { if (!R.shown) R.vox += w * h * d; };   // (the 3D texels the boot makes before the show: the noise and every cloud body baked for the first frame)
       if (p === 'flush') return () => { if (R.flushF < 0) R.flushF = R.frames; if (R.lateF >= 0 && R.lateFlushF < 0 && R.frames > R.lateF) R.lateFlushF = R.frames; };   // (the programs' batch ends in the boot's first flush: the still waits for nothing else)
       return () => undefined;
     } });
