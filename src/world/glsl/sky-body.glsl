@@ -22,6 +22,7 @@ uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0
 uniform mat3 uSkyF;   // (physics: night/sky-turn) world to the sky's frame (215's skyFrame, transposed): the stars and the galaxy turn together, at SKY_RATE
 uniform vec4 uVen;    // (night, delight-night §1) the evening (or morning) star: its direction, 1 while the visit has one
 uniform vec4 uJup;    // (night) the bright outer planet: its direction, its peak (Y; 0 while the visit has none)
+uniform vec4 uCom, uComT;   // (night, delight-night §6) the great comet: its head's direction and its peak (Y; 0 while the visit has none); its tails' direction at the head (away from the sun) and the dust tail's side (+-1)
 uniform vec4 uStarM;  // (night, delight-night §1 and §4) the faintest magnitude the sun's depth lets show at the zenith, the zenith's own sky light (Y), Venus's top (Y), the sky light's weight in nightLim (1 in a twilight, 0 from 18 deg down)
 uniform vec4 uMetH, uMetT;   // (delight-night §2) the meteor on show: its head's direction and light (Y; 0: none), its tail's direction and its width (px)
 uniform vec3 uMetC;          // its colour, at luminance 1
@@ -361,6 +362,25 @@ vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, float m, vec3 col) {   // (bo
 float veilMean(float x) { return smoothstep(0.55 - x, 0.95 - x, 0.692); }
 float hiCov(vec2 P, vec2 dD) { return uHiP.w > 0.0 ? mix(uHiP.x, uHiP.y, clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)) : uHi.x; }   // (physics: sky/cirrus) the cover at the deck's point P
 const float MET_TOP = 0.118;   // (219's METEOR.TOP_Y: the head's cap, OKLab L 0.49 with no sky under it)
+/* (night, delight-night §6) the great comet (227's cometPlan places it, cometTail aims it): in the plane of the sky at its
+   head (x along its tails, away from the sun; y across), a small soft head; the ion tail straight down x, narrow and
+   blue, fading over 14 deg; the dust tail broader and white-yellow, curving to one side (its offset 0.35 x^2), fading
+   over 17 deg; COM_L 22 deg of each drawn. Every width at least 1.2 px, so it never glitters as it moves; steady (no
+   clock). Its light bounded as the planets' (never past its peak uCom.w over the sky's own light, Y 0.12: OKLab L 0.48),
+   behind the haze, dimmed and reddened by the air as the stars are (#447) */
+vec3 cometAt(vec3 rd, vec3 c) {
+  float z = dot(rd, uCom.xyz);
+  if (z < 0.85) return vec3(0.0);
+  vec3 p = rd / z - uCom.xyz;
+  float x = dot(p, uComT.xyz), y = dot(p, cross(uCom.xyz, uComT.xyz)), pa = 2.0 * atan(uProj.y) / uRes.y;
+  float hv = max(uCom.w - dot(c, LUMA), 0.0), w0 = 1.2 * pa, xf = smoothstep(0.0, 0.01, x) * (1.0 - smoothstep(0.34, 0.4, x));
+  float hd = exp(-(x * x + y * y) / (2.0 * pow(max(w0, 0.0015), 2.0)));
+  float wi = max(0.0025 + 0.012 * x, w0), wd = max(0.004 + 0.09 * x, w0), yd = y - uComT.w * 0.35 * x * x;
+  float io = xf * exp(-x / 0.25 - y * y / (wi * wi)), du = xf * exp(-x / 0.3 - yd * yd / (wd * wd));
+  vec3 v = vec3(1.0) * hd + vec3(0.62, 0.86, 1.32) * 0.35 * io + vec3(1.08, 1.0, 0.8) * 0.5 * du;
+  float X = airmass(rd.y);
+  return extTint(min(v, vec3(1.0)) * hv, X) * exp2(-0.4 * 3.3219281 * EXT_V * max(X - 1.0, 0.0)) * (1.0 - hazeSky(rd));
+}
 /* (delight-night §2) a meteor: its head and wake as a segment on the screen (both ends projected as starAt projects a
    star), its light integrated over the pixel across (the stars' starBox) and along (starErf at both ends), so it keeps
    its light as it slides between pixels; the wake brightens toward the head, the head a little brighter still; each
@@ -376,7 +396,8 @@ vec3 meteorAt(vec3 c) {
   float along = 0.5 * (starErf(s * k) - starErf((s - L) * k)), tap = mix(0.2, 1.0, clamp(s / L, 0.0, 1.0));
   vec2 dh = gl_FragCoord.xy - B;
   float v = uMetH.w * (starBox(d, sg) * along * tap + SKYTAU * sg * sg * starBox(dh.x, sg) * starBox(dh.y, sg));   // (the wake about half its light along its line, the head about its whole light at its centre)
-  return uMetC * min(v, max(MET_TOP - dot(c, LUMA), 0.0));
+  float mX = airmass(uMetH.y);   // (physics: night/extinction: a meteor, 80-120 km up, seen through the same air as the stars: k (X - 1) magnitudes from its light at the head's height, a little redder; nothing overhead changes, nothing brighter)
+  return extTint(uMetC, mX) * min(v * exp2(-0.4 * 3.3219281 * EXT_V * max(mX - 1.0, 0.0)), max(MET_TOP - dot(c, LUMA), 0.0));
 }
 void main() {
   vec2 ndc = gl_FragCoord.xy / uRes * 2.0 - 1.0;
@@ -563,6 +584,7 @@ void main() {
   }
   if (uVen.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uVen.xyz, uStarM.z, -4.4, vec3(1.0583, 0.9954, 0.8738));   // (night) the evening or morning star
   if (uJup.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uJup.xyz, uJup.w, -2.4, vec3(1.0409, 0.9959, 0.9208));   // (night) the bright outer planet
+  if (uCom.w > 0.0 && rd.y > 0.0) c += cometAt(rd, c);   // (night, delight-night §6) the great comet, on a twilight opening
   if (anvCov > 0.0) c = mix(c, cBA, anvCov);   // (physics: weather/far-anvil) the galaxy, the aurora, the moon and the stars behind the storm's body
 #ifdef SKY_HOOK
   c = skyHook(rd, c);

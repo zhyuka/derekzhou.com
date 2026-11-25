@@ -76,11 +76,11 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, soarT: -1, soarH: 0, soarX: 0, soarZ: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, wx: 0, wz: 0, tum: 0, tum0: 0, tumT: -1, tumS: 1, soarT: -1, soarH: 0, soarX: 0, soarZ: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
-    var ch = Math.cos(b.gam);
-    b.v[0] = b.V * ch * Math.sin(psi) + WINDV[0]; b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi) + WINDV[2];   // (over the ground: its way through the air and the wind, as every step makes it; air alone drew a seeded flock up to 33 deg off on its first frame, the hub's review 3)
+    var ch = Math.cos(b.gam); ownWind(b);
+    b.v[0] = b.V * ch * Math.sin(psi) + b.wx; b.v[1] = b.V * Math.sin(b.gam); b.v[2] = b.V * ch * Math.cos(psi) + b.wz;   // (over the ground: its way through the air and the wind, as every step makes it; air alone drew a seeded flock up to 33 deg off on its first frame, the hub's review 3)
     BIRDS.push(b);
     return b;
   }
@@ -113,19 +113,31 @@
      along the wind (6.5 m/s on the dunes' ~13 deg windward faces: about 1.5 m/s), thinning with the height over the face
      (LIFT_H, about a dune's height: doi:10.1038/s41598-017-05319-8, gulls glide straight along faces in it). The air
      rises: it carries every flying bird as the wind does, and a glider climbs where it rises faster than it sinks */
-  var LIFT_H = 40, LIFT_D = 6;
+  var BWV = [0, 0, 0], LIFT_H = 40, LIFT_D = 6, TUM_W = 0.8, TUM_P = 0.12, TUM_D = 1;   // (TUM: a crow tumbles from 0.8 m/s of lift, about once in 8 s of it, each roll 1 s)
   function slopeW(x, y, z) {
     var u = Math.sqrt(WINDV[0] * WINDV[0] + WINDV[2] * WINDV[2]); if (u < 0.5) return 0;
     var g0 = lvGround(x, z), hg = y - g0; if (!(hg < 3 * LIFT_H) || hg < 0) return 0;
     var ex = WINDV[0] / u * LIFT_D, ez = WINDV[2] / u * LIFT_D, gr = (lvGround(x + ex, z + ez) - lvGround(x - ex, z - ez)) / (2 * LIFT_D);
     return gr > 0 ? u * gr / Math.sqrt(1 + gr * gr) * Math.exp(-hg / LIFT_H) : 0;
   }
+  /* (physics #29) the air's own wind where a bird is: at its height over the ground (the log law) and in the one gust field,
+     no wind of the birds' own; a bird landing keeps the step's one wind, its approach planned in it */
+  function ownWind(b) {
+    b.wx = WINDV[0]; b.wz = WINDV[2]; if (b.st !== 'fly' || b.P || !WIND_ON || FORCED || !HOST.gust) return;
+    var hg = Math.max(2, b.p[1] - lvGround(b.p[0], b.p[2])), w; HOST.wind(BWV, hg); w = Math.sqrt(BWV[0] * BWV[0] + BWV[2] * BWV[2]); w = w > 0 ? 1 + HOST.gust(b.p[0], b.p[2], hg) / w : 1; b.wx = BWV[0] * w; b.wz = BWV[2] * w;
+  }
   /* ---------------- the flight: one integrator ---------------- */
   /* the bird flies toward a wanted velocity over the ground (dx, dy, dz, m/s): its heading through the air turned only
      by its bank, its climb and its airspeed eased within its kind's limits; then the wind carries it */
   function flyTo(b, dt, dx, dy, dz, vk) {
-    var K = b.K, wx = WINDV[0], wz = WINDV[2];
+    var K = b.K;
+    ownWind(b); var wx = b.wx, wz = b.wz;
     b.lift = b.st === 'fly' && !b.P ? slopeW(b.p[0], b.p[1], b.p[2]) : 0;
+    /* (Delight 3) a crow in a rim's strong lift tumbles now and then: a roll right over, about a second, rolled out of its lift
+       and dropping a little as it goes (corvids roll more in moderate and strong wind,
+       losing height as they roll: https://sora.unm.edu/sites/default/files/journals/auk/v101n03/p0620-p0621.pdf). The roll is the drawn body's alone (tum): its flight never banks past its kind's limit */
+    if (b.tumT >= 0) { var tu = (t - b.tumT) / TUM_D; if (tu >= 1) { b.tumT = -1; b.tum0 -= TAU * b.tumS; b.tum = 0; } else { b.tum = TAU * tu * tu * (3 - 2 * tu) * b.tumS; b.lift = -1.5 * Math.sin(Math.PI * tu); } }   // (a whole turn is none: taken from the step's start too, so the draw never spins it back)
+    else if (b.kind === 'crow' && b.lift > TUM_W && b.r() < TUM_P * dt) { b.tumT = t; b.tumS = b.r() < 0.5 ? 1 : -1; }
     var ax = dx - wx, az = dz - wz, ay = dy, hz = Math.sqrt(ax * ax + az * az);
     var psiD = hz > 0.3 ? Math.atan2(ax, az) : b.psi, gamD = clamp(Math.atan2(ay, Math.max(hz, 0.5)), -K.dive * DEG, K.climb * DEG);
     var lo = b.vLo || 0.72 * K.v, hi = b.vHi || 1.45 * K.v, VD = clamp(Math.sqrt(ax * ax + ay * ay + az * az) * (vk || 1), lo, hi);   // (a landing's own range: vLo, vHi)
@@ -139,7 +151,7 @@
     integrate(b, dt);
   }
   function integrate(b, dt) {
-    var ch = Math.cos(b.gam), vx = b.V * ch * Math.sin(b.psi) + WINDV[0], vy = b.V * Math.sin(b.gam) + b.lift, vz = b.V * ch * Math.cos(b.psi) + WINDV[2];
+    var ch = Math.cos(b.gam), vx = b.V * ch * Math.sin(b.psi) + b.wx, vy = b.V * Math.sin(b.gam) + b.lift, vz = b.V * ch * Math.cos(b.psi) + b.wz;
     b.v[0] = vx; b.v[1] = vy; b.v[2] = vz;
     b.p[0] += vx * dt; b.p[1] += vy * dt; b.p[2] += vz * dt;
   }
@@ -293,7 +305,7 @@
     /* (physics: birds/wind) v is its speed through the air, a little more into a headwind (0.2 m/s a m/s; gulls 0.16,
        doi:10.3354/meps14431), a little less with it behind; over the ground along its track, crabbed against the side
        wind: so a headwind slows it over the ground, never held to its still-air pace (still air everywhere but the dunes) */
-    var wa = WINDV[0] * sh + WINDV[2] * ch, wp = WINDV[0] * ch - WINDV[2] * sh, va = v * clamp(1 - 0.2 * wa / v, 0.85, 1.35), gs = b.P || t - b.hT < 30 || (b.K.perch && F.m.length < 2) ? v : wa + Math.sqrt(Math.max(0, va * va - wp * wp));   // (a lone bird that perches, or one with a landing in hand or begun in the last 30 s, works the view: it holds its pace over the ground; flocks and the commuting kinds fly the air speed)
+    var wa = b.wx * sh + b.wz * ch, wp = b.wx * ch - b.wz * sh, va = v * clamp(1 - 0.2 * wa / v, 0.85, 1.35), gs = b.P || t - b.hT < 30 || (b.K.perch && F.m.length < 2) ? v : wa + Math.sqrt(Math.max(0, va * va - wp * wp));   // (a lone bird that perches, or one with a landing in hand or begun in the last 30 s, works the view: it holds its pace over the ground; flocks and the commuting kinds fly the air speed)
     WV[0] = gs * sh; WV[1] = dy; WV[2] = gs * ch;
     if (t - g.t0 > g.T && g.k !== 'out' && g.k !== 'sink') nextGoal(F);   // (a sink is never given up: under the cloud it is only ever taken out)
     return WV;

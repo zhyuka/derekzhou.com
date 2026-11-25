@@ -16,6 +16,7 @@
      (lathes and grids at about half their segments, the same forms); within LOD_NEAR it is built again in full (the
      coarse mesh drawn until the full one is up) */
   var LOD_FAR = 1800, LOD_NEAR = 1500;
+  function lodDist(C, x, z) { var it = C.sc === 5 && C.items[0]; return it ? Math.max(Math.hypot(it.x - x, it.z - z) - 800, 0) : nearDist(C, x, z); }   // (the destination's 16 km cell: by its form, not the cell the camera stands in: coarse 7 km out at the boot, full as the flight comes near)
   function nearDist(C, x, z) { var dx = Math.max(Math.abs(x - C.cx) - C.size / 2, 0), dz = Math.max(Math.abs(z - C.cz) - C.size / 2, 0); return Math.sqrt(dx * dx + dz * dz); }
   function cellKey(sc, ix, iz) { return (sc * 65536 + (ix + 32768)) * 65536 + (iz + 32768); }
   function Cell(V, sc, ix, iz) {

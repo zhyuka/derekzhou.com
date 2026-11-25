@@ -90,7 +90,7 @@
     else C.bound[3] = 0;
     C.st = 2;
     C.B = C.items.length ? new Builder(4096) : null; C.bi = 0;
-    var sa = V.scanAt || [0, 0]; C.lod = C.sc === 0 && nearDist(C, sa[0], sa[1]) > LOD_FAR ? 1 : 0;
+    var sa = V.scanAt || [0, 0]; C.lod = (C.sc === 0 || C.sc === 5) && lodDist(C, sa[0], sa[1]) > LOD_FAR ? 1 : 0;
     if (C.B) C.B.lod = C.lod;
     V.poiGen = (V.poiGen || 0) + 1;
   }

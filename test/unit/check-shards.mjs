@@ -21,7 +21,8 @@ test('check-shards: validate.yml\'s matrix is the n its command names, each shar
   assert.ok(m, 'a matrix of shards');
   const shards = m[1].split(',').map((s) => Number(s.trim()));
   const ns = [...y.matchAll(/--shard \$\{\{ matrix\.shard \}\}\/(\d+)/g)].map((x) => Number(x[1]));
-  assert.ok(ns.length >= 2, 'the checks and the plants both sharded');
+  assert.ok(ns.length >= 1, 'the checks sharded');
+  assert.match(y, /--shard \$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.plants\.outputs\.n \}\}/, 'the plants sharded over their own runners (the prove job)');
   for (const n of ns) assert.deepEqual(shards, Array.from({ length: n }, (_, i) => i), `the matrix is 0..${n - 1}`);
 });
 
@@ -69,8 +70,9 @@ test('check-shards: every plant a change selects runs on exactly one shard, deal
 // plant: {"file": "tools/check.mjs", "find": "if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);", "with": "if (SH) todo = todo.filter((p, i) => i % SH[1] === 0);", "why": "every shard runs the same share of the plants: some twice, the rest never"}
 // plant: {"file": "tools/check.mjs", "find": "if (SH) todo = todo.filter((p, i) => i % SH[1] === SH[0]);", "with": "if (SH) todo = todo.filter((p) => inShard(p.check) || (SH[0] === 0 && !rest.some((c) => c.slug === p.check)));", "why": "the plants back on their check's shard: one shard runs a test file's 31 plants alone"}
 
+// plant: {"file": "tools/check.mjs", "find": "sort((a, b) => ties(b) - ties(a) || of(b) - of(a)", "with": "sort((a, b) => of(b) - of(a)", "why": "placed by cost alone: the ground sweeps take the shards free of birds before 24-unit's parts, and a part falls back beside 35-birds"}
 // plant: {"file": "tools/check.mjs", "find": "if (!on[j].some((d) => clash(c, d)) && (k < 0 || load[j] < load[k])) k = j;", "with": "if (k < 0 || load[j] < load[k]) k = j;", "why": "the apart header ignored: 24-unit's parts beside 35-birds' 20 processes again (119 s, not 22)"}
-test('check-shards: a check marked `# apart:` shares no shard with the checks it names, either way round (24-unit, 13-rules-data)', () => {
+test('check-shards: a check marked `# apart:` shares no shard with the checks it names, either way round, and a parted check\'s parts none with each other (24-unit, 35-birds, 13-rules-data)', () => {
   const dir = path.join(ROOT, 'tools/checks'), apart = {};
   for (const f of fs.readdirSync(dir).filter((x) => /^\d\d-[\w-]+\.sh$/.test(x))) {
     const m = fs.readFileSync(path.join(dir, f), 'utf8').match(/^# apart: ([\w -]+?)\s*(?:\(|$)/m);
@@ -82,7 +84,33 @@ test('check-shards: a check marked `# apart:` shares no shard with the checks it
   assert.equal(r.status, 0, r.stderr);
   const base = (s) => s.replace(/#\d+$/, '');
   for (const line of r.stdout.split('\n').filter(Boolean)) {
-    const on = line.replace(/^shard \d+\/\d+\s+\d+ s\s+/, '').split(/\s+/).map(base);
-    for (const [c, names] of Object.entries(apart)) if (on.includes(c)) for (const d of names) assert.ok(!on.includes(d), `${c} shares a shard with ${d}: ${line}`);
+    const raw = line.replace(/^shard \d+\/\d+\s+\d+ s\s+/, '').split(/\s+/), on = raw.map(base);
+    for (const p of raw.filter((x) => /#\d+$/.test(x))) assert.equal(on.filter((x) => x === base(p)).length, 1, `two parts of ${base(p)} share a shard: ${line}`);   // (a parted check's parts: one a shard)
+    for (const [c, names] of Object.entries(apart)) if (on.includes(c)) for (const d of names) {
+      if (d === c) assert.ok(on.filter((x) => x === c).length < 2, `two parts of ${c} share a shard: ${line}`);   // (a check naming itself: its parts apart)
+      else assert.ok(!on.includes(d), `${c} shares a shard with ${d}: ${line}`);
+    }
+  }
+});
+
+// plant: {"file": ".github/workflows/validate.yml", "find": "  prove:\n    needs: plants\n", "with": "  prove:\n    needs: [plants, validate]\n", "why": "the plants wait for the checks again: static's time their sum, not the slower of the two"}
+// plant: {"file": ".github/workflows/validate.yml", "find": "--shard ${{ matrix.shard }}/${{ needs.plants.outputs.n }}\n", "with": "--shard ${{ matrix.shard }}/5\n", "why": "the prove runners deal the plants five ways whatever their number: a share never run"}
+// plant: {"file": ".github/workflows/validate.yml", "find": "n=$(( (c + PLANTS_PER - 1) / PLANTS_PER ));", "with": "n=$(( c / PLANTS_PER ));", "why": "three plants, no runner: they never run"}
+test('check-shards: the plants run on their own runners beside the checks, one runner per few plants, none when there are none (the hub\'s gate p90, 2026-11-25)', () => {
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/validate.yml'), 'utf8');
+  const job = (name) => { const i = y.indexOf('\n  ' + name + ':\n'); assert.ok(i >= 0, name + ' job'); const j = y.slice(i + 1).search(/\n  [a-z]+:\n/); return y.slice(i, j < 0 ? undefined : i + 1 + j); };
+  const v = job('validate'), pl = job('plants'), pr = job('prove');
+  assert.ok(!v.split('\n').some((l) => !/^\s*#/.test(l) && /--prove/.test(l)), 'the checks\' job runs no plants');
+  assert.match(pr, /\n    needs: plants\n/, 'prove waits for the plants\' list alone, not for the checks');
+  assert.match(pr, /if: needs\.plants\.outputs\.n != '0'/, 'no runner when the change can break no plant');
+  assert.match(pr, /shard: \$\{\{ fromJSON\(needs\.plants\.outputs\.shards\) \}\}/);
+  assert.match(pr, /node tools\/check\.mjs --prove --changed "\$RUNNER_TEMP\/changed\.txt" --base "\$base" --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.plants\.outputs\.n \}\}\n/, 'each runner its share of the n');
+  assert.match(pl, /if: github\.ref != 'refs\/heads\/main'/, 'not on main (the whole set weekly)');
+  // the count's arithmetic, as the step runs it: c plants, PLANTS_PER a runner, PROVE_MAX at most
+  const per = +/PLANTS_PER: '(\d+)'/.exec(pl)[1], max = +/PROVE_MAX: '(\d+)'/.exec(pl)[1];
+  const sh = /c=\$\(node[^\n]*\n\s*(n=[^\n]*)\n/.exec(pl)[1];
+  for (const [c, want] of [[0, 0], [1, 1], [per, 1], [per + 1, 2], [1000, max]]) {
+    const r = spawnSync('bash', ['-c', `PLANTS_PER=${per}; PROVE_MAX=${max}; c=${c}; ${sh}; echo $n`], { encoding: 'utf8' });
+    assert.equal(+r.stdout.trim(), want, `${c} plant(s): ${want} runner(s), got ${r.stdout.trim()}`);
   }
 });

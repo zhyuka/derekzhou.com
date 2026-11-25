@@ -69,6 +69,25 @@ the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
 of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
 of 7.7 m/s, lenses on every sweep step past it.
 
+No cloud falls over the coast (the hub's ruling, 2026-11-25: delight-weather
+3's cascades dropped, measured). A cascade is the cloud sea pouring over a
+rim whose top it stands above. On the world's coast the land's rim stands
+over the sea's top everywhere measured: on the recorded grounds of seeds 3
+and 11 (15.5 km of coast, 200 m landward of the coastline) the rim is
+7-32 m over the sea's top (p10-p90, median 18-22 m), and the sea clears it
+at 1 coast cell of 1,550, by 0.7 m. The physics that would lift it there is
+an onshore wind piling the marine layer against the coast by U^2 / 2g'
+(g' = g dtheta / theta over an inversion of 5-10 K,
+https://doi.org/10.1175/MWR-D-11-00121.1; the reduced-gravity flow,
+https://www.eoas.ubc.ca/books/Practical_Meteorology/): 13-166 m at the
+visits' winds. But the coast's lee slopes are gentle (the steepest
+downhill within 1 km of it 0.18-0.22 m/m at the median), so a top raised
+that much floods 1.1-1.5 km inland instead of pouring: it moves the
+coastline, the camera's ground (HdCam), the flight band and every
+opening. A sheet laid over a rim the sea never reaches would not be the
+physics. So there are no cascades until a coast has a steep, high rim
+the sea's top can reach.
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
@@ -206,7 +225,8 @@ mid-sky (20-55 deg up), a few a night, their light rising and falling softly ove
 exception RULES.json's no-fades names. Each is planned when its time comes,
 against the view as it is then; none under reduced motion or in a still; drawn
 by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
-head, no pixel past OKLab L 0.50.
+head, no pixel past OKLab L 0.50; low down it loses the air's extinction as the stars do
+(k (X - 1) at its head's height, a little redder: about half its light at 10 deg up).
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
@@ -276,6 +296,22 @@ Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
 frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
 a tenth of a dark night's own sky low down; pale green at luminance 1, with no
 structure and no clock.
+The great comet (227 cometPlan, sky-body.glsl cometAt; delight-night item 6):
+in 2 of the 16 openings (COM_K 6 and 7, the two whose twilight views face the
+sun's side: measured on the page, as the evening star is seen there too), on the
+first visit only, on a twilight opening only (afterglow, the blue hour, first
+light). Placed as the evening star is, by the drawn sun and turned with it as it
+sinks (it sets with the sun's side): its head 14-50 deg from the sun and up to 35
+deg off the ecliptic, the first of 64 places whose head and tails keep off the
+words and whose head is in view at the cut. Its tails run along the great circle
+from the sun through its head, away from the sun (test/unit/sky.mjs: within 2
+deg at every depth; in fact on it): the ion tail straight, narrow and blue, the
+dust tail broader, white-yellow and curved to one side, 22 deg of each; a small
+soft head; every width at least 1.2 px (no glitter), no clock (it moves only as
+the sun sinks), its light under its peak over the sky's own (Y 0.12), behind the
+haze, dimmed by the air as the stars are. In a bright twilight near the horizon
+it is faint, as a comet there is.
+
 No zodiacal light: at 64 deg north, with the sun 24 deg down in the dark
 half of the year, the cone's bright base (within 30 deg of the sun along the
 ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
@@ -312,7 +348,10 @@ little at kept luminance. The field's magnitudes stand as seen overhead, so only
 the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
 sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
-test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own. The Milky Way's band takes no
+extinction factor: its brightness is the look as seen through the air, tuned by
+eye as it stands low in the frame, so an airmass factor would count the air twice
+(the hub's ruling, 2026-11-25, closing #490).
 
 Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
 scattered into the sky at each direction by the published moonlight model
@@ -664,6 +703,48 @@ not baked. The land is the opening seed's for the whole visit, one of 16 whateve
 the sky (the owner: "Keep 16 lands", 2026-11-13); what follows the cut
 over it is the read's own (## THE WEATHER).
 
+## THE DESTINATION
+
+Each land has one colossal form on the horizon ahead, on the landing's
+heading (airHeading0, SEED0's), 7-8 km out (217: destOf, { x, z, d,
+bearing }, the seed's alone). So it stands in the first frame, and the
+flight, held on its heading, meets it in 9.7-11.1 minutes at 12 m/s. It
+is never aimed at: a drag takes the flight anywhere, and the slip passes
+it as any form. It is an inselberg, a bornhardt (realm-dunes: bornG): a
+dome of bare rock 620-720 m tall and about 1.2 km across. Its flanks
+steepen to a sharp foot on the sand (a superellipse, exponent 1.5-1.9: a sugarloaf, its crown off centre so one flank is the steeper, its skyline uneven),
+its sides are fluted by the runoff, and its crown is smooth and a little
+off centre. It is outsized beside the land's formations (35-90 m), as
+the Namib's inselbergs (https://en.wikipedia.org/wiki/Spitzkoppe) stand
+over their plains. Far off, the cell's coarse build gives it 16 columns
+and 10 rows a dome, about 580 faces with a lower dome on its shoulder (a silhouette at 7 km); in full, 44 and 23 a dome. It is pale granite (D_PALE): its sunlit side lighter than the haze before it, its shaded side darker, two tones where the strata's rock read as one.
+An earlier volcanic neck on its shoulder read as a steeple and was
+dropped (hub, 2026-11-25). Its draws are its own, so each land's
+differs. Where the heading leads out
+over the cloud sea, it rises out of it, seated on the sunken land as the
+coast's formations are. Its kind (217: destKind, agreed with the cloud
+lane) is read once from the maps: 'isle' where the cloud sea's weight at
+the point is over 0.5 (5 of 16 lands on today's maps), else 'rock'. Scale
+5 hands an isle's cell to the above kit's dest once that kit has one, and
+otherwise to the dunes kit's rock.
+
+It is laid out by its own layout scale (the sixth: 16 km cells reaching
+12 km), which makes only the cell that holds it (one: true, 236's
+streamCells), kept whatever the density draws. The scale's other cells
+in reach (three, empty) changed which cloud bodies the boot baked before
+the show: +88 bake slices and +36k voxels on the phone, +138 ms to the
+world's first frame on the gate's paint (load-perf, 2026-11-25). With
+only the one cell, the boot bakes exactly what main does. The scale's fade starts at 9.3 km, so
+at 7-8 km it is whole and never pops in. 6 km cells reaching 14 km
+spent the boot's layout budget on about 17 empty cells and showed the
+phone's world a frame later. Through main's haze (green, eye 18 m) the
+form keeps 14-16% of the contrast at its foot and 30-40% at 400-700 m.
+Its rock against the horizon sky shows at about 17-25% at 7.5 km
+(tools/physics/destination.mjs). test/unit/destination.mjs checks the
+bearing, the distance and the minutes for all 16 openings, path
+independence, and the scale's dispatch. Every land's still shows it
+once the stills are baked again (tools/gpu/bake-stills.js).
+
 ## THE AIR
 
 The owner (2026-11-15): "they should follow real physics, clouds moving
@@ -731,6 +812,21 @@ physics: clouds/drift). It holds:
   Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
   night turn. Adding one would mean the clouds and those birds reading a
   wind that depends on the sky, and a cited source for the turn by night.
+- No billows on the cloud sea's top (measured, 2026-11-25): a shear
+  layer rolls into billows only where Ri, the ratio of the air's
+  stability to its shear, N^2 / (dU/dz)^2, is under 1/4. Over the sea's
+  top the air gives too little shear for it. From the sea's own wind
+  (AIR_H.sea, 100 m) to the low layer's (300 m), the wind changes by
+  1.35 m/s at U10 3 and by 3.37 m/s at U10 7.5 (its 1.3 U10, veered 20
+  deg). With the weather's N of 0.01/s, Ri is 2.2 at U10 3 and 0.35 at
+  U10 7.5, never under 1/4. The 100-200 m and 200-300 m halves give the
+  same, 50-150 m gives 1.4 or more, and the change up to 1500 m is no
+  larger. Billows would need the sea's top to be a thin capping
+  inversion that carries that whole change, and whether they formed
+  would then turn on the inversion's temperature jump and thickness, two
+  numbers the world does not have (with a 5 K jump, a layer under about
+  17 m; with 8 K over 20 m, none on any visit). So the sea keeps its two
+  long low waves (physics: clouds/sea) and no rolls.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
@@ -1355,6 +1451,17 @@ the toe of a main dune 600 m out at the range's far edge, drifting a
 steady 2.35-2.37 levels a frame for 5 frames: a smooth turn, not a pop.
 Phone: none over 2 (worst 1.92). Nothing else on the land turns more than
 2 levels in a frame.
+
+The land's far edge holds too. The outermost ring (179 m cells) ends
+8.2-8.9 km out (to 12.6 km on the diagonals) and moves in 358 m steps,
+so a strip of far land appears or goes at each. lod-pop.mjs --edge
+reads the horizon's land line in 48 columns over the drawn mesh, at the
+frames either side of every step, on the same 2 flights at both sizes.
+At 8 steps, 6 of 384 columns moved over 0.5 px, the worst 2.0 px at 9.8
+km (laptop) and 0.86 px at 10.7 km (phone). The camera's own steady
+motion moves the line up to 1.0 px a frame. At 8-11 km the haze leaves
+the land line 1-3 codes off the sky (2-8% of the contrast in green), so
+no step shows. Left as it is.
 
 ## THE LARGE WORLD
 

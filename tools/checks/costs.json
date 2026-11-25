@@ -1,12 +1,12 @@
 {
-  "_": "each check's seconds on its validate shard's runner (the median over main's green gates 45393134702, 45418461820, 45420945709, 45430652370, 2026-11-24, after #382 split 35-birds in two; it runs in three parts now, a third of the two parts' 214 s each until measured; 24-unit in two parts since 2026-11-25, 45 s each, about the mean of the 36 and 49 s #469's gate measured (equal, so the split keeps them apart)): tools/check.mjs --shard splits by these; a check not here counts 10 s. A check's seconds rise with what runs beside it on its shard (the birds parts' test processes most). Refresh from a validate log when the split drifts.",
-  "10-dup-names": 2.1, "11-required-files": 0.0, "12-secrets": 0.1, "13-rules-data": 16.8, "14-deploy-inputs": 0.0,
-  "16-asset-refs": 0.2, "17-no-inline-code": 0.0, "18-lettered-name": 0.3, "19-page-words": 0.3,
-  "20-script-order": 0.1, "21-absences": 4.2, "22-build-check": 100.7, "23-wing-model": 6.5, "24-unit#0": 45, "24-unit#1": 45,
-  "25-world-rules": 2.9, "26-glsl-guard": 22.8, "27-shaders": 24.0, "28-w7": 21.9, "29-still-skies": 0.6,
-  "30-perch-ink": 41.2, "31-no-fades": 0.4, "32-licences": 0.0, "33-no-frameworks": 0.5, "34-reduced-motion": 6.2,
-  "35-birds#0": 72, "35-birds#1": 71, "35-birds#2": 71, "36-load-budget": 19.9, "37-ground-fresh": 81.5, "38-sound": 22.0,
-  "39-boot-frames": 122.5, "40-font-glyphs": 0.5, "41-docs-drift": 0.2, "42-one-air": 47.9, "43-dune-census": 75.3,
-  "44-gust-glsl": 30.0, "45-citations": 0.1, "46-names-in-messages": 0.4, "47-first-paint": 26.2, "48-tsc": 8.0,
-  "70-still-words": 9.6
+  "_": "each check’s seconds on its validate shard’s runner (the median over main’s green gates 45614236161, 45618342760, 45623015594, 2026-11-25, with 35-birds in three parts and 24-unit in two): tools/check.mjs --shard splits by these; a check not here counts 10 s. A check's seconds rise with what runs beside it on its shard (the birds parts' test processes most). Refresh from a validate log when the split drifts.",
+  "10-dup-names": 1.9, "11-required-files": 0, "12-secrets": 0.1, "13-rules-data": 20.1, "14-deploy-inputs": 0,
+  "16-asset-refs": 0.1, "17-no-inline-code": 0, "18-lettered-name": 0.5, "19-page-words": 0.6, "20-script-order": 0.5,
+  "21-absences": 35.6, "22-build-check": 14.1, "23-wing-model": 89.5, "24-unit#0": 31.3, "24-unit#1": 53.4,
+  "25-world-rules": 1.6, "26-glsl-guard": 25.6, "27-shaders": 70.6, "28-w7": 15.6, "29-still-skies": 0.4,
+  "30-perch-ink": 16.7, "31-no-fades": 0.3, "32-licences": 0, "33-no-frameworks": 0.4, "34-reduced-motion": 1.9,
+  "35-birds#0": 186.4, "35-birds#1": 180.2, "35-birds#2": 116.5, "36-load-budget": 21.8, "37-ground-fresh": 76.7,
+  "38-sound": 21.9, "39-boot-frames": 40.1, "40-font-glyphs": 0.2, "41-docs-drift": 0.1, "42-one-air": 51.1,
+  "43-dune-census": 121.5, "44-gust-glsl": 30, "45-citations": 0.2, "46-names-in-messages": 1.5, "47-first-paint": 28.7,
+  "48-tsc": 134.1, "49-sound-cpu": 32, "70-still-words": 27.2
 }

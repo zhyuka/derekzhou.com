@@ -103,7 +103,7 @@ function cellPlaces(L, kits, kind, ix, iz, size, air) {
     inside: (x, z) => x >= ix * size && x < (ix + 1) * size && z >= iz * size && z < (iz + 1) * size,
     add: (it) => { if (!keep(it)) it._drop = true; return it; },
     cloud: (cl) => { if (!keep(cl)) cl._drop = true; return cl; },
-    poi: (p) => { if (!(p.ref && p.ref._drop) && keep(p)) out.pois.push({ kind: p.kind, x: p.x, z: p.z, pass: p.pass || 0 }); return p; },
+    poi: (p) => { if (!(p.ref && p.ref._drop) && keep(p)) out.pois.push({ kind: p.kind, x: p.x, z: p.z, pass: p.pass || 0, r: p.r, top: p.top }); return p; },   // (r, top: a destination's, delight-visit 5.3)
     flock: (f) => { if (f.kind === 'bird' && !(f.ref && f.ref._drop) && keep(f)) out.flocks.push({ x: f.x, z: f.z }); return f; },
     place: (set, x, z, o) => o || {},
     weights: (x, z) => { const k = L.kitAt(x, z); return [k.wD, k.wC]; }

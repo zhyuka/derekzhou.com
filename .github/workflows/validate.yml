@@ -41,16 +41,91 @@ jobs:
           npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pwshell" playwright-core@1.49.1 >/dev/null
           node "$RUNNER_TEMP/pwshell/node_modules/playwright-core/cli.js" install --only-shell chromium
 
+      # (CI lane, 2026-11-25, the hub's gate p90) a check that declares `# inputs:` (35-birds: its three parts, 160-200 s each,
+      # the static pole) reads nothing else (tools/checks/lib/reads.mjs proves it on every run), so a branch that changes none
+      # of them reuses main's pass on those very inputs: main's gate saves each pass's key (CHECK_CACHE_SAVE), a branch's
+      # restores the shard's (CHECK_CACHE) and skips a check whose key it finds. The cache entry's key is the shard's checks'
+      # keys together (check.mjs --cache-key), so a change to any input of one misses and runs the check.
+      - name: The key of this shard's checks that declare inputs
+        id: ck
+        run: echo "key=$(node tools/check.mjs --cache-key --shard ${{ matrix.shard }}/5)" >> "$GITHUB_OUTPUT"
+      - name: Main's passes on these very inputs (a branch)
+        if: github.ref != 'refs/heads/main' && steps.ck.outputs.key != 'none'
+        uses: actions/cache/restore@v4
+        with:
+          path: build/.check-cache
+          key: checkpass-v1-${{ matrix.shard }}-${{ steps.ck.outputs.key }}
       - name: This shard's checks (tools/check.mjs --shard)
+        env:
+          CHECK_CACHE: ${{ github.ref != 'refs/heads/main' && 'build/.check-cache' || '' }}
+          CHECK_CACHE_SAVE: ${{ github.ref == 'refs/heads/main' && 'build/.check-cache' || '' }}
         run: node tools/check.mjs --shard ${{ matrix.shard }}/5
+      - name: Keep main's passes for the branches (main)
+        if: github.ref == 'refs/heads/main' && steps.ck.outputs.key != 'none' && hashFiles('build/.check-cache/*.key') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: build/.check-cache
+          key: checkpass-v1-${{ matrix.shard }}-${{ steps.ck.outputs.key }}
 
-      # (CI lane, 2026-11-15, the audit's safety nets) every check's planted failures still fail it: on a branch, the
-      # plants the change can break (tools/check.mjs --prove --changed: those in a changed file, and every plant of a
-      # check whose script or lib changed; a new check without a plant fails here); the whole set weekly (scheduled.yml)
-      - name: The planted failures a change can break (tools/check.mjs --prove --changed)
-        if: github.ref != 'refs/heads/main'
+  # (CI lane, 2026-11-15, the audit's safety nets) every check's planted failures still fail it: on a branch, the plants the
+  # change can break (tools/check.mjs --prove --changed: those in a changed file, and every plant of a check whose script or
+  # lib changed; a new check without a plant fails here); the whole set weekly (scheduled.yml).
+  # (CI lane, 2026-11-25, the hub's gate p90) their own runners, beside the checks from the start: run after a shard's checks
+  # in the same job they doubled static's p90 (the slowest shard's plants p90 284 s on top of its checks' 198; static from
+  # the push 445 s, against about 200 without them; 74 gates since 06:00Z). `plants` lists them (--dry, seconds) and asks
+  # for one runner per PLANTS_PER plants, PROVE_MAX at most, none when the change can break none.
+  plants:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.n.outputs.shards }}
+      n: ${{ steps.n.outputs.n }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The plants a change can break, and the runners for them
+        id: n
+        env:
+          PLANTS_PER: '4'
+          PROVE_MAX: '5'
         run: |
           git fetch -q --no-tags origin main
           base=$(git merge-base FETCH_HEAD HEAD)
           git diff --name-only "$base" HEAD > "$RUNNER_TEMP/changed.txt"
-          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt" --base "$base" --shard ${{ matrix.shard }}/5
+          c=$(node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt" --base "$base" --dry | grep -c '^would ' || true)
+          n=$(( (c + PLANTS_PER - 1) / PLANTS_PER )); [ "$n" -le "$PROVE_MAX" ] || n=$PROVE_MAX
+          echo "$c plant(s): $n runner(s)"
+          echo "n=$n" >> "$GITHUB_OUTPUT"; echo "shards=$(node -e "console.log(JSON.stringify([...Array($n).keys()]))")" >> "$GITHUB_OUTPUT"
+
+  prove:
+    needs: plants
+    if: needs.plants.outputs.n != '0' && needs.plants.outputs.n != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plants.outputs.shards) }}
+    name: prove (${{ matrix.shard }}/${{ needs.plants.outputs.n }})
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # (main's history too: the plants a change can break are found against its merge base)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Chromium's headless shell for the checks' playwright-core
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pwshell" playwright-core@1.49.1 >/dev/null
+          node "$RUNNER_TEMP/pwshell/node_modules/playwright-core/cli.js" install --only-shell chromium
+      - name: The planted failures a change can break, this runner's share (tools/check.mjs --prove --changed)
+        run: |
+          git fetch -q --no-tags origin main
+          base=$(git merge-base FETCH_HEAD HEAD)
+          git diff --name-only "$base" HEAD > "$RUNNER_TEMP/changed.txt"
+          node tools/check.mjs --prove --changed "$RUNNER_TEMP/changed.txt" --base "$base" --shard ${{ matrix.shard }}/${{ needs.plants.outputs.n }}

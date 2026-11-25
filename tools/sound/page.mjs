@@ -1,13 +1,14 @@
 // page.mjs: the sound icon, pressed in headless Chromium against a build (2026-11-07; the live score, 2026-11-12). Not
 // served; CI's "The sound is opt-in" (tools/checks/38-sound.sh) runs it on build/site.
 //
-//   node tools/sound/page.mjs SITE [--net MBPS,RTT]    exit 1 on a miss; about 25 s
+//   node tools/sound/page.mjs SITE [--net MBPS,RTT] [--first MS]    exit 1 on a miss; about 25 s
 //
 // It prints the press to the first sound: when the score's first note begins (its scheduled start, the earliest of
 // the notes it starts), and when the output first passes -60 and -40 dBFS (an analyser on the way out), ms after the
 // press, cold (a fresh profile: nothing cached). --net throttles the page's network (Chromium's own emulation: MBPS
 // down, RTT ms; 10,70 the slow profile of docs/sound.md, 1.44,562.5 Chrome's Slow 4G); the checks below still hold,
-// timed from the first sound (heard over -40 dBFS, waited for up to a minute) where it comes after 4 s.
+// timed from the first sound (heard over -40 dBFS, waited for up to a minute) where it comes after 4 s. --first MS: a
+// miss too when the first note begins later than MS after the press, or never (38-sound: 1200 on the slow profile).
 // The build is served from a local folder with its own _headers' Permissions-Policy, and opened with the autoplay
 // policy a visitor's browser has (a gesture first). It fails when:
 //   - before the press (2 s): an audio context is made, or anything audio is requested, or the audio session is touched,
@@ -25,7 +26,8 @@ import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 
-const SITE = process.argv[2], NET = (process.argv[process.argv.indexOf('--net') + 1] || '').split(',').map(Number);
+const SITE = process.argv[2], NET = (process.argv[process.argv.indexOf('--net') + 1] || '').split(',').map(Number), FIRST = process.argv.includes('--first') ? +process.argv[process.argv.indexOf('--first') + 1] : 0;
+if (process.argv.includes('--first') && !(FIRST > 0)) { console.error('--first MS (e.g. 1200)'); process.exit(2); }
 if (process.argv.includes('--net') && !(NET.length === 2 && NET[0] > 0 && NET[1] >= 0)) { console.error('--net MBPS,RTT (e.g. 10,70)'); process.exit(2); }
 if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node tools/sound/page.mjs SITE (a build: build/site)'); process.exit(2); }
 const req = createRequire(import.meta.url);
@@ -113,6 +115,7 @@ else if (!audio[0].startsWith(origin + '/assets/sound/')) bad.push(`the sheet ca
 if (on.pressed !== 'true' || on.state !== 'running') bad.push(`after the press the icon is ${on.pressed} and the context ${on.state} (want true, running)`);
 if (!(on.notes >= 3 && on.looping >= 3)) bad.push(`the score started ${on.notes} notes, ${on.looping} sustained and playing (want 3 or more: the first voices and the deep end)`);
 if (!(later.notes > on.notes)) bad.push(`no new notes between 4 s and 16 s after the press (${on.notes}, then ${later.notes}): the score stopped planning`);
+if (FIRST && !(when.note <= FIRST)) bad.push(`the first note began ${when.note ?? 'never'}${when.note ? ' ms' : ''} after the press (want ${FIRST} ms or sooner${NET.length === 2 ? ` at ${NET[0]} Mbps, ${NET[1]} ms` : ''})`);
 if (errs.length) bad.push('the page threw: ' + errs.join(' | '));
 
 await page.click('#sound');

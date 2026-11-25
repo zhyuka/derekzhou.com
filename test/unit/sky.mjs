@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  float mX = airmass(uMetH.y);", "with": "  float mX = 1.0;", "why": "a meteor as bright through the low air as overhead: no extinction on the shooting stars"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "sg = clamp(sqrt(E / max(1.1 * SKYTAU * hv, 1e-6)), 0.85, 1.4), F = min(E, 1.1 * SKYTAU * hv * sg * sg);", "with": "sg = 0.85, F = min(E, 1.1 * SKYTAU * hv * sg * sg);", "why": "the evening star held at the old fixed core: a faint dot on a bright low sky, under its true light"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return extTint(col, airmass(sd.y)) * min(v, hv) * (1.0 - hazeSky(rd));", "with": "  return extTint(col, airmass(sd.y)) * min(v, hv) * exp2(-0.4 * 3.3219281 * EXT_V * max(airmass(sd.y) - 1.0, 0.0)) * (1.0 - hazeSky(rd));", "why": "the evening star dimmed under its head by the low air: it vanishes from a bright twilight where it stands far over the light's ceiling"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "f = fract(g); ivec2 c = ivec2(floor(g));", "with": "f = vec2(0.0); ivec2 c = ivec2(floor(g + 0.5));", "why": "the face's map read nearest, not bilinear: its cells' edges glitter as the disc slides"}
@@ -52,6 +53,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float ml = nightLim(c - gL) + moonLim(rd);", "with": "float ml = nightLim(c - gL);", "why": "a moon-blind limit: the stars as many beside a near-full moon as on a dark night"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0))", "with": "c = c * T + fq * (1.0 - T)", "why": "the physical aerosol pulling sunlit cloud rims down toward the sky (darkened)"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w))", "with": "m * pow(vec3(680.0, 550.0, 440.0) / 440.0, vec3(-uAer.w))", "why": "the wavelength factor normalised at blue: green's extinction off the look's amount"}
+// plant: {"file": "src/world/227-night-bodies.js", "find": "for (i = 0; i < 3; i++) { out[i] = sh * h[i] - S[i]; n += out[i] * out[i]; }", "with": "for (i = 0; i < 3; i++) { out[i] = S[i] - sh * h[i]; n += out[i] * out[i]; }", "why": "the comet's tails toward the sun"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -767,7 +769,7 @@ let VENUS_FACTORY = null;   // (compiled once: each call still builds its own wo
 function venusWorld(seed, keyAz, landing) {
   if (!VENUS_FACTORY) VENUS_FACTORY = vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
     '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n  function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }\n' + STREAMS + VEC + cut(WORLD, '  function airSunEl(id)', '\n', true).replace(/function airSunEl\(id\)/, 'function airSunEl0(id)') + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + VPLAN +
-    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})');
+    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW, COMB: COMB, cometDir: cometDir, cometTail: cometTail, cometOn: cometOn, COM_L: COM_L, airSkySun: airSkySun };\n})');
   return VENUS_FACTORY(seed, keyAz, landing);
 }
 test('night: the evening star\'s plan on the lo still\'s window keeps its whole path down off the words; a window all words has none', () => {
@@ -1440,4 +1442,57 @@ test('night: the evening star at its true scale: 15x Sirius, 21% kept at 4 deg, 
     assert.ok(d.sg <= 1.4 && d.F <= 1.1 * 2 * Math.PI * d.hv * 1.96 + 1e-12, 'never a disc, never over its head');
   }
   const STOP = +/STAR_TOP_Y = ([\d.]+)/.exec(WORLD)[1]; assert.ok(top > STOP, 'Venus\'s head over the stars\' top: the brightest point');
+});
+
+// (physics: night/extinction) a meteor, 80-120 km up, is seen through the same air as the stars: k (X - 1) magnitudes from
+// its light at its head's height, a little redder; nothing overhead changes, never brighter, still capped at its head
+test('night: a meteor loses the air\'s extinction low down, as the stars do (and stays under its head)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8'), M = g.match(/^vec3 meteorAt[\s\S]*?^}/m);
+  assert.ok(M, 'meteorAt');
+  assert.ok(M[0].includes('  float mX = airmass(uMetH.y);') && M[0].includes('return extTint(uMetC, mX) * min(v * exp2(-0.4 * 3.3219281 * EXT_V * max(mX - 1.0, 0.0)), max(MET_TOP - dot(c, LUMA), 0.0));'), 'the meteor\'s light dimmed and reddened by the air at its head\'s height, then capped at its head');
+  const am = (y) => { const h = Math.max(Math.asin(Math.min(Math.max(y, 0), 1)) * 180 / Math.PI, 0); return 1 / (Math.sin(h * Math.PI / 180) + 0.50572 * Math.pow(h + 6.07995, -1.6364)); };
+  const EXT = +/const float EXT_V = ([\d.]+);/.exec(g)[1], kept = (deg) => Math.pow(10, -0.4 * EXT * Math.max(am(Math.sin(deg * Math.PI / 180)) - 1, 0));
+  assert.ok(kept(90) > 0.999 && Math.abs(kept(10) - 0.53) < 0.03 && kept(5) < kept(10) && kept(30) < 1, `a meteor's light kept: ${kept(90).toFixed(3)} overhead, ${kept(10).toFixed(2)} at 10 deg, ${kept(5).toFixed(2)} at 5`);
+});
+
+// the great comet (NIGHT, delight-night §6, the hub's item of 2026-11-25): 227's cometOn, cometPlan, cometDir and
+// cometTail run here as the page runs them (venusWorld): it stands in 1 or 2 of the 16 openings' seeds (COM_K: the two
+// whose twilight views face the sun's side), on a twilight opening only; its ion tail lies along the great circle from the sun through its head, away from the sun, within 2 deg
+// at every depth the sun sinks through; the dust tail curves off it by design (0.35 x^2: 3 deg at its end)
+test('night: the great comet, in 1-2 of the 16 openings, on twilight only, its tail away from the sun', () => {
+  const on = [];
+  for (let k = 0; k < 16; k++) { const s = (11 + k * 0x9e3779b9) >>> 0; if (venusWorld(s, 0, { sky: 'afterglow' }).cometOn(s)) on.push(k); }
+  assert.ok(on.length >= 1 && on.length <= 2, `the comet in openings ${on.join(', ')} of 16 (1 or 2)`);
+  const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), key = Object.keys(SW).find((k) => /^hi-1728x1080$/.test(k)) || Object.keys(SW).find((k) => /x1080$/.test(k));
+  const [Wd, Hd] = key.split('-')[1].split('x').map(Number), tanY = Math.tan(32 * Math.PI / 180);
+  let planned = 0, worst = 0, away = true, nonTw = 0;
+  for (const k of on) for (let a = 0; a < 12; a++) for (const sky of ['afterglow', 'bluehour', 'firstlight', 'moonlit', 'milkyway', 'aurora']) {
+    const s = (11 + k * 0x9e3779b9) >>> 0, keyAz = (a * 30 + 7) % 360, K = venusWorld(s, keyAz, { sky });
+    const I = { W: Wd, H: Hd, tanY, tanX: tanY * Wd / Hd, pN: 8, pL: 8, keepPx: 12, boxes: SW[key], psi: keyAz + (sky === 'firstlight' ? 1 : -1) * 25 };
+    K.venusPlan(K.V, I);
+    const twi = sky === 'afterglow' || sky === 'bluehour' || sky === 'firstlight';
+    if (!twi) { if (K.COMB.eps >= 0) nonTw++; continue; }
+    if (K.COMB.eps < 0) continue;
+    planned++;
+    const N = K.NIGHTB, F = K.venusFrame(K.V, N.morning, N.D0);
+    for (let D = N.D0; D <= 24; D += 1) {
+      const h = K.cometDir(F, K.COMB.eps, N.side, K.COMB.b, D, N.D0, [0, 0, 0]), S = K.airSkySun(K.V, -D), T = K.cometTail(h, S, [0, 0, 0]);
+      const n = [S[1] * h[2] - S[2] * h[1], S[2] * h[0] - S[0] * h[2], S[0] * h[1] - S[1] * h[0]], nl = Math.hypot(...n);
+      let prev = -2;
+      for (let x = 1; x <= K.COM_L; x += 1) {
+        const t = Math.tan(x * Math.PI / 180), p = [0, 1, 2].map((i) => h[i] + T[i] * t), pl = Math.hypot(...p);
+        const off = Math.asin(Math.abs((p[0] * n[0] + p[1] * n[1] + p[2] * n[2]) / (pl * nl))) * 180 / Math.PI, fromS = Math.acos((p[0] * S[0] + p[1] * S[1] + p[2] * S[2]) / pl);
+        worst = Math.max(worst, off); if (fromS <= prev) away = false; prev = fromS;
+      }
+    }
+  }
+  assert.equal(nonTw, 0, `a comet on ${nonTw} non-twilight openings`);
+  assert.ok(planned > 0, 'no comet planned on any twilight opening of its seeds (the test is not empty)');
+  assert.ok(worst < 2, `the ion tail ${worst.toFixed(3)} deg off the great circle from the sun through its head (within 2)`);
+  assert.ok(away, 'the tail runs toward the sun somewhere');
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (const L of ['float x = dot(p, uComT.xyz), y = dot(p, cross(uCom.xyz, uComT.xyz)), pa = 2.0 * atan(uProj.y) / uRes.y;',
+    'float io = xf * exp(-x / 0.25 - y * y / (wi * wi)), du = xf * exp(-x / 0.3 - yd * yd / (wd * wd));', 'vec3 p = rd / z - uCom.xyz;'])
+    assert.ok(g.includes(L), `sky-body.glsl's comet no longer drawn as tested: ${L}`);
+  console.log(`# comet: openings ${on.join(', ')} of 16; planned on ${planned} of ${on.length * 12 * 3} twilight cases; the ion tail at most ${worst.toFixed(4)} deg off the anti-sun great circle`);
 });
