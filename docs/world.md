@@ -1046,7 +1046,14 @@ the sand:
   out by 3) of the dunes' troughs' floor (gAF, the land's height over the
   mist pools' floor, set by 350's terrain stage), in patches.
 
-Each is faded by how many pixels its wavelength spans in its own direction
+Neither draws on a slip face: the ripples go between 22 and 25 deg of the
+surface's slope (the face as the fragment rebuilds it, sand/S2), since a
+slip face's avalanches wipe them; the stoss (median 9, 90th percentile 13.5
+deg) keeps them. The faces stand at sand's angle of repose, measured on
+barchans' slip faces as 32 deg at rest and 34 critical
+(https://doi.org/10.1002/2015JF003636); the census (tools/physics/dune-census.mjs,
+test/unit/dunes.mjs, and on the shipped GLSL check 43) puts the lee's mode at
+32. Each is faded by how many pixels its wavelength spans in its own direction
 (the wind's coordinate's change a pixel, from the footprint and the grazing angle: whole from 5 px a wavelength, gone under
 2.5), never by range: the old fade by footprint (0.012-0.05 m a pixel) lost
 the 0.9 m ripples where they resolve and never drew any on a phone. From the
