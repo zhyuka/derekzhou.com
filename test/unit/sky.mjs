@@ -3,6 +3,7 @@
 // plant: {"file": "src/world/221-sky-paint-objects.js", "find": "O.rawD.keyD = O.rawA.keyD = se === null ? 0 : 1 - ss01((se + 6) / 6);", "with": "O.rawD.keyD = O.rawA.keyD = se === null ? 1 : 1 - ss01((se + 6) / 6);", "why": "the moonlit night's key made diffuse: the moon's own light loses its shading"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  float ndl = ndlK(n);\n  // the low sun lights", "with": "  float ndl = dot(n, uSun);\n  // the low sun lights", "why": "the sand keeps a direct key with the sun 7 deg down"}
 // plant: {"file": "src/world/glsl/frame-u.glsl", "find": "uSun.y * (0.5 + 0.5 * dot(n, g)) / (0.5 + 0.5 * g.y), uKeyD)", "with": "0.5 * uSun.y * (0.5 + 0.5 * dot(n, g)) / (0.5 + 0.5 * g.y), uKeyD)", "why": "the twilight's diffuse light at half the key's height: the land darkened as the sun sinks"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "f = fract(g); ivec2 c = ivec2(floor(g));", "with": "f = vec2(0.0); ivec2 c = ivec2(floor(g + 0.5));", "why": "the face's map read nearest, not bilinear: its cells' edges glitter as the disc slides"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
@@ -1093,8 +1094,8 @@ test('physics: night/moon-phase: a near-full moon, lit by its hidden sun opposit
   // sky-body.glsl's own moon lines, made JS (their vectors by hand): over the disc, at every height the moon stands
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const PH = +g.match(/const float MOON_PHASE = ([\d.]+);/)[1];
-  assert.ok(g.includes('float mlit = smoothstep(-0.06, 0.06, dot(mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz, msun));') && g.includes('vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);'), 'the moon\'s phase lines are not the ones this test models');
-  assert.ok(g.includes('c = mix(c, mix(c, uMoonC, mlit), 1.0 - smoothstep('), 'the moon\'s unlit part is not the sky behind it (it would be painted darker)');
+  assert.ok(g.includes('vec3 mn = mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz;') && g.includes('float mlit = smoothstep(-0.06, 0.06, dot(mn, msun));') && g.includes('vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);'), 'the moon\'s phase lines are not the ones this test models');
+  assert.ok(g.includes('c = mix(c, mix(c, uMoonC * (ma < mr + 0.1 ? moonFace(mn, uMoon.xyz) : 1.0), mlit), 1.0 - smoothstep('), 'the moon\'s unlit part is not the sky behind it (it would be painted darker)');
   const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
   const norm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); }, cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   for (const e of [0, 5, 15, 30, 60]) for (const az of [0, 2.1]) {
@@ -1277,4 +1278,48 @@ test('sky: the twilight key softens as the sun sinks (diffuse by the sky\'s sun)
   assert.ok(/float ndl = ndlK\(n\);\n  float tauL/.test(AG) && /float ndl = ndlK\(n\), mat = col\.a, dif/.test(AG), 'the cloud sea and the islands\' stone by ndlK');
   assert.ok(/float ndl = ndlK\(n\), cs = dot\(rd, uSun\);/.test(L2) && /uClK\.w \* \(1\.0 - uKeyD\);/.test(L2), 'the clouds\' light by ndlK, their silver edge the direct light\'s');
   assert.ok(/f = \(1\.0 - uKeyD\) \* ndl/.test(DG), 'the clouds\' shadows take only the direct share');
+});
+
+// the moon's face (NIGHT, the hub's review crops: a flat tan disc, then evenly toned spots): the near side's albedo from
+// NASA's Scientific Visualization Studio CGI Moon Kit (https://svs.gsfc.nasa.gov/4720/, public domain), resampled by
+// tools/night/moonmap.py to an orthographic 32 x 32 disc at 4 bits a cell; sky-body.glsl's moonFace run here as JS: the
+// maria where they stand (Imbrium, Serenitatis, Tranquillitatis, Crisium, Procellarum darker than the southern highlands),
+// the disc's mean light steady within 2% and no pixel jumping more than half its contrast as it slides by quarter pixels
+test('night: the moon\'s face, the near side\'s albedo read bilinear, the maria where they stand, no glitter', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const MD = +g.match(/const float MOON_DARK = ([\d.]+), MOON_EW = (-?[\d.]+);/)[1], EW = +g.match(/MOON_EW = (-?[\d.]+);/)[1];
+  const W = [...g.match(/const uint MOONA\[128\] = uint\[128\]\(([\s\S]*?)\);/)[1].matchAll(/0x([0-9a-f]{8})u/g)].map((m) => parseInt(m[1], 16));
+  assert.equal(W.length, 128, 'the map: 128 words of 8 cells');
+  assert.ok(g.includes('vec2 g = vec2(dot(n, E) * 16.0 + 15.5, 15.5 - dot(n, N) * 16.0), f = fract(g); ivec2 c = ivec2(floor(g));') && g.includes('return mix(MOON_DARK, 1.0, a);') && g.includes('mix(mix(moonCell(c.x, c.y), moonCell(c.x + 1, c.y), f.x), mix(moonCell(c.x, c.y + 1), moonCell(c.x + 1, c.y + 1), f.x), f.y)'), 'moonFace\'s bilinear read and light, as run here');
+  const cell = (i, j) => { const k = Math.min(Math.max(j, 0), 31) * 32 + Math.min(Math.max(i, 0), 31); return ((W[k >> 3] >>> ((k & 7) * 4)) & 15) / 15; };
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); };
+  const face = (n, m, pole) => {   // (moonFace, line for line)
+    const N = norm(pole.map((p, i) => p - dot(pole, m) * m[i] + (i === 1 ? 1e-5 : 0))), E = cross(m, N).map((x) => x * EW);
+    const gx = dot(n, E) * 16 + 15.5, gy = 15.5 - dot(n, N) * 16, fx = gx - Math.floor(gx), fy = gy - Math.floor(gy), cx = Math.floor(gx), cy = Math.floor(gy);
+    const a = (cell(cx, cy) * (1 - fx) + cell(cx + 1, cy) * fx) * (1 - fy) + (cell(cx, cy + 1) * (1 - fx) + cell(cx + 1, cy + 1) * fx) * fy;
+    return MD + (1 - MD) * a;
+  };
+  const m = norm([0.3, 0.25, 1]), pole = norm([0, 0.9, -0.44]);   // (the moon low in the south, the pole 64 deg up in the north)
+  const N = norm(pole.map((p, i) => p - dot(pole, m) * m[i])), E = cross(m, N).map((x) => x * EW);
+  const at = (la, lo) => { const L = la * Math.PI / 180, O = lo * Math.PI / 180; return [0, 1, 2].map((i) => -m[i] * Math.cos(L) * Math.cos(O) + E[i] * Math.cos(L) * Math.sin(O) + N[i] * Math.sin(L)); };
+  const high = face(at(-45, 5), m, pole);   // (the southern highlands)
+  for (const [nm, la, lo] of [['Imbrium', 34.7, -14.9], ['Serenitatis', 27.3, 18.4], ['Tranquillitatis', 8.4, 30.8], ['Crisium', 16.2, 59.1], ['Procellarum', 20, -50]]) {   // (the gazetteer's centres: https://planetarynames.wr.usgs.gov)
+    const v = face(at(la, lo), m, pole); assert.ok(v < high - 0.2 * (1 - MD), `Mare ${nm} (${v.toFixed(3)}) not darker than the southern highlands (${high.toFixed(3)})`);
+  }
+  assert.ok(high > 0.85, `the southern highlands near the disc's own colour (${high.toFixed(3)})`);
+  const R = 18, means = [], img = {};
+  for (const ox of [0, 0.25, 0.5, 0.75]) for (const oy of [0, 0.25, 0.5]) {
+    let s = 0, n = 0; const px1 = img[ox + ',' + oy] = new Map();
+    for (let py = -R - 1; py <= R + 1; py++) for (let px = -R - 1; px <= R + 1; px++) {
+      const x = (px + 0.5 - ox) / R, y = (py + 0.5 - oy) / R, d = Math.hypot(x, y); if (d >= 1) continue;
+      const z = Math.sqrt(1 - d * d), t1 = norm(cross([0, 1, 0], m)), t2 = cross(m, t1), nn = [0, 1, 2].map((i) => x * t1[i] + y * t2[i] - z * m[i]);
+      const v = face(nn, m, pole); s += v; n++; px1.set(px + ',' + py, v);
+    }
+    means.push(s / n);
+  }
+  let jump = 0; for (const [k, v] of img['0,0']) { const w = img['0.25,0'].get(k); if (w !== undefined) jump = Math.max(jump, Math.abs(v - w)); }
+  assert.ok(jump <= 0.5 * (1 - MD), `a pixel's light jumps ${jump.toFixed(3)} as the disc slides a quarter pixel (at most half the face's contrast, ${(0.5 * (1 - MD)).toFixed(3)}): it would glitter`);
+  const lo = Math.min(...means), hi = Math.max(...means);
+  assert.ok((hi - lo) / hi < 0.02, `the disc's mean light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides (at most 2%)`);
+  console.log(`# moon face: mean light ${lo.toFixed(3)}-${hi.toFixed(3)} of the disc's colour, the darkest at ${MD}, a pixel's largest jump a quarter pixel on ${jump.toFixed(3)}`);
 });
