@@ -1,5 +1,12 @@
 // paint-trend.mjs: is the head's first paint slower than the base's? (load-perf, 2026-11-25; the gate's paint job)
 //   node tools/paint-trend.mjs BASE_DIR HEAD_DIR [--runs 9] [--json OUT]
+//   node tools/paint-trend.mjs BASE_DIR HEAD_DIR --runs 3 --samples OUT   (one runner's loads, written, not judged)
+//   node tools/paint-trend.mjs --judge S1 S2 S3 [--json OUT]             (the runners' samples pooled and judged)
+// (CI lane, 2026-11-25, the hub's gate p90: the paint job's 18 cold loads, about 10 s each, took 231-292 s, the gate's
+// pole in 38% of its runs. Now three runners load 3 an arm each, side by side, and a judge pools them. Each runner's
+// loads are centred on that runner's own median, both arms together, before they are pooled: a faster or slower runner
+// moves base and head alike, so it adds nothing to the noise, and the head's difference from the base is kept. On one
+// runner the centring takes one constant off both arms: the medians' difference and the noise are as before.)
 // BASE_DIR and HEAD_DIR are two plain builds (the plan job's hand-off: base/ and head/). Each is served as Pages
 // would (.github/ci/serve.mjs) and opened in the gates' headless Chromium (SwiftShader, .github/ci/harness.mjs), on
 // the real clock, cold (a fresh context each load), base and head taking turns so a busy runner slows both alike.
@@ -24,8 +31,9 @@ import { serve } from '../.github/ci/serve.mjs';
 import { launch, PERSONAS } from '../.github/ci/harness.mjs';
 
 const argv = process.argv.slice(2), val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
-const [BASE, HEAD] = argv.filter((a, i) => !a.startsWith('--') && !(i > 0 && argv[i - 1].startsWith('--')));
-if (!BASE || !HEAD) { console.error('usage: node tools/paint-trend.mjs BASE_DIR HEAD_DIR [--runs N] [--json OUT]'); process.exit(2); }
+const JUDGE = argv.includes('--judge'), pos = argv.filter((a, i) => !a.startsWith('--') && !(i > 0 && argv[i - 1].startsWith('--') && argv[i - 1] !== '--judge'));
+const [BASE, HEAD] = JUDGE ? [] : pos;
+if (JUDGE ? !argv.slice(argv.indexOf('--judge') + 1).some((a) => !a.startsWith('--')) : !BASE || !HEAD) { console.error('usage: node tools/paint-trend.mjs BASE_DIR HEAD_DIR [--runs N] [--json OUT] [--samples OUT] | --judge S1 S2 ... [--json OUT]'); process.exit(2); }
 const RUNS = +val('--runs', 9), FLOOR = 50, K = 3, SHOW_MS = 60000;
 const VP = { width: 393, height: 852 }, SEED = 44;
 
@@ -76,6 +84,29 @@ async function load(browser, url) {
 const med = (a) => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const noise = (arms) => 1.4826 * med(arms.flatMap((a) => { const m = med(a); return a.map((x) => Math.abs(x - m)); }));
 
+// the runners' samples, each { runs: { base: [..], head: [..] }, bad: [..] }: centred on their own median (both arms), pooled
+export function judge(sets) {
+  const out = { runs: sets.reduce((n, x) => n + x.runs.base.length, 0), runners: sets.length, viewport: VP, floor_ms: FLOOR, k: K, metrics: {}, fail: [] };
+  for (const m of ['words', 'world', 'main']) {
+    const B = [], H = [], rawB = [], rawH = [];
+    for (const x of sets) {
+      const b = x.runs.base.map((r) => r[m]).filter((v) => v != null), h = x.runs.head.map((r) => r[m]).filter((v) => v != null);
+      if (!b.length || !h.length) continue;
+      const c = med(b.concat(h)); B.push(...b.map((v) => v - c)); H.push(...h.map((v) => v - c)); rawB.push(...b); rawH.push(...h);
+    }
+    if (!B.length) continue;
+    const n = noise([B, H]), limit = Math.max(FLOOR, K * n), d = med(H) - med(B);
+    out.metrics[m] = { base_ms: Math.round(med(rawB)), head_ms: Math.round(med(rawH)), delta_ms: Math.round(d), noise_ms: Math.round(n), limit_ms: Math.round(limit), base: rawB.map(Math.round), head: rawH.map(Math.round) };
+    if (d > limit) out.fail.push(`${m}: the head is ${Math.round(d)} ms slower than the base (medians ${Math.round(med(rawH))} and ${Math.round(med(rawB))} ms), over the limit ${Math.round(limit)} ms (max(${FLOOR} ms, ${K} x the noise ${Math.round(n)} ms))`);
+  }
+  for (const x of sets) out.fail.push(...(x.bad || []));
+  return out;
+}
+
+let out;
+if (JUDGE) { const rest = argv.slice(argv.indexOf('--judge') + 1), end = rest.findIndex((a) => a.startsWith('--'));
+  out = judge((end < 0 ? rest : rest.slice(0, end)).map((f) => JSON.parse(fs.readFileSync(f, 'utf8')))); }
+else {
 const sb = await serve(path.resolve(BASE)), sh = await serve(path.resolve(HEAD)), browser = await launch();
 const runs = { base: [], head: [] }, bad = [];
 try {
@@ -86,21 +117,19 @@ try {
     runs[arm].push(r);
   }
 } finally { await browser.close(); await sb.close(); await sh.close(); }
-
-const out = { runs: RUNS, viewport: VP, floor_ms: FLOOR, k: K, metrics: {}, fail: [] };
-for (const m of ['words', 'world', 'main']) {
-  const b = runs.base.map((r) => r[m]).filter((x) => x != null), h = runs.head.map((r) => r[m]).filter((x) => x != null);
-  if (!b.length || !h.length) continue;
-  const n = noise([b, h]), limit = Math.max(FLOOR, K * n), d = med(h) - med(b);
-  out.metrics[m] = { base_ms: Math.round(med(b)), head_ms: Math.round(med(h)), delta_ms: Math.round(d), noise_ms: Math.round(n), limit_ms: Math.round(limit), base: b.map(Math.round), head: h.map(Math.round) };
-  if (d > limit) out.fail.push(`${m}: the head's median ${Math.round(med(h))} ms is ${Math.round(d)} ms slower than the base's ${Math.round(med(b))} ms, over the limit ${Math.round(limit)} ms (max(${FLOOR} ms, ${K} x the noise ${Math.round(n)} ms))`);
+if (A('samples')) {   // (one runner's share: its loads written for the judge, nothing judged here)
+  fs.mkdirSync(path.dirname(path.resolve(A('samples'))), { recursive: true });
+  fs.writeFileSync(A('samples'), JSON.stringify({ runs, bad }));
+  console.log(`paint trend: ${RUNS} cold loads an arm written to ${A('samples')}` + (bad.length ? `; ${bad.length} load(s) never showed` : ''));
+  process.exit(0);
 }
-out.fail.push(...bad);
+out = judge([{ runs, bad }]);
+}
 if (A('json')) fs.writeFileSync(A('json'), JSON.stringify(out, null, 1));
 function A(k) { return val('--' + k, null); }
 
 const lines = Object.entries(out.metrics).map(([m, x]) => `${m.padEnd(5)}  base ${x.base_ms} ms  head ${x.head_ms} ms  delta ${x.delta_ms >= 0 ? '+' : ''}${x.delta_ms} ms  noise ${x.noise_ms} ms  limit ${x.limit_ms} ms   (base ${x.base.join(' ')} | head ${x.head.join(' ')})`);
-console.log(`paint trend: ${RUNS} cold loads an arm, ${VP.width}x${VP.height}, base and head in turn\n` + lines.join('\n'));
+console.log(`paint trend: ${out.runs} cold loads an arm over ${out.runners} runner(s), ${VP.width}x${VP.height}, base and head in turn\n` + lines.join('\n'));
 for (const f of out.fail) console.log('FAIL ' + f);
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## First paint, base against head: ${out.fail.length ? '**slower**' : 'no regression'}\n\n` + lines.map((l) => '- `' + l + '`\n').join('') + out.fail.map((f) => `- **${f}**\n`).join(''));
 console.log(out.fail.length ? `paint trend: ${out.fail.length} regression(s)` : 'paint trend: ok');
