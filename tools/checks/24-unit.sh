@@ -19,6 +19,7 @@
 # (stills counts 14: its build test runs a whole build; a file not listed counts 1 s), so both parts compute the same split and every file runs in exactly one. Unset
 # (plants, --only, a run by hand): every file.
 # parts: 2
+# apart: 35-birds 37-ground-fresh 43-dune-census (the gate's busiest checks: beside 35-birds a part took 119 s, not 22)
 part=0; parts=1
 if [[ "${CHECK_PART:-}" =~ ^([0-9]+)/([0-9]+)$ ]]; then part=${BASH_REMATCH[1]}; parts=${BASH_REMATCH[2]}; fi
 files=$(node -e '
