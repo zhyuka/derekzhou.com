@@ -42,6 +42,64 @@ test('glslmin: the same program, token for token', async () => {
 
 // plant: {"file": "tools/glslmin.mjs", "find": "const isUniform = (l) => /^\\s*uniform\\b/.test(l);", "with": "const isUniform = (l) => false;", "why": "a uniform declaration joined into the code around it: the folds would fold its name, and miss a use joined after it"}
 
+test('glslmin: a function\'s own names shortened, one to one, never a protected one', async () => {
+  const { minGlsl, mangleGlsl, checkMangle } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
+  const src = 'uniform float uK;\nfloat g;\nfloat f(vec3 pos, float amount) {\n  float total = pos.x * amount + uK + g;\n  vec3 col = vec3(total), tmp = col;\n  for (int idx = 0; idx < 2; idx++) total += tmp.x;\n  return col.x + total;\n}\n';
+  const P = new Set(['amount']), mt = minGlsl(src), mm = mangleGlsl(mt, P);
+  // the parameters and locals renamed (most saved first); the uniform, the global, the function, the fields and the protected parameter kept
+  assert.equal(mm, 'uniform float uK;\nfloat g;float f(vec3 d,float amount){float a=d.x*amount+uK+g;vec3 b=vec3(a),e=b;for(int c=0;c<2;c++)a+=e.x;return b.x+a;}\n');
+  assert.equal(checkMangle(mt, mm, P), null);
+  // what the check refuses
+  assert.match(checkMangle(mt, mt.replace('total=pos', 'total=amount'), P), /protected name \(amount\)/);
+  assert.match(checkMangle(mt, mt.replace('col.x+total', 'col.y+total'), P), /a field \(x\) renamed/);
+  assert.match(checkMangle(mt, mt.replace(/\bg\b/g, 'h'), P), /outside a function/);
+  assert.match(checkMangle(mt, mt.replace('tmp=col', 'col=col').replace('tmp.x', 'col.x'), P), /kept where it is renamed|one to one|already in its function/);
+});
+
+test('glslmin: every text a script finds in a shader is still there once its names are shortened', async () => {
+  const { minGlsl, shipGlsl, protectedNames, KEEP, minGlslKeeping } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
+  const acorn = await import('acorn');
+  const P = protectedNames(path.join(ROOT, 'src'));
+  // the scripts' own literals and regexes, as their lexer reads them
+  const lits = new Set();
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) { walk(f); continue; }
+      if (!f.endsWith('.js')) continue;
+      for (const tk of acorn.tokenizer(fs.readFileSync(f, 'utf8'), { ecmaVersion: 'latest' })) {
+        if (tk.type.label === 'string' || tk.type.label === 'template') { const v = String(tk.value); if (v.length >= 3 && /[A-Za-z_]/.test(v)) lits.add(v); }
+        else if (tk.type.label === 'regexp') for (const w of tk.value.pattern.replace(/\\[A-Za-z]/g, ' ').matchAll(/[A-Za-z_]\w{2,}/g)) lits.add(w[0]);   // (a regex's search: the names it spells out)
+      }
+    }
+  })(path.join(ROOT, 'src'));
+  const W = /[A-Za-z0-9_]/, edges = (s, i, v) => (!W.test(v[0]) || !W.test(s[i - 1] || ' ')) && (!W.test(v[v.length - 1]) || !W.test(s[i + v.length] || ' '));
+  const whole = (s, v) => { for (let i = s.indexOf(v); i >= 0; i = s.indexOf(v, i + 1)) if (edges(s, i, v)) return true; return false; };
+  const lost = []; let files = 0, shortened = 0;
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) { walk(f); continue; }
+      if (!f.endsWith('.glsl')) continue;
+      const name = e.name.replace(/\.glsl$/, ''), t = fs.readFileSync(f, 'utf8');
+      const before = KEEP.has(name) ? minGlslKeeping(t, KEEP.get(name)) : minGlsl(t), after = shipGlsl(name, t, P);
+      files++; if (after !== before) shortened++;
+      // (a find counts where it is whole at its edges: a text that only matches inside a longer name, 'paper' in cpaper,
+      // ' ms' in msun, is a script's own word that no shader search could rely on)
+      for (const v of lits) if (whole(before, v) && !whole(after, v)) lost.push(path.relative(ROOT, f) + ': ' + JSON.stringify(v.slice(0, 60)));
+    }
+  })(path.join(ROOT, 'src'));
+  assert.ok(files > 20 && shortened > 10, files + ' files, ' + shortened + ' shortened');
+  assert.deepEqual(lost, [], 'a text a script searches a shader for is lost');
+  // the names the world finds by name, by hand: the land split's D_Hd, the folds' token, the realms' hooks
+  for (const n of ['D_Hd', 'uDbg', 'skyHook', 'emitMod']) assert.ok(P.has(n), n + ' protected');
+  const dunes = fs.readFileSync(path.join(ROOT, 'src/glsl/dunes-glsl.glsl'), 'utf8');
+  const HP_SITES_FN = vm.runInThisContext('(function () {\n' + cut(WORLD, '  function HP_SITES_FN(g) {', '  function VS_TERRAIN_SPLIT(') + '  return HP_SITES_FN;\n})()');
+  assert.equal(HP_SITES_FN(shipGlsl('dunes-glsl', dunes, P)), HP_SITES_FN(dunes), 'the land split still finds D_Hd as written');
+});
+// plant: {"file": "tools/glslmin.mjs", "find": "    for (const n of declared(toks, f)) if (!protect.has(n) && !RESERVED.has(n)", "with": "    for (const n of declared(toks, f)) if (!RESERVED.has(n)", "why": "a protected name shortened: a text a script finds in a shader (a local it splices code for, or searches) is lost"}
+// plant: {"file": "tools/glslmin.mjs", "find": "if (l !== 'string' && l !== 'template' && l !== 'regexp') continue;", "with": "if (l !== 'string') continue;", "why": "the names in template literals and regexes not protected: a spliced or searched name shortened"}
+
 test('glslmin: dunes-glsl minified but for D_Hd, which the world\'s own land split still splits as it does the source', async () => {
   const { KEEP, minGlslKeeping, checkGlsl } = await import(new URL('../../tools/glslmin.mjs', import.meta.url));
   const src = fs.readFileSync(path.join(ROOT, 'src/glsl/dunes-glsl.glsl'), 'utf8'), min = minGlslKeeping(src, KEEP.get('dunes-glsl'));
