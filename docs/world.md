@@ -248,11 +248,15 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
-The air's extinction (physics: night/extinction) is taken from a planet's
-true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand
-far over the light's ceiling, so even 2.7 magnitudes at 2 deg up leave each
-drawn at its head, the brightest points in the sky (their tops over the
-stars'); what the low air shows is their colour, a little redder (extTint).
+The planets at their true scale (the hub's ruling, 2026-11-25): a planet's
+light on the stars' own energy scale (sky-body's planetE: a -1.46 star's,
+Sirius, times 10^(-0.4 (m + 1.46)), Venus -4.4 about 15x, the outer planet
+-2.4 about 2.4x), the air's k (X - 1) taken from it (physics:
+night/extinction: 21% kept at 4 deg up). It is drawn as a steady core at its
+head, as wide as that light asks, sigma 0.85-1.4 px (a point, never a disc);
+the true light fills sigma 1.4 at the head on every sky, so both planets are
+the brightest points in their sky at every height, held under the light's
+ceiling. The low air shows their colour, a little redder (extTint).
 The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
 a steady band low over the horizon on the night skies, brightest about 6 deg
 up and falling away overhead, behind the haze; it comes in by the stars' own

@@ -174,7 +174,7 @@
     var P = b.P; P.tries++;
     if (P.tries > 1 || why === 'fast') { giveUp(b); return; }
     /* once round: after 4 s, once at least 3 spans (and 25 m) from the perch, in again; given up after 14 s */
-    b.st = 'round'; P.rT = t; P.d0 = 0;
+    b.st = 'round'; P.roundT = t; P.d0 = 0;
   }
   function roundStep(b, dt, C) {
     var P = b.P;
@@ -184,8 +184,8 @@
     AV[0] = P.v[0] * 0.6 + v * Math.sin(h); AV[1] = 0.2 * (P.at[1] + 8 - b.p[1]); AV[2] = P.v[2] * 0.6 + v * Math.cos(h);
     clearOfEye(b, AV); AV[1] = floorUp(b, AV[1], v, P.at[1]);
     flyTo(b, dt, AV[0], AV[1], AV[2]);
-    if (t - P.rT > 4 && rl > out) { b.st = 'appr'; P.d0 = 0; P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; }
-    if (t - P.rT > 14) giveUp(b);
+    if (t - P.roundT > 4 && rl > out) { b.st = 'appr'; P.d0 = 0; P.gated = false; P.gate = null; P.gT = 0; P.t0 = t; }
+    if (t - P.roundT > 14) giveUp(b);
   }
   function giveUp(b) {
     toAir(b, null);

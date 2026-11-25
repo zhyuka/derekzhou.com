@@ -80,21 +80,16 @@ interface BirdsModule { step(dt: number): void; draw(): void; visit(k: number): 
 type V3 = number[];
 interface Stream { f(): number; r(a: number, b: number): number; i(n: number): number; pick<T>(a: T[]): T; n(): number; sign(): number; seed(): number }
 interface KitApi {
-  Builder: new (cap?: number) => any;
   box(B: any, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, bev?: number, col?: any): any;
   prism(B: any, poly: number[][], y0: number, tops: any, topScale?: any, dx?: number, dz?: number, col?: any, noBottom?: boolean): any;
   lathe(B: any, prof: number[][], seg: number, flat?: any, col?: any, phase?: number): any;
   rock(B: any, rng: Stream, r: number, flatten?: number, col?: any): any;
   cumulus(PF: any, rng: Stream, x: number, y0: number, z: number, W: number, H: number, o?: object): any;
-  bank(PF: any, rng: Stream, x: number, y: number, z: number, W: number, H: number, D: number, R0?: number, n?: number): any;
   range(PF: any, rng: Stream, x0: number, y0: number, z0: number, dir: number, len: number, W: number, H: number, o?: object): any;
   lens(PF: any, rng: Stream, x: number, y0: number, z: number, dir: number, len: number, W: number, T: number, n: number, o?: object): any;
   wall(PF: any, rng: Stream, x0: number, y0: number, z0: number, dir: number, len: number, thick: number, H: number, o?: object): any;
-  mound(PF: any, rng: Stream, x: number, y0: number, z: number, W: number, H: number, o?: object): any;
-  lch(L: number, C: number, h: number, k?: number): V3; lab(L: number, C: number, h: number): V3; hex(h: string): V3; lum(c: V3): number;
-  dirAzEl(az: number, el: number): V3; norm(a: V3): V3; cross(a: V3, b: V3): V3; add(a: V3, b: V3): V3; sub(a: V3, b: V3): V3;
-  mul(a: V3, s: number): V3; dot(a: V3, b: V3): number;
-  clamp(x: number, a: number, b: number): number; smooth(a: number, b: number, x: number): number; lerp(a: number, b: number, t: number): number;
+  lch(L: number, C: number, h: number, k?: number): V3; norm(a: V3): V3; cross(a: V3, b: V3): V3; sub(a: V3, b: V3): V3;
+  mul(a: V3, s: number): V3; smooth(a: number, b: number, x: number): number;
   RNG(seed: number): Stream; cellHash(ix: number, iz: number, salt: number): number; ihash(x: number): number; hfl(h: number): number;
-  hk(h: number, k: number): number; angDiff(a: number, b: number): number; glowBake(B: any, v0: number, v1: number, lamps: any): any;
+  hk(h: number, k: number): number;
 }
