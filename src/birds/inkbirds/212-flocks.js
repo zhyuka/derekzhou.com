@@ -201,7 +201,8 @@
   function passage(C, cls, r, near) {
     var n = Math.round(pick(r, PASS_N)), h = pick(r, PASS_H), Tc = pick(r, PASS_TC), side = r() < 0.5 ? 1 : -1, u = (r() - 0.5) * 1.4, v = mix(r(), 0.2, 0.9);
     if (!passWay(C, h, Tc, side, near, u, v)) return null;
-    var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]), i;
+    var k0 = POP.k; POP.k = 50000 + POP.passN++;   // (its own flock keys: the sky's other flocks keep theirs)
+    var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]), i; POP.k = k0;
     F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = PASSW[3]; g.y = PASSW[1]; g.T = 900; g.home = true;
     for (i = 0; i < F.m.length; i++) F.m[i].psi = g.psi;
     F.passage = 1; POP.passF = F;
