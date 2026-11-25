@@ -43,9 +43,9 @@ vec3 skyCol(vec3 rd) {
    extinction and gives the sky's back by in-scatter, L = c T + Linf (1 - T), per channel, T = exp(-od). Two kinds of
    scatterer: the gas, by wavelength (as the inverse fourth power: BR, its sea-level scattering at 680, 550 and 440 nm,
    https://doi.org/10.1364/AO.34.002765, thinning with an 8 km scale height along the path: gasPath), and the aerosol (the shape of the sky's own
-   height fog, density a at y0 falling off by b, and its even distance term, uFog; times uAer.x, so its extinction at
-   the eye is the visual-range law's for the visit's visual range by AIR's weather; by wavelength as uAer.w's wavelength exponent:
-   370). Linf, what a path long enough gives back, is the sky's own colour toward the
+   height fog, density a at y0 falling off by b, and its even distance term, uFog; times uAer.x, the visit's dust and
+   moisture by AIR's weather: its amount the look's; by wavelength as uAer.w's wavelength exponent, green's extinction
+   that amount: 370). Linf, what a path long enough gives back, is the sky's own colour toward the
    horizon (fogCol: the sky drawn there), so far ridges dissolve into the sky behind them; and since blue is taken and
    given first, a thin air is blue and a thick one the horizon's colour (no tint of its own). The aerosol's forward
    peak toward the light (the one-parameter phase of https://doi.org/10.1086/144246, its asymmetry uAer.y) only adds
@@ -86,13 +86,13 @@ vec3 hazeCol(vec3 rd) {
 }
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float m = fogOD(rd, t), g = uAer.y, cs = dot(rd, uSun);
-  float gp = gasPath(rd, t), m0 = m * uAerB;
-  vec3 T = exp(-(m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w)) + BR * gp)), T0 = exp(-(m0 + BR * gp)), fq = fogCol(rd);   // (the aerosol by wavelength: the wavelength exponent alpha, uAer.w, 370)
-  /* the aerosol only adds the sky's light: each channel the brighter of the physical air and the grey air it replaced
-     (uAerB, its amount over the physical's), so a sunlit rim brighter than the horizon's sky, which a thicker air would
-     pull down toward it, keeps today's (nothing is darkened); land darker than the sky, nearly all of it, takes the
-     physical air whole */
-  c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0)) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-max(m, m0))));
+  float gp = gasPath(rd, t);
+  vec3 T = exp(-(m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w)) + BR * gp)), T0 = exp(-(m + BR * gp)), fq = fogCol(rd);   // (the aerosol by wavelength, green's its amount: the wavelength exponent alpha, uAer.w, 370)
+  /* the aerosol only adds the sky's light: each channel the brighter of the coloured air and the grey air of the same
+     amount, so a red channel brighter than the horizon's sky, which a bluer air's lighter red extinction would leave
+     nearer its own and a blue one a thicker blue would pull toward the sky, never goes below the grey's (nothing is
+     darkened) */
+  c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0)) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-m)));
   c = mix(c, hazeCol(rd), hazeAmt(rd, t));
   /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen
      within a few degrees of the horizon (the far land, a mesa, a dune's crest, the feet of the towers) lies in a mist of the horizon's own colour, so the ground about the words is even, while the land nearer

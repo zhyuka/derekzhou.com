@@ -6,27 +6,23 @@
   var FR = { tanX: 1, tanY: 1, t: 0 }, FRT = { tanX: 1, tanY: 1 };
   var HZU = new Float32Array(4), CAML = new Float32Array(3);
   /* the aerosol (lib-air: atmos), the visit's own (AIR's weather: neither changes with the sky, so the far land never
-     fades in place), physical: its extinction at the eye's height (AER_Y over the realm's haze base) is the visual-range law's,
-     3.912 over the visual range less the gas's (extinction is 3.912 over the range at a 2% contrast threshold,
-     https://glossary.ametsoc.org/wiki/Visibility), the range AIR's (10 km in clean air, 4 km in blown sand) shortened by
-     the particles' growth with the humidity, ((1 - RH) / (1 - RH0))^-AER_GAM (https://doi.org/10.1016/S0065-2687(08)60142-9),
-     RH from AER_RH by the visit's moisture; the realm's tuned haze keeps only its shape with height. By wavelength
-     (the particles' scattering): (lambda / 550 nm)^-alpha, the wavelength exponent AER_A[0] for dry fine aerosol, falling to AER_A[1] in blown
-     dust and with the growth (https://doi.org/10.1029/1999JD900923: continental 1.2-1.5, desert dust 0-0.5): a thin dry
-     air's haze is bluish, a moist or dusty one white. Desert dust's forward asymmetry AER_G; AER_SUN the forward peak's
-     share of the light (the sky's colour holds the even part) */
-  var AER_RH = [0.3, 0.9], AER_GAM = 0.3, AER_G = 0.7, AER_SUN = 0.05, AER_Y = 20, AER_A = [1.3, 0.3], AERU = new Float32Array([1, AER_G, AER_SUN, AER_A[0]]), AERK = { V: null, t: NaN, f: null };
+     fades in place): its optical depth as the realm's tuned haze at the look's baseline (AIR's vis 10 km), times that
+     baseline over the visit's vis (4 km in blown sand is 2.5 times it), times the particles' growth with the humidity,
+     ((1 - RH) / (1 - RH0))^-AER_GAM (https://doi.org/10.1016/S0065-2687(08)60142-9), RH from AER_RH by the visit's
+     moisture. Its amount is the look's (clean desert air would be clearer still: 100-250 km standard visual range,
+     https://vista.cira.colostate.edu/Improve/); its colour is physics': by wavelength as (lambda / 550 nm)^-alpha, green's
+     extinction the amount's, the wavelength exponent AER_A[0] for dry fine aerosol, falling to AER_A[1] in blown dust and
+     with the growth (https://doi.org/10.1029/1999JD900923: continental 1.2-1.5, desert dust 0-0.5): a dry air's haze
+     takes more blue than red, a moist or dusty one is even. Desert dust's forward asymmetry AER_G; AER_SUN the forward
+     peak's share of the light (the sky's colour holds the even part) */
+  var AER_RH = [0.3, 0.9], AER_GAM = 0.3, AER_G = 0.7, AER_SUN = 0.05, AER_A = [1.3, 0.3], AERU = new Float32Array([1, AER_G, AER_SUN, AER_A[0]]), AERK = { V: null, t: NaN };
   function aerU(u, V) {
-    var L = V.L || V.light, F = L && L.fog;
-    if (AERK.V !== V || AERK.t !== SIM.t || AERK.f !== F) {
+    if (AERK.V !== V || AERK.t !== SIM.t) {
       var w = airWx(SIM.t, V), rh = AER_RH[0] + (AER_RH[1] - AER_RH[0]) * w.moist, gr = Math.pow((1 - rh) / (1 - AER_RH[0]), -AER_GAM);
-      var sig = 3.912 * gr / (w.vis * 1000) - 13.5e-6, d0 = F ? F[0] * Math.exp(-F[1] * AER_Y) + F[3] : 0;   // (the aerosol's 1/m at the eye, and the tuned haze's there)
-      AERK.V = V; AERK.t = SIM.t; AERK.f = F; AERU[0] = d0 > 0 ? Math.max(sig, 0) / d0 : 0;
+      AERK.V = V; AERK.t = SIM.t; AERU[0] = AIR_WXK.vis[0] / w.vis * gr;
       AERU[3] = (AER_A[0] - (AER_A[0] - AER_A[1]) * w.dust) / gr;
-      AERK.b = AERU[0] > 0 ? AIR_WXK.vis[0] / w.vis * gr / AERU[0] : 0;   // (the grey air it replaced: the tuned haze times the visual range's and the growth's factor, over the physical's; atmos never goes below it)
     }
     gl.uniform4fv(u.uAer, AERU);
-    if (u.uAerB) gl.uniform1f(u.uAerB, AERK.b);
   }
   function setFrameUniforms(P, V) {
     var u = P.u, L = V.L || V.light;
