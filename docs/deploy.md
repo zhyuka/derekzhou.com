@@ -66,6 +66,17 @@ reads one's content but docs-drift's docs/structure.md, which still re-gates (bo
 landings on main from 18:00Z Nov 24 that shared a file with main's changes since their base, 3 shared docs/world.md
 alone and would not have been re-gated; 2 shared docs/structure.md and 2 shared code.
 
+**A built script both grew, near its load budget's line, is shared too (the hub, 03:50Z Nov 25).** #427, #432 and
+#437 each fit world.js's line on their own gates and edited different sections, so the bot landed them with no new gate;
+main d5314482 built world.js at 125,005 B, 77 B over the 122 K line (#437 alone: 124,925 B, 3 B under, 183 B over its
+base). The plan job now measures each built script of the head's build and the base's (.github/ci/budget-room.mjs:
+Brotli 11, as 36-load-budget weighs it, against that check's BUDGET lines) and the verdict keeps it (`budget`). The bot
+(bot-rules.mjs budgetShared) counts a built script as a file both changed when the PR's change grows it, main's commits
+since its gate base go into it (builtOf: a parts.json folder's out, a plain script its own, the build's tools every one),
+and the PR's build of it is within NEAR (2%) of its line: the merged tree is gated, its budget measured whole. A script
+far from its line never re-gates. Building the merged tree in the bot instead would run a PR's build tools in the job
+that holds the merge token.
+
 Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
 it once its gate's `verdict` check is green. A new push does not undo it: GitHub merges the head whose checks pass.
