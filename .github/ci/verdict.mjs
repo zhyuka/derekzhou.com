@@ -50,9 +50,14 @@ v.gate_ok = Object.keys(needs).filter((k) => k !== 'verdict').every(green) && !!
 const expectShards = +(process.env.T1_SHARDS || 4);
 v.input_changed = c.input_changed === 'true';
 v.has_pr = c.has_pr !== 'false';
-if (!v.has_pr) { v.frames_identical = false; v.reason = 'the branch had no open PR when it was pushed (a preview): T1 and T2 did not compare it; push again once its PR is open'; }
-else if (v.input_changed) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
-else if (!v.site_changed) { v.frames_identical = true; v.reason = 'the build (what is served) is byte for byte the base\'s'; }
+// (the hub, 17:00Z Nov 25) the served build byte for byte the base's decides first: what a visitor gets is the base's,
+// so its input handling cannot have changed (#504, a pure split of 340, waited for a review on the input flag alone), and
+// a push with no PR (a preview, which skips T1) is identical by construction too, unless the ruler's looks were due
+// (looks_changed: its measuring code moved), which a preview also skips
+const same = !v.site_changed, sameNoLooks = same && c.looks_changed !== 'true';
+if (!v.has_pr && !sameNoLooks) { v.frames_identical = false; v.reason = 'the branch had no open PR when it was pushed (a preview): T1 and T2 did not compare it; push again once its PR is open'; }
+else if (v.input_changed && !same) { v.frames_identical = false; v.reason = `input handling changed (${c.input_files || 'see the plan job'}): T1 and T2 render with no pointer, touch or key, so how the page now answers one is for the owner to see`; }
+else if (same) { v.frames_identical = true; v.reason = 'the build (what is served) is byte for byte the base\'s' + (!v.has_pr ? ' (a push with no PR: nothing T1 could compare)' : '') + (v.input_changed ? ' (input files touched, the build the same)' : ''); }
 else if (!v.t1.ran && v.t2.ran) { v.frames_identical = !!(v.t2.frames_identical && v.t2.csp_ok && (!v.t2.glsl_changed || !v.t2.bits_differ)); v.reason = v.frames_identical ? 'T2 (the RTX 4090; T1 skipped while T2 runs): every frame the base\'s' : 'T2 (the RTX 4090): frames or bits changed, or a CSP violation'; }
 else if (!v.t1.ran || v.t1.shards !== expectShards) { v.frames_identical = false; v.reason = `T1 did not report (${v.t1.shards} of ${expectShards} shards)`; }
 else if (!v.t1.frames_identical) { v.frames_identical = false; v.reason = v.t1.dom_only ? 'T1 (the DOM, beside T2): the page outside the canvas changed' : 'T1: frames, DOM or a still changed'; }

@@ -54,6 +54,8 @@ identical" alone no longer lands one: T1 looks only where its cases look, and #3
 waits for the hub's review, whatever T1 says; the review's carry-over through merges of main (#361) and the reviewed
 PR's landing without a re-gate (#362) are unchanged.
 
+**The served build decides first (the hub, 17:00Z Nov 25).** The verdict's frames_identical is true whenever the head's served build is byte for byte the base's, whatever input files the change touched (#504, a pure split of 340, waited for a review on the input flag alone: with the build the same, input handling cannot have changed) and even on a push with no open PR, which skips T1 (#482, #506 waited for it), unless the ruler's looks were due (looks_changed: their measuring code moved), which a preview also skips. With the build changed, both still hold it: a preview is not compared, and changed input handling is for the owner to see.
+
 **A file main also changed is re-gated, reviewed or not (the hub, 2026-11-25).** #362 let a reviewed PR merge onto main
 at once whatever main changed since its gate. #405, reviewed, changed tools/visit/looks.json and two world sections that
 main's #410-#416 had changed since its gate; the bot merged it with no new gate, git joined the two looks.json line by
