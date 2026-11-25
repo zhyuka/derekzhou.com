@@ -24,6 +24,7 @@ shards.sort((a, b) => a.shard - b.shard);
 const v = {
   sha: process.env.GITHUB_SHA, ref: process.env.GITHUB_REF, base: c.base || null, run_id: process.env.GITHUB_RUN_ID,
   t2_key: c.t2_key || null,   // (both served builds' hashes and the T2 code: main reuses a PR's answer when they match)
+  budget: (() => { try { return c.budget ? JSON.parse(c.budget) : null; } catch { return null; } })(),   // (each built script's Brotli size and load budget line: the bot's budgetShared)
   served_sha: c.served_sha || null,   // (the plan's gate-served manifest, sha256: the Stills job pins the builds to it)
   areas: c.areas || '', site_changed: c.site_changed === 'true', glsl_changed: c.glsl_changed === 'true', gpu_js: c.gpu_js === 'true',
   jobs: Object.fromEntries(Object.keys(needs).map((k) => [k, needs[k].result])),

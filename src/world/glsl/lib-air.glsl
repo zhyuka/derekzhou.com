@@ -97,4 +97,3 @@ vec3 atmos(vec3 c, vec3 rd, float t) {
 #endif
   return c;
 }
-vec3 ambient(vec3 n) { return mix(uAmbD, uAmbU, 0.5 + 0.5 * n.y); }

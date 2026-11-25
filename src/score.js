@@ -6,7 +6,8 @@
    contrabass, tuba; CC0) and hands both here. Nothing here fetches, makes a context or reads a clock of the page's:
    its time is the audio context's own (now, passed in by the switch about twice a second), and its one entropy is a
    seed the world hands it from the visit's one read (WORLD.sky().seed). It reads the sky (WORLD.sky(): the sky on
-   show, the next and when the change comes, how much of the view is cloud) and never writes to the world.
+   show, the next and when the change comes, how much of the view is cloud, the air heard where the camera flies)
+   and never writes to the world.
 
    What it plays (round twenty-one, of "i constantly hear some type of chord": no chord held under it; the keys,
    colours and changes of round seventeen, the owner's pick): three voices (cello, viola, violins) each sing one note at a time, swelling in over seconds and dying away, then rest, each on a cycle
@@ -197,6 +198,7 @@
        channels, 13.7 and 17.9 s long, looped with no seam (white noise has none to mark: no fade, nothing periodic to
        give the loop away), moved by one wind (wind(), below), each drifting slowly across the field */
     var air = [], airPan = [], airIn = ctx.createGain(); airIn.connect(tail);   // (airIn: the air's own level, which the Milky Way's breath lifts, below)
+    var sand = /** @type {any} */ (null), sandPan = /** @type {any} */ (null);   // (the sand's hiss: the stream's noise again, at its other half, its own band; below, with the wind)
     (function () {
       [[70, 520, 13.7], [450, 1500, 17.9]].forEach(function (p) {
         var n = Math.floor(p[2] * ctx.sampleRate), b = ctx.createBuffer(2, n, ctx.sampleRate);
@@ -211,6 +213,11 @@
           var s = ctx.createBufferSource(), g = ctx.createGain(), pn = ctx.createStereoPanner(); s.buffer = b; s.loop = true; g.gain.value = 0;
           chain([s, biquad('highpass', p[0], 0.7), biquad('lowpass', p[1], 0.7), biquad('lowpass', 1200, 0.7), g, pn, airIn]);
           var off = R.r(0, p[2] - 1); starts.push(function (t) { s.start(t, off); }); air.push(g); airPan.push(pn);
+          if (p[0] === 450) {   // (the hiss: the same noise half its length on, so no new draw and no new buffer; 2.5-8 kHz, toward the band grains in flight ring in (about 8 kHz), kept under it so it never sharpens the music)
+            var h = ctx.createBufferSource(), hg = ctx.createGain(), hp = ctx.createStereoPanner(), ho = (off + p[2] / 2) % (p[2] - 1); h.buffer = b; h.loop = true; hg.gain.value = 0;
+            chain([h, biquad('highpass', 2500, 0.5), biquad('highpass', 2500, 0.7071), biquad('lowpass', 8000, 0.7071), hg, hp, tail]);
+            starts.push(function (t) { h.start(t, ho); }); sand = hg; sandPan = hp;
+          }
           return true;
         });
       });
@@ -340,7 +347,7 @@
     function sync(now) {   // (the world's sky, mapped onto the audio clock: when the next change comes, and to what)
       var F = feed(), e, tc;
       S.next = null;
-      if (F) { S.wc += (F.wc - S.wc) * 0.2; if (F.air) S.air = F.air; }
+      if (F) { S.wc += (F.wc - S.wc) * 0.2; if (F.air) S.air = F.air; S.heard = F.wind || null; }
       if (!F || F.still || !F.seq.length) return F;
       e = F.seq[0]; tc = e.at + e.hold;
       if (e.id === S.sky && F.seq.length > 1 && F.seq[1].id !== S.sky) {
@@ -601,7 +608,33 @@
     var WK = [[1.2, 0.3], [2, 0.45], [6.5, 0.67], [21, 1]], WIND_DAY = 0.35;
     function breeze(id) { var a = S.air && S.air[id]; return a ? [WIND_DAY * a[0], a[2]] : [0, 0]; }   // (the sky's breeze, its gustiness)
     function skyAt(t) { var id = S.swaps[0][1], j; for (j = 1; j < S.swaps.length; j++) if (S.swaps[j][0] <= t && S.swaps[j][1]) id = S.swaps[j][1]; return id; }
+    /* the air heard (the world's own, its feed's wind: AIR's airHeard at the camera, read only): the billow goes with the
+       whole wind along its way (the wind and the gust arriving, the field's own: a gust upwind is heard when it reaches
+       the camera, as the veils lift with it on screen), the stream with its square, 0.4 s behind, and both silent in a
+       calm; flying into the wind about 3 dB more, with it about 3 dB less (the apparent wind's side: the camera's own
+       12 m/s would drown everything in a rush, so it only shades the level); the stream toward the ear the wind comes
+       from (its bearing from the eye's way), the billow near the middle (a low noise in one ear is no wind). Over the
+       cloud the billow eases and the stream rises, as before. And the sand: where the wind at the crests (1.5 times the
+       10 m wind, the gust in it) passes the sand's threshold (6.2 m/s at 10 m: physics, sand), a soft hiss, its level
+       the flux there (u*(u*^2 - u*t^2), the threshold once moving 0.8 of the first, so it starts at the threshold and
+       stops only below 0.8 of it), on the wind's side; none over the cloud. Set at each tick, eased over a few tenths
+       of a second, so no edge is a step */
+    var WREF = 16, SAND = [6.2, 1.5, 0.8], HISS = 0.001;   // (m/s: the wind heard that is the old breeze's 1; the sand's threshold at 10 m, the crests' speed-up, the threshold once moving; the hiss at a flux of 1, the crests at 1.5 times the threshold)
+    function heard(now, A) {
+      var sp = Math.hypot(A.x, A.z), all = Math.max(0, sp + (A.gust || 0)), w = all / WREF, cx = A.x - A.ax, cz = A.z - A.az, cv = Math.hypot(cx, cz), m = 0, k, r, q;
+      if (cv > 0.5 && sp > 0.1) m = -(cx * A.x + cz * A.z) / (cv * sp);   // (+1 flying into the wind, -1 with it)
+      k = db(3 * m); var calm = Math.min(1, w / 0.1), lr = -Math.sin(A.bear || 0);
+      air[0].gain.setTargetAtTime(AIR * (1 - 0.4 * S.wc) * (0.6 + 1.6 * w) * calm * calm * k, now, 0.35);
+      air[1].gain.setTargetAtTime(AIR * (0.12 + 0.25 * S.wc) * Math.pow(w / 0.3, 2) * k, now + 0.4, 0.35);
+      airPan[0].pan.setTargetAtTime(0.12 * lr, now, 1.5); airPan[1].pan.setTargetAtTime(0.4 * lr, now, 1.5);
+      r = sp > 0.1 ? SAND[1] * (A.carry || 0) * all / sp / SAND[0] : 0;   // (the crests' wind over the threshold)
+      if (!S.sand && r >= 1) S.sand = true; else if (S.sand && r < SAND[2]) S.sand = false;
+      q = S.sand ? r * (r * r - SAND[2] * SAND[2]) / (1.5 * (2.25 - SAND[2] * SAND[2])) : 0;   // (the flux, 1 at 1.5 times the threshold)
+      S.hiss = q * (1 - S.wc);
+      if (sand) { sand.gain.setTargetAtTime(HISS * S.hiss, now, 0.4); sandPan.pan.setTargetAtTime(0.3 * lr, now, 1.5); }
+    }
     function wind(now) {
+      if (S.heard) { heard(now, S.heard); return; }   // (the world's air; with no world, the walks below on the floor)
       var W = S.W || (S.W = { v: [0, 0, 0, 0], at: [now, now, now, now], m: breeze(skyAt(now))[0], g: 1, t: now }), k, j, t, g, w, sk, c;
       for (;;) {
         for (k = 0, j = 1; j < 4; j++) if (W.at[j] < W.at[k]) k = j;

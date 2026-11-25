@@ -7,7 +7,7 @@
      'fence' two-minute halves, 'none' */
   var SWLIVE = { order: 1, fence: 1, birds: 1, stream: 1, words: 1, frz: 1, look: 1, noanim: 1, camhold: 1, cacc: 1, stb: 1, lay: 1, wlive: 1, wsync: 1 };   // (cacc live: the record's arm)   // (camhold, dev: the camera held, the clock running: the frozen-scene film)
   /* the programs' defines, the late programs and the folds, as the record files them (070's state) */
-  function defsRec() { return CLA ? { twilight: CLA.twilight, rain: CLA.rain, water: CLA.water, dev: CLA.dev, defs: CLA.defs } : null; }
+  function defsRec() { return CLA ? { twilight: CLA.twilight, dev: CLA.dev, defs: CLA.defs } : null; }
   function lateRec() {
     return { on: LATEP.on, decided: LATEP.decided, sand: LATEP.sand, R: Math.round(LATEP.R), names: LATEP.names.slice(), ready: LATEP.ready, done: LATEP.done.slice(), warmed: LATEP.warmed.slice(), miss: LATEP.miss, misses: LATEP.misses.slice(), birdWait: LATEP.birdWait, birdsAt: LATEP.birdsAt };
   }

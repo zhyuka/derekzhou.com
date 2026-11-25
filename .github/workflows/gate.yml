@@ -58,6 +58,7 @@ jobs:
       head_build: ${{ steps.builds.outputs.head }}
       glsl_changed: ${{ steps.glsl.outputs.glsl_changed }}
       looks_changed: ${{ steps.looks.outputs.looks_changed }}
+      budget: ${{ steps.budget.outputs.budget }}
     steps:
       # A branch with no open PR (a Cloudflare preview, a probe) is not compared: T1 skips and the verdict says it
       # was not compared, so nothing lands on it. On the night of Nov 11 such pushes held the 4090 while six PRs' T2s
@@ -123,6 +124,11 @@ jobs:
           b=$(k "$RUNNER_TEMP/looks-base"); h=$(k "$(pwd)"); git worktree remove --force "$RUNNER_TEMP/looks-base"
           if [ "$b" != "$h" ] || [ "$FORCE" = always ]; then c=true; else c=false; fi
           echo "looksKey: base $b, head $h ($FORCE): looks_changed=$c"; echo "looks_changed=$c" >> "$GITHUB_OUTPUT"
+      # Each built script's size against its load budget's line (Brotli 11, as the check weighs it), for the merge bot:
+      # a PR near a line is re-gated before it lands on a main that also grew that script (bot-rules.mjs budgetShared)
+      - name: The built scripts against their load budgets (for the merge bot)
+        id: budget
+        run: echo "budget=$(node .github/ci/budget-room.mjs "$RUNNER_TEMP/served/head" "$RUNNER_TEMP/served/base")" >> "$GITHUB_OUTPUT"
       - name: What the change touches
         id: areas
         run: node .github/ci/areas.mjs ${{ steps.base.outputs.base }} "$GITHUB_SHA" --served "$RUNNER_TEMP/served"

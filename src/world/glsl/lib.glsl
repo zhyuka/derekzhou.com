@@ -2,9 +2,8 @@
 const float PI = 3.14159265;
 float gLodD = 0.0;   // set by the terrain's vertex stage: how far this point lies from the camera (0 elsewhere: full detail)
 /* set for the shade functions (they may read and change them): the surface's own light (emission: added as its colour
-   times this, after the shade, before the air), the instance's phase (0 .. 1; 0 for a cell's mesh), and the share of
-   the light that water reflects (waterShade sets it; the composite reflects the nearby forms into that share) */
-float gEmit = 0.0, gPhase = 0.0, gWater = 0.0;
+   times this, after the shade, before the air) and the instance's phase (0 .. 1; 0 for a cell's mesh) */
+float gEmit = 0.0, gPhase = 0.0;
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 uint ih(uint x) { x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16; return x; }
 uint ih2(ivec2 p) { return ih(uint(p.x) * 0x8da6b343U ^ ih(uint(p.y) + 0x68e31da4U)); }
@@ -38,7 +37,6 @@ vec3 dSmin(vec3 a, vec3 b, float k) { float h = clamp(0.5 + 0.5 * (b.x - a.x) / 
 /* a smooth step of a value with its gradient; e0 may be above e1 (a descending step: computed as such, never
    handed to the built-in smoothstep, whose edges must ascend) */
 vec3 dSstep(float e0, float e1, vec3 a) { float x = clamp((a.x - e0) / (e1 - e0), 0.0, 1.0); return vec3(x * x * (3.0 - 2.0 * x), a.yz * (6.0 * x * (1.0 - x) / (e1 - e0))); }
-vec3 dPow2(vec3 a) { return vec3(a.x * a.x, 2.0 * a.x * a.yz); }
 float sstepDown(float e0, float e1, float x) { return 1.0 - smoothstep(e1, e0, x); }   // 1 below e1 .. 0 above e0 (e1 < e0)
 float n3(vec3 p) { return texture(uN3, p).r; }
 vec4 n3v(vec3 p) { return texture(uN3, p); }

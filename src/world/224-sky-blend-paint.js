@@ -91,8 +91,6 @@
     var f0 = 0, f3 = 0; for (i = 0; i < n; i++) { f0 += B[i].fogB[0] * wc[i]; f3 += A[i].fogBf[3] * wc[i]; } skyAB(B[0].fogB, B[1].fogB, B[2].fogB, B[3].fogB, 1, ABO, ABL[26]); labTo(L.fogBf, 0, f0, ABO[0], ABO[1]); L.fogBf[3] = f3;
     for (j = 0; j < LKN.length; j++) { var kn = LKN[j], dst = L[kn], ww = LKN_ST[kn] ? ws : wc; for (k = 0; k < dst.length; k++) { var v = 0; for (i = 0; i < n; i++) v += A[i][kn][k] * ww[i]; dst[k] = v; } }
     for (j = 0; j < LKS.length; j++) { var ks = LKS[j], vs = 0, wk = ks === 'shafts' ? ws : wc; for (i = 0; i < n; i++) vs += A[i][ks] * wk[i]; L[ks] = vs; }
-    var wl = Math.sqrt(L.windDir[0] * L.windDir[0] + L.windDir[1] * L.windDir[1]) || 1;
-    L.wet[0] = L.rain; L.wet[1] = L.ripple; L.wet[2] = L.windDir[0] / wl; L.wet[3] = L.windDir[1] / wl;
   }
   /* the paint as drawn: each slot's light on the light clock with the sky's mean, its offset from it and its contrast on
      the structure clock; a hold's own paint whole, bit for bit */

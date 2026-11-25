@@ -16,7 +16,7 @@ void main() {
      sky's share x gustiness): the sheet lifts and streams out as it passes and, as the air calms, the saltation layer
      collapses and the sheet settles flat onto the sand (in a night's weak air it lies down). Its opacity is the
      visit's (its U10 alone): a veil never fades in place, it rises and lies down */
-  float Wv = length(uWind.xz), gust = smoothstep(0.2, 1.2, airGust(sp.xy, w, uAirU, Wv * uAir.y * uAir.z, uAir.x) / max(Wv * AIR_GUST_I, 1e-4) + 0.3 * (r1 - 0.5));
+  float Wg = airGustW(uAirU, AIR_VEILS_Y), gust = smoothstep(0.2, 1.2, airGust(sp.xy, w, uAirU, Wg * uAir.y * uAir.z, uAir.x) / max(Wg * AIR_GUST_I, 1e-4) + 0.3 * (r1 - 0.5));
   float L = uRa.y * (0.45 + 0.55 * r4) * (0.35 + 0.65 * gust), Wd = uRa.z * (0.6 + 0.8 * r1), x = aQ.x, y = aQ.y;
   vec2 xz = sp.xy + w * x * L + pp * y * Wd * (1.0 + 0.7 * x);
   float lie = groundH(xz) + 0.04, up = sp.z + 0.15 + uRa.w * gust * x * (0.6 + 0.8 * r2) - L * 0.12 * x * x;
@@ -25,6 +25,6 @@ void main() {
   gl_Position = uVP * vec4(ve, 1.0);
   float back = pow(max(dot(rd, uSun), 0.0), 3.0);
   float edge = 1.0 - smoothstep(0.38 * uRa.x, 0.5 * uRa.x, max(abs(rel0.x), abs(rel0.y)));
-  float a = uPc.a * 0.55 * (0.4 + 0.6 * smoothstep(3.0, 7.0, uAirU)) * sp.w * edge * smoothstep(6.0, 18.0, dist) * (1.0 - smoothstep(140.0, 230.0, dist));
+  float a = uPc.a * 0.55 * sp.w * edge * smoothstep(6.0, 18.0, dist) * (1.0 - smoothstep(140.0, 230.0, dist));
   vCol = vec4(atmos(uPc.rgb * (0.85 + 1.8 * back), rd, dist), a); vQ = aQ;
 }

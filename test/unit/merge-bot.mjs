@@ -195,3 +195,58 @@ test('merge bot: every file the bot runs or decides by is its own, and waits for
   for (const f of BOT_FILES) assert.ok(fs.existsSync(path.join(R, f)), f + ' exists');
 });
 
+
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "export const NEAR = 0.02;", "with": "export const NEAR = 0;", "why": "near no line ever: #437's world.js 3 B under its line lands on a main that grew it"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "export const NEAR = 0.02;", "with": "export const NEAR = 1;", "why": "every shared script re-gates however far from its line: the queue serialises"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "  if (f.startsWith('src/world/')) return ['/world.js', '/plan.js'];", "with": "", "why": "the world's sections go into no built script"}
+// plant: {"file": ".github/ci/merge-bot.mjs", "find": ".concat(budgetShared({ prFiles, mainFiles, budget: v.budget || null }))", "with": "", "why": "the bot never asks budgetShared"}
+// plant: {"file": ".github/workflows/gate.yml", "find": "      budget: ${{ steps.budget.outputs.budget }}\n", "with": "", "why": "the plan never hands the verdict its budget measure"}
+test('merge bot: a built script both a PR and main grew, the PR near its load budget\'s line, re-gates the merged tree (#427, #432, #437, 2026-11-25)', async () => {
+  const { budgetShared, builtOf, regateAnswer, NEAR } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url)), fs0 = await import('node:fs');
+  // tonight, measured (Brotli 11): #437 (286-hard-rule) built world.js at 124,925 B against the 122 K line (124,928),
+  // 183 B over its base's 124,742; main since its base had grown world.js (#433's 340-input-drag) and #432 had changed
+  // a comment in 215; merged, main d5314482 built 125,005 B, 77 B over
+  const pr437 = ['src/world/286-hard-rule.js', 'test/unit/flight-sim.mjs'];
+  const main = ['.github/ci/merge-bot.mjs', 'src/world/215-air.js', 'src/world/340-input-drag-anywhere-phone-turn.js', 'tools/visit/looks.mjs', 'docs/world.md'];
+  const b437 = { '/world.js': { size: 124925, base: 124742, line: 124928 }, '/inkbirds.js': { size: 30362, base: 30362, line: 31744 } };
+  assert.deepEqual(budgetShared({ prFiles: pr437, mainFiles: main, budget: b437 }), ['build:/world.js'], '#437: world.js, 3 B under its line, on a main that grew it');
+  const rg = regateAnswer({ shared: [], same: budgetShared({ prFiles: pr437, mainFiles: main, budget: b437 }), approved: true });
+  assert.ok(rg.regate && /build:\/world\.js/.test(rg.why), '#437 is gated again on the merged tree, reviewed or not: ' + rg.why);
+  // far from its line: ordinary work never serialises
+  const far = { '/world.js': { size: 118000, base: 117700, line: 124928 } };
+  assert.deepEqual(budgetShared({ prFiles: pr437, mainFiles: main, budget: far }), [], 'world.js 5.5% under its line: lands at once');
+  assert.ok(NEAR > 0 && NEAR <= 0.05, `NEAR ${NEAR}: a few per cent`);
+  // #432: a comment in 215, world.js byte for byte its base's size: not its growth
+  assert.deepEqual(budgetShared({ prFiles: ['src/world/215-air.js', 'tools/visit/looks.mjs'], mainFiles: ['src/world/286-hard-rule.js'], budget: { '/world.js': { size: 124742, base: 124742, line: 124928 } } }), [], '#432: its build of world.js is its base\'s size');
+  // main grew another script: nothing to sum
+  assert.deepEqual(budgetShared({ prFiles: pr437, mainFiles: ['src/birds/inkbirds/212-flocks.js'], budget: b437 }), [], 'main grew inkbirds.js, the PR world.js');
+  // a gate from before the measure: any shared script re-gates
+  assert.deepEqual(budgetShared({ prFiles: pr437, mainFiles: main, budget: null }), ['build:/world.js', 'build:/plan.js'], 'no measure: re-gated');
+  // the build's own tools go into every script
+  assert.deepEqual(budgetShared({ prFiles: ['tools/minify.mjs'], mainFiles: ['src/birds/inkbirds/212-flocks.js'], budget: { '/inkbirds.js': { size: 31500, base: 31400, line: 31744 }, '/world.js': { size: 100, base: 90, line: 124928 } } }), ['build:/inkbirds.js'], 'the minifier moved: every script near its line');
+  for (const [f, o] of [['src/world/286-hard-rule.js', '/world.js'], ['src/world/glsl/sky-body.glsl', '/world.js'], ['src/birds/inkbirds/212-flocks.js', '/inkbirds.js'], ['src/birds/model/facetform.js', '/facetform.js'], ['src/realm-dunes.js', '/realm-dunes.js'], ['site/hour.js', '/hour.js']]) assert.ok(builtOf(f).includes(o), `${f} goes into ${o}`);
+  for (const f of ['src/dev/world/500-x.js', 'docs/world.md', 'test/unit/air.mjs', 'site/style.css']) assert.deepEqual(builtOf(f), [], f + ' goes into no built script');
+  assert.match(fs0.readFileSync(new URL('../../.github/ci/merge-bot.mjs', import.meta.url), 'utf8'), /const same = prFiles\.filter\(\(f\) => mainFiles\.includes\(f\)\)\.concat\(budgetShared\(\{ prFiles, mainFiles, budget: v\.budget \|\| null \}\)\);/, 'the landing path adds the near-line scripts to the files both changed');
+  // every parts.json folder's out is what builtOf maps its parts to
+  const fs = await import('node:fs'), path = await import('node:path'), R = new URL('../../', import.meta.url).pathname;
+  for (const d of ['src/world', 'src/birds/inkbirds']) { const out = JSON.parse(fs.readFileSync(path.join(R, d, 'parts.json'), 'utf8')).out; assert.ok(builtOf(d + '/000-x.js').includes('/' + out), `${d}: parts.json's out ${out}`); }
+});
+
+test('merge bot: the gate measures each built script against its load budget (budget-room.mjs), as 36-load-budget weighs it', async () => {
+  const fs = await import('node:fs'), path = await import('node:path'), os = await import('node:os'), R = new URL('../../', import.meta.url).pathname;
+  const { budgetsOf, room, brotli } = await import(new URL('../../.github/ci/budget-room.mjs', import.meta.url));
+  const sh = fs.readFileSync(path.join(R, 'tools/checks/36-load-budget.sh'), 'utf8'), B = budgetsOf(sh);
+  const body = /const BUDGET = \{([\s\S]*?)\n\};/.exec(sh)[1], lines = body.split('\n').filter((l) => /^\s*'\//.test(l));
+  assert.equal(Object.keys(B).length, lines.length, 'every budget line read');
+  assert.ok(B['/world.js'] >= 120 * 1024 && B['/inkbirds.js'] > 0, 'world.js and inkbirds.js have lines');
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'room-')), b = fs.mkdtempSync(path.join(os.tmpdir(), 'room-b-'));
+  fs.writeFileSync(path.join(d, 'world.js'), 'var a = 1;'.repeat(500)); fs.writeFileSync(path.join(b, 'world.js'), 'var a = 1;');
+  const r = room(d, sh, b);
+  assert.deepEqual(r['/world.js'], { size: brotli(fs.readFileSync(path.join(d, 'world.js'))), line: B['/world.js'], base: brotli(Buffer.from('var a = 1;')) });
+  assert.ok(!r['/assets/fonts/Geist-'] && !r['/'], 'only built scripts');
+  fs.rmSync(d, { recursive: true }); fs.rmSync(b, { recursive: true });
+  const g = fs.readFileSync(path.join(R, '.github/workflows/gate.yml'), 'utf8');
+  assert.match(g, /node \.github\/ci\/budget-room\.mjs "\$RUNNER_TEMP\/served\/head" "\$RUNNER_TEMP\/served\/base"/, 'the plan measures the head\'s build against its base\'s');
+  assert.match(g, /      budget: \$\{\{ steps\.budget\.outputs\.budget \}\}\n/, 'the plan hands it to the verdict');
+  assert.match(fs.readFileSync(path.join(R, '.github/ci/verdict.mjs'), 'utf8'), /budget: \(\(\) => \{ try \{ return c\.budget \? JSON\.parse\(c\.budget\)/, 'the verdict keeps it');
+});

@@ -110,7 +110,12 @@
     }
     // the veils of sand (blended, no depth written)
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
-    var skR = V.def.sandFx ? sandAt() : 1;
+    /* (physics: sand/threshold) sand moves only past its threshold friction velocity, about 0.2-0.25 m/s for fine dune
+       sand, which the log law over the sand (z0 about 0.1 mm) puts at U10 5.8-7.2 m/s (both: https://arxiv.org/pdf/1201.4353):
+       AIR's own dust (airWx(t).dust, eased over U10 5.8-7.0; docs/world.md, ## THE SAND VEILS). So the veils
+       are the visit's dust times the sand under the camera: none on a calm visit, whole past the threshold, the
+       visit's own (U10 alone: a veil never fades in place) */
+    var skR = (V.def.sandFx ? sandAt() : 1) * airWx(SIM.t, V).dust;
     if (V.ribbons && V.ribbons.count && DP.rb && !SW.noanim && skR > 0.002 && (lateReady(DP.rb) || lateMissIf(DP.rb, true))) {
       var rb = V.ribbons; P = DP.rb; gl.useProgram(P.p); setFrameUniforms(P, V);
       skyPart(rb, PCOL); PCOL[3] *= skR;
