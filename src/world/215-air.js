@@ -297,7 +297,7 @@
      it was measured on (the cloud layout, this opening's view, the words: look-rule.mjs's KEY_INPUTS); a change to any of
      them fails test/unit/ruler.mjs until looks.mjs --table (and headings.mjs, if a heading fails) is re-run. Chosen once, before anything is drawn, as the landing is;
      nothing turns the view. A land k is the one whose seed is 010's (11 + k x 0x9e3779b9) */
-  function airHeading0() { var T = [90, 329, 300, 120, 35, 230, null, 70, 245, 140, 240, 305, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
+  function airHeading0() { var T = [90, 329, 300, 120, 235, 230, null, 70, 245, 140, 240, 305, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
      frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
      (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust

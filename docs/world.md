@@ -642,7 +642,10 @@ physics: clouds/drift). It holds:
   AIR_H.clouds, turned by the site's own draw on a triangle over +- 30 deg
   (56% within 10). Before, their axis was the site's random one.
   test/unit/drift.mjs holds every canyon wall within 30 deg of the wind
-  (with most within 10) for winds from every way and strength.
+  (with most within 10) for winds from every way and strength. With the
+  canyons moved, land 4's first heading (airHeading0) went from 35 deg,
+  where a wall stood behind the name (21% of its box under cloud), to
+  headings.mjs's pick of 235 deg (0%, a near pass at 30 s).
 - The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
   7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
   International Cloud Atlas), its streaks along the air's wind there (the
