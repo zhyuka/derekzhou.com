@@ -39,6 +39,9 @@ const NEAR = {}, HOLD = {};
 for (const m of WSRC.matchAll(/^\s+(\w+): \{ g:'\w+', w:'\w+', ph:\d, land:\[[^\]]*\], hold:(\d+), near:\[([^\]]*)\]/gm)) { HOLD[m[1]] = +m[2]; NEAR[m[1]] = m[3].replace(/'/g, '').split(',').filter(Boolean); }
 const STRINGS = ['cello', 'viola', 'violin', 'clar'];
 
+// (compiled once, each play still in its own fresh context; its Math a local: a global looked up in a vm context goes through
+// the sandbox's interceptor, and the score's stream reads Math millions of times a play, filling its room and its air)
+const SCORE_JS = new vm.Script('(function (Math) {' + SRC + '\n})(Math);', { filename: 'src/score.js' });
 const AIRT = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/world/215-air.js'), 'utf8').match(/var AIR_BYSKY = (\{[^;]*\});/)[1].replace(/(\w+):/g, '"$1":'));   // (the world's wind by sky, as its feed hands it to the score)
 function play(seed, flight = FLIGHT, len = T, sliced = false, wind = null, wc = null) {
   const param = (v) => ({ value: v, calls: [], setValueAtTime(x, t) { this.calls.push(['set', t, x]); }, setValueCurveAtTime(c, t, d) { this.calls.push(['curve', t, d, c[0], c[c.length - 1]]); }, setTargetAtTime(x, t, k) { this.calls.push(['target', t, x, k]); }, linearRampToValueAtTime() {} });
@@ -52,7 +55,7 @@ function play(seed, flight = FLIGHT, len = T, sliced = false, wind = null, wc = 
   const mark = new Float32Array(24000); mark[4800] = 0.9;   // (the sheet's click at 0.2 s)
   const sheet = { getChannelData: () => mark, sampleRate: 24000 };
   let now = 0; const win = { WORLD: { sky() { let i = 0; while (i < flight.length - 1 && flight[i + 1].at <= now) i++; const x = Math.min(1, Math.max(0, (now - 150) / 40)); return { t: now, seq: flight.slice(i), wc: wc === null ? x * x * (3 - 2 * x) : wc, air: AIRT, still: false, seed, wind: wind ? wind(now) : undefined }; } } };
-  vm.runInNewContext(SRC, { window: win, setTimeout: (f) => queue.push(f), Promise });
+  SCORE_JS.runInNewContext({ window: win, setTimeout: (f) => queue.push(f), Promise });
   const score = win.SCORE.play(ctx, node({}), sheet, sliced);
   let tasks = 0; while (queue.length) { queue.shift()(); tasks++; }   // (sliced: each step its own task, run here in order)
   for (now = 0; now < len; now += 0.5) score.tick(now);

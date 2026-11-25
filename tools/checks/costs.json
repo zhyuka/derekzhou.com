@@ -1,8 +1,8 @@
 {
-  "_": "each check's seconds on its validate shard's runner (the median over main's green gates 45393134702, 45418461820, 45420945709, 45430652370, 2026-11-24, after #382 split 35-birds in two; it runs in three parts now, a third of the two parts' 214 s each until measured): tools/check.mjs --shard splits by these; a check not here counts 10 s. A check's seconds rise with what runs beside it on its shard (the birds parts' test processes most). Refresh from a validate log when the split drifts.",
+  "_": "each check's seconds on its validate shard's runner (the median over main's green gates 45393134702, 45418461820, 45420945709, 45430652370, 2026-11-24, after #382 split 35-birds in two; it runs in three parts now, a third of the two parts' 214 s each until measured; 24-unit in two parts since 2026-11-25, 30 s each until measured): tools/check.mjs --shard splits by these; a check not here counts 10 s. A check's seconds rise with what runs beside it on its shard (the birds parts' test processes most). Refresh from a validate log when the split drifts.",
   "10-dup-names": 2.1, "11-required-files": 0.0, "12-secrets": 0.1, "13-rules-data": 16.8, "14-deploy-inputs": 0.0,
   "16-asset-refs": 0.2, "17-no-inline-code": 0.0, "18-lettered-name": 0.3, "19-page-words": 0.3,
-  "20-script-order": 0.1, "21-absences": 4.2, "22-build-check": 100.7, "23-wing-model": 6.5, "24-unit": 104.2,
+  "20-script-order": 0.1, "21-absences": 4.2, "22-build-check": 100.7, "23-wing-model": 6.5, "24-unit#0": 30, "24-unit#1": 30,
   "25-world-rules": 2.9, "26-glsl-guard": 22.8, "27-shaders": 24.0, "28-w7": 21.9, "29-still-skies": 0.6,
   "30-perch-ink": 41.2, "31-no-fades": 0.4, "32-licences": 0.0, "33-no-frameworks": 0.5, "34-reduced-motion": 6.2,
   "35-birds#0": 72, "35-birds#1": 71, "35-birds#2": 71, "36-load-budget": 19.9, "37-ground-fresh": 81.5, "38-sound": 22.0,
