@@ -1186,7 +1186,7 @@ and 8 at one level at a cruise pose (laptop @2).
 - From 14 m up the layer is a column of SALT_TAU (0.05) seen through 1 / g
   of it at the grazing cosine g (floored at 0.1): the sand lifts toward its
   own lit colour, the grains in the light over it, by SALT_K (0.35) of
-  that, at most 22% of the way (the densest streamer at the most grazing
+  that, at most 20% of the way (the densest streamer at the most grazing
   ray). It never darkens: max(lit - c, 0).
 - AIR's dust times it, so none on a calm visit (11 of the 16 openings) and
   whole past U10 7; none on the lee's steep faces (n.y under 0.85-0.95).
