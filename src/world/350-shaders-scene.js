@@ -18,7 +18,7 @@ float sceneA() { return zcode(); }
      faces' d(H / fl)). The
      fragment rebuilds the slope at its own phase (s1Slope) and puts it in place of the vertices' (FS_TERRAIN) */
   var S1_OUT = `
-centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec4 vS1d; centroid out vec2 vMB;
+centroid out vec4 vS1; centroid out vec3 vS1g; centroid out vec4 vS1d; centroid out vec2 vMB; centroid out vec2 vSG;
 void s1Out(vec4 s, float fl, float sw, vec4 dH) {
   vS1 = vec4(s.xyz, s.w * sw); vS1d = dH * sw;
   vS1g = vec3(fl, s1Slope(fract(s.x), s.yz, vS1.w, fl, s1Rb(vS1.w, length(s.yz), fl), max(0.15 * vS1.w, 0.05), vS1d));
@@ -36,7 +36,7 @@ void main() {
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
-  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D); vMB = gMB;' : ''}
+  vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);${H === 'Hd' ? '\n  s1Out(gS1, gS1F, gS1W, gS1D); vMB = gMB; vSG = swellG(w);' : ''}
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
@@ -104,7 +104,7 @@ void main() {
   vX = ${G ? 'hd.x - k0.w > 140.0 ? 1e4 : hd.x - (k0.w + r.w * (0.4 + 0.6 * k1.w))' : '1e4'};
   vW = vec3(w.x, hd.x, w.y); vN = vec3(-hd.y, 1.0, -hd.z);
   vec4 p5 = texelFetch(uHP5, q, 0); s1Out(vec4(texelFetch(uHP2, q, 0).w, p5.xyz), p5.w, s.w, texelFetch(uHP6, q, 0));
-  vec4 p7 = texelFetch(uHP7, q, 0); vMB = vec2(swell(w) * p7.x + p7.y - k1.x, k0.x);   // (delight-weather 1: the mist pools' floor and reach, as Hd sets gMB)
+  vec4 p7 = texelFetch(uHP7, q, 0); vMB = vec2(swell(w) * p7.x + p7.y - k1.x, k0.x); vSG = swellG(w);   // (delight-weather 1: the mist pools' floor and reach, as Hd sets gMB)
   gl_Position = uVP * vec4(eyeRel(vW), 1.0);
 }`;
   }
@@ -113,7 +113,7 @@ void main() {
      across the cell, they smeared the brink over it): the rounding max(2 m, 1.5 px) at the brink and the toe, and the
      whole put in only as far as the dunes are resolved (B, by the cycles of phase a pixel spans: the spec's band-limit) */
   var S1_IN = `
-centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in vec2 vMB;`;
+centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in vec2 vMB; centroid in vec2 vSG;`;
   var S1_FS = `
   if (vS1.w > 0.01) {
     vec2 g = vS1.yz; float k = length(g), fl = clamp(vS1g.x, 0.04, 0.6), H = vS1.w, L = 1.0 - fl;
@@ -129,9 +129,11 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
     }
     /* (physics: sand/cast-shadow) the brinks upwind cast their shadow past the slip face's toe, over the floor and up the
        next stoss, at the realm's low key: castShade (dunes-glsl), as resolved as the dunes are (B); the ground under the
-       dunes the swell's own slope (swellG: world-fixed, not the morphing vertices') */
+       dunes the swell's own slope (swellG per vertex, vSG: a 330-760 m field, exact and still under the rings' morph,
+       unlike the land's vertex slope with the small dunes in it); none on a face already turned from the sun (there it
+       changes nothing: the lee faces, about half the dunes; the pixels SwiftShader's boot shades on the CPU) */
     vec2 sh = normalize(uSun.xz + vec2(1e-6, 0.0)); float r = dot(g, sh);
-    if (r < -1e-4 && uSun.y > 0.0 && B > 0.0) gCS = B * castShade(fract(vS1.x), L, fl, H, k, r, dot(swellG(vW.xz), sh), uSun.y / max(length(uSun.xz), 1e-3), fp);
+    if (r < -1e-4 && uSun.y > 0.0 && B > 0.0 && dot(n, uSun) > -0.08) gCS = B * castShade(fract(vS1.x), L, fl, H, k, r, dot(vSG, sh), uSun.y / max(length(uSun.xz), 1e-3), fp);
   }`;
   /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
      vertices carry (vMB) */

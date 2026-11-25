@@ -9,7 +9,7 @@
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  for (int i = 0; i < 2; i++) {\n    float dp", "with": "  for (int i = 0; i < 1; i++) {\n    float dp", "why": "only the nearest brink: on ground falling away from the sun the shadow over a stoss's top stops dead at its brink"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "float sd = H - hf + gb * tb - tb * te,", "with": "float sd = H - hf - tb * te,", "why": "the ground under the dunes left level: the swell's slope toward the sun never lifts or sinks the brink"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": " * (1.0 - smoothstep(1.0, 2.0, dp)));", "with": ");", "why": "the brink 2 back counted in full before a crest and not past it: where the swell rises toward the sun faster than its ray, a step at every brink"}
-// plant: {"file": "src/world/350-shaders-scene.js", "find": "dot(swellG(vW.xz), sh)", "with": "dot(-vN.xz - vS1g.yz, sh)", "why": "the ground's slope from the morphing vertices (the small dunes in it): the shadow's end swings as the eye moves (shimmer)"}
+// plant: {"file": "src/world/350-shaders-scene.js", "find": "dot(vSG, sh)", "with": "dot(-vN.xz - vS1g.yz, sh)", "why": "the ground's slope from the morphing vertices (the small dunes in it): the shadow's end swings as the eye moves (shimmer)"}
 // plant: {"file": "src/world/350-shaders-scene.js", "find": "gCS = B * castShade(", "with": "gCS = 0.0 * castShade(", "why": "no cast shadow drawn"}
 import { test, assert, fs, path, ROOT } from '../unit-lib.mjs';
 
@@ -48,9 +48,10 @@ test('dune shadow: none on level ground far from any brink, none with the sun do
   // an 8 m dune at a 14 deg key: its shadow ends 32 m past the brink (tools/physics/dune-shadow.mjs); 100 m on, none
   const { L, k } = dune(8); assert.equal(share(8, (L + 100 * k) % 1, 14, 0), 0, 'the stoss 100 m past an 8 m brink shadowed at a 14 deg key');
   // the sun from downwind: no brink between it and the lee (castShade is called only with r < 0; the land skips it)
-  assert.match(SC, /if \(r < -1e-4 && uSun\.y > 0\.0 && B > 0\.0\) gCS = B \* castShade\(/, 'the land does not call castShade only for a sun from upwind, by day, where the dunes are resolved');
+  assert.match(SC, /if \(r < -1e-4 && uSun\.y > 0\.0 && B > 0\.0 && dot\(n, uSun\) > -0\.08\) gCS = B \* castShade\(/, 'the land does not call castShade only for a sun from upwind, by day, where the dunes are resolved');
   // the ground's slope the swell's own (world-fixed), not the land's vertex slope (the small dunes in it, and the rings' morph)
-  assert.match(SC, /castShade\([^;]*dot\(swellG\(vW\.xz\), sh\)/, 'the land does not hand castShade the swell\'s own slope (swellG)');
+  assert.match(SC, /castShade\([^;]*dot\(vSG, sh\)/, 'the land does not hand castShade the swell\'s own slope (vSG)');
+  assert.equal((SC.match(/vSG = swellG\(w\);/g) || []).length, 2, 'both of the land\'s vertex paths do not set vSG from swellG');
 });
 
 test('dune shadow: reaches as far as the brink\'s ray (the numbers)', () => {
