@@ -45,19 +45,29 @@
   /* the destination over the cloud sea (delight-visit 5, the cloud sea's half: 217 destKind's 'isle'): one great isle
      on the landing's heading 7-8 km out, the isles' own form (floatIslandG and its temple) at about four times theirs:
      r 460-540 m, so about 1 km across and 7-8 deg wide at 7.5 km, its keel DEST_KEEL m over the cruise so the flight
-     passes under it (nothing to steer round: no spheres), its top about 6 deg over the horizon. Its draws are the
+     passes under it (nothing to steer round: no spheres), its temple scaled with it (size 0.6-0.7 r: tiers, stupa and spires about 300-350 m, 40-45 px at 7.5 km on a laptop, the spires about 1.5 px wide), its top about 8 deg over the horizon. Its draws are the
      destination's own seed (SEED0's: the land's), never the cell's stream. The first item of its 16 km cell, so the
      streamer's lodDist measures its detail from it (coarse at the boot, full as the flight nears) */
-  var DEST_KEEL = 150;
+  var DEST_KEEL = 150, DEST_CLEAR = 10 * PI / 180;
+  /* the destination's field (the hub, 2026-11-25: it must read as the place you are going, not one isle among isles):
+     no ordinary isle or island within DEST_CLEAR of its bearing from the landing and nearer than it, so it stands alone
+     as the subject; everywhere else the sky's isles are as they were (and each cell's stream draws the same) */
+  function destClear(x, z) {
+    var D = W.dest && W.dest(); if (!D || D.kind !== 'isle') return true;   // (a world with no destination: no field to clear)
+    var b = Math.atan2(x, z) - D.bearing; b -= Math.floor((b + PI) / (2 * PI)) * 2 * PI;
+    return Math.abs(b) > DEST_CLEAR || Math.sqrt(x * x + z * z) > D.d;
+  }
   function aDest(C) {
     var D = W.dest(); if (!C.inside(D.x, D.z)) return;
-    var Q = K.RNG(K.hk(D.seed >>> 0, 93)), r = Q.r(460, 540), depth = r * Q.r(1.15, 1.35), y = CRUISE + DEST_KEEL + depth, size = r * Q.r(0.32, 0.4);
+    var Q = K.RNG(K.hk(D.seed >>> 0, 93)), r = Q.r(460, 540), depth = r * Q.r(1.15, 1.35), y = CRUISE + DEST_KEEL + depth, size = r * Q.r(0.6, 0.7);
     C.add({ kind: 'isle', x: D.x, z: D.z, air: true, y: y, yaw: Q.r(0, 360), r: r, depth: depth, size: size, seed: Q.seed() });
-    C.poi({ kind: 'destination', x: D.x, z: D.z, y: y - depth * 0.5, r: r * 1.15, top: y + size * 0.5, pass: r * 1.15 + 120 });   // (FLIGHT's ruler: r at most 800 m)
+    C.poi({ kind: 'destination', x: D.x, z: D.z, y: y - depth * 0.5, r: r * 1.15, top: y + size, pass: r * 1.15 + 120 });   // (FLIGHT's ruler: r at most 800 m)
   }
   function aIsland(C, R, x, z, y, r, stupaP) {
     var depth = r * R.r(1.0, 1.6);
-    C.add({ kind: 'island', x: x, z: z, air: true, y: y, yaw: R.r(0, 360), r: r, depth: depth, stupa: R.f() < stupaP, seed: R.seed(), spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
+    var yaw = R.r(0, 360), stu = R.f() < stupaP, sd = R.seed();   // (drawn whether kept or not: the cell's stream the same)
+    if (!destClear(x, z)) return;
+    C.add({ kind: 'island', x: x, z: z, air: true, y: y, yaw: yaw, r: r, depth: depth, stupa: stu, seed: sd, spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
     C.poi({ kind: 'island', x: x, z: z, y: y, pass: r + 70 });
   }
   /* an air cell (physics: clouds/drift): the towering cumulus over the sea, free cloud carried by the low layer's wind,
@@ -128,8 +138,11 @@
       } else if (s.kind === 4) {   // the island and its temple, the low sun behind them as seen from the side away from it
         Rs = aRng(s, 41);
         var sun = C.V.light, r = Rs.r(110, 140), D = 950, y = CRUISE + D * Math.tan(sun.sunEl * PI / 180) - r * 0.55, size = r * Rs.r(0.9, 1.1);
-        C.add({ kind: 'isle', x: s.x, z: s.z, air: true, y: y, yaw: Rs.r(0, 360), r: r, depth: r * Rs.r(1.1, 1.5), size: size, seed: K.hk(s.h, 42), spheres: [0, -r * 0.45, 0, r * 1.18, 0, size * 0.55, 0, size * 0.8] });
+        var iyaw = Rs.r(0, 360), idep = r * Rs.r(1.1, 1.5);   // (drawn whether kept or not)
+        if (destClear(s.x, s.z)) {
+        C.add({ kind: 'isle', x: s.x, z: s.z, air: true, y: y, yaw: iyaw, r: r, depth: idep, size: size, seed: K.hk(s.h, 42), spheres: [0, -r * 0.45, 0, r * 1.18, 0, size * 0.55, 0, size * 0.8] });
         C.poi({ kind: 'isle', x: s.x, z: s.z, y: y + r * 0.4, pass: r + 190 });
+        }
         C.flock({ kind: 'bird', n: 18 + Rs.i(9), x: s.x + Rs.r(-60, 60), z: s.z + Rs.r(-60, 60), y: y + r * Rs.r(0.1, 0.6), orbit: Rs.r(r * 0.9, r * 1.4), wheel: Rs.sign() * Rs.r(0.12, 0.2), size: Rs.r(2.6, 3.4), flap: 2.4, spread: Rs.r(30, 60), lit: A_WL, shade: A_WS });
         var nsm = 1 + Rs.i(2);
         for (k = 0; k < nsm; k++) { a = Rs.r(0, 2 * PI); d = Rs.r(320, 600); aIsland(C, Rs, s.x + Math.sin(a) * d, s.z + Math.cos(a) * d, Rs.r(170, 380), Rs.r(26, 50), 0.6); }
