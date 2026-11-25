@@ -16,7 +16,9 @@
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    REL.vx = relFit(REL.x, j0, m, tU) * share;", "with": "    REL.vx = relFit(REL.x, j0, m, tU);", "why": "a short drag coasts at its whole speed, not its share"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "if (tU - REL.t[j] > REL_H && nt >= 3) break;", "with": "if (tU - REL.t[j] > REL_H) break;", "why": "a long frame's one move: no speed"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (REL.rs && (INP.down || INP.rel) && REL.n) {", "with": "    if (false) {", "why": "the finger drawn where its newest move put it (main's): uneven touch judders, 60 Hz touch on a 120 Hz screen standing still every other frame"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "var RS_MAX = 24, RS_DECAY = 5;", "with": "var RS_MAX = 24, RS_DECAY = 200;", "why": "the latency eased down at once: it is never enough for the next late move"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "var RS_MAX = 24, RS_DECAY = 5, RS_TOUCH = 20;", "with": "var RS_MAX = 24, RS_DECAY = 200, RS_TOUCH = 20;", "why": "the latency eased down at once: it is never enough for the next late move"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "REL.st = DRAG.type === 'mouse' ? Infinity : e.timeStamp - RS_TOUCH; if (DRAG.type !== 'mouse') REL.lat = Math.max(REL.lat, RS_TOUCH);", "with": "REL.st = Infinity;", "why": "a finger's drag started as today (#430): the latency from 0 and the catch-up drawn whole, the drawn finger standing still a frame early in the drag"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "REL.st = DRAG.type === 'mouse' ? Infinity : e.timeStamp - RS_TOUCH; if (DRAG.type !== 'mouse')", "with": "REL.st = e.timeStamp - RS_TOUCH; if (true)", "why": "a mouse's drag started late too: a desktop's catch-up no longer drawn at once, and the finger drawn RS_TOUCH ms behind"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the drag: where it starts, how far it turns
@@ -26,7 +28,7 @@ const MOVE = cut(WORLD, '  function onMove(e) {', '  function onUp(e) {');
 const GAIN = /\n(\s*var G = \(PI \/ 2\) \/ Math\.max\(OUT\.cssW \|\| 800, 240\),)/.exec(WORLD);
 function dragging(type = 'mouse', mode = 'none') {
   return vm.runInThisContext('(function (TYPE, MODE) {\n  \'use strict\';\n  var DRAG = { id: 1, x0: 100, y0: 100, x: 100, y: 100, on: false, type: TYPE }, TOUCHMODE = MODE, DOMQ = {}, running = true, REC = null,\n' +
-    '    INP = { dx: 0, dy: 0, down: false }, REL = { n: 0 }, root = { setPointerCapture: function () {} };\n  function domNext() {}\n  function relAdd() {}\n' + MOVE +
+    '    INP = { dx: 0, dy: 0, down: false }, REL = { n: 0, lat: 0 }, RS_TOUCH = 20, root = { setPointerCapture: function () {} };\n  function domNext() {}\n  function relAdd() {}\n' + MOVE +
     '\n  return { move: function (x, y) { onMove({ pointerId: 1, clientX: x, clientY: y, timeStamp: 0 }); }, on: function () { return DRAG.on; }, inp: INP };\n})')(type, mode);
 }
 test('drag: under 8 px is still a tap; from 8 px it steers, the first 8 px taken too', () => {
@@ -72,7 +74,7 @@ function flying(phase, boot = false) {   // boot: not yet landed (no frame befor
     '  function simStepOnce() {\n    if (!SIM.V) { SIM.V = {}; CS.yawV = CSP.yawV = 0; CS.thU = clamp(CS.thU, -TH_MAX, TH_MAX); CSP.thU = CS.thU; }   // (arrive: the landing sets the yaw, keeps the tilt)\n' +
     '    CSP.yawV = CS.yawV; CSP.thU = CS.thU;\n    applyInput(SIM_DT, SIM.t, null); SIM.t += SIM_DT;\n    return true;\n  }\n' +
     INPUT + '\n' + MOVE2 + '\n' + ADV +
-    '\n  return {\n    move: function (x, ts, y) { onMove({ pointerId: 1, clientX: x, clientY: y || 0, timeStamp: ts }); },\n    up: function (ts) { onUp({ pointerId: 1, timeStamp: ts !== undefined ? ts : REL.t[(REL.i + REL_N - 1) % REL_N], clientX: DRAG.x, clientY: DRAG.y, target: null }); },   // (the lift, at its time: by default right after the last move)\n    press: function () { INP.down = true; },\n    start: function (x0) { DRAG.id = 1; DRAG.on = false; DRAG.x0 = DRAG.x = x0; DRAG.y0 = DRAG.y = 0; INP.down = false; },\n    preroll: function (n) { for (var i = 0; i < n; i++) simAdvance(SIM_DT); },\n    prevYaw: function () { return CSP.yawV; },\n    cancel: function () { INP.down = false; INP.rel = false; },\n' +
+    '\n  return {\n    move: function (x, ts, y) { onMove({ pointerId: 1, clientX: x, clientY: y || 0, timeStamp: ts }); },\n    up: function (ts) { onUp({ pointerId: 1, timeStamp: ts !== undefined ? ts : REL.t[(REL.i + REL_N - 1) % REL_N], clientX: DRAG.x, clientY: DRAG.y, target: null }); },   // (the lift, at its time: by default right after the last move)\n    press: function () { INP.down = true; },\n    start: function (x0, type) { DRAG.id = 1; DRAG.on = false; DRAG.x0 = DRAG.x = x0; DRAG.y0 = DRAG.y = 0; DRAG.type = type || \'mouse\'; INP.down = false; },\n    preroll: function (n) { for (var i = 0; i < n; i++) simAdvance(SIM_DT); },\n    prevYaw: function () { return CSP.yawV; },\n    cancel: function () { INP.down = false; INP.rel = false; },\n' +
     '    frame: function (ts, dtMs) { var dt = dtMs !== undefined ? dtMs : CLK[1] < 0 ? 0 : ts - CLK[1]; CLK[1] = ts; var rel = INP.rel; simAdvance(dt / 1000);\n' +
     '      if (rel && !INP.rel) coast = { yaw: CS.yawV, om: CS.om, omP: CS.omP };   // (the release taken: the coast runs from the next frame)\n' +
     '      drawnTh = CSP.thU + (CS.thU - CSP.thU) * SIM.alpha; return CSP.yawV + (CS.yawV - CSP.yawV) * SIM.alpha; },\n' +
@@ -360,5 +362,40 @@ test('drag: uneven touch (60-120 Hz, delivered up to 4 ms late) turns the view e
     assert.ok(Math.abs(r.mean - 1) < 0.01, `${tag}: the view turned ${r.mean.toFixed(3)} x the finger a frame on average`);
     assert.ok(r.sd <= 0.06, `${tag}: each frame's turn spread ${r.sd.toFixed(3)} of the finger's (want 0.06 at most: judder)`);
     assert.ok(r.off < 0.02, `${tag}: ${(r.off * 100).toFixed(1)}% of frames turned more than 25% off the finger's travel (want under 2%)`);
+  }
+});
+
+// ------------------------------------------------------------------ the drag's start on phones: no stand-still
+// (the hub's 02:12Z follow-up to #430) the moment a visitor feels most. A finger's drag from its press, its first move
+// 8 px out (the start) and then steady at 0.6 px/ms, touch 60/90/120 Hz on 60/90/120/144 Hz screens delivered up to
+// 4 ms late, three seeds: each of the first 8 frames drawn turns between 0.3 and 1.1 of the finger's travel a frame
+// (it eases in over the start's latency, RS_TOUCH, never standing still and never jumping). (#430 alone: a frame stood
+// still, under 0.05x, in 37 of the 108 starts, and a frame jumped past 1.1x, up to 1.92x, in 94.) A mouse's drag, its moves
+// coalesced just before each frame, still draws its catch-up whole in its first frame and then the finger at once
+function startTurns(hzIn, hzOut, late, seed, type, V = 0.6, aligned = false) {
+  const F = flying(0.37), P = 1000 / hzOut, Q = aligned ? P : 1000 / hzIn, r = lcgD(seed), moves = [], t0 = aligned ? 1100 + 3 * P - 0.4 : 1000 + Q * r();
+  for (let t = t0; t < 2500; t += Q) moves.push([t, 8 + V * (t - t0), aligned ? t : t + 1 + r() * 2 * late]);
+  F.start(0, type);
+  let mi = 0, last = 0; const turns = [];
+  const fts0 = Math.ceil((moves[0][2] - 1100) / P - 1e-9) * P + 1100;   // (the first frame after the first move)
+  for (let k = 0; k < 20; k++) {
+    const fts = fts0 + k * P;
+    while (mi < moves.length && moves[mi][2] <= fts + 1e-9) { F.move(moves[mi][1], moves[mi][0]); mi++; }
+    const y = F.frame(fts); turns.push((y - last) / (GAIN1000 * V * P)); last = y;
+  }
+  return { turns, P };
+}
+test('drag: a finger\'s drag eases in from its press with no frame standing still; a mouse\'s catch-up is drawn at once', () => {
+  let still = 0;
+  for (const hzIn of [60, 90, 120]) for (const hzOut of [60, 90, 120, 144]) for (const late of [0, 2, 4]) for (const seed of [1, 2, 3]) {
+    const { turns } = startTurns(hzIn, hzOut, late, seed, 'touch'), f = turns.slice(0, 8), tag = `${hzIn} Hz touch on a ${hzOut} Hz screen, up to ${late} ms late, seed ${seed}`;
+    for (let k = 0; k < 8; k++) assert.ok(f[k] >= 0.3 && f[k] <= 1.1, `${tag}: frame ${k + 1} of the drag turned ${f[k].toFixed(2)} x the finger's travel (want 0.3-1.1: ${f.map((x) => x.toFixed(2)).join(' ')})`);
+    if (f.some((x) => x < 0.05)) still++;
+  }
+  assert.equal(still, 0);
+  for (const hz of [60, 120, 144]) {   // (a desktop's mouse: one move just before each frame)
+    const { turns, P } = startTurns(hz, hz, 0, 1, 'mouse', 0.6, true);
+    assert.ok(Math.abs(turns[0] - 8 / (0.6 * P)) < 0.02, `${hz} Hz mouse: the first frame turned ${turns[0].toFixed(3)} x a frame's travel, want the whole 8 px catch-up at once, ${(8 / (0.6 * P)).toFixed(3)}`);
+    for (let k = 1; k < 12; k++) assert.ok(Math.abs(turns[k] - 1) < 0.01, `${hz} Hz mouse: frame ${k + 1} turned ${turns[k].toFixed(3)} x the finger's travel`);
   }
 });
