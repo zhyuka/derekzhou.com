@@ -11,13 +11,16 @@
 // plant: {"file": "src/world/073-late-programs.js", "find": "'engine.beam', 'engine.virga'];   // (virga: none before the show, 231)", "with": "'engine.beam'];", "why": "virga's program issued before the show (the boot's frames)"}
 // plant: {"file": "src/world/360-engine-programs.js", "find": "return l[0] !== 'virga' || lateCan();", "with": "return true;", "why": "virga's program made before the show where no program can be late (WebKit's and the byte phones' boots a frame or two longer)"}
 // plant: {"file": "src/world/213-virga.js", "find": " gl.uniform3fv(P.u.uGP, g.p);", "with": "", "why": "the strand's path never handed to its program (a NaN strip, drawn nowhere)"}
-import { test, assert, vm, WORLD, cut, STREAMS } from '../unit-lib.mjs';
+// plant: {"file": "src/world/213-virga.js", "find": "    if (baseAG - P.end < VIRGA_LONG * 2 * hw) return null;", "with": "", "why": "short strands kept: a round blob under the base that reads as a glow, not falling rain"}
+// plant: {"file": "src/world/213-virga.js", "find": "k = smooth(VIRGA_LONG, VIRGA_LONG + 1, virgaAspect(B, g, CAM.pos, FR.tanX, RES[0]));", "with": "k = 1;", "why": "a strand drawn however short it looks on screen (far, or seen from under it)"}
+// plant: {"file": "src/world/glsl/fs-virga.glsl", "find": "  vec3 c = min(uClDeep, uClShade);", "with": "  vec3 c = uClShade * 1.4;", "why": "a strand lighter than the base over it (a pale column, a glow)"}
+import { test, assert, vm, fs, path, ROOT, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') +
   cut(WORLD, '  function u10Of(', '\n', true) + cut(WORLD, '  function airBase(', '  function airVec3(');
 const VIRGA = cut(WORLD, '  var VIRGA_SHARE = ', '  /* ---------------------------------------------------------------- the air');
 const G = vm.runInThisContext('(function () { var PI = Math.PI, SIM = { V: null };\n' + STREAMS + AIRSRC + VIRGA +
-  ' return { virgaOn: virgaOn, virgaPath: virgaPath, airBase: airBase, AIR_H: AIR_H, VIRGA_N: VIRGA_N }; })')();
+  ' return { virgaOn: virgaOn, virgaPath: virgaPath, virgaBody: virgaBody, virgaAspect: virgaAspect, VIRGA_LONG: VIRGA_LONG, airBase: airBase, AIR_H: AIR_H, VIRGA_N: VIRGA_N }; })')();
 const visit = (u10, a = 0.7) => ({ wind: [Math.sin(a), Math.cos(a)], u10 });
 const SEEDS = Array.from({ length: 400 }, (_, i) => (i * 2654435761 + 977) >>> 0);
 
@@ -71,4 +74,30 @@ test('virga: only on free clouds born after the show; never gained in sight; its
   const dv = WORLD.slice(WORLD.indexOf('  function drawVirga('), WORLD.indexOf('\n  }\n', WORLD.indexOf('  function drawVirga(')));
   for (const u of ['uGA', 'uGP', 'uGW']) assert.ok(dv.replace(/\/\/[^\n]*/g, '').includes('P.u.' + u), `virga's draw never sets ${u}`);
   assert.ok(WORLD.includes("list = list.filter(function (l) { return l[0] !== 'virga' || lateCan(); });"), 'virga\'s program made where it cannot be late (its boot pays for it)');
+});
+
+// (the hub's look, 2026-11-25: a short strand reads as a glow, not falling rain; and a strand is never lighter than its base)
+test('virga: never shorter than 3 times its width, at layout and on screen; never lighter than the base over it', () => {
+  let kept = 0, dropped = 0;
+  for (const base of [300, 480, 600, 680, 1200]) for (const hx of [80, 200, 400, 900]) for (const s of SEEDS.slice(0, 80)) {
+    const g = G.virgaBody(visit(6), s, base, 0, -40, 0, [hx, 120, hx * 0.8]);
+    if (!g) { dropped++; continue; }
+    kept++;
+    const len = -g.p[g.p.length - 2];
+    assert.ok(len >= G.VIRGA_LONG * 2 * g.hw - 1e-6, `a strand ${len.toFixed(0)} m long and ${(2 * g.hw).toFixed(0)} m wide`);
+    // on screen: side on and near, its own ratio; far (its width held at three pixels a side) or seen from under it, less
+    const B = { c: [0, base + 40, 0] }, side = G.virgaAspect(B, g, [0, base - len / 2, -800], 0.6, 480), far = G.virgaAspect(B, g, [0, base - len / 2, -60000], 0.6, 480), under = G.virgaAspect(B, g, [3 * g.p[g.p.length - 3], base + 3 * g.p[g.p.length - 2], 3 * g.p[g.p.length - 1]], 0.6, 480);   // (from under it, on its own line: end on)
+    const n = g.p.length, across = Math.hypot(g.p[n - 3], g.p[n - 2]) / (2 * g.hw);   // (seen along z: its path's extent in x and y, the lean below 300 m with it)
+    assert.ok(Math.abs(side - across) < 0.08 * across, `side on ${side.toFixed(2)}, its own ${across.toFixed(2)}`);
+    assert.ok(far < side && under < side, 'far, or from under it, not shorter on screen');
+  }
+  assert.ok(kept > 100 && dropped > 20, `kept ${kept}, dropped ${dropped}: the rule never cuts, or cuts all`);
+  assert.ok(WORLD.includes('k = smooth(VIRGA_LONG, VIRGA_LONG + 1, virgaAspect(B, g, CAM.pos, FR.tanX, RES[0]));') && WORLD.includes('if (k <= 0) return;') && WORLD.includes('g.a * B.fade * k'), 'a strand under 3 widths on screen still drawn');
+  // its colour: the floor of the body's own light (mix(uClDeep, uClShade) rising toward uClLit), channel by channel, and
+  // nothing added to it
+  const FS = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'fs-virga.glsl'), 'utf8').replace(/\/\/[^\n]*/g, '');
+  assert.match(FS, /vec3 c = min\(uClDeep, uClShade\);/, 'the strand\'s colour is not the base\'s floor');
+  assert.match(FS, /oC = vec4\(c \* a, a\);/, 'light added to the strand');
+  assert.equal((FS.match(/\bc\s*[-+*\/]=|\n\s*c\s*=[^=]/g) || []).length, 0, 'the strand\'s colour raised after its floor');
+  for (const k of [0, 0.3, 0.7, 1]) for (const [d, sh] of [[[0.2, 0.15, 0.3], [0.35, 0.3, 0.45]], [[0.4, 0.2, 0.3], [0.3, 0.35, 0.2]]]) for (let c = 0; c < 3; c++) assert.ok(Math.min(d[c], sh[c]) <= d[c] + (sh[c] - d[c]) * k, 'over a base');
 });

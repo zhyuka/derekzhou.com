@@ -30,15 +30,23 @@
     }
     return { p: P, w: W, end: end, w0: w0 };
   }
-  var VIRGA_HW = [30, 150], VIRGA_A = 0.62;   // (its half width, m: a third of its body's narrower half size, within these; its most alpha)
+  var VIRGA_HW = [20, 60], VIRGA_A = 0.62, VIRGA_LONG = 3;   // (its half width, m: an eighth of its body's narrower half size, within these (a shaft of rain, not the base's whole width); its most alpha; the least length on screen, in widths)
   function virgaBody(V, seed, baseAG, dx, dy, dz, h) {   // the strand a body carries: its top (from the body's centre: at its base, under its lobes) and its path, for 410's draw
     if (!(baseAG > 50)) return null;
-    var P = virgaPath(V, seed, baseAG);
-    return { dx: dx, dy: dy, dz: dz, p: new Float32Array(P.p), hw: Math.max(VIRGA_HW[0], Math.min(VIRGA_HW[1], Math.min(h[0], h[2]) / 3)), a: VIRGA_A };
+    var P = virgaPath(V, seed, baseAG), hw = Math.max(VIRGA_HW[0], Math.min(VIRGA_HW[1], Math.min(h[0], h[2]) / 8));
+    if (baseAG - P.end < VIRGA_LONG * 2 * hw) return null;   // (a strand shorter than 3 times its width reads as a glow, not falling rain: none (the hub's look, 2026-11-25))
+    return { dx: dx, dy: dy, dz: dz, p: new Float32Array(P.p), hw: hw, a: VIRGA_A };
+  }
+  function virgaAspect(B, g, cam, tanX, resX) {   // its length on screen over its width on screen (the length across the view; the width the shader's, never under three pixels a side)
+    var n = g.p.length, vx = g.p[n - 3], vy = g.p[n - 2], vz = g.p[n - 1];
+    var mx = B.c[0] + g.dx + vx / 2 - cam[0], my = B.c[1] + g.dy + vy / 2 - cam[1], mz = B.c[2] + g.dz + vz / 2 - cam[2], d = Math.sqrt(mx * mx + my * my + mz * mz) || 1;
+    var vd = (vx * mx + vy * my + vz * mz) / d, lx = vx - vd * mx / d, ly = vy - vd * my / d, lz = vz - vd * mz / d;
+    return Math.sqrt(lx * lx + ly * ly + lz * lz) / (2 * Math.max(g.hw, 3 * 2 * d * tanX / Math.max(resX, 1)));
   }
   function drawVirga(B, P, V) {   // a body's strand, in the body's own turn (far to near): the clouds' target, premultiplied over (410)
-    var g = B.vg;
+    var g = B.vg, k = smooth(VIRGA_LONG, VIRGA_LONG + 1, virgaAspect(B, g, CAM.pos, FR.tanX, RES[0]));   // (on screen under 3 times as long as it is wide, none: foreshortened or far, it eases out by the view, never pops)
+    if (k <= 0) return;
     gl.useProgram(P.p); setFrameUniforms(P, V);
-    gl.uniform3f(P.u.uGA, B.c[0] + g.dx, B.c[1] + g.dy, B.c[2] + g.dz); gl.uniform3fv(P.u.uGP, g.p); gl.uniform2f(P.u.uGW, g.hw, g.a * B.fade);   // (its top where its body is drawn now: carried and lifted with it)
+    gl.uniform3f(P.u.uGA, B.c[0] + g.dx, B.c[1] + g.dy, B.c[2] + g.dz); gl.uniform3fv(P.u.uGP, g.p); gl.uniform2f(P.u.uGW, g.hw, g.a * B.fade * k);   // (its top where its body is drawn now: carried and lifted with it)
     gl.disable(gl.CULL_FACE); gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n);
   }
