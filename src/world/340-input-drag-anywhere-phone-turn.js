@@ -10,7 +10,7 @@
      motion began (iOS asks first, only inside a gesture: at the end of the first drag or a tap on the page, never on a
      link, never at load; refused, never asked again). Under reduced motion all of it is inert. */
   var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, relAny: false, qx: 0, qy: 0 };   // (fx, fy: the drag drawn since the last step; relAny: a release the next step counts as input; qx, qy: a dev script's drag)
-  var INPLOG = [];   // (dev: what the flight received a step; a script to replay)
+  var INPLOG = [], INPQ = /** @type {any[] & { i: number }} */ ([]); INPQ.i = 0;   // (dev: what the flight received a step; a script to replay)
   var DRAG = { id: -1, x0: 0, y0: 0, x: 0, y: 0, on: false, type: '', multi: false, cap: false, t0: 0, ts: 0 };
   /* (the owner: "the birds should be more interactive with the mouse") the birds' play reads the
      pointer where the device hovers: one passive listener of its moves (onHover: a mouse's or a pen's place, CSS px,
@@ -229,6 +229,9 @@
   function coastTau(v, tau, run) { return Math.abs(v) * 2 * tau > run ? run / (2 * Math.abs(v)) : tau; }
   function runOn(v, tau, t) { return v * tau * (2 - (2 + t / tau) * Math.exp(-t / tau)); }   // (the turn run on by t s after the lift)
   function applyInput(dt, t, V) {
+    // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given; its release is taken
+    // in the next frame)
+    while (INPQ.i < INPQ.length && INPQ[INPQ.i].t <= t + 1e-9) devInput(INPQ[INPQ.i++]);
     var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), dx = INP.qx, dy = INP.qy, fx = INP.fx, fy = INP.fy, any = INP.relAny;
     INP.qx = 0; INP.qy = 0; INP.fx = 0; INP.fy = 0; INP.relAny = false;
     if (dx || dy || fx || fy) any = true;
@@ -258,6 +261,15 @@
       IDLE_K++; CS.idleAfter = 6 + 4 * hfl(ihash((IDLE_K * 2654435761 + (shown ? SEEDR : J.seed)) >>> 0));   // (6-10 s before the clearance eases back to the cruise height)
       if (DEVMODE) INPLOG.push([+t.toFixed(4), +(dx + fx / G).toFixed(2), +(dy + fy / G).toFixed(2), INP.down ? 1 : 0, MOTION.has ? +(MOTION.yaw / DEG).toFixed(3) : null, MOTION.has ? +(MOTION.pitch / DEG).toFixed(3) : null]);
     }
+  }
+  /* dev: an input injected at a step's time ({ t, drag: [dx, dy] } moves a held drag; { t, down } / { t, up } press and
+     release; { t, orient: [alpha, beta, gamma] } the phone; { t, motion: true } motion enabled) */
+  function devInput(ev) {
+    if (ev.down) { INP.down = true; REL.n = 0; REL.rs = false; REL.px = 0; REL.py = 0; relAdd(0, 0, ev.t * 1000); }
+    if (ev.drag) { INP.qx += ev.drag[0]; INP.qy += ev.drag[1]; REL.px += ev.drag[0]; REL.py += ev.drag[1]; relAdd(REL.px, REL.py, ev.t * 1000); }
+    if (ev.up) { INP.down = false; INP.rel = true; REL.tl = ev.t * 1000; }
+    if (ev.motion) { MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; }
+    if (ev.orient) orientAt(ev.orient[0], ev.orient[1], ev.orient[2]);
   }
   /* the page's touch: one finger steers; a page taller than the window scrolls with a vertical drag; zoomed in, the
      browser has every finger */

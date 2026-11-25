@@ -11,6 +11,7 @@
 // plant: {"file": "src/world/270-flight.js", "find": " if (CS.ay > 0) CS.ay = 0; SIM.fixC++; }", "with": " if (CS.ay > 0) CS.ay = 0; }", "why": "the ceiling's clamps not counted"}
 // plant: {"file": "src/world/280-ground-what-stands-ahead.js", "find": "q.x = o.x + off[0]; q.z = o.z + off[1];", "with": "q.x = o.x; q.z = o.z;", "why": "an air cell's obstacles where its cell laid them out, not where the air carried them"}
 // plant: {"file": "src/world/286-hard-rule.js", "find": "    for (var p = 0, m = 1; p < 3 && m; p++) for (m = 0, i = 0; i < O.length; i++) if (hardFloor(O[i])) m = ++SIM.fixO;", "with": "", "why": "no floor passes: wedged between two solids, the second push moves the camera back inside the first's HARD_IN"}
+// plant: {"file": "src/world/270-flight.js", "find": "    if (CS.auto > 0) CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto;", "with": "    if (CS.auto > 0) { CS.c += clamp(cl[1] - CS.c, -2.2 * dt, 2.2 * dt) * CS.auto; CS.yawV += 0.02 * dt * CS.auto; }", "why": "left alone the flight steers itself: the autopilot H1 took out, back"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 import { loadGround } from '../ground.mjs';
 
@@ -32,7 +33,7 @@ import { loadGround } from '../ground.mjs';
 const G = loadGround(11);
 const HARD_IN = +/var HARD_IN = ([\d.]+);/.exec(WORLD)[1];
 const FLIGHT = cut(WORLD, '  /* ---------------------------------------------------------------- the flight */', '  /* ---------------------------------------------------------------- the places, the look ahead */');
-const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* the page\'s touch: one finger steers');
+const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
 const CRUISE = cut(WORLD, '  var CW_S = [', '\n  function flightParams') + '\n' + cut(WORLD, '  function flightParams(V, cw) {', '\n  }\n', true);
 // (physics: clouds/drift) the clouds' cores ride in air cells: the world's own cellOff carries them by the low layer's
 // wind (airW: the test's), with no lift (the band's lift is band.mjs's); the landmarks stand in world cells
@@ -40,10 +41,10 @@ const CELLOFF = cut(WORLD, '  function cellOff(', '\n  }\n', true);
 const MAKE = vm.runInThisContext('(function (G, OBST, AW) {\n  \'use strict\';\n' +
   '  function airW() { return AW; }\n  function cellLift() { return 0; }\n' + CELLOFF + '\n' +
   '  var PI = Math.PI, DEG = PI / 180, DEVMODE = false, POSE = null, NOAUTO = false, shown = true, STILLMODE = false, SEEDR = 1, J = { seed: 1 }, VSTAGES = [], BIRDS = null, DTMAX = 0.1, SW = {};\n' +
-  '  var OUT = { cssW: 1000 }, MOTION = { on: false }; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
+  '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0; var REC = null, REL = { n: 0 }, px = 0, py = 0, pd = false, CLK = new Float64Array([0, -1]);\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, n: 0, lastDx: 0, evT0: 0, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
   '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function lerp(a, b, t) { return a + (b - a) * t; }\n  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }\n' +
-  '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n' +
+  '  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
   '  function groundAt(V, x, z) { return G.groundAt(x, z); }\n  function fogTopAt() { return -Infinity; }\n  function kwAt(x, z) { return [0, 0, 0, G.seaW(x, z)]; }\n  function airHeading0() { return 0.7; }\n' +
   '  function planVisit() {}\n  function kwFollow() {}\n  function kwUpload() {}\n  function groundCache() {}\n  function climateLight() {}\n  function directorStep() {}\n  function beamWake() {}\n  function envSolids() {}\n  function pitchLook() {}\n  function devTrace() {}\n' +
   '  var V = { k: 0, st: 0, speed: 12, clear: [7, 14, 45], def: { clear: [7, 14, 45], cruise: [14, 32], margin: 12, marginB: 26 }, margin: 12, cellList: OBST };\n' +
@@ -187,4 +188,35 @@ test('flight-sim: HARD_IN is past the near plane\'s farthest corner, in any sett
   let worst = 0, at = 0;
   for (let a = 0.3; a <= 4; a += 0.01) { const f = frustumFor(a, {}), c = NEAR * Math.sqrt(1 + f.tanX * f.tanX + f.tanY * f.tanY); if (c > worst) { worst = c; at = a; } }
   assert.ok(HARD_IN >= worst + 0.05, `HARD_IN ${HARD_IN} m: the near plane's corner reaches ${worst.toFixed(3)} m (aspect ${at.toFixed(2)}); want 0.05 m clear`);
+});
+
+// ------------------------------------------------------------------ left alone: no autopilot, and smooth hand-overs
+// (hotfix H1; the hub's idle-drift check, Nov 25) left alone 6-10 s, CS.auto eases the clearance back to the cruise
+// height over 3 s and steers nothing. A dive, then 25 s left alone, then a drag: while left alone the view and the
+// way turn not at all, and the camera's height, read from its own positions step by step (the hard rules and every
+// rule that moves it included), changes its acceleration at most VY_J (2 m/s3) across both hand-overs, into the ease
+// and back to the finger. (Measured: 0 turn; a jerk of 0.09-0.17 m/s3 into the ease, 0.57-1.06 back to the finger)
+test('flight-sim: left alone the flight never turns itself, and its height crosses the hand-overs under VY_J', () => {
+  const VYJ = +/var VY_J = ([\d.]+)/.exec(WORLD)[1];
+  for (const seed of [1, 2, 3, 4]) {
+    const F = MAKE(G, solids(seed), AWS[seed % AWS.length]), { CS } = F, Y = [], view = [], way = [], auto = [];
+    for (let k = 0; k < 40 * 60; k++) {
+      const t = k / 60;
+      if (t > 1 && t < 2.5) F.drag(0, 6, false); else if (t >= 2.5 && t < 2.52) F.drag(0, 0, true);   // (a dive, let go)
+      if (t > 30 && t < 31) F.drag(8, 0, false); else if (t >= 31 && t < 31.02) F.drag(0, 0, true);   // (back to the finger)
+      if (!F.step()) continue;
+      Y.push(CS.y); view.push(CS.yawV + CS.phi); way.push(CS.psi); auto.push(CS.auto);
+    }
+    const a0 = auto.findIndex((x, i) => i > 3 * 60 && x > 0);
+    assert.ok(a0 > 0 && a0 < 29 * 60, `seed ${seed}: left alone, the ease never began`);
+    for (let i = 200; i < 29 * 60; i++) {
+      assert.equal(view[i], view[i - 1], `seed ${seed}: left alone, the view turned at ${(i / 60).toFixed(2)} s`);
+      assert.equal(way[i], way[i - 1], `seed ${seed}: left alone, the way turned at ${(i / 60).toFixed(2)} s`);
+    }
+    const d = (a) => a.slice(1).map((x, i) => (x - a[i]) * 60), j = d(d(d(Y)));
+    for (const [name, i0, i1] of [['into the ease', a0 - 30, a0 + 120], ['back to the finger', 30 * 60 - 30, 30 * 60 + 120]]) {
+      const m = Math.max(...j.slice(i0, i1).map(Math.abs));
+      assert.ok(m <= VYJ + 1e-6, `seed ${seed}: ${name}, the height's acceleration changed at ${m.toFixed(3)} m/s3 (want ${VYJ} at most)`);
+    }
+  }
 });

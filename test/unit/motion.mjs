@@ -13,16 +13,16 @@ import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 // MOTION is iOS's only, asked inside a gesture and used only if the visitor allows it (Android is drag-only: the
 // owner, 2026-11-06; docs/security.md).
 const ORIENT = cut(WORLD, '  function orientAt(', '  /* each step:');
-const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* the page\'s touch: one finger steers');
+const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
 function lcg(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 function normal(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
 const MAKE = () => vm.runInThisContext('(function () {\n  \'use strict\';\n' +
   '  var PI = Math.PI, DEG = PI / 180, SIM_DT = 1 / 60, DTMAX = 0.1, TH_MAX = 35 * DEG, DEVMODE = false, shown = true, SEEDR = 1, J = { seed: 1 }, CLK = new Float64Array([0, -1]);\n' +
-  '  var SIM = { V: {} }, OUT = { cssW: 1000 }; var REC = null;\n' +
+  '  var SIM = { V: {} }, OUT = { cssW: 1000 }, INPQ = []; INPQ.i = 0; var REC = null;\n' +
   '  var MOTION = { st: "on", on: true, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0, my: false, mp: false, vy: 0, vp: 0 };\n' +
   '  var INP = { dx: 0, dy: 0, down: false, rel: false, fx: 0, fy: 0, relAny: false, qx: 0, qy: 0 };\n' +
   '  var CS = { yawV: 0, thU: 0, phi: 0, thP: 0, thPraw: 0, om: 0, omP: 0, since: 0, lastIn: 0, auto: 0, idleAfter: 0 }, CSP = { yawV: 0, thU: 0 };\n' +
-  '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function inert() { return false; }\n' +
+  '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { var d = (a - b) % (2 * PI); return d > PI ? d - 2 * PI : d < -PI ? d + 2 * PI : d; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n  function inert() { return false; }\n' +
   ORIENT + '\n' + INPUT + '\n  return { orient: orientAt, step: function (t) { applyInput(SIM_DT, t, null); }, CS: CS };\n})')();
 // the phone's alpha over time (deg, its own turn) and noise: the view's yaw (phi) and tilt each step, deg
 function fly(alphaAt, secs, sigma, seed) {
