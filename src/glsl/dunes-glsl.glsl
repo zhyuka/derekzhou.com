@@ -13,6 +13,8 @@
 #define ROCK_DEEP uP[10].rgb
 #define PALE uP[11].rgb
 const float DS = 1500.0, RS = 4500.0;
+const float RIP_I = 0.15, RIP_M = 0.9, RIP_FLOOR = 1.5;   // (shadeSand's ripples, m)
+float gAF = 1e4;   // (height over the troughs' floor: 350 sets it)
 /* an area's site: its cell's hash (the visit's salt), its place jittered in the cell, its kind, four parameters */
 struct Site { vec2 p; int kind; vec4 r; };
 Site siteOf(ivec2 c) {
@@ -311,19 +313,19 @@ vec4 n3vC1(vec3 p) {
 vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   vec3 n = n0;
   float steep = smoothstep(0.42, 0.66, 1.0 - n0.y);
-  // ripples across the wind, near only: one tap of the noise gives their turn, wander, spacing and patches
-  float rk = (1.0 - smoothstep(0.012, 0.05, fp)) * (1.0 - steep);
-  if (rk > 0.002) {
-    // (world6 fix, the judges' defect 6) the ripples' phase a fixed wave (along the wind, 0.9 m) and a warp of bounded
-    // gradient (their wander, turn and spacing): the step divided the position by a wavelength and turned it by an angle
-    // that both varied over the sand, so the pattern's frequency grew with the distance from the world's origin (at
-    // x -5000 a few centimetres: fingerprint rings, a G0 risk)
-    vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));   // (C1: the warp's gradient continuous at the texels' borders)
-    vec2 w = WINDDIR, wp = vec2(-w.y, w.x), wr = normalize(w + wp * (nz.r - 0.5) * 0.6);
-    float ph = dot(p.xz, w) / 0.9 + (nz.g - 0.5) * 9.0 + (nz.a - 0.5) * 6.0;
-    float sl = cos(6.2831853 * ph) + 0.35 * cos(12.566 * ph + 1.0);
-    float rpatch = smoothstep(0.38, 0.62, nz.b);
-    n = normalize(n - rk * rpatch * 0.06 * sl * vec3(wr.x, 0.0, wr.y));
+  /* the ripples: impact ripples on the loose sand (https://arxiv.org/html/2501.10643v1), megaripples on the interdune
+     floors only (https://arxiv.org/pdf/2208.00888); each faded by its pixels a wavelength (docs/world.md, ## THE SAND'S RIPPLES) */
+  vec2 w = WINDDIR, rh = normalize(rd.xz + vec2(1e-6, 0.0));
+  float d = dot(p.xz, w), fwD = fp * (abs(dot(w, rh)) / max(abs(dot(rd, n0)), 0.02) + abs(dot(w, vec2(-rh.y, rh.x))));
+  float kI = 1.0 - smoothstep(0.2, 0.4, fwD / RIP_I);
+  float kM = (1.0 - smoothstep(0.2, 0.4, fwD / RIP_M)) * (1.0 - smoothstep(RIP_FLOOR, 2.0 * RIP_FLOOR, gAF)) * smoothstep(0.97, 0.99, n0.y);
+  float rk = 1.0 - steep;
+  if (rk * max(kI, kM) > 0.002) {
+    vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));
+    vec2 wp = vec2(-w.y, w.x), wr = normalize(w + wp * (nz.r - 0.5) * 0.6);
+    float wv = (nz.g - 0.5) * 9.0 + (nz.a - 0.5) * 6.0, phI = d / RIP_I + wv, phM = d / RIP_M + wv;
+    float sl = kI * (cos(6.2831853 * phI) + 0.35 * cos(12.566 * phI + 1.0)) + kM * smoothstep(0.38, 0.62, nz.b) * (cos(6.2831853 * phM) + 0.35 * cos(12.566 * phM + 1.0));
+    n = normalize(n - rk * 0.06 * sl * vec3(wr.x, 0.0, wr.y));
   }
   float ndl = dot(n, uSun);
   // the low sun lights the level sand and the faces toward it; the faces turned from it fall into the sky's blue
