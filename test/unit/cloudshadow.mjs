@@ -5,6 +5,7 @@
 // the key's direct share of its light (the clear-sky model, https://www.nrel.gov/docs/legosti/old/761.pdf) and gets
 // part back through the cloud (two-stream diffuse transmission, https://doi.org/10.1119/1.15109), read where its
 // point meets the plane the lobes were cast on.
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "f = (1.0 - uKeyD) * ndl", "with": "f = ndl", "why": "the clouds' shadows cast in the blue hour, with the sun 7 deg down and no direct light to cast them"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  return c * cloudShadow(p, ndl);", "with": "  return c;", "why": "the sand never under the clouds' shadow"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));", "with": "return 1.0 - f * (1.0 - exp(-tau));", "why": "no light scattered through the cloud: an opaque floor under a thick one"}
 // plant: {"file": "src/world/glsl/fs-cshadow.glsl", "find": "exp(-uCShK.x * ch / 32.0)", "with": "exp(-uCShK.x * ch)", "why": "the depth stored whole: 8 bits clip a cloud's past 5.5, and the land reads it 32 times over"}
@@ -94,7 +95,7 @@ test('cloud shadow: the land loses the key\'s direct share alone, and gets back 
   assert.match(DG, /vec2 q = \(p\.xz \+ uSun\.xz \* \(uCShP\.w - p\.y\) \/ max\(uSun\.y, 0\.02\) - uCShP\.xy\) \/ uCShP\.z;/, 'the land\'s point carried along the key to the plane (any height of land: the same line as the lobes\')');
   assert.match(DG, /if \(uCShP\.z <= 0\.0 \|\| ndl <= 0\.0\) return 1\.0;/, 'none without a map this frame, none on a face from the key');
   assert.match(DG, /float tau = -32\.0 \* log\(max\(mix\(texture\(uCSh, q \* 0\.5 \+ 0\.5\)\.r, 1\.0, smoothstep\(0\.75, 1\.0, max\(abs\(q\.x\), abs\(q\.y\)\)\)\), 0\.002\)\);/, 'the depth read back (x 32), eased off over the map\'s last quarter');
-  assert.match(DG, /float sy = max\(uSun\.y, 0\.02\), f = ndl \/ \(ndl \+ 0\.13 \* sy \/ \(sy \+ 0\.02\)\);/, 'the beam\'s share of the face\'s light');
+  assert.match(DG, /float sy = max\(uSun\.y, 0\.02\), f = \(1\.0 - uKeyD\) \* ndl \/ \(ndl \+ 0\.13 \* sy \/ \(sy \+ 0\.02\)\);/, 'the beam\'s share of the face\'s light, times the key\'s direct share (physics: light/twilight-key: no direct sun with the sun 7 deg down, so no cloud shadow)');
   assert.match(DG, /return 1\.0 - f \* \(1\.0 - 1\.0 \/ \(1\.0 \+ 0\.1125 \* tau\)\);/, 'two-stream diffuse transmission, 3/4 (1 - g), g 0.85');
   // the fit is the clear sky's over the key's 5 to 14 deg
   for (const [el, q] of Object.entries(CLEAR)) assert.ok(Math.abs(qFit(Math.sin(el * Math.PI / 180)) - q) < 0.01, `${el} deg: q ${qFit(Math.sin(el * Math.PI / 180)).toFixed(3)} against ${q}`);

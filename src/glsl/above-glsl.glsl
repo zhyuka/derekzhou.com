@@ -77,7 +77,7 @@ vec3 A_shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   // the sea's own heaps: their tops catch the low sun (pink), the creases between sink into the sky's blue
   float hgt = smoothstep(-25.0, 55.0, p.y);
   float crease = smoothstep(-8.0, 16.0, p.y - 30.0 * gn(p.xz / 900.0));
-  float ndl = dot(n, uSun);
+  float ndl = ndlK(n);
   float tauL = (1.0 - hgt) * 2.8 + max(0.0, -ndl) * 3.6 + 0.6;
   float rr = 1.0 - clamp(dot(n, -rd), 0.0, 1.0);
   float ao = mix(0.45, 1.0, hgt) * mix(0.75, 1.0, crease);   // (world6 step B: the creases' shade lifted a little (0.25, 0.6 before): the links stand over the near sea now)
@@ -95,7 +95,7 @@ vec3 A_shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   return c;
 }
 vec3 A_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbove) {
-  float ndl = dot(n, uSun), mat = col.a, dif = smoothstep(-0.15, 0.8, ndl);
+  float ndl = ndlK(n), mat = col.a, dif = smoothstep(-0.15, 0.8, ndl);
   float rr = 1.0 - clamp(dot(n, -rd), 0.0, 1.0), r2 = rr * rr * rr;
   vec3 c;
   if (mat > 3.5) c = mix(A_GRASS, A_GRASS_LIT, dif) * (0.85 + 0.15 * gn(p.xz / 9.0));   // moss and grass

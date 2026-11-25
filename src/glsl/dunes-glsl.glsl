@@ -266,7 +266,7 @@ float cloudShadow(vec3 p, float ndl) {
   if (uCShP.z <= 0.0 || ndl <= 0.0) return 1.0;
   vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.02) - uCShP.xy) / uCShP.z;
   float tau = -32.0 * log(max(mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, max(abs(q.x), abs(q.y)))), 0.002));
-  float sy = max(uSun.y, 0.02), f = ndl / (ndl + 0.13 * sy / (sy + 0.02));
+  float sy = max(uSun.y, 0.02), f = (1.0 - uKeyD) * ndl / (ndl + 0.13 * sy / (sy + 0.02));   // (physics: light/twilight-key: the direct share the cloud takes, gone with the key's)
   return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));
 }
 /* rock: blue stone in broad strata (each band its own tone, warmer in the sun, the lines wandering), streaked down by
@@ -325,7 +325,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
     float rpatch = smoothstep(0.38, 0.62, nz.b);
     n = normalize(n - rk * rpatch * 0.06 * sl * vec3(wr.x, 0.0, wr.y));
   }
-  float ndl = dot(n, uSun);
+  float ndl = ndlK(n);
   // the low sun lights the level sand and the faces toward it; the faces turned from it fall into the sky's blue
   float dif = smoothstep(-0.08, 0.26, ndl);
   float hb = smoothstep(-40.0, 50.0, p.y);
@@ -334,7 +334,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   vec3 c = mix(shd, lit, dif);
   float gk = 1.0 - smoothstep(0.01, 0.04, fp);   // (hotfix G0: the grain gone before its cells are under three pixels)
   if (gk > 0.0) c *= 1.0 + gk * 0.07 * (h12(p.xz * 9.0) + h12(p.xz * 9.0 + 0.5) - 1.0);
-  if (steep > 0.0) c = mix(c, rockColL(p, n0, dot(n0, uSun), fp), steep);   // (fast500 D R6)
+  if (steep > 0.0) c = mix(c, rockColL(p, n0, ndlK(n0), fp), steep);   // (fast500 D R6)
   float vd = clamp(dot(n, -rd), 0.0, 1.0), gr = 1.0 - vd;
   c += SHEEN * gr * gr * gr * gr * smoothstep(-0.05, 0.6, ndl) * (1.0 - steep);
   // (hotfix G0) no glints: one 0.22 m cell in fourteen flashed the sun at pow 140 as the view moved, a few pixels
@@ -344,7 +344,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
 }
 /* the landmarks: col.a says what each is (1 dark stone, 2 rock: the great formations, 3 pale stone) */
 vec3 D_shadeStone(vec3 p, vec3 n, vec3 rd, float t, float fp, vec4 col, float yAbove) {
-  float ndl = dot(n, uSun), mat = col.a, rr = 1.0 - clamp(dot(n, -rd), 0.0, 1.0), rim = rr * rr * rr;
+  float ndl = ndlK(n), mat = col.a, rr = 1.0 - clamp(dot(n, -rd), 0.0, 1.0), rim = rr * rr * rr;
   vec3 c;
   if (mat > 1.5 && mat < 2.5) {
     c = rockCol(p, n, ndl, fp);

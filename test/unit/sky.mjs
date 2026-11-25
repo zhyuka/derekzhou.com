@@ -1,5 +1,8 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/221-sky-paint-objects.js", "find": "O.rawD.keyD = O.rawA.keyD = se === null ? 0 : 1 - ss01((se + 6) / 6);", "with": "O.rawD.keyD = O.rawA.keyD = se === null ? 1 : 1 - ss01((se + 6) / 6);", "why": "the moonlit night's key made diffuse: the moon's own light loses its shading"}
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  float ndl = ndlK(n);\n  // the low sun lights", "with": "  float ndl = dot(n, uSun);\n  // the low sun lights", "why": "the sand keeps a direct key with the sun 7 deg down"}
+// plant: {"file": "src/world/glsl/frame-u.glsl", "find": "uSun.y * (0.5 + 0.5 * dot(n, g)) / (0.5 + 0.5 * g.y), uKeyD)", "with": "0.5 * uSun.y * (0.5 + 0.5 * dot(n, g)) / (0.5 + 0.5 * g.y), uKeyD)", "why": "the twilight's diffuse light at half the key's height: the land darkened as the sun sinks"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
@@ -1243,4 +1246,35 @@ test('physics: Looks: the gas\'s path is the slant integral of air thinning with
   }
   assert.ok(g.includes('vec3 T = exp(-(m + BR * gasPath(rd, t)))'), 'atmos does not take the gas along its path');
   assert.ok(g.includes('return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t));'), 'fogAmt does not take the gas along its path');
+});
+
+// (physics: light/twilight-key, the physics audit's rank 8) with the sun under the horizon no direct sunlight reaches the
+// land or the clouds: the key's directional share goes as smoothstep(-6, 0, the sky's sun) (0.5 at -3, 0 from -6), the
+// rest the twilight sky's diffuse light, a level face kept at the key's own height so the lit land's mean holds; the
+// clouds' shadows take only the direct share; a night's key (the moon) stays direct
+test('sky: the twilight key softens as the sun sinks (diffuse by the sky\'s sun), the level face held, the moon direct', () => {
+  const FU = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'frame-u.glsl'), 'utf8'), DG = fs.readFileSync(path.join(ROOT, 'src', 'glsl', 'dunes-glsl.glsl'), 'utf8'), AG = fs.readFileSync(path.join(ROOT, 'src', 'glsl', 'above-glsl.glsl'), 'utf8'), L2 = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'lib-2.glsl'), 'utf8');
+  const kd = /var se = S\.kit \? null : airSunEl\(id\); O\.rawD\.keyD = O\.rawA\.keyD = se === null \? 0 : 1 - ss01\(\(se \+ 6\) \/ 6\);/.exec(WORLD);
+  assert.ok(kd, '221 does not set each sky\'s diffuse share from its own sun');
+  const EL = JSON.parse(/var AIR_SUN_EL = (\{[^}]*\})/.exec(WORLD)[1].replace(/(\w+):/g, '"$1":')), ss01 = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+  const keyD = (id) => (EL[id] === undefined ? 0 : 1 - ss01((EL[id] + 6) / 6));
+  assert.ok(Math.abs(keyD('afterglow') - 0.5) < 1e-9 && Math.abs(keyD('firstlight') - 0.5) < 1e-9 && keyD('bluehour') === 1, `the twilights: ${keyD('afterglow')}, ${keyD('bluehour')}, ${keyD('firstlight')} (0.5 at -3, 1 at -7)`);
+  for (const id of ['moonlit', 'milkyway', 'aurora']) assert.equal(keyD(id), 0, `${id}: the moon's key stays direct`);
+  assert.ok(/var LKS = \[[^\]]*'keyD'/.test(WORLD) && /sunVis: 1, keyD: 0,/.test(WORLD) && /if \(u\.uKeyD\) gl\.uniform1f\(u\.uKeyD, L\.keyD\);/.test(WORLD), 'the share blended between skies with the light (LKS), 0 by default, uploaded to every program');
+  const f = /float ndlK\(vec3 n\) \{ vec3 g = normalize\(vec3\(([\d.]+) \* uSun\.x, length\(uSun\.xz\), \1 \* uSun\.z\)\); return mix\(dot\(n, uSun\), uSun\.y \* \(0\.5 \+ 0\.5 \* dot\(n, g\)\) \/ \(0\.5 \+ 0\.5 \* g\.y\), uKeyD\); \}/.exec(FU);
+  assert.ok(f, 'ndlK is not the face\'s cosine giving way to the sky\'s diffuse light, a level face kept at the key\'s height');
+  const T = +f[1], nrm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); }, dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const ndlK = (n, S, d) => { const g = nrm([T * S[0], Math.hypot(S[0], S[2]), T * S[2]]); return dot(n, S) * (1 - d) + d * S[1] * (0.5 + 0.5 * dot(n, g)) / (0.5 + 0.5 * g[1]); };
+  for (const el of [5, 9.5, 14]) for (const az of [0, 1.3, 4]) {
+    const e = el * Math.PI / 180, S = [Math.sin(az) * Math.cos(e), Math.sin(e), Math.cos(az) * Math.cos(e)];
+    for (const d of [0, 0.25, 0.5, 1]) assert.ok(Math.abs(ndlK([0, 1, 0], S, d) - S[1]) < 1e-12, `a level face at the key's height (${el} deg, share ${d})`);
+    const sl = 25 * Math.PI / 180, to = nrm([Math.sin(sl) * Math.sin(az), Math.cos(sl), Math.sin(sl) * Math.cos(az)]), from = nrm([-to[0], to[1], -to[2]]);
+    assert.ok(ndlK(to, S, 1) > ndlK(from, S, 1), 'in the blue hour a face toward the glow still lighter than one turned from it');
+    assert.ok(ndlK(to, S, 1) - ndlK(from, S, 1) < ndlK(to, S, 0) - ndlK(from, S, 0), 'softer than the direct key');
+  }
+  const sand = DG.split('vec3 shadeSand(')[1].split('\nvec3 D_shadeStone(')[0], stoneD = DG.split('vec3 D_shadeStone(')[1].split('\n}\n')[0];
+  assert.ok(/float ndl = ndlK\(n\);/.test(sand) && /rockColL\(p, n0, ndlK\(n0\), fp\)/.test(sand) && /float ndl = ndlK\(n\), mat = col\.a/.test(stoneD), 'the sand, its rock and the stones shaded by ndlK');
+  assert.ok(/float ndl = ndlK\(n\);\n  float tauL/.test(AG) && /float ndl = ndlK\(n\), mat = col\.a, dif/.test(AG), 'the cloud sea and the islands\' stone by ndlK');
+  assert.ok(/float ndl = ndlK\(n\), cs = dot\(rd, uSun\);/.test(L2) && /uClK\.w \* \(1\.0 - uKeyD\);/.test(L2), 'the clouds\' light by ndlK, their silver edge the direct light\'s');
+  assert.ok(/f = \(1\.0 - uKeyD\) \* ndl/.test(DG), 'the clouds\' shadows take only the direct share');
 });

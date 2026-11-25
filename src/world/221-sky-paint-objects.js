@@ -46,6 +46,7 @@
     if (SKY.sets[id]) return SKY.sets[id];
     var S = WSKY[id], V = SKY.V, O = { id: id, w: S.w, sky: S, g: S.g }, s, j, o = [0, 0, 0];
     O.rawD = skyRaw(S, V.lightRaw, keyAt(V)); O.rawA = skyRaw(S, V.lightRawB, keyAt(V));
+    var se = S.kit ? null : airSunEl(id); O.rawD.keyD = O.rawA.keyD = se === null ? 0 : 1 - ss01((se + 6) / 6);   // (physics: light/twilight-key) the key's diffuse share by the sky's own sun: 0.5 at -3, 1 at -7; a night's key (the moon) direct
     skyFinish(O);
     O.pLab = new Float32Array(72); O.pLin = new Float32Array(V.paramsBase);
     for (s = 0; s < 18; s++) {

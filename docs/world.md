@@ -676,6 +676,17 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The twilight key (physics: light/twilight-key; frame-u.glsl ndlK, 221's keyD):
+  with the sun under the horizon no direct sunlight reaches the land or the
+  clouds, so the key's directional share goes as smoothstep(-6, 0, the sky's
+  own sun) (afterglow and first light 0.5, the blue hour 0) and the rest is the
+  twilight sky's diffuse light: 0.5 + 0.5 n.g, g up tilted 31 deg toward the
+  key's azimuth (the glow's side), scaled so a level face keeps the key's own
+  height and the lit land's mean holds (T1: within 0.5% from the shading; the
+  sunset's land 2.3% lighter besides, its cloud shadows halved). The clouds'
+  shadows take only the direct share, so the blue hour casts none; the clouds'
+  silver edge is the direct light's too. A night's key, the moon, stays direct.
+  The share is a light's number (LKS), blended between skies with the light.
 - The clouds' shadows on the land (physics: light/cloud-shadow;
   src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
   2026-11-15: "No, natural light is fine": the world's own cast shadows

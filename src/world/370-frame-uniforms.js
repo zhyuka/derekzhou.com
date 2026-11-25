@@ -74,16 +74,17 @@
     if (u.uKFc) gl.uniform4f(u.uKFc, KF.cx, KF.cz, FSTEP, FN);   // (the far field's grid, in the same texture)
     if (u.uGC) gl.uniform4fv(u.uGC, GCU);
     if (u.uSunVis) gl.uniform1f(u.uSunVis, L.sunVis);
+    if (u.uKeyD) gl.uniform1f(u.uKeyD, L.keyD);
     if (u.uWet) gl.uniform4fv(u.uWet, L.wet);
   }
   /* a light, flattened for uniforms: typed arrays, defaults filled (sunVis, the sun's share of the sky;
      rain, the rain's amount; ripple, the water's; windDir; deep, the realm's deep shade (a passage through the dark);
      glare, the white of a passage through light) */
   var LDEF = { bloom: [1.1, 0.5, 0.18], cl: [7, 0.13, 0.003, 1], clDetail: [120, 4], shaftC: [1, 0.9, 0.8], lift: [0, 0, 0], gain: [1, 1, 1], fog2: [0.5, 0.012, 0, 0], hi: [0, 0, 0, 0], hiC: [1, 1, 1], exposure: 1, sat: 1,
-    haze: [0, 30, 20, 0], hazeC: [1, 1, 1], hazeW: null, sunVis: 1, rain: 0, ripple: 0.5, windDir: AIR_DIR, shafts: 0, inCloudK: 1 };
+    haze: [0, 30, 20, 0], hazeC: [1, 1, 1], hazeW: null, sunVis: 1, keyD: 0, rain: 0, ripple: 0.5, windDir: AIR_DIR, shafts: 0, inCloudK: 1 };
   var LKC = ['sunC', 'skyW', 'glowC', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'hazeC', 'hazeW', 'hiC', 'shaftC', 'deep', 'glare'];   // colours: blended in OKLab
   var LKN = ['skyE', 'skyK', 'glow', 'fog', 'fog2', 'haze', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'lift', 'gain', 'hi', 'discK', 'windDir'];   // numbers: linearly
-  var LKS = ['exposure', 'sat', 'shafts', 'inCloudK', 'sunVis', 'rain', 'ripple'];
+  var LKS = ['exposure', 'sat', 'shafts', 'inCloudK', 'sunVis', 'keyD', 'rain', 'ripple'];
   function prepOne(L) {
     for (var dk in LDEF) if (L[dk] === undefined) L[dk] = LDEF[dk];
     if (!L.hazeW) L.hazeW = L.hazeC;
