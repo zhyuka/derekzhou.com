@@ -2,13 +2,13 @@
   /* a plan at the easing ak (x the speed a second): its cost (the plan in hand's if kept); arrive: the arrival's line
      may be chosen (the first pass only) */
   function slipPlanA(V, S, ak, arrive) {
-    var v = V.speed, a = ak * v, i, k, K = slipGather(V, S, 0), T = K * SLIP_DT;
+    var v = V.speed, a = ak * v, i, k, K = slipGather(V, S, 0), T = K * SDT;
     var e0 = S.latT - S.lat, dstop = S.sv * Math.abs(S.sv) / (2 * a * 0.72);
     if (!SPN) { if (Math.abs(e0) > Math.abs(dstop) + 0.5) S.latT = S.lat + dstop; S.latT2 = S.latT; S.tsw = -1; return 0; }   // (nothing on the way: the slip eased out where it is)
     // (the arrival: a line that meets a solid's own zone, and the view still wholly covered (the cloud or cover a visit
     // begins in, or the landing before its first frame): the camera comes out of it on the nearest clear line instead)
     if (arrive && S === CS && arrivalCovered(V)) {
-      for (k = 0; k <= K; k++) SPX[k] = dstop * Math.min(1, k * SLIP_DT / 4);
+      for (k = 0; k <= K; k++) SPX[k] = dstop * Math.min(1, k * SDT / 4);
       if (slipCost(V, K, 1e18) >= SLIP_WIN * 0.5) {
         var bo = 0, bc = 1e18, lad2 = SLIP_LAD2;
         K = slipGather(V, S, 430);   // (gathered once, wide; each line tried by its offset, SPOFF)
@@ -40,7 +40,7 @@
         if (!dup) SPC[nc++] = cd;
       }
     }
-    var Lmax = SLIP_SPD[SLIP_SPD.length - 1] * v * T * 0.75, e2 = S.tsw > SIM.t ? S.latT2 - S.lat : e0, kw0 = S.tsw > SIM.t ? Math.round((S.tsw - SIM.t) / SLIP_DT) : K + 1;
+    var Lmax = SLIP_SPD[SLIP_SPD.length - 1] * v * T * 0.75, e2 = S.tsw > SIM.t ? S.latT2 - S.lat : e0, kw0 = S.tsw > SIM.t ? Math.round((S.tsw - SIM.t) / SDT) : K + 1;
     // the plan in hand (its second line too, if it has one), costed in full: kept unless another is clearly better
     var keep = 1e18, kt = SLIP_SPD.indexOf(S.vs / v);
     for (var t0 = 0; t0 < SLIP_SPD.length; t0++) if (Math.abs(SLIP_SPD[t0] * v - (S.vs || 0)) < 1e-6) kt = t0;
@@ -64,7 +64,7 @@
       var SP2 = SLIP_SP2;
       for (var oj = 0, nh = 0; oj < SPN && nh < 4; oj++) {
         i = ord[oj]; if (!(SPRI[i] > 0)) continue; nh++;
-        var kw = Math.max(1, Math.min(K, Math.round(SPS[i] / (v * SLIP_DT))));
+        var kw = Math.max(1, Math.min(K, Math.round(SPS[i] / (v * SDT))));
         for (var s1 = -1; s1 <= 1; s1 += 2) {
           var d1 = SPL[i] + s1 * (SPLH[i] + 3); if (Math.abs(d1) > Lmax) continue;
           for (var t2 = 0; t2 < SP2.length; t2++) {
@@ -82,16 +82,16 @@
       }
     }
     if (best >= lim) return keep;   // (the plan in hand kept)
-    S.latT = S.lat + bd; S.latT2 = S.lat + bd2; S.tsw = bk <= K ? SIM.t + bk * SLIP_DT : -1; S.vs = bv;
+    S.latT = S.lat + bd; S.latT2 = S.lat + bd2; S.tsw = bk <= K ? SIM.t + bk * SDT : -1; S.vs = bv;
     return best;
   }
-  /* the way the slip's controller flies (SPX[0..K], m to the right of the camera now, a sample every SLIP_DT s): toward
+  /* the way the slip's controller flies (SPX[0..K], m to the right of the camera now, a sample every SDT s): toward
      d1, and from sample kw on toward d2, at vs */
   function slipTraj(K, sv, d1, d2, kw, vs, a) {
     var x = 0; SPX[0] = 0;
     for (var k = 1; k <= K; k++) {
       var d = k < kw ? d1 : d2;
-      sv = slipCtl(sv, d - x, vs, a, SLIP_DT); x += sv * SLIP_DT; SPX[k] = x;
+      sv = slipCtl(sv, d - x, vs, a, SDT); x += sv * SDT; SPX[k] = x;
       if (k >= kw && Math.abs(d2 - x) < 0.05 && Math.abs(sv) < 0.02) { for (var k2 = k + 1; k2 <= K; k2++) SPX[k2] = x; break; }
     }
   }

@@ -32,7 +32,7 @@
      at the second does better: the plan is made at the first and, only then, again at the second (S.acc: the factor
      the plan in hand was made at). Not one rate for every plan: 0.035 slips later where it is urgent, and the hard rule
      pushes (seeds 4 and 8) */
-  var SLIP_T = 90, SLIP_REACH = 1200, SLIP_SPD = [0.04, 0.08, 0.13, 0.2, 0.25, 0.35, 0.45], SLIP_SPDK = [0, 0, 0, 3000, 5000, 8000, 12000], SLIP_ACC = 0.034, SLIP_ACC2 = 0.05, SLIP_PLAN = 0.25, SLIP_DT = 0.5;
+  var SLIP_T = 90, SLIP_REACH = 1200, SLIP_WIDE = 250, SLIP_FAR = 4000, SLIP_SPD = [0.04, 0.08, 0.13, 0.2, 0.25, 0.35, 0.45], SLIP_SPDK = [0, 0, 0, 3000, 5000, 8000, 12000], SLIP_ACC = 0.034, SLIP_ACC2 = 0.05, SLIP_PLAN = 0.25, SLIP_DT = 0.5, SDT = 0.5;
   var SLIP_IN = 6, SLIP_WIN = 1e5, SLIP_WOUT = 15, SLIP_SOFT = 8, SLIP_WSOFT = 3, SLIP_KC = 100, SLIP_URG = 15, SLIP_URGI = 20, SLIP_NC = 30, CLIMB_LEAD = 2.2;
   var SLIP_O = [], SPN = 0, SPMAX = 400, SPS = new Float64Array(SPMAX), SPSH = new Float64Array(SPMAX), SPL = new Float64Array(SPMAX), SPLH = new Float64Array(SPMAX), SPRI = new Float64Array(SPMAX), SPU = new Float64Array(SPMAX), SPUI = new Float64Array(SPMAX);
   var SPK0 = new Int32Array(SPMAX), SPK1 = new Int32Array(SPMAX), SPORD = new Int32Array(SPMAX), SPX = new Float64Array(420), SPC = new Float64Array(900);
@@ -62,10 +62,20 @@
   function slipMeet(s, v, wh) { var cl = v - wh; return s > 0 && cl > 0.5 ? s / cl : s / v; }
   function slipGather(V, S, wide) {
     var v = V.speed, cl = V.clear, m = V.margin || V.def.margin || 14, hx = Math.sin(S.psi), hz = Math.cos(S.psi), rx = -hz, rz = hx, i;
-    var T = Math.max(SLIP_T, SLIP_REACH / v), Smax = v * T, Lmax = SLIP_SPD[SLIP_SPD.length - 1] * v * T * 0.75 + (wide || 0);
     var x0 = S.x, z0 = S.z, climbs = S.climbs || (S.climbs = []); climbs.length = 0; SPN = 0;
+    // (delight-visit 5.3, the destination's risk) a wide solid on the way (SLIP_WIDE m or more across at the eye, out to
+    // SLIP_FAR) stretches the look to its far side, and with it the reach across (Lmax): passing 800 m to one side wants
+    // 3-4 km at a gentle crab, where 1.2 km reached only 405 m across and the hard rule pushed 1,800 times. Only then:
+    // every other plan looks as far as before, sampled as before
+    var T0 = Math.max(SLIP_T, SLIP_REACH / v), T = T0, O = nearObstaclesAt(V, x0, z0, SLIP_FAR, SLIP_O);
+    for (i = 0; i < O.length; i++) {
+      var w0 = O[i], w = obstR(w0, S.y, 0), ws = (w0.x - x0) * hx + (w0.z - z0) * hz;
+      if (w >= SLIP_WIDE && ws > -w && Math.abs((w0.x - x0) * rx + (w0.z - z0) * rz) < w + v * T) T = Math.max(T, Math.min(SLIP_FAR, ws + w) / v);
+    }
+    SDT = T > T0 ? T / Math.round(T0 / SLIP_DT) : SLIP_DT;   // (a stretched look sampled as many times as the usual one: its plan costs no more)
+    var Smax = v * T, Lmax = SLIP_SPD[SLIP_SPD.length - 1] * v * T * 0.75 + (wide || 0);
     // the solids: a cloud's core always passed beside; a landmark under the ceiling climbed over; the rest passed beside
-    var O = nearObstaclesAt(V, x0, z0, Smax + 320, SLIP_O);
+    O = nearObstaclesAt(V, x0, z0, Smax + 320, SLIP_O);
     for (i = 0; i < O.length; i++) {
       var o = O[i], ox = o.x - x0, oz = o.z - z0, s = ox * hx + oz * hz, l = ox * rx + oz * rz, mm = m * (o.cloud ? 1.6 : 1);
       if (o.w) { var mt = slipMeet(s, v, o.w[0] * hx + o.w[1] * hz); s = v * mt; l += (o.w[0] * rx + o.w[1] * rz) * mt; }   // (physics: clouds/drift: a drifting core planned where the way meets it)
@@ -97,11 +107,11 @@
         slipAdd((s0 + s1) / 2, (s1 - s0) / 2, (l0 + l1) / 2, (l1 - l0) / 2, -1, v);
       }
     }
-    var K = Math.round(T / SLIP_DT);
-    for (i = 0; i < SPN; i++) { SPK0[i] = Math.max(0, Math.ceil((SPS[i] - SPSH[i]) / (v * SLIP_DT))); SPK1[i] = Math.min(K, Math.floor((SPS[i] + SPSH[i]) / (v * SLIP_DT))); }
+    var K = Math.round(T / SDT);
+    for (i = 0; i < SPN; i++) { SPK0[i] = Math.max(0, Math.ceil((SPS[i] - SPSH[i]) / (v * SDT))); SPK1[i] = Math.min(K, Math.floor((SPS[i] + SPSH[i]) / (v * SDT))); }
     return K;
   }
-  /* the cost of the way SPX[0..K] (m to the right, a sample every SLIP_DT s) against the constraints, stopping once
+  /* the cost of the way SPX[0..K] (m to the right, a sample every SDT s) against the constraints, stopping once
      over lim: inside a solid's own zone (SLIP_IN m: where the hard rule acts) far the most, inside its margin less, inside
      a cloud's visible body less again; the nearer, the more */
   function slipCost(V, K, lim) {
@@ -109,7 +119,7 @@
     for (var i = 0; i < SPN && cost < lim; i++) {
       var po = 0, pi = 0, sc = SPS[i], sh = SPSH[i], lc = SPL[i], lh = SPLH[i], ri = SPRI[i];
       for (var k = SPK0[i]; k <= SPK1[i]; k++) {
-        var hw = lh, ds = k * v * SLIP_DT - sc, ax;
+        var hw = lh, ds = k * v * SDT - sc, ax;
         if (ri >= 0) { var q2 = sh * sh - ds * ds; if (q2 <= 0) continue; hw = Math.sqrt(q2); }
         ax = Math.abs(SPX[k] + SPOFF - lc);
         if (hw - ax > po) po = hw - ax;

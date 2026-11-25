@@ -15,6 +15,7 @@
 // plant: {"file": "src/world/270-flight.js", "find": "var RIDGE_T = [6, 3.5, 2]", "with": "var RIDGE_T = [0.6, 0.35, 0.2]", "why": "the ridge's lift followed in under a second: its motion reaches 0.2-0.4 Hz"}
 // plant: {"file": "src/world/270-flight.js", "find": "s += w[0] * (groundAt", "with": "s -= w[0] * (groundAt", "why": "the lift read half from the lee: it rides where the air sinks"}
 // plant: {"file": "src/world/270-flight.js", "find": "CS.y -= CS.lift; liftStep", "with": "liftStep", "why": "the lift added again every step, never taken off: the camera climbs away"}
+// plant: {"file": "src/world/283-slip-plan.js", "find": "SLIP_WIDE = 250,", "with": "SLIP_WIDE = 1e9,", "why": "the look never stretched for a wide form: a 1.6 km mesa meets the hard rule 1,800 times"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 import { loadGround } from '../ground.mjs';
 
@@ -286,4 +287,29 @@ test('ridge lift: over windward slopes the camera rides 2-15 m higher, settles i
   });
   if (process.env.LIFT_LOG) console.log({ rode, wind, lee, worst });
   assert.ok(rode >= 10 && wind >= 10 && lee >= 10, `the camera rode 2 m or more on ${rode} of 30 flights; ${wind} windward stretches and ${lee} lee ones met (want 10 of each at least)`);
+});
+
+// ------------------------------------------------------------------ a wide form on the way (the destination row's risk)
+// (delight-visit 5.3: a colossal form per land on the landing heading; "the slip cannot pass a 400 m-wide mesa met after
+// a drag") A landmark R m in radius, 300 m tall (never climbed: over the ceiling), dead ahead and D m off its face, the
+// flight left alone: it is passed beside by the slip with no push of any rule, about SLIP_IN clear of its face, for
+// every width the world may stand on the way out to where the cells hold their solids (3.8 km): R 50-800 m from 3.2 km,
+// and the narrower ones from 800 m. (Main: R 500 needed 1.2 km and R 800 met the hard rule 1,800+ times from any range:
+// the plan looked 1.2 km ahead and reached at most 405 m across.)
+function mesaAhead(R, D) {
+  const o = { c: true, x: 1e6, z: 1e6, r: R, y0: 0, y1: 0 }, L = [{ st: 2, obst: [o], bound: [1e6, 0, 1e6, R + 100], softB: null }];
+  const F = MAKE(G, L, [0, 0]); F.step(); const C = F.CS, p0 = [F.SIM.fixG, F.SIM.fixO, F.SIM.fixC];
+  o.x = C.x + Math.sin(C.psi) * (D + R); o.z = C.z + Math.cos(C.psi) * (D + R); L[0].bound[0] = o.x; L[0].bound[2] = o.z;
+  const g = G.groundAt(o.x, o.z); o.y0 = g - 5; o.y1 = g + 300;
+  let near = 1e9, sv = 0;
+  for (let k = 0; k < Math.ceil((D + 2 * R + 400) / 12 * 60); k++) { F.step(); near = Math.min(near, face(L, C.x, C.y, C.z)); sv = Math.max(sv, Math.abs(C.sv)); }
+  return { pushes: F.SIM.fixG + F.SIM.fixO + F.SIM.fixC - p0[0] - p0[1] - p0[2], near, sv };
+}
+test('flight-sim: a form up to 1.6 km wide on the way is passed beside, left alone, with no push', () => {
+  const SLIP_IN = +/SLIP_IN = ([\d.]+)/.exec(WORLD)[1];
+  for (const [R, D] of [[50, 800], [200, 800], [300, 800], [300, 3200], [500, 3200], [650, 3200], [800, 3200]]) {
+    const r = mesaAhead(R, D);
+    if (process.env.MESA_LOG) console.log(R, D, r);
+    assert.ok(r.pushes === 0 && r.near >= 0.9 * SLIP_IN, `a form ${2 * R} m wide met ${D} m off: ${r.pushes} pushes, its face ${r.near.toFixed(1)} m off at the nearest (want none, and 0.9 of SLIP_IN ${SLIP_IN} m at least: the plan aims at SLIP_IN)`);
+  }
 });

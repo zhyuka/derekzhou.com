@@ -81,6 +81,11 @@ the ridge's lift 2-15 m over its clearance and settles back in the lee
 the rise holds nothing past 0.1 Hz (24 dB down there; the 0.2-0.4 Hz
 sway that sickens most, 39-57 dB), added over the height's spring, never through it; the
 heading, the pitch and the roll are untouched (test/unit/flight-sim.mjs).
+A form too wide for the usual look (250 m or more across, out to 4 km)
+stretches the slip's plan to its far side, sampled as often as the usual
+plan: left alone, the flight passes forms up to 1.6 km wide met 3.2 km off
+at a crab of 14 deg or less, with no push (283's slipGather; the
+destination on the horizon, delight-visit 5.3).
 A drag anywhere (touch, pen, or a mouse with its main button held; it
 starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
