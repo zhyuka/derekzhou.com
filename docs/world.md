@@ -58,6 +58,17 @@ laid out once, by its own cell), and a census of a flight (windy visits:
 about one lens in reach in half the minutes of a flight, at most three;
 calm: none).
 
+The gate's 7.7 m/s (the hub's ruling, 2026-11-25: main's gate kept): lee
+waves want a flow of at least 25-40 km/h (6.9-11.1 m/s), as near square
+to the ridge as it can be, at the crest and above
+(https://www.meteoswiss.admin.ch/weather/weather-and-climate-from-a-to-z/mountain-and-lee-waves.html).
+The figure often quoted for big ranges, about 10 m/s (20 kt) at the
+crest, would shut the gate on every visit: the crest's wind is at most
+9.6 m/s (U10 7.5). The world's ridges are low, so the gate stands near
+the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
+of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
+of 7.7 m/s, lenses on every sweep step past it.
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
@@ -1206,6 +1217,36 @@ By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
 0.38 (6.30). It is the visit's own (U10 alone), so a veil never fades in
 place; reduced motion draws none, as before. test/unit/air.mjs holds dust
 at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
+
+## THE SALTATION LAYER (measured, not drawn)
+
+The question (2026-11-25): on a windy visit, can a visitor see blowing
+sand? The veils don't read. On opening 8 (U10 7.31, AIR's dust 1, laptop
+@2), switching them off changes no pixel at the landing and 8 at one
+level at a cruise pose 14 m up.
+
+A saltation layer sized by the physics was built and measured (#459,
+closed). Grains in hops are densest within about 10 cm of the bed and
+thin over decimetres; in gusts they gather into streamers
+(https://arxiv.org/pdf/1201.4353; https://doi.org/10.1029/2004JF000270).
+It was modelled as a column of optical depth 0.05, seen through 1/g of it
+at the grazing cosine g, that lifts the sand toward its lit colour.
+Opening 8 against main:
+
+| frames | pixels changed | most lift |
+|---|---|---|
+| laptop @2, cruise | 30,872 | 1.2 levels |
+| laptop @2, landing | 8,649 | 1.0 |
+| phone @3, cruise | 18,666 | 1.2 |
+| phone @3, landing | 14,866 | 1.0 |
+
+It is invisible at true size and at 2x. That is the physics' honest
+answer: saltation at U10 up to 7.5 m/s, seen from 14 m at 60 m and
+beyond, doesn't read. The hub's ruling (08:38Z): not drawn. It would cost
+shader work on every sand pixel for nothing a visitor sees. Scattering
+forward into a low sun, or a layer past its physical size, would be a
+look, not physics. The branch claude/land-saltation and the crops
+(claude/review-459-crops) keep the work.
 
 ## THE LAND'S LEVEL OF DETAIL (no pop at a handoff)
 
