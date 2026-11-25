@@ -508,7 +508,7 @@ void main() {
   /* (aurora-haze) both behind the haze, as the moon is: what the haze over them lets through (1 - hazeSky), a little
      redder where it is thick (low), never added over it at full strength */
   float hzS = 1.0 - hazeSky(rd); vec3 hzT = hzS * mix(vec3(1.0, 0.84, 0.68), vec3(1.0), hzS);
-  if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }   // (by the sky's turn: physics: night/sky-turn; phase 2; gL held apart for nightLim)
+  if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { float gX = airmass(rd.y); gL = galaxyAt(uSkyF * rd, eS) * hzT * exp2(-0.4 * 3.3219281 * EXT_V * max(gX - 1.0, 0.0)); gL = extTint(gL, gX); c += gL; }   // (physics: night/extinction: the band's light dimmed by the air's k (X - 1) and a little redder low down, as the stars' and the moon's are; only ever dimmer)   // (by the sky's turn: physics: night/sky-turn; phase 2; gL held apart for nightLim)
   if (uAur.w > 0.0 && eS > 0.5) c += auroraAt(rd, eS) * hzT;   // (phase 2)
   /* (night) the airglow: the upper air's own faint green light (the oxygen line at 557.7 nm), a steady band low over
      the horizon, brightest about 6-10 deg up (the long path through the glowing layer) and falling away overhead; only

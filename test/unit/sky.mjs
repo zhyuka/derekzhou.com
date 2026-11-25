@@ -52,6 +52,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float ml = nightLim(c - gL) + moonLim(rd);", "with": "float ml = nightLim(c - gL);", "why": "a moon-blind limit: the stars as many beside a near-full moon as on a dark night"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0))", "with": "c = c * T + fq * (1.0 - T)", "why": "the physical aerosol pulling sunlit cloud rims down toward the sky (darkened)"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w))", "with": "m * pow(vec3(680.0, 550.0, 440.0) / 440.0, vec3(-uAer.w))", "why": "the wavelength factor normalised at blue: green's extinction off the look's amount"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "gL = galaxyAt(uSkyF * rd, eS) * hzT * exp2(-0.4 * 3.3219281 * EXT_V * max(gX - 1.0, 0.0)); gL = extTint(gL, gX);", "with": "gL = galaxyAt(uSkyF * rd, eS) * hzT;", "why": "the Milky Way's band as bright at the horizon as overhead, while the stars in it dim by airmass"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -328,7 +329,7 @@ test('physics: night/sky-turn: the stars and the galaxy turn together on the air
   const eq = (ra, dec) => [Math.cos(dec * D) * Math.cos(ra * D), Math.cos(dec * D) * Math.sin(ra * D), Math.sin(dec * D)], P = eq(GAL[0], GAL[1]), C = eq(GAL[2], GAL[3]);
   assert.ok(Math.abs(P[0] * C[0] + P[1] * C[1] + P[2] * C[2]) < 1e-3, 'the galactic centre does not lie on the galactic equator (its pole and centre 90 deg apart)');
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
-  assert.ok(g.includes('gL = galaxyAt(uSkyF * rd, eS) * hzT;') && g.includes('vec3 rs = uSkyF * rd;') && g.includes('float v = starAt(rs, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc);'), 'the galaxy and the stars are not both read through the sky\'s frame (uSkyF): one would slide against the other');
+  assert.ok(g.includes('gL = galaxyAt(uSkyF * rd, eS) * hzT * exp2(-0.4 * 3.3219281 * EXT_V * max(gX - 1.0, 0.0)); gL = extTint(gL, gX);') && g.includes('vec3 rs = uSkyF * rd;') && g.includes('float v = starAt(rs, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc);'), 'the galaxy and the stars are not both read through the sky\'s frame (uSkyF): one would slide against the other');
   assert.ok(!/galEdge/.test(g), 'the galaxy keeps an edge of its own (it comes and goes by the sky\'s turn)');
   assert.ok(g.includes('if (abs(elc) > 1.56) return 0.0;'), 'the stars fill only one of the frame\'s hemispheres: a turn would bring up a starless sky');
   assert.ok(/gl\.uniformMatrix3fv\(u\.uSkyF, false, skyFrame\(SIM\.t - \(1 - SIM\.alpha\) \* SIM_DT \+ SKY\.dt, V\)\)/.test(WORLD), '226 does not pass the sky\'s frame at the sky clock\'s time');
@@ -742,7 +743,7 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
   // (the hub's round-9 review of #333: a Milky Way night lost 150 of its 272 star points) at the night's 24 deg every star of
   // the field (to mag 6.2) shows whole wherever it stands: on a sky up to 3x the zenith's light, on the band (the galaxy's
   // light is not nightLim's sky: c - gL), whatever the zenith's own light
-  assert.ok(g.includes('{ gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
+  assert.ok(g.includes('{ float gX = airmass(rd.y); gL = galaxyAt(uSkyF * rd, eS) * hzT * exp2(-0.4 * 3.3219281 * EXT_V * max(gX - 1.0, 0.0)); gL = extTint(gL, gX); c += gL; }') && g.includes('vec3 gL = vec3(0.0);'), 'the galaxy\'s light held apart from nightLim\'s sky');
   for (const zy0 of [0.002, 0.008, 0.02, 0.05]) for (const k of [1, 1.5, 2, 3]) for (const b of [0.07, 0.1, 0.3, 1]) {
     const v = show(mag(b), nightLim(zy0 * k, K.starLim(24), zy0, wD(24)));
     assert.equal(v, 1, `at D 24, a mag ${mag(b).toFixed(2)} star on a sky ${k}x a zenith of Y ${zy0}: shown ${v.toFixed(2)}, not whole`);
@@ -899,7 +900,7 @@ test('physics: night/sky-turn: the galaxy comes and goes by place, at most 0.3 d
   { const SKY = { seq: [{ id: 'moonlit', at: 0, hold: 190, move: 57 }, { id: 'moonlit', at: 247, hold: 190, move: 57 }], i: 0, galRise: 1 };
     new Function('SKY', 'WSKY', 'clamp', fn + '\nreturn skyGal;')(SKY, WS, clamp)(100); assert.equal(SKY.galRise, 0, 'a stay with no galaxy keeps a rise'); }
   assert.ok(g.includes('if (uGalC.w <= 0.0) return 0.0;'), 'galVis is not 0 at rise 0');
-  assert.ok(g.includes('if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { gL = galaxyAt(uSkyF * rd, eS) * hzT; c += gL; }') && g.includes('* smoothstep(1.0, 12.0, e) * galVis(rd);'), 'the galaxy is drawn without its edge, or at rise 0');
+  assert.ok(g.includes('if (uGal.w > 0.0 && uGalC.w > 0.0 && eS > 0.0) { float gX = airmass(rd.y); gL = galaxyAt(uSkyF * rd, eS) * hzT * exp2(-0.4 * 3.3219281 * EXT_V * max(gX - 1.0, 0.0)); gL = extTint(gL, gX); c += gL; }') && g.includes('* smoothstep(1.0, 12.0, e) * galVis(rd);'), 'the galaxy is drawn without its edge, or at rise 0');
   assert.ok(g.includes('uGal.w > 0.0 && uGalC.w > 0.0 ? 1.5 * uGal.w * galVis(sd0(jb, ib, n))'), 'the stars crowd into the band before the galaxy comes in (a pop)');
   assert.ok(WORLD.includes('gl.uniform4f(u.uGalC, G.core[0], G.core[1], G.core[2], SKY.galRise || 0);') && WORLD.includes('skyAur(t); skyGal(t);'), 'the galaxy\'s rise is not its own clock\'s');
 });
@@ -1440,4 +1441,30 @@ test('night: the evening star at its true scale: 15x Sirius, 21% kept at 4 deg, 
     assert.ok(d.sg <= 1.4 && d.F <= 1.1 * 2 * Math.PI * d.hv * 1.96 + 1e-12, 'never a disc, never over its head');
   }
   const STOP = +/STAR_TOP_Y = ([\d.]+)/.exec(WORLD)[1]; assert.ok(top > STOP, 'Venus\'s head over the stars\' top: the brightest point');
+});
+
+// the Milky Way's band through the air (NIGHT): its light dimmed by the same k (X - 1) as the stars in it (#447: the
+// revised relative optical air mass, https://doi.org/10.1364/AO.28.004735; k in V 0.15) and reddened a little at kept
+// luminance (extTint), so the band and its stars fall together toward the horizon; only ever dimmer; nothing overhead moves
+test('night: the Milky Way dimmed by airmass with its stars', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (const L of ['float gX = airmass(rd.y); gL = galaxyAt(uSkyF * rd, eS) * hzT * exp2(-0.4 * 3.3219281 * EXT_V * max(gX - 1.0, 0.0)); gL = extTint(gL, gX);',
+    'b *= exp2(-0.4 * 3.3219281 * sx);', 'float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);',
+    'float airmass(float y) { float h = max(degrees(asin(clamp(y, 0.0, 1.0))), 0.0); return 1.0 / (sin(radians(h)) + 0.50572 * pow(h + 6.07995, -1.6364)); }',
+    'vec3 extTint(vec3 col, float X) { vec3 e = col * exp2(-0.4 * 3.3219281 * (EXT_K - EXT_V) * max(X - 1.0, 0.0)); return e * (dot(col, LUMA) / max(dot(e, LUMA), 1e-6)); }'])
+    assert.ok(g.includes(L), `sky-body.glsl no longer holds, as run here: ${L}`);
+  const k = 0.15, X = (h) => 1 / (Math.sin(h * Math.PI / 180) + 0.50572 * Math.pow(h + 6.07995, -1.6364));
+  const LUMA = [0.2126, 0.7152, 0.0722], KK = [0.07, 0.11, 0.20].map((v) => k * v / 0.11);
+  const band = (h, col) => {   // the band's light at elevation h, as the shader takes it (the same factor as a star's)
+    const x = X(h), e = col.map((c, i) => c * Math.pow(2, -0.4 * 3.3219281 * (KK[i] - k) * Math.max(x - 1, 0))), y0 = col.reduce((s, c, i) => s + c * LUMA[i], 0), y1 = e.reduce((s, c, i) => s + c * LUMA[i], 0);
+    return e.map((c) => c * y0 / y1 * Math.pow(2, -0.4 * 3.3219281 * k * Math.max(x - 1, 0)));
+  };
+  const col = [0.9, 0.86, 0.8], Y = (c) => c.reduce((s, v, i) => s + v * LUMA[i], 0), y90 = Y(band(90, col));
+  for (const h of [2, 5, 10, 20, 40, 60, 89]) {
+    const r = Y(band(h, col)) / y90, want = Math.min(1, Math.pow(10, -0.4 * k * (X(h) - 1)));
+    assert.ok(Math.abs(r - want) < 1e-6, `the band's light at ${h} deg ${r} against 10^(-0.4 k (X - 1)) ${want}`);
+    assert.ok(r <= 1 + 1e-12, `the band brighter at ${h} deg than overhead`);
+    const c = band(h, col); assert.ok(h > 30 || c[0] / c[2] >= col[0] / col[2] - 1e-9, `the band not redder low down at ${h} deg`);
+  }
+  console.log(`# galaxy extinction: the band at 5 deg ${(Y(band(5, col)) / y90).toFixed(3)}, at 20 deg ${(Y(band(20, col)) / y90).toFixed(3)} of its light overhead`);
 });
