@@ -3,6 +3,8 @@
 //   WORD_CAP  the most of the words' boxes a heading may put under cloud, in any of the three frames (a bright cloud
 //             behind the light words is the worst case)
 //   NAME_CAP  the most of the name's own box under cloud: the name is the page's one picture of words
+//             (and the most of it behind a solid, nameSolid: a floating island, a spire, a rock seen through the box makes the
+//             name hang from it; the hub's ruling on #528, Nov 25: the frame against itself with the solids taken out)
 //   discs     at dawn and sunset a heading must keep the low sun's disc in frame, clear of cloud and outside the words'
 //             boxes, wherever the land's own heading shows it (the disc is a few pixels: the feature's light alone
 //             cannot see it; on today's world no first frame shows one, so the glow below is what holds)
@@ -35,7 +37,7 @@ export function lookScore(l, best) {
   const g = l.galaxy * Math.min(1, l.galaxyIn / Math.max(best.galaxyIn, 1e-6)), s = l.sun * Math.min(1, l.sunIn / Math.max(best.sunIn, 1e-6));
   return FEATURE_W * (g + s) / 2 - TOP_W * l.topCloud;
 }
-export const keepsWords = (l) => l.wordCloud <= WORD_CAP && l.nameCloud <= NAME_CAP;
+export const keepsWords = (l) => l.wordCloud <= WORD_CAP && l.nameCloud <= NAME_CAP && l.nameSolid <= NAME_CAP;
 export const discShown = (l, view) => !!(l.discs && l.discs[view] && l.discs[view].shown);
 export const keepsDiscs = (l, own) => DISC_VIEWS.every((v) => !discShown(own, v) || discShown(l, v)) && !(l.sunIn < GLOW_KEEP * (own.sunIn || 0));
 
@@ -102,6 +104,7 @@ export function rule(rec, table, lands = [...Array(16).keys()]) {
     if (!own) { bad.push(`k${k}: the land's own heading was not measured`); continue; }
     if (!(l.wordCloud <= WORD_CAP)) bad.push(`k${k}: heading ${h} puts ${(l.wordCloud * 100).toFixed(1)}% of the words' boxes under cloud (want ${WORD_CAP * 100}% at most)`);
     if (!(l.nameCloud <= NAME_CAP)) bad.push(`k${k}: heading ${h} puts ${(l.nameCloud * 100).toFixed(1)}% of the name's box under cloud (want ${NAME_CAP * 100}% at most)`);
+    if (!(l.nameSolid <= NAME_CAP)) bad.push(`k${k}: heading ${h} puts ${(l.nameSolid * 100).toFixed(1)}% of the name's box behind a solid (a floating island, a spire, a rock: want ${NAME_CAP * 100}% at most)`);
     if (!(keepsDiscs(l, own) || glowWaived(land, own))) bad.push(`k${k}: heading ${h} keeps sun light ${l.sunIn} against the own heading's ${own.sunIn} (want ${GLOW_KEEP} of it) or loses its disc`);
   }
   return bad;

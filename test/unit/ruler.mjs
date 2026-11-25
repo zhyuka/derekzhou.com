@@ -77,7 +77,7 @@ test('ruler: the mist at the cut is by the visit\'s moisture (AIR\'s weather, wh
 // on a land where no measured heading keeps both, glowWaived); a heading not measured fails too. These tests hold the
 // rule and the key to that; the frames are the gate's.
 const LR = await import('../../tools/visit/look-rule.mjs');
-const entry = (o) => Object.assign({ wordCloud: 0, nameCloud: 0, topCloud: 0, galaxy: 1, galaxyIn: 5, sun: 1, sunIn: 5, discs: { 'laptop-sunset': null, 'phone-dawn': null } }, o);
+const entry = (o) => Object.assign({ wordCloud: 0, nameCloud: 0, nameSolid: 0, topCloud: 0, galaxy: 1, galaxyIn: 5, sun: 1, sunIn: 5, discs: { 'laptop-sunset': null, 'phone-dawn': null } }, o);
 const TABLE = LR.tableOf((await import('node:fs')).readFileSync(new URL('../../' + LR.AIR, import.meta.url), 'utf8'));
 const clear = () => ({ lands: Object.fromEntries(TABLE.map((d, k) => [k, d === null ? { own: entry() } : { [d]: entry(), own: entry() }])) });
 const atK = (k) => LR.lookKey(TABLE[k]);
@@ -90,6 +90,9 @@ test('ruler: rule() passes a table whose headings keep the words clear, and fail
   // a cloud moved over the words: the plant the hub asked for, as the record shows it (the gate's frames make the record)
   fails('a cloud over the words', (r) => { r.lands[k][atK(k)].wordCloud = 0.3; }, new RegExp(`^k${k}: heading ${atK(k)} puts 30\\.0% of the words' boxes`));
   fails('a cloud over the name', (r) => { r.lands[m].own.nameCloud = 0.03; }, new RegExp(`^k${m}: heading own puts 3\\.0% of the name's box`));
+  // a floating island behind the name (k1 at 340 on Nov 25's world: 4.2% on the laptop, 5.3% on the phone)
+  fails('a solid behind the name', (r) => { r.lands[k][atK(k)].nameSolid = 0.053; }, new RegExp(`^k${k}: heading ${atK(k)} puts 5\\.3% of the name's box behind a solid`));
+  fails('a record from before the solids were measured', (r) => { delete r.lands[k][atK(k)].nameSolid; }, new RegExp(`^k${k}: heading ${atK(k)} puts NaN% of the name's box behind a solid`));
   fails('the glow lost', (r) => { r.lands[k][atK(k)].sunIn = 1; }, /keeps sun light 1 against the own heading's 5/);
   fails('the disc lost', (r) => { r.lands[k].own.discs['phone-dawn'] = { shown: true }; }, /loses its disc/);
   fails('a heading not measured', (r) => { delete r.lands[k][atK(k)]; }, new RegExp(`^k${k}: heading ${atK(k)} was not measured`));

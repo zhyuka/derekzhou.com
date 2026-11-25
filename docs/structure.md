@@ -117,9 +117,10 @@ tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShade
                              in the words' boxes and the top band, the Milky Way and the low sun left clear (its record,
                              build/looks.json, never committed); --table --check is the ruler, the gate's looks job
                              (eight runners, --shard i/8, every 8th land): the table's headings and each land's own,
-                             measured live and failed by look-rule.mjs's rule() (about 76 s a heading)
-tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, rule(),
-                             worldKey (KEY_INPUTS: the cloud layout, the opening's view, the words' layout; not the sky,
+                             measured live and failed by look-rule.mjs's rule() (about 110 s a heading: each view drawn
+                             three times, as it is, without its clouds and without its solids)
+tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud (and the name behind a solid), the glow
+                             kept, its weights, rule(), worldKey (KEY_INPUTS: the cloud layout, the opening's view, the words' layout; not the sky,
                              the land's surface or the birds) and looksKey (worldKey, the table and the measuring code:
                              the gate measures only when it moved, base against head)
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
