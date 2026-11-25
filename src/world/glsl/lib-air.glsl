@@ -42,9 +42,10 @@ vec3 skyCol(vec3 rd) {
 /* aerial perspective, physical (physics: Looks): the air between the eye and a point takes its light away by
    extinction and gives the sky's back by in-scatter, L = c T + Linf (1 - T), per channel, T = exp(-od). Two kinds of
    scatterer: the gas, by wavelength (as the inverse fourth power: BR, its sea-level scattering at 680, 550 and 440 nm,
-   https://doi.org/10.1364/AO.34.002765, thinning with an 8 km scale height along the path: gasPath), and the aerosol, grey (the sky's own
-   height fog, density a at y0 falling off by b, and its even distance term, uFog; times uAer.x, the visit's dust and
-   moisture by AIR's weather, 370). Linf, what a path long enough gives back, is the sky's own colour toward the
+   https://doi.org/10.1364/AO.34.002765, thinning with an 8 km scale height along the path: gasPath), and the aerosol (the shape of the sky's own
+   height fog, density a at y0 falling off by b, and its even distance term, uFog; times uAer.x, so its extinction at
+   the eye is the visual-range law's for the visit's visual range by AIR's weather; by wavelength as uAer.w's wavelength exponent:
+   370). Linf, what a path long enough gives back, is the sky's own colour toward the
    horizon (fogCol: the sky drawn there), so far ridges dissolve into the sky behind them; and since blue is taken and
    given first, a thin air is blue and a thick one the horizon's colour (no tint of its own). The aerosol's forward
    peak toward the light (the one-parameter phase of https://doi.org/10.1086/144246, its asymmetry uAer.y) only adds
@@ -85,7 +86,7 @@ vec3 hazeCol(vec3 rd) {
 }
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float m = fogOD(rd, t), g = uAer.y, cs = dot(rd, uSun);
-  vec3 T = exp(-(m + BR * gasPath(rd, t))), fq = fogCol(rd);
+  vec3 T = exp(-(m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w)) + BR * gasPath(rd, t))), fq = fogCol(rd);   // (the aerosol by wavelength: the wavelength exponent alpha, uAer.w, 370)
   c = c * T + fq * (1.0 - T) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-m)));
   c = mix(c, hazeCol(rd), hazeAmt(rd, t));
   /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen

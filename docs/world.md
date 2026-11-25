@@ -1125,15 +1125,25 @@ per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
   so a cloud 3 km up at 30 km is seen through 17% less gas, the cirrus at
   7 km through a third less). At 20 km level it takes half the blue and a
   tenth of the red: far ridges turn blue on their own.
-- the aerosol, grey: the sky's own height fog and even distance term
-  (uFog, each realm's tuned look, now the aerosol in clean air), times
-  uAer.x, the visit's own by AIR's weather: the visual range's inverse
-  (extinction 3.912 over the range, https://glossary.ametsoc.org/wiki/Visibility;
-  AIR's 10 km in clean air is 1, 4 km in blown sand 2.5) times the
-  particles' growth with humidity, ((1 - RH) / (1 - 0.3))^-0.3
+- the aerosol, physical. Its extinction at the eye's height (20 m over
+  the realm's haze base) is the visual-range law's, 3.912 over the visual range
+  less the gas's (https://glossary.ametsoc.org/wiki/Visibility). The
+  range is AIR's (10 km in clean air, 4 km in blown sand), shortened by
+  the particles' growth with humidity, ((1 - RH) / (1 - 0.3))^-0.3
   (https://doi.org/10.1016/S0065-2687(08)60142-9), RH 0.3 to 0.9 by the
-  visit's moisture (1.8 on the moistest). Neither changes with the sky, so
-  the far land never fades in place.
+  visit's moisture (5.5 km on the moistest clean day). The realm's tuned
+  haze (uFog) keeps only its shape with height, its scale set by uAer.x.
+  By wavelength (the particles' scattering) it goes as (lambda / 550 nm)^-alpha, with the
+  wavelength exponent alpha 1.3 for dry fine aerosol, falling to 0.3 in
+  blown dust and with the growth
+  (https://doi.org/10.1029/1999JD900923: continental 1.2-1.5, desert
+  dust 0-0.5). So a thin dry air's haze is bluish and a moist or dusty
+  one white. Neither changes with the sky, so the far land never fades
+  in place. Before (to #474) the aerosol was grey and its amount the
+  tuned haze times AIR's factor. On the day opening that put the visual
+  range at the eye at 10.0 km where the visit's air gives 5.5 km (seed
+  44), and at 15.3 km against 10 km (seed 1234): the far land held about
+  twice the contrast the air allows at 2-5 km.
 
 Linf, what a path long enough gives back, is the sky's own colour toward
 the horizon (fogCol, the sky drawn there), so far ridges dissolve into the
