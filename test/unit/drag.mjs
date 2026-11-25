@@ -4,8 +4,10 @@
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": " DRAG.y = DRAG.y0; REL.n = 0;", "with": " DRAG.y = DRAG.y0;", "why": "the last drag's samples kept at the start: its catch-up counted in the release's speed, a small drag coasts at the cap"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.thU = clamp(CS.thU + ay, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + ay, -TH_MAX, TH_MAX);", "with": "CS.thU = CS.thU + ay; CSP.thU = CSP.thU + ay;", "why": "the drag's tilt not held within 35 deg"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);", "with": "CS.thU = CS.thU + cp; CSP.thU = CSP.thU + cp;", "why": "the coast's tilt not held within 35 deg"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vy * GR, -0.5, 0.5)", "with": "clamp(REL.vy * GR, -0.6, 0.6)", "why": "the tilt's coast past its 0.5 rad/s cap"}
-// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vx * GR, -0.8, 0.8)", "with": "clamp(REL.vx * GR, -1, 1)", "why": "the turn's coast past its 0.8 rad/s cap"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "clamp(REL.vx * GR, -OM_MAX, OM_MAX)", "with": "clamp(REL.vx * GR, -0.8, 0.8)", "why": "the release's speed cut at the lift (the old 0.8 rad/s cap): a fast flick snaps to a quarter of its speed"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "return v * tau * (2 - (2 + t / tau) * Math.exp(-t / tau));", "with": "return v * 2 * tau * (1 - Math.exp(-t / (2 * tau)));", "why": "the coast eased out (the old exponential, the same run-on): it brakes hardest at once, a jerk at the lift"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "function coastTau(v, tau, run) { return Math.abs(v) * 2 * tau > run ?", "with": "function coastTau(v, tau, run) { return false ?", "why": "a fast flick's run-on not held: it coasts on past 13.75 deg"}
+// plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "CS.omP = clamp(REL.vy * GR, -OM_MAX, OM_MAX); CS.ct = 0;", "with": "CS.omP = clamp(REL.vy * GR, -OM_MAX, OM_MAX);", "why": "the coast's clock not reset at the lift: a second flick starts part-settled"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "        CS.yawV += ax; CSP.yawV += ax;", "with": "        CS.yawV += ax;", "why": "the drag drawn on one state only: a frame turns part of the finger's move"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    if (Math.max(REL.tl, tU) - tS >= REL_STOP) return;", "with": "    if (false) return;", "why": "no stop: a glance let go 24 ms or more after it rested runs on"}
 // plant: {"file": "src/world/340-input-drag-anywhere-phone-turn.js", "find": "    var b, det = m > 2 ? ", "with": "    var b, det = m > 1e9 ? ", "why": "the release's speed a line's, not a quadratic's: a glance easing out runs on more"}
@@ -75,6 +77,10 @@ function flying(phase, boot = false) {   // boot: not yet landed (no frame befor
     '    tilt: function () { return drawnTh; }, rel: function () { return INP.rel; }, coast: function () { return coast; }, yaw: function () { return CS.yawV; }, om: function () { return CS.om; }, omP: function () { return CS.omP; }\n  };\n})')(phase, boot);
 }
 const GAIN1000 = (Math.PI / 2) / 1000;
+// the release's run-on t s after the lift, as the physics has it (critically damped, speed v (1 + t/T) e^(-t/T), T = tau
+// or shorter so the whole run-on 2 v T is at most run): the turn tau 0.15 s, run 0.24 rad; the tilt 0.1 s, 0.1 rad
+const RUNF = (v, tau, run, t) => { const T = Math.abs(v) * 2 * tau > run ? run / (2 * Math.abs(v)) : tau; return v * T * (2 - (2 + t / T) * Math.exp(-t / T)); };
+const RUN_YAW = (v, t) => RUNF(v, 0.15, 0.24, t), RUN_TILT = (v, t) => RUNF(v, 0.1, 0.1, t);
 // a steady drag of V px/ms for 3 s: the time each drawn frame trails the finger, and the turn each frame
 function steady(hz, stepPhase, framePhase, moveLag, mouse1k, V = 0.6) {
   const F = flying(stepPhase), P = 1000 / hz, lat = [], turn = [];
@@ -113,14 +119,15 @@ test('drag: released, the coast starts from the whole drag at the drag\'s speed,
     const om = V * 1000 * GAIN1000;
     // (the coast's speed is the ring's moves over the frames' time they were drawn in: exact at any rate)
     assert.ok(Math.abs(c.om - om) / om < 1e-6, `${tag}: the coast's speed ${c.om.toFixed(3)} rad/s, the drag's ${om.toFixed(3)}`);
-    // the coast: every frame turns on, never more than the finger's last move a frame, and
-    // never stands still while it has speed
+    // the coast: each frame turns the run-on's exact share of its time (from the next frame), never more than the
+    // finger's last move a frame, and never stands still while it has speed
     for (let n = 0; n < hz / 2; n++) {
-      const omNow = F.om(), wNow = F.omP(), th1 = F.tilt(), y2 = F.frame(ts += P), d = y2 - y; y = y2;
-      assert.ok(Math.abs(F.tilt() - th1 - wNow * P / 1000) < 1e-12, `${tag}: coast frame ${n} tilted ${F.tilt() - th1}, its speed x the frame's time is ${wNow * P / 1000}`);
+      const th1 = F.tilt(), y2 = F.frame(ts += P), d = y2 - y, t0 = n * P / 1000, t1 = (n + 1) * P / 1000; y = y2;
+      const wd = RUN_YAW(c.om, t1) - RUN_YAW(c.om, t0), wt = RUN_TILT(c.omP, t1) - RUN_TILT(c.omP, t0);
+      assert.ok(Math.abs(F.tilt() - th1 - wt) < 1e-12, `${tag}: coast frame ${n} tilted ${F.tilt() - th1}, the run-on's share of its time is ${wt}`);
       assert.ok(d <= move * (1 + 1e-6), `${tag}: coast frame ${n} turned ${(d / move * 100).toFixed(1)}% of the finger's last move`);
-      assert.ok(omNow <= 1e-6 || d > 0, `${tag}: coast frame ${n} stood still at ${omNow.toFixed(3)} rad/s`);
-      assert.ok(Math.abs(d - omNow * P / 1000) < 1e-12, `${tag}: coast frame ${n} turned ${d}, its speed x the frame's time is ${omNow * P / 1000}`);
+      assert.ok(d > 0, `${tag}: coast frame ${n} stood still`);
+      assert.ok(Math.abs(d - wd) < 1e-12, `${tag}: coast frame ${n} turned ${d}, the run-on's share of its time is ${wd}`);
     }
   }
   // (the speed the coast takes is the finger's as it lifts, its newest moves included: a drag speeding up, let go at 60
@@ -131,13 +138,12 @@ test('drag: released, the coast starts from the whole drag at the drag\'s speed,
     const c = F.coast(), om = (0.1 + 0.0002 * 59 * P) * 1000 * GAIN1000, mean = (xs[59] - xs[47]) * GAIN1000 / 0.2;
     assert.ok(c && Math.abs(c.om - om) / om < 1e-6, `60 Hz, steps at ${sp}, a drag speeding up: the coast's speed ${c && c.om.toFixed(4)} rad/s, the finger's as it lifts ${om.toFixed(4)} (its last 0.2 s: ${mean.toFixed(4)})`);
     assert.ok(Math.abs(c.omP - 0.1 * om) / om < 1e-6, `60 Hz, steps at ${sp}: the tilt's coast ${c.omP.toFixed(4)} rad/s, its drag's as it lifts ${(0.1 * om).toFixed(4)}`);
-    // the run-on, frame by frame: the speed x the frame's time, eased out over 0.3 s (the tilt's over 0.2 s); in all,
-    // a geometric series of its frames
+    // the run-on, frame by frame: the run-on's share of each frame's time; in all, 0.3 s of the turn's speed (0.2 s of
+    // the tilt's), as the eased coast before it
     const th0 = F.tilt(); let thL = th0;
-    for (let n = 0; n < 300; n++) { const w = F.omP(); F.frame(ts += P); assert.ok(Math.abs(F.tilt() - thL - w * P / 1000) < 1e-12, `60 Hz, steps at ${sp}: tilt coast frame ${n} drew ${F.tilt() - thL}, its speed x the frame's time is ${w * P / 1000}`); thL = F.tilt(); }
-    const runOn = (w, tau) => w * (P / 1000) / (1 - Math.exp(-P / 1000 / tau)) * (1 - Math.exp(-300 * P / 1000 / tau));
-    assert.ok(Math.abs(F.yaw() - c.yaw - runOn(c.om, 0.3)) < 1e-9, `60 Hz, steps at ${sp}: the turn ran on ${F.yaw() - c.yaw} rad, want ${runOn(c.om, 0.3)}`);
-    assert.ok(Math.abs(F.tilt() - th0 - runOn(c.omP, 0.2)) < 1e-9, `60 Hz, steps at ${sp}: the tilt ran on ${F.tilt() - th0} rad, want ${runOn(c.omP, 0.2)}`);
+    for (let n = 0; n < 300; n++) { F.frame(ts += P); const w = RUN_TILT(c.omP, (n + 1) * P / 1000) - RUN_TILT(c.omP, n * P / 1000); assert.ok(Math.abs(F.tilt() - thL - w) < 1e-12, `60 Hz, steps at ${sp}: tilt coast frame ${n} drew ${F.tilt() - thL}, the run-on's share of its time is ${w}`); thL = F.tilt(); }
+    assert.ok(Math.abs(F.yaw() - c.yaw - 0.3 * c.om) < 1e-9, `60 Hz, steps at ${sp}: the turn ran on ${F.yaw() - c.yaw} rad, want 0.3 s of its speed, ${0.3 * c.om}`);
+    assert.ok(Math.abs(F.tilt() - th0 - 0.2 * c.omP) < 1e-9, `60 Hz, steps at ${sp}: the tilt ran on ${F.tilt() - th0} rad, want 0.2 s of its speed, ${0.2 * c.omP}`);
   }
   // pressed again during the coast, the view holds still under the finger
   for (const hz of [60, 144]) for (const sp of STEPS) {
@@ -184,7 +190,7 @@ test('drag: before the landing a held drag waits for it and a released one is dr
     assert.ok(c && c.om <= om * (1 + 1e-6), `${hz} Hz: let go just after the show, the coast's speed ${c && c.om.toFixed(3)} rad/s, the finger's ${om.toFixed(3)} (the boot's drag is not in it)`);
   }
 });
-test('drag: a release read in a long frame coasts at the finger\'s speed; the coast holds the tilt within 35 deg and its speeds within their caps', () => {
+test('drag: a release read in a long frame coasts at the finger\'s speed; the coast holds the tilt within 35 deg and its run-on within its caps', () => {
   for (const hz of [60, 144]) for (const long of [33, 100, 250]) for (const sp of [0, 0.5]) {
     const F = flying(sp), P = 1000 / hz, V = 0.15; let ts = 1000, x = 0;
     for (let k = 0; k < hz; k++) { ts += P; x = V * ts; F.move(x, ts - 0.4); F.frame(ts); }
@@ -195,13 +201,14 @@ test('drag: a release read in a long frame coasts at the finger\'s speed; the co
   const TH = 35 * Math.PI / 180;
   for (const hz of [60, 144]) for (const dir of [1, -1]) {
     const F = flying(0.3), P = 1000 / hz; let ts = 1000;
-    for (let k = 0; k < hz; k++) { ts += P; F.move(3 * ts, ts - 0.4, -dir * 2 * ts); F.frame(ts); }   // (3 px/ms across, 2 px/ms up or down: past both caps, and the tilt pushed past 35 deg)
+    for (let k = 0; k < hz; k++) { ts += P; F.move(3 * ts, ts - 0.4, -dir * 2 * ts); F.frame(ts); }   // (3 px/ms across, 2 px/ms up or down: past both run-on caps, and the tilt pushed past 35 deg)
     F.up(); F.frame(ts += P);
-    const c = F.coast();
-    assert.equal(c.om, 0.8, `${hz} Hz: the turn's coast capped at 0.8 rad/s (${c.om})`);
-    assert.equal(c.omP, -dir * 0.5, `${hz} Hz: the tilt's coast capped at 0.5 rad/s (${c.omP})`);
+    const c = F.coast(), yaw0 = F.yaw();
+    assert.ok(Math.abs(c.om - 3000 * GAIN1000) < 1e-9, `${hz} Hz: the turn's coast takes the flick's whole speed, ${3000 * GAIN1000} rad/s (${c.om}), never cut at the lift`);
     for (let k = 0; k < 60; k++) { F.frame(ts += P); assert.ok(Math.abs(F.tilt()) <= TH + 1e-12, `${hz} Hz: coast frame ${k} drew a tilt of ${(F.tilt() * 180 / Math.PI).toFixed(2)} deg`); }
     assert.ok(Math.abs(Math.abs(F.tilt()) - TH) < 1e-12, `${hz} Hz: the coast left the tilt at ${(F.tilt() * 180 / Math.PI).toFixed(2)} deg, held at 35`);
+    for (let k = 0; k < 300; k++) F.frame(ts += P);
+    assert.ok(Math.abs(F.yaw() - yaw0 - 0.24) < 1e-9, `${hz} Hz: a 4.7 rad/s flick ran on ${F.yaw() - yaw0} rad, want the cap, 0.24 (13.75 deg)`);
   }
 });
 
@@ -283,5 +290,40 @@ test('drag: a flick lifted a digitizer frame after its last move coasts at the f
     F.up(last + gap); F.frame(ts += P);
     const c = F.coast(), om = V * 1000 * GAIN1000;
     assert.ok(c && Math.abs(c.om - om) / om < 1e-6, `${inHz} Hz touch, lifted ${gap} ms after its last move, a ${hz} Hz display, steps at ${sp}: the coast's speed ${c && (c.om / om).toFixed(3)} x the finger's`);
+  }
+});
+
+// ------------------------------------------------------------------ the release's run-on: no snap, no jerk, no overshoot
+// (physics map, Camera flight: release-run-on) a steady drag let go, the view drawn frame by frame through the lift and
+// the settle, at 60-240 Hz, slow to fast flicks (0.1-6 px/ms across 1000 px: 0.16-9.4 rad/s). From the frames' turns:
+// the speed a frame (its turn over its time), its rate (the deceleration) and that rate's (the jerk). Against the
+// physics' own bounds for the flick's speed v and settle time T: the deceleration at most v / (T e), the jerk at most
+// v / T^2. The speed runs on from the finger's (no cut at the lift: its change there no more than the deceleration
+// allows in half a frame), never reverses (no overshoot), and is 99% done within a second.
+function releaseRun(V, hz, sp) {
+  const F = flying(sp), P = 1000 / hz; let ts = 1000, y = 0;
+  const yaws = [];
+  for (let k = 0; k < hz; k++) { ts += P; F.move(V * ts, ts - 0.4); if (k === hz - 1) F.up(); y = F.frame(ts); if (k >= hz - 4) yaws.push(y); }
+  for (let k = 0; k < 4 * hz; k++) yaws.push(F.frame(ts += P));   // (4 s: the slowest settle's last 1e-9 rad)
+  return { yaws, P: P / 1000, om: F.coast().om };
+}
+test('drag: let go, the view runs on at the finger\'s speed and settles with no snap, no jerk past the physics\' and no overshoot', () => {
+  for (const V of [0.1, 0.3, 1, 3, 6]) for (const hz of [60, 144, 240]) for (const sp of [0, 0.5]) {
+    const { yaws, P, om } = releaseRun(V, hz, sp), v0 = V * 1000 * GAIN1000, tag = `${V} px/ms (${v0.toFixed(2)} rad/s), ${hz} Hz, steps at ${sp}`;
+    assert.ok(Math.abs(om - v0) / v0 < 1e-6, `${tag}: the coast took ${om} rad/s, the finger's ${v0}`);
+    const T = v0 * 0.3 > 0.24 ? 0.24 / (2 * v0) : 0.15, aMax = v0 / (T * Math.E), jMax = v0 / (T * T);
+    const s = []; for (let k = 1; k < yaws.length; k++) s.push((yaws[k] - yaws[k - 1]) / P);   // (s[0..2]: the drag's frames; s[3]: the first coast frame)
+    const a = []; for (let k = 1; k < s.length; k++) a.push((s[k] - s[k - 1]) / P);
+    const j = []; for (let k = 1; k < a.length; k++) j.push((a[k] - a[k - 1]) / P);
+    assert.ok(Math.abs(s[2] - v0) / v0 < 1e-6, `${tag}: the drag's last frame turned at ${s[2]} rad/s`);
+    assert.ok(v0 - s[3] <= aMax * P / 2 * (1 + 1e-6), `${tag}: at the lift the speed fell ${(v0 - s[3]).toFixed(4)} rad/s in a frame (a snap: the physics allows ${(aMax * P / 2).toFixed(4)})`);
+    const aPeak = Math.max(...a.map((x) => -x)), jPeak = Math.max(...j.map(Math.abs));
+    assert.ok(aPeak <= aMax * (1 + 1e-6), `${tag}: the coast braked at ${aPeak.toFixed(3)} rad/s^2, the physics' most is ${aMax.toFixed(3)}`);
+    assert.ok(jPeak <= jMax * (1 + 1e-6), `${tag}: a jerk of ${jPeak.toFixed(2)} rad/s^3, the physics' most is ${jMax.toFixed(2)}`);
+    for (let k = 3; k < s.length; k++) assert.ok(s[k] >= 0, `${tag}: coast frame ${k - 3} turned back (${s[k]} rad/s): an overshoot`);
+    const run = yaws[yaws.length - 1] - yaws[3];
+    assert.ok(Math.abs(run - Math.min(0.3 * v0, 0.24)) < 1e-9, `${tag}: it ran on ${run} rad, want ${Math.min(0.3 * v0, 0.24)}`);
+    const by1 = yaws[3 + Math.round(1 / P)] - yaws[3];
+    assert.ok(by1 >= 0.99 * run, `${tag}: a second after the lift only ${(by1 / run * 100).toFixed(1)}% of the run-on was done (want 99%)`);
   }
 });
