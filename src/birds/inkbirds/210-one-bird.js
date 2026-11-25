@@ -147,7 +147,7 @@
     b.wOff = false; b.wsT = -1;
   }
   /* its wing's history kept to the last seconds (else it grows all its life) */
-  function wingTrim(b) { if (b.age > b.wtT) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 30; } }
+  function wingTrim(b) { if (b.age > b.wtT || b.w.wing.nk > 200) { BW.trim(b.w.wing, b.age - 2); b.wtT = b.age + 5; } }   // (every 5 s, and at once when a catch-up after a pause has laid many knots: a skein's phase locks lay several a second)
   /* ... flapping 1, gliding 0: the integrator reads it */
   function wingNow(b) { b.flap = wingState(b).e > 0.5 ? 1 : 0; }
   /* (the owner, 2026-11-06: "Bank away") a bird ignores the view, but for one thing: when the eye's way
