@@ -393,7 +393,7 @@
     if (FORCED) { s.cw[0] = s.cw[1] = s.cw[2] = 0; return; }
     var cov = HOST.cover(), X = s.X16, q;
     CWP[0] = X[0]; CWP[1] = X[1]; CWP[2] = X[2]; CWP[3] = s.body[0]; CWP[4] = s.body[1]; CWP[5] = s.body[2]; CWP[6] = X[18]; CWP[7] = X[19]; CWP[8] = X[20];   // its left tip, its body, its right tip
-    if (FX.cloud) HOST.cloudBetween3(C.pos[0], C.pos[1], C.pos[2], CWP, CWL); else CWL[0] = CWL[1] = CWL[2] = 0;
+    HOST.cloudBetween3(C.pos[0], C.pos[1], C.pos[2], CWP, CWL);
     for (q = 0; q < 3; q++) s.cw[q] = Math.max(ease(CWL[q] / CLOUD_IN), cov);
   }
 
