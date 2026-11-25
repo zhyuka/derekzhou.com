@@ -998,6 +998,21 @@ AIR_MIST_RATE. The pools keep no table or rate of their own. The depth
 is a pure function of the sky's time, so the rim is a moving
 shoreline, never a fade (the hub's ruling 1).
 
+By the wind (measured on main, 2026-11-25): the pools come only on a
+near calm visit. The visit's moisture is whole under a U10 of 4.02 m/s
+and none past 4.1, so the mist, and the fog pools filled from it, are
+whole in the calm and absent on every windy visit, on every sky and
+through every change: of 20000 visits, the 5230 with U10 of 6 m/s or
+more have no mist at first light, and the 5080 under 4 m/s all do. The
+cut lies between the surface winds that strongly favour dense valley
+fog, 7 kt (3.6 m/s) or less in the evening, and those that make it
+highly unlikely, past 10 kt (5.1 m/s)
+(https://www.weather.gov/media/crh/publications/TA/TA_1601.pdf). It is
+the visit's own U10, so a pool never comes or goes by the wind in
+place. test/unit/air.mjs holds it (none from 4.1 to 7.5 m/s, whole at
+4.02 and under), and a plant that makes the moisture blind to the wind
+must fail it.
+
 The top is opaque within 1.5 m of depth, the same at every depth, so
 nothing thickens in place (mistOver, world-glsl). The rim's ramp is
 widened to two pixels' worth of the surface's depth, so far shorelines
