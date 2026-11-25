@@ -139,6 +139,26 @@ vec2 s1Slope(float f, vec2 g, float H, float fl, float rb, float rt, vec4 dH) {
   vec3 P = vec3(-H * f / fl, g * (-H / fl) - f * dH.zw);
   return dSmax(dSmin(A, F, rb), f > 0.5 ? N : P, rt).yz;
 }
+/* (physics: sand/cast-shadow, tools/physics/dune-shadow.mjs) how far a point of the main dunes lies in a brink's cast
+   shadow at the realm's low key (5-14 deg): f its phase, L the brink's (1 - fl), H the dune's height, k its cycles a
+   metre; r the phase's change a metre toward the sun (< 0: the sun from upwind), gb the slope of the ground under the
+   dunes toward it (the swell, the sites, the small dunes), te the sun's tan, fp a pixel in metres. Toward the sun the
+   phase falls to a brink (phase L, height H) tb m off; the ground rises along the way by gb tb, the ray from the point
+   by te tb; shadowed where the brink stands over the ray, the sun's disc (0.53 deg) and the pixel the penumbra. Two
+   brinks: the nearest and the one before it (on ground falling away from the sun the one before stands over the next
+   stoss's top, gb > te, and the nearest alone cut its shadow off at the brink); a third never reaches past the second
+   at the realm's key (its ray drops 2 wavelengths x te, at least 62 m, against at most 32). The nearest brink's own
+   shadow only past its rounding (2 m, or 1.5 px): on the rounded crest's lee the face still turns to the sun, and its
+   shadow there drew a dark line behind the lit crest (the hub's review of #519, seed 5) */
+float castShade(float f, float L, float fl, float H, float k, float r, float gb, float te, float fp) {
+  float a = f / L, hf = f < L ? H * (0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a)) : H * (1.0 - f) / fl, rw = max(2.0, 1.5 * fp), s = 0.0;
+  for (int i = 0; i < 2; i++) {
+    float tb = ((f >= L ? f - L : f + 1.0 - L) + float(i)) / -r;
+    float sd = H - hf + gb * tb - tb * te, pw = max(tb * 0.0046 + fp * (te + H * k), 0.05);
+    s = max(s, smoothstep(-pw, pw, sd) * smoothstep(rw, 2.0 * rw, tb));
+  }
+  return s;
+}
 /* the brink's rounding as duneS1's (2 m across) */
 float s1Rb(float H, float k, float fl) { return max(H * k * (0.5 / (1.0 - fl) + 1.0 / fl), 0.05); }
 float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0) * (p + vec2(311.0, -97.0))).x; }
