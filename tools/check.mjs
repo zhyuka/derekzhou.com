@@ -81,8 +81,11 @@ function split(list, n) {
   // way round, wherever there is a shard free of them: 24-unit beside 35-birds' 20 processes took 119 s, not 22, and
   // 13-rules-data's hook timing failed there. The least-loaded shard that keeps them apart, else the least-loaded.
   const load = Array(n).fill(0), at = new Map(), on = Array.from({ length: n }, () => []), base = (c) => c.base || c.slug;
-  const clash = (c, d) => c.apart.includes(base(d)) || d.apart.includes(base(c));
-  for (const c of [...list].sort((a, b) => of(b) - of(a) || (a.slug < b.slug ? -1 : 1))) {
+  const clash = (c, d) => (c.part !== undefined && base(c) === base(d)) || c.apart.includes(base(d)) || d.apart.includes(base(c));   // (a parted check's parts always apart: one a shard)
+  // (2026-11-25) the most kept apart placed first (the longest `# apart:` list), then by cost, longest first: placed by
+  // cost alone, 43-dune-census took the second shard free of 35-birds before 24-unit's parts came, and a part shared it
+  const ties = (c) => c.apart.length + (c.part !== undefined ? 1 : 0);   // (how kept apart: its list, and its own other parts)
+  for (const c of [...list].sort((a, b) => ties(b) - ties(a) || of(b) - of(a) || (a.slug < b.slug ? -1 : 1))) {
     let k = -1; for (let j = 0; j < n; j++) if (!on[j].some((d) => clash(c, d)) && (k < 0 || load[j] < load[k])) k = j;
     if (k < 0) { k = 0; for (let j = 1; j < n; j++) if (load[j] < load[k]) k = j; }
     load[k] += of(c); at.set(c.slug, k); on[k].push(c);
