@@ -15,6 +15,7 @@
 const float DS = 1500.0, RS = 4500.0;
 const float RIP_I = 0.15, RIP_M = 0.9, RIP_FLOOR = 1.5;   // (shadeSand's ripples, m)
 float gAF = 1e4;   // (height over the troughs' floor: 350 sets it)
+float gCS = 0.0;   // (physics: sand/cast-shadow) how far the fragment lies in a brink's cast shadow: 350's S1_FS sets it
 /* an area's site: its cell's hash (the visit's salt), its place jittered in the cell, its kind, four parameters */
 struct Site { vec2 p; int kind; vec4 r; };
 Site siteOf(ivec2 c) {
@@ -342,6 +343,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
     n = normalize(n - rk * 0.06 * sl * vec3(wr.x, 0.0, wr.y));
   }
   float ndl = dot(n, uSun);
+  ndl = mix(ndl, min(ndl, -0.08), gCS);   // (physics: sand/cast-shadow: in a brink's shadow the sand has the sky's light alone, as the slip face does)
   // the low sun lights the level sand and the faces toward it; the faces turned from it fall into the sky's blue
   float dif = smoothstep(-0.08, 0.26, ndl);
   float hb = smoothstep(-40.0, 50.0, p.y);

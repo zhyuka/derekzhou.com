@@ -127,6 +127,18 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
       vec2 dg = B * (s - vS1g.yz);
       n = normalize(vN - vec3(dg.x, 0.0, dg.y));
     }
+    /* (physics: sand/cast-shadow, tools/physics/dune-shadow.mjs) the brink upwind casts its shadow past the slip face's
+       toe, over the floor and up the next stoss, at the realm's low key (5-14 deg): toward the sun the phase falls (r < 0)
+       to the last brink (phase L, height H) tb m off; the ground under the dunes (the land's slope less the main dune's:
+       the swell, the sites, the small dunes) rises along it by Gb.sh tb; the ray from here rises tb tan e. Shadowed where
+       the brink stands over the ray: the sun's disc (0.53 deg) and the pixel the penumbra, as resolved as the dunes are (B) */
+    vec2 sh = normalize(uSun.xz + vec2(1e-6, 0.0)); float r = dot(g, sh);
+    if (r < -1e-4 && uSun.y > 0.0 && B > 0.0) {
+      float f = fract(vS1.x), tb = (f >= L ? f - L : f + 1.0 - L) / -r, a = f / L, te = uSun.y / max(length(uSun.xz), 1e-3);
+      float hf = f < L ? H * (0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a)) : H * (1.0 - f) / fl;
+      float sd = H - hf + dot(-vN.xz - vS1g.yz, sh) * tb - tb * te, pw = max(tb * 0.0046 + fp * (te + H * k), 0.05);
+      gCS = B * smoothstep(-pw, pw, sd);
+    }
   }`;
   /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
      vertices carry (vMB) */
