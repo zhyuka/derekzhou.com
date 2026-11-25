@@ -15,7 +15,7 @@ uniform vec4 uAnvF;   // (physics: weather/far-anvil, the owner's "Soft distant 
 uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth (rad), its distance (km, 0: none), the sun's height (deg), the sun's azimuth (rad)
 uniform vec4 uHalo;   // (physics: weather/moon-halo) the ice veil over the moonlit sky: 1 on (about one moonlit stay in three), 0 none; its strength
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
-uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
+uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, -, the stars' top (Y)
 uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1), its core's direction, in the sky's frame
@@ -280,8 +280,7 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
      limit, never a clock: a hold holds it) */
   float bk = nightShow(starMag(b) + sx, ml);
   if (bk <= 0.0) return 0.0;
-  b *= exp2(-0.4 * 3.3219281 * sx);
-  b *= 1.0 + 0.15 * uNight.z * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);
+  b *= exp2(-0.4 * 3.3219281 * sx);   // (physics: night/stars, the audit's rank 4: steady, no twinkle: a slow swing of a star's light is no scintillation (that runs at tens of Hz) and the owner's brief has nothing on the window sparkle)
   b *= bk;
   /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn a little wider (sigma by sqrt of
      its flux over the cap, a pixel's share of a bell being at most its peak density F / (2 pi sigma^2)), but never past
