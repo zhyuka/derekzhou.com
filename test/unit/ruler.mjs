@@ -1,12 +1,12 @@
 // test/unit/ruler.mjs: the visit ruler (tools/visit/ruler.mjs) runs on the world as it ships
 // plant: {"file": "tools/visit/ruler.mjs", "find": "export const DUNE_MIN = 8;", "with": "export const DUNE_MIN = 0;", "why": "every land opens over dunes"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);", "with": "keep = () => true;", "why": "a cell keeps every piece, whatever its density"}
-// plant: {"file": "src/world/215-air.js", "find": "305, 60, null", "with": "20, 60, null", "why": "k11's first heading back to 20 deg: 30% of the words' boxes under cloud (looks.json)"}
-// plant: {"file": "src/realm-above.js", "find": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0)", "with": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-31, 0)", "why": "a cumulus moved: looks.json was measured on another world"}
-// plant: {"file": "tools/visit/looks.json", "find": "\"deg\": 90,", "with": "\"deg\": 90, \"world\": \"another\",", "why": "an entry measured on another world, under this world's key (a line-by-line merge)"}
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float STF = 1.1083;", "with": "const float STF = 1.2083;", "expect": "pass", "why": "the stars brighter: the sky is not in looks.json's key, the record holds"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "GLOW_KEEP = 0.5,", "with": "GLOW_KEEP = 0,", "why": "the glow the land's own heading shows may be lost"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "NAME_CAP = 0.02,", "with": "NAME_CAP = 1,", "why": "the name's cap loosened past 2%"}
+// plant: {"file": "tools/visit/look-rule.mjs", "find": "if (!(l.wordCloud <= WORD_CAP)) bad.push(", "with": "if (false) bad.push(", "why": "rule() never weighs the words: a cloud moved over them passes"}
+// plant: {"file": "tools/visit/look-rule.mjs", "find": "'src/realm-above.js',", "with": "", "why": "the air above the land out of the key: a cumulus moved, the gate does not measure"}
+// plant: {"file": "tools/visit/look-rule.mjs", "find": "+ '\\0' + JSON.stringify(tableOf(", "with": "+ '\\0' + JSON.stringify(0 && tableOf(", "why": "the table out of looksKey: a new heading, never measured"}
+// plant: {"file": ".github/workflows/gate.yml", "find": "needs: [static, plan, t1, looks]", "with": "needs: [static, plan, t1]", "why": "the looks job's answer not the verdict's"}
 import { test, assert, golden, WORLD } from '../unit-lib.mjs';
 const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN } = await import('../../tools/visit/ruler.mjs');
 
@@ -63,31 +63,77 @@ test('ruler: the mist at the cut is by the visit\'s moisture (AIR\'s weather, wh
 
 // ------------------------------------------------------------------ the first headings keep the words clear of cloud
 // (the hub's reviews of #312, Nov 23 and 24) each land's first heading in airHeading0's table (null: the land's own draw)
-// was measured in its first frames by tools/visit/looks.mjs (tools/visit/looks.json), on this very world: the record
-// keeps look-rule.mjs's worldKey (the code of what lays out the clouds, the opening's view and the words' boxes:
-// KEY_INPUTS), and a record of another world fails ("re-run looks.mjs --table"); the sky, the land's surface and the
-// birds are not in it. No
-// heading puts more than WORD_CAP (10% at most) of the words' boxes, or NAME_CAP (2% at most) of the name's, under cloud
-// in any of its three frames (laptop night, laptop sunset, phone dawn), nor loses the low sun's disc or glow the land's
-// own heading shows (keepsDiscs: GLOW_KEEP of its light in frame at least; waived only on a land where no measured heading keeps
-// both, glowWaived); a table entry never measured fails too
-test('ruler: each land\'s first heading keeps the words and the name clear of cloud, measured on this world (looks.json)', async () => {
-  const fs = await import('node:fs');
-  const { WORD_CAP, NAME_CAP, GLOW_KEEP, lookKey, worldKey, keepsDiscs, glowWaived } = await import('../../tools/visit/look-rule.mjs');
-  assert.ok(WORD_CAP <= 0.1 && NAME_CAP <= 0.02, `the caps: words ${WORD_CAP} (want 0.1 at most), the name ${NAME_CAP} (want 0.02 at most)`);
-  const T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(WORLD);
-  assert.ok(T, 'airHeading0\'s table not found in world.js');
-  const table = JSON.parse(T[1]), rec = JSON.parse(fs.readFileSync(new URL('../../tools/visit/looks.json', import.meta.url), 'utf8'));
-  assert.equal(rec.world, await worldKey(), 'looks.json was measured on another world (a cloud, the opening view or the words moved: look-rule.mjs KEY_INPUTS): node tools/build.mjs --plain build/site && node tools/visit/looks.mjs --build build/site --table (about 30 minutes), then node tools/visit/headings.mjs if a heading now fails');
-  for (const [k, land] of Object.entries(rec.lands)) for (const [h, l] of Object.entries(land)) assert.equal(l.world, rec.world, `k${k} ${h}: this entry was measured on world ${l.world}, the record is ${rec.world} (two records merged line by line?): re-run looks.mjs --table, never merge looks.json by hand`);
-  assert.equal(table.length, 16, 'the table has one heading for each of the 16 lands');
-  for (let k = 0; k < 16; k++) {
-    const l = (rec.lands[k] || {})[lookKey(table[k])];
-    assert.ok(l, `k${k}: heading ${lookKey(table[k])} was never measured (node tools/visit/looks.mjs, then headings.mjs)`);
-    assert.ok(l.wordCloud <= WORD_CAP, `k${k}: heading ${lookKey(table[k])} puts ${(l.wordCloud * 100).toFixed(1)}% of the words' boxes under cloud (want ${WORD_CAP * 100}% at most)`);
-    assert.ok(l.nameCloud <= NAME_CAP, `k${k}: heading ${lookKey(table[k])} puts ${(l.nameCloud * 100).toFixed(1)}% of the name's box under cloud (want ${NAME_CAP * 100}% at most)`);
-    const own = rec.lands[k].own;
-    assert.ok(own, `k${k}: the land's own heading was never measured`);
-    assert.ok(GLOW_KEEP >= 0.5 && (keepsDiscs(l, own) || glowWaived(rec.lands[k], own)), `k${k}: heading ${lookKey(table[k])} keeps sun light ${l.sunIn} against the own heading's ${own.sunIn} (want ${GLOW_KEEP} of it) or loses its disc`);
-  }
+// is measured in its first frames by tools/visit/looks.mjs, live, in the gate (gate.yml's looks job, whenever
+// look-rule.mjs's looksKey moved base to head: the cloud layout, the opening's view, the words' boxes, the table, the
+// measuring code; the hub's ask of 02:09Z Nov 25: no stored record to re-measure, so no PR invalidates another's).
+// rule() is what fails it: no heading puts more than WORD_CAP (10% at most) of the words' boxes, or NAME_CAP (2% at
+// most) of the name's, under cloud in any of its three frames (laptop night, laptop sunset, phone dawn), nor loses the
+// low sun's disc or glow the land's own heading shows (keepsDiscs: GLOW_KEEP of its light in frame at least; waived only
+// on a land where no measured heading keeps both, glowWaived); a heading not measured fails too. These tests hold the
+// rule and the key to that; the frames are the gate's.
+const LR = await import('../../tools/visit/look-rule.mjs');
+const entry = (o) => Object.assign({ wordCloud: 0, nameCloud: 0, topCloud: 0, galaxy: 1, galaxyIn: 5, sun: 1, sunIn: 5, discs: { 'laptop-sunset': null, 'phone-dawn': null } }, o);
+const TABLE = LR.tableOf((await import('node:fs')).readFileSync(new URL('../../' + LR.AIR, import.meta.url), 'utf8'));
+const clear = () => ({ lands: Object.fromEntries(TABLE.map((d, k) => [k, d === null ? { own: entry() } : { [d]: entry(), own: entry() }])) });
+const atK = (k) => LR.lookKey(TABLE[k]);
+test('ruler: rule() passes a table whose headings keep the words clear, and fails each way one does not', () => {
+  assert.equal(TABLE.length, 16, 'airHeading0\'s table: 16 headings');
+  assert.deepEqual(LR.rule(clear(), TABLE), [], 'every heading clear');
+  assert.ok(LR.WORD_CAP <= 0.1 && LR.NAME_CAP <= 0.02 && LR.GLOW_KEEP >= 0.5, `the caps: words ${LR.WORD_CAP}, the name ${LR.NAME_CAP}, the glow ${LR.GLOW_KEEP}`);
+  const k = TABLE.findIndex((d) => d !== null), m = TABLE.findIndex((d) => d === null);
+  const fails = (why, edit, want) => { const r = clear(); edit(r); const bad = LR.rule(r, TABLE); assert.ok(bad.length === 1 && want.test(bad[0]), `${why}: ${JSON.stringify(bad)}`); };
+  // a cloud moved over the words: the plant the hub asked for, as the record shows it (the gate's frames make the record)
+  fails('a cloud over the words', (r) => { r.lands[k][atK(k)].wordCloud = 0.3; }, new RegExp(`^k${k}: heading ${atK(k)} puts 30\\.0% of the words' boxes`));
+  fails('a cloud over the name', (r) => { r.lands[m].own.nameCloud = 0.03; }, new RegExp(`^k${m}: heading own puts 3\\.0% of the name's box`));
+  fails('the glow lost', (r) => { r.lands[k][atK(k)].sunIn = 1; }, /keeps sun light 1 against the own heading's 5/);
+  fails('the disc lost', (r) => { r.lands[k].own.discs['phone-dawn'] = { shown: true }; }, /loses its disc/);
+  fails('a heading not measured', (r) => { delete r.lands[k][atK(k)]; }, new RegExp(`^k${k}: heading ${atK(k)} was not measured`));
+  fails('the own heading not measured', (r) => { delete r.lands[k].own; }, /the land's own heading was not measured/);
+  // the glow waived only where no measured heading keeps both (k0 on Nov 24's world)
+  const w = clear(); w.lands[k][atK(k)].sunIn = 1; w.lands[k].own = entry({ nameCloud: 0.5 });   // (no heading keeps the words and the glow both: waived)
+  assert.deepEqual(LR.rule(w, TABLE), []);
+  assert.deepEqual(LR.rule(Object.assign(clear(), { lands: {} }), TABLE, [k]).length, 1, 'only the lands asked for (a shard)');
+});
+
+// looksKey: the gate measures when it moved, base against head; so it must move with what moves a cloud near the words,
+// the table and the measuring code, and not with a comment or the sky
+test('ruler: looksKey moves with a cloud, the opening\'s view, the words and the table, not with a comment or the sky', async () => {
+  const fs = await import('node:fs'), os = await import('node:os'), path = await import('node:path');
+  const root = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..'), d = fs.mkdtempSync(path.join(os.tmpdir(), 'looks-key-'));
+  const files = [...LR.KEY_INPUTS.map((x) => (Array.isArray(x) ? x[0] : x)), ...LR.MEASURE_INPUTS, 'src/world/glsl/sky-body.glsl'];
+  for (const f of files) { fs.mkdirSync(path.join(d, path.dirname(f)), { recursive: true }); fs.copyFileSync(path.join(root, f), path.join(d, f)); }
+  const k0 = await LR.looksKey(d);
+  assert.equal(k0, await LR.looksKey(root), 'the copy keys as the tree');
+  assert.match(k0, /^[0-9a-f]{16}$/);
+  const edit = async (f, a, b, moves, why) => {
+    const p = path.join(d, f), src = fs.readFileSync(p, 'utf8'); assert.ok(src.includes(a), `${f}: ${a} not found`);
+    fs.writeFileSync(p, src.replace(a, b)); const k = await LR.looksKey(d); fs.writeFileSync(p, src);
+    assert.equal(k !== k0, moves, `${why}: the key ${moves ? 'must move' : 'must hold'}`);
+  };
+  await edit('src/realm-above.js', "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0)", "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-31, 0)", true, 'a cumulus moved');
+  await edit(LR.AIR, 'var T = [', 'var T = [7, ', true, 'the table');   // (worldKey blanks it; looksKey keeps it)
+  await edit('site/style.css', '{', '{ margin-top: 1px;', true, 'the words\' boxes');
+  await edit('tools/visit/looks.mjs', 'const MASK = 8,', 'const MASK = 9,', true, 'the measure');
+  await edit(LR.AIR, 'function airHeading0() {', '// a note\nfunction airHeading0() {', false, 'a comment');
+  await edit('src/world/glsl/sky-body.glsl', 'const float STF = 1.1083;', 'const float STF = 1.2083;', false, 'the stars brighter (the sky is not a cap)');
+  fs.rmSync(path.join(d, 'src/world/270-flight.js'));
+  assert.match(await LR.looksKey(d), /^unread-/, 'a tree it cannot read is measured');
+  assert.notEqual(await LR.looksKey(d), await LR.looksKey(d), '(never equal to another unread tree)');
+  fs.rmSync(d, { recursive: true, force: true });
+});
+
+// the gate measures: the plan keys base and head, the looks job runs on a move (four runners, every 4th land), with
+// --check, on the plan's pinned head build, and the verdict needs it
+test('ruler: the gate measures the looks when looksKey moved, and its answer is the verdict\'s', async () => {
+  const fs = await import('node:fs'), g = fs.readFileSync(new URL('../../.github/workflows/gate.yml', import.meta.url), 'utf8');
+  assert.match(g, /looks_changed: \$\{\{ steps\.looks\.outputs\.looks_changed \}\}/, 'the plan says whether the looks key moved');
+  assert.match(g, /look-rule\.mjs.*looksKey/, 'the plan keys with looksKey');
+  const job = g.slice(g.indexOf('\n  looks:\n'), g.indexOf('\n  verdict:\n'));
+  assert.ok(job.length > 100, 'gate.yml has a looks job before the verdict');
+  assert.match(job, /if: always\(\) && needs\.plan\.outputs\.looks_changed == 'true' && needs\.plan\.outputs\.has_pr != 'false'/);
+  assert.match(job, /tools\/visit\/looks\.mjs --build "\$RUNNER_TEMP\/served\/head" --table --check --shard \$\{\{ matrix\.shard \}\}\/(\d+)/);
+  const n = +/--shard \$\{\{ matrix\.shard \}\}\/(\d+)/.exec(job)[1], ms = /shard: \[([\d, ]+)\]/.exec(job)[1].split(',').map(Number);
+  assert.deepEqual(ms, [...Array(n).keys()], 'one runner for each shard');
+  assert.match(job, /handoff\.mjs get served "\$RUNNER_TEMP\/served" --pinned/);
+  assert.match(g, /\n  verdict:\n    needs: \[[^\]]*\blooks\b[^\]]*\]/, 'the verdict needs the looks job');
 });

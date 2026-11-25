@@ -1,5 +1,5 @@
 // tools/visit/look-rule.mjs: what a first heading's look must keep, and how the looks are weighed (the hub's reviews of
-// #312, Nov 23 and 24: the score, not a hand pick). The measures are looks.mjs's (its record: tools/visit/looks.json).
+// #312, Nov 23 and 24: the score, not a hand pick). The measures are looks.mjs's (measured live in the gate).
 //   WORD_CAP  the most of the words' boxes a heading may put under cloud, in any of the three frames (a bright cloud
 //             behind the light words is the worst case)
 //   NAME_CAP  the most of the name's own box under cloud: the name is the page's one picture of words
@@ -22,7 +22,7 @@
 //                      drawn between the last two), 386 (the frustum for the window)
 //   the words          390 (the words' place), site/index.html, site/style.css
 // Not the sky (the sun, the stars, the Milky Way: a feature's light is a score, not a cap), the land's surface or the
-// birds. looks.json keeps the key; test/unit/ruler.mjs fails the record once it moves: re-run looks.mjs --table
+// birds. looksKey (below) adds the table and the measuring code: the gate measures afresh whenever it moves
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -79,4 +79,41 @@ export async function worldKey(root = path.join(path.dirname(fileURLToPath(impor
     else h.update(await code(src.replace(TABLE, '$1[]')));
   }
   return h.digest('hex').slice(0, 16);
+}
+
+// The ruler (the hub's ask, 02:09Z Nov 25: looks.json, a stored record every key-input PR re-measured for 30 minutes
+// and any other one landing first invalidated, is gone): the gate measures the table's headings and each land's own
+// live, on the tree it gates (gate.yml's looks job: looks.mjs --table --check, a few lands a runner), whenever looksKey
+// moved, and rule() is what fails it. Of the 12 times the stored key moved, 7 moved no table heading's figure at all and
+// one by 0.002; the other four (#405, its revert, 270's new controllers) moved a words share by up to 0.028, the name's
+// by 0.001: most re-measures were for nothing, yet a figure does move, and no narrower key of the files a change touches
+// can tell which change will; the frames can.
+export const AIR = 'src/world/215-air.js';
+export const tableOf = (src) => { const m = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(src); if (!m) throw new Error('airHeading0\'s table not found'); return JSON.parse(m[1]); };
+// rule(rec, table, lands): each way the record fails the table on those lands (none: it keeps the words clear). rec is
+// looks.mjs's record ({ lands: { k: { "<deg>"|"own": entry } } }), table airHeading0's
+export function rule(rec, table, lands = [...Array(16).keys()]) {
+  const bad = [];
+  if (!(WORD_CAP <= 0.1 && NAME_CAP <= 0.02 && GLOW_KEEP >= 0.5)) bad.push(`the caps moved: words ${WORD_CAP} (want 0.1 at most), the name ${NAME_CAP} (0.02 at most), the glow kept ${GLOW_KEEP} (0.5 at least)`);
+  if (table.length !== 16) bad.push(`the table has ${table.length} headings (want one for each of the 16 lands)`);
+  for (const k of lands) {
+    const land = (rec.lands || {})[k] || {}, h = lookKey(table[k]), l = land[h], own = land.own;
+    if (!l) { bad.push(`k${k}: heading ${h} was not measured`); continue; }
+    if (!own) { bad.push(`k${k}: the land's own heading was not measured`); continue; }
+    if (!(l.wordCloud <= WORD_CAP)) bad.push(`k${k}: heading ${h} puts ${(l.wordCloud * 100).toFixed(1)}% of the words' boxes under cloud (want ${WORD_CAP * 100}% at most)`);
+    if (!(l.nameCloud <= NAME_CAP)) bad.push(`k${k}: heading ${h} puts ${(l.nameCloud * 100).toFixed(1)}% of the name's box under cloud (want ${NAME_CAP * 100}% at most)`);
+    if (!(keepsDiscs(l, own) || glowWaived(land, own))) bad.push(`k${k}: heading ${h} keeps sun light ${l.sunIn} against the own heading's ${own.sunIn} (want ${GLOW_KEEP} of it) or loses its disc`);
+  }
+  return bad;
+}
+// looksKey(root): what the ruler's answer depends on, so the gate measures only when it moved (base against head):
+// worldKey, the table itself (worldKey blanks it) and the code that measures (looks.mjs, this file, T1's harness, the
+// pinned browser). A root it cannot read (a key input missing, a piece not found) gets a key no other root has, so it is measured
+export const MEASURE_INPUTS = ['tools/visit/looks.mjs', 'tools/visit/look-rule.mjs', '.github/ci/harness.mjs', '.github/ci/serve.mjs', '.github/actions/playwright/action.yml'];
+export async function looksKey(root) {
+  try {
+    const h = crypto.createHash('sha256').update(await worldKey(root) + '\0' + JSON.stringify(tableOf(fs.readFileSync(path.join(root, AIR), 'utf8'))));
+    for (const f of MEASURE_INPUTS) h.update('\0' + f + '\0' + fs.readFileSync(path.join(root, f)));
+    return h.digest('hex').slice(0, 16);
+  } catch (e) { return 'unread-' + crypto.randomUUID(); }
 }
