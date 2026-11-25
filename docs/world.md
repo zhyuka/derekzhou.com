@@ -731,6 +731,21 @@ physics: clouds/drift). It holds:
   Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
   night turn. Adding one would mean the clouds and those birds reading a
   wind that depends on the sky, and a cited source for the turn by night.
+- No billows on the cloud sea's top (measured, 2026-11-25): a shear
+  layer rolls into billows only where Ri, the ratio of the air's
+  stability to its shear, N^2 / (dU/dz)^2, is under 1/4. Over the sea's
+  top the air gives too little shear for it. From the sea's own wind
+  (AIR_H.sea, 100 m) to the low layer's (300 m), the wind changes by
+  1.35 m/s at U10 3 and by 3.37 m/s at U10 7.5 (its 1.3 U10, veered 20
+  deg). With the weather's N of 0.01/s, Ri is 2.2 at U10 3 and 0.35 at
+  U10 7.5, never under 1/4. The 100-200 m and 200-300 m halves give the
+  same, 50-150 m gives 1.4 or more, and the change up to 1500 m is no
+  larger. Billows would need the sea's top to be a thin capping
+  inversion that carries that whole change, and whether they formed
+  would then turn on the inversion's temperature jump and thickness, two
+  numbers the world does not have (with a 5 K jump, a layer under about
+  17 m; with 8 K over 20 m, none on any visit). So the sea keeps its two
+  long low waves (physics: clouds/sea) and no rolls.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
