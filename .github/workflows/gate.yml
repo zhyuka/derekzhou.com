@@ -58,6 +58,7 @@ jobs:
       head_build: ${{ steps.builds.outputs.head }}
       glsl_changed: ${{ steps.glsl.outputs.glsl_changed }}
       looks_changed: ${{ steps.looks.outputs.looks_changed }}
+      looks_key: ${{ steps.looks.outputs.looks_key }}
       budget: ${{ steps.budget.outputs.budget }}
     steps:
       # A branch with no open PR (a Cloudflare preview, a probe) is not compared: T1 skips and the verdict says it
@@ -123,7 +124,7 @@ jobs:
           k() { node -e "import('./tools/visit/look-rule.mjs').then(async (m) => console.log(await m.looksKey(process.argv[1])))" "$1"; }
           b=$(k "$RUNNER_TEMP/looks-base"); h=$(k "$(pwd)"); git worktree remove --force "$RUNNER_TEMP/looks-base"
           if [ "$b" != "$h" ] || [ "$FORCE" = always ]; then c=true; else c=false; fi
-          echo "looksKey: base $b, head $h ($FORCE): looks_changed=$c"; echo "looks_changed=$c" >> "$GITHUB_OUTPUT"
+          echo "looksKey: base $b, head $h ($FORCE): looks_changed=$c"; echo "looks_changed=$c" >> "$GITHUB_OUTPUT"; echo "looks_key=$h" >> "$GITHUB_OUTPUT"
       # Each built script's size against its load budget's line (Brotli 11, as the check weighs it), for the merge bot:
       # a PR near a line is re-gated before it lands on a main that also grew that script (bot-rules.mjs budgetShared)
       - name: The built scripts against their load budgets (for the merge bot)
@@ -295,8 +296,34 @@ jobs:
           HANDOFF_SHA: ${{ needs.plan.outputs.served_sha }}
           HANDOFF_ROOT: ${{ runner.temp }}/handoff
         run: node .github/ci/handoff.mjs get served "$RUNNER_TEMP/served" --pinned
+      # (CI lane, 2026-11-25, the hub's gate p90) this shard's record, kept by the head's looksKey (the cloud layout, the
+      # opening's view, the words, the table and the measuring code, harness and pinned browser), the runner's image and
+      # the shard: a push that did not move the key since it was measured (a re-push, the bot's re-gate on a main that moved
+      # no key input; claude/clouds-cumulus-life measured four times on Nov 25) weighs that record by the same rule instead
+      # of 54 runner-minutes of frames. The figures are the frames' own: the same key and image draw the same frames.
+      - name: The record's key
+        id: lk
+        run: echo "key=looks-v1-${{ runner.os }}-${ImageOS:-selfhosted}-s${{ matrix.shard }}-${{ needs.plan.outputs.looks_key }}" >> "$GITHUB_OUTPUT"
+      - name: This shard's record, if this very looksKey was measured before
+        id: lrec
+        if: needs.plan.outputs.looks_key != ''
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/looks-rec
+          key: ${{ steps.lk.outputs.key }}
       - name: The ruler, this shard's lands
-        run: node tools/visit/looks.mjs --build "$RUNNER_TEMP/served/head" --table --check --shard ${{ matrix.shard }}/8 --jobs 2 --out "$RUNNER_TEMP/looks/looks-s${{ matrix.shard }}.json"
+        run: |
+          from=""; [ -f "$RUNNER_TEMP/looks-rec/rec.json" ] && from="--from $RUNNER_TEMP/looks-rec/rec.json"
+          node tools/visit/looks.mjs --build "$RUNNER_TEMP/served/head" --table --check --shard ${{ matrix.shard }}/8 --jobs 2 --out "$RUNNER_TEMP/looks/looks-s${{ matrix.shard }}.json" $from
+      - name: The record, kept for this looksKey (a fresh measure that passed)
+        id: lstage
+        if: success() && steps.lrec.outputs.cache-hit != 'true' && needs.plan.outputs.looks_key != ''
+        run: mkdir -p "$RUNNER_TEMP/looks-rec" && cp "$RUNNER_TEMP/looks/looks-s${{ matrix.shard }}.json" "$RUNNER_TEMP/looks-rec/rec.json" && echo "ok=true" >> "$GITHUB_OUTPUT"
+      - if: steps.lstage.outputs.ok == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/looks-rec
+          key: ${{ steps.lk.outputs.key }}
       - if: always()
         uses: actions/upload-artifact@v4
         with:
