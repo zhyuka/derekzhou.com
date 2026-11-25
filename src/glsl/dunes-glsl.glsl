@@ -141,21 +141,22 @@ vec2 s1Slope(float f, vec2 g, float H, float fl, float rb, float rt, vec4 dH) {
 }
 /* (physics: sand/cast-shadow, tools/physics/dune-shadow.mjs) how far a point of the main dunes lies in a brink's cast
    shadow at the realm's low key (5-14 deg): f its phase, L the brink's (1 - fl), H the dune's height, k its cycles a
-   metre; r the phase's change a metre toward the sun (< 0: the sun from upwind), gb the slope of the ground under the
-   dunes toward it (the swell, the sites, the small dunes), te the sun's tan, fp a pixel in metres. Toward the sun the
+   metre; r the phase's change a metre toward the sun (< 0: the sun from upwind), gb the slope of the swell under the
+   dunes toward it (swellG), te the sun's tan, fp a pixel in metres. Toward the sun the
    phase falls to a brink (phase L, height H) tb m off; the ground rises along the way by gb tb, the ray from the point
    by te tb; shadowed where the brink stands over the ray, the sun's disc (0.53 deg) and the pixel the penumbra. Two
    brinks: the nearest and the one before it (on ground falling away from the sun the one before stands over the next
-   stoss's top, gb > te, and the nearest alone cut its shadow off at the brink); a third never reaches past the second
-   at the realm's key (its ray drops 2 wavelengths x te, at least 62 m, against at most 32). The nearest brink's own
+   stoss's top, gb > te, and the nearest alone cut its shadow off at the brink), the one before eased out over its second
+   wavelength back: just before a crest the brinks 1 and 2 back count, just past it 0 and 1, so the one 2 back must
+   weigh nothing there (where the swell rises toward the sun faster than its ray it still shades: a 0.1 step). The nearest brink's own
    shadow only past its rounding (2 m, or 1.5 px): on the rounded crest's lee the face still turns to the sun, and its
    shadow there drew a dark line behind the lit crest (the hub's review of #519, seed 5) */
 float castShade(float f, float L, float fl, float H, float k, float r, float gb, float te, float fp) {
   float a = f / L, hf = f < L ? H * (0.5 * a + 0.5 * a * a * (3.0 - 2.0 * a)) : H * (1.0 - f) / fl, rw = max(2.0, 1.5 * fp), s = 0.0;
   for (int i = 0; i < 2; i++) {
-    float tb = ((f >= L ? f - L : f + 1.0 - L) + float(i)) / -r;
-    float sd = H - hf + gb * tb - tb * te, pw = max(tb * 0.0046 + fp * (te + H * k), 0.05);
-    s = max(s, smoothstep(-pw, pw, sd) * smoothstep(rw, 2.0 * rw, tb));
+    float dp = (f >= L ? f - L : f + 1.0 - L) + float(i), tb = dp / -r;
+    float sd = H - hf + gb * tb - tb * te, pw = max(tb * 0.0046 + 3.0 * fp * (te + H * k), 0.05);   // (the pixel's share 3 px wide: a 1 px edge stepped as it swept the screen, shimmer +6.9 points over the null)
+    s = max(s, smoothstep(-pw, pw, sd) * smoothstep(rw, 2.0 * rw, tb) * (1.0 - smoothstep(1.0, 2.0, dp)));   // (a brink over a wavelength back eased out by the second: the brinks counted either side of a crest the same)
   }
   return s;
 }
@@ -166,6 +167,9 @@ float swell(vec2 p) { return 40.0 * gnd(p * (1.0 / 760.0)).x + 15.0 * gnd(mat2(0
 const vec2 D_TO[7] = vec2[7](vec2(0.0), vec2(311.0, -97.0), vec2(0.0), vec2(71.0), vec2(400.0), vec2(9.0), vec2(900.0));
 const float D_TS[7] = float[7](1.0 / 760.0, 0.0, 1.0 / 340.0, 1.0 / 95.0, 0.0, 1.0 / 80.0, 1.0 / 160.0);
 const mat2 D_M1 = mat2(0.8, 0.6, -0.6, 0.8) * (1.0 / 330.0);
+/* (physics: sand/cast-shadow) the swell's slope (swell's two taps, d/dx d/dz): the ground the brinks' shadows cross, world-fixed
+   (the land's vertex slope carried the small dunes, 0.24 at 64 m, and moved as the rings morph: the shadow's end swung) */
+vec2 swellG(vec2 p) { return (40.0 / 760.0) * gnd(p * (1.0 / 760.0)).yz + 15.0 * (transpose(D_M1) * gnd(D_M1 * (p + vec2(311.0, -97.0))).yz); }
 /* gnd with its second derivatives (hs: xx, xy, yy), for the slip face's slope (duneS1) */
 vec3 gndH(vec2 p, out vec3 hs) {
   vec2 i = floor(p), f = p - i; ivec2 ii = ivec2(i);

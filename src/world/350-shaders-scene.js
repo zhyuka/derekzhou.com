@@ -129,9 +129,9 @@ centroid in vec4 vS1; centroid in vec3 vS1g; centroid in vec4 vS1d; centroid in 
     }
     /* (physics: sand/cast-shadow) the brinks upwind cast their shadow past the slip face's toe, over the floor and up the
        next stoss, at the realm's low key: castShade (dunes-glsl), as resolved as the dunes are (B); the ground under the
-       dunes the land's slope less the main dune's */
+       dunes the swell's own slope (swellG: world-fixed, not the morphing vertices') */
     vec2 sh = normalize(uSun.xz + vec2(1e-6, 0.0)); float r = dot(g, sh);
-    if (r < -1e-4 && uSun.y > 0.0 && B > 0.0) gCS = B * castShade(fract(vS1.x), L, fl, H, k, r, dot(-vN.xz - vS1g.yz, sh), uSun.y / max(length(uSun.xz), 1e-3), fp);
+    if (r < -1e-4 && uSun.y > 0.0 && B > 0.0) gCS = B * castShade(fract(vS1.x), L, fl, H, k, r, dot(swellG(vW.xz), sh), uSun.y / max(length(uSun.xz), 1e-3), fp);
   }`;
   /* (delight-weather 1) the mist pools over the land (mistOver, world-glsl): the pool's top from the floor the
      vertices carry (vMB) */
