@@ -23,12 +23,15 @@
 # plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "      else return newGoal(F, 'commute', r, cls);", "with": "      else { g.R = 50; g.cx = x; g.cz = z; }", "why": "a wheel round a drifting patch of air at dusk and first light: a thermal with no sun-heated ground (no bird wheels in a thermal)"}
 # plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "b.tumT = -1; b.tum0 -= TAU * b.tumS; b.tum = 0;", "with": "b.tumT = -1; b.tum = 0;", "why": "a crow's tumble ends by spinning a whole turn back in one frame (crows tumble only in a rim's strong lift)"}
 # plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "b.kind === 'crow' && b.lift > TUM_W && b.r() < TUM_P * dt", "with": "b.kind === 'crow' && b.r() < TUM_P * dt", "why": "crows tumble anywhere, in no lift (crows tumble only in a rim's strong lift)"}
+# plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "HOST.gust(b.p[0], b.p[2], hg)", "with": "HOST.gust(b.p[0] + 977 * b.id, b.p[2], hg)", "why": "a gust of each bird's own, a per-bird jitter, not the air's one field (one wind)"}
+# plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "HOST.wind(BWV, hg); w =", "with": "HOST.wind(BWV); w =", "why": "every bird in the wind at the birds' one height, not its own (one wind)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 # (CI lane, 2026-11-24) `# parts: 3`: tools/check.mjs runs this as three checks on a push, CHECK_PART=0/3 .. 2/3, each
 # the tests whose place in the list (over all four files) falls to it, so three shards take them side by side (177 s on
 # one runner: the gate's long pole). The clock test is part 0's. Unset (plants, --only, a run by hand): every test.
 # parts: 3
+# inputs: test/birds*.mjs tools/birds/** src/birds/** test/ground.mjs test/golden/ground/** tools/parts.mjs tools/glslmin.mjs tools/plan.mjs package-lock.json
 part=0; parts=1
 if [[ "${CHECK_PART:-}" =~ ^([0-9]+)/([0-9]+)$ ]]; then part=${BASH_REMATCH[1]}; parts=${BASH_REMATCH[2]}; fi
 pids=(); i=0; total=0; clock=(); k=0

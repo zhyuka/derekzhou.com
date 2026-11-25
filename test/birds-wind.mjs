@@ -20,8 +20,8 @@ test('into a headwind a bird flies faster through the air, about 0.2 m/s a m/s (
       sim.step(); if (k % 20) continue;
       for (const F of sim.B.FLOCKS) {
         const b = F.lead; if (!b || b.st !== 'fly' || (b.K.perch && F.m.length < 2) || b.P) continue;   // (flocks and the commuting kinds: a lone bird that perches works the view at its pace over the ground)
-        const ax = b.v[0] - 6.5, az = b.v[2], va = Math.sqrt(ax * ax + az * az);
-        X.push(-6.5 * ax / (va || 1)); Y.push(va - b.K.v);
+        const ax = b.v[0] - b.wx, az = b.v[2] - b.wz, va = Math.sqrt(ax * ax + az * az);   // (its air speed in the wind it is in: one wind, at its height and in the gust field, physics #29)
+        X.push(-(b.wx * ax + b.wz * az) / (va || 1)); Y.push(va - b.K.v);
       }
     }
   }
