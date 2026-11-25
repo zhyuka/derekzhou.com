@@ -20,7 +20,8 @@
 // reads. The ruler itself is the gate's (gate.yml's looks job): --table --check measures the table's headings and each
 // land's own on the build it is given and fails on look-rule.mjs's rule(); --shard i/n takes every n-th land from i.
 //   node tools/visit/looks.mjs --build build/site --cands FILE.json [--out build/looks.json] [--jobs 2]
-//   node tools/visit/looks.mjs --build build/site --table [--check] [--shard i/n]   (the table's headings and each land's own)
+//   node tools/visit/looks.mjs --build build/site --table [--check] [--shard i/n] [--from FILE]   (the table's headings and each land's own;
+//   --from: a record of this very world kept, only what it lacks measured)
 // FILE.json: { "<k>": [deg, ...] } (null: the land's own draw from its stream)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -139,10 +140,13 @@ async function score(k, deg) {
 }
 
 const jobs = []; for (const [k, list] of Object.entries(CANDS)) for (const d of list) jobs.push([+k, d]);
-const WORLD_KEY = await worldKey(), old = !CHECK && fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+// --from FILE (the gate's looks job: this shard's record cached by the head's looksKey, gate.yml): its entries of this
+// very world are kept and only the headings it lacks are measured; --check then weighs the whole as a fresh record
+const FROM = arg('--from', null), WORLD_KEY = await worldKey(), old = FROM ? (fs.existsSync(FROM) ? JSON.parse(fs.readFileSync(FROM, 'utf8')) : null) : !CHECK && fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 const prev = old && old.world === WORLD_KEY ? old : { world: WORLD_KEY, lands: {} };   // (a record of another world is dropped whole)
 // each entry keeps the world it was measured on too: a line-by-line merge of two records can mix worlds under one key
 for (const land of Object.values(prev.lands)) for (const [h, l] of Object.entries(land)) if (l.world !== WORLD_KEY) delete land[h];
+if (FROM) { const had = jobs.length; for (let i = jobs.length - 1; i >= 0; i--) { const [k, d] = jobs[i]; if (((prev.lands[k] || {})[d === null ? 'own' : String(d)] || {}).world === WORLD_KEY) jobs.splice(i, 1); } console.log(`looks: ${had - jobs.length} of ${had} heading(s) from ${FROM} (measured on this world, ${WORLD_KEY}); ${jobs.length} to measure`); }
 const PNG = arg('--png', null); if (PNG) fs.mkdirSync(PNG, { recursive: true });
 let next = 0; const t0 = Date.now();
 async function worker() {
@@ -156,6 +160,7 @@ async function worker() {
 }
 fs.mkdirSync(path.dirname(path.resolve(OUT)), { recursive: true });
 await Promise.all(Array.from({ length: JOBS }, worker));
+fs.writeFileSync(OUT, JSON.stringify(prev, null, 1) + '\n');   // (the whole record, a cached one too: the gate keeps it)
 fs.rmSync(TMP, { recursive: true, force: true });
 if (CHECK) {
   // the ruler: the words and the name clear of cloud, the low sun's disc and glow kept, on each of these lands

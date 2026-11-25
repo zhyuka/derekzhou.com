@@ -98,7 +98,10 @@ test('deploy gate: the 2026-11-15 stall: a cancelled tip nothing proves gets its
   assert.match(BOT, /rerun: rerunTip/);
 });
 
-test('verdict: a push with no open PR (a preview) is not compared, so it never lands on that run', () => {
+// plant: {"file": ".github/ci/verdict.mjs", "find": "else if (v.input_changed && !same) {", "with": "else if (v.input_changed) {", "why": "#504 again: an input file touched with the build byte for byte the base's waits for a review"}
+// plant: {"file": ".github/ci/verdict.mjs", "find": "const same = !v.site_changed, sameNoLooks = same && c.looks_changed !== 'true';", "with": "const same = !v.site_changed, sameNoLooks = same;", "why": "a preview whose looks were due (their measuring code moved) counted identical though it skipped them"}
+// plant: {"file": ".github/ci/verdict.mjs", "find": "if (!v.has_pr && !sameNoLooks) { v.frames_identical = false;", "with": "if (!v.has_pr) { v.frames_identical = false;", "why": "a preview with the same build waits for a review again (#482, #506)"}
+test('verdict: a push with no open PR (a preview) is not compared unless its build is the base\'s, so a changed one never lands on that run', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verdict-nopr-'));
   const run = (outputs) => {
     const needs = { static: { result: 'success' }, plan: { result: 'success', outputs: Object.assign({ base: 'abc', site_changed: 'false' }, outputs) }, t1: { result: 'skipped' }, t2: { result: 'skipped' } };
@@ -106,12 +109,26 @@ test('verdict: a push with no open PR (a preview) is not compared, so it never l
     try { execFileSync(process.execPath, [fileURLToPath(new URL('../../.github/ci/verdict.mjs', import.meta.url)), dir, out], { env: Object.assign({}, process.env, { NEEDS: JSON.stringify(needs), T2_CACHED: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }), stdio: 'pipe' }); } catch {}
     return JSON.parse(fs.readFileSync(out, 'utf8'));
   };
+  // (the hub, 17:00Z Nov 25) the build byte for byte the base's decides first: a preview with the same build is identical by
+  // construction (#482, #506 waited for a review for it), unless the ruler's looks were due, which a preview skips
   const no = run({ has_pr: 'false' });
-  assert.equal(no.frames_identical, false, 'no PR: not identical, even with the build byte for byte the base\'s');
+  assert.equal(no.frames_identical, true, 'no PR, the build byte for byte the base\'s: identical by construction');
   assert.equal(no.has_pr, false);
-  assert.match(no.reason, /no open PR/);
+  assert.match(no.reason, /byte for byte the base's \(a push with no PR/);
+  const looks = run({ has_pr: 'false', looks_changed: 'true' });
+  assert.equal(looks.frames_identical, false, 'no PR, the looks due (their measuring code moved): the preview skipped them, not identical');
+  assert.match(looks.reason, /no open PR/);
+  assert.equal(run({ has_pr: 'false', site_changed: 'true' }).frames_identical, false, 'no PR, the build changed: not compared');
+  assert.equal(run({ has_pr: 'true', looks_changed: 'true' }).frames_identical, true, 'a PR\'s push, the looks due: they ran in the gate (its verdict\'s gate_ok)');
   assert.equal(run({ has_pr: 'true' }).frames_identical, true, 'a PR\'s push with the same build: identical');
   assert.equal(run({}).frames_identical, true, 'an older plan with no has_pr output: as before');
+  // #504: an input file touched (340 split at its step seam), the build the same: input handling cannot have changed
+  const input = run({ has_pr: 'true', input_changed: 'true', input_files: 'src/world/340-input-drag-anywhere-phone-turn.js' });
+  assert.equal(input.frames_identical, true, '#504: input files touched, the build byte for byte the base\'s: identical');
+  assert.match(input.reason, /input files touched, the build the same/);
+  const inputSite = run({ has_pr: 'true', input_changed: 'true', site_changed: 'true', input_files: 'src/world/340-input-drag-anywhere-phone-turn.js' });
+  assert.equal(inputSite.frames_identical, false, 'input files touched and the build changed: for the owner to see');
+  assert.match(inputSite.reason, /input handling changed/);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

@@ -6,6 +6,8 @@
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "if (!(l.wordCloud <= WORD_CAP)) bad.push(", "with": "if (false) bad.push(", "why": "rule() never weighs the words: a cloud moved over them passes"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "'src/realm-above.js',", "with": "", "why": "the air above the land out of the key: a cumulus moved, the gate does not measure"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "+ '\\0' + JSON.stringify(tableOf(", "with": "+ '\\0' + JSON.stringify(0 && tableOf(", "why": "the table out of looksKey: a new heading, never measured"}
+// plant: {"file": ".github/workflows/gate.yml", "find": "-s${{ matrix.shard }}-${{ needs.plan.outputs.looks_key }}", "with": "-s${{ matrix.shard }}", "why": "a shard's record kept whatever the world: a cloud moved over the words passes on the old figures"}
+// plant: {"file": ".github/workflows/gate.yml", "find": "        if: success() && steps.lrec.outputs.cache-hit != 'true' && needs.plan.outputs.looks_key != ''", "with": "        if: always() && steps.lrec.outputs.cache-hit != 'true' && needs.plan.outputs.looks_key != ''", "why": "a failing record kept: the next push reuses a measure that failed"}
 // plant: {"file": ".github/workflows/gate.yml", "find": "needs: [static, plan, t1, looks, paint]", "with": "needs: [static, plan, t1, paint]", "why": "the looks job's answer not the verdict's"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "  const pass = (o) => {", "with": "  { const L0 = landOf(k); pois.push({ realm: 'dunes', site: 'dest', kind: 'destination', x: Math.sin(L0.heading) * 3000, z: Math.cos(L0.heading) * 3000, pass: 600, r: 500, top: 700 }); }\n  const pass = (o) => {", "why": "a destination 3 km out: met in 4 min, not 8-14"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "  const pass = (o) => {", "with": "  { pois.push({ realm: 'dunes', site: 'dest', kind: 'destination', x: Math.sin(psi) * 9000, z: Math.cos(psi) * 9000, pass: 600, r: 500, top: 700 }); }\n  const pass = (o) => {", "why": "a destination laid out by the way flown, not by the land: another path finds another"}
@@ -139,6 +141,12 @@ test('ruler: the gate measures the looks when looksKey moved, and its answer is 
   assert.deepEqual(ms, [...Array(n).keys()], 'one runner for each shard');
   assert.match(job, /handoff\.mjs get served "\$RUNNER_TEMP\/served" --pinned/);
   assert.match(g, /\n  verdict:\n    needs: \[[^\]]*\blooks\b[^\]]*\]/, 'the verdict needs the looks job');
+  // (CI lane, 2026-11-25, the hub's gate p90) a shard's record kept by the head's looksKey, the image and the shard, and
+  // weighed by the same rule (--check) when it is found; kept only from a fresh measure that passed
+  assert.match(g, /looks_key: \$\{\{ steps\.looks\.outputs\.looks_key \}\}/, 'the plan hands on the head\'s looksKey');
+  assert.match(job, /key=looks-v1-\$\{\{ runner\.os \}\}-\$\{ImageOS:-selfhosted\}-s\$\{\{ matrix\.shard \}\}-\$\{\{ needs\.plan\.outputs\.looks_key \}\}/, 'the record kept by the head\'s looksKey, the image and the shard');
+  assert.match(job, /from="--from \$RUNNER_TEMP\/looks-rec\/rec\.json"\n\s+node tools\/visit\/looks\.mjs [^\n]*--check[^\n]*\$from\n/, 'a found record is weighed by the rule (--check) like a fresh one');
+  assert.match(job, /if: success\(\) && steps\.lrec\.outputs\.cache-hit != 'true' && needs\.plan\.outputs\.looks_key != ''/, 'kept only from a fresh measure that passed');
 });
 
 // ------------------------------------------------------------------ the horizon destination (delight-visit 5.3)

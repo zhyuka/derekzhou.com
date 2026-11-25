@@ -2,8 +2,9 @@
 // minifies every src/**/glsl/NAME.glsl this way where it puts the text back into its script (tools/parts.mjs assemble
 // --min-glsl), so the world issues and the browser compiles the short text; src/ keeps the
 // readable one. Nothing is renamed and no token changes:
-//   - comments (// and /* */) go, and blank lines; every line with code stays a line of its own, in order (the world's
-//     folds work by lines);
+//   - comments (// and /* */) go, and blank lines; each run of code lines between a preprocessor line and a uniform
+//     declaration becomes one line (the world's folds skip a use on a line that starts "uniform", so each such line
+//     stays a line of its own, in order);
 //   - a preprocessor line (#version, #define, #ifdef ...) keeps its text as written but its comment and its outer space
 //     (a #define's spacing is meaning: `#define A (1.0)` is not `#define A(1.0)`);
 //   - within any other line, a space stays only where two tokens would lex as one (two words, `a - -b`, `x / *p`);
@@ -36,6 +37,7 @@ export function tokens(code) {   // code: no comments, no preprocessor lines
 }
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, '');
 const isPre = (l) => /^\s*#/.test(l);
+const isUniform = (l) => /^\s*uniform\b/.test(l);   // (the folds' own test: 076-folds-finish's foldTok)
 
 function joinTokens(ts) {   // the tokens, a space only where two neighbours would lex as something else
   let s = '', prev = null;
@@ -47,13 +49,19 @@ function joinTokens(ts) {   // the tokens, a space only where two neighbours wou
 }
 
 export function minGlsl(text) {
-  // line by line: the world reads its shaders' text by lines (its folds skip a use on a uniform's declaration line), so
-  // every line that has code stays a line, in order; only blank and comment-only lines go
-  const out = [];
+  // the world reads its shaders' text by lines in two places, and both keep their lines: the folds (076-folds-finish)
+  // skip a use on a line that starts "uniform", so a uniform declaration stays a line of its own; the prune (071) and
+  // the compiler need a preprocessor line to start and end a line. Every other run of code lines becomes one line, its
+  // tokens joined as within a line (HYGIENE, 2026-11-25: a newline where no space is needed was a byte for nothing)
+  const out = []; let run = [];
+  const flush = () => { if (run.length) { out.push(joinTokens(tokens(run.join('\n')))); run = []; } };
   for (const l of stripComments(text).split('\n')) {
     if (!l.trim()) continue;
-    out.push(isPre(l) ? l.trim() : joinTokens(tokens(l)));
+    if (isPre(l)) { flush(); out.push(l.trim()); }
+    else if (isUniform(l)) { flush(); out.push(joinTokens(tokens(l))); }
+    else run.push(l);
   }
+  flush();
   if (!out.length) return /\n/.test(text) ? '\n' : (text ? ' ' : '');
   let s = out.join('\n');
   const lead = /^\s*/.exec(text)[0], trail = /\s*$/.exec(text)[0];

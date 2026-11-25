@@ -22,13 +22,14 @@
           var ix = bx + jx, iz = bz + jz, ccx = (ix + 0.5) * L.size - px0, ccz = (iz + 0.5) * L.size - pz0, d = Math.sqrt(ccx * ccx + ccz * ccz);
           if (d > R + L.size * 0.5) continue;
           var key = cellKey(sc, ix, iz);
+          if (L.one && (ix !== Math.floor(destOf().x / L.size) || iz !== Math.floor(destOf().z / L.size))) continue;   // (the destination's scale: the one cell that holds it)
           if (!V.cells.has(key)) { var C = new Cell(V, sc, ix, iz); V.cells.set(key, C); V.cellList.push(C); }
         }
       }
       // coarse cells come near: built again in full (one still building starts over at full detail)
       for (i = 0; i < V.cellList.length; i++) {
         var Cl = V.cellList[i];
-        if (Cl.lod !== 1 || nearDist(Cl, cx, cz) > LOD_NEAR) continue;
+        if (Cl.lod !== 1 || lodDist(Cl, cx, cz) > LOD_NEAR) continue;
         if (Cl.st === 2) { Cl.lod = 0; if (Cl.B) { Cl.B = new Builder(4096); Cl.bi = 0; Cl.gen = null; } }
         else if (Cl.st >= 3 && !Cl.RB) { Cl.RB = new Builder(4096); Cl.rbi = 0; }
       }

@@ -33,6 +33,7 @@
 # the tests whose place in the list (over all four files) falls to it, so three shards take them side by side (177 s on
 # one runner: the gate's long pole). The clock test is part 0's. Unset (plants, --only, a run by hand): every test.
 # parts: 3
+# inputs: test/birds*.mjs tools/birds/** src/birds/** test/ground.mjs test/golden/ground/** tools/parts.mjs tools/glslmin.mjs tools/plan.mjs package-lock.json
 part=0; parts=1
 if [[ "${CHECK_PART:-}" =~ ^([0-9]+)/([0-9]+)$ ]]; then part=${BASH_REMATCH[1]}; parts=${BASH_REMATCH[2]}; fi
 pids=(); i=0; total=0; clock=(); k=0
