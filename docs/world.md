@@ -234,10 +234,11 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
-Both planets lose the air's extinction as the stars do (physics:
-night/extinction): k (X - 1) magnitudes through X airmasses, k 0.15 in V, a
-little redder (extTint); nothing at the zenith, about 0.7 mag at 10 deg up,
-about 1.4 at 5.
+The air's extinction (physics: night/extinction) is taken from a planet's
+true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand
+far over the light's ceiling, so even 2.7 magnitudes at 2 deg up leave each
+drawn at its head, the brightest points in the sky (their tops over the
+stars'); what the low air shows is their colour, a little redder (extTint).
 The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
 a steady band low over the horizon on the night skies, brightest about 6 deg
 up and falling away overhead, behind the haze; it comes in by the stars' own
