@@ -341,9 +341,9 @@ Change OUT only with a measurement.
 
 | what | bytes | when |
 |---|---|---|
-| sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 26,026 minified, 9,619 as sent | every visit, deferred, low priority (36-load-budget: 9.5 KB) |
-| the sheet | about 4.5 MB (4,467,501 B) | only at the first press |
+| sound.js | 2,240 minified, 922 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
+| score.js | 26,624 minified, 9,810 as sent | every visit, deferred, low priority (36-load-budget: 10 KB) |
+| the sheet | about 4.5 MB (4,467,501 B) | only at the first press; its first part (about 351 KB) is enough to begin |
 
 Round twenty-two (2026-11-13), the same machine and flight: the audio thread 4.2% of real time (0.23 ms of each
 5.3 ms quantum; fewer notes at once and a shorter room more than pay for each held note's own filter), the main
@@ -383,7 +383,10 @@ once, a convolver and a few filters.
 ## The check (tools/checks/38-sound.sh)
 
 tools/sound/page.mjs serves the build with its own Permissions-Policy, opens it in headless Chromium (autoplay
-needing a gesture) and takes about 25 s. It fails when:
+needing a gesture) and takes about 25 s. It prints the press to the first sound: when the first note begins (the
+earliest scheduled start of the notes the score starts) and when the output first passes -60 and -40 dBFS (an
+analyser on the way to the speakers). `--net MBPS,RTT` throttles the page's network with Chromium's own emulation
+(`--net 10,70` is the slow profile below; `--net 1.44,562.5` is Chrome's Slow 4G). It fails when:
 
 - **before the press (2 s):** an audio context is made or anything audio is requested, or the icon is hidden or
   pressed, or the score has not registered;

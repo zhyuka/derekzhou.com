@@ -49,7 +49,7 @@ const BUDGET = {
   '/style.css': 3 * K,             // 2,151 (served comment-free since #135; 4,995 with its notes)
   '/hour.js': 2 * K,               // 1,262
   '/site.js': 1 * K,               // 134
-  '/sound.js': 1.5 * K,            // 614 (1,388 before Brotli) (the sound icon's switch, 2026-11-07). Its sheet of notes,
+  '/sound.js': 1.5 * K,            // 922 (2,240 before Brotli) (the sound icon's switch, 2026-11-07). Its sheet of notes,
                                    // /assets/sound/notes-N.mp3, has no line on purpose: it is fetched only at the press, so a cold visit
                                    // that loads it fails here
   '/score.js': 10 * K,             // 9,810 (26,624 before Brotli) (the score the switch plays, deferred, low priority, 2026-11-12; its passages the same day; no chord under it, 2026-11-13; its tuning, room and wind, the same day; the night's quiet, 2026-11-16; the air heard and the sand, 2026-11-25; the sheet in parts, the same day: HYGIENE found nothing to cut)

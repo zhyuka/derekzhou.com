@@ -1,8 +1,13 @@
 // page.mjs: the sound icon, pressed in headless Chromium against a build (2026-11-07; the live score, 2026-11-12). Not
 // served; CI's "The sound is opt-in" (tools/checks/38-sound.sh) runs it on build/site.
 //
-//   node tools/sound/page.mjs SITE        exit 1 on a miss; about 25 s
+//   node tools/sound/page.mjs SITE [--net MBPS,RTT]    exit 1 on a miss; about 25 s
 //
+// It prints the press to the first sound: when the score's first note begins (its scheduled start, the earliest of
+// the notes it starts), and when the output first passes -60 and -40 dBFS (an analyser on the way out), ms after the
+// press, cold (a fresh profile: nothing cached). --net throttles the page's network (Chromium's own emulation: MBPS
+// down, RTT ms; 10,70 the slow profile of docs/sound.md, 1.44,562.5 Chrome's Slow 4G); the checks below still hold,
+// timed from the first sound (heard over -40 dBFS, waited for up to a minute) where it comes after 4 s.
 // The build is served from a local folder with its own _headers' Permissions-Policy, and opened with the autoplay
 // policy a visitor's browser has (a gesture first). It fails when:
 //   - before the press (2 s): an audio context is made, or anything audio is requested, or the audio session is touched,
@@ -20,7 +25,8 @@ import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 
-const SITE = process.argv[2];
+const SITE = process.argv[2], NET = (process.argv[process.argv.indexOf('--net') + 1] || '').split(',').map(Number);
+if (process.argv.includes('--net') && !(NET.length === 2 && NET[0] > 0 && NET[1] >= 0)) { console.error('--net MBPS,RTT (e.g. 10,70)'); process.exit(2); }
 if (!SITE || !fs.existsSync(path.join(SITE, 'index.html'))) { console.error('usage: node tools/sound/page.mjs SITE (a build: build/site)'); process.exit(2); }
 const req = createRequire(import.meta.url);
 const PW = process.env.PW_CORE ? req(process.env.PW_CORE) : req('playwright');
@@ -53,11 +59,22 @@ page.on('request', (q) => {
   const u = q.url();
   if (q.resourceType() === 'media' || /\.(mp3|m4a|aac|ogg|opus|wav|flac|webm)(\?|$)/i.test(u) || /\/assets\/sound\//.test(u)) audio.push(u);
 });
+if (NET.length === 2) { const c = await page.context().newCDPSession(page); await c.send('Network.enable'); await c.send('Network.emulateNetworkConditions', { offline: false, latency: NET[1], downloadThroughput: NET[0] * 125000, uploadThroughput: 5 * 125000 }); }
 await page.addInitScript(() => {
-  const A = window.AudioContext; window.__made = 0; window.__srcs = [];
+  const A = window.AudioContext, T = (window.__T = {}), ms = () => performance.now(); window.__made = 0; window.__srcs = [];
+  document.addEventListener('click', () => { if (!T.press) T.press = ms(); }, true);   // (the first press, before the icon's own handler)
   Object.defineProperty(navigator, 'audioSession', { value: { type: 'auto' }, configurable: true });   // (Safari's; Chromium has none)
-  window.AudioContext = function (o) { window.__made++; return (window.__ctx = new A(o)); };
+  window.AudioContext = function (o) {
+    window.__made++; const c = (window.__ctx = new A(o)), an = (window.__an = c.createAnalyser()), buf = new Float32Array((an.fftSize = 512));
+    const iv = setInterval(() => { an.getFloatTimeDomainData(buf); let e = 0; for (const v of buf) e += v * v; const db = 10 * Math.log10(e / buf.length + 1e-20);
+      for (const th of [-60, -40]) if (db > th && !T['heard' + th]) T['heard' + th] = ms(); if (T['heard-40']) clearInterval(iv); }, 4);
+    return c;
+  };
   window.AudioContext.prototype = A.prototype;
+  const con = AudioNode.prototype.connect;   // (whatever reaches the speakers, the analyser hears too)
+  AudioNode.prototype.connect = function (n) { if (window.__ctx && n === window.__ctx.destination && this !== window.__an) con.call(this, window.__an); return con.apply(this, arguments); };
+  const go = AudioBufferSourceNode.prototype.start;   // (a note: a source on the sheet, whole or a first part; its start in ms on the page's clock)
+  AudioBufferSourceNode.prototype.start = function (w) { const c = window.__ctx; if (c && this.buffer && this.buffer.duration > 20) { const t = ms() + Math.max(0, ((w || 0) - c.currentTime) * 1000); if (!(T.note <= t)) T.note = t; } return go.apply(this, arguments); };
   const make = A.prototype.createBufferSource;
   A.prototype.createBufferSource = function () {
     const n = make.apply(this, arguments), rec = { n, ended: false };
@@ -82,7 +99,10 @@ if (before.pressed !== 'false') bad.push(`the icon is ${before.pressed} before t
 if (!before.score) bad.push('the score (score.js) has not registered');
 
 await page.click('#sound');
-await page.waitForTimeout(4000);
+const pressed = Date.now();   // (throttled, the checks below wait for the first sound, up to a minute: a slow sheet's)
+await page.waitForFunction(() => window.__T['heard-40'], null, { timeout: NET.length ? 60000 : 4000 }).catch(() => {});
+const when = await page.evaluate(() => { const T = window.__T, o = {}; for (const k of ['note', 'heard-60', 'heard-40']) o[k] = T[k] ? Math.round(T[k] - T.press) : null; return o; });
+await page.waitForTimeout(Math.max(0, 4000 - (Date.now() - pressed)));
 const on = await state();
 await page.waitForTimeout(12000);
 const later = await state();
@@ -107,6 +127,7 @@ if (again.pressed !== 'true' || again.state !== 'running') bad.push(`after the t
 if (again.made !== 1 || audio.length !== 1) bad.push(`the third press made or fetched more (contexts ${again.made}, requests ${audio.length}; want 1 each)`);
 
 console.log(`before: ${before.made} contexts, ${before.shown ? 'shown' : 'hidden'}, pressed ${before.pressed}, score ${before.score ? 'registered' : 'missing'}`);
+console.log(`first sound${NET.length === 2 ? ` (${NET[0]} Mbps, ${NET[1]} ms)` : ''}: the first note begins ${when.note ?? '-'} ms after the press; heard over -60 dBFS at ${when['heard-60'] ?? '-'} ms, over -40 at ${when['heard-40'] ?? '-'} ms`);
 console.log(`press: session ${on.session}, ${on.made} context ${on.state} at ${on.rate} Hz, ${audio.length} request(s); ${on.notes} notes started by 4 s (${on.looping} sustained), ${later.notes} by 16 s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
 await browser.close(); srv.close();
 for (const b of bad) console.log('::error::' + b);
