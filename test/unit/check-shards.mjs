@@ -83,6 +83,9 @@ test('check-shards: a check marked `# apart:` shares no shard with the checks it
   const base = (s) => s.replace(/#\d+$/, '');
   for (const line of r.stdout.split('\n').filter(Boolean)) {
     const on = line.replace(/^shard \d+\/\d+\s+\d+ s\s+/, '').split(/\s+/).map(base);
-    for (const [c, names] of Object.entries(apart)) if (on.includes(c)) for (const d of names) assert.ok(!on.includes(d), `${c} shares a shard with ${d}: ${line}`);
+    for (const [c, names] of Object.entries(apart)) if (on.includes(c)) for (const d of names) {
+      if (d === c) assert.ok(on.filter((x) => x === c).length < 2, `two parts of ${c} share a shard: ${line}`);   // (a check naming itself: its parts apart)
+      else assert.ok(!on.includes(d), `${c} shares a shard with ${d}: ${line}`);
+    }
   }
 });
