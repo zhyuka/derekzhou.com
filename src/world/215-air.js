@@ -21,14 +21,22 @@
      0.1 m 0.43, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22, 100 m 1.28), the direction the surface's; from 100 to
      300 m it eases to the low cloud layer's 1.3 U10, veered 20 deg (the wind turning toward the geostrophic with
      height, about 32 deg from the surface to the free air: https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf;
-     the profile: https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf), held to 1500 m; from 1500 to 3000 m it eases to the deck's
-     2 U10, veered 40 deg. Heights are over the ground under the reader. Readers whose direction is still their own (AIR_APART: the maps' own wind field, the wing gusts' timers, the score's gusts) are listed there with the change that joins
+     the profile: https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf), held to 1500 m; from 1500 to 3000 m it eases to
+     2 U10, veered 40 deg. Above, the winds aloft (AIR_ALOFT): over the boundary layer the wind is nearly geostrophic
+     and grows with height by the thermal wind (the westerlies' shear from the pole's colder air), to the polar jet's
+     core about 9 km up, its 3-month average speed about 40 m/s
+     (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet/Ch11-General.pdf: eq. 11.13 and the jet streams);
+     the speed rises in a line from 3000 m's 2 U10 to 40 m/s at 9 km (the thermal wind's shear even in height), held
+     above, its veer the 3000 m's 40 deg. Not a share of U10: the jet is the planet's, not the visit's surface wind.
+     The table, m/s at U10 3 / 5 / 7.5: 10 m 3 / 5 / 7.5; 100 m 3.8 / 6.4 / 9.6; 300 to 1500 m 3.9 / 6.5 / 9.8;
+     3000 m 6 / 10 / 15; 5000 m 17.3 / 20 / 23.3; 7000 m (the cirrus) 28.7 / 30 / 31.7; 9000 m up 40.
+     Heights are over the ground under the reader. Readers whose direction is still their own (AIR_APART: the maps' own wind field, the wing gusts' timers, the score's gusts) are listed there with the change that joins
      them, and test/unit/air.mjs holds every other reader to AIR_DIR within 1e-6 */
   var SKY_RATE = 100;   // the sky's light runs this many times real time (declared: sun, moon, stars and galaxy together)
   var AIR_DIR = [0, 1];   // the visit's wind, unit (x, z), blowing toward (airDraw sets it; the water's ripples read it through LDEF)
   var AIR_HEARD_Y = 2;   // (the air heard: never asked lower than this over the ground, m: the camera's own floor is higher)
   var AIR_H = { veils: 5, birds: 40, sea: 100, clouds: 800, deck: 7000 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own; sea: the cloud sea's top, carried at the wind 100 m over its own surface, physics: clouds/sea; clouds: the low layer's free clouds, physics: clouds/drift; deck: the cirrus, 7 km up: physics: sky/cirrus)
-  var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]];   // (the profile: the visits' U10: the mean of the speed distribution of a two-dimensional normal wind vector, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg)
+  var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]], AIR_ALOFT = [3000, 9000, 40];   // (the profile: the visits' U10: the mean of the speed distribution of a two-dimensional normal wind vector, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg; the winds aloft: from, the jet's core height m, its speed m/s)
   var AIR_KEY_EL = [5, 14], AIR_KEY_AZ = 55;   // the key light: 5-14 deg up, within 55 deg of upwind (the dunes' windward slopes lit)
   var AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, AIR_SUN_NIGHT = -24;   // the twilights' sun under the sea (deg); a night's, sunk to AIR_SUN_NIGHT through a change
   var AIR_CRUISE = [14, 32];   // the flight's clearance band, m: over the sand to over the cloud sea (flightParams, cruiseOf)
@@ -39,13 +47,15 @@
     V.wind = w; V.windAz = wa * 180 / PI; V.u10 = airU10(V.seed); AIR_DIR[0] = w[0]; AIR_DIR[1] = w[1];
     return w;
   }
-  var AIR_P = { s: 0, veer: 0 };
+  var AIR_P = { s: 0, add: 0, veer: 0 };
   function airEase(a, b, y) { var k = Math.max(0, Math.min(1, (y - a) / (b - a))); return k * k * (3 - 2 * k); }
-  function airProfile(y) {   // at y m over the ground: s the share of U10, veer deg (clockwise from the surface's way), the one object reused
-    var lg = Math.log(Math.max(y, AIR_Z0) / AIR_Z0) / AIR_LN10, L0 = AIR_LAYERS[0], L1 = AIR_LAYERS[1];
+  function airProfile(y) {   // at y m over the ground: the speed U10 s + add (s the share of U10, add m/s: the winds aloft), veer deg (clockwise from the surface's way), the one object reused
+    var lg = Math.log(Math.max(y, AIR_Z0) / AIR_Z0) / AIR_LN10, L0 = AIR_LAYERS[0], L1 = AIR_LAYERS[1], A = AIR_ALOFT;
+    AIR_P.add = 0;
     if (y <= L0[0]) { AIR_P.s = lg; AIR_P.veer = 0; return AIR_P; }
     var k0 = airEase(L0[0], L0[1], y), k1 = airEase(L1[0], L1[1], y), lg0 = Math.log(L0[0] / AIR_Z0) / AIR_LN10;
     AIR_P.s = lg0 + (L0[2] - lg0) * k0 + (L1[2] - L0[2]) * k1; AIR_P.veer = L0[3] * k0 + (L1[3] - L0[3]) * k1;
+    if (y > A[0]) { var ka = Math.min((y - A[0]) / (A[1] - A[0]), 1); AIR_P.s *= 1 - ka; AIR_P.add = A[2] * ka; }   // (a line from 2 U10 to the jet's speed)
     return AIR_P;
   }
   function airU10(seed) {   // a visit's wind speed 10 m up, m/s: the speed distribution of a two-dimensional normal wind vector, of mean AIR_U10[0] (sigma = mean / sqrt(pi / 2)) truncated to [AIR_U10[1], AIR_U10[2]] by its CDF
@@ -54,7 +64,7 @@
     return Math.sqrt(-s2 * Math.log(1 - (a + (b - a) * u)));
   }
   function u10Of(V) { V = V || SIM.V; return V && V.u10 ? V.u10 : 0; }   // (still air before a visit's wind)
-  function airSpeed(y, V) { return u10Of(V) * airProfile(y).s; }   // m/s at y m over the ground
+  function airSpeed(y, V) { var p = airProfile(y), u = u10Of(V); return u ? u * p.s + p.add : 0; }   // m/s at y m over the ground (still air before a visit's wind)
   /* THE WIND BY SKY (physics: air/wind-by-sky): the sky is the time of day (its light at SKY_RATE), and the wind
      follows the day as the boundary layer does. By day the surface wind is mixed up from aloft (the afterglow, the
      late afternoon, the breeziest); at dusk the mixing dies and the ground's air slows while the air 100-300 m up
@@ -160,7 +170,7 @@
   var UAIR = new Float32Array([0, 1, 1, 0]);   // (the shaders' uAir: the surface's clock, on the flight's footing (as gustAt's: no lead), its share, the gustiness, - (0))
   function airFrameU(u) { var w = weather(u); UAIR[1] = w[0]; UAIR[2] = w[2]; UAIR[0] = airClock(u)[0]; }
   function airBase(x, z, y, V) {   // the day's wind at y m up (the sky's share 1): { x, z } m/s, the one object, reused
-    var w = (V || SIM.V || {}).wind, p = airProfile(y), s = u10Of(V) * p.s, v = p.veer * PI / 180, c = Math.cos(v), n = Math.sin(v);
+    var w = (V || SIM.V || {}).wind, p = airProfile(y), u = u10Of(V), s = u ? u * p.s + p.add : 0, v = p.veer * PI / 180, c = Math.cos(v), n = Math.sin(v);
     AIR_W.x = w ? (w[0] * c + w[1] * n) * s : 0; AIR_W.z = w ? (w[1] * c - w[0] * n) * s : 0;
     return AIR_W;
   }
