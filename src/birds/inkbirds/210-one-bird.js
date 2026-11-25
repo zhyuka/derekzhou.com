@@ -36,7 +36,7 @@
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
-  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: 0, passT: 60, comeT: 0, nightT: Infinity, passF: null, passN: 0 };
+  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: 0, passT: 60, comeT: 0, passN: 0 };
   var SEAC = new Map();
   /* the cloud sea at a point (cached on a 64 m grid: the maps never change) */
   function seaAt(x, z) {

@@ -178,16 +178,15 @@
      by the flight's own heading and speed); a sky that turns to night bears it beyond sight (at that height a goose
      shows to about 9 km: a long way in). A drag makes it pass elsewhere: nothing follows the view. If it crosses the
      moon it is by chance (the hub, 2026-11-25). passWay fills PASSW (x, y, z, heading) or returns false */
-  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(4), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
+  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(4), PASSF = {};
   var PASSR = null;
   function passR() { if (!PASSR) PASSR = vstream(8801); return PASSR(); }   // (the passage's own stream: the sky's other flocks draw as they did)
   function passWay(C, h, Tc, side, near, u, v) {   // (u, v: the place ahead it crosses, as fractions of the window's half widths)
-    var V = KINDS.goose.v, fl = HOST.flight ? HOST.flight(PASSF) : null, vx = LVC.vx, vz = LVC.vz, dx0 = 0, dy0 = 0, dz0 = 0, k, q;
-    if (fl && fl.ok) { vx = fl.speed * Math.sin(fl.psi); vz = fl.speed * Math.cos(fl.psi); }   // (the eye's way: the flight's own heading and speed; the eye's measured velocity is still none at a visit's cut)
+    var V = KINDS.goose.v, fl = HOST.flight(PASSF), vx = LVC.vx, vz = LVC.vz, k;
+    if (fl.ok) { vx = fl.speed * Math.sin(fl.psi); vz = fl.speed * Math.cos(fl.psi); }   // (the eye's way: the flight's own heading and speed; the eye's measured velocity is still none at a visit's cut)
     u *= VW.tanX; v *= VW.tanY;
-    for (q = 0; q < 3; q++) { var c = C.f[q] + u * C.r[q] + v * C.u[q]; if (q === 0) dx0 = c; else if (q === 1) dy0 = c; else dz0 = c; }
-    var dl = Math.sqrt(dx0 * dx0 + dy0 * dy0 + dz0 * dz0); dx0 /= dl; dy0 /= dl; dz0 /= dl;
-    if (dy0 < 0.03) return false;
+    var dx0 = C.f[0] + u * C.r[0] + v * C.u[0], dy0 = C.f[1] + u * C.r[1] + v * C.u[1], dz0 = C.f[2] + u * C.r[2] + v * C.u[2];   // (the line of sight to it: its length matters to nothing but its slope's least)
+    if (dy0 < 0.03 * Math.hypot(dx0, dy0, dz0)) return false;
     for (k = 0; k < 24; k++, Tc += 30) {   // (later, farther, till its start is beyond sight)
       var ex = LVC.x + vx * Tc, ez = LVC.z + vz * Tc, gy = lvGround(ex, ez) + h; if (gy <= LVC.y) continue;   // (where the eye will be, and the skein's height there)
       var s = (gy - LVC.y) / dy0, px = ex + dx0 * s, pz = ez + dz0 * s, tr = Math.atan2(dx0, dz0) + side * Math.PI / 2, tx = Math.sin(tr), tz = Math.cos(tr);   // (the place it crosses, and its way over the ground: across the line of sight)
@@ -200,11 +199,11 @@
   }
   function passage(C, cls, r, near) {
     var n = Math.round(pick(r, PASS_N)), h = pick(r, PASS_H), Tc = pick(r, PASS_TC), side = r() < 0.5 ? 1 : -1, u = (r() - 0.5) * 1.4, v = mix(r(), 0.2, 0.9);
-    if (!passWay(C, h, Tc, side, near, u, v)) return null;
+    if (!passWay(C, h, Tc, side, near, u, v)) return;
     var k0 = POP.k; POP.k = 50000 + POP.passN++;   // (its own flock keys: the sky's other flocks keep theirs)
     var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]); POP.k = k0;
     F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = PASSW[3]; g.y = PASSW[1]; g.T = 900; g.home = true;
-    F.passage = 1; POP.passF = F;
+    F.passage = 1;
     return F;
   }
   function popStep(C) {
