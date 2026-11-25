@@ -248,6 +248,11 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
+The air's extinction (physics: night/extinction) is taken from a planet's
+true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand
+far over the light's ceiling, so even 2.7 magnitudes at 2 deg up leave each
+drawn at its head, the brightest points in the sky (their tops over the
+stars'); what the low air shows is their colour, a little redder (extTint).
 The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
 a steady band low over the horizon on the night skies, brightest about 6 deg
 up and falling away overhead, behind the haze; it comes in by the stars' own
@@ -1023,6 +1028,21 @@ AIR_MIST_RATE. The pools keep no table or rate of their own. The depth
 is a pure function of the sky's time, so the rim is a moving
 shoreline, never a fade (the hub's ruling 1).
 
+By the wind (measured on main, 2026-11-25): the pools come only on a
+near calm visit. The visit's moisture is whole under a U10 of 4.02 m/s
+and none past 4.1, so the mist, and the fog pools filled from it, are
+whole in the calm and absent on every windy visit, on every sky and
+through every change: of 20000 visits, the 5230 with U10 of 6 m/s or
+more have no mist at first light, and the 5080 under 4 m/s all do. The
+cut lies between the surface winds that strongly favour dense valley
+fog, 7 kt (3.6 m/s) or less in the evening, and those that make it
+highly unlikely, past 10 kt (5.1 m/s)
+(https://www.weather.gov/media/crh/publications/TA/TA_1601.pdf). It is
+the visit's own U10, so a pool never comes or goes by the wind in
+place. test/unit/air.mjs holds it (none from 4.1 to 7.5 m/s, whole at
+4.02 and under), and a plant that makes the moisture blind to the wind
+must fail it.
+
 The top is opaque within 1.5 m of depth, the same at every depth, so
 nothing thickens in place (mistOver, world-glsl). The rim's ramp is
 widened to two pixels' worth of the surface's depth, so far shorelines
@@ -1197,6 +1217,36 @@ By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
 0.38 (6.30). It is the visit's own (U10 alone), so a veil never fades in
 place; reduced motion draws none, as before. test/unit/air.mjs holds dust
 at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
+
+## THE SALTATION LAYER (measured, not drawn)
+
+The question (2026-11-25): on a windy visit, can a visitor see blowing
+sand? The veils don't read. On opening 8 (U10 7.31, AIR's dust 1, laptop
+@2), switching them off changes no pixel at the landing and 8 at one
+level at a cruise pose 14 m up.
+
+A saltation layer sized by the physics was built and measured (#459,
+closed). Grains in hops are densest within about 10 cm of the bed and
+thin over decimetres; in gusts they gather into streamers
+(https://arxiv.org/pdf/1201.4353; https://doi.org/10.1029/2004JF000270).
+It was modelled as a column of optical depth 0.05, seen through 1/g of it
+at the grazing cosine g, that lifts the sand toward its lit colour.
+Opening 8 against main:
+
+| frames | pixels changed | most lift |
+|---|---|---|
+| laptop @2, cruise | 30,872 | 1.2 levels |
+| laptop @2, landing | 8,649 | 1.0 |
+| phone @3, cruise | 18,666 | 1.2 |
+| phone @3, landing | 14,866 | 1.0 |
+
+It is invisible at true size and at 2x. That is the physics' honest
+answer: saltation at U10 up to 7.5 m/s, seen from 14 m at 60 m and
+beyond, doesn't read. The hub's ruling (08:38Z): not drawn. It would cost
+shader work on every sand pixel for nothing a visitor sees. Scattering
+forward into a low sun, or a layer past its physical size, would be a
+look, not physics. The branch claude/land-saltation and the crops
+(claude/review-459-crops) keep the work.
 
 ## THE LARGE WORLD
 

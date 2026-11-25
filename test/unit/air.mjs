@@ -52,6 +52,7 @@
 // plant: {"file": "src/score.js", "find": "return a ? [WIND_DAY * a[0], a[2]] : [0, 0];", "with": "return { afterglow: [0.35, 1], bluehour: [0.2, 0.65] }[id] || [0.2, 0.65];", "why": "the score with a breeze of its own by sky"}
 // plant: {"file": "src/world/215-air.js", "find": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = A[c] + (B[c] - A[c]) * q;", "with": "for (c = 0; c < AIR_NC; c++) AIR_WX[c] = k < 0.5 ? A[c] : B[c];", "why": "the wind jumps at a change of sky"}
 // plant: {"file": "src/world/210-cloud-volumes-baking.js", "find": "var sd = keyAt(V), cy", "with": "var sd = dirAzEl(V.light.sunAz, 9), cy", "why": "the clouds baked along a sun of their own"}
+// plant: {"file": "src/world/215-air.js", "find": "function airMoist(V) { return 1 - airEase(AIR_MOIST[0], AIR_MOIST[1], u10Of(V)); }", "with": "function airMoist(V) { return 1; }", "why": "the pools blind to the wind (mist and fog pools on a windy visit)"}
 import { test, assert, fs, path, vm, ROOT, TMP, execFileSync, WORLD, cut, STREAMS, VEC } from '../unit-lib.mjs';
 
 const AIR = cut(WORLD, '  /* ---------------------------------------------------------------- the air: the world\'s one state', '  /* ---------------------------------------------------------------- the time of day */');
@@ -448,6 +449,24 @@ test('air: the mist by the visit\'s moisture (its marine layer in on a calm day)
   assert.equal(G.airWx(5, { seed: 1, u10: 4.5 }).mist, 0, 'a breezy first light: no mist (the marine layer mixed out)');
   for (const id of Object.keys(G.WSKY)) { G.SKY.seq.length = 0; G.SKY.seq.push({ id, at: 0, hold: 1e6, move: 60 }); assert.equal(G.airWx(5, { seed: 1, u10: 3.9 }).moist, G.airWx(5, { seed: 1, u10: 3.9 }).moist, 'the same in every sky'); }
   const M1 = G.AIRAPI.MIST(); M1.firstlight = 99; assert.equal(G.AIR_MIST.firstlight, 10, 'MIST hands a reader a copy, never the table');
+});
+
+test('air: the pools by the wind (radiation and valley fog want a near calm night): none past the cut on any sky or change, whole in the calm', () => {
+  // (surface wind: dense valley fog strongly favoured at 7 kt (3.6 m/s) or less in the evening, highly unlikely past 10 kt (5.1 m/s):
+  // https://www.weather.gov/media/crh/publications/TA/TA_1601.pdf; the cut, 4.02-4.1 m/s, lies between)
+  const G = page(), skies = Object.keys(G.WSKY), seqs = [];
+  for (const id of skies) seqs.push([{ id, at: 0, hold: 1e6, move: 60 }]);
+  for (const a of skies) for (const b of skies) if (a !== b) seqs.push([{ id: a, at: 0, hold: 30, move: 60 }, { id: b, at: 90, hold: 1e6, move: 60 }]);
+  for (const seq of seqs) {
+    G.SKY.seq.length = 0; G.SKY.seq.push(...seq);
+    for (const t of [0, 20, 35, 60, 95, 200]) {
+      for (let u = 4.1; u <= 7.5 + 1e-9; u += 0.1) assert.equal(G.airWx(t, { seed: 1, u10: u }).mist, 0, `U10 ${u.toFixed(1)} m/s, ${seq.map((e) => e.id).join('>')} at ${t} s: mist on a windy visit (the fog pools fill from it)`);
+      if (seq.length === 1) for (const u of [3, 3.5, 4, 4.02]) assert.equal(G.airWx(t, { seed: 1, u10: u }).mist, G.AIR_MIST[seq[0].id], `U10 ${u} m/s, ${seq[0].id}: the calm visit's mist not whole`);
+    }
+  }
+  // the visit's own: the same U10, the same moisture, whatever the clock (the pools never come or go by the wind in place)
+  G.SKY.seq.length = 0; G.SKY.seq.push({ id: 'firstlight', at: 0, hold: 1e6, move: 60 });
+  for (const u of [3.9, 4.06, 6.5]) { const V = { seed: 1, u10: u }, q = G.airWx(0, V).moist; for (const t of [10, 100, 1000]) assert.equal(G.airWx(t, V).moist, q, 'the moisture moves in place'); }
 });
 
 test('air: the gusts by sky: carried at the mean wind in every sky (row 6), the streaks on the veils\' own wind', () => {
