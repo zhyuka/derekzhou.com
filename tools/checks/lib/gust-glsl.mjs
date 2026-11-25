@@ -20,7 +20,7 @@ const cut = (a, b) => { const i = WORLD.indexOf(a), j = WORLD.indexOf(b, i + a.l
 const STREAMS = cut('  /* ---------------------------------------------------------------- streams */', '  /* ----------------------------------------------------------------');
 const AIR = cut("  /* ---------------------------------------------------------------- the air: the world's one state", '  var AIRAPI');
 const G = vm.runInThisContext('(function () {\n  \'use strict\';\n  var PI = Math.PI, DEG = PI / 180, SIM = { V: null, t: 0 }, J = { seed: 0 }, SKY = { seq: [{ id: \'afterglow\', at: -30, hold: 90, move: 58 }, { id: \'bluehour\', at: 118, hold: 80, move: 56 }, { id: \'milkyway\', at: 254, hold: 120, move: 60 }, { id: \'firstlight\', at: 434, hold: 200, move: 55 }], dt: 0 };   // (a sky order: the day, a change into the night, the night)\n  function dirAzEl(az, el) { var a = az * DEG, e = el * DEG; return [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)]; }\n  function moonShown(t, o) { return o; }\n' + STREAMS + AIR +
-  '  return { airDraw: airDraw, gustAt: gustAt, airSpeed: airSpeed, airShare: airShare, weather: weather, airClock: airClock, airGustGlsl: airGustGlsl, subseed: subseed, RNG: RNG };\n})')();
+  '  return { airDraw: airDraw, gustAt: gustAt, gustSigma: gustSigma, AIR_GUST: AIR_GUST, airSpeed: airSpeed, airShare: airShare, weather: weather, airClock: airClock, airGustGlsl: airGustGlsl, subseed: subseed, RNG: RNG };\n})')();
 const lib = fs.readFileSync(path.join(ROOT, 'src/world/glsl/lib.glsl'), 'utf8').split('\n').filter((l) => /^(uint ih\(|uint ih2\(|float hf\()/.test(l)).join('\n');
 const FS = '#version 300 es\nprecision highp float; precision highp int; precision highp sampler2D;\nuniform uint uSalt; uniform sampler2D uIn, uIn2; uniform vec2 uW; uniform float uU; out vec4 o;\n' + lib + '\n' + G.airGustGlsl() +
   'void main() { ivec2 q = ivec2(gl_FragCoord.xy); vec4 a = texelFetch(uIn, q, 0), b = texelFetch(uIn2, q, 0); o = vec4(airGust(a.xy, uW, uU, b.x, a.z), 0.0, 0.0, 1.0); }   // (a: x, z, the surface\'s clock; b.x: the gust\'s wind there and then)\n';
@@ -30,10 +30,10 @@ for (const seed of [7, 1234567, 0x9e3779b9, 31337]) {
   const inp = new Float32Array(N * N * 4), inp2 = new Float32Array(N * N * 4), want = new Float64Array(N * N), R = G.RNG(G.subseed(seed, 99));
   for (let i = 0; i < N * N; i++) {
     const x = Math.fround(R.r(-20000, 20000)), z = Math.fround(R.r(-20000, 20000)), t = R.r(0, 600), T = G.airClock(t);
-    inp.set([x, z, T[0], 0], i * 4); inp2.set([G.airSpeed(Y, V) * G.airShare(Y, t) * G.weather(t)[2], 0, 0, 0], i * 4);
+    inp.set([x, z, T[0], 0], i * 4); inp2.set([G.gustSigma(Y, V, t) / G.AIR_GUST[0], 0, 0, 0], i * 4);
     want[i] = G.gustAt(x, z, Y, t, V);
   }
-  visits.push({ seed, salt: V.salt, w: V.wind, U: V.u10, inp: Array.from(inp), inp2: Array.from(inp2), want: Array.from(want), sigma: 0.26 * G.airSpeed(Y, V) });
+  visits.push({ seed, salt: V.salt, w: V.wind, U: V.u10, inp: Array.from(inp), inp2: Array.from(inp2), want: Array.from(want), sigma: G.AIR_GUST[0] * V.u10 * Math.exp(-1.5 * Y / G.AIR_GUST[3]) });
 }
 let PW; for (const n of [process.env.PW_CORE, 'playwright-core', 'playwright'].filter(Boolean)) { try { PW = createRequire(import.meta.url)(n); break; } catch {} }
 if (!PW) { console.log('::warning::gust-glsl: no playwright-core'); process.exit(2); }

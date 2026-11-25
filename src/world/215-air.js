@@ -316,14 +316,19 @@
      visit's wind frame, xi = x.w - U10 T along
      and eta = x.p across, both over L = AIR_GUST[1] U10: one reference speed (the visit's U10) carries and scales the
      field at every height, so a bird over a veil feels the veil's gust; the height sets only its size, AIR_GUST[0]
-     W(y) n. Each visit reads its own slice (its salt, uSalt in the shaders), carried on the surface's wind clock
+     U10 exp(-1.5 z / h) n (physics: air/gust-profile): the boundary layer's turbulence, sigma_u = 2.5 u* exp(-1.5 z / h)
+     in neutral air (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf, eq. 18.25a), scales
+     with the friction velocity u* (the surface's, U10's: kappa U10 / ln(10 / z0)) and so holds through the surface
+     layer and falls toward the layer's top, h the profile's own (1500 m, where it reaches the free air); a mean wind
+     faster aloft brings no stronger gusts (it did: 0.26 of the wind at every height, 10 m/s of gust at 9 km). The
+     surface's own size, AIR_GUST[0] U10 n, is kept. Each visit reads its own slice (its salt, uSalt in the shaders), carried on the surface's wind clock
      (airClock(t)[0]; the shaders' uAir.x). By day (s 1): the 3-s gust over the 10-min mean 1.43-1.68 (median 1.54), its e-fold 10-23 s (median
      13.6), the lag between points 100 m apart downwind within 2% of 100 / U10, nothing faster than 0.11 W a second
      (test/unit/air.mjs: 16 visits of 10 min); on a sky of surface share s, the e-fold and the lag are the day's over s
      (the moonlit sea's e-fold median 28.5 s, first light's 40.7 s). Still air: none. The veils lift with it (vs-ribbon, airGustGlsl); the
      birds read it as HOST.gust, HOST.gustPhase and HOST.gustSigma */
   var AIR_UT0 = 40;   // (the shaders' clock's lead over the flight's: 413's UT[0] = u + AIR_UT0)
-  var AIR_GUST = [0.26, 22, 1.92946], AIR_GOCT = [[1, 1, 0x27d4eb2d], [2.03, 0.5, 0x165667b1], [4.11, 0.25, 0x61c88647]];   // (intensity, time scale s, the noise's unit-variance gain; the octaves: frequency, amplitude, salt)
+  var AIR_GUST = [0.26, 22, 1.92946, 1500], AIR_GOCT = [[1, 1, 0x27d4eb2d], [2.03, 0.5, 0x165667b1], [4.11, 0.25, 0x61c88647]];   // (intensity, time scale s, the noise's unit-variance gain, the boundary layer's depth h m: sigma_u falls as exp(-1.5 z / h); the octaves: frequency, amplitude, salt)
   function aih(x) { x >>>= 0; x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16; return x >>> 0; }   // (lib.glsl's ih)
   function aLat(i, j, s) { var h = aih((Math.imul(i >>> 0, 0x8da6b343) ^ aih(((j >>> 0) + 0x68e31da4) >>> 0)) >>> 0); return ((aih((h ^ s) >>> 0) >>> 8) / 16777216) * 2 - 1; }   // (lib.glsl's ih2, then the octave's salt, hf)
   function aQ(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
@@ -335,9 +340,9 @@
     var f = airFrame(V), U = f.W; if (!(U > 0)) return 0; t = t === undefined ? SIM.t : t;
     var L = AIR_GUST[1] * U, sl = ((V || SIM.V || {}).salt || 0) >>> 0, ox = (aih(sl) >>> 8) / 16777216 * 4096, oz = (aih((sl + 1) >>> 0) >>> 8) / 16777216 * 4096;   // (the visit's own slice of the field: its salt, as uSalt)
     var T = airClock(t), xi = (x * f.x + z * f.z - U * T[0]) / L + ox, eta = (z * f.x - x * f.z) / L + oz;   // (carried at U10 on the surface's clock, at every height: the day's field, frozen, at the sky's pace)
-    return AIR_GUST[0] * weather(t)[2] * airSpeed(y, V) * airShare(y, t) * gustN(xi, eta);
+    return AIR_GUST[0] * weather(t)[2] * U * Math.exp(-1.5 * Math.max(y, 0) / AIR_GUST[3]) * airShare(y, t) * gustN(xi, eta);   // (sigma_u: u*'s, U10's, at every height of the surface layer, falling toward the layer's top)
   }
-  function gustSigma(y, V, t) { t = t === undefined ? SIM.t : t; return airFrame(V).W > 0 ? AIR_GUST[0] * weather(t)[2] * airSpeed(y, V) * airShare(y, t) : 0; }   // the gust's standard deviation at y m up, m/s (0 in still air)
+  function gustSigma(y, V, t) { t = t === undefined ? SIM.t : t; var U = airFrame(V).W; return U > 0 ? AIR_GUST[0] * weather(t)[2] * U * Math.exp(-1.5 * Math.max(y, 0) / AIR_GUST[3]) * airShare(y, t) : 0; }   // the gust's standard deviation at y m up, m/s (0 in still air)
   function gustPhase(x, z, y, t, V) { var f = airFrame(V); t = t === undefined ? SIM.t : t; return f.W > 0 ? airClock(t)[0] - (x * f.x + z * f.z) / f.W : NaN; }   // s: the field's own clock here (the surface's clock, less the way along the wind over U10; NaN in still air; the same at every height)
   /* THE AIR HEARD (physics: air/heard): the one air where the listener is, for the score (the sound icon's): the wind
      there (windAt, m/s along x and z), the gust's excess along it (gustAt, m/s, signed), the gust's sigma at that
@@ -349,8 +354,9 @@
     var w = windAt(x, z, y, t, V), wx = w.x, wz = w.z;
     return { x: wx, z: wz, gust: gustAt(x, z, y, t, V), sigma: gustSigma(y, V, t), phase: gustPhase(x, z, y, t, V), carry: u10Of(V) * weather(t === undefined ? SIM.t : t)[0], y: y };
   }
-  function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (the day's at its height x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
-    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n';
+  function airGustGlsl() {   // (the shaders' gust: the same field, the same constants; a vertex shader reads airGust(xz, w, U, W, tau): w the visit's wind direction, U its U10, W the gust's wind (airGustW(U, its height) x the sky's share x gustiness: uAir.y x uAir.z under 20 m), tau the surface's clock (uAir.x))
+    var o = AIR_GOCT, s = '#define AIR_GUST_I ' + airF(AIR_GUST[0]) + '\n#define AIR_GUST_T ' + airF(AIR_GUST[1]) + '\n#define AIR_GUST_H ' + airF(AIR_GUST[3]) + '\n#define AIR_VEILS_Y ' + airF(AIR_H.veils) + '\n';
+    s += 'float airGustW(float U, float y) { return U * exp(-1.5 * max(y, 0.0) / AIR_GUST_H); }\n';   // (the gust's wind at y: U10, falling toward the layer's top, as gustAt's)
     s += 'float airLat(int i, int j, uint s) { return hf(ih(ih2(ivec2(i, j)) ^ s)) * 2.0 - 1.0; }\n';
     s += 'float airVn(vec2 p, uint s) { vec2 c = floor(p), f = p - c, u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); ivec2 i = ivec2(c); float a = airLat(i.x, i.y, s), b = airLat(i.x + 1, i.y, s), cc = airLat(i.x, i.y + 1, s), d = airLat(i.x + 1, i.y + 1, s); return a + (b - a) * u.x + (cc - a) * u.y + (a - b - cc + d) * u.x * u.y; }\n';
     s += 'float airGustN(vec2 q) { return (' + o.map(function (k) { return airF(k[1]) + ' * airVn(q * ' + airF(k[0]) + ', ' + k[2] + 'u)'; }).join(' + ') + ') * ' + airF(AIR_GUST[2]) + '; }\n';

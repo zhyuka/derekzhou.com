@@ -687,8 +687,17 @@ physics: clouds/drift). It holds:
   surface share: 1 by day); each visit on its
   own slice (its salt). One reference speed, the visit's U10, carries the
   field and sets its scale (22 U10 m) at every height, so a bird over a
-  veil feels the veil's gust; the height sets only its size, 0.26 of the
-  wind there times unit noise. The 3-s gust over the 10-min mean
+  veil feels the veil's gust; the height sets only its size (physics:
+  air/gust-profile): 0.26 U10 exp(-1.5 z / h) times unit noise. That is
+  the boundary layer's turbulence, sigma_u = 2.5 u* exp(-1.5 z / h) in
+  neutral air (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf,
+  eq. 18.25a): with the friction velocity u* (U10's), held through the
+  surface layer (within 6% from 2 to 60 m) and falling toward the layer's
+  top, h 1500 m (the profile's own, where it meets the free air; there a
+  fifth of the surface's), all but gone aloft (under 0.1% at 7 km).
+  Before, it was 0.26 of the mean wind at every height, growing with the
+  log law and to 10 m/s in the jet at 9 km. The veils divide by the same
+  size (airGustW), so they look as they did. The 3-s gust over the 10-min mean
   1.43-1.68 (median 1.54), its e-fold by day 10-23 s (on a sky of
   surface share s, the day's over s), nothing faster than 0.11
   W a second; none in still air. Every reader carries it on one clock,
