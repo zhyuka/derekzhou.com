@@ -79,11 +79,12 @@ async function main() {
     return L;
   }, kind);
   const png = (arm) => arm.page.evaluate(() => document.querySelector('canvas.sky').toDataURL('image/png'));
+  const T0 = Date.now(), say = (m) => { if (A.verbose) console.error(`crops: ${((Date.now() - T0) / 1000).toFixed(0)} s ${m}`); };
   const browser = await launch(), sb = await serve(B.site), sh = await serve(H.site);
   const rec = { base: A.base, head: A.head, seed, vp: A.vp, frames: +A.frames };
   try {
     const h = await openPage(browser, sh.url, { vp: VP, epoch: EPOCH, seeds: [seed] });
-    if ((await stepToShow(h)) < 0) throw new Error('crops: the head never showed');
+    say('head built, opening'); if ((await stepToShow(h)) < 0) throw new Error('crops: the head never showed'); say('head shown');
     const st = await h.page.evaluate(() => { const D = window.__D, V = D.SIM.V, w = D.AIR.wx ? D.AIR.wx(0, V) : null; return { x: D.CS.x, z: D.CS.z, psi: D.CS.psi, oro: w ? w.oro : null }; });
     rec.opening = st;
     let cam;
@@ -100,12 +101,12 @@ async function main() {
     } else cam = [st.x, st.z, st.psi];
     const shots = Math.max(1, +(A.shots || 1)), every = +(A.every || 1250), small = SV, size = (arm, wh) => arm.page.setViewportSize({ width: wh[0], height: wh[1] }),
       shoot = async (arm) => { if (small) { await size(arm, [vw, vh]); await step(arm, 3); } const u = await png(arm); if (small) await size(arm, small); return u; },
-      series = async (arm) => { const o = [await shoot(arm)]; for (let k = 1; k < shots; k++) { await step(arm, every); o.push(await shoot(arm)); } return o; };   // (--stepvp WxH: the clock stepped at a small viewport, each shot at --vp: the frames between cost little)
+      series = async (arm) => { const o = [await shoot(arm)]; say('shot 0'); for (let k = 1; k < shots; k++) { await step(arm, every); o.push(await shoot(arm)); say(`shot ${k}`); } return o; };   // (--stepvp WxH: the clock stepped at a small viewport, each shot at --vp: the frames between cost little)
     await hold(h, cam[0], cam[1], cam[2]); await step(h, +A.frames);
-    cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
+    say('aimed and settled'); cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
     const HP = await series(h); rec.headErrors = h.logs; await h.ctx.close();
     const b = await openPage(browser, sb.url, { vp: VP, epoch: EPOCH, seeds: [seed] });
-    if ((await stepToShow(b)) < 0) throw new Error('crops: the base never showed');
+    say('base opening'); if ((await stepToShow(b)) < 0) throw new Error('crops: the base never showed'); say('base shown');
     await hold(b, cam[0], cam[1], cam[2], cam[3]); await step(b, +A.frames);
     const BP = await series(b); rec.baseErrors = b.logs; await b.ctx.close();
     // the crop and the diff, composed in a blank page (canvas 2D: no image library)
