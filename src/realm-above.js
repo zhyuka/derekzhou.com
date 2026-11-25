@@ -42,6 +42,19 @@
     C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0), w: Wt, h: Ht, seed: seed });
     if (poi) C.poi({ kind: 'tower', x: x, z: z, y: CRUISE, pass: Wt * 0.55 + 80 });
   }
+  /* the destination over the cloud sea (delight-visit 5, the cloud sea's half: 217 destKind's 'isle'): one great isle
+     on the landing's heading 7-8 km out, the isles' own form (floatIslandG and its temple) at about four times theirs:
+     r 460-540 m, so about 1 km across and 7-8 deg wide at 7.5 km, its keel DEST_KEEL m over the cruise so the flight
+     passes under it (nothing to steer round: no spheres), its top about 6 deg over the horizon. Its draws are the
+     destination's own seed (SEED0's: the land's), never the cell's stream. The first item of its 16 km cell, so the
+     streamer's lodDist measures its detail from it (coarse at the boot, full as the flight nears) */
+  var DEST_KEEL = 150;
+  function aDest(C) {
+    var D = W.dest(); if (!C.inside(D.x, D.z)) return;
+    var Q = K.RNG(K.hk(D.seed >>> 0, 93)), r = Q.r(460, 540), depth = r * Q.r(1.15, 1.35), y = CRUISE + DEST_KEEL + depth, size = r * Q.r(0.32, 0.4);
+    C.add({ kind: 'isle', x: D.x, z: D.z, air: true, y: y, yaw: Q.r(0, 360), r: r, depth: depth, size: size, seed: Q.seed() });
+    C.poi({ kind: 'destination', x: D.x, z: D.z, y: y - depth * 0.5, r: r * 1.15, top: y + size * 0.5, pass: r * 1.15 + 120 });   // (FLIGHT's ruler: r at most 800 m)
+  }
   function aIsland(C, R, x, z, y, r, stupaP) {
     var depth = r * R.r(1.0, 1.6);
     C.add({ kind: 'island', x: x, z: z, air: true, y: y, yaw: R.r(0, 360), r: r, depth: depth, stupa: R.f() < stupaP, seed: R.seed(), spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
@@ -85,6 +98,7 @@
       };
     },
     air: function (C, R) { aAir(C, R); },
+    dest: function (C, R) { aDest(C); },
     cell: function (C, R) {
       var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;
       if (s.kind === 1) {   // a canyon: walls of cloud on both sides of its axis, in runs, lower toward its mouths
