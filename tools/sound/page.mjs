@@ -1,7 +1,7 @@
 // page.mjs: the sound icon, pressed in headless Chromium against a build (2026-11-07; the live score, 2026-11-12). Not
 // served; CI's "The sound is opt-in" (tools/checks/38-sound.sh) runs it on build/site.
 //
-//   node tools/sound/page.mjs SITE [--net MBPS,RTT] [--first MS]    exit 1 on a miss; about 25 s
+//   node tools/sound/page.mjs SITE [--world] [--net MBPS,RTT] [--first MS]    exit 1 on a miss; about 25 s
 //
 // It prints the press to the first sound: when the score's first note begins (its scheduled start, the earliest of
 // the notes it starts), and when the output first passes -60 and -40 dBFS (an analyser on the way out), ms after the
@@ -9,6 +9,8 @@
 // down, RTT ms; 10,70 the slow profile of docs/sound.md, 1.44,562.5 Chrome's Slow 4G); the checks below still hold,
 // timed from the first sound (heard over -40 dBFS, waited for up to a minute) where it comes after 4 s. --first MS: a
 // miss too when the first note begins later than MS after the press, or never (38-sound: 1200 on the slow profile).
+// --world: the world running beside it, as on a phone (tools/sound/world.mjs: SwiftShader under a GPU's name, a
+// 180x390 window); without it the world keeps its still sky, as on any CPU renderer. 38-sound presses with it.
 // The build is served from a local folder with its own _headers' Permissions-Policy, and opened with the autoplay
 // policy a visitor's browser has (a gesture first). It fails when:
 //   - before the press (2 s): an audio context is made, or anything audio is requested, or the audio session is touched,
@@ -25,6 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
+import { WORLD_ARGS, WORLD_VIEWPORT, worldStub } from './world.mjs';
 
 const SITE = process.argv[2], NET = (process.argv[process.argv.indexOf('--net') + 1] || '').split(',').map(Number), FIRST = process.argv.includes('--first') ? +process.argv[process.argv.indexOf('--first') + 1] : 0;
 if (process.argv.includes('--first') && !(FIRST > 0)) { console.error('--first MS (e.g. 1200)'); process.exit(2); }
@@ -46,15 +49,17 @@ function serve(dir) {
   });
   return new Promise((ok) => s.listen(0, '127.0.0.1', () => ok(s)));
 }
+const WORLD = process.argv.includes('--world');
 function launch() {
-  const args = ['--no-sandbox', '--autoplay-policy=user-gesture-required'];
+  const args = ['--no-sandbox', '--autoplay-policy=user-gesture-required', ...(WORLD ? WORLD_ARGS : [])];
   if (process.env.CHROME_PATH) return PW.chromium.launch({ executablePath: process.env.CHROME_PATH, args });
   return PW.chromium.launch({ args });
 }
 
 const srv = await serve(SITE), origin = 'http://127.0.0.1:' + srv.address().port;
 const browser = await launch();
-const page = await browser.newPage();
+const page = await browser.newPage(WORLD ? { viewport: WORLD_VIEWPORT } : {});
+if (WORLD) await page.addInitScript(worldStub);
 const bad = [], audio = [], errs = [];
 page.on('pageerror', (e) => errs.push(String(e)));
 page.on('request', (q) => {
@@ -130,7 +135,7 @@ if (again.pressed !== 'true' || again.state !== 'running') bad.push(`after the t
 if (again.made !== 1 || audio.length !== 1) bad.push(`the third press made or fetched more (contexts ${again.made}, requests ${audio.length}; want 1 each)`);
 
 console.log(`before: ${before.made} contexts, ${before.shown ? 'shown' : 'hidden'}, pressed ${before.pressed}, score ${before.score ? 'registered' : 'missing'}`);
-console.log(`first sound${NET.length === 2 ? ` (${NET[0]} Mbps, ${NET[1]} ms)` : ''}: the first note begins ${when.note ?? '-'} ms after the press; heard over -60 dBFS at ${when['heard-60'] ?? '-'} ms, over -40 at ${when['heard-40'] ?? '-'} ms`);
+console.log(`first sound${NET.length === 2 ? ` (${NET[0]} Mbps, ${NET[1]} ms${WORLD ? ', the world running' : ''})` : WORLD ? ' (the world running)' : ''}: the first note begins ${when.note ?? '-'} ms after the press; heard over -60 dBFS at ${when['heard-60'] ?? '-'} ms, over -40 at ${when['heard-40'] ?? '-'} ms`);
 console.log(`press: session ${on.session}, ${on.made} context ${on.state} at ${on.rate} Hz, ${audio.length} request(s); ${on.notes} notes started by 4 s (${on.looping} sustained), ${later.notes} by 16 s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
 await browser.close(); srv.close();
 for (const b of bad) console.log('::error::' + b);

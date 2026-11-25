@@ -183,7 +183,10 @@
     /* the room and the air, filled a slice of samples at a time, in the order they always were, so every draw and every
        sample is what it would be at once. Sliced (the switch), each step is its own task, so the press never holds the
        page for the whole fill (about 55 ms of a desktop core, a third of a second on a slow phone); otherwise (the unit
-       test, the render tool) at once. The air's sources start with the music, when the last step is done */
+       test, the render tool) at once. Nine steps (the room 40,960 samples a step, each of the air's channels one): with
+       the world running each step waits behind one of its frames, and in 42 the first note came 1.3-1.6 s after the
+       press (2026-11-25); the longest step about 110 ms six times slower, under the room's own buffer set. The air's
+       sources start with the music, when the last step is done */
     var jobs = [], starts = [], begun = false;
     /* the room: 3.4 s of noise dying away (60 dB in 4.2 s), through four one-pole low-passes whose corner falls from
        12 kHz an octave every 0.55 s, so its highs die first and smoothly (about 4 s at 125 Hz, 2.9 at 500, 1.8 at 2 kHz,
@@ -194,7 +197,7 @@
       var n = Math.floor(3.4 * ctx.sampleRate), b = ctx.createBuffer(2, n, ctx.sampleRate), L = b.getChannelData(0), Rr = b.getChannelData(1), j = 0, sr = ctx.sampleRate;
       var a3 = Math.exp(-2 * Math.PI * 300 / sr), q0 = 0, q1 = 0, q2 = 0, fl = [0, 0, 0, 0], fr = [0, 0, 0, 0];
       jobs.push(function () {
-        for (var end = Math.min(n, j + 12288); j < end; j++) {
+        for (var end = Math.min(n, j + 40960); j < end; j++) {
           var t = j / sr, w0 = R.r(-1, 1), w1 = R.r(-1, 1), w2 = R.r(-1, 1), a = Math.exp(-2 * Math.PI * Math.min(11000, 12000 * Math.pow(2, -t / 0.55)) / sr), x, y, k;
           q0 = w0 + a3 * (q0 - w0); q1 = w1 + a3 * (q1 - w1); q2 = w2 + a3 * (q2 - w2);
           x = q0 + (w1 - q1); y = q0 + (w2 - q2);
@@ -220,7 +223,7 @@
         [0, 1].forEach(function (k) {
           var x = b.getChannelData(k), j = 0;
           jobs.push(function () {
-            for (var end = Math.min(n, j + 49152); j < end; j++) x[j] = R.r(-1, 1);
+            for (var end = Math.min(n, j + 524288); j < end; j++) x[j] = R.r(-1, 1);
             return j >= n;
           });
         });

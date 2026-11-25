@@ -24,6 +24,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
+import { WORLD_ARGS, WORLD_VIEWPORT, worldStub } from './world.mjs';
 
 const SITE = process.argv[2], arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? +process.argv[i + 1] : d; };
 const CPU = arg('cpu', 4), SEC = arg('seconds', 10), CHECK = process.argv.includes('--check');
@@ -42,22 +43,12 @@ const srv = http.createServer((q, r) => {
   r.end(fs.readFileSync(f));
 });
 await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
-const args = ['--no-sandbox', '--autoplay-policy=user-gesture-required', '--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+const args = ['--no-sandbox', '--autoplay-policy=user-gesture-required', ...WORLD_ARGS];
 const browser = await (process.env.CHROME_PATH ? PW.chromium.launch({ executablePath: process.env.CHROME_PATH, args }) : PW.chromium.launch({ args }));
-const page = await browser.newPage({ viewport: { width: 180, height: 390 } });
+const page = await browser.newPage({ viewport: WORLD_VIEWPORT });
 const errs = []; page.on('pageerror', (e) => errs.push(String(e)));
+await page.addInitScript(worldStub);
 await page.addInitScript(() => {
-  if (window.WebGL2RenderingContext) {   // (the harness's stubs: a GPU's name, fences signalled, parallel compiles done)
-    const G = WebGL2RenderingContext.prototype, gp = G.getParameter, gpp = G.getProgramParameter, gsp = G.getShaderParameter, gsy = G.getSyncParameter, ge = G.getExtension, gse = G.getSupportedExtensions;
-    G.getParameter = function (q) { if (q === 0x9246) return 'ANGLE (Qualcomm, Adreno (TM) 610, OpenGL ES 3.2)'; if (q === 0x9245) return 'Google Inc. (Qualcomm)'; return gp.call(this, q); };
-    G.clientWaitSync = function () { return 0x911A; };
-    G.getSyncParameter = function (s, q) { return q === 0x9114 ? 0x9119 : gsy.call(this, s, q); };
-    G.getProgramParameter = function (p, q) { return q === 0x91B1 ? true : gpp.call(this, p, q); };
-    G.getShaderParameter = function (s, q) { return q === 0x91B1 ? true : gsp.call(this, s, q); };
-    const PAR = { COMPLETION_STATUS_KHR: 0x91B1, maxShaderCompilerThreadsKHR() {} };
-    G.getExtension = function (n) { return n === 'KHR_parallel_shader_compile' ? PAR : ge.call(this, n); };
-    G.getSupportedExtensions = function () { const l = gse.call(this); return l && l.concat(['KHR_parallel_shader_compile']); };
-  }
   let S; window.__ticks = []; window.__frames = 0;
   const raf = window.requestAnimationFrame; window.requestAnimationFrame = function (f) { return raf.call(window, function (t) { window.__frames++; f(t); }); };
   Object.defineProperty(window, 'SCORE', { configurable: true, get() { return S; }, set(v) {   // (each tick timed, as the switch calls it)
