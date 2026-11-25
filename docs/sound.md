@@ -401,6 +401,7 @@ it):
 | the main thread, playing | | 0.8 ms a second of music; 95% of ticks under 1.5 ms, the longest 18-26 ms (a chord change, about twice in 7.6 min) |
 | the press, filled at once (before) | about 55 ms in one task | about 0.4 s in one task |
 | the press, sliced | the longest task about 20 ms; music about 0.25 s after the decode | the longest 130-220 ms; music about 0.6 s after |
+| the press, in 9 steps (2026-11-25; 42 before) | the room and the air ready 0.11 s after the press (0.24 before) | ready 0.30 s after (0.72), the longest step 105-114 ms, under the room's own 130 |
 
 The longest task left is Chrome preparing the room for convolution (3.4 s since round twenty-two; it was 4.8 s) when its buffer is set (about 20 ms on a
 desktop core, 120-220 ms at x6, measured alone): the score cannot slice it, and only a shorter room would shorten it,
@@ -419,6 +420,15 @@ The first note begins when its scheduled start comes; it is heard as it swells i
 
 On Slow 4G the first part itself (about 351 KB) takes about 2 s to come, and a round trip is half a second. Warm
 (the sheet from the HTTP cache) every network is as localhost.
+
+**With the world running** (2026-11-25, `page.mjs SITE --world --net 10,70`: tools/sound/world.mjs, the world on
+SwiftShader under a phone GPU's name in a 180x390 window, as on a phone; the table above has the world keeping its still
+sky, as on any CPU renderer): the first note began 1,346-1,628 ms after the press (five runs), over the mark, though the
+sheet's first part was decoded by 0.5 s. The score waited for its room and air, filled in 42 steps, each its own task
+and each waiting behind a frame of the world (ready at 1.02 s, the first note 0.3 s after its first tick). Filled in 9
+(the room 40,960 samples a step, the air's channels a step each: the same draws in the same order, so the same
+samples), they are ready by 0.3 s and the first note begins 744-820 ms after the press (six runs). 38-sound presses
+with the world running.
 
 The sheet has no line in 36-load-budget on purpose: a cold visit never loads it, so if one ever did, it would fail
 that check as an unbudgeted file. Decoded at 24 kHz it holds about 71 MB of memory (57 MB before round twenty-two's
@@ -442,7 +452,8 @@ tools/sound/page.mjs serves the build with its own Permissions-Policy, opens it 
 needing a gesture) and takes about 25 s. It prints the press to the first sound: when the first note begins (the
 earliest scheduled start of the notes the score starts) and when the output first passes -60 and -40 dBFS (an
 analyser on the way to the speakers). `--net MBPS,RTT` throttles the page's network with Chromium's own emulation
-(`--net 10,70` is the slow profile below; `--net 1.44,562.5` is Chrome's Slow 4G). It fails when:
+(`--net 10,70` is the slow profile below; `--net 1.44,562.5` is Chrome's Slow 4G); `--world` runs the world beside it
+(tools/sound/world.mjs), as 38-sound does. It fails when:
 
 - **before the press (2 s):** an audio context is made or anything audio is requested, or the icon is hidden or
   pressed, or the score has not registered;

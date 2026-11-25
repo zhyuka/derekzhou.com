@@ -60,7 +60,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
                              test/unit/cloudshadow.mjs (the clouds' shadows on the land: the chord, the ellipse, the wiring),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit
-                             far out: an fp32 replay), test/unit/destination.mjs (the horizon's destination: on the landing's
+                             far out: an fp32 replay), test/unit/dest-isle.mjs (the destination over the cloud sea: the great isle at its point, its keel over the cruise, its size and reach), test/unit/destination.mjs (the horizon's destination: on the landing's
                              heading 7-8 km out, the seed's alone, laid out by its own scale), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
@@ -155,6 +155,7 @@ tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*
                              events and kit), and the plan's worker (tools/plan.mjs makePlan's text, as a worker, with
                              tools/types/plan.d.ts): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/sound/world.mjs        The world running in headless Chromium for the sound's tools (SwiftShader under a GPU's name)
 tools/sound/cpu.mjs          The score's CPU with the world running: the audio thread's and the score's ticks, the main
                              thread slowed (tools/checks/49-sound-cpu.sh)
 tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
