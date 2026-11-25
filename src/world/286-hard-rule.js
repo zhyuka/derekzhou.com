@@ -54,5 +54,26 @@
         SIM.fixO++;
       }
     }
+    /* (wedged between two solids) each push above keeps HARD_IN from its own solid, but the next can move the camera back
+       inside an earlier one's: a few passes then hold every solid's HARD_IN, by its face as the flight sim measures it (a
+       landmark's side, top or the corner between; a core's sphere), moving the camera only where one is under it.
+       (Before: on #424's ground the camera, wedged between two, came 1.24 m from a face in 84 steps of a drag) */
+    for (var p = 0, m = 1; p < 3 && m; p++) for (m = 0, i = 0; i < O.length; i++) if (hardFloor(O[i])) m = ++SIM.fixO;
+  }
+  function hardFloor(o) {   // the camera moved to HARD_IN from o's face if nearer (its side, top or the corner between; a core's sphere): 1 if it moved
+    var dx = CS.x - o.x, dz = CS.z - o.z, d = Math.hypot(dx, dz), dy, q, s;
+    if (!o.c) {
+      dy = CS.y - o.y; s = Math.hypot(d, dy);
+      if (s - o.r >= HARD_IN - 1e-9 || s < 1e-6) return 0;
+      q = (o.r + HARD_IN) / s; CS.y = o.y + dy * q;
+    } else {
+      var dr = d - o.r, up = CS.y > (o.y0 + o.y1) / 2, dv = up ? CS.y - o.y1 : o.y0 - CS.y, a = Math.max(dr, 0), b = Math.max(dv, 0);
+      if (Math.hypot(a, b) + Math.min(Math.max(dr, dv), 0) >= HARD_IN - 1e-9) return 0;
+      s = a && b ? HARD_IN / Math.hypot(a, b) : 0;
+      if (s) { q = (o.r + a * s) / d; CS.y = up ? o.y1 + b * s : o.y0 - b * s; }   // (the corner: along the way to its edge)
+      else if (dr > dv) q = (o.r + HARD_IN) / d;
+      else { CS.y = up ? o.y1 + HARD_IN : o.y0 - HARD_IN; return 1; }
+    }
+    CS.x = o.x + dx * q; CS.z = o.z + dz * q; return 1;
   }
 

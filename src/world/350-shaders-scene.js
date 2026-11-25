@@ -11,7 +11,7 @@ float zcode() {
   float n = uProj.z, f = uProj.w, z = d * 2.0 - 1.0, lz = 2.0 * n * f / (f + n - z * (f - n));
   return lz >= 5.9e4 ? 1.0 : 0.5 + 0.5 * clamp(log2(max(lz, 1.0)) / 16.0, 0.0, 1.0);
 }
-float sceneA() { return gWater > 0.0 ? 0.49 * (1.0 - gWater) : zcode(); }
+float sceneA() { return zcode(); }
 `;
   /* (physics: sand/S2, a crisp brink) the main dunes' phase to the land's fragments: 11 floats (the phase unwrapped, its
      gradient, the height with the sites' share; the slip face's share, the slope the vertex took from them; dH and the

@@ -46,6 +46,7 @@
 // plant: {"file": "src/world/220-time-day.js", "find": "fx:{belt:0,nlc:1}", "with": "fx:{belt:0.4,nlc:1}", "why": "the belt drawn in the blue hour (the sun too low for it)"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;", "with": "SKYN.night[2] = reduced() ? 0 : 1;", "why": "the still twinkles: a hashed brightness frozen into its one frame"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);", "with": "float sX = 1.0, sx = 0.0;", "why": "no extinction: the stars as bright and as many at the horizon as overhead"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -659,7 +660,7 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   assert.ok(g.includes('float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }'), 'starMag');
   const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07);
   assert.ok(mag(1.02) < mag(0.3) && mag(0.3) < mag(0.07), 'brightest first');
-  assert.ok(g.includes('float bk = nightShow(starMag(b), ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
+  assert.ok(g.includes('float bk = nightShow(starMag(b) + sx, ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
   assert.ok(!/uSunD\.z \* \(/.test(g) && /, sk = uSunD\.z \* smoothstep/.test(g), 'the amount is only the stars\' on/off');
   const stars = [...WORLD.matchAll(/post:\{[^}]*stars:([\d.]+)/g)].map((m) => +m[1]);
   assert.equal(stars.length, 6); assert.ok(stars.every((x) => x === 1), `every sky's stars' amount is 1 (no blend between skies): ${stars}`);
@@ -1092,7 +1093,7 @@ test('physics: night/moon-phase: a near-full moon, lit by its hidden sun opposit
   const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
   const PH = +g.match(/const float MOON_PHASE = ([\d.]+);/)[1];
   assert.ok(g.includes('vec3 mn = mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz;') && g.includes('float mlit = smoothstep(-0.06, 0.06, dot(mn, msun));') && g.includes('vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);'), 'the moon\'s phase lines are not the ones this test models');
-  assert.ok(g.includes('c = mix(c, mix(c, uMoonC * (ma < mr + 0.1 ? moonFace(mn, uMoon.xyz) : 1.0), mlit), 1.0 - smoothstep('), 'the moon\'s unlit part is not the sky behind it (it would be painted darker)');
+  assert.ok(g.includes('c = mix(c, mix(c, mC * (ma < mr + 0.1 ? moonFace(mn, uMoon.xyz) : 1.0), mlit), 1.0 - smoothstep('), 'the moon\'s unlit part is not the sky behind it (it would be painted darker)');
   const ss = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
   const norm = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); }, cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   for (const e of [0, 5, 15, 30, 60]) for (const az of [0, 2.1]) {
@@ -1288,4 +1289,36 @@ test('night: the moon\'s face, the near side\'s albedo read bilinear, the maria 
   const lo = Math.min(...means), hi = Math.max(...means);
   assert.ok((hi - lo) / hi < 0.02, `the disc's mean light swings ${(100 * (hi - lo) / hi).toFixed(2)}% as it slides (at most 2%)`);
   console.log(`# moon face: mean light ${lo.toFixed(3)}-${hi.toFixed(3)} of the disc's colour, the darkest at ${MD}, a pixel's largest jump a quarter pixel on ${jump.toFixed(3)}`);
+});
+
+// the air's extinction (NIGHT, the hub's item of 2026-11-25): a star k (X - 1) magnitudes dimmer through X airmasses (the
+// revised relative optical air mass, https://doi.org/10.1364/AO.28.004735, as pvlib/atmosphere.py writes it), k in V 0.15
+// (La Palma's typical, https://www.ing.iac.es/Astronomy/observing/manuals/html_manuals/wht_instr/pfip/node244.html); the
+// shader's lines run here as JS: the flux against elevation follows 10^(-0.4 k X) (as a ratio to the zenith's, X 1), the
+// count of stars shown by elevation band falls toward the horizon (the faint first), nothing ever brighter than overhead
+test('night: the stars (and the moon) dimmed by airmass, the faint ones gone first low down', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (const L of ['const float EXT_V = 0.15; const vec3 EXT_K = EXT_V * vec3(0.07, 0.11, 0.20) / 0.11;',
+    'float airmass(float y) { float h = max(degrees(asin(clamp(y, 0.0, 1.0))), 0.0); return 1.0 / (sin(radians(h)) + 0.50572 * pow(h + 6.07995, -1.6364)); }',
+    'float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);', 'float bk = nightShow(starMag(b) + sx, ml);', 'b *= exp2(-0.4 * 3.3219281 * sx);',
+    'float mX = airmass(uMoon.y); vec3 mC = extTint(uMoonC, mX) * exp2(-0.4 * 3.3219281 * EXT_V * max(mX - 1.0, 0.0));',
+    'float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }', 'float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }'])
+    assert.ok(g.includes(L), `sky-body.glsl no longer holds, as run here: ${L}`);
+  const k = 0.15, X = (h) => 1 / (Math.sin(h * Math.PI / 180) + 0.50572 * Math.pow(h + 6.07995, -1.6364));
+  // the formula: sec z where the plane-parallel air holds (within 0.5% above 30 deg), finite at the horizon (about 38)
+  for (const h of [30, 45, 60, 90]) assert.ok(Math.abs(X(h) * Math.sin(h * Math.PI / 180) - 1) < 0.005, `X(${h}) ${X(h)} against sec z`);
+  assert.ok(X(0) > 35 && X(0) < 40 && X(90) > 0.999 && X(90) <= 1, `X(0) ${X(0)}, X(90) ${X(90)}`);
+  const mag = (b) => 6.2 - 4 * Math.log10(b / 0.07), show = (m, ml) => Math.max(0, Math.min(1, (ml - m) / 0.5));
+  const flux = (b, h, ml) => { const sx = k * Math.max(X(h) - 1, 0); return b * show(mag(b) + sx, ml) * Math.pow(2, -0.4 * 3.3219281 * sx); };
+  // a bright star (b 1, magnitude 1.6) against elevation: its flux over the zenith's is 10^(-0.4 k X) / 10^(-0.4 k), to 1e-6
+  let worst = 0;
+  for (let h = 3; h <= 90; h += 1) { const r = flux(1, h, 7) / flux(1, 90, 7), want = Math.min(1, Math.pow(10, -0.4 * k * X(h)) / Math.pow(10, -0.4 * k)); worst = Math.max(worst, Math.abs(r - want) / want); assert.ok(r <= 1 + 1e-12, `brighter at ${h} deg than overhead`); }
+  assert.ok(worst < 1e-6, `the flux against elevation off 10^(-0.4 k X) by ${worst}`);
+  // the field (b = 0.95 u^6 + 0.07, u uniform: starAt's draw) on a dark night (the limit 7): the share shown by band
+  const bands = [[2, 5], [5, 10], [10, 20], [20, 40], [40, 90]], share = bands.map(([a, z]) => {
+    let s = 0, n = 0; for (let h = a; h < z; h += 0.25) for (let i = 0; i < 400; i++) { const b = 0.95 * Math.pow((i + 0.5) / 400, 6) + 0.07; s += show(mag(b) + k * Math.max(X(h) - 1, 0), 7) > 0 ? 1 : 0; n++; } return s / n; });
+  for (let i = 1; i < share.length; i++) assert.ok(share[i - 1] < share[i] || share[i] === 1 && share[i - 1] === 1, `the stars shown by band (${bands.map((b) => b.join('-')).join(', ')} deg): ${share.map((v) => v.toFixed(3)).join(', ')}: not falling toward the horizon`);
+  assert.equal(share[4], 1, 'every star of the field overhead');
+  assert.ok(share[0] < 0.6, `low down (2-5 deg) ${share[0].toFixed(3)} of the field still shows`);
+  console.log(`# extinction: k ${k}, X(5) ${X(5).toFixed(2)}, X(20) ${X(20).toFixed(2)}; stars shown by band ${bands.map((b) => b.join('-')).join(', ')} deg: ${share.map((v) => v.toFixed(3)).join(', ')}`);
 });

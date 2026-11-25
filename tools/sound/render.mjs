@@ -66,7 +66,7 @@ const srv = http.createServer((q, r) => {
   h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVEfmt ', 8); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(2, 22);
   h.writeUInt32LE(24000, 24); h.writeUInt32LE(96000, 28); h.writeUInt16LE(4, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40);
   fs.writeFileSync(OUTF, Buffer.concat([h, data]));
-  const r = spawnSync('ffmpeg', ['-nostats', '-i', OUTF, '-af', 'ebur128=peak=true', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const r = spawnSync('ffmpeg', ['-nostats', '-i', OUTF, '-af', 'ebur128=peak=true', '-f', 'null', '-'], { encoding: 'utf8', maxBuffer: 1 << 28 }).stderr;   // (ebur128 logs a line every 0.1 s: past about 14 minutes that outgrew the 1 MB default and the summary was cut off)
   const I = (r.match(/I:\s+(-?[\d.]+) LUFS/g) || []).pop(), LRA = (r.match(/LRA:\s+(-?[\d.]+) LU/g) || []).pop(), TP = (r.match(/Peak:\s+(-?[\d.]+) dBFS/g) || []).pop();
   console.log(OUTF, T + ' s |', I, '|', LRA, '| true peak', TP);
 });
