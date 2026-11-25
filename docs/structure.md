@@ -100,6 +100,7 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the seven minified scripts from build/ship/; CI checks the build
 tools/props.mjs              The ink birds' renamed properties listed, none in another served file, a string of theirs or the DOM (50-props)
+tools/birds/twin.mjs         The shipped (minified) ink birds and the source side by side in the bird sim: every frame drawn and the score's feed equal (50-props)
 tools/glslmin.mjs            A shader's text without comments and spare space, token for token the same (the build's)
 tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
 tools/paint-trend.mjs        The first paint, base against head (the gate's paint-loads runners, --samples, and its paint job, --judge): words and the world's first frame, cold, timed
@@ -194,7 +195,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/48-tsc.sh (tsc --checkJs at zero: tools/tsc.mjs),
                              tools/checks/49-sound-cpu.sh (the score's CPU under its bars, the world running:
                              tools/sound/cpu.mjs)
-                             tools/checks/50-props.sh (the ink birds' renamed properties cross no script boundary: tools/props.mjs)
+                             tools/checks/50-props.sh (the ink birds' renamed properties cross no script boundary: tools/props.mjs; the shipped birds the source's, frame for frame: tools/birds/twin.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/reads.mjs (every file a check with `# inputs:` reads, written down), tools/checks/lib/rules_check.py (RULES.json's references exist),
