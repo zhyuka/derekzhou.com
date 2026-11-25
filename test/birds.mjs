@@ -549,3 +549,39 @@ test('crows tumble only in a rim\'s strong lift, the roll eased, never a pop', (
   assert.ok(jump <= MAXD, `the drawn roll jumped ${jump.toFixed(3)} rad in a step`);
   assert.ok(bank <= 40 * Math.PI / 180 + 1e-6, `a crow's flight banked ${(bank * 180 / Math.PI).toFixed(0)} deg`);
 });
+
+/* (physics #29, the hub 2026-11-25) one wind: a flying bird is carried by the air's own wind where it is, at its height over
+   the ground (the log law, as the host's wind at that height) and in the one gust field (as the host's gust at its place),
+   never a wind of the birds' own nor a per-bird jitter: two birds a few metres apart feel nearly the same gust, two far apart
+   don't. A landing bird keeps the step's one wind (its approach is planned in it) */
+test('one wind: a bird is carried by the air at its own height and place, gusts shared by near birds', () => {
+  const W = [5 * Math.SQRT1_2, 5 * Math.SQRT1_2];
+  let n = 0, worst = 0, landing = 0, landOff = 0; const near = [], far = [];
+  for (let seed = 1; seed <= 4; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.wind = W;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); const H = sim.host, ref = [0, 0, 0];
+    for (let k = 0; k < 60 * 20; k++) {
+      sim.step(); if (k % 10) continue;
+      const B = sim.B.BIRDS; let tNow = -1; for (const b of B) tNow = Math.max(tNow, b.stT);
+      for (const b of B) {
+        if (b.st !== 'fly' || b.stT !== tNow || b.cs) continue;   // (stepped this step, finely: a coarse flock's wind is read at its own steps)
+        if (b.P) { landing++; if (Math.hypot(b.wx - W[0], b.wz - W[1]) > 1e-9) landOff++; continue; }
+        const q = b.pp, hg = Math.max(2, q[1] - groundAt(q[0], q[2])); H.wind(ref, hg); const U = Math.hypot(ref[0], ref[2]), Uw = Math.hypot(W[0], W[1]), g = H.gust(q[0] + W[0] * (1 / 20), q[2] + W[1] * (1 / 20), hg), k2 = U > 0 ? 1 + g / U : 1;
+        worst = Math.max(worst, Math.hypot(b.wx - ref[0] * k2, b.wz - ref[2] * k2)); n++;
+      }
+      for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+        const a = B[i], c = B[j]; if (a.st !== 'fly' || c.st !== 'fly' || a.P || c.P) continue;
+        const d = Math.hypot(a.p[0] - c.p[0], a.p[2] - c.p[2]), dg = Math.hypot(a.wx - c.wx, a.wz - c.wz);
+        if (Math.abs(a.p[1] - c.p[1]) > 5) continue;
+        if (d < 8) near.push(dg); else if (d > 300) far.push(dg);
+      }
+    }
+  }
+  const med = (v) => { v.sort((x, y) => x - y); return v[v.length >> 1]; };
+  console.log(`# one wind: ${n} flying birds checked, off the air's own wind at their height and place by at most ${worst.toExponential(1)} m/s; ${landing} landing, ${landOff} off the step's wind; birds under 8 m apart differ by a median ${med(near).toFixed(3)} m/s (${near.length} pairs), over 300 m apart ${med(far).toFixed(3)} m/s (${far.length})`);
+  assert.ok(n > 2000, 'too few flying birds');
+  assert.ok(worst < 1e-6, `a bird carried off the air's own wind by ${worst.toExponential(1)} m/s`);   // (read where its step began and, the sim's clock being a step on, U dt downwind in the carried field)
+  assert.equal(landOff, 0, `${landOff} landing birds off the step's one wind`);
+  assert.ok(near.length > 200 && far.length > 60, "too few pairs");
+  assert.ok(med(near) < 0.3 * med(far), `near birds' winds differ by ${med(near).toFixed(3)} m/s, far ones' ${med(far).toFixed(3)}: a per-bird jitter, not one gust field`);
+});
