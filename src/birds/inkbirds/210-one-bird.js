@@ -24,7 +24,7 @@
   };
   var G = 9.81;
   var LIVE_R = 2600;           // m: the visitor's sky (the flocks within it counted) ...
-  var LIVE_N = { glow: 7, blue: 6, first: 6, moon: 4, day: 8 };   // ... this many flocks in it, by the sky
+  var LIVE_N = { glow: 7, blue: 6, first: 6, moon: 4 };   // ... this many flocks in it, by the sky
   var HOME_R = 1.25 * LIVE_R;   // m: past this a bird turns home (homeStep)
   var NEAR_R = 3000;           // m: a flock nearer than this flies every bird of it each step; farther, its leader a coarse step and the rest held in their places
   var COARSE = 0.5;            // s: the far flocks' step
@@ -235,7 +235,7 @@
   }
   function nextGoal(F) {
     var r = F.r, cls = skyCls(), k = weighted(r, GOALS[cls] || GOALS.glow);
-    if ((k === 'wheel' && !(F.kind === 'gull' || F.kind === 'stork' || (F.kind === 'crow' && cls !== 'blue'))) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';   // (in the blue hour the crows have roosted: no crow wheels)
+    if ((k === 'wheel' && !(F.kind === 'gull' || (F.kind === 'crow' && cls !== 'blue'))) || (k === 'loiter' && F.kind === 'goose')) k = 'commute';   // (in the blue hour the crows have roosted: no crow wheels)
     if (cls === 'moon' && !NIGHT_K[F.kind]) k = 'sink';   // (night: a crow, swallow or finch still up goes down to roost, under the sea of cloud, or else away)
     if (k === 'commute' && t > POP.passT && F.kind !== 'goose' && F.m.length <= 2 && r() < 0.25) { k = 'pass'; passTaken(r); }
     return newGoal(F, k, r, cls);
@@ -262,7 +262,7 @@
     return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, the wind in it) */
-  var WV = [0, 0, 0], SOAR_K = { gull: 1, stork: 1 }, SOAR_W = [0.12, 0.35];   // (soaring from 0.35 m/s of lift (its glide sinks about 0.2: gulls slope-soar dunes in a 4 m/s wind), on till under 0.12: its glide sinks about 0.2, so at the top of its band it sinks back into the stronger lift)
+  var WV = [0, 0, 0], SOAR_K = { gull: 1 }, SOAR_W = [0.12, 0.35];   // (soaring from 0.35 m/s of lift (its glide sinks about 0.2: gulls slope-soar dunes in a 4 m/s wind), on till under 0.12: its glide sinks about 0.2, so at the top of its band it sinks back into the stronger lift)
   function goalVel(F, b, dt) {
     var g = F.goal || nextGoal(F), r = F.r, v = b.K.v * paceOf(b), x = b.p[0], z = b.p[2], h = g.psi;
     g.eh += -g.eh * dt / 8 + 9 * DEG * Math.sqrt(2 * dt / 8) * lvG(r);

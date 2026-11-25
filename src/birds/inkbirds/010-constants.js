@@ -8,17 +8,8 @@
   /* the kinds of bird: their size (of a mid bird's span) */
   var SORTS = { goose: { size: 1.18 }, ibis: { size: 0.95 }, gull: { size: 1.05 }, heron: { size: 1.4 }, crow: { size: 0.8 }, finch: { size: 0.62 },
     swallow: { size: 0.5 }, stork: { size: 1.45 } };
-  /* which kinds fly which patterns, and how often (a day sky) */
-  var SORT_OF = {
-    skein: [['goose', 75], ['ibis', 25]],
-    line: [['ibis', 40], ['goose', 35], ['gull', 25]],
-    pair: [['gull', 40], ['goose', 20], ['crow', 20], ['swallow', 10], ['finch', 10]],
-    single: [['gull', 35], ['heron', 30], ['crow', 20], ['swallow', 10], ['finch', 5]],   // mostly the big, slow-beating kinds:
-    loose: [['crow', 35], ['gull', 30], ['finch', 20], ['swallow', 15]],                 // the small quick ones now and then
-    soar: [['stork', 1]]
-  };
   /* the world's skies read as times of day (cls: glow the afterglow; blue the blue hour; first the first light; moon the
-     night skies); any other sky is a day sky and flies the tables above. Per class: the patterns, the kinds a pattern flies */
+     night skies); no sky of the world's is any other (skyCls's 'day', with no sky from the host, flies glow's rows). Per class: the patterns, the kinds a pattern flies */
   var SKY_CLS = { afterglow: 'glow', bluehour: 'blue', firstlight: 'first', moonlit: 'moon', milkyway: 'moon', aurora: 'moon' };
   var LIFE = {
     glow:  { pat: [['skein', 27], ['line', 15], ['pair', 18], ['single', 25], ['loose', 15]],
