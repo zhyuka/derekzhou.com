@@ -13,7 +13,7 @@ import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 // the bank's rate, acceleration and jerk stay under a damped follow's own bounds, and neither the bank nor the heading
 // steps its acceleration as a drag begins. (Before: the heading trailed the view by 14 deg in the turn
 // and still more than 1.3 s after it, and the bank reached 5.9 deg, still rolling when the next drag began.)
-const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* dev: an input injected');
+const INPUT = cut(WORLD, '  var IDLE_K = 0;', '  /* the page\'s touch: one finger steers');
 const CONSTS = cut(WORLD, '  var HEAD_T = ', '\n', true) + '\n' + cut(WORLD, '  function damped2(', '\n  }\n', true);
 const FOLLOW = cut(WORLD, '    var want = CS.yawV + CS.phi, ', '    // (world6 step B) one framing');
 const BANK = cut(WORLD, '    var rl = ', '    directorStep(t);');
@@ -26,11 +26,11 @@ function testDrag(t) {
 function fly(drag = testDrag, { bank = true } = {}) {
   return vm.runInThisContext('(function (drag) {\n  \'use strict\';\n' +
     '  var PI = Math.PI, DEG = PI / 180, TH_MAX = 35 * DEG, DEVMODE = false, shown = true, SEEDR = 1, J = { seed: 1 };\n' + CONSTS +
-    '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0;\n' +
+    '  var OUT = { cssW: 1000 }, MOTION = { on: false };\n' +
     '  var INP = { dx: 0, dy: 0, down: false, rel: false, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
     '  var SIM = { V: {} }, SIM_DT = 1 / 60, DTMAX = 0.1, CSP = { yawV: 0, thU: 0 }, CLK = new Float64Array([0, -1]);\n' +
     '  var CS = { psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, roll: 0, rollV: 0, bank: 0, bankV: 0, yawRate: 0, ring: new Float32Array(12), ringP: new Float32Array(12), ringT: new Float32Array(12), ri: 0, om: 0, omP: 0, since: 9, lastIn: 0, auto: 0, idleAfter: 0 };\n' +
-    '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { return a - b; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
+    '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { return a - b; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n' +
     INPUT + '\n  var out = [], px = 0, was = false, V = { speed: 12 }, v = V.speed;\n' +
     '  for (var k = 0; k <= ' + STEPS + '; k++) {\n    var t = k / 60, dt = 1 / 60, s = drag(t);\n' +
     '    if (s.down) { if (!was && typeof REL !== "undefined") REL.n = 0; INP.down = true; INP.dx += s.x - px; if (typeof relAdd === "function") relAdd(s.x, 0, t * 1000); } else if (was) { INP.down = false; INP.rel = true; if (typeof relAdd === "function") { REL.tl = t * 1000; relAdd(px, 0, REL.t[(REL.i + REL_N - 1) % REL_N]); } }\n' +   // (the drag's samples and its lift, as onMove and onUp take them)
