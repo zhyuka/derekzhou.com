@@ -250,7 +250,7 @@
     return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, the wind in it) */
-  var WV = [0, 0, 0], SOAR_K = { gull: 1, stork: 1 }, SOAR_W = [0.12, 0.6];   // (soaring from 0.6 m/s of lift, on till under 0.12: its glide sinks about 0.2, so at the top of its band it sinks back into the stronger lift)
+  var WV = [0, 0, 0], SOAR_K = { gull: 1, stork: 1 }, SOAR_W = [0.12, 0.35];   // (soaring from 0.35 m/s of lift (its glide sinks about 0.2: gulls slope-soar dunes in a 4 m/s wind), on till under 0.12: its glide sinks about 0.2, so at the top of its band it sinks back into the stronger lift)
   function goalVel(F, b, dt) {
     var g = F.goal || nextGoal(F), r = F.r, v = b.K.v * paceOf(b), x = b.p[0], z = b.p[2], h = g.psi;
     g.eh += -g.eh * dt / 8 + 9 * DEG * Math.sqrt(2 * dt / 8) * lvG(r);
