@@ -624,9 +624,29 @@ physics: clouds/drift). It holds:
   (0.1 m 0.43 of U10, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22), in
   the surface's direction; from 100 to 300 m it eases to the low cloud
   layer's 1.3 U10, veered 20 deg, held to 1500 m; from 1500 to 3000 m to
-  the deck's 2 U10, veered 40 deg (the wind turns clockwise with height
-  toward the free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
+  2 U10, veered 40 deg (the wind turns clockwise with height toward the
+  free air's; https://www.ecmwf.int/sites/default/files/elibrary/2016/16644-wind-turning-boundary-layer.pdf,
   https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf).
+  Above 3000 m, the winds aloft (AIR_ALOFT): over the boundary layer the
+  wind is nearly geostrophic and grows with height by the thermal wind
+  (the westerlies' shear from the pole's colder air) to the polar jet's
+  core, about 9 km up, its 3-month average about 40 m/s
+  (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet/Ch11-General.pdf).
+  The speed rises in a line from 2 U10 at 3000 m to 40 m/s at 9 km, held
+  above, still veered 40 deg. It is not a share of U10 (the jet is the
+  planet's, not the visit's surface wind), so the profile gives the speed
+  as U10 s + add. The table, m/s at U10 3 / 5 / 7.5:
+
+  | height | m/s |
+  |---|---|
+  | 10 m | 3 / 5 / 7.5 |
+  | 100 m | 3.8 / 6.4 / 9.6 |
+  | 300 to 1500 m | 3.9 / 6.5 / 9.8 |
+  | 3000 m | 6 / 10 / 15 |
+  | 5000 m | 17.3 / 20 / 23.3 |
+  | 7000 m (the cirrus) | 28.7 / 30 / 31.7 |
+  | 9000 m and up | 40 |
+
   Each reader has a declared height (AIR_H); at a U10 of 6.5 m/s: the
   veils 5 m (5.9), the birds their own height (HOST.wind(o, y); 40 m by
   default, 7.6). Before physics: air/wind-profile the readers kept their
@@ -637,7 +657,7 @@ physics: clouds/drift). It holds:
 - The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
   7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
   International Cloud Atlas), its streaks along the air's wind there (the
-  profile's 2 U10 veered 40 deg, held above 3 km) and drifting with it; a
+  winds aloft: 29 to 32 m/s, veered 40 deg) and drifting with it; a
   noise tile 204.8 km along the wind and 51.2 km across (its texels 3.2 km by
   800 m), faded out under rd.y 0.105-0.44 where its texels would come under a
   pixel. A change's cover comes in by place: a front carried along that wind
@@ -1011,6 +1031,33 @@ AER_SUN 0.05 of the light) only adds light, its share over an even
 scatter (the sky's colour holds the even part), so far land toward a low
 sun or the moon brightens. Nothing veils with grey: in-scatter is the
 sky's light. fogAmt, the share a light's own glow loses, is the green's.
+
+## THE SAND'S RIPPLES
+
+src/glsl/dunes-glsl.glsl, shadeSand; measured in #420
+(tools/physics/ripple-size.py, review/420 on its crops branch). Two classes by
+the sand:
+
+- impact ripples on all the loose sand, RIP_I 0.15 m apart (wind ripples
+  run about a thousand grain diameters: https://arxiv.org/html/2501.10643v1);
+- megaripples, RIP_M 0.9 m apart, only where the sand is poorly sorted,
+  coarse grains among the fine (https://arxiv.org/pdf/2208.00888): the
+  interdune floors, level ground (n0.y 0.97-0.99) within RIP_FLOOR (1.5 m,
+  out by 3) of the dunes' troughs' floor (gAF, the land's height over the
+  mist pools' floor, set by 350's terrain stage), in patches.
+
+Each is faded by how many pixels its wavelength spans in its own direction
+(the wind's coordinate's change a pixel, from the footprint and the grazing angle: whole from 5 px a wavelength, gone under
+2.5), never by range: the old fade by footprint (0.012-0.05 m a pixel) lost
+the 0.9 m ripples where they resolve and never drew any on a phone. From the
+flight (14 m up, ground from 59 m) the impact ripples are a faint fine texture
+side-on near the bottom of a laptop frame and nothing facing or far. The
+megaripples read to about 112 m facing and much further side-on. Neither
+draws at the landing's range (its nearest ground 137-249 m). test/unit/ripples.mjs
+renders both classes on the laptop's and the phone's render targets and
+holds each, point-sampled with the shader's own fade, to the shading
+filtered at the pixel in motion: no more than half a level of flicker over it
+(from 4 and 2 px the impact ripples flickered 1.3).
 
 ## THE LARGE WORLD
 

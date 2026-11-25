@@ -46,7 +46,7 @@
       if (DRAG.type === 'touch' && TOUCHMODE === 'scroll' && Math.abs(dy) > Math.abs(dx)) return;   // (a vertical swipe on a page that scrolls is the page's: the browser takes it)
       DRAG.on = true; DOMQ.steer = 1; DOMQ.unsel = true; if (!running) domNext();   // (data-steer and the selection cleared in the next frame)
       if (DRAG.type === 'mouse') { try { root.setPointerCapture(e.pointerId); DRAG.cap = true; } catch (er) { DRAG.cap = false; } }
-      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0; REL.n = 0;   // (the first 8 px are taken too: the scene catches the finger up, drawn whole; the samples start at the place it caught up to, so the catch-up is no speed)
+      INP.down = true; DRAG.x = DRAG.x0; DRAG.y = DRAG.y0; REL.n = 0; REL.dwx = REL.sx = DRAG.x0; REL.dwy = REL.sy = DRAG.y0; REL.rs = true; REL.st = DRAG.type === 'mouse' ? Infinity : e.timeStamp - RS_TOUCH; if (DRAG.type !== 'mouse') REL.lat = Math.max(REL.lat, RS_TOUCH);   // (the first 8 px are taken too: the scene catches the finger up, drawn whole; the samples start at the place it caught up to, so the catch-up is no speed)
     }
     INP.dx += x - DRAG.x; INP.dy += y - DRAG.y; DRAG.x = x; DRAG.y = y; relAdd(x, y, e.timeStamp);   // (the first: the place the start caught up to)
     if (REC && !INP.evT0) INP.evT0 = e.timeStamp;   // (the record: the oldest move not yet drawn, for the input's latency)
@@ -78,7 +78,7 @@
   /* the phone's turn: yaw and pitch of the direction its back looks (the view's), from the device's own orientation angles (alpha, beta, gamma)
      (alpha about z, beta about x, gamma about y, in that order); the screen's rotation turns the picture about that
      direction and changes neither */
-  var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0 };
+  var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0, my: false, mp: false, vy: 0, vp: 0 };
   var MOTIONASK = { drag: false };
   /* (the owner, 2026-11-06: "Keep drag-only") the phone's turn is asked for only on iOS and iPadOS (an iPad behind a
      Mac user agent too): Chrome has DeviceOrientationEvent.requestPermission as well, grants it on a desktop's or an
@@ -110,6 +110,7 @@
   }
   /* each step: the drag's motion and the phone's into the flight's state */
   var IDLE_K = 0;
+  var MO_T = 0.1, MO_REST = 0.1 * DEG, MO_STILL = 0.3 * DEG;   // (the phone: its follow past the dead zone, and its rest: applyInput)
   /* each frame, before its steps (simAdvance, the frame's time fdt s): the view's own motion, in frame time on both
      states the camera is drawn between, so the frame that reads it draws it exactly, on any display and at any phase of
      the steps (drawn through the steps, a frame's drag turned 0, 1 or 2 frames' worth a frame, and the release's coast
@@ -134,7 +135,32 @@
      deg.) A drag shorter than RING_T s coasts by its share of it, as a 0.2 s ring of steps did; 0 against the drag (a
      fit's overshoot as the finger slows) */
   var RING_T = 0.18, REL_H = 100, REL_STOP = 24, REL_N = 128;   // (ms: the fit's reach, and at least 3 times: a long frame leaves one move a frame; the rest within 1 px that is a stop, 25 ms on any display)
-  var REL = { x: new Float64Array(REL_N), y: new Float64Array(REL_N), t: new Float64Array(REL_N), i: 0, n: 0, t0: 0, tl: -1e9, px: 0, py: 0, vx: 0, vy: 0 };
+  var REL = { x: new Float64Array(REL_N), y: new Float64Array(REL_N), t: new Float64Array(REL_N), i: 0, n: 0, t0: 0, tl: -1e9, px: 0, py: 0, vx: 0, vy: 0, dwx: 0, dwy: 0, lat: 0, rs: true, sx: 0, sy: 0, st: Infinity };   // (rs: a pointer's drag, resampled; a dev script's is drawn as given)
+  /* (the drag's feel on phones) while the finger is down, each frame draws it where it was at the frame's time less a
+     steady latency (REL.lat), between its own moves (relAt), never where the newest move happened to put it: a phone's
+     touch comes at 60-120 Hz with jitter, and a frame then caught 0, 1 or 2 moves, the view turning 0 to 2 times the
+     finger's travel a frame (60 Hz touch on a 120 Hz screen: every other frame stood still). The latency is the newest
+     move's age at the frames (its largest lately, eased down at RS_DECAY ms a second, at most RS_MAX): moves that come
+     just before each frame (a desktop's, coalesced) draw at once as before; uneven ones a steady few ms later. A
+     finger's or a pen's drag starts at RS_TOUCH ms (a phone's slowest touch, 60 Hz, and its late delivery), its first
+     8 px (the catch-up to the press) drawn over that time from the press's place (REL.sx, sy at REL.st: for the drawing
+     only, never in the release's speed): started from the newest move's age alone, the latency was caught out by the
+     first frame with no new move or a late one, and the drawn finger stood still a frame 0-0.3 s into the drag; seeded
+     at the second move, it stood still there instead, the catch-up already drawn whole. A mouse's drag starts as
+     before (its moves come just before each frame), its catch-up drawn whole. The
+     release's frame draws the finger whole, as before */
+  var RS_MAX = 24, RS_DECAY = 5, RS_TOUCH = 20;
+  function relAt(T) {   // the finger's place at T ms, between its moves (held at the ends; before the first, from the press's place)
+    var j0 = (REL.i - 1 + REL_N) % REL_N, k, j, jn;
+    if (T >= REL.t[j0]) return [REL.x[j0], REL.y[j0]];
+    for (k = 1; k < REL.n; k++) {
+      j = (j0 - k + REL_N) % REL_N; jn = (j + 1) % REL_N;
+      if (REL.t[j] <= T) { var u = REL.t[jn] > REL.t[j] ? (T - REL.t[j]) / (REL.t[jn] - REL.t[j]) : 1; return [REL.x[j] + (REL.x[jn] - REL.x[j]) * u, REL.y[j] + (REL.y[jn] - REL.y[j]) * u]; }
+    }
+    j = (j0 - REL.n + 1 + REL_N) % REL_N;
+    if (T > REL.st && REL.t[j] > REL.st) { var w = (T - REL.st) / (REL.t[j] - REL.st); return [REL.sx + (REL.x[j] - REL.sx) * w, REL.sy + (REL.y[j] - REL.sy) * w]; }
+    return REL.st < Infinity ? [REL.sx, REL.sy] : [REL.x[j], REL.y[j]];
+  }
   function relAdd(x, y, t) {
     if (!REL.n) REL.t0 = t;
     REL.x[REL.i] = x; REL.y[REL.i] = y; REL.t[REL.i] = t; REL.i = (REL.i + 1) % REL_N; if (REL.n < REL_N) REL.n++;
@@ -163,6 +189,11 @@
   function inputFrame(dt) {
     var fdt = Math.min(dt, DTMAX);
     if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } return; }
+    if (REL.rs && (INP.down || INP.rel) && REL.n) {   // (the finger resampled at the frame's time: relAt, above)
+      if (INP.down) REL.lat = Math.min(Math.max(CLK[1] - REL.t[(REL.i - 1 + REL_N) % REL_N], REL.lat - fdt * RS_DECAY), RS_MAX);
+      var fp = relAt(INP.down ? CLK[1] - REL.lat : Infinity);
+      INP.dx = fp[0] - REL.dwx; INP.dy = fp[1] - REL.dwy; REL.dwx = fp[0]; REL.dwy = fp[1];
+    }
     if (!INP.down && !INP.rel && (CS.om || CS.omP)) {
       var t0 = CS.ct, t1 = CS.ct + fdt, cy = runOn(CS.om, CS.tauY, t1) - runOn(CS.om, CS.tauY, t0), cp = runOn(CS.omP, CS.tauP, t1) - runOn(CS.omP, CS.tauP, t0);
       CS.yawV += cy; CSP.yawV += cy;
@@ -208,13 +239,21 @@
       CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
       CS.om = 0; CS.omP = 0; CS.since = 0;
     } else CS.since += dt;
-    // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg
+    // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg.
+    // (the phone held still) past the dead zone the view follows the phone all the way (over MO_T), and rests once the
+    // phone is still (its smoothed rate under MO_STILL) and the view within MO_REST of it: at rest it sits at the dead
+    // zone's middle, where the sensor's noise never reaches its edge. (Before: it followed only to the edge, 1.2 deg
+    // short, and sat there after every turn: the noise crossed the edge again and again, and the view crept on by the
+    // noise's own steps, 0.13-0.5 deg in 10 s held still, up to 0.15 deg in a step)
     if (MOTION.on && MOTION.has) {
-      var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1);
+      var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1), sy0 = MOTION.sy, sp0 = MOTION.sp, kv = 1 - Math.exp(-dt / 0.2);
       MOTION.sy += angDiff(ry, MOTION.sy) * k; MOTION.sp += (rp - MOTION.sp) * k;
-      var dz = 1.2 * DEG, ey = angDiff(MOTION.sy, CS.phi), ep = MOTION.sp - CS.thPraw;
-      if (Math.abs(ey) > dz) { CS.phi += ey - (ey > 0 ? dz : -dz); any = true; }
-      if (Math.abs(ep) > dz) { CS.thPraw += ep - (ep > 0 ? dz : -dz); any = true; }
+      MOTION.vy += (angDiff(MOTION.sy, sy0) / dt - MOTION.vy) * kv; MOTION.vp += ((MOTION.sp - sp0) / dt - MOTION.vp) * kv;
+      var dz = 1.2 * DEG, ey = angDiff(MOTION.sy, CS.phi), ep = MOTION.sp - CS.thPraw, kf = 1 - Math.exp(-dt / MO_T);
+      if (Math.abs(ey) > dz) MOTION.my = true;
+      if (Math.abs(ep) > dz) MOTION.mp = true;
+      if (MOTION.my) { CS.phi += ey * kf; any = true; if (Math.abs(ey) * (1 - kf) < MO_REST && Math.abs(MOTION.vy) < MO_STILL) MOTION.my = false; }
+      if (MOTION.mp) { CS.thPraw += ep * kf; any = true; if (Math.abs(ep) * (1 - kf) < MO_REST && Math.abs(MOTION.vp) < MO_STILL) MOTION.mp = false; }
       var L = 30 * DEG; CS.thP = L * Math.tanh(CS.thPraw / L);
     }
     if (any) {
@@ -226,7 +265,7 @@
   /* dev: an input injected at a step's time ({ t, drag: [dx, dy] } moves a held drag; { t, down } / { t, up } press and
      release; { t, orient: [alpha, beta, gamma] } the phone; { t, motion: true } motion enabled) */
   function devInput(ev) {
-    if (ev.down) { INP.down = true; REL.n = 0; REL.px = 0; REL.py = 0; relAdd(0, 0, ev.t * 1000); }
+    if (ev.down) { INP.down = true; REL.n = 0; REL.rs = false; REL.px = 0; REL.py = 0; relAdd(0, 0, ev.t * 1000); }
     if (ev.drag) { INP.qx += ev.drag[0]; INP.qy += ev.drag[1]; REL.px += ev.drag[0]; REL.py += ev.drag[1]; relAdd(REL.px, REL.py, ev.t * 1000); }
     if (ev.up) { INP.down = false; INP.rel = true; REL.tl = ev.t * 1000; }
     if (ev.motion) { MOTION.on = true; MOTION.st = 'on'; MOTION.ref = false; }

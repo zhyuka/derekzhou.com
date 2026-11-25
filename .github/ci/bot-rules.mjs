@@ -118,3 +118,29 @@ export function unreviewedLands(v) {
   if (!v.frames_identical) return { ok: false, why: `frames may change (${v.reason}): waits for the hub's review` };
   return { ok: true };
 }
+
+// Whether main's changes since a PR's gate base mean it must be gated again before it lands (2026-11-25, the hub).
+// shared: the areas (areas.json) both touched; same: the files both changed; approved: the hub reviewed its head.
+// A file both changed is always re-gated, reviewed or not: git merges the two line by line, and nothing tested that
+// tree (#405, reviewed: it and main's #411 both changed tools/visit/looks.json, the merge mixed two entry formats, and
+// main's gate went red on the ruler test). An area alone re-gates only an unreviewed PR: a reviewed one merges, and
+// main's gate tests it (#362: re-gating every reviewed PR after every landing serialised them).
+// A doc only people read is exempt (the hub, 03:01Z Nov 25: #427, reviewed, re-gated only because #414 had also edited
+// docs/world.md; nearly every PR edits a doc): a line-by-line merge of docs/*.md changes neither the served build (docs/
+// is never served) nor any check's result, but docs/structure.md, whose content docs-drift reads (a tool's line). The
+// checks that scan every tracked file (secrets, citations, the names) read a merged doc's lines, each of them one side's,
+// already checked on its own gate; main's gate checks the merge after it lands.
+export const mergeSafe = (f) => /^docs\/[^/]+\.md$/.test(f) && f !== 'docs/structure.md';
+export function regateAnswer({ shared = [], same: all = [], approved = false }) {
+  const same = all.filter((f) => !mergeSafe(f));
+  if (same.length) return { regate: true, why: `main changed ${same.length} of its file(s) since its gate (${same.slice(0, 5).join(', ')}): re-gated${approved ? ', the review holds' : ''}` };
+  if (shared.length && !approved) return { regate: true, why: `main touched the ${shared.join(', ')} area since its gate: re-gated` };
+  return { regate: false };
+}
+
+// The bot's own files (merge-bot.mjs's SELF): a PR changing one waits for the hub's review, its served build the base's or
+// not, since the bot runs main's copy on the next tick. Its workflow, its code and every module it imports (areas.mjs,
+// deploy-walk.mjs, this file), and the data it decides by (areas.json, the names guard and its list). #435 (2026-11-25)
+// changed this file, the list then held only merge.yml and merge-bot.mjs, and it landed with no review;
+// test/unit/merge-bot.mjs derives the list from the bot's imports and reads, so a new module cannot fall out of it.
+export const BOT_FILES = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', '.github/ci/areas.mjs', '.github/ci/areas.json', '.github/ci/deploy-walk.mjs', '.claude/hooks/guard.py', '.claude/hooks/names.json'];

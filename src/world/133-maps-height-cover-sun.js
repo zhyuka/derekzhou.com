@@ -129,15 +129,13 @@
       return o;
     };
 
-    // ---- the sun from the hour map (lat 40, declination 10)
+    // ---- the sun's azimuth from the hour map (lat 40, declination 10): the cover's aspect (coverWith)
     var lat = K.sky.lat * Math.PI / 180, dec = K.sky.decl * Math.PI / 180;
-    w.sunEl = function (HA) { var h = HA * Math.PI / 180; return Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(h)); };
     w.sunAz = function (HA) {
       var h = HA * Math.PI / 180;
       var az = Math.atan2(Math.sin(h), Math.cos(h) * Math.sin(lat) - Math.tan(dec) * Math.cos(lat));
       return az + Math.PI;
     };
-    w.sunDir = function (HA, out) { var e = w.sunEl(HA), a = w.sunAz(HA); out[0] = Math.cos(e) * Math.sin(a); out[1] = Math.sin(e); out[2] = Math.cos(e) * Math.cos(a); return out; };
 
     w.bounds = {
       T: w.aT * maxGrad(M.lamT, M.octT, M.gT, sT), lnP: w.aP * maxGrad(M.lamP, M.octP, M.gP, sP),

@@ -65,7 +65,7 @@ test('merge bot: the hub\'s review of a PR\'s head lands it (the owner, 2026-11-
   assert.match(bot, /if \(held\.length && !approved\)/, 'a needs-owner or visible label holds only an unreviewed PR');
   assert.match(bot, /if \(!approved && files\.some\(\(f\) => SELF\.includes\(f\)\)\)/, 'the bot\'s own files wait only for the review');
   assert.match(bot, /if \(!lone\.ok && !approved\)/, 'a visible change waits only for the review');
-  assert.match(bot, /if \(\(shared\.length \|\| same\.length\) && !approved\)/, 'a reviewed PR is not re-gated for every landing: it merges, and main\'s gate tests it');
+  assert.match(bot, /const rg = regateAnswer\(\{ shared, same, approved \}\);\n\s+if \(rg\.regate\) \{/, 'the landing path asks regateAnswer whether main\'s changes since its gate mean it is gated again');
   assert.match(bot, /for \(const p of pulls\) if \(await hubReviewed\(p, p\.head\.sha\)\) return true;/, 'live follows a reviewed landing');
   const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/merge.yml'), 'utf8');
   assert.match(yml, /types: \[opened, reopened, ready_for_review, labeled, unlabeled, edited\]/, 'the review line starts a tick at once');
@@ -132,3 +132,66 @@ test('merge bot: a served build that differs waits for the hub\'s review, even w
 });
 // plant: {"file": ".github/ci/bot-rules.mjs", "find": "if (v.site_changed !== false) return", "with": "if (false) return", "why": "a served build that differs, every T1 frame the base's, lands with no review (#373's planet)"}
 // plant: {"file": ".github/ci/merge-bot.mjs", "find": "if (!lone.ok && !approved) { note(lone.why); continue; }", "with": "if (!v.frames_identical && !approved) { note(lone.why); continue; }", "why": "the bot back on frames identical alone"}
+
+test('merge bot: a PR that shares a file with main\'s changes since its gate is re-gated, reviewed or not (#405, 2026-11-25)', async () => {
+  const { regateAnswer } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  // #405: gated at 23:06Z on base cf0a92d; main then took #410-#416, which changed three of its files; reviewed, it
+  // landed with no new gate (49e1116), looks.json merged line by line with #411's new entry format, main went red
+  const pr405 = ['tools/visit/looks.json', 'src/world/180-world-definition-two-kits-by.js', 'src/world/370-frame-uniforms.js', 'tools/visit/headings.mjs'];
+  const main = ['tools/visit/looks.json', 'src/world/180-world-definition-two-kits-by.js', 'src/world/370-frame-uniforms.js', 'test/unit/ruler.mjs'];
+  const same = pr405.filter((f) => main.includes(f));
+  const a = regateAnswer({ shared: ['frames', 'gpu'], same, approved: true });
+  assert.equal(a.regate, true, '#405: reviewed, three files main also changed: gated again before it lands');
+  assert.match(a.why, /3 of its file\(s\).*looks\.json/);
+  assert.equal(regateAnswer({ shared: [], same: ['tools/visit/looks.json'], approved: true }).regate, true, 'one shared file is enough');
+  assert.equal(regateAnswer({ shared: ['frames'], same: [], approved: true }).regate, false, '#362 kept: a reviewed PR sharing only an area merges, main\'s gate tests it');
+  assert.equal(regateAnswer({ shared: ['frames'], same: [], approved: false }).regate, true, 'an unreviewed PR sharing an area is re-gated, as before');
+  assert.equal(regateAnswer({ shared: [], same: [], approved: false }).regate, false, 'nothing shared: it merges');
+});
+
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "export const mergeSafe = (f) => /^docs\\/[^/]+\\.md$/.test(f) && f !== 'docs/structure.md';", "with": "export const mergeSafe = (f) => (/^docs\\/[^/]+\\.md$/.test(f) && f !== 'docs/structure.md') || f === 'tools/visit/looks.json';", "why": "the exemption widened to looks.json: #405's merge lands with no new gate"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "/^docs\\/[^/]+\\.md$/.test(f) && f !== 'docs/structure.md'", "with": "/^docs\\/[^/]+\\.md$/.test(f)", "why": "docs/structure.md exempt too: docs-drift reads a merge of it nothing tested"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "/^docs\\/[^/]+\\.md$/.test(f)", "with": "/\\.md$/.test(f)", "why": "any .md exempt, a folder's README or a skill's too"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "  const same = all.filter((f) => !mergeSafe(f));", "with": "  const same = all;", "why": "the exemption gone: every reviewed PR re-gated for a doc (#427)"}
+test('merge bot: a doc only people read, changed on both sides, re-gates nothing; docs/structure.md (docs-drift reads it) still does (2026-11-25)', async () => {
+  const { regateAnswer, mergeSafe } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  // #427, reviewed, re-gated at 02:54Z only because main's #414 had also edited docs/world.md
+  assert.equal(regateAnswer({ shared: ['docs'], same: ['docs/world.md'], approved: true }).regate, false, '#427: docs/world.md alone is no reason to re-gate a reviewed PR');
+  assert.equal(regateAnswer({ shared: [], same: ['docs/world.md', 'docs/deploy.md'], approved: true }).regate, false, 'two docs alone');
+  assert.equal(regateAnswer({ shared: [], same: ['docs/structure.md'], approved: true }).regate, true, 'docs/structure.md: docs-drift reads its lines');
+  const mixed = regateAnswer({ shared: [], same: ['docs/world.md', 'tools/visit/looks.json'], approved: true });
+  assert.ok(mixed.regate && /1 of its file\(s\).*looks\.json/.test(mixed.why) && !/world\.md/.test(mixed.why), 'a doc beside a code file: the code file re-gates, and the reason names it alone: ' + mixed.why);
+  for (const f of ['tools/visit/looks.json', 'docs/sub/x.md', 'docs/world.json', 'site/index.html', 'src/world/215-air.js', 'README.md', '.github/ci/areas.json']) assert.equal(mergeSafe(f), false, f + ' is not merge-safe');
+  for (const f of ['docs/world.md', 'docs/deploy.md', 'docs/verify.md']) assert.equal(mergeSafe(f), true, f + ' is merge-safe');
+  // every doc a check reads by its path stays out (the checks' and tests' sources, searched for docs/ paths in code)
+  const fs = await import('node:fs'), path = await import('node:path'), root = new URL('../../', import.meta.url).pathname;
+  const srcs = ['tools/checks', 'tools/checks/lib'].flatMap((d) => fs.readdirSync(path.join(root, d)).filter((f) => /\.(mjs|sh)$/.test(f)).map((f) => path.join(d, f)));
+  const read = new Set(); for (const f of srcs) for (const l of fs.readFileSync(path.join(root, f), 'utf8').split('\n')) { if (/^\s*(\/\/|#)/.test(l)) continue; for (const m of l.matchAll(/docs\/[a-z0-9-]+\.md/g)) read.add(m[0]); }
+  assert.ok(read.has('docs/structure.md'), 'docs-drift reads docs/structure.md');
+  for (const d of read) assert.equal(mergeSafe(d), false, `${d}: a check reads it, so a merge of it re-gates`);
+});
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "  if (same.length) return { regate: true,", "with": "  if (same.length && !approved) return { regate: true,", "why": "the old rule: a reviewed PR that shares files with main lands with no new gate (#405)"}
+// plant: {"file": ".github/ci/merge-bot.mjs", "find": "    if (rg.regate) {", "with": "    if (rg.regate && !approved) {", "why": "the bot skipping the re-gate for a reviewed PR whatever the rule says"}
+
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": "'.github/ci/merge-bot.mjs', '.github/ci/bot-rules.mjs', ", "with": "'.github/ci/merge-bot.mjs', ", "why": "#435's gap: a PR changing bot-rules.mjs lands with no review"}
+// plant: {"file": ".github/ci/merge-bot.mjs", "find": "const SELF = BOT_FILES;", "with": "const SELF = ['.github/workflows/merge.yml', '.github/ci/merge-bot.mjs'];", "why": "the bot back on its own two files"}
+// plant: {"file": ".github/ci/bot-rules.mjs", "find": " '.github/ci/areas.json',", "with": "", "why": "the areas map, which decides the re-gates, changed with no review"}
+test('merge bot: every file the bot runs or decides by is its own, and waits for the review (#435, 2026-11-25)', async () => {
+  const fs = await import('node:fs'), path = await import('node:path');
+  const { BOT_FILES } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
+  const R = new URL('../../', import.meta.url).pathname, rd = (f) => fs.readFileSync(path.join(R, f), 'utf8');
+  assert.match(rd('.github/ci/merge-bot.mjs'), /\nconst SELF = BOT_FILES;\n/, 'the bot\'s SELF is BOT_FILES');
+  // the bot's module graph: merge-bot.mjs and what it imports, relative, recursively; the data files they read
+  const want = new Set(['.github/workflows/merge.yml']), todo = ['.github/ci/merge-bot.mjs'];
+  while (todo.length) {
+    const f = todo.pop(); if (want.has(f)) continue; want.add(f);
+    const src = rd(f);
+    for (const m of src.matchAll(/from '(\.\.?\/[^']+)'|import\('(\.\.?\/[^']+)'\)/g)) todo.push(path.posix.normalize(path.posix.join(path.posix.dirname(f), m[1] || m[2])));
+    for (const m of src.matchAll(/'([\w-]+\.json)'/g)) { const j = path.posix.join(path.posix.dirname(f), m[1]); if (fs.existsSync(path.join(R, j))) want.add(j); }
+    for (const m of src.matchAll(/'(\.claude\/hooks\/[\w.-]+)'/g)) { want.add(m[1]); if (m[1].endsWith('guard.py')) want.add('.claude/hooks/names.json'); }
+  }
+  for (const f of want) assert.ok(BOT_FILES.includes(f), `${f}: the bot runs on it, so a change to it waits for the hub's review (BOT_FILES)`);
+  for (const f of ['.github/ci/bot-rules.mjs', '.github/ci/areas.json', '.claude/hooks/guard.py']) assert.ok(want.has(f), `(the graph found ${f})`);
+  for (const f of BOT_FILES) assert.ok(fs.existsSync(path.join(R, f)), f + ' exists');
+});
+

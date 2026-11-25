@@ -4,7 +4,7 @@
      baked opening still matches the cut and reduced motion (SIM.t held) holds every cloud still.
      The wind at a cloud's level is the air's (215-air.js): the day's wind (airBase: the sky's share 1, so a cloud's drift
      never changes with the sky over a visit, its place a pure function of t) at the layer's declared height (AIR_H.clouds, the low
-     layer's free clouds; AIR_H.deck, the 3000 m deck); the cloud sea is held. The profile is the air's to give
+     layer's free clouds; AIR_H.deck, the cirrus deck 7 km up, in the winds aloft); the cloud sea is held. The profile is the air's to give
      (physics: air/wind-profile); nothing here holds a wind of its own. */
   function cloudWind(V, layer, out) {
     var o = out || new Float64Array(2);
