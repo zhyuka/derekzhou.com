@@ -312,7 +312,10 @@ little at kept luminance. The field's magnitudes stand as seen overhead, so only
 the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
 sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
-test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own. The Milky Way's band takes no
+extinction factor: its brightness is the look as seen through the air, tuned by
+eye as it stands low in the frame, so an airmass factor would count the air twice
+(the hub's ruling, 2026-11-25, closing #490).
 
 Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
 scattered into the sky at each direction by the published moonlight model
