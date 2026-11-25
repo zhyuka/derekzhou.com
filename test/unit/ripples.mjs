@@ -6,6 +6,7 @@
 // REPEAT reads it: the gradient's jump across a border, plain against remapped).
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "    vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));", "with": "    vec4 nz = n3v(vec3(p.xz / 61.0, 0.71));", "why": "the ripples warped by the plain (C0) read again"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  float kI = 1.0 - smoothstep(0.2, 0.4, fwD / RIP_I);", "with": "  float kI = 1.0;", "why": "true-size ripples point-sampled with no fade by their pixels: they glitter in motion"}
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  float rk = (1.0 - steep) * smoothstep(0.906, 0.927, n0.y);", "with": "  float rk = 1.0 - steep;", "why": "ripples on the slip faces again, which their avalanches wipe"}
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
@@ -112,4 +113,12 @@ test('ripples: megaripples only on the interdune floors, the sand class stated w
   assert.ok(!/smoothstep\(0\.012, 0\.05, fp\)/.test(sand), 'today\'s footprint fade is back');
   const S350 = fs.readFileSync(path.join(ROOT, 'src/world/350-shaders-scene.js'), 'utf8');
   assert.ok(S350.includes("gAF = vW.y - vMB.x;"), 'the terrain no longer gives the sand its height over the troughs\' floor');
+});
+
+test('ripples: none on a slip face (over 25 deg), whole on the stoss (under 22 deg)', () => {
+  const sand = body(G, /vec3 shadeSand\(/), m = sand.match(/float rk = ([^;]+);/); assert.ok(m, 'rk in shadeSand');
+  const steepOf = (ny) => { const m2 = sand.match(/float steep = smoothstep\(([0-9.]+), ([0-9.]+), 1\.0 - n0\.y\);/); assert.ok(m2, 'steep in shadeSand'); return ss(+m2[1], +m2[2], 1 - ny); };
+  const rk = (deg) => { const ny = Math.cos(deg * Math.PI / 180); return new Function('ss', 'steep', 'n0', 'return ' + m[1].replace(/\bsmoothstep\(/g, 'ss(') + ';')(ss, steepOf(ny), { y: ny }); };
+  for (const d of [25, 28, 32, 34]) assert.ok(rk(d) < 0.002, `ripples at ${d} deg (${rk(d).toFixed(3)}): a slip face's avalanches wipe them`);
+  for (const d of [0, 9, 13.5, 20]) assert.ok(rk(d) > 0.99, `the stoss's ripples cut at ${d} deg (${rk(d).toFixed(3)})`);
 });

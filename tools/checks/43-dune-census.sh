@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check: The shipped dunes meet the sand spec (physics: sand/S1)
+# plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "fl = clamp(flr, 0.04, 0.6), L = 1.0 - fl", "with": "fl = 0.5, L = 1.0 - fl", "why": "a symmetric profile: the lee no steeper than the stoss, its mode off the angle of repose (32-34 deg measured: https://doi.org/10.1002/2015JF003636)"}
 # plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "float m = dot(G0, g) + sqrt(", "with": "float m = 1.3 * dot(G0, g) + 0.3 + sqrt(", "why": "the slip faces steeper than the angle of repose"}
 # (the LAND lane, 2026-11-15; the hub's review of #271) the slopes of the land the page draws, from its own probe
 # under SwiftShader (tools/physics/dune-census-gpu.mjs: the land alone, a 2 m grid over 800 m about the landing, seed 3,
