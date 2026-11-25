@@ -1,7 +1,7 @@
 // tools/clouds/crops.mjs: base|head crops of the world in a cloud session (headless SwiftShader on T1's harness), for a
 // visible PR's review branch (claude/review-<N>-crops), with no GPU and no one's own machine.
 //   node tools/clouds/crops.mjs --base REF --head REF --out DIR [--seed N] [--aim KIND | --cam X,Z,PSI] [--dist M]
-//        [--vp 960x600] [--frames 600] [--epoch ISO] [--crop X0,Y0,X1,Y1] [--walk 16] [--shots 1 --every 1250]
+//        [--vp 960x600] [--frames 600] [--epoch ISO] [--crop X0,Y0,X1,Y1] [--walk 16] [--shots 1 --every 1250] [--stepvp 160x100]
 // Each REF (a commit, branch or tag) is checked out in a temporary worktree of this repository (node_modules linked from
 // here), built plain (tools/build.mjs --plain), and its world script remade as a SCRATCH TWIN: the shipped assembly
 // (tools/parts.mjs assemble --ship), one line after `window.WORLD = {...}` handing the harness the camera, the clock and
@@ -63,7 +63,7 @@ async function main() {
   const A = args(process.argv.slice(2));
   const { launch, openPage, stepToShow, step } = await import(pathToFileURL(path.join(ROOT, '.github/ci/harness.mjs')).href);
   const { serve } = await import(pathToFileURL(path.join(ROOT, '.github/ci/serve.mjs')).href);
-  const [vw, vh] = A.vp.split('x').map(Number), VP = [vw, vh, 1], EPOCH = Date.parse(A.epoch), seed = +A.seed;
+  const [vw, vh] = A.vp.split('x').map(Number), SV = A.stepvp ? A.stepvp.split('x').map(Number) : null, VP = SV ? [SV[0], SV[1], 1] : [vw, vh, 1], EPOCH = Date.parse(A.epoch), seed = +A.seed;
   fs.mkdirSync(A.out, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'crops-')), tb = path.join(tmp, 'base'), th = path.join(tmp, 'head');
   fs.mkdirSync(tb); fs.mkdirSync(th);
@@ -79,11 +79,12 @@ async function main() {
     return L;
   }, kind);
   const png = (arm) => arm.page.evaluate(() => document.querySelector('canvas.sky').toDataURL('image/png'));
+  const T0 = Date.now(), say = (m) => { if (A.verbose) console.error(`crops: ${((Date.now() - T0) / 1000).toFixed(0)} s ${m}`); };
   const browser = await launch(), sb = await serve(B.site), sh = await serve(H.site);
   const rec = { base: A.base, head: A.head, seed, vp: A.vp, frames: +A.frames };
   try {
     const h = await openPage(browser, sh.url, { vp: VP, epoch: EPOCH, seeds: [seed] });
-    if ((await stepToShow(h)) < 0) throw new Error('crops: the head never showed');
+    say('head built, opening'); if ((await stepToShow(h)) < 0) throw new Error('crops: the head never showed'); say('head shown');
     const st = await h.page.evaluate(() => { const D = window.__D, V = D.SIM.V, w = D.AIR.wx ? D.AIR.wx(0, V) : null; return { x: D.CS.x, z: D.CS.z, psi: D.CS.psi, oro: w ? w.oro : null }; });
     rec.opening = st;
     let cam;
@@ -98,12 +99,15 @@ async function main() {
       const c = L[0], d0 = Math.hypot(c.x - x, c.z - z) || 1, ux = (c.x - x) / d0, uz = (c.z - z) / d0;
       cam = [c.x - ux * +A.dist, c.z - uz * +A.dist, Math.atan2(ux, uz)]; rec.aimed = { kind: A.aim, ...c, laidOut: L.length };
     } else cam = [st.x, st.z, st.psi];
-    const shots = Math.max(1, +(A.shots || 1)), every = +(A.every || 1250), series = async (arm) => { const o = [await png(arm)]; for (let k = 1; k < shots; k++) { await step(arm, every); o.push(await png(arm)); } return o; };
+    const shots = Math.max(1, +(A.shots || 1)), every = +(A.every || 1250), small = SV, size = (arm, wh) => arm.page.setViewportSize({ width: wh[0], height: wh[1] }),
+      settle = async (arm, wh) => { for (let i = 0; i < 120; i++) { if (await arm.page.evaluate(([w, h]) => { const c = document.querySelector('canvas.sky'); return c.width === w && c.height === h; }, wh)) { await step(arm, 3); return; } await step(arm, 1); } throw new Error(`crops: the canvas never took ${wh.join('x')}`); },   // (the world sizes its canvas on its own frames)
+      shoot = async (arm) => { if (small) { await size(arm, [vw, vh]); await settle(arm, [vw, vh]); } const u = await png(arm); if (small) { await size(arm, small); await settle(arm, small); } return u; },
+      series = async (arm) => { const o = [await shoot(arm)]; say('shot 0'); for (let k = 1; k < shots; k++) { await step(arm, every); o.push(await shoot(arm)); say(`shot ${k}`); } return o; };   // (--stepvp WxH: the clock stepped at a small viewport, each shot at --vp: the frames between cost little)
     await hold(h, cam[0], cam[1], cam[2]); await step(h, +A.frames);
-    cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
+    say('aimed and settled'); cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
     const HP = await series(h); rec.headErrors = h.logs; await h.ctx.close();
     const b = await openPage(browser, sb.url, { vp: VP, epoch: EPOCH, seeds: [seed] });
-    if ((await stepToShow(b)) < 0) throw new Error('crops: the base never showed');
+    say('base opening'); if ((await stepToShow(b)) < 0) throw new Error('crops: the base never showed'); say('base shown');
     await hold(b, cam[0], cam[1], cam[2], cam[3]); await step(b, +A.frames);
     const BP = await series(b); rec.baseErrors = b.logs; await b.ctx.close();
     // the crop and the diff, composed in a blank page (canvas 2D: no image library)
