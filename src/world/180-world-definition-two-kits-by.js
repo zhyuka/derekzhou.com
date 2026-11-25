@@ -159,7 +159,7 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       light: function (R, V) { return KD.light(R, V); },
       lightB: function (R, V) { return KA.light(R, V); },
       cell: function (C, R, K2) {
-        if (C.scale === 5) { var A5 = kitApi(C, 'dunes', densD, false); A5.add = function (it) { it.kit = 'dunes'; return C.add(it); }; A5.poi = C.poi; if (KD.dest) KD.dest(A5, R, K2); }   // (the destination: kept whatever the density draws)
+        if (C.scale === 5) { var DK = destKind(destOf()).kind === 'isle' && KA.dest ? KA : KD, kn = DK === KA ? 'above' : 'dunes', A5 = kitApi(C, kn, DK === KA ? densA : densD, DK === KA); A5.add = function (it) { it.kit = kn; return C.add(it); }; A5.poi = C.poi; if (DK.dest) DK.dest(A5, R, K2); }   // (the destination: kept whatever the density draws; 217 destKind: the above kit's isle over the cloud sea once it has a dest hook, else the dunes kit's rock)
         else if (C.scale === 3) { if (KD.air) KD.air(kitApi(C, 'dunes', densD, false), R, K2); }
         else if (C.scale === 4) { if (KA.air) KA.air(kitApi(C, 'above', densA, true), R, K2); }
         else if (C.scale < 2) KD.cell(kitApi(C, 'dunes', densD, false), R, K2);
