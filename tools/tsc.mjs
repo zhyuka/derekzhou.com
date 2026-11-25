@@ -1,7 +1,8 @@
 // tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), src/realm-*.js,
-// the sound (src/sound.js, src/score.js) and the page's own scripts (site/hour.js, site/site.js: copies, cast from the
-// side), with tools/types/world.d.ts for what TypeScript's DOM types lack. Not a build step and not a dependency (the
-// owner's no-frameworks rule: terser alone to build): it runs a pinned TypeScript through npx, into npm's cache.
+// the sound (src/sound.js, src/score.js), the page's own scripts (site/hour.js, site/site.js: copies, cast from the
+// side), the ink birds (inkbirds.js, assembled) and their wing model (src/birds/model/), with tools/types/world.d.ts
+// for what TypeScript's DOM types lack. Not a build step and not a dependency (the owner's no-frameworks rule: terser
+// alone to build): it runs a pinned TypeScript through npx, into npm's cache.
 //   node tools/tsc.mjs           print each error as section:line (the world) or file:line (the realms, the sound, the
 //                                page), and the counts; exit 1 if there is any (tools/checks/48-tsc.sh: every gate), 2 if
 //                                tsc did not run or a site cast's anchor is gone
@@ -94,5 +95,41 @@ for (const l of (r4.stdout || '').split('\n')) {
 }
 if (r4.status !== 0 && !n4) { process.stderr.write(r4.stderr || r4.stdout || 'tsc did not run\n'); process.exit(2); }
 console.log(`tsc --checkJs: ${n4} error(s) in the page's scripts`);
+// the ink birds' wing model (src/birds/model/, served as written): each file sets its one global on self (world.d.ts's
+// Window: FACETFORM, FACETPOSE, WINGMODEL, WINGMODEL_DATA, LABBIRD, BIRDWING), checked together as the page loads them.
+// The four functions' tails also export them as CommonJS (the lab and the generators load them in Node); tsc reads that
+// as a module, so the copies checked here have module renamed, as the world's (world.d.ts declares CJS_MODULE); each
+// line is the file's own
+const modelDir = path.join(ROOT, 'src/birds/model'), modelCopies = [];
+for (const f of fs.readdirSync(modelDir).filter((x) => x.endsWith('.js')).sort()) {
+  const c = path.join(out, 'model-' + f); fs.writeFileSync(c, fs.readFileSync(path.join(modelDir, f), 'utf8').replace(/\bmodule\b/g, 'CJS_MODULE')); modelCopies.push(c);
+}
+const r5 = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
+  ...modelCopies, path.join(ROOT, 'tools/types/world.d.ts')], { encoding: 'utf8' });
+let n5 = 0;
+for (const l of (r5.stdout || '').split('\n')) {
+  const m = /model-([\w-]+\.js)\((\d+),\d+\): (error TS\d+: .*)/.exec(l); if (!m) continue;
+  console.log(`src/birds/model/${m[1]}:${m[2]}  ${m[3]}`); n5++;
+}
+if (r5.status !== 0 && !n5) { process.stderr.write(r5.stderr || r5.stdout || 'tsc did not run\n'); process.exit(2); }
+console.log(`tsc --checkJs: ${n5} error(s) in the wing model`);
+// the ink birds (the assembled inkbirds.js, src/birds/inkbirds/'s sections), as the page loads them after the wing model
+// (world.d.ts declares its globals and WORLD.birds); each assembled line back to its section, as the world's
+const ib = path.join(out, 'inkbirds.js'), ibAsm = fs.readFileSync(ib, 'utf8'), ibStarts = []; let ibPos = 0;
+for (const f of fs.readdirSync(path.join(ROOT, 'src/birds/inkbirds')).filter((x) => /^\d{3}-.*\.js$/.test(x) && !x.endsWith('.ship.js')).sort()) {
+  const t = fs.readFileSync(path.join(ROOT, 'src/birds/inkbirds', f), 'utf8'), probe = t.split('\n').find((l) => l.trim().length > 20 && !l.includes('@glsl'));
+  const i = probe ? ibAsm.indexOf(probe, ibPos) : -1; if (i < 0) continue;
+  ibStarts.push([ibAsm.slice(0, i).split('\n').length - (t.slice(0, t.indexOf(probe)).split('\n').length - 1), 'src/birds/inkbirds/' + f]); ibPos = i;
+}
+const r6 = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
+  ib, path.join(ROOT, 'tools/types/world.d.ts')], { encoding: 'utf8' });
+let n6 = 0;
+for (const l of (r6.stdout || '').split('\n')) {
+  const m = /inkbirds\.js\((\d+),\d+\): (error TS\d+: .*)/.exec(l); if (!m) continue;
+  let s6 = ibStarts[0]; for (const x of ibStarts) if (x[0] <= +m[1]) s6 = x;
+  console.log(s6 ? `${s6[1]}:${+m[1] - s6[0] + 1}  ${m[2]}` : `inkbirds.js:${m[1]}  ${m[2]}`); n6++;
+}
+if (r6.status !== 0 && !n6) { process.stderr.write(r6.stderr || r6.stdout || 'tsc did not run\n'); process.exit(2); }
+console.log(`tsc --checkJs: ${n6} error(s) in the ink birds`);
 fs.rmSync(out, { recursive: true, force: true });
-process.exit(n || n2 || n3 || n4 ? 1 : 0);
+process.exit(n || n2 || n3 || n4 || n5 || n6 ? 1 : 0);

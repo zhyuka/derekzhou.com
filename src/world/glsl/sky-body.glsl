@@ -336,17 +336,22 @@ float moonFace(vec3 n, vec3 m) {   // n: the surface normal (world), m: toward t
    0.8-1.0 against the stars' 0.5-0.7), with a fixed soft glare about it (5 px across at 13%: §1's 4-6 px at 10-15%); its peak never past Y uStarM.z (OKLab L 0.49 in
    its warm white) whatever the sky under it, its light whole while the sky under it stays under that: it is seen
    wherever the sky is darker than it, and goes behind the sea and the land by place as the sun's depth takes it down */
-vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, vec3 col) {   // (both planets: Venus at uStarM.z in its warm white, the outer one at uJup.w in its pale cream)
+/* (night, the hub's ruling of Nov 25: the evening star at its true scale) a planet's light on the stars' own energy scale
+   (STF, b by starMag inverted): PL_SIRIUS the energy a -1.46 star (Sirius) would carry, a planet of magnitude m
+   10^(-0.4 (m + 1.46)) of it (Venus at -4.4 about 15x), the air's k (X - 1) taken from it; drawn as a steady core at
+   its head, as wide as that light asks (sigma 0.85-1.4 px: at 1.4 a point still, never a disc), the rest beyond its
+   head and its widest core held back by the light's ceiling */
+const float PL_SIRIUS = 0.07 * 82.22 * STF;   // (b 5.76: 0.07 x 10^((6.2 + 1.46) / 4), the field's b for a -1.46 star)
+float planetE(float m, float y) { return PL_SIRIUS * exp2(-0.4 * 3.3219281 * (m + 1.46 + EXT_V * max(airmass(y) - 1.0, 0.0))); }
+vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, float m, vec3 col) {   // (both planets: Venus at uStarM.z in its warm white, the outer one at uJup.w in its pale cream; m its magnitude)
   float zf = dot(sd, uCamF);
   if (zf <= 0.01) return vec3(0.0);
   vec2 d = gl_FragCoord.xy - (vec2(dot(sd, uCamR) / (zf * uProj.x), dot(sd, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   if (dot(d, d) > 400.0) return vec3(0.0);
-  float hv = max(top - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
+  float hv = max(top - dot(c, LUMA), 0.0), E = planetE(m, sd.y), sg = clamp(sqrt(E / max(1.1 * SKYTAU * hv, 1e-6)), 0.85, 1.4), F = min(E, 1.1 * SKYTAU * hv * sg * sg);   // (its core's centre pixel at about the whole head, as wide as its light asks)
   float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);
-  /* (physics: night/extinction, the hub's review of #455) the air takes k (X - 1) magnitudes from a planet as from a star,
-     but from its true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand far over the light's
-     ceiling, so even 2.7 magnitudes at 2 deg up leave each past its head and drawn at it, the brightest points in the
-     sky at every height (their tops over the stars'); what the low air shows is the colour, a little redder */
+  /* (physics: night/extinction) the air's k (X - 1) is taken from the planet's true light (planetE); the low air's
+     colour, a little redder (extTint) */
   return extTint(col, airmass(sd.y)) * min(v, hv) * (1.0 - hazeSky(rd));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
@@ -556,8 +561,8 @@ void main() {
     for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rs, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
     c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)
   }
-  if (uVen.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uVen.xyz, uStarM.z, vec3(1.0583, 0.9954, 0.8738));   // (night) the evening or morning star
-  if (uJup.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uJup.xyz, uJup.w, vec3(1.0409, 0.9959, 0.9208));   // (night) the bright outer planet
+  if (uVen.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uVen.xyz, uStarM.z, -4.4, vec3(1.0583, 0.9954, 0.8738));   // (night) the evening or morning star
+  if (uJup.w > 0.0 && rd.y > 0.0) c += planetAt(rd, c, uJup.xyz, uJup.w, -2.4, vec3(1.0409, 0.9959, 0.9208));   // (night) the bright outer planet
   if (anvCov > 0.0) c = mix(c, cBA, anvCov);   // (physics: weather/far-anvil) the galaxy, the aurora, the moon and the stars behind the storm's body
 #ifdef SKY_HOOK
   c = skyHook(rd, c);
