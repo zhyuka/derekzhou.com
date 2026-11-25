@@ -50,6 +50,13 @@ identical" alone no longer lands one: T1 looks only where its cases look, and #3
 waits for the hub's review, whatever T1 says; the review's carry-over through merges of main (#361) and the reviewed
 PR's landing without a re-gate (#362) are unchanged.
 
+**A file main also changed is re-gated, reviewed or not (the hub, 2026-11-25).** #362 let a reviewed PR merge onto main
+at once whatever main changed since its gate. #405, reviewed, changed tools/visit/looks.json and two world sections that
+main's #410-#416 had changed since its gate; the bot merged it with no new gate, git joined the two looks.json line by
+line in two entry formats, and main's gate went red on the ruler test until the bot reverted it. Now (bot-rules.mjs
+regateAnswer) a PR sharing any file with main's commits since its gate's base is brought up to date and gated again,
+the review holding through that merge of main (#361); a reviewed PR sharing only an area still merges at once.
+
 Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
 it once its gate's `verdict` check is green. A new push does not undo it: GitHub merges the head whose checks pass.

@@ -1,9 +1,9 @@
 {
- "world": "bf178b76b9666761",
+ "world": "06d9d596f7f7a028",
  "lands": {
   "0": {
    "90": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 0,
     "deg": 90,
     "wordCloud": 0.019,
@@ -45,7 +45,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 0,
     "deg": null,
     "wordCloud": 0.589,
@@ -89,7 +89,7 @@
   },
   "1": {
    "329": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 1,
     "deg": 329,
     "wordCloud": 0.094,
@@ -131,7 +131,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 1,
     "deg": null,
     "wordCloud": 0.455,
@@ -175,7 +175,7 @@
   },
   "2": {
    "300": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 2,
     "deg": 300,
     "wordCloud": 0,
@@ -217,7 +217,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 2,
     "deg": null,
     "wordCloud": 0.298,
@@ -261,7 +261,7 @@
   },
   "3": {
    "120": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 3,
     "deg": 120,
     "wordCloud": 0.053,
@@ -303,7 +303,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 3,
     "deg": null,
     "wordCloud": 0.006,
@@ -347,7 +347,7 @@
   },
   "4": {
    "35": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 4,
     "deg": 35,
     "wordCloud": 0,
@@ -389,7 +389,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 4,
     "deg": null,
     "wordCloud": 0.269,
@@ -433,7 +433,7 @@
   },
   "5": {
    "230": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 5,
     "deg": 230,
     "wordCloud": 0.078,
@@ -475,7 +475,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 5,
     "deg": null,
     "wordCloud": 0.31,
@@ -519,7 +519,7 @@
   },
   "6": {
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 6,
     "deg": null,
     "wordCloud": 0,
@@ -563,7 +563,7 @@
   },
   "7": {
    "70": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 7,
     "deg": 70,
     "wordCloud": 0.023,
@@ -605,7 +605,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 7,
     "deg": null,
     "wordCloud": 0,
@@ -649,7 +649,7 @@
   },
   "8": {
    "245": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 8,
     "deg": 245,
     "wordCloud": 0,
@@ -691,7 +691,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 8,
     "deg": null,
     "wordCloud": 0.099,
@@ -735,7 +735,7 @@
   },
   "9": {
    "140": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 9,
     "deg": 140,
     "wordCloud": 0.061,
@@ -777,7 +777,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 9,
     "deg": null,
     "wordCloud": 0.235,
@@ -821,7 +821,7 @@
   },
   "10": {
    "240": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 10,
     "deg": 240,
     "wordCloud": 0.071,
@@ -863,7 +863,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 10,
     "deg": null,
     "wordCloud": 0.374,
@@ -907,7 +907,7 @@
   },
   "11": {
    "305": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 11,
     "deg": 305,
     "wordCloud": 0.083,
@@ -949,7 +949,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 11,
     "deg": null,
     "wordCloud": 0.114,
@@ -993,7 +993,7 @@
   },
   "12": {
    "60": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 12,
     "deg": 60,
     "wordCloud": 0.09,
@@ -1035,7 +1035,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 12,
     "deg": null,
     "wordCloud": 0.29,
@@ -1079,7 +1079,7 @@
   },
   "13": {
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 13,
     "deg": null,
     "wordCloud": 0.007,
@@ -1123,7 +1123,7 @@
   },
   "14": {
    "250": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 14,
     "deg": 250,
     "wordCloud": 0.043,
@@ -1165,7 +1165,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 14,
     "deg": null,
     "wordCloud": 0.282,
@@ -1209,7 +1209,7 @@
   },
   "15": {
    "125": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 15,
     "deg": 125,
     "wordCloud": 0.074,
@@ -1251,7 +1251,7 @@
     ]
    },
    "own": {
-    "world": "bf178b76b9666761",
+    "world": "06d9d596f7f7a028",
     "k": 15,
     "deg": null,
     "wordCloud": 0.568,

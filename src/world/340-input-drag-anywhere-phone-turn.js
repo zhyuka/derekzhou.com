@@ -117,11 +117,12 @@
      - the drag moved since the last frame turns the view by exactly the finger's move (a release still draws its last
        moves; a cancelled drag draws none);
      - let go, the release's speed is taken (from the drag's own samples, below) and the coast
-       runs on from the next frame: the turn's speed x 0.3 s (at most 14 deg), the tilt's x 0.2 s (at most 5.7 deg).
+       runs on from the next frame: the turn's speed x 0.3 s (at most 13.75 deg), the tilt's x 0.2 s (at most 5.7 deg),
+       settling as a damped turn does (coastTau, runOn: below).
        (nothing turns the view by itself) the tilt the visitor set is kept: an ease to level after the release swings an
        18 deg tilt back 24.6 deg by itself over 8 s, at up to 8.8 deg/s. The climb or dive it drives stops at the
-       realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s, at most 0.5 rad/s), so 0.8 s
-       after it the tilt's own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at
+       realm's clearance limits (simStep); the release's coast of the tilt is short (0.2 s of its speed, at most 0.1 rad), so
+       0.8 s after it the tilt's own rate is under 0.6 deg/s, and from then on only the look at the ground moves the pitch (at
        most 1.5 deg/s).
      Before the landing (the boot's pre-roll: arrive sets the view) a held drag waits for it, drawn whole in the first
      frame after it (its samples are the finger's own: its release's speed is the finger's, never the catch-up's); a
@@ -163,10 +164,10 @@
     var fdt = Math.min(dt, DTMAX);
     if (!SIM.V) { if (!INP.down) { INP.dx = 0; INP.dy = 0; INP.rel = false; } return; }
     if (!INP.down && !INP.rel && (CS.om || CS.omP)) {
-      var cy = CS.om * fdt, cp = CS.omP * fdt;
+      var t0 = CS.ct, t1 = CS.ct + fdt, cy = runOn(CS.om, CS.tauY, t1) - runOn(CS.om, CS.tauY, t0), cp = runOn(CS.omP, CS.tauP, t1) - runOn(CS.omP, CS.tauP, t0);
       CS.yawV += cy; CSP.yawV += cy;
       CS.thU = clamp(CS.thU + cp, -TH_MAX, TH_MAX); CSP.thU = clamp(CSP.thU + cp, -TH_MAX, TH_MAX);
-      CS.om *= Math.exp(-fdt / 0.3); CS.omP *= Math.exp(-fdt / 0.2);
+      CS.ct = t1; if (t1 > 24 * Math.max(CS.tauY, CS.tauP)) { CS.om = 0; CS.omP = 0; }   // (settled: under 1e-8 of its speed left)
     }
     if (INP.dx || INP.dy) {
       var G = (PI / 2) / Math.max(OUT.cssW || 800, 240), ax = INP.dx * G, ay = INP.dy * G;
@@ -181,9 +182,21 @@
       INP.rel = false; INP.relAny = true;
       relSpeed();
       var GR = 1000 * (PI / 2) / Math.max(OUT.cssW || 800, 240);   // (px/ms to rad/s)
-      CS.om = clamp(REL.vx * GR, -0.8, 0.8); CS.omP = clamp(REL.vy * GR, -0.5, 0.5);
+      CS.om = clamp(REL.vx * GR, -OM_MAX, OM_MAX); CS.omP = clamp(REL.vy * GR, -OM_MAX, OM_MAX); CS.ct = 0;
+      CS.tauY = coastTau(CS.om, TAU_Y, RUN_Y); CS.tauP = coastTau(CS.omP, TAU_P, RUN_P);
     }
   }
+  /* (physics map, Camera flight: release-run-on) the coast after a release: the view carries the finger's speed on and
+     settles as a critically damped turn does, its speed v0 (1 + t/tau) e^(-t/tau): at the lift the finger's own speed and
+     no braking yet (the speed and its rate both run on from the drag), then a smooth settle with no stop to see. In all
+     it runs on 2 v0 tau: 0.3 s of the finger's speed for the turn (tau 0.15 s) and 0.2 s for the tilt (0.1 s), as the
+     eased coast before it did, and never past 0.24 rad (13.75 deg) and 0.1 rad (5.7 deg): a fast flick settles sooner
+     (tau shorter) instead of its speed cut at the lift. (Before: the speed was cut to 0.8 and 0.5 rad/s at the lift, so
+     a flick across a laptop at 3 rad/s dropped to a quarter of its speed in one frame, and the coast then braked hardest
+     at once.) Each frame turns the run-on's exact share of its time, on any display */
+  var TAU_Y = 0.15, TAU_P = 0.1, RUN_Y = 0.24, RUN_P = 0.1, OM_MAX = 12;   // (OM_MAX: rad/s, a bound on a fit's wild value only: a whole window's width in 0.13 s)
+  function coastTau(v, tau, run) { return Math.abs(v) * 2 * tau > run ? run / (2 * Math.abs(v)) : tau; }
+  function runOn(v, tau, t) { return v * tau * (2 - (2 + t / tau) * Math.exp(-t / tau)); }   // (the turn run on by t s after the lift)
   function applyInput(dt, t, V) {
     // (dev: a scripted input replayed at its own times: its drag turns this step, as it is given; its release is taken
     // in the next frame)

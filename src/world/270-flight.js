@@ -11,10 +11,22 @@
   var SIM_DT = 1 / 60;
   var SIM = { t: 0, V: null, u: 0, acc: 0, alpha: 1, steps: 0, fixG: 0, fixO: 0, fixC: 0, inited: false, junction: false, waits: 0 };
   var TH_MAX = 35 * DEG;
-  var HEAD_T = 0.07, HEAD_MAX = 2.5, BANK_MAX = 2 * DEG, BANK_T = 0.08;   // (the heading's follow of the view; the bank's limit and ease)
+  var HEAD_T = 0.035, HEAD_MAX = 2.5, BANK_MAX = 2 * DEG, BANK_T = 0.045;   // (the heading's follow of the view and the bank's: critically damped, these their times; the heading's rate's limit; the bank's)
+  /* (physics map, Camera flight: flight-controllers-smooth) the heading and the bank each follow as a critically damped
+     turn does, stepped exactly (damped2): the follower's rate runs on from the step before, and its acceleration rises
+     from rest over its time instead of stepping as a drag starts, stops or turns back (the heading's 0.035 s, which
+     keeps its catch of the view within 0.1 s, is two steps: its rise takes one; the bank's two stages, three). (Before: the heading followed first-order, its rate's
+     own rate stepping to 25 rad/s2 as a drag began, and the bank, clamped hard at 2 deg (any turn over 1.6 deg/s at
+     12 m/s reaches it) and eased first-order, snapped its 2 deg in at up to 45 deg/s, from rest in one step.) The bank
+     follows in two such stages (its target, then the roll), since its target all but steps as a turn begins: the bank
+     reaches 2 deg by a turn of 1.6 deg/s, and one stage steps its acceleration on a step. */
+  function damped2(x, v, target, tau, dt) {   // x and its rate after dt s following target (held), critically damped: [x, v]
+    var e = x - target, k = v + e / tau, ex = Math.exp(-dt / tau);
+    return [target + (e + k * dt) * ex, (v - k * dt / tau) * ex];
+  }
   var VY_J = 2, VY_TV = 0.6;   // (the height's spring: its acceleration's own rate, m/s3, and the time its speed limits are approached over)
   function freshState() {
-    return { x: 0, y: 0, z: 0, psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, c: 0, vy: 0, om: 0, omP: 0, since: 9, roll: 0, yawRate: 0,
+    return { x: 0, y: 0, z: 0, psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, c: 0, vy: 0, om: 0, omP: 0, since: 9, roll: 0, rollV: 0, bank: 0, bankV: 0, yawRate: 0,
       lastIn: -1e9, idleAfter: 8, auto: 1, cy: 0, hl: 0, pf: NaN, pfT: 0, sv: 0,
       lat: 0, latT: 0, latT2: 0, tsw: -1, fpsi: NaN, vs: 0, acc: 0, pt: -1e9, climbs: null, gV: null, pfE: 0, cw: NaN };
   }
@@ -82,11 +94,12 @@
     if (idle > CS.idleAfter && !NOAUTO) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
     // what stands ahead and cannot be climbed over: passed beside, the heading held (a slip sideways, never a turn)
     slipStep(V, CS, dt);
-    // the flight follows the view: it catches it about 0.1 s after a drag stops (HEAD_T 0.07 s; at most HEAD_MAX, 143 deg/s,
-    // well over a drag's turn): the way goes where the visitor looks, the heading the visitor chose (it trailed the view
+    // the flight follows the view: critically damped (HEAD_T 0.035 s: in a steady turn it trails the view by 0.07 s, as
+    // the first-order follow before it did; at most HEAD_MAX, 143 deg/s, well over a drag's turn), level with it about
+    // 0.2 s after a drag stops: the way goes where the visitor looks, the heading the visitor chose (it trailed the view
     // by 14 deg in a turn and more than 1.3 s after it, banking all the while)
-    var want = CS.yawV + CS.phi, d = angDiff(want, CS.psi), turn = clamp(d * (1 - Math.exp(-dt / HEAD_T)), -HEAD_MAX * dt, HEAD_MAX * dt);
-    CS.psi += turn; CS.yawRate = turn / dt;
+    var want = CS.yawV + CS.phi, hd = damped2(0, CS.yawRate, angDiff(want, CS.psi), HEAD_T, dt);
+    CS.yawRate = clamp(hd[1], -HEAD_MAX, HEAD_MAX); CS.psi += Math.abs(hd[1]) > HEAD_MAX ? CS.yawRate * dt : hd[0];
     // (world6 step B) one framing everywhere (basePitch: no weight, no mode); the cruise clearance a smooth function of
     // the maps ahead (the cloud sea's weight on the held line), followed at most CW_V a second, never by a clock
     cruiseStep(CS, dt); flightParams(V, CS.cw);
@@ -118,12 +131,14 @@
     pushOut(V);
     var ceil = Math.max(groundAt(V, CS.x, CS.z, false) + cl[2], fogTopAt(V, CS.x, CS.z) + 1 + MIST_OVER) + CEIL_OVER;   // (over a fog pool: its least, 234)   // (the ceiling: never far over it; (fix) 10 m over the clearance's top, the flight band's top: bandTopAt)
     if (CS.y > ceil) { CS.y = Math.max(ceil, CS.y - PUSH_V * dt); if (CS.vy > 0) CS.vy = 0; if (CS.ay > 0) CS.ay = 0; SIM.fixC++; }   // (flight-controllers-smooth: eased down at the climb's own travel, as the ground's rule is, and counted)
-    // a flyer's bank: atan(v x the way's turn rate / g), its lateral acceleration, at most BANK_MAX (a flyer at the
-    // camera's 12 m/s would bank past 40 deg in a drag's turn), eased over BANK_T: it banks only while the way curves
-    // and is level about 0.6 s after it stops. The roll is drawn only: it never turns the heading (it banked to 7.4 deg,
-    // 0.42 x the turn rate, eased over 0.6 s, and was still rolling when the next drag began)
-    var rl = clamp(-Math.atan(v * CS.yawRate / 9.81), -BANK_MAX, BANK_MAX);
-    CS.roll += (rl - CS.roll) * (1 - Math.exp(-dt / BANK_T));
+    // a flyer's bank: atan(v x the way's turn rate / g), its lateral acceleration, held under BANK_MAX smoothly (tanh: a
+    // flyer at the camera's 12 m/s would bank past 40 deg in a drag's turn; clamped, its corner was a kink), followed
+    // critically damped in two stages over BANK_T each: it banks only while the way curves and is level about 0.4 s
+    // after it stops, with no swing past level. The roll is drawn only: it never turns the heading (it banked to 7.4 deg, 0.42 x the turn rate,
+    // eased over 0.6 s, and was still rolling when the next drag began)
+    var rl = BANK_MAX * Math.tanh(-Math.atan(v * CS.yawRate / 9.81) / BANK_MAX), bt = damped2(CS.bank, CS.bankV, rl, BANK_T, dt);
+    CS.bank = bt[0]; CS.bankV = bt[1];
+    var bk = damped2(CS.roll, CS.rollV, CS.bank, BANK_T, dt); CS.roll = bk[0]; CS.rollV = bk[1];
     directorStep(t);   // (world6: the director composes what lies ahead, out of sight; it never steers)
     climateLight(V);   // (world6 fix: every step: a pure function of where the camera is; at every sixth it stepped at 10 Hz)
     if (SIM.steps % 6 === 0) beamWake(V, u);
