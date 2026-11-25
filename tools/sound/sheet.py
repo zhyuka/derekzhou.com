@@ -18,6 +18,9 @@ What it does, note by note (round seventeen's sheet, the owner's pick, opened up
     sustained note in over seconds), a loop of up to LOOP s (as long as the note allows: a loop under about 10 s can
     be heard repeating) with the 1.2 s before it crossfaded into its end at equal power, so it plays on with no seam; a harp or piano note: from its start, with its own decay, the last 0.5 s faded;
   - each peak-scaled for the MP3, its gain in the index undoing that.
+The sheet is written in the order the score first needs its notes (WRITE: the tuba and the violas, the deep end and the
+first voice, then the other strings and the contrabass, then the colours), so the switch can start the score on a decode
+of its first part while the rest arrives (2026-11-25: one fetch still); the index keeps the score's instrument numbers.
 The sheet opens with one click at 0.2 s, so the score finds where the decoder put time zero (MP3 decoders differ by
 a few milliseconds), then 0.3 s of silence; 0.15 s of silence between notes. 24 kHz: nothing in the score is above
 about 6 kHz. Stereo: the sections' own width, as recorded (a mono sheet made them points).
@@ -52,11 +55,13 @@ def eq(x, lp, shelf):
     g = (1 / np.sqrt(1 + (F / lp) ** 4)) * 10 ** (shelf / 20 * (1 / (1 + (3000 / F) ** 2)))
     return np.fft.irfft(np.fft.rfft(x, n, axis=1) * g, n, axis=1)[:, :x.shape[1]]
 
+WRITE = ['tuba', 'viola', 'violin', 'cello', 'cbass', 'clar', 'horn', 'harp', 'piano']   # (the order on the sheet; INST's order is the index's numbers)
+
 def main(vsco, vcsl):
     base = {'V': vsco, 'P': vcsl}; parts = []; index = []
     head = np.zeros((2, int(0.5 * SR))); head[:, int(0.2 * SR)] = 0.9; parts.append(head); at = head.shape[1] / SR
     gap = np.zeros((2, int(0.15 * SR)))
-    for name, lib, folder, pat, off, lp, shelf, keep, loop, one in INST:
+    for name, lib, folder, pat, off, lp, shelf, keep, loop, one in sorted(INST, key=lambda i: WRITE.index(i[0])):
         d = os.path.join(base[lib], folder); files = {}
         for f in sorted(os.listdir(d)):
             g = re.fullmatch(pat, f)

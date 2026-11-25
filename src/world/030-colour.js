@@ -7,6 +7,5 @@
     return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
   }
   function lch(L, C, h, k) { var r = h * Math.PI / 180, c = oklab2lin(L, C * Math.cos(r), C * Math.sin(r)); k = k === undefined ? 1 : k; return [Math.max(c[0], 0) * k, Math.max(c[1], 0) * k, Math.max(c[2], 0) * k]; }
-  function lum(c) { return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
   function lab(L, C, h) { var r = h * Math.PI / 180; return [L, C * Math.cos(r), C * Math.sin(r)]; }
 

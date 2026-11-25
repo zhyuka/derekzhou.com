@@ -233,7 +233,7 @@ test('drift: no cloud body shows when its cell is made or freed, air cells and w
   const W = vm.runInThisContext(`(function () { var PI = Math.PI, SIM = { V: null, t: 0, alpha: 1 }, SIM_DT = 1 / 60, shown = true, DEVMODE = false, SW = {}, VOL16 = false, LOOKD = false, J = { seed: 1 }, CAM = { pos: [0, 0, 0] };
     function clamp(x, a, b) { return Math.min(Math.max(x, a), b); } function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
     function memTier() { return 'desktop'; } function volDetail() { return new Float32Array([96, 4.6]); } function cellLift() { return 0; }
-    ${STREAMS}${AIR2}${SRC}${cut(WORLD, '  function Puffs() {', '  function mound(')}${cut(WORLD, '  function volPrep(', '  /* up to budget units')}
+    ${STREAMS}${AIR2}${SRC}${cut(WORLD, '  function Puffs() {', '  function bank(')}${cut(WORLD, '  function volPrep(', '  /* up to budget units')}
     ${cut(WORLD, '  function nearDist(C, x, z) {', '\n', true)}${cut(WORLD, '  function streamR(L, V) {', '\n', true)}${cut(WORLD, '  function fadeZ(V, sc) {', '  function lateBorn(')}
     return { SIM: SIM, CAM: CAM, RNG: RNG, cellHash: cellHash, subseed: subseed, hk: hk, hfl: hfl, ihash: ihash, airBase: airBase, airDay: airDay, AIR_H: AIR_H, airW: airW, streamR: streamR, volDistFade: volDistFade, Puffs: Puffs, volPrep: volPrep, cumulus: cumulus, range: range, wall: wall };
   })()`);
