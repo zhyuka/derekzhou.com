@@ -208,7 +208,10 @@ light is brighter), its light coming in over its first 0.5 magnitude of margin
 as the sun's depth moves (a hold holds it). So the twilights show only Venus
 and, in the blue hour, the brightest stars; a dark night keeps the whole field.
 The bright stars (b over 0.35) take pastel colours by spectral kind, each at
-the white's own luminance. The evening (or morning, on a visit that opens on
+the white's own luminance. Their shares (B/A 36, F/G 26, K 28, M 10%) sit within
+5 points of the naked-eye stars' (V under 6.0) in the Bright Star Catalogue,
+5th revised (https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html;
+counts derived by spectral class: O/B/A 41.0, F/G 27.2, K 25.0, M 6.8%). The evening (or morning, on a visit that opens on
 first light) star stands by the drawn sky's sun, its glow (the hub's ruling,
 2026-11-15: until one forward clock drives the sun, the stars and the planet
 together): on the ecliptic through that sun at the opening's depth, in a
