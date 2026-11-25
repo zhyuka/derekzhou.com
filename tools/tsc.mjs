@@ -1,9 +1,10 @@
-// tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), src/realm-*.js
-// and the sound (src/sound.js, src/score.js), with
-// tools/types/world.d.ts for what TypeScript's DOM types lack. Not a build step and not a dependency (the owner's
-// no-frameworks rule: terser alone to build): it runs a pinned TypeScript through npx, into npm's cache.
-//   node tools/tsc.mjs           print each error as section:line (the world) or file:line (the realms, the sound), and the
-//                                counts; exit 1 if there is any (tools/checks/48-tsc.sh: every gate)
+// tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), src/realm-*.js,
+// the sound (src/sound.js, src/score.js) and the page's own scripts (site/hour.js, site/site.js: copies, cast from the
+// side), with tools/types/world.d.ts for what TypeScript's DOM types lack. Not a build step and not a dependency (the
+// owner's no-frameworks rule: terser alone to build): it runs a pinned TypeScript through npx, into npm's cache.
+//   node tools/tsc.mjs           print each error as section:line (the world) or file:line (the realms, the sound, the
+//                                page), and the counts; exit 1 if there is any (tools/checks/48-tsc.sh: every gate), 2 if
+//                                tsc did not run or a site cast's anchor is gone
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -63,5 +64,35 @@ for (const l of (r3.stdout || '').split('\n')) {
 }
 if (r3.status !== 0 && !n3) { process.stderr.write(r3.stderr || r3.stdout || 'tsc did not run\n'); process.exit(2); }
 console.log(`tsc --checkJs: ${n3} error(s) in the sound scripts`);
+// the page's own scripts (site/hour.js, site/site.js), served as written: never a cast in them (every byte ships; hour.js
+// is near its budget). The copies checked here take four casts from the side, each the type the code means (hour.js's
+// times of day are [name, from, to, colour] tuples, a shape's ratio is coerced, the still's preload is a link, the email's
+// an anchor); each anchor must be found once, so a change that moves one fails here, not silently
+const SITE_CASTS = {
+  'site/hour.js': [
+    ['var DAY = [', 'var DAY = /** @type {[string, number, number, string][]} */ (['],
+    ["['night', 21, 29, '#17234f']];", "['night', 21, 29, '#17234f']]);"],
+    ["ab = SHAPES[j][0].split('/');", "ab = /** @type {any} */ (SHAPES[j][0].split('/'));"],
+    ["pre = document.querySelector('link.still');", "pre = /** @type {HTMLLinkElement | null} */ (document.querySelector('link.still'));"]],
+  'site/site.js': [["var link = document.getElementById('email-link');", "var link = /** @type {HTMLAnchorElement | null} */ (document.getElementById('email-link'));"]],
+};
+const siteCopies = [];
+for (const [f, casts] of Object.entries(SITE_CASTS)) {
+  let t = fs.readFileSync(path.join(ROOT, f), 'utf8');
+  for (const [find, put] of casts) {
+    if (t.split(find).length !== 2) { process.stderr.write(`tools/tsc.mjs: ${f} no longer holds, once, its cast's anchor ${JSON.stringify(find)}: update SITE_CASTS\n`); process.exit(2); }
+    t = t.replace(find, put);
+  }
+  const c = path.join(out, path.basename(f)); fs.writeFileSync(c, t); siteCopies.push(c);
+}
+const r4 = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
+  ...siteCopies, path.join(ROOT, 'tools/types/world.d.ts')], { encoding: 'utf8' });
+let n4 = 0;
+for (const l of (r4.stdout || '').split('\n')) {
+  const m = /((?:hour|site)\.js)\((\d+),\d+\): (error TS\d+: .*)/.exec(l); if (!m) continue;
+  console.log(`site/${m[1]}:${m[2]}  ${m[3]}`); n4++;   // (the copies' lines are the files' own: each cast is within its line)
+}
+if (r4.status !== 0 && !n4) { process.stderr.write(r4.stderr || r4.stdout || 'tsc did not run\n'); process.exit(2); }
+console.log(`tsc --checkJs: ${n4} error(s) in the page's scripts`);
 fs.rmSync(out, { recursive: true, force: true });
-process.exit(n || n2 || n3 ? 1 : 0);
+process.exit(n || n2 || n3 || n4 ? 1 : 0);
