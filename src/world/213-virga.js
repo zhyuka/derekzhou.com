@@ -15,6 +15,10 @@
   function virgaOn(seed, sky) {   // does a new body with this seed, laid out on this sky, hang a strand? (its own hash, no stream draw)
     var s = VIRGA_SHARE[sky]; return !!s && hfl(hk(seed >>> 0, 0x76a1)) < s;
   }
+  function virgaSky(V) {   // the sky a body is laid out on: the sky's script set up first, as skyStep sets it (a boot's first cells come before the first frame; its draws are its own streams', so nothing moves)
+    if (SKY.seed !== J.seed || SKY.hour !== HOUR || SKY.V !== V) skyInit(V);
+    skyAt(SIM.t + SKY.dt); return SKY.A ? SKY.A.id : null;
+  }
   function virgaPath(V, seed, base) {   // the strand of a body whose flat base stands base m over the ground: [x, y, z] x VIRGA_N + 1, m, in the body's frame from its base; and its falls
     var h = seed >>> 0, w0 = VIRGA_W[0] + (VIRGA_W[1] - VIRGA_W[0]) * hfl(hk(h, 0x76a2));
     var end = base * (VIRGA_END[0] + (VIRGA_END[1] - VIRGA_END[0]) * hfl(hk(h, 0x76a3)));
