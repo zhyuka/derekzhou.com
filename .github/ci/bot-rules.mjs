@@ -118,3 +118,15 @@ export function unreviewedLands(v) {
   if (!v.frames_identical) return { ok: false, why: `frames may change (${v.reason}): waits for the hub's review` };
   return { ok: true };
 }
+
+// Whether main's changes since a PR's gate base mean it must be gated again before it lands (2026-11-25, the hub).
+// shared: the areas (areas.json) both touched; same: the files both changed; approved: the hub reviewed its head.
+// A file both changed is always re-gated, reviewed or not: git merges the two line by line, and nothing tested that
+// tree (#405, reviewed: it and main's #411 both changed tools/visit/looks.json, the merge mixed two entry formats, and
+// main's gate went red on the ruler test). An area alone re-gates only an unreviewed PR: a reviewed one merges, and
+// main's gate tests it (#362: re-gating every reviewed PR after every landing serialised them).
+export function regateAnswer({ shared = [], same = [], approved = false }) {
+  if (same.length) return { regate: true, why: `main changed ${same.length} of its file(s) since its gate (${same.slice(0, 5).join(', ')}): re-gated${approved ? ', the review holds' : ''}` };
+  if (shared.length && !approved) return { regate: true, why: `main touched the ${shared.join(', ')} area since its gate: re-gated` };
+  return { regate: false };
+}

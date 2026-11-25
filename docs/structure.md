@@ -134,7 +134,9 @@ tools/night/                 The moon's face (moonmap.py): the near side's albed
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand;
                              mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand;
-                             fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand
+                             fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand;
+                             ripple-size.py, the sand's ripples at true and drawn size from the flight, filtered at the
+                             pixel and not (point-sampled, today's fade, fwidth), by hand
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
