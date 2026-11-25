@@ -14,3 +14,9 @@ Finding (BIRDS, measured on zoom.png): the skein does not read as a far line of 
 10 px apart and each carries the night halo, and the halos add (blend ONE, ONE_MINUS_SRC_ALPHA), so together they
 make one saturated white streak with a wide glow, many times a lone night bird's. It reads as a comet. Held out of
 draft for the hub's call.
+
+## After the hub's ruling (2026-11-25): a speck draws no halo
+
+no-halo-a/ (9 geese, 1.6 km, 449 m up) and no-halo-b/ (9 geese, 589 m up): crop.png the whole frame base | head,
+zoom.png 4x true pixels (top: the skein; bottom: a night bird that is on main too, larger than a speck, its halo kept
+in both). The skein is now a short dotted chain of separate pale specks, each about the lone bird's core, no glow.
