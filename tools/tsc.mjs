@@ -1,6 +1,7 @@
 // tsc.mjs: tsc --checkJs over the assembled world (the dev build: node tools/parts.mjs assemble src), src/realm-*.js,
 // the sound (src/sound.js, src/score.js), the page's own scripts (site/hour.js, site/site.js: copies, cast from the
-// side), the ink birds (inkbirds.js, assembled) and their wing model (src/birds/model/), with tools/types/world.d.ts
+// side), the ink birds (inkbirds.js, assembled), their wing model (src/birds/model/) and the plan's worker (tools/plan.mjs
+// makePlan's text, as a worker, with tools/types/plan.d.ts), with tools/types/world.d.ts
 // for what TypeScript's DOM types lack. Not a build step and not a dependency (the owner's no-frameworks rule: terser
 // alone to build): it runs a pinned TypeScript through npx, into npm's cache.
 //   node tools/tsc.mjs           print each error as section:line (the world) or file:line (the realms, the sound, the
@@ -11,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { makePlan } from './plan.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TS = 'typescript@5.6.3';
@@ -19,7 +21,7 @@ execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', 
 // the plan's spans keep a CommonJS wrapper (`typeof module`, `module.exports`, `require`) so the worker and the unit
 // tests can load them; tsc reads that in a checked script as a module and narrows `module`. The copy checked here has
 // the two renamed (world.d.ts declares the new names); the source is untouched
-const wf = path.join(out, 'world.js');
+const wf = path.join(out, 'world.js'), worldRaw = fs.readFileSync(wf, 'utf8');   // (as assembled: the plan's worker is made from it, below)
 fs.writeFileSync(wf, fs.readFileSync(wf, 'utf8').replace(/\bmodule\b/g, 'CJS_MODULE').replace(/\brequire\(/g, 'CJS_REQUIRE(')
   .replace('var CJS_MODULE = undefined', 'var CJS_MODULE = /** @type {any} */ (undefined)'));   // (130 sets module undefined in the page: any to tsc)
 const r = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,dom',
@@ -131,5 +133,25 @@ for (const l of (r6.stdout || '').split('\n')) {
 }
 if (r6.status !== 0 && !n6) { process.stderr.write(r6.stderr || r6.stdout || 'tsc did not run\n'); process.exit(2); }
 console.log(`tsc --checkJs: ${n6} error(s) in the ink birds`);
+// the plan's worker (tools/plan.mjs makePlan: the world's plan spans, verbatim, in the worker's own wrapper), as it runs: a
+// dedicated worker (--lib es2020,webworker), with tools/types/plan.d.ts (the spans' CommonJS names, renamed as the world's,
+// and the main thread's names its frame guards read, which the worker never calls). Each line back to the world's
+// section it came from; a line of the wrapper's own, to tools/plan.mjs
+const pw = path.join(out, 'plan.js'), pwText = makePlan(worldRaw).text;
+fs.writeFileSync(pw, pwText.replace(/\bmodule\b/g, 'CJS_MODULE').replace(/\brequire\(/g, 'CJS_REQUIRE(')
+  .replace('var CJS_MODULE = undefined', 'var CJS_MODULE = /** @type {any} */ (undefined)'));
+const r7 = spawnSync('npx', ['-y', '-p', TS, 'tsc', '--allowJs', '--checkJs', '--noEmit', '--target', 'es2020', '--lib', 'es2020,webworker',
+  pw, path.join(ROOT, 'tools/types/plan.d.ts')], { encoding: 'utf8' });
+const pwLines = pwText.split('\n'), wLines = worldRaw.split('\n');
+let n7 = 0;
+for (const l of (r7.stdout || '').split('\n')) {
+  const m = /plan\.js\((\d+),\d+\): (error TS\d+: .*)/.exec(l); if (!m) continue;
+  const line = pwLines[+m[1] - 1] || '', at = line.trim().length > 20 ? wLines.indexOf(line) : -1;
+  let where = 'tools/plan.mjs (the worker\'s line ' + m[1] + ')';
+  if (at >= 0) { let s7 = starts[0]; for (const x of starts) if (x[0] <= at + 1) s7 = x; where = s7[1] + ':' + (at + 1 - s7[0] + 1); }
+  console.log(`${where}  ${m[2]}`); n7++;
+}
+if (r7.status !== 0 && !n7) { process.stderr.write(r7.stderr || r7.stdout || 'tsc did not run\n'); process.exit(2); }
+console.log(`tsc --checkJs: ${n7} error(s) in the plan's worker`);
 fs.rmSync(out, { recursive: true, force: true });
-process.exit(n || n2 || n3 || n4 || n5 || n6 ? 1 : 0);
+process.exit(n || n2 || n3 || n4 || n5 || n6 || n7 ? 1 : 0);

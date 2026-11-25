@@ -76,7 +76,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/largeworld.mjs (a long visit's far-out
                              frames held still: eyeRel and the veils' wrap), test/unit/fog.mjs (a basin's fog pool: held under its rim, none with no mist,
                              the flight over it), test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/mist.mjs (the mist pools:
-                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
+                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/bird-skies.mjs (every sky of the world's a bird sky class with its own rows: no day sky), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/smoke.mjs (the post-deploy smoke tells Cloudflare's bot challenge
                              from the site's answer: .github/ci/cf-challenge.mjs), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser), test/unit/paint.mjs (the paint trend's runners pooled and judged),
@@ -84,7 +84,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
                              test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
 test/fakepage.cjs            The one fake browser the static checks and the shader census share (devices, the page's scripts)
-test/sims/boot.mjs           The boot on the fake page, each device profile once (tools/checks/39-boot-frames.sh)
+test/sims/boot.mjs           The boot on the fake page, each device profile once: its frames to the show and its GPU work before it
+                             (3D texels, draws; test/golden/boot-bakes.json) (tools/checks/39-boot-frames.sh)
 test/birds-motion.mjs        The ink birds' drawn motion, frame by frame in the headless sim: no snap, flicker or jump
 test/birds-flock.mjs         How a flock's birds fly together in the headless sim: the skein's phase lock in wake bouts
 test/birds-wind.mjs          The birds in wind in the headless sim: air speed into a headwind, crabbing, landings against a side wind
@@ -149,8 +150,10 @@ tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*
                              site/*.js (copies, cast from the side: never a byte in site/), by npx typescript (pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
-                             events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
+                             events and kit), and the plan's worker (tools/plan.mjs makePlan's text, as a worker, with
+                             tools/types/plan.d.ts): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/sound/world.mjs        The world running in headless Chromium for the sound's tools (SwiftShader under a GPU's name)
 tools/sound/cpu.mjs          The score's CPU with the world running: the audio thread's and the score's ticks, the main
                              thread slowed (tools/checks/49-sound-cpu.sh)
 tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
@@ -221,8 +224,13 @@ the script has `@glsl NAME` where it was, and assemble writes the text
 back exactly. The build (tools/build.mjs: assemble --min-glsl, for the
 shipped build and the dev build) writes it
 back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
-blank line, no spare space, every line of code still a line (the world's
-folds work by lines), a #define's spacing kept, the same tokens (checked;
+blank line, no spare space, each run of code lines one line but every
+preprocessor line and every uniform declaration a line of its own (the
+world's folds skip a use on a line that starts "uniform"; 2026-11-25: 317 B
+of Brotli off the four scripts with shaders), a #define's spacing kept, the same tokens but each
+function's own parameters and locals shortened in a .glsl file (glslmin.mjs mangleGlsl: never a name in any
+string, template or regex literal of the scripts, nor in any .glsl preprocessor line; checkMangle proves the
+renaming one to one; 2026-11-25: 462 B of Brotli more) (checked;
 the build fails otherwise); the part of a file a script reads at run time
 stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
 split finds by its text; the rest of the file is minified, 2026-11-25:

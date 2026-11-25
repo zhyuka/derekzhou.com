@@ -63,6 +63,13 @@ const VRNG = /V\.rng = (RNG\(subseed\(V\.seed, \d+\)\));/.exec(WORLD);
 export const DUNE_MIN = 8;
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
 const ABOVE = fs.readFileSync(path.join(TMP, 'src', 'realm-above.js'), 'utf8');
+// (the destination, delight-visit 5.3) where it stands (217 destOf: the seed's alone) and the kit's forms its dest measures by
+// (realm-kit outline and flutes: dDest reads the rock's reach, bornReach)
+const DESTSEC = cut(WORLD, '  /* ---------------------------------------------------------------- the destination (delight-visit 5) */', '\n  }\n', true);
+const KITSRC = fs.readFileSync(path.join(TMP, 'src', 'realm-kit.js'), 'utf8');
+const FORMSRC = cut(KITSRC, '  function outline(R, n, rad, squash) {', '  // a cap over a ring');
+const FORMS = vm.runInThisContext('(function () { var PI = Math.PI;\n' + FORMSRC + '\n  return { outline: outline, flutes: flutes }; })')();
+let DEST_NOW = null;   // (the land's destination while its kit's dest runs: WORLD.dest)
 if (!SEED0OF || !OPENN || !VSEED || !VSALT) throw new Error('ruler: the visit\'s seed or the cells\' salt not found in world.js');
 if (!KSALT || !LAYOUT || !SPEED0 || !DUNE_H || !VRNG) throw new Error('ruler: the kits\' keep salts, the layout\'s order or the world\'s speed (180), or the dunes\' height (dunes-glsl) not found');
 
@@ -73,10 +80,10 @@ function landOf(k) {
     '  function angDiff(a, b) { var d = a - b; d -= Math.floor((d + Math.PI) / (2 * Math.PI)) * 2 * Math.PI; return d; }\n' +
     '  var document = { documentElement: { getAttribute: function (n) { return n === \'data-seed\' ? String(READ) : null; } } };\n' +
     STREAMS + VEC + '  var OPENN = ' + OPENN[1] + ', SEEDR = READ >>> 0, SEED0 = ' + SEED0OF[1] + ';\n' + PLAN +
-    '  var J = { seed: SEED0 };\n' + HEAD0 + DENS + PICK +
+    '  var J = { seed: SEED0 };\n' + HEAD0 + DESTSEC + DENS + PICK +
     '  var V = {}; V.seed = ' + VSEED[1] + '.seed(); V.salt = ' + VSALT[1] + ';\n' +
     '  var SIM = {};\n' + MOIST + '  G.mistQ = ' + (MIST ? 'airMoist({ u10: airU10(V.seed) })' : 'null') + '; G.windAz = ' + VRNG[1].replace('V.seed', 'V.seed') + '.r(0, 2 * PI);\n' +
-    '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf; G.seed = V.seed;\n' +
+    '  G.SEED0 = SEED0; G.salt = V.salt >>> 0; G.MAPS = MAPS; G.mapsInit = mapsInit; G.kitAt = kitAt; G.directorStep = directorStep; G.heading = airHeading0(); G.densD = densD; G.densA = densA; G.pickOf = pickOf; G.seed = V.seed; G.destOf = destOf;\n' +
     '  G.STREAMS = { cellHash: cellHash, hk: hk, hfl: hfl, ihash: ihash, RNG: RNG, subseed: subseed };\n})');
   const g = {}, CS = { x: 0, z: 0 }; G(g, CS, k); g.CS = CS;
   g.mapsInit(g.SEED0);
@@ -90,7 +97,7 @@ const KITS = (() => {
     let def = null;
     const kit = { lch: (l, c, h, kk) => [l, c, h, kk === undefined ? 1 : kk], cellHash: S.cellHash, hk: S.hk, hfl: S.hfl, ihash: S.ihash, RNG: S.RNG, smooth, range: () => {}, rock: () => {} };
     const air = new Proxy({}, { get: (_, k) => k === 'H' ? { clouds: 800, deck: 3000 } : k === 'windAt' ? () => ({ x: 0, y: 0, z: 0 }) : () => [0, 0, 0] });   // (an air cell's kit reads the wind's way: still here, so V.wind's)
-    vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: {}, air, realm: (d) => { def = d; } } });
+    vm.runInThisContext('(function (window) {\n' + src + '\n})')({ WORLD: { kit, forms: FORMS, air, dest: () => DEST_NOW, realm: (d) => { def = d; } } });
     return def;
   };
   return (S) => ({ dunes: reg(DUNES, S), above: reg(ABOVE, S) });
@@ -172,6 +179,12 @@ export function flyLand(k, secs = 7200, heading = null) {   // (heading: another
       for (const p of c.pois) pois.push({ realm: kind, site: key, ...p });
       flocks.push(...c.flocks);
     }
+  }
+  // the destination: its own layout scale's one cell (180, scale 5), the dunes kit's dest, kept whatever the density draws
+  // (the above kit has no dest yet: over the cloud sea too it is the dunes kit's rock)
+  if (kits.dunes.dest) {
+    DEST_NOW = L.destOf(); const dc = { inside: () => true, add: (it) => it, poi: (p) => { pois.push({ realm: 'dunes', site: 'dest', kind: p.kind, x: p.x, z: p.z, pass: p.pass || 0, r: p.r, top: p.top }); return p; } };
+    kits.dunes.dest(dc, null); DEST_NOW = null;
   }
   const pass = (o) => { const sx = o.x * hx + o.z * hz, d = Math.abs(-o.x * hz + o.z * hx); return { t: sx / V_MS, d }; };
   const P = pois.map((p) => ({ ...p, ...pass(p) })).filter((p) => p.t >= 0 && p.t <= secs).sort((a, b) => a.t - b.t);

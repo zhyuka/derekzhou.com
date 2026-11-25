@@ -21,7 +21,7 @@
 // no time; the same SRC gives the same OUT on any OS.
 import fs from 'fs';
 import path from 'path';
-import { minGlsl, minGlslKeeping, checkGlsl, KEEP } from './glslmin.mjs';
+import { minGlsl, checkGlsl, shipGlsl, protectedNames } from './glslmin.mjs';
 import { fillStamp } from './plan.mjs';
 
 const DIVIDERS = {   // (the section dividers each long script already uses)
@@ -66,6 +66,7 @@ function split(file, dir) {
    text exactly, the backtick. A .glsl file has no backtick, no ${ and no CR; every one is used. node tools/parts.mjs
    glsl SRC moves every plain GLSL literal out (re-runnable: what is moved is a marker, not GLSL; it fails unless both
    builds assemble to what they did). */
+let PROT = null, SRC_ROOT = 'src'; const protect = () => PROT || (PROT = protectedNames(SRC_ROOT));
 const MARK = /`@glsl ([a-z0-9-]+)`/g, USED = new Map(), MIN = process.argv.includes('--min-glsl');
 function expand(text, gdir, where) {
   return text.replace(MARK, (m, name) => {
@@ -76,10 +77,9 @@ function expand(text, gdir, where) {
     if (!USED.has(gdir)) USED.set(gdir, new Set());
     USED.get(gdir).add(name + '.glsl');
     if (!MIN) return '`' + t + '`';
-    let mt; try { mt = KEEP.has(name) ? minGlslKeeping(t, KEEP.get(name)) : minGlsl(t); } catch (x) { die(f + ': ' + x.message); }
-    const e = checkGlsl(t, mt);
-    if (e) die(f + ': the minified text is not the same program (' + e + ')');
-    return '`' + mt + '`';
+    // minified, and its local names shortened, never one a script can find by its text (glslmin.mjs shipGlsl, checked)
+    let mm; try { mm = shipGlsl(name, t, protect()); } catch (x) { die(f + ': ' + x.message); }
+    return '`' + mm + '`';
   });
 }
 function readPart(f, gdir) { const t = readText(f); return expand(MIN ? minInline(t, f) : t, gdir, f); }   // (inline literals first: a .glsl file's text is minGlsl's or KEEP's own)
@@ -162,6 +162,7 @@ function join(dir, devDir, ship) {
   return { out: meta.out, text };
 }
 function assemble(src, ship) {   // -> [[name, text]] in name order: SRC's plain scripts, and every part dir at any depth
+  SRC_ROOT = src; PROT = null;   // (PROTECT is read from this src: glslmin.mjs protectedNames)
   const out = new Map(), DEV = path.join(src, 'dev');
   const put = (n, t) => { if (out.has(n)) die(n + ' made twice (a whole file beside its parts?)'); out.set(n, t); };
   const walk = (d, top) => {
