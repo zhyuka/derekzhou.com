@@ -40,7 +40,9 @@ let SCRIPTS = null;
 function scripts() {
   if (SCRIPTS) return SCRIPTS;
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'birdsim-'));
-  execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', path.join(ROOT, 'src'), tmp], { stdio: 'pipe' });
+  // (src/birds alone: the same inkbirds.js byte for byte, and the sim reads nothing of the world's, so 35-birds' result
+  // depends only on its declared inputs: tools/checks/35-birds.sh `# inputs:`)
+  execFileSync(process.execPath, [path.join(ROOT, 'tools/parts.mjs'), 'assemble', path.join(ROOT, 'src/birds'), tmp], { stdio: 'pipe' });
   const at = '  function birdsStep(C, dt) {\n';
   let src = fs.readFileSync(path.join(tmp, 'inkbirds.js'), 'utf8');
   fs.rmSync(tmp, { recursive: true, force: true });

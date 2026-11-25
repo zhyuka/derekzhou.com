@@ -41,8 +41,31 @@ jobs:
           npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/pwshell" playwright-core@1.49.1 >/dev/null
           node "$RUNNER_TEMP/pwshell/node_modules/playwright-core/cli.js" install --only-shell chromium
 
+      # (CI lane, 2026-11-25, the hub's gate p90) a check that declares `# inputs:` (35-birds: its three parts, 160-200 s each,
+      # the static pole) reads nothing else (tools/checks/lib/reads.mjs proves it on every run), so a branch that changes none
+      # of them reuses main's pass on those very inputs: main's gate saves each pass's key (CHECK_CACHE_SAVE), a branch's
+      # restores the shard's (CHECK_CACHE) and skips a check whose key it finds. The cache entry's key is the shard's checks'
+      # keys together (check.mjs --cache-key), so a change to any input of one misses and runs the check.
+      - name: The key of this shard's checks that declare inputs
+        id: ck
+        run: echo "key=$(node tools/check.mjs --cache-key --shard ${{ matrix.shard }}/5)" >> "$GITHUB_OUTPUT"
+      - name: Main's passes on these very inputs (a branch)
+        if: github.ref != 'refs/heads/main' && steps.ck.outputs.key != 'none'
+        uses: actions/cache/restore@v4
+        with:
+          path: build/.check-cache
+          key: checkpass-v1-${{ matrix.shard }}-${{ steps.ck.outputs.key }}
       - name: This shard's checks (tools/check.mjs --shard)
+        env:
+          CHECK_CACHE: ${{ github.ref != 'refs/heads/main' && 'build/.check-cache' || '' }}
+          CHECK_CACHE_SAVE: ${{ github.ref == 'refs/heads/main' && 'build/.check-cache' || '' }}
         run: node tools/check.mjs --shard ${{ matrix.shard }}/5
+      - name: Keep main's passes for the branches (main)
+        if: github.ref == 'refs/heads/main' && steps.ck.outputs.key != 'none' && hashFiles('build/.check-cache/*.key') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: build/.check-cache
+          key: checkpass-v1-${{ matrix.shard }}-${{ steps.ck.outputs.key }}
 
   # (CI lane, 2026-11-15, the audit's safety nets) every check's planted failures still fail it: on a branch, the plants the
   # change can break (tools/check.mjs --prove --changed: those in a changed file, and every plant of a check whose script or
