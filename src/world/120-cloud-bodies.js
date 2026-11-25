@@ -115,18 +115,6 @@
     }
     return b0;
   }
-  function mound(PF, rng, x, y0, z, W, H, o) {
-    o = o || {};
-    var b = PF.body(); b.vol = true; b.seed = rng.f() * 10; b.erode = o.erode === undefined ? 0.7 : o.erode; b.squash = o.squash || 0.85; b.blend = o.blend || 0.6; b.billow = o.billow || 0.9;
-    b.cx = x; b.cz = z; b.y0 = y0; b.y1 = y0 + H; b.cy = y0 + H * 0.45;
-    var n = Math.min(90, Math.round(18 + W / 18)), i;
-    for (i = 0; i < n; i++) {
-      var a = rng.f() * Math.PI * 2, d = Math.sqrt(rng.f()) * W * 0.42, f = 1 - d / (W * 0.5), R = W * rng.r(0.1, 0.17);
-      var top = H * (0.45 + 0.55 * f), y = y0 + R * 0.5 + rng.f() * Math.max(top - R * 1.3, 0);
-      PF.add(x + Math.cos(a) * d, y, z + Math.sin(a) * d, R, rng.f(), 1);
-    }
-    return b;
-  }
   function bank(PF, rng, x, y, z, W, H, D, R0, n) {
     var b = PF.body(); b.cx = x; b.cy = y; b.cz = z; b.y0 = y - H * 0.5; b.y1 = y + H * 0.5; b.vol = true; b.seed = rng.f() * 10;
     for (var i = 0; i < n; i++) {

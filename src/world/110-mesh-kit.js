@@ -78,24 +78,6 @@
     count: function () { return this.n; },
     bytes: function () { return new Uint8Array(this.ab, 0, this.n * VSTRIDE); }
   };
-  /* a lamp's light baked into the stone about it: each vertex from v0 to v1 (B.count() before and after the parts)
-     gains emission from the lamps within reach, I = k max(n.l, 0) / (1 + (d / r0)^2) (n.l toward the lamp, its
-     falloff at r0 m, nothing past 4 r0): static lamps on static stone, no cost a frame. The emission is the vertex's
-     own colour times I (a pool of the lamp's light on that stone); a warm lamp's tint is the realm's shade's to give
-     (gEmit is there for it to read). lamps: [[x, y, z, k, r0], ...] in the builder's world (B.T after place()). */
-  function glowBake(B, v0, v1, lamps) {
-    var F = B.F, I8 = B.I8, U8 = B.U8;
-    for (var i = v0; i < v1; i++) {
-      var o = i * 6, ob = i * VSTRIDE, x = F[o], y = F[o + 1], z = F[o + 2], nx = I8[ob + 12] / 127, ny = I8[ob + 13] / 127, nz = I8[ob + 14] / 127, e = U8[ob + 15] / 16;
-      for (var k = 0; k < lamps.length; k++) {
-        var L = lamps[k], dx = L[0] - x, dy = L[1] - y, dz = L[2] - z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-3, r0 = L[4] || 4;
-        if (d > r0 * 4) continue;
-        var nl = (nx * dx + ny * dy + nz * dz) / d; if (nl <= 0) continue;
-        e += L[3] * nl / (1 + (d / r0) * (d / r0)) * (1 - smooth(r0 * 3, r0 * 4, d));
-      }
-      U8[ob + 15] = Math.min(255, Math.round(e * 16));
-    }
-  }
   function mm3(A, B) {
     var C = new Array(9);
     for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) C[r * 3 + c] = A[r * 3] * B[c] + A[r * 3 + 1] * B[3 + c] + A[r * 3 + 2] * B[6 + c];

@@ -1,8 +1,10 @@
   /* ---------------------------------------------------------------- the realms' kit, and the dev harness */
+  /* (load-perf, 2026-11-25, the hub's ruling) exactly what src/realm-*.js call, and no more: no script outside this
+     repository loads a realm, so the kit is no outside API; test/unit/kit.mjs pins the set against the realms' uses */
   var KITAPI = {
-    Builder: Builder, box: KIT.box, prism: KIT.prism, lathe: KIT.lathe, rock: KIT.rock, cumulus: cumulus, bank: bank, range: range, lens: lens, wall: wall, mound: mound,
-    lch: lch, lab: lab, hex: hex, lum: lum, dirAzEl: dirAzEl, norm: norm, cross: cross, add: add, sub: sub3, mul: mul, dot: dot, clamp: clamp, smooth: smooth, lerp: lerp, RNG: RNG,
-    cellHash: cellHash, ihash: ihash, hfl: hfl, hk: hk, angDiff: angDiff, glowBake: glowBake
+    box: KIT.box, prism: KIT.prism, lathe: KIT.lathe, rock: KIT.rock, cumulus: cumulus, range: range, lens: lens, wall: wall,
+    lch: lch, norm: norm, cross: cross, sub: sub3, mul: mul, smooth: smooth, RNG: RNG,
+    cellHash: cellHash, ihash: ihash, hfl: hfl, hk: hk
   };
   /* stamp: each realm file and the ink birds' stamp their own top (their registration stamps their end), so the
      record bounds every script's evaluation (recScripts); without a record it does nothing */
