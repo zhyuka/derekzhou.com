@@ -48,6 +48,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  b *= bk;\n", "with": "  b *= 1.0 + 0.15 * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);\n  b *= bk;\n", "why": "the stars twinkle again: a slow swing of their light, frame to frame (and frozen into the still)"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);", "with": "float sX = 1.0, sx = 0.0;", "why": "no extinction: the stars as bright and as many at the horizon as overhead"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float ml = nightLim(c - gL) + moonLim(rd);", "with": "float ml = nightLim(c - gL);", "why": "a moon-blind limit: the stars as many beside a near-full moon as on a dark night"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -661,7 +662,7 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   assert.ok(g.includes('float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }'), 'starMag');
   const mag = (b) => 6.2 - 4.0 * Math.log10(b / 0.07);
   assert.ok(mag(1.02) < mag(0.3) && mag(0.3) < mag(0.07), 'brightest first');
-  assert.ok(g.includes('float bk = nightShow(starMag(b) + sx, ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
+  assert.ok(g.includes('float bk = nightShow(starMag(b) + sx, ml);') && g.includes('float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }') && g.includes('float ml = nightLim(c - gL) + moonLim(rd);') && g.includes('b *= bk;'), 'each star by its own margin under the limit (the shared nightLim and nightShow)');
   assert.ok(!/uSunD\.z \* \(/.test(g) && /, sk = uSunD\.z \* smoothstep/.test(g), 'the amount is only the stars\' on/off');
   const stars = [...WORLD.matchAll(/post:\{[^}]*stars:([\d.]+)/g)].map((m) => +m[1]);
   assert.equal(stars.length, 6); assert.ok(stars.every((x) => x === 1), `every sky's stars' amount is 1 (no blend between skies): ${stars}`);
@@ -759,10 +760,12 @@ test('night: the stars come out brightest first (rank correlation >= 0.9) and ne
 // STILL_WORDS); the path the plan keeps is walked again here, apart from venusFails: nothing of it on a box (grown by
 // the keep and its glow); a window all words has no Venus
 const VPLAN = cut(WORLD, '  var MRD = Math.PI', '  function mrSamples(') + cut(WORLD, '  var STAR_LIM =', "  /* (the hub's round-3 review of #301) planned");
+let VENUS_FACTORY = null;   // (compiled once: each call still builds its own world, its state fresh)
 function venusWorld(seed, keyAz, landing) {
-  return vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
+  if (!VENUS_FACTORY) VENUS_FACTORY = vm.runInThisContext('(function (SEED, KEYAZ, LANDING) {\n  \'use strict\';\n  var PI = Math.PI, DEG = Math.PI / 180, J = { seed: SEED }, AIR_SUN_NIGHT = -24, AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, SUNU = { on: false }, SKY = { seq: [], dt: 0, landing: LANDING }, SKY_RATE = 100, MOON_KEEP = 12;\n' +
     '  var SIM = { t: 0, V: { seed: SEED, light: { sunAz: KEYAZ } } };\n  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function airSkySun(V, el) { return dirAzEl(V.light.sunAz, el); }\n  function airSunEl(id) { var e = AIR_SUN_EL[id]; return e === undefined ? null : e; }\n' + STREAMS + VEC + cut(WORLD, '  function airSunEl(id)', '\n', true).replace(/function airSunEl\(id\)/, 'function airSunEl0(id)') + cut(WORLD, "  /* THE SKY'S FRAME", '  var AIR_MOOND = ') + VPLAN +
-    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})')(seed, keyAz, landing);
+    '  return { venusPlan: venusPlan, venusDir: venusDir, venusFrame: venusFrame, mrCam: mrCam, mrProj: mrProj, NIGHTB: NIGHTB, JUPB: JUPB, V: SIM.V, VEN_GLOW: VEN_GLOW };\n})');
+  return VENUS_FACTORY(seed, keyAz, landing);
 }
 test('night: the evening star\'s plan on the lo still\'s window keeps its whole path down off the words; a window all words has none', () => {
   const SW = JSON.parse(/var STILL_WORDS = (\{.*?\});/.exec(WORLD)[1]), boxes = SW['lo-393x861'];
@@ -1334,4 +1337,57 @@ test('night: the stars (and the moon) dimmed by airmass, the faint ones gone fir
   assert.equal(share[4], 1, 'every star of the field overhead');
   assert.ok(share[0] < 0.6, `low down (2-5 deg) ${share[0].toFixed(3)} of the field still shows`);
   console.log(`# extinction: k ${k}, X(5) ${X(5).toFixed(2)}, X(20) ${X(20).toFixed(2)}; stars shown by band ${bands.map((b) => b.join('-')).join(', ')} deg: ${share.map((v) => v.toFixed(3)).join(', ')}`);
+});
+
+// moonlight washes out the stars (NIGHT, the hub's pick of 2026-11-25): the moonlit sky's brightness at each direction by the
+// published moonlight model (https://doi.org/10.1086/132921; its equations as specsim/atmosphere.py writes them), over the
+// dark sky (V 21.8), the naked eye's limit falling 0.3834 per magnitude the sky brightens (https://arxiv.org/abs/1405.4209,
+// eq. 54); the shader's moonLim run here as JS: the limit follows the relation, the stars shown rise outward from the moon,
+// nothing on a moonless night changes, and the limit never rises
+test('night: moonlight washes out the faint stars, most beside the moon', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  for (const L of ['const float MLIM_K = 0.3834, SKY_DARK_V = 21.8;', 'if (uMoon.w <= 0.0) return 0.0;',
+    'float m = -12.73 + 0.026 * MOON_PHASE + 4e-9 * pow(MOON_PHASE, 4.0), I = pow(10.0, -0.4 * (m + 16.57));',
+    'float f = pow(10.0, 5.36) * (1.06 + cr * cr) + pow(10.0, 6.15 - rho / 40.0);',
+    'float zo = clamp(rd.y, 0.0, 1.0), zm = clamp(uMoon.y, 0.0, 1.0), Xo = inversesqrt(1.0 - 0.96 * (1.0 - zo * zo)), Xm = inversesqrt(1.0 - 0.96 * (1.0 - zm * zm));',
+    'float Bm = f * I * pow(10.0, -0.4 * EXT_V * Xm) * (1.0 - pow(10.0, -0.4 * EXT_V * Xo));',
+    'float B0 = 34.08 * exp(20.7233 - 0.92104 * SKY_DARK_V) * pow(10.0, -0.4 * EXT_V * (Xo - 1.0)) * Xo;',
+    'return -MLIM_K * 2.5 * log(1.0 + uMoon.w * Bm / B0) / log(10.0);', 'float ml = nightLim(c - gL) + moonLim(rd);',
+    'const float MOON_PHASE = 15.0;', 'const float EXT_V = 0.15;'])
+    assert.ok(g.includes(L), `sky-body.glsl no longer holds, as run here: ${L}`);
+  const k = 0.15, PH = 15, rad = Math.PI / 180;
+  const nL = (V) => 34.08 * Math.exp(20.7233 - 0.92104 * V), Vof = (B) => (20.7233 - Math.log(B / 34.08)) / 0.92104;   // (the model's eq. 1 and its inverse)
+  const X = (cz) => 1 / Math.sqrt(1 - 0.96 * (1 - cz * cz));
+  const parts = (d, moon, w) => {   // d, moon: unit vectors (y up); [B0, Bmoon] in nL
+    const m = -12.73 + 0.026 * PH + 4e-9 * PH ** 4, I = 10 ** (-0.4 * (m + 16.57)), cr = Math.max(-1, Math.min(1, d[0] * moon[0] + d[1] * moon[1] + d[2] * moon[2])), rho = Math.acos(cr) / rad;
+    const f = 10 ** 5.36 * (1.06 + cr * cr) + 10 ** (6.15 - rho / 40), Xo = X(Math.max(0, d[1])), Xm = X(Math.max(0, moon[1]));
+    return [nL(21.8) * 10 ** (-0.4 * k * (Xo - 1)) * Xo, w * f * I * 10 ** (-0.4 * k * Xm) * (1 - 10 ** (-0.4 * k * Xo))];
+  };
+  const lim = (d, moon, w) => { const [B0, Bm] = parts(d, moon, w); return -0.3834 * 2.5 * Math.log10(1 + Bm / B0); };
+  // the relation: the limit's shift is 0.3834 times the sky's change in mag/arcsec^2 (the cited eq. 54's slope), within 1e-3 mag
+  // (eq. 1's 0.92104 against 0.4 ln 10)
+  const moon = [0, Math.sin(30 * rad), Math.cos(30 * rad)];   // (the moon 30 deg up in the south)
+  for (const [az, el] of [[0, 40], [90, 20], [180, 60], [30, 35], [-60, 10]]) {
+    const d = [Math.sin(az * rad) * Math.cos(el * rad), Math.sin(el * rad), Math.cos(az * rad) * Math.cos(el * rad)], [B0, Bm] = parts(d, moon, 1);
+    const want = 0.3834 * (Vof(B0 + Bm) - Vof(B0));
+    assert.ok(Math.abs(lim(d, moon, 1) - want) < 1e-3, `the limit's shift ${lim(d, moon, 1)} off the relation's ${want} at az ${az}, el ${el}`);
+    assert.ok(lim(d, moon, 1) <= 0 && lim(d, moon, 0) === 0, 'a limit raised by the moon, or moved on a moonless night');
+  }
+  // the dark sky's own value: the model's eq. 1 at V 21.8 (its dark night sky, about V 21.8-22.0) near 65 nL
+  assert.ok(Math.abs(nL(21.8) - 64.9) < 0.5, `nL(21.8) ${nL(21.8)}`);
+  // the field (b = 0.95 u^6 + 0.07, starAt's draw) shown at a dark night's limit 7 plus the moon's shift, by angle from the moon
+  const mag = (b) => 6.2 - 4 * Math.log10(b / 0.07);
+  const shown = (ml) => { let s = 0; for (let i = 0; i < 2000; i++) { const b = 0.95 * ((i + 0.5) / 2000) ** 6 + 0.07; s += mag(b) < ml ? 1 : 0; } return s / 2000; };
+  const ring = (r) => {   // the mean share over a ring r deg from the moon, above 10 deg
+    let s = 0, n = 0;
+    for (let a = 0; a < 360; a += 5) {
+      const u = [1, 0, 0], v = [0, Math.cos(30 * rad), -Math.sin(30 * rad)], d = [0, 1, 2].map((i) => moon[i] * Math.cos(r * rad) + (u[i] * Math.cos(a * rad) + v[i] * Math.sin(a * rad)) * Math.sin(r * rad));
+      if (d[1] < Math.sin(10 * rad)) continue; s += shown(7 + lim(d, moon, 1)); n++;
+    }
+    return s / n;
+  };
+  const R = [5, 15, 30, 60, 90], share = R.map(ring);
+  for (let i = 1; i < R.length; i++) assert.ok(share[i] > share[i - 1], `the stars shown by angle from the moon (${R.join(', ')} deg): ${share.map((v) => v.toFixed(3)).join(', ')}: not rising outward`);
+  assert.ok(share[0] < 0.6 * shown(7), `beside the moon ${share[0].toFixed(3)} of the field still shows (a dark night: ${shown(7).toFixed(3)})`);
+  console.log(`# moon limit: stars shown ${R.map((r, i) => `${r} deg ${share[i].toFixed(3)}`).join(', ')}; a dark night ${shown(7).toFixed(3)}; the limit beside the moon ${(7 + lim([0, Math.sin(35 * rad), Math.cos(35 * rad)], moon, 1)).toFixed(2)}`);
 });

@@ -57,16 +57,6 @@
      distance alone. The born arguments are unused (kept for the callers and the merge) */
   function fadeOf(born) { return 1; }
   function fadeCell(C, born) { return cellDistFade(C); }   // (by distance)
-  /* (dev) the weight log (gate C2): every drawn weight of a frame (a cell's fade, a set's coarse or full mesh, a
-     cloud body's fade and march steps, a flock among the drawn eight, a glow, the governor's scale) and the events
-     that swap or drop a drawn thing (a coarse mesh rebuilt in full, a cell freed), each with its distance; and the
-     injected pop (gate C3's calibration): a chosen cell held undrawn, then drawn at full weight in one frame */
-  var WLOG = null, WID = 0, INJ = { key: null, on: true };
-  function wl(kind, id, w, d, vis) {   // (events between frames, a swap or a free in the frame's jobs, wait for the next frame's entry)
-    if (!WLOG) return;
-    var tgt = WLOG.cur || WLOG.pend || (WLOG.pend = []);
-    if (tgt.length < 30000) tgt.push([kind, id, +w.toFixed(4), Math.round(d), vis ? 1 : 0]);
-  }
   var VPOS = new Float64Array(3), VOLS = [], VKEY = new Float32Array(512), VORD = new Int32Array(512), FLK = [], UF = new Float32Array(1);
   function pushVol(B) {
     var n = VOLS.length; if (n >= 512) return;
@@ -101,7 +91,6 @@
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
       var steps = VSTEPS + (48 - VSTEPS) * (1 - smooth(B.r * 1.3, B.r * 1.7, d));   // (near a body 48 on every tier, as before; beyond, one budget a look, never cut by distance: a far tower's 24 steps forced its band 12 m apart; between 1.3 and 1.7 radii eased, a step at a time, never a switch in one frame)
-      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : smooth(0, 0.25, B.fade), d, 1);   /* (the drawn opacity, fs-vbody's smoothstep(0, 0.25, w)) */ wl('steps', B.wid, steps / 48, d, 1); }
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
@@ -110,7 +99,8 @@
       B.u4a[0] = VSIGMA; B.u4a[1] = steps; B.u4a[2] = B.det[0] * (CRISP ? 4 : 1); B.u4a[3] = B.det[1] * (CRISP ? 3 : 1); if (B.flow) { B.u4a[2] = B.det[0]; B.u4a[3] = B.det[1] * 0.25; }   // (a held body, a lens: its billows the kit's size at a quarter of its depth on every look, never the desktop's deep cauliflower: plates 28-78 m thick stay smooth, and billows flowing through them at 8-10 m/s open no holes (the hub's review of #298))   // (crisp cauliflower on the desktop: the kit's billows four times the size, three times the depth: less steep than the kit's own (twice the size at five times the depth, 2.5 times as steep, cut free puffs off the tops: the hub's review of #254; four times at five, 1.25 times, still left a few on the 4090))   // (the body's own, from volPrep)
       B.u4b[0] = B.range; B.u4b[1] = B.band; B.u4b[2] = ceil; B.u4b[3] = B.kind ? V.speed * 4 : 0;
       B.u4c[0] = B.reach; B.u4c[1] = B.fade; B.u4c[2] = mk; B.u4c[3] = B.base !== undefined ? B.base : -1e5;   // (w, the flat base's height)
-      gl.uniform3fv(P.u.uVC, B.c); gl.uniform3fv(P.u.uVH, B.h); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
+      var bc = B.c, bh = B.h; if (B.life) { var ls = cloudLife(B, tv); LIFEC[0] = bc[0]; LIFEC[1] = bc[1] + bh[1] * (ls - 1); LIFEC[2] = bc[2]; LIFEH[0] = bh[0]; LIFEH[1] = bh[1] * ls; LIFEH[2] = bh[2]; bc = LIFEC; bh = LIFEH; }   // (physics: clouds/life: a free cumulus' tops swell and settle, its box's bottom where it was)
+      gl.uniform3fv(P.u.uVC, bc); gl.uniform3fv(P.u.uVH, bh); gl.uniform2fv(P.u.uVY, B.yaw); gl.uniform4fv(P.u.uVR, B.u4a); gl.uniform4fv(P.u.uVS, B.u4b); gl.uniform4fv(P.u.uVR2, B.u4c); gl.uniform1f(P.u.uVVox, B.vox);
       var c0 = B.c0 || B.c, nS = B.u4a[2]; if (!B.nO) B.nO = new Float32Array(3);   // (the billows ride with the body: an offset from where it was laid out, in doubles, never the clock's)
       var fl = B.flow, tf = fl ? cloudT() : 0;   // (a held body (a lenticular): its envelope still, its billows flowing through it at the wind at its height, in doubles)
       for (var k3 = 0; k3 < 3; k3++) { var q3 = (c0[k3] - (fl ? fl[k3] * tf : 0)) / nS; B.nO[k3] = q3 - Math.floor(q3); }
@@ -121,6 +111,7 @@
     gl.disable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.disable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
     ST.vols = m;
   }
+  var LIFEC = new Float32Array(3), LIFEH = new Float32Array(3);
   var MIST_IN = 20, MIST_OUT = 80, MISTMAX = 0, MISTO = new Float64Array(3);   // (dev: the most mist about the eye drawn since the last state read)
   function mistK(B) {   // 1 - smoothstep(20, 80, the eye's distance to the surface of the body's nearest lobe)
     var sb = B.soft; if (!sb || !B.cell || !B.cell.soft) return 0;
@@ -147,7 +138,6 @@
     var P = EP.creature; gl.useProgram(P.p); setFrameUniforms(P, V);
     gl.bindVertexArray(CREATURE.vao);
     var m8 = Math.min(n, 8), adds = 0;
-    if (WLOG) for (i = 0; i < n; i++) { var Fw = FLK[n > 8 ? FLKO[i] : i]; if (!Fw.wid) Fw.wid = ++WID; wl('flk', Fw.wid, i < m8 ? 1 : 0, Math.sqrt(FLKD[n > 8 ? FLKO[i] : i]), 1); }
     for (var pass = 0; pass < 2; pass++) {
       if (pass === 1) { if (!adds) break; gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE); gl.depthMask(false); }
       for (i = 0; i < m8; i++) {

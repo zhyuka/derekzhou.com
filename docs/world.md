@@ -58,6 +58,17 @@ laid out once, by its own cell), and a census of a flight (windy visits:
 about one lens in reach in half the minutes of a flight, at most three;
 calm: none).
 
+The gate's 7.7 m/s (the hub's ruling, 2026-11-25: main's gate kept): lee
+waves want a flow of at least 25-40 km/h (6.9-11.1 m/s), as near square
+to the ridge as it can be, at the crest and above
+(https://www.meteoswiss.admin.ch/weather/weather-and-climate-from-a-to-z/mountain-and-lee-waves.html).
+The figure often quoted for big ranges, about 10 m/s (20 kt) at the
+crest, would shut the gate on every visit: the crest's wind is at most
+9.6 m/s (U10 7.5). The world's ridges are low, so the gate stands near
+the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
+of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
+of 7.7 m/s, lenses on every sweep step past it.
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
@@ -287,6 +298,19 @@ the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
 sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
 test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+
+Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
+scattered into the sky at each direction by the published moonlight model
+(https://doi.org/10.1086/132921, its equations as specsim/atmosphere.py writes
+them: the moon's magnitude by its phase, molecular and aerosol scattering by the angle
+from it, the air toward it and along the line of sight), over the dark sky (V
+21.8 mag/arcsec^2 at the zenith, brightening toward the horizon); the faintest
+star seen falls by 0.3834 of each magnitude the sky brightens
+(https://arxiv.org/abs/1405.4209, eq. 54), by the moon's amount, so a moonless
+night keeps its limit exactly. Under the near-full moon the limit falls about
+1.6 mag beside it and 1 mag a quarter of the sky away: about 0.40 of the field
+shows 5 deg from the moon, 0.58 at 90 deg (test/unit/sky.mjs). Only ever a loss;
+the sky itself is untouched.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -1206,6 +1230,106 @@ By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
 0.38 (6.30). It is the visit's own (U10 alone), so a veil never fades in
 place; reduced motion draws none, as before. test/unit/air.mjs holds dust
 at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
+
+## THE SALTATION LAYER (measured, not drawn)
+
+The question (2026-11-25): on a windy visit, can a visitor see blowing
+sand? The veils don't read. On opening 8 (U10 7.31, AIR's dust 1, laptop
+@2), switching them off changes no pixel at the landing and 8 at one
+level at a cruise pose 14 m up.
+
+A saltation layer sized by the physics was built and measured (#459,
+closed). Grains in hops are densest within about 10 cm of the bed and
+thin over decimetres; in gusts they gather into streamers
+(https://arxiv.org/pdf/1201.4353; https://doi.org/10.1029/2004JF000270).
+It was modelled as a column of optical depth 0.05, seen through 1/g of it
+at the grazing cosine g, that lifts the sand toward its lit colour.
+Opening 8 against main:
+
+| frames | pixels changed | most lift |
+|---|---|---|
+| laptop @2, cruise | 30,872 | 1.2 levels |
+| laptop @2, landing | 8,649 | 1.0 |
+| phone @3, cruise | 18,666 | 1.2 |
+| phone @3, landing | 14,866 | 1.0 |
+
+It is invisible at true size and at 2x. That is the physics' honest
+answer: saltation at U10 up to 7.5 m/s, seen from 14 m at 60 m and
+beyond, doesn't read. The hub's ruling (08:38Z): not drawn. It would cost
+shader work on every sand pixel for nothing a visitor sees. Scattering
+forward into a low sun, or a layer past its physical size, would be a
+look, not physics. The branch claude/land-saltation and the crops
+(claude/review-459-crops) keep the work.
+
+## THE LAND'S LEVEL OF DETAIL (no pop at a handoff)
+
+The land is 10 rings of 96 cells, 0.35 m doubling. Each vertex morphs
+toward the next ring's lattice over 37 to 45.5 cells from the camera
+(VS_TERRAIN, VS_TERRAIN_SPLIT, hp-gridw). Measured in cruise
+(tools/physics/lod-pop.mjs: the clipmap replayed in doubles over the
+dunes, 2 flights of 60 s at 12 m/s, 1500 fixed points 50-600 m ahead,
+laptop size 2880 x 1800), the rule before (each odd vertex to c - 1) did
+pop. Every step over 0.5 px came where a point passed from one ring to
+the next, up to 10.9 px of edge motion and 75 shading levels: 117 and 94
+steps over 0.5 px in the two minutes. Fully morphed, that rule laid the fine ring on
+one diagonal in every coarse cell, but the coarse ring alternates its
+diagonals, so half the cells changed shape at the handoff. Morph off
+was worse (up to 12 px).
+
+Now an odd vertex goes toward its coarse lattice's multiple of 4 cells
+(c + (c mod 2)((c mod 4) - 2)). Fully morphed, the fine ring is the
+coarse ring's own triangles, diagonals and all; an exhaustive search of
+the rules over a 4-cell period found this one depends on the vertex's
+own coordinate alone. The same two flights: 1665 handoffs, 0.00 px and
+0.00 levels at every one. The worst step anywhere is 0.19 px, a
+vertex's continuous slide inside its band. The vertex normals still
+turn fast where a sliding vertex crosses a slip face's brink (up to 13
+levels in a frame, 53 steps over 2 in 2.3 million). That is the morph's
+own motion, not a ring change, and the fragment rebuilds the main
+dunes' slope at its own phase there (s1Slope). test/unit/clipmap.mjs
+flies both paths for 4 s: no handoff over 0.5 px or 2 levels; the c - 1
+rule must pop, and the plant (morph off) fails it.
+
+The brinks, shaded as FS_TERRAIN shades them (lod-pop.mjs --brink: 800
+fixed points within 2 m of a brink, the fragment's rebuild replayed line
+for line, the same 2 flights at laptop and phone size), did shimmer.
+The footprint cp, which sets the brink's rounding and B, divided by the
+grazing term |n.rd| of the vertices' interpolated normal. A morphing
+vertex's normal drifts about 0.004 a frame across a brink, so where the
+view grazes (|n.rd| near 0.03) the rounding swelled 15% a frame, and a
+point inside it stepped 8-11 levels. Before: 0.016-0.157% of brink steps
+over 2 levels, up to 7.8 levels; 1.7-5.4% of the worst point's frames;
+94 of 800 points over 0.1% of their frames (laptop, flight 1). Now cp
+reads the fragment's own slope at the vertices' rounding (one more
+s1Slope a land fragment): 1 step over 2 levels in 1.44 million (4.0
+levels), and no point over 0.1% of its frames on either size.
+test/unit/clipmap.mjs flies 5 s at both sizes; the plant (cp from the
+vertices' normal) fails it.
+
+The near dunes' crests (the 64 m family) shimmered the same way, and
+nothing in the fragment rebuilds them. Their profile (duneWave) kept a
+kink in slope at the crest (1/0.7 a cycle on the stoss, 0 on the lee),
+so a vertex morphing across one turned its normal by the whole jump in
+a frame. Measured with lod-pop.mjs --near (800 fixed points within 1 m
+of a crest, the same 2 flights at both sizes): 0.023-0.115% of steps
+over 2 levels, up to 12.2 levels, at 470-630 m (level 5, 11 m cells),
+with 10-202 of 800 points over 0.1% of their frames. Now the crest is a
+cubic over 2 m that matches both sides' height and slope (the main
+dunes' brink is rounded over 2 m too). The crest stands at most 1.4 cm
+lower. A vertex morphs about 0.024 m a frame, so the turn spreads over
+the frames it takes to cross: 0 steps over 2 levels, at most 0.66
+levels, and no point over the bound at either size.
+test/unit/clipmap.mjs flies both sizes; the plant (the kink sharp again)
+fails it.
+
+With the three in (#467, #470, #472), the whole land, swept
+(lod-pop.mjs --all: 1500 fixed points anywhere in the corridor, the
+fragment replay, the same 2 flights x 60 s at both sizes): 3.70 million
+steps, 5 over 2 levels (0.00014%), the worst 2.37. All 5 are one point,
+the toe of a main dune 600 m out at the range's far edge, drifting a
+steady 2.35-2.37 levels a frame for 5 frames: a smooth turn, not a pop.
+Phone: none over 2 (worst 1.92). Nothing else on the land turns more than
+2 levels in a frame.
 
 ## THE LARGE WORLD
 

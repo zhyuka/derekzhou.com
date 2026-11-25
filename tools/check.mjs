@@ -28,7 +28,7 @@ const DIR = path.join(ROOT, 'tools/checks'), TMP = path.join(ROOT, 'build/.check
 const argv = process.argv.slice(2), has = (f) => argv.includes(f), val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const all = fs.readdirSync(DIR).filter((f) => /^\d\d-[\w-]+\.sh$/.test(f)).sort().map((f) => {
   const src = fs.readFileSync(path.join(DIR, f), 'utf8');
-  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src), parts: +((src.match(/^# parts: (\d+)$/m) || [])[1] || 1) };
+  return { file: f, slug: f.replace(/\.sh$/, ''), name: (src.match(/^# check: (.*)$/m) || [])[1] || f, kind: (src.match(/^# kind: (\w+)$/m) || [])[1] || '', alone: /^# alone: /m.test(src), apart: ((src.match(/^# apart: ([\w -]+?)\s*(?:\(|$)/m) || [])[1] || '').split(/\s+/).filter(Boolean), parts: +((src.match(/^# parts: (\d+)$/m) || [])[1] || 1) };
 });
 // (2026-11-24) a check marked `# parts: N` runs on a push as N checks, slug#0 .. slug#N-1, each with CHECK_PART=i/N, so
 // the shards can take its parts side by side (35-birds: 177 s, the gate's long pole on a shard of its own). Its plants
@@ -77,10 +77,15 @@ const N = Math.max(2, Math.min(os.cpus().length, 8));
 function split(list, n) {
   let cost = {}; try { cost = JSON.parse(fs.readFileSync(path.join(DIR, 'costs.json'), 'utf8')); } catch (e) { /* every check 10 s */ }
   const of = (c) => (typeof cost[c.slug] === 'number' ? cost[c.slug] : 10);
-  const load = Array(n).fill(0), at = new Map();
+  // (2026-11-25) a check marked `# apart: <check> ...` never shares a shard with those checks (any of their parts), either
+  // way round, wherever there is a shard free of them: 24-unit beside 35-birds' 20 processes took 119 s, not 22, and
+  // 13-rules-data's hook timing failed there. The least-loaded shard that keeps them apart, else the least-loaded.
+  const load = Array(n).fill(0), at = new Map(), on = Array.from({ length: n }, () => []), base = (c) => c.base || c.slug;
+  const clash = (c, d) => c.apart.includes(base(d)) || d.apart.includes(base(c));
   for (const c of [...list].sort((a, b) => of(b) - of(a) || (a.slug < b.slug ? -1 : 1))) {
-    let k = 0; for (let j = 1; j < n; j++) if (load[j] < load[k]) k = j;
-    load[k] += of(c); at.set(c.slug, k);
+    let k = -1; for (let j = 0; j < n; j++) if (!on[j].some((d) => clash(c, d)) && (k < 0 || load[j] < load[k])) k = j;
+    if (k < 0) { k = 0; for (let j = 1; j < n; j++) if (load[j] < load[k]) k = j; }
+    load[k] += of(c); at.set(c.slug, k); on[k].push(c);
   }
   return { at, load };
 }

@@ -2,11 +2,12 @@
 // The browser APIs the world reads that TypeScript's DOM types lack, and the plan's spans' require (renamed in
 // tools/tsc.mjs's copy: each span also runs, in the plan's worker and the unit tests, as a CommonJS module).
 declare function CJS_REQUIRE(name: string): any;   // (tools/tsc.mjs's copy: the spans' require, renamed)
+declare var CJS_MODULE: any;   // (tools/tsc.mjs's copies: module, renamed: the world's (130 sets it), the wing model's tails)
 interface Navigator { deviceMemory?: number; gpu?: unknown }
 interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number; url?: string }   // (url: a paint entry's, 520's afterStill)
 interface EventListenerOptions { passive?: boolean }
 // window.WORLD (510): what the realm scripts and the ink birds register with and read; forms is set by realm-kit.js
-interface WorldApi { realm(def: object): void; kit: KitApi; air: AirApi; events: EventsApi; birds(factory: Function): void; sky(): SkyFeed | null;
+interface WorldApi { realm(def: object): void; kit: KitApi; air: AirApi; events: EventsApi; birds: BirdsHook; sky(): SkyFeed | null;
   stamp(name: string): void; forms?: any }
 // WORLD.air (215's AIRAPI): the one air, as the realms and the score read it. V is a visit (200's), t the flight's time
 // (SIM.t when undefined); an object or array marked (reused) is the one the air fills in place, not a fresh one
@@ -41,7 +42,23 @@ interface EventsApi {
 }
 // WORLD.sky() (512): the score's read-only copy of the sky (docs/sound.md)
 interface SkyFeed { t: number; seq: { id: string; at: number; hold: number; move: number; far: boolean }[]; wc: number; still: boolean; seed: number }
-interface Window { WORLD: WorldApi; SCORE: ScoreApi }
+interface Window { WORLD: WorldApi; SCORE: ScoreApi; FACETFORM: FacetForm; FACETPOSE: FacetPoseFn; WINGMODEL: WingModelFn; WINGMODEL_DATA: WingModelData;
+  LABBIRD: LabBirdFn; BIRDWING: BirdWingFn }
+// WORLD.birds: the engine takes the ink birds' factory by it (490); inkbirds.js's hooks (300) set feed on it, the score's
+// read of the birds (266): o.f the nearest flocks, o.w the nearest birds, o.kinds their kinds' order, written into o
+interface BirdsHook { (factory: Function): void; feed?(o: BirdsFeed): BirdsFeed }
+interface BirdsFeed { f: Float32Array; w: Float32Array; n: number; m: number; kinds?: string[] }
+// the ink birds' wing model (src/birds/model/, served as written, loaded before inkbirds.js): each file sets one global on
+// self (the page's window), and inkbirds.js reads them by name. The data files are generated (facetform.js: mkform.py,
+// model.js: make.py); the four functions build the lab's bird and its wing from them, as birdwing.js's header writes:
+// LB = LABBIRD(FACETFORM, FACETPOSE, WINGMODEL, MODEL), BW = BIRDWING(LB, MODEL)
+interface FacetForm { kinds: { [kind: string]: { p16: number[]; chain: number[]; [k: string]: any } }; [k: string]: any }
+interface WingModelData { kinds: { [kind: string]: any }; [k: string]: any }
+type FacetPoseFn = (form: FacetForm) => any;
+type WingModelFn = (model: WingModelData, P: any) => any;
+type LabBirdFn = (form: FacetForm, facetpose: FacetPoseFn, wingmodel: WingModelFn, model: WingModelData) => any;
+type BirdWingFn = (lb: any, model: WingModelData) => any;
+declare var FACETFORM: FacetForm, FACETPOSE: FacetPoseFn, WINGMODEL: WingModelFn, WINGMODEL_DATA: WingModelData, LABBIRD: LabBirdFn, BIRDWING: BirdWingFn;
 // window.SCORE (score.js): what the sound icon's switch (sound.js) plays; navigator.audioSession: WebKit's, not in the DOM types
 interface ScoreApi { cuts: number[]; play(ctx: AudioContext, out: AudioNode, buffer: AudioBuffer | null, sliced?: boolean): any }   // cuts: the sheet's seconds up to its first parts (the switch decodes them as they arrive); play takes no buffer to fill its room and air first, then more(buffer, upto)
 interface Navigator { audioSession?: { type: string } }

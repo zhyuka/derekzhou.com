@@ -91,7 +91,7 @@
     // turns it. CS.auto now says only how long the flight has been left alone (6-10 s, eased in over 3 s): the
     // clearance then eases back to the realm's cruise height, level
     var idle = t - CS.lastIn;
-    if (idle > CS.idleAfter && !NOAUTO) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
+    if (idle > CS.idleAfter) CS.auto = Math.min(1, CS.auto + dt / 3); else CS.auto = 0;
     // what stands ahead and cannot be climbed over: passed beside, the heading held (a slip sideways, never a turn)
     slipStep(V, CS, dt);
     // the flight follows the view: critically damped (HEAD_T 0.035 s: in a steady turn it trails the view by 0.07 s, as
