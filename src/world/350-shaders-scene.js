@@ -32,7 +32,7 @@ void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
   float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
-  w = (c - mod(aG, 2.0) * m) * uLev.z;
+  w = (c + mod(c, 2.0) * (mod(c, 4.0) - 2.0) * m) * uLev.z;
   gLodD = length(w - uCam.xz);
   vec3 hd = ${H}(w);
   vX = ${G ? G + '(w, hd.x)' : '1e4'};
@@ -97,7 +97,7 @@ void main() {
   vec2 c = uLev.xy + aG, w = c * uLev.z;   // (the lattice: c whole cells, exact; one rounding of c g, the same on both rings of a seam)
   float d = max(abs(w.x - uCam.x), abs(w.y - uCam.z));
   float m = clamp((d - (uLev.w - 11.0) * uLev.z) / (8.5 * uLev.z), 0.0, 1.0);
-  w = (c - mod(aG, 2.0) * m) * uLev.z;
+  w = (c + mod(c, 2.0) * (mod(c, 4.0) - 2.0) * m) * uLev.z;
   ivec2 q = ivec2(aG) + ivec2(0, uLvl * 97);
   vec4 k0 = texelFetch(uHP0, q, 0), k1 = texelFetch(uHP1, q, 0), s = texelFetch(uHP3, q, 0), r = texelFetch(uHP4, q, 0);
   vec3 hd = (s.xyz + r.xyz) - k1.xyz;
