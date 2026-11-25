@@ -86,8 +86,13 @@ vec3 hazeCol(vec3 rd) {
 }
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float m = fogOD(rd, t), g = uAer.y, cs = dot(rd, uSun);
-  vec3 T = exp(-(m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w)) + BR * gasPath(rd, t))), fq = fogCol(rd);   // (the aerosol by wavelength: the wavelength exponent alpha, uAer.w, 370)
-  c = c * T + fq * (1.0 - T) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-m)));
+  float gp = gasPath(rd, t), m0 = m * uAerB;
+  vec3 T = exp(-(m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w)) + BR * gp)), T0 = exp(-(m0 + BR * gp)), fq = fogCol(rd);   // (the aerosol by wavelength: the wavelength exponent alpha, uAer.w, 370)
+  /* the aerosol only adds the sky's light: each channel the brighter of the physical air and the grey air it replaced
+     (uAerB, its amount over the physical's), so a sunlit rim brighter than the horizon's sky, which a thicker air would
+     pull down toward it, keeps today's (nothing is darkened); land darker than the sky, nearly all of it, takes the
+     physical air whole */
+  c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0)) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-max(m, m0))));
   c = mix(c, hazeCol(rd), hazeAmt(rd, t));
   /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen
      within a few degrees of the horizon (the far land, a mesa, a dune's crest, the feet of the towers) lies in a mist of the horizon's own colour, so the ground about the words is even, while the land nearer

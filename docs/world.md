@@ -1138,8 +1138,13 @@ per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
   blown dust and with the growth
   (https://doi.org/10.1029/1999JD900923: continental 1.2-1.5, desert
   dust 0-0.5). So a thin dry air's haze is bluish and a moist or dusty
-  one white. Neither changes with the sky, so the far land never fades
-  in place. Before (to #474) the aerosol was grey and its amount the
+  one white. It only adds the sky's light: each channel takes the
+  brighter of the physical air and the grey air it replaced (uAerB). A
+  sunlit cloud rim or mesa face brighter than the horizon's sky, which a
+  thicker air pulled down toward it by up to 11.5 codes on the moist
+  visit, keeps today's; land darker than the sky, nearly all of it, takes
+  the physical air whole. Neither changes with the sky, so the far land
+  never fades in place. Before (to #474) the aerosol was grey and its amount the
   tuned haze times AIR's factor. On the day opening that put the visual
   range at the eye at 10.0 km where the visit's air gives 5.5 km (seed
   44), and at 15.3 km against 10 km (seed 1234): the far land held about

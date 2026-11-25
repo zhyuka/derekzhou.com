@@ -9,6 +9,7 @@ uniform vec4 uGlow; uniform vec3 uGlowC; uniform vec4 uFog; uniform vec4 uFog2;
 uniform vec4 uSkyN;   // (the sun and moon) w 1 only in a change between a twilight sky and a night sky (0 everywhere else: every branch on it skipped), xyz the key (the night's own light)
 uniform vec3 uGlowN, uSkyWT, uSkyWN, uHzT, uHzN; uniform vec4 uSkyKT, uSkyKN, uSunK;   // (with it) the night's glow about the key; the twilight's and the night's warm colours and amounts; the haze's warm side at each end (toward the light less away); the sun's depth under the twilight's own (deg), its share (band), the night's (QN), the wisps' shadow line (deg)
 uniform vec4 uAer;    // the aerosol (lib-air: atmos): its optical depth's scale (the visual-range law's at the eye, the visit's visual range), the forward peak's g, its amount, the wavelength exponent
+uniform float uAerB;  // the grey aerosol the physical replaced, its optical depth over the physical's (lib-air: atmos keeps each channel the brighter of the two: nothing darkened)
 uniform vec4 uHaze; uniform vec3 uHazeC, uHazeW;   // the ground haze: density at its base (1/m), scale height (m), its base below the eye (m), -; colour, toward the sun
 uniform vec3 uAmbU, uAmbD;
 uniform vec4 uFogP;   // (the fog pools) the pool in view: its site (x, z), its basin's radius (m), its top (m; -1e4: none)

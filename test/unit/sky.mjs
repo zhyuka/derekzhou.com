@@ -49,6 +49,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);", "with": "float sX = 1.0, sx = 0.0;", "why": "no extinction: the stars as bright and as many at the horizon as overhead"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float ml = nightLim(c - gL) + moonLim(rd);", "with": "float ml = nightLim(c - gL);", "why": "a moon-blind limit: the stars as many beside a near-full moon as on a dark night"}
+// plant: {"file": "src/world/glsl/lib-air.glsl", "find": "c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0))", "with": "c = c * T + fq * (1.0 - T)", "why": "the physical aerosol pulling sunlit cloud rims down toward the sky (darkened)"}
 // plant: {"file": "src/world/370-frame-uniforms.js", "find": "var sig = 3.912 * gr / (w.vis * 1000) - 13.5e-6,", "with": "var sig = 3.912 / (w.vis * 1000) - 13.5e-6,", "why": "the aerosol's visual range without the particles' growth with the humidity"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
@@ -1260,7 +1261,8 @@ test('physics: Looks: the gas\'s path is the slant integral of air thinning with
     const v = gasPath({ y: ry }, t, { y: y0 });
     assert.ok(Math.abs(v - n) / n < 1e-4, 'gasPath at eye ' + y0 + ' m, rd.y ' + ry + ', ' + t + ' m: ' + v.toFixed(1) + ' against the integral ' + n.toFixed(1));
   }
-  assert.ok(/vec3 T = exp\(-\(m \* pow\(vec3\(680\.0, 550\.0, 440\.0\) \/ 550\.0, vec3\(-uAer\.w\)\) \+ BR \* gasPath\(rd, t\)\)\)/.test(g), 'atmos does not take the gas along its path (and the aerosol by wavelength)');
+  assert.ok(/float gp = gasPath\(rd, t\)/.test(g) && /vec3 T = exp\(-\(m \* pow\(vec3\(680\.0, 550\.0, 440\.0\) \/ 550\.0, vec3\(-uAer\.w\)\) \+ BR \* gp\)\), T0 = exp\(-\(m0 \+ BR \* gp\)\)/.test(g), 'atmos does not take the gas along its path (and the aerosol by wavelength)');
+  assert.ok(g.includes('c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0))'), 'atmos lets the physical aerosol darken a channel below the grey air it replaced (nothing is darkened)');
   assert.ok(g.includes('return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t));'), 'fogAmt does not take the gas along its path');
 });
 
@@ -1395,21 +1397,23 @@ test('night: moonlight washes out the faint stars, most beside the moon', () => 
 
 test('physics: Looks: the aerosol is the visual-range law\'s at the eye for the visit\'s visual range, and by wavelength as its wavelength exponent (aerU)', () => {
   const src = fs.readFileSync(path.join(ROOT, 'src/world/370-frame-uniforms.js'), 'utf8');
-  const a = src.indexOf('  var AER_RH'), b = src.indexOf('    gl.uniform4fv(u.uAer, AERU);\n  }', a);
+  const a = src.indexOf('  var AER_RH'), b = src.indexOf('  function setFrameUniforms', a);
   assert.ok(a > 0 && b > a, 'aerU not found in 370');
-  const code = src.slice(a, b) + '    gl.uniform4fv(u.uAer, AERU);\n  }\n  this.aerU = aerU; this.AER_Y = AER_Y;';
-  const WX = { vis: 10, moist: 0, dust: 0 }, got = [];
-  const ctx = { Math, Float32Array, SIM: { t: 0 }, airWx: () => WX, gl: { uniform4fv: (u, v) => got.push(Array.from(v)) } };
+  const code = src.slice(a, b) + '\n  this.aerU = aerU; this.AER_Y = AER_Y;';
+  const WX = { vis: 10, moist: 0, dust: 0 }, got = [], gotB = [];
+  const ctx = { Math, Float32Array, SIM: { t: 0 }, airWx: () => WX, AIR_WXK: { vis: [10, 4] }, gl: { uniform4fv: (u, v) => got.push(Array.from(v)), uniform1f: (u, v) => gotB.push(v) } };
   vm.runInNewContext(code, ctx);
   const fog = [2.0e-4, 1 / 220, 0, 0.6e-4];   // (the dunes realm's tuned haze: only its shape is kept)
   const cases = [{ vis: 10, moist: 0, dust: 0 }, { vis: 4, moist: 0, dust: 1 }, { vis: 10, moist: 1, dust: 0 }, { vis: 7, moist: 0.5, dust: 0.5 }];
   let t = 0;
   for (const c of cases) {
     Object.assign(WX, c); ctx.SIM.t = ++t;
-    ctx.aerU({ uAer: 1 }, { L: { fog } });
+    ctx.aerU({ uAer: 1, uAerB: 2 }, { L: { fog } });
     const U = got[got.length - 1], rh = 0.3 + 0.6 * c.moist, gr = Math.pow((1 - rh) / 0.7, -0.3);
     const ext = (fog[0] * Math.exp(-fog[1] * ctx.AER_Y) + fog[3]) * U[0] + 13.5e-6, want = 3.912 * gr / (c.vis * 1000);
     assert.ok(Math.abs(ext - want) / want < 1e-4, `extinction at the eye ${ext.toExponential(3)}/m against the visual-range law's ${want.toExponential(3)} (visual range ${c.vis} km / growth ${gr.toFixed(2)})`);
+    const oldX = 10 / c.vis * gr, B = gotB[gotB.length - 1];   // (the grey air it replaced, whose floor atmos keeps)
+    assert.ok(Math.abs(B * U[0] - oldX) / oldX < 1e-6, `uAerB ${B} does not carry the grey air's amount over the physical's (${(oldX / U[0]).toFixed(4)})`);
     assert.ok(U[3] >= 0 && U[3] <= 1.5, 'the wavelength exponent ' + U[3] + ' outside the measured 0-1.5');
     if (c.dust === 0 && c.moist === 0) assert.ok(Math.abs(U[3] - 1.3) < 1e-6, 'clean dry air: alpha ' + U[3] + ', not the continental 1.3');
     if (c.dust === 1) assert.ok(U[3] <= 0.31, 'blown dust: alpha ' + U[3] + ' (desert dust 0-0.5)');

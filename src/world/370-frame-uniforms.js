@@ -23,8 +23,10 @@
       var sig = 3.912 * gr / (w.vis * 1000) - 13.5e-6, d0 = F ? F[0] * Math.exp(-F[1] * AER_Y) + F[3] : 0;   // (the aerosol's 1/m at the eye, and the tuned haze's there)
       AERK.V = V; AERK.t = SIM.t; AERK.f = F; AERU[0] = d0 > 0 ? Math.max(sig, 0) / d0 : 0;
       AERU[3] = (AER_A[0] - (AER_A[0] - AER_A[1]) * w.dust) / gr;
+      AERK.b = AERU[0] > 0 ? AIR_WXK.vis[0] / w.vis * gr / AERU[0] : 0;   // (the grey air it replaced: the tuned haze times the visual range's and the growth's factor, over the physical's; atmos never goes below it)
     }
     gl.uniform4fv(u.uAer, AERU);
+    if (u.uAerB) gl.uniform1f(u.uAerB, AERK.b);
   }
   function setFrameUniforms(P, V) {
     var u = P.u, L = V.L || V.light;
