@@ -307,6 +307,23 @@ silence); YAMNet hears in it "Music", "Silence", "Outside, rural or natural" and
 synthetic median 0.005 (before 0.006), windows over 0.05 14 (21), orchestral median 0.30 (0.30). render.mjs's flight,
 which opens on afterglow and has little night, now reads -22.7 LUFS (true peak -3.3 dBFS, loudness range 7.8 LU).
 
+The air heard and the sand (2026-11-25): render.mjs's flight measures -22.9 LUFS windy (WIND_U 6.5) and calm alike
+(true peak -3.9 dBFS, loudness range 9.6 LU); the two play the same notes (the heard wind draws nothing from the
+score's stream), so their difference is the air and the hiss exactly. There, afterglow's music -22.1 LUFS, its air
+-54.9, its hiss (the band over 2.5 kHz) -55.5, 33.4 LU under the music; the other skies' air -67 to -69 and no hiss
+(main's air, measured so, -61.7 in afterglow: its old note "about 18 dB under" was never its integrated level).
+Afterglow held over the dunes, 150 s, music -21.6 LUFS: the air at a 10 m wind of 3, 5 and 7.5 m/s -66.2, -60.6 and
+-49.9 LUFS; its hiss none (under the threshold), -62.3 and -50.1 (40 and 28.5 LU under the music); in the top octave
+(8 kHz), where the music has almost nothing, the air 4.6 dB under the music's own band at 5 m/s and 8.5 over it at
+7.5; sharpness (DIN 45692) 0.873 acum calm, 0.874 at 5 m/s, 0.927 at 7.5 (its first band, 3-10 kHz and 4 dB up, gave
+1.035: past the 0.1 acum it may add, so it came down). YAMNet: the windiest mix "Music" 0.90 (calm 0.91); the air
+alone, at its own faint level, "Silence" 0.61, then "Buzz" 0.18 ("Hiss" 0.005, "White noise" 0.022, "Sanding" 0).
+Over 40 minutes of the world-ordered flight (seed 11, a 5.5 m/s visit, a third of the view cloud): -22.9 LUFS, true
+peak -2.5 dBFS, loudness range 9.5 LU, every ten minutes -22.8 to -23.1; the air 40 LU under the music in afterglow
+(-62.7 LUFS) and -66 to -68 elsewhere (the Milky Way's -62.9, its breaths' gust); the hiss only in afterglow, -67.8
+LUFS, 44.5 LU under its music, heard about 1% of the time; YAMNet's synthetic median 0.005, windows over 0.05 14,
+the worst 0.22, orchestral median 0.30 (the night's quiet alone: 0.005, 14, 0.41, 0.30).
+
 Change OUT only with a measurement.
 
 ## What it costs
