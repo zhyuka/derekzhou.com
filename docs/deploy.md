@@ -43,7 +43,7 @@ the bot's own files included. A push after the review moves the head, so the lin
 new one. (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.) The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
 its stills are up. The hub sends the owner a daily note of what went live, and "undo X" lands a revert the same way.
 The bot's own files (bot-rules.mjs BOT_FILES) are its workflow, merge-bot.mjs and every module and data file it runs
-on: bot-rules.mjs, areas.mjs, areas.json, deploy-walk.mjs, and the names guard (.claude/hooks/guard.py, names.json).
+on: bot-rules.mjs, areas.mjs, areas.json, deploy-walk.mjs, budget-room.mjs and verdict.mjs (the measure and the verdict it lands on; #510 changed verdict.mjs and landed unreviewed), and the names guard (.claude/hooks/guard.py, names.json).
 Until 2026-11-25 the list held merge.yml and merge-bot.mjs alone, and #435, which changed bot-rules.mjs with a served
 build the base's, landed with no review; test/unit/merge-bot.mjs now derives the list from the bot's imports.
 
