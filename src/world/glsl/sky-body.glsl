@@ -226,7 +226,9 @@ vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 
 /* (night, delight-night §1 and §4) a star's magnitude from its brightness (b 0.07: 6.2, the faintest; b 1.02: 1.5), and
    its pastel colour: only the bright ones (b over 0.35, all of it from 0.8), by the share of spectral kinds among the
    bright naked-eye stars (blue-white B/A, white-yellow F/G, orange K, red-orange M), each at the white's own luminance
-   (Y 1: OKLab L within 0.002 of it), so a tint never moves a star's light */
+   (Y 1: OKLab L within 0.002 of it), so a tint never moves a star's light. The shares 36/26/28/10% against the stars of
+   V under 6.0 in the Bright Star Catalogue, 5th revised (https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html;
+   counts derived by spectral class, 5022 typed): O/B/A 41.0, F/G 27.2, K 25.0, M (with C, N, S) 6.8%, each within 5 points */
 float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }
 /* (night, physics: night/extinction) the air's extinction by airmass: a star (and the moon) k X magnitudes dimmer
    through X airmasses, X by the revised approximation for the relative optical air mass (https://doi.org/10.1364/AO.28.004735,

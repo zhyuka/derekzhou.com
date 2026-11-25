@@ -37,7 +37,6 @@ vec3 dSmin(vec3 a, vec3 b, float k) { float h = clamp(0.5 + 0.5 * (b.x - a.x) / 
 /* a smooth step of a value with its gradient; e0 may be above e1 (a descending step: computed as such, never
    handed to the built-in smoothstep, whose edges must ascend) */
 vec3 dSstep(float e0, float e1, vec3 a) { float x = clamp((a.x - e0) / (e1 - e0), 0.0, 1.0); return vec3(x * x * (3.0 - 2.0 * x), a.yz * (6.0 * x * (1.0 - x) / (e1 - e0))); }
-vec3 dPow2(vec3 a) { return vec3(a.x * a.x, 2.0 * a.x * a.yz); }
 float sstepDown(float e0, float e1, float x) { return 1.0 - smoothstep(e1, e0, x); }   // 1 below e1 .. 0 above e0 (e1 < e0)
 float n3(vec3 p) { return texture(uN3, p).r; }
 vec4 n3v(vec3 p) { return texture(uN3, p); }
