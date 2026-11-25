@@ -720,6 +720,20 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The twilight key stays direct (physics: light/twilight-key, the physics
+  audit's rank 8; tried in #422 and dropped by the hub's ruling of
+  2026-11-25). The land's key is a held, stylised low sun (5-14 deg up)
+  through the twilights, though the sky's own sun is 3-7 deg down. Measured:
+  the painted twilight sky is a horizon ring, at 3 deg up only about 30%
+  brighter on the sun's side than away from it (the zenith about a third of
+  the horizon), so its light reduced to an ambient part and one vector points
+  mostly up (its vertical part 0.73-0.91 of its length). Any diffuse share of
+  the key, the level face held at the key's height, flattens the near sand's
+  relief roughly as (1 - the share): in T1's frames, high-pass std of OKLab L
+  at a 12 px blur, x0.50 at first light and x0.48 in the blue hour, and still
+  x0.61 with a forced low arch at 4x the dome. A share small enough to keep
+  0.75x (about 0.25) would show nothing; a brighter painted arch would change
+  a sky's look. The land's relief at twilight is kept over the physics row.
 - The clouds' shadows on the land (physics: light/cloud-shadow;
   src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
   2026-11-15: "No, natural light is fine": the world's own cast shadows
