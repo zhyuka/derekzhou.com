@@ -325,7 +325,7 @@
     s.filt = FILTER[0] + (FILTER[1] - FILTER[0]) * clamp((24 - s.spanPx) / 20, 0, 1);
     s.lod = FP.lodK(s.spanPx / k);                       // the facets' share by its ink span, CSS px
     s.halo = N;
-    s.haloE = (W < 600 ? HALO_E[1] : HALO_E[0]) * k;
+    s.haloE = s.spanPx < SPECK_W ? 0 : (W < 600 ? HALO_E[1] : HALO_E[0]) * k;   // (a speck has no halo, its own light alone: a skein's specks a few px apart summed theirs into one glowing streak, the hub, 2026-11-25)
     return true;
   }
   /* the world's light on the paper, by facetpose's own model ("white paper lit like cloud"), facet by facet: each

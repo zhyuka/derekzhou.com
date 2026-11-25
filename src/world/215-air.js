@@ -35,7 +35,7 @@
   var SKY_RATE = 100;   // the sky's light runs this many times real time (declared: sun, moon, stars and galaxy together)
   var AIR_DIR = [0, 1];   // the visit's wind, unit (x, z), blowing toward (airDraw sets it; the water's ripples read it through LDEF)
   var AIR_HEARD_Y = 2;   // (the air heard: never asked lower than this over the ground, m: the camera's own floor is higher)
-  var AIR_H = { veils: 5, birds: 40, clouds: 800, deck: 7000 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own; clouds: the low layer's free clouds, physics: clouds/drift; deck: the cirrus, 7 km up: physics: sky/cirrus)
+  var AIR_H = { veils: 5, birds: 40, sea: 100, clouds: 800, deck: 7000 };   // each reader's declared height, m over the ground (the birds' default: HOST.wind takes a bird's own; sea: the cloud sea's top, carried at the wind 100 m over its own surface, physics: clouds/sea; clouds: the low layer's free clouds, physics: clouds/drift; deck: the cirrus, 7 km up: physics: sky/cirrus)
   var AIR_U10 = [5, 3, 7.5], AIR_Z0 = 0.003, AIR_LN10 = Math.log(10 / AIR_Z0), AIR_LAYERS = [[100, 300, 1.3, 20], [1500, 3000, 2, 40]], AIR_ALOFT = [3000, 9000, 40];   // (the profile: the visits' U10: the mean of the speed distribution of a two-dimensional normal wind vector, the range it is mapped into, m/s; roughness m; the layers aloft: from, to, share of U10, veer deg; the winds aloft: from, the jet's core height m, its speed m/s)
   var AIR_KEY_EL = [5, 14], AIR_KEY_AZ = 55;   // the key light: 5-14 deg up, within 55 deg of upwind (the dunes' windward slopes lit)
   var AIR_SUN_EL = { afterglow: -3, bluehour: -7, firstlight: -3 }, AIR_SUN_NIGHT = -24;   // the twilights' sun under the sea (deg); a night's, sunk to AIR_SUN_NIGHT through a change
@@ -307,7 +307,7 @@
      (gate.yml's looks job) whenever this table, the cloud layout, this opening's view or the words move (look-rule.mjs's
      looksKey), and fails a heading that breaks the rule; headings.mjs then picks again. Chosen once, before anything is drawn, as the landing is;
      nothing turns the view. A land k is the one whose seed is 010's (11 + k x 0x9e3779b9) */
-  function airHeading0() { var T = [90, 329, 300, 120, 35, 230, null, 70, 245, 140, 240, 305, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
+  function airHeading0() { var T = [90, 329, 300, 120, 235, 230, null, 70, 245, 140, 240, 210, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
      frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
      (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust
