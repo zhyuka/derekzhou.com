@@ -696,12 +696,12 @@ flight, held on its heading, meets it in 9.7-11.1 minutes at 12 m/s. It
 is never aimed at: a drag takes the flight anywhere, and the slip passes
 it as any form. It is an inselberg, a bornhardt (realm-dunes: bornG): a
 dome of bare rock 620-720 m tall and about 1.2 km across. Its flanks
-steepen to a sharp foot on the sand (a superellipse, exponent 1.9-2.5),
+steepen to a sharp foot on the sand (a superellipse, exponent 1.5-1.9: a sugarloaf, its crown off centre so one flank is the steeper, its skyline uneven),
 its sides are fluted by the runoff, and its crown is smooth and a little
 off centre. It is outsized beside the land's formations (35-90 m), as
 the Namib's inselbergs (https://en.wikipedia.org/wiki/Spitzkoppe) stand
 over their plains. Far off, the cell's coarse build gives it 16 columns
-and 10 rows (about 290 faces, a silhouette at 7 km); in full, 44 and 23.
+and 10 rows a dome, about 580 faces with a lower dome on its shoulder (a silhouette at 7 km); in full, 44 and 23 a dome. It is pale granite (D_PALE): its sunlit side lighter than the haze before it, its shaded side darker, two tones where the strata's rock read as one.
 An earlier volcanic neck on its shoulder read as a steeple and was
 dropped (hub, 2026-11-25). Its draws are its own, so each land's
 differs. Where the heading leads out
