@@ -112,7 +112,7 @@
         break;
       }
     }
-    if (cls === 'moon' && !FORCED && r() < PASS_P) passage(C, cls, r, true);   // (a night opening's passage, on its way at the cut)
+    if (cls === 'moon' && !FORCED && passR() < PASS_P) passage(C, cls, passR, true);   // (a night opening's passage, on its way at the cut)
     POP.nightT = Infinity;   // (the opening's sky drawn here)
     for (i = 0; i < BIRDS.length; i++) { var q = BIRDS[i]; for (k = 0; k < 3; k++) { q.pp[k] = q.p[k]; q.v0[k] = q.v[k]; } q.phi0 = q.phi; }   // (seeded where they are: no step behind them to draw between)
     POP.seeded = true; POP.nextT = t + 2;
@@ -179,6 +179,8 @@
      shows to about 9 km: a long way in). A drag makes it pass elsewhere: nothing follows the view. If it crosses the
      moon it is by chance (the hub, 2026-11-25). passWay fills PASSW (x, y, z, heading) or returns false */
   var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(4), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
+  var PASSR = null;
+  function passR() { if (!PASSR) PASSR = vstream(8801); return PASSR(); }   // (the passage's own stream: the sky's other flocks draw as they did)
   function passWay(C, h, Tc, side, near, u, v) {   // (u, v: the place ahead it crosses, as fractions of the window's half widths)
     var V = KINDS.goose.v, fl = HOST.flight ? HOST.flight(PASSF) : null, vx = LVC.vx, vz = LVC.vz, dx0 = 0, dy0 = 0, dz0 = 0, k, q;
     if (fl && fl.ok) { vx = fl.speed * Math.sin(fl.psi); vz = fl.speed * Math.cos(fl.psi); }   // (the eye's way: the flight's own heading and speed; the eye's measured velocity is still none at a visit's cut)
@@ -208,7 +210,7 @@
   function popStep(C) {
     if (!POP.r) POP.r = vstream(8800);
     var cls = skyCls();
-    if (cls !== POP.cls) { POP.cls = cls; POP.line = TAU * POP.r(); POP.nightT = cls === 'moon' && POP.r() < PASS_P ? t + pick(POP.r, [4, 40]) : Infinity; }   // (a night's passage: drawn once, as the sky turns)
+    if (cls !== POP.cls) { POP.cls = cls; POP.line = TAU * POP.r(); POP.nightT = cls === 'moon' && passR() < PASS_P ? t + pick(passR, [4, 40]) : Infinity; }   // (a night's passage: drawn once, as the sky turns)
     if (!POP.seeded) { seed(C); return; }
     for (var i = FLOCKS.length - 1; i >= 0; i--) {   // (taken out: only where unseen or hidden, every bird of it)
       var F = FLOCKS[i];
@@ -220,7 +222,7 @@
     if (t >= POP.nextT) {
       POP.nextT = t + 1.5;
       if (!FORCED) disperse(cls);
-      if (t >= POP.nightT && !FORCED) { POP.nightT = Infinity; passage(C, cls, POP.r, false); }   // (it takes a flock's place: the count's own pace evens it)
+      if (t >= POP.nightT && !FORCED) { POP.nightT = Infinity; passage(C, cls, passR, false); }   // (it takes a flock's place: the count's own pace evens it)
       if (liveCount() < (LIVE_N[cls] || 6)) addFar(C, cls, POP.r);
       if (t >= (POP.comeT || PFIRST)) { recruit(); POP.comeT = t + pick(POP.r, COME_GAP); }
     }
