@@ -247,6 +247,12 @@ half of the year, the cone's bright base (within 30 deg of the sun along the
 ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
 up (60 deg out: 21 deg; 90 deg: 40 deg), so only its faint outer part could
 show, low in the haze (the hub's ruling, 2026-11-25).
+No earthshine: every opening's moon is the same 98% gibbous (MOON_PHASE 15,
+the Earth seen from it a thin crescent), and the earthlit side is measured 8-12
+mag/arcsec^2 below the sunlit side even at Earth phase 30-140 deg
+(https://arxiv.org/abs/1306.1218, its section 2), at most 6e-4 of the disc's
+light: under 0.2 of one 8-bit level; crescent openings would change the moon's
+look (the hub's ruling, 2026-11-25).
 
 The moon's face (sky-body.glsl, moonFace): the near side's albedo, from NASA's
 Scientific Visualization Studio CGI Moon Kit (https://svs.gsfc.nasa.gov/4720/,
@@ -728,6 +734,20 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The twilight key stays direct (physics: light/twilight-key, the physics
+  audit's rank 8; tried in #422 and dropped by the hub's ruling of
+  2026-11-25). The land's key is a held, stylised low sun (5-14 deg up)
+  through the twilights, though the sky's own sun is 3-7 deg down. Measured:
+  the painted twilight sky is a horizon ring, at 3 deg up only about 30%
+  brighter on the sun's side than away from it (the zenith about a third of
+  the horizon), so its light reduced to an ambient part and one vector points
+  mostly up (its vertical part 0.73-0.91 of its length). Any diffuse share of
+  the key, the level face held at the key's height, flattens the near sand's
+  relief roughly as (1 - the share): in T1's frames, high-pass std of OKLab L
+  at a 12 px blur, x0.50 at first light and x0.48 in the blue hour, and still
+  x0.61 with a forced low arch at 4x the dome. A share small enough to keep
+  0.75x (about 0.25) would show nothing; a brighter painted arch would change
+  a sky's look. The land's relief at twilight is kept over the physics row.
 - The clouds' shadows on the land (physics: light/cloud-shadow;
   src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
   2026-11-15: "No, natural light is fine": the world's own cast shadows
@@ -1060,7 +1080,14 @@ the sand:
   out by 3) of the dunes' troughs' floor (gAF, the land's height over the
   mist pools' floor, set by 350's terrain stage), in patches.
 
-Each is faded by how many pixels its wavelength spans in its own direction
+Neither draws on a slip face: the ripples go between 22 and 25 deg of the
+surface's slope (the face as the fragment rebuilds it, sand/S2), since a
+slip face's avalanches wipe them; the stoss (median 9, 90th percentile 13.5
+deg) keeps them. The faces stand at sand's angle of repose, measured on
+barchans' slip faces as 32 deg at rest and 34 critical
+(https://doi.org/10.1002/2015JF003636); the census (tools/physics/dune-census.mjs,
+test/unit/dunes.mjs, and on the shipped GLSL check 43) puts the lee's mode at
+32. Each is faded by how many pixels its wavelength spans in its own direction
 (the wind's coordinate's change a pixel, from the footprint and the grazing angle: whole from 5 px a wavelength, gone under
 2.5), never by range: the old fade by footprint (0.012-0.05 m a pixel) lost
 the 0.9 m ripples where they resolve and never drew any on a phone. From the
@@ -1072,6 +1099,37 @@ renders both classes on the laptop's and the phone's render targets and
 holds each, point-sampled with the shader's own fade, to the shading
 filtered at the pixel in motion: no more than half a level of flicker over it
 (from 4 and 2 px the impact ripples flickered 1.3).
+
+## THE SAND'S COLOUR (crest against interdune)
+
+Measured on main (2026-11-25), the page's own colours over its land grid
+(openings 4 and 3, a 10 m grid within 600 m of the landing, by the height
+over the troughs' floor, gAF):
+
+- the lit sand's luminance takes the light's angle alone (SAND_LIT to
+  SAND_LIT2, 0.028 to 0.035), with no term in place, height or gAF;
+- the shaded sand's (SAND_DEEP to SAND_SHADE by the absolute height,
+  -40 to 50 m) runs 0.0089 to 0.0093 from the interdune floors (gAF under
+  1.5 m) to 15 m up, within 4%: flat.
+
+The brief asked for darker interdunes and paler crests (coarser, damper
+floors; the finest, palest grains on the crests) if a measurement holds
+it. None found does:
+
+- across three dune fields the crest to interdune differences are minor
+  and broadband, and at one site the crests are a few percent darker than
+  the corridors (https://repository.si.edu/server/api/core/bitstreams/feec4ecd-aed7-4787-b0fa-1772258ca9f5/content);
+- at the gypsum dunes the interdunes are the finer grained and the crests
+  the coarser (https://www.usgs.gov/publications/modeling-grain-size-variations-aeolian-gypsum-deposits-white-sands-new-mexico-using);
+- crest contrast reverses through the dry season on stabilized dunes
+  (https://repository.si.edu/items/19aa41c6-f59a-4fe2-8817-7f4ed167a8a8);
+- the dune to interdune colour of a sand sea follows its grains' iron
+  coatings and provenance, not moisture
+  (https://www.sciencedirect.com/science/article/abs/pii/S0169555X06003990).
+
+So the sand's albedo stays flat in gAF: no measured, consistent ramp to
+draw, and a darker floor would darken part of the land for no physics. A
+crust or damp floor with a measured reflectance would be a new item.
 
 ## THE LARGE WORLD
 

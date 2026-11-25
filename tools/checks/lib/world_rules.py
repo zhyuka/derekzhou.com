@@ -218,7 +218,7 @@ for f in world + kit + realms + wing + ink:
 # completely. it's completely fine if the birds fly behind/in front of it")
 LIFT_PARTS = r'\b(liftWords|LIB_LIFT|uLiftOn|uVeil\w*|uLinkCore|worldToe|TOE_F|TOE_Y1|TOE_TINT|LIFT_FEATHER|VEILK|veilFor)\b|LIFT-BEGIN'
 WORDS_IN = r'\b(uMask\w*|uInkKeep|uKeep\w*|uWords|uLift\w*On|uVeil\w*|uLinkCore|uFloor\w*|mk|mk4|liftWords|worldToe)\b'
-COMP_UNIFORMS = {'uScene', 'uCloud', 'uBloom', 'uShaft', 'uLinD', 'uDepth', 'uSceneH', 'uHVP', 'uHC', 'uStb', 'uLay', 'uSc', 'uClS', 'uBlK', 'uShK', 'uShC', 'uLift', 'uGain', 'uOut', 'uPVP', 'uPCam', 'uSSR', 'uMi',
+COMP_UNIFORMS = {'uScene', 'uCloud', 'uBloom', 'uShaft', 'uLinD', 'uDepth', 'uSceneH', 'uHVP', 'uHC', 'uStb', 'uLay', 'uSc', 'uClS', 'uBlK', 'uShK', 'uShC', 'uLift', 'uGain', 'uOut', 'uPVP', 'uPCam', 'uMi',
                  'uCeil'}   # (the time of day: the light ceiling on the skies with light words, the world's own light, the same everywhere on the window: no words input)
 KEEP_OFF = r'\b(uInkKeep|uMask\w*|uKeep\w*|uWords|inkKeep|FS_INKKEEP|drawInkKeep|KEEPDIRTY)\b|[\'"]inkkeep[\'"]|engine\.inkkeep'
 KEEP_OUT = r'\b(clearOfWords\w*|stepBack|clearStage|gapWords|wordsGap|gAvoid|gInkHit|holdHarms|heldCourse|HOLD_K|SB_HOLD|SWEPT)\b'

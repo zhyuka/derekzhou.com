@@ -98,7 +98,7 @@ vec3 duneS1(vec3 ph, vec3 Hm, vec3 swell, vec3 Hs, vec2 dph, out vec3 nw, out ve
   // the ground under it alone, G0; solving it for G0 + dH as well held a gradient the surface does not have at 32 deg,
   // and where fl changed fast across the wind the brink turned along it in walls of 48-62 deg: the hub's review)
   vec2 G0 = swell.yz;
-  float m = dot(G0, g) + sqrt(max(0.39046 - pow(-G0.x * g.y + G0.y * g.x, 2.0), 0.04));   // (tan^2 32 = 0.39046)
+  float m = dot(G0, g) + sqrt(max(0.39046 - pow(-G0.x * g.y + G0.y * g.x, 2.0), 0.04));   // (tan^2 32 = 0.39046: repose 32, critical 34 deg, measured on slip faces: https://doi.org/10.1002/2015JF003636)
   float flr = H.x * k / max(m, 0.2), fl = clamp(flr, 0.04, 0.6), L = 1.0 - fl, f = fract(ph.x);
   // (the face's height H (1 - f) / fl: its slope carries (1 - f) d(H / fl). Unclamped H / fl = m / k: it changes with
   // the phase's direction (dph: d/ds of its gradient, s across the wind) and the swell's slope (Hs, its curvature xx xy
@@ -319,7 +319,7 @@ vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   float d = dot(p.xz, w), fwD = fp * (abs(dot(w, rh)) / max(abs(dot(rd, n0)), 0.02) + abs(dot(w, vec2(-rh.y, rh.x))));
   float kI = 1.0 - smoothstep(0.2, 0.4, fwD / RIP_I);
   float kM = (1.0 - smoothstep(0.2, 0.4, fwD / RIP_M)) * (1.0 - smoothstep(RIP_FLOOR, 2.0 * RIP_FLOOR, gAF)) * smoothstep(0.97, 0.99, n0.y);
-  float rk = 1.0 - steep;
+  float rk = (1.0 - steep) * smoothstep(0.906, 0.927, n0.y);   // (none on a slip face, over 22-25 deg: its avalanches wipe them)
   if (rk * max(kI, kM) > 0.002) {
     vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));
     vec2 wp = vec2(-w.y, w.x), wr = normalize(w + wp * (nz.r - 0.5) * 0.6);
