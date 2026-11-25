@@ -97,10 +97,10 @@
      coast's formations are); its draws its own (subseed of its seed), so each land has its own */
   function dDest(C, R) {
     var D = W.dest(); if (!C.inside(D.x, D.z)) return;
-    var Q = K.RNG(K.hk(D.seed >>> 0, 91)), rad = Q.r(520, 620), H = Q.r(600, 720), yaw = Q.r(0, 360), a = Q.r(0, 2 * PI), sr = Q.r(130, 170), sH = H * Q.r(1.25, 1.45);
+    var Q = K.RNG(K.hk(D.seed >>> 0, 91)), rad = Q.r(520, 600), H = Q.r(600, 720), yaw = Q.r(0, 360), a = Q.r(0, 2 * PI), sr = Q.r(130, 170), sH = H * Q.r(1.25, 1.45);
     var it = C.add({ kind: 'butte', form: true, x: D.x, z: D.z, foot: rad * 1.2, yaw: yaw, rad: rad, H: H, sink: 20, seed: Q.seed(), solid: [rad * 1.3, H], foot2: [rad * 1.65, H * 0.15] });
-    C.poi({ kind: 'butte', x: D.x, z: D.z, ref: it, dy: H * 0.5, pass: rad * 1.3 + 120 });
     var sx = D.x + Math.sin(a) * rad * 0.55, sz = D.z + Math.cos(a) * rad * 0.55;
+    C.poi({ kind: 'destination', x: D.x, z: D.z, ref: it, dy: H * 0.5, r: rad * 1.3, top: sH, pass: rad * 1.3 + 120 });   // (FLIGHT's ruler: r at the flight band, at most 800 m; top over the land)
     C.add({ kind: 'spire', form: true, x: sx, z: sz, foot: sr * 1.2, yaw: yaw, rad: sr, H: sH, sink: 20, seed: Q.seed(), solid: [sr * 1.2, sH] });
   }
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
