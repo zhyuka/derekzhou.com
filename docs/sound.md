@@ -364,6 +364,20 @@ The longest task left is Chrome preparing the room for convolution (3.4 s since 
 desktop core, 120-220 ms at x6, measured alone): the score cannot slice it, and only a shorter room would shorten it,
 which would be heard.
 
+**The press to the first sound** (2026-11-25, the sheet in parts against the whole before it; `node
+tools/sound/page.mjs SITE --net MBPS,RTT`, headless Chromium, 7 cold runs each, ms after the press, median / worst).
+The first note begins when its scheduled start comes; it is heard as it swells in under the level's 4 s rise:
+
+| network | the first note begins: before | after | over -60 dBFS: before | after | over -40 dBFS: before | after |
+|---|---|---|---|---|---|---|
+| 10 Mbps, 70 ms (the slow profile) | 4,862 / 5,012 | 768 / 779 | 5,567 / 5,719 | 1,596 / 1,609 | 7,103 / 7,255 | 2,727 / 2,781 |
+| Chrome's Slow 4G (1.44 Mbps, 562.5 ms) | 26,418 / 26,487 | 2,956 / 2,970 | 27,032 / 27,090 | 3,580 / 3,602 | 27,628 / 27,686 | 4,712 / 4,730 |
+| 50 Mbps, 20 ms | 1,798 / 1,956 | 538 / 549 | 2,579 / 2,729 | 1,362 / 1,369 | 4,051 / 4,201 | 2,493 / 2,497 |
+| localhost | 1,023 / 1,124 | 644 / 742 | 1,802 / 1,918 | 1,447 / 1,537 | 3,274 / 3,390 | 2,899 / 2,989 |
+
+On Slow 4G the first part itself (about 351 KB) takes about 2 s to come, and a round trip is half a second. Warm
+(the sheet from the HTTP cache) every network is as localhost.
+
 The sheet has no line in 36-load-budget on purpose: a cold visit never loads it, so if one ever did, it would fail
 that check as an unbudgeted file. Decoded at 24 kHz it holds about 71 MB of memory (57 MB before round twenty-two's
 longer loops); a browser that will not open the context at 24 kHz decodes it at its own rate (48 kHz: about 143 MB). While playing: about 25 buffer sources at
