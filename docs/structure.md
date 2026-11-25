@@ -149,7 +149,8 @@ tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*
                              site/*.js (copies, cast from the side: never a byte in site/), by npx typescript (pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
-                             events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
+                             events and kit), and the plan's worker (tools/plan.mjs makePlan's text, as a worker, with
+                             tools/types/plan.d.ts): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
 tools/sound/cpu.mjs          The score's CPU with the world running: the audio thread's and the score's ticks, the main
                              thread slowed (tools/checks/49-sound-cpu.sh)
