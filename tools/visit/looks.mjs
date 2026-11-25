@@ -16,25 +16,21 @@
 //              whether the clouds' mask or the words' boxes cover it (shown: neither)
 // The phone is drawn at 3x, as T1 draws it (the disc is a few pixels). --png DIR keeps each frame as the page shows it,
 // the words on (a screenshot). The record keeps look-rule.mjs's worldKey; a record of another world is started afresh.
-// Local only (a plain build: node tools/build.mjs --plain build/site); the record it writes is what headings.mjs
-// reads and test/unit/ruler.mjs checks the table against.
-//   node tools/visit/looks.mjs --build build/site --cands FILE.json [--out tools/visit/looks.json] [--jobs 2]
-//   node tools/visit/looks.mjs --build build/site --table   (the table's headings and each land's own only)
+// The record is a working file (build/looks.json, never committed: the hub's ask of 02:09Z Nov 25), what headings.mjs
+// reads. The ruler itself is the gate's (gate.yml's looks job): --table --check measures the table's headings and each
+// land's own on the build it is given and fails on look-rule.mjs's rule(); --shard i/n takes every n-th land from i.
+//   node tools/visit/looks.mjs --build build/site --cands FILE.json [--out build/looks.json] [--jobs 2]
+//   node tools/visit/looks.mjs --build build/site --table [--check] [--shard i/n]   (the table's headings and each land's own)
 // FILE.json: { "<k>": [deg, ...] } (null: the land's own draw from its stream)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { serve } from '../../.github/ci/serve.mjs';
 import * as H from '../../.github/ci/harness.mjs';
-import { worldKey } from './look-rule.mjs';
+import { worldKey, rule } from './look-rule.mjs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
-const BUILD = path.resolve(arg('--build', 'build/site')), OUT = arg('--out', 'tools/visit/looks.json'), JOBS = +arg('--jobs', 2);
-// --table: only the table's 16 headings and each land's own (no sweep): the record re-measured after the world moved
-// (test/unit/ruler.mjs's "re-run looks.mjs --table"; about 30 minutes at --jobs 2, a heading's six frames a minute)
-const TABLE_T = /function airHeading0\(\) \{ var T = (\[[^\]]*\])/.exec(fs.readFileSync(new URL('../../src/world/215-air.js', import.meta.url), 'utf8'));
-const CANDS = process.argv.includes('--table') ? Object.fromEntries(JSON.parse(TABLE_T[1]).map((d, k) => [k, d === null ? [null] : [d, null]]))
-  : JSON.parse(fs.readFileSync(arg('--cands'), 'utf8'));
+const BUILD = path.resolve(arg('--build', 'build/site')), OUT = arg('--out', 'build/looks.json'), JOBS = +arg('--jobs', 2);
 // T1's skies and windows (its cases laptop-night, phone-dawn and laptop-sunset-split), the laptop at T1's 1440x900
 export const VIEWS = [
   { name: 'laptop-night', vp: [1440, 900, 1], at: '2026-11-05T22:30:00Z', feature: 'galaxy' },
@@ -48,6 +44,14 @@ const TABLE = /\[(?:-?\d+|null)(?:,(?:-?\d+|null)){15}\]/.exec(WORLD);
 const VOLS = WORLD.match(/\b\w+\.vols\.push\(\w+\)/g);
 if (!TABLE || !VOLS || VOLS.length !== 1) throw new Error('looks: the heading table (airHeading0) or the one cloud-volume push not found in ' + BUILD + '/world.js');
 const T0 = JSON.parse(TABLE[0]);
+// --table: only the table's 16 headings (the build's own table) and each land's own (no sweep): 30 headings, six frames
+// each, about 76 s a heading on a 4-core machine, however many run at once (the CPU is the limit). --shard i/n: the lands k with k % n == i (the gate's runners)
+const SHARD = arg('--shard', null), SH = SHARD && /^(\d+)\/(\d+)$/.exec(SHARD), CHECK = process.argv.includes('--check');
+if (SHARD && !(SH && +SH[1] < +SH[2])) throw new Error('looks: --shard i/n, i below n');
+const LANDS = [...Array(16).keys()].filter((k) => !SH || k % +SH[2] === +SH[1]);
+const CANDS = process.argv.includes('--table') ? Object.fromEntries(LANDS.map((k) => [k, T0[k] === null ? [null] : [T0[k], null]]))
+  : JSON.parse(fs.readFileSync(arg('--cands'), 'utf8'));
+if (CHECK && !process.argv.includes('--table')) throw new Error('looks: --check needs --table');
 
 // a copy of the build with its world script patched (the rest linked)
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'looks-'));
@@ -135,7 +139,7 @@ async function score(k, deg) {
 }
 
 const jobs = []; for (const [k, list] of Object.entries(CANDS)) for (const d of list) jobs.push([+k, d]);
-const WORLD_KEY = await worldKey(), old = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+const WORLD_KEY = await worldKey(), old = !CHECK && fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 const prev = old && old.world === WORLD_KEY ? old : { world: WORLD_KEY, lands: {} };   // (a record of another world is dropped whole)
 // each entry keeps the world it was measured on too: a line-by-line merge of two records can mix worlds under one key
 for (const land of Object.values(prev.lands)) for (const [h, l] of Object.entries(land)) if (l.world !== WORLD_KEY) delete land[h];
@@ -150,6 +154,17 @@ async function worker() {
     fs.writeFileSync(OUT, JSON.stringify(prev, null, 1) + '\n');
   }
 }
+fs.mkdirSync(path.dirname(path.resolve(OUT)), { recursive: true });
 await Promise.all(Array.from({ length: JOBS }, worker));
 fs.rmSync(TMP, { recursive: true, force: true });
+if (CHECK) {
+  // the ruler: the words and the name clear of cloud, the low sun's disc and glow kept, on each of these lands
+  const bad = rule(prev, T0, LANDS), md = [`### The ruler (looks.mjs --table${SHARD ? ' --shard ' + SHARD : ''}): lands ${LANDS.join(', ')}, ${bad.length ? '**' + bad.length + ' failing**' : 'every first heading keeps the words clear'}`, '',
+    ...LANDS.map((k) => { const l = prev.lands[k][String(T0[k] === null ? 'own' : T0[k])]; return l ? `- k${k} ${T0[k] === null ? 'own' : T0[k]}: words ${l.wordCloud}, name ${l.nameCloud}, sun ${l.sunIn} (own ${prev.lands[k].own && prev.lands[k].own.sunIn})` : `- k${k}: not measured`; }),
+    ...bad.map((b) => `- FAIL ${b}`)];
+  console.log(md.join('\n'));
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');
+  await new Promise((r) => process.stdout.write('', r));   // (a busy runner's pipe holds 4 KB: flushed before the exit)
+  process.exit(bad.length ? 1 : 0);
+}
 process.exit(0);

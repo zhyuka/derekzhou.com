@@ -107,6 +107,18 @@ its manifest's sha256 as its own job output sha_<N> (handoff.mjs put --as sha_<N
 verdict gets all four and reads each shard pinned to its own. A shard that did not hand off is missing from the
 verdict's count, which then says T1 did not report (T1_SHARDS).
 
+The ruler's looks, live (2026-11-25, the hub's ask of 02:09Z): each land's first heading must keep the words and the
+name clear of cloud (tools/visit/look-rule.mjs's rule()). The figures were a stored record, tools/visit/looks.json, keyed
+by what moves a cloud near the words; every PR that moved the key re-measured it by hand (looks.mjs --table, about 30
+minutes) and any other one landing first invalidated it again (#405, #422, #425 and #414 on Nov 24). Of the key's 12
+moves, 7 moved no table heading's figure and the largest moved a words share by 0.028, but no narrower key can say in
+advance which change moves one. So there is no record: the plan keys base and head (look-rule.mjs looksKey: worldKey,
+the table and the measuring code) and, when it moved, gate.yml's looks job measures the head's build on eight runners
+(looks.mjs --table --check --shard i/8, every 8th land: about 76 s a heading at --jobs 2 on 4 cores, 3-4 headings a
+runner, about 5 minutes and 40 runner-minutes for the 30). The verdict needs it; a gate that did not move the key skips
+it. The bot's re-gate of a PR on main's newer tip measures that merged tree, and main's own gate measures each merge
+that moved the key. Each shard's record is its artifact looks-s<N> (7 days), for headings.mjs (--looks).
+
 The hand-off (2026-11-23): the gate's jobs pass each other the two builds and T1's shards as the run's own artifacts,
 gate-served and, from each of T1's four runners, gate-t1-s<N>, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
 storage is metered for private repositories only; the 2026-11-15 quota that moved the hand-off onto the PC's disk
