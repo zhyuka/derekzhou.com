@@ -27,7 +27,8 @@ site/index.html or `.sound` in site/style.css.
   peaks keep clear.
 - "yes go" (2026-11-16), of quieter nights: each sky its own level inside the -23, the night skies quieter by thinning
   the voices, not by turning the level down, and in the Milky Way now and then a breath where only the air plays (the
-  night's quiet, below).
+  night's quiet, below; measured 2026-11-25, the quiet is mostly the strings' level under the night's colours, the
+  thinning little: the floor fills what it opens).
 
 The music itself was chosen by ear over seventeen rounds of sketches (2026-11-07 to 2026-11-12). His words
 along the way set what it must and must not be:
@@ -143,7 +144,9 @@ seventeen, the owner's pick):
 - **Never a clash**: no two notes closer than a minor third at once, and none a minor ninth (or more octaves) apart;
   low down (below C3) nothing closer than a fifth.
 - **The night's quiet** (2026-11-16): each sky its own level inside the -23, afterglow and first light fuller, the
-  night skies (the moonlit sea, aurora, the Milky Way) about 3 dB under them, blue hour between. Made by thinning:
+  night skies (the moonlit sea, aurora, the Milky Way) about 3 dB under them, blue hour between. Made mostly by the
+  strings' level under the night's colours (LIFTS) and a note alone lifted less, and meant as thinning too, which moves
+  little (the floor fills what it opens: measured, below):
 
   | sky | the voices' rests | the colour's | alone, lifted | passages (all, warm, air, still, rich) | voices at once |
   |---|---|---|---|---|---|
@@ -317,6 +320,28 @@ Milky Way held 300 s: the momentary loudness through it -41 to -47 LUFS (without
 silence); YAMNet hears in it "Music", "Silence", "Outside, rural or natural" and "Wind". YAMNet over the 40 minutes:
 synthetic median 0.005 (before 0.006), windows over 0.05 14 (21), orchestral median 0.30 (0.30). render.mjs's flight,
 which opens on afterglow and has little night, now reads -22.7 LUFS (true peak -3.3 dBFS, loudness range 7.8 LU).
+
+What the night's thinning does (2026-11-25, the score in a vm, each sky held 300 s, four seeds, from a minute into
+each hold; a note sounding from its start, a held note to the middle of its fall, a struck one 3 s):
+
+| sky | notes begun a minute (the strings) | sounding at once | one note alone | one note alone (the deep end aside), longest | LUFS (render.mjs, 2026-11-25) |
+|---|---|---|---|---|---|
+| afterglow | 22.4 (10.5) | 2.27 | 25% | 5.0 s | -21.2 |
+| first light | 20.7 (17.5, its colour's violins in it) | 2.23 | 26% | 3.5 s | |
+| blue hour | 30.9 (9.0; the piano 19.4) | 2.46 | 16% | 4.3 s | -22.9 |
+| the moonlit sea | 18.8 (12.8) | 2.12 | 26% | 3.8 s | -24.0 |
+| aurora | 23.3 (12.8) | 2.50 | 18% | 4.0 s | |
+| the Milky Way | 22.1 (12.9) | 2.41 | 19% | 4.5 s | -23.7 |
+
+The night is quieter (the Milky Way 2.5 dB under afterglow, the moonlit sea 2.8) but, the moonlit sea aside, not
+thinner: its strings rest longer, and the floor (never a hole, never one held note alone over 3 s) brings them in early
+to fill what the sparser harp leaves, so they begin more notes a minute than afterglow's. Tried and left (2026-11-25,
+the hub's item, measured before it shipped): the floor waiting 1-1.5 s longer at night thinned the Milky Way and aurora
+to 19.7-21.4 notes a minute and 2.1-2.3 at once, but let one note sound alone 6.3-9.8 s (the day's longest is 5.0),
+the siren the floor is there to stop; waiting at a hole alone changed nothing (the night's notes come from the
+second rule, not from holes); the harp let in to fill at night halved the strings' fills but more than doubled its own
+notes (15-17 a minute), 27-29 notes a minute in all. test/unit/sound.mjs's night test compares the night with blue
+hour's notes, which the night does beat.
 
 The air heard and the sand (2026-11-25): render.mjs's flight measures -22.9 LUFS windy (WIND_U 6.5) and calm alike
 (true peak -3.9 dBFS, loudness range 9.6 LU); the two play the same notes (the heard wind draws nothing from the
