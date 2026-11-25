@@ -233,13 +233,15 @@ vec3 plateauOf(vec2 p, vec3 h, Site s, vec3 n17, float g8) {   // (fast500 D) n1
   gS1W *= b + (1.0 - b) * 0.16 * sstepDown(0.0, -45.0, e.x);   // (physics: sand/S2: the dunes' share where the plateau rises over them)
   return dSmax(h, pl, 5.0);
 }
+/* D_Hd ships as written (tools/glslmin.mjs KEEP: the world's land split reads its text), so it carries no comment:
+   the basins' loop runs to 9 + uZ, kept rolled (fast500 D); n17 and g8 are the plateaux' vertex-only taps, once */
 vec3 D_Hd(vec2 p) {
   vec3 h = dunes(p);
   ivec2 c0 = ivec2(floor(p / DS));
   Site S[9];
   for (int j = 0; j < 3; j++) for (int i = 0; i < 3; i++) S[j * 3 + i] = siteOf(c0 + ivec2(i - 1, j - 1));
-  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);   // (fast500 D: + uZ, kept rolled)
-  vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);   // (fast500 D) the plateaux' vertex-only taps, once
+  for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 1 || S[k].kind == 2) h = basinOf(p, h, S[k]);
+  vec3 n17 = dN(p + 17.0, mat2(1.0 / 140.0)); float g8 = gn(p / 8.0);
   for (int k = 0; k < 9 + UZ; k++) if (S[k].kind == 3) h = plateauOf(p, h, S[k], n17, g8);
   return h + ridges(p);
 }

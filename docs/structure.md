@@ -218,9 +218,10 @@ shipped build and the dev build) writes it
 back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
 blank line, no spare space, every line of code still a line (the world's
 folds work by lines), a #define's spacing kept, the same tokens (checked;
-the build fails otherwise); a file a script reads at run time stays as
-written (glslmin.mjs's KEEP: dunes-glsl, whose D_Hd the land split finds
-by its text). So the world issues and the browser
+the build fails otherwise); the part of a file a script reads at run time
+stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
+split finds by its text; the rest of the file is minified, 2026-11-25:
+realm-dunes.js 13,299 -> 9,395 B). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
 census and T1 compare the base's build with the head's.
