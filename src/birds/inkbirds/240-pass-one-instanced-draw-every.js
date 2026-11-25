@@ -160,7 +160,7 @@
       if (s.st !== b.st) { if (s.st && ((s.st === 'land' && b.st === 'perch') || (s.st === 'perch' && b.st === 'fly'))) blendFrom(s, s.st === 'land' ? BLEND_T[0] : BLEND_T[1]); s.st = b.st; }
       s.ldt += fdt;
       if (!poseDrawn(b, s, C, N, moving, b.stT === t ? back : back - (t - b.stT))) continue;
-      packBird(nB, s, 1, NEARMOST * b.sz + 2, FX.cloud, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
+      packBird(nB, s, 1, NEARMOST * b.sz + 2, true, N, s.haloE, -1, 1, FORCED ? Math.max(s.floorPx, 1.5 * VW.outW / Math.max(1, W)) : s.floorPx);
       nB++;
     }
 
@@ -171,11 +171,11 @@
     RI = (RI + 1) % RING.length; VAO = RING[RI][0]; VBO = RING[RI][1];
     gl.bindVertexArray(VAO); gl.bindBuffer(GL_ARRAY_BUFFER, VBO); gl.bufferSubData(GL_ARRAY_BUFFER, 0, INST, 0, nB * NF);
     gl.activeTexture(GL_TEXTURE0 + PTS_UNIT); gl.bindTexture(GL_TEXTURE_2D, BT); gl.texSubImage2D(GL_TEXTURE_2D, 0, 0, 0, PTW, nB, GL_RGBA, GL_FLOAT, BTX, 0); gl.activeTexture(GL_TEXTURE0);   // (the drawn birds' rows)
-    UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = FX.air ? 1 : 0;
+    UGR[0] = E ? E.exposure : 1; UGR[1] = E ? E.sat : 1; UGR[2] = 0; UGR[3] = 1;
     USC[0] = VW.sUx; USC[1] = VW.sUy; USC[2] = VW.hUx; USC[3] = VW.hUy;
     UCL[0] = VW.hUx - 0.5 / Math.max(1, VW.outW / 2); UCL[1] = VW.hUy - 0.5 / Math.max(1, VW.outH / 2);
-    ULAND[0] = FX.land && tex ? 1 : 0; ULAND[1] = FX.cloud && tex ? 1 : 0; ULAND[2] = clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) > 1 ? 1 / clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) : 1;
-    UBL[0] = VW.bUx || 1; UBL[1] = VW.bUy || 1; UBL[2] = VW.bloom || 0; UBL[3] = FX.glare && tex ? 1 : 0;
+    ULAND[0] = ULAND[1] = tex ? 1 : 0; ULAND[2] = clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) > 1 ? 1 / clamp((VW.ddpr || VW.dpr) / Math.max(VW.dpr, 0.5), 1, 2) : 1;
+    UBL[0] = VW.bUx || 1; UBL[1] = VW.bUy || 1; UBL[2] = VW.bloom || 0; UBL[3] = tex ? 1 : 0;
     UGL[0] = GLARE_P[0]; UGL[1] = GLARE_P[1]; UGL[2] = GLARE_P[2]; UGL[3] = GLARE_P[3];
     var fc = FORCED && HOST.forced ? HOST.forced() : null;
     UMODE[0] = FORCED ? 1 : 0; UMODE[1] = GLOW_ENC; UMODE[2] = HALO_A; UMODE[3] = 0;
