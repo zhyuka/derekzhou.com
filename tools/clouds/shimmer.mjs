@@ -96,6 +96,7 @@ async function main() {
     const page = await (await browser.newContext()).newPage();
     for (const seed of seeds) {
       const fb = await fly(sb.url, seed, `base seed ${seed}`), fh = await fly(sh.url, seed, `head seed ${seed}`);
+      if (fb.shownAt !== fh.shownAt) throw new Error(`shimmer: seed ${seed}: base showed at frame ${fb.shownAt}, head at ${fh.shownAt}: the camera's flight starts at the show, so the arms would not see the same place (run alone, nothing else on the CPU)`);
       const per = [];
       for (let k = 0; k < pairs; k++) per.push(await page.evaluate(MEASURE, [fb.out[k][0], fb.out[k][1], fh.out[k][0], fh.out[k][1], E]));
       if (seed === seeds[0]) { const save = (u, f) => fs.writeFileSync(path.join(A.out, f), Buffer.from(u.split(',')[1], 'base64')); save(fb.out[0][0], 'base.0.png'); save(fh.out[0][0], 'head.0.png'); save(fh.out[0][1], 'head.0b.png'); }
