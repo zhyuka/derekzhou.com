@@ -634,6 +634,15 @@ physics: clouds/drift). It holds:
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
   and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- The cloud streets (physics: clouds/streets): a boundary layer's roll
+  vortices lay its clouds in rows along its mean wind, within 30 deg of it
+  and most often within 10 (https://doi.org/10.1007/BF00705527). The
+  dunes' ranges lie along the air's wind at AIR_H.clouds, +- 15 deg
+  (dAirDir). ABOVE's canyon walls do the same (aStreet): the wind at
+  AIR_H.clouds, turned by the site's own draw on a triangle over +- 30 deg
+  (56% within 10). Before, their axis was the site's random one.
+  test/unit/drift.mjs holds every canyon wall within 30 deg of the wind
+  (with most within 10) for winds from every way and strength.
 - The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
   7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
   International Cloud Atlas), its streaks along the air's wind there (the
