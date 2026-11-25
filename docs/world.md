@@ -191,7 +191,7 @@ band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow (blue-grey at
 the sky's own lightness, drawn with the Belt only in the afterglow and first
 light, never the blue hour: physics: twilight/shadow) climbs and dissolves;
-the stars hold still in reduced motion and in the still (no twinkle there); the noctilucent wisps go dark from below, and the night's own
+the stars hold still, steady in every frame (no twinkle: the audit's rank 4; a slow swing of their light is no scintillation, and nothing on the window sparkles); the noctilucent wisps go dark from below, and the night's own
 glow comes in with the night's colours; out of a night into first light
 or the blue hour it runs backwards. No sky draws light rays now (the owner
 chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
@@ -208,7 +208,10 @@ light is brighter), its light coming in over its first 0.5 magnitude of margin
 as the sun's depth moves (a hold holds it). So the twilights show only Venus
 and, in the blue hour, the brightest stars; a dark night keeps the whole field.
 The bright stars (b over 0.35) take pastel colours by spectral kind, each at
-the white's own luminance. The evening (or morning, on a visit that opens on
+the white's own luminance. Their shares (B/A 36, F/G 26, K 28, M 10%) sit within
+5 points of the naked-eye stars' (V under 6.0) in the Bright Star Catalogue,
+5th revised (https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html;
+counts derived by spectral class: O/B/A 41.0, F/G 27.2, K 25.0, M 6.8%). The evening (or morning, on a visit that opens on
 first light) star stands by the drawn sky's sun, its glow (the hub's ruling,
 2026-11-15: until one forward clock drives the sun, the stars and the planet
 together): on the ecliptic through that sun at the opening's depth, in a
@@ -234,6 +237,11 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
+The air's extinction (physics: night/extinction) is taken from a planet's
+true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand
+far over the light's ceiling, so even 2.7 magnitudes at 2 deg up leave each
+drawn at its head, the brightest points in the sky (their tops over the
+stars'); what the low air shows is their colour, a little redder (extTint).
 The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
 a steady band low over the horizon on the night skies, brightest about 6 deg
 up and falling away overhead, behind the haze; it comes in by the stars' own
@@ -673,6 +681,17 @@ physics: clouds/drift). It holds:
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
   and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- No diurnal veer (the hub's ruling, 2026-11-25): the wind's direction does
+  not turn with the sky. Measured on main: a night veer would move the
+  clouds' drift 0 px in 60 s, under the one-pixel line. windAt
+  (215-air.js) is airBase scaled by airShare, one number, so the sky sets
+  the wind's speed and never its way. The clouds drift on airBase, the
+  day's wind (cloudWind, 212-cloud-drift.js), so each cloud's place stays
+  a function of the clock alone. The profile has no veer under 100 m, so
+  the veils (5 m) and the birds at their default 40 m would see nothing.
+  Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
+  night turn. Adding one would mean the clouds and those birds reading a
+  wind that depends on the sky, and a cited source for the turn by night.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
@@ -997,6 +1016,21 @@ moisture, and through a change moved toward the next sky's at
 AIR_MIST_RATE. The pools keep no table or rate of their own. The depth
 is a pure function of the sky's time, so the rim is a moving
 shoreline, never a fade (the hub's ruling 1).
+
+By the wind (measured on main, 2026-11-25): the pools come only on a
+near calm visit. The visit's moisture is whole under a U10 of 4.02 m/s
+and none past 4.1, so the mist, and the fog pools filled from it, are
+whole in the calm and absent on every windy visit, on every sky and
+through every change: of 20000 visits, the 5230 with U10 of 6 m/s or
+more have no mist at first light, and the 5080 under 4 m/s all do. The
+cut lies between the surface winds that strongly favour dense valley
+fog, 7 kt (3.6 m/s) or less in the evening, and those that make it
+highly unlikely, past 10 kt (5.1 m/s)
+(https://www.weather.gov/media/crh/publications/TA/TA_1601.pdf). It is
+the visit's own U10, so a pool never comes or goes by the wind in
+place. test/unit/air.mjs holds it (none from 4.1 to 7.5 m/s, whole at
+4.02 and under), and a plant that makes the moisture blind to the wind
+must fail it.
 
 The top is opaque within 1.5 m of depth, the same at every depth, so
 nothing thickens in place (mistOver, world-glsl). The rim's ramp is

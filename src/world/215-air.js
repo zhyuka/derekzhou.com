@@ -122,7 +122,9 @@
        and low cloud at their most in the early morning and gone soon after sunrise
        (https://acp.copernicus.org/articles/20/3415/2020/). It is the visit's air, not
        the land in view: moist on the visit's calm synoptic days, when the marine layer creeps in rather than being
-       mixed out (U10 under 4.02 m/s whole, none past 4.1: AIR_MOIST, set with LAND for pools at the cut on 3 of the 10 dune openings, 3, 10 and 14, by
+       mixed out (U10 under 4.02 m/s whole, none past 4.1: AIR_MOIST, between the surface winds that favour dense
+       valley fog, 7 kt (3.6 m/s) or less in the evening, and those that make it highly unlikely, past 10 kt (5.1 m/s):
+       https://www.weather.gov/media/crh/publications/TA/TA_1601.pdf; set with LAND for pools at the cut on 3 of the 10 dune openings, 3, 10 and 14, by
        the live visit's seed, the hub's ruling; about 28% of visits moist; no new draw,
        the visit's own U10). Through a change the level moves toward the next sky's at AIR_MIST_RATE
        (0.18 m/s: a mist's rim creeps up a 13 deg slope at under 1 m/s), a closed form of the sky's clock, so it
