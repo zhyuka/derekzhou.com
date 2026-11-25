@@ -64,10 +64,64 @@
     var V = SIM.V, S = airSkySun(V, -D0), E = venusEcl(F, S, [0, 0, 0]), i;
     var t = [E[1] * S[2] - E[2] * S[1], E[2] * S[0] - E[0] * S[2], E[0] * S[1] - E[1] * S[0]], n = Math.sqrt(t[0] * t[0] + t[1] * t[1] + t[2] * t[2]) || 1, c = Math.cos(eps * DEG), s = Math.sin(eps * DEG) * side / n;   // (east along the ecliptic at S: cross(E, S))
     for (i = 0; i < 3; i++) out[i] = c * S[i] + s * t[i];
-    var az = V.light.sunAz * DEG, kx = Math.sin(az), kz = Math.cos(az), a = out[0] * kx + out[2] * kz, b = out[1], w = -out[0] * kz + out[2] * kx, dl = (D0 - D) * DEG, cl = Math.cos(dl), sl = Math.sin(dl);   // (its parts toward the key, up and across; turned by the sun's own change of elevation)
+    return sinkTurn(out, D, D0);
+  }
+  function sinkTurn(out, D, D0) {   // a direction placed with the sun at depth D0, turned with it to depth D: rigid in the sun's own vertical plane
+    var az = SIM.V.light.sunAz * DEG, kx = Math.sin(az), kz = Math.cos(az), a = out[0] * kx + out[2] * kz, b = out[1], w = -out[0] * kz + out[2] * kx, dl = (D0 - D) * DEG, cl = Math.cos(dl), sl = Math.sin(dl);   // (its parts toward the key, up and across; turned by the sun's own change of elevation)
     var a2 = a * cl - b * sl, b2 = a * sl + b * cl;
     out[0] = a2 * kx - w * kz; out[1] = b2; out[2] = a2 * kz + w * kx;
     return out;
+  }
+  /* (night, delight-night §6) a great comet: in 2 of the 16 openings (COM_K: the two whose twilight views face the sun's
+     side, where the evening star is seen too: measured on the page, 1440x900), on the first visit only (its SEED0), on a
+     twilight opening only (afterglow, the blue hour, first light: the sun under the horizon's glow), placed as Venus is
+     (venusFrame: by the drawn sun, turned with it as it sinks, so it sets with the sun's side), COM_EL deg from the sun
+     on Venus's side and COM_B deg off the ecliptic (turned about the sun, its elongation kept); its tails along the
+     direction away from the sun at its head (the great circle from the sun through it: cometTail), the ion tail straight
+     and blue, the dust tail curved to one side and white-yellow, COM_L deg long (sky-body.glsl cometAt); chosen once a
+     visit, its head and tails kept off the words as Venus's path is; steady (no clock: it moves only as the sun sinks) */
+  var COM_K = [6, 7], COM_EL = [14, 50], COM_B = [0, 35], COM_L = 22, COM_TOP_Y = 0.12, COM_TRY = 64;   // (COM_TRY places tried: the head 14-50 deg from the sun and up to 35 deg off the ecliptic, so one clear of the words stands in most views of a twilight)
+  var COMB = { v: new Float32Array(4), t: new Float32Array(4), seed: NaN, eps: -1, b: 0, s: 1, d: [0, 0, 0] };
+  function cometOn(seed) { return COM_K.some(function (k) { return seed === (11 + k * 0x9e3779b9) >>> 0; }); }   // (opening k's seed, 010's SEED0)
+  function cometDir(F, eps, side, b, D, D0, out) {   // venusDir's place at D0 turned b deg about the sun there (off the ecliptic, its elongation kept), then with the sun to D
+    venusDir(F, eps, side, D0, D0, out);
+    var S = airSkySun(SIM.V, -D0), cb = Math.cos(b * DEG), sb = Math.sin(b * DEG), sv = S[0] * out[0] + S[1] * out[1] + S[2] * out[2], x = [S[1] * out[2] - S[2] * out[1], S[2] * out[0] - S[0] * out[2], S[0] * out[1] - S[1] * out[0]], i;
+    for (i = 0; i < 3; i++) out[i] = out[i] * cb + x[i] * sb + S[i] * sv * (1 - cb);
+    return sinkTurn(out, D, D0);
+  }
+  function cometTail(h, S, out) {   // the direction away from the sun at the head h, along the sky (the great circle from S through h): (S.h) h - S, normalised
+    var sh = S[0] * h[0] + S[1] * h[1] + S[2] * h[2], n = 0, i;
+    for (i = 0; i < 3; i++) { out[i] = sh * h[i] - S[i]; n += out[i] * out[i]; }
+    n = Math.sqrt(n) || 1;
+    for (i = 0; i < 3; i++) out[i] /= n;
+    return out;
+  }
+  function cometFails(I, F, eps, b, D0) {   // its head and points down its tail (every 4 deg) on a word box (grown by the keep and its glow) at any depth on the way down
+    var C = mrCam(I.psi, I.pN), grow = I.keepPx + VEN_GLOW * (I.keepPx / MOON_KEEP), h = [0, 0, 0], T = [0, 0, 0], D, x, k, B;
+    for (D = D0; D <= -AIR_SUN_NIGHT + 1e-9; D += 1) {
+      cometDir(F, eps, NIGHTB.side, b, D, D0, h); cometTail(h, airSkySun(SIM.V, -D), T);
+      for (x = 0; x <= COM_L; x += 4) {
+        var p = [0, 1, 2].map(function (i) { return h[i] * Math.cos(x * DEG) + T[i] * Math.sin(x * DEG); });
+        if (p[1] <= 0) continue;
+        var q = mrProj(C, I, p);
+        if (q[2] <= 0) continue;
+        var px = (q[0] + 1) / 2 * I.W, py = (1 - q[1]) / 2 * I.H;
+        for (k = 0; k < I.boxes.length; k++) { B = I.boxes[k]; if (B[2] - B[0] > 1 && B[3] - B[1] > 1 && px > B[0] - grow && px < B[2] + grow && py > B[1] - grow && py < B[3] + grow) return true; }
+      }
+      if (h[1] <= 0) break;
+    }
+    return false;
+  }
+  function cometPlan(F, D0, I, I2) {   // of COM_TRY places drawn (the same every plan of a visit), the first clear of the words in both windows and seen at the cut; none: no comet
+    var L = SKY.landing && SKY.landing.sky, R = RNG(subseed(J.seed, 1301)), k, h = [0, 0, 0];
+    COMB.eps = -1; COMB.seed = J.seed; COMB.s = R.f() < 0.5 ? -1 : 1;
+    if (!cometOn(J.seed) || (L !== 'afterglow' && L !== 'bluehour' && L !== 'firstlight')) return;
+    for (k = 0; k < COM_TRY; k++) {
+      var e = R.r(COM_EL[0], COM_EL[1]), b = R.r(COM_B[0], COM_B[1]) * (R.f() < 0.5 ? -1 : 1);
+      if (cometFails(I, F, e, b, D0) || (I2 && cometFails(I2, F, e, b, D0))) continue;
+      cometDir(F, e, NIGHTB.side, b, D0, D0, h);
+      if (venusSeen(I, h)) { COMB.eps = e; COMB.b = b; return; }
+    }
   }
   function venusFails(I, F, eps, side, D0) {   // how many of its places on the way down (the opening's depth to the night's, by 0.5 deg) fall on a word box (grown by the keep and its glow) at the view's own heading and pitch
     var C = mrCam(I.psi, I.pN), grow = I.keepPx + VEN_GLOW * (I.keepPx / MOON_KEEP), n = 0, d = [0, 0, 0], D, b, B;
@@ -105,6 +159,7 @@
     NIGHTB.eps = P[0]; NIGHTB.seen = P[1]; NIGHTB.D0 = D0; NIGHTB.seed = J.seed;
     var RJ = RNG(subseed(J.seed, 1201)); JUPB.side = RNG(subseed(J.seed, 1202)).f() < 0.5 ? -1 : 1;
     JUPB.eps = bodyPick(RJ, JUP_EL, JUPB.side, F, D0, I, I2)[0]; JUPB.seed = J.seed;   // (no clear path: no outer planet this visit)
+    cometPlan(F, D0, I, I2);
     NIGHTB.none = NIGHTB.eps < 0;   // (the hub's ruling: no clear path down, no Venus this visit, as its still has none)
     NIGHTB.fails = NIGHTB.none ? 1 : 0;
     return true;
@@ -129,6 +184,9 @@
     if (u.uStarM) gl.uniform4fv(u.uStarM, NIGHTB.m);
     JUPB.v[3] = 0;
     if (V && V.light && JUPB.seed === J.seed && JUPB.eps >= 0) { venusDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), JUPB.eps, JUPB.side, D, NIGHTB.D0, JUPB.d); JUPB.v[0] = JUPB.d[0]; JUPB.v[1] = JUPB.d[1]; JUPB.v[2] = JUPB.d[2]; JUPB.v[3] = JUP_TOP_Y; }
+    COMB.v[3] = 0;
+    if (V && V.light && COMB.seed === J.seed && COMB.eps >= 0) { cometDir(venusFrame(V, NIGHTB.morning, NIGHTB.D0), COMB.eps, NIGHTB.side, COMB.b, D, NIGHTB.D0, COMB.d); cometTail(COMB.d, airSkySun(V, -D), COMB.t); COMB.v.set(COMB.d); COMB.v[3] = COM_TOP_Y; COMB.t[3] = COMB.s; }
+    if (u.uCom) { gl.uniform4fv(u.uCom, COMB.v); gl.uniform4fv(u.uComT, COMB.t); }
     if (u.uVen) gl.uniform4fv(u.uVen, NIGHTB.v);
     if (u.uJup) gl.uniform4fv(u.uJup, JUPB.v);
   }

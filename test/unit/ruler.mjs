@@ -9,8 +9,9 @@
 // plant: {"file": ".github/workflows/gate.yml", "find": "needs: [static, plan, t1, looks, paint]", "with": "needs: [static, plan, t1, paint]", "why": "the looks job's answer not the verdict's"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "  const pass = (o) => {", "with": "  { const L0 = landOf(k); pois.push({ realm: 'dunes', site: 'dest', kind: 'destination', x: Math.sin(L0.heading) * 3000, z: Math.cos(L0.heading) * 3000, pass: 600, r: 500, top: 700 }); }\n  const pass = (o) => {", "why": "a destination 3 km out: met in 4 min, not 8-14"}
 // plant: {"file": "tools/visit/ruler.mjs", "find": "  const pass = (o) => {", "with": "  { pois.push({ realm: 'dunes', site: 'dest', kind: 'destination', x: Math.sin(psi) * 9000, z: Math.cos(psi) * 9000, pass: 600, r: 500, top: 700 }); }\n  const pass = (o) => {", "why": "a destination laid out by the way flown, not by the land: another path finds another"}
+// plant: {"file": "tools/visit/ruler.mjs", "find": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);", "with": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z) * 0.6;", "why": "the kits keep 40% fewer places: the visits emptier"}
 import { test, assert, golden, WORLD } from '../unit-lib.mjs';
-const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN } = await import('../../tools/visit/ruler.mjs');
+const { flyLand, measure, report, HOURS, MIST_BY_SKY, DUNE_MIN, NEAR } = await import('../../tools/visit/ruler.mjs');
 
 // ------------------------------------------------------------------ the ruler's cuts still hold, and it measures
 // (the visit ruler, delight-visit 5.1) its cuts of the world (the maps and director, the kits' cells, the sky order, the
@@ -172,4 +173,29 @@ test('ruler: the horizon destination: one a land on the landing heading 6-10 km 
       assert.ok(e && e.r === d.r && e.top === d.top, `${tag}: not the same from another path (a heading 2 deg off, or a shorter visit)`);
     }
   }
+});
+
+// ------------------------------------------------------------------ the visit's bars (delight-visit item B)
+// (the hub, Nov 25: "CI turns its bars into a gate test", so no later change makes the visits emptier) Every visit the
+// ruler measures on the 16 lands (6 hours x 3 reads each, the first 14 min: the flights above, flown once), held to
+// today's worst land with a small margin. Main, Nov 25, the worst of 288 visits:
+//   - the first near pass (a place within NEAR m of the way): 379.9 s (k10)              -> by 400 s;
+//   - the longest stretch with no reward (a place, a flock, a sky's change): 265 s (k8)   -> at most 280 s;
+//   - the places passed (in sight, a site once): 5 in 14 min, 3.57 per 10 min (k8, k10)    -> at least 4 (one place less: a
+//     count's margin is a whole place);
+//   - the first sky change: 189.7 s (k3)                                                   -> by 200 s.
+// These are floors under today's visits, not the curated openings' targets (BARS: a near pass by 40 s, no 180 s without a
+// reward), which stand as they were. A deliberate change that moves a bar moves it here, in a PR that says why.
+const VISIT_BARS = { firstNear: 400, maxGap: 280, places: 4, firstChange: 200 };
+test('ruler: the visits\' bars: a near pass, no long stretch without a reward, places passed, a sky change, never worse than today\'s worst land', () => {
+  let worst = { firstNear: 0, maxGap: 0, places: Infinity, firstChange: 0 };
+  for (let k = 0; k < 16; k++) for (const hour of HOURS) for (let j = 0; j < 3; j++) {
+    const read = (k + 16 * (1 + j * 7919)) >>> 0, at = ((read * 2654435761) >>> 0) / 4294967296 * 0.999, m = measure(DEST_LANDS[k], hour, read, at, DEST_MIN), tag = `k${k} ${hour} read ${j}`;
+    assert.ok(m.firstNear !== null && m.firstNear <= VISIT_BARS.firstNear, `${tag}: the first near pass (within ${NEAR} m) at ${m.firstNear} s (bar ${VISIT_BARS.firstNear} s)`);
+    assert.ok(m.maxGap <= VISIT_BARS.maxGap, `${tag}: ${m.maxGap} s with no reward from ${m.maxGapAt} s (bar ${VISIT_BARS.maxGap} s)`);
+    assert.ok(m.places >= VISIT_BARS.places, `${tag}: ${m.places} places passed in ${DEST_MIN / 60} min (bar ${VISIT_BARS.places})`);
+    assert.ok(m.firstChange !== null && m.firstChange <= VISIT_BARS.firstChange, `${tag}: the first sky change at ${m.firstChange} s (bar ${VISIT_BARS.firstChange} s)`);
+    worst = { firstNear: Math.max(worst.firstNear, m.firstNear), maxGap: Math.max(worst.maxGap, m.maxGap), places: Math.min(worst.places, m.places), firstChange: Math.max(worst.firstChange, m.firstChange) };
+  }
+  if (process.env.BARS_LOG) console.log(worst);
 });

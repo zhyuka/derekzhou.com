@@ -69,7 +69,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
                              test/unit/kit.mjs (WORLD.kit: exactly the helpers the realms call, pinned),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
-                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
+                             test/unit/fork-guard.mjs (no PC job a fork's PR can start), test/unit/check-shards.mjs (every check on exactly one of validate's shards), test/unit/check-cache.mjs (a check's declared inputs: its key, main's pass reused, no stray read), test/unit/flight.mjs (the heading and the bank), test/unit/flight-sim.mjs (the flight flown whole: the slip's plans, its chatter, the hard rules), test/unit/framing.mjs (the camera's framing),
                              test/unit/glslmin.mjs (the shaders' minifier), test/unit/governor.mjs (the render scale's
                              governor), test/unit/ground.mjs (the recorded ground's measure), test/unit/handoff.mjs (the gate's hand-off, run artifacts pinned by manifest), test/unit/height.mjs (the camera's height over the recorded ground), test/unit/held.mjs (the
                              held world), test/unit/maps.mjs (the maps, the director, the plan's worker),
@@ -193,7 +193,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/sound/cpu.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
-tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
+tools/checks/lib/            What the checks run: tools/checks/lib/reads.mjs (every file a check with `# inputs:` reads, written down), tools/checks/lib/rules_check.py (RULES.json's references exist),
                              tools/checks/lib/world_rules.py (the world's rules), tools/checks/lib/w7_unit.js (W7:
                              nothing darkens), tools/checks/lib/glsl_guard.js (every visit of a device, the same shader
                              sources; also the gate's shader census), tools/checks/lib/docs-drift.mjs (this map, checked),
@@ -226,7 +226,11 @@ folds work by lines), a #define's spacing kept, the same tokens (checked;
 the build fails otherwise); the part of a file a script reads at run time
 stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
 split finds by its text; the rest of the file is minified, 2026-11-25:
-realm-dunes.js 13,299 -> 9,395 B). So the world issues and the browser
+realm-dunes.js 13,299 -> 9,395 B); and a GLSL template literal still in a
+part (one with ${...} in it, which no .glsl file can hold) has its text
+between the substitutions minified the same way, checked as one program
+with each substitution as a word, else shipped as written (tools/parts.mjs
+minInline, 2026-11-25: world.js -1,661 B). So the world issues and the browser
 compiles the short text; src/ keeps the readable one. Edit a shader in its
 .glsl file; nothing derived from it is committed (2026-11-06): the gate's
 census and T1 compare the base's build with the head's.
