@@ -694,15 +694,23 @@ heading (airHeading0, SEED0's), 7-8 km out (217: destOf, { x, z, d,
 bearing }, the seed's alone). So it stands in the first frame, and the
 flight, held on its heading, meets it in 9.7-11.1 minutes at 12 m/s. It
 is never aimed at: a drag takes the flight anywhere, and the slip passes
-it as any form. It is an inselberg, a dome of bare rock in stratified
-walls, 600-720 m tall and about 1.1 km across, with a volcanic neck's
-spire on its shoulder 1.25-1.45 times its height. Both are outsized
-beside the land's formations (35-90 m), as the Namib's inselbergs
-(https://en.wikipedia.org/wiki/Spitzkoppe) and a 480 m neck
-(https://en.wikipedia.org/wiki/Shiprock) stand over their plains. Its
-draws are its own, so each land's differs. Where the heading leads out
+it as any form. It is an inselberg, a bornhardt (realm-dunes: bornG): a
+dome of bare rock 620-720 m tall and about 1.2 km across. Its flanks
+steepen to a sharp foot on the sand (a superellipse, exponent 1.9-2.5),
+its sides are fluted by the runoff, and its crown is smooth and a little
+off centre. It is outsized beside the land's formations (35-90 m), as
+the Namib's inselbergs (https://en.wikipedia.org/wiki/Spitzkoppe) stand
+over their plains. Far off, the cell's coarse build gives it 16 columns
+and 10 rows (about 290 faces, a silhouette at 7 km); in full, 44 and 23.
+An earlier volcanic neck on its shoulder read as a steeple and was
+dropped (hub, 2026-11-25). Its draws are its own, so each land's
+differs. Where the heading leads out
 over the cloud sea, it rises out of it, seated on the sunken land as the
-coast's formations are.
+coast's formations are. Its kind (217: destKind, agreed with the cloud
+lane) is read once from the maps: 'isle' where the cloud sea's weight at
+the point is over 0.5 (5 of 16 lands on today's maps), else 'rock'. Scale
+5 hands an isle's cell to the above kit's dest once that kit has one, and
+otherwise to the dunes kit's rock.
 
 It is laid out by its own layout scale (the sixth: 16 km cells reaching
 12 km, at most about 4 laid out) and only by the cell that holds it,

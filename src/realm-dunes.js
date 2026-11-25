@@ -90,18 +90,28 @@
      buttes and mesas (bay), seated on the lowest ground of their footprint, so those that stand where the land has sunk
      under the sea rise out of it. Each is marked a formation (form): kept wherever the cloud sea lies (the world's
      aboveKeep passes them by) */
-  /* the destination (world 217: destOf, on the landing's heading 7-8 km out): an inselberg, a dome of bare rock in steep
-     walls rising from the sand, and a volcanic neck's spire on its shoulder, both outsized beside the formations (as the
-     Namib's 700 m inselbergs and a 480 m neck stand over their plains): laid out only by the destination scale's one cell
-     that holds it; where the heading leads out over the cloud sea it rises out of it (seated on the sunken land, as the
-     coast's formations are); its draws its own (subseed of its seed), so each land has its own */
+  /* the destination (world 217: destOf, on the landing's heading 7-8 km out): an inselberg, a bornhardt: a dome of bare
+     rock whose flanks steepen to a sharp foot on the sand, its sides fluted by the runoff, its crown smooth and a little
+     off centre, outsized beside the formations (as the Namib's 700 m inselbergs stand over their plains): laid out only
+     by the destination scale's one cell that holds it; where the heading leads out over the cloud sea it rises out of
+     it (seated on the sunken land, as the coast's formations are); its draws are its own (subseed of its seed), so each
+     land has its own. Far off (the cell's coarse build, until the flight is 1.5 km from it) 16 columns and 10 rows,
+     about 290 faces: a silhouette at 7 km */
+  function* bornG(B, R, rad, H, col) {
+    var lo = B.lod, n = lo ? 16 : 44, NR = lo ? 9 : 22, ol = F.outline(R, n, 1, R.r(0.72, 0.9)), fl = F.flutes(R, n, R.r(0.09, 0.13)), p = R.r(1.9, 2.5), cx = R.r(-0.12, 0.12) * rad, cz = R.r(-0.12, 0.12) * rad, rows = [], i, j;
+    for (i = -1; i <= NR; i++) {
+      var hn = i < 0 ? 0 : Math.sin(i / NR * PI / 2), y = i < 0 ? -40 : H * hn, row = [];
+      var r = rad * Math.max(Math.pow(1 - Math.pow(hn, p), 1 / p), 0.01) * (1 + 0.18 * Math.pow(Math.max(1 - hn / 0.06, 0), 2)), fw = 1 - K.smooth(0.55, 0.92, hn);
+      for (j = 0; j < n; j++) row.push([ol[j][0] * r * (1 + (fl[j] - 1) * fw) + cx * hn * hn, y, ol[j][1] * r * (1 + (fl[j] - 1) * fw) + cz * hn * hn]);
+      rows.push(row);
+    }
+    B.lod = 0; yield* F.gridSurfG(B, rows, col, true); B.lod = lo;   // (its own counts, near and far: the grid's halving off)
+  }
   function dDest(C, R) {
     var D = W.dest(); if (!C.inside(D.x, D.z)) return;
-    var Q = K.RNG(K.hk(D.seed >>> 0, 91)), rad = Q.r(520, 600), H = Q.r(600, 720), yaw = Q.r(0, 360), a = Q.r(0, 2 * PI), sr = Q.r(130, 170), sH = H * Q.r(1.25, 1.45);
-    var it = C.add({ kind: 'butte', form: true, x: D.x, z: D.z, foot: rad * 1.2, yaw: yaw, rad: rad, H: H, sink: 20, seed: Q.seed(), solid: [rad * 1.3, H], foot2: [rad * 1.65, H * 0.15] });
-    var sx = D.x + Math.sin(a) * rad * 0.55, sz = D.z + Math.cos(a) * rad * 0.55;
-    C.poi({ kind: 'destination', x: D.x, z: D.z, ref: it, dy: H * 0.5, r: rad * 1.3, top: sH, pass: rad * 1.3 + 120 });   // (FLIGHT's ruler: r at the flight band, at most 800 m; top over the land)
-    C.add({ kind: 'spire', form: true, x: sx, z: sz, foot: sr * 1.2, yaw: yaw, rad: sr, H: sH, sink: 20, seed: Q.seed(), solid: [sr * 1.2, sH] });
+    var Q = K.RNG(K.hk(D.seed >>> 0, 91)), rad = Q.r(560, 620), H = Q.r(620, 720);
+    var it = C.add({ kind: 'born', form: true, x: D.x, z: D.z, foot: rad * 1.1, yaw: Q.r(0, 360), rad: rad, H: H, sink: 20, seed: Q.seed(), solid: [rad * 1.15, H * 0.8], foot2: [rad * 1.2, H * 0.12] });
+    C.poi({ kind: 'destination', x: D.x, z: D.z, ref: it, dy: H * 0.5, r: rad * 1.25, top: H, pass: rad * 1.25 + 120 });   // (FLIGHT's ruler: r at the flight band, at most 800 m; top over the land)
   }
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
   function dForms(C, s, R) {
@@ -236,7 +246,7 @@
         case 'gshard': giantShard(B, R, it.h, it.w, D_ROCK); break;
         case 'mesa': return mesaG(B, R, it.rad, it.H, D_ROCK, it.sink ? { sink: it.sink } : null);   // (generators: a few rows at a time)
         case 'butte': return butteG(B, R, it.rad, it.H, D_ROCK, it.sink ? { sink: it.sink } : null);
-        case 'spire': return F.rockSpireG(B, R, it.rad, it.H, D_ROCK);   // (the destination's neck)
+        case 'born': return bornG(B, R, it.rad, it.H, D_ROCK);   // (the destination)
         case 'temple': return templeStepped(B, R, it.size, D_STONE, D_PALE);   // (a generator: a part at a time)
         case 'stair': var run = it.drop / Math.tan(26 * PI / 180); stairDown(B, 16, run, it.drop, Math.round(it.drop / 1.6), D_PALE, D_STONE); break;
         case 'stupa': stupa(B, R, it.h, D_STONE, D_PALE); break;
