@@ -272,10 +272,11 @@
   function glideWhen(F, b, wv, dt) {
     var hz = Math.sqrt(wv[0] * wv[0] + wv[2] * wv[2]), dn = Math.atan2(wv[1], Math.max(hz, 0.5)) < GLIDE_DN;
     b.dsT = dn ? b.dsT + dt : 0;
-    if (!b.w || b.wOff || b.burst || b.flap !== 1 || t < b.gOK) return;
+    var soar = b.soarT === t;   // (soaring: its glide asked on and on, twice a second, its flock after it)
+    if (!b.w || b.wOff || b.burst || (b.flap !== 1 && !soar) || t < b.gOK) return;
     var roll = Math.abs(b.phi) > GLIDE_BANK && Math.abs(b.phi) > Math.abs(b.phi0) + 1e-4;
-    if (b.dsT < 1 && !roll) return;
-    var dur = pick(b.r, [1.5, 6]), t0 = t + toGlide(b); BW.glide(b.w.wing, b.age, dur); b.gOK = t + dur + 4; F.gD = dur;
+    if (b.dsT < 1 && !roll && !soar) return;
+    var dur = soar ? 2 : pick(b.r, [1.5, 6]), t0 = t + toGlide(b); BW.glide(b.w.wing, b.age, dur); b.gOK = soar ? t + 0.5 : t + dur + 4; F.gD = dur;
     for (var j = 0; j < F.m.length; j++) { var q = F.m[j]; if (q !== b && q.st === 'fly') q.gAt = t0 + Math.max(0, q.slot[0] * b.sz) / Math.max(b.V, 3) + q.lat; }
   }
 
