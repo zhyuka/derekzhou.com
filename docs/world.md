@@ -665,7 +665,9 @@ physics: clouds/drift). It holds:
   (with most within 10) for winds from every way and strength. With the
   canyons moved, land 4's first heading (airHeading0) went from 35 deg,
   where a wall stood behind the name (21% of its box under cloud), to
-  headings.mjs's pick of 235 deg (0%, a near pass at 30 s).
+  headings.mjs's pick of 235 deg (0%, a near pass at 30 s); land 11's from
+  305 deg (a wall behind the words: 25% of their boxes, 36% of the name's)
+  to 210 deg (0% and 0%), chosen over a sweep of every 15 deg.
 - The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
   7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
   International Cloud Atlas), its streaks along the air's wind there (the
