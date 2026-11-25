@@ -42,6 +42,10 @@ pull_request_target `edited`), and the bot lands the PR on its green gate, visib
 the bot's own files included. A push after the review moves the head, so the line no longer matches: it waits for a
 new one. (A body line, not a commit status: the hub's session may edit a PR's body but not write statuses.) The deploy walk counts a reviewed landing as the owner's own merge, so live follows it once
 its stills are up. The hub sends the owner a daily note of what went live, and "undo X" lands a revert the same way.
+The bot's own files (bot-rules.mjs BOT_FILES) are its workflow, merge-bot.mjs and every module and data file it runs
+on: bot-rules.mjs, areas.mjs, areas.json, deploy-walk.mjs, and the names guard (.claude/hooks/guard.py, names.json).
+Until 2026-11-25 the list held merge.yml and merge-bot.mjs alone, and #435, which changed bot-rules.mjs with a served
+build the base's, landed with no review; test/unit/merge-bot.mjs now derives the list from the bot's imports.
 
 **Only a byte-for-byte build lands unreviewed (the hub, 2026-11-24).** Without the hub's line the bot lands a PR only
 when its served build is byte for byte the base's (docs, tests, CI, tools: bot-rules.mjs unreviewedLands). "Frames
@@ -56,6 +60,11 @@ main's #410-#416 had changed since its gate; the bot merged it with no new gate,
 line in two entry formats, and main's gate went red on the ruler test until the bot reverted it. Now (bot-rules.mjs
 regateAnswer) a PR sharing any file with main's commits since its gate's base is brought up to date and gated again,
 the review holding through that merge of main (#361); a reviewed PR sharing only an area still merges at once.
+A doc only people read is not such a file (the hub, 03:01Z Nov 25: #427, reviewed, was re-gated at 02:54Z only
+because #414 had also edited docs/world.md, and nearly every PR edits a doc): docs/*.md is never served, and no check
+reads one's content but docs-drift's docs/structure.md, which still re-gates (bot-rules.mjs mergeSafe). Of the 7
+landings on main from 18:00Z Nov 24 that shared a file with main's changes since their base, 3 shared docs/world.md
+alone and would not have been re-gated; 2 shared docs/structure.md and 2 shared code.
 
 Before that rule, the owner's "land it when green" was GitHub's auto-merge (the owner, 2026-11-06: "GitHub auto-merge"): on a PR the
 bot leaves to him (needs-owner, visible, or one that changes the bot), he clicks Enable auto-merge, and GitHub merges
@@ -106,6 +115,18 @@ each restores and saves its own record (the cache key ends -s<N>), hands off its
 its manifest's sha256 as its own job output sha_<N> (handoff.mjs put --as sha_<N>); a leg sets only its own, so the
 verdict gets all four and reads each shard pinned to its own. A shard that did not hand off is missing from the
 verdict's count, which then says T1 did not report (T1_SHARDS).
+
+The ruler's looks, live (2026-11-25, the hub's ask of 02:09Z): each land's first heading must keep the words and the
+name clear of cloud (tools/visit/look-rule.mjs's rule()). The figures were a stored record, tools/visit/looks.json, keyed
+by what moves a cloud near the words; every PR that moved the key re-measured it by hand (looks.mjs --table, about 30
+minutes) and any other one landing first invalidated it again (#405, #422, #425 and #414 on Nov 24). Of the key's 12
+moves, 7 moved no table heading's figure and the largest moved a words share by 0.028, but no narrower key can say in
+advance which change moves one. So there is no record: the plan keys base and head (look-rule.mjs looksKey: worldKey,
+the table and the measuring code) and, when it moved, gate.yml's looks job measures the head's build on eight runners
+(looks.mjs --table --check --shard i/8, every 8th land: about 76 s a heading at --jobs 2 on 4 cores, 3-4 headings a
+runner, about 5 minutes and 40 runner-minutes for the 30). The verdict needs it; a gate that did not move the key skips
+it. The bot's re-gate of a PR on main's newer tip measures that merged tree, and main's own gate measures each merge
+that moved the key. Each shard's record is its artifact looks-s<N> (7 days), for headings.mjs (--looks).
 
 The hand-off (2026-11-23): the gate's jobs pass each other the two builds and T1's shards as the run's own artifacts,
 gate-served and, from each of T1's four runners, gate-t1-s<N>, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions

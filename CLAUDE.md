@@ -108,7 +108,9 @@ bumps a version for a change; fonts and images are renamed by hand
 - Branch `claude/<topic>`; open a PR against main (not a draft once ready).
 - The gate (gate.yml): validate.yml's checks; the plan job builds base and
   head and compares them; the shader census; T1 (software frames, base
-  against head), all on GitHub's runners. Read the gate's verdict, not one job's.
+  against head); the ruler's looks (the words clear of cloud on every
+  opening, measured live when look-rule.mjs's looksKey moved: no stored
+  record), all on GitHub's runners. Read the gate's verdict, not one job's.
 - The merge bot (merge.yml, .github/ci/merge-bot.mjs) merges a ready
   claude/* PR when its own gate is green and its served build is byte for
   byte the base's (every T1 frame the same is not enough: T1 sees only its
