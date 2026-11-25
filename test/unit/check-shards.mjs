@@ -21,7 +21,8 @@ test('check-shards: validate.yml\'s matrix is the n its command names, each shar
   assert.ok(m, 'a matrix of shards');
   const shards = m[1].split(',').map((s) => Number(s.trim()));
   const ns = [...y.matchAll(/--shard \$\{\{ matrix\.shard \}\}\/(\d+)/g)].map((x) => Number(x[1]));
-  assert.ok(ns.length >= 2, 'the checks and the plants both sharded');
+  assert.ok(ns.length >= 1, 'the checks sharded');
+  assert.match(y, /--shard \$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.plants\.outputs\.n \}\}/, 'the plants sharded over their own runners (the prove job)');
   for (const n of ns) assert.deepEqual(shards, Array.from({ length: n }, (_, i) => i), `the matrix is 0..${n - 1}`);
 });
 
@@ -89,5 +90,27 @@ test('check-shards: a check marked `# apart:` shares no shard with the checks it
       if (d === c) assert.ok(on.filter((x) => x === c).length < 2, `two parts of ${c} share a shard: ${line}`);   // (a check naming itself: its parts apart)
       else assert.ok(!on.includes(d), `${c} shares a shard with ${d}: ${line}`);
     }
+  }
+});
+
+// plant: {"file": ".github/workflows/validate.yml", "find": "  prove:\n    needs: plants\n", "with": "  prove:\n    needs: [plants, validate]\n", "why": "the plants wait for the checks again: static's time their sum, not the slower of the two"}
+// plant: {"file": ".github/workflows/validate.yml", "find": "--shard ${{ matrix.shard }}/${{ needs.plants.outputs.n }}\n", "with": "--shard ${{ matrix.shard }}/5\n", "why": "the prove runners deal the plants five ways whatever their number: a share never run"}
+// plant: {"file": ".github/workflows/validate.yml", "find": "n=$(( (c + PLANTS_PER - 1) / PLANTS_PER ));", "with": "n=$(( c / PLANTS_PER ));", "why": "three plants, no runner: they never run"}
+test('check-shards: the plants run on their own runners beside the checks, one runner per few plants, none when there are none (the hub\'s gate p90, 2026-11-25)', () => {
+  const y = fs.readFileSync(path.join(ROOT, '.github/workflows/validate.yml'), 'utf8');
+  const job = (name) => { const i = y.indexOf('\n  ' + name + ':\n'); assert.ok(i >= 0, name + ' job'); const j = y.slice(i + 1).search(/\n  [a-z]+:\n/); return y.slice(i, j < 0 ? undefined : i + 1 + j); };
+  const v = job('validate'), pl = job('plants'), pr = job('prove');
+  assert.ok(!v.split('\n').some((l) => !/^\s*#/.test(l) && /--prove/.test(l)), 'the checks\' job runs no plants');
+  assert.match(pr, /\n    needs: plants\n/, 'prove waits for the plants\' list alone, not for the checks');
+  assert.match(pr, /if: needs\.plants\.outputs\.n != '0'/, 'no runner when the change can break no plant');
+  assert.match(pr, /shard: \$\{\{ fromJSON\(needs\.plants\.outputs\.shards\) \}\}/);
+  assert.match(pr, /node tools\/check\.mjs --prove --changed "\$RUNNER_TEMP\/changed\.txt" --base "\$base" --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.plants\.outputs\.n \}\}\n/, 'each runner its share of the n');
+  assert.match(pl, /if: github\.ref != 'refs\/heads\/main'/, 'not on main (the whole set weekly)');
+  // the count's arithmetic, as the step runs it: c plants, PLANTS_PER a runner, PROVE_MAX at most
+  const per = +/PLANTS_PER: '(\d+)'/.exec(pl)[1], max = +/PROVE_MAX: '(\d+)'/.exec(pl)[1];
+  const sh = /c=\$\(node[^\n]*\n\s*(n=[^\n]*)\n/.exec(pl)[1];
+  for (const [c, want] of [[0, 0], [1, 1], [per, 1], [per + 1, 2], [1000, max]]) {
+    const r = spawnSync('bash', ['-c', `PLANTS_PER=${per}; PROVE_MAX=${max}; c=${c}; ${sh}; echo $n`], { encoding: 'utf8' });
+    assert.equal(+r.stdout.trim(), want, `${c} plant(s): ${want} runner(s), got ${r.stdout.trim()}`);
   }
 });

@@ -206,7 +206,8 @@ mid-sky (20-55 deg up), a few a night, their light rising and falling softly ove
 exception RULES.json's no-fades names. Each is planned when its time comes,
 against the view as it is then; none under reduced motion or in a still; drawn
 by sky-body.glsl's meteorAt behind the haze, warm white or a fast one's green
-head, no pixel past OKLab L 0.50.
+head, no pixel past OKLab L 0.50; low down it loses the air's extinction as the stars do
+(k (X - 1) at its head's height, a little redder: about half its light at 10 deg up).
 The sky's own sun stays below the sea in every sky (THE AIR): through a change into a
 night it keeps sinking (to 24 degrees below), and its warm glow, the warm
 band low on its side, the haze's warm side and the high veil's brightening
