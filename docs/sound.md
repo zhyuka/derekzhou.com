@@ -180,13 +180,29 @@ How it sounds (sketch round twenty-two):
   wetter (about +4 dB) and darker.
 - **The wind**: two noises (a low billow, 70-520 Hz; a higher stream, 450-1500 Hz), each two independent channels,
   13.7 and 17.9 s, looped with no seam (round twenty's faded at the seam, a dip every 16 s that gave the loop away),
-  moved by one wind: four random walks (a new value every 1.2, 2, 6.5 and 21 s or so, glided to over half that,
+  moved by the world's own wind where the camera flies (2026-11-25: the feed's `wind`, AIR's air heard, read only):
+  the billow with the whole wind along its way (the wind and the gust arriving, the field's own, so a gust upwind is
+  heard when it reaches the camera, as the veils lift with it on screen; 16 m/s is the old breeze's 1), the stream
+  with its square, 0.4 s behind, both silent in a calm; about 3 dB more flying into the wind and 3 dB less with it
+  (the apparent wind's side only: the camera's own 12 m/s would drown everything); the stream toward the ear the
+  wind comes from (0.4 of the way, by the wind's bearing from the eye's way), the billow near the middle (0.12);
+  each eased over a few tenths of a second at each tick, so no gust has an edge. Over the cloud the billow eases and
+  the stream rises.
+- **The sand**: where the wind at the crests (1.5 times the 10 m wind, its gust in it) passes the sand's threshold
+  (6.2 m/s at 10 m: the world's, 215-air.js), a soft hiss: the stream's own noise half its length on (no new draw,
+  no new buffer), 2.5-8 kHz, toward the band grains in flight ring in (about 8 kHz: the acoustic sensors' band,
+  https://www.sciencedirect.com/science/article/abs/pii/S1875963715000038 and https://doi.org/10.1038/s41467-022-35100-z), kept under it so it
+  never sharpens the music; its level the flux, u*(u*^2 - u*t^2) with the threshold once moving 0.8 of the first, so
+  it starts at the threshold and stops only below 0.8 of it; on the wind's side (0.3); none over the cloud; its own
+  way to the ear, so the Milky Way's breath never lifts it. With the visits' winds (3-7.5 m/s at 10 m) and each
+  sky's share of them, it comes in afterglow and a windy blue hour, never at night.
+- **With no world** (no WebGL2, no feed): the old air, four random walks (a new value every 1.2, 2, 6.5 and 21 s or so, glided to over half that,
   weighted 0.3, 0.45, 0.67, 1: the slower, the larger, as gusts are) on the sky's own breeze, the world's wind by
   sky (its feed's `air`: each sky's share of the day's wind, 0.35 at the afterglow's 1, and its gustiness; the
   afterglow the breeziest, the blue hour calmer, the nights calm, first light the stillest; with no world, the air at
   its floor), easing to the next sky's over about 15 s; the billow with the wind, the stream with its square, 0.4 s behind (calm air near silent,
   a gust bringing it); each drifting slowly across the field. Over the cloud the billow eases and the stream rises.
-  About 18 dB under the music.
+  Far under the music: measured, about 40 LU in afterglow (2026-11-25, below).
 - **The ear**: the band the ear is most sensitive to eased (a -3 dB bell at 3.2 kHz, the strings' resonances at
   2-4 kHz cut 1-4 dB), a gentle 3 dB dip at 160 Hz (80-200 Hz is all the bass a laptop has), nothing below 27 Hz; no
   compression. About -23 LUFS (the owner's, 2026-11-15; -26 before), its true peak under -1 dBFS: a pluck's attack
@@ -229,8 +245,11 @@ line in src/sound.js and the NOTES line (the index: instrument, pitch, start, le
 
 `node tools/sound/render.mjs OUT.wav [SECONDS]` plays the score in headless Chromium, offline (an
 OfflineAudioContext, in the tool only), against a scripted flight (afterglow; a near change to the Milky Way; the
-dunes giving way to cloud; a far change through the mist to blue hour; a near change to the moonlit sea) and prints
-its loudness. Measured 2026-11-12 over 456 s, first against round seventeen's render (the take the owner approved),
+dunes giving way to cloud; a far change through the mist to blue hour; a near change to the moonlit sea), with the
+air heard where the camera flies (a visit's 10 m wind of `WIND_U` m/s, 6.5 unless set, 0 a calm; each sky its share
+of it, eased through each change; 1.15 times it at 25 m; smooth gusts of 0.26 of it; the camera at 12 m/s on a
+slowly turning heading) and prints its loudness. It reads the whole of ebur128's log (its summary was cut off past
+about 14 minutes until 2026-11-25). Measured 2026-11-12 over 456 s, first against round seventeen's render (the take the owner approved),
 then with the passages against that first live score (the figures in brackets):
 
 - loudness: -26.0 LUFS integrated (OUT in score.js sets it), true peak -7.2 dBFS; the loudness range 8.6 LU (6.0
@@ -295,7 +314,7 @@ Change OUT only with a measurement.
 | what | bytes | when |
 |---|---|---|
 | sound.js | 1,388 minified, 614 as sent (Brotli 11) | every visit, parser-blocking (36-load-budget: 1.5 KB) |
-| score.js | 24,985 minified, 9,259 as sent | every visit, deferred, low priority (36-load-budget: 9.5 KB) |
+| score.js | 26,026 minified, 9,619 as sent | every visit, deferred, low priority (36-load-budget: 9.5 KB) |
 | the sheet | about 4.5 MB (4,467,501 B) | only at the first press |
 
 Round twenty-two (2026-11-13), the same machine and flight: the audio thread 4.2% of real time (0.23 ms of each
@@ -366,9 +385,13 @@ Milky Way's breaths, and never one held note alone for more than 8 s (alone, a h
 a tone, a siren: an ear model, YAMNet, said so); over those two hours the night's quiet: the Milky Way and aurora begin
 fewer than 0.8 of blue hour's notes a minute, three voices at once there under 15% of the time, the strings under afterglow's horns 2.5 dB or
 more over those under the Milky Way's harp, the notes' energy a minute by day 1 dB or more over the night's, and three breaths or
-more, each inside a Milky Way, 6.5 s at most, no deep note under it, 85 s apart at least; and the room and the air filled sliced, each step
+more, each inside a Milky Way, 6.5 s at most, no deep note under it, 85 s apart at least; the air heard (a scripted feed wind): the stream on the side the wind comes from by its bearing exactly, the stream
+at twice the wind four times as loud and the billow 1.4 times (0.6 + 1.6 w), all of it silent in a calm, a gust heard at
+the first tick it reaches the camera; the sand's hiss none at 0.99 of its threshold, on at 1.01, on down to 0.8 of it and
+off under it, none over the cloud (its plants: the sand hissing at half its threshold; the wind heard from the side it
+blows toward); and the room and the air filled sliced, each step
 run in order on a stand-in timer, must give the same notes, the same air starts and the same bytes in every buffer as
-filled at once, in 20 steps or more. About 25 s. Its plant lets a note in a step from one it meets.
+filled at once, in 20 steps or more (four sources on filled buffers: the room, the two airs and the hiss on the stream's). About 25 s. Its first plant lets a note in a step from one it meets.
 
 Every automation curve goes through one guard (curveAt): Safari throws on a curve that overlaps another on the same
 parameter, so a curve that would is played as a plain ramp to its end instead.

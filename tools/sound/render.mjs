@@ -2,7 +2,10 @@
 // Plays src/score.js on the sheet in site/assets/sound/ in headless Chromium, in an OfflineAudioContext (here only: the
 // site's scripts make none), against a scripted sky: afterglow, a near change into the Milky Way, the dunes giving way
 // to cloud, a far change (through the mist) into blue hour, a near change into the moonlit sea (round seventeen's
-// flight). Writes a 24 kHz stereo WAV and prints its loudness (ffmpeg's ebur128): integrated, range, true peak.
+// flight), with the air heard where the camera flies: a visit's 10 m wind of WIND_U m/s (6.5 unless set; 0 a calm), each
+// sky its share of it (the world's AIR_BYSKY, eased through each change), at 25 m over the ground, with smooth gusts,
+// the camera at 12 m/s on a slowly turning heading. Writes a 24 kHz stereo WAV and prints its loudness (ffmpeg's
+// ebur128): integrated, range, true peak.
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -11,7 +14,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const OUTF = process.argv[2] || 'score.wav', T = +(process.argv[3] || 456);
+const OUTF = process.argv[2] || 'score.wav', T = +(process.argv[3] || 456), WIND_U = process.env.WIND_U === undefined ? 6.5 : +process.env.WIND_U;
 const require = createRequire(import.meta.url);
 let PW; for (const n of [process.env.PW_CORE, 'playwright-core', 'playwright'].filter(Boolean)) { try { PW = require(n); break; } catch {} }
 if (!PW) { console.error('no playwright'); process.exit(2); }
@@ -21,9 +24,16 @@ const page = `<!doctype html><meta charset=utf-8><script>
 window.AIRT = ${air};
 window.FLIGHT = [{ id: 'afterglow', at: 0, hold: 63, move: 57, far: false }, { id: 'milkyway', at: 120, hold: 86, move: 58, far: true },
   { id: 'bluehour', at: 264, hold: 63, move: 57, far: false }, { id: 'moonlit', at: 384, hold: 190, move: 58, far: false }];
-window.NOW = 0;
+window.NOW = 0; window.WIND_U = ${WIND_U};
+window.HEARD = function (t, i) {   // (the air heard at the camera, as 512's feed hands it: the visit's wind by the sky's share, 1.15 times it at 25 m, gusts of 0.26 of it)
+  var e = FLIGHT[i], nx = FLIGHT[i + 1], k = nx ? Math.max(0, Math.min(1, (t - e.at - e.hold) / e.move)) : 0, q = k * k * (3 - 2 * k);
+  var sh = AIRT[e.id][0] + ((nx ? AIRT[nx.id][0] : AIRT[e.id][0]) - AIRT[e.id][0]) * q, carry = WIND_U * sh, sp = 1.15 * carry, dir = 0.3, psi = 0.6 * Math.sin(t / 40);
+  var x = sp * Math.cos(dir), z = sp * Math.sin(dir), cx = 12 * Math.cos(psi), cz = 12 * Math.sin(psi);
+  var g = 0.26 * sp * (0.55 * Math.sin(t / 3.5 + 1) + 0.35 * Math.sin(t / 7.1 + 2) + 0.25 * Math.sin(t / 14.3 + 4));
+  return { x: x, z: z, gust: g, sigma: 0.26 * sp, phase: t, carry: carry, bear: Math.atan2(Math.sin(dir - psi), Math.cos(dir - psi)), ax: x - cx, az: z - cz, y: 25 };
+};
 window.WORLD = { sky: function () { var t = NOW, i = 0; while (i < FLIGHT.length - 1 && FLIGHT[i + 1].at <= t) i++;
-  var x = Math.min(1, Math.max(0, (t - 150) / 40)); return { t: t, seq: FLIGHT.slice(i), wc: x * x * (3 - 2 * x), air: AIRT, still: false, seed: 1501 }; } };
+  var x = Math.min(1, Math.max(0, (t - 150) / 40)); return { t: t, seq: FLIGHT.slice(i), wc: x * x * (3 - 2 * x), air: AIRT, still: false, seed: 1501, wind: HEARD(t, i) }; } };
 </script><script src="/src/score.js"></script>`;
 const srv = http.createServer((q, r) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
