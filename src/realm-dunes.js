@@ -90,6 +90,19 @@
      buttes and mesas (bay), seated on the lowest ground of their footprint, so those that stand where the land has sunk
      under the sea rise out of it. Each is marked a formation (form): kept wherever the cloud sea lies (the world's
      aboveKeep passes them by) */
+  /* the destination (world 217: destOf, on the landing's heading 7-8 km out): an inselberg, a dome of bare rock in steep
+     walls rising from the sand, and a volcanic neck's spire on its shoulder, both outsized beside the formations (as the
+     Namib's 700 m inselbergs and a 480 m neck stand over their plains): laid out only by the destination scale's one cell
+     that holds it; where the heading leads out over the cloud sea it rises out of it (seated on the sunken land, as the
+     coast's formations are); its draws its own (subseed of its seed), so each land has its own */
+  function dDest(C, R) {
+    var D = W.dest(); if (!C.inside(D.x, D.z)) return;
+    var Q = K.RNG(K.hk(D.seed >>> 0, 91)), rad = Q.r(520, 620), H = Q.r(600, 720), yaw = Q.r(0, 360), a = Q.r(0, 2 * PI), sr = Q.r(130, 170), sH = H * Q.r(1.25, 1.45);
+    var it = C.add({ kind: 'butte', form: true, x: D.x, z: D.z, foot: rad * 1.2, yaw: yaw, rad: rad, H: H, sink: 20, seed: Q.seed(), solid: [rad * 1.3, H], foot2: [rad * 1.65, H * 0.15] });
+    C.poi({ kind: 'butte', x: D.x, z: D.z, ref: it, dy: H * 0.5, pass: rad * 1.3 + 120 });
+    var sx = D.x + Math.sin(a) * rad * 0.55, sz = D.z + Math.cos(a) * rad * 0.55;
+    C.add({ kind: 'spire', form: true, x: sx, z: sz, foot: sr * 1.2, yaw: yaw, rad: sr, H: sH, sink: 20, seed: Q.seed(), solid: [sr * 1.2, sH] });
+  }
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
   function dForms(C, s, R) {
     for (var k = 0; k < FORM_N; k++) {
@@ -208,6 +221,7 @@
       };
     },
     air: function (C, R) { dAir(C, R); },
+    dest: function (C, R) { dDest(C, R); },
     cell: function (C, R, K2) {
       if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); dHeld(C); return; }
       // a small cell: the details of the areas about it that fall in it, and its own stones
@@ -222,6 +236,7 @@
         case 'gshard': giantShard(B, R, it.h, it.w, D_ROCK); break;
         case 'mesa': return mesaG(B, R, it.rad, it.H, D_ROCK, it.sink ? { sink: it.sink } : null);   // (generators: a few rows at a time)
         case 'butte': return butteG(B, R, it.rad, it.H, D_ROCK, it.sink ? { sink: it.sink } : null);
+        case 'spire': return F.rockSpireG(B, R, it.rad, it.H, D_ROCK);   // (the destination's neck)
         case 'temple': return templeStepped(B, R, it.size, D_STONE, D_PALE);   // (a generator: a part at a time)
         case 'stair': var run = it.drop / Math.tan(26 * PI / 180); stairDown(B, 16, run, it.drop, Math.round(it.drop / 1.6), D_PALE, D_STONE); break;
         case 'stupa': stupa(B, R, it.h, D_STONE, D_PALE); break;

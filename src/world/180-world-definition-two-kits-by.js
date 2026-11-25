@@ -150,7 +150,7 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
       // (physics: clouds/drift) and the air cells, the free clouds' (the low layer's: its ranges and towers, with their
       // points of interest), each kit's at its own grid and reach, streamed about the camera's place in the air
-      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0], { size: KD.layout.scales[0].size, radius: KD.layout.scales[0].radius, air: 'dunes' }, { size: KA.layout.scales[0].size, radius: KA.layout.scales[0].radius, air: 'above' }], volRes: 44 },
+      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0], { size: KD.layout.scales[0].size, radius: KD.layout.scales[0].radius, air: 'dunes' }, { size: KA.layout.scales[0].size, radius: KA.layout.scales[0].radius, air: 'above' }, { size: 6000, radius: 14000 }], volRes: 44 },   // (5: the destination's, 217: one form, kept by the one cell it stands in)
       field: function (R, V) {
         var fd = KD.field(R, V), fa = KA.field(RNG(subseed(V.seed, 23)), V), P = fd.params.slice(0, 12);
         while (P.length < 12) P.push([0, 0, 0, 0]);
@@ -159,7 +159,8 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       light: function (R, V) { return KD.light(R, V); },
       lightB: function (R, V) { return KA.light(R, V); },
       cell: function (C, R, K2) {
-        if (C.scale === 3) { if (KD.air) KD.air(kitApi(C, 'dunes', densD, false), R, K2); }
+        if (C.scale === 5) { var A5 = kitApi(C, 'dunes', densD, false); A5.add = function (it) { it.kit = 'dunes'; return C.add(it); }; A5.poi = C.poi; if (KD.dest) KD.dest(A5, R, K2); }   // (the destination: kept whatever the density draws)
+        else if (C.scale === 3) { if (KD.air) KD.air(kitApi(C, 'dunes', densD, false), R, K2); }
         else if (C.scale === 4) { if (KA.air) KA.air(kitApi(C, 'above', densA, true), R, K2); }
         else if (C.scale < 2) KD.cell(kitApi(C, 'dunes', densD, false), R, K2);
         else KA.cell(kitApi(C, 'above', densA, true), R, K2);
