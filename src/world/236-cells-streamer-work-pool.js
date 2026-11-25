@@ -36,7 +36,6 @@
       for (i = V.cellList.length - 1; i >= 0; i--) {
         var Cf = V.cellList[i], Lf = scales[Cf.sc], fx = Cf.cx - (Cf.air ? ax : cx), fz = Cf.cz - (Cf.air ? az : cz);
         if (Math.sqrt(fx * fx + fz * fz) > streamR(Lf, V) * 1.3 + Lf.size * 0.5) {
-          if (WLOG && Cf.mesh && V === SIM.V) wl('free', V.k + ':' + Cf.key, Cf.lastW || 0, nearDist(Cf, CAM.pos[0], CAM.pos[2]), Cf.lastVis);   // (dev: a drawn cell dropped)
           freeCell(Cf); V.cells.delete(Cf.key); V.cellList.splice(i, 1);
         }
       }
@@ -107,7 +106,6 @@
       if (Cr.rbi < Cr.items.length) { if (cpu) WORK.verts += buildItems(Cr, true, sync ? 1e9 : Math.max(BUD.verts - WORK.verts, 0)); }
       if (Cr.rbi < Cr.items.length || !gpuW || (!sync && WORK.uploads >= BUD.uploads)) { done = false; continue; }
       var old = Cr.mesh; Cr.mesh = uploadMesh(Cr.RB, null); WORK.uploads++;
-      if (WLOG) wl('swap', V.k + ':' + Cr.key, 1, nearDist(Cr, CAM.pos[0], CAM.pos[2]), Cr.lastVis);   // (dev: the coarse mesh replaced in one frame)
       if (old && old.vao) { glFree('VertexArray', old.vao); glFree('Buffer', old.vb); }
       if (DEVMODE && DEVKEEP) Cr.pts = Cr.RB.F.slice(0, Cr.RB.n * 6);
       Cr.RB = null; Cr.lod = 0;

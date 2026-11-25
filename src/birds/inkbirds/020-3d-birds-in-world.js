@@ -6,5 +6,4 @@
   var MAXP = 96;               // birds the draw's stores hold at first (twice as many each time more are in view: never a bird left undrawn)
   /* the wing's beat rate by class (labbird.js RATE_CLASS; the owner, 2026-11-04) and its measured flap-glide schedule */
   var RATE_MODE = 'class', SCHED_MODE = 'measured';
-  var FX = { air: true, lit: true, glare: true, land: true, cloud: true };   // the effects the draw applies (all on)
   var FORCED = false;          // forced colours: the birds alone, in CanvasText at full ink, in their own still view (the world is not drawn)

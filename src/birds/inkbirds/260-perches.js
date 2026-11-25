@@ -33,8 +33,8 @@
   var PDWELL = 8;              // s down before a passing flock may take it (just landed, it settles first)
   var PSTAY = [25, 90];        // s on a perch, by its own wish
   var PFIRST = 6;              // s: the first noticing
-  var PJ = { slow: 40, setout: 1.0, first: 3, gap: [12, 22], jerk: 900, jab: 300, rest: 0.6 };
-  var PERCHED = [], PW = { k: 0, nextT: PFIRST, appr: null, ptrNext: PJ.first, ptrStill: 0, px: -1, py: -1, pvx: 0, pvy: 0, pax: 0, pay: 0, ptrT: -1, ptr: null, qx: 0, qy: 0, ledges: null, ledgeKey: '', clk: [], jabT: -1e9, seekEnd: 0 };
+  var PJ = { slow: 40, setout: 1.0, first: 3, gap: [12, 22], jerk: 900, jab: 300 };
+  var PERCHED = [], PW = { k: 0, nextT: PFIRST, appr: null, ptrNext: PJ.first, ptrStill: 0, pvx: 0, pvy: 0, pax: 0, pay: 0, qx: 0, qy: 0, ledges: null, jabT: -1e9, seekEnd: 0 };
   var PTR = { x: 0, y: 0, n: 0, gone: true, down: false, steer: false, touch: false };
 
   /* ---------------- the ledges (the words' ink, on this window) ---------------- */

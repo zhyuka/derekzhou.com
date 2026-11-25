@@ -58,6 +58,17 @@ laid out once, by its own cell), and a census of a flight (windy visits:
 about one lens in reach in half the minutes of a flight, at most three;
 calm: none).
 
+The gate's 7.7 m/s (the hub's ruling, 2026-11-25: main's gate kept): lee
+waves want a flow of at least 25-40 km/h (6.9-11.1 m/s), as near square
+to the ridge as it can be, at the crest and above
+(https://www.meteoswiss.admin.ch/weather/weather-and-climate-from-a-to-z/mountain-and-lee-waves.html).
+The figure often quoted for big ranges, about 10 m/s (20 kt) at the
+crest, would shut the gate on every visit: the crest's wind is at most
+9.6 m/s (U10 7.5). The world's ridges are low, so the gate stands near
+the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
+of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
+of 7.7 m/s, lenses on every sweep step past it.
+
 ## THE FLIGHT AND THE CAMERA
 
 Left alone the view holds its heading and flies
@@ -191,7 +202,7 @@ band low on its side, the haze's warm side and the high veil's brightening
 sink with it and weaken with its depth; the Earth's shadow (blue-grey at
 the sky's own lightness, drawn with the Belt only in the afterglow and first
 light, never the blue hour: physics: twilight/shadow) climbs and dissolves;
-the stars hold still in reduced motion and in the still (no twinkle there); the noctilucent wisps go dark from below, and the night's own
+the stars hold still, steady in every frame (no twinkle: the audit's rank 4; a slow swing of their light is no scintillation, and nothing on the window sparkles); the noctilucent wisps go dark from below, and the night's own
 glow comes in with the night's colours; out of a night into first light
 or the blue hour it runs backwards. No sky draws light rays now (the owner
 chose no rays at dusk and dawn: the afterglow's 0.1, the blue hour's 0.05
@@ -208,7 +219,10 @@ light is brighter), its light coming in over its first 0.5 magnitude of margin
 as the sun's depth moves (a hold holds it). So the twilights show only Venus
 and, in the blue hour, the brightest stars; a dark night keeps the whole field.
 The bright stars (b over 0.35) take pastel colours by spectral kind, each at
-the white's own luminance. The evening (or morning, on a visit that opens on
+the white's own luminance. Their shares (B/A 36, F/G 26, K 28, M 10%) sit within
+5 points of the naked-eye stars' (V under 6.0) in the Bright Star Catalogue,
+5th revised (https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html;
+counts derived by spectral class: O/B/A 41.0, F/G 27.2, K 25.0, M 6.8%). The evening (or morning, on a visit that opens on
 first light) star stands by the drawn sky's sun, its glow (the hub's ruling,
 2026-11-15: until one forward clock drives the sun, the stars and the planet
 together): on the ecliptic through that sun at the opening's depth, in a
@@ -234,6 +248,11 @@ L 0.47 (Y 0.104), under Venus's. It is chosen once a visit with Venus
 first whose path keeps off the words in the still's window and the live one,
 in view at the cut if one is), drawn by sky-body.glsl's planetAt (Venus's
 point and glare, its own top and colour); no clear path, none this visit.
+The air's extinction (physics: night/extinction) is taken from a planet's
+true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand
+far over the light's ceiling, so even 2.7 magnitudes at 2 deg up leave each
+drawn at its head, the brightest points in the sky (their tops over the
+stars'); what the low air shows is their colour, a little redder (extTint).
 The airglow (sky-body.glsl, AIRGLOW_Y): the upper air's own faint green light,
 a steady band low over the horizon on the night skies, brightest about 6 deg
 up and falling away overhead, behind the haze; it comes in by the stars' own
@@ -279,6 +298,19 @@ the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
 sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
 test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+
+Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
+scattered into the sky at each direction by the published moonlight model
+(https://doi.org/10.1086/132921, its equations as specsim/atmosphere.py writes
+them: the moon's magnitude by its phase, molecular and aerosol scattering by the angle
+from it, the air toward it and along the line of sight), over the dark sky (V
+21.8 mag/arcsec^2 at the zenith, brightening toward the horizon); the faintest
+star seen falls by 0.3834 of each magnitude the sky brightens
+(https://arxiv.org/abs/1405.4209, eq. 54), by the moon's amount, so a moonless
+night keeps its limit exactly. Under the near-full moon the limit falls about
+1.6 mag beside it and 1 mag a quarter of the sky away: about 0.40 of the field
+shows 5 deg from the moon, 0.58 at 90 deg (test/unit/sky.mjs). Only ever a loss;
+the sky itself is untouched.
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
@@ -673,6 +705,17 @@ physics: clouds/drift). It holds:
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
   and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- No diurnal veer (the hub's ruling, 2026-11-25): the wind's direction does
+  not turn with the sky. Measured on main: a night veer would move the
+  clouds' drift 0 px in 60 s, under the one-pixel line. windAt
+  (215-air.js) is airBase scaled by airShare, one number, so the sky sets
+  the wind's speed and never its way. The clouds drift on airBase, the
+  day's wind (cloudWind, 212-cloud-drift.js), so each cloud's place stays
+  a function of the clock alone. The profile has no veer under 100 m, so
+  the veils (5 m) and the birds at their default 40 m would see nothing.
+  Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
+  night turn. Adding one would mean the clouds and those birds reading a
+  wind that depends on the sky, and a cited source for the turn by night.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
@@ -714,8 +757,17 @@ physics: clouds/drift). It holds:
   surface share: 1 by day); each visit on its
   own slice (its salt). One reference speed, the visit's U10, carries the
   field and sets its scale (22 U10 m) at every height, so a bird over a
-  veil feels the veil's gust; the height sets only its size, 0.26 of the
-  wind there times unit noise. The 3-s gust over the 10-min mean
+  veil feels the veil's gust; the height sets only its size (physics:
+  air/gust-profile): 0.26 U10 exp(-1.5 z / h) times unit noise. That is
+  the boundary layer's turbulence, sigma_u = 2.5 u* exp(-1.5 z / h) in
+  neutral air (https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet102/Ch18-abl-v102.pdf,
+  eq. 18.25a): with the friction velocity u* (U10's), held through the
+  surface layer (within 6% from 2 to 60 m) and falling toward the layer's
+  top, h 1500 m (the profile's own, where it meets the free air; there a
+  fifth of the surface's), all but gone aloft (under 0.1% at 7 km).
+  Before, it was 0.26 of the mean wind at every height, growing with the
+  log law and to 10 m/s in the jet at 9 km. The veils divide by the same
+  size (airGustW), so they look as they did. The 3-s gust over the 10-min mean
   1.43-1.68 (median 1.54), its e-fold by day 10-23 s (on a sky of
   surface share s, the day's over s), nothing faster than 0.11
   W a second; none in still air. Every reader carries it on one clock,
@@ -989,6 +1041,21 @@ AIR_MIST_RATE. The pools keep no table or rate of their own. The depth
 is a pure function of the sky's time, so the rim is a moving
 shoreline, never a fade (the hub's ruling 1).
 
+By the wind (measured on main, 2026-11-25): the pools come only on a
+near calm visit. The visit's moisture is whole under a U10 of 4.02 m/s
+and none past 4.1, so the mist, and the fog pools filled from it, are
+whole in the calm and absent on every windy visit, on every sky and
+through every change: of 20000 visits, the 5230 with U10 of 6 m/s or
+more have no mist at first light, and the 5080 under 4 m/s all do. The
+cut lies between the surface winds that strongly favour dense valley
+fog, 7 kt (3.6 m/s) or less in the evening, and those that make it
+highly unlikely, past 10 kt (5.1 m/s)
+(https://www.weather.gov/media/crh/publications/TA/TA_1601.pdf). It is
+the visit's own U10, so a pool never comes or goes by the wind in
+place. test/unit/air.mjs holds it (none from 4.1 to 7.5 m/s, whole at
+4.02 and under), and a plant that makes the moisture blind to the wind
+must fail it.
+
 The top is opaque within 1.5 m of depth, the same at every depth, so
 nothing thickens in place (mistOver, world-glsl). The rim's ramp is
 widened to two pixels' worth of the surface's depth, so far shorelines
@@ -1143,6 +1210,101 @@ it. None found does:
 So the sand's albedo stays flat in gAF: no measured, consistent ramp to
 draw, and a darker floor would darken part of the land for no physics. A
 crust or damp floor with a measured reflectance would be a new item.
+
+## THE SAND VEILS
+
+The veils of sand off the brinks (vs-ribbon, realm-dunes' ribbons) blow on
+the air's own wind at their height (A.H.veils, 5 m) and lift with its
+gusts. Since 2026-11-25 they're there only when sand moves:
+
+- sand moves only past its threshold friction velocity, about 0.2-0.25 m/s
+  for fine dune sand, which the log law over a sand bed (z0 about 0.1 mm)
+  puts at U10 5.8-7.2 m/s (both: https://arxiv.org/pdf/1201.4353);
+- that is AIR's own dust (airWx(t).dust, eased over U10 5.8-7.0), and the
+  veils take it whole (414: the sand under the camera times dust). The old
+  opacity, 0.4 + 0.6 x smoothstep(3, 7, U10), never went below 0.4.
+
+By opening (the opening's U10): 11 of the 16 have no veils (0, 1, 2, 3, 5,
+6, 7, 10, 11, 13 and 14, at 3.5-5.7 m/s). Opening 4 keeps 0.31 (6.25 m/s),
+8 keeps 1 (7.31), 9 keeps 0.98 (6.89), 12 keeps 0.75 (6.61) and 15 keeps
+0.38 (6.30). It is the visit's own (U10 alone), so a veil never fades in
+place; reduced motion draws none, as before. test/unit/air.mjs holds dust
+at 0 under 5.8 m/s, rising past it and whole from 7, and the veils taking it.
+
+## THE SALTATION LAYER (measured, not drawn)
+
+The question (2026-11-25): on a windy visit, can a visitor see blowing
+sand? The veils don't read. On opening 8 (U10 7.31, AIR's dust 1, laptop
+@2), switching them off changes no pixel at the landing and 8 at one
+level at a cruise pose 14 m up.
+
+A saltation layer sized by the physics was built and measured (#459,
+closed). Grains in hops are densest within about 10 cm of the bed and
+thin over decimetres; in gusts they gather into streamers
+(https://arxiv.org/pdf/1201.4353; https://doi.org/10.1029/2004JF000270).
+It was modelled as a column of optical depth 0.05, seen through 1/g of it
+at the grazing cosine g, that lifts the sand toward its lit colour.
+Opening 8 against main:
+
+| frames | pixels changed | most lift |
+|---|---|---|
+| laptop @2, cruise | 30,872 | 1.2 levels |
+| laptop @2, landing | 8,649 | 1.0 |
+| phone @3, cruise | 18,666 | 1.2 |
+| phone @3, landing | 14,866 | 1.0 |
+
+It is invisible at true size and at 2x. That is the physics' honest
+answer: saltation at U10 up to 7.5 m/s, seen from 14 m at 60 m and
+beyond, doesn't read. The hub's ruling (08:38Z): not drawn. It would cost
+shader work on every sand pixel for nothing a visitor sees. Scattering
+forward into a low sun, or a layer past its physical size, would be a
+look, not physics. The branch claude/land-saltation and the crops
+(claude/review-459-crops) keep the work.
+
+## THE LAND'S LEVEL OF DETAIL (no pop at a handoff)
+
+The land is 10 rings of 96 cells, 0.35 m doubling. Each vertex morphs
+toward the next ring's lattice over 37 to 45.5 cells from the camera
+(VS_TERRAIN, VS_TERRAIN_SPLIT, hp-gridw). Measured in cruise
+(tools/physics/lod-pop.mjs: the clipmap replayed in doubles over the
+dunes, 2 flights of 60 s at 12 m/s, 1500 fixed points 50-600 m ahead,
+laptop size 2880 x 1800), the rule before (each odd vertex to c - 1) did
+pop. Every step over 0.5 px came where a point passed from one ring to
+the next, up to 10.9 px of edge motion and 75 shading levels: 117 and 94
+steps over 0.5 px in the two minutes. Fully morphed, that rule laid the fine ring on
+one diagonal in every coarse cell, but the coarse ring alternates its
+diagonals, so half the cells changed shape at the handoff. Morph off
+was worse (up to 12 px).
+
+Now an odd vertex goes toward its coarse lattice's multiple of 4 cells
+(c + (c mod 2)((c mod 4) - 2)). Fully morphed, the fine ring is the
+coarse ring's own triangles, diagonals and all; an exhaustive search of
+the rules over a 4-cell period found this one depends on the vertex's
+own coordinate alone. The same two flights: 1665 handoffs, 0.00 px and
+0.00 levels at every one. The worst step anywhere is 0.19 px, a
+vertex's continuous slide inside its band. The vertex normals still
+turn fast where a sliding vertex crosses a slip face's brink (up to 13
+levels in a frame, 53 steps over 2 in 2.3 million). That is the morph's
+own motion, not a ring change, and the fragment rebuilds the main
+dunes' slope at its own phase there (s1Slope). test/unit/clipmap.mjs
+flies both paths for 4 s: no handoff over 0.5 px or 2 levels; the c - 1
+rule must pop, and the plant (morph off) fails it.
+
+The brinks, shaded as FS_TERRAIN shades them (lod-pop.mjs --brink: 800
+fixed points within 2 m of a brink, the fragment's rebuild replayed line
+for line, the same 2 flights at laptop and phone size), did shimmer.
+The footprint cp, which sets the brink's rounding and B, divided by the
+grazing term |n.rd| of the vertices' interpolated normal. A morphing
+vertex's normal drifts about 0.004 a frame across a brink, so where the
+view grazes (|n.rd| near 0.03) the rounding swelled 15% a frame, and a
+point inside it stepped 8-11 levels. Before: 0.016-0.157% of brink steps
+over 2 levels, up to 7.8 levels; 1.7-5.4% of the worst point's frames;
+94 of 800 points over 0.1% of their frames (laptop, flight 1). Now cp
+reads the fragment's own slope at the vertices' rounding (one more
+s1Slope a land fragment): 1 step over 2 levels in 1.44 million (4.0
+levels), and no point over 0.1% of its frames on either size.
+test/unit/clipmap.mjs flies 5 s at both sizes; the plant (cp from the
+vertices' normal) fails it.
 
 ## THE LARGE WORLD
 

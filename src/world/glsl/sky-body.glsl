@@ -15,7 +15,7 @@ uniform vec4 uAnvF;   // (physics: weather/far-anvil, the owner's "Soft distant 
 uniform vec4 uAnv;    // (physics: weather/far-anvil) the far storm: its azimuth (rad), its distance (km, 0: none), the sun's height (deg), the sun's azimuth (rad)
 uniform vec4 uHalo;   // (physics: weather/moon-halo) the ice veil over the moonlit sky: 1 on (about one moonlit stay in three), 0 none; its strength
 uniform vec3 uMoonC, uMoonG;   // (tod) its disc's colour (a pale flat disc, held under the light ceiling) and its glare's
-uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, the stars' twinkle (1) or held (0), the stars' top (Y)
+uniform vec4 uNight;  // (tod) the belt (the Earth's shadow and the Belt of Venus), the noctilucent wisps, -, the stars' top (Y)
 uniform vec4 uPurp;   // (physics: sky/purple-light) the purple light: its centre (xyz) and its amount (w, by the sun's true depth)
 uniform vec4 uSunB;   // (fast500 no-fades) in a change between a twilight sky and a night: the wisps' amount and the veil's strength (both 0 in uNight and uHi there, so F0's blocks draw nothing and these below draw them), -, -
 uniform vec4 uGal, uGalC;   // (tod, phase 2) the galaxy: its pole and amount (0 or 1), its core's direction, in the sky's frame
@@ -226,7 +226,9 @@ vec3 sd0(float jb, float ib, float n) { float se = (jb + 0.5) * STC, sa = (ib + 
 /* (night, delight-night §1 and §4) a star's magnitude from its brightness (b 0.07: 6.2, the faintest; b 1.02: 1.5), and
    its pastel colour: only the bright ones (b over 0.35, all of it from 0.8), by the share of spectral kinds among the
    bright naked-eye stars (blue-white B/A, white-yellow F/G, orange K, red-orange M), each at the white's own luminance
-   (Y 1: OKLab L within 0.002 of it), so a tint never moves a star's light */
+   (Y 1: OKLab L within 0.002 of it), so a tint never moves a star's light. The shares 36/26/28/10% against the stars of
+   V under 6.0 in the Bright Star Catalogue, 5th revised (https://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html;
+   counts derived by spectral class, 5022 typed): O/B/A 41.0, F/G 27.2, K 25.0, M (with C, N, S) 6.8%, each within 5 points */
 float starMag(float b) { return 6.2 - 4.0 * log(b / 0.07) / log(10.0); }
 /* (night, physics: night/extinction) the air's extinction by airmass: a star (and the moon) k X magnitudes dimmer
    through X airmasses, X by the revised approximation for the relative optical air mass (https://doi.org/10.1364/AO.28.004735,
@@ -252,6 +254,27 @@ vec3 extTint(vec3 col, float X) { vec3 e = col * exp2(-0.4 * 3.3219281 * (EXT_K 
    own light and the sky low down cutting the faint ones) */
 float nightLim(vec3 c) { float y = max(dot(c, LUMA), 1e-4); return min(uStarM.x - uStarM.w * 2.5 * log(max(y / max(uStarM.y, 1e-4), 1.0)) / log(10.0), 7.9 - uStarM.w * 2.5 * log(max(y / 0.016, 1.0)) / log(10.0)); }
 float nightShow(float m, float ml) { return clamp((ml - m) / 0.5, 0.0, 1.0); }
+/* (night, physics: night/moon-limit) moonlight washes out the stars: the moon's light scattered into the sky at each
+   direction by the published moonlight model (https://doi.org/10.1086/132921, its eqs. 1, 3, 8, 9, 15 and 21, as
+   specsim/atmosphere.py writes them: https://github.com/desihub/specsim): the moon's magnitude by its phase (MOON_PHASE), its
+   light outside the air, the scattering by the angle rho from it (by the air's molecules and its aerosol), dimmed by the air toward it and
+   gathered along the line of sight (k EXT_V, #447's), in nanolamberts; over the dark sky (V 21.8 mag/arcsec^2 at the
+   zenith, the model's own dark value, brightening toward the horizon by its eq. 2); the sky's surface brightness
+   brightens by 2.5 log10 of their sum over the dark, and the faintest star seen falls by 0.3834 of that (the naked
+   eye's limit against the sky's brightness, https://arxiv.org/abs/1405.4209, its eq. 54); by the moon's amount
+   (uMoon.w, smooth as it rises and sets), so a moonless night keeps its limit exactly; only ever a loss (a star out,
+   never in), the sky itself untouched */
+const float MLIM_K = 0.3834, SKY_DARK_V = 21.8;
+float moonLim(vec3 rd) {
+  if (uMoon.w <= 0.0) return 0.0;
+  float m = -12.73 + 0.026 * MOON_PHASE + 4e-9 * pow(MOON_PHASE, 4.0), I = pow(10.0, -0.4 * (m + 16.57));
+  float cr = clamp(dot(rd, uMoon.xyz), -1.0, 1.0), rho = degrees(acos(cr));
+  float f = pow(10.0, 5.36) * (1.06 + cr * cr) + pow(10.0, 6.15 - rho / 40.0);
+  float zo = clamp(rd.y, 0.0, 1.0), zm = clamp(uMoon.y, 0.0, 1.0), Xo = inversesqrt(1.0 - 0.96 * (1.0 - zo * zo)), Xm = inversesqrt(1.0 - 0.96 * (1.0 - zm * zm));
+  float Bm = f * I * pow(10.0, -0.4 * EXT_V * Xm) * (1.0 - pow(10.0, -0.4 * EXT_V * Xo));
+  float B0 = 34.08 * exp(20.7233 - 0.92104 * SKY_DARK_V) * pow(10.0, -0.4 * EXT_V * (Xo - 1.0)) * Xo;
+  return -MLIM_K * 2.5 * log(1.0 + uMoon.w * Bm / B0) / log(10.0);
+}
 vec3 starTint(float b, float u) {
   vec3 t = u < 0.36 ? vec3(0.868, 1.0161, 1.2295) : (u < 0.62 ? vec3(1.0552, 1.0025, 0.8129) : (u < 0.9 ? vec3(1.2240, 0.9621, 0.7145) : vec3(1.3002, 0.9344, 0.7663)));
   return mix(vec3(0.92, 0.94, 1.0) / 0.94, t, smoothstep(0.35, 0.8, b));
@@ -278,8 +301,7 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
      limit, never a clock: a hold holds it) */
   float bk = nightShow(starMag(b) + sx, ml);
   if (bk <= 0.0) return 0.0;
-  b *= exp2(-0.4 * 3.3219281 * sx);
-  b *= 1.0 + 0.15 * uNight.z * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);
+  b *= exp2(-0.4 * 3.3219281 * sx);   // (physics: night/stars, the audit's rank 4: steady, no twinkle: a slow swing of a star's light is no scintillation (that runs at tens of Hz) and the owner's brief has nothing on the window sparkle)
   b *= bk;
   /* the cap is the star's, never the pixel's: a star whose peak would pass it is drawn a little wider (sigma by sqrt of
      its flux over the cap, a pixel's share of a bell being at most its peak density F / (2 pi sigma^2)), but never past
@@ -321,7 +343,11 @@ vec3 planetAt(vec3 rd, vec3 c, vec3 sd, float top, vec3 col) {   // (both planet
   if (dot(d, d) > 400.0) return vec3(0.0);
   float hv = max(top - dot(c, LUMA), 0.0), sg = 0.85, F = 1.1 * SKYTAU * hv * sg * sg;   // (its core's centre pixel at about the whole head wherever it stands: on a bright twilight sky the head is all the contrast it has)
   float v = F * starBox(d.x, sg) * starBox(d.y, sg) + 0.13 * hv * exp(-length(d) / 3.6);
-  return col * min(v, hv) * (1.0 - hazeSky(rd));
+  /* (physics: night/extinction, the hub's review of #455) the air takes k (X - 1) magnitudes from a planet as from a star,
+     but from its true light, before its head: Venus (-4.4) and the outer planet (-2.4) stand far over the light's
+     ceiling, so even 2.7 magnitudes at 2 deg up leave each past its head and drawn at it, the brightest points in the
+     sky at every height (their tops over the stars'); what the low air shows is the colour, a little redder */
+  return extTint(col, airmass(sd.y)) * min(v, hv) * (1.0 - hazeSky(rd));
 }
 // (world6 step B fix) the veil the approved sky had: the old high-streak block's cover as the approved stills saw it
 // (the first minute of a visit, its noise near the tile's origin: n 0.07-0.22, cover 0.74-1 for these climates; the
@@ -525,7 +551,7 @@ void main() {
     vec3 rs = uSkyF * rd;   // (the sky's frame: the stars turn with it, at SKY_RATE)
     float el = asin(clamp(rs.y, -1.0, 1.0)), az = atan(rs.x, rs.z), pa = 2.0 * atan(uProj.y) / uRes.y;
     float head = max(uNight.w - dot(c, LUMA), 0.0), sk = uSunD.z * smoothstep(0.0, 0.2, rd.y) * 0.94;
-    float ml = nightLim(c - gL);   // (night) the faintest magnitude that shows here: the stars out overhead and away from the sun first
+    float ml = nightLim(c - gL) + moonLim(rd);   // (night) the faintest magnitude that shows here: the stars out overhead and away from the sun first; the moonlit sky holds the faint ones back
     float s = 0.0; vec3 sc = vec3(0.0), tc;   // (fast500 D T1) the five cells in one loop (one copy of starAt for FXC), summed in their old order
     for (int c = 0; c < 5 + UZS; c++) { int dj = c == 3 ? -1 : (c == 4 ? 1 : 0), di = c == 1 ? -1 : (c == 2 ? 1 : 0); float v = starAt(rs, el, az, pa, head / max(sk, 1e-5), ml, dj, di, tc); s += v; sc += tc * v; }
     c += sc / max(s, 1e-12) * min(s * sk, head);   // (stars-flux) added as they are; the min binds only where two stars overlap (each star's tint at the white's luminance)

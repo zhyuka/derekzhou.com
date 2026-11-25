@@ -397,6 +397,44 @@ test('the score\'s bird feed: nearest first, finite, and read only', () => {
   assert.equal(a.end, b.end, 'reading the feed changed the world');
 });
 
+/* (the audit's rank 12: physics: birds/wind, doi:10.1038/s41598-017-05319-8) SLOPE SOARING: the wind turned up a windward
+   dune face lifts the air (u sin(slope), thinning with height); a gull cruising into that lift glides straight along the
+   face, kept over its best lift, climbing where the air rises faster than it sinks, and beats back at the face's end. A
+   glide outside lift never climbs more than its glide's own ease-in (the slope it carried from its last beat); a leeward
+   face lifts nothing */
+test('slope soaring: a gull in a windward face\'s lift glides along it and climbs; no glide climbs outside lift', () => {
+  const W = [6.5 * Math.SQRT1_2, 6.5 * Math.SQRT1_2];
+  let n = 0, soar = 0, steps = 0, worstOut = 0, lee = 0, leeN = 0, up = 0, upN = 0, gl = 0;
+  for (let seed = 1; seed <= 8; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.wind = W; sc.opt.speed = 0; sc.opt.yaw = 0;   // (the eye held: the gull in its view, stepped as a seen bird is)
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2); const B = sim.B, a0 = Math.atan2(sim.C.f[0], sim.C.f[2]);
+    let at = null;
+    for (let k = 0; k < 4000 && !at; k++) {
+      const a = a0 + ((k * 0.618 + seed * 0.1) % 1 - 0.5) * 0.7, d = 300 + (k % 60) * 10, x = sim.C.pos[0] + d * Math.sin(a), z = sim.C.pos[2] + d * Math.cos(a), y = groundAt(x, z) + 25;
+      const w = B.slopeW(x, y, z); if (w > 1) at = { x, y, z }; else if (w === 0 && leeN < 400) { leeN++; const g = (groundAt(x + 4.6 * 6 / 6.5, z + 4.6 * 6 / 6.5) - groundAt(x - 4.6 * 6 / 6.5, z - 4.6 * 6 / 6.5)); if (g < -1) lee++; }
+    }
+    if (!at) continue; n++;
+    const F = B.newFlock(at.x, at.y, at.z, Math.atan2(W[0], W[1]) + Math.PI / 2, 'moon', ['single', 'gull', 1]), b = F.lead;
+    F.goal = null; const g = B.newGoal(F, 'commute', F.r, 'moon'); g.y = b.p[1]; g.T = 999;
+    let s = 0, k0 = 0, g0 = null, ps = b.soarT;
+    for (let k = 0; k < 60 * 20; k++) {
+      sim.step(); if (b.st !== 'fly') break; k0++;
+      const hg = b.p[1] - groundAt(b.p[0], b.p[2]);
+      const on = b.soarT !== ps; ps = b.soarT;   // (soaring this step: its soaring time moved on)
+      if (on) { s++; if (b.flap === 0) gl++; if (b.lift > 0.5) { up += b.v[1]; upN++; } }
+      if (b.flap === 0 && b.lift < 0.05) { if (g0 === null) g0 = b.p[1]; worstOut = Math.max(worstOut, b.p[1] - g0); } else g0 = null;
+      if (hg < -1) throw new Error('a soaring gull under the land');
+    }
+    soar += s; steps += k0;
+  }
+  console.log(`# slope soaring: ${n} gulls over windward faces in view, soaring ${(100 * soar / steps).toFixed(0)}% of their minute, gliding ${(100 * gl / Math.max(soar, 1)).toFixed(0)}% of it; climbing ${(up / Math.max(upN, 1)).toFixed(2)} m/s on average in lift over 0.5 m/s; a glide outside lift climbed at most ${worstOut.toFixed(2)} m; leeward faces with lift 0: ${lee}`);
+  assert.ok(n >= 7, 'too few windward faces found');
+  assert.ok(soar >= 0.15 * steps, `gulls soared ${(100 * soar / steps).toFixed(0)}% of their minute over windward faces (15% wanted)`);
+  assert.ok(gl >= 0.8 * soar, `soaring gulls glided ${(100 * gl / Math.max(soar, 1)).toFixed(0)}% of the time (80% wanted)`);
+  assert.ok(upN > 200 && up / upN >= 0.15, `soaring gulls climbed ${(up / Math.max(upN, 1)).toFixed(2)} m/s in lift over 0.5 m/s (0.15 wanted: the lift past their sink)`);
+  assert.ok(worstOut <= 1.5, `a glide outside lift climbed ${worstOut.toFixed(2)} m`);
+  assert.ok(lee > 20, 'no leeward face found lifting nothing');
+});
 /* (delight-life 2) the night passage: a goose skein of 9-25 birds 300-600 m over the land on a straight way across the
    eye's sky, seeded as at a night opening's cut: it crosses the window (some bird of it on it; measured 17 of 20) and
    flies on, never turned to pass by the eye (240 s after its birth over 2.5 km from it; measured 17 of 20; with
@@ -458,3 +496,21 @@ test('the night passage: a high goose skein crosses the sky and flies on', () =>
   assert.equal(farOk, far, `${far - farOk} of ${far} passages born after the cut within sight`);
 });
 
+
+/* (the audit's rank 12, its second half) no thermal at dusk or first light: a thermal needs a sun-heated surface (it builds
+   through the morning and is gone by evening; heavy soarers wait for it: https://academic.oup.com/condor/article/105/2/208/5563225).
+   In the twilight skies a wheel goal circles a place, never a drifting patch of air */
+test('at dusk and first light no bird wheels in a thermal (a wheel only round a place)', () => {
+  let wheels = 0, air = 0, n = 0;
+  for (const sky of ['afterglow', 'bluehour', 'firstlight']) for (let seed = 1; seed <= 6; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.dt = 1 / 20; sc.opt.draw = null; sc.opt.sky = sky;
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); const seen = new Set();
+    for (let k = 0; k < 180 * 20; k++) {
+      sim.step(); if (k % 20) continue;
+      for (const F of sim.B.FLOCKS) { const g = F.goal; if (!g || seen.has(g)) continue; seen.add(g); n++; if (g.k === 'wheel') { wheels++; if (!g.place) air++; } }
+    }
+  }
+  console.log(`# twilight goals ${n}: wheels ${wheels}, round a patch of air (a thermal) ${air}`);
+  assert.ok(n > 200, 'too few goals drawn');
+  assert.equal(air, 0, `${air} wheels in a thermal at dusk or first light`);
+});
