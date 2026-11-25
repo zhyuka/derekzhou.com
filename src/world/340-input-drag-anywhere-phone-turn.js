@@ -78,7 +78,7 @@
   /* the phone's turn: yaw and pitch of the direction its back looks (the view's), from the device's own orientation angles (alpha, beta, gamma)
      (alpha about z, beta about x, gamma about y, in that order); the screen's rotation turns the picture about that
      direction and changes neither */
-  var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0 };
+  var MOTION = { st: 'off', on: false, has: false, yaw: 0, pitch: 0, yaw0: 0, pitch0: 0, sy: 0, sp: 0, ref: false, tries: 0, n: 0, gen: 0, my: false, mp: false, vy: 0, vp: 0 };
   var MOTIONASK = { drag: false };
   /* (the owner, 2026-11-06: "Keep drag-only") the phone's turn is asked for only on iOS and iPadOS (an iPad behind a
      Mac user agent too): Chrome has DeviceOrientationEvent.requestPermission as well, grants it on a desktop's or an
@@ -110,6 +110,7 @@
   }
   /* each step: the drag's motion and the phone's into the flight's state */
   var IDLE_K = 0;
+  var MO_T = 0.1, MO_REST = 0.1 * DEG, MO_STILL = 0.3 * DEG;   // (the phone: its follow past the dead zone, and its rest: applyInput)
   /* each frame, before its steps (simAdvance, the frame's time fdt s): the view's own motion, in frame time on both
      states the camera is drawn between, so the frame that reads it draws it exactly, on any display and at any phase of
      the steps (drawn through the steps, a frame's drag turned 0, 1 or 2 frames' worth a frame, and the release's coast
@@ -238,13 +239,21 @@
       CS.yawV += dx * G; CS.thU = clamp(CS.thU + dy * G, -TH_MAX, TH_MAX);
       CS.om = 0; CS.omP = 0; CS.since = 0;
     } else CS.since += dt;
-    // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg
+    // the phone: smoothed (0.1 s), a dead zone of 1.2 deg (a hand's tremor moves nothing), the tilt held within 30 deg.
+    // (the phone held still) past the dead zone the view follows the phone all the way (over MO_T), and rests once the
+    // phone is still (its smoothed rate under MO_STILL) and the view within MO_REST of it: at rest it sits at the dead
+    // zone's middle, where the sensor's noise never reaches its edge. (Before: it followed only to the edge, 1.2 deg
+    // short, and sat there after every turn: the noise crossed the edge again and again, and the view crept on by the
+    // noise's own steps, 0.13-0.5 deg in 10 s held still, up to 0.15 deg in a step)
     if (MOTION.on && MOTION.has) {
-      var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1);
+      var ry = angDiff(MOTION.yaw, MOTION.yaw0), rp = MOTION.pitch - MOTION.pitch0, k = 1 - Math.exp(-dt / 0.1), sy0 = MOTION.sy, sp0 = MOTION.sp, kv = 1 - Math.exp(-dt / 0.2);
       MOTION.sy += angDiff(ry, MOTION.sy) * k; MOTION.sp += (rp - MOTION.sp) * k;
-      var dz = 1.2 * DEG, ey = angDiff(MOTION.sy, CS.phi), ep = MOTION.sp - CS.thPraw;
-      if (Math.abs(ey) > dz) { CS.phi += ey - (ey > 0 ? dz : -dz); any = true; }
-      if (Math.abs(ep) > dz) { CS.thPraw += ep - (ep > 0 ? dz : -dz); any = true; }
+      MOTION.vy += (angDiff(MOTION.sy, sy0) / dt - MOTION.vy) * kv; MOTION.vp += ((MOTION.sp - sp0) / dt - MOTION.vp) * kv;
+      var dz = 1.2 * DEG, ey = angDiff(MOTION.sy, CS.phi), ep = MOTION.sp - CS.thPraw, kf = 1 - Math.exp(-dt / MO_T);
+      if (Math.abs(ey) > dz) MOTION.my = true;
+      if (Math.abs(ep) > dz) MOTION.mp = true;
+      if (MOTION.my) { CS.phi += ey * kf; any = true; if (Math.abs(ey) * (1 - kf) < MO_REST && Math.abs(MOTION.vy) < MO_STILL) MOTION.my = false; }
+      if (MOTION.mp) { CS.thPraw += ep * kf; any = true; if (Math.abs(ep) * (1 - kf) < MO_REST && Math.abs(MOTION.vp) < MO_STILL) MOTION.mp = false; }
       var L = 30 * DEG; CS.thP = L * Math.tanh(CS.thPraw / L);
     }
     if (any) {

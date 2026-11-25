@@ -63,7 +63,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              far out: an fp32 replay), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
-                             varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag),
+                             varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag), test/unit/motion.mjs (the phone's motion steering: held still, turned),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
                              test/unit/glory.mjs (the glory and the fogbow on the moonlit cloud sea),
