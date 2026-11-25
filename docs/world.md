@@ -141,7 +141,7 @@ and sets behind the sea, never stopping or turning back (a visitor who
 turns that way sees it rise or set; only its faint broad light on the sky
 follows its depth); where the window has no room under its top edge, only
 its glow passes along the edge. Its corona's coloured rings show only where
-the 3 km veil's streaks stand thicker in front of it than the veil's even
+the 7 km veil's streaks stand thicker in front of it than the veil's even
 mean, as patchy as those streaks; a clear patch or a clear night has none
 (physics: weather/moon-corona).
 The moonlit night is about twice as long
@@ -248,7 +248,7 @@ sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
 degrees up. Its body hides the sky behind it in the air's own colour at its
 range (the far land's distance haze); the low sun lights its top above the
-Earth's shadow there, under the light ceiling; nearer layers (the 3 km veil,
+Earth's shadow there, under the light ceiling; nearer layers (the 7 km veil,
 the Earth's shadow and the Belt) lie over it, farther ones (the wisps, the
 galaxy, the aurora, the moon, the stars) are hidden behind it. Its lightning
 is the owner's one exception to no-fades ("Soft distant flicker",
@@ -614,8 +614,18 @@ physics: clouds/drift). It holds:
   default, 7.6). Before physics: air/wind-profile the readers kept their
   own speeds. The dunes' crests, the veils, the birds and the water's ripples read
   it; so do the clouds (AIR_H.clouds 800 m, the low layer's free clouds,
-  and AIR_H.deck 3000 m, the high streaks, which lie along it: cloudWind,
+  and AIR_H.deck 7000 m, the cirrus, which lie along it: cloudWind,
   physics: clouds/drift).
+- The cirrus (physics: sky/cirrus; sky-body.glsl HI_H): the high veil stands
+  7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in polar ones: WMO
+  International Cloud Atlas), its streaks along the air's wind there (the
+  profile's 2 U10 veered 40 deg, held above 3 km) and drifting with it; a
+  noise tile 204.8 km along the wind and 51.2 km across (its texels 3.2 km by
+  800 m), faded out under rd.y 0.105-0.44 where its texels would come under a
+  pixel. A change's cover comes in by place: a front carried along that wind
+  from 120 km upwind of the camera to 120 km downwind as the change goes (224's
+  HIP, the shader's uHiP), 12 km wide, the new cover upwind of it; in a hold
+  the cover is uHi.x everywhere.
 - The readers still apart (AIR_APART, each with the change that joins
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
@@ -666,6 +676,39 @@ physics: clouds/drift). It holds:
   change).
   The score hears the field through the feed (the air heard, below); the
   perched lean is not on it yet.
+- The clouds' shadows on the land (physics: light/cloud-shadow;
+  src/world/262-cloud-shadow.js, vs-cshadow, fs-cshadow). The owner,
+  2026-11-15: "No, natural light is fine": the world's own cast shadows
+  are free under the light ceiling, and nothing is darkened for the words
+  (RULES.json no-darkening). Every cloud body's lobes (its cells' soft
+  spheres, where its layer's wind has carried them: cellOff on the clouds'
+  own clock) cast the key's light off the land along the live key (uSun:
+  the sun, or on the moonlit sky the moon's disc, the land's own light).
+  One pass a frame draws each lobe as the ellipse a sphere throws on one
+  level plane (the ground under the camera): R across the key's way,
+  R / sin(elevation) along it. Its light there is exp(-k chord), k 0.05/m
+  (the clouds' march extinction, 0.19, over the lobes' eroded fill, about a
+  quarter). The chord is the cut the key's ray makes through the lobe, its
+  edge softened over the key's own disc (0.53 deg: the penumbra, the ray's
+  length times 0.0046). The lobes are multiplied together (the exp of their
+  summed depth, stored over 32 so 8 bits hold a cloud's) into a 1024 x
+  1024 map 40 km across, about the camera (past the land the eye sees, so
+  its easing-off lies under the far haze). The sand, the stones and the
+  rock read it where their own point, carried along the same key, meets
+  that plane (so any height of land lines up with its cloud). They lose
+  only the key's direct share of their light, n.l / (n.l + q), with q the
+  sky's diffuse light over the beam's from the clear-sky model
+  (https://www.nrel.gov/docs/legosti/old/761.pdf, SERI/TR-642-761: the
+  beam is 47 to 67 % of the light on level sand under the 5 to 14 deg
+  key). They get part of it back, scattered through the cloud: the
+  two-stream diffuse transmission 1 / (1 + 3/4 (1 - g) tau), g 0.85
+  (https://doi.org/10.1119/1.15109). So at a low key a shadow is weak (level sand keeps 0.55 to 0.7 of its light under a
+  mean cloud, tau 20), and a face turned from the key loses nothing. The
+  soft edge is the key's disc: the penumbra's width across the key's way,
+  stretched by 1 / sin(elevation) along it, so a low key's far and near
+  edges are long and soft. The map eases off over its last quarter (a
+  place's distance, never the clock's). Nothing under a key at the horizon.
+  The composite takes no input from it (no-darkening, W7).
 - The key light, keyAt(V): one direction for every sky, 5-14 deg up within
   55 deg of upwind (AIR_KEY_EL, AIR_KEY_AZ), made once a visit
   (airKeySet). The clouds' bake, the kits' lights (the land's uSun, the
@@ -926,8 +969,10 @@ per channel: L = c T + Linf (1 - T), T = exp(-od). Two scatterers:
 - the gas, by wavelength (the inverse fourth power): its sea-level
   scattering at 680, 550 and 440 nm, 5.8, 13.5 and 33.1 per 1,000 km
   (https://doi.org/10.1364/AO.34.002765), thinning with an 8 km scale
-  height. At 20 km it takes half the blue and a tenth of the red: far
-  ridges turn blue on their own.
+  height along the path (gasPath: the slant integral from the eye's height,
+  so a cloud 3 km up at 30 km is seen through 17% less gas, the cirrus at
+  7 km through a third less). At 20 km level it takes half the blue and a
+  tenth of the red: far ridges turn blue on their own.
 - the aerosol, grey: the sky's own height fog and even distance term
   (uFog, each realm's tuned look, now the aerosol in clean air), times
   uAer.x, the visit's own by AIR's weather: the visual range's inverse

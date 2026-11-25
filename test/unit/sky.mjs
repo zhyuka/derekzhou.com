@@ -1,5 +1,9 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
+// plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "clamp((uHiP.z - dot(P - uCam.xz, dD)) / HIF_W + 0.5, 0.0, 1.0)", "with": "clamp((dot(P - uCam.xz, dD) - uHiP.z) / HIF_W + 0.5, 0.0, 1.0)", "why": "the new cover arriving from downwind, against the wind that carries it"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float HI_H = 7000.0, HIF_W = 12000.0;", "with": "const float HI_H = 3000.0, HIF_W = 12000.0;", "why": "the cirrus back at 3 km, under real cirrus heights"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "    if (SUNU.on) return -SUNU.es;\n", "with": "", "why": "Venus placed by the sky it left through a change into the night: off its elongation from the sinking sun, then a jump"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "P.w0 = 2 * P.thetaE / P.Dvis;", "with": "P.w0 = 3 * P.thetaE / P.Dvis;", "why": "the moon crossing half again faster: past the sky's declared rate"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": " gL += aG; c += aG; }", "with": " c += aG; }", "why": "the airglow counted as nightLim's sky: in the 15-18 deg window it holds back a star at the edge of showing"}
@@ -1189,4 +1193,54 @@ test('night: the moon crosses no faster than the sky\'s declared rate (SKY_RATE 
   assert.ok(fastest <= rate * 1.01, `the moon crossed at ${fastest.toFixed(4)} deg/s in its hold, past SKY_RATE x sidereal (${rate.toFixed(4)} deg/s) by over 1%`);
   const med = [...speeds].sort((a, b) => a - b)[speeds.length >> 1];
   console.log(`# the moon's pace: median ${med.toFixed(3)} deg/s (${(100 * med / rate * SR / 100).toFixed(0)}x real), fastest ${fastest.toFixed(3)} (${(SR * fastest / rate).toFixed(0)}x), SKY_RATE ${SR}x`);
+});
+
+// (physics: sky/cirrus, the hub's physics map: "High veil (cirrus) ... Physics: Looks") the high veil is cirrus: 7 km up
+// (WMO: 5-13 km temperate, 3-8 km polar), its streaks along the air's wind at that height (215's AIR_H.deck), and a
+// change's cover comes in by place: a front carried along that wind from upwind, never a strength over the whole sky
+test('sky: the cirrus stands 7 km up on the air\'s wind there, and a change brings its cover by place, from upwind', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
+  const H = +/const float HI_H = ([\d.]+), HIF_W = ([\d.]+);/.exec(g)[1], W = +/const float HI_H = [\d.]+, HIF_W = ([\d.]+);/.exec(g)[1];
+  assert.ok(H >= 6000 && H <= 8000, `the cirrus at ${H} m (real cirrus at 64 N: 6-8 km, inside both the temperate and the polar ranges)`);
+  assert.equal((g.match(/vec2 P = uCam\.xz \+ rd\.xz \/ rd\.y \* \(HI_H - uCam\.y\);/g) || []).length, 2, 'both veil blocks at HI_H');
+  assert.equal(+/var AIR_H = \{[^}]*deck: (\d+)/.exec(WORLD)[1], H, 'the air\'s declared deck height (its wind, the streaks\' lie and drift) is not the cirrus\'s');
+  assert.equal((g.match(/float hx = hiCov\(P, dD\);/g) || []).length, 2, 'both veil blocks read the cover by place');
+  assert.ok(!/smoothstep\(0\.55 - uHi\.x|veilMean\(uHi\.x\)|smoothstep\(0\.0, 0\.05, uHi\.x\)/.test(g), 'a veil block still reads the one cover over the whole sky');
+  // the shader's cover at the deck's point, and 224's front, run here
+  const cov = g.match(/float hiCov\(vec2 P, vec2 dD\) \{ return (uHiP\.w > 0\.0 \? mix\(uHiP\.x, uHiP\.y, clamp\(\(uHiP\.z - dot\(P - uCam\.xz, dD\)\) \/ HIF_W \+ 0\.5, 0\.0, 1\.0\)\) : uHi\.x); \}/);
+  assert.ok(cov, 'hiCov is not the front along the deck\'s wind');
+  const hiCov = (a, P4, hx) => P4[3] > 0 ? P4[0] + (P4[1] - P4[0]) * Math.min(1, Math.max(0, (P4[2] - a) / W + 0.5)) : hx;
+  const js = /var xa = \(1 - w\) \* X\.d\.hi\[0\] \+ w \* X\.a\.hi\[0\], xb = \(1 - w\) \* Y\.d\.hi\[0\] \+ w \* Y\.a\.hi\[0\];\n\s*HIP\[0\] = xa; HIP\[1\] = xb; HIP\[2\] = HIF_R \* \(2 \* q - 1\); HIP\[3\] = q > 0 && q < 1 && xa !== xb \? 1 : 0;/.exec(WORLD);
+  assert.ok(js, '224 does not set the front from the two skies\' covers and the change\'s q');
+  const R = +/var HIP = new Float32Array\(4\), HIF_R = (\d+);/.exec(WORLD)[1];
+  assert.ok(R >= (H - 1500) / 0.06, `the front starts ${R} m upwind: inside the visible deck (${Math.round((H - 1500) / 0.06)} m at the streaks' fade, from 1.5 km up)`);
+  const hip = (xa, xb, q) => [xa, xb, R * (2 * q - 1), q > 0 && q < 1 && xa !== xb ? 1 : 0];
+  for (const [xa, xb] of [[0, 0.15], [0.15, 0], [0.1, 0.15]]) {
+    let prev = null;
+    for (let q = 0; q <= 1.0001; q += 0.01) {
+      const P4 = hip(xa, xb, q), blend = xa + (xb - xa) * q;
+      if (q === 0) assert.equal(P4[3], 0, 'a hold draws as before');
+      const row = [-R * 1.2, -60000, -6000, 0, 6000, 60000, R * 1.2].map((a) => hiCov(a, P4, blend));
+      for (let i = 1; i < row.length; i++) assert.ok(Math.abs(row[i] - xb) >= Math.abs(row[i - 1] - xb) - 1e-12, `q ${q.toFixed(2)}: the new cover not reached first upwind (${row})`);
+      for (const v of row) assert.ok(Math.min(xa, xb) - 1e-12 <= v && v <= Math.max(xa, xb) + 1e-12, 'a cover between the two skies\'');
+      if (q > 0.02 && q < 0.98) { assert.ok(Math.abs(row[0] - xb) < 1e-12 && Math.abs(row[6] - xa) < 1e-12, `q ${q.toFixed(2)}: far upwind the new sky's cover, far downwind the old`); }
+      if (prev) for (let i = 0; i < row.length; i++) assert.ok(Math.abs(row[i] - xb) <= Math.abs(prev[i] - xb) + 1e-12, 'a place never goes back to the old cover');
+      prev = row;
+    }
+  }
+});
+
+test('physics: Looks: the gas\'s path is the slant integral of air thinning with its 8 km scale height (gasPath)', () => {
+  const g = fs.readFileSync(path.join(ROOT, 'src/world/glsl/lib-air.glsl'), 'utf8');
+  const m = g.match(/float gasPath\(vec3 rd, float t\) \{([^\n]*)\}\n/);
+  assert.ok(m, 'lib-air.glsl has no gasPath');
+  const js = m[1].replace(/\bfloat\b/g, 'let').replace(/\bexp\(/g, 'Math.exp(').replace(/\babs\(/g, 'Math.abs(');
+  const gasPath = vm.runInThisContext('(function (rd, t, uCam) {' + js + '})');
+  for (const [y0, ry, t] of [[0, 0, 30000], [40, 0.1, 30000], [200, 0.23, 30000], [20, -0.01, 5000], [500, 0.5, 14000]]) {
+    let n = 0; const N = 20000; for (let i = 0; i < N; i++) { const s = (i + 0.5) * t / N; n += Math.exp(-(y0 + ry * s) / 8000) * t / N; }
+    const v = gasPath({ y: ry }, t, { y: y0 });
+    assert.ok(Math.abs(v - n) / n < 1e-4, 'gasPath at eye ' + y0 + ' m, rd.y ' + ry + ', ' + t + ' m: ' + v.toFixed(1) + ' against the integral ' + n.toFixed(1));
+  }
+  assert.ok(g.includes('vec3 T = exp(-(m + BR * gasPath(rd, t)))'), 'atmos does not take the gas along its path');
+  assert.ok(g.includes('return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t));'), 'fogAmt does not take the gas along its path');
 });

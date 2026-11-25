@@ -58,6 +58,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/air.mjs (the world's one air: every wind reader, the key, the skies' suns),
                              test/unit/aurora.mjs (the aurora by its physics: its sheet, colour, motion and the night's phases),
                              test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
+                             test/unit/cloudshadow.mjs (the clouds' shadows on the land: the chord, the ellipse, the wiring),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit
                              far out: an fp32 replay), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
@@ -110,7 +111,8 @@ tools/visit/headings.mjs     Each land's first heading chosen by the ruler and t
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
                              in the words' boxes and the top band, the Milky Way and the low sun left clear (looks.json);
-                             --table re-measures only the table's headings and each land's own (about 30 minutes)
+                             --table re-measures only the table's headings and each land's own (about 30 minutes);
+                             each entry keeps its own world key too, so two records merged line by line fail the ruler
 tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, and
                              worldKey: the key of what looks.json was measured on (KEY_INPUTS: the cloud layout, the
                              opening's view, the words' layout; not the sky, the land's surface or the birds)
@@ -134,7 +136,7 @@ tools/physics/               The dunes' slope census against the sand's physics 
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)
-tools/tsc.mjs                tsc --checkJs over the assembled world and src/realm-*.js (npx typescript, pinned;
+tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*.js, src/sound.js and src/score.js (npx typescript, pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
                              events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)

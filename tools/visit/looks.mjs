@@ -137,13 +137,15 @@ async function score(k, deg) {
 const jobs = []; for (const [k, list] of Object.entries(CANDS)) for (const d of list) jobs.push([+k, d]);
 const WORLD_KEY = await worldKey(), old = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 const prev = old && old.world === WORLD_KEY ? old : { world: WORLD_KEY, lands: {} };   // (a record of another world is dropped whole)
+// each entry keeps the world it was measured on too: a line-by-line merge of two records can mix worlds under one key
+for (const land of Object.values(prev.lands)) for (const [h, l] of Object.entries(land)) if (l.world !== WORLD_KEY) delete land[h];
 const PNG = arg('--png', null); if (PNG) fs.mkdirSync(PNG, { recursive: true });
 let next = 0; const t0 = Date.now();
 async function worker() {
   while (next < jobs.length) {
     const [k, deg] = jobs[next++], r = await score(k, deg), key = deg === null ? 'own' : String(deg);
     if (PNG) for (const [v, u] of Object.entries(r.pngs)) fs.writeFileSync(path.join(PNG, `k${k}-${key}-${v}.png`), Buffer.from(u.split(',')[1], 'base64'));
-    delete r.pngs; (prev.lands[k] = prev.lands[k] || {})[key] = r;
+    delete r.pngs; (prev.lands[k] = prev.lands[k] || {})[key] = { world: WORLD_KEY, ...r };
     console.log(`k${k} ${key.padStart(4)}: words ${r.wordCloud} name ${r.nameCloud} discs ${Object.entries(r.discs).map(([v, d]) => v + ':' + (d ? (d.shown ? 'shown' : d.covered ? 'covered' : 'in-words') : '-')).join(',')} top ${r.topCloud} galaxy ${r.galaxy} (${r.galaxyIn}) sun ${r.sun} (${r.sunIn})  ${((Date.now() - t0) / 1000).toFixed(0)} s`);
     fs.writeFileSync(OUT, JSON.stringify(prev, null, 1) + '\n');
   }

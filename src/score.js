@@ -115,7 +115,7 @@
      a sixth apart, upward from about E-flat 3 */
   function mistChord(X, Y) {
     var sx = scaleOf(X), sy = scaleOf(Y), tx = pcsOf(tonic(X)[0], tonic(X)[1]), ty = pcsOf(tonic(Y)[0], tonic(Y)[1]);
-    var both = sx.filter(function (x) { return sy.indexOf(x) >= 0; }).sort(function (a, b) { return (ty.indexOf(b) >= 0) + (tx.indexOf(b) >= 0) - (ty.indexOf(a) >= 0) - (tx.indexOf(a) >= 0); }).slice(0, 5);
+    var both = sx.filter(function (x) { return sy.indexOf(x) >= 0; }).sort(function (a, b) { return /** @type {any} */ (ty.indexOf(b) >= 0) + /** @type {any} */ (tx.indexOf(b) >= 0) - /** @type {any} */ (ty.indexOf(a) >= 0) - /** @type {any} */ (tx.indexOf(a) >= 0); }).slice(0, 5);
     var out = [], m, lo, hi, pass;
     for (pass = 0; pass < 2 && out.length < 4; pass++) {
       out = [];
@@ -292,7 +292,7 @@
     var JUST = [0, 11.73, 3.91, 15.64, -13.69, -1.96, -9.78, 1.96, 13.69, -15.64, -3.91, -11.73];
     function tuneOf(inst, m, t) {
       if (!TUNE || inst === 'harp' || inst === 'piano' || !S.R.length) return 0;
-      var depth = /cello|viola|violin/.test(inst) ? 0.7 : 1, h = null, c, root;
+      var depth = /cello|viola|violin/.test(inst) ? 0.7 : 1, h = /** @type {any} */ (null), c, root;   // (any: set in the closure below)
       S.N.forEach(function (e) { if (e.sus && e.m !== m && e.h0 <= t + 1 && e.h1 >= t + 2 && (!h || e.m < h.m)) h = e; });
       if (h) c = h.ct + (m > h.m ? JUST[(m - h.m) % 12] : -JUST[(h.m - m) % 12]) * depth;
       else { root = S.root !== null ? S.root : regionAt(t).n[0]; c = 0.5 * depth * JUST[((m - root) % 12 + 12) % 12]; }
@@ -482,7 +482,7 @@
     function plan(now) {
       var guard = 0, v, t, g, u;
       while (guard++ < 40) {
-        v = null; LAYERS.forEach(function (k) { var x = S.V[k]; if (!v || x.next < v.next) v = x; });
+        v = /** @type {any} */ (null); LAYERS.forEach(function (k) { var x = S.V[k]; if (!v || x.next < v.next) v = x; });
         t = Math.max(v.next, S.front + 1.2);   // (never two notes begun within 1.2 s: no beat, no chord struck)
         if (!on(v.k, t)) { v.next = t + R.r(3, 6); continue; }
         g = Math.min(hole(S.hf), LONE ? lone(S.hf) + 2 : 1e9);

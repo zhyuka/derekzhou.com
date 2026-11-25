@@ -55,11 +55,11 @@
   /* the table, from the draw sites (built once every program is finished: stage F's start). Each entry: name, program,
      VAO, mode, vertex count, instanced, indexed, target, colour mask, blend (null or [src, dst, srcA, dstA]), depth (0
      off, else its function) and its writes, cull (0 off, else the face) */
-  var BL_ADD = null, BL_OVER = null, BL_PRE = null;
+  var BL_ADD = null, BL_OVER = null, BL_PRE = null, BL_MUL = null;
   function warmTable() {
     var L = [], T = gl.TRIANGLES, TS = gl.TRIANGLE_STRIP, LE = gl.LEQUAL, A = WARM.vao;
     var SC = AAS > 1 && WARM.tg.sceneMS ? 'sceneMS' : 'scene';   // (E1 Fix 3: the scene pass's draws, into its samples)
-    BL_ADD = [gl.ONE, gl.ONE, gl.ZERO, gl.ONE]; BL_OVER = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE]; BL_PRE = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA];
+    BL_ADD = [gl.ONE, gl.ONE, gl.ZERO, gl.ONE]; BL_OVER = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE]; BL_PRE = [gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA]; BL_MUL = [gl.DST_COLOR, gl.ZERO, gl.ZERO, gl.ONE];
     function E(n, P, vao, mode, cnt, inst, idx, tg, bl, dt, dw, cull, cm) { if (P && (P.ok || ((EXT.parAll || EXT.parWK) && P.st !== 3))) L.push({ n: n, p: P, vao: vao, mode: mode, cnt: cnt, inst: inst, idx: idx, tg: tg, bl: bl || null, dt: dt || 0, dw: dw !== false, cull: cull || 0, cm: cm === undefined ? 15 : cm }); }
     // the realms' sites, every built realm's (any may come into view)
     for (var k = 0; k < ORDER.length; k++) {
@@ -87,7 +87,8 @@
     E('occ.nodepth', EP.occ, A.occ, T, 3, 1, false, 'cloud', null, 0, true, 0, 0);   // (after a frame's beams, which leave the depth test off)
     E('vbody', EP.vbody, VCUBE.vao, T, 3, 0, false, 'cloud', BL_PRE, LE, false, gl.BACK);
     E('vbody.inside', EP.vbody, VCUBE.vao, T, 3, 0, false, 'cloud', BL_PRE, 0, false, gl.FRONT);
-    E('cacc', EP.cacc, FULLVAO, T, 3, 0, false, 'hdr');   // (E1 Fix 3: the clouds' accumulation)
+    E('cacc', EP.cacc, FULLVAO, T, 3, 0, false, 'hdr');
+    E('cshadow', EP.cshadow, CSH.vao, TS, 4, 1, false, 'rgba8', BL_MUL, 0, false);   // (the clouds' shadows: 262)   // (E1 Fix 3: the clouds' accumulation)
     E('pre', EP.pre, FULLVAO, T, 3, 0, false, 'hdr');
     E('down', EP.down, FULLVAO, T, 3, 0, false, 'hdr');
     E('up', EP.up, FULLVAO, T, 3, 0, false, 'hdr');

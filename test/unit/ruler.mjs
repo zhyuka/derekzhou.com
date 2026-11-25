@@ -3,7 +3,8 @@
 // plant: {"file": "tools/visit/ruler.mjs", "find": "keep = (o) => L.pickOf(o, salt) < dens(o.x, o.z);", "with": "keep = () => true;", "why": "a cell keeps every piece, whatever its density"}
 // plant: {"file": "src/world/215-air.js", "find": "305, 60, null", "with": "20, 60, null", "why": "k11's first heading back to 20 deg: 30% of the words' boxes under cloud (looks.json)"}
 // plant: {"file": "src/realm-above.js", "find": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-30, 0)", "with": "C.cloud({ kind: 'cumulus', x: x, z: z, y: R.r(-31, 0)", "why": "a cumulus moved: looks.json was measured on another world"}
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float hgt = 7.0 + 9.0 * sc", "with": "float hgt = 8.0 + 9.0 * sc", "expect": "pass", "why": "a star moved: the sky is not in looks.json's key, the record holds"}
+// plant: {"file": "tools/visit/looks.json", "find": "\"deg\": 90,", "with": "\"deg\": 90, \"world\": \"another\",", "why": "an entry measured on another world, under this world's key (a line-by-line merge)"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float STF = 1.1083;", "with": "const float STF = 1.2083;", "expect": "pass", "why": "the stars brighter: the sky is not in looks.json's key, the record holds"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "GLOW_KEEP = 0.5,", "with": "GLOW_KEEP = 0,", "why": "the glow the land's own heading shows may be lost"}
 // plant: {"file": "tools/visit/look-rule.mjs", "find": "NAME_CAP = 0.02,", "with": "NAME_CAP = 1,", "why": "the name's cap loosened past 2%"}
 import { test, assert, golden, WORLD } from '../unit-lib.mjs';
@@ -78,6 +79,7 @@ test('ruler: each land\'s first heading keeps the words and the name clear of cl
   assert.ok(T, 'airHeading0\'s table not found in world.js');
   const table = JSON.parse(T[1]), rec = JSON.parse(fs.readFileSync(new URL('../../tools/visit/looks.json', import.meta.url), 'utf8'));
   assert.equal(rec.world, await worldKey(), 'looks.json was measured on another world (a cloud, the opening view or the words moved: look-rule.mjs KEY_INPUTS): node tools/build.mjs --plain build/site && node tools/visit/looks.mjs --build build/site --table (about 30 minutes), then node tools/visit/headings.mjs if a heading now fails');
+  for (const [k, land] of Object.entries(rec.lands)) for (const [h, l] of Object.entries(land)) assert.equal(l.world, rec.world, `k${k} ${h}: this entry was measured on world ${l.world}, the record is ${rec.world} (two records merged line by line?): re-run looks.mjs --table, never merge looks.json by hand`);
   assert.equal(table.length, 16, 'the table has one heading for each of the 16 lands');
   for (let k = 0; k < 16; k++) {
     const l = (rec.lands[k] || {})[lookKey(table[k])];

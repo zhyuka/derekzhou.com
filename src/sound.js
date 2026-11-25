@@ -31,14 +31,14 @@
   function start() {
     if (!ctx) {
       try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-      var opt = { latencyHint: 'playback', sampleRate: 24000 };   // (24 kHz: nothing in the score is above 4 kHz; half the work and memory)
+      var opt = /** @type {AudioContextOptions} */ ({ latencyHint: 'playback', sampleRate: 24000 });   // (24 kHz: nothing in the score is above 4 kHz; half the work and memory)
       for (var k = 0; k < 2 && !ctx; k++) { try { ctx = new AudioContext(opt); } catch (e) { delete opt.sampleRate; } }   // (a browser that will not take the rate: its own)
       if (!ctx) return;
       level = ctx.createGain(); level.gain.value = 0; level.connect(ctx.destination);
     }
     if (!loading) {   // (once; after a failure, the next press asks again)
       loading = fetch(SHEET).then(function (r) {
-        if (!r.ok) throw new Error(r.status);
+        if (!r.ok) throw new Error(/** @type {any} */ (r.status));
         return r.arrayBuffer();
       }).then(function (a) {
         return new Promise(function (ok, no) { ctx.decodeAudioData(a, ok, no); });
