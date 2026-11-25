@@ -1086,6 +1086,37 @@ holds each, point-sampled with the shader's own fade, to the shading
 filtered at the pixel in motion: no more than half a level of flicker over it
 (from 4 and 2 px the impact ripples flickered 1.3).
 
+## THE SAND'S COLOUR (crest against interdune)
+
+Measured on main (2026-11-25), the page's own colours over its land grid
+(openings 4 and 3, a 10 m grid within 600 m of the landing, by the height
+over the troughs' floor, gAF):
+
+- the lit sand's luminance takes the light's angle alone (SAND_LIT to
+  SAND_LIT2, 0.028 to 0.035), with no term in place, height or gAF;
+- the shaded sand's (SAND_DEEP to SAND_SHADE by the absolute height,
+  -40 to 50 m) runs 0.0089 to 0.0093 from the interdune floors (gAF under
+  1.5 m) to 15 m up, within 4%: flat.
+
+The brief asked for darker interdunes and paler crests (coarser, damper
+floors; the finest, palest grains on the crests) if a measurement holds
+it. None found does:
+
+- across three dune fields the crest to interdune differences are minor
+  and broadband, and at one site the crests are a few percent darker than
+  the corridors (https://repository.si.edu/server/api/core/bitstreams/feec4ecd-aed7-4787-b0fa-1772258ca9f5/content);
+- at the gypsum dunes the interdunes are the finer grained and the crests
+  the coarser (https://www.usgs.gov/publications/modeling-grain-size-variations-aeolian-gypsum-deposits-white-sands-new-mexico-using);
+- crest contrast reverses through the dry season on stabilized dunes
+  (https://repository.si.edu/items/19aa41c6-f59a-4fe2-8817-7f4ed167a8a8);
+- the dune to interdune colour of a sand sea follows its grains' iron
+  coatings and provenance, not moisture
+  (https://www.sciencedirect.com/science/article/abs/pii/S0169555X06003990).
+
+So the sand's albedo stays flat in gAF: no measured, consistent ramp to
+draw, and a darker floor would darken part of the land for no physics. A
+crust or damp floor with a measured reflectance would be a new item.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
