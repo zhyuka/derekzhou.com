@@ -66,7 +66,7 @@ await page.addInitScript(() => {
   };
 });
 const state = () => page.evaluate(() => {
-  const b = document.getElementById('sound'), c = window.__ctx, s = window.__srcs, sheet = s.filter((r) => r.n.buffer && r.n.buffer.duration > 60);
+  const b = document.getElementById('sound'), c = window.__ctx, s = window.__srcs, sheet = s.filter((r) => r.n.buffer && r.n.buffer.duration > 20);   // (a decode of the sheet, whole or its first part (29 s and more), never the air's own noise (13.7 and 17.9 s))
   return { session: navigator.audioSession.type, made: window.__made, shown: !!b && !b.hidden, pressed: b && b.getAttribute('aria-pressed'), state: c && c.state, t: c ? c.currentTime : 0, rate: c ? c.sampleRate : 0,
     score: !!(window.SCORE && typeof window.SCORE.play === 'function'), notes: sheet.length, playing: sheet.filter((r) => !r.ended).length, looping: sheet.filter((r) => r.n.loop && !r.ended).length };
 });

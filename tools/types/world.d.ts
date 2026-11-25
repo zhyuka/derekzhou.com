@@ -43,7 +43,7 @@ interface EventsApi {
 interface SkyFeed { t: number; seq: { id: string; at: number; hold: number; move: number; far: boolean }[]; wc: number; still: boolean; seed: number }
 interface Window { WORLD: WorldApi; SCORE: ScoreApi }
 // window.SCORE (score.js): what the sound icon's switch (sound.js) plays; navigator.audioSession: WebKit's, not in the DOM types
-interface ScoreApi { play(ctx: AudioContext, out: AudioNode, buffer: AudioBuffer, sliced?: boolean): any }
+interface ScoreApi { cuts: number[]; play(ctx: AudioContext, out: AudioNode, buffer: AudioBuffer | null, sliced?: boolean): any }   // cuts: the sheet's seconds up to its first parts (the switch decodes them as they arrive); play takes no buffer to fill its room and air first, then more(buffer, upto)
 interface Navigator { audioSession?: { type: string } }
 // The world's shared objects (their members are set across sections, so tsc cannot infer them from one literal):
 // a render target (080's target(), 383's sceneTwin) and a multisampled one (383's targetMS); the window's targets,

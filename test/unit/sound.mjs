@@ -22,10 +22,13 @@
 //   - the air heard (the feed's wind at the camera): the stream on the wind's side by its bearing exactly, the billow
 //     with the wind and the stream with its square, silent in a calm, a gust heard at the first tick it reaches the
 //     camera; the sand's hiss none under its threshold, on at it, off only under 0.8 of it, none over the cloud;
+//   - the sheet in parts: its cuts end after the tuba's and the violas' notes, then the strings' and the contrabass's; on
+//     the first part alone the score plays only those (the first voice within 1.2 s), the rest joining when it comes;
 //   - the room and the air filled a slice at a time (as the switch has it) play exactly what they play filled at once.
 // plant: {"file": "src/score.js", "find": "if (d < 3 || d % 12 === 1 ||", "with": "if (d < 1 || d % 12 === 1 ||", "why": "a note let in a step from one it meets"}
 // plant: {"file": "src/score.js", "find": "SAND = [6.2, 1.5, 0.8]", "with": "SAND = [3.1, 1.5, 0.8]", "why": "the sand hissing at half its threshold"}
 // plant: {"file": "src/score.js", "find": "lr = -Math.sin(A.bear || 0);", "with": "lr = Math.sin(A.bear || 0);", "why": "the wind heard from the side it blows toward"}
+// plant: {"file": "src/score.js", "find": "return !!a && a.every(function (e) { return e.s0 + e.len < UPTO - 0.05; });", "with": "return !!a;", "why": "a voice played from a part of the sheet not yet decoded"}
 import { test, assert, fs, path, vm, ROOT } from '../unit-lib.mjs';
 
 const SRC = fs.readFileSync(path.join(ROOT, 'src/score.js'), 'utf8');
@@ -40,7 +43,7 @@ for (const m of WSRC.matchAll(/^\s+(\w+): \{ g:'\w+', w:'\w+', ph:\d, land:\[[^\
 const STRINGS = ['cello', 'viola', 'violin', 'clar'];
 
 const AIRT = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/world/215-air.js'), 'utf8').match(/var AIR_BYSKY = (\{[^;]*\});/)[1].replace(/(\w+):/g, '"$1":'));   // (the world's wind by sky, as its feed hands it to the score)
-function play(seed, flight = FLIGHT, len = T, sliced = false, wind = null, wc = null) {
+function play(seed, flight = FLIGHT, len = T, sliced = false, wind = null, wc = null, stage = null) {   // (stage: { upto, at }: the score given the sheet's first upto seconds, the whole at at s)
   const param = (v) => ({ value: v, calls: [], setValueAtTime(x, t) { this.calls.push(['set', t, x]); }, setValueCurveAtTime(c, t, d) { this.calls.push(['curve', t, d, c[0], c[c.length - 1]]); }, setTargetAtTime(x, t, k) { this.calls.push(['target', t, x, k]); }, linearRampToValueAtTime() {} });
   const node = (x) => Object.assign({ out: [], connect(n) { this.out.push(n); return n; } }, x);
   const srcs = [], gains = [], convs = [], queue = [];
@@ -53,9 +56,11 @@ function play(seed, flight = FLIGHT, len = T, sliced = false, wind = null, wc = 
   const sheet = { getChannelData: () => mark, sampleRate: 24000 };
   let now = 0; const win = { WORLD: { sky() { let i = 0; while (i < flight.length - 1 && flight[i + 1].at <= now) i++; const x = Math.min(1, Math.max(0, (now - 150) / 40)); return { t: now, seq: flight.slice(i), wc: wc === null ? x * x * (3 - 2 * x) : wc, air: AIRT, still: false, seed, wind: wind ? wind(now) : undefined }; } } };
   vm.runInNewContext(SRC, { window: win, setTimeout: (f) => queue.push(f), Promise });
-  const score = win.SCORE.play(ctx, node({}), sheet, sliced);
+  const score = win.SCORE.play(ctx, node({}), stage ? null : sheet, sliced);
+  if (stage) score.more(sheet, stage.upto);
+  const cuts = win.SCORE.cuts;
   let tasks = 0; while (queue.length) { queue.shift()(); tasks++; }   // (sliced: each step its own task, run here in order)
-  for (now = 0; now < len; now += 0.5) score.tick(now);
+  for (now = 0; now < len; now += 0.5) { if (stage && now >= stage.at && !stage.done) { score.more(sheet); stage.done = true; } score.tick(now); }
   const notes = srcs.filter((s) => s.buffer === sheet).map((s) => {
     const e = NOTES.find((n) => s.off >= n[2] - 1e-6 && s.off <= n[2] + n[3] + 1e-6), rate = s.playbackRate.value, m = Math.round(e[1] + 12 * Math.log2(rate));
     const g = s.out[0].gain.calls, up = g.find((c) => c[0] === 'curve' && c[3] < c[4]), down = g.find((c) => c[0] === 'curve' && c[3] > c[4]), set = g.find((c) => c[0] === 'set' && c[2] > 0);
@@ -64,6 +69,7 @@ function play(seed, flight = FLIGHT, len = T, sliced = false, wind = null, wc = 
   });
   notes.tasks = tasks; notes.fills = [...convs.map((c) => c.buffer), ...srcs.filter((s) => s.buffer && s.buffer !== sheet).map((s) => s.buffer)].map((b) => [0, 1].map((c) => b.getChannelData(c)));
   notes.airStarts = srcs.filter((s) => s.buffer && s.buffer !== sheet).map((s) => [s.when, s.off]);
+  notes.cuts = cuts;
   notes.swells = [...new Set(gains.flatMap((g) => g.gain.calls.filter((c) => c[0] === 'curve' && c[2] === 21).map((c) => +(c[1] + 11).toFixed(3))))];
   notes.air = {};   // (the air's sources by their band's low edge: the billow 70 Hz, the stream 450, the sand's hiss 2500; each its gain's and its panner's targets)
   for (const s of srcs.filter((x) => x.buffer && x.buffer !== sheet)) {
@@ -219,6 +225,17 @@ test('sound: the air heard: the world\'s wind at the camera, on its side, with i
   const h = play(3, F1, 40, false, (t) => blow(6, { carry: ramp(t) })(t), 0).air.hiss.g;
   assert.ok(at(h, 24) > 0 && at(h, 34) === 0, `the hiss on at 24 s: ${at(h, 24)}, at 34 s: ${at(h, 34)} (want it on down to 0.8 of the threshold, at 25 s, and off under it)`);
   assert.equal(at(play(3, F1, 40, false, blow(6, { carry: 6 }), 1).air.hiss.g, 30), 0, 'a hiss over the cloud');
+});
+test('sound: the sheet in parts: the score starts on its first part (the tuba and the violas) and the rest joins as it comes', () => {
+  const ends = {}; for (const e of NOTES) ends[INST[e[0]]] = Math.max(ends[INST[e[0]]] || 0, e[2] + e[3]);
+  const n0 = play(1501, FLIGHT, 4), cut = n0.cuts[0];
+  assert.ok(Math.abs(cut - Math.max(ends.tuba, ends.viola)) < 1e-9 && Math.abs(n0.cuts[1] - Math.max(ends.violin, ends.cello, ends.cbass)) < 1e-9, `the cuts ${n0.cuts} (want the end of the tuba's and violas' notes, then of the strings' and the contrabass's)`);
+  assert.ok(Object.entries(ends).every(([k, t]) => ['tuba', 'viola'].includes(k) ? t <= cut : t > cut), 'the sheet does not open with the tuba and the violas alone');
+  const n = play(1501, FLIGHT, 60, false, null, null, { upto: cut + 0.3, at: 20 });
+  const early = n.filter((v) => v.when < 20), late = n.filter((v) => v.when >= 20);
+  assert.ok(early.length >= 2 && early.every((v) => v.inst === 'viola' || v.inst === 'tuba'), `before the rest: ${[...new Set(early.map((v) => v.inst))]} (want the violas and the tuba only, two notes or more)`);
+  assert.ok(early.some((v) => v.inst === 'viola' && v.when < 1.2), `the first voice at ${Math.min(...early.filter((v) => v.inst === 'viola').map((v) => v.when)).toFixed(2)} s (want within 1.2 s of the score's start)`);
+  assert.ok(new Set(late.map((v) => v.inst)).size >= 4, `after the rest: ${[...new Set(late.map((v) => v.inst))]} (want the other voices too)`);
 });
 test('sound: the room and the air filled a slice at a time, as the switch has it, play exactly what they play filled at once', () => {
   const a = play(1501), b = play(1501, FLIGHT, T, true), key = (L) => L.map((n) => n.inst + n.m + '@' + n.when + ':' + n.a + '-' + n.b).join(' ');
