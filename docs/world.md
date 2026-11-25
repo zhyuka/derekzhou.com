@@ -1044,6 +1044,33 @@ scatter (the sky's colour holds the even part), so far land toward a low
 sun or the moon brightens. Nothing veils with grey: in-scatter is the
 sky's light. fogAmt, the share a light's own glow loses, is the green's.
 
+## THE SAND'S RIPPLES
+
+src/glsl/dunes-glsl.glsl, shadeSand; measured in #420
+(tools/physics/ripple-size.py, review/420 on its crops branch). Two classes by
+the sand:
+
+- impact ripples on all the loose sand, RIP_I 0.15 m apart (wind ripples
+  run about a thousand grain diameters: https://arxiv.org/html/2501.10643v1);
+- megaripples, RIP_M 0.9 m apart, only where the sand is poorly sorted,
+  coarse grains among the fine (https://arxiv.org/pdf/2208.00888): the
+  interdune floors, level ground (n0.y 0.97-0.99) within RIP_FLOOR (1.5 m,
+  out by 3) of the dunes' troughs' floor (gAF, the land's height over the
+  mist pools' floor, set by 350's terrain stage), in patches.
+
+Each is faded by how many pixels its wavelength spans in its own direction
+(the wind's coordinate's change a pixel, from the footprint and the grazing angle: whole from 5 px a wavelength, gone under
+2.5), never by range: the old fade by footprint (0.012-0.05 m a pixel) lost
+the 0.9 m ripples where they resolve and never drew any on a phone. From the
+flight (14 m up, ground from 59 m) the impact ripples are a faint fine texture
+side-on near the bottom of a laptop frame and nothing facing or far. The
+megaripples read to about 112 m facing and much further side-on. Neither
+draws at the landing's range (its nearest ground 137-249 m). test/unit/ripples.mjs
+renders both classes on the laptop's and the phone's render targets and
+holds each, point-sampled with the shader's own fade, to the shading
+filtered at the pixel in motion: no more than half a level of flicker over it
+(from 4 and 2 px the impact ripples flickered 1.3).
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
