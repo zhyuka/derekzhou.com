@@ -12,12 +12,13 @@
 # (CI lane, 2026-11-24) a plant written in one area file (tools/check.mjs --prove sets CHECK_PLANT_AT to the file the
 # plant line is in) is that file's to catch, so only that file runs: a unit plant re-ran all 40 area files, two minutes
 # a plant on a hosted runner. Any other run, every file.
-# (HYGIENE lane, 2026-11-25) `# parts: 2`: tools/check.mjs runs this as two checks on a push, CHECK_PART=0/2 and 1/2,
-# so two shards take the area files side by side (104 s on one shard: every lane's iteration waited on it). The files
+# (HYGIENE lane, 2026-11-25) `# parts: 3`: tools/check.mjs runs this as three checks on a push, CHECK_PART=0/3 .. 2/3,
+# so three shards take the area files side by side (104 s on one shard: every lane's iteration waited on it; in two
+# parts, 36 s and 49 s beside a shard's other checks). The files
 # are dealt longest first, each to the part with the least so far, by their seconds alone on a 4-core machine below
 # (a file not listed counts 1 s), so both parts compute the same split and every file runs in exactly one. Unset
 # (plants, --only, a run by hand): every file.
-# parts: 2
+# parts: 3
 part=0; parts=1
 if [[ "${CHECK_PART:-}" =~ ^([0-9]+)/([0-9]+)$ ]]; then part=${BASH_REMATCH[1]}; parts=${BASH_REMATCH[2]}; fi
 files=$(node -e '
