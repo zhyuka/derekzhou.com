@@ -23,6 +23,10 @@
 //   the opening view   215 (the air: the landing and airHeading0, its table blanked), 270 (the flight), 320 (the camera
 //                      drawn between the last two), 386 (the frustum for the window)
 //   the words          390 (the words' place), site/index.html, site/style.css
+//   the solids' places (the hub's ruling on #533, 23:29Z Nov 25: a place moved behind the name is measured afresh; a
+//                      surface's shading is not): realm-dunes.js's areas and their forms (DS, CUT_D, dSite, FORM_K, dGreat,
+//                      dDetails, dDest, FORM_*, dForms, dSmall, its cell()), 217 (the destination), 230 (the cells),
+//                      233's resolvePlaces (a place seated); realm-above.js's islands are in it whole already
 // Not the sky (the sun, the stars, the Milky Way: a feature's light is a score, not a cap), the land's surface or the
 // birds. looksKey (below) adds the table and the measuring code: the gate measures afresh whenever it moves
 import fs from 'node:fs';
@@ -49,10 +53,12 @@ export const keeps = (l, own, land) => keepsWords(l) && (keepsDiscs(l, own) || g
 const TABLE = /(function airHeading0\(\) \{ var T = )\[[^\]]*\]/;
 export const KEY_INPUTS = [
   'src/realm-above.js',
-  ['src/realm-dunes.js', ['function dAirDir(', 'function dAir(', 'var HELD_H=', 'function dHeld(', 'cloud:function(cl,PF,R)']],
+  ['src/realm-dunes.js', ['function dAirDir(', 'function dAir(', 'var HELD_H=', 'function dHeld(', 'cloud:function(cl,PF,R)',
+    'var DS=', 'var CUT_D=', 'function dSite(', 'var FORM_K=', 'function dGreat(', 'function dDetails(', 'function dDest(', 'var FORM_N=', 'function dForms(', 'function dSmall(', 'cell:function(C,R,K2)']],
   'src/world/120-cloud-bodies.js', 'src/world/210-cloud-volumes-baking.js', 'src/world/212-cloud-drift.js', 'src/world/231-cells-resolve.js',
   'src/world/215-air.js', 'src/world/270-flight.js', 'src/world/320-camera-drawn-between-last-two.js', 'src/world/386-frustum-resize.js',
   'src/world/390-words.js', 'site/index.html', 'site/style.css',
+  'src/world/217-destination.js', 'src/world/230-cells-endless-world.js', ['src/world/233-cells-places-glows-beams.js', ['function resolvePlaces(']],
 ];
 // a piece of a file's code (minified: no comments, one spelling): from its head to the end of its declaration (a var's
 // semicolon) or to the brace that closes its first open one
