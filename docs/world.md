@@ -81,7 +81,7 @@ the ridge's lift 2-15 m over its clearance and settles back in the lee
 the rise holds nothing past 0.1 Hz (24 dB down there; the 0.2-0.4 Hz
 sway that sickens most, 39-57 dB), added over the height's spring, never through it; the
 heading, the pitch and the roll are untouched (test/unit/flight-sim.mjs).
-A form too wide for the usual look (250 m or more across, out to 4 km)
+A form too wide for the usual look (500 m or more across, out to 4 km)
 stretches the slip's plan to its far side, sampled as often as the usual
 plan: left alone, the flight passes forms up to 1.6 km wide met 3.2 km off
 at a crab of 14 deg or less, with no push (283's slipGather; the

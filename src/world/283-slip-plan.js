@@ -63,7 +63,7 @@
   function slipGather(V, S, wide) {
     var v = V.speed, cl = V.clear, m = V.margin || V.def.margin || 14, hx = Math.sin(S.psi), hz = Math.cos(S.psi), rx = -hz, rz = hx, i;
     var x0 = S.x, z0 = S.z, climbs = S.climbs || (S.climbs = []); climbs.length = 0; SPN = 0;
-    // (delight-visit 5.3, the destination's risk) a wide solid on the way (SLIP_WIDE m or more across at the eye, out to
+    // (delight-visit 5.3, the destination's risk) a wide solid on the way (SLIP_WIDE m or more in radius at the eye: 500 m across; out to
     // SLIP_FAR) stretches the look to its far side, and with it the reach across (Lmax): passing 800 m to one side wants
     // 3-4 km at a gentle crab, where 1.2 km reached only 405 m across and the hard rule pushed 1,800 times. Only then:
     // every other plan looks as far as before, sampled as before
