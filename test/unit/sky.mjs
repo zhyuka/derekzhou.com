@@ -1,5 +1,6 @@
 // test/unit/sky.mjs: the order of the skies (skyInit, skyPush, skyNext) and their hold and change timing
 // (split from test/unit.mjs, 2026-11-07: one file an area, found by glob, so two PRs that add tests never share a file)
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  return extTint(col, airmass(sd.y)) * min(v, hv) * (1.0 - hazeSky(rd));", "with": "  return extTint(col, airmass(sd.y)) * min(v, hv) * exp2(-0.4 * 3.3219281 * EXT_V * max(airmass(sd.y) - 1.0, 0.0)) * (1.0 - hazeSky(rd));", "why": "the evening star dimmed under its head by the low air: it vanishes from a bright twilight where it stands far over the light's ceiling"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "f = fract(g); ivec2 c = ivec2(floor(g));", "with": "f = vec2(0.0); ivec2 c = ivec2(floor(g + 0.5));", "why": "the face's map read nearest, not bilinear: its cells' edges glitter as the disc slides"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "(abs(k) < 1e-4 ? 1.0 - 0.5 * k : (1.0 - exp(-k)) / k); }\nfloat fogAmt", "with": "1.0; }\nfloat fogAmt", "why": "the gas taken at the eye's density along the whole path: a cloud 7 km up hazed as if at the eye's height"}
 // plant: {"file": "src/world/224-sky-blend-paint.js", "find": "HIP[3] = q > 0 && q < 1 && xa !== xb ? 1 : 0;", "with": "HIP[3] = 0;", "why": "the cirrus cover blended over the whole sky through a change: a fade"}
@@ -44,7 +45,7 @@
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "hiCv = max(hiCv, clamp(max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));", "with": "hiCv = max(hiCv, clamp(vm * vk + max(cov - vm, 0.0) / max(1.0 - vm, 0.05) * vk, 0.0, 1.0) * smoothstep(0.0, 0.05, uHi.y));", "why": "the corona on every veiled night: the veil's even mean counted as cloud"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "dot(c, LUMA) * vec3(0.861, 1.04, 1.68)", "with": "dot(c, LUMA) * vec3(1.2, 0.85, 0.95)", "why": "the Earth's shadow pink again"}
 // plant: {"file": "src/world/220-time-day.js", "find": "fx:{belt:0,nlc:1}", "with": "fx:{belt:0.4,nlc:1}", "why": "the belt drawn in the blue hour (the sun too low for it)"}
-// plant: {"file": "src/world/226-moonlit-stay.js", "find": "SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;", "with": "SKYN.night[2] = reduced() ? 0 : 1;", "why": "the still twinkles: a hashed brightness frozen into its one frame"}
+// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "  b *= bk;\n", "with": "  b *= 1.0 + 0.15 * sin(uT * (0.6 + 1.2 * hw) + hz * SKYTAU);\n  b *= bk;\n", "why": "the stars twinkle again: a slow swing of their light, frame to frame (and frozen into the still)"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float MOON_PHASE = 15.0;", "with": "const float MOON_PHASE = 60.0;", "why": "a half-lit moon: its sun not under the far horizon"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float sX = airmass(sw.y), sx = EXT_V * max(sX - 1.0, 0.0);", "with": "float sX = 1.0, sx = 0.0;", "why": "no extinction: the stars as bright and as many at the horizon as overhead"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
@@ -669,7 +670,18 @@ test('night: the stars come out by the sun\'s depth, brightest first; their colo
   const T = g.match(/^vec3 starTint[\s\S]*?^}/m)[0], cols = [...T.matchAll(/vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)/g)].map((m) => [+m[1], +m[2], +m[3]]).filter((c) => c[0] !== 0.92);
   assert.equal(cols.length, 4);
   for (const c of cols) { const L = lab(c); assert.ok(Math.abs(Y(c) - Y(W)) < 2e-3, `tint ${c}: Y ${Y(c)}`); assert.ok(Math.abs(L[0] - lab(W)[0]) < 5e-3, `tint ${c}: L ${L[0]}`); assert.ok(Math.hypot(L[1], L[2]) <= 0.0505, `tint ${c}: pastel (C ${Math.hypot(L[1], L[2]).toFixed(4)}, at most 0.05: delight-night §4)`); }
-  assert.ok(g.includes('  return col * min(v, hv) * (1.0 - hazeSky(rd));'), 'a planet\'s light capped at its head');
+  assert.ok(g.includes('  return extTint(col, airmass(sd.y)) * min(v, hv) * (1.0 - hazeSky(rd));'), 'a planet\'s light capped at its head, a little redder low down (extTint), never dimmed under its head');
+  // (physics: night/extinction, the hub's review of #455) the planets' true magnitudes, the air's k (X - 1) taken from
+  // them: still over the brightest star's (Sirius, -1.46, overhead) at every height from 2 deg, so each stays at its
+  // head; and their heads over the stars' top, so in any frame either outshines every star
+  const am = (y) => { const h = Math.max(Math.asin(Math.min(Math.max(y, 0), 1)) * 180 / Math.PI, 0); return 1 / (Math.sin(h * Math.PI / 180) + 0.50572 * Math.pow(h + 6.07995, -1.6364)); };
+  const EXT = +/const float EXT_V = ([\d.]+);/.exec(g)[1], lost = (deg) => EXT * Math.max(am(Math.sin(deg * Math.PI / 180)) - 1, 0);
+  for (let deg = 2; deg <= 90; deg += 1) {
+    assert.ok(-4.4 + lost(deg) < -1.46, `Venus at ${deg} deg: ${(-4.4 + lost(deg)).toFixed(2)} mag through the air, not over the brightest star overhead`);
+    assert.ok(-2.4 + lost(deg) < -1.46 + lost(deg), 'the outer planet over the brightest star at its own height');   // (under 8 deg up it falls under a star overhead: held at its head there, a little bright, as Venus is not)
+  }
+  const STOP = +/STAR_TOP_Y = ([\d.]+)/.exec(WORLD)[1];
+  assert.ok(K.VEN_TOP_Y > STOP && +WORLD.match(/JUP_TOP_Y = ([\d.]+);/)[1] > STOP, 'a planet\'s top under the stars\'');
   const vc = g.match(/planetAt\(rd, c, uVen\.xyz, uStarM\.z, vec3\(([\d.]+), ([\d.]+), ([\d.]+)\)\)/); assert.ok(vc, 'Venus\'s colour and top');
   const V = [+vc[1], +vc[2], +vc[3]]; assert.ok(Math.abs(Y(V) - 1) < 2e-3, 'Venus\'s colour at Y 1');
   for (const bg of [[0, 0, 0], [0.01, 0.012, 0.03], [0.05, 0.06, 0.1]]) { const hv = Math.max(K.VEN_TOP_Y - Y(bg), 0), top = bg.map((x, i) => x + V[i] * hv); assert.ok(lab(top)[0] <= 0.5, `Venus over ${bg}: L ${lab(top)[0]}`); }
@@ -912,7 +924,7 @@ test('physics: weather/moon-corona: the corona\'s rings only where thin cloud st
   assert.ok(!/hiCv[^;]*(uT|clockNow|uTime)/.test(g), 'the corona follows a clock (it may only come and go with its cloud, by place)');
 });
 
-test('physics: twilight (B6, B7, B9): the Earth\'s shadow blue-grey at the sky\'s lightness, no belt in the blue hour, the twinkle held in reduced motion and the still', () => {
+test('physics: twilight (B6, B7, B9): the Earth\'s shadow blue-grey at the sky\'s lightness, no belt in the blue hour, the stars steady (no twinkle)', () => {
   const { WSKY } = skyWorld(1, 'night', 0.5);
   const o2l = (L, a, b) => { let l = L + 0.3963377774 * a + 0.2158037573 * b, m = L - 0.1055613458 * a - 0.0638541728 * b, s = L - 0.0894841775 * a - 1.2914855480 * b; l **= 3; m **= 3; s **= 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]; };
   const l2o = (c) => { const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]); const o = [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s]; return [o[0], Math.hypot(o[1], o[2]), (Math.atan2(o[2], o[1]) * 180 / Math.PI + 360) % 360]; };
@@ -938,9 +950,10 @@ test('physics: twilight (B6, B7, B9): the Earth\'s shadow blue-grey at the sky\'
   assert.ok(belted >= 2, 'no sky draws the belt');
   // B7: no belt (the shadow and the Belt of Venus) in the blue hour: the sun too low for it
   assert.equal((WSKY.bluehour.fx || {}).belt || 0, 0, 'the blue hour draws the belt');
-  // B9: the twinkle held at 0 in reduced motion and in the still (226: uNight.z)
-  assert.ok(WORLD.includes('SKYN.night[2] = reduced() || STILLMODE ? 0 : 1;'), 'the stars twinkle in reduced motion or in the still (uNight.z not held at 0 there)');
-  assert.ok(g.includes('b *= 1.0 + 0.15 * uNight.z * sin('), 'the twinkle is not uNight.z\'s alone');
+  // (the audit's rank 4) no twinkle at all: the stars steady in every frame, the live as the still and reduced motion
+  assert.ok(WORLD.includes('SKYN.night[2] = 0;'), 'uNight.z is not held at 0');
+  const sa = g.match(/^float starAt[\s\S]*?^}/m); assert.ok(sa, 'starAt');
+  assert.ok(!/uT\b|uNight\.z/.test(sa[0]), 'a star\'s light still moves with the clock (a twinkle)');
 });
 
 // ------------------------------------------------------------------ the purple light (physics: sky/purple-light)

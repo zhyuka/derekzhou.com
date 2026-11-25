@@ -139,6 +139,18 @@ runner, about 5 minutes and 40 runner-minutes for the 30). The verdict needs it;
 it. The bot's re-gate of a PR on main's newer tip measures that merged tree, and main's own gate measures each merge
 that moved the key. Each shard's record is its artifact looks-s<N> (7 days), for headings.mjs (--looks).
 
+The first paint's trend (2026-11-25, the hub's ruling (b) on #428): gate.yml's paint job, when the served build changed,
+opens base and head (the plan's hand-off) cold in the gates' headless Chromium, 9 loads an arm, in turn, and times each
+load's words (the first contentful paint), world (the world's first shown frame) and main (the main thread's own work up
+to it): tools/paint-trend.mjs. It fails when a head median is slower than max(50 ms, 3 x the measured noise, 1.4826 x
+the pooled median absolute deviation). What that catches, measured (4 cores, 7 loads an arm, base against itself): words
+80-92 ms, noise 6-18 ms, so its limit is the 50 ms floor: any stall before the first paint of about 50 ms or more fails
+(a 200 ms stall in hour.js: +192 ms, failed). world and main are SwiftShader's software boot, 8.3-9.5 s with noise
+94-392 ms, so their limit is about 0.3-1.2 s: they catch a boot made slower by about half a second or more, NOT a smaller
+one (a 200 ms stall at world.js's top moved them +240-300 ms and passed). Catching that would take about 90 loads an arm
+(option (a), about 25 minutes) or a GPU runner; the hub declined both. A byte-identical head fails only by chance beyond
+3 sigma.
+
 The hand-off (2026-11-23): the gate's jobs pass each other the two builds and T1's shards as the run's own artifacts,
 gate-served and, from each of T1's four runners, gate-t1-s<N>, kept a day (retention-days: 1, hidden files included: the build's .well-known/). Actions
 storage is metered for private repositories only; the 2026-11-15 quota that moved the hand-off onto the PC's disk

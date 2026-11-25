@@ -57,16 +57,6 @@
      distance alone. The born arguments are unused (kept for the callers and the merge) */
   function fadeOf(born) { return 1; }
   function fadeCell(C, born) { return cellDistFade(C); }   // (by distance)
-  /* (dev) the weight log (gate C2): every drawn weight of a frame (a cell's fade, a set's coarse or full mesh, a
-     cloud body's fade and march steps, a flock among the drawn eight, a glow, the governor's scale) and the events
-     that swap or drop a drawn thing (a coarse mesh rebuilt in full, a cell freed), each with its distance; and the
-     injected pop (gate C3's calibration): a chosen cell held undrawn, then drawn at full weight in one frame */
-  var WLOG = null, WID = 0, INJ = { key: null, on: true };
-  function wl(kind, id, w, d, vis) {   // (events between frames, a swap or a free in the frame's jobs, wait for the next frame's entry)
-    if (!WLOG) return;
-    var tgt = WLOG.cur || WLOG.pend || (WLOG.pend = []);
-    if (tgt.length < 30000) tgt.push([kind, id, +w.toFixed(4), Math.round(d), vis ? 1 : 0]);
-  }
   var VPOS = new Float64Array(3), VOLS = [], VKEY = new Float32Array(512), VORD = new Int32Array(512), FLK = [], UF = new Float32Array(1);
   function pushVol(B) {
     var n = VOLS.length; if (n >= 512) return;
@@ -101,7 +91,6 @@
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
       var steps = VSTEPS + (48 - VSTEPS) * (1 - smooth(B.r * 1.3, B.r * 1.7, d));   // (near a body 48 on every tier, as before; beyond, one budget a look, never cut by distance: a far tower's 24 steps forced its band 12 m apart; between 1.3 and 1.7 radii eased, a step at a time, never a switch in one frame)
-      if (WLOG) { if (!B.wid) B.wid = ++WID; wl('vol', B.wid, B.fade === undefined ? 1 : smooth(0, 0.25, B.fade), d, 1);   /* (the drawn opacity, fs-vbody's smoothstep(0, 0.25, w)) */ wl('steps', B.wid, steps / 48, d, 1); }
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or
       // 1 on the camera's position (a one-frame flash of 50 grey levels)
@@ -149,7 +138,6 @@
     var P = EP.creature; gl.useProgram(P.p); setFrameUniforms(P, V);
     gl.bindVertexArray(CREATURE.vao);
     var m8 = Math.min(n, 8), adds = 0;
-    if (WLOG) for (i = 0; i < n; i++) { var Fw = FLK[n > 8 ? FLKO[i] : i]; if (!Fw.wid) Fw.wid = ++WID; wl('flk', Fw.wid, i < m8 ? 1 : 0, Math.sqrt(FLKD[n > 8 ? FLKO[i] : i]), 1); }
     for (var pass = 0; pass < 2; pass++) {
       if (pass === 1) { if (!adds) break; gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE); gl.depthMask(false); }
       for (i = 0; i < m8; i++) {

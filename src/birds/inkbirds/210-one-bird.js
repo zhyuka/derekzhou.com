@@ -36,7 +36,7 @@
   var CONTRAST = 0.4;          // the most a bird's ink differs from the sky behind it (linear): what unseen() bounds
   var UNSEEN = 0.4 / 255;      // a pixel changed by less than this is not changed
   var FDEV_MAX = 2560 * 2 / 2 / Math.tan(36 * DEG);   // device px: the largest window's focal length (2560 CSS px at 2 device px a CSS px, 72 deg across)
-  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', side: 1, line: 0, k: 0, passT: 60, comeT: 0, passN: 0 };
+  var BIRDS = [], FLOCKS = [], BK = 0, POP = { r: null, nextT: 0, seeded: false, cls: '', line: 0, k: 0, passT: 60, comeT: 0, passN: 0 };
   var SEAC = new Map();
   /* the cloud sea at a point (cached on a 64 m grid: the maps never change) */
   function seaAt(x, z) {
@@ -76,7 +76,7 @@
       p: [x, y, z], v: [0, 0, 0], psi: psi, gam: gam || 0, V: K.v * (0.95 + 0.1 * r()), phi: 0,
       vJ: 0.92 + 0.16 * r(), vK: Math.floor(r() * NOISE_N), lat: pick(r, [0.08, 0.25]),
       st: 'fly', F: F || null, slot: [0, 0, 0], goal: null, w: null, s: null, dq: 0, P: null,
-      flap: -1, flapA: undefined, flareU: 0, burst: null, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
+      flap: -1, flapA: undefined, flareU: 0, burst: null, lift: 0, soarT: -1, soarH: 0, soarX: 0, soarZ: 0, vLo: 0, vHi: 0, evT: -1, wtT: 0, wsT: -1, offT: 0, wOff: false, wP: 0, stT: t, pp: [x, y, z], v0: [0, 0, 0], phi0: 0, cs: false, dsT: 0, gAt: 0, gOK: 0, hT: -1e9,
       WS: { flap: 0, ph: 0, k: 1, D: 0, a: 0, e: 0, beat: -1, pause: 0, tuck: 0, psi: 0, lock: 0, bank: 0, trim: 0 } };   // (every field a bird ever has, set here: one shape for every bird, so the step stays fast)
     b.w = placeWing(kind, r, b.age, inV(F)); if (F) F.lk = true;
     var ch = Math.cos(b.gam);
@@ -109,11 +109,23 @@
     if (F.m.length === 1) F.pat = 'single'; else if (F.m.length === 2) F.pat = 'pair';
   }
 
+  /* (physics: birds/wind; the audit's rank 12) SLOPE LIFT: the wind meeting a windward face is turned up it, w = u sin(slope)
+     along the wind (6.5 m/s on the dunes' ~13 deg windward faces: about 1.5 m/s), thinning with the height over the face
+     (LIFT_H, about a dune's height: doi:10.1038/s41598-017-05319-8, gulls glide straight along faces in it). The air
+     rises: it carries every flying bird as the wind does, and a glider climbs where it rises faster than it sinks */
+  var LIFT_H = 40, LIFT_D = 6;
+  function slopeW(x, y, z) {
+    var u = Math.sqrt(WINDV[0] * WINDV[0] + WINDV[2] * WINDV[2]); if (u < 0.5) return 0;
+    var g0 = lvGround(x, z), hg = y - g0; if (!(hg < 3 * LIFT_H) || hg < 0) return 0;
+    var ex = WINDV[0] / u * LIFT_D, ez = WINDV[2] / u * LIFT_D, gr = (lvGround(x + ex, z + ez) - lvGround(x - ex, z - ez)) / (2 * LIFT_D);
+    return gr > 0 ? u * gr / Math.sqrt(1 + gr * gr) * Math.exp(-hg / LIFT_H) : 0;
+  }
   /* ---------------- the flight: one integrator ---------------- */
   /* the bird flies toward a wanted velocity over the ground (dx, dy, dz, m/s): its heading through the air turned only
      by its bank, its climb and its airspeed eased within its kind's limits; then the wind carries it */
   function flyTo(b, dt, dx, dy, dz, vk) {
     var K = b.K, wx = WINDV[0], wz = WINDV[2];
+    b.lift = b.st === 'fly' && !b.P ? slopeW(b.p[0], b.p[1], b.p[2]) : 0;
     var ax = dx - wx, az = dz - wz, ay = dy, hz = Math.sqrt(ax * ax + az * az);
     var psiD = hz > 0.3 ? Math.atan2(ax, az) : b.psi, gamD = clamp(Math.atan2(ay, Math.max(hz, 0.5)), -K.dive * DEG, K.climb * DEG);
     var lo = b.vLo || 0.72 * K.v, hi = b.vHi || 1.45 * K.v, VD = clamp(Math.sqrt(ax * ax + ay * ay + az * az) * (vk || 1), lo, hi);   // (a landing's own range: vLo, vHi)
@@ -127,7 +139,7 @@
     integrate(b, dt);
   }
   function integrate(b, dt) {
-    var ch = Math.cos(b.gam), vx = b.V * ch * Math.sin(b.psi) + WINDV[0], vy = b.V * Math.sin(b.gam), vz = b.V * ch * Math.cos(b.psi) + WINDV[2];
+    var ch = Math.cos(b.gam), vx = b.V * ch * Math.sin(b.psi) + WINDV[0], vy = b.V * Math.sin(b.gam) + b.lift, vz = b.V * ch * Math.cos(b.psi) + WINDV[2];
     b.v[0] = vx; b.v[1] = vy; b.v[2] = vz;
     b.p[0] += vx * dt; b.p[1] += vy * dt; b.p[2] += vz * dt;
   }
@@ -197,6 +209,7 @@
       HOST.places && HOST.places(1500, PLQ);
       var pl = null, i; for (i = 0; i < PLQ.length; i++) { var q = PLQ[i], ddx = q.x - x, ddz = q.z - z; if (ddx * ddx + ddz * ddz < 1200 * 1200 && (!pl || r() < 0.5)) pl = q; }
       if (pl) { g.cx = pl.x; g.cz = pl.z; g.R = clamp(pl.orbit || 40, 22, 90); g.y = Math.max(pl.y + 20, top + 30); g.place = true; }
+      else if (cls !== 'day') return newGoal(F, 'commute', r, cls);   // (no thermal to circle in: thermals need a sun-heated surface, building through the morning, gone by evening; heavy soarers wait for them: https://academic.oup.com/condor/article/105/2/208/5563225. At dusk and first light a wheel is round a place only)
       else { g.R = mix(r(), 30, 80); g.cx = x + g.R * Math.cos(Lb.psi) * g.sense; g.cz = z - g.R * Math.sin(Lb.psi) * g.sense; g.y = Math.max(top + 30, eye + mix(r(), -10, 70)); }
       g.T = (TAU * g.R / Lb.K.v) * pick(r, [1.5, 3.5]);
     } else if (kind === 'loiter') { g.R = mix(r(), 120, 320); g.y = Math.max(top + 15, eye + mix(r(), -30, 40)); g.T = pick(r, [40, 90]); }
@@ -238,7 +251,7 @@
     return b.p[1] < fl + 10 ? Math.max(dy, clamp(0.4 * (fl + 10 - b.p[1]), 0, v * 0.35)) : dy;
   }
   /* the leader's wanted velocity for its goal (m/s over the ground, the wind in it) */
-  var WV = [0, 0, 0];
+  var WV = [0, 0, 0], SOAR_K = { gull: 1, stork: 1 }, SOAR_W = [0.12, 0.35];   // (soaring from 0.35 m/s of lift (its glide sinks about 0.2: gulls slope-soar dunes in a 4 m/s wind), on till under 0.12: its glide sinks about 0.2, so at the top of its band it sinks back into the stronger lift)
   function goalVel(F, b, dt) {
     var g = F.goal || nextGoal(F), r = F.r, v = b.K.v * paceOf(b), x = b.p[0], z = b.p[2], h = g.psi;
     g.eh += -g.eh * dt / 8 + 9 * DEG * Math.sqrt(2 * dt / 8) * lvG(r);
@@ -258,7 +271,20 @@
       var qx = ex - x, qz = ez - z; h = Math.atan2(qx, qz);
       if (qx * qx + qz * qz < 30 * 30 || t - g.t0 > g.T) { g.k = 'commute'; g.psi = b.psi; g.T = 60; g.t0 = t; }
     } else h = g.psi + g.eh;
-    var ch = Math.cos(h), sh = Math.sin(h), dy = clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25) + v * g.ec;
+    var ch, sh, dy = clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25) + v * g.ec;
+    /* soaring (the kinds that slope-soar, in lift past their glide's sink, on a way of their own): straight along the face
+       (across its slope), the way of the two nearer its heading; its height the lift's to give, never flown down */
+    if (SOAR_K[b.kind] && !b.P && !F.passage && b.lift > (b.soarT >= 0 && t - b.soarT < 1 ? SOAR_W[0] : SOAR_W[1]) && (g.k === 'commute' || g.k === 'loiter' || g.k === 'wheel')) {
+      var gx = lvGround(x + LIFT_D, z) - lvGround(x - LIFT_D, z), gz = lvGround(x, z + LIFT_D) - lvGround(x, z - LIFT_D); h = Math.atan2(-gz, gx); if (Math.abs(angDiff(h, t - b.soarT < 1 ? b.soarH : b.psi)) > Math.PI / 2) h += Math.PI;   // (the face's own line: across its slope, held the way it chose)
+      var ax = 30 * Math.sin(h), az = 30 * Math.cos(h); if (slopeW(x + ax, b.p[1], z + az) < SOAR_W[1] && slopeW(x - ax, b.p[1], z - az) >= SOAR_W[1]) h += Math.PI;   // (the face ending ahead and good behind: it turns back along it, beating to and fro)
+      b.soarH = h;
+      var gl = Math.sqrt(gx * gx + gz * gz) || 1, ux = gx / gl * 15, uz = gz / gl * 15, y = b.p[1], dl = slopeW(x + ux, y, z + uz) - slopeW(x - ux, y, z - uz), sd = angDiff(Math.atan2(gx, gz), h) > 0 ? 1 : -1;
+      h += sd * clamp(dl / 0.3, -1, 1) * 25 * DEG;   // (kept over the face's best lift: turned up or down the slope toward the stronger, 15 m each way)
+      dy = Math.max(dy, 0); b.soarT = t; b.soarX = x; b.soarZ = z;
+    } else if (SOAR_K[b.kind] && !b.P && b.soarT >= 0 && t - b.soarT < 10 && (g.k === 'commute' || g.k === 'loiter' || g.k === 'wheel')) {
+      var sx = b.soarX - x, sz = b.soarZ - z; if (sx * sx + sz * sz < 200 * 200) h = Math.atan2(sx, sz);   // (lift just lost: back to where it last soared, as a gull works a face)
+    }
+    ch = Math.cos(h); sh = Math.sin(h);
     if (g.k === 'sink') {   // (its depth under the cloud's top where it is now: the top rises and falls under it)
       var sk = seaAt(x, z); if (sk.w > 0.85) g.y = Math.min(hideTop(x, z), sk.lv - 60) - SEA_DEEP - 2 * b.sz - 10;
       dy = Math.min(clamp(0.12 * (g.y - b.p[1]), -v * 0.4, v * 0.25), -v * Math.sin(10 * DEG));

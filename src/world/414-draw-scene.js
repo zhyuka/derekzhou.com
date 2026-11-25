@@ -42,10 +42,8 @@
       P = DP.lm; gl.useProgram(P.p); setFrameUniforms(P, V); if (P.u.uScat) gl.uniform1i(P.u.uScat, 0);
       for (var ci = 0; ci < CL.length; ci++) {
         var C = CL[ci]; if (!C.mesh || !C.mesh.vao) continue;
-        if (C.bound[3] > 0 && !inView(C.bound[0], C.bound[1], C.bound[2], C.bound[3])) { if (WLOG) { C.lastVis = 0; } continue; }
-        if (INJ.key !== null && INJ.key === V.k + ':' + C.key && !INJ.on) continue;   // (dev: the injected pop, held)
+        if (C.bound[3] > 0 && !inView(C.bound[0], C.bound[1], C.bound[2], C.bound[3])) continue;
         UF[0] = fadeCell(C, C.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(P.u.uFade, UF);
-        if (WLOG) { C.lastW = UF[0]; C.lastVis = 1; wl('lm', V.k + ':' + C.key, UF[0], nearDist(C, CAM.pos[0], CAM.pos[2]), 1); }
         gl.bindVertexArray(C.mesh.vao); dc(gl.TRIANGLES, C.mesh.n); ST.cellsDrawn++;
       }
     }
@@ -58,11 +56,9 @@
         if (!lmiOn) { gl.useProgram(P.p); setFrameUniforms(P, V); lmiOn = true; }
         UF[0] = fadeCell(Ci, Ci.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(P.u.uFade, UF);
         var farD = nearDist(Ci, CAM.pos[0], CAM.pos[2]);
-        if (WLOG) wl('lmi', V.k + ':' + Ci.key, UF[0], farD, 1);
         for (var qi = 0; qi < Ci.inst.length; qi++) {
           var Q = Ci.inst[qi]; if (!Q.vaoF) continue;
           var useC = Q.vaoC && farD > Q.S.far;
-          if (WLOG && Q.vaoC) wl('lod', V.k + ':' + Ci.key + ':' + qi, useC ? 0 : 1, farD, 1);
           gl.bindVertexArray(useC ? Q.vaoC : Q.vaoF); dc(gl.TRIANGLES, (useC ? Q.S.coarse : Q.S.full).n, Q.n);
         }
       }
@@ -90,7 +86,7 @@
     gl.uniform4fv(P.u.uSunD, L.discK); gl.uniform4fv(P.u.uHi, SUNU.on && L === SUNU.L ? skyHi0(L) : L.hi); gl.uniform3fv(P.u.uHiC, L.hiC); if (P.u.uHiP) gl.uniform4fv(P.u.uHiP, HIP);
     var dW = cloudWind(V, 'deck', DECKW), dS = Math.sqrt(dW[0] * dW[0] + dW[1] * dW[1]), dO = dS * cloudT();   // (physics: clouds/drift: the deck carried by its wind, in doubles, wrapped at 5 tiles)
     gl.uniform4f(P.u.uDeck, dS > 0 ? dW[0] / dS : 0, dS > 0 ? dW[1] / dS : 0, dO - Math.floor(dO / 1024000) * 1024000, 0);   // (in a change between a twilight sky and a night, the veil at strength 0, drawn by its own block)
-    skyNightUniforms(P);   // (tod: the moon, the belt, the wisps, the stars' twinkle and top)
+    skyNightUniforms(P);   // (tod: the moon, the belt, the wisps, the stars' top)
     gl.depthMask(false); gl.bindVertexArray(FULLVAO); dc(gl.TRIANGLES, 3); gl.depthMask(true);
     prof('sky');
     // the glow sprites: light added, depth-tested, never written (the scene's alpha, water's flag, left alone)
@@ -102,7 +98,6 @@
         if (!lateReady(GP)) { lateMissIf(GP, true); continue; }   // (a late program; drawn once finished)
         if (!gOn) { gl.useProgram(GP.p); setFrameUniforms(GP, V); gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE); gl.depthMask(false); gOn = true; }
         UF[0] = fadeCell(Cg, Cg.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(GP.u.uGlowK, UF);
-        if (WLOG) wl('glow', V.k + ':' + Cg.key, UF[0], nearDist(Cg, CAM.pos[0], CAM.pos[2]), 1);
         gl.bindVertexArray(Gb.vao); dc(gl.TRIANGLE_STRIP, 4, Gb.n);
       }
       if (gOn) { gl.depthMask(true); gl.disable(gl.BLEND); }
@@ -110,7 +105,12 @@
     }
     // the veils of sand (blended, no depth written)
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
-    var skR = V.def.sandFx ? sandAt() : 1;
+    /* (physics: sand/threshold) sand moves only past its threshold friction velocity, about 0.2-0.25 m/s for fine dune
+       sand, which the log law over the sand (z0 about 0.1 mm) puts at U10 5.8-7.2 m/s (both: https://arxiv.org/pdf/1201.4353):
+       AIR's own dust (airWx(t).dust, eased over U10 5.8-7.0; docs/world.md, ## THE SAND VEILS). So the veils
+       are the visit's dust times the sand under the camera: none on a calm visit, whole past the threshold, the
+       visit's own (U10 alone: a veil never fades in place) */
+    var skR = (V.def.sandFx ? sandAt() : 1) * airWx(SIM.t, V).dust;
     if (V.ribbons && V.ribbons.count && DP.rb && !SW.noanim && skR > 0.002 && (lateReady(DP.rb) || lateMissIf(DP.rb, true))) {
       var rb = V.ribbons; P = DP.rb; gl.useProgram(P.p); setFrameUniforms(P, V);
       skyPart(rb, PCOL); PCOL[3] *= skR;
