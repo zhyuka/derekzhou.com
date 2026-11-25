@@ -171,6 +171,17 @@ function highHz(hz) {   // (the displays a visitor has: 144, 165 and 240 Hz; eac
 test('144 Hz: no landing or perched bird\'s drawn form or body jumps', () => highHz(144));
 test('165 Hz: no landing or perched bird\'s drawn form or body jumps', () => highHz(165));
 test('240 Hz: no landing or perched bird\'s drawn form or body jumps', () => highHz(240));
+/* (wave 2's re-measure, 2026-11-25) a landing in the page's wind along the camera's way: with a 6.5 m/s tail wind the
+   approach slows below the wind, so through the air the bird drifts backwards; drawn along its air velocity, it swung
+   through straight down and its attitude flipped in a frame (gale seed 1: 1.93x the 60 Hz bound, 5.43x at 144 Hz)
+   (at 144 Hz its approach is left out: a fast roll-out there kinks at each step, the roll drawn linearly between steps,
+   1.35x on main before this test; BACKLOG, birds: 'roll between steps') */
+for (const hz of [60, 144]) test(`${hz} Hz: no landing in a gale flips its attitude (drawn form and body within their bounds)`, () => {
+  const { worst, worstB } = jumps(hz, ['gale', 'galeCursor'], hz === 60 ? ['appr', 'land', 'perch', 'takeoff'] : ['land', 'perch', 'takeoff']);
+  console.log(`# ${hz} Hz gale: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
+  assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
+  assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
+});
 
 /* (BACKLOG: bird-walk-across-strokes) a perched bird walking from one ledge of a stroke onto the next stands on the ink
    under its foot all the way: its support hands on with no snap. Once its body dropped 2.5 px in one frame there (drop 3,
