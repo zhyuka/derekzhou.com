@@ -31,7 +31,7 @@ out vec4 oC;
 const float SKYTAU = 6.2831853;
 /* (physics: sky/cirrus) the high veil is cirrus: it stands 7 km up (cirrus: 5-13 km in temperate regions, 3-8 km in
    polar ones; 64 N lies between: WMO International Cloud Atlas, https://cloudatlas.wmo.int/en/cirrus-ci.html), lies
-   along the air's wind at that height and drifts with it (215's profile: 2 U10 veered 40 deg, held above 3 km); a
+   along the air's wind at that height and drifts with it (215's profile: the winds aloft, 29-32 m/s at 7 km, veered 40 deg); a
    change's cover comes in by place, a front carried along that wind from upwind (HIF_W wide), never a strength
    over the whole sky */
 const float HI_H = 7000.0, HIF_W = 12000.0;

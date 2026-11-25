@@ -28,14 +28,15 @@ function fly(drag = testDrag, { bank = true } = {}) {
     '  var PI = Math.PI, DEG = PI / 180, TH_MAX = 35 * DEG, DEVMODE = false, shown = true, SEEDR = 1, J = { seed: 1 };\n' + CONSTS +
     '  var OUT = { cssW: 1000 }, MOTION = { on: false }, INPQ = []; INPQ.i = 0;\n' +
     '  var INP = { dx: 0, dy: 0, down: false, rel: false, fx: 0, fy: 0, ft: 0, relAny: false, held: false, qx: 0, qy: 0 };\n' +
-    '  var SIM = { V: {} }, SIM_DT = 1 / 60, DTMAX = 0.1, CSP = { yawV: 0, thU: 0 };\n' +
+    '  var SIM = { V: {} }, SIM_DT = 1 / 60, DTMAX = 0.1, CSP = { yawV: 0, thU: 0 }, CLK = new Float64Array([0, -1]);\n' +
     '  var CS = { psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, roll: 0, rollV: 0, bank: 0, bankV: 0, yawRate: 0, ring: new Float32Array(12), ringP: new Float32Array(12), ringT: new Float32Array(12), ri: 0, om: 0, omP: 0, since: 9, lastIn: 0, auto: 0, idleAfter: 0 };\n' +
     '  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }\n  function angDiff(a, b) { return a - b; }\n  function hfl() { return 0.5; }\n  function ihash(x) { return x; }\n  function devInput() {}\n' +
     INPUT + '\n  var out = [], px = 0, was = false, V = { speed: 12 }, v = V.speed;\n' +
     '  for (var k = 0; k <= ' + STEPS + '; k++) {\n    var t = k / 60, dt = 1 / 60, s = drag(t);\n' +
     '    if (s.down) { if (!was && typeof REL !== "undefined") REL.n = 0; INP.down = true; INP.dx += s.x - px; if (typeof relAdd === "function") relAdd(s.x, 0, t * 1000); } else if (was) { INP.down = false; INP.rel = true; if (typeof relAdd === "function") { REL.tl = t * 1000; relAdd(px, 0, REL.t[(REL.i + REL_N - 1) % REL_N]); } }\n' +   // (the drag's samples and its lift, as onMove and onUp take them)
     '    px = s.x; was = s.down;\n' +
-    '    if (typeof inputFrame === "function") inputFrame(dt);\n' +   // (the drag and its coast drawn in frame time, before the step, a frame a step here: #222)
+    '    CLK[1] = t * 1000 + 0.4; if (typeof inputFrame === "function") inputFrame(dt);\n' +   // (the frame just after the step\'s move)
+   // (the drag and its coast drawn in frame time, before the step, a frame a step here: #222)
     '    applyInput(dt, t, V);\n' +
     FOLLOW + (bank ? BANK : '') +
     '    out.push({ t: t, view: CS.yawV + CS.phi, psi: CS.psi, roll: CS.roll, rate: CS.yawRate, down: s.down });\n  }\n  return out;\n})')(drag);
