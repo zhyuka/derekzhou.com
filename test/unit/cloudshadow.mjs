@@ -5,6 +5,7 @@
 // the key's direct share of its light (the clear-sky model, https://www.nrel.gov/docs/legosti/old/761.pdf) and gets
 // part back through the cloud (two-stream diffuse transmission, https://doi.org/10.1119/1.15109), read where its
 // point meets the plane the lobes were cast on.
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "cshTap(q * 0.5 + 0.5)", "with": "texture(uCSh, q * 0.5 + 0.5).r", "why": "the map read at one bilinear tap: its 39 m texels' steps crawl along a shadow's edge on the sea and the sand as the eye moves (the shimmer measured 2.07% over main)"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  return c * cloudShadow(p, ndl);", "with": "  return c;", "why": "the sand never under the clouds' shadow"}
 // plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp) * cloudShadow(p, uSun.y);", "with": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp);", "why": "the cloud sea's top never under the free clouds' shadow (lit as if no cumulus stood over it)"}
 // plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "fp) * cloudShadow(p, uSun.y);", "with": "fp) * cloudShadow(p, dot(n, uSun));", "why": "the sea's shadow read by each bumped facet: creases turned from the key lit through it, thin bright lines that flicker as the camera moves"}
@@ -95,7 +96,7 @@ function landShadow(m, ndl, sy0) {
 test('cloud shadow: the land loses the key\'s direct share alone, and gets back what the cloud scatters through', () => {
   assert.match(DG, /vec2 q = \(p\.xz \+ uSun\.xz \* \(uCShP\.w - p\.y\) \/ max\(uSun\.y, 0\.02\) - uCShP\.xy\) \/ uCShP\.z;/, 'the land\'s point carried along the key to the plane (any height of land: the same line as the lobes\')');
   assert.match(DG, /if \(uCShP\.z <= 0\.0 \|\| ndl <= 0\.0\) return 1\.0;/, 'none without a map this frame, none on a face from the key');
-  assert.match(DG, /float tau = -32\.0 \* log\(max\(mix\(texture\(uCSh, q \* 0\.5 \+ 0\.5\)\.r, 1\.0, smoothstep\(0\.75, 1\.0, max\(abs\(q\.x\), abs\(q\.y\)\)\)\), 0\.002\)\);/, 'the depth read back (x 32), eased off over the map\'s last quarter');
+  assert.match(DG, /float tau = -32\.0 \* log\(max\(mix\(cshTap\(q \* 0\.5 \+ 0\.5\), 1\.0, smoothstep\(0\.75, 1\.0, max\(abs\(q\.x\), abs\(q\.y\)\)\)\), 0\.002\)\);/, 'the depth read back (x 32, over its 3x3 texels), eased off over the map\'s last quarter');
   assert.match(DG, /float sy = max\(uSun\.y, 0\.02\), f = ndl \/ \(ndl \+ 0\.13 \* sy \/ \(sy \+ 0\.02\)\);/, 'the beam\'s share of the face\'s light');
   assert.match(DG, /return 1\.0 - f \* \(1\.0 - 1\.0 \/ \(1\.0 \+ 0\.1125 \* tau\)\);/, 'two-stream diffuse transmission, 3/4 (1 - g), g 0.85');
   // the fit is the clear sky's over the key's 5 to 14 deg
@@ -142,4 +143,22 @@ test('cloud shadow: the cloud sea\'s top lies in the free clouds\' shadow, read 
     const sy = Math.sin(el * Math.PI / 180), fd = sy / (sy + qFit(sy)), top = landShadow(Math.exp(-20 / 32), sy, sy);
     assert.ok(top > 1 - fd && top < 1, `${el} deg, a level top under tau 20: ${top.toFixed(3)}, between the sky's light alone and none lost`);
   }
+});
+
+// (physics: light/cloud-shadow) the map read over its 3x3 texels (four bilinear taps half a texel off, weights 1-2-1 by
+// 1-2-1): a texel's edge spread over three texels, the shading's step per frame halved where it crosses one, so the
+// edge never crawls as the eye moves (#471: 2.07% of edge pixels stepping over main's own motion at one tap)
+test('cloud shadow: the map is read over its 3x3 texels, so an edge never crawls', () => {
+  const D = R('src/glsl/dunes-glsl.glsl');
+  const tap = D.match(/float cshTap\(vec2 u\) \{([\s\S]*?)\n\}/);
+  assert.ok(tap, 'cshTap: the 3x3 read');
+  assert.match(tap[1], /const float h = 0\.5 \/ 1024\.0;/, 'half a texel of the 1024 map');
+  assert.equal((tap[1].match(/texture\(uCSh, u [+-] vec2\(/g) || []).length, 4, 'four bilinear taps, one each corner');
+  assert.match(D, /log\(max\(mix\(cshTap\(q \* 0\.5 \+ 0\.5\), 1\.0,/, 'cloudShadow reads the map through it (the sand, the stones and the sea alike)');
+  // a hard edge between two texels (0 | 1), read as the eye's sample slides over it: the steepest change per texel
+  const lin = (x) => Math.min(1, Math.max(0, x));   // (one bilinear tap: 0 at texel 0's centre, 1 at texel 1's)
+  const tent = (x) => 0.5 * (lin(x - 0.5) + lin(x + 0.5));
+  let s1 = 0, s3 = 0;
+  for (let x = -2; x < 3; x += 1 / 64) { s1 = Math.max(s1, (lin(x + 1 / 64) - lin(x)) * 64); s3 = Math.max(s3, (tent(x + 1 / 64) - tent(x)) * 64); }
+  assert.ok(Math.abs(s1 - 1) < 1e-9 && Math.abs(s3 - 0.5) < 1e-9, `the edge's steepest slope per texel: one tap ${s1}, 3x3 ${s3}`);
 });

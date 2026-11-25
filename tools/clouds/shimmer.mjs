@@ -2,9 +2,9 @@
 // where it changed? Base and head flown the same way (the opening's own cruise, nothing held), headless SwiftShader
 // on T1's harness, no one's own machine.
 //   node tools/clouds/shimmer.mjs --base REF --head REF --out DIR [--seeds 11,22] [--epoch ISO] [--vp 1440x900]
-//        [--pairs 30] [--every 60] [--start 600] [--stepvp 160x100] [--edge 3]
+//        [--pairs 30] [--every 60] [--start 600] [--stepvp 160x100] [--edge 3] [--gap 1]
 // Each arm steps the clock at the small --stepvp (the frames between cost little) and, --every frames apart, --pairs
-// times, renders two CONSECUTIVE frames at --vp (once the world's canvas has taken --vp: its frames are checked to be). The flight is the same in both arms (shading never steers it), and both
+// times, renders two frames --gap apart (1: consecutive at 60 fps, 2: at 30 fps) at --vp (once the world's canvas has taken --vp: its frames are checked to be). The flight is the same in both arms (shading never steers it), and both
 // arms count from the page's own first frame (--start: past both shows), so pair k of base and of head see the same
 // place from the same camera. The change's pixels in a pair: where head and
 // base differ by over 2 levels (8 bits, the largest channel) in its first frame; its EDGE: those within --edge px of
@@ -22,7 +22,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function args(argv) {
-  const A = { seeds: '11,22', epoch: '2026-11-05T22:30:00Z', vp: '1440x900', pairs: 30, every: 60, start: 600, stepvp: '160x100', edge: 3 };
+  const A = { seeds: '11,22', epoch: '2026-11-05T22:30:00Z', vp: '1440x900', pairs: 30, every: 60, start: 600, stepvp: '160x100', edge: 3, gap: 1 };
   for (let i = 0; i < argv.length; i++) { const k = argv[i].replace(/^--/, ''); A[k] = argv[++i]; }
   for (const k of ['base', 'head', 'out']) if (!A[k]) { console.error(`shimmer: --${k} is required`); process.exit(2); }
   return A;
@@ -64,7 +64,7 @@ async function main() {
   const { launch, openPage, stepToShow, step } = await import(pathToFileURL(path.join(ROOT, '.github/ci/harness.mjs')).href);
   const { serve } = await import(pathToFileURL(path.join(ROOT, '.github/ci/serve.mjs')).href);
   const [vw, vh] = A.vp.split('x').map(Number), SV = A.stepvp.split('x').map(Number), EPOCH = Date.parse(A.epoch);
-  const pairs = +A.pairs, every = +A.every, START = +A.start, E = +A.edge, seeds = String(A.seeds).split(',').map(Number);
+  const pairs = +A.pairs, every = +A.every, GAP = +A.gap, START = +A.start, E = +A.edge, seeds = String(A.seeds).split(',').map(Number);
   fs.mkdirSync(A.out, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'shimmer-')), tb = path.join(tmp, 'base'), th = path.join(tmp, 'head');
   fs.mkdirSync(tb); fs.mkdirSync(th);
@@ -85,13 +85,13 @@ async function main() {
     const out = [];
     for (let k = 0; k < pairs; k++) {
       await step(arm, every); await size(arm, [vw, vh]); await settle(arm, vw, vh);
-      const a = await png(arm); await step(arm, 1); const b = await png(arm); await size(arm, SV); await settle(arm, SV[0], SV[1]);
+      const a = await png(arm); await step(arm, GAP); const b = await png(arm); await size(arm, SV); await settle(arm, SV[0], SV[1]);
       const [wa, wb] = await Promise.all([a, b].map((u) => dims(u))); if (wa !== wb || wa !== vw) throw new Error(`shimmer: ${tag} pair ${k}: frames ${wa} and ${wb} px wide, want ${vw}`);
       out.push([a, b]);
     }
     const errs = arm.logs; await arm.ctx.close(); say(`${tag} flown (${pairs} pairs)`); return { out, errs, shownAt: arm.shownAt };
   };
-  const rec = { base: A.base, head: A.head, vp: A.vp, epoch: A.epoch, pairs, every, edge: E, flights: [] };
+  const rec = { base: A.base, head: A.head, vp: A.vp, epoch: A.epoch, pairs, every, gap: GAP, edge: E, flights: [] };
   try {
     const page = await (await browser.newContext()).newPage();
     for (const seed of seeds) {
