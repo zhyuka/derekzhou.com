@@ -6,6 +6,7 @@
 // part back through the cloud (two-stream diffuse transmission, https://doi.org/10.1119/1.15109), read where its
 // point meets the plane the lobes were cast on.
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "  return c * cloudShadow(p, ndl);", "with": "  return c;", "why": "the sand never under the clouds' shadow"}
+// plant: {"file": "src/world/glsl/world-glsl.glsl", "find": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp) * cloudShadow(p, dot(n, uSun));", "with": "A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp);", "why": "the cloud sea's top never under the free clouds' shadow (lit as if no cumulus stood over it)"}
 // plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));", "with": "return 1.0 - f * (1.0 - exp(-tau));", "why": "no light scattered through the cloud: an opaque floor under a thick one"}
 // plant: {"file": "src/world/glsl/fs-cshadow.glsl", "find": "exp(-uCShK.x * ch / 32.0)", "with": "exp(-uCShK.x * ch)", "why": "the depth stored whole: 8 bits clip a cloud's past 5.5, and the land reads it 32 times over"}
 // plant: {"file": "src/world/262-cloud-shadow.js", "find": "var off = cellOff(C, t, CSHO), S = C.soft;", "with": "var off = cellOff(C, 0, CSHO), S = C.soft;", "why": "the shadows left where the clouds were laid out, not where the wind has carried them"}
@@ -15,7 +16,7 @@
 import { test, assert, fs, path, ROOT, WORLD } from '../unit-lib.mjs';
 
 const R = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const VS = R('src/world/glsl/vs-cshadow.glsl'), FS = R('src/world/glsl/fs-cshadow.glsl'), DG = R('src/glsl/dunes-glsl.glsl'), JS = R('src/world/262-cloud-shadow.js');
+const WG = R('src/world/glsl/world-glsl.glsl'), VS = R('src/world/glsl/vs-cshadow.glsl'), FS = R('src/world/glsl/fs-cshadow.glsl'), DG = R('src/glsl/dunes-glsl.glsl'), JS = R('src/world/262-cloud-shadow.js');
 const num = (re, s) => Number(re.exec(s)[1]);
 const K = num(/CSH_K = ([\d.]+)/, JS), SUNR = num(/CSH_SUN = ([\d.]+)/, JS);
 const smooth = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
@@ -130,4 +131,14 @@ test('cloud shadow: one pass a frame, before the land, along the live key, where
   assert.match(WORLD, /E\('cshadow', EP\.cshadow, CSH\.vao, TS, 4, 1, false, 'rgba8', BL_MUL, 0, false\);/, 'warmed with its own blend');
   assert.match(WORLD, /sandFx: true, cloudShadow: true,/, 'the dunes\' world casts them');
   assert.match(WORLD, /CSH\.T = null; CSH\.ok = false;/, 'a lost context makes its map again');
+});
+
+// (physics: light/cloud-shadow) the cloud sea's top under a cumulus: a cloud top is lit as the land is, by the key's beam
+// and the sky's light, and loses the same share (a deck's shadow seen from above: the beam's light gone, the sky's kept)
+test('cloud shadow: the cloud sea\'s top lies in the free clouds\' shadow, read as the land reads it', () => {
+  assert.match(WG, /return A_shadeSea\(vec3\(p\.x, p\.y - lv\.x, p\.z\), n, rd, t, fp\) \* cloudShadow\(p, dot\(n, uSun\)\);/, 'the sea\'s light times the shadow at its own point (world height) and face');
+  for (const el of [5, 14]) {
+    const sy = Math.sin(el * Math.PI / 180), fd = sy / (sy + qFit(sy)), top = landShadow(Math.exp(-20 / 32), sy, sy);
+    assert.ok(top > 1 - fd && top < 1, `${el} deg, a level top under tau 20: ${top.toFixed(3)}, between the sky's light alone and none lost`);
+  }
 });
