@@ -402,6 +402,35 @@ test('the score\'s bird feed: nearest first, finite, and read only', () => {
    flies on, never turned to pass by the eye (240 s after its birth over 2.5 km from it; measured 17 of 20; with
    recruit() sending it on passes, 5 of 20, the skein circling near the eye for minutes). One born after the cut starts
    beyond sight (sightD) */
+/* (the hub, 2026-11-25) a speck (under SPECK_W, 2.5 device px) draws no night halo, its own light alone: a skein's
+   specks a few px apart summed theirs into one glowing streak (no-glitter). Over moonlit scenes with a skein seeded
+   near: every drawn speck's halo e-folding is 0, and the paper shader gives no halo at 0; a bird drawn larger keeps it */
+test('at night a speck draws no halo (a skein\'s specks never sum into a glow); a larger bird keeps its own', () => {
+  const SPECK_W = 2.5, vs = fs.readFileSync(new URL('../src/birds/inkbirds/glsl/vs-paper-2.glsl', import.meta.url), 'utf8');
+  assert.match(vs, /float halo = [^;]*aM\.x <= 0\.0 \? 0\.0 : aC\.w \* uMode\.z;/, 'the paper shader draws a halo at a 0 e-folding');
+  let specks = 0, haloed = 0, skein = 0, big = 0, bigHalo = 0; const lost = {};
+  for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 3; seed++) {
+    const sc = SCENES.natural(seed, size); sc.opt.dt = 1 / 60; sc.opt.draw = { data: null }; sc.opt.sky = 'moonlit';
+    const sim = makeSim(sc.opt); if (sc.setup) sc.setup(sim); sim.run(0.2);
+    const B = sim.B; let q = seed * 0.61 % 1; const r = () => (q = (q * 9301 + 0.49297) % 1);
+    B.passage(sim.C, 'moon', r, true);
+    for (let k = 0; k < 40 * 60; k++) {
+      sim.step(); if (k % 6) continue; const DF = B.DF();
+      for (const b of B.BIRDS) {
+        const s = b.s; if (!s || s.seenF !== DF || !(s.spanPx > 0)) continue;
+        if (s.spanPx < SPECK_W) {
+          specks++; if (s.haloE > 0) haloed++; if (b.F && b.F.passage) skein++;
+          const d = Math.hypot(b.p[0] - sim.C.pos[0], b.p[1] - sim.C.pos[1], b.p[2] - sim.C.pos[2]), L = lost[b.kind] || (lost[b.kind] = [1e9, 0]); L[0] = Math.min(L[0], d); L[1] = Math.max(L[1], d);
+        } else { big++; if (s.haloE > 0) bigHalo++; }
+      }
+    }
+  }
+  console.log(`# night specks drawn ${specks} (the skein's ${skein}), with a halo ${haloed}; larger birds ${big}, with a halo ${bigHalo}; specks by kind (no halo), from the eye: ${Object.entries(lost).map(([k, L]) => `${k} ${L[0].toFixed(0)}-${L[1].toFixed(0)} m`).join(', ')}`);
+  assert.ok(skein > 100 && specks > skein, 'too few specks drawn');
+  assert.equal(haloed, 0, `${haloed} specks drawn with a halo`);
+  assert.ok(big > 50 && bigHalo === big, `${big - bigHalo} of ${big} larger birds drawn without their halo`);
+});
+
 test('the night passage: a high goose skein crosses the sky and flies on', () => {
   let born = 0, seen = 0, gone = 0, far = 0, farOk = 0; const ns = [], hs = [];
   for (const size of ['960x600', '390x844']) for (let seed = 1; seed <= 10; seed++) {
