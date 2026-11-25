@@ -65,35 +65,19 @@
      first issue and given after DEFS to every program the boot issues (never set by hand; negative, so a program
      compiled without them keeps today's text): NO_TWILIGHT (no two skies' words differ; every sky's words are light, so
      the twilight's low mist in lib-air.glsl, and uTwM, are compiled out: their text stays so that no vertex shader's
-     changes), NO_RAIN (no sky's post.rain, no kit's rain), NO_WATER (no realm's GLSL calls waterShade). CLA.dev marks real dev use (DBG, SS > 1 or the dev switch dbg at load;
+     changes). CLA.dev marks real dev use (DBG, SS > 1 or the dev switch dbg at load;
      never DEVMODE alone, so the audits compile the shipped text): without it uDbg is folded to 0 (foldFixed).
      Restores reuse them (the same text) */
   var CLA = null;
-  function claScan(o, d, st) {   // a number > 0 under a key 'rain' anywhere in a kit (its lights, areas, kits)
-    if (!o || typeof o !== 'object' || d > 8 || ArrayBuffer.isView(o) || st.seen.indexOf(o) >= 0) return false;
-    st.seen.push(o);
-    for (var k in o) {
-      if (++st.n > 50000) return true;   // (too big to read: taken as raining)
-      var v = o[k];
-      if (k === 'rain' && typeof v === 'number' && v > 0) return true;
-      if (v && typeof v === 'object' && claScan(v, d + 1, st)) return true;
-    }
-    return false;
-  }
   function claCompute() {
-    var c = { twilight: false, rain: false, water: false, dev: false }, id, ws = {}, nw = 0, st = { seen: [], n: 0 }, i;
-    for (id in WSKY) { var S = WSKY[id]; if (!ws[S.w]) { ws[S.w] = 1; nw++; } if (S.post && S.post.rain) c.rain = true; }
+    var c = { twilight: false, dev: false }, id, ws = {}, nw = 0;
+    for (id in WSKY) { var S = WSKY[id]; if (!ws[S.w]) { ws[S.w] = 1; nw++; } }
     c.twilight = nw > 1;
-    for (id in KITS) if (!c.rain && claScan(KITS[id], 0, st)) c.rain = true;
-    for (i = 0; i < ORDER.length; i++) {
-      var d = REALMS[ORDER[i]]; if (!d) continue;
-      if (/\bwaterShade\s*\(/.test(d.glsl || '')) c.water = true;
-    }
     c.dev = !!DEVMODE && (DBG !== 0 || SS > 1 || /(^|[\s,;])dbg(=|[\s,;]|$)/.test(String(OPT.sw || '')));
     return c;
   }
   function defsA() {
-    if (!CLA) { CLA = claCompute(); CLA.defs = (CLA.twilight ? '' : '#define NO_TWILIGHT\n') + (CLA.rain ? '' : '#define NO_RAIN\n') + (CLA.water ? '' : '#define NO_WATER\n'); }
+    if (!CLA) { CLA = claCompute(); CLA.defs = CLA.twilight ? '' : '#define NO_TWILIGHT\n'; }
     return CLA.defs;
   }
   function progDone(P) {   // its status read (and its uniforms): true linked, false broken, LOSTP
