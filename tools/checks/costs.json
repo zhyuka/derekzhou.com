@@ -8,5 +8,5 @@
   "35-birds#0": 186.4, "35-birds#1": 180.2, "35-birds#2": 116.5, "36-load-budget": 21.8, "37-ground-fresh": 76.7,
   "38-sound": 21.9, "39-boot-frames": 40.1, "40-font-glyphs": 0.2, "41-docs-drift": 0.1, "42-one-air": 51.1,
   "43-dune-census": 121.5, "44-gust-glsl": 30, "45-citations": 0.2, "46-names-in-messages": 1.5, "47-first-paint": 28.7,
-  "48-tsc": 134.1, "70-still-words": 27.2
+  "48-tsc": 134.1, "49-sound-cpu": 32, "70-still-words": 27.2
 }

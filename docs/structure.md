@@ -150,6 +150,8 @@ tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
                              events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/sound/cpu.mjs          The score's CPU with the world running: the audio thread's and the score's ticks, the main
+                             thread slowed (tools/checks/49-sound-cpu.sh)
 tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
                              build (a layout only): 226's STILL_WORDS (their union) and test/golden/still-words.json
                              (--check, tools/checks/70-still-words.sh; --write after a stylesheet change)
@@ -185,7 +187,9 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              the PR's title or its body: .claude/hooks/guard.py --messages, the one names.json list),
                              tools/checks/47-first-paint.sh (with no stills, the words first, then the world as a cut,
                              no stale still: tools/first-paint.mjs),
-                             tools/checks/48-tsc.sh (tsc --checkJs at zero: tools/tsc.mjs)
+                             tools/checks/48-tsc.sh (tsc --checkJs at zero: tools/tsc.mjs),
+                             tools/checks/49-sound-cpu.sh (the score's CPU under its bars, the world running:
+                             tools/sound/cpu.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/rules_check.py (RULES.json's references exist),
