@@ -84,7 +84,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
                              test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
 test/fakepage.cjs            The one fake browser the static checks and the shader census share (devices, the page's scripts)
-test/sims/boot.mjs           The boot on the fake page, each device profile once (tools/checks/39-boot-frames.sh)
+test/sims/boot.mjs           The boot on the fake page, each device profile once: its frames to the show and its GPU work before it
+                             (3D texels, draws; test/golden/boot-bakes.json) (tools/checks/39-boot-frames.sh)
 test/birds-motion.mjs        The ink birds' drawn motion, frame by frame in the headless sim: no snap, flicker or jump
 test/birds-flock.mjs         How a flock's birds fly together in the headless sim: the skein's phase lock in wake bouts
 test/birds-wind.mjs          The birds in wind in the headless sim: air speed into a headwind, crabbing, landings against a side wind
