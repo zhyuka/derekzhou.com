@@ -124,16 +124,15 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
      unwritten texel 0). The land: dunes 55 NB + 36 over, 55 NB under; one basin at most (sites 600 m apart at least,
      radii under 260) sinks it 20 m more; a plateau (smooth max, never under the land) tops at swell + 8 + 60 plus 0.16
      of the land over its base, + k / 4 a site; the 9 ridges at most 60 (1.195 + 0.05 NB) each, never under 0. The sea:
-     lv + A_Hd (0.4 .. 1), A_Hd within -42 NB .. 42 NB + the five domes' sqrt(NB^2 + e^2), and the long waves on its top
-     within +-5 (3 + 2 m, physics: clouds/sea). Each widened by 10 m and 2%.
+     lv + A_Hd (0.4 .. 1), A_Hd within -42 NB .. 42 NB + the five domes' sqrt(NB^2 + e^2). Each widened by 10 m and 2%.
      A change to those terms' amplitudes is a change here */
   var YB = (function () {
     var NB = 1, wid = function (lo, hi) { return [lo - 10 - 0.02 * Math.abs(lo), hi + 10 + 0.02 * Math.abs(hi)]; };
     var du = 55 * NB + 36, dl = -55 * NB - 20, top = 55 * NB + 8 + 60, base = -55 * NB + 8, h = du;
     for (var k = 0; k < 9; k++) h = Math.max(h, top + 0.16 * Math.max(0, h - base)) + 5 / 4;
     var ridge = 9 * 60 * (1.195 + 0.05 * NB), dome = function (a, e) { return a * Math.sqrt(NB * NB + e * e); };
-    var aU = 42 * NB + dome(28, 0.04) + dome(12, 0.05) + dome(4, 0.07) + dome(9, 0.08) + dome(3.5, 0.1) + 5, aL = -42 * NB - 5;   // (+-5: the long waves on the sea's top, 3 + 2 m, physics: clouds/sea)
-    return { land: wid(dl - SINK, h + ridge), sea: wid(SEA_LO + aL, aU) };
+    var aU = 42 * NB + dome(28, 0.04) + dome(12, 0.05) + dome(4, 0.07) + dome(9, 0.08) + dome(3.5, 0.1);
+    return { land: wid(dl - SINK, h + ridge), sea: wid(SEA_LO - 42 * NB, aU) };
   })();
   function worldDef(KD, KA) {
     return {

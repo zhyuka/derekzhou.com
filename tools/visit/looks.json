@@ -1,5 +1,5 @@
 {
- "world": "74ed7ab2dfd8ed4c",
+ "world": "3cb407f855078663",
  "lands": {
   "0": {
    "90": {
@@ -8,10 +8,10 @@
     "deg": 90,
     "wordCloud": 0.019,
     "nameCloud": 0,
-    "topCloud": 0.124,
-    "galaxy": 0.89,
+    "topCloud": 0.126,
+    "galaxy": 0.892,
     "galaxyIn": 10.979,
-    "sun": 0.821,
+    "sun": 0.693,
     "sunIn": 3.492,
     "discs": {
      "laptop-sunset": null,
@@ -22,8 +22,8 @@
       "view": "laptop-night",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.096,
-      "vis": 0.89,
+      "topCloud": 0.061,
+      "vis": 0.892,
       "in": 10.979
      },
      {
@@ -31,16 +31,16 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.098,
-      "vis": 0.821,
+      "vis": 0.693,
       "in": 3.492
      },
      {
       "view": "phone-dawn",
       "wordCloud": 0.019,
       "nameCloud": 0,
-      "topCloud": 0.124,
+      "topCloud": 0.126,
       "vis": 0.98,
-      "in": 8.407
+      "in": 8.191
      }
     ]
    },
@@ -48,13 +48,13 @@
     "world": "3cb407f855078663",
     "k": 0,
     "deg": null,
-    "wordCloud": 0.587,
-    "nameCloud": 0.962,
-    "topCloud": 0.882,
-    "galaxy": 0.696,
-    "galaxyIn": 6.763,
-    "sun": 0.609,
-    "sunIn": 7.59,
+    "wordCloud": 0.712,
+    "nameCloud": 0.963,
+    "topCloud": 0.88,
+    "galaxy": 0.703,
+    "galaxyIn": 6.731,
+    "sun": 0.584,
+    "sunIn": 7.588,
     "discs": {
      "laptop-sunset": null,
      "phone-dawn": null
@@ -62,27 +62,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.474,
-      "nameCloud": 0.862,
-      "topCloud": 0.729,
-      "vis": 0.696,
-      "in": 6.763
+      "wordCloud": 0.162,
+      "nameCloud": 0.246,
+      "topCloud": 0.535,
+      "vis": 0.703,
+      "in": 6.731
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.563,
-      "nameCloud": 0.573,
-      "topCloud": 0.528,
-      "vis": 0.733,
-      "in": 7.59
+      "wordCloud": 0.712,
+      "nameCloud": 0.837,
+      "topCloud": 0.559,
+      "vis": 0.687,
+      "in": 7.588
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.587,
-      "nameCloud": 0.962,
-      "topCloud": 0.882,
-      "vis": 0.609,
-      "in": 9.94
+      "wordCloud": 0.586,
+      "nameCloud": 0.963,
+      "topCloud": 0.88,
+      "vis": 0.584,
+      "in": 9.886
      }
     ]
    }
@@ -92,13 +92,13 @@
     "world": "3cb407f855078663",
     "k": 1,
     "deg": 329,
-    "wordCloud": 0.094,
+    "wordCloud": 0.093,
     "nameCloud": 0,
-    "topCloud": 0.025,
-    "galaxy": 0.82,
-    "galaxyIn": 11.096,
-    "sun": 0.842,
-    "sunIn": 8.864,
+    "topCloud": 0.026,
+    "galaxy": 0.766,
+    "galaxyIn": 11.534,
+    "sun": 0.795,
+    "sunIn": 8.911,
     "discs": {
      "laptop-sunset": null,
      "phone-dawn": null
@@ -106,27 +106,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.06,
+      "wordCloud": 0.085,
       "nameCloud": 0,
-      "topCloud": 0.025,
-      "vis": 0.82,
-      "in": 11.096
+      "topCloud": 0.026,
+      "vis": 0.766,
+      "in": 11.534
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.053,
+      "wordCloud": 0.082,
       "nameCloud": 0,
-      "topCloud": 0.025,
-      "vis": 0.842,
-      "in": 8.864
+      "topCloud": 0.023,
+      "vis": 0.795,
+      "in": 8.911
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.094,
+      "wordCloud": 0.093,
       "nameCloud": 0,
       "topCloud": 0.019,
-      "vis": 0.862,
-      "in": 10.752
+      "vis": 0.864,
+      "in": 11.097
      }
     ]
    },
@@ -134,13 +134,13 @@
     "world": "3cb407f855078663",
     "k": 1,
     "deg": null,
-    "wordCloud": 0.455,
+    "wordCloud": 0.454,
     "nameCloud": 0.437,
-    "topCloud": 0.139,
-    "galaxy": 0.718,
-    "galaxyIn": 7.164,
-    "sun": 0.775,
-    "sunIn": 2.861,
+    "topCloud": 0.14,
+    "galaxy": 0.72,
+    "galaxyIn": 7.128,
+    "sun": 0.671,
+    "sunIn": 2.86,
     "discs": {
      "laptop-sunset": null,
      "phone-dawn": null
@@ -148,27 +148,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.455,
+      "wordCloud": 0.452,
       "nameCloud": 0.437,
-      "topCloud": 0.139,
-      "vis": 0.718,
-      "in": 7.164
+      "topCloud": 0.14,
+      "vis": 0.72,
+      "in": 7.128
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.384,
-      "nameCloud": 0.436,
-      "topCloud": 0.121,
-      "vis": 0.796,
-      "in": 2.861
+      "wordCloud": 0.454,
+      "nameCloud": 0.437,
+      "topCloud": 0.134,
+      "vis": 0.671,
+      "in": 2.86
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.364,
+      "wordCloud": 0.348,
       "nameCloud": 0.399,
       "topCloud": 0.089,
-      "vis": 0.775,
-      "in": 6.583
+      "vis": 0.785,
+      "in": 6.505
      }
     ]
    }
@@ -181,9 +181,9 @@
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.185,
-    "galaxy": 0.972,
-    "galaxyIn": 6.297,
-    "sun": 0.919,
+    "galaxy": 0.947,
+    "galaxyIn": 6.293,
+    "sun": 0.918,
     "sunIn": 2.937,
     "discs": {
      "laptop-sunset": null,
@@ -195,15 +195,15 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.08,
-      "vis": 0.972,
-      "in": 6.297
+      "vis": 0.947,
+      "in": 6.293
      },
      {
       "view": "laptop-sunset",
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.08,
-      "vis": 0.919,
+      "vis": 0.918,
       "in": 2.937
      },
      {
@@ -212,7 +212,7 @@
       "nameCloud": 0,
       "topCloud": 0.185,
       "vis": 0.988,
-      "in": 5.716
+      "in": 5.615
      }
     ]
    },
@@ -223,10 +223,10 @@
     "wordCloud": 0.298,
     "nameCloud": 0.157,
     "topCloud": 0.143,
-    "galaxy": 0.788,
-    "galaxyIn": 6.151,
-    "sun": 0.671,
-    "sunIn": 3.123,
+    "galaxy": 0.711,
+    "galaxyIn": 6.081,
+    "sun": 0.659,
+    "sunIn": 3.122,
     "discs": {
      "laptop-sunset": null,
      "phone-dawn": null
@@ -234,27 +234,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.139,
-      "nameCloud": 0.071,
-      "topCloud": 0.142,
-      "vis": 0.788,
-      "in": 6.151
+      "wordCloud": 0.213,
+      "nameCloud": 0.07,
+      "topCloud": 0.133,
+      "vis": 0.711,
+      "in": 6.081
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.274,
-      "nameCloud": 0.088,
+      "wordCloud": 0.286,
+      "nameCloud": 0.087,
       "topCloud": 0.143,
-      "vis": 0.671,
-      "in": 3.123
+      "vis": 0.659,
+      "in": 3.122
      },
      {
       "view": "phone-dawn",
       "wordCloud": 0.298,
       "nameCloud": 0.157,
       "topCloud": 0.004,
-      "vis": 0.805,
-      "in": 6.567
+      "vis": 0.802,
+      "in": 6.511
      }
     ]
    }
@@ -264,13 +264,13 @@
     "world": "3cb407f855078663",
     "k": 3,
     "deg": 120,
-    "wordCloud": 0.053,
+    "wordCloud": 0.042,
     "nameCloud": 0.009,
     "topCloud": 0,
-    "galaxy": 0.91,
-    "galaxyIn": 11.029,
-    "sun": 0.936,
-    "sunIn": 9.357,
+    "galaxy": 0.909,
+    "galaxyIn": 11.408,
+    "sun": 0.922,
+    "sunIn": 9.354,
     "discs": {
      "laptop-sunset": null,
      "phone-dawn": null
@@ -281,24 +281,24 @@
       "wordCloud": 0.04,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.91,
-      "in": 11.029
+      "vis": 0.909,
+      "in": 11.408
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.003,
+      "wordCloud": 0.039,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.946,
-      "in": 9.357
+      "vis": 0.922,
+      "in": 9.354
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.053,
+      "wordCloud": 0.042,
       "nameCloud": 0.009,
       "topCloud": 0,
-      "vis": 0.936,
-      "in": 11.693
+      "vis": 0.943,
+      "in": 11.883
      }
     ]
    },
@@ -309,10 +309,10 @@
     "wordCloud": 0.006,
     "nameCloud": 0,
     "topCloud": 0,
-    "galaxy": 0.936,
-    "galaxyIn": 8.354,
-    "sun": 0.974,
-    "sunIn": 5.032,
+    "galaxy": 0.933,
+    "galaxyIn": 8.46,
+    "sun": 0.919,
+    "sunIn": 5.027,
     "discs": {
      "laptop-sunset": null,
      "phone-dawn": null
@@ -323,24 +323,24 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.936,
-      "in": 8.354
+      "vis": 0.933,
+      "in": 8.46
      },
      {
       "view": "laptop-sunset",
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.974,
-      "in": 5.032
+      "vis": 0.919,
+      "in": 5.027
      },
      {
       "view": "phone-dawn",
       "wordCloud": 0.006,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.996,
-      "in": 7.34
+      "vis": 0.995,
+      "in": 7.102
      }
     ]
    }
@@ -353,9 +353,9 @@
     "wordCloud": 0,
     "nameCloud": 0,
     "topCloud": 0.056,
-    "galaxy": 0.858,
+    "galaxy": 0.852,
     "galaxyIn": 10.965,
-    "sun": 0.855,
+    "sun": 0.835,
     "sunIn": 8.12,
     "discs": {
      "laptop-sunset": null,
@@ -367,15 +367,15 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0.056,
-      "vis": 0.858,
+      "vis": 0.852,
       "in": 10.965
      },
      {
       "view": "laptop-sunset",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.044,
-      "vis": 0.855,
+      "topCloud": 0.047,
+      "vis": 0.835,
       "in": 8.12
      },
      {
@@ -384,7 +384,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 0.999,
-      "in": 9.125
+      "in": 9.299
      }
     ]
    },
@@ -397,7 +397,7 @@
     "topCloud": 0,
     "galaxy": 0.94,
     "galaxyIn": 7.117,
-    "sun": 0.922,
+    "sun": 0.921,
     "sunIn": 2.811,
     "discs": {
      "laptop-sunset": null,
@@ -414,7 +414,7 @@
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.262,
+      "wordCloud": 0.263,
       "nameCloud": 0.434,
       "topCloud": 0,
       "vis": 0.947,
@@ -425,8 +425,8 @@
       "wordCloud": 0.107,
       "nameCloud": 0.231,
       "topCloud": 0,
-      "vis": 0.922,
-      "in": 6.69
+      "vis": 0.921,
+      "in": 6.572
      }
     ]
    }
@@ -436,12 +436,12 @@
     "world": "3cb407f855078663",
     "k": 5,
     "deg": 230,
-    "wordCloud": 0.078,
+    "wordCloud": 0.073,
     "nameCloud": 0,
     "topCloud": 0,
-    "galaxy": 0.98,
+    "galaxy": 0.954,
     "galaxyIn": 6.248,
-    "sun": 0.927,
+    "sun": 0.923,
     "sunIn": 2.905,
     "discs": {
      "laptop-sunset": null,
@@ -450,27 +450,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0,
+      "wordCloud": 0.01,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.98,
+      "vis": 0.954,
       "in": 6.248
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.002,
+      "wordCloud": 0.013,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.952,
+      "vis": 0.923,
       "in": 2.905
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.078,
+      "wordCloud": 0.073,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.927,
-      "in": 6.471
+      "vis": 0.929,
+      "in": 6.154
      }
     ]
    },
@@ -478,12 +478,12 @@
     "world": "3cb407f855078663",
     "k": 5,
     "deg": null,
-    "wordCloud": 0.31,
-    "nameCloud": 0.48,
-    "topCloud": 0.307,
-    "galaxy": 0.745,
+    "wordCloud": 0.312,
+    "nameCloud": 0.481,
+    "topCloud": 0.302,
+    "galaxy": 0.708,
     "galaxyIn": 8.256,
-    "sun": 0.703,
+    "sun": 0.657,
     "sunIn": 5.314,
     "discs": {
      "laptop-sunset": null,
@@ -492,18 +492,18 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.264,
-      "nameCloud": 0.449,
-      "topCloud": 0.307,
-      "vis": 0.745,
+      "wordCloud": 0.292,
+      "nameCloud": 0.466,
+      "topCloud": 0.293,
+      "vis": 0.708,
       "in": 8.256
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.31,
-      "nameCloud": 0.48,
-      "topCloud": 0.27,
-      "vis": 0.703,
+      "wordCloud": 0.312,
+      "nameCloud": 0.481,
+      "topCloud": 0.302,
+      "vis": 0.657,
       "in": 5.314
      },
      {
@@ -511,8 +511,8 @@
       "wordCloud": 0.122,
       "nameCloud": 0.265,
       "topCloud": 0.032,
-      "vis": 0.901,
-      "in": 7.977
+      "vis": 0.897,
+      "in": 7.622
      }
     ]
    }
@@ -527,7 +527,7 @@
     "topCloud": 0.14,
     "galaxy": 0.895,
     "galaxyIn": 9.499,
-    "sun": 0.878,
+    "sun": 0.867,
     "sunIn": 5.598,
     "discs": {
      "laptop-sunset": null,
@@ -546,8 +546,8 @@
       "view": "laptop-sunset",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.111,
-      "vis": 0.878,
+      "topCloud": 0.12,
+      "vis": 0.867,
       "in": 5.598
      },
      {
@@ -555,8 +555,8 @@
       "wordCloud": 0,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.998,
-      "in": 7.224
+      "vis": 0.999,
+      "in": 7.169
      }
     ]
    }
@@ -566,12 +566,12 @@
     "world": "3cb407f855078663",
     "k": 7,
     "deg": 70,
-    "wordCloud": 0.023,
+    "wordCloud": 0.022,
     "nameCloud": 0,
     "topCloud": 0.001,
-    "galaxy": 0.986,
+    "galaxy": 0.996,
     "galaxyIn": 7.564,
-    "sun": 0.978,
+    "sun": 0.971,
     "sunIn": 7.006,
     "discs": {
      "laptop-sunset": null,
@@ -580,27 +580,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.007,
+      "wordCloud": 0.003,
       "nameCloud": 0,
       "topCloud": 0.001,
-      "vis": 0.986,
+      "vis": 0.996,
       "in": 7.564
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.004,
+      "wordCloud": 0.014,
       "nameCloud": 0,
       "topCloud": 0.001,
-      "vis": 0.978,
+      "vis": 0.971,
       "in": 7.006
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.023,
+      "wordCloud": 0.022,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.983,
-      "in": 11.912
+      "vis": 0.984,
+      "in": 12.311
      }
     ]
    },
@@ -642,7 +642,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 1,
-      "in": 6.585
+      "in": 6.926
      }
     ]
    }
@@ -686,7 +686,7 @@
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 1,
-      "in": 9.58
+      "in": 9.406
      }
     ]
    },
@@ -694,12 +694,12 @@
     "world": "3cb407f855078663",
     "k": 8,
     "deg": null,
-    "wordCloud": 0.099,
+    "wordCloud": 0.09,
     "nameCloud": 0.01,
     "topCloud": 0.049,
     "galaxy": 0.835,
     "galaxyIn": 7.166,
-    "sun": 0.882,
+    "sun": 0.774,
     "sunIn": 3.343,
     "discs": {
      "laptop-sunset": null,
@@ -716,19 +716,19 @@
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.038,
+      "wordCloud": 0.073,
       "nameCloud": 0.003,
       "topCloud": 0,
-      "vis": 0.882,
+      "vis": 0.774,
       "in": 3.343
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.099,
+      "wordCloud": 0.09,
       "nameCloud": 0.01,
       "topCloud": 0.049,
-      "vis": 0.889,
-      "in": 6.354
+      "vis": 0.892,
+      "in": 6.058
      }
     ]
    }
@@ -738,12 +738,12 @@
     "world": "3cb407f855078663",
     "k": 9,
     "deg": 140,
-    "wordCloud": 0.061,
+    "wordCloud": 0.06,
     "nameCloud": 0.007,
-    "topCloud": 0.412,
-    "galaxy": 0.99,
+    "topCloud": 0.413,
+    "galaxy": 0.957,
     "galaxyIn": 7.515,
-    "sun": 0.946,
+    "sun": 0.937,
     "sunIn": 4.234,
     "discs": {
      "laptop-sunset": null,
@@ -752,27 +752,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.017,
+      "wordCloud": 0.022,
       "nameCloud": 0,
       "topCloud": 0.18,
-      "vis": 0.99,
+      "vis": 0.957,
       "in": 7.515
      },
      {
       "view": "laptop-sunset",
       "wordCloud": 0.025,
       "nameCloud": 0,
-      "topCloud": 0.119,
-      "vis": 0.968,
+      "topCloud": 0.179,
+      "vis": 0.963,
       "in": 4.234
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.061,
+      "wordCloud": 0.06,
       "nameCloud": 0.007,
-      "topCloud": 0.412,
-      "vis": 0.946,
-      "in": 7.263
+      "topCloud": 0.413,
+      "vis": 0.937,
+      "in": 7.157
      }
     ]
    },
@@ -780,12 +780,12 @@
     "world": "3cb407f855078663",
     "k": 9,
     "deg": null,
-    "wordCloud": 0.235,
-    "nameCloud": 0.401,
-    "topCloud": 0.073,
-    "galaxy": 0.881,
+    "wordCloud": 0.273,
+    "nameCloud": 0.404,
+    "topCloud": 0.069,
+    "galaxy": 0.866,
     "galaxyIn": 6.305,
-    "sun": 0.896,
+    "sun": 0.857,
     "sunIn": 2.855,
     "discs": {
      "laptop-sunset": null,
@@ -794,27 +794,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.224,
-      "nameCloud": 0.398,
-      "topCloud": 0.073,
-      "vis": 0.881,
+      "wordCloud": 0.225,
+      "nameCloud": 0.354,
+      "topCloud": 0.069,
+      "vis": 0.866,
       "in": 6.305
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.235,
-      "nameCloud": 0.401,
-      "topCloud": 0.069,
-      "vis": 0.902,
+      "wordCloud": 0.273,
+      "nameCloud": 0.404,
+      "topCloud": 0.066,
+      "vis": 0.857,
       "in": 2.855
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.132,
+      "wordCloud": 0.129,
       "nameCloud": 0.178,
       "topCloud": 0,
-      "vis": 0.896,
-      "in": 6.657
+      "vis": 0.897,
+      "in": 6.631
      }
     ]
    }
@@ -824,12 +824,12 @@
     "world": "3cb407f855078663",
     "k": 10,
     "deg": 240,
-    "wordCloud": 0.071,
+    "wordCloud": 0.069,
     "nameCloud": 0,
     "topCloud": 0.034,
-    "galaxy": 0.972,
-    "galaxyIn": 6.182,
-    "sun": 0.913,
+    "galaxy": 0.899,
+    "galaxyIn": 6.168,
+    "sun": 0.814,
     "sunIn": 2.932,
     "discs": {
      "laptop-sunset": null,
@@ -838,27 +838,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.001,
+      "wordCloud": 0.061,
       "nameCloud": 0,
-      "topCloud": 0.033,
-      "vis": 0.972,
-      "in": 6.182
+      "topCloud": 0.034,
+      "vis": 0.899,
+      "in": 6.168
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.011,
+      "wordCloud": 0.069,
       "nameCloud": 0,
       "topCloud": 0.034,
-      "vis": 0.913,
+      "vis": 0.814,
       "in": 2.932
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.071,
+      "wordCloud": 0.062,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.941,
-      "in": 6.616
+      "vis": 0.947,
+      "in": 6.803
      }
     ]
    },
@@ -866,12 +866,12 @@
     "world": "3cb407f855078663",
     "k": 10,
     "deg": null,
-    "wordCloud": 0.373,
-    "nameCloud": 0.422,
+    "wordCloud": 0.495,
+    "nameCloud": 0.423,
     "topCloud": 0.186,
-    "galaxy": 0.864,
+    "galaxy": 0.727,
     "galaxyIn": 6.139,
-    "sun": 0.768,
+    "sun": 0.641,
     "sunIn": 3.312,
     "discs": {
      "laptop-sunset": null,
@@ -880,27 +880,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.312,
-      "nameCloud": 0.343,
-      "topCloud": 0.183,
-      "vis": 0.864,
+      "wordCloud": 0.409,
+      "nameCloud": 0.359,
+      "topCloud": 0.181,
+      "vis": 0.727,
       "in": 6.139
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.373,
-      "nameCloud": 0.422,
+      "wordCloud": 0.495,
+      "nameCloud": 0.423,
       "topCloud": 0.186,
-      "vis": 0.768,
+      "vis": 0.641,
       "in": 3.312
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.305,
+      "wordCloud": 0.302,
       "nameCloud": 0.406,
       "topCloud": 0.066,
-      "vis": 0.83,
-      "in": 6.678
+      "vis": 0.827,
+      "in": 6.456
      }
     ]
    }
@@ -910,12 +910,12 @@
     "world": "3cb407f855078663",
     "k": 11,
     "deg": 305,
-    "wordCloud": 0.083,
+    "wordCloud": 0.076,
     "nameCloud": 0,
     "topCloud": 0.232,
-    "galaxy": 0.94,
-    "galaxyIn": 8.807,
-    "sun": 0.911,
+    "galaxy": 0.939,
+    "galaxyIn": 8.791,
+    "sun": 0.851,
     "sunIn": 3.24,
     "discs": {
      "laptop-sunset": null,
@@ -924,27 +924,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.006,
+      "wordCloud": 0.002,
       "nameCloud": 0,
-      "topCloud": 0.132,
-      "vis": 0.94,
-      "in": 8.807
+      "topCloud": 0.119,
+      "vis": 0.939,
+      "in": 8.791
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.028,
+      "wordCloud": 0.044,
       "nameCloud": 0,
       "topCloud": 0.139,
-      "vis": 0.911,
+      "vis": 0.851,
       "in": 3.24
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.083,
+      "wordCloud": 0.076,
       "nameCloud": 0,
       "topCloud": 0.232,
-      "vis": 0.924,
-      "in": 7.319
+      "vis": 0.923,
+      "in": 7.626
      }
     ]
    },
@@ -952,12 +952,12 @@
     "world": "3cb407f855078663",
     "k": 11,
     "deg": null,
-    "wordCloud": 0.114,
+    "wordCloud": 0.105,
     "nameCloud": 0.001,
-    "topCloud": 0.717,
-    "galaxy": 0.883,
-    "galaxyIn": 8.992,
-    "sun": 0.84,
+    "topCloud": 0.716,
+    "galaxy": 0.884,
+    "galaxyIn": 8.966,
+    "sun": 0.802,
     "sunIn": 3.129,
     "discs": {
      "laptop-sunset": null,
@@ -966,27 +966,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.02,
+      "wordCloud": 0.015,
       "nameCloud": 0,
-      "topCloud": 0.21,
-      "vis": 0.883,
-      "in": 8.992
+      "topCloud": 0.204,
+      "vis": 0.884,
+      "in": 8.966
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.101,
+      "wordCloud": 0.099,
       "nameCloud": 0,
-      "topCloud": 0.215,
-      "vis": 0.84,
+      "topCloud": 0.217,
+      "vis": 0.802,
       "in": 3.129
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.114,
+      "wordCloud": 0.105,
       "nameCloud": 0.001,
-      "topCloud": 0.717,
-      "vis": 0.857,
-      "in": 7.085
+      "topCloud": 0.716,
+      "vis": 0.843,
+      "in": 7.522
      }
     ]
    }
@@ -996,12 +996,12 @@
     "world": "3cb407f855078663",
     "k": 12,
     "deg": 60,
-    "wordCloud": 0.09,
+    "wordCloud": 0.077,
     "nameCloud": 0,
     "topCloud": 0.001,
-    "galaxy": 0.986,
-    "galaxyIn": 6.298,
-    "sun": 0.927,
+    "galaxy": 0.929,
+    "galaxyIn": 6.293,
+    "sun": 0.882,
     "sunIn": 3.159,
     "discs": {
      "laptop-sunset": null,
@@ -1013,24 +1013,24 @@
       "wordCloud": 0.001,
       "nameCloud": 0,
       "topCloud": 0.001,
-      "vis": 0.986,
-      "in": 6.298
+      "vis": 0.929,
+      "in": 6.293
      },
      {
       "view": "laptop-sunset",
       "wordCloud": 0.012,
       "nameCloud": 0,
       "topCloud": 0.001,
-      "vis": 0.939,
+      "vis": 0.882,
       "in": 3.159
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.09,
+      "wordCloud": 0.077,
       "nameCloud": 0,
       "topCloud": 0,
-      "vis": 0.927,
-      "in": 7.368
+      "vis": 0.94,
+      "in": 7.647
      }
     ]
    },
@@ -1038,12 +1038,12 @@
     "world": "3cb407f855078663",
     "k": 12,
     "deg": null,
-    "wordCloud": 0.291,
-    "nameCloud": 0.447,
-    "topCloud": 0.075,
-    "galaxy": 0.923,
+    "wordCloud": 0.304,
+    "nameCloud": 0.446,
+    "topCloud": 0.074,
+    "galaxy": 0.846,
     "galaxyIn": 6.183,
-    "sun": 0.842,
+    "sun": 0.824,
     "sunIn": 3.6,
     "discs": {
      "laptop-sunset": null,
@@ -1052,27 +1052,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.245,
-      "nameCloud": 0.433,
-      "topCloud": 0.074,
-      "vis": 0.923,
+      "wordCloud": 0.267,
+      "nameCloud": 0.424,
+      "topCloud": 0.073,
+      "vis": 0.846,
       "in": 6.183
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.288,
-      "nameCloud": 0.447,
-      "topCloud": 0.075,
-      "vis": 0.882,
+      "wordCloud": 0.304,
+      "nameCloud": 0.446,
+      "topCloud": 0.074,
+      "vis": 0.824,
       "in": 3.6
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.291,
-      "nameCloud": 0.423,
-      "topCloud": 0.015,
-      "vis": 0.842,
-      "in": 7.96
+      "wordCloud": 0.281,
+      "nameCloud": 0.421,
+      "topCloud": 0.014,
+      "vis": 0.838,
+      "in": 7.4
      }
     ]
    }
@@ -1082,12 +1082,12 @@
     "world": "3cb407f855078663",
     "k": 13,
     "deg": null,
-    "wordCloud": 0.007,
+    "wordCloud": 0.005,
     "nameCloud": 0,
-    "topCloud": 0.063,
-    "galaxy": 0.735,
-    "galaxyIn": 11.067,
-    "sun": 0.765,
+    "topCloud": 0.058,
+    "galaxy": 0.727,
+    "galaxyIn": 11.052,
+    "sun": 0.745,
     "sunIn": 8.889,
     "discs": {
      "laptop-sunset": null,
@@ -1098,25 +1098,25 @@
       "view": "laptop-night",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.063,
-      "vis": 0.735,
-      "in": 11.067
+      "topCloud": 0.058,
+      "vis": 0.727,
+      "in": 11.052
      },
      {
       "view": "laptop-sunset",
       "wordCloud": 0,
       "nameCloud": 0,
-      "topCloud": 0.051,
-      "vis": 0.765,
+      "topCloud": 0.055,
+      "vis": 0.745,
       "in": 8.889
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.007,
+      "wordCloud": 0.005,
       "nameCloud": 0,
       "topCloud": 0,
       "vis": 0.964,
-      "in": 10.601
+      "in": 10.425
      }
     ]
    }
@@ -1126,12 +1126,12 @@
     "world": "3cb407f855078663",
     "k": 14,
     "deg": 250,
-    "wordCloud": 0.043,
-    "nameCloud": 0.016,
-    "topCloud": 0.43,
-    "galaxy": 0.953,
+    "wordCloud": 0.042,
+    "nameCloud": 0.017,
+    "topCloud": 0.429,
+    "galaxy": 0.923,
     "galaxyIn": 6.774,
-    "sun": 0.925,
+    "sun": 0.904,
     "sunIn": 3.225,
     "discs": {
      "laptop-sunset": null,
@@ -1140,27 +1140,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.006,
+      "wordCloud": 0.015,
       "nameCloud": 0,
-      "topCloud": 0.43,
-      "vis": 0.953,
+      "topCloud": 0.429,
+      "vis": 0.923,
       "in": 6.774
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.016,
+      "wordCloud": 0.017,
       "nameCloud": 0,
-      "topCloud": 0.356,
-      "vis": 0.945,
+      "topCloud": 0.377,
+      "vis": 0.904,
       "in": 3.225
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.043,
-      "nameCloud": 0.016,
+      "wordCloud": 0.042,
+      "nameCloud": 0.017,
       "topCloud": 0.423,
-      "vis": 0.925,
-      "in": 6.618
+      "vis": 0.908,
+      "in": 7.015
      }
     ]
    },
@@ -1168,12 +1168,12 @@
     "world": "3cb407f855078663",
     "k": 14,
     "deg": null,
-    "wordCloud": 0.282,
-    "nameCloud": 0.204,
-    "topCloud": 0.118,
-    "galaxy": 0.929,
+    "wordCloud": 0.287,
+    "nameCloud": 0.203,
+    "topCloud": 0.119,
+    "galaxy": 0.802,
     "galaxyIn": 7.057,
-    "sun": 0.821,
+    "sun": 0.818,
     "sunIn": 3.56,
     "discs": {
      "laptop-sunset": null,
@@ -1182,27 +1182,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.119,
-      "nameCloud": 0.191,
-      "topCloud": 0.118,
-      "vis": 0.929,
+      "wordCloud": 0.229,
+      "nameCloud": 0.176,
+      "topCloud": 0.116,
+      "vis": 0.802,
       "in": 7.057
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.222,
-      "nameCloud": 0.204,
-      "topCloud": 0.117,
-      "vis": 0.904,
+      "wordCloud": 0.287,
+      "nameCloud": 0.203,
+      "topCloud": 0.119,
+      "vis": 0.818,
       "in": 3.56
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.282,
+      "wordCloud": 0.255,
       "nameCloud": 0.177,
       "topCloud": 0,
-      "vis": 0.821,
-      "in": 7.926
+      "vis": 0.832,
+      "in": 7.508
      }
     ]
    }
@@ -1212,12 +1212,12 @@
     "world": "3cb407f855078663",
     "k": 15,
     "deg": 125,
-    "wordCloud": 0.072,
-    "nameCloud": 0.003,
+    "wordCloud": 0.1,
+    "nameCloud": 0.002,
     "topCloud": 0,
-    "galaxy": 0.963,
-    "galaxyIn": 6.165,
-    "sun": 0.862,
+    "galaxy": 0.929,
+    "galaxyIn": 6.16,
+    "sun": 0.822,
     "sunIn": 3.065,
     "discs": {
      "laptop-sunset": null,
@@ -1226,27 +1226,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.016,
+      "wordCloud": 0.007,
       "nameCloud": 0.002,
       "topCloud": 0,
-      "vis": 0.963,
-      "in": 6.165
+      "vis": 0.929,
+      "in": 6.16
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.072,
-      "nameCloud": 0.003,
+      "wordCloud": 0.1,
+      "nameCloud": 0.002,
       "topCloud": 0,
-      "vis": 0.862,
+      "vis": 0.822,
       "in": 3.065
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.034,
+      "wordCloud": 0.033,
       "nameCloud": 0.001,
       "topCloud": 0,
-      "vis": 0.945,
-      "in": 7.933
+      "vis": 0.944,
+      "in": 8.134
      }
     ]
    },
@@ -1254,12 +1254,12 @@
     "world": "3cb407f855078663",
     "k": 15,
     "deg": null,
-    "wordCloud": 0.568,
-    "nameCloud": 0.423,
+    "wordCloud": 0.601,
+    "nameCloud": 0.419,
     "topCloud": 0.019,
-    "galaxy": 0.62,
-    "galaxyIn": 12.322,
-    "sun": 0.589,
+    "galaxy": 0.608,
+    "galaxyIn": 12.4,
+    "sun": 0.523,
     "sunIn": 3.165,
     "discs": {
      "laptop-sunset": null,
@@ -1268,27 +1268,27 @@
     "views": [
      {
       "view": "laptop-night",
-      "wordCloud": 0.357,
-      "nameCloud": 0.329,
-      "topCloud": 0.018,
-      "vis": 0.62,
-      "in": 12.322
+      "wordCloud": 0.406,
+      "nameCloud": 0.295,
+      "topCloud": 0.017,
+      "vis": 0.608,
+      "in": 12.4
      },
      {
       "view": "laptop-sunset",
-      "wordCloud": 0.568,
-      "nameCloud": 0.423,
+      "wordCloud": 0.601,
+      "nameCloud": 0.419,
       "topCloud": 0.019,
-      "vis": 0.589,
+      "vis": 0.523,
       "in": 3.165
      },
      {
       "view": "phone-dawn",
-      "wordCloud": 0.362,
-      "nameCloud": 0.317,
+      "wordCloud": 0.355,
+      "nameCloud": 0.315,
       "topCloud": 0,
-      "vis": 0.762,
-      "in": 8.376
+      "vis": 0.761,
+      "in": 8.141
      }
     ]
    }
