@@ -1277,6 +1277,22 @@ dunes' slope at its own phase there (s1Slope). test/unit/clipmap.mjs
 flies both paths for 4 s: no handoff over 0.5 px or 2 levels; the c - 1
 rule must pop, and the plant (morph off) fails it.
 
+The brinks, shaded as FS_TERRAIN shades them (lod-pop.mjs --brink: 800
+fixed points within 2 m of a brink, the fragment's rebuild replayed line
+for line, the same 2 flights at laptop and phone size), did shimmer.
+The footprint cp, which sets the brink's rounding and B, divided by the
+grazing term |n.rd| of the vertices' interpolated normal. A morphing
+vertex's normal drifts about 0.004 a frame across a brink, so where the
+view grazes (|n.rd| near 0.03) the rounding swelled 15% a frame, and a
+point inside it stepped 8-11 levels. Before: 0.016-0.157% of brink steps
+over 2 levels, up to 7.8 levels; 1.7-5.4% of the worst point's frames;
+94 of 800 points over 0.1% of their frames (laptop, flight 1). Now cp
+reads the fragment's own slope at the vertices' rounding (one more
+s1Slope a land fragment): 1 step over 2 levels in 1.44 million (4.0
+levels), and no point over 0.1% of its frames on either size.
+test/unit/clipmap.mjs flies 5 s at both sizes; the plant (cp from the
+vertices' normal) fails it.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
