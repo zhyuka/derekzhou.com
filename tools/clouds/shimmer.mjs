@@ -10,7 +10,9 @@
 // base differ by over 2 levels (8 bits, the largest channel) in its first frame; its EDGE: those within --edge px of
 // one that does not. A pixel STEPS when its largest channel moves over 2 levels between the pair's two frames.
 // Reported per pair, at the edge pixels: the share stepping in head, the share stepping in base (the world's own
-// motion there), and the excess (stepping in head, not in base): the change's own shimmer. Out: DIR/shimmer.json.
+// motion there), and the excess: head's step over base's own step there, scaled by head's brightness over base's
+// (a shadow multiplies the light, so it scales the world's own motion by as much), by over 2 levels: the step the
+// change itself adds, its shimmer. Out: DIR/shimmer.json.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -50,8 +52,9 @@ const MEASURE = async ([ba, bb, ha, hb, E]) => {
     let e = false;
     for (let j = -E; j <= E && !e; j++) for (let i = -E; i <= E && !e; i++) { const xx = x + i, yy = y + j; if (xx >= 0 && yy >= 0 && xx < w && yy < h && !ch[yy * w + xx]) e = true; }
     if (!e) continue; edge++;
-    const hs = d(HA, HB, p * 4) > 2, bs = d(BA, BB, p * 4) > 2;
-    if (hs) sh++; if (bs) sb++; if (hs && !bs) ex++;
+    const dh = d(HA, HB, p * 4), db = d(BA, BB, p * 4), q = p * 4;
+    const r = Math.max(HA[q], HA[q + 1], HA[q + 2]) / Math.max(BA[q], BA[q + 1], BA[q + 2], 1);   // (the change's own scale here: the shadow multiplies the light, so it scales the world's own step by as much)
+    if (dh > 2) sh++; if (db > 2) sb++; if (dh > db * r + 2) ex++;
   }
   return { changed, edge, headStep: sh, baseStep: sb, excess: ex };
 };
