@@ -10,6 +10,7 @@
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "      if (B.vg && !(EP.virga && EP.virga.ok) && B.fade > 0) B.vg = null;", "with": "", "why": "a body in sight before the late program is made gains its strand in view (a pop)"}
 // plant: {"file": "src/world/073-late-programs.js", "find": "'engine.beam', 'engine.virga'];   // (virga: none before the show, 231)", "with": "'engine.beam'];", "why": "virga's program issued before the show (the boot's frames)"}
 // plant: {"file": "src/world/360-engine-programs.js", "find": "return l[0] !== 'virga' || lateCan();", "with": "return true;", "why": "virga's program made before the show where no program can be late (WebKit's and the byte phones' boots a frame or two longer)"}
+// plant: {"file": "src/world/213-virga.js", "find": " gl.uniform3fv(P.u.uGP, g.p);", "with": "", "why": "the strand's path never handed to its program (a NaN strip, drawn nowhere)"}
 import { test, assert, vm, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const AIRSRC = cut(WORLD, '  var AIR_H = {', '\n', true) + cut(WORLD, '  var AIR_U10 =', '\n', true) + cut(WORLD, '  var AIR_W = {', '\n', true) + cut(WORLD, '  var AIR_P = {', '  function airU10(') +
@@ -66,5 +67,8 @@ test('virga: only on free clouds born after the show; never gained in sight; its
   const L = WORLD.split('\n'), drop = L.findIndex((l) => l.includes('if (B.vg && !(EP.virga && EP.virga.ok) && B.fade > 0) B.vg = null;')), draw = L.findIndex((l) => l.includes('if (B.vg && EP.virga && EP.virga.ok) { drawVirga(B, EP.virga, V);'));
   assert.ok(drop >= 0 && draw === drop + 1, 'a body in sight without its program keeps its strand for later (a pop)');
   assert.equal((WORLD.match(/drawVirga\(/g) || []).length, 2, 'virga drawn somewhere else');
+  // (its draw hands the program its top, its path and its width: a strand with no path is a NaN strip, drawn nowhere)
+  const dv = WORLD.slice(WORLD.indexOf('  function drawVirga('), WORLD.indexOf('\n  }\n', WORLD.indexOf('  function drawVirga(')));
+  for (const u of ['uGA', 'uGP', 'uGW']) assert.ok(dv.replace(/\/\/[^\n]*/g, '').includes('P.u.' + u), `virga's draw never sets ${u}`);
   assert.ok(WORLD.includes("list = list.filter(function (l) { return l[0] !== 'virga' || lateCan(); });"), 'virga\'s program made where it cannot be late (its boot pays for it)');
 });

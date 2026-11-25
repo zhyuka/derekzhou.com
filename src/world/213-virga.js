@@ -39,6 +39,6 @@
   function drawVirga(B, P, V) {   // a body's strand, in the body's own turn (far to near): the clouds' target, premultiplied over (410)
     var g = B.vg;
     gl.useProgram(P.p); setFrameUniforms(P, V);
-    gl.uniform3f(P.u.uGA, B.c[0] + g.dx, B.c[1] + g.dy, B.c[2] + g.dz);   // (where its body is drawn now: carried and lifted with it) gl.uniform3fv(P.u.uGP, g.p); gl.uniform2f(P.u.uGW, g.hw, g.a * B.fade);
+    gl.uniform3f(P.u.uGA, B.c[0] + g.dx, B.c[1] + g.dy, B.c[2] + g.dz); gl.uniform3fv(P.u.uGP, g.p); gl.uniform2f(P.u.uGW, g.hw, g.a * B.fade);   // (its top where its body is drawn now: carried and lifted with it)
     gl.disable(gl.CULL_FACE); gl.bindVertexArray(STRIP.vaoR); dc(gl.TRIANGLE_STRIP, STRIP.n);
   }
