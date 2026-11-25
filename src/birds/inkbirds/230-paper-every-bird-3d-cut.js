@@ -105,7 +105,9 @@
   function poseFly(b, C, s, rest, back) {
     var kind = s.kind, i;
     drawnAt(b, QB, back, DP); var px = DP[0], py = DP[1], pz = DP[2];
-    for (i = 0; i < 3; i++) VV[i] = b.v[i] - (b.v[i] - b.v0[i]) * QB - WINDV[i];   // (its way at the frame's time: between its last two steps)
+    for (i = 0; i < 3; i++) VV[i] = b.v[i] - (b.v[i] - b.v0[i]) * QB;   // (its way at the frame's time: between its last two steps)
+    var hs = Math.sin(b.psi), hc = Math.cos(b.psi); VV[0] -= WINDV[0]; VV[1] -= WINDV[1]; VV[2] -= WINDV[2]; var va = 1 - VV[0] * hs - VV[2] * hc;   // (through the air: the step's wind (a free bird's own gust left out: at an approach's start it would step the attitude by the gust)
+    if (va > 0) { VV[0] += va * hs; VV[2] += va * hc; }   // (at least 1 m/s ahead along its heading: a landing slowed below a tail wind drifts back through the air, and drawn along that it swung through straight down, its attitude flipped in a frame)
     var vl = Math.sqrt(VV[0] * VV[0] + VV[1] * VV[1] + VV[2] * VV[2]);
     if (!(vl > 0.3)) { VV[0] = Math.sin(b.psi); VV[1] = 0; VV[2] = Math.cos(b.psi); vl = 1; }
     var fx = VV[0] / vl, fy = VV[1] / vl, fz = VV[2] / vl;
