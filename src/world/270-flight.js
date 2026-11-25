@@ -24,9 +24,24 @@
     var e = x - target, k = v + e / tau, ex = Math.exp(-dt / tau);
     return [target + (e + k * dt) * ex, (v - k * dt / tau) * ex];
   }
+  /* (delight-life 9) ridge lift: where the low layer's wind (airW) blows up the ground under the way and ahead (w . grad
+     h, the air's rise at the surface, m/s: 40 m differences at 0, 2v and 4v m ahead), the camera rides it over its
+     clearance: 2 m by a rise of RIDGE_S[0] (0.3 m/s), 15 m by RIDGE_S[1] (1.2), and back to none in the lee, never
+     under the clearance; within the ceiling's room. Three first-order stages of RIDGE_T s (the slope read, then the
+     rise twice; all real, distinct: overdamped, no swing), so the motion holds nothing past 0.1 Hz (-24 dB there, -39
+     at 0.2, -49 at 0.3: the 0.2-0.4 Hz sway sickens most). The rise is added over the height's spring, never through
+     it (its limits shook it at 0.2-0.4 Hz); the heading, pitch and roll untouched */
+  var RIDGE_T = [6, 3.5, 2], RIDGE_S = [0.3, 1.2], RIDGE_M = [2, 15];
+  function liftStep(V, dt) {
+    var w = airW(V), hx = Math.sin(CS.psi), hz = Math.cos(CS.psi), s = 0, i, d = 40, L;
+    for (i = 0; i < 3; i++) { var x = CS.x + hx * V.speed * 2 * i, z = CS.z + hz * V.speed * 2 * i; s += w[0] * (groundAt(V, x + d, z, true) - groundAt(V, x - d, z, true)) + w[1] * (groundAt(V, x, z + d, true) - groundAt(V, x, z - d, true)); }
+    s /= 6 * d; CS.ls += (s - CS.ls) * (1 - Math.exp(-dt / RIDGE_T[2])); s = CS.ls;
+    L = Math.min(RIDGE_M[0] * smooth(0, RIDGE_S[0], s) + (RIDGE_M[1] - RIDGE_M[0]) * smooth(RIDGE_S[0], RIDGE_S[1], s), Math.max(0, V.clear[2] + CEIL_OVER / 2 - CS.c));
+    CS.lq = L + (CS.lq - L) * Math.exp(-dt / RIDGE_T[0]); CS.lift = CS.lq + (CS.lift - CS.lq) * Math.exp(-dt / RIDGE_T[1]);
+  }
   var VY_J = 2, VY_TV = 0.6;   // (the height's spring: its acceleration's own rate, m/s3, and the time its speed limits are approached over)
   function freshState() {
-    return { x: 0, y: 0, z: 0, psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, c: 0, vy: 0, om: 0, omP: 0, since: 9, roll: 0, rollV: 0, bank: 0, bankV: 0, yawRate: 0,
+    return { x: 0, y: 0, z: 0, psi: 0, yawV: 0, phi: 0, thU: 0, thP: 0, thPraw: 0, c: 0, vy: 0, om: 0, omP: 0, since: 9, roll: 0, rollV: 0, lift: 0, lq: 0, ls: 0, bank: 0, bankV: 0, yawRate: 0,
       lastIn: -1e9, idleAfter: 8, auto: 1, cy: 0, hl: 0, pf: NaN, pfT: 0, sv: 0,
       lat: 0, latT: 0, latT2: 0, tsw: -1, fpsi: NaN, vs: 0, acc: 0, pt: -1e9, climbs: null, gV: null, pfE: 0, cw: NaN };
   }
@@ -117,12 +132,14 @@
     // acceleration jumped whenever the target moved (a rise or a solid coming into the look) and stopped dead at the speed
     // limits, a small nod each time
     pitchLook(V, CS, dt);   // (the look at the ground ahead)
+    CS.y -= CS.lift; liftStep(V, dt);   // (the ridge's lift, delight-life 9: on top of the spring's height, never through it)
     var yT = heightTarget(V, t), w = VY_W, aW = clamp(w * w * (yT - CS.y) - 2 * w * CS.vy, -VY_ACC, yT > CS.y ? VY_ACCU : VY_ACC);
     aW = clamp(aW, (-VY_DN - CS.vy) / VY_TV, (VY_UP - CS.vy) / VY_TV);
     CS.ay += clamp(aW - CS.ay, -VY_J * dt, VY_J * dt);
     CS.vy = clamp(CS.vy + CS.ay * dt, -VY_DN, VY_UP);
     CS.y += CS.vy * dt;
     CS.x += (Math.sin(CS.psi) * v - Math.cos(CS.psi) * CS.sv) * dt; CS.z += (Math.cos(CS.psi) * v + Math.sin(CS.psi) * CS.sv) * dt;   // (on the heading, and the slip to its right: (-cos, sin))
+    CS.y += CS.lift;   // (the ridge's lift back on, its own height over the spring's)
     // the hard rules: never in the ground, a landmark or a cloud's core
     // (world6 step B fix, defect 10) over the envelope (never under the ground), and rate-limited to the climb's own
     // travel in a step (PUSH_V): the hard rule, if it acts at all, is never a jump; every push is counted (a gate fails)

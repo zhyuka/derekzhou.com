@@ -64,6 +64,12 @@ Left alone the view holds its heading and flies
 straight and level but for the ground's rise; what stands ahead and
 cannot be climbed is passed by a slip sideways, planned from first sight
 (the owner: "should keep flying same-ish direction unless user drags").
+Where the low wind blows up the ground under the way, the camera rides
+the ridge's lift 2-15 m over its clearance and settles back in the lee
+(270's liftStep, delight-life 9): three first-order stages, all slow, so
+the rise holds nothing past 0.1 Hz (24 dB down there; the 0.2-0.4 Hz
+sway that sickens most, 39-57 dB), added over the height's spring, never through it; the
+heading, the pitch and the roll are untouched (test/unit/flight-sim.mjs).
 A drag anywhere (touch, pen, or a mouse with its main button held; it
 starts after 8 px, so a tap stays a tap; a drag begun on a link steers and
 never follows it) turns the view and the flight, 90 degrees across the
