@@ -242,6 +242,22 @@ Y 0.0027 at 5.5 deg (AIRGLOW_Y 0.004 times its shape), 0.0034-0.0047 in the
 frame after the sky's exposure (SwiftShader, 1440x900 at 22:30, k0-k7): about
 a tenth of a dark night's own sky low down; pale green at luminance 1, with no
 structure and no clock.
+No zodiacal light: at 64 deg north, with the sun 24 deg down in the dark
+half of the year, the cone's bright base (within 30 deg of the sun along the
+ecliptic) never clears the horizon, and 45 deg out it stands at most 9.5 deg
+up (60 deg out: 21 deg; 90 deg: 40 deg), so only its faint outer part could
+show, low in the haze (the hub's ruling, 2026-11-25).
+
+The moon's face (sky-body.glsl, moonFace): its maria as caps on the disc's
+sphere at their published centres and sizes (the IAU/USGS Gazetteer of
+Planetary Nomenclature, https://planetarynames.wr.usgs.gov, its Mare and
+Oceanus feature types: 12 of them; Oceanus Procellarum at 0.75 of its extent,
+its outline being irregular; Mare Frigoris, a long thin band, and the small
+limb maria left out), at MOON_MARE (0.62) of the highlands' light, the
+highlands at the disc's own colour; lunar north toward the celestial pole
+(the sky's frame); each edge softened over one pixel of the surface where it
+stands, so the disc's mean light holds within 2% as it slides; lit by the
+phase (the terminator crosses them).
 
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands

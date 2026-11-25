@@ -281,6 +281,24 @@ float starAt(vec3 rd, float el, float az, float pa, float cap, float ml, int dj,
   vec2 d = gl_FragCoord.xy - (vec2(dot(sw, uCamR) / (zf * uProj.x), dot(sw, uCamU) / (zf * uProj.y)) * 0.5 + 0.5) * uRes;
   return F * starBox(d.x, sg) * starBox(d.y, sg);
 }
+/* (night) the moon's face: its maria, darker than the highlands, as caps on the disc's sphere at their published centres
+   and sizes (the IAU/USGS Gazetteer of Planetary Nomenclature: https://planetarynames.wr.usgs.gov/SearchResults?Target=16_Moon&Feature%20Type=25_Mare,%20maria
+   and its Oceanus page: lat, lon east, radius = diameter / 2 / 1737.4 km, in rad; Oceanus Procellarum's circle at 0.75
+   of its extent, its outline being irregular; Mare Frigoris, a long thin band, and the small limb maria left out), lunar
+   north toward the celestial pole (the sky's frame), each edge softened over one pixel of the surface where it stands
+   (wider toward the limb) so nothing glitters as the disc slides; the highlands at the disc's own colour, the maria at
+   MOON_MARE of it */
+const float MOON_MARE = 0.45, MOON_EW = 1.0;
+const vec3 MARIA[12] = vec3[12](vec3(34.72, -14.91, 0.3297), vec3(27.29, 18.36, 0.1940), vec3(8.35, 30.83, 0.2520), vec3(16.18, 59.10, 0.1600),
+  vec3(-7.83, 53.67, 0.2418), vec3(-15.19, 34.60, 0.0977), vec3(-20.59, -17.29, 0.2056), vec3(-24.48, -38.57, 0.1208), vec3(13.20, 4.09, 0.0698),
+  vec3(-10.53, -22.31, 0.1007), vec3(7.79, -30.64, 0.1473), vec3(20.67, -56.68, 0.5595));
+float moonFace(vec3 n, vec3 m, float w) {   // n: the surface normal (world), m: toward the moon, w: a pixel's angle on the disc's sphere at its centre
+  vec3 p = vec3(0.0, 0.0, 1.0) * uSkyF, N = normalize(p - dot(p, m) * m + vec3(0.0, 1e-5, 0.0)), E = cross(m, N) * MOON_EW;
+  vec3 q = vec3(-dot(n, m), dot(n, E), dot(n, N));
+  float a = 0.0, ww = w / max(q.x, 0.15);
+  for (int i = 0; i < 12; i++) { vec2 r = radians(MARIA[i].xy); a = max(a, 1.0 - smoothstep(MARIA[i].z - ww, MARIA[i].z + ww, acos(clamp(dot(q, vec3(cos(r.x) * cos(r.y), cos(r.x) * sin(r.y), sin(r.x))), -1.0, 1.0)))); }
+  return 1.0 - (1.0 - MOON_MARE) * a;
+}
 /* (night, delight-night §1) the evening or morning star: steady (no twinkle: a planet's disc, not a point), a point of the
    stars' own kind (its light integrated over the pixel, never glittering as it slides), 0.85 px (delight-night §1:
    0.8-1.0 against the stars' 0.5-0.7), with a fixed soft glare about it (5 px across at 13%: §1's 4-6 px at 10-15%); its peak never past Y uStarM.z (OKLab L 0.49 in
@@ -485,8 +503,9 @@ void main() {
     vec2 mo = vec2(dot(rd, mt1), dot(rd, mt2)) / tan(radians(mr));
     float mz = sqrt(max(1.0 - dot(mo, mo), 0.0)), mse = -asin(clamp(uMoon.y, -1.0, 1.0)) - radians(MOON_PHASE);
     vec3 msun = normalize(vec3(-uMoon.x, 0.0, -uMoon.z) + vec3(1e-5, 0.0, 0.0)) * cos(mse) + vec3(0.0, sin(mse), 0.0);
-    float mlit = smoothstep(-0.06, 0.06, dot(mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz, msun));
-    c = mix(c, mix(c, uMoonC, mlit), 1.0 - smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma));   // (a crisp limb: about a pixel either side, the hub's round-3 look)
+    vec3 mn = mo.x * mt1 + mo.y * mt2 - mz * uMoon.xyz;
+    float mlit = smoothstep(-0.06, 0.06, dot(mn, msun));
+    c = mix(c, mix(c, uMoonC * (ma < mr + 0.1 ? moonFace(mn, uMoon.xyz, mpx / mr) : 1.0), mlit), 1.0 - smoothstep(mr - max(mpx * 0.8, 0.04), mr + max(mpx * 0.8, 0.04), ma));   // (the face: moonFace)   // (a crisp limb: about a pixel either side, the hub's round-3 look)
     if (uHalo.x > 0.0) c += haloAt(rd) * uMoon.w;   // (physics: weather/moon-halo: by the stay's veil, with the moon's depth)
     c = c0 + (c - c0) * (1.0 - hazeSky(rd));
   }
