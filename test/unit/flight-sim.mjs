@@ -10,6 +10,7 @@
 // plant: {"file": "src/world/270-flight.js", "find": "CS.y = Math.max(ceil, CS.y - PUSH_V * dt);", "with": "CS.y = ceil;", "why": "the ceiling a jump"}
 // plant: {"file": "src/world/270-flight.js", "find": " if (CS.ay > 0) CS.ay = 0; SIM.fixC++; }", "with": " if (CS.ay > 0) CS.ay = 0; }", "why": "the ceiling's clamps not counted"}
 // plant: {"file": "src/world/280-ground-what-stands-ahead.js", "find": "q.x = o.x + off[0]; q.z = o.z + off[1];", "with": "q.x = o.x; q.z = o.z;", "why": "an air cell's obstacles where its cell laid them out, not where the air carried them"}
+// plant: {"file": "src/world/286-hard-rule.js", "find": "    for (var p = 0, m = 1; p < 3 && m; p++) for (m = 0, i = 0; i < O.length; i++) if (hardFloor(O[i])) m = ++SIM.fixO;", "with": "", "why": "no floor passes: wedged between two solids, the second push moves the camera back inside the first's HARD_IN"}
 import { test, assert, vm, WORLD, cut } from '../unit-lib.mjs';
 import { loadGround } from '../ground.mjs';
 
@@ -160,6 +161,17 @@ test('flight-sim: the hard rules ease the camera out at the climb\'s own travel,
     F.CS.x = 0; F.CS.z = 100 - 30 - gap; F.CS.y = 30;
     const n0 = F.SIM.fixO, before = face(Lc, F.CS.x, F.CS.y, F.CS.z, t, AW); F.pushOut(); const after = face(Lc, F.CS.x, F.CS.y, F.CS.z, t, AW);
     assert.ok(F.SIM.fixO === n0 + 1 && Math.abs(after - Math.max(Math.min(7, before + F.ds), HARD_IN)) < 1e-9, `a carried cloud's core ${gap} m from the camera: pushed to ${after.toFixed(3)} m, counted ${F.SIM.fixO - n0} (its obstacle not where the air carried it)`);
+  }
+  // (CLOUDS, #424) wedged between a landmark and a cloud's core whose faces are 2.9 m apart (room for HARD_IN from each),
+  // the camera 1 m from the landmark: each push keeps HARD_IN from its own solid, the second moves it back toward the
+  // first, and the floor passes hold both, in either order of the two
+  for (const order of [0, 1]) for (const near of [0.6, 1.0]) {
+    const cyl = { c: true, x: 0, z: 100, r: 40, y0: -50, y1: 400 }, core = { c: false, cloud: true, x: 0, y: 30, z: 60 - 2.9 - 30, r: 30 };
+    const cells = [{ st: 2, obst: [cyl], bound: [0, 0, 100, 120], softB: null }, { st: 2, obst: [core], bound: [0, 0, 30, 120], softB: null }];
+    const L = order ? cells.slice().reverse() : cells, Fw = MAKE(G, L, [0, 0]); Fw.step();
+    Fw.CS.x = 0; Fw.CS.z = 60 - near; Fw.CS.y = 30; Fw.pushOut();
+    const fc = face([cells[0]], Fw.CS.x, Fw.CS.y, Fw.CS.z), fo = face([cells[1]], Fw.CS.x, Fw.CS.y, Fw.CS.z);
+    assert.ok(fc >= HARD_IN - 1e-9 && fo >= HARD_IN - 1e-9, `wedged (order ${order}, ${near} m from the landmark): ${fc.toFixed(4)} m from the landmark's face, ${fo.toFixed(4)} m from the core's (want ${HARD_IN} m from each)`);
   }
   const F = MAKE(G, [], [0, 0]); F.step(); for (let k = 0; k < 30; k++) F.step();
   const c0 = F.ceil(); F.CS.y = c0 + 5; F.step();
