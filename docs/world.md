@@ -299,6 +299,19 @@ sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
 test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
 
+Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
+scattered into the sky at each direction by the published moonlight model
+(https://doi.org/10.1086/132921, its equations as specsim/atmosphere.py writes
+them: the moon's magnitude by its phase, molecular and aerosol scattering by the angle
+from it, the air toward it and along the line of sight), over the dark sky (V
+21.8 mag/arcsec^2 at the zenith, brightening toward the horizon); the faintest
+star seen falls by 0.3834 of each magnitude the sky brightens
+(https://arxiv.org/abs/1405.4209, eq. 54), by the moon's amount, so a moonless
+night keeps its limit exactly. Under the near-full moon the limit falls about
+1.6 mag beside it and 1 mag a quarter of the sky away: about 0.40 of the field
+shows 5 deg from the moon, 0.58 at 90 deg (test/unit/sky.mjs). Only ever a loss;
+the sky itself is untouched.
+
 The far storm (physics: weather/far-anvil; src/world/222, 225 anvFlashAt,
 sky-body.glsl anvilAt): in about 3 of the 16 openings a cumulonimbus stands
 100-150 km away, 80-110 degrees off the sun's bearing, its top 4.0-7.4
