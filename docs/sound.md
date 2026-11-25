@@ -408,11 +408,14 @@ analyser on the way to the speakers). `--net MBPS,RTT` throttles the page's netw
   /assets/sound/, or the icon is not pressed and running, or the score starts fewer than three notes, three of them
   sustained (the first voices and the deep end), or the
   page throws;
+- **the first note:** it begins later than 1.2 s after the press (38-sound runs it on the slow profile, `--net 10,70
+  --first 1200`; about 0.8 s measured, 4.9 s before the sheet came in parts);
 - **ten seconds on:** no new notes (the score stopped planning);
 - **a second press:** the icon is not unpressed and the context suspended;
 - **a third press:** the icon is not pressed and running again, or something was made or fetched again.
 
-Its plant renames `window.SCORE` in the built score.js, and the check fails on it.
+Its plants rename `window.SCORE` in the built score.js (the score never registers), and `getReader` in the built
+sound.js (the sheet decoded only once it has all come); the check fails on each.
 
 ## The unit test (test/unit/sound.mjs)
 
