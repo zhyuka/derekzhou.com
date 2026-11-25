@@ -313,7 +313,10 @@ little at kept luminance. The field's magnitudes stand as seen overhead, so only
 the excess over X 1 is taken: nothing overhead changes, nothing is brighter, the
 sky itself is untouched, and the faint stars drop out first as their magnitude
 passes the limit (about 0.65 of the field shows 5-10 deg up, 0.36 at 2-5;
-test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own.
+test/unit/sky.mjs). The scene's low haze adds about 0.01 mag/airmass of its own. The Milky Way's band takes no
+extinction factor: its brightness is the look as seen through the air, tuned by
+eye as it stands low in the frame, so an airmass factor would count the air twice
+(the hub's ruling, 2026-11-25, closing #490).
 
 Moonlight washes out the stars (sky-body.glsl, moonLim): the moon's light
 scattered into the sky at each direction by the published moonlight model
@@ -732,6 +735,21 @@ physics: clouds/drift). It holds:
   Only birds over 100 m (the cloud-sea flocks, about 150 m) would feel a
   night turn. Adding one would mean the clouds and those birds reading a
   wind that depends on the sky, and a cited source for the turn by night.
+- No billows on the cloud sea's top (measured, 2026-11-25): a shear
+  layer rolls into billows only where Ri, the ratio of the air's
+  stability to its shear, N^2 / (dU/dz)^2, is under 1/4. Over the sea's
+  top the air gives too little shear for it. From the sea's own wind
+  (AIR_H.sea, 100 m) to the low layer's (300 m), the wind changes by
+  1.35 m/s at U10 3 and by 3.37 m/s at U10 7.5 (its 1.3 U10, veered 20
+  deg). With the weather's N of 0.01/s, Ri is 2.2 at U10 3 and 0.35 at
+  U10 7.5, never under 1/4. The 100-200 m and 200-300 m halves give the
+  same, 50-150 m gives 1.4 or more, and the change up to 1500 m is no
+  larger. Billows would need the sea's top to be a thin capping
+  inversion that carries that whole change, and whether they formed
+  would then turn on the inversion's temperature jump and thickness, two
+  numbers the world does not have (with a 5 K jump, a layer under about
+  17 m; with 8 K over 20 m, none on any visit). So the sea keeps its two
+  long low waves (physics: clouds/sea) and no rolls.
 - The cloud streets (physics: clouds/streets): a boundary layer's roll
   vortices lay its clouds in rows along its mean wind, within 30 deg of it
   and most often within 10 (https://doi.org/10.1007/BF00705527). The
@@ -1356,6 +1374,17 @@ the toe of a main dune 600 m out at the range's far edge, drifting a
 steady 2.35-2.37 levels a frame for 5 frames: a smooth turn, not a pop.
 Phone: none over 2 (worst 1.92). Nothing else on the land turns more than
 2 levels in a frame.
+
+The land's far edge holds too. The outermost ring (179 m cells) ends
+8.2-8.9 km out (to 12.6 km on the diagonals) and moves in 358 m steps,
+so a strip of far land appears or goes at each. lod-pop.mjs --edge
+reads the horizon's land line in 48 columns over the drawn mesh, at the
+frames either side of every step, on the same 2 flights at both sizes.
+At 8 steps, 6 of 384 columns moved over 0.5 px, the worst 2.0 px at 9.8
+km (laptop) and 0.86 px at 10.7 km (phone). The camera's own steady
+motion moves the line up to 1.0 px a frame. At 8-11 km the haze leaves
+the land line 1-3 codes off the sky (2-8% of the contrast in green), so
+no step shows. Left as it is.
 
 ## THE LARGE WORLD
 

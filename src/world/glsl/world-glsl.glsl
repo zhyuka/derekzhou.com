@@ -70,7 +70,7 @@ float HdProbe(vec2 p, bool cam) {
 }
 vec3 shadeSea(vec3 p, vec3 n, vec3 rd, float t, float fp) {
   vec3 wD, wC, lv, sk; kitW4(p.xz, wD, wC, lv, sk);
-  return A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp);
+  return A_shadeSea(vec3(p.x, p.y - lv.x, p.z), n, rd, t, fp) * cloudShadow(p, uSun.y);   // (physics: light/cloud-shadow: the free clouds' shadows on the sea's top, as on the land: its light the key's beam and the sky's, the beam's share lost under a cloud and its diffuse transmission given back, 262. A cloud top takes the beam through its volume, not by its facets: the share is the level top's, n.l = the key's height, so no crease or bump turned from the key flips out of the shadow from pixel to pixel)
 }
 /* a piece's own material code (per vertex: its generator's): 4-6 the ABOVE kit's grass, stone and rock, else the
    dunes kit's */

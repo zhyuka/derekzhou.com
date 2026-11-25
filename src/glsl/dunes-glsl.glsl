@@ -272,10 +272,16 @@ vec4 veilSpot(vec2 p) {
 /* (physics: light/cloud-shadow) the land's light left under the clouds: the key's direct share lost, the cloud's
    diffuse transmission given back (262-cloud-shadow.js says the physics and its sources) */
 uniform sampler2D uCSh; uniform vec4 uCShP;
+/* the map read over its 3x3 texels, weighted 1-2-1 by 1-2-1 (four bilinear taps half a texel off): the edge spread over
+   three texels (about 117 m), so a texel's step never crawls along an edge as the eye moves over it */
+float cshTap(vec2 u) {
+  const float h = 0.5 / 1024.0;
+  return 0.25 * (texture(uCSh, u + vec2(h, h)).r + texture(uCSh, u - vec2(h, h)).r + texture(uCSh, u + vec2(h, -h)).r + texture(uCSh, u + vec2(-h, h)).r);
+}
 float cloudShadow(vec3 p, float ndl) {
   if (uCShP.z <= 0.0 || ndl <= 0.0) return 1.0;
   vec2 q = (p.xz + uSun.xz * (uCShP.w - p.y) / max(uSun.y, 0.02) - uCShP.xy) / uCShP.z;
-  float tau = -32.0 * log(max(mix(texture(uCSh, q * 0.5 + 0.5).r, 1.0, smoothstep(0.75, 1.0, max(abs(q.x), abs(q.y)))), 0.002));
+  float tau = -32.0 * log(max(mix(cshTap(q * 0.5 + 0.5), 1.0, smoothstep(0.75, 1.0, max(abs(q.x), abs(q.y)))), 0.002));
   float sy = max(uSun.y, 0.02), f = ndl / (ndl + 0.13 * sy / (sy + 0.02));
   return 1.0 - f * (1.0 - 1.0 / (1.0 + 0.1125 * tau));
 }
