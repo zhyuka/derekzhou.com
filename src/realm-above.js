@@ -46,11 +46,11 @@
      on the landing's heading 7-8 km out, the isles' own form (floatIslandG and its temple), wide and flat (the hub's
      round 3: tall enough to read, low enough to stand clear of the credit row on a laptop): r 640-690 m, so about
      1.3-1.4 km across and 10-11 deg wide at 7.5 km (the most its reach allows: r x 1.15 under FLIGHT's 800 m), keel to
-     deck about 0.5 r, its temple about 0.3 r (tiers, stupa and spires about 200 m, its spires DEST_SW wide), so about 5
-     deg tall; its keel DEST_KEEL m over the cruise, so the flight passes under it (no spheres to steer round). From the
+     deck about 0.5 r, its temple 0.44-0.48 r (the hub's round 4: tiers, stupa and spires about 300 m, standing up to say this is the
+     place, still under the credit row on a laptop; its spires, the kit's 0.035 of it, about 10 m: 1.3 px), so about 6 deg tall; its keel DEST_KEEL m over the cruise, so the flight passes under it (no spheres to steer round). From the
      destination's own seed (SEED0's: the land's), never the cell's stream. The first item of its 16 km cell, so the
      streamer's lodDist measures its detail from it (coarse at the boot, full as the flight nears) */
-  var DEST_KEEL = 150, DEST_CLEAR = 10 * PI / 180, DEST_SW = 10;   // (the keel over the cruise, m; the clear field's half angle; the temple's spires' width, m: 1.3 px at 7.5 km on a laptop, never a thin line)
+  var DEST_KEEL = 150, DEST_CLEAR = 10 * PI / 180;   // (the keel over the cruise, m; the clear field's half angle)
   /* the destination's field (the hub, 2026-11-25: it must read as the place you are going, not one isle among isles):
      no ordinary isle or island within DEST_CLEAR of its bearing from the landing and nearer than it, so it stands alone
      as the subject; everywhere else the sky's isles are as they were (and each cell's stream draws the same) */
@@ -61,8 +61,8 @@
   }
   function aDest(C) {
     var D = W.dest(); if (!C.inside(D.x, D.z)) return;
-    var Q = K.RNG(K.hk(D.seed >>> 0, 93)), r = Q.r(640, 690), depth = r * Q.r(0.45, 0.55), y = CRUISE + DEST_KEEL + depth, size = r * Q.r(0.27, 0.32);
-    C.add({ kind: 'isle', x: D.x, z: D.z, air: true, y: y, yaw: Q.r(0, 360), r: r, depth: depth, size: size, sw: DEST_SW, seed: Q.seed() });
+    var Q = K.RNG(K.hk(D.seed >>> 0, 93)), r = Q.r(640, 690), depth = r * Q.r(0.45, 0.55), y = CRUISE + DEST_KEEL + depth, size = r * Q.r(0.44, 0.48);
+    C.add({ kind: 'isle', x: D.x, z: D.z, air: true, y: y, yaw: Q.r(0, 360), r: r, depth: depth, size: size, seed: Q.seed() });
     C.poi({ kind: 'destination', x: D.x, z: D.z, y: y - depth * 0.5, r: r * 1.15, top: y + size, pass: r * 1.15 + 120 });   // (FLIGHT's ruler: r at most 800 m)
   }
   function aIsland(C, R, x, z, y, r, stupaP) {
@@ -160,7 +160,7 @@
     },
     build: function (it, B, R) {
       if (it.kind === 'island') return (function* () { yield* floatIslandG(B, R, it.r, it.depth, A_ROCK, A_GRASS); if (it.stupa) { B.xf(0, it.r * 0.05, 0); stupa(B, R, it.r * R.r(0.6, 0.9), A_STONE, A_HI); } })();   // (a few rows at a time)
-      else if (it.kind === 'isle') return (function* () { yield* floatIslandG(B, R, it.r, it.depth, A_ROCK, A_GRASS); B.push(); B.xf(0, it.r * 0.04, 0); yield* isleTemple(B, R, it.size, A_STONE, A_HI, it.sw); B.pop(); })();   // (a part at a time)
+      else if (it.kind === 'isle') return (function* () { yield* floatIslandG(B, R, it.r, it.depth, A_ROCK, A_GRASS); B.push(); B.xf(0, it.r * 0.04, 0); yield* isleTemple(B, R, it.size, A_STONE, A_HI); B.pop(); })();   // (a part at a time)
     },
     cloud: function (cl, PF, R) {
       // (smaller, crisper billows than DUNES' far banks: cells about a quarter of a lobe, a harder edge)

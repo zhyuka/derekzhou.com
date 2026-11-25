@@ -1,14 +1,14 @@
 // test/unit/dest-isle.mjs: the horizon's destination over the cloud sea (realm-above.js aDest; 217 destKind's 'isle'):
 // one great isle, the isles' own form at about four times theirs, at destOf()'s point, laid out only by the cell that
 // holds it, from the destination's own seed (never the cell's stream), its keel over the cruise so the flight passes
-// under it, wide and flat (10-11 deg by about 5 at 7.5 km), its temple about 0.3 r with spires 1.2 px or more, a clear field of
+// under it, wide and flat (10-11 deg by about 6 at 7.5 km), its temple 0.44-0.48 r with spires 1.2 px or more, a clear field of
 // ordinary isles in front of it (10 deg either side of its bearing), its destination POI within FLIGHT's ruler (r at
 // most 800 m).
 // plant: {"file": "src/realm-above.js", "find": "    dest: function (C, R) { aDest(C); },\n", "with": "", "why": "no isle: the cloud-sea lands get the dunes' rock rising out of the cloud"}
 // plant: {"file": "src/realm-above.js", "find": "  var DEST_KEEL = 150,", "with": "  var DEST_KEEL = -200,", "why": "the isle's keel in the flight band: the flight meets its underside"}
 // plant: {"file": "src/realm-above.js", "find": "r = Q.r(640, 690),", "with": "r = Q.r(110, 140),", "why": "the isle at an ordinary isle's size: a speck at 7.5 km, no destination"}
 // plant: {"file": "src/realm-above.js", "find": "var D = W.dest(); if (!C.inside(D.x, D.z)) return;", "with": "var D = W.dest();", "why": "the isle laid out by every cell of its scale: four isles at one place"}
-// plant: {"file": "src/realm-above.js", "find": "size: size, sw: DEST_SW, seed:", "with": "size: size, seed:", "why": "the temple's spires at the kit's 0.035 of its size: under a pixel at 7.5 km, thin lines that crawl"}
+// plant: {"file": "src/realm-above.js", "find": "size = r * Q.r(0.44, 0.48);", "with": "size = r * Q.r(0.27, 0.32);", "why": "the temple at round 3's size: a saucer with a nub, not the place"}
 // plant: {"file": "src/realm-above.js", "find": "    if (!destClear(x, z)) return;\n", "with": "", "why": "ordinary islands in front of the destination: one isle among isles"}
 // plant: {"file": "src/realm-above.js", "find": "return Math.abs(b) > DEST_CLEAR || Math.sqrt(x * x + z * z) > D.d;", "with": "return Math.abs(b) > DEST_CLEAR;", "why": "the field cleared behind the destination too, past it, where nothing stands in front of it"}
 // plant: {"file": "src/realm-above.js", "find": "    var yaw = R.r(0, 360), stu = R.f() < stupaP, sd = R.seed();   // (drawn whether kept or not: the cell's stream the same)\n    if (!destClear(x, z)) return;", "with": "    if (!destClear(x, z)) return;\n    var yaw = R.r(0, 360), stu = R.f() < stupaP, sd = R.seed();", "why": "a skipped island skips its draws: every later piece of its cell moves"}
@@ -49,17 +49,17 @@ test('dest isle: its keel over the cruise (the flight passes under), wide and fl
     assert.ok(keel >= CRUISE + 140, `its keel ${keel.toFixed(0)} m, under ${CRUISE + 140} (the cruise and 140 m)`);
     assert.ok(!it.spheres && !it.solid, 'the isle steers the flight (it stands clear over the band)');
     const wide = 2 * it.r / 7500 * 180 / Math.PI, tall = (top - CRUISE) / 7500 * 180 / Math.PI;
-    assert.ok(wide >= 9.5 && wide <= 11 && tall >= 4 && tall <= 6.5, `${wide.toFixed(1)} deg wide, ${tall.toFixed(1)} deg tall at 7.5 km`);
+    assert.ok(wide >= 9.5 && wide <= 11 && tall >= 4.5 && tall <= 7.5, `${wide.toFixed(1)} deg wide, ${tall.toFixed(1)} deg tall at 7.5 km`);
     assert.ok(p.kind === 'destination' && p.x === D.x && p.z === D.z && p.r <= 800 && p.top >= top - 1e-9 && p.pass > p.r, `the destination POI ${JSON.stringify(p)}`);
   }
 });
 
-test('dest isle: its temple about 0.3 r, 20-35 px tall at 7.5 km on a laptop, its spires 1.2 px or more', () => {
+test('dest isle: its temple 0.44-0.48 r, 33-45 px at 7.5 km on a laptop, its spires 1.2 px or more', () => {
   const PXR = 720 / Math.tan(36 * Math.PI / 180);   // (the laptop's px per radian: 1440 px across a 72 deg view)
   for (const D of dests) {
     const it = cellOf(D, Math.floor(D.x / 16000) * 16000, Math.floor(D.z / 16000) * 16000).items[0];
-    const px = it.size / 7500 * PXR, spire = (it.sw || 0.035 * it.size) / 7500 * PXR;
-    assert.ok(px >= 20 && px <= 35 && spire >= 1.2, `the temple ${px.toFixed(0)} px tall, its spires ${spire.toFixed(2)} px wide`);
+    const px = it.size / 7500 * PXR, spire = 0.035 * it.size / 7500 * PXR;
+    assert.ok(px >= 33 && px <= 45 && spire >= 1.2, `the temple ${px.toFixed(0)} px tall, its spires ${spire.toFixed(2)} px wide`);
   }
 });
 
