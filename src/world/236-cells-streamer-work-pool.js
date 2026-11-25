@@ -28,7 +28,7 @@
       // coarse cells come near: built again in full (one still building starts over at full detail)
       for (i = 0; i < V.cellList.length; i++) {
         var Cl = V.cellList[i];
-        if (Cl.lod !== 1 || nearDist(Cl, cx, cz) > LOD_NEAR) continue;
+        if (Cl.lod !== 1 || lodDist(Cl, cx, cz) > LOD_NEAR) continue;
         if (Cl.st === 2) { Cl.lod = 0; if (Cl.B) { Cl.B = new Builder(4096); Cl.bi = 0; Cl.gen = null; } }
         else if (Cl.st >= 3 && !Cl.RB) { Cl.RB = new Builder(4096); Cl.rbi = 0; }
       }
