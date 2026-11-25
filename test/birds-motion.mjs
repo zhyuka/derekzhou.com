@@ -174,10 +174,10 @@ test('240 Hz: no landing or perched bird\'s drawn form or body jumps', () => hig
 /* (wave 2's re-measure, 2026-11-25) a landing in the page's wind along the camera's way: with a 6.5 m/s tail wind the
    approach slows below the wind, so through the air the bird drifts backwards; drawn along its air velocity, it swung
    through straight down and its attitude flipped in a frame (gale seed 1: 1.93x the 60 Hz bound, 5.43x at 144 Hz)
-   (at 144 Hz its approach is left out: a fast roll-out there kinks at each step, the roll drawn linearly between steps,
-   1.35x on main before this test; BACKLOG, birds: 'roll between steps') */
+   (and its approach: a low bird given a perch had its wind switched at once from the log law at its height to the
+   step's 40 m one, which the approach is planned in; its velocity stepped 4 m/s in a gale, 1.35x the 144 Hz bound) */
 function galeJumps(hz) {   // (each a test of its own below: tools/checks/35-birds.sh finds a test by its plain name)
-  const { worst, worstB } = jumps(hz, ['gale', 'galeCursor'], hz === 60 ? ['appr', 'land', 'perch', 'takeoff'] : ['land', 'perch', 'takeoff']);
+  const { worst, worstB } = jumps(hz, ['gale', 'galeCursor'], ['appr', 'land', 'perch', 'takeoff']);
   console.log(`# ${hz} Hz gale: worst form step ${worst.f.toFixed(2)} of its bound (${worst.at}), body ${worstB.b.toFixed(2)} (${worstB.at})`);
   assert.ok(worst.f <= 1, `form jump ${worst.f.toFixed(2)}x its bound at ${worst.at}`);
   assert.ok(worstB.b <= 1, `body jump ${worstB.b.toFixed(2)}x its bound at ${worstB.at}`);
