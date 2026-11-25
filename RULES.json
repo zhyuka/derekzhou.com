@@ -509,12 +509,18 @@
     {
       "id": "licences",
       "area": "licences",
-      "rule": "Only code and assets under MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 go into the site, plus CC BY for research data with credit given. Fonts must be licensed for the web (open-licensed like Geist's OFL, or a bought web licence); never unlicensed copies or a desktop font file.",
+      "rule": "Only code and assets under MIT, BSD, Apache, ISC, zlib, Unlicense or CC0 go into the site, plus CC BY for research data with credit given, and US government works in the public domain, credited by URL. Fonts must be licensed for the web (open-licensed like Geist's OFL, or a bought web licence); never unlicensed copies or a desktop font file.",
       "source": [
         {
           "date": "2026-11-06",
           "via": "the hub, relaying the owner",
           "doc": "docs/type.md (fonts)"
+        },
+        {
+          "date": "2026-11-25",
+          "via": "the owner, in the hub session",
+          "quote": "Yes, public domain is fine",
+          "doc": "docs/licences.md"
         }
       ],
       "enforced_by": []

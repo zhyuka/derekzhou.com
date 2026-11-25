@@ -129,6 +129,8 @@ tools/stills-release.mjs     A bake's stills up as the release the Cloudflare bu
 tools/stills-twin.mjs        The still's preload put back in the twin the PC bakes (stills.yml)
 tools/gpu/                   GPU checks run by hand on a real GPU (no CI job runs them): T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
+tools/night/                 The moon's face (moonmap.py): the near side's albedo map resampled to sky-body.glsl's 32 x 32
+                             MOONA (its source, NASA's SVS CGI Moon Kit, kept out of the repository: docs/licences.md)
 tools/physics/               The dunes' slope census against the sand's physics (physics: sand/S1): dune-census.mjs
                              (the model in JS) and dune-census-gpu.mjs (the shipped GLSL under SwiftShader), by hand;
                              mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand;
