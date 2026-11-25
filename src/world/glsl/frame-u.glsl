@@ -10,7 +10,6 @@ uniform vec4 uSkyN;   // (the sun and moon) w 1 only in a change between a twili
 uniform vec3 uGlowN, uSkyWT, uSkyWN, uHzT, uHzN; uniform vec4 uSkyKT, uSkyKN, uSunK;   // (with it) the night's glow about the key; the twilight's and the night's warm colours and amounts; the haze's warm side at each end (toward the light less away); the sun's depth under the twilight's own (deg), its share (band), the night's (QN), the wisps' shadow line (deg)
 uniform vec4 uAer;    // the aerosol (lib-air: atmos): its optical depth's scale by the visit's dust and moisture, the forward peak's g, its amount, -
 uniform vec4 uHaze; uniform vec3 uHazeC, uHazeW;   // the ground haze: density at its base (1/m), scale height (m), its base below the eye (m), -; colour, toward the sun
-uniform vec3 uAmbU, uAmbD;
 uniform vec4 uFogP;   // (the fog pools) the pool in view: its site (x, z), its basin's radius (m), its top (m; -1e4: none)
 uniform vec4 uMist;   // (delight-weather 1) the mist pools: their depth over the dunes' floor (m), the depth they turn opaque within (m)
 uniform vec3 uClLit, uClShade, uClDeep, uClRim; uniform vec4 uClK, uClK2;

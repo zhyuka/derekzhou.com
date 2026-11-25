@@ -62,8 +62,6 @@
     if (u.uMist) mistU(u, L);   // (delight-weather 1: the mist pools)
     if (u.uFogP) fogU(u, L);   // (and the fog pool in a basin: 234)
     if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
-    if (u.uAmbU) gl.uniform3fv(u.uAmbU, L.ambU);
-    if (u.uAmbD) gl.uniform3fv(u.uAmbD, L.ambD);
     if (u.uClLit) gl.uniform3fv(u.uClLit, L.clLit);
     if (u.uClShade) gl.uniform3fv(u.uClShade, L.clShade);
     if (u.uClDeep) gl.uniform3fv(u.uClDeep, L.clDeep);
