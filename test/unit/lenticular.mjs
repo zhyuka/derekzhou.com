@@ -24,6 +24,9 @@
 // plant: {"file": "src/realm-dunes.js", "find": "dGreat(C, s); dForms(C, s, R); dHeld(C); return;", "with": "dGreat(C, s); dHeld(C); dForms(C, s, R); return;", "why": "the lens laid out before the forms' clouds: their places in the cell, and so their fallback seeds, move"}
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.erode = 0.15; b.billow = 0.35; b.squash = 0.52 * T / Rc;", "with": "b.erode = 0.3; b.billow = 0.35; b.squash = 0.52 * T / Rc;", "why": "the lens eroded as before: the top plate's edge scalloped (the hub, 2026-11-23)"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[3] = B.det[1] * 0.25; }", "with": "B.u4a[3] = B.det[1] * 0.5; }", "why": "the lens's flowing billows at half the kit's depth: its rim scalloped"}
+// plant: {"file": "src/world/215-air.js", "find": "oro: [7.2, 8.2], oroU: 7.7,", "with": "oro: [6.2, 7.2], oroU: 6.7,", "why": "the lens gate a metre a second low (lenses under a 7.7 m/s crest wind)"}
+// plant: {"file": "src/world/215-air.js", "find": "oro: [7.2, 8.2], oroU: 7.7,", "with": "oro: [9.6, 10.6], oroU: 10.1,", "why": "the big ranges' 10 m/s gate: no lens on any visit"}
+// plant: {"file": "src/realm-dunes.js", "find": "var wx = A.wx(0, V); if (wx.oro < 0.5) return;", "with": "var wx = A.wx(0, V);", "why": "the lenses blind to the wind (on every visit)"}
 import { test, assert, fs, path, vm, ROOT, TMP, WORLD, cut, STREAMS } from '../unit-lib.mjs';
 
 const DUNES = fs.readFileSync(path.join(TMP, 'src', 'realm-dunes.js'), 'utf8');
@@ -70,6 +73,22 @@ test('lenticular: AIR\'s orographic gate reads the crest\'s own wind (the day\'s
     assert.ok(Math.abs(Math.hypot(a.x, a.z) - r) <= 0.01 * r, `the crest's wind ${Math.hypot(a.x, a.z).toFixed(3)} m/s, AIR's ridge ${r.toFixed(3)}`);
   }
   assert.ok(H.wx(0, { wind: [0, 1], u10: 5 }).oro < 0.5 && H.wx(0, { wind: [0, 1], u10: 6.5 }).oro >= 0.5, 'the gate does not open between U10 5 and 6.5');
+});
+
+// the gate pinned (the hub's ruling, 2026-11-25: main's gate kept, at the foot of the 25-40 km/h a lee wave wants:
+// https://www.meteoswiss.admin.ch/weather/weather-and-climate-from-a-to-z/mountain-and-lee-waves.html)
+test('lenticular: the gate at a crest wind of 7.7 m/s: no lens under it, lenses past it', () => {
+  let opened = 0;
+  for (let u10 = 3; u10 <= 7.5 + 1e-9; u10 += 0.05) {
+    let n = 0, crest = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const V = visitV(seed, u10), w = { ...H.airBase(0, 0, H.HELD_H, V) }; crest = Math.hypot(w.x, w.z);
+      for (let iz = -4; iz < 4; iz++) for (let ix = -4; ix < 4; ix++) n += cell(ix, iz, (seed * 40503) >>> 0, V).length;
+    }
+    if (crest < 7.7 - 1e-9) assert.equal(n, 0, `${n} lenses at a crest wind of ${crest.toFixed(3)} m/s (U10 ${u10.toFixed(2)}), under the gate's 7.7`);
+    if (crest > 7.7 + 0.02) { assert.ok(n > 0, `no lens at a crest wind of ${crest.toFixed(3)} m/s (U10 ${u10.toFixed(2)}), past the gate's 7.7`); opened++; }
+  }
+  assert.ok(opened >= 20, `the gate opened on only ${opened} sweep steps`);
 });
 
 test('lenticular: only on windy visits (the crest\'s wind >= 7.7 m/s, within 30 deg of square), over the dunes, downwind of the crest, 1100-1700 m up', () => {

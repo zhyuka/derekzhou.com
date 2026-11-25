@@ -172,9 +172,8 @@
       return out;
     },
     /* (birds3d) the night: 0 by day, 1 at night. The world has no night yet (the time of day's work will give it): the
-       zenith sky's luminance after the exposure, 1 - smooth(0.04, 0.12, Y); 1 under the dev's SIMULATED night */
+       zenith sky's luminance after the exposure, 1 - smooth(0.04, 0.12, Y) */
     night: function () {
-      if (SIMNIGHT) return 1;
       var V = SIM.V, L = V && (V.L || V.light), E = LASTE; if (!L) return 0;
       var z = L.skyFlat || (L.sky && L.sky[0]), y = z && z.length >= 3 ? 0.2126 * z[0] + 0.7152 * z[1] + 0.0722 * z[2] : 1;
       y *= E ? E.exposure : 1;

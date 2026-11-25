@@ -56,6 +56,7 @@
         // never on a hanging fringe of lobes (a range's lobes would hang over the dunes like a bunch)
         var ycB = 1e9; for (j = bj0; j < bj1; j++) ycB = Math.min(ycB, PF.a[j * 12 + 1]); PF.bodies[bi].base = PF.bodies[bi].flow ? undefined : ycB;   // (a held body, a lens, none: its plates are smooth lenses under and over, and a base at its lowest lobes' centres cut the lower half of a 45-75 m plate away; the billows reaching under it hid that until #254 put the base after them)
         var vb = volPrep(PF, bi, null, PF.bodies[bi].res || V.def.layout.volRes || 48, V); vb.out.kind = PF.bodies[bi].kind || 0; C.vols.push(vb);
+        if (C.air && clb && clb.kind === 'cumulus' && !PF.bodies[bi].flow) { var lh = Math.imul((clb.seed || (C.key + bi * 7919)) >>> 0, 2654435761) >>> 0; vb.out.life = [LIFE_T[0] + (LIFE_T[1] - LIFE_T[0]) * (lh & 0xffff) / 0xffff, 2 * PI * (lh >>> 16) / 0xffff]; }   // (physics: clouds/life: a free cumulus' own period and phase, from its seed: 212's cloudLife)
         // (its centre in the air frame and the low layer's wind: cloudPos carries it, physics: clouds/drift; a world cell's
         // clouds, a canyon's walls, are the cloud sea's: held)
         if (PF.bodies[bi].flow && !C.air) vb.out.flow = PF.bodies[bi].flow;   // (a held body's billows flow through it at the wind at its height: 410)
