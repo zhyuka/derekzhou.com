@@ -102,17 +102,17 @@
   }
   /* the visit's first sky (before its first frame: nothing is seen yet): the visitor's sky filled, a flock or two near */
   function seed(C) {
-    var cls = skyCls(), r = POP.r, want = LIVE_N[cls] || 6, i, k;
+    var cls = skyCls(), r = POP.r, pass = cls === 'moon' && !FORCED && passR() < PASS_P, want = LIVE_N[cls] || 6, i, k;
     for (i = 0; i < want; i++) {
       for (k = 0; k < 12; k++) {
         var near = i < 2, d = near ? mix(r(), 140, 600) : LIVE_R * Math.sqrt(mix(r(), 0.03, 1)), a = near ? Math.atan2(C.f[0], C.f[2]) + (r() - 0.5) * 1.2 : TAU * r();
         var x = LVC.x + d * Math.sin(a), z = LVC.z + d * Math.cos(a), y = Math.max(hideTop(x, z) + 30, LVC.y + mix(r(), -30, 80));
         if (y < lvGround(x, z) + 15) continue;
-        newFlock(x, y, z, TAU * r(), cls, near ? perchWhat(r, cls) : null);   // (the near ones of kinds that perch: a visit sees one come down soon)
+        var ps = TAU * r(); if (pass && i === want - 1) POP.k++; else newFlock(x, y, z, ps, cls, near ? perchWhat(r, cls) : null);   // (the near ones of kinds that perch: a visit sees one come down soon; a passage takes the last place, the draws kept)
         break;
       }
     }
-    if (cls === 'moon' && !FORCED && passR() < PASS_P) passage(C, cls, passR, true);   // (a night opening's passage, on its way at the cut)
+    if (pass) passage(C, cls, passR, true);   // (a night opening's passage, on its way at the cut)
     POP.nightT = Infinity;   // (the opening's sky drawn here)
     for (i = 0; i < BIRDS.length; i++) { var q = BIRDS[i]; for (k = 0; k < 3; k++) { q.pp[k] = q.p[k]; q.v0[k] = q.v[k]; } q.phi0 = q.phi; }   // (seeded where they are: no step behind them to draw between)
     POP.seeded = true; POP.nextT = t + 2;
@@ -178,7 +178,7 @@
      by the flight's own heading and speed); a sky that turns to night bears it beyond sight (at that height a goose
      shows to about 9 km: a long way in). A drag makes it pass elsewhere: nothing follows the view. If it crosses the
      moon it is by chance (the hub, 2026-11-25). passWay fills PASSW (x, y, z, heading) or returns false */
-  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(5), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
+  var PASS_P = 0.6, PASS_H = [300, 600], PASS_N = [9, 25], PASS_TC = [30, 90], PASSA = [0, 0, 0], PASSW = new Float64Array(4), PASSF = { ok: false, x: 0, y: 0, z: 0, psi: 0, view: 0, speed: 0, vy: 0, camk: 0, ground: 0 };
   var PASSR = null;
   function passR() { if (!PASSR) PASSR = vstream(8801); return PASSR(); }   // (the passage's own stream: the sky's other flocks draw as they did)
   function passWay(C, h, Tc, side, near, u, v) {   // (u, v: the place ahead it crosses, as fractions of the window's half widths)
@@ -194,7 +194,7 @@
       HOST.wind(PASSA, h); var wl = PASSA[0] * tx + PASSA[2] * tz, wp = PASSA[0] * tz - PASSA[2] * tx, va = V * clamp(1 - 0.2 * wl / V, 0.85, 1.35), gs = wl + Math.sqrt(Math.max(0, va * va - wp * wp));   // (its ground speed as goalVel flies it in the wind at its height)
       var sx = px - tx * gs * Tc, sz = pz - tz * gs * Tc;
       if (gs < 0.5 * V || (!near && Math.hypot(sx - LVC.x, sz - LVC.z) < sightD('goose', gy) * 1.05) || lvGround(sx, sz) + 30 > gy) continue;
-      PASSW[0] = sx; PASSW[1] = gy; PASSW[2] = sz; PASSW[3] = tr; PASSW[4] = gs; return true;
+      PASSW[0] = sx; PASSW[1] = gy; PASSW[2] = sz; PASSW[3] = tr; return true;
     }
     return false;
   }
@@ -202,10 +202,8 @@
     var n = Math.round(pick(r, PASS_N)), h = pick(r, PASS_H), Tc = pick(r, PASS_TC), side = r() < 0.5 ? 1 : -1, u = (r() - 0.5) * 1.4, v = mix(r(), 0.2, 0.9);
     if (!passWay(C, h, Tc, side, near, u, v)) return null;
     var k0 = POP.k; POP.k = 50000 + POP.passN++;   // (its own flock keys: the sky's other flocks keep theirs)
-    var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]), i; POP.k = k0;
+    var F = newFlock(PASSW[0], PASSW[1], PASSW[2], PASSW[3], cls, ['skein', 'goose', n]); POP.k = k0;
     F.goal = null; var g = newGoal(F, 'commute', F.r, cls); g.psi = PASSW[3]; g.y = PASSW[1]; g.T = 900; g.home = true;
-    var L = F.lead; L.v[0] = PASSW[4] * Math.sin(g.psi); L.v[2] = PASSW[4] * Math.cos(g.psi);   // (on its way from birth: a still bird's first coarse step would jump)
-    for (i = 1; i < F.m.length; i++) holdPlace(F, F.m[i]);
     F.passage = 1; POP.passF = F;
     return F;
   }
