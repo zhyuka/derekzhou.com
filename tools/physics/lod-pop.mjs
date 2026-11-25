@@ -101,6 +101,13 @@ export function fly(S, H, o = {}) {
   return { reads, steps: dpx.length, handoff: ho, px: { p50: pc(dpx, 0.5), p99: pc(dpx, 0.99), p9999: pc(dpx, 0.9999), max: dpx[dpx.length - 1] || 0 }, over_half_px: dpx.filter((p) => p > 0.5).length, levels: { p99: pc(dn, 0.99), p9999: pc(dn, 0.9999), max: dn[dn.length - 1] || 0 }, over_2_levels: dn.filter((q) => q > 2).length, worst };
 }
 if (process.argv[1] && url.fileURLToPath(import.meta.url) === process.argv[1]) {
+  if (A.edge) {   // the land's far edge: the horizon's land line at the outermost ring's steps
+    const S = clipmapSpec(), sec = +(A.seconds || 60);
+    for (const [name, o] of [['flight 1', { a0: 0.3 }], ['flight 2', { a0: 2.1, x0: 4000, z0: -2500 }]])
+      for (const [sz, size] of [['laptop', [1800, 0.727, 0.454]], ['phone', [2556, 0.384, 0.832]]])
+        console.log(JSON.stringify({ flight: name, size: sz, ...flyEdge(S, (x, z) => landAt(x, z, 0.6), { ...o, size, seconds: sec }) }));
+    process.exit(0);
+  }
   if (A.all) {   // the land anywhere: fixed points scattered over the corridor, every term the fragment shades with
     const S = clipmapSpec(), sec = +(A.seconds || 60), N = +(A.points || 1500);
     for (const [name, o] of [['flight 1', { a0: 0.3 }], ['flight 2', { a0: 2.1, x0: 4000, z0: -2500 }]])
@@ -227,4 +234,45 @@ export function flyBrink(S, o = {}) {
   return { points: pts.length, steps: all.length, levels: { p50: pc(0.5), p99: pc(0.99), p9999: pc(0.9999), max: all[all.length - 1] || 0 },
     over2: all.filter((q) => q > 2).length, over2_frac: all.filter((q) => q > 2).length / Math.max(1, all.length),
     worst_point_frac: frac[frac.length - 1] || 0, points_over_0p1pct: frac.filter((q) => q > 0.001).length, worst };
+}
+
+/* ---- the land's far edge: the outermost ring (level 9, 179 m cells) ends 46-50 cells out (8.2-8.9 km) and moves in
+   steps of 2 cells (358 m) as the camera crosses its lattice. The horizon's land line in each screen column is the
+   highest elevation angle over the drawn mesh along that column's ground ray (out to the ring's edge, where the land
+   stops). At each step of the outermost ring a strip of land appears ahead (or goes behind): the line may jump. Read at
+   the frames either side of every step and at a steady 6 a second between (the camera's own motion), in laptop pixels,
+   with the haze's green transmission at the line's distance (main's: fog [2e-4 / 220 m, 0.6e-4], uAer 1-1.82) */
+export function flyEdge(S, H, o = {}) {
+  const sec = o.seconds || 60, fps = 60, v = 12, land = makeLand(H), x0 = o.x0 || 0, z0 = o.z0 || 0, a0 = o.a0 || 0;
+  const [hpx, tanX, tanY] = o.size || [1800, 0.727, 0.454], F = hpx / (2 * tanY), cols = o.cols || 48;
+  const path = (t) => { const aa = a0 + 0.15 * Math.sin(t / 17), s = v * t; return [x0 + s * Math.sin(a0) + 30 * Math.sin(t / 11), z0 + s * Math.cos(a0) + 30 * Math.cos(t / 13) - 30, aa]; };
+  const L = S.levels - 1, g = S.g0 * Math.pow(2, L), half = S.GN / 2;
+  const ring = (cx, cz) => [Math.floor(cx / (2 * g)), Math.floor(cz / (2 * g))];
+  const line = (f) => {   // per column: the silhouette's elevation (rad) and its distance
+    const [cx, cz, aa] = path(f / fps), cy = land(cx, cz) + 14, ox = (Math.floor(cx / (2 * g)) * 2 - half) * g, oz = (Math.floor(cz / (2 * g)) * 2 - half) * g, out = [];
+    for (let c = 0; c < cols; c++) {
+      const sx = (c + 0.5) / cols * 2 - 1, ang = aa + Math.atan(sx * tanX), dx = Math.sin(ang), dz = Math.cos(ang);
+      let best = -1, bd = 0;
+      for (let d = 2000; ; d += g / 2) {
+        const px = cx + dx * d, pz = cz + dz * d;
+        if (px < ox || pz < oz || px >= ox + S.GN * g || pz >= oz + S.GN * g) break;   // (the ring's edge: no land beyond)
+        const r = drawnAt(S, land, cx, cz, px, pz); if (!r) break;
+        const e = (r.h - cy) / d; if (e > best) { best = e; bd = d; }
+      }
+      out.push([best, bd]);
+    }
+    return out;
+  };
+  const steps = [], cont = []; let prev = ring(...path(0).slice(0, 2));
+  for (let f = 1; f <= sec * fps; f++) {
+    const rg = ring(...path(f / fps).slice(0, 2));
+    if (rg[0] !== prev[0] || rg[1] !== prev[1]) {   // the outermost ring steps between f - 1 and f
+      const A = line(f - 1), B = line(f);
+      for (let c = 0; c < cols; c++) steps.push({ px: Math.abs(B[c][0] - A[c][0]) * F, d: B[c][1], f });
+    } else if (f % 10 === 0) { const A = line(f - 1), B = line(f); for (let c = 0; c < cols; c++) cont.push(Math.abs(B[c][0] - A[c][0]) * F); }
+    prev = rg;
+  }
+  steps.sort((p, q) => q.px - p.px); cont.sort((p, q) => q - p);
+  return { stepsSeen: new Set(steps.map((s) => s.f)).size, worstStep: steps.slice(0, 5).map((s) => ({ px: +s.px.toFixed(2), d_km: +(s.d / 1000).toFixed(2) })),
+    stepCols_over_0p5px: steps.filter((s) => s.px > 0.5).length, of: steps.length, steady_max_px: +(cont[0] || 0).toFixed(3), steady_p99_px: +(cont[Math.floor(cont.length * 0.01)] || 0).toFixed(3) };
 }

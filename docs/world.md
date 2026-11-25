@@ -1374,6 +1374,17 @@ steady 2.35-2.37 levels a frame for 5 frames: a smooth turn, not a pop.
 Phone: none over 2 (worst 1.92). Nothing else on the land turns more than
 2 levels in a frame.
 
+The land's far edge holds too. The outermost ring (179 m cells) ends
+8.2-8.9 km out (to 12.6 km on the diagonals) and moves in 358 m steps,
+so a strip of far land appears or goes at each. lod-pop.mjs --edge
+reads the horizon's land line in 48 columns over the drawn mesh, at the
+frames either side of every step, on the same 2 flights at both sizes.
+At 8 steps, 6 of 384 columns moved over 0.5 px, the worst 2.0 px at 9.8
+km (laptop) and 0.86 px at 10.7 km (phone). The camera's own steady
+motion moves the line up to 1.0 px a frame. At 8-11 km the haze leaves
+the land line 1-3 codes off the sky (2-8% of the contrast in green), so
+no step shows. Left as it is.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
