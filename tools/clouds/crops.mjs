@@ -100,7 +100,8 @@ async function main() {
       cam = [c.x - ux * +A.dist, c.z - uz * +A.dist, Math.atan2(ux, uz)]; rec.aimed = { kind: A.aim, ...c, laidOut: L.length };
     } else cam = [st.x, st.z, st.psi];
     const shots = Math.max(1, +(A.shots || 1)), every = +(A.every || 1250), small = SV, size = (arm, wh) => arm.page.setViewportSize({ width: wh[0], height: wh[1] }),
-      shoot = async (arm) => { if (small) { await size(arm, [vw, vh]); await step(arm, 3); } const u = await png(arm); if (small) await size(arm, small); return u; },
+      settle = async (arm, wh) => { for (let i = 0; i < 120; i++) { if (await arm.page.evaluate(([w, h]) => { const c = document.querySelector('canvas.sky'); return c.width === w && c.height === h; }, wh)) { await step(arm, 3); return; } await step(arm, 1); } throw new Error(`crops: the canvas never took ${wh.join('x')}`); },   // (the world sizes its canvas on its own frames)
+      shoot = async (arm) => { if (small) { await size(arm, [vw, vh]); await settle(arm, [vw, vh]); } const u = await png(arm); if (small) { await size(arm, small); await settle(arm, small); } return u; },
       series = async (arm) => { const o = [await shoot(arm)]; say('shot 0'); for (let k = 1; k < shots; k++) { await step(arm, every); o.push(await shoot(arm)); say(`shot ${k}`); } return o; };   // (--stepvp WxH: the clock stepped at a small viewport, each shot at --vp: the frames between cost little)
     await hold(h, cam[0], cam[1], cam[2]); await step(h, +A.frames);
     say('aimed and settled'); cam[3] = await h.page.evaluate(() => window.__D.CS.y); rec.cam = cam;   // (the head's settled height: base is held at it)
