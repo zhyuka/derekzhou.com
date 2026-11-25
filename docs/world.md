@@ -1306,6 +1306,22 @@ levels), and no point over 0.1% of its frames on either size.
 test/unit/clipmap.mjs flies 5 s at both sizes; the plant (cp from the
 vertices' normal) fails it.
 
+The near dunes' crests (the 64 m family) shimmered the same way, and
+nothing in the fragment rebuilds them. Their profile (duneWave) kept a
+kink in slope at the crest (1/0.7 a cycle on the stoss, 0 on the lee),
+so a vertex morphing across one turned its normal by the whole jump in
+a frame. Measured with lod-pop.mjs --near (800 fixed points within 1 m
+of a crest, the same 2 flights at both sizes): 0.023-0.115% of steps
+over 2 levels, up to 12.2 levels, at 470-630 m (level 5, 11 m cells),
+with 10-202 of 800 points over 0.1% of their frames. Now the crest is a
+cubic over 2 m that matches both sides' height and slope (the main
+dunes' brink is rounded over 2 m too). The crest stands at most 1.4 cm
+lower. A vertex morphs about 0.024 m a frame, so the turn spreads over
+the frames it takes to cross: 0 steps over 2 levels, at most 0.66
+levels, and no point over the bound at either size.
+test/unit/clipmap.mjs flies both sizes; the plant (the kink sharp again)
+fails it.
+
 ## THE LARGE WORLD
 
 A 2-hour visit flies 86 km from the origin, where fp32 rounds a coordinate
