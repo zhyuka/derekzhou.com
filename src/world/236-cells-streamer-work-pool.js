@@ -22,6 +22,7 @@
           var ix = bx + jx, iz = bz + jz, ccx = (ix + 0.5) * L.size - px0, ccz = (iz + 0.5) * L.size - pz0, d = Math.sqrt(ccx * ccx + ccz * ccz);
           if (d > R + L.size * 0.5) continue;
           var key = cellKey(sc, ix, iz);
+          if (L.one && (ix !== Math.floor(destOf().x / L.size) || iz !== Math.floor(destOf().z / L.size))) continue;   // (the destination's scale: the one cell that holds it)
           if (!V.cells.has(key)) { var C = new Cell(V, sc, ix, iz); V.cells.set(key, C); V.cellList.push(C); }
         }
       }
