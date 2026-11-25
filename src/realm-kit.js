@@ -273,6 +273,7 @@
       }
       rows.push(row);
     }
+    if (B.lod) { rows = rows.filter(function (q, i) { return i % 2 === 0 || i === NR; }).map(function (q) { return q.filter(function (p, j) { return j % 2 === 0; }); }); NR = rows.length - 1; }   // (far off: every other row and column of the same surface, so it never changes shape at the handoff: 22 x 8 rows)
     yield* gridSurfG(B, rows, rock, true);
     var lip = rows[NR].map(function (q) { return [q[0] * 1.015, 1.8, q[2] * 1.015]; });
     yield* gridSurfG(B, [rows[NR].map(function (q) { return [q[0], -r * 0.02, q[2]]; }), lip], grass, true);
