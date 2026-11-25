@@ -713,8 +713,12 @@ the point is over 0.5 (5 of 16 lands on today's maps), else 'rock'. Scale
 otherwise to the dunes kit's rock.
 
 It is laid out by its own layout scale (the sixth: 16 km cells reaching
-12 km, at most about 4 laid out) and only by the cell that holds it,
-kept whatever the density draws. The scale's fade starts at 9.3 km, so
+12 km), which makes only the cell that holds it (one: true, 236's
+streamCells), kept whatever the density draws. The scale's other cells
+in reach (three, empty) changed which cloud bodies the boot baked before
+the show: +88 bake slices and +36k voxels on the phone, +138 ms to the
+world's first frame on the gate's paint (load-perf, 2026-11-25). With
+only the one cell, the boot bakes exactly what main does. The scale's fade starts at 9.3 km, so
 at 7-8 km it is whole and never pops in. 6 km cells reaching 14 km
 spent the boot's layout budget on about 17 empty cells and showed the
 phone's world a frame later. Through main's haze (green, eye 18 m) the

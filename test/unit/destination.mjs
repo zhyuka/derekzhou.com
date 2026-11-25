@@ -34,7 +34,7 @@ test('destination: the seed\'s alone (the same whenever asked; another seed, ano
 });
 
 test('destination: laid out by its own scale\'s one cell, the dunes kit\'s', () => {
-  assert.match(WORLD, /\{ size: 16000, radius: 12000 \}\]/, 'the destination\'s layout scale (16 km cells to 12 km: at most about 4 laid out, none delaying the boot) is gone');
+  assert.match(WORLD, /\{ size: 16000, radius: 12000, one: true \}\]/, 'the destination\'s layout scale (16 km cells to 12 km, making only the one cell that holds it: the others reordered the boot\'s cloud bakes) is gone');
   assert.match(WORLD, /if \(C\.scale === 5\) \{ var DK = destKind\(destOf\(\)\)\.kind === 'isle' && KA\.dest \? KA : KD, kn = DK === KA \? 'above' : 'dunes', A5 = kitApi\(C, kn, DK === KA \? densA : densD, DK === KA\); A5\.add = function \(it\) \{ it\.kit = kn; return C\.add\(it\); \}; A5\.poi = C\.poi; if \(DK\.dest\) DK\.dest\(A5, R, K2\); \}/, 'scale 5 is not handed to its kind\'s dest (the above kit\'s isle over the cloud sea once it has one, else the dunes kit\'s rock), kept whatever the density');
   assert.match(WORLD, /function destKind\(D\) \{ if \(!D\.kind\) D\.kind = kitAt\(D\.x, D\.z\)\.wC > 0\.5 \? 'isle' : 'rock'; return D; \}/, 'destKind is not the maps\' cloud sea at the point, read once (wC over 0.5: the isle)');
 });

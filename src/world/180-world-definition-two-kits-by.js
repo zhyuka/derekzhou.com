@@ -150,7 +150,7 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
       camGround: 'HdCam', probeHgt: 'HdProbe', landmarkShade: 'shadeStone',
       // (physics: clouds/drift) and the air cells, the free clouds' (the low layer's: its ranges and towers, with their
       // points of interest), each kit's at its own grid and reach, streamed about the camera's place in the air
-      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0], { size: KD.layout.scales[0].size, radius: KD.layout.scales[0].radius, air: 'dunes' }, { size: KA.layout.scales[0].size, radius: KA.layout.scales[0].radius, air: 'above' }, { size: 16000, radius: 12000, one: true }], volRes: 44 },   // (5: the destination's, 217: one form, kept by the one cell it stands in; 16 km cells to 12 km, at most about 4 laid out)
+      layout: { scales: [KD.layout.scales[0], KD.layout.scales[1], KA.layout.scales[0], { size: KD.layout.scales[0].size, radius: KD.layout.scales[0].radius, air: 'dunes' }, { size: KA.layout.scales[0].size, radius: KA.layout.scales[0].radius, air: 'above' }, { size: 16000, radius: 12000, one: true }], volRes: 44 },   // (5: the destination's, 217: one form, kept by the one cell it stands in; 16 km cells to 12 km, only that one made: 236, one)
       field: function (R, V) {
         var fd = KD.field(R, V), fa = KA.field(RNG(subseed(V.seed, 23)), V), P = fd.params.slice(0, 12);
         while (P.length < 12) P.push([0, 0, 0, 0]);
