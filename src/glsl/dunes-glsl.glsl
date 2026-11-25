@@ -13,8 +13,8 @@
 #define ROCK_DEEP uP[10].rgb
 #define PALE uP[11].rgb
 const float DS = 1500.0, RS = 4500.0;
-const float RIP_I = 0.15, RIP_M = 0.9, RIP_FLOOR = 1.5;   // (the ripples, shadeSand: impact and megaripple spacing, m; the interdune floor's reach over the troughs' floor, m)
-float gAF = 1e4;   // (the land's height over the troughs' floor, set by the terrain's fragment stage: 350; none elsewhere, so no megaripples)
+const float RIP_I = 0.15, RIP_M = 0.9, RIP_FLOOR = 1.5;   // (shadeSand's ripples, m)
+float gAF = 1e4;   // (height over the troughs' floor: 350 sets it)
 /* an area's site: its cell's hash (the visit's salt), its place jittered in the cell, its kind, four parameters */
 struct Site { vec2 p; int kind; vec4 r; };
 Site siteOf(ivec2 c) {
@@ -313,26 +313,15 @@ vec4 n3vC1(vec3 p) {
 vec3 shadeSand(vec3 p, vec3 n0, vec3 rd, float t, float fp) {
   vec3 n = n0;
   float steep = smoothstep(0.42, 0.66, 1.0 - n0.y);
-  /* the ripples (physics: sand/ripples; #420's study, tools/physics/ripple-size.py), two classes by the sand:
-     impact ripples on all the loose sand, RIP_I apart (about a thousand grains: https://arxiv.org/html/2501.10643v1);
-     megaripples, RIP_M apart, only where the sand is poorly sorted, coarse grains among the fine
-     (https://arxiv.org/pdf/2208.00888): the interdune floors, level ground within RIP_FLOOR of the dunes' troughs'
-     floor (gAF: the land's height over the mist pools' floor, 350), in patches. Each is faded by how many pixels its
-     wavelength spans in its own direction (the wind's coordinate's change a pixel, as fwidth would give it but
-     worked from the footprint, fp across the view and fp over the grazing cosine along it, since shadeSand is
-     compiled into vertex stages too, where fwidth is not: whole from 5 px a
-     wavelength, gone under 2.5; from 4 and 2 the impact ripples flickered 1.3 levels over the filtered truth on a
-     laptop, ripples.mjs), never by range, so neither glitters in motion and each shows wherever it resolves.
-     The noise is read only where one shows. The phase's warp of bounded gradient (world6 fix, the judges' defect 6): a fixed wave along
-     the wind and a wander, turn and spacing from one tap of the noise, so the frequency never grows with the
-     distance from the world's origin */
+  /* the ripples: impact ripples on the loose sand (https://arxiv.org/html/2501.10643v1), megaripples on the interdune
+     floors only (https://arxiv.org/pdf/2208.00888); each faded by its pixels a wavelength (docs/world.md, ## THE SAND'S RIPPLES) */
   vec2 w = WINDDIR, rh = normalize(rd.xz + vec2(1e-6, 0.0));
   float d = dot(p.xz, w), fwD = fp * (abs(dot(w, rh)) / max(abs(dot(rd, n0)), 0.02) + abs(dot(w, vec2(-rh.y, rh.x))));
   float kI = 1.0 - smoothstep(0.2, 0.4, fwD / RIP_I);
   float kM = (1.0 - smoothstep(0.2, 0.4, fwD / RIP_M)) * (1.0 - smoothstep(RIP_FLOOR, 2.0 * RIP_FLOOR, gAF)) * smoothstep(0.97, 0.99, n0.y);
   float rk = 1.0 - steep;
   if (rk * max(kI, kM) > 0.002) {
-    vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));   // (C1: the warp's gradient continuous at the texels' borders)
+    vec4 nz = n3vC1(vec3(p.xz / 61.0, 0.71));
     vec2 wp = vec2(-w.y, w.x), wr = normalize(w + wp * (nz.r - 0.5) * 0.6);
     float wv = (nz.g - 0.5) * 9.0 + (nz.a - 0.5) * 6.0, phI = d / RIP_I + wv, phM = d / RIP_M + wv;
     float sl = kI * (cos(6.2831853 * phI) + 0.35 * cos(12.566 * phI + 1.0)) + kM * smoothstep(0.38, 0.62, nz.b) * (cos(6.2831853 * phM) + 0.35 * cos(12.566 * phM + 1.0));
