@@ -60,10 +60,17 @@ const M1 = [0.8 / 330, 0.6 / 330, -0.6 / 330, 0.8 / 330];
 let Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];   // (mat2(w.x/420, pp.x/190, w.y/420, pp.y/190), column-major)
 
 // today's duneWave: an asymmetric wave with its phase warped in 2D
-function waveOld(x, y, ww, lam, c, warp) {
+export let ROUND_NEAR = true;   // (tools/physics/lod-pop.mjs --near: false replays the crest unrounded, as before)
+export function setRoundNear(v) { ROUND_NEAR = v; }
+function waveOld(x, y, ww, lam, c, warp, round = false) {   // (round: the crest's kink rounded over 2 m, as dunes-glsl's duneWave: the near family)
   const ph = [(x * ww[0] + y * ww[1]) / lam + warp[0], ww[0] / lam + warp[1], ww[1] / lam + warp[2]];
-  const f = ph[0] - Math.floor(ph[0]); let s, ds;
-  if (f < c) { const t = f / c; s = t * t * (2 - t); ds = (4 * t - 3 * t * t) / c; } else { const t = (f - c) / (1 - c); s = 1 - t * t * (3 - 2 * t); ds = -6 * t * (1 - t) / (1 - c); }
+  const f = ph[0] - Math.floor(ph[0]), r = 1 / lam; let s, ds;
+  if (round && Math.abs(f - c) < r) {
+    const xa = 1 - r / c, yb = r / (1 - c), sa = xa * xa * (2 - xa), da = (4 * xa - 3 * xa * xa) / c, sb = 1 - yb * yb * (3 - 2 * yb), db = -6 * yb * (1 - yb) / (1 - c);
+    const h = 2 * r, u = (f - c + r) / h, u2 = u * u, u3 = u2 * u;
+    s = (2 * u3 - 3 * u2 + 1) * sa + (u3 - 2 * u2 + u) * h * da + (3 * u2 - 2 * u3) * sb + (u3 - u2) * h * db;
+    ds = ((6 * u2 - 6 * u) * (sa - sb) + (3 * u2 - 4 * u + 1) * h * da + (3 * u2 - 2 * u) * h * db) / h;
+  } else if (f < c) { const t = f / c; s = t * t * (2 - t); ds = (4 * t - 3 * t * t) / c; } else { const t = (f - c) / (1 - c); s = 1 - t * t * (3 - 2 * t); ds = -6 * t * (1 - t) / (1 - c); }
   return { h: [s, ph[1] * ds, ph[2] * ds], lee: ds < 0, f };
 }
 // S1: the phase moved along the wind by a noise of the across-wind coordinate only; a stoss rise, a 32 deg slip
@@ -159,7 +166,7 @@ function dunes(x, y) {
   // the near family (64 m), as today (x0.6 and kept off the slip face in S1)
   const w2 = (() => { const v = [w[0] + 1.3 * pp[0], w[1] + 1.3 * pp[1]], l = Math.hypot(v[0], v[1]); return [v[0] / l, v[1] / l]; })();
   const warp2 = sc(dNs(x + 37 + 9, y + 37 + 9, 1 / 80), 0.25);
-  const r2 = waveOld(x + 37, y + 37, w2, 64, 0.7, warp2), s2 = r2.h;
+  const r2 = waveOld(x + 37, y + 37, w2, 64, 0.7, warp2, ROUND_NEAR), s2 = r2.h;
   let near = sc(mul(s2, sstep(-0.5, 0.4, dNs(x + 900, y + 900, 1 / 160))), 4);
   if (MODEL !== 'old') near = sc(mul(near, nearW), 0.6);
   return { h: add(add(swell, main), near), mainGrad: main, lee, s1: MODEL === 'old' ? null : r1, nearF: r2.f, nearA: near };

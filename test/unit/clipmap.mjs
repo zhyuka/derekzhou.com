@@ -12,6 +12,9 @@
 // And the brinks hold still: a fixed point on a slip face's brink, shaded as FS_TERRAIN shades it, steps over 2 levels in
 // under 0.1% of frames (the fragment's footprint reads its own slope, not the morphing vertices').
 // plant: {"file": "src/world/350-shaders-scene.js", "find": "max(abs(dot(nc, rd)), 0.02)", "with": "max(abs(dot(n, rd)), 0.02)", "why": "the footprint from the vertices' normal again: the brinks shimmer as the vertices morph"}
+// And the near dunes' crests hold still: their slope's kink rounded over 2 m (duneWave), a crest point steps over 2 levels
+// in under 0.1% of frames.
+// plant: {"file": "src/glsl/dunes-glsl.glsl", "find": "if (abs(f - c) < r) {", "with": "if (false) {", "why": "the near crest's kink sharp again: a vertex morphing across it turns 12 levels in a frame"}
 // plant: {"file": "src/world/glsl/hp-gridw.glsl", "find": "vec2 c = L.xy + aG, w = c * L.z;", "with": "vec2 c = L.xy + aG, w = L.xy + aG * L.z;", "why": "the height passes placed from origin metres again"}
 // plant: {"file": "src/world/100-clipmap-grid.js", "find": "* 2 - GN / 2; }", "with": "* 2 - GN / 2 + (g > 100 ? 2 : 0); }", "why": "the outermost ring alone (level 9, 179 m cells) moved two cells: its seam with level 8 apart"}
 // plant: {"file": "src/world/414-draw-scene.js", "find": "gl.uniform4f(P.u.uLev, ringCell(g, 0), ringCell(g, 2), g, GN / 2);", "with": "gl.uniform4f(P.u.uLev, cx - GN / 2 * g, cz - GN / 2 * g, g, GN / 2);", "why": "the rings' origin in metres again"}
@@ -195,4 +198,17 @@ test('clipmap: the brinks hold still at cruise: a brink point steps over 2 level
   // the footprint from the vertices' normal (the rule before): the brinks must shimmer, or the measure is blind
   const b = L.flyBrink({ ...S, cpFix: false }, { seconds: 5, points: 200, a0: 0.3 });
   assert.ok(b.points_over_0p1pct > 0, 'the measure no longer sees the brinks shimmer (' + (100 * b.worst_point_frac).toFixed(2) + '% at the worst point)');
+});
+
+test('clipmap: the near dunes\' crests hold still at cruise: a crest point steps over 2 levels in under 0.1% of frames (laptop, phone)', async () => {
+  const L = await import('../../tools/physics/lod-pop.mjs'), S = L.clipmapSpec(ROOT);
+  assert.ok(S.roundNear, "duneWave leaves the near crest's kink sharp: a morphing vertex crossing it turns its normal 12 levels in a frame");
+  for (const size of [[1800, 0.727, 0.454], [2556, 0.384, 0.832]]) for (const o of [{ a0: 0.3 }, { a0: 2.1, x0: 4000, z0: -2500 }]) {
+    const r = L.flyBrink(S, { seconds: 5, points: 200, size, near: true, ...o });
+    assert.ok(r.steps > 10000, 'too few crest reads to say (' + r.steps + ')');
+    assert.ok(r.points_over_0p1pct === 0, `the near crests shimmer: ${r.points_over_0p1pct} points over 2 levels in more than 0.1% of their frames (${r.levels.max.toFixed(1)} levels)`);
+  }
+  const b = L.flyBrink({ ...S, roundNear: false }, { seconds: 5, points: 200, near: true, a0: 2.1, x0: 4000, z0: -2500 });   // (the crest sharp: it must shimmer, or the measure is blind)
+  L.flyBrink({ ...S, roundNear: S.roundNear }, { seconds: 0, points: 1 });   // (the port put back as the shader draws it)
+  assert.ok(b.points_over_0p1pct > 0, 'the measure no longer sees the sharp crest shimmer');
 });

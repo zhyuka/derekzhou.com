@@ -9,7 +9,7 @@
 // shading levels (255 |dn|: a bound on n.l's change under any light, in 8-bit codes before the albedo, which only lowers it).
 //   node tools/physics/lod-pop.mjs [--seconds 60] [--points 1500] [--json 1]
 import fs from 'node:fs'; import path from 'node:path'; import url from 'node:url';
-import { landAt, landFull, s1Slope, s1Rb } from './dune-census.mjs';
+import { landAt, landFull, s1Slope, s1Rb, setRoundNear } from './dune-census.mjs';
 const ROOT = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '../..');
 const A = {}; for (let i = 2; i < process.argv.length; i += 2) A[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 export function clipmapSpec(root = ROOT) {
@@ -28,7 +28,9 @@ export function clipmapSpec(root = ROOT) {
   // (S1_FS: the footprint's grazing term from the fragment's own slope (nc), or from the vertices' interpolated normal (n))
   const cpFix = /max\(abs\(dot\(nc, rd\)\), 0\.02\)/.test(vs), cpOld = /max\(abs\(dot\(n, rd\)\), 0\.02\)/.test(vs);
   if (!cpFix && !cpOld) throw new Error('lod-pop: S1_FS\'s footprint not recognised');
-  return { cpFix, inner: +m[1], band: +m[2], GN: +gn[1], g0: +def[1], levels: +def[2], morph, rule: nest ? 'nest' : down ? 'down' : 'off', step: STEP[nest ? 'nest' : 'down'] };
+  // (dunes-glsl's duneWave: the near family's crest rounded over 2 m, or its kink left sharp)
+  const roundNear = /if \(abs\(f - c\) < r\) \{/.test(fs.readFileSync(path.join(root, 'src/glsl/dunes-glsl.glsl'), 'utf8'));
+  return { cpFix, roundNear, inner: +m[1], band: +m[2], GN: +gn[1], g0: +def[1], levels: +def[2], morph, rule: nest ? 'nest' : down ? 'down' : 'off', step: STEP[nest ? 'nest' : 'down'] };
 }
 export const STEP = { nest: (c) => { const r = ((c % 4) + 4) % 4; return (r & 1) * (r - 2); }, down: (c) => -(((c % 2) + 2) % 2) };
 
@@ -103,7 +105,7 @@ if (process.argv[1] && url.fileURLToPath(import.meta.url) === process.argv[1]) {
     const S = clipmapSpec(), sec = +(A.seconds || 60), N = +(A.points || 800);
     for (const [name, o] of [['flight 1', { a0: 0.3 }], ['flight 2', { a0: 2.1, x0: 4000, z0: -2500 }]])
       for (const [sz, size] of [['laptop', [1800, 0.727, 0.454]], ['phone', [2556, 0.384, 0.832]]])
-        for (const [cs, SS] of [['shipped', S], ['morph off', { ...S, morph: false }]]) console.log(JSON.stringify({ flight: name, size: sz, case: cs, ...flyBrink(SS, { ...o, size, seconds: sec, points: N, near: true }) }));
+        for (const [cs, rn] of [['shipped (crest ' + (S.roundNear ? 'rounded over 2 m' : 'sharp') + ')', S.roundNear], ['the crest unrounded (before)', false]]) { console.log(JSON.stringify({ flight: name, size: sz, case: cs, ...flyBrink({ ...S, roundNear: rn }, { ...o, size, seconds: sec, points: N, near: true }) })); }
     process.exit(0);
   }
   if (A.brink) {
@@ -187,6 +189,7 @@ export function fragAt(S, LF, cam, Fpx, px, pz) {
    any light, in 8-bit codes before the albedo). size: [px high, tanX, tanY] (laptop 1800, 0.727, 0.454; phone 2556,
    0.384, 0.832: AIR_GALV's two views) */
 export function flyBrink(S, o = {}) {
+  if (S.roundNear !== undefined) setRoundNear(S.roundNear);   // (the port's near crest as the shader draws it)
   const sec = o.seconds || 60, fps = 60, v = 12, N = o.points || 800, a = o.wind ?? 0.6, LF = makeLandFull(a), x0 = o.x0 || 0, z0 = o.z0 || 0, a0 = o.a0 || 0;
   const [hpx, tanX, tanY] = o.size || [1800, 0.727, 0.454], Fpx = hpx / (2 * tanY);
   const path = (t) => { const aa = a0 + 0.15 * Math.sin(t / 17), s = v * t; return [x0 + s * Math.sin(a0) + 30 * Math.sin(t / 11), z0 + s * Math.cos(a0) + 30 * Math.cos(t / 13) - 30, aa]; };
