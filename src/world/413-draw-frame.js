@@ -33,7 +33,7 @@
     gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, GCT ? GCT.t : null); gl.activeTexture(gl.TEXTURE12); gl.bindTexture(gl.TEXTURE_2D, CSH.ok ? CSH.T.t : null); gl.activeTexture(gl.TEXTURE0);
     prof('start');
     DFR.W = W; DFR.H = H; DFR.w2 = w2; DFR.h2 = h2; DFR.L = L; DFR.DP = DP;
-    drawScene(V, u); drawHalfDepth(V, u); drawBeams(V, u); drawClouds(V, u); drawBloom(V, u); drawComposite(V, u);
+    drawScene(V, u); drawHalfDepth(V, u); drawClouds(V, u); drawBloom(V, u); drawComposite(V, u);
     var E = DFR.E, bl = DFR.bl, shaftK = DFR.shaftK;
     LASTE = E; LASTU = u; LASTBL[0] = bl[2]; LASTBL[1] = BDIM[0] / TG.bu[0].w; LASTBL[2] = BDIM[1] / TG.bu[0].h;
     if (BIRDS && SW.birds && !SW.noanim && !TRIAL) { BIRDS.draw(); gl.bindVertexArray(null); prof('birds'); }
