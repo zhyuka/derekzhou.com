@@ -192,9 +192,12 @@ only ever its own world's:
 - stills.yml, after every green Gate run on main: is the set for the tip's key up (one request)? Then the tip's commit
   status `stills` is success. Not up: pending, and the bake jobs make it (never a red main: the status says why).
 - The deploy gate (merge-bot.mjs): a tip that has tools/gpu/bake-stills.js waits only while its `stills` status is
-  failed or pending (bot-rules.mjs stillsReady). No status passes: stills.yml posts none once its commit is no longer
-  main's tip, nor where main's gate was cancelled, and the build fetches its key's set or ships without. merge.yml
-  ticks when stills.yml completes.
+  anything but success (bot-rules.mjs stillsReady). No status waits too (the hub, 2026-11-26: since #543 CI bakes
+  every tip's set, so no status means no set yet): stills.yml posts none for a commit no longer main's tip, nor where
+  main's gate was cancelled, so live moves once the walk reaches a tip that has its set. When the walk's tip has no set yet,
+  live goes to the newest earlier tip the walk itself stops on that has one (deploy-walk.mjs bakedTo: the walk run over
+  the tips up to each candidate, 20 back at most, so a red tip and its revert never qualify), else stays (the hub,
+  2026-11-26). merge.yml ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
   its sha256; with no set, live must ship without stills cleanly (.github/ci/stills-live.mjs).
 The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23;

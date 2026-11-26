@@ -14,7 +14,7 @@
   var WARM = { list: null, i: 0, done: false, ms: [], tg: null, vao: null, frames: 0, keysF: 0, lastP: null, q: [], lastAt: 0, lastKb: 0, k: 2, measured: true, qw: -1, qwF: -1 };
   var WARM_N = 5;
   /* stage B: the 4 x 4 targets of every format a draw site writes, and VAOs of the layouts that are made per cell in
-     flight (the landmarks' meshes, the sets' instances, the glows, the beams, the clouds' cores) */
+     flight (the landmarks' meshes, the clouds' cores) */
   function warmInit() {
     var T = {}, rb;
     T.scene = target(4, 4, 'hdr', true);
@@ -37,13 +37,12 @@
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.bindRenderbuffer(gl.RENDERBUFFER, null);
     WARM.tg = T;
     // the layouts made per cell in flight, each on a VAO of its own over small buffers (the same formats, offsets,
-    // strides and divisors as uploadMesh, uploadInst and cellUpload give them)
+    // strides and divisors as uploadMesh and cellUpload give them)
     var A = {}, mb = gl.createBuffer(), ib = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, mb); gl.bufferData(gl.ARRAY_BUFFER, 64 * VSTRIDE, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, ib); gl.bufferData(gl.ARRAY_BUFFER, 8 * 80, gl.STATIC_DRAW);
     var M = { vb: mb };
     A.mesh = gl.createVertexArray(); gl.bindVertexArray(A.mesh); meshAttribs(M);
-    A.lmi = gl.createVertexArray(); gl.bindVertexArray(A.lmi); meshAttribs(M); instAttribs(ib, 5, 5, 0);
     A.occ = gl.createVertexArray(); gl.bindVertexArray(A.occ); gl.bindBuffer(gl.ARRAY_BUFFER, ICO.vb); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, ib); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0); gl.vertexAttribDivisor(1, 1);
     gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -65,7 +64,6 @@
       var P = d.P, id = d.id;
       for (var si = 0; si < P.surf.length; si++) E(id + '.surface' + si, P.surf[si].P, GRID.vao, T, 3, 0, true, SC, null, LE, true);
       E(id + '.landmark', P.lm, A.mesh, T, 3, 0, false, SC, null, LE, true);
-      E(id + '.landmarkInst', P.lmi, A.lmi, T, 3, 1, false, SC, null, LE, true);
       E(id + '.scatter', P.sc, A.mesh, T, 3, 1, false, SC, null, LE, true);
       E(id + '.ribbon', P.rb, STRIP.vaoR, TS, 4, 1, false, SC, BL_OVER, LE, false);
       E(id + '.sky', P.sky, FULLVAO, T, 3, 0, false, SC, null, LE, false);

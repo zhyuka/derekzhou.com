@@ -38,6 +38,12 @@ import { fileURLToPath } from 'node:url';
 
 export const WORD_CAP = 0.1, NAME_CAP = 0.02, FEATURE_W = 0.5, TOP_W = 0.25, GLOW_KEEP = 0.5, DISC_VIEWS = ['laptop-sunset', 'phone-dawn'];
 export const lookKey = (deg) => (deg === null ? 'own' : String(deg));
+// The views a heading is measured on in the gate (--table): all three for the table's heading, and for a land's own
+// heading where it is the table's (null); else the own heading only on the low sun's two, the views rule() reads it on
+// (keepsDiscs: its discs and sunIn). Its night view fed only glowWaived's keepsWords(own), where a lower wordCloud can
+// only end a waiver, never grant one (stricter, not looser); 14 lands x 3 frames, 15.6% of the gate's frames
+// (2026-11-26, the gate's p90: the looks shards set it). On the record of run 45754866608 rule() is the same either way.
+export const viewsFor = (views, deg, tableDeg) => (deg === null && tableDeg !== null ? views.filter((v) => v.feature !== 'galaxy') : views);
 // the feature: how much of its light is in frame against the land's best (bestIn), and how much of that is clear
 export function lookScore(l, best) {
   const g = l.galaxy * Math.min(1, l.galaxyIn / Math.max(best.galaxyIn, 1e-6)), s = l.sun * Math.min(1, l.sunIn / Math.max(best.sunIn, 1e-6));
@@ -60,7 +66,7 @@ export const KEY_INPUTS = [
   'src/world/120-cloud-bodies.js', 'src/world/210-cloud-volumes-baking.js', 'src/world/212-cloud-drift.js', 'src/world/231-cells-resolve.js',
   'src/world/215-air.js', 'src/world/270-flight.js', 'src/world/320-camera-drawn-between-last-two.js', 'src/world/386-frustum-resize.js',
   'src/world/390-words.js', 'site/index.html', 'site/style.css',
-  'src/world/217-destination.js', 'src/world/230-cells-endless-world.js', ['src/world/233-cells-places.js', ['function resolvePlaces(']],
+  'src/world/217-destination.js', 'src/world/230-cells-endless-world.js',
   'src/realm-kit.js',
 ];
 // a piece of a file's code (minified: no comments, one spelling): from its head to the end of its declaration (a var's
