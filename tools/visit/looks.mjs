@@ -28,7 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { serve } from '../../.github/ci/serve.mjs';
 import * as H from '../../.github/ci/harness.mjs';
-import { worldKey, rule } from './look-rule.mjs';
+import { worldKey, rule, viewsFor } from './look-rule.mjs';
 
 const arg = (f, d) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : d; };
 const BUILD = path.resolve(arg('--build', 'build/site')), OUT = arg('--out', 'build/looks.json'), JOBS = +arg('--jobs', 2);
@@ -135,16 +135,17 @@ function measureView(on, off, feature) {
 }
 
 const r3 = (x) => +x.toFixed(3);
+const TABLE_MODE = process.argv.includes('--table');
 async function score(k, deg) {
   const views = [];
-  for (const v of VIEWS) {
+  for (const v of TABLE_MODE ? viewsFor(VIEWS, deg, T0[k]) : VIEWS) {   // (the gate: an own heading that is not the table's on the sun's views only, look-rule.mjs viewsFor)
     const on = await frame(variant(k, deg, true), v, k), off = await frame(variant(k, deg, false), v, k), bare = await frame(variant(k, deg, true, false), v, k);
     views.push({ view: v.name, ...measureView(on, off, v.feature), nameSolid: nameSolid(on, bare), png: on.png });
   }
   const g = views.filter((v) => v.feature === 'galaxy'), s = views.filter((v) => v.feature === 'sun');
   return {
     k, deg, wordCloud: r3(Math.max(...views.map((v) => v.wordCloud))), nameCloud: r3(Math.max(...views.map((v) => v.nameCloud))), nameSolid: r3(Math.max(...views.map((v) => v.nameSolid))), topCloud: r3(Math.max(...views.map((v) => v.topCloud))),
-    galaxy: r3(Math.min(...g.map((v) => v.vis))), galaxyIn: r3(Math.min(...g.map((v) => v.in))), sun: r3(Math.min(...s.map((v) => v.vis))), sunIn: r3(Math.min(...s.map((v) => v.in))),
+    galaxy: g.length ? r3(Math.min(...g.map((v) => v.vis))) : null, galaxyIn: g.length ? r3(Math.min(...g.map((v) => v.in))) : null, sun: r3(Math.min(...s.map((v) => v.vis))), sunIn: r3(Math.min(...s.map((v) => v.in))),
     discs: Object.fromEntries(views.filter((v) => v.feature === 'sun').map((v) => [v.view, v.disc])),
     views: views.map((v) => ({ view: v.view, wordCloud: r3(v.wordCloud), nameCloud: r3(v.nameCloud), nameSolid: r3(v.nameSolid), topCloud: r3(v.topCloud), vis: r3(v.vis), in: r3(v.in) })), pngs: Object.fromEntries(views.map((v) => [v.view, v.png])),
   };

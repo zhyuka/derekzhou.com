@@ -32,13 +32,16 @@ permissions:
 
 concurrency:
   # one group for main, one for every claude/* branch together (2026-11-14: a group a branch let seven branches' warm
-  # bakes, 38 GPU jobs, queue ahead of T2): the newest run in each cancels the older, queued or running
+  # bakes, 38 GPU jobs, queue ahead of T2): a running bake is never cancelled, and GitHub keeps only the newest queued run
   # (a branch's run does nothing now, but keeps its own group: in main's, it would cancel main's bake; and so does a
   # re-run of a main gate (run_attempt over 1): GitHub cancels a group's older run when the newer is queued, before
   # any step of it could see that its commit is no longer main's tip, so a re-run of an old gate's run, in main's group,
   # cancelled the tip's bake (2026-11-14). Its own group cancels nothing, and its need step bakes only main's tip.)
   group: stills-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', inputs.sha) || github.event.workflow_run.head_branch != 'main' && 'branches' || (github.event.workflow_run.run_attempt == 1 && 'main' || format('main-{0}', github.event.workflow_run.head_sha)) }}
-  cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
+  cancel-in-progress: false   # (the hub, 2026-11-26: a bake takes about 40 min on hosted runners, and since #547 live waits for the
+  # tip's set; cancelling the running bake at every landing meant a busy main never finished one. Now the running bake
+  # finishes and publishes its key; the newest tip's run waits, then finds its key up already (a landing that serves
+  # the same build) or bakes it. A queued run that is no longer main's tip bakes nothing: its need step.)
 
 env:
   SHA: ${{ github.event.workflow_run.head_sha || inputs.sha }}
