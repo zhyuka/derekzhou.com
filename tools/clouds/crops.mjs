@@ -17,7 +17,11 @@
 // aimed cloud, the changed pixels by row band). --shots N saves N in time, --every F frames apart (1250: 20 s), each arm
 // held where it is: shot k > 0 as base.k.png, head.k.png, crop.k.png and diff.k.png.
 // The arms' page clocks differ by the head's walk, so a cloud the wind carries sits a little apart between them; the
-// diff says so by band. Slow on SwiftShader: minutes an arm at 960x600.
+// diff says so by band. Slow on SwiftShader: about 1.95 s a frame at 960x600 (2026-11-26, 400 frames on main and before
+// #489: heap and GL objects flat, so no leak), 20 min an arm at --frames 600. It says its pace after its first frames,
+// and the time each arm's frames will take: a caller's time cap that closes the browser under it ("Target page, context
+// or browser has been closed") is the run being too long for that cap, not the tool; use --stepvp, fewer --frames, or
+// run it in the background.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -27,6 +31,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const TWIN_ANCHOR = /\n([ \t]*)window\.WORLD = \{ realm[^\n]*\n/;
 export const TWIN_LINE = 'window.__D = { CS: CS, CSP: CSP, SIM: SIM, AIR: AIRAPI };   // (crops.mjs scratch twin: the harness reads the camera; never deployed)';
+
+// the time --frames frames take an arm at a pace (ms a frame), in minutes, and the message a run killed under it gets
+export function plan(msFrame, frames, shots = 1, every = 1250) { return msFrame * (frames + (shots - 1) * every) / 60000; }
+export function closedWhy(msg, msFrame, frames, shots, every) {
+  if (!/Target page, context or browser has been closed/.test(msg || '')) return msg;
+  const m = msFrame ? ` At ${(msFrame / 1000).toFixed(2)} s a frame, an arm's ${frames} frames take about ${plan(msFrame, frames, shots, every).toFixed(0)} min.` : '';
+  return `crops: the browser was closed under the run (${msg.trim().split('\n')[0]}).${m} That is a caller's time cap or a kill, not a leak: use --stepvp 160x100, fewer --frames, or run it in the background.`;
+}
 
 // the twin's one edit: the line after window.WORLD's, found exactly once (else throw, naming the anchor)
 export function twinEdit(src) {
@@ -61,7 +73,7 @@ function twinOf(ref, tmp) {
 
 async function main() {
   const A = args(process.argv.slice(2));
-  const { launch, openPage, stepToShow, step } = await import(pathToFileURL(path.join(ROOT, '.github/ci/harness.mjs')).href);
+  const { launch, openPage, stepToShow, step: step0 } = await import(pathToFileURL(path.join(ROOT, '.github/ci/harness.mjs')).href);
   const { serve } = await import(pathToFileURL(path.join(ROOT, '.github/ci/serve.mjs')).href);
   const [vw, vh] = A.vp.split('x').map(Number), SV = A.stepvp ? A.stepvp.split('x').map(Number) : null, VP = SV ? [SV[0], SV[1], 1] : [vw, vh, 1], EPOCH = Date.parse(A.epoch), seed = +A.seed;
   fs.mkdirSync(A.out, { recursive: true });
@@ -80,6 +92,13 @@ async function main() {
   }, kind);
   const png = (arm) => arm.page.evaluate(() => document.querySelector('canvas.sky').toDataURL('image/png'));
   const T0 = Date.now(), say = (m) => { if (A.verbose) console.error(`crops: ${((Date.now() - T0) / 1000).toFixed(0)} s ${m}`); };
+  let msFrame = 0;   // (the pace, from the first 30 frames stepped at once: said always, so a long run says how long before it is cut)
+  const step = async (arm, n) => {
+    if (msFrame || n < 30) return step0(arm, n);
+    const t = Date.now(); await step0(arm, 30); msFrame = (Date.now() - t) / 30;
+    console.error(`crops: ${(msFrame / 1000).toFixed(2)} s a frame at ${A.stepvp || A.vp}: an arm's ${+A.frames} frames take about ${plan(msFrame, +A.frames, +(A.shots || 1), +(A.every || 1250)).toFixed(1)} min`);
+    if (n > 30) await step0(arm, n - 30);
+  };
   const browser = await launch(), sb = await serve(B.site), sh = await serve(H.site);
   const rec = { base: A.base, head: A.head, seed, vp: A.vp, frames: +A.frames };
   try {
@@ -139,8 +158,10 @@ async function main() {
     rec.crop = box;
     fs.writeFileSync(path.join(A.out, 'crops.json'), JSON.stringify(rec, null, 1) + '\n');
     console.log(`crops: ${A.out}: ${shots} shot(s) of base, head, crop and diff; changed px by tenth of the frame's height ${rec.changedByRowTenth.map((b) => b.join(' ')).join(' | ')}`);
+  } catch (e) {
+    throw new Error(closedWhy(e && e.message, msFrame, +A.frames, +(A.shots || 1), +(A.every || 1250)));
   } finally {
-    await sb.close(); await sh.close(); await browser.close();
+    await sb.close().catch(() => {}); await sh.close().catch(() => {}); await browser.close().catch(() => {});   // (a browser already closed under the run must not hide why)
     for (const T of [B, H]) execFileSync('git', ['worktree', 'remove', '--force', T.wt], { cwd: ROOT, stdio: 'ignore' });
     fs.rmSync(tmp, { recursive: true, force: true });
   }

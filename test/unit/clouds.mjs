@@ -281,3 +281,15 @@ test('clouds: the crops tool\'s twin edit finds window.WORLD\'s line once and ad
   assert.deepEqual(b.slice(0, k).concat(b.slice(k + 1)), a, 'nothing else changed');
   assert.throws(() => twinEdit('var x = 1;\n'), /found 0 times/);
 });
+
+// (2026-11-26) a long run closed under the tool (a caller's time cap) says so with its pace, not a bare Playwright error
+test('clouds: the crops tool says its pace and why a run closed under it ended', async () => {
+  const { plan, closedWhy } = await import(path.join(ROOT, 'tools', 'clouds', 'crops.mjs'));
+  assert.ok(Math.abs(plan(1950, 600) - 19.5) < 1e-9, '1.95 s a frame, 600 frames: 19.5 min');
+  assert.ok(Math.abs(plan(1000, 600, 3, 100) - 13.333333333333334) < 1e-9, 'shots add (shots - 1) x every frames');
+  const m = closedWhy('clock.runFor: Target page, context or browser has been closed\nCall log: ...', 1950, 600, 1, 1250);
+  assert.match(m, /closed under the run/); assert.match(m, /1\.95 s a frame/); assert.match(m, /about 20 min/); assert.match(m, /--stepvp/);
+  assert.ok(!/Call log/.test(m), 'the first line of the error only');
+  assert.equal(closedWhy('crops: the head never showed', 1950, 600), 'crops: the head never showed', 'any other error as it was');
+  assert.match(closedWhy('Target page, context or browser has been closed', 0, 600), /not a leak/, 'closed before the pace was read: still said');
+});

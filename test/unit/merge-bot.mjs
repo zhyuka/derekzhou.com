@@ -84,13 +84,14 @@ test('merge bot: a review holds through merges of main, not through a new commit
   assert.equal(reviewHolds(['c1'], null), false);
 });
 
-test('merge bot: a tip with the bake goes live unless its stills status failed or is pending (stills.yml\'s status)', async () => {
+test('merge bot: a tip with the bake goes live only with its stills status success (stills.yml\'s status)', async () => {
   const { stillsReady } = await import(new URL('../../.github/ci/bot-rules.mjs', import.meta.url));
   assert.equal(stillsReady(false, []).ok, true, 'before the bake (#197) nothing waits');
   assert.equal(stillsReady(false, undefined).ok, true);
-  assert.equal(stillsReady(true, []).ok, true, 'the bake, no stills status: CI bakes none, the build ships its set or none');
-  assert.equal(stillsReady(true, [{ context: 'verdict', state: 'success' }]).ok, true, 'a green tip that was not main\'s tip (stills.yml posted nothing): live moves');
-  assert.match(stillsReady(true, [{ context: 'verdict', state: 'success' }]).why, /no stills status/);
+  assert.equal(stillsReady(true, []).ok, false, 'the bake, no stills status: no set yet, live waits (the hub, 2026-11-26: since #543 CI bakes every tip)');
+  assert.equal(stillsReady(true, undefined).ok, false);
+  assert.equal(stillsReady(true, [{ context: 'verdict', state: 'success' }]).ok, false, 'a green tip that was not main\'s tip (stills.yml posted nothing): live waits for the tip');
+  assert.match(stillsReady(true, [{ context: 'verdict', state: 'success' }]).why, /no stills status yet/);
   assert.equal(stillsReady(true, [{ context: 'stills', state: 'success', description: 'up' }]).ok, true);
   assert.equal(stillsReady(true, [{ context: 'stills', state: 'failure' }]).ok, false, 'a failed stills job: live waits');
   // newest first (GitHub's order): a re-run's success after a failure wins, and a later failure after a success too
