@@ -81,7 +81,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
       const b = Buffer.concat(body), u = q.url.split('?')[0], J = (s, o) => { r.writeHead(s, { 'content-type': 'application/json' }); r.end(JSON.stringify(o)); };
       let m;
       if ((m = /\/releases\/tags\/(.+)$/.exec(u))) return st.releases[m[1]] ? J(200, st.releases[m[1]]) : J(404, {});
-      if (u.endsWith('/releases') && q.method === 'POST') { const o = JSON.parse(b); st.releases[o.tag_name] = { tag: o.tag_name, assets: [], upload_url: `http://127.0.0.1:${port}/up/${o.tag_name}{?name}` }; return J(201, st.releases[o.tag_name]); }
+      if (u.endsWith('/releases') && q.method === 'POST') { const o = JSON.parse(b); st.releases[o.tag_name] = { tag: o.tag_name, target: o.target_commitish, assets: [], upload_url: `http://127.0.0.1:${port}/up/${o.tag_name}{?name}` }; return J(201, st.releases[o.tag_name]); }
       if ((m = /^\/up\/(.+)$/.exec(u))) { st.uploads++; st.assets[9] = b; st.releases[m[1]].assets.push({ id: 9, name: 'stills.pack' }); return J(201, {}); }
       if (/\/releases\/assets\/9$/.test(u)) { r.writeHead(200); return r.end(st.assets[9]); }
       if ((m = /\/statuses\/(\w+)$/.exec(u))) { st.statuses.push({ sha: m[1], ...JSON.parse(b) }); return J(201, {}); }
@@ -92,7 +92,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
     });
   });
   await new Promise((f) => srv.listen(0, '127.0.0.1', f)); const port = srv.address().port, base = `http://127.0.0.1:${port}`;
-  const env = { ...process.env, GITHUB_TOKEN: 't', GITHUB_REPOSITORY: 'o/r', STILLS_API: base, STILLS_DEPLOY_HOOK: '' };
+  const env = { ...process.env, GITHUB_TOKEN: 't', GITHUB_REPOSITORY: 'o/r', STILLS_API: base, STILLS_DEPLOY_HOOK: '', GITHUB_SHA: 'e'.repeat(40), STILLS_TARGET: 'c'.repeat(40) };
   const node = (args) => run(process.execPath, args, { cwd: ROOT, env }).then((x) => ({ code: 0, out: x.stdout + x.stderr }), (e) => ({ code: e.code, out: (e.stdout || '') + (e.stderr || '') }));
   const REL = path.join(ROOT, 'tools/stills-release.mjs'), LIVE = path.join(ROOT, '.github/ci/stills-live.mjs'), SHA = 'c'.repeat(40);
   try {
@@ -105,7 +105,7 @@ test('stills: the PC\'s release step and the live check, against a stand-in GitH
     assert.equal(x.code, 1, 'no release, yet live asks for a still: fails'); assert.match(x.out, /stale still/);
     st.page = '<p>w</p>';
     assert.equal((await node([REL, '--site', site, '--bake', bk, '--status', SHA])).code, 0);
-    assert.equal(st.uploads, 1); assert.deepEqual(st.statuses.map((s) => [s.sha, s.context, s.state]), [[SHA, 'stills', 'success']]);
+    assert.equal(st.uploads, 1); assert.equal(Object.values(st.releases)[0].target, SHA, 'the release is tagged at STILLS_TARGET (the baked commit), not GITHUB_SHA (the workflow\'s checkout)'); assert.deepEqual(st.statuses.map((s) => [s.sha, s.context, s.state]), [[SHA, 'stills', 'success']]);
     assert.equal((await node([REL, '--site', site, '--bake', bk])).code, 0, 'up already: left as it is');
     assert.equal(st.uploads, 1, 'never uploaded twice');
     assert.equal((await node([REL, '--site', site, '--have', '--status', SHA])).code, 0, 'a later commit of the same world: up, its status at once');

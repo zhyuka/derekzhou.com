@@ -10,8 +10,9 @@
 // (a set is immutable: the same world bakes the same stills), and checked first, so a commit whose served build is an
 // earlier one's costs one request. --status SHA: once the set is up, the commit status `stills` on SHA is success (the
 // merge bot's deploy gate moves live to a tip that has the bake only once its status is: merge-bot.mjs). Needs
-// GITHUB_TOKEN (contents: write; statuses: write for --status/--fail) and GITHUB_REPOSITORY; GITHUB_SHA is the release's
-// commit. With STILLS_DEPLOY_HOOK set (a Pages deploy hook's URL, a secret), it is called once a new set is up.
+// GITHUB_TOKEN (contents: write; statuses: write for --status/--fail) and GITHUB_REPOSITORY; STILLS_TARGET (else GITHUB_SHA) is the release's
+// commit: the baked build's, never the workflow's own checkout (GITHUB_TOKEN may not tag a commit that changes a
+// workflow file: 403, run 45752177688 on claude/stills-ci; and a workflow cannot override GITHUB_SHA). With STILLS_DEPLOY_HOOK set (a Pages deploy hook's URL, a secret), it is called once a new set is up.
 // --dry: the key and the pack's size, nothing sent.
 // It never calls process.exit: it sets process.exitCode and lets node end by itself. process.exit() with fetch's
 // keep-alive sockets still open crashes node on Windows (0xC0000409, libuv's assertion on a closing handle: the
@@ -81,7 +82,7 @@ let rel = await release();
 if (up(rel)) console.log('stills-release: ' + TAG(key) + ' is up already: left as it is');
 else {
   if (!rel) rel = await j(await fetch(api + '/releases', { method: 'POST', headers: { ...h, 'content-type': 'application/json' }, body: JSON.stringify({
-    tag_name: TAG(key), target_commitish: process.env.GITHUB_SHA || undefined, name: 'stills ' + key.slice(0, 12),
+    tag_name: TAG(key), target_commitish: process.env.STILLS_TARGET || process.env.GITHUB_SHA || undefined, name: 'stills ' + key.slice(0, 12),
     body: `The openings' stills for world ${key} (${n} stills). Fetched by tools/build.mjs; docs/deploy.md, "The stills".`, prerelease: true, make_latest: 'false',
   }) }));
   const u = rel.upload_url.replace(/\{.*\}$/, '') + '?name=' + ASSET;

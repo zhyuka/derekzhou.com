@@ -190,7 +190,7 @@ jobs:
         if: needs.bake.result == 'success'
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_SHA: ${{ env.SHA }}
+          STILLS_TARGET: ${{ inputs.sha || github.event.workflow_run.head_sha }}   # (the baked commit: GITHUB_* cannot be set)
           STILLS_DEPLOY_HOOK: ${{ secrets.STILLS_DEPLOY_HOOK }}
           HANDOFF_SHA: ${{ needs.need.outputs.served_sha }}
           HANDOFF_ROOT: ${{ runner.temp }}/handoff
