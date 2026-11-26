@@ -65,6 +65,13 @@
     C.add({ kind: 'isle', x: D.x, z: D.z, air: true, y: y, yaw: Q.r(0, 360), r: r, depth: depth, size: size, seed: Q.seed() });
     C.poi({ kind: 'destination', x: D.x, z: D.z, y: y - depth * 0.5, r: r * 1.15, top: y + size, pass: r * 1.15 + 120 });   // (FLIGHT's ruler: r at most 800 m)
   }
+  /* the first landmark (world 217: firstOf, on the five lands whose heading passes nothing near by 90 s): over the
+     cloud sea an island with its stupa, 290 m down the landing's line and 145 m to the side away from the key sun,
+     passed at 24 s, kept low (under the name's band); its own stream, so the cell's draws are as before */
+  function aFirst(C) {
+    var P = W.first && W.first(C.V); if (!P || P.kind !== 'isle' || !C.inside(P.x, P.z)) return;
+    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(150, 190), Q.r(30, 40), 1.0);
+  }
   function aIsland(C, R, x, z, y, r, stupaP) {
     var depth = r * R.r(1.0, 1.6);
     var yaw = R.r(0, 360), stu = R.f() < stupaP, sd = R.seed();   // (drawn whether kept or not: the cell's stream the same)
@@ -113,6 +120,7 @@
     dest: function (C, R) { aDest(C); },
     cell: function (C, R) {
       var s = aSite(C.ix, C.iz, C.salt), Rs, k, a, d;
+      aFirst(C);
       if (s.kind === 1) {   // a canyon: walls of cloud on both sides of its axis, in runs, lower toward its mouths
         Rs = aRng(s, 11);
         var th = aStreet(C.V, s), L = 900 + 400 * s.r[1], half = 175 + 60 * s.r[2], dx = Math.sin(th), dz = Math.cos(th), px = dz, pz = -dx;
