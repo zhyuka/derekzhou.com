@@ -1,5 +1,5 @@
 // tools/visit/haze-plan.mjs: the numbers for the haze by physics (the land row: aerial perspective as the air's own
-// extinction and in-scatter of the sun's and the sky's light, Mie by AIR's moisture; never a grey veil). What main does:
+// extinction and in-scatter of the sun's and the sky's light, the aerosol's scatter by AIR's moisture; never a grey veil). What main does:
 // lib-air.glsl atmos() is physical for the gas (BR by wavelength) and the aerosol (fogOD, uAer: AIR's visibility, the
 // hygroscopic growth by its moisture, the wavelength exponent, the forward peak), its in-scatter the sky's own colour
 // (fogCol). The ground haze over it (hazeAmt: a 30 m layer) is mixed toward hand colours (each sky's hazeC and hazeW,
