@@ -83,7 +83,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser), test/unit/paint.mjs (the paint trend's runners pooled and judged),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
                              hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict), test/unit/virga.mjs (virga's strands: the share by sky, the lowest point, the tilt by the air against its body),
-                             test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
+                             test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler), test/unit/seams.mjs (no seam round the circle in any shader: every atan audited, every read by an angle whole periods)
 test/fakepage.cjs            The one fake browser the static checks and the shader census share (devices, the page's scripts)
 test/sims/boot.mjs           The boot on the fake page, each device profile once: its frames to the show and its GPU work before it
                              (3D texels, draws; test/golden/boot-bakes.json) (tools/checks/39-boot-frames.sh)
