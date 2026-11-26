@@ -61,7 +61,7 @@
       b.burst = null;
       if (w0 && w0.wing && !b.wOff && b.st === 'fly') {   // (the schedule takes the burst's phase on, BW.skip: no half-beat at the handover, only the beat's size eased over XF_T)
         var pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.floor(pg)) / f);
-        pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.round(pg)) / f);   // (once more at the schedule's own rate)
+        for (var it = 0; it < 3; it++) { pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.round(pg)) / f); }   // (again at the schedule's own rate, three times: inside a bout its phase runs at f only on average, so one step left up to 0.028 cycle)
         s.buE = TD;
       }
     }

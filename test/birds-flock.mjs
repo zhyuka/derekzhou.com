@@ -115,26 +115,28 @@ test('a skein glides in turn after its leader, each bird as it reaches where its
 /* (physics: birds/leaving together) a take-off's strong beats hand over to the bird's own schedule with no half-beat:
    at the burst's end the schedule is skipped on (BW.skip) so its phase continues the burst's, within 0.02 cycle
    (before: a gap of up to half a cycle, median 0.33, eased over by a frozen pose) */
+/* (the sweep: 16 scenes, each bird made to leave 2-3.9 s after it lands, so the burst ends at many phases of the
+   schedule's bouts: one step to the schedule's phase left up to 0.028 cycle where its rate in the bout is not f) */
 test('a take-off\'s burst hands over to the schedule at its own phase (gap at most 0.02 cycle)', () => {
-  const gaps = [];
-  for (let seed = 1; seed <= 8; seed++) {
+  const gaps = []; let at = '', worst = 0;
+  for (let seed = 1; seed <= 16; seed++) for (const delay of [2, 2.62, 3.24, 3.86]) {
     const sc = SCENES.perch(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let perchT = -1, left = false, bu = null;
-    for (let k = 0; k < 40 * 60 && gaps.length < seed; k++) {
+    for (let k = 0; k < 40 * 60; k++) {
       sim.frame(1 / 60); const B = sim.B;
       if (b.st === 'perch' && perchT < 0) perchT = sim.t;
-      if (perchT >= 0 && !left && sim.t - perchT > 2) { B.leave(b, 'own'); left = true; }
+      if (perchT >= 0 && !left && sim.t - perchT > delay && b.st === 'perch') { B.leave(b, 'own'); left = true; }
       if (bu && !b.burst && b.st === 'fly' && b.w && b.w.wing) {
-        const nb = (B.TD() - bu.t0) * (b.w.f || 3) * 1.2, g = B.BW.psiAt(b.w.wing, B.AD()) - nb;
-        gaps.push(Math.abs(g - Math.round(g)));
+        const nb = (B.TD() - bu.t0) * (b.w.f || 3) * 1.2, g0 = B.BW.psiAt(b.w.wing, B.AD()) - nb, g = Math.abs(g0 - Math.round(g0));
+        gaps.push(g); if (g > worst) { worst = g; at = `seed ${seed}, left ${delay} s down, a ${(B.TD() - bu.t0).toFixed(3)} s burst of ${bu.n}`; }
+        break;
       }
       bu = b.burst;
     }
   }
-  const worst = Math.max(...gaps);
-  console.log(`# handovers ${gaps.length}; the worst phase gap ${worst.toFixed(3)} cycle`);
-  assert.ok(gaps.length >= 4, `only ${gaps.length} take-offs handed over`);
-  assert.ok(worst <= 0.02, `a burst handed over ${worst.toFixed(3)} cycle off its phase`);
+  console.log(`# handovers ${gaps.length}; the worst phase gap ${worst.toFixed(4)} cycle (${at})`);
+  assert.ok(gaps.length >= 40, `only ${gaps.length} take-offs handed over`);
+  assert.ok(worst <= 0.02, `a burst handed over ${worst.toFixed(3)} cycle off its phase (${at})`);
 });
 
 /* (physics: birds/day) the sky decides the commute's way and who is up (no day in this world: afterglow, blue hour, night,
