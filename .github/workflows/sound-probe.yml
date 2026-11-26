@@ -21,12 +21,12 @@ jobs:
           npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1 >/dev/null
           node "$RUNNER_TEMP/w7/node_modules/playwright-core/cli.js" install --only-shell chromium
       - run: node tools/build.mjs --plain build/site
-      - name: 38-sound's command, twice
+      - name: 38-sound's command, three times
         env:
           PW_CORE: ${{ runner.temp }}/w7/node_modules/playwright-core
         run: |
-          P=tools/sound/page.mjs; [ "${{ matrix.v }}" = main ] && P=tools/sound/page-main.mjs
-          for k in 1 2; do node $P build/site --world --net 10,70 --first 1200 > o$k.txt 2>&1; echo "PROBE v=${{ matrix.v }} r=${{ matrix.r }}.$k exit=$? $(grep -oE 'the first note begins [0-9-]+ ms' o$k.txt)"; done
+          set +e; P=tools/sound/page.mjs; [ "${{ matrix.v }}" = main ] && P=tools/sound/page-main.mjs
+          for k in 1 2 3; do node $P build/site --world --net 10,70 --first 1200 > o$k.txt 2>&1; echo "PROBE v=${{ matrix.v }} r=${{ matrix.r }}.$k exit=$? $(grep -oE 'the first note begins [0-9-]+ ms' o$k.txt) $(grep -oE '::error::.*' o$k.txt | tr '\n' ' ')"; done
       - name: 49-sound-cpu's command (#541's cpu.mjs)
         if: matrix.v == 'fix'
         env:
