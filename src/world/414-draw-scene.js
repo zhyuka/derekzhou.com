@@ -89,20 +89,6 @@
     skyNightUniforms(P);   // (tod: the moon, the belt, the wisps, the stars' top)
     gl.depthMask(false); gl.bindVertexArray(FULLVAO); dc(gl.TRIANGLES, 3); gl.depthMask(true);
     prof('sky');
-    // the glow sprites: light added, depth-tested, never written (the scene's alpha, water's flag, left alone)
-    if (CL) {
-      var GP = EP.glow, gOn = false;
-      for (var gi = 0; gi < CL.length; gi++) {
-        var Cg = CL[gi], Gb = Cg.glowB; if (!Gb || !Gb.vao || Cg.st < 3) continue;
-        if (!inView(Gb.bound[0], Gb.bound[1], Gb.bound[2], Gb.bound[3])) continue;
-        if (!lateReady(GP)) { lateMissIf(GP, true); continue; }   // (a late program; drawn once finished)
-        if (!gOn) { gl.useProgram(GP.p); setFrameUniforms(GP, V); gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE); gl.depthMask(false); gOn = true; }
-        UF[0] = fadeCell(Cg, Cg.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(GP.u.uGlowK, UF);
-        gl.bindVertexArray(Gb.vao); dc(gl.TRIANGLE_STRIP, 4, Gb.n);
-      }
-      if (gOn) { gl.depthMask(true); gl.disable(gl.BLEND); }
-      prof('glows');
-    }
     // the veils of sand (blended, no depth written)
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
     /* (physics: sand/threshold) sand moves only past its threshold friction velocity, about 0.2-0.25 m/s for fine dune

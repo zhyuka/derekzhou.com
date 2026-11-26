@@ -3,10 +3,10 @@
      spread (m: heights), lit, shade (colours), glow ([r, g, b], linear HDR: its own light; moths, jellies, caps),
      bob: [m, period s], layout: 'orbit' | 'helix' | 'still', helix: [radius m, step deg, rise m a step, turn deg/s] } */
   var FKIND = { bird: 1, ray: 2, moth: 3, jelly: 4, cap: 5 };
-  /* what of the creatures, the glow sprites and the beams any cell or event has laid out this visit:
+  /* whether any cell or event has laid out a creature this visit:
      until one is, its program is held to after the show (lateHeld); once one is, it is issued at once, and the show
      waits for it (lateSeenReady, stage G) */
-  var LATEK = { creature: 0, glow: 0, beam: 0 };
+  var LATEK = { creature: 0 };
   function flockOf(f) {
     var kd = FKIND[f.kind] || 1, hx = f.helix || [4, 40, 5, 0], bob = f.bob || [0, 1];
     return { ray: kd === 2, kind: kd, n: Math.min(f.n || 12, 32), a: new Float32Array([f.at[0], f.at[1], f.at[2], f.u0 || 0]), b: new Float32Array([f.drift ? f.drift[0] : 0, f.drift ? f.drift[1] : 0, f.orbit || 30, kd]),
