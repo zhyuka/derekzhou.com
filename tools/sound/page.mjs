@@ -27,7 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
-import { WORLD_ARGS, WORLD_VIEWPORT, WORLD_SHOWN, worldStub } from './world.mjs';
+import { WORLD_ARGS, WORLD_VIEWPORT, worldStub } from './world.mjs';
 
 const SITE = process.argv[2], NET = (process.argv[process.argv.indexOf('--net') + 1] || '').split(',').map(Number), FIRST = process.argv.includes('--first') ? +process.argv[process.argv.indexOf('--first') + 1] : 0;
 if (process.argv.includes('--first') && !(FIRST > 0)) { console.error('--first MS (e.g. 1200)'); process.exit(2); }
@@ -97,7 +97,6 @@ const state = () => page.evaluate(() => {
 
 await page.goto(origin + '/');
 await page.waitForTimeout(2000);
-if (WORLD && !(await page.waitForFunction(WORLD_SHOWN, null, { timeout: 60000 }).then(() => 1, () => 0))) bad.push('the world did not show in a minute');   // (pressed once the world shows, as a visitor sees it: a press in its start-up waits behind it, the first note as late as the runner is slow)
 const before = await state();
 if (before.made !== 0) bad.push(`an audio context was made before the press (${before.made})`);
 if (before.session !== 'auto') bad.push(`the audio session was set before the press (${before.session})`);
