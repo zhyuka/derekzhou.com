@@ -112,7 +112,6 @@ void kitW(vec2 p, out vec3 wD, out vec3 wC) { vec3 a, b; kitW4(p, wD, wC, a, b);
     A.flock = function (f) { if (!WORLD_FLYERS && f.kind === 'ray') return f;   // (round 3: the owner's word, the rays off; the bird flocks kept as the ink thermals' places, never drawn)
       if ((f.ref && f.ref._drop) || !keep(f)) return f; seat(f); return C.flock(f); };   // (life fix: WORLD_FLYERS)
     A.poi = function (p) { if ((p.ref && p.ref._drop) || !keep(p)) return p; seat(p); return C.poi(p); };
-    A.place = function (set, x, z, o) { var q = o || {}; q.x = x; q.z = z; if (!keep(q)) return q; return C.place(set, x, z, q); };
     A.weights = function (x, z) { var k = kwAt(x, z); KWP[0] = k[0]; KWP[1] = k[3]; return KWP; };   // (world6 fix: the kits read the maps' weights: wD, wC)
     return A;
   }

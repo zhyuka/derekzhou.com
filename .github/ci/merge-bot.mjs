@@ -23,7 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { areasOf } from './areas.mjs';
-import { walk } from './deploy-walk.mjs';
+import { walk, bakedTo } from './deploy-walk.mjs';
 import { updateRefused, HOLD, botLanded, revertMessage, revertedTip, newestArtifact, stillsReady, rerunAnswer, proofHeads, reviewedIn, reviewedShas, reviewHolds, textAnswer, unreviewedLands, regateAnswer, BOT_FILES, budgetShared } from './bot-rules.mjs';
 
 const REPO = process.env.REPO, API = 'https://api.github.com/repos/' + REPO, DRY = process.env.DRY === '1';
@@ -325,12 +325,14 @@ async function deployGate() {
     for (const x of rs) { const w = await verdict(x); if (w && w.sha === sha && w.base === base && w.gate_ok && w.frames_identical && !(w.t2 && w.t2.required)) return true; }
     return false;
   };
-  const { to, why } = await walk(live, runs, { verdict, ownerMerge, branchIdentical, laterStallOk, revertOf, prProved, rerun: rerunTip, say });
+  let { to, why } = await walk(live, runs, { verdict, ownerMerge, branchIdentical, laterStallOk, revertOf, prProved, rerun: rerunTip, say });
   if (why) summary('deploy gate: ' + why);
-  if (to !== live) {   // (the stills: a tip with the bake goes live only with its release up; bot-rules.mjs stillsReady)
-    const hasBake = (await gh('GET', `/contents/tools/gpu/bake-stills.js?ref=${to}`)).status === 200;
-    const st = stillsReady(hasBake, hasBake ? (await gh('GET', `/commits/${to}/statuses?per_page=100`)).json : []);
-    if (!st.ok) { summary(`deploy gate: live stays at ${live.slice(0, 10)}: ${to.slice(0, 10)} is green but ${st.why}` + (to !== main ? ' (only main\'s tip bakes: live moves once the walk reaches main\'s tip, past the stop above)' : '')); return; }
+  if (to !== live) {   // (the stills: a tip with the bake goes live only with its release up, bot-rules.mjs stillsReady; else the newest tip the walk stops on that has its set, deploy-walk.mjs bakedTo)
+    const ready = async (sha) => { const hasBake = (await gh('GET', `/contents/tools/gpu/bake-stills.js?ref=${sha}`)).status === 200; return stillsReady(hasBake, hasBake ? (await gh('GET', `/commits/${sha}/statuses?per_page=100`)).json : []); };
+    const b = await bakedTo(live, runs, { verdict, ownerMerge, branchIdentical, laterStallOk, revertOf, prProved }, to, ready);
+    if (b.to === live) { summary(`deploy gate: live stays at ${live.slice(0, 10)}: ${b.why}`); return; }
+    if (b.why) summary('deploy gate: ' + b.why);
+    to = b.to;
   }
   if (to === live) { summary(`deploy gate: live stays at ${live.slice(0, 10)} (main ${main.slice(0, 10)})`); return; }
   const f = await act(`fast-forward live to ${to.slice(0, 10)}`, () => gh('PATCH', '/git/refs/heads/live', { sha: to, force: false }, process.env.MERGE_TOKEN));

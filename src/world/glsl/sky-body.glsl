@@ -451,9 +451,10 @@ void main() {
     if (aM.x > 0.0) {
       c = mix(c, atmos(uClShade, rd, 1000.0 * uAnv.y / max(length(rd.xz), 1e-3)), aM.x);
       /* its lit top and its flicker through the haze, held under L 0.50 over whatever stands behind it (a soft cap on what it adds, by
-         the room left under Y 0.118; where that stands at 0.50 it gives way) */
+         the room left under Y 0.1175, a hair under the others' 0.118: on the dawn horizon's warm air Y 0.118 sits
+         L 0.0001 over 0.50, the haze's light the sky's own: #550; where that stands at 0.50 it gives way) */
       vec3 aA = (vec3(1.0, 0.6, 0.46) * aM.y * ANV_K + vec3(0.85, 0.9, 1.0) * aM.z * ANV_FK) * (1.0 - hazeSky(rd));
-      float yA = dot(aA, LUMA), room = max(0.118 - dot(c, LUMA), 0.0);
+      float yA = dot(aA, LUMA), room = max(0.1175 - dot(c, LUMA), 0.0);
       c += aA * (yA > 1e-6 ? room * (1.0 - exp(-yA / max(room, 1e-6))) / yA : 1.0);
     }
   }

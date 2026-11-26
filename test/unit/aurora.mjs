@@ -119,7 +119,7 @@ test('physics: aurora/colour: the green hem, no stop in the saddle, the red top,
 
 test('aurora: its sky is near neutral where the arc stands, so the arc is the green in it', () => {
   for (let i = 0; i < 4; i++) assert.ok(SKY.sky[i][1] <= 0.05, `the aurora sky's stop ${i} has C ${SKY.sky[i][1]} (at most 0.05)`);
-  for (const k of ['skyW', 'hazeC', 'hazeW']) assert.ok(SKY[k][1] <= 0.02, `the aurora sky's ${k} has C ${SKY[k][1]} (at most 0.02)`);
+  for (const k of ['skyW']) assert.ok(SKY[k][1] <= 0.02, `the aurora sky's ${k} has C ${SKY[k][1]} (at most 0.02)`);
   assert.ok(SKY.clLit[1] <= 0.035, `the aurora sky's clLit has C ${SKY.clLit[1]} (about 0.03)`);
   // (light B) a faint green on the side facing the arc: key, rim and the light from above, never teal again
   for (const k of ['key', 'ambU', 'clRim']) {

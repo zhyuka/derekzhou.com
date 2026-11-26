@@ -32,7 +32,7 @@
     for (i = 0; i < PROGS.length; i++) {
       n = PROGS[i].name;
       if (VOLP.indexOf(n) >= 0) a.push(PROGS[i]);
-      else if (n.indexOf('engine.') !== 0 && n.indexOf('birds:') !== 0 && /\.(surface\d+|landmark|landmarkInst)$/.test(n)) b.push(PROGS[i]);
+      else if (n.indexOf('engine.') !== 0 && n.indexOf('birds:') !== 0 && /\.(surface\d+|landmark)$/.test(n)) b.push(PROGS[i]);
       else c.push(PROGS[i]);
     }
     a.sort(function (x, y) { return VOLP.indexOf(x.name) - VOLP.indexOf(y.name); });

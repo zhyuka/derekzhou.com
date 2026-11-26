@@ -24,7 +24,6 @@
     this.V = V; this.sc = sc; this.ix = ix; this.iz = iz; this.size = L.size; this.x0 = ix * L.size; this.z0 = iz * L.size;
     this.cx = this.x0 + L.size / 2; this.cz = this.z0 + L.size / 2; this.key = cellKey(sc, ix, iz);
     this.st = 0; this.items = []; this.clouds = []; this.flocks = []; this.pois = []; this.obst = []; this.vols = []; this.mesh = null; this.occ = null;
-    this.places = []; this.inst = null;
     this.bound = new Float32Array([this.cx, 0, this.cz, L.size]); this.soft = null; this.softB = null; this.born = -1; this.prio = 0; this.job = null; this.bi = 0; this.B = null; this.gone = false;
     this.lod = 0; this.RB = null; this.rbi = 0; this.gen = null; this.rgen = null;
     this.air = !!L.air; this.dL = null;   // (an air cell: its place in the air frame; dL, how far the air had carried it when it was laid out)
@@ -47,12 +46,6 @@
       // a point of interest: { x, z, y or dy (or ref), kind, pass (m beside it) }; nothing
       //   reads a point's interest, via, alt or approach
       poi: function (p) { C.pois.push(p); return p; },
-      // an instance of one of the realm's sets (def.sets[set]: one mesh built once a visit), as many as the cell likes:
-      //   { yaw (deg), scale (number or [x, y, z]), tilt: [about x, about z] (deg), dy (m), foot (m: seated on the
-      //   lowest ground of a ring this wide; 0: the ground at its centre), air: true and y (in the air), ref (an item or a
-      //   placement: over its seat), tint: [r, g, b], glow (its emission x this, default 1), bob: [m, period s], spin
-      //   (deg/s), phase (0-1), solid: [radius, height, dx, dz] (an obstacle over its seat), sphere: [dy, radius] }
-      place: function (set, x, z, o) { var q = o || {}; q.set = set; q.x = x; q.z = z; C.places.push(q); return q; }
     };
   }
   /* the ground points to probe: each item's (and cloud's, flock's, poi's, placement's with a foot) centre and a ring at
@@ -67,7 +60,6 @@
     for (i = 0; i < C.clouds.length; i++) want(C.clouds[i], 9);
     for (i = 0; i < C.flocks.length; i++) want(C.flocks[i], 9);
     for (i = 0; i < C.pois.length; i++) want(C.pois[i], 9);
-    for (i = 0; i < C.places.length; i++) want(C.places[i], C.places[i].foot > 0 ? 9 : 1);
     var pts = new Float32Array(n * 2), q = 0;
     for (i = 0; i < list.length; i++) {
       var o = list[i];

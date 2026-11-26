@@ -25,7 +25,6 @@
     P.sc = LMSC ? P.lm : def.scatter && def.scatter.length ? C(preG + VS_SCATTER, pre + FS_LANDMARK(def.scatterShade || def.landmarkShade || 'shadeStone'), 'scatter') : null;
     P.rb = def.ribbons ? C(preG + airGustGlsl() + VS_RIBBON, preG + FS_RIBBON, 'ribbon') : null;
     P.sky = /SKY_HOOK/.test(hk) ? C(VS_FAR, pre + SKY_BODY, 'sky') : null;
-    P.lmi = def.sets ? C(pre + VS_LANDMARK_INST, pre + FS_LANDMARK(def.landmarkShade || 'shadeStone'), 'landmarkInst') : null;
     def.P = P;
     return P;
   }

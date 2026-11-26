@@ -116,6 +116,8 @@ tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, h
                              the first near pass, flocks, crossings, the sky's changes, look runs, the longest gap)
 tools/visit/first-landmark.mjs The numbers for one landmark per land within the first minute's line: where it goes, its
                              bearing against the words' boxes, the land under it, today's first near pass, by hand
+tools/visit/haze-plan.mjs    The numbers for the haze by physics: how far each sky's hand haze colours stand from its own
+                             sky's (OKLab), and the dunes' ground haze's share along the ground, by hand
 tools/visit/headings.mjs     Each land's first heading chosen by the ruler and the frames' look: no more than look-rule.mjs's
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud

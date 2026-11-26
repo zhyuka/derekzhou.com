@@ -12,7 +12,7 @@
      the haze toward the light and away, the ambient from above and below: each family's mean light rides the light
      clock with the sky's, each colour's offset from it the structure clock (no change crosses the inks' band, and the
      two clocks are one) */
-  var SKY_FAM = { cl: ['clLit', 'clShade', 'clDeep', 'clRim'], hz: ['hazeC', 'hazeW'], amb: ['ambU', 'ambD'] }, SKY_FAMOF = { clLit: 'cl', clShade: 'cl', clDeep: 'cl', clRim: 'cl', hazeC: 'hz', hazeW: 'hz', ambU: 'amb', ambD: 'amb' };
+  var SKY_FAM = { cl: ['clLit', 'clShade', 'clDeep', 'clRim'], amb: ['ambU', 'ambD'] }, SKY_FAMOF = { clLit: 'cl', clShade: 'cl', clDeep: 'cl', clRim: 'cl', ambU: 'amb', ambD: 'amb' };
   /* the paint: a role's transform of an OKLab colour (L x kL, capped or floored; C x kC; the hue pulled toward h) */
   function trRole(p, l, out) {
     if (p[0] === 1 && p[1] === 1 && p[3] === 0 && p.length < 5) { out[0] = l[0]; out[1] = l[1]; out[2] = l[2]; return out; }
