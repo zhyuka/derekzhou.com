@@ -878,7 +878,10 @@ physics: clouds/drift). It holds:
 - The readers still apart (AIR_APART, each with the change that joins
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
-  it out moves the plan's anchors), the wing gusts' private 25 s timers
+  it out moves the plan's anchors; it turns over about -57 to +126 deg,
+  while the visit's wind, AIR_DIR, is any of 360 deg, so they lie a median
+  of about 90 deg apart: the dunes record the place's prevailing wind; the
+  visit's wind is today's, the hub's ruling, 2026-11-26), the wing gusts' private 25 s timers
   (birdwing.js) and the score's own gusts (score.js: its breeze by sky
   is the air's table, its gusts its own until it reads the field). The
   test fails when a listed reader is joined and still listed.
