@@ -12,15 +12,18 @@ const SRC = fs.readFileSync(new URL('../../src/world/220-time-day.js', import.me
 const lab = ([L, c, h]) => [L, c * Math.cos(h * Math.PI / 180), c * Math.sin(h * Math.PI / 180)];
 const dE = (a, b) => Math.hypot(...lab(a).map((v, i) => v - lab(b)[i]));
 const arr = (s) => s.split(',').map(Number);
+let nh = 0;
 console.log('the hand haze colours against the sky\'s own (OKLab; about 0.02 is a just-seen step):');
 for (const m of SRC.matchAll(/^ {4}(\w+): \{ g:'(\w+)'.*$/gm)) {
   const line = m[0], get = (k) => { const r = new RegExp(k + ':\\[([-\\d.,]+)\\]').exec(line); return r ? arr(r[1]) : null; };
   const sky = /sky:\[(\[.*?\])\]/.exec(line), hc = get('hazeC'), hw = get('hazeW');
   if (!sky || !hc || !hw) continue;
+  nh++;
   const stops = [...sky[1].matchAll(/\[([-\d.,]+)\]/g)].map((s) => arr(s[1])), warm = ['skyW', 'glowC'].map(get).filter(Boolean);
   const dc = Math.min(...stops.map((s) => dE(hc, s))), dw = Math.min(...[...warm, ...stops].map((s) => dE(hw, s)));
   console.log(`  ${m[1].padEnd(11)} ${m[2].padEnd(7)} cool side ${dc.toFixed(3)}, warm side ${dw.toFixed(3)}`);
 }
+if (!nh) console.log('  none: the skies hold no haze colours (the haze\'s light is the sky\'s own: lib-air hazeCol); run it on main\'s 220 for the before');
 // the dunes kit's ground haze: haze [1e-3 hz, H 30 m, base 24 m under the eye], hz drawn in [0.45, 0.85] (realm-dunes)
 const H = 30, base = 24;
 for (const hz of [0.45, 0.85]) {

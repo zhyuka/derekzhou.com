@@ -54,7 +54,7 @@
     if (u.uSkyK) gl.uniform4fv(u.uSkyK, snU ? SUNU.k0 : L.skyK);
     if (u.uGlow) gl.uniform4fv(u.uGlow, L.glow);
     if (u.uGlowC) gl.uniform3fv(u.uGlowC, snU ? SUNU.glowS : L.glowC);
-    if (u.uSkyN) { gl.uniform4fv(u.uSkyN, snU ? SUNU.n : SUNU.z); if (snU) { if (u.uGlowN) gl.uniform3fv(u.uGlowN, SUNU.glowN); if (u.uSkyWT) gl.uniform3fv(u.uSkyWT, SUNU.wT); if (u.uSkyWN) gl.uniform3fv(u.uSkyWN, SUNU.wN); if (u.uSkyKT) gl.uniform4fv(u.uSkyKT, SUNU.kT); if (u.uSkyKN) gl.uniform4fv(u.uSkyKN, SUNU.kN); if (u.uSunK) gl.uniform4fv(u.uSunK, SUNU.sk); if (u.uHzT) gl.uniform3fv(u.uHzT, SUNU.hzT); if (u.uHzN) gl.uniform3fv(u.uHzN, SUNU.hzN); } }
+    if (u.uSkyN) { gl.uniform4fv(u.uSkyN, snU ? SUNU.n : SUNU.z); if (snU) { if (u.uGlowN) gl.uniform3fv(u.uGlowN, SUNU.glowN); if (u.uSkyWT) gl.uniform3fv(u.uSkyWT, SUNU.wT); if (u.uSkyWN) gl.uniform3fv(u.uSkyWN, SUNU.wN); if (u.uSkyKT) gl.uniform4fv(u.uSkyKT, SUNU.kT); if (u.uSkyKN) gl.uniform4fv(u.uSkyKN, SUNU.kN); if (u.uSunK) gl.uniform4fv(u.uSunK, SUNU.sk); } }
     if (u.uFog) gl.uniform4fv(u.uFog, L.fog);
     if (u.uFog2) gl.uniform4fv(u.uFog2, L.fog2);
     if (u.uAer) aerU(u, V);
@@ -63,10 +63,8 @@
     // lies above a cloud sea flown 30-40 m over: the far sea takes a fifth of the haze the sky takes just above it, and
     // the horizon shows as a bright line)
     if (u.uHaze) { HZU[0] = L.haze[0]; HZU[1] = L.haze[1]; HZU[2] = L.haze[2] + Math.max(0, (V.clear ? V.clear[1] : 14) - 14) * 1.6; HZU[3] = L.haze[3]; gl.uniform4fv(u.uHaze, HZU); }
-    if (u.uHazeC) gl.uniform3fv(u.uHazeC, L.hazeC);
     if (u.uMist) mistU(u, L);   // (delight-weather 1: the mist pools)
     if (u.uFogP) fogU(u, L);   // (and the fog pool in a basin: 234)
-    if (u.uHazeW) gl.uniform3fv(u.uHazeW, L.hazeW);
     if (u.uAmbU) gl.uniform3fv(u.uAmbU, L.ambU);
     if (u.uAmbD) gl.uniform3fv(u.uAmbD, L.ambD);
     if (u.uClLit) gl.uniform3fv(u.uClLit, L.clLit);
@@ -85,16 +83,15 @@
      deep, the realm's deep shade (a passage through the dark);
      glare, the white of a passage through light) */
   var LDEF = { bloom: [1.1, 0.5, 0.18], cl: [7, 0.13, 0.003, 1], clDetail: [120, 4], shaftC: [1, 0.9, 0.8], lift: [0, 0, 0], gain: [1, 1, 1], fog2: [0.5, 0.012, 0, 0], hi: [0, 0, 0, 0], hiC: [1, 1, 1], exposure: 1, sat: 1,
-    haze: [0, 30, 20, 0], hazeC: [1, 1, 1], hazeW: null, sunVis: 1, shafts: 0, inCloudK: 1 };
-  var LKC = ['sunC', 'skyW', 'glowC', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'hazeC', 'hazeW', 'hiC', 'shaftC', 'deep', 'glare'];   // colours: blended in OKLab
+    haze: [0, 30, 20, 0], sunVis: 1, shafts: 0, inCloudK: 1 };
+  var LKC = ['sunC', 'skyW', 'glowC', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'hiC', 'shaftC', 'deep', 'glare'];   // colours: blended in OKLab
   var LKN = ['skyE', 'skyK', 'glow', 'fog', 'fog2', 'haze', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'lift', 'gain', 'hi', 'discK'];   // numbers: linearly
   var LKS = ['exposure', 'sat', 'shafts', 'inCloudK', 'sunVis'];
   function prepOne(L) {
     for (var dk in LDEF) if (L[dk] === undefined) L[dk] = LDEF[dk];
-    if (!L.hazeW) L.hazeW = L.hazeC;
     if (!L.deep) { var s0 = lin2lab(L.sky[0]); L.deep = lab2linA(clamp(Math.min(s0[0] * 0.55, 0.3), 0.13, 0.3), s0[1] * 0.8, s0[2] * 0.8); }
     if (!L.glare) L.glare = lch(0.99, 0.02, 85, 2.4);
-    ['sunDir', 'sunC', 'skyE', 'skyW', 'skyK', 'glow', 'glowC', 'fog', 'fog2', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'shaftC', 'lift', 'gain', 'hi', 'hiC', 'haze', 'hazeC', 'hazeW', 'deep', 'glare'].forEach(function (k) { if (L[k] && !(L[k] instanceof Float32Array)) L[k] = new Float32Array(L[k]); });
+    ['sunDir', 'sunC', 'skyE', 'skyW', 'skyK', 'glow', 'glowC', 'fog', 'fog2', 'ambU', 'ambD', 'clLit', 'clShade', 'clDeep', 'clRim', 'clK', 'clK2', 'bloom', 'cl', 'clDetail', 'shaftC', 'lift', 'gain', 'hi', 'hiC', 'haze', 'deep', 'glare'].forEach(function (k) { if (L[k] && !(L[k] instanceof Float32Array)) L[k] = new Float32Array(L[k]); });
     L.skyFlat = new Float32Array(18); for (var i = 0; i < 6; i++) { L.skyFlat[i * 3] = L.sky[i][0]; L.skyFlat[i * 3 + 1] = L.sky[i][1]; L.skyFlat[i * 3 + 2] = L.sky[i][2]; }
     var fb = L.fogB || [L.sky[1], 0]; L.fogBf = new Float32Array([fb[0][0], fb[0][1], fb[0][2], fb[1]]);
     L.discK = new Float32Array([Math.cos((L.discR || 1) * DEG), L.discI || 0, L.stars || 0, L.disc || 0]);

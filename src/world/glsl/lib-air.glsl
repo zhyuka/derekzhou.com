@@ -64,7 +64,9 @@ float gasPath(vec3 rd, float t) { float k = rd.y * t / 8000.0; return t * exp(-u
 float fogAmt(vec3 rd, float t) { return 1.0 - exp(-fogOD(rd, t) - BR.g * gasPath(rd, t)); }   // (one share for a light's own glow: the green's)
 /* the ground haze: a shallow layer over the land (its base a fixed depth under the eye, so it reads the same on a
    swell and in a trough), thick along the ground and thin above: far land and the feet of far things dissolve into a
-   bright band while their tops keep their colour; lavender, warmer toward the sun */
+   bright band while their tops keep their colour. Its light is the air's own (physics: Looks, the land row's haze by
+   physics): what it gives back is the sky's light toward the horizon (fogCol, as the aerosol's), and in atmos the sun's
+   forward peak over it, the aerosol's own (uAer: AIR's moisture); never a colour of its own, never a grey veil */
 float hazeAmt(vec3 rd, float t) {
   if (uHaze.x <= 0.0) return 0.0;
   float H = uHaze.y, a0 = uHaze.x * exp(-uHaze.z / H);   // (the density at the eye)
@@ -74,16 +76,7 @@ float hazeAmt(vec3 rd, float t) {
   return 1.0 - exp(-(a0 * tt * f + uHaze.x * 0.22 * max(t - s1, 0.0)));
 }
 float hazeSky(vec3 rd) { if (uHaze.x <= 0.0) return 0.0; return 1.0 - exp(-uHaze.x * exp(-uHaze.z / uHaze.y) * uHaze.y / max(rd.y, 2e-3)); }
-vec3 hazeCol0(vec3 rd) { float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0); return mix(uHazeC, uHazeW, cs * cs * cs); }
-/* (the sun and moon) the haze's warm side in a change between a twilight sky and a night: by its two ends, the
-   twilight's sinking with the sun as its warm band does (whole only under the sun's depth) and weakening with that
-   depth, the night's coming in with the night's colours; elsewhere the plain haze's (hazeCol0) */
-vec3 hazeCol(vec3 rd) {
-  if (uSkyN.w <= 0.0) return hazeCol0(rd);
-  float cs = max(dot(normalize(vec3(rd.x, 0.0, rd.z) + 1e-6), normalize(vec3(uSkyS.x, 0.0, uSkyS.z) + 1e-6)), 0.0), e = degrees(asin(clamp(rd.y, -1.0, 1.0)));
-  float st = exp(-(max(e + uSunK.x, 0.0) - max(e, 0.0)) / uSkyKT.y) * uSunK.y;
-  return uHazeC + cs * cs * cs * (uHzT * st + uHzN * uSunK.z);
-}
+vec3 hazeCol(vec3 rd) { return fogCol(rd); }
 vec3 atmos(vec3 c, vec3 rd, float t) {
   float m = fogOD(rd, t), g = uAer.y, cs = dot(rd, uSun);
   float gp = gasPath(rd, t);
@@ -92,8 +85,9 @@ vec3 atmos(vec3 c, vec3 rd, float t) {
      amount, so a red channel brighter than the horizon's sky, which a bluer air's lighter red extinction would leave
      nearer its own and a blue one a thicker blue would pull toward the sky, never goes below the grey's (nothing is
      darkened) */
-  c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0)) + uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0) * (1.0 - exp(-m)));
-  c = mix(c, hazeCol(rd), hazeAmt(rd, t));
+  vec3 pk = uSunC * (uAer.z * uSunVis * smoothstep(-0.02, 0.06, uSun.y) * max((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cs, 1.5) - 1.0, 0.0));
+  c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0)) + pk * (1.0 - exp(-m));
+  float h = hazeAmt(rd, t); c = mix(c, fq, h) + pk * h;   // (the haze: the sky's light and the sun's forward peak, as the aerosol's)
   /* the twilight's low mist: while the light crosses the inks' band on a change of the words' kind, everything seen
      within a few degrees of the horizon (the far land, a mesa, a dune's crest, the feet of the towers) lies in a mist of the horizon's own colour, so the ground about the words is even, while the land nearer
      and lower keeps its darkness and the sky its own: the frame keeps its body. Its amount times its shape (0 at amount
