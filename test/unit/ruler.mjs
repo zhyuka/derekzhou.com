@@ -103,6 +103,19 @@ test('ruler: rule() passes a table whose headings keep the words clear, and fail
   assert.deepEqual(LR.rule(Object.assign(clear(), { lands: {} }), TABLE, [k]).length, 1, 'only the lands asked for (a shard)');
 });
 
+// viewsFor: the gate measures an own heading that is not the table's on the low sun's views only (rule() reads it there),
+// and the table's heading, and an own heading that is the table's (null), on all three
+test('ruler: viewsFor keeps the night view for the table\'s heading and for an own heading that is the table\'s', async () => {
+  const { VIEWS } = { VIEWS: [{ name: 'laptop-night', feature: 'galaxy' }, { name: 'laptop-sunset', feature: 'sun' }, { name: 'phone-dawn', feature: 'sun' }] };
+  const names = (deg, t) => LR.viewsFor(VIEWS, deg, t).map((v) => v.name).join(',');
+  assert.equal(names(90, 90), 'laptop-night,laptop-sunset,phone-dawn', 'the table\'s heading: all three');
+  assert.equal(names(null, null), 'laptop-night,laptop-sunset,phone-dawn', 'the own heading that is the table\'s: all three');
+  assert.equal(names(null, 90), 'laptop-sunset,phone-dawn', 'an own heading beside the table\'s: the sun\'s two');
+  // and rule() reads such an own heading only for its discs and glow: a cloud over the words on it changes nothing
+  const k = TABLE.findIndex((d) => d !== null), r = clear(); r.lands[k].own.wordCloud = 0.3;
+  assert.deepEqual(LR.rule(r, TABLE), [], 'the own heading beside the table\'s is not held to the words');
+});
+
 // looksKey: the gate measures when it moved, base against head; so it must move with what moves a cloud near the words,
 // the table and the measuring code, and not with a comment or the sky
 test('ruler: looksKey moves with a cloud, the opening\'s view, the words and the table, not with a comment or the sky', async () => {
