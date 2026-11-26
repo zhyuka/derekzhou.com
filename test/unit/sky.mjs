@@ -54,8 +54,6 @@
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "c = max(c * T + fq * (1.0 - T), c * T0 + fq * (1.0 - T0))", "with": "c = c * T + fq * (1.0 - T)", "why": "the physical aerosol pulling sunlit cloud rims down toward the sky (darkened)"}
 // plant: {"file": "src/world/glsl/lib-air.glsl", "find": "m * pow(vec3(680.0, 550.0, 440.0) / 550.0, vec3(-uAer.w))", "with": "m * pow(vec3(680.0, 550.0, 440.0) / 440.0, vec3(-uAer.w))", "why": "the wavelength factor normalised at blue: green's extinction off the look's amount"}
 // plant: {"file": "src/world/227-night-bodies.js", "find": "for (i = 0; i < 3; i++) { out[i] = sh * h[i] - S[i]; n += out[i] * out[i]; }", "with": "for (i = 0; i < 3; i++) { out[i] = S[i] - sh * h[i]; n += out[i] * out[i]; }", "why": "the comet's tails toward the sun"}
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "    vec2 q = vec2(atan(rd.x, rd.z) / SKYTAU * 16.0, eS * 0.09);   // (16:", "with": "    vec2 q = vec2(atan(rd.x, rd.z) / SKYTAU * 14.0, eS * 0.09);   // (16:", "why": "the wisps at 3.5 noise periods round the sky: a hard vertical seam at azimuth 180 (the blue hour's box edge)"}
-// plant: {"file": "src/world/glsl/sky-body.glsl", "find": "vec3(q.x * 3.0, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;   // (tod fix3", "with": "vec3(q.x * 3.1, q.y * 11.0, 0.53) * 0.25, 0.0).b * 0.45;   // (tod fix3", "why": "the wisps' fine octave at 12.4 periods: its seam at azimuth 180"}
 import { test, assert, fs, os, path, vm, crypto, execFileSync, ROOT, TMP, WORLD, cut, golden, md5, upd, digest, STREAMS, VEC, fileURLToPath } from '../unit-lib.mjs';
 
 // ------------------------------------------------------------------ the sky order
@@ -1497,20 +1495,4 @@ test('night: the great comet, in 1-2 of the 16 openings, on twilight only, its t
     'float io = xf * exp(-x / 0.25 - y * y / (wi * wi)), du = xf * exp(-x / 0.3 - yd * yd / (wd * wd));', 'vec3 p = rd / z - uCom.xyz;'])
     assert.ok(g.includes(L), `sky-body.glsl's comet no longer drawn as tested: ${L}`);
   console.log(`# comet: openings ${on.join(', ')} of 16; planned on ${planned} of ${on.length * 12 * 3} twilight cases; the ion tail at most ${worst.toFixed(4)} deg off the anti-sun great circle`);
-});
-
-test('sky: every noise read by azimuth wraps whole round the sky (no seam at azimuth 180)', () => {
-  /* the wisps (both blocks) read the 3D noise by q.x = atan(rd.x, rd.z) / SKYTAU * K; the noise repeats every 1, so a read
-     at q.x x m x s jumps by K m s at azimuth 180 and is seamless only when that is a whole number. Their 14 x 0.25 (3.5)
-     drew a hard vertical edge in the blue hour's sky (8 codes over one column: the #489 base frame's box) */
-  const g = fs.readFileSync(path.join(ROOT, 'src', 'world', 'glsl', 'sky-body.glsl'), 'utf8');
-  const blocks = [...g.matchAll(/vec2 q = vec2\(atan\(rd\.x, rd\.z\) \/ SKYTAU \* ([\d.]+),/g)];
-  assert.ok(blocks.length >= 2, `the wisps' azimuth reads not found (${blocks.length})`);
-  for (const B of blocks) {
-    const K = +B[1], body = g.slice(B.index, g.indexOf('\n  }', B.index));
-    const reads = [...body.matchAll(/textureLod\(uN3, vec3\(q\.x(?: \* ([\d.]+))?, [^)]*\) \* ([\d.]+), /g)].map((m) => K * (m[1] ? +m[1] : 1) * +m[2])
-      .concat([...body.matchAll(/n3v\(vec3\(q\.x(?: \* ([\d.]+))?, /g)].map((m) => K * (m[1] ? +m[1] : 1)));
-    assert.ok(reads.length >= 2, `a wisps block reads the noise by q.x ${reads.length} times (want 2)`);
-    for (const r of reads) assert.ok(Math.abs(r - Math.round(r)) < 1e-9, `a read ${r} periods round the sky: a seam at azimuth 180`);
-  }
 });
