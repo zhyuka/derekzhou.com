@@ -122,9 +122,11 @@ jobs:
     needs: need
     if: needs.need.outputs.bake == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # Hosted runners vary: 12.6-34 s a still seen (run 45752177688: 58 stills a process in 17-40+ min), so 75 min,
+    # and no fail-fast: a shard that finished is kept for "re-run failed jobs" (the up job reads every attempt's).
+    timeout-minutes: 75
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     name: bake (${{ matrix.shard }}/20)

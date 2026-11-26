@@ -160,7 +160,7 @@ function encode(batch) {
       if (logs.length) console.log(j.name + ': ' + logs.slice(0, 3).join(' | '));
       batch.push(j);
       if (batch.length === 32) { encs.push(encode(batch)); batch = []; }
-      if (times.length % 96 === 0) console.log(`bake-stills: ${times.length} of ${jobs.length} drawn, ${((Date.now() - tL) / times.length / 1000).toFixed(2)} s a still`);
+      if (times.length % 8 === 0) console.log(`bake-stills: ${times.length} of ${jobs.length} drawn, ${((Date.now() - tL) / times.length / 1000).toFixed(2)} s a still`);
     }
   } finally { await b.close(); }
   const tB = Date.now();
