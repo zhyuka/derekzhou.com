@@ -18,11 +18,12 @@
   /* the first landmark (the hub's bar: a first near pass by 90 s on every land, the words clear and half the low sun's
      glow kept; tools/visit/first-landmark.mjs): on the five lands whose heading passes nothing near by 90 s (k0, k1, k2,
      k11, k13: #528), one landmark FIRST_D m down the landing's line and FIRST_S m to its side, so it bears 26.6 deg in
-     the first frame (the phone's words end at 18.5, the laptop's at 11.4) and is passed 145 m off at 24 s. Its side the
+     the first frame (the phone's words end at 18.5, the laptop's at 11.4) and is passed 145 m off at 24 s; an isle FIRST_DI m down (22.5 deg, passed at 29 s), since the cells' resolve (231) lifts
+     every floating piece over the flight band and nearer its top leaves the laptop's frame. Its side the
      one away from the visit's key sun (V.light.sunAz: the dawn's and the sunset's sun alike), so the low sun's glow
      stays in frame. 'isle' over the cloud sea (the above kit), 'rock' on the dunes and the coast (the dunes kit).
      The seed's and the visit's light alone, never the flight's */
-  var FIRST = { 0: 'isle', 1: 'rock', 2: 'rock', 11: 'isle', 13: 'rock' }, FIRST_D = 290, FIRST_S = 145, FIRSTP = null;
+  var FIRST = { 0: 'isle', 1: 'rock', 2: 'rock', 11: 'isle', 13: 'rock' }, FIRST_D = 290, FIRST_DI = 350, FIRST_S = 145, FIRSTP = null;
   function firstOf(V) {
     if (FIRSTP && FIRSTP.seed === J.seed) return FIRSTP.kind ? FIRSTP : null;
     var k = -1, i; for (i = 0; i < 16; i++) if (((11 + i * 0x9e3779b9) >>> 0) === J.seed) k = i;
@@ -34,7 +35,7 @@
        cloud sea thins and the above kit's draw left it out) */
     var CAND = [[0, 0], [30, 0], [-30, 0], [60, 0], [0, -20], [30, -20], [-30, -20]];
     for (c = 0; c < CAND.length * 2; c++) {
-      var sd = c < CAND.length ? side0 : -side0, q = CAND[c % CAND.length], d = FIRST_D + q[0], s2 = (FIRST_S + q[1]) * sd;
+      var sd = c < CAND.length ? side0 : -side0, q = CAND[c % CAND.length], d = (FIRST[k] === 'isle' ? FIRST_DI : FIRST_D) + q[0], s2 = (FIRST_S + q[1]) * sd;
       o.x = Math.sin(a) * d + Math.cos(a) * s2; o.z = Math.cos(a) * d - Math.sin(a) * s2;
       if (pickOf(o, isle ? 0x5bd1e995 : 0x27d4eb2d, 0, 0) < (isle ? densA(o.x, o.z) : densD(o.x, o.z))) break;
     }

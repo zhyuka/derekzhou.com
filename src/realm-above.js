@@ -71,7 +71,7 @@
      its own salt, against the sea's level over the land) never leaves it out where firstOf found the kit's first keep */
   function aFirst(C) {
     var P = W.first && W.first(C.V); if (!P || P.kind !== 'isle' || !C.inside(P.x, P.z)) return;
-    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(190, 230), Q.r(30, 40), 1.0, true);   // (y over the sea's base, as the kit's own islands (170-430): the flight keeps 14-32 m over the sea's top, so 190-230 floats by the horizon; 60-190 lay inside the sea, hidden, only the clouds re-laid about its spheres)
+    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(190, 230), Q.r(30, 40), 1.0, true);   // (y over the sea's base, as the kit's own islands (170-430); the cells' resolve (231) lifts every floating piece clear of the flight band, so it floats over the band whatever is asked: 350 m down the line (217 FIRST_DI) its whole form is in the laptop's first frame, at the phone's right edge)
   }
   function aIsland(C, R, x, z, y, r, stupaP, form) {   // (form: kept past aboveKeep's second draw, the first landmark's)
     var depth = r * R.r(1.0, 1.6);
