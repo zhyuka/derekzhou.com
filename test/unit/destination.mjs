@@ -1,7 +1,8 @@
 // test/unit/destination.mjs: the horizon's destination (src/world/217-destination.js; realm-dunes.js dDest): one form per
 // land, on the landing's heading (airHeading0, SEED0's), 7-8 km out, where the seed alone puts it (never the flight), laid
 // out by the one cell of its own layout scale (5, 16 km cells reaching 12 km) that holds it.
-// plant: {"file": "src/world/217-destination.js", "find": "var DEST_D = [7000, 8000], DEST = null;", "with": "var DEST_D = [2000, 3000], DEST = null;", "why": "the destination 2-3 km out: under the land's own forms, met in 3-4 minutes"}
+// plant: {"file": "src/world/217-destination.js", "find": "var DEST_D = [7000, 8000], DEST_S = -260,", "with": "var DEST_D = [2000, 3000], DEST_S = -260,", "why": "the destination 2-3 km out: under the land's own forms, met in 3-4 minutes"}
+// plant: {"file": "src/world/217-destination.js", "find": "DEST_S = -260, DEST = null;", "with": "DEST_S = 260, DEST = null;", "why": "the destination nudged left of the line: its stupa under the phone's flush-left words"}
 // plant: {"file": "src/world/217-destination.js", "find": "var a = airHeading0(),", "with": "var a = airHeading0() + 0.6,", "why": "the destination off the landing's heading: out of the first frame"}
 // plant: {"file": "src/realm-dunes.js", "find": "var rf = it.foot2[0] = Math.max(rad * 1.45, bornReach(it) + 4);", "with": "var rf = it.foot2[0] = rad * 1.45;", "why": "the foot solid at rad x 1.45 whatever the rock: k13's flared foot reaches 25 m past it, and the camera passing 6 m off the solid grazes the rock"}
 // plant: {"file": "src/realm-dunes.js", "find": "var t = T[T.length - 1], i, j, e;", "with": "var t = [0, 0], i, j, e;", "why": "the shoulder dome measured at the main dome's centre: its reach past the foot unseen"}
