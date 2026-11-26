@@ -1,7 +1,8 @@
 // test/unit/destination.mjs: the horizon's destination (src/world/217-destination.js; realm-dunes.js dDest): one form per
 // land, on the landing's heading (airHeading0, SEED0's), 7-8 km out, where the seed alone puts it (never the flight), laid
 // out by the one cell of its own layout scale (5, 16 km cells reaching 12 km) that holds it.
-// plant: {"file": "src/world/217-destination.js", "find": "var DEST_D = [7000, 8000], DEST = null;", "with": "var DEST_D = [2000, 3000], DEST = null;", "why": "the destination 2-3 km out: under the land's own forms, met in 3-4 minutes"}
+// plant: {"file": "src/world/217-destination.js", "find": "var DEST_D = [7000, 8000], DEST_S = -260,", "with": "var DEST_D = [2000, 3000], DEST_S = -260,", "why": "the destination 2-3 km out: under the land's own forms, met in 3-4 minutes"}
+// plant: {"file": "src/world/217-destination.js", "find": "DEST_S = -260, DEST = null;", "with": "DEST_S = 260, DEST = null;", "why": "the destination nudged left of the line: its stupa under the phone's flush-left words"}
 // plant: {"file": "src/world/217-destination.js", "find": "var a = airHeading0(),", "with": "var a = airHeading0() + 0.6,", "why": "the destination off the landing's heading: out of the first frame"}
 // plant: {"file": "src/realm-dunes.js", "find": "var rf = it.foot2[0] = Math.max(rad * 1.45, bornReach(it) + 4);", "with": "var rf = it.foot2[0] = rad * 1.45;", "why": "the foot solid at rad x 1.45 whatever the rock: k13's flared foot reaches 25 m past it, and the camera passing 6 m off the solid grazes the rock"}
 // plant: {"file": "src/realm-dunes.js", "find": "var t = T[T.length - 1], i, j, e;", "with": "var t = [0, 0], i, j, e;", "why": "the shoulder dome measured at the main dome's centre: its reach past the foot unseen"}
@@ -11,17 +12,18 @@ const DEST = cut(WORLD, '  /* --------------------------------------------------
 const HEAD = cut(WORLD, '  function airHeading0() {', '\n', true);
 function page(seed) {
   const ctx = { Math, J: { seed }, DEG: Math.PI / 180, PI: Math.PI };
-  vm.runInNewContext(STREAMS + HEAD + DEST + '\n  this.destOf = destOf; this.airHeading0 = airHeading0; this.DEST_D = DEST_D;', ctx);
+  vm.runInNewContext(STREAMS + HEAD + DEST + '\n  this.destOf = destOf; this.airHeading0 = airHeading0; this.DEST_D = DEST_D; this.DEST_S = DEST_S;', ctx);
   return ctx;
 }
 
-test('destination: on the landing\'s heading, 7-8 km out, for every opening', () => {
+test('destination: down the landing\'s heading 7-8 km, nudged right of the line, for every opening', () => {
   for (let k = 0; k < 16; k++) {
     const seed = (11 + k * 0x9e3779b9) >>> 0, G = page(seed), D = G.destOf(), a = G.airHeading0();
     assert.ok(Math.abs(D.bearing - a) < 1e-12, `opening ${k}: the bearing ${D.bearing} is not the landing's heading ${a}`);
-    const d = Math.hypot(D.x, D.z), b = Math.atan2(D.x, D.z);
-    assert.ok(Math.abs(d - D.d) < 1e-6 && D.d >= 7000 && D.d <= 8000, `opening ${k}: ${d.toFixed(0)} m out (7-8 km)`);
-    assert.ok(Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a))) < 1e-9, `opening ${k}: it stands off the heading`);
+    // (d m down the line, DEST_S across it: to the right, the hub's review of #539, so the phone's flush-left words keep clear)
+    const along = D.x * Math.sin(a) + D.z * Math.cos(a), across = D.x * Math.cos(a) - D.z * Math.sin(a);
+    assert.ok(Math.abs(along - D.d) < 1e-6 && D.d >= 7000 && D.d <= 8000, `opening ${k}: ${along.toFixed(0)} m down the line (7-8 km)`);
+    assert.ok(Math.abs(across - G.DEST_S) < 1e-6 && G.DEST_S < 0 && G.DEST_S >= -300, `opening ${k}: ${across.toFixed(0)} m across the line (the right, a nudge: 0 to 300 m)`);
     assert.ok(D.d / 12 / 60 >= 8 && D.d / 12 / 60 <= 14, `opening ${k}: met in ${(D.d / 720).toFixed(1)} min at 12 m/s (8-14)`);
   }
 });
