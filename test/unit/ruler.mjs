@@ -123,6 +123,7 @@ test('ruler: looksKey moves with a cloud, the opening\'s view, the words and the
   await edit('site/style.css', '{', '{ margin-top: 1px;', true, 'the words\' boxes');
   await edit('tools/visit/looks.mjs', 'const MASK = 8,', 'const MASK = 9,', true, 'the measure');
   await edit('src/realm-dunes.js', 'var FORM_N = 6,', 'var FORM_N = 7,', true, 'a land\'s forms placed otherwise (a solid that may stand behind the name)');
+  await edit('src/realm-kit.js', 'var tiers = 4 + R.i(2), w = size,', 'var tiers = 4 + R.i(2), w = size * 1.1,', true, 'a kit form scaled');
   await edit('src/world/217-destination.js', 'DEST_D[0], DEST_D[1]', 'DEST_D[0] + 1, DEST_D[1]', true, 'the destination moved');
   await edit('src/realm-dunes.js', 'var DUNES_GLSL =', 'var DUNES_GLSL = "" +', false, 'the dunes\' shading (not a place)');
   await edit(LR.AIR, 'function airHeading0() {', '// a note\nfunction airHeading0() {', false, 'a comment');

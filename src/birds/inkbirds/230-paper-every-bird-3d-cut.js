@@ -178,7 +178,7 @@
     if (A) {
       var ua = (TD - A.t0) / A.T, wa = Math.sin(Math.PI * clamp(ua, 0, 1));
       if (A.k === 'wings') gmix(s.P22, s.P22, Q.open, 0.7 * ease(1.4 * wa));   // (both wings raised: a lifted M, and let down)
-      else { var sk = 7 * wa * Math.sin(TAU * 7.5 * ua * A.T); s.P22[0] += sk; s.P22[NP] += sk; s.P22[4] -= 0.7 * sk; s.P22[NP + 4] -= 0.7 * sk; }   // (a rouse: a quick shake)
+      else { var sk = 7 * wa * Math.sin(TAU * 1.5 * ua * A.T); s.P22[0] += sk; s.P22[NP] += sk; s.P22[4] -= 0.7 * sk; s.P22[NP + 4] -= 0.7 * sk; }   // (a rouse: a slow shake (1.5 Hz, drawn under 4 Hz), never a flicker (a real one is 10+ Hz, at a few px glitter))
     }
     if (P.leaving) gmix(s.P22, s.P22, Q.open, ease((TD - P.leaving.t0) / Math.max(0.05, P.leaving.tc)));
     s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = 0;
