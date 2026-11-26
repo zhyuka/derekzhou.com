@@ -37,7 +37,7 @@ concurrency:
   # re-run of a main gate (run_attempt over 1): GitHub cancels a group's older run when the newer is queued, before
   # any step of it could see that its commit is no longer main's tip, so a re-run of an old gate's run, in main's group,
   # cancelled the tip's bake (2026-11-14). Its own group cancels nothing, and its need step bakes only main's tip.)
-  group: stills-${{ github.event.workflow_run.head_branch != 'main' && 'branches' || (github.event.workflow_run.run_attempt == 1 && 'main' || format('main-{0}', github.event.workflow_run.head_sha)) }}
+  group: stills-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}', inputs.sha) || github.event.workflow_run.head_branch != 'main' && 'branches' || (github.event.workflow_run.run_attempt == 1 && 'main' || format('main-{0}', github.event.workflow_run.head_sha)) }}
   cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
 
 env:
@@ -198,7 +198,7 @@ jobs:
           echo "$said"
           grep -q 'status stills success' <<<"$said" || { echo "::error::the set is not up"; exit 1; }
       - name: The status, failed (the bake or the release did not finish)
-        if: failure() || needs.bake.result != 'success'
+        if: failure() || needs.bake.result == 'failure'   # (a run a newer one cancelled says nothing: the newer run posts its tip's status)
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
