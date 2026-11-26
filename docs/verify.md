@@ -58,6 +58,14 @@ Before a change to the world, its kits or the ink birds:
   day and a night hour, the still skies with no WebGL2 and no script; the
   home page served from the build (/build.txt names the commit), and /CLAUDE.md, /%43LAUDE.md,
   /.github/workflows/validate.yml and /subset-fonts.sh each answering 404.
+- Known cells (LAND, 2026-11-26; the hub's ruling: accepted, no change): the words' worst contrast
+  against the brightest ground pixel under each role, on the two bright horizons of all 16 openings
+  (tools/visit/word-contrast.mjs), is at or over the stage-2 4.90 everywhere but two credit cells,
+  both over the 4.5 floor and both under it on main before the haze by physics (#550): k7 at the
+  laptop's sunset, 4.87, set by a small lit cloud's rim under "Now" (the sky beside it gives 5.03);
+  and k11 at the phone's dawn, 4.86, set by the far mesas' lit skyline in the 1 CSS px under the
+  credit's baseline (the rows over it give 5.29 or more). Either fix would move a cloud or a skyline
+  the owner already sees, for 0.04.
 - Known noise (SKY, 2026-11-25): a view turned by hand in T1's harness
   (setting the camera's heading over a few stepped frames) is not frame-exact:
   main against itself, afterglow seed 77 at 1440x900, differs in about 1,100

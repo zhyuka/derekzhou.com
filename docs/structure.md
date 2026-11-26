@@ -118,6 +118,8 @@ tools/visit/first-landmark.mjs The numbers for one landmark per land within the 
                              bearing against the words' boxes, the land under it, today's first near pass, by hand
 tools/visit/haze-plan.mjs    The numbers for the haze by physics: how far each sky's hand haze colours stand from its own
                              sky's (OKLab), and the dunes' ground haze's share along the ground, by hand
+tools/visit/word-contrast.mjs Each role of the words against the brightest ground pixel under it, on the phone's dawn and
+                             the laptop's sunset of each opening, and where that pixel stands, by hand
 tools/visit/headings.mjs     Each land's first heading chosen by the ruler and the frames' look: no more than look-rule.mjs's
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
