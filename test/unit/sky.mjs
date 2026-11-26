@@ -385,11 +385,11 @@ test('physics: weather/far-anvil: the far storm hides the sky in the air\'s colo
   const E = [0, 3, 10, 26, 58];
   const skyAt = (S, e) => { const st = S.sky.map(lc); let c = st[4]; for (let i = 0; i < 4; i++) if (e <= E[i + 1]) { const t = (e - E[i]) / (E[i + 1] - E[i]); c = st[i].map((v, j) => v + (st[i + 1][j] - v) * t); break; } return c.map((v) => v * (1 - S.skyK[2] * Math.exp(-e / S.skyK[1]))); };
   // (the haze's light the sky's own toward the horizon: lib-air hazeCol, fogCol at the dunes' fog2)
-  const scene = (S, e, hz) => { const h = 1 - Math.exp(-1e-3 * hz * Math.exp(-24 / 30) * 30 / Math.sin(e * D2R)), ep = Math.asin(Math.sin(e * D2R) * 0.45 + 0.02) / D2R, hc = skyAt(S, ep), haze = (c) => c.map((v, i) => v + (hc[i] - v) * h); return { h, sky: haze(skyAt(S, e)), body: haze(skyAt(S, ep)), air: hc }; };
+  const scene = (S, e, hz) => { const h = 1 - Math.exp(-1e-3 * hz * Math.exp(-24 / 30) * 30 / Math.sin(e * D2R)), ep = Math.asin(Math.sin(e * D2R) * 0.45 + 0.02) / D2R, hc = skyAt(S, ep), haze = (c) => c.map((v, i) => v + (hc[i] - v) * h); return { h, sky: haze(skyAt(S, e)), body: haze(skyAt(S, ep)) }; };
   let showMin = 9, showMax = -9;
   for (const id of ['afterglow', 'firstlight']) for (const hz of [0.45, 0.85]) for (const e of [4, 5.5, 7]) {
     const S = WSKY[id], sc = scene(S, e, hz), ad = capAdd(sc.body, [1, 0.6, 0.46].map((v) => v * K * (1 - sc.h))), c1 = sc.body.map((v, i) => v + ad[i]);
-    assert.ok(Lof(c1) <= Math.max(0.50, Lof(sc.sky), Lof(sc.air)) + 1e-9, `${id}: the storm's lit top at ${e} deg reaches L ${Lof(c1).toFixed(5)} (sky ${Lof(sc.sky).toFixed(5)}, air ${Lof(sc.air).toFixed(5)}, body ${Lof(sc.body).toFixed(5)}) (at most 0.50, or the sky's own behind it: the sky there, or the air's colour at its range, the horizon's)`);
+    assert.ok(Lof(c1) <= Math.max(0.50, Lof(sc.sky), Lof(sc.body)) + 1e-9, `${id}: the storm's lit top at ${e} deg reaches L ${Lof(c1).toFixed(5)} (sky ${Lof(sc.sky).toFixed(5)}, body ${Lof(sc.body).toFixed(5)}) (at most 0.50, or what already stands there: the sky, or the storm's body, the air's colour at its range)`);
     assert.ok((0.82 + 0.05) / (Y(c1) + 0.05) >= 4.5, `${id}: the credit over the storm's lit top reads ${((0.82 + 0.05) / (Y(c1) + 0.05)).toFixed(2)}:1`);
     showMin = Math.min(showMin, Lof(c1) - Lof(sc.sky)); showMax = Math.max(showMax, Lof(c1) - Lof(sc.sky));
   }
