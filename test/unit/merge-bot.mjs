@@ -263,3 +263,25 @@ test('merge bot: the gate measures each built script against its load budget (bu
   assert.match(g, /      budget: \$\{\{ steps\.budget\.outputs\.budget \}\}\n/, 'the plan hands it to the verdict');
   assert.match(fs.readFileSync(path.join(R, '.github/ci/verdict.mjs'), 'utf8'), /budget: \(\(\) => \{ try \{ return c\.budget \? JSON\.parse\(c\.budget\)/, 'the verdict keeps it');
 });
+
+// plant: {"file": ".github/ci/deploy-walk.mjs", "find": "    if ((await walk(live, runs.slice(0, k + 1), q)).to !== sha) continue;\n", "with": "", "why": "live falls back onto a baked commit the walk would never stop on (a red tip the bot reverted)"}
+test('deploy gate: to unbaked, live goes to the newest tip the walk stops on that has its set (bakedTo)', async () => {
+  const { bakedTo } = await import(new URL('../../.github/ci/deploy-walk.mjs', import.meta.url));
+  const S = (c) => c.repeat(40), run = (c, conclusion) => ({ head_sha: S(c), status: 'completed', conclusion, html_url: 'u' + c });
+  const V = (sha) => ({ gate_ok: true, frames_identical: true, base: S('0') });
+  const d = { verdict: async (r) => (r.conclusion === 'success' ? V(r.head_sha) : null), ownerMerge: async () => false, branchIdentical: async () => false, laterStallOk: async () => -1,
+    revertOf: async (sha) => (sha === S('c') ? S('b') : null) };
+  const ready = (baked) => async (sha) => (baked.includes(sha) ? { ok: true, why: 'up' } : { ok: false, why: 'no stills status yet' });
+  const runs = [run('a', 'success'), run('b', 'failure'), run('c', 'success'), run('d', 'success')];   // (b red, c its revert, d green: the walk goes to d)
+  assert.equal((await bakedTo(S('0'), runs, d, S('d'), ready([S('d')]))).to, S('d'), 'to baked: to');
+  const r = await bakedTo(S('0'), runs, d, S('d'), ready([S('a'), S('c')]));
+  assert.equal(r.to, S('c'), 'to unbaked: the newest baked tip the walk stops on (the revert c, green)');
+  assert.match(r.why, /^live -> cccccccccc \(newest baked; dddddddddd green but no stills status yet\)$/);
+  assert.equal((await bakedTo(S('0'), runs, d, S('d'), ready([S('a'), S('b')]))).to, S('a'), 'the baked b is the red tip the bot reverted: the walk never stops on it, so skipped for a');
+  const none = await bakedTo(S('0'), runs, d, S('d'), ready([]));
+  assert.equal(none.to, S('0'), 'none baked: live stays'); assert.match(none.why, /no tip since live/);
+  assert.equal((await bakedTo(S('0'), runs, d, S('0'), ready([]))).to, S('0'), 'to is live: nothing to do');
+  let calls = 0; const counted = { ...d, verdict: async (x) => { calls++; return d.verdict(x); } };
+  await bakedTo(S('0'), runs, counted, S('d'), ready([S('a')]));
+  assert.ok(calls <= runs.length, `the walks repeat no lookup (${calls} verdict reads for ${runs.length} runs)`);
+});

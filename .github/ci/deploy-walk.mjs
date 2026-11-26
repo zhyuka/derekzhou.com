@@ -64,3 +64,26 @@ export async function walk(live, runs, d) {
   if (mustReach >= 0) { why = `a tip's failed stall visits are cleared only at ${runs[mustReach].head_sha.slice(0, 10)}, not reached: live goes no further than ${safe.slice(0, 10)}`; to = safe; }
   return { to, why };
 }
+
+// The newest endpoint live may move to that has its stills (the hub, 2026-11-26: since #547 a tip with the bake goes
+// live only with its stills status success, so one green served change with no set yet held live at an older tip that
+// had one). `to` when ready(to) passes; else, newest first and at most cap back, a tip before it the walk itself would
+// stop on (walked over the runs up to that tip, so a red tip and its revert, or a failed stall's tips, never qualify)
+// whose ready passes; else live. ready(sha) -> { ok, why } (bot-rules.mjs stillsReady). A candidate is only judged:
+// the walk's re-run is left out, and its lookups are memoized, so the walks repeat no request.
+export async function bakedTo(live, runs, d, to, ready, cap = 20) {
+  if (to === live) return { to, why: '' };
+  const top = await ready(to);
+  if (top.ok) return { to, why: '' };
+  const memo = new Map(), m = (k, f) => async (...a) => { const key = k + ':' + a.map((x) => Array.isArray(x) ? 'n' + x.length : (x && x.head_sha) || String(x)).join(','); if (!memo.has(key)) memo.set(key, f(...a)); return memo.get(key); };
+  const q = { say: () => {}, rerun: null };
+  for (const k of ['verdict', 'ownerMerge', 'branchIdentical', 'laterStallOk', 'revertOf', 'prProved']) if (d[k]) q[k] = m(k, d[k]);
+  const at = runs.findIndex((r) => r.head_sha === to);
+  for (let k = at - 1, n = 0; k >= 0 && n < cap; k--, n++) {
+    const sha = runs[k].head_sha;
+    if (!(await ready(sha)).ok) continue;
+    if ((await walk(live, runs.slice(0, k + 1), q)).to !== sha) continue;
+    return { to: sha, why: `live -> ${sha.slice(0, 10)} (newest baked; ${to.slice(0, 10)} green but ${top.why})` };
+  }
+  return { to: live, why: `${to.slice(0, 10)} is green but ${top.why}, and no tip since live that the walk stops on has its set` };
+}
