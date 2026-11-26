@@ -21,7 +21,7 @@
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "var R = Math.max(0.8 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "with": "var R = Math.max(0.3 * Math.max(sa * hu, sc * hu * hv), 0.15 * Rc) * rng.r(0.95, 1.05);", "why": "the lobes a third of their spacing: a rim of loose round beads (PC GPU, 2026-11-23)"}
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.squash = 0.52 * T / Rc;", "with": "b.squash = 1.56 * T / Rc;", "why": "the plates three times thicker"}
 // plant: {"file": "src/realm-dunes.js", "find": "cl.n, { flow: cl.flow });", "with": "cl.n);", "why": "the lens's plates do not flow: their billows stand still with the envelope"}
-// plant: {"file": "src/realm-dunes.js", "find": "dGreat(C, s); dForms(C, s, R); dHeld(C); return;", "with": "dGreat(C, s); dHeld(C); dForms(C, s, R); return;", "why": "the lens laid out before the forms' clouds: their places in the cell, and so their fallback seeds, move"}
+// plant: {"file": "src/realm-dunes.js", "find": "dGreat(C, s); dForms(C, s, R); dFirst(C); dHeld(C); return;", "with": "dGreat(C, s); dHeld(C); dForms(C, s, R); dFirst(C); return;", "why": "the lens laid out before the forms' clouds: their places in the cell, and so their fallback seeds, move"}
 // plant: {"file": "src/world/120-cloud-bodies.js", "find": "b.erode = 0.15; b.billow = 0.35; b.squash = 0.52 * T / Rc;", "with": "b.erode = 0.3; b.billow = 0.35; b.squash = 0.52 * T / Rc;", "why": "the lens eroded as before: the top plate's edge scalloped (the hub, 2026-11-23)"}
 // plant: {"file": "src/world/410-drawing-frame.js", "find": "B.u4a[3] = B.det[1] * 0.25; }", "with": "B.u4a[3] = B.det[1] * 0.5; }", "why": "the lens's flowing billows at half the kit's depth: its rim scalloped"}
 // plant: {"file": "src/world/215-air.js", "find": "oro: [7.2, 8.2], oroU: 7.7,", "with": "oro: [6.2, 7.2], oroU: 6.7,", "why": "the lens gate a metre a second low (lenses under a 7.7 m/s crest wind)"}
@@ -121,7 +121,7 @@ test('lenticular: the envelope is held (its place a constant of t); its billows 
   // from the great cell (scale 0) and never from an air cell (whose pieces the air carries)
   const DISP = cut(DUNES, '    air: function (C, R) {', '    build: function (it, B, R) {');
   const calls = [], R = vm.runInThisContext('(function (calls) { var DS = 1500;' +
-    ' function dAir() { calls.push("air"); } function dHeld() { calls.push("held"); } function dSite() { return { kind: 0, x: 0, z: 0 }; } function dGreat() {} function dForms() {} function dSmall() {} function dDetails() {}' +
+    ' function dAir() { calls.push("air"); } function dHeld() { calls.push("held"); } function dSite() { return { kind: 0, x: 0, z: 0 }; } function dGreat() {} function dForms() {} function dFirst() {} function dSmall() {} function dDetails() {}' +
     ' return {\n' + DISP + '}; })')(calls);
   R.air({ air: true, scale: 3, x0: 0, z0: 0, size: 3000 }, {});
   assert.ok(!calls.includes('held'), 'an air cell lays out a lens: the air would carry a terrain-held cloud off its ridge');
@@ -305,7 +305,7 @@ test('lenticular: the lens moves no other cloud: no draw of the cell\'s stream, 
   assert.match(DUNES, /function dHeld\(C\) \{/, 'dHeld takes more than its cell');
   const HB = cut(DUNES, '  function dHeld(C) {', '\n  }\n', true);
   assert.ok(!/\bR\.(f|r|i|seed)\(/.test(HB), 'dHeld draws from the cell\'s stream: every later draw, every other cloud, moves');
-  assert.match(DUNES, /dGreat\(C, s\); dForms\(C, s, R\); dHeld\(C\); return; \}/, 'dHeld is not the scale-0 cell\'s last layout');
+  assert.match(DUNES, /dGreat\(C, s\); dForms\(C, s, R\); dFirst\(C\); dHeld\(C\); return; \}/, 'dHeld is not the scale-0 cell\'s last layout (after the first landmark, dFirst, which draws its own stream)');
   assert.match(WORLD, /V\.def\.cloud\(cl, PF, RNG\(cl\.seed \|\| \(C\.key \+ i \* 7919\) >>> 0\), KITAPI\)/, 'a cloud does not resolve from its own seed');
   const flowLines = WORLD.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/\/\/.*$/, '')).filter((l) => /\.flow\b/.test(l));
   for (const l of flowLines) assert.ok(/flow \?|flow\)|\.flow &&|if \(o\.flow\)|if \(B\.flow\)|fl \? |B\.flow, tf = fl|if \(o\.flow\) b\.flow = o\.flow|vb\.out\.flow = PF\.bodies\[bi\]\.flow/.test(l), `a shared line reads flow without holding to it: ${l.trim().slice(0, 140)}`);

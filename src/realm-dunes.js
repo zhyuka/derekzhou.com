@@ -136,6 +136,15 @@
     var rf = it.foot2[0] = Math.max(rad * 1.45, bornReach(it) + 4);   // (the rock inside its foot solid: bornReach)
     C.poi({ kind: 'destination', x: D.x, z: D.z, ref: it, dy: H * 0.5, r: rf, top: H, pass: rf + 120 });   // (FLIGHT's ruler: r at the flight band, at most 800 m (783 here; 749 on k13 by its reach); top over the land)
   }
+  /* the first landmark (world 217: firstOf, on the five lands whose heading passes nothing near by 90 s): a giant shard
+     290 m down the landing's line and 145 m to the side away from the key sun, passed at 24 s; a form, so kept where the
+     coast's sea comes up under it (k1); by the 1.5 km cell that holds it */
+  function dFirst(C) {
+    var P = W.first && W.first(C.V); if (!P || P.kind !== 'rock' || !C.inside(P.x, P.z)) return;
+    var Q = K.RNG(P.s), gh = Q.r(38, 46), gw = Q.r(8, 10);
+    var it = C.add({ kind: 'giantShard', form: true, x: P.x, z: P.z, foot: 9, dy: -1.5, yaw: Q.r(0, 360), h: gh, w: gw, seed: Q.seed(), solid: [gw + 0.42 * gh + 4, gh] });
+    C.poi({ kind: 'shard', x: P.x, z: P.z, ref: it, dy: gh * 0.5, pass: 42 + gw });
+  }
   var FORM_N = 6, FORM_D = 0.16, FORM_C = 0.55;
   function dForms(C, s, R) {
     for (var k = 0; k < FORM_N; k++) {
@@ -256,7 +265,7 @@
     air: function (C, R) { dAir(C, R); },
     dest: function (C, R) { dDest(C, R); },
     cell: function (C, R, K2) {
-      if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); dHeld(C); return; }
+      if (C.scale === 0) { var s = dSite(C.ix, C.iz, C.salt); dGreat(C, s); dForms(C, s, R); dFirst(C); dHeld(C); return; }
       // a small cell: the details of the areas about it that fall in it, and its own stones
       var bx = Math.floor((C.x0 + C.size / 2) / DS), bz = Math.floor((C.z0 + C.size / 2) / DS), out = [], i, j, k;
       for (j = -1; j <= 1; j++) for (i = -1; i <= 1; i++) { var s2 = dSite(bx + i, bz + j, C.salt); if (s2.kind === 1 || s2.kind === 2) { out.length = 0; dDetails(s2, out); for (k = 0; k < out.length; k++) if (C.inside(out[k].x, out[k].z)) C.add(out[k]); } }

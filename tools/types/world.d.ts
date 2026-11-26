@@ -7,7 +7,7 @@ interface Navigator { deviceMemory?: number; gpu?: unknown }
 interface PerformanceEntry { domInteractive?: number; domContentLoadedEventStart?: number; loadEventStart?: number; url?: string }   // (url: a paint entry's, 520's afterStill)
 interface EventListenerOptions { passive?: boolean }
 // window.WORLD (510): what the realm scripts and the ink birds register with and read; forms is set by realm-kit.js
-interface WorldApi { realm(def: object): void; kit: KitApi; air: AirApi; events: EventsApi; dest(): { x: number, z: number, d: number, bearing: number, seed: number, kind: 'isle' | 'rock' }; birds: BirdsHook; sky(): SkyFeed | null;
+interface WorldApi { realm(def: object): void; kit: KitApi; air: AirApi; events: EventsApi; dest(): { x: number, z: number, d: number, bearing: number, seed: number, kind: 'isle' | 'rock' }; first(V: any): { x: number, z: number, kind: 'isle' | 'rock', side: number, s: number, seed: number } | null; birds: BirdsHook; sky(): SkyFeed | null;
   stamp(name: string): void; forms?: any }
 // WORLD.air (215's AIRAPI): the one air, as the realms and the score read it. V is a visit (200's), t the flight's time
 // (SIM.t when undefined); an object or array marked (reused) is the one the air fills in place, not a fresh one

@@ -152,6 +152,14 @@ export function landAt(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w
 /* the land at (x, y) whole, as the land's vertex stage takes it: the height and its slope (vN), and the main dune's
    phase and pieces (S1_OUT's vS1, vS1d: the phase unwrapped, its gradient, H, fl, dH, dQ) for the fragment's rebuild */
 export function landFull(x, y, a = 0.6) { w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190]; const d = dunes(x, y); return { h: d.h, s1: d.s1, nearF: d.nearF, nearA: d.nearA }; }
+/* the dunes' cast shadows' inputs at (x, y) in wind angle a (test/unit/duneshadow.mjs): the swell's slope (dunes-glsl's
+   swellG: its two taps), the land's whole slope (VS_TERRAIN's vN) and the main dune's own (S1_OUT's vS1g.yz), and the
+   main dune's pieces (s1: f, fl, ph, gph, H) */
+export function shadowInputs(x, y, a = 0.6) {
+  w = [Math.cos(a), Math.sin(a)]; pp = [-w[1], w[0]]; Ma = [w[0] / 420, pp[0] / 190, w[1] / 420, pp[1] / 190];
+  const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1), d = dunes(x, y);
+  return { swell: [40 * g0[1] + 15 * g1[1], 40 * g0[2] + 15 * g1[2]], land: [d.h[1], d.h[2]], main: [d.mainGrad[1], d.mainGrad[2]], s1: d.s1, h: d.h[0] };
+}
 function dunes(x, y) {
   const g0 = dNs(x, y, 1 / 760), g1 = dNm(x + 311, y - 97, M1);
   const swell = add(sc(g0, 40), sc(g1, 15));

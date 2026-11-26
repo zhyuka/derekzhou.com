@@ -63,7 +63,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              far out: an fp32 replay), test/unit/dest-isle.mjs (the destination over the cloud sea: the great isle at its point, its keel over the cruise, its size and reach), test/unit/destination.mjs (the horizon's destination: on the landing's
                              heading 7-8 km out, the seed's alone, laid out by its own scale), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
-                             the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
+                             the sand's angle of repose: physics: sand/S1), test/unit/duneshadow.mjs (the dunes' cast shadows at the low key:
+                             castShade run from the shader's text, continuous across a brink), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag), test/unit/motion.mjs (the phone's motion steering: held still, turned),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
@@ -113,6 +114,8 @@ tools/dup-names.mjs          No name declared twice in one scope of a served scr
 tools/where.mjs              Where a world name is declared, and which sections read, assign and write it
 tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, headless, in about a minute (places passed,
                              the first near pass, flocks, crossings, the sky's changes, look runs, the longest gap)
+tools/visit/first-landmark.mjs The numbers for one landmark per land within the first minute's line: where it goes, its
+                             bearing against the words' boxes, the land under it, today's first near pass, by hand
 tools/visit/headings.mjs     Each land's first heading chosen by the ruler and the frames' look: no more than look-rule.mjs's
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
@@ -123,8 +126,8 @@ tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShade
                              three times, as it is, without its clouds and without its solids)
 tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud (and the name behind a solid), the glow
                              kept, its weights, rule(), worldKey (KEY_INPUTS: the cloud layout, the opening's view, the
-                             words' layout, where the solids stand; not the sky, the land's surface or its shading, or the
-                             birds) and looksKey (worldKey, the table and the measuring code:
+                             words' layout, where the solids stand and their forms; not the sky, the land's surface or
+                             its shading, or the birds) and looksKey (worldKey, the table and the measuring code:
                              the gate measures only when it moved, base against head)
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
@@ -146,7 +149,9 @@ tools/physics/               The dunes' slope census against the sand's physics 
                              mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand;
                              fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand;
                              ripple-size.py, the sand's ripples at true and drawn size from the flight, filtered at the
-                             pixel and not (point-sampled, today's fade, fwidth), by hand
+                             pixel and not (point-sampled, today's fade, fwidth), by hand;
+                             dune-shadow.mjs, the brinks' cast shadows over the lee at the realm's low key (the sand
+                             row "cast shadows"), by hand
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)

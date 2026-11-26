@@ -164,7 +164,7 @@ test('air: one key for every sky; the clouds\' bake, the land and the birds read
 test('air: the landing\'s heading is drawn once, by the air; one cruise band', () => {
   const outside = WORLD.replace(AIR, '');
   assert.ok(!/subseed\(J\.seed, 77\)/.test(outside), 'no section but the air draws the landing\'s heading');
-  assert.equal(WORLD.split('airHeading0()').length - 1, 7, 'its six readers (the first plan, the galaxy\'s lie, the flight, the boot, a milkyway opening\'s hour, the destination: 217) and its one definition');
+  assert.equal(WORLD.split('airHeading0()').length - 1, 8, 'its seven readers (the first plan, the galaxy\'s lie, the flight, the boot, a milkyway opening\'s hour, the destination and the first landmark: 217) and its one definition');
   assert.match(WORLD, /cruise: AIR_CRUISE,/); assert.match(WORLD, /V\.def\.cruise \|\| AIR_CRUISE,/);
   assert.ok(!/\[14, 32\]/.test(outside), 'no second cruise band');
   const G = page(); G.J.seed = 11; const a = G.airHeading0(); assert.equal(a, G.airHeading0()); assert.ok(a >= 0 && a < 2 * Math.PI);
