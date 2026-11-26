@@ -67,16 +67,17 @@
   }
   /* the first landmark (world 217: firstOf, on the five lands whose heading passes nothing near by 90 s): over the
      cloud sea an island with its stupa, 290 m down the landing's line and 145 m to the side away from the key sun,
-     passed at 24 s, kept low (under the name's band); its own stream, so the cell's draws are as before */
+     passed at 24 s; its own stream, so the cell's draws are as before; a form, so aboveKeep's second draw (pickOf with
+     its own salt, against the sea's level over the land) never leaves it out where firstOf found the kit's first keep */
   function aFirst(C) {
     var P = W.first && W.first(C.V); if (!P || P.kind !== 'isle' || !C.inside(P.x, P.z)) return;
-    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(60, 90), Q.r(30, 40), 1.0);   // (y over the sea: the eye flies low over it, so 60-90 m sits by the horizon; 150-190 stood in the frame's top corner on k0)
+    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(190, 230), Q.r(30, 40), 1.0, true);   // (y over the sea's base, as the kit's own islands (170-430): the flight keeps 14-32 m over the sea's top, so 190-230 floats by the horizon; 60-190 lay inside the sea, hidden, only the clouds re-laid about its spheres)
   }
-  function aIsland(C, R, x, z, y, r, stupaP) {
+  function aIsland(C, R, x, z, y, r, stupaP, form) {   // (form: kept past aboveKeep's second draw, the first landmark's)
     var depth = r * R.r(1.0, 1.6);
     var yaw = R.r(0, 360), stu = R.f() < stupaP, sd = R.seed();   // (drawn whether kept or not: the cell's stream the same)
     if (!destClear(x, z)) return;
-    C.add({ kind: 'island', x: x, z: z, air: true, y: y, yaw: yaw, r: r, depth: depth, stupa: stu, seed: sd, spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
+    C.add({ kind: 'island', form: !!form, x: x, z: z, air: true, y: y, yaw: yaw, r: r, depth: depth, stupa: stu, seed: sd, spheres: [0, -depth * 0.35, 0, Math.max(r, depth * 0.55) * 1.1, 0, r * 0.4, 0, r * 0.7] });
     C.poi({ kind: 'island', x: x, z: z, y: y, pass: r + 70 });
   }
   /* an air cell (physics: clouds/drift): the towering cumulus over the sea, free cloud carried by the low layer's wind,
