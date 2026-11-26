@@ -183,27 +183,32 @@ header, not the smoke's user agent, which anyone can copy.
 
 ## The stills
 
-The openings' stills (the world's first frames, baked on a real GPU by tools/gpu/bake-stills.js, #197) are not
+The openings' stills (the world's first frames, baked by tools/gpu/bake-stills.js, #197) are not
 in the repository: each served build's set is a release of it, `stills-<key>` with one asset `stills.pack`, where the
 key is tools/stills.mjs worldKey, a sha256 of the plain build but its stills and build.txt.
 The Cloudflare build fetches its own key's set with STILLS_TOKEN (a Pages secret) and ships without it on any failure.
 The key is the whole served build, so any served change (a sound, a stylesheet, a font) is a new key, and a set is
 only ever its own world's:
 - stills.yml, after every green Gate run on main: is the set for the tip's key up (one request)? Then the tip's commit
-  status `stills` is success. Not up: success too, saying the world ships without stills (never a red main).
+  status `stills` is success. Not up: pending, and the bake jobs make it (never a red main: the status says why).
 - The deploy gate (merge-bot.mjs): a tip that has tools/gpu/bake-stills.js waits only while its `stills` status is
   failed or pending (bot-rules.mjs stillsReady). No status passes: stills.yml posts none once its commit is no longer
   main's tip, nor where main's gate was cancelled, and the build fetches its key's set or ships without. merge.yml
   ticks when stills.yml completes.
 - post-deploy.yml: at a live commit with the bake, one still of live's own set is fetched from derekzhou.com, 200 and
   its sha256; with no set, live must ship without stills cleanly (.github/ci/stills-live.mjs).
-The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23.
-CI no longer bakes, so a served change that makes a new key ships without stills: the first paint the words over the
-hour's still sky, then the world's first frame drawn whole as the cut, no fade and no still from another key
-(tools/checks/47-first-paint.sh proves it on every gate, on a phone and a laptop; post-deploy's stills-live.mjs checks
-live asks for no still and says so in build.txt). Live never waits for a bake. Later: a key of what the canvas reads
-(sound and the site's metadata are outside it; CSS, fonts and the words reach it), so a change it never sees keeps its
-set; and a measured SwiftShader bake on hosted runners.
+The bake (about 76 minutes for all 2,304 stills, seconds a key it cached) ran on the PC's RTX 4090 until 2026-11-23;
+from then until 2026-11-26 CI baked none, so every served change shipped without stills and a phone waited for the
+world's own first frame (measured: the still on screen by about 1.7 s on a slow phone network, the world's frame 11-15
+s on SwiftShader). Since 2026-11-26 stills.yml bakes on GitHub's hosted runners with SwiftShader, as T1 renders
+(bake-stills.js --soft): 20 jobs, two processes each, every 40th still of the whole list a process (--shard I/40), then
+the up job merges them (tools/stills-merge.mjs: the whole set or none) and puts it up. About 12-16 s a still, so 25-30
+minutes a new key. The looks against the 4090's last set (stills-9a78065e, commit adf73b15; 16 stills, every sky time
+and tier and both a phone's and a desktop's shape): mean 0.26-0.43/255, 99th percentile 3-4, 0.0-0.46% of pixels over
+8/255. While a key bakes its tip's `stills` status is pending, so live stays at the last tip with a set; a bake that
+does not finish posts failure, saying why. Without a set (a token gone, a failed bake) the build still ships without
+stills cleanly (tools/checks/47-first-paint.sh). Later: a key of what the canvas reads (sound and the site's metadata
+are outside it; CSS, fonts and the words reach it), so a change it never sees keeps its set.
 
 The owner's steps (once; until they are done the build ships without stills, as before):
 1. A token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.

@@ -182,7 +182,7 @@ test('stills: only main\'s tip is looked up, on a hosted runner, and the newest 
   const y = fs.readFileSync(path.join(ROOT, '.github/workflows/stills.yml'), 'utf8').replace(/\r\n/g, '\n');   // (a Windows checkout's CRLF: the patterns below match \n)
   assert.match(y, /cancel-in-progress: true\b/, 'a newer run cancels a stale one, on main too');
   assert.match(y, /group: stills-\$\{\{ github\.event\.workflow_run\.head_branch != 'main' && 'branches' \|\| \(github\.event\.workflow_run\.run_attempt == 1 && 'main' \|\| format\('main-\{0\}', github\.event\.workflow_run\.head_sha\)\) \}\}/, 'only a main gate\'s first run is in main\'s group: a branch\'s or a re-run\'s never cancels the tip\'s bake');
-  assert.match(y, /need:\n\s+if: >-\n\s+github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.head_branch == 'main'\n\s+&& github\.event\.workflow_run\.head_repository\.full_name == github\.repository\n/, 'only main\'s own tips: never a branch, never a fork');
+  assert.match(y, /need:\n\s+if: >-\n\s+\(github\.event\.workflow_run\.conclusion == 'success' && github\.event\.workflow_run\.head_branch == 'main'\n\s+&& github\.event\.workflow_run\.head_repository\.full_name == github\.repository\) \|\| github\.event_name == 'workflow_dispatch'\n/, 'only main\'s own tips: never a branch, never a fork');
   assert.match(y, /if \[ -n "\$tip" \] && \[ "\$tip" != "\$SHA" \]; then echo .*; exit 0; fi\n\s+k=\$\(node/, 'a run for a commit that is no longer main\'s tip bakes nothing (so a re-run of an old gate never takes the tip\'s bake\'s place)');
   assert.match(y, /need:\n(?:.*\n)*?\s+runs-on: ubuntu-latest\n/, 'the look-up runs on a hosted runner');
 });

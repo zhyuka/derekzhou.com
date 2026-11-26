@@ -1,7 +1,7 @@
 'use strict';
 // bake-stills.js (tools/gpu): the openings' stills, baked on the 4090 in ONE browser kept open.
 //   node tools/gpu/bake-stills.js --url http://127.0.0.1:PORT/ --twin DIR --out stills [--skies dawn,day,...] [--ks 0,1..]
-//        [--tiers hi,lo] [--shapes 393x861,...] [--png DIR] [--limit K] [--force]
+//        [--tiers hi,lo] [--shapes 393x861,...] [--png DIR] [--limit K] [--force] [--soft] [--shard I/N]
 // --url serves --twin, a SETTLED TWIN (tools/gpu/twin.js) of the commit's plain build. Each still is that twin's first
 // shown frame for one opening (the hour's sky, the opening's index k of N: hour.js turns the harness's entropy k into
 // opening k's seed), one window shape (hour.js's bands) and one memory tier, stepped as gstep.js steps (the clock faked
@@ -18,7 +18,10 @@
 // key is unchanged and whose file is there is not baked again (--force bakes all). N, the openings per sky, is hour.js's.
 // Prints the time per still (the browser's launch apart) and the bytes in all.
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), { spawn } = require('child_process');
-const PW = require('./pw.js');
+// (load-perf, 2026-11-26) --soft: on a hosted Linux runner (stills.yml), no GPU: SwiftShader as T1 renders, the gates'
+// own flags (.github/ci/harness.mjs SWIFTSHADER) and Playwright found as the gates find it; the 4090's pw.js otherwise
+const SOFT = process.argv.includes('--soft');
+const PW = SOFT ? null : require('./pw.js');
 const A = {};
 for (let i = 2; i < process.argv.length; i++) { const k = process.argv[i].replace(/^--/, ''), v = process.argv[i + 1]; if (v === undefined || v.startsWith('--')) A[k] = true; else { A[k] = v; i++; } }
 if (!A.url || !A.twin || !A.out) { console.error('usage: bake-stills.js --url URL --twin DIR --out DIR [--n 16] [--skies ..] [--tiers hi,lo] [--shapes ..]'); process.exit(2); }
@@ -52,12 +55,22 @@ function sha(f) { return crypto.createHash('sha256').update(fs.readFileSync(f)).
 const WK = worldKey(path.resolve(A.twin));
 const manPath = path.join(OUT, 'bake.json'), MAN = fs.existsSync(manPath) ? JSON.parse(fs.readFileSync(manPath, 'utf8')) : {};
 const jobs = [];
+let NIDX = -1;   // (each still's place in the whole list, cached or not: --shard splits by it)
 for (const sky of SKIES) for (const k of KS) for (const tier of TIERS) for (const shape of SHAPES) {
+  NIDX++;
   const name = `${sky}-${k}-${tier}-${shape}.avif`, W = win(shape, tier);
   const key = crypto.createHash('sha256').update(JSON.stringify([WK, sky, k, N, tier, shape, W, ENC, SETTLE, SKYH[sky]])).digest('hex');
   const had = MAN[name], hk = had && (typeof had === 'string' ? had : had.key);
   if (!A.force && hk === key && fs.existsSync(path.join(OUT, name))) { if (typeof had === 'string') MAN[name] = { key, sha: sha(path.join(OUT, name)) }; continue; }
-  jobs.push({ sky, k, tier, shape, name, key, W });
+  jobs.push({ sky, k, tier, shape, name, key, W, idx: NIDX });
+}
+// --shard I/N (stills.yml's matrix): every Nth still of the whole list from the I-th, so each shard bakes its share of
+// every sky, tier and shape (the stills cost about the same) and the shards' outputs never overlap
+if (A.shard) {
+  const m = /^(\d+)\/(\d+)$/.exec(String(A.shard));
+  if (!m || +m[1] >= +m[2]) { console.error('bake-stills: --shard I/N with 0 <= I < N'); process.exit(2); }
+  const I = +m[1], NS = +m[2], all = jobs.splice(0, jobs.length);
+  for (let i = 0; i < all.length; i++) if (all[i].idx % NS === I) jobs.push(all[i]);
 }
 const lim = A.limit ? +A.limit : jobs.length;
 jobs.splice(lim);
@@ -123,7 +136,7 @@ function encode(batch) {
 (async () => {
   if (!jobs.length) { const tmp = manPath + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(MAN, null, 1)); fs.renameSync(tmp, manPath); console.log('bake-stills: nothing to bake (every key unchanged)'); report(); return; }
   const t0 = Date.now();
-  const b = await PW.chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist'] });
+  const b = SOFT ? await (await import('../../.github/ci/harness.mjs')).launch() : await PW.chromium.launch({ args: ['--use-angle=d3d11', '--ignore-gpu-blocklist'] });
   const tL = Date.now(), ctxs = new Map(), times = [], encs = []; let batch = [];
   try {
     for (const j of jobs) {

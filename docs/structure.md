@@ -137,7 +137,8 @@ tools/ground-site.mjs        The page the recorded ground is read from, and the 
 tools/ground-fresh.mjs       Whether every recorded ground is today's world's, under SwiftShader (tools/checks/37-ground-fresh.sh)
 tools/stills.mjs             The openings' baked stills between the PC that bakes them and the Cloudflare build (docs/deploy.md)
 tools/stills-release.mjs     A bake's stills up as the release the Cloudflare build fetches (stills.yml)
-tools/stills-twin.mjs        The still's preload put back in the twin the PC bakes (stills.yml)
+tools/stills-twin.mjs        The still's preload put back in the twin the bake renders (stills.yml)
+tools/stills-merge.mjs       The bake's shards as one set, the whole set or none (stills.yml)
 tools/gpu/                   GPU checks run by hand on a real GPU (no CI job runs them): T2 (t2.js), T3 (t3.js), the ground's recorder
                              (record-ground.mjs), the stills' bake (bake-stills.js) and their helpers
 tools/night/                 The moon's face (moonmap.py): the near side's albedo map resampled to sky-body.glsl's 32 x 32

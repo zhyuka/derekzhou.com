@@ -6,9 +6,10 @@ name: Stills
 # gate's served/head, the plain build) is looked up, and the commit's status `stills` says whether it is up. The merge
 # bot's deploy gate moves live to a tip that has the bake only once that status is success (merge-bot.mjs,
 # bot-rules.mjs stillsReady). A failure here never turns main red: live waits, the status says why.
-# (2026-11-23, the owner: "None on my PC") the bake itself no longer runs in CI: it ran on the PC's RTX 4090, six jobs
-# a sky each, and no self-hosted runner takes jobs now. A tip whose key has no release ships without stills: its
-# status is success, saying so (the first paint without stills: tools/checks/47-first-paint.sh). On a claude/* branch: nothing (2026-11-14).
+# (2026-11-23, the owner: "None on my PC") the bake ran on the PC's RTX 4090 until then; from 2026-11-26 (load-perf, the
+# hub's top priority: every served change since had shipped without stills) it runs here on GitHub's hosted runners
+# with SwiftShader (the bake and up jobs below), and the tip's status is pending while it bakes: live waits for the set.
+# On a claude/* branch: nothing (2026-11-14).
 # The builds are the Gate run's gate-served artifact (read with actions: read), checked against their manifest and
 # pinned to the served_sha in that run's gate-verdict artifact: both are scoped to the Gate run, so no other run's code
 # can rewrite them. main's copy of this file and of tools/ runs, never a branch's (workflow_run).
@@ -16,6 +17,13 @@ on:
   workflow_run:
     workflows: [Gate]
     types: [completed]
+  # (load-perf, 2026-11-26) by hand: bake a main Gate run's served build with this branch's workflow and tools (to prove
+  # a change to the bake before it lands; the set and the status go to that run's commit, as after the run itself)
+  workflow_dispatch:
+    inputs:
+      gate_run: { description: "a Gate run's id on main (its gate-served and gate-verdict artifacts)", required: true }
+      gate_attempt: { description: "that run's attempt", required: false, default: '1' }
+      sha: { description: "that run's commit (main's tip)", required: true }
 
 permissions:
   contents: write   # (the release)
@@ -33,20 +41,23 @@ concurrency:
   cancel-in-progress: true   # (the newest tip's run wins, on main too: see the top)
 
 env:
-  SHA: ${{ github.event.workflow_run.head_sha }}
-  REF: ${{ github.event.workflow_run.head_sha }}   # (main's tip: only main's runs do anything)
+  SHA: ${{ github.event.workflow_run.head_sha || inputs.sha }}
+  REF: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}   # (main's tip: only main's runs do anything; by hand, the branch's tools)
+  GATE_RUN: ${{ github.event.workflow_run.id || inputs.gate_run }}
+  GATE_ATTEMPT: ${{ github.event.workflow_run.run_attempt || inputs.gate_attempt }}
 
 jobs:
   # Is there a bake, and is this world's set up already? (seconds, on Linux)
   need:
     if: >-
-      github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.head_repository.full_name == github.repository
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository) || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      bake: ${{ steps.need.outputs.bake }}   # (true: this world has no set: it ships without stills)
+      bake: ${{ steps.need.outputs.bake }}   # (true: this world has no set: the bake jobs make it)
       key: ${{ steps.need.outputs.key }}
+      served_sha: ${{ steps.pin.outputs.served_sha }}   # (the bake and up jobs read the builds pinned to it)
     steps:
       - uses: actions/checkout@v4
         with: { ref: '${{ env.REF }}', persist-credentials: false }
@@ -58,7 +69,7 @@ jobs:
           if [ -f tools/gpu/bake-stills.js ]; then echo "bake=true" >> "$GITHUB_OUTPUT"; else echo "no tools/gpu/bake-stills.js: nothing to bake, nothing waits"; fi
       - if: steps.has.outputs.bake == 'true'
         uses: actions/download-artifact@v4   # (the Gate run's verdict: its served_sha is the pin)
-        with: { name: gate-verdict, path: '${{ runner.temp }}/verdict', run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+        with: { name: gate-verdict, path: '${{ runner.temp }}/verdict', run-id: '${{ env.GATE_RUN }}', github-token: '${{ github.token }}' }
       - name: The pin (the Gate run's verdict's served_sha)
         id: pin
         if: steps.has.outputs.bake == 'true'
@@ -68,13 +79,13 @@ jobs:
           echo "served_sha=$s" >> "$GITHUB_OUTPUT"
       - if: steps.has.outputs.bake == 'true'
         uses: actions/download-artifact@v4   # (the Gate run's own artifact: actions: read)
-        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ github.event.workflow_run.id }}', github-token: '${{ github.token }}' }
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ env.GATE_RUN }}', github-token: '${{ github.token }}' }
       - name: The two builds (the Gate run's gate-served artifact, checked against its manifest, pinned)
         if: steps.has.outputs.bake == 'true'
         env:
           HANDOFF_SHA: ${{ steps.pin.outputs.served_sha }}
           HANDOFF_ROOT: ${{ runner.temp }}/handoff
-        run: node .github/ci/handoff.mjs get served served --run '${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}' --pinned
+        run: node .github/ci/handoff.mjs get served served --run "$GATE_RUN-$GATE_ATTEMPT" --pinned
       - name: Is its set up already?
         id: need
         if: steps.has.outputs.bake == 'true'
@@ -93,9 +104,102 @@ jobs:
           said=$(node tools/stills-release.mjs --site served/head --have --status "$SHA" || true)
           echo "$said"
           if grep -q ' is up$' <<<"$said" && grep -q 'status stills success' <<<"$said"; then echo "up already: nothing to bake"; exit 0; fi
-          # No set for this world (CI bakes no stills: no GPU since 2026-11-23): the tip ships without them, the first
-          # paint the words and then the world as a cut (tools/checks/47-first-paint.sh proves it on every gate), so
-          # the status is success, saying so: live never waits for a bake (the hub, for the owner, 2026-11-23).
+          # No set for this world: the bake jobs below make it (load-perf, 2026-11-26, the hub's top priority: since
+          # 2026-11-23 every served change shipped without stills and phones waited for the world's own first frame).
+          # The status is pending while they bake, so the deploy gate holds live at the last tip that has its set
+          # (bot-rules.mjs stillsReady); the up job makes it success once the set is up, or failure, saying why.
           echo "bake=true" >> "$GITHUB_OUTPUT"
-          curl -fsS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$SHA" -d "{\"state\":\"success\",\"context\":\"stills\",\"description\":\"no stills for this world: it ships without them (no bake in CI)\",\"target_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" >/dev/null
-          echo "no set for $k: status stills success (ships without stills)"
+          curl -fsS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$SHA" -d "{\"state\":\"pending\",\"context\":\"stills\",\"description\":\"baking this world's stills on hosted runners (SwiftShader)\",\"target_url\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" >/dev/null
+          echo "no set for $k: status stills pending, baking"
+
+  # The bake (load-perf, 2026-11-26): the whole set, 2,304 stills, on GitHub's hosted runners with SwiftShader, as T1
+  # renders (bake-stills.js --soft: the gates' own flags and Playwright). Measured on a 4-core box like ubuntu-latest:
+  # 12-16 s a still for one browser, 12.6 s with two at once, so each of the 20 jobs runs two, shards 2i and 2i+1 of
+  # 40 (every 40th still of the whole list: each shard gets a share of every sky, tier and shape): about 58 stills a
+  # process, 12-15 minutes a job. The looks: against the 4090's set stills-9a78065e (its commit adf73b15), 16 stills,
+  # mean 0.26-0.43/255, the 99th percentile 3-4, 0.0-0.46% of pixels over 8/255 (docs/deploy.md, "The stills").
+  bake:
+    needs: need
+    if: needs.need.outputs.bake == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    name: bake (${{ matrix.shard }}/20)
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ env.REF }}', persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: ./.github/actions/playwright
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Pillow (the AVIF encode, bake-stills.js's)
+        run: python -m pip install --quiet 'pillow==12.0.0'
+      - uses: actions/download-artifact@v4   # (the Gate run's own artifact: actions: read)
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ env.GATE_RUN }}', github-token: '${{ github.token }}' }
+      - name: The two builds (the Gate run's gate-served artifact, checked against its manifest, pinned)
+        env:
+          HANDOFF_SHA: ${{ needs.need.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
+        run: node .github/ci/handoff.mjs get served served --run "$GATE_RUN-$GATE_ATTEMPT" --pinned
+      - name: Bake this job's two shards
+        env:
+          I: ${{ matrix.shard }}
+        run: |
+          [ -d served/head-twin ] || { echo "::error::no settled twin of served/head (served.sh makes it with tools/gpu/twin.js)"; exit 1; }
+          # the still's preload back in the page the bake renders (the build takes it out of a build with no stills)
+          node tools/stills-twin.mjs site/index.html served/head-twin
+          node tools/gpu/cfserve.js served/head-twin 9690 > "$RUNNER_TEMP/cfserve.log" 2>&1 &
+          for t in $(seq 1 50); do curl -fsS -o /dev/null http://127.0.0.1:9690/ && break; sleep 0.2; done
+          out="$RUNNER_TEMP/stills"; mkdir -p "$out/a" "$out/b"
+          node tools/gpu/bake-stills.js --soft --shard $((2 * I))/40 --url http://127.0.0.1:9690/ --twin served/head-twin --out "$out/a" & a=$!
+          node tools/gpu/bake-stills.js --soft --shard $((2 * I + 1))/40 --url http://127.0.0.1:9690/ --twin served/head-twin --out "$out/b" & b=$!
+          wait $a; ra=$?; wait $b; rb=$?
+          [ $ra = 0 ] && [ $rb = 0 ] || { echo "::error::bake-stills exited $ra and $rb"; exit 1; }
+          node tools/stills-merge.mjs "$out/shard" "$out/a" "$out/b"
+      - uses: actions/upload-artifact@v4
+        with: { name: 'stills-${{ matrix.shard }}', path: '${{ runner.temp }}/stills/shard', retention-days: 1, if-no-files-found: error }
+
+  # Up: the 20 shards' stills as one set, the release, then the status (success once it is up; failure, saying why,
+  # when the bake did not finish: live keeps the last tip that has its set until a tip's bake does)
+  up:
+    needs: [need, bake]
+    if: always() && needs.need.outputs.bake == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ env.REF }}', persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - if: needs.bake.result == 'success'
+        uses: actions/download-artifact@v4
+        with: { pattern: 'stills-*', path: '${{ runner.temp }}/shards' }
+      - if: needs.bake.result == 'success'
+        uses: actions/download-artifact@v4   # (the Gate run's own artifact: the key is its served/head's)
+        with: { name: gate-served, path: '${{ runner.temp }}/handoff/gate', run-id: '${{ env.GATE_RUN }}', github-token: '${{ github.token }}' }
+      - name: Up
+        if: needs.bake.result == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ env.SHA }}
+          STILLS_DEPLOY_HOOK: ${{ secrets.STILLS_DEPLOY_HOOK }}
+          HANDOFF_SHA: ${{ needs.need.outputs.served_sha }}
+          HANDOFF_ROOT: ${{ runner.temp }}/handoff
+        run: |
+          node .github/ci/handoff.mjs get served served --run "$GATE_RUN-$GATE_ATTEMPT" --pinned
+          # the whole set or none: 6 skies x N openings (hour.js's) x 2 tiers x 12 shapes (bake-stills.js's)
+          n=$(grep -o 'var N = [0-9]*' served/head/hour.js | grep -o '[0-9]*$'); [ -n "$n" ] || { echo "::error::no var N in served/head/hour.js"; exit 1; }
+          node tools/stills-merge.mjs --want $((6 * n * 2 * 12)) "$RUNNER_TEMP/set" "$RUNNER_TEMP"/shards/stills-*
+          said=$(node tools/stills-release.mjs --site served/head --bake "$RUNNER_TEMP/set" --status "$SHA" || true)
+          echo "$said"
+          grep -q 'status stills success' <<<"$said" || { echo "::error::the set is not up"; exit 1; }
+      - name: The status, failed (the bake or the release did not finish)
+        if: failure() || needs.bake.result != 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node tools/stills-release.mjs --fail "$SHA" --why "the bake did not finish (bake ${{ needs.bake.result }}); live keeps its last tip with a set"
