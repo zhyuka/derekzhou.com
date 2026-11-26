@@ -95,9 +95,16 @@ async function main() {
   const dims = (u) => { const b = Buffer.from(u.split(',')[1], 'base64'); return b.readUInt32BE(16); };   // (a PNG's width: IHDR)
   const T0 = Date.now(), say = (m) => console.error(`shimmer: ${((Date.now() - T0) / 1000).toFixed(0)} s ${m}`);
   // one arm's pairs: [[a, b], ...] (data URLs)
-  const fly = async (url, seed, tag) => {
-    const arm = await openPage(browser, url, { vp: [SV[0], SV[1], 1], epoch: EPOCH, seeds: [seed] });
-    if ((await stepToShow(arm)) < 0) throw new Error(`shimmer: ${tag} never showed`);
+  // (the show's frame varies from boot to boot on a busy machine, 41 to 102 frames in one run: an arm that shows on
+  // another frame than base's is booted again at once, up to 8 times, not found out after its whole flight)
+  const fly = async (url, seed, tag, want) => {
+    let arm;
+    for (let tries = 0; ; tries++) {
+      arm = await openPage(browser, url, { vp: [SV[0], SV[1], 1], epoch: EPOCH, seeds: [seed] });
+      if ((await stepToShow(arm)) < 0) throw new Error(`shimmer: ${tag} never showed`);
+      if (want === undefined || arm.shownAt === want || tries >= 8) break;
+      say(`${tag} showed at frame ${arm.shownAt}, base at ${want}: booted again`); await arm.ctx.close();
+    }
     if (arm.frames > START) throw new Error(`shimmer: ${tag} showed at frame ${arm.frames}, after --start ${START}`);
     await step(arm, START - arm.frames);   // (both arms from the same page frame, not from their own shows: a boot that shows later is the same flight, later)
     const out = [];
@@ -114,7 +121,7 @@ async function main() {
   try {
     const page = await (await browser.newContext()).newPage();
     for (const seed of seeds) {
-      const fb = await fly(sb.url, seed, `base seed ${seed}`), fh = await fly(sh.url, seed, `head seed ${seed}`), fn = sn ? await fly(sn.url, seed, `null seed ${seed}`) : null, fe = se ? await fly(se.url, seed, `edge null seed ${seed}`) : null;
+      const fb = await fly(sb.url, seed, `base seed ${seed}`), fh = await fly(sh.url, seed, `head seed ${seed}`, fb.shownAt), fn = sn ? await fly(sn.url, seed, `null seed ${seed}`, fb.shownAt) : null, fe = se ? await fly(se.url, seed, `edge null seed ${seed}`, fb.shownAt) : null;
       if (fn && fn.shownAt !== fb.shownAt) throw new Error(`shimmer: seed ${seed}: base showed at frame ${fb.shownAt}, null at ${fn.shownAt} (run alone, nothing else on the CPU)`);
       if (fe && fe.shownAt !== fb.shownAt) throw new Error(`shimmer: seed ${seed}: base showed at frame ${fb.shownAt}, edge null at ${fe.shownAt} (run alone, nothing else on the CPU)`);
       if (fb.shownAt !== fh.shownAt) throw new Error(`shimmer: seed ${seed}: base showed at frame ${fb.shownAt}, head at ${fh.shownAt}: the camera's flight starts at the show, so the arms would not see the same place (run alone, nothing else on the CPU)`);
