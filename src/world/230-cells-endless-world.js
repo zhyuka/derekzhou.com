@@ -44,7 +44,7 @@
       // creatures: { kind: 'bird' | 'ray', n, x, z, y or dy over the ground (or ref: an item, over its seat), orbit,
       //   wheel, size, flap, spread, drift [x, z], lit, shade }
       flock: function (f) { C.flocks.push(f); if ((FKIND[f.kind] || 1) !== 1 || WORLD_FLYERS) LATEK.creature = 1; return f; },   // (a flock the creatures' draw takes: drawCreatures passes over the birds (kind 1) while WORLD_FLYERS is off)
-      // a point of interest (the ink birds' places, HOST.pois): { x, z, y or dy (or ref), kind, pass (m beside it) }; nothing
+      // a point of interest: { x, z, y or dy (or ref), kind, pass (m beside it) }; nothing
       //   reads a point's interest, via, alt or approach
       poi: function (p) { C.pois.push(p); return p; },
       // an instance of one of the realm's sets (def.sets[set]: one mesh built once a visit), as many as the cell likes:

@@ -96,7 +96,6 @@ test('drift: the readers take an air cell\'s offset (physics: clouds/drift G1)',
     ['the bodies\' distance fade', /var pc = o\.w \? cloudPos\(o, cloudT\(\), VDF\) : o\.c/],
     ['the cores in the depth', /gl\.uniform3f\(P\.u\.uOccOff, oo\[0\], oo\[2\], oo\[1\]\)/],
     ['the birds\' cloud chords', /o2 = cellOff\(C2, cloudT\(\), CBO\)/],
-    ['the birds\' places', /var po = p\.cell \? cellOff\(p\.cell, cloudT\(\), CBP\) : CBZ/],
     ['the boot\'s need', /pc = o\.c0 \? cloudPos\(o, SIM\.t, BOOTP\) : o\.c/],
   ]) assert.match(WORLD, re, `${what} read an air cell where it was laid out`);
   // (no reader takes c0 but cloudPos and the resolve that sets it)

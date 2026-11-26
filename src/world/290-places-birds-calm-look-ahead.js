@@ -2,13 +2,7 @@
   /* (Fix 2 of round E1, design-v5 Revision 3 #1 and 13.4: the tour is retired) Round 3b's autopilot flew on, left
      alone, toward the places the cells hold, with a weave, a turn from rising ground and a way round what stood ahead.
      All of it is gone (apChoose, apPath, apAim, apDone, apAlt, the clear way's search, autopilot, WEAVE, calmCap,
-     calmSlew, avoid, avoidS): nothing turns the view but the visitor's drag and the phone's motion. The places
-     themselves stay (the dev hook lists them) */
-  function apPois(V) {
-    var out = [], L = V.cellList; if (!L) return out;
-    for (var i = 0; i < L.length; i++) { var C = L[i]; if (C.st >= 2) for (var k = 0; k < C.pois.length; k++) out.push(C.pois[k]); }
-    return out;
-  }
+     calmSlew, avoid, avoidS): nothing turns the view but the visitor's drag and the phone's motion */
   /* the camera's look at the ground ahead (the realm's pitchFollow of its slope over V.def.look m). S.pfT: the look
      now; S.pf: as followed */
   var CALM_PITCH = 1.6, PF_EASE = 1.5, PF_K = 0.3;

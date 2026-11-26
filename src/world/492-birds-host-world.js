@@ -61,36 +61,6 @@
       y *= E ? E.exposure : 1;
       return 1 - smooth(0.04, 0.12, y);
     },
-    /* (birds3d) the cells' places within r of the camera (towers, isles, islands, canyons and the rest), for the staging:
-       { kind, x, y, z, pass, r (its body's radius, m), base, top (m) } */
-    pois: function (r, out) {
-      out.length = 0; var V = SIM.V; if (!V) return out;
-      var L = apPois(V), i, p, dx, dz;
-      for (i = 0; i < L.length; i++) {
-        // (physics: clouds/drift) an air cell's place stands where the air has carried it (matched to its body in the
-        // cell's own frame below, then carried); vx, vz: its drift (m/s), for whoever keeps a place a while
-        p = L[i];
-        var po = p.cell ? cellOff(p.cell, cloudT(), CBP) : CBZ, pw = p.cell && p.cell.air ? airW(V) : CBZ;
-        dx = p.x + po[0] - CS.x; dz = p.z + po[1] - CS.z; if (dx * dx + dz * dz > r * r) continue;
-        var o = { kind: p.kind, x: p.x, y: p.y, z: p.z, pass: p.pass || 0, r: 0, base: p.y, top: p.y, id: p.id, vx: pw[0], vz: pw[1] };
-        if (p.kind === 'tower' && p.cell) {
-          var cl = p.cell.clouds, j, best = null; for (j = 0; cl && j < cl.length; j++) if (cl[j].kind === 'cumulus' && Math.abs(cl[j].x - p.x) < 1 && Math.abs(cl[j].z - p.z) < 1) best = cl[j];
-          if (best) { o.r = best.w / 2; o.base = best.base !== undefined ? best.base : best.y; o.top = o.base + best.h; o.w = best.w; o.h = best.h; } else { o.r = Math.max(60, (o.pass - 80) / 1.1); o.base = 0; o.top = 2.8 * o.r; }
-          /* (the body as it stands: its lobes, lifted whole over the flight band where they would cut it) */
-          var C2 = p.cell, sb = C2.softB, sf = C2.soft, lo = 1e9, hi = -1e9, rr = 0, nb = 0, q2, k2;
-          if (sb && sf) for (k2 = 0; k2 < sb.length; k2++) {
-            if (Math.abs(sb[k2][0] - p.x) > 0.75 * (o.w || 2 * o.r) || Math.abs(sb[k2][2] - p.z) > 0.75 * (o.w || 2 * o.r)) continue;
-            for (q2 = sb[k2][4]; q2 < sb[k2][5]; q2 += 4) { lo = Math.min(lo, sf[q2 + 1] - sf[q2 + 3]); hi = Math.max(hi, sf[q2 + 1] + sf[q2 + 3]); rr = Math.max(rr, Math.hypot(sf[q2] - p.x, sf[q2 + 2] - p.z) + sf[q2 + 3]); nb++; }
-          }
-          if (nb) { o.base = lo; o.top = hi; o.r = rr; o.lobes = nb; }
-        } else if (p.kind === 'island') o.r = Math.max(20, o.pass - 70);
-        else if (p.kind === 'isle') o.r = Math.max(60, o.pass - 190);
-        else o.r = Math.max(20, o.pass * 0.5);
-        o.x += po[0]; o.z += po[1]; o.y += po[2]; o.base += po[2]; o.top += po[2];
-        out.push(o);
-      }
-      return out;
-    },
     /* randomness: a stream from the visit's weather (the journey's seed and a salt): never any other */
     rng: function (salt) { return splitmix32(subseed(AFTER ? SEEDR : J.seed, salt)); },   // (after the cut: the visit's own read)
     reduced: function () { return reduced() && !STILLMODE; },
