@@ -1,4 +1,5 @@
-# A probe, never merged: 38-sound's first note on CI's own runners, main's page.mjs against #541's (2026-11-26).
+# A probe, never merged: 38-sound's first note against the runner's pace (page.mjs's calibration), and the fill before
+# #532 (42 steps) on the same runner (2026-11-26).
 name: Sound probe
 on:
   push:
@@ -9,8 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        v: [main, fix]
-        r: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        r: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,14 +21,14 @@ jobs:
           npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/w7" playwright-core@1.49.1 >/dev/null
           node "$RUNNER_TEMP/w7/node_modules/playwright-core/cli.js" install --only-shell chromium
       - run: node tools/build.mjs --plain build/site
-      - name: 38-sound's command, three times
+      - name: 38-sound's command, then the fill before #532
         env:
           PW_CORE: ${{ runner.temp }}/w7/node_modules/playwright-core
         run: |
-          set +e; P=tools/sound/page.mjs; [ "${{ matrix.v }}" = main ] && P=tools/sound/page-main.mjs
-          for k in 1 2 3; do node $P build/site --world --net 10,70 --first 1200 > o$k.txt 2>&1; echo "PROBE v=${{ matrix.v }} r=${{ matrix.r }}.$k exit=$? $(grep -oE 'the first note begins [0-9-]+ ms' o$k.txt) $(grep -oE '::error::.*' o$k.txt | tr '\n' ' ')"; done
-      - name: 49-sound-cpu's command (#541's cpu.mjs)
-        if: matrix.v == 'fix'
-        env:
-          PW_CORE: ${{ runner.temp }}/w7/node_modules/playwright-core
-        run: node tools/sound/cpu.mjs build/site --check > c.txt 2>&1; echo "PROBECPU r=${{ matrix.r }} exit=$? $(grep -oE "the score's ticks [0-9.]+ ms a second|::error::.*" c.txt | tr '\n' ' ')"
+          set +e
+          node tools/sound/page.mjs build/site --world --net 10,70 --first 1200 > a.txt 2>&1
+          echo "PROBE r=${{ matrix.r }} v=head $(grep -oE 'the first note begins [0-9-]+ ms' a.txt) $(grep -oE 'pace [0-9.]+ ms' a.txt)"
+          cp build/site/score.js s.bak; sed -i 's/+40960)/+12288)/; s/+524288)/+49152)/' build/site/score.js; grep -c '+12288)' build/site/score.js; grep -c '+49152)' build/site/score.js
+          node tools/sound/page.mjs build/site --world --net 10,70 --first 1200 > b.txt 2>&1
+          echo "PROBE r=${{ matrix.r }} v=pre532 $(grep -oE 'the first note begins [0-9-]+ ms' b.txt) $(grep -oE 'pace [0-9.]+ ms' b.txt)"
+          cp s.bak build/site/score.js
