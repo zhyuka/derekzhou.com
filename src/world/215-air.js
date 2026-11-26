@@ -16,8 +16,9 @@
      (subseed(V.seed, 61)): the speed distribution of a two-dimensional normal wind vector of mean 5 m/s (a site's winds over a year) mapped by its CDF into
      3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays under about 8.8 m/s, under every bird kind's own
      airspeed, so no bird flying upwind goes backward over the ground; truncated, not clamped, so nothing piles at the
-     ends). Its direction is any of 360 deg and is not the maps' (mc.wind, about -57 to +126 deg): the dunes record the place's
-     prevailing wind; the visit's wind is today's (the hub's ruling, 2026-11-26). The sand's own threshold (about 6.2 m/s at 10 m, the crests' speed-up 1.5x) is the sand's to apply. Its speed and its turn by height
+     ends). Its direction is any of 360 deg and is not the maps' (mc.wind, about -57 to +126 deg): the drawn dunes lie
+     across this one (realm-dunes.js's A.draw), as the veils run along it, so the sand always blows square to the crests;
+     the maps' field steers only the plan's coarse dunes and the director's cover, never drawn as crests. The sand's own threshold (about 6.2 m/s at 10 m, the crests' speed-up 1.5x) is the sand's to apply. Its speed and its turn by height
      (airProfile): under 100 m the log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0), z0 = 0.003 m (shares of U10:
      0.1 m 0.43, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22, 100 m 1.28), the direction the surface's; from 100 to
      300 m it eases to the low cloud layer's 1.3 U10, veered 20 deg (the wind turning toward the geostrophic with

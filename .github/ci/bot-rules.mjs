@@ -67,7 +67,7 @@ export function newestArtifact(list) {
 export function stillsReady(hasBake, statuses) {
   if (!hasBake) return { ok: true, why: 'no bake at this tip' };
   const s = (statuses || []).find((x) => x && x.context === 'stills');
-  if (!s) return { ok: true, why: 'no stills status: CI bakes none; the build fetches its key\'s set or ships without' };   // (stills.yml posts none once its commit is not main's tip, nor where main's gate was cancelled: most tips, since #362)
+  if (!s) return { ok: false, why: 'no stills status yet (stills.yml posts one for main\'s tip: pending while it bakes, then success)' };   // (the hub, 2026-11-26: since #543 CI bakes every tip's set, so no status is no set yet, never a pass; stills.yml posts none for a commit no longer main's tip, so live moves once the walk reaches the tip)
   return s.state === 'success' ? { ok: true, why: s.description || 'stills up' } : { ok: false, why: `its stills status is ${s.state}${s.description ? ' (' + s.description + ')' : ''}` };
 }
 
