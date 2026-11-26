@@ -60,7 +60,7 @@ export const KEY_INPUTS = [
   'src/world/120-cloud-bodies.js', 'src/world/210-cloud-volumes-baking.js', 'src/world/212-cloud-drift.js', 'src/world/231-cells-resolve.js',
   'src/world/215-air.js', 'src/world/270-flight.js', 'src/world/320-camera-drawn-between-last-two.js', 'src/world/386-frustum-resize.js',
   'src/world/390-words.js', 'site/index.html', 'site/style.css',
-  'src/world/217-destination.js', 'src/world/230-cells-endless-world.js', ['src/world/233-cells-places-glows-beams.js', ['function resolvePlaces(']],
+  'src/world/217-destination.js', 'src/world/230-cells-endless-world.js', ['src/world/233-cells-places.js', ['function resolvePlaces(']],
   'src/realm-kit.js',
 ];
 // a piece of a file's code (minified: no comments, one spelling): from its head to the end of its declaration (a var's

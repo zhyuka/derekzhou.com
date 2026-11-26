@@ -21,7 +21,7 @@
     // it was
     GROUND.rd = 0; GROUND.ok = false; GROUND.got = 0; probeDropAll(); rbForget(); FREEQ.length = 0; poolReset();   // (while still marked lost: the jobs' buffers and fences died with the old context, never deleted in the new one)
     LOST = false; FBOK = {}; initExtensions();   // (E1.1: a new context asks each kind of target's completeness again, once)
-    PROGS.length = 0; TG = null; PROBE_T = null; HPT = null; PROBE_PTS = []; GCT = null; GCCT = null; CSH.T = null; CSH.ok = false; BAKEFB = null; QUAD = null; OUT.w = 0; GCK[0] = -1; ENG.st = 0; READY = false;
+    PROGS.length = 0; TG = null; PROBE_T = null; HPT = null; PROBE_PTS = []; GCT = null; GCCT = null; CSH.T = null; CSH.ok = false; BAKEFB = null; OUT.w = 0; GCK[0] = -1; ENG.st = 0; READY = false;
     NOISE.done = false; NOISE.t = null; WARM.list = null; WARM.done = false; WARMX.length = 0; BOOT.thumb = null;   // (fast500 step 1b: the noise's baked bytes kept; B uploads them again)
     ORDER.forEach(function (id) { REALMS[id].P = null; });
     J.visits.forEach(forgetVisit); kwForget();

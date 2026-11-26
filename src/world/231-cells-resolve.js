@@ -3,7 +3,6 @@
     var V = C.V, h = C.job.h, i, j;
     for (i = 0; i < C.alist.length; i++) {
       var o = C.alist[i], b = o.ai, m = h[b];
-      if (o.isG) { o.gh = h.subarray(b, b + o.n); continue; }
       if (o.lq) { var mx = m; for (j = 1; j < 9; j++) mx = Math.max(mx, h[b + j]); o.landMax = mx; o.ground = h[b]; continue; }
       if (o.an === 9 && o.foot > 0) for (j = 1; j < 9; j++) m = Math.min(m, h[b + j]);
       o.seat = m + (o.dy || 0); o.ground = h[b];
@@ -60,6 +59,7 @@
         // (its centre in the air frame and the low layer's wind: cloudPos carries it, physics: clouds/drift; a world cell's
         // clouds, a canyon's walls, are the cloud sea's: held)
         if (PF.bodies[bi].flow && !C.air) vb.out.flow = PF.bodies[bi].flow;   // (a held body's billows flow through it at the wind at its height: 410)
+        if (C.air && SHOWNT >= 0 && clb && !PF.bodies[bi].flow && clb.seed !== undefined && virgaOn(clb.seed, virgaSky(V))) vb.out.vg = virgaBody(V, clb.seed, ycB - (clb.landMax !== undefined ? clb.landMax : clb.ground !== undefined ? clb.ground : clb.base), cxB - vb.out.c[0], ycB - vb.out.c[1], czB - vb.out.c[2], vb.out.h);   // (physics: clouds/virga: a free cloud's, born after the world shows (beyond sight, at the stream's front: none at the cut, so the stills hold none), chosen as it is laid out, on the sky of the layout, by its own seed)
         vb.out.c0 = Float64Array.from(vb.out.c); if (C.air) { vb.out.c0[0] -= C.dL[0]; vb.out.c0[2] -= C.dL[1]; vb.out.w = airW(V); } else vb.out.w = null;
         var cores = vb.out.cores;
         for (j = 0; j < cores.length; j += 4) C.obst.push({ c: 0, x: cores[j], y: cores[j + 1], z: cores[j + 2], r: cores[j + 3], cloud: true });
@@ -74,8 +74,8 @@
     // creatures and points of interest at their heights
     for (i = 0; i < C.flocks.length; i++) { var f = C.flocks[i]; f.at = [f.x, yOf(f), f.z]; f.set = flockOf(f); }
     for (i = 0; i < C.pois.length; i++) { var p = C.pois[i]; p.y = yOf(p); p.cell = C; p.id = C.key * 64 + i; }
-    // the placements of the realm's sets (their seats, obstacles), the glow sprites and the beams, packed for the GPU
-    resolvePlaces(C, yOf); resolveGlows(C); resolveBeams(C);
+    // the placements of the realm's sets (their seats, obstacles), packed for the GPU
+    resolvePlaces(C, yOf);
     // the cell's bound (for the frustum): its items' and clouds' extents
     var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
     function grow(x, y, z, r) { lo[0] = Math.min(lo[0], x - r); lo[1] = Math.min(lo[1], y - r); lo[2] = Math.min(lo[2], z - r); hi[0] = Math.max(hi[0], x + r); hi[1] = Math.max(hi[1], y + r); hi[2] = Math.max(hi[2], z + r); }
@@ -83,8 +83,6 @@
     if (C.lift) cellLift(C, SIM.t);   // (the lift's samples about now made here, in the resolve's slice, not at a draw)
     for (i = 0; i < C.vols.length; i++) { var o2 = C.vols[i].out; grow(o2.c[0], o2.c[1], o2.c[2], o2.r); }
     for (i = 0; i < C.places.length; i++) { var pl = C.places[i]; grow(pl.x, pl.seat + pl.cy, pl.z, pl.r); }
-    if (C.glowB) { var gb = C.glowB.bound; grow(gb[0], gb[1], gb[2], gb[3]); }
-    if (C.beamB) { var bb = C.beamB.bound; grow(bb[0], bb[1], bb[2], bb[3]); }
     if (lo[0] < 1e8) { C.bound[0] = (lo[0] + hi[0]) / 2; C.bound[1] = (lo[1] + hi[1]) / 2; C.bound[2] = (lo[2] + hi[2]) / 2; C.bound[3] = Math.sqrt((hi[0] - lo[0]) * (hi[0] - lo[0]) + (hi[1] - lo[1]) * (hi[1] - lo[1]) + (hi[2] - lo[2]) * (hi[2] - lo[2])) / 2; }
     else C.bound[3] = 0;
     C.st = 2;

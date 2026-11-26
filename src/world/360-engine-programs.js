@@ -70,8 +70,6 @@
       F.forEach(function (f) { f.forEach(function (i) { out.push(V3[i][0] / l, V3[i][1] / l, V3[i][2] / l); }); });
       ICO = { vb: gl.createBuffer() }; gl.bindBuffer(gl.ARRAY_BUFFER, ICO.vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(out), gl.STATIC_DRAW);
     })();
-    // the glows' quad, made here (not with the first glows, in flight)
-    QUAD = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, QUAD); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     VTMP = { t: gl.createTexture(), f: gl.createFramebuffer() };
     gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_3D, VTMP.t);
     gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RG16F : gl.RG8, 64, 64, 64, 0, gl.RG, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);   // the distance with its billows, and without (half floats where VOL16, as the volumes)
@@ -79,12 +77,13 @@
     var list = [
       ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN],
       ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
-      ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
-      ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC],
+      ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['virga', VS_VIRGA, FS_VIRGA], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
+      ['cacc', VS_FULL, FS_CACC],
       ['cshadow', HEAD + VS_CSH, HEAD + FS_CSH]   // (physics: light/cloud-shadow: 262)
     ];
     EP = {};
     noiseInit();   // (the noise's texture, and its bake's stream: no program)
+    list = list.filter(function (l) { return l[0] !== 'virga' || lateCan(); });   // (physics: clouds/virga: only where programs can be made after the show (073: late); where every program is made before it (no parallel compile: WebKit, the byte-target phones) none, so the boot never pays for it, and its bodies carry none: 410)
     list.forEach(function (l) { EP[l[0]] = compile(l[1], l[2], 'engine.' + l[0]); });
     BAKEFB = gl.createFramebuffer();
     makeCreatures();

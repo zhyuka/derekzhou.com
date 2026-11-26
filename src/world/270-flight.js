@@ -158,7 +158,6 @@
     var bk = damped2(CS.roll, CS.rollV, CS.bank, BANK_T, dt); CS.roll = bk[0]; CS.rollV = bk[1];
     directorStep(t);   // (world6: the director composes what lies ahead, out of sight; it never steers)
     climateLight(V);   // (world6 fix: every step: a pure function of where the camera is; at every sixth it stepped at 10 Hz)
-    if (SIM.steps % 6 === 0) beamWake(V, u);
     if (DEVMODE && DEVTRACE) devTrace(V);
     return true;
   }

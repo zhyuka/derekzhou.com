@@ -11,30 +11,6 @@
     gl.depthFunc(gl.LESS);
     prof('depth');
   }
-  /* (drawFrame's pass) the beams, cut by the half depth */
-  function drawBeams(V, u) {
-    var CL = DFR.CL, W = DFR.W, H = DFR.H, w2 = DFR.w2, h2 = DFR.h2;
-    // -------- beams: their light gathered along each pixel's ray, cut by the linear depth just made, added to the scene
-    if (CL) {
-      var BP = EP.beam, bOn = false;
-      for (var bi = 0; bi < CL.length; bi++) {
-        var Cb = CL[bi], Bb = Cb.beamB; if (!Bb || !Bb.vao || Cb.st < 3) continue;
-        if (Bb.dirty) { gl.bindBuffer(gl.ARRAY_BUFFER, Bb.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, Bb.data); Bb.dirty = false; }
-        if (!inView(Bb.bound[0], Bb.bound[1], Bb.bound[2], Bb.bound[3])) continue;
-        if (!lateReady(BP)) { lateMissIf(BP, true); continue; }   // (a late program; drawn once finished)
-        if (!bOn) {
-          useTarget(TG.scene, W, H); RES[0] = W; RES[1] = H;
-          gl.useProgram(BP.p); setFrameUniforms(BP, V); gl.uniform2f(BP.u.uLinS, w2 - 1, h2 - 1);
-          gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_2D, TG.lind.t); gl.activeTexture(gl.TEXTURE0);
-          gl.disable(gl.DEPTH_TEST); gl.depthMask(false); gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ZERO, gl.ONE);
-          gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); bOn = true;
-        }
-        gl.bindVertexArray(Bb.vao); dc(gl.TRIANGLES, 36, Bb.n);
-      }
-      if (bOn) { gl.disable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.disable(gl.BLEND); gl.depthMask(true); RES[0] = w2; RES[1] = h2; }
-      prof('beams');
-    }
-  }
   /* (drawFrame's pass) the clouds at half resolution, and their accumulation over frames */
   var OCCO = new Float64Array(3);   // (an air cell's carry, for its cores)
   function drawClouds(V, u) {

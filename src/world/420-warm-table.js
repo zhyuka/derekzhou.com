@@ -44,8 +44,6 @@
     var M = { vb: mb };
     A.mesh = gl.createVertexArray(); gl.bindVertexArray(A.mesh); meshAttribs(M);
     A.lmi = gl.createVertexArray(); gl.bindVertexArray(A.lmi); meshAttribs(M); instAttribs(ib, 5, 5, 0);
-    A.glow = gl.createVertexArray(); gl.bindVertexArray(A.glow); gl.bindBuffer(gl.ARRAY_BUFFER, QUAD); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); instAttribs(ib, 1, 4, 0);
-    A.beam = gl.createVertexArray(); gl.bindVertexArray(A.beam); gl.bindBuffer(gl.ARRAY_BUFFER, VCUBE.vb); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0); instAttribs(ib, 1, 5, 0);
     A.occ = gl.createVertexArray(); gl.bindVertexArray(A.occ); gl.bindBuffer(gl.ARRAY_BUFFER, ICO.vb); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, ib); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0); gl.vertexAttribDivisor(1, 1);
     gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -79,13 +77,12 @@
     E('creature', EP.creature, CREATURE.vao, T, 3, 1, false, SC, null, LE, true);
     E('creature.add', EP.creature, CREATURE.vao, T, 3, 1, false, SC, BL_ADD, LE, false);
     E('sky', EP.sky, FULLVAO, T, 3, 0, false, SC, null, LE, false);
-    E('glow', EP.glow, A.glow, TS, 4, 1, false, SC, BL_ADD, LE, false);
     if (SC === 'sceneMS') L.push({ n: 'resolve', rs: true, p: EP.blit });   // (the samples' resolve: ANGLE-Metal makes a pipeline of its own for it)
     E('depth', EP.depth, FULLVAO, T, 3, 0, false, 'lind', null, gl.ALWAYS, true);
-    E('beam', EP.beam, A.beam, T, 3, 1, false, 'scene', BL_ADD, 0, false, gl.FRONT);
     E('occ', EP.occ, A.occ, T, 3, 1, false, 'cloud', null, gl.LESS, true, 0, 0);
     E('occ.nodepth', EP.occ, A.occ, T, 3, 1, false, 'cloud', null, 0, true, 0, 0);   // (after a frame's beams, which leave the depth test off)
     E('vbody', EP.vbody, VCUBE.vao, T, 3, 0, false, 'cloud', BL_PRE, LE, false, gl.BACK);
+    E('virga', EP.virga, STRIP.vaoR, TS, 4, 0, false, 'cloud', BL_PRE, 0, false);   // (physics: clouds/virga: in its body's turn, 410)
     E('vbody.inside', EP.vbody, VCUBE.vao, T, 3, 0, false, 'cloud', BL_PRE, 0, false, gl.FRONT);
     E('cacc', EP.cacc, FULLVAO, T, 3, 0, false, 'hdr');
     E('cshadow', EP.cshadow, CSH.vao, TS, 4, 1, false, 'rgba8', BL_MUL, 0, false);   // (the clouds' shadows: 262)   // (E1 Fix 3: the clouds' accumulation)

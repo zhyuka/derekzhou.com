@@ -69,6 +69,30 @@ the band's foot: 7.7 m/s (28 km/h), a U10 of about 6.0, about a quarter
 of visits. test/unit/lenticular.mjs pins it: no lens under a crest wind
 of 7.7 m/s, lenses on every sweep step past it.
 
+Virga (physics: clouds/virga, 213-virga.js; delight-weather 6): rain that
+falls from a cloud's base and evaporates before it reaches the ground,
+common over deserts, where the air under the base is dry
+(https://glossary.ametsoc.org/wiki/Virga). A strand hangs from the flat
+base of 30% of the afterglow's new free clouds and 20% of the blue hour's,
+chosen by the body's own seed on the sky of its layout. It falls 1-4 m/s,
+slowing to 0.4 of that as its drops shrink, and ends 40-70% of the way
+down. It rides with its body, and each step leans by atan(dU / w), dU the
+air there against the body's own wind (cloudWind, 800 m). The profile has
+no shear from 300 to 1500 m, so a strand hangs straight down to 300 m and
+only its part below bends, trailing back by at most 1.95 m/s. It is drawn
+as one soft strip in its body's own far-to-near turn of the cloud pass
+(engine.virga, 410), cut where the land stands nearer, lit as the cloud's
+underside, thinning across and along it by place alone, never under three
+pixels a side. Its program is late (the hub's ruling, 2026-11-25): made
+after the world shows, and only where a program can be late (lateCan), so
+no boot pays for it. So only a free cloud laid out after the show carries
+one (none at the cut; the stills hold none), and a body in sight before
+the program is made drops its strand, so none pops in. Where no program
+can be late (no parallel compile: WebKit, the byte-target phones) it is
+never made, and those visits have no virga: an absence, never a pop.
+test/unit/virga.mjs pins the share by sky, the lowest point, the tilt at
+every step (within 5 deg of atan(dU / w)) and those rules.
+
 No cloud falls over the coast (the hub's ruling, 2026-11-25: delight-weather
 3's cascades dropped, measured). A cascade is the cloud sea pouring over a
 rim whose top it stands above. On the world's coast the land's rim stands
@@ -854,7 +878,10 @@ physics: clouds/drift). It holds:
 - The readers still apart (AIR_APART, each with the change that joins
   it): the maps' own wind field (mc.wind: the
   director's cover and the plan's dunes read it, so it is not dead: taking
-  it out moves the plan's anchors), the wing gusts' private 25 s timers
+  it out moves the plan's anchors; it turns over about -57 to +126 deg,
+  while the visit's wind, AIR_DIR, is any of 360 deg, so they lie a median
+  of about 90 deg apart: the dunes record the place's prevailing wind; the
+  visit's wind is today's, the hub's ruling, 2026-11-26), the wing gusts' private 25 s timers
   (birdwing.js) and the score's own gusts (score.js: its breeze by sky
   is the air's table, its gusts its own until it reads the field). The
   test fails when a listed reader is joined and still listed.

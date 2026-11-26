@@ -5,7 +5,7 @@
      camera and there is none within LATE_R of the landing (so the flight cannot reach any in LATE_T s). A late program
      is drawn only once finished, linked and warmed (lateReady); a draw needed before then is a miss (LATEP.miss, fail()) */
   var LATEP = { on: false, decided: false, sand: -1, R: 0, names: [], done: [], warmed: [], miss: 0, misses: [], birdWait: 0, birdsAt: -1, ready: -1 };
-  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper', 'engine.creature', 'engine.glow', 'engine.beam'];   // (world-perf lane: the creatures, the glow sprites and the beams too: measured, none drawn in the first 20 s of 24 visits, desktop and phone, any hour; each draw guarded below)   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
+  var LATE_T = 30, LATE_SAND = 0.0005, LATE_ALWAYS = ['birds:ink', 'birds:paper', 'engine.creature', 'engine.virga'];   // (world-perf lane: the creatures too: measured, none drawn in the first 20 s of 24 visits, desktop and phone, any hour; each draw guarded below)   // (lane D: the paper birds' program is 'birds:paper' since the birds' rename; as 'birds:ink' only, it held the show ~160 ms)
   function lateCan() { return !!EXT.parAll && !STILLMODE && !FRUN && !BOOT.restore; }
   function lateSand(V) {   // the most sand anywhere within LATE_R of the landing (sandAt's weight, on kwAt)
     var R = 1.5 * Math.max(V.speed, 32) * LATE_T + 2 * KSTEP, st = KSTEP / 2, m = 0, x, z, k, s;
@@ -43,10 +43,10 @@
     if (LATEP.miss === 1) fail('late program ' + P.name + ' needed before it was ready (step 9)');
     return false;
   }
-  /* (world-perf lane) the late programs nothing draws before the world shows (LATE_HELD: the creatures, the glow sprites,
-     the beams) are not even issued before it, where programs are late at all (lateCan): their compiles leave the boot's
+  /* (world-perf lane) the late programs nothing draws before the world shows (LATE_HELD: the creatures,
+     the virga) are not even issued before it, where programs are late at all (lateCan): their compiles leave the boot's
      threads to the show's own; issued in the first frame after it (lateStep), finished and warmed as the late ones are */
-  var LATE_HELD = ['engine.creature', 'engine.glow', 'engine.beam'];
+  var LATE_HELD = ['engine.creature', 'engine.virga'];   // (virga: none before the show, 231)
   function lateSeen(n) { return LATE_HELD.indexOf(n) >= 0 && !!LATEK[n.slice(7)]; }   // (one of its kind laid out: it is needed)
   function lateHeld(P) { return !shown && LATE_HELD.indexOf(P.name) >= 0 && lateCan() && !lateSeen(P.name); }
   function lateSeenReady() {   // the show's own: every held program one of whose kind is laid out, finished and warmed

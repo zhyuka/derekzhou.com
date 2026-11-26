@@ -12,15 +12,11 @@
      pixels (a far one keeps its light spread over the floor: never a fat bright dot), steady, twinkling, pulsing,
      blinking, drifting about its place or bobbing; depth-tested against the scene and taken by the air, added to the
      HDR scene (so the bloom takes the bright ones) */
-  var VS_GLOW = HEAD + FRAME_U + LIB + `@glsl vs-glow`;
-  var FS_GLOW = HEAD + `@glsl fs-glow`;
   /* beams: soft shafts of light as geometry (a lantern's beam to a crystal, light falling through a hole in a canopy,
      a tower's beam into the fog): a cone from A (radius rA) to B (rB), its light gathered along each pixel's ray inside
      it (eight samples: a bell-curve falloff across it, a white core, its far end faded, dust drifting along it, a shimmer), cut
      by the scene's depth (the half-resolution linear depth: no beam through a wall), taken by the air, added to the
      HDR scene; a beam drawn on from A (woken when the camera first comes near: a light event) */
-  var VS_BEAM = HEAD + FRAME_U + `@glsl vs-beam`;
-  var FS_BEAM = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-beam`;
   /* cloud volumes: each body's lobes baked once into a small 3D texture (density; the optical depth toward the sun
      and toward the sky), then ray-marched inside the body's box at half resolution */
   var FS_VDENS = HEAD + FRAME_U + LIB + `@glsl fs-vdens`;
@@ -30,6 +26,8 @@
   var FS_OCC = HEAD + `@glsl fs-occ`;
   var VS_VBODY = HEAD + FRAME_U + `@glsl vs-vbody`;
   var FS_VBODY = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-vbody`;
+  var VS_VIRGA = HEAD + FRAME_U + `@glsl vs-virga`;   // (physics: clouds/virga: a strand under its body, 213)
+  var FS_VIRGA = HEAD + FRAME_U + LIB + LIB_LIND + `@glsl fs-virga`;
   /* bloom (dual filter): the first pass composes scene and cloud and keeps what is bright; every tap clamped to the
      part of its target this frame drew (a lower rung draws only part of each) */
   var FS_PRE = HEAD + FRAME_U + `@glsl fs-pre`;
