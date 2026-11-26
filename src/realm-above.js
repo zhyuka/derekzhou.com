@@ -70,7 +70,7 @@
      passed at 24 s, kept low (under the name's band); its own stream, so the cell's draws are as before */
   function aFirst(C) {
     var P = W.first && W.first(C.V); if (!P || P.kind !== 'isle' || !C.inside(P.x, P.z)) return;
-    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(150, 190), Q.r(30, 40), 1.0);
+    var Q = K.RNG(P.s); aIsland(C, Q, P.x, P.z, Q.r(60, 90), Q.r(30, 40), 1.0);   // (y over the sea: the eye flies low over it, so 60-90 m sits by the horizon; 150-190 stood in the frame's top corner on k0)
   }
   function aIsland(C, R, x, z, y, r, stupaP) {
     var depth = r * R.r(1.0, 1.6);
