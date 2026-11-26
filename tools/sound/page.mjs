@@ -105,6 +105,20 @@ if (!before.shown) bad.push('the sound icon is not shown');
 if (before.pressed !== 'false') bad.push(`the icon is ${before.pressed} before the press (want false)`);
 if (!before.score) bad.push('the score (score.js) has not registered');
 
+// The runner's pace, in the same page just before the press (--first with --world): the fill's own work timed, 9 steps of
+// its inner loop (a 524,288-sample noise fill, as the air's) each behind a timer, as the score's are behind the world's
+// frames; the middle of 3. The first-note bar is MS scaled by it against the reference runner's (the hub, 2026-11-26: a
+// wall-clock bar cannot be both a guard and stable; on fresh runners 5% passed 1,200 ms on speed alone). CAL_REF, from
+// 50 fresh runners (probe claude/sound-ci-probe, 2026-11-26): the head's first note 744-1403 ms at a pace of 259-2658
+// ms, all under the scaled bar for any reference up to 417 ms; the fill before #532 (42 steps) 1199-38207 ms, all over
+// it for any reference above 300; 354, their middle (18% from each).
+const CAL_REF = 354;
+const cal = FIRST && WORLD ? await page.evaluate(async () => {
+  const one = () => new Promise((ok) => { const x = new Float32Array(524288), t0 = performance.now(); let k = 0, s = 1;
+    (function step() { for (let j = 0; j < x.length; j++) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; x[j] = (s >>> 0) / 2147483648 - 1; } if (++k < 9) setTimeout(step, 0); else ok(performance.now() - t0); })(); });
+  const r = []; for (let i = 0; i < 3; i++) r.push(await one()); return r.sort((a, b) => a - b)[1];
+}) : 0;
+const factor = cal ? cal / CAL_REF : 1, BAR = Math.round(FIRST * factor);
 await page.click('#sound');
 const pressed = Date.now();   // (throttled, the checks below wait for the first sound, up to a minute: a slow sheet's)
 await page.waitForFunction(() => window.__T['heard-40'], null, { timeout: NET.length ? 60000 : 4000 }).catch(() => {});
@@ -120,7 +134,7 @@ else if (!audio[0].startsWith(origin + '/assets/sound/')) bad.push(`the sheet ca
 if (on.pressed !== 'true' || on.state !== 'running') bad.push(`after the press the icon is ${on.pressed} and the context ${on.state} (want true, running)`);
 if (!(on.notes >= 3 && on.looping >= 3)) bad.push(`the score started ${on.notes} notes, ${on.looping} sustained and playing (want 3 or more: the first voices and the deep end)`);
 if (!(later.notes > on.notes)) bad.push(`no new notes between 4 s and 16 s after the press (${on.notes}, then ${later.notes}): the score stopped planning`);
-if (FIRST && !(when.note <= FIRST)) bad.push(`the first note began ${when.note ?? 'never'}${when.note ? ' ms' : ''} after the press (want ${FIRST} ms or sooner${NET.length === 2 ? ` at ${NET[0]} Mbps, ${NET[1]} ms` : ''})`);
+if (FIRST && !(when.note <= BAR)) bad.push(`the first note began ${when.note ?? 'never'}${when.note ? ' ms' : ''} after the press (want ${BAR} ms or sooner: ${FIRST} x ${factor.toFixed(2)}, this runner's pace${NET.length === 2 ? ` at ${NET[0]} Mbps, ${NET[1]} ms` : ''})`);
 if (errs.length) bad.push('the page threw: ' + errs.join(' | '));
 
 await page.click('#sound');
@@ -135,7 +149,7 @@ if (again.pressed !== 'true' || again.state !== 'running') bad.push(`after the t
 if (again.made !== 1 || audio.length !== 1) bad.push(`the third press made or fetched more (contexts ${again.made}, requests ${audio.length}; want 1 each)`);
 
 console.log(`before: ${before.made} contexts, ${before.shown ? 'shown' : 'hidden'}, pressed ${before.pressed}, score ${before.score ? 'registered' : 'missing'}`);
-console.log(`first sound${NET.length === 2 ? ` (${NET[0]} Mbps, ${NET[1]} ms${WORLD ? ', the world running' : ''})` : WORLD ? ' (the world running)' : ''}: the first note begins ${when.note ?? '-'} ms after the press; heard over -60 dBFS at ${when['heard-60'] ?? '-'} ms, over -40 at ${when['heard-40'] ?? '-'} ms`);
+console.log(`first sound${NET.length === 2 ? ` (${NET[0]} Mbps, ${NET[1]} ms${WORLD ? ', the world running' : ''})` : WORLD ? ' (the world running)' : ''}: the first note begins ${when.note ?? '-'} ms after the press; heard over -60 dBFS at ${when['heard-60'] ?? '-'} ms, over -40 at ${when['heard-40'] ?? '-'} ms${cal ? `; the runner's pace ${cal.toFixed(1)} ms (reference ${CAL_REF}, factor ${factor.toFixed(2)}, the bar ${BAR} ms)` : ''}`);
 console.log(`press: session ${on.session}, ${on.made} context ${on.state} at ${on.rate} Hz, ${audio.length} request(s); ${on.notes} notes started by 4 s (${on.looping} sustained), ${later.notes} by 16 s; second: ${off.pressed}, ${off.state}; third: ${again.pressed}, ${again.state}`);
 await browser.close(); srv.close();
 for (const b of bad) console.log('::error::' + b);

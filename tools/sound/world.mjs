@@ -6,6 +6,7 @@
 // filling each frame, and its pixels, a phone GPU's work, cost SwiftShader little; at 390x844 they took the machine).
 export const WORLD_ARGS = ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 export const WORLD_VIEWPORT = { width: 180, height: 390 };
+export const WORLD_SHOWN = () => { const c = document.querySelector('canvas.sky'); return !!c && c.classList.contains('on'); };   // (its first frame shown: the gate harness's shown(); the press waits for it, page.waitForFunction(WORLD_SHOWN))
 export function worldStub() {   // (an init script: page.addInitScript(worldStub))
   if (!window.WebGL2RenderingContext) return;
   const G = WebGL2RenderingContext.prototype, gp = G.getParameter, gpp = G.getProgramParameter, gsp = G.getShaderParameter, gsy = G.getSyncParameter, ge = G.getExtension, gse = G.getSupportedExtensions;

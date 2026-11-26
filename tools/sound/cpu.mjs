@@ -7,7 +7,9 @@
 // phone GPU's name, as the gate's harness does (.github/ci/harness.mjs), so the world runs rather than keeping its
 // still sky as it does on a CPU renderer; a 180x390 window (a phone's shape, few pixels: the world's own work on the
 // main thread runs as on a phone, its governor filling the frame, and its pixels, a phone GPU's work, cost SwiftShader
-// little: at 390x844 they took the machine and the world ran at 7-9 frames a second). The sound icon is pressed; 4 s on, the main thread is
+// little: at 390x844 they took the machine and the world ran at 7-9 frames a second). Once the world shows (its first frame,
+// as a visitor sees it: a press in its start-up waits behind it, and the score began as late as the runner was slow, on
+// a slow one after the window had closed: 2026-11-26) the sound icon is pressed; 4 s after the score's first tick, the main thread is
 // slowed N times (CDP's CPU throttle; 4 unless set: Lighthouse's mobile), and for S seconds (10) it measures:
 //   - the audio thread: its own CPU time in each 128-frame render quantum (the trace's
 //     RealtimeAudioDestinationHandler::Render, thread time, so the software renderer's threads crowding it are not
@@ -24,7 +26,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
-import { WORLD_ARGS, WORLD_VIEWPORT, worldStub } from './world.mjs';
+import { WORLD_ARGS, WORLD_VIEWPORT, WORLD_SHOWN, worldStub } from './world.mjs';
 
 const SITE = process.argv[2], arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? +process.argv[i + 1] : d; };
 const CPU = arg('cpu', 4), SEC = arg('seconds', 10), CHECK = process.argv.includes('--check');
@@ -56,10 +58,13 @@ await page.addInitScript(() => {
     S = v; } });
 });
 
+const bad = [];
 await page.goto('http://127.0.0.1:' + srv.address().port + '/');
 await page.waitForTimeout(2000);
+if (!(await page.waitForFunction(WORLD_SHOWN, null, { timeout: 60000 }).then(() => 1, () => 0))) bad.push('the world did not show in a minute');   // (pressed once the world shows, as a visitor sees it: a press in its start-up waits behind it)
 await page.click('#sound');
-await page.waitForTimeout(4000);
+if (!(await page.waitForFunction(() => window.__ticks.length > 0, null, { timeout: 30000 }).then(() => 1, () => 0))) bad.push('the score did not begin within 30 s of the press');
+await page.waitForTimeout(4000);   // (4 s on from its first tick, as the level rises, and then measured: the window never opens before it plays)
 const cdp = await page.context().newCDPSession(page), ev = [];
 if (CPU > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
 cdp.on('Tracing.dataCollected', (d) => { for (const e of d.value) ev.push(e); });
@@ -80,7 +85,7 @@ const sum = (a) => a.reduce((x, y) => x + y, 0), mean = (a) => (a.length ? sum(a
 const perS = sum(ticks) / span, load = sum(q) / 1000 / qspan, rate = q.length * 128 / qspan;
 console.log(`the audio thread: ${(100 * load).toFixed(1)}% of real time, ${mean(q).toFixed(3)} ms of CPU a render quantum (p99 ${pc(q, 0.99).toFixed(2)}, longest ${pc(q, 1).toFixed(2)}; ${q.length} quanta, about ${(rate / 1000).toFixed(0)} kHz: ${(128 / rate * 1000).toFixed(2)} ms each); an output callback ${mean(cb).toFixed(2)} ms (p99 ${pc(cb, 0.99).toFixed(2)}, ${cb.length})`);
 console.log(`the main thread, ${CPU}x slower: the score's ticks ${perS.toFixed(2)} ms a second (${(perS / 10).toFixed(2)}% of it; ${ticks.length} ticks, ${mean(ticks).toFixed(2)} ms each, the longest ${pc(ticks, 1).toFixed(1)}); the thread ${(100 * sum(main) / 1000 / span).toFixed(0)}% busy, the world at ${((t1[1] - t0[1]) / span).toFixed(1)} frames a second; ${span.toFixed(1)} s`);
-const bad = [];
+
 if (!t1[2]) bad.push('the score never registered');
 if (!q.length) bad.push('no audio render quantum was traced (the score did not play)');
 else if (!(load <= BAR.audio)) bad.push(`the audio thread takes ${(100 * load).toFixed(1)}% of real time (want ${100 * BAR.audio}% or less)`);

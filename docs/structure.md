@@ -114,6 +114,8 @@ tools/dup-names.mjs          No name declared twice in one scope of a served scr
 tools/where.mjs              Where a world name is declared, and which sections read, assign and write it
 tools/visit/ruler.mjs        The visit ruler: a 2-hour visit for each opening, headless, in about a minute (places passed,
                              the first near pass, flocks, crossings, the sky's changes, look runs, the longest gap)
+tools/visit/first-landmark.mjs The numbers for one landmark per land within the first minute's line: where it goes, its
+                             bearing against the words' boxes, the land under it, today's first near pass, by hand
 tools/visit/headings.mjs     Each land's first heading chosen by the ruler and the frames' look: no more than look-rule.mjs's
                              share of the words under cloud, a near pass by 40 s, the fewest gaps and the clearest feature
 tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShader (T1's harness), clouds on and off: the cloud
