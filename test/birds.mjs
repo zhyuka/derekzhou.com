@@ -586,3 +586,33 @@ test('one wind: a bird is carried by the air at its own height and place, gusts 
   assert.ok(near.length > 200 && far.length > 60, "too few pairs");
   assert.ok(med(near) < 0.3 * med(far), `near birds' winds differ by ${med(near).toFixed(3)} m/s, far ones' ${med(far).toFixed(3)}: a per-bird jitter, not one gust field`);
 });
+/* (comfort moves) once a landing a rouse, soon after it; once it has stayed 20 s one wing-stretch, never sooner
+   nor by a roosting crow; never two of either in one stay. Natural scenes in four skies */
+test('comfort moves: one rouse each landing, one stretch on a long stay, never more', () => {
+  let stays = 0, rouses = 0, noRouse = 0, twice = 0, shortW = 0, roostW = 0, longStays = 0, stretched = 0;
+  for (const sky of ['afterglow', 'bluehour', 'day', 'moonlit']) for (let seed = 1; seed <= 3; seed++) {
+    const sc = SCENES.natural(seed, '960x600'); sc.opt.sky = sky; sc.opt.dt = 1 / 20; sc.opt.draw = null;
+    const sim = makeSim(sc.opt); sc.setup(sim); const per = new Map();
+    for (let k = 0; k < 6 * 60 * 20; k++) {
+      sim.step(); const t = sim.t;
+      for (const b of sim.B.BIRDS) {
+        const P = b.P; if (b.st !== 'perch' || !P) continue;
+        let c = per.get(P); if (!c) per.set(P, c = { r: new Set(), w: new Set(), tt: P.tt, last: t, early: 0, roost: b.kind === 'crow' && P.kind !== 'pointer' && ['moon', 'glow', 'blue'].includes(sim.B.skyCls()) });
+        c.last = t; const A = P.act; if (A) (A.k === 'rouse' ? c.r : c.w).add(A); if (A && A.k === 'wings' && A.t0 - P.tt < 20) c.early++;
+        if (A && A.k === 'wings' && sim.B.skyCls && b.kind === 'crow' && ['moon', 'glow', 'blue'].includes(sim.B.skyCls()) && P.kind !== 'pointer') roostW++;
+      }
+    }
+    for (const c of per.values()) {
+      if (c.last - c.tt < 3.2) continue;   // (a stay over 3.2 s: its rouse is due 1-2.5 s down and lasts 0.8 s, unless a startle or a leave came first)
+      stays++; rouses += c.r.size; if (!c.r.size) noRouse++; if (c.r.size > 1 || c.w.size > 1) twice++;
+      if (c.early) shortW++; if (c.last - c.tt > 21.6 && !c.roost) longStays++; if (c.w.size) stretched++;
+    }
+  }
+  console.log(`# comfort moves: ${stays} stays over 3.2 s, ${rouses} rouses (${noRouse} stays without one); ${stretched} stretches over ${longStays} stays over 21.6 s (roosts aside); twice in a stay ${twice}, a stretch before 20 s down ${shortW}, by a roosting crow ${roostW}`);
+  assert.ok(stays > 40, 'too few stays');
+  assert.ok(noRouse <= 0.1 * stays, `${noRouse} of ${stays} stays had no rouse`);
+  assert.equal(twice, 0, 'a stay with two rouses or two stretches');
+  assert.equal(shortW, 0, 'a stretch before 20 s on the perch');
+  assert.ok(stretched >= 0.95 * longStays, `only ${stretched} stretches over ${longStays} stays over 21.6 s (roosts aside)`);
+  assert.equal(roostW, 0, 'a roosting crow stretched');
+});

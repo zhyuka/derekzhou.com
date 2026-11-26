@@ -63,7 +63,8 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              far out: an fp32 replay), test/unit/dest-isle.mjs (the destination over the cloud sea: the great isle at its point, its keel over the cruise, its size and reach), test/unit/destination.mjs (the horizon's destination: on the landing's
                              heading 7-8 km out, the seed's alone, laid out by its own scale), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
-                             the sand's angle of repose: physics: sand/S1), test/unit/coast.mjs (the land's
+                             the sand's angle of repose: physics: sand/S1), test/unit/duneshadow.mjs (the dunes' cast shadows at the low key:
+                             castShade run from the shader's text, continuous across a brink), test/unit/coast.mjs (the land's
                              varyings centroid: the coast's gap never read off its triangle), test/unit/drag.mjs (the drag), test/unit/motion.mjs (the phone's motion steering: held still, turned),
                              test/unit/drift.mjs (the clouds' drift with the wind: cloudPos, the air cells, their readers),
                              test/unit/lenticular.mjs (terrain-held clouds: the lenses over the far ridges),
@@ -146,7 +147,9 @@ tools/physics/               The dunes' slope census against the sand's physics 
                              mist-sim.mjs, the mist pools against the 16 openings' land (delight-weather 1), by hand;
                              fog-sim.mjs, the fog pools against the land at AIR's fog sites (234), by hand;
                              ripple-size.py, the sand's ripples at true and drawn size from the flight, filtered at the
-                             pixel and not (point-sampled, today's fade, fwidth), by hand
+                             pixel and not (point-sampled, today's fade, fwidth), by hand;
+                             dune-shadow.mjs, the brinks' cast shadows over the lee at the realm's low key (the sand
+                             row "cast shadows"), by hand
 tools/precision/             far-origin.mjs: how fp32 degrades far out (a 2-hour visit is 86 km): each world-anchored value
                              the GPU reads, in metres and laptop pixels, by hand (docs/world.md, ## THE LARGE WORLD)
 tools/android/               The Android lab: the boot timed on real phones in Firebase Test Lab, by hand (its README.md)

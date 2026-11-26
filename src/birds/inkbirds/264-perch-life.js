@@ -53,6 +53,13 @@
     b.p[0] = P.at[0]; b.p[1] = P.at[1]; b.p[2] = P.at[2]; b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2];
     /* its turns: by steps, never a rotation in place; now and then a hop round */
     if (P.yawTo !== P.yaw && t - P.yawT >= P.yawD) P.yaw = P.yawTo;
+    /* (comfort moves, the hub's pick: idle motion for a perched guest) a rouse once soon after it lands, and once it has
+       stayed 20 s one wing-stretch: both of perch A's chevron, slow (230: the rouse at 1.5 Hz, drawn under 4 Hz), its feet on the ink:
+       https://doi.org/10.1111/j.1749-6632.1988.tb38594.x */
+    if (!P.act && !P.walk && t - P.yawT >= P.yawD) {
+      if (P.rz && t >= P.rz) { P.act = { k: 'rouse', t0: t, T: 0.8 }; P.rz = 0; }
+      else if (!P.sw && !roost && t - P.tt > 20) { P.act = { k: 'wings', t0: t, T: pick(r, [1.2, 1.6]) }; P.sw = 1; }
+    }
     if (t >= P.nextAct && !P.act && !P.walk) {
       var want = wantYaw(b), u = r(), off = angDiff(want * DEG, P.yaw * DEG) / DEG;
       /* a hop-turn: round to face the other way (to its wanted side when it faces from it, else now and then of its own);
@@ -62,7 +69,6 @@
       else if (Math.abs(off) > 30) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (off > 0 ? 1 : -1) * pick(r, [15, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.7) { P.yaw0 = P.yaw; P.yawTo = profile(P.yaw + (r() < 0.5 ? -1 : 1) * pick(r, [10, 30]), P.yaw); P.yawT = t; P.yawD = pick(r, [0.12, 0.2]); P.hopTurn = false; }
       else if (u < 0.82 && P.kind === 'name' && !roost) { P.walk = newWalk(P, r() < 0.5 ? -1 : 1, 1 + Math.floor(r() * 3), 0.08 * perchSpan(b, P.k), t); }
-      else if (u < 0.94 && t - (P.lastComfort || -1e9) > 12) { P.act = { k: r() < 0.5 ? 'wings' : 'rouse', t0: t, T: pick(r, [0.9, 1.6]) }; P.lastComfort = t; }
       P.nextAct = t + pick(r, roost ? [12, 30] : [4, 12]);
     }
     if (P.act && t - P.act.t0 > P.act.T) P.act = null;
@@ -95,7 +101,7 @@
       if (P.rT === P.yawT) P.rest = P.rA + (P.rB - P.rA) * ease(tu);
       P.yaw = P.yaw0 + (P.yawTo - P.yaw0) * ease(tu); P.yawD = 0;
     }
-    P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
+    P.act = null; P.leaving = { t0: t, why: why, J: J, tc: why === 'startle' ? pick(b.r, [0.05, 0.12]) : pick(b.r, [0.12, 0.3]), hop0: h0 };   // (a hop in the air at the leave eased down over the crouch, never dropped: the hub's review 3)
   }
   function leavingStep(b, dt, C) {
     var P = b.P, L = P.leaving, u = t - L.t0;

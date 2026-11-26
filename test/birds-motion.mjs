@@ -6,7 +6,7 @@
 //   node --test test/birds-motion.mjs        CI (tools/checks/35-birds.sh: a process a test); BIRDS_N=8 for more seeds
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeSim } from '../tools/birds/sim.mjs';
+import { makeSim, SIZES } from '../tools/birds/sim.mjs';
 import { SCENES } from './birds-scenes.mjs';
 
 const NV = 46, SEEDS = +(process.env.BIRDS_N || 4), RATE = { gull: 1.95, crow: 2.45, swallow: 4.8, finch: 3 };
@@ -632,4 +632,35 @@ test('144 Hz: a bird riding a moving pointer moves smoothly with it (posed at th
   console.log(`# pointer rides at ${V} px/s, ${hz} Hz: ${rides} rides, ${frames} frames; the worst body step ${worst.toFixed(2)} of its bound (${at})`);
   assert.ok(rides >= 10 && frames > 1000, `too few rides (${rides}) or frames (${frames})`);
   assert.ok(worst <= 1, `a bird on the moving pointer jumped ${worst.toFixed(2)}x its bound (${at})`);
+});
+
+/* (comfort moves, the hub's pick) a rouse on the name is slow and small: drawn at 4 Hz or under (a real one shakes at
+   10+ Hz, which at a few px reads as glitter) and its points within a stroke of the name's ink (24 of its 314 units)
+   of where they stood as it began. Every rouse in the perch scenes, both windows, at 60 Hz */
+test('a rouse on the name is slow and small (at most 4 Hz, within a stroke of where it stood)', () => {
+  const sh = (f, i) => [f.D[2 * i] - f.hb[0], f.D[2 * i + 1] - f.hb[1]], hz = 60;
+  let n = 0, worstA = { r: 0 }, worstF = { f: 0 };
+  for (const size of ['960x600', '390x844']) {
+    const bx = SIZES[size].boxes, stroke = 24 / 314 * (bx[3] - bx[1]);
+    for (let seed = 1; seed <= Math.max(SEEDS, 6); seed++) {
+      const sc = SCENES.perch(seed, size); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
+      const sim = makeSim(sc.opt); sc.setup(sim); const tr = new Map();
+      for (let k = 0; k < 30 * hz; k++) {
+        sim.frame(1 / hz); if (!sim.B) continue; const DF = sim.B.DF();
+        for (const b of sim.B.BIRDS) { const s = b.s; if (!s || s.seenF !== DF || b.st !== 'perch') continue; let a = tr.get(b); if (!a) tr.set(b, a = []); a.push({ hb: [s.HB[0], s.HB[1]], D: Float64Array.from(s.D46), act: b.P.act }); }
+      }
+      for (const F of tr.values()) for (let j = 1; j < F.length; j++) {
+        const A0 = F[j].act; if (!A0 || A0.k !== 'rouse' || F[j - 1].act === A0) continue;
+        const base = F[j - 1], seq = []; for (let q = j; q < F.length && F[q].act === A0; q++) seq.push(F[q]); if (seq.length < 10) continue; n++;
+        let best = 0, bi = 0; for (let i = 0; i < NV; i++) for (const f of seq) { const d = Math.hypot(sh(f, i)[0] - sh(base, i)[0], sh(f, i)[1] - sh(base, i)[1]); if (d > best) { best = d; bi = i; } }
+        if (best / stroke > worstA.r) worstA = { r: best / stroke, at: `${size} seed ${seed}: ${best.toFixed(2)} px of a ${stroke.toFixed(2)} px stroke` };
+        const y = seq.map((f) => sh(f, bi)[1] - sh(base, bi)[1]); let rev = 0; for (let q = 2; q < y.length; q++) if ((y[q] - y[q - 1]) * (y[q - 1] - y[q - 2]) < 0) rev++;
+        const fq = rev / 2 / (seq.length / hz); if (fq > worstF.f) worstF = { f: fq, at: `${size} seed ${seed}` };
+      }
+    }
+  }
+  console.log(`# rouses: ${n}; the largest ${(100 * worstA.r).toFixed(0)} % of a stroke (${worstA.at}); the fastest drawn ${worstF.f.toFixed(2)} Hz (${worstF.at})`);
+  assert.ok(n >= 8, `too few rouses (${n})`);
+  assert.ok(worstA.r <= 1, `a rouse moved past a stroke: ${worstA.at}`);
+  assert.ok(worstF.f <= 4, `a rouse shook at ${worstF.f.toFixed(2)} Hz drawn (${worstF.at}): a flicker`);
 });
