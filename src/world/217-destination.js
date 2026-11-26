@@ -8,11 +8,14 @@
      8.2 km out at the nearest). FLIGHT's ruler reads destOf(): { x, z, d, bearing }. Its kind (destKind, agreed with
      CLOUDS): 'isle' where the cloud sea holds the point (the maps' wC over 0.5, read once: the boot's commit reaches
      it), the above kit's great isle once that kit has a dest hook; 'rock' (the dunes kit's) everywhere else */
-  var DEST_D = [7000, 8000], DEST = null;
+  /* DEST_S: m across the line, to its right (the hub's review of #539: on the phone the great isle's stupa stood
+     dead ahead, its tip a few px from the period after "Development."; the words are set flush left, so 2 deg to the
+     right, about 19 CSS px, clears every letter by 8 or more on every opening). bearing stays the line flown */
+  var DEST_D = [7000, 8000], DEST_S = -260, DEST = null;
   function destOf() {
     if (DEST && DEST.seed === J.seed) return DEST;
     var a = airHeading0(), d = RNG(subseed(J.seed, 91)).r(DEST_D[0], DEST_D[1]);
-    return (DEST = { x: Math.sin(a) * d, z: Math.cos(a) * d, d: d, bearing: a, seed: J.seed });
+    return (DEST = { x: Math.sin(a) * d + Math.cos(a) * DEST_S, z: Math.cos(a) * d - Math.sin(a) * DEST_S, d: d, bearing: a, seed: J.seed });
   }
   function destKind(D) { if (!D.kind) D.kind = kitAt(D.x, D.z).wC > 0.5 ? 'isle' : 'rock'; return D; }
   /* the first landmark (the hub's bar: a first near pass by 90 s on every land, the words clear and half the low sun's

@@ -11,17 +11,18 @@ const DEST = cut(WORLD, '  /* --------------------------------------------------
 const HEAD = cut(WORLD, '  function airHeading0() {', '\n', true);
 function page(seed) {
   const ctx = { Math, J: { seed }, DEG: Math.PI / 180, PI: Math.PI };
-  vm.runInNewContext(STREAMS + HEAD + DEST + '\n  this.destOf = destOf; this.airHeading0 = airHeading0; this.DEST_D = DEST_D;', ctx);
+  vm.runInNewContext(STREAMS + HEAD + DEST + '\n  this.destOf = destOf; this.airHeading0 = airHeading0; this.DEST_D = DEST_D; this.DEST_S = DEST_S;', ctx);
   return ctx;
 }
 
-test('destination: on the landing\'s heading, 7-8 km out, for every opening', () => {
+test('destination: down the landing\'s heading 7-8 km, nudged right of the line, for every opening', () => {
   for (let k = 0; k < 16; k++) {
     const seed = (11 + k * 0x9e3779b9) >>> 0, G = page(seed), D = G.destOf(), a = G.airHeading0();
     assert.ok(Math.abs(D.bearing - a) < 1e-12, `opening ${k}: the bearing ${D.bearing} is not the landing's heading ${a}`);
-    const d = Math.hypot(D.x, D.z), b = Math.atan2(D.x, D.z);
-    assert.ok(Math.abs(d - D.d) < 1e-6 && D.d >= 7000 && D.d <= 8000, `opening ${k}: ${d.toFixed(0)} m out (7-8 km)`);
-    assert.ok(Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a))) < 1e-9, `opening ${k}: it stands off the heading`);
+    // (d m down the line, DEST_S across it: to the right, the hub's review of #539, so the phone's flush-left words keep clear)
+    const along = D.x * Math.sin(a) + D.z * Math.cos(a), across = D.x * Math.cos(a) - D.z * Math.sin(a);
+    assert.ok(Math.abs(along - D.d) < 1e-6 && D.d >= 7000 && D.d <= 8000, `opening ${k}: ${along.toFixed(0)} m down the line (7-8 km)`);
+    assert.ok(Math.abs(across - G.DEST_S) < 1e-6 && G.DEST_S < 0 && G.DEST_S >= -300, `opening ${k}: ${across.toFixed(0)} m across the line (the right, a nudge: 0 to 300 m)`);
     assert.ok(D.d / 12 / 60 >= 8 && D.d / 12 / 60 <= 14, `opening ${k}: met in ${(D.d / 720).toFixed(1)} min at 12 m/s (8-14)`);
   }
 });
