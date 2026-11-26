@@ -115,11 +115,11 @@ test('a skein glides in turn after its leader, each bird as it reaches where its
 /* (physics: birds/leaving together) a take-off's strong beats hand over to the bird's own schedule with no half-beat:
    at the burst's end the schedule is skipped on (BW.skip) so its phase continues the burst's, within 0.02 cycle
    (before: a gap of up to half a cycle, median 0.33, eased over by a frozen pose) */
-/* (the sweep: 16 scenes, each bird made to leave 2-3.9 s after it lands, so the burst ends at many phases of the
+/* (the sweep: 18 scenes, each bird made to leave 2-4 s after it lands, so the burst ends at many phases of the
    schedule's bouts: one step to the schedule's phase left up to 0.028 cycle where its rate in the bout is not f) */
 test('a take-off\'s burst hands over to the schedule at its own phase (gap at most 0.02 cycle)', () => {
   const gaps = []; let at = '', worst = 0;
-  for (let seed = 1; seed <= 16; seed++) for (const delay of [2, 2.62, 3.24, 3.86]) {
+  for (let seed = 1; seed <= 18; seed++) for (const delay of [2, 2.29, 2.58, 4.03]) {
     const sc = SCENES.perch(seed, '960x600'); sc.opt.dt = 1 / 60; sc.opt.frames = true; sc.opt.draw = { data: null };
     const sim = makeSim(sc.opt); const [b] = sc.setup(sim); let perchT = -1, left = false, bu = null;
     for (let k = 0; k < 40 * 60; k++) {
