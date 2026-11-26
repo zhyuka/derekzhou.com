@@ -43,6 +43,10 @@ const MASK = 8, TOP = 0.3, SKY = 0.6, FLOOR = 0.2;   // (a cloud pixel: any chan
 const WORLD = fs.readFileSync(path.join(BUILD, 'world.js'), 'utf8');
 const TABLE = /\[(?:-?\d+|null)(?:,(?:-?\d+|null)){15}\]/.exec(WORLD);
 const VOLS = WORLD.match(/\b\w+\.vols\.push\(\w+\)/g);
+// the solids (the hub's ruling on #528, 20:58Z Nov 25: a floating island under the name reads as the name hanging from it):
+// the landmarks and the sets (the cells' list the scene draws them from) and the scatter, taken out to see what they cover
+const CELLS = /(\w+\('surfaces'\);var \w+=)\w+\.cellList;/, SCAT = /(\w+\('landmarks'\);var \w+=)\w+\.G\.scatter;/;
+if (!CELLS.test(WORLD) || !SCAT.test(WORLD)) throw new Error('looks: the scene\'s landmarks or scatter (their prof marks) not found in ' + BUILD + '/world.js');
 if (!TABLE || !VOLS || VOLS.length !== 1) throw new Error('looks: the heading table (airHeading0) or the one cloud-volume push not found in ' + BUILD + '/world.js');
 const T0 = JSON.parse(TABLE[0]);
 // --table: only the table's 16 headings (the build's own table) and each land's own (no sweep): 30 headings, six frames
@@ -56,14 +60,15 @@ if (CHECK && !process.argv.includes('--table')) throw new Error('looks: --check 
 
 // a copy of the build with its world script patched (the rest linked)
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'looks-'));
-function variant(k, deg, clouds) {
-  const dir = path.join(TMP, `k${k}-${deg}-${clouds ? 'on' : 'off'}`);
+function variant(k, deg, clouds, solids = true) {
+  const dir = path.join(TMP, `k${k}-${deg}-${clouds ? 'on' : 'off'}${solids ? '' : '-nosolid'}`);
   if (fs.existsSync(dir)) return dir;
   fs.mkdirSync(dir);
   for (const e of fs.readdirSync(BUILD)) if (e !== 'world.js') fs.symlinkSync(path.join(BUILD, e), path.join(dir, e));
   const T = T0.slice(); T[k] = deg;
   let w = WORLD.replace(TABLE[0], JSON.stringify(T));
   if (!clouds) w = w.replace(VOLS[0], '0');
+  if (!solids) w = w.replace(CELLS, '$1null;').replace(SCAT, '$1null;');
   fs.writeFileSync(path.join(dir, 'world.js'), w);
   return dir;
 }
@@ -109,6 +114,12 @@ function sunDisc(off, m, boxes) {
 }
 
 const lum = (p, i) => 0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2];
+// the name's box covered by a solid: the frame against itself with the solids taken out (the clouds kept)
+function nameSolid(on, bare) {
+  const { W } = on, [x0, y0, x1, y1] = on.boxes[0]; let c = 0, n = 0;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * W + x) * 4; n++; if (Math.max(Math.abs(on.px[i] - bare.px[i]), Math.abs(on.px[i + 1] - bare.px[i + 1]), Math.abs(on.px[i + 2] - bare.px[i + 2])) >= MASK) c++; }
+  return n ? c / n : 0;
+}
 function measureView(on, off, feature) {
   const { W, H: Hh } = on, m = new Uint8Array(W * Hh);
   for (let i = 0, j = 0; j < m.length; i += 4, j++) m[j] = Math.max(Math.abs(on.px[i] - off.px[i]), Math.abs(on.px[i + 1] - off.px[i + 1]), Math.abs(on.px[i + 2] - off.px[i + 2])) >= MASK ? 1 : 0;
@@ -127,15 +138,15 @@ const r3 = (x) => +x.toFixed(3);
 async function score(k, deg) {
   const views = [];
   for (const v of VIEWS) {
-    const on = await frame(variant(k, deg, true), v, k), off = await frame(variant(k, deg, false), v, k);
-    views.push({ view: v.name, ...measureView(on, off, v.feature), png: on.png });
+    const on = await frame(variant(k, deg, true), v, k), off = await frame(variant(k, deg, false), v, k), bare = await frame(variant(k, deg, true, false), v, k);
+    views.push({ view: v.name, ...measureView(on, off, v.feature), nameSolid: nameSolid(on, bare), png: on.png });
   }
   const g = views.filter((v) => v.feature === 'galaxy'), s = views.filter((v) => v.feature === 'sun');
   return {
-    k, deg, wordCloud: r3(Math.max(...views.map((v) => v.wordCloud))), nameCloud: r3(Math.max(...views.map((v) => v.nameCloud))), topCloud: r3(Math.max(...views.map((v) => v.topCloud))),
+    k, deg, wordCloud: r3(Math.max(...views.map((v) => v.wordCloud))), nameCloud: r3(Math.max(...views.map((v) => v.nameCloud))), nameSolid: r3(Math.max(...views.map((v) => v.nameSolid))), topCloud: r3(Math.max(...views.map((v) => v.topCloud))),
     galaxy: r3(Math.min(...g.map((v) => v.vis))), galaxyIn: r3(Math.min(...g.map((v) => v.in))), sun: r3(Math.min(...s.map((v) => v.vis))), sunIn: r3(Math.min(...s.map((v) => v.in))),
     discs: Object.fromEntries(views.filter((v) => v.feature === 'sun').map((v) => [v.view, v.disc])),
-    views: views.map((v) => ({ view: v.view, wordCloud: r3(v.wordCloud), nameCloud: r3(v.nameCloud), topCloud: r3(v.topCloud), vis: r3(v.vis), in: r3(v.in) })), pngs: Object.fromEntries(views.map((v) => [v.view, v.png])),
+    views: views.map((v) => ({ view: v.view, wordCloud: r3(v.wordCloud), nameCloud: r3(v.nameCloud), nameSolid: r3(v.nameSolid), topCloud: r3(v.topCloud), vis: r3(v.vis), in: r3(v.in) })), pngs: Object.fromEntries(views.map((v) => [v.view, v.png])),
   };
 }
 
@@ -145,7 +156,7 @@ const jobs = []; for (const [k, list] of Object.entries(CANDS)) for (const d of 
 const FROM = arg('--from', null), WORLD_KEY = await worldKey(), old = FROM ? (fs.existsSync(FROM) ? JSON.parse(fs.readFileSync(FROM, 'utf8')) : null) : !CHECK && fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
 const prev = old && old.world === WORLD_KEY ? old : { world: WORLD_KEY, lands: {} };   // (a record of another world is dropped whole)
 // each entry keeps the world it was measured on too: a line-by-line merge of two records can mix worlds under one key
-for (const land of Object.values(prev.lands)) for (const [h, l] of Object.entries(land)) if (l.world !== WORLD_KEY) delete land[h];
+for (const land of Object.values(prev.lands)) for (const [h, l] of Object.entries(land)) if (l.world !== WORLD_KEY || l.nameSolid === undefined) delete land[h];   // (an entry from before the solids were measured: again)
 if (FROM) { const had = jobs.length; for (let i = jobs.length - 1; i >= 0; i--) { const [k, d] = jobs[i]; if (((prev.lands[k] || {})[d === null ? 'own' : String(d)] || {}).world === WORLD_KEY) jobs.splice(i, 1); } console.log(`looks: ${had - jobs.length} of ${had} heading(s) from ${FROM} (measured on this world, ${WORLD_KEY}); ${jobs.length} to measure`); }
 const PNG = arg('--png', null); if (PNG) fs.mkdirSync(PNG, { recursive: true });
 let next = 0; const t0 = Date.now();
@@ -154,7 +165,7 @@ async function worker() {
     const [k, deg] = jobs[next++], r = await score(k, deg), key = deg === null ? 'own' : String(deg);
     if (PNG) for (const [v, u] of Object.entries(r.pngs)) fs.writeFileSync(path.join(PNG, `k${k}-${key}-${v}.png`), Buffer.from(u.split(',')[1], 'base64'));
     delete r.pngs; (prev.lands[k] = prev.lands[k] || {})[key] = { world: WORLD_KEY, ...r };
-    console.log(`k${k} ${key.padStart(4)}: words ${r.wordCloud} name ${r.nameCloud} discs ${Object.entries(r.discs).map(([v, d]) => v + ':' + (d ? (d.shown ? 'shown' : d.covered ? 'covered' : 'in-words') : '-')).join(',')} top ${r.topCloud} galaxy ${r.galaxy} (${r.galaxyIn}) sun ${r.sun} (${r.sunIn})  ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+    console.log(`k${k} ${key.padStart(4)}: words ${r.wordCloud} name ${r.nameCloud} solid ${r.nameSolid} discs ${Object.entries(r.discs).map(([v, d]) => v + ':' + (d ? (d.shown ? 'shown' : d.covered ? 'covered' : 'in-words') : '-')).join(',')} top ${r.topCloud} galaxy ${r.galaxy} (${r.galaxyIn}) sun ${r.sun} (${r.sunIn})  ${((Date.now() - t0) / 1000).toFixed(0)} s`);
     fs.writeFileSync(OUT, JSON.stringify(prev, null, 1) + '\n');
   }
 }
@@ -165,7 +176,7 @@ fs.rmSync(TMP, { recursive: true, force: true });
 if (CHECK) {
   // the ruler: the words and the name clear of cloud, the low sun's disc and glow kept, on each of these lands
   const bad = rule(prev, T0, LANDS), md = [`### The ruler (looks.mjs --table${SHARD ? ' --shard ' + SHARD : ''}): lands ${LANDS.join(', ')}, ${bad.length ? '**' + bad.length + ' failing**' : 'every first heading keeps the words clear'}`, '',
-    ...LANDS.map((k) => { const l = prev.lands[k][String(T0[k] === null ? 'own' : T0[k])]; return l ? `- k${k} ${T0[k] === null ? 'own' : T0[k]}: words ${l.wordCloud}, name ${l.nameCloud}, sun ${l.sunIn} (own ${prev.lands[k].own && prev.lands[k].own.sunIn})` : `- k${k}: not measured`; }),
+    ...LANDS.map((k) => { const l = prev.lands[k][String(T0[k] === null ? 'own' : T0[k])]; return l ? `- k${k} ${T0[k] === null ? 'own' : T0[k]}: words ${l.wordCloud}, name ${l.nameCloud}, solid ${l.nameSolid}, sun ${l.sunIn} (own ${prev.lands[k].own && prev.lands[k].own.sunIn})` : `- k${k}: not measured`; }),
     ...bad.map((b) => `- FAIL ${b}`)];
   console.log(md.join('\n'));
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join('\n') + '\n');

@@ -56,8 +56,14 @@ function scripts() {
   return SCRIPTS;
 }
 
+const ALT = new Map();
+function scriptsOf(text) {   // the wing model as scripts() reads it, with the caller's ink birds
+  if (!ALT.has(text)) ALT.set(text, { model: scripts().model, birds: new vm.Script(text, { filename: 'inkbirds.min.js' }) });
+  return ALT.get(text);
+}
+
 /* a scenario: o = { size, seed, pos (the eye's start, m), speed (m/s), wind [x, z] (m/s), yaw (deg/s, the camera's turn), pitch (deg),
-   pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)}, draw (also draw each step, on a GL
+   pointer (t -> {x, y} | null), clicks [{t, x, y}], drag {t0, t1, rate (deg/s)}, script (an inkbirds.js to run in place of src/birds' own), draw (also draw each step, on a GL
    stub; draw.data(array, n) sees every buffer the draw uploads), dt (the step, s: DT unless set; 1/60 is the page's), frames (sim.frame(fdt) draws display frames between steps, as the
    page does: the camera and the birds at the loop's alpha) } */
 export function makeSim(o = {}) {
@@ -93,7 +99,7 @@ export function makeSim(o = {}) {
   const ctx = vm.createContext(vm.constants.DONT_CONTEXTIFY);
   ctx.console = console; ctx.self = ctx; ctx.window = ctx;
   ctx.WORLD = { birds: (f) => { M = f(HOST); }, stamp() {} };
-  const S = scripts();
+  const S = o.script ? scriptsOf(o.script) : scripts();   // (o.script: an inkbirds.js of the caller's, the shipped one minified: tools/birds/twin.mjs; no __SIM in it)
   for (const s of S.model) s.runInContext(ctx);
   S.birds.runInContext(ctx);
   if (!M) throw new Error('sim: the module did not register');

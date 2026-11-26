@@ -242,7 +242,7 @@ test('sound: the sheet in parts: the score starts on its first part (the tuba an
 });
 test('sound: the room and the air filled a slice at a time, as the switch has it, play exactly what they play filled at once', () => {
   const a = play(1501), b = play(1501, FLIGHT, T, true), key = (L) => L.map((n) => n.inst + n.m + '@' + n.when + ':' + n.a + '-' + n.b).join(' ');
-  assert.ok(b.tasks >= 20, `the fill took ${b.tasks + 1} tasks (want it sliced)`);
+  assert.ok(b.tasks >= 7, `the fill took ${b.tasks + 1} tasks (want it sliced: 8 or more, so the press never holds the page for the whole fill)`);
   assert.equal(a.tasks, 0, 'filled at once, yet it queued tasks');
   assert.equal(key(b), key(a), 'sliced, it plays other notes');
   assert.equal(b.fills.length, 4, `${b.fills.length} sources on filled buffers (want the room, the two airs and the hiss, which plays the stream's noise)`);

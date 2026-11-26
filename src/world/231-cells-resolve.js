@@ -60,6 +60,7 @@
         // (its centre in the air frame and the low layer's wind: cloudPos carries it, physics: clouds/drift; a world cell's
         // clouds, a canyon's walls, are the cloud sea's: held)
         if (PF.bodies[bi].flow && !C.air) vb.out.flow = PF.bodies[bi].flow;   // (a held body's billows flow through it at the wind at its height: 410)
+        if (C.air && SHOWNT >= 0 && clb && !PF.bodies[bi].flow && clb.seed !== undefined && virgaOn(clb.seed, virgaSky(V))) vb.out.vg = virgaBody(V, clb.seed, ycB - (clb.landMax !== undefined ? clb.landMax : clb.ground !== undefined ? clb.ground : clb.base), cxB - vb.out.c[0], ycB - vb.out.c[1], czB - vb.out.c[2], vb.out.h);   // (physics: clouds/virga: a free cloud's, born after the world shows (beyond sight, at the stream's front: none at the cut, so the stills hold none), chosen as it is laid out, on the sky of the layout, by its own seed)
         vb.out.c0 = Float64Array.from(vb.out.c); if (C.air) { vb.out.c0[0] -= C.dL[0]; vb.out.c0[2] -= C.dL[1]; vb.out.w = airW(V); } else vb.out.w = null;
         var cores = vb.out.cores;
         for (j = 0; j < cores.length; j += 4) C.obst.push({ c: 0, x: cores[j], y: cores[j + 1], z: cores[j + 2], r: cores[j + 3], cloud: true });

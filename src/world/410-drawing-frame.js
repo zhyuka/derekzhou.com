@@ -90,6 +90,8 @@
     var m = 0;
     for (i = 0; i < n; i++) {
       var B = VOLS[VORD[i]], d = Math.sqrt(VKEY[VORD[i]]), c2 = B.c;
+      if (B.vg && !(EP.virga && EP.virga.ok) && B.fade > 0) B.vg = null;   // (its program late (073) and not yet made when the body comes into sight: it never gains its strand in view, so none pops in)
+      if (B.vg && EP.virga && EP.virga.ok) { drawVirga(B, EP.virga, V); gl.useProgram(P.p); gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); gl.bindVertexArray(VCUBE.vao); }   // (physics: clouds/virga: its strand in its own turn, under it, before it: 213)
       var steps = VSTEPS + (48 - VSTEPS) * (1 - smooth(B.r * 1.3, B.r * 1.7, d));   // (near a body 48 on every tier, as before; beyond, one budget a look, never cut by distance: a far tower's 24 steps forced its band 12 m apart; between 1.3 and 1.7 radii eased, a step at a time, never a switch in one frame)
       // the lit mist about the eye: a continuous weight of the eye's distance to the body's nearest lobe (1 within 20 m
       // of its surface, none from 80 m), so coming near a cloud, going in or out, is a fade the flight drives, never 0 or

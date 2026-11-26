@@ -60,7 +60,7 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/band.mjs (the clouds' lift over the flight band as the air carries them),
                              test/unit/cloudshadow.mjs (the clouds' shadows on the land: the chord, the ellipse, the wiring),
                              test/unit/citations.mjs (the naming check's citation patterns), test/unit/clipmap.mjs (the land's rings meet to the bit
-                             far out: an fp32 replay), test/unit/destination.mjs (the horizon's destination: on the landing's
+                             far out: an fp32 replay), test/unit/dest-isle.mjs (the destination over the cloud sea: the great isle at its point, its keel over the cruise, its size and reach), test/unit/destination.mjs (the horizon's destination: on the landing's
                              heading 7-8 km out, the seed's alone, laid out by its own scale), test/unit/events.mjs (the rare sights: placed, path-independent, at most one rare site in reach),
                              test/unit/clouds.mjs (the cloud bodies' billows), test/unit/dunes.mjs (the dunes' slip faces at
                              the sand's angle of repose: physics: sand/S1), test/unit/duneshadow.mjs (the dunes' cast shadows at the low key:
@@ -77,15 +77,16 @@ test/unit/<area>.mjs         Pure code in Node, one file an area (tools/checks/2
                              test/unit/largeworld.mjs (a long visit's far-out
                              frames held still: eyeRel and the veils' wrap), test/unit/fog.mjs (a basin's fog pool: held under its rim, none with no mist,
                              the flight over it), test/unit/merge-bot.mjs (the merge bot's small rules), test/unit/mist.mjs (the mist pools:
-                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
+                             their depth by the sky at a capped rate, opaque within 1.5 m, the camera over them), test/unit/perch-ink.mjs (the name's perch table read back exactly), test/unit/bird-skies.mjs (every sky of the world's a bird sky class with its own rows: no day sky), test/unit/prune.mjs (the shaders' dead functions left out at issue), test/unit/rates.mjs (what counts frames counts time: the clouds' history, a speck's pose), test/unit/ripples.mjs (the sand
                              ripples' warp read C1), test/unit/smoke.mjs (the post-deploy smoke tells Cloudflare's bot challenge
                              from the site's answer: .github/ci/cf-challenge.mjs), test/unit/sky.mjs (the order of the
                              skies), test/unit/sound.mjs (the score), test/unit/still-pick.mjs (hour.js's still), test/unit/hold.mjs (the first-paint hold's gates, by browser), test/unit/paint.mjs (the paint trend's runners pooled and judged),
                              test/unit/stills.mjs (the baked stills), test/unit/streams.mjs (the random streams and
-                             hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict),
+                             hashes), test/unit/t1.mjs (T1's DOM hash), test/unit/verdict.mjs (the gate's verdict), test/unit/virga.mjs (virga's strands: the share by sky, the lowest point, the tilt by the air against its body),
                              test/unit/where.mjs (tools/where.mjs), test/unit/ruler.mjs (the visit ruler)
 test/fakepage.cjs            The one fake browser the static checks and the shader census share (devices, the page's scripts)
-test/sims/boot.mjs           The boot on the fake page, each device profile once (tools/checks/39-boot-frames.sh)
+test/sims/boot.mjs           The boot on the fake page, each device profile once: its frames to the show and its GPU work before it
+                             (3D texels, draws; test/golden/boot-bakes.json) (tools/checks/39-boot-frames.sh)
 test/birds-motion.mjs        The ink birds' drawn motion, frame by frame in the headless sim: no snap, flicker or jump
 test/birds-flock.mjs         How a flock's birds fly together in the headless sim: the skein's phase lock in wake bouts
 test/birds-wind.mjs          The birds in wind in the headless sim: air speed into a headwind, crabbing, landings against a side wind
@@ -99,6 +100,8 @@ tools/build.mjs              The build in one command (node tools/build.mjs dist
                              (world.<sha8>.js), every reference rewritten, build.txt (the commit); --check proves
                              the build the same bytes twice, site/ free of built files, and the named build resolves
 tools/minify.mjs             Builds the seven minified scripts from build/ship/; CI checks the build
+tools/props.mjs              The ink birds' renamed properties listed, none in another served file, a string of theirs or the DOM (50-props)
+tools/birds/twin.mjs         The shipped (minified) ink birds and the source side by side in the bird sim: every frame drawn and the score's feed equal (50-props)
 tools/glslmin.mjs            A shader's text without comments and spare space, token for token the same (the build's)
 tools/first-paint.mjs        The first paint with no stills, headless: the words first, the world as a cut, no stale still
 tools/paint-trend.mjs        The first paint, base against head (the gate's paint-loads runners, --samples, and its paint job, --judge): words and the world's first frame, cold, timed
@@ -117,10 +120,12 @@ tools/visit/looks.mjs        Each candidate heading's first frames in SwiftShade
                              in the words' boxes and the top band, the Milky Way and the low sun left clear (its record,
                              build/looks.json, never committed); --table --check is the ruler, the gate's looks job
                              (eight runners, --shard i/8, every 8th land): the table's headings and each land's own,
-                             measured live and failed by look-rule.mjs's rule() (about 76 s a heading)
-tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud, the glow kept, its weights, rule(),
-                             worldKey (KEY_INPUTS: the cloud layout, the opening's view, the words' layout; not the sky,
-                             the land's surface or the birds) and looksKey (worldKey, the table and the measuring code:
+                             measured live and failed by look-rule.mjs's rule() (about 110 s a heading: each view drawn
+                             three times, as it is, without its clouds and without its solids)
+tools/visit/look-rule.mjs    The look's caps on the words and the name under cloud (and the name behind a solid), the glow
+                             kept, its weights, rule(), worldKey (KEY_INPUTS: the cloud layout, the opening's view, the
+                             words' layout, where the solids stand; not the sky, the land's surface or its shading, or the
+                             birds) and looksKey (worldKey, the table and the measuring code:
                              the gate measures only when it moved, base against head)
 tools/fontglyphs.mjs         The letters each served font must hold (subset-fonts.sh, tools/checks/40-font-glyphs.sh)
 tools/loadperf.mjs           How fast the page loads, in headless Chromium, by hand (docs/fonts-performance.md)
@@ -152,8 +157,10 @@ tools/tsc.mjs                tsc --checkJs over the assembled world, src/realm-*
                              site/*.js (copies, cast from the side: never a byte in site/), by npx typescript (pinned;
                              not a dependency), with tools/types/world.d.ts for what TypeScript's DOM types lack and the
                              shared objects' types (TG, EXT, the targets, the birds' module, window.WORLD and its air,
-                             events and kit): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
+                             events and kit), and the plan's worker (tools/plan.mjs makePlan's text, as a worker, with
+                             tools/types/plan.d.ts): each error as section:line or file:line (tools/checks/48-tsc.sh, at zero)
 tools/sound/page.mjs         The sound icon pressed in headless Chromium against a build (tools/checks/38-sound.sh)
+tools/sound/world.mjs        The world running in headless Chromium for the sound's tools (SwiftShader under a GPU's name)
 tools/sound/cpu.mjs          The score's CPU with the world running: the audio thread's and the score's ticks, the main
                              thread slowed (tools/checks/49-sound-cpu.sh)
 tools/still-words.mjs        The words' boxes in each bake window and its band's smallest, measured in Chromium against a
@@ -194,6 +201,7 @@ tools/checks/NN-slug.sh      One static check each, its `# check:` line its name
                              tools/checks/48-tsc.sh (tsc --checkJs at zero: tools/tsc.mjs),
                              tools/checks/49-sound-cpu.sh (the score's CPU under its bars, the world running:
                              tools/sound/cpu.mjs)
+                             tools/checks/50-props.sh (the ink birds' renamed properties cross no script boundary: tools/props.mjs; the shipped birds the source's, frame for frame: tools/birds/twin.mjs)
                              tools/checks/70-still-words.sh (the words' boxes each still was baked with, still true)
 tools/checks/nocomments.mjs  A copy of a tree with every comment blanked, so a check that greps for code never reads prose
 tools/checks/lib/            What the checks run: tools/checks/lib/reads.mjs (every file a check with `# inputs:` reads, written down), tools/checks/lib/rules_check.py (RULES.json's references exist),
@@ -227,7 +235,10 @@ back minified instead (tools/glslmin.mjs, 2026-11-06): no comment, no
 blank line, no spare space, each run of code lines one line but every
 preprocessor line and every uniform declaration a line of its own (the
 world's folds skip a use on a line that starts "uniform"; 2026-11-25: 317 B
-of Brotli off the four scripts with shaders), a #define's spacing kept, the same tokens (checked;
+of Brotli off the four scripts with shaders), a #define's spacing kept, the same tokens but each
+function's own parameters and locals shortened in a .glsl file (glslmin.mjs mangleGlsl: never a name in any
+string, template or regex literal of the scripts, nor in any .glsl preprocessor line; checkMangle proves the
+renaming one to one; 2026-11-25: 462 B of Brotli more) (checked;
 the build fails otherwise); the part of a file a script reads at run time
 stays as written (glslmin.mjs's KEEP: dunes-glsl's D_Hd, which the land
 split finds by its text; the rest of the file is minified, 2026-11-25:
@@ -242,8 +253,9 @@ census and T1 compare the base's build with the head's.
 tools/minify.mjs makes the served seven from build/ship/: the switches'
 line cut out of the world (an exact, counted cut; every switch then read
 as its default; the ink birds read no dev flag: checked), then terser
-(pinned in package.json) compresses and
-mangles, every string's value and every shader's text (as assemble gave it) the same, every
+(pinned in package.json) compresses (the ink birds in three passes) and
+mangles (and in the ink birds their own properties too: every name another
+served file or a string of theirs has kept; tools/props.mjs checks the list), every string's value and every shader's text (as assemble gave it) the same, every
 comment dropped but each file's two-line provenance note and the INIT-END
 marker. None of what they make is committed: a change
 is made in src/ and committed alone, and the build makes the rest. The

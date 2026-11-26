@@ -1,0 +1,22 @@
+{
+ "desktop": {
+  "vox": 1050944,
+  "draws": 1574
+ },
+ "phone": {
+  "vox": 542753,
+  "draws": 1104
+ },
+ "webkit": {
+  "vox": 412513,
+  "draws": 874
+ },
+ "half": {
+  "vox": 1050944,
+  "draws": 1495
+ },
+ "byte": {
+  "vox": 412513,
+  "draws": 872
+ }
+}

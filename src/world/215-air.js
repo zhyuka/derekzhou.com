@@ -16,7 +16,8 @@
      (subseed(V.seed, 61)): the speed distribution of a two-dimensional normal wind vector of mean 5 m/s (a site's winds over a year) mapped by its CDF into
      3.0-7.5 m/s (the hub's ruling, 2026-11-15: the 40 m wind then stays under about 8.8 m/s, under every bird kind's own
      airspeed, so no bird flying upwind goes backward over the ground; truncated, not clamped, so nothing piles at the
-     ends). The sand's own threshold (about 6.2 m/s at 10 m, the crests' speed-up 1.5x) is the sand's to apply. Its speed and its turn by height
+     ends). Its direction is any of 360 deg and is not the maps' (mc.wind, about -57 to +126 deg): the dunes record the place's
+     prevailing wind; the visit's wind is today's (the hub's ruling, 2026-11-26). The sand's own threshold (about 6.2 m/s at 10 m, the crests' speed-up 1.5x) is the sand's to apply. Its speed and its turn by height
      (airProfile): under 100 m the log law over sand, u(z) = U10 ln(z / z0) / ln(10 / z0), z0 = 0.003 m (shares of U10:
      0.1 m 0.43, 0.87 m 0.70, 2.5 m 0.83, 26 m 1.12, 60 m 1.22, 100 m 1.28), the direction the surface's; from 100 to
      300 m it eases to the low cloud layer's 1.3 U10, veered 20 deg (the wind turning toward the geostrophic with
@@ -310,7 +311,7 @@
      (gate.yml's looks job) whenever this table, the cloud layout, this opening's view or the words move (look-rule.mjs's
      looksKey), and fails a heading that breaks the rule; headings.mjs then picks again. Chosen once, before anything is drawn, as the landing is;
      nothing turns the view. A land k is the one whose seed is 010's (11 + k x 0x9e3779b9) */
-  function airHeading0() { var T = [90, 329, 300, 120, 235, 230, null, 70, 245, 140, 240, 210, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
+  function airHeading0() { var T = [90, 329, 300, 120, 235, 230, null, 70, 245, 50, 305, 210, 60, null, 250, 125], k; for (k = 0; k < T.length; k++) if (((11 + k * 0x9e3779b9) >>> 0) === J.seed && T[k] !== null) return T[k] * DEG; return RNG(subseed(J.seed, 77)).r(0, 2 * PI); }
   /* THE GUSTS (physics: air/gust-field): one field of turbulence, frozen and carried downwind at the mean wind (the
      frozen-turbulence hypothesis: https://glossary.ametsoc.org/wiki/Frozen_turbulence) on the surface's clock T
      (airClock: the flight's time times the sky's surface share s, integrated), so a point dx downwind meets each gust
