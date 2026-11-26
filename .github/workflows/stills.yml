@@ -122,11 +122,14 @@ jobs:
     needs: need
     if: needs.need.outputs.bake == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    # Hosted runners vary: 12.6-34 s a still seen (run 45752177688: 58 stills a process in 17-40+ min), so 75 min,
-    # and no fail-fast: a shard that finished is kept for "re-run failed jobs" (the up job reads every attempt's).
+    # Hosted runners vary: 12.6-34 s a still seen (run 45752177688: a shard in 17-37 min where it finished, one shard
+    # 25.9 min on one runner and over 40 on another), so 75 min, about twice the slowest finish; no fail-fast: a shard
+    # that finished is kept for "re-run failed jobs" (the up job read both attempts' artifacts). max-parallel 14 of the
+    # account's 20 hosted runners leaves 6 for gates (the hub, 2026-11-26: live a little later, never without stills).
     timeout-minutes: 75
     strategy:
       fail-fast: false
+      max-parallel: 14
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     name: bake (${{ matrix.shard }}/20)

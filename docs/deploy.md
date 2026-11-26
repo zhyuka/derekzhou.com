@@ -202,8 +202,10 @@ from then until 2026-11-26 CI baked none, so every served change shipped without
 world's own first frame (measured: the still on screen by about 1.7 s on a slow phone network, the world's frame 11-15
 s on SwiftShader). Since 2026-11-26 stills.yml bakes on GitHub's hosted runners with SwiftShader, as T1 renders
 (bake-stills.js --soft): 20 jobs, two processes each, every 40th still of the whole list a process (--shard I/40), then
-the up job merges them (tools/stills-merge.mjs: the whole set or none) and puts it up. About 12-16 s a still, so 25-30
-minutes a new key. The looks against the 4090's last set (stills-9a78065e, commit adf73b15; 16 stills, every sky time
+the up job merges them (tools/stills-merge.mjs: the whole set or none) and puts it up. 12.6-34 s a still by the
+runner (run 45752177688: a shard 17-37 min where it finished; one shard 25.9 min on one runner, over 40 on another),
+so a job's cap is 75 min and a new key is up in about 40-45 min; at most 14 bake jobs at once (max-parallel), leaving
+6 of the 20 hosted runners for gates. No fail-fast: a re-run of the failed jobs keeps the finished shards. The looks against the 4090's last set (stills-9a78065e, commit adf73b15; 16 stills, every sky time
 and tier and both a phone's and a desktop's shape): mean 0.26-0.43/255, 99th percentile 3-4, 0.0-0.46% of pixels over
 8/255. While a key bakes its tip's `stills` status is pending, so live stays at the last tip with a set; a bake that
 does not finish posts failure, saying why. Without a set (a token gone, a failed bake) the build still ships without
