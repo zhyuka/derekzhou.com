@@ -27,6 +27,8 @@
 //                      surface's shading is not): realm-dunes.js's areas and their forms (DS, CUT_D, dSite, FORM_K, dGreat,
 //                      dDetails, dDest, FORM_*, dForms, dSmall, its cell()), 217 (the destination), 230 (the cells),
 //                      233's resolvePlaces (a place seated); realm-above.js's islands are in it whole already
+//   the solids' forms  realm-kit.js whole (the hub, 00:00Z Nov 26: a taller spire or a bigger temple grows into the name's
+//                      box without moving)
 // Not the sky (the sun, the stars, the Milky Way: a feature's light is a score, not a cap), the land's surface or the
 // birds. looksKey (below) adds the table and the measuring code: the gate measures afresh whenever it moves
 import fs from 'node:fs';
@@ -59,6 +61,7 @@ export const KEY_INPUTS = [
   'src/world/215-air.js', 'src/world/270-flight.js', 'src/world/320-camera-drawn-between-last-two.js', 'src/world/386-frustum-resize.js',
   'src/world/390-words.js', 'site/index.html', 'site/style.css',
   'src/world/217-destination.js', 'src/world/230-cells-endless-world.js', ['src/world/233-cells-places.js', ['function resolvePlaces(']],
+  'src/realm-kit.js',
 ];
 // a piece of a file's code (minified: no comments, one spelling): from its head to the end of its declaration (a var's
 // semicolon) or to the brace that closes its first open one

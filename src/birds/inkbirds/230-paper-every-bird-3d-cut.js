@@ -61,7 +61,7 @@
       b.burst = null;
       if (w0 && w0.wing && !b.wOff && b.st === 'fly') {   // (the schedule takes the burst's phase on, BW.skip: no half-beat at the handover, only the beat's size eased over XF_T)
         var pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.floor(pg)) / f);
-        pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.round(pg)) / f);   // (once more at the schedule's own rate)
+        for (var it = 0; it < 3; it++) { pg = BW.psiAt(w0.wing, AD) - nb; BW.skip(w0.wing, (pg - Math.round(pg)) / f); }   // (again at the schedule's own rate, three times: inside a bout its phase runs at f only on average, so one step left up to 0.028 cycle)
         s.buE = TD;
       }
     }
@@ -178,7 +178,7 @@
     if (A) {
       var ua = (TD - A.t0) / A.T, wa = Math.sin(Math.PI * clamp(ua, 0, 1));
       if (A.k === 'wings') gmix(s.P22, s.P22, Q.open, 0.7 * ease(1.4 * wa));   // (both wings raised: a lifted M, and let down)
-      else { var sk = 7 * wa * Math.sin(TAU * 7.5 * ua * A.T); s.P22[0] += sk; s.P22[NP] += sk; s.P22[4] -= 0.7 * sk; s.P22[NP + 4] -= 0.7 * sk; }   // (a rouse: a quick shake)
+      else { var sk = 7 * wa * Math.sin(TAU * 1.5 * ua * A.T); s.P22[0] += sk; s.P22[NP] += sk; s.P22[4] -= 0.7 * sk; s.P22[NP + 4] -= 0.7 * sk; }   // (a rouse: a slow shake (1.5 Hz, drawn under 4 Hz), never a flicker (a real one is 10+ Hz, at a few px glitter))
     }
     if (P.leaving) gmix(s.P22, s.P22, Q.open, ease((TD - P.leaving.t0) / Math.max(0.05, P.leaving.tc)));
     s.B3[0] = s.B3[1] = s.B3[2] = 0; s.flapW = 0;

@@ -27,6 +27,10 @@
 # plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "HOST.wind(BWV, hg); w =", "with": "HOST.wind(BWV); w =", "why": "every bird in the wind at the birds' one height, not its own (one wind)"}
 # plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "if (va > 0) { VV[0] += va", "with": "if (va > 1e9) { VV[0] += va", "why": "a landing drifting back through a tail wind drawn along that air velocity: its attitude flips in a frame (gale flips)"}
 # plant: {"file": "src/birds/inkbirds/210-one-bird.js", "find": "var k = Math.min(1, dt * 4 || 1);", "with": "var k = 1;", "why": "a landing's wind switched at once to the step's 40 m one: a low bird's velocity steps by the wind's rise (gale flips)"}
+# plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "for (var it = 0; it < 3; it++) {", "with": "for (var it = 0; it < 1; it++) {", "why": "one step to the schedule's phase, as before: up to 0.028 cycle off (burst hands over)"}
+# plant: {"file": "src/birds/inkbirds/230-paper-every-bird-3d-cut.js", "find": "Math.sin(TAU * 1.5 * ua * A.T)", "with": "Math.sin(TAU * 12 * ua * A.T)", "why": "a rouse shaken at 12 Hz, a flicker at a few px (a rouse on the name is slow and small)"}
+# plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "T: 0.8 }; P.rz = 0;", "with": "T: 0.8 }; P.rz = t + 3;", "why": "a rouse again and again through a stay (comfort moves)"}
+# plant: {"file": "src/birds/inkbirds/264-perch-life.js", "find": "!roost && t - P.tt > 20)", "with": "!roost && t - P.tt > 2)", "why": "a stretch before it has stayed 20 s (comfort moves)"}
 # (check-speed) each test of test/birds.mjs in its own process, side by side (their names read from the file, so a new
 # test runs too): the slowest alone, not their sum
 # (CI lane, 2026-11-24) `# parts: 3`: tools/check.mjs runs this as three checks on a push, CHECK_PART=0/3 .. 2/3, each

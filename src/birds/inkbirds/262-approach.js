@@ -196,7 +196,7 @@
     b.st = 'perch'; P.tt = t; if (PW.appr === b) PW.appr = null;
     if (!P.landYaw) P.yaw = touchYaw(b, C);   // (its attitude on the perch: in profile, toward the side it came moving; decided at the last leg's start when it flew one)
     P.yaw0 = P.yaw; P.yawT = t; P.yawTo = P.yaw; P.pitch = PERCH.pitch; P.face = P.yaw >= 0 ? 1 : -1;
-    P.stay = t + pick(b.r, PSTAY); P.nextAct = t + pick(b.r, [1.2, 2.5]); P.act = null; P.walk = null; P.swing = 0; P.swingV = 0;
+    P.stay = t + pick(b.r, PSTAY); P.nextAct = t + pick(b.r, [1.2, 2.5]); P.act = null; P.rz = t + 1 + (b.vK & 3) / 2; P.sw = 0; P.walk = null; P.swing = 0; P.swingV = 0;
     b.v[0] = P.v[0]; b.v[1] = P.v[1]; b.v[2] = P.v[2];
     makeRoom(b);
   }
