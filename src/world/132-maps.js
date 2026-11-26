@@ -112,14 +112,6 @@
       return o;
     };
 
-    // ---- height (spec 3.4, v2)
-    var RL = K.relief.lam, RG = K.relief.gain, NOCT = RL.length, NSM = K.relief.smooth_oct;
-    var ga = [1]; for (var k = 1; k < NOCT; k++) ga.push(ga[k - 1] * RG[k]);
-    var gs = 0; for (k = 0; k < NOCT; k++) gs += ga[k];
-    for (k = 0; k < NOCT; k++) ga[k] /= gs;
-    w.reliefAmp = ga;
-    var dropped = 0; for (k = NSM; k < NOCT; k++) dropped += ga[k];
-    w.dropped = dropped;
     var EA = K.Eamp;
     function Eamp(E) { return Math.exp(EA[0] + EA[1] * E + EA[2] * E * E) * 0.5; } // half the z range
     w.Eamp = Eamp;
@@ -127,25 +119,7 @@
     function ampOf(E, hbv) { return Eamp(E) * (1 + 0.8 * sstep(100, 900, hbv)); }
     w.ampOf = ampOf;
     var hbo = [0, 0];
-    // R: eroded fractal noise; out: [R full, dR/dx, dR/dz, R of the first NSM octaves]
-    function relief(x, z, A, nmax, fp, out) {
-      var v = 0, dx = 0, dy = 0, vs = 0;
-      for (var k = 0; k < nmax; k++) {
-        var l = RL[k];
-        var f = fp > 0 ? Nz.fpFade(1 / l, fp) : 1;
-        if (f <= 0) break;
-        grad2(x / l + 0.37 * k, z / l - 0.21 * k, (sR + k * 1013) >>> 0, o3);
-        var s2 = (dx * dx + dy * dy) * A * A;
-        var damp = 1 / (1 + K.relief.erode * s2);
-        var a = ga[k] * damp * f;
-        v += a * o3[0]; dx += a * o3[1] / l; dy += a * o3[2] / l;
-        if (k === NSM - 1) vs = v;
-      }
-      if (nmax < NSM) vs = v;
-      out[0] = v; out[1] = dx; out[2] = dy; out[3] = vs; return out;
-    }
-    w.relief = relief;
-    var mc = {}, pc = {}, r4 = [0, 0, 0, 0];
+    var mc = {}, pc = {};
     // the slow weights, a function of the macro and place channels only (the GPU bakes them)
     w.weights = function (mc, pc, o) {
       hb(mc.C, hbo);
@@ -169,7 +143,6 @@
       o.hb = hbv; o.A = A; o.Kd = Kd; o.Km = Km; o.kr = kr; o.Kv = Kv; o.thrL = thrL; o.Kl = Kl; o.step = step; o.lnPd = lnPd; o.Tl0 = Tl0; o.sand = sand; o.dry = dry;
       return o;
     };
-    var wt = {};
     // ---- (world6) the two kits' weights, smooth functions of the maps (logistic shaping curves; no switch, no integer
     // from a map value): wD, the sand province (dry, hot, sandy, plus the director's dune offset kd); wC, the cloud sea
     // (the land falls away under a sea of cloud: the basin channel's low ground, plus the director's kx, filled the
@@ -184,14 +157,3 @@
       o.wC = wC; o.wD = clamp(Ds + pc.kd, 0, 1); o.Bq = Bq; o.thC = thC;
       return o;
     };
-    // the ridged term (C1: |n| as sqrt(n^2 + e^2)), in [-1, 0.9]
-    function ridged(X, Z) { fbm(X, Z, K.ridge.lam, 2, 0.5, sRg, o3); return 1 - 2 * Math.sqrt(o3[0] * o3[0] + 0.0025); }
-    // the valley field: a warped noise whose zero line is the valley's axis; returns [profile 0..1, river core 0..1]
-    var vo = [0, 0];
-    function valley(X, Z, out) {
-      fbm(X, Z, 1100, 2, 0.5, sRv ^ 31, o3); var wv = 260 * o3[0];
-      fbm(X + wv, Z - 0.8 * wv, K.valley.lam, 2, 0.5, sRv, o3);
-      var q = o3[0] / K.valley.w;
-      out[0] = Math.exp(-q * q); out[1] = Math.exp(-q * q * 9);
-      return out;
-    }
