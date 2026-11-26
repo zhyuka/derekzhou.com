@@ -1,4 +1,4 @@
-  /* (drawFrame's pass) the scene: the surfaces, the landmarks, the sets, the scatter, the creatures, the sky, the glows, the veils */
+  /* (drawFrame's pass) the scene: the surfaces, the landmarks, the scatter, the creatures, the sky, the veils */
   var DECKW = new Float64Array(2);
   function drawScene(V, u) {
     var W = DFR.W, H = DFR.H, DP = DFR.DP, L = DFR.L;
@@ -45,22 +45,6 @@
         if (C.bound[3] > 0 && !inView(C.bound[0], C.bound[1], C.bound[2], C.bound[3])) continue;
         UF[0] = fadeCell(C, C.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(P.u.uFade, UF);
         gl.bindVertexArray(C.mesh.vao); dc(gl.TRIANGLES, C.mesh.n); ST.cellsDrawn++;
-      }
-    }
-    // the sets' instances: one draw a set a cell (the coarse mesh past the set's `far`)
-    if (CL && DP.lmi) {
-      P = DP.lmi; var lmiOn = false;
-      for (var ii = 0; ii < CL.length; ii++) {
-        var Ci = CL[ii]; if (!Ci.inst || Ci.st < 3) continue;
-        if (Ci.bound[3] > 0 && !inView(Ci.bound[0], Ci.bound[1], Ci.bound[2], Ci.bound[3])) continue;
-        if (!lmiOn) { gl.useProgram(P.p); setFrameUniforms(P, V); lmiOn = true; }
-        UF[0] = fadeCell(Ci, Ci.mborn); if (UF[0] <= 0) continue; gl.uniform1fv(P.u.uFade, UF);
-        var farD = nearDist(Ci, CAM.pos[0], CAM.pos[2]);
-        for (var qi = 0; qi < Ci.inst.length; qi++) {
-          var Q = Ci.inst[qi]; if (!Q.vaoF) continue;
-          var useC = Q.vaoC && farD > Q.S.far;
-          gl.bindVertexArray(useC ? Q.vaoC : Q.vaoF); dc(gl.TRIANGLES, (useC ? Q.S.coarse : Q.S.full).n, Q.n);
-        }
       }
     }
     ST.cells = CL ? CL.length : 0;
