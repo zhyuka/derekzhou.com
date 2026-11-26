@@ -29,7 +29,7 @@
   /* each stage is CPU work (the slice after the frame's flush: no GL call) or GPU work (the jobs at the start of the
      next drawn frame); `kind` says which a call may run ('cpu', 'gpu'; sync or no kind: any) */
   var VSTAGES = [vsPlanW, vsLink, vsKW, vsOrigin, vsOriginRead, vsScatter, vsScatterUp];
-  var VKIND = ['cpu', 'cpu', 'gpu', 'cpu', 'cpu', 'cpu', 'gpu', 'cpu', 'gpu'];
+  var VKIND = ['cpu', 'cpu', 'gpu', 'cpu', 'cpu', 'cpu', 'gpu'];
   function visitStep(V, sync, kind) {   // one stage's step (sync: all of them); true once the visit's own parts are built
     if (V.st >= VSTAGES.length) return true;
     if (V.failed || LOST || gl.isContextLost()) return false;
