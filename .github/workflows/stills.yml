@@ -204,4 +204,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          node tools/stills-release.mjs --fail "$SHA" --why "the bake did not finish (bake ${{ needs.bake.result }}); live keeps its last tip with a set"
+          node tools/stills-release.mjs --fail "$SHA" --why "the set is not up (bake ${{ needs.bake.result }}; the up job says why); live keeps its last tip with a set"
