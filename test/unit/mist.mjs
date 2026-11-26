@@ -51,7 +51,7 @@ test('mist: the shaders: opaque within MIST_OPAQUE whatever the depth, the rim a
   assert.match(SCN, /c = mistOver\(c, max\(mistTop\(vMB\), fogTopAt\(vW\.xz\)\) - vW\.y, n, rd, fp\);/, 'over the land (and a basin\'s fog pool: 234)');
   const LM = fs.readFileSync(path.join(ROOT, 'src/world/353-shaders-landmarks-probe.js'), 'utf8');
   assert.match(LM, /c = mistOver\(c, vMT - vW\.y, n, rd, fp\);/, 'over the stones and the landmarks');
-  for (const f of ['vs-landmark', 'vs-lmsc', 'vs-landmark-inst', 'vs-scatter']) assert.match(GLSL('world/glsl/' + f + '.glsl'), /vMT = mistTopAt\(vW\.xz\);/, f + ' gives its vertices the pools\' top');
+  for (const f of ['vs-landmark', 'vs-lmsc', 'vs-scatter']) assert.match(GLSL('world/glsl/' + f + '.glsl'), /vMT = mistTopAt\(vW\.xz\);/, f + ' gives its vertices the pools\' top');
 });
 
 test('mist: the flight over the pools by its own floor, which holds: the land never under the pools\' floor', async () => {

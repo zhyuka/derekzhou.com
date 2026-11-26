@@ -5,7 +5,6 @@
   /* a set's instances: one mesh, many placements (a cell's trunks, pillars, lanterns): each its place and seat, its turn
      (and a slow spin), its scale, a tilt, a tint, its emission's share, a bob; the mesh's vertices are its local space
      (the base at y = 0) */
-  var VS_LANDMARK_INST = `@glsl vs-landmark-inst`;
   function FS_LANDMARK(S) {
     return ZCODE + `
 uniform float uFade;

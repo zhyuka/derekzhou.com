@@ -38,7 +38,6 @@
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0); gl.vertexAttribDivisor(1, 1);
       gl.bindVertexArray(null);
     }
-    uploadInst(C);
     C.st = 3; C.vi = 0;
     C.mborn = lateBorn(C.V, cellDistFade(C));
   }
@@ -59,11 +58,9 @@
       if (C.mesh && C.mesh.vao) { glFree('VertexArray', C.mesh.vao); glFree('Buffer', C.mesh.vb); }
       if (C.occ) { glFree('VertexArray', C.occ.vao); glFree('Buffer', C.occ.b); }
       for (var i = 0; i < C.vols.length; i++) glFree('Texture', C.vols[i].out.t);
-      if (C.inst) C.inst.forEach(function (q) { if (q.buf) glFree('Buffer', q.buf); if (q.vaoF) glFree('VertexArray', q.vaoF); if (q.vaoC) glFree('VertexArray', q.vaoC); });
     }
     if (C.job) C.job.cancel = true;
     C.mesh = null; C.occ = null; C.lift = null; C.liftN = null; C.liftT = undefined; C.vols = []; C.items = []; C.clouds = []; C.flocks = []; C.pois = []; C.obst = []; C.B = null; C.RB = null; C.gen = null; C.rgen = null; C.pts = null; C.soft = null; C.softB = null;
-    C.places = []; C.inst = null;
     if (C.V) C.V.poiGen = (C.V.poiGen || 0) + 1;
   }
   var DEVKEEP = false;

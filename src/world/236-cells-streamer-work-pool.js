@@ -129,8 +129,8 @@
      world shows). There are no size classes or sub-allocation: a reused object's storage is re-specified at its new
      size. POOL_PRE: made at stage B, from the peaks of 600 s presented runs with streaming, both engines, with room
      to spare (rec.pools.peakLive); POOL_CAP: never more kept than this a kind */
-  var POOL_KINDS = ['buf', 'tex3', 'mesh', 'inst', 'occ'];
-  var POOL_PRE = { buf: 192, tex3: 192, mesh: 128, inst: 64, occ: 96 }, POOL_CAP = 512;
+  var POOL_KINDS = ['buf', 'tex3', 'mesh', 'occ'];
+  var POOL_PRE = { buf: 192, tex3: 192, mesh: 128, occ: 96 }, POOL_CAP = 512;
   var POOL = { lists: {}, made: {}, madeShown: {}, reused: {}, live: {}, peakLive: {}, deleted: {} };
   function poolReset() { POOL_KINDS.forEach(function (k) { POOL.lists[k] = []; POOL.made[k] = 0; POOL.madeShown[k] = 0; POOL.reused[k] = 0; POOL.live[k] = 0; POOL.peakLive[k] = 0; POOL.deleted[k] = 0; }); }
   poolReset();

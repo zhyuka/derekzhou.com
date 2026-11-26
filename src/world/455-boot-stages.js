@@ -113,9 +113,9 @@
         if (clockNow() < dlD) { if (gpuFree) visitRun(V, 'cpu'); else visitStep(V, false, 'cpu'); }
         if (V.st >= 1 && clockNow() < dlD) {   // (the layouts and resolves in the flight's own order, beside C too: a resolve waits for its probes, after C; then, the visit built, the needed cells' meshes)
           streamCells(V, cx, cz, Math.sin(h), Math.cos(h), false); cellWork(V, false, 0, 2, 'cpu');
-          if (V.st >= 8 && clockNow() < dlD) { BOOTVF = true; streamCells(V, cx, cz, Math.sin(h), Math.cos(h), false); BOOTVF = false; cellWork(V, false, BOOT_NEED, 4, 'cpu'); }
+          if (visitBuilt(V) && clockNow() < dlD) { BOOTVF = true; streamCells(V, cx, cz, Math.sin(h), Math.cos(h), false); BOOTVF = false; cellWork(V, false, BOOT_NEED, 4, 'cpu'); }
         }
-        ready = BOOT.cDone && NOISE.done && visitBuilt(V) && V.st >= 8 && bootReady(V, cx, cz);
+        ready = BOOT.cDone && NOISE.done && visitBuilt(V) && bootReady(V, cx, cz);
         flew = ready && (!!SIM.V || flightIn(V));
         if (flew) break;
       } while (gpuFree && idle && ++rd < BOOT_ROUNDS && clockNow() < dlD && bootSig(V) !== p0);
