@@ -93,7 +93,7 @@
   (function () { for (var i = 1; i <= 9; i++) { MOON_XS.push(1 / 3 - 0.025 * i); if (1 / 3 + 0.025 * i <= 0.6) MOON_XS.push(1 / 3 + 0.025 * i); } })();
   function moonLobes(V, psi, ex, ez) {   // [x, y, z, r] lobes and their bodies' bounds [x, y, z, r, i0, i1], laid out from the seed
     var lob = [], bnd = [], scs = V.def.layout.scales, sc, ix, iz, i, k, CL = /** @type {[Cell, number][]} */ ([]);   // (each cloud as [its cell, its index there])
-    var lk = [LATEK.creature, LATEK.glow, LATEK.beam];   // (the hub's round-4 nit: a layout only, so the late programs' flags (230's flock, glows, beam) are put back as they were: none starts compiling at the opening for a cell the streamer has not reached)
+    var lk = LATEK.creature;   // (the hub's round-4 nit: a layout only, so the late programs' flag (230's flock) is put back as it was: none starts compiling at the opening for a cell the streamer has not reached)
     for (sc = 0; sc < scs.length; sc++) {
       var L = scs[sc], n = Math.ceil(L.radius / L.size) + 1, cx = Math.floor(ex / L.size), cz = Math.floor(ez / L.size);
       for (ix = cx - n; ix <= cx + n; ix++) for (iz = cz - n; iz <= cz + n; iz++) {
@@ -104,7 +104,7 @@
         for (i = 0; i < C.clouds.length; i++) CL.push([C, i]);
       }
     }
-    LATEK.creature = lk[0]; LATEK.glow = lk[1]; LATEK.beam = lk[2];
+    LATEK.creature = lk;
     /* (the hub's round-3 nit) each cloud's ground at its own place, as its cell's probe reads it (one synchronous probe of
        every cloud's centre, probeJob's own: the camera's 640 m grid clamped at its edge put them 17-35 m off) */
     var pts = [], h = null, q;

@@ -70,8 +70,6 @@
       F.forEach(function (f) { f.forEach(function (i) { out.push(V3[i][0] / l, V3[i][1] / l, V3[i][2] / l); }); });
       ICO = { vb: gl.createBuffer() }; gl.bindBuffer(gl.ARRAY_BUFFER, ICO.vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(out), gl.STATIC_DRAW);
     })();
-    // the glows' quad, made here (not with the first glows, in flight)
-    QUAD = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, QUAD); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     VTMP = { t: gl.createTexture(), f: gl.createFramebuffer() };
     gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_3D, VTMP.t);
     gl.texImage3D(gl.TEXTURE_3D, 0, VOL16 ? gl.RG16F : gl.RG8, 64, 64, 64, 0, gl.RG, VOL16 ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);   // the distance with its billows, and without (half floats where VOL16, as the volumes)
@@ -80,7 +78,7 @@
       ['sky', VS_FAR, FS_SKY], ['depth', VS_FULL, FS_DEPTHDOWN],
       ['pre', VS_FULL, FS_PRE], ['down', VS_FULL, FS_DOWN], ['up', VS_FULL, FS_UP], ['comp', VS_FULL, FS_COMP], ['blit', VS_FULL, FS_BLIT],
       ['vdens', VS_FULL, FS_VDENS], ['vlight', VS_FULL, FS_VLIGHT], ['vbody', VS_VBODY, FS_VBODY], ['virga', VS_VIRGA, FS_VIRGA], ['occ', VS_OCC, FS_OCC], ['creature', VS_CREATURE, FS_CREATURE],
-      ['glow', VS_GLOW, FS_GLOW], ['beam', VS_BEAM, FS_BEAM], ['cacc', VS_FULL, FS_CACC],
+      ['cacc', VS_FULL, FS_CACC],
       ['cshadow', HEAD + VS_CSH, HEAD + FS_CSH]   // (physics: light/cloud-shadow: 262)
     ];
     EP = {};

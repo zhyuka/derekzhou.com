@@ -60,12 +60,10 @@
       if (C.occ) { glFree('VertexArray', C.occ.vao); glFree('Buffer', C.occ.b); }
       for (var i = 0; i < C.vols.length; i++) glFree('Texture', C.vols[i].out.t);
       if (C.inst) C.inst.forEach(function (q) { if (q.buf) glFree('Buffer', q.buf); if (q.vaoF) glFree('VertexArray', q.vaoF); if (q.vaoC) glFree('VertexArray', q.vaoC); });
-      if (C.glowB && C.glowB.buf) { glFree('Buffer', C.glowB.buf); glFree('VertexArray', C.glowB.vao); }
-      if (C.beamB && C.beamB.buf) { glFree('Buffer', C.beamB.buf); glFree('VertexArray', C.beamB.vao); }
     }
     if (C.job) C.job.cancel = true;
     C.mesh = null; C.occ = null; C.lift = null; C.liftN = null; C.liftT = undefined; C.vols = []; C.items = []; C.clouds = []; C.flocks = []; C.pois = []; C.obst = []; C.B = null; C.RB = null; C.gen = null; C.rgen = null; C.pts = null; C.soft = null; C.softB = null;
-    C.places = []; C.glowG = []; C.beamL = []; C.inst = null; C.glowB = null; C.beamB = null;
+    C.places = []; C.inst = null;
     if (C.V) C.V.poiGen = (C.V.poiGen || 0) + 1;
   }
   var DEVKEEP = false;

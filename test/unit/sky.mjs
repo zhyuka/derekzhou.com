@@ -36,7 +36,7 @@
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-2268x1080\":[[800.6,222.2,1467.2,433.8]", "with": "\"hi-2268x1080\":[[933.2,339.4,1334.7,433.8]", "why": "the still's own name box alone: on its band's smallest window the words stand bigger, and the moon's footprint falls on them"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "\"hi-1080x1080\":[[268.9,300.5,810.9,441.4]", "with": "\"hi-1080x1080\":[[339.2,347,740.7,441.4]", "why": "the square still's own name box alone: on 800x720 the evening star's path falls on the bigger name"}
 // plant: {"file": "src/world/226-moonlit-stay.js", "find": "var cw = Math.min(bw, bh * BD[0]), ch = Math.min(bh, bw / BD[1])", "with": "var cw = bw, ch = bh", "why": "the opening planned in the whole still: a disc near its top edge falls off a wider window of its band"}
-// plant: {"file": "src/world/226-moonlit-stay.js", "find": "    LATEK.creature = lk[0]; LATEK.glow = lk[1]; LATEK.beam = lk[2];\n", "with": "", "why": "the opening's cloud layout leaves a late program's flag set: it starts compiling at the opening"}
+// plant: {"file": "src/world/226-moonlit-stay.js", "find": "    LATEK.creature = lk;\n", "with": "", "why": "the opening's cloud layout leaves a late program's flag set: it starts compiling at the opening"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "float lit = smoothstep(hs - 0.5, hs + 0.5, z);", "with": "float lit = 1.0;", "why": "the far storm lit whole whatever the sun's depth: lit in the blue hour and at night"}
 // plant: {"file": "src/world/225-night-sky-moon-path.js", "find": "FL_SEP = 0.6,", "with": "FL_SEP = 0.36,", "why": "the flicker's flashes 0.38 s apart: three peaks inside a second (the owner's \"under 3\")"}
 // plant: {"file": "src/world/glsl/sky-body.glsl", "find": "const float ANV_FK = 0.02 / 0.8966;", "with": "const float ANV_FK = 0.2 / 0.8966;", "why": "the flicker ten times brighter: a flash"}
@@ -222,18 +222,18 @@ test('night: every place the opening moon may take is whole and clear of the wor
   console.log(`# opening moon on the bands' smallest windows: ${n} places, the nearest box ${least.toFixed(2)} deg, the disc ${edge.toFixed(2)} deg inside the edge at least`);
 });
 
-// moonLobes lays out cells the streamer has not reached (the hub's round-4 nit): a layout only, so the late programs'
-// flags it may set through the cell's own api (230's flock, glows, beam) are put back as they were: none starts compiling
-// at the opening. 226's own moonLobes runs here on a stub cell whose layout sets every flag; the flags come out as they went in
+// moonLobes lays out cells the streamer has not reached (the hub's round-4 nit): a layout only, so the late program's
+// flag it may set through the cell's own api (230's flock) is put back as it was: none starts compiling at the opening.
+// 226's own moonLobes runs here on a stub cell whose layout sets the flag; the flag comes out as it went in
 test('night: laying out the opening\'s cloud lobes leaves the late programs\' flags as they were', () => {
   const F = cut(WORLD, '  function moonLobes(', '  function moonVeil(');
-  for (const before of [[0, 0, 0], [1, 0, 1]]) {
-    const K = vm.runInThisContext('(function (B) { var DEG = Math.PI / 180, KITAPI = {}, LATEK = { creature: B[0], glow: B[1], beam: B[2] }, MOON_VEIL_AZ = 60, laid = 0;\n' +
+  for (const before of [[0], [1]]) {
+    const K = vm.runInThisContext('(function (B) { var DEG = Math.PI / 180, KITAPI = {}, LATEK = { creature: B[0] }, MOON_VEIL_AZ = 60, laid = 0;\n' +
       'function angd(a, b) { var d = ((a - b) % 360 + 540) % 360 - 180; return d; } function RNG() { return {}; }\n' +
       'function Cell(V, sc, ix, iz) { this.cx = ix * 100; this.cz = iz * 100; this.clouds = []; }\n' +
-      'function cellApi(C) { return { hash: 1, flock: function () { LATEK.creature = 1; }, glows: function () { LATEK.glow = 1; }, beam: function () { LATEK.beam = 1; } }; }\n' + F +
-      ' var V = { def: { layout: { scales: [{ radius: 200, size: 100 }] }, cell: function (api) { laid++; api.flock({}); api.glows({ n: 1 }); api.beam({}); } } };\n' +
-      ' var out = moonLobes(V, 0, 0, 0); return { L: [LATEK.creature, LATEK.glow, LATEK.beam], laid: laid, out: out }; })')(before);
+      'function cellApi(C) { return { hash: 1, flock: function () { LATEK.creature = 1; } }; }\n' + F +
+      ' var V = { def: { layout: { scales: [{ radius: 200, size: 100 }] }, cell: function (api) { laid++; api.flock({}); } } };\n' +
+      ' var out = moonLobes(V, 0, 0, 0); return { L: [LATEK.creature], laid: laid, out: out }; })')(before);
     assert.ok(K.laid > 0, 'the stub laid out some cells');
     assert.deepEqual(K.L, before, `the late programs' flags after the layout (${K.L}; before ${before})`);
   }

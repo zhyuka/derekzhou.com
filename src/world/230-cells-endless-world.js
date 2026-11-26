@@ -24,7 +24,7 @@
     this.V = V; this.sc = sc; this.ix = ix; this.iz = iz; this.size = L.size; this.x0 = ix * L.size; this.z0 = iz * L.size;
     this.cx = this.x0 + L.size / 2; this.cz = this.z0 + L.size / 2; this.key = cellKey(sc, ix, iz);
     this.st = 0; this.items = []; this.clouds = []; this.flocks = []; this.pois = []; this.obst = []; this.vols = []; this.mesh = null; this.occ = null;
-    this.places = []; this.glowG = []; this.beamL = []; this.inst = null; this.glowB = null; this.beamB = null;
+    this.places = []; this.inst = null;
     this.bound = new Float32Array([this.cx, 0, this.cz, L.size]); this.soft = null; this.softB = null; this.born = -1; this.prio = 0; this.job = null; this.bi = 0; this.B = null; this.gone = false;
     this.lod = 0; this.RB = null; this.rbi = 0; this.gen = null; this.rgen = null;
     this.air = !!L.air; this.dL = null;   // (an air cell: its place in the air frame; dL, how far the air had carried it when it was laid out)
@@ -52,23 +52,11 @@
       //   lowest ground of a ring this wide; 0: the ground at its centre), air: true and y (in the air), ref (an item or a
       //   placement: over its seat), tint: [r, g, b], glow (its emission x this, default 1), bob: [m, period s], spin
       //   (deg/s), phase (0-1), solid: [radius, height, dx, dz] (an obstacle over its seat), sphere: [dy, radius] }
-      place: function (set, x, z, o) { var q = o || {}; q.set = set; q.x = x; q.z = z; C.places.push(q); return q; },
-      // glow sprites, a group of n: { n, pos: [x, y, z, ...] (y over the ground under each when ground is set, over the
-      //   seat of ref when it is given, else the world's), size (m; a number or an array of n), color ([r, g, b] linear,
-      //   HDR, or an array of 3n), px (the least size, px; 1.5), twinkle, pulse (0-1), rate (Hz), phase (array of n; else
-      //   from the hash), drift (m; < 0: a fall down through that many m at rate m/s, again and again: a fall of light, a
-      //   drip), bob (m), blink (the share of a cycle lit), far (m) }
-      glows: function (g) { g.n = g.n || (g.pos ? g.pos.length / 3 : 0); if (g.n > 0) { C.glowG.push(g); LATEK.glow = 1; } return g; },
-      glow: function (o) { var g = { n: 1, pos: [o.x, o.y !== undefined ? o.y : (o.dy || 0), o.z], ground: o.y === undefined && !o.ref, ref: o.ref }; for (var k in o) if (!(k in g) && k !== 'x' && k !== 'y' && k !== 'z' && k !== 'dy') g[k] = o[k]; C.glowG.push(g); LATEK.glow = 1; return g; },
-      // a beam: { from: [x, y, z], to: [x, y, z] (the world's; or over the seat of ref, offsets from its place; or y over
-      //   the ground at from's place when ground is set), r: radius (m) or [at from, at to], color [r, g, b] (linear,
-      //   HDR), core (0-1), dust, shimmer (0-1), fade: [the share faded at its far end, at its start], wake: [radius m,
-      //   delay s, draw-on s] (lit when the camera first comes within radius of from: drawn on from it) }
-      beam: function (b) { C.beamL.push(b); LATEK.beam = 1; return b; }
+      place: function (set, x, z, o) { var q = o || {}; q.set = set; q.x = x; q.z = z; C.places.push(q); return q; }
     };
   }
   /* the ground points to probe: each item's (and cloud's, flock's, poi's, placement's with a foot) centre and a ring at
-     its footprint (9 points), a placement's or a beam's centre alone (1), each grounded glow sprite (1) */
+     its footprint (9 points), a placement's centre alone (1) */
   function anchorsOf(C) {
     var list = [], n = 0, i;
     function want(o, k) {
@@ -80,12 +68,9 @@
     for (i = 0; i < C.flocks.length; i++) want(C.flocks[i], 9);
     for (i = 0; i < C.pois.length; i++) want(C.pois[i], 9);
     for (i = 0; i < C.places.length; i++) want(C.places[i], C.places[i].foot > 0 ? 9 : 1);
-    for (i = 0; i < C.glowG.length; i++) { var g = C.glowG[i]; if (g.ground && !g.ref) { g.ai = n; g.an = g.n; g.isG = true; list.push(g); n += g.n; } }
-    for (i = 0; i < C.beamL.length; i++) { var bm = C.beamL[i]; if (bm.ground && !bm.ref) { bm.ai = n; bm.an = 1; bm.x = bm.from[0]; bm.z = bm.from[2]; list.push(bm); n += 1; } }
     var pts = new Float32Array(n * 2), q = 0;
     for (i = 0; i < list.length; i++) {
       var o = list[i];
-      if (o.isG) { for (var k = 0; k < o.n; k++) { pts[q++] = o.pos[k * 3]; pts[q++] = o.pos[k * 3 + 2]; } continue; }
       var r = o.lq ? o.landQ : (o.foot || 0); pts[q++] = o.x; pts[q++] = o.z;
       if (o.an === 9) for (var j = 0; j < 8; j++) { var a = j / 8 * 2 * PI; pts[q++] = o.x + Math.cos(a) * r; pts[q++] = o.z + Math.sin(a) * r; }
     }
